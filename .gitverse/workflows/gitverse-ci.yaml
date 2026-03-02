@@ -1,21 +1,49 @@
-name: Test Docker availability
+name: Build and Push Python Docker Image
+
 on:
   push:
     branches: [ master ]
   workflow_dispatch:
 
-jobs:
-  test-docker:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Simple echo
-        run: echo "Runner works!"
+env:
+  REGISTRY: "gitverse.ru"
+  IMAGE_NAME: "bystrov.maxim/kanban_assistant"
 
-      - name: Check Docker
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    # Добавляем сервис Docker-in-Docker
+    services:
+      docker:
+        image: docker:dind
+        options: --privileged  # требуется для DinD
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Debug info
         run: |
-          echo "=== which docker ==="
-          which docker || echo "docker not in PATH"
-          echo "=== docker version ==="
-          docker version || echo "docker command failed"
-          echo "=== docker info ==="
-          docker info || echo "docker info failed"
+          echo "User: ${{ github.actor }}"
+          echo "Registry: ${{ env.REGISTRY }}"
+          echo "Image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest"
+
+      - name: Log in to GitVerse Container Registry
+        run: |
+          echo "${{ secrets.GIT_VERSE_TOKEN }}" | docker login ${{ env.REGISTRY }} -u "${{ github.actor }}" --password-stdin
+        env:
+          DOCKER_HOST: tcp://docker:2375  # указываем на сервис DinD
+
+      - name: Build Docker image
+        run: |
+          docker build \
+            --build-arg YOUTRACK_TOKEN="${{ secrets.YOUTRACK_TOKEN }}" \
+            -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest .
+        env:
+          DOCKER_HOST: tcp://docker:2375
+
+      - name: Push Docker image
+        run: |
+          docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+        env:
+          DOCKER_HOST: tcp://docker:2375
