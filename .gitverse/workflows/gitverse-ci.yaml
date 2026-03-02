@@ -1,60 +1,46 @@
-name: Простой пример использования GitVerse CI/CD
+# Имя workflow – будет отображаться в интерфейсе GitVerse
+name: Build and Push Python Docker Image
 
-# Управляет триггерами запуска workflow
+# Управление триггерами (когда запускать)
 on:
-
-  # Запускает workflow при пушах или пул реквестах, но только для ветки master
+  # Запускать при пушах в ветку main
   push:
     branches:
-      - master
-  pull_request:
-    branches:
-      - master
-
-  # Позволяет запускать этот workflow вручную c вкладки CI/CD
+      - main
+  # Позволяет запускать вручную из интерфейса
   workflow_dispatch:
 
-# Workflow состоит из одной или нескольких задач (job), выполняемых последовательно или параллельно
+# Переменные окружения, доступные во всех задачах
+env:
+  # Адрес реестра контейнеров GitVerse
+  REGISTRY: "gitverse.ru"
+  # Имя образа: логин/название_репозитория
+  # ВНИМАНИЕ: замени bystrov.maxim на свой логин, если он отличается!
+  IMAGE_NAME: "bystrov.maxim/kanban_assistant"
+
+# Задачи (jobs) выполняются параллельно или последовательно
 jobs:
-
-  # Этот workflow содержит одну задачу под названием "hello_gitverse"
-  hello_gitverse:
-
-    name: Hello GitVerse
-
-    # Раннер на котором будет выполняться workflow, в данном случае это облачный раннер GitVerse https://gitverse.ru/docs/knowledge-base/actions/cloud-runners/
+  # Название задачи
+  build-and-push:
+    # Запускаем на стандартной виртуальной машине с Ubuntu
     runs-on: ubuntu-latest
-
-    # Шаги представляют собой последовательность действий, выполняемых в рамках задачи
+    # Последовательность шагов
     steps:
-
-      # Клонирует ваш репозиторий в рабочую директорию раннера
-      - name: Checkout your code
+      # Шаг 1: скачать код из репозитория
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      # Выполняет одну команду
-      - name: Run single shell command
-        run: echo Hello, GitVerse!
-
-      # Выполняет набор команд - выводит "Hello, GitVerse!" и содержимое репозитория
-      - name: Run multiple shell commands
+      # Шаг 2: войти в реестр GitVerse, используя секретный токен
+      - name: Log in to GitVerse Container Registry
         run: |
-          echo Hello, GitVerse!
-          echo "Repository contents"
-          ls -la
+          echo "${{ secrets.GITVERSE_TOKEN }}" | docker login ${{ env.REGISTRY }} -u "${{ github.actor }}" --password-stdin
+        # secrets.GITVERSE_TOKEN мы создадим позже в настройках репозитория
 
-      # У GitVerse есть контекст, в командах ниже мы выведем несколько значений из него
-      - name: Display event name
-        run: echo ${{ gitverse.event_name }}
-
-      - name: Display Workflow
-        run: echo ${{ gitverse.workflow }}
-
-      - name: Display repository name
-        run: echo ${{ gitverse.Repository }}
-
-      - name: Display repository owner
-        run: echo ${{ gitverse.repository_owner }}
-
-      - name: Display actor
-        run: echo ${{ gitverse.actor }}
+      # Шаг 3: собрать Docker-образ и отправить его в реестр
+      - name: Build and push Docker image
+        run: |
+          docker build \
+            --build-arg YOUTRACK_TOKEN="${{ secrets.YOUTRACK_TOKEN }}" \
+            -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest .
+          docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+        # --build-arg передаёт токен в Dockerfile, а тот сохраняет его как ENV
