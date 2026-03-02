@@ -1,4 +1,4 @@
-name: Build and Push Python Docker Image
+name: Build and Push Multi-Arch Docker Image (amd64 + arm64)
 
 on:
   push:
@@ -8,38 +8,56 @@ on:
 env:
   REGISTRY: "gitverse.ru"
   IMAGE_NAME: "bystrov.maxim/kanban_assistant"
+  PLATFORMS: "linux/amd64,linux/arm64"
 
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
+    # Для DinD необходим привилегированный режим
+    options: --privileged
+    services:
+      docker:
+        image: docker:dind
+        options: --privileged
+        # Открываем порт для доступа из job
+        ports:
+          - 2375:2375
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # Шаг 1: проверяем наличие Kaniko (типично для российских CI/CD платформ)
-      - name: Check for Kaniko
-        id: check_kaniko
+      # Ждём, пока Docker-демон запустится
+      - name: Wait for Docker daemon
         run: |
-          if command -v kaniko || [ -f /kaniko/executor ]; then
-            echo "has_kaniko=true" >> $GITHUB_OUTPUT
-            echo "Kaniko found"
-          else
-            echo "has_kaniko=false" >> $GITHUB_OUTPUT
-            echo "Kaniko not found"
-          fi
+          timeout 30 sh -c 'until docker version; do sleep 2; done'
+        env:
+          DOCKER_HOST: tcp://docker:2375
 
-      # Шаг 2: используем Kaniko для сборки и публикации
-      - name: Build and push with Kaniko
-        if: steps.check_kaniko.outputs.has_kaniko == 'true'
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          driver: docker-container
+          driver-opts: |
+            image=moby/buildkit:latest
+            network=host
+          # Явно указываем endpoint для Buildx
+          endpoint: tcp://docker:2375
+
+      - name: Log in to GitVerse Container Registry
         run: |
-          # Создаём конфиг для аутентификации в реестре GitVerse
-          mkdir -p /kaniko/.docker
-          AUTH=$(echo -n "${{ github.actor }}:${{ secrets.GIT_VERSE_TOKEN }}" | base64 -w 0)
-          echo "{\"auths\":{\"${{ env.REGISTRY }}\":{\"auth\":\"$AUTH\"}}}" > /kaniko/.docker/config.json
-          # Запускаем Kaniko
-          /kaniko/executor \
-            --context=dir://$(pwd) \
-            --dockerfile=Dockerfile \
-            --destination=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest \
-            --build-arg YOUTRACK_TOKEN=${{ secrets.YOUTRACK_TOKEN }} \
-            --cache=true
+          echo "${{ secrets.GIT_VERSE_TOKEN }}" | docker login ${{ env.REGISTRY }} -u "${{ github.actor }}" --password-stdin
+        env:
+          DOCKER_HOST: tcp://docker:2375
+
+      - name: Build and push multi-arch image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+          platforms: ${{ env.PLATFORMS }}
+          build-args: |
+            YOUTRACK_TOKEN=${{ secrets.YOUTRACK_TOKEN }}
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache
+          cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache,mode=max
