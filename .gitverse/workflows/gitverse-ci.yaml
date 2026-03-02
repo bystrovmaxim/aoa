@@ -1,0 +1,60 @@
+name: Простой пример использования GitVerse CI/CD
+
+# Управляет триггерами запуска workflow
+on:
+
+  # Запускает workflow при пушах или пул реквестах, но только для ветки master
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+  # Позволяет запускать этот workflow вручную c вкладки CI/CD
+  workflow_dispatch:
+
+# Workflow состоит из одной или нескольких задач (job), выполняемых последовательно или параллельно
+jobs:
+
+  # Этот workflow содержит одну задачу под названием "hello_gitverse"
+  hello_gitverse:
+
+    name: Hello GitVerse
+
+    # Раннер на котором будет выполняться workflow, в данном случае это облачный раннер GitVerse https://gitverse.ru/docs/knowledge-base/actions/cloud-runners/
+    runs-on: ubuntu-latest
+
+    # Шаги представляют собой последовательность действий, выполняемых в рамках задачи
+    steps:
+
+      # Клонирует ваш репозиторий в рабочую директорию раннера
+      - name: Checkout your code
+        uses: actions/checkout@v4
+
+      # Выполняет одну команду
+      - name: Run single shell command
+        run: echo Hello, GitVerse!
+
+      # Выполняет набор команд - выводит "Hello, GitVerse!" и содержимое репозитория
+      - name: Run multiple shell commands
+        run: |
+          echo Hello, GitVerse!
+          echo "Repository contents"
+          ls -la
+
+      # У GitVerse есть контекст, в командах ниже мы выведем несколько значений из него
+      - name: Display event name
+        run: echo ${{ gitverse.event_name }}
+
+      - name: Display Workflow
+        run: echo ${{ gitverse.workflow }}
+
+      - name: Display repository name
+        run: echo ${{ gitverse.Repository }}
+
+      - name: Display repository owner
+        run: echo ${{ gitverse.repository_owner }}
+
+      - name: Display actor
+        run: echo ${{ gitverse.actor }}
