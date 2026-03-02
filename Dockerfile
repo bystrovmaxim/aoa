@@ -9,14 +9,12 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Копируем исходный код проекта
-COPY ActionEngine/ ActionEngine/
-COPY YouTrackMCP/ YouTrackMCP/
-# Если есть корневые скрипты (например, run_action.py), копируем их
-COPY run_action.py .  # если существует
+# Копируем исходный код проекта (каждая папка в свою подпапку)
+COPY ActionEngine/ ./ActionEngine/
+COPY YouTrackMCP/ ./YouTrackMCP/
+COPY Utils/ ./Utils/
 
-# (Необязательно) можно скопировать все оставшиеся файлы, но лучше явно перечислить нужное
+# Если есть корневые Python-скрипты, копируем их (например, run_action.py, если есть)
 COPY *.py ./
 
-# Указываем точку входа (как и раньше)
 ENTRYPOINT ["python"]
