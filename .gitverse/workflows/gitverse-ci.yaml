@@ -1,12 +1,21 @@
-name: Test runner
+name: Test Docker availability
 on:
   push:
     branches: [ master ]
   workflow_dispatch:
 
 jobs:
-  test:
+  test-docker:
     runs-on: ubuntu-latest
     steps:
       - name: Simple echo
         run: echo "Runner works!"
+
+      - name: Check Docker
+        run: |
+          echo "=== which docker ==="
+          which docker || echo "docker not in PATH"
+          echo "=== docker version ==="
+          docker version || echo "docker command failed"
+          echo "=== docker info ==="
+          docker info || echo "docker info failed"
