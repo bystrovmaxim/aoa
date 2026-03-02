@@ -1,24 +1,22 @@
-# Базовый образ Python 3 на Alpine (лёгкий и быстрый)
 FROM python:3-alpine
 
-# Аргумент для передачи токена YouTrack во время сборки
 ARG YOUTRACK_TOKEN
-
-# Сохраняем токен как переменную окружения внутри образа
 ENV YOUTRACK_TOKEN=$YOUTRACK_TOKEN
 
-# Устанавливаем рабочую директорию
 WORKDIR /app
 
-# Копируем файл с зависимостями и устанавливаем их
+# Копируем и устанавливаем зависимости
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Копируем сам скрипт
-COPY get_issues.py .
+# Копируем исходный код проекта
+COPY ActionEngine/ ActionEngine/
+COPY YouTrackMCP/ YouTrackMCP/
+# Если есть корневые скрипты (например, run_action.py), копируем их
+COPY run_action.py .  # если существует
 
-# Делаем скрипт исполняемым (на всякий случай)
-RUN chmod +x get_issues.py
+# (Необязательно) можно скопировать все оставшиеся файлы, но лучше явно перечислить нужное
+COPY *.py ./
 
-# Указываем, что контейнер будет запускать Python (скрипт передаётся при запуске)
+# Указываем точку входа (как и раньше)
 ENTRYPOINT ["python"]
