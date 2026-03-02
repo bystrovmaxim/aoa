@@ -33,8 +33,8 @@ jobs:
       # Шаг 2: войти в реестр GitVerse, используя секретный токен
       - name: Log in to GitVerse Container Registry
         run: |
-          echo "${{ secrets.GITVERSE_TOKEN }}" | docker login ${{ env.REGISTRY }} -u "${{ github.actor }}" --password-stdin
-        # secrets.GITVERSE_TOKEN мы создадим позже в настройках репозитория
+          echo "${{ secrets.GIT_VERSE_TOKEN }}" | docker login ${{ env.REGISTRY }} -u "${{ github.actor }}" --password-stdin
+        # secrets.GIT_VERSE_TOKEN мы создадим позже в настройках репозитория
 
       # Шаг 3: собрать Docker-образ и отправить его в реестр
       - name: Build and push Docker image
