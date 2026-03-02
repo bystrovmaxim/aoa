@@ -12,19 +12,11 @@ env:
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
-    # Если раннер разрешает привилегированный режим, раскомментируй следующую строку:
-    # privileged: true
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Debug info
-        run: |
-          echo "User: ${{ github.actor }}"
-          echo "Registry: ${{ env.REGISTRY }}"
-          echo "Image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest"
-
-      # Шаг 1: проверяем наличие Kaniko
+      # Шаг 1: проверяем наличие Kaniko (типично для российских CI/CD платформ)
       - name: Check for Kaniko
         id: check_kaniko
         run: |
@@ -36,11 +28,11 @@ jobs:
             echo "Kaniko not found"
           fi
 
-      # Шаг 2: если Kaniko есть, используем его
+      # Шаг 2: используем Kaniko для сборки и публикации
       - name: Build and push with Kaniko
         if: steps.check_kaniko.outputs.has_kaniko == 'true'
         run: |
-          # Создаём конфиг для аутентификации
+          # Создаём конфиг для аутентификации в реестре GitVerse
           mkdir -p /kaniko/.docker
           AUTH=$(echo -n "${{ github.actor }}:${{ secrets.GIT_VERSE_TOKEN }}" | base64 -w 0)
           echo "{\"auths\":{\"${{ env.REGISTRY }}\":{\"auth\":\"$AUTH\"}}}" > /kaniko/.docker/config.json
@@ -51,29 +43,3 @@ jobs:
             --destination=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest \
             --build-arg YOUTRACK_TOKEN=${{ secrets.YOUTRACK_TOKEN }} \
             --cache=true
-
-      # Шаг 3: если Kaniko нет, пробуем запустить dockerd вручную (требует privileged: true)
-      - name: Start Docker daemon (fallback)
-        if: steps.check_kaniko.outputs.has_kaniko == 'false'
-        run: |
-          # Запускаем демон в фоне
-          dockerd --host=tcp://0.0.0.0:2375 --host=unix:///var/run/docker.sock &
-          # Ждём готовности
-          timeout 30 sh -c 'until docker version; do sleep 2; done'
-
-      - name: Log in to GitVerse Registry (fallback)
-        if: steps.check_kaniko.outputs.has_kaniko == 'false'
-        run: |
-          echo "${{ secrets.GIT_VERSE_TOKEN }}" | docker login ${{ env.REGISTRY }} -u "${{ github.actor }}" --password-stdin
-        env:
-          DOCKER_HOST: tcp://localhost:2375
-
-      - name: Build and push with Docker (fallback)
-        if: steps.check_kaniko.outputs.has_kaniko == 'false'
-        run: |
-          docker build \
-            --build-arg YOUTRACK_TOKEN="${{ secrets.YOUTRACK_TOKEN }}" \
-            -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest .
-          docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
-        env:
-          DOCKER_HOST: tcp://localhost:2375
