@@ -1,56 +1,12 @@
-# Имя workflow – будет отображаться в интерфейсе GitVerse
-name: Build and Push Python Docker Image
-
-# Управление триггерами (когда запускать)
+name: Test runner
 on:
-  # Запускать при пушах в ветку master
   push:
-    branches:
-      - master
-  # Позволяет запускать вручную из интерфейса
+    branches: [ master ]
   workflow_dispatch:
 
-# Переменные окружения, доступные во всех задачах
-env:
-  # Адрес реестра контейнеров GitVerse
-  REGISTRY: "gitverse.ru"
-  # Имя образа: логин/название_репозитория
-  IMAGE_NAME: "bystrov.maxim/kanban_assistant"
-
-# Задачи (jobs) выполняются параллельно или последовательно
 jobs:
-  # Название задачи
-  build-and-push:
-    # Запускаем на стандартной виртуальной машине с Ubuntu
+  test:
     runs-on: ubuntu-latest
-    # Последовательность шагов
     steps:
-      # Шаг 1: скачать код из репозитория
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      # Шаг 2: отладочная информация
-      - name: Debug info
-        run: |
-          echo "User: ${{ github.actor }}"
-          echo "Registry: ${{ env.REGISTRY }}"
-          echo "Image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest"
-          docker version
-          docker info
-
-      # Шаг 3: войти в реестр GitVerse, используя секретный токен
-      - name: Log in to GitVerse Container Registry
-        run: |
-          echo "${{ secrets.GIT_VERSE_TOKEN }}" | docker login ${{ env.REGISTRY }} -u "${{ github.actor }}" --password-stdin
-
-      # Шаг 4: собрать Docker-образ
-      - name: Build Docker image
-        run: |
-          docker build \
-            --build-arg YOUTRACK_TOKEN="${{ secrets.YOUTRACK_TOKEN }}" \
-            -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest .
-
-      # Шаг 5: отправить образ в реестр
-      - name: Push Docker image
-        run: |
-          docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+      - name: Simple echo
+        run: echo "Runner works!"
