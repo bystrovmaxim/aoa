@@ -15,7 +15,6 @@ env:
   # Адрес реестра контейнеров GitVerse
   REGISTRY: "gitverse.ru"
   # Имя образа: логин/название_репозитория
-  # ВНИМАНИЕ: замени bystrov.maxim на свой логин, если он отличается!
   IMAGE_NAME: "bystrov.maxim/kanban_assistant"
 
 # Задачи (jobs) выполняются параллельно или последовательно
@@ -30,17 +29,28 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # Шаг 2: войти в реестр GitVerse, используя секретный токен
+      # Шаг 2: отладочная информация
+      - name: Debug info
+        run: |
+          echo "User: ${{ github.actor }}"
+          echo "Registry: ${{ env.REGISTRY }}"
+          echo "Image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest"
+          docker version
+          docker info
+
+      # Шаг 3: войти в реестр GitVerse, используя секретный токен
       - name: Log in to GitVerse Container Registry
         run: |
           echo "${{ secrets.GIT_VERSE_TOKEN }}" | docker login ${{ env.REGISTRY }} -u "${{ github.actor }}" --password-stdin
-        # secrets.GIT_VERSE_TOKEN мы создадим позже в настройках репозитория
 
-      # Шаг 3: собрать Docker-образ и отправить его в реестр
-      - name: Build and push Docker image
+      # Шаг 4: собрать Docker-образ
+      - name: Build Docker image
         run: |
           docker build \
             --build-arg YOUTRACK_TOKEN="${{ secrets.YOUTRACK_TOKEN }}" \
             -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest .
+
+      # Шаг 5: отправить образ в реестр
+      - name: Push Docker image
+        run: |
           docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
-        # --build-arg передаёт токен в Dockerfile, а тот сохраняет его как ENV
