@@ -3,10 +3,10 @@ name: Build and Push Python Docker Image
 
 # Управление триггерами (когда запускать)
 on:
-  # Запускать при пушах в ветку main
+  # Запускать при пушах в ветку master
   push:
     branches:
-      - main
+      - master
   # Позволяет запускать вручную из интерфейса
   workflow_dispatch:
 
