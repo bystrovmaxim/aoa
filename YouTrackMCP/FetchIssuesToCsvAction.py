@@ -1,3 +1,4 @@
+# Файл: YouTrackMCP/FetchIssuesToCsvAction.py (с добавленной защитой от бесконечного цикла)
 import time
 import requests
 import pandas as pd
@@ -16,12 +17,15 @@ from ActionEngine.Exceptions import HandleException
 @StringFieldChecker("token")
 @StringFieldChecker("project_id", required=False, not_empty=True)
 @StringFieldChecker("output_file", required=True, not_empty=True)
-@IntFieldChecker("page_size", required=True, min_value=1, max_value=500)
+@IntFieldChecker("page_size", required=True, min_value=1, max_value=10000)
 class FetchIssuesToCsvAction(BaseSimpleAction):
     """
     Загружает задачи из YouTrack (все или только указанного проекта)
     и сохраняет их в CSV-файл, дописывая страницы по мере загрузки.
     """
+
+    # Максимальное количество страниц для защиты от бесконечного цикла
+    MAX_PAGES = 10000
 
     def _extract_flat_row(self, issue: Dict) -> Dict:
         row = {
@@ -121,8 +125,13 @@ class FetchIssuesToCsvAction(BaseSimpleAction):
         skip = 0
         first_page = True
         total = 0
+        page_num = 0
 
         while True:
+            # Защита от бесконечного цикла
+            if page_num >= self.MAX_PAGES:
+                raise HandleException(f"Превышено максимальное количество страций ({self.MAX_PAGES}). Возможно, зацикливание.")
+
             req_params = {
                 "fields": fields,
                 "$top": page_size,
@@ -160,6 +169,7 @@ class FetchIssuesToCsvAction(BaseSimpleAction):
             if count < page_size:
                 break
             skip += page_size
+            page_num += 1
             time.sleep(0.2)
 
         print(f"🎉 Всего сохранено {total} задач в {output_file}")
