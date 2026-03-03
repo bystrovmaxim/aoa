@@ -1,18 +1,40 @@
+# Файл: ActionEngine/IntFieldChecker.py
+"""
+Чекер для целочисленных полей.
+
+Требования:
+- Документирование всех методов.
+- Текст исколючений писать на русском.
+"""
 from typing import Any, Optional
 from .BaseFieldChecker import BaseFieldChecker
 from .Exceptions import ValidationFieldException
 
 class IntFieldChecker(BaseFieldChecker):
+    """
+    Проверяет, что значение является целым числом и лежит в заданном диапазоне.
+    """
+
     def __init__(self,
                  field_name: str,
                  required: bool = True,
                  min_value: Optional[int] = None,
                  max_value: Optional[int] = None):
+        """
+        Параметры:
+            field_name: имя поля.
+            required: обязательно ли поле.
+            min_value: минимально допустимое значение (включительно).
+            max_value: максимально допустимое значение (включительно).
+        """
         super().__init__(field_name, required)
         self.min_value = min_value
         self.max_value = max_value
 
     def _check_type_and_constraints(self, value: Any) -> None:
+        """
+        Проверяет, что value является int и при необходимости входит в диапазон.
+        """
         if not isinstance(value, int):
             raise ValidationFieldException(
                 f"Параметр '{self.field_name}' должен быть целым числом, получен {type(value).__name__}"
