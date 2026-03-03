@@ -1,11 +1,13 @@
-# Файл: ActionEngine/Exceptions.py
+# ActionEngine/Exceptions.py
 """
 Исключения, используемые в действиях.
 
 Требования:
+- Документирование всех классов.
 - Документирование всех методов.
-- Текст исколючений писать на русском.
+- Текст исключений писать на русском.
 """
+
 class AuthorizationException(Exception):
     """Ошибка авторизации (недостаточно прав)."""
     pass
@@ -18,4 +20,18 @@ class ValidationFieldException(Exception):
 
 class HandleException(Exception):
     """Ошибка выполнения основной логики действия."""
+    pass
+
+# --- Исключения для управления транзакциями/соединениями ---
+
+class TransactionException(Exception):
+    """Базовое исключение для ошибок, связанных с транзакциями и соединениями."""
+    pass
+
+class ConnectionAlreadyOpenError(TransactionException):
+    """Соединение уже открыто (попытка открыть повторно)."""
+    pass
+
+class ConnectionNotOpenError(TransactionException):
+    """Соединение не открыто (попытка выполнить операцию без открытого соединения)."""
     pass
