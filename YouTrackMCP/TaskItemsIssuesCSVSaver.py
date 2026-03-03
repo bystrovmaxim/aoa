@@ -1,6 +1,7 @@
-# Файл: YouTrackMCP/UserTechStoryIssuesCSVSaver.py
+# Файл: YouTrackMCP/TaskItemsIssuesCSVSaver.py
 """
-Сохранятель для пользовательских и технических историй в CSV.
+Сохранятель для задач типа "Разработка", "Аналитика и проектирование",
+"Решение инцидентов", "Работа вместо системы" в CSV.
 
 Требования:
 - Документирование всех классов.
@@ -14,15 +15,16 @@ from ActionEngine.Exceptions import ValidationFieldException
 from .BaseIssuesCSVSaver import BaseIssuesCSVSaver
 
 
-class UserTechStoryIssuesCSVSaver(BaseIssuesCSVSaver):
+class TaskItemsIssuesCSVSaver(BaseIssuesCSVSaver):
     """
-    Сохранятель для задач типа "Пользовательская история" и "Техническая история".
+    Сохранятель для задач типа "Разработка", "Аналитика и проектирование",
+    "Решение инцидентов", "Работа вместо системы".
     В _preHandleAspect фильтрует входящий список задач, оставляя только нужные,
     преобразует их в плоские словари и возвращает заголовки и строки для записи в CSV.
     """
 
     # Типы задач, которые обрабатывает данный сохранятель
-    _ALLOWED_TYPES = {"Пользовательская история", "Техническая история"}
+    _ALLOWED_TYPES = {"Разработка", "Аналитика и проектирование", "Решение инцидентов", "Работа вместо системы"}
 
     def _extract_flat_row(self, issue: Dict) -> Dict[str, Any]:
         """

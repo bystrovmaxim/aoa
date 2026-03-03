@@ -8,10 +8,11 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from YouTrackMCP import YouTrackMCPServer
 
 def main():
-    result = YouTrackMCPServer.fetch_user_stories_to_csv(
+    result = YouTrackMCPServer.bulk_youtrack_issue_to_csv(
         base_url=os.getenv("YOUTRACK_URL", "https://youtrack.brusnika.tech"),
         token=os.getenv("YOUTRACK_TOKEN"),
-        output_file="/tmp/user_stories.csv",
+        user_stories_file="/tmp/user_stories.csv",
+        tasks_file="/tmp/tasks.csv",
         page_size=100,
         project_id="OPD_IPPM"
     )
