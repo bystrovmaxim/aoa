@@ -1,12 +1,3 @@
-# Файл: YouTrackMCP/FetchIssuesToCsvAction.py
-"""
-Действие для выгрузки задач из YouTrack в CSV-файл.
-
-Требования:
-- Документирование всех классов.
-- Документирование всех методов.
-- Текст исколючений писать на русском.
-"""
 import time
 import requests
 import pandas as pd
@@ -33,10 +24,6 @@ class FetchIssuesToCsvAction(BaseSimpleAction):
     """
 
     def _extract_flat_row(self, issue: Dict) -> Dict:
-        """
-        Преобразует одну задачу (словарь) в плоский словарь для записи в CSV.
-        Обрабатывает кастомные поля, извлекая читаемое значение.
-        """
         row = {
             "id": issue.get("id"),
             "idReadable": issue.get("idReadable"),
@@ -74,10 +61,6 @@ class FetchIssuesToCsvAction(BaseSimpleAction):
         return row
 
     def _write_page_to_csv(self, page_issues: List[Dict], filepath: str, first_page: bool):
-        """
-        Преобразует страницу задач в DataFrame и дописывает в CSV.
-        Если first_page=True, создаёт файл с заголовками, иначе дописывает без заголовков.
-        """
         if not page_issues:
             return
 
@@ -88,11 +71,35 @@ class FetchIssuesToCsvAction(BaseSimpleAction):
         header = first_page
         df.to_csv(filepath, mode=mode, header=header, index=False, encoding='utf-8-sig')
 
-    def _handleAspect(self, ctx: Context, params: Dict[str, Any], result: Any) -> Any:
+    # ------------------------------------------------------------
+    # Аспекты
+    # ------------------------------------------------------------
+
+    @StringFieldChecker("auth_test", not_empty=True)
+    def _permissionAuthorizationAspect(self, ctx: Context, params: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Основная логика: загружает страницы задач и записывает их в CSV.
-        Параметр result здесь не используется (начальное значение None),
-        но мы сохраняем итоговый результат (словарь с количеством и путём) в возвращаемое значение.
+        Аспект авторизации. Добавляет ключ 'auth_test'.
+        """
+        super()._permissionAuthorizationAspect(ctx, params)  # проверка ролей
+        return {"auth_test": "Test"}
+
+    @StringFieldChecker("auth_test", not_empty=True)
+    @StringFieldChecker("validation_test", not_empty=True)
+    def _validationAspect(self, ctx: Context, params: Dict[str, Any], result: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Аспект валидации. Добавляет ключ 'validation_test'.
+        """
+        super()._validationAspect(ctx, params, result)  # валидация параметров
+        result["validation_test"] = "Test"
+        return result
+
+    @StringFieldChecker("auth_test", not_empty=True)
+    @StringFieldChecker("validation_test", not_empty=True)
+    @IntFieldChecker("count", min_value=0)
+    @StringFieldChecker("output_file", not_empty=True)
+    def _handleAspect(self, ctx: Context, params: Dict[str, Any], result: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Основной аспект: загружает задачи и добавляет ключи 'count', 'output_file'.
         """
         base_url = params["base_url"]
         token = params["token"]
@@ -156,5 +163,19 @@ class FetchIssuesToCsvAction(BaseSimpleAction):
             time.sleep(0.2)
 
         print(f"🎉 Всего сохранено {total} задач в {output_file}")
-        # Возвращаем результат действия
-        return {"count": total, "output_file": output_file}
+        result["count"] = total
+        result["output_file"] = output_file
+        return result
+
+    @StringFieldChecker("auth_test", not_empty=True)
+    @StringFieldChecker("validation_test", not_empty=True)
+    @IntFieldChecker("count", min_value=0)
+    @StringFieldChecker("output_file", not_empty=True)
+    @StringFieldChecker("post_test", not_empty=True)
+    def _postHandleAspect(self, ctx: Context, params: Dict[str, Any], result: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Аспект пост-обработки. Добавляет ключ 'post_test'.
+        """
+        super()._postHandleAspect(ctx, params, result)
+        result["post_test"] = "Test"
+        return result

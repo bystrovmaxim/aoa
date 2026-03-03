@@ -5,13 +5,14 @@
 Требования:
 - Документирование всех классов.
 - Документирование всех методов.
-- Текст исколючений писать на русском.
+- Текст исключений писать на русском.
 """
 from abc import ABC, abstractmethod
-from typing import Any, Dict
+from typing import Any, Dict, Callable, List
 from .Context import Context
 from .CheckRoles import CheckRoles
 from .Exceptions import AuthorizationException, ValidationFieldException
+
 
 class BaseSimpleAction(ABC):
     """
@@ -23,8 +24,9 @@ class BaseSimpleAction(ABC):
     3. _handleAspect — основная бизнес-логика (обязателен к переопределению).
     4. _postHandleAspect — пост-обработка (опционально).
 
-    Каждый аспект принимает текущий результат (result) и возвращает новый.
-    Это позволяет передавать данные между аспектами без использования полей класса.
+    Каждый аспект получает на вход текущий результат (словарь) и возвращает
+    (возможно, модифицированный) словарь. После выполнения аспекта применяются
+    чекеры результата, привязанные к этому методу (декораторы FieldChecker на методе).
     """
 
     def _getRoleSpec(self):
@@ -33,12 +35,6 @@ class BaseSimpleAction(ABC):
         Если декоратор не применён, возвращает CheckRoles.NONE.
         """
         return getattr(self.__class__, "_role_spec", CheckRoles.NONE)
-
-    def _getFieldCheckers(self):
-        """
-        Возвращает список чекеров полей, заданных декораторами вида StringFieldChecker и т.п.
-        """
-        return getattr(self.__class__, "_field_checkers", [])
 
     def _checkRole(self, ctx: Context) -> None:
         """
@@ -53,76 +49,130 @@ class BaseSimpleAction(ABC):
 
         if spec == CheckRoles.ANY:
             if not user_roles:
-                raise AuthorizationException("Требуется аутентификация: пользователь должен иметь хотя бы одну роль")
+                raise AuthorizationException(
+                    "Требуется аутентификация: пользователь должен иметь хотя бы одну роль"
+                )
             return
 
         if isinstance(spec, list):
             if any(role in user_roles for role in spec):
                 return
-            raise AuthorizationException(f"Доступ запрещён. Требуется одна из ролей: {spec}, роли пользователя: {user_roles}")
+            raise AuthorizationException(
+                f"Доступ запрещён. Требуется одна из ролей: {spec}, роли пользователя: {user_roles}"
+            )
 
         # spec — строка (одна роль)
         if spec in user_roles:
             return
-        raise AuthorizationException(f"Доступ запрещён. Требуется роль: '{spec}', роли пользователя: {user_roles}")
+        raise AuthorizationException(
+            f"Доступ запрещён. Требуется роль: '{spec}', роли пользователя: {user_roles}"
+        )
+
+    def _apply_checkers(
+        self,
+        checkers: List,
+        data: Dict[str, Any],
+        context_info: str
+    ) -> None:
+        """
+        Применяет список чекеров к словарю data.
+        В случае ошибки ValidationFieldException добавляет к сообщению контекстную информацию.
+        """
+        for checker in checkers:
+            try:
+                checker.check(data)
+            except ValidationFieldException as e:
+                new_msg = f"{context_info}: {e}"
+                raise ValidationFieldException(new_msg, field=e.field) from e
 
     def _checkParams(self, ctx: Context, params: Dict[str, Any]) -> None:
         """
-        Проверяет параметры с помощью зарегистрированных чекеров.
-        Если какой-то параметр не проходит проверку, выбрасывает ValidationFieldException.
-        Также проверяет, нет ли лишних параметров, не описанных чекерами.
+        Проверяет входные параметры с помощью чекеров, собранных с класса.
         """
-        checkers = self._getFieldCheckers()
-        for checker in checkers:
-            checker.check(params)
+        checkers = getattr(self.__class__, "_field_checkers", [])
+        self._apply_checkers(checkers, params, "При проверке входных параметров")
 
-        expected_fields = {c.field_name for c in checkers}
-        extra = set(params.keys()) - expected_fields
-        if extra:
-            raise ValidationFieldException(f"Неожиданные параметры: {', '.join(extra)}")
-
-    def _permissionAuthorizationAspect(self, ctx: Context, params: Dict[str, Any], result: Any) -> Any:
+    def _checkResults(self, method: Callable, result: Dict[str, Any]) -> None:
         """
-        Аспект авторизации.
-        Проверяет права доступа и возвращает result (обычно без изменений).
-        Может быть переопределён для сложной логики, но обычно достаточно базовой проверки ролей.
+        Проверяет результат выполнения метода с помощью чекеров, привязанных к этому методу.
+        Чекеры хранятся в атрибуте метода _result_checkers.
+        """
+        checkers = getattr(method, '_result_checkers', [])
+        method_name = method.__name__
+        self._apply_checkers(
+            checkers,
+            result,
+            f"При проверке результата метода {method_name}"
+        )
+
+    def _permissionAuthorizationAspect(
+        self,
+        ctx: Context,
+        params: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """
+        Аспект авторизации. Проверяет права доступа.
+        По умолчанию не изменяет result. Может быть переопределён.
         """
         self._checkRole(ctx)
+        result: Dict[str, Any] = {}
         return result
 
-    def _validationAspect(self, ctx: Context, params: Dict[str, Any], result: Any) -> Any:
+    def _validationAspect(
+        self,
+        ctx: Context,
+        params: Dict[str, Any],
+        result: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """
-        Аспект валидации.
-        Проверяет параметры и возвращает result (обычно без изменений).
+        Аспект валидации. Проверяет входные параметры.
+        По умолчанию не изменяет result. Может быть переопределён.
         """
         self._checkParams(ctx, params)
         return result
 
     @abstractmethod
-    def _handleAspect(self, ctx: Context, params: Dict[str, Any], result: Any) -> Any:
+    def _handleAspect(
+        self,
+        ctx: Context,
+        params: Dict[str, Any],
+        result: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """
         Аспект основной бизнес-логики.
-        Должен быть переопределён в наследнике. Принимает текущий result и возвращает новый.
+        Должен быть переопределён в наследнике. Получает текущий result и возвращает (возможно, модифицированный) словарь.
         """
         pass
 
-    def _postHandleAspect(self, ctx: Context, params: Dict[str, Any], result: Any) -> Any:
+    def _postHandleAspect(
+        self,
+        ctx: Context,
+        params: Dict[str, Any],
+        result: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """
-        Аспект пост-обработки.
-        Может модифицировать результат или выполнить дополнительные действия (логирование, уведомления).
+        Аспект пост-обработки. Может модифицировать result.
         По умолчанию возвращает result без изменений.
         """
         return result
 
-    def run(self, ctx: Context, params: Dict[str, Any]) -> Any:
+    def run(self, ctx: Context, params: Dict[str, Any]) -> Dict[str, Any]:
         """
         Публичный метод запуска действия.
-        Последовательно вызывает аспекты, начиная с result=None.
-        Возвращает результат последнего аспекта.
+        Последовательно вызывает аспекты, передавая между ними result.
+        После каждого аспекта применяются привязанные к нему чекеры результата.
         """
-        result = None
-        result = self._permissionAuthorizationAspect(ctx, params, result)
+        
+        result = self._permissionAuthorizationAspect(ctx, params)
+        self._checkResults(self._permissionAuthorizationAspect, result)
+
         result = self._validationAspect(ctx, params, result)
+        self._checkResults(self._validationAspect, result)
+
         result = self._handleAspect(ctx, params, result)
+        self._checkResults(self._handleAspect, result)
+
         result = self._postHandleAspect(ctx, params, result)
+        self._checkResults(self._postHandleAspect, result)
+
         return result
