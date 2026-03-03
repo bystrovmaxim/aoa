@@ -5,19 +5,19 @@
 Требования:
 - Документирование всех классов.
 - Документирование всех методов.
-- Текст исколючений писать на русском.
+- Текст исключений писать на русском.
 """
 from abc import ABC, abstractmethod
-from typing import Dict, Any
+from typing import Dict, Any, Union, Callable
 from .Exceptions import ValidationFieldException
 
 class BaseFieldChecker(ABC):
     """
     Абстрактный базовый класс для всех чекеров полей.
 
-    Чекер используется как декоратор. При применении к классу действия он добавляет себя
-    в список _field_checkers этого класса. Во время валидации вызывается метод check(),
-    который проверяет наличие и корректность значения поля в переданных параметрах.
+    Чекер может использоваться как декоратор:
+    - для класса: добавляет себя в список _field_checkers класса (валидация входных параметров).
+    - для метода: добавляет себя в список _result_checkers метода (проверка результата).
 
     Атрибуты:
         field_name (str): имя поля, которое проверяет данный чекер.
@@ -36,24 +36,35 @@ class BaseFieldChecker(ABC):
         self.field_name = field_name
         self.required = required
 
-    def __call__(self, cls):
+    def __call__(self, target: Union[type, Callable]):
         """
-        Позволяет использовать экземпляр чекера как декоратор класса.
-        Добавляет себя в атрибут _field_checkers целевого класса, создавая
-        независимый список для каждого класса (чтобы избежать смешивания при наследовании).
+        Позволяет использовать экземпляр чекера как декоратор для класса или метода.
+
+        - Если target — класс, добавляет чекер в атрибут _field_checkers класса.
+        - Если target — метод (функция), добавляет чекер в атрибут _result_checkers метода.
 
         Параметры:
-            cls: класс, к которому применяется декоратор.
+            target: декорируемый объект (класс или метод).
 
         Возвращает:
-            тот же класс cls (с добавленным чекером).
+            тот же объект target (без изменений).
+
+        Исключения:
+            TypeError: если target не является классом и не является вызываемым объектом.
         """
-        # Проверяем наличие атрибута именно в словаре класса, а не через hasattr,
-        # чтобы не использовать унаследованный список от родителя.
-        if '_field_checkers' not in cls.__dict__:
-            cls._field_checkers = []
-        cls._field_checkers.append(self)
-        return cls
+        if isinstance(target, type):
+            # Декорирование класса: добавляем в _field_checkers
+            if '_field_checkers' not in target.__dict__:
+                target._field_checkers = []
+            target._field_checkers.append(self)
+        elif callable(target):
+            # Декорирование метода: добавляем в _result_checkers метода
+            if not hasattr(target, '_result_checkers'):
+                target._result_checkers = []
+            target._result_checkers.append(self)
+        else:
+            raise TypeError("Декоратор может применяться только к классам или методам")
+        return target
 
     @abstractmethod
     def _check_type_and_constraints(self, value: Any) -> None:
@@ -66,7 +77,7 @@ class BaseFieldChecker(ABC):
 
     def check(self, params: Dict[str, Any]) -> None:
         """
-        Выполняет проверку значения поля в словаре параметров.
+        Выполняет проверку значения поля в словаре параметров (или результата).
 
         Последовательность действий:
         1. Извлекает значение по field_name из params.
@@ -77,7 +88,7 @@ class BaseFieldChecker(ABC):
            добавляет имя поля и пробрасывает исключение дальше.
 
         Параметры:
-            params: словарь с параметрами, переданными в действие.
+            params: словарь с параметрами (может быть входными параметрами или результатом).
 
         Исключения:
             ValidationFieldException: при нарушении любого условия проверки.
