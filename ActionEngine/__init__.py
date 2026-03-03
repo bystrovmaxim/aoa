@@ -23,6 +23,7 @@ from .IntFieldChecker import IntFieldChecker
 from .FloatFieldChecker import FloatFieldChecker
 from .BoolFieldChecker import BoolFieldChecker
 from .DateFieldChecker import DateFieldChecker
+from .InstanceOfChecker import InstanceOfChecker
 
 # Исключения
 from .Exceptions import (
