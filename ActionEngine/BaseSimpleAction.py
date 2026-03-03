@@ -1,4 +1,4 @@
-# Файл: ActionEngine/BaseSimpleAction.py
+# Файл: ActionEngine/BaseSimpleAction.py (исправленная версия)
 """
 Базовый класс для всех действий (stateless).
 
@@ -162,17 +162,40 @@ class BaseSimpleAction(ABC):
         Последовательно вызывает аспекты, передавая между ними result.
         После каждого аспекта применяются привязанные к нему чекеры результата.
         """
-        
-        result = self._permissionAuthorizationAspect(ctx, params)
-        self._checkResults(self._permissionAuthorizationAspect, result)
+        # Проверка корректности входных аргументов
+        if not isinstance(ctx, Context):
+            raise TypeError(f"Ожидался объект Context, получен {type(ctx).__name__}")
+        if not isinstance(params, dict):
+            raise TypeError(f"Параметры должны быть словарём, получен {type(params).__name__}")
 
-        result = self._validationAspect(ctx, params, result)
-        self._checkResults(self._validationAspect, result)
+        result: Dict[str, Any] = {}
 
-        result = self._handleAspect(ctx, params, result)
-        self._checkResults(self._handleAspect, result)
+        # Аспект авторизации
+        auth_result = self._permissionAuthorizationAspect(ctx, params)
+        if not isinstance(auth_result, dict):
+            raise TypeError(f"Аспект {self._permissionAuthorizationAspect.__name__} должен возвращать dict, получен {type(auth_result).__name__}")
+        self._checkResults(self._permissionAuthorizationAspect, auth_result)
+        result.update(auth_result)
 
-        result = self._postHandleAspect(ctx, params, result)
-        self._checkResults(self._postHandleAspect, result)
+        # Аспект валидации
+        validation_result = self._validationAspect(ctx, params, result)
+        if not isinstance(validation_result, dict):
+            raise TypeError(f"Аспект {self._validationAspect.__name__} должен возвращать dict, получен {type(validation_result).__name__}")
+        self._checkResults(self._validationAspect, validation_result)
+        result.update(validation_result)
+
+        # Основной аспект
+        handle_result = self._handleAspect(ctx, params, result)
+        if not isinstance(handle_result, dict):
+            raise TypeError(f"Аспект {self._handleAspect.__name__} должен возвращать dict, получен {type(handle_result).__name__}")
+        self._checkResults(self._handleAspect, handle_result)
+        result.update(handle_result)
+
+        # Пост-обработка
+        post_result = self._postHandleAspect(ctx, params, result)
+        if not isinstance(post_result, dict):
+            raise TypeError(f"Аспект {self._postHandleAspect.__name__} должен возвращать dict, получен {type(post_result).__name__}")
+        self._checkResults(self._postHandleAspect, post_result)
+        result.update(post_result)
 
         return result

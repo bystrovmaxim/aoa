@@ -15,7 +15,7 @@ def main():
         base_url=os.getenv("YOUTRACK_URL", "https://youtrack.brusnika.tech"),
         token=os.getenv("YOUTRACK_TOKEN"),
         output_file="/tmp/issues.csv",
-        page_size=100,
+        page_size=10000,
         project_id="OPD_IPPM"          # опционально, можно закомментировать для всех проектов
     )
     if result["success"]:
