@@ -11,7 +11,10 @@ import logging
 from typing import Optional, Dict, Any
 
 from ActionEngine.Context import Context
-from .FetchIssuesToCsvAction import FetchIssuesToCsvAction
+from ActionEngine.TransactionContext import TransactionContext
+from ActionEngine.CsvConnectionManager import CsvConnectionManager
+from .FetchIssuesFromYouTrackAction import FetchIssuesFromYouTrackAction
+from .UserTechStoryIssuesCSVSaver import UserTechStoryIssuesCSVSaver
 
 logger = logging.getLogger(__name__)
 
@@ -77,4 +80,50 @@ class YouTrackMCPServer:
             # Любое исключение (включая наши бизнес-исключения) логируем и возвращаем как ошибку.
             # Это гарантирует, что внешний клиент (например, n8n) всегда получит структурированный ответ.
             logger.exception("Ошибка в FetchIssuesToCsvAction")
+            return {"success": False, "result": None, "errors": [str(e)]}
+        
+    
+    # Файл: YouTrackMCP/YouTrackMCPServer.py (фрагмент)
+
+    @staticmethod
+    def fetch_user_stories_to_csv(
+        base_url: str,
+        token: str,
+        output_file: str,
+        page_size: int = 100,
+        project_id: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """
+        Загружает из YouTrack все задачи типов "Пользовательская история" и "Техническая история"
+        и сохраняет их в CSV-файл.
+        """
+        # 1. Создаём менеджер соединения для CSV и открываем транзакцию
+        mgr = CsvConnectionManager(filepath=output_file)
+        mgr.open()
+
+        # 2. Создаём транзакционный контекст с соединением (одной строкой)
+        tx_ctx = TransactionContext(base_ctx=Context(user_id="system", roles=["user"]), connection=mgr)
+
+        # 3. Создаём экземпляр saver'а
+        saver = UserTechStoryIssuesCSVSaver()
+
+        # 4. Создаём действие-загрузчик
+        fetcher = FetchIssuesFromYouTrackAction()
+
+        # 5. Формируем параметры: список кортежей (контекст, сейвер)
+        params = {
+            "base_url": base_url,
+            "token": token,
+            "page_size": page_size,
+            "project_id": project_id,
+            "savers": [(tx_ctx, saver)],   # один сейвер с его контекстом
+        }
+
+        try:
+            result = fetcher.run(tx_ctx, params)   # контекст самого загрузчика (tx_ctx) может не использоваться, но передаём для совместимости
+            mgr.commit()
+            return {"success": True, "result": result, "errors": []}
+        except Exception as e:
+            mgr.rollback()
+            logger.exception("Ошибка в fetch_user_stories_to_csv")
             return {"success": False, "result": None, "errors": [str(e)]}
