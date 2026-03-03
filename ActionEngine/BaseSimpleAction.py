@@ -1,22 +1,24 @@
+# ActionEngine/BaseSimpleAction.py
 from abc import ABC, abstractmethod
 from typing import Dict, Any
 from .Context import Context
 from .CheckRoles import CheckRoles
 from .Exceptions import AuthorizationException, ValidationFieldException
 
+
 class BaseSimpleAction(ABC):
     """
     Базовый класс для всех действий. Не перехватывает исключения, они всплывают наружу.
     """
 
-    def _get_role_spec(self):
+    def _getRoleSpec(self):
         return getattr(self.__class__, "_role_spec", CheckRoles.NONE)
 
-    def _get_field_checkers(self):
+    def _getFieldCheckers(self):
         return getattr(self.__class__, "_field_checkers", [])
 
-    def _check_role(self, ctx: Context) -> None:
-        spec = self._get_role_spec()
+    def _checkRole(self, ctx: Context) -> None:
+        spec = self._getRoleSpec()
         user_roles = ctx.roles
 
         if spec == CheckRoles.NONE:
@@ -36,8 +38,8 @@ class BaseSimpleAction(ABC):
             return
         raise AuthorizationException(f"Доступ запрещён. Требуется роль: '{spec}', роли пользователя: {user_roles}")
 
-    def _check_params(self, ctx: Context, params: Dict[str, Any]) -> None:
-        checkers = self._get_field_checkers()
+    def _checkParams(self, ctx: Context, params: Dict[str, Any]) -> None:
+        checkers = self._getFieldCheckers()
         for checker in checkers:
             checker.check(params)
 
@@ -46,14 +48,14 @@ class BaseSimpleAction(ABC):
         if extra:
             raise ValidationFieldException(f"Неожиданные параметры: {', '.join(extra)}")
 
-    def _permission_authorization(self, ctx: Context, params: Dict[str, Any]) -> None:
-        self._check_role(ctx)
+    def _permissionAuthorizationAspect(self, ctx: Context, params: Dict[str, Any]) -> None:
+        self._checkRole(ctx)
 
-    def _validate(self, ctx: Context, params: Dict[str, Any]) -> None:
-        self._check_params(ctx, params)
+    def _validationAspect(self, ctx: Context, params: Dict[str, Any]) -> None:
+        self._checkParams(ctx, params)
 
     @abstractmethod
-    def _handle(self, ctx: Context, params: Dict[str, Any]) -> None:
+    def _handleAspect(self, ctx: Context, params: Dict[str, Any]) -> None:
         """
         Аспект основной бизнес-логики.
         При успехе должен сохранить результат в self._result.
@@ -61,7 +63,7 @@ class BaseSimpleAction(ABC):
         """
         pass
 
-    def _post_handle(self, ctx: Context, params: Dict[str, Any]) -> None:
+    def _postHandleAspect(self, ctx: Context, params: Dict[str, Any]) -> None:
         """
         Аспект пост-обработки. По умолчанию ничего не делает.
         """
@@ -73,10 +75,9 @@ class BaseSimpleAction(ABC):
         Возвращает результат (то, что сохранено в self._result).
         В случае ошибки выбрасывает исключение.
         """
-        self._permission_authorization(ctx, params)
-        self._validate(ctx, params)
-        self._handle(ctx, params)
-        self._post_handle(ctx, params)
+        self._permissionAuthorizationAspect(ctx, params)
+        self._validationAspect(ctx, params)
+        self._handleAspect(ctx, params)
+        self._postHandleAspect(ctx, params)
 
-        # Возвращаем сохранённый результат (может быть None, если действие ничего не возвращает)
         return getattr(self, "_result", None)

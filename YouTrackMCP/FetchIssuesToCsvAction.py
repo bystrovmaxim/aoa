@@ -8,15 +8,16 @@ from ActionEngine.BaseSimpleAction import BaseSimpleAction
 from ActionEngine.Context import Context
 from ActionEngine.CheckRoles import CheckRoles
 from ActionEngine.StringFieldChecker import StringFieldChecker
+from ActionEngine.IntFieldChecker import IntFieldChecker
 from ActionEngine.Exceptions import HandleException
 
-PAGE_SIZE = 100
 
 @CheckRoles(CheckRoles.ANY)
 @StringFieldChecker("base_url")
 @StringFieldChecker("token")
 @StringFieldChecker("project_id", required=False, not_empty=True)
 @StringFieldChecker("output_file", required=True, not_empty=True)
+@IntFieldChecker("page_size", required=True, min_value=1, max_value=500)
 class FetchIssuesToCsvAction(BaseSimpleAction):
 
     def _extract_flat_row(self, issue: Dict) -> Dict:
@@ -67,11 +68,12 @@ class FetchIssuesToCsvAction(BaseSimpleAction):
         header = first_page
         df.to_csv(filepath, mode=mode, header=header, index=False, encoding='utf-8-sig')
 
-    def _handle(self, ctx: Context, params: Dict[str, Any]) -> None:
+    def _handleAspect(self, ctx: Context, params: Dict[str, Any]) -> None:
         base_url = params["base_url"]
         token = params["token"]
         project_id = params.get("project_id")
         output_file = params["output_file"]
+        page_size = params["page_size"]
 
         headers = {
             "Authorization": f"Bearer {token}",
@@ -91,7 +93,7 @@ class FetchIssuesToCsvAction(BaseSimpleAction):
         while True:
             req_params = {
                 "fields": fields,
-                "$top": PAGE_SIZE,
+                "$top": page_size,
                 "$skip": skip
             }
             if query:
@@ -105,14 +107,14 @@ class FetchIssuesToCsvAction(BaseSimpleAction):
                     timeout=30
                 )
             except requests.exceptions.RequestException as e:
-                raise HandleException(f"Connection error: {e}")
+                raise HandleException(f"Ошибка соединения: {e}")
 
             if response.status_code != 200:
                 raise HandleException(f"HTTP {response.status_code}: {response.text}")
 
             issues = response.json()
             if not isinstance(issues, list):
-                raise HandleException("Invalid response format: expected list")
+                raise HandleException("Некорректный формат ответа: ожидался список")
 
             count = len(issues)
             if count == 0:
@@ -123,9 +125,9 @@ class FetchIssuesToCsvAction(BaseSimpleAction):
             total += count
             print(f"✅ Загружено и сохранено {total} задач...")
 
-            if count < PAGE_SIZE:
+            if count < page_size:
                 break
-            skip += PAGE_SIZE
+            skip += page_size
             time.sleep(0.2)
 
         print(f"🎉 Всего сохранено {total} задач в {output_file}")
