@@ -15,6 +15,7 @@ from ActionEngine.TransactionContext import TransactionContext
 from ActionEngine.CsvConnectionManager import CsvConnectionManager
 from .FetchIssuesFromYouTrackAction import FetchIssuesFromYouTrackAction
 from .UserTechStoryIssuesCSVSaver import UserTechStoryIssuesCSVSaver
+from .TaskItemsIssuesCSVSaver import TaskItemsIssuesCSVSaver
 
 logger = logging.getLogger(__name__)
 
@@ -81,49 +82,81 @@ class YouTrackMCPServer:
             # Это гарантирует, что внешний клиент (например, n8n) всегда получит структурированный ответ.
             logger.exception("Ошибка в FetchIssuesToCsvAction")
             return {"success": False, "result": None, "errors": [str(e)]}
-        
-    
-    # Файл: YouTrackMCP/YouTrackMCPServer.py (фрагмент)
 
     @staticmethod
-    def fetch_user_stories_to_csv(
+    def bulk_youtrack_issue_to_csv(
         base_url: str,
         token: str,
-        output_file: str,
+        user_stories_file: Optional[str] = None,
+        tasks_file: Optional[str] = None,
         page_size: int = 100,
         project_id: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
-        Загружает из YouTrack все задачи типов "Пользовательская история" и "Техническая история"
-        и сохраняет их в CSV-файл.
+        Загружает задачи из YouTrack и раскладывает их по разным CSV-файлам в зависимости от типа.
+
+        Параметры:
+            base_url (str): базовый URL экземпляра YouTrack.
+            token (str): перманентный токен доступа к YouTrack.
+            user_stories_file (Optional[str]): путь к CSV-файлу для сохранения пользовательских и технических историй.
+                Если None, этот тип не сохраняется.
+            tasks_file (Optional[str]): путь к CSV-файлу для сохранения задач (типы "Разработка" и "Аналитика и проектирование").
+                Если None, этот тип не сохраняется.
+            page_size (int): количество задач на одной странице (от 1 до 500).
+            project_id (Optional[str]): идентификатор проекта (например, "OPD_IPPM").
+
+        Возвращает:
+            Dict[str, Any] – словарь с ключами:
+                success (bool): True, если операция выполнена без ошибок.
+                result (Any): результат действия (словарь с количеством задач и путём к файлу).
+                errors (List[str]): список сообщений об ошибках (пуст при успехе).
         """
-        # 1. Создаём менеджер соединения для CSV и открываем транзакцию
-        mgr = CsvConnectionManager(filepath=output_file)
-        mgr.open()
+        # Список кортежей (контекст, сейвер)
+        savers = []
+        managers = []  # чтобы потом закрыть все
 
-        # 2. Создаём транзакционный контекст с соединением (одной строкой)
-        tx_ctx = TransactionContext(base_ctx=Context(user_id="system", roles=["user"]), connection=mgr)
+        # Если указан файл для пользовательских историй
+        if user_stories_file:
+            mgr = CsvConnectionManager(filepath=user_stories_file)
+            mgr.open()
+            managers.append(mgr)
+            tx_ctx = TransactionContext(base_ctx=Context(user_id="system", roles=["user"]), connection=mgr)
+            saver = UserTechStoryIssuesCSVSaver()
+            savers.append((tx_ctx, saver))
 
-        # 3. Создаём экземпляр saver'а
-        saver = UserTechStoryIssuesCSVSaver()
+        # Если указан файл для задач
+        if tasks_file:
+            mgr = CsvConnectionManager(filepath=tasks_file)
+            mgr.open()
+            managers.append(mgr)
+            tx_ctx = TransactionContext(base_ctx=Context(user_id="system", roles=["user"]), connection=mgr)
+            saver = TaskItemsIssuesCSVSaver()
+            savers.append((tx_ctx, saver))
 
-        # 4. Создаём действие-загрузчик
+        if not savers:
+            return {"success": False, "result": None, "errors": ["Не указано ни одного файла для сохранения"]}
+
+        # Создаём действие-загрузчик
         fetcher = FetchIssuesFromYouTrackAction()
 
-        # 5. Формируем параметры: список кортежей (контекст, сейвер)
         params = {
             "base_url": base_url,
             "token": token,
             "page_size": page_size,
             "project_id": project_id,
-            "savers": [(tx_ctx, saver)],   # один сейвер с его контекстом
+            "savers": savers,
         }
 
+        # Контекст для самого загрузчика (не используется, но передаём первый попавшийся)
+        main_ctx = savers[0][0] if savers else None
+
         try:
-            result = fetcher.run(tx_ctx, params)   # контекст самого загрузчика (tx_ctx) может не использоваться, но передаём для совместимости
-            mgr.commit()
+            result = fetcher.run(main_ctx, params)
+            for mgr in managers:
+                mgr.commit()
             return {"success": True, "result": result, "errors": []}
         except Exception as e:
-            mgr.rollback()
-            logger.exception("Ошибка в fetch_user_stories_to_csv")
+            for mgr in managers:
+                mgr.rollback()
+            logger.exception("Ошибка в bulk_youtrack_issue_to_csv")
             return {"success": False, "result": None, "errors": [str(e)]}

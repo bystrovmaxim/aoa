@@ -101,6 +101,10 @@ class UserTechStoryIssuesCSVSaver(BaseIssuesCSVSaver):
             if issue_type in self._ALLOWED_TYPES:
                 filtered.append(issue)
 
+        # Логируем количество найденных записей
+        page_num = "первая" if params.get("first_page") else "очередная"
+        print(f"📊 {self.__class__.__name__}: на {page_num} странице найдено {len(filtered)} записей")
+
         if not filtered:
             # Нет подходящих задач
             return {"headers": [], "rows": []}
@@ -109,7 +113,6 @@ class UserTechStoryIssuesCSVSaver(BaseIssuesCSVSaver):
         rows_data = [self._extract_flat_row(issue) for issue in filtered]
 
         # Заголовки — ключи первого словаря (все строки должны иметь одинаковые ключи)
-        # Предполагаем, что структура задач одинакова
         headers = list(rows_data[0].keys())
         rows = [list(row.values()) for row in rows_data]
 
