@@ -136,7 +136,6 @@ class YouTrackMCPServer:
         if not base_url or not token:
             return {"success": False, "result": None, "errors": ["YOUTRACK_URL или YOUTRACK_TOKEN не заданы"]}
 
-        # Параметры PostgreSQL из окружения
         host = os.getenv("POSTGRES_HOST", "localhost")
         try:
             port = int(os.getenv("POSTGRES_PORT", "5432"))
@@ -153,7 +152,6 @@ class YouTrackMCPServer:
         if snapshot_date is None:
             snapshot_date = date.today()
 
-        # Единый менеджер и один контекст для обоих saver'ов
         mgr = PostgresConnectionManager(db_params)
         mgr.open()
         ctx = TransactionContext(
@@ -161,8 +159,9 @@ class YouTrackMCPServer:
             connection=mgr.connection
         )
 
-        stories_saver = YouTrackStoriyIssuesPostgresSaver(snapshot_date=snapshot_date)
-        tasks_saver = YouTrackTasksIssuesPostgresSaver(snapshot_date=snapshot_date)
+        # Создаём saver'ы без snapshot_date в конструкторе
+        stories_saver = YouTrackStoriyIssuesPostgresSaver()
+        tasks_saver = YouTrackTasksIssuesPostgresSaver()
 
         savers = [
             (ctx, stories_saver, ["Пользовательская история", "Техническая история"]),
@@ -181,6 +180,7 @@ class YouTrackMCPServer:
             "page_size": page_size,
             "project_id": project_id,
             "savers": savers,
+            "snapshot_date": snapshot_date.isoformat()   # передаём дату в общие параметры
         }
 
         try:
