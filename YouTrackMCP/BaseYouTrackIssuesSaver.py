@@ -51,10 +51,17 @@ class BaseYouTrackIssuesSaver(BaseTransactionAction):
     def _get_parent_id(self, issue: Dict[str, Any]) -> Optional[str]:
         """
         Возвращает идентификатор родительской задачи (idReadable) или None.
+        Родитель ищется в связях (links) как элемент с linkType.name == "Subtask" и direction == "INWARD".
         """
-        parent = issue.get("parent")
-        if parent and isinstance(parent, dict):
-            return parent.get("idReadable")
+        links = issue.get("links")
+        if links and isinstance(links, list):
+            for link in links:
+                link_type = link.get("linkType", {}).get("name")
+                direction = link.get("direction")
+                if link_type == "Subtask" and direction == "INWARD":
+                    issues_list = link.get("issues")
+                    if issues_list and isinstance(issues_list, list) and len(issues_list) > 0:
+                        return issues_list[0].get("idReadable")
         return None
 
     def _get_custom_field(self, issue: Dict[str, Any], field_name: str) -> Any:

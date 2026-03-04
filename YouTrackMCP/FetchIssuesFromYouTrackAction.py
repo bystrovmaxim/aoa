@@ -51,10 +51,6 @@ class FetchIssuesFromYouTrackAction(BaseSimpleAction):
         page_size: int,
         skip: int
     ) -> tuple[List[Dict], int, Optional[str]]:
-        """
-        Загружает одну страницу задач из YouTrack.
-        Возвращает кортеж (issues, count, error). При ошибке error содержит сообщение.
-        """
         headers = {
             "Authorization": f"Bearer {token}",
             "Accept": "application/json",
@@ -62,7 +58,8 @@ class FetchIssuesFromYouTrackAction(BaseSimpleAction):
 
         fields = (
             "id,idReadable,summary,description,created,updated,resolved,"
-            "customFields(id,projectCustomField(field(name)),value(name,login,fullName,minutes,text,presentation))"
+            "customFields(id,projectCustomField(field(name)),value(name,login,fullName,minutes,text,presentation)),"
+            "links(direction,linkType(name),issues(idReadable,summary))"
         )
 
         req_params = {
