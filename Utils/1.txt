@@ -1,0 +1,298 @@
+{
+  "subtasks": {
+    "$type": "IssueLink"
+  },
+  "attachments": [],
+  "resolved": null,
+  "comments": [],
+  "customFields": [
+    {
+      "value": {
+        "login": "a.udoratin",
+        "name": "Андрей Удоратин",
+        "fullName": "Андрей Удоратин",
+        "id": "1-271",
+        "$type": "User"
+      },
+      "projectCustomField": {
+        "field": {
+          "name": "Assignee",
+          "$type": "CustomField"
+        },
+        "$type": "UserProjectCustomField"
+      },
+      "id": "117-168",
+      "$type": "SingleUserIssueCustomField"
+    },
+    {
+      "projectCustomField": {
+        "field": {
+          "name": "Sprints",
+          "$type": "CustomField"
+        },
+        "$type": "VersionProjectCustomField"
+      },
+      "value": [],
+      "id": "106-840",
+      "$type": "MultiVersionIssueCustomField"
+    },
+    {
+      "projectCustomField": {
+        "field": {
+          "name": "_Тип карточки",
+          "$type": "CustomField"
+        },
+        "$type": "EnumProjectCustomField"
+      },
+      "value": {
+        "name": "Разработка",
+        "id": "89-839",
+        "$type": "EnumBundleElement"
+      },
+      "id": "106-841",
+      "$type": "SingleEnumIssueCustomField"
+    },
+    {
+      "projectCustomField": {
+        "field": {
+          "name": "_Статус задачи",
+          "$type": "CustomField"
+        },
+        "$type": "StateProjectCustomField"
+      },
+      "value": {
+        "name": "Ожидание",
+        "id": "91-1131",
+        "$type": "StateBundleElement"
+      },
+      "id": "106-843",
+      "$type": "StateIssueCustomField"
+    },
+    {
+      "value": null,
+      "projectCustomField": {
+        "field": {
+          "name": "_Сценарий приемки",
+          "$type": "CustomField"
+        },
+        "$type": "TextProjectCustomField"
+      },
+      "id": "145-83",
+      "$type": "TextIssueCustomField"
+    },
+    {
+      "value": 13.0,
+      "projectCustomField": {
+        "field": {
+          "name": "_Story points",
+          "$type": "CustomField"
+        },
+        "$type": "SimpleProjectCustomField"
+      },
+      "id": "107-829",
+      "$type": "SimpleIssueCustomField"
+    },
+    {
+      "value": {
+        "login": "m.bystrov",
+        "name": "Максим Быстров",
+        "fullName": "Максим Быстров",
+        "id": "1-306",
+        "$type": "User"
+      },
+      "projectCustomField": {
+        "field": {
+          "name": "_Тестер",
+          "$type": "CustomField"
+        },
+        "$type": "UserProjectCustomField"
+      },
+      "id": "117-169",
+      "$type": "SingleUserIssueCustomField"
+    },
+    {
+      "projectCustomField": {
+        "field": {
+          "name": "_Приоритет",
+          "$type": "CustomField"
+        },
+        "$type": "EnumProjectCustomField"
+      },
+      "value": {
+        "name": "Обычная",
+        "id": "89-875",
+        "$type": "EnumBundleElement"
+      },
+      "id": "106-844",
+      "$type": "SingleEnumIssueCustomField"
+    },
+    {
+      "projectCustomField": {
+        "field": {
+          "name": "subcomponent",
+          "$type": "CustomField"
+        },
+        "$type": "EnumProjectCustomField"
+      },
+      "value": {
+        "name": "ИСУП Развития",
+        "id": "89-1507",
+        "$type": "EnumBundleElement"
+      },
+      "id": "106-1474",
+      "$type": "SingleEnumIssueCustomField"
+    },
+    {
+      "projectCustomField": {
+        "field": {
+          "name": "Единый спринт",
+          "$type": "CustomField"
+        },
+        "$type": "VersionProjectCustomField"
+      },
+      "value": [
+        {
+          "name": "2026 Q1 M3 | 02.03-13.03",
+          "id": "135-1287",
+          "$type": "VersionBundleElement"
+        }
+      ],
+      "id": "106-1477",
+      "$type": "MultiVersionIssueCustomField"
+    },
+    {
+      "value": null,
+      "projectCustomField": {
+        "field": {
+          "name": "_Дата завершения",
+          "$type": "CustomField"
+        },
+        "$type": "SimpleProjectCustomField"
+      },
+      "id": "107-1068",
+      "$type": "SimpleIssueCustomField"
+    }
+  ],
+  "idReadable": "OPD_IPPM-1012",
+  "summary": "Выгружать бюджет",
+  "updated": 1772618249537,
+  "created": 1770204471626,
+  "links": [
+    {
+      "direction": "BOTH",
+      "linkType": {
+        "name": "Relates",
+        "$type": "IssueLinkType"
+      },
+      "issues": [],
+      "$type": "IssueLink"
+    },
+    {
+      "direction": "OUTWARD",
+      "linkType": {
+        "name": "Depend",
+        "$type": "IssueLinkType"
+      },
+      "issues": [],
+      "$type": "IssueLink"
+    },
+    {
+      "direction": "INWARD",
+      "linkType": {
+        "name": "Depend",
+        "$type": "IssueLinkType"
+      },
+      "issues": [],
+      "$type": "IssueLink"
+    },
+    {
+      "direction": "OUTWARD",
+      "linkType": {
+        "name": "Duplicate",
+        "$type": "IssueLinkType"
+      },
+      "issues": [],
+      "$type": "IssueLink"
+    },
+    {
+      "direction": "INWARD",
+      "linkType": {
+        "name": "Duplicate",
+        "$type": "IssueLinkType"
+      },
+      "issues": [],
+      "$type": "IssueLink"
+    },
+    {
+      "direction": "OUTWARD",
+      "linkType": {
+        "name": "Subtask",
+        "$type": "IssueLinkType"
+      },
+      "issues": [],
+      "$type": "IssueLink"
+    },
+    {
+      "direction": "INWARD",
+      "linkType": {
+        "name": "Subtask",
+        "$type": "IssueLinkType"
+      },
+      "issues": [
+        {
+          "idReadable": "OPD_IPPM-771",
+          "summary": "API для интеграции с СКМ",
+          "$type": "Issue"
+        }
+      ],
+      "$type": "IssueLink"
+    },
+    {
+      "direction": "OUTWARD",
+      "linkType": {
+        "name": "Бизнес-решения",
+        "$type": "IssueLinkType"
+      },
+      "issues": [],
+      "$type": "IssueLink"
+    },
+    {
+      "direction": "INWARD",
+      "linkType": {
+        "name": "Бизнес-решения",
+        "$type": "IssueLinkType"
+      },
+      "issues": [],
+      "$type": "IssueLink"
+    },
+    {
+      "direction": "OUTWARD",
+      "linkType": {
+        "name": "TestLink",
+        "$type": "IssueLinkType"
+      },
+      "issues": [],
+      "$type": "IssueLink"
+    },
+    {
+      "direction": "INWARD",
+      "linkType": {
+        "name": "TestLink",
+        "$type": "IssueLinkType"
+      },
+      "issues": [],
+      "$type": "IssueLink"
+    }
+  ],
+  "parent": {
+    "$type": "IssueLink"
+  },
+  "description": null,
+  "id": "2-129456",
+  "$type": "Issue"
+}
+
+ #fields = (
+        #    "id,idReadable,summary,description,created,updated,resolved,"
+        #    "customFields(id,projectCustomField(field(name)),value(name,login,fullName,minutes,text,presentation))"
+        #)
