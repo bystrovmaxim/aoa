@@ -145,32 +145,30 @@ class BaseYouTrackIssuesSaver(BaseTransactionAction):
         row = {}
 
         # Основные поля
-        row["id"] = self._get_field(issue, "id")
-        row["idReadable"] = self._get_field(issue, "idReadable")
-        row["summary"] = self._get_field(issue, "summary")
-        row["description"] = self._get_field(issue, "description")
-        row["created"] = self._get_field(issue, "created")
-        row["updated"] = self._get_field(issue, "updated")
-        row["resolved"] = self._get_field(issue, "resolved")
+        row["ID"] = self._get_field(issue, "id")
+        row["Key"] = self._get_field(issue, "idReadable")
+        row["Title"] = self._get_field(issue, "summary")
+        row["Description"] = self._get_field(issue, "description")
+        row["Created"] = self._get_field(issue, "created")
+        row["Updated"] = self._get_field(issue, "updated")
+        row["Date_Resolved"] = self._get_field(issue, "resolved")
         row["ParentID"] = self._get_parent_id(issue)
 
         # Пользовательские поля (исполнитель, приемщик)
         assignee = self._get_user_field(issue, "Assignee")
-        row["Логин исполнителя"] = assignee["Login"]
-        row["Имя исполнителя"] = assignee["Name"]
-        row["Полное имя исполнителя"] = assignee["FullName"]
+        row["Assignee_Login"] = assignee["Login"]
+        row["Assignee_Name"] = assignee["Name"]
+        row["Assignee_FullName"] = assignee["FullName"]
 
         # Остальные кастомные поля
-        row["_Тип карточки"] = self._get_custom_field_display(issue, "_Тип карточки")
-        row["_Статус истории"] = self._get_custom_field_display(issue, "_Статус истории")
-        row["_ID"] = self._get_custom_field_display(issue, "_ID")
-        row["_План начало"] = self._get_custom_field_display(issue, "_План начало")
-        row["_План конец"] = self._get_custom_field_display(issue, "_План конец")
-        row["_Прогноз начало"] = self._get_custom_field_display(issue, "_Прогноз начало")
-        row["_Прогноз конец"] = self._get_custom_field_display(issue, "_Прогноз конец")
-        row["_Дата завершения"] = self._get_custom_field_display(issue, "_Дата завершения")
-        row["_Дата завершения"] = self._get_custom_field_display(issue, "Приемщик")
-        row["Единый спринт"] = self._get_sprint_field(issue)
+        row["Type"] = self._get_custom_field_display(issue, "_Тип карточки")
+        row["Status"] = self._get_custom_field_display(issue, "_Статус истории")
+        row["Plan_Start"] = self._get_custom_field_display(issue, "_План начало")
+        row["Plan_Finish"] = self._get_custom_field_display(issue, "_План конец")
+        row["Fact_Forecast_Start"] = self._get_custom_field_display(issue, "_Прогноз начало")
+        row["Fact_Forecast_Finish"] = self._get_custom_field_display(issue, "_Прогноз конец")
+        row["Customer"] = self._get_custom_field_display(issue, "Приемщик")
+        row["Sprints"] = self._get_sprint_field(issue)
 
         return row
 
@@ -181,35 +179,34 @@ class BaseYouTrackIssuesSaver(BaseTransactionAction):
         row = {}
 
         # Основные поля
-        row["id"] = self._get_field(issue, "id")
-        row["idReadable"] = self._get_field(issue, "idReadable")
-        row["summary"] = self._get_field(issue, "summary")
-        row["description"] = self._get_field(issue, "description")
-        row["created"] = self._get_field(issue, "created")
-        row["updated"] = self._get_field(issue, "updated")
-        row["resolved"] = self._get_field(issue, "resolved")
+        row["ID"] = self._get_field(issue, "id")
+        row["Key"] = self._get_field(issue, "idReadable")
+        row["Title"] = self._get_field(issue, "summary")
+        row["Description"] = self._get_field(issue, "description")
+        row["Created"] = self._get_field(issue, "created")
+        row["Updated"] = self._get_field(issue, "updated")
+        row["Date_Resolved"] = self._get_field(issue, "resolved")
         row["ParentID"] = self._get_parent_id(issue)
 
         # Исполнитель
         assignee = self._get_user_field(issue, "Assignee")
-        row["Логин исполнителя"] = assignee["Login"]
-        row["Имя исполнителя"] = assignee["Name"]
-        row["Полное имя исполнителя"] = assignee["FullName"]
+        row["Assignee_Login"] = assignee["Login"]
+        row["Assignee_Name"] = assignee["Name"]
+        row["Assignee_FullName"] = assignee["FullName"]
 
         # Тестер
         tester = self._get_user_field(issue, "_Тестер")
-        row["Логин тестера"] = tester["Login"]
-        row["Имя тестера"] = tester["Name"]
-        row["Полное имя тестера"] = tester["FullName"]
+        row["Tester_Login"] = tester["Login"]
+        row["Tester_Name"] = tester["Name"]
+        row["Tester_FullName"] = tester["FullName"]
 
         # Остальные кастомные поля
-        row["_Тип карточки"] = self._get_custom_field_display(issue, "_Тип карточки")
-        row["_Статус задачи"] = self._get_custom_field_display(issue, "_Статус задачи")
-        row["_Story points"] = self._get_custom_field_display(issue, "_Story points")
-        row["_Приоритет"] = self._get_custom_field_display(issue, "_Приоритет")
-        row["subcomponent"] = self._get_custom_field_display(issue, "subcomponent")
-        row["_Дата завершения"] = self._get_custom_field_display(issue, "_Дата завершения")
-        row["Единый спринт"] = self._get_sprint_field(issue)
+        row["Type"] = self._get_custom_field_display(issue, "_Тип карточки")
+        row["Status"] = self._get_custom_field_display(issue, "_Статус задачи")
+        row["Story_points"] = self._get_custom_field_display(issue, "_Story points")
+        row["Priority"] = self._get_custom_field_display(issue, "_Приоритет")
+        row["Subcomponent"] = self._get_custom_field_display(issue, "subcomponent")
+        row["Sprints"] = self._get_sprint_field(issue)
 
         return row
 
