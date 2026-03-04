@@ -1,4 +1,15 @@
 # Перезапуск контейнеров
-
 docker-compose down
 docker-compose up -d
+
+# Обновление requirements.txt
+pip freeze > requirements.txt
+
+# Комиты и отправка в мастер
+git commit -m "Обновил Dockerfile  чтобы собирался образ"
+git push origin master
+
+# Активация окружения
+cd ~/PythonDev/kanban_assistant
+source venv/bin/activate
+

@@ -13,11 +13,11 @@ from .YouTrackIssuesParser import YouTrackIssuesParser
 from .IYouTrackIssuesSaver import IYouTrackIssuesSaver
 
 
-@CheckRoles(CheckRoles.ANY)
-@StringFieldChecker("base_url")
-@StringFieldChecker("token")
-@IntFieldChecker("page_size", required=True, min_value=1, max_value=500)
-@InstanceOfChecker("savers", expected_class=list, required=True)
+@CheckRoles(CheckRoles.ANY)  # Доступен любому аутентифицированному пользователю
+@StringFieldChecker("base_url")  # Параметр base_url обязателен и должен быть строкой
+@StringFieldChecker("token")     # Параметр token обязателен и должен быть строкой
+@IntFieldChecker("page_size", required=True, min_value=1, max_value=500)  # page_size - целое от 1 до 500
+@InstanceOfChecker("savers", expected_class=list, required=True)  # savers должен быть списком кортежей
 class FetchIssuesFromYouTrackAction(BaseSimpleAction):
     """
     Загружает задачи из YouTrack постранично.
@@ -62,6 +62,8 @@ class FetchIssuesFromYouTrackAction(BaseSimpleAction):
 
         return issues, len(issues), None
 
+    @IntFieldChecker("total_issues", min_value=0)  # общее количество загруженных задач
+    @IntFieldChecker("pages", min_value=0)          # количество обработанных страниц
     def _handleAspect(self, ctx: Context, params: Dict[str, Any], result: Dict[str, Any]) -> Dict[str, Any]:
         base_url = params["base_url"]
         token = params["token"]
