@@ -58,14 +58,13 @@ class CsvConnectionManager(BaseConnectionManager):
         """
         connection.close()
 
-    def write_rows(self, headers: List[str], rows: List[List[Any]], first_page: bool) -> None:
+    def write_rows(self, headers: List[str], rows: List[List[Any]]) -> None:
         """
         Записывает строки в CSV-файл.
 
         Параметры:
             headers: список названий колонок.
             rows: список строк, каждая строка — список значений в том же порядке, что и headers.
-            first_page: флаг, указывающий, что это первая страница (используется для определения необходимости записи заголовков).
 
         Исключения:
             ConnectionNotOpenError: если соединение не открыто.
@@ -74,15 +73,12 @@ class CsvConnectionManager(BaseConnectionManager):
         if self._connection is None:
             raise ConnectionNotOpenError("Соединение не открыто. Вызовите open() перед записью.")
 
-        # Определяем, нужно ли писать заголовки
-        write_headers = first_page or not self._headers_written
-        if write_headers:
-            self._headers_written = True
-
         try:
             writer = csv.writer(self._connection)
-            if write_headers:
+            # Записываем заголовки только если они ещё не были записаны
+            if not self._headers_written:
                 writer.writerow(headers)
+                self._headers_written = True
             for row in rows:
                 writer.writerow(row)
             self._connection.flush()  # сбрасываем буфер

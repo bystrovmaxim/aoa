@@ -3,9 +3,12 @@ from typing import Any, Dict
 from ActionEngine.BaseTransactionAction import BaseTransactionAction
 from ActionEngine.TransactionContext import TransactionContext
 from ActionEngine.Exceptions import HandleException
+from ActionEngine.InstanceOfChecker import InstanceOfChecker
 from .IYouTrackIssuesSaver import IYouTrackIssuesSaver
 
 
+@InstanceOfChecker("headers", expected_class=list, required=True)
+@InstanceOfChecker("rows", expected_class=list, required=True)
 class YouTrackIssuesCSVSaver(BaseTransactionAction, IYouTrackIssuesSaver):
     """
     Сохранятель для записи данных в CSV-файл.
@@ -30,10 +33,8 @@ class YouTrackIssuesCSVSaver(BaseTransactionAction, IYouTrackIssuesSaver):
         if headers is None or rows is None:
             raise ValueError("Параметры должны содержать 'headers' и 'rows'")
 
-        first_page = params.get("first_page", False)
-
         try:
-            ctx.connection.write_rows(headers, rows, first_page)
+            ctx.connection.write_rows(headers, rows)
         except Exception as e:
             raise HandleException(f"Ошибка при записи в CSV: {e}")
 

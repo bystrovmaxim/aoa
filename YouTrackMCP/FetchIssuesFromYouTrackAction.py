@@ -1,6 +1,6 @@
 import time
 import requests
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Tuple
 
 from ActionEngine.BaseSimpleAction import BaseSimpleAction
 from ActionEngine.Context import Context
@@ -77,10 +77,11 @@ class FetchIssuesFromYouTrackAction(BaseSimpleAction):
         pages = 0
         total_issues = 0
 
-        # Создаём парсер (stateless, можно один на все страницы)
         parser = YouTrackIssuesParser()
-        # Контекст для парсера – фиктивный, т.к. парсер не использует соединение
         dummy_ctx = Context()
+
+        # Кэш заголовков для каждого набора типов карточек
+        headers_cache: Dict[Tuple[str, ...], List[str]] = {}
 
         while True:
             if pages >= self.MAX_PAGES:
@@ -92,32 +93,45 @@ class FetchIssuesFromYouTrackAction(BaseSimpleAction):
             if count == 0:
                 break
 
-            # Парсим задачи через действие
             parse_result = parser.run(dummy_ctx, {"issues": issues})
             by_type = parse_result.get("by_type", {})
 
-            # Для каждого saver'а собираем данные по его типам
             for saver_ctx, saver, card_types in savers:
                 if not isinstance(saver, IYouTrackIssuesSaver):
                     raise TypeError(f"Объект {saver} не реализует интерфейс IYouTrackIssuesSaver")
 
-                # Собираем все строки для указанных типов
-                all_rows = []
+                # Собираем все строки для указанных типов на текущей странице
+                page_rows = []
                 for typ in card_types:
-                    all_rows.extend(by_type.get(typ, []))
+                    page_rows.extend(by_type.get(typ, []))
 
-                if not all_rows:
-                    continue  # для этого saver'а нет данных на странице
+                if not page_rows:
+                    continue
 
-                # Объединяем заголовки (все возможные ключи)
-                headers = sorted(set().union(*(row.keys() for row in all_rows)))
-                data_rows = [[row.get(h) for h in headers] for row in all_rows]
+                # Определяем ключ для кэша
+                cache_key = tuple(sorted(card_types))
+
+                # Если заголовки ещё не определены, вычисляем их по данным этой страницы
+                if cache_key not in headers_cache:
+                    all_keys = set()
+                    for row in page_rows:
+                        all_keys.update(row.keys())
+                    headers_cache[cache_key] = sorted(all_keys)
+
+                headers = headers_cache[cache_key]
+
+                # Преобразуем строки в списки значений в порядке headers
+                data_rows = []
+                for row in page_rows:
+                    data_rows.append([row.get(h) for h in headers])
 
                 sub_params = {
                     "headers": headers,
                     "rows": data_rows,
-                    "first_page": (skip == 0)
                 }
+                if "snapshot_date" in params:
+                    sub_params["snapshot_date"] = params["snapshot_date"]
+
                 saver.run(saver_ctx, sub_params)
 
             total_issues += count
