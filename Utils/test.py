@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# Файл: Utils/test.py
 import sys
 import os
 
@@ -9,8 +10,6 @@ from YouTrackMCP import YouTrackMCPServer
 
 def main():
     result = YouTrackMCPServer.bulk_youtrack_issue_to_csv(
-        base_url=os.getenv("YOUTRACK_URL", "https://youtrack.brusnika.tech"),
-        token=os.getenv("YOUTRACK_TOKEN"),
         user_stories_file="/tmp/user_stories.csv",
         tasks_file="/tmp/tasks.csv",
         page_size=100,
