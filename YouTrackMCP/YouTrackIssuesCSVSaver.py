@@ -1,29 +1,20 @@
-# Файл: YouTrackMCP/YouTrackIssuesCSVSaver.py
-"""
-Сохранятель для задач YouTrack в CSV с использованием двух стратегий.
-"""
-from typing import Any, Dict, List
+from typing import Any, Dict
 
+from ActionEngine.BaseTransactionAction import BaseTransactionAction
 from ActionEngine.TransactionContext import TransactionContext
 from ActionEngine.Exceptions import HandleException
-from .BaseYouTrackIssuesSaver import BaseYouTrackIssuesSaver
+from .IYouTrackIssuesSaver import IYouTrackIssuesSaver
 
 
-class YouTrackIssuesCSVSaver(BaseYouTrackIssuesSaver):
+class YouTrackIssuesCSVSaver(BaseTransactionAction, IYouTrackIssuesSaver):
     """
-    Сохранятель, который записывает задачи YouTrack в CSV-файл.
-    Использует стратегии из базового класса для извлечения данных.
-    Для работы требует, чтобы в контексте было открытое соединение типа CsvConnectionManager.
+    Сохранятель для записи данных в CSV-файл.
+    Ожидает, что в контексте есть открытое соединение CsvConnectionManager.
+    Параметры должны содержать 'headers' и 'rows'.
     """
 
-    def __init__(self, strategy: List[str] = None):
-        """
-        Параметры:
-            strategy: список типов карточек, которые должен обрабатывать этот сейвер.
-                      Если не указан, будет пустой список (ничего не сохранится).
-        """
+    def __init__(self):
         super().__init__()
-        self._strategy = strategy or []
 
     def _handleAspect(
         self,
@@ -31,18 +22,15 @@ class YouTrackIssuesCSVSaver(BaseYouTrackIssuesSaver):
         params: Dict[str, Any],
         result: Dict[str, Any]
     ) -> Dict[str, Any]:
-        """
-        Записывает подготовленные строки в CSV через соединение.
-        """
         if ctx.connection is None:
             raise ValueError("В контексте отсутствует открытое соединение")
 
-        headers = result.get('headers')
-        rows = result.get('rows')
+        headers = params.get("headers")
+        rows = params.get("rows")
         if headers is None or rows is None:
-            raise ValueError("Результат _preHandleAspect должен содержать 'headers' и 'rows'")
+            raise ValueError("Параметры должны содержать 'headers' и 'rows'")
 
-        first_page = params.get('first_page', False)
+        first_page = params.get("first_page", False)
 
         try:
             ctx.connection.write_rows(headers, rows, first_page)

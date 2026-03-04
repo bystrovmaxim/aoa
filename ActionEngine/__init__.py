@@ -8,6 +8,7 @@
 from .BaseSimpleAction import BaseSimpleAction
 from .BaseTransactionAction import BaseTransactionAction
 from .BaseConnectionManager import BaseConnectionManager
+from .PostgresConnectionManager import PostgresConnectionManager
 
 # Контекст
 from .Context import Context
