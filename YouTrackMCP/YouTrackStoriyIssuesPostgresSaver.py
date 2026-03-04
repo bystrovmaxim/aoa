@@ -11,19 +11,21 @@ from ActionEngine.Exceptions import HandleException
 from ActionEngine.requires_connection_type import requires_connection_type
 from ActionEngine.InstanceOfChecker import InstanceOfChecker
 from ActionEngine.StringFieldChecker import StringFieldChecker
+from ActionEngine.IntFieldChecker import IntFieldChecker
 from .IYouTrackIssuesSaver import IYouTrackIssuesSaver
 
 logger = logging.getLogger(__name__)
 
 
-@requires_connection_type(psycopg2.extensions.connection)
-@InstanceOfChecker("headers", expected_class=list, required=True)
-@InstanceOfChecker("rows", expected_class=list, required=True)
-@StringFieldChecker("snapshot_date", required=True, not_empty=True)
+@requires_connection_type(psycopg2.extensions.connection)          # Требуется соединение с PostgreSQL
+@InstanceOfChecker("headers", expected_class=list, required=True)  # Параметр headers должен быть списком
+@InstanceOfChecker("rows", expected_class=list, required=True)    # Параметр rows должен быть списком
+@StringFieldChecker("snapshot_date", required=True, not_empty=True)  # snapshot_date – непустая строка даты
 class YouTrackStoriyIssuesPostgresSaver(BaseTransactionAction, IYouTrackIssuesSaver):
     """
     Сохраняет снимки историй (пользовательские и технические) в таблицу user_tech_stories.
     Параметры должны содержать 'headers', 'rows' и 'snapshot_date'.
+    При конфликте (key, snapshot_date) выполняет обновление всех полей.
     """
 
     TABLE_NAME = "user_tech_stories"
@@ -31,6 +33,7 @@ class YouTrackStoriyIssuesPostgresSaver(BaseTransactionAction, IYouTrackIssuesSa
     def __init__(self):
         super().__init__()
 
+    @IntFieldChecker("inserted", min_value=0)  # количество вставленных или обновлённых записей
     def _handleAspect(
         self,
         ctx: TransactionContext,
@@ -45,7 +48,6 @@ class YouTrackStoriyIssuesPostgresSaver(BaseTransactionAction, IYouTrackIssuesSa
         rows = params.get("rows")
         snapshot_date_str = params.get("snapshot_date")
 
-        # Преобразуем строку в date
         try:
             snapshot_date = date.fromisoformat(snapshot_date_str)
         except ValueError:
@@ -53,20 +55,12 @@ class YouTrackStoriyIssuesPostgresSaver(BaseTransactionAction, IYouTrackIssuesSa
 
         if not rows:
             logger.info(f"Нет данных для вставки в {self.TABLE_NAME} за {snapshot_date}")
-            return {"deleted": 0, "inserted": 0}
+            return {"inserted": 0}
 
         cur = conn.cursor()
-        deleted = 0
 
         try:
-            # Удаление старых записей за эту дату
-            delete_sql = sql.SQL("DELETE FROM youtrack.{} WHERE snapshot_date = %s").format(
-                sql.Identifier(self.TABLE_NAME)
-            )
-            cur.execute(delete_sql, (snapshot_date,))
-            deleted = cur.rowcount
-
-            # Вставка новых
+            # Вставка с обновлением при конфликте
             columns = headers + ["snapshot_date"]
             values_list = [row + [snapshot_date] for row in rows]
 
@@ -87,5 +81,5 @@ class YouTrackStoriyIssuesPostgresSaver(BaseTransactionAction, IYouTrackIssuesSa
         except Exception as e:
             raise HandleException(f"Ошибка при работе с PostgreSQL: {e}")
 
-        logger.info(f"Удалено {deleted}, вставлено {len(rows)} записей в {self.TABLE_NAME} за {snapshot_date}")
-        return {"deleted": deleted, "inserted": len(rows)}
+        logger.info(f"Вставлено/обновлено {len(rows)} записей в {self.TABLE_NAME} за {snapshot_date}")
+        return {"inserted": len(rows)}

@@ -6,6 +6,7 @@ from datetime import datetime, date
 
 from ActionEngine.BaseSimpleAction import BaseSimpleAction
 from ActionEngine.Context import Context
+from ActionEngine.InstanceOfChecker import InstanceOfChecker
 
 
 class YouTrackIssuesParser(BaseSimpleAction):
@@ -167,6 +168,7 @@ class YouTrackIssuesParser(BaseSimpleAction):
         row["sprints"] = cls._get_sprint_field(issue)
         return row
 
+    @InstanceOfChecker("by_type", expected_class=dict)  # словарь с данными, сгруппированными по типам
     def _handleAspect(self, ctx: Context, params: Dict[str, Any], result: Dict[str, Any]) -> Dict[str, Any]:
         """
         Основной аспект: получает список задач из params["issues"] и возвращает

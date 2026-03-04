@@ -4,11 +4,12 @@ from ActionEngine.BaseTransactionAction import BaseTransactionAction
 from ActionEngine.TransactionContext import TransactionContext
 from ActionEngine.Exceptions import HandleException
 from ActionEngine.InstanceOfChecker import InstanceOfChecker
+from ActionEngine.IntFieldChecker import IntFieldChecker
 from .IYouTrackIssuesSaver import IYouTrackIssuesSaver
 
 
-@InstanceOfChecker("headers", expected_class=list, required=True)
-@InstanceOfChecker("rows", expected_class=list, required=True)
+@InstanceOfChecker("headers", expected_class=list, required=True)  # Параметр headers должен быть списком
+@InstanceOfChecker("rows", expected_class=list, required=True)    # Параметр rows должен быть списком
 class YouTrackIssuesCSVSaver(BaseTransactionAction, IYouTrackIssuesSaver):
     """
     Сохранятель для записи данных в CSV-файл.
@@ -19,6 +20,7 @@ class YouTrackIssuesCSVSaver(BaseTransactionAction, IYouTrackIssuesSaver):
     def __init__(self):
         super().__init__()
 
+    @IntFieldChecker("written_rows", min_value=0)  # количество фактически записанных строк
     def _handleAspect(
         self,
         ctx: TransactionContext,

@@ -2,9 +2,11 @@
 from ActionEngine.BaseTransactionAction import BaseTransactionAction
 from ActionEngine.TransactionContext import TransactionContext
 from ActionEngine.requires_connection_type import requires_connection_type
+from ActionEngine.InstanceOfChecker import InstanceOfChecker
+from ActionEngine.StringFieldChecker import StringFieldChecker
 import psycopg2
 
-@requires_connection_type(psycopg2.extensions.connection)
+@requires_connection_type(psycopg2.extensions.connection)  # Требуется соединение с PostgreSQL
 class InitDatabaseAction(BaseTransactionAction):
     """
     Создаёт схему youtrack и две таблицы для хранения ежедневных снимков:
@@ -13,6 +15,8 @@ class InitDatabaseAction(BaseTransactionAction):
     Каждая запись уникальна по (key, snapshot_date).
     """
 
+    @InstanceOfChecker("tables_created", expected_class=list)  # список созданных таблиц
+    @StringFieldChecker("schema") 
     def _handleAspect(self, ctx: TransactionContext, params: dict, result: dict) -> dict:
         conn = ctx.connection
         cur = conn.cursor()
