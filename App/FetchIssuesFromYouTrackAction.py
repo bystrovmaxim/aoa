@@ -15,7 +15,7 @@ from .IYouTrackIssuesSaver import IYouTrackIssuesSaver
 @CheckRoles(CheckRoles.ANY, desc="Доступен любому аутентифицированному пользователю")
 @StringFieldChecker("base_url", desc="Входной параметр: URL YouTrack (обязательная строка)")
 @StringFieldChecker("token", desc="Входной параметр: токен доступа (обязательная строка)")
-@IntFieldChecker("page_size", required=True, min_value=1, max_value=500, desc="Входной параметр: размер страницы (целое от 1 до 500)")
+@IntFieldChecker("page_size", required=True, min_value=1, max_value=5000, desc="Входной параметр: размер страницы (целое от 1 до 500)")
 @InstanceOfChecker("savers", expected_class=list, required=True, desc="Входной параметр: список кортежей (context, saver, card_types)")
 class FetchIssuesFromYouTrackAction(BaseSimpleAction):
     """
@@ -25,7 +25,7 @@ class FetchIssuesFromYouTrackAction(BaseSimpleAction):
     соответствующие подмножества каждому saver'у.
     """
 
-    MAX_PAGES = 10000
+    MAX_PAGES = 1000000
 
     def _fetch_page(self, base_url: str, token: str, query: str, page_size: int, skip: int):
         headers = {"Authorization": f"Bearer {token}", "Accept": "application/json"}

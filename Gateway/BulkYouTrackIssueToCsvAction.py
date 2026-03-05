@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 
 @CheckRoles(CheckRoles.ANY, desc="Доступен любому аутентифицированному пользователю")
-@IntFieldChecker("page_size", min_value=1, max_value=500, desc="Входной параметр: размер страницы (целое от 1 до 500)")
+@IntFieldChecker("page_size", min_value=1, max_value=5000, desc="Входной параметр: размер страницы (целое от 1 до 500)")
 @StringFieldChecker("user_stories_file", required=False, not_empty=True, desc="Входной параметр: путь к CSV-файлу для историй (опционально)")
 @StringFieldChecker("tasks_file", required=False, not_empty=True, desc="Входной параметр: путь к CSV-файлу для задач (опционально)")
 @StringFieldChecker("project_id", required=False, not_empty=True, desc="Входной параметр: идентификатор проекта (опционально)")
