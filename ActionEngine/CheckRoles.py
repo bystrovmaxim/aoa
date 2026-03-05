@@ -23,12 +23,15 @@ class CheckRoles:
     NONE = "NO_ROLE"
     ANY = "ANY_ROLE"
 
-    def __init__(self, spec: Union[str, List[str]]):
+    def __init__(self, 
+                 spec: Union[str, List[str]],
+                 description: str = None):
         """
         Параметры:
             spec: строка (одна роль), список строк, или константа NONE/ANY.
         """
         self.spec = spec
+        self.description = description
 
     def __call__(self, cls):
         """

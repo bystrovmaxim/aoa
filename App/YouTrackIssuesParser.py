@@ -8,7 +8,7 @@ from ActionEngine.BaseSimpleAction import BaseSimpleAction
 from ActionEngine.Context import Context
 from ActionEngine.InstanceOfChecker import InstanceOfChecker
 
-
+@InstanceOfChecker("issues", expected_class=list, description="Входной параметр: список задач YouTrack")
 class YouTrackIssuesParser(BaseSimpleAction):
     """
     Принимает список задач (issues) и возвращает словарь, где ключ – тип карточки,
@@ -168,7 +168,7 @@ class YouTrackIssuesParser(BaseSimpleAction):
         row["sprints"] = cls._get_sprint_field(issue)
         return row
 
-    @InstanceOfChecker("by_type", expected_class=dict)  # словарь с данными, сгруппированными по типам
+    @InstanceOfChecker("by_type", expected_class=dict, description="Результат _handleAspect: словарь с данными, сгруппированными по типам карточек")
     def _handleAspect(self, ctx: Context, params: Dict[str, Any], result: Dict[str, Any]) -> Dict[str, Any]:
         """
         Основной аспект: получает список задач из params["issues"] и возвращает

@@ -4,11 +4,16 @@ from typing import Optional, Dict, Any
 from datetime import date
 
 from ActionEngine.Context import Context
+from ActionEngine.TransactionContext import TransactionContext
+from ActionEngine.CsvConnectionManager import CsvConnectionManager
+from ActionEngine.PostgresConnectionManager import PostgresConnectionManager
+
 from .BulkYouTrackIssueToCsvAction import BulkYouTrackIssueToCsvAction
 from .BulkYouTrackIssueToPostgresAction import BulkYouTrackIssueToPostgresAction
 from .InitDatabaseServerAction import InitDatabaseServerAction
 
 logger = logging.getLogger(__name__)
+
 
 class YouTrackMCPServer:
     """
@@ -18,6 +23,11 @@ class YouTrackMCPServer:
 
     @staticmethod
     def init_database() -> Dict[str, Any]:
+        """
+        Инициализирует таблицы в PostgreSQL.
+        Параметры подключения читаются из переменных окружения:
+            POSTGRES_HOST, POSTGRES_PORT, POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD.
+        """
         pg_host = os.getenv("POSTGRES_HOST")
         if not pg_host:
             return {"success": False, "result": None, "errors": ["POSTGRES_HOST не задан"]}
@@ -31,19 +41,27 @@ class YouTrackMCPServer:
         if not pg_db or not pg_user or not pg_password:
             return {"success": False, "result": None, "errors": ["POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD должны быть заданы"]}
 
-        action = InitDatabaseServerAction()
-        ctx = Context(user_id="system", roles=["admin"])
-        params = {
-            "pg_host": pg_host,
-            "pg_port": pg_port,
-            "pg_db": pg_db,
-            "pg_user": pg_user,
-            "pg_password": pg_password,
+        db_params = {
+            "host": pg_host,
+            "port": pg_port,
+            "dbname": pg_db,
+            "user": pg_user,
+            "password": pg_password,
         }
+
+        mgr = PostgresConnectionManager(db_params)
+        mgr.open()
+        ctx = TransactionContext(
+            base_ctx=Context(user_id="system", roles=["admin"]),
+            connection=mgr.connection
+        )
+        action = InitDatabaseServerAction()
         try:
-            result = action.run(ctx, params)
+            result = action.run(ctx, {})
+            mgr.commit()
             return {"success": True, "result": result, "errors": []}
         except Exception as e:
+            mgr.rollback()
             logger.exception("Ошибка при инициализации БД")
             return {"success": False, "result": None, "errors": [str(e)]}
 
@@ -54,6 +72,10 @@ class YouTrackMCPServer:
         page_size: int = 100,
         project_id: Optional[str] = None,
     ) -> Dict[str, Any]:
+        """
+        Загружает задачи из YouTrack и сохраняет в CSV-файлы.
+        Параметры YouTrack читаются из переменных окружения YOUTRACK_URL, YOUTRACK_TOKEN.
+        """
         base_url = os.getenv("YOUTRACK_URL")
         token = os.getenv("YOUTRACK_TOKEN")
         if not base_url or not token:
@@ -82,6 +104,11 @@ class YouTrackMCPServer:
         page_size: int = 100,
         snapshot_date: Optional[date] = None,
     ) -> Dict[str, Any]:
+        """
+        Загружает задачи из YouTrack и сохраняет снимки в PostgreSQL.
+        Параметры YouTrack читаются из переменных окружения YOUTRACK_URL, YOUTRACK_TOKEN.
+        Параметры PostgreSQL читаются из переменных окружения POSTGRES_*.
+        """
         base_url = os.getenv("YOUTRACK_URL")
         token = os.getenv("YOUTRACK_TOKEN")
         if not base_url or not token:

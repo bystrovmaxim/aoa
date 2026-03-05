@@ -24,7 +24,8 @@ class DateFieldChecker(BaseFieldChecker):
                  required: bool = True,
                  format: Optional[str] = None,
                  min_date: Optional[datetime] = None,
-                 max_date: Optional[datetime] = None):
+                 max_date: Optional[datetime] = None,
+                 desc: str = None):
         """
         Параметры:
             field_name: имя поля.
@@ -33,7 +34,7 @@ class DateFieldChecker(BaseFieldChecker):
             min_date: минимально допустимая дата.
             max_date: максимально допустимая дата.
         """
-        super().__init__(field_name, required)
+        super().__init__(field_name, required, desc)
         self.format = format
         self.min_date = min_date
         self.max_date = max_date
