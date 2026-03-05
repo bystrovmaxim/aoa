@@ -1,4 +1,4 @@
-# Файл: ActionEngine/BaseSimpleAction.py
+# ActionEngine/Core/BaseSimpleAction.py
 """
 Базовый класс для всех действий (stateless).
 
@@ -9,9 +9,10 @@
 """
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Callable, List
-from .Context import Context
-from .CheckRoles import CheckRoles
-from .Exceptions import AuthorizationException, ValidationFieldException
+
+from ActionEngine.Context.Context import Context
+from ActionEngine.Auth.CheckRoles import CheckRoles
+from ActionEngine.Core.Exceptions import AuthorizationException, ValidationFieldException
 
 
 class BaseSimpleAction(ABC):
@@ -40,7 +41,7 @@ class BaseSimpleAction(ABC):
         При несоответствии выбрасывает AuthorizationException.
         """
         spec = self._getRoleSpec()
-        user_roles = ctx.roles
+        user_roles = ctx.user.roles
 
         if spec == CheckRoles.NONE:
             return

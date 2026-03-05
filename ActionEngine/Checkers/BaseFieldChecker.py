@@ -1,4 +1,4 @@
-# Файл: ActionEngine/BaseFieldChecker.py
+# ActionEngine/Checkers/BaseFieldChecker.py
 """
 Базовый класс для всех чекеров полей.
 
@@ -9,7 +9,7 @@
 """
 from abc import ABC, abstractmethod
 from typing import Dict, Any, Union, Callable
-from .Exceptions import ValidationFieldException
+from ActionEngine.Core.Exceptions import ValidationFieldException
 
 class BaseFieldChecker(ABC):
     """

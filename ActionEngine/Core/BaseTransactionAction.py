@@ -1,4 +1,4 @@
-# Файл: ActionEngine/BaseTransactionAction.py
+# ActionEngine/Core/BaseTransactionAction.py
 """
 Базовый класс для действий, выполняемых внутри открытой транзакции.
 
@@ -8,8 +8,10 @@
 - Текст исключений писать на русском.
 """
 from typing import Any, Dict
-from .BaseSimpleAction import BaseSimpleAction
-from .TransactionContext import TransactionContext
+
+from ActionEngine.Core.BaseSimpleAction import BaseSimpleAction
+from ActionEngine.Context.TransactionContext import TransactionContext
+
 
 class BaseTransactionAction(BaseSimpleAction):
     """

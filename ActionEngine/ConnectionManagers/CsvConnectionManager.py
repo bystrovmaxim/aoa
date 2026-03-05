@@ -1,4 +1,4 @@
-# Файл: ActionEngine/CsvConnectionManager.py
+# ActionEngine/ConnectionManagers/CsvConnectionManager.py
 """
 Конкретный менеджер соединений для работы с CSV-файлами.
 
@@ -11,7 +11,7 @@ import os
 import csv
 from typing import Any, List, Optional
 from .BaseConnectionManager import BaseConnectionManager
-from .Exceptions import ConnectionAlreadyOpenError, ConnectionNotOpenError, HandleException
+from ActionEngine.Core.Exceptions import ConnectionAlreadyOpenError, ConnectionNotOpenError, HandleException
 
 
 class CsvConnectionManager(BaseConnectionManager):

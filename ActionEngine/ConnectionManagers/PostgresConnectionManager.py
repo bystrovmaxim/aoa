@@ -1,8 +1,8 @@
-# ActionEngine/PostgresConnectionManager.py
+# ActionEngine/ConnectionManagers/PostgresConnectionManager.py
 import psycopg2
 from typing import Any, Dict
 from .BaseConnectionManager import BaseConnectionManager
-from .Exceptions import ConnectionNotOpenError, HandleException
+from ActionEngine.Core.Exceptions import ConnectionNotOpenError, HandleException
 
 class PostgresConnectionManager(BaseConnectionManager):
     """

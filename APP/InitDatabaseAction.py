@@ -1,9 +1,11 @@
 # YouTrackMCP/InitDatabaseAction.py
-from ActionEngine.BaseTransactionAction import BaseTransactionAction
-from ActionEngine.TransactionContext import TransactionContext
-from ActionEngine.requires_connection_type import requires_connection_type
-from ActionEngine.InstanceOfChecker import InstanceOfChecker
-from ActionEngine.StringFieldChecker import StringFieldChecker
+from ActionEngine import (
+    BaseTransactionAction,
+    requires_connection_type,
+    TransactionContext,
+    InstanceOfChecker,
+    StringFieldChecker)
+
 import psycopg2
 
 @requires_connection_type(psycopg2.extensions.connection, desc="Требуется соединение с PostgreSQL")

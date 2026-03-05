@@ -1,14 +1,16 @@
+# EntryPoint/DeleteSnapshotServerAction.py
 import logging
 from typing import List, Optional, Dict, Any
 
-from ActionEngine.BaseSimpleAction import BaseSimpleAction
-from ActionEngine.Context import Context
-from ActionEngine.TransactionContext import TransactionContext
-from ActionEngine.PostgresConnectionManager import PostgresConnectionManager
-from ActionEngine.CheckRoles import CheckRoles
-from ActionEngine.IntFieldChecker import IntFieldChecker
-from ActionEngine.StringFieldChecker import StringFieldChecker
-from ActionEngine.InstanceOfChecker import InstanceOfChecker
+from ActionEngine import (
+    BaseSimpleAction,
+    TransactionContext,
+    CheckRoles,
+    IntFieldChecker,
+    InstanceOfChecker,
+    StringFieldChecker,
+    Context,
+    PostgresConnectionManager)
 
 from APP.DeleteSnapshotPostgressAction import DeleteSnapshotProgressAction
 
@@ -41,7 +43,12 @@ class DeleteSnapshotServerAction(BaseSimpleAction):
         }
         mgr = PostgresConnectionManager(db_params)
         mgr.open()
-        tx_ctx = TransactionContext(base_ctx=ctx, connection=mgr.connection)
+        tx_ctx = TransactionContext(
+            user=ctx.user,
+            request=ctx.request,
+            environment=ctx.environment,
+            connection=mgr.connection
+        )
         return {"manager": mgr, "tx_ctx": tx_ctx}
 
     @IntFieldChecker("deleted_total", min_value=0, desc="Результат: общее количество удалённых записей")

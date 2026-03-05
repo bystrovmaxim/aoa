@@ -5,13 +5,15 @@ import logging
 from psycopg2 import sql
 import psycopg2
 
-from ActionEngine.BaseTransactionAction import BaseTransactionAction
-from ActionEngine.TransactionContext import TransactionContext
-from ActionEngine.Exceptions import HandleException
-from ActionEngine.requires_connection_type import requires_connection_type
-from ActionEngine.InstanceOfChecker import InstanceOfChecker
-from ActionEngine.StringFieldChecker import StringFieldChecker
-from ActionEngine.IntFieldChecker import IntFieldChecker
+from ActionEngine import (
+    BaseTransactionAction,
+    requires_connection_type,
+    TransactionContext,
+    InstanceOfChecker,
+    StringFieldChecker,
+    IntFieldChecker,
+    HandleException)
+
 from .IYouTrackIssuesSaver import IYouTrackIssuesSaver
 
 logger = logging.getLogger(__name__)

@@ -1,10 +1,13 @@
 from typing import Any, Dict
 
-from ActionEngine.BaseTransactionAction import BaseTransactionAction
-from ActionEngine.TransactionContext import TransactionContext
-from ActionEngine.Exceptions import HandleException
-from ActionEngine.InstanceOfChecker import InstanceOfChecker
-from ActionEngine.IntFieldChecker import IntFieldChecker
+from ActionEngine import (
+    BaseTransactionAction,
+    requires_connection_type,
+    TransactionContext,
+    InstanceOfChecker,
+    IntFieldChecker,
+    HandleException)
+
 from .IYouTrackIssuesSaver import IYouTrackIssuesSaver
 
 

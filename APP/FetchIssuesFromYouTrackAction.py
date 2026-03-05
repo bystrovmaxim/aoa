@@ -2,15 +2,17 @@ import time
 import requests
 from typing import List, Dict, Any, Optional, Tuple
 
-from ActionEngine.BaseSimpleAction import BaseSimpleAction
-from ActionEngine.Context import Context
-from ActionEngine.CheckRoles import CheckRoles
-from ActionEngine.StringFieldChecker import StringFieldChecker
-from ActionEngine.IntFieldChecker import IntFieldChecker
-from ActionEngine.InstanceOfChecker import InstanceOfChecker
-from ActionEngine.Exceptions import HandleException
-from .YouTrackIssuesParser import YouTrackIssuesParser
+from ActionEngine import (
+    BaseSimpleAction,
+    CheckRoles,
+    IntFieldChecker,
+    InstanceOfChecker,
+    StringFieldChecker,
+    Context,
+    HandleException)
+
 from .IYouTrackIssuesSaver import IYouTrackIssuesSaver
+from .YouTrackIssuesParser import YouTrackIssuesParser
 
 @CheckRoles(CheckRoles.ANY, desc="Доступен любому аутентифицированному пользователю")
 @StringFieldChecker("base_url", desc="Входной параметр: URL YouTrack (обязательная строка)")
