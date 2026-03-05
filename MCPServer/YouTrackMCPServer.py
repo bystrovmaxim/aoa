@@ -1,190 +1,147 @@
-import os
+import asyncio
+import json
 import logging
-from typing import Optional, Dict, Any
-from datetime import date
-from typing import List
+from typing import Any, Dict
+import sys
 
-from ActionEngine.Context import Context
-from ActionEngine.TransactionContext import TransactionContext
-from ActionEngine.CsvConnectionManager import CsvConnectionManager
-from ActionEngine.PostgresConnectionManager import PostgresConnectionManager
+from mcp.server import Server, NotificationOptions
+from mcp.server.models import InitializationOptions
+import mcp.server.stdio
+import mcp.types as types
 
-from .BulkYouTrackIssueToCsvAction import BulkYouTrackIssueToCsvAction
-from .BulkYouTrackIssueToPostgresAction import BulkYouTrackIssueToPostgresAction
-from .InitDatabaseServerAction import InitDatabaseServerAction
-from .DeleteSnapshotServerAction import DeleteSnapshotServerAction
+# Импортируем фасад из Gateway
+from Gateway.YouTrackMCPServer import YouTrackMCPServer as Facade
 
-logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("mcp-youtrack")
 
+server = Server("youtrack-mcp-server")
 
-class YouTrackMCPServer:
-    """
-    Тонкий фасад для вызова оркестрирующих действий из внешних систем (n8n).
-    Преобразует исключения в стандартный формат ответа.
-    """
-
-    @staticmethod
-    def init_database() -> Dict[str, Any]:
-        """
-        Инициализирует таблицы в PostgreSQL.
-        Параметры подключения читаются из переменных окружения:
-            POSTGRES_HOST, POSTGRES_PORT, POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD.
-        """
-        pg_host = os.getenv("POSTGRES_HOST")
-        if not pg_host:
-            return {"success": False, "result": None, "errors": ["POSTGRES_HOST не задан"]}
-        try:
-            pg_port = int(os.getenv("POSTGRES_PORT", "5432"))
-        except ValueError:
-            return {"success": False, "result": None, "errors": ["POSTGRES_PORT должен быть числом"]}
-        pg_db = os.getenv("POSTGRES_DB")
-        pg_user = os.getenv("POSTGRES_USER")
-        pg_password = os.getenv("POSTGRES_PASSWORD")
-        if not pg_db or not pg_user or not pg_password:
-            return {"success": False, "result": None, "errors": ["POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD должны быть заданы"]}
-
-        db_params = {
-            "host": pg_host,
-            "port": pg_port,
-            "dbname": pg_db,
-            "user": pg_user,
-            "password": pg_password,
-        }
-
-        mgr = PostgresConnectionManager(db_params)
-        mgr.open()
-        ctx = TransactionContext(
-            base_ctx=Context(user_id="system", roles=["admin"]),
-            connection=mgr.connection
+@server.list_tools()
+async def handle_list_tools() -> list[types.Tool]:
+    return [
+        types.Tool(
+            name="bulk_youtrack_issue_to_csv",
+            description="Export YouTrack issues to CSV files. Fetches all issues from a specified project and saves them into two CSV files: one for user/tech stories, another for tasks. Returns total issues count and pages processed.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "user_stories_file": {
+                        "type": "string",
+                        "description": "Path where the CSV file for stories (User stories, Technical stories) will be saved. Example: '/tmp/user_stories.csv'"
+                    },
+                    "tasks_file": {
+                        "type": "string",
+                        "description": "Path where the CSV file for tasks (Development, Analytics, Incidents, Work instead of system) will be saved. Example: '/tmp/tasks.csv'"
+                    },
+                    "page_size": {
+                        "type": "integer",
+                        "default": 100,
+                        "description": "Number of issues per page (1-500). Larger pages reduce number of requests but may time out."
+                    },
+                    "project_id": {
+                        "type": "string",
+                        "description": "YouTrack project ID to export (e.g., 'OPD_IPPM'). If omitted, exports all accessible issues."
+                    }
+                }
+            }
+        ),
+        types.Tool(
+            name="bulk_youtrack_issue_to_postgres",
+            description="Load YouTrack issues as daily snapshots into PostgreSQL. For each issue, stores its state at the given snapshot date. Data is saved into two tables: 'user_tech_stories' and 'taskitems' within the specified schema. Returns total issues count and pages processed.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "project_id": {
+                        "type": "string",
+                        "description": "YouTrack project ID (e.g., 'OPD_IPPM'). If omitted, loads all accessible issues."
+                    },
+                    "page_size": {
+                        "type": "integer",
+                        "default": 100,
+                        "description": "Number of issues per page (1-500)."
+                    },
+                    "snapshot_date": {
+                        "type": "string",
+                        "format": "date",
+                        "description": "Snapshot date in YYYY-MM-DD format (e.g., '2025-03-05'). If omitted, uses current date."
+                    }
+                }
+            }
+        ),
+        types.Tool(
+            name="delete_snapshot",
+            description="Delete all records for a given snapshot date from specified PostgreSQL tables. Useful for cleaning up data before re-importing. Returns total number of deleted rows.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "snapshot_date": {
+                        "type": "string",
+                        "format": "date",
+                        "description": "Snapshot date to delete (YYYY-MM-DD)."
+                    },
+                    "tables": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "List of table names to clean. Example: ['user_tech_stories', 'taskitems']"
+                    },
+                    "schema": {
+                        "type": "string",
+                        "default": "youtrack",
+                        "description": "Database schema where tables reside (default: 'youtrack')."
+                    }
+                },
+                "required": ["snapshot_date", "tables"]
+            }
         )
-        action = InitDatabaseServerAction()
-        try:
-            result = action.run(ctx, {})
-            mgr.commit()
-            return {"success": True, "result": result, "errors": []}
-        except Exception as e:
-            mgr.rollback()
-            logger.exception("Ошибка при инициализации БД")
-            return {"success": False, "result": None, "errors": [str(e)]}
+    ]
 
-    @staticmethod
-    def bulk_youtrack_issue_to_csv(
-        user_stories_file: Optional[str] = None,
-        tasks_file: Optional[str] = None,
-        page_size: int = 100,
-        project_id: Optional[str] = None,
-    ) -> Dict[str, Any]:
-        """
-        Загружает задачи из YouTrack и сохраняет в CSV-файлы.
-        Параметры YouTrack читаются из переменных окружения YOUTRACK_URL, YOUTRACK_TOKEN.
-        """
-        base_url = os.getenv("YOUTRACK_URL")
-        token = os.getenv("YOUTRACK_TOKEN")
-        if not base_url or not token:
-            return {"success": False, "result": None, "errors": ["YOUTRACK_URL или YOUTRACK_TOKEN не заданы"]}
-
-        action = BulkYouTrackIssueToCsvAction()
-        ctx = Context(user_id="system", roles=["user"])
-        params = {
-            "base_url": base_url,
-            "token": token,
-            "user_stories_file": user_stories_file,
-            "tasks_file": tasks_file,
-            "page_size": page_size,
-            "project_id": project_id,
-        }
-        try:
-            result = action.run(ctx, params)
-            return {"success": True, "result": result, "errors": []}
-        except Exception as e:
-            logger.exception("Ошибка в bulk_youtrack_issue_to_csv")
-            return {"success": False, "result": None, "errors": [str(e)]}
-
-    @staticmethod
-    def bulk_youtrack_issue_to_postgres(
-        project_id: Optional[str] = None,
-        page_size: int = 100,
-        snapshot_date: Optional[date] = None,
-    ) -> Dict[str, Any]:
-        """
-        Загружает задачи из YouTrack и сохраняет снимки в PostgreSQL.
-        Параметры YouTrack читаются из переменных окружения YOUTRACK_URL, YOUTRACK_TOKEN.
-        Параметры PostgreSQL читаются из переменных окружения POSTGRES_*.
-        """
-        base_url = os.getenv("YOUTRACK_URL")
-        token = os.getenv("YOUTRACK_TOKEN")
-        if not base_url or not token:
-            return {"success": False, "result": None, "errors": ["YOUTRACK_URL или YOUTRACK_TOKEN не заданы"]}
-
-        pg_host = os.getenv("POSTGRES_HOST")
-        if not pg_host:
-            return {"success": False, "result": None, "errors": ["POSTGRES_HOST не задан"]}
-        try:
-            pg_port = int(os.getenv("POSTGRES_PORT", "5432"))
-        except ValueError:
-            return {"success": False, "result": None, "errors": ["POSTGRES_PORT должен быть числом"]}
-        pg_db = os.getenv("POSTGRES_DB")
-        pg_user = os.getenv("POSTGRES_USER")
-        pg_password = os.getenv("POSTGRES_PASSWORD")
-        if not pg_db or not pg_user or not pg_password:
-            return {"success": False, "result": None, "errors": ["POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD должны быть заданы"]}
-
-        action = BulkYouTrackIssueToPostgresAction()
-        ctx = Context(user_id="system", roles=["user"])
-        params = {
-            "base_url": base_url,
-            "token": token,
-            "project_id": project_id,
-            "page_size": page_size,
-            "snapshot_date": snapshot_date.isoformat() if snapshot_date else None,
-            "pg_host": pg_host,
-            "pg_port": pg_port,
-            "pg_db": pg_db,
-            "pg_user": pg_user,
-            "pg_password": pg_password,
-        }
-        try:
-            result = action.run(ctx, params)
-            return {"success": True, "result": result, "errors": []}
-        except Exception as e:
-            logger.exception("Ошибка в bulk_youtrack_issue_to_postgres")
-            return {"success": False, "result": None, "errors": [str(e)]}
+@server.call_tool()
+async def handle_call_tool(name: str, arguments: Dict[str, Any]) -> list[types.TextContent]:
+    logger.info(f"Calling tool {name} with arguments {arguments}")
+    try:
+        if name == "bulk_youtrack_issue_to_csv":
+            result = Facade.bulk_youtrack_issue_to_csv(
+                user_stories_file=arguments.get("user_stories_file"),
+                tasks_file=arguments.get("tasks_file"),
+                page_size=arguments.get("page_size", 100),
+                project_id=arguments.get("project_id")
+            )
+        elif name == "bulk_youtrack_issue_to_postgres":
+            result = Facade.bulk_youtrack_issue_to_postgres(
+                project_id=arguments.get("project_id"),
+                page_size=arguments.get("page_size", 100),
+                snapshot_date=arguments.get("snapshot_date")
+            )
+        elif name == "delete_snapshot":
+            result = Facade.delete_snapshot(
+                snapshot_date=arguments["snapshot_date"],
+                tables=arguments["tables"],
+                schema=arguments.get("schema", "youtrack")
+            )
+        else:
+            raise ValueError(f"Unknown tool: {name}")
         
-    @staticmethod
-    def delete_snapshot(snapshot_date: date, tables: List[str], schema: str = "youtrack") -> Dict[str, Any]:
-        """
-        Удаляет все записи за указанную дату из заданных таблиц.
-        Параметры подключения PostgreSQL берутся из переменных окружения:
-            POSTGRES_HOST, POSTGRES_PORT, POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD.
-        """
-        pg_host = os.getenv("POSTGRES_HOST")
-        if not pg_host:
-            return {"success": False, "result": None, "errors": ["POSTGRES_HOST не задан"]}
-        try:
-            pg_port = int(os.getenv("POSTGRES_PORT", "5432"))
-        except ValueError:
-            return {"success": False, "result": None, "errors": ["POSTGRES_PORT должен быть числом"]}
-        pg_db = os.getenv("POSTGRES_DB")
-        pg_user = os.getenv("POSTGRES_USER")
-        pg_password = os.getenv("POSTGRES_PASSWORD")
-        if not pg_db or not pg_user or not pg_password:
-            return {"success": False, "result": None, "errors": ["POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD должны быть заданы"]}
+        text_result = json.dumps(result, ensure_ascii=False)
+        return [types.TextContent(type="text", text=text_result)]
+    except Exception as e:
+        logger.exception(f"Error executing {name}")
+        error_text = json.dumps({"error": str(e)}, ensure_ascii=False)
+        return [types.TextContent(type="text", text=error_text)]
 
-        action = DeleteSnapshotServerAction()
-        ctx = Context(user_id="system", roles=["admin"])
-        params = {
-            "snapshot_date": snapshot_date.isoformat(),
-            "tables": tables,
-            "schema": schema,
-            "pg_host": pg_host,
-            "pg_port": pg_port,
-            "pg_db": pg_db,
-            "pg_user": pg_user,
-            "pg_password": pg_password,
-        }
-        try:
-            result = action.run(ctx, params)
-            return {"success": True, "result": result, "errors": []}
-        except Exception as e:
-            logger.exception("Ошибка при удалении снимка")
-            return {"success": False, "result": None, "errors": [str(e)]}
+async def main():
+    print("MCP server starting...", file=sys.stderr)
+    async with mcp.server.stdio.stdio_server() as (read_stream, write_stream):
+        print("MCP server initialized, waiting for requests...", file=sys.stderr)
+        await server.run(
+            read_stream,
+            write_stream,
+            InitializationOptions(
+                server_name="youtrack-mcp-server",
+                server_version="1.0.0",
+                capabilities={}
+            )
+        )
+
+if __name__ == "__main__":
+    asyncio.run(main())
