@@ -24,7 +24,7 @@ class BaseFieldChecker(ABC):
         required (bool): является ли поле обязательным.
     """
 
-    def __init__(self, field_name: str, required: bool = True):
+    def __init__(self, field_name: str, required: bool = True, desc: str = None):
         """
         Инициализирует чекер.
 
@@ -35,6 +35,7 @@ class BaseFieldChecker(ABC):
         """
         self.field_name = field_name
         self.required = required
+        self.description = desc
 
     def __call__(self, target: Union[type, Callable]):
         """

@@ -24,7 +24,8 @@ class StringFieldChecker(BaseFieldChecker):
                  required: bool = True,
                  min_length: Optional[int] = None,
                  max_length: Optional[int] = None,
-                 not_empty: bool = False):
+                 not_empty: bool = False,
+                 description: str = None):
         """
         Параметры:
             field_name: имя поля.
@@ -33,7 +34,7 @@ class StringFieldChecker(BaseFieldChecker):
             max_length: максимальная допустимая длина строки (включительно).
             not_empty: если True, строка не может быть пустой (len>0).
         """
-        super().__init__(field_name, required)
+        super().__init__(field_name, required, description)
         self.min_length = min_length
         self.max_length = max_length
         self.not_empty = not_empty

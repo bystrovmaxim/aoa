@@ -17,13 +17,13 @@ from App.YouTrackIssuesCSVSaver import YouTrackIssuesCSVSaver
 logger = logging.getLogger(__name__)
 
 
-@CheckRoles(CheckRoles.ANY)
-@IntFieldChecker("page_size", min_value=1, max_value=500)
-@StringFieldChecker("user_stories_file", required=False, not_empty=True)
-@StringFieldChecker("tasks_file", required=False, not_empty=True)
-@StringFieldChecker("project_id", required=False, not_empty=True)
-@StringFieldChecker("base_url", required=True)
-@StringFieldChecker("token", required=True)
+@CheckRoles(CheckRoles.ANY, description="Доступен любому аутентифицированному пользователю")
+@IntFieldChecker("page_size", min_value=1, max_value=500, description="Входной параметр: размер страницы (целое от 1 до 500)")
+@StringFieldChecker("user_stories_file", required=False, not_empty=True, description="Входной параметр: путь к CSV-файлу для историй (опционально)")
+@StringFieldChecker("tasks_file", required=False, not_empty=True, description="Входной параметр: путь к CSV-файлу для задач (опционально)")
+@StringFieldChecker("project_id", required=False, not_empty=True, description="Входной параметр: идентификатор проекта (опционально)")
+@StringFieldChecker("base_url", required=True, description="Входной параметр: URL YouTrack (обязательная строка)")
+@StringFieldChecker("token", required=True, description="Входной параметр: токен доступа (обязательная строка)")
 class BulkYouTrackIssueToCsvAction(BaseSimpleAction):
     """
     Оркестрирующее действие: загружает задачи из YouTrack и сохраняет в CSV-файлы.
@@ -31,8 +31,8 @@ class BulkYouTrackIssueToCsvAction(BaseSimpleAction):
         base_url, token, page_size, project_id (опц.), user_stories_file (опц.), tasks_file (опц.)
     """
 
-    @InstanceOfChecker("managers", expected_class=list)
-    @InstanceOfChecker("savers", expected_class=list)
+    @InstanceOfChecker("managers", expected_class=list, description="Результат _preHandleAspect: список менеджеров соединений")
+    @InstanceOfChecker("savers", expected_class=list, description="Результат _preHandleAspect: список кортежей (context, saver, card_types)")
     def _preHandleAspect(self, ctx: Context, params: Dict[str, Any], result: Dict[str, Any]) -> Dict[str, Any]:
         """Создаёт менеджеры соединений и saver'ы на основе переданных файлов."""
         managers = []
@@ -74,8 +74,8 @@ class BulkYouTrackIssueToCsvAction(BaseSimpleAction):
 
         return {"managers": managers, "savers": savers}
 
-    @IntFieldChecker("total_issues", min_value=0)
-    @IntFieldChecker("pages", min_value=0)
+    @IntFieldChecker("total_issues", min_value=0, description="Результат _handleAspect: общее количество загруженных задач")
+    @IntFieldChecker("pages", min_value=0, description="Результат _handleAspect: количество обработанных страниц")
     def _handleAspect(self, ctx: Context, params: Dict[str, Any], result: Dict[str, Any]) -> Dict[str, Any]:
         """Запускает загрузчик задач."""
         fetcher = FetchIssuesFromYouTrackAction()
@@ -91,8 +91,8 @@ class BulkYouTrackIssueToCsvAction(BaseSimpleAction):
 
         return fetcher.run(fetcher_ctx, fetch_params)
 
-    @IntFieldChecker("total_issues", min_value=0)
-    @IntFieldChecker("pages", min_value=0)
+    @IntFieldChecker("total_issues", min_value=0, description="Результат _postHandleAspect: общее количество загруженных задач")
+    @IntFieldChecker("pages", min_value=0, description="Результат _postHandleAspect: количество обработанных страниц")
     def _postHandleAspect(self, ctx: Context, params: Dict[str, Any], result: Dict[str, Any]) -> Dict[str, Any]:
         """Фиксирует транзакции и возвращает только статистику загрузки."""
         for mgr in result.get("managers", []):

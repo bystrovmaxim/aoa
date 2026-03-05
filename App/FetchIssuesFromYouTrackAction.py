@@ -12,11 +12,11 @@ from ActionEngine.Exceptions import HandleException
 from .YouTrackIssuesParser import YouTrackIssuesParser
 from .IYouTrackIssuesSaver import IYouTrackIssuesSaver
 
-@CheckRoles(CheckRoles.ANY)  # Доступен любому аутентифицированному пользователю
-@StringFieldChecker("base_url")  # Параметр base_url обязателен и должен быть строкой
-@StringFieldChecker("token")     # Параметр token обязателен и должен быть строкой
-@IntFieldChecker("page_size", required=True, min_value=1, max_value=500)  # page_size - целое от 1 до 500
-@InstanceOfChecker("savers", expected_class=list, required=True)  # savers должен быть списком кортежей
+@CheckRoles(CheckRoles.ANY, description="Доступен любому аутентифицированному пользователю")
+@StringFieldChecker("base_url", description="Входной параметр: URL YouTrack (обязательная строка)")
+@StringFieldChecker("token", description="Входной параметр: токен доступа (обязательная строка)")
+@IntFieldChecker("page_size", required=True, min_value=1, max_value=500, description="Входной параметр: размер страницы (целое от 1 до 500)")
+@InstanceOfChecker("savers", expected_class=list, required=True, description="Входной параметр: список кортежей (context, saver, card_types)")
 class FetchIssuesFromYouTrackAction(BaseSimpleAction):
     """
     Загружает задачи из YouTrack постранично.
@@ -61,8 +61,8 @@ class FetchIssuesFromYouTrackAction(BaseSimpleAction):
 
         return issues, len(issues), None
 
-    @IntFieldChecker("total_issues", min_value=0)  # общее количество загруженных задач
-    @IntFieldChecker("pages", min_value=0)          # количество обработанных страниц
+    @IntFieldChecker("total_issues", min_value=0, description="Результат _handleAspect: общее количество загруженных задач")
+    @IntFieldChecker("pages", min_value=0, description="Результат _handleAspect: количество обработанных страниц")
     def _handleAspect(self, ctx: Context, params: Dict[str, Any], result: Dict[str, Any]) -> Dict[str, Any]:
         base_url = params["base_url"]
         token = params["token"]

@@ -21,7 +21,8 @@ class FloatFieldChecker(BaseFieldChecker):
                  field_name: str,
                  required: bool = True,
                  min_value: Optional[float] = None,
-                 max_value: Optional[float] = None):
+                 max_value: Optional[float] = None,
+                 desc: str = None):
         """
         Параметры:
             field_name: имя поля.
@@ -29,7 +30,7 @@ class FloatFieldChecker(BaseFieldChecker):
             min_value: минимально допустимое значение (включительно).
             max_value: максимально допустимое значение (включительно).
         """
-        super().__init__(field_name, required)
+        super().__init__(field_name, required, desc)
         self.min_value = min_value
         self.max_value = max_value
 

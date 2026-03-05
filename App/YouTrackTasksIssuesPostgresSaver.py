@@ -17,10 +17,10 @@ from .IYouTrackIssuesSaver import IYouTrackIssuesSaver
 logger = logging.getLogger(__name__)
 
 
-@requires_connection_type(psycopg2.extensions.connection)          # Требуется соединение с PostgreSQL
-@InstanceOfChecker("headers", expected_class=list, required=True)  # Параметр headers должен быть списком
-@InstanceOfChecker("rows", expected_class=list, required=True)    # Параметр rows должен быть списком
-@StringFieldChecker("snapshot_date", required=True, not_empty=True)  # snapshot_date – непустая строка даты
+@requires_connection_type(psycopg2.extensions.connection, description="Требуется соединение с PostgreSQL")
+@InstanceOfChecker("headers", expected_class=list, required=True, description="Входной параметр: заголовки столбцов (список)")
+@InstanceOfChecker("rows", expected_class=list, required=True, description="Входной параметр: строки данных (список списков)")
+@StringFieldChecker("snapshot_date", required=True, not_empty=True, description="Входной параметр: дата снимка (строка YYYY-MM-DD)")
 class YouTrackTasksIssuesPostgresSaver(BaseTransactionAction, IYouTrackIssuesSaver):
     """
     Сохраняет снимки задач (разработка, аналитика, инциденты, работа вместо системы)
@@ -34,7 +34,7 @@ class YouTrackTasksIssuesPostgresSaver(BaseTransactionAction, IYouTrackIssuesSav
     def __init__(self):
         super().__init__()
 
-    @IntFieldChecker("inserted", min_value=0)  # количество вставленных или обновлённых записей
+    @IntFieldChecker("inserted", min_value=0, description="Результат _handleAspect: количество вставленных или обновлённых записей")
     def _handleAspect(
         self,
         ctx: TransactionContext,
