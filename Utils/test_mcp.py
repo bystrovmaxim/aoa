@@ -6,7 +6,7 @@ import threading
 import os
 
 # Запускаем MCP-сервер как подпроцесс
-server_cmd = [sys.executable, "-m", "MCPServer.YouTrackMCPServer"]
+server_cmd = [sys.executable, "-m", "API.YouTrackMCPServer"]
 proc = subprocess.Popen(
     server_cmd,
     stdin=subprocess.PIPE,
