@@ -7,7 +7,7 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
 # Импортируем фасад из Gateway
-from Gateway.YouTrackMCPServer import YouTrackMCPServer
+from EntryPoint.YouTrackMCPServer import YouTrackMCPServer
 
 # Настройка логирования
 logging.basicConfig(level=logging.INFO)

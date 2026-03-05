@@ -10,7 +10,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 load_dotenv()
 
-from Gateway.YouTrackMCPServer import YouTrackMCPServer
+from EntryPoint.YouTrackMCPServer import YouTrackMCPServer
 
 def main():
     result = YouTrackMCPServer.delete_snapshot(
