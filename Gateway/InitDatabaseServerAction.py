@@ -11,7 +11,7 @@ from ActionEngine.IntFieldChecker import IntFieldChecker
 from ActionEngine.InstanceOfChecker import InstanceOfChecker
 
 import psycopg2
-from App.InitDatabaseAction import InitDatabaseAction
+from APP.InitDatabaseAction import InitDatabaseAction
 
 logger = logging.getLogger(__name__)
 

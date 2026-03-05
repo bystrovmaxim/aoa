@@ -11,10 +11,10 @@ from ActionEngine.IntFieldChecker import IntFieldChecker
 from ActionEngine.StringFieldChecker import StringFieldChecker
 from ActionEngine.InstanceOfChecker import InstanceOfChecker
 
-from App.FetchIssuesFromYouTrackAction import FetchIssuesFromYouTrackAction
-from App.YouTrackStoriyIssuesPostgresSaver import YouTrackStoriyIssuesPostgresSaver
-from App.YouTrackTasksIssuesPostgresSaver import YouTrackTasksIssuesPostgresSaver
-from App.DeleteSnapshotPostgressAction import DeleteSnapshotProgressAction
+from APP.FetchIssuesFromYouTrackAction import FetchIssuesFromYouTrackAction
+from APP.YouTrackStoriyIssuesPostgresSaver import YouTrackStoriyIssuesPostgresSaver
+from APP.YouTrackTasksIssuesPostgresSaver import YouTrackTasksIssuesPostgresSaver
+from APP.DeleteSnapshotPostgressAction import DeleteSnapshotProgressAction
 
 logger = logging.getLogger(__name__)
 

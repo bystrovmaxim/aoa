@@ -1,100 +1,31 @@
-3. Что ещё можно улучшить ⚠️
-3.1. 🔴 Дублирование PostgreSQL-сейверов — по-прежнему
-YouTrackStoriyIssuesPostgresSaver и YouTrackTasksIssuesPostgresSaver — полностью идентичные классы, различающиеся только TABLE_NAME 
-code.txt
-. Весь _handleAspect (~35 строк) скопирован 1:1.
+Безопасность
+• Проверка ролей присутствует.
+• В YouTrack‑части используется Bearer‑токен — корректно.
+• Параметры PostgreSQL берутся из окружения.
+• SQL‑запросы используют psycopg2.sql.Identifier и Placeholder — SQL‑инъекций нет.
+• MCP‑интерфейс в целом безопасен, но клиент может злоупотребить, если получить доступ.
 
-Рекомендация:
+Риски:
+• Нет rate‑limit на запросы.
+• Нет защиты от слишком больших файлов CSV.
+• Ошибки в MCP возвращаются полностью (могут содержать чувствительные данные).
 
-python
+Нюансы:
+• Иногда пропуски строк между импортами или секциями непоследовательны.
+• Много «prose» в docstring — можно упростить.
 
-Свернуть
-Сохранить
-Копировать
-1
-2
-3
-4
-5
-6
-7
-8
-9
-10
-11
-12
-⌄
-⌄
-⌄
-⌄
-class BaseYouTrackPostgresSaver(BaseTransactionAction, IYouTrackIssuesSaver):
-    TABLE_NAME: str
+Качество MCP‑интеграции
+• MCPServer использует стандартный шаблон инициализации.
+• Все инструменты оформлены правильно (описание, schema).
+• Результаты сериализуются JSON — корректно.
+• Потоки читаются и пишутся правильно.
+• Ошибки отправляются наружу в стандартизованном форме.
 
-    @IntFieldChecker("inserted", min_value=0, desc="...")
-    def _handleAspect(self, ctx, params, result):
-        # общая логика upsert
+Недочёты:
+• Нет retry при сбоях.
+• MCP‑метод bulk_youtrack_issue_to_postgres передаёт snapshot_date как строку, хотя клиент может ожидать дату.
+• MCP не проверяет, что snapshot_date валидна.
 
-class YouTrackStoriyIssuesPostgresSaver(BaseYouTrackPostgresSaver):
-    TABLE_NAME = "user_tech_stories"
+Оценка: хорошая, но можно улучшить UX.
 
-class YouTrackTasksIssuesPostgresSaver(BaseYouTrackPostgresSaver):
-    TABLE_NAME = "taskitems"
-3.2. 🟡 executemany вместо execute_values
-python
-
-Свернуть
-Сохранить
-Копировать
-1
-cur.executemany(insert_sql, values_list)
-В psycopg2 executemany — отдельный round-trip для каждой строки. При тысячах задач это в 5–10× медленнее, чем execute_values 
-code.txt
-.
-
-3.3. 🟡 print вместо logger в FetchIssuesFromYouTrackAction
-python
-
-Свернуть
-Сохранить
-Копировать
-1
-2
-print(f"✅ Загружено и передано saver'ам {total_issues} задач...")
-print(f"🎉 Всего обработано {total_issues} задач за {pages} страниц(ы)")
-Все остальные файлы используют logger 
-code.txt
-.
-
-3.4. 🟡 Кэш заголовков по первой странице
-Заголовки вычисляются динамически из первой непустой страницы 
-code.txt
-. Если YouTrackIssuesParser гарантирует фиксированный набор ключей, логичнее определять их статически.
-
-3.5. 🟡 Дублирование env-валидации в фасаде
-init_database() и bulk_youtrack_issue_to_postgres() повторяют одну и ту же проверку POSTGRES_* переменных 
-code.txt
-.
-
-Рекомендация:
-
-python
-
-Свернуть
-Сохранить
-Копировать
-1
-2
-3
-⌄
-@staticmethod
-def _get_postgres_params():
-    ...
-3.6. 🟡 Пакет YouTrackMCP/ — устаревший код
-YouTrackMCP/ содержит старую версию фасада и BaseYouTrackIssuesSaver 
-code.txt
-. Если обратная совместимость не нужна, его стоит удалить, чтобы не вводить в заблуждение.
-
-3.7. 💡 CsvConnectionManager.write_rows — аргумент first_page в старой версии
-В YouTrackMCP/CsvConnectionManager метод write_rows всё ещё принимает first_page 
-code.txt
-, тогда как в App/ версии CsvConnectionManager уже определяет необходимость заголовков автоматически через _headers_written. Нужна синхронизация.
+Отсутствуют параллельные запросы в YouTrack.

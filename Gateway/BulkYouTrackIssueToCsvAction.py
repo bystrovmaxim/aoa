@@ -11,8 +11,8 @@ from ActionEngine.IntFieldChecker import IntFieldChecker
 from ActionEngine.InstanceOfChecker import InstanceOfChecker
 from ActionEngine.StringFieldChecker import StringFieldChecker
 
-from App.FetchIssuesFromYouTrackAction import FetchIssuesFromYouTrackAction
-from App.YouTrackIssuesCSVSaver import YouTrackIssuesCSVSaver
+from APP.FetchIssuesFromYouTrackAction import FetchIssuesFromYouTrackAction
+from APP.YouTrackIssuesCSVSaver import YouTrackIssuesCSVSaver
 
 logger = logging.getLogger(__name__)
 
