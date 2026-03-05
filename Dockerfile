@@ -11,7 +11,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Копируем исходный код проекта
 COPY ActionEngine/ ./ActionEngine/
-COPY YouTrackMCP/ ./YouTrackMCP/
+COPY App/ ./App/
+COPY MCPServer/ ./MCPServer/
 COPY Utils/ ./Utils/
 COPY *.py ./
 
