@@ -13,3 +13,24 @@ git push origin master
 cd ~/PythonDev/kanban_assistant
 source venv/bin/activate
 
+# Принудительная перекачка последнего образа
+docker-compose pull python
+
+# Пересоздать контейнер, чтобы он запустился с новым образом:
+docker-compose up -d --force-recreate python
+
+# Пересобрать образ с актуальными файлами 
+docker-compose build python
+
+# Перезапустите контейнеры
+docker-compose up -d
+
+# Проверьте наличие файлов:
+docker-compose exec python ls -la /app/Utils
+
+# Запуск в докере
+docker-compose exec python python /app/Utils/test_init_db.py
+docker-compose exec python python /app/Utils/test_youtrack_fetch_issue_to.py
+docker-compose exec python python /app/Utils/test_youtrack_issue_to_csv.py
+docker-compose exec python python /app/Utils/test_youtrack_issue_to_postgres.py
+
