@@ -251,3 +251,266 @@ savers = [
 5. **Заменить `print` на `logging`** — унифицировать с остальной кодовой базой, где уже используется `logger` [1]
 
 **Резюме:** Фреймворк имеет **сильную основу** — конвейер аспектов, декларативная валидация входа и выхода, чёткая иерархия исключений. Вторая версия показывает значительный прогресс в разделении ответственности. Для продакшн-уровня необходимо решить вопросы с управлением транзакциями, дублированием кода и производительностью SQL-вставок.
+
+3. Что ещё можно улучшить ⚠️
+3.1. 🔴 Нет rollback при ошибке в оркестрирующих Action'ах
+В BulkYouTrackIssueToCsvAction._postHandleAspect выполняется commit 
+code.txt
+. Но если ошибка произошла в _handleAspect, то _postHandleAspect не вызывается — конвейер BaseSimpleAction.run() не имеет finally-блока:
+
+python
+
+Свернуть
+Сохранить
+Копировать
+1
+2
+3
+4
+# BaseSimpleAction.run():
+handle_result = self._handleAspect(...)   # ← ошибка здесь
+# _postHandleAspect не вызовется
+# менеджеры останутся открытыми!
+Проблема: менеджеры, открытые в _preHandleAspect, не закрываются и не откатываются при ошибке. Соединения утекают.
+
+Рекомендация — добавить _onError хук в BaseSimpleAction:
+
+python
+
+Свернуть
+Сохранить
+Копировать
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+⌄
+⌄
+⌄
+# В BaseSimpleAction.run():
+try:
+    # ... аспекты ...
+except Exception:
+    self._onErrorAspect(ctx, params, result)
+    raise
+
+def _onErrorAspect(self, ctx, params, result):
+    """Хук для очистки при ошибке. По умолчанию ничего не делает."""
+    pass
+А в оркестрирующих action'ах:
+
+python
+
+Свернуть
+Сохранить
+Копировать
+1
+2
+3
+4
+5
+6
+⌄
+⌄
+⌄
+⌄
+def _onErrorAspect(self, ctx, params, result):
+    for mgr in result.get("managers", []):
+        try:
+            mgr.rollback()
+        except Exception:
+            pass
+3.2. 🔴 Дублирование кода PostgreSQL-сейверов
+YouTrackStoriyIssuesPostgresSaver и YouTrackTasksIssuesPostgresSaver — это идентичные классы, различающиеся только TABLE_NAME 
+code.txt
+. Весь _handleAspect скопирован 1:1.
+
+Рекомендация:
+
+python
+
+Свернуть
+Сохранить
+Копировать
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+⌄
+⌄
+⌄
+⌄
+class BaseYouTrackPostgresSaver(BaseTransactionAction, IYouTrackIssuesSaver):
+    TABLE_NAME: str  # определяется в наследнике
+
+    @IntFieldChecker("inserted", min_value=0)
+    def _handleAspect(self, ctx, params, result):
+        # общая логика upsert
+        ...
+
+class YouTrackStoriyIssuesPostgresSaver(BaseYouTrackPostgresSaver):
+    TABLE_NAME = "user_tech_stories"
+
+class YouTrackTasksIssuesPostgresSaver(BaseYouTrackPostgresSaver):
+    TABLE_NAME = "taskitems"
+Экономия: ~60 строк дублирующего кода.
+
+3.3. 🔴 InitDatabaseAction делает conn.commit() внутри себя
+python
+
+Свернуть
+Сохранить
+Копировать
+1
+2
+3
+# InitDatabaseAction._handleAspect:
+conn.commit()  # ← коммит внутри action'а
+return {"tables_created": [...], "schema": "youtrack"}
+А затем в InitDatabaseServerAction._postHandleAspect:
+
+python
+
+Свернуть
+Сохранить
+Копировать
+1
+mgr.commit()  # ← второй коммит снаружи
+Двойной commit. Более того, после первого conn.commit() менеджер не знает, что транзакция уже зафиксирована — при ошибке между двумя коммитами mgr.rollback() откатит пустую транзакцию 
+code.txt
+.
+
+Рекомендация: убрать conn.commit() из InitDatabaseAction — пусть управление транзакцией остаётся снаружи, как у остальных saver'ов.
+
+3.4. 🟡 executemany вместо batch insert
+python
+
+Свернуть
+Сохранить
+Копировать
+1
+cur.executemany(insert_sql, values_list)
+В psycopg2 executemany — это цикл отдельных запросов. При тысячах строк это в 5-10 раз медленнее, чем execute_values 
+code.txt +1
+ .
+
+Рекомендация:
+
+python
+
+Свернуть
+Сохранить
+Копировать
+1
+2
+3
+4
+from psycopg2.extras import execute_values
+
+template = "INSERT INTO youtrack.{table} ({cols}) VALUES %s ON CONFLICT ..."
+execute_values(cur, template, values_list)
+3.5. 🟡 print вместо logging в FetchIssuesFromYouTrackAction
+python
+
+Свернуть
+Сохранить
+Копировать
+1
+2
+print(f"✅ Загружено и передано saver'ам {total_issues} задач...")
+print(f"🎉 Всего обработано {total_issues} задач за {pages} страниц(ы)")
+При этом в MCPServer и PostgreSQL-сейверах используется logger 
+code.txt
+. Нужна единообразная стратегия.
+
+3.6. 🟡 Кэш заголовков определяется по первой странице
+python
+
+Свернуть
+Сохранить
+Копировать
+1
+2
+3
+4
+5
+⌄
+⌄
+if cache_key not in headers_cache:
+    all_keys = set()
+    for row in page_rows:
+        all_keys.update(row.keys())
+    headers_cache[cache_key] = sorted(all_keys)
+Если на первой странице какого-то поля нет (например, story_points = None и ключ отсутствует в словаре), то колонка не попадёт в заголовки для всех последующих страниц 
+code.txt
+.
+
+Рекомендация: определять заголовки статически в YouTrackIssuesParser на основе типа карточки.
+
+3.7. 🟡 Дублирование валидации env-переменных в фасаде
+Каждый метод YouTrackMCPServer вручную проверяет одни и те же переменные 
+code.txt
+:
+
+python
+
+Свернуть
+Сохранить
+Копировать
+1
+2
+3
+4
+5
+6
+7
+⌄
+base_url = os.getenv("YOUTRACK_URL")
+token = os.getenv("YOUTRACK_TOKEN")
+if not base_url or not token:
+    return {"success": False, ...}
+
+pg_host = os.getenv("POSTGRES_HOST")
+# ... повторяется 3 раза
+Рекомендация: вынести в приватный метод:
+
+python
+
+Свернуть
+Сохранить
+Копировать
+1
+2
+3
+4
+5
+6
+7
+⌄
+⌄
+@staticmethod
+def _get_youtrack_env():
+    ...
+
+@staticmethod
+def _get_postgres_env():
+    ...
+3.8. 🟡 CsvConnectionManager — rollback не откатывает
+По-прежнему _doRollback просто закрывает файл — частично записанные данные остаются 
+code.txt
+. Это осознанный компромисс, но стоит задокументировать явно или реализовать запись во временный файл.

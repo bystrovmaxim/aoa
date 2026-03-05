@@ -9,6 +9,9 @@ pip freeze > requirements.txt
 git commit -m "Обновил Dockerfile  чтобы собирался образ"
 git push origin master
 
+# Активация окружения документира
+cd /Users/bystrovmaxim/kanban_assistant_docker
+
 # Активация окружения
 cd ~/PythonDev/kanban_assistant
 source venv/bin/activate

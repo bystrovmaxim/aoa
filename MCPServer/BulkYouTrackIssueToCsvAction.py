@@ -101,3 +101,9 @@ class BulkYouTrackIssueToCsvAction(BaseSimpleAction):
         result.pop("managers", None)
         result.pop("savers", None)
         return result
+    
+    def _onErrorAspect(self, ctx: Context, params: Dict[str, Any], result: Dict[str, Any], error: Exception) -> None:
+        """При ошибке откатывает все открытые CSV-соединения."""
+        for mgr in result.get("managers", []):
+            mgr.rollback()
+        logger.error(f"Ошибка в BulkYouTrackIssueToCsvAction: {error}")
