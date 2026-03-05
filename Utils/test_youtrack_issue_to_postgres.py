@@ -5,7 +5,7 @@ from datetime import date
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from YouTrackMCP import YouTrackMCPServer
+from MCPServer import YouTrackMCPServer
 
 def main():
     snapshot_date = date.today()

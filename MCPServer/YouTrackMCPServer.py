@@ -7,11 +7,12 @@ from ActionEngine.Context import Context
 from ActionEngine.TransactionContext import TransactionContext
 from ActionEngine.CsvConnectionManager import CsvConnectionManager
 from ActionEngine.PostgresConnectionManager import PostgresConnectionManager
-from .FetchIssuesFromYouTrackAction import FetchIssuesFromYouTrackAction
-from .YouTrackIssuesCSVSaver import YouTrackIssuesCSVSaver
-from .YouTrackStoriyIssuesPostgresSaver import YouTrackStoriyIssuesPostgresSaver
-from .YouTrackTasksIssuesPostgresSaver import YouTrackTasksIssuesPostgresSaver
-from .InitDatabaseAction import InitDatabaseAction   # если нужен
+
+from App.FetchIssuesFromYouTrackAction import FetchIssuesFromYouTrackAction
+from App.YouTrackIssuesCSVSaver import YouTrackIssuesCSVSaver
+from App.YouTrackStoriyIssuesPostgresSaver import YouTrackStoriyIssuesPostgresSaver
+from App.YouTrackTasksIssuesPostgresSaver import YouTrackTasksIssuesPostgresSaver
+from App.InitDatabaseAction import InitDatabaseAction
 
 logger = logging.getLogger(__name__)
 

@@ -1,0 +1,253 @@
+### 3.1. 🔴 Нарушение Liskov Substitution Principle (LSP) — контекст для Fetcher
+
+```python
+# YouTrackMCPServer:
+result = fetcher.run(savers[0][0], params)
+```
+
+`FetchIssuesFromYouTrackAction` наследует `BaseSimpleAction` (ожидает `Context`), но ему передаётся `TransactionContext` из первого сейвера [1]. Это работает «случайно» благодаря наследованию, но **семантически неверно** — Fetcher не работает с транзакциями, зачем ему транзакционный контекст? Более того, при `bulk_youtrack_issue_to_postgres` один и тот же `ctx` с PostgreSQL-соединением передаётся и в fetcher, и в оба saver'а.
+
+**Рекомендация:**
+```python
+fetch_ctx = Context(user_id="system", roles=["user"])
+result = fetcher.run(fetch_ctx, params)
+```
+
+### 3.2. 🔴 Отсутствие Unit of Work / правильного управления транзакциями
+
+Транзакционная логика размазана по фасаду `YouTrackMCPServer` [1]:
+
+```python
+mgr.open()
+...
+try:
+    result = fetcher.run(ctx, params)
+    mgr.commit()
+except:
+    mgr.rollback()
+```
+
+При этом:
+- Fetcher — **не транзакционное действие**, но ему передаётся транзакционный контекст
+- Saver'ы работают с открытой транзакцией, но не контролируют её
+- В случае с CSV — несколько менеджеров, и при ошибке одного из них rollback остальных не гарантирован (если rollback одного из менеджеров бросит исключение)
+
+**Рекомендация** — ввести явный координатор:
+```python
+class UnitOfWork:
+    def __init__(self, managers):
+        self._managers = managers
+
+    def __enter__(self):
+        for m in self._managers:
+            m.open()
+        return self
+
+    def __exit__(self, exc_type, *args):
+        if exc_type:
+            for m in self._managers:
+                try: m.rollback()
+                except: pass
+        else:
+            for m in self._managers:
+                m.commit()
+```
+
+### 3.3. 🔴 CsvConnectionManager — сомнительная абстракция «транзакции»
+
+```python
+def _doRollback(self, connection) -> None:
+    """Откат для CSV не имеет смысла, просто закрываем файл."""
+    connection.close()
+```
+
+Если CSV не поддерживает rollback, то **абстракция транзакции не подходит** — при ошибке файл остаётся частично записанным. Это нарушение **Interface Segregation Principle** [1].
+
+**Рекомендация:** реализовать честный rollback (писать во временный файл, при commit — переименовывать) или выделить отдельный интерфейс `BaseWriter` без транзакционной семантики.
+
+### 3.4. 🟡 Дублирование кода PostgreSQL-сохранятелей
+
+`YouTrackStoriyIssuesPostgresSaver` и `YouTrackTasksIssuesPostgresSaver` — это **практически идентичные классы**, различающиеся только значением `TABLE_NAME` [1][2]. Весь `_handleAspect` скопирован полностью.
+
+**Рекомендация** — вынести общую логику в базовый класс:
+```python
+class BasePostgresSaver(BaseTransactionAction, IYouTrackIssuesSaver):
+    TABLE_NAME: str  # абстрактный атрибут
+
+    def _handleAspect(self, ctx, params, result):
+        # общая логика upsert
+        ...
+
+class YouTrackStoriyIssuesPostgresSaver(BasePostgresSaver):
+    TABLE_NAME = "user_tech_stories"
+
+class YouTrackTasksIssuesPostgresSaver(BasePostgresSaver):
+    TABLE_NAME = "taskitems"
+```
+
+### 3.5. 🟡 Кэш заголовков в FetchIssuesFromYouTrackAction вычисляется по первой странице
+
+```python
+if cache_key not in headers_cache:
+    all_keys = set()
+    for row in page_rows:
+        all_keys.update(row.keys())
+    headers_cache[cache_key] = sorted(all_keys)
+```
+
+Если на первой странице нет каких-то полей (например, `_Тестер` = `None` и ключ отсутствует), то эти колонки **не попадут в заголовки** для последующих страниц. Порядок `sorted()` тоже может не совпадать со схемой таблицы в PostgreSQL [1].
+
+**Рекомендация:** определять заголовки статически из парсера или схемы таблицы, а не вычислять динамически.
+
+### 3.6. 🟡 `executemany` вместо batch insert
+
+```python
+cur.executemany(insert_sql, values_list)
+```
+
+В psycopg2 `executemany` выполняет отдельный запрос для каждой строки, что **крайне медленно** при больших объёмах [1]. Для тысяч задач это может быть узким местом.
+
+**Рекомендация:**
+```python
+from psycopg2.extras import execute_values
+execute_values(cur, template_sql, values_list)
+```
+
+### 3.7. 🟡 print вместо логирования
+
+В `FetchIssuesFromYouTrackAction` [1]:
+```python
+print(f"✅ Загружено и передано saver'ам {total_issues} задач...")
+print(f"🎉 Всего обработано {total_issues} задач за {pages} страниц(ы)")
+```
+
+При этом в PostgreSQL-сейверах и в `YouTrackMCPServer` уже используется `logger` [1]. Нужна **единообразная стратегия логирования**.
+
+### 3.8. 🟡 Прямая зависимость от `requests` без абстракции
+
+`_fetch_page` напрямую вызывает `requests.get(...)` [1], что делает невозможным:
+- Unit-тестирование без мокирования
+- Переключение на другой HTTP-клиент (httpx, aiohttp)
+- Добавление retry-логики, rate limiting
+
+**Рекомендация:** ввести абстракцию HTTP-клиента, передаваемую через params или конструктор.
+
+### 3.9. 🟡 InitDatabaseAction делает commit внутри _handleAspect
+
+```python
+conn.commit()
+return {"tables_created": [...], "schema": "youtrack"}
+```
+
+При этом commit также вызывается снаружи через `mgr.commit()` [1]. Двойной commit — это как минимум нелогично, а в общем случае может привести к неожиданному поведению при ошибке между внутренним и внешним commit.
+
+### 3.10. 🟡 Один PostgreSQL-менеджер и один контекст для двух saver'ов
+
+В `bulk_youtrack_issue_to_postgres` [1]:
+```python
+ctx = TransactionContext(base_ctx=..., connection=mgr.connection)
+savers = [
+    (ctx, stories_saver, [...]),
+    (ctx, tasks_saver, [...])
+]
+```
+
+Оба saver'а делят один контекст и одно соединение. Это работает, но **нет изоляции** — ошибка в одном saver'е откатит транзакцию для обоих. Если это желаемое поведение — следует задокументировать. Если нет — нужны отдельные менеджеры.
+
+---
+
+## 4. Архитектурная диаграмма (текущее состояние)
+
+```
+┌─────────────────────────────────────────────────────┐
+│                YouTrackMCPServer                     │ ← Фасад
+│  bulk_to_csv / bulk_to_postgres / init_database      │
+└──────────┬─────────────────────────┬────────────────┘
+           │                         │
+           ▼                         ▼
+┌──────────────────────┐   ┌──────────────────────────┐
+│ FetchIssuesFrom      │   │ ConnectionManagers:       │
+│ YouTrackAction       │   │  · CsvConnectionManager   │
+│ (BaseSimpleAction    │   │  · PostgresConnectionMgr  │
+│  + пагинация)        │   └──────────────────────────┘
+└────────┬─────────────┘              ▲
+         │                            │
+         ▼                            │
+┌──────────────────────┐              │
+│ YouTrackIssuesParser │              │
+│ (парсинг + группи-   │              │
+│  ровка по типам)     │              │
+└────────┬─────────────┘              │
+         │ передаёт rows/headers      │
+         ▼                            │
+┌──────────────────────────────┐      │
+│ Saver'ы (BaseTransaction-    │──────┘
+│ Action + IYouTrackIssues-    │  write_rows() / SQL
+│ Saver):                      │
+│  · YouTrackIssuesCSVSaver    │
+│  · YouTrackStoriyIssues-     │
+│    PostgresSaver             │
+│  · YouTrackTasksIssues-      │
+│    PostgresSaver             │
+└──────────────────────────────┘
+
+┌─────────────────────────────────────────────────────┐
+│              ActionEngine (ядро)                     │
+├─────────────────────────────────────────────────────┤
+│ BaseSimpleAction      │ BaseConnectionManager       │
+│ BaseTransactionAction │ Context / TransactionCtx    │
+│ BaseFieldChecker      │ CheckRoles                  │
+│ *FieldChecker (6 шт)  │ requires_connection_type    │
+│ InstanceOfChecker     │ Exceptions (6 классов)      │
+└─────────────────────────────────────────────────────┘
+```
+
+---
+
+## 5. Сравнение двух версий кода
+
+В контексте присутствуют **две версии** некоторых файлов. Заметные улучшения во второй версии:
+
+| Аспект | Первая версия | Вторая версия |
+|---|---|---|
+| **Парсинг задач** | Стратегии зашиты в `BaseYouTrackIssuesSaver` | Выделен `YouTrackIssuesParser` — отдельный Action [1] |
+| **Типы карточек** | Передавались через `_strategy` в конструкторе сейвера | Передаются как третий элемент кортежа `(ctx, saver, card_types)` [1] |
+| **PostgreSQL** | Отсутствовал | Полноценные saver'ы с upsert и `InitDatabaseAction` [1][2] |
+| **Маркерный интерфейс** | Отсутствовал | `IYouTrackIssuesSaver` с проверкой isinstance [1] |
+| **Чекеры на результат** | Не использовались | Используются на `_handleAspect` [1] |
+| **CSV write_rows** | Принимал `first_page` | Определяет необходимость заголовков по `_headers_written` [1] |
+
+Вторая версия **значительно лучше** по архитектуре: парсинг отделён от сохранения, появилась поддержка PostgreSQL, улучшена декларативность.
+
+---
+
+## 6. Итоговая оценка
+
+| Критерий | Оценка | Комментарий |
+|---|---|---|
+| **Разделение ответственности** | 8/10 | Парсер выделен, сейверы разделены по назначению. Минус — дублирование PG-сейверов |
+| **Расширяемость (OCP)** | 7/10 | Добавление нового целевого хранилища — просто. Но добавление нового типа карточки требует правок парсера |
+| **Тестируемость** | 6/10 | Stateless-подход упрощает тестирование, но прямые вызовы `requests` и `print` усложняют мокирование |
+| **Управление транзакциями** | 5/10 | Нет UoW, CSV-rollback фиктивный, ответственность размазана между фасадом и действиями |
+| **Декларативность** | 9/10 | Декораторы для валидации входа, выхода и ролей — отличное решение |
+| **Читаемость и документация** | 9/10 | Все классы и методы документированы, исключения на русском |
+| **Устойчивость к ошибкам** | 6/10 | Нет retry-логики для HTTP, `executemany` медленный, двойной commit в InitDB |
+| **DRY (отсутствие дублирования)** | 5/10 | PG-сейверы почти идентичны, заголовки вычисляются динамически вместо статического определения |
+
+### **Общая оценка: 7.0 / 10**
+
+---
+
+## 7. Топ-5 рекомендаций по приоритету
+
+1. **Вынести общую логику PG-сейверов в базовый класс** — устранить дублирование ~80% кода между `YouTrackStoriyIssuesPostgresSaver` и `YouTrackTasksIssuesPostgresSaver` [1]
+
+2. **Реализовать Unit of Work** — централизовать управление транзакциями, убрать его из фасада [1]
+
+3. **Заменить `executemany` на `execute_values`** — критично для производительности при больших объёмах данных [1]
+
+4. **Абстрагировать HTTP-клиент** — для тестируемости и возможности добавить retry/rate-limiting [1]
+
+5. **Заменить `print` на `logging`** — унифицировать с остальной кодовой базой, где уже используется `logger` [1]
+
+**Резюме:** Фреймворк имеет **сильную основу** — конвейер аспектов, декларативная валидация входа и выхода, чёткая иерархия исключений. Вторая версия показывает значительный прогресс в разделении ответственности. Для продакшн-уровня необходимо решить вопросы с управлением транзакциями, дублированием кода и производительностью SQL-вставок.

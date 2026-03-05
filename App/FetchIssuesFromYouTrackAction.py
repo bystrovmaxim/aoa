@@ -12,7 +12,6 @@ from ActionEngine.Exceptions import HandleException
 from .YouTrackIssuesParser import YouTrackIssuesParser
 from .IYouTrackIssuesSaver import IYouTrackIssuesSaver
 
-
 @CheckRoles(CheckRoles.ANY)  # Доступен любому аутентифицированному пользователю
 @StringFieldChecker("base_url")  # Параметр base_url обязателен и должен быть строкой
 @StringFieldChecker("token")     # Параметр token обязателен и должен быть строкой
