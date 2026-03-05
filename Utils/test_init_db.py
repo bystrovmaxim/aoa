@@ -10,7 +10,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 dotenv_path = Path(__file__).parent.parent / '.env'
 load_dotenv(dotenv_path=dotenv_path)
 
-from Gateway.YouTrackMCPServer import YouTrackMCPServer
+from EntryPoint.YouTrackMCPServer import YouTrackMCPServer
 
 def main():
     result = YouTrackMCPServer.init_database()
