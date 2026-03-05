@@ -1,62 +1,49 @@
-import logging
 import os
+import logging
 from typing import Optional, Dict, Any
 from datetime import date
 
 from ActionEngine.Context import Context
-from ActionEngine.TransactionContext import TransactionContext
-from ActionEngine.CsvConnectionManager import CsvConnectionManager
-from ActionEngine.PostgresConnectionManager import PostgresConnectionManager
-
-from App.FetchIssuesFromYouTrackAction import FetchIssuesFromYouTrackAction
-from App.YouTrackIssuesCSVSaver import YouTrackIssuesCSVSaver
-from App.YouTrackStoriyIssuesPostgresSaver import YouTrackStoriyIssuesPostgresSaver
-from App.YouTrackTasksIssuesPostgresSaver import YouTrackTasksIssuesPostgresSaver
-from App.InitDatabaseAction import InitDatabaseAction
+from .BulkYouTrackIssueToCsvAction import BulkYouTrackIssueToCsvAction
+from .BulkYouTrackIssueToPostgresAction import BulkYouTrackIssueToPostgresAction
+from .InitDatabaseServerAction import InitDatabaseServerAction
 
 logger = logging.getLogger(__name__)
 
-
 class YouTrackMCPServer:
     """
-    Фасад для вызова действий YouTrack.
+    Тонкий фасад для вызова оркестрирующих действий из внешних систем (n8n).
+    Преобразует исключения в стандартный формат ответа.
     """
 
     @staticmethod
     def init_database() -> Dict[str, Any]:
-        """
-        Инициализирует таблицы в PostgreSQL (использует переменные окружения).
-        """
-        host = os.getenv("POSTGRES_HOST", "localhost")
+        pg_host = os.getenv("POSTGRES_HOST")
+        if not pg_host:
+            return {"success": False, "result": None, "errors": ["POSTGRES_HOST не задан"]}
         try:
-            port = int(os.getenv("POSTGRES_PORT", "5432"))
+            pg_port = int(os.getenv("POSTGRES_PORT", "5432"))
         except ValueError:
             return {"success": False, "result": None, "errors": ["POSTGRES_PORT должен быть числом"]}
-        dbname = os.getenv("POSTGRES_DB")
-        user = os.getenv("POSTGRES_USER")
-        password = os.getenv("POSTGRES_PASSWORD")
+        pg_db = os.getenv("POSTGRES_DB")
+        pg_user = os.getenv("POSTGRES_USER")
+        pg_password = os.getenv("POSTGRES_PASSWORD")
+        if not pg_db or not pg_user or not pg_password:
+            return {"success": False, "result": None, "errors": ["POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD должны быть заданы"]}
 
-        if not dbname:
-            return {"success": False, "result": None, "errors": ["POSTGRES_DB не задана"]}
-        if not user:
-            return {"success": False, "result": None, "errors": ["POSTGRES_USER не задан"]}
-        if not password:
-            return {"success": False, "result": None, "errors": ["POSTGRES_PASSWORD не задан"]}
-
-        db_params = {"host": host, "port": port, "dbname": dbname, "user": user, "password": password}
-        mgr = PostgresConnectionManager(db_params)
-        mgr.open()
-        ctx = TransactionContext(
-            base_ctx=Context(user_id="system", roles=["admin"]),
-            connection=mgr.connection
-        )
-        action = InitDatabaseAction()
+        action = InitDatabaseServerAction()
+        ctx = Context(user_id="system", roles=["admin"])
+        params = {
+            "pg_host": pg_host,
+            "pg_port": pg_port,
+            "pg_db": pg_db,
+            "pg_user": pg_user,
+            "pg_password": pg_password,
+        }
         try:
-            result = action.run(ctx, {})
-            mgr.commit()
+            result = action.run(ctx, params)
             return {"success": True, "result": result, "errors": []}
         except Exception as e:
-            mgr.rollback()
             logger.exception("Ошибка при инициализации БД")
             return {"success": False, "result": None, "errors": [str(e)]}
 
@@ -72,57 +59,20 @@ class YouTrackMCPServer:
         if not base_url or not token:
             return {"success": False, "result": None, "errors": ["YOUTRACK_URL или YOUTRACK_TOKEN не заданы"]}
 
-        # Один экземпляр saver'а для всех CSV
-        csv_saver = YouTrackIssuesCSVSaver()
-        savers = []
-        managers = []
-
-        if user_stories_file:
-            mgr = CsvConnectionManager(filepath=user_stories_file)
-            mgr.open()
-            managers.append(mgr)
-            ctx = TransactionContext(
-                base_ctx=Context(user_id="system", roles=["user"]),
-                connection=mgr
-            )
-            savers.append((ctx, csv_saver, ["Пользовательская история", "Техническая история"]))
-
-        if tasks_file:
-            mgr = CsvConnectionManager(filepath=tasks_file)
-            mgr.open()
-            managers.append(mgr)
-            ctx = TransactionContext(
-                base_ctx=Context(user_id="system", roles=["user"]),
-                connection=mgr
-            )
-            savers.append((ctx, csv_saver, [
-                "Разработка",
-                "Аналитика и проектирование",
-                "Решение инцидентов",
-                "Работа вместо системы"
-            ]))
-
-        if not savers:
-            return {"success": False, "result": None, "errors": ["Не указано ни одного файла"]}
-
-        fetcher = FetchIssuesFromYouTrackAction()
+        action = BulkYouTrackIssueToCsvAction()
+        ctx = Context(user_id="system", roles=["user"])
         params = {
             "base_url": base_url,
             "token": token,
+            "user_stories_file": user_stories_file,
+            "tasks_file": tasks_file,
             "page_size": page_size,
             "project_id": project_id,
-            "savers": savers,
         }
-
         try:
-            # Для запуска fetcher'а нужен любой контекст (первый из списка)
-            result = fetcher.run(savers[0][0], params)
-            for mgr in managers:
-                mgr.commit()
+            result = action.run(ctx, params)
             return {"success": True, "result": result, "errors": []}
         except Exception as e:
-            for mgr in managers:
-                mgr.rollback()
             logger.exception("Ошибка в bulk_youtrack_issue_to_csv")
             return {"success": False, "result": None, "errors": [str(e)]}
 
@@ -137,58 +87,36 @@ class YouTrackMCPServer:
         if not base_url or not token:
             return {"success": False, "result": None, "errors": ["YOUTRACK_URL или YOUTRACK_TOKEN не заданы"]}
 
-        host = os.getenv("POSTGRES_HOST", "localhost")
+        pg_host = os.getenv("POSTGRES_HOST")
+        if not pg_host:
+            return {"success": False, "result": None, "errors": ["POSTGRES_HOST не задан"]}
         try:
-            port = int(os.getenv("POSTGRES_PORT", "5432"))
+            pg_port = int(os.getenv("POSTGRES_PORT", "5432"))
         except ValueError:
             return {"success": False, "result": None, "errors": ["POSTGRES_PORT должен быть числом"]}
-        dbname = os.getenv("POSTGRES_DB")
-        user = os.getenv("POSTGRES_USER")
-        password = os.getenv("POSTGRES_PASSWORD")
-        if not dbname or not user or not password:
-            return {"success": False, "result": None, "errors": ["POSTGRES_* переменные не заданы"]}
+        pg_db = os.getenv("POSTGRES_DB")
+        pg_user = os.getenv("POSTGRES_USER")
+        pg_password = os.getenv("POSTGRES_PASSWORD")
+        if not pg_db or not pg_user or not pg_password:
+            return {"success": False, "result": None, "errors": ["POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD должны быть заданы"]}
 
-        db_params = {"host": host, "port": port, "dbname": dbname, "user": user, "password": password}
-
-        if snapshot_date is None:
-            snapshot_date = date.today()
-
-        mgr = PostgresConnectionManager(db_params)
-        mgr.open()
-        ctx = TransactionContext(
-            base_ctx=Context(user_id="system", roles=["user"]),
-            connection=mgr.connection
-        )
-
-        # Создаём saver'ы без snapshot_date в конструкторе
-        stories_saver = YouTrackStoriyIssuesPostgresSaver()
-        tasks_saver = YouTrackTasksIssuesPostgresSaver()
-
-        savers = [
-            (ctx, stories_saver, ["Пользовательская история", "Техническая история"]),
-            (ctx, tasks_saver, [
-                "Разработка",
-                "Аналитика и проектирование",
-                "Решение инцидентов",
-                "Работа вместо системы"
-            ])
-        ]
-
-        fetcher = FetchIssuesFromYouTrackAction()
+        action = BulkYouTrackIssueToPostgresAction()
+        ctx = Context(user_id="system", roles=["user"])
         params = {
             "base_url": base_url,
             "token": token,
-            "page_size": page_size,
             "project_id": project_id,
-            "savers": savers,
-            "snapshot_date": snapshot_date.isoformat()   # передаём дату в общие параметры
+            "page_size": page_size,
+            "snapshot_date": snapshot_date.isoformat() if snapshot_date else None,
+            "pg_host": pg_host,
+            "pg_port": pg_port,
+            "pg_db": pg_db,
+            "pg_user": pg_user,
+            "pg_password": pg_password,
         }
-
         try:
-            result = fetcher.run(ctx, params)
-            mgr.commit()
+            result = action.run(ctx, params)
             return {"success": True, "result": result, "errors": []}
         except Exception as e:
-            mgr.rollback()
             logger.exception("Ошибка в bulk_youtrack_issue_to_postgres")
             return {"success": False, "result": None, "errors": [str(e)]}

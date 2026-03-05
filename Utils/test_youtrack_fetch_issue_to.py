@@ -2,19 +2,21 @@
 import os
 import json
 import requests
+from pathlib import Path
+from dotenv import load_dotenv
 
-# ID задачи
+dotenv_path = Path(__file__).parent.parent / '.env'
+load_dotenv(dotenv_path=dotenv_path)
+
 ISSUE_ID = "OPD_IPPM-1012"
 
-# Переменные окружения
 YOUTRACK_URL = os.getenv('YOUTRACK_URL')
 YOUTRACK_TOKEN = os.getenv('YOUTRACK_TOKEN')
 
 if not YOUTRACK_URL or not YOUTRACK_TOKEN:
-    print("❌ Ошибка: Не заданы YOUTRACK_URL или YOUTRACK_TOKEN")
+    print(json.dumps({"error": "YOUTRACK_URL или YOUTRACK_TOKEN не заданы"}))
     exit(1)
 
-# Запрос с максимально полным набором связанных данных
 url = f"{YOUTRACK_URL}/api/issues/{ISSUE_ID}"
 params = {
     "fields": (
@@ -34,7 +36,6 @@ response = requests.get(url, headers=headers, params=params, timeout=30)
 
 if response.status_code == 200:
     data = response.json()
-    print("\n✅ Задача успешно получена. Полный JSON:\n")
     print(json.dumps(data, indent=2, ensure_ascii=False))
 else:
-    print(f"❌ Ошибка {response.status_code}: {response.text}")
+    print(json.dumps({"error": f"HTTP {response.status_code}", "details": response.text}))
