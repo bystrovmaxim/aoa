@@ -9,7 +9,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 load_dotenv()
 
-from MCPServer.YouTrackMCPServer import YouTrackMCPServer
+from Gateway.YouTrackMCPServer import YouTrackMCPServer
 
 def main():
     result = YouTrackMCPServer.bulk_youtrack_issue_to_csv(
