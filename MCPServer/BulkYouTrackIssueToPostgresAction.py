@@ -17,21 +17,21 @@ from App.YouTrackTasksIssuesPostgresSaver import YouTrackTasksIssuesPostgresSave
 
 logger = logging.getLogger(__name__)
 
-@CheckRoles(CheckRoles.ANY, description="Доступен любому аутентифицированному пользователю")
-@IntFieldChecker("page_size", min_value=1, max_value=500, description="Входной параметр: размер страницы")
-@StringFieldChecker("project_id", required=False, not_empty=True, description="Входной параметр: идентификатор проекта (опционально)")
-@StringFieldChecker("snapshot_date", required=False, description="Входной параметр: дата снимка (строка YYYY-MM-DD, опционально)")
-@StringFieldChecker("base_url", required=True, description="Входной параметр: URL YouTrack")
-@StringFieldChecker("token", required=True, description="Входной параметр: токен доступа")
-@StringFieldChecker("pg_host", required=True, description="Входной параметр: хост PostgreSQL")
-@IntFieldChecker("pg_port", required=True, description="Входной параметр: порт PostgreSQL")
-@StringFieldChecker("pg_db", required=True, description="Входной параметр: имя базы данных PostgreSQL")
-@StringFieldChecker("pg_user", required=True, description="Входной параметр: пользователь PostgreSQL")
-@StringFieldChecker("pg_password", required=True, description="Входной параметр: пароль PostgreSQL")
+@CheckRoles(CheckRoles.ANY, desc="Доступен любому аутентифицированному пользователю")
+@IntFieldChecker("page_size", min_value=1, max_value=500, desc="Входной параметр: размер страницы")
+@StringFieldChecker("project_id", required=False, not_empty=True, desc="Входной параметр: идентификатор проекта (опционально)")
+@StringFieldChecker("snapshot_date", required=False, desc="Входной параметр: дата снимка (строка YYYY-MM-DD, опционально)")
+@StringFieldChecker("base_url", required=True, desc="Входной параметр: URL YouTrack")
+@StringFieldChecker("token", required=True, desc="Входной параметр: токен доступа")
+@StringFieldChecker("pg_host", required=True, desc="Входной параметр: хост PostgreSQL")
+@IntFieldChecker("pg_port", required=True, desc="Входной параметр: порт PostgreSQL")
+@StringFieldChecker("pg_db", required=True, desc="Входной параметр: имя базы данных PostgreSQL")
+@StringFieldChecker("pg_user", required=True, desc="Входной параметр: пользователь PostgreSQL")
+@StringFieldChecker("pg_password", required=True, desc="Входной параметр: пароль PostgreSQL")
 class BulkYouTrackIssueToPostgresAction(BaseSimpleAction):
 
-    @InstanceOfChecker("managers", expected_class=list, description="Результат _preHandleAspect: список менеджеров соединений (один элемент)")
-    @InstanceOfChecker("savers", expected_class=list, description="Результат _preHandleAspect: список кортежей (context, saver, card_types)")
+    @InstanceOfChecker("managers", expected_class=list, desc="Результат _preHandleAspect: список менеджеров соединений (один элемент)")
+    @InstanceOfChecker("savers", expected_class=list, desc="Результат _preHandleAspect: список кортежей (context, saver, card_types)")
     def _preHandleAspect(self, ctx: Context, params: Dict[str, Any], result: Dict[str, Any]) -> Dict[str, Any]:
         """Создаёт менеджер соединения и два saver'а (истории и задачи)."""
         db_params = {
@@ -61,8 +61,8 @@ class BulkYouTrackIssueToPostgresAction(BaseSimpleAction):
 
         return {"managers": [mgr], "savers": savers}
 
-    @IntFieldChecker("total_issues", min_value=0, description="Результат _handleAspect: общее количество загруженных задач")
-    @IntFieldChecker("pages", min_value=0, description="Результат _handleAspect: количество обработанных страниц")
+    @IntFieldChecker("total_issues", min_value=0, desc="Результат _handleAspect: общее количество загруженных задач")
+    @IntFieldChecker("pages", min_value=0, desc="Результат _handleAspect: количество обработанных страниц")
     def _handleAspect(self, ctx: Context, params: Dict[str, Any], result: Dict[str, Any]) -> Dict[str, Any]:
         """Запускает загрузчик задач."""
         fetcher = FetchIssuesFromYouTrackAction()
@@ -87,8 +87,8 @@ class BulkYouTrackIssueToPostgresAction(BaseSimpleAction):
         fetch_result["managers"] = result["managers"]
         return fetch_result
 
-    @IntFieldChecker("total_issues", min_value=0, description="Результат _postHandleAspect: общее количество загруженных задач")
-    @IntFieldChecker("pages", min_value=0, description="Результат _postHandleAspect: количество обработанных страниц")
+    @IntFieldChecker("total_issues", min_value=0, desc="Результат _postHandleAspect: общее количество загруженных задач")
+    @IntFieldChecker("pages", min_value=0, desc="Результат _postHandleAspect: количество обработанных страниц")
     def _postHandleAspect(self, ctx: Context, params: Dict[str, Any], result: Dict[str, Any]) -> Dict[str, Any]:
         """Фиксирует транзакцию и возвращает только статистику загрузки."""
         for mgr in result.get("managers", []):

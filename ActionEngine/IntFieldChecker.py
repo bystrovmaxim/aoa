@@ -21,7 +21,7 @@ class IntFieldChecker(BaseFieldChecker):
                  required: bool = True,
                  min_value: Optional[int] = None,
                  max_value: Optional[int] = None,
-                 description: str = None):
+                 desc: str = None):
         """
         Параметры:
             field_name: имя поля.
@@ -29,7 +29,7 @@ class IntFieldChecker(BaseFieldChecker):
             min_value: минимально допустимое значение (включительно).
             max_value: максимально допустимое значение (включительно).
         """
-        super().__init__(field_name, required, description)
+        super().__init__(field_name, required, desc)
         self.min_value = min_value
         self.max_value = max_value
 

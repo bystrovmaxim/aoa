@@ -8,8 +8,8 @@ from ActionEngine.IntFieldChecker import IntFieldChecker
 from .IYouTrackIssuesSaver import IYouTrackIssuesSaver
 
 
-@InstanceOfChecker("headers", expected_class=list, required=True, description="Входной параметр: заголовки CSV (список)")
-@InstanceOfChecker("rows", expected_class=list, required=True, description="Входной параметр: строки данных (список списков)")
+@InstanceOfChecker("headers", expected_class=list, required=True, desc="Входной параметр: заголовки CSV (список)")
+@InstanceOfChecker("rows", expected_class=list, required=True, desc="Входной параметр: строки данных (список списков)")
 class YouTrackIssuesCSVSaver(BaseTransactionAction, IYouTrackIssuesSaver):
     """
     Сохранятель для записи данных в CSV-файл.
@@ -20,7 +20,7 @@ class YouTrackIssuesCSVSaver(BaseTransactionAction, IYouTrackIssuesSaver):
     def __init__(self):
         super().__init__()
 
-    @IntFieldChecker("written_rows", min_value=0, description="Результат _handleAspect: количество фактически записанных строк")
+    @IntFieldChecker("written_rows", min_value=0, desc="Результат _handleAspect: количество фактически записанных строк")
     def _handleAspect(
         self,
         ctx: TransactionContext,

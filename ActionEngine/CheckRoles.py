@@ -25,13 +25,13 @@ class CheckRoles:
 
     def __init__(self, 
                  spec: Union[str, List[str]],
-                 description: str = None):
+                 desc: str = None):
         """
         Параметры:
             spec: строка (одна роль), список строк, или константа NONE/ANY.
         """
         self.spec = spec
-        self.description = description
+        self.desc = desc
 
     def __call__(self, cls):
         """
