@@ -9,8 +9,7 @@
 """
 from typing import Any, Type, Union
 from .BaseFieldChecker import BaseFieldChecker
-from .Exceptions import ValidationFieldException
-
+from ActionEngine.Core.Exceptions import ValidationFieldException
 
 class InstanceOfChecker(BaseFieldChecker):
     """

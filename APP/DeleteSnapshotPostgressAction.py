@@ -5,12 +5,13 @@ import logging
 from psycopg2 import sql
 import psycopg2
 
-from ActionEngine.BaseTransactionAction import BaseTransactionAction
-from ActionEngine.TransactionContext import TransactionContext
-from ActionEngine.requires_connection_type import requires_connection_type
-from ActionEngine.InstanceOfChecker import InstanceOfChecker
-from ActionEngine.IntFieldChecker import IntFieldChecker
-from ActionEngine.StringFieldChecker import StringFieldChecker
+from ActionEngine import (
+    TransactionContext,
+    IntFieldChecker,
+    InstanceOfChecker,
+    StringFieldChecker,
+    requires_connection_type,
+    BaseTransactionAction)
 
 logger = logging.getLogger(__name__)
 

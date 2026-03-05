@@ -9,7 +9,7 @@
 """
 from typing import Any
 from .BaseFieldChecker import BaseFieldChecker
-from .Exceptions import ValidationFieldException
+from ActionEngine.Core.Exceptions import ValidationFieldException
 
 class BoolFieldChecker(BaseFieldChecker):
     """

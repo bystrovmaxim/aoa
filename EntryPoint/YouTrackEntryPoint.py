@@ -1,13 +1,15 @@
+# EntryPoint/YouTrackEntryPoint.py
 import os
 import logging
 from typing import Optional, Dict, Any
 from datetime import date
 from typing import List
 
-from ActionEngine.Context import Context
-from ActionEngine.TransactionContext import TransactionContext
-from ActionEngine.CsvConnectionManager import CsvConnectionManager
-from ActionEngine.PostgresConnectionManager import PostgresConnectionManager
+from ActionEngine import (
+    Context,
+    TransactionContext,
+    PostgresConnectionManager,
+    UserInfo)
 
 from .BulkYouTrackIssueToCsvAction import BulkYouTrackIssueToCsvAction
 from .BulkYouTrackIssueToPostgresAction import BulkYouTrackIssueToPostgresAction
@@ -53,8 +55,9 @@ class YouTrackEntryPoint:
 
         mgr = PostgresConnectionManager(db_params)
         mgr.open()
+        user_info = UserInfo(user_id="system", roles=["admin"])
         ctx = TransactionContext(
-            base_ctx=Context(user_id="system", roles=["admin"]),
+            user=user_info,
             connection=mgr.connection
         )
         action = InitDatabaseServerAction()
@@ -84,7 +87,8 @@ class YouTrackEntryPoint:
             return {"success": False, "result": None, "errors": ["YOUTRACK_URL или YOUTRACK_TOKEN не заданы"]}
 
         action = BulkYouTrackIssueToCsvAction()
-        ctx = Context(user_id="system", roles=["user"])
+        user_info = UserInfo(user_id="system", roles=["user"])
+        ctx = Context(user=user_info)
         params = {
             "base_url": base_url,
             "token": token,
@@ -130,7 +134,8 @@ class YouTrackEntryPoint:
             return {"success": False, "result": None, "errors": ["POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD должны быть заданы"]}
 
         action = BulkYouTrackIssueToPostgresAction()
-        ctx = Context(user_id="system", roles=["user"])
+        user_info = UserInfo(user_id="system", roles=["user"])
+        ctx = Context(user=user_info)
         params = {
             "base_url": base_url,
             "token": token,
@@ -171,7 +176,8 @@ class YouTrackEntryPoint:
             return {"success": False, "result": None, "errors": ["POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD должны быть заданы"]}
 
         action = DeleteSnapshotServerAction()
-        ctx = Context(user_id="system", roles=["admin"])
+        user_info = UserInfo(user_id="system", roles=["admin"])
+        ctx = Context(user=user_info)
         params = {
             "snapshot_date": snapshot_date.isoformat(),
             "tables": tables,

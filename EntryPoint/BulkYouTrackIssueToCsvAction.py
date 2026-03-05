@@ -1,15 +1,16 @@
-# MCPServer/BulkYouTrackIssueToCsvAction.py
+# EntryPoint/BulkYouTrackIssueToCsvAction.py
 import logging
 from typing import Optional, Dict, Any, List, Tuple
 
-from ActionEngine.BaseSimpleAction import BaseSimpleAction
-from ActionEngine.Context import Context
-from ActionEngine.TransactionContext import TransactionContext
-from ActionEngine.CsvConnectionManager import CsvConnectionManager
-from ActionEngine.CheckRoles import CheckRoles
-from ActionEngine.IntFieldChecker import IntFieldChecker
-from ActionEngine.InstanceOfChecker import InstanceOfChecker
-from ActionEngine.StringFieldChecker import StringFieldChecker
+from ActionEngine import (
+    BaseSimpleAction,
+    TransactionContext,
+    CsvConnectionManager,
+    CheckRoles,
+    IntFieldChecker,
+    InstanceOfChecker,
+    StringFieldChecker,
+    Context)
 
 from APP.FetchIssuesFromYouTrackAction import FetchIssuesFromYouTrackAction
 from APP.YouTrackIssuesCSVSaver import YouTrackIssuesCSVSaver
@@ -45,7 +46,12 @@ class BulkYouTrackIssueToCsvAction(BaseSimpleAction):
             mgr = CsvConnectionManager(filepath=user_stories_file)
             mgr.open()
             managers.append(mgr)
-            tx_ctx = TransactionContext(base_ctx=ctx, connection=mgr)
+            tx_ctx = TransactionContext(
+                user=ctx.user,
+                request=ctx.request,
+                environment=ctx.environment,
+                connection=mgr
+            )
             savers.append((
                 tx_ctx,
                 csv_saver,
@@ -57,7 +63,12 @@ class BulkYouTrackIssueToCsvAction(BaseSimpleAction):
             mgr = CsvConnectionManager(filepath=tasks_file)
             mgr.open()
             managers.append(mgr)
-            tx_ctx = TransactionContext(base_ctx=ctx, connection=mgr)
+            tx_ctx = TransactionContext(
+                user=ctx.user,
+                request=ctx.request,
+                environment=ctx.environment,
+                connection=mgr
+            )
             savers.append((
                 tx_ctx,
                 csv_saver,
@@ -79,7 +90,11 @@ class BulkYouTrackIssueToCsvAction(BaseSimpleAction):
     def _handleAspect(self, ctx: Context, params: Dict[str, Any], result: Dict[str, Any]) -> Dict[str, Any]:
         """Запускает загрузчик задач."""
         fetcher = FetchIssuesFromYouTrackAction()
-        fetcher_ctx = Context(user_id=ctx.user_id, roles=ctx.roles)
+        fetcher_ctx = Context(
+            user=ctx.user,
+            request=ctx.request,
+            environment=ctx.environment
+        )
 
         fetch_params = {
             "base_url": params["base_url"],

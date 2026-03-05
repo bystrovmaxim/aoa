@@ -4,9 +4,10 @@
 from typing import Any, Dict, List, Optional
 from datetime import datetime, date
 
-from ActionEngine.BaseSimpleAction import BaseSimpleAction
-from ActionEngine.Context import Context
-from ActionEngine.InstanceOfChecker import InstanceOfChecker
+from ActionEngine import (
+    BaseSimpleAction,
+    Context,
+    InstanceOfChecker)
 
 @InstanceOfChecker("issues", expected_class=list, desc="Входной параметр: список задач YouTrack")
 class YouTrackIssuesParser(BaseSimpleAction):

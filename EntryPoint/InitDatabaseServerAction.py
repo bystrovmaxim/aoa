@@ -2,13 +2,13 @@
 import logging
 from typing import Dict, Any
 
-from ActionEngine.BaseTransactionAction import BaseTransactionAction
-from ActionEngine.TransactionContext import TransactionContext
-from ActionEngine.CheckRoles import CheckRoles
-from ActionEngine.requires_connection_type import requires_connection_type
-from ActionEngine.StringFieldChecker import StringFieldChecker
-from ActionEngine.IntFieldChecker import IntFieldChecker
-from ActionEngine.InstanceOfChecker import InstanceOfChecker
+from ActionEngine import (
+    TransactionContext,
+    CheckRoles,
+    InstanceOfChecker,
+    StringFieldChecker,
+    requires_connection_type,
+    BaseTransactionAction)
 
 import psycopg2
 from APP.InitDatabaseAction import InitDatabaseAction

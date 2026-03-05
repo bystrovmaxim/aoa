@@ -1,7 +1,7 @@
 # ActionEngine/BaseConnectionManager.py
 from abc import ABC, abstractmethod
 from typing import Any
-from .Exceptions import ConnectionAlreadyOpenError, ConnectionNotOpenError
+from ..Core.Exceptions import ConnectionAlreadyOpenError, ConnectionNotOpenError
 
 class BaseConnectionManager(ABC):
     """

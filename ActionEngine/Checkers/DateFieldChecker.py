@@ -10,7 +10,7 @@
 from typing import Any, Optional
 from datetime import datetime
 from .BaseFieldChecker import BaseFieldChecker
-from .Exceptions import ValidationFieldException
+from ActionEngine.Core.Exceptions import ValidationFieldException
 
 class DateFieldChecker(BaseFieldChecker):
     """

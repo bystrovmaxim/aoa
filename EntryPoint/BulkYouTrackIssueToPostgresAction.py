@@ -1,15 +1,17 @@
+# EntryPoint/BulkYouTrackIssueToPostgresAction.py
 import logging
 from typing import Optional, Dict, Any, List, Tuple
 from datetime import date
 
-from ActionEngine.BaseSimpleAction import BaseSimpleAction
-from ActionEngine.Context import Context
-from ActionEngine.TransactionContext import TransactionContext
-from ActionEngine.PostgresConnectionManager import PostgresConnectionManager
-from ActionEngine.CheckRoles import CheckRoles
-from ActionEngine.IntFieldChecker import IntFieldChecker
-from ActionEngine.StringFieldChecker import StringFieldChecker
-from ActionEngine.InstanceOfChecker import InstanceOfChecker
+from ActionEngine import (
+    BaseSimpleAction,
+    TransactionContext,
+    CheckRoles,
+    IntFieldChecker,
+    InstanceOfChecker,
+    StringFieldChecker,
+    PostgresConnectionManager,
+    Context)
 
 from APP.FetchIssuesFromYouTrackAction import FetchIssuesFromYouTrackAction
 from APP.YouTrackStoriyIssuesPostgresSaver import YouTrackStoriyIssuesPostgresSaver
@@ -44,7 +46,12 @@ class BulkYouTrackIssueToPostgresAction(BaseSimpleAction):
 
         mgr = PostgresConnectionManager(db_params)
         mgr.open()
-        tx_ctx = TransactionContext(base_ctx=ctx, connection=mgr.connection)
+        tx_ctx = TransactionContext(
+            user=ctx.user,
+            request=ctx.request,
+            environment=ctx.environment,
+            connection=mgr.connection
+        )
 
         # Создаём saver'ы
         stories_saver = YouTrackStoriyIssuesPostgresSaver()
@@ -82,7 +89,11 @@ class BulkYouTrackIssueToPostgresAction(BaseSimpleAction):
     def _handleAspect(self, ctx: Context, params: Dict[str, Any], result: Dict[str, Any]) -> Dict[str, Any]:
         """Запускает загрузчик задач."""
         fetcher = FetchIssuesFromYouTrackAction()
-        fetcher_ctx = Context(user_id=ctx.user_id, roles=ctx.roles)
+        fetcher_ctx = Context(
+            user=ctx.user,
+            request=ctx.request,
+            environment=ctx.environment
+        )
 
         # snapshot_date берём из params, если не задано, используем сегодня
         snapshot_date = params.get("snapshot_date")
