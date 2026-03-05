@@ -14,6 +14,7 @@ from ActionEngine.InstanceOfChecker import InstanceOfChecker
 from App.FetchIssuesFromYouTrackAction import FetchIssuesFromYouTrackAction
 from App.YouTrackStoriyIssuesPostgresSaver import YouTrackStoriyIssuesPostgresSaver
 from App.YouTrackTasksIssuesPostgresSaver import YouTrackTasksIssuesPostgresSaver
+from App.DeleteSnapshotPostgressAction import DeleteSnapshotProgressAction
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +34,6 @@ class BulkYouTrackIssueToPostgresAction(BaseSimpleAction):
     @InstanceOfChecker("managers", expected_class=list, desc="Результат _preHandleAspect: список менеджеров соединений (один элемент)")
     @InstanceOfChecker("savers", expected_class=list, desc="Результат _preHandleAspect: список кортежей (context, saver, card_types)")
     def _preHandleAspect(self, ctx: Context, params: Dict[str, Any], result: Dict[str, Any]) -> Dict[str, Any]:
-        """Создаёт менеджер соединения и два saver'а (истории и задачи)."""
         db_params = {
             "host": params["pg_host"],
             "port": params["pg_port"],
@@ -46,6 +46,7 @@ class BulkYouTrackIssueToPostgresAction(BaseSimpleAction):
         mgr.open()
         tx_ctx = TransactionContext(base_ctx=ctx, connection=mgr.connection)
 
+        # Создаём saver'ы
         stories_saver = YouTrackStoriyIssuesPostgresSaver()
         tasks_saver = YouTrackTasksIssuesPostgresSaver()
 
@@ -58,6 +59,22 @@ class BulkYouTrackIssueToPostgresAction(BaseSimpleAction):
                 "Работа вместо системы"
             ])
         ]
+
+        # --- Добавляем удаление снимков ---
+        snapshot_date = params.get("snapshot_date")
+        if snapshot_date is None:
+            snapshot_date = date.today().isoformat()
+        # Выполняем удаление в той же транзакции
+        delete_action = DeleteSnapshotProgressAction()
+        delete_params = {
+            "snapshot_date": snapshot_date,
+            "tables": ["user_tech_stories", "taskitems"],
+            "schema": params.get("schema", "youtrack")  # если есть параметр schema
+        }
+        # Запускаем действие удаления с тем же контекстом (tx_ctx)
+        delete_result = delete_action.run(tx_ctx, delete_params)
+        logger.info(f"Удалено записей перед загрузкой: {delete_result.get('deleted_total')}")
+        # ---------------------------------
 
         return {"managers": [mgr], "savers": savers}
 
