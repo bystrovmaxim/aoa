@@ -17,10 +17,10 @@ from .IYouTrackIssuesSaver import IYouTrackIssuesSaver
 logger = logging.getLogger(__name__)
 
 
-@requires_connection_type(psycopg2.extensions.connection, description="Требуется соединение с PostgreSQL")
-@InstanceOfChecker("headers", expected_class=list, required=True, description="Входной параметр: заголовки столбцов (список)")
-@InstanceOfChecker("rows", expected_class=list, required=True, description="Входной параметр: строки данных (список списков)")
-@StringFieldChecker("snapshot_date", required=True, not_empty=True, description="Входной параметр: дата снимка (строка YYYY-MM-DD)")
+@requires_connection_type(psycopg2.extensions.connection, desc="Требуется соединение с PostgreSQL")
+@InstanceOfChecker("headers", expected_class=list, required=True, desc="Входной параметр: заголовки столбцов (список)")
+@InstanceOfChecker("rows", expected_class=list, required=True, desc="Входной параметр: строки данных (список списков)")
+@StringFieldChecker("snapshot_date", required=True, not_empty=True, desc="Входной параметр: дата снимка (строка YYYY-MM-DD)")
 class YouTrackStoriyIssuesPostgresSaver(BaseTransactionAction, IYouTrackIssuesSaver):
     """
     Сохраняет снимки историй (пользовательские и технические) в таблицу user_tech_stories.
@@ -33,7 +33,7 @@ class YouTrackStoriyIssuesPostgresSaver(BaseTransactionAction, IYouTrackIssuesSa
     def __init__(self):
         super().__init__()
 
-    @IntFieldChecker("inserted", min_value=0, description="Результат _handleAspect: количество вставленных или обновлённых записей")
+    @IntFieldChecker("inserted", min_value=0, desc="Результат _handleAspect: количество вставленных или обновлённых записей")
     def _handleAspect(
         self,
         ctx: TransactionContext,

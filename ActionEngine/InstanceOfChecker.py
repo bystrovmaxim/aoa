@@ -22,14 +22,14 @@ class InstanceOfChecker(BaseFieldChecker):
         field_name: str,
         expected_class: Union[Type, tuple],
         required: bool = True,
-        description: str = None):
+        desc: str = None):
         """
         Параметры:
             field_name: имя поля.
             expected_class: класс (или кортеж классов), которым должно соответствовать значение.
             required: является ли поле обязательным.
         """
-        super().__init__(field_name, required, description)
+        super().__init__(field_name, required, desc)
         self.expected_class = expected_class
 
     def _check_type_and_constraints(self, value: Any) -> None:

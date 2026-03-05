@@ -7,7 +7,7 @@
 - Документирование всех методов.
 - Текст исколючений писать на русском.
 """
-def requires_connection_type(connection_class, description: str = None):
+def requires_connection_type(connection_class, desc: str = None):
     """
     Декоратор для классов-наследников BaseInnerTransactionAction.
     Указывает, какой тип соединения требуется для выполнения действия.
@@ -21,6 +21,6 @@ def requires_connection_type(connection_class, description: str = None):
     """
     def decorator(cls):
         cls._required_connection_class = connection_class
-        cls._connection_type_description = description
+        cls._connection_type_description = desc
         return cls
     return decorator
