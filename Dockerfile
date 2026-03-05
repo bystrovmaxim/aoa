@@ -13,7 +13,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY ActionEngine/ ./ActionEngine/
 COPY API/ ./API/
 COPY APP/ ./APP/
-COPY API/ ./API/
 COPY EntryPoint/ ./EntryPoint/
 COPY Utils/ ./Utils/
 COPY *.py ./
