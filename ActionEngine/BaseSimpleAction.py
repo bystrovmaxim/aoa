@@ -122,11 +122,6 @@ class BaseSimpleAction(ABC):
         return result
 
     def run(self, ctx: Context, params: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Публичный метод запуска действия.
-        Последовательно вызывает аспекты, передавая между ними result.
-        После каждого аспекта применяются привязанные к нему чекеры результата.
-        """
         if not isinstance(ctx, Context):
             raise TypeError(f"Ожидался объект Context, получен {type(ctx).__name__}")
         if not isinstance(params, dict):
@@ -134,39 +129,52 @@ class BaseSimpleAction(ABC):
 
         result: Dict[str, Any] = {}
 
-        # Аспект авторизации
-        auth_result = self._permissionAuthorizationAspect(ctx, params)
-        if not isinstance(auth_result, dict):
-            raise TypeError(f"Аспект {self._permissionAuthorizationAspect.__name__} должен возвращать dict")
-        self._checkResults(self._permissionAuthorizationAspect, auth_result)
-        result.update(auth_result)
+        try:
+            # Аспект авторизации
+            auth_result = self._permissionAuthorizationAspect(ctx, params)
+            if not isinstance(auth_result, dict):
+                raise TypeError(f"Аспект {self._permissionAuthorizationAspect.__name__} должен возвращать dict")
+            self._checkResults(self._permissionAuthorizationAspect, auth_result)
+            result.update(auth_result)
 
-        # Аспект валидации
-        validation_result = self._validationAspect(ctx, params, result)
-        if not isinstance(validation_result, dict):
-            raise TypeError(f"Аспект {self._validationAspect.__name__} должен возвращать dict")
-        self._checkResults(self._validationAspect, validation_result)
-        result.update(validation_result)
+            # Аспект валидации
+            validation_result = self._validationAspect(ctx, params, result)
+            if not isinstance(validation_result, dict):
+                raise TypeError(f"Аспект {self._validationAspect.__name__} должен возвращать dict")
+            self._checkResults(self._validationAspect, validation_result)
+            result.update(validation_result)
 
-        # Аспект предварительной обработки
-        pre_result = self._preHandleAspect(ctx, params, result)
-        if not isinstance(pre_result, dict):
-            raise TypeError(f"Аспект {self._preHandleAspect.__name__} должен возвращать dict")
-        self._checkResults(self._preHandleAspect, pre_result)
-        result.update(pre_result)
+            # Аспект предварительной обработки
+            pre_result = self._preHandleAspect(ctx, params, result)
+            if not isinstance(pre_result, dict):
+                raise TypeError(f"Аспект {self._preHandleAspect.__name__} должен возвращать dict")
+            self._checkResults(self._preHandleAspect, pre_result)
+            result.update(pre_result)
 
-        # Основной аспект
-        handle_result = self._handleAspect(ctx, params, result)
-        if not isinstance(handle_result, dict):
-            raise TypeError(f"Аспект {self._handleAspect.__name__} должен возвращать dict")
-        self._checkResults(self._handleAspect, handle_result)
-        result.update(handle_result)
+            # Основной аспект
+            handle_result = self._handleAspect(ctx, params, result)
+            if not isinstance(handle_result, dict):
+                raise TypeError(f"Аспект {self._handleAspect.__name__} должен возвращать dict")
+            self._checkResults(self._handleAspect, handle_result)
+            result.update(handle_result)
 
-        # Пост-обработка
-        post_result = self._postHandleAspect(ctx, params, result)
-        if not isinstance(post_result, dict):
-            raise TypeError(f"Аспект {self._postHandleAspect.__name__} должен возвращать dict")
-        self._checkResults(self._postHandleAspect, post_result)
-        result.update(post_result)
+            # Пост-обработка
+            post_result = self._postHandleAspect(ctx, params, result)
+            if not isinstance(post_result, dict):
+                raise TypeError(f"Аспект {self._postHandleAspect.__name__} должен возвращать dict")
+            self._checkResults(self._postHandleAspect, post_result)
+            result.update(post_result)
 
-        return result
+            return result
+        except Exception as e:
+            # Вызываем аспект ошибки и пробрасываем исключение дальше
+            self._onErrorAspect(ctx, params, result, e)
+            raise
+    
+    def _onErrorAspect(self, ctx: Context, params: Dict[str, Any], result: Dict[str, Any], error: Exception) -> None:
+        """
+        Аспект, вызываемый при возникновении исключения в ходе выполнения run().
+        Позволяет выполнить очистку (например, откат транзакций) перед пробросом ошибки.
+        По умолчанию ничего не делает.
+        """
+        pass

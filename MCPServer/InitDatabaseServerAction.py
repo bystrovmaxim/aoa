@@ -64,3 +64,10 @@ class InitDatabaseServerAction(BaseSimpleAction):
         # Удаляем служебное поле manager перед возвратом
         result.pop("manager", None)
         return result
+    
+    def _onErrorAspect(self, ctx: Context, params: Dict[str, Any], result: Dict[str, Any], error: Exception) -> None:
+        """При ошибке откатывает транзакцию PostgreSQL."""
+        mgr = result.get("manager")
+        if mgr:
+            mgr.rollback()
+        logger.error(f"Ошибка в InitDatabaseServerAction: {error}")
