@@ -17,7 +17,7 @@ from .DeleteSnapshotServerAction import DeleteSnapshotServerAction
 logger = logging.getLogger(__name__)
 
 
-class YouTrackMCPServer:
+class YouTrackEntryPoint:
     """
     Тонкий фасад для вызова оркестрирующих действий из внешних систем (n8n).
     Преобразует исключения в стандартный формат ответа.

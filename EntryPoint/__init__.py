@@ -1,1 +1,1 @@
-from .YouTrackMCPServer import YouTrackMCPServer
+from .YouTrackEntryPoint import YouTrackEntryPoint

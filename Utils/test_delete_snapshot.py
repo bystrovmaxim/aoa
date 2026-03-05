@@ -10,10 +10,10 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 load_dotenv()
 
-from EntryPoint.YouTrackMCPServer import YouTrackMCPServer
+from EntryPoint.YouTrackEntryPoint import YouTrackEntryPoint
 
 def main():
-    result = YouTrackMCPServer.delete_snapshot(
+    result = YouTrackEntryPoint.delete_snapshot(
         snapshot_date=date.today(),
         tables=["user_tech_stories", "taskitems"],
         schema="youtrack"
