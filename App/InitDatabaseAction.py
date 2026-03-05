@@ -23,7 +23,6 @@ class InitDatabaseAction(BaseTransactionAction):
 
         cur.execute("CREATE SCHEMA IF NOT EXISTS youtrack;")
 
-        # Таблица user_tech_stories
         cur.execute("""
             CREATE TABLE IF NOT EXISTS youtrack.user_tech_stories (
                 key TEXT NOT NULL,
@@ -51,7 +50,6 @@ class InitDatabaseAction(BaseTransactionAction):
             );
         """)
 
-        # Таблица taskitems
         cur.execute("""
             CREATE TABLE IF NOT EXISTS youtrack.taskitems (
                 key TEXT NOT NULL,
@@ -80,9 +78,10 @@ class InitDatabaseAction(BaseTransactionAction):
             );
         """)
 
-        # Индексы для ускорения запросов по дате снимка
         cur.execute("CREATE INDEX IF NOT EXISTS idx_user_tech_stories_snapshot ON youtrack.user_tech_stories(snapshot_date);")
         cur.execute("CREATE INDEX IF NOT EXISTS idx_taskitems_snapshot ON youtrack.taskitems(snapshot_date);")
 
-        conn.commit()
+        # УБИРАЕМ conn.commit() – транзакция будет зафиксирована снаружи
+        # conn.commit()
+
         return {"tables_created": ["user_tech_stories", "taskitems"], "schema": "youtrack"}

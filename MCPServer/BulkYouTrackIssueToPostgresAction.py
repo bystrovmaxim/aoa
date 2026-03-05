@@ -96,3 +96,12 @@ class BulkYouTrackIssueToPostgresAction(BaseSimpleAction):
         result.pop("managers", None)
         result.pop("savers", None)
         return result
+    
+    def _onErrorAspect(self, ctx: Context, params: Dict[str, Any], result: Dict[str, Any], error: Exception) -> None:
+        """При ошибке откатывает все открытые соединения PostgreSQL."""
+        for mgr in result.get("managers", []):
+            try:
+                mgr.rollback()
+            except Exception:
+                pass
+        logger.error(f"Ошибка в BulkYouTrackIssueToPostgresAction: {error}")
