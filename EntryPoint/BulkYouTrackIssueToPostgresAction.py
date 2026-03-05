@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 @CheckRoles(CheckRoles.ANY, desc="Доступен любому аутентифицированному пользователю")
 @IntFieldChecker("page_size", min_value=1, max_value=5000, desc="Входной параметр: размер страницы")
 @StringFieldChecker("project_id", required=False, not_empty=True, desc="Входной параметр: идентификатор проекта (опционально)")
-@StringFieldChecker("snapshot_date", required=False, desc="Входной параметр: дата снимка (строка YYYY-MM-DD, опционально)")
+@StringFieldChecker("snapshot_date", required=True, desc="Входной параметр: дата снимка (строка YYYY-MM-DD, опционально)")
 @StringFieldChecker("base_url", required=True, desc="Входной параметр: URL YouTrack")
 @StringFieldChecker("token", required=True, desc="Входной параметр: токен доступа")
 @StringFieldChecker("pg_host", required=True, desc="Входной параметр: хост PostgreSQL")
@@ -62,8 +62,7 @@ class BulkYouTrackIssueToPostgresAction(BaseSimpleAction):
 
         # --- Добавляем удаление снимков ---
         snapshot_date = params.get("snapshot_date")
-        if snapshot_date is None:
-            snapshot_date = date.today().isoformat()
+       
         # Выполняем удаление в той же транзакции
         delete_action = DeleteSnapshotProgressAction()
         delete_params = {
@@ -87,8 +86,6 @@ class BulkYouTrackIssueToPostgresAction(BaseSimpleAction):
 
         # snapshot_date берём из params, если не задано, используем сегодня
         snapshot_date = params.get("snapshot_date")
-        if snapshot_date is None:
-            snapshot_date = date.today().isoformat()
 
         fetch_params = {
             "base_url": params["base_url"],

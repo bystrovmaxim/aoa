@@ -10,7 +10,7 @@ import mcp.server.stdio
 import mcp.types as types
 
 # Импортируем фасад из Gateway
-from EntryPoint.YouTrackMCPServer import YouTrackMCPServer as Facade
+from EntryPoint.YouTrackEntryPoint import YouTrackEntryPoint as Facade
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("mcp-youtrack")

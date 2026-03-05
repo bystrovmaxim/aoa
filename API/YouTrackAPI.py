@@ -7,7 +7,7 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
 # Импортируем фасад из Gateway
-from EntryPoint.YouTrackMCPServer import YouTrackMCPServer
+from EntryPoint.YouTrackEntryPoint import YouTrackEntryPoint
 
 # Настройка логирования
 logging.basicConfig(level=logging.INFO)
@@ -43,13 +43,13 @@ class StandardResponse(BaseModel):
 @app.post("/init_database", response_model=StandardResponse)
 def init_database():
     """Инициализирует таблицы в PostgreSQL."""
-    result = YouTrackMCPServer.init_database()
+    result = YouTrackEntryPoint.init_database()
     return result
 
 @app.post("/bulk_youtrack_issue_to_csv", response_model=StandardResponse)
 def bulk_csv(request: CsvRequest):
     """Загружает задачи из YouTrack и сохраняет в CSV-файлы."""
-    result = YouTrackMCPServer.bulk_youtrack_issue_to_csv(
+    result = YouTrackEntryPoint.bulk_youtrack_issue_to_csv(
         user_stories_file=request.user_stories_file,
         tasks_file=request.tasks_file,
         page_size=request.page_size,
@@ -60,7 +60,7 @@ def bulk_csv(request: CsvRequest):
 @app.post("/bulk_youtrack_issue_to_postgres", response_model=StandardResponse)
 def bulk_postgres(request: PostgresRequest):
     """Загружает снимки задач в PostgreSQL."""
-    result = YouTrackMCPServer.bulk_youtrack_issue_to_postgres(
+    result = YouTrackEntryPoint.bulk_youtrack_issue_to_postgres(
         project_id=request.project_id,
         page_size=request.page_size,
         snapshot_date=request.snapshot_date
@@ -70,7 +70,7 @@ def bulk_postgres(request: PostgresRequest):
 @app.post("/delete_snapshot", response_model=StandardResponse)
 def delete_snapshot(request: DeleteSnapshotRequest):
     """Удаляет все записи за указанную дату из заданных таблиц."""
-    result = YouTrackMCPServer.delete_snapshot(
+    result = YouTrackEntryPoint.delete_snapshot(
         snapshot_date=request.snapshot_date,
         tables=request.tables,
         schema=request.schema
