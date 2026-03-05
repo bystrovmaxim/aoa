@@ -2,6 +2,7 @@ import os
 import logging
 from typing import Optional, Dict, Any
 from datetime import date
+from typing import List
 
 from ActionEngine.Context import Context
 from ActionEngine.TransactionContext import TransactionContext
@@ -11,6 +12,7 @@ from ActionEngine.PostgresConnectionManager import PostgresConnectionManager
 from .BulkYouTrackIssueToCsvAction import BulkYouTrackIssueToCsvAction
 from .BulkYouTrackIssueToPostgresAction import BulkYouTrackIssueToPostgresAction
 from .InitDatabaseServerAction import InitDatabaseServerAction
+from .DeleteSnapshotServerAction import DeleteSnapshotServerAction
 
 logger = logging.getLogger(__name__)
 
@@ -146,4 +148,43 @@ class YouTrackMCPServer:
             return {"success": True, "result": result, "errors": []}
         except Exception as e:
             logger.exception("Ошибка в bulk_youtrack_issue_to_postgres")
+            return {"success": False, "result": None, "errors": [str(e)]}
+        
+    @staticmethod
+    def delete_snapshot(snapshot_date: date, tables: List[str], schema: str = "youtrack") -> Dict[str, Any]:
+        """
+        Удаляет все записи за указанную дату из заданных таблиц.
+        Параметры подключения PostgreSQL берутся из переменных окружения:
+            POSTGRES_HOST, POSTGRES_PORT, POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD.
+        """
+        pg_host = os.getenv("POSTGRES_HOST")
+        if not pg_host:
+            return {"success": False, "result": None, "errors": ["POSTGRES_HOST не задан"]}
+        try:
+            pg_port = int(os.getenv("POSTGRES_PORT", "5432"))
+        except ValueError:
+            return {"success": False, "result": None, "errors": ["POSTGRES_PORT должен быть числом"]}
+        pg_db = os.getenv("POSTGRES_DB")
+        pg_user = os.getenv("POSTGRES_USER")
+        pg_password = os.getenv("POSTGRES_PASSWORD")
+        if not pg_db or not pg_user or not pg_password:
+            return {"success": False, "result": None, "errors": ["POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD должны быть заданы"]}
+
+        action = DeleteSnapshotServerAction()
+        ctx = Context(user_id="system", roles=["admin"])
+        params = {
+            "snapshot_date": snapshot_date.isoformat(),
+            "tables": tables,
+            "schema": schema,
+            "pg_host": pg_host,
+            "pg_port": pg_port,
+            "pg_db": pg_db,
+            "pg_user": pg_user,
+            "pg_password": pg_password,
+        }
+        try:
+            result = action.run(ctx, params)
+            return {"success": True, "result": result, "errors": []}
+        except Exception as e:
+            logger.exception("Ошибка при удалении снимка")
             return {"success": False, "result": None, "errors": [str(e)]}
