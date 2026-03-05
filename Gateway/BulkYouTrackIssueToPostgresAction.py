@@ -19,7 +19,7 @@ from APP.DeleteSnapshotPostgressAction import DeleteSnapshotProgressAction
 logger = logging.getLogger(__name__)
 
 @CheckRoles(CheckRoles.ANY, desc="Доступен любому аутентифицированному пользователю")
-@IntFieldChecker("page_size", min_value=1, max_value=500, desc="Входной параметр: размер страницы")
+@IntFieldChecker("page_size", min_value=1, max_value=5000, desc="Входной параметр: размер страницы")
 @StringFieldChecker("project_id", required=False, not_empty=True, desc="Входной параметр: идентификатор проекта (опционально)")
 @StringFieldChecker("snapshot_date", required=False, desc="Входной параметр: дата снимка (строка YYYY-MM-DD, опционально)")
 @StringFieldChecker("base_url", required=True, desc="Входной параметр: URL YouTrack")

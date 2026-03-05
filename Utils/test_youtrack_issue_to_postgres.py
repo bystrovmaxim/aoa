@@ -14,8 +14,7 @@ from Gateway.YouTrackMCPServer import YouTrackMCPServer
 
 def main():
     result = YouTrackMCPServer.bulk_youtrack_issue_to_postgres(
-        project_id="OPD_IPPM",
-        page_size=100,
+        page_size=5000,
         snapshot_date=date.today()
     )
     print(json.dumps(result, ensure_ascii=False))
