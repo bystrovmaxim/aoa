@@ -1,4 +1,4 @@
-# APP/YouTrackTasksIssuesPostgresSaver.py
+# APP/YouTrackStoryIssuesPostgresSaver.py
 from typing import Any, Dict, List
 from datetime import date
 import logging
@@ -26,11 +26,11 @@ logger = logging.getLogger(__name__)
 @InstanceOfChecker("headers", expected_class=list, required=True, desc="Входной параметр: заголовки столбцов (список)")
 @InstanceOfChecker("rows", expected_class=list, required=True, desc="Входной параметр: строки данных (список списков)")
 @StringFieldChecker("snapshot_date", required=True, not_empty=True, desc="Входной параметр: дата снимка (строка YYYY-MM-DD)")
-class YouTrackTasksIssuesPostgresSaver(BaseTransactionAction, IYouTrackIssuesSaver):
+class YouTrackStoryIssuesPostgresSaver(BaseTransactionAction, IYouTrackIssuesSaver):
     """
-    Сохраняет снимки задач (разработка, аналитика, инциденты, работа вместо системы) в таблицу taskitems.
+    Сохраняет снимки историй (пользовательские и технические) в таблицу user_tech_stories.
     Перед вставкой проверяет наличие задачи в таблице issues и при необходимости создаёт/обновляет запись.
-    Вставляет только специфичные для задач поля (общие поля хранятся в issues).
+    Вставляет только специфичные для историй поля (общие поля хранятся в issues).
     Параметры должны содержать 'headers', 'rows' и 'snapshot_date'.
     При конфликте (key, snapshot_date) выполняет обновление всех полей.
 
@@ -41,13 +41,13 @@ class YouTrackTasksIssuesPostgresSaver(BaseTransactionAction, IYouTrackIssuesSav
         skipped_by_type (dict): количество пропущенных по каждому типу
     """
 
-    TABLE_NAME = "taskitems"
-    CLASS_ISSUE = "taskitems"
+    TABLE_NAME = "user_tech_stories"
+    CLASS_ISSUE = "user_tech_stories"
 
     SPECIFIC_FIELDS = [
         "updated", "date_resolved", "assignee_login", "assignee_name", "assignee_fullname",
-        "tester_login", "tester_name", "tester_fullname", "status", "story_points",
-        "priority", "subcomponent", "sprints", "imported_at"
+        "status", "plan_start", "plan_finish", "fact_forecast_start", "fact_forecast_finish",
+        "customer", "sprints", "imported_at"
     ]
 
     def __init__(self):
@@ -102,6 +102,7 @@ class YouTrackTasksIssuesPostgresSaver(BaseTransactionAction, IYouTrackIssuesSav
         except ValueError:
             raise HandleException(f"Неверный формат snapshot_date: {snapshot_date_str}, ожидается YYYY-MM-DD")
 
+        # Инициализируем счётчики
         inserted_by_type = defaultdict(int)
         skipped_by_type = defaultdict(int)
         inserted_total = 0
@@ -119,12 +120,15 @@ class YouTrackTasksIssuesPostgresSaver(BaseTransactionAction, IYouTrackIssuesSav
         cur = conn.cursor()
 
         try:
+            # Преобразуем строки в список словарей
             rows_dicts = [dict(zip(headers, row)) for row in rows]
 
+            # Разделяем на валидные (с key) и невалидные
             valid_rows_dicts = []
             for row_dict in rows_dicts:
                 row_type = row_dict.get("type", "unknown")
                 if not row_dict.get("key"):
+                    # Логируем пропущенную строку подробно
                     logger.warning(f"Пропущена строка (отсутствует key) в {self.TABLE_NAME}: {json.dumps(row_dict, ensure_ascii=False, default=str)}")
                     skipped_total += 1
                     skipped_by_type[row_type] += 1
@@ -140,9 +144,11 @@ class YouTrackTasksIssuesPostgresSaver(BaseTransactionAction, IYouTrackIssuesSav
                     "skipped_by_type": dict(skipped_by_type)
                 }
 
+            # 1. Обеспечиваем наличие записей в issues
             for row_dict in valid_rows_dicts:
                 self._ensure_issue_record(cur, row_dict)
 
+            # 2. Вставка в таблицу расширения (только специфичные поля)
             specific_headers = [h for h in headers if h in self.SPECIFIC_FIELDS]
             if not specific_headers:
                 logger.warning(f"Нет специфичных полей для вставки в {self.TABLE_NAME}")
@@ -153,10 +159,12 @@ class YouTrackTasksIssuesPostgresSaver(BaseTransactionAction, IYouTrackIssuesSav
                     "skipped_by_type": dict(skipped_by_type)
                 }
 
+            # Группируем валидные строки по типу для подсчёта
             for row_dict in valid_rows_dicts:
                 row_type = row_dict.get("type", "unknown")
                 inserted_by_type[row_type] += 1
 
+            # Подготавливаем данные для executemany
             specific_values_list = []
             for row_dict in valid_rows_dicts:
                 values = [row_dict.get(h) for h in specific_headers]
