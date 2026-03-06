@@ -7,7 +7,8 @@ FastAPI-приложение для доступа к функциям YouTrack 
 import logging
 from fastapi import FastAPI, Depends, HTTPException, Request
 from pydantic import BaseModel
-from typing import Optional, List, date
+from datetime import date
+from typing import Optional, List
 
 from EntryPoint.YouTrackEntryPoint import YouTrackEntryPoint
 from ActionEngine import Context
