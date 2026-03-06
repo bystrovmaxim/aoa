@@ -15,7 +15,7 @@ from APP.InitDatabaseAction import InitDatabaseAction
 
 logger = logging.getLogger(__name__)
 
-@CheckRoles(CheckRoles.ANY, desc="Доступен любому аутентифицированному пользователю")
+@CheckRoles(["admin_db"], desc="Доступно только администраторам")
 @requires_connection_type(psycopg2.extensions.connection, desc="Требуется соединение с PostgreSQL")
 class InitDatabaseServerAction(BaseTransactionAction):
     """

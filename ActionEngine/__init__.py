@@ -22,9 +22,6 @@ from .ConnectionManagers.BaseConnectionManager import BaseConnectionManager
 from .ConnectionManagers.CsvConnectionManager import CsvConnectionManager
 from .ConnectionManagers.PostgresConnectionManager import PostgresConnectionManager
 
-# Auth
-from .Auth.CheckRoles import CheckRoles
-
 # Checkers
 from .Checkers.StringFieldChecker import StringFieldChecker
 from .Checkers.IntFieldChecker import IntFieldChecker
@@ -39,3 +36,10 @@ from .Context.RequestInfo import RequestInfo
 from .Context.EnvironmentInfo import EnvironmentInfo
 from .Context.Context import Context
 from .Context.TransactionContext import TransactionContext
+
+# Auth – классы аутентификации
+from .Auth.CheckRoles import CheckRoles
+from .Auth.Authenticator import Authenticator
+from .Auth.CredentialExtractor import CredentialExtractor
+from .Auth.ContextAssembler import ContextAssembler
+from .Auth.AuthCoordinator import AuthCoordinator
