@@ -1,4 +1,9 @@
-#!/usr/bin/env python3
+# Utils/test_init_db.py
+"""
+Тестовый скрипт для инициализации базы данных.
+Создаёт минимальный контекст и вызывает фасад.
+"""
+
 import sys
 import os
 import json
@@ -7,14 +12,21 @@ from dotenv import load_dotenv
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-dotenv_path = Path(__file__).parent.parent / '.env'
-load_dotenv(dotenv_path=dotenv_path)
+load_dotenv()
 
+from ActionEngine import UserInfo, Context
 from EntryPoint.YouTrackEntryPoint import YouTrackEntryPoint
 
+
 def main():
-    result = YouTrackEntryPoint.init_database()
+    # Создаём контекст с тестовым пользователем (роль admin)
+    user_info = UserInfo(user_id="test", roles=["admin_db"])
+    ctx = Context(user=user_info)
+
+    # Вызываем метод фасада
+    result = YouTrackEntryPoint.init_database(ctx)
     print(json.dumps(result, ensure_ascii=False))
+
 
 if __name__ == "__main__":
     main()

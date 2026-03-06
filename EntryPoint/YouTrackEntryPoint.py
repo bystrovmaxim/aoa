@@ -1,4 +1,13 @@
 # EntryPoint/YouTrackEntryPoint.py
+"""
+Тонкий фасад (точка входа) для всех оркестрирующих действий.
+Все публичные методы первым параметром принимают объект Context,
+содержащий информацию о пользователе, запросе и окружении.
+
+Контекст передаётся из внешних слоёв (FastAPI, MCP) после успешной аутентификации.
+Это гарантирует, что фасад не занимается аутентификацией, а только вызывает бизнес-действия.
+"""
+
 import os
 import logging
 from typing import Optional, Dict, Any
@@ -21,17 +30,25 @@ logger = logging.getLogger(__name__)
 
 class YouTrackEntryPoint:
     """
-    Тонкий фасад для вызова оркестрирующих действий из внешних систем (n8n).
-    Преобразует исключения в стандартный формат ответа.
+    Тонкий фасад для вызова оркестрирующих действий из внешних систем (n8n, FastAPI, MCP).
+
+    Все методы принимают контекст первым параметром, что позволяет
+    передавать информацию об аутентифицированном пользователе и метаданные запроса.
+    Фасад не занимается созданием контекста – он только использует готовый.
     """
 
     @staticmethod
-    def init_database() -> Dict[str, Any]:
+    def init_database(ctx: Context) -> Dict[str, Any]:
         """
         Инициализирует таблицы в PostgreSQL.
-        Параметры подключения читаются из переменных окружения:
+
+        Читает параметры подключения из переменных окружения:
             POSTGRES_HOST, POSTGRES_PORT, POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD.
+
+        :param ctx: контекст выполнения (содержит информацию о пользователе)
+        :return: словарь с результатом (стандартный ответ)
         """
+        # --- Чтение параметров подключения ---
         pg_host = os.getenv("POSTGRES_HOST")
         if not pg_host:
             return {"success": False, "result": None, "errors": ["POSTGRES_HOST не задан"]}
@@ -53,16 +70,22 @@ class YouTrackEntryPoint:
             "password": pg_password,
         }
 
+        # --- Создание менеджера соединения ---
         mgr = PostgresConnectionManager(db_params)
         mgr.open()
-        user_info = UserInfo(user_id="system", roles=["admin"])
-        ctx = TransactionContext(
-            user=user_info,
+
+        # --- Создание транзакционного контекста ---
+        # Копируем пользователя и окружение из переданного ctx, добавляем соединение
+        tx_ctx = TransactionContext(
+            user=ctx.user,
+            request=ctx.request,
+            environment=ctx.environment,
             connection=mgr.connection
         )
+
         action = InitDatabaseServerAction()
         try:
-            result = action.run(ctx, {})
+            result = action.run(tx_ctx, {})
             mgr.commit()
             return {"success": True, "result": result, "errors": []}
         except Exception as e:
@@ -72,6 +95,7 @@ class YouTrackEntryPoint:
 
     @staticmethod
     def bulk_youtrack_issue_to_csv(
+        ctx: Context,
         user_stories_file: Optional[str] = None,
         tasks_file: Optional[str] = None,
         page_size: int = 100,
@@ -79,7 +103,16 @@ class YouTrackEntryPoint:
     ) -> Dict[str, Any]:
         """
         Загружает задачи из YouTrack и сохраняет в CSV-файлы.
-        Параметры YouTrack читаются из переменных окружения YOUTRACK_URL, YOUTRACK_TOKEN.
+
+        Читает параметры YouTrack из переменных окружения:
+            YOUTRACK_URL, YOUTRACK_TOKEN.
+
+        :param ctx: контекст выполнения
+        :param user_stories_file: путь к CSV-файлу для историй (опционально)
+        :param tasks_file: путь к CSV-файлу для задач (опционально)
+        :param page_size: размер страницы (1-5000)
+        :param project_id: идентификатор проекта (опционально)
+        :return: стандартный ответ с результатом
         """
         base_url = os.getenv("YOUTRACK_URL")
         token = os.getenv("YOUTRACK_TOKEN")
@@ -87,8 +120,6 @@ class YouTrackEntryPoint:
             return {"success": False, "result": None, "errors": ["YOUTRACK_URL или YOUTRACK_TOKEN не заданы"]}
 
         action = BulkYouTrackIssueToCsvAction()
-        user_info = UserInfo(user_id="system", roles=["user"])
-        ctx = Context(user=user_info)
         params = {
             "base_url": base_url,
             "token": token,
@@ -106,14 +137,24 @@ class YouTrackEntryPoint:
 
     @staticmethod
     def bulk_youtrack_issue_to_postgres(
+        ctx: Context,
         project_id: Optional[str] = None,
         page_size: int = 100,
         snapshot_date: Optional[date] = None,
     ) -> Dict[str, Any]:
         """
         Загружает задачи из YouTrack и сохраняет снимки в PostgreSQL.
-        Параметры YouTrack читаются из переменных окружения YOUTRACK_URL, YOUTRACK_TOKEN.
-        Параметры PostgreSQL читаются из переменных окружения POSTGRES_*.
+
+        Читает параметры YouTrack из переменных окружения:
+            YOUTRACK_URL, YOUTRACK_TOKEN.
+        Читает параметры PostgreSQL из переменных окружения:
+            POSTGRES_HOST, POSTGRES_PORT, POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD.
+
+        :param ctx: контекст выполнения
+        :param project_id: идентификатор проекта (опционально)
+        :param page_size: размер страницы (1-5000)
+        :param snapshot_date: дата снимка (YYYY-MM-DD). Если не указана, используется сегодня.
+        :return: стандартный ответ с результатом
         """
         base_url = os.getenv("YOUTRACK_URL")
         token = os.getenv("YOUTRACK_TOKEN")
@@ -134,8 +175,6 @@ class YouTrackEntryPoint:
             return {"success": False, "result": None, "errors": ["POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD должны быть заданы"]}
 
         action = BulkYouTrackIssueToPostgresAction()
-        user_info = UserInfo(user_id="system", roles=["user"])
-        ctx = Context(user=user_info)
         params = {
             "base_url": base_url,
             "token": token,
@@ -156,11 +195,23 @@ class YouTrackEntryPoint:
             return {"success": False, "result": None, "errors": [str(e)]}
         
     @staticmethod
-    def delete_snapshot(snapshot_date: date, tables: List[str], schema: str = "youtrack") -> Dict[str, Any]:
+    def delete_snapshot(
+        ctx: Context,
+        snapshot_date: date,
+        tables: List[str],
+        schema: str = "youtrack"
+    ) -> Dict[str, Any]:
         """
         Удаляет все записи за указанную дату из заданных таблиц.
+
         Параметры подключения PostgreSQL берутся из переменных окружения:
             POSTGRES_HOST, POSTGRES_PORT, POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD.
+
+        :param ctx: контекст выполнения
+        :param snapshot_date: дата снимка для удаления
+        :param tables: список имён таблиц (например, ['user_tech_stories', 'taskitems'])
+        :param schema: схема базы данных (по умолчанию 'youtrack')
+        :return: стандартный ответ с количеством удалённых записей
         """
         pg_host = os.getenv("POSTGRES_HOST")
         if not pg_host:
@@ -176,8 +227,6 @@ class YouTrackEntryPoint:
             return {"success": False, "result": None, "errors": ["POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD должны быть заданы"]}
 
         action = DeleteSnapshotServerAction()
-        user_info = UserInfo(user_id="system", roles=["admin"])
-        ctx = Context(user=user_info)
         params = {
             "snapshot_date": snapshot_date.isoformat(),
             "tables": tables,
