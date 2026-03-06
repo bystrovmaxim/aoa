@@ -1,6 +1,8 @@
+# APP/FetchIssuesFromYouTrackAction.py
 import time
 import requests
 from typing import List, Dict, Any, Optional, Tuple
+from collections import defaultdict
 
 from ActionEngine import (
     BaseSimpleAction,
@@ -25,6 +27,11 @@ class FetchIssuesFromYouTrackAction(BaseSimpleAction):
     Параметр savers должен быть списком кортежей (context, saver, card_types).
     Для каждой страницы парсит задачи через YouTrackIssuesParser и передаёт
     соответствующие подмножества каждому saver'у.
+
+    Возвращает:
+        total_issues (int): общее количество загруженных задач
+        pages (int): количество обработанных страниц
+        details (dict): словарь со статистикой от каждого сейвера
     """
 
     MAX_PAGES = 1000000
@@ -65,6 +72,7 @@ class FetchIssuesFromYouTrackAction(BaseSimpleAction):
 
     @IntFieldChecker("total_issues", min_value=0, desc="Результат _handleAspect: общее количество загруженных задач")
     @IntFieldChecker("pages", min_value=0, desc="Результат _handleAspect: количество обработанных страниц")
+    @InstanceOfChecker("details", expected_class=dict, desc="Результат _handleAspect: детальная статистика по сейверам")
     def _handleAspect(self, ctx: Context, params: Dict[str, Any], result: Dict[str, Any]) -> Dict[str, Any]:
         base_url = params["base_url"]
         token = params["token"]
@@ -85,6 +93,15 @@ class FetchIssuesFromYouTrackAction(BaseSimpleAction):
 
         # Кэш заголовков для каждого набора типов карточек
         headers_cache: Dict[Tuple[str, ...], List[str]] = {}
+
+        # Агрегированная статистика по сейверам
+        # Ключ: имя класса сейвера (str), значение: словарь со статистикой
+        aggregated_stats = defaultdict(lambda: {
+            "inserted": 0,
+            "skipped": 0,
+            "inserted_by_type": defaultdict(int),
+            "skipped_by_type": defaultdict(int)
+        })
 
         while True:
             if pages >= self.MAX_PAGES:
@@ -114,7 +131,7 @@ class FetchIssuesFromYouTrackAction(BaseSimpleAction):
                 # Определяем ключ для кэша
                 cache_key = tuple(sorted(card_types))
 
-                # Если заголовки ещё не определены, вычисляем их по данным этой страницы
+                # Если заголовки ещё не опредеkены, вычисляем их по данным этой страницы
                 if cache_key not in headers_cache:
                     all_keys = set()
                     for row in page_rows:
@@ -135,7 +152,23 @@ class FetchIssuesFromYouTrackAction(BaseSimpleAction):
                 if "snapshot_date" in params:
                     sub_params["snapshot_date"] = params["snapshot_date"]
 
-                saver.run(saver_ctx, sub_params)
+                # Вызываем сейвер и получаем результат
+                saver_result = saver.run(saver_ctx, sub_params)
+
+                # Агрегируем статистику
+                saver_name = saver.__class__.__name__
+                stats = aggregated_stats[saver_name]
+                stats["inserted"] += saver_result.get("inserted", 0)
+                stats["skipped"] += saver_result.get("skipped", 0)
+
+                # Добавляем по типам
+                inserted_by_type = saver_result.get("inserted_by_type", {})
+                for typ, cnt in inserted_by_type.items():
+                    stats["inserted_by_type"][typ] += cnt
+
+                skipped_by_type = saver_result.get("skipped_by_type", {})
+                for typ, cnt in skipped_by_type.items():
+                    stats["skipped_by_type"][typ] += cnt
 
             total_issues += count
             pages += 1
@@ -147,4 +180,19 @@ class FetchIssuesFromYouTrackAction(BaseSimpleAction):
             time.sleep(0.2)
 
         print(f"🎉 Всего обработано {total_issues} задач за {pages} страниц(ы)")
-        return {"total_issues": total_issues, "pages": pages}
+
+        # Преобразуем defaultdict в обычные dict для сериализации
+        final_details = {}
+        for saver_name, stats in aggregated_stats.items():
+            final_details[saver_name] = {
+                "inserted": stats["inserted"],
+                "skipped": stats["skipped"],
+                "inserted_by_type": dict(stats["inserted_by_type"]),
+                "skipped_by_type": dict(stats["skipped_by_type"])
+            }
+
+        return {
+            "total_issues": total_issues,
+            "pages": pages,
+            "details": final_details
+        }

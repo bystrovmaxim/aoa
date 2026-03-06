@@ -27,9 +27,9 @@ def main():
     # Вызываем метод фасада
     result = YouTrackEntryPoint.bulk_youtrack_issue_to_postgres(
         ctx=ctx,
-        project_id="OPD_IPPM",
-        page_size=100,
-        snapshot_date=date.today()
+        # project_id="OPD_IPPM",
+        page_size=5000,
+        snapshot_date=date.today() # date.fromisoformat("2026-03-05") date.today()
     )
     print(json.dumps(result, ensure_ascii=False))
 

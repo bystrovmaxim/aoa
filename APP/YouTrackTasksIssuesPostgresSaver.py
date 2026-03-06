@@ -1,6 +1,9 @@
-from typing import Any, Dict
+# APP/YouTrackTasksIssuesPostgresSaver.py
+from typing import Any, Dict, List
 from datetime import date
 import logging
+import json
+from collections import defaultdict
 
 from psycopg2 import sql
 import psycopg2
@@ -25,18 +28,61 @@ logger = logging.getLogger(__name__)
 @StringFieldChecker("snapshot_date", required=True, not_empty=True, desc="Входной параметр: дата снимка (строка YYYY-MM-DD)")
 class YouTrackTasksIssuesPostgresSaver(BaseTransactionAction, IYouTrackIssuesSaver):
     """
-    Сохраняет снимки задач (разработка, аналитика, инциденты, работа вместо системы)
-    в таблицу taskitems.
+    Сохраняет снимки задач (разработка, аналитика, инциденты, работа вместо системы) в таблицу taskitems.
+    Перед вставкой проверяет наличие задачи в таблице issues и при необходимости создаёт/обновляет запись.
+    Вставляет только специфичные для задач поля (общие поля хранятся в issues).
     Параметры должны содержать 'headers', 'rows' и 'snapshot_date'.
     При конфликте (key, snapshot_date) выполняет обновление всех полей.
+
+    Возвращает детальную статистику:
+        inserted (int): общее количество вставленных/обновлённых строк
+        inserted_by_type (dict): количество по каждому типу задачи
+        skipped (int): количество пропущенных строк (без key)
+        skipped_by_type (dict): количество пропущенных по каждому типу
     """
 
     TABLE_NAME = "taskitems"
+    CLASS_ISSUE = "taskitems"
+
+    SPECIFIC_FIELDS = [
+        "updated", "date_resolved", "assignee_login", "assignee_name", "assignee_fullname",
+        "tester_login", "tester_name", "tester_fullname", "status", "story_points",
+        "priority", "subcomponent", "sprints", "imported_at"
+    ]
 
     def __init__(self):
         super().__init__()
 
-    @IntFieldChecker("inserted", min_value=0, desc="Результат _handleAspect: количество вставленных или обновлённых записей")
+    def _ensure_issue_record(self, cur, row_dict: Dict[str, Any]) -> None:
+        key = row_dict.get("key")
+        if not key:
+            raise HandleException("Отсутствует поле 'key' в данных (нельзя создать запись в issues)")
+
+        issue_values = {
+            "key": key,
+            "id": row_dict.get("id"),
+            "title": row_dict.get("title"),
+            "description": row_dict.get("description"),
+            "created": row_dict.get("created"),
+            "parent_key": row_dict.get("parent_key"),
+            "type_issue": row_dict.get("type"),
+            "class_issue": self.CLASS_ISSUE
+        }
+
+        insert_sql = sql.SQL("""
+            INSERT INTO youtrack.issues (key, id, title, description, created, parent_key, type_issue, class_issue)
+            VALUES (%(key)s, %(id)s, %(title)s, %(description)s, %(created)s, %(parent_key)s, %(type_issue)s, %(class_issue)s)
+            ON CONFLICT (key) DO UPDATE SET
+                id = EXCLUDED.id,
+                title = EXCLUDED.title,
+                description = EXCLUDED.description,
+                created = EXCLUDED.created,
+                parent_key = EXCLUDED.parent_key,
+                type_issue = EXCLUDED.type_issue,
+                class_issue = EXCLUDED.class_issue
+        """)
+        cur.execute(insert_sql, issue_values)
+
     def _handleAspect(
         self,
         ctx: TransactionContext,
@@ -56,16 +102,67 @@ class YouTrackTasksIssuesPostgresSaver(BaseTransactionAction, IYouTrackIssuesSav
         except ValueError:
             raise HandleException(f"Неверный формат snapshot_date: {snapshot_date_str}, ожидается YYYY-MM-DD")
 
+        inserted_by_type = defaultdict(int)
+        skipped_by_type = defaultdict(int)
+        inserted_total = 0
+        skipped_total = 0
+
         if not rows:
             logger.info(f"Нет данных для вставки в {self.TABLE_NAME} за {snapshot_date}")
-            return {"inserted": 0}
+            return {
+                "inserted": 0,
+                "inserted_by_type": {},
+                "skipped": 0,
+                "skipped_by_type": {}
+            }
 
         cur = conn.cursor()
 
         try:
-            columns = headers + ["snapshot_date"]
-            values_list = [row + [snapshot_date] for row in rows]
+            rows_dicts = [dict(zip(headers, row)) for row in rows]
 
+            valid_rows_dicts = []
+            for row_dict in rows_dicts:
+                row_type = row_dict.get("type", "unknown")
+                if not row_dict.get("key"):
+                    logger.warning(f"Пропущена строка (отсутствует key) в {self.TABLE_NAME}: {json.dumps(row_dict, ensure_ascii=False, default=str)}")
+                    skipped_total += 1
+                    skipped_by_type[row_type] += 1
+                else:
+                    valid_rows_dicts.append(row_dict)
+
+            if not valid_rows_dicts:
+                logger.warning(f"Нет валидных строк для вставки в {self.TABLE_NAME}")
+                return {
+                    "inserted": 0,
+                    "inserted_by_type": {},
+                    "skipped": skipped_total,
+                    "skipped_by_type": dict(skipped_by_type)
+                }
+
+            for row_dict in valid_rows_dicts:
+                self._ensure_issue_record(cur, row_dict)
+
+            specific_headers = [h for h in headers if h in self.SPECIFIC_FIELDS]
+            if not specific_headers:
+                logger.warning(f"Нет специфичных полей для вставки в {self.TABLE_NAME}")
+                return {
+                    "inserted": 0,
+                    "inserted_by_type": {},
+                    "skipped": skipped_total,
+                    "skipped_by_type": dict(skipped_by_type)
+                }
+
+            for row_dict in valid_rows_dicts:
+                row_type = row_dict.get("type", "unknown")
+                inserted_by_type[row_type] += 1
+
+            specific_values_list = []
+            for row_dict in valid_rows_dicts:
+                values = [row_dict.get(h) for h in specific_headers]
+                specific_values_list.append(values + [snapshot_date, row_dict["key"]])
+
+            columns = specific_headers + ["snapshot_date", "key"]
             insert_sql = sql.SQL(
                 "INSERT INTO youtrack.{} ({}) VALUES ({}) ON CONFLICT (key, snapshot_date) DO UPDATE SET {}"
             ).format(
@@ -74,14 +171,23 @@ class YouTrackTasksIssuesPostgresSaver(BaseTransactionAction, IYouTrackIssuesSav
                 sql.SQL(', ').join([sql.Placeholder()] * len(columns)),
                 sql.SQL(', ').join(
                     sql.SQL("{} = EXCLUDED.{}").format(sql.Identifier(col), sql.Identifier(col))
-                    for col in headers
+                    for col in specific_headers
                 )
             )
 
-            cur.executemany(insert_sql, values_list)
+            cur.executemany(insert_sql, specific_values_list)
+            inserted_total = len(valid_rows_dicts)
 
         except Exception as e:
             raise HandleException(f"Ошибка при работе с PostgreSQL: {e}")
 
-        logger.info(f"Вставлено/обновлено {len(rows)} записей в {self.TABLE_NAME} за {snapshot_date}")
-        return {"inserted": len(rows)}
+        logger.info(f"В {self.TABLE_NAME} за {snapshot_date}: вставлено/обновлено {inserted_total}, пропущено {skipped_total}")
+        if skipped_by_type:
+            logger.info(f"Пропущено по типам: {dict(skipped_by_type)}")
+
+        return {
+            "inserted": inserted_total,
+            "inserted_by_type": dict(inserted_by_type),
+            "skipped": skipped_total,
+            "skipped_by_type": dict(skipped_by_type)
+        }
