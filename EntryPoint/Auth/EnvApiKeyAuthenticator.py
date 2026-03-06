@@ -4,7 +4,7 @@
 """
 
 import os
-from typing import Optional, Dict
+from typing import Optional, Dict, Any
 from ActionEngine.Auth import Authenticator
 from ActionEngine import UserInfo
 
@@ -25,12 +25,6 @@ class EnvApiKeyAuthenticator(Authenticator):
 
     Атрибуты:
         keys: внутренний словарь, отображающий секретный ключ на объект UserInfo.
-
-    Пример:
-        >>> auth = EnvApiKeyAuthenticator()
-        >>> user = auth.authenticate("secret123")
-        >>> if user:
-        ...     print(user.user_id)  # "system"
     """
 
     def __init__(self):
@@ -64,11 +58,14 @@ class EnvApiKeyAuthenticator(Authenticator):
                     )
         return keys
 
-    def authenticate(self, api_key: str) -> Optional[UserInfo]:
+    def authenticate(self, credentials: Dict[str, Any]) -> Optional[UserInfo]:
         """
         Проверяет, существует ли переданный ключ во внутреннем словаре.
 
-        :param api_key: строка API-ключа, полученная от клиента
+        :param credentials: словарь, содержащий ключ "api_key" (из экстрактора)
         :return: объект UserInfo, если ключ найден, иначе None
         """
+        api_key = credentials.get("api_key")
+        if not api_key:
+            return None
         return self.keys.get(api_key)

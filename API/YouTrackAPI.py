@@ -5,6 +5,10 @@ FastAPI-приложение для доступа к функциям YouTrack 
 """
 
 import logging
+
+from dotenv import load_dotenv
+load_dotenv()
+
 from fastapi import FastAPI, Depends, HTTPException, Request
 from pydantic import BaseModel
 from datetime import date
