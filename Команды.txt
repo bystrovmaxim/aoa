@@ -37,3 +37,8 @@ docker-compose exec python python /app/Utils/test_youtrack_fetch_issue_to.py
 docker-compose exec python python /app/Utils/test_youtrack_issue_to_csv.py
 docker-compose exec python python /app/Utils/test_youtrack_issue_to_postgres.py
 
+cd ~/PythonDev/kanban_assistant
+docker build -t gitverse.ru/bystrov.maxim/kanban_assistant:latest .
+cd ~/kanban_assistant_docker
+docker-compose up -d youtrack
+

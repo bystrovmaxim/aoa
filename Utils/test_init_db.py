@@ -20,7 +20,7 @@ from EntryPoint.YouTrackEntryPoint import YouTrackEntryPoint
 
 def main():
     # Создаём контекст с тестовым пользователем (роль admin)
-    user_info = UserInfo(user_id="test", roles=["admin_db"])
+    user_info = UserInfo(user_id="test", roles=["admin"])
     ctx = Context(user=user_info)
 
     # Вызываем метод фасада
