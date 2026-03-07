@@ -12,9 +12,21 @@ load_dotenv()
 from ActionEngine import UserInfo, Context
 from APP.UpdateAllIssuesHistoryAction import UpdateAllIssuesHistoryAction
 
-# Отключаем все логи, кроме критических ошибок
-logging.basicConfig(level=logging.CRITICAL)
-# Можно также установить уровень для конкретных логгеров, но проще отключить всё
+# Подавляем лишние логи, оставляем только INFO от нашего координатора
+logging.basicConfig(level=logging.INFO)
+logging.getLogger("APP.FindIssuesNeedingHistoryUpdateAction").setLevel(logging.WARNING)
+logging.getLogger("APP.FetchIssueStatusHistoryAction").setLevel(logging.WARNING)
+
+# Все возможные типы карточек, которые мы хотим обрабатывать
+ALL_CARD_TYPES = [
+    "Пользовательская история",
+    "Разработка",
+    "Техническая история",
+    "Аналитика и проектирование",
+    "Решение инцидентов",
+    "Работа вместо системы",
+    # Добавьте другие типы, если они есть в вашей системе
+]
 
 def main():
     required_vars = [
@@ -29,9 +41,12 @@ def main():
     user_info = UserInfo(user_id="history_updater", roles=["user"])
     ctx = Context(user=user_info)
 
+    # Параметры для действия
     params = {
         "base_url": os.getenv("YOUTRACK_URL"),
         "token": os.getenv("YOUTRACK_TOKEN"),
+        "page_size": 1000,  # размер страницы для пагинации
+        "card_types": ALL_CARD_TYPES,  # явно указываем все типы
         "pg_host": os.getenv("POSTGRES_HOST"),
         "pg_port": int(os.getenv("POSTGRES_PORT", "5432")),
         "pg_db": os.getenv("POSTGRES_DB"),
