@@ -10,10 +10,11 @@ import psycopg2
 @requires_connection_type(psycopg2.extensions.connection, desc="Требуется соединение с PostgreSQL")
 class InitDatabaseAction(BaseTransactionAction):
     """
-    Создаёт схему youtrack и три таблицы:
+    Создаёт схему youtrack и следующие таблицы:
       - issues         – общие поля для всех задач
       - user_tech_stories – расширение для историй (пользовательские/технические)
       - taskitems          – расширение для задач (разработка, аналитика, инциденты, работа вместо системы)
+      - issue_status_history – история изменений статусов задач
 
     Также создаёт представления:
       - v_user_tech_stories_full – полные данные историй с общими полями
@@ -26,6 +27,7 @@ class InitDatabaseAction(BaseTransactionAction):
       - Внешний ключ key -> issues.key с ограничением ON DELETE RESTRICT
         (нельзя удалить задачу, пока существуют её снимки)
       - parent_key в issues не имеет внешнего ключа (хранится как обычное текстовое поле)
+      - issue_status_history.key -> issues.key с ON DELETE CASCADE (при удалении задачи удаляется и её история)
     """
 
     @InstanceOfChecker("tables_created", expected_class=list, desc="Результат: список созданных таблиц")
@@ -116,6 +118,34 @@ class InitDatabaseAction(BaseTransactionAction):
         # Индексы для быстрого поиска по дате снимка
         cur.execute("CREATE INDEX IF NOT EXISTS idx_user_tech_stories_snapshot ON youtrack.user_tech_stories(snapshot_date);")
         cur.execute("CREATE INDEX IF NOT EXISTS idx_taskitems_snapshot ON youtrack.taskitems(snapshot_date);")
+
+        # --- Таблица issue_status_history (история статусов) ---
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS youtrack.issue_status_history (
+                key TEXT NOT NULL,
+                timestamp TIMESTAMP NOT NULL,
+                author_login TEXT,
+                old_status TEXT,
+                new_status TEXT,
+                created_at TIMESTAMP DEFAULT NOW(),
+                PRIMARY KEY (key, timestamp)
+            );
+        """)
+
+        # Внешний ключ с каскадным удалением
+        cur.execute("ALTER TABLE youtrack.issue_status_history DROP CONSTRAINT IF EXISTS fk_status_history_issues;")
+        cur.execute("""
+            ALTER TABLE youtrack.issue_status_history
+            ADD CONSTRAINT fk_status_history_issues
+            FOREIGN KEY (key) REFERENCES youtrack.issues(key)
+            ON UPDATE CASCADE ON DELETE CASCADE;
+        """)
+
+        # Индекс для ускорения запросов по времени
+        cur.execute("""
+            CREATE INDEX IF NOT EXISTS idx_issue_status_history_timestamp
+            ON youtrack.issue_status_history (timestamp);
+        """)
 
         # --- Представление v_user_tech_stories_full (полные данные историй) ---
         cur.execute("""
@@ -212,4 +242,4 @@ class InitDatabaseAction(BaseTransactionAction):
             ORDER BY snapshot_date DESC;
         """)
 
-        return {"tables_created": ["issues", "user_tech_stories", "taskitems"], "schema": "youtrack"}
+        return {"tables_created": ["issues", "user_tech_stories", "taskitems", "issue_status_history"], "schema": "youtrack"}
