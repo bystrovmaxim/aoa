@@ -1,4 +1,4 @@
-# APP/FetchIssueStatusHistoryAction.py
+# APP/FetchIssueStatusHistoryAction.py (актуальная версия с эмуляцией и созданием заглушки)
 from typing import Any, Dict, List, Optional
 from datetime import datetime
 import requests
@@ -31,9 +31,8 @@ class FetchIssueStatusHistoryAction(BaseTransactionAction):
     в таблицу issue_status_history.
     При первой загрузке (from_timestamp_ms=None) автоматически добавляет
     эмулированное событие 'Ожидание', если в истории его нет.
-    Если есть реальные события, эмуляция создаётся на основе первого события
-    (автор и время копируются). Если реальных событий нет, эмуляция создаётся
-    по времени создания задачи (поле created в issues), автор остаётся NULL.
+    Если есть реальные события, эмуляция создаётся на основе первого события.
+    Если реальных событий нет, эмуляция создаётся по времени создания задачи.
     """
 
     TARGET_MEMBER_RE = re.compile(r"^__CUSTOM_FIELD__[_!](.+)_\d+$")
@@ -190,7 +189,7 @@ class FetchIssueStatusHistoryAction(BaseTransactionAction):
         activities = self._fetch_activities(base_url, token, issue_id, from_ms)
         events = self._extract_status_events(activities, issue_id)
 
-        # При полной загрузке истории (from_ms is None) добавляем эмуляцию, если нужно
+        # Эмуляцию добавляем только при полной загрузке (from_ms is None)
         if from_ms is None:
             events = self._add_initial_status_if_needed(cur, events, issue_id)
 

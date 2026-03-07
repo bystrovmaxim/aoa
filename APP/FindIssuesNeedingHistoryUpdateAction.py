@@ -1,65 +1,73 @@
 # APP/FindIssuesNeedingHistoryUpdateAction.py
-from typing import List, Dict, Any
+from typing import List, Optional
+from datetime import datetime
+import requests
 import logging
 
-import psycopg2
-from psycopg2 import sql
-
 from ActionEngine import (
-    BaseTransactionAction,
-    requires_connection_type,
-    TransactionContext,
-    InstanceOfChecker,
+    BaseSimpleAction,
+    Context,
+    StringFieldChecker,
+    IntFieldChecker,
     HandleException)
 
 logger = logging.getLogger(__name__)
 
 
-@requires_connection_type(psycopg2.extensions.connection, desc="Требуется соединение с PostgreSQL")
-class FindIssuesNeedingHistoryUpdateAction(BaseTransactionAction):
+@StringFieldChecker("base_url", required=True, desc="URL YouTrack")
+@StringFieldChecker("token", required=True, desc="Токен доступа")
+@IntFieldChecker("page_size", required=True, min_value=1, max_value=10000, desc="Размер страницы для пагинации")
+@IntFieldChecker("since_timestamp_ms", required=True, desc="Начальная дата в миллисекундах (задачи, обновлённые после неё)")
+class FindIssuesNeedingHistoryUpdateAction(BaseSimpleAction):
     """
-    Находит ключи задач, для которых необходимо обновить историю статусов.
-
-    Логика:
-        Для каждой задачи вычисляем максимальное время последнего изменения (updated)
-        из всех таблиц расширений (user_tech_stories, taskitems). Если у задачи нет
-        записей в истории статусов, она попадает в список. Иначе сравниваем максимальный
-        updated с максимальным timestamp в истории. Если updated > max_timestamp, задача
-        требует обновления.
-
+    Получает из YouTrack список ключей задач, обновлённых после указанной даты.
+    Использует поисковый запрос с фильтром по дате обновления.
+    Поддерживает пагинацию через параметры $top и $skip.
     Возвращает список ключей в поле "issue_keys".
     """
 
-    @InstanceOfChecker("issue_keys", expected_class=list, desc="Список ключей задач, требующих обновления истории")
-    def _handleAspect(self, ctx: TransactionContext, params: Dict[str, Any], result: Dict[str, Any]) -> Dict[str, Any]:
-        conn = ctx.connection
-        cur = conn.cursor()
+    def _fetch_page(self, base_url: str, token: str, since_ms: int, page_size: int, skip: int) -> List[str]:
+        headers = {"Authorization": f"Bearer {token}", "Accept": "application/json"}
+        # Преобразуем миллисекунды в дату для запроса (формат YYYY-MM-DD)
+        since_dt = datetime.utcfromtimestamp(since_ms / 1000.0)
+        date_str = since_dt.strftime("%Y-%m-%d")
+        query = f"updated: {date_str} .. *"
+        params = {
+            "query": query,
+            "fields": "idReadable",
+            "$top": page_size,
+            "$skip": skip
+        }
+        url = f"{base_url}/api/issues"
+        try:
+            resp = requests.get(url, headers=headers, params=params, timeout=60)
+        except Exception as e:
+            raise HandleException(f"Ошибка при запросе списка задач: {e}")
+        if resp.status_code != 200:
+            raise HandleException(f"HTTP {resp.status_code}: {resp.text}")
+        data = resp.json()
+        if not isinstance(data, list):
+            raise HandleException("Неожиданный формат ответа от YouTrack")
+        # Извлекаем ключи
+        keys = [item.get("idReadable") for item in data if item.get("idReadable")]
+        return keys
 
-        # Находим максимальный updated для каждой задачи из всех таблиц расширений
-        # Предполагаем, что все таблицы расширений имеют поле updated и key
-        query = sql.SQL("""
-            WITH max_updated AS (
-                SELECT key, MAX(updated) as last_updated
-                FROM (
-                    SELECT key, updated FROM youtrack.user_tech_stories
-                    UNION ALL
-                    SELECT key, updated FROM youtrack.taskitems
-                ) all_updates
-                GROUP BY key
-            )
-            SELECT mu.key
-            FROM max_updated mu
-            LEFT JOIN (
-                SELECT key, MAX(timestamp) as last_event
-                FROM youtrack.issue_status_history
-                GROUP BY key
-            ) h ON mu.key = h.key
-            WHERE
-                (h.last_event IS NULL) OR
-                (mu.last_updated > h.last_event)
-        """)
-        cur.execute(query)
-        rows = cur.fetchall()
-        issue_keys = [row[0] for row in rows]
-        logger.debug(f"Найдено {len(issue_keys)} задач для обновления истории")
-        return {"issue_keys": issue_keys}
+    def _handleAspect(self, ctx: Context, params: dict, result: dict) -> dict:
+        base_url = params["base_url"]
+        token = params["token"]
+        page_size = params["page_size"]
+        since_ms = params["since_timestamp_ms"]
+
+        all_keys = []
+        skip = 0
+        while True:
+            page_keys = self._fetch_page(base_url, token, since_ms, page_size, skip)
+            if not page_keys:
+                break
+            all_keys.extend(page_keys)
+            if len(page_keys) < page_size:
+                break
+            skip += page_size
+
+        logger.info(f"Найдено {len(all_keys)} задач, обновлённых после {datetime.utcfromtimestamp(since_ms/1000.0).date()}")
+        return {"issue_keys": all_keys}
