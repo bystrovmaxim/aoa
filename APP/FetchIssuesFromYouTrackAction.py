@@ -40,6 +40,7 @@ class FetchIssuesFromYouTrackAction(BaseSimpleAction):
         headers = {"Authorization": f"Bearer {token}", "Accept": "application/json"}
         fields = (
             "id,idReadable,summary,description,created,updated,resolved,"
+            "project(id,name),"
             "customFields(id,projectCustomField(field(name)),value(name,login,fullName,minutes,text,presentation)),"
             "links(direction,linkType(name),issues(idReadable,summary))"
         )
@@ -131,7 +132,7 @@ class FetchIssuesFromYouTrackAction(BaseSimpleAction):
                 # Определяем ключ для кэша
                 cache_key = tuple(sorted(card_types))
 
-                # Если заголовки ещё не опредеkены, вычисляем их по данным этой страницы
+                # Если заголовки ещё не определены, вычисляем их по данным этой страницы
                 if cache_key not in headers_cache:
                     all_keys = set()
                     for row in page_rows:

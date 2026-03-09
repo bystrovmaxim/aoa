@@ -10,24 +10,12 @@ import psycopg2
 @requires_connection_type(psycopg2.extensions.connection, desc="Требуется соединение с PostgreSQL")
 class InitDatabaseAction(BaseTransactionAction):
     """
-    Создаёт схему youtrack и следующие таблицы:
-      - issues         – общие поля для всех задач
-      - user_tech_stories – расширение для историй (пользовательские/технические)
-      - taskitems          – расширение для задач (разработка, аналитика, инциденты, работа вместо системы)
-      - issue_status_history – история изменений статусов задач
-
-    Также создаёт представления:
-      - v_user_tech_stories_full – полные данные историй с общими полями
-      - v_taskitems_full          – полные данные задач с общими полями
-      - v_snapshot_summary        – сводка по датам снимков с разбивкой по типам задач
-
-    Связи:
-      - issues.key (первичный ключ)
-      - В таблицах-расширениях составной первичный ключ (key, snapshot_date)
-      - Внешний ключ key -> issues.key с ограничением ON DELETE RESTRICT
-        (нельзя удалить задачу, пока существуют её снимки)
-      - parent_key в issues не имеет внешнего ключа (хранится как обычное текстовое поле)
-      - issue_status_history.key -> issues.key с ON DELETE CASCADE (при удалении задачи удаляется и её история)
+    Создаёт схему youtrack и таблицы с нуля, включая:
+      - issues: id (PK), key (UNIQUE), project_code (GENERATED)
+      - user_tech_stories: issue_id (FK), snapshot_date, все общие поля (кроме id) + специфичные поля историй
+      - taskitems: аналогично
+      - issues_status_history: issue_id, timestamp, author_login, old_status, new_status
+    Все таблицы расширений содержат дублирующиеся поля из issues для фиксации состояния на момент снимка.
     """
 
     @InstanceOfChecker("tables_created", expected_class=list, desc="Результат: список созданных таблиц")
@@ -35,29 +23,41 @@ class InitDatabaseAction(BaseTransactionAction):
     def _handleAspect(self, ctx: TransactionContext, params: dict, result: dict) -> dict:
         conn = ctx.connection
         cur = conn.cursor()
-
-        # Создаём схему, если её нет
         cur.execute("CREATE SCHEMA IF NOT EXISTS youtrack;")
 
-        # --- Таблица issues (общие поля) ---
+        # --- Таблица issues (общие поля, актуальное состояние) ---
         cur.execute("""
             CREATE TABLE IF NOT EXISTS youtrack.issues (
-                key TEXT PRIMARY KEY,                     -- idReadable из YouTrack
-                id TEXT,                                   -- внутренний ID YouTrack
+                id TEXT PRIMARY KEY,
+                key TEXT UNIQUE NOT NULL,
                 title TEXT,
                 description TEXT,
                 created TIMESTAMP,
-                parent_key TEXT,                           -- ссылка на другую задачу (key) – без внешнего ключа
-                type_issue TEXT,                           -- тип карточки (например, "Пользовательская история")
-                class_issue TEXT                           -- имя таблицы-расширения (например, 'user_tech_stories')
+                parent_key TEXT,
+                type_issue TEXT,
+                class_issue TEXT,
+                project_id TEXT,
+                project_name TEXT,
+                project_code TEXT GENERATED ALWAYS AS (split_part(key, '-', 1)) STORED
             );
         """)
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_issues_project_code ON youtrack.issues(project_code);")
 
-        # --- Таблица user_tech_stories (расширение для историй) ---
+        # --- Таблица user_tech_stories (снимки историй) ---
         cur.execute("""
             CREATE TABLE IF NOT EXISTS youtrack.user_tech_stories (
+                issue_id TEXT NOT NULL,
                 key TEXT NOT NULL,
                 snapshot_date DATE NOT NULL,
+                title TEXT,
+                description TEXT,
+                created TIMESTAMP,
+                parent_key TEXT,
+                type_issue TEXT,
+                project_id TEXT,
+                project_name TEXT,
+                project_code TEXT GENERATED ALWAYS AS (split_part(key, '-', 1)) STORED,
+                -- специфичные поля историй
                 updated TIMESTAMP,
                 date_resolved TIMESTAMP,
                 assignee_login TEXT,
@@ -71,24 +71,26 @@ class InitDatabaseAction(BaseTransactionAction):
                 customer TEXT,
                 sprints TEXT,
                 imported_at TIMESTAMP DEFAULT NOW(),
-                PRIMARY KEY (key, snapshot_date)
+                PRIMARY KEY (issue_id, snapshot_date),
+                FOREIGN KEY (issue_id) REFERENCES youtrack.issues(id) ON UPDATE CASCADE ON DELETE RESTRICT
             );
         """)
 
-        # Удаляем существующее ограничение, если оно есть, и создаём заново
-        cur.execute("ALTER TABLE youtrack.user_tech_stories DROP CONSTRAINT IF EXISTS fk_ustories_issues;")
-        cur.execute("""
-            ALTER TABLE youtrack.user_tech_stories
-            ADD CONSTRAINT fk_ustories_issues
-            FOREIGN KEY (key) REFERENCES youtrack.issues(key)
-            ON UPDATE CASCADE ON DELETE RESTRICT;
-        """)
-
-        # --- Таблица taskitems (расширение для задач) ---
+        # --- Таблица taskitems (снимки задач) ---
         cur.execute("""
             CREATE TABLE IF NOT EXISTS youtrack.taskitems (
+                issue_id TEXT NOT NULL,
                 key TEXT NOT NULL,
                 snapshot_date DATE NOT NULL,
+                title TEXT,
+                description TEXT,
+                created TIMESTAMP,
+                parent_key TEXT,
+                type_issue TEXT,
+                project_id TEXT,
+                project_name TEXT,
+                project_code TEXT GENERATED ALWAYS AS (split_part(key, '-', 1)) STORED,
+                -- специфичные поля задач
                 updated TIMESTAMP,
                 date_resolved TIMESTAMP,
                 assignee_login TEXT,
@@ -103,128 +105,40 @@ class InitDatabaseAction(BaseTransactionAction):
                 subcomponent TEXT,
                 sprints TEXT,
                 imported_at TIMESTAMP DEFAULT NOW(),
-                PRIMARY KEY (key, snapshot_date)
+                PRIMARY KEY (issue_id, snapshot_date),
+                FOREIGN KEY (issue_id) REFERENCES youtrack.issues(id) ON UPDATE CASCADE ON DELETE RESTRICT
             );
-        """)
-
-        cur.execute("ALTER TABLE youtrack.taskitems DROP CONSTRAINT IF EXISTS fk_taskitems_issues;")
-        cur.execute("""
-            ALTER TABLE youtrack.taskitems
-            ADD CONSTRAINT fk_taskitems_issues
-            FOREIGN KEY (key) REFERENCES youtrack.issues(key)
-            ON UPDATE CASCADE ON DELETE RESTRICT;
         """)
 
         # Индексы для быстрого поиска по дате снимка
         cur.execute("CREATE INDEX IF NOT EXISTS idx_user_tech_stories_snapshot ON youtrack.user_tech_stories(snapshot_date);")
         cur.execute("CREATE INDEX IF NOT EXISTS idx_taskitems_snapshot ON youtrack.taskitems(snapshot_date);")
 
-        # --- Таблица issue_status_history (история статусов) ---
+        # --- Таблица issues_status_history (история статусов) ---
         cur.execute("""
-            CREATE TABLE IF NOT EXISTS youtrack.issue_status_history (
-                key TEXT NOT NULL,
+            CREATE TABLE IF NOT EXISTS youtrack.issues_status_history (
+                issue_id TEXT NOT NULL,
                 timestamp TIMESTAMP NOT NULL,
                 author_login TEXT,
                 old_status TEXT,
                 new_status TEXT,
                 created_at TIMESTAMP DEFAULT NOW(),
-                PRIMARY KEY (key, timestamp)
+                PRIMARY KEY (issue_id, timestamp),
+                FOREIGN KEY (issue_id) REFERENCES youtrack.issues(id) ON UPDATE CASCADE ON DELETE CASCADE
             );
         """)
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_issues_status_history_timestamp ON youtrack.issues_status_history(timestamp);")
 
-        # Внешний ключ с каскадным удалением
-        cur.execute("ALTER TABLE youtrack.issue_status_history DROP CONSTRAINT IF EXISTS fk_status_history_issues;")
-        cur.execute("""
-            ALTER TABLE youtrack.issue_status_history
-            ADD CONSTRAINT fk_status_history_issues
-            FOREIGN KEY (key) REFERENCES youtrack.issues(key)
-            ON UPDATE CASCADE ON DELETE CASCADE;
-        """)
-
-        # Индекс для ускорения запросов по времени
-        cur.execute("""
-            CREATE INDEX IF NOT EXISTS idx_issue_status_history_timestamp
-            ON youtrack.issue_status_history (timestamp);
-        """)
-
-        # --- Представление v_user_tech_stories_full (полные данные историй) ---
-        cur.execute("""
-            CREATE OR REPLACE VIEW youtrack.v_user_tech_stories_full AS
-            SELECT
-                i.key,
-                i.id,
-                i.title,
-                i.description,
-                i.created,
-                i.parent_key,
-                i.type_issue,
-                i.class_issue,
-                s.snapshot_date,
-                s.updated,
-                s.date_resolved,
-                s.assignee_login,
-                s.assignee_name,
-                s.assignee_fullname,
-                s.status,
-                s.plan_start,
-                s.plan_finish,
-                s.fact_forecast_start,
-                s.fact_forecast_finish,
-                s.customer,
-                s.sprints,
-                s.imported_at
-            FROM youtrack.issues i
-            JOIN youtrack.user_tech_stories s ON i.key = s.key;
-        """)
-
-        # --- Представление v_taskitems_full (полные данные задач) ---
-        cur.execute("""
-            CREATE OR REPLACE VIEW youtrack.v_taskitems_full AS
-            SELECT
-                i.key,
-                i.id,
-                i.title,
-                i.description,
-                i.created,
-                i.parent_key,
-                i.type_issue,
-                i.class_issue,
-                t.snapshot_date,
-                t.updated,
-                t.date_resolved,
-                t.assignee_login,
-                t.assignee_name,
-                t.assignee_fullname,
-                t.tester_login,
-                t.tester_name,
-                t.tester_fullname,
-                t.status,
-                t.story_points,
-                t.priority,
-                t.subcomponent,
-                t.sprints,
-                t.imported_at
-            FROM youtrack.issues i
-            JOIN youtrack.taskitems t ON i.key = t.key;
-        """)
-
-        # --- Представление v_snapshot_summary (сводка по датам снимков) ---
         cur.execute("""
             CREATE OR REPLACE VIEW youtrack.v_snapshot_summary AS
             WITH combined AS (
-                SELECT
-                    s.snapshot_date,
-                    i.type_issue,
-                    'story' AS source
+                SELECT s.snapshot_date, i.type_issue, 'story' source
                 FROM youtrack.issues i
-                JOIN youtrack.user_tech_stories s ON i.key = s.key
+                JOIN youtrack.user_tech_stories s ON i.id = s.issue_id
                 UNION ALL
-                SELECT
-                    t.snapshot_date,
-                    i.type_issue,
-                    'task' AS source
+                SELECT t.snapshot_date, i.type_issue, 'task' source
                 FROM youtrack.issues i
-                JOIN youtrack.taskitems t ON i.key = t.key
+                JOIN youtrack.taskitems t ON i.id = t.issue_id
             )
             SELECT
                 snapshot_date,
@@ -242,4 +156,4 @@ class InitDatabaseAction(BaseTransactionAction):
             ORDER BY snapshot_date DESC;
         """)
 
-        return {"tables_created": ["issues", "user_tech_stories", "taskitems", "issue_status_history"], "schema": "youtrack"}
+        return {"tables_created": ["issues", "user_tech_stories", "taskitems", "issues_status_history"], "schema": "youtrack"}
