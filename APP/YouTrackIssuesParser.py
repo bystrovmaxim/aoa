@@ -1,22 +1,11 @@
-"""
-Действие для парсинга задач YouTrack и группировки по типам карточек.
-"""
+# APP/YouTrackIssuesParser.py
 from typing import Any, Dict, List, Optional
 from datetime import datetime, date
 
-from ActionEngine import (
-    BaseSimpleAction,
-    Context,
-    InstanceOfChecker)
+from ActionEngine import BaseSimpleAction, Context, InstanceOfChecker
 
-@InstanceOfChecker("issues", expected_class=list, desc="Входной параметр: список задач YouTrack")
+@InstanceOfChecker("issues", expected_class=list)
 class YouTrackIssuesParser(BaseSimpleAction):
-    """
-    Принимает список задач (issues) и возвращает словарь, где ключ – тип карточки,
-    значение – список плоских словарей с данными задачи.
-    """
-
-    # Все возможные типы карточек
     STORY_TYPES = ["Пользовательская история", "Техническая история"]
     TASK_TYPES = [
         "Разработка",
@@ -28,9 +17,7 @@ class YouTrackIssuesParser(BaseSimpleAction):
 
     @staticmethod
     def _ms_to_datetime(ms: Optional[int]) -> Optional[datetime]:
-        if ms is None:
-            return None
-        return datetime.utcfromtimestamp(ms / 1000.0)
+        return datetime.utcfromtimestamp(ms / 1000.0) if ms else None
 
     @staticmethod
     def _str_to_date(value: Optional[Any]) -> Optional[date]:
@@ -42,74 +29,78 @@ class YouTrackIssuesParser(BaseSimpleAction):
             try:
                 return datetime.strptime(value, "%Y-%m-%d").date()
             except ValueError:
-                # Логирование можно добавить, но для простоты пропускаем
                 return None
         return None
 
     @staticmethod
-    def _get_field(issue: Dict[str, Any], field_name: str) -> Any:
-        return issue.get(field_name)
+    def _get_field(issue: Dict, name: str) -> Any:
+        return issue.get(name)
 
     @staticmethod
-    def _get_parent_id(issue: Dict[str, Any]) -> Optional[str]:
-        links = issue.get("links")
-        if links and isinstance(links, list):
-            for link in links:
-                link_type = link.get("linkType", {}).get("name")
-                direction = link.get("direction")
-                if link_type == "Subtask" and direction == "INWARD":
-                    issues_list = link.get("issues")
-                    if issues_list and isinstance(issues_list, list) and len(issues_list) > 0:
-                        return issues_list[0].get("idReadable")
+    def _get_project(issue: Dict) -> Dict[str, Optional[str]]:
+        proj = issue.get("project")
+        if isinstance(proj, dict):
+            return {
+                "project_id": proj.get("id"),
+                "project_name": proj.get("name")
+            }
+        return {"project_id": None, "project_name": None}
+
+    @staticmethod
+    def _get_parent_id(issue: Dict) -> Optional[str]:
+        for link in issue.get("links") or []:
+            lt = link.get("linkType", {}).get("name")
+            if lt == "Subtask" and link.get("direction") == "INWARD":
+                issues = link.get("issues")
+                if issues and isinstance(issues, list) and issues:
+                    return issues[0].get("idReadable")
         return None
 
+    # ----- Кастомные поля -----
     @staticmethod
-    def _get_custom_field(issue: Dict[str, Any], field_name: str) -> Any:
-        for cf in issue.get("customFields", []):
+    def _get_custom_field(issue: Dict, field_name: str) -> Any:
+        for cf in issue.get("customFields") or []:
             name = cf.get("projectCustomField", {}).get("field", {}).get("name")
             if name == field_name:
                 return cf.get("value")
         return None
 
     @staticmethod
-    def _extract_custom_value(raw_value: Any) -> Any:
-        if isinstance(raw_value, dict):
+    def _extract_custom_value(raw: Any) -> Any:
+        if isinstance(raw, dict):
             for key in ("name", "login", "fullName", "minutes", "presentation"):
-                if key in raw_value:
-                    return raw_value[key]
-            return str(raw_value)
-        return raw_value
+                if key in raw:
+                    return raw[key]
+            return str(raw)
+        return raw
 
     @classmethod
-    def _get_custom_field_display(cls, issue: Dict[str, Any], field_name: str) -> Any:
-        raw = cls._get_custom_field(issue, field_name)
-        return cls._extract_custom_value(raw)
+    def _get_custom_field_display(cls, issue: Dict, field_name: str) -> Any:
+        return cls._extract_custom_value(cls._get_custom_field(issue, field_name))
 
     @classmethod
-    def _get_user_field(cls, issue: Dict[str, Any], field_name: str) -> Dict[str, Optional[str]]:
-        result = {"Login": None, "Name": None, "FullName": None}
+    def _get_user_field(cls, issue: Dict, field_name: str) -> Dict:
+        res = {"Login": None, "Name": None, "FullName": None}
         raw = cls._get_custom_field(issue, field_name)
         if isinstance(raw, dict):
-            result["Login"] = raw.get("login")
-            result["Name"] = raw.get("name")
-            result["FullName"] = raw.get("fullName")
-        return result
+            res["Login"] = raw.get("login")
+            res["Name"] = raw.get("name")
+            res["FullName"] = raw.get("fullName")
+        return res
 
     @classmethod
-    def _get_sprint_field(cls, issue: Dict[str, Any]) -> str:
+    def _get_sprint_field(cls, issue: Dict) -> str:
         raw = cls._get_custom_field(issue, "Единый спринт")
         if raw is None:
             return ""
         if isinstance(raw, list):
-            names = []
-            for item in raw:
-                if isinstance(item, dict) and "name" in item:
-                    names.append(item["name"])
+            names = [item.get("name") for item in raw if isinstance(item, dict) and item.get("name")]
             return ", ".join(names)
         return str(cls._extract_custom_value(raw))
 
+    # ----- Стратегии для разных типов -----
     @classmethod
-    def _user_story_strategy(cls, issue: Dict[str, Any]) -> Dict[str, Any]:
+    def _user_story_strategy(cls, issue: Dict) -> Dict[str, Any]:
         row = {}
         row["key"] = cls._get_field(issue, "idReadable")
         row["id"] = cls._get_field(issue, "id")
@@ -119,6 +110,11 @@ class YouTrackIssuesParser(BaseSimpleAction):
         row["updated"] = cls._ms_to_datetime(cls._get_field(issue, "updated"))
         row["date_resolved"] = cls._ms_to_datetime(cls._get_field(issue, "resolved"))
         row["parent_key"] = cls._get_parent_id(issue)
+
+        proj = cls._get_project(issue)
+        row["project_id"] = proj["project_id"]
+        row["project_name"] = proj["project_name"]
+        # project_code не заполняем, он вычислится в БД
 
         assignee = cls._get_user_field(issue, "Assignee")
         row["assignee_login"] = assignee["Login"]
@@ -136,7 +132,7 @@ class YouTrackIssuesParser(BaseSimpleAction):
         return row
 
     @classmethod
-    def _task_item_strategy(cls, issue: Dict[str, Any]) -> Dict[str, Any]:
+    def _task_item_strategy(cls, issue: Dict) -> Dict[str, Any]:
         row = {}
         row["key"] = cls._get_field(issue, "idReadable")
         row["id"] = cls._get_field(issue, "id")
@@ -146,6 +142,11 @@ class YouTrackIssuesParser(BaseSimpleAction):
         row["updated"] = cls._ms_to_datetime(cls._get_field(issue, "updated"))
         row["date_resolved"] = cls._ms_to_datetime(cls._get_field(issue, "resolved"))
         row["parent_key"] = cls._get_parent_id(issue)
+
+        proj = cls._get_project(issue)
+        row["project_id"] = proj["project_id"]
+        row["project_name"] = proj["project_name"]
+        # project_code не заполняем
 
         assignee = cls._get_user_field(issue, "Assignee")
         row["assignee_login"] = assignee["Login"]
@@ -169,12 +170,8 @@ class YouTrackIssuesParser(BaseSimpleAction):
         row["sprints"] = cls._get_sprint_field(issue)
         return row
 
-    @InstanceOfChecker("by_type", expected_class=dict, desc="Результат _handleAspect: словарь с данными, сгруппированными по типам карточек")
-    def _handleAspect(self, ctx: Context, params: Dict[str, Any], result: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Основной аспект: получает список задач из params["issues"] и возвращает
-        словарь by_type с данными, сгруппированными по типу карточки.
-        """
+    @InstanceOfChecker("by_type", expected_class=dict)
+    def _handleAspect(self, ctx: Context, params: Dict, result: Dict) -> Dict:
         issues = params.get("issues", [])
         if not isinstance(issues, list):
             return {"by_type": {}}

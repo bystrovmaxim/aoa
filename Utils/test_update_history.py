@@ -12,21 +12,10 @@ load_dotenv()
 from ActionEngine import UserInfo, Context
 from APP.UpdateAllIssuesHistoryAction import UpdateAllIssuesHistoryAction
 
-# Подавляем лишние логи, оставляем только INFO от нашего координатора
 logging.basicConfig(level=logging.INFO)
 logging.getLogger("APP.FindIssuesNeedingHistoryUpdateAction").setLevel(logging.WARNING)
 logging.getLogger("APP.FetchIssueStatusHistoryAction").setLevel(logging.WARNING)
 
-# Все возможные типы карточек, которые мы хотим обрабатывать
-ALL_CARD_TYPES = [
-    "Пользовательская история",
-    "Разработка",
-    "Техническая история",
-    "Аналитика и проектирование",
-    "Решение инцидентов",
-    "Работа вместо системы",
-    # Добавьте другие типы, если они есть в вашей системе
-]
 
 def main():
     required_vars = [
@@ -45,8 +34,12 @@ def main():
     params = {
         "base_url": os.getenv("YOUTRACK_URL"),
         "token": os.getenv("YOUTRACK_TOKEN"),
-        "page_size": 1000,  # размер страницы для пагинации
-        "card_types": ALL_CARD_TYPES,  # явно указываем все типы
+        "page_size": 1000,
+        # Можно передать один проект:
+        #"project_code": "INF", #"OPD_IPPM",
+        # Или несколько проектов:
+        #"project_code": ["AI", "INF"],
+        # Или не указывать project_code для обработки всех проектов из БД.
         "pg_host": os.getenv("POSTGRES_HOST"),
         "pg_port": int(os.getenv("POSTGRES_PORT", "5432")),
         "pg_db": os.getenv("POSTGRES_DB"),
@@ -61,6 +54,7 @@ def main():
     except Exception as e:
         print(f"❌ Ошибка: {e}")
         sys.exit(1)
+
 
 if __name__ == "__main__":
     main()
