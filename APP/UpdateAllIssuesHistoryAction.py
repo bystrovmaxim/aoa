@@ -19,7 +19,7 @@ from .UpdateSingleIssueHistoryAction import UpdateSingleIssueHistoryAction
 
 logger = logging.getLogger(__name__)
 
-BATCH_SIZE = 1
+BATCH_SIZE = 10  # можно увеличить для производительности
 
 
 @CheckRoles(CheckRoles.ANY, desc="Доступно аутентифицированным пользователям")
@@ -34,12 +34,7 @@ BATCH_SIZE = 1
 class UpdateAllIssuesHistoryAction(BaseSimpleAction):
     """
     Обновляет историю статусов для всех задач, которые изменились после последней обработки.
-    Для каждой задачи определяется имя поля статуса в зависимости от её типа:
-        - 'Пользовательская история', 'Техническая история' → '_Статус истории'
-        - остальные (задачи) → '_Статус задачи'
-    Вызывается UpdateSingleIssueHistoryAction с переданным last_timestamp_ms (максимальный timestamp из истории статусов).
-    Коммит происходит пакетами по BATCH_SIZE задач.
-    После успешной обработки задачи обновляется поле last_activity_processed = NOW().
+    При ошибке на одной задаче она пропускается, и обработка продолжается (используются savepoint).
     """
 
     @InstanceOfChecker("managers", expected_class=list, desc="Внутреннее")
@@ -63,11 +58,6 @@ class UpdateAllIssuesHistoryAction(BaseSimpleAction):
         return {"managers": [mgr], "tx_ctx": tx_ctx}
 
     def _get_issues_to_update(self, cur, project_id: Optional[str]) -> List[Tuple[str, Optional[datetime], str]]:
-        """
-        Возвращает список кортежей (issue_id, max_timestamp, type_issue) для задач,
-        у которых last_update > last_activity_processed (или last_activity_processed IS NULL).
-        Если задан project_id, дополнительно фильтрует по project_code.
-        """
         query = """
             SELECT
                 i.id,
@@ -76,12 +66,12 @@ class UpdateAllIssuesHistoryAction(BaseSimpleAction):
             FROM youtrack.issues i
             WHERE (i.last_activity_processed IS NULL OR i.last_update > i.last_activity_processed)
         """
-        params_list = []
+        params = []
         if project_id:
             query += " AND i.project_code = %s"
-            params_list.append(project_id)
+            params.append(project_id)
 
-        cur.execute(query, params_list)
+        cur.execute(query, params)
         rows = cur.fetchall()
         return [(row[0], row[1], row[2]) for row in rows]
 
@@ -111,9 +101,6 @@ class UpdateAllIssuesHistoryAction(BaseSimpleAction):
             }
 
         single_action = UpdateSingleIssueHistoryAction()
-        # Создаём простой контекст для вызова UpdateSingleIssueHistoryAction (не транзакционный, так как он сам использует переданный tx_ctx)
-        # Но UpdateSingleIssueHistoryAction требует TransactionContext, мы передадим tx_ctx напрямую.
-
         total_processed = 0
         total_inserted = 0
         total_skipped = 0
@@ -138,12 +125,25 @@ class UpdateAllIssuesHistoryAction(BaseSimpleAction):
                 "last_timestamp_ms": last_timestamp_ms,
             }
 
+            # Создаём savepoint для этой задачи
+            sp_name = f"sp_issue_{issue_id}".replace('-', '_')
+            try:
+                cur.execute(f"SAVEPOINT {sp_name}")
+            except Exception as e:
+                logger.error(f"Не удалось создать savepoint для задачи {issue_id}: {e}")
+                total_failed += 1
+                details[issue_id] = {"error": f"Savepoint creation failed: {e}"}
+                continue
+
             start_time = time.time()
             try:
-                # Вызываем UpdateSingleIssueHistoryAction с тем же транзакционным контекстом
+                # Вызываем действие внутри savepoint
                 single_result = single_action.run(tx_ctx, fetch_params)
                 inserted = single_result.get("inserted", 0)
                 events_fetched = single_result.get("events_fetched", 0)
+
+                # Если всё хорошо, освобождаем savepoint
+                cur.execute(f"RELEASE SAVEPOINT {sp_name}")
 
                 total_inserted += inserted
                 total_processed += 1
@@ -160,22 +160,13 @@ class UpdateAllIssuesHistoryAction(BaseSimpleAction):
                 }
 
             except Exception as e:
+                # Откатываемся к savepoint, игнорируя ошибку в этой задаче
                 logger.error(f"Ошибка при обработке задачи {issue_id}: {e}")
+                cur.execute(f"ROLLBACK TO SAVEPOINT {sp_name}")
                 total_failed += 1
                 details[issue_id] = {"error": str(e)}
-                # Транзакция может быть в состоянии ошибки, но мы её не откатываем,
-                # так как savepoint не используется. При ошибке внутри UpdateSingleIssueHistoryAction
-                # транзакция будет помечена как abort, и последующие команды будут игнорироваться.
-                # Чтобы продолжить, нужно либо делать rollback и начинать новую транзакцию,
-                # либо использовать savepoint. В данном случае без savepoint при ошибке одной задачи
-                # вся транзакция становится неработоспособной, поэтому мы должны прервать обработку.
-                # Для надёжности стоит либо добавить savepoint внутри цикла, либо коммитить после каждой успешной задачи.
-                # Пока реализуем простой вариант: при любой ошибке прекращаем обработку.
-                # Можно позже улучшить, добавив savepoint.
-                # Прерываем цикл, но перед этим нужно откатить транзакцию.
-                conn.rollback()
-                logger.error("Обработка прервана из-за ошибки. Транзакция откачена.")
-                break
+                # Savepoint освобождать не нужно, он автоматически удалится при откате,
+                # но можно выполнить RELEASE после отката? Лучше просто продолжить.
 
             # Пакетный коммит после каждых BATCH_SIZE успешных задач
             if batch_counter >= BATCH_SIZE:
@@ -202,7 +193,7 @@ class UpdateAllIssuesHistoryAction(BaseSimpleAction):
     @IntFieldChecker("total_issues_failed", min_value=0)
     @InstanceOfChecker("details", expected_class=dict)
     def _postHandleAspect(self, ctx: Context, params: Dict[str, Any], result: Dict[str, Any]) -> Dict[str, Any]:
-        # Уже закоммитили внутри цикла, но на всякий случай закроем менеджер
+        # Уже закоммитили в цикле, но закрываем менеджер
         for mgr in result.get("managers", []):
             mgr.commit()
         result.pop("managers", None)

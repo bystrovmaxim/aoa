@@ -37,7 +37,7 @@ def main():
         "base_url": os.getenv("YOUTRACK_URL"),
         "token": os.getenv("YOUTRACK_TOKEN"),
         # Опционально: фильтр по проекту (например, "OPD_IPPM")
-        "project_id": "OPD_IPPM", # "OPD_IPPM",
+        #"project_id": "AI", # "OPD_IPPM",
         "pg_host": os.getenv("POSTGRES_HOST"),
         "pg_port": int(os.getenv("POSTGRES_PORT", "5432")),
         "pg_db": os.getenv("POSTGRES_DB"),
