@@ -1,6 +1,4 @@
 #!/usr/bin/env python3
-# Tests/test_fetch_all_activities.py
-
 import sys
 import os
 import json
@@ -15,7 +13,7 @@ load_dotenv()
 from ActionEngine import UserInfo, Context
 from APP.FetchIssueAllActivitiesAction import FetchIssueAllActivitiesAction
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
 def datetime_serializer(obj):
     if isinstance(obj, (datetime, date)):
@@ -23,11 +21,7 @@ def datetime_serializer(obj):
     raise TypeError(f"Type {type(obj)} not serializable")
 
 def main():
-    if len(sys.argv) > 1:
-        issue_id = sys.argv[1]
-    else:
-        issue_id = "2-115777"  # замените на существующий ID
-
+    issue_id = sys.argv[1] if len(sys.argv) > 1 else "2-115777"
     base_url = os.getenv("YOUTRACK_URL")
     token = os.getenv("YOUTRACK_TOKEN")
     if not base_url or not token:
@@ -37,26 +31,24 @@ def main():
     ctx = Context(user=UserInfo(user_id="test", roles=["user"]))
     action = FetchIssueAllActivitiesAction()
 
-    # Список категорий для запроса (можно уточнить под вашу версию YouTrack)
-    categories = [
-        "CustomFieldCategory",
-        #"CommentsCategory",
-        #"AttachmentsCategory",
-        #"IssueCreatedCategory",
-        #"LinksCategory"
-    ]
-
     params = {
         "base_url": base_url,
         "token": token,
         "issue_id": issue_id,
-        "categories": categories,
-        # "from_timestamp_ms": 1234567890000  # опционально
+        "categories": [
+            "CustomFieldCategory",
+            "CommentsCategory",
+            "AttachmentsCategory",
+            "IssueCreatedCategory",
+            "LinksCategory"
+        ],
     }
+
     try:
         result = action.run(ctx, params)
         print(json.dumps(result, indent=2, default=datetime_serializer, ensure_ascii=False))
     except Exception as e:
+        logging.exception("Ошибка при выполнении действия")
         print(f"❌ Ошибка: {e}")
         sys.exit(1)
 

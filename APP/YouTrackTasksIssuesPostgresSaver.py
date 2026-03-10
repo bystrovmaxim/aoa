@@ -29,30 +29,24 @@ logger = logging.getLogger(__name__)
 class YouTrackTasksIssuesPostgresSaver(BaseTransactionAction, IYouTrackIssuesSaver):
     """
     Сохраняет снимки задач в таблицу taskitems.
-    Перед вставкой обновляет/создаёт запись в issues по полю id.
-    Вставляет в taskitems: issue_id, key, snapshot_date,
-    все общие поля (title, description, created, parent_key, type_issue,
-    project_id, project_name) и специфичные поля задач.
-    При конфликте (issue_id, snapshot_date) обновляет все поля.
+    Перед вставкой обновляет/создаёт запись в issues по полю id,
+    включая поле last_update (дата последнего изменения задачи из YouTrack).
     """
 
     TABLE_NAME = "taskitems"
     CLASS_ISSUE = "taskitems"
 
-    # Общие поля (кроме issue_id, key, snapshot_date и project_code)
     COMMON_FIELDS = [
         "title", "description", "created", "parent_key", "type_issue",
         "project_id", "project_name"
     ]
 
-    # Специфичные поля для задач
     SPECIFIC_FIELDS = [
         "updated", "date_resolved", "assignee_login", "assignee_name", "assignee_fullname",
         "tester_login", "tester_name", "tester_fullname", "status", "story_points",
         "priority", "subcomponent", "sprints", "imported_at"
     ]
 
-    # Полный список колонок для вставки (без project_code, он генерируется)
     INSERT_COLUMNS = ["issue_id", "key", "snapshot_date"] + COMMON_FIELDS + SPECIFIC_FIELDS
 
     def __init__(self):
@@ -73,14 +67,17 @@ class YouTrackTasksIssuesPostgresSaver(BaseTransactionAction, IYouTrackIssuesSav
             "type_issue": row_dict.get("type"),
             "class_issue": self.CLASS_ISSUE,
             "project_id": row_dict.get("project_id"),
-            "project_name": row_dict.get("project_name")
+            "project_name": row_dict.get("project_name"),
+            "last_update": row_dict.get("updated")   # дата последнего изменения задачи в YouTrack
         }
 
         insert_sql = sql.SQL("""
             INSERT INTO youtrack.issues (
-                id, key, title, description, created, parent_key, type_issue, class_issue, project_id, project_name
+                id, key, title, description, created, parent_key, type_issue, class_issue,
+                project_id, project_name, last_update
             ) VALUES (
-                %(id)s, %(key)s, %(title)s, %(description)s, %(created)s, %(parent_key)s, %(type_issue)s, %(class_issue)s, %(project_id)s, %(project_name)s
+                %(id)s, %(key)s, %(title)s, %(description)s, %(created)s, %(parent_key)s,
+                %(type_issue)s, %(class_issue)s, %(project_id)s, %(project_name)s, %(last_update)s
             )
             ON CONFLICT (id) DO UPDATE SET
                 key = EXCLUDED.key,
@@ -91,7 +88,8 @@ class YouTrackTasksIssuesPostgresSaver(BaseTransactionAction, IYouTrackIssuesSav
                 type_issue = EXCLUDED.type_issue,
                 class_issue = EXCLUDED.class_issue,
                 project_id = EXCLUDED.project_id,
-                project_name = EXCLUDED.project_name
+                project_name = EXCLUDED.project_name,
+                last_update = EXCLUDED.last_update
         """)
         cur.execute(insert_sql, issue_values)
 
@@ -155,14 +153,14 @@ class YouTrackTasksIssuesPostgresSaver(BaseTransactionAction, IYouTrackIssuesSav
             values_list = []
             for row_dict in valid_rows_dicts:
                 values = [
-                    row_dict["id"],                    # issue_id
-                    row_dict["key"],                    # key
-                    snapshot_date,                       # snapshot_date
+                    row_dict["id"],
+                    row_dict["key"],
+                    snapshot_date,
                     row_dict.get("title"),
                     row_dict.get("description"),
                     row_dict.get("created"),
                     row_dict.get("parent_key"),
-                    row_dict.get("type"),                # type_issue
+                    row_dict.get("type"),
                     row_dict.get("project_id"),
                     row_dict.get("project_name"),
                 ]

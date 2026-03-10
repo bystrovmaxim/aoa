@@ -29,30 +29,24 @@ logger = logging.getLogger(__name__)
 class YouTrackStoryIssuesPostgresSaver(BaseTransactionAction, IYouTrackIssuesSaver):
     """
     Сохраняет снимки историй в таблицу user_tech_stories.
-    Перед вставкой обновляет/создаёт запись в issues по полю id.
-    Вставляет в user_tech_stories: issue_id, key, snapshot_date,
-    все общие поля (title, description, created, parent_key, type_issue,
-    project_id, project_name) и специфичные поля историй.
-    При конфликте (issue_id, snapshot_date) обновляет все поля.
+    Перед вставкой обновляет/создаёт запись в issues по полю id,
+    включая поле last_update (дата последнего изменения задачи из YouTrack).
     """
 
     TABLE_NAME = "user_tech_stories"
     CLASS_ISSUE = "user_tech_stories"
 
-    # Общие поля (кроме issue_id, key, snapshot_date и project_code)
     COMMON_FIELDS = [
         "title", "description", "created", "parent_key", "type_issue",
         "project_id", "project_name"
     ]
 
-    # Специфичные поля для историй
     SPECIFIC_FIELDS = [
         "updated", "date_resolved", "assignee_login", "assignee_name", "assignee_fullname",
         "status", "plan_start", "plan_finish", "fact_forecast_start", "fact_forecast_finish",
         "customer", "sprints", "imported_at"
     ]
 
-    # Полный список колонок для вставки (без project_code, он генерируется)
     INSERT_COLUMNS = ["issue_id", "key", "snapshot_date"] + COMMON_FIELDS + SPECIFIC_FIELDS
 
     def __init__(self):
@@ -73,14 +67,17 @@ class YouTrackStoryIssuesPostgresSaver(BaseTransactionAction, IYouTrackIssuesSav
             "type_issue": row_dict.get("type"),
             "class_issue": self.CLASS_ISSUE,
             "project_id": row_dict.get("project_id"),
-            "project_name": row_dict.get("project_name")
+            "project_name": row_dict.get("project_name"),
+            "last_update": row_dict.get("updated")   # дата последнего изменения задачи в YouTrack
         }
 
         insert_sql = sql.SQL("""
             INSERT INTO youtrack.issues (
-                id, key, title, description, created, parent_key, type_issue, class_issue, project_id, project_name
+                id, key, title, description, created, parent_key, type_issue, class_issue,
+                project_id, project_name, last_update
             ) VALUES (
-                %(id)s, %(key)s, %(title)s, %(description)s, %(created)s, %(parent_key)s, %(type_issue)s, %(class_issue)s, %(project_id)s, %(project_name)s
+                %(id)s, %(key)s, %(title)s, %(description)s, %(created)s, %(parent_key)s,
+                %(type_issue)s, %(class_issue)s, %(project_id)s, %(project_name)s, %(last_update)s
             )
             ON CONFLICT (id) DO UPDATE SET
                 key = EXCLUDED.key,
@@ -91,7 +88,8 @@ class YouTrackStoryIssuesPostgresSaver(BaseTransactionAction, IYouTrackIssuesSav
                 type_issue = EXCLUDED.type_issue,
                 class_issue = EXCLUDED.class_issue,
                 project_id = EXCLUDED.project_id,
-                project_name = EXCLUDED.project_name
+                project_name = EXCLUDED.project_name,
+                last_update = EXCLUDED.last_update
         """)
         cur.execute(insert_sql, issue_values)
 
@@ -154,25 +152,22 @@ class YouTrackStoryIssuesPostgresSaver(BaseTransactionAction, IYouTrackIssuesSav
             # 2. Вставка в user_tech_stories
             values_list = []
             for row_dict in valid_rows_dicts:
-                # Собираем значения в порядке INSERT_COLUMNS
                 values = [
-                    row_dict["id"],                    # issue_id
-                    row_dict["key"],                    # key
-                    snapshot_date,                       # snapshot_date
+                    row_dict["id"],
+                    row_dict["key"],
+                    snapshot_date,
                     row_dict.get("title"),
                     row_dict.get("description"),
                     row_dict.get("created"),
                     row_dict.get("parent_key"),
-                    row_dict.get("type"),                # type_issue
+                    row_dict.get("type"),
                     row_dict.get("project_id"),
                     row_dict.get("project_name"),
                 ]
-                # Добавляем специфичные поля
                 for field in self.SPECIFIC_FIELDS:
                     values.append(row_dict.get(field))
                 values_list.append(values)
 
-                # Подсчёт статистики по типам
                 row_type = row_dict.get("type", "unknown")
                 inserted_by_type[row_type] += 1
 
@@ -184,7 +179,7 @@ class YouTrackStoryIssuesPostgresSaver(BaseTransactionAction, IYouTrackIssuesSav
                 sql.SQL(', ').join([sql.Placeholder()] * len(self.INSERT_COLUMNS)),
                 sql.SQL(', ').join(
                     sql.SQL("{} = EXCLUDED.{}").format(sql.Identifier(col), sql.Identifier(col))
-                    for col in self.COMMON_FIELDS + self.SPECIFIC_FIELDS   # обновляем все, кроме issue_id, key, snapshot_date
+                    for col in self.COMMON_FIELDS + self.SPECIFIC_FIELDS
                 )
             )
 

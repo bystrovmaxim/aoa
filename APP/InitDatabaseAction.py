@@ -10,12 +10,11 @@ import psycopg2
 @requires_connection_type(psycopg2.extensions.connection, desc="Требуется соединение с PostgreSQL")
 class InitDatabaseAction(BaseTransactionAction):
     """
-    Создаёт схему youtrack и таблицы с нуля, включая:
-      - issues: id (PK), key (UNIQUE), project_code (GENERATED)
-      - user_tech_stories: issue_id (FK), snapshot_date, все общие поля (кроме id) + специфичные поля историй
-      - taskitems: аналогично
-      - issues_status_history: issue_id, timestamp, author_login, old_status, new_status
-    Все таблицы расширений содержат дублирующиеся поля из issues для фиксации состояния на момент снимка.
+    Создаёт схему youtrack и таблицы с нуля:
+      - issues: id (PK), key (UNIQUE), project_code (GENERATED),
+                last_update (дата последнего изменения задачи в YouTrack),
+                last_activity_processed (серверное время последней обработки активностей)
+      - user_tech_stories, taskitems, issues_status_history
     """
 
     @InstanceOfChecker("tables_created", expected_class=list, desc="Результат: список созданных таблиц")
@@ -25,7 +24,7 @@ class InitDatabaseAction(BaseTransactionAction):
         cur = conn.cursor()
         cur.execute("CREATE SCHEMA IF NOT EXISTS youtrack;")
 
-        # --- Таблица issues (общие поля, актуальное состояние) ---
+        # --- Таблица issues ---
         cur.execute("""
             CREATE TABLE IF NOT EXISTS youtrack.issues (
                 id TEXT PRIMARY KEY,
@@ -38,12 +37,16 @@ class InitDatabaseAction(BaseTransactionAction):
                 class_issue TEXT,
                 project_id TEXT,
                 project_name TEXT,
-                project_code TEXT GENERATED ALWAYS AS (split_part(key, '-', 1)) STORED
+                project_code TEXT GENERATED ALWAYS AS (split_part(key, '-', 1)) STORED,
+                last_update TIMESTAMP,                       -- дата последнего изменения задачи в YouTrack (из поля updated)
+                last_activity_processed TIMESTAMP            -- серверное время последней обработки активностей
             );
         """)
         cur.execute("CREATE INDEX IF NOT EXISTS idx_issues_project_code ON youtrack.issues(project_code);")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_issues_last_update ON youtrack.issues(last_update);")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_issues_last_activity ON youtrack.issues(last_activity_processed);")
 
-        # --- Таблица user_tech_stories (снимки историй) ---
+        # --- Таблица user_tech_stories ---
         cur.execute("""
             CREATE TABLE IF NOT EXISTS youtrack.user_tech_stories (
                 issue_id TEXT NOT NULL,
@@ -57,7 +60,6 @@ class InitDatabaseAction(BaseTransactionAction):
                 project_id TEXT,
                 project_name TEXT,
                 project_code TEXT GENERATED ALWAYS AS (split_part(key, '-', 1)) STORED,
-                -- специфичные поля историй
                 updated TIMESTAMP,
                 date_resolved TIMESTAMP,
                 assignee_login TEXT,
@@ -76,7 +78,7 @@ class InitDatabaseAction(BaseTransactionAction):
             );
         """)
 
-        # --- Таблица taskitems (снимки задач) ---
+        # --- Таблица taskitems ---
         cur.execute("""
             CREATE TABLE IF NOT EXISTS youtrack.taskitems (
                 issue_id TEXT NOT NULL,
@@ -90,7 +92,6 @@ class InitDatabaseAction(BaseTransactionAction):
                 project_id TEXT,
                 project_name TEXT,
                 project_code TEXT GENERATED ALWAYS AS (split_part(key, '-', 1)) STORED,
-                -- специфичные поля задач
                 updated TIMESTAMP,
                 date_resolved TIMESTAMP,
                 assignee_login TEXT,
@@ -110,11 +111,10 @@ class InitDatabaseAction(BaseTransactionAction):
             );
         """)
 
-        # Индексы для быстрого поиска по дате снимка
         cur.execute("CREATE INDEX IF NOT EXISTS idx_user_tech_stories_snapshot ON youtrack.user_tech_stories(snapshot_date);")
         cur.execute("CREATE INDEX IF NOT EXISTS idx_taskitems_snapshot ON youtrack.taskitems(snapshot_date);")
 
-        # --- Таблица issues_status_history (история статусов) ---
+        # --- Таблица issues_status_history ---
         cur.execute("""
             CREATE TABLE IF NOT EXISTS youtrack.issues_status_history (
                 issue_id TEXT NOT NULL,
@@ -128,7 +128,9 @@ class InitDatabaseAction(BaseTransactionAction):
             );
         """)
         cur.execute("CREATE INDEX IF NOT EXISTS idx_issues_status_history_timestamp ON youtrack.issues_status_history(timestamp);")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_issues_status_history_issue_id ON youtrack.issues_status_history(issue_id);")
 
+        # --- Представление v_snapshot_summary (сокращено для читаемости) ---
         cur.execute("""
             CREATE OR REPLACE VIEW youtrack.v_snapshot_summary AS
             WITH combined AS (
@@ -156,4 +158,7 @@ class InitDatabaseAction(BaseTransactionAction):
             ORDER BY snapshot_date DESC;
         """)
 
-        return {"tables_created": ["issues", "user_tech_stories", "taskitems", "issues_status_history"], "schema": "youtrack"}
+        return {
+            "tables_created": ["issues", "user_tech_stories", "taskitems", "issues_status_history"],
+            "schema": "youtrack"
+        }
