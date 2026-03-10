@@ -20,7 +20,7 @@ def main():
 
     result = YouTrackEntryPoint.delete_snapshot(
         ctx=ctx,
-        snapshot_date=date.today(),
+        snapshot_date=date.fromisoformat("2026-03-09"), #date.today(),
         tables=["user_tech_stories", "taskitems"],
         schema="youtrack"
     )

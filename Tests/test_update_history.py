@@ -1,4 +1,6 @@
-# Utils/test_update_history.py
+#!/usr/bin/env python3
+# Tests/test_update_history.py
+
 import sys
 import os
 import json
@@ -12,12 +14,12 @@ load_dotenv()
 from ActionEngine import UserInfo, Context
 from APP.UpdateAllIssuesHistoryAction import UpdateAllIssuesHistoryAction
 
-logging.basicConfig(level=logging.INFO)
-logging.getLogger("APP.FindIssuesNeedingHistoryUpdateAction").setLevel(logging.WARNING)
-logging.getLogger("APP.FetchIssueStatusHistoryAction").setLevel(logging.WARNING)
-
+# Настройка логирования
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger("test_update_history")
 
 def main():
+    # Проверяем обязательные переменные окружения
     required_vars = [
         "YOUTRACK_URL", "YOUTRACK_TOKEN",
         "POSTGRES_HOST", "POSTGRES_PORT", "POSTGRES_DB", "POSTGRES_USER", "POSTGRES_PASSWORD"
@@ -34,12 +36,8 @@ def main():
     params = {
         "base_url": os.getenv("YOUTRACK_URL"),
         "token": os.getenv("YOUTRACK_TOKEN"),
-        "page_size": 1000,
-        # Можно передать один проект:
-        #"project_code": "INF", #"OPD_IPPM",
-        # Или несколько проектов:
-        #"project_code": ["AI", "INF"],
-        # Или не указывать project_code для обработки всех проектов из БД.
+        # Опционально: фильтр по проекту (например, "OPD_IPPM")
+        "project_id": "OPD_IPPM", # "OPD_IPPM",
         "pg_host": os.getenv("POSTGRES_HOST"),
         "pg_port": int(os.getenv("POSTGRES_PORT", "5432")),
         "pg_db": os.getenv("POSTGRES_DB"),
@@ -52,9 +50,9 @@ def main():
         result = action.run(ctx, params)
         print(json.dumps(result, ensure_ascii=False, indent=2))
     except Exception as e:
+        logger.exception("Ошибка при выполнении действия")
         print(f"❌ Ошибка: {e}")
         sys.exit(1)
-
 
 if __name__ == "__main__":
     main()
