@@ -5,10 +5,8 @@ import sys
 import os
 import json
 import logging
-from datetime import datetime
 from pathlib import Path
 from dotenv import load_dotenv
-from datetime import date
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 load_dotenv()
@@ -31,10 +29,7 @@ def main():
         sys.exit(1)
 
     # Параметры задачи (можно передать аргументом командной строки)
-    if len(sys.argv) > 1:
-        issue_id = sys.argv[1]
-    else:
-        issue_id = "2-115777"  # замените на существующий ID
+    issue_id = sys.argv[1] if len(sys.argv) > 1 else "2-115777"  # замените на существующий ID
 
     base_url = os.getenv("YOUTRACK_URL")
     token = os.getenv("YOUTRACK_TOKEN")
@@ -68,7 +63,8 @@ def main():
         "base_url": base_url,
         "token": token,
         "issue_id": issue_id,
-        "status_field_name": status_field
+        "status_field_name": status_field,
+        "last_timestamp_ms": 0  # добавлен обязательный параметр
     }
 
     try:
