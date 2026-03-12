@@ -385,6 +385,16 @@ class ActionProductMachine(BaseActionMachine):
         """
         Синхронно выполняет цепочку регулярных аспектов, вызывая для каждого
         before и after события плагинов (асинхронно, с ожиданием).
+
+        Для каждого аспекта:
+            - вызывается before-событие плагинов,
+            - выполняется сам аспект,
+            - проверяется результат согласно правилам:
+                * если у аспекта есть чекеры, то все поля в возвращённом state
+                  должны быть описаны чекерами, и каждый чекер применяется;
+                * если чекеров нет, то возвращённый state должен быть пустым;
+                * в противном случае выбрасывается ValidationFieldException.
+            - вызывается after-событие плагинов с длительностью выполнения аспекта.
         """
         action_class = action.__class__
         aspects, _ = self._get_aspects(action_class)
@@ -406,9 +416,17 @@ class ActionProductMachine(BaseActionMachine):
                     f"получен {type(new_state).__name__}"
                 )
 
-            self._apply_checkers(method, new_state)
-
             checkers = getattr(method, '_result_checkers', [])
+
+            # Правило 1: если чекеров нет, разрешён только пустой словарь
+            if not checkers and new_state:
+                raise ValidationFieldException(
+                    f"Аспект {method.__qualname__} не имеет чекеров, но вернул непустой state: {new_state}. "
+                    f"Либо добавьте чекеры для всех полей, либо возвращайте пустой словарь."
+                )
+
+            # Правило 2: если чекеры есть, проверяем, что нет лишних ключей,
+            # и применяем каждый чекер (типы, обязательность и т.д.)
             if checkers:
                 allowed_fields = {ch.field_name for ch in checkers}
                 extra_fields = set(new_state.keys()) - allowed_fields
@@ -417,6 +435,7 @@ class ActionProductMachine(BaseActionMachine):
                         f"Аспект {method.__qualname__} вернул лишние поля: {extra_fields}. "
                         f"Разрешены только: {allowed_fields}"
                     )
+                self._apply_checkers(method, new_state)
 
             aspect_duration = time.time() - aspect_start
 
