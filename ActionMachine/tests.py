@@ -1,7 +1,3 @@
-################################################################################
-# Файл: /Users/bystrovmaxim/PythonDev/kanban_assistant/ActionMachine/tests.py
-################################################################################
-
 # ActionMachine/tests.py
 """
 Тесты для ActionMachine с демонстрацией вложенности действий и отступов в плагинах.
@@ -25,6 +21,8 @@ from ActionMachine.Core.ActionTestMachine import ActionTestMachine
 from ActionMachine.Core.DependencyFactory import DependencyFactory
 from ActionMachine.Checkers.InstanceOfChecker import InstanceOfChecker
 from ActionMachine.Checkers.StringFieldChecker import StringFieldChecker
+from ActionMachine.Checkers.IntFieldChecker import IntFieldChecker
+from ActionMachine.Checkers.BoolFieldChecker import BoolFieldChecker
 from ActionMachine.Auth.CheckRoles import CheckRoles
 from ActionMachine.Context.UserInfo import UserInfo
 from ActionMachine.Context.Context import Context
@@ -98,6 +96,7 @@ class ChildAction(BaseAction['ChildAction.Params', 'ChildAction.Result']):
         doubled: int
 
     @aspect("Подготовка")
+    @BoolFieldChecker("prepared", desc="Флаг подготовки", required=True)
     def prepare(
         self, params: Params, state: Dict[str, Any], deps: DependencyFactory
     ) -> Dict[str, Any]:
@@ -134,6 +133,7 @@ class ParentAction(BaseAction['ParentAction.Params', 'ParentAction.Result']):
         return state
 
     @aspect("Доп. проверка")
+    @IntFieldChecker("child_result", desc="Результат дочернего действия", required=True)
     def extra_check(
         self, params: Params, state: Dict[str, Any], deps: DependencyFactory
     ) -> Dict[str, Any]:
@@ -390,10 +390,10 @@ def test_notification_action_with_mock_services() -> None:
         SmsService: fake_sms
     }, context=context)
     action = NotificationAction()
-    params = NotificationAction.Params(channel='email', message='Hello', recipient='[EMAIL_REDACTED]')
+    params = NotificationAction.Params(channel='email', message='Hello', recipient='test@test.com')
     result = machine.run(action, params)
     assert result.success is True
-    assert fake_email.sent == [('[EMAIL_REDACTED]', 'Hello')]
+    assert fake_email.sent == [('test@test.com', 'Hello')]
     assert fake_sms.sent == []
 
 
@@ -460,13 +460,10 @@ def test_mock_action_call_tracking() -> None:
     params = ParentAction.Params(7)
     result = machine.run(action, params)
     assert result.result == 110  # 100 + 10
-    # В ParentAction теперь два вызова ChildAction: в extra_check и в handle
-    assert mock_action.call_count == 2
+    assert mock_action.call_count == 2  # два вызова: в extra_check и в handle
     assert isinstance(mock_action.last_params, ChildAction.Params)
     assert mock_action.last_params.value == 7
 
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v", "-s"])
-
-################################################################################
