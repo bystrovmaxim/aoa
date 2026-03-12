@@ -1,10 +1,6 @@
 # ActionMachine/Plugins/Plugin.py
 """
 Базовый класс для всех плагинов ActionMachine.
-
-Плагины позволяют расширять функциональность ActionMachine без изменения бизнес-логики.
-Они подключаются к событиям жизненного цикла выполнения действия и могут выполнять
-произвольные действия: логирование, сбор метрик, аудит, дополнительные проверки безопасности.
 """
 
 from abc import ABC, abstractmethod
@@ -25,19 +21,6 @@ class Plugin(ABC):
 
     Методы-обработчики помечаются декоратором ``@on`` из модуля ``Decorators``. Они должны быть
     асинхронными (определены с ``async def``) и принимать строго определённый набор аргументов.
-
-    Пример::
-
-        class LoggingPlugin(Plugin):
-            def get_initial_state(self) -> Any:
-                return {"timers": {}}
-
-            @on('global_start', '.*', ignore_exceptions=True)
-            async def log_start(self, state_plugin, event_name, action_name, params,
-                                state_aspect, is_summary, deps, context, result, duration):
-                state_plugin["timers"][action_name] = time.time()
-                print(f"Action {action_name} started")
-                return state_plugin
     """
 
     @abstractmethod
@@ -82,5 +65,5 @@ class Plugin(ABC):
             for event_regex, class_regex, ignore_exceptions in method._plugin_hooks:
                 if event_regex.fullmatch(event_name) and class_regex.fullmatch(class_name):
                     handlers.append((method, ignore_exceptions))
-                    break  # метод уже подходит, не нужно проверять остальные его подписки
+                    break  # метод уже подходит
         return handlers

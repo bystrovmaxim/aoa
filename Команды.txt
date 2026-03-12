@@ -64,3 +64,9 @@ radon raw ActionMachine/ -s
 # Vulture рекурсивно просканирует все .py файлы в указанной директории и 
 # выдаст список потенциально мёртвого кода с указанием файла и строки.
 vulture ActionMachine/ vulture_whitelist.txt
+
+# Сделайте run_checks.sh исполняемым
+chmod +x run_checks.sh
+
+# Запустите
+./run_checks.sh
