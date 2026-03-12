@@ -42,4 +42,25 @@ docker build -t gitverse.ru/bystrov.maxim/kanban_assistant:latest .
 cd ~/kanban_assistant_docker
 docker-compose up -d youtrack
 
+# Статическая проверка типов
 mypy --strict --follow-imports=skip --ignore-missing-imports ActionMachine/
+
+mypy --strict --follow-imports=normal --ignore-missing-imports --warn-unreachable --no-implicit-reexport ActionMachine/
+
+# Проверка цикломатической сложности
+
+# Флаг -s показывает сложность в виде буквенной оценки (A, B, C, D, E, F). 
+# Можно также указать порог для ошибки, например, --min C покажет только функции со сложностью C и выше.
+radon cc ActionMachine/ -s
+
+# Индекс поддерживаемости (mi – maintainability index)
+# Оценивает, насколько легко поддерживать код.
+radon mi ActionMachine/ -s
+
+# Сырые метрики (raw)
+# Показывает количество строк, комментариев, пустых строк и т.д.
+radon raw ActionMachine/ -s
+
+# Vulture рекурсивно просканирует все .py файлы в указанной директории и 
+# выдаст список потенциально мёртвого кода с указанием файла и строки.
+vulture ActionMachine/ vulture_whitelist.txt
