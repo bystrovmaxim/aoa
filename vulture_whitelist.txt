@@ -1,0 +1,39 @@
+# Методы аспектов
+prepare
+handle
+delay
+extra_check
+on_global_start
+on_global_finish
+on_before_aspect
+on_after_aspect
+
+# Классы менеджеров
+BaseResourceManager
+CsvConnectionManager
+PostgresConnectionManager
+
+# Чекеры
+BoolFieldChecker
+DateFieldChecker
+FloatFieldChecker
+IntFieldChecker
+InstanceOfChecker
+StringFieldChecker
+
+# Динамические атрибуты
+_filepath
+_file
+_writer
+autocommit
+tags
+kwargs
+
+# Методы контекста
+set_extra
+get_extra
+as_dict
+
+# Другие методы
+process
+write_rows

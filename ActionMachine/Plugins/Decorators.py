@@ -7,13 +7,12 @@
 """
 
 import re
-from typing import Any, Callable, Pattern, Union
-
+from typing import Any, Callable, Union
 
 def _add_hook(
     method: Callable[..., Any],
-    event_regex: Union[str, "Pattern[str]"],
-    class_regex: Union[str, "Pattern[str]"],
+    event_regex: Union[str, re.Pattern[str]],
+    class_regex: Union[str, re.Pattern[str]],
     ignore_exceptions: bool,
 ) -> Callable[..., Any]:
     """
@@ -38,16 +37,16 @@ def _add_hook(
         method._plugin_hooks = []  # type: ignore[attr-defined]
 
     # Преобразуем строки в регулярные выражения для единообразия
-    compiled_event: "Pattern[str]" = re.compile(event_regex) if isinstance(event_regex, str) else event_regex
-    compiled_class: "Pattern[str]" = re.compile(class_regex) if isinstance(class_regex, str) else class_regex
+    compiled_event: re.Pattern[str] = re.compile(event_regex) if isinstance(event_regex, str) else event_regex
+    compiled_class: re.Pattern[str] = re.compile(class_regex) if isinstance(class_regex, str) else class_regex
 
     method._plugin_hooks.append((compiled_event, compiled_class, ignore_exceptions))  # type: ignore[attr-defined]
     return method
 
 
 def on(
-    event_regex: Union[str, "Pattern[str]"],
-    class_regex: Union[str, "Pattern[str]"],
+    event_regex: Union[str, re.Pattern[str]],
+    class_regex: Union[str, re.Pattern[str]],
     ignore_exceptions: bool,
 ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
     """
