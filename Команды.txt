@@ -42,3 +42,4 @@ docker build -t gitverse.ru/bystrov.maxim/kanban_assistant:latest .
 cd ~/kanban_assistant_docker
 docker-compose up -d youtrack
 
+mypy --strict --follow-imports=skip --ignore-missing-imports ActionMachine/
