@@ -1,0 +1,194 @@
+```markdown
+29. external_di_integration.md
+
+# Интеграция с внешними DI-контейнерами
+
+AOA предоставляет встроенный механизм внедрения зависимостей через декоратор `@depends` и фабрику `DependencyFactory` (подробно описано в [di.md](di.md)).  
+Однако в реальных проектах часто уже используются сторонние DI-контейнеры — например, `inject`, FastAPI `Depends`, ручные контейнеры или специализированные библиотеки.  
+Возникает вопрос: как задействовать существующий контейнер, не переписывая весь код и не отказываясь от преимуществ AOA?
+
+Ответ — параметр `factory` декоратора `@depends`. Он позволяет передать функцию, которая будет вызвана для создания экземпляра зависимости. Внутри этой функции можно обратиться к внешнему контейнеру и получить уже сконфигурированный объект.
+
+В этой главе мы на практическом примере покажем, как интегрировать библиотеку `inject` — простой, но мощный DI-контейнер для Python.
+
+---
+
+# 1. Что даёт параметр `factory`
+
+Декоратор `@depends` имеет следующую сигнатуру (упрощённо):
+
+```python
+def depends(klass: Type[Any], *, description: str = "", factory: Optional[Callable[[], Any]] = None)
+```
+
+- `klass` — класс зависимости (может быть интерфейсом, сервисом, репозиторием и т.д.).
+- `factory` — опциональная функция без аргументов, которая **должна вернуть готовый экземпляр** зависимости.
+
+Если `factory` не указана, `DependencyFactory` создаёт объект через вызов конструктора `klass()`.  
+Если `factory` передана, фабрика вызовет её при первом обращении к зависимости и закэширует результат на всё время выполнения действия.
+
+Это открывает возможности:
+
+- использовать любой внешний DI-контейнер для получения уже сконфигурированных объектов;
+- реализовать сложную логику создания (выбор реализации, подгрузка конфигурации);
+- подменять зависимости в тестах, не трогая код действий.
+
+---
+
+# 2. Пример: интеграция с библиотекой `inject`
+
+## 2.1. Установка `inject`
+
+```bash
+pip install inject
+```
+
+## 2.2. Сервис, требующий конфигурации
+
+Предположим, у нас есть класс `DatabaseService`, который требует строку подключения. Обычно такие параметры задаются при конфигурации приложения.
+
+```python
+class DatabaseService:
+    def __init__(self, connection_string: str):
+        self.connection_string = connection_string
+
+    def query(self, sql: str) -> str:
+        return f"Executing '{sql}' on {self.connection_string}"
+```
+
+## 2.3. Настройка `inject`
+
+В точке входа приложения (например, при старте FastAPI или в отдельном модуле) мы конфигурируем `inject` так, чтобы при запросе `DatabaseService` возвращался экземпляр с нужной строкой подключения.
+
+```python
+import inject
+
+def configure_inject(binder: inject.Binder) -> None:
+    binder.bind(DatabaseService, DatabaseService("postgresql://localhost:5432/mydb"))
+
+inject.configure(configure_inject)
+```
+
+## 2.4. Действие, использующее `factory`
+
+Теперь создадим действие, которое зависит от `DatabaseService`, но получает его через `inject`. Укажем в `@depends` параметр `factory`, который вызывает `inject.instance(DatabaseService)`.
+
+```python
+from dataclasses import dataclass
+from ActionMachine.Core import BaseAction, BaseParams, BaseResult, summary_aspect, depends
+from ActionMachine.Auth.CheckRoles import CheckRoles
+
+@depends(DatabaseService, factory=lambda: inject.instance(DatabaseService))
+@CheckRoles(CheckRoles.ANY, desc="Доступно любому аутентифицированному пользователю")
+class QueryAction(BaseAction['QueryAction.Params', 'QueryAction.Result']):
+
+    @dataclass(frozen=True)
+    class Params(BaseParams):
+        sql: str
+
+    @dataclass(frozen=True)
+    class Result(BaseResult):
+        output: str
+
+    @summary_aspect("Выполнить запрос через сервис из inject")
+    def execute(self, params: Params, state, deps) -> Result:
+        db_service = deps.get(DatabaseService)   # здесь вызовётся наша factory
+        output = db_service.query(params.sql)
+        return QueryAction.Result(output)
+```
+
+**Что происходит:**
+
+- При первом обращении к `deps.get(DatabaseService)` фабрика `lambda: inject.instance(DatabaseService)` вызывает `inject.instance(DatabaseService)`.
+- `inject` возвращает экземпляр `DatabaseService`, созданный во время конфигурации.
+- Фабрика кэширует этот объект, поэтому все последующие вызовы `get` в рамках одного выполнения действия получат тот же экземпляр.
+
+## 2.5. Запуск действия
+
+```python
+from ActionMachine.Core import ActionProductMachine
+from ActionMachine.Context import Context
+
+machine = ActionProductMachine(context=Context())
+params = QueryAction.Params(sql="SELECT * FROM users")
+result = machine.run(QueryAction(), params)
+print(result.output)  # Executing 'SELECT * FROM users' on postgresql://localhost:5432/mydb
+```
+
+## 2.6. Тестирование с подменой
+
+Для тестирования мы можем либо переконфигурировать `inject` (что не всегда удобно), либо просто не использовать `factory` в тестовой машине. Самый простой способ — передать мок напрямую в `ActionTestMachine`, как мы делали ранее. Поскольку `ActionTestMachine` подменяет зависимости через свой словарь моков, вызов `deps.get(DatabaseService)` вернёт мок, а не результат `inject`. Это не требует изменения кода действия.
+
+```python
+from ActionMachine.Core import ActionTestMachine
+
+mock_db = DatabaseService("test_connection")
+machine = ActionTestMachine({DatabaseService: mock_db})
+result = machine.run(QueryAction(), params)
+```
+
+---
+
+# 3. Альтернативные способы интеграции
+
+## 3.1. Адаптер-ресурс
+
+Вместо прямой фабрики можно создать ресурсный менеджер, который внутри использует внешний контейнер, и уже его объявить через обычный `@depends`. Этот способ предпочтительнее, если логика доступа к контейнеру сложна или требуется состояние.
+
+```python
+class InjectDatabaseService:
+    def get(self) -> DatabaseService:
+        return inject.instance(DatabaseService)
+
+@depends(InjectDatabaseService)
+class QueryAction(BaseAction):
+    @summary_aspect("...")
+    def execute(self, params, state, deps):
+        db_service = deps.get(InjectDatabaseService).get()
+        ...
+```
+
+## 3.2. Кастомизация `DependencyFactory`
+
+Можно переопределить фабрику зависимостей для всей машины, чтобы она при необходимости обращалась к внешнему контейнеру. Этот метод сложнее, но даёт полный контроль.
+
+```python
+def custom_factory(dep_class):
+    if dep_class in external_container:
+        return external_container[dep_class]
+    # иначе стандартное поведение
+    return dep_class()
+
+machine = ActionProductMachine(context, dependency_factory=custom_factory)
+```
+
+Однако такой подход требует модификации машины и менее прозрачен.
+
+---
+
+# 4. Когда использовать `factory`
+
+- **Миграция легаси** — у вас уже есть готовый контейнер, и вы не хотите переписывать код инициализации.
+- **Сложная логика создания** — объект требует дополнительных шагов, которые удобно вынести в отдельную функцию.
+- **Интеграция с популярными DI-библиотеками** (inject, dependency-injector, FastAPI Depends и др.).
+- **Тестирование** — можно подменить фабрику, возвращающую мок, без изменения действия (хотя проще использовать `ActionTestMachine`).
+
+Не стоит использовать `factory` для простых случаев, где достаточно конструктора по умолчанию — это добавляет лишнюю сложность.
+
+---
+
+# 5. Предостережения
+
+- **Фабрика вызывается один раз** за выполнение действия, и результат кэшируется. Убедитесь, что ваша фабрика не имеет побочных эффектов и возвращает один и тот же объект при повторных вызовах в рамках одного действия (или, если нужны разные объекты, придётся реализовать иначе).
+- **Не злоупотребляйте** — слишком частое использование `factory` может запутать архитектуру. Старайтесь, чтобы зависимости были явными и легко заменяемыми.
+- **Типизация** — `factory` должна возвращать объект, совместимый с `klass`. Mypy не проверит это автоматически, но можно использовать `cast` или протоколы.
+
+---
+
+# 6. Заключение
+
+Параметр `factory` в декораторе `@depends` — мощный инструмент, позволяющий интегрировать AOA с любым внешним DI-контейнером практически без усилий. Это делает ActionEngine гибким и открытым для использования в существующих проектах, сохраняя все преимущества чистой архитектуры: тестируемость, прозрачность и предсказуемость.
+
+В следующей главе мы рассмотрим ещё один продвинутый сценарий — управление транзакциями с учётом вложенности действий.
+
+```

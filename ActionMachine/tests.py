@@ -1,16 +1,20 @@
 # ActionMachine/tests.py
 """
-Тесты для ActionMachine с демонстрацией вложенности действий и отступов в плагинах.
+Тесты для ActionMachine с демонстрацией вложенности действий, отступов в плагинах
+и использования параметра factory декоратора @depends для интеграции с внешними DI-контейнерами (например, inject).
 """
 
 import sys
 import os
 import time
-from typing import Any, Dict, List, Optional, Tuple, cast
+from typing import Any, Dict, List, Optional, Tuple,cast
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from dataclasses import dataclass
+
+# Для демонстрации интеграции с внешним DI используем библиотеку inject
+import inject
 
 from ActionMachine.Core.BaseParams import BaseParams
 from ActionMachine.Core.BaseResult import BaseResult
@@ -128,7 +132,7 @@ class ParentAction(BaseAction['ParentAction.Params', 'ParentAction.Result']):
         self, params: Params, state: Dict[str, Any], deps: DependencyFactory
     ) -> Dict[str, Any]:
         print(f"\033[91m[ParentAction] Аспект 'delay' начал работу\033[0m")
-        time.sleep(2)
+        time.sleep(0.1)
         print(f"\033[91m[ParentAction] Аспект 'delay' завершил работу\033[0m")
         return state
 
@@ -465,5 +469,70 @@ def test_mock_action_call_tracking() -> None:
     assert mock_action.last_params.value == 7
 
 
+# ---------- Демонстрация использования параметра factory для интеграции с внешним DI-контейнером (inject) ----------
+
+# Для этого теста необходимо установить библиотеку inject: pip install inject
+# Пример демонстрирует, как с помощью параметра factory декоратора @depends можно передать функцию,
+# которая обращается к внешнему DI-контейнеру (здесь inject) для получения экземпляра зависимости.
+
+class DatabaseService:
+    """Пример сервиса, который будет получен через DI-контейнер."""
+    def __init__(self, connection_string: str):
+        self.connection_string = connection_string
+
+    def query(self, sql: str) -> str:
+        return f"Executing '{sql}' on {self.connection_string}"
+
+# Настройка inject для теста
+def configure_inject(binder: inject.Binder) -> None:
+    binder.bind(DatabaseService, DatabaseService("test_db_connection"))
+
+@depends(DatabaseService, factory=lambda: inject.instance(DatabaseService))
+@CheckRoles(CheckRoles.ANY, desc="Доступно любому аутентифицированному пользователю")
+class ActionWithInject(BaseAction['ActionWithInject.Params', 'ActionWithInject.Result']):
+    @dataclass(frozen=True)
+    class Params(BaseParams):
+        sql: str
+
+    @dataclass(frozen=True)
+    class Result(BaseResult):
+        output: str
+
+    @summary_aspect("Использование сервиса из inject")
+    def execute(self, params: Params, state: Dict[str, Any], deps: DependencyFactory) -> Result:
+        db_service = deps.get(DatabaseService)
+        output = db_service.query(params.sql)
+        return ActionWithInject.Result(output)
+
+def test_depends_factory_with_inject() -> None:
+    """
+    Тест демонстрирует использование параметра factory в декораторе @depends
+    для интеграции с внешним DI-контейнером (библиотека inject).
+
+    Здесь мы:
+    1. Конфигурируем inject так, чтобы он возвращал экземпляр DatabaseService с нужными параметрами.
+    2. Объявляем действие ActionWithInject, которое зависит от DatabaseService,
+       при этом в @depends указана factory=lambda: inject.instance(DatabaseService).
+    3. Запускаем действие через ActionTestMachine и проверяем, что сервис был получен именно из inject
+       и правильно использован.
+
+    Этот пример показывает, как можно легко интегрировать любую внешнюю DI-систему в AOA,
+    не изменяя код самого действия.
+    """
+    # Конфигурируем inject для теста (обычно это делается однократно при запуске приложения)
+    inject.clear_and_configure(configure_inject)
+
+    context = Context(user=UserInfo(roles=["user"]))
+    machine = ActionTestMachine(context=context)  # здесь не передаём моки для DatabaseService,
+                                                  # потому что он будет создан через factory
+    action = ActionWithInject()
+    params = ActionWithInject.Params(sql="SELECT * FROM users")
+    result = machine.run(action, params)
+    assert result.output == "Executing 'SELECT * FROM users' on test_db_connection"
+
+    # Очищаем inject после теста (чтобы не влиять на другие тесты)
+    inject.clear()
+
+
 if __name__ == "__main__":
-    pytest.main([__file__, "-v", "-s"])
+    pytest.main([__file__, "-v", "-s"]) 
