@@ -1,3 +1,7 @@
+################################################################################
+# Файл: ActionMachine/Core/ActionProductMachine.py
+################################################################################
+
 # ActionMachine/Core/ActionProductMachine.py
 """
 Реализация продуктовой машины действий с поддержкой плагинов и вложенности.
@@ -7,7 +11,7 @@
 import asyncio
 import time
 import inspect
-from typing import TypeVar, Any, Dict, List, Optional, Tuple, Type, cast, Callable
+from typing import TypeVar, Any, Dict, List, Optional, Tuple, Type, Set, cast, Callable
 
 from ActionMachine.Core.BaseParams import BaseParams
 from ActionMachine.Core.BaseResult import BaseResult
@@ -16,10 +20,15 @@ from ActionMachine.Core.DependencyFactory import DependencyFactory
 from ActionMachine.Context.Context import Context
 from ActionMachine.Core.AspectMethod import AspectMethod
 from ActionMachine.Core.BaseActionMachine import BaseActionMachine
-from ActionMachine.Core.Exceptions import ValidationFieldException, AuthorizationException
+from ActionMachine.Core.Exceptions import (
+    ValidationFieldException,
+    AuthorizationException,
+    ConnectionValidationError,
+)
 from ActionMachine.Auth.CheckRoles import CheckRoles
 from ActionMachine.Plugins.Plugin import Plugin
 from ActionMachine.Plugins.PluginEvent import PluginEvent
+from ActionMachine.ResourceManagers.BaseResourceManager import BaseResourceManager
 
 P = TypeVar('P', bound=BaseParams)
 R = TypeVar('R', bound=BaseResult)
@@ -32,8 +41,9 @@ class ActionProductMachine(BaseActionMachine):
     Продуктовая реализация машины действий (асинхронная).
 
     Содержит логику кэширования аспектов и фабрик зависимостей,
-    выполняет проверку ролей, валидацию результатов аспектов через чекеры,
-    а также поддерживает подключение плагинов для расширения функциональности.
+    выполняет проверку ролей, валидацию connections, валидацию результатов
+    аспектов через чекеры, а также поддерживает подключение плагинов
+    для расширения функциональности.
 
     Атрибуты:
         _context: глобальный контекст выполнения.
@@ -61,7 +71,7 @@ class ActionProductMachine(BaseActionMachine):
                      запросе и окружении).
             plugins: список экземпляров плагинов (по умолчанию пустой).
             max_concurrent_handlers: максимальное количество одновременно выполняющихся
-                обработчиков плагинов для одного события (по умолчанию 10).
+                                     обработчиков плагинов для одного события (по умолчанию 10).
         """
         self._context = context
         self._plugins: List[Plugin] = plugins or []
@@ -225,6 +235,77 @@ class ActionProductMachine(BaseActionMachine):
         else:
             self._check_single_role(role_spec, user_roles)
 
+    # ---------- Проверка connections ----------
+
+    def _check_connections(
+        self,
+        action: BaseAction[P, R],
+        connections: Optional[Dict[str, BaseResourceManager]],
+    ) -> Dict[str, BaseResourceManager]:
+        """
+        Проверяет соответствие переданных connections объявленным через @connection.
+
+        Правила:
+        1. Если у действия нет @connection — connections должен быть пустым или None.
+           Если передали непустой словарь — ошибка (действие не ожидает соединений).
+        2. Если у действия есть @connection — ключи в connections должны точно совпадать
+           с объявленными ключами. Не больше, не меньше.
+           Лишние ключи — ошибка (передали то, что действие не ожидает).
+           Недостающие ключи — ошибка (не передали то, что действие ожидает).
+
+        Аргументы:
+            action: экземпляр действия.
+            connections: переданный словарь соединений (может быть None).
+
+        Возвращает:
+            Валидный словарь connections (пустой dict если соединения не объявлены).
+
+        Исключения:
+            ConnectionValidationError: при нарушении любого из правил.
+        """
+        # Получаем декларации @connection из класса действия
+        declared: List[Dict[str, Any]] = getattr(action.__class__, '_connections', [])
+        declared_keys: Set[str] = {info['key'] for info in declared}
+        actual_keys: Set[str] = set(connections.keys()) if connections else set()
+
+        action_name = action.__class__.__name__
+
+        # Правило 1: нет деклараций, но передали connections
+        if not declared_keys and actual_keys:
+            raise ConnectionValidationError(
+                f"Действие {action_name} не объявляет @connection, "
+                f"но получило connections с ключами: {actual_keys}. "
+                f"Удалите передачу connections или добавьте декораторы @connection."
+            )
+
+        # Правило 1 (обратное): есть декларации, но не передали
+        if declared_keys and not actual_keys:
+            raise ConnectionValidationError(
+                f"Действие {action_name} объявляет connections: {declared_keys}, "
+                f"но connections не переданы (None или пустой словарь). "
+                f"Передайте все объявленные соединения при вызове run()."
+            )
+
+        # Правило 2: лишние ключи
+        extra: Set[str] = actual_keys - declared_keys
+        if extra:
+            raise ConnectionValidationError(
+                f"Действие {action_name} получило лишние connections: {extra}. "
+                f"Объявлены только: {declared_keys}. "
+                f"Удалите лишние ключи из переданного словаря connections."
+            )
+
+        # Правило 2: недостающие ключи
+        missing: Set[str] = declared_keys - actual_keys
+        if missing:
+            raise ConnectionValidationError(
+                f"Действие {action_name} не получило connections: {missing}. "
+                f"Объявлены: {declared_keys}, переданы: {actual_keys}. "
+                f"Добавьте недостающие соединения в словарь connections."
+            )
+
+        return connections or {}
+
     # ---------- Вспомогательные методы для запуска плагинов ----------
 
     def _init_plugin_states(self) -> None:
@@ -321,34 +402,51 @@ class ActionProductMachine(BaseActionMachine):
         self,
         action: BaseAction[P, R],
         params: P,
-        resources: Optional[Dict[Type[Any], Any]] = None
+        resources: Optional[Dict[Type[Any], Any]] = None,
+        connections: Optional[Dict[str, BaseResourceManager]] = None,
     ) -> R:
         """
         Асинхронно запускает выполнение действия с учётом плагинов и вложенности.
 
         Последовательность выполнения:
-            1. Увеличение уровня вложенности.
-            2. Проверка ролей (декоратор CheckRoles).
-            3. Событие global_start (плагины).
-            4. Выполнение регулярных аспектов (с вызовом before/after для каждого).
-            5. Выполнение summary-аспекта.
-            6. Событие global_finish с общей длительностью.
-            7. Уменьшение уровня вложенности.
+        1. Увеличение уровня вложенности.
+        2. Проверка ролей (декоратор CheckRoles).
+        3. Проверка connections (декоратор @connection).
+        4. Событие global_start (плагины).
+        5. Выполнение регулярных аспектов (с вызовом before/after для каждого).
+        6. Выполнение summary-аспекта.
+        7. Событие global_finish с общей длительностью.
+        8. Уменьшение уровня вложенности.
+
+        Аргументы:
+            action: экземпляр действия.
+            params: входные параметры.
+            resources: словарь внешних ресурсов (передаётся в фабрику зависимостей).
+            connections: словарь ресурсных менеджеров (соединений).
+                         Ключ — строковое имя из @connection, значение — экземпляр.
+                         Передаётся во все аспекты как есть (без оборачивания).
+                         Оборачивание происходит только при передаче в дочерние действия
+                         через DependencyFactory.run_action().
         """
         self._nest_level += 1
         start_time = time.time()
 
         try:
+            # 1. Проверка ролей
             self._check_action_roles(action)
-            # Создаём фабрику с учётом внешних ресурсов
+
+            # 2. Проверка connections — валидный словарь или пустой dict
+            conns: Dict[str, BaseResourceManager] = self._check_connections(action, connections)
+
+            # 3. Создаём фабрику с учётом внешних ресурсов
             factory = self._get_factory(action.__class__, external_resources=resources)
 
             await self._run_plugins_async('global_start', action, params, None, False, None, None, factory)
 
-            state = await self._execute_regular_aspects(action, params, factory)
+            state = await self._execute_regular_aspects(action, params, factory, conns)
 
             _, summary_method = self._get_aspects(action.__class__)
-            result = await self._call_aspect(summary_method, action, params, state, factory)
+            result = await self._call_aspect(summary_method, action, params, state, factory, conns)
 
             total_duration = time.time() - start_time
             await self._run_plugins_async('global_finish', action, params, None, False, result, total_duration, factory)
@@ -363,34 +461,47 @@ class ActionProductMachine(BaseActionMachine):
         action: BaseAction[Any, Any],
         params: BaseParams,
         state: Dict[str, Any],
-        factory: DependencyFactory
+        factory: DependencyFactory,
+        connections: Dict[str, BaseResourceManager],
     ) -> Any:
         """
         Вызывает аспект (метод). Все аспекты асинхронны (гарантируется декораторами),
         поэтому всегда используем await.
+
+        Параметр connections передаётся в каждый аспект как последний аргумент,
+        позволяя аспектам выполнять запросы через ресурсные менеджеры
+        и решать, какие соединения передать в дочерние действия.
+
         Возвращает результат выполнения аспекта (словарь для regular-аспектов, Result для summary).
         """
-        return await method(action, params, state, factory)
+        return await method(action, params, state, factory, connections)
 
     async def _execute_regular_aspects(
         self,
         action: BaseAction[P, R],
         params: P,
         factory: DependencyFactory,
+        connections: Dict[str, BaseResourceManager],
     ) -> Dict[str, Any]:
         """
         Асинхронно выполняет цепочку регулярных аспектов, вызывая для каждого
         before и after события плагинов.
 
         Для каждого аспекта:
-            - вызывается before-событие плагинов,
-            - выполняется сам аспект (с поддержкой синхронных и асинхронных методов),
-            - проверяется результат согласно правилам:
-                * если у аспекта есть чекеры, то все поля в возвращённом state
-                  должны быть описаны чекерами, и каждый чекер применяется;
-                * если чекеров нет, то возвращённый state должен быть пустым;
-                * в противном случае выбрасывается ValidationFieldException.
-            - вызывается after-событие плагинов с длительностью выполнения аспекта.
+        - вызывается before-событие плагинов,
+        - выполняется сам аспект (с поддержкой синхронных и асинхронных методов),
+        - проверяется результат согласно правилам:
+          * если у аспекта есть чекеры, то все поля в возвращённом state
+            должны быть описаны чекерами, и каждый чекер применяется;
+          * если чекеров нет, то возвращённый state должен быть пустым;
+          * в противном случае выбрасывается ValidationFieldException.
+        - вызывается after-событие плагинов с длительностью выполнения аспекта.
+
+        State не накапливается автоматически — каждый аспект получает текущий state,
+        но машина полностью заменяет state на то, что вернул аспект.
+        Аспект обязан явно вернуть только те поля, которые нужны дальше.
+
+        Параметр connections прокидывается в каждый аспект.
         """
         action_class = action.__class__
         aspects, _ = self._get_aspects(action_class)
@@ -405,7 +516,7 @@ class ActionProductMachine(BaseActionMachine):
             )
 
             aspect_start = time.time()
-            new_state = await self._call_aspect(method, action, params, state, factory)
+            new_state = await self._call_aspect(method, action, params, state, factory, connections)
             if not isinstance(new_state, dict):
                 raise TypeError(
                     f"Аспект {method.__qualname__} должен возвращать dict, "
@@ -437,6 +548,9 @@ class ActionProductMachine(BaseActionMachine):
                 method._aspect_type == 'summary', None, aspect_duration, factory
             )
 
+            # State полностью заменяется на результат аспекта — не накапливается
             state = new_state
 
         return state
+
+################################################################################

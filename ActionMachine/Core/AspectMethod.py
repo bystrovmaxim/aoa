@@ -1,3 +1,7 @@
+################################################################################
+# Файл: ActionMachine/Core/AspectMethod.py
+################################################################################
+
 # ActionMachine/Core/AspectMethod.py
 """
 Протокол аспектных методов и декораторы для их объявления.
@@ -7,6 +11,7 @@
 - aspect() — декоратор для обычных аспектов.
 - summary_aspect() — декоратор для главного (summary) аспекта.
 - depends() — декоратор для объявления зависимостей действия.
+- connection() — декоратор для объявления соединений, необходимых действию.
 """
 
 import inspect
@@ -43,7 +48,12 @@ def aspect(description: str) -> Callable[[Callable[..., Any]], AspectMethod]:
 
     Помечает метод как регулярный аспект, который выполняется перед summary.
     Метод должен быть асинхронным (async def) и принимать
-    (self, params, state, deps) и возвращать dict.
+    (self, params, state, deps, connections) и возвращать dict.
+
+    State не накапливается автоматически — каждый аспект получает текущий state,
+    но явно создаёт новый словарь, содержащий только нужные поля.
+    Рекомендуется использовать TypedDict с total=False для описания
+    пространства возможных ключей state.
 
     Аргументы:
         description: текстовое описание аспекта (для документации и логирования).
@@ -73,6 +83,7 @@ def summary_aspect(description: str) -> Callable[[Callable[..., Any]], AspectMet
 
     Summary-аспект выполняется последним и возвращает итоговый Result.
     Должен быть асинхронным (async def).
+    Метод принимает (self, params, state, deps, connections).
 
     Аргументы:
         description: текстовое описание аспекта (для документации и логирования).
@@ -112,7 +123,7 @@ def depends(
         klass: класс зависимости (может быть Action, сервис, репозиторий и т.д.)
         description: описание зависимости (для документации).
         factory: опциональная фабрика для создания экземпляра.
-                 Если не указана, используется конструктор по умолчанию.
+            Если не указана, используется конструктор по умолчанию.
 
     Возвращает:
         Декоратор, который добавляет информацию о зависимости в атрибут _dependencies.
@@ -128,3 +139,54 @@ def depends(
         cls._dependencies = deps
         return cls
     return decorator
+
+
+def connection(
+    key: str,
+    klass: Type[Any],
+    *,
+    description: str = "",
+) -> Callable[[Type[Any]], Type[Any]]:
+    """
+    Декоратор для объявления соединения (ресурсного менеджера), необходимого действию.
+
+    Используется на уровне класса действия, аналогично @depends.
+    Объявляет, что действие ожидает в словаре connections ключ с указанным именем
+    и экземпляр указанного класса ресурсного менеджера.
+
+    Машина при запуске действия проверяет:
+    1. Если у действия нет @connection — connections должен быть пустым или None.
+    2. Ключи в переданном connections должны точно совпадать с объявленными.
+
+    Может использоваться несколько раз для одного действия.
+    Создаёт новый список соединений для каждого класса (не мутирует родительский).
+
+    Аргументы:
+        key: имя ключа в словаре connections (и в TypedDict).
+            Например: "connection", "cache", "analytics_db".
+        klass: класс ресурсного менеджера (наследник BaseResourceManager).
+        description: описание соединения (для документации).
+
+    Возвращает:
+        Декоратор, который добавляет информацию о соединении в атрибут _connections.
+
+    Пример:
+        @connection("connection", PostgresConnectionManager, description="Основная БД")
+        @connection("cache", RedisConnectionManager, description="Кеш")
+        @CheckRoles(CheckRoles.ANY, desc="...")
+        class MyAction(BaseAction[...]):
+            ...
+    """
+    def decorator(cls: Type[Any]) -> Type[Any]:
+        # Создаём НОВЫЙ список, копируя родительский (если есть)
+        conns = list(getattr(cls, '_connections', []))
+        conns.append({
+            'key': key,
+            'class': klass,
+            'description': description,
+        })
+        cls._connections = conns
+        return cls
+    return decorator
+
+################################################################################

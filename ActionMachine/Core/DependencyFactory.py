@@ -1,7 +1,12 @@
+################################################################################
+# Файл: ActionMachine/Core/DependencyFactory.py
+################################################################################
+
 # ActionMachine/Core/DependencyFactory.py
 """
 Фабрика зависимостей для действий.
-Поддерживает создание и кэширование зависимостей, а также асинхронный запуск вложенных действий.
+Поддерживает создание и кэширование зависимостей, а также асинхронный запуск
+вложенных действий с автоматическим оборачиванием connections.
 """
 
 from typing import Any, Dict, List, Type, Optional
@@ -9,6 +14,7 @@ from ActionMachine.Core.BaseActionMachine import BaseActionMachine
 from ActionMachine.Core.BaseAction import BaseAction
 from ActionMachine.Core.BaseResult import BaseResult
 from ActionMachine.Core.BaseParams import BaseParams
+from ActionMachine.ResourceManagers.BaseResourceManager import BaseResourceManager
 
 
 class DependencyFactory:
@@ -17,7 +23,8 @@ class DependencyFactory:
 
     Создаёт и кэширует экземпляры зависимостей, объявленных через @depends.
     При наличии внешних ресурсов (external_resources) использует их в приоритете.
-    Предоставляет метод для асинхронного запуска вложенных действий.
+    Предоставляет метод для асинхронного запуска вложенных действий
+    с автоматическим оборачиванием connections через wrapper_class.
     """
 
     def __init__(
@@ -70,22 +77,76 @@ class DependencyFactory:
         self._instances[klass] = instance
         return instance
 
+    def _wrap_connections(
+        self, connections: Dict[str, BaseResourceManager]
+    ) -> Dict[str, BaseResourceManager]:
+        """
+        Оборачивает каждый connection в его wrapper-класс для передачи в дочерние действия.
+
+        Для каждого connection в словаре:
+        1. Вызывает get_wrapper_class() чтобы получить тип обёртки.
+        2. Если wrapper_class не None — создаёт экземпляр обёртки, передавая
+           оригинальный connection в конструктор.
+        3. Если wrapper_class is None — передаёт connection как есть (без обёртки).
+
+        Ключи словаря сохраняются — обёрнутые connections имеют те же имена.
+
+        Это гарантирует, что дочерние действия не могут управлять транзакциями
+        (open/commit/rollback), но могут выполнять запросы (execute).
+        При дальнейшей вложенности обёртка снова оборачивается (wrapper вокруг wrapper),
+        что также запрещает управление транзакциями.
+
+        Аргументы:
+            connections: исходный словарь ресурсных менеджеров.
+
+        Возвращает:
+            Новый словарь с обёрнутыми (или оригинальными) ресурсными менеджерами.
+        """
+        wrapped: Dict[str, BaseResourceManager] = {}
+        for key, connection in connections.items():
+            wrapper_class = connection.get_wrapper_class()
+            if wrapper_class is not None:
+                wrapped[key] = wrapper_class(connection)
+            else:
+                wrapped[key] = connection
+        return wrapped
+
     async def run_action(
         self,
         action_class: Type[BaseAction[Any, Any]],
         params: BaseParams,
-        resources: Optional[Dict[Type[Any], Any]] = None
+        resources: Optional[Dict[Type[Any], Any]] = None,
+        connections: Optional[Dict[str, BaseResourceManager]] = None,
     ) -> BaseResult:
         """
         Асинхронно запускает указанное действие с переданными параметрами и ресурсами.
+
+        Если передан connections, каждый connection оборачивается через get_wrapper_class()
+        перед передачей в дочернее действие. Это гарантирует, что дочерние действия
+        не могут управлять транзакциями (open/commit/rollback), но могут выполнять запросы.
+
+        Разработчик в аспекте сам решает, какие соединения передать в дочернее действие —
+        он формирует словарь connections вручную, выбирая нужные ключи.
 
         Аргументы:
             action_class: класс действия для запуска.
             params: входные параметры.
             resources: словарь ресурсов для передачи в дочернее действие (опционально).
+            connections: словарь ресурсных менеджеров (опционально).
+                         Ключи — строковые имена, значения — экземпляры BaseResourceManager.
 
         Возвращает:
             Результат выполнения действия.
         """
         instance = self.get(action_class)
-        return await self._machine.run(instance, params, resources=resources)
+
+        # Оборачиваем connections для дочернего действия
+        wrapped_connections: Optional[Dict[str, BaseResourceManager]] = None
+        if connections is not None:
+            wrapped_connections = self._wrap_connections(connections)
+
+        return await self._machine.run(
+            instance, params, resources=resources, connections=wrapped_connections
+        )
+
+################################################################################

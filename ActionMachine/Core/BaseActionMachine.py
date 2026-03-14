@@ -1,3 +1,7 @@
+################################################################################
+# Файл: ActionMachine/Core/BaseActionMachine.py
+################################################################################
+
 # ActionMachine/Core/BaseActionMachine.py
 """
 Абстрактный базовый класс для всех машин действий.
@@ -10,6 +14,7 @@ from typing import TypeVar, Optional, Dict, Type, Any
 from ActionMachine.Core.BaseAction import BaseAction
 from ActionMachine.Core.BaseParams import BaseParams
 from ActionMachine.Core.BaseResult import BaseResult
+from ActionMachine.ResourceManagers.BaseResourceManager import BaseResourceManager
 
 P = TypeVar('P', bound=BaseParams)
 R = TypeVar('R', bound=BaseResult)
@@ -30,7 +35,8 @@ class BaseActionMachine(ABC):
         self,
         action: BaseAction[P, R],
         params: P,
-        resources: Optional[Dict[Type[Any], Any]] = None
+        resources: Optional[Dict[Type[Any], Any]] = None,
+        connections: Optional[Dict[str, BaseResourceManager]] = None,
     ) -> R:
         """
         Асинхронно запускает действие и возвращает результат.
@@ -44,6 +50,12 @@ class BaseActionMachine(ABC):
             params: входные параметры действия.
             resources: словарь внешних ресурсов (ключ – класс ресурса, значение – экземпляр),
                        которые будут переданы в фабрику зависимостей с приоритетом.
+            connections: словарь ресурсных менеджеров (соединений).
+                         Ключ — строковое имя из декоратора @connection (например, "connection", "cache").
+                         Значение — экземпляр BaseResourceManager.
+                         Передаётся во все аспекты как есть.
+                         При передаче в дочерние действия через DependencyFactory
+                         каждый connection оборачивается через get_wrapper_class().
 
         Возвращает:
             Результат выполнения действия.
@@ -54,7 +66,8 @@ class BaseActionMachine(ABC):
         self,
         action: BaseAction[P, R],
         params: P,
-        resources: Optional[Dict[Type[Any], Any]] = None
+        resources: Optional[Dict[Type[Any], Any]] = None,
+        connections: Optional[Dict[str, BaseResourceManager]] = None,
     ) -> R:
         """
         Синхронная обёртка для использования вне async-контекста.
@@ -71,6 +84,7 @@ class BaseActionMachine(ABC):
             action: экземпляр действия.
             params: входные параметры.
             resources: внешние ресурсы (опционально).
+            connections: словарь ресурсных менеджеров (опционально).
 
         Возвращает:
             Результат выполнения действия.
@@ -88,5 +102,6 @@ class BaseActionMachine(ABC):
             )
         except RuntimeError:
             # Нет текущего запущенного loop – можно использовать asyncio.run()
-            return asyncio.run(self.run(action, params, resources))
-        
+            return asyncio.run(self.run(action, params, resources, connections))
+
+################################################################################

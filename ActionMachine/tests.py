@@ -1,15 +1,32 @@
+################################################################################
+# Файл: ActionMachine/tests.py
+################################################################################
+
 # ActionMachine/tests.py
 """
 Тесты для ActionMachine с демонстрацией вложенности действий, отступов в плагинах
 и использования параметра factory декоратора @depends для интеграции с внешними DI-контейнерами (например, inject).
 Все тесты асинхронные, используют anyio.
 Плагины используют новый формат с PluginEvent.
+
+State в аспектах типизируется через TypedDict с total=False:
+- TypedDict описывает всё пространство возможных ключей state на разных этапах конвейера,
+- total=False означает, что все ключи необязательны (каждый аспект работает с подмножеством),
+- каждый аспект явно возвращает только нужные поля (state не накапливается автоматически),
+- чекеры обеспечивают runtime-валидацию строгого состава на каждом шаге,
+- TypedDict даёт статическую подсказку IDE и mypy, а чекеры — динамическую гарантию.
+
+Connections передаётся во все аспекты как словарь Dict[str, BaseResourceManager].
+Каждый аспект получает connections как последний параметр и может:
+- использовать соединения для выполнения запросов,
+- решать, какие соединения передать в дочерние действия через deps.run_action().
 """
 
 import sys
 import os
 import asyncio
 from typing import Any, Dict, List, Tuple, cast
+from typing_extensions import TypedDict
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -36,6 +53,28 @@ from ActionMachine.Context.Context import Context  # noqa: E402
 from ActionMachine.Plugins.Plugin import Plugin  # noqa: E402
 from ActionMachine.Plugins.PluginEvent import PluginEvent  # noqa: E402
 from ActionMachine.Plugins.Decorators import on  # noqa: E402
+from ActionMachine.ResourceManagers.BaseResourceManager import BaseResourceManager  # noqa: E402
+
+
+# ---------- Базовый TypedDict для connections ----------
+#
+# В 99% случаев действию нужно одно соединение. Базовый Connections
+# содержит стандартный ключ "connection". Если нужно больше —
+# разработчик создаёт наследника с дополнительными ключами.
+# total=False потому что не все действия используют соединения.
+
+class Connections(TypedDict, total=False):
+    """
+    Базовый TypedDict для словаря connections.
+
+    Содержит один стандартный ключ 'connection' для основного соединения.
+    Если действию нужно несколько соединений, создайте наследника:
+
+        class MyConnections(Connections, total=False):
+            cache: BaseResourceManager
+            analytics_db: BaseResourceManager
+    """
+    connection: BaseResourceManager
 
 
 # ---------- Тестовые сервисы ----------
@@ -54,6 +93,63 @@ class SmsService:
     def send(self, to: str, msg: str) -> None:
         """Отправляет SMS."""
         print(f"Sending SMS to {to}: {msg}")
+
+
+# ---------- TypedDict для state ----------
+#
+# Каждый TypedDict описывает *всё пространство* возможных ключей state
+# для конкретного действия. total=False означает, что все ключи необязательны,
+# потому что каждый аспект работает только со своим подмножеством полей.
+#
+# ActionMachine заменяет state на результат аспекта после каждого шага:
+#   new_state = method(action, params, state, factory, connections)
+#   state = new_state
+#
+# Поэтому state не накапливается автоматически — каждый аспект явно
+# возвращает только те поля, которые нужны дальше. TypedDict описывает
+# возможное множество, а чекеры гарантируют строгий состав на каждом шаге.
+
+
+class NotificationState(TypedDict, total=False):
+    """
+    Пространство возможных ключей state для NotificationAction.
+
+    Ключи:
+        service: экземпляр EmailService или SmsService, выбранный в аспекте choose_channel.
+        selected_channel: строковое имя канала ('email' или 'sms'), выбранного в аспекте choose_channel.
+    """
+    service: Any            # EmailService | SmsService — аспект choose_channel
+    selected_channel: str   # 'email' | 'sms' — аспект choose_channel
+
+
+class ChildState(TypedDict, total=False):
+    """
+    Пространство возможных ключей state для ChildAction.
+
+    Ключи:
+        prepared: флаг, что подготовка выполнена (аспект prepare).
+    """
+    prepared: bool  # аспект prepare
+
+
+class ParentState(TypedDict, total=False):
+    """
+    Пространство возможных ключей state для ParentAction.
+
+    Ключи:
+        child_result: результат выполнения дочернего действия (аспект extra_check).
+    """
+    child_result: int  # аспект extra_check
+
+
+class InjectState(TypedDict, total=False):
+    """
+    Пространство возможных ключей state для ActionWithInject.
+
+    У этого действия нет регулярных аспектов, только summary,
+    поэтому TypedDict пустой — но объявлен для единообразия.
+    """
+    pass
 
 
 # ---------- Тестовые действия ----------
@@ -81,24 +177,41 @@ class NotificationAction(BaseAction['NotificationAction.Params', 'NotificationAc
                        desc="В state должен быть объект EmailService или SmsService")
     @StringFieldChecker("selected_channel", desc="Канал, который был выбран", required=False)
     async def choose_channel(
-        self, params: Params, state: Dict[str, Any], deps: DependencyFactory
-    ) -> Dict[str, Any]:
-        """Выбирает сервис на основе канала и сохраняет его в state."""
+        self, params: Params, state: NotificationState,
+        deps: DependencyFactory, connections: Connections
+    ) -> NotificationState:
+        """
+        Выбирает сервис на основе канала и сохраняет его в state.
+
+        Получает пустой state (первый аспект в конвейере).
+        Возвращает state с ключами 'service' и 'selected_channel'.
+        Чекеры гарантируют, что 'service' — экземпляр EmailService или SmsService,
+        а 'selected_channel' — строка (необязательная).
+        """
         if params.channel == 'email':
-            state['service'] = deps.get(EmailService)
-            state['selected_channel'] = 'email'
+            return NotificationState(
+                service=deps.get(EmailService),
+                selected_channel='email',
+            )
         elif params.channel == 'sms':
-            state['service'] = deps.get(SmsService)
-            state['selected_channel'] = 'sms'
+            return NotificationState(
+                service=deps.get(SmsService),
+                selected_channel='sms',
+            )
         else:
             raise ValueError("Unknown channel")
-        return state
 
     @summary_aspect("Отправка")
     async def send(
-        self, params: Params, state: Dict[str, Any], deps: DependencyFactory
+        self, params: Params, state: NotificationState,
+        deps: DependencyFactory, connections: Connections
     ) -> Result:
-        """Отправляет уведомление через выбранный сервис."""
+        """
+        Отправляет уведомление через выбранный сервис.
+
+        Получает state с ключом 'service' от аспекта choose_channel.
+        Возвращает Result с флагом success.
+        """
         service = state['service']
         service.send(params.recipient, params.message)
         return NotificationAction.Result(success=True)
@@ -121,18 +234,30 @@ class ChildAction(BaseAction['ChildAction.Params', 'ChildAction.Result']):
     @aspect("Подготовка")
     @BoolFieldChecker("prepared", desc="Флаг подготовки", required=True)
     async def prepare(
-        self, params: Params, state: Dict[str, Any], deps: DependencyFactory
-    ) -> Dict[str, Any]:
-        """Аспект подготовки: устанавливает флаг prepared в True."""
+        self, params: Params, state: ChildState,
+        deps: DependencyFactory, connections: Connections
+    ) -> ChildState:
+        """
+        Аспект подготовки: устанавливает флаг prepared в True.
+
+        Получает пустой state (первый аспект).
+        Возвращает state с единственным ключом 'prepared'.
+        Чекер BoolFieldChecker гарантирует, что значение — bool.
+        """
         print("\033[91m[ChildAction] Аспект 'prepare' выполняется\033[0m")
-        state['prepared'] = True
-        return state
+        return ChildState(prepared=True)
 
     @summary_aspect("Удвоить")
     async def handle(
-        self, params: Params, state: Dict[str, Any], deps: DependencyFactory
+        self, params: Params, state: ChildState,
+        deps: DependencyFactory, connections: Connections
     ) -> Result:
-        """Основная логика: удваивает число."""
+        """
+        Основная логика: удваивает число.
+
+        Получает state с ключом 'prepared' от аспекта prepare.
+        Возвращает Result с удвоенным значением.
+        """
         print("\033[91m[ChildAction] Summary-аспект 'handle' выполняется\033[0m")
         return ChildAction.Result(params.value * 2)
 
@@ -154,32 +279,62 @@ class ParentAction(BaseAction['ParentAction.Params', 'ParentAction.Result']):
 
     @aspect("Задержка")
     async def delay(
-        self, params: Params, state: Dict[str, Any], deps: DependencyFactory
-    ) -> Dict[str, Any]:
-        """Аспект с небольшой задержкой (имитация работы)."""
+        self, params: Params, state: ParentState,
+        deps: DependencyFactory, connections: Connections
+    ) -> ParentState:
+        """
+        Аспект с небольшой задержкой (имитация работы).
+
+        Получает пустой state (первый аспект).
+        Не добавляет ключей — возвращает пустой словарь.
+        У аспекта нет чекеров, поэтому он обязан вернуть пустой dict.
+        """
         print("\033[91m[ParentAction] Аспект 'delay' начал работу\033[0m")
         await asyncio.sleep(0.1)   # заменён time.sleep на asyncio.sleep
         print("\033[91m[ParentAction] Аспект 'delay' завершил работу\033[0m")
-        return state
+        return ParentState()
 
     @aspect("Доп. проверка")
     @IntFieldChecker("child_result", desc="Результат дочернего действия", required=True)
     async def extra_check(
-        self, params: Params, state: Dict[str, Any], deps: DependencyFactory
-    ) -> Dict[str, Any]:
-        """Аспект, вызывающий дочернее действие и сохраняющий результат."""
+        self, params: Params, state: ParentState,
+        deps: DependencyFactory, connections: Connections
+    ) -> ParentState:
+        """
+        Аспект, вызывающий дочернее действие и сохраняющий результат.
+
+        Получает пустой state от аспекта delay (тот не добавлял ключей).
+        Возвращает state с ключом 'child_result' — результатом дочернего действия.
+        Чекер IntFieldChecker гарантирует, что значение — целое число.
+
+        Разработчик сам решает, какие соединения передать в дочернее действие.
+        В данном примере connections прокидывается как есть.
+        """
         print("\033[91m[ParentAction] Аспект 'extra_check' начинает дочернее действие\033[0m")
-        child_result = cast(ChildAction.Result, await deps.run_action(ChildAction, ChildAction.Params(params.num)))
+        child_result = cast(
+            ChildAction.Result,
+            await deps.run_action(ChildAction, ChildAction.Params(params.num), connections=connections)
+        )
         print(f"\033[91m[ParentAction] Аспект 'extra_check' завершился, результат дочернего: {child_result}\033[0m")
-        state['child_result'] = child_result.doubled
-        return state
+        return ParentState(child_result=child_result.doubled)
 
     @summary_aspect("Родитель")
     async def handle(
-        self, params: Params, state: Dict[str, Any], deps: DependencyFactory
+        self, params: Params, state: ParentState,
+        deps: DependencyFactory, connections: Connections
     ) -> Result:
-        """Основная логика: вызывает дочернее действие и прибавляет 10."""
-        child_result = cast(ChildAction.Result, await deps.run_action(ChildAction, ChildAction.Params(params.num)))
+        """
+        Основная логика: вызывает дочернее действие и прибавляет 10.
+
+        Получает state с ключом 'child_result' от аспекта extra_check.
+        Возвращает Result с итоговым числом.
+
+        Разработчик сам решает, какие соединения передать в дочернее действие.
+        """
+        child_result = cast(
+            ChildAction.Result,
+            await deps.run_action(ChildAction, ChildAction.Params(params.num), connections=connections)
+        )
         assert isinstance(child_result, ChildAction.Result)
         return ParentAction.Result(child_result.doubled + 10)
 
@@ -278,15 +433,18 @@ async def test_choose_channel_aspect() -> None:
     factory: DependencyFactory = machine.build_factory(NotificationAction)
     action: NotificationAction = NotificationAction()
 
+    # При прямом вызове аспекта в тесте передаём пустой connections
+    empty_conns: Connections = Connections()
+
     params = NotificationAction.Params(channel='email', message='hi', recipient='a@b.c')
-    state: Dict[str, Any] = {}
-    result_state = await action.choose_channel(params, state, factory)   # добавлен await
+    state: NotificationState = NotificationState()
+    result_state = await action.choose_channel(params, state, factory, empty_conns)
     assert result_state['service'] is fake_email
     assert result_state['selected_channel'] == 'email'
 
     params2 = NotificationAction.Params(channel='sms', message='hi', recipient='123')
-    state2: Dict[str, Any] = {}
-    result_state2 = await action.choose_channel(params2, state2, factory) # добавлен await
+    state2: NotificationState = NotificationState()
+    result_state2 = await action.choose_channel(params2, state2, factory, empty_conns)
     assert result_state2['service'] is fake_sms
     assert result_state2['selected_channel'] == 'sms'
 
@@ -300,8 +458,12 @@ async def test_choose_channel_aspect_unknown() -> None:
     factory: DependencyFactory = machine.build_factory(NotificationAction)
     action: NotificationAction = NotificationAction()
     params = NotificationAction.Params(channel='fax', message='hi', recipient='x')
+
+    # При прямом вызове аспекта в тесте передаём пустой connections
+    empty_conns: Connections = Connections()
+
     with pytest.raises(ValueError, match="Unknown channel"):
-        await action.choose_channel(params, {}, factory)   # добавлен await
+        await action.choose_channel(params, NotificationState(), factory, empty_conns)
 
 
 @pytest.mark.anyio
@@ -330,10 +492,10 @@ async def test_notification_action_with_mock_services() -> None:
         SmsService: fake_sms
     }, context=context)
     action = NotificationAction()
-    params = NotificationAction.Params(channel='email', message='Hello', recipient='test@test.com')
+    params = NotificationAction.Params(channel='email', message='Hello', recipient='[EMAIL_REDACTED]')
     result = await machine.run(action, params)
     assert result.success is True
-    assert fake_email.sent == [('test@test.com', 'Hello')]
+    assert fake_email.sent == [('[EMAIL_REDACTED]', 'Hello')]
     assert fake_sms.sent == []
 
 
@@ -442,8 +604,16 @@ class ActionWithInject(BaseAction['ActionWithInject.Params', 'ActionWithInject.R
         output: str
 
     @summary_aspect("Использование сервиса из inject")
-    async def execute(self, params: Params, state: Dict[str, Any], deps: DependencyFactory) -> Result:
-        """Выполняет запрос через сервис из inject."""
+    async def execute(
+        self, params: Params, state: InjectState,
+        deps: DependencyFactory, connections: Connections
+    ) -> Result:
+        """
+        Выполняет запрос через сервис из inject.
+
+        Получает пустой state (нет регулярных аспектов).
+        Возвращает Result с результатом SQL-запроса.
+        """
         db_service = deps.get(DatabaseService)
         output = db_service.query(params.sql)
         return ActionWithInject.Result(output)

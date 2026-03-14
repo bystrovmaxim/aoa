@@ -1,3 +1,7 @@
+################################################################################
+# Файл: ActionMachine/Core/ActionTestMachine.py
+################################################################################
+
 # ActionMachine/Core/ActionTestMachine.py
 """
 Тестовая машина действий с поддержкой моков (асинхронная версия).
@@ -15,6 +19,7 @@ from ActionMachine.Core.BaseParams import BaseParams
 from ActionMachine.Core.BaseAction import BaseAction
 from ActionMachine.Core.MockAction import MockAction
 from ActionMachine.Context.Context import Context
+from ActionMachine.ResourceManagers.BaseResourceManager import BaseResourceManager
 
 P = TypeVar('P', bound=BaseParams)
 R = TypeVar('R', bound=BaseResult)
@@ -26,11 +31,11 @@ class ActionTestMachine(ActionProductMachine):
 
     Принимает в конструкторе словарь моков: {класс: значение}.
     Значение может быть:
-        - экземпляром MockAction (будет использован как есть).
-        - экземпляром BaseAction (пройдёт через аспектный конвейер).
-        - результатом BaseResult (будет обёрнут в MockAction).
-        - функцией callable (будет использована как side_effect для MockAction).
-        - любым другим объектом (будет возвращён как есть через get()).
+    - экземпляром MockAction (будет использован как есть).
+    - экземпляром BaseAction (пройдёт через аспектный конвейер).
+    - результатом BaseResult (будет обёрнут в MockAction).
+    - функцией callable (будет использована как side_effect для MockAction).
+    - любым другим объектом (будет возвращён как есть через get()).
 
     Метод run является асинхронным (как и в родителе).
     Для синхронного использования можно обернуть в asyncio.run().
@@ -78,7 +83,8 @@ class ActionTestMachine(ActionProductMachine):
         self,
         action: BaseAction[P, R],
         params: P,
-        resources: Optional[Dict[Type[Any], Any]] = None
+        resources: Optional[Dict[Type[Any], Any]] = None,
+        connections: Optional[Dict[str, BaseResourceManager]] = None,
     ) -> R:
         """
         Асинхронно запускает действие. Если action — MockAction, вызывает его напрямую,
@@ -88,6 +94,7 @@ class ActionTestMachine(ActionProductMachine):
             action: экземпляр действия.
             params: входные параметры.
             resources: словарь внешних ресурсов (передаётся в родительский run).
+            connections: словарь ресурсных менеджеров (передаётся в родительский run).
 
         Возвращает:
             Результат выполнения действия.
@@ -95,7 +102,7 @@ class ActionTestMachine(ActionProductMachine):
         if isinstance(action, MockAction):
             # MockAction.run синхронный, но это нормально внутри асинхронной функции
             return action.run(params)  # type: ignore[return-value]
-        return await super().run(action, params, resources=resources)
+        return await super().run(action, params, resources=resources, connections=connections)
 
     def _get_factory(
         self,
@@ -118,3 +125,5 @@ class ActionTestMachine(ActionProductMachine):
         Возвращает фабрику для использования в тестировании отдельных аспектов (без внешних ресурсов).
         """
         return self._get_factory(action_class, external_resources=None)
+
+################################################################################
