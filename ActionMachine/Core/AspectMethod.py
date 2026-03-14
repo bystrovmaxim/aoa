@@ -9,6 +9,7 @@
 - depends() — декоратор для объявления зависимостей действия.
 """
 
+import inspect
 from typing import Any, Callable, Optional, Protocol, Type, runtime_checkable, cast
 
 
@@ -41,15 +42,24 @@ def aspect(description: str) -> Callable[[Callable[..., Any]], AspectMethod]:
     Декоратор для обычных аспектов.
 
     Помечает метод как регулярный аспект, который выполняется перед summary.
-    Метод должен принимать (self, params, state, deps) и возвращать dict.
+    Метод должен быть асинхронным (async def) и принимать
+    (self, params, state, deps) и возвращать dict.
 
     Аргументы:
         description: текстовое описание аспекта (для документации и логирования).
 
     Возвращает:
         Декоратор, который добавляет атрибуты аспекта к методу.
+
+    Исключения:
+        TypeError: если метод не является корутиной.
     """
     def decorator(method: Callable[..., Any]) -> AspectMethod:
+        if not inspect.iscoroutinefunction(method):
+            raise TypeError(
+                f"Аспект '{method.__name__}' должен быть async def. "
+                "В AOA все аспекты асинхронные."
+            )
         method._is_aspect = True                      # type: ignore[attr-defined]
         method._aspect_description = description       # type: ignore[attr-defined]
         method._aspect_type = 'regular'                # type: ignore[attr-defined]
@@ -62,14 +72,23 @@ def summary_aspect(description: str) -> Callable[[Callable[..., Any]], AspectMet
     Декоратор для главного аспекта (должен быть ровно один в каждом действии).
 
     Summary-аспект выполняется последним и возвращает итоговый Result.
+    Должен быть асинхронным (async def).
 
     Аргументы:
         description: текстовое описание аспекта (для документации и логирования).
 
     Возвращает:
         Декоратор, который добавляет атрибуты summary-аспекта к методу.
+
+    Исключения:
+        TypeError: если метод не является корутиной.
     """
     def decorator(method: Callable[..., Any]) -> AspectMethod:
+        if not inspect.iscoroutinefunction(method):
+            raise TypeError(
+                f"Summary-аспект '{method.__name__}' должен быть async def. "
+                "В AOA все аспекты асинхронные."
+            )
         method._is_aspect = True                      # type: ignore[attr-defined]
         method._aspect_description = description       # type: ignore[attr-defined]
         method._aspect_type = 'summary'                # type: ignore[attr-defined]

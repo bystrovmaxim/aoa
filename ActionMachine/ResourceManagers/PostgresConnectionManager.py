@@ -1,9 +1,11 @@
 # ActionMachine/ResourceManagers/PostgresConnectionManager.py
 """
-Менеджер соединения для PostgreSQL с поддержкой транзакций.
+Асинхронный менеджер соединения для PostgreSQL с поддержкой транзакций.
+Использует asyncpg.
 """
 
-import psycopg2
+import asyncio
+import asyncpg
 from typing import Any, Dict, Optional, Tuple
 from .BaseConnectionManager import BaseConnectionManager
 from ActionMachine.Core.Exceptions import ConnectionNotOpenError, HandleException
@@ -11,9 +13,9 @@ from ActionMachine.Core.Exceptions import ConnectionNotOpenError, HandleExceptio
 
 class PostgresConnectionManager(BaseConnectionManager):
     """
-    Менеджер соединения для PostgreSQL.
+    Асинхронный менеджер соединения для PostgreSQL.
 
-    Реализует открытие соединения, выполнение SQL-запросов,
+    Реализует асинхронное открытие соединения, выполнение SQL-запросов,
     фиксацию и откат транзакций.
     """
 
@@ -21,67 +23,66 @@ class PostgresConnectionManager(BaseConnectionManager):
         """
         Инициализирует менеджер с параметрами подключения.
 
-        :param connection_params: словарь параметров для psycopg2.connect.
+        :param connection_params: словарь параметров для asyncpg.connect.
         """
         super().__init__(connection_params)
-        self._connection: Optional[psycopg2.extensions.connection] = None
+        self._connection: Optional[asyncpg.Connection] = None
 
-    def _doOpenConnection(self, connection_params: Dict[str, Any]) -> psycopg2.extensions.connection:
+    async def _doOpenConnection(self, connection_params: Dict[str, Any]) -> asyncpg.Connection:
         """
-        Открывает соединение с PostgreSQL.
+        Асинхронно открывает соединение с PostgreSQL.
 
         :param connection_params: параметры подключения.
-        :return: объект соединения psycopg2.
+        :return: объект соединения asyncpg.
         :raises HandleException: при ошибке подключения.
         """
         try:
-            conn = psycopg2.connect(**connection_params)
-            conn.autocommit = False
-            return conn
+            conn = await asyncpg.connect(**connection_params)
+            return conn  # type: ignore[no-any-return]
         except Exception as e:
             raise HandleException(f"Ошибка подключения к PostgreSQL: {e}")
 
-    def _doCommit(self, connection: psycopg2.extensions.connection) -> None:
+    async def _doCommit(self, connection: asyncpg.Connection) -> None:
         """
-        Фиксирует транзакцию и закрывает соединение.
+        Асинхронно фиксирует транзакцию и закрывает соединение.
 
         :param connection: объект соединения.
         :raises HandleException: при ошибке commit.
         """
         try:
-            connection.commit()
+            await connection.commit()  # type: ignore[attr-defined]
         except Exception as e:
             raise HandleException(f"Ошибка при commit: {e}")
         finally:
-            connection.close()
+            await asyncio.shield(connection.close())
 
-    def _doRollback(self, connection: psycopg2.extensions.connection) -> None:
+    async def _doRollback(self, connection: asyncpg.Connection) -> None:
         """
-        Откатывает транзакцию и закрывает соединение.
+        Асинхронно откатывает транзакцию и закрывает соединение.
 
         :param connection: объект соединения.
         :raises HandleException: при ошибке rollback.
         """
         try:
-            connection.rollback()
+            await connection.rollback()  # type: ignore[attr-defined]
         except Exception as e:
             raise HandleException(f"Ошибка при rollback: {e}")
         finally:
-            connection.close()
+            await asyncio.shield(connection.close())
 
-    def execute(self, query: str, params: Optional[Tuple[Any, ...]] = None) -> None:
+    async def execute(self, query: str, params: Optional[Tuple[Any, ...]] = None) -> Any:
         """
-        Выполняет SQL-запрос в открытом соединении.
+        Асинхронно выполняет SQL-запрос в открытом соединении.
 
         :param query: строка SQL-запроса.
         :param params: параметры запроса (кортеж).
+        :return: результат выполнения (например, для SELECT строки).
         :raises ConnectionNotOpenError: если соединение не открыто.
         :raises HandleException: при ошибке выполнения запроса.
         """
         if self._connection is None:
             raise ConnectionNotOpenError("Соединение не открыто")
         try:
-            with self._connection.cursor() as cur:
-                cur.execute(query, params)
+            return await self._connection.execute(query, *params if params else ())
         except Exception as e:
             raise HandleException(f"Ошибка выполнения SQL: {e}")
