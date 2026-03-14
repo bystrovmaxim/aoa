@@ -1,10 +1,18 @@
-# ActionMachine/BaseConnectionManager.py
-from abc import ABC, abstractmethod
-from typing import Any
-from ..Core.Exceptions import ConnectionAlreadyOpenError, ConnectionNotOpenError
+# ActionMachine/ResourceManagers/BaseResourceManager.py
+"""
+Абстрактный менеджер ресурсов, таких как базы данных, файлы и сервисы,
+где необходимо держать соединение.
+"""
+
+from abc import ABC
+
 
 class BaseResourceManager(ABC):
     """
-    Абстрактный менеджер ресурсов, таких как базы данных, файлы и сервисы
-    Где необходимо держать соединение
+    Абстрактный менеджер ресурсов.
+
+    Используется как маркерный класс для всех ресурсов, которые должны быть
+    доступны через DI и могут быть обёрнуты в прокси для вложенных действий.
     """
+
+    pass

@@ -18,13 +18,15 @@ class StringFieldChecker(BaseFieldChecker):
     Проверяет, что значение является строкой и соответствует заданным ограничениям.
     """
 
-    def __init__(self,
-                 field_name: str,
-                 desc: str,
-                 required: bool = True,
-                 min_length: Optional[int] = None,
-                 max_length: Optional[int] = None,
-                 not_empty: bool = False):
+    def __init__(
+        self,
+        field_name: str,
+        desc: str,
+        required: bool = True,
+        min_length: Optional[int] = None,
+        max_length: Optional[int] = None,
+        not_empty: bool = False
+    ):
         """
         Инициализирует чекер.
 

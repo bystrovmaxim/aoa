@@ -13,12 +13,14 @@ class FloatFieldChecker(BaseFieldChecker):
     Проверяет, что значение является числом (int или float) и лежит в заданном диапазоне.
     """
 
-    def __init__(self,
-                 field_name: str,
-                 desc: str,
-                 required: bool = True,
-                 min_value: Optional[float] = None,
-                 max_value: Optional[float] = None) -> None:
+    def __init__(
+        self,
+        field_name: str,
+        desc: str,
+        required: bool = True,
+        min_value: Optional[float] = None,
+        max_value: Optional[float] = None
+    ) -> None:
         """
         Параметры:
             field_name: имя поля.

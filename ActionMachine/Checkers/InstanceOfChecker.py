@@ -13,11 +13,13 @@ class InstanceOfChecker(BaseFieldChecker):
     Проверяет, что значение является экземпляром указанного класса (или одного из классов, если передан кортеж).
     """
 
-    def __init__(self,
-                 field_name: str,
-                 expected_class: Union[Type[Any], Tuple[Type[Any], ...]],
-                 desc: str,
-                 required: bool = True) -> None:
+    def __init__(
+        self,
+        field_name: str,
+        expected_class: Union[Type[Any], Tuple[Type[Any], ...]],
+        desc: str,
+        required: bool = True
+    ) -> None:
         """
         Параметры:
             field_name: имя поля.

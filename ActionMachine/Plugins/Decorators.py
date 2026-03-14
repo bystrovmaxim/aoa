@@ -9,6 +9,7 @@
 import re
 from typing import Any, Callable, Union
 
+
 def _add_hook(
     method: Callable[..., Any],
     event_regex: Union[str, re.Pattern[str]],

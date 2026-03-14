@@ -13,12 +13,14 @@ class IntFieldChecker(BaseFieldChecker):
     Проверяет, что значение является целым числом и лежит в заданном диапазоне.
     """
 
-    def __init__(self,
-                 field_name: str,
-                 desc: str,
-                 required: bool = True,
-                 min_value: Optional[int] = None,
-                 max_value: Optional[int] = None):
+    def __init__(
+        self,
+        field_name: str,
+        desc: str,
+        required: bool = True,
+        min_value: Optional[int] = None,
+        max_value: Optional[int] = None
+    ):
         """
         Параметры:
             field_name: имя поля.

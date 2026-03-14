@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from typing import Optional, Any
 from ..Context.UserInfo import UserInfo
 
+
 class Authenticator(ABC):
     """
     Базовый класс для всех аутентификаторов.

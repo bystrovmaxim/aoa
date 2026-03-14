@@ -20,13 +20,15 @@ class DateFieldChecker(BaseFieldChecker):
     Дополнительно можно задать минимальную и максимальную дату.
     """
 
-    def __init__(self,
-                 field_name: str,
-                 desc: str,
-                 required: bool = True,
-                 format: Optional[str] = None,
-                 min_date: Optional[datetime] = None,
-                 max_date: Optional[datetime] = None):
+    def __init__(
+        self,
+        field_name: str,
+        desc: str,
+        required: bool = True,
+        format: Optional[str] = None,
+        min_date: Optional[datetime] = None,
+        max_date: Optional[datetime] = None
+    ):
         """
         Инициализирует чекер.
 
