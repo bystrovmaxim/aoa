@@ -111,7 +111,7 @@ class ActionProductMachine(BaseActionMachine):
             aspects.append((asp_method, asp_method._aspect_description))
         elif asp_method._aspect_type == 'summary':
             if summary_method is not None:
-                raise TypeError(f"Класс имеет более одного summary_aspect")
+                raise TypeError("Класс имеет более одного summary_aspect")
             summary_method = asp_method
         else:
             raise TypeError(f"Неизвестный тип аспекта: {asp_method._aspect_type}")

@@ -4,7 +4,7 @@
 Позволяет подменять поведение реальных действий в тестах.
 """
 
-from typing import Optional, Callable, Any
+from typing import Optional, Callable
 from ActionMachine.Core.BaseParams import BaseParams
 from ActionMachine.Core.BaseResult import BaseResult
 from ActionMachine.Core.BaseAction import BaseAction

@@ -9,7 +9,7 @@
 import sys
 import os
 import time
-from typing import Any, Dict, List, Optional, Tuple, cast
+from typing import Any, Dict, List, Tuple, cast
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -124,7 +124,7 @@ class ChildAction(BaseAction['ChildAction.Params', 'ChildAction.Result']):
         self, params: Params, state: Dict[str, Any], deps: DependencyFactory
     ) -> Dict[str, Any]:
         """Аспект подготовки: устанавливает флаг prepared в True."""
-        print(f"\033[91m[ChildAction] Аспект 'prepare' выполняется\033[0m")
+        print("\033[91m[ChildAction] Аспект 'prepare' выполняется\033[0m")
         state['prepared'] = True
         return state
 
@@ -133,7 +133,7 @@ class ChildAction(BaseAction['ChildAction.Params', 'ChildAction.Result']):
         self, params: Params, state: Dict[str, Any], deps: DependencyFactory
     ) -> Result:
         """Основная логика: удваивает число."""
-        print(f"\033[91m[ChildAction] Summary-аспект 'handle' выполняется\033[0m")
+        print("\033[91m[ChildAction] Summary-аспект 'handle' выполняется\033[0m")
         return ChildAction.Result(params.value * 2)
 
 
@@ -157,9 +157,9 @@ class ParentAction(BaseAction['ParentAction.Params', 'ParentAction.Result']):
         self, params: Params, state: Dict[str, Any], deps: DependencyFactory
     ) -> Dict[str, Any]:
         """Аспект с небольшой задержкой (имитация работы)."""
-        print(f"\033[91m[ParentAction] Аспект 'delay' начал работу\033[0m")
+        print("\033[91m[ParentAction] Аспект 'delay' начал работу\033[0m")
         time.sleep(0.1)
-        print(f"\033[91m[ParentAction] Аспект 'delay' завершил работу\033[0m")
+        print("\033[91m[ParentAction] Аспект 'delay' завершил работу\033[0m")
         return state
 
     @aspect("Доп. проверка")
@@ -168,7 +168,7 @@ class ParentAction(BaseAction['ParentAction.Params', 'ParentAction.Result']):
         self, params: Params, state: Dict[str, Any], deps: DependencyFactory
     ) -> Dict[str, Any]:
         """Аспект, вызывающий дочернее действие и сохраняющий результат."""
-        print(f"\033[91m[ParentAction] Аспект 'extra_check' начинает дочернее действие\033[0m")
+        print("\033[91m[ParentAction] Аспект 'extra_check' начинает дочернее действие\033[0m")
         child_result = cast(ChildAction.Result, await deps.run_action(ChildAction, ChildAction.Params(params.num)))
         print(f"\033[91m[ParentAction] Аспект 'extra_check' завершился, результат дочернего: {child_result}\033[0m")
         state['child_result'] = child_result.doubled
@@ -203,25 +203,25 @@ class ConsoleLoggingPlugin(Plugin):
         return {}
 
     @on('global_start', '.*', ignore_exceptions=True)
-    async def on_global_start(self, state_plugin: Dict[str, Any], event: PluginEvent) -> Dict[str, Any]:  # noqa: ASYNC124
+    async def on_global_start(self, state_plugin: Dict[str, Any], event: PluginEvent) -> Dict[str, Any]:
         """Обработчик глобального старта."""
         print(f"{indent(event.nest_level)}\033[93m[{event.event_name}] {self.name}: Action '{event.action_name}' started with params: {event.params}\033[0m")
         return state_plugin
 
     @on('global_finish', '.*', ignore_exceptions=True)
-    async def on_global_finish(self, state_plugin: Dict[str, Any], event: PluginEvent) -> Dict[str, Any]:  # noqa: ASYNC124
+    async def on_global_finish(self, state_plugin: Dict[str, Any], event: PluginEvent) -> Dict[str, Any]:
         """Обработчик глобального завершения."""
         print(f"{indent(event.nest_level)}\033[93m[{event.event_name}] {self.name}: Action '{event.action_name}' finished, duration: {event.duration:.4f}s, result: {event.result}\033[0m")
         return state_plugin
 
     @on('before:.*', '.*', ignore_exceptions=True)
-    async def on_before_aspect(self, state_plugin: Dict[str, Any], event: PluginEvent) -> Dict[str, Any]:  # noqa: ASYNC124
+    async def on_before_aspect(self, state_plugin: Dict[str, Any], event: PluginEvent) -> Dict[str, Any]:
         """Обработчик перед аспектом."""
         print(f"{indent(event.nest_level + 1)}\033[92m[{event.event_name}] {self.name}: before aspect, current state: {event.state_aspect}\033[0m")
         return state_plugin
 
     @on('after:.*', '.*', ignore_exceptions=True)
-    async def on_after_aspect(self, state_plugin: Dict[str, Any], event: PluginEvent) -> Dict[str, Any]:  # noqa: ASYNC124
+    async def on_after_aspect(self, state_plugin: Dict[str, Any], event: PluginEvent) -> Dict[str, Any]:
         """Обработчик после аспекта."""
         print(f"{indent(event.nest_level + 1)}\033[92m[{event.event_name}] {self.name}: after aspect, duration: {event.duration:.4f}s, new state: {event.state_aspect}\033[0m")
         return state_plugin
@@ -239,25 +239,25 @@ class AnotherLoggingPlugin(Plugin):
         return {}
 
     @on('global_start', '.*', ignore_exceptions=True)
-    async def on_global_start(self, state_plugin: Dict[str, Any], event: PluginEvent) -> Dict[str, Any]:  # noqa: ASYNC124
+    async def on_global_start(self, state_plugin: Dict[str, Any], event: PluginEvent) -> Dict[str, Any]:
         """Обработчик глобального старта."""
         print(f"{indent(event.nest_level)}\033[94m[{event.event_name}] {self.name}: Action '{event.action_name}' started with params: {event.params}\033[0m")
         return state_plugin
 
     @on('global_finish', '.*', ignore_exceptions=True)
-    async def on_global_finish(self, state_plugin: Dict[str, Any], event: PluginEvent) -> Dict[str, Any]:  # noqa: ASYNC124
+    async def on_global_finish(self, state_plugin: Dict[str, Any], event: PluginEvent) -> Dict[str, Any]:
         """Обработчик глобального завершения."""
         print(f"{indent(event.nest_level)}\033[94m[{event.event_name}] {self.name}: Action '{event.action_name}' finished, duration: {event.duration:.4f}s, result: {event.result}\033[0m")
         return state_plugin
 
     @on('before:.*', '.*', ignore_exceptions=True)
-    async def on_before_aspect(self, state_plugin: Dict[str, Any], event: PluginEvent) -> Dict[str, Any]:  # noqa: ASYNC124
+    async def on_before_aspect(self, state_plugin: Dict[str, Any], event: PluginEvent) -> Dict[str, Any]:
         """Обработчик перед аспектом."""
         print(f"{indent(event.nest_level + 1)}\033[94m[{event.event_name}] {self.name}: before aspect, state: {event.state_aspect}\033[0m")
         return state_plugin
 
     @on('after:.*', '.*', ignore_exceptions=True)
-    async def on_after_aspect(self, state_plugin: Dict[str, Any], event: PluginEvent) -> Dict[str, Any]:  # noqa: ASYNC124
+    async def on_after_aspect(self, state_plugin: Dict[str, Any], event: PluginEvent) -> Dict[str, Any]:
         """Обработчик после аспекта."""
         print(f"{indent(event.nest_level + 1)}\033[94m[{event.event_name}] {self.name}: after aspect, duration: {event.duration:.4f}s, new state: {event.state_aspect}\033[0m")
         return state_plugin
@@ -466,7 +466,7 @@ async def test_depends_factory_with_inject() -> None:
 
     context = Context(user=UserInfo(roles=["user"]))
     machine = ActionTestMachine(context=context)  # здесь не передаём моки для DatabaseService,
-                                                  # потому что он будет создан через factory
+    # потому что он будет создан через factory
     action = ActionWithInject()
     params = ActionWithInject.Params(sql="SELECT * FROM users")
     result = await machine.run(action, params)

@@ -1,0 +1,2 @@
+[pylint]
+disable = W0718, W0613, W0212, W0107
