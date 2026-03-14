@@ -6,7 +6,7 @@
 
 import os
 import csv
-from typing import Any, List, Optional
+from typing import Any, List
 from .BaseConnectionManager import BaseConnectionManager
 from ActionMachine.Core.Exceptions import ConnectionNotOpenError, HandleException
 

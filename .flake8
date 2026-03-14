@@ -1,0 +1,7 @@
+[flake8]
+max-line-length = 120
+extend-ignore = E501, E402
+per-file-ignores =
+    ActionMachine/Core/ActionProductMachine.py: ASYNC910
+    ActionMachine/Core/ActionTestMachine.py: ASYNC910
+    ActionMachine/tests.py: ASYNC124
