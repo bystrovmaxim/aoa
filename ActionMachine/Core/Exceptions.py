@@ -1,6 +1,17 @@
+################################################################################
+# Файл: ActionMachine/Core/Exceptions.py
+################################################################################
+
 # ActionMachine/Core/Exceptions.py
 """
 Исключения, используемые в ActionMachine.
+
+Содержит иерархию исключений для различных ситуаций:
+- Авторизация (AuthorizationException)
+- Валидация полей (ValidationFieldException)
+- Ошибки выполнения (HandleException)
+- Транзакции и соединения (TransactionException и наследники)
+- Валидация connections (ConnectionValidationError)
 """
 
 from typing import Optional
@@ -48,3 +59,17 @@ class ConnectionNotOpenError(TransactionException):
 class TransactionProhibitedError(TransactionException):
     """Выбрасывается при попытке управления транзакцией на вложенном уровне."""
     pass
+
+
+class ConnectionValidationError(TransactionException):
+    """
+    Несоответствие переданных connections объявленным через @connection.
+
+    Выбрасывается в двух случаях:
+    1. Действие не объявляет @connection, но получило непустой connections.
+    2. Ключи в переданном connections не совпадают с объявленными
+       (есть лишние или недостающие).
+    """
+    pass
+
+################################################################################
