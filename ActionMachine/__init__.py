@@ -12,10 +12,11 @@ from .Core.Exceptions import (
     TransactionException,
     ConnectionAlreadyOpenError,
     ConnectionNotOpenError,
+    TransactionProhibitedError,   # <-- добавлено
 )
 
 # ConnectionManagers
-from .ResourceManagers.BaseConnectionManager import BaseConnectionManager
+from .ResourceManagers.WrapperConnectionManager import WrapperConnectionManager
 from .ResourceManagers.PostgresConnectionManager import PostgresConnectionManager
 
 # Checkers
@@ -48,9 +49,10 @@ __all__ = [
     'TransactionException',
     'ConnectionAlreadyOpenError',
     'ConnectionNotOpenError',
+    'TransactionProhibitedError',   # <-- добавлено
 
     # ConnectionManagers
-    'BaseConnectionManager',
+    'WrapperConnectionManager',
     'PostgresConnectionManager',
 
     # Checkers

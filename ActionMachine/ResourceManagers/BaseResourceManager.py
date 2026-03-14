@@ -1,18 +1,17 @@
 # ActionMachine/ResourceManagers/BaseResourceManager.py
-"""
-Абстрактный менеджер ресурсов, таких как базы данных, файлы и сервисы,
-где необходимо держать соединение.
-"""
-
-from abc import ABC
-
+from abc import ABC, abstractmethod
+from typing import Optional, Type
 
 class BaseResourceManager(ABC):
     """
-    Абстрактный менеджер ресурсов.
-
-    Используется как маркерный класс для всех ресурсов, которые должны быть
-    доступны через DI и могут быть обёрнуты в прокси для вложенных действий.
+    Маркерный класс для всех ресурсных менеджеров.
+    Позволяет идентифицировать ресурс через isinstance.
     """
 
-    pass
+    @abstractmethod
+    def get_wrapper_class(self) -> Optional[Type['BaseResourceManager']]:
+        """
+        Возвращает класс-обёртку (прокси) для данного ресурса.
+        Если обёртка не требуется, возвращает None.
+        """
+        pass

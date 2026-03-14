@@ -1,88 +1,63 @@
 # ActionMachine/ResourceManagers/PostgresConnectionManager.py
-"""
-Асинхронный менеджер соединения для PostgreSQL с поддержкой транзакций.
-Использует asyncpg.
-"""
-
-import asyncio
 import asyncpg
-from typing import Any, Dict, Optional, Tuple
-from .BaseConnectionManager import BaseConnectionManager
-from ActionMachine.Core.Exceptions import ConnectionNotOpenError, HandleException
+from typing import Any, Dict, Optional, Tuple, Type
+from .IConnectionManager import IConnectionManager
+from .WrapperConnectionManager import WrapperConnectionManager
+from ActionMachine.Core.Exceptions import HandleException
 
-
-class PostgresConnectionManager(BaseConnectionManager):
+class PostgresConnectionManager(IConnectionManager):
     """
-    Асинхронный менеджер соединения для PostgreSQL.
-
-    Реализует асинхронное открытие соединения, выполнение SQL-запросов,
-    фиксацию и откат транзакций.
+    Реальный менеджер соединения для PostgreSQL.
+    Выполняет непосредственную работу с asyncpg, не содержит проверок состояния.
+    Проверки (например, что соединение открыто) выполняются в прокси-обёртке BaseConnectionManager.
     """
 
-    def __init__(self, connection_params: Dict[str, Any]) -> None:
+    def __init__(self, connection_params: Dict[str, Any]):
         """
-        Инициализирует менеджер с параметрами подключения.
-
         :param connection_params: словарь параметров для asyncpg.connect.
         """
-        super().__init__(connection_params)
-        self._connection: Optional[asyncpg.Connection] = None
+        self._connection_params = connection_params
+        self._conn: Optional[asyncpg.Connection] = None
 
-    async def _doOpenConnection(self, connection_params: Dict[str, Any]) -> asyncpg.Connection:
-        """
-        Асинхронно открывает соединение с PostgreSQL.
-
-        :param connection_params: параметры подключения.
-        :return: объект соединения asyncpg.
-        :raises HandleException: при ошибке подключения.
-        """
+    async def open(self) -> None:
+        """Реально открывает соединение с PostgreSQL."""
         try:
-            conn = await asyncpg.connect(**connection_params)
-            return conn  # type: ignore[no-any-return]
+            self._conn = await asyncpg.connect(**self._connection_params)
         except Exception as e:
-            raise HandleException(f"Ошибка подключения к PostgreSQL: {e}")
+            raise HandleException(f"Ошибка подключения к PostgreSQL: {e}") from e
 
-    async def _doCommit(self, connection: asyncpg.Connection) -> None:
-        """
-        Асинхронно фиксирует транзакцию и закрывает соединение.
-
-        :param connection: объект соединения.
-        :raises HandleException: при ошибке commit.
-        """
+    async def commit(self) -> None:
+        """Фиксирует транзакцию."""
+        if self._conn is None:
+            # Эта ситуация не должна возникать при использовании через прокси,
+            # но оставим защиту на случай прямого вызова.
+            raise HandleException("Соединение не открыто")
         try:
-            await connection.commit()  # type: ignore[attr-defined]
+            await self._conn.commit()
         except Exception as e:
-            raise HandleException(f"Ошибка при commit: {e}")
-        finally:
-            await asyncio.shield(connection.close())
+            raise HandleException(f"Ошибка при commit: {e}") from e
 
-    async def _doRollback(self, connection: asyncpg.Connection) -> None:
-        """
-        Асинхронно откатывает транзакцию и закрывает соединение.
-
-        :param connection: объект соединения.
-        :raises HandleException: при ошибке rollback.
-        """
+    async def rollback(self) -> None:
+        """Откатывает транзакцию."""
+        if self._conn is None:
+            raise HandleException("Соединение не открыто")
         try:
-            await connection.rollback()  # type: ignore[attr-defined]
+            await self._conn.rollback()
         except Exception as e:
-            raise HandleException(f"Ошибка при rollback: {e}")
-        finally:
-            await asyncio.shield(connection.close())
+            raise HandleException(f"Ошибка при rollback: {e}") from e
 
     async def execute(self, query: str, params: Optional[Tuple[Any, ...]] = None) -> Any:
-        """
-        Асинхронно выполняет SQL-запрос в открытом соединении.
-
-        :param query: строка SQL-запроса.
-        :param params: параметры запроса (кортеж).
-        :return: результат выполнения (например, для SELECT строки).
-        :raises ConnectionNotOpenError: если соединение не открыто.
-        :raises HandleException: при ошибке выполнения запроса.
-        """
-        if self._connection is None:
-            raise ConnectionNotOpenError("Соединение не открыто")
+        """Выполняет SQL-запрос."""
+        if self._conn is None:
+            raise HandleException("Соединение не открыто")
         try:
-            return await self._connection.execute(query, *params if params else ())
+            return await self._conn.execute(query, *params if params else ())
         except Exception as e:
-            raise HandleException(f"Ошибка выполнения SQL: {e}")
+            raise HandleException(f"Ошибка выполнения SQL: {e}") from e
+
+    def get_wrapper_class(self) -> Optional[Type[IConnectionManager]]:
+        """
+        Возвращает класс прокси-обёртки, которая будет использоваться при передаче
+        этого ресурса в дочерние действия.
+        """
+        return WrapperConnectionManager
