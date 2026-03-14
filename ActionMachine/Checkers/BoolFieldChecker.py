@@ -7,9 +7,11 @@
 - Документирование всех методов.
 - Текст исключений писать на русском.
 """
+
 from typing import Any
 from .BaseFieldChecker import BaseFieldChecker
 from ActionMachine.Core.Exceptions import ValidationFieldException
+
 
 class BoolFieldChecker(BaseFieldChecker):
     """

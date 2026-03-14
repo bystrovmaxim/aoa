@@ -2,7 +2,7 @@
 """
 Тесты для ActionMachine с демонстрацией вложенности действий, отступов в плагинах
 и использования параметра factory декоратора @depends для интеграции с внешними DI-контейнерами (например, inject).
-Все тесты асинхронные, используют pytest-asyncio.
+Все тесты асинхронные, используют anyio.
 Плагины используют новый формат с PluginEvent.
 """
 
@@ -16,37 +16,43 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from dataclasses import dataclass
 
 # Для демонстрации интеграции с внешним DI используем библиотеку inject
-import inject
-import pytest
+import inject  # noqa: E402
+import pytest  # noqa: E402
 
-from ActionMachine.Core.BaseParams import BaseParams
-from ActionMachine.Core.BaseResult import BaseResult
-from ActionMachine.Core.BaseAction import BaseAction
-from ActionMachine.Core.AspectMethod import aspect, summary_aspect, depends
-from ActionMachine.Core.MockAction import MockAction
-from ActionMachine.Core.ActionTestMachine import ActionTestMachine
-from ActionMachine.Core.DependencyFactory import DependencyFactory
-from ActionMachine.Checkers.InstanceOfChecker import InstanceOfChecker
-from ActionMachine.Checkers.StringFieldChecker import StringFieldChecker
-from ActionMachine.Checkers.IntFieldChecker import IntFieldChecker
-from ActionMachine.Checkers.BoolFieldChecker import BoolFieldChecker
-from ActionMachine.Auth.CheckRoles import CheckRoles
-from ActionMachine.Context.UserInfo import UserInfo
-from ActionMachine.Context.Context import Context
-from ActionMachine.Plugins.Plugin import Plugin
-from ActionMachine.Plugins.PluginEvent import PluginEvent
-from ActionMachine.Plugins.Decorators import on
+from ActionMachine.Core.BaseParams import BaseParams  # noqa: E402
+from ActionMachine.Core.BaseResult import BaseResult  # noqa: E402
+from ActionMachine.Core.BaseAction import BaseAction  # noqa: E402
+from ActionMachine.Core.AspectMethod import aspect, summary_aspect, depends  # noqa: E402
+from ActionMachine.Core.MockAction import MockAction  # noqa: E402
+from ActionMachine.Core.ActionTestMachine import ActionTestMachine  # noqa: E402
+from ActionMachine.Core.DependencyFactory import DependencyFactory  # noqa: E402
+from ActionMachine.Checkers.InstanceOfChecker import InstanceOfChecker  # noqa: E402
+from ActionMachine.Checkers.StringFieldChecker import StringFieldChecker  # noqa: E402
+from ActionMachine.Checkers.IntFieldChecker import IntFieldChecker  # noqa: E402
+from ActionMachine.Checkers.BoolFieldChecker import BoolFieldChecker  # noqa: E402
+from ActionMachine.Auth.CheckRoles import CheckRoles  # noqa: E402
+from ActionMachine.Context.UserInfo import UserInfo  # noqa: E402
+from ActionMachine.Context.Context import Context  # noqa: E402
+from ActionMachine.Plugins.Plugin import Plugin  # noqa: E402
+from ActionMachine.Plugins.PluginEvent import PluginEvent  # noqa: E402
+from ActionMachine.Plugins.Decorators import on  # noqa: E402
 
 
 # ---------- Тестовые сервисы ----------
 
 class EmailService:
+    """Тестовый сервис отправки email."""
+
     def send(self, to: str, msg: str) -> None:
+        """Отправляет email."""
         print(f"Sending email to {to}: {msg}")
 
 
 class SmsService:
+    """Тестовый сервис отправки SMS."""
+
     def send(self, to: str, msg: str) -> None:
+        """Отправляет SMS."""
         print(f"Sending SMS to {to}: {msg}")
 
 
@@ -56,14 +62,18 @@ class SmsService:
 @depends(SmsService, description="Сервис SMS")
 @CheckRoles(CheckRoles.ANY, desc="Доступно любому аутентифицированному пользователю")
 class NotificationAction(BaseAction['NotificationAction.Params', 'NotificationAction.Result']):
+    """Действие отправки уведомления через выбранный канал."""
+
     @dataclass(frozen=True)
     class Params(BaseParams):
+        """Параметры действия: канал, сообщение, получатель."""
         channel: str
         message: str
         recipient: str
 
     @dataclass(frozen=True)
     class Result(BaseResult):
+        """Результат: успех операции."""
         success: bool
 
     @aspect("Выбор канала")
@@ -73,6 +83,7 @@ class NotificationAction(BaseAction['NotificationAction.Params', 'NotificationAc
     def choose_channel(
         self, params: Params, state: Dict[str, Any], deps: DependencyFactory
     ) -> Dict[str, Any]:
+        """Выбирает сервис на основе канала и сохраняет его в state."""
         if params.channel == 'email':
             state['service'] = deps.get(EmailService)
             state['selected_channel'] = 'email'
@@ -87,6 +98,7 @@ class NotificationAction(BaseAction['NotificationAction.Params', 'NotificationAc
     def send(
         self, params: Params, state: Dict[str, Any], deps: DependencyFactory
     ) -> Result:
+        """Отправляет уведомление через выбранный сервис."""
         service = state['service']
         service.send(params.recipient, params.message)
         return NotificationAction.Result(success=True)
@@ -94,12 +106,16 @@ class NotificationAction(BaseAction['NotificationAction.Params', 'NotificationAc
 
 @CheckRoles(CheckRoles.ANY, desc="Доступно любому аутентифицированному пользователю")
 class ChildAction(BaseAction['ChildAction.Params', 'ChildAction.Result']):
+    """Дочернее действие, удваивающее число."""
+
     @dataclass(frozen=True)
     class Params(BaseParams):
+        """Параметры: число для удвоения."""
         value: int
 
     @dataclass(frozen=True)
     class Result(BaseResult):
+        """Результат: удвоенное число."""
         doubled: int
 
     @aspect("Подготовка")
@@ -107,6 +123,7 @@ class ChildAction(BaseAction['ChildAction.Params', 'ChildAction.Result']):
     def prepare(
         self, params: Params, state: Dict[str, Any], deps: DependencyFactory
     ) -> Dict[str, Any]:
+        """Аспект подготовки: устанавливает флаг prepared в True."""
         print(f"\033[91m[ChildAction] Аспект 'prepare' выполняется\033[0m")
         state['prepared'] = True
         return state
@@ -115,6 +132,7 @@ class ChildAction(BaseAction['ChildAction.Params', 'ChildAction.Result']):
     def handle(
         self, params: Params, state: Dict[str, Any], deps: DependencyFactory
     ) -> Result:
+        """Основная логика: удваивает число."""
         print(f"\033[91m[ChildAction] Summary-аспект 'handle' выполняется\033[0m")
         return ChildAction.Result(params.value * 2)
 
@@ -122,20 +140,25 @@ class ChildAction(BaseAction['ChildAction.Params', 'ChildAction.Result']):
 @depends(ChildAction, description="Дочернее действие")
 @CheckRoles(CheckRoles.ANY, desc="Доступно любому аутентифицированному пользователю")
 class ParentAction(BaseAction['ParentAction.Params', 'ParentAction.Result']):
+    """Родительское действие, вызывающее дочернее."""
+
     @dataclass(frozen=True)
     class Params(BaseParams):
+        """Параметры: число для обработки."""
         num: int
 
     @dataclass(frozen=True)
     class Result(BaseResult):
+        """Результат: число + 10."""
         result: int
 
     @aspect("Задержка")
     def delay(
         self, params: Params, state: Dict[str, Any], deps: DependencyFactory
     ) -> Dict[str, Any]:
+        """Аспект с небольшой задержкой (имитация работы)."""
         print(f"\033[91m[ParentAction] Аспект 'delay' начал работу\033[0m")
-        time.sleep(0.1)  # синхронная задержка — допустимо, но в реальном async-коде лучше asyncio.sleep
+        time.sleep(0.1)
         print(f"\033[91m[ParentAction] Аспект 'delay' завершил работу\033[0m")
         return state
 
@@ -144,6 +167,7 @@ class ParentAction(BaseAction['ParentAction.Params', 'ParentAction.Result']):
     async def extra_check(
         self, params: Params, state: Dict[str, Any], deps: DependencyFactory
     ) -> Dict[str, Any]:
+        """Аспект, вызывающий дочернее действие и сохраняющий результат."""
         print(f"\033[91m[ParentAction] Аспект 'extra_check' начинает дочернее действие\033[0m")
         child_result = cast(ChildAction.Result, await deps.run_action(ChildAction, ChildAction.Params(params.num)))
         print(f"\033[91m[ParentAction] Аспект 'extra_check' завершился, результат дочернего: {child_result}\033[0m")
@@ -154,6 +178,7 @@ class ParentAction(BaseAction['ParentAction.Params', 'ParentAction.Result']):
     async def handle(
         self, params: Params, state: Dict[str, Any], deps: DependencyFactory
     ) -> Result:
+        """Основная логика: вызывает дочернее действие и прибавляет 10."""
         child_result = cast(ChildAction.Result, await deps.run_action(ChildAction, ChildAction.Params(params.num)))
         assert isinstance(child_result, ChildAction.Result)
         return ParentAction.Result(child_result.doubled + 10)
@@ -167,58 +192,74 @@ def indent(level: int) -> str:
 
 
 class ConsoleLoggingPlugin(Plugin):
+    """Плагин для цветного логирования в консоль с отступами (первый вариант)."""
+
     def __init__(self, name: str = "PluginA") -> None:
+        """Инициализирует плагин с именем."""
         self.name = name
 
     def get_initial_state(self) -> Dict[str, Any]:
+        """Начальное состояние плагина."""
         return {}
 
     @on('global_start', '.*', ignore_exceptions=True)
-    async def on_global_start(self, state_plugin: Dict[str, Any], event: PluginEvent) -> Dict[str, Any]:
+    async def on_global_start(self, state_plugin: Dict[str, Any], event: PluginEvent) -> Dict[str, Any]:  # noqa: ASYNC124
+        """Обработчик глобального старта."""
         print(f"{indent(event.nest_level)}\033[93m[{event.event_name}] {self.name}: Action '{event.action_name}' started with params: {event.params}\033[0m")
         return state_plugin
 
     @on('global_finish', '.*', ignore_exceptions=True)
-    async def on_global_finish(self, state_plugin: Dict[str, Any], event: PluginEvent) -> Dict[str, Any]:
+    async def on_global_finish(self, state_plugin: Dict[str, Any], event: PluginEvent) -> Dict[str, Any]:  # noqa: ASYNC124
+        """Обработчик глобального завершения."""
         print(f"{indent(event.nest_level)}\033[93m[{event.event_name}] {self.name}: Action '{event.action_name}' finished, duration: {event.duration:.4f}s, result: {event.result}\033[0m")
         return state_plugin
 
     @on('before:.*', '.*', ignore_exceptions=True)
-    async def on_before_aspect(self, state_plugin: Dict[str, Any], event: PluginEvent) -> Dict[str, Any]:
-        print(f"{indent(event.nest_level+1)}\033[92m[{event.event_name}] {self.name}: before aspect, current state: {event.state_aspect}\033[0m")
+    async def on_before_aspect(self, state_plugin: Dict[str, Any], event: PluginEvent) -> Dict[str, Any]:  # noqa: ASYNC124
+        """Обработчик перед аспектом."""
+        print(f"{indent(event.nest_level + 1)}\033[92m[{event.event_name}] {self.name}: before aspect, current state: {event.state_aspect}\033[0m")
         return state_plugin
 
     @on('after:.*', '.*', ignore_exceptions=True)
-    async def on_after_aspect(self, state_plugin: Dict[str, Any], event: PluginEvent) -> Dict[str, Any]:
-        print(f"{indent(event.nest_level+1)}\033[92m[{event.event_name}] {self.name}: after aspect, duration: {event.duration:.4f}s, new state: {event.state_aspect}\033[0m")
+    async def on_after_aspect(self, state_plugin: Dict[str, Any], event: PluginEvent) -> Dict[str, Any]:  # noqa: ASYNC124
+        """Обработчик после аспекта."""
+        print(f"{indent(event.nest_level + 1)}\033[92m[{event.event_name}] {self.name}: after aspect, duration: {event.duration:.4f}s, new state: {event.state_aspect}\033[0m")
         return state_plugin
 
 
 class AnotherLoggingPlugin(Plugin):
+    """Плагин для цветного логирования в консоль с отступами (второй вариант)."""
+
     def __init__(self, name: str = "PluginB") -> None:
+        """Инициализирует плагин с именем."""
         self.name = name
 
     def get_initial_state(self) -> Dict[str, Any]:
+        """Начальное состояние плагина."""
         return {}
 
     @on('global_start', '.*', ignore_exceptions=True)
-    async def on_global_start(self, state_plugin: Dict[str, Any], event: PluginEvent) -> Dict[str, Any]:
+    async def on_global_start(self, state_plugin: Dict[str, Any], event: PluginEvent) -> Dict[str, Any]:  # noqa: ASYNC124
+        """Обработчик глобального старта."""
         print(f"{indent(event.nest_level)}\033[94m[{event.event_name}] {self.name}: Action '{event.action_name}' started with params: {event.params}\033[0m")
         return state_plugin
 
     @on('global_finish', '.*', ignore_exceptions=True)
-    async def on_global_finish(self, state_plugin: Dict[str, Any], event: PluginEvent) -> Dict[str, Any]:
+    async def on_global_finish(self, state_plugin: Dict[str, Any], event: PluginEvent) -> Dict[str, Any]:  # noqa: ASYNC124
+        """Обработчик глобального завершения."""
         print(f"{indent(event.nest_level)}\033[94m[{event.event_name}] {self.name}: Action '{event.action_name}' finished, duration: {event.duration:.4f}s, result: {event.result}\033[0m")
         return state_plugin
 
     @on('before:.*', '.*', ignore_exceptions=True)
-    async def on_before_aspect(self, state_plugin: Dict[str, Any], event: PluginEvent) -> Dict[str, Any]:
-        print(f"{indent(event.nest_level+1)}\033[94m[{event.event_name}] {self.name}: before aspect, state: {event.state_aspect}\033[0m")
+    async def on_before_aspect(self, state_plugin: Dict[str, Any], event: PluginEvent) -> Dict[str, Any]:  # noqa: ASYNC124
+        """Обработчик перед аспектом."""
+        print(f"{indent(event.nest_level + 1)}\033[94m[{event.event_name}] {self.name}: before aspect, state: {event.state_aspect}\033[0m")
         return state_plugin
 
     @on('after:.*', '.*', ignore_exceptions=True)
-    async def on_after_aspect(self, state_plugin: Dict[str, Any], event: PluginEvent) -> Dict[str, Any]:
-        print(f"{indent(event.nest_level+1)}\033[94m[{event.event_name}] {self.name}: after aspect, duration: {event.duration:.4f}s, new state: {event.state_aspect}\033[0m")
+    async def on_after_aspect(self, state_plugin: Dict[str, Any], event: PluginEvent) -> Dict[str, Any]:  # noqa: ASYNC124
+        """Обработчик после аспекта."""
+        print(f"{indent(event.nest_level + 1)}\033[94m[{event.event_name}] {self.name}: after aspect, duration: {event.duration:.4f}s, new state: {event.state_aspect}\033[0m")
         return state_plugin
 
 
@@ -266,15 +307,18 @@ async def test_choose_channel_aspect_unknown() -> None:
 @pytest.mark.anyio
 async def test_notification_action_with_mock_services() -> None:
     """Тест: полный запуск NotificationAction с мок-сервисами."""
+
     class FakeEmail(EmailService):
         def __init__(self) -> None:
             self.sent: List[Tuple[str, str]] = []
+
         def send(self, to: str, msg: str) -> None:
             self.sent.append((to, msg))
 
     class FakeSms(SmsService):
         def __init__(self) -> None:
             self.sent: List[Tuple[str, str]] = []
+
         def send(self, to: str, msg: str) -> None:
             self.sent.append((to, msg))
 
@@ -319,7 +363,7 @@ async def test_parent_action_with_side_effect() -> None:
     action = ParentAction()
     params = ParentAction.Params(5)
     result = await machine.run(action, params)
-    assert result.result == 25  # 5*3=15 + 10
+    assert result.result == 25  # 5 * 3 = 15 + 10
 
 
 @pytest.mark.anyio
@@ -330,7 +374,7 @@ async def test_parent_action_with_real_child() -> None:
     action = ParentAction()
     params = ParentAction.Params(5)
     result = await machine.run(action, params)
-    assert result.result == 20  # 5*2=10 + 10
+    assert result.result == 20  # 5 * 2 = 10 + 10
 
 
 @pytest.mark.anyio
@@ -378,22 +422,28 @@ class DatabaseService:
 
 
 def configure_inject(binder: inject.Binder) -> None:
+    """Конфигурация inject для теста."""
     binder.bind(DatabaseService, DatabaseService("test_db_connection"))
 
 
 @depends(DatabaseService, factory=lambda: inject.instance(DatabaseService))
 @CheckRoles(CheckRoles.ANY, desc="Доступно любому аутентифицированному пользователю")
 class ActionWithInject(BaseAction['ActionWithInject.Params', 'ActionWithInject.Result']):
+    """Действие, получающее зависимость из inject через factory."""
+
     @dataclass(frozen=True)
     class Params(BaseParams):
+        """Параметры: SQL-запрос."""
         sql: str
 
     @dataclass(frozen=True)
     class Result(BaseResult):
+        """Результат: строка с ответом."""
         output: str
 
     @summary_aspect("Использование сервиса из inject")
     def execute(self, params: Params, state: Dict[str, Any], deps: DependencyFactory) -> Result:
+        """Выполняет запрос через сервис из inject."""
         db_service = deps.get(DatabaseService)
         output = db_service.query(params.sql)
         return ActionWithInject.Result(output)
@@ -427,4 +477,3 @@ async def test_depends_factory_with_inject() -> None:
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v", "-s"])
-    # Для запуска асинхронных тестов pytest автоматически использует asyncio плагин

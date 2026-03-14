@@ -151,10 +151,8 @@ class ActionProductMachine(BaseActionMachine):
     ) -> DependencyFactory:
         """
         Возвращает (и кэширует) фабрику зависимостей для класса действия.
-        При наличии external_resources создаёт фабрику с ними (кэш игнорируется, если external_resources разные?).
-        Для простоты будем всегда создавать новую фабрику, если переданы external_resources, иначе используем кэш.
+        При наличии external_resources создаёт фабрику с ними (кэш игнорируется, так как они могут меняться).
         """
-        # Если есть внешние ресурсы, не кэшируем, так как они могут меняться между вызовами
         if external_resources is not None:
             deps_info = getattr(action_class, '_dependencies', [])
             return DependencyFactory(self, deps_info, external_resources)
@@ -174,11 +172,11 @@ class ActionProductMachine(BaseActionMachine):
     # ---------- Проверка ролей ----------
 
     def _check_none_role(self, user_roles: List[str]) -> bool:
-        """Проверка для CheckRoles.NONE."""
+        """Проверка для CheckRoles.NONE (всегда разрешено)."""
         return True
 
     def _check_any_role(self, user_roles: List[str]) -> bool:
-        """Проверка для CheckRoles.ANY."""
+        """Проверка для CheckRoles.ANY (требуется хотя бы одна роль)."""
         if not user_roles:
             raise AuthorizationException(
                 "Требуется аутентификация: пользователь должен иметь хотя бы одну роль"
@@ -186,7 +184,7 @@ class ActionProductMachine(BaseActionMachine):
         return True
 
     def _check_list_role(self, spec: List[str], user_roles: List[str]) -> bool:
-        """Проверка для списка ролей."""
+        """Проверка для списка ролей (пересечение)."""
         if any(role in user_roles for role in spec):
             return True
         raise AuthorizationException(
@@ -227,9 +225,9 @@ class ActionProductMachine(BaseActionMachine):
         else:
             self._check_single_role(role_spec, user_roles)
 
-    # ---------- Вспомогательные методы для асинхронного запуска плагинов ----------
+    # ---------- Вспомогательные методы для запуска плагинов ----------
 
-    async def _init_plugin_states(self) -> None:
+    def _init_plugin_states(self) -> None:
         """Инициализирует состояния всех плагинов для текущего запуска."""
         for plugin in self._plugins:
             plugin_id = id(plugin)
@@ -285,7 +283,7 @@ class ActionProductMachine(BaseActionMachine):
         if not handlers:
             return
 
-        await self._init_plugin_states()
+        self._init_plugin_states()  # теперь синхронный вызов
 
         event = PluginEvent(
             event_name=event_name,

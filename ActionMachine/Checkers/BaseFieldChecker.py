@@ -8,6 +8,7 @@ from typing import Any, Callable, Dict, Union, Type
 
 from ActionMachine.Core.Exceptions import ValidationFieldException
 
+
 class BaseFieldChecker(ABC):
     """
     Абстрактный базовый класс для всех чекеров полей.

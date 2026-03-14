@@ -3,26 +3,46 @@ from .UserInfo import UserInfo
 from .RequestInfo import RequestInfo
 from .EnvironmentInfo import EnvironmentInfo
 
+
 class Context:
+    """
+    Контекст выполнения действия.
+
+    Содержит информацию о пользователе, запросе и окружении.
+    Передаётся в плагины и используется для проверки ролей.
+    """
+
     def __init__(
         self,
         user: Optional[UserInfo] = None,
         request: Optional[RequestInfo] = None,
         environment: Optional[EnvironmentInfo] = None
     ) -> None:
+        """
+        Инициализирует контекст.
+
+        :param user: информация о пользователе.
+        :param request: информация о запросе.
+        :param environment: информация об окружении.
+        """
         self.user = user or UserInfo()
         self.request = request or RequestInfo()
         self.environment = environment or EnvironmentInfo()
         self._extra: Dict[str, Any] = {}
 
     def set_extra(self, key: str, value: Any) -> None:
+        """Устанавливает дополнительное поле в контексте."""
         self._extra[key] = value
         setattr(self, key, value)
 
     def get_extra(self, key: str, default: Any = None) -> Any:
+        """Возвращает значение дополнительного поля."""
         return self._extra.get(key, default)
 
     def as_dict(self) -> Dict[str, Any]:
+        """
+        Преобразует контекст в словарь для логирования или отладки.
+        """
         result: Dict[str, Any] = {}
         result['user_id'] = self.user.user_id
         result['roles'] = self.user.roles

@@ -1,4 +1,3 @@
-# ActionMachine/collect_files.py
 #!/usr/bin/env python3
 """
 Скрипт для сбора файлов с указанными расширениями из директории, в которой он расположен.
@@ -200,6 +199,7 @@ def write_file_content(filepath: str, out_file: TextIO) -> None:
             content = f.read()
         out_file.write(content)
     except UnicodeDecodeError:
+        # Пробуем альтернативную кодировку (cp1251)
         try:
             with open(filepath, 'r', encoding='cp1251') as f:
                 content = f.read()
