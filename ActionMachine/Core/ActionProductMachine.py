@@ -366,13 +366,11 @@ class ActionProductMachine(BaseActionMachine):
         factory: DependencyFactory
     ) -> Any:
         """
-        Вызывает аспект (метод), определяя, является ли он корутиной.
+        Вызывает аспект (метод). Все аспекты асинхронны (гарантируется декораторами),
+        поэтому всегда используем await.
         Возвращает результат выполнения аспекта (словарь для regular-аспектов, Result для summary).
         """
-        if inspect.iscoroutinefunction(method):
-            return await method(action, params, state, factory)
-        else:
-            return method(action, params, state, factory)
+        return await method(action, params, state, factory)
 
     async def _execute_regular_aspects(
         self,

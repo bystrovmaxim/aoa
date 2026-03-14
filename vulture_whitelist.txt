@@ -37,3 +37,6 @@ as_dict
 # Другие методы
 process
 write_rows
+BaseActionMachine.sync_run
+CoreHelper
+CoreHelper.run_in_thread

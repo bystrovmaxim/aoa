@@ -16,7 +16,6 @@ from .Core.Exceptions import (
 
 # ConnectionManagers
 from .ResourceManagers.BaseConnectionManager import BaseConnectionManager
-from .ResourceManagers.CsvConnectionManager import CsvConnectionManager
 from .ResourceManagers.PostgresConnectionManager import PostgresConnectionManager
 
 # Checkers
@@ -52,7 +51,6 @@ __all__ = [
 
     # ConnectionManagers
     'BaseConnectionManager',
-    'CsvConnectionManager',
     'PostgresConnectionManager',
 
     # Checkers

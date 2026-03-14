@@ -8,7 +8,7 @@
 
 import sys
 import os
-import time
+import asyncio
 from typing import Any, Dict, List, Tuple, cast
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -80,7 +80,7 @@ class NotificationAction(BaseAction['NotificationAction.Params', 'NotificationAc
     @InstanceOfChecker("service", (EmailService, SmsService),
                        desc="В state должен быть объект EmailService или SmsService")
     @StringFieldChecker("selected_channel", desc="Канал, который был выбран", required=False)
-    def choose_channel(
+    async def choose_channel(
         self, params: Params, state: Dict[str, Any], deps: DependencyFactory
     ) -> Dict[str, Any]:
         """Выбирает сервис на основе канала и сохраняет его в state."""
@@ -95,7 +95,7 @@ class NotificationAction(BaseAction['NotificationAction.Params', 'NotificationAc
         return state
 
     @summary_aspect("Отправка")
-    def send(
+    async def send(
         self, params: Params, state: Dict[str, Any], deps: DependencyFactory
     ) -> Result:
         """Отправляет уведомление через выбранный сервис."""
@@ -120,7 +120,7 @@ class ChildAction(BaseAction['ChildAction.Params', 'ChildAction.Result']):
 
     @aspect("Подготовка")
     @BoolFieldChecker("prepared", desc="Флаг подготовки", required=True)
-    def prepare(
+    async def prepare(
         self, params: Params, state: Dict[str, Any], deps: DependencyFactory
     ) -> Dict[str, Any]:
         """Аспект подготовки: устанавливает флаг prepared в True."""
@@ -129,7 +129,7 @@ class ChildAction(BaseAction['ChildAction.Params', 'ChildAction.Result']):
         return state
 
     @summary_aspect("Удвоить")
-    def handle(
+    async def handle(
         self, params: Params, state: Dict[str, Any], deps: DependencyFactory
     ) -> Result:
         """Основная логика: удваивает число."""
@@ -153,12 +153,12 @@ class ParentAction(BaseAction['ParentAction.Params', 'ParentAction.Result']):
         result: int
 
     @aspect("Задержка")
-    def delay(
+    async def delay(
         self, params: Params, state: Dict[str, Any], deps: DependencyFactory
     ) -> Dict[str, Any]:
         """Аспект с небольшой задержкой (имитация работы)."""
         print("\033[91m[ParentAction] Аспект 'delay' начал работу\033[0m")
-        time.sleep(0.1)
+        await asyncio.sleep(0.1)   # заменён time.sleep на asyncio.sleep
         print("\033[91m[ParentAction] Аспект 'delay' завершил работу\033[0m")
         return state
 
@@ -280,13 +280,13 @@ async def test_choose_channel_aspect() -> None:
 
     params = NotificationAction.Params(channel='email', message='hi', recipient='a@b.c')
     state: Dict[str, Any] = {}
-    result_state = action.choose_channel(params, state, factory)
+    result_state = await action.choose_channel(params, state, factory)   # добавлен await
     assert result_state['service'] is fake_email
     assert result_state['selected_channel'] == 'email'
 
     params2 = NotificationAction.Params(channel='sms', message='hi', recipient='123')
     state2: Dict[str, Any] = {}
-    result_state2 = action.choose_channel(params2, state2, factory)
+    result_state2 = await action.choose_channel(params2, state2, factory) # добавлен await
     assert result_state2['service'] is fake_sms
     assert result_state2['selected_channel'] == 'sms'
 
@@ -301,7 +301,7 @@ async def test_choose_channel_aspect_unknown() -> None:
     action: NotificationAction = NotificationAction()
     params = NotificationAction.Params(channel='fax', message='hi', recipient='x')
     with pytest.raises(ValueError, match="Unknown channel"):
-        action.choose_channel(params, {}, factory)
+        await action.choose_channel(params, {}, factory)   # добавлен await
 
 
 @pytest.mark.anyio
@@ -442,7 +442,7 @@ class ActionWithInject(BaseAction['ActionWithInject.Params', 'ActionWithInject.R
         output: str
 
     @summary_aspect("Использование сервиса из inject")
-    def execute(self, params: Params, state: Dict[str, Any], deps: DependencyFactory) -> Result:
+    async def execute(self, params: Params, state: Dict[str, Any], deps: DependencyFactory) -> Result:
         """Выполняет запрос через сервис из inject."""
         db_service = deps.get(DatabaseService)
         output = db_service.query(params.sql)
