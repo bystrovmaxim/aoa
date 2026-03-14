@@ -40,3 +40,13 @@ write_rows
 BaseActionMachine.sync_run
 CoreHelper
 CoreHelper.run_in_thread
+IConnectionManager.commit
+IConnectionManager.rollback
+PostgresConnectionManager.commit
+PostgresConnectionManager.rollback
+WrapperConnectionManager.commit
+WrapperConnectionManager.rollback
+selected_channel
+prepared
+ActionMachine.ResourceManagers.Connections.Connections
+ActionMachine.tests.Connections

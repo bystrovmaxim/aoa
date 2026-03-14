@@ -11,7 +11,7 @@
 import asyncio
 import time
 import inspect
-from typing import TypeVar, Any, Dict, List, Optional, Tuple, Type, Set, cast, Callable
+from typing import TypeVar, Any, Dict, List, Optional, Tuple, Type, cast, Callable
 
 from ActionMachine.Core.BaseParams import BaseParams
 from ActionMachine.Core.BaseResult import BaseResult
@@ -41,9 +41,9 @@ class ActionProductMachine(BaseActionMachine):
     Продуктовая реализация машины действий (асинхронная).
 
     Содержит логику кэширования аспектов и фабрик зависимостей,
-    выполняет проверку ролей, валидацию connections, валидацию результатов
-    аспектов через чекеры, а также поддерживает подключение плагинов
-    для расширения функциональности.
+    выполняет проверку ролей, валидацию результатов аспектов через чекеры,
+    проверку соответствия connections объявленным через @connection,
+    а также поддерживает подключение плагинов для расширения функциональности.
 
     Атрибуты:
         _context: глобальный контекст выполнения.
@@ -247,61 +247,57 @@ class ActionProductMachine(BaseActionMachine):
 
         Правила:
         1. Если у действия нет @connection — connections должен быть пустым или None.
-           Если передали непустой словарь — ошибка (действие не ожидает соединений).
-        2. Если у действия есть @connection — ключи в connections должны точно совпадать
-           с объявленными ключами. Не больше, не меньше.
-           Лишние ключи — ошибка (передали то, что действие не ожидает).
-           Недостающие ключи — ошибка (не передали то, что действие ожидает).
+           Если передали непустой словарь — ошибка: действие не ожидает connections.
+        2. Если у действия есть @connection — connections обязателен.
+           Ключи в connections должны точно совпадать с объявленными ключами.
+           Лишние ключи — ошибка. Недостающие ключи — ошибка.
 
         Аргументы:
             action: экземпляр действия.
-            connections: переданный словарь соединений (может быть None).
+            connections: переданный словарь connections (может быть None).
 
         Возвращает:
-            Валидный словарь connections (пустой dict если соединения не объявлены).
+            Валидный словарь connections (пустой dict если не объявлено и не передано).
 
         Исключения:
-            ConnectionValidationError: при нарушении любого из правил.
+            ConnectionValidationError: при несоответствии переданных connections
+                                       объявленным через @connection.
         """
-        # Получаем декларации @connection из класса действия
+        # Получаем список объявленных @connection из класса действия
         declared: List[Dict[str, Any]] = getattr(action.__class__, '_connections', [])
-        declared_keys: Set[str] = {info['key'] for info in declared}
-        actual_keys: Set[str] = set(connections.keys()) if connections else set()
-
-        action_name = action.__class__.__name__
+        declared_keys = {info['key'] for info in declared}
+        actual_keys = set(connections.keys()) if connections else set()
 
         # Правило 1: нет деклараций, но передали connections
         if not declared_keys and actual_keys:
             raise ConnectionValidationError(
-                f"Действие {action_name} не объявляет @connection, "
+                f"Действие {action.__class__.__name__} не объявляет @connection, "
                 f"но получило connections с ключами: {actual_keys}. "
-                f"Удалите передачу connections или добавьте декораторы @connection."
+                f"Уберите connections из вызова или добавьте декоратор @connection."
             )
 
         # Правило 1 (обратное): есть декларации, но не передали
         if declared_keys and not actual_keys:
             raise ConnectionValidationError(
-                f"Действие {action_name} объявляет connections: {declared_keys}, "
+                f"Действие {action.__class__.__name__} объявляет connections: {declared_keys}, "
                 f"но connections не переданы (None или пустой словарь). "
-                f"Передайте все объявленные соединения при вызове run()."
+                f"Передайте connections с ключами: {declared_keys}."
             )
 
         # Правило 2: лишние ключи
-        extra: Set[str] = actual_keys - declared_keys
+        extra = actual_keys - declared_keys
         if extra:
             raise ConnectionValidationError(
-                f"Действие {action_name} получило лишние connections: {extra}. "
-                f"Объявлены только: {declared_keys}. "
-                f"Удалите лишние ключи из переданного словаря connections."
+                f"Действие {action.__class__.__name__} получило лишние connections: {extra}. "
+                f"Объявлены только: {declared_keys}. Уберите лишние ключи."
             )
 
         # Правило 2: недостающие ключи
-        missing: Set[str] = declared_keys - actual_keys
+        missing = declared_keys - actual_keys
         if missing:
             raise ConnectionValidationError(
-                f"Действие {action_name} не получило connections: {missing}. "
-                f"Объявлены: {declared_keys}, переданы: {actual_keys}. "
-                f"Добавьте недостающие соединения в словарь connections."
+                f"Действие {action.__class__.__name__} не получило connections: {missing}. "
+                f"Объявлены: {declared_keys}, переданы: {actual_keys}."
             )
 
         return connections or {}
@@ -422,8 +418,9 @@ class ActionProductMachine(BaseActionMachine):
             action: экземпляр действия.
             params: входные параметры.
             resources: словарь внешних ресурсов (передаётся в фабрику зависимостей).
-            connections: словарь ресурсных менеджеров (соединений).
-                         Ключ — строковое имя из @connection, значение — экземпляр.
+            connections: словарь ресурсных менеджеров (соединений),
+                         ключ — строковое имя (совпадает с именем в @connection),
+                         значение — экземпляр BaseResourceManager.
                          Передаётся во все аспекты как есть (без оборачивания).
                          Оборачивание происходит только при передаче в дочерние действия
                          через DependencyFactory.run_action().
@@ -432,13 +429,12 @@ class ActionProductMachine(BaseActionMachine):
         start_time = time.time()
 
         try:
-            # 1. Проверка ролей
             self._check_action_roles(action)
 
-            # 2. Проверка connections — валидный словарь или пустой dict
-            conns: Dict[str, BaseResourceManager] = self._check_connections(action, connections)
+            # Проверяем соответствие connections и @connection деклараций
+            conns = self._check_connections(action, connections)
 
-            # 3. Создаём фабрику с учётом внешних ресурсов
+            # Создаём фабрику с учётом внешних ресурсов
             factory = self._get_factory(action.__class__, external_resources=resources)
 
             await self._run_plugins_async('global_start', action, params, None, False, None, None, factory)
@@ -497,10 +493,6 @@ class ActionProductMachine(BaseActionMachine):
           * в противном случае выбрасывается ValidationFieldException.
         - вызывается after-событие плагинов с длительностью выполнения аспекта.
 
-        State не накапливается автоматически — каждый аспект получает текущий state,
-        но машина полностью заменяет state на то, что вернул аспект.
-        Аспект обязан явно вернуть только те поля, которые нужны дальше.
-
         Параметр connections прокидывается в каждый аспект.
         """
         action_class = action.__class__
@@ -548,7 +540,6 @@ class ActionProductMachine(BaseActionMachine):
                 method._aspect_type == 'summary', None, aspect_duration, factory
             )
 
-            # State полностью заменяется на результат аспекта — не накапливается
             state = new_state
 
         return state

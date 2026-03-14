@@ -50,11 +50,6 @@ def aspect(description: str) -> Callable[[Callable[..., Any]], AspectMethod]:
     Метод должен быть асинхронным (async def) и принимать
     (self, params, state, deps, connections) и возвращать dict.
 
-    State не накапливается автоматически — каждый аспект получает текущий state,
-    но явно создаёт новый словарь, содержащий только нужные поля.
-    Рекомендуется использовать TypedDict с total=False для описания
-    пространства возможных ключей state.
-
     Аргументы:
         description: текстовое описание аспекта (для документации и логирования).
 
@@ -148,21 +143,18 @@ def connection(
     description: str = "",
 ) -> Callable[[Type[Any]], Type[Any]]:
     """
-    Декоратор для объявления соединения (ресурсного менеджера), необходимого действию.
+    Декоратор для объявления соединения, необходимого действию.
 
-    Используется на уровне класса действия, аналогично @depends.
-    Объявляет, что действие ожидает в словаре connections ключ с указанным именем
-    и экземпляр указанного класса ресурсного менеджера.
+    Используется на уровне класса действия для декларации того,
+    какие ресурсные менеджеры (соединения) ожидает действие.
+    ActionMachine проверяет соответствие переданных connections
+    и объявленных через @connection перед выполнением аспектов.
 
-    Машина при запуске действия проверяет:
-    1. Если у действия нет @connection — connections должен быть пустым или None.
-    2. Ключи в переданном connections должны точно совпадать с объявленными.
-
-    Может использоваться несколько раз для одного действия.
+    Может использоваться несколько раз для одного действия (несколько соединений).
     Создаёт новый список соединений для каждого класса (не мутирует родительский).
 
     Аргументы:
-        key: имя ключа в словаре connections (и в TypedDict).
+        key: строковое имя ключа в словаре connections (и в TypedDict).
             Например: "connection", "cache", "analytics_db".
         klass: класс ресурсного менеджера (наследник BaseResourceManager).
         description: описание соединения (для документации).
@@ -173,9 +165,12 @@ def connection(
     Пример:
         @connection("connection", PostgresConnectionManager, description="Основная БД")
         @connection("cache", RedisConnectionManager, description="Кеш")
-        @CheckRoles(CheckRoles.ANY, desc="...")
         class MyAction(BaseAction[...]):
             ...
+
+        # В аспектах доступно:
+        #   connections["connection"]  — PostgresConnectionManager (или прокси)
+        #   connections["cache"]       — RedisConnectionManager (или прокси)
     """
     def decorator(cls: Type[Any]) -> Type[Any]:
         # Создаём НОВЫЙ список, копируя родительский (если есть)

@@ -83,13 +83,11 @@ class DependencyFactory:
         """
         Оборачивает каждый connection в его wrapper-класс для передачи в дочерние действия.
 
-        Для каждого connection в словаре:
+        Для каждого connection:
         1. Вызывает get_wrapper_class() чтобы получить тип обёртки.
         2. Если wrapper_class не None — создаёт экземпляр обёртки, передавая
            оригинальный connection в конструктор.
         3. Если wrapper_class is None — передаёт connection как есть (без обёртки).
-
-        Ключи словаря сохраняются — обёрнутые connections имеют те же имена.
 
         Это гарантирует, что дочерние действия не могут управлять транзакциями
         (open/commit/rollback), но могут выполнять запросы (execute).
@@ -106,7 +104,12 @@ class DependencyFactory:
         for key, connection in connections.items():
             wrapper_class = connection.get_wrapper_class()
             if wrapper_class is not None:
-                wrapped[key] = wrapper_class(connection)
+                # wrapper_class — это конкретный класс (например, WrapperConnectionManager),
+                # чей __init__ принимает оригинальный менеджер как аргумент.
+                # Приводим к Any, чтобы mypy не жаловался на сигнатуру BaseResourceManager.__init__,
+                # которая не объявляет параметров (конкретные классы объявляют свои).
+                wrapped_instance: Any = wrapper_class(connection)  # type: ignore[call-arg]
+                wrapped[key] = wrapped_instance
             else:
                 wrapped[key] = connection
         return wrapped
@@ -125,15 +128,11 @@ class DependencyFactory:
         перед передачей в дочернее действие. Это гарантирует, что дочерние действия
         не могут управлять транзакциями (open/commit/rollback), но могут выполнять запросы.
 
-        Разработчик в аспекте сам решает, какие соединения передать в дочернее действие —
-        он формирует словарь connections вручную, выбирая нужные ключи.
-
         Аргументы:
             action_class: класс действия для запуска.
             params: входные параметры.
             resources: словарь ресурсов для передачи в дочернее действие (опционально).
             connections: словарь ресурсных менеджеров (опционально).
-                         Ключи — строковые имена, значения — экземпляры BaseResourceManager.
 
         Возвращает:
             Результат выполнения действия.
