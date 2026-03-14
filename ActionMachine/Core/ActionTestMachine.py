@@ -1,8 +1,8 @@
 # ActionMachine/Core/ActionTestMachine.py
 """
-Тестовая машина действий с поддержкой моков.
+Тестовая машина действий с поддержкой моков (асинхронная версия).
 
-Наследует от ActionProductMachine и полностью синхронна (как и родитель).
+Наследует от ActionProductMachine и полностью асинхронна (как и родитель).
 Позволяет подменять зависимости через словарь моков.
 """
 
@@ -22,7 +22,7 @@ R = TypeVar('R', bound=BaseResult)
 
 class ActionTestMachine(ActionProductMachine):
     """
-    Тестовая машина с удобным API для подмены зависимостей.
+    Тестовая машина с удобным API для подмены зависимостей (асинхронная).
 
     Принимает в конструкторе словарь моков: {класс: значение}.
     Значение может быть:
@@ -32,7 +32,8 @@ class ActionTestMachine(ActionProductMachine):
         - функцией callable (будет использована как side_effect для MockAction).
         - любым другим объектом (будет возвращён как есть через get()).
 
-    Метод run является синхронным (как и в родителе).
+    Метод run является асинхронным (как и в родителе).
+    Для синхронного использования можно обернуть в asyncio.run().
     """
 
     def __init__(
@@ -73,68 +74,47 @@ class ActionTestMachine(ActionProductMachine):
             return MockAction(result=value)
         return value
 
-    def run(self, action: BaseAction[P, R], params: P) -> R:
+    async def run(
+        self,
+        action: BaseAction[P, R],
+        params: P,
+        resources: Optional[Dict[Type[Any], Any]] = None
+    ) -> R:
         """
-        Запускает действие. Если action — MockAction, вызывает его напрямую,
-        минуя аспектный конвейер. Иначе — стандартное выполнение через аспекты.
+        Асинхронно запускает действие. Если action — MockAction, вызывает его напрямую,
+        минуя аспектный конвейер. Иначе — стандартное асинхронное выполнение через аспекты.
 
         Аргументы:
             action: экземпляр действия.
             params: входные параметры.
+            resources: словарь внешних ресурсов (передаётся в родительский run).
 
         Возвращает:
             Результат выполнения действия.
         """
         if isinstance(action, MockAction):
+            # MockAction.run синхронный, но это нормально внутри асинхронной функции
             return action.run(params)  # type: ignore[return-value]
-        return super().run(action, params)
+        return await super().run(action, params, resources=resources)
 
-    def _build_factory(self, action_class: Type[Any]) -> DependencyFactory:
+    def _get_factory(
+        self,
+        action_class: Type[Any],
+        external_resources: Optional[Dict[Type[Any], Any]] = None
+    ) -> DependencyFactory:
         """
-        Строит фабрику для конкретного класса действия, учитывая моки.
+        Возвращает фабрику зависимостей для класса действия, учитывая моки и внешние ресурсы.
 
-        Аргументы:
-            action_class: класс действия, для которого строится фабрика.
-
-        Возвращает:
-            DependencyFactory (или TestDependencyFactory) с учётом подмен.
+        Приоритет: external_resources > prepared_mocks > стандартные зависимости.
         """
         deps_info = getattr(action_class, '_dependencies', [])
-        prepared = self._prepared_mocks
-
-        class TestDependencyFactory(DependencyFactory):
-            """Фабрика зависимостей, учитывающая моки из тестовой машины."""
-
-            def __init__(
-                self, machine: Any, deps_info: Any, prepared_mocks: Any
-            ) -> None:
-                super().__init__(machine, deps_info)
-                self._prepared_mocks = prepared_mocks
-
-            def get(self, klass: Type[Any]) -> Any:
-                """Сначала ищет в моках, затем — стандартное поведение."""
-                if klass in self._prepared_mocks:
-                    return self._prepared_mocks[klass]
-                return super().get(klass)
-
-        return TestDependencyFactory(self, deps_info, prepared)
-
-    def _get_factory(self, action_class: Type[Any]) -> DependencyFactory:
-        """
-        Переопределяем, чтобы строить фабрику с учётом моков и кэшировать её.
-        """
-        if action_class not in self._factory_cache:
-            self._factory_cache[action_class] = self._build_factory(action_class)
-        return self._factory_cache[action_class]
+        all_resources = dict(self._prepared_mocks)
+        if external_resources:
+            all_resources.update(external_resources)  # внешние ресурсы переопределяют моки
+        return DependencyFactory(self, deps_info, all_resources)
 
     def build_factory(self, action_class: Type[Any]) -> DependencyFactory:
         """
-        Возвращает фабрику для использования в тестировании отдельных аспектов.
-
-        Аргументы:
-            action_class: класс действия.
-
-        Возвращает:
-            DependencyFactory с учётом моков.
+        Возвращает фабрику для использования в тестировании отдельных аспектов (без внешних ресурсов).
         """
-        return self._get_factory(action_class)
+        return self._get_factory(action_class, external_resources=None)

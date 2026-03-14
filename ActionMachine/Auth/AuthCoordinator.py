@@ -4,6 +4,7 @@ from .Authenticator import Authenticator
 from .ContextAssembler import ContextAssembler
 from ..Context import Context, RequestInfo
 
+
 class AuthCoordinator:
     def __init__(
         self,

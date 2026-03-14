@@ -1,6 +1,7 @@
 # ActionMachine/Core/ActionProductMachine.py
 """
 Реализация продуктовой машины действий с поддержкой плагинов и вложенности.
+Полностью асинхронная версия. Использует PluginEvent для передачи данных в плагины.
 """
 
 import asyncio
@@ -18,6 +19,7 @@ from ActionMachine.Core.BaseActionMachine import BaseActionMachine
 from ActionMachine.Core.Exceptions import ValidationFieldException, AuthorizationException
 from ActionMachine.Auth.CheckRoles import CheckRoles
 from ActionMachine.Plugins.Plugin import Plugin
+from ActionMachine.Plugins.PluginEvent import PluginEvent
 
 P = TypeVar('P', bound=BaseParams)
 R = TypeVar('R', bound=BaseResult)
@@ -27,7 +29,7 @@ DEFAULT_MAX_CONCURRENT_HANDLERS = 10
 
 class ActionProductMachine(BaseActionMachine):
     """
-    Продуктовая реализация машины действий.
+    Продуктовая реализация машины действий (асинхронная).
 
     Содержит логику кэширования аспектов и фабрик зависимостей,
     выполняет проверку ролей, валидацию результатов аспектов через чекеры,
@@ -142,13 +144,23 @@ class ActionProductMachine(BaseActionMachine):
         aspects.sort(key=lambda item: item[0].__code__.co_firstlineno)
         return aspects, summary_method
 
-    def _get_factory(self, action_class: Type[Any]) -> DependencyFactory:
+    def _get_factory(
+        self,
+        action_class: Type[Any],
+        external_resources: Optional[Dict[Type[Any], Any]] = None
+    ) -> DependencyFactory:
         """
         Возвращает (и кэширует) фабрику зависимостей для класса действия.
+        При наличии external_resources создаёт фабрику с ними (кэш игнорируется, если external_resources разные?).
+        Для простоты будем всегда создавать новую фабрику, если переданы external_resources, иначе используем кэш.
         """
+        # Если есть внешние ресурсы, не кэшируем, так как они могут меняться между вызовами
+        if external_resources is not None:
+            deps_info = getattr(action_class, '_dependencies', [])
+            return DependencyFactory(self, deps_info, external_resources)
         if action_class not in self._factory_cache:
             deps_info = getattr(action_class, '_dependencies', [])
-            self._factory_cache[action_class] = DependencyFactory(self, deps_info)
+            self._factory_cache[action_class] = DependencyFactory(self, deps_info, external_resources=None)
         return self._factory_cache[action_class]
 
     def _apply_checkers(self, method: Callable[..., Any], result: Dict[str, Any]) -> None:
@@ -215,32 +227,6 @@ class ActionProductMachine(BaseActionMachine):
         else:
             self._check_single_role(role_spec, user_roles)
 
-    # ---------- Методы для работы с плагинами (синхронная обёртка) ----------
-
-    def _run_plugins_sync(
-        self,
-        event_name: str,
-        action: BaseAction[P, R],
-        params: P,
-        state_aspect: Optional[Dict[str, Any]],
-        is_summary: bool,
-        result: Optional[BaseResult],
-        duration: Optional[float],
-    ) -> None:
-        """
-        Синхронная обёртка для запуска асинхронных обработчиков плагинов.
-        """
-        try:
-            loop = asyncio.get_running_loop()
-        except RuntimeError:
-            asyncio.run(self._run_plugins_async(
-                event_name, action, params, state_aspect, is_summary, result, duration
-            ))
-        else:
-            loop.run_until_complete(self._run_plugins_async(
-                event_name, action, params, state_aspect, is_summary, result, duration
-            ))
-
     # ---------- Вспомогательные методы для асинхронного запуска плагинов ----------
 
     async def _init_plugin_states(self) -> None:
@@ -255,33 +241,15 @@ class ActionProductMachine(BaseActionMachine):
         handler: Callable[..., Any],
         ignore: bool,
         plugin: Plugin,
-        event_name: str,
-        action: BaseAction[P, R],
-        params: P,
-        state_aspect: Optional[Dict[str, Any]],
-        is_summary: bool,
-        result: Optional[BaseResult],
-        duration: Optional[float],
+        event: PluginEvent,
     ) -> None:
         """
-        Запускает один обработчик плагина, обрабатывая исключения согласно флагу ignore.
+        Запускает один обработчик плагина, передавая ему event и ожидая новое состояние.
         """
         plugin_id = id(plugin)
         state = self._plugin_states[plugin_id]
         try:
-            new_state = await handler(
-                state_plugin=state,
-                event_name=event_name,
-                action_name=action.get_full_class_name(),
-                params=params,
-                state_aspect=state_aspect,
-                is_summary=is_summary,
-                deps=self._get_factory(action.__class__),
-                context=self._context,
-                result=result,
-                duration=duration,
-                nest_level=self._nest_level,
-            )
+            new_state = await handler(state, event)
             self._plugin_states[plugin_id] = new_state
         except Exception as e:
             if ignore:
@@ -298,6 +266,7 @@ class ActionProductMachine(BaseActionMachine):
         is_summary: bool,
         result: Optional[BaseResult],
         duration: Optional[float],
+        factory: DependencyFactory,  # передаём фабрику для использования в плагинах
     ) -> None:
         """
         Асинхронно запускает все подходящие обработчики плагинов для данного события.
@@ -305,7 +274,6 @@ class ActionProductMachine(BaseActionMachine):
         action_name = action.get_full_class_name()
         cache_key = (event_name, action_name)
 
-        # Получаем обработчики из кэша или собираем
         if cache_key not in self._plugin_cache:
             handlers: List[Tuple[Callable[..., Any], bool]] = []
             for plugin in self._plugins:
@@ -317,8 +285,20 @@ class ActionProductMachine(BaseActionMachine):
         if not handlers:
             return
 
-        # Инициализируем состояния плагинов
         await self._init_plugin_states()
+
+        event = PluginEvent(
+            event_name=event_name,
+            action_name=action_name,
+            params=params,
+            state_aspect=state_aspect,
+            is_summary=is_summary,
+            deps=factory,  # передаём фабрику, чтобы плагины могли получать зависимости
+            context=self._context,
+            result=result,
+            duration=duration,
+            nest_level=self._nest_level,
+        )
 
         semaphore = asyncio.Semaphore(self._max_concurrent_handlers)
 
@@ -326,10 +306,7 @@ class ActionProductMachine(BaseActionMachine):
             handler: Callable[..., Any], ignore: bool, plugin: Plugin
         ) -> None:
             async with semaphore:
-                await self._run_single_handler(
-                    handler, ignore, plugin, event_name, action,
-                    params, state_aspect, is_summary, result, duration
-                )
+                await self._run_single_handler(handler, ignore, plugin, event)
 
         tasks = []
         for handler, ignore in handlers:
@@ -340,11 +317,16 @@ class ActionProductMachine(BaseActionMachine):
 
         await asyncio.gather(*tasks)
 
-    # ---------- Основной метод run ----------
+    # ---------- Основной асинхронный метод run ----------
 
-    def run(self, action: BaseAction[P, R], params: P) -> R:
+    async def run(
+        self,
+        action: BaseAction[P, R],
+        params: P,
+        resources: Optional[Dict[Type[Any], Any]] = None
+    ) -> R:
         """
-        Синхронно запускает выполнение действия с учётом плагинов и вложенности.
+        Асинхронно запускает выполнение действия с учётом плагинов и вложенности.
 
         Последовательность выполнения:
             1. Увеличение уровня вложенности.
@@ -360,35 +342,53 @@ class ActionProductMachine(BaseActionMachine):
 
         try:
             self._check_action_roles(action)
-            factory = self._get_factory(action.__class__)
+            # Создаём фабрику с учётом внешних ресурсов
+            factory = self._get_factory(action.__class__, external_resources=resources)
 
-            self._run_plugins_sync('global_start', action, params, None, False, None, None)
+            await self._run_plugins_async('global_start', action, params, None, False, None, None, factory)
 
-            state = self._execute_regular_aspects(action, params, factory)
+            state = await self._execute_regular_aspects(action, params, factory)
 
             _, summary_method = self._get_aspects(action.__class__)
-            result = summary_method(action, params, state, factory)
+            result = await self._call_aspect(summary_method, action, params, state, factory)
 
             total_duration = time.time() - start_time
-            self._run_plugins_sync('global_finish', action, params, None, False, result, total_duration)
+            await self._run_plugins_async('global_finish', action, params, None, False, result, total_duration, factory)
 
             return cast(R, result)
         finally:
             self._nest_level -= 1
 
-    def _execute_regular_aspects(
+    async def _call_aspect(
+        self,
+        method: AspectMethod,
+        action: BaseAction[Any, Any],
+        params: BaseParams,
+        state: Dict[str, Any],
+        factory: DependencyFactory
+    ) -> Any:
+        """
+        Вызывает аспект (метод), определяя, является ли он корутиной.
+        Возвращает результат выполнения аспекта (словарь для regular-аспектов, Result для summary).
+        """
+        if inspect.iscoroutinefunction(method):
+            return await method(action, params, state, factory)
+        else:
+            return method(action, params, state, factory)
+
+    async def _execute_regular_aspects(
         self,
         action: BaseAction[P, R],
         params: P,
         factory: DependencyFactory,
     ) -> Dict[str, Any]:
         """
-        Синхронно выполняет цепочку регулярных аспектов, вызывая для каждого
-        before и after события плагинов (асинхронно, с ожиданием).
+        Асинхронно выполняет цепочку регулярных аспектов, вызывая для каждого
+        before и after события плагинов.
 
         Для каждого аспекта:
             - вызывается before-событие плагинов,
-            - выполняется сам аспект,
+            - выполняется сам аспект (с поддержкой синхронных и асинхронных методов),
             - проверяется результат согласно правилам:
                 * если у аспекта есть чекеры, то все поля в возвращённом state
                   должны быть описаны чекерами, и каждый чекер применяется;
@@ -403,13 +403,13 @@ class ActionProductMachine(BaseActionMachine):
         for method, description in aspects:
             aspect_name = method.__name__
 
-            self._run_plugins_sync(
+            await self._run_plugins_async(
                 f'before:{aspect_name}', action, params, state,
-                method._aspect_type == 'summary', None, None,
+                method._aspect_type == 'summary', None, None, factory
             )
 
             aspect_start = time.time()
-            new_state = method(action, params, state, factory)
+            new_state = await self._call_aspect(method, action, params, state, factory)
             if not isinstance(new_state, dict):
                 raise TypeError(
                     f"Аспект {method.__qualname__} должен возвращать dict, "
@@ -418,15 +418,12 @@ class ActionProductMachine(BaseActionMachine):
 
             checkers = getattr(method, '_result_checkers', [])
 
-            # Правило 1: если чекеров нет, разрешён только пустой словарь
             if not checkers and new_state:
                 raise ValidationFieldException(
                     f"Аспект {method.__qualname__} не имеет чекеров, но вернул непустой state: {new_state}. "
                     f"Либо добавьте чекеры для всех полей, либо возвращайте пустой словарь."
                 )
 
-            # Правило 2: если чекеры есть, проверяем, что нет лишних ключей,
-            # и применяем каждый чекер (типы, обязательность и т.д.)
             if checkers:
                 allowed_fields = {ch.field_name for ch in checkers}
                 extra_fields = set(new_state.keys()) - allowed_fields
@@ -439,9 +436,9 @@ class ActionProductMachine(BaseActionMachine):
 
             aspect_duration = time.time() - aspect_start
 
-            self._run_plugins_sync(
+            await self._run_plugins_async(
                 f'after:{aspect_name}', action, params, new_state,
-                method._aspect_type == 'summary', None, aspect_duration,
+                method._aspect_type == 'summary', None, aspect_duration, factory
             )
 
             state = new_state

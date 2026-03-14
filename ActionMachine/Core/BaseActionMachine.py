@@ -1,14 +1,12 @@
 # ActionMachine/Core/BaseActionMachine.py
 """
 Абстрактный базовый класс для всех машин действий.
-
 Определяет единственный абстрактный метод run, который должен быть реализован
-в наследниках. Метод является синхронным; асинхронно выполняются только
-обработчики плагинов.
+в наследниках. Метод является асинхронным.
 """
 
 from abc import ABC, abstractmethod
-from typing import TypeVar
+from typing import TypeVar, Optional, Dict, Type, Any
 
 from ActionMachine.Core.BaseAction import BaseAction
 from ActionMachine.Core.BaseParams import BaseParams
@@ -23,17 +21,24 @@ class BaseActionMachine(ABC):
     Абстрактная машина действий.
 
     Все реализации (продуктовая, тестовая) наследуют от этого класса
-    и реализуют синхронный метод run.
+    и реализуют асинхронный метод run.
     """
 
     @abstractmethod
-    def run(self, action: BaseAction[P, R], params: P) -> R:
+    async def run(
+        self,
+        action: BaseAction[P, R],
+        params: P,
+        resources: Optional[Dict[Type[Any], Any]] = None
+    ) -> R:
         """
-        Запускает действие и возвращает результат.
+        Асинхронно запускает действие и возвращает результат.
 
         Аргументы:
             action: экземпляр действия для выполнения.
             params: входные параметры действия.
+            resources: словарь внешних ресурсов (ключ – класс ресурса, значение – экземпляр),
+                       которые будут переданы в фабрику зависимостей с приоритетом.
 
         Возвращает:
             Результат выполнения действия.
