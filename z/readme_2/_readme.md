@@ -1584,7 +1584,322 @@ ActionMachine построена так, что плагины:
 # Файл: /Users/bystrovmaxim/PythonDev/kanban_assistant/z/readme_2/15. testing.md
 ################################################################################
 
+```markdown
+15. testing.md
 
+# Тестирование в AOA и ActionEngine
+
+Тестирование — центральная часть архитектуры AOA.  
+Вся модель действий, аспектов, зависимостей и машин специально спроектирована так, чтобы **любой фрагмент бизнес‑логики был тестируем изолированно**, без подъёма инфраструктуры, без веб‑фреймворков, без БД, без сложного окружения.
+
+Вся архитектура ActionEngine держится на трёх принципах тестируемости:
+
+1. **Actions — stateless**  
+2. **Params / Result — неизменяемы и чистые**  
+3. **DI — полностью подменяемый через ActionTestMachine**  
+
+Компоненты, связанные с тестированием, имеют высокое качество реализации (например, ActionTestMachine, MockAction и многие его методы имеют рейтинг A по radon [1]).
+
+---
+
+# Основная идея тестирования в AOA
+
+AOA делает тестирование естественным.  
+Вместо того чтобы писать тесты «сквозь» HTTP, БД и сервисы, вы тестируете именно то, что важно: **чистую бизнес‑логику**.
+
+Тестировать можно:
+
+- отдельный аспект,
+- отдельное действие,
+- вложенный вызов действий,
+- работу DI,
+- корректность взаимодействия с ресурсами,
+- корректность реакции на ошибки.
+
+Плагины и контекст в тестах не нужны, и вы можете их отключать.
+
+---
+
+# ActionTestMachine — главный инструмент тестов
+
+ActionTestMachine — наследник ActionProductMachine, но специально адаптированный:
+
+- работает полностью синхронно;
+- позволяет подменять любые зависимости;
+- автоматически оборачивает моки в MockAction, если это BaseResult или функция;
+- полностью повторяет логику ActionMachine, кроме плагинов.
+
+ActionTestMachine получила высокий рейтинг качества (класс — A, методы — A) [1].
+
+Пример инициализации:
+
+```python
+machine = ActionTestMachine({
+    UserRepository: FakeUserRepo(),
+    EmailService: FakeEmail(),
+})
+```
+
+Теперь любое действие, которое зависит от этих портов, получит нужные моки.
+
+---
+
+# Тестирование аспектов
+
+Каждый аспект — обычный метод класса.  
+Вы можете тестировать их напрямую, без машины.
+
+Это делает тесты очень быстрыми и простыми.
+
+```python
+factory = machine.build_factory(MyAction)
+action = MyAction()
+
+params = MyAction.Params(...)
+state = {}
+
+new_state = action.some_aspect(params, state, factory)
+
+assert new_state["value"] == 42
+```
+
+Это единственный подход, который позволяет тестировать конвейер по частям.
+
+---
+
+# Тестирование целого действия
+
+Чтобы протестировать действие целиком, используйте `machine.run(action, params)`:
+
+```python
+machine = ActionTestMachine({
+    EmailService: FakeEmail(),
+    SmsService: FakeSms(),
+})
+
+action = NotificationAction()
+params = NotificationAction.Params(channel="email", message="Hi", recipient="x@y.z")
+
+result = machine.run(action, params)
+
+assert result.success is True
+assert fake_email.sent == [("x@y.z", "Hi")]
+```
+
+В этом случае:
+
+- запустятся все аспекты,
+- зависимости будут подставлены,
+- вызов вложенных действий будет корректно обработан,
+- состояние пройдёт по конвейеру,
+- summary‑аспект вернёт Result.
+
+---
+
+# Мокирование зависимостей
+
+ActionTestMachine умеет подменять зависимости несколькими способами.
+
+## 1. Экземпляр BaseAction
+
+```python
+machine = ActionTestMachine({
+    SomeAction: MockSomeAction()
+})
+```
+
+## 2. BaseResult → превращается в MockAction
+
+```python
+machine = ActionTestMachine({
+    ChildAction: ChildAction.Result(999)
+})
+```
+
+При вызове:
+
+- в любом run_action результат будет возвращён сразу,
+- аспекты ChildAction не будут выполнены.
+
+Это идеальный способ «выключить» вложенные действия.
+
+## 3. side_effect — функция
+
+```python
+machine = ActionTestMachine({
+    ChildAction: lambda params: ChildAction.Result(params.value * 3)
+})
+```
+
+Это позволяет динамически вычислять результат в зависимости от входных данных.
+
+---
+
+# MockAction — специализированный мок действия
+
+MockAction:
+
+- запоминает параметры последнего вызова;
+- считает количество вызовов;
+- может возвращать фиксированный результат;
+- может вызывать side_effect.
+
+MockAction получил рейтинг A (run — A, init — A) [1].
+
+Пример:
+
+```python
+mock = MockAction(result=ChildAction.Result(10))
+
+machine = ActionTestMachine({ChildAction: mock})
+result = machine.run(ParentAction(), ParentAction.Params(5))
+
+assert mock.call_count == 1
+```
+
+---
+
+# Тестирование вложенных действий
+
+Вложенные действия полностью поддерживаются, включая моки:
+
+```python
+machine = ActionTestMachine({
+    ChildAction: ChildAction.Result(20)
+})
+
+result = machine.run(ParentAction(), ParentAction.Params(5))
+
+assert result.result == 30  # 20 + 10
+```
+
+ActionMachine корректно вызывает run_action() через фабрику [2], и подмена подхватывается автоматически.
+
+---
+
+# Тестирование чекеров
+
+Чекеры привязаны к:
+
+- Params (валидация входных данных),
+- аспектам (валидация результата).
+
+Чекеры можно тестировать отдельно:
+
+```python
+checker = IntFieldChecker("value", desc="Value", min_value=1)
+checker.check({"value": 5})
+```
+
+Чекеры реализованы качественно (рейтинг A у всех основных реализаций) [1].
+
+---
+
+# Тестирование ошибок
+
+Вы можете проверять:
+
+- ошибки валидации (ValidationFieldException) [1],
+- ошибки авторизации (AuthorizationException) [1],
+- ошибки логики (HandleException),
+- ошибки ресурса (TransactionException).
+
+Пример:
+
+```python
+with pytest.raises(AuthorizationException):
+    machine.run(SecureAction(), Secure.Params(...))
+```
+
+ActionMachine строго проверяет роли через `_check_action_roles` (рейтинг A) [1].
+
+---
+
+# Тестирование плагинов
+
+Обычно плагины тестируют косвенно — проверяя их вывод или состояние.
+
+Так как плагины вызываются через `_run_plugins_async` (B) и `_run_single_handler` (A) [1], структура событий остаётся стабильной.
+
+Пример:
+
+```python
+machine = ActionTestMachine(context=Context())
+machine._plugins.append(ConsoleLoggingPlugin())
+
+machine.run(ParentAction(), ParentAction.Params(5))
+
+# проверяем вывод или состояние плагина
+```
+
+---
+
+# Стратегия написания тестов в AOA
+
+Рекомендуемый порядок:
+
+1. **Тесты Params**  
+   — проверка валидаторов и типов.
+
+2. **Тесты отдельных аспектов**  
+   — быстрые юнит‑тесты для бизнес‑логики.
+
+3. **Тесты полного действия**  
+   — проверка, что все аспекты работают вместе.
+
+4. **Тесты вложенных действий**  
+   — проверка, что композиция корректна.
+
+5. **Интеграционные тесты ресурсов**  
+   — если нужно проверить API/БД.
+
+---
+
+# Пример комплексного тестирования
+
+```python
+def test_process_order():
+    machine = ActionTestMachine({
+        ProductRepository: FakeProductRepo(),
+        OrderRepository: FakeOrderRepo(),
+        EmailService: FakeEmail(),
+    })
+
+    action = ProcessOrderAction()
+    params = ProcessOrderParams(
+        user_id=1,
+        items=[{"product_id": 10, "quantity": 2}],
+        payment_method="card"
+    )
+
+    result = machine.run(action, params)
+
+    assert result.order_id == 42
+    assert fake_email.sent_count == 1
+```
+
+---
+
+# Итог
+
+Тестирование в AOA — это:
+
+- быстро,
+- просто,
+- предсказуемо,
+- изолировано,
+- надёжно.
+
+ActionEngine даёт готовый инструментарий:
+
+- ActionTestMachine — A‑качество [1],
+- MockAction — A‑качество [1],
+- строгий DI,
+- неизменяемые Params и Result,
+- линейный pipeline.
+
+Благодаря этому тестируемость становится естественным свойством архитектуры, а не дополнительным бременем.
+```
 
 
 ################################################################################
@@ -4645,6 +4960,206 @@ code.txt
 MockAction
 Тестовый Action, который считает вызовы и возвращает предопределённый результат 
 
+
+
+################################################################################
+# Файл: /Users/bystrovmaxim/PythonDev/kanban_assistant/z/readme_2/29. external_di_integration.md
+################################################################################
+
+```markdown
+29. external_di_integration.md
+
+# Интеграция с внешними DI-контейнерами
+
+AOA предоставляет встроенный механизм внедрения зависимостей через декоратор `@depends` и фабрику `DependencyFactory` (подробно описано в [di.md](di.md)).  
+Однако в реальных проектах часто уже используются сторонние DI-контейнеры — например, `inject`, FastAPI `Depends`, ручные контейнеры или специализированные библиотеки.  
+Возникает вопрос: как задействовать существующий контейнер, не переписывая весь код и не отказываясь от преимуществ AOA?
+
+Ответ — параметр `factory` декоратора `@depends`. Он позволяет передать функцию, которая будет вызвана для создания экземпляра зависимости. Внутри этой функции можно обратиться к внешнему контейнеру и получить уже сконфигурированный объект.
+
+В этой главе мы на практическом примере покажем, как интегрировать библиотеку `inject` — простой, но мощный DI-контейнер для Python.
+
+---
+
+# 1. Что даёт параметр `factory`
+
+Декоратор `@depends` имеет следующую сигнатуру (упрощённо):
+
+```python
+def depends(klass: Type[Any], *, description: str = "", factory: Optional[Callable[[], Any]] = None)
+```
+
+- `klass` — класс зависимости (может быть интерфейсом, сервисом, репозиторием и т.д.).
+- `factory` — опциональная функция без аргументов, которая **должна вернуть готовый экземпляр** зависимости.
+
+Если `factory` не указана, `DependencyFactory` создаёт объект через вызов конструктора `klass()`.  
+Если `factory` передана, фабрика вызовет её при первом обращении к зависимости и закэширует результат на всё время выполнения действия.
+
+Это открывает возможности:
+
+- использовать любой внешний DI-контейнер для получения уже сконфигурированных объектов;
+- реализовать сложную логику создания (выбор реализации, подгрузка конфигурации);
+- подменять зависимости в тестах, не трогая код действий.
+
+---
+
+# 2. Пример: интеграция с библиотекой `inject`
+
+## 2.1. Установка `inject`
+
+```bash
+pip install inject
+```
+
+## 2.2. Сервис, требующий конфигурации
+
+Предположим, у нас есть класс `DatabaseService`, который требует строку подключения. Обычно такие параметры задаются при конфигурации приложения.
+
+```python
+class DatabaseService:
+    def __init__(self, connection_string: str):
+        self.connection_string = connection_string
+
+    def query(self, sql: str) -> str:
+        return f"Executing '{sql}' on {self.connection_string}"
+```
+
+## 2.3. Настройка `inject`
+
+В точке входа приложения (например, при старте FastAPI или в отдельном модуле) мы конфигурируем `inject` так, чтобы при запросе `DatabaseService` возвращался экземпляр с нужной строкой подключения.
+
+```python
+import inject
+
+def configure_inject(binder: inject.Binder) -> None:
+    binder.bind(DatabaseService, DatabaseService("postgresql://localhost:5432/mydb"))
+
+inject.configure(configure_inject)
+```
+
+## 2.4. Действие, использующее `factory`
+
+Теперь создадим действие, которое зависит от `DatabaseService`, но получает его через `inject`. Укажем в `@depends` параметр `factory`, который вызывает `inject.instance(DatabaseService)`.
+
+```python
+from dataclasses import dataclass
+from ActionMachine.Core import BaseAction, BaseParams, BaseResult, summary_aspect, depends
+from ActionMachine.Auth.CheckRoles import CheckRoles
+
+@depends(DatabaseService, factory=lambda: inject.instance(DatabaseService))
+@CheckRoles(CheckRoles.ANY, desc="Доступно любому аутентифицированному пользователю")
+class QueryAction(BaseAction['QueryAction.Params', 'QueryAction.Result']):
+
+    @dataclass(frozen=True)
+    class Params(BaseParams):
+        sql: str
+
+    @dataclass(frozen=True)
+    class Result(BaseResult):
+        output: str
+
+    @summary_aspect("Выполнить запрос через сервис из inject")
+    def execute(self, params: Params, state, deps) -> Result:
+        db_service = deps.get(DatabaseService)   # здесь вызовётся наша factory
+        output = db_service.query(params.sql)
+        return QueryAction.Result(output)
+```
+
+**Что происходит:**
+
+- При первом обращении к `deps.get(DatabaseService)` фабрика `lambda: inject.instance(DatabaseService)` вызывает `inject.instance(DatabaseService)`.
+- `inject` возвращает экземпляр `DatabaseService`, созданный во время конфигурации.
+- Фабрика кэширует этот объект, поэтому все последующие вызовы `get` в рамках одного выполнения действия получат тот же экземпляр.
+
+## 2.5. Запуск действия
+
+```python
+from ActionMachine.Core import ActionProductMachine
+from ActionMachine.Context import Context
+
+machine = ActionProductMachine(context=Context())
+params = QueryAction.Params(sql="SELECT * FROM users")
+result = machine.run(QueryAction(), params)
+print(result.output)  # Executing 'SELECT * FROM users' on postgresql://localhost:5432/mydb
+```
+
+## 2.6. Тестирование с подменой
+
+Для тестирования мы можем либо переконфигурировать `inject` (что не всегда удобно), либо просто не использовать `factory` в тестовой машине. Самый простой способ — передать мок напрямую в `ActionTestMachine`, как мы делали ранее. Поскольку `ActionTestMachine` подменяет зависимости через свой словарь моков, вызов `deps.get(DatabaseService)` вернёт мок, а не результат `inject`. Это не требует изменения кода действия.
+
+```python
+from ActionMachine.Core import ActionTestMachine
+
+mock_db = DatabaseService("test_connection")
+machine = ActionTestMachine({DatabaseService: mock_db})
+result = machine.run(QueryAction(), params)
+```
+
+---
+
+# 3. Альтернативные способы интеграции
+
+## 3.1. Адаптер-ресурс
+
+Вместо прямой фабрики можно создать ресурсный менеджер, который внутри использует внешний контейнер, и уже его объявить через обычный `@depends`. Этот способ предпочтительнее, если логика доступа к контейнеру сложна или требуется состояние.
+
+```python
+class InjectDatabaseService:
+    def get(self) -> DatabaseService:
+        return inject.instance(DatabaseService)
+
+@depends(InjectDatabaseService)
+class QueryAction(BaseAction):
+    @summary_aspect("...")
+    def execute(self, params, state, deps):
+        db_service = deps.get(InjectDatabaseService).get()
+        ...
+```
+
+## 3.2. Кастомизация `DependencyFactory`
+
+Можно переопределить фабрику зависимостей для всей машины, чтобы она при необходимости обращалась к внешнему контейнеру. Этот метод сложнее, но даёт полный контроль.
+
+```python
+def custom_factory(dep_class):
+    if dep_class in external_container:
+        return external_container[dep_class]
+    # иначе стандартное поведение
+    return dep_class()
+
+machine = ActionProductMachine(context, dependency_factory=custom_factory)
+```
+
+Однако такой подход требует модификации машины и менее прозрачен.
+
+---
+
+# 4. Когда использовать `factory`
+
+- **Миграция легаси** — у вас уже есть готовый контейнер, и вы не хотите переписывать код инициализации.
+- **Сложная логика создания** — объект требует дополнительных шагов, которые удобно вынести в отдельную функцию.
+- **Интеграция с популярными DI-библиотеками** (inject, dependency-injector, FastAPI Depends и др.).
+- **Тестирование** — можно подменить фабрику, возвращающую мок, без изменения действия (хотя проще использовать `ActionTestMachine`).
+
+Не стоит использовать `factory` для простых случаев, где достаточно конструктора по умолчанию — это добавляет лишнюю сложность.
+
+---
+
+# 5. Предостережения
+
+- **Фабрика вызывается один раз** за выполнение действия, и результат кэшируется. Убедитесь, что ваша фабрика не имеет побочных эффектов и возвращает один и тот же объект при повторных вызовах в рамках одного действия (или, если нужны разные объекты, придётся реализовать иначе).
+- **Не злоупотребляйте** — слишком частое использование `factory` может запутать архитектуру. Старайтесь, чтобы зависимости были явными и легко заменяемыми.
+- **Типизация** — `factory` должна возвращать объект, совместимый с `klass`. Mypy не проверит это автоматически, но можно использовать `cast` или протоколы.
+
+---
+
+# 6. Заключение
+
+Параметр `factory` в декораторе `@depends` — мощный инструмент, позволяющий интегрировать AOA с любым внешним DI-контейнером практически без усилий. Это делает ActionEngine гибким и открытым для использования в существующих проектах, сохраняя все преимущества чистой архитектуры: тестируемость, прозрачность и предсказуемость.
+
+В следующей главе мы рассмотрим ещё один продвинутый сценарий — управление транзакциями с учётом вложенности действий.
+
+```
 
 
 ################################################################################
