@@ -43,3 +43,8 @@ class ConnectionAlreadyOpenError(TransactionException):
 class ConnectionNotOpenError(TransactionException):
     """Соединение не открыто (попытка выполнить операцию без открытого соединения)."""
     pass
+
+
+class TransactionProhibitedError(TransactionException):
+    """Выбрасывается при попытке управления транзакцией на вложенном уровне."""
+    pass
