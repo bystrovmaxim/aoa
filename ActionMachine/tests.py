@@ -118,8 +118,8 @@ class NotificationState(TypedDict, total=False):
         service: экземпляр EmailService или SmsService, выбранный в аспекте choose_channel.
         selected_channel: строковое имя канала ('email' или 'sms'), выбранного в аспекте choose_channel.
     """
-    service: Any            # EmailService | SmsService — аспект choose_channel
-    selected_channel: str   # 'email' | 'sms' — аспект choose_channel
+    service: Any             # EmailService | SmsService — аспект choose_channel
+    selected_channel: str    # 'email' | 'sms' — аспект choose_channel  # noqa: vulture
 
 
 class ChildState(TypedDict, total=False):
@@ -129,7 +129,7 @@ class ChildState(TypedDict, total=False):
     Ключи:
         prepared: флаг, что подготовка выполнена (аспект prepare).
     """
-    prepared: bool  # аспект prepare
+    prepared: bool  # аспект prepare  # noqa: vulture
 
 
 class ParentState(TypedDict, total=False):
@@ -178,7 +178,7 @@ class NotificationAction(BaseAction['NotificationAction.Params', 'NotificationAc
     @StringFieldChecker("selected_channel", desc="Канал, который был выбран", required=False)
     async def choose_channel(
         self, params: Params, state: NotificationState,
-        deps: DependencyFactory, connections: Connections
+        deps: DependencyFactory, connections: Dict[str, BaseResourceManager]
     ) -> NotificationState:
         """
         Выбирает сервис на основе канала и сохраняет его в state.
@@ -204,7 +204,7 @@ class NotificationAction(BaseAction['NotificationAction.Params', 'NotificationAc
     @summary_aspect("Отправка")
     async def send(
         self, params: Params, state: NotificationState,
-        deps: DependencyFactory, connections: Connections
+        deps: DependencyFactory, connections: Dict[str, BaseResourceManager]
     ) -> Result:
         """
         Отправляет уведомление через выбранный сервис.
@@ -235,7 +235,7 @@ class ChildAction(BaseAction['ChildAction.Params', 'ChildAction.Result']):
     @BoolFieldChecker("prepared", desc="Флаг подготовки", required=True)
     async def prepare(
         self, params: Params, state: ChildState,
-        deps: DependencyFactory, connections: Connections
+        deps: DependencyFactory, connections: Dict[str, BaseResourceManager]
     ) -> ChildState:
         """
         Аспект подготовки: устанавливает флаг prepared в True.
@@ -250,7 +250,7 @@ class ChildAction(BaseAction['ChildAction.Params', 'ChildAction.Result']):
     @summary_aspect("Удвоить")
     async def handle(
         self, params: Params, state: ChildState,
-        deps: DependencyFactory, connections: Connections
+        deps: DependencyFactory, connections: Dict[str, BaseResourceManager]
     ) -> Result:
         """
         Основная логика: удваивает число.
@@ -280,7 +280,7 @@ class ParentAction(BaseAction['ParentAction.Params', 'ParentAction.Result']):
     @aspect("Задержка")
     async def delay(
         self, params: Params, state: ParentState,
-        deps: DependencyFactory, connections: Connections
+        deps: DependencyFactory, connections: Dict[str, BaseResourceManager]
     ) -> ParentState:
         """
         Аспект с небольшой задержкой (имитация работы).
@@ -298,7 +298,7 @@ class ParentAction(BaseAction['ParentAction.Params', 'ParentAction.Result']):
     @IntFieldChecker("child_result", desc="Результат дочернего действия", required=True)
     async def extra_check(
         self, params: Params, state: ParentState,
-        deps: DependencyFactory, connections: Connections
+        deps: DependencyFactory, connections: Dict[str, BaseResourceManager]
     ) -> ParentState:
         """
         Аспект, вызывающий дочернее действие и сохраняющий результат.
@@ -308,12 +308,16 @@ class ParentAction(BaseAction['ParentAction.Params', 'ParentAction.Result']):
         Чекер IntFieldChecker гарантирует, что значение — целое число.
 
         Разработчик сам решает, какие соединения передать в дочернее действие.
-        В данном примере connections прокидывается как есть.
+        В данном примере connections прокидывается как есть (приведён к dict).
         """
         print("\033[91m[ParentAction] Аспект 'extra_check' начинает дочернее действие\033[0m")
         child_result = cast(
             ChildAction.Result,
-            await deps.run_action(ChildAction, ChildAction.Params(params.num), connections=connections)
+            await deps.run_action(
+                ChildAction,
+                ChildAction.Params(params.num),
+                connections=dict(connections),
+            )
         )
         print(f"\033[91m[ParentAction] Аспект 'extra_check' завершился, результат дочернего: {child_result}\033[0m")
         return ParentState(child_result=child_result.doubled)
@@ -321,7 +325,7 @@ class ParentAction(BaseAction['ParentAction.Params', 'ParentAction.Result']):
     @summary_aspect("Родитель")
     async def handle(
         self, params: Params, state: ParentState,
-        deps: DependencyFactory, connections: Connections
+        deps: DependencyFactory, connections: Dict[str, BaseResourceManager]
     ) -> Result:
         """
         Основная логика: вызывает дочернее действие и прибавляет 10.
@@ -333,7 +337,11 @@ class ParentAction(BaseAction['ParentAction.Params', 'ParentAction.Result']):
         """
         child_result = cast(
             ChildAction.Result,
-            await deps.run_action(ChildAction, ChildAction.Params(params.num), connections=connections)
+            await deps.run_action(
+                ChildAction,
+                ChildAction.Params(params.num),
+                connections=dict(connections),
+            )
         )
         assert isinstance(child_result, ChildAction.Result)
         return ParentAction.Result(child_result.doubled + 10)
@@ -433,8 +441,8 @@ async def test_choose_channel_aspect() -> None:
     factory: DependencyFactory = machine.build_factory(NotificationAction)
     action: NotificationAction = NotificationAction()
 
-    # При прямом вызове аспекта в тесте передаём пустой connections
-    empty_conns: Connections = Connections()
+    # При прямом вызове аспекта в тесте передаём пустой connections (обычный dict)
+    empty_conns: Dict[str, BaseResourceManager] = {}
 
     params = NotificationAction.Params(channel='email', message='hi', recipient='a@b.c')
     state: NotificationState = NotificationState()
@@ -459,8 +467,8 @@ async def test_choose_channel_aspect_unknown() -> None:
     action: NotificationAction = NotificationAction()
     params = NotificationAction.Params(channel='fax', message='hi', recipient='x')
 
-    # При прямом вызове аспекта в тесте передаём пустой connections
-    empty_conns: Connections = Connections()
+    # При прямом вызове аспекта в тесте передаём пустой connections (обычный dict)
+    empty_conns: Dict[str, BaseResourceManager] = {}
 
     with pytest.raises(ValueError, match="Unknown channel"):
         await action.choose_channel(params, NotificationState(), factory, empty_conns)
@@ -606,7 +614,7 @@ class ActionWithInject(BaseAction['ActionWithInject.Params', 'ActionWithInject.R
     @summary_aspect("Использование сервиса из inject")
     async def execute(
         self, params: Params, state: InjectState,
-        deps: DependencyFactory, connections: Connections
+        deps: DependencyFactory, connections: Dict[str, BaseResourceManager]
     ) -> Result:
         """
         Выполняет запрос через сервис из inject.
