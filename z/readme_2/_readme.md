@@ -5615,6 +5615,720 @@ ActionEngine с самого начала спроектирован для ас
 
 
 ################################################################################
+# Файл: /Users/bystrovmaxim/PythonDev/kanban_assistant/z/readme_2/31. creare_new_manager_resource.md
+################################################################################
+
+# Глава 1. Создание собственного менеджера ресурсов
+
+Ресурсные менеджеры в ActionEngine — это адаптеры к внешним системам: базам данных, API-клиентам, файловым хранилищам, очередям сообщений и любым другим источникам, требующим управления соединениями, сессиями или транзакциями.
+
+ActionEngine предоставляет чёткую архитектуру для создания таких адаптеров, основанную на трёх взаимосвязанных компонентах:
+
+1. **Интерфейс** — определяет контракт, который обязан реализовать любой менеджер для данного типа ресурса.
+2. **Конкретный класс** — содержит реальную логику работы с внешней системой (открытие соединения, выполнение запросов, фиксация транзакций).
+3. **Прокси-обёртка (wrapper)** — автоматически подставляется при передаче ресурса в дочерние действия и блокирует опасные операции (управление транзакциями), разрешая только безопасные (выполнение запросов).
+
+Такое разделение гарантирует, что только действие-владелец ресурса может управлять его жизненным циклом, а вложенные действия не смогут случайно закрыть соединение или зафиксировать транзакцию [1].
+
+---
+
+## 1. Зачем нужны три класса
+
+В традиционных фреймворках менеджер соединения — это один класс, который делает всё: открывает соединение, выполняет запросы, управляет транзакциями. Это удобно, но создаёт проблему: если передать такой объект в вложенное действие, оно может случайно вызвать `commit()` или `rollback()`, разрушив транзакцию родительского действия.
+
+ActionEngine решает эту проблему архитектурно:
+
+- **Интерфейс** описывает *что* умеет ресурс — набор методов, доступных бизнес-логике.
+- **Конкретный класс** реализует *как* работает ресурс — реальные вызовы к библиотеке (asyncpg, aiomysql, httpx и т.д.).
+- **Прокси-обёртка** контролирует *кому* разрешены какие операции — блокирует управление транзакциями на вложенных уровнях, но пропускает выполнение запросов.
+
+Конкретный класс остаётся простым и сосредоточенным на своей прямой задаче, а безопасность вложенных вызовов обеспечивается на уровне прокси [1].
+
+---
+
+## 2. Иерархия классов
+
+Все ресурсные менеджеры строятся по единой иерархии:
+
+```
+BaseResourceManager                   ← маркерный класс, определяет get_wrapper_class()
+    ↑
+IConnectionManager                    ← интерфейс для конкретного типа ресурса (БД, API и т.д.)
+    ↑
+PostgresConnectionManager             ← конкретная реализация (asyncpg)
+WrapperConnectionManager              ← прокси-обёртка (блокирует транзакции)
+```
+
+- **`BaseResourceManager`** — абстрактный базовый класс для всех ресурсов. Содержит единственный абстрактный метод `get_wrapper_class()`, который должен вернуть класс прокси-обёртки для данного ресурса [1].
+- **Интерфейс** (например, `IConnectionManager`) — наследует `BaseResourceManager` и определяет конкретные методы: `open()`, `commit()`, `rollback()`, `execute()` [1].
+- **Конкретный класс** (например, `PostgresConnectionManager`) — реализует интерфейс, используя реальную библиотеку. Метод `get_wrapper_class()` возвращает класс прокси [1].
+- **Прокси-обёртка** (например, `WrapperConnectionManager`) — реализует тот же интерфейс, но блокирует опасные методы и делегирует безопасные [1].
+
+---
+
+## 3. Пошаговое создание: менеджер для MySQL
+
+Рассмотрим создание полноценного менеджера для MySQL с использованием библиотеки `aiomysql`. Тот же паттерн применим для любой внешней системы.
+
+### 3.1. Создание интерфейса
+
+Интерфейс наследует `BaseResourceManager` и объявляет все методы, которые будут доступны действиям. Включайте только те методы, которые действительно нужны бизнес-логике — не нужно копировать весь API библиотеки.
+
+```python
+# ResourceManagers/IMySQLConnectionManager.py
+
+from abc import abstractmethod
+from typing import Any, Optional, Tuple
+from .BaseResourceManager import BaseResourceManager
+
+
+class IMySQLConnectionManager(BaseResourceManager):
+    """
+    Интерфейс менеджера соединения с MySQL.
+
+    Определяет контракт для всех реализаций: реальных менеджеров
+    и прокси-обёрток. Действия работают с этим интерфейсом,
+    а не с конкретными реализациями.
+    """
+
+    @abstractmethod
+    async def open(self) -> None:
+        """Открыть соединение с базой данных."""
+        pass
+
+    @abstractmethod
+    async def commit(self) -> None:
+        """Зафиксировать транзакцию."""
+        pass
+
+    @abstractmethod
+    async def rollback(self) -> None:
+        """Откатить транзакцию."""
+        pass
+
+    @abstractmethod
+    async def execute(
+        self, query: str, params: Optional[Tuple[Any, ...]] = None
+    ) -> Any:
+        """Выполнить SQL-запрос и вернуть результат."""
+        pass
+```
+
+### 3.2. Реализация конкретного менеджера
+
+Конкретный класс реализует все методы интерфейса, используя реальную библиотеку. Ошибки оборачиваются в `HandleException` — единообразное исключение ActionEngine для инфраструктурных ошибок [1].
+
+Ключевой метод — `get_wrapper_class()`: он возвращает класс прокси-обёртки, которая будет создана при передаче ресурса в дочернее действие.
+
+```python
+# ResourceManagers/MySQLConnectionManager.py
+
+import aiomysql
+from typing import Any, Dict, Optional, Tuple, Type
+from ActionMachine.Core.Exceptions import HandleException
+from .IMySQLConnectionManager import IMySQLConnectionManager
+
+
+class MySQLConnectionManager(IMySQLConnectionManager):
+    """
+    Реальный менеджер соединения с MySQL.
+
+    Выполняет непосредственную работу с aiomysql: подключение,
+    выполнение запросов, управление транзакциями.
+    """
+
+    def __init__(self, connection_params: Dict[str, Any]):
+        """
+        :param connection_params: параметры для aiomysql.connect
+                                  (host, port, user, password, db и т.д.)
+        """
+        self._params = connection_params
+        self._conn: Optional[aiomysql.Connection] = None
+
+    async def open(self) -> None:
+        """Открывает соединение с MySQL."""
+        try:
+            self._conn = await aiomysql.connect(**self._params)
+        except Exception as e:
+            raise HandleException(f"Ошибка подключения к MySQL: {e}") from e
+
+    async def commit(self) -> None:
+        """Фиксирует транзакцию."""
+        if self._conn is None:
+            raise HandleException("Соединение не открыто")
+        try:
+            await self._conn.commit()
+        except Exception as e:
+            raise HandleException(f"Ошибка при commit: {e}") from e
+
+    async def rollback(self) -> None:
+        """Откатывает транзакцию."""
+        if self._conn is None:
+            raise HandleException("Соединение не открыто")
+        try:
+            await self._conn.rollback()
+        except Exception as e:
+            raise HandleException(f"Ошибка при rollback: {e}") from e
+
+    async def execute(
+        self, query: str, params: Optional[Tuple[Any, ...]] = None
+    ) -> Any:
+        """Выполняет SQL-запрос."""
+        if self._conn is None:
+            raise HandleException("Соединение не открыто")
+        try:
+            async with self._conn.cursor() as cur:
+                await cur.execute(query, params)
+                if query.strip().upper().startswith("SELECT"):
+                    return await cur.fetchall()
+                return cur.rowcount
+        except Exception as e:
+            raise HandleException(f"Ошибка выполнения SQL: {e}") from e
+
+    def get_wrapper_class(self) -> Optional[Type['IMySQLConnectionManager']]:
+        """
+        Возвращает класс прокси-обёртки для передачи в дочерние действия.
+
+        Когда этот ресурс передаётся через connections в deps.run_action(),
+        DependencyFactory автоматически создаст экземпляр этого класса,
+        передав текущий менеджер в конструктор.
+        """
+        from .MySQLConnectionWrapper import MySQLConnectionWrapper
+        return MySQLConnectionWrapper
+```
+
+### 3.3. Создание прокси-обёртки
+
+Прокси реализует тот же интерфейс, но блокирует методы управления транзакциями, выбрасывая `TransactionProhibitedError` [1]. Метод `execute()` делегируется оригинальному объекту — дочернее действие может выполнять запросы, но не может управлять транзакцией.
+
+```python
+# ResourceManagers/MySQLConnectionWrapper.py
+
+from typing import Any, Optional, Tuple, Type
+from ActionMachine.Core.Exceptions import TransactionProhibitedError, HandleException
+from .IMySQLConnectionManager import IMySQLConnectionManager
+
+
+class MySQLConnectionWrapper(IMySQLConnectionManager):
+    """
+    Прокси-обёртка для менеджера соединения с MySQL.
+
+    Запрещает управление транзакциями (open, commit, rollback)
+    на вложенных уровнях, но разрешает выполнение запросов (execute).
+    Создаётся автоматически при передаче ресурса в дочернее действие.
+    """
+
+    def __init__(self, connection_manager: IMySQLConnectionManager):
+        """
+        :param connection_manager: оригинальный менеджер соединения
+                                   (или другая обёртка при глубокой вложенности)
+        """
+        self._connection_manager = connection_manager
+
+    async def open(self) -> None:
+        raise TransactionProhibitedError(
+            "Открытие соединения разрешено только в том действии, "
+            "где ресурс был создан. Текущее действие получило ресурс "
+            "через прокси, поэтому open недоступен."
+        )
+
+    async def commit(self) -> None:
+        raise TransactionProhibitedError(
+            "Фиксация транзакции разрешена только в том действии, "
+            "где ресурс был создан. Текущее действие получило ресурс "
+            "через прокси, поэтому commit недоступен."
+        )
+
+    async def rollback(self) -> None:
+        raise TransactionProhibitedError(
+            "Откат транзакции разрешён только в том действии, "
+            "где ресурс был создан. Текущее действие получило ресурс "
+            "через прокси, поэтому rollback недоступен."
+        )
+
+    async def execute(
+        self, query: str, params: Optional[Tuple[Any, ...]] = None
+    ) -> Any:
+        """Делегирует выполнение запроса оригинальному менеджеру."""
+        try:
+            return await self._connection_manager.execute(query, params)
+        except Exception as e:
+            raise HandleException(f"Ошибка выполнения SQL: {e}") from e
+
+    def get_wrapper_class(self) -> Optional[Type['IMySQLConnectionManager']]:
+        """
+        Прокси-обёртка возвращает свой же класс.
+
+        При дальнейшей вложенности (дочернее действие передаёт ресурс
+        в ещё одно дочернее действие) будет создана обёртка вокруг обёртки.
+        Это гарантирует, что на любом уровне вложенности управление
+        транзакциями остаётся запрещённым.
+        """
+        return MySQLConnectionWrapper
+```
+
+---
+
+## 4. Как работает автоматическое оборачивание
+
+Когда действие передаёт connections в дочернее действие через `deps.run_action()`, происходит следующее [1]:
+
+1. `DependencyFactory._wrap_connections()` проходит по каждому connection в словаре.
+2. Для каждого connection вызывается `connection.get_wrapper_class()`.
+3. Если класс-обёртка возвращён (не `None`), создаётся экземпляр обёртки с оригинальным connection в конструкторе.
+4. Новый словарь с обёрнутыми connections передаётся в `machine.run()` дочернего действия.
+5. Машина передаёт обёрнутый словарь во все аспекты дочернего действия.
+
+При дальнейшей вложенности обёртка оборачивается снова — `execute()` по-прежнему делегируется к реальному соединению через цепочку проксей, а `commit()`/`rollback()`/`open()` запрещены на любом уровне.
+
+---
+
+## 5. Контрольный список для создания нового ресурса
+
+При создании менеджера для любой внешней системы следуйте этому списку:
+
+| Шаг | Что сделать | Зачем |
+|-----|------------|-------|
+| 1 | Создать интерфейс, наследующий `BaseResourceManager` | Определить контракт для бизнес-логики |
+| 2 | Реализовать конкретный класс | Инкапсулировать реальную работу с внешней системой |
+| 3 | Реализовать `get_wrapper_class()` в конкретном классе | Указать, какой прокси использовать для дочерних действий |
+| 4 | Создать прокси-обёртку с тем же интерфейсом | Заблокировать опасные методы, делегировать безопасные |
+| 5 | В прокси реализовать `get_wrapper_class()` (вернуть свой же класс или `None`) | Обеспечить корректное поведение при глубокой вложенности |
+
+Этот паттерн применим не только к базам данных, но и к любым ресурсам: HTTP-клиентам, файловым хранилищам, очередям сообщений, кешам. Главное — разделить «опасные» методы (управление жизненным циклом) и «безопасные» (выполнение операций).
+
+
+################################################################################
+# Файл: /Users/bystrovmaxim/PythonDev/kanban_assistant/z/readme_2/32. manage_transaction.md
+################################################################################
+
+# Глава 2. Управление транзакциями в AOA
+
+Управление транзакциями в ActionEngine построено на принципе **явности без магии**: разработчик всегда видит, где транзакция открывается, где фиксируется, где откатывается и какие именно соединения передаются в дочерние действия.
+
+В отличие от большинства фреймворков, где транзакции либо навязываются автоматически (одна транзакция на HTTP-запрос), либо управляются через скрытые декораторы (`@transactional`), AOA делает транзакцию частью бизнес-логики — явной, контролируемой и тестируемой [1].
+
+---
+
+## 1. Принципы управления транзакциями
+
+Три ключевых принципа:
+
+1. **Явное создание и управление.** Действие-владелец само создаёт соединение, открывает его, начинает транзакцию, фиксирует или откатывает. Никакого автоматического `begin` при входе в действие.
+
+2. **Явная передача в дочерние действия.** Разработчик сам решает, какие connections передать в дочернее действие через словарь `connections`. Никакого «текущего контекста транзакции».
+
+3. **Автоматическая защита вложенных уровней.** При передаче в дочернее действие каждый connection автоматически оборачивается в прокси, который запрещает `open()`, `commit()`, `rollback()`, но разрешает `execute()` [1].
+
+---
+
+## 2. Создание соединения в корневом действии
+
+Корневое действие — это действие, которое **владеет** соединением. Оно отвечает за весь жизненный цикл: открытие, управление транзакцией, закрытие.
+
+### 2.1. Объявление зависимости
+
+Ресурсный менеджер объявляется через `@depends`. Поскольку менеджер соединения обычно требует параметров подключения (строка соединения, хост, порт), используется параметр `factory` [1]:
+
+```python
+from dataclasses import dataclass
+from typing import Any, Dict
+from typing_extensions import TypedDict
+
+from ActionMachine.Core.BaseAction import BaseAction
+from ActionMachine.Core.BaseParams import BaseParams
+from ActionMachine.Core.BaseResult import BaseResult
+from ActionMachine.Core.AspectMethod import aspect, summary_aspect, depends, connection
+from ActionMachine.Core.DependencyFactory import DependencyFactory
+from ActionMachine.Auth.CheckRoles import CheckRoles
+from ActionMachine.ResourceManagers.BaseResourceManager import BaseResourceManager
+from ActionMachine.ResourceManagers.IConnectionManager import IConnectionManager
+from ActionMachine.ResourceManagers.PostgresConnectionManager import PostgresConnectionManager
+```
+
+### 2.2. Полная структура корневого действия
+
+Рассмотрим действие, которое создаёт заказ в базе данных и вызывает дочернее действие для отправки уведомления — всё в рамках одной транзакции.
+
+```python
+# ---------- TypedDict для state ----------
+
+class CreateOrderState(TypedDict, total=False):
+    """
+    Пространство возможных ключей state для CreateOrderAction.
+
+    Ключи:
+        order_id: ID созданного заказа (аспект insert_order).
+    """
+    order_id: int
+
+
+# ---------- TypedDict для connections ----------
+
+class CreateOrderConnections(TypedDict, total=False):
+    """
+    Connections для CreateOrderAction.
+
+    Ключи:
+        connection: основное соединение с БД (PostgreSQL).
+    """
+    connection: IConnectionManager
+
+
+# ---------- Действие ----------
+
+@depends(PostgresConnectionManager,
+         factory=lambda: PostgresConnectionManager({
+             "host": "localhost",
+             "port": 5432,
+             "user": "app",
+             "password": "secret",
+             "database": "shop"
+         }))
+@depends(SendNotificationAction, description="Дочернее действие для уведомлений")
+@connection("connection", PostgresConnectionManager,
+            description="Основное соединение с БД")
+@CheckRoles(CheckRoles.ANY, desc="Доступно аутентифицированным пользователям")
+class CreateOrderAction(
+    BaseAction['CreateOrderAction.Params', 'CreateOrderAction.Result']
+):
+    """
+    Создание заказа с явным управлением транзакцией.
+
+    Действие-владелец соединения: открывает, управляет транзакцией,
+    передаёт в дочернее действие и фиксирует или откатывает.
+    """
+
+    @dataclass(frozen=True)
+    class Params(BaseParams):
+        user_id: int
+        product_id: int
+        quantity: int
+
+    @dataclass(frozen=True)
+    class Result(BaseResult):
+        order_id: int
+        notification_sent: bool
+```
+
+### 2.3. Аспект открытия соединения и начала транзакции
+
+Первый аспект корневого действия отвечает за создание соединения, его открытие и начало транзакции. Соединение помещается в `connections`, чтобы все последующие аспекты имели к нему доступ:
+
+```python
+    @aspect("Открыть соединение")
+    async def open_connection(
+        self, params: Params, state: CreateOrderState,
+        deps: DependencyFactory, connections: CreateOrderConnections
+    ) -> CreateOrderState:
+        """
+        Создаёт соединение с PostgreSQL, открывает его
+        и начинает транзакцию.
+
+        Это первый аспект — state пустой, connections содержит
+        соединение, объявленное через @connection.
+        Действие-владелец имеет полный доступ к open/commit/rollback.
+        """
+        db = connections["connection"]
+        await db.open()
+        return CreateOrderState()
+```
+
+**Важно:** соединение доступно через `connections["connection"]` — ключ совпадает с именем, указанным в декораторе `@connection`. Аспект без чекеров обязан вернуть пустой dict [1].
+
+### 2.4. Аспект бизнес-логики
+
+Следующие аспекты выполняют бизнес-операции, используя соединение из `connections`:
+
+```python
+    @aspect("Создать заказ")
+    @IntFieldChecker("order_id", desc="ID созданного заказа", required=True)
+    async def insert_order(
+        self, params: Params, state: CreateOrderState,
+        deps: DependencyFactory, connections: CreateOrderConnections
+    ) -> CreateOrderState:
+        """
+        Вставляет запись заказа в базу данных.
+
+        Использует соединение из connections. Транзакция уже начата
+        в предыдущем аспекте — здесь только выполнение запросов.
+        """
+        db = connections["connection"]
+        result = await db.execute(
+            "INSERT INTO orders (user_id, product_id, quantity) "
+            "VALUES ($1, $2, $3) RETURNING id",
+            (params.user_id, params.product_id, params.quantity)
+        )
+        return CreateOrderState(order_id=result)
+```
+
+### 2.5. Аспект с вызовом дочернего действия
+
+Разработчик **сам решает**, какие connections передать в дочернее действие. При передаче каждый connection автоматически оборачивается в прокси [1]:
+
+```python
+    @aspect("Отправить уведомление")
+    async def send_notification(
+        self, params: Params, state: CreateOrderState,
+        deps: DependencyFactory, connections: CreateOrderConnections
+    ) -> CreateOrderState:
+        """
+        Вызывает дочернее действие для отправки уведомления.
+
+        Передаёт соединение в дочернее действие через connections.
+        DependencyFactory автоматически обернёт его в прокси:
+        - execute() будет работать (INSERT в таблицу уведомлений),
+        - commit()/rollback()/open() выбросят TransactionProhibitedError.
+
+        Разработчик явно выбирает, какие connections передать.
+        """
+        await deps.run_action(
+            SendNotificationAction,
+            SendNotificationAction.Params(
+                user_id=params.user_id,
+                order_id=state["order_id"],
+            ),
+            connections={"connection": connections["connection"]}
+        )
+        return state
+```
+
+### 2.6. Summary-аспект: фиксация транзакции
+
+Summary-аспект фиксирует транзакцию и возвращает Result. Если на любом предыдущем этапе произошла ошибка, summary не будет вызван, и разработчик может обработать откат в обработчике ошибок:
+
+```python
+    @summary_aspect("Завершить транзакцию")
+    async def finish(
+        self, params: Params, state: CreateOrderState,
+        deps: DependencyFactory, connections: CreateOrderConnections
+    ) -> Result:
+        """
+        Фиксирует транзакцию и возвращает результат.
+
+        Если на любом предыдущем шаге произошло исключение,
+        этот аспект не будет вызван — транзакция останется незафиксированной.
+        Обработка rollback выполняется на уровне вызывающего кода
+        или обработчика ошибок.
+        """
+        db = connections["connection"]
+        await db.commit()
+        return CreateOrderAction.Result(
+            order_id=state["order_id"],
+            notification_sent=True
+        )
+```
+
+---
+
+## 3. Получение соединения в дочернем действии
+
+Дочернее действие **не создаёт** соединение — оно получает его через `connections`. При этом вместо реального менеджера приходит прокси-обёртка, которая запрещает управление транзакцией [1].
+
+```python
+# ---------- TypedDict для state дочернего действия ----------
+
+class SendNotificationState(TypedDict, total=False):
+    """State для SendNotificationAction."""
+    pass
+
+
+# ---------- Дочернее действие ----------
+
+@connection("connection", IConnectionManager,
+            description="Соединение с БД (получено от родителя)")
+@CheckRoles(CheckRoles.ANY, desc="Доступно аутентифицированным пользователям")
+class SendNotificationAction(
+    BaseAction['SendNotificationAction.Params', 'SendNotificationAction.Result']
+):
+    """
+    Отправка уведомления о заказе.
+
+    Дочернее действие: получает соединение через connections.
+    Соединение приходит как прокси-обёртка — execute() работает,
+    commit()/rollback()/open() запрещены.
+    """
+
+    @dataclass(frozen=True)
+    class Params(BaseParams):
+        user_id: int
+        order_id: int
+
+    @dataclass(frozen=True)
+    class Result(BaseResult):
+        sent: bool
+
+    @summary_aspect("Записать уведомление")
+    async def handle(
+        self, params: Params, state: SendNotificationState,
+        deps: DependencyFactory, connections: Connections
+    ) -> Result:
+        """
+        Вставляет запись уведомления в БД.
+
+        connections["connection"] — это прокси-обёртка:
+        - await db.execute(...) → работает, запрос выполняется
+          через реальное соединение родительского действия
+        - await db.commit()    → TransactionProhibitedError
+        - await db.rollback()  → TransactionProhibitedError
+        - await db.open()      → TransactionProhibitedError
+
+        Все записи попадают в транзакцию родительского действия.
+        """
+        db = connections["connection"]
+        await db.execute(
+            "INSERT INTO notifications (user_id, order_id, type) "
+            "VALUES ($1, $2, $3)",
+            (params.user_id, params.order_id, "order_created")
+        )
+        return SendNotificationAction.Result(sent=True)
+```
+
+### Что происходит при вызове
+
+1. `CreateOrderAction` вызывает `deps.run_action(SendNotificationAction, ..., connections={...})`.
+2. `DependencyFactory._wrap_connections()` для каждого connection вызывает `get_wrapper_class()` [1].
+3. `PostgresConnectionManager.get_wrapper_class()` возвращает `WrapperConnectionManager`.
+4. Создаётся `WrapperConnectionManager(original_connection)`.
+5. Новый словарь `{"connection": wrapper}` передаётся в `machine.run()`.
+6. Машина проверяет соответствие connections и `@connection` деклараций [1].
+7. Все аспекты `SendNotificationAction` получают прокси в `connections["connection"]`.
+
+### Глубокая вложенность
+
+Если дочернее действие передаёт connections дальше (в «внучатое» действие), прокси оборачивается снова. `execute()` по-прежнему делегируется к реальному соединению через цепочку проксей, а `commit()`/`rollback()`/`open()` запрещены на любом уровне [1].
+
+---
+
+## 4. Валидация connections
+
+ActionMachine выполняет строгую проверку соответствия переданных connections и объявленных через `@connection` декораторы [1]. Проверка происходит в `_check_connections()` **до** выполнения аспектов, сразу после проверки ролей:
+
+| Ситуация | Результат |
+|----------|-----------|
+| Действие объявило `@connection("connection", ...)`, передали `{"connection": pg}` | ✅ Ок |
+| Действие объявило `@connection("connection", ...)`, передали `{}` или `None` | ❌ `ConnectionValidationError` |
+| Действие **не** объявило `@connection`, передали `{"connection": pg}` | ❌ `ConnectionValidationError` |
+| Действие объявило `@connection("connection", ...)`, передали `{"connection": pg, "extra": redis}` | ❌ `ConnectionValidationError` — лишний ключ |
+| Действие **не** объявило `@connection`, передали `{}` или `None` | ✅ Ок |
+
+Эта валидация аналогична тому, как машина проверяет чекеры для state — объявленное через декораторы должно **точно совпадать** с тем, что реально присутствует [1].
+
+---
+
+## 5. Паттерн «транзакция с откатом при ошибке»
+
+В реальных приложениях необходимо обрабатывать ошибки и выполнять `rollback()`. Поскольку ActionEngine не навязывает автоматических транзакций, разработчик полностью контролирует этот процесс:
+
+```python
+@aspect("Открыть соединение")
+async def open_connection(
+    self, params: Params, state: OrderState,
+    deps: DependencyFactory, connections: OrderConnections
+) -> OrderState:
+    db = connections["connection"]
+    await db.open()
+    return OrderState()
+
+
+@summary_aspect("Выполнить и зафиксировать")
+async def handle(
+    self, params: Params, state: OrderState,
+    deps: DependencyFactory, connections: OrderConnections
+) -> Result:
+    db = connections["connection"]
+    try:
+        await db.execute("INSERT INTO orders ...")
+        await db.execute("UPDATE inventory ...")
+        await db.commit()
+        return OrderResult(success=True)
+    except Exception:
+        await db.rollback()
+        raise
+```
+
+Здесь `try/except` с явным `rollback()` — не магия, а прозрачный контроль. Разработчик всегда видит, что происходит с транзакцией.
+
+---
+
+## 6. Несколько соединений в одном действии
+
+Если действию нужно работать с несколькими базами данных или разными ресурсами, создаётся расширенный `TypedDict` для connections:
+
+```python
+class MultiDbConnections(TypedDict, total=False):
+    """Connections для действия с двумя БД."""
+    connection: IConnectionManager       # основная БД
+    analytics_db: IConnectionManager     # аналитическая БД
+
+
+@connection("connection", PostgresConnectionManager,
+            description="Основная БД")
+@connection("analytics_db", ClickHouseConnectionManager,
+            description="Аналитика")
+@CheckRoles(CheckRoles.ANY, desc="...")
+class DualDbAction(BaseAction[...]):
+
+    @aspect("Записать в обе БД")
+    async def write(
+        self, params, state, deps, connections: MultiDbConnections
+    ):
+        main_db = connections["connection"]
+        analytics = connections["analytics_db"]
+        await main_db.execute("INSERT INTO orders ...")
+        await analytics.execute("INSERT INTO events ...")
+        return state
+```
+
+При передаче в дочернее действие разработчик выбирает, какие из них прокинуть:
+
+```python
+# Передать только основное соединение
+await deps.run_action(
+    ChildAction, params,
+    connections={"connection": connections["connection"]}
+)
+
+# Передать оба
+await deps.run_action(
+    FullChildAction, params,
+    connections={
+        "connection": connections["connection"],
+        "analytics_db": connections["analytics_db"],
+    }
+)
+```
+
+---
+
+## 7. Сравнение с традиционными подходами
+
+| Критерий | Традиционный фреймворк | AOA (ActionEngine) |
+|----------|------------------------|--------------------|
+| Начало транзакции | Автоматически (декоратор, middleware) | Явно: `await db.open()` |
+| Фиксация | Автоматически при успехе | Явно: `await db.commit()` |
+| Откат | Автоматически при ошибке | Явно: `await db.rollback()` |
+| Видимость | Скрыта за магией | Видна в коде аспекта |
+| Вложенные вызовы | Неявный savepoint или новая транзакция | Прокси блокирует управление |
+| Тестирование | Сложно — нужна БД или сложные моки | Просто — MockAction, ActionTestMachine |
+| Несколько БД | Требует конфигурации | Несколько ключей в connections |
+
+---
+
+## 8. Итог
+
+Управление транзакциями в AOA основано на трёх принципах:
+
+1. **Явность.** Разработчик сам открывает, фиксирует и откатывает транзакции — никакой скрытой магии.
+
+2. **Безопасность.** При передаче соединения в дочернее действие оно автоматически оборачивается в прокси, запрещающий управление транзакцией. Это гарантировано архитектурой, а не соглашением [1].
+
+3. **Прозрачность.** Всегда видно, какое соединение куда передаётся, кто им владеет и кто может управлять транзакцией.
+
+Такой подход даёт **полный контроль** без boilerplate-кода и особенно ценен для систем со сложными сценариями согласованности данных, распределёнными транзакциями и глубокой вложенностью действий.
+
+
+################################################################################
 # Файл: /Users/bystrovmaxim/PythonDev/kanban_assistant/z/readme_2/4. architecture_overview.md
 ################################################################################
 
