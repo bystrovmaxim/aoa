@@ -1,10 +1,9 @@
-# ActionMachine/Auth/ContextAssembler.py
 """
 Абстрактный сборщик метаданных запроса.
 
-Конкретные реализации должны извлекать из объекта запроса (Request для FastAPI,
-словаря для MCP и т.д.) все метаданные, которые впоследствии будут использованы
-для формирования RequestInfo в контексте.
+Конкретные реализации должны извлекать из объекта запроса все метаданные,
+которые впоследствии будут использованы для формирования RequestInfo в контексте.
+Все методы асинхронные для возможности выполнения I/O-операций.
 """
 
 from abc import ABC, abstractmethod
@@ -21,11 +20,14 @@ class ContextAssembler(ABC):
     """
 
     @abstractmethod
-    def assemble(self, request_data: Any) -> Dict[str, Any]:
+    async def assemble(self, request_data: Any) -> Dict[str, Any]:
         """
-        Извлекает метаданные из запроса.
+        Асинхронно извлекает метаданные из запроса.
 
-        :param request_data: объект запроса (например, fastapi.Request)
-        :return: словарь с метаданными для последующего создания RequestInfo
+        Аргументы:
+            request_data: объект запроса (например, fastapi.Request)
+
+        Возвращает:
+            Словарь с метаданными для последующего создания RequestInfo.
         """
         pass
