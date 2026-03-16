@@ -1,16 +1,18 @@
-# ActionMachine/Core/BaseResult.py
 """
 Базовый класс для результата выполнения действия.
+
+Реализует протокол WritableDataProtocol через WritableMixin.
+Обеспечивает единый dict-доступ для чтения и записи.
 """
 
-from abc import ABC
+from .DataAccessMixins import WritableMixin
 
 
-class BaseResult(ABC):
+class BaseResult(WritableMixin):
     """
-    Абстрактный базовый класс для всех результатов действия.
+    Результат действия.
 
-    Все классы результатов должны наследоваться от этого класса.
-    Обычно реализуется как неизменяемый dataclass.
+    Наследуйте этот класс для создания конкретных результатов.
+    Может быть изменяемым (например, для плагинов).
     """
     pass

@@ -1,36 +1,28 @@
-# ActionMachine/Core/BaseAction.py
 """
-Базовый класс для всех действий в ActionMachine.
+Базовый класс для всех действий ActionMachine.
 
-Действия не имеют состояния — все данные передаются через params и state.
-Наследники определяют свои аспекты с помощью декораторов @aspect и @summary_aspect.
+Действия параметризованы типами Params и Result, которые должны
+соответствовать протоколам ReadableDataProtocol и WritableDataProtocol.
 """
 
 from abc import ABC
-from typing import Generic, TypeVar, Any, Dict, List, Optional
+from typing import Generic, TypeVar, Any, Optional
 
-from ActionMachine.Core.BaseParams import BaseParams
-from ActionMachine.Core.BaseResult import BaseResult
+from ActionMachine.Core.Protocols import ReadableDataProtocol, WritableDataProtocol
 
-P = TypeVar('P', bound=BaseParams)
-R = TypeVar('R', bound=BaseResult)
+P = TypeVar('P', bound=ReadableDataProtocol)
+R = TypeVar('R', bound=WritableDataProtocol)
 
 
 class BaseAction(Generic[P, R], ABC):
     """
-    Базовый класс для всех действий.
+    Базовое действие.
 
-    Наследники определяют свои аспекты с помощью декораторов.
-    Действия не имеют состояния — все данные передаются через params и state.
-
-    Атрибуты класса:
-        _dependencies (List[Dict[str, Any]]): Кэш списка зависимостей, объявленных через декоратор @depends.
-            Заполняется автоматически декоратором. Не предназначен для ручного изменения.
-        _full_class_name (Optional[str]): Кэш полного имени класса (модуль + имя).
-            Вычисляется лениво при первом вызове get_full_class_name().
+    Наследники определяют аспекты с помощью декораторов @aspect и @summary_aspect.
+    Не содержит состояния — все данные передаются через params и state.
     """
 
-    _dependencies: List[Dict[str, Any]] = []
+    _dependencies: list[dict[str, Any]] = []
     _full_class_name: Optional[str] = None
 
     def get_full_class_name(self) -> str:

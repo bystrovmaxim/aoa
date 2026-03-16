@@ -50,3 +50,8 @@ selected_channel
 prepared
 ActionMachine.ResourceManagers.Connections.Connections
 ActionMachine.tests.Connections
+ActionMachine.Core.DataAccessMixins.ReadableMixin.values
+ActionMachine.Core.Protocols.ReadableDataProtocol.values
+ActionMachine.tests.NotificationState.channel
+ActionMachine.tests.NotificationState.recipient
+ActionMachine.tests.ChildState.num

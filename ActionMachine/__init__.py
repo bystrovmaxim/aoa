@@ -1,4 +1,3 @@
-# ActionMachine/__init__.py
 """
 ActionMachine – ядро фреймворка действий.
 Экспортирует основные классы для создания действий, валидации, проверки прав и работы с транзакциями.
@@ -12,8 +11,10 @@ from .Core.Exceptions import (
     TransactionException,
     ConnectionAlreadyOpenError,
     ConnectionNotOpenError,
-    TransactionProhibitedError,   # <-- добавлено
+    TransactionProhibitedError,
 )
+from .Core.Protocols import ReadableDataProtocol, WritableDataProtocol
+from .Core.DataAccessMixins import ReadableMixin, WritableMixin
 
 # ConnectionManagers
 from .ResourceManagers.WrapperConnectionManager import WrapperConnectionManager
@@ -27,19 +28,18 @@ from .Checkers.BoolFieldChecker import BoolFieldChecker
 from .Checkers.DateFieldChecker import DateFieldChecker
 from .Checkers.InstanceOfChecker import InstanceOfChecker
 
-# Context – компоненты и классы
+# Context
 from .Context.UserInfo import UserInfo
 from .Context.RequestInfo import RequestInfo
 from .Context.EnvironmentInfo import EnvironmentInfo
 from .Context.Context import Context
 
-# Auth – классы аутентификации
+# Auth
 from .Auth.CheckRoles import CheckRoles
 from .Auth.Authenticator import Authenticator
 from .Auth.CredentialExtractor import CredentialExtractor
 from .Auth.ContextAssembler import ContextAssembler
 from .Auth.AuthCoordinator import AuthCoordinator
-
 
 __all__ = [
     # Exceptions
@@ -49,7 +49,13 @@ __all__ = [
     'TransactionException',
     'ConnectionAlreadyOpenError',
     'ConnectionNotOpenError',
-    'TransactionProhibitedError',   # <-- добавлено
+    'TransactionProhibitedError',
+
+    # Protocols and Mixins
+    'ReadableDataProtocol',
+    'WritableDataProtocol',
+    'ReadableMixin',
+    'WritableMixin',
 
     # ConnectionManagers
     'WrapperConnectionManager',

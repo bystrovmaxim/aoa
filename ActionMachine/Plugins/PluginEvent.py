@@ -1,13 +1,12 @@
-# ActionMachine/Plugins/PluginEvent.py
 """
 Dataclass для передачи данных события в плагины.
 Содержит всю информацию о текущем событии выполнения действия.
 """
 
 from dataclasses import dataclass
-from typing import Any, Dict, Optional
-from ActionMachine.Core.BaseParams import BaseParams
-from ActionMachine.Core.BaseResult import BaseResult
+from typing import Optional
+
+from ActionMachine.Core.Protocols import ReadableDataProtocol, WritableDataProtocol
 from ActionMachine.Core.DependencyFactory import DependencyFactory
 from ActionMachine.Context.Context import Context
 
@@ -29,15 +28,16 @@ class PluginEvent:
     action_name: str
     """Полное имя класса действия (включая модуль), для которого произошло событие."""
 
-    params: BaseParams
-    """Входные параметры действия (неизменяемый объект Params)."""
+    params: ReadableDataProtocol
+    """Входные параметры действия (неизменяемый объект, соответствующий ReadableDataProtocol)."""
 
-    state_aspect: Optional[Dict[str, Any]]
+    state_aspect: Optional[dict[str, object]]
     """
     Состояние (state) на момент события.
     Для before-событий – состояние до выполнения аспекта.
     Для after-событий – состояние после выполнения аспекта.
     Для global_start и global_finish может быть None или содержать финальное состояние.
+    Всегда dict (или None), так как state теперь строго TypedDict/словарь.
     """
 
     is_summary: bool
@@ -49,7 +49,7 @@ class PluginEvent:
     context: Context
     """Контекст выполнения (информация о пользователе, запросе, окружении)."""
 
-    result: Optional[BaseResult]
+    result: Optional[WritableDataProtocol]
     """
     Результат выполнения действия (для событий global_finish).
     Для остальных событий – None.
