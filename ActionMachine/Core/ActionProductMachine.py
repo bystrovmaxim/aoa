@@ -288,12 +288,19 @@ class ActionProductMachine(BaseActionMachine):
 
     # ---------- Вспомогательные методы для запуска плагинов ----------
 
-    def _init_plugin_states(self) -> None:
-        """Инициализирует состояния всех плагинов для текущего запуска."""
+    async def _init_plugin_states(self) -> None:
+        """
+        Асинхронно инициализирует состояния всех плагинов для текущего запуска.
+        Синхронный метод get_initial_state() выполняется в отдельном потоке,
+        чтобы не блокировать event loop.
+        """
+        loop = asyncio.get_running_loop()
         for plugin in self._plugins:
             plugin_id = id(plugin)
             if plugin_id not in self._plugin_states:
-                self._plugin_states[plugin_id] = plugin.get_initial_state()
+                # Выполняем синхронный метод в executor
+                state = await loop.run_in_executor(None, plugin.get_initial_state)
+                self._plugin_states[plugin_id] = state
 
     async def _run_single_handler(
         self,
@@ -344,7 +351,8 @@ class ActionProductMachine(BaseActionMachine):
         if not handlers:
             return
 
-        self._init_plugin_states()
+        # Инициализируем состояния плагинов асинхронно
+        await self._init_plugin_states()
 
         event = PluginEvent(
             event_name=event_name,
