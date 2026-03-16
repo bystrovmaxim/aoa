@@ -53,7 +53,7 @@ ConsoleLogger наследует BaseLogger и реализует единств
     - message — текст сообщения с выполненными подстановками.
 """
 
-from typing import Optional
+from typing import Optional, Any
 
 from ActionMachine.Logging.BaseLogger import BaseLogger
 from ActionMachine.Logging.LogScope import LogScope
@@ -204,9 +204,9 @@ class ConsoleLogger(BaseLogger):
         self,
         scope: LogScope,
         message: str,
-        var: dict,
+        var: dict[str, Any],
         context: Context,
-        state: dict,
+        state: dict[str, Any],
         params: BaseParams,
         indent: int,
     ) -> None:

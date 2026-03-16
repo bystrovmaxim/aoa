@@ -56,6 +56,9 @@ class LogScope:
     кешируется лениво при первом вызове.
     """
 
+    _data: dict[str, str]
+    _cached_path: Optional[str]
+
     def __init__(self, **kwargs: str) -> None:
         """
         Создаёт скоуп из произвольного набора именованных аргументов.

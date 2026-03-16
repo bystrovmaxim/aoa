@@ -1,4 +1,4 @@
-# ActionMachine/Logging/tests.py
+# ActionMachine/tests.py
 """
 Тесты для системы логирования AOA.
 
@@ -16,15 +16,13 @@ BaseLogger, ConsoleLogger, LogCoordinator.
 
 import sys
 import os
-from typing import Optional
+from typing import Optional, Any
 from dataclasses import dataclass
-from typing import Any
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import pytest
 
-from ActionMachine.Core.ReadableMixin import ReadableMixin
 from ActionMachine.Core.BaseParams import BaseParams
 from ActionMachine.Context.UserInfo import UserInfo
 from ActionMachine.Context.RequestInfo import RequestInfo
@@ -42,7 +40,7 @@ from ActionMachine.Logging.LogCoordinator import LogCoordinator
 
 
 @dataclass(frozen=True)
-class TestParams(BaseParams):
+class Params_Test(BaseParams):
     """Тестовые параметры для проверки подстановки переменных."""
     user_id: int = 42
     card_token: str = "tok_test_abc"
@@ -72,9 +70,9 @@ class RecordingLogger(BaseLogger):
         self,
         scope: LogScope,
         message: str,
-        var: dict,
+        var: dict[str, Any],
         context: Context,
-        state: dict,
+        state: dict[str, Any],
         params: BaseParams,
         indent: int,
     ) -> None:
@@ -306,7 +304,7 @@ class TestBaseLogger:
         logger = RecordingLogger()
         scope = LogScope(action="TestAction")
         ctx = make_context()
-        params = TestParams()
+        params = Params_Test()
 
         await logger.handle(scope, "Test message", {}, ctx, {}, params, 0)
 
@@ -319,7 +317,7 @@ class TestBaseLogger:
         logger = RecordingLogger(filters=[r"TestAction"])
         scope = LogScope(action="TestAction")
         ctx = make_context()
-        params = TestParams()
+        params = Params_Test()
 
         await logger.handle(scope, "Hello", {}, ctx, {}, params, 0)
 
@@ -331,7 +329,7 @@ class TestBaseLogger:
         logger = RecordingLogger(filters=[r"PaymentAction"])
         scope = LogScope(action="TestAction")
         ctx = make_context()
-        params = TestParams()
+        params = Params_Test()
 
         await logger.handle(scope, "Hello", {}, ctx, {}, params, 0)
 
@@ -343,7 +341,7 @@ class TestBaseLogger:
         logger = RecordingLogger(filters=[r"NoMatch", r"TestAction"])
         scope = LogScope(action="TestAction")
         ctx = make_context()
-        params = TestParams()
+        params = Params_Test()
 
         await logger.handle(scope, "Hello", {}, ctx, {}, params, 0)
 
@@ -355,7 +353,7 @@ class TestBaseLogger:
         logger = RecordingLogger(filters=[r"amount=1500"])
         scope = LogScope(action="TestAction")
         ctx = make_context()
-        params = TestParams()
+        params = Params_Test()
 
         await logger.handle(
             scope, "Payment", {"amount": 1500}, ctx, {}, params, 0
@@ -369,7 +367,7 @@ class TestBaseLogger:
         logger = RecordingLogger()
         scope = LogScope(action="A", aspect="B")
         ctx = make_context()
-        params = TestParams()
+        params = Params_Test()
         state = {"total": 100}
         var = {"key": "value"}
 
@@ -399,7 +397,7 @@ class TestConsoleLogger:
         logger = ConsoleLogger(use_colors=False)
         scope = LogScope(action="MyAction", aspect="load")
         ctx = make_context()
-        params = TestParams()
+        params = Params_Test()
 
         await logger.write(scope, "Hello world", {}, ctx, {}, params, 0)
 
@@ -412,7 +410,7 @@ class TestConsoleLogger:
         logger = ConsoleLogger(use_colors=False)
         scope = LogScope(action="MyAction")
         ctx = make_context()
-        params = TestParams()
+        params = Params_Test()
 
         await logger.write(scope, "Indented", {}, ctx, {}, params, 3)
 
@@ -425,7 +423,7 @@ class TestConsoleLogger:
         logger = ConsoleLogger(use_colors=False)
         scope = LogScope()
         ctx = make_context()
-        params = TestParams()
+        params = Params_Test()
 
         await logger.write(scope, "No scope", {}, ctx, {}, params, 0)
 
@@ -439,7 +437,7 @@ class TestConsoleLogger:
         logger = ConsoleLogger(use_colors=True)
         scope = LogScope(action="MyAction")
         ctx = make_context()
-        params = TestParams()
+        params = Params_Test()
 
         await logger.write(scope, "value=<none>", {}, ctx, {}, params, 0)
 
@@ -453,7 +451,7 @@ class TestConsoleLogger:
         logger = ConsoleLogger(use_colors=False)
         scope = LogScope(action="MyAction")
         ctx = make_context()
-        params = TestParams()
+        params = Params_Test()
 
         await logger.write(scope, "Clean text", {}, ctx, {}, params, 0)
 
@@ -476,7 +474,7 @@ class TestLogCoordinator:
         coordinator = LogCoordinator(loggers=[logger])
         scope = LogScope(action="TestAction")
         ctx = make_context()
-        params = TestParams()
+        params = Params_Test()
 
         await coordinator.emit(
             message="Count is {%var.count}",
@@ -497,7 +495,7 @@ class TestLogCoordinator:
         coordinator = LogCoordinator(loggers=[logger])
         scope = LogScope(action="TestAction")
         ctx = make_context(user_id="agent_007")
-        params = TestParams()
+        params = Params_Test()
 
         await coordinator.emit(
             message="User: {%context.user.user_id}",
@@ -518,7 +516,7 @@ class TestLogCoordinator:
         coordinator = LogCoordinator(loggers=[logger])
         scope = LogScope(action="TestAction")
         ctx = make_context()
-        params = TestParams(amount=999.99)
+        params = Params_Test(amount=999.99)
 
         await coordinator.emit(
             message="Amount: {%params.amount}",
@@ -539,7 +537,7 @@ class TestLogCoordinator:
         coordinator = LogCoordinator(loggers=[logger])
         scope = LogScope(action="TestAction")
         ctx = make_context()
-        params = TestParams()
+        params = Params_Test()
 
         await coordinator.emit(
             message="Total: {%state.total}",
@@ -560,7 +558,7 @@ class TestLogCoordinator:
         coordinator = LogCoordinator(loggers=[logger])
         scope = LogScope(action="ProcessOrder", aspect="validate")
         ctx = make_context()
-        params = TestParams()
+        params = Params_Test()
 
         await coordinator.emit(
             message="Action: {%scope.action}",
@@ -581,7 +579,7 @@ class TestLogCoordinator:
         coordinator = LogCoordinator(loggers=[logger])
         scope = LogScope(action="TestAction")
         ctx = make_context()
-        params = TestParams()
+        params = Params_Test()
 
         await coordinator.emit(
             message="Missing: {%var.nonexistent}",
@@ -602,7 +600,7 @@ class TestLogCoordinator:
         coordinator = LogCoordinator(loggers=[logger])
         scope = LogScope(action="TestAction")
         ctx = make_context()
-        params = TestParams()
+        params = Params_Test()
 
         await coordinator.emit(
             message="Deep: {%context.user.nonexistent.field}",
@@ -623,7 +621,7 @@ class TestLogCoordinator:
         coordinator = LogCoordinator(loggers=[logger])
         scope = LogScope(action="TestAction")
         ctx = make_context()
-        params = TestParams()
+        params = Params_Test()
 
         await coordinator.emit(
             message="Unknown: {%unknown.field}",
@@ -644,7 +642,7 @@ class TestLogCoordinator:
         coordinator = LogCoordinator(loggers=[logger])
         scope = LogScope(action="TestAction")
         ctx = make_context()
-        params = TestParams()
+        params = Params_Test()
 
         await coordinator.emit(
             message="Plain text without variables",
@@ -665,7 +663,7 @@ class TestLogCoordinator:
         coordinator = LogCoordinator(loggers=[logger])
         scope = LogScope(action="TestAction")
         ctx = make_context(user_id="user_42")
-        params = TestParams(amount=100.0)
+        params = Params_Test(amount=100.0)
 
         await coordinator.emit(
             message="User {%context.user.user_id} paid {%params.amount} for {%var.item}",
@@ -687,7 +685,7 @@ class TestLogCoordinator:
         coordinator = LogCoordinator(loggers=[logger1, logger2])
         scope = LogScope(action="TestAction")
         ctx = make_context()
-        params = TestParams()
+        params = Params_Test()
 
         await coordinator.emit(
             message="Broadcast",
@@ -712,7 +710,7 @@ class TestLogCoordinator:
         coordinator = LogCoordinator(loggers=[logger_all, logger_payment])
         scope = LogScope(action="OrderAction")
         ctx = make_context()
-        params = TestParams()
+        params = Params_Test()
 
         await coordinator.emit(
             message="Order created",
@@ -736,7 +734,7 @@ class TestLogCoordinator:
 
         scope = LogScope(action="TestAction")
         ctx = make_context()
-        params = TestParams()
+        params = Params_Test()
 
         await coordinator.emit(
             message="After add",
@@ -756,7 +754,7 @@ class TestLogCoordinator:
         coordinator = LogCoordinator()
         scope = LogScope(action="TestAction")
         ctx = make_context()
-        params = TestParams()
+        params = Params_Test()
 
         # Не должно выбросить исключение
         await coordinator.emit(
@@ -776,7 +774,7 @@ class TestLogCoordinator:
         coordinator = LogCoordinator(loggers=[logger])
         scope = LogScope(action="TestAction")
         ctx = make_context()
-        params = TestParams()
+        params = Params_Test()
 
         await coordinator.emit(
             message="Indented",
@@ -797,7 +795,7 @@ class TestLogCoordinator:
         coordinator = LogCoordinator(loggers=[logger])
         scope = LogScope(action="TestAction")
         ctx = make_context()
-        params = TestParams()
+        params = Params_Test()
 
         await coordinator.emit(
             message="Nested: {%state.order.id}",
@@ -818,7 +816,7 @@ class TestLogCoordinator:
         coordinator = LogCoordinator(loggers=[logger])
         scope = LogScope(action="TestAction")
         ctx = make_context()
-        params = TestParams()
+        params = Params_Test()
 
         await coordinator.emit(
             message="Var nested: {%var.data.value}",
@@ -853,7 +851,7 @@ class TestIntegration:
         coordinator = LogCoordinator(loggers=[logger])
         scope = LogScope(action="ProcessOrder", aspect="charge")
         ctx = make_context(user_id="user_42")
-        params = TestParams(amount=1500.0)
+        params = Params_Test(amount=1500.0)
 
         await coordinator.emit(
             message="Charged {%params.amount} for user {%context.user.user_id}",
@@ -883,7 +881,7 @@ class TestIntegration:
         coordinator = LogCoordinator(loggers=[logger])
         scope = LogScope(action="TestAction")
         ctx = make_context()
-        params = TestParams()
+        params = Params_Test()
 
         await coordinator.emit(
             message="Missing value: {%var.missing}",
@@ -906,13 +904,15 @@ class TestIntegration:
         """
 
         class BrokenLogger(BaseLogger):
-            async def write(self, scope, message, var, context, state, params, indent):
+            async def write(self, scope: LogScope, message: str, var: dict[str, Any],
+                            context: Context, state: dict[str, Any],
+                            params: BaseParams, indent: int) -> None:
                 raise RuntimeError("Logger is broken")
 
         coordinator = LogCoordinator(loggers=[BrokenLogger()])
         scope = LogScope(action="TestAction")
         ctx = make_context()
-        params = TestParams()
+        params = Params_Test()
 
         with pytest.raises(RuntimeError, match="Logger is broken"):
             await coordinator.emit(
@@ -930,6 +930,5 @@ class TestIntegration:
 # Запуск
 # =====================================================================
 
-
-if __name__ == "__main__": # type: ignore[no-untyped-def]
+if __name__ == "__main__":
     pytest.main([__file__, "-v", "-s"])

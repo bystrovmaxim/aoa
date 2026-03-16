@@ -42,9 +42,9 @@ BaseLogger НЕ подавляет исключения. Если метод wri
 
 import re
 from abc import ABC, abstractmethod
-from typing import Optional
+from typing import Optional, Any
 
-from ActionMachine.Logging.LogScope import LogScope 
+from ActionMachine.Logging.LogScope import LogScope
 from ActionMachine.Context.Context import Context
 from ActionMachine.Core.BaseParams import BaseParams
 
@@ -93,7 +93,7 @@ class BaseLogger(ABC):
         self,
         scope: LogScope,
         message: str,
-        var: dict,
+        var: dict[str, Any],
     ) -> str:
         """
         Собирает строку контекста для проверки фильтрами.
@@ -142,9 +142,9 @@ class BaseLogger(ABC):
         self,
         scope: LogScope,
         message: str,
-        var: dict,
+        var: dict[str, Any],
         context: Context,
-        state: dict,
+        state: dict[str, Any],
         params: BaseParams,
         indent: int,
     ) -> bool:
@@ -203,9 +203,9 @@ class BaseLogger(ABC):
         self,
         scope: LogScope,
         message: str,
-        var: dict,
+        var: dict[str, Any],
         context: Context,
-        state: dict,
+        state: dict[str, Any],
         params: BaseParams,
         indent: int,
     ) -> None:
@@ -253,9 +253,9 @@ class BaseLogger(ABC):
         self,
         scope: LogScope,
         message: str,
-        var: dict,
+        var: dict[str, Any],
         context: Context,
-        state: dict,
+        state: dict[str, Any],
         params: BaseParams,
         indent: int,
     ) -> None:

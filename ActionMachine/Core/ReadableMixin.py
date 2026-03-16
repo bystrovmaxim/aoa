@@ -52,6 +52,8 @@ class ReadableMixin:
     с frozen dataclass.
     """
 
+    _resolve_cache: dict[str, object]
+
     def __getitem__(self, key: str) -> object:
         """
         Возвращает значение атрибута по имени ключа.
