@@ -3,20 +3,26 @@
 Тесты для системы логирования AOA.
 
 Покрывают все компоненты: ReadableMixin.resolve, LogScope,
-BaseLogger, ConsoleLogger, LogCoordinator.
+BaseLogger, ConsoleLogger, LogCoordinator, ExpressionEvaluator.
 
 Все тесты асинхронные, используют anyio.
 Проверяют подстановку переменных, фильтрацию через регулярные
-выражения, ANSI-раскраску, ленивое кеширование и рассылку
-сообщений по цепочке координатор → логер.
+выражения, ANSI-раскраску, ленивое кеширование, рассылку
+сообщений по цепочке координатор → логер, а также условную
+логику iif в шаблонах.
+
+Строгая политика ошибок: любая ошибка в шаблоне (несуществующая
+переменная, невалидный iif, неизвестный namespace) выбрасывает
+LogTemplateError. Тесты проверяют как успешные сценарии,
+так и корректный выброс исключений при ошибках.
 
 Никакого подавления исключений — если логер сломан, тест падает.
-Это сознательное решение в духе AOA [1].
+Это сознательное решение в духе AOA.
 """
 
 import sys
 import os
-from typing import Optional, Any
+from typing import Optional, Any, Dict
 from dataclasses import dataclass
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -24,6 +30,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import pytest
 
 from ActionMachine.Core.BaseParams import BaseParams
+from ActionMachine.Core.Exceptions import LogTemplateError
 from ActionMachine.Context.UserInfo import UserInfo
 from ActionMachine.Context.RequestInfo import RequestInfo
 from ActionMachine.Context.EnvironmentInfo import EnvironmentInfo
@@ -32,12 +39,12 @@ from ActionMachine.Logging.LogScope import LogScope
 from ActionMachine.Logging.BaseLogger import BaseLogger
 from ActionMachine.Logging.ConsoleLogger import ConsoleLogger
 from ActionMachine.Logging.LogCoordinator import LogCoordinator
+from ActionMachine.Logging.ExpressionEvaluator import ExpressionEvaluator
 
 
 # =====================================================================
 # Тестовые фикстуры и вспомогательные классы
 # =====================================================================
-
 
 @dataclass(frozen=True)
 class Params_Test(BaseParams):
@@ -70,9 +77,9 @@ class RecordingLogger(BaseLogger):
         self,
         scope: LogScope,
         message: str,
-        var: dict[str, Any],
+        var: Dict[str, Any],
         context: Context,
-        state: dict[str, Any],
+        state: Dict[str, Any],
         params: BaseParams,
         indent: int,
     ) -> None:
@@ -137,7 +144,6 @@ def make_context(
 # Тесты ReadableMixin.resolve
 # =====================================================================
 
-
 class TestReadableMixinResolve:
     """Тесты метода resolve в ReadableMixin."""
 
@@ -177,6 +183,7 @@ class TestReadableMixinResolve:
         result1 = user.resolve("user_id")
         result2 = user.resolve("user_id")
         assert result1 == result2 == "42"
+
         # Проверяем что кеш существует и содержит ключ
         assert "user_id" in user._resolve_cache
 
@@ -201,7 +208,6 @@ class TestReadableMixinResolve:
 # =====================================================================
 # Тесты LogScope
 # =====================================================================
-
 
 class TestLogScope:
     """Тесты класса LogScope."""
@@ -293,7 +299,6 @@ class TestLogScope:
 # =====================================================================
 # Тесты BaseLogger (через RecordingLogger)
 # =====================================================================
-
 
 class TestBaseLogger:
     """Тесты абстрактного BaseLogger через RecordingLogger."""
@@ -387,7 +392,6 @@ class TestBaseLogger:
 # Тесты ConsoleLogger
 # =====================================================================
 
-
 class TestConsoleLogger:
     """Тесты ConsoleLogger."""
 
@@ -442,6 +446,7 @@ class TestConsoleLogger:
         await logger.write(scope, "value=<none>", {}, ctx, {}, params, 0)
 
         captured = capsys.readouterr()
+
         # Проверяем наличие ANSI-кода красного цвета вокруг <none>
         assert "\033[31m<none>\033[0m" in captured.out
 
@@ -460,9 +465,241 @@ class TestConsoleLogger:
 
 
 # =====================================================================
-# Тесты LogCoordinator
+# Тесты ExpressionEvaluator
 # =====================================================================
 
+class TestExpressionEvaluator:
+    """Тесты вычислителя выражений для iif."""
+
+    # Указываем тип атрибута для pylint
+    evaluator: ExpressionEvaluator
+
+    def setup_method(self) -> None:
+        self.evaluator = ExpressionEvaluator()
+
+    def test_evaluate_simple_condition(self) -> None:
+        """Проверка простого условия с числами."""
+        names: Dict[str, Any] = {"amount": 1500}
+        result = self.evaluator.evaluate("amount > 1000", names)
+        assert result is True
+
+        result = self.evaluator.evaluate("amount <= 1000", names)
+        assert result is False
+
+    def test_evaluate_string_comparison(self) -> None:
+        """Проверка сравнения строк."""
+        names: Dict[str, Any] = {"status": "active"}
+        result = self.evaluator.evaluate("status == 'active'", names)
+        assert result is True
+
+        result = self.evaluator.evaluate("status != 'active'", names)
+        assert result is False
+
+    def test_evaluate_logical_operators(self) -> None:
+        """Проверка логических операторов."""
+        names = {"x": 5, "y": 10}
+        result = self.evaluator.evaluate("x > 3 and y < 20", names)
+        assert result is True
+
+        result = self.evaluator.evaluate("x > 10 or y < 5", names)
+        assert result is False
+
+    def test_evaluate_builtin_functions(self) -> None:
+        """Проверка встроенных функций len, upper, lower."""
+        names = {"text": "Hello", "items": [1, 2, 3]}
+        result = self.evaluator.evaluate("len(items)", names)
+        assert result == 3
+
+        result = self.evaluator.evaluate("upper(text)", names)
+        assert result == "HELLO"
+
+        result = self.evaluator.evaluate("lower(text)", names)
+        assert result == "hello"
+
+    def test_evaluate_format_number(self) -> None:
+        """Проверка функции format_number."""
+        names = {"value": 1234567.89}
+        result = self.evaluator.evaluate("format_number(value, 0)", names)
+
+        # Ожидаем "1,234,568" (округление)
+        assert result == "1,234,568"
+
+        result = self.evaluator.evaluate("format_number(value, 2)", names)
+        assert result == "1,234,567.89"
+
+    def test_iif_basic(self) -> None:
+        """Проверка базовой конструкции iif."""
+        names = {"amount": 1500}
+        result = self.evaluator.evaluate_iif(
+            "amount > 1000; 'HIGH'; 'LOW'", names
+        )
+        assert result == "HIGH"
+
+        names2 = {"amount": 500}
+        result = self.evaluator.evaluate_iif(
+            "amount > 1000; 'HIGH'; 'LOW'", names2
+        )
+        assert result == "LOW"
+
+    def test_iif_with_expressions_in_branches(self) -> None:
+        """Проверка iif с выражениями в ветках."""
+        names = {"value": 10}
+        result = self.evaluator.evaluate_iif(
+            "value > 5; value * 2; value / 2", names
+        )
+        assert result == "20"
+
+        names2 = {"value": 2}
+        result = self.evaluator.evaluate_iif(
+            "value > 5; value * 2; value / 2", names2
+        )
+        assert result == "1.0"
+
+    def test_iif_with_boolean_literals(self) -> None:
+        """Проверка iif с булевыми литералами True/False."""
+        names = {"success": True}
+        result = self.evaluator.evaluate_iif(
+            "success == True; 'OK'; 'FAIL'", names
+        )
+        assert result == "OK"
+
+        names2 = {"success": False}
+        result = self.evaluator.evaluate_iif(
+            "success == True; 'OK'; 'FAIL'", names2
+        )
+        assert result == "FAIL"
+
+    def test_iif_nested(self) -> None:
+        """Проверка вложенных iif."""
+        names = {"amount": 1500000}
+        expr = "amount > 1000000; 'CRITICAL'; iif(amount > 100000; 'HIGH'; 'NORMAL')"
+        result = self.evaluator.evaluate_iif(expr, names)
+        assert result == "CRITICAL"
+
+        names2 = {"amount": 500000}
+        result = self.evaluator.evaluate_iif(expr, names2)
+        assert result == "HIGH"
+
+        names3 = {"amount": 50000}
+        result = self.evaluator.evaluate_iif(expr, names3)
+        assert result == "NORMAL"
+
+    def test_iif_syntax_error_raises(self) -> None:
+        """
+        iif с неверным количеством аргументов выбрасывает LogTemplateError.
+
+        Строгая политика: ошибка в шаблоне — это баг разработчика,
+        который должен обнаруживаться немедленно.
+        """
+        names: Dict[str, Any] = {}
+        with pytest.raises(LogTemplateError, match="iif ожидает 3 аргумента"):
+            self.evaluator.evaluate_iif("amount > 1000; 'HIGH'", names)
+
+    def test_iif_undefined_variable_raises(self) -> None:
+        """
+        Обращение к неопределённой переменной в iif выбрасывает LogTemplateError.
+
+        Строгая политика: неопределённая переменная — это баг,
+        а не ситуация для молчаливого маркера.
+        """
+        names: Dict[str, Any] = {}
+        with pytest.raises(LogTemplateError, match="Ошибка вычисления выражения"):
+            self.evaluator.evaluate_iif("missing > 10; 'yes'; 'no'", names)
+
+    def test_evaluate_invalid_expression_raises(self) -> None:
+        """
+        Невалидное выражение в evaluate выбрасывает LogTemplateError.
+
+        Синтаксическая ошибка в выражении — это баг в шаблоне,
+        который должен падать громко.
+        """
+        with pytest.raises(LogTemplateError, match="Ошибка вычисления выражения"):
+            self.evaluator.evaluate(">>>invalid<<<", {})
+
+    def test_process_template_no_iif(self) -> None:
+        """Шаблон без iif возвращается без изменений."""
+        template = "Простое сообщение"
+        result = self.evaluator.process_template(template, {})
+        assert result == template
+
+    def test_process_template_single_iif(self) -> None:
+        """Шаблон с одним iif."""
+        names = {"success": True}
+        template = "Статус: {iif(success == True; 'OK'; 'FAIL')}"
+        result = self.evaluator.process_template(template, names)
+        assert result == "Статус: OK"
+
+    def test_process_template_multiple_iif(self) -> None:
+        """Шаблон с несколькими iif."""
+        names = {"x": 5, "y": 10}
+        template = "{iif(x > 3; 'A'; 'B')} и {iif(y < 5; 'C'; 'D')}"
+        result = self.evaluator.process_template(template, names)
+        assert result == "A и D"
+
+    def test_process_template_invalid_iif_raises(self) -> None:
+        """
+        Невалидный iif внутри шаблона выбрасывает LogTemplateError.
+
+        process_template не подавляет ошибки из evaluate_iif —
+        исключение пробрасывается наверх.
+        """
+        with pytest.raises(LogTemplateError):
+            self.evaluator.process_template(
+                "Result: {iif(missing > 10; 'yes'; 'no')}", {}
+            )
+
+    def test_iif_with_literal_values(self) -> None:
+        """
+        Проверка iif с уже подставленными литеральными значениями.
+        Это основной сценарий после перехода на стратегию
+        подстановки значений ДО вычисления iif.
+        simpleeval получает числа/строки как литералы, names={}.
+        """
+        # Числовое сравнение — значения уже подставлены как литералы
+        result = self.evaluator.evaluate_iif(
+            "1500.0 > 1000; 'HIGH'; 'LOW'", {}
+        )
+        assert result == "HIGH"
+
+        result = self.evaluator.evaluate_iif(
+            "500.0 > 1000; 'HIGH'; 'LOW'", {}
+        )
+        assert result == "LOW"
+
+    def test_iif_with_literal_string_comparison(self) -> None:
+        """
+        Проверка iif со строковым сравнением через литералы.
+        Строки подставляются в кавычках координатором.
+        """
+        result = self.evaluator.evaluate_iif(
+            "'admin' == 'admin'; 'ROOT'; 'USER'", {}
+        )
+        assert result == "ROOT"
+
+        result = self.evaluator.evaluate_iif(
+            "'agent_1' == 'admin'; 'ROOT'; 'USER'", {}
+        )
+        assert result == "USER"
+
+    def test_iif_with_literal_bool(self) -> None:
+        """
+        Проверка iif с булевыми литералами.
+        Bool подставляется как True/False.
+        """
+        result = self.evaluator.evaluate_iif(
+            "True == True; 'OK'; 'FAIL'", {}
+        )
+        assert result == "OK"
+
+        result = self.evaluator.evaluate_iif(
+            "False == True; 'OK'; 'FAIL'", {}
+        )
+        assert result == "FAIL"
+
+
+# =====================================================================
+# Тесты LogCoordinator
+# =====================================================================
 
 class TestLogCoordinator:
     """Тесты координатора логирования."""
@@ -573,16 +810,16 @@ class TestLogCoordinator:
         assert logger.records[0]["message"] == "Action: ProcessOrder"
 
     @pytest.mark.anyio
-    async def test_emit_missing_variable_shows_none(self) -> None:
-        """emit подставляет <none> для несуществующей переменной."""
+    async def test_emit_with_iif_simple(self) -> None:
+        """emit обрабатывает простой iif с единым синтаксисом {%...}."""
         logger = RecordingLogger()
         coordinator = LogCoordinator(loggers=[logger])
         scope = LogScope(action="TestAction")
         ctx = make_context()
-        params = Params_Test()
+        params = Params_Test(amount=1500.0)
 
         await coordinator.emit(
-            message="Missing: {%var.nonexistent}",
+            message="Risk: {iif({%params.amount} > 1000; 'HIGH'; 'LOW')}",
             var={},
             scope=scope,
             context=ctx,
@@ -591,11 +828,24 @@ class TestLogCoordinator:
             indent=0,
         )
 
-        assert logger.records[0]["message"] == "Missing: <none>"
+        assert logger.records[0]["message"] == "Risk: HIGH"
+
+        params2 = Params_Test(amount=500.0)
+        await coordinator.emit(
+            message="Risk: {iif({%params.amount} > 1000; 'HIGH'; 'LOW')}",
+            var={},
+            scope=scope,
+            context=ctx,
+            state={},
+            params=params2,
+            indent=0,
+        )
+
+        assert logger.records[1]["message"] == "Risk: LOW"
 
     @pytest.mark.anyio
-    async def test_emit_missing_context_path_shows_none(self) -> None:
-        """emit подставляет <none> для несуществующего пути в context."""
+    async def test_emit_with_iif_using_var(self) -> None:
+        """iif использует переменные из var (с булевыми значениями)."""
         logger = RecordingLogger()
         coordinator = LogCoordinator(loggers=[logger])
         scope = LogScope(action="TestAction")
@@ -603,7 +853,28 @@ class TestLogCoordinator:
         params = Params_Test()
 
         await coordinator.emit(
-            message="Deep: {%context.user.nonexistent.field}",
+            message="Result: {iif({%var.success} == True; 'OK'; 'FAIL')}",
+            var={"success": True},
+            scope=scope,
+            context=ctx,
+            state={},
+            params=params,
+            indent=0,
+        )
+
+        assert logger.records[0]["message"] == "Result: OK"
+
+    @pytest.mark.anyio
+    async def test_emit_with_iif_nested(self) -> None:
+        """emit обрабатывает вложенные iif с единым синтаксисом."""
+        logger = RecordingLogger()
+        coordinator = LogCoordinator(loggers=[logger])
+        scope = LogScope(action="TestAction")
+        ctx = make_context()
+        params = Params_Test(amount=1500000.0)
+
+        await coordinator.emit(
+            message="Level: {iif({%params.amount} > 1000000; 'CRITICAL'; iif({%params.amount} > 100000; 'HIGH'; 'LOW'))}",
             var={},
             scope=scope,
             context=ctx,
@@ -612,19 +883,32 @@ class TestLogCoordinator:
             indent=0,
         )
 
-        assert logger.records[0]["message"] == "Deep: <none>"
+        assert logger.records[0]["message"] == "Level: CRITICAL"
+
+        params2 = Params_Test(amount=500000.0)
+        await coordinator.emit(
+            message="Level: {iif({%params.amount} > 1000000; 'CRITICAL'; iif({%params.amount} > 100000; 'HIGH'; 'LOW'))}",
+            var={},
+            scope=scope,
+            context=ctx,
+            state={},
+            params=params2,
+            indent=0,
+        )
+
+        assert logger.records[1]["message"] == "Level: HIGH"
 
     @pytest.mark.anyio
-    async def test_emit_unknown_namespace_shows_none(self) -> None:
-        """emit подставляет <none> для неизвестного namespace."""
+    async def test_emit_with_iif_combined_with_variables(self) -> None:
+        """Смешанное использование {%...} и iif — единый синтаксис."""
         logger = RecordingLogger()
         coordinator = LogCoordinator(loggers=[logger])
         scope = LogScope(action="TestAction")
         ctx = make_context()
-        params = Params_Test()
+        params = Params_Test(amount=1500.0)
 
         await coordinator.emit(
-            message="Unknown: {%unknown.field}",
+            message="{iif({%params.amount} > 1000; 'КРУПНАЯ'; 'Обычная')} операция на сумму {%params.amount}",
             var={},
             scope=scope,
             context=ctx,
@@ -633,11 +917,108 @@ class TestLogCoordinator:
             indent=0,
         )
 
-        assert logger.records[0]["message"] == "Unknown: <none>"
+        assert logger.records[0]["message"] == "КРУПНАЯ операция на сумму 1500.0"
 
     @pytest.mark.anyio
-    async def test_emit_no_variables_passes_message_as_is(self) -> None:
-        """emit без переменных передаёт сообщение без изменений."""
+    async def test_emit_missing_variable_raises(self) -> None:
+        """
+        Обращение к несуществующей переменной выбрасывает LogTemplateError.
+
+        Строгая политика: ошибка в шаблоне — это баг разработчика.
+        Никаких молчаливых <none> маркеров. Система падает громко,
+        чтобы баг обнаруживался на первом же запуске.
+        """
+        coordinator = LogCoordinator(loggers=[RecordingLogger()])
+        scope = LogScope(action="TestAction")
+        ctx = make_context()
+        params = Params_Test()
+
+        with pytest.raises(LogTemplateError, match="не найдена"):
+            await coordinator.emit(
+                message="Missing: {%var.nonexistent}",
+                var={},
+                scope=scope,
+                context=ctx,
+                state={},
+                params=params,
+                indent=0,
+            )
+
+    @pytest.mark.anyio
+    async def test_emit_missing_variable_in_iif_raises(self) -> None:
+        """
+        Обращение к несуществующей переменной внутри iif
+        выбрасывает LogTemplateError.
+
+        Единый синтаксис {%...} внутри iif — те же правила:
+        переменная не найдена → LogTemplateError.
+        """
+        coordinator = LogCoordinator(loggers=[RecordingLogger()])
+        scope = LogScope(action="TestAction")
+        ctx = make_context()
+        params = Params_Test()
+
+        with pytest.raises(LogTemplateError, match="не найдена"):
+            await coordinator.emit(
+                message="Result: {iif({%var.missing} > 10; 'yes'; 'no')}",
+                var={},
+                scope=scope,
+                context=ctx,
+                state={},
+                params=params,
+                indent=0,
+            )
+
+    @pytest.mark.anyio
+    async def test_emit_unknown_namespace_raises(self) -> None:
+        """
+        Неизвестный namespace в шаблоне выбрасывает LogTemplateError.
+
+        Допустимые namespace: var, state, scope, context, params.
+        Любой другой — немедленная ошибка.
+        """
+        coordinator = LogCoordinator(loggers=[RecordingLogger()])
+        scope = LogScope(action="TestAction")
+        ctx = make_context()
+        params = Params_Test()
+
+        with pytest.raises(LogTemplateError, match="Неизвестный namespace"):
+            await coordinator.emit(
+                message="Value: {%unknown.field}",
+                var={},
+                scope=scope,
+                context=ctx,
+                state={},
+                params=params,
+                indent=0,
+            )
+
+    @pytest.mark.anyio
+    async def test_emit_invalid_iif_syntax_raises(self) -> None:
+        """
+        Невалидный синтаксис iif (не 3 аргумента) выбрасывает LogTemplateError.
+
+        Ошибка в iif — баг в шаблоне. Система падает громко.
+        """
+        coordinator = LogCoordinator(loggers=[RecordingLogger()])
+        scope = LogScope(action="TestAction")
+        ctx = make_context()
+        params = Params_Test()
+
+        with pytest.raises(LogTemplateError, match="iif ожидает 3 аргумента"):
+            await coordinator.emit(
+                message="Bad: {iif(1 > 0; 'only_two_args')}",
+                var={},
+                scope=scope,
+                context=ctx,
+                state={},
+                params=params,
+                indent=0,
+            )
+
+    @pytest.mark.anyio
+    async def test_emit_with_iif_using_state(self) -> None:
+        """iif использует переменные из state с единым синтаксисом."""
         logger = RecordingLogger()
         coordinator = LogCoordinator(loggers=[logger])
         scope = LogScope(action="TestAction")
@@ -645,7 +1026,28 @@ class TestLogCoordinator:
         params = Params_Test()
 
         await coordinator.emit(
-            message="Plain text without variables",
+            message="Status: {iif({%state.processed} == True; 'DONE'; 'PENDING')}",
+            var={},
+            scope=scope,
+            context=ctx,
+            state={"processed": True},
+            params=params,
+            indent=0,
+        )
+
+        assert logger.records[0]["message"] == "Status: DONE"
+
+    @pytest.mark.anyio
+    async def test_emit_with_iif_using_scope(self) -> None:
+        """iif использует переменные из scope с единым синтаксисом."""
+        logger = RecordingLogger()
+        coordinator = LogCoordinator(loggers=[logger])
+        scope = LogScope(action="ProcessOrder", aspect="validate")
+        ctx = make_context()
+        params = Params_Test()
+
+        await coordinator.emit(
+            message="Scope: {iif({%scope.aspect} == 'validate'; 'VALIDATION'; {%scope.aspect})}",
             var={},
             scope=scope,
             context=ctx,
@@ -654,20 +1056,20 @@ class TestLogCoordinator:
             indent=0,
         )
 
-        assert logger.records[0]["message"] == "Plain text without variables"
+        assert logger.records[0]["message"] == "Scope: VALIDATION"
 
     @pytest.mark.anyio
-    async def test_emit_multiple_variables(self) -> None:
-        """emit подставляет несколько переменных из разных namespace."""
+    async def test_emit_multiple_iif(self) -> None:
+        """Шаблон с несколькими iif."""
         logger = RecordingLogger()
         coordinator = LogCoordinator(loggers=[logger])
         scope = LogScope(action="TestAction")
-        ctx = make_context(user_id="user_42")
-        params = Params_Test(amount=100.0)
+        ctx = make_context()
+        params = Params_Test(amount=1500.0)  # 1500 % 2 == 0 → even
 
         await coordinator.emit(
-            message="User {%context.user.user_id} paid {%params.amount} for {%var.item}",
-            var={"item": "widget"},
+            message="{iif({%params.amount} > 1000; 'BIG'; 'small')} and {iif({%params.amount} % 2 == 0; 'even'; 'odd')}",
+            var={},
             scope=scope,
             context=ctx,
             state={},
@@ -675,7 +1077,28 @@ class TestLogCoordinator:
             indent=0,
         )
 
-        assert logger.records[0]["message"] == "User user_42 paid 100.0 for widget"
+        assert logger.records[0]["message"] == "BIG and even"
+
+    @pytest.mark.anyio
+    async def test_emit_no_iif_passes_through(self) -> None:
+        """Шаблон без iif передаётся без изменений (после подстановки переменных)."""
+        logger = RecordingLogger()
+        coordinator = LogCoordinator(loggers=[logger])
+        scope = LogScope(action="TestAction")
+        ctx = make_context()
+        params = Params_Test()
+
+        await coordinator.emit(
+            message="Plain text without iif",
+            var={},
+            scope=scope,
+            context=ctx,
+            state={},
+            params=params,
+            indent=0,
+        )
+
+        assert logger.records[0]["message"] == "Plain text without iif"
 
     @pytest.mark.anyio
     async def test_emit_broadcasts_to_all_loggers(self) -> None:
@@ -830,11 +1253,168 @@ class TestLogCoordinator:
 
         assert logger.records[0]["message"] == "Var nested: deep"
 
+    @pytest.mark.anyio
+    async def test_emit_with_iif_string_comparison(self) -> None:
+        """iif корректно сравнивает строковые значения из context."""
+        logger = RecordingLogger()
+        coordinator = LogCoordinator(loggers=[logger])
+        scope = LogScope(action="TestAction")
+        ctx = make_context(user_id="admin")
+        params = Params_Test()
+
+        await coordinator.emit(
+            message="Role: {iif({%context.user.user_id} == 'admin'; 'ROOT'; 'USER')}",
+            var={},
+            scope=scope,
+            context=ctx,
+            state={},
+            params=params,
+            indent=0,
+        )
+
+        assert logger.records[0]["message"] == "Role: ROOT"
+
+    @pytest.mark.anyio
+    async def test_emit_with_iif_string_comparison_no_match(self) -> None:
+        """iif корректно обрабатывает несовпадение строк."""
+        logger = RecordingLogger()
+        coordinator = LogCoordinator(loggers=[logger])
+        scope = LogScope(action="TestAction")
+        ctx = make_context(user_id="agent_1")
+        params = Params_Test()
+
+        await coordinator.emit(
+            message="Role: {iif({%context.user.user_id} == 'admin'; 'ROOT'; 'USER')}",
+            var={},
+            scope=scope,
+            context=ctx,
+            state={},
+            params=params,
+            indent=0,
+        )
+
+        assert logger.records[0]["message"] == "Role: USER"
+
+    @pytest.mark.anyio
+    async def test_emit_with_iif_var_number(self) -> None:
+        """iif корректно работает с числовыми переменными из var."""
+        logger = RecordingLogger()
+        coordinator = LogCoordinator(loggers=[logger])
+        scope = LogScope(action="TestAction")
+        ctx = make_context()
+        params = Params_Test()
+
+        await coordinator.emit(
+            message="Size: {iif({%var.count} > 100; 'LARGE'; 'SMALL')}",
+            var={"count": 200},
+            scope=scope,
+            context=ctx,
+            state={},
+            params=params,
+            indent=0,
+        )
+
+        assert logger.records[0]["message"] == "Size: LARGE"
+
+    @pytest.mark.anyio
+    async def test_emit_missing_nested_variable_raises(self) -> None:
+        """
+        Обращение к несуществующему вложенному пути выбрасывает LogTemplateError.
+
+        Например, {%state.order.id} когда state={} — переменная
+        не найдена, LogTemplateError немедленно.
+        """
+        coordinator = LogCoordinator(loggers=[RecordingLogger()])
+        scope = LogScope(action="TestAction")
+        ctx = make_context()
+        params = Params_Test()
+
+        with pytest.raises(LogTemplateError, match="не найдена"):
+            await coordinator.emit(
+                message="Value: {%state.order.id}",
+                var={},
+                scope=scope,
+                context=ctx,
+                state={},
+                params=params,
+                indent=0,
+            )
+
+    @pytest.mark.anyio
+    async def test_emit_missing_params_field_raises(self) -> None:
+        """
+        Обращение к несуществующему полю params выбрасывает LogTemplateError.
+
+        Params_Test не имеет поля 'nonexistent', resolve вернёт None,
+        координатор выбросит LogTemplateError.
+        """
+        coordinator = LogCoordinator(loggers=[RecordingLogger()])
+        scope = LogScope(action="TestAction")
+        ctx = make_context()
+        params = Params_Test()
+
+        with pytest.raises(LogTemplateError, match="не найдена"):
+            await coordinator.emit(
+                message="Value: {%params.nonexistent}",
+                var={},
+                scope=scope,
+                context=ctx,
+                state={},
+                params=params,
+                indent=0,
+            )
+
+    @pytest.mark.anyio
+    async def test_emit_missing_context_path_raises(self) -> None:
+        """
+        Обращение к несуществующему пути в context выбрасывает LogTemplateError.
+
+        context.resolve("user.nonexistent") вернёт None,
+        координатор выбросит LogTemplateError.
+        """
+        coordinator = LogCoordinator(loggers=[RecordingLogger()])
+        scope = LogScope(action="TestAction")
+        ctx = make_context()
+        params = Params_Test()
+
+        with pytest.raises(LogTemplateError, match="не найдена"):
+            await coordinator.emit(
+                message="Value: {%context.user.nonexistent}",
+                var={},
+                scope=scope,
+                context=ctx,
+                state={},
+                params=params,
+                indent=0,
+            )
+
+    @pytest.mark.anyio
+    async def test_emit_missing_scope_key_raises(self) -> None:
+        """
+        Обращение к несуществующему ключу scope выбрасывает LogTemplateError.
+
+        scope.get("missing") вернёт None, координатор выбросит LogTemplateError.
+        """
+        coordinator = LogCoordinator(loggers=[RecordingLogger()])
+        scope = LogScope(action="TestAction")
+        ctx = make_context()
+        params = Params_Test()
+
+        with pytest.raises(LogTemplateError, match="не найдена"):
+            await coordinator.emit(
+                message="Value: {%scope.missing}",
+                var={},
+                scope=scope,
+                context=ctx,
+                state={},
+                params=params,
+                indent=0,
+            )
+
 
 # =====================================================================
 # Тесты интеграции: координатор + консольный логер
 # =====================================================================
-
 
 class TestIntegration:
     """Интеграционные тесты: координатор + ConsoleLogger."""
@@ -866,16 +1446,44 @@ class TestIntegration:
         captured = capsys.readouterr()
         assert "Charged 1500.0 for user user_42" in captured.out
         assert "[ProcessOrder.charge]" in captured.out
+
         # Проверяем отступ (indent=1 → "  ")
         assert captured.out.startswith("  ")
 
     @pytest.mark.anyio
-    async def test_full_flow_with_none_substitution(
+    async def test_full_flow_with_iif(
         self, capsys: pytest.CaptureFixture[str]
     ) -> None:
         """
-        Полный поток с <none> подстановкой.
-        Координатор подставляет <none>, ConsoleLogger раскрашивает красным.
+        Полный поток с iif в шаблоне — единый синтаксис {%...}.
+        """
+        logger = ConsoleLogger(use_colors=False)
+        coordinator = LogCoordinator(loggers=[logger])
+        scope = LogScope(action="ProcessOrder", aspect="charge")
+        ctx = make_context(user_id="user_42")
+        params = Params_Test(amount=1500000.0)
+
+        await coordinator.emit(
+            message="{iif({%params.amount} > 1000000; '🚨 КРИТИЧЕСКАЯ'; 'Обычная')} транзакция на сумму {%params.amount}",
+            var={},
+            scope=scope,
+            context=ctx,
+            state={},
+            params=params,
+            indent=1,
+        )
+
+        captured = capsys.readouterr()
+        assert "🚨 КРИТИЧЕСКАЯ транзакция на сумму 1500000.0" in captured.out
+
+    @pytest.mark.anyio
+    async def test_full_flow_missing_variable_raises(
+        self,
+    ) -> None:
+        """
+        Полный поток с отсутствующей переменной.
+        Координатор выбрасывает LogTemplateError, до логера
+        сообщение не доходит. Строгая политика.
         """
         logger = ConsoleLogger(use_colors=True)
         coordinator = LogCoordinator(loggers=[logger])
@@ -883,18 +1491,16 @@ class TestIntegration:
         ctx = make_context()
         params = Params_Test()
 
-        await coordinator.emit(
-            message="Missing value: {%var.missing}",
-            var={},
-            scope=scope,
-            context=ctx,
-            state={},
-            params=params,
-            indent=0,
-        )
-
-        captured = capsys.readouterr()
-        assert "\033[31m<none>\033[0m" in captured.out
+        with pytest.raises(LogTemplateError, match="не найдена"):
+            await coordinator.emit(
+                message="Missing value: {%var.missing}",
+                var={},
+                scope=scope,
+                context=ctx,
+                state={},
+                params=params,
+                indent=0,
+            )
 
     @pytest.mark.anyio
     async def test_logger_exception_propagates(self) -> None:
@@ -904,8 +1510,8 @@ class TestIntegration:
         """
 
         class BrokenLogger(BaseLogger):
-            async def write(self, scope: LogScope, message: str, var: dict[str, Any],
-                            context: Context, state: dict[str, Any],
+            async def write(self, scope: LogScope, message: str, var: Dict[str, Any],
+                            context: Context, state: Dict[str, Any],
                             params: BaseParams, indent: int) -> None:
                 raise RuntimeError("Logger is broken")
 
