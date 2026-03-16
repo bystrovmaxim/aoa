@@ -11,6 +11,12 @@
 LogScope не имеет фиксированных полей — никаких action_name,
 aspect_name как атрибутов класса. Всё — ключи внутреннего словаря.
 
+LogScope наследует collections.abc.Mapping, что автоматически
+предоставляет методы __contains__, get, keys, values, items
+на основе трёх обязательных: __getitem__, __iter__, __len__.
+Это сокращает количество явно написанных методов и обеспечивает
+единообразный dict-подобный интерфейс.
+
 Метод as_dotpath() склеивает значения словаря через точку
 в порядке вставки (dict в Python 3.7+ сохраняет порядок).
 Результат кешируется лениво: при первом вызове вычисляется,
@@ -19,38 +25,45 @@ aspect_name как атрибутов класса. Всё — ключи вну
 
 Примеры скоупов разной длины и содержания:
 
-    На уровне action (global_start):
-    >>> scope = LogScope(action="ProcessOrderAction")
-    >>> scope.as_dotpath()
-    'ProcessOrderAction'
+На уровне action (global_start):
+>>> scope = LogScope(action="ProcessOrderAction")
+>>> scope.as_dotpath()
+'ProcessOrderAction'
 
-    На уровне aspect (before):
-    >>> scope = LogScope(action="ProcessOrderAction", aspect="validate_user", event="before")
-    >>> scope.as_dotpath()
-    'ProcessOrderAction.validate_user.before'
+На уровне aspect (before):
+>>> scope = LogScope(action="ProcessOrderAction", aspect="validate_user", event="before")
+>>> scope.as_dotpath()
+'ProcessOrderAction.validate_user.before'
 
-    На уровне вложенного action внутри аспекта:
-    >>> scope = LogScope(action="ProcessOrderAction", aspect="charge", nested_action="ChargeCardAction")
-    >>> scope.as_dotpath()
-    'ProcessOrderAction.charge.ChargeCardAction'
+На уровне вложенного action внутри аспекта:
+>>> scope = LogScope(action="ProcessOrderAction", aspect="charge", nested_action="ChargeCardAction")
+>>> scope.as_dotpath()
+'ProcessOrderAction.charge.ChargeCardAction'
 
-    На уровне plugin:
-    >>> scope = LogScope(action="ProcessOrderAction", plugin="MetricsPlugin", event="global_finish")
-    >>> scope.as_dotpath()
-    'ProcessOrderAction.MetricsPlugin.global_finish'
+На уровне plugin:
+>>> scope = LogScope(action="ProcessOrderAction", plugin="MetricsPlugin", event="global_finish")
+>>> scope.as_dotpath()
+'ProcessOrderAction.MetricsPlugin.global_finish'
 """
 
+from collections.abc import Mapping, Iterator
 from typing import Optional
 
 
-class LogScope:
+class LogScope(Mapping[str, str]):
     """
     Обёртка над словарём произвольных ключей, описывающая
     местоположение в конвейере выполнения.
 
-    Машина решает что положить в скоуп. Разные ситуации —
-    разные ключи — разная длина пути. LogScope не знает
-    и не должен знать какие ключи в нём есть.
+    Наследует collections.abc.Mapping[str, str], реализуя три обязательных
+    метода: __getitem__, __iter__, __len__. Остальные методы
+    dict-подобного интерфейса (__contains__, get, keys, values,
+    items) предоставляются автоматически абстрактным базовым
+    классом Mapping.
+
+    Машина решает, какие ключи и значения поместить в скоуп.
+    Разные ситуации — разные ключи — разная длина пути.
+    LogScope не знает и не должен знать, какие ключи в нём есть.
 
     Скоуп неизменяем после создания. Метод as_dotpath()
     кешируется лениво при первом вызове.
@@ -68,8 +81,8 @@ class LogScope:
 
         Аргументы:
             **kwargs: произвольные ключи и их строковые значения.
-                      Например: action="ProcessOrderAction",
-                      aspect="validate_user", event="before".
+                Например: action="ProcessOrderAction",
+                aspect="validate_user", event="before".
 
         Пример:
             >>> scope = LogScope(action="MyAction", aspect="load_data")
@@ -80,6 +93,67 @@ class LogScope:
         """
         self._data: dict[str, str] = dict(kwargs)
         self._cached_path: Optional[str] = None
+
+    # ------------------------------------------------------------------
+    # Три обязательных метода Mapping.
+    # Всё остальное (__contains__, get, keys, values, items)
+    # Mapping предоставляет автоматически на основе этих трёх.
+    # ------------------------------------------------------------------
+
+    def __getitem__(self, key: str) -> str:
+        """
+        Возвращает значение по ключу.
+
+        Аргументы:
+            key: имя ключа в скоупе.
+
+        Возвращает:
+            Строковое значение.
+
+        Исключения:
+            KeyError: если ключ отсутствует в скоупе.
+
+        Пример:
+            >>> scope = LogScope(action="MyAction")
+            >>> scope["action"]
+            'MyAction'
+        """
+        return self._data[key]
+
+    def __iter__(self) -> Iterator[str]:
+        """
+        Возвращает итератор по ключам скоупа в порядке добавления.
+
+        Mapping использует __iter__ для автоматической реализации
+        keys(), values(), items(), __contains__ и get().
+
+        Возвращает:
+            Итератор по строковым ключам.
+
+        Пример:
+            >>> scope = LogScope(action="MyAction", aspect="load")
+            >>> list(scope)
+            ['action', 'aspect']
+        """
+        return iter(self._data)
+
+    def __len__(self) -> int:
+        """
+        Возвращает количество ключей в скоупе.
+
+        Возвращает:
+            Целое число — количество ключей.
+
+        Пример:
+            >>> scope = LogScope(action="MyAction", aspect="load")
+            >>> len(scope)
+            2
+        """
+        return len(self._data)
+
+    # ------------------------------------------------------------------
+    # Бизнес-методы LogScope (не связаны с Mapping).
+    # ------------------------------------------------------------------
 
     def as_dotpath(self) -> str:
         """
@@ -111,7 +185,7 @@ class LogScope:
         """
         Возвращает копию внутреннего словаря.
 
-        Копия гарантирует что внешний код не может
+        Копия гарантирует, что внешний код не может
         изменить содержимое скоупа.
 
         Возвращает:
@@ -123,107 +197,6 @@ class LogScope:
             {'action': 'MyAction', 'event': 'start'}
         """
         return dict(self._data)
-
-    def __getitem__(self, key: str) -> str:
-        """
-        Возвращает значение по ключу.
-
-        Аргументы:
-            key: имя ключа в скоупе.
-
-        Возвращает:
-            Строковое значение.
-
-        Исключения:
-            KeyError: если ключ отсутствует в скоупе.
-
-        Пример:
-            >>> scope = LogScope(action="MyAction")
-            >>> scope["action"]
-            'MyAction'
-        """
-        return self._data[key]
-
-    def __contains__(self, key: str) -> bool:
-        """
-        Проверяет наличие ключа в скоупе.
-
-        Аргументы:
-            key: имя ключа.
-
-        Возвращает:
-            True если ключ присутствует, иначе False.
-
-        Пример:
-            >>> scope = LogScope(action="MyAction")
-            >>> "action" in scope
-            True
-            >>> "aspect" in scope
-            False
-        """
-        return key in self._data
-
-    def get(self, key: str, default: Optional[str] = None) -> Optional[str]:
-        """
-        Безопасное получение значения с дефолтом.
-
-        Аргументы:
-            key: имя ключа.
-            default: значение по умолчанию если ключ отсутствует.
-
-        Возвращает:
-            Значение ключа или default.
-
-        Пример:
-            >>> scope = LogScope(action="MyAction")
-            >>> scope.get("action")
-            'MyAction'
-            >>> scope.get("missing", "fallback")
-            'fallback'
-        """
-        return self._data.get(key, default)
-
-    def keys(self) -> list[str]:
-        """
-        Возвращает список ключей скоупа в порядке добавления.
-
-        Возвращает:
-            Список строк — имена ключей.
-
-        Пример:
-            >>> scope = LogScope(action="MyAction", aspect="load")
-            >>> scope.keys()
-            ['action', 'aspect']
-        """
-        return list(self._data.keys())
-
-    def values(self) -> list[str]:
-        """
-        Возвращает список значений скоупа в порядке добавления.
-
-        Возвращает:
-            Список строк — значения ключей.
-
-        Пример:
-            >>> scope = LogScope(action="MyAction", aspect="load")
-            >>> scope.values()
-            ['MyAction', 'load']
-        """
-        return list(self._data.values())
-
-    def items(self) -> list[tuple[str, str]]:
-        """
-        Возвращает список пар (ключ, значение) в порядке добавления.
-
-        Возвращает:
-            Список кортежей (имя_ключа, значение).
-
-        Пример:
-            >>> scope = LogScope(action="MyAction", aspect="load")
-            >>> scope.items()
-            [('action', 'MyAction'), ('aspect', 'load')]
-        """
-        return list(self._data.items())
 
     def __repr__(self) -> str:
         """

@@ -1,3 +1,7 @@
+################################################################################
+# Файл: ActionMachine/tests.py
+################################################################################
+
 # ActionMachine/tests.py
 """
 Тесты для системы логирования AOA.
@@ -183,7 +187,6 @@ class TestReadableMixinResolve:
         result1 = user.resolve("user_id")
         result2 = user.resolve("user_id")
         assert result1 == result2 == "42"
-
         # Проверяем что кеш существует и содержит ключ
         assert "user_id" in user._resolve_cache
 
@@ -210,7 +213,14 @@ class TestReadableMixinResolve:
 # =====================================================================
 
 class TestLogScope:
-    """Тесты класса LogScope."""
+    """
+    Тесты класса LogScope.
+
+    LogScope наследует collections.abc.Mapping, поэтому методы
+    keys(), values(), items() возвращают view-объекты, а не списки.
+    В тестах используем list() для приведения к спискам перед
+    сравнением — это работает единообразно.
+    """
 
     def test_as_dotpath_single_key(self) -> None:
         """as_dotpath для одного ключа возвращает его значение."""
@@ -256,23 +266,39 @@ class TestLogScope:
             _ = scope["missing"]
 
     def test_contains(self) -> None:
-        """Оператор in проверяет наличие ключа."""
+        """
+        Оператор in проверяет наличие ключа.
+
+        __contains__ автоматически предоставлен Mapping
+        на основе __getitem__ и __iter__.
+        """
         scope = LogScope(action="MyAction", aspect="load")
         assert "action" in scope
         assert "missing" not in scope
 
     def test_get_with_default(self) -> None:
-        """get возвращает default для отсутствующего ключа."""
+        """
+        get возвращает default для отсутствующего ключа.
+
+        get() автоматически предоставлен Mapping
+        на основе __getitem__.
+        """
         scope = LogScope(action="MyAction")
         assert scope.get("action") == "MyAction"
         assert scope.get("missing", "fallback") == "fallback"
 
     def test_keys_values_items(self) -> None:
-        """keys, values, items возвращают содержимое скоупа."""
+        """
+        keys, values, items возвращают содержимое скоупа.
+
+        Mapping возвращает view-объекты (KeysView, ValuesView,
+        ItemsView), поэтому используем list() для приведения
+        к спискам перед сравнением.
+        """
         scope = LogScope(action="A", aspect="B")
-        assert scope.keys() == ["action", "aspect"]
-        assert scope.values() == ["A", "B"]
-        assert scope.items() == [("action", "A"), ("aspect", "B")]
+        assert list(scope.keys()) == ["action", "aspect"]
+        assert list(scope.values()) == ["A", "B"]
+        assert list(scope.items()) == [("action", "A"), ("aspect", "B")]
 
     def test_to_dict_returns_copy(self) -> None:
         """to_dict возвращает копию, изменение не влияет на скоуп."""
@@ -294,6 +320,27 @@ class TestLogScope:
         assert scope1.as_dotpath() == "A"
         assert scope2.as_dotpath() == "A.B.C"
         assert scope3.as_dotpath() == "A.MetricsPlugin"
+
+    def test_len(self) -> None:
+        """
+        len() возвращает количество ключей.
+
+        __len__ — один из трёх обязательных методов Mapping,
+        реализованный явно в LogScope.
+        """
+        scope = LogScope(action="A", aspect="B")
+        assert len(scope) == 2
+        assert len(LogScope()) == 0
+
+    def test_iter(self) -> None:
+        """
+        iter() возвращает итератор по ключам в порядке добавления.
+
+        __iter__ — один из трёх обязательных методов Mapping,
+        реализованный явно в LogScope.
+        """
+        scope = LogScope(action="A", aspect="B", event="C")
+        assert list(scope) == ["action", "aspect", "event"]
 
 
 # =====================================================================
@@ -446,7 +493,6 @@ class TestConsoleLogger:
         await logger.write(scope, "value=<none>", {}, ctx, {}, params, 0)
 
         captured = capsys.readouterr()
-
         # Проверяем наличие ANSI-кода красного цвета вокруг <none>
         assert "\033[31m<none>\033[0m" in captured.out
 
@@ -520,7 +566,6 @@ class TestExpressionEvaluator:
         """Проверка функции format_number."""
         names = {"value": 1234567.89}
         result = self.evaluator.evaluate("format_number(value, 0)", names)
-
         # Ожидаем "1,234,568" (округление)
         assert result == "1,234,568"
 
@@ -1446,7 +1491,6 @@ class TestIntegration:
         captured = capsys.readouterr()
         assert "Charged 1500.0 for user user_42" in captured.out
         assert "[ProcessOrder.charge]" in captured.out
-
         # Проверяем отступ (indent=1 → "  ")
         assert captured.out.startswith("  ")
 
