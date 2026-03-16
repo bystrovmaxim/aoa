@@ -1,14 +1,15 @@
 """
 Базовый класс для результата выполнения действия.
 
-Реализует протокол WritableDataProtocol через WritableMixin.
+Реализует протокол WritableDataProtocol через комбинацию ReadableMixin и WritableMixin.
 Обеспечивает единый dict-доступ для чтения и записи.
 """
 
-from .DataAccessMixins import WritableMixin
+from .ReadableMixin import ReadableMixin
+from .WritableMixin import WritableMixin
 
 
-class BaseResult(WritableMixin):
+class BaseResult(ReadableMixin, WritableMixin):
     """
     Результат действия.
 

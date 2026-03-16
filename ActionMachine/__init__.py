@@ -14,7 +14,8 @@ from .Core.Exceptions import (
     TransactionProhibitedError,
 )
 from .Core.Protocols import ReadableDataProtocol, WritableDataProtocol
-from .Core.DataAccessMixins import ReadableMixin, WritableMixin
+from .Core.ReadableMixin import ReadableMixin
+from .Core.WritableMixin import WritableMixin
 
 # ConnectionManagers
 from .ResourceManagers.WrapperConnectionManager import WrapperConnectionManager

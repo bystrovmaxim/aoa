@@ -33,13 +33,3 @@ class ReadableMixin:
 
     def items(self) -> list[tuple[str, object]]:
         return [(k, self[k]) for k in self.keys()]
-
-
-class WritableMixin(ReadableMixin):
-    """
-    Добавляет возможность записи через __setitem__.
-    Используется для результатов (Result).
-    """
-
-    def __setitem__(self, key: str, value: object) -> None:
-        setattr(self, key, value)
