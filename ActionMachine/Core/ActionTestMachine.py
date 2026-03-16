@@ -1,8 +1,17 @@
+# ActionMachine/Core/ActionTestMachine.py
 """
 Тестовая машина действий с поддержкой моков (асинхронная версия).
 
 Наследует от ActionProductMachine и полностью асинхронна (как и родитель).
 Позволяет подменять зависимости через словарь моков.
+
+Примечание к рефакторингу:
+    После выделения PluginCoordinator из ActionProductMachine,
+    ActionTestMachine не требует изменений в логике — он наследует
+    от ActionProductMachine, который теперь использует
+    self._plugin_coordinator вместо прямых вызовов _run_plugins_async.
+    Единственное изменение — удалён неиспользуемый импорт asyncio
+    (если был).
 """
 
 from typing import Any, Dict, Optional, Type, TypeVar, cast
@@ -26,11 +35,11 @@ class ActionTestMachine(ActionProductMachine):
 
     Принимает в конструкторе словарь моков: {класс: значение}.
     Значение может быть:
-    - экземпляром MockAction (будет использован как есть).
-    - экземпляром BaseAction (пройдёт через аспектный конвейер).
-    - результатом BaseResult (будет обёрнут в MockAction).
-    - функцией callable (будет использована как side_effect для MockAction).
-    - любым другим объектом (будет возвращён как есть через get()).
+        - экземпляром MockAction (будет использован как есть).
+        - экземпляром BaseAction (пройдёт через аспектный конвейер).
+        - результатом BaseResult (будет обёрнут в MockAction).
+        - функцией callable (будет использована как side_effect).
+        - любым другим объектом (будет возвращён как есть через get()).
 
     Метод run является асинхронным (как и в родителе).
     Для синхронного использования можно обернуть в asyncio.run().
@@ -56,7 +65,8 @@ class ActionTestMachine(ActionProductMachine):
 
     def _prepare_mock(self, value: Any) -> Any:
         """
-        Преобразует переданное значение в объект, пригодный для использования в фабрике.
+        Преобразует переданное значение в объект, пригодный
+        для использования в фабрике.
 
         Аргументы:
             value: значение мока из словаря.
@@ -82,23 +92,26 @@ class ActionTestMachine(ActionProductMachine):
         connections: Optional[Dict[str, BaseResourceManager]] = None,
     ) -> R:
         """
-        Асинхронно запускает действие. Если action — MockAction, вызывает его напрямую,
-        минуя аспектный конвейер. Иначе — стандартное асинхронное выполнение через аспекты.
+        Асинхронно запускает действие. Если action — MockAction,
+        вызывает его напрямую, минуя аспектный конвейер.
+        Иначе — стандартное асинхронное выполнение через аспекты.
 
         Аргументы:
             action: экземпляр действия.
             params: входные параметры.
-            resources: словарь внешних ресурсов (передаётся в родительский run).
-            connections: словарь ресурсных менеджеров (передаётся в родительский run).
+            resources: словарь внешних ресурсов.
+            connections: словарь ресурсных менеджеров.
 
         Возвращает:
             Результат выполнения действия.
         """
         if isinstance(action, MockAction):
-            # MockAction.run возвращает BaseResult, но в контексте теста мы уверены,
-            # что он соответствует ожидаемому типу R.
+            # MockAction.run возвращает BaseResult, но в контексте теста
+            # мы уверены, что он соответствует ожидаемому типу R.
             return cast(R, action.run(params))
-        return await super().run(action, params, resources=resources, connections=connections)
+        return await super().run(
+            action, params, resources=resources, connections=connections
+        )
 
     def _get_factory(
         self,
@@ -106,18 +119,21 @@ class ActionTestMachine(ActionProductMachine):
         external_resources: Optional[Dict[Type[Any], Any]] = None
     ) -> DependencyFactory:
         """
-        Возвращает фабрику зависимостей для класса действия, учитывая моки и внешние ресурсы.
+        Возвращает фабрику зависимостей для класса действия,
+        учитывая моки и внешние ресурсы.
 
         Приоритет: external_resources > prepared_mocks > стандартные зависимости.
         """
         deps_info = getattr(action_class, '_dependencies', [])
         all_resources = dict(self._prepared_mocks)
         if external_resources:
-            all_resources.update(external_resources)  # внешние ресурсы переопределяют моки
+            # Внешние ресурсы переопределяют моки
+            all_resources.update(external_resources)
         return DependencyFactory(self, deps_info, all_resources)
 
     def build_factory(self, action_class: Type[Any]) -> DependencyFactory:
         """
-        Возвращает фабрику для использования в тестировании отдельных аспектов (без внешних ресурсов).
+        Возвращает фабрику для использования в тестировании отдельных
+        аспектов (без внешних ресурсов).
         """
         return self._get_factory(action_class, external_resources=None)
