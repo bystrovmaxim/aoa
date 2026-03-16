@@ -1,8 +1,3 @@
-################################################################################
-# Файл: ActionMachine/Core/ActionProductMachine.py
-################################################################################
-
-# ActionMachine/Core/ActionProductMachine.py
 """
 Реализация продуктовой машины действий с поддержкой плагинов и вложенности.
 Полностью асинхронная версия. Использует PluginEvent для передачи данных в плагины.
@@ -44,17 +39,6 @@ class ActionProductMachine(BaseActionMachine):
     выполняет проверку ролей, валидацию результатов аспектов через чекеры,
     проверку соответствия connections объявленным через @connection,
     а также поддерживает подключение плагинов для расширения функциональности.
-
-    Атрибуты:
-        _context: глобальный контекст выполнения.
-        _plugins: список экземпляров плагинов.
-        _max_concurrent_handlers: максимальное количество одновременно выполняющихся
-            обработчиков плагинов для одного события.
-        _aspect_cache: кэш для списков аспектов классов действий.
-        _factory_cache: кэш для фабрик зависимостей классов действий.
-        _plugin_cache: кэш для списков обработчиков плагинов для пар (событие, класс).
-        _plugin_states: хранилище текущих состояний плагинов для выполняемого действия.
-        _nest_level: текущий уровень вложенности (0 для верхнего уровня).
     """
 
     def __init__(
@@ -337,11 +321,11 @@ class ActionProductMachine(BaseActionMachine):
         event_name: str,
         action: BaseAction[P, R],
         params: P,
-        state_aspect: Optional[Dict[str, Any]],
+        state_aspect: Optional[dict[str, object]],
         is_summary: bool,
         result: Optional[BaseResult],
         duration: Optional[float],
-        factory: DependencyFactory,  # передаём фабрику для использования в плагинах
+        factory: DependencyFactory,
     ) -> None:
         """
         Асинхронно запускает все подходящие обработчики плагинов для данного события.
@@ -360,7 +344,7 @@ class ActionProductMachine(BaseActionMachine):
         if not handlers:
             return
 
-        self._init_plugin_states()  # теперь синхронный вызов
+        self._init_plugin_states()
 
         event = PluginEvent(
             event_name=event_name,
@@ -368,7 +352,7 @@ class ActionProductMachine(BaseActionMachine):
             params=params,
             state_aspect=state_aspect,
             is_summary=is_summary,
-            deps=factory,  # передаём фабрику, чтобы плагины могли получать зависимости
+            deps=factory,
             context=self._context,
             result=result,
             duration=duration,
@@ -456,7 +440,7 @@ class ActionProductMachine(BaseActionMachine):
         method: AspectMethod,
         action: BaseAction[Any, Any],
         params: BaseParams,
-        state: Dict[str, Any],
+        state: dict[str, object],
         factory: DependencyFactory,
         connections: Dict[str, BaseResourceManager],
     ) -> Any:
@@ -478,7 +462,7 @@ class ActionProductMachine(BaseActionMachine):
         params: P,
         factory: DependencyFactory,
         connections: Dict[str, BaseResourceManager],
-    ) -> Dict[str, Any]:
+    ) -> dict[str, object]:
         """
         Асинхронно выполняет цепочку регулярных аспектов, вызывая для каждого
         before и after события плагинов.
@@ -497,7 +481,7 @@ class ActionProductMachine(BaseActionMachine):
         """
         action_class = action.__class__
         aspects, _ = self._get_aspects(action_class)
-        state: Dict[str, Any] = {}
+        state: dict[str, object] = {}
 
         for method, description in aspects:
             aspect_name = method.__name__
@@ -543,5 +527,3 @@ class ActionProductMachine(BaseActionMachine):
             state = new_state
 
         return state
-
-################################################################################

@@ -1,16 +1,18 @@
-# ActionMachine/Core/BaseParams.py
 """
 Базовый класс для входных параметров действия.
+
+Реализует протокол ReadableDataProtocol через ReadableMixin.
+Обеспечивает единый dict-доступ к полям.
 """
 
-from abc import ABC
+from .DataAccessMixins import ReadableMixin
 
 
-class BaseParams(ABC):
+class BaseParams(ReadableMixin):
     """
-    Абстрактный базовый класс для всех входных параметров действия.
+    Параметры действия.
 
-    Все классы параметров должны наследоваться от этого класса.
-    Обычно реализуется как неизменяемый dataclass.
+    Наследуйте этот класс для создания конкретных параметров.
+    Рекомендуется использовать @dataclass(frozen=True) для иммутабельности.
     """
     pass

@@ -1,7 +1,6 @@
-# ActionMachine/Plugins/Plugin.py
 """
 Базовый класс для всех плагинов ActionMachine.
-Теперь обработчики получают один аргумент event: PluginEvent.
+Обработчики получают один аргумент event: PluginEvent.
 """
 
 from abc import ABC, abstractmethod
@@ -22,12 +21,11 @@ class Plugin(ABC):
 
     Методы-обработчики помечаются декоратором ``@on`` из модуля ``Decorators``. Они должны быть
     асинхронными (определены с ``async def``), даже если не содержат ``await``,
-    так как вызываются машиной через ``await``. Для подавления предупреждений линтера
-    о ненужном ``async`` можно использовать комментарий ``# noqa: ASYNC124``.
+    так как вызываются машиной через ``await``.
     """
 
     @abstractmethod
-    def get_initial_state(self) -> Any:
+    def get_initial_state(self) -> object:
         """
         Возвращает начальное состояние плагина для одного выполнения действия.
 
@@ -51,11 +49,9 @@ class Plugin(ABC):
         ``event_name`` и ``class_name``. Если соответствие найдено, метод добавляется в результат
         вместе с флагом ``ignore_exceptions`` из соответствующей подписки.
 
-        Если метод имеет несколько подписок, он добавляется только один раз (первая подходящая).
-
         Аргументы:
             event_name: имя события (например, 'before:choose_channel').
-            class_name: полное имя класса действия (включая модуль и наследование).
+            class_name: полное имя класса действия (включая модуль).
 
         Возвращает:
             Список кортежей (метод-обработчик, ignore_exceptions) для всех подходящих подписок.
@@ -68,5 +64,5 @@ class Plugin(ABC):
             for event_regex, class_regex, ignore_exceptions in method._plugin_hooks:
                 if event_regex.fullmatch(event_name) and class_regex.fullmatch(class_name):
                     handlers.append((method, ignore_exceptions))
-                    break  # метод уже подходит
+                    break
         return handlers
