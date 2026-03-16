@@ -70,3 +70,12 @@ ActionMachine.Context.RequestInfo.client_ip
 ActionMachine.Context.RequestInfo.protocol
 ActionMachine.Context.RequestInfo.user_agent
 ActionMachine.Context.UserInfo.user_id
+ActionMachine.Core.AspectMethod.aspect
+ActionMachine.Core.AspectMethod.summary_aspect
+ActionMachine.Core.AspectMethod.depends
+ActionMachine.Core.DependencyFactory.run_action
+ActionMachine.Core.MockAction.call_count
+ActionMachine.Core.MockAction.last_params
+ActionMachine.Plugins.Decorators.on
+ActionMachine.tests.TestParams.card_token
+ActionMachine.tests.TestParams.amount
