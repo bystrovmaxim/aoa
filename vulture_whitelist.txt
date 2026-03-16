@@ -79,3 +79,6 @@ ActionMachine.Core.MockAction.last_params
 ActionMachine.Plugins.Decorators.on
 ActionMachine.tests.TestParams.card_token
 ActionMachine.tests.TestParams.amount
+ActionMachine.Core.ActionTestMachine.ActionTestMachine
+ActionMachine.Core.ActionTestMachine.build_factory
+ActionMachine.Plugins.PluginEvent.nest_level

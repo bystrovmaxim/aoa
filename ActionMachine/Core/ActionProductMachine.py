@@ -126,7 +126,7 @@ class ActionProductMachine(BaseActionMachine):
         aspects: List[Tuple[AspectMethod, str]] = []
         summary_method: Optional[AspectMethod] = None
 
-        for name, method in inspect.getmembers(action_class, predicate=inspect.isfunction):
+        for _, method in inspect.getmembers(action_class, predicate=inspect.isfunction):
             # Игнорируем унаследованные методы (сознательное решение)
             if method.__qualname__.split('.')[0] != action_class.__name__:
                 continue

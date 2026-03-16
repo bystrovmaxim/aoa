@@ -38,38 +38,38 @@ event loop.
 
 Пример создания и использования:
 
-    >>> from ActionMachine.Logging.LogCoordinator import LogCoordinator
-    >>> from ActionMachine.Logging.ConsoleLogger import ConsoleLogger
-    >>> from ActionMachine.Logging.LogScope import LogScope
-    >>>
-    >>> coordinator = LogCoordinator(loggers=[
-    ...     ConsoleLogger(use_colors=True),
-    ...     ConsoleLogger(filters=[r"ProcessOrder.*"], use_colors=False),
-    ... ])
-    >>>
-    >>> scope = LogScope(action="ProcessOrderAction", aspect="validate")
-    >>> await coordinator.emit(
-    ...     message="Загружено {%var.count} задач для {%context.user.user_id}",
-    ...     var={"count": 150},
-    ...     scope=scope,
-    ...     context=context,
-    ...     state={"total": 1500.0},
-    ...     params=params,
-    ...     indent=1,
-    ... )
-    # Результат подстановки: "Загружено 150 задач для agent_1"
-    # Передаётся в каждый логер через handle.
+>>> from ActionMachine.Logging.LogCoordinator import LogCoordinator
+>>> from ActionMachine.Logging.ConsoleLogger import ConsoleLogger
+>>> from ActionMachine.Logging.LogScope import LogScope
+>>>
+>>> coordinator = LogCoordinator(loggers=[
+...     ConsoleLogger(use_colors=True),
+...     ConsoleLogger(filters=[r"ProcessOrder.*"], use_colors=False),
+... ])
+>>>
+>>> scope = LogScope(action="ProcessOrderAction", aspect="validate")
+>>> await coordinator.emit(
+...     message="Загружено {%var.count} задач для {%context.user.user_id}",
+...     var={"count": 150},
+...     scope=scope,
+...     context=context,
+...     state={"total": 1500.0},
+...     params=params,
+...     indent=1,
+... )
+
+# Результат подстановки: "Загружено 150 задач для agent_1"
+# Передаётся в каждый логер через handle.
 """
 
 import re
-from typing import Optional
+from typing import Optional, Any
 
 from ActionMachine.Logging.BaseLogger import BaseLogger
 from ActionMachine.Logging.LogScope import LogScope
 from ActionMachine.Core.ReadableMixin import ReadableMixin
 from ActionMachine.Context.Context import Context
 from ActionMachine.Core.BaseParams import BaseParams
-
 
 # Регулярное выражение для поиска переменных в шаблоне сообщения.
 #
@@ -132,9 +132,9 @@ class LogCoordinator:
 
         Аргументы:
             loggers: список экземпляров BaseLogger для начальной
-                     регистрации. None или пустой список допустимы —
-                     координатор просто не будет рассылать сообщения
-                     пока не будет добавлен хотя бы один логер.
+                регистрации. None или пустой список допустимы —
+                координатор просто не будет рассылать сообщения
+                пока не будет добавлен хотя бы один логер.
 
         Пример:
             >>> coordinator = LogCoordinator(loggers=[
@@ -166,7 +166,7 @@ class LogCoordinator:
         """
         self._loggers.append(logger)
 
-    def _resolve_from_dict(self, source: dict, dotpath: str) -> object:
+    def _resolve_from_dict(self, source: dict[str, Any], dotpath: str) -> object:
         """
         Разрешает dot-path внутри обычного словаря.
 
@@ -205,10 +205,10 @@ class LogCoordinator:
         self,
         namespace: str,
         path: str,
-        var: dict,
+        var: dict[str, Any],
         scope: LogScope,
         context: Context,
-        state: dict,
+        state: dict[str, Any],
         params: BaseParams,
     ) -> str:
         """
@@ -228,7 +228,7 @@ class LogCoordinator:
 
         Аргументы:
             namespace: первый сегмент переменной ("var", "context",
-                       "params", "state", "scope").
+                "params", "state", "scope").
             path: оставшийся dot-path после namespace.
             var: словарь переменных от разработчика.
             scope: скоуп текущего вызова.
@@ -276,19 +276,14 @@ class LogCoordinator:
             # и поддерживают метод resolve.
             if isinstance(context, ReadableMixin):
                 value = context.resolve(path)
-            else:
-                value = None
 
         elif namespace == "params":
             # BaseParams наследует ReadableMixin.
             if isinstance(params, ReadableMixin):
                 value = params.resolve(path)
-            else:
-                value = None
 
-        else:
-            # Неизвестный namespace — переменная не разрешена.
-            value = None
+        # Неизвестный namespace или значение не найдено —
+        # value остаётся None (инициализировано в начале метода).
 
         if value is None:
             return _NONE_MARKER
@@ -298,10 +293,10 @@ class LogCoordinator:
     def _substitute_variables(
         self,
         message: str,
-        var: dict,
+        var: dict[str, Any],
         scope: LogScope,
         context: Context,
-        state: dict,
+        state: dict[str, Any],
         params: BaseParams,
     ) -> str:
         """
@@ -341,7 +336,7 @@ class LogCoordinator:
 
             Аргументы:
                 match: объект совпадения регулярного выражения.
-                       Группа 1 — namespace, группа 2 — path.
+                    Группа 1 — namespace, группа 2 — path.
 
             Возвращает:
                 Разрешённое строковое значение или "<none>".
@@ -357,10 +352,10 @@ class LogCoordinator:
     async def emit(
         self,
         message: str,
-        var: dict,
+        var: dict[str, Any],
         scope: LogScope,
         context: Context,
-        state: dict,
+        state: dict[str, Any],
         params: BaseParams,
         indent: int,
     ) -> None:
@@ -371,21 +366,21 @@ class LogCoordinator:
         Выполняет два шага:
 
         Шаг 1: Подстановка переменных.
-        Ищет в message все вхождения паттерна {%namespace.dotpath}
-        и заменяет каждое на значение из соответствующего источника.
-        Поддерживаемые namespace: var, context, params, state, scope.
-        Если значение не найдено — подставляет "<none>".
+            Ищет в message все вхождения паттерна {%namespace.dotpath}
+            и заменяет каждое на значение из соответствующего источника.
+            Поддерживаемые namespace: var, context, params, state, scope.
+            Если значение не найдено — подставляет "<none>".
 
         Шаг 2: Рассылка.
-        В цикле вызывает await logger.handle(...) для каждого
-        зарегистрированного логера. Каждый логер получает:
-        - scope — скоуп текущего вызова (LogScope).
-        - resolved_message — сообщение с выполненными подстановками.
-        - var — оригинальный словарь переменных от разработчика.
-        - context — контекст выполнения.
-        - state — текущее состояние конвейера.
-        - params — входные параметры действия.
-        - indent — уровень отступа для вложенных вызовов.
+            В цикле вызывает await logger.handle(...) для каждого
+            зарегистрированного логера. Каждый логер получает:
+            - scope — скоуп текущего вызова (LogScope).
+            - resolved_message — сообщение с выполненными подстановками.
+            - var — оригинальный словарь переменных от разработчика.
+            - context — контекст выполнения.
+            - state — текущее состояние конвейера.
+            - params — входные параметры действия.
+            - indent — уровень отступа для вложенных вызовов.
 
         Никакого try/except вокруг вызова логеров. Если логер упал —
         исключение летит наверх. Это строгая политика: сломанный
@@ -393,18 +388,18 @@ class LogCoordinator:
 
         Аргументы:
             message: строка шаблона с переменными вида
-                     {%namespace.path}.
+                {%namespace.path}.
             var: словарь переменных, переданных разработчиком
-                 при вызове log. Произвольные ключи и значения.
+                при вызове log. Произвольные ключи и значения.
             scope: скоуп текущего вызова — описывает местоположение
-                   в конвейере (action, aspect, event и т.п.).
+                в конвейере (action, aspect, event и т.п.).
             context: контекст выполнения (пользователь, запрос,
-                     окружение).
+                окружение).
             state: текущее состояние конвейера (dict).
             params: входные параметры действия.
             indent: уровень отступа (для вложенных вызовов).
-                    Передаётся логерам как есть для форматирования
-                    вывода.
+                Передаётся логерам как есть для форматирования
+                вывода.
 
         Пример:
             >>> await coordinator.emit(
