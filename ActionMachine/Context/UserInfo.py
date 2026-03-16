@@ -1,21 +1,26 @@
-# ActionMachine/Context/UserInfo.py
 """
 Компонент контекста, содержащий информацию о пользователе, инициировавшем действие.
 Используется внутри класса Context для хранения данных об аутентифицированном пользователе.
+Реализует ReadableDataProtocol через ReadableMixin для обеспечения dict-подобного доступа.
 """
 
 from dataclasses import dataclass, field
 from typing import Optional, List, Dict, Any
+from ActionMachine.Core.ReadableMixin import ReadableMixin
 
 
 @dataclass
-class UserInfo:
+class UserInfo(ReadableMixin):
     """
     Информация о пользователе.
 
     Этот датакласс является частью контекста выполнения и хранит идентификатор пользователя,
     его роли, а также дополнительные произвольные данные, которые могут быть добавлены
     при аутентификации (например, имя ключа, способ аутентификации и т.п.).
+
+    Благодаря наследованию от ReadableMixin, объект UserInfo поддерживает dict-подобный доступ:
+    - user["user_id"], user.get("roles"), "user_id" in user, user.keys(), user.values(), user.items().
+    При этом сохраняется и атрибутный доступ (user.user_id).
 
     Атрибуты:
         user_id: Уникальный идентификатор пользователя (строка). Может быть None для гостя.
@@ -26,6 +31,8 @@ class UserInfo:
     Пример:
         >>> user = UserInfo(user_id="john_doe", roles=["user", "manager"])
         >>> print(user.user_id)
+        john_doe
+        >>> print(user["user_id"])
         john_doe
         >>> user.extra["auth_method"] = "api_key"
     """

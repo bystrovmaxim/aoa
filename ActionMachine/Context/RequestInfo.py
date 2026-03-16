@@ -1,22 +1,26 @@
-# ActionMachine/Context/RequestInfo.py
 """
 Компонент контекста, содержащий метаданные входящего запроса.
 Используется для хранения информации, специфичной для протокола вызова (HTTP, MCP и т.д.).
+Реализует ReadableDataProtocol через ReadableMixin для обеспечения dict-подобного доступа.
 """
 
 from dataclasses import dataclass, field
 from typing import Optional, Dict, Any
 from datetime import datetime
+from ActionMachine.Core.ReadableMixin import ReadableMixin
 
 
 @dataclass
-class RequestInfo:
+class RequestInfo(ReadableMixin):
     """
     Метаданные входящего запроса.
 
     Содержит всю информацию, которая может быть полезна для логирования, трассировки,
     анализа производительности и аудита. Заполняется на входе в систему (в FastAPI-зависимости
     или MCP-обработчике) и затем передаётся в контексте.
+
+    Благодаря наследованию от ReadableMixin, объект RequestInfo поддерживает dict-подобный доступ:
+    - request["trace_id"], request.get("request_path"), "client_ip" in request, request.keys() и т.д.
 
     Атрибуты:
         trace_id: Уникальный идентификатор запроса для сквозной трассировки (например, для OpenTelemetry).
@@ -38,6 +42,8 @@ class RequestInfo:
         ...     request_method="POST",
         ...     client_ip="192.168.1.1"
         ... )
+        >>> req["trace_id"]
+        'abc-123'
         >>> req.tags["ab_test"] = "control"
     """
     trace_id: Optional[str] = None

@@ -1,8 +1,3 @@
-################################################################################
-# Файл: ActionMachine/Core/ActionTestMachine.py
-################################################################################
-
-# ActionMachine/Core/ActionTestMachine.py
 """
 Тестовая машина действий с поддержкой моков (асинхронная версия).
 
@@ -10,7 +5,7 @@
 Позволяет подменять зависимости через словарь моков.
 """
 
-from typing import Any, Dict, Optional, Type, TypeVar
+from typing import Any, Dict, Optional, Type, TypeVar, cast
 
 from ActionMachine.Core.ActionProductMachine import ActionProductMachine
 from ActionMachine.Core.DependencyFactory import DependencyFactory
@@ -100,8 +95,9 @@ class ActionTestMachine(ActionProductMachine):
             Результат выполнения действия.
         """
         if isinstance(action, MockAction):
-            # MockAction.run синхронный, но это нормально внутри асинхронной функции
-            return action.run(params)  # type: ignore[return-value]
+            # MockAction.run возвращает BaseResult, но в контексте теста мы уверены,
+            # что он соответствует ожидаемому типу R.
+            return cast(R, action.run(params))
         return await super().run(action, params, resources=resources, connections=connections)
 
     def _get_factory(
@@ -125,5 +121,3 @@ class ActionTestMachine(ActionProductMachine):
         Возвращает фабрику для использования в тестировании отдельных аспектов (без внешних ресурсов).
         """
         return self._get_factory(action_class, external_resources=None)
-
-################################################################################

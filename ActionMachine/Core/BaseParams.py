@@ -5,7 +5,7 @@
 Обеспечивает единый dict-доступ к полям.
 """
 
-from .DataAccessMixins import ReadableMixin
+from .ReadableMixin import ReadableMixin
 
 
 class BaseParams(ReadableMixin):
