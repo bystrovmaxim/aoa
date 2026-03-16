@@ -170,3 +170,4 @@ cython_debug/
 
 .env
 *.ver
+code.txt
