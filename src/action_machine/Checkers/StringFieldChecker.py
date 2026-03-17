@@ -10,7 +10,7 @@
 
 from typing import Any
 
-from action_machine.Core.Exceptions import ValidationFieldException
+from action_machine.Core.Exceptions import ValidationFieldError
 
 from .BaseFieldChecker import BaseFieldChecker
 
@@ -59,7 +59,7 @@ class StringFieldChecker(BaseFieldChecker):
             ValidationFieldException: если value не строка.
         """
         if not isinstance(value, str):
-            raise ValidationFieldException(
+            raise ValidationFieldError(
                 f"Параметр '{self.field_name}' должен быть строкой, получен {type(value).__name__}"
             )
         return value
@@ -75,7 +75,7 @@ class StringFieldChecker(BaseFieldChecker):
             ValidationFieldException: если строка пуста.
         """
         if self.not_empty and len(value) == 0:
-            raise ValidationFieldException(f"Параметр '{self.field_name}' не может быть пустым")
+            raise ValidationFieldError(f"Параметр '{self.field_name}' не может быть пустым")
 
     def _check_length(self, value: str) -> None:
         """
@@ -88,11 +88,11 @@ class StringFieldChecker(BaseFieldChecker):
             ValidationFieldException: если длина вне допустимого диапазона.
         """
         if self.min_length is not None and len(value) < self.min_length:
-            raise ValidationFieldException(
+            raise ValidationFieldError(
                 f"Длина параметра '{self.field_name}' должна быть не меньше {self.min_length}"
             )
         if self.max_length is not None and len(value) > self.max_length:
-            raise ValidationFieldException(
+            raise ValidationFieldError(
                 f"Длина параметра '{self.field_name}' должна быть не больше {self.max_length}"
             )
 

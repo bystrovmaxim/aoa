@@ -5,7 +5,7 @@
 
 from typing import Any
 
-from action_machine.Core.Exceptions import ValidationFieldException
+from action_machine.Core.Exceptions import ValidationFieldError
 
 from .BaseFieldChecker import BaseFieldChecker
 
@@ -35,12 +35,12 @@ class InstanceOfChecker(BaseFieldChecker):
         if not isinstance(value, self.expected_class):
             if isinstance(self.expected_class, tuple):
                 names = ", ".join(cls.__name__ for cls in self.expected_class)
-                raise ValidationFieldException(
+                raise ValidationFieldError(
                     f"Поле '{self.field_name}' должно быть экземпляром одного из классов: {names}, "
                     f"получен {type(value).__name__}"
                 )
             else:
-                raise ValidationFieldException(
+                raise ValidationFieldError(
                     f"Поле '{self.field_name}' должно быть экземпляром класса {self.expected_class.__name__}, "
                     f"получен {type(value).__name__}"
                 )

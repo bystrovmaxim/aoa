@@ -11,7 +11,7 @@
 import pytest
 
 from action_machine.Checkers.BoolFieldChecker import BoolFieldChecker
-from action_machine.Core.Exceptions import ValidationFieldException
+from action_machine.Core.Exceptions import ValidationFieldError
 
 
 class TestBoolFieldChecker:
@@ -41,7 +41,7 @@ class TestBoolFieldChecker:
         """Обязательное поле отсутствует -> ошибка."""
         checker = BoolFieldChecker("active", "Активен", required=True)
         params = {}
-        with pytest.raises(ValidationFieldException) as exc:
+        with pytest.raises(ValidationFieldError) as exc:
             checker.check(params)
         assert "Отсутствует обязательный параметр: 'active'" in str(exc.value)
 
@@ -52,7 +52,7 @@ class TestBoolFieldChecker:
         """
         checker = BoolFieldChecker("active", "Активен", required=True)
         params = {"active": None}
-        with pytest.raises(ValidationFieldException) as exc:
+        with pytest.raises(ValidationFieldError) as exc:
             checker.check(params)
         assert "Отсутствует обязательный параметр: 'active'" in str(exc.value)
 
@@ -63,7 +63,7 @@ class TestBoolFieldChecker:
         """
         checker = BoolFieldChecker("active", "Активен", required=False)
         params = {"active": None}
-        with pytest.raises(ValidationFieldException) as exc:
+        with pytest.raises(ValidationFieldError) as exc:
             checker.check(params)
         assert "должен быть булевым" in str(exc.value)
 
@@ -78,7 +78,7 @@ class TestBoolFieldChecker:
         wrong_values = [1, 0, -1, 42]
         for val in wrong_values:
             params = {"active": val}
-            with pytest.raises(ValidationFieldException) as exc:
+            with pytest.raises(ValidationFieldError) as exc:
                 checker.check(params)
             assert "должен быть булевым" in str(exc.value)
 
@@ -89,7 +89,7 @@ class TestBoolFieldChecker:
         wrong_values = ["true", "false", "yes", "no", "True", "False", ""]
         for val in wrong_values:
             params = {"active": val}
-            with pytest.raises(ValidationFieldException) as exc:
+            with pytest.raises(ValidationFieldError) as exc:
                 checker.check(params)
             assert "должен быть булевым" in str(exc.value)
 
@@ -100,7 +100,7 @@ class TestBoolFieldChecker:
         wrong_values = [[], [1, 2, 3], ["a"]]
         for val in wrong_values:
             params = {"active": val}
-            with pytest.raises(ValidationFieldException) as exc:
+            with pytest.raises(ValidationFieldError) as exc:
                 checker.check(params)
             assert "должен быть булевым" in str(exc.value)
 
@@ -111,7 +111,7 @@ class TestBoolFieldChecker:
         wrong_values = [{}, {"key": "value"}]
         for val in wrong_values:
             params = {"active": val}
-            with pytest.raises(ValidationFieldException) as exc:
+            with pytest.raises(ValidationFieldError) as exc:
                 checker.check(params)
             assert "должен быть булевым" in str(exc.value)
 
@@ -126,7 +126,7 @@ class TestBoolFieldChecker:
         """
         checker = BoolFieldChecker("active", "Активен", required=True)
         params = {"active": 123}
-        with pytest.raises(ValidationFieldException) as exc:
+        with pytest.raises(ValidationFieldError) as exc:
             checker.check(params)
         assert "должен быть булевым" in str(exc.value)
         assert "Отсутствует" not in str(exc.value)
@@ -135,6 +135,6 @@ class TestBoolFieldChecker:
         """Необязательное поле с неверным типом -> ошибка типа."""
         checker = BoolFieldChecker("active", "Активен", required=False)
         params = {"active": "true"}
-        with pytest.raises(ValidationFieldException) as exc:
+        with pytest.raises(ValidationFieldError) as exc:
             checker.check(params)
         assert "должен быть булевым" in str(exc.value)

@@ -26,13 +26,13 @@ from .Context.RequestInfo import RequestInfo
 # Context
 from .Context.UserInfo import UserInfo
 from .Core.Exceptions import (
-    AuthorizationException,
+    AuthorizationError,
     ConnectionAlreadyOpenError,
     ConnectionNotOpenError,
-    HandleException,
-    TransactionException,
+    HandleError,
+    TransactionError,
     TransactionProhibitedError,
-    ValidationFieldException,
+    ValidationFieldError,
 )
 from .Core.Protocols import ReadableDataProtocol, WritableDataProtocol
 from .Core.ReadableMixin import ReadableMixin
@@ -44,10 +44,10 @@ from .ResourceManagers.WrapperConnectionManager import WrapperConnectionManager
 
 __all__ = [
     # Exceptions
-    "AuthorizationException",
-    "ValidationFieldException",
-    "HandleException",
-    "TransactionException",
+    "AuthorizationError",
+    "ValidationFieldError",
+    "HandleError",
+    "TransactionError",
     "ConnectionAlreadyOpenError",
     "ConnectionNotOpenError",
     "TransactionProhibitedError",

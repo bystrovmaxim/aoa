@@ -7,7 +7,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Callable
 from typing import Any
 
-from action_machine.Core.Exceptions import ValidationFieldException
+from action_machine.Core.Exceptions import ValidationFieldError
 
 
 class BaseFieldChecker(ABC):
@@ -88,7 +88,7 @@ class BaseFieldChecker(ABC):
             ValidationFieldException: если поле обязательно, но значение отсутствует.
         """
         if self.required and value is None:
-            raise ValidationFieldException(
+            raise ValidationFieldError(
                 f"Отсутствует обязательный параметр: '{self.field_name}'", field=self.field_name
             )
         return not self.required or value is not None
@@ -117,7 +117,7 @@ class BaseFieldChecker(ABC):
 
         try:
             self._check_type_and_constraints(value)
-        except ValidationFieldException as e:
+        except ValidationFieldError as e:
             if not e.field:
                 e.field = self.field_name
             raise

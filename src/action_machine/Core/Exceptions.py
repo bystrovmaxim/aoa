@@ -4,13 +4,13 @@
 """
 
 
-class AuthorizationException(Exception):
+class AuthorizationError(Exception):
     """Ошибка авторизации (недостаточно прав)."""
 
     pass
 
 
-class ValidationFieldException(Exception):
+class ValidationFieldError(Exception):
     """Ошибка валидации параметра."""
 
     def __init__(self, message: str, field: str | None = None) -> None:
@@ -24,37 +24,37 @@ class ValidationFieldException(Exception):
         self.field: str | None = field
 
 
-class HandleException(Exception):
+class HandleError(Exception):
     """Ошибка выполнения основной логики действия."""
 
     pass
 
 
-class TransactionException(Exception):
+class TransactionError(Exception):
     """Базовое исключение для ошибок, связанных с транзакциями и соединениями."""
 
     pass
 
 
-class ConnectionAlreadyOpenError(TransactionException):
+class ConnectionAlreadyOpenError(TransactionError):
     """Соединение уже открыто (попытка открыть повторно)."""
 
     pass
 
 
-class ConnectionNotOpenError(TransactionException):
+class ConnectionNotOpenError(TransactionError):
     """Соединение не открыто (попытка выполнить операцию без открытого соединения)."""
 
     pass
 
 
-class TransactionProhibitedError(TransactionException):
+class TransactionProhibitedError(TransactionError):
     """Выбрасывается при попытке управления транзакцией на вложенном уровне."""
 
     pass
 
 
-class ConnectionValidationError(TransactionException):
+class ConnectionValidationError(TransactionError):
     """
     Несоответствие переданных connections объявленным через @connection.
 

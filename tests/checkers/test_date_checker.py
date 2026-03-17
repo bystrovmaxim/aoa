@@ -15,7 +15,7 @@ from datetime import datetime
 import pytest
 
 from action_machine.Checkers.DateFieldChecker import DateFieldChecker
-from action_machine.Core.Exceptions import ValidationFieldException
+from action_machine.Core.Exceptions import ValidationFieldError
 
 
 class TestDateFieldChecker:
@@ -50,7 +50,7 @@ class TestDateFieldChecker:
         """Обязательное поле отсутствует -> ошибка."""
         checker = DateFieldChecker("created", "Дата создания", required=True)
         params = {}
-        with pytest.raises(ValidationFieldException) as exc:
+        with pytest.raises(ValidationFieldError) as exc:
             checker.check(params)
         assert "Отсутствует обязательный параметр: 'created'" in str(exc.value)
 
@@ -62,7 +62,7 @@ class TestDateFieldChecker:
         """Строка без указания формата -> ошибка."""
         checker = DateFieldChecker("created", "Дата создания")
         params = {"created": "2024-01-01"}
-        with pytest.raises(ValidationFieldException) as exc:
+        with pytest.raises(ValidationFieldError) as exc:
             checker.check(params)
         assert "требуется указать формат даты" in str(exc.value)
 
@@ -70,7 +70,7 @@ class TestDateFieldChecker:
         """Строка не соответствует формату -> ошибка."""
         checker = DateFieldChecker("created", "Дата создания", format="%Y-%m-%d")
         params = {"created": "01-01-2024"}
-        with pytest.raises(ValidationFieldException) as exc:
+        with pytest.raises(ValidationFieldError) as exc:
             checker.check(params)
         assert "должно быть строкой даты, соответствующей формату" in str(exc.value)
 
@@ -78,7 +78,7 @@ class TestDateFieldChecker:
         """Строка с несуществующей датой -> ошибка."""
         checker = DateFieldChecker("created", "Дата создания", format="%Y-%m-%d")
         params = {"created": "2024-13-45"}  # невалидная дата
-        with pytest.raises(ValidationFieldException):
+        with pytest.raises(ValidationFieldError):
             checker.check(params)
 
     # ------------------------------------------------------------------
@@ -88,14 +88,14 @@ class TestDateFieldChecker:
     def test_date_wrong_type(self, wrong_type_date_params):
         """Неверный тип данных."""
         checker = DateFieldChecker("created", "Дата создания")
-        with pytest.raises(ValidationFieldException):
+        with pytest.raises(ValidationFieldError):
             checker.check(wrong_type_date_params)
 
     def test_date_int_passed(self):
         """int вместо даты -> ошибка."""
         checker = DateFieldChecker("created", "Дата создания")
         params = {"created": 20240101}
-        with pytest.raises(ValidationFieldException):
+        with pytest.raises(ValidationFieldError):
             checker.check(params)
 
     # ------------------------------------------------------------------
@@ -109,7 +109,7 @@ class TestDateFieldChecker:
 
         # Дата раньше минимума
         params = {"created": datetime(2023, 12, 31)}
-        with pytest.raises(ValidationFieldException) as exc:
+        with pytest.raises(ValidationFieldError) as exc:
             checker.check(params)
         assert "должно быть не меньше" in str(exc.value)
 
@@ -127,7 +127,7 @@ class TestDateFieldChecker:
         checker = DateFieldChecker("created", "Дата создания", format="%Y-%m-%d", min_date=min_date)
 
         params = {"created": "2023-12-31"}
-        with pytest.raises(ValidationFieldException):
+        with pytest.raises(ValidationFieldError):
             checker.check(params)
 
         params = {"created": "2024-01-01"}
@@ -144,7 +144,7 @@ class TestDateFieldChecker:
 
         # Дата позже максимума
         params = {"created": datetime(2025, 1, 1)}
-        with pytest.raises(ValidationFieldException) as exc:
+        with pytest.raises(ValidationFieldError) as exc:
             checker.check(params)
         assert "должно быть не больше" in str(exc.value)
 
@@ -168,7 +168,7 @@ class TestDateFieldChecker:
 
         # Ниже минимума
         params = {"created": datetime(2023, 12, 31)}
-        with pytest.raises(ValidationFieldException):
+        with pytest.raises(ValidationFieldError):
             checker.check(params)
 
         # В диапазоне
@@ -177,7 +177,7 @@ class TestDateFieldChecker:
 
         # Выше максимума
         params = {"created": datetime(2025, 1, 1)}
-        with pytest.raises(ValidationFieldException):
+        with pytest.raises(ValidationFieldError):
             checker.check(params)
 
     def test_date_range_with_string(self):
@@ -187,14 +187,14 @@ class TestDateFieldChecker:
         checker = DateFieldChecker("created", "Дата создания", format="%Y-%m-%d", min_date=min_date, max_date=max_date)
 
         params = {"created": "2023-12-31"}
-        with pytest.raises(ValidationFieldException):
+        with pytest.raises(ValidationFieldError):
             checker.check(params)
 
         params = {"created": "2024-06-15"}
         checker.check(params)
 
         params = {"created": "2025-01-01"}
-        with pytest.raises(ValidationFieldException):
+        with pytest.raises(ValidationFieldError):
             checker.check(params)
 
     def test_date_range_inclusive(self):

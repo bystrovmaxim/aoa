@@ -12,7 +12,7 @@
 import pytest
 
 from action_machine.Checkers.InstanceOfChecker import InstanceOfChecker
-from action_machine.Core.Exceptions import ValidationFieldException
+from action_machine.Core.Exceptions import ValidationFieldError
 
 from .conftest import Admin, User
 
@@ -34,7 +34,7 @@ class TestInstanceOfChecker:
 
         # Невалидное значение
         params = {"obj": 123}
-        with pytest.raises(ValidationFieldException) as exc:
+        with pytest.raises(ValidationFieldError) as exc:
             checker.check(params)
         assert "должно быть экземпляром класса str" in str(exc.value)
 
@@ -46,7 +46,7 @@ class TestInstanceOfChecker:
         checker.check(params)
 
         params = {"num": "42"}
-        with pytest.raises(ValidationFieldException) as exc:
+        with pytest.raises(ValidationFieldError) as exc:
             checker.check(params)
         assert "должно быть экземпляром класса int" in str(exc.value)
 
@@ -58,7 +58,7 @@ class TestInstanceOfChecker:
         checker.check(params)
 
         params = {"num": 42}  # int не подходит
-        with pytest.raises(ValidationFieldException):
+        with pytest.raises(ValidationFieldError):
             checker.check(params)
 
     # ------------------------------------------------------------------
@@ -79,7 +79,7 @@ class TestInstanceOfChecker:
 
         # str не подходит
         params = {"obj": "42"}
-        with pytest.raises(ValidationFieldException) as exc:
+        with pytest.raises(ValidationFieldError) as exc:
             checker.check(params)
         assert "должно быть экземпляром одного из классов: int, float" in str(exc.value)
 
@@ -97,7 +97,7 @@ class TestInstanceOfChecker:
         checker.check(params)
 
         params = {"obj": 42}
-        with pytest.raises(ValidationFieldException):
+        with pytest.raises(ValidationFieldError):
             checker.check(params)
 
     # ------------------------------------------------------------------
@@ -112,7 +112,7 @@ class TestInstanceOfChecker:
         checker.check(params)
 
         params = {"user": Admin()}
-        with pytest.raises(ValidationFieldException):
+        with pytest.raises(ValidationFieldError):
             checker.check(params)
 
     def test_instanceof_custom_classes_tuple(self):
@@ -126,7 +126,7 @@ class TestInstanceOfChecker:
         checker.check(params)
 
         params = {"user": "not a user"}
-        with pytest.raises(ValidationFieldException):
+        with pytest.raises(ValidationFieldError):
             checker.check(params)
 
     # ------------------------------------------------------------------
@@ -138,7 +138,7 @@ class TestInstanceOfChecker:
         checker = InstanceOfChecker("obj", str, "Объект", required=True)
 
         params = {}
-        with pytest.raises(ValidationFieldException) as exc:
+        with pytest.raises(ValidationFieldError) as exc:
             checker.check(params)
         assert "Отсутствует обязательный параметр: 'obj'" in str(exc.value)
 
@@ -147,7 +147,7 @@ class TestInstanceOfChecker:
         checker = InstanceOfChecker("obj", str, "Объект", required=True)
 
         params = {"obj": None}
-        with pytest.raises(ValidationFieldException) as exc:
+        with pytest.raises(ValidationFieldError) as exc:
             checker.check(params)
         assert "Отсутствует обязательный параметр: 'obj'" in str(exc.value)
 
@@ -163,7 +163,7 @@ class TestInstanceOfChecker:
         checker = InstanceOfChecker("obj", str, "Объект", required=False)
 
         params = {"obj": None}
-        with pytest.raises(ValidationFieldException) as exc:
+        with pytest.raises(ValidationFieldError) as exc:
             checker.check(params)
         assert "должно быть экземпляром класса str" in str(exc.value)
 
