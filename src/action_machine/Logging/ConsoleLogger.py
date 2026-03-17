@@ -57,8 +57,8 @@ from typing import Any
 
 from action_machine.Context.Context import Context
 from action_machine.Core.BaseParams import BaseParams
-from action_machine.Logging.BaseLogger import BaseLogger
-from action_machine.Logging.LogScope import LogScope
+from action_machine.Logging.BaseLogger import base_logger
+from action_machine.Logging.LogScope import log_scope
 
 # ANSI escape-коды для раскраски элементов вывода.
 # Каждый код привязан к семантической роли элемента,
@@ -73,7 +73,7 @@ _ANSI_RESET = "\033[0m"
 _NONE_MARKER = "<none>"
 
 
-class ConsoleLogger(BaseLogger):
+class console_logger(base_logger):
     """
     Логер, выводящий сообщения в консоль через print.
 
@@ -160,7 +160,7 @@ class ConsoleLogger(BaseLogger):
 
     def _format_line(
         self,
-        scope: LogScope,
+        scope: log_scope,
         message: str,
         indent: int,
     ) -> str:
@@ -198,7 +198,7 @@ class ConsoleLogger(BaseLogger):
 
     async def write(
         self,
-        scope: LogScope,
+        scope: log_scope,
         message: str,
         var: dict[str, Any],
         context: Context,

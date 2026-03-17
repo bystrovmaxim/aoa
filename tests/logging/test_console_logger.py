@@ -11,8 +11,8 @@
 
 import pytest
 
-from action_machine.Logging.ConsoleLogger import ConsoleLogger
-from action_machine.Logging.LogScope import LogScope
+from action_machine.Logging.ConsoleLogger import console_logger
+from action_machine.Logging.LogScope import log_scope
 from tests.conftest import ParamsTest, make_context
 
 
@@ -26,8 +26,8 @@ class TestConsoleLogger:
     @pytest.mark.anyio
     async def test_write_outputs_to_stdout(self, capsys: pytest.CaptureFixture[str]):
         """write выводит сообщение через print."""
-        logger = ConsoleLogger(use_colors=False)
-        scope = LogScope(action="MyAction", aspect="load")
+        logger = console_logger(use_colors=False)
+        scope = log_scope(action="MyAction", aspect="load")
         ctx = make_context()
         params = ParamsTest()
 
@@ -40,8 +40,8 @@ class TestConsoleLogger:
     @pytest.mark.anyio
     async def test_write_without_scope(self, capsys: pytest.CaptureFixture[str]):
         """write без скоупа не выводит квадратные скобки."""
-        logger = ConsoleLogger(use_colors=False)
-        scope = LogScope()  # пустой скоуп
+        logger = console_logger(use_colors=False)
+        scope = log_scope()  # пустой скоуп
         ctx = make_context()
         params = ParamsTest()
 
@@ -55,8 +55,8 @@ class TestConsoleLogger:
     @pytest.mark.anyio
     async def test_write_with_empty_scope_values(self, capsys: pytest.CaptureFixture[str]):
         """write с пустыми значениями в скоупе пропускает их."""
-        logger = ConsoleLogger(use_colors=False)
-        scope = LogScope(action="", aspect="test", event="")
+        logger = console_logger(use_colors=False)
+        scope = log_scope(action="", aspect="test", event="")
         ctx = make_context()
         params = ParamsTest()
 
@@ -73,8 +73,8 @@ class TestConsoleLogger:
     @pytest.mark.anyio
     async def test_write_with_indent(self, capsys: pytest.CaptureFixture[str]):
         """write добавляет отступ по уровню indent."""
-        logger = ConsoleLogger(use_colors=False)
-        scope = LogScope(action="MyAction")
+        logger = console_logger(use_colors=False)
+        scope = log_scope(action="MyAction")
         ctx = make_context()
         params = ParamsTest()
 
@@ -88,8 +88,8 @@ class TestConsoleLogger:
     @pytest.mark.anyio
     async def test_write_with_zero_indent(self, capsys: pytest.CaptureFixture[str]):
         """indent=0 не добавляет отступ."""
-        logger = ConsoleLogger(use_colors=False)
-        scope = LogScope(action="MyAction")
+        logger = console_logger(use_colors=False)
+        scope = log_scope(action="MyAction")
         ctx = make_context()
         params = ParamsTest()
 
@@ -102,8 +102,8 @@ class TestConsoleLogger:
     @pytest.mark.anyio
     async def test_write_with_large_indent(self, capsys: pytest.CaptureFixture[str]):
         """write работает с большими значениями indent."""
-        logger = ConsoleLogger(use_colors=False)
-        scope = LogScope(action="MyAction")
+        logger = console_logger(use_colors=False)
+        scope = log_scope(action="MyAction")
         ctx = make_context()
         params = ParamsTest()
 
@@ -120,8 +120,8 @@ class TestConsoleLogger:
     @pytest.mark.anyio
     async def test_write_with_special_characters(self, capsys: pytest.CaptureFixture[str]):
         """write корректно выводит специальные символы."""
-        logger = ConsoleLogger(use_colors=False)
-        scope = LogScope(action="MyAction")
+        logger = console_logger(use_colors=False)
+        scope = log_scope(action="MyAction")
         ctx = make_context()
         params = ParamsTest()
 
@@ -134,8 +134,8 @@ class TestConsoleLogger:
     @pytest.mark.anyio
     async def test_write_with_unicode(self, capsys: pytest.CaptureFixture[str]):
         """write поддерживает unicode-символы."""
-        logger = ConsoleLogger(use_colors=False)
-        scope = LogScope(action="MyAction")
+        logger = console_logger(use_colors=False)
+        scope = log_scope(action="MyAction")
         ctx = make_context()
         params = ParamsTest()
 
@@ -152,8 +152,8 @@ class TestConsoleLogger:
     @pytest.mark.anyio
     async def test_write_no_colors(self, capsys: pytest.CaptureFixture[str]):
         """write без цветов не содержит ANSI-кодов."""
-        logger = ConsoleLogger(use_colors=False)
-        scope = LogScope(action="MyAction")
+        logger = console_logger(use_colors=False)
+        scope = log_scope(action="MyAction")
         ctx = make_context()
         params = ParamsTest()
 
@@ -165,8 +165,8 @@ class TestConsoleLogger:
     @pytest.mark.anyio
     async def test_write_with_colors_contains_ansi(self, capsys: pytest.CaptureFixture[str]):
         """write с цветами содержит ANSI-коды."""
-        logger = ConsoleLogger(use_colors=True)
-        scope = LogScope(action="MyAction")
+        logger = console_logger(use_colors=True)
+        scope = log_scope(action="MyAction")
         ctx = make_context()
         params = ParamsTest()
 
@@ -178,8 +178,8 @@ class TestConsoleLogger:
     @pytest.mark.anyio
     async def test_write_colorizes_none_marker(self, capsys: pytest.CaptureFixture[str]):
         """write раскрашивает <none> красным при use_colors=True."""
-        logger = ConsoleLogger(use_colors=True)
-        scope = LogScope(action="MyAction")
+        logger = console_logger(use_colors=True)
+        scope = log_scope(action="MyAction")
         ctx = make_context()
         params = ParamsTest()
 
@@ -192,8 +192,8 @@ class TestConsoleLogger:
     @pytest.mark.anyio
     async def test_write_does_not_colorize_none_when_disabled(self, capsys: pytest.CaptureFixture[str]):
         """write не раскрашивает <none> если use_colors=False."""
-        logger = ConsoleLogger(use_colors=False)
-        scope = LogScope(action="MyAction")
+        logger = console_logger(use_colors=False)
+        scope = log_scope(action="MyAction")
         ctx = make_context()
         params = ParamsTest()
 
@@ -206,8 +206,8 @@ class TestConsoleLogger:
     @pytest.mark.anyio
     async def test_write_colorizes_multiple_none_markers(self, capsys: pytest.CaptureFixture[str]):
         """write раскрашивает все вхождения <none> красным."""
-        logger = ConsoleLogger(use_colors=True)
-        scope = LogScope(action="MyAction")
+        logger = console_logger(use_colors=True)
+        scope = log_scope(action="MyAction")
         ctx = make_context()
         params = ParamsTest()
 
@@ -225,8 +225,8 @@ class TestConsoleLogger:
     @pytest.mark.anyio
     async def test_write_colorizes_scope_grey(self, capsys: pytest.CaptureFixture[str]):
         """write раскрашивает скоуп серым цветом."""
-        logger = ConsoleLogger(use_colors=True)
-        scope = LogScope(action="MyAction", aspect="test")
+        logger = console_logger(use_colors=True)
+        scope = log_scope(action="MyAction", aspect="test")
         ctx = make_context()
         params = ParamsTest()
 
@@ -239,8 +239,8 @@ class TestConsoleLogger:
     @pytest.mark.anyio
     async def test_write_does_not_colorize_scope_when_disabled(self, capsys: pytest.CaptureFixture[str]):
         """write не раскрашивает скоуп если use_colors=False."""
-        logger = ConsoleLogger(use_colors=False)
-        scope = LogScope(action="MyAction")
+        logger = console_logger(use_colors=False)
+        scope = log_scope(action="MyAction")
         ctx = make_context()
         params = ParamsTest()
 
@@ -257,8 +257,8 @@ class TestConsoleLogger:
     @pytest.mark.anyio
     async def test_write_with_scope_and_none_marker(self, capsys: pytest.CaptureFixture[str]):
         """write раскрашивает и скоуп, и маркер <none> одновременно."""
-        logger = ConsoleLogger(use_colors=True)
-        scope = LogScope(action="MyAction")
+        logger = console_logger(use_colors=True)
+        scope = log_scope(action="MyAction")
         ctx = make_context()
         params = ParamsTest()
 
@@ -276,8 +276,8 @@ class TestConsoleLogger:
     @pytest.mark.anyio
     async def test_write_format_with_scope(self, capsys: pytest.CaptureFixture[str]):
         """write соблюдает формат [scope] message."""
-        logger = ConsoleLogger(use_colors=False)
-        scope = LogScope(action="Test")
+        logger = console_logger(use_colors=False)
+        scope = log_scope(action="Test")
         ctx = make_context()
         params = ParamsTest()
 
@@ -289,8 +289,8 @@ class TestConsoleLogger:
     @pytest.mark.anyio
     async def test_write_format_with_indent_and_scope(self, capsys: pytest.CaptureFixture[str]):
         """write соблюдает формат с отступом и скоупом."""
-        logger = ConsoleLogger(use_colors=False)
-        scope = LogScope(action="Test")
+        logger = console_logger(use_colors=False)
+        scope = log_scope(action="Test")
         ctx = make_context()
         params = ParamsTest()
 
@@ -306,8 +306,8 @@ class TestConsoleLogger:
     @pytest.mark.anyio
     async def test_multiple_writes(self, capsys: pytest.CaptureFixture[str]):
         """несколько вызовов write выводят несколько строк."""
-        logger = ConsoleLogger(use_colors=False)
-        scope = LogScope(action="Test")
+        logger = console_logger(use_colors=False)
+        scope = log_scope(action="Test")
         ctx = make_context()
         params = ParamsTest()
 

@@ -46,10 +46,10 @@ from typing import Any
 
 from action_machine.Context.Context import Context
 from action_machine.Core.BaseParams import BaseParams
-from action_machine.Logging.LogScope import LogScope
+from action_machine.Logging.LogScope import log_scope
 
 
-class BaseLogger(ABC):
+class base_logger(ABC):
     """
     Абстрактный базовый класс для всех логеров.
 
@@ -89,7 +89,7 @@ class BaseLogger(ABC):
 
     def _build_filter_string(
         self,
-        scope: LogScope,
+        scope: log_scope,
         message: str,
         var: dict[str, Any],
     ) -> str:
@@ -138,7 +138,7 @@ class BaseLogger(ABC):
 
     async def match_filters(
         self,
-        scope: LogScope,
+        scope: log_scope,
         message: str,
         var: dict[str, Any],
         context: Context,
@@ -199,7 +199,7 @@ class BaseLogger(ABC):
 
     async def handle(
         self,
-        scope: LogScope,
+        scope: log_scope,
         message: str,
         var: dict[str, Any],
         context: Context,
@@ -247,7 +247,7 @@ class BaseLogger(ABC):
     @abstractmethod
     async def write(
         self,
-        scope: LogScope,
+        scope: log_scope,
         message: str,
         var: dict[str, Any],
         context: Context,

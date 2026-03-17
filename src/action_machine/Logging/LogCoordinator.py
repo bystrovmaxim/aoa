@@ -105,12 +105,12 @@ from typing import Any
 
 from action_machine.Context.Context import Context
 from action_machine.Core.BaseParams import BaseParams
-from action_machine.Logging.BaseLogger import BaseLogger
-from action_machine.Logging.LogScope import LogScope
-from action_machine.Logging.VariableSubstitutor import VariableSubstitutor
+from action_machine.Logging.BaseLogger import base_logger
+from action_machine.Logging.LogScope import log_scope
+from action_machine.Logging.VariableSubstitutor import variable_substitutor
 
 
-class LogCoordinator:
+class log_coordinator:
     """
     Единая шина логирования AOA.
 
@@ -142,7 +142,7 @@ class LogCoordinator:
 
     def __init__(
         self,
-        loggers: list[BaseLogger] | None = None,
+        loggers: list[base_logger] | None = None,
     ) -> None:
         """
         Создаёт координатор логирования.
@@ -168,13 +168,13 @@ class LogCoordinator:
             ... ])
             >>> coordinator = LogCoordinator()  # без логеров
         """
-        self._loggers: list[BaseLogger] = list(loggers) if loggers else []
+        self._loggers: list[base_logger] = list(loggers) if loggers else []
 
         # Создаём экземпляр VariableSubstitutor, который отвечает за
         # подстановку переменных и вычисление iif.
-        self._substitutor: VariableSubstitutor = VariableSubstitutor()
+        self._substitutor: variable_substitutor = variable_substitutor()
 
-    def add_logger(self, logger: BaseLogger) -> None:
+    def add_logger(self, logger: base_logger) -> None:
         """
         Регистрирует новый логер в координаторе.
 
@@ -203,7 +203,7 @@ class LogCoordinator:
         self,
         message: str,
         var: dict[str, Any],
-        scope: LogScope,
+        scope: log_scope,
         context: Context,
         state: dict[str, Any],
         params: BaseParams,

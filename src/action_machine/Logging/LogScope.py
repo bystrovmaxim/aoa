@@ -49,7 +49,7 @@ LogScope наследует collections.abc.Mapping, что автоматиче
 from collections.abc import Iterator, Mapping
 
 
-class LogScope(Mapping[str, str]):
+class log_scope(Mapping[str, str]):
     """
     Обёртка над словарём произвольных ключей, описывающая
     местоположение в конвейере выполнения.
