@@ -30,22 +30,22 @@ echo ""
 run_and_log() {
     local cmd="$1"
     local name="$2"
-
+    
     echo -e "${YELLOW}▶ Запуск: ${name}${NC}"
-
+    
     # Пишем заголовок в лог
     {
         echo "=== $name ==="
         echo "$ $cmd"
         echo ""
     } >> "$LOG_FILE"
-
+    
     # Выполняем команду, вывод только в лог
     eval "$cmd" >> "$LOG_FILE" 2>&1
-
+    
     local exit_code=$?
     echo "" >> "$LOG_FILE"
-
+    
     if [ $exit_code -eq 0 ]; then
         echo -e "${GREEN}✅ ${name} — успешно${NC}"
         echo "✅ ${name} — успешно" >> "$LOG_FILE"
