@@ -18,32 +18,32 @@ class WrapperConnectionManager(IConnectionManager):
         """
         self._connection_manager = connection_manager
 
-    async def _doOpenConnection(self, connection_params: Any) -> Any:
+    async def _do_open_connection(self, connection_params: Any) -> Any:
         raise TransactionProhibitedError(
             "Открытие соединения разрешено только в том действии, где ресурс был создан. "
             "Текущее действие получило ресурс через прокси, поэтому open недоступен."
         )
 
-    async def _doCommit(self, connection: Any) -> None:
+    async def _do_commit(self, connection: Any) -> None:
         raise TransactionProhibitedError(
             "Фиксация транзакции разрешена только в том действии, где ресурс был создан. "
             "Текущее действие получило ресурс через прокси, поэтому commit недоступен."
         )
 
-    async def _doRollback(self, connection: Any) -> None:
+    async def _do_rollback(self, connection: Any) -> None:
         raise TransactionProhibitedError(
             "Откат транзакции разрешён только в том действии, где ресурс был создан. "
             "Текущее действие получило ресурс через прокси, поэтому rollback недоступен."
         )
 
     async def open(self) -> None:
-        await self._doOpenConnection(None)
+        await self._do_open_connection(None)
 
     async def commit(self) -> None:
-        await self._doCommit(None)
+        await self._do_commit(None)
 
     async def rollback(self) -> None:
-        await self._doRollback(None)
+        await self._do_rollback(None)
 
     async def execute(self, query: str, params: tuple[Any, ...] | None = None) -> Any:
         try:
