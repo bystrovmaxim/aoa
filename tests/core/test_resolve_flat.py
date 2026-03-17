@@ -7,7 +7,7 @@
 - None значения
 """
 
-from action_machine.Context.UserInfo import user_info
+from action_machine.Context.user_info import user_info
 
 
 class TestResolveFlat:

@@ -5,7 +5,7 @@ Dataclass для передачи данных события в плагины.
 
 from dataclasses import dataclass
 
-from action_machine.Context.Context import context
+from action_machine.Context.context import context
 from action_machine.Core.DependencyFactory import DependencyFactory
 from action_machine.Core.Protocols import ReadableDataProtocol, WritableDataProtocol
 

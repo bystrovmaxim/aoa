@@ -4,11 +4,11 @@
 Содержит интерфейсы и базовые классы для аутентификации и создания контекста.
 """
 
-from .AuthCoordinator import auth_coordinator
-from .Authenticator import authenticator
-from .CheckRoles import check_roles
-from .ContextAssembler import context_assembler
-from .CredentialExtractor import credential_extractor
+from .auth_coordinator import auth_coordinator
+from .authenticator import authenticator
+from .check_roles import check_roles
+from .context_assembler import context_assembler
+from .credential_extractor import credential_extractor
 
 __all__ = [
     "authenticator",

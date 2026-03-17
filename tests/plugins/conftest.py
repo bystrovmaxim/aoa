@@ -8,7 +8,7 @@ from unittest.mock import Mock
 
 import pytest
 
-from action_machine.Context.Context import context
+from action_machine.Context.context import context
 from action_machine.Core.BaseAction import BaseAction
 from action_machine.Core.BaseParams import BaseParams
 from action_machine.Core.BaseResult import BaseResult

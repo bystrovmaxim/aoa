@@ -6,10 +6,10 @@
 запросе, окружении и объединяющий их контекст.
 """
 
-from .Context import context
-from .EnvironmentInfo import environment_info
-from .RequestInfo import request_info
-from .UserInfo import user_info
+from .context import context
+from .environment_info import environment_info
+from .request_info import request_info
+from .user_info import user_info
 
 __all__ = [
     "user_info",  # информация о пользователе (идентификатор, роли, доп. данные)

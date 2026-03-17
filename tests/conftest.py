@@ -10,13 +10,13 @@ from typing import Any
 
 import pytest
 
-from action_machine.Context.Context import context
-from action_machine.Context.EnvironmentInfo import environment_info
-from action_machine.Context.RequestInfo import request_info
-from action_machine.Context.UserInfo import user_info
+from action_machine.Context.context import context
+from action_machine.Context.environment_info import environment_info
+from action_machine.Context.request_info import request_info
+from action_machine.Context.user_info import user_info
 from action_machine.Core.BaseParams import BaseParams
-from action_machine.Logging.BaseLogger import base_logger
-from action_machine.Logging.LogScope import log_scope
+from action_machine.Logging.base_logger import base_logger
+from action_machine.Logging.log_scope import log_scope
 
 # ======================================================================
 # ТЕСТОВЫЕ МОДЕЛИ ДАННЫХ

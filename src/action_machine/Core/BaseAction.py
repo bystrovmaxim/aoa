@@ -14,7 +14,7 @@ P = TypeVar("P", bound=ReadableDataProtocol)
 R = TypeVar("R", bound=WritableDataProtocol)
 
 
-class BaseAction(Generic[P, R], ABC):
+class BaseAction(ABC, Generic[P, R]): # noqa: UP046
     """
     Базовое действие.
 

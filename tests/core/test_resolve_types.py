@@ -12,8 +12,8 @@
 
 from dataclasses import dataclass
 
-from action_machine.Context.Context import context
-from action_machine.Context.UserInfo import user_info
+from action_machine.Context.context import context
+from action_machine.Context.user_info import user_info
 from action_machine.Core.BaseParams import BaseParams
 
 

@@ -12,9 +12,9 @@ from typing import Any
 
 from action_machine.Core.ReadableMixin import ReadableMixin
 
-from .EnvironmentInfo import environment_info
-from .RequestInfo import request_info
-from .UserInfo import user_info
+from .environment_info import environment_info
+from .request_info import request_info
+from .user_info import user_info
 
 
 class context(ReadableMixin):

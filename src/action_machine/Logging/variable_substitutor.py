@@ -62,11 +62,11 @@ import re
 from collections.abc import Callable
 from typing import Any
 
-from action_machine.Context.Context import context
+from action_machine.Context.context import context
 from action_machine.Core.BaseParams import BaseParams
 from action_machine.Core.Exceptions import LogTemplateError
-from action_machine.Logging.ExpressionEvaluator import expression_evaluator
-from action_machine.Logging.LogScope import log_scope
+from action_machine.Logging.expression_evaluator import expression_evaluator
+from action_machine.Logging.log_scope import log_scope
 
 # ---------------------------------------------------------------------------
 # Регулярные выражения
@@ -92,7 +92,9 @@ from action_machine.Logging.LogScope import log_scope
 #
 # Символ '%' в начале отличает переменные логера от обычных
 # фигурных скобок в Python f-strings и str.format().
-_VARIABLE_PATTERN: re.Pattern[str] = re.compile(r"\{%([a-zA-Z_][a-zA-Z0-9_]*)\.([a-zA-Z_][a-zA-Z0-9_.]*)\}")
+_VARIABLE_PATTERN: re.Pattern[str] = re.compile(
+    r"\{%([a-zA-Z_][a-zA-Z0-9_]*)\.([a-zA-Z_][a-zA-Z0-9_.]*)\}"
+)
 
 # Регулярное выражение для поиска блоков {iif(...)} в шаблоне.
 # Используется для определения позиций iif-блоков,
@@ -138,7 +140,11 @@ class variable_substitutor:
 
         # Словарь диспетчеризации: namespace → метод-резолвер.
         self._namespace_resolvers: dict[
-            str, Callable[[str, dict[str, Any], log_scope, context, dict[str, Any], BaseParams], object]
+            str,
+            Callable[
+                [str, dict[str, Any], log_scope, context, dict[str, Any], BaseParams],
+                object,
+            ],
         ] = {
             "var": self._resolve_ns_var,
             "state": self._resolve_ns_state,
@@ -203,7 +209,7 @@ class variable_substitutor:
         path: str,
         var: dict[str, Any],
         scope: log_scope,
-        context: context,
+        ctx: context,
         state: dict[str, Any],
         params: BaseParams,
     ) -> object:
@@ -232,7 +238,7 @@ class variable_substitutor:
         path: str,
         var: dict[str, Any],
         scope: log_scope,
-        context: context,
+        ctx: context,
         state: dict[str, Any],
         params: BaseParams,
     ) -> object:
@@ -260,7 +266,7 @@ class variable_substitutor:
         path: str,
         var: dict[str, Any],
         scope: log_scope,
-        context: context,
+        ctx: context,
         state: dict[str, Any],
         params: BaseParams,
     ) -> object:
@@ -295,7 +301,7 @@ class variable_substitutor:
         path: str,
         var: dict[str, Any],
         scope: log_scope,
-        context: context,
+        ctx: context,
         state: dict[str, Any],
         params: BaseParams,
     ) -> object:
@@ -318,14 +324,14 @@ class variable_substitutor:
             Найденное значение или None если путь не удалось пройти.
         """
         # Context гарантированно наследует ReadableMixin.
-        return context.resolve(path)
+        return ctx.resolve(path)
 
     def _resolve_ns_params(
         self,
         path: str,
         var: dict[str, Any],
         scope: log_scope,
-        context: context,
+        ctx: context,
         state: dict[str, Any],
         params: BaseParams,
     ) -> object:
@@ -359,7 +365,7 @@ class variable_substitutor:
         path: str,
         var: dict[str, Any],
         scope: log_scope,
-        context: context,
+        ctx: context,
         state: dict[str, Any],
         params: BaseParams,
     ) -> object:
@@ -402,7 +408,7 @@ class variable_substitutor:
                 f"Проверьте переменную {{%{namespace}.{path}}}."
             )
 
-        return resolver(path, var, scope, context, state, params)
+        return resolver(path, var, scope, ctx, state, params)
 
     # ----------------------------------------------------------------
     # Строковое разрешение с проверкой на None
@@ -414,7 +420,7 @@ class variable_substitutor:
         path: str,
         var: dict[str, Any],
         scope: log_scope,
-        context: context,
+        ctx: context,
         state: dict[str, Any],
         params: BaseParams,
     ) -> str:
@@ -447,7 +453,9 @@ class variable_substitutor:
             ... )
             '150'
         """
-        value = self._resolve_variable_raw(namespace, path, var, scope, context, state, params)
+        value = self._resolve_variable_raw(
+            namespace, path, var, scope, ctx, state, params
+        )
 
         if value is None:
             raise LogTemplateError(
@@ -487,7 +495,7 @@ class variable_substitutor:
             >>> VariableSubstitutor._quote_if_string("agent_1")
             "'agent_1'"
             >>> VariableSubstitutor._quote_if_string("it's ok")
-            "'it\\'s ok'"
+            "\"it\\'s ok\""
         """
         # bool ПЕРЕД int — потому что bool является подклассом int в Python
         if isinstance(raw_value, bool):
@@ -500,6 +508,104 @@ class variable_substitutor:
         return f"'{s}'"
 
     # ----------------------------------------------------------------
+    # Подстановка переменных — три приватных метода
+    # ----------------------------------------------------------------
+
+    def _substitute_simple(
+        self,
+        message: str,
+        var: dict[str, Any],
+        scope: log_scope,
+        ctx: context,
+        state: dict[str, Any],
+        params: BaseParams,
+    ) -> str:
+        """
+        Быстрый путь: нет iif — простая замена {%...} → str(value).
+
+        Используется когда в шаблоне гарантированно нет {iif(...)}.
+        Не нужно определять позиции блоков, поэтому работает быстрее.
+        """
+
+        def replacer(match: re.Match[str]) -> str:
+            return self._resolve_variable(
+                match.group(1), match.group(2),
+                var, scope, ctx, state, params,
+            )
+
+        return _VARIABLE_PATTERN.sub(replacer, message)
+
+    def _substitute_with_iif_detection(
+        self,
+        message: str,
+        var: dict[str, Any],
+        scope: log_scope,
+        ctx: context,
+        state: dict[str, Any],
+        params: BaseParams,
+    ) -> str:
+        """
+        Подстановка с определением позиций iif-блоков.
+
+        Переменные внутри {iif(...)} форматируются как литералы
+        (строки в кавычках, числа как есть), чтобы simpleeval
+        мог корректно вычислить выражение.
+        Переменные вне iif подставляются как обычные строки.
+        """
+        # Определяем позиции всех {iif(...)} блоков,
+        # чтобы внутри них подставлять значения как литералы
+        # (строки в кавычках, числа как есть).
+        iif_ranges = [
+            (m.start(), m.end())
+            for m in _IIF_BLOCK_PATTERN.finditer(message)
+        ]
+
+        def _inside_iif(pos: int) -> bool:
+            """Проверяет, находится ли позиция внутри блока iif."""
+            return any(start <= pos < end for start, end in iif_ranges)
+
+        def replacer(match: re.Match[str]) -> str:
+            namespace = match.group(1)
+            path = match.group(2)
+            raw = self._resolve_variable_raw(
+                namespace, path, var, scope, ctx, state, params
+            )
+            if raw is None:
+                raise LogTemplateError(
+                    f"Переменная '{{%{namespace}.{path}}}' не найдена. "
+                    f"Проверьте шаблон сообщения и наличие значения "
+                    f"в источнике '{namespace}'."
+                )
+            if _inside_iif(match.start()):
+                return self._quote_if_string(raw)
+            return str(raw)
+
+        return _VARIABLE_PATTERN.sub(replacer, message)
+
+    def _substitute_variables(
+        self,
+        message: str,
+        var: dict[str, Any],
+        scope: log_scope,
+        ctx: context,
+        state: dict[str, Any],
+        params: BaseParams,
+        has_iif: bool,
+    ) -> str:
+        """
+        Диспетчер первого прохода: выбирает стратегию подстановки.
+
+        Если шаблон содержит iif — используется медленный путь
+        с определением позиций блоков (_substitute_with_iif_detection).
+        Иначе — быстрый путь без позиционирования (_substitute_simple).
+        """
+        if has_iif:
+            return self._substitute_with_iif_detection(
+                message, var, scope, ctx, state, params
+            )
+        return self._substitute_simple(message, var, scope, ctx, state, params)
+
+    # ----------------------------------------------------------------
     # Единственный публичный метод
     # ----------------------------------------------------------------
 
@@ -508,7 +614,7 @@ class variable_substitutor:
         message: str,
         var: dict[str, Any],
         scope: log_scope,
-        context: context,
+        ctx: context,
         state: dict[str, Any],
         params: BaseParams,
     ) -> str:
@@ -568,45 +674,9 @@ class variable_substitutor:
         has_iif = "{iif(" in message
 
         # --- Проход 1: подстановка {%...} переменных ---
-
-        if has_iif:
-            # Определяем позиции всех {iif(...)} блоков,
-            # чтобы внутри них подставлять значения как литералы
-            # (строки в кавычках, числа как есть).
-            iif_ranges: list[tuple[int, int]] = []
-            for m in _IIF_BLOCK_PATTERN.finditer(message):
-                iif_ranges.append((m.start(), m.end()))
-
-            def _inside_iif(pos: int) -> bool:
-                """Проверяет, находится ли позиция внутри блока iif."""
-                for start, end in iif_ranges:
-                    if start <= pos < end:
-                        return True
-                return False
-
-            def replacer(match: re.Match[str]) -> str:
-                namespace = match.group(1)
-                path = match.group(2)
-                raw = self._resolve_variable_raw(namespace, path, var, scope, context, state, params)
-                if raw is None:
-                    raise LogTemplateError(
-                        f"Переменная '{{%{namespace}.{path}}}' не найдена. "
-                        f"Проверьте шаблон сообщения и наличие значения "
-                        f"в источнике '{namespace}'."
-                    )
-                if _inside_iif(match.start()):
-                    return self._quote_if_string(raw)
-                return str(raw)
-
-        else:
-            # Быстрый путь: нет iif, не нужна проверка позиций.
-            # Простая подстановка {%...} → str(value).
-            def replacer(match: re.Match[str]) -> str:
-                namespace = match.group(1)
-                path = match.group(2)
-                return self._resolve_variable(namespace, path, var, scope, context, state, params)
-
-        resolved = _VARIABLE_PATTERN.sub(replacer, message)
+        resolved = self._substitute_variables(
+            message, var, scope, ctx, state, params, has_iif
+        )
 
         # --- Проход 2: вычисление {iif(...)} выражений ---
         # 98% случаев — нет iif, быстрый выход.

@@ -44,9 +44,9 @@ import re
 from abc import ABC, abstractmethod
 from typing import Any
 
-from action_machine.Context.Context import context
+from action_machine.Context.context import context
 from action_machine.Core.BaseParams import BaseParams
-from action_machine.Logging.LogScope import log_scope
+from action_machine.Logging.log_scope import log_scope
 
 
 class base_logger(ABC):
@@ -141,7 +141,7 @@ class base_logger(ABC):
         scope: log_scope,
         message: str,
         var: dict[str, Any],
-        context: context,
+        ctx: context,
         state: dict[str, Any],
         params: BaseParams,
         indent: int,
@@ -202,7 +202,7 @@ class base_logger(ABC):
         scope: log_scope,
         message: str,
         var: dict[str, Any],
-        context: context,
+        ctx: context,
         state: dict[str, Any],
         params: BaseParams,
         indent: int,
@@ -237,12 +237,12 @@ class base_logger(ABC):
             ...                     context, state, params, indent=2)
         """
         # Фаза 1: фильтрация
-        matched = await self.match_filters(scope, message, var, context, state, params, indent)
+        matched = await self.match_filters(scope, message, var, ctx, state, params, indent)
         if not matched:
             return
 
         # Фаза 2: запись (абстрактный метод)
-        await self.write(scope, message, var, context, state, params, indent)
+        await self.write(scope, message, var, ctx, state, params, indent)
 
     @abstractmethod
     async def write(
@@ -250,7 +250,7 @@ class base_logger(ABC):
         scope: log_scope,
         message: str,
         var: dict[str, Any],
-        context: context,
+        ctx: context,
         state: dict[str, Any],
         params: BaseParams,
         indent: int,

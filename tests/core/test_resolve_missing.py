@@ -8,7 +8,7 @@
 - Поведение default при отсутствии
 """
 
-from action_machine.Context.UserInfo import user_info
+from action_machine.Context.user_info import user_info
 
 from .conftest import make_context_with_user
 

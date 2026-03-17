@@ -6,17 +6,17 @@
 Позволяет подменять зависимости через словарь моков.
 
 Примечание к рефакторингу:
-    После выделения PluginCoordinator из ActionProductMachine,
-    ActionTestMachine не требует изменений в логике — он наследует
-    от ActionProductMachine, который теперь использует
-    self._plugin_coordinator вместо прямых вызовов _run_plugins_async.
-    Единственное изменение — удалён неиспользуемый импорт asyncio
-    (если был).
+После выделения PluginCoordinator из ActionProductMachine,
+ActionTestMachine не требует изменений в логике — он наследует
+от ActionProductMachine, который теперь использует
+self._plugin_coordinator вместо прямых вызовов _run_plugins_async.
+Единственное изменение — удалён неиспользуемый импорт asyncio
+(если был).
 """
 
 from typing import Any, TypeVar, cast
 
-from action_machine.Context.Context import context
+from action_machine.Context.context import context
 from action_machine.Core.ActionProductMachine import ActionProductMachine
 from action_machine.Core.BaseAction import BaseAction
 from action_machine.Core.BaseParams import BaseParams
@@ -35,11 +35,11 @@ class ActionTestMachine(ActionProductMachine):
 
     Принимает в конструкторе словарь моков: {класс: значение}.
     Значение может быть:
-        - экземпляром MockAction (будет использован как есть).
-        - экземпляром BaseAction (пройдёт через аспектный конвейер).
-        - результатом BaseResult (будет обёрнут в MockAction).
-        - функцией callable (будет использована как side_effect).
-        - любым другим объектом (будет возвращён как есть через get()).
+    - экземпляром MockAction (будет использован как есть).
+    - экземпляром BaseAction (пройдёт через аспектный конвейер).
+    - результатом BaseResult (будет обёрнут в MockAction).
+    - функцией callable (будет использована как side_effect).
+    - любым другим объектом (будет возвращён как есть через get()).
 
     Метод run является асинхронным (как и в родителе).
     Для синхронного использования можно обернуть в asyncio.run().
@@ -48,16 +48,23 @@ class ActionTestMachine(ActionProductMachine):
     def __init__(
         self,
         mocks: dict[type[Any], Any] | None = None,
-        context: context | None = None,
+        ctx: context | None = None,
     ) -> None:
         """
         Инициализирует тестовую машину.
 
         Аргументы:
             mocks: словарь подмен {класс_зависимости: значение_мока}.
-            context: контекст выполнения (по умолчанию пустой Context).
+            ctx: контекст выполнения (по умолчанию пустой Context).
+
+        Примечание:
+            Параметр переименован из `context` в `ctx`, чтобы не затенять
+            импортированный класс `context`. Ранее вызов `context()` в
+            выражении `context if context is not None else context()`
+            приводил к ошибке mypy "None" not callable, потому что
+            имя параметра перекрывало имя класса.
         """
-        super().__init__(context or context())
+        super().__init__(ctx if ctx is not None else context())
         self._mocks = mocks or {}
         self._prepared_mocks: dict[type[Any], Any] = {}
         for cls, val in self._mocks.items():
@@ -132,4 +139,7 @@ class ActionTestMachine(ActionProductMachine):
         Возвращает фабрику для использования в тестировании отдельных
         аспектов (без внешних ресурсов).
         """
-        return self._get_factory(action_class, external_resources=None)
+        deps_info = getattr(action_class, "_dependencies", [])
+        # Явно указываем тип для параметра
+        external_resources: dict[type[Any], Any] | None = None
+        return DependencyFactory(self, deps_info, external_resources)

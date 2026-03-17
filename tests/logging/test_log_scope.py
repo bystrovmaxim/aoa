@@ -11,7 +11,7 @@ LogScope — обёртка над словарём для описания ме
 
 import pytest
 
-from action_machine.Logging.LogScope import log_scope
+from action_machine.Logging.log_scope import log_scope
 
 
 class TestLogScope:

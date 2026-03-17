@@ -10,7 +10,7 @@
 - Множественные декораторы
 """
 
-from action_machine.Auth.CheckRoles import check_roles
+from action_machine.Auth.check_roles import check_roles
 
 from .conftest import SampleActionBase
 
