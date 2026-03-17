@@ -4,12 +4,12 @@ ActionMachine – ядро фреймворка действий.
 """
 
 # Core
-from .Auth.AuthCoordinator import AuthCoordinator
-from .Auth.Authenticator import Authenticator
+from .Auth.AuthCoordinator import auth_coordinator
+from .Auth.Authenticator import authenticator
 
 # Auth
-from .Auth.CheckRoles import CheckRoles
-from .Auth.ContextAssembler import ContextAssembler
+from .Auth.CheckRoles import check_roles
+from .Auth.ContextAssembler import context_assembler
 from .Auth.CredentialExtractor import CredentialExtractor
 from .Checkers.BoolFieldChecker import BoolFieldChecker
 from .Checkers.DateFieldChecker import DateFieldChecker
@@ -72,9 +72,9 @@ __all__ = [
     "EnvironmentInfo",
     "Context",
     # Auth
-    "CheckRoles",
-    "Authenticator",
+    "check_roles",
+    "authenticator",
     "CredentialExtractor",
-    "ContextAssembler",
-    "AuthCoordinator",
+    "context_assembler",
+    "auth_coordinator",
 ]

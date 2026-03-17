@@ -10,7 +10,7 @@ from typing import Any
 from ..Context.UserInfo import UserInfo
 
 
-class Authenticator(ABC):
+class authenticator(ABC):
     """
     Базовый класс для всех аутентификаторов.
 

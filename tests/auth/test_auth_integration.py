@@ -7,7 +7,7 @@
 
 import pytest
 
-from action_machine.Auth.AuthCoordinator import AuthCoordinator
+from action_machine.Auth.AuthCoordinator import auth_coordinator
 from action_machine.Context.Context import Context
 from action_machine.Context.EnvironmentInfo import EnvironmentInfo
 from action_machine.Context.RequestInfo import RequestInfo
@@ -49,7 +49,7 @@ class TestAuthIntegration:
                     "client_ip": request_data.get("ip", "0.0.0.0"),
                 }
 
-        coordinator = AuthCoordinator(SimpleExtractor(), SimpleAuthenticator(), SimpleAssembler())
+        coordinator = auth_coordinator(SimpleExtractor(), SimpleAuthenticator(), SimpleAssembler())
 
         # Успешная аутентификация
         result = await coordinator.process(
@@ -84,7 +84,7 @@ class TestAuthIntegration:
             async def assemble(self, request_data):
                 pytest.fail("Assembler не должен вызываться при пустых credentials")
 
-        coordinator = AuthCoordinator(EmptyExtractor(), Authenticator(), Assembler())
+        coordinator = auth_coordinator(EmptyExtractor(), Authenticator(), Assembler())
 
         result = await coordinator.process({"some": "data"})
         assert result is None
@@ -105,7 +105,7 @@ class TestAuthIntegration:
             async def assemble(self, request_data):
                 pytest.fail("Assembler не должен вызываться при неудачной аутентификации")
 
-        coordinator = AuthCoordinator(Extractor(), FailingAuthenticator(), Assembler())
+        coordinator = auth_coordinator(Extractor(), FailingAuthenticator(), Assembler())
 
         result = await coordinator.process({})
         assert result is None
@@ -138,7 +138,7 @@ class TestAuthIntegration:
                     "tags": {"env": "test"},
                 }
 
-        coordinator = AuthCoordinator(TestExtractor(), TestAuthenticator(), TestAssembler())
+        coordinator = auth_coordinator(TestExtractor(), TestAuthenticator(), TestAssembler())
 
         result = await coordinator.process({})
 

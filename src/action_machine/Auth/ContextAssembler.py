@@ -10,7 +10,7 @@ from abc import ABC, abstractmethod
 from typing import Any
 
 
-class ContextAssembler(ABC):
+class context_assembler(ABC):
     """
     Интерфейс сборщика метаданных.
 

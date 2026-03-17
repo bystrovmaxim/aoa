@@ -14,7 +14,7 @@
 
 import pytest
 
-from action_machine.Auth.AuthCoordinator import AuthCoordinator
+from action_machine.Auth.AuthCoordinator import auth_coordinator
 from action_machine.Context.Context import Context
 from action_machine.Context.RequestInfo import RequestInfo
 from action_machine.Context.UserInfo import UserInfo
@@ -39,7 +39,7 @@ class TestAuthCoordinator:
         authenticator = MockAuthenticator(return_value=user_info)
         assembler = MockContextAssembler(return_value=metadata)
 
-        coordinator = AuthCoordinator(extractor, authenticator, assembler)
+        coordinator = auth_coordinator(extractor, authenticator, assembler)
 
         # Действие
         result = await coordinator.process({"request": "data"})
@@ -69,7 +69,7 @@ class TestAuthCoordinator:
         authenticator = MockAuthenticator(return_value=user_info)
         assembler = MockContextAssembler(return_value=custom_metadata)
 
-        coordinator = AuthCoordinator(extractor, authenticator, assembler)
+        coordinator = auth_coordinator(extractor, authenticator, assembler)
 
         result = await coordinator.process({})
 
@@ -89,7 +89,7 @@ class TestAuthCoordinator:
         authenticator = MockAuthenticator()
         assembler = MockContextAssembler()
 
-        coordinator = AuthCoordinator(extractor, authenticator, assembler)
+        coordinator = auth_coordinator(extractor, authenticator, assembler)
 
         result = await coordinator.process({"request": "data"})
 
@@ -105,7 +105,7 @@ class TestAuthCoordinator:
         authenticator = MockAuthenticator(return_value=None)  # неуспех
         assembler = MockContextAssembler()
 
-        coordinator = AuthCoordinator(extractor, authenticator, assembler)
+        coordinator = auth_coordinator(extractor, authenticator, assembler)
 
         result = await coordinator.process({"request": "data"})
 
@@ -127,7 +127,7 @@ class TestAuthCoordinator:
         authenticator = MockAuthenticator()
         assembler = MockContextAssembler()
 
-        coordinator = AuthCoordinator(extractor, authenticator, assembler)
+        coordinator = auth_coordinator(extractor, authenticator, assembler)
 
         with pytest.raises(ValueError, match="Ошибка извлечения"):
             await coordinator.process({})
@@ -141,7 +141,7 @@ class TestAuthCoordinator:
 
         assembler = MockContextAssembler()
 
-        coordinator = AuthCoordinator(extractor, authenticator, assembler)
+        coordinator = auth_coordinator(extractor, authenticator, assembler)
 
         with pytest.raises(ValueError, match="Ошибка аутентификации"):
             await coordinator.process({})
@@ -154,7 +154,7 @@ class TestAuthCoordinator:
         assembler = MockContextAssembler()
         assembler.assemble.side_effect = ValueError("Ошибка сборки")
 
-        coordinator = AuthCoordinator(extractor, authenticator, assembler)
+        coordinator = auth_coordinator(extractor, authenticator, assembler)
 
         with pytest.raises(ValueError, match="Ошибка сборки"):
             await coordinator.process({})
@@ -189,7 +189,7 @@ class TestAuthCoordinator:
         assembler = MockContextAssembler()
         assembler.assemble.side_effect = assembler_side
 
-        coordinator = AuthCoordinator(extractor, authenticator, assembler)
+        coordinator = auth_coordinator(extractor, authenticator, assembler)
 
         await coordinator.process({})
 
@@ -206,7 +206,7 @@ class TestAuthCoordinator:
         authenticator = MockAuthenticator(return_value=user_info)
         assembler = MockContextAssembler(return_value={})  # пустой словарь
 
-        coordinator = AuthCoordinator(extractor, authenticator, assembler)
+        coordinator = auth_coordinator(extractor, authenticator, assembler)
 
         result = await coordinator.process({})
 
@@ -224,7 +224,7 @@ class TestAuthCoordinator:
         authenticator = MockAuthenticator(return_value=user_info)
         assembler = MockContextAssembler(return_value={})
 
-        coordinator = AuthCoordinator(extractor, authenticator, assembler)
+        coordinator = auth_coordinator(extractor, authenticator, assembler)
 
         result = await coordinator.process({})
 
