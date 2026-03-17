@@ -62,11 +62,11 @@ import re
 from collections.abc import Callable
 from typing import Any
 
-from action_machine.Context.context import context
+from action_machine.Context.context import Context
 from action_machine.Core.BaseParams import BaseParams
 from action_machine.Core.Exceptions import LogTemplateError
-from action_machine.Logging.expression_evaluator import expression_evaluator
-from action_machine.Logging.log_scope import log_scope
+from action_machine.Logging.expression_evaluator import ExpressionEvaluator
+from action_machine.Logging.log_scope import LogScope
 
 # ---------------------------------------------------------------------------
 # Регулярные выражения
@@ -103,7 +103,7 @@ _VARIABLE_PATTERN: re.Pattern[str] = re.compile(
 _IIF_BLOCK_PATTERN: re.Pattern[str] = re.compile(r"\{iif\(.*?\)\}")
 
 
-class variable_substitutor:
+class VariableSubstitutor:
     """
     Подстановщик переменных и вычислитель iif для шаблонов логирования.
 
@@ -136,13 +136,13 @@ class variable_substitutor:
         1. Добавить строку в словарь.
         2. Написать метод _resolve_ns_<name> с той же сигнатурой.
         """
-        self._evaluator: expression_evaluator = expression_evaluator()
+        self._evaluator: ExpressionEvaluator = ExpressionEvaluator()
 
         # Словарь диспетчеризации: namespace → метод-резолвер.
         self._namespace_resolvers: dict[
             str,
             Callable[
-                [str, dict[str, Any], log_scope, context, dict[str, Any], BaseParams],
+                [str, dict[str, Any], LogScope, Context, dict[str, Any], BaseParams],
                 object,
             ],
         ] = {
@@ -208,8 +208,8 @@ class variable_substitutor:
         self,
         path: str,
         var: dict[str, Any],
-        scope: log_scope,
-        ctx: context,
+        scope: LogScope,
+        ctx: Context,
         state: dict[str, Any],
         params: BaseParams,
     ) -> object:
@@ -237,8 +237,8 @@ class variable_substitutor:
         self,
         path: str,
         var: dict[str, Any],
-        scope: log_scope,
-        ctx: context,
+        scope: LogScope,
+        ctx: Context,
         state: dict[str, Any],
         params: BaseParams,
     ) -> object:
@@ -265,8 +265,8 @@ class variable_substitutor:
         self,
         path: str,
         var: dict[str, Any],
-        scope: log_scope,
-        ctx: context,
+        scope: LogScope,
+        ctx: Context,
         state: dict[str, Any],
         params: BaseParams,
     ) -> object:
@@ -300,8 +300,8 @@ class variable_substitutor:
         self,
         path: str,
         var: dict[str, Any],
-        scope: log_scope,
-        ctx: context,
+        scope: LogScope,
+        ctx: Context,
         state: dict[str, Any],
         params: BaseParams,
     ) -> object:
@@ -330,8 +330,8 @@ class variable_substitutor:
         self,
         path: str,
         var: dict[str, Any],
-        scope: log_scope,
-        ctx: context,
+        scope: LogScope,
+        ctx: Context,
         state: dict[str, Any],
         params: BaseParams,
     ) -> object:
@@ -364,8 +364,8 @@ class variable_substitutor:
         namespace: str,
         path: str,
         var: dict[str, Any],
-        scope: log_scope,
-        ctx: context,
+        scope: LogScope,
+        ctx: Context,
         state: dict[str, Any],
         params: BaseParams,
     ) -> object:
@@ -419,8 +419,8 @@ class variable_substitutor:
         namespace: str,
         path: str,
         var: dict[str, Any],
-        scope: log_scope,
-        ctx: context,
+        scope: LogScope,
+        ctx: Context,
         state: dict[str, Any],
         params: BaseParams,
     ) -> str:
@@ -515,8 +515,8 @@ class variable_substitutor:
         self,
         message: str,
         var: dict[str, Any],
-        scope: log_scope,
-        ctx: context,
+        scope: LogScope,
+        ctx: Context,
         state: dict[str, Any],
         params: BaseParams,
     ) -> str:
@@ -539,8 +539,8 @@ class variable_substitutor:
         self,
         message: str,
         var: dict[str, Any],
-        scope: log_scope,
-        ctx: context,
+        scope: LogScope,
+        ctx: Context,
         state: dict[str, Any],
         params: BaseParams,
     ) -> str:
@@ -586,8 +586,8 @@ class variable_substitutor:
         self,
         message: str,
         var: dict[str, Any],
-        scope: log_scope,
-        ctx: context,
+        scope: LogScope,
+        ctx: Context,
         state: dict[str, Any],
         params: BaseParams,
         has_iif: bool,
@@ -613,8 +613,8 @@ class variable_substitutor:
         self,
         message: str,
         var: dict[str, Any],
-        scope: log_scope,
-        ctx: context,
+        scope: LogScope,
+        ctx: Context,
         state: dict[str, Any],
         params: BaseParams,
     ) -> str:

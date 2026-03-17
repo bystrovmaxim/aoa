@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from action_machine.Context.user_info import user_info  # ← это класс
+from action_machine.Context.user_info import UserInfo  # ← это класс
 
 # ======================================================================
 # МОКИ ДЛЯ ТЕСТОВ AUTH
@@ -71,19 +71,19 @@ class SampleActionBase:
 @pytest.fixture
 def user_info_fixture():  # ← ИЗМЕНЕНО: переименовали фикстуру
     """Базовая информация о пользователе."""
-    return user_info(user_id="test_user", roles=["user"])  # ← вызываем класс
+    return UserInfo(user_id="test_user", roles=["user"])  # ← вызываем класс
 
 
 @pytest.fixture
 def admin_info_fixture():  # ← ИЗМЕНЕНО
     """Информация о пользователе с правами админа."""
-    return user_info(user_id="admin_user", roles=["user", "admin"])
+    return UserInfo(user_id="admin_user", roles=["user", "admin"])
 
 
 @pytest.fixture
 def guest_info_fixture():  # ← ИЗМЕНЕНО
     """Информация о госте (без ролей)."""
-    return user_info(user_id="guest", roles=[])
+    return UserInfo(user_id="guest", roles=[])
 
 
 @pytest.fixture

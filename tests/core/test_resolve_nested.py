@@ -7,8 +7,8 @@
 - Навигацию по цепочке объектов
 """
 
-from action_machine.Context.context import context
-from action_machine.Context.user_info import user_info
+from action_machine.Context.context import Context
+from action_machine.Context.user_info import UserInfo
 
 from .conftest import make_context_with_user
 
@@ -41,8 +41,8 @@ class TestResolveNested:
 
     def test_resolve_deep_nested_with_extra_dict(self):
         """resolve проходит через несколько уровней вложенных словарей."""
-        user = user_info(user_id="42", extra={"level1": {"level2": {"value": "deep"}}})
-        ctx = context(user=user)
+        user = UserInfo(user_id="42", extra={"level1": {"level2": {"value": "deep"}}})
+        ctx = Context(user=user)
         assert ctx.resolve("user.extra.level1.level2.value") == "deep"
 
     # ------------------------------------------------------------------
@@ -56,11 +56,11 @@ class TestResolveNested:
 
     def test_resolve_four_levels(self):
         """resolve работает с четырьмя уровнями вложенности."""
-        level4 = user_info(user_id="deep", extra={"data": {"config": {"flag": True}}})
-        level3 = user_info(user_id="level3", extra={"user": level4})
-        level2 = user_info(user_id="level2", extra={"next": level3})
-        level1 = user_info(user_id="level1", extra={"next": level2})
-        ctx = context(user=level1)
+        level4 = UserInfo(user_id="deep", extra={"data": {"config": {"flag": True}}})
+        level3 = UserInfo(user_id="level3", extra={"user": level4})
+        level2 = UserInfo(user_id="level2", extra={"next": level3})
+        level1 = UserInfo(user_id="level1", extra={"next": level2})
+        ctx = Context(user=level1)
 
         result = ctx.resolve("user.extra.next.extra.next.extra.user.extra.data.config.flag")
         assert result is True
@@ -71,8 +71,8 @@ class TestResolveNested:
 
     def test_resolve_mixed_readable_and_dict(self):
         """resolve проходит через ReadableMixin и dict в одной цепочке."""
-        user = user_info(user_id="42", extra={"settings": {"theme": "dark", "notifications": {"email": True}}})
-        ctx = context(user=user)
+        user = UserInfo(user_id="42", extra={"settings": {"theme": "dark", "notifications": {"email": True}}})
+        ctx = Context(user=user)
 
         assert ctx.resolve("user.extra.settings.theme") == "dark"
         assert ctx.resolve("user.extra.settings.notifications.email") is True

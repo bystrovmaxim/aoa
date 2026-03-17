@@ -14,7 +14,7 @@
 import pytest
 
 from action_machine.Core.Exceptions import LogTemplateError
-from action_machine.Logging.expression_evaluator import expression_evaluator
+from action_machine.Logging.expression_evaluator import ExpressionEvaluator
 
 
 class TestExpressionEvaluator:
@@ -26,7 +26,7 @@ class TestExpressionEvaluator:
 
     def setup_method(self) -> None:
         """Создаёт свежий экземпляр ExpressionEvaluator перед каждым тестом."""
-        self.evaluator = expression_evaluator()
+        self.evaluator = ExpressionEvaluator()
 
     # ------------------------------------------------------------------
     # ТЕСТЫ: evaluate() — простые выражения

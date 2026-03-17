@@ -44,12 +44,12 @@ import re
 from abc import ABC, abstractmethod
 from typing import Any
 
-from action_machine.Context.context import context
+from action_machine.Context.context import Context
 from action_machine.Core.BaseParams import BaseParams
-from action_machine.Logging.log_scope import log_scope
+from action_machine.Logging.log_scope import LogScope
 
 
-class base_logger(ABC):
+class BaseLogger(ABC):
     """
     Абстрактный базовый класс для всех логеров.
 
@@ -89,7 +89,7 @@ class base_logger(ABC):
 
     def _build_filter_string(
         self,
-        scope: log_scope,
+        scope: LogScope,
         message: str,
         var: dict[str, Any],
     ) -> str:
@@ -138,10 +138,10 @@ class base_logger(ABC):
 
     async def match_filters(
         self,
-        scope: log_scope,
+        scope: LogScope,
         message: str,
         var: dict[str, Any],
-        ctx: context,
+        ctx: Context,
         state: dict[str, Any],
         params: BaseParams,
         indent: int,
@@ -199,10 +199,10 @@ class base_logger(ABC):
 
     async def handle(
         self,
-        scope: log_scope,
+        scope: LogScope,
         message: str,
         var: dict[str, Any],
-        ctx: context,
+        ctx: Context,
         state: dict[str, Any],
         params: BaseParams,
         indent: int,
@@ -247,10 +247,10 @@ class base_logger(ABC):
     @abstractmethod
     async def write(
         self,
-        scope: log_scope,
+        scope: LogScope,
         message: str,
         var: dict[str, Any],
-        ctx: context,
+        ctx: Context,
         state: dict[str, Any],
         params: BaseParams,
         indent: int,

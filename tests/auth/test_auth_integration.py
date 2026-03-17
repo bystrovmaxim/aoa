@@ -7,11 +7,11 @@
 
 import pytest
 
-from action_machine.Auth.auth_coordinator import auth_coordinator
-from action_machine.Context.context import context
-from action_machine.Context.environment_info import environment_info
-from action_machine.Context.request_info import request_info
-from action_machine.Context.user_info import user_info
+from action_machine.Auth.auth_coordinator import AuthCoordinator
+from action_machine.Context.context import Context
+from action_machine.Context.environment_info import EnvironmentInfo
+from action_machine.Context.request_info import RequestInfo
+from action_machine.Context.user_info import UserInfo
 
 
 class TestAuthIntegration:
@@ -36,7 +36,7 @@ class TestAuthIntegration:
 
             async def authenticate(self, credentials):
                 if credentials.get("token") == "abc123":
-                    return user_info(user_id=credentials.get("user", "unknown"), roles=["user"])
+                    return UserInfo(user_id=credentials.get("user", "unknown"), roles=["user"])
                 return None
 
         class SimpleAssembler:
@@ -49,7 +49,7 @@ class TestAuthIntegration:
                     "client_ip": request_data.get("ip", "0.0.0.0"),
                 }
 
-        coordinator = auth_coordinator(SimpleExtractor(), SimpleAuthenticator(), SimpleAssembler())
+        coordinator = AuthCoordinator(SimpleExtractor(), SimpleAuthenticator(), SimpleAssembler())
 
         # Успешная аутентификация
         result = await coordinator.process(
@@ -84,7 +84,7 @@ class TestAuthIntegration:
             async def assemble(self, request_data):
                 pytest.fail("Assembler не должен вызываться при пустых credentials")
 
-        coordinator = auth_coordinator(EmptyExtractor(), Authenticator(), Assembler())
+        coordinator = AuthCoordinator(EmptyExtractor(), Authenticator(), Assembler())
 
         result = await coordinator.process({"some": "data"})
         assert result is None
@@ -105,7 +105,7 @@ class TestAuthIntegration:
             async def assemble(self, request_data):
                 pytest.fail("Assembler не должен вызываться при неудачной аутентификации")
 
-        coordinator = auth_coordinator(Extractor(), FailingAuthenticator(), Assembler())
+        coordinator = AuthCoordinator(Extractor(), FailingAuthenticator(), Assembler())
 
         result = await coordinator.process({})
         assert result is None
@@ -125,7 +125,7 @@ class TestAuthIntegration:
         class TestAuthenticator:
             async def authenticate(self, credentials):
                 if credentials.get("api_key") == "secret":
-                    return user_info(user_id="api_user", roles=["api"], extra={"key_type": "api_key"})
+                    return UserInfo(user_id="api_user", roles=["api"], extra={"key_type": "api_key"})
                 return None
 
         class TestAssembler:
@@ -138,15 +138,15 @@ class TestAuthIntegration:
                     "tags": {"env": "test"},
                 }
 
-        coordinator = auth_coordinator(TestExtractor(), TestAuthenticator(), TestAssembler())
+        coordinator = AuthCoordinator(TestExtractor(), TestAuthenticator(), TestAssembler())
 
         result = await coordinator.process({})
 
         # Проверяем структуру
-        assert isinstance(result, context)
-        assert isinstance(result.user, user_info)
-        assert isinstance(result.request, request_info)
-        assert isinstance(result.environment, environment_info)
+        assert isinstance(result, Context)
+        assert isinstance(result.user, UserInfo)
+        assert isinstance(result.request, RequestInfo)
+        assert isinstance(result.environment, EnvironmentInfo)
 
         # Проверяем данные пользователя
         assert result.user.user_id == "api_user"

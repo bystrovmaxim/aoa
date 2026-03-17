@@ -22,8 +22,8 @@ import time
 from collections.abc import Callable
 from typing import Any, TypeVar, cast
 
-from action_machine.Auth.check_roles import check_roles
-from action_machine.Context.context import context
+from action_machine.Auth.check_roles import CheckRoles
+from action_machine.Context.context import Context
 from action_machine.Core.AspectMethod import AspectMethod
 from action_machine.Core.BaseAction import BaseAction
 from action_machine.Core.BaseActionMachine import BaseActionMachine
@@ -56,7 +56,7 @@ class ActionProductMachine(BaseActionMachine):
 
     def __init__(
         self,
-        context: context,
+        context: Context,
         plugins: list[Plugin] | None = None,
         max_concurrent_handlers: int = DEFAULT_MAX_CONCURRENT_HANDLERS,
     ) -> None:
@@ -238,9 +238,9 @@ class ActionProductMachine(BaseActionMachine):
             )
         user_roles = self._context.user.roles
 
-        if role_spec == check_roles.NONE:
+        if role_spec == CheckRoles.NONE:
             self._check_none_role(user_roles)
-        elif role_spec == check_roles.ANY:
+        elif role_spec == CheckRoles.ANY:
             self._check_any_role(user_roles)
         elif isinstance(role_spec, list):
             self._check_list_role(role_spec, user_roles)

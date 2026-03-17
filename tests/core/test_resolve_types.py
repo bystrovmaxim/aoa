@@ -12,8 +12,8 @@
 
 from dataclasses import dataclass
 
-from action_machine.Context.context import context
-from action_machine.Context.user_info import user_info
+from action_machine.Context.context import Context
+from action_machine.Context.user_info import UserInfo
 from action_machine.Core.BaseParams import BaseParams
 
 
@@ -45,7 +45,7 @@ class TestResolveTypes:
 
     def test_resolve_list_field(self):
         """resolve возвращает список как значение."""
-        user = user_info(roles=["admin", "user"])
+        user = UserInfo(roles=["admin", "user"])
         result = user.resolve("roles")
         assert result == ["admin", "user"]
         assert isinstance(result, list)
@@ -55,7 +55,7 @@ class TestResolveTypes:
         resolve НЕ поддерживает индексацию списков.
         Нельзя получить доступ к элементу по индексу через dot-path.
         """
-        user = user_info(roles=["admin", "user"])
+        user = UserInfo(roles=["admin", "user"])
         result = user.resolve("roles")  # получаем весь список
         assert isinstance(result, list)
 
@@ -132,7 +132,7 @@ class TestResolveTypes:
 
     def test_resolve_dict_value(self):
         """resolve может получить значение из словаря по ключу."""
-        user = user_info(extra={"config": {"theme": "dark"}})
+        user = UserInfo(extra={"config": {"theme": "dark"}})
         result = user.resolve("extra.config.theme")
         assert result == "dark"
         assert isinstance(result, str)
@@ -143,12 +143,12 @@ class TestResolveTypes:
 
     def test_resolve_nested_mixed_types(self):
         """resolve работает со смешанными типами в цепочке."""
-        user = user_info(
+        user = UserInfo(
             user_id="42",
             roles=["admin"],
             extra={"settings": {"notifications": {"email": True, "count": 5, "channels": ["sms", "push"]}}},
         )
-        ctx = context(user=user)
+        ctx = Context(user=user)
 
         # Булево значение
         assert ctx.resolve("user.extra.settings.notifications.email") is True
@@ -167,21 +167,21 @@ class TestResolveTypes:
 
     def test_resolve_empty_list(self):
         """resolve возвращает пустой список."""
-        user = user_info(roles=[])
+        user = UserInfo(roles=[])
         result = user.resolve("roles")
         assert result == []
         assert isinstance(result, list)
 
     def test_resolve_empty_dict(self):
         """resolve возвращает пустой словарь."""
-        user = user_info(extra={})
+        user = UserInfo(extra={})
         result = user.resolve("extra")
         assert result == {}
         assert isinstance(result, dict)
 
     def test_resolve_empty_string(self):
         """resolve возвращает пустую строку."""
-        user = user_info(user_id="")
+        user = UserInfo(user_id="")
         result = user.resolve("user_id")
         assert result == ""
         assert isinstance(result, str)

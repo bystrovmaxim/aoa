@@ -6,10 +6,10 @@ from dataclasses import dataclass
 
 import pytest
 
-from action_machine.Context.context import context
-from action_machine.Context.environment_info import environment_info
-from action_machine.Context.request_info import request_info
-from action_machine.Context.user_info import user_info
+from action_machine.Context.context import Context
+from action_machine.Context.environment_info import EnvironmentInfo
+from action_machine.Context.request_info import RequestInfo
+from action_machine.Context.user_info import UserInfo
 from action_machine.Core.ReadableMixin import ReadableMixin
 
 # ======================================================================
@@ -70,7 +70,7 @@ class NestedData(ReadableMixin):
 @pytest.fixture
 def flat_user():
     """Пользователь с плоскими полями (без вложенности)."""
-    return user_info(user_id="42", roles=["admin", "user"])
+    return UserInfo(user_id="42", roles=["admin", "user"])
 
 
 @pytest.fixture
@@ -87,14 +87,14 @@ def simple_readable():
 @pytest.fixture
 def user_with_extra():
     """Пользователь с extra-словарём."""
-    return user_info(user_id="42", roles=["admin"], extra={"org": "acme", "level": {"floor": 5}})
+    return UserInfo(user_id="42", roles=["admin"], extra={"org": "acme", "level": {"floor": 5}})
 
 
 @pytest.fixture
 def context_with_user():
     """Контекст с пользователем."""
-    user = user_info(user_id="agent_007", roles=["agent"], extra={"clearance": "top"})
-    return context(user=user)
+    user = UserInfo(user_id="agent_007", roles=["agent"], extra={"clearance": "top"})
+    return Context(user=user)
 
 
 @pytest.fixture
@@ -121,7 +121,7 @@ def deep_nested():
 @pytest.fixture
 def user_without_extra():
     """Пользователь без extra-словаря."""
-    return user_info(user_id="42")
+    return UserInfo(user_id="42")
 
 
 # ======================================================================
@@ -129,7 +129,7 @@ def user_without_extra():
 # ======================================================================
 
 
-def make_context_with_user(user_id: str = "agent_1") -> context:
+def make_context_with_user(user_id: str = "agent_1") -> Context:
     """
     Создаёт контекст с пользователем для тестов.
 
@@ -139,7 +139,7 @@ def make_context_with_user(user_id: str = "agent_1") -> context:
     Возвращает:
         Context с указанным пользователем
     """
-    user = user_info(user_id=user_id, roles=["user", "admin"], extra={"org": "acme"})
-    request = request_info(trace_id="trace-abc-123", request_path="/api/v1/orders", request_method="POST")
-    environment = environment_info(hostname="pod-xyz-42", service_name="order-service", environment="production")
-    return context(user=user, request=request, environment=environment)
+    user = UserInfo(user_id=user_id, roles=["user", "admin"], extra={"org": "acme"})
+    request = RequestInfo(trace_id="trace-abc-123", request_path="/api/v1/orders", request_method="POST")
+    environment = EnvironmentInfo(hostname="pod-xyz-42", service_name="order-service", environment="production")
+    return Context(user=user, request=request, environment=environment)

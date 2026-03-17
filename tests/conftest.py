@@ -10,13 +10,13 @@ from typing import Any
 
 import pytest
 
-from action_machine.Context.context import context
-from action_machine.Context.environment_info import environment_info
-from action_machine.Context.request_info import request_info
-from action_machine.Context.user_info import user_info
+from action_machine.Context.context import Context
+from action_machine.Context.environment_info import EnvironmentInfo
+from action_machine.Context.request_info import RequestInfo
+from action_machine.Context.user_info import UserInfo
 from action_machine.Core.BaseParams import BaseParams
-from action_machine.Logging.base_logger import base_logger
-from action_machine.Logging.log_scope import log_scope
+from action_machine.Logging.base_logger import BaseLogger
+from action_machine.Logging.log_scope import LogScope
 
 # ======================================================================
 # ТЕСТОВЫЕ МОДЕЛИ ДАННЫХ
@@ -41,7 +41,7 @@ class ParamsTest(BaseParams):
     success: bool = True
 
 
-class RecordingLogger(base_logger):
+class RecordingLogger(BaseLogger):
     """
     Логер-шпион — записывает все сообщения в список records.
 
@@ -62,10 +62,10 @@ class RecordingLogger(base_logger):
 
     async def write(
         self,
-        scope: log_scope,
+        scope: LogScope,
         message: str,
         var: dict[str, Any],
-        context: context,
+        context: Context,
         state: dict[str, Any],
         params: BaseParams,
         indent: int,
@@ -105,7 +105,7 @@ def params() -> ParamsTest:
 
 
 @pytest.fixture
-def context_fixture() -> context:
+def context_fixture() -> Context:
     """
     Стандартный тестовый контекст.
 
@@ -114,31 +114,31 @@ def context_fixture() -> context:
     - Информацию о запросе с trace_id, путем и методом
     - Информацию об окружении с hostname, service_name
     """
-    user = user_info(
+    user = UserInfo(
         user_id="agent_1",
         roles=["user", "admin"],
         extra={"org": "acme"},
     )
-    request = request_info(
+    request = RequestInfo(
         trace_id="trace-abc-123",
         request_path="/api/v1/orders",
         request_method="POST",
         client_ip="192.168.1.1",
         user_agent="pytest/1.0",
     )
-    environment = environment_info(
+    environment = EnvironmentInfo(
         hostname="pod-xyz-42",
         service_name="order-service",
         service_version="1.2.3",
         environment="test",
     )
-    return context(user=user, request=request, environment=environment)
+    return Context(user=user, request=request, environment=environment)
 
 
 @pytest.fixture
-def empty_context() -> context:
+def empty_context() -> Context:
     """Пустой контекст для тестов, где не нужны данные."""
-    return context()
+    return Context()
 
 
 @pytest.fixture
@@ -154,15 +154,15 @@ def filtered_logger() -> RecordingLogger:
 
 
 @pytest.fixture
-def scope() -> log_scope:
+def scope() -> LogScope:
     """Стандартный тестовый скоуп с action, aspect и event."""
-    return log_scope(action="TestAction", aspect="test", event="before")
+    return LogScope(action="TestAction", aspect="test", event="before")
 
 
 @pytest.fixture
-def simple_scope() -> log_scope:
+def simple_scope() -> LogScope:
     """Простой скоуп только с действием."""
-    return log_scope(action="TestAction")
+    return LogScope(action="TestAction")
 
 
 @pytest.fixture
@@ -194,7 +194,7 @@ def make_context(
     user_id: str = "agent_1",
     roles: list[str] | None = None,
     trace_id: str = "trace-abc-123",
-) -> context:
+) -> Context:
     """
     Создаёт тестовый контекст с пользователем и запросом.
 
@@ -206,25 +206,25 @@ def make_context(
     Возвращает:
         Готовый Context для использования в тестах.
     """
-    user = user_info(
+    user = UserInfo(
         user_id=user_id,
         roles=roles or ["user", "admin"],
         extra={"org": "acme"},
     )
-    request = request_info(
+    request = RequestInfo(
         trace_id=trace_id,
         request_path="/api/v1/orders",
         request_method="POST",
     )
-    environment = environment_info(
+    environment = EnvironmentInfo(
         hostname="pod-xyz-42",
         service_name="order-service",
         environment="production",
     )
-    return context(user=user, request=request, environment=environment)
+    return Context(user=user, request=request, environment=environment)
 
 
-def create_context_with_user(user_id: str, roles: list[str] | None = None) -> context:
+def create_context_with_user(user_id: str, roles: list[str] | None = None) -> Context:
     """
     Создаёт контекст с конкретным пользователем.
 
@@ -235,8 +235,8 @@ def create_context_with_user(user_id: str, roles: list[str] | None = None) -> co
     Возвращает:
         Context с указанным пользователем
     """
-    return context(
-        user=user_info(user_id=user_id, roles=roles or []),
-        request=request_info(),
-        environment=environment_info(),
+    return Context(
+        user=UserInfo(user_id=user_id, roles=roles or []),
+        request=RequestInfo(),
+        environment=EnvironmentInfo(),
     )
