@@ -8,12 +8,12 @@ from .AuthCoordinator import auth_coordinator
 from .Authenticator import authenticator
 from .CheckRoles import check_roles
 from .ContextAssembler import context_assembler
-from .CredentialExtractor import CredentialExtractor
+from .CredentialExtractor import credential_extractor
 
 __all__ = [
     "authenticator",
     "check_roles",
-    "CredentialExtractor",
+    "credential_extractor",
     "context_assembler",
     "auth_coordinator",
 ]

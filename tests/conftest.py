@@ -11,9 +11,9 @@ from typing import Any
 import pytest
 
 from action_machine.Context.Context import Context
-from action_machine.Context.EnvironmentInfo import EnvironmentInfo
-from action_machine.Context.RequestInfo import RequestInfo
-from action_machine.Context.UserInfo import UserInfo
+from action_machine.Context.EnvironmentInfo import environment_info
+from action_machine.Context.RequestInfo import request_info
+from action_machine.Context.UserInfo import user_info
 from action_machine.Core.BaseParams import BaseParams
 from action_machine.Logging.BaseLogger import base_logger
 from action_machine.Logging.LogScope import log_scope
@@ -114,19 +114,19 @@ def context() -> Context:
     - Информацию о запросе с trace_id, путем и методом
     - Информацию об окружении с hostname, service_name
     """
-    user = UserInfo(
+    user = user_info(
         user_id="agent_1",
         roles=["user", "admin"],
         extra={"org": "acme"},
     )
-    request = RequestInfo(
+    request = request_info(
         trace_id="trace-abc-123",
         request_path="/api/v1/orders",
         request_method="POST",
         client_ip="192.168.1.1",
         user_agent="pytest/1.0",
     )
-    environment = EnvironmentInfo(
+    environment = environment_info(
         hostname="pod-xyz-42",
         service_name="order-service",
         service_version="1.2.3",
@@ -206,17 +206,17 @@ def make_context(
     Возвращает:
         Готовый Context для использования в тестах.
     """
-    user = UserInfo(
+    user = user_info(
         user_id=user_id,
         roles=roles or ["user", "admin"],
         extra={"org": "acme"},
     )
-    request = RequestInfo(
+    request = request_info(
         trace_id=trace_id,
         request_path="/api/v1/orders",
         request_method="POST",
     )
-    environment = EnvironmentInfo(
+    environment = environment_info(
         hostname="pod-xyz-42",
         service_name="order-service",
         environment="production",
@@ -236,7 +236,7 @@ def create_context_with_user(user_id: str, roles: list[str] | None = None) -> Co
         Context с указанным пользователем
     """
     return Context(
-        user=UserInfo(user_id=user_id, roles=roles or []),
-        request=RequestInfo(),
-        environment=EnvironmentInfo(),
+        user=user_info(user_id=user_id, roles=roles or []),
+        request=request_info(),
+        environment=environment_info(),
     )

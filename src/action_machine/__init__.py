@@ -10,7 +10,7 @@ from .Auth.Authenticator import authenticator
 # Auth
 from .Auth.CheckRoles import check_roles
 from .Auth.ContextAssembler import context_assembler
-from .Auth.CredentialExtractor import CredentialExtractor
+from .Auth.CredentialExtractor import credential_extractor
 from .Checkers.BoolFieldChecker import BoolFieldChecker
 from .Checkers.DateFieldChecker import DateFieldChecker
 from .Checkers.FloatFieldChecker import FloatFieldChecker
@@ -20,11 +20,11 @@ from .Checkers.IntFieldChecker import IntFieldChecker
 # Checkers
 from .Checkers.StringFieldChecker import StringFieldChecker
 from .Context.Context import Context
-from .Context.EnvironmentInfo import EnvironmentInfo
-from .Context.RequestInfo import RequestInfo
+from .Context.EnvironmentInfo import environment_info
+from .Context.RequestInfo import request_info
 
 # Context
-from .Context.UserInfo import UserInfo
+from .Context.UserInfo import user_info
 from .Core.Exceptions import (
     AuthorizationError,
     ConnectionAlreadyOpenError,
@@ -67,14 +67,14 @@ __all__ = [
     "DateFieldChecker",
     "InstanceOfChecker",
     # Context
-    "UserInfo",
-    "RequestInfo",
-    "EnvironmentInfo",
+    "user_info",
+    "request_info",
+    "environment_info",
     "Context",
     # Auth
     "check_roles",
     "authenticator",
-    "CredentialExtractor",
+    "credential_extractor",
     "context_assembler",
     "auth_coordinator",
 ]

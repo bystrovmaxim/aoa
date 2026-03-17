@@ -7,7 +7,7 @@
 - None значения
 """
 
-from action_machine.Context.UserInfo import UserInfo
+from action_machine.Context.UserInfo import user_info
 
 
 class TestResolveFlat:
@@ -35,7 +35,7 @@ class TestResolveFlat:
 
     def test_resolve_none_value(self):
         """resolve корректно возвращает None, если значение равно None."""
-        user = UserInfo(user_id=None)
+        user = user_info(user_id=None)
         assert user.resolve("user_id") is None
 
     def test_resolve_none_with_default(self):
@@ -43,7 +43,7 @@ class TestResolveFlat:
         resolve с default возвращает None, если значение равно None.
         default не подставляется, потому что значение существует (хоть и None).
         """
-        user = UserInfo(user_id=None)
+        user = user_info(user_id=None)
         assert user.resolve("user_id", default="fallback") is None
 
     # ------------------------------------------------------------------
@@ -52,13 +52,13 @@ class TestResolveFlat:
 
     def test_resolve_int_field(self):
         """resolve возвращает целое число."""
-        user = UserInfo(user_id="42")
+        user = user_info(user_id="42")
         result = user.resolve("user_id")
         assert result == "42"  # строка, но это нормально для user_id
 
     def test_resolve_string_field(self):
         """resolve возвращает строку."""
-        user = UserInfo(user_id="test_user")
+        user = user_info(user_id="test_user")
         assert user.resolve("user_id") == "test_user"
 
     def test_resolve_list_field(self, flat_user):

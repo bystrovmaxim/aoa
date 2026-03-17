@@ -7,13 +7,13 @@
 """
 
 from .Context import Context
-from .EnvironmentInfo import EnvironmentInfo
-from .RequestInfo import RequestInfo
-from .UserInfo import UserInfo
+from .EnvironmentInfo import environment_info
+from .RequestInfo import request_info
+from .UserInfo import user_info
 
 __all__ = [
-    "UserInfo",  # информация о пользователе (идентификатор, роли, доп. данные)
-    "RequestInfo",  # метаданные запроса (trace_id, IP, метод, путь и т.д.)
-    "EnvironmentInfo",  # информация об окружении (хост, версия сервиса, среда)
+    "user_info",  # информация о пользователе (идентификатор, роли, доп. данные)
+    "request_info",  # метаданные запроса (trace_id, IP, метод, путь и т.д.)
+    "environment_info",  # информация об окружении (хост, версия сервиса, среда)
     "Context",  # контекст выполнения, объединяющий user, request, environment
 ]

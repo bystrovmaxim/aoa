@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from action_machine.Context.UserInfo import UserInfo
+from action_machine.Context.UserInfo import user_info  # ← это класс
 
 # ======================================================================
 # МОКИ ДЛЯ ТЕСТОВ AUTH
@@ -69,21 +69,21 @@ class SampleActionBase:
 
 
 @pytest.fixture
-def user_info():
+def user_info_fixture():  # ← ИЗМЕНЕНО: переименовали фикстуру
     """Базовая информация о пользователе."""
-    return UserInfo(user_id="test_user", roles=["user"])
+    return user_info(user_id="test_user", roles=["user"])  # ← вызываем класс
 
 
 @pytest.fixture
-def admin_info():
+def admin_info_fixture():  # ← ИЗМЕНЕНО
     """Информация о пользователе с правами админа."""
-    return UserInfo(user_id="admin_user", roles=["user", "admin"])
+    return user_info(user_id="admin_user", roles=["user", "admin"])
 
 
 @pytest.fixture
-def guest_info():
+def guest_info_fixture():  # ← ИЗМЕНЕНО
     """Информация о госте (без ролей)."""
-    return UserInfo(user_id="guest", roles=[])
+    return user_info(user_id="guest", roles=[])
 
 
 @pytest.fixture
@@ -93,9 +93,9 @@ def mock_extractor():
 
 
 @pytest.fixture
-def mock_authenticator(user_info):
+def mock_authenticator(user_info_fixture):  # ← ИЗМЕНЕНО: используем новое имя фикстуры
     """Мок аутентификатора с возвратом пользователя."""
-    return MockAuthenticator(return_value=user_info)
+    return MockAuthenticator(return_value=user_info_fixture)
 
 
 @pytest.fixture
