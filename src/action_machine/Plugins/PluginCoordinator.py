@@ -37,7 +37,7 @@ import asyncio
 from collections.abc import Callable
 from typing import Any
 
-from action_machine.Context.Context import Context
+from action_machine.Context.Context import context
 from action_machine.Core.BaseAction import BaseAction
 from action_machine.Core.BaseParams import BaseParams
 from action_machine.Core.BaseResult import BaseResult
@@ -218,7 +218,7 @@ class PluginCoordinator:
         result: BaseResult | None,
         duration: float | None,
         factory: DependencyFactory,
-        context: Context,
+        context: context,
         nest_level: int,
     ) -> None:
         """

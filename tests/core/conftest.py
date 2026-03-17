@@ -6,7 +6,7 @@ from dataclasses import dataclass
 
 import pytest
 
-from action_machine.Context.Context import Context
+from action_machine.Context.Context import context
 from action_machine.Context.EnvironmentInfo import environment_info
 from action_machine.Context.RequestInfo import request_info
 from action_machine.Context.UserInfo import user_info
@@ -94,7 +94,7 @@ def user_with_extra():
 def context_with_user():
     """Контекст с пользователем."""
     user = user_info(user_id="agent_007", roles=["agent"], extra={"clearance": "top"})
-    return Context(user=user)
+    return context(user=user)
 
 
 @pytest.fixture
@@ -129,7 +129,7 @@ def user_without_extra():
 # ======================================================================
 
 
-def make_context_with_user(user_id: str = "agent_1") -> Context:
+def make_context_with_user(user_id: str = "agent_1") -> context:
     """
     Создаёт контекст с пользователем для тестов.
 
@@ -142,4 +142,4 @@ def make_context_with_user(user_id: str = "agent_1") -> Context:
     user = user_info(user_id=user_id, roles=["user", "admin"], extra={"org": "acme"})
     request = request_info(trace_id="trace-abc-123", request_path="/api/v1/orders", request_method="POST")
     environment = environment_info(hostname="pod-xyz-42", service_name="order-service", environment="production")
-    return Context(user=user, request=request, environment=environment)
+    return context(user=user, request=request, environment=environment)

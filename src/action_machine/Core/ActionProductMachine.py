@@ -23,7 +23,7 @@ from collections.abc import Callable
 from typing import Any, TypeVar, cast
 
 from action_machine.Auth.CheckRoles import check_roles
-from action_machine.Context.Context import Context
+from action_machine.Context.Context import context
 from action_machine.Core.AspectMethod import AspectMethod
 from action_machine.Core.BaseAction import BaseAction
 from action_machine.Core.BaseActionMachine import BaseActionMachine
@@ -56,7 +56,7 @@ class ActionProductMachine(BaseActionMachine):
 
     def __init__(
         self,
-        context: Context,
+        context: context,
         plugins: list[Plugin] | None = None,
         max_concurrent_handlers: int = DEFAULT_MAX_CONCURRENT_HANDLERS,
     ) -> None:

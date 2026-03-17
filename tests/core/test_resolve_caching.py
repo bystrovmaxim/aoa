@@ -7,7 +7,7 @@
 - Поведение кеша при повторных вызовах
 """
 
-from action_machine.Context.Context import Context
+from action_machine.Context.Context import context
 from action_machine.Context.UserInfo import user_info
 
 
@@ -121,7 +121,7 @@ class TestResolveCaching:
 
     def test_cache_for_nested_paths(self):
         """Кеш работает для вложенных путей."""
-        ctx = Context(user=user_info(user_id="42", extra={"org": "acme"}))
+        ctx = context(user=user_info(user_id="42", extra={"org": "acme"}))
 
         # Заполняем кеш
         ctx.resolve("user.user_id")

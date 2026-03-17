@@ -62,7 +62,7 @@ import re
 from collections.abc import Callable
 from typing import Any
 
-from action_machine.Context.Context import Context
+from action_machine.Context.Context import context
 from action_machine.Core.BaseParams import BaseParams
 from action_machine.Core.Exceptions import LogTemplateError
 from action_machine.Logging.ExpressionEvaluator import expression_evaluator
@@ -138,7 +138,7 @@ class variable_substitutor:
 
         # Словарь диспетчеризации: namespace → метод-резолвер.
         self._namespace_resolvers: dict[
-            str, Callable[[str, dict[str, Any], log_scope, Context, dict[str, Any], BaseParams], object]
+            str, Callable[[str, dict[str, Any], log_scope, context, dict[str, Any], BaseParams], object]
         ] = {
             "var": self._resolve_ns_var,
             "state": self._resolve_ns_state,
@@ -203,7 +203,7 @@ class variable_substitutor:
         path: str,
         var: dict[str, Any],
         scope: log_scope,
-        context: Context,
+        context: context,
         state: dict[str, Any],
         params: BaseParams,
     ) -> object:
@@ -232,7 +232,7 @@ class variable_substitutor:
         path: str,
         var: dict[str, Any],
         scope: log_scope,
-        context: Context,
+        context: context,
         state: dict[str, Any],
         params: BaseParams,
     ) -> object:
@@ -260,7 +260,7 @@ class variable_substitutor:
         path: str,
         var: dict[str, Any],
         scope: log_scope,
-        context: Context,
+        context: context,
         state: dict[str, Any],
         params: BaseParams,
     ) -> object:
@@ -295,7 +295,7 @@ class variable_substitutor:
         path: str,
         var: dict[str, Any],
         scope: log_scope,
-        context: Context,
+        context: context,
         state: dict[str, Any],
         params: BaseParams,
     ) -> object:
@@ -325,7 +325,7 @@ class variable_substitutor:
         path: str,
         var: dict[str, Any],
         scope: log_scope,
-        context: Context,
+        context: context,
         state: dict[str, Any],
         params: BaseParams,
     ) -> object:
@@ -359,7 +359,7 @@ class variable_substitutor:
         path: str,
         var: dict[str, Any],
         scope: log_scope,
-        context: Context,
+        context: context,
         state: dict[str, Any],
         params: BaseParams,
     ) -> object:
@@ -414,7 +414,7 @@ class variable_substitutor:
         path: str,
         var: dict[str, Any],
         scope: log_scope,
-        context: Context,
+        context: context,
         state: dict[str, Any],
         params: BaseParams,
     ) -> str:
@@ -508,7 +508,7 @@ class variable_substitutor:
         message: str,
         var: dict[str, Any],
         scope: log_scope,
-        context: Context,
+        context: context,
         state: dict[str, Any],
         params: BaseParams,
     ) -> str:

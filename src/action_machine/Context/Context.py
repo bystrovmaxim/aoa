@@ -17,7 +17,7 @@ from .RequestInfo import request_info
 from .UserInfo import user_info
 
 
-class Context(ReadableMixin):
+class context(ReadableMixin):
     """
     Контекст выполнения действия.
 

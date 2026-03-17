@@ -16,7 +16,7 @@
 
 from typing import Any, TypeVar, cast
 
-from action_machine.Context.Context import Context
+from action_machine.Context.Context import context
 from action_machine.Core.ActionProductMachine import ActionProductMachine
 from action_machine.Core.BaseAction import BaseAction
 from action_machine.Core.BaseParams import BaseParams
@@ -48,7 +48,7 @@ class ActionTestMachine(ActionProductMachine):
     def __init__(
         self,
         mocks: dict[type[Any], Any] | None = None,
-        context: Context | None = None,
+        context: context | None = None,
     ) -> None:
         """
         Инициализирует тестовую машину.
@@ -57,7 +57,7 @@ class ActionTestMachine(ActionProductMachine):
             mocks: словарь подмен {класс_зависимости: значение_мока}.
             context: контекст выполнения (по умолчанию пустой Context).
         """
-        super().__init__(context or Context())
+        super().__init__(context or context())
         self._mocks = mocks or {}
         self._prepared_mocks: dict[type[Any], Any] = {}
         for cls, val in self._mocks.items():

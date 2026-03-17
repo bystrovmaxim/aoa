@@ -7,7 +7,7 @@
 
 from typing import Any
 
-from ..Context import Context, request_info
+from ..Context import context, request_info
 from .Authenticator import authenticator
 from .ContextAssembler import context_assembler
 from .CredentialExtractor import credential_extractor
@@ -42,7 +42,7 @@ class auth_coordinator:
         self.authenticator = authenticator
         self.assembler = assembler
 
-    async def process(self, request_data: Any) -> Context | None:
+    async def process(self, request_data: Any) -> context | None:
         """
         Асинхронно выполняет полный цикл аутентификации и сборки контекста.
 
@@ -61,4 +61,4 @@ class auth_coordinator:
             return None
         metadata = await self.assembler.assemble(request_data)
         req_info = request_info(**metadata)
-        return Context(user=user_info, request=req_info, environment=None)
+        return context(user=user_info, request=req_info, environment=None)
