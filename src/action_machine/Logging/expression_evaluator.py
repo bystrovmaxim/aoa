@@ -200,7 +200,7 @@ class _IifArgSplitter:
         return self._parts
 
 
-class expression_evaluator:
+class ExpressionEvaluator:
     """
     Безопасный вычислитель выражений для шаблонов логирования.
 

@@ -8,7 +8,7 @@ from unittest.mock import Mock
 
 import pytest
 
-from action_machine.Context.context import context
+from action_machine.Context.context import Context
 from action_machine.Core.BaseAction import BaseAction
 from action_machine.Core.BaseParams import BaseParams
 from action_machine.Core.BaseResult import BaseResult
@@ -247,7 +247,7 @@ def mock_factory():
 @pytest.fixture
 def mock_context():
     """Фикстура, возвращающая мок Context."""
-    return Mock(spec=context)
+    return Mock(spec=Context)
 
 
 @pytest.fixture
@@ -266,7 +266,7 @@ def event_factory():
             state_aspect={},
             is_summary=False,
             deps=Mock(spec=DependencyFactory),
-            context=Mock(spec=context),
+            context=Mock(spec=Context),
             result=None,
             duration=None,
             nest_level=0,

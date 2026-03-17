@@ -16,7 +16,7 @@ self._plugin_coordinator вместо прямых вызовов _run_plugins_a
 
 from typing import Any, TypeVar, cast
 
-from action_machine.Context.context import context
+from action_machine.Context.context import Context
 from action_machine.Core.ActionProductMachine import ActionProductMachine
 from action_machine.Core.BaseAction import BaseAction
 from action_machine.Core.BaseParams import BaseParams
@@ -48,7 +48,7 @@ class ActionTestMachine(ActionProductMachine):
     def __init__(
         self,
         mocks: dict[type[Any], Any] | None = None,
-        ctx: context | None = None,
+        ctx: Context | None = None,
     ) -> None:
         """
         Инициализирует тестовую машину.
@@ -64,7 +64,7 @@ class ActionTestMachine(ActionProductMachine):
             приводил к ошибке mypy "None" not callable, потому что
             имя параметра перекрывало имя класса.
         """
-        super().__init__(ctx if ctx is not None else context())
+        super().__init__(ctx if ctx is not None else Context())
         self._mocks = mocks or {}
         self._prepared_mocks: dict[type[Any], Any] = {}
         for cls, val in self._mocks.items():

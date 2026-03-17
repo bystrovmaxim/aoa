@@ -8,7 +8,7 @@
 - Поведение default при отсутствии
 """
 
-from action_machine.Context.user_info import user_info
+from action_machine.Context.user_info import UserInfo
 
 from .conftest import make_context_with_user
 
@@ -22,17 +22,17 @@ class TestResolveMissing:
 
     def test_resolve_missing_returns_default(self):
         """resolve возвращает default если путь не найден."""
-        user = user_info(user_id="42")
+        user = UserInfo(user_id="42")
         assert user.resolve("nonexistent", default="<none>") == "<none>"
 
     def test_resolve_none_default_is_none(self):
         """resolve по умолчанию возвращает None для несуществующего пути."""
-        user = user_info(user_id="42")
+        user = UserInfo(user_id="42")
         assert user.resolve("missing") is None
 
     def test_resolve_missing_key_does_not_raise(self):
         """resolve не выбрасывает исключение при отсутствии ключа."""
-        user = user_info(user_id="42")
+        user = UserInfo(user_id="42")
 
         # Не должно быть KeyError или AttributeError
         result = user.resolve("missing.key")
@@ -54,7 +54,7 @@ class TestResolveMissing:
 
     def test_resolve_missing_nested_in_dict(self):
         """resolve возвращает default при отсутствии ключа в словаре."""
-        user = user_info(extra={"existing": "value"})
+        user = UserInfo(extra={"existing": "value"})
         assert user.resolve("extra.missing.deep", default="not found") == "not found"
 
     # ------------------------------------------------------------------
@@ -75,13 +75,13 @@ class TestResolveMissing:
         Промежуточный ключ отсутствует в словаре.
         extra.existing.missing.deep
         """
-        user = user_info(extra={"existing": {"key": "value"}})
+        user = UserInfo(extra={"existing": {"key": "value"}})
         result = user.resolve("extra.existing.missing.deep", default="none")
         assert result == "none"
 
     def test_resolve_missing_first_segment(self):
         """Первый сегмент пути отсутствует."""
-        user = user_info(user_id="42")
+        user = UserInfo(user_id="42")
         result = user.resolve("missing.segment.deep", default="first missing")
         assert result == "first missing"
 
@@ -91,22 +91,22 @@ class TestResolveMissing:
 
     def test_resolve_default_string(self):
         """default может быть строкой."""
-        user = user_info(user_id="42")
+        user = UserInfo(user_id="42")
         assert user.resolve("missing", default="default string") == "default string"
 
     def test_resolve_default_int(self):
         """default может быть числом."""
-        user = user_info(user_id="42")
+        user = UserInfo(user_id="42")
         assert user.resolve("missing", default=42) == 42
 
     def test_resolve_default_list(self):
         """default может быть списком."""
-        user = user_info(user_id="42")
+        user = UserInfo(user_id="42")
         assert user.resolve("missing", default=[1, 2, 3]) == [1, 2, 3]
 
     def test_resolve_default_dict(self):
         """default может быть словарем."""
-        user = user_info(user_id="42")
+        user = UserInfo(user_id="42")
         assert user.resolve("missing", default={"key": "value"}) == {"key": "value"}
 
     def test_resolve_default_bool(self):
@@ -116,10 +116,10 @@ class TestResolveMissing:
         (или разные экземпляры объекта) для True и False, чтобы
         первый вызов не закешировал результат для второго.
         """
-        user1 = user_info(user_id="42")
+        user1 = UserInfo(user_id="42")
         assert user1.resolve("missing_true", default=True) is True
 
-        user2 = user_info(user_id="42")
+        user2 = UserInfo(user_id="42")
         assert user2.resolve("missing_false", default=False) is False
 
     # ------------------------------------------------------------------
@@ -132,14 +132,14 @@ class TestResolveMissing:
         Если поле есть и равно None, resolve возвращает None,
         даже если передан default.
         """
-        user = user_info(user_id=None)
+        user = UserInfo(user_id=None)
         assert user.resolve("user_id", default="fallback") is None
 
     def test_resolve_missing_vs_none_in_dict(self):
         """
         В словаре: ключ есть со значением None vs ключа нет.
         """
-        user = user_info(extra={"key_with_none": None})
+        user = UserInfo(extra={"key_with_none": None})
 
         # Ключ есть, значение None
         assert user.resolve("extra.key_with_none", default="fallback") is None

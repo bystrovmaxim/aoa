@@ -7,7 +7,7 @@ from abc import ABC, abstractmethod
 from typing import Any
 
 
-class credential_extractor(ABC):
+class CredentialExtractor(ABC):
     """
     Базовый класс для извлечения учётных данных из запроса.
 

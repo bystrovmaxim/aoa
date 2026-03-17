@@ -11,7 +11,7 @@ from action_machine.Core.ReadableMixin import ReadableMixin
 
 
 @dataclass
-class user_info(ReadableMixin):
+class UserInfo(ReadableMixin):
     """
     Информация о пользователе.
 

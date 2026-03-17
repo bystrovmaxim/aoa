@@ -11,10 +11,10 @@
 
 from typing import Any
 
-from action_machine.Context.context import context
+from action_machine.Context.context import Context
 from action_machine.Core.BaseParams import BaseParams
-from action_machine.Logging.base_logger import base_logger
-from action_machine.Logging.log_scope import log_scope
+from action_machine.Logging.base_logger import BaseLogger
+from action_machine.Logging.log_scope import LogScope
 
 # ANSI escape-коды для раскраски элементов вывода.
 # Каждый код привязан к семантической роли элемента.
@@ -28,7 +28,7 @@ _ANSI_RESET = "\033[0m"    # Сброс цвета
 _NONE_MARKER = "<none>"
 
 
-class console_logger(base_logger):
+class ConsoleLogger(BaseLogger):
     """
     Логер, выводящий сообщения в консоль через print.
 
@@ -113,7 +113,7 @@ class console_logger(base_logger):
 
     def _format_line(
         self,
-        scope: log_scope,
+        scope: LogScope,
         message: str,
         indent: int,
     ) -> str:
@@ -151,10 +151,10 @@ class console_logger(base_logger):
 
     async def write(  # pylint: disable=too-many-positional-arguments
         self,
-        scope: log_scope,
+        scope: LogScope,
         message: str,
         var: dict[str, Any],
-        ctx: context,
+        ctx: Context,
         state: dict[str, Any],
         params: BaseParams,
         indent: int,

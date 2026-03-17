@@ -7,10 +7,10 @@
 from abc import ABC, abstractmethod
 from typing import Any
 
-from ..Context.user_info import user_info
+from ..Context.user_info import UserInfo
 
 
-class authenticator(ABC):
+class Authenticator(ABC):
     """
     Базовый класс для всех аутентификаторов.
 
@@ -20,7 +20,7 @@ class authenticator(ABC):
     """
 
     @abstractmethod
-    async def authenticate(self, credentials: Any) -> user_info | None:
+    async def authenticate(self, credentials: Any) -> UserInfo | None:
         """
         Асинхронно проверяет учётные данные и возвращает информацию о пользователе.
 

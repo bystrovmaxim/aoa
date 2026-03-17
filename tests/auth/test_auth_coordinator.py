@@ -14,10 +14,10 @@
 
 import pytest
 
-from action_machine.Auth.auth_coordinator import auth_coordinator
-from action_machine.Context.context import context
-from action_machine.Context.request_info import request_info
-from action_machine.Context.user_info import user_info
+from action_machine.Auth.auth_coordinator import AuthCoordinator
+from action_machine.Context.context import Context
+from action_machine.Context.request_info import RequestInfo
+from action_machine.Context.user_info import UserInfo
 
 from .conftest import MockAuthenticator, MockContextAssembler, MockCredentialExtractor
 
@@ -39,14 +39,14 @@ class TestAuthCoordinator:
         authenticator = MockAuthenticator(return_value=user_info_fixture)
         assembler = MockContextAssembler(return_value=metadata)
 
-        coordinator = auth_coordinator(extractor, authenticator, assembler)
+        coordinator = AuthCoordinator(extractor, authenticator, assembler)
 
         # Действие
         result = await coordinator.process({"request": "data"})
 
         # Проверки
         assert result is not None
-        assert isinstance(result, context)
+        assert isinstance(result, Context)
         assert result.user == user_info_fixture
         assert result.request.trace_id == "trace-123"
         assert result.request.request_path == "/api/test"
@@ -69,7 +69,7 @@ class TestAuthCoordinator:
         authenticator = MockAuthenticator(return_value=user_info_fixture)
         assembler = MockContextAssembler(return_value=custom_metadata)
 
-        coordinator = auth_coordinator(extractor, authenticator, assembler)
+        coordinator = AuthCoordinator(extractor, authenticator, assembler)
 
         result = await coordinator.process({})
 
@@ -89,7 +89,7 @@ class TestAuthCoordinator:
         authenticator = MockAuthenticator()
         assembler = MockContextAssembler()
 
-        coordinator = auth_coordinator(extractor, authenticator, assembler)
+        coordinator = AuthCoordinator(extractor, authenticator, assembler)
 
         result = await coordinator.process({"request": "data"})
 
@@ -105,7 +105,7 @@ class TestAuthCoordinator:
         authenticator = MockAuthenticator(return_value=None)  # неуспех
         assembler = MockContextAssembler()
 
-        coordinator = auth_coordinator(extractor, authenticator, assembler)
+        coordinator = AuthCoordinator(extractor, authenticator, assembler)
 
         result = await coordinator.process({"request": "data"})
 
@@ -127,7 +127,7 @@ class TestAuthCoordinator:
         authenticator = MockAuthenticator()
         assembler = MockContextAssembler()
 
-        coordinator = auth_coordinator(extractor, authenticator, assembler)
+        coordinator = AuthCoordinator(extractor, authenticator, assembler)
 
         with pytest.raises(ValueError, match="Ошибка извлечения"):
             await coordinator.process({})
@@ -141,7 +141,7 @@ class TestAuthCoordinator:
 
         assembler = MockContextAssembler()
 
-        coordinator = auth_coordinator(extractor, authenticator, assembler)
+        coordinator = AuthCoordinator(extractor, authenticator, assembler)
 
         with pytest.raises(ValueError, match="Ошибка аутентификации"):
             await coordinator.process({})
@@ -154,7 +154,7 @@ class TestAuthCoordinator:
         assembler = MockContextAssembler()
         assembler.assemble.side_effect = ValueError("Ошибка сборки")
 
-        coordinator = auth_coordinator(extractor, authenticator, assembler)
+        coordinator = AuthCoordinator(extractor, authenticator, assembler)
 
         with pytest.raises(ValueError, match="Ошибка сборки"):
             await coordinator.process({})
@@ -174,7 +174,7 @@ class TestAuthCoordinator:
 
         async def authenticator_side(*args):
             call_order.append("authenticator")
-            return user_info(user_id="test")
+            return UserInfo(user_id="test")
 
         async def assembler_side(*args):
             call_order.append("assembler")
@@ -189,7 +189,7 @@ class TestAuthCoordinator:
         assembler = MockContextAssembler()
         assembler.assemble.side_effect = assembler_side
 
-        coordinator = auth_coordinator(extractor, authenticator, assembler)
+        coordinator = AuthCoordinator(extractor, authenticator, assembler)
 
         await coordinator.process({})
 
@@ -206,13 +206,13 @@ class TestAuthCoordinator:
         authenticator = MockAuthenticator(return_value=user_info_fixture)
         assembler = MockContextAssembler(return_value={})  # пустой словарь
 
-        coordinator = auth_coordinator(extractor, authenticator, assembler)
+        coordinator = AuthCoordinator(extractor, authenticator, assembler)
 
         result = await coordinator.process({})
 
         assert result is not None
         assert result.user == user_info_fixture
-        assert isinstance(result.request, request_info)
+        assert isinstance(result.request, RequestInfo)
         # Все поля RequestInfo должны быть None по умолчанию
         assert result.request.trace_id is None
         assert result.request.request_path is None
@@ -224,13 +224,13 @@ class TestAuthCoordinator:
         authenticator = MockAuthenticator(return_value=user_info_fixture)
         assembler = MockContextAssembler(return_value={})
 
-        coordinator = auth_coordinator(extractor, authenticator, assembler)
+        coordinator = AuthCoordinator(extractor, authenticator, assembler)
 
         result = await coordinator.process({})
 
         assert result is not None
         # AuthCoordinator передаёт environment=None, но Context.__init__
         # подставляет EnvironmentInfo() по умолчанию
-        from action_machine.Context.environment_info import environment_info
+        from action_machine.Context.environment_info import EnvironmentInfo
 
-        assert isinstance(result.environment, environment_info)
+        assert isinstance(result.environment, EnvironmentInfo)

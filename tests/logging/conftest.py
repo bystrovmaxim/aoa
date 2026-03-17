@@ -5,10 +5,10 @@
 
 import pytest
 
-from action_machine.Logging.console_logger import console_logger
-from action_machine.Logging.expression_evaluator import expression_evaluator
-from action_machine.Logging.log_coordinator import log_coordinator
-from action_machine.Logging.log_scope import log_scope
+from action_machine.Logging.console_logger import ConsoleLogger
+from action_machine.Logging.expression_evaluator import ExpressionEvaluator
+from action_machine.Logging.log_coordinator import LogCoordinator
+from action_machine.Logging.log_scope import LogScope
 
 # ======================================================================
 # ФИКСТУРЫ ДЛЯ ТЕСТОВ ЛОГИРОВАНИЯ
@@ -16,7 +16,7 @@ from action_machine.Logging.log_scope import log_scope
 
 
 @pytest.fixture
-def evaluator() -> expression_evaluator:
+def evaluator() -> ExpressionEvaluator:
     """
     Экземпляр вычислителя выражений для тестов iif.
 
@@ -25,7 +25,7 @@ def evaluator() -> expression_evaluator:
     - Обработки конструкций iif
     - Безопасного парсинга с вложенными кавычками
     """
-    return expression_evaluator()
+    return ExpressionEvaluator()
 
 
 @pytest.fixture
@@ -38,47 +38,47 @@ def coordinator(recording_logger):  # recording_logger из корневого c
     - Подстановку переменных
     - Обработку ошибок
     """
-    return log_coordinator(loggers=[recording_logger])
+    return LogCoordinator(loggers=[recording_logger])
 
 
 @pytest.fixture
-def console_no_colors() -> console_logger:
+def console_no_colors() -> ConsoleLogger:
     """
     Консольный логер без ANSI-цветов.
 
     Используется в тестах с capsys для проверки вывода
     без необходимости обрабатывать escape-последовательности.
     """
-    return console_logger(use_colors=False)
+    return ConsoleLogger(use_colors=False)
 
 
 @pytest.fixture
-def console_with_colors() -> console_logger:
+def console_with_colors() -> ConsoleLogger:
     """
     Консольный логер с ANSI-цветами.
 
     Используется для тестирования цветного вывода
     и проверки наличия ANSI-кодов в отформатированных строках.
     """
-    return console_logger(use_colors=True)
+    return ConsoleLogger(use_colors=True)
 
 
 @pytest.fixture
-def complex_scope() -> log_scope:
+def complex_scope() -> LogScope:
     """
     Скоуп с несколькими уровнями вложенности.
 
     Пример: ProcessOrderAction.validate_user.before
     Используется для тестирования as_dotpath().
     """
-    return log_scope(action="ProcessOrderAction", aspect="validate_user", event="before")
+    return LogScope(action="ProcessOrderAction", aspect="validate_user", event="before")
 
 
 @pytest.fixture
-def plugin_scope() -> log_scope:
+def plugin_scope() -> LogScope:
     """
     Скоуп для тестирования плагинов.
 
     Пример: ProcessOrderAction.MetricsPlugin.global_finish
     """
-    return log_scope(action="ProcessOrderAction", plugin="MetricsPlugin", event="global_finish")
+    return LogScope(action="ProcessOrderAction", plugin="MetricsPlugin", event="global_finish")

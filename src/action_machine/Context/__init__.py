@@ -6,14 +6,14 @@
 запросе, окружении и объединяющий их контекст.
 """
 
-from .context import context
-from .environment_info import environment_info
-from .request_info import request_info
-from .user_info import user_info
+from .context import Context
+from .environment_info import EnvironmentInfo
+from .request_info import RequestInfo
+from .user_info import UserInfo
 
 __all__ = [
-    "user_info",  # информация о пользователе (идентификатор, роли, доп. данные)
-    "request_info",  # метаданные запроса (trace_id, IP, метод, путь и т.д.)
-    "environment_info",  # информация об окружении (хост, версия сервиса, среда)
-    "context",  # контекст выполнения, объединяющий user, request, environment
+    "UserInfo",  # информация о пользователе (идентификатор, роли, доп. данные)
+    "RequestInfo",  # метаданные запроса (trace_id, IP, метод, путь и т.д.)
+    "EnvironmentInfo",  # информация об окружении (хост, версия сервиса, среда)
+    "Context",  # контекст выполнения, объединяющий user, request, environment
 ]

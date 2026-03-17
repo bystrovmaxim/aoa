@@ -10,7 +10,7 @@
 - Множественные декораторы
 """
 
-from action_machine.Auth.check_roles import check_roles
+from action_machine.Auth.check_roles import CheckRoles
 
 from .conftest import SampleActionBase
 
@@ -25,21 +25,21 @@ class TestCheckRolesDecorator:
     def test_check_roles_none(self):
         """Декоратор с NONE (доступ без аутентификации)."""
 
-        @check_roles(check_roles.NONE, desc="Действие без аутентификации")
+        @CheckRoles(CheckRoles.NONE, desc="Действие без аутентификации")
         class SampleAction(SampleActionBase):
             pass
 
         assert hasattr(SampleAction, "_role_spec")
-        assert SampleAction._role_spec == check_roles.NONE
+        assert SampleAction._role_spec == CheckRoles.NONE
 
     def test_check_roles_any(self):
         """Декоратор с ANY (любой аутентифицированный пользователь)."""
 
-        @check_roles(check_roles.ANY, desc="Действие для любого аутентифицированного")
+        @CheckRoles(CheckRoles.ANY, desc="Действие для любого аутентифицированного")
         class SampleAction(SampleActionBase):
             pass
 
-        assert SampleAction._role_spec == check_roles.ANY
+        assert SampleAction._role_spec == CheckRoles.ANY
 
     # ------------------------------------------------------------------
     # ТЕСТЫ: Конкретные роли
@@ -48,7 +48,7 @@ class TestCheckRolesDecorator:
     def test_check_roles_single_string(self):
         """Декоратор с одной ролью как строкой."""
 
-        @check_roles("admin", desc="Только для админов")
+        @CheckRoles("admin", desc="Только для админов")
         class SampleAction(SampleActionBase):
             pass
 
@@ -57,7 +57,7 @@ class TestCheckRolesDecorator:
     def test_check_roles_list(self):
         """Декоратор со списком ролей."""
 
-        @check_roles(["admin", "manager"], desc="Для админов и менеджеров")
+        @CheckRoles(["admin", "manager"], desc="Для админов и менеджеров")
         class SampleAction(SampleActionBase):
             pass
 
@@ -66,7 +66,7 @@ class TestCheckRolesDecorator:
     def test_check_roles_list_with_single_item(self):
         """Список с одним элементом работает как список, а не строка."""
 
-        @check_roles(["admin"], desc="Только админ")
+        @CheckRoles(["admin"], desc="Только админ")
         class SampleAction(SampleActionBase):
             pass
 
@@ -80,7 +80,7 @@ class TestCheckRolesDecorator:
     def test_check_roles_preserves_class(self):
         """Декоратор возвращает тот же класс (не создаёт новый)."""
 
-        @check_roles(check_roles.NONE, desc="Тест")
+        @CheckRoles(CheckRoles.NONE, desc="Тест")
         class OriginalClass(SampleActionBase):
             pass
 
@@ -90,7 +90,7 @@ class TestCheckRolesDecorator:
     def test_check_roles_preserves_methods(self):
         """Декоратор сохраняет методы класса."""
 
-        @check_roles("admin", desc="Тест")
+        @CheckRoles("admin", desc="Тест")
         class SampleAction(SampleActionBase):
             def test_method(self):
                 return "test"
@@ -105,8 +105,8 @@ class TestCheckRolesDecorator:
     def test_check_roles_multiple_decorators(self):
         """Последний декоратор переопределяет предыдущий."""
 
-        @check_roles("user", desc="Пользователь")
-        @check_roles("admin", desc="Админ")
+        @CheckRoles("user", desc="Пользователь")
+        @CheckRoles("admin", desc="Админ")
         class SampleAction(SampleActionBase):
             pass
 
@@ -116,8 +116,8 @@ class TestCheckRolesDecorator:
     def test_check_roles_order_with_multiple_decorators(self):
         """Порядок декораторов важен: верхний применяется раньше."""
 
-        @check_roles("manager", desc="Менеджер")
-        @check_roles("admin", desc="Админ")
+        @CheckRoles("manager", desc="Менеджер")
+        @CheckRoles("admin", desc="Админ")
         class SampleAction(SampleActionBase):
             pass
 
@@ -131,7 +131,7 @@ class TestCheckRolesDecorator:
     def test_check_roles_with_description(self):
         """Декоратор сохраняет описание в атрибуте desc."""
 
-        @check_roles("admin", desc="Описание для документации")
+        @CheckRoles("admin", desc="Описание для документации")
         class SampleAction(SampleActionBase):
             pass
 
@@ -142,7 +142,7 @@ class TestCheckRolesDecorator:
     def test_check_roles_without_description(self):
         """Описание может быть None."""
 
-        @check_roles("admin", desc=None)
+        @CheckRoles("admin", desc=None)
         class SampleAction(SampleActionBase):
             pass
 

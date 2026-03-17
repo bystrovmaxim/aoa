@@ -4,13 +4,13 @@ ActionMachine – ядро фреймворка действий.
 """
 
 # Core
-from .Auth.auth_coordinator import auth_coordinator
-from .Auth.authenticator import authenticator
+from .Auth.auth_coordinator import AuthCoordinator
+from .Auth.authenticator import Authenticator
 
 # Auth
-from .Auth.check_roles import check_roles
-from .Auth.context_assembler import context_assembler
-from .Auth.credential_extractor import credential_extractor
+from .Auth.check_roles import CheckRoles
+from .Auth.context_assembler import ContextAssembler
+from .Auth.credential_extractor import CredentialExtractor
 from .Checkers.BoolFieldChecker import BoolFieldChecker
 from .Checkers.DateFieldChecker import DateFieldChecker
 from .Checkers.FloatFieldChecker import FloatFieldChecker
@@ -19,12 +19,12 @@ from .Checkers.IntFieldChecker import IntFieldChecker
 
 # Checkers
 from .Checkers.StringFieldChecker import StringFieldChecker
-from .Context.context import context
-from .Context.environment_info import environment_info
-from .Context.request_info import request_info
+from .Context.context import Context
+from .Context.environment_info import EnvironmentInfo
+from .Context.request_info import RequestInfo
 
 # Context
-from .Context.user_info import user_info
+from .Context.user_info import UserInfo
 from .Core.Exceptions import (
     AuthorizationError,
     ConnectionAlreadyOpenError,
@@ -67,14 +67,14 @@ __all__ = [
     "DateFieldChecker",
     "InstanceOfChecker",
     # Context
-    "user_info",
-    "request_info",
-    "environment_info",
-    "context",
+    "UserInfo",
+    "RequestInfo",
+    "EnvironmentInfo",
+    "Context",
     # Auth
-    "check_roles",
-    "authenticator",
-    "credential_extractor",
-    "context_assembler",
-    "auth_coordinator",
+    "CheckRoles",
+    "Authenticator",
+    "CredentialExtractor",
+    "ContextAssembler",
+    "AuthCoordinator",
 ]

@@ -7,13 +7,13 @@
 
 from typing import Any
 
-from ..Context import context, request_info
-from .authenticator import authenticator
-from .context_assembler import context_assembler
-from .credential_extractor import credential_extractor
+from ..Context import Context, RequestInfo
+from .authenticator import Authenticator
+from .context_assembler import ContextAssembler
+from .credential_extractor import CredentialExtractor
 
 
-class auth_coordinator:
+class AuthCoordinator:
     """
     Координатор, управляющий процессом создания контекста выполнения.
 
@@ -33,9 +33,9 @@ class auth_coordinator:
 
     def __init__(
         self,
-        extractor: credential_extractor,
-        auth_instance: authenticator,  # Переименовано для избежания конфликта имён
-        assembler: context_assembler,
+        extractor: CredentialExtractor,
+        auth_instance: Authenticator,  # Переименовано для избежания конфликта имён
+        assembler: ContextAssembler,
     ) -> None:
         """
         Инициализирует координатор аутентификации.
@@ -64,7 +64,7 @@ class auth_coordinator:
         self.authenticator = auth_instance
         self.assembler = assembler
 
-    async def process(self, request_data: Any) -> context | None:
+    async def process(self, request_data: Any) -> Context | None:
         """
         Асинхронно выполняет полный цикл аутентификации и сборки контекста.
 
@@ -112,10 +112,10 @@ class auth_coordinator:
 
         # Шаг 3: сбор метаданных
         metadata = await self.assembler.assemble(request_data)
-        req_info = request_info(**metadata)
+        req_info = RequestInfo(**metadata)
 
         # Шаг 4: формирование контекста
-        return context(
+        return Context(
             user=authenticated_user,
             request=req_info,
             environment=None  # environment будет заполнен позже или по умолчанию
