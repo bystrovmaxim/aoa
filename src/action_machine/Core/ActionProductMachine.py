@@ -22,7 +22,7 @@ import time
 from collections.abc import Callable
 from typing import Any, TypeVar, cast
 
-from action_machine.Auth.CheckRoles import CheckRoles
+from action_machine.Auth.CheckRoles import check_roles
 from action_machine.Context.Context import Context
 from action_machine.Core.AspectMethod import AspectMethod
 from action_machine.Core.BaseAction import BaseAction
@@ -238,9 +238,9 @@ class ActionProductMachine(BaseActionMachine):
             )
         user_roles = self._context.user.roles
 
-        if role_spec == CheckRoles.NONE:
+        if role_spec == check_roles.NONE:
             self._check_none_role(user_roles)
-        elif role_spec == CheckRoles.ANY:
+        elif role_spec == check_roles.ANY:
             self._check_any_role(user_roles)
         elif isinstance(role_spec, list):
             self._check_list_role(role_spec, user_roles)

@@ -1,4 +1,4 @@
-class CheckRoles:
+class check_roles:
     """
     Декоратор для задания ролевой модели действия.
 

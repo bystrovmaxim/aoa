@@ -8,12 +8,12 @@
 from typing import Any
 
 from ..Context import Context, RequestInfo
-from .Authenticator import Authenticator
-from .ContextAssembler import ContextAssembler
+from .Authenticator import authenticator
+from .ContextAssembler import context_assembler
 from .CredentialExtractor import CredentialExtractor
 
 
-class AuthCoordinator:
+class auth_coordinator:
     """
     Координатор, управляющий процессом создания контекста выполнения.
 
@@ -27,8 +27,8 @@ class AuthCoordinator:
     def __init__(
         self,
         extractor: CredentialExtractor,
-        authenticator: Authenticator,
-        assembler: ContextAssembler,
+        authenticator: authenticator,
+        assembler: context_assembler,
     ) -> None:
         """
         Инициализирует координатор.
