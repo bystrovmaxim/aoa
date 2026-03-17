@@ -1,72 +1,27 @@
-# ActionMachine/Logging/ConsoleLogger.py
 """
 Консольный логер для системы логирования AOA.
 
 Реализует вывод сообщений в консоль через print с поддержкой
 отступов по уровню indent и опциональной ANSI-раскраски.
 
-Раскраска привязана к семантике элементов сообщения:
-- Скоуп (dotpath) выводится серым цветом — это служебная информация
-  о местоположении в конвейере, не перетягивающая внимание.
-- Пользовательское сообщение выводится белым (дефолтным) цветом —
-  это основная информация, которую пишет разработчик.
-- Подстановки переменных, которые были успешно разрешены,
-  выводятся зелёным — они несут динамические данные.
-- Маркер <none> для неразрешённых переменных выводится красным —
-  это сигнал что что-то не найдено и требует внимания.
-
-При use_colors=False весь вывод идёт без ANSI-кодов.
-Это полезно для записи в файл, CI-окружений и любых ситуаций
-где терминал не поддерживает escape-последовательности.
-
-ConsoleLogger наследует BaseLogger и реализует единственный
-абстрактный метод write. Фильтрация выполняется в BaseLogger.handle
-до вызова write — если сообщение дошло до write, оно уже прошло
-все фильтры.
-
-Никакого подавления исключений. Если print упал (например,
-перенаправление в закрытый pipe) — исключение летит наверх.
-Логер должен падать громко [1].
-
-Пример создания и использования:
-
-    Без фильтров, с цветами (по умолчанию):
-    >>> logger = ConsoleLogger()
-
-    С фильтрами, без цветов:
-    >>> logger = ConsoleLogger(
-    ...     filters=[r"ProcessOrder.*"],
-    ...     use_colors=False
-    ... )
-
-    Вывод с отступом indent=2:
-    >>> await logger.write(scope, "Загружено 150 задач", {}, ctx, {}, params, indent=2)
-    # Выведет:  "    [ProcessOrder.validate] Загружено 150 задач"
-    #           (4 пробела отступа = 2 * "  ")
-
-Формат строки вывода:
-    {indent}[{scope_dotpath}] {message}
-
-    Где:
-    - indent — отступ из пробелов, "  " * indent (два пробела на уровень).
-    - scope_dotpath — результат scope.as_dotpath(), серый при use_colors=True.
-    - message — текст сообщения с выполненными подстановками.
+Примеры:
+    >>> logger = console_logger(use_colors=True)
+    >>> await logger.write(scope, "Сообщение", {}, ctx, {}, params, 0)
 """
 
 from typing import Any
 
-from action_machine.Context.Context import context
+from action_machine.Context.context import context
 from action_machine.Core.BaseParams import BaseParams
-from action_machine.Logging.BaseLogger import base_logger
-from action_machine.Logging.LogScope import log_scope
+from action_machine.Logging.base_logger import base_logger
+from action_machine.Logging.log_scope import log_scope
 
 # ANSI escape-коды для раскраски элементов вывода.
-# Каждый код привязан к семантической роли элемента,
-# а не к «уровню логирования» (уровней пока нет).
-_ANSI_GREY = "\033[90m"
-_ANSI_GREEN = "\033[32m"
-_ANSI_RED = "\033[31m"
-_ANSI_RESET = "\033[0m"
+# Каждый код привязан к семантической роли элемента.
+_ANSI_GREY = "\033[90m"    # Серый - для скоупа (служебная информация)
+_ANSI_GREEN = "\033[32m"   # Зелёный - для успешных подстановок
+_ANSI_RED = "\033[31m"     # Красный - для маркера <none>
+_ANSI_RESET = "\033[0m"    # Сброс цвета
 
 # Маркер неразрешённой переменной, подставляемый координатором
 # при невозможности найти значение по dot-path.
@@ -102,8 +57,8 @@ class console_logger(base_logger):
                         По умолчанию True.
 
         Пример:
-            >>> logger = ConsoleLogger(filters=[r"Payment.*"], use_colors=True)
-            >>> logger = ConsoleLogger(use_colors=False)  # для CI/файлов
+            >>> logger = console_logger(filters=[r"Payment.*"], use_colors=True)
+            >>> logger = console_logger(use_colors=False)  # для CI/файлов
         """
         super().__init__(filters=filters)
         self._use_colors: bool = use_colors
@@ -135,10 +90,8 @@ class console_logger(base_logger):
         """
         Раскрашивает элементы внутри сообщения по семантике.
 
-        Обрабатывает два типа элементов:
-        1. Маркер <none> — раскрашивается красным. Это сигнал
-           что переменная не была разрешена при подстановке.
-        2. Остальной текст — остаётся без изменений (дефолтный цвет).
+        Обрабатывает маркер <none> — раскрашивается красным.
+        Это сигнал что переменная не была разрешена при подстановке.
 
         Аргументы:
             message: текст сообщения с уже выполненными подстановками.
@@ -187,21 +140,21 @@ class console_logger(base_logger):
         """
         indent_str = "  " * indent
         dotpath = scope.as_dotpath()
+        colored_message = self._colorize_message(message)
 
         if dotpath:
             scope_part = self._colorize_scope(dotpath)
-            colored_message = self._colorize_message(message)
             return f"{indent_str}[{scope_part}] {colored_message}"
-        else:
-            colored_message = self._colorize_message(message)
-            return f"{indent_str}{colored_message}"
 
-    async def write(
+        # Если скоуп пуст - выводим только сообщение с отступом
+        return f"{indent_str}{colored_message}"
+
+    async def write(  # pylint: disable=too-many-positional-arguments
         self,
         scope: log_scope,
         message: str,
         var: dict[str, Any],
-        context: context,
+        ctx: context,
         state: dict[str, Any],
         params: BaseParams,
         indent: int,
@@ -224,7 +177,7 @@ class console_logger(base_logger):
             scope: скоуп текущего вызова (местоположение в конвейере).
             message: текст сообщения с подставленными переменными.
             var: словарь переменных, переданных разработчиком в log.
-            context: контекст выполнения (пользователь, запрос, окружение).
+            ctx: контекст выполнения (пользователь, запрос, окружение).
             state: текущее состояние конвейера.
             params: входные параметры действия.
             indent: уровень отступа (для вложенных вызовов).

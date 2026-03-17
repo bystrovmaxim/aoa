@@ -4,13 +4,13 @@ ActionMachine – ядро фреймворка действий.
 """
 
 # Core
-from .Auth.AuthCoordinator import auth_coordinator
-from .Auth.Authenticator import authenticator
+from .Auth.auth_coordinator import auth_coordinator
+from .Auth.authenticator import authenticator
 
 # Auth
-from .Auth.CheckRoles import check_roles
-from .Auth.ContextAssembler import context_assembler
-from .Auth.CredentialExtractor import credential_extractor
+from .Auth.check_roles import check_roles
+from .Auth.context_assembler import context_assembler
+from .Auth.credential_extractor import credential_extractor
 from .Checkers.BoolFieldChecker import BoolFieldChecker
 from .Checkers.DateFieldChecker import DateFieldChecker
 from .Checkers.FloatFieldChecker import FloatFieldChecker
@@ -19,12 +19,12 @@ from .Checkers.IntFieldChecker import IntFieldChecker
 
 # Checkers
 from .Checkers.StringFieldChecker import StringFieldChecker
-from .Context.Context import context
-from .Context.EnvironmentInfo import environment_info
-from .Context.RequestInfo import request_info
+from .Context.context import context
+from .Context.environment_info import environment_info
+from .Context.request_info import request_info
 
 # Context
-from .Context.UserInfo import user_info
+from .Context.user_info import user_info
 from .Core.Exceptions import (
     AuthorizationError,
     ConnectionAlreadyOpenError,

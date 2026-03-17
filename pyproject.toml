@@ -255,6 +255,7 @@ disable = [
     "C0413",        # wrong-import-order (isort контролирует)
     "R0903",        # too-few-public-methods
     "R0902",        # too-many-instance-attributes
+    "C0304",        # missing-final-newline (отсутствие новой строки в конце файла)
     "W0718",        # broad-exception-caught
     "W0613",        # unused-argument
     "W0212",        # protected-access
@@ -262,6 +263,7 @@ disable = [
     "R0913",        # too-many-arguments
     "R0914",        # too-many-locals
     "R0915",        # too-many-statements
+    "R0917",        # too-many-positional-arguments
     "R0801",        # duplicate-code
 ]
 
@@ -351,6 +353,7 @@ ignore = [
     "E501",  # line too long
     "E402",  # import not top
     "N801",  # class name casing
+    "W292",  # no newline at end of file
 ]
 
 [tool.ruff.lint.per-file-ignores]

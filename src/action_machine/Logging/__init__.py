@@ -50,11 +50,11 @@ LogCoordinator, ни в VariableSubstitutor. Если логер сломан,
 ... )
 """
 
-from .BaseLogger import base_logger
-from .ConsoleLogger import console_logger
-from .LogCoordinator import log_coordinator
-from .LogScope import log_scope
-from .VariableSubstitutor import variable_substitutor
+from .base_logger import base_logger
+from .console_logger import console_logger
+from .log_coordinator import log_coordinator
+from .log_scope import log_scope
+from .variable_substitutor import variable_substitutor
 
 __all__ = [
     "log_coordinator",  # координатор — единая шина логирования

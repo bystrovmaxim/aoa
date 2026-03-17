@@ -103,11 +103,11 @@ VariableSubstitutor.substitute() и рассылает результат лог
 
 from typing import Any
 
-from action_machine.Context.Context import context
+from action_machine.Context.context import context
 from action_machine.Core.BaseParams import BaseParams
-from action_machine.Logging.BaseLogger import base_logger
-from action_machine.Logging.LogScope import log_scope
-from action_machine.Logging.VariableSubstitutor import variable_substitutor
+from action_machine.Logging.base_logger import base_logger
+from action_machine.Logging.log_scope import log_scope
+from action_machine.Logging.variable_substitutor import variable_substitutor
 
 
 class log_coordinator:
@@ -204,7 +204,7 @@ class log_coordinator:
         message: str,
         var: dict[str, Any],
         scope: log_scope,
-        context: context,
+        ctx: context,
         state: dict[str, Any],
         params: BaseParams,
         indent: int,
@@ -291,7 +291,7 @@ class log_coordinator:
         # VariableSubstitutor содержит логику двухпроходной подстановки
         # и вычисления iif. LogTemplateError из VariableSubstitutor
         # полетит наверх если шаблон невалиден.
-        resolved_message = self._substitutor.substitute(message, var, scope, context, state, params)
+        resolved_message = self._substitutor.substitute(message, var, scope, ctx, state, params)
 
         # Шаг 2: рассылка по всем логерам
         for logger in self._loggers:
@@ -299,7 +299,7 @@ class log_coordinator:
                 scope=scope,
                 message=resolved_message,
                 var=var,
-                context=context,
+                ctx=ctx,
                 state=state,
                 params=params,
                 indent=indent,

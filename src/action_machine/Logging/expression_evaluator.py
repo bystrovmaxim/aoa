@@ -32,7 +32,7 @@ context, scope) доступны внутри выражений через ли
 import re
 from typing import Any
 
-from simpleeval import EvalWithCompoundTypes  # type: ignore[import-untyped]
+from simpleeval import EvalWithCompoundTypes
 
 from action_machine.Core.Exceptions import LogTemplateError
 

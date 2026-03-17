@@ -7,8 +7,8 @@
 - Навигацию по цепочке объектов
 """
 
-from action_machine.Context.Context import context
-from action_machine.Context.UserInfo import user_info
+from action_machine.Context.context import context
+from action_machine.Context.user_info import user_info
 
 from .conftest import make_context_with_user
 
