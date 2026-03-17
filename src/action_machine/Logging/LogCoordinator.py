@@ -103,7 +103,7 @@ VariableSubstitutor.substitute() и рассылает результат лог
 
 from typing import Any
 
-from action_machine.Context.Context import Context
+from action_machine.Context.Context import context
 from action_machine.Core.BaseParams import BaseParams
 from action_machine.Logging.BaseLogger import base_logger
 from action_machine.Logging.LogScope import log_scope
@@ -204,7 +204,7 @@ class log_coordinator:
         message: str,
         var: dict[str, Any],
         scope: log_scope,
-        context: Context,
+        context: context,
         state: dict[str, Any],
         params: BaseParams,
         indent: int,

@@ -8,7 +8,7 @@
 import pytest
 
 from action_machine.Auth.AuthCoordinator import auth_coordinator
-from action_machine.Context.Context import Context
+from action_machine.Context.Context import context
 from action_machine.Context.EnvironmentInfo import environment_info
 from action_machine.Context.RequestInfo import request_info
 from action_machine.Context.UserInfo import user_info
@@ -143,7 +143,7 @@ class TestAuthIntegration:
         result = await coordinator.process({})
 
         # Проверяем структуру
-        assert isinstance(result, Context)
+        assert isinstance(result, context)
         assert isinstance(result.user, user_info)
         assert isinstance(result.request, request_info)
         assert isinstance(result.environment, environment_info)

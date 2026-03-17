@@ -25,7 +25,7 @@ class TestLogCoordinator:
     # ------------------------------------------------------------------
 
     @pytest.mark.anyio
-    async def test_emit_substitutes_var(self, recording_logger, scope, context, params):
+    async def test_emit_substitutes_var(self, recording_logger, scope, context_fixture, params):
         """emit подставляет переменные из var."""
         coordinator = log_coordinator(loggers=[recording_logger])
 
@@ -33,7 +33,7 @@ class TestLogCoordinator:
             message="Count is {%var.count}",
             var={"count": 42},
             scope=scope,
-            context=context,
+            context=context_fixture,
             state={},
             params=params,
             indent=0,
@@ -60,7 +60,7 @@ class TestLogCoordinator:
         assert recording_logger.records[0]["message"] == "User: agent_007"
 
     @pytest.mark.anyio
-    async def test_emit_substitutes_params(self, recording_logger, scope, context):
+    async def test_emit_substitutes_params(self, recording_logger, scope, context_fixture):
         """emit подставляет переменные из params через resolve."""
         coordinator = log_coordinator(loggers=[recording_logger])
         params = ParamsTest(amount=999.99)
@@ -69,7 +69,7 @@ class TestLogCoordinator:
             message="Amount: {%params.amount}",
             var={},
             scope=scope,
-            context=context,
+            context=context_fixture,
             state={},
             params=params,
             indent=0,
@@ -78,7 +78,7 @@ class TestLogCoordinator:
         assert recording_logger.records[0]["message"] == "Amount: 999.99"
 
     @pytest.mark.anyio
-    async def test_emit_substitutes_state(self, recording_logger, scope, context, params):
+    async def test_emit_substitutes_state(self, recording_logger, scope, context_fixture, params):
         """emit подставляет переменные из state (dict)."""
         coordinator = log_coordinator(loggers=[recording_logger])
 
@@ -86,7 +86,7 @@ class TestLogCoordinator:
             message="Total: {%state.total}",
             var={},
             scope=scope,
-            context=context,
+            context=context_fixture,
             state={"total": 1500.0},
             params=params,
             indent=0,
@@ -95,7 +95,7 @@ class TestLogCoordinator:
         assert recording_logger.records[0]["message"] == "Total: 1500.0"
 
     @pytest.mark.anyio
-    async def test_emit_substitutes_scope(self, recording_logger, context, params):
+    async def test_emit_substitutes_scope(self, recording_logger, context_fixture, params):
         """emit подставляет переменные из scope."""
         coordinator = log_coordinator(loggers=[recording_logger])
         scope = log_scope(action="ProcessOrder", aspect="validate")
@@ -104,7 +104,7 @@ class TestLogCoordinator:
             message="Action: {%scope.action}",
             var={},
             scope=scope,
-            context=context,
+            context=context_fixture,
             state={},
             params=params,
             indent=0,
@@ -117,7 +117,7 @@ class TestLogCoordinator:
     # ------------------------------------------------------------------
 
     @pytest.mark.anyio
-    async def test_emit_with_iif_simple(self, recording_logger, scope, context):
+    async def test_emit_with_iif_simple(self, recording_logger, scope, context_fixture):
         """emit обрабатывает простой iif с единым синтаксисом {%...}."""
         coordinator = log_coordinator(loggers=[recording_logger])
         params = ParamsTest(amount=1500.0)
@@ -126,7 +126,7 @@ class TestLogCoordinator:
             message="Risk: {iif({%params.amount} > 1000; 'HIGH'; 'LOW')}",
             var={},
             scope=scope,
-            context=context,
+            context=context_fixture,
             state={},
             params=params,
             indent=0,
@@ -135,7 +135,7 @@ class TestLogCoordinator:
         assert recording_logger.records[0]["message"] == "Risk: HIGH"
 
     @pytest.mark.anyio
-    async def test_emit_with_iif_nested(self, recording_logger, scope, context):
+    async def test_emit_with_iif_nested(self, recording_logger, scope, context_fixture):
         """emit обрабатывает вложенные iif с единым синтаксисом."""
         coordinator = log_coordinator(loggers=[recording_logger])
         params = ParamsTest(amount=1500000.0)
@@ -144,7 +144,7 @@ class TestLogCoordinator:
             message="Level: {iif({%params.amount} > 1000000; 'CRITICAL'; iif({%params.amount} > 100000; 'HIGH'; 'LOW'))}",
             var={},
             scope=scope,
-            context=context,
+            context=context_fixture,
             state={},
             params=params,
             indent=0,
@@ -153,7 +153,7 @@ class TestLogCoordinator:
         assert recording_logger.records[0]["message"] == "Level: CRITICAL"
 
     @pytest.mark.anyio
-    async def test_emit_with_iif_using_var(self, recording_logger, scope, context, params):
+    async def test_emit_with_iif_using_var(self, recording_logger, scope, context_fixture, params):
         """iif использует переменные из var."""
         coordinator = log_coordinator(loggers=[recording_logger])
 
@@ -161,7 +161,7 @@ class TestLogCoordinator:
             message="Result: {iif({%var.success} == True; 'OK'; 'FAIL')}",
             var={"success": True},
             scope=scope,
-            context=context,
+            context=context_fixture,
             state={},
             params=params,
             indent=0,
@@ -170,7 +170,7 @@ class TestLogCoordinator:
         assert recording_logger.records[0]["message"] == "Result: OK"
 
     @pytest.mark.anyio
-    async def test_emit_with_iif_using_state(self, recording_logger, scope, context, params):
+    async def test_emit_with_iif_using_state(self, recording_logger, scope, context_fixture, params):
         """iif использует переменные из state."""
         coordinator = log_coordinator(loggers=[recording_logger])
 
@@ -178,7 +178,7 @@ class TestLogCoordinator:
             message="Status: {iif({%state.processed} == True; 'DONE'; 'PENDING')}",
             var={},
             scope=scope,
-            context=context,
+            context=context_fixture,
             state={"processed": True},
             params=params,
             indent=0,
@@ -191,7 +191,7 @@ class TestLogCoordinator:
     # ------------------------------------------------------------------
 
     @pytest.mark.anyio
-    async def test_emit_broadcasts_to_all_loggers(self, scope, context, params):
+    async def test_emit_broadcasts_to_all_loggers(self, scope, context_fixture, params):
         """emit рассылает сообщение всем зарегистрированным логерам."""
         logger1 = RecordingLogger()
         logger2 = RecordingLogger()
@@ -201,7 +201,7 @@ class TestLogCoordinator:
             message="Broadcast",
             var={},
             scope=scope,
-            context=context,
+            context=context_fixture,
             state={},
             params=params,
             indent=0,
@@ -213,7 +213,7 @@ class TestLogCoordinator:
         assert logger2.records[0]["message"] == "Broadcast"
 
     @pytest.mark.anyio
-    async def test_emit_respects_logger_filters(self, scope, context, params):
+    async def test_emit_respects_logger_filters(self, scope, context_fixture, params):
         """emit вызывает все логеры, но каждый фильтрует самостоятельно."""
         logger_all = RecordingLogger()  # без фильтров — принимает всё
         logger_filtered = RecordingLogger(filters=[r"PaymentAction"])  # только Payment
@@ -225,7 +225,7 @@ class TestLogCoordinator:
             message="Order created",
             var={},
             scope=scope,
-            context=context,
+            context=context_fixture,
             state={},
             params=params,
             indent=0,
@@ -235,7 +235,7 @@ class TestLogCoordinator:
         assert len(logger_filtered.records) == 0  # отклонил
 
     @pytest.mark.anyio
-    async def test_add_logger(self, scope, context, params):
+    async def test_add_logger(self, scope, context_fixture, params):
         """add_logger добавляет логер в координатор."""
         coordinator = log_coordinator()
         logger = RecordingLogger()
@@ -245,7 +245,7 @@ class TestLogCoordinator:
             message="After add",
             var={},
             scope=scope,
-            context=context,
+            context=context_fixture,
             state={},
             params=params,
             indent=0,
@@ -254,7 +254,7 @@ class TestLogCoordinator:
         assert len(logger.records) == 1
 
     @pytest.mark.anyio
-    async def test_emit_without_loggers_does_nothing(self, scope, context, params):
+    async def test_emit_without_loggers_does_nothing(self, scope, context_fixture, params):
         """emit без логеров не падает."""
         coordinator = log_coordinator()
 
@@ -263,7 +263,7 @@ class TestLogCoordinator:
             message="No loggers",
             var={},
             scope=scope,
-            context=context,
+            context=context_fixture,
             state={},
             params=params,
             indent=0,
@@ -274,7 +274,7 @@ class TestLogCoordinator:
     # ------------------------------------------------------------------
 
     @pytest.mark.anyio
-    async def test_emit_passes_indent_to_loggers(self, recording_logger, scope, context, params):
+    async def test_emit_passes_indent_to_loggers(self, recording_logger, scope, context_fixture, params):
         """emit передаёт indent в каждый логер."""
         coordinator = log_coordinator(loggers=[recording_logger])
 
@@ -282,7 +282,7 @@ class TestLogCoordinator:
             message="Indented",
             var={},
             scope=scope,
-            context=context,
+            context=context_fixture,
             state={},
             params=params,
             indent=5,
@@ -291,7 +291,7 @@ class TestLogCoordinator:
         assert recording_logger.records[0]["indent"] == 5
 
     @pytest.mark.anyio
-    async def test_emit_passes_scope_to_loggers(self, recording_logger, context, params):
+    async def test_emit_passes_scope_to_loggers(self, recording_logger, context_fixture, params):
         """emit передаёт scope в каждый логер."""
         coordinator = log_coordinator(loggers=[recording_logger])
         test_scope = log_scope(action="TestAction", aspect="test")
@@ -300,7 +300,7 @@ class TestLogCoordinator:
             message="Test",
             var={},
             scope=test_scope,
-            context=context,
+            context=context_fixture,
             state={},
             params=params,
             indent=0,
@@ -313,7 +313,7 @@ class TestLogCoordinator:
     # ------------------------------------------------------------------
 
     @pytest.mark.anyio
-    async def test_emit_nested_state_dict(self, recording_logger, scope, context, params):
+    async def test_emit_nested_state_dict(self, recording_logger, scope, context_fixture, params):
         """emit подставляет вложенные значения из state."""
         coordinator = log_coordinator(loggers=[recording_logger])
 
@@ -321,7 +321,7 @@ class TestLogCoordinator:
             message="Nested: {%state.order.id}",
             var={},
             scope=scope,
-            context=context,
+            context=context_fixture,
             state={"order": {"id": 42}},
             params=params,
             indent=0,
@@ -330,7 +330,7 @@ class TestLogCoordinator:
         assert recording_logger.records[0]["message"] == "Nested: 42"
 
     @pytest.mark.anyio
-    async def test_emit_nested_var_dict(self, recording_logger, scope, context, params):
+    async def test_emit_nested_var_dict(self, recording_logger, scope, context_fixture, params):
         """emit подставляет вложенные значения из var."""
         coordinator = log_coordinator(loggers=[recording_logger])
 
@@ -338,7 +338,7 @@ class TestLogCoordinator:
             message="Var nested: {%var.data.value}",
             var={"data": {"value": "deep"}},
             scope=scope,
-            context=context,
+            context=context_fixture,
             state={},
             params=params,
             indent=0,
@@ -351,7 +351,7 @@ class TestLogCoordinator:
     # ------------------------------------------------------------------
 
     @pytest.mark.anyio
-    async def test_emit_missing_variable_raises(self, scope, context, params):
+    async def test_emit_missing_variable_raises(self, scope, context_fixture, params):
         """
         Обращение к несуществующей переменной выбрасывает LogTemplateError.
         """
@@ -362,14 +362,14 @@ class TestLogCoordinator:
                 message="Missing: {%var.nonexistent}",
                 var={},
                 scope=scope,
-                context=context,
+                context=context_fixture,
                 state={},
                 params=params,
                 indent=0,
             )
 
     @pytest.mark.anyio
-    async def test_emit_missing_variable_in_iif_raises(self, scope, context, params):
+    async def test_emit_missing_variable_in_iif_raises(self, scope, context_fixture, params):
         """
         Обращение к несуществующей переменной внутри iif выбрасывает LogTemplateError.
         """
@@ -380,14 +380,14 @@ class TestLogCoordinator:
                 message="Result: {iif({%var.missing} > 10; 'yes'; 'no')}",
                 var={},
                 scope=scope,
-                context=context,
+                context=context_fixture,
                 state={},
                 params=params,
                 indent=0,
             )
 
     @pytest.mark.anyio
-    async def test_emit_unknown_namespace_raises(self, scope, context, params):
+    async def test_emit_unknown_namespace_raises(self, scope, context_fixture, params):
         """
         Неизвестный namespace в шаблоне выбрасывает LogTemplateError.
         """
@@ -398,14 +398,14 @@ class TestLogCoordinator:
                 message="Value: {%unknown.field}",
                 var={},
                 scope=scope,
-                context=context,
+                context=context_fixture,
                 state={},
                 params=params,
                 indent=0,
             )
 
     @pytest.mark.anyio
-    async def test_emit_invalid_iif_syntax_raises(self, scope, context, params):
+    async def test_emit_invalid_iif_syntax_raises(self, scope, context_fixture, params):
         """
         Невалидный синтаксис iif (не 3 аргумента) выбрасывает LogTemplateError.
         """
@@ -416,7 +416,7 @@ class TestLogCoordinator:
                 message="Bad: {iif(1 > 0; 'only_two_args')}",
                 var={},
                 scope=scope,
-                context=context,
+                context=context_fixture,
                 state={},
                 params=params,
                 indent=0,

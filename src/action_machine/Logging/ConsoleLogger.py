@@ -55,7 +55,7 @@ ConsoleLogger наследует BaseLogger и реализует единств
 
 from typing import Any
 
-from action_machine.Context.Context import Context
+from action_machine.Context.Context import context
 from action_machine.Core.BaseParams import BaseParams
 from action_machine.Logging.BaseLogger import base_logger
 from action_machine.Logging.LogScope import log_scope
@@ -201,7 +201,7 @@ class console_logger(base_logger):
         scope: log_scope,
         message: str,
         var: dict[str, Any],
-        context: Context,
+        context: context,
         state: dict[str, Any],
         params: BaseParams,
         indent: int,

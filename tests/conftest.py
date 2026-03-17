@@ -10,7 +10,7 @@ from typing import Any
 
 import pytest
 
-from action_machine.Context.Context import Context
+from action_machine.Context.Context import context
 from action_machine.Context.EnvironmentInfo import environment_info
 from action_machine.Context.RequestInfo import request_info
 from action_machine.Context.UserInfo import user_info
@@ -65,7 +65,7 @@ class RecordingLogger(base_logger):
         scope: log_scope,
         message: str,
         var: dict[str, Any],
-        context: Context,
+        context: context,
         state: dict[str, Any],
         params: BaseParams,
         indent: int,
@@ -105,7 +105,7 @@ def params() -> ParamsTest:
 
 
 @pytest.fixture
-def context() -> Context:
+def context_fixture() -> context:
     """
     Стандартный тестовый контекст.
 
@@ -132,13 +132,13 @@ def context() -> Context:
         service_version="1.2.3",
         environment="test",
     )
-    return Context(user=user, request=request, environment=environment)
+    return context(user=user, request=request, environment=environment)
 
 
 @pytest.fixture
-def empty_context() -> Context:
+def empty_context() -> context:
     """Пустой контекст для тестов, где не нужны данные."""
-    return Context()
+    return context()
 
 
 @pytest.fixture
@@ -194,7 +194,7 @@ def make_context(
     user_id: str = "agent_1",
     roles: list[str] | None = None,
     trace_id: str = "trace-abc-123",
-) -> Context:
+) -> context:
     """
     Создаёт тестовый контекст с пользователем и запросом.
 
@@ -221,10 +221,10 @@ def make_context(
         service_name="order-service",
         environment="production",
     )
-    return Context(user=user, request=request, environment=environment)
+    return context(user=user, request=request, environment=environment)
 
 
-def create_context_with_user(user_id: str, roles: list[str] | None = None) -> Context:
+def create_context_with_user(user_id: str, roles: list[str] | None = None) -> context:
     """
     Создаёт контекст с конкретным пользователем.
 
@@ -235,7 +235,7 @@ def create_context_with_user(user_id: str, roles: list[str] | None = None) -> Co
     Возвращает:
         Context с указанным пользователем
     """
-    return Context(
+    return context(
         user=user_info(user_id=user_id, roles=roles or []),
         request=request_info(),
         environment=environment_info(),

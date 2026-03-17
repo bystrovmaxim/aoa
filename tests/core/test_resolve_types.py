@@ -12,7 +12,7 @@
 
 from dataclasses import dataclass
 
-from action_machine.Context.Context import Context
+from action_machine.Context.Context import context
 from action_machine.Context.UserInfo import user_info
 from action_machine.Core.BaseParams import BaseParams
 
@@ -148,7 +148,7 @@ class TestResolveTypes:
             roles=["admin"],
             extra={"settings": {"notifications": {"email": True, "count": 5, "channels": ["sms", "push"]}}},
         )
-        ctx = Context(user=user)
+        ctx = context(user=user)
 
         # Булево значение
         assert ctx.resolve("user.extra.settings.notifications.email") is True

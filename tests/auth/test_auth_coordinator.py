@@ -15,7 +15,7 @@
 import pytest
 
 from action_machine.Auth.AuthCoordinator import auth_coordinator
-from action_machine.Context.Context import Context
+from action_machine.Context.Context import context
 from action_machine.Context.RequestInfo import request_info
 from action_machine.Context.UserInfo import user_info
 
@@ -46,7 +46,7 @@ class TestAuthCoordinator:
 
         # Проверки
         assert result is not None
-        assert isinstance(result, Context)
+        assert isinstance(result, context)
         assert result.user == user_info_fixture
         assert result.request.trace_id == "trace-123"
         assert result.request.request_path == "/api/test"

@@ -5,7 +5,7 @@ Dataclass для передачи данных события в плагины.
 
 from dataclasses import dataclass
 
-from action_machine.Context.Context import Context
+from action_machine.Context.Context import context
 from action_machine.Core.DependencyFactory import DependencyFactory
 from action_machine.Core.Protocols import ReadableDataProtocol, WritableDataProtocol
 
@@ -45,7 +45,7 @@ class PluginEvent:
     deps: DependencyFactory
     """Фабрика зависимостей для текущего выполнения действия (позволяет получать ресурсы)."""
 
-    context: Context
+    context: context
     """Контекст выполнения (информация о пользователе, запросе, окружении)."""
 
     result: WritableDataProtocol | None
