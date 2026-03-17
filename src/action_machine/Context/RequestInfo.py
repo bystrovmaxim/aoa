@@ -12,7 +12,7 @@ from action_machine.Core.ReadableMixin import ReadableMixin
 
 
 @dataclass
-class RequestInfo(ReadableMixin):
+class request_info(ReadableMixin):
     """
     Метаданные входящего запроса.
 

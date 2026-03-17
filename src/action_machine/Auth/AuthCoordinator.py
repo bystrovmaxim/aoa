@@ -7,10 +7,10 @@
 
 from typing import Any
 
-from ..Context import Context, RequestInfo
+from ..Context import Context, request_info
 from .Authenticator import authenticator
 from .ContextAssembler import context_assembler
-from .CredentialExtractor import CredentialExtractor
+from .CredentialExtractor import credential_extractor
 
 
 class auth_coordinator:
@@ -26,7 +26,7 @@ class auth_coordinator:
 
     def __init__(
         self,
-        extractor: CredentialExtractor,
+        extractor: credential_extractor,
         authenticator: authenticator,
         assembler: context_assembler,
     ) -> None:
@@ -60,5 +60,5 @@ class auth_coordinator:
         if not user_info:
             return None
         metadata = await self.assembler.assemble(request_data)
-        req_info = RequestInfo(**metadata)
+        req_info = request_info(**metadata)
         return Context(user=user_info, request=req_info, environment=None)

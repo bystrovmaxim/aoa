@@ -9,9 +9,9 @@ import pytest
 
 from action_machine.Auth.AuthCoordinator import auth_coordinator
 from action_machine.Context.Context import Context
-from action_machine.Context.EnvironmentInfo import EnvironmentInfo
-from action_machine.Context.RequestInfo import RequestInfo
-from action_machine.Context.UserInfo import UserInfo
+from action_machine.Context.EnvironmentInfo import environment_info
+from action_machine.Context.RequestInfo import request_info
+from action_machine.Context.UserInfo import user_info
 
 
 class TestAuthIntegration:
@@ -36,7 +36,7 @@ class TestAuthIntegration:
 
             async def authenticate(self, credentials):
                 if credentials.get("token") == "abc123":
-                    return UserInfo(user_id=credentials.get("user", "unknown"), roles=["user"])
+                    return user_info(user_id=credentials.get("user", "unknown"), roles=["user"])
                 return None
 
         class SimpleAssembler:
@@ -125,7 +125,7 @@ class TestAuthIntegration:
         class TestAuthenticator:
             async def authenticate(self, credentials):
                 if credentials.get("api_key") == "secret":
-                    return UserInfo(user_id="api_user", roles=["api"], extra={"key_type": "api_key"})
+                    return user_info(user_id="api_user", roles=["api"], extra={"key_type": "api_key"})
                 return None
 
         class TestAssembler:
@@ -144,9 +144,9 @@ class TestAuthIntegration:
 
         # Проверяем структуру
         assert isinstance(result, Context)
-        assert isinstance(result.user, UserInfo)
-        assert isinstance(result.request, RequestInfo)
-        assert isinstance(result.environment, EnvironmentInfo)
+        assert isinstance(result.user, user_info)
+        assert isinstance(result.request, request_info)
+        assert isinstance(result.environment, environment_info)
 
         # Проверяем данные пользователя
         assert result.user.user_id == "api_user"

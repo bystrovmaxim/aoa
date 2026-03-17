@@ -16,8 +16,8 @@ import pytest
 
 from action_machine.Auth.AuthCoordinator import auth_coordinator
 from action_machine.Context.Context import Context
-from action_machine.Context.RequestInfo import RequestInfo
-from action_machine.Context.UserInfo import UserInfo
+from action_machine.Context.RequestInfo import request_info
+from action_machine.Context.UserInfo import user_info
 
 from .conftest import MockAuthenticator, MockContextAssembler, MockCredentialExtractor
 
@@ -30,13 +30,13 @@ class TestAuthCoordinator:
     # ------------------------------------------------------------------
 
     @pytest.mark.anyio
-    async def test_auth_success(self, user_info):
+    async def test_auth_success(self, user_info_fixture):
         """Успешная аутентификация возвращает Context."""
         # Подготовка
         metadata = {"trace_id": "trace-123", "request_path": "/api/test", "request_method": "POST"}
 
         extractor = MockCredentialExtractor(return_value={"token": "valid-token"})
-        authenticator = MockAuthenticator(return_value=user_info)
+        authenticator = MockAuthenticator(return_value=user_info_fixture)
         assembler = MockContextAssembler(return_value=metadata)
 
         coordinator = auth_coordinator(extractor, authenticator, assembler)
@@ -47,7 +47,7 @@ class TestAuthCoordinator:
         # Проверки
         assert result is not None
         assert isinstance(result, Context)
-        assert result.user == user_info
+        assert result.user == user_info_fixture
         assert result.request.trace_id == "trace-123"
         assert result.request.request_path == "/api/test"
 
@@ -56,7 +56,7 @@ class TestAuthCoordinator:
         assembler.assemble.assert_called_once_with({"request": "data"})
 
     @pytest.mark.anyio
-    async def test_auth_with_custom_metadata(self, user_info):
+    async def test_auth_with_custom_metadata(self, user_info_fixture):
         """Метаданные могут быть любым словарем с полями RequestInfo."""
         custom_metadata = {
             "trace_id": "custom-123",
@@ -66,7 +66,7 @@ class TestAuthCoordinator:
         }
 
         extractor = MockCredentialExtractor(return_value={"api_key": "key"})
-        authenticator = MockAuthenticator(return_value=user_info)
+        authenticator = MockAuthenticator(return_value=user_info_fixture)
         assembler = MockContextAssembler(return_value=custom_metadata)
 
         coordinator = auth_coordinator(extractor, authenticator, assembler)
@@ -147,10 +147,10 @@ class TestAuthCoordinator:
             await coordinator.process({})
 
     @pytest.mark.anyio
-    async def test_auth_assembler_raises(self, user_info):
+    async def test_auth_assembler_raises(self, user_info_fixture):
         """Ошибка в сборщике метаданных пробрасывается наружу."""
         extractor = MockCredentialExtractor(return_value={"token": "valid"})
-        authenticator = MockAuthenticator(return_value=user_info)
+        authenticator = MockAuthenticator(return_value=user_info_fixture)
         assembler = MockContextAssembler()
         assembler.assemble.side_effect = ValueError("Ошибка сборки")
 
@@ -174,7 +174,7 @@ class TestAuthCoordinator:
 
         async def authenticator_side(*args):
             call_order.append("authenticator")
-            return UserInfo(user_id="test")
+            return user_info(user_id="test")
 
         async def assembler_side(*args):
             call_order.append("assembler")
@@ -200,10 +200,10 @@ class TestAuthCoordinator:
     # ------------------------------------------------------------------
 
     @pytest.mark.anyio
-    async def test_auth_with_minimal_metadata(self, user_info):
+    async def test_auth_with_minimal_metadata(self, user_info_fixture):
         """Минимальные метаданные (пустой словарь) создают RequestInfo с полями по умолчанию."""
         extractor = MockCredentialExtractor(return_value={"token": "x"})
-        authenticator = MockAuthenticator(return_value=user_info)
+        authenticator = MockAuthenticator(return_value=user_info_fixture)
         assembler = MockContextAssembler(return_value={})  # пустой словарь
 
         coordinator = auth_coordinator(extractor, authenticator, assembler)
@@ -211,17 +211,17 @@ class TestAuthCoordinator:
         result = await coordinator.process({})
 
         assert result is not None
-        assert result.user == user_info
-        assert isinstance(result.request, RequestInfo)
+        assert result.user == user_info_fixture
+        assert isinstance(result.request, request_info)
         # Все поля RequestInfo должны быть None по умолчанию
         assert result.request.trace_id is None
         assert result.request.request_path is None
 
     @pytest.mark.anyio
-    async def test_auth_environment_default(self, user_info):
+    async def test_auth_environment_default(self, user_info_fixture):
         """Поле environment в Context заполняется значением по умолчанию (EnvironmentInfo)."""
         extractor = MockCredentialExtractor(return_value={"token": "x"})
-        authenticator = MockAuthenticator(return_value=user_info)
+        authenticator = MockAuthenticator(return_value=user_info_fixture)
         assembler = MockContextAssembler(return_value={})
 
         coordinator = auth_coordinator(extractor, authenticator, assembler)
@@ -231,6 +231,6 @@ class TestAuthCoordinator:
         assert result is not None
         # AuthCoordinator передаёт environment=None, но Context.__init__
         # подставляет EnvironmentInfo() по умолчанию
-        from action_machine.Context.EnvironmentInfo import EnvironmentInfo
+        from action_machine.Context.EnvironmentInfo import environment_info
 
-        assert isinstance(result.environment, EnvironmentInfo)
+        assert isinstance(result.environment, environment_info)

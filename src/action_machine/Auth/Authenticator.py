@@ -7,7 +7,7 @@
 from abc import ABC, abstractmethod
 from typing import Any
 
-from ..Context.UserInfo import UserInfo
+from ..Context.UserInfo import user_info
 
 
 class authenticator(ABC):
@@ -20,7 +20,7 @@ class authenticator(ABC):
     """
 
     @abstractmethod
-    async def authenticate(self, credentials: Any) -> UserInfo | None:
+    async def authenticate(self, credentials: Any) -> user_info | None:
         """
         Асинхронно проверяет учётные данные и возвращает информацию о пользователе.
 

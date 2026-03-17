@@ -12,9 +12,9 @@ from typing import Any
 
 from action_machine.Core.ReadableMixin import ReadableMixin
 
-from .EnvironmentInfo import EnvironmentInfo
-from .RequestInfo import RequestInfo
-from .UserInfo import UserInfo
+from .EnvironmentInfo import environment_info
+from .RequestInfo import request_info
+from .UserInfo import user_info
 
 
 class Context(ReadableMixin):
@@ -31,9 +31,9 @@ class Context(ReadableMixin):
 
     def __init__(
         self,
-        user: UserInfo | None = None,
-        request: RequestInfo | None = None,
-        environment: EnvironmentInfo | None = None,
+        user: user_info | None = None,
+        request: request_info | None = None,
+        environment: environment_info | None = None,
     ) -> None:
         """
         Инициализирует контекст.
@@ -43,7 +43,7 @@ class Context(ReadableMixin):
             request: информация о запросе.
             environment: информация об окружении.
         """
-        self.user = user or UserInfo()
-        self.request = request or RequestInfo()
-        self.environment = environment or EnvironmentInfo()
+        self.user = user or user_info()
+        self.request = request or request_info()
+        self.environment = environment or environment_info()
         self._extra: dict[str, Any] = {}

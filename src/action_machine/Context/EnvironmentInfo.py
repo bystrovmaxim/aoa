@@ -11,7 +11,7 @@ from action_machine.Core.ReadableMixin import ReadableMixin
 
 
 @dataclass
-class EnvironmentInfo(ReadableMixin):
+class environment_info(ReadableMixin):
     """
     Информация об окружении выполнения.
 

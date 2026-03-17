@@ -8,7 +8,7 @@
 """
 
 from action_machine.Context.Context import Context
-from action_machine.Context.UserInfo import UserInfo
+from action_machine.Context.UserInfo import user_info
 
 
 class TestResolveCaching:
@@ -20,7 +20,7 @@ class TestResolveCaching:
 
     def test_resolve_caches_result(self):
         """resolve кеширует результат при повторном вызове."""
-        user = UserInfo(user_id="42")
+        user = user_info(user_id="42")
 
         # Первый вызов
         result1 = user.resolve("user_id")
@@ -36,7 +36,7 @@ class TestResolveCaching:
 
     def test_resolve_cache_returns_same_object(self):
         """Кеш возвращает тот же объект, не копию."""
-        user = UserInfo(extra={"data": [1, 2, 3]})
+        user = user_info(extra={"data": [1, 2, 3]})
 
         result1 = user.resolve("extra.data")
         result2 = user.resolve("extra.data")
@@ -52,7 +52,7 @@ class TestResolveCaching:
 
         Это демонстрирует, что кеш не инвалидируется при изменении объекта.
         """
-        user = UserInfo(user_id="42", extra={"key": "value"})
+        user = user_info(user_id="42", extra={"key": "value"})
 
         # Первый вызов — заполняем кеш
         result1 = user.resolve("extra.key")
@@ -72,7 +72,7 @@ class TestResolveCaching:
 
     def test_resolve_caches_default_for_missing(self):
         """resolve кеширует default для несуществующего пути."""
-        user = UserInfo(user_id="42")
+        user = user_info(user_id="42")
 
         # Первый вызов с default
         result = user.resolve("missing", default="fallback")
@@ -87,7 +87,7 @@ class TestResolveCaching:
 
     def test_resolve_caches_none_for_missing(self):
         """resolve кеширует None для несуществующего пути без default."""
-        user = UserInfo(user_id="42")
+        user = user_info(user_id="42")
 
         # Первый вызов
         result = user.resolve("missing")
@@ -107,7 +107,7 @@ class TestResolveCaching:
 
     def test_cache_independent_for_different_paths(self):
         """Кеш для разных путей независим."""
-        user = UserInfo(user_id="42", extra={"org": "acme"})
+        user = user_info(user_id="42", extra={"org": "acme"})
 
         # Заполняем кеш для двух путей
         user.resolve("user_id")
@@ -121,7 +121,7 @@ class TestResolveCaching:
 
     def test_cache_for_nested_paths(self):
         """Кеш работает для вложенных путей."""
-        ctx = Context(user=UserInfo(user_id="42", extra={"org": "acme"}))
+        ctx = Context(user=user_info(user_id="42", extra={"org": "acme"}))
 
         # Заполняем кеш
         ctx.resolve("user.user_id")
@@ -139,7 +139,7 @@ class TestResolveCaching:
 
     def test_cache_lazy_initialization(self):
         """Кеш создается только при первом вызове resolve."""
-        user = UserInfo(user_id="42")
+        user = user_info(user_id="42")
 
         # До первого resolve кеша нет
         assert not hasattr(user, "_resolve_cache")
@@ -151,7 +151,7 @@ class TestResolveCaching:
 
     def test_cache_persists_across_calls(self):
         """Кеш сохраняется между разными вызовами resolve."""
-        user = UserInfo(user_id="42", extra={"org": "acme"})
+        user = user_info(user_id="42", extra={"org": "acme"})
 
         # Первый вызов создает кеш
         user.resolve("user_id")

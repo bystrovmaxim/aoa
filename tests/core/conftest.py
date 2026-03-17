@@ -7,9 +7,9 @@ from dataclasses import dataclass
 import pytest
 
 from action_machine.Context.Context import Context
-from action_machine.Context.EnvironmentInfo import EnvironmentInfo
-from action_machine.Context.RequestInfo import RequestInfo
-from action_machine.Context.UserInfo import UserInfo
+from action_machine.Context.EnvironmentInfo import environment_info
+from action_machine.Context.RequestInfo import request_info
+from action_machine.Context.UserInfo import user_info
 from action_machine.Core.ReadableMixin import ReadableMixin
 
 # ======================================================================
@@ -70,7 +70,7 @@ class NestedData(ReadableMixin):
 @pytest.fixture
 def flat_user():
     """Пользователь с плоскими полями (без вложенности)."""
-    return UserInfo(user_id="42", roles=["admin", "user"])
+    return user_info(user_id="42", roles=["admin", "user"])
 
 
 @pytest.fixture
@@ -87,13 +87,13 @@ def simple_readable():
 @pytest.fixture
 def user_with_extra():
     """Пользователь с extra-словарём."""
-    return UserInfo(user_id="42", roles=["admin"], extra={"org": "acme", "level": {"floor": 5}})
+    return user_info(user_id="42", roles=["admin"], extra={"org": "acme", "level": {"floor": 5}})
 
 
 @pytest.fixture
 def context_with_user():
     """Контекст с пользователем."""
-    user = UserInfo(user_id="agent_007", roles=["agent"], extra={"clearance": "top"})
+    user = user_info(user_id="agent_007", roles=["agent"], extra={"clearance": "top"})
     return Context(user=user)
 
 
@@ -121,7 +121,7 @@ def deep_nested():
 @pytest.fixture
 def user_without_extra():
     """Пользователь без extra-словаря."""
-    return UserInfo(user_id="42")
+    return user_info(user_id="42")
 
 
 # ======================================================================
@@ -139,7 +139,7 @@ def make_context_with_user(user_id: str = "agent_1") -> Context:
     Возвращает:
         Context с указанным пользователем
     """
-    user = UserInfo(user_id=user_id, roles=["user", "admin"], extra={"org": "acme"})
-    request = RequestInfo(trace_id="trace-abc-123", request_path="/api/v1/orders", request_method="POST")
-    environment = EnvironmentInfo(hostname="pod-xyz-42", service_name="order-service", environment="production")
+    user = user_info(user_id=user_id, roles=["user", "admin"], extra={"org": "acme"})
+    request = request_info(trace_id="trace-abc-123", request_path="/api/v1/orders", request_method="POST")
+    environment = environment_info(hostname="pod-xyz-42", service_name="order-service", environment="production")
     return Context(user=user, request=request, environment=environment)
