@@ -1,0 +1,126 @@
+# .pre-commit-config.yaml
+# Конфигурация pre-commit хуков для проекта ActionMachine
+
+repos:
+  # ------------------------------------------------------------------------
+  # Базовые хуки от pre-commit
+  # ------------------------------------------------------------------------
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0  # обновлённая версия
+    hooks:
+      - id: trailing-whitespace
+        description: "Удаляет пробелы в концах строк"
+
+      - id: end-of-file-fixer
+        description: "Добавляет пустую строку в конце файла"
+
+      - id: check-yaml
+        description: "Проверка синтаксиса YAML"
+        args: [--allow-multiple-documents]
+
+      - id: check-toml
+        description: "Проверка синтаксиса TOML"
+
+      - id: check-added-large-files
+        description: "Проверка на файлы > 500KB"
+        args: [--maxkb=500]
+
+      - id: check-merge-conflict
+        description: "Поиск незавершённых merge-конфликтов"
+
+      - id: check-json
+        description: "Проверка синтаксиса JSON"
+
+      - id: check-case-conflict
+        description: "Проверка case-sensitive конфликтов"
+
+  # ------------------------------------------------------------------------
+  # RUFF — супер-быстрый линтер и авто-исправление
+  # ------------------------------------------------------------------------
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.9.10  # актуальная версия
+    hooks:
+      - id: ruff
+        description: "Запуск линтера ruff с авто-исправлением"
+        args: [--fix, --exit-non-zero-on-fix]
+        files: ^(src/|tests/)
+
+      - id: ruff-format
+        description: "Форматирование кода через ruff"
+        files: ^(src/|tests/)
+
+  # ------------------------------------------------------------------------
+  # ISORT — сортировка импортов (можно убрать, так как ruff уже делает это)
+  # ------------------------------------------------------------------------
+  - repo: https://github.com/pycqa/isort
+    rev: 5.13.2
+    hooks:
+      - id: isort
+        description: "Сортировка импортов"
+        files: ^(src/|tests/)
+        args: [--profile, black, --line-length=120]
+
+  # ------------------------------------------------------------------------
+  # MYPY — статическая типизация (без types-all)
+  # ------------------------------------------------------------------------
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.15.0
+    hooks:
+      - id: mypy
+        description: "Проверка типов"
+        files: ^src/action_machine/
+        args: [
+          --strict,
+          --ignore-missing-imports,
+          --follow-imports=skip,
+          --warn-unreachable,
+          --no-implicit-reexport
+        ]
+        additional_dependencies: [
+          # Только те стабы, которые реально нужны
+          "pydantic>=2.0.0",
+          "asyncpg-stubs>=0.31.2",
+          "types-aiofiles>=25.1.0",
+          "types-python-dateutil>=2.8.19",
+        ]
+
+  # ------------------------------------------------------------------------
+  # PYLINT — дополнительный линтер (локальный)
+  # ------------------------------------------------------------------------
+  - repo: local
+    hooks:
+      - id: pylint
+        name: pylint
+        description: "Запуск pylint"
+        entry: uv run pylint
+        language: system
+        files: ^src/action_machine/
+        types: [python]
+        args: [
+          "--rcfile=pyproject.toml",
+          "--output-format=colorized"
+        ]
+
+  # ------------------------------------------------------------------------
+  # Проверка зависимостей (import-linter)
+  # ------------------------------------------------------------------------
+  - repo: local
+    hooks:
+      - id: import-linter
+        name: import-linter
+        description: "Проверка архитектурных зависимостей"
+        entry: uv run lint-imports
+        language: system
+        files: ^src/action_machine/
+        pass_filenames: false
+
+  # ------------------------------------------------------------------------
+  # Безопасность: поиск секретов в коде
+  # ------------------------------------------------------------------------
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.5.0
+    hooks:
+      - id: detect-secrets
+        description: "Поиск возможных секретов в коде"
+        args: ['--baseline', '.secrets.baseline']
+        exclude: ^(tests/|docs/|archive/|\.secrets\.baseline$)
