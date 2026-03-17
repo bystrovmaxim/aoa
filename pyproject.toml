@@ -1,0 +1,478 @@
+# ============================================================================
+# pyproject.toml — Единый центр управления проектом ActionMachine
+# Версия: 1.0.0
+# Этот файл заменяет: requirements.txt, mypy.ini, .pylintrc, .flake8, setup.cfg
+# ============================================================================
+
+# ----------------------------------------------------------------------------
+# [build-system] — Как собирать пакет
+# PEP 517/518: определяет систему сборки
+# ----------------------------------------------------------------------------
+[build-system]
+requires = ["hatchling"]                    # Движок сборки (легче setuptools)
+build-backend = "hatchling.build"           # Точка входа для сборщика
+
+# ============================================================================
+# МЕТАДАННЫЕ ПРОЕКТА — всё, что видно на PyPI и в индексах пакетов
+# ============================================================================
+[project]
+name = "action-machine"                                      # Имя пакета (в pip install)
+version = "1.0.0"                                            # Семантическая версия
+description = "Aspect-Oriented Actions (AOA) Framework for Python — async-first, pluggable, testable"
+readme = "README.md"                                          # Будет отображаться на PyPI
+requires-python = ">=3.12"                                   # Минимальная версия Python
+license = { text = "MIT" }                                    # Лицензия проекта
+
+# Авторы и мейнтейнеры
+authors = [
+    { name = "Maxim Bystrov", email = "bystrovmaxim@gmail.com" },
+]
+maintainers = [
+    { name = "Maxim Bystrov", email = "bystrovmaxim@gmail.com" },
+]
+
+# Ключевые слова для поиска
+keywords = [
+    "aoa", "actions", "aspects", "async", "asyncio",
+    "framework", "python", "fastapi", "mcp", "ddd"
+]
+
+# Классификаторы PyPI (https://pypi.org/classifiers/)
+classifiers = [
+    "Development Status :: 4 - Beta",                         # Стадия разработки
+    "Framework :: AsyncIO",                                    # Async-фреймворк
+    "Intended Audience :: Developers",                         # Для кого
+    "License :: OSI Approved :: MIT License",                  # Лицензия
+    "Programming Language :: Python :: 3",                     # Python 3
+    "Programming Language :: Python :: 3.12",                  # Конкретная версия
+    "Programming Language :: Python :: 3 :: Only",             # Только Python 3
+    "Topic :: Software Development :: Libraries :: Application Frameworks",
+    "Typing :: Typed",                                          # Есть аннотации типов
+]
+
+# ----------------------------------------------------------------------------
+# Runtime-зависимости — то, без чего код не работает
+# Всё, что импортируется в production-коде
+# ----------------------------------------------------------------------------
+dependencies = [
+    # Базы данных и хранилища
+    "asyncpg>=0.31.0",        # PostgreSQL драйвер (async/await)
+
+    # Вычисления и выражения
+    "simpleeval>=1.0.7",      # Безопасное вычисление выражений (для iif)
+
+    # Web-фреймворки и интеграции
+    "fastapi>=0.135.1",       # FastAPI для REST API
+    "uvicorn[standard]>=0.41.0",  # ASGI сервер
+    "pydantic>=2.12.5",       # Валидация данных через схемы
+    "pydantic-settings>=2.13.1",  # Настройки через Pydantic
+    "python-dotenv>=1.2.2",   # Загрузка .env файлов
+    "mcp>=1.26.0",            # Model Context Protocol (интеграция с LLM)
+    "httpx>=0.28.1",          # HTTP клиент (асинхронный)
+
+    # Безопасность и аутентификация
+    "pyjwt>=2.11.0",          # JWT токены
+    "cryptography>=46.0.5",   # Криптография (подписи, хеши)
+
+    # Работа с файлами
+    "aiofiles>=25.1.0",       # Async файловый ввод-вывод
+
+    # ASGI инфраструктура
+    "starlette>=0.52.1",       # ASGI фреймворк (база для FastAPI)
+]
+
+# ============================================================================
+# URL-ы проекта — ссылки на документацию, репозиторий и пр.
+# ============================================================================
+[project.urls]
+Homepage = "https://gitverse.ru/bystrov.maxim/kanban_assistant"           # Главная страница
+Repository = "https://gitverse.ru/bystrov.maxim/kanban_assistant"        # Git-репозиторий
+Documentation = "https://gitverse.ru/bystrov.maxim/kanban_assistant/docs" # Документация
+Changelog = "https://gitverse.ru/bystrov.maxim/kanban_assistant/blob/master/docs/CHANGELOG.md"
+Issues = "https://gitverse.ru/bystrov.maxim/kanban_assistant/issues"      # Баг-трекер
+
+# ============================================================================
+# ГРУППЫ ЗАВИСИМОСТЕЙ — альтернатива requirements-*.txt
+# Поддерживаются uv, poetry, pdm
+# ============================================================================
+[dependency-groups]
+# ----------------------------------------------------------------------------
+# dev — инструменты разработчика
+# Устанавливаются: uv sync --group dev
+# ----------------------------------------------------------------------------
+dev = [
+    # Линтеры и анализаторы кода
+    "mypy>=1.19.1",           # Статическая типизация
+    "pylint>=4.0.5",          # Полный линтер
+    "flake8>=7.3.0",          # Быстрый линтер
+    "flake8-async>=25.7.1",   # Проверка async-кода
+    "radon>=6.0.1",           # Метрики кода (цикломатическая сложность)
+    "vulture>=2.15",          # Поиск мёртвого кода
+    # Форматтеры
+    "autopep8>=2.3.2",        # Автоформатирование по PEP8
+    "isort>=8.0.1",           # Сортировка импортов
+    "black>=25.1.0",          # Беспощадный форматтер
+    "ruff>=0.9.0",            # Супер-быстрый линтер на Rust
+    # Стабы для типизации (нужны mypy)
+    "asyncpg-stubs>=0.31.2",  # Типы для asyncpg
+    "types-aiofiles>=25.1.0.20251011",
+    "types-pexpect>=4.9.0.20260127",
+    "types-pygments>=2.19.0.20251121",
+    # Архитектурные проверки
+    "import-linter>=2.11",    # Проверка зависимостей между модулями
+    # Утилиты
+    "taskipy>=1.14.0",        # Запуск задач (замена run_checks.sh)
+    "pre-commit>=4.0.0",      # Git-хуки
+    "detect-secrets>=1.5.0",
+]
+
+# ----------------------------------------------------------------------------
+# test — для запуска тестов
+# Устанавливаются: uv sync --group test
+# ----------------------------------------------------------------------------
+test = [
+    "pytest>=9.0.2",               # Фреймворк тестирования
+    "pytest-asyncio>=1.3.0",        # Асинхронные тесты
+    "pytest-cov>=6.0.0",            # Измерение покрытия
+    "anyio>=4.12.1",                # Асинхронный бэкенд
+    "requests>=2.32.5",              # Для тестов HTTP-интеграций
+    "psycopg2-binary>=2.9.11",       # Для тестов PostgreSQL (синхронный)
+]
+
+# ----------------------------------------------------------------------------
+# docs — для сборки документации
+# Устанавливаются: uv sync --group docs
+# ----------------------------------------------------------------------------
+docs = [
+    "mkdocs>=1.6.0",                 # Генератор документации
+    "mkdocs-material>=9.5.0",         # Красивая тема
+    "mkdocstrings[python]>=0.25.0",   # Авто-документация из докстрингов
+]
+
+# ----------------------------------------------------------------------------
+# examples — для запуска примеров кода
+# Устанавливаются: uv sync --group examples
+# ----------------------------------------------------------------------------
+examples = [
+    "inject>=5.3.0",                  # DI-контейнер (пример)
+    "click>=8.3.1",                    # CLI-интерфейс (пример)
+]
+
+# ============================================================================
+# НАСТРОЙКИ СБОРКИ — что включать в wheel-пакет
+# ============================================================================
+[tool.hatch.build.targets.wheel]
+packages = ["src/action_machine"]      # Только этот пакет идёт в дистрибутив
+
+# ============================================================================
+# PYTEST — конфигурация тестов
+# ============================================================================
+[tool.pytest.ini_options]
+testpaths = ["tests"]                   # Где искать тесты
+asyncio_mode = "auto"                    # Автоматический режим async-тестов
+python_files = ["test_*.py"]             # Имена файлов с тестами
+python_classes = ["Test*"]                # Имена классов с тестами
+python_functions = ["test_*"]             # Имена функций с тестами
+
+addopts = [
+    "--strict-markers",                   # Строгие маркеры
+    "--tb=short",                         # Короткий traceback
+    "-v",                                  # Подробный вывод
+    "-ra",                                 # Показывать причины пропуска тестов
+]
+
+# Маркеры для категоризации тестов
+markers = [
+    "slow: тесты, выполняющиеся более 1 секунды",
+    "integration: тесты, требующие внешних сервисов (БД, HTTP)",
+    "unit: быстрые изолированные тесты",
+]
+
+# ============================================================================
+# MYPY — строгая типизация
+# ============================================================================
+[tool.mypy]
+python_version = "3.12"                    # Версия Python для проверки
+strict = true                              # Максимально строгие правила
+follow_imports = "normal"                   # Следовать импортам
+warn_unreachable = true                      # Предупреждать о недостижимом коде
+no_implicit_reexport = true                  # Запретить неявный реэкспорт
+exclude = [
+    "venv",
+    ".venv",
+    "build",
+    "dist",
+    "tests/__init__.py",
+]
+
+# Игнорируем missing imports для некоторых библиотек
+[[tool.mypy.overrides]]
+module = [
+    "simpleeval.*",
+    "asyncpg.*",
+    "cryptography.*",
+]
+ignore_missing_imports = true
+
+# ============================================================================
+# COVERAGE — измерение покрытия тестами
+# ============================================================================
+[tool.coverage.run]
+source = ["src/action_machine"]             # Что измеряем
+omit = ["tests/*", "**/__init__.py"]        # Что исключаем
+branch = true                                # Учитывать ветвления
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",                       # Директива исключения
+    "def __repr__",                            # Магические методы
+    "if self.debug:",
+    "if __name__ == .__main__.:",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if 0:",
+    "if False:",
+    "if TYPE_CHECKING:",
+    "@abstractmethod",
+    "\\.\\.\\.",
+    "pass",
+]
+show_missing = true                           # Показывать строки без покрытия
+fail_under = 85                                # Минимальный процент покрытия
+
+# ============================================================================
+# PYLINT — полный линтер
+# ============================================================================
+[tool.pylint.main]
+py-version = "3.12"
+jobs = 0                                        # Авто-определение числа CPU
+ignore = ["venv", ".venv", "tests"]
+
+[tool.pylint."messages control"]
+disable = [
+    "C0301",        # line-too-long (flake8 контролирует)
+    "C0103",        # invalid-name (PascalCase в классах — ок)
+    "C0413",        # wrong-import-order (isort контролирует)
+    "R0903",        # too-few-public-methods
+    "R0902",        # too-many-instance-attributes
+    "W0718",        # broad-exception-caught
+    "W0613",        # unused-argument
+    "W0212",        # protected-access
+    "W0107",        # unnecessary-pass
+    "R0913",        # too-many-arguments
+    "R0914",        # too-many-locals
+    "R0915",        # too-many-statements
+    "R0801",        # duplicate-code
+]
+
+[tool.pylint.format]
+max-line-length = 120
+
+[tool.pylint."similarities"]
+ignore-imports = "yes"
+
+# ============================================================================
+# FLAKE8 — через плагин flake8-pyproject
+# ============================================================================
+[tool.flake8]
+max-line-length = 120
+extend-ignore = [
+    "E501",    # line too long
+    "E402",    # module level import not at top of file
+    "W292",    # no newline at end of file
+    "W293",    # blank line contains whitespace
+    "E302",    # expected 2 blank lines
+    "E261",    # at least two spaces before inline comment
+    "E203",    # whitespace before ':' (совместимость с black)
+    "W503",    # line break before binary operator (black)
+]
+per-file-ignores = [
+    "src/action_machine/Core/ActionProductMachine.py: ASYNC910",
+    "src/action_machine/Core/ActionTestMachine.py: ASYNC910",
+    "tests/logging/test_log_coordinator.py: ASYNC124",
+    "tests/__init__.py: ALL",
+]
+
+# ============================================================================
+# ISORT — сортировка импортов
+# ============================================================================
+[tool.isort]
+profile = "black"
+line_length = 120
+src_paths = ["src", "tests"]
+multi_line_output = 3
+include_trailing_comma = true
+force_grid_wrap = 0
+use_parentheses = true
+ensure_newline_before_comments = true
+
+# ============================================================================
+# BLACK — беспощадный форматтер
+# ============================================================================
+[tool.black]
+line-length = 120
+target-version = ["py312"]
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+    \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | _build
+  | buck-out
+  | build
+  | dist
+)/
+'''
+
+# ============================================================================
+# RUFF — супер-быстрый линтер (заменит flake8 + isort + pyupgrade)
+# ============================================================================
+[tool.ruff]
+target-version = "py312"
+line-length = 120
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = [
+    "F",   # Pyflakes
+    "E",   # Pycodestyle
+    "W",   # Pycodestyle warnings
+    "C",   # McCabe complexity
+    "I",   # Isort
+    "N",   # PEP8 naming
+    "UP",  # Pyupgrade
+    "ASYNC",  # Flake8-async
+]
+ignore = [
+    "E501",  # line too long
+    "E402",  # import not top
+    "N801",  # class name casing
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = ["N", "ASYNC"]
+
+# ============================================================================
+# VULTURE — поиск мёртвого кода
+# ============================================================================
+[tool.vulture]
+min_confidence = 80
+paths = ["src/action_machine"]
+ignore_names = [
+    # Аспектные методы (вызываются динамически)
+    "prepare", "handle", "delay", "extra_check",
+    "on_global_start", "on_global_finish",
+    "on_before_aspect", "on_after_aspect",
+    # Публичный API
+    "sync_run", "build_factory", "run_action",
+    "get_wrapper_class",
+    # Поля контекста
+    "hostname", "service_name", "service_version",
+    "container_id", "pod_name", "trace_id",
+    "request_timestamp", "request_path", "request_method",
+    "full_url", "client_ip", "protocol", "user_agent",
+    "user_id", "roles", "extra",
+    # Тестовые методы
+    "call_count", "last_params",
+]
+
+# ============================================================================
+# TASKIPY — задачи вместо run_checks.sh
+# ============================================================================
+[tool.taskipy.tasks]
+# Проверки
+lint        = "ruff check src/ tests/"
+lint-fix    = "ruff check --fix src/ tests/"
+typecheck   = "mypy src/action_machine/"
+pylint      = "pylint src/action_machine/"
+dead        = "vulture"
+
+# Форматирование
+format      = "black src/ tests/"
+format-check = "black --check src/ tests/"
+sort        = "isort src/ tests/"
+sort-check  = "isort --check src/ tests/"
+
+# Тесты
+test        = "pytest tests/"
+test-cov    = "pytest tests/ --cov=src/action_machine --cov-report=html --cov-report=term"
+test-fast   = "pytest tests/ -m 'not slow'"
+test-unit   = "pytest tests/ -m unit"
+test-int    = "pytest tests/ -m integration"
+
+# Метрики
+cc          = "radon cc src/action_machine/ -s -a"
+mi          = "radon mi src/action_machine/ -s"
+raw         = "radon raw src/action_machine/ -s"
+
+# Архитектура
+imports     = "lint-imports"
+
+# Всё сразу — полная проверка (замена run_checks.sh)
+check-all   = "task lint && task typecheck && task pylint && task dead && task test && task cc && task mi"
+
+# Быстрая проверка перед коммитом
+pre-commit  = "task format && task sort && task lint-fix && task typecheck && task test-fast"
+
+# ============================================================================
+# IMPORT-LINTER — архитектурные ограничения
+# ============================================================================
+[tool.importlinter]
+root_packages = ["action_machine"]
+
+[[tool.importlinter.contracts]]
+name = "Ядро не должно зависеть от внешних модулей"
+type = "forbidden"
+source_modules = ["action_machine.Core"]
+forbidden_modules = [
+    "action_machine.Auth",
+    "action_machine.Plugins",
+    "action_machine.Logging",
+    "action_machine.Checkers",
+]
+
+[[tool.importlinter.contracts]]
+name = "Чекеры зависят только от Core и Exceptions"
+type = "layers"
+layers = [
+    "action_machine.Core",
+    "action_machine.Checkers",
+]
+
+[[tool.importlinter.contracts]]
+name = "Auth может использовать Core и Checkers"
+type = "layers"
+layers = [
+    "action_machine.Core",
+    "action_machine.Checkers",
+    "action_machine.Auth",
+]
+
+# ============================================================================
+# PRE-COMMIT — хуки для git
+# ============================================================================
+[tool.pre-commit]
+files = "src/|tests/"
+repos = [
+    {repo = "https://github.com/pre-commit/pre-commit-hooks", rev = "v4.5.0", hooks = [
+        {id = "trailing-whitespace"},
+        {id = "end-of-file-fixer"},
+        {id = "check-yaml"},
+        {id = "check-toml"},
+        {id = "check-added-large-files"},
+        {id = "check-merge-conflict"},
+    ]},
+    {repo = "https://github.com/astral-sh/ruff-pre-commit", rev = "v0.9.0", hooks = [
+        {id = "ruff", args = ["--fix"]},
+    ]},
+    {repo = "https://github.com/psf/black-pre-commit-mirror", rev = "25.1.0", hooks = [
+        {id = "black"},
+    ]},
+    {repo = "https://github.com/pre-commit/mirrors-mypy", rev = "v1.14.0", hooks = [
+        {id = "mypy", args = ["--strict"], additional_dependencies = ["types-all"]},
+    ]},
+]

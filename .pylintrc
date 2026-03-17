@@ -1,8 +1,0 @@
-[MASTER]
-ignore = venv
-
-[MESSAGES CONTROL]
-disable = C0301, C0103, C0413, R0903, R0902, W0718, W0613, W0212, W0107
-
-[FORMAT]
-max-line-length = 120
