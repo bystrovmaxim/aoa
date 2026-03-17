@@ -13,7 +13,7 @@ from typing import Any
 
 import asyncpg
 
-from action_machine.Core.Exceptions import HandleException
+from action_machine.Core.Exceptions import HandleError
 
 from .IConnectionManager import IConnectionManager
 from .WrapperConnectionManager import WrapperConnectionManager
@@ -43,7 +43,7 @@ class PostgresConnectionManager(IConnectionManager):
         try:
             self._conn = await asyncpg.connect(**self._connection_params)
         except Exception as e:
-            raise HandleException(f"Ошибка подключения к PostgreSQL: {e}") from e
+            raise HandleError(f"Ошибка подключения к PostgreSQL: {e}") from e
 
     async def commit(self) -> None:
         """
@@ -55,11 +55,11 @@ class PostgresConnectionManager(IConnectionManager):
         if self._conn is None:
             # Эта ситуация не должна возникать при использовании через прокси,
             # но оставим защиту на случай прямого вызова.
-            raise HandleException("Соединение не открыто")
+            raise HandleError("Соединение не открыто")
         try:
             await self._conn.execute("COMMIT")
         except Exception as e:
-            raise HandleException(f"Ошибка при commit: {e}") from e
+            raise HandleError(f"Ошибка при commit: {e}") from e
 
     async def rollback(self) -> None:
         """
@@ -69,20 +69,20 @@ class PostgresConnectionManager(IConnectionManager):
         отправляем SQL-команду ROLLBACK напрямую.
         """
         if self._conn is None:
-            raise HandleException("Соединение не открыто")
+            raise HandleError("Соединение не открыто")
         try:
             await self._conn.execute("ROLLBACK")
         except Exception as e:
-            raise HandleException(f"Ошибка при rollback: {e}") from e
+            raise HandleError(f"Ошибка при rollback: {e}") from e
 
     async def execute(self, query: str, params: tuple[Any, ...] | None = None) -> Any:
         """Выполняет SQL-запрос."""
         if self._conn is None:
-            raise HandleException("Соединение не открыто")
+            raise HandleError("Соединение не открыто")
         try:
             return await self._conn.execute(query, *params if params else ())
         except Exception as e:
-            raise HandleException(f"Ошибка выполнения SQL: {e}") from e
+            raise HandleError(f"Ошибка выполнения SQL: {e}") from e
 
     def get_wrapper_class(self) -> type[IConnectionManager] | None:
         """

@@ -12,7 +12,7 @@
 import pytest
 
 from action_machine.Checkers.StringFieldChecker import StringFieldChecker
-from action_machine.Core.Exceptions import ValidationFieldException
+from action_machine.Core.Exceptions import ValidationFieldError
 
 
 class TestStringFieldChecker:
@@ -41,7 +41,7 @@ class TestStringFieldChecker:
         """Обязательное поле отсутствует -> ошибка."""
         checker = StringFieldChecker("name", "Имя пользователя", required=True)
         params = {}
-        with pytest.raises(ValidationFieldException) as exc:
+        with pytest.raises(ValidationFieldError) as exc:
             checker.check(params)
         assert "Отсутствует обязательный параметр: 'name'" in str(exc.value)
         assert exc.value.field == "name"
@@ -53,7 +53,7 @@ class TestStringFieldChecker:
         """
         checker = StringFieldChecker("name", "Имя", required=True)
         params = {"name": None}
-        with pytest.raises(ValidationFieldException) as exc:
+        with pytest.raises(ValidationFieldError) as exc:
             checker.check(params)
         assert "Отсутствует обязательный параметр: 'name'" in str(exc.value)
 
@@ -64,7 +64,7 @@ class TestStringFieldChecker:
         """
         checker = StringFieldChecker("name", "Имя", required=False)
         params = {"name": None}
-        with pytest.raises(ValidationFieldException) as exc:
+        with pytest.raises(ValidationFieldError) as exc:
             checker.check(params)
         assert "должен быть строкой" in str(exc.value)
 
@@ -75,7 +75,7 @@ class TestStringFieldChecker:
     def test_string_wrong_type(self, wrong_type_string_params):
         """Неверный тип данных."""
         checker = StringFieldChecker("name", "Имя пользователя")
-        with pytest.raises(ValidationFieldException) as exc:
+        with pytest.raises(ValidationFieldError) as exc:
             checker.check(wrong_type_string_params)
         assert "должен быть строкой" in str(exc.value)
         assert exc.value.field == "name"
@@ -90,7 +90,7 @@ class TestStringFieldChecker:
 
         # Слишком короткое
         params = {"name": "Jo"}
-        with pytest.raises(ValidationFieldException) as exc:
+        with pytest.raises(ValidationFieldError) as exc:
             checker.check(params)
         assert "Длина параметра 'name' должна быть не меньше 3" in str(exc.value)
 
@@ -104,7 +104,7 @@ class TestStringFieldChecker:
 
         # Слишком длинное
         params = {"name": "Jonathan"}
-        with pytest.raises(ValidationFieldException) as exc:
+        with pytest.raises(ValidationFieldError) as exc:
             checker.check(params)
         assert "Длина параметра 'name' должна быть не больше 5" in str(exc.value)
 
@@ -118,7 +118,7 @@ class TestStringFieldChecker:
 
         # Слишком короткое
         params = {"name": "Jo"}
-        with pytest.raises(ValidationFieldException):
+        with pytest.raises(ValidationFieldError):
             checker.check(params)
 
         # Нормальное
@@ -127,7 +127,7 @@ class TestStringFieldChecker:
 
         # Слишком длинное
         params = {"name": "Johnathan John"}
-        with pytest.raises(ValidationFieldException):
+        with pytest.raises(ValidationFieldError):
             checker.check(params)
 
     # ------------------------------------------------------------------
@@ -140,7 +140,7 @@ class TestStringFieldChecker:
 
         # Пустая строка
         params = {"name": ""}
-        with pytest.raises(ValidationFieldException) as exc:
+        with pytest.raises(ValidationFieldError) as exc:
             checker.check(params)
         assert "не может быть пустым" in str(exc.value)
 
@@ -161,13 +161,13 @@ class TestStringFieldChecker:
 
         # Пустая строка -> not_empty
         params = {"name": ""}
-        with pytest.raises(ValidationFieldException) as exc:
+        with pytest.raises(ValidationFieldError) as exc:
             checker.check(params)
         assert "не может быть пустым" in str(exc.value)
 
         # Слишком короткая -> min_length
         params = {"name": "ab"}
-        with pytest.raises(ValidationFieldException) as exc:
+        with pytest.raises(ValidationFieldError) as exc:
             checker.check(params)
         assert "должна быть не меньше 3" in str(exc.value)
 

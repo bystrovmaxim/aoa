@@ -9,7 +9,7 @@
 from datetime import datetime
 from typing import Any
 
-from action_machine.Core.Exceptions import ValidationFieldException
+from action_machine.Core.Exceptions import ValidationFieldError
 
 from .BaseFieldChecker import BaseFieldChecker
 
@@ -61,13 +61,13 @@ class DateFieldChecker(BaseFieldChecker):
             ValidationFieldException: если формат не задан или строка не соответствует формату.
         """
         if not self.format:
-            raise ValidationFieldException(
+            raise ValidationFieldError(
                 f"Поле '{self.field_name}': для строкового ввода требуется указать формат даты"
             )
         try:
             return datetime.strptime(value, self.format)
         except ValueError:
-            raise ValidationFieldException(
+            raise ValidationFieldError(
                 f"Поле '{self.field_name}' должно быть строкой даты, соответствующей формату '{self.format}'"
             )
 
@@ -82,11 +82,11 @@ class DateFieldChecker(BaseFieldChecker):
             ValidationFieldException: если дата вне допустимого диапазона.
         """
         if self.min_date is not None and dt < self.min_date:
-            raise ValidationFieldException(
+            raise ValidationFieldError(
                 f"Поле '{self.field_name}' должно быть не меньше {self.min_date.isoformat()}"
             )
         if self.max_date is not None and dt > self.max_date:
-            raise ValidationFieldException(
+            raise ValidationFieldError(
                 f"Поле '{self.field_name}' должно быть не больше {self.max_date.isoformat()}"
             )
 
@@ -106,7 +106,7 @@ class DateFieldChecker(BaseFieldChecker):
         elif isinstance(value, datetime):
             dt = value
         else:
-            raise ValidationFieldException(
+            raise ValidationFieldError(
                 f"Поле '{self.field_name}' должен быть объектом datetime или строкой, получен {type(value).__name__}"
             )
         self._check_range(dt)

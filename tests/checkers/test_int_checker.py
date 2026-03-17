@@ -11,7 +11,7 @@
 import pytest
 
 from action_machine.Checkers.IntFieldChecker import IntFieldChecker
-from action_machine.Core.Exceptions import ValidationFieldException
+from action_machine.Core.Exceptions import ValidationFieldError
 
 
 class TestIntFieldChecker:
@@ -46,7 +46,7 @@ class TestIntFieldChecker:
         """Обязательное поле отсутствует -> ошибка."""
         checker = IntFieldChecker("age", "Возраст", required=True)
         params = {}
-        with pytest.raises(ValidationFieldException) as exc:
+        with pytest.raises(ValidationFieldError) as exc:
             checker.check(params)
         assert "Отсутствует обязательный параметр: 'age'" in str(exc.value)
 
@@ -54,7 +54,7 @@ class TestIntFieldChecker:
         """Обязательное поле с None -> ошибка."""
         checker = IntFieldChecker("age", "Возраст", required=True)
         params = {"age": None}
-        with pytest.raises(ValidationFieldException) as exc:
+        with pytest.raises(ValidationFieldError) as exc:
             checker.check(params)
         assert "Отсутствует обязательный параметр: 'age'" in str(exc.value)
 
@@ -65,7 +65,7 @@ class TestIntFieldChecker:
     def test_int_wrong_type(self, wrong_type_int_params):
         """Неверный тип данных."""
         checker = IntFieldChecker("age", "Возраст")
-        with pytest.raises(ValidationFieldException) as exc:
+        with pytest.raises(ValidationFieldError) as exc:
             checker.check(wrong_type_int_params)
         assert "должен быть целым числом" in str(exc.value)
 
@@ -73,14 +73,14 @@ class TestIntFieldChecker:
         """Передача float вместо int -> ошибка."""
         checker = IntFieldChecker("age", "Возраст")
         params = {"age": 25.5}
-        with pytest.raises(ValidationFieldException):
+        with pytest.raises(ValidationFieldError):
             checker.check(params)
 
     def test_int_string_passed(self):
         """Передача строки вместо int -> ошибка."""
         checker = IntFieldChecker("age", "Возраст")
         params = {"age": "25"}
-        with pytest.raises(ValidationFieldException):
+        with pytest.raises(ValidationFieldError):
             checker.check(params)
 
     # ------------------------------------------------------------------
@@ -93,7 +93,7 @@ class TestIntFieldChecker:
 
         # Меньше минимума
         params = {"age": 15}
-        with pytest.raises(ValidationFieldException) as exc:
+        with pytest.raises(ValidationFieldError) as exc:
             checker.check(params)
         assert "должен быть не меньше 18" in str(exc.value)
 
@@ -110,7 +110,7 @@ class TestIntFieldChecker:
         checker = IntFieldChecker("temp", "Температура", min_value=-10)
 
         params = {"temp": -15}
-        with pytest.raises(ValidationFieldException):
+        with pytest.raises(ValidationFieldError):
             checker.check(params)
 
         params = {"temp": -10}
@@ -129,7 +129,7 @@ class TestIntFieldChecker:
 
         # Больше максимума
         params = {"age": 150}
-        with pytest.raises(ValidationFieldException) as exc:
+        with pytest.raises(ValidationFieldError) as exc:
             checker.check(params)
         assert "должен быть не больше 100" in str(exc.value)
 
@@ -151,7 +151,7 @@ class TestIntFieldChecker:
 
         # Ниже минимума
         params = {"score": -1}
-        with pytest.raises(ValidationFieldException):
+        with pytest.raises(ValidationFieldError):
             checker.check(params)
 
         # В диапазоне
@@ -160,7 +160,7 @@ class TestIntFieldChecker:
 
         # Выше максимума
         params = {"score": 11}
-        with pytest.raises(ValidationFieldException):
+        with pytest.raises(ValidationFieldError):
             checker.check(params)
 
     def test_int_range_inclusive(self):

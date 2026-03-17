@@ -30,7 +30,7 @@ from action_machine.Core.BaseActionMachine import BaseActionMachine
 from action_machine.Core.BaseParams import BaseParams
 from action_machine.Core.BaseResult import BaseResult
 from action_machine.Core.DependencyFactory import DependencyFactory
-from action_machine.Core.Exceptions import AuthorizationException, ConnectionValidationError, ValidationFieldException
+from action_machine.Core.Exceptions import AuthorizationError, ConnectionValidationError, ValidationFieldError
 from action_machine.Plugins.Plugin import Plugin
 from action_machine.Plugins.PluginCoordinator import PluginCoordinator
 from action_machine.ResourceManagers.BaseResourceManager import BaseResourceManager
@@ -202,14 +202,14 @@ class ActionProductMachine(BaseActionMachine):
     def _check_any_role(self, user_roles: list[str]) -> bool:
         """Проверка для CheckRoles.ANY (требуется хотя бы одна роль)."""
         if not user_roles:
-            raise AuthorizationException("Требуется аутентификация: пользователь должен иметь хотя бы одну роль")
+            raise AuthorizationError("Требуется аутентификация: пользователь должен иметь хотя бы одну роль")
         return True
 
     def _check_list_role(self, spec: list[str], user_roles: list[str]) -> bool:
         """Проверка для списка ролей (пересечение)."""
         if any(role in user_roles for role in spec):
             return True
-        raise AuthorizationException(
+        raise AuthorizationError(
             f"Доступ запрещён. Требуется одна из ролей: {spec}, роли пользователя: {user_roles}"
         )
 
@@ -217,7 +217,7 @@ class ActionProductMachine(BaseActionMachine):
         """Проверка для одной конкретной роли."""
         if spec in user_roles:
             return True
-        raise AuthorizationException(f"Доступ запрещён. Требуется роль: '{spec}', роли пользователя: {user_roles}")
+        raise AuthorizationError(f"Доступ запрещён. Требуется роль: '{spec}', роли пользователя: {user_roles}")
 
     def _check_action_roles(self, action: BaseAction[P, R]) -> None:
         """
@@ -535,7 +535,7 @@ class ActionProductMachine(BaseActionMachine):
             checkers = getattr(method, "_result_checkers", [])
 
             if not checkers and new_state:
-                raise ValidationFieldException(
+                raise ValidationFieldError(
                     f"Аспект {method.__qualname__} не имеет чекеров, "
                     f"но вернул непустой state: {new_state}. "
                     f"Либо добавьте чекеры для всех полей, "
@@ -546,7 +546,7 @@ class ActionProductMachine(BaseActionMachine):
                 allowed_fields = {ch.field_name for ch in checkers}
                 extra_fields = set(new_state.keys()) - allowed_fields
                 if extra_fields:
-                    raise ValidationFieldException(
+                    raise ValidationFieldError(
                         f"Аспект {method.__qualname__} вернул лишние поля: "
                         f"{extra_fields}. "
                         f"Разрешены только: {allowed_fields}"

@@ -11,7 +11,7 @@
 import pytest
 
 from action_machine.Checkers.FloatFieldChecker import FloatFieldChecker
-from action_machine.Core.Exceptions import ValidationFieldException
+from action_machine.Core.Exceptions import ValidationFieldError
 
 
 class TestFloatFieldChecker:
@@ -59,7 +59,7 @@ class TestFloatFieldChecker:
         """Обязательное поле отсутствует -> ошибка."""
         checker = FloatFieldChecker("price", "Цена", required=True)
         params = {}
-        with pytest.raises(ValidationFieldException) as exc:
+        with pytest.raises(ValidationFieldError) as exc:
             checker.check(params)
         assert "Отсутствует обязательный параметр: 'price'" in str(exc.value)
 
@@ -67,7 +67,7 @@ class TestFloatFieldChecker:
         """Обязательное поле с None -> ошибка."""
         checker = FloatFieldChecker("price", "Цена", required=True)
         params = {"price": None}
-        with pytest.raises(ValidationFieldException) as exc:
+        with pytest.raises(ValidationFieldError) as exc:
             checker.check(params)
         assert "Отсутствует обязательный параметр: 'price'" in str(exc.value)
 
@@ -78,7 +78,7 @@ class TestFloatFieldChecker:
     def test_float_wrong_type(self, wrong_type_float_params):
         """Неверный тип данных."""
         checker = FloatFieldChecker("price", "Цена")
-        with pytest.raises(ValidationFieldException) as exc:
+        with pytest.raises(ValidationFieldError) as exc:
             checker.check(wrong_type_float_params)
         assert "должно быть числом" in str(exc.value)
 
@@ -86,14 +86,14 @@ class TestFloatFieldChecker:
         """Передача строки вместо числа -> ошибка."""
         checker = FloatFieldChecker("price", "Цена")
         params = {"price": "99.99"}
-        with pytest.raises(ValidationFieldException):
+        with pytest.raises(ValidationFieldError):
             checker.check(params)
 
     def test_float_none_passed(self):
         """Передача None -> ошибка для обязательного поля."""
         checker = FloatFieldChecker("price", "Цена", required=True)
         params = {"price": None}
-        with pytest.raises(ValidationFieldException) as exc:
+        with pytest.raises(ValidationFieldError) as exc:
             checker.check(params)
         assert "Отсутствует обязательный параметр" in str(exc.value)
 
@@ -107,7 +107,7 @@ class TestFloatFieldChecker:
 
         # Меньше минимума
         params = {"price": -1.5}
-        with pytest.raises(ValidationFieldException):
+        with pytest.raises(ValidationFieldError):
             checker.check(params)
 
         # Равно минимуму
@@ -123,7 +123,7 @@ class TestFloatFieldChecker:
         checker = FloatFieldChecker("temp", "Температура", min_value=-10.5)
 
         params = {"temp": -15.0}
-        with pytest.raises(ValidationFieldException):
+        with pytest.raises(ValidationFieldError):
             checker.check(params)
 
         params = {"temp": -10.5}
@@ -142,7 +142,7 @@ class TestFloatFieldChecker:
 
         # Больше максимума
         params = {"price": 1000.01}
-        with pytest.raises(ValidationFieldException):
+        with pytest.raises(ValidationFieldError):
             checker.check(params)
 
         # Равно максимуму
@@ -163,7 +163,7 @@ class TestFloatFieldChecker:
 
         # Ниже минимума
         params = {"temp": -15.0}
-        with pytest.raises(ValidationFieldException):
+        with pytest.raises(ValidationFieldError):
             checker.check(params)
 
         # В диапазоне
@@ -172,7 +172,7 @@ class TestFloatFieldChecker:
 
         # Выше максимума
         params = {"temp": 45.0}
-        with pytest.raises(ValidationFieldException):
+        with pytest.raises(ValidationFieldError):
             checker.check(params)
 
     def test_float_range_inclusive(self):
@@ -193,7 +193,7 @@ class TestFloatFieldChecker:
 
         # Чуть ниже минимума
         params = {"value": 0.0999999}
-        with pytest.raises(ValidationFieldException):
+        with pytest.raises(ValidationFieldError):
             checker.check(params)
 
         # Минимум
@@ -206,5 +206,5 @@ class TestFloatFieldChecker:
 
         # Чуть выше максимума
         params = {"value": 0.3000001}
-        with pytest.raises(ValidationFieldException):
+        with pytest.raises(ValidationFieldError):
             checker.check(params)

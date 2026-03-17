@@ -1,7 +1,7 @@
 # ActionMachine/ResourceManagers/BaseConnectionManager.py
 from typing import Any
 
-from action_machine.Core.Exceptions import HandleException, TransactionProhibitedError
+from action_machine.Core.Exceptions import HandleError, TransactionProhibitedError
 
 from .IConnectionManager import IConnectionManager
 
@@ -49,4 +49,4 @@ class WrapperConnectionManager(IConnectionManager):
         try:
             return await self._connection_manager.execute(query, params)
         except Exception as e:
-            raise HandleException(f"Ошибка выполнения SQL: {e}") from e
+            raise HandleError(f"Ошибка выполнения SQL: {e}") from e

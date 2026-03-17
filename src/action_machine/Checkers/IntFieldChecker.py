@@ -5,7 +5,7 @@
 
 from typing import Any
 
-from action_machine.Core.Exceptions import ValidationFieldException
+from action_machine.Core.Exceptions import ValidationFieldError
 
 from .BaseFieldChecker import BaseFieldChecker
 
@@ -49,7 +49,7 @@ class IntFieldChecker(BaseFieldChecker):
             ValidationFieldException: если value не int.
         """
         if not isinstance(value, int):
-            raise ValidationFieldException(
+            raise ValidationFieldError(
                 f"Параметр '{self.field_name}' должен быть целым числом, получен {type(value).__name__}"
             )
         return value
@@ -65,9 +65,9 @@ class IntFieldChecker(BaseFieldChecker):
             ValidationFieldException: если число вне диапазона.
         """
         if self.min_value is not None and value < self.min_value:
-            raise ValidationFieldException(f"Параметр '{self.field_name}' должен быть не меньше {self.min_value}")
+            raise ValidationFieldError(f"Параметр '{self.field_name}' должен быть не меньше {self.min_value}")
         if self.max_value is not None and value > self.max_value:
-            raise ValidationFieldException(f"Параметр '{self.field_name}' должен быть не больше {self.max_value}")
+            raise ValidationFieldError(f"Параметр '{self.field_name}' должен быть не больше {self.max_value}")
 
     def _check_type_and_constraints(self, value: Any) -> None:
         """

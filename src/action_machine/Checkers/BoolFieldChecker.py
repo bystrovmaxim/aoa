@@ -10,7 +10,7 @@
 
 from typing import Any
 
-from action_machine.Core.Exceptions import ValidationFieldException
+from action_machine.Core.Exceptions import ValidationFieldError
 
 from .BaseFieldChecker import BaseFieldChecker
 
@@ -36,6 +36,6 @@ class BoolFieldChecker(BaseFieldChecker):
         Если нет – выбрасывает ValidationFieldException с русскоязычным сообщением.
         """
         if not isinstance(value, bool):
-            raise ValidationFieldException(
+            raise ValidationFieldError(
                 f"Параметр '{self.field_name}' должен быть булевым (True/False), получен {type(value).__name__}"
             )
