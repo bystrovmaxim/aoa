@@ -15,8 +15,8 @@ from action_machine.Context.EnvironmentInfo import EnvironmentInfo
 from action_machine.Context.RequestInfo import RequestInfo
 from action_machine.Context.UserInfo import UserInfo
 from action_machine.Core.BaseParams import BaseParams
-from action_machine.Logging.BaseLogger import BaseLogger
-from action_machine.Logging.LogScope import LogScope
+from action_machine.Logging.BaseLogger import base_logger
+from action_machine.Logging.LogScope import log_scope
 
 # ======================================================================
 # ТЕСТОВЫЕ МОДЕЛИ ДАННЫХ
@@ -41,7 +41,7 @@ class ParamsTest(BaseParams):
     success: bool = True
 
 
-class RecordingLogger(BaseLogger):
+class RecordingLogger(base_logger):
     """
     Логер-шпион — записывает все сообщения в список records.
 
@@ -62,7 +62,7 @@ class RecordingLogger(BaseLogger):
 
     async def write(
         self,
-        scope: LogScope,
+        scope: log_scope,
         message: str,
         var: dict[str, Any],
         context: Context,
@@ -154,15 +154,15 @@ def filtered_logger() -> RecordingLogger:
 
 
 @pytest.fixture
-def scope() -> LogScope:
+def scope() -> log_scope:
     """Стандартный тестовый скоуп с action, aspect и event."""
-    return LogScope(action="TestAction", aspect="test", event="before")
+    return log_scope(action="TestAction", aspect="test", event="before")
 
 
 @pytest.fixture
-def simple_scope() -> LogScope:
+def simple_scope() -> log_scope:
     """Простой скоуп только с действием."""
-    return LogScope(action="TestAction")
+    return log_scope(action="TestAction")
 
 
 @pytest.fixture
