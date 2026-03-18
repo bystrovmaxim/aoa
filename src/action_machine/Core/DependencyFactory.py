@@ -1,8 +1,3 @@
-################################################################################
-# Файл: ActionMachine/Core/DependencyFactory.py
-################################################################################
-
-# ActionMachine/Core/DependencyFactory.py
 """
 Фабрика зависимостей для действий.
 Поддерживает создание и кэширование зависимостей, а также асинхронный запуск
@@ -15,6 +10,7 @@ from action_machine.Core.BaseAction import BaseAction
 from action_machine.Core.BaseActionMachine import BaseActionMachine
 from action_machine.Core.BaseParams import BaseParams
 from action_machine.Core.BaseResult import BaseResult
+from action_machine.Core.BaseState import BaseState
 from action_machine.ResourceManagers.BaseResourceManager import BaseResourceManager
 
 
@@ -42,9 +38,9 @@ class DependencyFactory:
             deps_info: список словарей с информацией о зависимостях (из @depends).
             external_resources: словарь внешних ресурсов, которые имеют приоритет.
         """
-        self._machine = machine
+        self._machine: BaseActionMachine = machine
         self._deps: dict[type[Any], dict[str, Any]] = {info["class"]: info for info in deps_info}
-        self._external = external_resources or {}
+        self._external: dict[type[Any], Any] = external_resources or {}
         self._instances: dict[type[Any], Any] = {}
 
     def get(self, klass: type[Any]) -> Any:
@@ -144,6 +140,3 @@ class DependencyFactory:
             wrapped_connections = self._wrap_connections(connections)
 
         return await self._machine.run(instance, params, resources=resources, connections=wrapped_connections)
-
-
-################################################################################

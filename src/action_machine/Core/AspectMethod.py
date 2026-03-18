@@ -1,7 +1,3 @@
-################################################################################
-# Файл: ActionMachine/Core/AspectMethod.py
-################################################################################
-
 """
 Протокол аспектных методов и декораторы для их объявления.
 
@@ -17,6 +13,10 @@ import inspect
 from collections.abc import Callable
 from typing import Any, Protocol, cast, runtime_checkable
 
+from .BaseState import BaseState
+from .DependencyFactory import DependencyFactory
+from ..ResourceManagers.BaseResourceManager import BaseResourceManager
+
 
 @runtime_checkable
 class AspectMethod(Protocol):
@@ -30,7 +30,7 @@ class AspectMethod(Protocol):
         __code__: объект кода (для сортировки по номеру строки).
         __name__: имя метода.
         __qualname__: квалифицированное имя метода.
-        __call__: сигнатура вызова метода.
+        __call__: сигнатура вызова метода (асинхронная).
     """
 
     _is_aspect: bool
@@ -39,7 +39,31 @@ class AspectMethod(Protocol):
     __code__: Any
     __name__: str
     __qualname__: str
-    __call__: Callable[..., Any]
+
+    async def __call__(
+        self,
+        action: Any,  # экземпляр действия, self
+        params: Any,
+        state: BaseState,
+        deps: DependencyFactory,
+        connections: dict[str, BaseResourceManager],
+    ) -> Any:
+        """
+        Вызов аспекта. Все аспекты должны быть асинхронными и принимать
+        указанные параметры.
+
+        Аргументы:
+            action: экземпляр действия (self).
+            params: параметры действия (наследник BaseParams).
+            state: текущее состояние конвейера (BaseState).
+            deps: фабрика зависимостей.
+            connections: словарь ресурсных менеджеров.
+
+        Возвращает:
+            Для регулярных аспектов — словарь с обновлённым состоянием.
+            Для summary-аспекта — результат действия (BaseResult).
+        """
+        ...
 
 
 def aspect(description: str) -> Callable[[Callable[..., Any]], AspectMethod]:
@@ -140,7 +164,7 @@ def depends(
 
 def connection(
     key: str,
-    klass: type[Any],
+    klass: type[BaseResourceManager],
     *,
     description: str = "",
 ) -> Callable[[type[Any]], type[Any]]:
@@ -189,6 +213,3 @@ def connection(
         return cls
 
     return decorator
-
-
-################################################################################
