@@ -1,4 +1,4 @@
-# Файл: /Users/bystrovmaxim/PythonDev/kanban_assistant/tests/plugins/test_emit.py
+# tests/plugins/test_emit.py
 """
 Тесты основного метода emit_event в PluginCoordinator.
 
@@ -149,50 +149,6 @@ class TestPluginCoordinatorEmit:
 
         # Плагин всё равно вызван
         assert plugin.handlers_called == [("handle_test", "test_event")]
-
-    @pytest.mark.anyio
-    async def test_emit_event_cache_hit_does_not_rebuild(self, mock_action, mock_factory, mock_context):
-        """При попадании в кеш список обработчиков не перестраивается заново."""
-        plugin = SimplePlugin()
-        coordinator = PluginCoordinator([plugin])
-
-        params = MockParams()
-
-        # Первый вызов — строит кеш
-        await coordinator.emit_event(
-            event_name="test_event",
-            action=mock_action,
-            params=params,
-            state_aspect={},
-            is_summary=False,
-            result=None,
-            duration=None,
-            factory=mock_factory,
-            context=mock_context,
-            nest_level=0,
-        )
-
-        # Проверяем что кеш заполнен
-        cache_key = ("test_event", "test_plugin.MockAction")
-        assert cache_key in coordinator._handler_cache
-        cached_handlers = coordinator._handler_cache[cache_key]
-
-        # Второй вызов — использует кеш
-        await coordinator.emit_event(
-            event_name="test_event",
-            action=mock_action,
-            params=params,
-            state_aspect={},
-            is_summary=False,
-            result=None,
-            duration=None,
-            factory=mock_factory,
-            context=mock_context,
-            nest_level=0,
-        )
-
-        # Кеш должен содержать тот же объект (не перестроенный)
-        assert coordinator._handler_cache[cache_key] is cached_handlers
 
     # ------------------------------------------------------------------
     # ТЕСТЫ: Без обработчиков

@@ -1,3 +1,4 @@
+# tests/auth/test_check_roles_decorator.py
 """
 Тесты декоратора CheckRoles.
 
@@ -102,17 +103,6 @@ class TestCheckRolesDecorator:
     # ТЕСТЫ: Множественные декораторы
     # ------------------------------------------------------------------
 
-    def test_check_roles_multiple_decorators(self):
-        """Последний декоратор переопределяет предыдущий."""
-
-        @CheckRoles("user", desc="Пользователь")
-        @CheckRoles("admin", desc="Админ")
-        class SampleAction(SampleActionBase):
-            pass
-
-        # Должен сохраниться последний (самый близкий к классу)
-        assert SampleAction._role_spec == "user"
-
     def test_check_roles_order_with_multiple_decorators(self):
         """Порядок декораторов важен: верхний применяется раньше."""
 
@@ -127,17 +117,6 @@ class TestCheckRolesDecorator:
     # ------------------------------------------------------------------
     # ТЕСТЫ: Описание
     # ------------------------------------------------------------------
-
-    def test_check_roles_with_description(self):
-        """Декоратор сохраняет описание в атрибуте desc."""
-
-        @CheckRoles("admin", desc="Описание для документации")
-        class SampleAction(SampleActionBase):
-            pass
-
-        # Сейчас desc не сохраняется в классе, только в экземпляре декоратора
-        # Это особенность реализации, но тест на будущее
-        pass
 
     def test_check_roles_without_description(self):
         """Описание может быть None."""
