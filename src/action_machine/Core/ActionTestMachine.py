@@ -1,4 +1,3 @@
-# ActionMachine/Core/ActionTestMachine.py
 """
 Тестовая машина действий с поддержкой моков (асинхронная версия).
 
@@ -65,7 +64,7 @@ class ActionTestMachine(ActionProductMachine):
             имя параметра перекрывало имя класса.
         """
         super().__init__(ctx if ctx is not None else Context())
-        self._mocks = mocks or {}
+        self._mocks: dict[type[Any], Any] = mocks or {}
         self._prepared_mocks: dict[type[Any], Any] = {}
         for cls, val in self._mocks.items():
             self._prepared_mocks[cls] = self._prepare_mock(val)
@@ -128,7 +127,7 @@ class ActionTestMachine(ActionProductMachine):
         Приоритет: external_resources > prepared_mocks > стандартные зависимости.
         """
         deps_info = getattr(action_class, "_dependencies", [])
-        all_resources = dict(self._prepared_mocks)
+        all_resources: dict[type[Any], Any] = dict(self._prepared_mocks)
         if external_resources:
             # Внешние ресурсы переопределяют моки
             all_resources.update(external_resources)

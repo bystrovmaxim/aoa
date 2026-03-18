@@ -1,5 +1,3 @@
-# ActionMachine/Core/ActionProductMachine.py
-
 """
 Реализация продуктовой машины действий с поддержкой плагинов и вложенности.
 Полностью асинхронная версия. Использует PluginEvent для передачи данных в плагины.
@@ -7,7 +5,7 @@
 Архитектурные решения:
     - Логика управления плагинами (инициализация состояний, кеширование
       обработчиков, асинхронный запуск с семафором) вынесена в отдельный
-      класс PluginCoordinator (ActionMachine/Plugins/PluginCoordinator.py).
+      класс PluginCoordinator (action_machine/Plugins/PluginCoordinator.py).
     - ActionProductMachine делегирует все вызовы плагинов через
       self._plugin_coordinator.emit_event(...).
     - Метод _check_connections разбит на 4 приватных валидатора,
@@ -29,6 +27,7 @@ from action_machine.Core.BaseAction import BaseAction
 from action_machine.Core.BaseActionMachine import BaseActionMachine
 from action_machine.Core.BaseParams import BaseParams
 from action_machine.Core.BaseResult import BaseResult
+from action_machine.Core.BaseState import BaseState
 from action_machine.Core.DependencyFactory import DependencyFactory
 from action_machine.Core.Exceptions import AuthorizationError, ConnectionValidationError, ValidationFieldError
 from action_machine.Plugins.Plugin import Plugin
@@ -427,16 +426,16 @@ class ActionProductMachine(BaseActionMachine):
 
             # Событие global_start — делегируем координатору плагинов
             await self._plugin_coordinator.emit_event(
-                "global_start",
-                action,
-                params,
-                None,
-                False,
-                None,
-                None,
-                factory,
-                self._context,
-                self._nest_level,
+                event_name="global_start",
+                action=action,
+                params=params,
+                state_aspect=None,
+                is_summary=False,
+                result=None,
+                duration=None,
+                factory=factory,
+                context=self._context,
+                nest_level=self._nest_level,
             )
 
             state = await self._execute_regular_aspects(action, params, factory, conns)
@@ -448,16 +447,16 @@ class ActionProductMachine(BaseActionMachine):
 
             # Событие global_finish — делегируем координатору плагинов
             await self._plugin_coordinator.emit_event(
-                "global_finish",
-                action,
-                params,
-                None,
-                False,
-                result,
-                total_duration,
-                factory,
-                self._context,
-                self._nest_level,
+                event_name="global_finish",
+                action=action,
+                params=params,
+                state_aspect=state.to_dict(),
+                is_summary=False,
+                result=result,
+                duration=total_duration,
+                factory=factory,
+                context=self._context,
+                nest_level=self._nest_level,
             )
 
             return cast(R, result)
@@ -469,7 +468,7 @@ class ActionProductMachine(BaseActionMachine):
         method: AspectMethod,
         action: BaseAction[Any, Any],
         params: BaseParams,
-        state: dict[str, object],
+        state: BaseState,
         factory: DependencyFactory,
         connections: dict[str, BaseResourceManager],
     ) -> Any:
@@ -491,7 +490,7 @@ class ActionProductMachine(BaseActionMachine):
         params: P,
         factory: DependencyFactory,
         connections: dict[str, BaseResourceManager],
-    ) -> dict[str, object]:
+    ) -> BaseState:
         """
         Асинхронно выполняет цепочку регулярных аспектов, вызывая
         для каждого before и after события плагинов через координатор.
@@ -506,69 +505,71 @@ class ActionProductMachine(BaseActionMachine):
         """
         action_class = action.__class__
         aspects, _ = self._get_aspects(action_class)
-        state: dict[str, object] = {}
+        state = BaseState()
 
         for method, description in aspects:
             aspect_name = method.__name__
 
             # before-событие — делегируем координатору плагинов
             await self._plugin_coordinator.emit_event(
-                f"before:{aspect_name}",
-                action,
-                params,
-                state,
-                method._aspect_type == "summary",
-                None,
-                None,
-                factory,
-                self._context,
-                self._nest_level,
+                event_name=f"before:{aspect_name}",
+                action=action,
+                params=params,
+                state_aspect=state.to_dict(),
+                is_summary=method._aspect_type == "summary",
+                result=None,
+                duration=None,
+                factory=factory,
+                context=self._context,
+                nest_level=self._nest_level,
             )
 
             aspect_start = time.time()
-            new_state = await self._call_aspect(method, action, params, state, factory, connections)
-            if not isinstance(new_state, dict):
+            new_state_dict = await self._call_aspect(method, action, params, state, factory, connections)
+            if not isinstance(new_state_dict, dict):
                 raise TypeError(
-                    f"Аспект {method.__qualname__} должен возвращать dict, получен {type(new_state).__name__}"
+                    f"Аспект {method.__qualname__} должен возвращать dict, получен {type(new_state_dict).__name__}"
                 )
 
+            # Применяем чекеры к словарю
             checkers = getattr(method, "_result_checkers", [])
 
-            if not checkers and new_state:
+            if not checkers and new_state_dict:
                 raise ValidationFieldError(
                     f"Аспект {method.__qualname__} не имеет чекеров, "
-                    f"но вернул непустой state: {new_state}. "
+                    f"но вернул непустой state: {new_state_dict}. "
                     f"Либо добавьте чекеры для всех полей, "
                     f"либо возвращайте пустой словарь."
                 )
 
             if checkers:
                 allowed_fields = {ch.field_name for ch in checkers}
-                extra_fields = set(new_state.keys()) - allowed_fields
+                extra_fields = set(new_state_dict.keys()) - allowed_fields
                 if extra_fields:
                     raise ValidationFieldError(
                         f"Аспект {method.__qualname__} вернул лишние поля: "
                         f"{extra_fields}. "
                         f"Разрешены только: {allowed_fields}"
                     )
-                self._apply_checkers(method, new_state)
+                self._apply_checkers(method, new_state_dict)
+
+            # Обновляем состояние: создаём новый BaseState из словаря
+            state = BaseState(new_state_dict)
 
             aspect_duration = time.time() - aspect_start
 
             # after-событие — делегируем координатору плагинов
             await self._plugin_coordinator.emit_event(
-                f"after:{aspect_name}",
-                action,
-                params,
-                new_state,
-                method._aspect_type == "summary",
-                None,
-                aspect_duration,
-                factory,
-                self._context,
-                self._nest_level,
+                event_name=f"after:{aspect_name}",
+                action=action,
+                params=params,
+                state_aspect=state.to_dict(),
+                is_summary=method._aspect_type == "summary",
+                result=None,
+                duration=aspect_duration,
+                factory=factory,
+                context=self._context,
+                nest_level=self._nest_level,
             )
-
-            state = new_state
 
         return state

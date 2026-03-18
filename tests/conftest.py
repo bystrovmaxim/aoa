@@ -2,19 +2,16 @@
 Корневые фикстуры pytest — доступны во всех тестах автоматически.
 Pytest подхватывает этот файл без явного импорта.
 """
-
 from __future__ import annotations
-
 from dataclasses import dataclass
 from typing import Any
-
 import pytest
-
 from action_machine.Context.context import Context
 from action_machine.Context.environment_info import EnvironmentInfo
 from action_machine.Context.request_info import RequestInfo
 from action_machine.Context.user_info import UserInfo
 from action_machine.Core.BaseParams import BaseParams
+from action_machine.Core.BaseState import BaseState
 from action_machine.Logging.base_logger import BaseLogger
 from action_machine.Logging.log_scope import LogScope
 
@@ -22,19 +19,16 @@ from action_machine.Logging.log_scope import LogScope
 # ТЕСТОВЫЕ МОДЕЛИ ДАННЫХ
 # ======================================================================
 
-
 @dataclass(frozen=True)
 class ParamsTest(BaseParams):
     """
     Стандартные тестовые параметры для всех тестов.
-
     Содержит типичные поля, используемые в примерах:
     - user_id: идентификатор пользователя
     - card_token: токен карты (строка)
     - amount: сумма (float)
     - success: флаг успеха (bool)
     """
-
     user_id: int = 42
     card_token: str = "tok_test_abc"
     amount: float = 1500.0
@@ -44,12 +38,10 @@ class ParamsTest(BaseParams):
 class RecordingLogger(BaseLogger):
     """
     Логер-шпион — записывает все сообщения в список records.
-
     Используется для проверки:
     - Что координатор правильно рассылает сообщения
     - Что фильтрация работает
     - Что подстановка переменных выполняется
-
     Не выводит ничего в консоль — только накапливает записи.
     Атрибуты:
         records: список словарей с параметрами каждого вызова write
@@ -65,15 +57,14 @@ class RecordingLogger(BaseLogger):
         scope: LogScope,
         message: str,
         var: dict[str, Any],
-        context: Context,
-        state: dict[str, Any],
+        ctx: Context,
+        state: BaseState,
         params: BaseParams,
         indent: int,
     ) -> None:
         """
         Записывает сообщение в records.
         Вызывается только если фильтры прошли.
-
         Сохраняет все параметры для последующей проверки в тестах.
         """
         self.records.append(
@@ -81,8 +72,8 @@ class RecordingLogger(BaseLogger):
                 "scope": scope,
                 "message": message,
                 "var": var.copy(),
-                "context": context,
-                "state": state.copy(),
+                "ctx": ctx,
+                "state": state.to_dict(),
                 "params": params,
                 "indent": indent,
             }
@@ -97,7 +88,6 @@ class RecordingLogger(BaseLogger):
 # БАЗОВЫЕ ФИКСТУРЫ
 # ======================================================================
 
-
 @pytest.fixture
 def params() -> ParamsTest:
     """Стандартные тестовые параметры."""
@@ -108,7 +98,6 @@ def params() -> ParamsTest:
 def context_fixture() -> Context:
     """
     Стандартный тестовый контекст.
-
     Содержит:
     - Пользователя с ролями ['user', 'admin'] и extra {'org': 'acme'}
     - Информацию о запросе с trace_id, путем и методом
@@ -166,29 +155,32 @@ def simple_scope() -> LogScope:
 
 
 @pytest.fixture
-def state() -> dict[str, Any]:
+def state() -> BaseState:
     """Пустое начальное состояние."""
-    return {}
+    return BaseState()
 
 
 @pytest.fixture
-def populated_state() -> dict[str, Any]:
+def populated_state() -> BaseState:
     """
     Состояние с данными для тестов.
-
     Содержит:
     - total: общая сумма (float)
     - count: количество (int)
     - processed: флаг обработки (bool)
     - order: вложенный словарь с данными заказа
     """
-    return {"total": 1500.0, "count": 42, "processed": True, "order": {"id": 12345, "status": "pending"}}
+    return BaseState({
+        "total": 1500.0,
+        "count": 42,
+        "processed": True,
+        "order": {"id": 12345, "status": "pending"},
+    })
 
 
 # ======================================================================
 # ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
 # ======================================================================
-
 
 def make_context(
     user_id: str = "agent_1",
@@ -197,12 +189,10 @@ def make_context(
 ) -> Context:
     """
     Создаёт тестовый контекст с пользователем и запросом.
-
     Аргументы:
         user_id: идентификатор пользователя.
         roles: список ролей.
         trace_id: идентификатор трассировки.
-
     Возвращает:
         Готовый Context для использования в тестах.
     """
@@ -227,11 +217,9 @@ def make_context(
 def create_context_with_user(user_id: str, roles: list[str] | None = None) -> Context:
     """
     Создаёт контекст с конкретным пользователем.
-
     Аргументы:
         user_id: идентификатор пользователя
         roles: список ролей (по умолчанию пустой)
-
     Возвращает:
         Context с указанным пользователем
     """

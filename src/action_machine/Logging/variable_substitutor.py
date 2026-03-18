@@ -1,69 +1,59 @@
 # ActionMachine/Logging/VariableSubstitutor.py
 """
 Подстановщик переменных для шаблонов логирования AOA.
-
 VariableSubstitutor отвечает за:
 1. Разрешение переменных {%namespace.dotpath} из пяти источников:
    - var — словарь от разработчика.
-   - state — текущее состояние конвейера.
+   - state — текущее состояние конвейера (BaseState).
    - scope — LogScope (местоположение в конвейере).
    - context — контекст выполнения (ReadableMixin).
    - params — входные параметры действия (ReadableMixin).
-
 2. Двухпроходную подстановку:
    - Проход 1: замена {%namespace.path} на значения.
      Внутри {iif(...)} значения подставляются как литералы
      (строки в кавычках, числа как есть).
    - Проход 2: вычисление {iif(...)} через ExpressionEvaluator.
-
 3. Строгую политику ошибок:
    - Переменная не найдена → LogTemplateError.
    - Неизвестный namespace → LogTemplateError.
    - Невалидный iif → LogTemplateError.
-
 Единственный публичный метод — substitute(). Он принимает шаблон
 сообщения и все источники данных, выполняет подстановку и
 возвращает готовую строку. LogCoordinator вызывает substitute()
 вместо собственной реализации.
-
 Внутренняя реализация использует словарь диспетчеризации
 _namespace_resolvers, что позволяет легко добавлять новые
 источники данных. Каждый namespace обрабатывается отдельным
 приватным методом-резолвером.
-
 Пример использования (внутри LogCoordinator):
-
 >>> substitutor = VariableSubstitutor()
 >>> result = substitutor.substitute(
 ...     message="Загружено {%var.count} задач для {%context.user.user_id}",
 ...     var={"count": 150},
 ...     scope=scope,
-...     context=context,
-...     state={"total": 1500.0},
+...     ctx=context,
+...     state=state,
 ...     params=params,
 ... )
 >>> # result == "Загружено 150 задач для agent_1"
-
 Пример с iif (единый синтаксис {%...} везде):
-
 >>> result = substitutor.substitute(
 ...     message="{iif({%params.amount} > 1000000; '🚨 КРИТИЧЕСКАЯ'; 'Обычная')} транзакция",
 ...     var={},
 ...     scope=scope,
-...     context=context,
-...     state={},
+...     ctx=context,
+...     state=state,
 ...     params=params,
 ... )
 >>> # Проход 1: {%params.amount} → 1500000.0
 >>> # Проход 2: iif(1500000.0 > 1000000; ...) → "🚨 КРИТИЧЕСКАЯ транзакция"
 """
-
 import re
 from collections.abc import Callable
 from typing import Any
-
 from action_machine.Context.context import Context
 from action_machine.Core.BaseParams import BaseParams
+from action_machine.Core.BaseState import BaseState
 from action_machine.Core.Exceptions import LogTemplateError
 from action_machine.Logging.expression_evaluator import ExpressionEvaluator
 from action_machine.Logging.log_scope import LogScope
@@ -71,50 +61,32 @@ from action_machine.Logging.log_scope import LogScope
 # ---------------------------------------------------------------------------
 # Регулярные выражения
 # ---------------------------------------------------------------------------
-
-# Регулярное выражение для поиска переменных в шаблоне сообщения.
-#
 # Формат: {%namespace.dotpath}
-#
-# Группа 1 (namespace): первый сегмент до точки — определяет
-# источник данных. Допустимые символы: буквы латиницы, цифры,
-# подчёркивание. Первый символ — буква или подчёркивание.
-#
-# Группа 2 (path): оставшийся путь после первой точки — dot-path
-# внутри источника. Может содержать несколько сегментов через точку.
-# Допустимые символы в каждом сегменте: буквы, цифры, подчёркивание.
-#
-# Примеры совпадений:
+# Группа 1 (namespace): источник данных (var, state, scope, context, params).
+# Группа 2 (path): dot-path внутри источника.
+# Примеры:
 #   {%var.amount}           → namespace="var",     path="amount"
 #   {%context.user.user_id} → namespace="context",  path="user.user_id"
 #   {%scope.action}         → namespace="scope",    path="action"
 #   {%state.total}          → namespace="state",    path="total"
-#
-# Символ '%' в начале отличает переменные логера от обычных
-# фигурных скобок в Python f-strings и str.format().
 _VARIABLE_PATTERN: re.Pattern[str] = re.compile(
     r"\{%([a-zA-Z_][a-zA-Z0-9_]*)\.([a-zA-Z_][a-zA-Z0-9_.]*)\}"
 )
-
-# Регулярное выражение для поиска блоков {iif(...)} в шаблоне.
 # Используется для определения позиций iif-блоков,
-# чтобы внутри них подставлять значения как литералы
-# (строки в кавычках, числа как есть).
+# чтобы внутри них подставлять значения как литералы.
 _IIF_BLOCK_PATTERN: re.Pattern[str] = re.compile(r"\{iif\(.*?\)\}")
 
 
 class VariableSubstitutor:
     """
     Подстановщик переменных и вычислитель iif для шаблонов логирования.
-
     Содержит всю логику:
     - Разрешение переменных из пяти namespace (var, state, scope,
       context, params) через словарь диспетчеризации.
-    - Обход вложенных словарей по dot-path.
+    - Обход вложенных объектов по dot-path.
     - Форматирование значений как литералов для simpleeval
       (строки в кавычках, числа как есть).
     - Двухпроходная подстановка: сначала {%...}, потом {iif(...)}.
-
     Атрибуты:
         _evaluator: экземпляр ExpressionEvaluator для вычисления iif.
         _namespace_resolvers: словарь диспетчеризации namespace → метод.
@@ -123,26 +95,20 @@ class VariableSubstitutor:
     def __init__(self) -> None:
         """
         Создаёт подстановщик переменных.
-
         Инициализирует ExpressionEvaluator для вычисления iif
-        и словарь диспетчеризации _namespace_resolvers, который
-        связывает каждый допустимый namespace со своим методом-
-        резолвером.
-
+        и словарь диспетчеризации _namespace_resolvers.
         Каждый метод-резолвер имеет единую сигнатуру:
-            (path, var, scope, context, state, params) -> object
-
+            (path, var, scope, ctx, state, params) -> object
         Добавление нового namespace:
         1. Добавить строку в словарь.
         2. Написать метод _resolve_ns_<name> с той же сигнатурой.
         """
         self._evaluator: ExpressionEvaluator = ExpressionEvaluator()
-
         # Словарь диспетчеризации: namespace → метод-резолвер.
         self._namespace_resolvers: dict[
             str,
             Callable[
-                [str, dict[str, Any], LogScope, Context, dict[str, Any], BaseParams],
+                [str, dict[str, Any], LogScope, Context, BaseState, BaseParams],
                 object,
             ],
         ] = {
@@ -156,23 +122,17 @@ class VariableSubstitutor:
     # ----------------------------------------------------------------
     # Вспомогательный метод для обхода вложенных словарей
     # ----------------------------------------------------------------
-
     @staticmethod
     def _resolve_from_dict(source: dict[str, Any], dotpath: str) -> object:
         """
         Разрешает dot-path внутри обычного словаря.
-
-        Обходит вложенные словари по цепочке ключей, разделённых
-        точкой. Если на любом шаге ключ не найден или текущий объект
+        Если на любом шаге ключ не найден или текущий объект
         не является словарём — возвращает None.
-
         Аргументы:
             source: словарь для обхода.
             dotpath: строка вида "total" или "nested.key.value".
-
         Возвращает:
             Найденное значение или None если путь не удалось пройти.
-
         Пример:
             >>> VariableSubstitutor._resolve_from_dict({"a": {"b": 42}}, "a.b")
             42
@@ -181,7 +141,6 @@ class VariableSubstitutor:
         """
         segments = dotpath.split(".")
         current: object = source
-
         for segment in segments:
             if isinstance(current, dict):
                 if segment in current:
@@ -190,19 +149,15 @@ class VariableSubstitutor:
                     return None
             else:
                 return None
-
         return current
 
     # ----------------------------------------------------------------
     # Резолверы для каждого namespace
     # ----------------------------------------------------------------
     #
-    # Каждый резолвер отвечает за один namespace и имеет единую сигнатуру:
-    #   (path, var, scope, context, state, params) -> object
-    #
-    # Единая сигнатура позволяет _resolve_variable_raw вызывать любой
-    # резолвер одинаково, не зная какой именно namespace обрабатывается.
-    # Некоторые резолверы не используют все параметры, но это допустимо.
+    # Единая сигнатура: (path, var, scope, ctx, state, params) -> object
+    # Позволяет _resolve_variable_raw вызывать любой резолвер одинаково.
+    # Некоторые резолверы не используют все параметры — это допустимо.
 
     def _resolve_ns_var(
         self,
@@ -210,24 +165,15 @@ class VariableSubstitutor:
         var: dict[str, Any],
         scope: LogScope,
         ctx: Context,
-        state: dict[str, Any],
+        state: BaseState,
         params: BaseParams,
     ) -> object:
         """
         Разрешает переменную из словаря var.
-
-        Словарь var — это произвольные переменные, переданные
-        разработчиком при вызове log/emit. Поддерживает вложенные
-        словари через dot-path.
-
+        Поддерживает вложенные словари через dot-path.
         Аргументы:
             path: dot-path внутри var (например, "count" или "data.value").
             var: словарь переменных от разработчика.
-            scope: не используется (единая сигнатура).
-            context: не используется (единая сигнатура).
-            state: не используется (единая сигнатура).
-            params: не используется (единая сигнатура).
-
         Возвращает:
             Найденное значение или None если путь не удалось пройти.
         """
@@ -239,27 +185,20 @@ class VariableSubstitutor:
         var: dict[str, Any],
         scope: LogScope,
         ctx: Context,
-        state: dict[str, Any],
+        state: BaseState,
         params: BaseParams,
     ) -> object:
         """
-        Разрешает переменную из словаря state.
-
-        Словарь state — это текущее состояние конвейера аспектов.
-        Поддерживает вложенные словари через dot-path.
-
+        Разрешает переменную из BaseState.
+        state — текущее состояние конвейера аспектов.
+        Поддерживает вложенный доступ через dot-path (через to_dict).
         Аргументы:
             path: dot-path внутри state (например, "total").
-            var: не используется (единая сигнатура).
-            scope: не используется (единая сигнатура).
-            context: не используется (единая сигнатура).
-            state: словарь текущего состояния конвейера.
-            params: не используется (единая сигнатура).
-
+            state: текущее состояние конвейера.
         Возвращает:
             Найденное значение или None если путь не удалось пройти.
         """
-        return self._resolve_from_dict(state, path)
+        return self._resolve_from_dict(state.to_dict(), path)
 
     def _resolve_ns_scope(
         self,
@@ -267,28 +206,16 @@ class VariableSubstitutor:
         var: dict[str, Any],
         scope: LogScope,
         ctx: Context,
-        state: dict[str, Any],
+        state: BaseState,
         params: BaseParams,
     ) -> object:
         """
         Разрешает переменную из LogScope.
-
-        LogScope — это обёртка над словарём произвольных ключей,
-        описывающая местоположение в конвейере (action, aspect, event).
-
-        Для плоского пути (без точек) используется scope.get(),
-        который напрямую обращается к внутреннему словарю.
-        Для вложенных путей (с точками) используется _resolve_from_dict
-        по копии внутреннего словаря через scope.to_dict().
-
+        Для плоского пути (без точек) используется scope.get().
+        Для вложенных путей — _resolve_from_dict по scope.to_dict().
         Аргументы:
             path: ключ или dot-path внутри scope.
-            var: не используется (единая сигнатура).
             scope: скоуп текущего вызова логера.
-            context: не используется (единая сигнатура).
-            state: не используется (единая сигнатура).
-            params: не используется (единая сигнатура).
-
         Возвращает:
             Строковое значение ключа или None если не найден.
         """
@@ -302,28 +229,18 @@ class VariableSubstitutor:
         var: dict[str, Any],
         scope: LogScope,
         ctx: Context,
-        state: dict[str, Any],
+        state: BaseState,
         params: BaseParams,
     ) -> object:
         """
         Разрешает переменную из Context через метод resolve.
-
-        Context и его компоненты (UserInfo, RequestInfo, EnvironmentInfo)
-        наследуют ReadableMixin и поддерживают метод resolve,
-        который обходит вложенные объекты по цепочке ключей.
-
+        Context гарантированно наследует ReadableMixin.
         Аргументы:
             path: dot-path внутри context (например, "user.user_id").
-            var: не используется (единая сигнатура).
-            scope: не используется (единая сигнатура).
-            context: контекст выполнения.
-            state: не используется (единая сигнатура).
-            params: не используется (единая сигнатура).
-
+            ctx: контекст выполнения.
         Возвращает:
             Найденное значение или None если путь не удалось пройти.
         """
-        # Context гарантированно наследует ReadableMixin.
         return ctx.resolve(path)
 
     def _resolve_ns_params(
@@ -332,33 +249,23 @@ class VariableSubstitutor:
         var: dict[str, Any],
         scope: LogScope,
         ctx: Context,
-        state: dict[str, Any],
+        state: BaseState,
         params: BaseParams,
     ) -> object:
         """
         Разрешает переменную из BaseParams через метод resolve.
-
-        BaseParams наследует ReadableMixin и поддерживает метод resolve
-        для обхода вложенных объектов по dot-path.
-
+        BaseParams гарантированно наследует ReadableMixin.
         Аргументы:
             path: dot-path внутри params (например, "amount").
-            var: не используется (единая сигнатура).
-            scope: не используется (единая сигнатура).
-            context: не используется (единая сигнатура).
-            state: не используется (единая сигнатура).
             params: входные параметры действия.
-
         Возвращает:
             Найденное значение или None если путь не удалось пройти.
         """
-        # BaseParams гарантированно наследует ReadableMixin.
         return params.resolve(path)
 
     # ----------------------------------------------------------------
     # Основной метод разрешения переменных (диспетчеризация)
     # ----------------------------------------------------------------
-
     def _resolve_variable_raw(
         self,
         namespace: str,
@@ -366,54 +273,45 @@ class VariableSubstitutor:
         var: dict[str, Any],
         scope: LogScope,
         ctx: Context,
-        state: dict[str, Any],
+        state: BaseState,
         params: BaseParams,
     ) -> object:
         """
-        Разрешает одну переменную из шаблона — СЫРОЕ значение (не str).
-
-        Использует словарь диспетчеризации _namespace_resolvers для
-        определения метода-резолвера по namespace. Если namespace
-        не найден — выбрасывает LogTemplateError.
-
+        Разрешает одну переменную из шаблона — сырое значение (не str).
+        Использует словарь диспетчеризации _namespace_resolvers.
+        Если namespace не найден — выбрасывает LogTemplateError.
         Аргументы:
             namespace: первый сегмент переменной ("var", "context",
                        "params", "state", "scope").
             path: оставшийся dot-path после namespace.
             var: словарь переменных от разработчика.
             scope: скоуп текущего вызова.
-            context: контекст выполнения.
+            ctx: контекст выполнения.
             state: текущее состояние конвейера.
             params: входные параметры действия.
-
         Возвращает:
             Сырое значение (int, float, str, bool, list, dict и т.д.)
             или None если не найдено.
-
         Исключения:
             LogTemplateError: если namespace неизвестен.
-
         Пример:
             >>> substitutor._resolve_variable_raw(
-            ...     "var", "count", {"count": 150}, scope, ctx, {}, params
+            ...     "var", "count", {"count": 150}, scope, ctx, state, params
             ... )
             150
         """
         resolver = self._namespace_resolvers.get(namespace)
-
         if resolver is None:
             raise LogTemplateError(
                 f"Неизвестный namespace '{namespace}' в шаблоне. "
                 f"Допустимые: {', '.join(sorted(self._namespace_resolvers))}. "
                 f"Проверьте переменную {{%{namespace}.{path}}}."
             )
-
         return resolver(path, var, scope, ctx, state, params)
 
     # ----------------------------------------------------------------
     # Строковое разрешение с проверкой на None
     # ----------------------------------------------------------------
-
     def _resolve_variable(
         self,
         namespace: str,
@@ -421,72 +319,56 @@ class VariableSubstitutor:
         var: dict[str, Any],
         scope: LogScope,
         ctx: Context,
-        state: dict[str, Any],
+        state: BaseState,
         params: BaseParams,
     ) -> str:
         """
         Разрешает одну переменную — строковый результат.
-
-        Обёртка над _resolve_variable_raw, которая преобразует
-        сырое значение в строку. Если значение не найдено —
+        Обёртка над _resolve_variable_raw. Если значение не найдено —
         выбрасывает LogTemplateError.
-
         Аргументы:
             namespace: первый сегмент переменной.
             path: оставшийся dot-path после namespace.
             var: словарь переменных от разработчика.
             scope: скоуп текущего вызова.
-            context: контекст выполнения.
+            ctx: контекст выполнения.
             state: текущее состояние конвейера.
             params: входные параметры действия.
-
         Возвращает:
             Строковое представление найденного значения.
-
         Исключения:
             LogTemplateError: если переменная не найдена
                               или namespace неизвестен.
-
         Пример:
             >>> substitutor._resolve_variable(
-            ...     "var", "count", {"count": 150}, scope, ctx, {}, params
+            ...     "var", "count", {"count": 150}, scope, ctx, state, params
             ... )
             '150'
         """
         value = self._resolve_variable_raw(
             namespace, path, var, scope, ctx, state, params
         )
-
         if value is None:
             raise LogTemplateError(
                 f"Переменная '{{%{namespace}.{path}}}' не найдена. "
                 f"Проверьте шаблон сообщения и наличие значения "
                 f"в источнике '{namespace}'."
             )
-
         return str(value)
 
     # ----------------------------------------------------------------
     # Форматирование значений для подстановки внутри iif
     # ----------------------------------------------------------------
-
     @staticmethod
     def _quote_if_string(raw_value: object) -> str:
         """
         Форматирует сырое значение как литерал для simpleeval.
-
-        Используется при подстановке {%...} внутри {iif(...)}.
-        Числа и bool подставляются как есть (simpleeval понимает
-        их как литералы). Строки оборачиваются в одинарные кавычки,
-        чтобы simpleeval видел их как строковые литералы,
-        а не как имена неопределённых переменных.
-
+        Числа и bool подставляются как есть, строки оборачиваются
+        в одинарные кавычки.
         Аргументы:
             raw_value: сырое значение переменной.
-
         Возвращает:
             Строка, пригодная для вставки в выражение simpleeval.
-
         Примеры:
             >>> VariableSubstitutor._quote_if_string(1500.0)
             '1500.0'
@@ -499,40 +381,33 @@ class VariableSubstitutor:
         """
         # bool ПЕРЕД int — потому что bool является подклассом int в Python
         if isinstance(raw_value, bool):
-            return str(raw_value)  # True / False
+            return str(raw_value)
         if isinstance(raw_value, (int, float)):
-            return str(raw_value)  # 1500.0
-
-        # Строка → экранируем внутренние одинарные кавычки и оборачиваем
+            return str(raw_value)
         s = str(raw_value).replace("'", "\\'")
         return f"'{s}'"
 
     # ----------------------------------------------------------------
     # Подстановка переменных — три приватных метода
     # ----------------------------------------------------------------
-
     def _substitute_simple(
         self,
         message: str,
         var: dict[str, Any],
         scope: LogScope,
         ctx: Context,
-        state: dict[str, Any],
+        state: BaseState,
         params: BaseParams,
     ) -> str:
         """
         Быстрый путь: нет iif — простая замена {%...} → str(value).
-
         Используется когда в шаблоне гарантированно нет {iif(...)}.
-        Не нужно определять позиции блоков, поэтому работает быстрее.
         """
-
         def replacer(match: re.Match[str]) -> str:
             return self._resolve_variable(
                 match.group(1), match.group(2),
                 var, scope, ctx, state, params,
             )
-
         return _VARIABLE_PATTERN.sub(replacer, message)
 
     def _substitute_with_iif_detection(
@@ -541,27 +416,20 @@ class VariableSubstitutor:
         var: dict[str, Any],
         scope: LogScope,
         ctx: Context,
-        state: dict[str, Any],
+        state: BaseState,
         params: BaseParams,
     ) -> str:
         """
         Подстановка с определением позиций iif-блоков.
-
-        Переменные внутри {iif(...)} форматируются как литералы
-        (строки в кавычках, числа как есть), чтобы simpleeval
-        мог корректно вычислить выражение.
-        Переменные вне iif подставляются как обычные строки.
+        Переменные внутри {iif(...)} форматируются как литералы,
+        переменные вне iif — как обычные строки.
         """
-        # Определяем позиции всех {iif(...)} блоков,
-        # чтобы внутри них подставлять значения как литералы
-        # (строки в кавычках, числа как есть).
         iif_ranges = [
             (m.start(), m.end())
             for m in _IIF_BLOCK_PATTERN.finditer(message)
         ]
 
         def _inside_iif(pos: int) -> bool:
-            """Проверяет, находится ли позиция внутри блока iif."""
             return any(start <= pos < end for start, end in iif_ranges)
 
         def replacer(match: re.Match[str]) -> str:
@@ -588,16 +456,14 @@ class VariableSubstitutor:
         var: dict[str, Any],
         scope: LogScope,
         ctx: Context,
-        state: dict[str, Any],
+        state: BaseState,
         params: BaseParams,
         has_iif: bool,
     ) -> str:
         """
         Диспетчер первого прохода: выбирает стратегию подстановки.
-
-        Если шаблон содержит iif — используется медленный путь
-        с определением позиций блоков (_substitute_with_iif_detection).
-        Иначе — быстрый путь без позиционирования (_substitute_simple).
+        Если шаблон содержит iif — медленный путь с позиционированием.
+        Иначе — быстрый путь без позиционирования.
         """
         if has_iif:
             return self._substitute_with_iif_detection(
@@ -608,83 +474,59 @@ class VariableSubstitutor:
     # ----------------------------------------------------------------
     # Единственный публичный метод
     # ----------------------------------------------------------------
-
     def substitute(
         self,
         message: str,
         var: dict[str, Any],
         scope: LogScope,
         ctx: Context,
-        state: dict[str, Any],
+        state: BaseState,
         params: BaseParams,
     ) -> str:
         """
         Выполняет подстановку всех переменных и вычисление iif.
-
-        Единственный публичный метод класса. Принимает шаблон
-        сообщения и все источники данных, выполняет двухпроходную
-        подстановку и возвращает готовую строку.
-
         Два прохода:
-        1. Подстановка {%namespace.dotpath} — ВЕЗДЕ в шаблоне,
+        1. Подстановка {%namespace.dotpath} — везде в шаблоне,
            включая внутри {iif(...)}. Внутри iif значения
            подставляются как литералы: строки в кавычках,
            числа и bool как есть.
         2. Вычисление {iif(...)} — через ExpressionEvaluator.
            simpleeval получает выражения с уже подставленными
            литералами и пустой словарь names={}.
-
-        Единый синтаксис {%namespace.path} работает везде:
-        - В тексте: {%params.amount} → "1500.0"
-        - В iif: {iif({%params.amount} > 1000; 'HIGH'; 'LOW')}
-          → {iif(1500.0 > 1000; 'HIGH'; 'LOW')} → "HIGH"
-
-        Строгая политика: если переменная не найдена —
-        выбрасывается LogTemplateError.
-
         Аргументы:
             message: строка шаблона с переменными.
             var: словарь переменных от разработчика.
             scope: скоуп текущего вызова.
-            context: контекст выполнения.
+            ctx: контекст выполнения.
             state: текущее состояние конвейера.
             params: входные параметры действия.
-
         Возвращает:
             Строка с выполненными подстановками и вычисленными iif.
-
         Исключения:
             LogTemplateError: если переменная не найдена,
                               namespace неизвестен или iif невалиден.
-
         Пример:
             >>> substitutor.substitute(
             ...     "Сумма: {%params.amount}",
-            ...     {}, scope, ctx, {}, params,
+            ...     {}, scope, ctx, state, params,
             ... )
             'Сумма: 1500.0'
-
         Пример с iif:
             >>> substitutor.substitute(
             ...     "{iif({%params.amount} > 1000; 'HIGH'; 'LOW')}",
-            ...     {}, scope, ctx, {}, params,
+            ...     {}, scope, ctx, state, params,
             ... )
             'HIGH'
         """
         has_iif = "{iif(" in message
-
         # --- Проход 1: подстановка {%...} переменных ---
         resolved = self._substitute_variables(
             message, var, scope, ctx, state, params, has_iif
         )
-
         # --- Проход 2: вычисление {iif(...)} выражений ---
         # 98% случаев — нет iif, быстрый выход.
         if not has_iif:
             return resolved
-
-        # simpleeval обработает литералы: 1500000.0 > 1000000
-        # Словарь names пуст — все значения уже подставлены
-        # как литералы в проходе 1.
+        # Словарь names пуст — все значения уже подставлены как литералы.
         # LogTemplateError из ExpressionEvaluator полетит наверх.
         return self._evaluator.process_template(resolved, {})
