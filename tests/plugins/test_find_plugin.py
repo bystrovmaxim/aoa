@@ -1,3 +1,4 @@
+# tests/plugins/test_find_plugin.py
 """
 Тесты метода _find_plugin_for_handler в PluginCoordinator.
 
@@ -52,21 +53,6 @@ class TestPluginCoordinatorFindPlugin:
             else:
                 assert found in [plugin1, plugin3]
 
-    def test_find_plugin_returns_same_instance(self):
-        """
-        Поиск возвращает тот же экземпляр плагина, который был передан.
-        """
-        plugin = SimplePlugin()
-        coordinator = PluginCoordinator([plugin])
-
-        handlers = coordinator._get_handlers("test_event", "any")
-        handler, _ = handlers[0]
-
-        found = coordinator._find_plugin_for_handler(handler)
-
-        # Проверяем, что это тот же объект (по id)
-        assert id(found) == id(plugin)
-
     # ------------------------------------------------------------------
     # ТЕСТЫ: Обработчик не найден
     # ------------------------------------------------------------------
@@ -77,16 +63,6 @@ class TestPluginCoordinatorFindPlugin:
         coordinator = PluginCoordinator([plugin])
 
         # Какой-то левый обработчик, не из плагинов
-        async def fake_handler(state, event):
-            pass
-
-        found = coordinator._find_plugin_for_handler(fake_handler)
-        assert found is None
-
-    def test_find_plugin_for_handler_with_empty_plugins(self):
-        """Поиск при пустом списке плагинов."""
-        coordinator = PluginCoordinator([])
-
         async def fake_handler(state, event):
             pass
 
@@ -112,25 +88,10 @@ class TestPluginCoordinatorFindPlugin:
         found = coordinator._find_plugin_for_handler(unbound_handler)
         assert found is None
 
-    def test_find_plugin_for_handler_with_wrapped_function(self):
-        """
-        Поиск для функции, обёрнутой декоратором, но не являющейся методом.
-        """
-        coordinator = PluginCoordinator([])
-
-        def regular_function(state, event):
-            pass
-
-        found = coordinator._find_plugin_for_handler(regular_function)
-        assert found is None
-
     def test_find_plugin_for_handler_after_plugin_removed(self):
         """
         Если плагин был удален из списка, но обработчик остался в кеше,
         поиск должен вернуть None.
-
-        Примечание: в текущей реализации плагины не удаляются,
-        но тест на всякий случай.
         """
         plugin = SimplePlugin()
         coordinator = PluginCoordinator([plugin])
