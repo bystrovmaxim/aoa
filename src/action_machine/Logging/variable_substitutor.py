@@ -51,6 +51,7 @@ _namespace_resolvers, что позволяет легко добавлять н
 import re
 from collections.abc import Callable
 from typing import Any
+
 from action_machine.Context.context import Context
 from action_machine.Core.BaseParams import BaseParams
 from action_machine.Core.BaseState import BaseState

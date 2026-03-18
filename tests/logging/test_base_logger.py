@@ -7,6 +7,7 @@
 - Отклонение сообщений при несовпадении фильтров
 """
 import pytest
+
 from action_machine.Core.BaseState import BaseState
 from tests.conftest import RecordingLogger
 

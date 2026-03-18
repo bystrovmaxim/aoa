@@ -69,7 +69,10 @@ fi
 echo -e "${YELLOW}🔍 Запуск полной проверки проекта...${NC}"
 echo ""
 
-# Запускаем все проверки
+# Шаг 0: Автоисправление импортов (ruff --fix)
+run_and_log "uv run ruff check --fix --select I001 src/" "Автоисправление импортов (ruff)"
+
+# Запускаем остальные проверки
 run_and_log "uv run task lint" "Линтер (ruff)"
 run_and_log "uv run task typecheck" "Проверка типов (mypy)"
 run_and_log "uv run task pylint" "Полный линтер (pylint)"

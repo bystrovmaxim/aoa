@@ -8,6 +8,7 @@
 - Обработку ошибок (несуществующие переменные, неизвестный namespace)
 """
 import pytest
+
 from action_machine.Core.BaseState import BaseState
 from action_machine.Core.Exceptions import LogTemplateError
 from action_machine.Logging.log_coordinator import LogCoordinator

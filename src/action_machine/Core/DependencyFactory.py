@@ -10,7 +10,6 @@ from action_machine.Core.BaseAction import BaseAction
 from action_machine.Core.BaseActionMachine import BaseActionMachine
 from action_machine.Core.BaseParams import BaseParams
 from action_machine.Core.BaseResult import BaseResult
-from action_machine.Core.BaseState import BaseState
 from action_machine.ResourceManagers.BaseResourceManager import BaseResourceManager
 
 

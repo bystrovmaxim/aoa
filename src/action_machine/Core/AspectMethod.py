@@ -11,11 +11,14 @@
 
 import inspect
 from collections.abc import Callable
-from typing import Any, Protocol, cast, runtime_checkable
+from typing import TYPE_CHECKING, Any, Protocol, cast, runtime_checkable
 
+from ..ResourceManagers.BaseResourceManager import BaseResourceManager
 from .BaseState import BaseState
 from .DependencyFactory import DependencyFactory
-from ..ResourceManagers.BaseResourceManager import BaseResourceManager
+
+if TYPE_CHECKING:
+    from ..Logging.action_bound_logger import ActionBoundLogger
 
 
 @runtime_checkable
@@ -47,10 +50,11 @@ class AspectMethod(Protocol):
         state: BaseState,
         deps: DependencyFactory,
         connections: dict[str, BaseResourceManager],
+        log: "ActionBoundLogger",  # шестой параметр для сквозного логирования
     ) -> Any:
         """
         Вызов аспекта. Все аспекты должны быть асинхронными и принимать
-        указанные параметры.
+        указанные параметры, включая log.
 
         Аргументы:
             action: экземпляр действия (self).
@@ -58,6 +62,7 @@ class AspectMethod(Protocol):
             state: текущее состояние конвейера (BaseState).
             deps: фабрика зависимостей.
             connections: словарь ресурсных менеджеров.
+            log: привязанный логер для сквозного логирования.
 
         Возвращает:
             Для регулярных аспектов — словарь с обновлённым состоянием.
@@ -72,7 +77,7 @@ def aspect(description: str) -> Callable[[Callable[..., Any]], AspectMethod]:
 
     Помечает метод как регулярный аспект, который выполняется перед summary.
     Метод должен быть асинхронным (async def) и принимать
-    (self, params, state, deps, connections) и возвращать dict.
+    (self, params, state, deps, connections, log) и возвращать dict.
 
     Аргументы:
         description: текстовое описание аспекта (для документации и логирования).
@@ -101,7 +106,7 @@ def summary_aspect(description: str) -> Callable[[Callable[..., Any]], AspectMet
 
     Summary-аспект выполняется последним и возвращает итоговый Result.
     Должен быть асинхронным (async def).
-    Метод принимает (self, params, state, deps, connections).
+    Метод принимает (self, params, state, deps, connections, log).
 
     Аргументы:
         description: текстовое описание аспекта (для документации и логирования).
