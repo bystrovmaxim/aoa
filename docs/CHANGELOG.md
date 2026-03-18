@@ -1,192 +1,212 @@
 # Changelog
-Все заметные изменения в этом проекте будут документироваться в этом файле.
+All notable changes to this project will be documented in this file.
 
-Формат основан на [Keep a Changelog](https://keepachangelog.com/ru/1.1.0/),
-и этот проект придерживается [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.0.3] - 2026-03-18
-
-🎯 Масштабный рефакторинг: достижение идеального качества кода
-Этот релиз посвящён приведению проекта к абсолютным стандартам качества. Мы системно устранили все замечания линтеров, достигли идеальной типизации и 100% прохождения тестов. Проект теперь соответствует стандартам enterprise-разработки.
-
-🏗️ Структура и именование
-Проблема: Имена файлов не соответствовали PEP8 (использовался PascalCase вместо snake_case), что вызывало ошибки N999 в ruff.
-
-Решение: Переименованы все 18 файлов в проекте в соответствии со стандартом snake_case:
-
-AuthCoordinator.py → auth_coordinator.py
-
-Authenticator.py → authenticator.py
-
-CheckRoles.py → check_roles.py
-
-ContextAssembler.py → context_assembler.py
-
-CredentialExtractor.py → credential_extractor.py
-
-Context.py → context.py
-
-EnvironmentInfo.py → environment_info.py
-
-RequestInfo.py → request_info.py
-
-UserInfo.py → user_info.py
-
-BaseLogger.py → base_logger.py
-
-ConsoleLogger.py → console_logger.py
-
-ExpressionEvaluator.py → expression_evaluator.py
-
-LogCoordinator.py → log_coordinator.py
-
-LogScope.py → log_scope.py
-
-VariableSubstitutor.py → variable_substitutor.py
-
-🔧 Качество кода и линтеры
-Проблема: Множественные замечания от ruff (N999, UP046, C901, W292), mypy (ошибки типизации), pylint (R0917, W0621, C0304, R1705).
-
-Решение: Проведена полная чистка кода:
-
-Устранены все 18 ошибок ruff, включая сложность функции substitute (C901 была снижена с 11 до A(2) путём декомпозиции на _substitute_simple, _substitute_with_iif_detection, _substitute_variables).
-
-Исправлены все ошибки mypy: удалён неиспользуемый type: ignore, исправлен вызов context() в ActionTestMachine, добавлены аннотации типов.
-
-Достигнут рейтинг pylint 10.00/10 (исправлены: лишний else в console_logger._format_line, конфликт имён authenticator и context, отсутствие новой строки в конце файлов, слишком много позиционных аргументов).
-
-🧪 Тестирование и надёжность
-Проблема: Тесты не запускались из-за неправильных импортов после переименования файлов.
-
-Решение: Обновлены все импорты в тестовых файлах (conftest.py, test_auth_coordinator.py, test_plugins.py и др.). Все 341 тест успешно проходят.
-
-Достигнуто: 100% прохождение тестового набора.
-
-📦 Конфигурация и инструменты
-Проблема: Конфигурация линтеров была разрозненной, некоторые правила конфликтовали.
-
-Решение: Централизована конфигурация в pyproject.toml:
-
-Настроен ruff с отключением конфликтующих правил (E501, E402, N801, W292).
-
-Исправлена секция pylint: удалён неверный код W292 (из ruff), добавлен правильный код C0304 для отключения предупреждения о новой строке.
-
-Добавлены правила для per-file-ignores в ruff.
+## [0.0.4] - 2026-03-19
 
 ### Added
-Отключение правил линтеров – в pyproject.toml добавлены комментарии к каждому отключённому правилу с объяснением причины.
-
-Автоматическое исправление – в задачи taskipy добавлены команды lint-fix и pre-commit для автоматического исправления проблем форматирования.
-
-### Fixed
-Исправлен импорт ABC в BaseAction.py – заменён неверный импорт из typing на правильный из abc (ошибка времени выполнения).
-
-Исправлен конфликт имён authenticator – в auth_coordinator.py переименован параметр конструктора с authenticator на auth_instance, атрибут сохранён как self.authenticator (устранено предупреждение pylint W0621).
-
-Исправлен конфликт имён context – во всех логерах (base_logger.py, console_logger.py, log_coordinator.py, variable_substitutor.py) параметр context переименован в ctx.
-
-Исправлено предупреждение о новой строке – добавлены пустые строки в конец всех файлов, где они отсутствовали (C0304).
-
-Исправлен лишний else после return – в методе console_logger._format_line убрано лишнее ветвление (R1705).
+- **Cross-cutting logging** – implemented the `idea_02` plan to introduce a bound logger into aspects.
+  - **Problem:** Previously, logs lacked execution context (machine name, mode, action, aspect), making tracing and filtering difficult.
+  - **Solution:** Added the `ActionBoundLogger` class, which is created for each aspect call and automatically adds the following fields to `LogScope`:
+    - `machine` – machine class name.
+    - `mode` – execution mode.
+    - `action` – full action class name.
+    - `aspect` – aspect method name.
+  - Logging level (`info`, `warning`, `error`, `debug`) is passed via the `"level"` key in `var` (added automatically).
+  - User data is passed only via `**kwargs` and ends up in `var`; system fields (except `level`) are not added.
+- **Mandatory `log` parameter in aspects** – all aspects are now required to accept the sixth parameter `log: ActionBoundLogger`. Backward compatibility is not maintained (the core is not yet used in production, cleanliness is important).
+- **`mode` parameter in machine constructors**:
+  - `ActionProductMachine` now requires a mandatory non-empty string parameter `mode`.
+  - `ActionTestMachine` defaults to `mode="test"`, but allows overriding.
+  - `mode` is passed to `ActionBoundLogger` and ends up in `LogScope`.
+- **Logging level support in `ConsoleLogger`**:
+  - Added message coloring based on level: `info` — green, `warning` — yellow, `error` — red, `debug` — gray.
+  - The unresolved variable marker `<none>` is colored red.
+  - If no level is specified, `"info"` is used.
+- **Tests for cross-cutting logging**:
+  - `tests/logging/test_action_bound_logger.py` – checks logger creation, `emit` calls, `LogScope` formation, handling of user `kwargs`, and ignoring user-supplied `level`.
+  - Extended `ActionProductMachine` tests to verify `log` is passed to aspects and `LogScope` correctness.
+  - Extended `ActionTestMachine` tests to verify logger works with mocks.
+  - Updated `test_console_logger.py` to verify level-based coloring.
+- **Documentation** – added a detailed "Cross-cutting Logging" section to `README.md` with concepts, usage examples, and extension guidelines.
 
 ### Changed
-Улучшена читаемость кода – сложные методы декомпозированы на более мелкие, добавлены подробные комментарии.
+- **`AspectMethod.__call__` signature** – added a sixth parameter `log`, making `log` mandatory in all aspects.
+- **`ActionProductMachine._call_aspect`** – now always creates an `ActionBoundLogger` and passes it to the aspect method (no parameter existence check, as it is mandatory).
+- **`LogCoordinator.emit`** – unchanged, but now called from `ActionBoundLogger` with empty instances of `BaseState` and `BaseParams` (instead of `{}` and `None`), matching expected types.
+- **`ConsoleLogger.write`** – modified to extract the level from `var` and apply corresponding coloring.
 
-Обновлена документация – добавлены примеры использования для всех ключевых компонентов.
+### Fixed
+- **Ignoring user-supplied `level`** – added `kwargs.pop("level", None)` in `ActionBoundLogger._emit` to prevent conflict between system and user levels (test `test_user_kwargs_override_nothing`).
+- **Type checking (mypy)** – updated the `AspectMethod` protocol in `AspectMethod.py` to include the `log` parameter. Deleted mypy cache, error resolved.
+- **Unsorted imports** – fixed all `I001` errors in the project using `ruff --fix`.
+- **Removed unused import `BaseState` from `DependencyFactory.py`** (detected by ruff).
 
 ### Removed
-Устаревшие и неиспользуемые импорты (проверено vulture).
+- **Old aspect signature without `log`** – no longer supported.
 
-## [1.0.2] - 2026-03-17
+## [0.0.3] - 2026-03-18
+
+🎯 Massive refactoring: achieving ideal code quality
+This release is dedicated to bringing the project to absolute quality standards. We systematically eliminated all linter warnings, achieved perfect typing, and 100% test pass rate. The project now meets enterprise development standards.
+
+🏗️ Structure and naming
+**Problem:** File names did not conform to PEP8 (PascalCase was used instead of snake_case), causing N999 errors in ruff.
+
+**Solution:** Renamed all 18 files in the project according to the snake_case standard:
+
+- `AuthCoordinator.py` → `auth_coordinator.py`
+- `Authenticator.py` → `authenticator.py`
+- `CheckRoles.py` → `check_roles.py`
+- `ContextAssembler.py` → `context_assembler.py`
+- `CredentialExtractor.py` → `credential_extractor.py`
+- `Context.py` → `context.py`
+- `EnvironmentInfo.py` → `environment_info.py`
+- `RequestInfo.py` → `request_info.py`
+- `UserInfo.py` → `user_info.py`
+- `BaseLogger.py` → `base_logger.py`
+- `ConsoleLogger.py` → `console_logger.py`
+- `ExpressionEvaluator.py` → `expression_evaluator.py`
+- `LogCoordinator.py` → `log_coordinator.py`
+- `LogScope.py` → `log_scope.py`
+- `VariableSubstitutor.py` → `variable_substitutor.py`
+
+🔧 Code quality and linters
+**Problem:** Numerous issues from ruff (N999, UP046, C901, W292), mypy (type errors), pylint (R0917, W0621, C0304, R1705).
+
+**Solution:** Conducted a thorough code cleanup:
+
+- Eliminated all 18 ruff errors, including the complexity of the `substitute` function (C901 was reduced from 11 to A(2) by decomposing into `_substitute_simple`, `_substitute_with_iif_detection`, `_substitute_variables`).
+- Fixed all mypy errors: removed unused `type: ignore`, fixed the `context()` call in `ActionTestMachine`, added type annotations.
+- Achieved pylint rating of 10.00/10 (fixed: unnecessary else in `console_logger._format_line`, name conflict `authenticator` and `context`, missing newline at end of files, too many positional arguments).
+
+🧪 Testing and reliability
+**Problem:** Tests did not run due to incorrect imports after file renaming.
+
+**Solution:** Updated all imports in test files (`conftest.py`, `test_auth_coordinator.py`, `test_plugins.py`, etc.). All 341 tests now pass successfully.
+
+**Achieved:** 100% test suite pass rate.
+
+📦 Configuration and tools
+**Problem:** Linter configuration was scattered, and some rules conflicted.
+
+**Solution:** Centralized configuration in `pyproject.toml`:
+
+- Configured ruff with conflicting rules disabled (E501, E402, N801, W292).
+- Fixed pylint section: removed invalid code W292 (from ruff), added correct code C0304 to disable newline warning.
+- Added per-file-ignores rules in ruff.
 
 ### Added
-- **Условная логика в шаблонах логирования** – добавлена поддержка конструкции `{iif(условие; значение_истина; значение_ложь)}` в сообщениях логера.
-  - **Проблема:** Ранее можно было подставлять только переменные `{%namespace.path}`, но нельзя было динамически менять текст в зависимости от значений (например, добавлять пометку «КРИТИЧЕСКАЯ» для больших сумм). Это ограничивало выразительность логов и заставляло разработчиков писать дополнительные проверки в коде.
-  - **Решение:** Введён класс `ExpressionEvaluator`, который безопасно вычисляет выражения внутри `iif` с помощью библиотеки `simpleeval`. Поддерживаются операторы сравнения (`==`, `!=`, `>`, `<`, `>=`, `<=`), логические операторы (`and`, `or`, `not`), арифметика (`+`, `-`, `*`, `/`), встроенные функции (`len`, `upper`, `lower`, `format_number`). Переменные подставляются как литералы до вычисления, что гарантирует безопасность и предсказуемость. При невалидном выражении выбрасывается `LogTemplateError` (строгая политика), что позволяет немедленно обнаружить ошибку в шаблоне.
-- **Выделение логики подстановки в отдельный класс `VariableSubstitutor`.**
-  - **Проблема:** Класс `LogCoordinator` содержал сложную логику разрешения переменных и вычисления `iif`, что приводило к высокой цикломатической сложности (B10) и низкому Maintainability Index (MI 34.95). Это затрудняло тестирование и дальнейшее развитие.
-  - **Решение:** Вся логика подстановки переменных и обработки `iif` вынесена в отдельный класс `VariableSubstitutor`. `LogCoordinator` теперь только делегирует подстановку и рассылает результат логерам. Это повысило MI `LogCoordinator` до 100.00, а `VariableSubstitutor` получил MI 46.66, что соответствует хорошей поддерживаемости.
-- **Декомпозиция парсера `iif`** – выделен класс `_IifArgSplitter`.
-  - **Проблема:** Метод `_split_iif_args` в `ExpressionEvaluator` имел высокую сложность (B10) из-за ручного парсинга с учётом вложенных скобок и строк. Это было трудно читать и тестировать.
-  - **Решение:** Создан отдельный класс `_IifArgSplitter`, который реализует конечный автомат для разбора аргументов. Каждый метод класса имеет сложность A(1–2), что сделало код прозрачным и легко тестируемым.
-- **Цепочка валидаторов для `_check_connections`.**
-  - **Проблема:** Метод `_check_connections` в `ActionProductMachine` содержал несколько правил в одном теле, что давало сложность B10 и затрудняло тестирование отдельных правил.
-  - **Решение:** Метод разбит на 4 приватных валидатора, каждый из которых проверяет одно правило соответствия переданных `connections` объявленным через `@connection`. Основной метод просто вызывает их по порядку. Сложность основного метода снижена до A(5), каждый валидатор имеет сложность A(1–2).
-- **Выделение координатора плагинов `PluginCoordinator`.**
-  - **Проблема:** Класс `ActionProductMachine` отвечал за слишком много обязанностей (аспекты, роли, connections, плагины, выполнение), что давало MI 48.45 и затрудняло изменение логики плагинов.
-  - **Решение:** Логика управления плагинами (инициализация состояний, кеширование обработчиков, асинхронный запуск с семафором) вынесена в отдельный класс `PluginCoordinator`. `ActionProductMachine` делегирует ему вызовы плагинов. MI основного класса повысился до 51.15, а `PluginCoordinator` имеет MI 64.22, что улучшает модульность и тестируемость.
-- **Улучшение `ReadableMixin.resolve`** – выделены шаги навигации.
-  - **Проблема:** Метод `resolve` содержал три стратегии обхода в одном цикле (сложность B9), что затрудняло добавление новых типов навигации (например, для `NamedTuple`) и увеличивало риск ошибок.
-  - **Решение:** Три стратегии вынесены в отдельные статические методы (`_resolve_step_readable`, `_resolve_step_dict`, `_resolve_step_generic`), а выбор стратегии – в метод `_resolve_one_step`. Сложность `resolve` снижена до A(5), каждый шаг имеет сложность A(1–2).
+- **Linter rule disabling** – added comments to each disabled rule in `pyproject.toml` explaining the reason.
+- **Automatic fixing** – added `lint-fix` and `pre-commit` commands to taskipy for automatic formatting fixes.
+
 ### Fixed
-- **Исправлена ошибка в `ExpressionEvaluator.evaluate_iif`** – теперь корректно обрабатываются строковые литералы в ветках: они возвращаются без кавычек, что позволяет использовать результат непосредственно в шаблоне.
-- **Исправлена проблема с булевыми литералами** – в выражениях теперь правильно распознаются `True` и `False` (вместо недопустимых `truefalse`).
-- **Устранены предупреждения `PytestCollectionWarning` для тестового класса `TestParams`** – класс переименован в `Params_Test` (игнорируется pytest).
-
-## [1.0.1] - 2026-03-16
-
-### Added
-- **Единый протокол доступа к данным** – введены интерфейсы `ReadableDataProtocol` и `WritableDataProtocol`.
-  - **Проблема:** В разных частях фреймворка (аспекты, плагины, тесты) использовались различные способы доступа к данным: одни обращались к атрибутам (`params.value`), другие ожидали словари (`state["key"]`). Это приводило к путанице, дублированию кода и сложностям при добавлении новых типов данных (TypedDict, пользовательские классы).
-  - **Решение:** Протоколы определяют единый интерфейс для чтения (`__getitem__`, `get`, `keys`, ...) и записи (`__setitem__`). Теперь любой объект, реализующий эти методы, может использоваться как `Params`, `Result` или `state` в плагинах.
-- **Миксины для dataclass** – `ReadableMixin` и `WritableMixin`.
-  - **Проблема:** Существующие dataclass-модели (`UserInfo`, `RequestInfo`, `EnvironmentInfo`, а также пользовательские `Params` и `Result`) не удовлетворяли новым протоколам. Переписывать их вручную было бы трудоёмко.
-  - **Решение:** Миксины автоматически реализуют протоколы через рефлексию (`getattr`, `setattr`). Достаточно унаследовать класс от `ReadableMixin` (и/или `WritableMixin`), и он сразу получает dict-подобный доступ без изменения существующего кода.
-- **Строгая типизация state**.
-  - **Проблема:** Ранее `state` был обычным словарём без какой-либо статической типизации. Это приводило к ошибкам времени выполнения (опечатки в ключах, неверные типы) и затрудняло рефакторинг.
-  - **Решение:** Теперь `state` должен типизироваться через `TypedDict` (или обычный dict с аннотациями). Каждый аспект получает и возвращает строго типизированное состояние. Mypy проверяет соответствие на этапе компиляции, а чекеры – во время выполнения.
-- **Асинхронные интерфейсы аутентификации**.
-  - **Проблема:** Компоненты `Authenticator`, `CredentialExtractor`, `ContextAssembler` и `AuthCoordinator` были синхронными, что не позволяло выполнять I/O-операции (например, проверку токена через внешний API) без блокировки event loop.
-  - **Решение:** Все методы переведены на `async def`. Теперь реализации могут использовать `await` для асинхронных вызовов. `AuthCoordinator.process()` также стал асинхронным и ожидает результаты компонентов.
-- **Безопасная инициализация плагинов**.
-  - **Проблема:** Метод `get_initial_state()` плагинов вызывался синхронно внутри асинхронного конвейера. Если реализация выполняла длительные операции (чтение файла, запрос к API), это блокировало event loop.
-  - **Решение:** Вызов перенесён в отдельный поток через `loop.run_in_executor`. Теперь даже «тяжёлая» инициализация не влияет на производительность.
-- **Dict-подобный доступ для компонентов контекста**.
-  - **Проблема:** Компоненты `UserInfo`, `RequestInfo` и `EnvironmentInfo` были обычными dataclass, к которым можно было обращаться только через атрибуты. Это ограничивало их использование в плагинах и логировании, где удобнее работать с dict.
-  - **Решение:** Классы унаследованы от `ReadableMixin`. Теперь к ним можно обращаться как `user["user_id"]`, что унифицирует доступ к данным и упрощает сериализацию.
-- **Руководство по миграции** – подробный документ с примерами перехода на новую версию (см. [docs/changelog/1.0.1-unified-data-protocol.md](docs/changelog/1.0.1-unified-data-protocol.md)).
+- **Fixed ABC import in `BaseAction.py`** – replaced incorrect import from `typing` with correct one from `abc` (runtime error).
+- **Fixed `authenticator` name conflict** – in `auth_coordinator.py`, renamed constructor parameter from `authenticator` to `auth_instance`, attribute kept as `self.authenticator` (fixed pylint W0621).
+- **Fixed `context` name conflict** – in all loggers (`base_logger.py`, `console_logger.py`, `log_coordinator.py`, `variable_substitutor.py`), renamed parameter `context` to `ctx`.
+- **Fixed newline warning** – added blank lines at the end of all files where they were missing (C0304).
+- **Fixed unnecessary `else` after `return`** – in `console_logger._format_line`, removed redundant branching (R1705).
 
 ### Changed
-- **Ядро (`ActionProductMachine`, `DependencyFactory`)** полностью переработано для работы через протоколы.
-  - **Причина:** Устранение жёсткой привязки к `BaseParams`/`BaseResult`. Теперь машина принимает любые объекты, удовлетворяющие `ReadableDataProtocol` (для `params`) и `WritableDataProtocol` (для `result`). Это открывает путь к использованию TypedDict, пользовательских классов и других структур.
-- **`BaseParams` и `BaseResult`** больше не являются абстрактными классами; они наследуют соответствующие миксины.
-  - **Причина:** Сохранение обратной совместимости. Существующие классы параметров и результатов продолжают работать, но теперь автоматически реализуют протоколы.
-- **Плагины** теперь получают данные через `PluginEvent` с чёткими типами: `params: ReadableDataProtocol`, `state_aspect: Optional[dict[str, object]]`, `result: Optional[WritableDataProtocol]`. Все стандартные плагины переписаны на dict-доступ.
-  - **Причина:** Обеспечение типобезопасности в плагинах и унификация доступа к данным.
-- **Метод `sync_run`** улучшен: добавлено более точное сообщение об ошибке при вызове из async-контекста.
-  - **Причина:** Раньше сообщение было неинформативным; теперь разработчик сразу понимает, что `sync_run` нельзя использовать внутри `async` функции.
-- **Тесты** обновлены для покрытия новых сценариев: TypedDict в качестве входных данных, state как dict, моки с side_effect, асинхронная аутентификация, dict-доступ к компонентам контекста.
+- **Improved code readability** – complex methods decomposed into smaller ones, added detailed comments.
+- **Updated documentation** – added usage examples for all key components.
 
 ### Removed
-- Устаревший атрибутный доступ к полям в ядре и плагинах. Теперь только `obj["key"]`.
-  - **Причина:** Унификация доступа и устранение дублирования кода.
-- Неиспользуемые импорты и мёртвый код (проверено `vulture`).
+- **Obsolete and unused imports** (checked with `vulture`).
+
+## [0.0.2] - 2026-03-17
+
+### Added
+- **Conditional logic in logging templates** – added support for the `{iif(condition; true_value; false_value)}` construct in logger messages.
+  - **Problem:** Previously only variable substitution `{%namespace.path}` was possible, but text could not be dynamically changed based on values (e.g., adding a "CRITICAL" marker for large amounts). This limited log expressiveness and forced developers to write additional checks in code.
+  - **Solution:** Introduced the `ExpressionEvaluator` class, which safely evaluates expressions inside `iif` using the `simpleeval` library. Supported operators: comparison (`==`, `!=`, `>`, `<`, `>=`, `<=`), logical (`and`, `or`, `not`), arithmetic (`+`, `-`, `*`, `/`), built-in functions (`len`, `upper`, `lower`, `format_number`). Variables are substituted as literals before evaluation, ensuring safety and predictability. If an expression is invalid, `LogTemplateError` is thrown (strict policy), allowing immediate detection of template errors.
+- **Extracted substitution logic into a separate class `VariableSubstitutor`.**
+  - **Problem:** The `LogCoordinator` class contained complex logic for resolving variables and evaluating `iif`, leading to high cyclomatic complexity (B10) and low Maintainability Index (MI 34.95). This hindered testing and further development.
+  - **Solution:** Moved all variable substitution and `iif` processing logic into a separate `VariableSubstitutor` class. `LogCoordinator` now only delegates substitution and broadcasts results to loggers. This raised MI of `LogCoordinator` to 100.00, and `VariableSubstitutor` got MI 46.66, indicating good maintainability.
+- **Decomposition of `iif` parser** – extracted class `_IifArgSplitter`.
+  - **Problem:** The `_split_iif_args` method in `ExpressionEvaluator` had high complexity (B10) due to manual parsing considering nested parentheses and strings. It was hard to read and test.
+  - **Solution:** Created a separate `_IifArgSplitter` class implementing a finite state machine for argument parsing. Each method of the class has complexity A(1–2), making the code transparent and easily testable.
+- **Validator chain for `_check_connections`.**
+  - **Problem:** The `_check_connections` method in `ActionProductMachine` contained multiple rules in one body, giving complexity B10 and making it difficult to test individual rules.
+  - **Solution:** Split the method into 4 private validators, each checking one rule of correspondence between passed `connections` and those declared via `@connection`. The main method simply calls them in order. Complexity of the main method reduced to A(5), each validator has complexity A(1–2).
+- **Extracted plugin coordinator `PluginCoordinator`.**
+  - **Problem:** The `ActionProductMachine` class was responsible for too many concerns (aspects, roles, connections, plugins, execution), resulting in MI 48.45 and making changes to plugin logic difficult.
+  - **Solution:** Moved plugin management logic (state initialization, handler caching, asynchronous execution with semaphore) into a separate `PluginCoordinator` class. `ActionProductMachine` delegates plugin calls to it. MI of the main class increased to 51.15, and `PluginCoordinator` has MI 64.22, improving modularity and testability.
+- **Improved `ReadableMixin.resolve`** – extracted navigation steps.
+  - **Problem:** The `resolve` method contained three traversal strategies in a single loop (complexity B9), making it difficult to add new navigation types (e.g., for `NamedTuple`) and increasing error risk.
+  - **Solution:** Extracted the three strategies into separate static methods (`_resolve_step_readable`, `_resolve_step_dict`, `_resolve_step_generic`), and strategy selection into `_resolve_one_step`. Complexity of `resolve` reduced to A(5), each step has complexity A(1–2).
 
 ### Fixed
-- Циклический импорт в `ActionProductMachine` (удалён неверный self-импорт).
-- Все ошибки `mypy --strict` (проект теперь полностью типизирован).
-- Достигнут максимальный рейтинг `pylint` (10.00/10) и нулевое количество предупреждений `vulture`.
-- Исправлена проблема с блокировкой event loop при инициализации состояний плагинов (выполнение в executor).
-- Исправлены отсутствующие `await` в `AuthCoordinator.process()`.
-- Исправлена ошибка типизации в `ActionTestMachine.run()` при возврате результата из `MockAction` (добавлен `cast`).
+- **Fixed error in `ExpressionEvaluator.evaluate_iif`** – now correctly handles string literals in branches: they are returned without quotes, allowing the result to be used directly in the template.
+- **Fixed issue with boolean literals** – expressions now correctly recognize `True` and `False` (instead of invalid `truefalse`).
+- **Eliminated `PytestCollectionWarning` for the test class `TestParams`** – renamed the class to `Params_Test` (ignored by pytest).
+
+## [0.0.1] - 2026-03-16
+
+### Added
+- **Unified data access protocol** – introduced interfaces `ReadableDataProtocol` and `WritableDataProtocol`.
+  - **Problem:** Different parts of the framework (aspects, plugins, tests) used various data access methods: some accessed attributes (`params.value`), others expected dictionaries (`state["key"]`). This led to confusion, code duplication, and difficulties when adding new data types (TypedDict, user classes).
+  - **Solution:** Protocols define a unified interface for reading (`__getitem__`, `get`, `keys`, ...) and writing (`__setitem__`). Now any object implementing these methods can be used as `Params`, `Result`, or `state` in plugins.
+- **Mixins for dataclasses** – `ReadableMixin` and `WritableMixin`.
+  - **Problem:** Existing dataclass models (`UserInfo`, `RequestInfo`, `EnvironmentInfo`, as well as user `Params` and `Result`) did not satisfy the new protocols. Rewriting them manually would be labor-intensive.
+  - **Solution:** Mixins automatically implement the protocols via reflection (`getattr`, `setattr`). Simply inherit a class from `ReadableMixin` (and/or `WritableMixin`), and it immediately gains dict-like access without changing existing code.
+- **Strict typing for `state`.**
+  - **Problem:** Previously, `state` was a plain dictionary without any static typing. This led to runtime errors (typos in keys, incorrect types) and hindered refactoring.
+  - **Solution:** Now `state` must be typed via `TypedDict` (or a plain dict with annotations). Each aspect receives and returns a strictly typed state. Mypy checks conformance at compile time, and checkers do so at runtime.
+- **Asynchronous authentication interfaces.**
+  - **Problem:** Components `Authenticator`, `CredentialExtractor`, `ContextAssembler`, and `AuthCoordinator` were synchronous, preventing I/O operations (e.g., token verification via external API) without blocking the event loop.
+  - **Solution:** All methods converted to `async def`. Implementations can now use `await` for asynchronous calls. `AuthCoordinator.process()` also became asynchronous and awaits component results.
+- **Safe plugin initialization.**
+  - **Problem:** The `get_initial_state()` method of plugins was called synchronously inside the async pipeline. If the implementation performed long operations (file reading, API request), it blocked the event loop.
+  - **Solution:** Moved the call to a separate thread via `loop.run_in_executor`. Now even "heavy" initialization does not affect performance.
+- **Dict-like access for context components.**
+  - **Problem:** Components `UserInfo`, `RequestInfo`, and `EnvironmentInfo` were plain dataclasses, accessible only via attributes. This limited their use in plugins and logging, where dict access is more convenient.
+  - **Solution:** Classes inherited from `ReadableMixin`. Now they can be accessed as `user["user_id"]`, unifying data access and simplifying serialization.
+- **Migration guide** – a detailed document with examples of transitioning to the new version.
+
+### Changed
+- **Core (`ActionProductMachine`, `DependencyFactory`)** completely reworked to work via protocols.
+  - **Reason:** Eliminate hard binding to `BaseParams`/`BaseResult`. Now the machine accepts any objects satisfying `ReadableDataProtocol` (for `params`) and `WritableDataProtocol` (for `result`). This opens the way to using TypedDict, user classes, and other structures.
+- **`BaseParams` and `BaseResult`** are no longer abstract classes; they inherit the corresponding mixins.
+  - **Reason:** Maintain backward compatibility. Existing parameter and result classes continue to work but now automatically implement the protocols.
+- **Plugins** now receive data via `PluginEvent` with clear types: `params: ReadableDataProtocol`, `state_aspect: Optional[dict[str, object]]`, `result: Optional[WritableDataProtocol]`. All standard plugins rewritten to dict access.
+  - **Reason:** Ensure type safety in plugins and unify data access.
+- **`sync_run` method** improved: added a more precise error message when called from an async context.
+  - **Reason:** Previously the message was uninformative; now the developer immediately understands that `sync_run` cannot be used inside an `async` function.
+- **Tests** updated to cover new scenarios: TypedDict as input data, `state` as dict, mocks with `side_effect`, asynchronous authentication, dict access to context components.
+
+### Removed
+- **Outdated attribute access to fields** in core and plugins. Now only `obj["key"]`.
+  - **Reason:** Unify access and eliminate code duplication.
+- **Unused imports and dead code** (checked with `vulture`).
+
+### Fixed
+- **Cyclic import in `ActionProductMachine`** (removed incorrect self-import).
+- **All `mypy --strict` errors** (project is now fully typed).
+- **Achieved maximum `pylint` rating (10.00/10)** and zero `vulture` warnings.
+- **Fixed event loop blocking** during plugin state initialization (execution in executor).
+- **Fixed missing `await` in `AuthCoordinator.process()`**.
+- **Fixed typing error in `ActionTestMachine.run()`** when returning result from `MockAction` (added `cast`).
 
 ## [1.0.0] - 2026-03-15
 
 ### Added
-- **Базовая архитектура AOA** – Actions как атомарные бизнес-операции, состоящие из линейной последовательности аспектов.
-- **Базовые классы** – `BaseAction`, `BaseParams`, `BaseResult` с поддержкой generics.
-- **Аспекты** – декораторы `@aspect` и `@summary_aspect` для объявления этапов выполнения. Аспекты вызываются строго в порядке определения в классе (сортировка по `co_firstlineno`).
-- **Декларативное DI** – декоратор `@depends` для объявления зависимостей действия. Поддержка параметра `factory` для кастомного создания объектов.
-- **Управление соединениями** – декоратор `@connection` для объявления ресурсных менеджеров. Автоматическая проверка соответствия переданных `connections` объявленным ключам.
-- **ActionProductMachine** – production-реализация машины действий с кэшированием аспектов, проверкой ролей, валидацией чекеров, поддержкой плагинов и вложенных вызовов.
-- **ActionTestMachine** – тестовая реализация с подменой зависимостей через словарь моков. Автоматическое оборачивание `BaseResult` и callable в `MockAction`.
-- **Плагины** – базовая плагинная система: класс `Plugin`, декоратор `@on` для подписки на события, изолированное состояние плагинов (`get_initial_state`), поддержка `ignore_exceptions`.
-- **PluginEvent** – dataclass с полной информацией о событии: `event_name`, `action_name`, `params`, `state_aspect`, `is_summary`, `deps`, `context`, `result`, `duration`, `nest_level`.
-- **Контекст выполнения** – классы `UserInfo`, `RequestInfo`, `EnvironmentInfo` и объединяющий их `Context`. Контекст создаётся до запуска действия и доступен только плагинам и машине.
-- **Аутентификация** – компоненты `CredentialExtractor`, `Authenticator`, `ContextAssembler` и координатор `AuthCoordinator` для формирования Context из запроса.
-- **Ролевая модель** – декоратор `@CheckRoles` обязателен для каждого действия. Поддержка специальных значений `NONE` (без аутентификации), `ANY` (любой аутентифицированный) и списка конкретных ролей.
-- **Чекеры** – система валидации результата аспектов через декораторы: `IntFieldChecker`, `StringFieldChecker`, `BoolFieldChecker`, `FloatFieldChecker`, `DateFieldChecker`, `InstanceOfChecker`. Каждый чекер проверяет наличие, тип и дополнительные ограничения поля.
-- **Ресурсные менеджеры** – базовая иерархия: `BaseResourceManager`, `IConnectionManager`, конкретные реализации `PostgresConnectionManager` и прокси-обёртка `WrapperConnectionManager` для безопасной передачи соединений в дочерние действия.
-- **Исключения** – иерархия исключений: `AuthorizationException`, `ValidationFieldException`, `HandleException`, `TransactionException`, `ConnectionAlreadyOpenError`, `ConnectionNotOpenError`, `TransactionProhibitedError`, `ConnectionValidationError`.
-- **Вспомогательные утилиты** – `CoreHelper.run_in_thread` для выполнения синхронного кода в отдельном потоке без блокировки event loop.
-- **Тесты** – полный набор тестов, демонстрирующих работу аспектов, DI, вложенных действий, плагинов, моков и интеграции с внешними DI-контейнерами (inject).
+- **Basic AOA architecture** – Actions as atomic business operations consisting of a linear sequence of aspects.
+- **Base classes** – `BaseAction`, `BaseParams`, `BaseResult` with generics support.
+- **Aspects** – decorators `@aspect` and `@summary_aspect` for declaring execution stages. Aspects are called strictly in the order defined in the class (sorted by `co_firstlineno`).
+- **Declarative DI** – `@depends` decorator for declaring action dependencies. Support for `factory` parameter for custom object creation.
+- **Connection management** – `@connection` decorator for declaring required resource managers. Automatic validation of passed `connections` against declared keys.
+- **ActionProductMachine** – production implementation of the action machine with aspect caching, role checking, checker validation, plugin support, and nested calls.
+- **ActionTestMachine** – test implementation with dependency mocking via a dictionary of mocks. Automatic wrapping of `BaseResult` and callable into `MockAction`.
+- **Plugins** – basic plugin system: `Plugin` class, `@on` decorator for event subscription, isolated plugin state (`get_initial_state`), `ignore_exceptions` support.
+- **PluginEvent** – dataclass with full event information: `event_name`, `action_name`, `params`, `state_aspect`, `is_summary`, `deps`, `context`, `result`, `duration`, `nest_level`.
+- **Execution context** – classes `UserInfo`, `RequestInfo`, `EnvironmentInfo` and the unifying `Context`. Context is created before action execution and accessible only to plugins and the machine.
+- **Authentication** – components `CredentialExtractor`, `Authenticator`, `ContextAssembler` and coordinator `AuthCoordinator` to form Context from a request.
+- **Role model** – `@CheckRoles` decorator is mandatory for each action. Support for special values `NONE` (no authentication), `ANY` (any authenticated user), and a list of specific roles.
+- **Checkers** – result validation system for aspects via decorators: `IntFieldChecker`, `StringFieldChecker`, `BoolFieldChecker`, `FloatFieldChecker`, `DateFieldChecker`, `InstanceOfChecker`. Each checker validates presence, type, and additional field constraints.
+- **Resource managers** – basic hierarchy: `BaseResourceManager`, `IConnectionManager`, concrete implementation `PostgresConnectionManager`, and proxy wrapper `WrapperConnectionManager` for safe connection passing to child actions.
+- **Exceptions** – exception hierarchy: `AuthorizationException`, `ValidationFieldException`, `HandleException`, `TransactionException`, `ConnectionAlreadyOpenError`, `ConnectionNotOpenError`, `TransactionProhibitedError`, `ConnectionValidationError`.
+- **Helper utilities** – `CoreHelper.run_in_thread` to execute synchronous code in a separate thread without blocking the event loop.
+- **Tests** – comprehensive test suite demonstrating aspects, DI, nested actions, plugins, mocks, and integration with external DI containers (inject).

@@ -4,13 +4,8 @@
 Наследует от ActionProductMachine и полностью асинхронна (как и родитель).
 Позволяет подменять зависимости через словарь моков.
 
-Примечание к рефакторингу:
-После выделения PluginCoordinator из ActionProductMachine,
-ActionTestMachine не требует изменений в логике — он наследует
-от ActionProductMachine, который теперь использует
-self._plugin_coordinator вместо прямых вызовов _run_plugins_async.
-Единственное изменение — удалён неиспользуемый импорт asyncio
-(если был).
+Конструктор теперь принимает mode (передаётся в родитель) и log_coordinator.
+По умолчанию mode="test", что соответствует режиму тестирования.
 """
 
 from typing import Any, TypeVar, cast
@@ -22,6 +17,7 @@ from action_machine.Core.BaseParams import BaseParams
 from action_machine.Core.BaseResult import BaseResult
 from action_machine.Core.DependencyFactory import DependencyFactory
 from action_machine.Core.MockAction import MockAction
+from action_machine.Logging.log_coordinator import LogCoordinator
 from action_machine.ResourceManagers.BaseResourceManager import BaseResourceManager
 
 P = TypeVar("P", bound=BaseParams)
@@ -48,6 +44,8 @@ class ActionTestMachine(ActionProductMachine):
         self,
         mocks: dict[type[Any], Any] | None = None,
         ctx: Context | None = None,
+        mode: str = "test",
+        log_coordinator: LogCoordinator | None = None,
     ) -> None:
         """
         Инициализирует тестовую машину.
@@ -55,15 +53,15 @@ class ActionTestMachine(ActionProductMachine):
         Аргументы:
             mocks: словарь подмен {класс_зависимости: значение_мока}.
             ctx: контекст выполнения (по умолчанию пустой Context).
-
-        Примечание:
-            Параметр переименован из `context` в `ctx`, чтобы не затенять
-            импортированный класс `context`. Ранее вызов `context()` в
-            выражении `context if context is not None else context()`
-            приводил к ошибке mypy "None" not callable, потому что
-            имя параметра перекрывало имя класса.
+            mode: режим выполнения (по умолчанию "test"). Передаётся в родитель.
+            log_coordinator: координатор логирования. Если не указан, родитель создаст
+                             координатор с ConsoleLogger по умолчанию.
         """
-        super().__init__(ctx if ctx is not None else Context())
+        super().__init__(
+            context=ctx if ctx is not None else Context(),
+            mode=mode,
+            log_coordinator=log_coordinator,
+        )
         self._mocks: dict[type[Any], Any] = mocks or {}
         self._prepared_mocks: dict[type[Any], Any] = {}
         for cls, val in self._mocks.items():
@@ -139,6 +137,4 @@ class ActionTestMachine(ActionProductMachine):
         аспектов (без внешних ресурсов).
         """
         deps_info = getattr(action_class, "_dependencies", [])
-        # Явно указываем тип для параметра
-        external_resources: dict[type[Any], Any] | None = None
-        return DependencyFactory(self, deps_info, external_resources)
+        return DependencyFactory(self, deps_info, self._prepared_mocks)

@@ -8,6 +8,7 @@
 
 Строгая типизация: все параметры и возвращаемые значения аннотированы.
 state заменён с dict на BaseState.
+Обновлено: добавлен параметр log в аспект SimpleAction.
 """
 
 import warnings
@@ -23,7 +24,7 @@ from action_machine.Core.BaseParams import BaseParams
 from action_machine.Core.BaseResult import BaseResult
 from action_machine.Core.BaseState import BaseState
 from action_machine.Core.DependencyFactory import DependencyFactory
-
+from action_machine.Logging.action_bound_logger import ActionBoundLogger
 
 ################################################################################
 # Вспомогательные классы
@@ -32,13 +33,11 @@ from action_machine.Core.DependencyFactory import DependencyFactory
 
 class MockParams(BaseParams):
     """Пустые параметры для тестового действия."""
-
     pass
 
 
 class MockResult(BaseResult):
     """Пустой результат для тестового действия."""
-
     pass
 
 
@@ -57,6 +56,7 @@ class SimpleAction(BaseAction[MockParams, MockResult]):
         state: BaseState,
         deps: DependencyFactory,
         connections: dict[str, object],
+        log: ActionBoundLogger,  # добавлен параметр log
     ) -> MockResult:
         """
         Основной аспект действия.
@@ -66,10 +66,12 @@ class SimpleAction(BaseAction[MockParams, MockResult]):
             state:       состояние конвейера аспектов.
             deps:        фабрика зависимостей.
             connections: словарь подключений.
+            log:         привязанный логер (не используется в тесте, но обязателен).
 
         Возвращает:
             MockResult: пустой результат.
         """
+        # Для теста можем ничего не делать с log
         return MockResult()
 
 
@@ -89,7 +91,7 @@ class TestSyncRun:
             - Вызов sync_run без активного event loop завершается успешно.
             - Возвращённый объект является экземпляром MockResult.
         """
-        machine: ActionProductMachine = ActionProductMachine(Context())
+        machine: ActionProductMachine = ActionProductMachine(Context(), mode="test")
         action: SimpleAction = SimpleAction()
         params: MockParams = MockParams()
 
@@ -110,7 +112,7 @@ class TestSyncRun:
         Проверяет:
             - RuntimeError с сообщением "cannot be called from a running event loop".
         """
-        machine: ActionProductMachine = ActionProductMachine(Context())
+        machine: ActionProductMachine = ActionProductMachine(Context(), mode="test")
         action: SimpleAction = SimpleAction()
         params: MockParams = MockParams()
 

@@ -1,318 +1,220 @@
 """
-Тесты декораторов аспектов: @aspect, @summary_aspect, @depends, @connection.
+Протокол аспектных методов и декораторы для их объявления.
 
-Проверяем:
-- Установку атрибутов _is_aspect, _aspect_description, _aspect_type
-- Ошибку TypeError для не-async функций
-- Добавление зависимостей через @depends
-- Добавление соединений через @connection
-- Копирование списков при наследовании (не мутировать родительские)
+Содержит:
+- AspectMethod — протокол, описывающий методы с атрибутами аспектов.
+- aspect() — декоратор для обычных аспектов.
+- summary_aspect() — декоратор для главного (summary) аспекта.
+- depends() — декоратор для объявления зависимостей действия.
+- connection() — декоратор для объявления соединений, необходимых действию.
+
+Все аспекты обязаны принимать параметр `log` (шестой) типа ActionBoundLogger.
 """
 
-import pytest
-from typing import Any
+import inspect
+from collections.abc import Callable
+from typing import Any, Protocol, cast, runtime_checkable
 
-from action_machine.Core.AspectMethod import aspect, summary_aspect, depends, connection
-from action_machine.Core.BaseAction import BaseAction
-from action_machine.Core.BaseParams import BaseParams
-from action_machine.Core.BaseResult import BaseResult
 from action_machine.Core.BaseState import BaseState
 from action_machine.Core.DependencyFactory import DependencyFactory
+from action_machine.Logging.action_bound_logger import ActionBoundLogger
 from action_machine.ResourceManagers.BaseResourceManager import BaseResourceManager
 
 
-# ----------------------------------------------------------------------
-# Вспомогательные классы
-# ----------------------------------------------------------------------
-class MockParams(BaseParams):
-    """Тестовые параметры."""
-    pass
+@runtime_checkable
+class AspectMethod(Protocol):
+    """
+    Протокол, описывающий методы, помеченные декораторами aspect/summary_aspect.
+
+    Атрибуты:
+        _is_aspect: флаг, что метод является аспектом.
+        _aspect_description: текстовое описание аспекта.
+        _aspect_type: тип аспекта ('regular' или 'summary').
+        __code__: объект кода (для сортировки по номеру строки).
+        __name__: имя метода.
+        __qualname__: квалифицированное имя метода.
+        __call__: сигнатура вызова метода (асинхронная).
+    """
+
+    _is_aspect: bool
+    _aspect_description: str
+    _aspect_type: str
+    __code__: Any
+    __name__: str
+    __qualname__: str
+
+    async def __call__(
+        self,
+        action: Any,  # экземпляр действия, self
+        params: Any,
+        state: BaseState,
+        deps: DependencyFactory,
+        connections: dict[str, BaseResourceManager],
+        log: ActionBoundLogger,  # привязанный логер (шестой параметр)
+    ) -> Any:
+        """
+        Вызов аспекта. Все аспекты должны быть асинхронными и принимать
+        указанные параметры, включая log.
+
+        Аргументы:
+            action: экземпляр действия (self).
+            params: параметры действия (наследник BaseParams).
+            state: текущее состояние конвейера (BaseState).
+            deps: фабрика зависимостей.
+            connections: словарь ресурсных менеджеров.
+            log: привязанный логер для сквозного логирования.
+
+        Возвращает:
+            Для регулярных аспектов — словарь с обновлённым состоянием.
+            Для summary-аспекта — результат действия (BaseResult).
+        """
+        ...
 
 
-class MockResult(BaseResult):
-    """Тестовый результат."""
-    pass
+def aspect(description: str) -> Callable[[Callable[..., Any]], AspectMethod]:
+    """
+    Декоратор для обычных аспектов.
+
+    Помечает метод как регулярный аспект, который выполняется перед summary.
+    Метод должен быть асинхронным (async def) и принимать
+    (self, params, state, deps, connections, log) и возвращать dict.
+
+    Аргументы:
+        description: текстовое описание аспекта (для документации и логирования).
+
+    Возвращает:
+        Декоратор, который добавляет атрибуты аспекта к методу.
+
+    Исключения:
+        TypeError: если метод не является корутиной.
+    """
+
+    def decorator(method: Callable[..., Any]) -> AspectMethod:
+        if not inspect.iscoroutinefunction(method):
+            raise TypeError(f"Аспект '{method.__name__}' должен быть async def. В AOA все аспекты асинхронные.")
+        method._is_aspect = True  # type: ignore[attr-defined]
+        method._aspect_description = description  # type: ignore[attr-defined]
+        method._aspect_type = "regular"  # type: ignore[attr-defined]
+        return cast(AspectMethod, method)
+
+    return decorator
 
 
-class MockAction(BaseAction[MockParams, MockResult]):
-    """Базовое тестовое действие."""
-    pass
+def summary_aspect(description: str) -> Callable[[Callable[..., Any]], AspectMethod]:
+    """
+    Декоратор для главного аспекта (должен быть ровно один в каждом действии).
+
+    Summary-аспект выполняется последним и возвращает итоговый Result.
+    Должен быть асинхронным (async def).
+    Метод принимает (self, params, state, deps, connections, log).
+
+    Аргументы:
+        description: текстовое описание аспекта (для документации и логирования).
+
+    Возвращает:
+        Декоратор, который добавляет атрибуты summary-аспекта к методу.
+
+    Исключения:
+        TypeError: если метод не является корутиной.
+    """
+
+    def decorator(method: Callable[..., Any]) -> AspectMethod:
+        if not inspect.iscoroutinefunction(method):
+            raise TypeError(f"Summary-аспект '{method.__name__}' должен быть async def. В AOA все аспекты асинхронные.")
+        method._is_aspect = True  # type: ignore[attr-defined]
+        method._aspect_description = description  # type: ignore[attr-defined]
+        method._aspect_type = "summary"  # type: ignore[attr-defined]
+        return cast(AspectMethod, method)
+
+    return decorator
 
 
-class MockResourceManager(BaseResourceManager):
-    """Тестовый ресурсный менеджер."""
+def depends(
+    klass: type[Any],
+    *,
+    description: str = "",
+    factory: Callable[[], Any] | None = None,
+) -> Callable[[type[Any]], type[Any]]:
+    """
+    Декоратор для объявления зависимости действия от любого класса.
 
-    def get_wrapper_class(self) -> type[BaseResourceManager] | None:
-        return None
+    Может использоваться несколько раз для одного действия.
+    Создаёт новый список зависимостей для каждого класса (не мутирует родительский).
 
+    Аргументы:
+        klass: класс зависимости (может быть Action, сервис, репозиторий и т.д.)
+        description: описание зависимости (для документации).
+        factory: опциональная фабрика для создания экземпляра.
+            Если не указана, используется конструктор по умолчанию.
 
-# ======================================================================
-# ТЕСТЫ: @aspect
-# ======================================================================
-class TestAspectDecorator:
-    """Проверка декоратора @aspect."""
+    Возвращает:
+        Декоратор, который добавляет информацию о зависимости в атрибут _dependencies.
+    """
 
-    def test_aspect_sets_correct_attributes(self) -> None:
-        """@aspect должен установить _is_aspect, _aspect_description, _aspect_type='regular'."""
+    def decorator(cls: type[Any]) -> type[Any]:
+        # Создаём НОВЫЙ список, копируя родительский (если есть)
+        deps = list(getattr(cls, "_dependencies", []))
+        deps.append(
+            {
+                "class": klass,
+                "description": description,
+                "factory": factory,
+            }
+        )
+        cls._dependencies = deps
+        return cls
 
-        class TestAction(MockAction):
-            @aspect("Описание аспекта")
-            async def my_aspect(
-                self,
-                params: MockParams,
-                state: BaseState,
-                deps: DependencyFactory,
-                connections: dict[str, BaseResourceManager],
-            ) -> dict[str, object]:
-                return {}
-
-        assert hasattr(TestAction.my_aspect, "_is_aspect")
-        assert TestAction.my_aspect._is_aspect is True
-        assert TestAction.my_aspect._aspect_description == "Описание аспекта"
-        assert TestAction.my_aspect._aspect_type == "regular"
-
-    def test_aspect_on_sync_function_raises_type_error(self) -> None:
-        """@aspect должен кидать TypeError, если функция не async."""
-
-        with pytest.raises(TypeError, match="должен быть async def"):
-
-            class TestAction(MockAction):
-                @aspect("Синхронный")
-                def my_aspect(  # type: ignore[misc]
-                    self,
-                    params: MockParams,
-                    state: BaseState,
-                    deps: DependencyFactory,
-                    connections: dict[str, BaseResourceManager],
-                ) -> dict[str, object]:
-                    return {}
-
-    def test_aspect_preserves_method_metadata(self) -> None:
-        """@aspect не должен затирать имя и другие атрибуты метода."""
-
-        class TestAction(MockAction):
-            @aspect("Тест")
-            async def my_aspect(
-                self,
-                params: MockParams,
-                state: BaseState,
-                deps: DependencyFactory,
-                connections: dict[str, BaseResourceManager],
-            ) -> dict[str, object]:
-                """docstring"""
-                return {}
-
-        assert TestAction.my_aspect.__name__ == "my_aspect"
-        assert TestAction.my_aspect.__doc__ == "docstring"
+    return decorator
 
 
-# ======================================================================
-# ТЕСТЫ: @summary_aspect
-# ======================================================================
-class TestSummaryAspectDecorator:
-    """Проверка декоратора @summary_aspect."""
+def connection(
+    key: str,
+    klass: type[BaseResourceManager],
+    *,
+    description: str = "",
+) -> Callable[[type[Any]], type[Any]]:
+    """
+    Декоратор для объявления соединения, необходимого действию.
 
-    def test_summary_aspect_sets_correct_attributes(self) -> None:
-        """@summary_aspect должен установить _aspect_type='summary'."""
+    Используется на уровне класса действия для декларации того,
+    какие ресурсные менеджеры (соединения) ожидает действие.
+    ActionMachine проверяет соответствие переданных connections
+    и объявленных через @connection перед выполнением аспектов.
 
-        class TestAction(MockAction):
-            @summary_aspect("Главный аспект")
-            async def my_summary(
-                self,
-                params: MockParams,
-                state: BaseState,
-                deps: DependencyFactory,
-                connections: dict[str, BaseResourceManager],
-            ) -> MockResult:
-                return MockResult()
+    Может использоваться несколько раз для одного действия (несколько соединений).
+    Создаёт новый список соединений для каждого класса (не мутирует родительский).
 
-        assert hasattr(TestAction.my_summary, "_is_aspect")
-        assert TestAction.my_summary._is_aspect is True
-        assert TestAction.my_summary._aspect_description == "Главный аспект"
-        assert TestAction.my_summary._aspect_type == "summary"
+    Аргументы:
+        key: строковое имя ключа в словаре connections (и в TypedDict).
+            Например: "connection", "cache", "analytics_db".
+        klass: класс ресурсного менеджера (наследник BaseResourceManager).
+        description: описание соединения (для документации).
 
-    def test_summary_aspect_on_sync_function_raises_type_error(self) -> None:
-        """@summary_aspect должен кидать TypeError, если функция не async."""
+    Возвращает:
+        Декоратор, который добавляет информацию о соединении в атрибут _connections.
 
-        with pytest.raises(TypeError, match="должен быть async def"):
+    Пример:
+        @connection("connection", PostgresConnectionManager, description="Основная БД")
+        @connection("cache", RedisConnectionManager, description="Кеш")
+        class MyAction(BaseAction[...]):
+            ...
 
-            class TestAction(MockAction):
-                @summary_aspect("Синхронный")
-                def my_summary(  # type: ignore[misc]
-                    self,
-                    params: MockParams,
-                    state: BaseState,
-                    deps: DependencyFactory,
-                    connections: dict[str, BaseResourceManager],
-                ) -> MockResult:
-                    return MockResult()
+        # В аспектах доступно:
+        #   connections["connection"]  — PostgresConnectionManager (или прокси)
+        #   connections["cache"]       — RedisConnectionManager (или прокси)
+    """
 
+    def decorator(cls: type[Any]) -> type[Any]:
+        # Создаём НОВЫЙ список, копируя родительский (если есть)
+        conns = list(getattr(cls, "_connections", []))
+        conns.append(
+            {
+                "key": key,
+                "class": klass,
+                "description": description,
+            }
+        )
+        cls._connections = conns
+        return cls
 
-# ======================================================================
-# ТЕСТЫ: @depends
-# ======================================================================
-class TestDependsDecorator:
-    """Проверка декоратора @depends."""
-
-    def test_depends_adds_dependency(self) -> None:
-        """@depends добавляет запись в _dependencies класса."""
-
-        @depends(str, description="Строковый сервис")
-        class TestAction(MockAction):
-            @summary_aspect("test")
-            async def summary(
-                self,
-                params: MockParams,
-                state: BaseState,
-                deps: DependencyFactory,
-                connections: dict[str, BaseResourceManager],
-            ) -> MockResult:
-                return MockResult()
-
-        assert hasattr(TestAction, "_dependencies")
-        assert len(TestAction._dependencies) == 1
-        dep = TestAction._dependencies[0]
-        assert dep["class"] == str
-        assert dep["description"] == "Строковый сервис"
-        assert dep["factory"] is None
-
-    def test_depends_with_factory(self) -> None:
-        """@depends может принимать фабрику."""
-
-        def factory() -> str:
-            return "created"
-
-        @depends(int, description="Число", factory=factory)
-        class TestAction(MockAction):
-            @summary_aspect("test")
-            async def summary(
-                self,
-                params: MockParams,
-                state: BaseState,
-                deps: DependencyFactory,
-                connections: dict[str, BaseResourceManager],
-            ) -> MockResult:
-                return MockResult()
-
-        dep = TestAction._dependencies[0]
-        assert dep["class"] == int
-        assert dep["factory"] is factory
-
-    def test_depends_multiple_decorators(self) -> None:
-        """Несколько @depends добавляются в список."""
-        # Декораторы применяются снизу вверх:
-        # сначала @depends(float), затем @depends(int), затем @depends(str)
-        # Каждый последующий добавляет в конец, но порядок не гарантирован.
-        @depends(str)
-        @depends(int)
-        @depends(float)
-        class TestAction(MockAction):
-            @summary_aspect("test")
-            async def summary(
-                self,
-                params: MockParams,
-                state: BaseState,
-                deps: DependencyFactory,
-                connections: dict[str, BaseResourceManager],
-            ) -> MockResult:
-                return MockResult()
-
-        assert len(TestAction._dependencies) == 3
-        classes = {d["class"] for d in TestAction._dependencies}
-        assert classes == {str, int, float}
-
-    def test_depends_does_not_mutate_parent_class(self) -> None:
-        """Список зависимостей копируется, родительский класс не изменяется."""
-
-        class Parent(MockAction):
-            pass
-
-        @depends(str)
-        class Child(Parent):
-            @summary_aspect("test")
-            async def summary(
-                self,
-                params: MockParams,
-                state: BaseState,
-                deps: DependencyFactory,
-                connections: dict[str, BaseResourceManager],
-            ) -> MockResult:
-                return MockResult()
-
-        # Parent не должен получить _dependencies от декоратора Child
-        assert "_dependencies" not in Parent.__dict__
-        assert hasattr(Child, "_dependencies")
-        assert len(Child._dependencies) == 1
-
-
-# ======================================================================
-# ТЕСТЫ: @connection
-# ======================================================================
-class TestConnectionDecorator:
-    """Проверка декоратора @connection."""
-
-    def test_connection_adds_connection_info(self) -> None:
-        """@connection добавляет запись в _connections класса."""
-
-        @connection("db", MockResourceManager, description="База данных")
-        class TestAction(MockAction):
-            @summary_aspect("test")
-            async def summary(
-                self,
-                params: MockParams,
-                state: BaseState,
-                deps: DependencyFactory,
-                connections: dict[str, BaseResourceManager],
-            ) -> MockResult:
-                return MockResult()
-
-        assert hasattr(TestAction, "_connections")
-        assert len(TestAction._connections) == 1
-        conn = TestAction._connections[0]
-        assert conn["key"] == "db"
-        assert conn["class"] == MockResourceManager
-        assert conn["description"] == "База данных"
-
-    def test_connection_multiple_decorators(self) -> None:
-        """Несколько @connection добавляются в список."""
-        # Декораторы применяются снизу вверх:
-        # сначала @connection("cache", ...), затем @connection("db", ...)
-        @connection("db", MockResourceManager)
-        @connection("cache", MockResourceManager)
-        class TestAction(MockAction):
-            @summary_aspect("test")
-            async def summary(
-                self,
-                params: MockParams,
-                state: BaseState,
-                deps: DependencyFactory,
-                connections: dict[str, BaseResourceManager],
-            ) -> MockResult:
-                return MockResult()
-
-        assert len(TestAction._connections) == 2
-        keys = {c["key"] for c in TestAction._connections}
-        assert keys == {"db", "cache"}
-
-    def test_connection_does_not_mutate_parent_class(self) -> None:
-        """Список соединений копируется, родительский класс не изменяется."""
-
-        class Parent(MockAction):
-            pass
-
-        @connection("db", MockResourceManager)
-        class Child(Parent):
-            @summary_aspect("test")
-            async def summary(
-                self,
-                params: MockParams,
-                state: BaseState,
-                deps: DependencyFactory,
-                connections: dict[str, BaseResourceManager],
-            ) -> MockResult:
-                return MockResult()
-
-        # Parent не должен получить _connections от декоратора Child
-        assert "_connections" not in Parent.__dict__
-        assert hasattr(Child, "_connections")
-        assert len(Child._connections) == 1
+    return decorator

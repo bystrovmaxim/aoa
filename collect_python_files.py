@@ -173,6 +173,6 @@ if __name__ == "__main__":
         output_file="archive/logs/code.txt",
         exclude_dirs=[
             "__pycache__", ".venv", "venv", ".git",
-            ".pytest_cache", ".ruff_cache", ".mypy_cache",
+            ".pytest_cache", ".ruff_cache", ".mypy_cache"
         ],
     ).collect()

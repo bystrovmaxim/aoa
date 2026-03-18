@@ -50,6 +50,7 @@ LogCoordinator, ни в VariableSubstitutor. Если логер сломан,
 ... )
 """
 
+from .action_bound_logger import ActionBoundLogger
 from .base_logger import BaseLogger
 from .console_logger import ConsoleLogger
 from .log_coordinator import LogCoordinator
@@ -57,9 +58,10 @@ from .log_scope import LogScope
 from .variable_substitutor import VariableSubstitutor
 
 __all__ = [
-    "LogCoordinator",  # координатор — единая шина логирования
-    "BaseLogger",  # абстрактный базовый класс для всех логеров
-    "ConsoleLogger",  # логер с выводом в консоль через print
-    "LogScope",  # скоуп — обёртка над словарём местоположения в конвейере
-    "VariableSubstitutor",  # подстановщик переменных {%...} и вычислитель {iif(...)}
+    "LogCoordinator",          # координатор — единая шина логирования
+    "BaseLogger",              # абстрактный базовый класс для всех логеров
+    "ConsoleLogger",           # логер с выводом в консоль через print
+    "LogScope",                # скоуп — обёртка над словарём местоположения в конвейере
+    "VariableSubstitutor",     # подстановщик переменных {%...} и вычислитель {iif(...)}
+    "ActionBoundLogger",       # привязанный к аспекту логер
 ]

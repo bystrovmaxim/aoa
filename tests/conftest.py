@@ -3,9 +3,12 @@
 Pytest подхватывает этот файл без явного импорта.
 """
 from __future__ import annotations
+
 from dataclasses import dataclass
 from typing import Any
+
 import pytest
+
 from action_machine.Context.context import Context
 from action_machine.Context.environment_info import EnvironmentInfo
 from action_machine.Context.request_info import RequestInfo
