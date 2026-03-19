@@ -1,6 +1,6 @@
 """
-Базовый класс для всех плагинов ActionMachine.
-Обработчики получают один аргумент event: PluginEvent.
+Base class for all ActionMachine plugins.
+Handlers receive a single argument event: PluginEvent.
 """
 
 from abc import ABC, abstractmethod
@@ -10,52 +10,52 @@ from typing import Any
 
 class Plugin(ABC):
     """
-    Абстрактный базовый класс для всех плагинов.
+    Abstract base class for all plugins.
 
-    Каждый плагин должен реализовать метод ``get_initial_state``, возвращающий начальное
-    состояние для одного запуска действия. Состояние будет передаваться во все обработчики
-    плагина, и каждый обработчик обязан вернуть обновлённое состояние.
+    Each plugin must implement the asynchronous method ``get_initial_state``,
+    which returns the initial state for one action run. The state will be
+    passed to all plugin handlers, and each handler must return the updated state.
 
-    Плагины не должны хранить состояние в атрибутах экземпляра, так как оно должно быть
-    изолировано для каждого вызова ``run``. Вместо этого состояние управляется машиной и
-    передаётся через параметр ``state_plugin`` в каждый обработчик.
+    Plugins should not store state in instance attributes, as it must be isolated
+    for each ``run`` call. Instead, the state is managed by the machine and
+    passed via the ``state_plugin`` parameter to each handler.
 
-    Методы-обработчики помечаются декоратором ``@on`` из модуля ``Decorators``. Они должны быть
-    асинхронными (определены с ``async def``), даже если не содержат ``await``,
-    так как вызываются машиной через ``await``.
+    Handler methods are marked with the ``@on`` decorator from the ``Decorators`` module.
+    They must be asynchronous (defined with ``async def``), even if they do not contain
+    ``await``, because the machine calls them with ``await``.
     """
 
     @abstractmethod
-    def get_initial_state(self) -> object:
+    async def get_initial_state(self) -> object:
         """
-        Возвращает начальное состояние плагина для одного выполнения действия.
+        Returns the initial state of the plugin for a single action execution.
 
-        Этот метод вызывается машиной перед первым запуском любого обработчика
-        данного плагина в рамках текущего вызова ``run``. Возвращаемое значение
-        может быть любого типа (обычно словарь или пользовательский объект).
-        Оно будет передано во все обработчики как первый аргумент ``state_plugin``,
-        и каждый обработчик должен вернуть новое состояние.
+        This method is called by the machine before the first execution of any handler
+        of this plugin within the current ``run`` call. The return value can be of any
+        type (usually a dictionary or a custom object). It will be passed to all handlers
+        as the first argument ``state_plugin``, and each handler must return the new state.
 
-        Возвращает:
-            Начальное состояние для данного запуска.
+        Returns:
+            Initial state for this run.
         """
         ...
 
     def get_handlers(self, event_name: str, class_name: str) -> list[tuple[Callable[..., Any], bool]]:
         """
-        Возвращает список подходящих обработчиков для данного события и класса действия.
+        Returns a list of matching handlers for the given event and action class.
 
-        Метод перебирает все методы экземпляра, ищет среди них помеченные декоратором ``@on``,
-        и проверяет, соответствуют ли регулярные выражения из подписок переданным
-        ``event_name`` и ``class_name``. Если соответствие найдено, метод добавляется в результат
-        вместе с флагом ``ignore_exceptions`` из соответствующей подписки.
+        This method iterates over all instance methods, looks for those marked with the
+        ``@on`` decorator, and checks whether the regular expressions from the subscriptions
+        match the given ``event_name`` and ``class_name``. If a match is found, the method
+        is added to the result together with the ``ignore_exceptions`` flag from the corresponding
+        subscription.
 
-        Аргументы:
-            event_name: имя события (например, 'before:choose_channel').
-            class_name: полное имя класса действия (включая модуль).
+        Args:
+            event_name: event name (e.g., 'before:choose_channel').
+            class_name: full class name of the action (including module).
 
-        Возвращает:
-            Список кортежей (метод-обработчик, ignore_exceptions) для всех подходящих подписок.
+        Returns:
+            List of (handler method, ignore_exceptions) tuples for all matching subscriptions.
         """
         handlers: list[tuple[Callable[..., Any], bool]] = []
         for method_name in dir(self):

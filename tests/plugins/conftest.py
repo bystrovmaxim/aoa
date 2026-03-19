@@ -1,6 +1,6 @@
 """
-Фикстуры и тестовые плагины для тестирования PluginCoordinator.
-Все тестовые плагины вынесены сюда для переиспользования.
+Fixtures and test plugins for testing PluginCoordinator.
+All test plugins are placed here for reuse.
 """
 
 import asyncio
@@ -18,18 +18,18 @@ from action_machine.Plugins.Plugin import Plugin
 from action_machine.Plugins.PluginEvent import PluginEvent
 
 # ======================================================================
-# ТЕСТОВЫЕ ПЛАГИНЫ
+# TEST PLUGINS
 # ======================================================================
 
 
 class PluginTestBase(Plugin):
     """
-    Базовый тестовый плагин.
+    Base test plugin.
 
-    Предоставляет:
-    - Имя плагина для идентификации
-    - Счетчик вызовов в состоянии
-    - Список вызванных обработчиков для проверки
+    Provides:
+    - Plugin name for identification
+    - Call counter in state
+    - List of called handlers for verification
     """
 
     def __init__(self, name="test"):
@@ -37,22 +37,22 @@ class PluginTestBase(Plugin):
         self.initial_state = {"counter": 0}
         self.handlers_called = []
 
-    def get_initial_state(self):
-        """Возвращает копию начального состояния."""
+    async def get_initial_state(self):
+        """Returns a copy of the initial state (async)."""
         return self.initial_state.copy()
 
 
 class SimplePlugin(PluginTestBase):
     """
-    Плагин с одним обработчиком для тестирования базовых сценариев.
+    Plugin with a single handler for testing basic scenarios.
 
-    Подписан на:
-    - test_event (любой класс действия)
+    Subscribed to:
+    - test_event (any action class)
     """
 
     @on("test_event", ".*", ignore_exceptions=False)
     async def handle_test(self, state, event):
-        """Простой обработчик, увеличивающий счетчик."""
+        """Simple handler that increments the counter."""
         self.handlers_called.append(("handle_test", event.event_name))
         state["counter"] = state.get("counter", 0) + 1
         return state
@@ -60,24 +60,24 @@ class SimplePlugin(PluginTestBase):
 
 class MultiHandlerPlugin(PluginTestBase):
     """
-    Плагин с несколькими обработчиками для тестирования фильтрации.
+    Plugin with multiple handlers for testing filtering.
 
-    Подписан на:
-    - event1 (любой класс)
-    - event2 (любой класс)
-    - event.* (любой класс) — регулярное выражение
+    Subscribed to:
+    - event1 (any class)
+    - event2 (any class)
+    - event.* (any class) – regular expression
     """
 
     @on("event1", ".*", ignore_exceptions=False)
     async def handle_event1(self, state, event):
-        """Обработчик для event1."""
+        """Handler for event1."""
         self.handlers_called.append(("event1", event.event_name))
         state["last"] = "event1"
         return state
 
     @on("event2", ".*", ignore_exceptions=False)
     async def handle_event2(self, state, event):
-        """Обработчик для event2."""
+        """Handler for event2."""
         self.handlers_called.append(("event2", event.event_name))
         state["last"] = "event2"
         return state
@@ -85,8 +85,8 @@ class MultiHandlerPlugin(PluginTestBase):
     @on("event.*", ".*", ignore_exceptions=False)
     async def handle_any_event(self, state, event):
         """
-        Обработчик для любых событий, начинающихся с 'event'.
-        Использует регулярное выражение.
+        Handler for any event starting with 'event'.
+        Uses a regular expression.
         """
         self.handlers_called.append(("any", event.event_name))
         state["any"] = True
@@ -95,23 +95,23 @@ class MultiHandlerPlugin(PluginTestBase):
 
 class ClassFilterPlugin(PluginTestBase):
     """
-    Плагин с фильтрацией по классу действия.
+    Plugin with filtering by action class.
 
-    Подписан на:
-    - любые события для классов, заканчивающихся на OrderAction
-    - любые события для классов, заканчивающихся на PaymentAction
+    Subscribed to:
+    - any events for classes ending with OrderAction
+    - any events for classes ending with PaymentAction
     """
 
     @on(".*", ".*OrderAction", ignore_exceptions=False)
     async def handle_order(self, state, event):
-        """Обработчик для действий, связанных с заказами."""
+        """Handler for order-related actions."""
         self.handlers_called.append(("order", event.action_name))
         state["order"] = True
         return state
 
     @on(".*", ".*PaymentAction", ignore_exceptions=False)
     async def handle_payment(self, state, event):
-        """Обработчик для действий, связанных с платежами."""
+        """Handler for payment-related actions."""
         self.handlers_called.append(("payment", event.action_name))
         state["payment"] = True
         return state
@@ -119,143 +119,143 @@ class ClassFilterPlugin(PluginTestBase):
 
 class IgnoreExceptionsPlugin(PluginTestBase):
     """
-    Плагин для тестирования ignore_exceptions.
+    Plugin for testing ignore_exceptions.
 
-    Подписан на:
-    - test_event с ignore_exceptions=True
-    - critical_event с ignore_exceptions=False
+    Subscribed to:
+    - test_event with ignore_exceptions=True
+    - critical_event with ignore_exceptions=False
     """
 
     @on("test_event", ".*", ignore_exceptions=True)
     async def handle_ignored(self, state, event):
-        """Обработчик, который всегда падает, но исключение игнорируется."""
+        """Handler that always fails, but the exception is ignored."""
         self.handlers_called.append(("ignored", event.event_name))
-        raise ValueError("Это исключение будет проигнорировано")
+        raise ValueError("This exception will be ignored")
 
     @on("critical_event", ".*", ignore_exceptions=False)
     async def handle_critical(self, state, event):
-        """Обработчик, который падает, и исключение пробрасывается."""
+        """Handler that fails, and the exception is propagated."""
         self.handlers_called.append(("critical", event.event_name))
-        raise RuntimeError("Это исключение НЕ будет проигнорировано")
+        raise RuntimeError("This exception will NOT be ignored")
 
 
 class SlowPlugin(PluginTestBase):
     """
-    Плагин с медленным обработчиком для тестов конкурентности.
+    Plugin with a slow handler for concurrency tests.
 
-    Подписан на slow_event.
-    Обработчик спит 0.1 секунды перед возвратом.
+    Subscribed to slow_event.
+    The handler sleeps for 0.1 seconds before returning.
     """
 
     @on("slow_event", ".*", ignore_exceptions=False)
     async def handle_slow(self, state, event):
-        """Медленный обработчик с задержкой."""
+        """Slow handler with a delay."""
         self.handlers_called.append(("slow", event.event_name))
-        await asyncio.sleep(0.1)  # 100ms задержки
+        await asyncio.sleep(0.1)  # 100ms delay
         state["slow_done"] = True
         return state
 
 
 class CustomStatePlugin(PluginTestBase):
     """
-    Плагин с кастомным начальным состоянием.
+    Plugin with custom initial state.
 
-    Возвращает состояние со списком и числовым значением.
+    Returns a state with a list and a numeric value.
     """
 
-    def get_initial_state(self):
-        """Возвращает сложное начальное состояние."""
+    async def get_initial_state(self):
+        """Returns a complex initial state."""
         return {"value": 100, "items": [1, 2, 3]}
 
 
 # ======================================================================
-# ВСПОМОГАТЕЛЬНЫЕ КЛАССЫ ДЛЯ ТЕСТОВ
+# HELPER CLASSES FOR TESTS
 # ======================================================================
 
 
 class MockAction(BaseAction):
-    """Мок действия для тестов с фиксированным именем класса."""
+    """Mock action for tests with a fixed class name."""
 
     _full_class_name = "test_plugin.MockAction"
 
 
 class MockParams(BaseParams):
-    """Мок параметров действия."""
+    """Mock action parameters."""
 
     pass
 
 
 class MockResult(BaseResult):
-    """Мок результата действия."""
+    """Mock action result."""
 
     pass
 
 
 # ======================================================================
-# ФИКСТУРЫ
+# FIXTURES
 # ======================================================================
 
 
 @pytest.fixture
 def simple_plugin():
-    """Фикстура, возвращающая новый экземпляр SimplePlugin."""
+    """Fixture returning a new SimplePlugin instance."""
     return SimplePlugin()
 
 
 @pytest.fixture
 def multi_handler_plugin():
-    """Фикстура, возвращающая новый экземпляр MultiHandlerPlugin."""
+    """Fixture returning a new MultiHandlerPlugin instance."""
     return MultiHandlerPlugin()
 
 
 @pytest.fixture
 def class_filter_plugin():
-    """Фикстура, возвращающая новый экземпляр ClassFilterPlugin."""
+    """Fixture returning a new ClassFilterPlugin instance."""
     return ClassFilterPlugin()
 
 
 @pytest.fixture
 def ignore_exceptions_plugin():
-    """Фикстура, возвращающая новый экземпляр IgnoreExceptionsPlugin."""
+    """Fixture returning a new IgnoreExceptionsPlugin instance."""
     return IgnoreExceptionsPlugin()
 
 
 @pytest.fixture
 def slow_plugin():
-    """Фикстура, возвращающая новый экземпляр SlowPlugin."""
+    """Fixture returning a new SlowPlugin instance."""
     return SlowPlugin()
 
 
 @pytest.fixture
 def mock_action():
-    """Фикстура, возвращающая новый экземпляр MockAction."""
+    """Fixture returning a new MockAction instance."""
     return MockAction()
 
 
 @pytest.fixture
 def mock_params():
-    """Фикстура, возвращающая новый экземпляр MockParams."""
+    """Fixture returning a new MockParams instance."""
     return MockParams()
 
 
 @pytest.fixture
 def mock_factory():
-    """Фикстура, возвращающая мок DependencyFactory."""
+    """Fixture returning a mock DependencyFactory."""
     return Mock(spec=DependencyFactory)
 
 
 @pytest.fixture
 def mock_context():
-    """Фикстура, возвращающая мок Context."""
+    """Fixture returning a mock Context."""
     return Mock(spec=Context)
 
 
 @pytest.fixture
 def event_factory():
     """
-    Фабрика для создания PluginEvent с значениями по умолчанию.
+    Factory for creating PluginEvent with default values.
 
-    Позволяет в тестах создавать события, переопределяя только нужные поля.
+    Allows tests to create events by overriding only the needed fields.
     """
 
     def _create_event(**kwargs):
@@ -271,7 +271,7 @@ def event_factory():
             duration=None,
             nest_level=0,
         )
-        # Обновляем значения по умолчанию переданными kwargs
+        # Update default values with provided kwargs
         for key, value in kwargs.items():
             setattr(default_event, key, value)
         return default_event

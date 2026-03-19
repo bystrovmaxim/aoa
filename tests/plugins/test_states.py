@@ -1,10 +1,10 @@
 """
-Тесты управления состояниями плагинов в PluginCoordinator.
+Tests for plugin state management in PluginCoordinator.
 
-Проверяем:
-- Инициализацию состояний плагинов
-- Идемпотентность инициализации (повторные вызовы не сбрасывают состояние)
-- Кастомные начальные состояния
+Checks:
+- Plugin state initialization
+- Idempotency of initialization (subsequent calls do not reset state)
+- Custom initial states
 """
 
 import pytest
@@ -15,20 +15,20 @@ from .conftest import CustomStatePlugin, SimplePlugin
 
 
 class TestPluginCoordinatorStates:
-    """Тесты управления состояниями плагинов."""
+    """Tests for plugin state management."""
 
     # ------------------------------------------------------------------
-    # ТЕСТЫ: Инициализация состояний
+    # TESTS: State initialization
     # ------------------------------------------------------------------
 
     @pytest.mark.anyio
     async def test_init_plugin_states(self):
         """
-        Инициализация состояний плагинов.
+        Plugin state initialization.
 
-        Проверяем:
-        - Состояния созданы для всех плагинов
-        - Состояния имеют правильные начальные значения
+        Verifies:
+        - States are created for all plugins
+        - States have the correct initial values
         """
         plugin1 = SimplePlugin()
         plugin2 = SimplePlugin()
@@ -45,33 +45,33 @@ class TestPluginCoordinatorStates:
     @pytest.mark.anyio
     async def test_init_plugin_states_idempotent(self):
         """
-        Повторная инициализация не меняет существующие состояния.
+        Repeated initialization does not change existing states.
 
-        Если состояние уже было изменено, оно не должно сбрасываться.
+        If a state has already been modified, it should not be reset.
         """
         plugin = SimplePlugin()
         coordinator = PluginCoordinator([plugin])
 
-        # Первая инициализация
+        # First initialization
         await coordinator._init_plugin_states()
         state1 = coordinator._plugin_states[id(plugin)]
 
-        # Изменяем состояние
+        # Modify the state
         state1["counter"] = 42
 
-        # Повторная инициализация
+        # Second initialization
         await coordinator._init_plugin_states()
 
-        # Состояние не должно сброситься
+        # State should not be reset
         assert coordinator._plugin_states[id(plugin)]["counter"] == 42
 
     @pytest.mark.anyio
     async def test_init_plugin_states_with_custom_initial(self):
         """
-        Плагин с кастомным начальным состоянием.
+        Plugin with a custom initial state.
 
-        Проверяем, что get_initial_state() вызывается и возвращает
-        правильное начальное состояние.
+        Verifies that get_initial_state() is called and returns
+        the correct initial state.
         """
         plugin = CustomStatePlugin()
         coordinator = PluginCoordinator([plugin])
@@ -84,9 +84,9 @@ class TestPluginCoordinatorStates:
     @pytest.mark.anyio
     async def test_init_plugin_states_preserves_independence(self):
         """
-        Состояния разных плагинов независимы.
+        States of different plugins are independent.
 
-        Изменение состояния одного плагина не влияет на другие.
+        Changing one plugin's state does not affect others.
         """
         plugin1 = SimplePlugin()
         plugin2 = SimplePlugin()
@@ -94,37 +94,37 @@ class TestPluginCoordinatorStates:
 
         await coordinator._init_plugin_states()
 
-        # Изменяем состояние первого плагина
+        # Change the state of the first plugin
         coordinator._plugin_states[id(plugin1)]["counter"] = 100
 
-        # Второй плагин должен остаться неизменным
+        # The second plugin should remain unchanged
         assert coordinator._plugin_states[id(plugin2)]["counter"] == 0
 
     @pytest.mark.anyio
     async def test_init_plugin_states_lazy_initialization(self):
         """
-        Состояния инициализируются лениво (только при первом обращении).
+        States are initialized lazily (only on first access).
 
-        До вызова _init_plugin_states словарь состояний пуст.
+        Before calling _init_plugin_states, the state dictionary is empty.
         """
         plugin = SimplePlugin()
         coordinator = PluginCoordinator([plugin])
 
-        # До инициализации состояния пусты
+        # Before initialization, states are empty
         assert coordinator._plugin_states == {}
 
-        # После инициализации состояние появляется
+        # After initialization, the state appears
         await coordinator._init_plugin_states()
         assert len(coordinator._plugin_states) == 1
 
     @pytest.mark.anyio
     async def test_init_plugin_states_without_plugins(self):
         """
-        Инициализация без плагинов не вызывает ошибок.
+        Initialization without plugins does not cause errors.
         """
         coordinator = PluginCoordinator([])
 
-        # Не должно быть исключения
+        # Should not raise an exception
         await coordinator._init_plugin_states()
 
         assert coordinator._plugin_states == {}

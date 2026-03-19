@@ -4,6 +4,34 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.0.5] - 2026-03-19
+
+### Added
+- **English‑only error messages** – all exception messages and user‑facing strings have been translated to English. This ensures consistency and aligns with the project’s internationalization goals.
+- **Asynchronous plugin initialization** – `Plugin.get_initial_state()` is now an `async` method. This eliminates the need for `run_in_executor` and allows plugins to perform async I/O during state initialization.
+
+### Changed
+- **Plugin concurrency** – removed the `max_concurrent_handlers` parameter from `ActionProductMachine` and `PluginCoordinator`.  
+  - Previously, plugin handlers were limited by an `asyncio.Semaphore` to prevent resource exhaustion.  
+  - Since plugins typically perform independent I/O operations (e.g., writing to different databases, queues, or files), the semaphore introduced unnecessary serialization.  
+  - Now all matching plugin handlers are executed **fully concurrently** via `asyncio.gather`, reducing overall execution time to that of the slowest handler.
+- **All internal comments and docstrings** have been translated to English and updated to reflect the current implementation.
+- **Plugin state initialization** – moved from `run_in_executor` to direct `await` of `get_initial_state()`, simplifying the code and making the coordinator fully asynchronous.
+
+### Removed
+- **`max_concurrent_handlers`** – no longer accepted in constructors; related logic removed from `PluginCoordinator`.
+
+### Fixed
+- **Test suite** – updated concurrency tests to verify that all handlers run in parallel (duration ~ max handler time). Removed obsolete tests that checked semaphore behavior.
+- **Exception tests** – aligned with English error messages; all plugin exception tests now pass.
+- **Type hints** – ensured all changes are compatible with strict `mypy` checks (no new issues introduced).
+
+### Security
+- No changes.
+
+### Deprecated
+- Nothing.
+
 ## [0.0.4] - 2026-03-19
 
 ### Added

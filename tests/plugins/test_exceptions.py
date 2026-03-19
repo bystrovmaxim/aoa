@@ -1,11 +1,12 @@
+# tests/plugins/test_exceptions.py
 """
-Тесты обработки исключений в плагинах через PluginCoordinator.
+Tests for exception handling in plugins via PluginCoordinator.
 
-Проверяем:
-- Игнорирование исключений при ignore_exceptions=True
-- Проброс исключений при ignore_exceptions=False
-- Смешанные сценарии с разными флагами
-- Логирование игнорируемых исключений
+Checks:
+- Ignoring exceptions when ignore_exceptions=True
+- Propagating exceptions when ignore_exceptions=False
+- Mixed scenarios with different flags
+- Logging of ignored exceptions
 """
 
 import pytest
@@ -17,21 +18,21 @@ from .conftest import IgnoreExceptionsPlugin
 
 
 class TestPluginCoordinatorExceptions:
-    """Тесты обработки исключений в плагинах."""
+    """Tests for exception handling in plugins."""
 
     # ------------------------------------------------------------------
-    # ТЕСТЫ: ignore_exceptions = True
+    # TESTS: ignore_exceptions = True
     # ------------------------------------------------------------------
 
     @pytest.mark.anyio
     async def test_ignore_exceptions_true(self, capsys, event_factory):
         """
-        Исключение игнорируется при ignore_exceptions=True.
+        Exception is ignored when ignore_exceptions=True.
 
-        Проверяем:
-        - Обработчик вызывается
-        - Исключение не пробрасывается наружу
-        - Исключение логируется в stdout
+        Verifies:
+        - Handler is called
+        - Exception is not propagated
+        - Exception is logged to stdout
         """
         plugin = IgnoreExceptionsPlugin()
         coordinator = PluginCoordinator([plugin])
@@ -45,29 +46,29 @@ class TestPluginCoordinatorExceptions:
         handler, ignore = handlers[0]
         assert ignore is True
 
-        # Не должно выбросить исключение
+        # Should not raise an exception
         await coordinator._run_single_handler(handler, ignore, plugin, event)
 
-        # Проверяем что обработчик вызывался
+        # Check that the handler was called
         assert plugin.handlers_called == [("ignored", "test_event")]
 
-        # Проверяем что исключение было залогировано
+        # Check that the exception was logged
         captured = capsys.readouterr()
-        assert "ignored error: Это исключение будет проигнорировано" in captured.out
+        assert "Plugin IgnoreExceptionsPlugin ignored error: This exception will be ignored" in captured.out
 
     @pytest.mark.anyio
     async def test_ignore_exceptions_true_state_not_updated(self, capsys, event_factory):
         """
-        При игнорировании исключения состояние плагина не обновляется.
+        When an exception is ignored, the plugin state is not updated.
 
-        Обработчик упал, но новое состояние не сохраняется.
+        The handler fails, but the new state is not saved.
         """
         plugin = IgnoreExceptionsPlugin()
         coordinator = PluginCoordinator([plugin])
 
         await coordinator._init_plugin_states()
 
-        # Устанавливаем начальное состояние
+        # Set initial state
         coordinator._plugin_states[id(plugin)] = {"counter": 42, "test": "value"}
 
         event = event_factory(event_name="test_event")
@@ -76,21 +77,21 @@ class TestPluginCoordinatorExceptions:
 
         await coordinator._run_single_handler(handler, ignore, plugin, event)
 
-        # Состояние должно остаться прежним (обработчик не вернул новое)
+        # State should remain unchanged (handler did not return a new state)
         assert coordinator._plugin_states[id(plugin)] == {"counter": 42, "test": "value"}
 
     # ------------------------------------------------------------------
-    # ТЕСТЫ: ignore_exceptions = False
+    # TESTS: ignore_exceptions = False
     # ------------------------------------------------------------------
 
     @pytest.mark.anyio
     async def test_ignore_exceptions_false(self, event_factory):
         """
-        Исключение пробрасывается при ignore_exceptions=False.
+        Exception is propagated when ignore_exceptions=False.
 
-        Проверяем:
-        - Обработчик вызывается
-        - Исключение пробрасывается наружу
+        Verifies:
+        - Handler is called
+        - Exception is propagated
         """
         plugin = IgnoreExceptionsPlugin()
         coordinator = PluginCoordinator([plugin])
@@ -104,23 +105,23 @@ class TestPluginCoordinatorExceptions:
         handler, ignore = handlers[0]
         assert ignore is False
 
-        with pytest.raises(RuntimeError, match="Это исключение НЕ будет проигнорировано"):
+        with pytest.raises(RuntimeError, match="This exception will NOT be ignored"):
             await coordinator._run_single_handler(handler, ignore, plugin, event)
 
-        # Проверяем что обработчик вызывался до ошибки
+        # Check that the handler was called before the error
         assert plugin.handlers_called == [("critical", "critical_event")]
 
     @pytest.mark.anyio
     async def test_ignore_exceptions_false_state_not_updated(self, event_factory):
         """
-        При пробросе исключения состояние плагина не обновляется.
+        When an exception is propagated, the plugin state is not updated.
         """
         plugin = IgnoreExceptionsPlugin()
         coordinator = PluginCoordinator([plugin])
 
         await coordinator._init_plugin_states()
 
-        # Устанавливаем начальное состояние
+        # Set initial state
         initial_state = {"counter": 100}
         coordinator._plugin_states[id(plugin)] = initial_state.copy()
 
@@ -131,26 +132,26 @@ class TestPluginCoordinatorExceptions:
         with pytest.raises(RuntimeError):
             await coordinator._run_single_handler(handler, ignore, plugin, event)
 
-        # Состояние должно остаться прежним
+        # State should remain unchanged
         assert coordinator._plugin_states[id(plugin)] == initial_state
 
     # ------------------------------------------------------------------
-    # ТЕСТЫ: Смешанные сценарии
+    # TESTS: Mixed scenarios
     # ------------------------------------------------------------------
 
     @pytest.mark.anyio
     async def test_mixed_exceptions_handlers(self, event_factory):
         """
-        Плагин с разными обработчиками (ignore=True и False).
+        Plugin with different handlers (ignore=True and False).
 
-        Проверяем, что флаги работают независимо для каждого обработчика.
+        Verifies that flags work independently for each handler.
         """
         plugin = IgnoreExceptionsPlugin()
         coordinator = PluginCoordinator([plugin])
 
         await coordinator._init_plugin_states()
 
-        # Получаем обработчики для разных событий
+        # Get handlers for different events
         handlers_ignored = coordinator._get_handlers("test_event", "TestAction")
         handlers_critical = coordinator._get_handlers("critical_event", "TestAction")
 
@@ -162,14 +163,14 @@ class TestPluginCoordinatorExceptions:
     @pytest.mark.anyio
     async def test_multiple_handlers_one_fails(self, event_factory):
         """
-        Если один обработчик падает с ignore=False, остальные не выполняются.
+        If one handler fails with ignore=False, the others are not executed.
 
-        Важно для понимания поведения при параллельном запуске.
-        В текущей реализации обработчики запускаются последовательно
-        через _run_single_handler, поэтому после падения следующие не запустятся.
+        Important for understanding behavior in parallel execution.
+        In the current implementation, handlers are executed sequentially
+        via _run_single_handler, so after a failure, subsequent ones are not run.
         """
 
-        # Создаём плагин с двумя обработчиками на одно событие
+        # Create a plugin with two handlers for the same event
         class MixedPlugin(IgnoreExceptionsPlugin):
             @on("mixed_event", ".*", ignore_exceptions=False)
             async def handler1(self, state, event):
@@ -179,7 +180,7 @@ class TestPluginCoordinatorExceptions:
             @on("mixed_event", ".*", ignore_exceptions=False)
             async def handler2(self, state, event):
                 self.handlers_called.append(("handler2", event.event_name))
-                raise ValueError("Ошибка во втором обработчике")
+                raise ValueError("Error in second handler")
 
             @on("mixed_event", ".*", ignore_exceptions=False)
             async def handler3(self, state, event):
@@ -194,23 +195,23 @@ class TestPluginCoordinatorExceptions:
         event = event_factory(event_name="mixed_event")
         handlers = coordinator._get_handlers("mixed_event", "TestAction")
 
-        # Запускаем обработчики по порядку
+        # Run handlers in order
         for handler, ignore in handlers:
             try:
                 await coordinator._run_single_handler(handler, ignore, plugin, event)
             except ValueError:
                 break
 
-        # Проверяем, что выполнились только обработчики до ошибки
+        # Check that only handlers before the error were executed
         called = [call[0] for call in plugin.handlers_called]
         assert "handler1" in called
-        assert "handler2" in called  # упал, но вызван
-        assert "handler3" not in called  # не вызван
+        assert "handler2" in called  # failed, but was called
+        assert "handler3" not in called  # not called
 
     @pytest.mark.anyio
     async def test_ignore_exceptions_with_custom_exception(self, capsys, event_factory):
         """
-        Игнорируются любые типы исключений, не только стандартные.
+        Any exception type is ignored, not only standard ones.
         """
 
         class CustomException(Exception):
@@ -220,7 +221,7 @@ class TestPluginCoordinatorExceptions:
             @on("custom_event", ".*", ignore_exceptions=True)
             async def handle_custom(self, state, event):
                 self.handlers_called.append(("custom", event.event_name))
-                raise CustomException("Кастомное исключение")
+                raise CustomException("Custom exception")
 
         plugin = CustomIgnorePlugin()
         coordinator = PluginCoordinator([plugin])
@@ -235,4 +236,4 @@ class TestPluginCoordinatorExceptions:
 
         assert plugin.handlers_called == [("custom", "custom_event")]
         captured = capsys.readouterr()
-        assert "ignored error: Кастомное исключение" in captured.out
+        assert "Plugin CustomIgnorePlugin ignored error: Custom exception" in captured.out
