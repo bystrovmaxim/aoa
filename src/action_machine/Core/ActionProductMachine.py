@@ -13,8 +13,8 @@ Architectural decisions:
       connections and those declared with @connection.
 
 Public API of the class:
-    - Constructor accepts context, mode (required), plugins, log_coordinator.
-    - Asynchronous method run(...) executes the action.
+    - Constructor accepts mode (required), plugins, log_coordinator.
+    - Asynchronous method run(...) executes the action with the given context.
 """
 
 import inspect
@@ -55,6 +55,9 @@ class ActionProductMachine(BaseActionMachine):
     a separate class responsible for state initialization,
     handler caching, and asynchronous execution.
 
+    The machine does **not** store per‑request context; context must be passed
+    to the `run()` method for each execution.
+
     New: end-to-end logging support. The constructor accepts:
         mode (str) – execution mode (e.g., "production", "test", "staging").
         log_coordinator (LogCoordinator | None) – logging coordinator.
@@ -63,7 +66,6 @@ class ActionProductMachine(BaseActionMachine):
 
     def __init__(
         self,
-        context: Context,
         mode: str,
         plugins: list[Plugin] | None = None,
         log_coordinator: LogCoordinator | None = None,
@@ -72,8 +74,6 @@ class ActionProductMachine(BaseActionMachine):
         Initializes the action machine.
 
         Args:
-            context: global execution context (contains information
-                     about the user, request, and environment).
             mode: execution mode (required, non-empty). Examples: "production", "test", "staging".
             plugins: list of plugin instances (default empty).
             log_coordinator: logging coordinator. If not specified, a
@@ -85,7 +85,6 @@ class ActionProductMachine(BaseActionMachine):
         if not mode:
             raise ValueError("mode must be non-empty")
         self._mode = mode
-        self._context = context
 
         # Plugin coordinator
         self._plugin_coordinator: PluginCoordinator = PluginCoordinator(
@@ -197,10 +196,14 @@ class ActionProductMachine(BaseActionMachine):
             return True
         raise AuthorizationError(f"Access denied. Required role: '{spec}', user roles: {user_roles}")
 
-    def _check_action_roles(self, action: BaseAction[P, R]) -> None:
+    def _check_action_roles(self, action: BaseAction[P, R], context: Context) -> None:
         """
         Checks that the action has a role specification (CheckRoles decorator)
         and that the current user from the context satisfies it.
+
+        Args:
+            action: action instance.
+            context: execution context containing user information.
 
         Raises:
             TypeError: if the action does not have a _role_spec attribute.
@@ -212,7 +215,7 @@ class ActionProductMachine(BaseActionMachine):
                 f"Action {action.__class__.__name__} does not have a CheckRoles decorator. "
                 "Specify CheckRoles.NONE explicitly if the action is accessible without authentication."
             )
-        user_roles = self._context.user.roles
+        user_roles = context.user.roles
 
         if role_spec == CheckRoles.NONE:
             self._check_none_role(user_roles)
@@ -292,6 +295,7 @@ class ActionProductMachine(BaseActionMachine):
 
     async def run(
         self,
+        context: Context,
         action: BaseAction[P, R],
         params: P,
         resources: dict[type[Any], Any] | None = None,
@@ -302,7 +306,7 @@ class ActionProductMachine(BaseActionMachine):
 
         Execution sequence:
             1. Increase nesting level.
-            2. Check roles (CheckRoles decorator).
+            2. Check roles (CheckRoles decorator) using the provided context.
             3. Check connections (@connection decorator).
             4. global_start event (plugins through PluginCoordinator).
             5. Execute regular aspects (with before/after calls).
@@ -311,6 +315,7 @@ class ActionProductMachine(BaseActionMachine):
             8. Decrease nesting level.
 
         Args:
+            context: execution context for this request (user, request, environment).
             action: action instance.
             params: input parameters.
             resources: dictionary of external resources (passed to the factory).
@@ -320,7 +325,7 @@ class ActionProductMachine(BaseActionMachine):
         start_time = time.time()
 
         try:
-            self._check_action_roles(action)
+            self._check_action_roles(action, context)
             conns = self._check_connections(action, connections)
             factory = self._get_factory(action.__class__, external_resources=resources)
 
@@ -333,14 +338,14 @@ class ActionProductMachine(BaseActionMachine):
                 result=None,
                 duration=None,
                 factory=factory,
-                context=self._context,
+                context=context,
                 nest_level=self._nest_level,
             )
 
-            state = await self._execute_regular_aspects(action, params, factory, conns)
+            state = await self._execute_regular_aspects(action, params, factory, conns, context)
 
             _, summary_method = self._get_aspects(action.__class__)
-            result = await self._call_aspect(summary_method, action, params, state, factory, conns)
+            result = await self._call_aspect(summary_method, action, params, state, factory, conns, context)
 
             total_duration = time.time() - start_time
 
@@ -353,7 +358,7 @@ class ActionProductMachine(BaseActionMachine):
                 result=result,
                 duration=total_duration,
                 factory=factory,
-                context=self._context,
+                context=context,
                 nest_level=self._nest_level,
             )
 
@@ -369,6 +374,7 @@ class ActionProductMachine(BaseActionMachine):
         state: BaseState,
         factory: DependencyFactory,
         connections: dict[str, BaseResourceManager],
+        context: Context,
     ) -> Any:
         """
         Calls an aspect method. All aspects are asynchronous.
@@ -379,7 +385,17 @@ class ActionProductMachine(BaseActionMachine):
         argument, allowing aspects to execute queries through resource
         managers and decide which connections to pass to child actions.
 
-        Returns the result of the aspect.
+        Args:
+            method: aspect method to call.
+            action: action instance.
+            params: input parameters.
+            state: current pipeline state.
+            factory: dependency factory.
+            connections: dictionary of resource managers.
+            context: execution context (used for logging).
+
+        Returns:
+            Result of the aspect.
         """
         log = ActionBoundLogger(
             coordinator=self._log_coordinator,
@@ -388,7 +404,7 @@ class ActionProductMachine(BaseActionMachine):
             mode=self._mode,
             action_name=action.get_full_class_name(),
             aspect_name=method.__name__,
-            context=self._context,
+            context=context,
         )
         return await method(action, params, state, factory, connections, log)
 
@@ -398,6 +414,7 @@ class ActionProductMachine(BaseActionMachine):
         params: P,
         factory: DependencyFactory,
         connections: dict[str, BaseResourceManager],
+        context: Context,
     ) -> BaseState:
         """
         Asynchronously executes the chain of regular aspects, calling
@@ -427,12 +444,12 @@ class ActionProductMachine(BaseActionMachine):
                 result=None,
                 duration=None,
                 factory=factory,
-                context=self._context,
+                context=context,
                 nest_level=self._nest_level,
             )
 
             aspect_start = time.time()
-            new_state_dict = await self._call_aspect(method, action, params, state, factory, connections)
+            new_state_dict = await self._call_aspect(method, action, params, state, factory, connections, context)
             if not isinstance(new_state_dict, dict):
                 raise TypeError(
                     f"Aspect {method.__qualname__} must return a dict, got {type(new_state_dict).__name__}"
@@ -470,7 +487,7 @@ class ActionProductMachine(BaseActionMachine):
                 result=None,
                 duration=aspect_duration,
                 factory=factory,
-                context=self._context,
+                context=context,
                 nest_level=self._nest_level,
             )
 

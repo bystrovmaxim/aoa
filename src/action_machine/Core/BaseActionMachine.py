@@ -1,11 +1,12 @@
 """
-Абстрактный базовый класс для всех машин действий.
-Определяет асинхронный метод run и синхронную обёртку sync_run.
+Abstract base class for all action machines.
+Defines the asynchronous run method and the synchronous sync_run wrapper.
 """
 
 from abc import ABC, abstractmethod
 from typing import Any, TypeVar
 
+from action_machine.Context.context import Context
 from action_machine.Core.BaseAction import BaseAction
 from action_machine.Core.BaseParams import BaseParams
 from action_machine.Core.BaseResult import BaseResult
@@ -17,82 +18,88 @@ R = TypeVar("R", bound=BaseResult)
 
 class BaseActionMachine(ABC):
     """
-    Абстрактная машина действий.
+    Abstract action machine.
 
-    Все реализации (продуктовая, тестовая) наследуют от этого класса
-    и реализуют асинхронный метод run. Для синхронного использования
-    предоставляется метод sync_run, который безопасно запускает асинхронный
-    конвейер вне уже работающего цикла событий.
+    All implementations (production, test) inherit from this class
+    and implement the asynchronous run method. For synchronous usage,
+    the sync_run method is provided, which safely runs the async pipeline
+    outside an already running event loop.
     """
 
     @abstractmethod
     async def run(
         self,
+        context: Context,
         action: BaseAction[P, R],
         params: P,
         resources: dict[type[Any], Any] | None = None,
         connections: dict[str, BaseResourceManager] | None = None,
     ) -> R:
         """
-        Асинхронно запускает действие и возвращает результат.
+        Asynchronously executes the action and returns the result.
 
-        Этот метод следует использовать внутри асинхронного контекста
-        (например, в FastAPI-эндпоинтах, aiohttp-обработчиках, asyncio-приложениях).
-        Вызывается с ключевым словом await.
+        This method should be used inside an asynchronous context
+        (e.g., in FastAPI endpoints, aiohttp handlers, asyncio applications).
+        It must be called with the await keyword.
 
-        Аргументы:
-            action: экземпляр действия для выполнения.
-            params: входные параметры действия.
-            resources: словарь внешних ресурсов (ключ – класс ресурса, значение – экземпляр),
-                       которые будут переданы в фабрику зависимостей с приоритетом.
-            connections: словарь ресурсных менеджеров (соединений),
-                         ключ — строковое имя соединения (совпадает с именем в @connection),
-                         значение — экземпляр BaseResourceManager.
-                         Передаётся во все аспекты как есть.
-                         При передаче в дочерние действия через DependencyFactory
-                         каждый connection оборачивается через get_wrapper_class().
+        Args:
+            context: execution context for this specific request
+                     (contains user, request, and environment information).
+            action: action instance to execute.
+            params: action input parameters.
+            resources: dictionary of external resources (key – resource class,
+                       value – instance) that will be passed to the dependency
+                       factory with priority.
+            connections: dictionary of resource managers (connections),
+                         key – string connection name (matches the name in @connection),
+                         value – BaseResourceManager instance.
+                         Passed to all aspects as is.
+                         When passed to child actions via DependencyFactory,
+                         each connection is wrapped using get_wrapper_class().
 
-        Возвращает:
-            Результат выполнения действия.
+        Returns:
+            Result of the action execution.
         """
         pass
 
     def sync_run(
         self,
+        context: Context,
         action: BaseAction[P, R],
         params: P,
         resources: dict[type[Any], Any] | None = None,
         connections: dict[str, BaseResourceManager] | None = None,
     ) -> R:
         """
-        Синхронная обёртка для использования вне async-контекста.
+        Synchronous wrapper for use outside an async context.
 
-        Подходит для скриптов командной строки, задач Celery, Django-представлений
-        без поддержки async и любого другого синхронного окружения. Метод создаёт
-        новый цикл событий, выполняет действие и возвращает результат.
+        Suitable for command‑line scripts, Celery tasks, Django views without
+        async support, and any other synchronous environment. The method creates
+        a new event loop, executes the action, and returns the result.
 
-        Если метод вызван внутри уже запущенного цикла событий (например,
-        случайно в FastAPI-эндпоинте), будет выброшено исключение RuntimeError
-        с понятным сообщением на русском языке.
+        If called inside an already running event loop (e.g., accidentally in
+        a FastAPI endpoint), a RuntimeError is raised with a clear message.
 
-        Аргументы:
-            action: экземпляр действия.
-            params: входные параметры.
-            resources: внешние ресурсы (опционально).
-            connections: словарь ресурсных менеджеров (опционально).
+        Args:
+            context: execution context for this specific request.
+            action: action instance.
+            params: input parameters.
+            resources: external resources (optional).
+            connections: dictionary of resource managers (optional).
 
-        Возвращает:
-            Результат выполнения действия.
+        Returns:
+            Result of the action execution.
         """
         import asyncio
 
         try:
-            # Проверяем, запущен ли уже event loop
+            # Check if an event loop is already running
             asyncio.get_running_loop()
-            # Если дошли сюда, значит loop запущен – это ошибка использования
+            # If we reached this point, a loop is running – this is a usage error
             raise RuntimeError(
-                "sync_run() вызван внутри уже работающего asyncio-цикла. В асинхронном коде используйте await run()."
+                "sync_run() called inside an already running asyncio loop. "
+                "In asynchronous code, use await run()."
             )
         except RuntimeError:
-            # Нет текущего запущенного loop – можно использовать asyncio.run()
-            return asyncio.run(self.run(action, params, resources, connections))
+            # No running loop – we can safely use asyncio.run()
+            return asyncio.run(self.run(context, action, params, resources, connections))

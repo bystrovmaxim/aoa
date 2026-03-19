@@ -1,13 +1,14 @@
+# src/test_full_flow.py
 """
-Интеграционный тест, демонстрирующий полный цикл работы ActionMachine:
-- создание контекста,
-- определение действий с аспектами и логером,
-- использование зависимостей (@depends),
-- проверка ролей (@CheckRoles),
-- плагин, подсчитывающий вызовы,
-- логирование через ConsoleLogger.
+Integration test demonstrating the full ActionMachine cycle:
+- context creation,
+- defining actions with aspects and logger,
+- using dependencies (@depends),
+- role checking (@CheckRoles),
+- a plugin counting calls,
+- logging via ConsoleLogger.
 
-Тест проверяет, что все компоненты работают вместе и результаты корректны.
+The test verifies that all components work together and the results are correct.
 """
 
 import asyncio
@@ -35,12 +36,12 @@ from action_machine.Plugins.PluginEvent import PluginEvent
 from action_machine.ResourceManagers.BaseResourceManager import BaseResourceManager
 
 # ----------------------------------------------------------------------
-# Вспомогательные классы: параметры, результаты, зависимости
+# Helper classes: parameters, results, dependencies
 # ----------------------------------------------------------------------
 
 @dataclass
 class OrderParams(BaseParams):
-    """Параметры для создания заказа."""
+    """Parameters for order creation."""
     user_id: str
     amount: float
     currency: str = "RUB"
@@ -48,66 +49,66 @@ class OrderParams(BaseParams):
 
 @dataclass
 class OrderResult(BaseResult):
-    """Результат создания заказа."""
+    """Result of order creation."""
     order_id: str
     status: str
     total: float
 
 
 class PaymentService:
-    """Сервис для обработки платежей (зависимость)."""
+    """Payment processing service (dependency)."""
 
     def __init__(self, gateway: str = "default"):
         self.gateway = gateway
         self.processed = []
 
     async def charge(self, amount: float, currency: str) -> str:
-        """Списание средств (имитация)."""
+        """Charge funds (simulation)."""
         self.processed.append((amount, currency))
         return f"txn_{len(self.processed)}"
 
 
 class NotificationService:
-    """Сервис уведомлений (зависимость)."""
+    """Notification service (dependency)."""
 
     def __init__(self):
         self.sent = []
 
     async def notify(self, user_id: str, message: str) -> None:
-        """Отправка уведомления (имитация)."""
+        """Send notification (simulation)."""
         self.sent.append((user_id, message))
 
 
 # ----------------------------------------------------------------------
-# Плагин-счётчик вызовов
+# Counter plugin
 # ----------------------------------------------------------------------
 
 class CounterPlugin(Plugin):
-    """Плагин, подсчитывающий количество вызовов каждого действия."""
+    """Plugin that counts calls of each action."""
 
-    def get_initial_state(self) -> dict[str, int]:
-        """Начальное состояние — пустой счётчик."""
+    async def get_initial_state(self) -> dict[str, int]:
+        """Initial state — empty counter."""
         return {}
 
     @on("global_finish", ".*", ignore_exceptions=False)
     async def count_call(self, state: dict[str, int], event: PluginEvent) -> dict[str, int]:
-        """Увеличивает счётчик для данного действия."""
+        """Increment the counter for the given action."""
         action_name = event.action_name
         state[action_name] = state.get(action_name, 0) + 1
         return state
 
 
 # ----------------------------------------------------------------------
-# Действия
+# Actions
 # ----------------------------------------------------------------------
 
-@CheckRoles("user", desc="Пользователь может создавать заказы")
-@depends(PaymentService, description="Сервис платежей")
-@depends(NotificationService, description="Сервис уведомлений")
+@CheckRoles("user", desc="User can create orders")
+@depends(PaymentService, description="Payment service")
+@depends(NotificationService, description="Notification service")
 class CreateOrderAction(BaseAction[OrderParams, OrderResult]):
-    """Действие создания заказа."""
+    """Order creation action."""
 
-    @aspect("Валидация суммы")
+    @aspect("Amount validation")
     async def validate_amount(
         self,
         params: OrderParams,
@@ -116,15 +117,15 @@ class CreateOrderAction(BaseAction[OrderParams, OrderResult]):
         connections: dict[str, BaseResourceManager],
         log: Any,  # ActionBoundLogger
     ) -> dict:
-        """Проверяет, что сумма положительная."""
-        await log.info("Validating amount -  sum:{%var.amount} user: {%context.user.user_id}", amount=params.amount)
+        """Check that the amount is positive."""
+        await log.info("Validating amount - sum:{%var.amount} user: {%context.user.user_id}", amount=params.amount)
         if params.amount <= 0:
             raise ValueError("Amount must be positive")
-        # Возвращаем пустой словарь, так как ничего не добавляем в state
+        # Return empty dict because we don't add anything to state
         return {}
 
-    @aspect("Обработка платежа")
-    @StringFieldChecker("txn_id", "Идентификатор транзакции", required=True)
+    @aspect("Payment processing")
+    @StringFieldChecker("txn_id", "Transaction identifier", required=True)
     async def process_payment(
         self,
         params: OrderParams,
@@ -133,14 +134,14 @@ class CreateOrderAction(BaseAction[OrderParams, OrderResult]):
         connections: dict[str, BaseResourceManager],
         log: Any,
     ) -> dict:
-        """Вызывает PaymentService для списания средств."""
+        """Call PaymentService to charge funds."""
         payment = deps.get(PaymentService)
         txn_id = await payment.charge(params.amount, params.currency)
         await log.info("Payment processed", txn_id=txn_id)
-        # Возвращаем словарь с полем txn_id, для которого есть чекер
+        # Return dict with txn_id field, which has a checker
         return {"txn_id": txn_id}
 
-    @summary_aspect("Формирование результата")
+    @summary_aspect("Build result")
     async def build_result(
         self,
         params: OrderParams,
@@ -149,10 +150,10 @@ class CreateOrderAction(BaseAction[OrderParams, OrderResult]):
         connections: dict[str, BaseResourceManager],
         log: Any,
     ) -> OrderResult:
-        """Создаёт результат и отправляет уведомление."""
-        # Получаем данные из состояния
+        """Create result and send notification."""
+        # Get data from state
         txn_id = state.get("txn_id")
-        # Отправляем уведомление
+        # Send notification
         notifier = deps.get(NotificationService)
         await notifier.notify(params.user_id, f"Order created, txn: {txn_id}")
         await log.info("Notification sent", user=params.user_id)
@@ -163,11 +164,11 @@ class CreateOrderAction(BaseAction[OrderParams, OrderResult]):
         )
 
 
-@CheckRoles(CheckRoles.NONE, desc="Проверка без аутентификации")
+@CheckRoles(CheckRoles.NONE, desc="No authentication required")
 class PingAction(BaseAction[BaseParams, BaseResult]):
-    """Простое действие без зависимостей."""
+    """Simple action without dependencies."""
 
-    @summary_aspect("Ответить pong")
+    @summary_aspect("Reply pong")
     async def summary(
         self,
         params: BaseParams,
@@ -183,45 +184,45 @@ class PingAction(BaseAction[BaseParams, BaseResult]):
 
 
 # ----------------------------------------------------------------------
-# Интеграционный тест
+# Integration test
 # ----------------------------------------------------------------------
 
 @pytest.mark.anyio
 async def test_full_flow():
-    """Полный тест, запускающий действия с машиной, плагинами и логером."""
+    """Full test running actions with machine, plugins, and logger."""
 
-    # Создаём экземпляры действий для получения имён
+    # Create action instances to get class names
     create_order_action = CreateOrderAction()
     ping_action = PingAction()
 
-    # 1. Создаём контекст с пользователем
+    # 1. Create context with user
     user = UserInfo(user_id="bystrov.maxim", roles=["user"])
     context = Context(user=user)
 
-    # 2. Настраиваем логер (консольный, с цветами)
+    # 2. Set up logger (console, with colors)
     console_logger = ConsoleLogger(use_colors=True)
     log_coordinator = LogCoordinator(loggers=[console_logger])
 
-    # 3. Создаём плагин-счётчик
+    # 3. Create counter plugin
     counter_plugin = CounterPlugin()
 
-    # 4. Создаём машину
+    # 4. Create machine
     machine = ActionProductMachine(
-        context=context,
         mode="integration-test-01",
         plugins=[counter_plugin],
         log_coordinator=log_coordinator,
     )
 
-    # 5. Создаём экземпляры зависимостей (внешние ресурсы)
+    # 5. Create dependency instances (external resources)
     payment_service = PaymentService(gateway="stripe")
     notification_service = NotificationService()
 
-    # 6. Формируем параметры для первого действия
+    # 6. Prepare parameters for the first action
     params1 = OrderParams(user_id="bystrov.maxim", amount=1500.0)
 
-    # 7. Запускаем действие
+    # 7. Run action
     result1 = await machine.run(
+        context=context,
         action=CreateOrderAction(),
         params=params1,
         resources={
@@ -230,36 +231,36 @@ async def test_full_flow():
         },
     )
 
-    # 8. Проверки
+    # 8. Assertions
     assert isinstance(result1, OrderResult)
     assert result1.status == "created"
     assert result1.total == 1500.0
     assert result1.order_id.startswith("ORD_bystrov.maxim_")
 
-    # Проверяем, что зависимости были вызваны
+    # Check that dependencies were called
     assert len(payment_service.processed) == 1
     assert payment_service.processed[0] == (1500.0, "RUB")
     assert len(notification_service.sent) == 1
     assert notification_service.sent[0] == ("bystrov.maxim", "Order created, txn: txn_1")
 
-    # 9. Запускаем PingAction (без аутентификации)
+    # 9. Run PingAction (no authentication)
     params2 = BaseParams()
-    result2 = await machine.run(PingAction(), params2)
+    result2 = await machine.run(context, PingAction(), params2)
 
     assert result2["message"] == "pong"
 
-    # 10. Проверяем состояние плагина-счётчика
+    # 10. Check counter plugin state
     plugin_state = machine._plugin_coordinator._plugin_states[id(counter_plugin)]
     create_order_name = create_order_action.get_full_class_name()
     ping_name = ping_action.get_full_class_name()
     assert plugin_state.get(create_order_name) == 1
     assert plugin_state.get(ping_name) == 1
 
-    # 11. Проверяем, что в логере были вызовы (опционально, можно проверить через захват stdout)
-    # В данном тесте мы просто смотрим, что код выполнился без ошибок.
-    # При запуске с флагом -s увидим цветной вывод логов.
+    # 11. Check that the logger was called (optional, could capture stdout)
+    # In this test we just ensure the code runs without errors.
+    # With the -s flag you'll see colored log output.
 
 
 if __name__ == "__main__":
     asyncio.run(test_full_flow())
-    print("✅ Интеграционный тест пройден")
+    print("✅ Integration test passed")

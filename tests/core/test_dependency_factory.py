@@ -1,18 +1,18 @@
 # tests/core/test_dependency_factory.py
 """
-Тесты DependencyFactory — фабрики зависимостей для действий.
+Tests for DependencyFactory — the dependency factory for actions.
 
-Проверяем:
-- Получение зависимостей через get() с разными источниками
-- Кеширование экземпляров
-- Приоритет external_resources
-- Оборачивание connections для дочерних действий
-- Запуск дочерних действий через run_action
+Checks:
+- Getting dependencies via get() from different sources
+- Instance caching
+- Priority of external_resources
+- Wrapping of connections for child actions
+- Launching child actions via run_action
 """
-
 
 import pytest
 
+from action_machine.Context.context import Context
 from action_machine.Core.BaseAction import BaseAction
 from action_machine.Core.BaseParams import BaseParams
 from action_machine.Core.BaseResult import BaseResult
@@ -20,17 +20,17 @@ from action_machine.Core.DependencyFactory import DependencyFactory
 from action_machine.ResourceManagers.BaseResourceManager import BaseResourceManager
 
 # ----------------------------------------------------------------------
-# Вспомогательные классы
+# Helper classes
 # ----------------------------------------------------------------------
 
 class MockMachine:
-    """Мок машины действий для проверки вызовов run."""
+    """Mock action machine for verifying run calls."""
 
     def __init__(self):
         self.run_calls = []
 
-    async def run(self, action, params, resources=None, connections=None):
-        self.run_calls.append((action, params, resources, connections))
+    async def run(self, context, action, params, resources=None, connections=None):
+        self.run_calls.append((context, action, params, resources, connections))
         return MockResult()
 
 class MockParams(BaseParams):
@@ -51,7 +51,7 @@ class ServiceB:
         self.value = value or "B"
 
 class ResourceWithWrapper(BaseResourceManager):
-    """Ресурс, который требует обёртки."""
+    """Resource that requires a wrapper."""
 
     def __init__(self, name="test"):
         self.name = name
@@ -60,29 +60,30 @@ class ResourceWithWrapper(BaseResourceManager):
         return MockWrapper
 
 class ResourceWithoutWrapper(BaseResourceManager):
-    """Ресурс без обёртки."""
+    """Resource without a wrapper."""
 
     def get_wrapper_class(self):
         return None
 
 class MockWrapper(BaseResourceManager):
-    """Обёртка для ресурса."""
+    """Wrapper for a resource."""
 
     def __init__(self, inner):
         self.inner = inner
 
     def get_wrapper_class(self):
-        return None  # обёртки второго уровня не нужны
+        return None  # no second‑level wrappers needed
+
 
 # ======================================================================
-# ТЕСТЫ: Метод get()
+# TESTS: get() method
 # ======================================================================
 
 class TestGet:
-    """Проверка метода get."""
+    """Tests for the get method."""
 
     def test_get_returns_from_external_resources(self):
-        """external_resources имеют наивысший приоритет."""
+        """external_resources have the highest priority."""
         deps_info = [
             {"class": ServiceA, "description": "", "factory": None},
         ]
@@ -92,13 +93,11 @@ class TestGet:
         instance = factory.get(ServiceA)
 
         assert instance.value == "external"
-        # Не должно быть в кеше, т.к. внешние не кешируются?
-        # В текущей реализации внешние не сохраняются в _instances,
-        # но если класс есть во внешних, он возвращается напрямую.
+        # External resources are not cached, so they shouldn't appear in _instances
         assert ServiceA not in factory._instances
 
     def test_get_returns_cached_instance_on_second_call(self):
-        """Повторный вызов возвращает закешированный экземпляр."""
+        """Second call returns the cached instance."""
         deps_info = [
             {"class": ServiceA, "description": "", "factory": None},
         ]
@@ -111,7 +110,7 @@ class TestGet:
         assert ServiceA in factory._instances
 
     def test_get_creates_via_factory_function(self):
-        """Если указана factory, она вызывается."""
+        """If a factory is provided, it is called."""
 
         def custom_factory():
             return ServiceA(value="from_factory")
@@ -125,7 +124,7 @@ class TestGet:
         assert instance.value == "from_factory"
 
     def test_get_creates_via_default_constructor(self):
-        """Без factory используется конструктор по умолчанию."""
+        """Without a factory, the default constructor is used."""
         deps_info = [
             {"class": ServiceA, "description": "", "factory": None},
         ]
@@ -135,22 +134,23 @@ class TestGet:
         assert instance.value == "A"
 
     def test_get_raises_for_undeclared_class(self):
-        """Если класс не объявлен в depends и нет во внешних, ошибка."""
-        deps_info = []  # пусто
+        """If the class is not declared in @depends and not in external resources, an error is raised."""
+        deps_info = []  # empty
         factory = DependencyFactory(MockMachine(), deps_info, None)
 
         with pytest.raises(ValueError, match="not declared in @depends"):
             factory.get(ServiceA)
 
+
 # ======================================================================
-# ТЕСТЫ: Оборачивание connections (_wrap_connections)
+# TESTS: Connection wrapping (_wrap_connections)
 # ======================================================================
 
 class TestWrapConnections:
-    """Проверка метода _wrap_connections."""
+    """Tests for the _wrap_connections method."""
 
     def test_wrap_connections_with_wrapper(self):
-        """Ресурс с wrapper_class оборачивается."""
+        """A resource with a wrapper class is wrapped."""
         deps_info = []
         factory = DependencyFactory(MockMachine(), deps_info, None)
 
@@ -164,7 +164,7 @@ class TestWrapConnections:
         assert wrapped["db"].inner is inner
 
     def test_wrap_connections_without_wrapper(self):
-        """Ресурс без wrapper_class передаётся как есть."""
+        """A resource without a wrapper class is passed as is."""
         deps_info = []
         factory = DependencyFactory(MockMachine(), deps_info, None)
 
@@ -174,10 +174,10 @@ class TestWrapConnections:
         wrapped = factory._wrap_connections(connections)
 
         assert "db" in wrapped
-        assert wrapped["db"] is inner  # тот же объект
+        assert wrapped["db"] is inner  # same object
 
     def test_wrap_connections_handles_empty_dict(self):
-        """Пустой словарь connections возвращается как есть."""
+        """An empty connections dictionary is returned as is."""
         deps_info = []
         factory = DependencyFactory(MockMachine(), deps_info, None)
 
@@ -185,43 +185,42 @@ class TestWrapConnections:
         assert wrapped == {}
 
     def test_wrap_connections_handles_none(self):
-        """connections=None возвращает None (не вызывается в run_action)."""
-        # Этот метод не вызывается с None в run_action, но проверим.
+        """connections=None returns None (not called in run_action)."""
+        # This method is not called with None in run_action, but we test it anyway.
+        # Not needed – skip.
 
-        # Не передаём None, т.к. _wrap_connections ожидает dict
-        # В коде run_action проверяет if connections is not None
-        # и только тогда вызывает _wrap_connections.
-        # Отдельно тестировать передачу None не нужно.
 
 # ======================================================================
-# ТЕСТЫ: Запуск дочерних действий (run_action)
+# TESTS: Launching child actions (run_action)
 # ======================================================================
 
 class TestRunAction:
-    """Проверка метода run_action."""
+    """Tests for the run_action method."""
 
     @pytest.mark.anyio
     async def test_run_action_wraps_connections(self):
-        """Перед вызовом дочернего действия connections оборачиваются."""
+        """Connections are wrapped before being passed to the child action."""
         machine = MockMachine()
         deps_info = [
             {"class": MockAction, "description": "", "factory": None},
         ]
         factory = DependencyFactory(machine, deps_info, None)
 
-        # Сначала получим экземпляр действия (чтобы он закешировался)
+        # First get the action instance (so it is cached)
         action_instance = factory.get(MockAction)
 
         inner = ResourceWithWrapper(name="inner")
         conns = {"db": inner}
 
         params = MockParams()
-        await factory.run_action(MockAction, params, connections=conns)
+        context = Context()  # empty context for test
+        await factory.run_action(context, MockAction, params, connections=conns)
 
-        # Проверяем, что run был вызван с обёрнутыми connections
+        # Check that run was called with wrapped connections
         assert len(machine.run_calls) == 1
-        called_action, called_params, called_resources, called_conns = machine.run_calls[0]
+        called_context, called_action, called_params, called_resources, called_conns = machine.run_calls[0]
 
+        assert called_context is context
         assert called_action is action_instance
         assert called_params is params
         assert called_conns is not None
@@ -231,7 +230,7 @@ class TestRunAction:
 
     @pytest.mark.anyio
     async def test_run_action_without_connections(self):
-        """Если connections=None, оборачивание не происходит."""
+        """If connections=None, no wrapping occurs."""
         machine = MockMachine()
         deps_info = [
             {"class": MockAction, "description": "", "factory": None},
@@ -239,16 +238,17 @@ class TestRunAction:
         factory = DependencyFactory(machine, deps_info, None)
 
         params = MockParams()
+        context = Context()
 
-        await factory.run_action(MockAction, params, connections=None)
+        await factory.run_action(context, MockAction, params, connections=None)
 
         assert len(machine.run_calls) == 1
-        called_action, called_params, called_resources, called_conns = machine.run_calls[0]
+        called_context, called_action, called_params, called_resources, called_conns = machine.run_calls[0]
         assert called_conns is None
 
     @pytest.mark.anyio
     async def test_run_action_passes_resources(self):
-        """Параметр resources передаётся в дочернее действие."""
+        """The resources parameter is passed to the child action."""
         machine = MockMachine()
         deps_info = [
             {"class": MockAction, "description": "", "factory": None},
@@ -257,16 +257,17 @@ class TestRunAction:
 
         params = MockParams()
         resources = {"some": "resource"}
+        context = Context()
 
-        await factory.run_action(MockAction, params, resources=resources)
+        await factory.run_action(context, MockAction, params, resources=resources)
 
         assert len(machine.run_calls) == 1
-        called_action, called_params, called_resources, called_conns = machine.run_calls[0]
+        called_context, called_action, called_params, called_resources, called_conns = machine.run_calls[0]
         assert called_resources == resources
 
     @pytest.mark.anyio
     async def test_run_action_returns_result(self):
-        """Метод возвращает результат от дочернего действия."""
+        """The method returns the result from the child action."""
         machine = MockMachine()
         deps_info = [
             {"class": MockAction, "description": "", "factory": None},
@@ -274,6 +275,7 @@ class TestRunAction:
         factory = DependencyFactory(machine, deps_info, None)
 
         params = MockParams()
-        result = await factory.run_action(MockAction, params)
+        context = Context()
+        result = await factory.run_action(context, MockAction, params)
 
         assert isinstance(result, MockResult)
