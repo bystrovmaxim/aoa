@@ -1,36 +1,33 @@
 # ActionMachine/Plugins/PluginCoordinator.py
 """
-Координатор плагинов для ActionMachine.
+Plugin coordinator for ActionMachine.
 
-Выделен из ActionProductMachine для разделения обязанностей.
-ActionProductMachine отвечает за аспектный конвейер,
-PluginCoordinator — за жизненный цикл плагинов:
+Separated from ActionProductMachine to divide responsibilities.
+ActionProductMachine handles the aspect pipeline,
+PluginCoordinator handles the plugin lifecycle:
 
-    1. Ленивая инициализация состояний плагинов (get_initial_state).
-    2. Кеширование обработчиков по ключу (event_name, action_name).
-    3. Асинхронный запуск обработчиков с ограничением конкурентности
-       через asyncio.Semaphore.
-    4. Обработка ignore_exceptions — если обработчик помечен
-       ignore_exceptions=True, его ошибки печатаются, но не прерывают
-       выполнение действия.
+    1. Lazy initialization of plugin states (get_initial_state).
+    2. Caching of handlers by key (event_name, action_name).
+    3. Asynchronous execution of handlers (all run concurrently).
+    4. Handling of ignore_exceptions – if a handler is marked
+       ignore_exceptions=True, its errors are printed but do not
+       interrupt the action execution.
 
-Координатор не знает про аспекты, роли, connections — только про плагины.
-Это позволяет тестировать плагины отдельно от аспектного конвейера.
+The coordinator knows nothing about aspects, roles, connections – only about plugins.
+This allows testing plugins separately from the aspect pipeline.
 
-Все методы кроме emit_event — приватные. Единственная точка входа —
-метод emit_event, который вызывается из ActionProductMachine.
+All methods except emit_event are private. The only entry point is
+emit_event, called from ActionProductMachine.
 
-Состояния плагинов (_plugin_states) живут столько же, сколько координатор.
-При каждом вызове run() в ActionProductMachine координатор используется
-повторно — состояния накапливаются между вызовами. Это позволяет
-плагинам агрегировать метрики за несколько запусков (например, счётчик
-вызовов в MetricsPlugin).
+Plugin states (_plugin_states) live as long as the coordinator.
+On each run() call in ActionProductMachine, the coordinator is reused –
+states accumulate across runs. This allows plugins to aggregate metrics
+over multiple runs (e.g., a call counter in MetricsPlugin).
 
-Кеш обработчиков (_handler_cache) также живёт столько же, сколько
-координатор. Ключ кеша — (event_name, action_name). Это безопасно,
-потому что множество обработчиков плагина для данного события и действия
-не меняется после создания плагина (декоратор @on применяется при
-определении класса).
+The handler cache (_handler_cache) also lives as long as the coordinator.
+The cache key is (event_name, action_name). This is safe because
+the set of plugin handlers for a given event and action does not change
+after plugin creation (the @on decorator is applied at class definition time).
 """
 
 import asyncio
@@ -48,57 +45,47 @@ from action_machine.Plugins.PluginEvent import PluginEvent
 
 class PluginCoordinator:
     """
-    Координатор жизненного цикла плагинов.
+    Coordinator for the plugin lifecycle.
 
-    Управляет:
-        - Инициализацией состояний плагинов (ленивая, через executor).
-        - Кешированием обработчиков по (event_name, action_name).
-        - Асинхронным запуском обработчиков с семафором конкурентности.
-        - Обработкой ignore_exceptions для отдельных обработчиков.
+    Manages:
+        - Lazy initialization of plugin states (via executor).
+        - Caching of handlers by (event_name, action_name).
+        - Asynchronous execution of handlers (all run concurrently).
+        - Handling of ignore_exceptions for individual handlers.
 
-    Не знает про аспекты, роли, connections — только про плагины.
+    Knows nothing about aspects, roles, connections – only about plugins.
 
-    Атрибуты:
-        _plugins: список экземпляров плагинов.
-        _max_concurrent_handlers: максимальное количество одновременно
-                                   выполняющихся обработчиков для одного события.
-        _handler_cache: кеш обработчиков по (event_name, action_name).
-        _plugin_states: словарь состояний плагинов по id(plugin).
+    Attributes:
+        _plugins: list of plugin instances.
+        _handler_cache: handler cache by (event_name, action_name).
+        _plugin_states: plugin states dictionary by id(plugin).
     """
 
     def __init__(
         self,
         plugins: list[Plugin],
-        max_concurrent_handlers: int = 10,
     ) -> None:
         """
-        Инициализирует координатор плагинов.
+        Initializes the plugin coordinator.
 
-        Аргументы:
-            plugins: список экземпляров плагинов. Порядок определяет
-                     порядок вызова обработчиков при совпадении нескольких.
-            max_concurrent_handlers: максимальное количество одновременно
-                                     выполняющихся обработчиков для одного
-                                     события. По умолчанию 10.
-                                     Используется asyncio.Semaphore для
-                                     ограничения конкурентности.
+        Args:
+            plugins: list of plugin instances. Order determines
+                     the call order of handlers when multiple match.
         """
         self._plugins: list[Plugin] = plugins
-        self._max_concurrent_handlers: int = max_concurrent_handlers
 
-        # Кеш обработчиков: (event_name, action_name) → [(handler, ignore)]
-        # Заполняется лениво при первом вызове _get_handlers для каждого ключа.
-        # Безопасен для повторного использования, т.к. множество обработчиков
-        # не меняется после создания плагина.
+        # Handler cache: (event_name, action_name) → [(handler, ignore)]
+        # Populated lazily on first call to _get_handlers for each key.
+        # Safe for reuse because the set of handlers does not change after plugin creation.
         self._handler_cache: dict[tuple[str, str], list[tuple[Callable[..., Any], bool]]] = {}
 
-        # Состояния плагинов: id(plugin) → state
-        # Инициализируются лениво при первом событии через _init_plugin_states.
-        # Обновляются после каждого вызова обработчика — обработчик возвращает
-        # новое состояние, которое сохраняется обратно в словарь.
+        # Plugin states: id(plugin) → state
+        # Initialized lazily on the first event via _init_plugin_states.
+        # Updated after each handler call – the handler returns a new state,
+        # which is stored back in the dictionary.
         self._plugin_states: dict[int, Any] = {}
 
-    # ---------- Приватные методы ----------
+    # ---------- Private methods ----------
 
     def _get_handlers(
         self,
@@ -106,19 +93,19 @@ class PluginCoordinator:
         action_name: str,
     ) -> list[tuple[Callable[..., Any], bool]]:
         """
-        Возвращает (и кеширует) список обработчиков для данного события и действия.
+        Returns (and caches) the list of handlers for the given event and action.
 
-        При первом вызове для данного (event_name, action_name) обходит все
-        плагины и собирает подходящие обработчики через plugin.get_handlers().
-        Результат кешируется для последующих вызовов.
+        On first call for a given (event_name, action_name), iterates through all
+        plugins and collects matching handlers via plugin.get_handlers().
+        The result is cached for subsequent calls.
 
-        Аргументы:
-            event_name: имя события (например, 'global_start', 'before:validate').
-            action_name: полное имя класса действия (включая модуль).
+        Args:
+            event_name: event name (e.g., 'global_start', 'before:validate').
+            action_name: full class name of the action (including module).
 
-        Возвращает:
-            Список кортежей (handler, ignore_exceptions).
-            Пустой список если ни один обработчик не подходит.
+        Returns:
+            List of (handler, ignore_exceptions) tuples.
+            Empty list if no handlers match.
         """
         cache_key = (event_name, action_name)
 
@@ -132,21 +119,21 @@ class PluginCoordinator:
 
     async def _init_plugin_states(self) -> None:
         """
-        Асинхронно инициализирует состояния всех плагинов.
+        Asynchronously initializes the states of all plugins.
 
-        Для каждого плагина, состояние которого ещё не инициализировано,
-        вызывает синхронный метод get_initial_state() в отдельном потоке
-        (через run_in_executor), чтобы не блокировать event loop.
+        For each plugin whose state has not yet been initialized,
+        calls the synchronous method get_initial_state() in a separate thread
+        (via run_in_executor) to avoid blocking the event loop.
 
-        Метод идемпотентен: повторные вызовы для уже инициализированных
-        плагинов не выполняют никакой работы.
+        The method is idempotent: subsequent calls for already initialized
+        plugins do nothing.
         """
         loop = asyncio.get_running_loop()
         for plugin in self._plugins:
             plugin_id = id(plugin)
             if plugin_id not in self._plugin_states:
-                # Выполняем синхронный метод в executor,
-                # чтобы не блокировать event loop.
+                # Execute the synchronous method in an executor
+                # to avoid blocking the event loop.
                 state = await loop.run_in_executor(None, plugin.get_initial_state)
                 self._plugin_states[plugin_id] = state
 
@@ -158,21 +145,21 @@ class PluginCoordinator:
         event: PluginEvent,
     ) -> None:
         """
-        Запускает один обработчик плагина.
+        Runs a single plugin handler.
 
-        Извлекает текущее состояние плагина из _plugin_states,
-        передаёт его в обработчик вместе с event,
-        и сохраняет возвращённое новое состояние обратно.
+        Retrieves the current state of the plugin from _plugin_states,
+        passes it to the handler along with the event,
+        and stores the returned new state back.
 
-        Если ignore=True и обработчик выбросил исключение —
-        ошибка печатается в stdout, но не прерывает выполнение.
-        Если ignore=False — исключение пробрасывается наверх.
+        If ignore=True and the handler raises an exception,
+        the error is printed to stdout but does not interrupt execution.
+        If ignore=False, the exception is propagated upward.
 
-        Аргументы:
-            handler: метод-обработчик плагина (async def).
-            ignore: флаг ignore_exceptions из декоратора @on.
-            plugin: экземпляр плагина (для получения id и имени класса).
-            event: объект PluginEvent со всеми данными события.
+        Args:
+            handler: plugin handler method (async def).
+            ignore: ignore_exceptions flag from the @on decorator.
+            plugin: plugin instance (to get id and class name).
+            event: PluginEvent object with all event data.
         """
         plugin_id = id(plugin)
         state = self._plugin_states[plugin_id]
@@ -190,23 +177,23 @@ class PluginCoordinator:
         handler: Callable[..., Any],
     ) -> Plugin | None:
         """
-        Находит экземпляр плагина, которому принадлежит данный обработчик.
+        Finds the plugin instance that owns the given handler.
 
-        Проверяет атрибут __self__ связанного метода (bound method),
-        чтобы определить, какой экземпляр плагина создал этот обработчик.
+        Checks the __self__ attribute of the bound method
+        to determine which plugin instance created this handler.
 
-        Аргументы:
-            handler: метод-обработчик плагина.
+        Args:
+            handler: plugin handler method.
 
-        Возвращает:
-            Экземпляр Plugin если найден, иначе None.
+        Returns:
+            Plugin instance if found, otherwise None.
         """
         for plugin in self._plugins:
             if hasattr(handler, "__self__") and handler.__self__ is plugin:
                 return plugin
         return None
 
-    # ---------- Публичный метод ----------
+    # ---------- Public method ----------
 
     async def emit_event(
         self,
@@ -222,49 +209,49 @@ class PluginCoordinator:
         nest_level: int,
     ) -> None:
         """
-        Рассылает событие всем подходящим обработчикам плагинов.
+        Dispatches an event to all matching plugin handlers.
 
-        Это единственный публичный метод координатора. Вызывается
-        из ActionProductMachine в нужные моменты конвейера:
+        This is the only public method of the coordinator. Called
+        from ActionProductMachine at appropriate pipeline points:
         global_start, before:aspect, after:aspect, global_finish.
 
-        Последовательность выполнения:
-            1. Получение списка обработчиков из кеша (или сбор + кеширование).
-            2. Если обработчиков нет — ранний возврат (оптимизация).
-            3. Инициализация состояний плагинов (ленивая, идемпотентная).
-            4. Создание объекта PluginEvent со всеми данными.
-            5. Создание задач для каждого обработчика с семафором.
-            6. Параллельный запуск через asyncio.gather.
+        Execution sequence:
+            1. Obtain the list of handlers from cache (or collect + cache).
+            2. If no handlers – early return (optimization).
+            3. Initialize plugin states (lazy, idempotent).
+            4. Create a PluginEvent object with all data.
+            5. Create tasks for each handler and run them concurrently.
+            6. Wait for all tasks with asyncio.gather.
 
-        Аргументы:
-            event_name: имя события (например, 'global_start',
+        Args:
+            event_name: event name (e.g., 'global_start',
                         'before:validate', 'after:save', 'global_finish').
-            action: экземпляр действия.
-            params: входные параметры действия.
-            state_aspect: состояние конвейера на момент события
-                          (dict или None для global_start/global_finish).
-            is_summary: True если событие относится к summary-аспекту.
-            result: результат действия (для global_finish, иначе None).
-            duration: длительность выполнения в секундах
-                      (для after-событий и global_finish, иначе None).
-            factory: фабрика зависимостей текущего выполнения.
-            context: контекст выполнения (пользователь, запрос, окружение).
-            nest_level: уровень вложенности вызова действия
-                        (0 для корневого, 1 для дочернего и т.д.).
+            action: action instance.
+            params: action input parameters.
+            state_aspect: pipeline state at the event moment
+                          (dict or None for global_start/global_finish).
+            is_summary: True if the event relates to a summary aspect.
+            result: action result (for global_finish, otherwise None).
+            duration: execution duration in seconds
+                      (for after events and global_finish, otherwise None).
+            factory: dependency factory for the current execution.
+            context: execution context (user, request, environment).
+            nest_level: action call nesting level
+                        (0 for root, 1 for child, etc.).
         """
         action_name = action.get_full_class_name()
         handlers = self._get_handlers(event_name, action_name)
 
-        # Оптимизация: если нет подходящих обработчиков — ничего не делаем.
-        # Это покрывает ~80% событий в типичном приложении.
+        # Optimization: if there are no matching handlers – do nothing.
+        # This covers ~80% of events in a typical application.
         if not handlers:
             return
 
-        # Инициализируем состояния плагинов асинхронно (ленивая инициализация).
-        # При повторных вызовах уже инициализированные плагины пропускаются.
+        # Initialize plugin states asynchronously (lazy initialization).
+        # Subsequent calls skip already initialized plugins.
         await self._init_plugin_states()
 
-        # Создаём объект события со всеми данными для обработчиков.
+        # Create the event object with all data for handlers.
         event = PluginEvent(
             event_name=event_name,
             action_name=action_name,
@@ -278,30 +265,17 @@ class PluginCoordinator:
             nest_level=nest_level,
         )
 
-        # Семафор ограничивает количество одновременно выполняющихся
-        # обработчиков. Это предотвращает ситуацию, когда 50 плагинов
-        # одновременно выполняют тяжёлые IO-операции.
-        semaphore = asyncio.Semaphore(self._max_concurrent_handlers)
-
-        async def run_with_semaphore(
-            handler: Callable[..., Any],
-            ignore: bool,
-            plugin: Plugin,
-        ) -> None:
-            """Запускает обработчик с ограничением конкурентности."""
-            async with semaphore:
-                await self._run_single_handler(handler, ignore, plugin, event)
-
-        # Собираем задачи для всех обработчиков.
-        # Для каждого обработчика находим его плагин через _find_plugin_for_handler.
+        # Collect tasks for all handlers.
+        # For each handler, find its plugin via _find_plugin_for_handler.
         tasks: list[Any] = []
         for handler, ignore in handlers:
             plugin = self._find_plugin_for_handler(handler)
             if plugin is not None:
-                tasks.append(run_with_semaphore(handler, ignore, plugin))
+                tasks.append(self._run_single_handler(handler, ignore, plugin, event))
 
-        # Запускаем все задачи параллельно.
-        # asyncio.gather ждёт завершения всех задач.
-        # Если какой-то обработчик с ignore=False выбросит исключение —
-        # оно пробросится из gather наверх.
-        await asyncio.gather(*tasks)
+        # Run all tasks concurrently.
+        # asyncio.gather waits for all tasks to complete.
+        # If any handler with ignore=False raises an exception,
+        # it will be propagated from gather upward.
+        if tasks:
+            await asyncio.gather(*tasks)

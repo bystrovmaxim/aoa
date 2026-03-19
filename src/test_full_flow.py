@@ -34,7 +34,6 @@ from action_machine.Plugins.Plugin import Plugin
 from action_machine.Plugins.PluginEvent import PluginEvent
 from action_machine.ResourceManagers.BaseResourceManager import BaseResourceManager
 
-
 # ----------------------------------------------------------------------
 # Вспомогательные классы: параметры, результаты, зависимости
 # ----------------------------------------------------------------------
