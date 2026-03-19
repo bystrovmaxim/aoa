@@ -48,7 +48,7 @@ class PluginCoordinator:
     Coordinator for the plugin lifecycle.
 
     Manages:
-        - Lazy initialization of plugin states (via executor).
+        - Lazy initialization of plugin states (via direct async call).
         - Caching of handlers by (event_name, action_name).
         - Asynchronous execution of handlers (all run concurrently).
         - Handling of ignore_exceptions for individual handlers.
@@ -122,19 +122,15 @@ class PluginCoordinator:
         Asynchronously initializes the states of all plugins.
 
         For each plugin whose state has not yet been initialized,
-        calls the synchronous method get_initial_state() in a separate thread
-        (via run_in_executor) to avoid blocking the event loop.
-
-        The method is idempotent: subsequent calls for already initialized
+        directly awaits its asynchronous get_initial_state() method.
+        This method is idempotent: subsequent calls for already initialized
         plugins do nothing.
         """
-        loop = asyncio.get_running_loop()
         for plugin in self._plugins:
             plugin_id = id(plugin)
             if plugin_id not in self._plugin_states:
-                # Execute the synchronous method in an executor
-                # to avoid blocking the event loop.
-                state = await loop.run_in_executor(None, plugin.get_initial_state)
+                # Directly await the async method – no executor needed.
+                state = await plugin.get_initial_state()
                 self._plugin_states[plugin_id] = state
 
     async def _run_single_handler(
