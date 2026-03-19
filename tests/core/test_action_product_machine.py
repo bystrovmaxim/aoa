@@ -406,21 +406,10 @@ def context_without_roles() -> Context:
 
 
 @pytest.fixture
-def machine(context_with_roles: Context) -> ActionProductMachine:
+def machine() -> ActionProductMachine:
     """Machine with mode 'production' and mock log coordinator to verify calls."""
     mock_log_coordinator = AsyncMock(spec=LogCoordinator)
     return ActionProductMachine(
-        context=context_with_roles,
-        mode="production",
-        log_coordinator=mock_log_coordinator,
-    )
-
-
-@pytest.fixture
-def machine_without_roles(context_without_roles: Context) -> ActionProductMachine:
-    mock_log_coordinator = AsyncMock(spec=LogCoordinator)
-    return ActionProductMachine(
-        context=context_without_roles,
         mode="production",
         log_coordinator=mock_log_coordinator,
     )
@@ -437,14 +426,14 @@ def mock_plugin() -> MagicMock:
 # TESTS: Constructor and parameters
 # ======================================================================
 class TestConstructor:
-    def test_mode_must_be_non_empty(self, context_with_roles):
+    def test_mode_must_be_non_empty(self):
         """mode cannot be empty."""
         with pytest.raises(ValueError, match="mode must be non-empty"):
-            ActionProductMachine(context_with_roles, mode="")
+            ActionProductMachine(mode="")
 
-    def test_default_log_coordinator_created(self, context_with_roles):
+    def test_default_log_coordinator_created(self):
         """If log_coordinator is not provided, one with ConsoleLogger is created."""
-        machine = ActionProductMachine(context_with_roles, mode="test")
+        machine = ActionProductMachine(mode="test")
         assert machine._log_coordinator is not None
         from action_machine.Logging.log_coordinator import LogCoordinator
         assert isinstance(machine._log_coordinator, LogCoordinator)
@@ -454,8 +443,8 @@ class TestConstructor:
 # TESTS: Aspect collection (_collect_aspects)
 # ======================================================================
 class TestCollectAspects:
-    def test_collect_aspects_returns_sorted_regular_and_summary(self, context_with_roles):
-        machine = ActionProductMachine(context_with_roles, mode="test")
+    def test_collect_aspects_returns_sorted_regular_and_summary(self):
+        machine = ActionProductMachine(mode="test")
         aspects, summary = machine._collect_aspects(ActionWithAspects)
         assert len(aspects) == 2
         assert aspects[0][0].__name__ == "aspect1"
@@ -464,20 +453,20 @@ class TestCollectAspects:
         assert aspects[1][1] == "Second aspect"
         assert summary.__name__ == "summary"
 
-    def test_collect_aspects_ignores_inherited_methods(self, context_with_roles):
-        machine = ActionProductMachine(context_with_roles, mode="test")
+    def test_collect_aspects_ignores_inherited_methods(self):
+        machine = ActionProductMachine(mode="test")
         aspects, summary = machine._collect_aspects(ChildAction)
         assert len(aspects) == 1
         assert aspects[0][0].__name__ == "child_aspect"
         assert summary.__name__ == "summary"
 
-    def test_collect_aspects_no_summary_raises(self, context_with_roles):
-        machine = ActionProductMachine(context_with_roles, mode="test")
+    def test_collect_aspects_no_summary_raises(self):
+        machine = ActionProductMachine(mode="test")
         with pytest.raises(TypeError, match="does not have a summary_aspect"):
             machine._collect_aspects(ActionWithoutSummary)
 
-    def test_collect_aspects_two_summaries_raises(self, context_with_roles):
-        machine = ActionProductMachine(context_with_roles, mode="test")
+    def test_collect_aspects_two_summaries_raises(self):
+        machine = ActionProductMachine(mode="test")
         with pytest.raises(TypeError, match="has more than one summary_aspect"):
             machine._collect_aspects(ActionWithTwoSummaries)
 
@@ -486,20 +475,20 @@ class TestCollectAspects:
 # TESTS: Role checking (_check_action_roles)
 # ======================================================================
 class TestCheckActionRoles:
-    def test_none_role_allows_any_user(self, machine_without_roles):
-        machine_without_roles._check_action_roles(ActionNone())
+    def test_none_role_allows_any_user(self, machine, context_without_roles):
+        machine._check_action_roles(ActionNone(), context_without_roles)
 
-    def test_any_role_allows_user_with_roles(self, machine):
-        machine._check_action_roles(ActionAny())
+    def test_any_role_allows_user_with_roles(self, machine, context_with_roles):
+        machine._check_action_roles(ActionAny(), context_with_roles)
 
-    def test_any_role_rejects_user_without_roles(self, machine_without_roles):
+    def test_any_role_rejects_user_without_roles(self, machine, context_without_roles):
         with pytest.raises(AuthorizationError, match="Authentication required: user must have at least one role"):
-            machine_without_roles._check_action_roles(ActionAny())
+            machine._check_action_roles(ActionAny(), context_without_roles)
 
-    def test_single_role_match(self, machine):
-        machine._check_action_roles(ActionSingleRole())
+    def test_single_role_match(self, machine, context_with_roles):
+        machine._check_action_roles(ActionSingleRole(), context_with_roles)
 
-    def test_single_role_no_match(self, machine):
+    def test_single_role_no_match(self, machine, context_with_roles):
         @CheckRoles("manager", desc="")
         class _ActionManager(MockAction):
             @summary_aspect("test")
@@ -514,12 +503,12 @@ class TestCheckActionRoles:
                 return MockResult()
 
         with pytest.raises(AuthorizationError, match="Access denied. Required role: 'manager'"):
-            machine._check_action_roles(_ActionManager())
+            machine._check_action_roles(_ActionManager(), context_with_roles)
 
-    def test_list_role_intersection(self, machine):
-        machine._check_action_roles(ActionListRole())
+    def test_list_role_intersection(self, machine, context_with_roles):
+        machine._check_action_roles(ActionListRole(), context_with_roles)
 
-    def test_list_role_no_intersection(self, machine):
+    def test_list_role_no_intersection(self, machine, context_with_roles):
         @CheckRoles(["manager", "editor"], desc="")
         class _ActionManagerEditor(MockAction):
             @summary_aspect("test")
@@ -534,11 +523,11 @@ class TestCheckActionRoles:
                 return MockResult()
 
         with pytest.raises(AuthorizationError, match="Access denied. Required one of the roles:"):
-            machine._check_action_roles(_ActionManagerEditor())
+            machine._check_action_roles(_ActionManagerEditor(), context_with_roles)
 
-    def test_action_without_role_spec_raises_type_error(self, machine):
+    def test_action_without_role_spec_raises_type_error(self, machine, context_with_roles):
         with pytest.raises(TypeError, match="does not have a CheckRoles decorator"):
-            machine._check_action_roles(ActionNoDecorator())
+            machine._check_action_roles(ActionNoDecorator(), context_with_roles)
 
 
 # ======================================================================
@@ -579,58 +568,58 @@ class TestCheckConnections:
 # ======================================================================
 class TestRun:
     @pytest.mark.anyio
-    async def test_run_executes_aspects_in_order(self, machine):
+    async def test_run_executes_aspects_in_order(self, machine, context_with_roles):
         ActionWithAspects._test_calls = []
-        result = await machine.run(ActionWithAspects(), MockParams())
+        result = await machine.run(context_with_roles, ActionWithAspects(), MockParams())
         assert ActionWithAspects._test_calls == ["aspect1", "aspect2", "summary"]
         assert isinstance(result, MockResult)
 
     @pytest.mark.anyio
-    async def test_run_aspect_returns_non_dict_raises(self, machine):
+    async def test_run_aspect_returns_non_dict_raises(self, machine, context_with_roles):
         with pytest.raises(TypeError, match="must return a dict"):
-            await machine.run(BadAction(), MockParams())
+            await machine.run(context_with_roles, BadAction(), MockParams())
 
     @pytest.mark.anyio
-    async def test_run_aspect_returns_dict_without_checkers_raises(self, machine):
+    async def test_run_aspect_returns_dict_without_checkers_raises(self, machine, context_with_roles):
         with pytest.raises(ValidationFieldError, match="has no checkers, but returned non-empty state:"):
-            await machine.run(ActionWithoutCheckers(), MockParams())
+            await machine.run(context_with_roles, ActionWithoutCheckers(), MockParams())
 
     @pytest.mark.anyio
-    async def test_run_aspect_returns_extra_fields_raises(self, machine):
+    async def test_run_aspect_returns_extra_fields_raises(self, machine, context_with_roles):
         with pytest.raises(ValidationFieldError, match="returned extra fields:"):
-            await machine.run(ActionWithChecker(), MockParams())
+            await machine.run(context_with_roles, ActionWithChecker(), MockParams())
 
     @pytest.mark.anyio
-    async def test_run_calls_plugin_events(self, machine, mock_plugin):
+    async def test_run_calls_plugin_events(self, machine, context_with_roles, mock_plugin):
         # Replace plugin coordinator with mock
         machine._plugin_coordinator = AsyncMock(spec=PluginCoordinator)
         ActionWithAspects._test_calls = []
-        await machine.run(ActionWithAspects(), MockParams())
+        await machine.run(context_with_roles, ActionWithAspects(), MockParams())
         # global_start, before:aspect1, after:aspect1, before:aspect2, after:aspect2, global_finish
         assert machine._plugin_coordinator.emit_event.await_count == 6
 
     @pytest.mark.anyio
-    async def test_nest_level_increments_and_decrements(self, machine):
+    async def test_nest_level_increments_and_decrements(self, machine, context_with_roles):
         assert machine._nest_level == 0
         ActionWithAspects._test_calls = []
-        await machine.run(ActionWithAspects(), MockParams())
+        await machine.run(context_with_roles, ActionWithAspects(), MockParams())
         assert machine._nest_level == 0
 
     # ------------------------------------------------------------------
     # TESTS: Logging and mode passing
     # ------------------------------------------------------------------
     @pytest.mark.anyio
-    async def test_logger_passed_to_aspects(self, machine):
+    async def test_logger_passed_to_aspects(self, machine, context_with_roles):
         """Check that log.emit is called in each aspect."""
         ActionWithAspects._test_calls = []
-        await machine.run(ActionWithAspects(), MockParams())
+        await machine.run(context_with_roles, ActionWithAspects(), MockParams())
         assert machine._log_coordinator.emit.await_count >= 3
 
     @pytest.mark.anyio
-    async def test_logger_receives_correct_scope(self, machine):
+    async def test_logger_receives_correct_scope(self, machine, context_with_roles):
         """Check that the log scope is formed correctly."""
         machine._log_coordinator.emit = AsyncMock()
-        await machine.run(ActionWithAspects(), MockParams())
+        await machine.run(context_with_roles, ActionWithAspects(), MockParams())
         call_args = machine._log_coordinator.emit.call_args_list[0]
         scope = call_args.kwargs["scope"]
         assert scope["machine"] == "ActionProductMachine"
@@ -640,17 +629,17 @@ class TestRun:
         assert list(scope.keys()) == ["machine", "mode", "action", "aspect"]
 
     @pytest.mark.anyio
-    async def test_logger_receives_correct_indent(self, machine):
+    async def test_logger_receives_correct_indent(self, machine, context_with_roles):
         machine._log_coordinator.emit = AsyncMock()
-        await machine.run(ActionWithAspects(), MockParams())
+        await machine.run(context_with_roles, ActionWithAspects(), MockParams())
         for call in machine._log_coordinator.emit.call_args_list:
             indent = call.kwargs["indent"]
             assert indent == 1
 
     @pytest.mark.anyio
-    async def test_logger_passed_empty_state_and_params(self, machine):
+    async def test_logger_passed_empty_state_and_params(self, machine, context_with_roles):
         machine._log_coordinator.emit = AsyncMock()
-        await machine.run(ActionWithAspects(), MockParams())
+        await machine.run(context_with_roles, ActionWithAspects(), MockParams())
         for call in machine._log_coordinator.emit.call_args_list:
             state = call.kwargs["state"]
             params = call.kwargs["params"]
@@ -659,13 +648,12 @@ class TestRun:
             assert isinstance(params, BaseParams)
 
     @pytest.mark.anyio
-    async def test_mode_passed_to_logger(self, machine):
+    async def test_mode_passed_to_logger(self, context_with_roles):
         machine_with_mode = ActionProductMachine(
-            context=Context(),
             mode="staging",
             log_coordinator=AsyncMock(spec=LogCoordinator)
         )
         machine_with_mode._log_coordinator.emit = AsyncMock()
-        await machine_with_mode.run(ActionWithAspects(), MockParams())
+        await machine_with_mode.run(context_with_roles, ActionWithAspects(), MockParams())
         scope = machine_with_mode._log_coordinator.emit.call_args_list[0].kwargs["scope"]
         assert scope["mode"] == "staging"

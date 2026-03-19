@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - **English‑only error messages** – all exception messages and user‑facing strings have been translated to English. This ensures consistency and aligns with the project’s internationalization goals.
 - **Asynchronous plugin initialization** – `Plugin.get_initial_state()` is now an `async` method. This eliminates the need for `run_in_executor` and allows plugins to perform async I/O during state initialization.
+- **Context as a per‑request parameter** – `context` is now passed directly to the `run()` method of all action machines (`BaseActionMachine`, `ActionProductMachine`, `ActionTestMachine`) instead of being stored in the constructor.  
+  - This change reflects the fact that the machine is a long‑lived singleton, while each request carries its own context (user, request, environment).  
+  - All internal methods that previously accessed `self._context` now receive `context` as an explicit argument.
 
 ### Changed
 - **Plugin concurrency** – removed the `max_concurrent_handlers` parameter from `ActionProductMachine` and `PluginCoordinator`.  
@@ -17,14 +20,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Now all matching plugin handlers are executed **fully concurrently** via `asyncio.gather`, reducing overall execution time to that of the slowest handler.
 - **All internal comments and docstrings** have been translated to English and updated to reflect the current implementation.
 - **Plugin state initialization** – moved from `run_in_executor` to direct `await` of `get_initial_state()`, simplifying the code and making the coordinator fully asynchronous.
+- **ActionProductMachine constructor** – removed the `context` parameter; the machine no longer holds request‑specific data.
+- **ActionTestMachine constructor** – removed the `ctx` parameter (the test machine now only accepts `mocks`, `mode`, and `log_coordinator`).
+- **BaseActionMachine.run() signature** – added mandatory first parameter `context: Context`. The same change applies to `sync_run()`.
+- **DependencyFactory.run_action()** – now requires a `context` argument and passes it to the machine’s `run()` method.
+- **All related tests** – updated to pass `context` where needed; fixtures and helper functions adjusted accordingly.
 
 ### Removed
 - **`max_concurrent_handlers`** – no longer accepted in constructors; related logic removed from `PluginCoordinator`.
+- **`self._context` attribute** – completely eliminated from `ActionProductMachine` and `ActionTestMachine`.
 
 ### Fixed
 - **Test suite** – updated concurrency tests to verify that all handlers run in parallel (duration ~ max handler time). Removed obsolete tests that checked semaphore behavior.
 - **Exception tests** – aligned with English error messages; all plugin exception tests now pass.
 - **Type hints** – ensured all changes are compatible with strict `mypy` checks (no new issues introduced).
+- **All 469 tests pass** after the context refactoring; no functionality was broken.
 
 ### Security
 - No changes.

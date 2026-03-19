@@ -1,14 +1,14 @@
 # tests/core/test_action_test_machine.py
 """
-Тесты ActionTestMachine — тестовой машины действий с поддержкой моков.
+Tests for ActionTestMachine — test action machine with mock support.
 
-Проверяем:
-- Запуск MockAction напрямую (без аспектов)
-- Запуск реальных действий с моками зависимостей
-- Подготовку моков (_prepare_mock)
-- Метод build_factory
-- Передачу mode и log_coordinator (изменения в конструкторе)
-- По умолчанию mode="test"
+Checks:
+- Running MockAction directly (without aspects)
+- Running real actions with mocked dependencies
+- Mock preparation (_prepare_mock)
+- build_factory method
+- Passing mode and log_coordinator (constructor changes)
+- Default mode="test"
 """
 
 from unittest.mock import AsyncMock, Mock
@@ -29,7 +29,7 @@ from action_machine.Logging.log_coordinator import LogCoordinator
 
 
 # ----------------------------------------------------------------------
-# Вспомогательные классы
+# Helper classes
 # ----------------------------------------------------------------------
 class MockParams(BaseParams):
     pass
@@ -42,7 +42,7 @@ class MockResult(BaseResult):
 @CheckRoles(CheckRoles.NONE, desc="")
 @depends(str)
 class RealAction(BaseAction[MockParams, MockResult]):
-    """Реальное действие с зависимостью str."""
+    """Real action with a str dependency."""
     captured = None
     log_called = False
 
@@ -56,7 +56,7 @@ class RealAction(BaseAction[MockParams, MockResult]):
         log: ActionBoundLogger,
     ) -> MockResult:
         self.captured = deps.get(str)
-        # Проверяем, что логер работает
+        # Check that the logger works
         await log.info("Summary executed", action="RealAction")
         self.log_called = True
         return MockResult()
@@ -80,7 +80,7 @@ class ActionWithDeps(BaseAction[MockParams, MockResult]):
 @CheckRoles(CheckRoles.NONE, desc="")
 @depends(str)
 class CapturingAction(BaseAction[MockParams, MockResult]):
-    """Действие, сохраняющее полученную зависимость и вызывающее лог."""
+    """Action that captures the obtained dependency and calls the logger."""
     captured = None
     log_messages = []
 
@@ -100,7 +100,7 @@ class CapturingAction(BaseAction[MockParams, MockResult]):
 
 
 # ----------------------------------------------------------------------
-# Фикстуры
+# Fixtures
 # ----------------------------------------------------------------------
 @pytest.fixture
 def empty_context() -> Context:
@@ -109,10 +109,9 @@ def empty_context() -> Context:
 
 @pytest.fixture
 def machine(empty_context: Context) -> ActionTestMachine:
-    """Тестовая машина с режимом по умолчанию (test) и мок-координатором логов."""
+    """Test machine with default mode (test) and mock log coordinator."""
     mock_log_coordinator = AsyncMock(spec=LogCoordinator)
     return ActionTestMachine(
-        ctx=empty_context,
         mode="test",
         log_coordinator=mock_log_coordinator,
     )
@@ -120,7 +119,7 @@ def machine(empty_context: Context) -> ActionTestMachine:
 
 @pytest.fixture
 def machine_with_mocks() -> ActionTestMachine:
-    """Машина с предустановленными моками."""
+    """Machine with pre‑configured mocks."""
     mocks = {
         str: "mocked_string",
         int: MockAction(result=MockResult()),
@@ -130,130 +129,130 @@ def machine_with_mocks() -> ActionTestMachine:
 
 
 # ======================================================================
-# ТЕСТЫ: Конструктор
+# TESTS: Constructor
 # ======================================================================
 class TestConstructor:
     def test_default_mode_is_test(self, empty_context: Context) -> None:
-        """По умолчанию mode = 'test'."""
-        machine = ActionTestMachine(ctx=empty_context)
+        """Default mode is 'test'."""
+        machine = ActionTestMachine()
         assert machine._mode == "test"
 
     def test_custom_mode_passed_to_parent(self, empty_context: Context) -> None:
-        """Переданный mode попадает в родительский класс."""
-        machine = ActionTestMachine(ctx=empty_context, mode="custom_mode")
+        """Custom mode is passed to the parent class."""
+        machine = ActionTestMachine(mode="custom_mode")
         assert machine._mode == "custom_mode"
 
     def test_log_coordinator_passed_to_parent(self, empty_context: Context) -> None:
-        """Переданный log_coordinator используется в родителе."""
+        """Provided log_coordinator is used in the parent."""
         mock_coord = AsyncMock(spec=LogCoordinator)
-        machine = ActionTestMachine(ctx=empty_context, log_coordinator=mock_coord)
+        machine = ActionTestMachine(log_coordinator=mock_coord)
         assert machine._log_coordinator is mock_coord
 
 
 # ======================================================================
-# ТЕСТЫ: run() с MockAction
+# TESTS: run() with MockAction
 # ======================================================================
 class TestRunWithMockAction:
     @pytest.mark.anyio
-    async def test_run_mock_action_directly(self, machine: ActionTestMachine) -> None:
-        """MockAction запускается напрямую, минуя аспекты."""
+    async def test_run_mock_action_directly(self, machine: ActionTestMachine, empty_context: Context) -> None:
+        """MockAction runs directly, bypassing aspects."""
         mock_action = MockAction(result=MockResult())
         params = MockParams()
         original_run = mock_action.run
         mock_action.run = Mock(wraps=original_run)
 
-        result = await machine.run(mock_action, params)
+        result = await machine.run(empty_context, mock_action, params)
 
         mock_action.run.assert_called_once_with(params)
         assert isinstance(result, MockResult)
 
     @pytest.mark.anyio
-    async def test_run_mock_action_tracks_calls(self, machine: ActionTestMachine) -> None:
-        """MockAction подсчитывает вызовы и сохраняет параметры."""
+    async def test_run_mock_action_tracks_calls(self, machine: ActionTestMachine, empty_context: Context) -> None:
+        """MockAction counts calls and stores last parameters."""
         mock_action = MockAction(result=MockResult())
         params = MockParams()
 
-        await machine.run(mock_action, params)
-        await machine.run(mock_action, params)
+        await machine.run(empty_context, mock_action, params)
+        await machine.run(empty_context, mock_action, params)
 
         assert mock_action.call_count == 2
         assert mock_action.last_params is params
 
     @pytest.mark.anyio
-    async def test_run_mock_action_with_side_effect(self, machine: ActionTestMachine) -> None:
-        """side_effect используется вместо фиксированного результата."""
+    async def test_run_mock_action_with_side_effect(self, machine: ActionTestMachine, empty_context: Context) -> None:
+        """side_effect is used instead of a fixed result."""
         def side_effect(p):
             return MockResult()
 
         mock_action = MockAction(side_effect=side_effect)
         params = MockParams()
 
-        result = await machine.run(mock_action, params)
+        result = await machine.run(empty_context, mock_action, params)
 
         assert isinstance(result, MockResult)
         assert mock_action.call_count == 1
 
 
 # ======================================================================
-# ТЕСТЫ: run() с реальным действием и моками
+# TESTS: run() with real action and mocks
 # ======================================================================
 class TestRunWithRealAction:
     @pytest.mark.anyio
-    async def test_real_action_gets_mocks_from_factory(self, machine_with_mocks: ActionTestMachine) -> None:
-        """Зависимости из моков подставляются в действие."""
+    async def test_real_action_gets_mocks_from_factory(self, machine_with_mocks: ActionTestMachine, empty_context: Context) -> None:
+        """Dependencies from mocks are injected into the action."""
         action = CapturingAction()
         params = MockParams()
 
-        await machine_with_mocks.run(action, params)
+        await machine_with_mocks.run(empty_context, action, params)
 
         assert action.captured == "mocked_string"
 
     @pytest.mark.anyio
-    async def test_real_action_without_mocks_uses_default(self, machine: ActionTestMachine) -> None:
-        """Без моков используется конструктор по умолчанию."""
+    async def test_real_action_without_mocks_uses_default(self, machine: ActionTestMachine, empty_context: Context) -> None:
+        """Without mocks, the default constructor is used."""
         action = ActionWithDeps()
         params = MockParams()
 
-        result = await machine.run(action, params)
+        result = await machine.run(empty_context, action, params)
 
         assert isinstance(result, MockResult)
 
     @pytest.mark.anyio
-    async def test_logger_passed_to_real_action(self, machine: ActionTestMachine) -> None:
-        """В реальное действие передаётся логер и работает."""
+    async def test_logger_passed_to_real_action(self, machine: ActionTestMachine, empty_context: Context) -> None:
+        """Logger is passed to the real action and works."""
         action = CapturingAction()
         params = MockParams()
 
-        await machine.run(action, params)
+        await machine.run(empty_context, action, params)
 
-        # Должны быть два вызова лога: debug и info
+        # Should have two log calls: debug and info
         assert machine._log_coordinator.emit.await_count >= 2
-        # Проверим, что scope содержит правильный mode
+        # Check that the scope contains the correct mode
         first_call = machine._log_coordinator.emit.call_args_list[0]
         scope = first_call.kwargs["scope"]
-        assert scope["mode"] == "test"  # из фикстуры machine
+        assert scope["mode"] == "test"  # from machine fixture
         assert scope["action"].endswith("CapturingAction")
         assert scope["aspect"] == "summary"
 
 
 # ======================================================================
-# ТЕСТЫ: _prepare_mock
+# TESTS: _prepare_mock
 # ======================================================================
 class TestPrepareMock:
     def test_prepare_mock_with_mock_action(self, machine: ActionTestMachine) -> None:
-        """MockAction возвращается как есть."""
+        """MockAction is returned as is."""
         mock = MockAction(result=MockResult())
         prepared = machine._prepare_mock(mock)
         assert prepared is mock
 
     def test_prepare_mock_with_base_action(self, machine: ActionTestMachine) -> None:
-        """BaseAction возвращается как есть."""
+        """BaseAction is returned as is."""
         action = RealAction()
         prepared = machine._prepare_mock(action)
         assert prepared is action
 
     def test_prepare_mock_with_callable(self, machine: ActionTestMachine) -> None:
-        """Callable оборачивается в MockAction с side_effect."""
+        """Callable is wrapped in MockAction with side_effect."""
         def func(p):
             return MockResult()
 
@@ -262,60 +261,60 @@ class TestPrepareMock:
         assert prepared.side_effect is func
 
     def test_prepare_mock_with_base_result(self, machine: ActionTestMachine) -> None:
-        """BaseResult оборачивается в MockAction с result."""
+        """BaseResult is wrapped in MockAction with result."""
         result = MockResult()
         prepared = machine._prepare_mock(result)
         assert isinstance(prepared, MockAction)
         assert prepared.result is result
 
     def test_prepare_mock_with_other_object(self, machine: ActionTestMachine) -> None:
-        """Любой другой объект возвращается как есть."""
+        """Any other object is returned as is."""
         obj = object()
         prepared = machine._prepare_mock(obj)
         assert prepared is obj
 
 
 # ======================================================================
-# ТЕСТЫ: build_factory
+# TESTS: build_factory
 # ======================================================================
 class TestBuildFactory:
     def test_build_factory_returns_dependency_factory(self, machine: ActionTestMachine) -> None:
-        """build_factory создаёт DependencyFactory."""
+        """build_factory creates a DependencyFactory."""
         factory = machine.build_factory(ActionWithDeps)
         assert isinstance(factory, DependencyFactory)
 
     @pytest.mark.anyio
-    async def test_build_factory_uses_mocks(self, machine_with_mocks: ActionTestMachine) -> None:
+    async def test_build_factory_uses_mocks(self, machine_with_mocks: ActionTestMachine, empty_context: Context) -> None:
         """
-        build_factory создаёт фабрику с моками.
-        Проверяем через реальный запуск действия.
+        build_factory creates a factory with mocks.
+        Verified by actually running the action.
         """
-        # Подменим координатор логов на мок прямо в тесте
+        # Replace log coordinator with a mock directly in the test
         mock_coord = AsyncMock(spec=LogCoordinator)
         machine_with_mocks._log_coordinator = mock_coord
 
         action = CapturingAction()
         params = MockParams()
 
-        await machine_with_mocks.run(action, params)
+        await machine_with_mocks.run(empty_context, action, params)
 
         assert action.captured == "mocked_string"
-        # Проверим, что mode из конструктора попал в логи
+        # Check that mode from constructor ended up in logs
         mock_coord.emit.assert_awaited()
-        # Берём первый вызов
+        # Get the first call
         call_args = mock_coord.emit.call_args
         scope = call_args.kwargs["scope"]
-        assert scope["mode"] == "testing_mode"  # из фикстуры machine_with_mocks
+        assert scope["mode"] == "testing_mode"  # from machine_with_mocks fixture
 
     def test_build_factory_respects_external_resources(self, machine: ActionTestMachine) -> None:
-        """external_resources имеют приоритет над моками."""
-        # Создадим машину с моком для str
+        """external_resources have priority over mocks."""
+        # Create a machine with a mock for str
         mocks = {str: "mocked"}
         test_machine = ActionTestMachine(mocks=mocks, mode="test")
 
-        # Передаём external_resources с другим значением
+        # Pass external_resources with a different value
         external = {str: "external"}
         factory = test_machine._get_factory(RealAction, external_resources=external)
 
-        # Должен вернуться external, а не mocked
+        # Should return external, not mocked
         assert factory.get(str) == "external"

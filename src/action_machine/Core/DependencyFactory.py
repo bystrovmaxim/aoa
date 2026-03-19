@@ -1,11 +1,13 @@
+# ActionMachine/Core/DependencyFactory.py
 """
-Фабрика зависимостей для действий.
-Поддерживает создание и кэширование зависимостей, а также асинхронный запуск
-вложенных действий с автоматическим оборачиванием connections.
+Dependency factory for actions.
+Supports creating and caching dependencies, as well as asynchronous execution
+of nested actions with automatic wrapping of connections.
 """
 
 from typing import Any
 
+from action_machine.Context.context import Context
 from action_machine.Core.BaseAction import BaseAction
 from action_machine.Core.BaseActionMachine import BaseActionMachine
 from action_machine.Core.BaseParams import BaseParams
@@ -15,12 +17,12 @@ from action_machine.ResourceManagers.BaseResourceManager import BaseResourceMana
 
 class DependencyFactory:
     """
-    Фабрика зависимостей для действий.
+    Dependency factory for actions.
 
-    Создаёт и кэширует экземпляры зависимостей, объявленных через @depends.
-    При наличии внешних ресурсов (external_resources) использует их в приоритете.
-    Предоставляет метод для асинхронного запуска вложенных действий
-    с автоматическим оборачиванием connections через wrapper_class.
+    Creates and caches instances of dependencies declared via @depends.
+    When external resources (external_resources) are present, they are used with priority.
+    Provides a method for asynchronously launching nested actions
+    with automatic wrapping of connections via wrapper_class.
     """
 
     def __init__(
@@ -30,12 +32,12 @@ class DependencyFactory:
         external_resources: dict[type[Any], Any] | None = None,
     ) -> None:
         """
-        Инициализирует фабрику.
+        Initializes the factory.
 
-        Аргументы:
-            machine: экземпляр машины действий (для запуска вложенных действий).
-            deps_info: список словарей с информацией о зависимостях (из @depends).
-            external_resources: словарь внешних ресурсов, которые имеют приоритет.
+        Args:
+            machine: instance of the action machine (for launching nested actions).
+            deps_info: list of dictionaries with dependency information (from @depends).
+            external_resources: dictionary of external resources that have priority.
         """
         self._machine: BaseActionMachine = machine
         self._deps: dict[type[Any], dict[str, Any]] = {info["class"]: info for info in deps_info}
@@ -44,20 +46,20 @@ class DependencyFactory:
 
     def get(self, klass: type[Any]) -> Any:
         """
-        Возвращает экземпляр зависимости указанного класса.
+        Returns an instance of the dependency of the specified class.
 
-        Если класс присутствует во внешних ресурсах, возвращается внешний экземпляр.
-        Иначе, если экземпляр уже создан, возвращается из кэша.
-        Иначе создаётся новый экземпляр через фабрику или конструктор по умолчанию.
+        If the class is present in external resources, the external instance is returned.
+        Otherwise, if the instance has already been created, it is returned from the cache.
+        Otherwise, a new instance is created via a factory or the default constructor.
 
-        Аргументы:
-            klass: класс зависимости.
+        Args:
+            klass: dependency class.
 
-        Возвращает:
-            Экземпляр зависимости.
+        Returns:
+            Dependency instance.
 
-        Исключения:
-            ValueError: если зависимость не объявлена через @depends и отсутствует во внешних ресурсах.
+        Raises:
+            ValueError: if the dependency is not declared via @depends and is not present in external resources.
         """
         if klass in self._external:
             return self._external[klass]
@@ -75,33 +77,33 @@ class DependencyFactory:
 
     def _wrap_connections(self, connections: dict[str, BaseResourceManager]) -> dict[str, BaseResourceManager]:
         """
-        Оборачивает каждый connection в его wrapper-класс для передачи в дочерние действия.
+        Wraps each connection in its wrapper class for passing to child actions.
 
-        Для каждого connection:
-        1. Вызывает get_wrapper_class() чтобы получить тип обёртки.
-        2. Если wrapper_class не None — создаёт экземпляр обёртки, передавая
-           оригинальный connection в конструктор.
-        3. Если wrapper_class is None — передаёт connection как есть (без обёртки).
+        For each connection:
+        1. Calls get_wrapper_class() to obtain the wrapper type.
+        2. If wrapper_class is not None – creates an instance of the wrapper,
+           passing the original connection to the constructor.
+        3. If wrapper_class is None – passes the connection as is (no wrapper).
 
-        Это гарантирует, что дочерние действия не могут управлять транзакциями
-        (open/commit/rollback), но могут выполнять запросы (execute).
-        При дальнейшей вложенности обёртка снова оборачивается (wrapper вокруг wrapper),
-        что также запрещает управление транзакциями.
+        This ensures that child actions cannot manage transactions
+        (open/commit/rollback), but can execute queries (execute).
+        When nested further, the wrapper is wrapped again (wrapper around wrapper),
+        which also prohibits transaction management.
 
-        Аргументы:
-            connections: исходный словарь ресурсных менеджеров.
+        Args:
+            connections: original dictionary of resource managers.
 
-        Возвращает:
-            Новый словарь с обёрнутыми (или оригинальными) ресурсными менеджерами.
+        Returns:
+            New dictionary with wrapped (or original) resource managers.
         """
         wrapped: dict[str, BaseResourceManager] = {}
         for key, connection in connections.items():
             wrapper_class = connection.get_wrapper_class()
             if wrapper_class is not None:
-                # wrapper_class — это конкретный класс (например, WrapperConnectionManager),
-                # чей __init__ принимает оригинальный менеджер как аргумент.
-                # Приводим к Any, чтобы mypy не жаловался на сигнатуру BaseResourceManager.__init__,
-                # которая не объявляет параметров (конкретные классы объявляют свои).
+                # wrapper_class is a concrete class (e.g., WrapperConnectionManager)
+                # whose __init__ takes the original manager as an argument.
+                # Cast to Any to avoid mypy complaints about BaseResourceManager.__init__
+                # signature, which declares no parameters (concrete classes declare their own).
                 wrapped_instance: Any = wrapper_class(connection)  # type: ignore[call-arg]
                 wrapped[key] = wrapped_instance
             else:
@@ -110,32 +112,34 @@ class DependencyFactory:
 
     async def run_action(
         self,
+        context: Context,
         action_class: type[BaseAction[Any, Any]],
         params: BaseParams,
         resources: dict[type[Any], Any] | None = None,
         connections: dict[str, BaseResourceManager] | None = None,
     ) -> BaseResult:
         """
-        Асинхронно запускает указанное действие с переданными параметрами и ресурсами.
+        Asynchronously runs the specified action with the given parameters and resources.
 
-        Если передан connections, каждый connection оборачивается через get_wrapper_class()
-        перед передачей в дочернее действие. Это гарантирует, что дочерние действия
-        не могут управлять транзакциями (open/commit/rollback), но могут выполнять запросы.
+        If connections are passed, each connection is wrapped via get_wrapper_class()
+        before being passed to the child action. This ensures that child actions
+        cannot manage transactions (open/commit/rollback), but can execute queries.
 
-        Аргументы:
-            action_class: класс действия для запуска.
-            params: входные параметры.
-            resources: словарь ресурсов для передачи в дочернее действие (опционально).
-            connections: словарь ресурсных менеджеров (опционально).
+        Args:
+            context: execution context for this request.
+            action_class: action class to run.
+            params: input parameters.
+            resources: dictionary of resources to pass to the child action (optional).
+            connections: dictionary of resource managers (optional).
 
-        Возвращает:
-            Результат выполнения действия.
+        Returns:
+            Result of the action execution.
         """
         instance = self.get(action_class)
 
-        # Оборачиваем connections для дочернего действия
+        # Wrap connections for the child action
         wrapped_connections: dict[str, BaseResourceManager] | None = None
         if connections is not None:
             wrapped_connections = self._wrap_connections(connections)
 
-        return await self._machine.run(instance, params, resources=resources, connections=wrapped_connections)
+        return await self._machine.run(context, instance, params, resources=resources, connections=wrapped_connections)
