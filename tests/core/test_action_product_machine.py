@@ -1,14 +1,14 @@
 # tests/core/test_action_product_machine.py
 """
-Тесты ActionProductMachine — основной машины действий.
+Tests for ActionProductMachine — the main action machine.
 
-Проверяем:
-- Сбор аспектов (_collect_aspects)
-- Проверку ролей (_check_action_roles)
-- Проверку connections (_check_connections)
-- Полный конвейер run() с учётом логирования
-- Передачу параметра mode и log в аспекты
-- Все аспекты обязаны принимать log (шестой параметр)
+Checks:
+- Aspect collection (_collect_aspects)
+- Role checking (_check_action_roles)
+- Connection checking (_check_connections)
+- Full run() pipeline including logging
+- Passing of mode and log parameters to aspects
+- All aspects must accept log (sixth parameter)
 """
 
 from unittest.mock import AsyncMock, MagicMock
@@ -34,7 +34,7 @@ from action_machine.ResourceManagers.BaseResourceManager import BaseResourceMana
 
 
 # ----------------------------------------------------------------------
-# Вспомогательные классы
+# Helper classes
 # ----------------------------------------------------------------------
 class MockParams(BaseParams):
     pass
@@ -54,29 +54,29 @@ class MockResourceManager(BaseResourceManager):
 
 
 # ----------------------------------------------------------------------
-# Действия: конфигурации аспектов (ВСЕ с параметром log)
+# Actions: aspect configurations (ALL with log parameter)
 # ----------------------------------------------------------------------
-@CheckRoles(CheckRoles.NONE, desc="Без аутентификации")
+@CheckRoles(CheckRoles.NONE, desc="No authentication")
 class ActionWithAspects(MockAction):
-    """Действие с несколькими аспектами для проверки порядка и логирования."""
+    """Action with several aspects to verify order and logging."""
     _test_calls: list[str] = []
 
-    @aspect("Первый аспект")
-    @StringFieldChecker("value", "Значение", required=True)
+    @aspect("First aspect")
+    @StringFieldChecker("value", "Value", required=True)
     async def aspect1(
         self,
         params: MockParams,
         state: BaseState,
         deps: dict,
         connections: dict,
-        log: ActionBoundLogger,  # добавлен log
+        log: ActionBoundLogger,
     ) -> dict:
         self._test_calls.append("aspect1")
         await log.info("Aspect1 executed", value="one")
         return {"value": "one"}
 
-    @aspect("Второй аспект")
-    @StringFieldChecker("value", "Значение", required=True)
+    @aspect("Second aspect")
+    @StringFieldChecker("value", "Value", required=True)
     async def aspect2(
         self,
         params: MockParams,
@@ -89,7 +89,7 @@ class ActionWithAspects(MockAction):
         await log.debug("Aspect2 debug")
         return {"value": "two"}
 
-    @summary_aspect("Главный аспект")
+    @summary_aspect("Main aspect")
     async def summary(
         self,
         params: MockParams,
@@ -103,9 +103,9 @@ class ActionWithAspects(MockAction):
         return MockResult()
 
 
-@CheckRoles(CheckRoles.NONE, desc="Без аутентификации")
+@CheckRoles(CheckRoles.NONE, desc="No authentication")
 class ActionWithoutSummary(MockAction):
-    @aspect("Обычный аспект")
+    @aspect("Regular aspect")
     async def aspect(
         self,
         params: MockParams,
@@ -117,9 +117,9 @@ class ActionWithoutSummary(MockAction):
         return {}
 
 
-@CheckRoles(CheckRoles.NONE, desc="Без аутентификации")
+@CheckRoles(CheckRoles.NONE, desc="No authentication")
 class ActionWithTwoSummaries(MockAction):
-    @summary_aspect("Первый")
+    @summary_aspect("First")
     async def summary1(
         self,
         params: MockParams,
@@ -130,7 +130,7 @@ class ActionWithTwoSummaries(MockAction):
     ) -> MockResult:
         return MockResult()
 
-    @summary_aspect("Второй")
+    @summary_aspect("Second")
     async def summary2(
         self,
         params: MockParams,
@@ -142,9 +142,9 @@ class ActionWithTwoSummaries(MockAction):
         return MockResult()
 
 
-@CheckRoles(CheckRoles.NONE, desc="Без аутентификации")
+@CheckRoles(CheckRoles.NONE, desc="No authentication")
 class ParentAction(MockAction):
-    @aspect("Родительский")
+    @aspect("Parent")
     async def parent_aspect(
         self,
         params: MockParams,
@@ -156,9 +156,9 @@ class ParentAction(MockAction):
         return {}
 
 
-@CheckRoles(CheckRoles.NONE, desc="Без аутентификации")
+@CheckRoles(CheckRoles.NONE, desc="No authentication")
 class ChildAction(ParentAction):
-    @aspect("Дочерний")
+    @aspect("Child")
     async def child_aspect(
         self,
         params: MockParams,
@@ -182,9 +182,9 @@ class ChildAction(ParentAction):
 
 
 # ----------------------------------------------------------------------
-# Действия: проверка ролей
+# Actions: role checking
 # ----------------------------------------------------------------------
-@CheckRoles(CheckRoles.NONE, desc="Без аутентификации")
+@CheckRoles(CheckRoles.NONE, desc="No authentication")
 class ActionNone(MockAction):
     @summary_aspect("test")
     async def summary(
@@ -198,7 +198,7 @@ class ActionNone(MockAction):
         return MockResult()
 
 
-@CheckRoles(CheckRoles.ANY, desc="Любая роль")
+@CheckRoles(CheckRoles.ANY, desc="Any role")
 class ActionAny(MockAction):
     @summary_aspect("test")
     async def summary(
@@ -212,7 +212,7 @@ class ActionAny(MockAction):
         return MockResult()
 
 
-@CheckRoles("admin", desc="Только админ")
+@CheckRoles("admin", desc="Only admin")
 class ActionSingleRole(MockAction):
     @summary_aspect("test")
     async def summary(
@@ -226,7 +226,7 @@ class ActionSingleRole(MockAction):
         return MockResult()
 
 
-@CheckRoles(["admin", "manager"], desc="Админ или менеджер")
+@CheckRoles(["admin", "manager"], desc="Admin or manager")
 class ActionListRole(MockAction):
     @summary_aspect("test")
     async def summary(
@@ -254,10 +254,10 @@ class ActionNoDecorator(MockAction):
 
 
 # ----------------------------------------------------------------------
-# Действия: проверка connections
+# Actions: connection checking
 # ----------------------------------------------------------------------
-@connection("db", MockResourceManager, description="База данных")
-@CheckRoles(CheckRoles.NONE, desc="Без аутентификации")
+@connection("db", MockResourceManager, description="Database")
+@CheckRoles(CheckRoles.NONE, desc="No authentication")
 class ActionWithOneConnection(MockAction):
     @summary_aspect("test")
     async def summary(
@@ -274,7 +274,7 @@ class ActionWithOneConnection(MockAction):
 
 @connection("db", MockResourceManager)
 @connection("cache", MockResourceManager)
-@CheckRoles(CheckRoles.NONE, desc="Без аутентификации")
+@CheckRoles(CheckRoles.NONE, desc="No authentication")
 class ActionWithTwoConnections(MockAction):
     @summary_aspect("test")
     async def summary(
@@ -290,7 +290,7 @@ class ActionWithTwoConnections(MockAction):
         return MockResult()
 
 
-@CheckRoles(CheckRoles.NONE, desc="Без аутентификации")
+@CheckRoles(CheckRoles.NONE, desc="No authentication")
 class ActionWithoutConnections(MockAction):
     @summary_aspect("test")
     async def summary(
@@ -306,11 +306,11 @@ class ActionWithoutConnections(MockAction):
 
 
 # ----------------------------------------------------------------------
-# Действия для TestRun (ошибки и т.д.)
+# Actions for TestRun (errors etc.)
 # ----------------------------------------------------------------------
 @CheckRoles(CheckRoles.NONE, desc="")
 class BadAction(MockAction):
-    """Аспект возвращает не dict."""
+    """Aspect returns non-dict."""
 
     @aspect("bad")
     async def bad(
@@ -337,7 +337,7 @@ class BadAction(MockAction):
 
 @CheckRoles(CheckRoles.NONE, desc="")
 class ActionWithoutCheckers(MockAction):
-    """Аспект возвращает непустой dict без чекеров."""
+    """Aspect returns non-empty dict without checkers."""
 
     @aspect("no checkers")
     async def aspect_no_checkers(
@@ -364,10 +364,10 @@ class ActionWithoutCheckers(MockAction):
 
 @CheckRoles(CheckRoles.NONE, desc="")
 class ActionWithChecker(MockAction):
-    """Аспект возвращает лишние поля."""
+    """Aspect returns extra fields."""
 
     @aspect("with checker")
-    @StringFieldChecker("field", "Тестовое поле", required=True)
+    @StringFieldChecker("field", "Test field", required=True)
     async def aspect_with_checker(
         self,
         params: MockParams,
@@ -391,7 +391,7 @@ class ActionWithChecker(MockAction):
 
 
 # ----------------------------------------------------------------------
-# Фикстуры
+# Fixtures
 # ----------------------------------------------------------------------
 @pytest.fixture
 def context_with_roles() -> Context:
@@ -407,7 +407,7 @@ def context_without_roles() -> Context:
 
 @pytest.fixture
 def machine(context_with_roles: Context) -> ActionProductMachine:
-    """Машина с режимом 'production' и мок-координатором логов для проверки вызовов."""
+    """Machine with mode 'production' and mock log coordinator to verify calls."""
     mock_log_coordinator = AsyncMock(spec=LogCoordinator)
     return ActionProductMachine(
         context=context_with_roles,
@@ -434,25 +434,24 @@ def mock_plugin() -> MagicMock:
 
 
 # ======================================================================
-# ТЕСТЫ: Конструктор и параметры
+# TESTS: Constructor and parameters
 # ======================================================================
 class TestConstructor:
     def test_mode_must_be_non_empty(self, context_with_roles):
-        """mode не может быть пустой строкой."""
+        """mode cannot be empty."""
         with pytest.raises(ValueError, match="mode must be non-empty"):
             ActionProductMachine(context_with_roles, mode="")
 
     def test_default_log_coordinator_created(self, context_with_roles):
-        """Если log_coordinator не передан, создаётся с ConsoleLogger."""
+        """If log_coordinator is not provided, one with ConsoleLogger is created."""
         machine = ActionProductMachine(context_with_roles, mode="test")
         assert machine._log_coordinator is not None
-        # Не можем проверить тип логера внутри, но проверим что это LogCoordinator
         from action_machine.Logging.log_coordinator import LogCoordinator
         assert isinstance(machine._log_coordinator, LogCoordinator)
 
 
 # ======================================================================
-# ТЕСТЫ: Сбор аспектов (_collect_aspects)
+# TESTS: Aspect collection (_collect_aspects)
 # ======================================================================
 class TestCollectAspects:
     def test_collect_aspects_returns_sorted_regular_and_summary(self, context_with_roles):
@@ -461,8 +460,8 @@ class TestCollectAspects:
         assert len(aspects) == 2
         assert aspects[0][0].__name__ == "aspect1"
         assert aspects[1][0].__name__ == "aspect2"
-        assert aspects[0][1] == "Первый аспект"
-        assert aspects[1][1] == "Второй аспект"
+        assert aspects[0][1] == "First aspect"
+        assert aspects[1][1] == "Second aspect"
         assert summary.__name__ == "summary"
 
     def test_collect_aspects_ignores_inherited_methods(self, context_with_roles):
@@ -474,17 +473,17 @@ class TestCollectAspects:
 
     def test_collect_aspects_no_summary_raises(self, context_with_roles):
         machine = ActionProductMachine(context_with_roles, mode="test")
-        with pytest.raises(TypeError, match="не имеет summary_aspect"):
+        with pytest.raises(TypeError, match="does not have a summary_aspect"):
             machine._collect_aspects(ActionWithoutSummary)
 
     def test_collect_aspects_two_summaries_raises(self, context_with_roles):
         machine = ActionProductMachine(context_with_roles, mode="test")
-        with pytest.raises(TypeError, match="более одного summary_aspect"):
+        with pytest.raises(TypeError, match="has more than one summary_aspect"):
             machine._collect_aspects(ActionWithTwoSummaries)
 
 
 # ======================================================================
-# ТЕСТЫ: Проверка ролей (_check_action_roles)
+# TESTS: Role checking (_check_action_roles)
 # ======================================================================
 class TestCheckActionRoles:
     def test_none_role_allows_any_user(self, machine_without_roles):
@@ -494,7 +493,7 @@ class TestCheckActionRoles:
         machine._check_action_roles(ActionAny())
 
     def test_any_role_rejects_user_without_roles(self, machine_without_roles):
-        with pytest.raises(AuthorizationError, match="Требуется аутентификация"):
+        with pytest.raises(AuthorizationError, match="Authentication required: user must have at least one role"):
             machine_without_roles._check_action_roles(ActionAny())
 
     def test_single_role_match(self, machine):
@@ -514,7 +513,7 @@ class TestCheckActionRoles:
             ) -> MockResult:
                 return MockResult()
 
-        with pytest.raises(AuthorizationError, match="Требуется роль: 'manager'"):
+        with pytest.raises(AuthorizationError, match="Access denied. Required role: 'manager'"):
             machine._check_action_roles(_ActionManager())
 
     def test_list_role_intersection(self, machine):
@@ -534,16 +533,16 @@ class TestCheckActionRoles:
             ) -> MockResult:
                 return MockResult()
 
-        with pytest.raises(AuthorizationError, match="Требуется одна из ролей"):
+        with pytest.raises(AuthorizationError, match="Access denied. Required one of the roles:"):
             machine._check_action_roles(_ActionManagerEditor())
 
     def test_action_without_role_spec_raises_type_error(self, machine):
-        with pytest.raises(TypeError, match="не имеет декоратора CheckRoles"):
+        with pytest.raises(TypeError, match="does not have a CheckRoles decorator"):
             machine._check_action_roles(ActionNoDecorator())
 
 
 # ======================================================================
-# ТЕСТЫ: Проверка connections (_check_connections)
+# TESTS: Connection checking (_check_connections)
 # ======================================================================
 class TestCheckConnections:
     def test_no_declarations_no_connections_returns_empty_dict(self, machine):
@@ -552,21 +551,21 @@ class TestCheckConnections:
 
     def test_no_declarations_with_connections_raises(self, machine):
         conns = {"db": MockResourceManager()}
-        with pytest.raises(ConnectionValidationError, match="не объявляет @connection, но получило"):
+        with pytest.raises(ConnectionValidationError, match="does not declare any @connection, but received connections with keys:"):
             machine._check_connections(ActionWithoutConnections(), conns)
 
     def test_has_declarations_no_connections_raises(self, machine):
-        with pytest.raises(ConnectionValidationError, match="но connections не переданы"):
+        with pytest.raises(ConnectionValidationError, match="declares connections: .*, but no connections were passed"):
             machine._check_connections(ActionWithOneConnection(), None)
 
     def test_extra_keys_raises(self, machine):
         conns = {"db": MockResourceManager(), "extra": MockResourceManager()}
-        with pytest.raises(ConnectionValidationError, match="лишние connections"):
+        with pytest.raises(ConnectionValidationError, match="received extra connections:"):
             machine._check_connections(ActionWithOneConnection(), conns)
 
     def test_missing_keys_raises(self, machine):
         conns = {"db": MockResourceManager()}
-        with pytest.raises(ConnectionValidationError, match="не получило connections"):
+        with pytest.raises(ConnectionValidationError, match="is missing required connections:"):
             machine._check_connections(ActionWithTwoConnections(), conns)
 
     def test_valid_connections_passes(self, machine):
@@ -576,7 +575,7 @@ class TestCheckConnections:
 
 
 # ======================================================================
-# ТЕСТЫ: Полный конвейер run()
+# TESTS: Full run() pipeline
 # ======================================================================
 class TestRun:
     @pytest.mark.anyio
@@ -588,22 +587,22 @@ class TestRun:
 
     @pytest.mark.anyio
     async def test_run_aspect_returns_non_dict_raises(self, machine):
-        with pytest.raises(TypeError, match="должен возвращать dict"):
+        with pytest.raises(TypeError, match="must return a dict"):
             await machine.run(BadAction(), MockParams())
 
     @pytest.mark.anyio
     async def test_run_aspect_returns_dict_without_checkers_raises(self, machine):
-        with pytest.raises(ValidationFieldError, match="не имеет чекеров, но вернул непустой state"):
+        with pytest.raises(ValidationFieldError, match="has no checkers, but returned non-empty state:"):
             await machine.run(ActionWithoutCheckers(), MockParams())
 
     @pytest.mark.anyio
     async def test_run_aspect_returns_extra_fields_raises(self, machine):
-        with pytest.raises(ValidationFieldError, match="лишние поля"):
+        with pytest.raises(ValidationFieldError, match="returned extra fields:"):
             await machine.run(ActionWithChecker(), MockParams())
 
     @pytest.mark.anyio
     async def test_run_calls_plugin_events(self, machine, mock_plugin):
-        # Подменяем координатор плагинов моком
+        # Replace plugin coordinator with mock
         machine._plugin_coordinator = AsyncMock(spec=PluginCoordinator)
         ActionWithAspects._test_calls = []
         await machine.run(ActionWithAspects(), MockParams())
@@ -618,56 +617,40 @@ class TestRun:
         assert machine._nest_level == 0
 
     # ------------------------------------------------------------------
-    # ТЕСТЫ: Проверка передачи log и вызовов координатора логов
+    # TESTS: Logging and mode passing
     # ------------------------------------------------------------------
     @pytest.mark.anyio
     async def test_logger_passed_to_aspects(self, machine):
-        """Проверяем, что в каждом аспекте log вызывает emit."""
-        # У machine уже мок-координатор
+        """Check that log.emit is called in each aspect."""
         ActionWithAspects._test_calls = []
         await machine.run(ActionWithAspects(), MockParams())
-
-        # Координатор логов должен был получить вызовы от каждого аспекта
-        # aspect1: log.info, aspect2: log.debug, summary: log.warning
         assert machine._log_coordinator.emit.await_count >= 3
 
     @pytest.mark.anyio
     async def test_logger_receives_correct_scope(self, machine):
-        """Проверяем, что в логере скоуп сформирован правильно."""
-        # Перехватываем вызовы emit
+        """Check that the log scope is formed correctly."""
         machine._log_coordinator.emit = AsyncMock()
-
         await machine.run(ActionWithAspects(), MockParams())
-
-        # Берём первый вызов (от aspect1)
         call_args = machine._log_coordinator.emit.call_args_list[0]
         scope = call_args.kwargs["scope"]
         assert scope["machine"] == "ActionProductMachine"
         assert scope["mode"] == "production"
         assert scope["action"] == "tests.core.test_action_product_machine.ActionWithAspects"
         assert scope["aspect"] == "aspect1"
-        # Проверяем порядок ключей
         assert list(scope.keys()) == ["machine", "mode", "action", "aspect"]
 
     @pytest.mark.anyio
     async def test_logger_receives_correct_indent(self, machine):
-        """Проверяем, что уровень вложенности передаётся в логер."""
         machine._log_coordinator.emit = AsyncMock()
-
-        # Запускаем действие (nest_level станет 1 внутри)
         await machine.run(ActionWithAspects(), MockParams())
-
         for call in machine._log_coordinator.emit.call_args_list:
             indent = call.kwargs["indent"]
-            assert indent == 1  # внутри run nest_level=1
+            assert indent == 1
 
     @pytest.mark.anyio
     async def test_logger_passed_empty_state_and_params(self, machine):
-        """Проверяем, что в логер передаются пустые BaseState и BaseParams."""
         machine._log_coordinator.emit = AsyncMock()
-
         await machine.run(ActionWithAspects(), MockParams())
-
         for call in machine._log_coordinator.emit.call_args_list:
             state = call.kwargs["state"]
             params = call.kwargs["params"]
@@ -677,15 +660,12 @@ class TestRun:
 
     @pytest.mark.anyio
     async def test_mode_passed_to_logger(self, machine):
-        """Проверяем, что mode из конструктора попадает в scope логера."""
         machine_with_mode = ActionProductMachine(
             context=Context(),
             mode="staging",
             log_coordinator=AsyncMock(spec=LogCoordinator)
         )
         machine_with_mode._log_coordinator.emit = AsyncMock()
-
         await machine_with_mode.run(ActionWithAspects(), MockParams())
-
         scope = machine_with_mode._log_coordinator.emit.call_args_list[0].kwargs["scope"]
         assert scope["mode"] == "staging"

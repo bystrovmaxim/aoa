@@ -85,11 +85,11 @@ dependencies = [
 # URL-ы проекта — ссылки на документацию, репозиторий и пр.
 # ============================================================================
 [project.urls]
-Homepage = "https://gitverse.ru/bystrov.maxim/kanban_assistant"           # Главная страница
-Repository = "https://gitverse.ru/bystrov.maxim/kanban_assistant"        # Git-репозиторий
-Documentation = "https://gitverse.ru/bystrov.maxim/kanban_assistant/docs" # Документация
-Changelog = "https://gitverse.ru/bystrov.maxim/kanban_assistant/blob/master/docs/CHANGELOG.md"
-Issues = "https://gitverse.ru/bystrov.maxim/kanban_assistant/issues"      # Баг-трекер
+Homepage = "https://gitverse.ru/bystrov.maxim/aoa"           # Главная страница
+Repository = "https://gitverse.ru/bystrov.maxim/aoa"        # Git-репозиторий
+Documentation = "https://gitverse.ru/bystrov.maxim/aoa/docs" # Документация
+Changelog = "https://gitverse.ru/bystrov.maxim/aoa/blob/master/docs/CHANGELOG.md"
+Issues = "https://gitverse.ru/bystrov.maxim/aoa/issues"      # Баг-трекер
 
 # ============================================================================
 # ГРУППЫ ЗАВИСИМОСТЕЙ — альтернатива requirements-*.txt
