@@ -7,6 +7,7 @@
 - Результат кешируется после первого вызова
 """
 
+from action_machine.aspects.summary_aspect import summary_aspect
 from action_machine.Core.BaseAction import BaseAction
 from action_machine.Core.BaseParams import BaseParams
 from action_machine.Core.BaseResult import BaseResult
@@ -22,7 +23,10 @@ class MockResult(BaseResult):
 
 class SampleAction(BaseAction[MockParams, MockResult]):
     """Тестовое действие."""
-    pass
+
+    @summary_aspect("test summary")
+    async def summary(self, params, state, deps, connections, log):
+        return MockResult()
 
 
 class TestBaseAction:
@@ -43,4 +47,3 @@ class TestBaseAction:
 
         assert first is second  # один и тот же объект (строка)
         assert action._full_class_name is first
-

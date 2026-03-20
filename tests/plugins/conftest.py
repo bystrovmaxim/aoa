@@ -1,3 +1,4 @@
+# tests/plugins/conftest.py
 """
 Fixtures and test plugins for testing PluginCoordinator.
 All test plugins are placed here for reuse.
@@ -8,6 +9,7 @@ from unittest.mock import Mock
 
 import pytest
 
+from action_machine.aspects.summary_aspect import summary_aspect
 from action_machine.Context.context import Context
 from action_machine.Core.BaseAction import BaseAction
 from action_machine.Core.BaseParams import BaseParams
@@ -177,6 +179,10 @@ class MockAction(BaseAction):
     """Mock action for tests with a fixed class name."""
 
     _full_class_name = "test_plugin.MockAction"
+
+    @summary_aspect("mock")
+    async def summary(self, params, state, deps, connections, log):
+        return MockResult()
 
 
 class MockParams(BaseParams):

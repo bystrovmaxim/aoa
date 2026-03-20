@@ -15,12 +15,14 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
+from action_machine.aspects.regular_aspect import regular_aspect
+from action_machine.aspects.summary_aspect import summary_aspect
 from action_machine.Auth.check_roles import CheckRoles
 from action_machine.Checkers.StringFieldChecker import StringFieldChecker
 from action_machine.Context.context import Context
 from action_machine.Context.user_info import UserInfo
 from action_machine.Core.ActionProductMachine import ActionProductMachine
-from action_machine.Core.AspectMethod import aspect, connection, summary_aspect
+from action_machine.Core.AspectMethod import connection
 from action_machine.Core.BaseAction import BaseAction
 from action_machine.Core.BaseParams import BaseParams
 from action_machine.Core.BaseResult import BaseResult
@@ -61,7 +63,7 @@ class ActionWithAspects(MockAction):
     """Action with several aspects to verify order and logging."""
     _test_calls: list[str] = []
 
-    @aspect("First aspect")
+    @regular_aspect("First aspect")
     @StringFieldChecker("value", "Value", required=True)
     async def aspect1(
         self,
@@ -75,7 +77,7 @@ class ActionWithAspects(MockAction):
         await log.info("Aspect1 executed", value="one")
         return {"value": "one"}
 
-    @aspect("Second aspect")
+    @regular_aspect("Second aspect")
     @StringFieldChecker("value", "Value", required=True)
     async def aspect2(
         self,
@@ -104,47 +106,8 @@ class ActionWithAspects(MockAction):
 
 
 @CheckRoles(CheckRoles.NONE, desc="No authentication")
-class ActionWithoutSummary(MockAction):
-    @aspect("Regular aspect")
-    async def aspect(
-        self,
-        params: MockParams,
-        state: BaseState,
-        deps: dict,
-        connections: dict,
-        log: ActionBoundLogger,
-    ) -> dict:
-        return {}
-
-
-@CheckRoles(CheckRoles.NONE, desc="No authentication")
-class ActionWithTwoSummaries(MockAction):
-    @summary_aspect("First")
-    async def summary1(
-        self,
-        params: MockParams,
-        state: BaseState,
-        deps: dict,
-        connections: dict,
-        log: ActionBoundLogger,
-    ) -> MockResult:
-        return MockResult()
-
-    @summary_aspect("Second")
-    async def summary2(
-        self,
-        params: MockParams,
-        state: BaseState,
-        deps: dict,
-        connections: dict,
-        log: ActionBoundLogger,
-    ) -> MockResult:
-        return MockResult()
-
-
-@CheckRoles(CheckRoles.NONE, desc="No authentication")
 class ParentAction(MockAction):
-    @aspect("Parent")
+    @regular_aspect("Parent")
     async def parent_aspect(
         self,
         params: MockParams,
@@ -158,7 +121,7 @@ class ParentAction(MockAction):
 
 @CheckRoles(CheckRoles.NONE, desc="No authentication")
 class ChildAction(ParentAction):
-    @aspect("Child")
+    @regular_aspect("Child")
     async def child_aspect(
         self,
         params: MockParams,
@@ -312,7 +275,7 @@ class ActionWithoutConnections(MockAction):
 class BadAction(MockAction):
     """Aspect returns non-dict."""
 
-    @aspect("bad")
+    @regular_aspect("bad")
     async def bad(
         self,
         params: MockParams,
@@ -339,7 +302,7 @@ class BadAction(MockAction):
 class ActionWithoutCheckers(MockAction):
     """Aspect returns non-empty dict without checkers."""
 
-    @aspect("no checkers")
+    @regular_aspect("no checkers")
     async def aspect_no_checkers(
         self,
         params: MockParams,
@@ -366,7 +329,7 @@ class ActionWithoutCheckers(MockAction):
 class ActionWithChecker(MockAction):
     """Aspect returns extra fields."""
 
-    @aspect("with checker")
+    @regular_aspect("with checker")
     @StringFieldChecker("field", "Test field", required=True)
     async def aspect_with_checker(
         self,
@@ -440,35 +403,49 @@ class TestConstructor:
 
 
 # ======================================================================
-# TESTS: Aspect collection (_collect_aspects)
+# TESTS: Aspect collection is now handled by AspectGateHost, but we test that
+#        get_aspects() works correctly through the action.
 # ======================================================================
-class TestCollectAspects:
-    def test_collect_aspects_returns_sorted_regular_and_summary(self):
-        machine = ActionProductMachine(mode="test")
-        aspects, summary = machine._collect_aspects(ActionWithAspects)
-        assert len(aspects) == 2
-        assert aspects[0][0].__name__ == "aspect1"
-        assert aspects[1][0].__name__ == "aspect2"
-        assert aspects[0][1] == "First aspect"
-        assert aspects[1][1] == "Second aspect"
-        assert summary.__name__ == "summary"
+class TestGetAspects:
+    def test_get_aspects_returns_sorted_regular_and_summary(self):
+        action = ActionWithAspects()
+        regular, summary = action.get_aspects()
+        assert len(regular) == 2
+        assert regular[0][0].__name__ == "aspect1"
+        assert regular[1][0].__name__ == "aspect2"
+        assert regular[0][1] == "First aspect"
+        assert regular[1][1] == "Second aspect"
+        assert summary is not None
+        assert summary[0].__name__ == "summary"
+        assert summary[1] == "Main aspect"
 
-    def test_collect_aspects_ignores_inherited_methods(self):
-        machine = ActionProductMachine(mode="test")
-        aspects, summary = machine._collect_aspects(ChildAction)
-        assert len(aspects) == 1
-        assert aspects[0][0].__name__ == "child_aspect"
-        assert summary.__name__ == "summary"
+    def test_get_aspects_ignores_inherited_methods(self):
+        action = ChildAction()
+        regular, summary = action.get_aspects()
+        assert len(regular) == 1
+        assert regular[0][0].__name__ == "child_aspect"
+        assert summary is not None
+        assert summary[0].__name__ == "summary"
 
-    def test_collect_aspects_no_summary_raises(self):
-        machine = ActionProductMachine(mode="test")
-        with pytest.raises(TypeError, match="does not have a summary_aspect"):
-            machine._collect_aspects(ActionWithoutSummary)
+    def test_get_aspects_no_summary_raises(self):
+        class ActionNoSummary(MockAction):
+            @regular_aspect("no summary")
+            async def aspect(self, params, state, deps, connections, log):
+                return {}
 
-    def test_collect_aspects_two_summaries_raises(self):
-        machine = ActionProductMachine(mode="test")
-        with pytest.raises(TypeError, match="has more than one summary_aspect"):
-            machine._collect_aspects(ActionWithTwoSummaries)
+        with pytest.raises(TypeError, match="does not have a summary aspect"):
+            ActionNoSummary()  # создаём экземпляр – здесь возникает ошибка
+
+    def test_get_aspects_two_summaries_raises(self):
+        with pytest.raises(TypeError, match="Only one summary aspect can be registered per action"):
+            class ActionTwoSummaries(MockAction):
+                @summary_aspect("first")
+                async def summary1(self, params, state, deps, connections, log):
+                    return MockResult()
+
+                @summary_aspect("second")
+                async def summary2(self, params, state, deps, connections, log):
+                    return MockResult()
 
 
 # ======================================================================

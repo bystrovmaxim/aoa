@@ -1,132 +1,24 @@
+# src/action_machine/Core/AspectMethod.py
+
 """
 Протокол аспектных методов и декораторы для их объявления.
 
+ВНИМАНИЕ: Старые декораторы aspect_old и summary_aspect_old удалены.
+Для определения аспектов используйте regular_aspect и summary_aspect
+из пакета action_machine.aspects.
+
 Содержит:
-- AspectMethod — протокол, описывающий методы с атрибутами аспектов.
-- aspect() — декоратор для обычных аспектов.
-- summary_aspect() — декоратор для главного (summary) аспекта.
 - depends() — декоратор для объявления зависимостей действия.
 - connection() — декоратор для объявления соединений, необходимых действию.
 """
 
-import inspect
 from collections.abc import Callable
-from typing import TYPE_CHECKING, Any, Protocol, cast, runtime_checkable
+from typing import TYPE_CHECKING, Any
 
 from ..ResourceManagers.BaseResourceManager import BaseResourceManager
-from .BaseState import BaseState
-from .DependencyFactory import DependencyFactory
 
 if TYPE_CHECKING:
-    from ..Logging.action_bound_logger import ActionBoundLogger
-
-
-@runtime_checkable
-class AspectMethod(Protocol):
-    """
-    Протокол, описывающий методы, помеченные декораторами aspect/summary_aspect.
-
-    Атрибуты:
-        _is_aspect: флаг, что метод является аспектом.
-        _aspect_description: текстовое описание аспекта.
-        _aspect_type: тип аспекта ('regular' или 'summary').
-        __code__: объект кода (для сортировки по номеру строки).
-        __name__: имя метода.
-        __qualname__: квалифицированное имя метода.
-        __call__: сигнатура вызова метода (асинхронная).
-    """
-
-    _is_aspect: bool
-    _aspect_description: str
-    _aspect_type: str
-    __code__: Any
-    __name__: str
-    __qualname__: str
-
-    async def __call__(
-        self,
-        action: Any,  # экземпляр действия, self
-        params: Any,
-        state: BaseState,
-        deps: DependencyFactory,
-        connections: dict[str, BaseResourceManager],
-        log: "ActionBoundLogger",  # шестой параметр для сквозного логирования
-    ) -> Any:
-        """
-        Вызов аспекта. Все аспекты должны быть асинхронными и принимать
-        указанные параметры, включая log.
-
-        Аргументы:
-            action: экземпляр действия (self).
-            params: параметры действия (наследник BaseParams).
-            state: текущее состояние конвейера (BaseState).
-            deps: фабрика зависимостей.
-            connections: словарь ресурсных менеджеров.
-            log: привязанный логер для сквозного логирования.
-
-        Возвращает:
-            Для регулярных аспектов — словарь с обновлённым состоянием.
-            Для summary-аспекта — результат действия (BaseResult).
-        """
-        ...
-
-
-def aspect(description: str) -> Callable[[Callable[..., Any]], AspectMethod]:
-    """
-    Декоратор для обычных аспектов.
-
-    Помечает метод как регулярный аспект, который выполняется перед summary.
-    Метод должен быть асинхронным (async def) и принимать
-    (self, params, state, deps, connections, log) и возвращать dict.
-
-    Аргументы:
-        description: текстовое описание аспекта (для документации и логирования).
-
-    Возвращает:
-        Декоратор, который добавляет атрибуты аспекта к методу.
-
-    Исключения:
-        TypeError: если метод не является корутиной.
-    """
-
-    def decorator(method: Callable[..., Any]) -> AspectMethod:
-        if not inspect.iscoroutinefunction(method):
-            raise TypeError(f"Аспект '{method.__name__}' должен быть async def. В AOA все аспекты асинхронные.")
-        method._is_aspect = True  # type: ignore[attr-defined]
-        method._aspect_description = description  # type: ignore[attr-defined]
-        method._aspect_type = "regular"  # type: ignore[attr-defined]
-        return cast(AspectMethod, method)
-
-    return decorator
-
-
-def summary_aspect(description: str) -> Callable[[Callable[..., Any]], AspectMethod]:
-    """
-    Декоратор для главного аспекта (должен быть ровно один в каждом действии).
-
-    Summary-аспект выполняется последним и возвращает итоговый Result.
-    Должен быть асинхронным (async def).
-    Метод принимает (self, params, state, deps, connections, log).
-
-    Аргументы:
-        description: текстовое описание аспекта (для документации и логирования).
-
-    Возвращает:
-        Декоратор, который добавляет атрибуты summary-аспекта к методу.
-
-    Исключения:
-        TypeError: если метод не является корутиной.
-    """
-
-    def decorator(method: Callable[..., Any]) -> AspectMethod:
-        if not inspect.iscoroutinefunction(method):
-            raise TypeError(f"Summary-аспект '{method.__name__}' должен быть async def. В AOA все аспекты асинхронные.")
-        method._is_aspect = True  # type: ignore[attr-defined]
-        method._aspect_description = description  # type: ignore[attr-defined]
-        method._aspect_type = "summary"  # type: ignore[attr-defined]
-        return cast(AspectMethod, method)
-
-    return decorator
+    pass
 
 
 def depends(
