@@ -1,6 +1,15 @@
 # src/action_machine/aspects/regular_aspect.py
+"""
+    Декоратор для обычных (regular) аспектов.
+"""
 
-def regular_aspect(description: str):
+from collections.abc import Callable
+from typing import Any, TypeVar
+
+F = TypeVar('F', bound=Callable[..., Any])
+
+
+def regular_aspect(description: str) -> Callable[[F], F]:
     """
     Декоратор для обычных (regular) аспектов.
 
@@ -14,8 +23,8 @@ def regular_aspect(description: str):
     Возвращает:
         Декорированный метод с добавленным атрибутом.
     """
-    def decorator(method):
-        method._new_aspect_meta = {
+    def decorator(method: F) -> F:
+        method._new_aspect_meta = {  # type: ignore[attr-defined]
             'description': description,
             'type': 'regular'
         }

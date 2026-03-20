@@ -1,11 +1,11 @@
-# action_machine/Core/base_gate.py
+# src/action_machine/Core/base_gate.py
 
 from abc import ABC, abstractmethod
-from typing import Generic, TypeVar
+from typing import Any, TypeVar
 
 T = TypeVar('T')
 
-class BaseGate(ABC, Generic[T]):
+class BaseGate[T](ABC):
     """
     Абстрактный базовый класс для всех шлюзов в ActionMachine.
 
@@ -19,12 +19,12 @@ class BaseGate(ABC, Generic[T]):
     """
 
     @abstractmethod
-    def register(self, component: T, **metadata) -> T:
+    def register(self, _component: T, **metadata: Any) -> T:
         """
         Зарегистрировать компонент в шлюзе.
 
         Аргументы:
-            component: регистрируемый компонент (типа T).
+            _component: регистрируемый компонент (типа T).
             **metadata: дополнительные метаданные (описание, тип и т.п.).
 
         Возвращает:
@@ -33,7 +33,7 @@ class BaseGate(ABC, Generic[T]):
         pass
 
     @abstractmethod
-    def unregister(self, component: T) -> None:
+    def unregister(self, _component: T) -> None:
         """Удалить компонент из шлюза."""
         pass
 
