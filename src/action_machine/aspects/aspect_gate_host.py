@@ -1,8 +1,16 @@
 # src/action_machine/aspects/aspect_gate_host.py
+"""
+Хост для шлюза аспектов.
 
+Класс-хост, который присоединяет шлюз аспектов к действию.
+Собирает аспекты, помеченные декораторами regular_aspect и summary_aspect,
+при создании подкласса и предоставляет к ним доступ через свойство aspects.
+"""
+
+from typing import Any
 
 from .aspect_gate import AspectGate
-from .aspect_method_protocol import AspectMethodProtocol as AspectMethodProtocol
+from .aspect_method_protocol import AspectMethodProtocol
 
 
 class AspectGateHost:
@@ -80,7 +88,7 @@ class AspectGateHost:
         gate = self.aspects
         return gate.get_regular(), gate.get_summary()
 
-    def __init_subclass__(cls, **kwargs):
+    def __init_subclass__(cls, **kwargs: Any) -> None:
         """Вызывается автоматически при создании подкласса."""
         super().__init_subclass__(**kwargs)
 
