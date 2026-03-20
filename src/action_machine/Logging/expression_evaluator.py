@@ -127,7 +127,7 @@ def _inspect_collection(obj: Any, indent_str: str, type_name: str) -> str:
     return f"{indent_str}{type_name}{preview}"
 
 
-def _inspect_dict(obj: dict, indent_str: str, type_name: str) -> str:
+def _inspect_dict(obj: dict[str, Any], indent_str: str, type_name: str) -> str:
     """Inspect a dictionary."""
     if len(obj) == 0:
         return f"{indent_str}{type_name}{{}}"
@@ -171,8 +171,7 @@ def _format_field_line(
     if max_depth > 1 and is_custom_object:
         inner = _inspect_object(value, indent + 2, visited, max_depth - 1)
         return f"{indent_str}  {name}: {type_str}{suffix}\n{inner}"
-    else:
-        return f"{indent_str}  {name}: {type_str}{suffix} = {value_str}"
+    return f"{indent_str}  {name}: {type_str}{suffix} = {value_str}"
 
 
 def _inspect_custom(
