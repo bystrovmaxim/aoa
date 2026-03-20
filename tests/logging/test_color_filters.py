@@ -233,7 +233,7 @@ class TestColorFilters:
 
     def test_iif_undefined_variable_raises(self, substitutor, empty_context, empty_scope, empty_state, empty_params):
         """Undefined variable inside iif raises."""
-        with pytest.raises(LogTemplateError, match="Error evaluating expression"):
+        with pytest.raises(LogTemplateError, match="not found"):
             substitutor.substitute(
                 "{iif(missing > 10; 'yes'; 'no')}",
                 {},

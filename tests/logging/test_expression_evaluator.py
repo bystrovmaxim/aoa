@@ -324,7 +324,7 @@ class TestExpressionEvaluator:
         """
         names: dict[str, object] = {}
 
-        with pytest.raises(LogTemplateError, match="Error evaluating expression"):
+        with pytest.raises(LogTemplateError, match="Variable 'missing' not found"):
             self.evaluator.evaluate_iif("missing > 10; 'yes'; 'no'", names)
 
     def test_evaluate_invalid_expression_raises(self) -> None:
