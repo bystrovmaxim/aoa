@@ -1,3 +1,4 @@
+# src/action_machine/Core/ActionProductMachine.py
 """
 Product action machine implementation with plugin support and nesting.
 Fully asynchronous version. Uses PluginEvent to pass data to plugins.
@@ -17,14 +18,13 @@ Public API of the class:
     - Asynchronous method run(...) executes the action with the given context.
 """
 
-import inspect
 import time
 from collections.abc import Callable
 from typing import Any, TypeVar, cast
 
+from action_machine.aspects.aspect_method_protocol import AspectMethodProtocol
 from action_machine.Auth.check_roles import CheckRoles
 from action_machine.Context.context import Context
-from action_machine.Core.AspectMethod import AspectMethod
 from action_machine.Core.BaseAction import BaseAction
 from action_machine.Core.BaseActionMachine import BaseActionMachine
 from action_machine.Core.BaseParams import BaseParams
@@ -96,57 +96,11 @@ class ActionProductMachine(BaseActionMachine):
             log_coordinator = LogCoordinator(loggers=[ConsoleLogger(use_colors=True)])
         self._log_coordinator = log_coordinator
 
-        # Aspect cache
-        self._aspect_cache: dict[type[Any], tuple[list[tuple[AspectMethod, str]], AspectMethod]] = {}
-
         # Dependency factory cache
         self._factory_cache: dict[type[Any], DependencyFactory] = {}
 
         # Nesting level
         self._nest_level: int = 0
-
-    # ---------- Helper methods for aspects ----------
-
-    def _get_aspects(self, action_class: type[Any]) -> tuple[list[tuple[AspectMethod, str]], AspectMethod]:
-        """Returns (list of regular aspects, summary aspect) for the action class. Uses cache."""
-        if action_class not in self._aspect_cache:
-            aspects, summary = self._collect_aspects(action_class)
-            self._aspect_cache[action_class] = (aspects, summary)
-        return self._aspect_cache[action_class]
-
-    def _process_method_for_aspect(
-        self, method: Any, aspects: list[tuple[AspectMethod, str]], summary_method: AspectMethod | None
-    ) -> tuple[list[tuple[AspectMethod, str]], AspectMethod | None]:
-        """Processes one method of the class: if it is an aspect, adds it to the corresponding list."""
-        if not hasattr(method, "_is_aspect") or not method._is_aspect:
-            return aspects, summary_method
-
-        asp_method = cast(AspectMethod, method)
-        if asp_method._aspect_type == "regular":
-            aspects.append((asp_method, asp_method._aspect_description))
-        elif asp_method._aspect_type == "summary":
-            if summary_method is not None:
-                raise TypeError("Class has more than one summary_aspect")
-            summary_method = asp_method
-        else:
-            raise TypeError(f"Unknown aspect type: {asp_method._aspect_type}")
-        return aspects, summary_method
-
-    def _collect_aspects(self, action_class: type[Any]) -> tuple[list[tuple[AspectMethod, str]], AspectMethod]:
-        """Collects aspects from the action class (only those defined directly in the class)."""
-        aspects: list[tuple[AspectMethod, str]] = []
-        summary_method: AspectMethod | None = None
-
-        for _, method in inspect.getmembers(action_class, predicate=inspect.isfunction):
-            if method.__qualname__.split(".")[0] != action_class.__name__:
-                continue
-            aspects, summary_method = self._process_method_for_aspect(method, aspects, summary_method)
-
-        if summary_method is None:
-            raise TypeError(f"Class {action_class.__name__} does not have a summary_aspect")
-
-        aspects.sort(key=lambda item: item[0].__code__.co_firstlineno)
-        return aspects, summary_method
 
     def _get_factory(
         self, action_class: type[Any], external_resources: dict[type[Any], Any] | None = None
@@ -342,10 +296,15 @@ class ActionProductMachine(BaseActionMachine):
                 nest_level=self._nest_level,
             )
 
-            state = await self._execute_regular_aspects(action, params, factory, conns, context)
+            regular_aspects, summary_method = action.get_aspects()
+            state = await self._execute_regular_aspects(
+                action, params, factory, conns, context, regular_aspects
+            )
 
-            _, summary_method = self._get_aspects(action.__class__)
-            result = await self._call_aspect(summary_method, action, params, state, factory, conns, context)
+            result = await self._call_aspect(
+                summary_method[0] if summary_method else None,
+                action, params, state, factory, conns, context
+            )
 
             total_duration = time.time() - start_time
 
@@ -368,7 +327,7 @@ class ActionProductMachine(BaseActionMachine):
 
     async def _call_aspect(
         self,
-        method: AspectMethod,
+        method: AspectMethodProtocol | None,
         action: BaseAction[Any, Any],
         params: BaseParams,
         state: BaseState,
@@ -386,7 +345,7 @@ class ActionProductMachine(BaseActionMachine):
         managers and decide which connections to pass to child actions.
 
         Args:
-            method: aspect method to call.
+            method: aspect method to call (None means no summary).
             action: action instance.
             params: input parameters.
             state: current pipeline state.
@@ -395,8 +354,11 @@ class ActionProductMachine(BaseActionMachine):
             context: execution context (used for logging).
 
         Returns:
-            Result of the aspect.
+            Result of the aspect (or empty BaseResult if no summary).
         """
+        if method is None:
+            # No summary aspect – should not happen because get_aspects ensures it exists
+            return BaseResult()
         log = ActionBoundLogger(
             coordinator=self._log_coordinator,
             nest_level=self._nest_level,
@@ -415,6 +377,7 @@ class ActionProductMachine(BaseActionMachine):
         factory: DependencyFactory,
         connections: dict[str, BaseResourceManager],
         context: Context,
+        regular_aspects: list[tuple[AspectMethodProtocol, str]],
     ) -> BaseState:
         """
         Asynchronously executes the chain of regular aspects, calling
@@ -428,11 +391,9 @@ class ActionProductMachine(BaseActionMachine):
 
         The connections parameter is passed through to each aspect.
         """
-        action_class = action.__class__
-        aspects, _ = self._get_aspects(action_class)
         state = BaseState()
 
-        for method, description in aspects:
+        for method, description in regular_aspects:
             aspect_name = method.__name__
 
             await self._plugin_coordinator.emit_event(
@@ -440,7 +401,7 @@ class ActionProductMachine(BaseActionMachine):
                 action=action,
                 params=params,
                 state_aspect=state.to_dict(),
-                is_summary=method._aspect_type == "summary",
+                is_summary=False,
                 result=None,
                 duration=None,
                 factory=factory,
@@ -483,7 +444,7 @@ class ActionProductMachine(BaseActionMachine):
                 action=action,
                 params=params,
                 state_aspect=state.to_dict(),
-                is_summary=method._aspect_type == "summary",
+                is_summary=False,
                 result=None,
                 duration=aspect_duration,
                 factory=factory,

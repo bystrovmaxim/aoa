@@ -13,9 +13,10 @@ from action_machine.aspects.summary_aspect import summary_aspect
 class TestAspectGateHost:
     def test_aspects_property_lazy_creation(self):
         class MyAction(AspectGateHost):
-            pass
+            @summary_aspect("test")
+            async def summ(self): pass
+
         action = MyAction()
-        # До обращения свойство не создано
         assert action._aspects_gate is None
         gate = action.aspects
         assert gate is not None
@@ -23,11 +24,14 @@ class TestAspectGateHost:
 
     def test_get_aspects_empty(self):
         class MyAction(AspectGateHost):
-            pass
+            @summary_aspect("test")
+            async def summ(self): pass
+
         action = MyAction()
         regular, summary = action.get_aspects()
         assert regular == []
-        assert summary is None
+        assert summary is not None
+        assert summary[0].__name__ == "summ"
 
     def test_get_aspects_with_aspects(self):
         class MyAction(AspectGateHost):
@@ -50,37 +54,35 @@ class TestAspectGateHost:
         assert summary[1] == "summary"
 
     def test_missing_summary_raises(self):
-        class MyAction(AspectGateHost):
-            @regular_aspect("only")
-            async def only(self): pass
+        with pytest.raises(TypeError, match="does not have a summary aspect"):
+            class MyAction(AspectGateHost):
+                @regular_aspect("only")
+                async def only(self): pass
+
+            # Создание экземпляра вызывает проверку в __init__
+            MyAction()
+
+    def test_child_must_have_own_summary(self):
+        """Дочерний класс не наследует summary-аспект от родителя."""
+        class Parent(AspectGateHost):
+            @summary_aspect("parent_summary")
+            async def parent_summary(self): pass
 
         with pytest.raises(TypeError, match="does not have a summary aspect"):
-            MyAction()  # создание класса вызовет ошибку в __init_subclass__
-
-    def test_summary_from_parent_satisfies(self):
-        class Parent(AspectGateHost):
-            @summary_aspect("parent_summary")
-            async def parent_summary(self): pass
-
-        class Child(Parent):
-            @regular_aspect("child")
-            async def child_aspect(self): pass
-
-        # Ошибки быть не должно
-        child = Child()
-        regular, summary = child.get_aspects()
-        assert summary is not None
-        assert summary[0].__name__ == "parent_summary"
-
-    def test_duplicate_summary_in_child_raises(self):
-        class Parent(AspectGateHost):
-            @summary_aspect("parent_summary")
-            async def parent_summary(self): pass
-
-        with pytest.raises(TypeError, match="Only one summary aspect can be registered"):
             class Child(Parent):
-                @summary_aspect("child_summary")
-                async def child_summary(self): pass
+                @regular_aspect("child")
+                async def child_aspect(self): pass
+
+            Child()
+
+    def test_duplicate_summary_in_single_class_raises(self):
+        """В одном классе нельзя определить два summary-аспекта."""
+        with pytest.raises(TypeError, match="Only one summary aspect can be registered"):
+            class MyAction(AspectGateHost):
+                @summary_aspect("first")
+                async def summ1(self): pass
+                @summary_aspect("second")
+                async def summ2(self): pass
 
     def test_aspects_are_registered_only_once(self):
         class MyAction(AspectGateHost):
@@ -89,6 +91,5 @@ class TestAspectGateHost:
             @summary_aspect("summary")
             async def summ(self): pass
 
-        # После создания класса временные атрибуты должны быть удалены
         assert not hasattr(MyAction.test, '_new_aspect_meta')
         assert not hasattr(MyAction.summ, '_new_aspect_meta')

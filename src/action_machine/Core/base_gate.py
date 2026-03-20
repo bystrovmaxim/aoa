@@ -1,9 +1,10 @@
-# src/action_machine/Core/base_gate.py
+# action_machine/Core/base_gate.py
 
 from abc import ABC, abstractmethod
 from typing import Any, TypeVar
 
 T = TypeVar('T')
+
 
 class BaseGate[T](ABC):
     """
@@ -16,6 +17,11 @@ class BaseGate[T](ABC):
 
     Параметр типа:
         T: тип компонента, которым управляет шлюз.
+
+    Методы:
+        register(component, **metadata): добавляет компонент.
+        unregister(component): удаляет компонент.
+        get_components(): возвращает список всех компонентов.
     """
 
     @abstractmethod

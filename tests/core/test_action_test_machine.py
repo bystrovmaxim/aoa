@@ -15,10 +15,11 @@ from unittest.mock import AsyncMock, Mock
 
 import pytest
 
+from action_machine.aspects.summary_aspect import summary_aspect
 from action_machine.Auth.check_roles import CheckRoles
 from action_machine.Context.context import Context
 from action_machine.Core.ActionTestMachine import ActionTestMachine
-from action_machine.Core.AspectMethod import depends, summary_aspect
+from action_machine.Core.AspectMethod import depends
 from action_machine.Core.BaseAction import BaseAction
 from action_machine.Core.BaseParams import BaseParams
 from action_machine.Core.BaseResult import BaseResult

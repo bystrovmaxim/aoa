@@ -1,4 +1,4 @@
-# ActionMachine/Core/MockAction.py
+# src/action_machine/Core/MockAction.py
 """
 Мок-действие для тестирования.
 Позволяет подменять поведение реальных действий в тестах.
@@ -6,6 +6,7 @@
 
 from collections.abc import Callable
 
+from action_machine.aspects.summary_aspect import summary_aspect
 from action_machine.Core.BaseAction import BaseAction
 from action_machine.Core.BaseParams import BaseParams
 from action_machine.Core.BaseResult import BaseResult
@@ -49,3 +50,22 @@ class MockAction(BaseAction[BaseParams, BaseResult]):
         if self.result is None:
             raise ValueError("MockAction: neither result nor side_effect provided")
         return self.result
+
+    @summary_aspect("mock summary")
+    async def _mock_summary(
+        self,
+        params: BaseParams,
+        state: dict,
+        deps: dict,
+        connections: dict,
+        log: object,
+    ) -> BaseResult:
+        """
+        Заглушка для summary-аспекта.
+
+        Возвращает результат, полученный методом run().
+        Этот метод вызывается машиной при выполнении MockAction через полный конвейер.
+        """
+        # Вызываем run() синхронно, так как run() возвращает BaseResult.
+        # В асинхронном контексте нужно убедиться, что run() не блокирует.
+        return self.run(params)
