@@ -1,4 +1,4 @@
-# ActionMachine/Logging/expression_evaluator.py
+# src/action_machine/Logging/expression_evaluator.py
 """
 Expression evaluator for AOA logging templates.
 
@@ -45,6 +45,7 @@ from typing import Any
 from simpleeval import EvalWithCompoundTypes, NameNotDefined
 
 from action_machine.Core.Exceptions import LogTemplateError
+from action_machine.Logging.masking import mask_value
 
 # Regular expression for finding {iif(...)} in the template.
 # Uses non‑greedy capture with subsequent bracket balance check.
@@ -71,11 +72,9 @@ def _is_public_data_attribute(obj: Any, name: str) -> bool:
         return False
     try:
         attr = getattr(obj, name)
-        # Exclude callables (methods)
         if callable(attr):
             return False
     except Exception:
-        # If accessing the attribute fails, it's not safe to include
         return False
     return True
 
@@ -102,19 +101,116 @@ def _get_sensitive_config(obj: Any, name: str) -> dict[str, Any] | None:
         if name in base.__dict__:
             member = base.__dict__[name]
             if isinstance(member, property) and member.fget and hasattr(member.fget, "_sensitive_config"):
-                return member.fget._sensitive_config
+                config = member.fget._sensitive_config
+                # mypy compatibility
+                return config  # type: ignore[no-any-return]
     return None
 
 
-def _format_value(value: Any, max_len: int = None) -> str:
+def _format_value(value: Any) -> str:
     """
-    Return a safe string representation of a value.
-    If max_len is specified, truncates to that length (unused now).
+    Return a safe string representation of a value, with no truncation.
     """
     try:
         return repr(value)
     except Exception:
         return "<unprintable>"
+
+
+def _inspect_collection(obj: Any, indent_str: str, type_name: str) -> str:
+    """Inspect a list, tuple or set."""
+    if len(obj) == 0:
+        return f"{indent_str}{type_name}[]"
+    preview = _format_value(list(obj)[:3])
+    if len(obj) > 3:
+        preview = preview[:-1] + ", ...]"
+    return f"{indent_str}{type_name}{preview}"
+
+
+def _inspect_dict(obj: dict, indent_str: str, type_name: str) -> str:
+    """Inspect a dictionary."""
+    if len(obj) == 0:
+        return f"{indent_str}{type_name}{{}}"
+    lines = [f"{indent_str}{type_name}:"]
+    for k, v in list(obj.items())[:10]:
+        lines.append(f"{indent_str}  {_format_value(k)}: {_format_value(v)}")
+    if len(obj) > 10:
+        lines.append(f"{indent_str}  ... and {len(obj)-10} more")
+    return "\n".join(lines)
+
+
+def _format_field_line(
+    obj: Any, name: str, value: Any, indent_str: str, visited: set[int], max_depth: int, indent: int
+) -> str:
+    """
+    Format a single field line for debug output.
+
+    Returns either a single line (if recursion depth exhausted or value is primitive)
+    or a line plus a recursively inspected block.
+    """
+    config = _get_sensitive_config(obj, name)
+
+    is_custom_object = isinstance(value, object) and not isinstance(
+        value, (str, int, float, bool, type(None), list, tuple, dict, set)
+    )
+
+    if config and config.get('enabled', True):
+        masked = mask_value(value, config)
+        type_str = type(value).__name__
+        suffix = f" (sensitive: enabled, max_chars={config.get('max_chars', 3)}, char='{config.get('char', '*')}', max_percent={config.get('max_percent', 50)})"
+        value_str = masked
+    elif config and not config.get('enabled', True):
+        type_str = type(value).__name__
+        suffix = " (sensitive: disabled)"
+        value_str = _format_value(value)
+    else:
+        type_str = type(value).__name__
+        suffix = ""
+        value_str = _format_value(value)
+
+    if max_depth > 1 and is_custom_object:
+        inner = _inspect_object(value, indent + 2, visited, max_depth - 1)
+        return f"{indent_str}  {name}: {type_str}{suffix}\n{inner}"
+    else:
+        return f"{indent_str}  {name}: {type_str}{suffix} = {value_str}"
+
+
+def _inspect_custom(
+    obj: Any, indent_str: str, type_name: str, visited: set[int], max_depth: int, indent: int
+) -> str:
+    """Inspect a custom object (not a built-in collection)."""
+    data_attrs = {}
+    for name in dir(obj):
+        if _is_public_data_attribute(obj, name):
+            try:
+                data_attrs[name] = getattr(obj, name)
+            except Exception:
+                continue
+
+    props = {}
+    for name in dir(obj):
+        if _is_public_property(obj, name):
+            try:
+                props[name] = getattr(obj, name)
+            except Exception:
+                continue
+
+    all_fields = {**data_attrs, **props}
+
+    if not all_fields:
+        return f"{indent_str}{type_name}: (no public fields)"
+
+    lines = [f"{indent_str}{type_name}:"]
+    for name, value in all_fields.items():
+        # Check for cycles
+        val_id = id(value)
+        if val_id in visited:
+            lines.append(f"{indent_str}  {name}: <cycle detected>")
+            continue
+
+        lines.append(_format_field_line(obj, name, value, indent_str, visited, max_depth, indent))
+
+    return "\n".join(lines)
 
 
 def _inspect_object(obj: Any, indent: int = 0, visited: set[int] | None = None, max_depth: int = 1) -> str:
@@ -148,89 +244,32 @@ def _inspect_object(obj: Any, indent: int = 0, visited: set[int] | None = None, 
 
     # Collections
     if isinstance(obj, (list, tuple, set)):
-        if len(obj) == 0:
-            return f"{indent_str}{type_name}[]"
-        preview = _format_value(list(obj)[:3])
-        if len(obj) > 3:
-            preview = preview[:-1] + ", ...]"
-        return f"{indent_str}{type_name}{preview}"
-
+        return _inspect_collection(obj, indent_str, type_name)
     if isinstance(obj, dict):
-        if len(obj) == 0:
-            return f"{indent_str}{type_name}{{}}"
-        lines = [f"{indent_str}{type_name}:"]
-        # Limit to 10 items to avoid huge output
-        for k, v in list(obj.items())[:10]:
-            lines.append(f"{indent_str}  {_format_value(k)}: {_format_value(v)}")
-        if len(obj) > 10:
-            lines.append(f"{indent_str}  ... and {len(obj)-10} more")
-        return "\n".join(lines)
+        return _inspect_dict(obj, indent_str, type_name)
 
-    # Custom objects – collect public data attributes and properties
-    data_attrs = {}
-    for name in dir(obj):
-        if _is_public_data_attribute(obj, name):
-            try:
-                data_attrs[name] = getattr(obj, name)
-            except Exception:
-                continue
+    # Custom objects
+    return _inspect_custom(obj, indent_str, type_name, visited, max_depth, indent)
 
-    props = {}
-    for name in dir(obj):
-        if _is_public_property(obj, name):
-            try:
-                props[name] = getattr(obj, name)
-            except Exception:
-                continue
 
-    # Properties override attributes if both exist
-    all_fields = {**data_attrs, **props}
+def debug_value(obj: Any) -> str:
+    """
+    Return a formatted string representation of an object for debug output.
 
-    if not all_fields:
-        lines = [f"{indent_str}{type_name}: (no public fields)"]
-    else:
-        lines = [f"{indent_str}{type_name}:"]
-        for name, value in all_fields.items():
-            config = _get_sensitive_config(obj, name)
+    This is a convenience wrapper around _inspect_object with max_depth=1.
+    It is intended to be used as a filter in templates: {%var.user|debug}
+    or as a function inside iif: debug(var.user).
 
-            # Determine if this value is a custom object that we would recurse into
-            is_custom_object = isinstance(value, object) and not isinstance(
-                value, (str, int, float, bool, type(None), list, tuple, dict, set)
-            )
+    The output shows only immediate fields (no recursion) to avoid flooding
+    the logs. To inspect nested objects, call debug on the nested attribute
+    directly.
 
-            # Check for cycle before recursing, even if max_depth is exhausted
-            if is_custom_object:
-                val_id = id(value)
-                if val_id in visited:
-                    # Cycle detected, show marker
-                    lines.append(f"{indent_str}  {name}: <cycle detected>")
-                    continue
-
-            if config and config.get('enabled', True):
-                # Apply masking
-                from action_machine.Logging.variable_substitutor import VariableSubstitutor
-                masked = VariableSubstitutor._mask_value(value, config)
-                type_str = type(value).__name__
-                suffix = f" (sensitive: enabled, max_chars={config.get('max_chars', 3)}, char='{config.get('char', '*')}', max_percent={config.get('max_percent', 50)})"
-                value_str = masked
-            elif config and not config.get('enabled', True):
-                type_str = type(value).__name__
-                suffix = " (sensitive: disabled)"
-                value_str = _format_value(value)
-            else:
-                type_str = type(value).__name__
-                suffix = ""
-                value_str = _format_value(value)
-
-            # Recurse if it's a custom object and depth permits
-            if max_depth > 1 and is_custom_object:
-                inner = _inspect_object(value, indent + 2, visited, max_depth - 1)
-                lines.append(f"{indent_str}  {name}: {type_str}{suffix}")
-                lines.append(inner)
-            else:
-                lines.append(f"{indent_str}  {name}: {type_str}{suffix} = {value_str}")
-
-    return "\n".join(lines)
+    Example:
+        {%var.user|debug}
+        or
+        {iif(1==1; debug(var.user); '')}
+    """
+    return _inspect_object(obj, max_depth=1)
 
 
 # ----------------------------------------------------------------------
