@@ -1,32 +1,35 @@
-# ActionMachine/Logging/ExpressionEvaluator.py
+# ActionMachine/Logging/expression_evaluator.py
 """
-Вычислитель выражений для шаблонов логирования AOA.
+Expression evaluator for AOA logging templates.
 
-Использует библиотеку simpleeval для безопасного вычисления
-выражений внутри конструкции {iif(условие; истина; ложь)}.
+Uses the simpleeval library for safe evaluation of expressions inside
+the {iif(condition; true_value; false_value)} construct.
 
-simpleeval не поддерживает import, exec, eval, __builtins__
-и любой доступ к файловой системе или сети. Это гарантирует,
-что шаблон логера не может выполнить произвольный код.
+simpleeval does not support import, exec, eval, __builtins__,
+or any access to the file system or network. This guarantees that
+the logger template cannot execute arbitrary code.
 
-Вычислитель предоставляет:
-- Операторы сравнения: ==, !=, >, <, >=, <=
-- Логические операторы: and, or, not
-- Арифметику: +, -, *, /
-- Встроенные функции: len, upper, lower, format_number
-- Строковые литералы, числа, bool (True/False)
+The evaluator provides:
+- Comparison operators: ==, !=, >, <, >=, <=
+- Logical operators: and, or, not
+- Arithmetic: +, -, *, /
+- Built-in functions: len, upper, lower, format_number
+- Color functions: red, green, yellow, blue, magenta, cyan, white, grey
+- String literals, numbers, bool (True/False)
 
-Все переменные из контекста выполнения (var, state, params,
-context, scope) доступны внутри выражений через литеральные
-значения, подставленные координатором ДО вычисления iif.
+All variables from the execution context (var, state, params, context, scope)
+are available inside expressions as literal values, substituted by the
+coordinator BEFORE iif evaluation.
 
-Никакого подавления ошибок. Если выражение невалидно —
-выбрасывается LogTemplateError. Ошибка в шаблоне лога —
-это баг разработчика, который должен обнаруживаться
-немедленно на первом же запуске.
+Color functions return a string wrapped in a marker like `__COLOR(red)text__COLOR_END__`,
+which is later replaced with actual ANSI codes by VariableSubstitutor.
 
-Парсинг аргументов iif выполняется отдельным классом _IifArgSplitter,
-который корректно обрабатывает вложенные скобки и строковые литералы.
+No error suppression. If an expression is invalid, LogTemplateError is raised.
+An error in a log template is a developer bug and must be detected immediately
+on the first run.
+
+Parsing of iif arguments is handled by a separate class _IifArgSplitter,
+which correctly handles nested parentheses and string literals.
 """
 
 import re
@@ -36,13 +39,18 @@ from simpleeval import EvalWithCompoundTypes
 
 from action_machine.Core.Exceptions import LogTemplateError
 
-# Регулярное выражение для поиска {iif(...)} в шаблоне.
-# Используем нежадный захват с последующей проверкой баланса скобок.
+# Regular expression for finding {iif(...)} in the template.
+# Uses non‑greedy capture with subsequent bracket balance check.
 _IIF_PATTERN: re.Pattern[str] = re.compile(r"\{iif\((.+?)\)\}")
 
 
-# Набор безопасных функций, доступных внутри выражений.
-# Каждая функция имеет явную сигнатуру и не выполняет IO.
+def _color_marker(color: str, text: Any) -> str:
+    """Returns a string wrapped in a color marker."""
+    return f"__COLOR({color}){text}__COLOR_END__"
+
+
+# Set of safe functions available inside expressions.
+# Each function has an explicit signature and performs no I/O.
 _SAFE_FUNCTIONS: dict[str, Any] = {
     "len": len,
     "upper": lambda s: str(s).upper(),
@@ -52,35 +60,41 @@ _SAFE_FUNCTIONS: dict[str, Any] = {
     "float": float,
     "abs": abs,
     "format_number": lambda n, decimals=2: f"{float(n):,.{int(decimals)}f}",
+    # Color functions – they wrap the argument in a marker
+    "red": lambda text: _color_marker("red", text),
+    "green": lambda text: _color_marker("green", text),
+    "yellow": lambda text: _color_marker("yellow", text),
+    "blue": lambda text: _color_marker("blue", text),
+    "magenta": lambda text: _color_marker("magenta", text),
+    "cyan": lambda text: _color_marker("cyan", text),
+    "white": lambda text: _color_marker("white", text),
+    "grey": lambda text: _color_marker("grey", text),
 }
 
 
 class _IifArgSplitter:
     """
-    Разбивает аргументы iif по ';' с учётом вложенных скобок
-    и строковых литералов.
+    Splits iif arguments by ';' taking into account nested parentheses
+    and string literals.
 
-    Простое split(';') не работает, потому что внутри
-    может быть вложенный iif или строка с ';'.
+    A simple split(';') does not work because there may be nested iif
+    or strings containing ';'.
 
-    Принцип работы:
-    1. Итерируемся по символам входной строки.
-    2. Если мы внутри строкового литерала — накапливаем символы
-       до закрывающей кавычки (_handle_string_char).
-    3. Если встретили открывающую кавычку — входим в режим
-       строкового литерала (_handle_quote).
-    4. Иначе обрабатываем структурные символы: скобки
-       изменяют глубину, ';' на нулевой глубине разделяет
-       аргументы (_handle_structural_char).
+    Principle:
+    1. Iterate over characters of the input string.
+    2. If inside a string literal, accumulate characters until the closing quote.
+    3. If an opening quote is encountered, enter string literal mode.
+    4. Otherwise, handle structural characters: parentheses change depth,
+       ';' at depth 0 separates arguments.
     """
 
     def __init__(self, raw: str) -> None:
         """
-        Инициализирует парсер.
+        Initializes the parser.
 
-        Аргументы:
-            raw: строка аргументов iif без внешних скобок.
-                 Например: "amount > 1000; 'HIGH'; 'LOW'".
+        Args:
+            raw: argument string without outer parentheses.
+                 Example: "amount > 1000; 'HIGH'; 'LOW'".
         """
         self._raw = raw
         self._parts: list[str] = []
@@ -91,20 +105,19 @@ class _IifArgSplitter:
 
     def _handle_string_char(self, char: str) -> bool:
         """
-        Обрабатывает символ, если мы находимся внутри строкового литерала.
+        Handles a character when inside a string literal.
 
-        Внутри строкового литерала все символы накапливаются без
-        интерпретации. Единственный особый символ — закрывающая
-        кавычка (совпадающая с открывающей), которая завершает
-        строковый режим.
+        Inside a string literal, all characters are accumulated without
+        interpretation. The only special character is the closing quote
+        (matching the opening one), which ends the string mode.
 
-        Аргументы:
-            char: текущий символ для обработки.
+        Args:
+            char: current character to process.
 
-        Возвращает:
-            True если символ был обработан (мы внутри строки),
-            False если мы не в строковом режиме и символ
-            должен быть обработан другим методом.
+        Returns:
+            True if the character was handled (we are inside a string),
+            False if we are not in string mode and the character should be
+            processed by another method.
         """
         if not self._in_string:
             return False
@@ -115,18 +128,18 @@ class _IifArgSplitter:
 
     def _handle_quote(self, char: str) -> bool:
         """
-        Обрабатывает открывающую кавычку (одинарную или двойную).
+        Handles an opening quote (single or double).
 
-        Если символ является кавычкой, включает режим строкового
-        литерала. Все последующие символы будут накапливаться
-        без интерпретации до закрывающей кавычки.
+        If the character is a quote, enters string literal mode.
+        All subsequent characters will be accumulated without interpretation
+        until the closing quote.
 
-        Аргументы:
-            char: текущий символ для проверки.
+        Args:
+            char: current character to check.
 
-        Возвращает:
-            True если символ был кавычкой и обработан,
-            False если символ не является кавычкой.
+        Returns:
+            True if the character was a quote and handled,
+            False if it is not a quote.
         """
         if char not in ("'", '"'):
             return False
@@ -137,17 +150,16 @@ class _IifArgSplitter:
 
     def _handle_structural_char(self, char: str) -> None:
         """
-        Обрабатывает структурные символы: скобки и разделитель ';'.
+        Handles structural characters: parentheses and the separator ';'.
 
-        Открывающая скобка '(' увеличивает глубину вложенности.
-        Закрывающая скобка ')' уменьшает глубину вложенности.
-        Точка с запятой ';' на нулевой глубине завершает текущий
-        аргумент и начинает новый. На ненулевой глубине ';'
-        является частью вложенного выражения и просто накапливается.
-        Все остальные символы накапливаются в текущий аргумент.
+        Opening '(' increases nesting depth.
+        Closing ')' decreases nesting depth.
+        Semicolon ';' at depth 0 ends the current argument and starts a new one.
+        At non‑zero depth, ';' is part of a nested expression and is simply accumulated.
+        All other characters are accumulated into the current argument.
 
-        Аргументы:
-            char: текущий символ для обработки.
+        Args:
+            char: current character to process.
         """
         if char == "(":
             self._depth += 1
@@ -156,8 +168,7 @@ class _IifArgSplitter:
             self._depth -= 1
             self._current.append(char)
         elif char == ";" and self._depth == 0:
-            # Разделитель аргументов на верхнем уровне —
-            # завершаем текущий аргумент и начинаем новый.
+            # Top‑level argument separator – finish current argument and start a new one.
             self._parts.append("".join(self._current))
             self._current = []
         else:
@@ -165,35 +176,31 @@ class _IifArgSplitter:
 
     def split(self) -> list[str]:
         """
-        Выполняет разбиение строки аргументов и возвращает список частей.
+        Splits the argument string and returns a list of parts.
 
-        Итерируется по каждому символу входной строки, применяя
-        обработчики в порядке приоритета:
-        1. _handle_string_char — если мы внутри строкового литерала.
-        2. _handle_quote — если символ является открывающей кавычкой.
-        3. _handle_structural_char — для скобок, ';' и обычных символов.
+        Iterates over each character of the input string, applying handlers
+        in priority order:
+        1. _handle_string_char – if inside a string literal.
+        2. _handle_quote – if the character is an opening quote.
+        3. _handle_structural_char – for parentheses, ';', and ordinary characters.
 
-        После обхода всех символов добавляет последний накопленный
-        аргумент (если он не пуст) в список результатов.
+        After processing all characters, adds the last accumulated argument
+        (if not empty) to the result list.
 
-        Возвращает:
-            Список строк — аргументы iif (в идеале 3 для корректного iif).
-
-        Пример:
-            >>> _IifArgSplitter("amount > 1000; 'HIGH'; 'LOW'").split()
-            ["amount > 1000", " 'HIGH'", " 'LOW'"]
+        Returns:
+            List of strings – iif arguments (ideally 3 for a valid iif).
         """
         for char in self._raw:
-            # Приоритет 1: символ внутри строкового литерала.
+            # Priority 1: character inside a string literal.
             if self._handle_string_char(char):
                 continue
-            # Приоритет 2: открывающая кавычка.
+            # Priority 2: opening quote.
             if self._handle_quote(char):
                 continue
-            # Приоритет 3: структурные символы (скобки, ';', остальное).
+            # Priority 3: structural characters (parentheses, ';', rest).
             self._handle_structural_char(char)
 
-        # Добавляем последний накопленный аргумент.
+        # Add the last accumulated argument.
         if self._current:
             self._parts.append("".join(self._current))
 
@@ -202,40 +209,34 @@ class _IifArgSplitter:
 
 class ExpressionEvaluator:
     """
-    Безопасный вычислитель выражений для шаблонов логирования.
+    Safe expression evaluator for logging templates.
 
-    Оборачивает simpleeval, предоставляя:
-    - Набор безопасных функций (len, upper, lower, format_number).
-    - Защиту от выполнения произвольного кода.
-    - Метод evaluate для вычисления одного выражения.
-    - Метод evaluate_iif для вычисления конструкции iif.
-    - Метод process_template для обработки всех {iif(...)}
-      в строке шаблона.
+    Wraps simpleeval, providing:
+    - A set of safe functions (len, upper, lower, format_number, color functions).
+    - Protection against arbitrary code execution.
+    - evaluate method for single expressions.
+    - evaluate_iif method for iif constructs.
+    - process_template method to handle all {iif(...)} in a template string.
 
-    НЕ подавляет исключения. Если выражение невалидно —
-    выбрасывается LogTemplateError. Ошибка в шаблоне лога —
-    это баг разработчика, который должен быть обнаружен
-    немедленно.
+    Does NOT suppress exceptions. If an expression is invalid,
+    LogTemplateError is raised. An error in a log template is a developer bug
+    and must be detected immediately.
     """
 
     def evaluate(self, expression: str, names: dict[str, Any]) -> Any:
         """
-        Вычисляет одно выражение в контексте переменных.
+        Evaluates a single expression in the context of variables.
 
-        Аргументы:
-            expression: строка выражения Python-подобного синтаксиса.
-            names: словарь переменных, доступных в выражении.
+        Args:
+            expression: Python‑like expression string.
+            names: dictionary of variables available in the expression.
 
-        Возвращает:
-            Результат вычисления (любой тип).
+        Returns:
+            Evaluation result (any type).
 
-        Исключения:
-            LogTemplateError: если выражение невалидно или содержит
-                неопределённые переменные.
-
-        Пример:
-            >>> evaluator.evaluate("amount > 1000", {"amount": 1500})
-            True
+        Raises:
+            LogTemplateError: if the expression is invalid or contains
+                undefined variables.
         """
         evaluator = EvalWithCompoundTypes(
             names=names,
@@ -244,7 +245,7 @@ class ExpressionEvaluator:
         try:
             return evaluator.eval(expression)
         except Exception as e:
-            raise LogTemplateError(f"Ошибка вычисления выражения '{expression}': {e}") from e
+            raise LogTemplateError(f"Error evaluating expression '{expression}': {e}") from e
 
     def evaluate_iif(
         self,
@@ -252,69 +253,58 @@ class ExpressionEvaluator:
         names: dict[str, Any],
     ) -> str:
         """
-        Вычисляет конструкцию iif(условие; истина; ложь).
+        Evaluates an iif(condition; true_branch; false_branch) construct.
 
-        Разбирает строку аргументов по разделителю ';',
-        вычисляет условие, и возвращает соответствующую
-        ветку как строку.
+        Splits the argument string by ';', evaluates the condition,
+        and returns the chosen branch as a string.
 
-        Поддерживает вложенные iif — если выбранная ветка
-        начинается с "iif(", она обрабатывается рекурсивно
-        через повторный вызов evaluate_iif. Также вложенные
-        iif в формате {iif(...)} обрабатываются через
-        process_template перед разбором аргументов.
+        Supports nested iif – if the chosen branch starts with "iif(",
+        it is handled recursively via another call to evaluate_iif.
+        Also, nested iif in the form {iif(...)} are processed via
+        process_template before argument splitting.
 
-        Аргументы:
-            raw_args: строка вида "условие; значение_true; значение_false".
-            names: словарь переменных для подстановки.
+        Args:
+            raw_args: string like "condition; true_value; false_value".
+            names: dictionary of variables for substitution.
 
-        Возвращает:
-            Строковый результат выбранной ветки.
+        Returns:
+            String result of the chosen branch.
 
-        Исключения:
-            LogTemplateError: если:
-                - количество аргументов iif не равно 3.
-                - ошибка вычисления условия.
-                - ошибка вычисления выбранной ветки.
-
-        Пример:
-            >>> evaluator.evaluate_iif(
-            ...     "amount > 1000; 'КРУПНАЯ'; 'обычная'",
-            ...     {"amount": 1500}
-            ... )
-            'КРУПНАЯ'
+        Raises:
+            LogTemplateError: if:
+                - the number of iif arguments is not 3.
+                - error evaluating the condition.
+                - error evaluating the chosen branch.
         """
-        # Сначала обработаем вложенные iif в формате {iif(...)} в аргументах
+        # First, process any nested iif in the form {iif(...)} inside the arguments
         processed_args = self.process_template(raw_args, names)
         parts = self._split_iif_args(processed_args)
 
         if len(parts) != 3:
             raise LogTemplateError(
-                f"iif ожидает 3 аргумента, разделённых ';', получено {len(parts)}. Выражение: iif({raw_args})"
+                f"iif expects 3 arguments separated by ';', got {len(parts)}. Expression: iif({raw_args})"
             )
 
         condition_str = parts[0].strip()
         true_expr = parts[1].strip()
         false_expr = parts[2].strip()
 
-        # Вычисляем условие — ошибка вычисления полетит как LogTemplateError
-        # из метода evaluate.
+        # Evaluate condition – any error will propagate as LogTemplateError.
         condition_result = self.evaluate(condition_str, names)
 
         chosen_expr = true_expr if condition_result else false_expr
 
-        # Проверяем, является ли выбранная ветка вложенным вызовом iif
-        # без фигурных скобок, например: iif(amount > 100000; 'HIGH'; 'LOW')
-        # В этом случае рекурсивно вызываем evaluate_iif.
+        # Check if the chosen branch is a nested iif call without curly braces,
+        # e.g., iif(amount > 100000; 'HIGH'; 'LOW')
+        # If so, recursively call evaluate_iif.
         stripped = chosen_expr.strip()
         if stripped.startswith("iif(") and stripped.endswith(")"):
-            # Извлекаем аргументы вложенного iif — убираем "iif(" и ")"
+            # Extract inner arguments – remove "iif(" and ")"
             inner_args = stripped[4:-1]
             return self.evaluate_iif(inner_args, names)
 
-        # Выбранная ветка может быть строковым литералом
-        # в одинарных кавычках или выражением.
-        # Ошибка вычисления полетит как LogTemplateError из метода evaluate.
+        # The chosen branch may be a string literal or an expression.
+        # Any evaluation error will be raised as LogTemplateError.
         result = self.evaluate(chosen_expr, names)
         return str(result)
 
@@ -324,27 +314,20 @@ class ExpressionEvaluator:
         names: dict[str, Any],
     ) -> str:
         """
-        Обрабатывает все {iif(...)} в строке шаблона.
+        Processes all {iif(...)} occurrences in a template string.
 
-        Находит каждое вхождение {iif(...)}, вычисляет его
-        через evaluate_iif и подставляет результат.
+        Finds each {iif(...)}, evaluates it via evaluate_iif,
+        and substitutes the result.
 
-        Аргументы:
-            template: строка шаблона с {iif(...)} конструкциями.
-            names: словарь переменных для подстановки.
+        Args:
+            template: template string with {iif(...)} constructs.
+            names: dictionary of variables for substitution.
 
-        Возвращает:
-            Строка с вычисленными значениями вместо {iif(...)}.
+        Returns:
+            String with all iif constructs replaced by their evaluated results.
 
-        Исключения:
-            LogTemplateError: если любое iif-выражение невалидно.
-
-        Пример:
-            >>> evaluator.process_template(
-            ...     "Status: {iif(success == True; 'OK'; 'FAIL')}",
-            ...     {"success": True}
-            ... )
-            'Status: OK'
+        Raises:
+            LogTemplateError: if any iif expression is invalid.
         """
 
         def replacer(match: re.Match[str]) -> str:
@@ -355,15 +338,15 @@ class ExpressionEvaluator:
 
     def _split_iif_args(self, raw: str) -> list[str]:
         """
-        Разбивает аргументы iif через выделенный парсер _IifArgSplitter.
+        Splits iif arguments using the dedicated _IifArgSplitter.
 
-        Делегирует всю логику парсинга классу _IifArgSplitter,
-        который отслеживает глубину скобок и строковые литералы.
+        Delegates all parsing logic to _IifArgSplitter, which tracks
+        parentheses depth and string literals.
 
-        Аргументы:
-            raw: строка аргументов без внешних скобок iif().
+        Args:
+            raw: argument string without outer iif parentheses.
 
-        Возвращает:
-            Список из частей (в идеале 3 для корректного iif).
+        Returns:
+            List of parts (ideally 3 for a valid iif).
         """
         return _IifArgSplitter(raw).split()

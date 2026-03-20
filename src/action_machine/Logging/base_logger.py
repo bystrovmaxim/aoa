@@ -1,35 +1,37 @@
-# ActionMachine/Logging/BaseLogger.py
+# ActionMachine/Logging/base_logger.py
 """
-Абстрактный базовый класс для всех логеров системы логирования AOA.
-BaseLogger определяет двухфазный протокол обработки сообщений:
-1. Фильтрация — метод match_filters быстро определяет,
-   нужно ли обрабатывать сообщение данным логером.
-2. Запись — абстрактный метод write реализуется в наследниках
-   и выполняет конкретную работу (вывод в консоль, запись в файл,
-   отправка в ELK и т.д.).
-Фильтрация основана на регулярных выражениях. Каждый логер получает
-список фильтров при создании. Фильтры компилируются в __init__
-для производительности (не компилируются при каждом вызове).
-Строка для проверки собирается из scope.as_dotpath() и сериализованных
-ключей var — это позволяет фильтровать по любому сочетанию условий.
-Если список фильтров пуст — логер пропускает все сообщения (нет фильтров
-означает «принимать всё»). Если хотя бы один фильтр дал match — сообщение
-принимается. Если ни один не совпал — сообщение отбрасывается.
-BaseLogger НЕ подавляет исключения. Если метод write упал — исключение
-летит наверх по стеку. Это сознательное решение: сломанный логер
-должен быть обнаружен немедленно, а не через месяц когда понадобятся
-логи которых нет.
-Все методы асинхронные — логер может выполнять IO-операции
-(запись в файл, отправка по сети) без блокировки event loop.
-Пример создания конкретного логера:
-    >>> class MyLogger(BaseLogger):
-    ...     async def write(self, scope, message, var, context, state, params, indent):
-    ...         print(message)
-    ...
-    >>> logger = MyLogger(filters=[r"ProcessOrder.*"])
-Пример с пустыми фильтрами (принимает всё):
-    >>> logger = MyLogger(filters=[])
+Abstract base class for all loggers in the AOA logging system.
+BaseLogger defines a two‑phase protocol for message processing:
+1. Filtering – the match_filters method quickly determines whether
+   this logger should process the message.
+2. Writing – the abstract write method is implemented by descendants
+   and performs the actual output (console, file, ELK, etc.).
+
+Filtering is based on regular expressions. Each logger receives a list
+of filters at creation time. Filters are compiled in __init__ for
+performance (they are not recompiled on every call).
+
+The filter string is built from scope.as_dotpath() and serialized var
+keys – this allows filtering by any combination of conditions.
+
+If the filter list is empty, the logger accepts all messages (no filters
+means “accept everything”). If at least one filter matches, the message
+is accepted. If none match, the message is discarded.
+
+BaseLogger does NOT suppress exceptions. If the write method fails,
+the exception propagates up the stack. This is a conscious decision:
+a broken logger should be discovered immediately, not a month later
+when logs are needed.
+
+All methods are asynchronous – loggers may perform I/O (file writes,
+network sends) without blocking the event loop.
+
+New in 0.0.5:
+- `supports_colors` property to indicate whether the logger can handle
+  ANSI color codes.
+- `strip_ansi_codes` static method to remove ANSI sequences from a string.
 """
+
 import re
 from abc import ABC, abstractmethod
 from typing import Any
@@ -39,37 +41,62 @@ from action_machine.Core.BaseParams import BaseParams
 from action_machine.Core.BaseState import BaseState
 from action_machine.Logging.log_scope import LogScope
 
+# Regular expression to match ANSI escape sequences
+_ANSI_ESCAPE = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
+
 
 class BaseLogger(ABC):
     """
-    Абстрактный базовый класс для всех логеров.
-    Определяет протокол обработки сообщений: фильтрация через
-    регулярные выражения, затем запись через абстрактный метод write.
-    Наследники реализуют только метод write — фильтрация и вызов
-    write обеспечиваются базовым классом через метод handle.
-    Исключения из write не подавляются — если логер сломан,
-    система должна узнать об этом немедленно.
+    Abstract base class for all loggers.
+    Defines the message processing protocol: filtering via regular expressions,
+    then writing via the abstract write method.
+    Descendants only need to implement write – filtering and the call to write
+    are handled by the base class through the handle method.
+    Exceptions from write are not suppressed – if a logger is broken,
+    the system must know about it immediately.
     """
 
     def __init__(self, filters: list[str] | None = None) -> None:
         """
-        Инициализирует логер с набором фильтров.
-        Фильтры — это строки регулярных выражений, которые компилируются
-        при создании экземпляра для повышения производительности.
-        Каждый фильтр применяется через re.search (не fullmatch),
-        что позволяет искать совпадение в любом месте строки контекста.
-        Если filters пуст или None — фильтрация отключена,
-        логер принимает все сообщения.
-        Аргументы:
-            filters: список строк-регулярных выражений для фильтрации.
-                     Каждая строка компилируется в re.Pattern.
-                     None или пустой список означает «принимать всё».
-        Пример:
-            >>> logger = MyLogger(filters=[r"ProcessOrder.*", r"Payment"])
-            >>> logger = MyLogger(filters=[])  # принимает всё
-            >>> logger = MyLogger()            # принимает всё
+        Initializes the logger with a set of filters.
+
+        Filters are strings containing regular expressions, compiled at
+        instance creation for performance. Each filter is applied using
+        re.search (not fullmatch), allowing matches anywhere in the context string.
+
+        If filters is empty or None, filtering is disabled – the logger accepts
+        all messages.
+
+        Args:
+            filters: list of regex strings for filtering.
+                     Each string is compiled into a re.Pattern.
+                     None or empty list means "accept all".
         """
         self._filters: list[re.Pattern[str]] = [re.compile(f) for f in (filters or [])]
+
+    @property
+    def supports_colors(self) -> bool:
+        """
+        Indicates whether this logger can handle ANSI color codes.
+
+        Returns:
+            True if the logger preserves ANSI codes, False if they should be stripped.
+            Base implementation returns False; descendants may override.
+        """
+        return False
+
+    @staticmethod
+    def strip_ansi_codes(text: str) -> str:
+        """
+        Removes ANSI escape sequences from a string.
+
+        Args:
+            text: input string possibly containing ANSI codes.
+
+        Returns:
+            String with all ANSI sequences removed.
+        """
+        return _ANSI_ESCAPE.sub('', text)
 
     def _build_filter_string(
         self,
@@ -78,25 +105,23 @@ class BaseLogger(ABC):
         var: dict[str, Any],
     ) -> str:
         """
-        Собирает строку контекста для проверки фильтрами.
-        Строка формируется из трёх частей:
-        1. scope.as_dotpath() — местоположение в конвейере
-           (например, "ProcessOrderAction.validate_user.before").
-        2. Текст сообщения message.
-        3. Сериализованные ключи и значения var в формате "key=value".
-        Части разделяются пробелом. Это позволяет фильтровать
-        по любому сочетанию: по имени action, по тексту сообщения,
-        по значениям переменных.
-        Аргументы:
-            scope: скоуп текущего вызова логера.
-            message: текст сообщения (уже с подставленными переменными).
-            var: словарь переменных, переданных в log.
-        Возвращает:
-            Строка контекста для применения регулярных выражений.
-        Пример:
-            >>> scope = LogScope(action="ProcessOrder", aspect="validate")
-            >>> result = logger._build_filter_string(scope, "OK", {"amount": 100})
-            >>> # "ProcessOrder.validate OK amount=100"
+        Builds the context string for filter matching.
+
+        The string is composed of three parts:
+        1. scope.as_dotpath() – location in the pipeline.
+        2. The message text.
+        3. Serialized var keys and values as "key=value".
+
+        Parts are joined by spaces. This allows filtering by any combination:
+        by action name, by message text, by variable values.
+
+        Args:
+            scope: current call scope.
+            message: already substituted message text.
+            var: dictionary of variables passed to the log call.
+
+        Returns:
+            A single string for regex matching.
         """
         parts: list[str] = []
         dotpath = scope.as_dotpath()
@@ -119,35 +144,30 @@ class BaseLogger(ABC):
         indent: int,
     ) -> bool:
         """
-        Проверяет, должен ли данный логер обработать сообщение.
-        Логика фильтрации:
-        1. Если список фильтров пуст — возвращает True (нет фильтров,
-           принимаем всё).
-        2. Собирает строку контекста через _build_filter_string.
-        3. Применяет каждый скомпилированный re.Pattern через search.
-        4. Как только один фильтр дал совпадение — возвращает True.
-        5. Если ни один фильтр не совпал — возвращает False.
-        Метод асинхронный для единообразия интерфейса, хотя текущая
-        реализация не выполняет IO-операций.
-        Аргументы:
-            scope: скоуп текущего вызова (местоположение в конвейере).
-            message: текст сообщения с подставленными переменными.
-            var: словарь переменных, переданных разработчиком в log.
-            ctx: контекст выполнения (пользователь, запрос, окружение).
-            state: текущее состояние конвейера.
-            params: входные параметры действия.
-            indent: уровень отступа (для вложенных вызовов).
-        Возвращает:
-            True если сообщение прошло фильтрацию и должно быть записано.
-            False если сообщение отклонено всеми фильтрами.
-        Пример:
-            >>> logger = MyLogger(filters=[r"ProcessOrder"])
-            >>> scope = LogScope(action="ProcessOrderAction")
-            >>> await logger.match_filters(scope, "OK", {}, ctx, state, params, 0)
-            True
-            >>> scope2 = LogScope(action="DeleteUserAction")
-            >>> await logger.match_filters(scope2, "OK", {}, ctx, state, params, 0)
-            False
+        Checks whether this logger should process the message.
+
+        Filtering logic:
+        1. If the filter list is empty, return True (no filters – accept all).
+        2. Build the filter string via _build_filter_string.
+        3. Apply each compiled re.Pattern using search.
+        4. As soon as one filter matches, return True.
+        5. If none match, return False.
+
+        The method is asynchronous for interface uniformity, although the
+        current implementation does not perform I/O.
+
+        Args:
+            scope: current call scope.
+            message: substituted message text.
+            var: developer‑supplied variables.
+            ctx: execution context (user, request, environment).
+            state: current pipeline state.
+            params: action input parameters.
+            indent: indentation level (for nested calls).
+
+        Returns:
+            True if the message passed filtering and should be written,
+            False if it is rejected by all filters.
         """
         if not self._filters:
             return True
@@ -168,24 +188,23 @@ class BaseLogger(ABC):
         indent: int,
     ) -> None:
         """
-        Точка входа для обработки сообщения логером.
-        Вызывается координатором LogCoordinator в цикле для каждого
-        зарегистрированного логера. Выполняет две фазы:
-        1. Фильтрация — вызывает match_filters. Если False — выходит
-           без дальнейших действий.
-        2. Запись — вызывает абстрактный метод write.
-        Никакого try/except. Если write упал — исключение летит наверх.
-        Аргументы:
-            scope: скоуп текущего вызова (местоположение в конвейере).
-            message: текст сообщения с подставленными переменными.
-            var: словарь переменных, переданных разработчиком в log.
-            ctx: контекст выполнения (пользователь, запрос, окружение).
-            state: текущее состояние конвейера.
-            params: входные параметры действия.
-            indent: уровень отступа (для вложенных вызовов).
-        Пример:
-            >>> await logger.handle(scope, "Загружено 150 задач", {"count": 150},
-            ...                     ctx, state, params, indent=2)
+        Entry point for processing a message by the logger.
+
+        Called by LogCoordinator in a loop for each registered logger.
+        Performs two phases:
+        1. Filtering – calls match_filters. If False, exits without further action.
+        2. Writing – calls the abstract write method.
+
+        No try/except – if write fails, the exception propagates upward.
+
+        Args:
+            scope: current call scope.
+            message: substituted message text.
+            var: developer‑supplied variables.
+            ctx: execution context.
+            state: current pipeline state.
+            params: action input parameters.
+            indent: indentation level.
         """
         matched = await self.match_filters(scope, message, var, ctx, state, params, indent)
         if not matched:
@@ -204,21 +223,19 @@ class BaseLogger(ABC):
         indent: int,
     ) -> None:
         """
-        Записывает сообщение в конкретный канал вывода.
-        Абстрактный метод — реализуется в каждом конкретном логере.
-        Метод вызывается только если match_filters вернул True.
-        Метод НЕ должен подавлять исключения.
-        Аргументы:
-            scope: скоуп текущего вызова (местоположение в конвейере).
-            message: текст сообщения с подставленными переменными.
-            var: словарь переменных, переданных разработчиком в log.
-            ctx: контекст выполнения (пользователь, запрос, окружение).
-            state: текущее состояние конвейера.
-            params: входные параметры действия.
-            indent: уровень отступа (для вложенных вызовов).
-        Пример реализации в наследнике:
-            >>> async def write(self, scope, message, var, ctx, state, params, indent):
-            ...     prefix = "  " * indent
-            ...     print(f"{prefix}[{scope.as_dotpath()}] {message}")
+        Writes the message to the specific output channel.
+
+        Abstract method – implemented by each concrete logger.
+        Called only if match_filters returned True.
+        Must NOT suppress exceptions.
+
+        Args:
+            scope: current call scope.
+            message: substituted message text.
+            var: developer‑supplied variables.
+            ctx: execution context.
+            state: current pipeline state.
+            params: action input parameters.
+            indent: indentation level.
         """
         pass

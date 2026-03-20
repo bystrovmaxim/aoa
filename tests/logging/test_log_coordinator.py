@@ -1,12 +1,15 @@
+# tests/logging/test_log_coordinator.py
 """
-Тесты LogCoordinator — координатора логирования.
-Проверяем:
-- Подстановку переменных из разных источников (var, context, params, state, scope)
-- Обработку конструкций iif
-- Рассылку сообщений по нескольким логерам
-- Фильтрацию через логеры
-- Обработку ошибок (несуществующие переменные, неизвестный namespace)
+Tests for LogCoordinator – the logging coordinator.
+
+Checks:
+- Variable substitution from different sources (var, context, params, state, scope)
+- iif construct handling
+- Broadcast to multiple loggers
+- Filtering through loggers
+- Error handling (non-existent variables, unknown namespace)
 """
+
 import pytest
 
 from action_machine.Core.BaseState import BaseState
@@ -17,14 +20,14 @@ from tests.conftest import ParamsTest, RecordingLogger, make_context
 
 
 class TestLogCoordinator:
-    """Тесты координатора логирования."""
+    """Tests for the logging coordinator."""
 
     # ------------------------------------------------------------------
-    # ТЕСТЫ: Подстановка переменных из разных источников
+    # TESTS: Variable substitution from different sources
     # ------------------------------------------------------------------
     @pytest.mark.anyio
     async def test_emit_substitutes_var(self, recording_logger, scope, context_fixture, params):
-        """emit подставляет переменные из var."""
+        """emit substitutes variables from var."""
         coordinator = LogCoordinator(loggers=[recording_logger])
         await coordinator.emit(
             message="Count is {%var.count}",
@@ -39,7 +42,7 @@ class TestLogCoordinator:
 
     @pytest.mark.anyio
     async def test_emit_substitutes_context(self, recording_logger, scope, params):
-        """emit подставляет переменные из context через resolve."""
+        """emit substitutes variables from context via resolve."""
         coordinator = LogCoordinator(loggers=[recording_logger])
         ctx = make_context(user_id="agent_007")
         await coordinator.emit(
@@ -55,7 +58,7 @@ class TestLogCoordinator:
 
     @pytest.mark.anyio
     async def test_emit_substitutes_params(self, recording_logger, scope, context_fixture):
-        """emit подставляет переменные из params через resolve."""
+        """emit substitutes variables from params via resolve."""
         coordinator = LogCoordinator(loggers=[recording_logger])
         params = ParamsTest(amount=999.99)
         await coordinator.emit(
@@ -71,7 +74,7 @@ class TestLogCoordinator:
 
     @pytest.mark.anyio
     async def test_emit_substitutes_state(self, recording_logger, scope, context_fixture, params):
-        """emit подставляет переменные из state."""
+        """emit substitutes variables from state."""
         coordinator = LogCoordinator(loggers=[recording_logger])
         await coordinator.emit(
             message="Total: {%state.total}",
@@ -86,7 +89,7 @@ class TestLogCoordinator:
 
     @pytest.mark.anyio
     async def test_emit_substitutes_scope(self, recording_logger, context_fixture, params):
-        """emit подставляет переменные из scope."""
+        """emit substitutes variables from scope."""
         coordinator = LogCoordinator(loggers=[recording_logger])
         scope = LogScope(action="ProcessOrder", aspect="validate")
         await coordinator.emit(
@@ -101,11 +104,11 @@ class TestLogCoordinator:
         assert recording_logger.records[0]["message"] == "Action: ProcessOrder"
 
     # ------------------------------------------------------------------
-    # ТЕСТЫ: Конструкции iif
+    # TESTS: iif constructs
     # ------------------------------------------------------------------
     @pytest.mark.anyio
     async def test_emit_with_iif_simple(self, recording_logger, scope, context_fixture):
-        """emit обрабатывает простой iif с единым синтаксисом {%...}."""
+        """emit handles simple iif with unified {%...} syntax."""
         coordinator = LogCoordinator(loggers=[recording_logger])
         params = ParamsTest(amount=1500.0)
         await coordinator.emit(
@@ -121,7 +124,7 @@ class TestLogCoordinator:
 
     @pytest.mark.anyio
     async def test_emit_with_iif_nested(self, recording_logger, scope, context_fixture):
-        """emit обрабатывает вложенные iif с единым синтаксисом."""
+        """emit handles nested iif with unified syntax."""
         coordinator = LogCoordinator(loggers=[recording_logger])
         params = ParamsTest(amount=1500000.0)
         await coordinator.emit(
@@ -137,7 +140,7 @@ class TestLogCoordinator:
 
     @pytest.mark.anyio
     async def test_emit_with_iif_using_var(self, recording_logger, scope, context_fixture, params):
-        """iif использует переменные из var."""
+        """iif uses variables from var."""
         coordinator = LogCoordinator(loggers=[recording_logger])
         await coordinator.emit(
             message="Result: {iif({%var.success} == True; 'OK'; 'FAIL')}",
@@ -152,7 +155,7 @@ class TestLogCoordinator:
 
     @pytest.mark.anyio
     async def test_emit_with_iif_using_state(self, recording_logger, scope, context_fixture, params):
-        """iif использует переменные из state."""
+        """iif uses variables from state."""
         coordinator = LogCoordinator(loggers=[recording_logger])
         await coordinator.emit(
             message="Status: {iif({%state.processed} == True; 'DONE'; 'PENDING')}",
@@ -166,11 +169,11 @@ class TestLogCoordinator:
         assert recording_logger.records[0]["message"] == "Status: DONE"
 
     # ------------------------------------------------------------------
-    # ТЕСТЫ: Рассылка по нескольким логерам
+    # TESTS: Broadcast to multiple loggers
     # ------------------------------------------------------------------
     @pytest.mark.anyio
     async def test_emit_broadcasts_to_all_loggers(self, scope, context_fixture, params):
-        """emit рассылает сообщение всем зарегистрированным логерам."""
+        """emit broadcasts the message to all registered loggers."""
         logger1 = RecordingLogger()
         logger2 = RecordingLogger()
         coordinator = LogCoordinator(loggers=[logger1, logger2])
@@ -190,11 +193,11 @@ class TestLogCoordinator:
 
     @pytest.mark.anyio
     async def test_emit_respects_logger_filters(self, scope, context_fixture, params):
-        """emit вызывает все логеры, но каждый фильтрует самостоятельно."""
+        """emit calls all loggers, but each filters independently."""
         logger_all = RecordingLogger()
         logger_filtered = RecordingLogger(filters=[r"PaymentAction"])
         coordinator = LogCoordinator(loggers=[logger_all, logger_filtered])
-        scope = LogScope(action="OrderAction")  # не PaymentAction
+        scope = LogScope(action="OrderAction")  # not PaymentAction
         await coordinator.emit(
             message="Order created",
             var={},
@@ -209,7 +212,7 @@ class TestLogCoordinator:
 
     @pytest.mark.anyio
     async def test_add_logger(self, scope, context_fixture, params):
-        """add_logger добавляет логер в координатор."""
+        """add_logger adds a logger to the coordinator."""
         coordinator = LogCoordinator()
         logger = RecordingLogger()
         coordinator.add_logger(logger)
@@ -226,7 +229,7 @@ class TestLogCoordinator:
 
     @pytest.mark.anyio
     async def test_emit_without_loggers_does_nothing(self, scope, context_fixture, params):
-        """emit без логеров не падает."""
+        """emit without loggers does nothing (no error)."""
         coordinator = LogCoordinator()
         await coordinator.emit(
             message="No loggers",
@@ -237,13 +240,14 @@ class TestLogCoordinator:
             params=params,
             indent=0,
         )
+        # no assertion, just shouldn't crash
 
     # ------------------------------------------------------------------
-    # ТЕСТЫ: Передача параметров
+    # TESTS: Parameter passing
     # ------------------------------------------------------------------
     @pytest.mark.anyio
     async def test_emit_passes_indent_to_loggers(self, recording_logger, scope, context_fixture, params):
-        """emit передаёт indent в каждый логер."""
+        """emit passes indent to each logger."""
         coordinator = LogCoordinator(loggers=[recording_logger])
         await coordinator.emit(
             message="Indented",
@@ -258,7 +262,7 @@ class TestLogCoordinator:
 
     @pytest.mark.anyio
     async def test_emit_passes_scope_to_loggers(self, recording_logger, context_fixture, params):
-        """emit передаёт scope в каждый логер."""
+        """emit passes scope to each logger."""
         coordinator = LogCoordinator(loggers=[recording_logger])
         test_scope = LogScope(action="TestAction", aspect="test")
         await coordinator.emit(
@@ -273,11 +277,11 @@ class TestLogCoordinator:
         assert recording_logger.records[0]["scope"] is test_scope
 
     # ------------------------------------------------------------------
-    # ТЕСТЫ: Вложенные структуры
+    # TESTS: Nested structures
     # ------------------------------------------------------------------
     @pytest.mark.anyio
     async def test_emit_nested_state_dict(self, recording_logger, scope, context_fixture, params):
-        """emit подставляет вложенные значения из state."""
+        """emit substitutes nested values from state."""
         coordinator = LogCoordinator(loggers=[recording_logger])
         await coordinator.emit(
             message="Nested: {%state.order.id}",
@@ -292,7 +296,7 @@ class TestLogCoordinator:
 
     @pytest.mark.anyio
     async def test_emit_nested_var_dict(self, recording_logger, scope, context_fixture, params):
-        """emit подставляет вложенные значения из var."""
+        """emit substitutes nested values from var."""
         coordinator = LogCoordinator(loggers=[recording_logger])
         await coordinator.emit(
             message="Var nested: {%var.data.value}",
@@ -306,13 +310,13 @@ class TestLogCoordinator:
         assert recording_logger.records[0]["message"] == "Var nested: deep"
 
     # ------------------------------------------------------------------
-    # ТЕСТЫ: Обработка ошибок
+    # TESTS: Error handling
     # ------------------------------------------------------------------
     @pytest.mark.anyio
     async def test_emit_missing_variable_raises(self, scope, context_fixture, params):
-        """Обращение к несуществующей переменной выбрасывает LogTemplateError."""
+        """Access to a non-existent variable raises LogTemplateError."""
         coordinator = LogCoordinator(loggers=[RecordingLogger()])
-        with pytest.raises(LogTemplateError, match="не найдена"):
+        with pytest.raises(LogTemplateError, match="not found"):
             await coordinator.emit(
                 message="Missing: {%var.nonexistent}",
                 var={},
@@ -325,9 +329,9 @@ class TestLogCoordinator:
 
     @pytest.mark.anyio
     async def test_emit_missing_variable_in_iif_raises(self, scope, context_fixture, params):
-        """Обращение к несуществующей переменной внутри iif выбрасывает LogTemplateError."""
+        """Access to a non-existent variable inside iif raises LogTemplateError."""
         coordinator = LogCoordinator(loggers=[RecordingLogger()])
-        with pytest.raises(LogTemplateError, match="не найдена"):
+        with pytest.raises(LogTemplateError, match="not found"):
             await coordinator.emit(
                 message="Result: {iif({%var.missing} > 10; 'yes'; 'no')}",
                 var={},
@@ -340,9 +344,9 @@ class TestLogCoordinator:
 
     @pytest.mark.anyio
     async def test_emit_unknown_namespace_raises(self, scope, context_fixture, params):
-        """Неизвестный namespace в шаблоне выбрасывает LogTemplateError."""
+        """Unknown namespace in template raises LogTemplateError."""
         coordinator = LogCoordinator(loggers=[RecordingLogger()])
-        with pytest.raises(LogTemplateError, match="Неизвестный namespace"):
+        with pytest.raises(LogTemplateError, match="Unknown namespace"):
             await coordinator.emit(
                 message="Value: {%unknown.field}",
                 var={},
@@ -354,10 +358,25 @@ class TestLogCoordinator:
             )
 
     @pytest.mark.anyio
-    async def test_emit_invalid_iif_syntax_raises(self, scope, context_fixture, params):
-        """Невалидный синтаксис iif (не 3 аргумента) выбрасывает LogTemplateError."""
+    async def test_emit_underscore_name_raises(self, scope, context_fixture, params):
+        """Access to a name starting with underscore raises LogTemplateError."""
         coordinator = LogCoordinator(loggers=[RecordingLogger()])
-        with pytest.raises(LogTemplateError, match="iif ожидает 3 аргумента"):
+        with pytest.raises(LogTemplateError, match="Access to name starting with underscore is forbidden"):
+            await coordinator.emit(
+                message="Secret: {%var._secret}",
+                var={"_secret": "value"},
+                scope=scope,
+                ctx=context_fixture,
+                state=BaseState(),
+                params=params,
+                indent=0,
+            )
+
+    @pytest.mark.anyio
+    async def test_emit_invalid_iif_syntax_raises(self, scope, context_fixture, params):
+        """Invalid iif syntax (not 3 args) raises LogTemplateError."""
+        coordinator = LogCoordinator(loggers=[RecordingLogger()])
+        with pytest.raises(LogTemplateError, match="iif expects 3 arguments"):
             await coordinator.emit(
                 message="Bad: {iif(1 > 0; 'only_two_args')}",
                 var={},
