@@ -18,5 +18,9 @@ class AspectMethodProtocol(Protocol):
     аргументы, возвращая любое значение. В будущем может быть уточнён
     под конкретную сигнатуру аспектов (params, state, deps, connections, log).
     """
+
+    __name__: str
+    __qualname__: str
+
     async def __call__(self, *args: Any, **kwargs: Any) -> Any:
         ...

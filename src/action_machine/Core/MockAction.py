@@ -10,6 +10,10 @@ from action_machine.aspects.summary_aspect import summary_aspect
 from action_machine.Core.BaseAction import BaseAction
 from action_machine.Core.BaseParams import BaseParams
 from action_machine.Core.BaseResult import BaseResult
+from action_machine.Core.BaseState import BaseState
+from action_machine.Core.DependencyFactory import DependencyFactory
+from action_machine.Logging.action_bound_logger import ActionBoundLogger
+from action_machine.ResourceManagers.BaseResourceManager import BaseResourceManager
 
 
 class MockAction(BaseAction[BaseParams, BaseResult]):
@@ -55,10 +59,10 @@ class MockAction(BaseAction[BaseParams, BaseResult]):
     async def _mock_summary(
         self,
         params: BaseParams,
-        state: dict,
-        deps: dict,
-        connections: dict,
-        log: object,
+        state: BaseState,
+        deps: DependencyFactory,
+        connections: dict[str, BaseResourceManager],
+        log: ActionBoundLogger,
     ) -> BaseResult:
         """
         Заглушка для summary-аспекта.
