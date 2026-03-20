@@ -15,7 +15,14 @@ The evaluator provides:
 - Arithmetic: +, -, *, /
 - Built-in functions: len, upper, lower, format_number
 - Color functions: red, green, yellow, blue, magenta, cyan, white, grey
-- String literals, numbers, bool (True/False)
+- Debug function: debug(obj) – returns a formatted string with public fields/properties
+  of the object (useful for introspection in log templates).
+  **Note:** As of version 0.0.6, debug shows only the immediate fields of the object
+  (max_depth=1) to prevent log flooding. For deeper inspection, call debug on the
+  nested attribute directly.
+- Exists function: exists(name) – returns True if a variable with the given name exists
+  in the current evaluation context, False otherwise. Useful for conditional logging
+  when a variable may be missing.
 
 All variables from the execution context (var, state, params, context, scope)
 are available inside expressions as literal values, substituted by the
@@ -35,7 +42,7 @@ which correctly handles nested parentheses and string literals.
 import re
 from typing import Any
 
-from simpleeval import EvalWithCompoundTypes
+from simpleeval import EvalWithCompoundTypes, NameNotDefined
 
 from action_machine.Core.Exceptions import LogTemplateError
 
@@ -49,9 +56,188 @@ def _color_marker(color: str, text: Any) -> str:
     return f"__COLOR({color}){text}__COLOR_END__"
 
 
-# Set of safe functions available inside expressions.
-# Each function has an explicit signature and performs no I/O.
-_SAFE_FUNCTIONS: dict[str, Any] = {
+# ----------------------------------------------------------------------
+# Debug introspection helpers
+# ----------------------------------------------------------------------
+
+def _is_public_data_attribute(obj: Any, name: str) -> bool:
+    """
+    Determines if a name should be considered a public data attribute.
+    Excludes:
+    - names starting with underscore
+    - methods (callable)
+    """
+    if name.startswith('_'):
+        return False
+    try:
+        attr = getattr(obj, name)
+        # Exclude callables (methods)
+        if callable(attr):
+            return False
+    except Exception:
+        # If accessing the attribute fails, it's not safe to include
+        return False
+    return True
+
+
+def _is_public_property(obj: Any, name: str) -> bool:
+    """
+    Checks if name is a public property (excluding underscore names).
+    """
+    if name.startswith('_'):
+        return False
+    for base in type(obj).__mro__:
+        if name in base.__dict__:
+            member = base.__dict__[name]
+            if isinstance(member, property):
+                return True
+    return False
+
+
+def _get_sensitive_config(obj: Any, name: str) -> dict[str, Any] | None:
+    """
+    Returns sensitive config if the property has @sensitive decorator.
+    """
+    for base in type(obj).__mro__:
+        if name in base.__dict__:
+            member = base.__dict__[name]
+            if isinstance(member, property) and member.fget and hasattr(member.fget, "_sensitive_config"):
+                return member.fget._sensitive_config
+    return None
+
+
+def _format_value(value: Any, max_len: int = None) -> str:
+    """
+    Return a safe string representation of a value.
+    If max_len is specified, truncates to that length (unused now).
+    """
+    try:
+        return repr(value)
+    except Exception:
+        return "<unprintable>"
+
+
+def _inspect_object(obj: Any, indent: int = 0, visited: set[int] | None = None, max_depth: int = 1) -> str:
+    """
+    Recursively builds a string representation of an object's public data fields and properties.
+
+    Args:
+        obj: The object to inspect.
+        indent: Current indentation level (number of spaces).
+        visited: Set of object ids already processed (to avoid cycles).
+        max_depth: Maximum recursion depth. Defaults to 1 (show only direct fields).
+                   If max_depth > 1, nested objects are expanded recursively.
+
+    Returns:
+        Formatted multiline string.
+    """
+    if visited is None:
+        visited = set()
+
+    obj_id = id(obj)
+    if obj_id in visited:
+        return f"{' ' * indent}<cycle detected>"
+    visited.add(obj_id)
+
+    indent_str = " " * indent
+    type_name = type(obj).__name__
+
+    # Basic types
+    if isinstance(obj, (str, int, float, bool, type(None))):
+        return f"{indent_str}{type_name} = {_format_value(obj)}"
+
+    # Collections
+    if isinstance(obj, (list, tuple, set)):
+        if len(obj) == 0:
+            return f"{indent_str}{type_name}[]"
+        preview = _format_value(list(obj)[:3])
+        if len(obj) > 3:
+            preview = preview[:-1] + ", ...]"
+        return f"{indent_str}{type_name}{preview}"
+
+    if isinstance(obj, dict):
+        if len(obj) == 0:
+            return f"{indent_str}{type_name}{{}}"
+        lines = [f"{indent_str}{type_name}:"]
+        # Limit to 10 items to avoid huge output
+        for k, v in list(obj.items())[:10]:
+            lines.append(f"{indent_str}  {_format_value(k)}: {_format_value(v)}")
+        if len(obj) > 10:
+            lines.append(f"{indent_str}  ... and {len(obj)-10} more")
+        return "\n".join(lines)
+
+    # Custom objects – collect public data attributes and properties
+    data_attrs = {}
+    for name in dir(obj):
+        if _is_public_data_attribute(obj, name):
+            try:
+                data_attrs[name] = getattr(obj, name)
+            except Exception:
+                continue
+
+    props = {}
+    for name in dir(obj):
+        if _is_public_property(obj, name):
+            try:
+                props[name] = getattr(obj, name)
+            except Exception:
+                continue
+
+    # Properties override attributes if both exist
+    all_fields = {**data_attrs, **props}
+
+    if not all_fields:
+        lines = [f"{indent_str}{type_name}: (no public fields)"]
+    else:
+        lines = [f"{indent_str}{type_name}:"]
+        for name, value in all_fields.items():
+            config = _get_sensitive_config(obj, name)
+
+            # Determine if this value is a custom object that we would recurse into
+            is_custom_object = isinstance(value, object) and not isinstance(
+                value, (str, int, float, bool, type(None), list, tuple, dict, set)
+            )
+
+            # Check for cycle before recursing, even if max_depth is exhausted
+            if is_custom_object:
+                val_id = id(value)
+                if val_id in visited:
+                    # Cycle detected, show marker
+                    lines.append(f"{indent_str}  {name}: <cycle detected>")
+                    continue
+
+            if config and config.get('enabled', True):
+                # Apply masking
+                from action_machine.Logging.variable_substitutor import VariableSubstitutor
+                masked = VariableSubstitutor._mask_value(value, config)
+                type_str = type(value).__name__
+                suffix = f" (sensitive: enabled, max_chars={config.get('max_chars', 3)}, char='{config.get('char', '*')}', max_percent={config.get('max_percent', 50)})"
+                value_str = masked
+            elif config and not config.get('enabled', True):
+                type_str = type(value).__name__
+                suffix = " (sensitive: disabled)"
+                value_str = _format_value(value)
+            else:
+                type_str = type(value).__name__
+                suffix = ""
+                value_str = _format_value(value)
+
+            # Recurse if it's a custom object and depth permits
+            if max_depth > 1 and is_custom_object:
+                inner = _inspect_object(value, indent + 2, visited, max_depth - 1)
+                lines.append(f"{indent_str}  {name}: {type_str}{suffix}")
+                lines.append(inner)
+            else:
+                lines.append(f"{indent_str}  {name}: {type_str}{suffix} = {value_str}")
+
+    return "\n".join(lines)
+
+
+# ----------------------------------------------------------------------
+# Safe functions for expression evaluator (base set, without exists)
+# ----------------------------------------------------------------------
+
+_BASE_SAFE_FUNCTIONS: dict[str, Any] = {
     "len": len,
     "upper": lambda s: str(s).upper(),
     "lower": lambda s: str(s).lower(),
@@ -69,6 +255,9 @@ _SAFE_FUNCTIONS: dict[str, Any] = {
     "cyan": lambda text: _color_marker("cyan", text),
     "white": lambda text: _color_marker("white", text),
     "grey": lambda text: _color_marker("grey", text),
+    # Debug function – returns a formatted string for object introspection
+    # Changed default max_depth to 1 (show only direct fields)
+    "debug": lambda obj: _inspect_object(obj, max_depth=1),
 }
 
 
@@ -212,7 +401,7 @@ class ExpressionEvaluator:
     Safe expression evaluator for logging templates.
 
     Wraps simpleeval, providing:
-    - A set of safe functions (len, upper, lower, format_number, color functions).
+    - A set of safe functions (len, upper, lower, format_number, color functions, debug, exists).
     - Protection against arbitrary code execution.
     - evaluate method for single expressions.
     - evaluate_iif method for iif constructs.
@@ -238,12 +427,25 @@ class ExpressionEvaluator:
             LogTemplateError: if the expression is invalid or contains
                 undefined variables.
         """
+        # Add the 'exists' function that checks if a variable name is defined in 'names'
+        def exists(name: str) -> bool:
+            """Check if a variable exists in the current evaluation context."""
+            # The name is a string literal (e.g., 'var.amount'), not the variable itself.
+            return name in names
+
+        # Merge base functions with exists
+        functions = dict(_BASE_SAFE_FUNCTIONS)
+        functions["exists"] = exists
+
         evaluator = EvalWithCompoundTypes(
             names=names,
-            functions=_SAFE_FUNCTIONS,
+            functions=functions,
         )
         try:
             return evaluator.eval(expression)
+        except NameNotDefined as e:
+            # Provide a user‑friendly message for missing variables
+            raise LogTemplateError(f"Variable '{e.name}' not found in expression '{expression}'") from e
         except Exception as e:
             raise LogTemplateError(f"Error evaluating expression '{expression}': {e}") from e
 
