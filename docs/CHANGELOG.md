@@ -10,8 +10,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **English‑only error messages** – all exception messages and user‑facing strings have been translated to English. This ensures consistency and aligns with the project’s internationalization goals.
 - **Asynchronous plugin initialization** – `Plugin.get_initial_state()` is now an `async` method. This eliminates the need for `run_in_executor` and allows plugins to perform async I/O during state initialization.
 - **Context as a per‑request parameter** – `context` is now passed directly to the `run()` method of all action machines (`BaseActionMachine`, `ActionProductMachine`, `ActionTestMachine`) instead of being stored in the constructor.  
-  - This change reflects the fact that the machine is a long‑lived singleton, while each request carries its own context (user, request, environment).  
-  - All internal methods that previously accessed `self._context` now receive `context` as an explicit argument.
+  This change reflects the fact that the machine is a long‑lived singleton, while each request carries its own context (user, request, environment).  
+  All internal methods that previously accessed `self._context` now receive `context` as an explicit argument.
+- **Color filters in log templates** – now you can apply ANSI colors to any substituted value using the syntax:
+  - `{%var.amount|red}` – outside `iif`
+  - `red('text')` – inside `iif` (color functions)
+  - Background only: `{%var.text|bg_red}`
+  - Foreground + background: `{%var.text|red_on_blue}`
+  - All common colors are supported: `red`, `green`, `yellow`, `blue`, `magenta`, `cyan`, `white`, `grey`, `orange`, and their bright variants, as well as background versions (prefixed with `bg_`). Any combination of foreground and background is possible via `foreground_on_background`.
+- **Sensitive data masking** – new decorator `@sensitive` for property getters. When applied, the value is partially masked in logs according to parameters (`max_chars`, `char`, `max_percent`).  
+  Example:
+  ```python
+  @property
+  @sensitive(max_chars=3)
+  def email(self):
+      return self._email
+  ```
+  In a template, `{%context.user.email}` will output something like `max*****`.
+- **Strict underscore rule** – any template variable whose last segment starts with an underscore (`_` or `__`) now raises `LogTemplateError`. This prevents accidental logging of protected/private fields. Developers must explicitly expose data via public properties.
+- **ConsoleLogger now supports two modes** – `use_colors=True` (default) preserves ANSI codes; `use_colors=False` strips them (handled by the coordinator).
+- **BaseLogger improvements** – added `supports_colors` property and `strip_ansi_codes` static method for ANSI removal.
+- **Integration test** (`test_full_flow.py`) now demonstrates all new features: scope variables, colored variables and literals, `iif` with colored branches, sensitive masking, and side‑by‑side output of color and plain loggers.
+- **Unit tests** for color filters (`test_color_filters.py`) covering all color combinations and error conditions.
 
 ### Changed
 - **Plugin concurrency** – removed the `max_concurrent_handlers` parameter from `ActionProductMachine` and `PluginCoordinator`.  
@@ -25,19 +45,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **BaseActionMachine.run() signature** – added mandatory first parameter `context: Context`. The same change applies to `sync_run()`.
 - **DependencyFactory.run_action()** – now requires a `context` argument and passes it to the machine’s `run()` method.
 - **All related tests** – updated to pass `context` where needed; fixtures and helper functions adjusted accordingly.
+- **ConsoleLogger no longer adds automatic `[scope]` prefix** – users must now include scope variables explicitly in their templates (e.g., `[{%scope.machine}.{%scope.mode}.{%scope.action}.{%scope.aspect}]`).
+- **VariableSubstitutor** completely rewritten to support color filters, underscore checks, and marker‑based color post‑processing.
+- **LogCoordinator** now strips ANSI codes for loggers that do not support colors before passing the message.
+- **ExpressionEvaluator** now includes color functions (`red`, `green`, `blue`, etc.) as safe built‑ins, allowing them to be used inside `iif`.
 
 ### Removed
+- **Built‑in colorization from `ConsoleLogger`** – colors are now handled purely via template filters.
 - **`max_concurrent_handlers`** – no longer accepted in constructors; related logic removed from `PluginCoordinator`.
 - **`self._context` attribute** – completely eliminated from `ActionProductMachine` and `ActionTestMachine`.
 
 ### Fixed
+- **Plugin state initialization** – now fully asynchronous (direct `await` instead of `run_in_executor`).
+- **Exception messages** in `ExpressionEvaluator` and `VariableSubstitutor` are now consistently in English, fixing test expectations.
 - **Test suite** – updated concurrency tests to verify that all handlers run in parallel (duration ~ max handler time). Removed obsolete tests that checked semaphore behavior.
 - **Exception tests** – aligned with English error messages; all plugin exception tests now pass.
 - **Type hints** – ensured all changes are compatible with strict `mypy` checks (no new issues introduced).
-- **All 469 tests pass** after the context refactoring; no functionality was broken.
+- **All 477 tests pass** after the refactoring; no functionality was broken.
 
 ### Security
-- No changes.
+- **Sensitive data masking** – sensitive fields can now be masked effectively using the `@sensitive` decorator.
+- **Underscore rule** – access to names starting with underscore is forbidden in templates, reducing the risk of accidental data leaks.
 
 ### Deprecated
 - Nothing.

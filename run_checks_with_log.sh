@@ -69,8 +69,8 @@ fi
 echo -e "${YELLOW}🔍 Запуск полной проверки проекта...${NC}"
 echo ""
 
-# Шаг 0: Автоисправление импортов (ruff --fix)
-run_and_log "uv run ruff check --fix --select I001 src/" "Автоисправление импортов (ruff)"
+# Шаг 0: Автоисправление всех ошибок, которые умеет исправлять ruff
+run_and_log "uv run ruff check --fix ." "Автоисправление (ruff)"
 
 # Запускаем остальные проверки
 run_and_log "uv run task lint" "Линтер (ruff)"

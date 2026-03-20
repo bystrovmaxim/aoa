@@ -1,84 +1,52 @@
-# ActionMachine/Logging/LogCoordinator.py
+# ActionMachine/Logging/log_coordinator.py
 """
-Координатор системы логирования AOA.
-LogCoordinator — единая шина логирования, к которой подключается
-любое количество независимых логеров. Аспекты и плагины отправляют
-сообщения в координатор, не зная о конкретных получателях.
-Координатор делегирует подстановку переменных классу
-VariableSubstitutor и рассылает результат по всем подключённым логерам.
-Подстановка переменных работает через паттерн {%namespace.dotpath},
-где namespace определяет источник данных:
-- {%var.amount} — ищет в словаре var, переданном разработчиком.
-- {%context.user.user_id} — вызывает context.resolve("user.user_id").
-- {%params.card_token} — вызывает params.resolve("card_token").
-- {%state.total} — обращается к state по ключу "total".
-- {%scope.action} — ищет в scope по ключу "action".
-Для объектов с ReadableMixin (Context, UserInfo, RequestInfo,
-EnvironmentInfo, BaseParams, BaseResult) используется метод resolve,
-который обходит вложенные объекты по цепочке ключей, разделённых
-точкой. Для обычных словарей (var) и LogScope используется прямой
-доступ по ключам с ручным обходом вложенности.
-Единый синтаксис переменных:
-Паттерн {%namespace.dotpath} работает ВЕЗДЕ — и в тексте сообщения,
-и внутри {iif(...)}. Внутри iif строковые значения автоматически
-оборачиваются в кавычки, а числа и bool подставляются как литералы.
-Строгая политика ошибок:
-Если переменная не найдена — выбрасывается LogTemplateError.
-Если выражение iif невалидно — выбрасывается LogTemplateError.
-Если namespace неизвестен — выбрасывается LogTemplateError.
-Ошибка в шаблоне лога — это баг разработчика, который должен
-обнаруживаться немедленно на первом же запуске.
-LogCoordinator НЕ подавляет исключения из логеров. Если логер
-сломан — исключение летит наверх по стеку.
-Все методы асинхронные — координатор и логеры могут выполнять
-IO-операции (запись в файл, отправка по сети) без блокировки
-event loop.
-Рефакторинг: вся логика подстановки переменных и вычисления iif
-вынесена в класс VariableSubstitutor. LogCoordinator стал тонким
-координатором: принимает сообщение, делегирует подстановку
-VariableSubstitutor.substitute() и рассылает результат логерам.
-Пример создания и использования:
->>> from action_machine.Logging.LogCoordinator import LogCoordinator
->>> from action_machine.Logging.ConsoleLogger import ConsoleLogger
->>> from action_machine.Logging.LogScope import LogScope
->>>
->>> coordinator = LogCoordinator(loggers=[
-...     ConsoleLogger(use_colors=True),
-...     ConsoleLogger(filters=[r"ProcessOrder.*"], use_colors=False),
-... ])
->>>
->>> scope = LogScope(action="ProcessOrderAction", aspect="validate")
->>> await coordinator.emit(
-...     message="Загружено {%var.count} задач для {%context.user.user_id}",
-...     var={"count": 150},
-...     scope=scope,
-...     ctx=context,
-...     state=state,
-...     params=params,
-...     indent=1,
-... )
-# Результат подстановки: "Загружено 150 задач для agent_1"
-# Передаётся в каждый логер через handle.
-Пример с iif (единый синтаксис {%...} везде):
->>> await coordinator.emit(
-...     message="{iif({%params.amount} > 1000000; '🚨 КРИТИЧЕСКАЯ'; 'Обычная')} транзакция на сумму {%params.amount}",
-...     var={},
-...     scope=scope,
-...     ctx=context,
-...     state=state,
-...     params=params,
-...     indent=0,
-... )
-# Проход 1: подстановка {%...} → "{iif(1500000.0 > 1000000; '🚨 КРИТИЧЕСКАЯ'; 'Обычная')} транзакция на сумму 1500000.0"
-# Проход 2: вычисление iif → "🚨 КРИТИЧЕСКАЯ транзакция на сумму 1500000.0"
-Пример ошибки (строгая политика):
->>> await coordinator.emit(
-...     message="Missing: {%var.nonexistent}",
-...     var={},
-...     ...
-... )
-# LogTemplateError: Переменная 'var.nonexistent' не найдена.
+Log coordinator for the AOA logging system.
+LogCoordinator is the single logging bus to which any number of independent
+loggers can be attached. Aspects and plugins send messages to the coordinator
+without knowing about the specific recipients.
+
+The coordinator delegates variable substitution to the VariableSubstitutor class
+and broadcasts the result to all attached loggers.
+
+Variable substitution uses the pattern {%namespace.dotpath}, where namespace
+determines the data source:
+- {%var.amount} – looks in the developer‑supplied var dictionary.
+- {%context.user.user_id} – calls context.resolve("user.user_id").
+- {%params.card_token} – calls params.resolve("card_token").
+- {%state.total} – accesses state by key "total".
+- {%scope.action} – looks up scope by key "action".
+
+For objects with ReadableMixin (Context, UserInfo, RequestInfo, EnvironmentInfo,
+BaseParams, BaseResult), the resolve method is used, which traverses nested
+objects via dot‑separated keys. For plain dictionaries (var) and LogScope,
+direct key access with manual traversal is used.
+
+Unified variable syntax:
+The {%namespace.dotpath} pattern works EVERYWHERE – both in the message text
+and inside {iif(...)}. Inside iif, string values are automatically quoted,
+while numbers and booleans are inserted as literals.
+
+Strict error policy:
+- If a variable is not found – LogTemplateError is raised.
+- If an iif expression is invalid – LogTemplateError is raised.
+- If the namespace is unknown – LogTemplateError is raised.
+An error in a log template is a developer bug and must be detected immediately
+on the first run.
+
+LogCoordinator does NOT suppress exceptions from loggers. If a logger is broken,
+the exception propagates up the stack.
+
+All methods are asynchronous – the coordinator and loggers may perform I/O
+(file writes, network sends) without blocking the event loop.
+
+New in 0.0.5:
+- Color support: messages may contain ANSI color codes via template filters
+  (e.g., `{%var.amount|red}`) and color functions inside iif (e.g., `red('text')`).
+  Before sending to a logger, the coordinator checks `logger.supports_colors`.
+  If False, ANSI codes are stripped using `BaseLogger.strip_ansi_codes`.
+- Sensitive data masking: handled by VariableSubstitutor; see its documentation.
 """
+
 from typing import Any
 
 from action_machine.Context.context import Context
@@ -91,20 +59,23 @@ from action_machine.Logging.variable_substitutor import VariableSubstitutor
 
 class LogCoordinator:
     """
-    Единая шина логирования AOA.
-    Принимает сообщения через метод emit, делегирует подстановку
-    переменных классу VariableSubstitutor и рассылает результат
-    по всем зарегистрированным логерам.
-    Логеры регистрируются при создании координатора через параметр
-    loggers, или позже через метод add_logger.
-    Координатор не фильтрует сообщения — фильтрация выполняется
-    каждым логером самостоятельно в методе match_filters.
-    Строгая политика ошибок: любая ошибка в шаблоне немедленно
-    выбрасывает LogTemplateError.
-    Атрибуты:
-        _loggers: список зарегистрированных логеров.
-        _substitutor: экземпляр VariableSubstitutor для подстановки
-                      переменных и вычисления iif.
+    Unified logging bus for AOA.
+
+    Accepts messages via the emit method, delegates variable substitution to
+    VariableSubstitutor, and broadcasts the result to all registered loggers.
+
+    Loggers are registered at creation via the loggers parameter, or later via
+    add_logger.
+
+    The coordinator does not filter messages – filtering is done independently
+    by each logger in its match_filters method.
+
+    Strict error policy: any template error immediately raises LogTemplateError.
+
+    Attributes:
+        _loggers: list of registered loggers.
+        _substitutor: VariableSubstitutor instance for variable substitution
+                      and iif evaluation.
     """
 
     def __init__(
@@ -112,33 +83,24 @@ class LogCoordinator:
         loggers: list[BaseLogger] | None = None,
     ) -> None:
         """
-        Создаёт координатор логирования.
-        Аргументы:
-            loggers: список экземпляров BaseLogger для начальной
-                     регистрации. None или пустой список допустимы.
-        Пример:
-            >>> coordinator = LogCoordinator(loggers=[
-            ...     ConsoleLogger(use_colors=True),
-            ...     ConsoleLogger(filters=[r"Payment.*"]),
-            ... ])
-            >>> coordinator = LogCoordinator()  # без логеров
+        Creates a logging coordinator.
+
+        Args:
+            loggers: list of BaseLogger instances for initial registration.
+                     None or an empty list are allowed.
         """
         self._loggers: list[BaseLogger] = list(loggers) if loggers else []
         self._substitutor: VariableSubstitutor = VariableSubstitutor()
 
     def add_logger(self, logger: BaseLogger) -> None:
         """
-        Регистрирует новый логер в координаторе.
-        Логер добавляется в конец списка — первый зарегистрированный
-        вызывается первым.
-        Аргументы:
-            logger: экземпляр BaseLogger для регистрации.
-        Пример:
-            >>> coordinator.add_logger(ConsoleLogger())
-            >>> coordinator.add_logger(ConsoleLogger(
-            ...     filters=[r"Error.*"],
-            ...     use_colors=False,
-            ... ))
+        Registers a new logger with the coordinator.
+
+        The logger is appended to the end of the list – the first registered
+        logger is called first.
+
+        Args:
+            logger: BaseLogger instance to register.
         """
         self._loggers.append(logger)
 
@@ -153,48 +115,50 @@ class LogCoordinator:
         indent: int,
     ) -> None:
         """
-        Основной метод логирования — принимает сообщение и рассылает
-        его по всем зарегистрированным логерам.
-        Выполняет два шага:
-        Шаг 1: Подстановка переменных и вычисление iif.
-        Делегирует всю работу VariableSubstitutor.substitute().
-        Если переменная не найдена или iif невалиден —
-        выбрасывается LogTemplateError.
-        Шаг 2: Рассылка.
-        Вызывает await logger.handle(...) для каждого логера.
-        Никакого try/except — любая ошибка летит наверх немедленно.
-        Аргументы:
-            message: строка шаблона с переменными {%namespace.path}
-                     и/или {iif(...)}.
-            var: словарь переменных, переданных разработчиком в log.
-            scope: скоуп текущего вызова (местоположение в конвейере).
-            ctx: контекст выполнения (пользователь, запрос, окружение).
-            state: текущее состояние конвейера.
-            params: входные параметры действия.
-            indent: уровень отступа (для вложенных вызовов).
-        Исключения:
-            LogTemplateError: при любой ошибке в шаблоне.
-        Пример:
-            >>> await coordinator.emit(
-            ...     message="Загружено {%var.count} задач",
-            ...     var={"count": 150},
-            ...     scope=LogScope(action="SyncAction", aspect="fetch"),
-            ...     ctx=context,
-            ...     state=state,
-            ...     params=params,
-            ...     indent=2,
-            ... )
+        Main logging method – accepts a message and broadcasts it to all
+        registered loggers.
+
+        Performs two steps:
+
+        Step 1: Variable substitution and iif evaluation.
+        Delegates all work to VariableSubstitutor.substitute().
+        If a variable is not found or iif is invalid, LogTemplateError is raised.
+
+        Step 2: Broadcast.
+        Calls await logger.handle(...) for each logger.
+        No try/except – any error propagates immediately.
+
+        Before passing the message to a logger, if the logger does not support
+        colors (logger.supports_colors is False), ANSI escape sequences are
+        stripped using BaseLogger.strip_ansi_codes.
+
+        Args:
+            message: template string with variables {%namespace.path}
+                     and/or {iif(...)}.
+            var: developer‑supplied variables dictionary.
+            scope: current call scope (location in the pipeline).
+            ctx: execution context (user, request, environment).
+            state: current pipeline state.
+            params: action input parameters.
+            indent: indentation level (for nested calls).
+
+        Raises:
+            LogTemplateError: on any template error.
         """
-        # Шаг 1: подстановка переменных и вычисление iif.
-        # LogTemplateError полетит наверх если шаблон невалиден.
+        # Step 1: variable substitution and iif evaluation.
+        # LogTemplateError propagates upward if the template is invalid.
         resolved_message = self._substitutor.substitute(
             message, var, scope, ctx, state, params
         )
-        # Шаг 2: рассылка по всем логерам
+
+        # Step 2: broadcast to all loggers
         for logger in self._loggers:
+            msg_to_send = resolved_message
+            if not logger.supports_colors:
+                msg_to_send = BaseLogger.strip_ansi_codes(resolved_message)
             await logger.handle(
                 scope=scope,
-                message=resolved_message,
+                message=msg_to_send,
                 var=var,
                 ctx=ctx,
                 state=state,

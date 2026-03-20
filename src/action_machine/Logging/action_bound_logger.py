@@ -1,15 +1,15 @@
 # ActionMachine/Logging/action_bound_logger.py
 """
-Логер, привязанный к текущему аспекту.
+Logger bound to the current aspect.
 
-Автоматически добавляет координаты выполнения в LogScope:
-- machine: имя класса машины (например, "ActionProductMachine")
-- mode: режим выполнения (например, "test", "production")
-- action: полное имя класса действия (включая модуль)
-- aspect: имя метода-аспекта
+Automatically adds execution coordinates to LogScope:
+- machine: machine class name (e.g., "ActionProductMachine")
+- mode: execution mode (e.g., "test", "production")
+- action: full action class name (including module)
+- aspect: aspect method name
 
-Уровень логирования передаётся в var как ключ "level".
-Пользовательские данные передаются только через kwargs и попадают в var.
+The logging level is passed in var under the key "level".
+User data is passed only through kwargs and ends up in var.
 """
 
 from typing import Any
@@ -23,13 +23,13 @@ from action_machine.Logging.log_scope import LogScope
 
 class ActionBoundLogger:
     """
-    Логер, привязанный к текущему аспекту.
+    Logger bound to the current aspect.
 
-    Создаётся ActionProductMachine для каждого вызова аспекта.
-    Все аспекты обязаны принимать параметр `log` (шестой).
+    Created by ActionProductMachine for each aspect call.
+    All aspects are required to accept the `log` parameter (sixth).
 
-    Методы info, warning, error, debug отправляют сообщение через LogCoordinator,
-    автоматически добавляя в var ключ `level` и пользовательские kwargs.
+    The info, warning, error, debug methods send a message through LogCoordinator,
+    automatically adding the `level` key and user kwargs to var.
     """
 
     def __init__(
@@ -43,16 +43,16 @@ class ActionBoundLogger:
         context: Context,
     ) -> None:
         """
-        Инициализирует привязанный логер.
+        Initialize the bound logger.
 
-        Аргументы:
-            coordinator: координатор логирования (шина).
-            nest_level: уровень вложенности вызова действия.
-            machine_name: имя класса машины (например, "ActionProductMachine").
-            mode: режим выполнения (например, "test", "production").
-            action_name: полное имя класса действия (включая модуль).
-            aspect_name: имя метода-аспекта.
-            context: контекст выполнения (пользователь, запрос, окружение).
+        Args:
+            coordinator: logging coordinator (bus).
+            nest_level: action call nesting level.
+            machine_name: machine class name (e.g., "ActionProductMachine").
+            mode: execution mode (e.g., "test", "production").
+            action_name: full action class name (including module).
+            aspect_name: aspect method name.
+            context: execution context (user, request, environment).
         """
         self._coordinator = coordinator
         self._nest_level = nest_level
@@ -62,8 +62,8 @@ class ActionBoundLogger:
         self._aspect_name = aspect_name
         self._context = context
 
-        # Создаём скоуп с фиксированным порядком ключей.
-        # Порядок: machine, mode, action, aspect.
+        # Create a scope with a fixed key order.
+        # Order: machine, mode, action, aspect.
         self._scope = LogScope(
             machine=machine_name,
             mode=mode,
@@ -73,18 +73,18 @@ class ActionBoundLogger:
 
     async def _emit(self, lvl: str, message: str, **kwargs: Any) -> None:
         """
-        Внутренний метод отправки сообщения.
+        Internal method to send a message.
 
-        Аргументы:
-            lvl: уровень логирования (info, warning, error, debug).
-            message: текст сообщения (может содержать шаблоны {%...} и {iif(...)}).
-            **kwargs: пользовательские данные, которые попадут в var.
+        Args:
+            lvl: logging level (info, warning, error, debug).
+            message: message text (may contain {%...} and {iif(...)} templates).
+            **kwargs: user data that will end up in var.
         """
-        # Удаляем ключ 'level' из kwargs, если он там есть (пользователь мог передать).
-        # Мы используем системный уровень, поэтому пользовательский игнорируется.
+        # Remove the key 'level' from kwargs if the user accidentally passed it.
+        # We use the system level, so the user's level is ignored.
         kwargs.pop("level", None)
 
-        # В var кладём только уровень и пользовательские данные.
+        # Put only the level and user data into var.
         var = {"level": lvl, **kwargs}
 
         await self._coordinator.emit(
@@ -92,47 +92,47 @@ class ActionBoundLogger:
             var=var,
             scope=self._scope,
             ctx=self._context,
-            state=BaseState(),      # состояние не передаём автоматически
-            params=BaseParams(),    # параметры не передаём автоматически
+            state=BaseState(),      # state is not passed automatically
+            params=BaseParams(),    # params are not passed automatically
             indent=self._nest_level,
         )
 
     async def info(self, message: str, **kwargs: Any) -> None:
         """
-        Отправляет сообщение уровня INFO.
+        Send an INFO level message.
 
-        Аргументы:
-            message: текст сообщения.
-            **kwargs: пользовательские данные.
+        Args:
+            message: message text.
+            **kwargs: user data.
         """
         await self._emit("info", message, **kwargs)
 
     async def warning(self, message: str, **kwargs: Any) -> None:
         """
-        Отправляет сообщение уровня WARNING.
+        Send a WARNING level message.
 
-        Аргументы:
-            message: текст сообщения.
-            **kwargs: пользовательские данные.
+        Args:
+            message: message text.
+            **kwargs: user data.
         """
         await self._emit("warning", message, **kwargs)
 
     async def error(self, message: str, **kwargs: Any) -> None:
         """
-        Отправляет сообщение уровня ERROR.
+        Send an ERROR level message.
 
-        Аргументы:
-            message: текст сообщения.
-            **kwargs: пользовательские данные.
+        Args:
+            message: message text.
+            **kwargs: user data.
         """
         await self._emit("error", message, **kwargs)
 
     async def debug(self, message: str, **kwargs: Any) -> None:
         """
-        Отправляет сообщение уровня DEBUG.
+        Send a DEBUG level message.
 
-        Аргументы:
-            message: текст сообщения.
-            **kwargs: пользовательские данные.
+        Args:
+            message: message text.
+            **kwargs: user data.
         """
         await self._emit("debug", message, **kwargs)
