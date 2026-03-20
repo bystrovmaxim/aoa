@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.0.5] - 2026-03-19
 
 ### Added
+- **`debug()` function for object introspection** – now you can inspect any object in log templates by using `{iif(1==1; debug(obj); '')}` (must be wrapped in `iif`).  
+  The function returns a formatted string listing all public fields and properties of the object, including their types. For properties decorated with `@sensitive`, the masking configuration (`max_chars`, `char`, `max_percent`) is shown.  
+  The output is **non‑recursive by default** (`max_depth=1`), showing only immediate fields. To inspect nested objects, call `debug` on the nested attribute directly.  
+  Example output:
+  ```
+  UserInfo:
+    user_id: str = "bystrov.maxim"
+    roles: list[str] = ["user", "admin"]
+    extra: dict = {"org": "acme"}
+    email: str (sensitive: max_chars=3, char='*', max_percent=50) = "max*****"
+  ```
+- **`exists()` function for safe variable presence checks** – `exists('variable.name')` returns `True` if the variable is defined in the current evaluation context, otherwise `False`.  
+  It can be used both inside `iif` conditions and as a standalone expression (e.g., `{iif(exists('var.user'); debug(var.user); 'No user')}`).  
+  When used alone, it evaluates to the string `"True"` or `"False"`.
+- **Removed truncation limit in `_format_value`** – values are now displayed fully without any length restrictions, making it easier to debug complex structures. (Previously, values longer than 60 characters were truncated.)
 - **English‑only error messages** – all exception messages and user‑facing strings have been translated to English. This ensures consistency and aligns with the project’s internationalization goals.
 - **Asynchronous plugin initialization** – `Plugin.get_initial_state()` is now an `async` method. This eliminates the need for `run_in_executor` and allows plugins to perform async I/O during state initialization.
 - **Context as a per‑request parameter** – `context` is now passed directly to the `run()` method of all action machines (`BaseActionMachine`, `ActionProductMachine`, `ActionTestMachine`) instead of being stored in the constructor.  
@@ -30,10 +45,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Strict underscore rule** – any template variable whose last segment starts with an underscore (`_` or `__`) now raises `LogTemplateError`. This prevents accidental logging of protected/private fields. Developers must explicitly expose data via public properties.
 - **ConsoleLogger now supports two modes** – `use_colors=True` (default) preserves ANSI codes; `use_colors=False` strips them (handled by the coordinator).
 - **BaseLogger improvements** – added `supports_colors` property and `strip_ansi_codes` static method for ANSI removal.
-- **Integration test** (`test_full_flow.py`) now demonstrates all new features: scope variables, colored variables and literals, `iif` with colored branches, sensitive masking, and side‑by‑side output of color and plain loggers.
-- **Unit tests** for color filters (`test_color_filters.py`) covering all color combinations and error conditions.
+- **Integration test** (`test_full_flow.py`) now demonstrates all new features: scope variables, colored variables and literals, `iif` with colored branches, sensitive masking, `debug()` and `exists()`, and side‑by‑side output of color and plain loggers.
+- **Unit tests** for color filters (`test_color_filters.py`), `debug()` (`test_debug_function.py`), and `exists()` (`test_exists_function.py`) covering all features and error conditions.
 
 ### Changed
+- **Error messages for undefined variables** – when a variable is not found, the error message now includes the variable name (e.g., `Variable 'missing' not found in expression 'missing > 10'`) instead of the generic `Error evaluating expression`. This improves debuggability.
 - **Plugin concurrency** – removed the `max_concurrent_handlers` parameter from `ActionProductMachine` and `PluginCoordinator`.  
   - Previously, plugin handlers were limited by an `asyncio.Semaphore` to prevent resource exhaustion.  
   - Since plugins typically perform independent I/O operations (e.g., writing to different databases, queues, or files), the semaphore introduced unnecessary serialization.  
@@ -46,9 +62,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **DependencyFactory.run_action()** – now requires a `context` argument and passes it to the machine’s `run()` method.
 - **All related tests** – updated to pass `context` where needed; fixtures and helper functions adjusted accordingly.
 - **ConsoleLogger no longer adds automatic `[scope]` prefix** – users must now include scope variables explicitly in their templates (e.g., `[{%scope.machine}.{%scope.mode}.{%scope.action}.{%scope.aspect}]`).
-- **VariableSubstitutor** completely rewritten to support color filters, underscore checks, and marker‑based color post‑processing.
+- **VariableSubstitutor** completely rewritten to support color filters, underscore checks, marker‑based color post‑processing, and the new `debug()`/`exists()` functions.
 - **LogCoordinator** now strips ANSI codes for loggers that do not support colors before passing the message.
-- **ExpressionEvaluator** now includes color functions (`red`, `green`, `blue`, etc.) as safe built‑ins, allowing them to be used inside `iif`.
+- **ExpressionEvaluator** now includes `debug()` and `exists()` as safe built‑ins, allowing them to be used inside `iif`.
 
 ### Removed
 - **Built‑in colorization from `ConsoleLogger`** – colors are now handled purely via template filters.
@@ -61,14 +77,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Test suite** – updated concurrency tests to verify that all handlers run in parallel (duration ~ max handler time). Removed obsolete tests that checked semaphore behavior.
 - **Exception tests** – aligned with English error messages; all plugin exception tests now pass.
 - **Type hints** – ensured all changes are compatible with strict `mypy` checks (no new issues introduced).
-- **All 477 tests pass** after the refactoring; no functionality was broken.
+- **All 516 tests pass** after the refactoring; no functionality was broken.
 
 ### Security
 - **Sensitive data masking** – sensitive fields can now be masked effectively using the `@sensitive` decorator.
 - **Underscore rule** – access to names starting with underscore is forbidden in templates, reducing the risk of accidental data leaks.
 
 ### Deprecated
-- Nothing.
+- Nothing
+
 
 ## [0.0.4] - 2026-03-19
 

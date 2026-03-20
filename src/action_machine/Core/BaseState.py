@@ -1,28 +1,26 @@
 # ActionMachine/Core/BaseState.py
 """
-Базовый класс для состояния конвейера аспектов.
+Base class for aspect pipeline state.
 
-Наследует ReadableMixin и WritableMixin, обеспечивая dict-подобный интерфейс
-для чтения и записи, а также поддержку dot-path разрешения через метод resolve.
+Inherits ReadableMixin and WritableMixin, providing a dict‑like interface
+for reading and writing, as well as dot‑path resolution via the resolve method.
 
-Заменяет ранее использовавшийся неявный dict[str, Any] во всех аспектах
-и плагинах. Все методы аспектов (validate, prepare, handle, summary и т.д.)
-теперь принимают state: BaseState вместо state: dict[str, Any].
+Replaces the previously used implicit dict[str, Any] in all aspects and plugins.
 
-Преимущества замены dict → BaseState:
-    1. Единообразный интерфейс — state поддерживает resolve, get, keys, items,
-       write, update — как и все остальные объекты на основе ReadableMixin.
-    2. Контролируемая запись — метод write(key, value, allowed_keys)
-       позволяет ограничивать набор полей, доступных для изменения.
-    3. Типизация — IDE и mypy видят конкретный тип BaseState,
-       а не размытый dict[str, Any].
-    4. Расширяемость — можно наследовать BaseState для добавления
-       валидации, логирования изменений или иммутабельных полей.
+Advantages of replacing dict with BaseState:
+    1. Uniform interface – state supports resolve, get, keys, items,
+       write, update – just like all other objects based on ReadableMixin.
+    2. Controlled writing – the write(key, value, allowed_keys) method
+       allows restricting the set of fields that can be modified.
+    3. Typing – IDE and mypy see the concrete type BaseState,
+       not a vague dict[str, Any].
+    4. Extensibility – you can subclass BaseState to add validation,
+       change logging, or immutable fields.
 
-Может быть инициализирован из словаря. Все ключи становятся атрибутами объекта.
-Поддерживает dict-подобный доступ (obj['key']) и атрибутный доступ (obj.key).
+Can be initialized from a dictionary. All keys become object attributes.
+Supports dict‑like access (obj['key']) and attribute access (obj.key).
 
-Пример:
+Example:
     >>> state = BaseState({"total": 1500, "user": "agent"})
     >>> state["count"] = 42
     >>> state.processed = True
@@ -40,28 +38,27 @@ from .WritableMixin import WritableMixin
 
 class BaseState(ReadableMixin, WritableMixin):
     """
-    Состояние конвейера аспектов.
+    Aspect pipeline state.
 
-    Может быть инициализировано из словаря. Все ключи становятся атрибутами.
-    Поддерживает dict-подобный доступ (obj['key']) и атрибутный доступ (obj.key).
-    Также предоставляет метод resolve для доступа по точечной нотации
-    и метод write для контролируемой записи с валидацией.
+    Can be initialized from a dictionary. All keys become attributes.
+    Supports dict‑like access (obj['key']) and attribute access (obj.key).
+    Also provides the resolve method for dot‑notation navigation
+    and write for controlled writing with validation.
     """
 
     def __init__(self, initial: dict[str, Any] | None = None) -> None:
         """
-        Инициализирует состояние.
+        Initializes the state.
 
-        Если передан словарь initial — каждая пара (key, value)
-        устанавливается как атрибут объекта через setattr.
-        None или пустой словарь означают пустое состояние.
+        If an initial dictionary is provided, each (key, value) pair
+        is set as an attribute via setattr. None or an empty dictionary
+        mean an empty state.
 
-        Аргументы:
-            initial: начальные значения в виде словаря.
-                     Ключи становятся атрибутами объекта.
-                     None означает пустое состояние.
+        Args:
+            initial: initial values as a dictionary. Keys become object attributes.
+                     None means empty state.
 
-        Пример:
+        Example:
             >>> state = BaseState({"total": 1500})
             >>> state.total
             1500
@@ -75,35 +72,34 @@ class BaseState(ReadableMixin, WritableMixin):
 
     def to_dict(self) -> dict[str, Any]:
         """
-        Возвращает словарь всех публичных атрибутов состояния.
+        Returns a dictionary of all public attributes of the state.
 
-        Используется для передачи состояния в логгеры, сериализаторы
-        и другие компоненты, которые ожидают словарь.
+        Used to pass the state to loggers, serializers, and other components
+        that expect a dictionary. Uses vars(self) and filters out private
+        attributes (those starting with '_').
 
-        Делегирует вызов методу items() из ReadableMixin,
-        который фильтрует атрибуты с префиксом '_'.
+        Returns:
+            dict[str, Any]: dictionary with (key, value) pairs for all
+            public fields.
 
-        Возвращает:
-            dict[str, Any]: словарь с парами (ключ, значение)
-            для всех публичных полей.
-
-        Пример:
+        Example:
             >>> state = BaseState({"a": 1, "b": 2})
             >>> state.to_dict()
             {'a': 1, 'b': 2}
         """
-        return dict(self.items())
+        # Collect all instance attributes except private ones (starting with '_')
+        return {k: v for k, v in vars(self).items() if not k.startswith('_')}
 
     def __repr__(self) -> str:
         """
-        Человекочитаемое представление состояния для отладки.
+        Human‑readable representation of the state for debugging.
 
-        Формат: BaseState(key1=value1, key2=value2, ...).
+        Format: BaseState(key1=value1, key2=value2, ...).
 
-        Возвращает:
-            str: строковое представление объекта.
+        Returns:
+            str: string representation of the object.
 
-        Пример:
+        Example:
             >>> state = BaseState({"total": 1500})
             >>> repr(state)
             "BaseState(total=1500)"

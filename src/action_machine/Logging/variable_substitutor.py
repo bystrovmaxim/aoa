@@ -1,4 +1,4 @@
-# ActionMachine/Logging/variable_substitutor.py
+# src/action_machine/Logging/variable_substitutor.py
 """
 Variable substitutor for AOA logging templates.
 
@@ -22,7 +22,10 @@ VariableSubstitutor is responsible for:
 4. Color filters: syntax {%var.amount|red} (outside iif) and color functions
    like red('text') (inside iif) are supported. They are turned into markers
    and later replaced with ANSI codes.
-5. Sensitive data masking: if the resolved variable is a property decorated
+5. Debug filter: syntax {%var.obj|debug} outputs a formatted representation
+   of the object (public fields and properties) using the debug_value function.
+   This is a convenient shortcut for the debug() function.
+6. Sensitive data masking: if the resolved variable is a property decorated
    with @sensitive, its value is masked according to the decorator parameters.
 
 The only public method is substitute(). It takes the template message
@@ -58,18 +61,19 @@ from action_machine.Core.BaseParams import BaseParams
 from action_machine.Core.BaseState import BaseState
 from action_machine.Core.Exceptions import LogTemplateError
 from action_machine.Core.ReadableMixin import ReadableMixin
-from action_machine.Logging.expression_evaluator import ExpressionEvaluator
+from action_machine.Logging.expression_evaluator import ExpressionEvaluator, debug_value
 from action_machine.Logging.log_scope import LogScope
+from action_machine.Logging.masking import mask_value
 
 # ---------------------------------------------------------------------------
 # Regular expressions
 # ---------------------------------------------------------------------------
-# Format: {%namespace.dotpath} optionally followed by |color
+# Format: {%namespace} or {%namespace.dotpath} optionally followed by |color or |debug
 # Group 1 (namespace): data source (var, state, scope, context, params).
-# Group 2 (path): dot‑path inside the source.
-# Group 3 (optional color): color name after a pipe.
+# Group 2 (optional path): dot‑path inside the source (may be None).
+# Group 3 (optional filter): color name or "debug".
 _VARIABLE_PATTERN: re.Pattern[str] = re.compile(
-    r"\{%([a-zA-Z_][a-zA-Z0-9_]*)\.([a-zA-Z_][a-zA-Z0-9_.]*?)(?:\|([a-zA-Z_]+))?\}"
+    r"\{%([a-zA-Z_][a-zA-Z0-9_]*)\.?([a-zA-Z_][a-zA-Z0-9_.]*)?(?:\|([a-zA-Z_]+))?\}"
 )
 # Used to detect iif blocks so that inside them we substitute values as literals.
 _IIF_BLOCK_PATTERN: re.Pattern[str] = re.compile(r"\{iif\(.*?\)\}")
@@ -134,6 +138,7 @@ class VariableSubstitutor:
     - Strict error handling: underscores in names cause LogTemplateError.
     - Color filters via |color syntax (outside iif) and color functions
       (inside iif), turned into markers and post‑processed.
+    - Debug filter via |debug syntax, outputs object introspection.
     - Sensitive data masking: if the resolved variable is a property decorated
       with @sensitive, the value is masked according to the decorator parameters.
 
@@ -239,7 +244,7 @@ class VariableSubstitutor:
         current = start
         source = None
 
-        for segment in segments:                     # ← removed unused variable 'i'
+        for segment in segments:
             source = current  # the object we are about to step from
             current = self._resolve_one_step(current, segment)
             if current is _SENTINEL:
@@ -341,44 +346,13 @@ class VariableSubstitutor:
                         return config  # type: ignore[no-any-return]
         return None
 
-    @staticmethod
-    def _mask_value(value: object, config: dict[str, Any]) -> str:
-        """
-        Masks a value according to the sensitive configuration.
-
-        Args:
-            value: the raw value (any type).
-            config: dict with keys 'max_chars', 'char', 'max_percent'.
-
-        Returns:
-            A masked string.
-        """
-        s = str(value)
-        max_chars = config.get("max_chars", 3)
-        char = config.get("char", "*")
-        max_percent = config.get("max_percent", 50)
-
-        # Calculate how many characters to show
-        length = len(s)
-        by_chars = min(max_chars, length)
-        by_percent = int((length * max_percent + 99) // 100)  # ceil division
-        keep = min(by_chars, by_percent)
-
-        if keep >= length:
-            # Should not happen with reasonable parameters, but just in case
-            return s
-
-        visible = s[:keep]
-        result: str = visible + (char * 5)  # always 5 replacement chars
-        return result
-
     # ----------------------------------------------------------------
     # Main variable resolution (raw value, no string conversion)
     # ----------------------------------------------------------------
     def _resolve_variable_raw(
         self,
         namespace: str,
-        path: str,
+        path: str | None,
         var: dict[str, Any],
         scope: LogScope,
         ctx: Context,
@@ -393,7 +367,7 @@ class VariableSubstitutor:
 
         Args:
             namespace: first segment of the variable ("var", "context", ...).
-            path: remaining dot‑path after the namespace.
+            path: remaining dot‑path after the namespace (may be None).
             var: developer‑supplied variables.
             scope: current call scope.
             ctx: execution context.
@@ -412,9 +386,10 @@ class VariableSubstitutor:
             raise LogTemplateError(
                 f"Unknown namespace '{namespace}' in template. "
                 f"Allowed: {', '.join(sorted(self._namespace_resolvers))}. "
-                f"Check variable {{%{namespace}.{path}}}."
+                f"Check variable {{%{namespace}.{path or ''}}}."
             )
-        return resolver(path, var, scope, ctx, state, params)
+        # If path is None, treat as empty string (returns the whole namespace object)
+        return resolver(path or "", var, scope, ctx, state, params)
 
     # ----------------------------------------------------------------
     # String resolution with None check, underscore guard, and masking
@@ -422,7 +397,7 @@ class VariableSubstitutor:
     def _resolve_variable(
         self,
         namespace: str,
-        path: str,
+        path: str | None,
         var: dict[str, Any],
         scope: LogScope,
         ctx: Context,
@@ -432,26 +407,30 @@ class VariableSubstitutor:
         """
         Resolves a single variable – returns its string representation, possibly masked.
         """
-        # Check for underscore in the last segment
-        last_segment = path.split(".")[-1]
-        if last_segment.startswith("_"):
-            raise LogTemplateError(
-                f"Access to name starting with underscore is forbidden: '{last_segment}' "
-                f"in variable {{%{namespace}.{path}}}. Use a public property if output is needed."
-            )
+        # If path is None, we are accessing the whole namespace object.
+        # In that case, there is no last segment to check for underscore.
+        last_segment = None
+        if path is not None:
+            # Check for underscore in the last segment
+            last_segment = path.split(".")[-1]
+            if last_segment.startswith("_"):
+                raise LogTemplateError(
+                    f"Access to name starting with underscore is forbidden: '{last_segment}' "
+                    f"in variable {{%{namespace}.{path}}}. Use a public property if output is needed."
+                )
 
         raw_value, source = self._resolve_variable_raw(
             namespace, path, var, scope, ctx, state, params
         )
         if raw_value is _SENTINEL:
             raise LogTemplateError(
-                f"Variable '{{%{namespace}.{path}}}' not found. "
+                f"Variable '{{%{namespace}.{path or ''}}}' not found. "
                 f"Check the template and ensure the value exists in source '{namespace}'."
             )
 
-        # Check if this is a sensitive property
+        # Check if this is a sensitive property (only if we have a last segment)
         config = None
-        if source is not None:
+        if source is not None and last_segment is not None:
             config = self._get_property_config(source, last_segment)
 
         if config:
@@ -459,7 +438,7 @@ class VariableSubstitutor:
             if not config.get('enabled', True):
                 return str(raw_value)
             # Otherwise apply masking.
-            return self._mask_value(raw_value, config)
+            return mask_value(raw_value, config)
 
         # Normal conversion to string
         return str(raw_value)
@@ -508,18 +487,27 @@ class VariableSubstitutor:
         """
         Fast path: no iif – simple replacement of {%...} → str(value).
         Handles color filters by wrapping the result in a marker.
+        Handles debug filter by outputting object introspection.
         """
         def replacer(match: re.Match[str]) -> str:
             namespace = match.group(1)
-            path = match.group(2)
-            color = match.group(3)  # may be None
+            path = match.group(2)  # may be None
+            filter_name = match.group(3)  # may be None, a color, or "debug"
             value = self._resolve_variable(
                 namespace, path, var, scope, ctx, state, params
             )
-            if color:
+
+            if filter_name == "debug":
+                # Get raw value again for debug (we have it already resolved as string, but we need the object)
+                raw_value, _ = self._resolve_variable_raw(
+                    namespace, path, var, scope, ctx, state, params
+                )
+                return debug_value(raw_value)
+            elif filter_name:
                 # Wrap in color marker
-                return f"__COLOR({color}){value}__COLOR_END__"
-            return value
+                return f"__COLOR({filter_name}){value}__COLOR_END__"
+            else:
+                return value
 
         return _VARIABLE_PATTERN.sub(replacer, message)
 
@@ -537,6 +525,7 @@ class VariableSubstitutor:
         Variables inside {iif(...)} are formatted as literals,
         variables outside iif as plain strings.
         Color filters are handled by wrapping in markers.
+        Debug filter outputs object introspection.
         """
         iif_ranges = [
             (m.start(), m.end())
@@ -548,23 +537,25 @@ class VariableSubstitutor:
 
         def replacer(match: re.Match[str]) -> str:
             namespace = match.group(1)
-            path = match.group(2)
-            color = match.group(3)
+            path = match.group(2)  # may be None
+            filter_name = match.group(3)  # may be None, a color, or "debug"
             # We need the raw value to decide quoting, but also need to apply masking.
-            # We'll call _resolve_variable_raw and then apply masking if needed,
-            # then format.
             raw_value, source = self._resolve_variable_raw(
                 namespace, path, var, scope, ctx, state, params
             )
             if raw_value is _SENTINEL:
                 raise LogTemplateError(
-                    f"Variable '{{%{namespace}.{path}}}' not found. "
+                    f"Variable '{{%{namespace}.{path or ''}}}' not found. "
                     f"Check the template and ensure the value exists in source '{namespace}'."
                 )
 
-            last_segment = path.split(".")[-1]
+            # Determine last segment for sensitive detection (only if path is not None)
+            last_segment = None
+            if path is not None:
+                last_segment = path.split(".")[-1]
+
             config = None
-            if source is not None:
+            if source is not None and last_segment is not None:
                 config = self._get_property_config(source, last_segment)
 
             # Determine if we are inside an iif block
@@ -572,7 +563,7 @@ class VariableSubstitutor:
                 # Inside iif, we need the literal representation.
                 # If the value is sensitive, we must mask it first, then quote.
                 if config:
-                    str_value = self._mask_value(raw_value, config)
+                    str_value = mask_value(raw_value, config)
                 else:
                     str_value = str(raw_value)
                 # Now quote if it's a string
@@ -585,13 +576,18 @@ class VariableSubstitutor:
             else:
                 # Outside iif, just convert to string (with masking if needed)
                 if config:
-                    formatted = self._mask_value(raw_value, config)
+                    formatted = mask_value(raw_value, config)
                 else:
                     formatted = str(raw_value)
 
-            if color:
-                return f"__COLOR({color}){formatted}__COLOR_END__"
-            return formatted
+            # Apply filter (color or debug) after formatting
+            if filter_name == "debug":
+                # Override: debug output of the raw object, ignoring formatting
+                return debug_value(raw_value)
+            elif filter_name:
+                return f"__COLOR({filter_name}){formatted}__COLOR_END__"
+            else:
+                return formatted
 
         return _VARIABLE_PATTERN.sub(replacer, message)
 
@@ -695,6 +691,7 @@ class VariableSubstitutor:
            including inside {iif(...)}. Inside iif, values are formatted as
            literals (strings quoted, numbers and bools as is).
            Color filters (|color) are turned into markers.
+           Debug filter (|debug) outputs object introspection.
         2. Evaluate {iif(...)} via ExpressionEvaluator. simpleeval receives
            expressions with already substituted literals and an empty names dict.
            Color functions (red('text')) inside iif return markers.

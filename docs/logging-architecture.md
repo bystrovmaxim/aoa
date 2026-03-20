@@ -1,21 +1,23 @@
 # Cross‑Cutting Logging in ActionMachine: Architecture Overview
 
 ## Table of Contents
-- [1. Introduction](#1-introduction)
-- [2. Problems Solved](#2-problems-solved)
-- [3. Core Components](#3-core-components)
-  - [3.1 ActionBoundLogger – Bound Logger](#31-actionboundlogger--bound-logger)
-  - [3.2 LogCoordinator – Logging Bus](#32-logcoordinator--logging-bus)
-  - [3.3 ConsoleLogger – Console Output](#33-consolelogger--console-output)
-  - [3.4 Execution Mode (`mode`)](#34-execution-mode-mode)
-- [4. Template Language Capabilities](#4-template-language-capabilities)
-  - [4.1 Variable Substitution](#41-variable-substitution)
-  - [4.2 Conditional Logic (`iif`)](#42-conditional-logic-iif)
-  - [4.3 Color Filters](#43-color-filters)
-  - [4.4 Sensitive Data Masking](#44-sensitive-data-masking)
-  - [4.5 Strict Underscore Rule](#45-strict-underscore-rule)
-- [5. How It Works – Data Flow](#5-how-it-works--data-flow)
-- [6. Extensibility](#6-extensibility)
+- 1. Introduction
+- 2. Problems Solved
+- 3. Core Components
+  - 3.1 ActionBoundLogger – Bound Logger
+  - 3.2 LogCoordinator – Logging Bus
+  - 3.3 ConsoleLogger – Console Output
+  - 3.4 Execution Mode (`mode`)
+- 4. Template Language Capabilities
+  - 4.1 Variable Substitution
+  - 4.2 Conditional Logic (`iif`)
+  - 4.3 Color Filters
+  - 4.4 Sensitive Data Masking
+  - 4.5 Strict Underscore Rule
+  - 4.6 Debug Function
+  - 4.7 Existence Check (`exists`)
+- 5. How It Works – Data Flow
+- 6. Extensibility
 
 ---
 
@@ -26,7 +28,7 @@ ActionMachine provides a built‑in cross‑cutting logging system that automati
 - **Context‑aware** – logs contain information about where they were emitted.
 - **Flexible** – multiple loggers can be attached, each with its own filtering rules.
 - **Secure** – sensitive data can be automatically masked, and access to underscored names is forbidden.
-- **Expressive** – a rich template language supports variables, conditional logic, and colors.
+- **Expressive** – a rich template language supports variables, conditional logic, colors, object introspection, and safe existence checks.
 
 This document explains the architectural decisions behind the system and how its components interact.
 
@@ -70,6 +72,18 @@ Logging behaviour may differ between development, testing, staging, and producti
 
 **Solution:** The machine constructor accepts a mandatory `mode` parameter (e.g., `"dev"`, `"test"`, `"staging"`, `"production"`). This value is passed to the logger scope and can be used to adjust formatting or filtering.
 
+### 2.7 Difficulty in Discovering Available Object Fields
+
+When working with complex objects (e.g., `context.user`, `state.order`), developers often have to guess what fields are available or constantly refer to the code.
+
+**Solution:** A `debug()` function can be used inside templates to output a formatted list of all public fields and properties of any object, including their types. If a property is marked with `@sensitive`, its masking configuration is also shown. This makes self‑discovery trivial.
+
+### 2.8 Conditional Logging Based on Variable Existence
+
+In some scenarios, a variable may be optional (e.g., `extra` field in `UserInfo`). Attempting to log it when it doesn't exist would raise an error. A safe way to check for presence before using the variable is needed.
+
+**Solution:** The `exists()` function returns `True` if the variable is defined in the current evaluation context, otherwise `False`. It can be used inside `iif` to conditionally log, or as a standalone expression (then it evaluates to the string `"True"` or `"False"`).
+
 ---
 
 ## 3. Core Components
@@ -95,7 +109,7 @@ When the developer calls `log.info(...)`, the bound logger:
 
 - Maintain a list of registered loggers.
 - Accept a message (with template, variables, scope, context, etc.).
-- Delegate variable substitution and `iif` evaluation to `VariableSubstitutor`.
+- Delegate variable substitution and `iif` evaluation to `VariableSubstitutor` (which now also handles `debug()` and `exists()` via `ExpressionEvaluator`).
 - Broadcast the final string to every logger that accepts the message (according to its filters).
 
 The coordinator does **not** filter messages itself; filtering is done independently by each logger.
@@ -120,7 +134,7 @@ The `mode` parameter is a string passed to the machine constructor (e.g., `"prod
 
 ## 4. Template Language Capabilities
 
-The logging system supports a rich template language inside message strings. Below is an overview of its features; detailed syntax and examples are in the [Logging Guide](logging-guide.md).
+The logging system supports a rich template language inside message strings. Below is an overview of its features.
 
 ### 4.1 Variable Substitution
 
@@ -166,6 +180,44 @@ Masking is applied after the value is converted to a string. The result shows th
 
 If the last segment of a variable path starts with an underscore (`_` or `__`), accessing it raises `LogTemplateError`. This prevents accidental logging of private fields. To log such data, expose it through a public property.
 
+### 4.6 Debug Function
+
+The `debug()` function accepts any object and returns a formatted string showing its public fields and properties. It is intended for debugging and introspection.
+
+**Usage:** Because `debug()` is a function, it must be placed inside a template as part of an `iif` expression (even if the condition is always true). For example:
+
+{iif(1==1; debug(context.user); '')}
+
+**Output format:**
+
+- One line per field/property.
+- For each, the name, type, and value are shown.
+- If the property is decorated with `@sensitive`, its masking configuration is displayed.
+- The output is **non‑recursive** (`max_depth=1`). To inspect a nested object, call `debug` on that object directly.
+
+Example output for `context.user`:
+
+UserInfo:
+  user_id: str = "bystrov.maxim"
+  roles: list[str] = ["user", "admin"]
+  extra: dict = {"org": "acme"}
+  email: str (sensitive: max_chars=3, char='*', max_percent=50) = "max*****"
+
+### 4.7 Existence Check (`exists`)
+
+The `exists()` function checks whether a variable is defined in the current evaluation context.
+
+- Inside an `iif` condition, it returns a boolean (`True`/`False`).
+- When used as a standalone expression (outside `iif`), it returns the string `"True"` or `"False"`.
+
+**Usage:**
+
+{iif(exists('var.user'); debug(var.user); 'No user')}
+
+Or:
+
+Exists: {exists('var.user')}  -> outputs "True" or "False"
+
 ---
 
 ## 5. How It Works – Data Flow
@@ -175,7 +227,7 @@ If the last segment of a variable path starts with an underscore (`_` or `__`), 
 3. `LogCoordinator` passes the template, `var` (with added `level`), scope, context, state, params, and indent to `VariableSubstitutor.substitute()`.
 4. `VariableSubstitutor` performs two passes:
    - First, it replaces all `{%namespace.path}` patterns with their string representations. Inside `iif` blocks, values are formatted as literals (strings quoted, numbers as is). Color filters are turned into markers (`__COLOR(color)value__COLOR_END__`).
-   - Second, it evaluates all `{iif(...)}` expressions using `ExpressionEvaluator` (which relies on the safe `simpleeval` library). Color functions inside `iif` return markers.
+   - Second, it evaluates all `{iif(...)}` expressions using `ExpressionEvaluator` (which relies on the safe `simpleeval` library). During this evaluation, the `debug()` and `exists()` functions are available as built‑ins. Color functions inside `iif` return markers.
    - Finally, it replaces markers with actual ANSI codes (if the target logger supports colors).
 5. The coordinator iterates over all registered loggers and, for each one:
    - Checks whether the message passes the logger’s filters (regex matching against `scope.as_dotpath() + " " + message + " " + "key=value …"`).
@@ -188,15 +240,13 @@ If the last segment of a variable path starts with an underscore (`_` or `__`), 
 
 To create a custom logger, subclass `BaseLogger` and implement the asynchronous `write()` method:
 
-```python
 from action_machine.Logging.base_logger import BaseLogger
 
 class MyLogger(BaseLogger):
     async def write(self, scope, message, var, ctx, state, params, indent):
         # Send message to file, ELK, etc.
         ...
-If the logger can handle ANSI colors, override the supports_colors property to return True. The coordinator will then preserve color markers when passing the message.
 
-Loggers can be added to the coordinator at any time via coordinator.add_logger().
+If the logger can handle ANSI colors, override the `supports_colors` property to return `True`. The coordinator will then preserve color markers when passing the message.
 
-For detailed usage instructions, examples, and API reference, see the Logging Guide.
+Loggers can be added to the coordinator at any time via `coordinator.add_logger()`.
