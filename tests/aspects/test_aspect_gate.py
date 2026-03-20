@@ -4,8 +4,8 @@
 """
 
 import pytest
+
 from action_machine.aspects.aspect_gate import AspectGate
-from action_machine.aspects.aspect_method_protocol import AspectMethodProtocol
 
 
 class DummyAspect:

@@ -3,7 +3,6 @@
 Тесты для новых декораторов regular_aspect и summary_aspect.
 """
 
-import pytest
 from action_machine.aspects.regular_aspect import regular_aspect
 from action_machine.aspects.summary_aspect import summary_aspect
 

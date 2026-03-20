@@ -4,6 +4,7 @@
 """
 
 import pytest
+
 from action_machine.aspects.aspect_gate_host import AspectGateHost
 from action_machine.aspects.regular_aspect import regular_aspect
 from action_machine.aspects.summary_aspect import summary_aspect
