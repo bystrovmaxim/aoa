@@ -503,13 +503,69 @@ class VariableSubstitutor:
                     namespace, path, var, scope, ctx, state, params
                 )
                 return debug_value(raw_value)
-            elif filter_name:
+            if filter_name:
                 # Wrap in color marker
                 return f"__COLOR({filter_name}){value}__COLOR_END__"
-            else:
-                return value
+            return value
 
         return _VARIABLE_PATTERN.sub(replacer, message)
+
+    def _format_variable_for_template(
+        self,
+        match: re.Match[str],
+        var: dict[str, Any],
+        scope: LogScope,
+        ctx: Context,
+        state: BaseState,
+        params: BaseParams,
+        inside_iif: bool,
+    ) -> str:
+        """
+        Форматирует одно вхождение переменной в шаблоне, учитывая маскировку,
+        фильтры и нахождение внутри/вне iif.
+        """
+        namespace = match.group(1)
+        path = match.group(2)
+        filter_name = match.group(3)
+        raw_value, source = self._resolve_variable_raw(
+            namespace, path, var, scope, ctx, state, params
+        )
+        if raw_value is _SENTINEL:
+            raise LogTemplateError(
+                f"Variable '{{%{namespace}.{path or ''}}}' not found. "
+                f"Check the template and ensure the value exists in source '{namespace}'."
+            )
+
+        last_segment = None
+        if path is not None:
+            last_segment = path.split(".")[-1]
+
+        config = None
+        if source is not None and last_segment is not None:
+            config = self._get_property_config(source, last_segment)
+
+        # Форматирование в зависимости от того, находится ли переменная внутри iif
+        if inside_iif:
+            if config:
+                str_value = mask_value(raw_value, config)
+            else:
+                str_value = str(raw_value)
+            if isinstance(raw_value, (bool, int, float)):
+                formatted = str_value
+            else:
+                formatted = self._quote_if_string(str_value)
+        else:
+            if config:
+                formatted = mask_value(raw_value, config)
+            else:
+                formatted = str(raw_value)
+
+        # Применение фильтра (debug или цвет)
+        if filter_name == "debug":
+            return debug_value(raw_value)
+        if filter_name:
+            return f"__COLOR({filter_name}){formatted}__COLOR_END__"
+        return formatted
 
     def _substitute_with_iif_detection(
         self,
@@ -520,13 +576,6 @@ class VariableSubstitutor:
         state: BaseState,
         params: BaseParams,
     ) -> str:
-        """
-        Substitution with detection of iif blocks.
-        Variables inside {iif(...)} are formatted as literals,
-        variables outside iif as plain strings.
-        Color filters are handled by wrapping in markers.
-        Debug filter outputs object introspection.
-        """
         iif_ranges = [
             (m.start(), m.end())
             for m in _IIF_BLOCK_PATTERN.finditer(message)
@@ -536,58 +585,10 @@ class VariableSubstitutor:
             return any(start <= pos < end for start, end in iif_ranges)
 
         def replacer(match: re.Match[str]) -> str:
-            namespace = match.group(1)
-            path = match.group(2)  # may be None
-            filter_name = match.group(3)  # may be None, a color, or "debug"
-            # We need the raw value to decide quoting, but also need to apply masking.
-            raw_value, source = self._resolve_variable_raw(
-                namespace, path, var, scope, ctx, state, params
+            inside = _inside_iif(match.start())
+            return self._format_variable_for_template(
+                match, var, scope, ctx, state, params, inside
             )
-            if raw_value is _SENTINEL:
-                raise LogTemplateError(
-                    f"Variable '{{%{namespace}.{path or ''}}}' not found. "
-                    f"Check the template and ensure the value exists in source '{namespace}'."
-                )
-
-            # Determine last segment for sensitive detection (only if path is not None)
-            last_segment = None
-            if path is not None:
-                last_segment = path.split(".")[-1]
-
-            config = None
-            if source is not None and last_segment is not None:
-                config = self._get_property_config(source, last_segment)
-
-            # Determine if we are inside an iif block
-            if _inside_iif(match.start()):
-                # Inside iif, we need the literal representation.
-                # If the value is sensitive, we must mask it first, then quote.
-                if config:
-                    str_value = mask_value(raw_value, config)
-                else:
-                    str_value = str(raw_value)
-                # Now quote if it's a string
-                if isinstance(raw_value, (bool, int, float)):
-                    # Numbers and bools are returned as is (already str)
-                    formatted = str_value
-                else:
-                    # Quote the string (but if it's already a color marker, _quote_if_string handles it)
-                    formatted = self._quote_if_string(str_value)
-            else:
-                # Outside iif, just convert to string (with masking if needed)
-                if config:
-                    formatted = mask_value(raw_value, config)
-                else:
-                    formatted = str(raw_value)
-
-            # Apply filter (color or debug) after formatting
-            if filter_name == "debug":
-                # Override: debug output of the raw object, ignoring formatting
-                return debug_value(raw_value)
-            elif filter_name:
-                return f"__COLOR({filter_name}){formatted}__COLOR_END__"
-            else:
-                return formatted
 
         return _VARIABLE_PATTERN.sub(replacer, message)
 
