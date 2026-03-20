@@ -1,6 +1,6 @@
 # src/action_machine/aspects/aspect_gate_host.py
 
-from typing import Optional, Tuple, List
+
 from .aspect_gate import AspectGate
 from .aspect_method_protocol import AspectMethodProtocol as AspectMethodProtocol
 
@@ -30,8 +30,8 @@ class AspectGateHost:
     """
 
     # Классовые хранилища аспектов (только для текущего класса)
-    _class_regular: List[Tuple[AspectMethodProtocol, str]] = []
-    _class_summary: Optional[Tuple[AspectMethodProtocol, str]] = None
+    _class_regular: list[tuple[AspectMethodProtocol, str]] = []
+    _class_summary: tuple[AspectMethodProtocol, str] | None = None
 
     def __init__(self) -> None:
         """
@@ -44,7 +44,7 @@ class AspectGateHost:
                 "Each action must define exactly one summary aspect (use @summary_aspect)."
             )
         # Экземплярный шлюз создаётся лениво при первом обращении к свойству `aspects`
-        self._aspects_gate: Optional[AspectGate] = None
+        self._aspects_gate: AspectGate | None = None
 
     @property
     def aspects(self) -> AspectGate:
@@ -64,8 +64,8 @@ class AspectGateHost:
             self._aspects_gate = gate
         return self._aspects_gate
 
-    def get_aspects(self) -> Tuple[List[Tuple[AspectMethodProtocol, str]],
-                                   Optional[Tuple[AspectMethodProtocol, str]]]:
+    def get_aspects(self) -> tuple[list[tuple[AspectMethodProtocol, str]],
+                                   tuple[AspectMethodProtocol, str] | None]:
         """
         Возвращает аспекты для выполнения.
 

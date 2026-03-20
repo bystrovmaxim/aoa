@@ -1,7 +1,8 @@
 # src/action_machine/aspects/aspect_gate.py
 
-from typing import List, Tuple, Optional
+
 from action_machine.Core.base_gate import BaseGate
+
 from .aspect_method_protocol import AspectMethodProtocol as AspectMethodProtocol
 
 
@@ -23,8 +24,8 @@ class AspectGate(BaseGate[AspectMethodProtocol]):
     """
 
     def __init__(self):
-        self._regular: List[Tuple[AspectMethodProtocol, str]] = []
-        self._summary: Optional[Tuple[AspectMethodProtocol, str]] = None
+        self._regular: list[tuple[AspectMethodProtocol, str]] = []
+        self._summary: tuple[AspectMethodProtocol, str] | None = None
 
     def register(self, method: AspectMethodProtocol, description: str, type: str = "regular") -> AspectMethodProtocol:
         """
@@ -61,17 +62,17 @@ class AspectGate(BaseGate[AspectMethodProtocol]):
         if self._summary and self._summary[0] is method:
             self._summary = None
 
-    def get_components(self) -> List[AspectMethodProtocol]:
+    def get_components(self) -> list[AspectMethodProtocol]:
         """Вернуть все зарегистрированные аспекты (сначала обычные, потом summary)."""
         result = [m for m, _ in self._regular]
         if self._summary:
             result.append(self._summary[0])
         return result
 
-    def get_regular(self) -> List[Tuple[AspectMethodProtocol, str]]:
+    def get_regular(self) -> list[tuple[AspectMethodProtocol, str]]:
         """Вернуть список (метод, описание) для обычных аспектов в порядке регистрации."""
         return self._regular.copy()
 
-    def get_summary(self) -> Optional[Tuple[AspectMethodProtocol, str]]:
+    def get_summary(self) -> tuple[AspectMethodProtocol, str] | None:
         """Вернуть кортеж (метод, описание) для summary-аспекта или None."""
         return self._summary

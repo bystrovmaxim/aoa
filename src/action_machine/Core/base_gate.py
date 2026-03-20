@@ -1,7 +1,7 @@
 # action_machine/Core/base_gate.py
 
 from abc import ABC, abstractmethod
-from typing import Generic, TypeVar, List
+from typing import Generic, TypeVar
 
 T = TypeVar('T')
 
@@ -38,6 +38,6 @@ class BaseGate(ABC, Generic[T]):
         pass
 
     @abstractmethod
-    def get_components(self) -> List[T]:
+    def get_components(self) -> list[T]:
         """Вернуть все зарегистрированные компоненты (порядок может быть значимым)."""
         pass

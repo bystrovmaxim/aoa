@@ -1,6 +1,7 @@
 # src/action_machine/aspects/aspect_gate.py
 
-from typing import Protocol, Any
+from typing import Any, Protocol
+
 
 class AspectMethodProtocol(Protocol):
     """
