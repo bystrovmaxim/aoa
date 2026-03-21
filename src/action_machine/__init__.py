@@ -1,35 +1,56 @@
 # src/action_machine/__init__.py
 """
 ActionMachine – ядро фреймворка действий.
-Экспортирует основные классы для создания действий, валидации, проверки прав и работы с транзакциями.
 
-Изменения (этап 1):
-- Добавлен экспорт ToolsBox для использования в аспектах.
-- Обновлены комментарии.
+Экспортирует основные классы для создания действий, валидации, проверки прав,
+работы с транзакциями и управления компонентами через шлюзы (Gates).
+
+Изменения (этап миграции на шлюзы):
+- Добавлены экспорты для шлюзов и хостов:
+  - DependencyGate, DependencyGateHost, DependencyInfo, DependencyFactory, depends
+  - RoleGate, RoleGateHost, RoleInfo
+  - CheckerGate, CheckerGateHost
+  - OnGate, OnGateHost, Subscription
+- Все новые компоненты находятся в соответствующих подпакетах.
+- Старые атрибуты (_dependencies, _role_spec, _field_checkers, _result_checkers,
+  _plugin_hooks) пока сохраняются для обратной совместимости.
 """
 
 # Core
-from .Auth.auth_coordinator import AuthCoordinator
-from .Auth.authenticator import Authenticator
+# Aspects
+from .aspects.regular_aspect import regular_aspect
+from .aspects.summary_aspect import summary_aspect
 
 # Auth
+from .Auth.auth_coordinator import AuthCoordinator
+from .Auth.authenticator import Authenticator
 from .Auth.check_roles import CheckRoles
 from .Auth.context_assembler import ContextAssembler
 from .Auth.credential_extractor import CredentialExtractor
+from .Auth.role_gate import RoleGate, RoleInfo
+from .Auth.role_gate_host import RoleGateHost
+
+# Checkers
+from .Checkers.BaseFieldChecker import BaseFieldChecker
 from .Checkers.BoolFieldChecker import BoolFieldChecker
+from .Checkers.checker_gate import CheckerGate
+from .Checkers.checker_gate_host import CheckerGateHost
 from .Checkers.DateFieldChecker import DateFieldChecker
 from .Checkers.FloatFieldChecker import FloatFieldChecker
 from .Checkers.InstanceOfChecker import InstanceOfChecker
 from .Checkers.IntFieldChecker import IntFieldChecker
-
-# Checkers
 from .Checkers.StringFieldChecker import StringFieldChecker
+
+# Context
 from .Context.context import Context
 from .Context.request_info import RequestInfo
 from .Context.runtime_info import RuntimeInfo
-
-# Context
 from .Context.user_info import UserInfo
+from .Core.BaseAction import BaseAction
+from .Core.BaseActionMachine import BaseActionMachine
+from .Core.BaseParams import BaseParams
+from .Core.BaseResult import BaseResult
+from .Core.BaseState import BaseState
 from .Core.Exceptions import (
     AuthorizationError,
     ConnectionAlreadyOpenError,
@@ -43,13 +64,33 @@ from .Core.Protocols import ReadableDataProtocol, WritableDataProtocol
 from .Core.ReadableMixin import ReadableMixin
 from .Core.ToolsBox import ToolsBox
 from .Core.WritableMixin import WritableMixin
-from .ResourceManagers.PostgresConnectionManager import PostgresConnectionManager
+from .dependencies.dependency_factory import DependencyFactory
 
-# ConnectionManagers
+# Dependencies
+from .dependencies.dependency_gate import DependencyGate, DependencyInfo
+from .dependencies.dependency_gate_host import DependencyGateHost
+from .dependencies.depends import depends
+
+# Plugins
+from .Plugins.Decorators import on
+from .Plugins.on_gate import OnGate, Subscription
+from .Plugins.on_gate_host import OnGateHost
+from .Plugins.Plugin import Plugin
+from .Plugins.PluginCoordinator import PluginCoordinator
+from .Plugins.PluginEvent import PluginEvent
+
+# Resource Managers
+from .ResourceManagers.BaseResourceManager import BaseResourceManager
+from .ResourceManagers.PostgresConnectionManager import PostgresConnectionManager
 from .ResourceManagers.WrapperConnectionManager import WrapperConnectionManager
 
 __all__ = [
-    # Exceptions
+    # Core
+    "BaseAction",
+    "BaseActionMachine",
+    "BaseParams",
+    "BaseResult",
+    "BaseState",
     "AuthorizationError",
     "ValidationFieldError",
     "HandleError",
@@ -57,32 +98,54 @@ __all__ = [
     "ConnectionAlreadyOpenError",
     "ConnectionNotOpenError",
     "TransactionProhibitedError",
-    # Protocols and Mixins
     "ReadableDataProtocol",
     "WritableDataProtocol",
     "ReadableMixin",
-    "WritableMixin",
-    # Tools
     "ToolsBox",
-    # ConnectionManagers
-    "WrapperConnectionManager",
-    "PostgresConnectionManager",
+    "WritableMixin",
+    # Auth
+    "AuthCoordinator",
+    "Authenticator",
+    "CheckRoles",
+    "ContextAssembler",
+    "CredentialExtractor",
+    "RoleGate",
+    "RoleInfo",
+    "RoleGateHost",
     # Checkers
-    "StringFieldChecker",
-    "IntFieldChecker",
-    "FloatFieldChecker",
+    "BaseFieldChecker",
     "BoolFieldChecker",
     "DateFieldChecker",
+    "FloatFieldChecker",
     "InstanceOfChecker",
+    "IntFieldChecker",
+    "StringFieldChecker",
+    "CheckerGate",
+    "CheckerGateHost",
     # Context
     "UserInfo",
     "RequestInfo",
     "RuntimeInfo",
     "Context",
-    # Auth
-    "CheckRoles",
-    "Authenticator",
-    "CredentialExtractor",
-    "ContextAssembler",
-    "AuthCoordinator",
+    # Dependencies
+    "DependencyGate",
+    "DependencyInfo",
+    "DependencyGateHost",
+    "DependencyFactory",
+    "depends",
+    # Plugins
+    "on",
+    "Plugin",
+    "PluginCoordinator",
+    "PluginEvent",
+    "OnGate",
+    "Subscription",
+    "OnGateHost",
+    # Resource Managers
+    "BaseResourceManager",
+    "PostgresConnectionManager",
+    "WrapperConnectionManager",
+    # Aspects
+    "regular_aspect",
+    "summary_aspect",
 ]
