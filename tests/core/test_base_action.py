@@ -1,16 +1,21 @@
 # tests/core/test_base_action.py
 """
-Тесты BaseAction — базового класса всех действий.
+Tests for BaseAction — the base class for all actions.
 
-Проверяем:
-- Метод get_full_class_name возвращает полное имя класса (модуль.Класс)
-- Результат кешируется после первого вызова
+Checks:
+- get_full_class_name returns full class name (module.Class)
+- Result is cached after first call
+
+Изменения (этап 1):
+- Нет изменений в логике BaseAction, так как аспекты не входят в этот файл.
+- Обновлены комментарии.
 """
 
 from action_machine.aspects.summary_aspect import summary_aspect
 from action_machine.Core.BaseAction import BaseAction
 from action_machine.Core.BaseParams import BaseParams
 from action_machine.Core.BaseResult import BaseResult
+from action_machine.Core.ToolsBox import ToolsBox
 
 
 class MockParams(BaseParams):
@@ -22,28 +27,34 @@ class MockResult(BaseResult):
 
 
 class SampleAction(BaseAction[MockParams, MockResult]):
-    """Тестовое действие."""
+    """Test action."""
 
     @summary_aspect("test summary")
-    async def summary(self, params, state, deps, connections, log):
+    async def summary(
+        self,
+        params: MockParams,
+        state: dict,
+        box: ToolsBox,
+        connections: dict,
+    ) -> MockResult:
         return MockResult()
 
 
 class TestBaseAction:
-    """Тесты для BaseAction."""
+    """Tests for BaseAction."""
 
     def test_get_full_class_name_returns_module_and_class(self):
-        """Метод возвращает строку вида 'module.ClassName'."""
+        """Method returns string like 'module.ClassName'."""
         action = SampleAction()
         full_name = action.get_full_class_name()
 
         assert full_name == "tests.core.test_base_action.SampleAction"
 
     def test_get_full_class_name_caches_result(self):
-        """Повторный вызов возвращает закешированное значение."""
+        """Subsequent call returns cached value."""
         action = SampleAction()
         first = action.get_full_class_name()
         second = action.get_full_class_name()
 
-        assert first is second  # один и тот же объект (строка)
+        assert first is second  # same object (string)
         assert action._full_class_name is first

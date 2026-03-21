@@ -1,6 +1,11 @@
+# src/action_machine/__init__.py
 """
 ActionMachine – ядро фреймворка действий.
 Экспортирует основные классы для создания действий, валидации, проверки прав и работы с транзакциями.
+
+Изменения (этап 1):
+- Добавлен экспорт ToolsBox для использования в аспектах.
+- Обновлены комментарии.
 """
 
 # Core
@@ -36,6 +41,7 @@ from .Core.Exceptions import (
 )
 from .Core.Protocols import ReadableDataProtocol, WritableDataProtocol
 from .Core.ReadableMixin import ReadableMixin
+from .Core.ToolsBox import ToolsBox
 from .Core.WritableMixin import WritableMixin
 from .ResourceManagers.PostgresConnectionManager import PostgresConnectionManager
 
@@ -56,6 +62,8 @@ __all__ = [
     "WritableDataProtocol",
     "ReadableMixin",
     "WritableMixin",
+    # Tools
+    "ToolsBox",
     # ConnectionManagers
     "WrapperConnectionManager",
     "PostgresConnectionManager",

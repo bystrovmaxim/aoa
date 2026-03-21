@@ -1,6 +1,10 @@
 # tests/aspects/test_aspect_gate.py
 """
-Тесты для AspectGate — шлюза аспектов.
+Tests for AspectGate — the aspect gate.
+
+Изменения (этап 1):
+- Нет изменений, так как тесты не используют аспекты с параметрами.
+- Обновлены комментарии.
 """
 
 import pytest
@@ -9,7 +13,7 @@ from action_machine.aspects.aspect_gate import AspectGate
 
 
 class DummyAspect:
-    """Заглушка для метода-аспекта."""
+    """Stub for aspect method."""
     async def __call__(self, *args, **kwargs):
         pass
 
@@ -62,7 +66,7 @@ class TestAspectGate:
 
     def test_unregister_nonexistent_ignored(self):
         gate = AspectGate()
-        gate.unregister(DummyAspect())  # не должно быть ошибки
+        gate.unregister(DummyAspect())  # no error
 
     def test_get_components_order(self):
         gate = AspectGate()
@@ -80,4 +84,4 @@ class TestAspectGate:
         gate.register(m, description="test", type="regular")
         regular = gate.get_regular()
         regular.append((DummyAspect(), "other"))
-        assert gate.get_regular() == [(m, "test")]  # исходный не изменился
+        assert gate.get_regular() == [(m, "test")]  # original unchanged

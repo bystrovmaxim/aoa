@@ -1,7 +1,11 @@
 # src/action_machine/Core/MockAction.py
 """
-Мок-действие для тестирования.
-Позволяет подменять поведение реальных действий в тестах.
+Mock action for testing.
+Allows replacing real actions in tests.
+
+Изменения (этап 1):
+- Метод _mock_summary теперь принимает box: ToolsBox вместо deps и log.
+- Обновлены комментарии.
 """
 
 from collections.abc import Callable
@@ -11,29 +15,28 @@ from action_machine.Core.BaseAction import BaseAction
 from action_machine.Core.BaseParams import BaseParams
 from action_machine.Core.BaseResult import BaseResult
 from action_machine.Core.BaseState import BaseState
-from action_machine.Core.DependencyFactory import DependencyFactory
-from action_machine.Logging.action_bound_logger import ActionBoundLogger
+from action_machine.Core.ToolsBox import ToolsBox
 from action_machine.ResourceManagers.BaseResourceManager import BaseResourceManager
 
 
 class MockAction(BaseAction[BaseParams, BaseResult]):
     """
-    Мок-действие для использования в тестах.
+    Mock action for use in tests.
 
-    Заменяет реальное действие, позволяя задать фиксированный результат
-    или функцию side_effect, которая вычисляет результат на основе параметров.
-    Также подсчитывает количество вызовов и запоминает последние параметры.
+    Replaces a real action, allowing a fixed result or a side_effect function
+    that computes the result based on parameters. Also counts calls and remembers
+    the last parameters.
     """
 
     def __init__(
         self, result: BaseResult | None = None, side_effect: Callable[[BaseParams], BaseResult] | None = None
     ) -> None:
         """
-        Инициализирует мок-действие.
+        Initializes the mock action.
 
-        :param result: фиксированный результат, возвращаемый при каждом вызове.
-        :param side_effect: функция, вызываемая с параметрами для получения результата.
-                            Если задана, используется вместо result.
+        :param result: fixed result returned on each call.
+        :param side_effect: function called with parameters to obtain the result.
+                            If set, it is used instead of result.
         """
         self.result = result
         self.side_effect = side_effect
@@ -42,10 +45,10 @@ class MockAction(BaseAction[BaseParams, BaseResult]):
 
     def run(self, params: BaseParams) -> BaseResult:
         """
-        Выполняет мок-действие.
+        Executes the mock action.
 
-        :param params: входные параметры.
-        :return: результат (фиксированный или вычисленный через side_effect).
+        :param params: input parameters.
+        :return: result (fixed or computed via side_effect).
         """
         self.call_count += 1
         self.last_params = params
@@ -60,16 +63,14 @@ class MockAction(BaseAction[BaseParams, BaseResult]):
         self,
         params: BaseParams,
         state: BaseState,
-        deps: DependencyFactory,
+        box: ToolsBox,
         connections: dict[str, BaseResourceManager],
-        log: ActionBoundLogger,
     ) -> BaseResult:
         """
-        Заглушка для summary-аспекта.
+        Stub for the summary aspect.
 
-        Возвращает результат, полученный методом run().
-        Этот метод вызывается машиной при выполнении MockAction через полный конвейер.
+        Returns the result obtained by the run() method.
+        This method is called by the machine when executing MockAction through
+        the full pipeline.
         """
-        # Вызываем run() синхронно, так как run() возвращает BaseResult.
-        # В асинхронном контексте нужно убедиться, что run() не блокирует.
         return self.run(params)

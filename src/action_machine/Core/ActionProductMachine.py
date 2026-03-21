@@ -3,19 +3,21 @@
 Product action machine implementation with plugin support and nesting.
 Fully asynchronous version. Uses PluginEvent to pass data to plugins.
 
-Architectural decisions:
-    - Plugin management logic (state initialization, handler caching,
-      asynchronous execution) has been moved to a separate class
-      PluginCoordinator (action_machine/Plugins/PluginCoordinator.py).
-    - ActionProductMachine delegates all plugin calls through
-      self._plugin_coordinator.emit_event(...).
-    - _check_connections method is split into 4 private validators,
-      each checking one specific rule of correspondence between passed
-      connections and those declared with @connection.
+Изменения (этап 0–1):
+- Убран параметр resources из публичного run().
+- Добавлен приватный метод _run_internal() с параметром resources.
+- Убрано поле _nest_level, уровень вложенности передаётся явно.
+- В _run_internal создаётся ActionBoundLogger и ToolsBox.
+- _call_aspect и _execute_regular_aspects теперь принимают box вместо factory и log.
+- _get_factory больше не принимает external_resources и self.
+- Обновлены комментарии.
 
-Public API of the class:
-    - Constructor accepts mode (required), plugins, log_coordinator.
-    - Asynchronous method run(...) executes the action with the given context.
+Изменения (этап 2):
+- В ToolsBox больше не передаётся self, вместо этого создаётся замыкание run_child,
+  которое вызывает _run_internal. Это разрывает циклическую зависимость между
+  ToolsBox и ActionProductMachine, сохраняя инкапсуляцию.
+- В _call_aspect и _execute_regular_aspects для создания аспектных боксов используется
+  box.run_child (публичное свойство ToolsBox).
 """
 
 import time
@@ -32,6 +34,7 @@ from action_machine.Core.BaseResult import BaseResult
 from action_machine.Core.BaseState import BaseState
 from action_machine.Core.DependencyFactory import DependencyFactory
 from action_machine.Core.Exceptions import AuthorizationError, ConnectionValidationError, ValidationFieldError
+from action_machine.Core.ToolsBox import ToolsBox
 from action_machine.Logging.action_bound_logger import ActionBoundLogger
 from action_machine.Logging.console_logger import ConsoleLogger
 from action_machine.Logging.log_coordinator import LogCoordinator
@@ -99,19 +102,11 @@ class ActionProductMachine(BaseActionMachine):
         # Dependency factory cache
         self._factory_cache: dict[type[Any], DependencyFactory] = {}
 
-        # Nesting level
-        self._nest_level: int = 0
-
-    def _get_factory(
-        self, action_class: type[Any], external_resources: dict[type[Any], Any] | None = None
-    ) -> DependencyFactory:
+    def _get_factory(self, action_class: type[Any]) -> DependencyFactory:
         """Returns (and caches) the dependency factory for the action class."""
-        if external_resources is not None:
-            deps_info = getattr(action_class, "_dependencies", [])
-            return DependencyFactory(self, deps_info, external_resources)
         if action_class not in self._factory_cache:
             deps_info = getattr(action_class, "_dependencies", [])
-            self._factory_cache[action_class] = DependencyFactory(self, deps_info, external_resources=None)
+            self._factory_cache[action_class] = DependencyFactory(deps_info)
         return self._factory_cache[action_class]
 
     def _apply_checkers(
@@ -245,18 +240,20 @@ class ActionProductMachine(BaseActionMachine):
                 raise ConnectionValidationError(error)
         return connections or {}
 
-    # ---------- Main asynchronous run method ----------
+    # ---------- Main asynchronous run methods ----------
 
     async def run(
         self,
         context: Context,
         action: BaseAction[P, R],
         params: P,
-        resources: dict[type[Any], Any] | None = None,
         connections: dict[str, BaseResourceManager] | None = None,
     ) -> R:
         """
         Asynchronously executes the action with plugins and nesting support.
+
+        This is the public entry point. Resources are not accepted here;
+        they are passed implicitly through the action's dependencies.
 
         Execution sequence:
             1. Increase nesting level.
@@ -272,16 +269,81 @@ class ActionProductMachine(BaseActionMachine):
             context: execution context for this request (user, request, environment).
             action: action instance.
             params: input parameters.
-            resources: dictionary of external resources (passed to the factory).
             connections: dictionary of resource managers (connections).
+
+        Returns:
+            Result of the action execution.
         """
-        self._nest_level += 1
+        return await self._run_internal(context, action, params, resources=None, connections=connections, nested_level=0)
+
+    async def _run_internal(
+        self,
+        context: Context,
+        action: BaseAction[P, R],
+        params: P,
+        resources: dict[type[Any], Any] | None,
+        connections: dict[str, BaseResourceManager] | None,
+        nested_level: int,
+    ) -> R:
+        """
+        Internal execution method that handles nesting and resource passing.
+
+        Args:
+            context: execution context.
+            action: action instance.
+            params: input parameters.
+            resources: external resources for dependencies (priority over factory).
+            connections: resource managers.
+            nested_level: current nesting level (0 for root).
+
+        Returns:
+            Action result.
+        """
+        current_nest = nested_level + 1
         start_time = time.time()
 
         try:
             self._check_action_roles(action, context)
             conns = self._check_connections(action, connections)
-            factory = self._get_factory(action.__class__, external_resources=resources)
+            factory = self._get_factory(action.__class__)
+
+            # Create logger for this level
+            log = ActionBoundLogger(
+                coordinator=self._log_coordinator,
+                nest_level=current_nest,
+                machine_name=self.__class__.__name__,
+                mode=self._mode,
+                action_name=action.get_full_class_name(),
+                aspect_name="",  # will be set per aspect
+                context=context,
+            )
+
+            # Create a closure for running child actions.
+            # This allows ToolsBox to call _run_internal without holding a reference to self,
+            # breaking the circular import dependency.
+            async def run_child(
+                action: BaseAction[Any, Any],
+                params: BaseParams,
+                connections: dict[str, BaseResourceManager] | None,
+            ) -> BaseResult:
+                return await self._run_internal(
+                    context=context,
+                    action=action,
+                    params=params,
+                    resources=resources,
+                    connections=connections,
+                    nested_level=current_nest,
+                )
+
+            # Create ToolsBox for this level, passing the closure instead of self
+            box = ToolsBox(
+                run_child=run_child,
+                factory=factory,
+                resources=resources,
+                context=context,
+                log=log,
+                nested_level=current_nest,
+            )
 
             await self._plugin_coordinator.emit_event(
                 event_name="global_start",
@@ -293,17 +355,17 @@ class ActionProductMachine(BaseActionMachine):
                 duration=None,
                 factory=factory,
                 context=context,
-                nest_level=self._nest_level,
+                nest_level=current_nest,
             )
 
             regular_aspects, summary_method = action.get_aspects()
             state = await self._execute_regular_aspects(
-                action, params, factory, conns, context, regular_aspects
+                action, params, box, conns, context, regular_aspects
             )
 
             result = await self._call_aspect(
                 summary_method[0] if summary_method else None,
-                action, params, state, factory, conns, context
+                action, params, state, box, conns, context
             )
 
             total_duration = time.time() - start_time
@@ -318,12 +380,12 @@ class ActionProductMachine(BaseActionMachine):
                 duration=total_duration,
                 factory=factory,
                 context=context,
-                nest_level=self._nest_level,
+                nest_level=current_nest,
             )
 
             return cast(R, result)
         finally:
-            self._nest_level -= 1
+            pass  # No need to decrement a global level
 
     async def _call_aspect(
         self,
@@ -331,25 +393,22 @@ class ActionProductMachine(BaseActionMachine):
         action: BaseAction[Any, Any],
         params: BaseParams,
         state: BaseState,
-        factory: DependencyFactory,
+        box: ToolsBox,
         connections: dict[str, BaseResourceManager],
         context: Context,
     ) -> Any:
         """
-        Calls an aspect method. All aspects are asynchronous.
-        All aspects are required to accept the `log` parameter (sixth).
-        Creates a bound logger ActionBoundLogger and passes it.
+        Calls an aspect method.
 
-        The connections parameter is passed to each aspect as the last
-        argument, allowing aspects to execute queries through resource
-        managers and decide which connections to pass to child actions.
+        The aspect receives `box` as its fifth argument (after connections)
+        and uses it for dependency resolution, logging, and running child actions.
 
         Args:
             method: aspect method to call (None means no summary).
             action: action instance.
             params: input parameters.
             state: current pipeline state.
-            factory: dependency factory.
+            box: ToolsBox instance for this level.
             connections: dictionary of resource managers.
             context: execution context (used for logging).
 
@@ -357,24 +416,35 @@ class ActionProductMachine(BaseActionMachine):
             Result of the aspect (or empty BaseResult if no summary).
         """
         if method is None:
-            # No summary aspect – should not happen because get_aspects ensures it exists
             return BaseResult()
-        log = ActionBoundLogger(
+
+        # Create a logger with the aspect name for this specific call
+        aspect_log = ActionBoundLogger(
             coordinator=self._log_coordinator,
-            nest_level=self._nest_level,
+            nest_level=box.nested_level,
             machine_name=self.__class__.__name__,
             mode=self._mode,
             action_name=action.get_full_class_name(),
             aspect_name=method.__name__,
             context=context,
         )
-        return await method(action, params, state, factory, connections, log)
+        # Create a new box with the aspect-specific logger.
+        # Use the same run_child, factory, resources, context, nested_level.
+        aspect_box = ToolsBox(
+            run_child=box.run_child,
+            factory=box.factory,
+            resources=box.resources,
+            context=box.context,
+            log=aspect_log,
+            nested_level=box.nested_level,
+        )
+        return await method(action, params, state, aspect_box, connections)
 
     async def _execute_regular_aspects(
         self,
         action: BaseAction[P, R],
         params: P,
-        factory: DependencyFactory,
+        box: ToolsBox,
         connections: dict[str, BaseResourceManager],
         context: Context,
         regular_aspects: list[tuple[AspectMethodProtocol, str]],
@@ -388,8 +458,6 @@ class ActionProductMachine(BaseActionMachine):
             - execute the aspect itself,
             - check the result through checkers,
             - call plugin after-event with duration.
-
-        The connections parameter is passed through to each aspect.
         """
         state = BaseState()
 
@@ -404,13 +472,31 @@ class ActionProductMachine(BaseActionMachine):
                 is_summary=False,
                 result=None,
                 duration=None,
-                factory=factory,
+                factory=box.factory,
                 context=context,
-                nest_level=self._nest_level,
+                nest_level=box.nested_level,
             )
 
             aspect_start = time.time()
-            new_state_dict = await self._call_aspect(method, action, params, state, factory, connections, context)
+            # Create aspect-specific box with correct aspect name in log
+            aspect_log = ActionBoundLogger(
+                coordinator=self._log_coordinator,
+                nest_level=box.nested_level,
+                machine_name=self.__class__.__name__,
+                mode=self._mode,
+                action_name=action.get_full_class_name(),
+                aspect_name=aspect_name,
+                context=context,
+            )
+            aspect_box = ToolsBox(
+                run_child=box.run_child,
+                factory=box.factory,
+                resources=box.resources,
+                context=box.context,
+                log=aspect_log,
+                nested_level=box.nested_level,
+            )
+            new_state_dict = await self._call_aspect(method, action, params, state, aspect_box, connections, context)
             if not isinstance(new_state_dict, dict):
                 raise TypeError(
                     f"Aspect {method.__qualname__} must return a dict, got {type(new_state_dict).__name__}"
@@ -447,9 +533,9 @@ class ActionProductMachine(BaseActionMachine):
                 is_summary=False,
                 result=None,
                 duration=aspect_duration,
-                factory=factory,
+                factory=box.factory,
                 context=context,
-                nest_level=self._nest_level,
+                nest_level=box.nested_level,
             )
 
         return state

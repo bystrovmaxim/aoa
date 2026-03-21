@@ -3,12 +3,12 @@
 Tests for ActionProductMachine — the main action machine.
 
 Checks:
-- Aspect collection (_collect_aspects)
-- Role checking (_check_action_roles)
-- Connection checking (_check_connections)
+- Aspect collection
+- Role checking
+- Connection checking
 - Full run() pipeline including logging
 - Passing of mode and log parameters to aspects
-- All aspects must accept log (sixth parameter)
+- All aspects must accept box (sixth parameter replaced by box)
 """
 
 from unittest.mock import AsyncMock, MagicMock
@@ -28,7 +28,7 @@ from action_machine.Core.BaseParams import BaseParams
 from action_machine.Core.BaseResult import BaseResult
 from action_machine.Core.BaseState import BaseState
 from action_machine.Core.Exceptions import AuthorizationError, ConnectionValidationError, ValidationFieldError
-from action_machine.Logging.action_bound_logger import ActionBoundLogger
+from action_machine.Core.ToolsBox import ToolsBox
 from action_machine.Logging.log_coordinator import LogCoordinator
 from action_machine.Plugins.Plugin import Plugin
 from action_machine.Plugins.PluginCoordinator import PluginCoordinator
@@ -56,7 +56,7 @@ class MockResourceManager(BaseResourceManager):
 
 
 # ----------------------------------------------------------------------
-# Actions: aspect configurations (ALL with log parameter)
+# Actions: aspect configurations (ALL with box parameter)
 # ----------------------------------------------------------------------
 @CheckRoles(CheckRoles.NONE, desc="No authentication")
 class ActionWithAspects(MockAction):
@@ -69,12 +69,11 @@ class ActionWithAspects(MockAction):
         self,
         params: MockParams,
         state: BaseState,
-        deps: dict,
+        box: ToolsBox,
         connections: dict,
-        log: ActionBoundLogger,
     ) -> dict:
         self._test_calls.append("aspect1")
-        await log.info("Aspect1 executed", value="one")
+        await box.info("Aspect1 executed", value="one")
         return {"value": "one"}
 
     @regular_aspect("Second aspect")
@@ -83,12 +82,11 @@ class ActionWithAspects(MockAction):
         self,
         params: MockParams,
         state: BaseState,
-        deps: dict,
+        box: ToolsBox,
         connections: dict,
-        log: ActionBoundLogger,
     ) -> dict:
         self._test_calls.append("aspect2")
-        await log.debug("Aspect2 debug")
+        await box.debug("Aspect2 debug")
         return {"value": "two"}
 
     @summary_aspect("Main aspect")
@@ -96,12 +94,11 @@ class ActionWithAspects(MockAction):
         self,
         params: MockParams,
         state: BaseState,
-        deps: dict,
+        box: ToolsBox,
         connections: dict,
-        log: ActionBoundLogger,
     ) -> MockResult:
         self._test_calls.append("summary")
-        await log.warning("Summary executed")
+        await box.warning("Summary executed")
         return MockResult()
 
 
@@ -112,9 +109,8 @@ class ParentAction(MockAction):
         self,
         params: MockParams,
         state: BaseState,
-        deps: dict,
+        box: ToolsBox,
         connections: dict,
-        log: ActionBoundLogger,
     ) -> dict:
         return {}
 
@@ -126,9 +122,8 @@ class ChildAction(ParentAction):
         self,
         params: MockParams,
         state: BaseState,
-        deps: dict,
+        box: ToolsBox,
         connections: dict,
-        log: ActionBoundLogger,
     ) -> dict:
         return {}
 
@@ -137,9 +132,8 @@ class ChildAction(ParentAction):
         self,
         params: MockParams,
         state: BaseState,
-        deps: dict,
+        box: ToolsBox,
         connections: dict,
-        log: ActionBoundLogger,
     ) -> MockResult:
         return MockResult()
 
@@ -154,9 +148,8 @@ class ActionNone(MockAction):
         self,
         params: MockParams,
         state: BaseState,
-        deps: dict,
+        box: ToolsBox,
         connections: dict,
-        log: ActionBoundLogger,
     ) -> MockResult:
         return MockResult()
 
@@ -168,9 +161,8 @@ class ActionAny(MockAction):
         self,
         params: MockParams,
         state: BaseState,
-        deps: dict,
+        box: ToolsBox,
         connections: dict,
-        log: ActionBoundLogger,
     ) -> MockResult:
         return MockResult()
 
@@ -182,9 +174,8 @@ class ActionSingleRole(MockAction):
         self,
         params: MockParams,
         state: BaseState,
-        deps: dict,
+        box: ToolsBox,
         connections: dict,
-        log: ActionBoundLogger,
     ) -> MockResult:
         return MockResult()
 
@@ -196,9 +187,8 @@ class ActionListRole(MockAction):
         self,
         params: MockParams,
         state: BaseState,
-        deps: dict,
+        box: ToolsBox,
         connections: dict,
-        log: ActionBoundLogger,
     ) -> MockResult:
         return MockResult()
 
@@ -209,9 +199,8 @@ class ActionNoDecorator(MockAction):
         self,
         params: MockParams,
         state: BaseState,
-        deps: dict,
+        box: ToolsBox,
         connections: dict,
-        log: ActionBoundLogger,
     ) -> MockResult:
         return MockResult()
 
@@ -227,9 +216,8 @@ class ActionWithOneConnection(MockAction):
         self,
         params: MockParams,
         state: BaseState,
-        deps: dict,
+        box: ToolsBox,
         connections: dict,
-        log: ActionBoundLogger,
     ) -> MockResult:
         assert "db" in connections
         return MockResult()
@@ -244,9 +232,8 @@ class ActionWithTwoConnections(MockAction):
         self,
         params: MockParams,
         state: BaseState,
-        deps: dict,
+        box: ToolsBox,
         connections: dict,
-        log: ActionBoundLogger,
     ) -> MockResult:
         assert "db" in connections
         assert "cache" in connections
@@ -260,9 +247,8 @@ class ActionWithoutConnections(MockAction):
         self,
         params: MockParams,
         state: BaseState,
-        deps: dict,
+        box: ToolsBox,
         connections: dict,
-        log: ActionBoundLogger,
     ) -> MockResult:
         assert connections == {}
         return MockResult()
@@ -280,9 +266,8 @@ class BadAction(MockAction):
         self,
         params: MockParams,
         state: BaseState,
-        deps: dict,
+        box: ToolsBox,
         connections: dict,
-        log: ActionBoundLogger,
     ) -> str:
         return "not a dict"
 
@@ -291,9 +276,8 @@ class BadAction(MockAction):
         self,
         params: MockParams,
         state: BaseState,
-        deps: dict,
+        box: ToolsBox,
         connections: dict,
-        log: ActionBoundLogger,
     ) -> MockResult:
         return MockResult()
 
@@ -307,9 +291,8 @@ class ActionWithoutCheckers(MockAction):
         self,
         params: MockParams,
         state: BaseState,
-        deps: dict,
+        box: ToolsBox,
         connections: dict,
-        log: ActionBoundLogger,
     ) -> dict:
         return {"field": "value"}
 
@@ -318,9 +301,8 @@ class ActionWithoutCheckers(MockAction):
         self,
         params: MockParams,
         state: BaseState,
-        deps: dict,
+        box: ToolsBox,
         connections: dict,
-        log: ActionBoundLogger,
     ) -> MockResult:
         return MockResult()
 
@@ -335,9 +317,8 @@ class ActionWithChecker(MockAction):
         self,
         params: MockParams,
         state: BaseState,
-        deps: dict,
+        box: ToolsBox,
         connections: dict,
-        log: ActionBoundLogger,
     ) -> dict:
         return {"field": "ok", "extra": "forbidden"}
 
@@ -346,9 +327,8 @@ class ActionWithChecker(MockAction):
         self,
         params: MockParams,
         state: BaseState,
-        deps: dict,
+        box: ToolsBox,
         connections: dict,
-        log: ActionBoundLogger,
     ) -> MockResult:
         return MockResult()
 
@@ -430,7 +410,7 @@ class TestGetAspects:
     def test_get_aspects_no_summary_raises(self):
         class ActionNoSummary(MockAction):
             @regular_aspect("no summary")
-            async def aspect(self, params, state, deps, connections, log):
+            async def aspect(self, params, state, box, connections):
                 return {}
 
         with pytest.raises(TypeError, match="does not have a summary aspect"):
@@ -440,11 +420,11 @@ class TestGetAspects:
         with pytest.raises(TypeError, match="Only one summary aspect can be registered per action"):
             class ActionTwoSummaries(MockAction):
                 @summary_aspect("first")
-                async def summary1(self, params, state, deps, connections, log):
+                async def summary1(self, params, state, box, connections):
                     return MockResult()
 
                 @summary_aspect("second")
-                async def summary2(self, params, state, deps, connections, log):
+                async def summary2(self, params, state, box, connections):
                     return MockResult()
 
 
@@ -473,9 +453,8 @@ class TestCheckActionRoles:
                 self,
                 params: MockParams,
                 state: BaseState,
-                deps: dict,
+                box: ToolsBox,
                 connections: dict,
-                log: ActionBoundLogger,
             ) -> MockResult:
                 return MockResult()
 
@@ -493,9 +472,8 @@ class TestCheckActionRoles:
                 self,
                 params: MockParams,
                 state: BaseState,
-                deps: dict,
+                box: ToolsBox,
                 connections: dict,
-                log: ActionBoundLogger,
             ) -> MockResult:
                 return MockResult()
 
@@ -577,10 +555,22 @@ class TestRun:
 
     @pytest.mark.anyio
     async def test_nest_level_increments_and_decrements(self, machine, context_with_roles):
-        assert machine._nest_level == 0
-        ActionWithAspects._test_calls = []
-        await machine.run(context_with_roles, ActionWithAspects(), MockParams())
-        assert machine._nest_level == 0
+        # Nesting is now handled via ToolsBox, not a machine field.
+        # We verify that box receives correct nested_level.
+        @CheckRoles(CheckRoles.NONE, desc="")
+        class CheckNestingAction(MockAction):
+            @summary_aspect("test")
+            async def summary(
+                self,
+                params: MockParams,
+                state: BaseState,
+                box: ToolsBox,
+                connections: dict,
+            ) -> MockResult:
+                assert box.nested_level == 1
+                return MockResult()
+
+        await machine.run(context_with_roles, CheckNestingAction(), MockParams())
 
     # ------------------------------------------------------------------
     # TESTS: Logging and mode passing
