@@ -151,7 +151,7 @@ class TestDebugFunction:
         # extra may be truncated, but should contain org
         assert "org" in result or "acme" in result
         assert "request: RequestInfo = RequestInfo(trace_id=None, request_timestamp=None, request_path=None, request_method=None, full_url=None, client_ip=None, protocol=None, user_agent=None, extra={}, tags={})" in result
-        assert "environment: EnvironmentInfo = EnvironmentInfo(hostname=None, service_name=None, service_version=None, environment=None, container_id=None, pod_name=None, extra={})" in result
+        assert "runtime: RuntimeInfo = RuntimeInfo(hostname=None, service_name=None, service_version=None, container_id=None, pod_name=None, extra={})" in result
 
     def test_debug_var(self, evaluator: ExpressionEvaluator):
         var = {"a": 1, "b": "hello", "c": [1, 2, 3]}

@@ -1,3 +1,4 @@
+# src/action_machine/Auth/auth_coordinator.py
 """
 Координатор процесса аутентификации и сборки контекста.
 
@@ -118,5 +119,5 @@ class AuthCoordinator:
         return Context(
             user=authenticated_user,
             request=req_info,
-            environment=None  # environment будет заполнен позже или по умолчанию
+            runtime=None  # будет заполнен позже или останется пустым
         )
