@@ -1,6 +1,11 @@
+# src/action_machine/Core/BaseActionMachine.py
 """
 Abstract base class for all action machines.
 Defines the asynchronous run method and the synchronous sync_run wrapper.
+
+Изменения (этап 0):
+- sync_run теперь вызывает _run_internal вместо run, так как убраны resources из публичного run.
+- Обновлены комментарии.
 """
 
 from abc import ABC, abstractmethod
@@ -32,7 +37,6 @@ class BaseActionMachine(ABC):
         context: Context,
         action: BaseAction[P, R],
         params: P,
-        resources: dict[type[Any], Any] | None = None,
         connections: dict[str, BaseResourceManager] | None = None,
     ) -> R:
         """
@@ -47,14 +51,11 @@ class BaseActionMachine(ABC):
                      (contains user, request, and environment information).
             action: action instance to execute.
             params: action input parameters.
-            resources: dictionary of external resources (key – resource class,
-                       value – instance) that will be passed to the dependency
-                       factory with priority.
             connections: dictionary of resource managers (connections),
                          key – string connection name (matches the name in @connection),
                          value – BaseResourceManager instance.
                          Passed to all aspects as is.
-                         When passed to child actions via DependencyFactory,
+                         When passed to child actions via ToolsBox.run,
                          each connection is wrapped using get_wrapper_class().
 
         Returns:
@@ -62,12 +63,27 @@ class BaseActionMachine(ABC):
         """
         pass
 
+    async def _run_internal(
+        self,
+        context: Context,
+        action: BaseAction[P, R],
+        params: P,
+        resources: dict[type[Any], Any] | None,
+        connections: dict[str, BaseResourceManager] | None,
+        nested_level: int,
+    ) -> R:
+        """
+        Internal execution method that handles resources and nesting.
+
+        Concrete implementations must override this method.
+        """
+        raise NotImplementedError
+
     def sync_run(
         self,
         context: Context,
         action: BaseAction[P, R],
         params: P,
-        resources: dict[type[Any], Any] | None = None,
         connections: dict[str, BaseResourceManager] | None = None,
     ) -> R:
         """
@@ -84,7 +100,6 @@ class BaseActionMachine(ABC):
             context: execution context for this specific request.
             action: action instance.
             params: input parameters.
-            resources: external resources (optional).
             connections: dictionary of resource managers (optional).
 
         Returns:
@@ -93,13 +108,10 @@ class BaseActionMachine(ABC):
         import asyncio
 
         try:
-            # Check if an event loop is already running
             asyncio.get_running_loop()
-            # If we reached this point, a loop is running – this is a usage error
             raise RuntimeError(
                 "sync_run() called inside an already running asyncio loop. "
                 "In asynchronous code, use await run()."
             )
         except RuntimeError:
-            # No running loop – we can safely use asyncio.run()
-            return asyncio.run(self.run(context, action, params, resources, connections))
+            return asyncio.run(self.run(context, action, params, connections))

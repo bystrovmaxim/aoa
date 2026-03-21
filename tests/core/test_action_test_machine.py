@@ -9,6 +9,16 @@ Checks:
 - build_factory method
 - Passing mode and log_coordinator (constructor changes)
 - Default mode="test"
+
+Изменения (этап 1):
+- Во всех аспектах заменены сигнатуры: параметры deps и log заменены на box: ToolsBox.
+- Обновлены вызовы box.resolve(...) вместо deps.get(...).
+- Обновлены вызовы box.info(...) вместо log.info(...).
+- Убраны неиспользуемые импорты ActionBoundLogger где необходимо.
+
+Изменения (этап 2):
+- Исправлены асинхронные тесты: добавлены async def и декоратор @pytest.mark.anyio
+  для методов, использующих await.
 """
 
 from unittest.mock import AsyncMock, Mock
@@ -25,7 +35,7 @@ from action_machine.Core.BaseParams import BaseParams
 from action_machine.Core.BaseResult import BaseResult
 from action_machine.Core.DependencyFactory import DependencyFactory
 from action_machine.Core.MockAction import MockAction
-from action_machine.Logging.action_bound_logger import ActionBoundLogger
+from action_machine.Core.ToolsBox import ToolsBox
 from action_machine.Logging.log_coordinator import LogCoordinator
 
 
@@ -52,13 +62,12 @@ class RealAction(BaseAction[MockParams, MockResult]):
         self,
         params: MockParams,
         state: dict,
-        deps: DependencyFactory,
+        box: ToolsBox,
         connections: dict,
-        log: ActionBoundLogger,
     ) -> MockResult:
-        self.captured = deps.get(str)
+        self.captured = box.resolve(str)
         # Check that the logger works
-        await log.info("Summary executed", action="RealAction")
+        await box.info("Summary executed", action="RealAction")
         self.log_called = True
         return MockResult()
 
@@ -71,9 +80,8 @@ class ActionWithDeps(BaseAction[MockParams, MockResult]):
         self,
         params: MockParams,
         state: dict,
-        deps: DependencyFactory,
+        box: ToolsBox,
         connections: dict,
-        log: ActionBoundLogger,
     ) -> MockResult:
         return MockResult()
 
@@ -90,13 +98,12 @@ class CapturingAction(BaseAction[MockParams, MockResult]):
         self,
         params: MockParams,
         state: dict,
-        deps: DependencyFactory,
+        box: ToolsBox,
         connections: dict,
-        log: ActionBoundLogger,
     ) -> MockResult:
-        self.captured = deps.get(str)
-        await log.debug("Debug from CapturingAction")
-        await log.info("Info from CapturingAction")
+        self.captured = box.resolve(str)
+        await box.debug("Debug from CapturingAction")
+        await box.info("Info from CapturingAction")
         return MockResult()
 
 
@@ -200,7 +207,7 @@ class TestRunWithMockAction:
 class TestRunWithRealAction:
     @pytest.mark.anyio
     async def test_real_action_gets_mocks_from_factory(self, machine_with_mocks: ActionTestMachine, empty_context: Context) -> None:
-        """Dependencies from mocks are injected into the action."""
+        """Dependencies from mocks are injected into the action via box.resolve."""
         action = CapturingAction()
         params = MockParams()
 
@@ -307,15 +314,24 @@ class TestBuildFactory:
         scope = call_args.kwargs["scope"]
         assert scope["mode"] == "testing_mode"  # from machine_with_mocks fixture
 
-    def test_build_factory_respects_external_resources(self, machine: ActionTestMachine) -> None:
+    @pytest.mark.anyio
+    async def test_build_factory_respects_external_resources(self, machine: ActionTestMachine) -> None:
         """external_resources have priority over mocks."""
         # Create a machine with a mock for str
         mocks = {str: "mocked"}
         test_machine = ActionTestMachine(mocks=mocks, mode="test")
 
-        # Pass external_resources with a different value
+        # Pass external_resources with a different value via the run method's resources parameter.
+        # The new architecture uses box.resolve which checks the resources dictionary.
+        # We'll test via _run_internal.
         external = {str: "external"}
-        factory = test_machine._get_factory(RealAction, external_resources=external)
+        action = RealAction()
+        params = MockParams()
+        context = Context()
 
-        # Should return external, not mocked
-        assert factory.get(str) == "external"
+        # We need to call _run_internal to pass resources.
+        await test_machine._run_internal(
+            context, action, params, resources=external, connections=None, nested_level=0
+        )
+        # The action captured the resolved value.
+        assert action.captured == "external"

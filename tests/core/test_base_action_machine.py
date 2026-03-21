@@ -9,6 +9,12 @@ Covers lines 87-98:
 Strict typing: all parameters and return values are annotated.
 state replaced with BaseState.
 Updated: log parameter added to SimpleAction aspect.
+
+Изменения (этап 1):
+- В аспекте SimpleAction заменены параметры deps и log на box: ToolsBox.
+- В вызове аспекта теперь используется box (не передаётся отдельно).
+- Импортирован ToolsBox.
+- Обновлены комментарии.
 """
 
 import warnings
@@ -23,8 +29,7 @@ from action_machine.Core.BaseAction import BaseAction
 from action_machine.Core.BaseParams import BaseParams
 from action_machine.Core.BaseResult import BaseResult
 from action_machine.Core.BaseState import BaseState
-from action_machine.Core.DependencyFactory import DependencyFactory
-from action_machine.Logging.action_bound_logger import ActionBoundLogger
+from action_machine.Core.ToolsBox import ToolsBox
 
 ################################################################################
 # Helper classes
@@ -54,9 +59,8 @@ class SimpleAction(BaseAction[MockParams, MockResult]):
         self,
         params: MockParams,
         state: BaseState,
-        deps: DependencyFactory,
+        box: ToolsBox,
         connections: dict[str, object],
-        log: ActionBoundLogger,  # added log parameter
     ) -> MockResult:
         """
         Main aspect of the action.
@@ -64,14 +68,13 @@ class SimpleAction(BaseAction[MockParams, MockResult]):
         Args:
             params:      input parameters.
             state:       aspect pipeline state.
-            deps:        dependency factory.
+            box:         ToolsBox instance (provides logging and dependencies).
             connections: connection dictionary.
-            log:         bound logger (not used in test, but mandatory).
 
         Returns:
             MockResult: empty result.
         """
-        # For the test we can do nothing with log
+        # For the test we can do nothing with box
         return MockResult()
 
 

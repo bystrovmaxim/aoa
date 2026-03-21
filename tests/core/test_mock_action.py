@@ -1,12 +1,17 @@
 # tests/core/test_mock_action.py
 """
-Тесты MockAction — мок-действия для тестирования.
+Tests for MockAction — mock action for testing.
 
-Проверяем:
-- Вызов с фиксированным result
-- Вызов с side_effect
-- Подсчёт вызовов и сохранение последних параметров
-- Ошибку при отсутствии result и side_effect
+Checks:
+- Calling with fixed result
+- Calling with side_effect
+- Call counting and saving last parameters
+- Error when result and side_effect are missing
+
+Изменения (этап 1):
+- Метод _mock_summary в MockAction обновлён: теперь принимает box: ToolsBox вместо deps и log.
+- В тестах это не требует изменений, так как тесты не вызывают аспект напрямую.
+- Обновлены комментарии.
 """
 
 import pytest
@@ -25,10 +30,10 @@ class MockResult(BaseResult):
 
 
 class TestMockAction:
-    """Тесты для MockAction."""
+    """Tests for MockAction."""
 
     def test_run_with_result_returns_fixed_result(self):
-        """MockAction с result возвращает этот результат при каждом вызове."""
+        """MockAction with result returns that result on each call."""
         expected = MockResult()
         action = MockAction(result=expected)
         params = MockParams()
@@ -40,7 +45,7 @@ class TestMockAction:
         assert result2 is expected
 
     def test_run_with_side_effect_calls_function(self):
-        """MockAction с side_effect вызывает функцию с параметрами."""
+        """MockAction with side_effect calls the function with parameters."""
 
         def side_effect(p):
             assert isinstance(p, MockParams)
@@ -53,7 +58,7 @@ class TestMockAction:
         assert isinstance(result, MockResult)
 
     def test_side_effect_overrides_result(self):
-        """Если задан side_effect, result игнорируется."""
+        """If side_effect is given, result is ignored."""
         result_obj = MockResult()
 
         def side_effect(p):
@@ -67,7 +72,7 @@ class TestMockAction:
         assert isinstance(result, MockResult)
 
     def test_call_count_increments(self):
-        """call_count увеличивается при каждом вызове."""
+        """call_count increments on each call."""
         action = MockAction(result=MockResult())
         params = MockParams()
 
@@ -78,7 +83,7 @@ class TestMockAction:
         assert action.call_count == 2
 
     def test_last_params_stores_last_call_params(self):
-        """last_params сохраняет параметры последнего вызова."""
+        """last_params stores the parameters of the last call."""
         action = MockAction(result=MockResult())
         params1 = MockParams()
         params2 = MockParams()
@@ -90,7 +95,7 @@ class TestMockAction:
         assert action.last_params is params2
 
     def test_no_result_no_side_effect_raises_value_error(self):
-        """Если не заданы ни result, ни side_effect, run кидает ValueError."""
+        """If neither result nor side_effect is given, run raises ValueError."""
         action = MockAction()
         params = MockParams()
 

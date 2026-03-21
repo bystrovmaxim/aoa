@@ -1,6 +1,16 @@
 # tests/aspects/test_aspect_gate_host.py
 """
-Тесты для AspectGateHost — хоста шлюза аспектов.
+Tests for AspectGateHost — the host for aspect gate.
+
+Checks:
+- Aspect registration via decorators
+- Copy-on-write behavior for per-instance aspect changes
+
+Изменения (этап 1):
+- Во всех аспектах, определённых в тестах, заменены сигнатуры:
+  параметры deps и log заменены на box: ToolsBox.
+- Импортирован ToolsBox.
+- Обновлены комментарии.
 """
 
 import pytest
@@ -14,19 +24,21 @@ class TestAspectGateHost:
     def test_aspects_property_lazy_creation(self):
         class MyAction(AspectGateHost):
             @summary_aspect("test")
-            async def summ(self): pass
+            async def summ(self, params, state, box, connections):
+                pass
 
         action = MyAction()
         assert action._instance_gate is None
         gate = action.aspects
         assert gate is not None
-        assert action._instance_gate is None  # всё ещё None, используется классовый шлюз
+        assert action._instance_gate is None  # still None, uses class gate
         assert gate is MyAction._class_gate
 
     def test_get_aspects_empty(self):
         class MyAction(AspectGateHost):
             @summary_aspect("test")
-            async def summ(self): pass
+            async def summ(self, params, state, box, connections):
+                pass
 
         action = MyAction()
         regular, summary = action.get_aspects()
@@ -37,11 +49,16 @@ class TestAspectGateHost:
     def test_get_aspects_with_aspects(self):
         class MyAction(AspectGateHost):
             @regular_aspect("first")
-            async def first(self): pass
+            async def first(self, params, state, box, connections):
+                pass
+
             @regular_aspect("second")
-            async def second(self): pass
+            async def second(self, params, state, box, connections):
+                pass
+
             @summary_aspect("summary")
-            async def summ(self): pass
+            async def summ(self, params, state, box, connections):
+                pass
 
         action = MyAction()
         regular, summary = action.get_aspects()
@@ -58,104 +75,126 @@ class TestAspectGateHost:
         with pytest.raises(TypeError, match="does not have a summary aspect"):
             class MyAction(AspectGateHost):
                 @regular_aspect("only")
-                async def only(self): pass
+                async def only(self, params, state, box, connections):
+                    pass
 
-            MyAction()  # создание экземпляра вызывает проверку в __init__
+            MyAction()  # instance creation triggers check in __init__
 
     def test_child_must_have_own_summary(self):
-        """Дочерний класс не наследует summary-аспект от родителя."""
+        """Child class does not inherit summary aspect from parent."""
         class Parent(AspectGateHost):
             @summary_aspect("parent_summary")
-            async def parent_summary(self): pass
+            async def parent_summary(self, params, state, box, connections):
+                pass
 
         with pytest.raises(TypeError, match="does not have a summary aspect"):
             class Child(Parent):
                 @regular_aspect("child")
-                async def child_aspect(self): pass
+                async def child_aspect(self, params, state, box, connections):
+                    pass
 
             Child()
 
     def test_duplicate_summary_in_single_class_raises(self):
-        """В одном классе нельзя определить два summary-аспекта."""
+        """Cannot define two summary aspects in one class."""
         with pytest.raises(TypeError, match="Only one summary aspect can be registered"):
             class MyAction(AspectGateHost):
                 @summary_aspect("first")
-                async def summ1(self): pass
+                async def summ1(self, params, state, box, connections):
+                    pass
+
                 @summary_aspect("second")
-                async def summ2(self): pass
+                async def summ2(self, params, state, box, connections):
+                    pass
 
     def test_aspects_are_registered_only_once(self):
         class MyAction(AspectGateHost):
             @regular_aspect("test")
-            async def test(self): pass
+            async def test(self, params, state, box, connections):
+                pass
+
             @summary_aspect("summary")
-            async def summ(self): pass
+            async def summ(self, params, state, box, connections):
+                pass
 
         assert not hasattr(MyAction.test, '_new_aspect_meta')
         assert not hasattr(MyAction.summ, '_new_aspect_meta')
 
 
 class TestAspectGateHostCopyOnWrite:
-    """Тесты для copy-on-write в AspectGateHost."""
+    """Tests for copy-on-write in AspectGateHost."""
 
     def test_instances_share_gate_by_default(self):
         class MyAction(AspectGateHost):
             @regular_aspect("r1")
-            async def r1(self): pass
+            async def r1(self, params, state, box, connections):
+                pass
+
             @regular_aspect("r2")
-            async def r2(self): pass
+            async def r2(self, params, state, box, connections):
+                pass
+
             @summary_aspect("s")
-            async def s(self): pass
+            async def s(self, params, state, box, connections):
+                pass
 
         a1 = MyAction()
         a2 = MyAction()
 
-        # Оба используют один и тот же объект шлюза (классовый)
+        # Both use the same gate object (class gate)
         assert a1.aspects is a2.aspects
         assert a1.aspects is MyAction._class_gate
 
     def test_add_regular_aspect_creates_copy(self):
         class MyAction(AspectGateHost):
             @regular_aspect("r1")
-            async def r1(self): pass
+            async def r1(self, params, state, box, connections):
+                pass
+
             @summary_aspect("s")
-            async def s(self): pass
+            async def s(self, params, state, box, connections):
+                pass
 
         a1 = MyAction()
         a2 = MyAction()
 
         original_gate = MyAction._class_gate
 
-        # Добавляем аспект к a1
-        async def new_regular(): pass
+        # Add aspect to a1
+        async def new_regular(params, state, box, connections):
+            pass
+
         a1.add_regular_aspect(new_regular, "new")
 
-        # У a1 теперь свой шлюз, у a2 – общий
+        # a1 now has its own gate, a2 still uses class gate
         assert a1.aspects is not original_gate
         assert a2.aspects is original_gate
 
-        # Проверяем, что аспект добавился только у a1
+        # Check aspect added only for a1
         regular1, _ = a1.get_aspects()
         regular2, _ = a2.get_aspects()
         assert len(regular1) == 2  # r1 + new
-        assert len(regular2) == 1  # только r1
+        assert len(regular2) == 1  # only r1
 
-        # Проверяем, что оригинальный шлюз не изменился
+        # Original gate unchanged
         assert len(original_gate.get_regular()) == 1
 
     def test_remove_regular_aspect_creates_copy(self):
         class MyAction(AspectGateHost):
             @regular_aspect("r1")
-            async def r1(self): pass
+            async def r1(self, params, state, box, connections):
+                pass
+
             @summary_aspect("s")
-            async def s(self): pass
+            async def s(self, params, state, box, connections):
+                pass
 
         a1 = MyAction()
         a2 = MyAction()
 
         original_gate = MyAction._class_gate
 
-        # Удаляем аспект у a1 – передаём классовый метод, а не bound
+        # Remove aspect from a1
         a1.remove_regular_aspect(MyAction.r1)
 
         assert a1.aspects is not original_gate
@@ -171,29 +210,37 @@ class TestAspectGateHostCopyOnWrite:
     def test_set_summary_aspect_creates_copy(self):
         class MyAction(AspectGateHost):
             @regular_aspect("r1")
-            async def r1(self): pass
+            async def r1(self, params, state, box, connections):
+                pass
+
             @summary_aspect("s1")
-            async def s1(self): pass
+            async def s1(self, params, state, box, connections):
+                pass
 
         a1 = MyAction()
         a2 = MyAction()
 
-        async def new_summary(): pass
+        async def new_summary(params, state, box, connections):
+            pass
+
         a1.set_summary_aspect(new_summary, "new summary")
 
         assert a1.aspects is not a2.aspects
         _, summary1 = a1.get_aspects()
         _, summary2 = a2.get_aspects()
         assert summary1[0] is new_summary
-        # summary2[0] должен быть исходным summary-аспектом класса
+        # summary2[0] should be the original summary aspect of the class
         assert summary2[0] is MyAction.s1
 
     def test_remove_summary_aspect_creates_copy(self):
         class MyAction(AspectGateHost):
             @regular_aspect("r1")
-            async def r1(self): pass
+            async def r1(self, params, state, box, connections):
+                pass
+
             @summary_aspect("s1")
-            async def s1(self): pass
+            async def s1(self, params, state, box, connections):
+                pass
 
         a1 = MyAction()
         a2 = MyAction()
@@ -208,18 +255,23 @@ class TestAspectGateHostCopyOnWrite:
     def test_multiple_changes_same_instance(self):
         class MyAction(AspectGateHost):
             @regular_aspect("r1")
-            async def r1(self): pass
+            async def r1(self, params, state, box, connections):
+                pass
+
             @summary_aspect("s")
-            async def s(self): pass
+            async def s(self, params, state, box, connections):
+                pass
 
         a = MyAction()
 
-        # Первое изменение создаёт копию
-        async def r2(): pass
+        # First change creates a copy
+        async def r2(params, state, box, connections):
+            pass
+
         a.add_regular_aspect(r2, "r2")
         gate1 = a._instance_gate
 
-        # Второе изменение использует ту же копию, новую не создаёт
+        # Second change uses the same copy, does not create a new one
         a.remove_regular_aspect(MyAction.r1)
         assert a._instance_gate is gate1
 
