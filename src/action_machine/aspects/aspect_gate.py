@@ -1,16 +1,17 @@
 # src/action_machine/aspects/aspect_gate.py
 """
 Шлюз для управления аспектами действия.
+
+Этот класс используется только внутри пакета action_machine.
+Публичные методы предназначены исключительно для внутреннего использования.
 """
 
 from typing import Any
 
-from action_machine.Core.base_gate import BaseGate
-
 from .aspect_method_protocol import AspectMethodProtocol
 
 
-class AspectGate(BaseGate[AspectMethodProtocol]):
+class AspectGate:
     """
     Шлюз для управления аспектами действия.
 
@@ -22,9 +23,12 @@ class AspectGate(BaseGate[AspectMethodProtocol]):
     Методы:
         register(component, **metadata) – зарегистрировать аспект.
         unregister(component) – удалить аспект.
-        get_components() – список всех аспектов.
         get_regular() – список обычных аспектов с описаниями.
         get_summary() – summary-аспект (или None).
+
+    ВАЖНО: Этот класс предназначен только для внутреннего использования
+    в пакете action_machine. Внешний код не должен создавать экземпляры
+    или вызывать методы этого класса напрямую.
     """
 
     def __init__(self) -> None:
@@ -72,13 +76,6 @@ class AspectGate(BaseGate[AspectMethodProtocol]):
                 return
         if self._summary and self._summary[0] is component:
             self._summary = None
-
-    def get_components(self) -> list[AspectMethodProtocol]:
-        """Вернуть все зарегистрированные аспекты (сначала обычные, потом summary)."""
-        result = [m for m, _ in self._regular]
-        if self._summary:
-            result.append(self._summary[0])
-        return result
 
     def get_regular(self) -> list[tuple[AspectMethodProtocol, str]]:
         """Вернуть список (метод, описание) для обычных аспектов в порядке регистрации."""

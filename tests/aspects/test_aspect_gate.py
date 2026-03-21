@@ -2,9 +2,7 @@
 """
 Tests for AspectGate — the aspect gate.
 
-Изменения (этап 1):
-- Нет изменений, так как тесты не используют аспекты с параметрами.
-- Обновлены комментарии.
+Updated to use get_regular() and get_summary() instead of removed get_components().
 """
 
 import pytest
@@ -25,7 +23,6 @@ class TestAspectGate:
         gate.register(method, description="test", type="regular")
         assert gate.get_regular() == [(method, "test")]
         assert gate.get_summary() is None
-        assert gate.get_components() == [method]
 
     def test_register_summary(self):
         gate = AspectGate()
@@ -33,7 +30,6 @@ class TestAspectGate:
         gate.register(method, description="summary", type="summary")
         assert gate.get_regular() == []
         assert gate.get_summary() == (method, "summary")
-        assert gate.get_components() == [method]
 
     def test_register_unknown_type_raises(self):
         gate = AspectGate()
@@ -54,7 +50,6 @@ class TestAspectGate:
         gate.register(m2, description="b", type="regular")
         gate.unregister(m1)
         assert gate.get_regular() == [(m2, "b")]
-        assert gate.get_components() == [m2]
 
     def test_unregister_summary(self):
         gate = AspectGate()
@@ -62,21 +57,22 @@ class TestAspectGate:
         gate.register(m, description="s", type="summary")
         gate.unregister(m)
         assert gate.get_summary() is None
-        assert gate.get_components() == []
 
     def test_unregister_nonexistent_ignored(self):
         gate = AspectGate()
         gate.unregister(DummyAspect())  # no error
 
-    def test_get_components_order(self):
+    def test_regular_aspects_order(self):
+        """Regular aspects are returned in registration order."""
         gate = AspectGate()
-        r1 = DummyAspect()
-        r2 = DummyAspect()
-        s = DummyAspect()
-        gate.register(r1, description="r1", type="regular")
-        gate.register(s, description="s", type="summary")
-        gate.register(r2, description="r2", type="regular")
-        assert gate.get_components() == [r1, r2, s]
+        m1 = DummyAspect()
+        m2 = DummyAspect()
+        gate.register(m1, description="first", type="regular")
+        gate.register(m2, description="second", type="regular")
+        regular = gate.get_regular()
+        assert len(regular) == 2
+        assert regular[0][0] is m1
+        assert regular[1][0] is m2
 
     def test_get_regular_returns_copy(self):
         gate = AspectGate()

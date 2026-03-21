@@ -4,6 +4,66 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.0.6] – 2026-03-21
+
+### Added
+- **New aspect architecture based on gates** – introduced `AspectGate` and `AspectGateHost` for explicit, type‑safe management of aspects.  
+  - `AspectGate` stores regular and summary aspects, providing methods to register, unregister, and retrieve them.  
+  - `AspectGateHost` is a mixin that attaches an aspect gate to any class, automatically collects methods decorated with `@regular_aspect` and `@summary_aspect` during class creation, and supports inheritance (copies aspects from parent classes).  
+  - The new system is completely independent from the old magic aspect system, allowing gradual migration of actions.
+- **New aspect decorators** – `@regular_aspect(description)` and `@summary_aspect(description)` now replace the deprecated `@aspect_old` and `@summary_aspect_old`.  
+  These decorators only add temporary metadata; registration is handled centrally by `AspectGateHost`.
+- **Copy‑on‑write for aspect gates** – each instance of an action can safely modify its own set of aspects (add, remove, replace summary) without affecting other instances or the class‑level gate.  
+  This is implemented by lazily copying the class gate when the first modification is made.
+- **`ToolsBox` class** – a new container that bundles all tools an aspect may need:  
+  - `resolve(cls)` – obtains dependencies, respecting both external resources and the dependency factory.  
+  - `info`, `warning`, `error`, `debug` – logging methods that automatically add the correct scope (machine, mode, action, aspect) and nesting level.  
+  - `run(action_class, params, connections)` – runs a child action, automatically wrapping connections to prevent nested transaction control.  
+  - `nested_level` property gives access to the current nesting depth.
+- **`box` parameter in aspects** – all aspects now receive a single `box: ToolsBox` instead of separate `deps` and `log` parameters. This reduces the number of aspect parameters from 5 to 4 (`params, state, box, connections`).
+- **Explicit nesting level handling** – removed the global `_nest_level` from `ActionProductMachine`. Nesting level is now passed explicitly as `nested_level` through `_run_internal` and is stored inside `ToolsBox`.
+- **`ActionTestMachine` support for external resources** – the test machine now accepts a `resources` dictionary in its `run` method (via `_run_internal`), allowing tests to inject mocks directly.
+- **`RuntimeInfo` renamed from `EnvironmentInfo`** – the class and all references have been renamed to better reflect its purpose (information about the runtime environment, not the “environment” concept).  
+  The attribute `context.environment` is replaced with `context.runtime`.
+
+### Changed
+- **Aspect signatures** – all aspects (both regular and summary) now have the signature:  
+  `async def method(params, state, box, connections)`.
+- **BaseAction now inherits `AspectGateHost`** – every action gains the new aspect gate infrastructure while remaining compatible with existing code.
+- **DependencyFactory improvements** –  
+  - Method `get()` renamed to `resolve()` for consistency.  
+  - Removed `machine` parameter from constructor.  
+  - Removed `_external_resources` – external resources are now provided directly to `ToolsBox` and take precedence in `resolve()`.  
+  - Removed `run_action()` – child action execution is now handled by `ToolsBox.run()`.
+- **`ActionProductMachine` internal changes** –  
+  - Public `run()` no longer accepts `resources` (they are passed implicitly via the dependency factory).  
+  - Added private `_run_internal(context, action, params, resources, connections, nested_level)`.  
+  - Removed `_nest_level` field.  
+  - Removed old aspect collection methods (`_collect_aspects`, `_get_aspects`, `_process_method_for_aspect`, `_aspect_cache`).  
+  - `_call_aspect` and `_execute_regular_aspects` now receive `box` instead of `factory` and `log`.
+- **`ActionTestMachine`** – its `run` method now passes the prepared mocks as `resources` to `_run_internal`, ensuring mocks are available during child action execution.
+- **Logging** – the `ActionBoundLogger` is now created only once per `_run_internal` call and reused for all aspects, improving performance.  
+  Aspect‑specific loggers are still created for each aspect but now inherit the correct nesting level from the parent box.
+- **`Context` components** – `EnvironmentInfo` is renamed to `RuntimeInfo`. All tests and references have been updated.
+
+### Removed
+- **Old aspect decorators** – `@aspect_old` and `@summary_aspect_old` are removed from `Core/AspectMethod.py`.  
+  The new `@regular_aspect` and `@summary_aspect` from the `aspects` package must be used instead.
+- **Aspect collection logic** – the old magic methods `_collect_aspects`, `_get_aspects`, `_process_method_for_aspect`, and the `_aspect_cache` dictionary have been removed from `ActionProductMachine`.
+- **`_external_resources` and `machine` parameter** from `DependencyFactory` – these are no longer needed as external resources are passed through `ToolsBox`.
+- **`DependencyFactory.run_action()`** – replaced by `ToolsBox.run()`.
+- **`context.environment` attribute** – replaced by `context.runtime`.
+- **Global `_nest_level`** – removed from `ActionProductMachine`; nesting is now tracked per call via explicit argument.
+
+### Fixed
+- **Type‑safety in `ToolsBox.run`** – added a `cast(R, result)` to satisfy mypy, as the return type from `__run_child` is `BaseResult`, but the method is generic.
+- **All tests** – updated to use the new aspect signatures, `ToolsBox`, and renamed `RuntimeInfo`.  
+  Tests that previously relied on old aspect decorators or the removed `_nest_level` have been rewritten.  
+  **549 tests pass** after the refactoring, with no functionality broken.
+
+### Security
+- No direct security changes in this release, but the cleaner separation of concerns and explicit resource handling reduces the risk of accidental mis‑use in tests and production code.
+
 ## [0.0.5] - 2026-03-19
 
 ### Added
