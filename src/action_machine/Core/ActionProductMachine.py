@@ -3,21 +3,11 @@
 Product action machine implementation with plugin support and nesting.
 Fully asynchronous version. Uses PluginEvent to pass data to plugins.
 
-Изменения (этап 0–1):
-- Убран параметр resources из публичного run().
-- Добавлен приватный метод _run_internal() с параметром resources.
-- Убрано поле _nest_level, уровень вложенности передаётся явно.
-- В _run_internal создаётся ActionBoundLogger и ToolsBox.
-- _call_aspect и _execute_regular_aspects теперь принимают box вместо factory и log.
-- _get_factory больше не принимает external_resources и self.
+Изменения (этап 3):
+- Убран кэш аспектов (`_aspect_cache`) – теперь кэширование выполняется в `AspectGateHost`.
+- Вызовы `self._get_aspects(action)` заменены на `action.get_aspects()`.
+- Удалён метод `_get_aspects` (больше не нужен).
 - Обновлены комментарии.
-
-Изменения (этап 2):
-- В ToolsBox больше не передаётся self, вместо этого создаётся замыкание run_child,
-  которое вызывает _run_internal. Это разрывает циклическую зависимость между
-  ToolsBox и ActionProductMachine, сохраняя инкапсуляцию.
-- В _call_aspect и _execute_regular_aspects для создания аспектных боксов используется
-  box.run_child (публичное свойство ToolsBox).
 """
 
 import time
@@ -50,21 +40,14 @@ class ActionProductMachine(BaseActionMachine):
     """
     Product implementation of the action machine (asynchronous).
 
-    Contains logic for caching aspects and dependency factories,
+    Contains logic for caching dependency factories,
     performs role checking, validation of aspect results through checkers,
     and checks the correspondence of passed connections to those declared with @connection.
 
-    Plugin management is delegated to PluginCoordinator —
-    a separate class responsible for state initialization,
-    handler caching, and asynchronous execution.
+    Plugin management is delegated to PluginCoordinator.
 
     The machine does **not** store per‑request context; context must be passed
     to the `run()` method for each execution.
-
-    New: end-to-end logging support. The constructor accepts:
-        mode (str) – execution mode (e.g., "production", "test", "staging").
-        log_coordinator (LogCoordinator | None) – logging coordinator.
-            If not provided, a coordinator with ConsoleLogger(use_colors=True) is created.
     """
 
     def __init__(
@@ -225,6 +208,19 @@ class ActionProductMachine(BaseActionMachine):
     def _check_connections(
         self, action: BaseAction[P, R], connections: dict[str, BaseResourceManager] | None
     ) -> dict[str, BaseResourceManager]:
+        """
+        Checks that the passed connections match those declared with @connection.
+
+        Args:
+            action: action instance.
+            connections: connections dictionary (or None).
+
+        Returns:
+            Validated connections (empty dict if None and no declarations).
+
+        Raises:
+            ConnectionValidationError: if there is a mismatch.
+        """
         declared_keys = self._get_declared_connection_keys(action)
         actual_keys = set(connections.keys()) if connections else set()
         action_name = action.__class__.__name__
@@ -319,8 +315,6 @@ class ActionProductMachine(BaseActionMachine):
             )
 
             # Create a closure for running child actions.
-            # This allows ToolsBox to call _run_internal without holding a reference to self,
-            # breaking the circular import dependency.
             async def run_child(
                 action: BaseAction[Any, Any],
                 params: BaseParams,
@@ -335,7 +329,7 @@ class ActionProductMachine(BaseActionMachine):
                     nested_level=current_nest,
                 )
 
-            # Create ToolsBox for this level, passing the closure instead of self
+            # Create ToolsBox for this level
             box = ToolsBox(
                 run_child=run_child,
                 factory=factory,
@@ -358,6 +352,7 @@ class ActionProductMachine(BaseActionMachine):
                 nest_level=current_nest,
             )
 
+            # Retrieve aspects directly from the action (cached inside AspectGateHost)
             regular_aspects, summary_method = action.get_aspects()
             state = await self._execute_regular_aspects(
                 action, params, box, conns, context, regular_aspects
@@ -385,7 +380,7 @@ class ActionProductMachine(BaseActionMachine):
 
             return cast(R, result)
         finally:
-            pass  # No need to decrement a global level
+            pass
 
     async def _call_aspect(
         self,
@@ -429,7 +424,6 @@ class ActionProductMachine(BaseActionMachine):
             context=context,
         )
         # Create a new box with the aspect-specific logger.
-        # Use the same run_child, factory, resources, context, nested_level.
         aspect_box = ToolsBox(
             run_child=box.run_child,
             factory=box.factory,
