@@ -10,7 +10,7 @@ DependencyGateHost – миксин для присоединения шлюза
 
 Механизм сбора:
     Декоратор @depends при применении к классу добавляет в класс временный атрибут
-    __depends_info (список DependencyInfo). В __init_subclass__ этот список
+    _depends_info (список DependencyInfo). В __init_subclass__ этот список
     собирается и регистрируется в шлюзе. После регистрации временный атрибут
     удаляется, чтобы не засорять класс.
 
@@ -18,6 +18,12 @@ DependencyGateHost – миксин для присоединения шлюза
     На время миграции старый атрибут _dependencies продолжает существовать
     и заполняется параллельно. После полного перехода на шлюзы старый атрибут
     будет удалён.
+
+Важно:
+    Шлюз хранится в классовой переменной __dependency_gate. При наследовании каждый
+    подкласс получает свой собственный шлюз. Для этого в __init_subclass__
+    явно сбрасывается __dependency_gate = None, чтобы при вызове get_dependency_gate()
+    создавался новый шлюз для дочернего класса, а не использовался родительский.
 """
 
 from typing import Any, ClassVar
@@ -31,13 +37,13 @@ class DependencyGateHost:
 
     Классовые атрибуты:
         __dependency_gate: DependencyGate | None – шлюз, общий для всех экземпляров.
-        __depends_info: list[DependencyInfo] | None – временное хранилище,
+        _depends_info: list[DependencyInfo] | None – временное хранилище,
                          используемое декоратором @depends для передачи данных
                          в __init_subclass__.
     """
 
     __dependency_gate: ClassVar[DependencyGate | None] = None
-    __depends_info: ClassVar[list[DependencyInfo] | None] = None
+    _depends_info: ClassVar[list[DependencyInfo] | None] = None
 
     @classmethod
     def get_dependency_gate(cls) -> DependencyGate:
@@ -61,27 +67,30 @@ class DependencyGateHost:
 
         Алгоритм:
             1. Вызывает super().__init_subclass__() для поддержки множественного наследования.
-            2. Получает шлюз через get_dependency_gate().
-            3. Если есть __depends_info (временные данные от декораторов @depends),
+            2. Сбрасывает унаследованный шлюз, чтобы дочерний класс получил свой собственный.
+            3. Получает шлюз через get_dependency_gate().
+            4. Если есть _depends_info (временные данные от декораторов @depends),
                регистрирует каждый DependencyInfo в шлюзе.
-            4. Удаляет __depends_info, чтобы не засорять класс.
-            5. Замораживает шлюз.
+            5. Удаляет _depends_info, чтобы не засорять класс.
+            6. Замораживает шлюз.
 
         Аргументы:
             **kwargs: передаются в родительский __init_subclass__.
         """
         super().__init_subclass__(**kwargs)
 
+        # Сбрасываем унаследованный шлюз, чтобы дочерний класс создал свой собственный
+        cls.__dependency_gate = None
         gate = cls.get_dependency_gate()
 
         # Собираем зависимости, накопленные декораторами
-        if cls.__depends_info:
-            for info in cls.__depends_info:
+        if cls._depends_info:
+            for info in cls._depends_info:
                 gate.register(info)
 
         # Очищаем временные данные
-        if hasattr(cls, "__depends_info"):
-            delattr(cls, "__depends_info")
+        if hasattr(cls, "_depends_info"):
+            delattr(cls, "_depends_info")
 
         # Замораживаем шлюз – после этого регистрация невозможна
         gate.freeze()

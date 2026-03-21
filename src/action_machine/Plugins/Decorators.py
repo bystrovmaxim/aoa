@@ -27,13 +27,15 @@ def _add_hook(
         ignore_exceptions: флаг, указывающий, нужно ли игнорировать исключения в обработчике.
 
     Возвращает:
-        Тот же метод с добавленным атрибутом _plugin_hooks.
+        Тот же метод с добавленным атрибутом _plugin_hooks и _on_subscriptions.
 
     Примечание:
         Атрибут _plugin_hooks представляет собой список кортежей
         (event_regex, class_regex, ignore_exceptions), каждый из которых
         соответствует одной подписке. Если метод уже имел подписки,
         новая добавляется в список.
+
+        Атрибут _on_subscriptions используется для сбора подписок в OnGateHost.
     """
     if not hasattr(method, "_plugin_hooks"):
         method._plugin_hooks = []  # type: ignore[attr-defined]
@@ -43,6 +45,12 @@ def _add_hook(
     compiled_class: re.Pattern[str] = re.compile(class_regex) if isinstance(class_regex, str) else class_regex
 
     method._plugin_hooks.append((compiled_event, compiled_class, ignore_exceptions))  # type: ignore[attr-defined]
+
+    # Новый механизм для шлюза
+    if not hasattr(method, "_on_subscriptions"):
+        method._on_subscriptions = []  # type: ignore[attr-defined]
+    method._on_subscriptions.append((event_regex, class_regex, ignore_exceptions))  # type: ignore[attr-defined]
+
     return method
 
 
@@ -76,8 +84,7 @@ def on(
 
         class MyPlugin(Plugin):
             @on('global_start', '.*', ignore_exceptions=True)
-            async def on_start(self, state_plugin, event_name, action_name, params,
-                               state_aspect, is_summary, deps, context, result, duration):
+            async def on_start(self, state_plugin, event):
                 print("Action started")
                 return state_plugin
     """

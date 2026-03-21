@@ -15,6 +15,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   These decorators only add temporary metadata; registration is handled centrally by `AspectGateHost`.
 - **Copy‑on‑write for aspect gates** – each instance of an action can safely modify its own set of aspects (add, remove, replace summary) without affecting other instances or the class‑level gate.  
   This is implemented by lazily copying the class gate when the first modification is made.
+- **CheckerGate now supports multiple checkers per field** – the gate stores lists of checkers for each field, preserving registration order. This enables combining several validation rules (e.g., `StringFieldChecker` + `InstanceOfChecker`) on the same field.  
+  - `get_class_checkers(field_name)` returns a list of all class‑level checkers for the field.  
+  - `get_method_checkers(method, field_name)` returns a list of all method‑level checkers for the field.  
+  - The general principle for all gates has been documented: when multiple components can be attached to the same key, they are stored as lists to preserve order.
 - **`ToolsBox` class** – a new container that bundles all tools an aspect may need:  
   - `resolve(cls)` – obtains dependencies, respecting both external resources and the dependency factory.  
   - `info`, `warning`, `error`, `debug` – logging methods that automatically add the correct scope (machine, mode, action, aspect) and nesting level.  
