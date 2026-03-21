@@ -1,4 +1,4 @@
-# ActionMachine/Context/Context.py
+# src/action_machine/Context/context.py
 """
 Контекст выполнения действия.
 
@@ -12,8 +12,8 @@ from typing import Any
 
 from action_machine.Core.ReadableMixin import ReadableMixin
 
-from .environment_info import EnvironmentInfo
 from .request_info import RequestInfo
+from .runtime_info import RuntimeInfo
 from .user_info import UserInfo
 
 
@@ -33,7 +33,7 @@ class Context(ReadableMixin):
         self,
         user: UserInfo | None = None,
         request: RequestInfo | None = None,
-        environment: EnvironmentInfo | None = None,
+        runtime: RuntimeInfo | None = None,
     ) -> None:
         """
         Инициализирует контекст.
@@ -41,9 +41,9 @@ class Context(ReadableMixin):
         Аргументы:
             user: информация о пользователе.
             request: информация о запросе.
-            environment: информация об окружении.
+            runtime: информация о среде выполнения (хост, версия, окружение).
         """
         self.user = user or UserInfo()
         self.request = request or RequestInfo()
-        self.environment = environment or EnvironmentInfo()
+        self.runtime = runtime or RuntimeInfo()
         self._extra: dict[str, Any] = {}

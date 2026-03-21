@@ -9,8 +9,8 @@ import pytest
 
 from action_machine.Auth.auth_coordinator import AuthCoordinator
 from action_machine.Context.context import Context
-from action_machine.Context.environment_info import EnvironmentInfo
 from action_machine.Context.request_info import RequestInfo
+from action_machine.Context.runtime_info import RuntimeInfo
 from action_machine.Context.user_info import UserInfo
 
 
@@ -146,7 +146,7 @@ class TestAuthIntegration:
         assert isinstance(result, Context)
         assert isinstance(result.user, UserInfo)
         assert isinstance(result.request, RequestInfo)
-        assert isinstance(result.environment, EnvironmentInfo)
+        assert isinstance(result.runtime, RuntimeInfo)
 
         # Проверяем данные пользователя
         assert result.user.user_id == "api_user"

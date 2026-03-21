@@ -231,6 +231,6 @@ class TestAuthCoordinator:
         assert result is not None
         # AuthCoordinator передаёт environment=None, но Context.__init__
         # подставляет EnvironmentInfo() по умолчанию
-        from action_machine.Context.environment_info import EnvironmentInfo
+        from action_machine.Context.runtime_info import RuntimeInfo
 
-        assert isinstance(result.environment, EnvironmentInfo)
+        assert isinstance(result.runtime, RuntimeInfo)

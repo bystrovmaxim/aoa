@@ -20,8 +20,8 @@ from .Checkers.IntFieldChecker import IntFieldChecker
 # Checkers
 from .Checkers.StringFieldChecker import StringFieldChecker
 from .Context.context import Context
-from .Context.environment_info import EnvironmentInfo
 from .Context.request_info import RequestInfo
+from .Context.runtime_info import RuntimeInfo
 
 # Context
 from .Context.user_info import UserInfo
@@ -69,7 +69,7 @@ __all__ = [
     # Context
     "UserInfo",
     "RequestInfo",
-    "EnvironmentInfo",
+    "RuntimeInfo",
     "Context",
     # Auth
     "CheckRoles",

@@ -1,3 +1,4 @@
+# tests/conftest.py
 """
 Корневые фикстуры pytest — доступны во всех тестах автоматически.
 Pytest подхватывает этот файл без явного импорта.
@@ -10,8 +11,8 @@ from typing import Any
 import pytest
 
 from action_machine.Context.context import Context
-from action_machine.Context.environment_info import EnvironmentInfo
 from action_machine.Context.request_info import RequestInfo
+from action_machine.Context.runtime_info import RuntimeInfo
 from action_machine.Context.user_info import UserInfo
 from action_machine.Core.BaseParams import BaseParams
 from action_machine.Core.BaseState import BaseState
@@ -118,13 +119,12 @@ def context_fixture() -> Context:
         client_ip="192.168.1.1",
         user_agent="pytest/1.0",
     )
-    environment = EnvironmentInfo(
+    runtime = RuntimeInfo(
         hostname="pod-xyz-42",
         service_name="order-service",
-        service_version="1.2.3",
-        environment="test",
+        service_version="1.2.3"
     )
-    return Context(user=user, request=request, environment=environment)
+    return Context(user=user, request=request, runtime=runtime)
 
 
 @pytest.fixture
@@ -209,12 +209,11 @@ def make_context(
         request_path="/api/v1/orders",
         request_method="POST",
     )
-    environment = EnvironmentInfo(
+    runtime = RuntimeInfo(
         hostname="pod-xyz-42",
-        service_name="order-service",
-        environment="production",
+        service_name="order-service"
     )
-    return Context(user=user, request=request, environment=environment)
+    return Context(user=user, request=request, runtime=runtime)
 
 
 def create_context_with_user(user_id: str, roles: list[str] | None = None) -> Context:
@@ -229,5 +228,5 @@ def create_context_with_user(user_id: str, roles: list[str] | None = None) -> Co
     return Context(
         user=UserInfo(user_id=user_id, roles=roles or []),
         request=RequestInfo(),
-        environment=EnvironmentInfo(),
+        runtime=RuntimeInfo(),
     )

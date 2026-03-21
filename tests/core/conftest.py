@@ -1,3 +1,4 @@
+# tests/core/conftest.py
 """
 Общие фикстуры для тестирования core-компонентов.
 """
@@ -7,8 +8,8 @@ from dataclasses import dataclass
 import pytest
 
 from action_machine.Context.context import Context
-from action_machine.Context.environment_info import EnvironmentInfo
 from action_machine.Context.request_info import RequestInfo
+from action_machine.Context.runtime_info import RuntimeInfo
 from action_machine.Context.user_info import UserInfo
 from action_machine.Core.ReadableMixin import ReadableMixin
 
@@ -141,5 +142,5 @@ def make_context_with_user(user_id: str = "agent_1") -> Context:
     """
     user = UserInfo(user_id=user_id, roles=["user", "admin"], extra={"org": "acme"})
     request = RequestInfo(trace_id="trace-abc-123", request_path="/api/v1/orders", request_method="POST")
-    environment = EnvironmentInfo(hostname="pod-xyz-42", service_name="order-service", environment="production")
-    return Context(user=user, request=request, environment=environment)
+    runtime = RuntimeInfo(hostname="pod-xyz-42", service_name="order-service")
+    return Context(user=user, request=request, runtime=runtime)
