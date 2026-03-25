@@ -11,7 +11,7 @@ NC='\033[0m' # No Color
 mkdir -p archive/logs
 
 # Фиксированное имя файла лога (перезаписывается при каждом запуске)
-LOG_FILE="archive/logs/check-all.log"
+LOG_FILE="archive/logs/check-all.txt"
 
 echo -e "${YELLOW}📝 Лог будет сохранён в: ${LOG_FILE}${NC}"
 echo ""

@@ -13,27 +13,24 @@ ActionMachine будет автоматически создавать и пре
 - Поддерживает опциональную фабрику для кастомного создания экземпляра.
 
 Архитектурная роль:
-    Декоратор добавляет информацию о зависимостях в два места:
-        1. Атрибут `_dependencies` — для обратной совместимости со старым кодом.
-        2. Временный список `_depends_info` — для ленивого сбора в `DependencyGateHost`.
-
-    При первом вызове `get_dependency_gate()` хост собирает `_depends_info`,
-    регистрирует каждую зависимость в `DependencyGate` и замораживает шлюз.
+    Декоратор добавляет информацию о зависимостях в атрибут `_depends_info`,
+    объявленный в миксине `DependencyGateHost`. При первом вызове
+    `get_dependency_gate()` хост собирает `_depends_info`, регистрирует
+    каждую зависимость в `DependencyGate` и замораживает шлюз.
 
     Имя `_depends_info` (с одним подчёркиванием) используется вместо
-    `__depends_info` (с двумя), чтобы избежать Python name mangling,
-    который превращает `__attr` в `_ClassName__attr` и делает атрибут
-    недоступным через `getattr(cls, '__depends_info')`.
+    `__depends_info` (с двумя), чтобы избежать Python name mangling.
 
-    Параллельное существование двух механизмов (старый `_dependencies` и новый
-    `_depends_info`) обеспечивает плавную миграцию. После полного перехода на
-    шлюзы старый атрибут будет удалён.
+    Декоратор проверяет, что целевой класс наследует DependencyGateHost.
+    Если нет — выбрасывает TypeError. Это гарантирует, что декоратор
+    не добавляет динамических атрибутов — все поля объявлены в миксине.
 """
 
 from collections.abc import Callable
 from typing import Any
 
 from .dependency_gate import DependencyInfo
+from .dependency_gate_host import DependencyGateHost
 
 
 def depends(
@@ -58,6 +55,9 @@ def depends(
     Возвращает:
         Декоратор, который добавляет информацию о зависимости в класс.
 
+    Исключения:
+        TypeError: если класс не наследует DependencyGateHost.
+
     Пример:
         @depends(PaymentService, description="Сервис платежей")
         @depends(NotificationService, description="Сервис уведомлений")
@@ -69,28 +69,24 @@ def depends(
     """
 
     def decorator(cls: type) -> type:
-        # --- Старый механизм (для обратной совместимости) ---
-        # Создаём НОВЫЙ список, копируя родительский (если есть)
-        deps = list(getattr(cls, "_dependencies", []))
-        deps.append(
-            {
-                "class": klass,
-                "description": description,
-                "factory": factory,
-            }
-        )
-        cls._dependencies = deps  # type: ignore[attr-defined]
+        # Проверяем, что класс наследует DependencyGateHost,
+        # который объявляет атрибут _depends_info как ClassVar.
+        if not issubclass(cls, DependencyGateHost):
+            raise TypeError(
+                f"@depends can only be applied to classes inheriting DependencyGateHost. "
+                f"Class {cls.__name__} does not inherit DependencyGateHost. "
+                f"Ensure the class inherits from BaseAction or DependencyGateHost directly."
+            )
 
-        # --- Новый механизм (для шлюза) ---
-        # Используем _depends_info (одно подчёркивание), чтобы избежать
-        # Python name mangling (которое превращает __attr в _ClassName__attr).
-        if not hasattr(cls, "_depends_info") or cls._depends_info is None:
-            cls._depends_info = []  # type: ignore[attr-defined]
+        # _depends_info объявлен в DependencyGateHost как ClassVar[list[DependencyInfo] | None],
+        # поэтому после issubclass-проверки mypy знает о его существовании.
+        if cls._depends_info is None:
+            cls._depends_info = []
         else:
             # Создаём копию, чтобы не мутировать родительский список
-            cls._depends_info = list(cls._depends_info)  # type: ignore[attr-defined]
+            cls._depends_info = list(cls._depends_info)
 
-        cls._depends_info.append(  # type: ignore[attr-defined]
+        cls._depends_info.append(
             DependencyInfo(
                 cls=klass,
                 factory=factory,
