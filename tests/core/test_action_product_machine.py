@@ -5,7 +5,7 @@ Tests for ActionProductMachine — the main action machine.
 Checks:
 - Aspect collection
 - Role checking
-- Connection checking
+- Connection checking (using new ConnectionGate)
 - Full run() pipeline including logging
 - Passing of mode and log parameters to aspects
 - All aspects must accept box (sixth parameter replaced by box)
@@ -15,6 +15,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
+from action_machine import connection  # Исправленный импорт: из корневого пакета
 from action_machine.aspects.regular_aspect import regular_aspect
 from action_machine.aspects.summary_aspect import summary_aspect
 from action_machine.Auth.check_roles import CheckRoles
@@ -26,7 +27,6 @@ from action_machine.Core.BaseAction import BaseAction
 from action_machine.Core.BaseParams import BaseParams
 from action_machine.Core.BaseResult import BaseResult
 from action_machine.Core.BaseState import BaseState
-from action_machine.Core.connection import connection
 from action_machine.Core.Exceptions import AuthorizationError, ConnectionValidationError, ValidationFieldError
 from action_machine.Core.ToolsBox import ToolsBox
 from action_machine.Logging.log_coordinator import LogCoordinator
@@ -182,7 +182,7 @@ class ActionNoDecorator(BaseAction[MockParams, MockResult]):
 
 
 # ----------------------------------------------------------------------
-# Actions: connection checking
+# Actions: connection checking (using @connection decorator)
 # ----------------------------------------------------------------------
 @connection("db", MockResourceManager, description="Database")
 @CheckRoles(CheckRoles.NONE, desc="No authentication")
@@ -442,7 +442,7 @@ class TestCheckConnections:
 
     def test_no_declarations_with_connections_raises(self, machine):
         conns = {"db": MockResourceManager()}
-        with pytest.raises(ConnectionValidationError, match="does not declare any @connection, but received connections with keys:"):
+        with pytest.raises(ConnectionValidationError, match="does not declare any @connection"):
             machine._check_connections(ActionWithoutConnections(), conns)
 
     def test_has_declarations_no_connections_raises(self, machine):
@@ -451,12 +451,12 @@ class TestCheckConnections:
 
     def test_extra_keys_raises(self, machine):
         conns = {"db": MockResourceManager(), "extra": MockResourceManager()}
-        with pytest.raises(ConnectionValidationError, match="received extra connections:"):
+        with pytest.raises(ConnectionValidationError, match="received extra connections: {'extra'}"):
             machine._check_connections(ActionWithOneConnection(), conns)
 
     def test_missing_keys_raises(self, machine):
         conns = {"db": MockResourceManager()}
-        with pytest.raises(ConnectionValidationError, match="is missing required connections:"):
+        with pytest.raises(ConnectionValidationError, match="is missing required connections: {'cache'}"):
             machine._check_connections(ActionWithTwoConnections(), conns)
 
     def test_valid_connections_passes(self, machine):
@@ -564,3 +564,27 @@ class TestRun:
         await machine_with_mode.run(context_with_roles, ActionWithAspects(), MockParams())
         scope = machine_with_mode._log_coordinator.emit.call_args_list[0].kwargs["scope"]
         assert scope["mode"] == "staging"
+
+    # ------------------------------------------------------------------
+    # New test: Connection gate integration
+    # ------------------------------------------------------------------
+    @pytest.mark.anyio
+    async def test_connection_gate_used_for_validation(self, machine, context_with_roles):
+        """Verify that the machine uses the connection gate for declared keys."""
+        action = ActionWithOneConnection()
+        gate = action.get_connection_gate()
+        # Проверяем, что ключи зарегистрированы (порядок может быть любой)
+        assert set(gate.get_all_keys()) == {"db"}
+
+        # Should pass with correct connections
+        conns = {"db": MockResourceManager()}
+        result = await machine.run(context_with_roles, action, MockParams(), connections=conns)
+        assert isinstance(result, MockResult)
+
+        # Should fail with missing connections (None)
+        with pytest.raises(ConnectionValidationError, match="no connections were passed"):
+            await machine.run(context_with_roles, action, MockParams(), connections=None)
+
+        # Should fail with extra connections
+        with pytest.raises(ConnectionValidationError, match="received extra connections"):
+            await machine.run(context_with_roles, action, MockParams(), connections={"db": MockResourceManager(), "extra": MockResourceManager()})

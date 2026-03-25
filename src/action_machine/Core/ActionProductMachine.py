@@ -2,12 +2,12 @@
 Product action machine implementation with plugin support and nesting.
 Fully asynchronous version. Uses PluginEvent to pass data to plugins.
 
-Управление метаданными действий (роли, зависимости, чекеры) осуществляется
-через шлюзы (gates). Машина получает доступ к этим данным через методы
-действия: get_role_gate(), get_dependency_gate(), get_checker_gate().
+Управление метаданными действий (роли, зависимости, чекеры, соединения)
+осуществляется через шлюзы (gates). Машина получает доступ к этим данным через методы
+действия: get_role_gate(), get_dependency_gate(), get_checker_gate(), get_connection_gate().
 
-Все обращения к устаревшим атрибутам (_role_spec, _dependencies,
-_field_checkers, _result_checkers) заменены на вызовы соответствующих шлюзов.
+Все обращения к устаревшим атрибутам (_role_spec, _dependencies, _field_checkers,
+_result_checkers, _connections) заменены на вызовы соответствующих шлюзов.
 """
 
 import time
@@ -182,10 +182,13 @@ class ActionProductMachine(BaseActionMachine):
 
     @staticmethod
     def _get_declared_connection_keys(action: BaseAction[P, R]) -> set[str]:
-        """Возвращает множество ключей соединений, объявленных через @connection."""
-        # Пока используем старый атрибут _connections, так как миграция ConnectionGate ещё не завершена.
-        declared: list[dict[str, Any]] = getattr(action.__class__, "_connections", [])
-        return {info["key"] for info in declared}
+        """
+        Возвращает множество ключей соединений, объявленных через @connection.
+
+        Использует шлюз соединений действия.
+        """
+        gate = action.get_connection_gate()
+        return set(gate.get_all_keys())
 
     @staticmethod
     def _validate_no_declarations_but_got_connections(

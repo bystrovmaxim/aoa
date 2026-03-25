@@ -9,10 +9,11 @@ ActionMachine – ядро фреймворка действий.
 - DependencyGate – для зависимостей
 - CheckerGate – для чекеров полей
 - OnGate – для подписок плагинов
-- AspectGate – для аспектов (реализован отдельно)
+- AspectGate – для аспектов
+- ConnectionGate – для соединений (ресурсных менеджеров)
 
 Старые атрибуты (_role_spec, _dependencies, _field_checkers, _result_checkers,
-_plugin_hooks) заменены на шлюзы и больше не используются в ядре.
+_plugin_hooks, _connections) заменены на шлюзы и больше не используются в ядре.
 """
 
 # Core
@@ -92,8 +93,11 @@ from .Plugins.Plugin import Plugin
 from .Plugins.PluginCoordinator import PluginCoordinator
 from .Plugins.PluginEvent import PluginEvent
 
-# Resource Managers
+# Resource Managers (включая шлюзы для соединений)
 from .ResourceManagers.BaseResourceManager import BaseResourceManager
+from .ResourceManagers.connection import connection
+from .ResourceManagers.connection_gate import ConnectionGate, ConnectionInfo
+from .ResourceManagers.connection_gate_host import ConnectionGateHost
 from .ResourceManagers.Connections import Connections
 from .ResourceManagers.IConnectionManager import IConnectionManager
 from .ResourceManagers.PostgresConnectionManager import PostgresConnectionManager
@@ -171,10 +175,14 @@ __all__ = [
     "OnGate",
     "Subscription",
     "OnGateHost",
-    # Resource Managers
+    # Resource Managers (включая соединения)
     "BaseResourceManager",
     "IConnectionManager",
     "PostgresConnectionManager",
     "WrapperConnectionManager",
     "Connections",
+    "connection",                     # декоратор
+    "ConnectionGate",                 # шлюз соединений
+    "ConnectionInfo",                 # информация о соединении
+    "ConnectionGateHost",             # миксин для присоединения шлюза
 ]
