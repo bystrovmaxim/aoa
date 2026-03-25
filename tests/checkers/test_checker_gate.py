@@ -1,4 +1,3 @@
-# tests/checkers/test_checker_gate.py
 """
 Тесты для CheckerGate — шлюза управления чекерами полей.
 
@@ -11,11 +10,6 @@
 - Заморозку шлюза (freeze)
 - Обработку ошибок (неверный target_type, отсутствие метода)
 - Сбор чекеров через CheckerGateHost (миксин)
-
-Изменения:
-- Исправлен тест `test_get_all_method_checkers_returns_all_method_checkers`:
-  лямбда-выражение заменено на обычную функцию для соответствия требованиям линтера.
-- Обновлены комментарии.
 """
 
 import pytest
@@ -43,7 +37,7 @@ def dummy_method():
 
 
 # ======================================================================
-# Тесты
+# Тесты для CheckerGate
 # ======================================================================
 
 class TestCheckerGate:
@@ -198,8 +192,9 @@ class TestCheckerGate:
         checker1 = DummyChecker("field1")
         checker2 = DummyChecker("field2")
         method1 = dummy_method
-        # Используем обычную функцию вместо lambda для соответствия линтеру
-        def method2(): pass
+
+        def method2():
+            pass
 
         gate.register(checker1, target_type="method", method=method1)
         gate.register(checker2, target_type="method", method=method2)
@@ -222,16 +217,14 @@ class TestCheckerGate:
         with pytest.raises(RuntimeError, match="CheckerGate is frozen"):
             gate.unregister(checker)
 
-    def test_unregister_raises_before_freeze_if_implemented(self):
+    def test_unregister_before_freeze_does_nothing_but_ok(self):
         """
-        Если бы unregister был реализован, он бы выбрасывал ошибку при изменении,
-        но на данный момент реализация пустая, и он ничего не делает.
-        Тест проверяет, что вызов не вызывает ошибок до заморозки.
+        Удаление до заморозки не вызывает ошибок (реализация может быть пустой).
         """
         gate = CheckerGate()
         checker = DummyChecker("name")
         gate.register(checker, target_type="class")
-        # Пока не заморожен, unregister не должен падать (даже если ничего не делает)
+        # Удаление не реализовано, но не должно падать
         gate.unregister(checker)
         # Чекер всё ещё зарегистрирован (так как удаление не реализовано)
         assert gate.get_components() == [checker]

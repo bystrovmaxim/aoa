@@ -1,4 +1,3 @@
-# tests/plugins/test_on_gate_host.py
 """
 Тесты для OnGateHost — миксина, который присоединяет OnGate к классу плагина.
 
@@ -12,6 +11,8 @@
 """
 
 import re
+
+import pytest
 
 from action_machine.Plugins.Decorators import on
 from action_machine.Plugins.on_gate_host import OnGateHost

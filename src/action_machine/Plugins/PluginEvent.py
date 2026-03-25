@@ -1,12 +1,20 @@
+# src/action_machine/Plugins/PluginEvent.py
 """
-Dataclass для передачи данных события в плагины.
-Содержит всю информацию о текущем событии выполнения действия.
+Модуль, определяющий класс PluginEvent — контейнер для передачи данных в обработчики плагинов.
+
+PluginEvent используется координатором плагинов (PluginCoordinator) для упаковки всех
+параметров, связанных с событием, которые затем передаются в методы плагинов,
+помеченные декоратором @on.
+
+Поля класса предназначены только для чтения. Плагины не должны изменять объект события,
+так как это может повлиять на выполнение основного действия.
 """
 
 from dataclasses import dataclass
 
+# Импорт исправлен: DependencyFactory находится в пакете dependencies, а не в Core.
+from action_machine.dependencies.dependency_factory import DependencyFactory
 from action_machine.Context.context import Context
-from action_machine.Core.DependencyFactory import DependencyFactory
 from action_machine.Core.Protocols import ReadableDataProtocol, WritableDataProtocol
 
 
@@ -14,6 +22,7 @@ from action_machine.Core.Protocols import ReadableDataProtocol, WritableDataProt
 class PluginEvent:
     """
     Контейнер для всех данных, передаваемых в обработчик плагина.
+
     Создаётся на каждое событие и передаётся в методы плагинов,
     помеченные декоратором @on.
 

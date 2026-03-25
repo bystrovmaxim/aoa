@@ -1,69 +1,87 @@
+# src/action_machine/Plugins/Plugin.py
+
 """
-Base class for all ActionMachine plugins.
-Handlers receive a single argument event: PluginEvent.
+Базовый класс для всех плагинов ActionMachine.
+
+Плагины определяют обработчики событий с помощью декоратора @on.
+Каждый плагин должен реализовать асинхронный метод `get_initial_state`,
+который возвращает начальное состояние для одного запуска действия.
+
+Обработчики помечаются декоратором @on и автоматически собираются
+классом OnGateHost при создании класса плагина. Собранные подписки
+хранятся в шлюзе OnGate, доступ к которому осуществляется через
+метод get_on_gate().
+
+Плагины не должны хранить состояние в атрибутах экземпляра,
+поскольку оно должно быть изолировано для каждого вызова `run`.
+Вместо этого состояние управляется машиной и передаётся через
+параметр `state_plugin` каждому обработчику.
+
+Все методы-обработчики должны быть асинхронными (определены с `async def`),
+даже если они не содержат `await`, потому что машина вызывает их с `await`.
+
+Управление подписками теперь осуществляется через шлюз OnGate.
+Метод get_handlers() является обёрткой над шлюзом для обратной совместимости.
 """
 
 from abc import ABC, abstractmethod
 from collections.abc import Callable
 from typing import Any
 
+from action_machine.Plugins.on_gate_host import OnGateHost
 
-class Plugin(ABC):
+
+class Plugin(ABC, OnGateHost):
     """
-    Abstract base class for all plugins.
+    Абстрактный базовый класс для всех плагинов.
 
-    Each plugin must implement the asynchronous method ``get_initial_state``,
-    which returns the initial state for one action run. The state will be
-    passed to all plugin handlers, and each handler must return the updated state.
+    Каждый плагин должен реализовать асинхронный метод `get_initial_state`,
+    который возвращает начальное состояние для одного запуска действия.
+    Состояние будет передано всем обработчикам плагина, и каждый обработчик
+    должен вернуть обновлённое состояние.
 
-    Plugins should not store state in instance attributes, as it must be isolated
-    for each ``run`` call. Instead, the state is managed by the machine and
-    passed via the ``state_plugin`` parameter to each handler.
+    Плагины не должны хранить состояние в атрибутах экземпляра,
+    поскольку оно должно быть изолировано для каждого вызова `run`.
+    Вместо этого состояние управляется машиной и передаётся через
+    параметр `state_plugin` каждому обработчику.
 
-    Handler methods are marked with the ``@on`` decorator from the ``Decorators`` module.
-    They must be asynchronous (defined with ``async def``), even if they do not contain
-    ``await``, because the machine calls them with ``await``.
+    Методы-обработчики помечаются декоратором `@on` из модуля `Decorators`.
+    Они должны быть асинхронными (определены с `async def`), даже если
+    не содержат `await`, потому что машина вызывает их с `await`.
+
+    Информация о подписках собирается классом OnGateHost при создании класса
+    плагина и может быть получена через `get_on_gate().get_handlers(event_name, class_name)`.
     """
 
     @abstractmethod
     async def get_initial_state(self) -> object:
         """
-        Returns the initial state of the plugin for a single action execution.
+        Возвращает начальное состояние плагина для одного выполнения действия.
 
-        This method is called by the machine before the first execution of any handler
-        of this plugin within the current ``run`` call. The return value can be of any
-        type (usually a dictionary or a custom object). It will be passed to all handlers
-        as the first argument ``state_plugin``, and each handler must return the new state.
+        Этот метод вызывается машиной перед первым выполнением любого обработчика
+        данного плагина в рамках текущего вызова `run`. Возвращаемое значение
+        может быть любого типа (обычно словарь или пользовательский объект).
+        Оно будет передано всем обработчикам как первый аргумент `state_plugin`,
+        и каждый обработчик должен вернуть новое состояние.
 
-        Returns:
-            Initial state for this run.
+        Возвращает:
+            Начальное состояние для этого запуска.
         """
         ...
 
     def get_handlers(self, event_name: str, class_name: str) -> list[tuple[Callable[..., Any], bool]]:
         """
-        Returns a list of matching handlers for the given event and action class.
+        Возвращает список подходящих обработчиков для указанного события и класса действия.
 
-        This method iterates over all instance methods, looks for those marked with the
-        ``@on`` decorator, and checks whether the regular expressions from the subscriptions
-        match the given ``event_name`` and ``class_name``. If a match is found, the method
-        is added to the result together with the ``ignore_exceptions`` flag from the corresponding
-        subscription.
+        Этот метод является обёрткой над шлюзом OnGate. Он делегирует вызов
+        `self.get_on_gate().get_handlers(event_name, class_name)`, что позволяет
+        существующему коду продолжать работать после миграции на шлюзы.
 
-        Args:
-            event_name: event name (e.g., 'before:choose_channel').
-            class_name: full class name of the action (including module).
+        Аргументы:
+            event_name: имя события (например, 'before:choose_channel').
+            class_name: полное имя класса действия (включая модуль).
 
-        Returns:
-            List of (handler method, ignore_exceptions) tuples for all matching subscriptions.
+        Возвращает:
+            Список кортежей (метод-обработчик, ignore_exceptions) для всех подходящих подписок.
         """
-        handlers: list[tuple[Callable[..., Any], bool]] = []
-        for method_name in dir(self):
-            method = getattr(self, method_name)
-            if not callable(method) or not hasattr(method, "_plugin_hooks"):
-                continue
-            for event_regex, class_regex, ignore_exceptions in method._plugin_hooks:
-                if event_regex.fullmatch(event_name) and class_regex.fullmatch(class_name):
-                    handlers.append((method, ignore_exceptions))
-                    break
-        return handlers
+        return self.get_on_gate().get_handlers(event_name, class_name)

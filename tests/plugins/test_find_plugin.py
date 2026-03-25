@@ -26,14 +26,16 @@ class TestPluginCoordinatorFindPlugin:
         plugin2 = SimplePlugin()
         coordinator = PluginCoordinator([plugin1, plugin2])
 
-        # Получаем обработчик от первого плагина
+        # Получаем обработчик от первого плагина (кортеж из 3 элементов)
         handlers1 = coordinator._get_handlers("test_event", "any")
-        handler1, _ = handlers1[0]
+        handler1, _, first_plugin = handlers1[0]
 
-        # Должен найти plugin1
+        # Должен найти plugin1 (первый в списке)
+        assert first_plugin is plugin1
+
+        # _find_plugin_for_handler тоже возвращает первый
         found = coordinator._find_plugin_for_handler(handler1)
         assert found is plugin1
-        assert found is not plugin2
 
     def test_find_plugin_for_handler_with_multiple_plugins(self):
         """Поиск среди нескольких плагинов с разными обработчиками."""
@@ -44,14 +46,12 @@ class TestPluginCoordinatorFindPlugin:
 
         handlers = coordinator._get_handlers("event1", "any")
 
-        # Должен найти правильный плагин для каждого обработчика
-        for handler, _ in handlers:
-            found = coordinator._find_plugin_for_handler(handler)
-            # Обработчики из plugin2 должны найти plugin2
+        # Каждый handler в кортеже уже содержит ссылку на plugin
+        for handler, _, plugin in handlers:
             if handler.__name__ in ["handle_event1", "handle_any_event"]:
-                assert found is plugin2
+                assert plugin is plugin2
             else:
-                assert found in [plugin1, plugin3]
+                assert plugin in [plugin1, plugin3]
 
     # ------------------------------------------------------------------
     # ТЕСТЫ: Обработчик не найден
@@ -75,18 +75,22 @@ class TestPluginCoordinatorFindPlugin:
 
     def test_find_plugin_for_handler_with_unbound_method(self):
         """
-        Поиск для несвязанного метода (не привязанного к экземпляру).
+        Поиск для несвязанного метода (взятого из класса, а не экземпляра).
 
-        Такие методы не должны находиться, так как у них нет __self__.
+        Теперь _find_plugin_for_handler ищет через MRO, поэтому
+        несвязанный метод из класса будет найден — он совпадает
+        с методом в __dict__ класса плагина. Метод должен вернуть
+        первый экземпляр этого класса в списке плагинов.
         """
         plugin = SimplePlugin()
         coordinator = PluginCoordinator([plugin])
 
-        # Берем класс, а не экземпляр
+        # Берем метод из класса (не из экземпляра)
         unbound_handler = SimplePlugin.handle_test
 
         found = coordinator._find_plugin_for_handler(unbound_handler)
-        assert found is None
+        # Теперь находит плагин, так как метод есть в cls.__dict__
+        assert found is plugin
 
     def test_find_plugin_for_handler_after_plugin_removed(self):
         """
@@ -97,7 +101,7 @@ class TestPluginCoordinatorFindPlugin:
         coordinator = PluginCoordinator([plugin])
 
         handlers = coordinator._get_handlers("test_event", "any")
-        handler, _ = handlers[0]
+        handler, _, _ = handlers[0]
 
         # "Удаляем" плагин (в реальности так не делаем, но для теста)
         coordinator._plugins = []

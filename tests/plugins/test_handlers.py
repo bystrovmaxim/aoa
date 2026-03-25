@@ -1,4 +1,4 @@
-# Файл: /Users/bystrovmaxim/PythonDev/kanban_assistant/tests/plugins/test_handlers.py
+# tests/plugins/test_handlers.py
 """
 Тесты запуска обработчиков плагинов в PluginCoordinator.
 
@@ -35,9 +35,9 @@ class TestPluginCoordinatorRunHandlers:
         # Создаём событие
         event = event_factory(event_name="test_event")
 
-        # Получаем обработчик
+        # Получаем обработчик (теперь кортеж из 3 элементов)
         handlers = coordinator._get_handlers("test_event", "TestAction")
-        handler, ignore = handlers[0]
+        handler, ignore, _ = handlers[0]
 
         # Запускаем
         await coordinator._run_single_handler(handler, ignore, plugin, event)
@@ -61,7 +61,7 @@ class TestPluginCoordinatorRunHandlers:
 
         event = event_factory(event_name="test_event")
         handlers = coordinator._get_handlers("test_event", "TestAction")
-        handler, ignore = handlers[0]
+        handler, ignore, _ = handlers[0]
 
         await coordinator._run_single_handler(handler, ignore, plugin, event)
 
@@ -86,8 +86,8 @@ class TestPluginCoordinatorRunHandlers:
 
         # Должно быть 2 обработчика: handle_event1 и handle_any_event
 
-        for handler, ignore in handlers:
-            await coordinator._run_single_handler(handler, ignore, plugin, event)
+        for handler, ignore, p in handlers:
+            await coordinator._run_single_handler(handler, ignore, p, event)
 
         assert len(plugin.handlers_called) == 2
         called_pairs = [(name, ev_name) for name, ev_name in plugin.handlers_called]
@@ -114,8 +114,8 @@ class TestPluginCoordinatorRunHandlers:
         handlers = coordinator._get_handlers("event1", "TestAction")
 
         # Запускаем последовательно
-        for handler, ignore in handlers:
-            await coordinator._run_single_handler(handler, ignore, plugin, event)
+        for handler, ignore, p in handlers:
+            await coordinator._run_single_handler(handler, ignore, p, event)
 
         # Проверяем порядок вызовов — допускаем оба имени,
         # т.к. MultiHandlerPlugin записывает "event1" и "any"
@@ -143,9 +143,8 @@ class TestPluginCoordinatorRunHandlers:
         handlers = coordinator._get_handlers("test_event", "TestAction")
         assert len(handlers) == 2  # по одному из каждого плагина
 
-        # Запускаем каждый обработчик с его плагином
-        for handler, ignore in handlers:
-            plugin = coordinator._find_plugin_for_handler(handler)
+        # Запускаем каждый обработчик с его плагином (из кортежа)
+        for handler, ignore, plugin in handlers:
             await coordinator._run_single_handler(handler, ignore, plugin, event)
 
         assert plugin1.handlers_called == [("handle_test", "test_event")]
@@ -171,8 +170,7 @@ class TestPluginCoordinatorRunHandlers:
         event = event_factory(event_name="test_event")
         handlers = coordinator._get_handlers("test_event", "TestAction")
 
-        for handler, ignore in handlers:
-            plugin = coordinator._find_plugin_for_handler(handler)
+        for handler, ignore, plugin in handlers:
             await coordinator._run_single_handler(handler, ignore, plugin, event)
 
         # Каждый плагин увеличил своё состояние на 1

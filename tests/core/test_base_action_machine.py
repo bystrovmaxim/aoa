@@ -15,6 +15,10 @@ Updated: log parameter added to SimpleAction aspect.
 - В вызове аспекта теперь используется box (не передаётся отдельно).
 - Импортирован ToolsBox.
 - Обновлены комментарии.
+
+Изменения (этап 3 — миграция на шлюзы):
+- SimpleAction декорирован @CheckRoles(CheckRoles.NONE, desc="").
+- Добавлен импорт CheckRoles.
 """
 
 import warnings

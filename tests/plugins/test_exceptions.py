@@ -43,7 +43,7 @@ class TestPluginCoordinatorExceptions:
 
         handlers = coordinator._get_handlers("test_event", "TestAction")
         assert len(handlers) == 1
-        handler, ignore = handlers[0]
+        handler, ignore, _ = handlers[0]
         assert ignore is True
 
         # Should not raise an exception
@@ -73,7 +73,7 @@ class TestPluginCoordinatorExceptions:
 
         event = event_factory(event_name="test_event")
         handlers = coordinator._get_handlers("test_event", "TestAction")
-        handler, ignore = handlers[0]
+        handler, ignore, _ = handlers[0]
 
         await coordinator._run_single_handler(handler, ignore, plugin, event)
 
@@ -102,7 +102,7 @@ class TestPluginCoordinatorExceptions:
 
         handlers = coordinator._get_handlers("critical_event", "TestAction")
         assert len(handlers) == 1
-        handler, ignore = handlers[0]
+        handler, ignore, _ = handlers[0]
         assert ignore is False
 
         with pytest.raises(RuntimeError, match="This exception will NOT be ignored"):
@@ -127,7 +127,7 @@ class TestPluginCoordinatorExceptions:
 
         event = event_factory(event_name="critical_event")
         handlers = coordinator._get_handlers("critical_event", "TestAction")
-        handler, ignore = handlers[0]
+        handler, ignore, _ = handlers[0]
 
         with pytest.raises(RuntimeError):
             await coordinator._run_single_handler(handler, ignore, plugin, event)
@@ -196,9 +196,9 @@ class TestPluginCoordinatorExceptions:
         handlers = coordinator._get_handlers("mixed_event", "TestAction")
 
         # Run handlers in order
-        for handler, ignore in handlers:
+        for handler, ignore, p in handlers:
             try:
-                await coordinator._run_single_handler(handler, ignore, plugin, event)
+                await coordinator._run_single_handler(handler, ignore, p, event)
             except ValueError:
                 break
 
@@ -230,7 +230,7 @@ class TestPluginCoordinatorExceptions:
 
         event = event_factory(event_name="custom_event")
         handlers = coordinator._get_handlers("custom_event", "TestAction")
-        handler, ignore = handlers[0]
+        handler, ignore, _ = handlers[0]
 
         await coordinator._run_single_handler(handler, ignore, plugin, event)
 
