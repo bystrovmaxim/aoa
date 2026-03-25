@@ -15,8 +15,8 @@ from action_machine.Core.ActionProductMachine import ActionProductMachine
 from action_machine.Core.BaseAction import BaseAction
 from action_machine.Core.BaseParams import BaseParams
 from action_machine.Core.BaseResult import BaseResult
-from action_machine.dependencies.dependency_factory import DependencyFactory
 from action_machine.Core.MockAction import MockAction
+from action_machine.dependencies.dependency_factory import DependencyFactory
 from action_machine.Logging.log_coordinator import LogCoordinator
 from action_machine.ResourceManagers.BaseResourceManager import BaseResourceManager
 

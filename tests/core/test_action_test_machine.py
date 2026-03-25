@@ -34,13 +34,13 @@ from action_machine.aspects.summary_aspect import summary_aspect
 from action_machine.Auth.check_roles import CheckRoles
 from action_machine.Context.context import Context
 from action_machine.Core.ActionTestMachine import ActionTestMachine
-from action_machine.dependencies.depends import depends
 from action_machine.Core.BaseAction import BaseAction
 from action_machine.Core.BaseParams import BaseParams
 from action_machine.Core.BaseResult import BaseResult
-from action_machine.dependencies.dependency_factory import DependencyFactory
 from action_machine.Core.MockAction import MockAction
 from action_machine.Core.ToolsBox import ToolsBox
+from action_machine.dependencies.dependency_factory import DependencyFactory
+from action_machine.dependencies.depends import depends
 from action_machine.Logging.log_coordinator import LogCoordinator
 
 

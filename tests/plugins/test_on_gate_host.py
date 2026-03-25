@@ -12,8 +12,6 @@
 
 import re
 
-import pytest
-
 from action_machine.Plugins.Decorators import on
 from action_machine.Plugins.on_gate_host import OnGateHost
 

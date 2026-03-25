@@ -12,10 +12,11 @@ PluginEvent используется координатором плагинов
 
 from dataclasses import dataclass
 
-# Импорт исправлен: DependencyFactory находится в пакете dependencies, а не в Core.
-from action_machine.dependencies.dependency_factory import DependencyFactory
 from action_machine.Context.context import Context
 from action_machine.Core.Protocols import ReadableDataProtocol, WritableDataProtocol
+
+# Импорт исправлен: DependencyFactory находится в пакете dependencies, а не в Core.
+from action_machine.dependencies.dependency_factory import DependencyFactory
 
 
 @dataclass
