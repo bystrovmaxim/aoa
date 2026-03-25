@@ -52,7 +52,7 @@ class BaseAction(
     DependencyGateHost,
     CheckerGateHost,
     AspectGateHost,
-    Generic[P, R],
+    Generic[P, R],  # noqa: UP046
 ):
     """
     Базовое действие.
@@ -67,16 +67,15 @@ class BaseAction(
     - get_checker_gate() → CheckerGate
     - get_aspects() → (regular_aspects, summary_aspect)
 
-    Атрибуты класса (устаревшие, будут удалены после миграции):
-        _dependencies:    список зависимостей (заменён на DependencyGate)
+    Атрибуты класса:
+        _connections: список объявленных соединений (через @connection).
+                      Временно, пока нет ConnectionGate.
         _full_class_name: кешированное полное имя класса.
                           None до первого вызова get_full_class_name.
-        _connections:     список объявленных соединений (через @connection)
     """
 
-    # Устаревшие атрибуты для обратной совместимости, будут удалены
-    _dependencies: ClassVar[list[dict[str, Any]]] = []
-    _connections: ClassVar[list[dict[str, Any]]] = []   # временно, пока нет ConnectionGate
+    # _connections остаётся временно, пока не реализован ConnectionGate
+    _connections: ClassVar[list[dict[str, Any]]] = []
     _full_class_name: str | None = None
 
     def get_full_class_name(self) -> str:

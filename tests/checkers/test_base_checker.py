@@ -57,15 +57,18 @@ class TestBaseFieldChecker:
 
     def test_checker_as_class_decorator(self):
         """Применение к классу добавляет чекер в _field_checkers."""
+        from action_machine.Checkers.checker_gate_host import CheckerGateHost
+
         checker = MockChecker("field1")
 
         @checker
-        class MyClass:
+        class MyClass(CheckerGateHost):
             pass
 
         assert hasattr(MyClass, "_field_checkers")
         assert len(MyClass._field_checkers) == 1
         assert MyClass._field_checkers[0] is checker
+
 
     def test_checker_as_method_decorator(self):
         """Применение к методу добавляет чекер в _result_checkers метода."""

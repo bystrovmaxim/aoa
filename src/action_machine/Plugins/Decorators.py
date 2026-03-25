@@ -4,6 +4,10 @@
 
 Декоратор @on позволяет пометить метод плагина так, чтобы он вызывался
 при наступлении событий, соответствующих заданным регулярным выражениям.
+
+Декоратор добавляет временный атрибут _on_subscriptions к методу.
+Этот атрибут собирается в OnGateHost.__init_subclass__ при создании
+класса плагина и затем удаляется.
 """
 
 import re
@@ -27,26 +31,17 @@ def _add_hook(
         ignore_exceptions: флаг, указывающий, нужно ли игнорировать исключения в обработчике.
 
     Возвращает:
-        Тот же метод с добавленным атрибутом _plugin_hooks и _on_subscriptions.
+        Тот же метод с добавленным атрибутом _on_subscriptions.
 
     Примечание:
-        Атрибут _plugin_hooks представляет собой список кортежей
+        Атрибут _on_subscriptions представляет собой список кортежей
         (event_regex, class_regex, ignore_exceptions), каждый из которых
         соответствует одной подписке. Если метод уже имел подписки,
         новая добавляется в список.
 
-        Атрибут _on_subscriptions используется для сбора подписок в OnGateHost.
+        Атрибут собирается и удаляется в OnGateHost.__init_subclass__.
     """
-    if not hasattr(method, "_plugin_hooks"):
-        method._plugin_hooks = []  # type: ignore[attr-defined]
-
-    # Преобразуем строки в регулярные выражения для единообразия
-    compiled_event: re.Pattern[str] = re.compile(event_regex) if isinstance(event_regex, str) else event_regex
-    compiled_class: re.Pattern[str] = re.compile(class_regex) if isinstance(class_regex, str) else class_regex
-
-    method._plugin_hooks.append((compiled_event, compiled_class, ignore_exceptions))  # type: ignore[attr-defined]
-
-    # Новый механизм для шлюза
+    # Временный атрибут для сбора в OnGateHost.__init_subclass__
     if not hasattr(method, "_on_subscriptions"):
         method._on_subscriptions = []  # type: ignore[attr-defined]
     method._on_subscriptions.append((event_regex, class_regex, ignore_exceptions))  # type: ignore[attr-defined]
