@@ -12,7 +12,6 @@ ToolsBox в момент выполнения.
    Каждый dict: {"class": type, "factory": callable|None, "description": str}
 """
 
-from collections.abc import Callable
 from typing import Any
 
 from .dependency_gate import DependencyGate, DependencyInfo

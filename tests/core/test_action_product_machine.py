@@ -22,11 +22,11 @@ from action_machine.Checkers.StringFieldChecker import StringFieldChecker
 from action_machine.Context.context import Context
 from action_machine.Context.user_info import UserInfo
 from action_machine.Core.ActionProductMachine import ActionProductMachine
-from action_machine.Core.connection import connection
 from action_machine.Core.BaseAction import BaseAction
 from action_machine.Core.BaseParams import BaseParams
 from action_machine.Core.BaseResult import BaseResult
 from action_machine.Core.BaseState import BaseState
+from action_machine.Core.connection import connection
 from action_machine.Core.Exceptions import AuthorizationError, ConnectionValidationError, ValidationFieldError
 from action_machine.Core.ToolsBox import ToolsBox
 from action_machine.Logging.log_coordinator import LogCoordinator

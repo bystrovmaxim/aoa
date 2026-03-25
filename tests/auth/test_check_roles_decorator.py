@@ -14,10 +14,9 @@
 доступный через get_role_gate() после создания класса.
 """
 
-import pytest
 
 from action_machine.Auth.check_roles import CheckRoles
-from action_machine.Auth.role_gate import RoleInfo
+
 # Добавляем импорты BaseAction и заглушек для параметров
 from action_machine.Core.BaseAction import BaseAction
 from action_machine.Core.BaseParams import BaseParams

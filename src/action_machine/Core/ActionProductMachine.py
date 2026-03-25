@@ -22,13 +22,12 @@ from action_machine.Core.BaseActionMachine import BaseActionMachine
 from action_machine.Core.BaseParams import BaseParams
 from action_machine.Core.BaseResult import BaseResult
 from action_machine.Core.BaseState import BaseState
-from action_machine.dependencies.dependency_factory import DependencyFactory
 from action_machine.Core.Exceptions import AuthorizationError, ConnectionValidationError, ValidationFieldError
 from action_machine.Core.ToolsBox import ToolsBox
+from action_machine.dependencies.dependency_factory import DependencyFactory
 from action_machine.Logging.action_bound_logger import ActionBoundLogger
 from action_machine.Logging.console_logger import ConsoleLogger
 from action_machine.Logging.log_coordinator import LogCoordinator
-from action_machine.Logging.log_scope import LogScope
 from action_machine.Plugins.Plugin import Plugin
 from action_machine.Plugins.PluginCoordinator import PluginCoordinator
 from action_machine.ResourceManagers.BaseResourceManager import BaseResourceManager

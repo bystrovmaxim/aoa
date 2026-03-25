@@ -2,7 +2,6 @@
 Декоратор для задания ролевой модели действия.
 """
 
-from typing import Any
 
 from .role_gate import RoleInfo
 
@@ -47,7 +46,6 @@ class CheckRoles:
         cls._role_spec = self.spec  # type: ignore
 
         # Новый механизм – временный атрибут для RoleGateHost
-        from .role_gate import RoleInfo
         cls._role_info = RoleInfo(spec=self.spec, description=self.desc)  # type: ignore
 
         return cls
