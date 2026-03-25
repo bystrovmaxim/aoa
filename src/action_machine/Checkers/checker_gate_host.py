@@ -17,6 +17,10 @@ CheckerGateHost – миксин для присоединения шлюза ч
     декораторами, применёнными к методам). Для каждого чекера регистрируется запись
     с target_type='method' и ссылкой на метод.
 
+    Особенность: если метод обёрнут статическим/классовым декоратором, оригинальная функция
+    может быть доступна через __func__ (для @staticmethod) или __func__ (для @classmethod).
+    Мы пытаемся получить исходную функцию, чтобы корректно сопоставить атрибут _result_checkers.
+
 Важно:
     Шлюз хранится в классовой переменной __checker_gate. При наследовании каждый
     подкласс получает свой собственный шлюз. Для этого в __init_subclass__
@@ -70,8 +74,9 @@ class CheckerGateHost:
             3. Получает шлюз через get_checker_gate().
             4. Если есть атрибут _field_checkers (список чекеров класса), регистрирует
                каждый чекер с target_type='class'.
-            5. Обходит все методы класса, ищет у них атрибут _result_checkers,
+            5. Обходит все методы класса (через cls.__dict__), ищет у них атрибут _result_checkers,
                регистрирует каждый чекер с target_type='method' и ссылкой на метод.
+               Для статических/классовых методов извлекаем исходную функцию (через __func__).
             6. Замораживает шлюз.
 
         Аргументы:
@@ -90,13 +95,20 @@ class CheckerGateHost:
                     gate.register(checker, target_type="class")
 
         # Регистрируем методные чекеры (из _result_checkers методов)
-        # Обходим все атрибуты класса в поисках методов с _result_checkers
-        for name in dir(cls):
-            attr = getattr(cls, name)
-            if callable(attr) and hasattr(attr, "_result_checkers"):
-                for checker in attr._result_checkers:
+        # Обходим атрибуты класса, определённые непосредственно в этом классе,
+        # чтобы избежать проблем с унаследованными служебными атрибутами.
+        for name, attr in cls.__dict__.items():
+            # Пропускаем служебные атрибуты (начинающиеся с '__') и не-callable
+            if name.startswith('__') or not callable(attr):
+                continue
+
+            # Для @staticmethod и @classmethod оригинальная функция хранится в __func__
+            actual_method = getattr(attr, '__func__', attr)
+
+            if hasattr(actual_method, "_result_checkers"):
+                for checker in actual_method._result_checkers:
                     if isinstance(checker, BaseFieldChecker):
-                        gate.register(checker, target_type="method", method=attr)
+                        gate.register(checker, target_type="method", method=actual_method)
 
         # Замораживаем шлюз – после этого регистрация невозможна
         gate.freeze()

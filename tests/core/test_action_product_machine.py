@@ -22,7 +22,7 @@ from action_machine.Checkers.StringFieldChecker import StringFieldChecker
 from action_machine.Context.context import Context
 from action_machine.Context.user_info import UserInfo
 from action_machine.Core.ActionProductMachine import ActionProductMachine
-from action_machine.Core.AspectMethod import connection
+from action_machine.Core.connection import connection
 from action_machine.Core.BaseAction import BaseAction
 from action_machine.Core.BaseParams import BaseParams
 from action_machine.Core.BaseResult import BaseResult
@@ -46,10 +46,6 @@ class MockResult(BaseResult):
     pass
 
 
-class MockAction(BaseAction[MockParams, MockResult]):
-    pass
-
-
 class MockResourceManager(BaseResourceManager):
     def get_wrapper_class(self) -> None:
         return None
@@ -59,7 +55,7 @@ class MockResourceManager(BaseResourceManager):
 # Actions: aspect configurations (ALL with box parameter)
 # ----------------------------------------------------------------------
 @CheckRoles(CheckRoles.NONE, desc="No authentication")
-class ActionWithAspects(MockAction):
+class ActionWithAspects(BaseAction[MockParams, MockResult]):
     """Action with several aspects to verify order and logging."""
     _test_calls: list[str] = []
 
@@ -103,7 +99,7 @@ class ActionWithAspects(MockAction):
 
 
 @CheckRoles(CheckRoles.NONE, desc="No authentication")
-class ParentAction(MockAction):
+class ParentAction(BaseAction[MockParams, MockResult]):
     @regular_aspect("Parent")
     async def parent_aspect(
         self,
@@ -113,6 +109,16 @@ class ParentAction(MockAction):
         connections: dict,
     ) -> dict:
         return {}
+
+    @summary_aspect("Parent summary")
+    async def summary(
+        self,
+        params: MockParams,
+        state: BaseState,
+        box: ToolsBox,
+        connections: dict,
+    ) -> MockResult:
+        return MockResult()
 
 
 @CheckRoles(CheckRoles.NONE, desc="No authentication")
@@ -142,66 +148,36 @@ class ChildAction(ParentAction):
 # Actions: role checking
 # ----------------------------------------------------------------------
 @CheckRoles(CheckRoles.NONE, desc="No authentication")
-class ActionNone(MockAction):
-    @summary_aspect("test")
-    async def summary(
-        self,
-        params: MockParams,
-        state: BaseState,
-        box: ToolsBox,
-        connections: dict,
-    ) -> MockResult:
+class ActionNone(BaseAction[MockParams, MockResult]):
+    @summary_aspect("mock summary")
+    async def summary(self, params, state, box, connections):
         return MockResult()
 
 
 @CheckRoles(CheckRoles.ANY, desc="Any role")
-class ActionAny(MockAction):
-    @summary_aspect("test")
-    async def summary(
-        self,
-        params: MockParams,
-        state: BaseState,
-        box: ToolsBox,
-        connections: dict,
-    ) -> MockResult:
+class ActionAny(BaseAction[MockParams, MockResult]):
+    @summary_aspect("mock summary")
+    async def summary(self, params, state, box, connections):
         return MockResult()
 
 
 @CheckRoles("admin", desc="Only admin")
-class ActionSingleRole(MockAction):
-    @summary_aspect("test")
-    async def summary(
-        self,
-        params: MockParams,
-        state: BaseState,
-        box: ToolsBox,
-        connections: dict,
-    ) -> MockResult:
+class ActionSingleRole(BaseAction[MockParams, MockResult]):
+    @summary_aspect("mock summary")
+    async def summary(self, params, state, box, connections):
         return MockResult()
 
 
 @CheckRoles(["admin", "manager"], desc="Admin or manager")
-class ActionListRole(MockAction):
-    @summary_aspect("test")
-    async def summary(
-        self,
-        params: MockParams,
-        state: BaseState,
-        box: ToolsBox,
-        connections: dict,
-    ) -> MockResult:
+class ActionListRole(BaseAction[MockParams, MockResult]):
+    @summary_aspect("mock summary")
+    async def summary(self, params, state, box, connections):
         return MockResult()
 
 
-class ActionNoDecorator(MockAction):
-    @summary_aspect("test")
-    async def summary(
-        self,
-        params: MockParams,
-        state: BaseState,
-        box: ToolsBox,
-        connections: dict,
-    ) -> MockResult:
+class ActionNoDecorator(BaseAction[MockParams, MockResult]):
+    @summary_aspect("mock summary")
+    async def summary(self, params, state, box, connections):
         return MockResult()
 
 
@@ -210,7 +186,7 @@ class ActionNoDecorator(MockAction):
 # ----------------------------------------------------------------------
 @connection("db", MockResourceManager, description="Database")
 @CheckRoles(CheckRoles.NONE, desc="No authentication")
-class ActionWithOneConnection(MockAction):
+class ActionWithOneConnection(BaseAction[MockParams, MockResult]):
     @summary_aspect("test")
     async def summary(
         self,
@@ -226,7 +202,7 @@ class ActionWithOneConnection(MockAction):
 @connection("db", MockResourceManager)
 @connection("cache", MockResourceManager)
 @CheckRoles(CheckRoles.NONE, desc="No authentication")
-class ActionWithTwoConnections(MockAction):
+class ActionWithTwoConnections(BaseAction[MockParams, MockResult]):
     @summary_aspect("test")
     async def summary(
         self,
@@ -241,7 +217,7 @@ class ActionWithTwoConnections(MockAction):
 
 
 @CheckRoles(CheckRoles.NONE, desc="No authentication")
-class ActionWithoutConnections(MockAction):
+class ActionWithoutConnections(BaseAction[MockParams, MockResult]):
     @summary_aspect("test")
     async def summary(
         self,
@@ -258,7 +234,7 @@ class ActionWithoutConnections(MockAction):
 # Actions for TestRun (errors etc.)
 # ----------------------------------------------------------------------
 @CheckRoles(CheckRoles.NONE, desc="")
-class BadAction(MockAction):
+class BadAction(BaseAction[MockParams, MockResult]):
     """Aspect returns non-dict."""
 
     @regular_aspect("bad")
@@ -271,19 +247,13 @@ class BadAction(MockAction):
     ) -> str:
         return "not a dict"
 
-    @summary_aspect("summary")
-    async def summary(
-        self,
-        params: MockParams,
-        state: BaseState,
-        box: ToolsBox,
-        connections: dict,
-    ) -> MockResult:
+    @summary_aspect("bad summary")
+    async def summary(self, params, state, box, connections):
         return MockResult()
 
 
 @CheckRoles(CheckRoles.NONE, desc="")
-class ActionWithoutCheckers(MockAction):
+class ActionWithoutCheckers(BaseAction[MockParams, MockResult]):
     """Aspect returns non-empty dict without checkers."""
 
     @regular_aspect("no checkers")
@@ -296,19 +266,13 @@ class ActionWithoutCheckers(MockAction):
     ) -> dict:
         return {"field": "value"}
 
-    @summary_aspect("summary")
-    async def summary(
-        self,
-        params: MockParams,
-        state: BaseState,
-        box: ToolsBox,
-        connections: dict,
-    ) -> MockResult:
+    @summary_aspect("no checkers summary")
+    async def summary(self, params, state, box, connections):
         return MockResult()
 
 
 @CheckRoles(CheckRoles.NONE, desc="")
-class ActionWithChecker(MockAction):
+class ActionWithChecker(BaseAction[MockParams, MockResult]):
     """Aspect returns extra fields."""
 
     @regular_aspect("with checker")
@@ -322,14 +286,8 @@ class ActionWithChecker(MockAction):
     ) -> dict:
         return {"field": "ok", "extra": "forbidden"}
 
-    @summary_aspect("summary")
-    async def summary(
-        self,
-        params: MockParams,
-        state: BaseState,
-        box: ToolsBox,
-        connections: dict,
-    ) -> MockResult:
+    @summary_aspect("checker summary")
+    async def summary(self, params, state, box, connections):
         return MockResult()
 
 
@@ -408,17 +366,18 @@ class TestGetAspects:
         assert summary[0].__name__ == "summary"
 
     def test_get_aspects_no_summary_raises(self):
-        class ActionNoSummary(MockAction):
+        """Action with regular aspects but no summary raises TypeError on instantiation."""
+        class ActionNoSummary(BaseAction[MockParams, MockResult]):
             @regular_aspect("no summary")
             async def aspect(self, params, state, box, connections):
                 return {}
 
         with pytest.raises(TypeError, match="does not have a summary aspect"):
-            ActionNoSummary()  # создаём экземпляр – здесь возникает ошибка
+            ActionNoSummary()
 
     def test_get_aspects_two_summaries_raises(self):
         with pytest.raises(TypeError, match="Only one summary aspect can be registered per action"):
-            class ActionTwoSummaries(MockAction):
+            class ActionTwoSummaries(BaseAction[MockParams, MockResult]):
                 @summary_aspect("first")
                 async def summary1(self, params, state, box, connections):
                     return MockResult()
@@ -447,15 +406,9 @@ class TestCheckActionRoles:
 
     def test_single_role_no_match(self, machine, context_with_roles):
         @CheckRoles("manager", desc="")
-        class _ActionManager(MockAction):
-            @summary_aspect("test")
-            async def summary(
-                self,
-                params: MockParams,
-                state: BaseState,
-                box: ToolsBox,
-                connections: dict,
-            ) -> MockResult:
+        class _ActionManager(BaseAction[MockParams, MockResult]):
+            @summary_aspect("mock summary")
+            async def summary(self, params, state, box, connections):
                 return MockResult()
 
         with pytest.raises(AuthorizationError, match="Access denied. Required role: 'manager'"):
@@ -466,15 +419,9 @@ class TestCheckActionRoles:
 
     def test_list_role_no_intersection(self, machine, context_with_roles):
         @CheckRoles(["manager", "editor"], desc="")
-        class _ActionManagerEditor(MockAction):
-            @summary_aspect("test")
-            async def summary(
-                self,
-                params: MockParams,
-                state: BaseState,
-                box: ToolsBox,
-                connections: dict,
-            ) -> MockResult:
+        class _ActionManagerEditor(BaseAction[MockParams, MockResult]):
+            @summary_aspect("mock summary")
+            async def summary(self, params, state, box, connections):
                 return MockResult()
 
         with pytest.raises(AuthorizationError, match="Access denied. Required one of the roles:"):
@@ -555,10 +502,8 @@ class TestRun:
 
     @pytest.mark.anyio
     async def test_nest_level_increments_and_decrements(self, machine, context_with_roles):
-        # Nesting is now handled via ToolsBox, not a machine field.
-        # We verify that box receives correct nested_level.
         @CheckRoles(CheckRoles.NONE, desc="")
-        class CheckNestingAction(MockAction):
+        class CheckNestingAction(BaseAction[MockParams, MockResult]):
             @summary_aspect("test")
             async def summary(
                 self,
@@ -572,19 +517,14 @@ class TestRun:
 
         await machine.run(context_with_roles, CheckNestingAction(), MockParams())
 
-    # ------------------------------------------------------------------
-    # TESTS: Logging and mode passing
-    # ------------------------------------------------------------------
     @pytest.mark.anyio
     async def test_logger_passed_to_aspects(self, machine, context_with_roles):
-        """Check that log.emit is called in each aspect."""
         ActionWithAspects._test_calls = []
         await machine.run(context_with_roles, ActionWithAspects(), MockParams())
         assert machine._log_coordinator.emit.await_count >= 3
 
     @pytest.mark.anyio
     async def test_logger_receives_correct_scope(self, machine, context_with_roles):
-        """Check that the log scope is formed correctly."""
         machine._log_coordinator.emit = AsyncMock()
         await machine.run(context_with_roles, ActionWithAspects(), MockParams())
         call_args = machine._log_coordinator.emit.call_args_list[0]

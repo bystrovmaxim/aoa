@@ -1,4 +1,3 @@
-# ActionMachine/Plugins/PluginCoordinator.py
 """
 Plugin coordinator for ActionMachine.
 
@@ -28,6 +27,17 @@ The handler cache (_handler_cache) also lives as long as the coordinator.
 The cache key is (event_name, action_name). This is safe because
 the set of plugin handlers for a given event and action does not change
 after plugin creation (the @on decorator is applied at class definition time).
+
+Управление подписками плагинов теперь осуществляется через шлюз OnGate.
+Метод _get_handlers использует plugin.get_on_gate().get_handlers() вместо
+обхода методов и проверки _plugin_hooks.
+
+Handlers stored in OnGate are unbound methods (from cls.__dict__).
+When calling them, the plugin instance must be passed as the first argument (self).
+
+The handler cache now stores tuples (handler, ignore_exceptions, plugin)
+to correctly associate each handler with its owning plugin instance,
+even when multiple plugin instances share the same class.
 """
 
 import asyncio
@@ -38,7 +48,7 @@ from action_machine.Context.context import Context
 from action_machine.Core.BaseAction import BaseAction
 from action_machine.Core.BaseParams import BaseParams
 from action_machine.Core.BaseResult import BaseResult
-from action_machine.Core.DependencyFactory import DependencyFactory
+from action_machine.dependencies.dependency_factory import DependencyFactory
 from action_machine.Plugins.Plugin import Plugin
 from action_machine.Plugins.PluginEvent import PluginEvent
 
@@ -58,6 +68,7 @@ class PluginCoordinator:
     Attributes:
         _plugins: list of plugin instances.
         _handler_cache: handler cache by (event_name, action_name).
+            Each entry is a list of (handler, ignore_exceptions, plugin) tuples.
         _plugin_states: plugin states dictionary by id(plugin).
     """
 
@@ -74,10 +85,13 @@ class PluginCoordinator:
         """
         self._plugins: list[Plugin] = plugins
 
-        # Handler cache: (event_name, action_name) → [(handler, ignore)]
+        # Handler cache: (event_name, action_name) → [(handler, ignore, plugin)]
         # Populated lazily on first call to _get_handlers for each key.
         # Safe for reuse because the set of handlers does not change after plugin creation.
-        self._handler_cache: dict[tuple[str, str], list[tuple[Callable[..., Any], bool]]] = {}
+        self._handler_cache: dict[
+            tuple[str, str],
+            list[tuple[Callable[..., Any], bool, Plugin]]
+        ] = {}
 
         # Plugin states: id(plugin) → state
         # Initialized lazily on the first event via _init_plugin_states.
@@ -91,12 +105,13 @@ class PluginCoordinator:
         self,
         event_name: str,
         action_name: str,
-    ) -> list[tuple[Callable[..., Any], bool]]:
+    ) -> list[tuple[Callable[..., Any], bool, Plugin]]:
         """
         Returns (and caches) the list of handlers for the given event and action.
 
         On first call for a given (event_name, action_name), iterates through all
-        plugins and collects matching handlers via plugin.get_handlers().
+        plugins and collects matching handlers via plugin.get_on_gate().get_handlers().
+        Each handler is stored together with its owning plugin instance.
         The result is cached for subsequent calls.
 
         Args:
@@ -104,15 +119,16 @@ class PluginCoordinator:
             action_name: full class name of the action (including module).
 
         Returns:
-            List of (handler, ignore_exceptions) tuples.
+            List of (handler, ignore_exceptions, plugin) tuples.
             Empty list if no handlers match.
         """
         cache_key = (event_name, action_name)
 
         if cache_key not in self._handler_cache:
-            handlers: list[tuple[Callable[..., Any], bool]] = []
+            handlers: list[tuple[Callable[..., Any], bool, Plugin]] = []
             for plugin in self._plugins:
-                handlers.extend(plugin.get_handlers(event_name, action_name))
+                for handler, ignore in plugin.get_on_gate().get_handlers(event_name, action_name):
+                    handlers.append((handler, ignore, plugin))
             self._handler_cache[cache_key] = handlers
 
         return self._handler_cache[cache_key]
@@ -147,20 +163,25 @@ class PluginCoordinator:
         passes it to the handler along with the event,
         and stores the returned new state back.
 
+        The handler is an unbound method from OnGate (stored from cls.__dict__),
+        so we must pass the plugin instance as the first argument (self).
+
         If ignore=True and the handler raises an exception,
         the error is printed to stdout but does not interrupt execution.
         If ignore=False, the exception is propagated upward.
 
         Args:
-            handler: plugin handler method (async def).
+            handler: plugin handler method (unbound async def from class).
             ignore: ignore_exceptions flag from the @on decorator.
-            plugin: plugin instance (to get id and class name).
+            plugin: plugin instance (used as self for the handler call).
             event: PluginEvent object with all event data.
         """
         plugin_id = id(plugin)
         state = self._plugin_states[plugin_id]
         try:
-            new_state = await handler(state, event)
+            # handler is an unbound method stored by OnGate from cls.__dict__,
+            # so we must pass the plugin instance as the first argument (self).
+            new_state = await handler(plugin, state, event)
             self._plugin_states[plugin_id] = new_state
         except Exception as e:
             if ignore:
@@ -175,18 +196,34 @@ class PluginCoordinator:
         """
         Finds the plugin instance that owns the given handler.
 
-        Checks the __self__ attribute of the bound method
-        to determine which plugin instance created this handler.
+        Since OnGate stores unbound methods (from cls.__dict__), we look up
+        the handler by name in the class dict (__dict__) of each plugin's
+        class hierarchy.
+
+        Note: When multiple plugin instances share the same class, this method
+        returns the FIRST matching instance. For correct per-instance dispatch,
+        use _get_handlers() which stores the plugin reference directly.
+
+        This method is kept for backward compatibility with tests that call it
+        directly.
 
         Args:
-            handler: plugin handler method.
+            handler: plugin handler method (unbound function from class __dict__).
 
         Returns:
             Plugin instance if found, otherwise None.
         """
+        handler_name = getattr(handler, '__name__', None)
+        if handler_name is None:
+            return None
+
         for plugin in self._plugins:
-            if hasattr(handler, "__self__") and handler.__self__ is plugin:
-                return plugin
+            # Walk the MRO to find the method in the class hierarchy
+            for cls in type(plugin).__mro__:
+                cls_method = cls.__dict__.get(handler_name)
+                if cls_method is handler:
+                    return plugin
+
         return None
 
     # ---------- Public method ----------
@@ -262,12 +299,10 @@ class PluginCoordinator:
         )
 
         # Collect tasks for all handlers.
-        # For each handler, find its plugin via _find_plugin_for_handler.
+        # Each handler already has its plugin reference from _get_handlers.
         tasks: list[Any] = []
-        for handler, ignore in handlers:
-            plugin = self._find_plugin_for_handler(handler)
-            if plugin is not None:
-                tasks.append(self._run_single_handler(handler, ignore, plugin, event))
+        for handler, ignore, plugin in handlers:
+            tasks.append(self._run_single_handler(handler, ignore, plugin, event))
 
         # Run all tasks concurrently.
         # asyncio.gather waits for all tasks to complete.

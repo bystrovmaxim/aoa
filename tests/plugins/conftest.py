@@ -14,7 +14,8 @@ from action_machine.Context.context import Context
 from action_machine.Core.BaseAction import BaseAction
 from action_machine.Core.BaseParams import BaseParams
 from action_machine.Core.BaseResult import BaseResult
-from action_machine.Core.DependencyFactory import DependencyFactory
+# Импорт DependencyFactory исправлен: из action_machine.dependencies.dependency_factory
+from action_machine.dependencies.dependency_factory import DependencyFactory
 from action_machine.Plugins.Decorators import on
 from action_machine.Plugins.Plugin import Plugin
 from action_machine.Plugins.PluginEvent import PluginEvent

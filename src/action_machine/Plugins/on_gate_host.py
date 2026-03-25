@@ -1,4 +1,5 @@
 # src/action_machine/Plugins/on_gate_host.py
+
 """
 OnGateHost – миксин для присоединения шлюза подписок к классу плагина.
 
@@ -81,7 +82,10 @@ class OnGateHost:
 
         # Собираем подписки из методов, определённых непосредственно в этом классе
         for name, method in cls.__dict__.items():
-            if callable(method) and hasattr(method, "_on_subscriptions"):
+            # Пропускаем служебные атрибуты (начинающиеся с '__') и не-callable
+            if name.startswith('__') or not callable(method):
+                continue
+            if hasattr(method, "_on_subscriptions"):
                 for event_regex, class_regex, ignore_exceptions in method._on_subscriptions:
                     # Компилируем регулярные выражения, если они ещё не скомпилированы
                     if isinstance(event_regex, str):
@@ -90,8 +94,9 @@ class OnGateHost:
                         class_regex = re.compile(class_regex)
                     sub = Subscription(method, event_regex, class_regex, ignore_exceptions)
                     gate.register(sub)
-                # Очищаем временные данные метода
-                delattr(method, "_on_subscriptions")
+                # Очищаем временные данные метода, если они есть
+                if hasattr(method, "_on_subscriptions"):
+                    delattr(method, "_on_subscriptions")
 
         # Замораживаем шлюз – после этого регистрация невозможна
         gate.freeze()

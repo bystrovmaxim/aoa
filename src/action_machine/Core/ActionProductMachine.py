@@ -1,13 +1,13 @@
-# src/action_machine/Core/ActionProductMachine.py
 """
 Product action machine implementation with plugin support and nesting.
 Fully asynchronous version. Uses PluginEvent to pass data to plugins.
 
-Изменения (этап 3):
-- Убран кэш аспектов (`_aspect_cache`) – теперь кэширование выполняется в `AspectGateHost`.
-- Вызовы `self._get_aspects(action)` заменены на `action.get_aspects()`.
-- Удалён метод `_get_aspects` (больше не нужен).
-- Обновлены комментарии.
+Управление метаданными действий (роли, зависимости, чекеры) осуществляется
+через шлюзы (gates). Машина получает доступ к этим данным через методы
+действия: get_role_gate(), get_dependency_gate(), get_checker_gate().
+
+Все обращения к устаревшим атрибутам (_role_spec, _dependencies,
+_field_checkers, _result_checkers) заменены на вызовы соответствующих шлюзов.
 """
 
 import time
@@ -22,12 +22,13 @@ from action_machine.Core.BaseActionMachine import BaseActionMachine
 from action_machine.Core.BaseParams import BaseParams
 from action_machine.Core.BaseResult import BaseResult
 from action_machine.Core.BaseState import BaseState
-from action_machine.Core.DependencyFactory import DependencyFactory
+from action_machine.dependencies.dependency_factory import DependencyFactory
 from action_machine.Core.Exceptions import AuthorizationError, ConnectionValidationError, ValidationFieldError
 from action_machine.Core.ToolsBox import ToolsBox
 from action_machine.Logging.action_bound_logger import ActionBoundLogger
 from action_machine.Logging.console_logger import ConsoleLogger
 from action_machine.Logging.log_coordinator import LogCoordinator
+from action_machine.Logging.log_scope import LogScope
 from action_machine.Plugins.Plugin import Plugin
 from action_machine.Plugins.PluginCoordinator import PluginCoordinator
 from action_machine.ResourceManagers.BaseResourceManager import BaseResourceManager
@@ -38,16 +39,16 @@ R = TypeVar("R", bound=BaseResult)
 
 class ActionProductMachine(BaseActionMachine):
     """
-    Product implementation of the action machine (asynchronous).
+    Production реализация машины действий (асинхронная).
 
-    Contains logic for caching dependency factories,
-    performs role checking, validation of aspect results through checkers,
-    and checks the correspondence of passed connections to those declared with @connection.
+    Содержит логику кэширования фабрик зависимостей,
+    выполняет проверку ролей, валидацию результатов аспектов через чекеры,
+    и проверяет соответствие переданных connections объявленным с @connection.
 
-    Plugin management is delegated to PluginCoordinator.
+    Управление плагинами делегируется PluginCoordinator.
 
-    The machine does **not** store per‑request context; context must be passed
-    to the `run()` method for each execution.
+    Машина **не** хранит контекст запроса; контекст должен передаваться
+    в метод `run()` для каждого выполнения.
     """
 
     def __init__(
@@ -57,65 +58,82 @@ class ActionProductMachine(BaseActionMachine):
         log_coordinator: LogCoordinator | None = None,
     ) -> None:
         """
-        Initializes the action machine.
+        Инициализирует машину действий.
 
-        Args:
-            mode: execution mode (required, non-empty). Examples: "production", "test", "staging".
-            plugins: list of plugin instances (default empty).
-            log_coordinator: logging coordinator. If not specified, a
-                             coordinator with a single ConsoleLogger(use_colors=True) is created.
+        Аргументы:
+            mode: режим выполнения (обязательный, не пустой). Примеры: "production", "test", "staging".
+            plugins: список экземпляров плагинов (по умолчанию пустой).
+            log_coordinator: координатор логирования. Если не указан, создаётся
+                             координатор с одним ConsoleLogger(use_colors=True).
 
-        Raises:
-            ValueError: if mode is an empty string.
+        Исключения:
+            ValueError: если mode — пустая строка.
         """
         if not mode:
             raise ValueError("mode must be non-empty")
         self._mode = mode
 
-        # Plugin coordinator
+        # Координатор плагинов
         self._plugin_coordinator: PluginCoordinator = PluginCoordinator(
             plugins=plugins or [],
         )
 
-        # Logging coordinator
+        # Координатор логирования
         if log_coordinator is None:
             log_coordinator = LogCoordinator(loggers=[ConsoleLogger(use_colors=True)])
         self._log_coordinator = log_coordinator
 
-        # Dependency factory cache
+        # Кэш фабрик зависимостей по классу действия
         self._factory_cache: dict[type[Any], DependencyFactory] = {}
 
-    def _get_factory(self, action_class: type[Any]) -> DependencyFactory:
-        """Returns (and caches) the dependency factory for the action class."""
+    def _get_factory(self, action: BaseAction[Any, Any]) -> DependencyFactory:
+        """
+        Возвращает (и кэширует) фабрику зависимостей для действия.
+
+        Использует шлюз зависимостей действия для создания фабрики.
+        """
+        action_class = action.__class__
         if action_class not in self._factory_cache:
-            deps_info = getattr(action_class, "_dependencies", [])
-            self._factory_cache[action_class] = DependencyFactory(deps_info)
+            gate = action.get_dependency_gate()
+            self._factory_cache[action_class] = DependencyFactory(gate)
         return self._factory_cache[action_class]
 
     def _apply_checkers(
         self,
+        action: BaseAction[Any, Any],
         method: Callable[..., Any],
         result: dict[str, Any],
     ) -> None:
-        """Applies checkers attached to the method to the result dict."""
-        checkers = getattr(method, "_result_checkers", [])
+        """
+        Применяет все чекеры, прикреплённые к методу, к словарю результата.
+
+        Аргументы:
+            action: экземпляр действия.
+            method: метод, для которого зарегистрированы чекеры.
+            result: словарь с результатом аспекта.
+
+        Исключения:
+            ValidationFieldError: если какая-либо проверка не пройдена.
+        """
+        gate = action.get_checker_gate()
+        checkers = gate.get_method_checkers(method)
         for checker in checkers:
             checker.check(result)
 
-    # ---------- Role checking ----------
+    # ---------- Проверка ролей ----------
 
     def _check_none_role(self, user_roles: list[str]) -> bool:
-        """Check for CheckRoles.NONE (always allowed)."""
+        """Проверка для CheckRoles.NONE (всегда разрешено)."""
         return True
 
     def _check_any_role(self, user_roles: list[str]) -> bool:
-        """Check for CheckRoles.ANY (requires at least one role)."""
+        """Проверка для CheckRoles.ANY (требуется хотя бы одна роль)."""
         if not user_roles:
             raise AuthorizationError("Authentication required: user must have at least one role")
         return True
 
     def _check_list_role(self, spec: list[str], user_roles: list[str]) -> bool:
-        """Check for a list of roles (intersection)."""
+        """Проверка для списка ролей (пересечение)."""
         if any(role in user_roles for role in spec):
             return True
         raise AuthorizationError(
@@ -123,30 +141,33 @@ class ActionProductMachine(BaseActionMachine):
         )
 
     def _check_single_role(self, spec: str, user_roles: list[str]) -> bool:
-        """Check for a single specific role."""
+        """Проверка для одной конкретной роли."""
         if spec in user_roles:
             return True
         raise AuthorizationError(f"Access denied. Required role: '{spec}', user roles: {user_roles}")
 
     def _check_action_roles(self, action: BaseAction[P, R], context: Context) -> None:
         """
-        Checks that the action has a role specification (CheckRoles decorator)
-        and that the current user from the context satisfies it.
+        Проверяет, что действие имеет спецификацию ролей (декоратор CheckRoles)
+        и что текущий пользователь из контекста удовлетворяет ей.
 
-        Args:
-            action: action instance.
-            context: execution context containing user information.
+        Аргументы:
+            action: экземпляр действия.
+            context: контекст выполнения, содержащий информацию о пользователе.
 
-        Raises:
-            TypeError: if the action does not have a _role_spec attribute.
-            AuthorizationError: if the user's roles do not meet the requirements.
+        Исключения:
+            TypeError: если действие не имеет спецификации ролей.
+            AuthorizationError: если роли пользователя не соответствуют требованиям.
         """
-        role_spec = getattr(action.__class__, "_role_spec", None)
+        gate = action.get_role_gate()
+        role_spec = gate.get_role_spec()
+
         if role_spec is None:
             raise TypeError(
                 f"Action {action.__class__.__name__} does not have a CheckRoles decorator. "
                 "Specify CheckRoles.NONE explicitly if the action is accessible without authentication."
             )
+
         user_roles = context.user.roles
 
         if role_spec == CheckRoles.NONE:
@@ -158,10 +179,12 @@ class ActionProductMachine(BaseActionMachine):
         else:
             self._check_single_role(role_spec, user_roles)
 
-    # ---------- Connection checking ----------
+    # ---------- Проверка соединений ----------
 
     @staticmethod
     def _get_declared_connection_keys(action: BaseAction[P, R]) -> set[str]:
+        """Возвращает множество ключей соединений, объявленных через @connection."""
+        # Пока используем старый атрибут _connections, так как миграция ConnectionGate ещё не завершена.
         declared: list[dict[str, Any]] = getattr(action.__class__, "_connections", [])
         return {info["key"] for info in declared}
 
@@ -209,17 +232,17 @@ class ActionProductMachine(BaseActionMachine):
         self, action: BaseAction[P, R], connections: dict[str, BaseResourceManager] | None
     ) -> dict[str, BaseResourceManager]:
         """
-        Checks that the passed connections match those declared with @connection.
+        Проверяет, что переданные connections соответствуют объявленным с @connection.
 
-        Args:
-            action: action instance.
-            connections: connections dictionary (or None).
+        Аргументы:
+            action: экземпляр действия.
+            connections: словарь соединений (или None).
 
-        Returns:
-            Validated connections (empty dict if None and no declarations).
+        Возвращает:
+            Проверенные connections (пустой словарь, если None и нет объявлений).
 
-        Raises:
-            ConnectionValidationError: if there is a mismatch.
+        Исключения:
+            ConnectionValidationError: при несоответствии.
         """
         declared_keys = self._get_declared_connection_keys(action)
         actual_keys = set(connections.keys()) if connections else set()
@@ -236,7 +259,7 @@ class ActionProductMachine(BaseActionMachine):
                 raise ConnectionValidationError(error)
         return connections or {}
 
-    # ---------- Main asynchronous run methods ----------
+    # ---------- Основные асинхронные методы run ----------
 
     async def run(
         self,
@@ -246,29 +269,29 @@ class ActionProductMachine(BaseActionMachine):
         connections: dict[str, BaseResourceManager] | None = None,
     ) -> R:
         """
-        Asynchronously executes the action with plugins and nesting support.
+        Асинхронно выполняет действие с поддержкой плагинов и вложенности.
 
-        This is the public entry point. Resources are not accepted here;
-        they are passed implicitly through the action's dependencies.
+        Это публичная точка входа. Ресурсы не принимаются здесь;
+        они передаются неявно через зависимости действия.
 
-        Execution sequence:
-            1. Increase nesting level.
-            2. Check roles (CheckRoles decorator) using the provided context.
-            3. Check connections (@connection decorator).
-            4. global_start event (plugins through PluginCoordinator).
-            5. Execute regular aspects (with before/after calls).
-            6. Execute summary aspect.
-            7. global_finish event with total duration.
-            8. Decrease nesting level.
+        Последовательность выполнения:
+            1. Увеличить уровень вложенности.
+            2. Проверить роли (декоратор CheckRoles) с использованием переданного контекста.
+            3. Проверить соединения (декоратор @connection).
+            4. Событие global_start (плагины через PluginCoordinator).
+            5. Выполнить обычные аспекты (с вызовами before/after).
+            6. Выполнить summary-аспект.
+            7. Событие global_finish с общей длительностью.
+            8. Уменьшить уровень вложенности.
 
-        Args:
-            context: execution context for this request (user, request, environment).
-            action: action instance.
-            params: input parameters.
-            connections: dictionary of resource managers (connections).
+        Аргументы:
+            context: контекст выполнения для этого запроса (пользователь, запрос, окружение).
+            action: экземпляр действия.
+            params: входные параметры.
+            connections: словарь менеджеров ресурсов (соединений).
 
-        Returns:
-            Result of the action execution.
+        Возвращает:
+            Результат выполнения действия.
         """
         return await self._run_internal(context, action, params, resources=None, connections=connections, nested_level=0)
 
@@ -282,18 +305,18 @@ class ActionProductMachine(BaseActionMachine):
         nested_level: int,
     ) -> R:
         """
-        Internal execution method that handles nesting and resource passing.
+        Внутренний метод выполнения, обрабатывающий вложенность и передачу ресурсов.
 
-        Args:
-            context: execution context.
-            action: action instance.
-            params: input parameters.
-            resources: external resources for dependencies (priority over factory).
-            connections: resource managers.
-            nested_level: current nesting level (0 for root).
+        Аргументы:
+            context: контекст выполнения.
+            action: экземпляр действия.
+            params: входные параметры.
+            resources: внешние ресурсы для зависимостей (приоритет над фабрикой).
+            connections: менеджеры ресурсов.
+            nested_level: текущий уровень вложенности (0 для корня).
 
-        Returns:
-            Action result.
+        Возвращает:
+            Результат действия.
         """
         current_nest = nested_level + 1
         start_time = time.time()
@@ -301,20 +324,20 @@ class ActionProductMachine(BaseActionMachine):
         try:
             self._check_action_roles(action, context)
             conns = self._check_connections(action, connections)
-            factory = self._get_factory(action.__class__)
+            factory = self._get_factory(action)
 
-            # Create logger for this level
+            # Создаём логер для этого уровня
             log = ActionBoundLogger(
                 coordinator=self._log_coordinator,
                 nest_level=current_nest,
                 machine_name=self.__class__.__name__,
                 mode=self._mode,
                 action_name=action.get_full_class_name(),
-                aspect_name="",  # will be set per aspect
+                aspect_name="",  # будет установлен для каждого аспекта
                 context=context,
             )
 
-            # Create a closure for running child actions.
+            # Создаём замыкание для запуска дочерних действий
             async def run_child(
                 action: BaseAction[Any, Any],
                 params: BaseParams,
@@ -329,7 +352,7 @@ class ActionProductMachine(BaseActionMachine):
                     nested_level=current_nest,
                 )
 
-            # Create ToolsBox for this level
+            # Создаём ToolsBox для этого уровня
             box = ToolsBox(
                 run_child=run_child,
                 factory=factory,
@@ -352,7 +375,7 @@ class ActionProductMachine(BaseActionMachine):
                 nest_level=current_nest,
             )
 
-            # Retrieve aspects directly from the action (cached inside AspectGateHost)
+            # Получаем аспекты непосредственно из действия (кэшируются внутри AspectGateHost)
             regular_aspects, summary_method = action.get_aspects()
             state = await self._execute_regular_aspects(
                 action, params, box, conns, context, regular_aspects
@@ -393,27 +416,27 @@ class ActionProductMachine(BaseActionMachine):
         context: Context,
     ) -> Any:
         """
-        Calls an aspect method.
+        Вызывает метод-аспект.
 
-        The aspect receives `box` as its fifth argument (after connections)
-        and uses it for dependency resolution, logging, and running child actions.
+        Аспект получает `box` в качестве пятого аргумента (после connections)
+        и использует его для разрешения зависимостей, логирования и запуска дочерних действий.
 
-        Args:
-            method: aspect method to call (None means no summary).
-            action: action instance.
-            params: input parameters.
-            state: current pipeline state.
-            box: ToolsBox instance for this level.
-            connections: dictionary of resource managers.
-            context: execution context (used for logging).
+        Аргументы:
+            method: метод-аспект для вызова (None означает отсутствие summary-аспекта).
+            action: экземпляр действия.
+            params: входные параметры.
+            state: текущее состояние конвейера.
+            box: экземпляр ToolsBox для этого уровня.
+            connections: словарь менеджеров ресурсов.
+            context: контекст выполнения (используется для логирования).
 
-        Returns:
-            Result of the aspect (or empty BaseResult if no summary).
+        Возвращает:
+            Результат аспекта (или пустой BaseResult, если summary отсутствует).
         """
         if method is None:
             return BaseResult()
 
-        # Create a logger with the aspect name for this specific call
+        # Создаём логер с именем аспекта для этого конкретного вызова
         aspect_log = ActionBoundLogger(
             coordinator=self._log_coordinator,
             nest_level=box.nested_level,
@@ -423,7 +446,7 @@ class ActionProductMachine(BaseActionMachine):
             aspect_name=method.__name__,
             context=context,
         )
-        # Create a new box with the aspect-specific logger.
+        # Создаём новый box с логером для аспекта
         aspect_box = ToolsBox(
             run_child=box.run_child,
             factory=box.factory,
@@ -444,14 +467,14 @@ class ActionProductMachine(BaseActionMachine):
         regular_aspects: list[tuple[AspectMethodProtocol, str]],
     ) -> BaseState:
         """
-        Asynchronously executes the chain of regular aspects, calling
-        before and after plugin events for each through the coordinator.
+        Асинхронно выполняет цепочку обычных аспектов, вызывая before/after
+        события плагинов для каждого через координатор.
 
-        For each aspect:
-            - call plugin before-event,
-            - execute the aspect itself,
-            - check the result through checkers,
-            - call plugin after-event with duration.
+        Для каждого аспекта:
+            - вызвать before-событие плагина,
+            - выполнить сам аспект,
+            - проверить результат через чекеры,
+            - вызвать after-событие плагина с длительностью.
         """
         state = BaseState()
 
@@ -472,7 +495,7 @@ class ActionProductMachine(BaseActionMachine):
             )
 
             aspect_start = time.time()
-            # Create aspect-specific box with correct aspect name in log
+            # Создаём box для аспекта с правильным именем аспекта в логере
             aspect_log = ActionBoundLogger(
                 coordinator=self._log_coordinator,
                 nest_level=box.nested_level,
@@ -496,7 +519,9 @@ class ActionProductMachine(BaseActionMachine):
                     f"Aspect {method.__qualname__} must return a dict, got {type(new_state_dict).__name__}"
                 )
 
-            checkers = getattr(method, "_result_checkers", [])
+            # Получаем чекеры для метода через шлюз действия
+            gate = action.get_checker_gate()
+            checkers = gate.get_method_checkers(method)
 
             if not checkers and new_state_dict:
                 raise ValidationFieldError(
@@ -513,7 +538,7 @@ class ActionProductMachine(BaseActionMachine):
                         f"Aspect {method.__qualname__} returned extra fields: "
                         f"{extra_fields}. Allowed only: {allowed_fields}"
                     )
-                self._apply_checkers(method, new_state_dict)
+                self._apply_checkers(action, method, new_state_dict)
 
             state = BaseState(new_state_dict)
 

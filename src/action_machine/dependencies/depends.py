@@ -15,17 +15,18 @@ ActionMachine будет автоматически создавать и пре
 Архитектурная роль:
     Декоратор добавляет информацию о зависимостях в два места:
         1. Атрибут `_dependencies` — для обратной совместимости со старым кодом.
-        2. Временный список `__depends_info` — для сбора в `DependencyGateHost`.
+        2. Временный список `_depends_info` — для ленивого сбора в `DependencyGateHost`.
 
-    При создании класса (в `__init_subclass__`) `DependencyGateHost` собирает
-    `__depends_info`, регистрирует каждую зависимость в `DependencyGate` и затем
-    удаляет временный атрибут. После этого шлюз замораживается.
+    При первом вызове `get_dependency_gate()` хост собирает `_depends_info`,
+    регистрирует каждую зависимость в `DependencyGate` и замораживает шлюз.
 
-    Фабрика зависимостей (`DependencyFactory`) использует `DependencyGate` для
-    получения информации о зависимостях.
+    Имя `_depends_info` (с одним подчёркиванием) используется вместо
+    `__depends_info` (с двумя), чтобы избежать Python name mangling,
+    который превращает `__attr` в `_ClassName__attr` и делает атрибут
+    недоступным через `getattr(cls, '__depends_info')`.
 
     Параллельное существование двух механизмов (старый `_dependencies` и новый
-    `__depends_info`) обеспечивает плавную миграцию. После полного перехода на
+    `_depends_info`) обеспечивает плавную миграцию. После полного перехода на
     шлюзы старый атрибут будет удалён.
 """
 
@@ -78,16 +79,18 @@ def depends(
                 "factory": factory,
             }
         )
-        # mypy не знает о существовании атрибута _dependencies,
-        # поэтому добавляем игнорирование.
         cls._dependencies = deps  # type: ignore[attr-defined]
 
         # --- Новый механизм (для шлюза) ---
-        # Добавляем временную информацию, которая будет собрана в __init_subclass__
-        if not hasattr(cls, "__depends_info"):
-            # mypy не знает о __depends_info — игнорируем
-            cls.__depends_info = []  # type: ignore[attr-defined]
-        cls.__depends_info.append(  # type: ignore[attr-defined]
+        # Используем _depends_info (одно подчёркивание), чтобы избежать
+        # Python name mangling (которое превращает __attr в _ClassName__attr).
+        if not hasattr(cls, "_depends_info") or cls._depends_info is None:
+            cls._depends_info = []  # type: ignore[attr-defined]
+        else:
+            # Создаём копию, чтобы не мутировать родительский список
+            cls._depends_info = list(cls._depends_info)  # type: ignore[attr-defined]
+
+        cls._depends_info.append(  # type: ignore[attr-defined]
             DependencyInfo(
                 cls=klass,
                 factory=factory,
