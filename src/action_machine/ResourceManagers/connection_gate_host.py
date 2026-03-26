@@ -1,92 +1,93 @@
+# src/action_machine/ResourceManagers/connection_gate_host.py
 """
-ConnectionGateHost – миксин для присоединения шлюза соединений к классу действия.
+Модуль: ConnectionGateHost — маркерный миксин для декоратора @connection.
 
-Этот миксин используется в иерархии BaseAction. Он:
-- Объявляет атрибут _connection_info для использования декоратором @connection.
-- Создаёт экземпляр ConnectionGate для класса (один на класс, разделяется всеми экземплярами).
-- Собирает информацию о соединениях из декораторов @connection, применённых к классу.
-- После сбора замораживает шлюз, чтобы гарантировать неизменность набора соединений.
-- Предоставляет метод get_connection_gate() для доступа к шлюзу из машины.
+═══════════════════════════════════════════════════════════════════════════════
+НАЗНАЧЕНИЕ
+═══════════════════════════════════════════════════════════════════════════════
 
-Механизм сбора:
-    Декоратор @connection при применении к классу добавляет в класс атрибут
-    _connection_info (список ConnectionInfo). Поскольку декоратор класса применяется
-    ПОСЛЕ __init_subclass__, сбор данных выполняется лениво при первом вызове
-    get_connection_gate(). Шлюз замораживается после первого сбора.
+ConnectionGateHost — миксин-маркер, который разрешает применение декоратора
+@connection к классу. Декоратор при применении проверяет:
 
-Важно:
-    Шлюз хранится в классовой переменной __connection_gate. При наследовании каждый
-    подкласс получает свой собственный шлюз благодаря проверке в get_connection_gate().
+    if not issubclass(cls, ConnectionGateHost):
+        raise TypeError("Класс должен наследовать ConnectionGateHost")
+
+Без наследования от ConnectionGateHost декоратор @connection выбросит
+TypeError. Это защита от случайного объявления соединений на классах,
+которые не поддерживают работу с ресурс-менеджерами.
+
+═══════════════════════════════════════════════════════════════════════════════
+АРХИТЕКТУРА
+═══════════════════════════════════════════════════════════════════════════════
+
+    class BaseAction[P, R](
+        ABC,
+        RoleGateHost,
+        DependencyGateHost[object],
+        CheckerGateHost,
+        AspectGateHost,
+        ConnectionGateHost,             ← маркер: разрешает @connection
+    ): ...
+
+    @connection(PostgresManager, key="db", description="Основная БД")
+    @connection(RedisManager, key="cache", description="Кеш")
+    class DataAction(BaseAction[P, R]):
+        ...
+
+    # Декоратор @connection проверяет:
+    #   1. issubclass(DataAction, ConnectionGateHost) → True → OK
+    #   2. issubclass(PostgresManager, BaseResourceManager) → True → OK
+    #   3. key="db" — непустая строка → OK
+    #   4. Дубликатов по ключу нет → OK
+    #   5. Записывает ConnectionInfo в cls._connection_info
+
+    # MetadataBuilder.build(DataAction) читает:
+    #   cls._connection_info → tuple(ConnectionInfo(...), ConnectionInfo(...))
+    #   → ClassMetadata.connections
+
+    # ActionProductMachine:
+    #   metadata = coordinator.get(DataAction)
+    #   metadata.get_connection_keys() → ("db", "cache")
+
+═══════════════════════════════════════════════════════════════════════════════
+ПРИМЕР ИСПОЛЬЗОВАНИЯ
+═══════════════════════════════════════════════════════════════════════════════
+
+    # BaseAction уже наследует ConnectionGateHost — любой Action
+    # поддерживает @connection автоматически:
+
+    @connection(PostgresManager, key="db", description="Основная БД")
+    class UserAction(BaseAction[UserParams, UserResult]):
+        @regular_aspect("Загрузка пользователя")
+        async def load_user(self, params, state, box, connections):
+            db = connections["db"]
+            user = await db.fetch_one(...)
+            return {"user": user}
+
+        @summary_aspect("Результат")
+        async def result(self, params, state, box, connections):
+            return UserResult(user=state["user"])
 """
 
 from typing import Any, ClassVar
 
-from .connection_gate import ConnectionGate, ConnectionInfo
-
 
 class ConnectionGateHost:
     """
-    Миксин, добавляющий классу шлюз соединений.
+    Маркерный миксин, разрешающий использование декоратора @connection.
 
-    Классовые атрибуты:
-        __connection_gate: ConnectionGate | None – шлюз, общий для всех экземпляров данного класса.
-        _connection_info: list[ConnectionInfo] | None – временное хранилище,
-                         используемое декоратором @connection для передачи данных.
-                         Собирается лениво в get_connection_gate().
+    Класс, НЕ наследующий ConnectionGateHost, не может быть целью
+    @connection — декоратор выбросит TypeError при попытке применения.
+
+    Миксин не содержит логики, полей или методов. Его единственная функция —
+    служить проверочным маркером для issubclass().
+
+    Атрибуты уровня класса (создаются динамически декоратором):
+        _connection_info : list[ConnectionInfo]
+            Список объектов ConnectionInfo(cls, key, description),
+            записываемый декоратором @connection. Читается MetadataBuilder
+            при сборке ClassMetadata.connections.
     """
 
-    __connection_gate: ClassVar[ConnectionGate | None] = None
-    _connection_info: ClassVar[list[ConnectionInfo] | None] = None
-
-    @classmethod
-    def get_connection_gate(cls) -> ConnectionGate:
-        """
-        Возвращает шлюз соединений для данного класса.
-
-        Шлюз создаётся и заполняется лениво при первом вызове.
-        Если в классе есть _connection_info (установленный декоратором @connection),
-        все соединения регистрируются в шлюзе, и шлюз замораживается.
-
-        Ленивая инициализация необходима потому, что декоратор класса (@connection)
-        применяется ПОСЛЕ __init_subclass__. На момент вызова __init_subclass__
-        атрибут _connection_info ещё не установлен.
-
-        Проверка cls.__dict__ гарантирует, что мы не используем шлюз родителя.
-
-        Возвращает:
-            ConnectionGate, связанный с классом.
-        """
-        # Проверяем, что шлюз принадлежит именно этому классу, а не унаследован
-        if '__connection_gate' not in cls.__dict__ or cls.__connection_gate is None:
-            gate = ConnectionGate()
-
-            # Собираем _connection_info, если он установлен декоратором @connection
-            connection_info = getattr(cls, '_connection_info', None)
-            if connection_info is not None:
-                for info in connection_info:
-                    gate.register(info)
-
-            gate.freeze()
-            cls.__connection_gate = gate
-
-        return cls.__connection_gate
-
-    def __init_subclass__(cls, **kwargs: Any) -> None:
-        """
-        Вызывается при создании подкласса.
-
-        Сбрасывает шлюз, чтобы при следующем вызове get_connection_gate()
-        он был создан заново для этого конкретного класса.
-
-        Не выполняет сбор _connection_info здесь, потому что декоратор @connection
-        ещё не был применён на этом этапе (декоратор класса выполняется
-        после __init_subclass__).
-
-        Аргументы:
-            **kwargs: передаются в родительский __init_subclass__.
-        """
-        super().__init_subclass__(**kwargs)
-
-        # Сбрасываем шлюз для этого класса, чтобы он был создан заново
-        # при следующем вызове get_connection_gate() (после применения @connection)
-        cls.__connection_gate = None
+    # Аннотация для mypy, чтобы он не ругался на динамический атрибут
+    _connection_info: ClassVar[list[Any]]

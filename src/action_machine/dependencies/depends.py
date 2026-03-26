@@ -1,98 +1,149 @@
 # src/action_machine/dependencies/depends.py
 """
-Декоратор @depends для объявления зависимостей действия.
+Декоратор @depends — объявление зависимости действия от внешнего сервиса.
 
-Этот декоратор используется на уровне класса действия для декларации того,
-какие зависимости (сервисы, репозитории, другие действия) требуются действию.
-ActionMachine будет автоматически создавать и предоставлять эти зависимости
-через ToolsBox.resolve().
+Прикрепляет к классу действия информацию о требуемой зависимости.
+При выполнении действия машина (ActionProductMachine) читает список зависимостей,
+создаёт экземпляры через DependencyFactory и передаёт их в ToolsBox,
+откуда аспект получает их через box.resolve(PaymentService).
 
-Особенности:
-- Может использоваться несколько раз для одного действия.
-- Зависимости не наследуются (каждый класс определяет свои).
-- Поддерживает опциональную фабрику для кастомного создания экземпляра.
+Ограничения (инварианты):
+    - Применяется только к классам, не к функциям, методам или свойствам.
+    - Класс должен наследовать DependencyGateHost — миксин, разрешающий @depends.
+    - Аргумент klass должен быть классом (type), не экземпляром и не строкой.
+    - klass должен быть подклассом верхней границы, заданной в дженерик-параметре
+      DependencyGateHost[T]. Для BaseAction (T=object) — любой класс допустим.
+      Для будущих хостов (T=BaseResourceManager) — только подклассы.
+    - Повторное объявление одной и той же зависимости на одном классе запрещено.
+    - Параметр description должен быть строкой.
 
-Архитектурная роль:
-    Декоратор добавляет информацию о зависимостях в атрибут `_depends_info`,
-    объявленный в миксине `DependencyGateHost`. При первом вызове
-    `get_dependency_gate()` хост собирает `_depends_info`, регистрирует
-    каждую зависимость в `DependencyGate` и замораживает шлюз.
+Наследование:
+    При первом применении @depends к подклассу декоратор копирует родительский
+    список _depends_info в собственный __dict__. Это гарантирует, что дочерний
+    класс наследует зависимости родителя, но добавление новых зависимостей
+    не мутирует родительский список.
 
-    Имя `_depends_info` (с одним подчёркиванием) используется вместо
-    `__depends_info` (с двумя), чтобы избежать Python name mangling.
+Пример:
+    @depends(PaymentService, description="Сервис обработки платежей")
+    @depends(NotificationService, description="Сервис уведомлений")
+    class CreateOrderAction(BaseAction[OrderParams, OrderResult]):
 
-    Декоратор проверяет, что целевой класс наследует DependencyGateHost.
-    Если нет — выбрасывает TypeError. Это гарантирует, что декоратор
-    не добавляет динамических атрибутов — все поля объявлены в миксине.
+        @regular_aspect("Обработка платежа")
+        async def process_payment(self, params, state, box, connections):
+            payment = box.resolve(PaymentService)
+            txn_id = await payment.charge(params.amount, params.currency)
+            return {"txn_id": txn_id}
+
+Ошибки:
+    TypeError — klass не является классом; klass не подкласс верхней границы;
+               декоратор применён не к классу; класс не наследует DependencyGateHost;
+               description не строка.
+    ValueError — зависимость klass уже объявлена для этого класса.
 """
 
-from collections.abc import Callable
+from __future__ import annotations
+
+from dataclasses import dataclass
 from typing import Any
 
-from .dependency_gate import DependencyInfo
-from .dependency_gate_host import DependencyGateHost
 
-
-def depends(
-    klass: type,
-    *,
-    description: str = "",
-    factory: Callable[[], Any] | None = None,
-) -> Callable[[type], type]:
+@dataclass(frozen=True)
+class DependencyInfo:
     """
-    Декоратор для объявления зависимости действия от любого класса.
+    Неизменяемая запись об одной зависимости действия.
 
-    Может применяться несколько раз для одного действия. Каждый вызов
-    добавляет одну зависимость. Порядок применения декораторов определяет
-    порядок зависимостей (хотя обычно он не важен).
+    Создаётся декоратором @depends и сохраняется в cls._depends_info.
+    После заморозки шлюза доступна только для чтения.
+
+    Атрибуты:
+        cls: класс зависимости (например, PaymentService).
+             Используется DependencyFactory для создания экземпляра.
+        description: человекочитаемое описание назначения зависимости.
+                     Используется для интроспекции и документации.
+    """
+    cls: type
+    description: str = ""
+
+
+def depends(klass: Any, *, description: str = ""):
+    """
+    Декоратор уровня класса. Объявляет зависимость от внешнего сервиса.
 
     Аргументы:
-        klass: класс зависимости (может быть Action, сервис, репозиторий и т.д.).
-        description: описание зависимости (для документации).
-        factory: опциональная фабрика для создания экземпляра.
-                 Если не указана, используется конструктор по умолчанию.
+        klass: класс зависимости. Должен быть типом (type), не экземпляром.
+               Должен быть подклассом верхней границы дженерика DependencyGateHost[T].
+        description: описание зависимости для документации и интроспекции.
 
     Возвращает:
-        Декоратор, который добавляет информацию о зависимости в класс.
+        Декоратор, который добавляет DependencyInfo в cls._depends_info.
 
     Исключения:
-        TypeError: если класс не наследует DependencyGateHost.
-
-    Пример:
-        @depends(PaymentService, description="Сервис платежей")
-        @depends(NotificationService, description="Сервис уведомлений")
-        class CreateOrderAction(BaseAction):
-            ...
-
-        # В аспекте:
-        payment = box.resolve(PaymentService)
+        TypeError:
+            - klass не является классом (type).
+            - klass не подкласс верхней границы (bound).
+            - description не является строкой.
+            - Декоратор применён не к классу.
+            - Класс не наследует DependencyGateHost.
+        ValueError:
+            - Зависимость klass уже объявлена для этого класса.
     """
+    # ── Проверка аргументов декоратора (выполняется при вызове @depends(...)) ──
 
-    def decorator(cls: type) -> type:
-        # Проверяем, что класс наследует DependencyGateHost,
-        # который объявляет атрибут _depends_info как ClassVar.
+    if not isinstance(klass, type):
+        raise TypeError(
+            f"@depends ожидает класс, получен {type(klass).__name__}: {klass!r}. "
+            f"Передайте класс, а не экземпляр или строку."
+        )
+
+    if not isinstance(description, str):
+        raise TypeError(
+            f"@depends: параметр description должен быть строкой, "
+            f"получен {type(description).__name__}."
+        )
+
+    def decorator(cls):
+        # ── Проверка цели декоратора (выполняется при определении класса) ──
+
+        # Цель — класс, а не функция/метод/свойство
+        if not isinstance(cls, type):
+            raise TypeError(
+                f"@depends можно применять только к классу. "
+                f"Получен объект типа {type(cls).__name__}: {cls!r}."
+            )
+
+        # Класс содержит миксин DependencyGateHost
+        from action_machine.dependencies.dependency_gate_host import DependencyGateHost
+
         if not issubclass(cls, DependencyGateHost):
             raise TypeError(
-                f"@depends can only be applied to classes inheriting DependencyGateHost. "
-                f"Class {cls.__name__} does not inherit DependencyGateHost. "
-                f"Ensure the class inherits from BaseAction or DependencyGateHost directly."
+                f"@depends({klass.__name__}) применён к классу {cls.__name__}, "
+                f"который не наследует DependencyGateHost. "
+                f"Добавьте DependencyGateHost в цепочку наследования."
             )
 
-        # _depends_info объявлен в DependencyGateHost как ClassVar[list[DependencyInfo] | None],
-        # поэтому после issubclass-проверки mypy знает о его существовании.
-        if cls._depends_info is None:
-            cls._depends_info = []
-        else:
-            # Создаём копию, чтобы не мутировать родительский список
-            cls._depends_info = list(cls._depends_info)
-
-        cls._depends_info.append(
-            DependencyInfo(
-                cls=klass,
-                factory=factory,
-                description=description,
+        # ── Проверка верхней границы дженерика ──
+        bound = cls.get_depends_bound()
+        if not issubclass(klass, bound):
+            raise TypeError(
+                f"@depends({klass.__name__}): класс {klass.__name__} "
+                f"не является подклассом {bound.__name__}. "
+                f"Для {cls.__name__} разрешены только подклассы {bound.__name__}."
             )
-        )
+
+        # Создаём собственный список зависимостей для этого класса,
+        # копируя родительский, чтобы не мутировать его
+        if '_depends_info' not in cls.__dict__:
+            cls._depends_info = list(getattr(cls, '_depends_info', []))
+
+        # Проверка дубликатов
+        if any(info.cls is klass for info in cls._depends_info):
+            raise ValueError(
+                f"@depends({klass.__name__}) уже объявлен для класса {cls.__name__}. "
+                f"Удалите дублирующий декоратор."
+            )
+
+        # Регистрация зависимости
+        cls._depends_info.append(DependencyInfo(cls=klass, description=description))
 
         return cls
 

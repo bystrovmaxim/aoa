@@ -1,91 +1,162 @@
+# src/action_machine/ResourceManagers/connection.py
 """
-Декоратор @connection для объявления соединений, необходимых действию.
+Декоратор @connection — объявление подключения к внешнему ресурсу.
 
-Используется на уровне класса действия для декларации того,
-какие ресурсные менеджеры (соединения) ожидает действие.
-ActionMachine проверяет соответствие переданных connections
-и объявленных через @connection перед выполнением аспектов.
+Назначение:
+    Декоратор @connection — часть грамматики намерений ActionMachine. Он объявляет,
+    что действие использует внешний ресурс (база данных, очередь сообщений,
+    HTTP-клиент и т.д.), управляемый через ResourceManager. Машина
+    (ActionProductMachine) при запуске действия создаёт менеджеры ресурсов,
+    открывает соединения и передаёт их в аспекты через параметр connections.
 
-Может использоваться несколько раз для одного действия (несколько соединений).
+    Каждое соединение идентифицируется строковым ключом (key), по которому
+    аспект обращается к нему: connections["db"], connections["redis"].
 
-Архитектурная роль:
-    Декоратор добавляет информацию о соединениях в атрибут `_connection_info`,
-    объявленный в миксине `ConnectionGateHost`. При первом вызове
-    `get_connection_gate()` хост собирает `_connection_info`, регистрирует
-    каждое соединение в `ConnectionGate` и замораживает шлюз.
+Ограничения (инварианты):
+    - Применяется только к классам, не к функциям, методам или свойствам.
+    - Класс должен наследовать ConnectionGateHost — миксин, разрешающий @connection.
+    - klass должен быть подклассом BaseResourceManager.
+    - key должен быть непустой строкой.
+    - Дублирование ключей в одном классе запрещено.
 
-    Имя `_connection_info` (с одним подчёркиванием) используется, чтобы избежать
-    Python name mangling и обеспечить доступность в дочерних классах.
+Наследование:
+    При первом применении @connection к подклассу декоратор копирует
+    родительский список _connection_info в собственный __dict__. Дочерний
+    класс наследует соединения родителя, но добавление новых не мутирует
+    родительский список.
 
-    Декоратор проверяет, что целевой класс наследует ConnectionGateHost.
-    Если нет — выбрасывает TypeError. Это гарантирует, что декоратор
-    не добавляет динамических атрибутов — все поля объявлены в миксине.
+Пример:
+    @connection(PostgresManager, key="db", description="Основная БД")
+    @connection(RedisManager, key="cache", description="Кэш")
+    class CreateOrderAction(BaseAction[OrderParams, OrderResult]):
+
+        @regular_aspect("Загрузка данных")
+        async def load_data(self, params, state, box, connections):
+            db = connections["db"]
+            result = await db.execute("SELECT ...")
+            return {"data": result}
+
+Ошибки:
+    TypeError — klass не подкласс BaseResourceManager; декоратор применён
+               не к классу; класс не наследует ConnectionGateHost;
+               key не строка.
+    ValueError — key пустая строка; дублирование ключа.
 """
 
-from collections.abc import Callable
+from __future__ import annotations
+
+from dataclasses import dataclass
 from typing import Any
 
 from action_machine.ResourceManagers.BaseResourceManager import BaseResourceManager
-from action_machine.ResourceManagers.connection_gate import ConnectionInfo
-from action_machine.ResourceManagers.connection_gate_host import ConnectionGateHost
 
 
-def connection(
-    key: str,
-    klass: type[BaseResourceManager],
-    *,
-    description: str = "",
-) -> Callable[[type[Any]], type[Any]]:
+@dataclass(frozen=True)
+class ConnectionInfo:
     """
-    Декоратор для объявления соединения, необходимого действию.
+    Неизменяемая запись об одном подключении к внешнему ресурсу.
+
+    Атрибуты:
+        cls: класс менеджера ресурсов (подкласс BaseResourceManager).
+        key: строковый ключ для доступа из аспекта через connections[key].
+        description: человекочитаемое описание подключения.
+    """
+    cls: type
+    key: str
+    description: str = ""
+
+
+def connection(klass: Any, *, key: str, description: str = ""):
+    """
+    Декоратор уровня класса. Объявляет подключение к внешнему ресурсу.
 
     Аргументы:
-        key: строковое имя ключа в словаре connections (и в TypedDict).
-            Например: "connection", "cache", "analytics_db".
-        klass: класс ресурсного менеджера (наследник BaseResourceManager).
-        description: описание соединения (для документации).
+        klass: класс менеджера ресурсов. Должен быть подклассом BaseResourceManager.
+        key: строковый ключ для идентификации соединения. Непустая строка.
+        description: описание подключения для документации и интроспекции.
 
     Возвращает:
-        Декоратор, который добавляет информацию о соединении в класс.
+        Декоратор, который добавляет ConnectionInfo в cls._connection_info.
 
     Исключения:
-        TypeError: если класс не наследует ConnectionGateHost.
-
-    Пример:
-        @connection("connection", PostgresConnectionManager, description="Основная БД")
-        @connection("cache", RedisConnectionManager, description="Кеш")
-        class MyAction(BaseAction[...]):
-            ...
-
-        # В аспектах доступно:
-        #   connections["connection"]  — PostgresConnectionManager (или прокси)
-        #   connections["cache"]       — RedisConnectionManager (или прокси)
+        TypeError:
+            - klass не является классом (type).
+            - klass не подкласс BaseResourceManager.
+            - key не строка.
+            - description не строка.
+            - Декоратор применён не к классу.
+            - Класс не наследует ConnectionGateHost.
+        ValueError:
+            - key пустая строка.
+            - Ключ key уже объявлен для этого класса.
     """
+    # ── Проверка аргументов декоратора (выполняется при @connection(...)) ──
 
-    def decorator(cls: type[Any]) -> type[Any]:
-        # Проверяем, что класс наследует ConnectionGateHost,
-        # который объявляет атрибут _connection_info как ClassVar.
+    if not isinstance(klass, type):
+        raise TypeError(
+            f"@connection ожидает класс, получен {type(klass).__name__}: {klass!r}. "
+            f"Передайте класс менеджера ресурсов."
+        )
+
+    if not issubclass(klass, BaseResourceManager):
+        raise TypeError(
+            f"@connection: класс {klass.__name__} не является подклассом "
+            f"BaseResourceManager. Менеджер ресурсов должен наследовать "
+            f"BaseResourceManager."
+        )
+
+    if not isinstance(key, str):
+        raise TypeError(
+            f"@connection: параметр key должен быть строкой, "
+            f"получен {type(key).__name__}: {key!r}."
+        )
+
+    if not key.strip():
+        raise ValueError(
+            "@connection: key не может быть пустой строкой. "
+            "Укажите ключ для идентификации соединения, например 'db'."
+        )
+
+    if not isinstance(description, str):
+        raise TypeError(
+            f"@connection: параметр description должен быть строкой, "
+            f"получен {type(description).__name__}."
+        )
+
+    def decorator(cls: Any) -> Any:
+        # ── Проверка цели декоратора ──
+
+        # Цель — класс
+        if not isinstance(cls, type):
+            raise TypeError(
+                f"@connection можно применять только к классу. "
+                f"Получен объект типа {type(cls).__name__}: {cls!r}."
+            )
+
+        # Класс содержит миксин ConnectionGateHost
+        from action_machine.ResourceManagers.connection_gate_host import ConnectionGateHost
+
         if not issubclass(cls, ConnectionGateHost):
             raise TypeError(
-                f"@connection can only be applied to classes inheriting ConnectionGateHost. "
-                f"Class {cls.__name__} does not inherit ConnectionGateHost. "
-                f"Ensure the class inherits from BaseAction or ConnectionGateHost directly."
+                f"@connection(key=\"{key}\") применён к классу {cls.__name__}, "
+                f"который не наследует ConnectionGateHost. "
+                f"Добавьте ConnectionGateHost в цепочку наследования."
             )
 
-        # _connection_info объявлен в ConnectionGateHost как ClassVar[list[ConnectionInfo] | None],
-        # поэтому после issubclass-проверки mypy знает о его существовании.
-        if cls._connection_info is None:
-            cls._connection_info = []
-        else:
-            # Создаём копию, чтобы не мутировать родительский список
-            cls._connection_info = list(cls._connection_info)
+        # Создаём собственный список соединений для этого класса
+        if '_connection_info' not in cls.__dict__:
+            cls._connection_info = list(getattr(cls, '_connection_info', []))
 
+        # Проверка дубликатов ключей
+        if any(info.key == key for info in cls._connection_info):
+            raise ValueError(
+                f"@connection(key=\"{key}\"): ключ \"{key}\" уже объявлен "
+                f"для класса {cls.__name__}. Каждый ключ должен быть уникальным."
+            )
+
+        # Регистрация соединения
         cls._connection_info.append(
-            ConnectionInfo(
-                key=key,
-                klass=klass,
-                description=description,
-            )
+            ConnectionInfo(cls=klass, key=key, description=description)
         )
 
         return cls

@@ -1,67 +1,51 @@
-# ActionMachine/Logging/__init__.py
+# src/action_machine/Logging/__init__.py
 """
 Пакет логирования ActionMachine.
 
-Содержит координатор логирования, базовый абстрактный класс логера,
-консольный логер, скоуп — обёртку над словарём переменных,
-описывающую местоположение в конвейере выполнения, и подстановщик
-переменных, выполняющий замену {%namespace.path} и вычисление {iif(...)}.
+Содержит:
 
-Координатор принимает сообщения через метод emit, делегирует
-подстановку переменных классу VariableSubstitutor и рассылает
-результат по всем зарегистрированным логерам. Каждый логер
-самостоятельно решает через match_filters, нужно ли ему
-обрабатывать сообщение.
+- LogCoordinator — координатор логирования. Принимает список логгеров
+  и рассылает каждое сообщение всем подписанным логгерам. Выполняет
+  подстановку переменных, маскирование чувствительных данных и применение
+  цветовых фильтров перед отправкой.
 
-Подстановка переменных работает через паттерн {%namespace.dotpath},
-где namespace определяет источник данных: var, context, params,
-state, scope. Для объектов с ReadableMixin используется метод
-resolve, который обходит вложенные объекты по цепочке ключей,
-разделённых точкой. Для обычных словарей используется прямой
-доступ по ключам с ручным обходом вложенности.
+- ConsoleLogger — логгер, выводящий сообщения в stdout. Поддерживает
+  цветной (ANSI) и простой текстовый режимы.
 
-Никакого подавления исключений — ни в BaseLogger, ни в
-LogCoordinator, ни в VariableSubstitutor. Если логер сломан,
-система должна упасть громко и немедленно. Разработчик узнает
-о проблеме в момент её возникновения, а не через месяц
-когда нужны логи которых нет.
+- ActionBoundLogger — обёртка над LogCoordinator, привязанная к конкретному
+  действию и аспекту. Создаётся для каждого вызова аспекта, автоматически
+  подставляет scope (machine, mode, action, aspect) и nest_level.
 
-Все методы асинхронные — логеры могут выполнять IO-операции
-(запись в файл, отправка по сети) без блокировки event loop.
+- LogScope — frozen-датакласс с полями scope: machine, mode, action, aspect.
+  Используется в шаблонах логирования через {%scope.action} и т.д.
 
-Пример создания и использования:
+- VariableSubstitutor — движок подстановки переменных в шаблонах
+  логирования. Поддерживает {%var.name}, {%context.user.roles},
+  {%scope.action}, фильтры (|red, |debug), функции (iif, exists, debug).
 
->>> from action_machine.Logging import LogCoordinator, ConsoleLogger, LogScope
->>>
->>> coordinator = LogCoordinator(loggers=[
-...     ConsoleLogger(use_colors=True),
-...     ConsoleLogger(filters=[r"ProcessOrder.*"], use_colors=False),
-... ])
->>>
->>> scope = LogScope(action="ProcessOrderAction", aspect="validate")
->>> await coordinator.emit(
-...     message="Загружено {%var.count} задач для {%context.user.user_id}",
-...     var={"count": 150},
-...     scope=scope,
-...     context=context,
-...     state={"total": 1500.0},
-...     params=params,
-...     indent=1,
-... )
+- ExpressionEvaluator — вычислитель выражений в шаблонах (iif, exists,
+  сравнения, арифметика).
+
+- sensitive — декоратор для маскирования чувствительных данных в логах.
+  Применяется к property, записывает _sensitive_config в getter.
+  MetadataBuilder._collect_sensitive_fields(cls) собирает конфигурации
+  в ClassMetadata.sensitive_fields.
 """
 
 from .action_bound_logger import ActionBoundLogger
-from .base_logger import BaseLogger
 from .console_logger import ConsoleLogger
+from .expression_evaluator import ExpressionEvaluator
 from .log_coordinator import LogCoordinator
 from .log_scope import LogScope
+from .sensitive_decorator import sensitive
 from .variable_substitutor import VariableSubstitutor
 
 __all__ = [
-    "LogCoordinator",          # координатор — единая шина логирования
-    "BaseLogger",              # абстрактный базовый класс для всех логеров
-    "ConsoleLogger",           # логер с выводом в консоль через print
-    "LogScope",                # скоуп — обёртка над словарём местоположения в конвейере
-    "VariableSubstitutor",     # подстановщик переменных {%...} и вычислитель {iif(...)}
-    "ActionBoundLogger",       # привязанный к аспекту логер
+    "LogCoordinator",
+    "ConsoleLogger",
+    "ActionBoundLogger",
+    "LogScope",
+    "VariableSubstitutor",
+    "ExpressionEvaluator",
+    "sensitive",
 ]

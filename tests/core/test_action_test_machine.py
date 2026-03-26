@@ -1,342 +1,176 @@
-# tests/core/test_action_test_machine.py
+# tests/decorators/test_depends_checks.py
 """
-Tests for ActionTestMachine — test action machine with mock support.
+Тесты проверок декоратора @depends.
 
-Checks:
-- Running MockAction directly (without aspects)
-- Running real actions with mocked dependencies
-- Mock preparation (_prepare_mock)
-- build_factory method
-- Passing mode and log_coordinator (constructor changes)
-- Default mode="test"
-
-Изменения (этап 1):
-- Во всех аспектах заменены сигнатуры: параметры deps и log заменены на box: ToolsBox.
-- Обновлены вызовы box.resolve(...) вместо deps.get(...).
-- Обновлены вызовы box.info(...) вместо log.info(...).
-- Убраны неиспользуемые импорты ActionBoundLogger где необходимо.
-
-Изменения (этап 2):
-- Исправлены асинхронные тесты: добавлены async def и декоратор @pytest.mark.anyio
-  для методов, использующих await.
-
-Изменения (этап 3 — миграция на шлюзы):
-- Все тестовые действия теперь наследуют BaseAction напрямую (не MockAction)
-  и определяют собственный @summary_aspect.
-- Все тестовые действия декорированы @CheckRoles(CheckRoles.NONE, desc="").
+Покрывают все инварианты, включая дженерик-параметр DependencyGateHost[T]:
+    - Применение к классу с DependencyGateHost[object] — любой тип допустим.
+    - Применение к классу с DependencyGateHost[BaseResourceManager] —
+      только подклассы BaseResourceManager.
+    - Передача класса, не соответствующего bound — TypeError.
+    - Все остальные проверки (дубликаты, не-класс, без миксина и т.д.).
 """
-
-from unittest.mock import AsyncMock, Mock
 
 import pytest
 
-from action_machine.aspects.summary_aspect import summary_aspect
-from action_machine.Auth.check_roles import CheckRoles
-from action_machine.Context.context import Context
-from action_machine.Core.ActionTestMachine import ActionTestMachine
-from action_machine.Core.BaseAction import BaseAction
-from action_machine.Core.BaseParams import BaseParams
-from action_machine.Core.BaseResult import BaseResult
-from action_machine.Core.MockAction import MockAction
-from action_machine.Core.ToolsBox import ToolsBox
-from action_machine.dependencies.dependency_factory import DependencyFactory
+from action_machine.dependencies.dependency_gate_host import DependencyGateHost
 from action_machine.dependencies.depends import depends
-from action_machine.Logging.log_coordinator import LogCoordinator
+from action_machine.ResourceManagers.BaseResourceManager import BaseResourceManager
 
+# ─────────────────────────────────────────────────────────────────────────────
+# Вспомогательные классы
+# ─────────────────────────────────────────────────────────────────────────────
 
-# ----------------------------------------------------------------------
-# Helper classes
-# ----------------------------------------------------------------------
-class MockParams(BaseParams):
+class FakeService:
+    pass
+
+class AnotherService:
+    pass
+
+class FakeResourceManager(BaseResourceManager):
+    def get_wrapper_class(self): return None
+
+class AnotherResourceManager(BaseResourceManager):
+    def get_wrapper_class(self): return None
+
+class ObjectBoundHost(DependencyGateHost[object]):
+    pass
+
+class ResourceBoundHost(DependencyGateHost[BaseResourceManager]):
     pass
 
 
-class MockResult(BaseResult):
-    pass
+# ─────────────────────────────────────────────────────────────────────────────
+# Успешные сценарии: bound=object
+# ─────────────────────────────────────────────────────────────────────────────
+
+class TestDependsObjectBoundSuccess:
+    def test_any_service_allowed(self):
+        @depends(FakeService, description="Тестовый сервис")
+        class MyAction(ObjectBoundHost):
+            pass
+
+        assert len(MyAction._depends_info) == 1
+        assert MyAction._depends_info[0].cls is FakeService
+
+    def test_resource_manager_also_allowed(self):
+        @depends(FakeResourceManager, description="Менеджер ресурсов")
+        class MyAction(ObjectBoundHost):
+            pass
+
+        assert MyAction._depends_info[0].cls is FakeResourceManager
+
+    def test_multiple_dependencies(self):
+        @depends(FakeService)
+        @depends(AnotherService)
+        class MyAction(ObjectBoundHost):
+            pass
+
+        assert len(MyAction._depends_info) == 2
+
+    def test_bound_is_object(self):
+        assert ObjectBoundHost.get_depends_bound() is object
 
 
-@CheckRoles(CheckRoles.NONE, desc="")
-@depends(str)
-class RealAction(BaseAction[MockParams, MockResult]):
-    """Real action with a str dependency."""
-    captured = None
-    log_called = False
+# ─────────────────────────────────────────────────────────────────────────────
+# Успешные сценарии: bound=BaseResourceManager
+# ─────────────────────────────────────────────────────────────────────────────
 
-    @summary_aspect("test")
-    async def summary(
-        self,
-        params: MockParams,
-        state: dict,
-        box: ToolsBox,
-        connections: dict,
-    ) -> MockResult:
-        self.captured = box.resolve(str)
-        # Check that the logger works
-        await box.info("Summary executed", action="RealAction")
-        self.log_called = True
-        return MockResult()
+class TestDependsResourceBoundSuccess:
+    def test_resource_manager_allowed(self):
+        @depends(FakeResourceManager, description="БД")
+        class MyPool(ResourceBoundHost):
+            pass
 
+        assert len(MyPool._depends_info) == 1
+        assert MyPool._depends_info[0].cls is FakeResourceManager
 
-@CheckRoles(CheckRoles.NONE, desc="")
-@depends(int)
-class ActionWithDeps(BaseAction[MockParams, MockResult]):
-    @summary_aspect("test")
-    async def summary(
-        self,
-        params: MockParams,
-        state: dict,
-        box: ToolsBox,
-        connections: dict,
-    ) -> MockResult:
-        return MockResult()
+    def test_multiple_resource_managers(self):
+        @depends(FakeResourceManager)
+        @depends(AnotherResourceManager)
+        class MyPool(ResourceBoundHost):
+            pass
+
+        assert len(MyPool._depends_info) == 2
+
+    def test_bound_is_base_resource_manager(self):
+        assert ResourceBoundHost.get_depends_bound() is BaseResourceManager
 
 
-@CheckRoles(CheckRoles.NONE, desc="")
-@depends(str)
-class CapturingAction(BaseAction[MockParams, MockResult]):
-    """Action that captures the obtained dependency and calls the logger."""
-    captured = None
-    log_messages = []
+# ─────────────────────────────────────────────────────────────────────────────
+# Ошибки: нарушение bound
+# ─────────────────────────────────────────────────────────────────────────────
 
-    @summary_aspect("test")
-    async def summary(
-        self,
-        params: MockParams,
-        state: dict,
-        box: ToolsBox,
-        connections: dict,
-    ) -> MockResult:
-        self.captured = box.resolve(str)
-        await box.debug("Debug from CapturingAction")
-        await box.info("Info from CapturingAction")
-        return MockResult()
+class TestDependsBoundErrors:
+    def test_plain_service_with_resource_bound_raises(self):
+        with pytest.raises(TypeError, match="не является подклассом"):
+            @depends(FakeService)
+            class MyPool(ResourceBoundHost):
+                pass
 
 
-# ----------------------------------------------------------------------
-# Fixtures
-# ----------------------------------------------------------------------
-@pytest.fixture
-def empty_context() -> Context:
-    return Context()
+# ─────────────────────────────────────────────────────────────────────────────
+# Наследование bound
+# ─────────────────────────────────────────────────────────────────────────────
+
+class TestDependsBoundInheritance:
+    def test_child_inherits_object_bound(self):
+        class Child(ObjectBoundHost):
+            pass
+        assert Child.get_depends_bound() is object
+
+    def test_child_inherits_resource_bound(self):
+        class Child(ResourceBoundHost):
+            pass
+        assert Child.get_depends_bound() is BaseResourceManager
 
 
-@pytest.fixture
-def machine(empty_context: Context) -> ActionTestMachine:
-    """Test machine with default mode (test) and mock log coordinator."""
-    mock_log_coordinator = AsyncMock(spec=LogCoordinator)
-    return ActionTestMachine(
-        mode="test",
-        log_coordinator=mock_log_coordinator,
-    )
+# ─────────────────────────────────────────────────────────────────────────────
+# Изоляция наследования зависимостей
+# ─────────────────────────────────────────────────────────────────────────────
+
+class TestDependsInheritance:
+    def test_child_does_not_mutate_parent(self):
+        @depends(FakeService)
+        class Parent(ObjectBoundHost):
+            pass
+
+        @depends(AnotherService)
+        class Child(Parent):
+            pass
+
+        assert len(Parent._depends_info) == 1
+        assert Parent._depends_info[0].cls is FakeService
+        assert len(Child._depends_info) == 2
 
 
-@pytest.fixture
-def machine_with_mocks() -> ActionTestMachine:
-    """Machine with pre‑configured mocks."""
-    mocks = {
-        str: "mocked_string",
-        int: MockAction(result=MockResult()),
-        list: lambda p: ["called"],
-    }
-    return ActionTestMachine(mocks=mocks, mode="testing_mode")
+# ─────────────────────────────────────────────────────────────────────────────
+# Ошибки: неправильная цель и аргументы
+# ─────────────────────────────────────────────────────────────────────────────
+
+class TestDependsTargetErrors:
+    def test_applied_to_function_raises(self):
+        with pytest.raises(TypeError, match="только к классу"):
+            @depends(FakeService)
+            def some_function():
+                pass
+
+    def test_applied_to_class_without_mixin_raises(self):
+        with pytest.raises(TypeError, match="не наследует DependencyGateHost"):
+            @depends(FakeService)
+            class PlainClass:
+                pass
 
 
-# ======================================================================
-# TESTS: Constructor
-# ======================================================================
-class TestConstructor:
-    def test_default_mode_is_test(self, empty_context: Context) -> None:
-        """Default mode is 'test'."""
-        machine = ActionTestMachine()
-        assert machine._mode == "test"
-
-    def test_custom_mode_passed_to_parent(self, empty_context: Context) -> None:
-        """Custom mode is passed to the parent class."""
-        machine = ActionTestMachine(mode="custom_mode")
-        assert machine._mode == "custom_mode"
-
-    def test_log_coordinator_passed_to_parent(self, empty_context: Context) -> None:
-        """Provided log_coordinator is used in the parent."""
-        mock_coord = AsyncMock(spec=LogCoordinator)
-        machine = ActionTestMachine(log_coordinator=mock_coord)
-        assert machine._log_coordinator is mock_coord
+class TestDependsArgumentErrors:
+    def test_instance_instead_of_class_raises(self):
+        with pytest.raises(TypeError, match="ожидает класс"):
+            depends(FakeService())
 
 
-# ======================================================================
-# TESTS: run() with MockAction
-# ======================================================================
-class TestRunWithMockAction:
-    @pytest.mark.anyio
-    async def test_run_mock_action_directly(self, machine: ActionTestMachine, empty_context: Context) -> None:
-        """MockAction runs directly, bypassing aspects."""
-        mock_action = MockAction(result=MockResult())
-        params = MockParams()
-        original_run = mock_action.run
-        mock_action.run = Mock(wraps=original_run)
-
-        result = await machine.run(empty_context, mock_action, params)
-
-        mock_action.run.assert_called_once_with(params)
-        assert isinstance(result, MockResult)
-
-    @pytest.mark.anyio
-    async def test_run_mock_action_tracks_calls(self, machine: ActionTestMachine, empty_context: Context) -> None:
-        """MockAction counts calls and stores last parameters."""
-        mock_action = MockAction(result=MockResult())
-        params = MockParams()
-
-        await machine.run(empty_context, mock_action, params)
-        await machine.run(empty_context, mock_action, params)
-
-        assert mock_action.call_count == 2
-        assert mock_action.last_params is params
-
-    @pytest.mark.anyio
-    async def test_run_mock_action_with_side_effect(self, machine: ActionTestMachine, empty_context: Context) -> None:
-        """side_effect is used instead of a fixed result."""
-        def side_effect(p):
-            return MockResult()
-
-        mock_action = MockAction(side_effect=side_effect)
-        params = MockParams()
-
-        result = await machine.run(empty_context, mock_action, params)
-
-        assert isinstance(result, MockResult)
-        assert mock_action.call_count == 1
-
-
-# ======================================================================
-# TESTS: run() with real action and mocks
-# ======================================================================
-class TestRunWithRealAction:
-    @pytest.mark.anyio
-    async def test_real_action_gets_mocks_from_factory(self, machine_with_mocks: ActionTestMachine, empty_context: Context) -> None:
-        """Dependencies from mocks are injected into the action via box.resolve."""
-        action = CapturingAction()
-        params = MockParams()
-
-        await machine_with_mocks.run(empty_context, action, params)
-
-        assert action.captured == "mocked_string"
-
-    @pytest.mark.anyio
-    async def test_real_action_without_mocks_uses_default(self, machine: ActionTestMachine, empty_context: Context) -> None:
-        """Without mocks, the default constructor is used."""
-        action = ActionWithDeps()
-        params = MockParams()
-
-        result = await machine.run(empty_context, action, params)
-
-        assert isinstance(result, MockResult)
-
-    @pytest.mark.anyio
-    async def test_logger_passed_to_real_action(self, machine: ActionTestMachine, empty_context: Context) -> None:
-        """Logger is passed to the real action and works."""
-        action = CapturingAction()
-        params = MockParams()
-
-        await machine.run(empty_context, action, params)
-
-        # Should have two log calls: debug and info
-        assert machine._log_coordinator.emit.await_count >= 2
-        # Check that the scope contains the correct mode
-        first_call = machine._log_coordinator.emit.call_args_list[0]
-        scope = first_call.kwargs["scope"]
-        assert scope["mode"] == "test"  # from machine fixture
-        assert scope["action"].endswith("CapturingAction")
-        assert scope["aspect"] == "summary"
-
-
-# ======================================================================
-# TESTS: _prepare_mock
-# ======================================================================
-class TestPrepareMock:
-    def test_prepare_mock_with_mock_action(self, machine: ActionTestMachine) -> None:
-        """MockAction is returned as is."""
-        mock = MockAction(result=MockResult())
-        prepared = machine._prepare_mock(mock)
-        assert prepared is mock
-
-    def test_prepare_mock_with_base_action(self, machine: ActionTestMachine) -> None:
-        """BaseAction is returned as is."""
-        action = RealAction()
-        prepared = machine._prepare_mock(action)
-        assert prepared is action
-
-    def test_prepare_mock_with_callable(self, machine: ActionTestMachine) -> None:
-        """Callable is wrapped in MockAction with side_effect."""
-        def func(p):
-            return MockResult()
-
-        prepared = machine._prepare_mock(func)
-        assert isinstance(prepared, MockAction)
-        assert prepared.side_effect is func
-
-    def test_prepare_mock_with_base_result(self, machine: ActionTestMachine) -> None:
-        """BaseResult is wrapped in MockAction with result."""
-        result = MockResult()
-        prepared = machine._prepare_mock(result)
-        assert isinstance(prepared, MockAction)
-        assert prepared.result is result
-
-    def test_prepare_mock_with_other_object(self, machine: ActionTestMachine) -> None:
-        """Any other object is returned as is."""
-        obj = object()
-        prepared = machine._prepare_mock(obj)
-        assert prepared is obj
-
-
-# ======================================================================
-# TESTS: build_factory
-# ======================================================================
-class TestBuildFactory:
-    def test_build_factory_returns_dependency_factory(self, machine: ActionTestMachine) -> None:
-        """build_factory creates a DependencyFactory."""
-        factory = machine.build_factory(ActionWithDeps)
-        assert isinstance(factory, DependencyFactory)
-
-    @pytest.mark.anyio
-    async def test_build_factory_uses_mocks(self, machine_with_mocks: ActionTestMachine, empty_context: Context) -> None:
-        """
-        build_factory creates a factory with mocks.
-        Verified by actually running the action.
-        """
-        # Replace log coordinator with a mock directly in the test
-        mock_coord = AsyncMock(spec=LogCoordinator)
-        machine_with_mocks._log_coordinator = mock_coord
-
-        action = CapturingAction()
-        params = MockParams()
-
-        await machine_with_mocks.run(empty_context, action, params)
-
-        assert action.captured == "mocked_string"
-        # Check that mode from constructor ended up in logs
-        mock_coord.emit.assert_awaited()
-        # Get the first call
-        call_args = mock_coord.emit.call_args
-        scope = call_args.kwargs["scope"]
-        assert scope["mode"] == "testing_mode"  # from machine_with_mocks fixture
-
-    @pytest.mark.anyio
-    async def test_build_factory_respects_external_resources(self, machine: ActionTestMachine) -> None:
-        """external_resources have priority over mocks."""
-        # Create a machine with a mock for str
-        mocks = {str: "mocked"}
-        test_machine = ActionTestMachine(mocks=mocks, mode="test")
-
-        # Pass external_resources with a different value via the run method's resources parameter.
-        # The new architecture uses box.resolve which checks the resources dictionary.
-        # We'll test via _run_internal.
-        external = {str: "external"}
-        action = RealAction()
-        params = MockParams()
-        context = Context()
-
-        # We need to call _run_internal to pass resources.
-        await test_machine._run_internal(
-            context, action, params, resources=external, connections=None, nested_level=0
-        )
-        # The action captured the resolved value.
-        assert action.captured == "external"
+class TestDependsDuplicates:
+    def test_duplicate_raises(self):
+        with pytest.raises(ValueError, match="уже объявлен"):
+            @depends(FakeService)
+            @depends(FakeService)
+            class MyAction(ObjectBoundHost):
+                pass

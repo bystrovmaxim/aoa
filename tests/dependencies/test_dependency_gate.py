@@ -1,5 +1,6 @@
+# tests/dependencies/test_dependency_gate.py
 """
-Тесты для DependencyGate — шлюза управления зависимостями действия.
+Тесты для DependencyGate и DependencyGateHost.
 
 Проверяем:
 - Регистрацию зависимостей (DependencyInfo)
@@ -9,13 +10,14 @@
 - Получение всех компонентов (get_components)
 - Удаление зависимостей (unregister)
 - Заморозку шлюза (freeze)
-- Обработку ошибок (регистрация/удаление после заморозки)
-- Сбор зависимостей через DependencyGateHost (миксин)
+- Извлечение типа-ограничителя (bound) через DependencyGateHost
 """
 
 import pytest
 
 from action_machine.dependencies.dependency_gate import DependencyGate, DependencyInfo
+from action_machine.dependencies.dependency_gate_host import DependencyGateHost
+from action_machine.ResourceManagers.BaseResourceManager import BaseResourceManager
 
 
 # ----------------------------------------------------------------------
@@ -26,10 +28,6 @@ class ServiceA:
 
 
 class ServiceB:
-    pass
-
-
-class ServiceC:
     pass
 
 
@@ -78,7 +76,7 @@ class TestDependencyGate:
         info2 = DependencyInfo(cls=ServiceA, factory=None, description="Second")
 
         gate.register(info1)
-        with pytest.raises(ValueError, match="already registered"):
+        with pytest.raises(ValueError, match="уже зарегистрирована"):
             gate.register(info2)
 
     def test_register_multiple_different_classes(self):
@@ -167,7 +165,7 @@ class TestDependencyGate:
         gate.freeze()
 
         info = DependencyInfo(cls=ServiceA, factory=None, description="")
-        with pytest.raises(RuntimeError, match="DependencyGate is frozen"):
+        with pytest.raises(RuntimeError, match="заморожен"):
             gate.register(info)
 
     def test_freeze_disables_unregister(self):
@@ -177,7 +175,7 @@ class TestDependencyGate:
         gate.register(info)
         gate.freeze()
 
-        with pytest.raises(RuntimeError, match="DependencyGate is frozen"):
+        with pytest.raises(RuntimeError, match="заморожен"):
             gate.unregister(info)
 
     def test_freeze_idempotent(self):
@@ -202,88 +200,56 @@ class TestDependencyGate:
 
 
 # ======================================================================
-# Тесты для DependencyGateHost (миксин, который собирает зависимости)
+# Тесты для DependencyGateHost
 # ======================================================================
 
 class TestDependencyGateHost:
     """
-    Тесты для DependencyGateHost — миксина, который присоединяет DependencyGate к классу действия.
-    Проверяем:
-    - Сбор зависимостей из временного атрибута _depends_info
-    - Заморозку шлюза после сборки
-    - Отсутствие мутации родительских данных при наследовании
+    Тесты для DependencyGateHost — миксина, разрешающего @depends.
+    В новой архитектуре шлюз больше не собирается внутри класса (этим занят MetadataBuilder),
+    поэтому мы тестируем только корректное извлечение типа-ограничителя (bound).
     """
 
-    def test_dependencies_are_collected(self):
-        """Зависимости из _depends_info регистрируются в шлюзе."""
-        from action_machine.dependencies.dependency_gate_host import DependencyGateHost
-
-        class MyAction(DependencyGateHost):
-            _depends_info = [
-                DependencyInfo(cls=ServiceA, factory=None, description="Service A"),
-                DependencyInfo(cls=ServiceB, factory=factory_b, description="Service B"),
-            ]
-
-        gate = MyAction.get_dependency_gate()
-        assert gate.get_by_class(ServiceA) is not None
-        assert gate.get_by_class(ServiceA).description == "Service A"
-        assert gate.get_by_class(ServiceB) is not None
-        assert gate.get_by_class(ServiceB).factory is factory_b
-        assert gate.get_by_class(ServiceB).description == "Service B"
-
-    def test_gate_is_frozen_after_collection(self):
-        """После сбора шлюз замораживается, регистрация новых зависимостей невозможна."""
-        from action_machine.dependencies.dependency_gate_host import DependencyGateHost
-
-        class MyAction(DependencyGateHost):
-            _depends_info = [
-                DependencyInfo(cls=ServiceA, factory=None, description=""),
-            ]
-
-        gate = MyAction.get_dependency_gate()
-        with pytest.raises(RuntimeError, match="DependencyGate is frozen"):
-            gate.register(DependencyInfo(cls=ServiceB, factory=None, description=""))
-
-    def test_inheritance_does_not_share_gate(self):
-        """
-        При наследовании каждый класс получает свой собственный шлюз,
-        а не разделяет с родителем.
-        """
-        from action_machine.dependencies.dependency_gate_host import DependencyGateHost
-
-        class Parent(DependencyGateHost):
-            _depends_info = [
-                DependencyInfo(cls=ServiceA, factory=None, description="Parent"),
-            ]
-
-        class Child(Parent):
-            _depends_info = [
-                DependencyInfo(cls=ServiceB, factory=None, description="Child"),
-            ]
-
-        parent_gate = Parent.get_dependency_gate()
-        child_gate = Child.get_dependency_gate()
-
-        # Гейты разные
-        assert parent_gate is not child_gate
-
-        # У родителя только ServiceA
-        assert parent_gate.get_by_class(ServiceA) is not None
-        assert parent_gate.get_by_class(ServiceB) is None
-
-        # У ребёнка только ServiceB (родительские не наследуются)
-        assert child_gate.get_by_class(ServiceA) is None
-        assert child_gate.get_by_class(ServiceB) is not None
-
-    def test_class_without_depends_has_empty_gate(self):
-        """Если класс не имеет _depends_info, шлюз остаётся пустым (но замороженным)."""
-        from action_machine.dependencies.dependency_gate_host import DependencyGateHost
-
+    def test_default_bound_is_object(self):
+        """Если дженерик не указан явно, bound равен object."""
         class MyAction(DependencyGateHost):
             pass
 
-        gate = MyAction.get_dependency_gate()
-        assert gate.get_components() == []
-        # Шлюз заморожен, регистрация невозможна
-        with pytest.raises(RuntimeError, match="DependencyGate is frozen"):
-            gate.register(DependencyInfo(cls=ServiceA, factory=None, description=""))
+        assert MyAction.get_depends_bound() is object
+
+    def test_explicit_object_bound(self):
+        """Явное указание object в дженерике."""
+        class MyAction(DependencyGateHost[object]):
+            pass
+
+        assert MyAction.get_depends_bound() is object
+
+    def test_custom_bound(self):
+        """Указание кастомного базового класса (например, BaseResourceManager)."""
+        class MyResourceAction(DependencyGateHost[BaseResourceManager]):
+            pass
+
+        assert MyResourceAction.get_depends_bound() is BaseResourceManager
+
+    def test_inherited_bound(self):
+        """Дочерний класс наследует bound от родителя."""
+        class Parent(DependencyGateHost[BaseResourceManager]):
+            pass
+
+        class Child(Parent):
+            pass
+
+        assert Child.get_depends_bound() is BaseResourceManager
+
+    def test_inherited_bound_multiple_levels(self):
+        """Наследование bound через несколько уровней."""
+        class Base(DependencyGateHost[BaseResourceManager]):
+            pass
+
+        class Intermediate(Base):
+            pass
+
+        class Final(Intermediate):
+            pass
+
+        assert Final.get_depends_bound() is BaseResourceManager
