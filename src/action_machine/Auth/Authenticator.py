@@ -7,7 +7,7 @@
 from abc import ABC, abstractmethod
 from typing import Any
 
-from ..Context.user_info import UserInfo
+from ..context.user_info import UserInfo
 
 
 class Authenticator(ABC):

@@ -10,7 +10,7 @@
 
 from typing import Any
 
-from action_machine.Core.ReadableMixin import ReadableMixin
+from action_machine.core.readable_mixin import ReadableMixin
 
 from .request_info import RequestInfo
 from .runtime_info import RuntimeInfo

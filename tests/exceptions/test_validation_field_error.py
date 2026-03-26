@@ -7,7 +7,7 @@
 - Значение field по умолчанию None
 """
 
-from action_machine.Core.Exceptions import ValidationFieldError
+from action_machine.core.exceptions import ValidationFieldError
 
 
 class TestValidationFieldError:

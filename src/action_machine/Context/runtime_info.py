@@ -8,7 +8,7 @@
 from dataclasses import dataclass, field
 from typing import Any
 
-from action_machine.Core.ReadableMixin import ReadableMixin
+from action_machine.core.readable_mixin import ReadableMixin
 
 
 @dataclass

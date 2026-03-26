@@ -44,6 +44,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from action_machine.auth.role_gate_host import RoleGateHost
+
 
 class CheckRoles:
     """
@@ -129,9 +131,6 @@ class CheckRoles:
                 f"@CheckRoles можно применять только к классу. "
                 f"Получен объект типа {type(cls).__name__}: {cls!r}."
             )
-
-        # ── Проверка: класс содержит миксин RoleGateHost ──
-        from action_machine.Auth.role_gate_host import RoleGateHost
 
         if not issubclass(cls, RoleGateHost):
             raise TypeError(

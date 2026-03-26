@@ -3,17 +3,19 @@ from datetime import datetime
 
 import pytest
 
-from action_machine.Checkers.ResultBoolChecker import ResultBoolChecker
-from action_machine.Checkers.ResultDateChecker import ResultDateChecker
-from action_machine.Checkers.ResultFloatChecker import ResultFloatChecker
-from action_machine.Checkers.ResultInstanceChecker import ResultInstanceChecker
-from action_machine.Checkers.ResultIntChecker import ResultIntChecker
-from action_machine.Checkers.ResultStringChecker import ResultStringChecker
-from action_machine.Core.Exceptions import ValidationFieldError
+from action_machine.checkers.result_bool_checker import ResultBoolChecker
+from action_machine.checkers.result_date_checker import ResultDateChecker
+from action_machine.checkers.result_float_checker import ResultFloatChecker
+from action_machine.checkers.result_instance_checker import ResultInstanceChecker
+from action_machine.checkers.result_int_checker import ResultIntChecker
+from action_machine.checkers.result_string_checker import ResultStringChecker
+from action_machine.core.exceptions import ValidationFieldError
 
 
-class DummyClass: pass
-class OtherClass: pass
+class DummyClass:
+    pass
+class OtherClass:
+    pass
 
 class TestResultCheckersCoverage:
     def test_bool(self):
@@ -23,7 +25,7 @@ class TestResultCheckersCoverage:
             checker.check({"f": 123})
 
     def test_date(self):
-        checker = ResultDateChecker("d", "desc", format="%Y-%m-%d", min_date=datetime(2020, 1, 1), max_date=datetime(2025, 1, 1))
+        checker = ResultDateChecker("d", "desc", date_format="%Y-%m-%d", min_date=datetime(2020, 1, 1), max_date=datetime(2025, 1, 1))
         checker.check({"d": "2023-01-01"})
         checker.check({"d": datetime(2023, 1, 1)})
 

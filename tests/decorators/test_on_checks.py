@@ -16,7 +16,7 @@
 
 import pytest
 
-from action_machine.Plugins.Decorators import SubscriptionInfo, on
+from action_machine.plugins.decorators import SubscriptionInfo, on
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Успешные сценарии

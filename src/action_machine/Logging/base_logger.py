@@ -36,10 +36,10 @@ import re
 from abc import ABC, abstractmethod
 from typing import Any
 
-from action_machine.Context.context import Context
-from action_machine.Core.BaseParams import BaseParams
-from action_machine.Core.BaseState import BaseState
-from action_machine.Logging.log_scope import LogScope
+from action_machine.context.context import Context
+from action_machine.core.base_params import BaseParams
+from action_machine.core.base_state import BaseState
+from action_machine.logging.log_scope import LogScope
 
 # Regular expression to match ANSI escape sequences
 _ANSI_ESCAPE = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')

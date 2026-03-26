@@ -16,16 +16,16 @@
     - Класс не наследует ConnectionGateHost — TypeError.
 
 Архитектурная справка:
-В новой архитектуре (через ClassMetadata) декоратор только добавляет записи 
-в атрибут `_connection_info` класса. Дальнейшая валидация и сборка 
+В новой архитектуре (через ClassMetadata) декоратор только добавляет записи
+в атрибут `_connection_info` класса. Дальнейшая валидация и сборка
 осуществляется в `MetadataBuilder`.
 """
 
 import pytest
 
-from action_machine.ResourceManagers.BaseResourceManager import BaseResourceManager
-from action_machine.ResourceManagers.connection import ConnectionInfo, connection
-from action_machine.ResourceManagers.connection_gate_host import ConnectionGateHost
+from action_machine.resource_managers.base_resource_manager import BaseResourceManager
+from action_machine.resource_managers.connection import ConnectionInfo, connection
+from action_machine.resource_managers.connection_gate_host import ConnectionGateHost
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Вспомогательные классы

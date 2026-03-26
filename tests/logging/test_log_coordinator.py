@@ -12,10 +12,10 @@ Checks:
 
 import pytest
 
-from action_machine.Core.BaseState import BaseState
-from action_machine.Core.Exceptions import LogTemplateError
-from action_machine.Logging.log_coordinator import LogCoordinator
-from action_machine.Logging.log_scope import LogScope
+from action_machine.core.base_state import BaseState
+from action_machine.core.exceptions import LogTemplateError
+from action_machine.logging.log_coordinator import LogCoordinator
+from action_machine.logging.log_scope import LogScope
 from tests.conftest import ParamsTest, RecordingLogger, make_context
 
 

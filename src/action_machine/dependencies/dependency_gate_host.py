@@ -138,6 +138,7 @@ def _extract_bound(cls: type) -> type:
     for parent in cls.__mro__[1:]:
         bound = getattr(parent, "_depends_bound", None)
         if bound is not None:
-            return bound
+            return bound  # type: ignore[no-any-return]
+
 
     return object

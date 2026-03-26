@@ -13,8 +13,8 @@
 
 import pytest
 
-from action_machine.Core.Exceptions import HandleError
-from action_machine.ResourceManagers.WrapperConnectionManager import WrapperConnectionManager
+from action_machine.core.exceptions import HandleError
+from action_machine.resource_managers.wrapper_connection_manager import WrapperConnectionManager
 
 
 class TestPostgresConnectionManager:

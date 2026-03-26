@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from action_machine.ResourceManagers.PostgresConnectionManager import PostgresConnectionManager
+from action_machine.resource_managers.postgres_connection_manager import PostgresConnectionManager
 
 
 @pytest.fixture

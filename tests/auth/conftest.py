@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from action_machine.Context.user_info import UserInfo  # ← это класс
+from action_machine.context.user_info import UserInfo  # ← это класс
 
 # ======================================================================
 # МОКИ ДЛЯ ТЕСТОВ AUTH

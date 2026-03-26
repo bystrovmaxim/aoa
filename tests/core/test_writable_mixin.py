@@ -1,7 +1,7 @@
 # tests/core/test_writable_mixin.py
 import pytest
 
-from action_machine.Core.BaseState import BaseState
+from action_machine.core.base_state import BaseState
 
 
 class TestWritableMixin:

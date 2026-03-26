@@ -7,7 +7,7 @@
 - Отсутствие ключей в словарях
 """
 
-from action_machine.Context.user_info import UserInfo
+from action_machine.context.user_info import UserInfo
 
 
 class TestResolveDict:

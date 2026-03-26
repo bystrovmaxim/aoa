@@ -16,9 +16,9 @@ Checks:
 
 import pytest
 
-from action_machine.Core.BaseParams import BaseParams
-from action_machine.Core.BaseResult import BaseResult
-from action_machine.Core.MockAction import MockAction
+from action_machine.core.base_params import BaseParams
+from action_machine.core.base_result import BaseResult
+from action_machine.core.mock_action import MockAction
 
 
 class MockParams(BaseParams):

@@ -10,7 +10,7 @@
 
 from datetime import datetime
 
-from action_machine.Context.request_info import RequestInfo
+from action_machine.context.request_info import RequestInfo
 
 
 class TestRequestInfo:

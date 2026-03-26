@@ -13,14 +13,14 @@ Tests cover:
 
 import pytest
 
-from action_machine.Context.context import Context
-from action_machine.Context.user_info import UserInfo
-from action_machine.Core.BaseParams import BaseParams
-from action_machine.Core.BaseState import BaseState
-from action_machine.Logging.expression_evaluator import ExpressionEvaluator
-from action_machine.Logging.log_scope import LogScope
-from action_machine.Logging.sensitive_decorator import sensitive
-from action_machine.Logging.variable_substitutor import VariableSubstitutor
+from action_machine.context.context import Context
+from action_machine.context.user_info import UserInfo
+from action_machine.core.base_params import BaseParams
+from action_machine.core.base_state import BaseState
+from action_machine.logging.expression_evaluator import ExpressionEvaluator
+from action_machine.logging.log_scope import LogScope
+from action_machine.logging.sensitive_decorator import sensitive
+from action_machine.logging.variable_substitutor import VariableSubstitutor
 
 # ----------------------------------------------------------------------
 # Helper classes

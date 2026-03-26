@@ -10,9 +10,9 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from action_machine.Core.Exceptions import HandleError, TransactionProhibitedError
-from action_machine.ResourceManagers.IConnectionManager import IConnectionManager
-from action_machine.ResourceManagers.WrapperConnectionManager import WrapperConnectionManager
+from action_machine.core.exceptions import HandleError, TransactionProhibitedError
+from action_machine.resource_managers.iconnection_manager import IConnectionManager
+from action_machine.resource_managers.wrapper_connection_manager import WrapperConnectionManager
 
 
 # ----------------------------------------------------------------------

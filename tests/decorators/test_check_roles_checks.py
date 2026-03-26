@@ -15,8 +15,8 @@
 
 import pytest
 
-from action_machine.Auth.check_roles import CheckRoles
-from action_machine.Auth.role_gate_host import RoleGateHost
+from action_machine.auth.check_roles import CheckRoles
+from action_machine.auth.role_gate_host import RoleGateHost
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Вспомогательные классы

@@ -16,18 +16,18 @@ import pytest
 
 from action_machine.aspects.regular_aspect import regular_aspect
 from action_machine.aspects.summary_aspect import summary_aspect
-from action_machine.Auth.check_roles import CheckRoles
-from action_machine.Context.context import Context
-from action_machine.Core.BaseAction import BaseAction
-from action_machine.Core.BaseParams import BaseParams
-from action_machine.Core.BaseResult import BaseResult
-from action_machine.Core.BaseState import BaseState
-from action_machine.Core.ToolsBox import ToolsBox
+from action_machine.auth.check_roles import CheckRoles
+from action_machine.context.context import Context
+from action_machine.core.base_action import BaseAction
+from action_machine.core.base_params import BaseParams
+from action_machine.core.base_result import BaseResult
+from action_machine.core.base_state import BaseState
+from action_machine.core.tools_box import ToolsBox
 from action_machine.dependencies.dependency_factory import DependencyFactory
 from action_machine.dependencies.dependency_gate import DependencyGate
-from action_machine.Plugins.Decorators import on
-from action_machine.Plugins.Plugin import Plugin
-from action_machine.Plugins.PluginEvent import PluginEvent
+from action_machine.plugins.decorators import on
+from action_machine.plugins.plugin import Plugin
+from action_machine.plugins.plugin_event import PluginEvent
 
 # ----------------------------------------------------------------------
 # Вспомогательные классы данных

@@ -9,8 +9,8 @@
 from typing import Any
 
 # Строгие и явные импорты вместо фасадов
-from action_machine.Context.context import Context
-from action_machine.Context.request_info import RequestInfo
+from action_machine.context.context import Context
+from action_machine.context.request_info import RequestInfo
 
 from .authenticator import Authenticator
 from .context_assembler import ContextAssembler

@@ -14,8 +14,8 @@ Checks:
 
 import pytest
 
-from action_machine.Core.Exceptions import LogTemplateError
-from action_machine.Logging.expression_evaluator import ExpressionEvaluator
+from action_machine.core.exceptions import LogTemplateError
+from action_machine.logging.expression_evaluator import ExpressionEvaluator
 
 
 class TestExpressionEvaluator:

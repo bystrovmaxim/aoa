@@ -8,7 +8,7 @@
 """
 import pytest
 
-from action_machine.Core.BaseState import BaseState
+from action_machine.core.base_state import BaseState
 from tests.conftest import RecordingLogger
 
 

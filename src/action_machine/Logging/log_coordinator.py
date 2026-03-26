@@ -49,12 +49,12 @@ New in 0.0.5:
 
 from typing import Any
 
-from action_machine.Context.context import Context
-from action_machine.Core.BaseParams import BaseParams
-from action_machine.Core.BaseState import BaseState
-from action_machine.Logging.base_logger import BaseLogger
-from action_machine.Logging.log_scope import LogScope
-from action_machine.Logging.variable_substitutor import VariableSubstitutor
+from action_machine.context.context import Context
+from action_machine.core.base_params import BaseParams
+from action_machine.core.base_state import BaseState
+from action_machine.logging.base_logger import BaseLogger
+from action_machine.logging.log_scope import LogScope
+from action_machine.logging.variable_substitutor import VariableSubstitutor
 
 
 class LogCoordinator:

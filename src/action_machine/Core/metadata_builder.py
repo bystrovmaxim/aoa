@@ -84,7 +84,7 @@ ClassMetadata.
 
 from __future__ import annotations
 
-from action_machine.Core.class_metadata import (
+from action_machine.core.class_metadata import (
     AspectMeta,
     CheckerMeta,
     ClassMetadata,
@@ -109,19 +109,21 @@ class MetadataBuilder:
     # ─────────────────────────────────────────────────────────────────────
 
     @staticmethod
-    def build(cls: type) -> ClassMetadata:
+    def build(klass: type) -> ClassMetadata:
         """
         Собирает ClassMetadata из временных атрибутов класса.
 
         Аргументы:
-            cls: класс (Action, Plugin или любой другой), метаданные
-                 которого нужно собрать.
+            klass: класс (Action, Plugin или любой другой), метаданные
+                   которого нужно собрать. Параметр назван klass (а не cls),
+                   потому что метод статический — cls зарезервирован
+                   для classmethod по соглашению Python.
 
         Возвращает:
             ClassMetadata — иммутабельный снимок всех метаданных.
 
         Исключения:
-            TypeError: если cls не является классом (type).
+            TypeError: если klass не является классом (type).
             ValueError: если нарушены структурные инварианты
                         (например, больше одного summary-аспекта).
 
@@ -130,32 +132,32 @@ class MetadataBuilder:
             >>> metadata.class_name
             'test_full_flow.CreateOrderAction'
         """
-        if not isinstance(cls, type):
+        if not isinstance(klass, type):
             raise TypeError(
                 f"MetadataBuilder.build() ожидает класс (type), "
-                f"получен {type(cls).__name__}: {cls!r}"
+                f"получен {type(klass).__name__}: {klass!r}"
             )
 
         # Полное имя класса для идентификации
-        class_name = _full_class_name(cls)
+        class_name = _full_class_name(klass)
 
         # ── Сбор отдельных секций ──────────────────────────────────────
-        role = _collect_role(cls)
-        dependencies = _collect_dependencies(cls)
-        connections = _collect_connections(cls)
-        aspects = _collect_aspects(cls)
-        checkers = _collect_checkers(cls)
-        subscriptions = _collect_subscriptions(cls)
-        sensitive_fields = _collect_sensitive_fields(cls)
-        depends_bound = _collect_depends_bound(cls)
+        role = _collect_role(klass)
+        dependencies = _collect_dependencies(klass)
+        connections = _collect_connections(klass)
+        aspects = _collect_aspects(klass)
+        checkers = _collect_checkers(klass)
+        subscriptions = _collect_subscriptions(klass)
+        sensitive_fields = _collect_sensitive_fields(klass)
+        depends_bound = _collect_depends_bound(klass)
 
         # ── Структурная валидация ──────────────────────────────────────
-        _validate_aspects(cls, aspects)
-        _validate_checkers_belong_to_aspects(cls, checkers, aspects)
+        _validate_aspects(klass, aspects)
+        _validate_checkers_belong_to_aspects(klass, checkers, aspects)
 
         # ── Сборка финального объекта ──────────────────────────────────
         return ClassMetadata(
-            class_ref=cls,
+            class_ref=klass,
             class_name=class_name,
             role=role,
             dependencies=tuple(dependencies),
@@ -166,6 +168,7 @@ class MetadataBuilder:
             sensitive_fields=tuple(sensitive_fields),
             depends_bound=depends_bound,
         )
+
 
 
 # ═════════════════════════════════════════════════════════════════════════════

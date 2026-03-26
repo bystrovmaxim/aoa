@@ -6,7 +6,7 @@ Checks:
 - _quote_if_string with apostrophe inside string
 """
 
-from action_machine.Logging.variable_substitutor import VariableSubstitutor
+from action_machine.logging.variable_substitutor import VariableSubstitutor
 
 
 class TestVariableSubstitutorExtended:

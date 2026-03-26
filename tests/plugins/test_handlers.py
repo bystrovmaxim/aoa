@@ -5,7 +5,7 @@
 
 import pytest
 
-from action_machine.Plugins.PluginCoordinator import PluginCoordinator
+from action_machine.plugins.plugin_coordinator import PluginCoordinator
 
 from .conftest import CustomStatePlugin, MultiHandlerPlugin, SimplePlugin
 

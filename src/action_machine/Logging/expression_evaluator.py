@@ -44,8 +44,8 @@ from typing import Any
 
 from simpleeval import EvalWithCompoundTypes, NameNotDefined
 
-from action_machine.Core.Exceptions import LogTemplateError
-from action_machine.Logging.masking import mask_value
+from action_machine.core.exceptions import LogTemplateError
+from action_machine.logging.masking import mask_value
 
 # Regular expression for finding {iif(...)} in the template.
 # Uses non‑greedy capture with subsequent bracket balance check.

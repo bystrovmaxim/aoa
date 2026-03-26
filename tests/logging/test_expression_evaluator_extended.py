@@ -5,7 +5,7 @@
 - Разбиение аргументов iif с вложенными скобками
 - Разбиение аргументов iif со строкой, содержащей точку с запятой
 """
-from action_machine.Logging.expression_evaluator import _IifArgSplitter
+from action_machine.logging.expression_evaluator import _IifArgSplitter
 
 
 class TestIifArgSplitter:

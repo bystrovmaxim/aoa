@@ -43,15 +43,15 @@ from dataclasses import FrozenInstanceError, dataclass
 
 import pytest
 
-from action_machine.Core.class_metadata import (
+from action_machine.core.class_metadata import (
     AspectMeta,
     CheckerMeta,
     ClassMetadata,
     RoleMeta,
     SensitiveFieldMeta,
 )
-from action_machine.Core.gate_coordinator import GateCoordinator
-from action_machine.Core.metadata_builder import MetadataBuilder
+from action_machine.core.gate_coordinator import GateCoordinator
+from action_machine.core.metadata_builder import MetadataBuilder
 
 # ═════════════════════════════════════════════════════════════════════════════
 # Вспомогательные классы для тестов

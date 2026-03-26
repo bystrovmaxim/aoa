@@ -9,7 +9,7 @@ It can be used inside iif to safely check for variable presence.
 
 import pytest
 
-from action_machine.Logging.expression_evaluator import ExpressionEvaluator
+from action_machine.logging.expression_evaluator import ExpressionEvaluator
 
 
 class TestExistsFunction:

@@ -1,16 +1,19 @@
 # tests/core/test_action_test_machine_extra.py
 import pytest
 
-from action_machine.Core.ActionTestMachine import ActionTestMachine
-from action_machine.Core.BaseAction import BaseAction
-from action_machine.Core.BaseParams import BaseParams
-from action_machine.Core.BaseResult import BaseResult
-from action_machine.Core.MockAction import MockAction
+from action_machine.core.action_test_machine import ActionTestMachine
+from action_machine.core.base_action import BaseAction
+from action_machine.core.base_params import BaseParams
+from action_machine.core.base_result import BaseResult
+from action_machine.core.mock_action import MockAction
 
 
-class DummyParams(BaseParams): pass
-class DummyResult(BaseResult): pass
-class DummyAction(BaseAction[DummyParams, DummyResult]): pass
+class DummyParams(BaseParams):
+    pass
+class DummyResult(BaseResult):
+    pass
+class DummyAction(BaseAction[DummyParams, DummyResult]):
+    pass
 
 @pytest.mark.anyio
 async def test_action_test_machine_coverage():

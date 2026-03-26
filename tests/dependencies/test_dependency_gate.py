@@ -17,7 +17,7 @@ import pytest
 
 from action_machine.dependencies.dependency_gate import DependencyGate, DependencyInfo
 from action_machine.dependencies.dependency_gate_host import DependencyGateHost
-from action_machine.ResourceManagers.BaseResourceManager import BaseResourceManager
+from action_machine.resource_managers.base_resource_manager import BaseResourceManager
 
 
 # ----------------------------------------------------------------------
