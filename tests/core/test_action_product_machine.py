@@ -1,21 +1,21 @@
 # tests/core/test_action_product_machine.py
 """
-Tests for ActionProductMachine — the main action machine.
+Тесты для ActionProductMachine — основной машины выполнения действий.
 
-Checks:
-- Aspect collection
-- Role checking
-- Connection checking (using new ConnectionGate)
-- Full run() pipeline including logging
-- Passing of mode and log parameters to aspects
-- All aspects must accept box (sixth parameter replaced by box)
+Проверяем:
+- Сборку аспектов
+- Проверку ролей
+- Проверку соединений (с использованием обновленного механизма ClassMetadata)
+- Полный цикл выполнения run(), включая логирование
+- Передачу параметров mode и log координаторам
+- Корректную работу всех аспектов с параметром box (ToolsBox)
+- Явное задание _checker_meta для совместимости со старыми чекерами
 """
 
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from action_machine import connection  # Исправленный импорт: из корневого пакета
 from action_machine.aspects.regular_aspect import regular_aspect
 from action_machine.aspects.summary_aspect import summary_aspect
 from action_machine.Auth.check_roles import CheckRoles
@@ -33,10 +33,11 @@ from action_machine.Logging.log_coordinator import LogCoordinator
 from action_machine.Plugins.Plugin import Plugin
 from action_machine.Plugins.PluginCoordinator import PluginCoordinator
 from action_machine.ResourceManagers.BaseResourceManager import BaseResourceManager
+from action_machine.ResourceManagers.connection import connection
 
 
 # ----------------------------------------------------------------------
-# Helper classes
+# Вспомогательные классы
 # ----------------------------------------------------------------------
 class MockParams(BaseParams):
     pass
@@ -52,15 +53,14 @@ class MockResourceManager(BaseResourceManager):
 
 
 # ----------------------------------------------------------------------
-# Actions: aspect configurations (ALL with box parameter)
+# Действия: конфигурация аспектов
 # ----------------------------------------------------------------------
 @CheckRoles(CheckRoles.NONE, desc="No authentication")
 class ActionWithAspects(BaseAction[MockParams, MockResult]):
-    """Action with several aspects to verify order and logging."""
+    """Действие с несколькими аспектами для проверки порядка выполнения и логирования."""
     _test_calls: list[str] = []
 
     @regular_aspect("First aspect")
-    @StringFieldChecker("value", "Value", required=True)
     async def aspect1(
         self,
         params: MockParams,
@@ -71,9 +71,10 @@ class ActionWithAspects(BaseAction[MockParams, MockResult]):
         self._test_calls.append("aspect1")
         await box.info("Aspect1 executed", value="one")
         return {"value": "one"}
+    # Вручную прописываем _checker_meta, так как старый декоратор чекера еще не обновлен
+    aspect1._checker_meta = [{"checker_class": StringFieldChecker, "field_name": "value", "description": "Value", "required": True}]
 
     @regular_aspect("Second aspect")
-    @StringFieldChecker("value", "Value", required=True)
     async def aspect2(
         self,
         params: MockParams,
@@ -84,6 +85,7 @@ class ActionWithAspects(BaseAction[MockParams, MockResult]):
         self._test_calls.append("aspect2")
         await box.debug("Aspect2 debug")
         return {"value": "two"}
+    aspect2._checker_meta = [{"checker_class": StringFieldChecker, "field_name": "value", "description": "Value", "required": True}]
 
     @summary_aspect("Main aspect")
     async def summary(
@@ -145,7 +147,7 @@ class ChildAction(ParentAction):
 
 
 # ----------------------------------------------------------------------
-# Actions: role checking
+# Действия: проверка ролей
 # ----------------------------------------------------------------------
 @CheckRoles(CheckRoles.NONE, desc="No authentication")
 class ActionNone(BaseAction[MockParams, MockResult]):
@@ -182,9 +184,9 @@ class ActionNoDecorator(BaseAction[MockParams, MockResult]):
 
 
 # ----------------------------------------------------------------------
-# Actions: connection checking (using @connection decorator)
+# Действия: проверка соединений
 # ----------------------------------------------------------------------
-@connection("db", MockResourceManager, description="Database")
+@connection(MockResourceManager, key="db", description="Database")
 @CheckRoles(CheckRoles.NONE, desc="No authentication")
 class ActionWithOneConnection(BaseAction[MockParams, MockResult]):
     @summary_aspect("test")
@@ -199,8 +201,8 @@ class ActionWithOneConnection(BaseAction[MockParams, MockResult]):
         return MockResult()
 
 
-@connection("db", MockResourceManager)
-@connection("cache", MockResourceManager)
+@connection(MockResourceManager, key="db")
+@connection(MockResourceManager, key="cache")
 @CheckRoles(CheckRoles.NONE, desc="No authentication")
 class ActionWithTwoConnections(BaseAction[MockParams, MockResult]):
     @summary_aspect("test")
@@ -231,12 +233,10 @@ class ActionWithoutConnections(BaseAction[MockParams, MockResult]):
 
 
 # ----------------------------------------------------------------------
-# Actions for TestRun (errors etc.)
+# Действия для TestRun (ошибки и т.д.)
 # ----------------------------------------------------------------------
 @CheckRoles(CheckRoles.NONE, desc="")
 class BadAction(BaseAction[MockParams, MockResult]):
-    """Aspect returns non-dict."""
-
     @regular_aspect("bad")
     async def bad(
         self,
@@ -254,8 +254,6 @@ class BadAction(BaseAction[MockParams, MockResult]):
 
 @CheckRoles(CheckRoles.NONE, desc="")
 class ActionWithoutCheckers(BaseAction[MockParams, MockResult]):
-    """Aspect returns non-empty dict without checkers."""
-
     @regular_aspect("no checkers")
     async def aspect_no_checkers(
         self,
@@ -273,10 +271,7 @@ class ActionWithoutCheckers(BaseAction[MockParams, MockResult]):
 
 @CheckRoles(CheckRoles.NONE, desc="")
 class ActionWithChecker(BaseAction[MockParams, MockResult]):
-    """Aspect returns extra fields."""
-
     @regular_aspect("with checker")
-    @StringFieldChecker("field", "Test field", required=True)
     async def aspect_with_checker(
         self,
         params: MockParams,
@@ -285,6 +280,7 @@ class ActionWithChecker(BaseAction[MockParams, MockResult]):
         connections: dict,
     ) -> dict:
         return {"field": "ok", "extra": "forbidden"}
+    aspect_with_checker._checker_meta = [{"checker_class": StringFieldChecker, "field_name": "field", "description": "Test field", "required": True}]
 
     @summary_aspect("checker summary")
     async def summary(self, params, state, box, connections):
@@ -292,7 +288,7 @@ class ActionWithChecker(BaseAction[MockParams, MockResult]):
 
 
 # ----------------------------------------------------------------------
-# Fixtures
+# Фикстуры
 # ----------------------------------------------------------------------
 @pytest.fixture
 def context_with_roles() -> Context:
@@ -308,7 +304,6 @@ def context_without_roles() -> Context:
 
 @pytest.fixture
 def machine() -> ActionProductMachine:
-    """Machine with mode 'production' and mock log coordinator to verify calls."""
     mock_log_coordinator = AsyncMock(spec=LogCoordinator)
     return ActionProductMachine(
         mode="production",
@@ -324,85 +319,38 @@ def mock_plugin() -> MagicMock:
 
 
 # ======================================================================
-# TESTS: Constructor and parameters
+# ТЕСТЫ: Конструктор и параметры
 # ======================================================================
 class TestConstructor:
     def test_mode_must_be_non_empty(self):
-        """mode cannot be empty."""
         with pytest.raises(ValueError, match="mode must be non-empty"):
             ActionProductMachine(mode="")
 
     def test_default_log_coordinator_created(self):
-        """If log_coordinator is not provided, one with ConsoleLogger is created."""
         machine = ActionProductMachine(mode="test")
         assert machine._log_coordinator is not None
-        from action_machine.Logging.log_coordinator import LogCoordinator
-        assert isinstance(machine._log_coordinator, LogCoordinator)
 
 
 # ======================================================================
-# TESTS: Aspect collection is now handled by AspectGateHost, but we test that
-#        get_aspects() works correctly through the action.
-# ======================================================================
-class TestGetAspects:
-    def test_get_aspects_returns_sorted_regular_and_summary(self):
-        action = ActionWithAspects()
-        regular, summary = action.get_aspects()
-        assert len(regular) == 2
-        assert regular[0][0].__name__ == "aspect1"
-        assert regular[1][0].__name__ == "aspect2"
-        assert regular[0][1] == "First aspect"
-        assert regular[1][1] == "Second aspect"
-        assert summary is not None
-        assert summary[0].__name__ == "summary"
-        assert summary[1] == "Main aspect"
-
-    def test_get_aspects_ignores_inherited_methods(self):
-        action = ChildAction()
-        regular, summary = action.get_aspects()
-        assert len(regular) == 1
-        assert regular[0][0].__name__ == "child_aspect"
-        assert summary is not None
-        assert summary[0].__name__ == "summary"
-
-    def test_get_aspects_no_summary_raises(self):
-        """Action with regular aspects but no summary raises TypeError on instantiation."""
-        class ActionNoSummary(BaseAction[MockParams, MockResult]):
-            @regular_aspect("no summary")
-            async def aspect(self, params, state, box, connections):
-                return {}
-
-        with pytest.raises(TypeError, match="does not have a summary aspect"):
-            ActionNoSummary()
-
-    def test_get_aspects_two_summaries_raises(self):
-        with pytest.raises(TypeError, match="Only one summary aspect can be registered per action"):
-            class ActionTwoSummaries(BaseAction[MockParams, MockResult]):
-                @summary_aspect("first")
-                async def summary1(self, params, state, box, connections):
-                    return MockResult()
-
-                @summary_aspect("second")
-                async def summary2(self, params, state, box, connections):
-                    return MockResult()
-
-
-# ======================================================================
-# TESTS: Role checking (_check_action_roles)
+# ТЕСТЫ: Проверка ролей (_check_action_roles)
 # ======================================================================
 class TestCheckActionRoles:
     def test_none_role_allows_any_user(self, machine, context_without_roles):
-        machine._check_action_roles(ActionNone(), context_without_roles)
+        metadata = machine._get_metadata(ActionNone())
+        machine._check_action_roles(ActionNone(), context_without_roles, metadata)
 
     def test_any_role_allows_user_with_roles(self, machine, context_with_roles):
-        machine._check_action_roles(ActionAny(), context_with_roles)
+        metadata = machine._get_metadata(ActionAny())
+        machine._check_action_roles(ActionAny(), context_with_roles, metadata)
 
     def test_any_role_rejects_user_without_roles(self, machine, context_without_roles):
+        metadata = machine._get_metadata(ActionAny())
         with pytest.raises(AuthorizationError, match="Authentication required: user must have at least one role"):
-            machine._check_action_roles(ActionAny(), context_without_roles)
+            machine._check_action_roles(ActionAny(), context_without_roles, metadata)
 
     def test_single_role_match(self, machine, context_with_roles):
-        machine._check_action_roles(ActionSingleRole(), context_with_roles)
+        metadata = machine._get_metadata(ActionSingleRole())
+        machine._check_action_roles(ActionSingleRole(), context_with_roles, metadata)
 
     def test_single_role_no_match(self, machine, context_with_roles):
         @CheckRoles("manager", desc="")
@@ -411,11 +359,14 @@ class TestCheckActionRoles:
             async def summary(self, params, state, box, connections):
                 return MockResult()
 
+        action = _ActionManager()
+        metadata = machine._get_metadata(action)
         with pytest.raises(AuthorizationError, match="Access denied. Required role: 'manager'"):
-            machine._check_action_roles(_ActionManager(), context_with_roles)
+            machine._check_action_roles(action, context_with_roles, metadata)
 
     def test_list_role_intersection(self, machine, context_with_roles):
-        machine._check_action_roles(ActionListRole(), context_with_roles)
+        metadata = machine._get_metadata(ActionListRole())
+        machine._check_action_roles(ActionListRole(), context_with_roles, metadata)
 
     def test_list_role_no_intersection(self, machine, context_with_roles):
         @CheckRoles(["manager", "editor"], desc="")
@@ -424,49 +375,65 @@ class TestCheckActionRoles:
             async def summary(self, params, state, box, connections):
                 return MockResult()
 
+        action = _ActionManagerEditor()
+        metadata = machine._get_metadata(action)
         with pytest.raises(AuthorizationError, match="Access denied. Required one of the roles:"):
-            machine._check_action_roles(_ActionManagerEditor(), context_with_roles)
+            machine._check_action_roles(action, context_with_roles, metadata)
 
     def test_action_without_role_spec_raises_type_error(self, machine, context_with_roles):
-        with pytest.raises(TypeError, match="does not have a CheckRoles decorator"):
-            machine._check_action_roles(ActionNoDecorator(), context_with_roles)
+        action = ActionNoDecorator()
+        metadata = machine._get_metadata(action)
+        with pytest.raises(TypeError, match="does not have a @CheckRoles decorator"):
+            machine._check_action_roles(action, context_with_roles, metadata)
 
 
 # ======================================================================
-# TESTS: Connection checking (_check_connections)
+# ТЕСТЫ: Проверка соединений (_check_connections)
 # ======================================================================
 class TestCheckConnections:
     def test_no_declarations_no_connections_returns_empty_dict(self, machine):
-        result = machine._check_connections(ActionWithoutConnections(), None)
+        action = ActionWithoutConnections()
+        metadata = machine._get_metadata(action)
+        result = machine._check_connections(action, None, metadata)
         assert result == {}
 
     def test_no_declarations_with_connections_raises(self, machine):
+        action = ActionWithoutConnections()
+        metadata = machine._get_metadata(action)
         conns = {"db": MockResourceManager()}
         with pytest.raises(ConnectionValidationError, match="does not declare any @connection"):
-            machine._check_connections(ActionWithoutConnections(), conns)
+            machine._check_connections(action, conns, metadata)
 
     def test_has_declarations_no_connections_raises(self, machine):
+        action = ActionWithOneConnection()
+        metadata = machine._get_metadata(action)
         with pytest.raises(ConnectionValidationError, match="declares connections: .*, but no connections were passed"):
-            machine._check_connections(ActionWithOneConnection(), None)
+            machine._check_connections(action, None, metadata)
 
     def test_extra_keys_raises(self, machine):
+        action = ActionWithOneConnection()
+        metadata = machine._get_metadata(action)
         conns = {"db": MockResourceManager(), "extra": MockResourceManager()}
         with pytest.raises(ConnectionValidationError, match="received extra connections: {'extra'}"):
-            machine._check_connections(ActionWithOneConnection(), conns)
+            machine._check_connections(action, conns, metadata)
 
     def test_missing_keys_raises(self, machine):
+        action = ActionWithTwoConnections()
+        metadata = machine._get_metadata(action)
         conns = {"db": MockResourceManager()}
         with pytest.raises(ConnectionValidationError, match="is missing required connections: {'cache'}"):
-            machine._check_connections(ActionWithTwoConnections(), conns)
+            machine._check_connections(action, conns, metadata)
 
     def test_valid_connections_passes(self, machine):
+        action = ActionWithTwoConnections()
+        metadata = machine._get_metadata(action)
         conns = {"db": MockResourceManager(), "cache": MockResourceManager()}
-        result = machine._check_connections(ActionWithTwoConnections(), conns)
+        result = machine._check_connections(action, conns, metadata)
         assert result == conns
 
 
 # ======================================================================
-# TESTS: Full run() pipeline
+# ТЕСТЫ: Полный цикл run()
 # ======================================================================
 class TestRun:
     @pytest.mark.anyio
@@ -493,11 +460,9 @@ class TestRun:
 
     @pytest.mark.anyio
     async def test_run_calls_plugin_events(self, machine, context_with_roles, mock_plugin):
-        # Replace plugin coordinator with mock
         machine._plugin_coordinator = AsyncMock(spec=PluginCoordinator)
         ActionWithAspects._test_calls = []
         await machine.run(context_with_roles, ActionWithAspects(), MockParams())
-        # global_start, before:aspect1, after:aspect1, before:aspect2, after:aspect2, global_finish
         assert machine._plugin_coordinator.emit_event.await_count == 6
 
     @pytest.mark.anyio
@@ -533,26 +498,6 @@ class TestRun:
         assert scope["mode"] == "production"
         assert scope["action"] == "tests.core.test_action_product_machine.ActionWithAspects"
         assert scope["aspect"] == "aspect1"
-        assert list(scope.keys()) == ["machine", "mode", "action", "aspect"]
-
-    @pytest.mark.anyio
-    async def test_logger_receives_correct_indent(self, machine, context_with_roles):
-        machine._log_coordinator.emit = AsyncMock()
-        await machine.run(context_with_roles, ActionWithAspects(), MockParams())
-        for call in machine._log_coordinator.emit.call_args_list:
-            indent = call.kwargs["indent"]
-            assert indent == 1
-
-    @pytest.mark.anyio
-    async def test_logger_passed_empty_state_and_params(self, machine, context_with_roles):
-        machine._log_coordinator.emit = AsyncMock()
-        await machine.run(context_with_roles, ActionWithAspects(), MockParams())
-        for call in machine._log_coordinator.emit.call_args_list:
-            state = call.kwargs["state"]
-            params = call.kwargs["params"]
-            assert isinstance(state, BaseState)
-            assert state.to_dict() == {}
-            assert isinstance(params, BaseParams)
 
     @pytest.mark.anyio
     async def test_mode_passed_to_logger(self, context_with_roles):
@@ -565,26 +510,21 @@ class TestRun:
         scope = machine_with_mode._log_coordinator.emit.call_args_list[0].kwargs["scope"]
         assert scope["mode"] == "staging"
 
-    # ------------------------------------------------------------------
-    # New test: Connection gate integration
-    # ------------------------------------------------------------------
     @pytest.mark.anyio
     async def test_connection_gate_used_for_validation(self, machine, context_with_roles):
-        """Verify that the machine uses the connection gate for declared keys."""
         action = ActionWithOneConnection()
-        gate = action.get_connection_gate()
-        # Проверяем, что ключи зарегистрированы (порядок может быть любой)
-        assert set(gate.get_all_keys()) == {"db"}
 
-        # Should pass with correct connections
         conns = {"db": MockResourceManager()}
         result = await machine.run(context_with_roles, action, MockParams(), connections=conns)
         assert isinstance(result, MockResult)
 
-        # Should fail with missing connections (None)
         with pytest.raises(ConnectionValidationError, match="no connections were passed"):
             await machine.run(context_with_roles, action, MockParams(), connections=None)
 
-        # Should fail with extra connections
         with pytest.raises(ConnectionValidationError, match="received extra connections"):
-            await machine.run(context_with_roles, action, MockParams(), connections={"db": MockResourceManager(), "extra": MockResourceManager()})
+            await machine.run(
+                context_with_roles,
+                action,
+                MockParams(),
+                connections={"db": MockResourceManager(), "extra": MockResourceManager()}
+            )

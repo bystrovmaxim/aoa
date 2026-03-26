@@ -1,11 +1,74 @@
+# src/action_machine/Core/ActionTestMachine.py
 """
-Test action machine with mock support (asynchronous version).
+Модуль: ActionTestMachine — тестовая машина действий с поддержкой моков.
 
-Inherits from ActionProductMachine and is fully asynchronous (like its parent).
-Allows dependency substitution via a mock dictionary.
+═══════════════════════════════════════════════════════════════════════════════
+НАЗНАЧЕНИЕ
+═══════════════════════════════════════════════════════════════════════════════
 
-Управление метаданными (зависимости) осуществляется через шлюз действия.
-Фабрика зависимостей создаётся из шлюза, полученного через action.get_dependency_gate().
+ActionTestMachine наследует ActionProductMachine и добавляет возможность
+подстановки зависимостей через словарь моков. Это позволяет тестировать
+действия изолированно, заменяя реальные сервисы (PaymentService,
+NotificationService и т.д.) на моки.
+
+═══════════════════════════════════════════════════════════════════════════════
+ИНТЕГРАЦИЯ С GATECOORDINATOR
+═══════════════════════════════════════════════════════════════════════════════
+
+Тестовая машина использует тот же GateCoordinator, что и родительская
+ActionProductMachine. Координатор передаётся через конструктор (DI).
+Если не указан — создаётся по умолчанию в родителе.
+
+Метод build_factory() создаёт DependencyFactory для класса действия
+через координатор, что позволяет тестировать отдельные аспекты
+без запуска всей машины.
+
+═══════════════════════════════════════════════════════════════════════════════
+ПРИНЦИП РАБОТЫ МОКОВ
+═══════════════════════════════════════════════════════════════════════════════
+
+Моки передаются как словарь {класс_зависимости: mock_значение}.
+Тестовая машина подготавливает моки один раз в конструкторе (_prepare_mock)
+и затем передаёт их как resources в _run_internal родителя.
+
+ToolsBox при вызове box.resolve(PaymentService) сначала ищет в resources
+(т.е. в моках), и только потом обращается к фабрике. Поэтому моки имеют
+приоритет над реальными зависимостями.
+
+Поддерживаемые типы mock-значений:
+- MockAction         → используется как есть (прямой вызов .run()).
+- BaseAction         → выполняется через конвейер аспектов.
+- BaseResult         → оборачивается в MockAction(result=...).
+- callable           → оборачивается в MockAction(side_effect=...).
+- любой другой объект → возвращается как есть через resolve().
+
+═══════════════════════════════════════════════════════════════════════════════
+ПРИМЕР ИСПОЛЬЗОВАНИЯ
+═══════════════════════════════════════════════════════════════════════════════
+
+    from action_machine.Core.ActionTestMachine import ActionTestMachine
+
+    # Создаём моки зависимостей
+    mock_payment = PaymentService(gateway="test")
+    mock_notifier = NotificationService()
+
+    # Создаём тестовую машину
+    machine = ActionTestMachine(
+        mocks={
+            PaymentService: mock_payment,
+            NotificationService: mock_notifier,
+        },
+    )
+
+    # Выполняем действие — зависимости будут взяты из моков
+    result = await machine.run(
+        context=test_context,
+        action=CreateOrderAction(),
+        params=OrderParams(user_id="test", amount=100.0),
+    )
+
+    # Проверяем, что мок был вызван
+    assert len(mock_payment.processed) == 1
 """
 
 from typing import Any, TypeVar, cast
@@ -15,8 +78,10 @@ from action_machine.Core.ActionProductMachine import ActionProductMachine
 from action_machine.Core.BaseAction import BaseAction
 from action_machine.Core.BaseParams import BaseParams
 from action_machine.Core.BaseResult import BaseResult
+from action_machine.Core.gate_coordinator import GateCoordinator
 from action_machine.Core.MockAction import MockAction
 from action_machine.dependencies.dependency_factory import DependencyFactory
+from action_machine.dependencies.dependency_gate import DependencyGate
 from action_machine.Logging.log_coordinator import LogCoordinator
 from action_machine.ResourceManagers.BaseResourceManager import BaseResourceManager
 
@@ -26,24 +91,27 @@ R = TypeVar("R", bound=BaseResult)
 
 class ActionTestMachine(ActionProductMachine):
     """
-    Тестовая машина с удобным API для подстановки зависимостей (асинхронная).
+    Тестовая машина действий с удобным API для подстановки зависимостей.
 
-    Принимает словарь моков в конструкторе: {class: value}.
-    Значение может быть:
-    - экземпляр MockAction (используется как есть)
-    - экземпляр BaseAction (пройдёт через конвейер аспектов)
-    - BaseResult (будет обёрнут в MockAction)
-    - callable (используется как side_effect)
-    - любой другой объект (возвращается как есть через resolve())
+    Полностью асинхронная (как родитель). Принимает словарь моков
+    в конструкторе и передаёт их как resources при выполнении,
+    что даёт мокам приоритет над фабрикой зависимостей.
 
-    Метод run является асинхронным (как в родителе).
-    Для синхронного использования оберните в asyncio.run().
+    Для MockAction выполнение идёт напрямую через .run() (без конвейера
+    аспектов, без проверки ролей и соединений).
+
+    Атрибуты:
+        _mocks : dict[type, Any]
+            Исходный словарь моков, переданный в конструктор.
+        _prepared_mocks : dict[type, Any]
+            Подготовленные моки (MockAction, BaseAction или объекты).
     """
 
     def __init__(
         self,
         mocks: dict[type[Any], Any] | None = None,
         mode: str = "test",
+        coordinator: GateCoordinator | None = None,
         log_coordinator: LogCoordinator | None = None,
     ) -> None:
         """
@@ -51,28 +119,46 @@ class ActionTestMachine(ActionProductMachine):
 
         Аргументы:
             mocks: словарь подстановок {класс_зависимости: mock_значение}.
+                   Ключ — класс зависимости (тот же, что в @depends).
+                   Значение — мок (см. _prepare_mock).
             mode: режим выполнения (по умолчанию "test"). Передаётся родителю.
+            coordinator: координатор метаданных. Если не указан, родитель
+                         создаст новый экземпляр GateCoordinator().
             log_coordinator: координатор логирования. Если не указан, родитель
                              создаст координатор с ConsoleLogger по умолчанию.
         """
         super().__init__(
             mode=mode,
+            coordinator=coordinator,
             log_coordinator=log_coordinator,
         )
+
         self._mocks: dict[type[Any], Any] = mocks or {}
         self._prepared_mocks: dict[type[Any], Any] = {}
+
         for cls, val in self._mocks.items():
             self._prepared_mocks[cls] = self._prepare_mock(val)
 
+    # ─────────────────────────────────────────────────────────────────────
+    # Подготовка моков
+    # ─────────────────────────────────────────────────────────────────────
+
     def _prepare_mock(self, value: Any) -> Any:
         """
-        Преобразует переданное значение в объект, пригодный для использования в фабрике.
+        Преобразует переданное значение в объект, пригодный для использования.
+
+        Правила преобразования:
+        - MockAction   → используется как есть.
+        - BaseAction   → используется как есть (будет выполнен через конвейер).
+        - callable     → оборачивается в MockAction(side_effect=value).
+        - BaseResult   → оборачивается в MockAction(result=value).
+        - любой другой → используется как есть (для resolve()).
 
         Аргументы:
             value: mock-значение из словаря.
 
         Возвращает:
-            MockAction, BaseAction или любой другой объект.
+            Подготовленный объект.
         """
         if isinstance(value, MockAction):
             return value
@@ -84,6 +170,10 @@ class ActionTestMachine(ActionProductMachine):
             return MockAction(result=value)
         return value
 
+    # ─────────────────────────────────────────────────────────────────────
+    # Публичный API: run
+    # ─────────────────────────────────────────────────────────────────────
+
     async def run(
         self,
         context: Context,
@@ -94,23 +184,34 @@ class ActionTestMachine(ActionProductMachine):
         """
         Выполняет действие с поддержкой моков.
 
-        Для MockAction использует прямой вызов (без аспектов).
-        Для обычных действий вызывает _run_internal с моками как resources.
+        Для MockAction — прямой вызов action.run(params) без конвейера.
+        Для обычных действий — вызов _run_internal с моками как resources,
+        что даёт им приоритет при resolve() в ToolsBox.
 
         Аргументы:
             context: контекст выполнения.
             action: экземпляр действия.
             params: входные параметры.
-            connections: словарь менеджеров ресурсов.
+            connections: словарь менеджеров ресурсов (или None).
 
         Возвращает:
-            Результат выполнения действия.
+            R — результат выполнения действия.
         """
-        # Для MockAction используем прямой вызов (без аспектов)
         if isinstance(action, MockAction):
             return cast(R, action.run(params))
-        # Для обычных действий вызываем _run_internal с моками как resources
-        return await self._run_internal(context, action, params, self._prepared_mocks, connections, 0)
+
+        return await self._run_internal(
+            context=context,
+            action=action,
+            params=params,
+            resources=self._prepared_mocks,
+            connections=connections,
+            nested_level=0,
+        )
+
+    # ─────────────────────────────────────────────────────────────────────
+    # Внутренний метод выполнения (переопределение)
+    # ─────────────────────────────────────────────────────────────────────
 
     async def _run_internal(
         self,
@@ -122,57 +223,91 @@ class ActionTestMachine(ActionProductMachine):
         nested_level: int,
     ) -> R:
         """
-        Внутренний метод выполнения, позволяющий передавать ресурсы.
+        Внутренний метод выполнения с поддержкой моков.
 
-        Используется для внедрения моков как ресурсов при запуске дочерних действий
-        или когда тестовой машине нужно явно передать ресурсы.
+        Для MockAction — прямой вызов без конвейера.
+        Для обычных действий — делегирование родительскому _run_internal,
+        который получает метаданные через координатор и выполняет
+        полный конвейер с проверками.
 
         Аргументы:
             context: контекст выполнения.
             action: экземпляр действия.
             params: входные параметры.
-            resources: внешние ресурсы (моки или другие объекты).
+            resources: внешние ресурсы (моки). Передаются в ToolsBox,
+                       где имеют приоритет над фабрикой при resolve().
             connections: менеджеры ресурсов.
             nested_level: текущий уровень вложенности.
 
         Возвращает:
-            Результат действия.
+            R — результат действия.
         """
-        # Для MockAction используем прямой вызов (без аспектов)
         if isinstance(action, MockAction):
             return cast(R, action.run(params))
-        # Для обычных действий вызываем родительский _run_internal
-        return await super()._run_internal(context, action, params, resources, connections, nested_level)
+
+        return await super()._run_internal(
+            context=context,
+            action=action,
+            params=params,
+            resources=resources,
+            connections=connections,
+            nested_level=nested_level,
+        )
+
+    # ─────────────────────────────────────────────────────────────────────
+    # Фабрика зависимостей (переопределение)
+    # ─────────────────────────────────────────────────────────────────────
 
     def _get_factory(self, action: BaseAction[Any, Any]) -> DependencyFactory:
         """
-        Возвращает фабрику зависимостей для действия, учитывая моки.
+        Возвращает фабрику зависимостей для действия.
 
-        Переопределяет родительский метод, чтобы создать фабрику на основе шлюза
-        действия, но без внешних ресурсов (моки будут доступны через ToolsBox
-        во время выполнения, а не через фабрику).
+        Моки НЕ передаются через фабрику — они передаются как resources
+        в _run_internal и доступны через ToolsBox.resolve().
+        Фабрика создаётся стандартным способом через родительский метод.
 
         Аргументы:
             action: экземпляр действия.
 
         Возвращает:
-            DependencyFactory, связанную с действием.
+            DependencyFactory — фабрика для резолва зависимостей.
         """
-        # Моки передаются через resources в _run_internal, а не через фабрику.
-        # Просто вызываем родительский метод для получения фабрики без внешних ресурсов.
         return super()._get_factory(action)
 
-    def build_factory(self, action_class: type[BaseAction[Any, Any]]) -> DependencyFactory:
+    # ─────────────────────────────────────────────────────────────────────
+    # Утилиты для тестирования
+    # ─────────────────────────────────────────────────────────────────────
+
+    def build_factory(
+        self, action_class: type[BaseAction[Any, Any]],
+    ) -> DependencyFactory:
         """
-        Возвращает фабрику для тестирования отдельных аспектов (без внешних ресурсов).
+        Создаёт DependencyFactory для класса действия без создания экземпляра.
+
+        Полезно для тестирования отдельных аспектов вне машины:
+        можно получить фабрику, создать ToolsBox и вызвать метод-аспект
+        напрямую.
+
+        Использует координатор (_self._coordinator) для получения метаданных
+        класса, затем собирает DependencyGate из списка зависимостей.
 
         Аргументы:
-            action_class: класс действия, для которого создаётся фабрика.
+            action_class: класс действия (не экземпляр).
 
         Возвращает:
-            DependencyFactory, связанную с классом действия.
+            DependencyFactory — фабрика зависимостей для класса.
+
+        Пример:
+            >>> machine = ActionTestMachine(mocks={PaymentService: mock_payment})
+            >>> factory = machine.build_factory(CreateOrderAction)
+            >>> box = ToolsBox(factory=factory, resources=machine._prepared_mocks, ...)
+            >>> payment = box.resolve(PaymentService)  # вернёт mock_payment
         """
-        # Временный экземпляр для получения шлюза
-        dummy = action_class()
-        gate = dummy.get_dependency_gate()
+        metadata = self._coordinator.get(action_class)
+
+        gate = DependencyGate()
+        for dep_info in metadata.dependencies:
+            gate.register(dep_info)
+        gate.freeze()
+
         return DependencyFactory(gate)

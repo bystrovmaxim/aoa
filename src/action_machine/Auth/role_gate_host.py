@@ -1,96 +1,88 @@
 # src/action_machine/Auth/role_gate_host.py
 """
-RoleGateHost – миксин для присоединения шлюза ролей к классу действия.
+Модуль: RoleGateHost — маркерный миксин для декоратора @CheckRoles.
 
-Этот миксин используется в иерархии BaseAction. Он:
-- Создаёт экземпляр RoleGate для класса (один на класс, разделяется всеми экземплярами).
-- Собирает информацию о ролевой спецификации из декоратора @CheckRoles, применённого к классу.
-- Предоставляет метод get_role_gate() для доступа к шлюзу из машины.
+═══════════════════════════════════════════════════════════════════════════════
+НАЗНАЧЕНИЕ
+═══════════════════════════════════════════════════════════════════════════════
 
-Механизм сбора:
-    Декоратор @CheckRoles при применении к классу добавляет в класс атрибут
-    _role_info (объект RoleInfo). Поскольку декоратор класса применяется ПОСЛЕ
-    __init_subclass__, сбор данных выполняется лениво при первом вызове
-    get_role_gate(). Шлюз замораживается после первого сбора.
+RoleGateHost — миксин-маркер, который разрешает применение декоратора
+@CheckRoles к классу. Декоратор при применении проверяет:
 
-Обратная совместимость:
-    На время миграции старый атрибут _role_spec продолжает существовать
-    и заполняется параллельно. После полного перехода на шлюзы старый атрибут
-    будет удалён.
+    if not issubclass(cls, RoleGateHost):
+        raise TypeError("Класс должен наследовать RoleGateHost")
 
-Важно:
-    Шлюз хранится в классовой переменной __role_gate. При наследовании каждый
-    подкласс получает свой собственный шлюз благодаря проверке в get_role_gate().
+Без наследования от RoleGateHost декоратор @CheckRoles выбросит TypeError.
+Это защита от случайного применения ролевых ограничений к классам,
+которые не являются действиями (Action).
+
+═══════════════════════════════════════════════════════════════════════════════
+ЧТО ИЗМЕНИЛОСЬ (рефакторинг «координатор»)
+═══════════════════════════════════════════════════════════════════════════════
+
+РАНЬШЕ (до рефакторинга):
+    - __init_subclass__ создавал RoleGate, сохранял его в cls._role_gate.
+    - Метод get_role_gate() возвращал гейт.
+    - Метод get_role_spec() делегировал в гейт.
+    - ActionProductMachine обращался к cls.get_role_spec().
+
+ТЕПЕРЬ (после рефакторинга):
+    - Миксин — пустой маркер. Никакой логики.
+    - Декоратор @CheckRoles записывает _role_info в класс.
+    - MetadataBuilder._collect_role(cls) читает _role_info и создаёт
+      RoleMeta в ClassMetadata.
+    - ActionProductMachine читает metadata.role.spec через координатор.
+    - RoleGate, get_role_gate(), get_role_spec() — УДАЛЕНЫ.
+
+═══════════════════════════════════════════════════════════════════════════════
+АРХИТЕКТУРА
+═══════════════════════════════════════════════════════════════════════════════
+
+    class BaseAction[P, R](
+        ABC,
+        RoleGateHost,                   ← маркер: разрешает @CheckRoles
+        DependencyGateHost[object],
+        CheckerGateHost,
+        AspectGateHost,
+        ConnectionGateHost,
+    ): ...
+
+    @CheckRoles("admin", desc="Только администратор")
+    class AdminAction(BaseAction[P, R]):
+        ...
+
+    # Декоратор @CheckRoles проверяет:
+    #   issubclass(AdminAction, RoleGateHost) → True → OK
+    #   Записывает: cls._role_info = {"spec": "admin", "desc": "Только администратор"}
+
+    # MetadataBuilder.build(AdminAction) читает:
+    #   cls._role_info → RoleMeta(spec="admin", description="Только администратор")
+
+    # ActionProductMachine:
+    #   metadata = coordinator.get(AdminAction)
+    #   metadata.role.spec → "admin"
 """
 
 from typing import Any, ClassVar
 
-from .role_gate import RoleGate, RoleInfo
-
 
 class RoleGateHost:
     """
-    Миксин, добавляющий классу шлюз ролей.
+    Маркерный миксин, разрешающий использование декоратора @CheckRoles.
 
-    Классовые атрибуты:
-        __role_gate: RoleGate | None – шлюз, общий для всех экземпляров данного класса.
-        _role_info: RoleInfo | None – временное хранилище, используемое декоратором
-                    @CheckRoles для передачи данных. Собирается лениво в get_role_gate().
+    Класс, НЕ наследующий RoleGateHost, не может быть целью @CheckRoles —
+    декоратор выбросит TypeError при попытке применения.
+
+    Миксин не содержит логики, полей или методов. Его единственная функция —
+    служить проверочным маркером для issubclass().
+
+    Атрибуты уровня класса (создаются динамически декоратором):
+        _role_info : dict | None
+            Словарь {"spec": str | list[str], "desc": str}, записываемый
+            декоратором @CheckRoles. Читается MetadataBuilder при сборке
+            ClassMetadata.role (RoleMeta).
+            НЕ используется напрямую — только через ClassMetadata.
     """
 
-    __role_gate: ClassVar[RoleGate | None] = None
-    _role_info: ClassVar[RoleInfo | None] = None
-
-    @classmethod
-    def get_role_gate(cls) -> RoleGate:
-        """
-        Возвращает шлюз ролей для данного класса.
-
-        Шлюз создаётся и заполняется лениво при первом вызове.
-        Если в классе есть _role_info (установленный декоратором @CheckRoles),
-        он регистрируется в шлюзе, и шлюз замораживается.
-
-        Ленивая инициализация необходима потому, что декоратор класса (@CheckRoles)
-        применяется ПОСЛЕ __init_subclass__. На момент вызова __init_subclass__
-        атрибут _role_info ещё не установлен.
-
-        Проверка cls.__dict__ гарантирует, что мы не используем шлюз родителя.
-
-        Возвращает:
-            RoleGate, связанный с классом.
-        """
-        # Проверяем, что шлюз принадлежит именно этому классу, а не унаследован
-        if '__role_gate' not in cls.__dict__ or cls.__role_gate is None:
-            gate = RoleGate()
-
-            # Собираем _role_info, если он установлен декоратором @CheckRoles
-            # Ищем в MRO, но только если атрибут определён для этого конкретного класса
-            # или унаследован (для случая, когда класс не переопределяет роль)
-            role_info = getattr(cls, '_role_info', None)
-            if role_info is not None:
-                gate.register(role_info)
-
-            gate.freeze()
-            cls.__role_gate = gate
-
-        return cls.__role_gate
-
-    def __init_subclass__(cls, **kwargs: Any) -> None:
-        """
-        Вызывается при создании подкласса.
-
-        Сбрасывает шлюз, чтобы при следующем вызове get_role_gate()
-        он был создан заново для этого конкретного класса.
-
-        Не выполняет сбор _role_info здесь, потому что декоратор @CheckRoles
-        ещё не был применён на этом этапе (декоратор класса выполняется
-        после __init_subclass__).
-
-        Аргументы:
-            **kwargs: передаются в родительский __init_subclass__.
-        """
-        super().__init_subclass__(**kwargs)
-
-        # Сбрасываем шлюз для этого класса, чтобы он был создан заново
-        # при следующем вызове get_role_gate() (после применения @CheckRoles)
-        cls.__role_gate = None
+    # Аннотация для mypy (создается декоратором)
+    _role_info: ClassVar[dict[str, Any]]

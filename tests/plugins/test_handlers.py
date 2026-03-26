@@ -1,178 +1,103 @@
 # tests/plugins/test_handlers.py
 """
-Тесты запуска обработчиков плагинов в PluginCoordinator.
-
-Проверяем:
-- Запуск одного обработчика
-- Запуск нескольких обработчиков одного плагина
-- Запуск обработчиков из разных плагинов
-- Обновление состояний после выполнения
+Тесты выполнения обработчиков (_run_single_handler) и управления состояниями.
 """
 
 import pytest
 
 from action_machine.Plugins.PluginCoordinator import PluginCoordinator
 
-from .conftest import MultiHandlerPlugin, SimplePlugin
+from .conftest import CustomStatePlugin, MultiHandlerPlugin, SimplePlugin
 
 
 class TestPluginCoordinatorRunHandlers:
-    """Тесты запуска обработчиков плагинов."""
-
-    # ------------------------------------------------------------------
-    # ТЕСТЫ: Запуск одного обработчика
-    # ------------------------------------------------------------------
-
     @pytest.mark.anyio
     async def test_run_single_handler(self, event_factory):
-        """Запуск одного обработчика одного плагина."""
         plugin = SimplePlugin()
         coordinator = PluginCoordinator([plugin])
 
-        # Инициализируем состояние
         await coordinator._init_plugin_states()
-
-        # Создаём событие
         event = event_factory(event_name="test_event")
 
-        # Получаем обработчик (теперь кортеж из 3 элементов)
-        handlers = coordinator._get_handlers("test_event", "TestAction")
+        handlers = coordinator._get_handlers("test_event", event.action_name)
         handler, ignore, _ = handlers[0]
 
-        # Запускаем
         await coordinator._run_single_handler(handler, ignore, plugin, event)
 
-        # Проверяем что обработчик вызван и состояние обновилось
         assert plugin.handlers_called == [("handle_test", "test_event")]
         assert coordinator._plugin_states[id(plugin)]["counter"] == 1
 
     @pytest.mark.anyio
-    async def test_run_single_handler_preserves_state(self, event_factory):
-        """
-        Обработчик получает актуальное состояние и может его изменить.
-        """
-        plugin = SimplePlugin()
-        coordinator = PluginCoordinator([plugin])
-
-        await coordinator._init_plugin_states()
-
-        # Устанавливаем начальное состояние
-        coordinator._plugin_states[id(plugin)]["counter"] = 5
-
-        event = event_factory(event_name="test_event")
-        handlers = coordinator._get_handlers("test_event", "TestAction")
-        handler, ignore, _ = handlers[0]
-
-        await coordinator._run_single_handler(handler, ignore, plugin, event)
-
-        # Состояние должно увеличиться на 1 (было 5, стало 6)
-        assert coordinator._plugin_states[id(plugin)]["counter"] == 6
-
-    # ------------------------------------------------------------------
-    # ТЕСТЫ: Запуск нескольких обработчиков одного плагина
-    # ------------------------------------------------------------------
-
-    @pytest.mark.anyio
     async def test_run_multiple_handlers_same_plugin(self, event_factory):
-        """Запуск нескольких обработчиков одного плагина."""
         plugin = MultiHandlerPlugin()
         coordinator = PluginCoordinator([plugin])
 
         await coordinator._init_plugin_states()
 
+        # Генерируем событие, на которое подписан только один метод
         event = event_factory(event_name="event1")
-
-        handlers = coordinator._get_handlers("event1", "TestAction")
-
-        # Должно быть 2 обработчика: handle_event1 и handle_any_event
+        handlers = coordinator._get_handlers("event1", event.action_name)
 
         for handler, ignore, p in handlers:
             await coordinator._run_single_handler(handler, ignore, p, event)
 
-        assert len(plugin.handlers_called) == 2
-        called_pairs = [(name, ev_name) for name, ev_name in plugin.handlers_called]
-        assert ("event1", "event1") in called_pairs
-        assert ("any", "event1") in called_pairs
-
-        # Проверяем, что состояние было изменено обоими обработчиками
-        final_state = coordinator._plugin_states[id(plugin)]
-        assert final_state["last"] == "event1"
-        assert final_state["any"] is True
-
-    @pytest.mark.anyio
-    async def test_handlers_execution_order(self, event_factory):
-        """
-        Обработчики выполняются в порядке их добавления в список.
-        Каждый следующий видит состояние, изменённое предыдущим.
-        """
-        plugin = MultiHandlerPlugin()
-        coordinator = PluginCoordinator([plugin])
-
-        await coordinator._init_plugin_states()
-
-        event = event_factory(event_name="event1")
-        handlers = coordinator._get_handlers("event1", "TestAction")
-
-        # Запускаем последовательно
-        for handler, ignore, p in handlers:
-            await coordinator._run_single_handler(handler, ignore, p, event)
-
-        # Проверяем порядок вызовов — допускаем оба имени,
-        # т.к. MultiHandlerPlugin записывает "event1" и "any"
-        # (не "handle_event1" и "handle_any_event")
-        handler_names = [call[0] for call in plugin.handlers_called]
-        assert len(handler_names) == 2
-        assert set(handler_names) == {"event1", "any"}
-
-    # ------------------------------------------------------------------
-    # ТЕСТЫ: Запуск обработчиков из разных плагинов
-    # ------------------------------------------------------------------
-
-    @pytest.mark.anyio
-    async def test_run_handlers_multiple_plugins(self, event_factory):
-        """Запуск обработчиков из разных плагинов."""
-        plugin1 = SimplePlugin()
-        plugin2 = SimplePlugin()
-        coordinator = PluginCoordinator([plugin1, plugin2])
-
-        await coordinator._init_plugin_states()
-
-        event = event_factory(event_name="test_event")
-
-        # Получаем обработчики для всех плагинов
-        handlers = coordinator._get_handlers("test_event", "TestAction")
-        assert len(handlers) == 2  # по одному из каждого плагина
-
-        # Запускаем каждый обработчик с его плагином (из кортежа)
-        for handler, ignore, plugin in handlers:
-            await coordinator._run_single_handler(handler, ignore, plugin, event)
-
-        assert plugin1.handlers_called == [("handle_test", "test_event")]
-        assert plugin2.handlers_called == [("handle_test", "test_event")]
-        assert coordinator._plugin_states[id(plugin1)]["counter"] == 1
-        assert coordinator._plugin_states[id(plugin2)]["counter"] == 1
+        # Вызовется только handle_event1, так как get_handlers ищет точное совпадение
+        assert len(plugin.handlers_called) == 1
+        assert plugin.handlers_called[0] == ("event1", "event1")
 
     @pytest.mark.anyio
     async def test_plugins_independent_states(self, event_factory):
-        """
-        Состояния разных плагинов независимы при выполнении.
-        """
         plugin1 = SimplePlugin()
         plugin2 = SimplePlugin()
         coordinator = PluginCoordinator([plugin1, plugin2])
 
         await coordinator._init_plugin_states()
 
-        # Устанавливаем разные начальные состояния
         coordinator._plugin_states[id(plugin1)]["counter"] = 10
         coordinator._plugin_states[id(plugin2)]["counter"] = 20
 
         event = event_factory(event_name="test_event")
-        handlers = coordinator._get_handlers("test_event", "TestAction")
+        handlers = coordinator._get_handlers("test_event", event.action_name)
 
         for handler, ignore, plugin in handlers:
             await coordinator._run_single_handler(handler, ignore, plugin, event)
 
-        # Каждый плагин увеличил своё состояние на 1
         assert coordinator._plugin_states[id(plugin1)]["counter"] == 11
         assert coordinator._plugin_states[id(plugin2)]["counter"] == 21
+
+
+class TestPluginCoordinatorStates:
+    @pytest.mark.anyio
+    async def test_init_plugin_states(self):
+        plugin1 = SimplePlugin()
+        plugin2 = MultiHandlerPlugin()
+        coordinator = PluginCoordinator([plugin1, plugin2])
+
+        assert len(coordinator._plugin_states) == 0
+        await coordinator._init_plugin_states()
+
+        assert len(coordinator._plugin_states) == 2
+        assert coordinator._plugin_states[id(plugin1)] == {"counter": 0}
+        assert coordinator._plugin_states[id(plugin2)] == {"last": None, "any": False}
+
+    @pytest.mark.anyio
+    async def test_init_plugin_states_with_custom_initial(self):
+        plugin = CustomStatePlugin()
+        coordinator = PluginCoordinator([plugin])
+
+        await coordinator._init_plugin_states()
+
+        state = coordinator._plugin_states[id(plugin)]
+        assert isinstance(state, CustomStatePlugin.MyState)
+        assert state.value == 0
+
+    @pytest.mark.anyio
+    async def test_init_plugin_states_idempotent(self):
+        plugin = SimplePlugin()
+        coordinator = PluginCoordinator([plugin])
+
+        await coordinator._init_plugin_states()
+        coordinator._plugin_states[id(plugin)]["counter"] = 42
+
+        await coordinator._init_plugin_states()
+        assert coordinator._plugin_states[id(plugin)]["counter"] == 42

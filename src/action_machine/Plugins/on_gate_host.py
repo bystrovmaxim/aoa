@@ -1,102 +1,106 @@
 # src/action_machine/Plugins/on_gate_host.py
-
 """
-OnGateHost – миксин для присоединения шлюза подписок к классу плагина.
+Модуль: OnGateHost — маркерный миксин для декоратора @on.
 
-Этот миксин используется в иерархии Plugin. Он:
-- Создаёт экземпляр OnGate для класса (один на класс, разделяется всеми экземплярами).
-- Собирает информацию о подписках из декоратора @on, применённого к методам плагина.
-- После сбора замораживает шлюз, чтобы гарантировать неизменность набора подписок.
-- Предоставляет метод get_on_gate() для доступа к шлюзу из PluginCoordinator.
+═══════════════════════════════════════════════════════════════════════════════
+НАЗНАЧЕНИЕ
+═══════════════════════════════════════════════════════════════════════════════
 
-Механизм сбора:
-    Декоратор @on при применении к методу добавляет в метод временный атрибут
-    _on_subscriptions (список кортежей с regex и ignore_exceptions). В __init_subclass__
-    плагина эти данные собираются, для каждого создаётся Subscription и регистрируется
-    в шлюзе. После регистрации временный атрибут удаляется.
+OnGateHost — миксин-маркер, который обозначает, что класс поддерживает
+декоратор @on для подписки методов на события ActionMachine. Используется
+в классе Plugin и его наследниках.
 
-Важно:
-    Шлюз хранится в классовой переменной __on_gate. При наследовании каждый
-    подкласс получает свой собственный шлюз. Для этого в __init_subclass__
-    явно сбрасывается __on_gate = None, чтобы при вызове get_on_gate()
-    создавался новый шлюз для дочернего класса, а не использовался родительский.
+Наличие OnGateHost в MRO класса документирует контракт:
+«этот класс может содержать методы-обработчики событий (@on)».
 
-Обратная совместимость:
-    На время миграции старый атрибут _plugin_hooks продолжает существовать
-    и заполняется параллельно. После полного перехода на шлюзы старый атрибут
-    будет удалён.
+═══════════════════════════════════════════════════════════════════════════════
+АРХИТЕКТУРА
+═══════════════════════════════════════════════════════════════════════════════
+
+    class Plugin(OnGateHost):           ← маркер: разрешает @on на методах
+        async def get_initial_state(self) -> Any:
+            ...
+
+    class CounterPlugin(Plugin):
+
+        async def get_initial_state(self) -> dict:
+            return {}
+
+        @on("global_finish", ".*", ignore_exceptions=False)
+        async def count_call(self, state, event):
+            state[event.action_name] = state.get(event.action_name, 0) + 1
+            return state
+
+    # Декоратор @on записывает в метод:
+    #   method._on_subscriptions = [SubscriptionInfo(
+    #       event_type="global_finish",
+    #       action_filter=".*",
+    #       ignore_exceptions=False,
+    #   )]
+
+    # MetadataBuilder._collect_subscriptions(cls) обходит MRO, находит
+    # методы с _on_subscriptions и собирает их в ClassMetadata.subscriptions.
+
+    # PluginCoordinator использует ClassMetadata.subscriptions для
+    # маршрутизации событий к нужным методам плагина.
+
+═══════════════════════════════════════════════════════════════════════════════
+ПРИМЕР ИСПОЛЬЗОВАНИЯ
+═══════════════════════════════════════════════════════════════════════════════
+
+    # Plugin уже наследует OnGateHost — любой плагин поддерживает @on:
+
+    class MetricsPlugin(Plugin):
+        async def get_initial_state(self) -> dict:
+            return {"total": 0, "errors": 0}
+
+        @on("global_finish")
+        async def track_total(self, state, event):
+            state["total"] += 1
+            return state
+
+        @on("global_finish")
+        async def track_errors(self, state, event):
+            if event.error is not None:
+                state["errors"] += 1
+            return state
+
+        @on("aspect_before", "CreateOrder.*")
+        async def log_order_start(self, state, event):
+            print(f"Starting order: {event.action_name}")
+            return state
+
+    # Класс без OnGateHost не может содержать @on-обработчики.
+    # Декоратор @on сам по себе не проверяет миксин (он работает
+    # на уровне функций), но PluginCoordinator ожидает Plugin,
+    # а Plugin наследует OnGateHost — контракт соблюдается.
 """
-
-import re
-from typing import Any, ClassVar
-
-from .on_gate import OnGate, Subscription
 
 
 class OnGateHost:
     """
-    Миксин, добавляющий классу плагина шлюз подписок.
+    Маркерный миксин, обозначающий поддержку декоратора @on.
 
-    Классовые атрибуты:
-        __on_gate: OnGate | None – шлюз, общий для всех экземпляров.
+    Класс, наследующий OnGateHost, может содержать методы, декорированные
+    @on для подписки на события ActionMachine (global_start, global_finish,
+    aspect_before, aspect_after и др.).
+
+    MetadataBuilder собирает подписки из method._on_subscriptions
+    в ClassMetadata.subscriptions, а PluginCoordinator использует их
+    для маршрутизации событий.
+
+    Миксин не содержит логики, полей или методов. Его функция —
+    документировать контракт и обеспечивать единообразие с другими
+    гейт-миксинами.
+
+    Атрибуты уровня класса (создаются динамически декоратором на методах):
+        method._on_subscriptions : list[SubscriptionInfo]
+            Список объектов SubscriptionInfo, записываемый декоратором @on
+            в метод. Каждый объект содержит:
+            - event_type: str — тип события ("global_finish", ...)
+            - action_filter: str — regex-фильтр по имени действия
+            - ignore_exceptions: bool — игнорировать ли ошибки обработчика
+            Читается MetadataBuilder при сборке ClassMetadata.subscriptions.
     """
 
-    __on_gate: ClassVar[OnGate | None] = None
-
-    @classmethod
-    def get_on_gate(cls) -> OnGate:
-        """
-        Возвращает шлюз подписок для данного класса плагина.
-
-        Шлюз создаётся лениво при первом вызове, если ещё не был создан.
-        После завершения __init_subclass__ шлюз замораживается.
-
-        Возвращает:
-            OnGate, связанный с классом плагина.
-        """
-        if cls.__on_gate is None:
-            cls.__on_gate = OnGate()
-        return cls.__on_gate
-
-    def __init_subclass__(cls, **kwargs: Any) -> None:
-        """
-        Вызывается при создании подкласса плагина. Собирает подписки из временных
-        метаданных, прикреплённых к методам, и регистрирует их в шлюзе.
-
-        Алгоритм:
-            1. Вызывает super().__init_subclass__() для поддержки множественного наследования.
-            2. Сбрасывает унаследованный шлюз, чтобы дочерний класс получил свой собственный.
-            3. Получает шлюз через get_on_gate().
-            4. Обходит все атрибуты, определённые непосредственно в этом классе (cls.__dict__),
-               находит методы с атрибутом _on_subscriptions, регистрирует подписки и удаляет атрибут.
-            5. Замораживает шлюз.
-
-        Аргументы:
-            **kwargs: передаются в родительский __init_subclass__.
-        """
-        super().__init_subclass__(**kwargs)
-
-        # Сбрасываем унаследованный шлюз, чтобы дочерний класс создал свой собственный
-        cls.__on_gate = None
-        gate = cls.get_on_gate()
-
-        # Собираем подписки из методов, определённых непосредственно в этом классе
-        for name, method in cls.__dict__.items():
-            # Пропускаем служебные атрибуты (начинающиеся с '__') и не-callable
-            if name.startswith('__') or not callable(method):
-                continue
-            if hasattr(method, "_on_subscriptions"):
-                for event_regex, class_regex, ignore_exceptions in method._on_subscriptions:
-                    # Компилируем регулярные выражения, если они ещё не скомпилированы
-                    if isinstance(event_regex, str):
-                        event_regex = re.compile(event_regex)
-                    if isinstance(class_regex, str):
-                        class_regex = re.compile(class_regex)
-                    sub = Subscription(method, event_regex, class_regex, ignore_exceptions)
-                    gate.register(sub)
-                # Очищаем временные данные метода, если они есть
-                if hasattr(method, "_on_subscriptions"):
-                    delattr(method, "_on_subscriptions")
-
-        # Замораживаем шлюз – после этого регистрация невозможна
-        gate.freeze()
+    pass

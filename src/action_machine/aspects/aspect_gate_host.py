@@ -1,131 +1,145 @@
 # src/action_machine/aspects/aspect_gate_host.py
 """
-Хост для шлюза аспектов.
+Модуль: AspectGateHost — маркерный миксин для декораторов @regular_aspect и @summary_aspect.
 
-Класс-хост, который присоединяет шлюз аспектов к действию.
-Собирает аспекты, помеченные декораторами regular_aspect и summary_aspect,
-при создании подкласса и предоставляет к ним доступ через метод get_aspects().
+═══════════════════════════════════════════════════════════════════════════════
+НАЗНАЧЕНИЕ
+═══════════════════════════════════════════════════════════════════════════════
 
-ВАЖНО: Аспекты определяются один раз на уровне класса и не могут быть изменены
-после создания класса. Нет публичного доступа к самому шлюзу — только к
-неизменяемым кортежам (список обычных аспектов, summary-аспект).
-Это обеспечивает полную инкапсуляцию и предотвращает случайные изменения.
+AspectGateHost — миксин-маркер, обозначающий, что класс поддерживает
+конвейер аспектов. Декораторы @regular_aspect и @summary_aspect работают
+на уровне методов (а не классов), поэтому они НЕ проверяют issubclass
+напрямую. Однако миксин играет важную роль:
 
-Кэширование данных аспектов выполняется внутри класса при его создании,
-чтобы не полагаться на внешний кэш (например, в ActionProductMachine).
+1. ДОКУМЕНТИРОВАНИЕ КОНТРАКТА: наличие AspectGateHost в MRO класса
+   явно показывает, что класс участвует в конвейере аспектов.
+   Это читается как контракт: «этот класс предоставляет методы-аспекты».
 
-Аспекты не наследуются. Каждый класс определяет свои аспекты независимо.
+2. СТРУКТУРНАЯ ВАЛИДАЦИЯ: MetadataBuilder при сборке аспектов может
+   проверить, что класс наследует AspectGateHost, прежде чем искать
+   методы с _new_aspect_meta. Это защита от случайного использования
+   декораторов аспектов в классах, не предназначенных для конвейера.
+
+3. ЕДИНООБРАЗИЕ: все гейт-миксины (RoleGateHost, DependencyGateHost,
+   CheckerGateHost, AspectGateHost, ConnectionGateHost, OnGateHost)
+   следуют одному паттерну — маркерный класс без логики.
+
+═══════════════════════════════════════════════════════════════════════════════
+ЧТО ИЗМЕНИЛОСЬ (рефакторинг «координатор»)
+═══════════════════════════════════════════════════════════════════════════════
+
+РАНЬШЕ (до рефакторинга):
+    - __init_subclass__ мог собирать аспекты в cls._aspects или
+      cls._aspect_gate, создавать AspectGate и замораживать его.
+    - Методы get_aspects(), get_regular_aspects(), get_summary_aspect()
+      обращались к гейту.
+    - ActionProductMachine вызывал cls.get_regular_aspects() и
+      cls.get_summary_aspect().
+
+ТЕПЕРЬ (после рефакторинга):
+    - Миксин — пустой маркер. Никакой логики.
+    - Декораторы @regular_aspect и @summary_aspect записывают
+      _new_aspect_meta в сам метод (не в класс).
+    - MetadataBuilder._collect_aspects(cls) обходит MRO, находит методы
+      с _new_aspect_meta и собирает их в ClassMetadata.aspects.
+    - ActionProductMachine читает metadata.get_regular_aspects() и
+      metadata.get_summary_aspect() через координатор.
+    - AspectGate, get_aspects() и другие методы — УДАЛЕНЫ.
+
+═══════════════════════════════════════════════════════════════════════════════
+АРХИТЕКТУРА
+═══════════════════════════════════════════════════════════════════════════════
+
+    class BaseAction(
+        ABC,
+        Generic[P, R],
+        RoleGateHost,
+        DependencyGateHost[object],
+        CheckerGateHost,
+        AspectGateHost,                 ← маркер: класс поддерживает аспекты
+        ConnectionGateHost,
+    ): ...
+
+    class CreateOrderAction(BaseAction[OrderParams, OrderResult]):
+
+        @regular_aspect("Валидация суммы")
+        async def validate_amount(self, params, state, box, connections):
+            ...                         # _new_aspect_meta = {"type": "regular", ...}
+            return {}
+
+        @regular_aspect("Обработка платежа")
+        async def process_payment(self, params, state, box, connections):
+            ...
+            return {"txn_id": txn_id}
+
+        @summary_aspect("Формирование результата")
+        async def build_result(self, params, state, box, connections):
+            ...                         # _new_aspect_meta = {"type": "summary", ...}
+            return OrderResult(...)
+
+    # MetadataBuilder.build(CreateOrderAction) обходит MRO, находит три метода
+    # с _new_aspect_meta и собирает:
+    #   ClassMetadata.aspects = (
+    #       AspectMeta("validate_amount", "regular", "Валидация суммы", <ref>),
+    #       AspectMeta("process_payment", "regular", "Обработка платежа", <ref>),
+    #       AspectMeta("build_result", "summary", "Формирование результата", <ref>),
+    #   )
+
+    # ActionProductMachine:
+    #   metadata = coordinator.get(CreateOrderAction)
+    #   regulars = metadata.get_regular_aspects()   → 2 AspectMeta
+    #   summary  = metadata.get_summary_aspect()    → 1 AspectMeta
+
+═══════════════════════════════════════════════════════════════════════════════
+ПРИМЕР ИСПОЛЬЗОВАНИЯ
+═══════════════════════════════════════════════════════════════════════════════
+
+    # BaseAction уже наследует AspectGateHost, поэтому любой Action
+    # автоматически поддерживает @regular_aspect и @summary_aspect.
+
+    # Минимальное действие (только summary):
+    class PingAction(BaseAction[BaseParams, BaseResult]):
+        @summary_aspect("Pong")
+        async def pong(self, params, state, box, connections):
+            result = BaseResult()
+            result["message"] = "pong"
+            return result
+
+    # Действие с полным конвейером:
+    class ComplexAction(BaseAction[P, R]):
+        @regular_aspect("Шаг 1")
+        async def step1(self, params, state, box, connections):
+            return {"data": "value"}
+
+        @regular_aspect("Шаг 2")
+        async def step2(self, params, state, box, connections):
+            return {"more_data": "value2"}
+
+        @summary_aspect("Итог")
+        async def finish(self, params, state, box, connections):
+            return MyResult(...)
 """
-
-from typing import Any
-
-from .aspect_gate import AspectGate
-from .aspect_method_protocol import AspectMethodProtocol
 
 
 class AspectGateHost:
     """
-    Класс-хост, который присоединяет шлюз аспектов к действию.
+    Маркерный миксин, обозначающий поддержку конвейера аспектов.
 
-    Предоставляет:
-        - Метод `get_aspects()` для машины (возвращает обычные и summary‑аспекты).
-        - Автоматический сбор аспектов, помеченных декораторами
-          (`@regular_aspect`, `@summary_aspect`), во время создания класса.
-        - Проверку: если есть regular-аспекты, то должен быть summary-аспект.
+    Класс, наследующий AspectGateHost, может содержать методы,
+    декорированные @regular_aspect и @summary_aspect. MetadataBuilder
+    собирает эти методы в ClassMetadata.aspects.
 
-    Особенности:
-        - Нет публичного свойства `aspects` — доступ к шлюзу извне невозможен.
-        - Нет методов для изменения аспектов на уровне экземпляра.
-        - Все аспекты хранятся в приватных классовых атрибутах:
-          `__regular_aspects` (список) и `__summary_aspect` (кортеж или None).
-        - При наследовании каждый класс имеет свой собственный набор аспектов
-          (аспекты не наследуются).
+    Миксин не содержит логики, полей или методов. Его единственная функция —
+    документировать контракт и обеспечивать единообразие с другими
+    гейт-миксинами.
 
-    Пример:
-        class MyAction(AspectGateHost):
-            @regular_aspect("Валидация")
-            async def validate(...): ...
-
-            @summary_aspect("Создание")
-            async def create(...): ...
+    Атрибуты уровня класса (создаются динамически декораторами на методах):
+        method._new_aspect_meta : dict
+            Словарь {"type": "regular"|"summary", "description": "..."},
+            записываемый декоратором @regular_aspect или @summary_aspect
+            в сам метод. Читается MetadataBuilder при сборке
+            ClassMetadata.aspects (tuple[AspectMeta, ...]).
+            НЕ используется напрямую — только через ClassMetadata.
     """
 
-    # Приватные классовые атрибуты для хранения закешированных данных
-    __regular_aspects: list[tuple[AspectMethodProtocol, str]] | None = None
-    __summary_aspect: tuple[AspectMethodProtocol, str] | None = None
-
-    def __init__(self) -> None:
-        """
-        Инициализирует экземпляр.
-        Проверяет, что если есть regular-аспекты, то есть summary.
-        """
-        regular = self.__class__.__regular_aspects
-        summary = self.__class__.__summary_aspect
-        if regular and summary is None:
-            raise TypeError(
-                f"Class {self.__class__.__name__} does not have a summary aspect. "
-                "Each action must define exactly one summary aspect (use @summary_aspect)."
-            )
-
-    def get_aspects(self) -> tuple[list[tuple[AspectMethodProtocol, str]],
-                                   tuple[AspectMethodProtocol, str] | None]:
-        """
-        Возвращает аспекты для выполнения.
-
-        Используется машиной (ActionProductMachine) для получения списков
-        обычных и summary-аспектов.
-
-        Возвращаемые значения:
-            - Список кортежей (метод, описание) для обычных аспектов.
-            - Кортеж (метод, описание) для summary-аспекта, или None.
-
-        Данные возвращаются из кэша, который заполняется один раз при создании класса.
-        """
-        regular = self.__class__.__regular_aspects
-        summary = self.__class__.__summary_aspect
-        # regular никогда не должен быть None после инициализации класса,
-        # но на всякий случай возвращаем пустой список
-        return regular or [], summary
-
-    # ------------------------------------------------------------------
-    # Сбор аспектов при создании класса
-    # ------------------------------------------------------------------
-    def __init_subclass__(cls, **kwargs: Any) -> None:
-        """Вызывается автоматически при создании подкласса."""
-        super().__init_subclass__(**kwargs)
-
-        # Временные списки для сбора аспектов этого класса
-        _class_regular = []
-        _class_summary = None
-
-        # Собираем методы с временным атрибутом _new_aspect_meta,
-        # которые были добавлены декораторами regular_aspect и summary_aspect.
-        methods_to_process = []
-        for name, method in cls.__dict__.items():
-            if hasattr(method, '_new_aspect_meta'):
-                methods_to_process.append((name, method))
-
-        for name, method in methods_to_process:
-            meta = method._new_aspect_meta
-            if meta['type'] == 'regular':
-                _class_regular.append((method, meta['description']))
-            elif meta['type'] == 'summary':
-                if _class_summary is not None:
-                    raise TypeError("Only one summary aspect can be registered per action.")
-                _class_summary = (method, meta['description'])
-            # Удаляем временные метаданные, чтобы не засорять метод
-            delattr(method, '_new_aspect_meta')
-
-        # Создаём шлюз для валидации и порядка (но не сохраняем его, только используем для извлечения)
-        gate = AspectGate()
-        for method, desc in _class_regular:
-            gate.register(method, description=desc, type="regular")
-        if _class_summary is not None:
-            method, desc = _class_summary
-            gate.register(method, description=desc, type="summary")
-
-        # Сохраняем закешированные данные в приватные атрибуты класса
-        # pylint: disable=unused-private-member
-        cls.__regular_aspects = gate.get_regular()   # список копий (уже копия)
-        cls.__summary_aspect = gate.get_summary()    # кортеж или None
-        # pylint: enable=unused-private-member
+    pass
