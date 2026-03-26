@@ -21,7 +21,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
 
-from action_machine.Core.base_gate import BaseGate
+from action_machine.core.base_gate import BaseGate
 
 
 @dataclass(frozen=True)

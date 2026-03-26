@@ -12,9 +12,9 @@
 
 from dataclasses import dataclass
 
-from action_machine.Context.context import Context
-from action_machine.Context.user_info import UserInfo
-from action_machine.Core.BaseParams import BaseParams
+from action_machine.context.context import Context
+from action_machine.context.user_info import UserInfo
+from action_machine.core.base_params import BaseParams
 
 
 @dataclass

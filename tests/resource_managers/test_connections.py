@@ -1,6 +1,6 @@
 # tests/resource_managers/test_connections.py
-from action_machine.ResourceManagers.BaseResourceManager import BaseResourceManager
-from action_machine.ResourceManagers.Connections import Connections
+from action_machine.resource_managers.base_resource_manager import BaseResourceManager
+from action_machine.resource_managers.connections import Connections
 
 
 class DummyRes(BaseResourceManager):

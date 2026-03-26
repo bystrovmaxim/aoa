@@ -11,8 +11,8 @@ Checks:
 
 import pytest
 
-from action_machine.Logging.console_logger import ConsoleLogger
-from action_machine.Logging.log_scope import LogScope
+from action_machine.logging.console_logger import ConsoleLogger
+from action_machine.logging.log_scope import LogScope
 from tests.conftest import ParamsTest, make_context
 
 

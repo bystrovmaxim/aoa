@@ -20,7 +20,7 @@
 
 import pytest
 
-from action_machine.Logging.sensitive_decorator import sensitive
+from action_machine.logging.sensitive_decorator import sensitive
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Вспомогательные классы

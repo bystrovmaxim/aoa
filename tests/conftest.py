@@ -15,14 +15,14 @@ from typing import Any
 
 import pytest
 
-from action_machine.Context.context import Context
-from action_machine.Context.request_info import RequestInfo
-from action_machine.Context.runtime_info import RuntimeInfo
-from action_machine.Context.user_info import UserInfo
-from action_machine.Core.BaseParams import BaseParams
-from action_machine.Core.BaseState import BaseState
-from action_machine.Logging.base_logger import BaseLogger
-from action_machine.Logging.log_scope import LogScope
+from action_machine.context.context import Context
+from action_machine.context.request_info import RequestInfo
+from action_machine.context.runtime_info import RuntimeInfo
+from action_machine.context.user_info import UserInfo
+from action_machine.core.base_params import BaseParams
+from action_machine.core.base_state import BaseState
+from action_machine.logging.base_logger import BaseLogger
+from action_machine.logging.log_scope import LogScope
 
 # ======================================================================
 # ТЕСТОВЫЕ МОДЕЛИ ДАННЫХ

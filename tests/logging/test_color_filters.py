@@ -5,12 +5,12 @@ Unit tests for color filters and error handling in logging templates.
 
 import pytest
 
-from action_machine.Context.context import Context
-from action_machine.Core.BaseParams import BaseParams
-from action_machine.Core.BaseState import BaseState
-from action_machine.Core.Exceptions import LogTemplateError
-from action_machine.Logging.log_scope import LogScope
-from action_machine.Logging.variable_substitutor import VariableSubstitutor
+from action_machine.context.context import Context
+from action_machine.core.base_params import BaseParams
+from action_machine.core.base_state import BaseState
+from action_machine.core.exceptions import LogTemplateError
+from action_machine.logging.log_scope import LogScope
+from action_machine.logging.variable_substitutor import VariableSubstitutor
 
 
 class TestColorFilters:

@@ -2,33 +2,52 @@
 """
 Декоратор @summary_aspect — объявление завершающего шага действия.
 
-Назначение:
-    Помечает метод как summary-аспект — финальный шаг конвейера, который
-    формирует результат (Result) действия. В каждом действии допускается
-    ровно один summary_aspect. Он выполняется после всех regular_aspect,
-    получает накопленный state и возвращает типизированный Result.
+═══════════════════════════════════════════════════════════════════════════════
+НАЗНАЧЕНИЕ
+═══════════════════════════════════════════════════════════════════════════════
 
-Отличия от @regular_aspect:
-    - regular_aspect возвращает dict, который мержится в state.
-    - summary_aspect возвращает объект Result (наследник BaseResult).
-    - regular_aspect может быть несколько, summary_aspect — ровно один.
-    - Действие без regular_aspect допустимо (например, PingAction),
-      но без summary_aspect — нет.
+Помечает метод как summary-аспект — финальный шаг конвейера, который
+формирует результат (Result) действия. В каждом действии допускается
+ровно один summary_aspect. Он выполняется после всех regular_aspect,
+получает накопленный state и возвращает типизированный Result.
 
-Ограничения (инварианты):
-    - Применяется только к методам (callable), не к классам или свойствам.
-    - Метод должен быть асинхронным (async def).
-    - Сигнатура метода: ровно 5 параметров (self, params, state, box, connections).
-    - Метод должен быть обычным методом экземпляра — не staticmethod, не classmethod.
-      Проверка staticmethod/classmethod выполняется позже в __init_subclass__
-      хоста, так как на этапе декорирования Python ещё не обернул метод.
+═══════════════════════════════════════════════════════════════════════════════
+ОТЛИЧИЯ ОТ @regular_aspect
+═══════════════════════════════════════════════════════════════════════════════
 
-Что делает декоратор:
-    Прикрепляет к методу атрибут _new_aspect_meta с типом "summary" и описанием.
-    Этот атрибут позже считывается в AspectGateHost.__init_subclass__ для
-    регистрации summary-аспекта в замороженном шлюзе.
+- regular_aspect возвращает dict, который мержится в state.
+- summary_aspect возвращает объект Result (наследник BaseResult).
+- regular_aspect может быть несколько, summary_aspect — ровно один.
+- Действие без regular_aspect допустимо (например, PingAction),
+  но без summary_aspect — нет.
 
-Пример:
+═══════════════════════════════════════════════════════════════════════════════
+ОГРАНИЧЕНИЯ (ИНВАРИАНТЫ)
+═══════════════════════════════════════════════════════════════════════════════
+
+- Применяется только к методам (callable), не к классам или свойствам.
+- Метод должен быть асинхронным (async def).
+- Сигнатура метода: ровно 5 параметров (self, params, state, box, connections).
+
+═══════════════════════════════════════════════════════════════════════════════
+АРХИТЕКТУРА ИНТЕГРАЦИИ
+═══════════════════════════════════════════════════════════════════════════════
+
+    @summary_aspect("Формирование результата")
+        │
+        ▼  Декоратор записывает в method._new_aspect_meta
+    {"type": "summary", "description": "Формирование результата"}
+        │
+        ▼  MetadataBuilder._collect_aspects(cls)
+    ClassMetadata.aspects = (..., AspectMeta("build_result", "summary", ...))
+        │
+        ▼  ActionProductMachine._call_aspect(summary_meta, ...)
+    Вызывает метод, получает BaseResult
+
+═══════════════════════════════════════════════════════════════════════════════
+ПРИМЕР ИСПОЛЬЗОВАНИЯ
+═══════════════════════════════════════════════════════════════════════════════
+
     class CreateOrderAction(BaseAction[OrderParams, OrderResult]):
 
         @regular_aspect("Обработка платежа")
@@ -44,25 +63,19 @@
                 total=params.amount,
             )
 
-    Действие без regular_aspect (только summary):
+═══════════════════════════════════════════════════════════════════════════════
+ОШИБКИ
+═══════════════════════════════════════════════════════════════════════════════
 
-    @CheckRoles(CheckRoles.NONE)
-    class PingAction(BaseAction[BaseParams, BaseResult]):
-
-        @summary_aspect("Pong-ответ")
-        async def pong(self, params, state, box, connections):
-            result = BaseResult()
-            result["message"] = "pong"
-            return result
-
-Ошибки:
-    TypeError — метод не callable; метод не асинхронный; неверное число параметров.
+    TypeError — метод не callable; метод не асинхронный; неверное число параметров;
+               description не строка.
 """
 
 from __future__ import annotations
 
 import asyncio
 import inspect
+from collections.abc import Callable
 from typing import Any
 
 # Ожидаемое число параметров: self, params, state, box, connections
@@ -72,17 +85,22 @@ _EXPECTED_PARAM_COUNT = 5
 _EXPECTED_PARAM_NAMES = "self, params, state, box, connections"
 
 
-def summary_aspect(description: str = ""):
+def summary_aspect(description: str = "") -> Callable[[Any], Any]:
     """
     Декоратор уровня метода. Помечает метод как summary-аспект (финальный шаг).
+
+    Записывает в метод атрибут _new_aspect_meta с типом "summary" и описанием.
+    MetadataBuilder._collect_aspects(cls) позже обнаруживает этот атрибут
+    и включает метод в ClassMetadata.aspects.
 
     Аргументы:
         description: человекочитаемое описание шага. Используется в логах,
                      плагинах и интроспекции. Например: "Формирование результата",
-                     "Сборка ответа".
+                     "Сборка ответа". По умолчанию пустая строка.
 
     Возвращает:
-        Декоратор, который прикрепляет _new_aspect_meta к методу.
+        Декоратор, который прикрепляет _new_aspect_meta к методу
+        и возвращает метод без изменений.
 
     Исключения:
         TypeError:
@@ -98,6 +116,16 @@ def summary_aspect(description: str = ""):
         )
 
     def decorator(func: Any) -> Any:
+        """
+        Внутренний декоратор, применяемый к методу.
+
+        Проверяет:
+        1. func — callable.
+        2. func — async def.
+        3. Число параметров == 5 (self, params, state, box, connections).
+
+        Затем записывает _new_aspect_meta в func.
+        """
         # ── Проверка: цель — вызываемый объект ──
         if not callable(func):
             raise TypeError(

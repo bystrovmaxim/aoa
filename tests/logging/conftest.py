@@ -5,10 +5,10 @@
 
 import pytest
 
-from action_machine.Logging.console_logger import ConsoleLogger
-from action_machine.Logging.expression_evaluator import ExpressionEvaluator
-from action_machine.Logging.log_coordinator import LogCoordinator
-from action_machine.Logging.log_scope import LogScope
+from action_machine.logging.console_logger import ConsoleLogger
+from action_machine.logging.expression_evaluator import ExpressionEvaluator
+from action_machine.logging.log_coordinator import LogCoordinator
+from action_machine.logging.log_scope import LogScope
 
 # ======================================================================
 # ФИКСТУРЫ ДЛЯ ТЕСТОВ ЛОГИРОВАНИЯ

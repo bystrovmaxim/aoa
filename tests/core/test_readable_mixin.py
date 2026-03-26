@@ -7,7 +7,7 @@
 - Методы keys/values/items исключают приватные поля (начинающиеся с _)
 """
 
-from action_machine.Core.ReadableMixin import ReadableMixin
+from action_machine.core.readable_mixin import ReadableMixin
 
 
 class SampleReadable(ReadableMixin):

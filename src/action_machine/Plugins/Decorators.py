@@ -1,33 +1,49 @@
-# src/action_machine/Plugins/Decorators.py
+# src/action_machine/plugins/decorators.py
 """
 Декоратор @on — подписка метода плагина на событие машины.
 
-Назначение:
-    Декоратор @on — часть грамматики намерений ActionMachine для плагинов.
-    Он объявляет, что метод плагина должен вызываться при наступлении
-    определённого события. Машина (ActionProductMachine) через PluginCoordinator
-    эмитирует события (global_start, global_finish, aspect_before, aspect_after
-    и др.), а плагины реагируют на них через методы, помеченные @on.
+═══════════════════════════════════════════════════════════════════════════════
+НАЗНАЧЕНИЕ
+═══════════════════════════════════════════════════════════════════════════════
 
-    Каждый обработчик получает текущее состояние плагина (state) и объект
-    события (PluginEvent), возвращает обновлённое состояние.
+Декоратор @on — часть грамматики намерений ActionMachine для плагинов.
+Он объявляет, что метод плагина должен вызываться при наступлении
+определённого события. Машина (ActionProductMachine) через PluginCoordinator
+эмитирует события (global_start, global_finish, before:{aspect}, after:{aspect}
+и др.), а плагины реагируют на них через методы, помеченные @on.
 
-Ограничения (инварианты):
-    - Применяется только к методам (callable), не к классам или свойствам.
-    - Метод должен быть асинхронным (async def).
-    - Сигнатура метода: ровно 3 параметра (self, state, event).
-    - Метод должен быть обычным методом экземпляра — не staticmethod, не classmethod.
-      Проверка staticmethod/classmethod выполняется позже в __init_subclass__
-      хоста (OnGateHost), так как на этапе декорирования Python ещё не обернул метод.
-    - event_type должен быть непустой строкой.
-    - action_filter должен быть строкой (регулярное выражение).
+Каждый обработчик получает текущее состояние плагина (state) и объект
+события (PluginEvent), возвращает обновлённое состояние.
 
-Что делает декоратор:
-    Прикрепляет к методу атрибут _on_subscriptions — список подписок.
-    Один метод может быть подписан на несколько событий (несколько @on).
-    Этот атрибут позже считывается в OnGateHost.__init_subclass__.
+═══════════════════════════════════════════════════════════════════════════════
+ОГРАНИЧЕНИЯ (ИНВАРИАНТЫ)
+═══════════════════════════════════════════════════════════════════════════════
 
-Пример:
+- Применяется только к методам (callable), не к классам или свойствам.
+- Метод должен быть асинхронным (async def).
+- Сигнатура метода: ровно 3 параметра (self, state, event).
+- event_type должен быть непустой строкой.
+- action_filter должен быть строкой (регулярное выражение).
+
+═══════════════════════════════════════════════════════════════════════════════
+АРХИТЕКТУРА ИНТЕГРАЦИИ
+═══════════════════════════════════════════════════════════════════════════════
+
+    @on("global_finish", ".*", ignore_exceptions=False)
+        │
+        ▼  Декоратор записывает в method._on_subscriptions
+    SubscriptionInfo(event_type="global_finish", action_filter=".*", ...)
+        │
+        ▼  MetadataBuilder._collect_subscriptions(cls)
+    ClassMetadata.subscriptions = (SubscriptionInfo(...), ...)
+        │
+        ▼  PluginCoordinator.emit_event(...)
+    Находит подписанные методы → вызывает handler(plugin, state, event)
+
+═══════════════════════════════════════════════════════════════════════════════
+ПРИМЕР ИСПОЛЬЗОВАНИЯ
+═══════════════════════════════════════════════════════════════════════════════
+
     class MetricsPlugin(Plugin):
         async def get_initial_state(self) -> dict:
             return {"count": 0}
@@ -42,7 +58,10 @@
             print(f"Starting: {event.action_name}")
             return state
 
-Ошибки:
+═══════════════════════════════════════════════════════════════════════════════
+ОШИБКИ
+═══════════════════════════════════════════════════════════════════════════════
+
     TypeError — метод не callable; метод не асинхронный; неверное число параметров;
                event_type не строка; action_filter не строка.
     ValueError — event_type пустая строка.
@@ -52,6 +71,7 @@ from __future__ import annotations
 
 import asyncio
 import inspect
+from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
 
@@ -67,8 +87,12 @@ class SubscriptionInfo:
     """
     Неизменяемая запись об одной подписке метода плагина на событие.
 
+    Создаётся декоратором @on и сохраняется в method._on_subscriptions.
+    MetadataBuilder собирает подписки в ClassMetadata.subscriptions.
+    PluginCoordinator использует их для маршрутизации событий.
+
     Атрибуты:
-        event_type: тип события (например, "global_finish", "aspect_before").
+        event_type: тип события (например, "global_finish", "before:validate").
         action_filter: регулярное выражение для фильтрации по имени действия.
                        По умолчанию ".*" — все действия.
         ignore_exceptions: если True, обработчик вызывается даже при ошибке
@@ -79,24 +103,38 @@ class SubscriptionInfo:
     ignore_exceptions: bool = True
 
 
-def on(event_type: str, action_filter: str = ".*", *, ignore_exceptions: bool = True):
+def on(
+    event_type: str,
+    action_filter: str = ".*",
+    *,
+    ignore_exceptions: bool = True,
+) -> Callable[[Any], Any]:
     """
     Декоратор уровня метода. Подписывает метод плагина на событие машины.
 
+    Записывает SubscriptionInfo в атрибут method._on_subscriptions.
+    Один метод может быть подписан на несколько событий (несколько @on).
+
     Аргументы:
         event_type: тип события. Непустая строка.
+                    Примеры: "global_start", "global_finish",
+                    "before:validate", "after:process_payment".
         action_filter: регулярное выражение для фильтрации по имени действия.
                        По умолчанию ".*" — все действия.
         ignore_exceptions: если True, обработчик вызывается даже при ошибке
-                           в действии.
+                           в действии. По умолчанию True.
 
     Возвращает:
-        Декоратор, который прикрепляет SubscriptionInfo к методу.
+        Декоратор, который прикрепляет SubscriptionInfo к методу
+        и возвращает метод без изменений.
 
     Исключения:
         TypeError:
             - event_type не строка.
             - action_filter не строка.
+            - Декорируемый объект не callable.
+            - Метод не асинхронный.
+            - Неверное число параметров.
         ValueError:
             - event_type пустая строка.
     """
@@ -121,6 +159,16 @@ def on(event_type: str, action_filter: str = ".*", *, ignore_exceptions: bool = 
         )
 
     def decorator(func: Any) -> Any:
+        """
+        Внутренний декоратор, применяемый к методу плагина.
+
+        Проверяет:
+        1. func — callable.
+        2. func — async def.
+        3. Число параметров == 3 (self, state, event).
+
+        Затем добавляет SubscriptionInfo в func._on_subscriptions.
+        """
         # ── Проверка: цель — вызываемый объект ──
         if not callable(func):
             raise TypeError(

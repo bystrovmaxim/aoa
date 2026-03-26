@@ -28,11 +28,11 @@
        и вызывает их с текущим state и PluginEvent.
 """
 
-from .Decorators import SubscriptionInfo, on
+from .decorators import SubscriptionInfo, on
 from .on_gate_host import OnGateHost
-from .Plugin import Plugin
-from .PluginCoordinator import PluginCoordinator
-from .PluginEvent import PluginEvent
+from .plugin import Plugin
+from .plugin_coordinator import PluginCoordinator
+from .plugin_event import PluginEvent
 
 __all__ = [
     "OnGateHost",

@@ -2,7 +2,7 @@
 
 from typing import Any
 
-from action_machine.Core.ReadableMixin import ReadableMixin
+from action_machine.core.readable_mixin import ReadableMixin
 
 
 class LogScope(ReadableMixin):

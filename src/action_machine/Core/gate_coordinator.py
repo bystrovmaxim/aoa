@@ -1,4 +1,4 @@
-# src/action_machine/Core/gate_coordinator.py
+# src/action_machine/core/gate_coordinator.py
 """
 Модуль: GateCoordinator — центральный реестр и кеш ClassMetadata.
 
@@ -54,55 +54,38 @@ GateCoordinator — единственная точка доступа к мет
 
 1. КООРДИНАТОР НЕ ЗНАЕТ О БИЗНЕС-ЛОГИКЕ: он не проверяет роли, не резолвит
    зависимости, не запускает аспекты. Он только хранит и отдаёт метаданные.
-   Благодаря этому при добавлении нового типа декоратора координатор НЕ
-   меняется — меняется только MetadataBuilder.
 
 2. ПОТОКОБЕЗОПАСНОСТЬ: GateCoordinator не использует блокировки, потому что
-   в asyncio-среде код выполняется в одном потоке. Если потребуется
-   многопоточность — достаточно добавить threading.Lock вокруг _cache.
+   в asyncio-среде код выполняется в одном потоке.
 
 3. ОТКРЫТ ДЛЯ РАСШИРЕНИЯ, ЗАКРЫТ ДЛЯ МОДИФИКАЦИИ (OCP): новый декоратор
    → новое поле в ClassMetadata → новый _collect_* в MetadataBuilder.
    GateCoordinator не затрагивается.
 
-4. СИНГЛТОН ИЛИ ИНЪЕКЦИЯ: координатор можно использовать как синглтон
-   (модульный экземпляр) или передавать через DI. Оба варианта поддерживаются.
-
 ═══════════════════════════════════════════════════════════════════════════════
 ПРИМЕР ИСПОЛЬЗОВАНИЯ
 ═══════════════════════════════════════════════════════════════════════════════
 
-    from action_machine.Core.gate_coordinator import GateCoordinator
-
-    # Вариант 1: создание экземпляра
     coordinator = GateCoordinator()
 
-    # Получение метаданных (ленивая сборка при первом вызове):
     meta = coordinator.get(CreateOrderAction)
-    print(meta.role.spec)          # "user"
-    print(meta.dependencies)       # (DependencyInfo(...), ...)
-    print(meta.get_summary_aspect())  # AspectMeta(...)
+    print(meta.role.spec)
+    print(meta.dependencies)
 
-    # Повторный вызов — из кеша, мгновенно:
+    # Повторный вызов — из кеша:
     meta2 = coordinator.get(CreateOrderAction)
-    assert meta is meta2  # тот же объект
+    assert meta is meta2
 
     # Инвалидация (для тестов):
     coordinator.invalidate(CreateOrderAction)
-
-    # Вариант 2: использование модульного синглтона:
-    from action_machine.Core.gate_coordinator import default_coordinator
-    meta = default_coordinator.get(CreateOrderAction)
 """
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import Any
 
-from action_machine.Core.metadata_builder import MetadataBuilder
-
-if TYPE_CHECKING:
-    from action_machine.Core.class_metadata import ClassMetadata
+from action_machine.core.class_metadata import ClassMetadata, RoleMeta
+from action_machine.core.metadata_builder import MetadataBuilder
 
 
 class GateCoordinator:
@@ -116,13 +99,9 @@ class GateCoordinator:
     Атрибуты:
         _cache : dict[int, ClassMetadata]
             Кеш метаданных. Ключ — id(cls), значение — ClassMetadata.
-            Использование id(cls) вместо самого cls в качестве ключа
-            предотвращает проблемы с классами, переопределяющими __hash__.
 
         _class_map : dict[int, type]
-            Обратная карта id(cls) → cls. Нужна для методов инспекции
-            (get_all_classes, __repr__), где требуется восстановить
-            класс по его id.
+            Обратная карта id(cls) → cls. Нужна для методов инспекции.
     """
 
     def __init__(self) -> None:
@@ -143,8 +122,7 @@ class GateCoordinator:
         Возвращает ClassMetadata для указанного класса.
 
         При первом вызове собирает метаданные через MetadataBuilder.build()
-        и кеширует результат. Все последующие вызовы возвращают
-        кешированный объект.
+        и кеширует результат.
 
         Аргументы:
             cls: класс, метаданные которого нужно получить.
@@ -154,14 +132,7 @@ class GateCoordinator:
 
         Исключения:
             TypeError: если cls не является классом.
-            ValueError: если MetadataBuilder обнаруживает структурные ошибки
-                        (например, два summary-аспекта).
-
-        Пример:
-            >>> coordinator = GateCoordinator()
-            >>> meta = coordinator.get(CreateOrderAction)
-            >>> meta.class_name
-            'test_full_flow.CreateOrderAction'
+            ValueError: если MetadataBuilder обнаруживает структурные ошибки.
         """
         if not isinstance(cls, type):
             raise TypeError(
@@ -183,21 +154,13 @@ class GateCoordinator:
         Явно регистрирует класс в координаторе.
 
         Эквивалентен get(), но семантически выражает намерение
-        «зарегистрировать класс заранее», а не «получить метаданные
-        по необходимости». Используется при старте приложения для
-        предварительной сборки метаданных всех Action-классов.
+        «зарегистрировать класс заранее».
 
         Аргументы:
             cls: класс для регистрации.
 
         Возвращает:
             ClassMetadata — собранные метаданные.
-
-        Пример:
-            >>> coordinator = GateCoordinator()
-            >>> coordinator.register(CreateOrderAction)
-            >>> coordinator.register(PingAction)
-            >>> # Все метаданные уже в кеше, get() будет мгновенным.
         """
         return self.get(cls)
 
@@ -206,12 +169,6 @@ class GateCoordinator:
         Проверяет, есть ли метаданные класса в кеше.
 
         НЕ вызывает сборку — только проверяет наличие.
-
-        Аргументы:
-            cls: класс для проверки.
-
-        Возвращает:
-            True если метаданные уже собраны и закешированы.
         """
         return id(cls) in self._cache
 
@@ -220,11 +177,6 @@ class GateCoordinator:
         Удаляет метаданные класса из кеша.
 
         Следующий вызов get(cls) пересоберёт метаданные заново.
-        Используется в тестах или при динамическом переопределении
-        декораторов.
-
-        Аргументы:
-            cls: класс, кеш которого нужно сбросить.
 
         Возвращает:
             True если метаданные были в кеше и удалены.
@@ -241,9 +193,6 @@ class GateCoordinator:
         """
         Полностью очищает кеш.
 
-        Возвращает количество удалённых записей. Используется в тестах
-        для гарантии чистого состояния между тестовыми сценариями.
-
         Возвращает:
             int — количество удалённых записей.
         """
@@ -257,107 +206,59 @@ class GateCoordinator:
     # ─────────────────────────────────────────────────────────────────────
 
     def get_all_metadata(self) -> list[ClassMetadata]:
-        """
-        Возвращает список всех закешированных ClassMetadata.
-
-        Порядок не гарантирован. Используется для отладки,
-        генерации документации или инспекции зарегистрированных классов.
-
-        Возвращает:
-            list[ClassMetadata] — все метаданные из кеша.
-        """
+        """Возвращает список всех закешированных ClassMetadata."""
         return list(self._cache.values())
 
     def get_all_classes(self) -> list[type]:
-        """
-        Возвращает список всех зарегистрированных классов.
-
-        Возвращает:
-            list[type] — классы, для которых есть метаданные в кеше.
-        """
+        """Возвращает список всех зарегистрированных классов."""
         return list(self._class_map.values())
 
     @property
     def size(self) -> int:
-        """
-        Количество закешированных классов.
-
-        Возвращает:
-            int — размер кеша.
-        """
+        """Количество закешированных классов."""
         return len(self._cache)
 
     # ─────────────────────────────────────────────────────────────────────
     # Удобные методы (делегирование к ClassMetadata)
     # ─────────────────────────────────────────────────────────────────────
 
-    def get_dependencies(self, cls: type) -> tuple:
+    def get_dependencies(self, cls: type) -> tuple[Any, ...]:
         """
         Возвращает кортеж зависимостей класса.
 
         Сокращение для coordinator.get(cls).dependencies.
-
-        Аргументы:
-            cls: класс.
-
-        Возвращает:
-            tuple[DependencyInfo, ...] — зависимости.
         """
         return self.get(cls).dependencies
 
-    def get_connections(self, cls: type) -> tuple:
+    def get_connections(self, cls: type) -> tuple[Any, ...]:
         """
         Возвращает кортеж соединений класса.
 
         Сокращение для coordinator.get(cls).connections.
-
-        Аргументы:
-            cls: класс.
-
-        Возвращает:
-            tuple[ConnectionInfo, ...] — соединения.
         """
         return self.get(cls).connections
 
-    def get_role(self, cls: type):
+    def get_role(self, cls: type) -> RoleMeta | None:
         """
         Возвращает RoleMeta класса или None.
 
         Сокращение для coordinator.get(cls).role.
-
-        Аргументы:
-            cls: класс.
-
-        Возвращает:
-            RoleMeta | None — ролевые метаданные.
         """
         return self.get(cls).role
 
-    def get_aspects(self, cls: type) -> tuple:
+    def get_aspects(self, cls: type) -> tuple[Any, ...]:
         """
         Возвращает кортеж аспектов класса.
 
         Сокращение для coordinator.get(cls).aspects.
-
-        Аргументы:
-            cls: класс.
-
-        Возвращает:
-            tuple[AspectMeta, ...] — аспекты.
         """
         return self.get(cls).aspects
 
-    def get_subscriptions(self, cls: type) -> tuple:
+    def get_subscriptions(self, cls: type) -> tuple[Any, ...]:
         """
         Возвращает кортеж подписок класса (для плагинов).
 
         Сокращение для coordinator.get(cls).subscriptions.
-
-        Аргументы:
-            cls: класс.
-
-        Возвращает:
-            tuple[SubscriptionInfo, ...] — подписки.
         """
         return self.get(cls).subscriptions
 
@@ -366,11 +267,7 @@ class GateCoordinator:
     # ─────────────────────────────────────────────────────────────────────
 
     def __repr__(self) -> str:
-        """
-        Компактное строковое представление координатора для отладки.
-
-        Показывает количество закешированных классов и их имена.
-        """
+        """Компактное строковое представление координатора для отладки."""
         if not self._cache:
             return "GateCoordinator(empty)"
 
@@ -390,7 +287,7 @@ default_coordinator: GateCoordinator = GateCoordinator()
 
 Может использоваться напрямую для простых сценариев:
 
-    from action_machine.Core.gate_coordinator import default_coordinator
+    from action_machine.core.gate_coordinator import default_coordinator
     meta = default_coordinator.get(CreateOrderAction)
 
 Для тестов рекомендуется создавать отдельный экземпляр GateCoordinator(),

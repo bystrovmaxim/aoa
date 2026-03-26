@@ -7,11 +7,11 @@
 
 import pytest
 
-from action_machine.Auth.auth_coordinator import AuthCoordinator
-from action_machine.Context.context import Context
-from action_machine.Context.request_info import RequestInfo
-from action_machine.Context.runtime_info import RuntimeInfo
-from action_machine.Context.user_info import UserInfo
+from action_machine.auth.auth_coordinator import AuthCoordinator
+from action_machine.context.context import Context
+from action_machine.context.request_info import RequestInfo
+from action_machine.context.runtime_info import RuntimeInfo
+from action_machine.context.user_info import UserInfo
 
 
 class TestAuthIntegration:

@@ -8,7 +8,7 @@
 - Значения по умолчанию
 """
 
-from action_machine.Context.runtime_info import RuntimeInfo
+from action_machine.context.runtime_info import RuntimeInfo
 
 
 class TestRuntimeInfoInfo:

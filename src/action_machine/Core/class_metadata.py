@@ -1,4 +1,4 @@
-# src/action_machine/Core/class_metadata.py
+# src/action_machine/core/class_metadata.py
 """
 Модуль: ClassMetadata — иммутабельный снимок метаданных класса.
 
@@ -13,8 +13,8 @@ ClassMetadata нельзя изменить — это гарантия, что 
 
 Каждый декоратор при определении класса записывает временные атрибуты
 (_depends_info, _role_info, _connection_info, _new_aspect_meta, _on_subscriptions,
-_sensitive_config, _checker_meta). MetadataBuilder (следующий файл) собирает
-эти атрибуты и конструирует один экземпляр ClassMetadata.
+_sensitive_config, _checker_meta). MetadataBuilder собирает эти атрибуты
+и конструирует один экземпляр ClassMetadata.
 
 ═══════════════════════════════════════════════════════════════════════════════
 АРХИТЕКТУРА
@@ -49,30 +49,24 @@ _sensitive_config, _checker_meta). MetadataBuilder (следующий файл)
    и прочим «сырым» атрибутам, любой потребитель берёт ClassMetadata из
    GateCoordinator и работает только с ним.
 
-4. НЕТ ОБРАТНОЙ СОВМЕСТИМОСТИ: старые способы доступа к метаданным
-   (напрямую через cls._depends_info) убираются. Всё через ClassMetadata.
-
 ═══════════════════════════════════════════════════════════════════════════════
 ПРИМЕР ИСПОЛЬЗОВАНИЯ
 ═══════════════════════════════════════════════════════════════════════════════
 
     # Получение метаданных класса через координатор:
-    metadata = gate_coordinator.get_metadata(CreateOrderAction)
+    metadata = gate_coordinator.get(CreateOrderAction)
 
     # Доступ к зависимостям:
     for dep in metadata.dependencies:
         print(f"  {dep.cls.__name__}: {dep.description}")
 
     # Доступ к ролям:
-    print(f"Роли: {metadata.role_spec}")
+    if metadata.has_role():
+        print(f"Роли: {metadata.role.spec}")
 
     # Доступ к аспектам:
     for aspect in metadata.aspects:
         print(f"  [{aspect.aspect_type}] {aspect.method_name}: {aspect.description}")
-
-    # Проверка наличия чувствительных полей:
-    for sf in metadata.sensitive_fields:
-        print(f"  {sf.property_name}: max_chars={sf.config['max_chars']}")
 """
 
 from __future__ import annotations
@@ -117,20 +111,20 @@ class AspectMeta:
 class CheckerMeta:
     """
     Метаданные одного чекера, собранные из атрибута _checker_meta,
-    который устанавливает декоратор чекера (например, @StringFieldChecker).
+    который устанавливает декоратор чекера (например, @ResultStringChecker).
 
     Поля:
         method_name    : str
             Имя метода, на котором стоит чекер.
         checker_class  : type
-            Класс чекера (например, StringFieldChecker).
+            Класс чекера (например, ResultStringChecker).
         field_name     : str
             Имя поля, которое проверяет чекер.
         description    : str
             Описание проверки.
         required       : bool
             Обязательность поля.
-        extra_params   : dict
+        extra_params   : dict[str, Any]
             Дополнительные параметры чекера (min_length, max_length и т.д.).
     """
     method_name: str
@@ -138,7 +132,7 @@ class CheckerMeta:
     field_name: str
     description: str
     required: bool
-    extra_params: dict
+    extra_params: dict[str, Any]
 
 
 @dataclass(frozen=True)
@@ -150,7 +144,7 @@ class SensitiveFieldMeta:
     Поля:
         property_name : str
             Имя свойства (property), помеченного @sensitive.
-        config        : dict
+        config        : dict[str, Any]
             Конфигурация маскирования:
             - enabled (bool): включено ли маскирование.
             - max_chars (int): максимум видимых символов.
@@ -158,7 +152,7 @@ class SensitiveFieldMeta:
             - max_percent (int): максимальный процент видимых символов.
     """
     property_name: str
-    config: dict
+    config: dict[str, Any]
 
 
 @dataclass(frozen=True)
@@ -205,10 +199,10 @@ class ClassMetadata:
         role : RoleMeta | None
             Метаданные ролей (от @CheckRoles). None если декоратор не применялся.
 
-        dependencies : tuple[DependencyInfo, ...]
+        dependencies : tuple[Any, ...]
             Кортеж зависимостей (от @depends). Пустой tuple если нет зависимостей.
 
-        connections : tuple[ConnectionInfo, ...]
+        connections : tuple[Any, ...]
             Кортеж соединений (от @connection). Пустой tuple если нет соединений.
 
         aspects : tuple[AspectMeta, ...]
@@ -216,10 +210,10 @@ class ClassMetadata:
             объявления в классе. Последний элемент — summary (если есть).
 
         checkers : tuple[CheckerMeta, ...]
-            Кортеж чекеров (от @StringFieldChecker и других). Привязаны
+            Кортеж чекеров (от @ResultStringChecker и других). Привязаны
             к конкретным аспектам (по method_name).
 
-        subscriptions : tuple[SubscriptionInfo, ...]
+        subscriptions : tuple[Any, ...]
             Кортеж подписок (от @on). Актуально только для Plugin-классов.
 
         sensitive_fields : tuple[SensitiveFieldMeta, ...]
@@ -239,22 +233,22 @@ class ClassMetadata:
     role: RoleMeta | None = None
 
     # ── Зависимости ────────────────────────────────────────────────────────
-    dependencies: tuple = field(default_factory=tuple)
+    dependencies: tuple[Any, ...] = field(default_factory=tuple)
 
     # ── Соединения ─────────────────────────────────────────────────────────
-    connections: tuple = field(default_factory=tuple)
+    connections: tuple[Any, ...] = field(default_factory=tuple)
 
     # ── Аспекты (пайплайн) ─────────────────────────────────────────────────
-    aspects: tuple = field(default_factory=tuple)
+    aspects: tuple[AspectMeta, ...] = field(default_factory=tuple)
 
     # ── Чекеры ─────────────────────────────────────────────────────────────
-    checkers: tuple = field(default_factory=tuple)
+    checkers: tuple[CheckerMeta, ...] = field(default_factory=tuple)
 
     # ── Подписки (плагины) ─────────────────────────────────────────────────
-    subscriptions: tuple = field(default_factory=tuple)
+    subscriptions: tuple[Any, ...] = field(default_factory=tuple)
 
     # ── Чувствительные поля ────────────────────────────────────────────────
-    sensitive_fields: tuple = field(default_factory=tuple)
+    sensitive_fields: tuple[SensitiveFieldMeta, ...] = field(default_factory=tuple)
 
     # ── Ограничитель типа зависимостей ─────────────────────────────────────
     depends_bound: type = object
@@ -324,7 +318,7 @@ class ClassMetadata:
     def __repr__(self) -> str:
         """Компактное строковое представление для отладки."""
         parts = [f"ClassMetadata({self.class_name}"]
-        if self.has_role():
+        if self.has_role() and self.role is not None:
             parts.append(f"  role={self.role.spec!r}")
         if self.has_dependencies():
             dep_names = ", ".join(d.cls.__name__ for d in self.dependencies)

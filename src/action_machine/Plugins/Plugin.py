@@ -1,24 +1,59 @@
-# src/action_machine/Plugins/Plugin.py
+# src/action_machine/plugins/plugin.py
 """
 Базовый класс для всех плагинов ActionMachine.
+
+═══════════════════════════════════════════════════════════════════════════════
+НАЗНАЧЕНИЕ
+═══════════════════════════════════════════════════════════════════════════════
 
 Плагины определяют обработчики событий с помощью декоратора @on.
 Каждый плагин должен реализовать асинхронный метод get_initial_state,
 который возвращает начальное состояние для одного запуска действия.
 
-Обработчики помечаются декоратором @on и записывают SubscriptionInfo
-в method._on_subscriptions. MetadataBuilder собирает эти подписки
-в ClassMetadata.subscriptions при первом обращении через GateCoordinator.
+═══════════════════════════════════════════════════════════════════════════════
+АРХИТЕКТУРА ИНТЕГРАЦИИ
+═══════════════════════════════════════════════════════════════════════════════
 
-PluginCoordinator отвечает за маршрутизацию событий к подписанным методам.
+    class CounterPlugin(Plugin):
+        async def get_initial_state(self) -> dict:
+            return {"count": 0}
 
-Плагины не должны хранить состояние в атрибутах экземпляра,
-поскольку оно должно быть изолировано для каждого вызова run.
-Вместо этого состояние управляется машиной и передаётся через
-параметр state каждому обработчику.
+        @on("global_finish", ".*")
+        async def count_call(self, state, event):
+            state["count"] += 1
+            return state
 
-Все методы-обработчики должны быть асинхронными (определены с async def),
-даже если они не содержат await, потому что машина вызывает их с await.
+    # Декоратор @on записывает SubscriptionInfo в method._on_subscriptions.
+    # MetadataBuilder собирает подписки в ClassMetadata.subscriptions.
+    # PluginCoordinator маршрутизирует события к подписанным методам.
+
+═══════════════════════════════════════════════════════════════════════════════
+ПРАВИЛА
+═══════════════════════════════════════════════════════════════════════════════
+
+- Плагины НЕ хранят состояние в атрибутах экземпляра. Состояние
+  управляется машиной и передаётся через параметр state каждому обработчику.
+- Все методы-обработчики должны быть асинхронными (async def).
+- get_initial_state вызывается машиной перед первым событием.
+
+═══════════════════════════════════════════════════════════════════════════════
+ПРИМЕР ИСПОЛЬЗОВАНИЯ
+═══════════════════════════════════════════════════════════════════════════════
+
+    class MetricsPlugin(Plugin):
+        async def get_initial_state(self) -> dict:
+            return {"total": 0, "errors": 0}
+
+        @on("global_finish")
+        async def track_total(self, state, event):
+            state["total"] += 1
+            return state
+
+        @on("global_finish")
+        async def track_errors(self, state, event):
+            if event.error is not None:
+                state["errors"] += 1
+            return state
 """
 
 import re
@@ -39,7 +74,7 @@ class Plugin(ABC):
     Плагины не должны хранить состояние в атрибутах экземпляра,
     поскольку оно должно быть изолировано для каждого вызова run.
 
-    Методы-обработчики помечаются декоратором @on из модуля Decorators.
+    Методы-обработчики помечаются декоратором @on из модуля decorators.
     Они должны быть асинхронными (определены с async def), даже если
     не содержат await, потому что машина вызывает их с await.
     """
@@ -58,7 +93,6 @@ class Plugin(ABC):
         Возвращает:
             Начальное состояние для этого запуска.
         """
-        ...
 
     def get_handlers(
         self, event_name: str, class_name: str,
@@ -85,7 +119,7 @@ class Plugin(ABC):
         for klass in type(self).__mro__:
             if klass is object:
                 continue
-            for attr_name, attr_value in vars(klass).items():
+            for _, attr_value in vars(klass).items():
                 subs = getattr(attr_value, "_on_subscriptions", None)
                 if subs is None:
                     continue

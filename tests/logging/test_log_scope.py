@@ -1,6 +1,6 @@
 import pytest
 
-from action_machine.Logging.log_scope import LogScope
+from action_machine.logging.log_scope import LogScope
 
 
 class TestLogScope:

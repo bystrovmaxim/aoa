@@ -18,12 +18,12 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from action_machine.Context.context import Context
-from action_machine.Core.BaseParams import BaseParams
-from action_machine.Core.BaseState import BaseState
-from action_machine.Logging.action_bound_logger import ActionBoundLogger
-from action_machine.Logging.log_coordinator import LogCoordinator
-from action_machine.Logging.log_scope import LogScope
+from action_machine.context.context import Context
+from action_machine.core.base_params import BaseParams
+from action_machine.core.base_state import BaseState
+from action_machine.logging.action_bound_logger import ActionBoundLogger
+from action_machine.logging.log_coordinator import LogCoordinator
+from action_machine.logging.log_scope import LogScope
 
 
 class TestActionBoundLogger:

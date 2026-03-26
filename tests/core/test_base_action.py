@@ -12,10 +12,10 @@ Checks:
 """
 
 from action_machine.aspects.summary_aspect import summary_aspect
-from action_machine.Core.BaseAction import BaseAction
-from action_machine.Core.BaseParams import BaseParams
-from action_machine.Core.BaseResult import BaseResult
-from action_machine.Core.ToolsBox import ToolsBox
+from action_machine.core.base_action import BaseAction
+from action_machine.core.base_params import BaseParams
+from action_machine.core.base_result import BaseResult
+from action_machine.core.tools_box import ToolsBox
 
 
 class MockParams(BaseParams):

@@ -14,11 +14,11 @@ User data is passed only through kwargs and ends up in var.
 
 from typing import Any
 
-from action_machine.Context.context import Context
-from action_machine.Core.BaseParams import BaseParams
-from action_machine.Core.BaseState import BaseState
-from action_machine.Logging.log_coordinator import LogCoordinator
-from action_machine.Logging.log_scope import LogScope
+from action_machine.context.context import Context
+from action_machine.core.base_params import BaseParams
+from action_machine.core.base_state import BaseState
+from action_machine.logging.log_coordinator import LogCoordinator
+from action_machine.logging.log_scope import LogScope
 
 
 class ActionBoundLogger:
