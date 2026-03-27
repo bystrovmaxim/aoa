@@ -1,104 +1,187 @@
+# tests/plugins/test_basic.py
 """
-Concurrency tests for plugin handlers in PluginCoordinator.
+Тесты базовой функциональности плагинов и параллельного выполнения обработчиков.
 
-Previously, these tests verified that a semaphore limits the number of
-concurrently executing handlers. Now that the semaphore has been removed
-(all handlers run concurrently without restrictions), these tests are no
-longer relevant and have been removed or replaced.
+Проверяется:
+- Все обработчики запускаются параллельно через asyncio.gather
+  внутри PluginRunContext.emit_event().
+- Смешанные обработчики (с ignore_exceptions=True и False)
+  выполняются корректно.
 
-We keep only basic tests that ensure handlers are called correctly.
+Состояния плагинов изолированы в PluginRunContext, который создаётся
+через PluginCoordinator.create_run_context() в начале каждого теста.
 """
 
 import asyncio
 
 import pytest
 
+from action_machine.aspects.summary_aspect import summary_aspect
+from action_machine.auth.check_roles import CheckRoles
+from action_machine.context.context import Context
+from action_machine.core.base_action import BaseAction
+from action_machine.core.base_params import BaseParams
+from action_machine.core.base_result import BaseResult
+from action_machine.dependencies.dependency_factory import DependencyFactory
+from action_machine.plugins.decorators import on
+from action_machine.plugins.plugin import Plugin
 from action_machine.plugins.plugin_coordinator import PluginCoordinator
+from action_machine.plugins.plugin_event import PluginEvent
 
-from .conftest import MockParams, SlowPlugin
+# ─────────────────────────────────────────────────────────────────────────────
+# Вспомогательные классы
+# ─────────────────────────────────────────────────────────────────────────────
 
+@CheckRoles(CheckRoles.NONE, desc="")
+class DummyAction(BaseAction[BaseParams, BaseResult]):
+    """Минимальное действие для тестов плагинов."""
+
+    @summary_aspect("dummy")
+    async def summary(self, params, state, box, connections):
+        return BaseResult()
+
+
+class SlowPlugin(Plugin):
+    """
+    Плагин с обработчиком, который делает паузу.
+    Используется для проверки параллельного выполнения.
+    """
+
+    def __init__(self, delay: float = 0.05):
+        self._delay = delay
+
+    async def get_initial_state(self) -> dict:
+        return {"calls": []}
+
+    @on("global_finish", ".*", ignore_exceptions=False)
+    async def slow_handler(self, state: dict, event: PluginEvent) -> dict:
+        await asyncio.sleep(self._delay)
+        state["calls"].append("slow")
+        return state
+
+
+class FastPlugin(Plugin):
+    """Плагин с быстрым обработчиком."""
+
+    async def get_initial_state(self) -> dict:
+        return {"calls": []}
+
+    @on("global_finish", ".*", ignore_exceptions=False)
+    async def fast_handler(self, state: dict, event: PluginEvent) -> dict:
+        state["calls"].append("fast")
+        return state
+
+
+class FailingPlugin(Plugin):
+    """Плагин с обработчиком, который выбрасывает исключение."""
+
+    async def get_initial_state(self) -> dict:
+        return {}
+
+    @on("global_finish", ".*", ignore_exceptions=True)
+    async def failing_handler(self, state: dict, event: PluginEvent) -> dict:
+        raise RuntimeError("Plugin error")
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Вспомогательные функции
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _make_dummy_action() -> DummyAction:
+    return DummyAction()
+
+
+def _make_empty_factory() -> DependencyFactory:
+    from action_machine.dependencies.dependency_gate import DependencyGate
+    gate = DependencyGate()
+    gate.freeze()
+    return DependencyFactory(gate)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Тесты
+# ─────────────────────────────────────────────────────────────────────────────
 
 class TestPluginCoordinatorConcurrency:
-    """
-    Tests related to concurrent execution of plugin handlers.
-
-    Since concurrency is now unlimited, we only verify that all handlers
-    are invoked and that the total execution time is roughly the time of
-    the slowest handler (they run in parallel).
-    """
+    """Тесты параллельного выполнения обработчиков плагинов."""
 
     @pytest.mark.anyio
-    async def test_all_handlers_run_concurrently(self, mock_action, mock_factory, mock_context):
+    async def test_all_handlers_run_concurrently(self):
         """
-        All handlers should run concurrently; total time ≈ max(handler time).
-        With 5 slow handlers each taking 0.1s, total time should be ~0.1s,
-        not 0.5s.
+        Несколько обработчиков запускаются параллельно через asyncio.gather.
+        Общее время должно быть близко к времени самого медленного обработчика,
+        а не к сумме всех задержек.
         """
-        plugins = [SlowPlugin() for _ in range(5)]
-        coordinator = PluginCoordinator(plugins)
+        slow1 = SlowPlugin(delay=0.05)
+        slow2 = SlowPlugin(delay=0.05)
+        fast = FastPlugin()
 
-        params = MockParams()
+        coordinator = PluginCoordinator(plugins=[slow1, slow2, fast])
+        plugin_ctx = await coordinator.create_run_context()
 
-        start_time = asyncio.get_event_loop().time()
+        action = _make_dummy_action()
+        factory = _make_empty_factory()
 
-        await coordinator.emit_event(
-            event_name="slow_event",
-            action=mock_action,
-            params=params,
-            state_aspect={},
+        start = asyncio.get_event_loop().time()
+        await plugin_ctx.emit_event(
+            event_name="global_finish",
+            action=action,
+            params=BaseParams(),
+            state_aspect=None,
             is_summary=False,
             result=None,
             duration=None,
-            factory=mock_factory,
-            context=mock_context,
+            factory=factory,
+            context=Context(),
             nest_level=0,
         )
+        elapsed = asyncio.get_event_loop().time() - start
 
-        end_time = asyncio.get_event_loop().time()
-        duration = end_time - start_time
+        # Если бы выполнялись последовательно, заняло бы ~0.1с
+        # Параллельно — ~0.05с
+        assert elapsed < 0.09
 
-        # All handlers run concurrently, so duration should be just over 0.1s.
-        # Allow some margin for overhead.
-        assert duration < 0.2, f"Expected duration < 0.2s, got {duration:.2f}s"
+        # Проверяем, что все обработчики были вызваны
+        state_slow1 = plugin_ctx.get_plugin_state(slow1)
+        state_slow2 = plugin_ctx.get_plugin_state(slow2)
+        state_fast = plugin_ctx.get_plugin_state(fast)
 
-        for plugin in plugins:
-            assert plugin.handlers_called == [("slow", "slow_event")]
+        assert state_slow1["calls"] == ["slow"]
+        assert state_slow2["calls"] == ["slow"]
+        assert state_fast["calls"] == ["fast"]
 
     @pytest.mark.anyio
-    async def test_mixed_handlers_run_concurrently(self, mock_action, mock_factory, mock_context):
+    async def test_mixed_handlers_run_concurrently(self):
         """
-        Mixed fast and slow handlers also run concurrently; total time ≈ max time.
+        Смешанные обработчики (быстрый, медленный, падающий)
+        выполняются параллельно. Падающий с ignore_exceptions=True
+        не прерывает остальных.
         """
-        slow_plugins = [SlowPlugin() for _ in range(3)]
-        all_plugins = slow_plugins  # all slow in this example
+        slow = SlowPlugin(delay=0.05)
+        fast = FastPlugin()
+        failing = FailingPlugin()
 
-        coordinator = PluginCoordinator(all_plugins)
-        params = MockParams()
+        coordinator = PluginCoordinator(plugins=[slow, fast, failing])
+        plugin_ctx = await coordinator.create_run_context()
 
-        start_time = asyncio.get_event_loop().time()
-        await coordinator.emit_event(
-            event_name="slow_event",
-            action=mock_action,
-            params=params,
-            state_aspect={},
+        action = _make_dummy_action()
+        factory = _make_empty_factory()
+
+        await plugin_ctx.emit_event(
+            event_name="global_finish",
+            action=action,
+            params=BaseParams(),
+            state_aspect=None,
             is_summary=False,
             result=None,
             duration=None,
-            factory=mock_factory,
-            context=mock_context,
+            factory=factory,
+            context=Context(),
             nest_level=0,
         )
-        end_time = asyncio.get_event_loop().time()
-        duration = end_time - start_time
 
-        # Should still be around 0.1s (concurrent)
-        assert duration < 0.2
+        state_slow = plugin_ctx.get_plugin_state(slow)
+        state_fast = plugin_ctx.get_plugin_state(fast)
 
-    # The following tests are removed because they verified the semaphore behavior:
-    # - test_semaphore_limits_concurrency
-    # - test_semaphore_with_max_concurrent_1
-    # - test_semaphore_with_max_concurrent_equal_to_plugins
-    # - test_semaphore_with_mixed_handlers
-    # - test_semaphore_resets_between_events
-    #
-    # They are no longer applicable.
+        assert state_slow["calls"] == ["slow"]
+        assert state_fast["calls"] == ["fast"]

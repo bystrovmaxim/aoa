@@ -11,6 +11,10 @@
 - Валидация результатов аспектов чекерами (ResultStringChecker).
 - Ошибки: regular-аспект вернул не dict, нет чекеров, лишние поля.
 
+Состояния плагинов изолированы в PluginRunContext. Каждый вызов run()
+создаёт новый контекст через plugin_coordinator.create_run_context().
+События плагинов отправляются через plugin_ctx.emit_event().
+
 ResultStringChecker поддерживает двойной режим: как декоратор метода
 (записывает _checker_meta) и как валидатор dict (вызывается машиной).
 Порядок декораторов @regular_aspect и @ResultStringChecker не имеет значения.
@@ -36,6 +40,7 @@ from action_machine.core.tools_box import ToolsBox
 from action_machine.logging.log_coordinator import LogCoordinator
 from action_machine.plugins.plugin import Plugin
 from action_machine.plugins.plugin_coordinator import PluginCoordinator
+from action_machine.plugins.plugin_run_context import PluginRunContext
 from action_machine.resource_managers.base_resource_manager import BaseResourceManager
 from action_machine.resource_managers.connection import connection
 
@@ -534,12 +539,23 @@ class TestRun:
             await machine.run(context_with_roles, ActionWithChecker(), MockParams())
 
     @pytest.mark.anyio
-    async def test_run_calls_plugin_events(self, machine, context_with_roles, mock_plugin):
-        """run() эмитирует события плагинам: global_start, before/after для каждого аспекта, global_finish."""
-        machine._plugin_coordinator = AsyncMock(spec=PluginCoordinator)
+    async def test_run_calls_plugin_events(self, machine, context_with_roles):
+        """
+        run() создаёт PluginRunContext и эмитирует события плагинам:
+        global_start, before/after для каждого аспекта, global_finish.
+
+        Для ActionWithAspects (2 regular + 1 summary) ожидается 6 событий:
+        global_start, before:aspect1, after:aspect1, before:aspect2,
+        after:aspect2, global_finish.
+        """
+        mock_plugin_ctx = AsyncMock(spec=PluginRunContext)
+        mock_coordinator = AsyncMock(spec=PluginCoordinator)
+        mock_coordinator.create_run_context = AsyncMock(return_value=mock_plugin_ctx)
+        machine._plugin_coordinator = mock_coordinator
+
         ActionWithAspects._test_calls = []
         await machine.run(context_with_roles, ActionWithAspects(), MockParams())
-        assert machine._plugin_coordinator.emit_event.await_count == 6
+        assert mock_plugin_ctx.emit_event.await_count == 6
 
     @pytest.mark.anyio
     async def test_nest_level_increments_and_decrements(self, machine, context_with_roles):
