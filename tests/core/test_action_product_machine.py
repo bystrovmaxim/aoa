@@ -2,18 +2,18 @@
 """
 Тесты для ActionProductMachine — основной машины выполнения действий.
 
-Проверяем:
-- Сборку аспектов
-- Проверку ролей
-- Проверку соединений (с использованием обновленного механизма ClassMetadata)
-- Полный цикл выполнения run(), включая логирование
-- Передачу параметров mode и log координаторам
-- Корректную работу всех аспектов с параметром box (ToolsBox)
-- Применение ResultStringChecker как декоратора на методах-аспектах
+Проверяется:
+- Конструктор и параметры (mode, log_coordinator).
+- Проверка ролей (_check_action_roles) через ClassMetadata.
+- Проверка соединений (_check_connections) через ClassMetadata.
+- Полный цикл выполнения run(): порядок аспектов, логирование,
+  события плагинов, уровень вложенности.
+- Валидация результатов аспектов чекерами (ResultStringChecker).
+- Ошибки: regular-аспект вернул не dict, нет чекеров, лишние поля.
 
-Result*Checker поддерживают двойной режим: как декоратор метода (записывает
-_checker_meta) и как валидатор dict (вызывается машиной). Порядок декораторов
-@regular_aspect и @ResultStringChecker не имеет значения.
+ResultStringChecker поддерживает двойной режим: как декоратор метода
+(записывает _checker_meta) и как валидатор dict (вызывается машиной).
+Порядок декораторов @regular_aspect и @ResultStringChecker не имеет значения.
 """
 
 from unittest.mock import AsyncMock, MagicMock
@@ -68,10 +68,7 @@ class ActionWithAspects(BaseAction[MockParams, MockResult]):
     Действие с несколькими аспектами для проверки порядка выполнения и логирования.
 
     Содержит два regular-аспекта с чекерами ResultStringChecker
-    и один summary-аспект. Используется для проверки:
-    - Последовательного выполнения аспектов
-    - Валидации результатов чекерами
-    - Корректной работы логирования через ToolsBox
+    и один summary-аспект.
     """
     _test_calls: list[str] = []
 
@@ -267,7 +264,7 @@ class ActionWithoutConnections(BaseAction[MockParams, MockResult]):
 
 
 # ----------------------------------------------------------------------
-# Действия для TestRun (ошибки и т.д.)
+# Действия для TestRun (ошибки)
 # ----------------------------------------------------------------------
 @CheckRoles(CheckRoles.NONE, desc="")
 class BadAction(BaseAction[MockParams, MockResult]):
@@ -564,14 +561,14 @@ class TestRun:
 
     @pytest.mark.anyio
     async def test_logger_passed_to_aspects(self, machine, context_with_roles):
-        """Логер вызывается из аспектов через box.info/debug/warning."""
+        """Логгер вызывается из аспектов через box.info/debug/warning."""
         ActionWithAspects._test_calls = []
         await machine.run(context_with_roles, ActionWithAspects(), MockParams())
         assert machine._log_coordinator.emit.await_count >= 3
 
     @pytest.mark.anyio
     async def test_logger_receives_correct_scope(self, machine, context_with_roles):
-        """Логер получает LogScope с правильными полями: machine, mode, action, aspect."""
+        """Логгер получает LogScope с правильными полями: machine, mode, action, aspect."""
         machine._log_coordinator.emit = AsyncMock()
         await machine.run(context_with_roles, ActionWithAspects(), MockParams())
         call_args = machine._log_coordinator.emit.call_args_list[0]

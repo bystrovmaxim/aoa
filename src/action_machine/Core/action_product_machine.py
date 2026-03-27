@@ -1,4 +1,4 @@
-# src/action_machine/Core/ActionProductMachine.py
+# src/action_machine/core/action_product_machine.py
 """
 Модуль: ActionProductMachine — production-реализация машины действий.
 
@@ -66,11 +66,17 @@ GateCoordinator передаётся в конструктор машины (dep
         └── 8. return Result
 
 ═══════════════════════════════════════════════════════════════════════════════
-ПРИМЕР ИСПОЛЬЗОВАНИЯ
+ЛОГИРОВАНИЕ
 ═══════════════════════════════════════════════════════════════════════════════
 
-    from action_machine.Core.gate_coordinator import GateCoordinator
-    from action_machine.Core.ActionProductMachine import ActionProductMachine
+Для каждого аспекта создаётся ScopedLogger с координатами выполнения
+(machine, mode, action, aspect). Логгер оборачивается в ToolsBox и
+передаётся в аспект. Аспекты вызывают box.info/warning/error/debug,
+которые делегируют в ScopedLogger → LogCoordinator → [Logger1, Logger2, ...].
+
+═══════════════════════════════════════════════════════════════════════════════
+ПРИМЕР ИСПОЛЬЗОВАНИЯ
+═══════════════════════════════════════════════════════════════════════════════
 
     coordinator = GateCoordinator()
     machine = ActionProductMachine(
@@ -107,9 +113,9 @@ from action_machine.core.gate_coordinator import GateCoordinator
 from action_machine.core.tools_box import ToolsBox
 from action_machine.dependencies.dependency_factory import DependencyFactory
 from action_machine.dependencies.dependency_gate import DependencyGate
-from action_machine.logging.action_bound_logger import ActionBoundLogger
 from action_machine.logging.console_logger import ConsoleLogger
 from action_machine.logging.log_coordinator import LogCoordinator
+from action_machine.logging.scoped_logger import ScopedLogger
 from action_machine.plugins.plugin import Plugin
 from action_machine.plugins.plugin_coordinator import PluginCoordinator
 from action_machine.resource_managers.base_resource_manager import BaseResourceManager
@@ -228,7 +234,6 @@ class ActionProductMachine(BaseActionMachine):
         if action_class not in self._factory_cache:
             metadata = self._get_metadata(action)
 
-            # Создаём DependencyGate из собранных DependencyInfo
             gate = DependencyGate()
             for dep_info in metadata.dependencies:
                 gate.register(dep_info)
@@ -268,7 +273,7 @@ class ActionProductMachine(BaseActionMachine):
         Применяет все чекеры к словарю результата аспекта.
 
         Каждый чекер создаётся из CheckerMeta и вызывается с результатом.
-        Если проверка не пройдена, чекер сам выбрасывает ValidationFieldError.
+        Если проверка не пройдена, чекер выбрасывает ValidationFieldError.
 
         Аргументы:
             checkers: кортеж метаданных чекеров.
@@ -278,7 +283,6 @@ class ActionProductMachine(BaseActionMachine):
             ValidationFieldError: если какая-либо проверка не пройдена.
         """
         for checker_meta in checkers:
-            # Создаём экземпляр чекера из его класса и параметров
             checker_instance = checker_meta.checker_class(
                 checker_meta.field_name,
                 checker_meta.description,
@@ -378,7 +382,6 @@ class ActionProductMachine(BaseActionMachine):
             self._check_list_role(role_spec, user_roles)
         else:
             self._check_single_role(role_spec, user_roles)
-
 
     # ─────────────────────────────────────────────────────────────────────
     # Проверка соединений
@@ -521,7 +524,7 @@ class ActionProductMachine(BaseActionMachine):
         """
         Вызывает метод-аспект, обёрнутый в AspectMeta.
 
-        Создаёт ActionBoundLogger с именем аспекта, оборачивает в новый
+        Создаёт ScopedLogger с именем аспекта, оборачивает в новый
         ToolsBox (чтобы логи показывали правильный aspect_name) и вызывает
         метод: method(action, params, state, box, connections).
 
@@ -540,8 +543,8 @@ class ActionProductMachine(BaseActionMachine):
         if aspect_meta is None:
             return BaseResult()
 
-        # Создаём логер с именем аспекта
-        aspect_log = ActionBoundLogger(
+        # Создаём логер с координатами конкретного аспекта
+        aspect_log = ScopedLogger(
             coordinator=self._log_coordinator,
             nest_level=box.nested_level,
             machine_name=self.__class__.__name__,
@@ -589,10 +592,10 @@ class ActionProductMachine(BaseActionMachine):
         6. Уведомляет плагины о событии after:{aspect_name}.
 
         Правила чекеров:
-        - Если у аспекта нет чекеров и он вернул непустой dict → ошибка.
+        - Если у аспекта нет чекеров и он вернул непустой dict — ошибка.
           Это гарантирует, что каждое поле в state было провалидировано.
         - Если у аспекта есть чекеры, проверяются только объявленные поля.
-          Лишние поля (не объявленные в чекерах) → ошибка.
+          Лишние поля (не объявленные в чекерах) — ошибка.
 
         Аргументы:
             action: экземпляр действия.
@@ -738,6 +741,9 @@ class ActionProductMachine(BaseActionMachine):
         """
         Внутренний метод выполнения с поддержкой вложенности.
 
+        Вызывается из run() (для корневого вызова с nested_level=0)
+        и из ToolsBox.run() (для дочерних вызовов с nested_level > 0).
+
         Аргументы:
             context: контекст выполнения.
             action: экземпляр действия.
@@ -764,7 +770,7 @@ class ActionProductMachine(BaseActionMachine):
             factory = self._get_factory(action)
 
             # ── Логер для этого уровня ──────────────────────────────────
-            log = ActionBoundLogger(
+            log = ScopedLogger(
                 coordinator=self._log_coordinator,
                 nest_level=current_nest,
                 machine_name=self.__class__.__name__,

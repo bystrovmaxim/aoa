@@ -1,11 +1,12 @@
 # tests/conftest.py
 """
 Корневые фикстуры pytest — доступны во всех тестах автоматически.
-Pytest подхватывает этот файл без явного импорта.
 
-Изменения (этап 1):
-- В RecordingLogger.write добавлен параметр box (не используется, но для совместимости).
-- В тестовых аспектах заменены сигнатуры: теперь принимают box.
+Pytest подхватывает этот файл без явного импорта. Содержит:
+- Тестовые модели данных (ParamsTest).
+- RecordingLogger — логгер-шпион для проверки рассылки сообщений.
+- Базовые фикстуры для контекста, параметров, состояния, scope.
+- Вспомогательные функции создания контекста для тестов.
 """
 
 from __future__ import annotations
@@ -32,11 +33,12 @@ from action_machine.logging.log_scope import LogScope
 class ParamsTest(BaseParams):
     """
     Стандартные тестовые параметры для всех тестов.
+
     Содержит типичные поля, используемые в примерах:
-    - user_id: идентификатор пользователя
-    - card_token: токен карты (строка)
-    - amount: сумма (float)
-    - success: флаг успеха (bool)
+    - user_id: идентификатор пользователя.
+    - card_token: токен карты (строка).
+    - amount: сумма (float).
+    - success: флаг успеха (bool).
     """
     user_id: int = 42
     card_token: str = "tok_test_abc"
@@ -46,18 +48,24 @@ class ParamsTest(BaseParams):
 
 class RecordingLogger(BaseLogger):
     """
-    Логер-шпион — записывает все сообщения в список records.
+    Логгер-шпион — записывает все сообщения в список records.
+
     Используется для проверки:
-    - Что координатор правильно рассылает сообщения
-    - Что фильтрация работает
-    - Что подстановка переменных выполняется
+    - Что координатор правильно рассылает сообщения.
+    - Что фильтрация работает.
+    - Что подстановка переменных выполняется.
+
     Не выводит ничего в консоль — только накапливает записи.
+
     Атрибуты:
-        records: список словарей с параметрами каждого вызова write
+        records : list[dict[str, Any]]
+            Список словарей с параметрами каждого вызова write.
+            Каждый словарь содержит ключи: scope, message, var, ctx,
+            state, params, indent.
     """
 
     def __init__(self, filters: list[str] | None = None) -> None:
-        """Создаёт логер-шпион с опциональными фильтрами."""
+        """Создаёт логгер-шпион с опциональными фильтрами."""
         super().__init__(filters=filters)
         self.records: list[dict[str, Any]] = []
 
@@ -73,7 +81,8 @@ class RecordingLogger(BaseLogger):
     ) -> None:
         """
         Записывает сообщение в records.
-        Вызывается только если фильтры прошли.
+
+        Вызывается только если фильтры прошли (match_filters вернул True).
         Сохраняет все параметры для последующей проверки в тестах.
         """
         self.records.append(
@@ -107,10 +116,11 @@ def params() -> ParamsTest:
 def context_fixture() -> Context:
     """
     Стандартный тестовый контекст.
+
     Содержит:
-    - Пользователя с ролями ['user', 'admin'] и extra {'org': 'acme'}
-    - Информацию о запросе с trace_id, путем и методом
-    - Информацию об окружении с hostname, service_name
+    - Пользователя с ролями ['user', 'admin'] и extra {'org': 'acme'}.
+    - Информацию о запросе с trace_id, путём и методом.
+    - Информацию об окружении с hostname, service_name.
     """
     user = UserInfo(
         user_id="agent_1",
@@ -140,25 +150,25 @@ def empty_context() -> Context:
 
 @pytest.fixture
 def recording_logger() -> RecordingLogger:
-    """Логер-шпион без фильтров (принимает всё)."""
+    """Логгер-шпион без фильтров (принимает всё)."""
     return RecordingLogger()
 
 
 @pytest.fixture
 def filtered_logger() -> RecordingLogger:
-    """Логер-шпион с фильтром 'TestAction'."""
+    """Логгер-шпион с фильтром 'TestAction'."""
     return RecordingLogger(filters=[r"TestAction"])
 
 
 @pytest.fixture
 def scope() -> LogScope:
-    """Стандартный тестовый скоуп с action, aspect и event."""
+    """Стандартный тестовый scope с action, aspect и event."""
     return LogScope(action="TestAction", aspect="test", event="before")
 
 
 @pytest.fixture
 def simple_scope() -> LogScope:
-    """Простой скоуп только с действием."""
+    """Простой scope только с действием."""
     return LogScope(action="TestAction")
 
 
@@ -172,11 +182,12 @@ def state() -> BaseState:
 def populated_state() -> BaseState:
     """
     Состояние с данными для тестов.
+
     Содержит:
-    - total: общая сумма (float)
-    - count: количество (int)
-    - processed: флаг обработки (bool)
-    - order: вложенный словарь с данными заказа
+    - total: общая сумма (float).
+    - count: количество (int).
+    - processed: флаг обработки (bool).
+    - order: вложенный словарь с данными заказа.
     """
     return BaseState({
         "total": 1500.0,
@@ -197,10 +208,12 @@ def make_context(
 ) -> Context:
     """
     Создаёт тестовый контекст с пользователем и запросом.
+
     Аргументы:
         user_id: идентификатор пользователя.
         roles: список ролей.
         trace_id: идентификатор трассировки.
+
     Возвращает:
         Готовый Context для использования в тестах.
     """
@@ -224,11 +237,13 @@ def make_context(
 def create_context_with_user(user_id: str, roles: list[str] | None = None) -> Context:
     """
     Создаёт контекст с конкретным пользователем.
+
     Аргументы:
-        user_id: идентификатор пользователя
-        roles: список ролей (по умолчанию пустой)
+        user_id: идентификатор пользователя.
+        roles: список ролей (по умолчанию пустой).
+
     Возвращает:
-        Context с указанным пользователем
+        Context с указанным пользователем.
     """
     return Context(
         user=UserInfo(user_id=user_id, roles=roles or []),
