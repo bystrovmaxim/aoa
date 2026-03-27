@@ -9,7 +9,7 @@ ToolsBox — контейнер инструментов для аспектов
 ToolsBox — единый объект, передаваемый в каждый аспект действия как
 параметр box. Обеспечивает аспектам доступ ко всем инструментам:
 
-- Получение зависимостей через resolve(cls).
+- Получение зависимостей через resolve(cls, *args, **kwargs).
 - Запуск дочерних действий через run(action_class, params, connections).
 - Логирование через info/warning/error/debug.
 
@@ -33,26 +33,31 @@ ToolsBox заменяет ранее существовавшие отдельн
         ▼
     ToolsBox
         │
-        ├── resolve(cls)     → ищет в resources, затем в factory
-        ├── run(action, p)   → создаёт экземпляр, оборачивает connections, вызывает run_child
-        ├── info(msg)        → делегирует в ScopedLogger → LogCoordinator
-        ├── warning(msg)     → делегирует в ScopedLogger → LogCoordinator
-        ├── error(msg)       → делегирует в ScopedLogger → LogCoordinator
-        └── debug(msg)       → делегирует в ScopedLogger → LogCoordinator
+        ├── resolve(cls, *args, **kwargs) → ищет в resources, затем в factory
+        ├── run(action, p)               → создаёт экземпляр, оборачивает connections, вызывает run_child
+        ├── info(msg)                    → делегирует в ScopedLogger → LogCoordinator
+        ├── warning(msg)                 → делегирует в ScopedLogger → LogCoordinator
+        ├── error(msg)                   → делегирует в ScopedLogger → LogCoordinator
+        └── debug(msg)                   → делегирует в ScopedLogger → LogCoordinator
 
 ═══════════════════════════════════════════════════════════════════════════════
 РЕЗОЛВ ЗАВИСИМОСТЕЙ
 ═══════════════════════════════════════════════════════════════════════════════
 
-Метод resolve(cls) реализует двухуровневый поиск:
+Метод resolve(cls, *args, **kwargs) реализует двухуровневый поиск:
 
 1. Сначала проверяет resources — словарь внешних ресурсов. В production
    он обычно None. В тестах (ActionTestMachine) содержит моки, которые
    имеют приоритет над фабрикой.
 
-2. Если в resources не найдено — делегирует в factory.resolve(cls),
-   который создаёт экземпляр через фабрику или конструктор по умолчанию
-   и кеширует его.
+2. Если в resources не найдено — делегирует в factory.resolve(cls, *args, **kwargs),
+   который создаёт новый экземпляр через фабрику или конструктор.
+   DependencyFactory stateless — каждый вызов создаёт свежий экземпляр,
+   если пользователь не указал lambda-синглтон в @depends.
+
+Аргументы *args и **kwargs пробрасываются в factory.resolve(), что
+позволяет аспектам передавать рантайм-параметры при создании зависимостей.
+При вызове без аргументов поведение идентично прежнему.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ЗАПУСК ДОЧЕРНИХ ДЕЙСТВИЙ
@@ -69,9 +74,12 @@ ToolsBox заменяет ранее существовавшие отдельн
 
     @regular_aspect("Обработка платежа")
     async def process_payment(self, params, state, box, connections):
-        # Получение зависимости
+        # Получение зависимости (без параметров — обратная совместимость)
         payment = box.resolve(PaymentService)
         txn_id = await payment.charge(params.amount, params.currency)
+
+        # Получение зависимости с рантайм-параметрами
+        logger = box.resolve(AuditLogger, level="verbose")
 
         # Логирование
         await box.info("Платёж обработан", txn_id=txn_id)
@@ -109,7 +117,7 @@ class ToolsBox:
 
     Атрибуты (доступны через свойства):
         run_child : Callable — замыкание для запуска дочерних действий.
-        factory : DependencyFactory — фабрика зависимостей текущего действия.
+        factory : DependencyFactory — stateless-фабрика зависимостей текущего действия.
         resources : dict[type, Any] | None — внешние ресурсы (моки в тестах).
         context : Context — контекст выполнения текущего запроса.
         nested_level : int — уровень вложенности вызова.
@@ -131,9 +139,12 @@ class ToolsBox:
             run_child: функция для запуска дочернего действия (замыкание,
                        предоставляемое машиной). Принимает action, params,
                        connections и возвращает BaseResult.
-            factory: фабрика зависимостей для текущего действия.
+            factory: stateless-фабрика зависимостей для текущего действия.
+                     Каждый вызов factory.resolve() создаёт новый экземпляр.
             resources: словарь внешних ресурсов, переданных на этот уровень.
                        В production обычно None. В тестах — моки.
+                       При наличии ресурса в этом словаре он имеет приоритет
+                       над фабрикой.
             context: контекст выполнения текущего запроса.
             log: ScopedLogger, привязанный к текущему аспекту.
             nested_level: уровень вложенности вызова.
@@ -152,7 +163,7 @@ class ToolsBox:
 
     @property
     def factory(self) -> DependencyFactory:
-        """Возвращает фабрику зависимостей."""
+        """Возвращает stateless-фабрику зависимостей."""
         return self.__factory
 
     @property
@@ -170,16 +181,26 @@ class ToolsBox:
         """Возвращает уровень вложенности."""
         return self.__nested_level
 
-    def resolve(self, cls: type[Any]) -> Any:
+    def resolve(self, cls: type[Any], *args: Any, **kwargs: Any) -> Any:
         """
         Возвращает экземпляр зависимости указанного класса.
 
         Двухуровневый поиск:
         1. Сначала ищет в resources (внешние ресурсы / моки).
-        2. Если не найдено — делегирует в factory.resolve().
+           Если найдено — возвращает объект из resources.
+           Аргументы *args и **kwargs игнорируются при возврате из resources,
+           так как объект уже создан.
+        2. Если не найдено — делегирует в factory.resolve(cls, *args, **kwargs),
+           который создаёт новый экземпляр через фабрику или конструктор.
+
+        Аргументы *args и **kwargs пробрасываются в factory.resolve(),
+        что позволяет аспектам передавать рантайм-параметры. При вызове
+        без аргументов поведение идентично прежнему — обратная совместимость.
 
         Аргументы:
             cls: класс зависимости.
+            *args: позиционные аргументы для фабрики или конструктора.
+            **kwargs: именованные аргументы для фабрики или конструктора.
 
         Возвращает:
             Экземпляр зависимости.
@@ -189,7 +210,7 @@ class ToolsBox:
         """
         if self.__resources and cls in self.__resources:
             return self.__resources[cls]
-        return self.__factory.resolve(cls)
+        return self.__factory.resolve(cls, *args, **kwargs)
 
     def _wrap_connections(
         self, connections: dict[str, BaseResourceManager] | None

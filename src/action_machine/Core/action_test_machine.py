@@ -12,6 +12,18 @@ ActionTestMachine наследует ActionProductMachine и добавляет 
 NotificationService и т.д.) на моки.
 
 ═══════════════════════════════════════════════════════════════════════════════
+STATELESS МЕЖДУ ЗАПРОСАМИ
+═══════════════════════════════════════════════════════════════════════════════
+
+Как и родительская машина, ActionTestMachine не хранит состояния между
+вызовами run(), связанного с зависимостями. Фабрики зависимостей хранятся
+в координаторе (GateCoordinator) и являются stateless.
+
+Моки — это не состояние машины в смысле кеширования. Это конфигурация,
+заданная при создании машины и неизменяемая после этого. Моки передаются
+как resources в _run_internal и имеют приоритет над фабрикой при resolve().
+
+═══════════════════════════════════════════════════════════════════════════════
 ИНТЕГРАЦИЯ С GATECOORDINATOR
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -19,8 +31,8 @@ NotificationService и т.д.) на моки.
 ActionProductMachine. Координатор передаётся через конструктор (DI).
 Если не указан — создаётся по умолчанию в родителе.
 
-Метод build_factory() создаёт DependencyFactory для класса действия
-через координатор, что позволяет тестировать отдельные аспекты
+Метод build_factory() делегирует координатору создание DependencyFactory
+для класса действия, что позволяет тестировать отдельные аспекты
 без запуска всей машины.
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -69,6 +81,11 @@ ToolsBox при вызове box.resolve(PaymentService) сначала ищет
 
     # Проверяем, что мок был вызван
     assert len(mock_payment.processed) == 1
+
+    # Тестирование отдельного аспекта вне машины:
+    factory = machine.build_factory(CreateOrderAction)
+    box = ToolsBox(factory=factory, resources=machine._prepared_mocks, ...)
+    payment = box.resolve(PaymentService)  # вернёт mock_payment
 """
 
 from typing import Any, TypeVar, cast
@@ -81,7 +98,6 @@ from action_machine.core.base_result import BaseResult
 from action_machine.core.gate_coordinator import GateCoordinator
 from action_machine.core.mock_action import MockAction
 from action_machine.dependencies.dependency_factory import DependencyFactory
-from action_machine.dependencies.dependency_gate import DependencyGate
 from action_machine.logging.log_coordinator import LogCoordinator
 from action_machine.resource_managers.base_resource_manager import BaseResourceManager
 
@@ -99,6 +115,10 @@ class ActionTestMachine(ActionProductMachine):
 
     Для MockAction выполнение идёт напрямую через .run() (без конвейера
     аспектов, без проверки ролей и соединений).
+
+    Машина не хранит состояния между вызовами run(), связанного
+    с зависимостями. Фабрики хранятся в координаторе. Моки —
+    это неизменяемая конфигурация, заданная при создании.
 
     Атрибуты:
         _mocks : dict[type, Any]
@@ -122,8 +142,10 @@ class ActionTestMachine(ActionProductMachine):
                    Ключ — класс зависимости (тот же, что в @depends).
                    Значение — мок (см. _prepare_mock).
             mode: режим выполнения (по умолчанию "test"). Передаётся родителю.
-            coordinator: координатор метаданных. Если не указан, родитель
-                         создаст новый экземпляр GateCoordinator().
+            coordinator: координатор метаданных и фабрик. Если не указан,
+                         родитель создаст новый экземпляр GateCoordinator().
+                         Координатор — единственный владелец метаданных
+                         и фабрик.
             log_coordinator: координатор логирования. Если не указан, родитель
                              создаст координатор с ConsoleLogger по умолчанию.
         """
@@ -188,6 +210,8 @@ class ActionTestMachine(ActionProductMachine):
         Для обычных действий — вызов _run_internal с моками как resources,
         что даёт им приоритет при resolve() в ToolsBox.
 
+        Каждый вызов полностью изолирован от предыдущих.
+
         Аргументы:
             context: контекст выполнения.
             action: экземпляр действия.
@@ -227,7 +251,7 @@ class ActionTestMachine(ActionProductMachine):
 
         Для MockAction — прямой вызов без конвейера.
         Для обычных действий — делегирование родительскому _run_internal,
-        который получает метаданные через координатор и выполняет
+        который получает метаданные и фабрику через координатор и выполняет
         полный конвейер с проверками.
 
         Аргументы:
@@ -262,20 +286,20 @@ class ActionTestMachine(ActionProductMachine):
         self, action_class: type[BaseAction[Any, Any]],
     ) -> DependencyFactory:
         """
-        Создаёт DependencyFactory для класса действия без создания экземпляра.
+        Возвращает DependencyFactory для класса действия через координатор.
 
         Полезно для тестирования отдельных аспектов вне машины:
         можно получить фабрику, создать ToolsBox и вызвать метод-аспект
         напрямую.
 
-        Использует координатор (_self._coordinator) для получения метаданных
-        класса, затем собирает DependencyGate из списка зависимостей.
+        Делегирует координатору (self._coordinator.get_factory), который
+        лениво создаёт и кеширует stateless-фабрику для класса.
 
         Аргументы:
             action_class: класс действия (не экземпляр).
 
         Возвращает:
-            DependencyFactory — фабрика зависимостей для класса.
+            DependencyFactory — stateless-фабрика зависимостей для класса.
 
         Пример:
             machine = ActionTestMachine(mocks={PaymentService: mock_payment})
@@ -283,11 +307,4 @@ class ActionTestMachine(ActionProductMachine):
             box = ToolsBox(factory=factory, resources=machine._prepared_mocks, ...)
             payment = box.resolve(PaymentService)  # вернёт mock_payment
         """
-        metadata = self._coordinator.get(action_class)
-
-        gate = DependencyGate()
-        for dep_info in metadata.dependencies:
-            gate.register(dep_info)
-        gate.freeze()
-
-        return DependencyFactory(gate)
+        return self._coordinator.get_factory(action_class)

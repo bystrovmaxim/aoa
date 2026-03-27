@@ -1,23 +1,17 @@
 # tests/core/test_dependency_factory.py
 """
-Tests for DependencyFactory — the dependency factory for actions.
+Тесты для DependencyFactory — stateless-фабрики зависимостей действий.
 
-Checks:
-- Getting dependencies via resolve() from different sources
-- Instance caching
-- Launching child actions via ToolsBox (moved from DependencyFactory)
+Проверяется:
+- Получение зависимостей через resolve() из разных источников.
+- Каждый вызов resolve() создаёт новый экземпляр (фабрика stateless).
+- Поддержка *args и **kwargs в resolve().
+- Запуск дочерних действий через ToolsBox.
 
-Изменения (этап 0–1):
-- Все вызовы factory.get(...) заменены на factory.resolve(...).
-- Убран параметр machine из конструктора DependencyFactory.
-- Убран параметр external_resources из конструктора DependencyFactory.
-- Убраны тесты, связанные с external_resources и run_action (эти функции перемещены в ToolsBox).
-- Тесты на запуск дочерних действий переписаны с использованием ToolsBox.
-- Обновлены комментарии.
-
-Изменения (этап 2):
-- В тестах ToolsBox теперь создаётся с аргументом run_child вместо machine.
-- Добавлена фикстура run_child для упрощения создания ToolsBox.
+DependencyFactory не хранит кеш экземпляров (_instances удалён).
+Каждый вызов resolve() создаёт свежий экземпляр через фабрику или
+конструктор по умолчанию. Если нужен синглтон, пользователь реализует
+это через lambda-замыкание в параметре factory декоратора @depends.
 """
 
 import pytest
@@ -27,8 +21,6 @@ from action_machine.core.base_action import BaseAction
 from action_machine.core.base_params import BaseParams
 from action_machine.core.base_result import BaseResult
 from action_machine.core.tools_box import ToolsBox
-
-# Импорт DependencyFactory исправлен: из action_machine.dependencies.dependency_factory
 from action_machine.dependencies.dependency_factory import DependencyFactory
 from action_machine.resource_managers.base_resource_manager import BaseResourceManager
 
@@ -95,10 +87,10 @@ class MockWrapper(BaseResourceManager):
 # ======================================================================
 
 class TestResolve:
-    """Tests for the resolve method."""
+    """Тесты для метода resolve."""
 
-    def test_resolve_returns_cached_instance_on_second_call(self):
-        """Second call returns the cached instance."""
+    def test_resolve_creates_new_instance_each_call(self):
+        """Каждый вызов resolve() создаёт новый экземпляр (фабрика stateless)."""
         deps_info = [
             {"class": ServiceA, "description": "", "factory": None},
         ]
@@ -107,11 +99,12 @@ class TestResolve:
         first = factory.resolve(ServiceA)
         second = factory.resolve(ServiceA)
 
-        assert first is second
-        assert ServiceA in factory._instances
+        assert isinstance(first, ServiceA)
+        assert isinstance(second, ServiceA)
+        assert first is not second  # разные экземпляры, кеша нет
 
     def test_resolve_creates_via_factory_function(self):
-        """If a factory is provided, it is called."""
+        """Если задана фабрика, она вызывается при каждом resolve()."""
 
         def custom_factory():
             return ServiceA(value="from_factory")
@@ -125,7 +118,7 @@ class TestResolve:
         assert instance.value == "from_factory"
 
     def test_resolve_creates_via_default_constructor(self):
-        """Without a factory, the default constructor is used."""
+        """Без фабрики используется конструктор по умолчанию."""
         deps_info = [
             {"class": ServiceA, "description": "", "factory": None},
         ]
@@ -135,12 +128,65 @@ class TestResolve:
         assert instance.value == "A"
 
     def test_resolve_raises_for_undeclared_class(self):
-        """If the class is not declared in @depends, an error is raised."""
+        """Если класс не объявлен в @depends, выбрасывается ошибка."""
         deps_info = []  # empty
         factory = DependencyFactory(deps_info)
 
         with pytest.raises(ValueError, match="not declared in @depends"):
             factory.resolve(ServiceA)
+
+    def test_resolve_with_args_passes_to_constructor(self):
+        """Аргументы *args пробрасываются в конструктор."""
+        deps_info = [
+            {"class": ServiceA, "description": "", "factory": None},
+        ]
+        factory = DependencyFactory(deps_info)
+
+        instance = factory.resolve(ServiceA, "custom_value")
+        assert instance.value == "custom_value"
+
+    def test_resolve_with_kwargs_passes_to_constructor(self):
+        """Аргументы **kwargs пробрасываются в конструктор."""
+        deps_info = [
+            {"class": ServiceA, "description": "", "factory": None},
+        ]
+        factory = DependencyFactory(deps_info)
+
+        instance = factory.resolve(ServiceA, value="from_kwargs")
+        assert instance.value == "from_kwargs"
+
+    def test_resolve_with_args_passes_to_factory(self):
+        """Аргументы *args и **kwargs пробрасываются в фабрику."""
+        def custom_factory(value="default"):
+            return ServiceA(value=f"factory_{value}")
+
+        deps_info = [
+            {"class": ServiceA, "description": "", "factory": custom_factory},
+        ]
+        factory = DependencyFactory(deps_info)
+
+        instance = factory.resolve(ServiceA, value="custom")
+        assert instance.value == "factory_custom"
+
+    def test_resolve_lambda_singleton_pattern(self):
+        """
+        Lambda-синглтон: пользователь создаёт экземпляр вне класса
+        и передаёт lambda, возвращающую этот экземпляр.
+        Оба вызова resolve() возвращают один и тот же объект.
+        """
+        shared_instance = ServiceA(value="singleton")
+
+        deps_info = [
+            {"class": ServiceA, "description": "", "factory": lambda: shared_instance},
+        ]
+        factory = DependencyFactory(deps_info)
+
+        first = factory.resolve(ServiceA)
+        second = factory.resolve(ServiceA)
+
+        assert first is second  # один и тот же объект
+        assert first is shared_instance
+        assert first.value == "singleton"
 
 
 # ======================================================================
@@ -148,7 +194,7 @@ class TestResolve:
 # ======================================================================
 
 class TestToolsBoxIntegration:
-    """Tests for ToolsBox which now handles resources and child actions."""
+    """Тесты для ToolsBox, который управляет ресурсами и дочерними действиями."""
 
     @pytest.fixture
     def mock_machine(self):
@@ -195,7 +241,7 @@ class TestToolsBoxIntegration:
 
     @pytest.mark.anyio
     async def test_tools_box_resolve_uses_resources_first(self, run_child, mock_log):
-        """ToolsBox.resolve should check resources before factory."""
+        """ToolsBox.resolve ищет сначала в resources, затем в factory."""
         deps_info = [
             {"class": ServiceA, "description": "", "factory": None},
         ]
@@ -215,7 +261,7 @@ class TestToolsBoxIntegration:
 
     @pytest.mark.anyio
     async def test_tools_box_resolve_falls_back_to_factory(self, run_child, mock_log):
-        """If not in resources, ToolsBox.resolve should use factory."""
+        """Если в resources нет, ToolsBox.resolve обращается к factory."""
         deps_info = [
             {"class": ServiceA, "description": "", "factory": None},
         ]
@@ -233,8 +279,27 @@ class TestToolsBoxIntegration:
         assert instance.value == "A"
 
     @pytest.mark.anyio
+    async def test_tools_box_resolve_with_kwargs(self, run_child, mock_log):
+        """ToolsBox.resolve пробрасывает *args и **kwargs в factory."""
+        deps_info = [
+            {"class": ServiceA, "description": "", "factory": None},
+        ]
+        factory = DependencyFactory(deps_info)
+        box = ToolsBox(
+            run_child=run_child,
+            factory=factory,
+            resources=None,
+            context=Context(),
+            log=mock_log,
+            nested_level=0,
+        )
+
+        instance = box.resolve(ServiceA, value="custom")
+        assert instance.value == "custom"
+
+    @pytest.mark.anyio
     async def test_tools_box_wrap_connections(self, run_child, mock_log):
-        """ToolsBox._wrap_connections should wrap resources with wrappers."""
+        """ToolsBox._wrap_connections оборачивает ресурсы в обёртки."""
         factory = DependencyFactory([])
         box = ToolsBox(
             run_child=run_child,
@@ -256,7 +321,7 @@ class TestToolsBoxIntegration:
 
     @pytest.mark.anyio
     async def test_tools_box_run(self, mock_machine, run_child, mock_log):
-        """ToolsBox.run should call the run_child function with wrapped connections."""
+        """ToolsBox.run вызывает run_child с обёрнутыми connections."""
         deps_info = [
             {"class": MockAction, "description": "", "factory": None},
         ]
