@@ -1,4 +1,4 @@
-# src/action_machine/Core/ActionTestMachine.py
+# src/action_machine/core/action_test_machine.py
 """
 Модуль: ActionTestMachine — тестовая машина действий с поддержкой моков.
 
@@ -46,7 +46,7 @@ ToolsBox при вызове box.resolve(PaymentService) сначала ищет
 ПРИМЕР ИСПОЛЬЗОВАНИЯ
 ═══════════════════════════════════════════════════════════════════════════════
 
-    from action_machine.Core.ActionTestMachine import ActionTestMachine
+    from action_machine.core.action_test_machine import ActionTestMachine
 
     # Создаём моки зависимостей
     mock_payment = PaymentService(gateway="test")
@@ -278,10 +278,10 @@ class ActionTestMachine(ActionProductMachine):
             DependencyFactory — фабрика зависимостей для класса.
 
         Пример:
-            >>> machine = ActionTestMachine(mocks={PaymentService: mock_payment})
-            >>> factory = machine.build_factory(CreateOrderAction)
-            >>> box = ToolsBox(factory=factory, resources=machine._prepared_mocks, ...)
-            >>> payment = box.resolve(PaymentService)  # вернёт mock_payment
+            machine = ActionTestMachine(mocks={PaymentService: mock_payment})
+            factory = machine.build_factory(CreateOrderAction)
+            box = ToolsBox(factory=factory, resources=machine._prepared_mocks, ...)
+            payment = box.resolve(PaymentService)  # вернёт mock_payment
         """
         metadata = self._coordinator.get(action_class)
 

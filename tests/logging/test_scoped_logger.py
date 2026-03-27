@@ -1,17 +1,17 @@
-# tests/logging/test_action_bound_logger.py
+# tests/logging/test_scoped_logger.py
 """
-Tests for ActionBoundLogger — logger bound to the current aspect.
+Тесты для ScopedLogger — логгера, привязанного к scope текущего аспекта.
 
-Checks:
-- info/warning/error/debug add "level" key to var with correct value.
-- User kwargs end up in var.
-- LogScope is created with correct keys in correct order: machine, mode, action, aspect.
-- emit is called with correct parameters: BaseState(), BaseParams(), passed indent, scope, context.
-- Log coordinator is called exactly once per call.
-
-Изменения (этап 1):
-- В тестах не требуется изменений, так как ActionBoundLogger не изменил публичный API.
-- Обновлены комментарии.
+Проверяется:
+- info/warning/error/debug добавляют ключ "level" в var с правильным значением.
+- Пользовательские kwargs попадают в var.
+- LogScope создаётся с правильными ключами в правильном порядке:
+  machine, mode, action, aspect.
+- emit вызывается с правильными параметрами: BaseState(), BaseParams(),
+  переданный indent, scope, context.
+- Координатор логирования вызывается ровно один раз на каждый вызов метода.
+- Пользовательский ключ "level" в kwargs игнорируется — используется
+  системное значение.
 """
 
 from unittest.mock import AsyncMock
@@ -21,30 +21,30 @@ import pytest
 from action_machine.context.context import Context
 from action_machine.core.base_params import BaseParams
 from action_machine.core.base_state import BaseState
-from action_machine.logging.action_bound_logger import ActionBoundLogger
 from action_machine.logging.log_coordinator import LogCoordinator
 from action_machine.logging.log_scope import LogScope
+from action_machine.logging.scoped_logger import ScopedLogger
 
 
-class TestActionBoundLogger:
-    """Tests for ActionBoundLogger."""
+class TestScopedLogger:
+    """Тесты для ScopedLogger."""
 
     @pytest.fixture
     def mock_coordinator(self) -> AsyncMock:
-        """Mock log coordinator with async emit method."""
+        """Мок координатора логирования с асинхронным методом emit."""
         coordinator = AsyncMock(spec=LogCoordinator)
         coordinator.emit = AsyncMock()
         return coordinator
 
     @pytest.fixture
     def context(self) -> Context:
-        """Test context."""
+        """Тестовый контекст."""
         return Context()
 
     @pytest.fixture
-    def logger(self, mock_coordinator: AsyncMock, context: Context) -> ActionBoundLogger:
-        """Creates ActionBoundLogger with given parameters."""
-        return ActionBoundLogger(
+    def logger(self, mock_coordinator: AsyncMock, context: Context) -> ScopedLogger:
+        """Создаёт ScopedLogger с заданными параметрами."""
+        return ScopedLogger(
             coordinator=mock_coordinator,
             nest_level=2,
             machine_name="TestMachine",
@@ -55,20 +55,19 @@ class TestActionBoundLogger:
         )
 
     # ------------------------------------------------------------------
-    # TESTS: emit call verification
+    # ТЕСТЫ: Проверка вызова emit
     # ------------------------------------------------------------------
 
     @pytest.mark.anyio
     async def test_info_calls_emit_with_level_info(
-        self, logger: ActionBoundLogger, mock_coordinator: AsyncMock, context: Context
+        self, logger: ScopedLogger, mock_coordinator: AsyncMock, context: Context
     ) -> None:
-        """info calls emit with level='info'."""
+        """info вызывает emit с level='info'."""
         await logger.info("Test message", user="john", count=42)
 
         mock_coordinator.emit.assert_awaited_once()
         args, kwargs = mock_coordinator.emit.call_args
 
-        # Check var
         var = kwargs["var"]
         assert var["level"] == "info"
         assert var["user"] == "john"
@@ -76,9 +75,9 @@ class TestActionBoundLogger:
 
     @pytest.mark.anyio
     async def test_warning_calls_emit_with_level_warning(
-        self, logger: ActionBoundLogger, mock_coordinator: AsyncMock
+        self, logger: ScopedLogger, mock_coordinator: AsyncMock
     ) -> None:
-        """warning calls emit with level='warning'."""
+        """warning вызывает emit с level='warning'."""
         await logger.warning("Test warning")
 
         mock_coordinator.emit.assert_awaited_once()
@@ -87,9 +86,9 @@ class TestActionBoundLogger:
 
     @pytest.mark.anyio
     async def test_error_calls_emit_with_level_error(
-        self, logger: ActionBoundLogger, mock_coordinator: AsyncMock
+        self, logger: ScopedLogger, mock_coordinator: AsyncMock
     ) -> None:
-        """error calls emit with level='error'."""
+        """error вызывает emit с level='error'."""
         await logger.error("Test error")
 
         mock_coordinator.emit.assert_awaited_once()
@@ -98,9 +97,9 @@ class TestActionBoundLogger:
 
     @pytest.mark.anyio
     async def test_debug_calls_emit_with_level_debug(
-        self, logger: ActionBoundLogger, mock_coordinator: AsyncMock
+        self, logger: ScopedLogger, mock_coordinator: AsyncMock
     ) -> None:
-        """debug calls emit with level='debug'."""
+        """debug вызывает emit с level='debug'."""
         await logger.debug("Test debug")
 
         mock_coordinator.emit.assert_awaited_once()
@@ -108,14 +107,14 @@ class TestActionBoundLogger:
         assert var["level"] == "debug"
 
     # ------------------------------------------------------------------
-    # TESTS: Parameter passing to emit
+    # ТЕСТЫ: Передача параметров в emit
     # ------------------------------------------------------------------
 
     @pytest.mark.anyio
     async def test_emit_receives_correct_message(
-        self, logger: ActionBoundLogger, mock_coordinator: AsyncMock
+        self, logger: ScopedLogger, mock_coordinator: AsyncMock
     ) -> None:
-        """message parameter is passed to emit unchanged."""
+        """Параметр message передаётся в emit без изменений."""
         await logger.info("Hello, world!")
 
         mock_coordinator.emit.assert_awaited_once()
@@ -123,9 +122,9 @@ class TestActionBoundLogger:
 
     @pytest.mark.anyio
     async def test_emit_receives_correct_scope(
-        self, logger: ActionBoundLogger, mock_coordinator: AsyncMock
+        self, logger: ScopedLogger, mock_coordinator: AsyncMock
     ) -> None:
-        """emit receives LogScope with correct keys."""
+        """emit получает LogScope с правильными ключами."""
         await logger.info("msg")
 
         mock_coordinator.emit.assert_awaited_once()
@@ -136,14 +135,14 @@ class TestActionBoundLogger:
         assert scope["mode"] == "test_mode"
         assert scope["action"] == "myapp.actions.TestAction"
         assert scope["aspect"] == "test_aspect"
-        # Check key order (important for as_dotpath)
+        # Проверка порядка ключей (важно для as_dotpath)
         assert list(scope.keys()) == ["machine", "mode", "action", "aspect"]
 
     @pytest.mark.anyio
     async def test_emit_receives_context(
-        self, logger: ActionBoundLogger, mock_coordinator: AsyncMock, context: Context
+        self, logger: ScopedLogger, mock_coordinator: AsyncMock, context: Context
     ) -> None:
-        """emit receives the same context that was passed to the logger."""
+        """emit получает тот же контекст, что был передан в логгер."""
         await logger.info("msg")
 
         mock_coordinator.emit.assert_awaited_once()
@@ -152,9 +151,9 @@ class TestActionBoundLogger:
 
     @pytest.mark.anyio
     async def test_emit_receives_empty_state_and_params(
-        self, logger: ActionBoundLogger, mock_coordinator: AsyncMock
+        self, logger: ScopedLogger, mock_coordinator: AsyncMock
     ) -> None:
-        """emit receives empty BaseState and BaseParams instances."""
+        """emit получает пустые экземпляры BaseState и BaseParams."""
         await logger.info("msg")
 
         mock_coordinator.emit.assert_awaited_once()
@@ -167,9 +166,9 @@ class TestActionBoundLogger:
 
     @pytest.mark.anyio
     async def test_emit_receives_correct_indent(
-        self, logger: ActionBoundLogger, mock_coordinator: AsyncMock
+        self, logger: ScopedLogger, mock_coordinator: AsyncMock
     ) -> None:
-        """emit receives the nesting level set when creating the logger."""
+        """emit получает уровень вложенности, заданный при создании логгера."""
         await logger.info("msg")
 
         mock_coordinator.emit.assert_awaited_once()
@@ -177,14 +176,14 @@ class TestActionBoundLogger:
         assert indent == 2
 
     # ------------------------------------------------------------------
-    # TESTS: Multiple calls
+    # ТЕСТЫ: Множественные вызовы
     # ------------------------------------------------------------------
 
     @pytest.mark.anyio
     async def test_multiple_calls_multiple_emits(
-        self, logger: ActionBoundLogger, mock_coordinator: AsyncMock
+        self, logger: ScopedLogger, mock_coordinator: AsyncMock
     ) -> None:
-        """Each logging method call results in a separate emit."""
+        """Каждый вызов метода логирования приводит к отдельному emit."""
         await logger.info("First")
         await logger.warning("Second")
         await logger.error("Third")
@@ -192,14 +191,14 @@ class TestActionBoundLogger:
         assert mock_coordinator.emit.await_count == 3
 
     # ------------------------------------------------------------------
-    # TESTS: User kwargs
+    # ТЕСТЫ: Пользовательские kwargs
     # ------------------------------------------------------------------
 
     @pytest.mark.anyio
     async def test_user_kwargs_are_passed_to_var(
-        self, logger: ActionBoundLogger, mock_coordinator: AsyncMock
+        self, logger: ScopedLogger, mock_coordinator: AsyncMock
     ) -> None:
-        """All user kwargs end up in var."""
+        """Все пользовательские kwargs попадают в var."""
         await logger.info("msg", extra="data", flag=True, amount=100.5)
 
         mock_coordinator.emit.assert_awaited_once()
@@ -207,36 +206,34 @@ class TestActionBoundLogger:
         assert var["extra"] == "data"
         assert var["flag"] is True
         assert var["amount"] == 100.5
-        assert var["level"] == "info"  # not overwritten
+        assert var["level"] == "info"
 
     @pytest.mark.anyio
     async def test_user_kwargs_override_nothing(
-        self, logger: ActionBoundLogger, mock_coordinator: AsyncMock
+        self, logger: ScopedLogger, mock_coordinator: AsyncMock
     ) -> None:
-        """User can pass 'level' key, but it will be overwritten by system."""
-        await logger.info("msg", level="user_level")  # user accidentally passes level
+        """Пользователь может передать ключ 'level', но он будет перезаписан системным."""
+        await logger.info("msg", level="user_level")
 
         mock_coordinator.emit.assert_awaited_once()
         var = mock_coordinator.emit.call_args.kwargs["var"]
-        # Should be overwritten with system value
         assert var["level"] == "info"
-        # User's level should not remain (overwritten)
 
     # ------------------------------------------------------------------
-    # TESTS: Edge cases
+    # ТЕСТЫ: Граничные случаи
     # ------------------------------------------------------------------
 
     @pytest.mark.anyio
-    async def test_empty_message(self, logger: ActionBoundLogger, mock_coordinator: AsyncMock) -> None:
-        """Empty message is allowed."""
+    async def test_empty_message(self, logger: ScopedLogger, mock_coordinator: AsyncMock) -> None:
+        """Пустое сообщение допустимо."""
         await logger.info("")
 
         mock_coordinator.emit.assert_awaited_once()
         assert mock_coordinator.emit.call_args.kwargs["message"] == ""
 
     @pytest.mark.anyio
-    async def test_no_kwargs(self, logger: ActionBoundLogger, mock_coordinator: AsyncMock) -> None:
-        """Call without kwargs passes only level."""
+    async def test_no_kwargs(self, logger: ScopedLogger, mock_coordinator: AsyncMock) -> None:
+        """Вызов без kwargs передаёт только level."""
         await logger.info("msg")
 
         mock_coordinator.emit.assert_awaited_once()

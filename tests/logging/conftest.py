@@ -1,6 +1,11 @@
+# tests/logging/conftest.py
 """
-Фикстуры специфичные для тестов подсистемы логирования.
+Фикстуры для тестов подсистемы логирования.
+
 Доступны только в tests/logging/ и её подпапках.
+Предоставляют готовые экземпляры компонентов логирования
+для использования в тестах: вычислитель выражений, координатор,
+консольные логгеры и различные конфигурации LogScope.
 """
 
 import pytest
@@ -10,10 +15,6 @@ from action_machine.logging.expression_evaluator import ExpressionEvaluator
 from action_machine.logging.log_coordinator import LogCoordinator
 from action_machine.logging.log_scope import LogScope
 
-# ======================================================================
-# ФИКСТУРЫ ДЛЯ ТЕСТОВ ЛОГИРОВАНИЯ
-# ======================================================================
-
 
 @pytest.fixture
 def evaluator() -> ExpressionEvaluator:
@@ -21,9 +22,11 @@ def evaluator() -> ExpressionEvaluator:
     Экземпляр вычислителя выражений для тестов iif.
 
     ExpressionEvaluator используется для:
-    - Вычисления простых выражений
-    - Обработки конструкций iif
-    - Безопасного парсинга с вложенными кавычками
+    - Вычисления простых выражений (арифметика, сравнения, логика).
+    - Обработки конструкций iif(condition; true_branch; false_branch).
+    - Безопасного парсинга с вложенными кавычками и скобками.
+    - Вызова встроенных функций (len, upper, lower, format_number,
+      цветовые функции, debug, exists).
     """
     return ExpressionEvaluator()
 
@@ -31,12 +34,13 @@ def evaluator() -> ExpressionEvaluator:
 @pytest.fixture
 def coordinator(recording_logger):  # recording_logger из корневого conftest
     """
-    Координатор с одним логером-шпионом.
+    Координатор логирования с одним логером-шпионом.
 
     Позволяет тестировать:
-    - Рассылку сообщений
-    - Подстановку переменных
-    - Обработку ошибок
+    - Рассылку сообщений всем логгерам.
+    - Подстановку переменных из разных namespace.
+    - Обработку iif-конструкций.
+    - Обработку ошибок в шаблонах.
     """
     return LogCoordinator(loggers=[recording_logger])
 
@@ -44,7 +48,7 @@ def coordinator(recording_logger):  # recording_logger из корневого c
 @pytest.fixture
 def console_no_colors() -> ConsoleLogger:
     """
-    Консольный логер без ANSI-цветов.
+    Консольный логгер без ANSI-цветов.
 
     Используется в тестах с capsys для проверки вывода
     без необходимости обрабатывать escape-последовательности.
@@ -55,7 +59,7 @@ def console_no_colors() -> ConsoleLogger:
 @pytest.fixture
 def console_with_colors() -> ConsoleLogger:
     """
-    Консольный логер с ANSI-цветами.
+    Консольный логгер с ANSI-цветами.
 
     Используется для тестирования цветного вывода
     и проверки наличия ANSI-кодов в отформатированных строках.
@@ -66,10 +70,10 @@ def console_with_colors() -> ConsoleLogger:
 @pytest.fixture
 def complex_scope() -> LogScope:
     """
-    Скоуп с несколькими уровнями вложенности.
+    Scope с несколькими уровнями вложенности.
 
-    Пример: ProcessOrderAction.validate_user.before
-    Используется для тестирования as_dotpath().
+    Результат as_dotpath(): "ProcessOrderAction.validate_user.before"
+    Используется для тестирования формирования dotpath.
     """
     return LogScope(action="ProcessOrderAction", aspect="validate_user", event="before")
 
@@ -77,8 +81,8 @@ def complex_scope() -> LogScope:
 @pytest.fixture
 def plugin_scope() -> LogScope:
     """
-    Скоуп для тестирования плагинов.
+    Scope для тестирования плагинов.
 
-    Пример: ProcessOrderAction.MetricsPlugin.global_finish
+    Результат as_dotpath(): "ProcessOrderAction.MetricsPlugin.global_finish"
     """
     return LogScope(action="ProcessOrderAction", plugin="MetricsPlugin", event="global_finish")

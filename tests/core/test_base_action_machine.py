@@ -1,24 +1,16 @@
 # tests/core/test_base_action_machine.py
 """
-Tests for BaseActionMachine.sync_run.
+Тесты для BaseActionMachine.sync_run.
 
-Covers lines 87-98:
-  - Normal call outside an event loop.
-  - Error when called inside an event loop.
+Проверяется:
+- Нормальный вызов sync_run вне event loop — действие выполняется
+  и возвращает результат.
+- Вызов sync_run внутри уже запущенного event loop — RuntimeError
+  с сообщением от asyncio.run().
 
-Strict typing: all parameters and return values are annotated.
-state replaced with BaseState.
-Updated: log parameter added to SimpleAction aspect.
-
-Изменения (этап 1):
-- В аспекте SimpleAction заменены параметры deps и log на box: ToolsBox.
-- В вызове аспекта теперь используется box (не передаётся отдельно).
-- Импортирован ToolsBox.
-- Обновлены комментарии.
-
-Изменения (этап 3 — миграция на шлюзы):
-- SimpleAction декорирован @CheckRoles(CheckRoles.NONE, desc="").
-- Добавлен импорт CheckRoles.
+sync_run — синхронная обёртка для использования вне асинхронного контекста
+(скрипты командной строки, Celery-задачи, Django-вьюхи без async).
+Создаёт новый event loop, выполняет действие и возвращает результат.
 """
 
 import warnings
@@ -36,26 +28,28 @@ from action_machine.core.base_state import BaseState
 from action_machine.core.tools_box import ToolsBox
 
 ################################################################################
-# Helper classes
+# Вспомогательные классы
 ################################################################################
 
 
 class MockParams(BaseParams):
-    """Empty parameters for the test action."""
+    """Пустые параметры для тестового действия."""
     pass
 
 
 class MockResult(BaseResult):
-    """Empty result for the test action."""
+    """Пустой результат для тестового действия."""
     pass
 
 
 @CheckRoles(CheckRoles.NONE, desc="")
 class SimpleAction(BaseAction[MockParams, MockResult]):
     """
-    Minimal action for testing sync_run.
+    Минимальное действие для тестирования sync_run.
 
-    Returns MockResult with no side effects.
+    Возвращает MockResult без побочных эффектов. Содержит только
+    summary-аспект, что является минимальной допустимой конфигурацией
+    для выполнения через машину.
     """
 
     @summary_aspect("test")
@@ -67,41 +61,40 @@ class SimpleAction(BaseAction[MockParams, MockResult]):
         connections: dict[str, object],
     ) -> MockResult:
         """
-        Main aspect of the action.
+        Единственный аспект действия.
 
-        Args:
-            params:      input parameters.
-            state:       aspect pipeline state.
-            box:         ToolsBox instance (provides logging and dependencies).
-            connections: connection dictionary.
+        Аргументы:
+            params: входные параметры.
+            state: состояние конвейера аспектов.
+            box: ToolsBox (предоставляет логирование и зависимости).
+            connections: словарь соединений.
 
-        Returns:
-            MockResult: empty result.
+        Возвращает:
+            MockResult: пустой результат.
         """
-        # For the test we can do nothing with box
         return MockResult()
 
 
 ################################################################################
-# Tests
+# Тесты
 ################################################################################
 
 
 class TestSyncRun:
-    """Tests for the synchronous wrapper sync_run."""
+    """Тесты для синхронной обёртки sync_run."""
 
     def test_sync_run_outside_event_loop_returns_result(self) -> None:
         """
-        sync_run outside an async context executes the action and returns a result.
+        sync_run вне асинхронного контекста выполняет действие и возвращает результат.
 
-        Checks:
-            - Calling sync_run without an active event loop succeeds.
-            - The returned object is a MockResult instance.
+        Проверяется:
+            - Вызов sync_run без активного event loop завершается успешно.
+            - Возвращённый объект является экземпляром MockResult.
         """
         machine: ActionProductMachine = ActionProductMachine(mode="test")
         action: SimpleAction = SimpleAction()
         params: MockParams = MockParams()
-        context: Context = Context()  # empty context for test
+        context: Context = Context()
 
         result: MockResult = machine.sync_run(context, action, params)
 
@@ -110,15 +103,13 @@ class TestSyncRun:
     @pytest.mark.anyio
     async def test_sync_run_inside_event_loop_raises_runtime_error(self) -> None:
         """
-        sync_run inside a running event loop raises RuntimeError.
+        sync_run внутри работающего event loop вызывает RuntimeError.
 
-        Due to the implementation of except RuntimeError in sync_run,
-        the actual error message comes from asyncio.run().
+        asyncio.run() не может быть вызван из уже запущенного event loop.
+        Предупреждение о неожиданной корутине подавляется — оно ожидаемо.
 
-        The warning about an unawaited coroutine is suppressed – it's expected.
-
-        Checks:
-            - RuntimeError with the message "cannot be called from a running event loop".
+        Проверяется:
+            - RuntimeError с сообщением "cannot be called from a running event loop".
         """
         machine: ActionProductMachine = ActionProductMachine(mode="test")
         action: SimpleAction = SimpleAction()
