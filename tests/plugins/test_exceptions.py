@@ -1,129 +1,188 @@
 # tests/plugins/test_exceptions.py
 """
-Тесты обработки исключений в PluginCoordinator.
+Тесты обработки исключений в обработчиках плагинов.
 
 Проверяется:
-- При ignore_exceptions=True ошибка обработчика подавляется молча,
-  состояние плагина не обновляется, выполнение действия продолжается.
-  Никакого вывода в stdout не производится.
-- При ignore_exceptions=False ошибка обработчика пробрасывается наружу
+- ignore_exceptions=True: ошибка обработчика подавляется молча,
+  состояние плагина НЕ обновляется возвращённым значением (return
+  не выполняется), но in-place мутации dict, произведённые до raise,
+  остаются видны, так как dict — мутабельный объект.
+- ignore_exceptions=False: ошибка обработчика пробрасывается наружу
   и прерывает выполнение.
-- Кастомные исключения при ignore_exceptions=True подавляются так же.
+- Кастомные исключения корректно пробрасываются при ignore_exceptions=False.
+
+Все события отправляются через PluginRunContext.emit_event(),
+создаваемый через PluginCoordinator.create_run_context().
 """
 
 import pytest
 
+from action_machine.aspects.summary_aspect import summary_aspect
+from action_machine.auth.check_roles import CheckRoles
+from action_machine.context.context import Context
+from action_machine.core.base_action import BaseAction
+from action_machine.core.base_params import BaseParams
+from action_machine.core.base_result import BaseResult
+from action_machine.dependencies.dependency_factory import DependencyFactory
+from action_machine.dependencies.dependency_gate import DependencyGate
+from action_machine.plugins.decorators import on
+from action_machine.plugins.plugin import Plugin
 from action_machine.plugins.plugin_coordinator import PluginCoordinator
+from action_machine.plugins.plugin_event import PluginEvent
 
-from .conftest import IgnoreExceptionsPlugin, MockParams
+# ─────────────────────────────────────────────────────────────────────────────
+# Вспомогательные классы
+# ─────────────────────────────────────────────────────────────────────────────
 
+@CheckRoles(CheckRoles.NONE, desc="")
+class DummyAction(BaseAction[BaseParams, BaseResult]):
+    """Минимальное действие для тестов."""
+
+    @summary_aspect("dummy")
+    async def summary(self, params, state, box, connections):
+        return BaseResult()
+
+
+class IgnoredErrorPlugin(Plugin):
+    """
+    Плагин с обработчиком, который падает с ignore_exceptions=True.
+
+    Обработчик мутирует state["before_error"] = True до raise.
+    Поскольку state — dict (мутабельный объект), in-place мутация
+    сохраняется даже при ошибке. Однако return не выполняется,
+    поэтому _run_single_handler не вызывает присвоение нового state.
+    На практике, так как это тот же объект dict, мутация видна.
+
+    state["after_error"] остаётся False, так как код после raise
+    не выполняется.
+    """
+
+    async def get_initial_state(self) -> dict:
+        return {"before_error": False, "after_error": False}
+
+    @on("global_finish", ".*", ignore_exceptions=True)
+    async def failing_handler(self, state: dict, event: PluginEvent) -> dict:
+        state["before_error"] = True
+        raise RuntimeError("Ignored error")
+        # state["after_error"] = True  # не выполнится
+
+
+class PropagatedErrorPlugin(Plugin):
+    """Плагин с обработчиком, который падает с ignore_exceptions=False."""
+
+    async def get_initial_state(self) -> dict:
+        return {"count": 0}
+
+    @on("global_finish", ".*", ignore_exceptions=False)
+    async def strict_handler(self, state: dict, event: PluginEvent) -> dict:
+        raise RuntimeError("Strict error must propagate")
+
+
+class CustomException(Exception):
+    """Кастомное исключение для тестов."""
+    pass
+
+
+class CustomExceptionPlugin(Plugin):
+    """Плагин с обработчиком, выбрасывающим кастомное исключение."""
+
+    async def get_initial_state(self) -> dict:
+        return {}
+
+    @on("global_finish", ".*", ignore_exceptions=False)
+    async def custom_handler(self, state: dict, event: PluginEvent) -> dict:
+        raise CustomException("Custom plugin error")
+
+
+class SuccessPlugin(Plugin):
+    """Плагин с успешным обработчиком (для проверки совместной работы)."""
+
+    async def get_initial_state(self) -> dict:
+        return {"count": 0}
+
+    @on("global_finish", ".*", ignore_exceptions=False)
+    async def success_handler(self, state: dict, event: PluginEvent) -> dict:
+        state["count"] += 1
+        return state
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Вспомогательные функции
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _make_empty_factory() -> DependencyFactory:
+    gate = DependencyGate()
+    gate.freeze()
+    return DependencyFactory(gate)
+
+
+async def _emit_global_finish(plugin_ctx):
+    """Отправляет событие global_finish через контекст."""
+    await plugin_ctx.emit_event(
+        event_name="global_finish",
+        action=DummyAction(),
+        params=BaseParams(),
+        state_aspect=None,
+        is_summary=False,
+        result=None,
+        duration=1.0,
+        factory=_make_empty_factory(),
+        context=Context(),
+        nest_level=0,
+    )
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Тесты
+# ─────────────────────────────────────────────────────────────────────────────
 
 class TestPluginCoordinatorExceptions:
     """Тесты обработки исключений в обработчиках плагинов."""
 
     @pytest.mark.anyio
-    async def test_ignore_exceptions_true(self, mock_action, mock_factory, mock_context):
+    async def test_ignore_exceptions_true(self):
         """
-        При ignore_exceptions=True ошибка обработчика подавляется молча.
+        ignore_exceptions=True: ошибка обработчика подавляется молча.
 
-        Состояние плагина не обновляется (остаётся начальным).
-        Никакого вывода в stdout не производится — ошибка игнорируется
-        без диагностики. Для диагностики используется LogCoordinator
-        или callback, переданный в конструктор координатора.
+        Поскольку state — dict (мутабельный объект), in-place мутация
+        state["before_error"] = True, произведённая до raise, остаётся
+        видна. Код после raise не выполняется, поэтому
+        state["after_error"] остаётся False.
         """
-        plugin = IgnoreExceptionsPlugin()
+        plugin = IgnoredErrorPlugin()
         coordinator = PluginCoordinator(plugins=[plugin])
-        params = MockParams()
+        plugin_ctx = await coordinator.create_run_context()
 
-        # Не должно бросить исключение
-        await coordinator.emit_event(
-            event_name="test_event",
-            action=mock_action,
-            params=params,
-            state_aspect={},
-            is_summary=False,
-            result=None,
-            duration=None,
-            factory=mock_factory,
-            context=mock_context,
-            nest_level=0,
-        )
+        # Не должно быть исключения
+        await _emit_global_finish(plugin_ctx)
 
-        # Обработчик был вызван
-        assert len(plugin.handlers_called) == 1
-        assert plugin.handlers_called[0] == ("ignored", "test_event")
-
-        # Состояние не обновилось (ошибка произошла до return)
-        plugin_state = coordinator._plugin_states[id(plugin)]
-        assert plugin_state["failed"] is False
+        state = plugin_ctx.get_plugin_state(plugin)
+        # Мутация до raise видна (dict мутируется in-place)
+        assert state["before_error"] is True
+        # Код после raise не выполнился
+        assert state["after_error"] is False
 
     @pytest.mark.anyio
-    async def test_ignore_exceptions_false_propagates(self, mock_action, mock_factory, mock_context):
+    async def test_ignore_exceptions_false_propagates(self):
         """
-        При ignore_exceptions=False ошибка обработчика пробрасывается наружу.
+        ignore_exceptions=False: ошибка обработчика пробрасывается наружу.
         """
-        plugin = IgnoreExceptionsPlugin()
+        plugin = PropagatedErrorPlugin()
         coordinator = PluginCoordinator(plugins=[plugin])
-        params = MockParams()
+        plugin_ctx = await coordinator.create_run_context()
 
-        with pytest.raises(RuntimeError, match="This exception will NOT be ignored"):
-            await coordinator.emit_event(
-                event_name="critical_event",
-                action=mock_action,
-                params=params,
-                state_aspect={},
-                is_summary=False,
-                result=None,
-                duration=None,
-                factory=mock_factory,
-                context=mock_context,
-                nest_level=0,
-            )
+        with pytest.raises(RuntimeError, match="Strict error must propagate"):
+            await _emit_global_finish(plugin_ctx)
 
     @pytest.mark.anyio
-    async def test_ignore_exceptions_with_custom_exception(self, mock_action, mock_factory, mock_context):
+    async def test_ignore_exceptions_with_custom_exception(self):
         """
-        Кастомные исключения при ignore_exceptions=True подавляются так же,
-        как и стандартные. Никакого вывода в stdout не производится.
+        ignore_exceptions=False с кастомным исключением: исключение
+        пробрасывается с правильным типом.
         """
-
-        from action_machine.plugins.decorators import on
-        from action_machine.plugins.plugin import Plugin
-        from action_machine.plugins.plugin_event import PluginEvent
-
-        class CustomError(Exception):
-            pass
-
-        class CustomIgnorePlugin(Plugin):
-            def __init__(self):
-                self.handlers_called = []
-
-            async def get_initial_state(self) -> dict:
-                return {}
-
-            @on("test_event", ".*", ignore_exceptions=True)
-            async def handler(self, state: dict, event: PluginEvent) -> dict:
-                self.handlers_called.append(("custom", event.event_name))
-                raise CustomError("Custom exception")
-
-        plugin = CustomIgnorePlugin()
+        plugin = CustomExceptionPlugin()
         coordinator = PluginCoordinator(plugins=[plugin])
-        params = MockParams()
+        plugin_ctx = await coordinator.create_run_context()
 
-        # Не должно бросить исключение
-        await coordinator.emit_event(
-            event_name="test_event",
-            action=mock_action,
-            params=params,
-            state_aspect={},
-            is_summary=False,
-            result=None,
-            duration=None,
-            factory=mock_factory,
-            context=mock_context,
-            nest_level=0,
-        )
-
-        # Обработчик был вызван
-        assert len(plugin.handlers_called) == 1
-        assert plugin.handlers_called[0] == ("custom", "test_event")
+        with pytest.raises(CustomException, match="Custom plugin error"):
+            await _emit_global_finish(plugin_ctx)

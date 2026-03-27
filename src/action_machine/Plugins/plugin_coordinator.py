@@ -1,107 +1,104 @@
 # src/action_machine/plugins/plugin_coordinator.py
 """
-Координатор плагинов для ActionMachine.
+Модуль: PluginCoordinator — stateless-координатор плагинов для ActionMachine.
 
 ═══════════════════════════════════════════════════════════════════════════════
 НАЗНАЧЕНИЕ
 ═══════════════════════════════════════════════════════════════════════════════
 
-Отделён от ActionProductMachine для разделения зон ответственности.
-ActionProductMachine управляет конвейером аспектов,
-PluginCoordinator управляет жизненным циклом плагинов:
+PluginCoordinator отвечает за хранение списка плагинов и создание
+изолированных контекстов выполнения (PluginRunContext) для каждого
+вызова run(). Координатор полностью stateless — он не хранит
+никакого мутабельного состояния между запросами.
 
-    1. Ленивая инициализация состояний плагинов (get_initial_state).
-    2. Кеширование обработчиков по ключу (event_name, action_name).
-    3. Асинхронное выполнение обработчиков.
-    4. Обработка ignore_exceptions.
-
-Координатор ничего не знает об аспектах, ролях и соединениях.
+Вся мутабельная информация (состояния плагинов, кеш обработчиков)
+инкапсулирована в PluginRunContext, который живёт ровно столько,
+сколько длится один вызов run().
 
 ═══════════════════════════════════════════════════════════════════════════════
 АРХИТЕКТУРА
 ═══════════════════════════════════════════════════════════════════════════════
 
-    ActionProductMachine
+    ActionProductMachine._run_internal(...)
         │
-        │  emit_event(event_name, action, params, ...)
+        │  plugin_ctx = await self._plugin_coordinator.create_run_context()
         ▼
-    PluginCoordinator
+    PluginCoordinator.create_run_context()
         │
-        ├── _get_handlers(event_name, action_name)
-        │       └── plugin.get_handlers(event_name, action_name)
-        │           └── сканирует _on_subscriptions на методах плагина
+        │  Для каждого плагина вызывает get_initial_state()
+        │  Создаёт PluginRunContext с начальными состояниями
+        ▼
+    PluginRunContext
         │
-        ├── _init_plugin_states()
-        │       └── plugin.get_initial_state() для каждого плагина
+        │  Хранит {id(plugin): state}
+        │  Предоставляет emit_event() и get_plugin_state()
         │
-        └── _run_single_handler(handler, ignore, plugin, event)
-                └── handler(plugin, state, event) → new_state
+        └── (уничтожается после завершения run())
 
 ═══════════════════════════════════════════════════════════════════════════════
-ОБРАБОТКА ОШИБОК
+ПРИНЦИПЫ
 ═══════════════════════════════════════════════════════════════════════════════
 
-Каждый обработчик плагина имеет флаг ignore_exceptions (задаётся в @on):
+1. STATELESS: координатор не хранит состояния плагинов, кеша обработчиков
+   или любых других данных, привязанных к конкретному запросу. Единственное
+   поле — _plugins (неизменяемый список экземпляров плагинов).
 
-- ignore_exceptions=True (по умолчанию): ошибка обработчика подавляется
-  молча. Состояние плагина не обновляется. Это безопасный режим для
-  метрик, логирования и других некритичных плагинов.
+2. ФАБРИЧНЫЙ МЕТОД: create_run_context() — единственная точка создания
+   контекста. Он асинхронный, так как вызывает get_initial_state()
+   для каждого плагина, а этот метод может выполнять I/O.
 
-- ignore_exceptions=False: ошибка обработчика пробрасывается наружу
-  и прерывает выполнение действия. Используется для критичных плагинов,
-  например, аудита или обязательных проверок.
+3. ИЗОЛЯЦИЯ: каждый run() получает свой PluginRunContext. Параллельные
+   вызовы run() (через asyncio.gather) работают с разными контекстами
+   и не влияют друг на друга.
 
-Никакие ошибки не выводятся через print. Если диагностика игнорированных
-ошибок необходима, она должна быть реализована через отдельный callback
-или LogCoordinator, переданный в конструктор.
+4. БЕЗ КЕШИРОВАНИЯ: обработчики ищутся при каждом emit_event()
+   через plugin.get_handlers(). Оверхед минимален.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ИЗМЕНЕНИЯ (Этап 1 — очистка)
+ПРИМЕР ИСПОЛЬЗОВАНИЯ
 ═══════════════════════════════════════════════════════════════════════════════
 
-- Удалён print() из _run_single_handler(). При ignore_exceptions=True
-  ошибка теперь подавляется молча, без вывода в stdout. Это соответствует
-  конвенции проекта: никаких print в ядре.
-- Восстановлен сбор обработчиков через встроенный метод plugin.get_handlers,
-  чтобы избежать циклических зависимостей со шлюзами и координатором
-  метаданных.
+    coordinator = PluginCoordinator(plugins=[CounterPlugin(), MetricsPlugin()])
+
+    # В начале каждого run():
+    plugin_ctx = await coordinator.create_run_context()
+
+    # Отправка событий через контекст:
+    await plugin_ctx.emit_event("global_start", action=..., ...)
+    await plugin_ctx.emit_event("global_finish", action=..., ...)
+
+    # Доступ к состоянию для тестов:
+    state = plugin_ctx.get_plugin_state(counter_plugin)
+
+═══════════════════════════════════════════════════════════════════════════════
+АККУМУЛЯЦИЯ ДАННЫХ МЕЖДУ ЗАПРОСАМИ
+═══════════════════════════════════════════════════════════════════════════════
+
+Координатор не предоставляет механизма аккумуляции данных между запросами.
+Если плагину необходимо накапливать данные (метрики, счётчики), он
+использует внешнее хранилище, переданное через конструктор плагина.
+Фреймворк обеспечивает изоляцию per-request состояния; политика
+аккумуляции — ответственность пользователя.
 """
 
-import asyncio
-from collections.abc import Callable
 from typing import Any
 
-from action_machine.context.context import Context
-from action_machine.core.base_action import BaseAction
-from action_machine.core.base_params import BaseParams
-from action_machine.core.base_result import BaseResult
-from action_machine.dependencies.dependency_factory import DependencyFactory
 from action_machine.plugins.plugin import Plugin
-from action_machine.plugins.plugin_event import PluginEvent
+from action_machine.plugins.plugin_run_context import PluginRunContext
 
 
 class PluginCoordinator:
     """
-    Координатор жизненного цикла плагинов.
+    Stateless-координатор жизненного цикла плагинов.
 
-    Управляет состояниями плагинов и маршрутизацией событий к обработчикам.
-    Создаётся ActionProductMachine при инициализации и используется
-    для рассылки событий (global_start, global_finish, before/after аспектов)
-    всем подписанным плагинам.
+    Хранит только список экземпляров плагинов. Не содержит мутабельного
+    состояния между запросами. Для каждого вызова run() создаёт
+    изолированный PluginRunContext через create_run_context().
 
     Атрибуты:
         _plugins : list[Plugin]
             Список экземпляров плагинов, переданных при создании.
-
-        _handler_cache : dict[tuple[str, str], list[tuple[Callable, bool, Plugin]]]
-            Кеш обработчиков. Ключ — (event_name, action_name).
-            Значение — список кортежей (handler, ignore_exceptions, plugin).
-            Заполняется лениво при первом запросе для каждой пары.
-
-        _plugin_states : dict[int, Any]
-            Состояния плагинов. Ключ — id(plugin), значение — текущее
-            состояние, возвращённое get_initial_state() или последним
-            обработчиком. Инициализируется лениво при первом событии.
+            Не изменяется после инициализации.
     """
 
     def __init__(
@@ -118,192 +115,38 @@ class PluginCoordinator:
         """
         self._plugins: list[Plugin] = plugins
 
-        # Кеш: (event_name, action_name) → [(handler, ignore_exceptions, plugin)]
-        self._handler_cache: dict[
-            tuple[str, str],
-            list[tuple[Callable[..., Any], bool, Plugin]]
-        ] = {}
-
-        # Состояния плагинов: id(plugin) → state
-        self._plugin_states: dict[int, Any] = {}
-
-    # ─────────────────────────────────────────────────────────────────────
-    # Приватные методы
-    # ─────────────────────────────────────────────────────────────────────
-
-    def _get_handlers(
-        self,
-        event_name: str,
-        action_name: str,
-    ) -> list[tuple[Callable[..., Any], bool, Plugin]]:
+    async def create_run_context(self) -> PluginRunContext:
         """
-        Возвращает (и кеширует) список обработчиков для данного события и действия.
+        Создаёт изолированный контекст плагинов для одного вызова run().
 
-        Для каждого плагина вызывает plugin.get_handlers(), который сканирует
-        методы плагина на наличие _on_subscriptions и проверяет совпадение
-        event_type и action_filter.
+        Для каждого плагина асинхронно вызывает get_initial_state()
+        и сохраняет результат в словаре начальных состояний. Затем
+        создаёт PluginRunContext с этим словарём.
 
-        Аргументы:
-            event_name: имя события (например, "global_finish").
-            action_name: полное имя класса действия (включая модуль).
+        Вызывается в начале ActionProductMachine._run_internal().
+        Возвращённый контекст используется для всех emit_event()
+        внутри этого run() и уничтожается по завершении.
 
         Возвращает:
-            Список кортежей (handler, ignore_exceptions, plugin).
+            PluginRunContext — изолированный контекст с начальными
+            состояниями всех плагинов.
         """
-        cache_key = (event_name, action_name)
-
-        if cache_key not in self._handler_cache:
-            handlers: list[tuple[Callable[..., Any], bool, Plugin]] = []
-            for plugin in self._plugins:
-                for handler, ignore in plugin.get_handlers(event_name, action_name):
-                    handlers.append((handler, ignore, plugin))
-            self._handler_cache[cache_key] = handlers
-
-        return self._handler_cache[cache_key]
-
-    async def _init_plugin_states(self) -> None:
-        """
-        Асинхронно инициализирует состояния всех плагинов.
-
-        Вызывает get_initial_state() для каждого плагина, у которого
-        ещё не было инициализации. Результат сохраняется в _plugin_states
-        по ключу id(plugin).
-        """
+        initial_states: dict[int, Any] = {}
         for plugin in self._plugins:
             plugin_id = id(plugin)
-            if plugin_id not in self._plugin_states:
-                state = await plugin.get_initial_state()
-                self._plugin_states[plugin_id] = state
+            state = await plugin.get_initial_state()
+            initial_states[plugin_id] = state
 
-    async def _run_single_handler(
-        self,
-        handler: Callable[..., Any],
-        ignore: bool,
-        plugin: Plugin,
-        event: PluginEvent,
-    ) -> None:
-        """
-        Запускает один обработчик плагина.
-
-        Передаёт текущее состояние плагина в обработчик и обновляет
-        состояние возвращённым значением. Если обработчик выбрасывает
-        исключение:
-        - При ignore=True: ошибка подавляется молча, состояние
-          плагина не обновляется.
-        - При ignore=False: ошибка пробрасывается наружу.
-
-        Аргументы:
-            handler: метод-обработчик (unbound — требует передачи self).
-            ignore: флаг ignore_exceptions из @on.
-            plugin: экземпляр плагина (передаётся как self в handler).
-            event: объект события PluginEvent.
-        """
-        plugin_id = id(plugin)
-        state = self._plugin_states[plugin_id]
-        try:
-            new_state = await handler(plugin, state, event)
-            self._plugin_states[plugin_id] = new_state
-        except Exception:
-            if ignore:
-                # Ошибка подавляется молча. Состояние плагина не обновляется.
-                # Для диагностики игнорированных ошибок используйте
-                # LogCoordinator или callback, переданный в конструктор.
-                pass
-            else:
-                raise
-
-    def _find_plugin_for_handler(
-        self,
-        handler: Callable[..., Any],
-    ) -> Plugin | None:
-        """
-        Находит экземпляр плагина, которому принадлежит переданный обработчик.
-
-        Используется в тестах для проверки привязки обработчиков к плагинам.
-
-        Аргументы:
-            handler: метод-обработчик.
-
-        Возвращает:
-            Plugin или None, если обработчик не найден.
-        """
-        handler_name = getattr(handler, '__name__', None)
-        if handler_name is None:
-            return None
-
-        for plugin in self._plugins:
-            for cls in type(plugin).__mro__:
-                cls_method = cls.__dict__.get(handler_name)
-                if cls_method is handler:
-                    return plugin
-
-        return None
-
-    # ─────────────────────────────────────────────────────────────────────
-    # Публичные методы
-    # ─────────────────────────────────────────────────────────────────────
-
-    async def emit_event(
-        self,
-        event_name: str,
-        action: BaseAction[Any, Any],
-        params: BaseParams,
-        state_aspect: dict[str, object] | None,
-        is_summary: bool,
-        result: BaseResult | None,
-        duration: float | None,
-        factory: DependencyFactory,
-        context: Context,
-        nest_level: int,
-    ) -> None:
-        """
-        Отправляет событие всем подходящим обработчикам плагинов.
-
-        Последовательность:
-        1. Получает полное имя действия через action.get_full_class_name().
-        2. Ищет (и кеширует) обработчики для пары (event_name, action_name).
-        3. Если обработчиков нет — выходит без действий.
-        4. Инициализирует состояния плагинов (лениво).
-        5. Создаёт объект PluginEvent.
-        6. Запускает все обработчики параллельно через asyncio.gather().
-
-        Аргументы:
-            event_name: имя события ("global_start", "global_finish",
-                        "before:{aspect}", "after:{aspect}").
-            action: экземпляр действия.
-            params: входные параметры действия.
-            state_aspect: состояние конвейера на момент события (dict или None).
-            is_summary: True если событие связано с summary-аспектом.
-            result: результат действия (для global_finish) или None.
-            duration: длительность в секундах (для after-событий) или None.
-            factory: фабрика зависимостей текущего действия.
-            context: контекст выполнения.
-            nest_level: уровень вложенности вызова.
-        """
-        action_name = action.get_full_class_name()
-        handlers = self._get_handlers(event_name, action_name)
-
-        if not handlers:
-            return
-
-        await self._init_plugin_states()
-
-        event = PluginEvent(
-            event_name=event_name,
-            action_name=action_name,
-            params=params,
-            state_aspect=state_aspect,
-            is_summary=is_summary,
-            deps=factory,
-            context=context,
-            result=result,
-            duration=duration,
-            nest_level=nest_level,
+        return PluginRunContext(
+            plugins=self._plugins,
+            initial_states=initial_states,
         )
 
-        tasks: list[Any] = []
-        for handler, ignore, plugin in handlers:
-            tasks.append(self._run_single_handler(handler, ignore, plugin, event))
+    @property
+    def plugins(self) -> list[Plugin]:
+        """
+        Возвращает список зарегистрированных плагинов.
 
-        if tasks:
-            await asyncio.gather(*tasks)
+        Используется для инспекции и тестирования.
+        """
+        return self._plugins
