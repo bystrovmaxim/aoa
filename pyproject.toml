@@ -60,6 +60,7 @@ dependencies = [
 
     # Вычисления и выражения
     "simpleeval>=1.0.7",      # Безопасное вычисление выражений (для iif)
+    "rustworkx>=0.16.0",      # Направленные графы зависимостей (DAG)
 
     # Web-фреймворки и интеграции
     "fastapi>=0.135.1",       # FastAPI для REST API
@@ -124,6 +125,7 @@ dev = [
     "taskipy>=1.14.0",        # Запуск задач (замена run_checks.sh)
     "pre-commit>=4.0.0",      # Git-хуки
     "detect-secrets>=1.5.0",
+    "rustworkx>=0.16.0",      # Работа с графами (для инструментов анализа)
 ]
 
 # ----------------------------------------------------------------------------
@@ -265,6 +267,9 @@ disable = [
     "R0915",        # too-many-statements
     "R0917",        # too-many-positional-arguments
     "R0801",        # duplicate-code
+    "R0904",        # too-many-public-methods
+    "C0302",        # too-many-lines
+    "E1101",        # no-member (ложноположительные для rustworkx)
 ]
 
 [tool.pylint.format]
@@ -354,6 +359,7 @@ ignore = [
     "E402",  # import not top
     "N801",  # class name casing
     "W292",  # no newline at end of file
+    "C901",  # function too complex (pylint контролирует)
 ]
 
 [tool.ruff.lint.per-file-ignores]
