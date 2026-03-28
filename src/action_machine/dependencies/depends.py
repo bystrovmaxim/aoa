@@ -7,9 +7,9 @@
 ═══════════════════════════════════════════════════════════════════════════════
 
 Прикрепляет к классу действия информацию о требуемой зависимости.
-При выполнении действия машина (ActionProductMachine) читает список зависимостей,
-создаёт экземпляры через DependencyFactory и передаёт их в ToolsBox,
-откуда аспект получает их через box.resolve(PaymentService).
+При выполнении действия машина (ActionProductMachine) читает список зависимостей
+через ClassMetadata, создаёт DependencyFactory и передаёт в ToolsBox,
+откуда аспект получает зависимость через box.resolve(PaymentService).
 
 ═══════════════════════════════════════════════════════════════════════════════
 ОГРАНИЧЕНИЯ (ИНВАРИАНТЫ)
@@ -20,9 +20,9 @@
 - Аргумент klass должен быть классом (type), не экземпляром и не строкой.
 - klass должен быть подклассом верхней границы, заданной в дженерик-параметре
   DependencyGateHost[T]. Для BaseAction (T=object) — любой класс допустим.
-  Для будущих хостов (T=BaseResourceManager) — только подклассы.
 - Повторное объявление одной и той же зависимости на одном классе запрещено.
 - Параметр description должен быть строкой.
+- Параметр factory (опциональный) должен быть callable или None.
 
 ═══════════════════════════════════════════════════════════════════════════════
 НАСЛЕДОВАНИЕ
@@ -42,19 +42,20 @@
         ▼  Декоратор записывает в cls._depends_info
     DependencyInfo(cls=PaymentService, description="Сервис оплаты")
         │
-        ▼  MetadataBuilder._collect_dependencies(cls)
+        ▼  MetadataBuilder.build(cls) → collectors.collect_dependencies(cls)
     ClassMetadata.dependencies = (DependencyInfo(...), ...)
         │
-        ▼  ActionProductMachine._get_factory(action)
-    DependencyGate → DependencyFactory
+        ▼  GateCoordinator.get_factory(cls)
+    DependencyFactory(metadata.dependencies)
         │
         ▼  ToolsBox.resolve(PaymentService)
-    Возвращает экземпляр PaymentService
+    factory.resolve(PaymentService) → PaymentService()
 
 ═══════════════════════════════════════════════════════════════════════════════
 ПРИМЕР ИСПОЛЬЗОВАНИЯ
 ═══════════════════════════════════════════════════════════════════════════════
 
+    # Базовое использование:
     @depends(PaymentService, description="Сервис обработки платежей")
     @depends(NotificationService, description="Сервис уведомлений")
     class CreateOrderAction(BaseAction[OrderParams, OrderResult]):
@@ -64,6 +65,22 @@
             payment = box.resolve(PaymentService)
             txn_id = await payment.charge(params.amount, params.currency)
             return {"txn_id": txn_id}
+
+    # Синглтон через lambda:
+    _shared_payment = PaymentService(gateway="production")
+
+    @depends(PaymentService, factory=lambda: _shared_payment, description="Синглтон")
+    class OrderAction(BaseAction[OrderParams, OrderResult]):
+        ...
+
+    # Параметризованная фабрика:
+    @depends(BankClient, factory=lambda env: BankClient(env), description="Банк")
+    class PayAction(BaseAction[PayParams, PayResult]):
+
+        @regular_aspect("Оплата")
+        async def pay(self, params, state, box, connections):
+            client = box.resolve(BankClient, "production")
+            ...
 
 ═══════════════════════════════════════════════════════════════════════════════
 ОШИБКИ
@@ -78,31 +95,18 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from dataclasses import dataclass
 from typing import Any
 
+from action_machine.dependencies.dependency_factory import DependencyInfo
 from action_machine.dependencies.dependency_gate_host import DependencyGateHost
 
 
-@dataclass(frozen=True)
-class DependencyInfo:
-    """
-    Неизменяемая запись об одной зависимости действия.
-
-    Создаётся декоратором @depends и сохраняется в cls._depends_info.
-    После заморозки шлюза доступна только для чтения.
-
-    Атрибуты:
-        cls: класс зависимости (например, PaymentService).
-             Используется DependencyFactory для создания экземпляра.
-        description: человекочитаемое описание назначения зависимости.
-                     Используется для интроспекции и документации.
-    """
-    cls: type
-    description: str = ""
-
-
-def depends(klass: Any, *, description: str = "") -> Callable[[type], type]:
+def depends(
+    klass: Any,
+    *,
+    factory: Callable[..., Any] | None = None,
+    description: str = "",
+) -> Callable[[type], type]:
     """
     Декоратор уровня класса. Объявляет зависимость от внешнего сервиса.
 
@@ -111,14 +115,16 @@ def depends(klass: Any, *, description: str = "") -> Callable[[type], type]:
     чтобы не мутировать его.
 
     Аргументы:
-        klass: класс зависимости. Должен быть типом (type), не экземпляром.
-               Должен быть подклассом верхней границы дженерика DependencyGateHost[T].
+        klass: класс зависимости. Должен быть типом (type).
+               Должен быть подклассом верхней границы DependencyGateHost[T].
+        factory: опциональная фабрика для создания экземпляра.
+                 Если None — используется конструктор по умолчанию.
+                 Для синглтонов: factory=lambda: shared_instance.
+                 Для параметризованных: factory=lambda env: BankClient(env).
         description: описание зависимости для документации и интроспекции.
-                     По умолчанию пустая строка.
 
     Возвращает:
-        Декоратор, который добавляет DependencyInfo в cls._depends_info
-        и возвращает класс без изменений.
+        Декоратор, который добавляет DependencyInfo в cls._depends_info.
 
     Исключения:
         TypeError:
@@ -130,7 +136,7 @@ def depends(klass: Any, *, description: str = "") -> Callable[[type], type]:
         ValueError:
             - Зависимость klass уже объявлена для этого класса.
     """
-    # ── Проверка аргументов декоратора (выполняется при вызове @depends(...)) ──
+    # ── Проверка аргументов декоратора ──
 
     if not isinstance(klass, type):
         raise TypeError(
@@ -149,16 +155,14 @@ def depends(klass: Any, *, description: str = "") -> Callable[[type], type]:
         Внутренний декоратор, применяемый к целевому классу.
 
         Проверяет:
-        1. cls — класс (type), не функция/метод/свойство.
+        1. cls — класс (type).
         2. cls наследует DependencyGateHost.
         3. klass — подкласс верхней границы дженерика.
         4. Дубликатов нет.
 
         Затем добавляет DependencyInfo в cls._depends_info.
         """
-        # ── Проверка цели декоратора (выполняется при определении класса) ──
-
-        # Цель — класс, а не функция/метод/свойство
+        # ── Проверка цели ──
         if not isinstance(cls, type):
             raise TypeError(
                 f"@depends можно применять только к классу. "
@@ -182,7 +186,6 @@ def depends(klass: Any, *, description: str = "") -> Callable[[type], type]:
             )
 
         # ── Создание собственного списка зависимостей ──
-        # Копируем родительский, чтобы не мутировать его
         if '_depends_info' not in cls.__dict__:
             cls._depends_info = list(getattr(cls, '_depends_info', []))
 
@@ -194,7 +197,9 @@ def depends(klass: Any, *, description: str = "") -> Callable[[type], type]:
             )
 
         # ── Регистрация зависимости ──
-        cls._depends_info.append(DependencyInfo(cls=klass, description=description))
+        cls._depends_info.append(
+            DependencyInfo(cls=klass, factory=factory, description=description)
+        )
 
         return cls
 

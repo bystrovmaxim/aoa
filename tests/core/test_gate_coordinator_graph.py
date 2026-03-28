@@ -1,11 +1,29 @@
 # tests/core/test_gate_coordinator_graph.py
 """
-Тесты для графа сущностей в GateCoordinator (этап 4).
+Тесты для графа сущностей в GateCoordinator.
+
+═══════════════════════════════════════════════════════════════════════════════
+НАЗНАЧЕНИЕ
+═══════════════════════════════════════════════════════════════════════════════
 
 Полный набор тестов, покрывающий функциональность графа на rustworkx
 в GateCoordinator: построение графа, рекурсивный обход зависимостей,
 проверку ацикличности, публичный API чтения графа, инвалидацию,
 свойства графа.
+
+═══════════════════════════════════════════════════════════════════════════════
+ГЕЙТ-ХОСТЫ В ТЕСТОВЫХ КЛАССАХ
+═══════════════════════════════════════════════════════════════════════════════
+
+Все тестовые классы, созданные через фабричные функции make_action_class
+и make_plugin_class, наследуют соответствующие гейт-хосты:
+
+    - Классы с аспектами → AspectGateHost, CheckerGateHost
+    - Классы с подписками → OnGateHost
+
+Это обязательное требование: MetadataBuilder.build() проверяет наличие
+гейт-хостов и выбрасывает TypeError при их отсутствии. Гейт-хост —
+разрешение на использование декоратора.
 """
 
 from __future__ import annotations
@@ -16,8 +34,11 @@ from typing import Any
 import pytest
 import rustworkx as rx
 
+from action_machine.aspects.aspect_gate_host import AspectGateHost
+from action_machine.checkers.checker_gate_host import CheckerGateHost
 from action_machine.core.exceptions import CyclicDependencyError
 from action_machine.core.gate_coordinator import GateCoordinator
+from action_machine.plugins.on_gate_host import OnGateHost
 from action_machine.resource_managers.base_resource_manager import BaseResourceManager
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -98,10 +119,7 @@ def _make_async_method(name: str, param_count: int = 5):
 
 
 def _get_class_node_key(coordinator: GateCoordinator, cls: type) -> str:
-    """
-    Получает ключ узла класса в графе, используя metadata.class_name
-    из координатора.
-    """
+    """Получает ключ узла класса в графе."""
     metadata = coordinator.get(cls)
     if metadata.has_subscriptions():
         node_type = "plugin"
@@ -162,7 +180,16 @@ def make_action_class(
     checkers: list[tuple[str, type, str, str, bool]] | None = None,
     sensitive: list[tuple[str, dict]] | None = None,
 ) -> type:
-    """Создаёт тестовый класс с заданными метаданными."""
+    """
+    Создаёт тестовый класс с заданными метаданными.
+
+    Автоматически добавляет гейт-хосты:
+    - AspectGateHost и CheckerGateHost если есть аспекты или чекеры.
+    - Без хостов если нет аспектов и чекеров (модель данных).
+
+    Это обязательно: MetadataBuilder проверяет гейт-хосты и выбрасывает
+    TypeError при их отсутствии.
+    """
     attrs: dict[str, Any] = {}
 
     if aspects:
@@ -172,7 +199,12 @@ def make_action_class(
     if sensitive:
         _attach_sensitive(attrs, sensitive)
 
-    cls = type(name, (), attrs)
+    # Определяем базовые классы на основе наличия декораторов
+    bases: tuple[type, ...] = ()
+    if aspects or checkers:
+        bases = (AspectGateHost, CheckerGateHost)
+
+    cls = type(name, bases, attrs)
 
     if role_spec is not None:
         cls._role_info = {"spec": role_spec, "desc": ""}
@@ -194,7 +226,12 @@ def make_plugin_class(
     name: str = "TestPlugin",
     subscriptions: list[tuple[str, str, str]] | None = None,
 ) -> type:
-    """Создаёт тестовый класс плагина с подписками."""
+    """
+    Создаёт тестовый класс плагина с подписками.
+
+    Автоматически добавляет OnGateHost если есть подписки.
+    Это обязательно: MetadataBuilder проверяет гейт-хосты.
+    """
     attrs: dict[str, Any] = {}
     if subscriptions:
         for method_name, event_type, action_filter in subscriptions:
@@ -203,7 +240,9 @@ def make_plugin_class(
                 FakeSubscriptionInfo(event_type=event_type, action_filter=action_filter)
             ]
             attrs[method_name] = method
-    return type(name, (), attrs)
+
+    bases: tuple[type, ...] = (OnGateHost,) if subscriptions else ()
+    return type(name, bases, attrs)
 
 
 # ═════════════════════════════════════════════════════════════════════════════

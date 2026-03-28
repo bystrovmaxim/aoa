@@ -21,7 +21,6 @@ from action_machine.core.base_action import BaseAction
 from action_machine.core.base_params import BaseParams
 from action_machine.core.base_result import BaseResult
 from action_machine.dependencies.dependency_factory import DependencyFactory
-from action_machine.dependencies.dependency_gate import DependencyGate
 from action_machine.plugins.decorators import on
 from action_machine.plugins.plugin import Plugin
 from action_machine.plugins.plugin_coordinator import PluginCoordinator
@@ -73,9 +72,9 @@ class SelectivePlugin(Plugin):
 # ─────────────────────────────────────────────────────────────────────────────
 
 def _make_empty_factory() -> DependencyFactory:
-    gate = DependencyGate()
-    gate.freeze()
-    return DependencyFactory(gate)
+    # removed: gate not needed
+    # removed: freeze not needed
+    return DependencyFactory(())
 
 
 async def _emit_global_finish(plugin_ctx, action=None, nest_level=0):
