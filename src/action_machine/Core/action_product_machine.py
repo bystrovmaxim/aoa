@@ -30,45 +30,19 @@ STATELESS МЕЖДУ ЗАПРОСАМИ
 - Состояния плагинов инкапсулированы в PluginRunContext, который
   создаётся в начале run() и уничтожается по завершении.
 
-PluginCoordinator — stateless. Он хранит только список экземпляров
-плагинов и предоставляет фабричный метод create_run_context().
-
 ═══════════════════════════════════════════════════════════════════════════════
 ИНТЕГРАЦИЯ С GATECOORDINATOR
 ═══════════════════════════════════════════════════════════════════════════════
 
-Машина НЕ обращается к «сырым» атрибутам класса (_role_info, _depends_info,
-_connection_info и т.д.). Вместо этого она получает иммутабельный снимок
-ClassMetadata через GateCoordinator:
+Машина НЕ обращается к «сырым» атрибутам класса (_role_info, _depends_info
+и т.д.). Вместо этого она получает иммутабельный снимок ClassMetadata
+через GateCoordinator:
 
     metadata = self._coordinator.get(action.__class__)
-    metadata.role          → RoleMeta | None
-    metadata.dependencies  → tuple[DependencyInfo, ...]
-    metadata.connections   → tuple[ConnectionInfo, ...]
-    metadata.aspects       → tuple[AspectMeta, ...]
-    metadata.checkers      → tuple[CheckerMeta, ...]
 
-Фабрика зависимостей получается через:
+Фабрика зависимостей:
 
     factory = self._coordinator.get_factory(action.__class__)
-
-GateCoordinator — единственный владелец метаданных и фабрик.
-
-═══════════════════════════════════════════════════════════════════════════════
-ИНТЕГРАЦИЯ С ПЛАГИНАМИ
-═══════════════════════════════════════════════════════════════════════════════
-
-В начале _run_internal() создаётся изолированный PluginRunContext:
-
-    plugin_ctx = await self._plugin_coordinator.create_run_context()
-
-Все события (global_start, before/after аспектов, global_finish)
-отправляются через plugin_ctx.emit_event(). После завершения run()
-контекст уничтожается вместе с состояниями плагинов.
-
-Для тестирования состояние плагина доступно через:
-
-    plugin_ctx.get_plugin_state(plugin_instance)
 
 ═══════════════════════════════════════════════════════════════════════════════
 АРХИТЕКТУРА ВЫПОЛНЕНИЯ
@@ -76,59 +50,20 @@ GateCoordinator — единственный владелец метаданны
 
     machine.run(context, action, params, connections)
         │
-        ├── 1. _check_action_roles(action, context)
-        │       └── metadata.role → RoleMeta → проверка spec
-        │
-        ├── 2. _check_connections(action, connections)
-        │       └── metadata.connections → declared keys vs actual keys
-        │
+        ├── 1. _check_action_roles(action, context, metadata)
+        ├── 2. _check_connections(action, connections, metadata)
         ├── 3. coordinator.get_factory(action.__class__)
-        │       └── stateless DependencyFactory из координатора
-        │
         ├── 4. plugin_ctx = plugin_coordinator.create_run_context()
-        │       └── get_initial_state() для каждого плагина
-        │
         ├── 5. plugin_ctx.emit_event("global_start", ...)
-        │
         ├── 6. _execute_regular_aspects(...)
         │       └── для каждого AspectMeta с type=="regular":
-        │           ├── plugin_ctx.emit_event("before:{aspect_name}", ...)
-        │           ├── вызов метода
-        │           ├── _apply_checkers(action, aspect_meta, result)
-        │           └── plugin_ctx.emit_event("after:{aspect_name}", ...)
-        │
+        │           ├── before-событие плагинам
+        │           ├── вызов метода аспекта
+        │           ├── _apply_checkers(...)
+        │           └── after-событие плагинам
         ├── 7. _call_aspect(summary, ...)
-        │
         ├── 8. plugin_ctx.emit_event("global_finish", ...)
-        │
         └── 9. return Result
-
-═══════════════════════════════════════════════════════════════════════════════
-ЛОГИРОВАНИЕ
-═══════════════════════════════════════════════════════════════════════════════
-
-Для каждого аспекта создаётся ScopedLogger с координатами выполнения
-(machine, mode, action, aspect). Логгер оборачивается в ToolsBox и
-передаётся в аспект. Аспекты вызывают box.info/warning/error/debug,
-которые делегируют в ScopedLogger → LogCoordinator → [Logger1, Logger2, ...].
-
-═══════════════════════════════════════════════════════════════════════════════
-ПРИМЕР ИСПОЛЬЗОВАНИЯ
-═══════════════════════════════════════════════════════════════════════════════
-
-    coordinator = GateCoordinator()
-    machine = ActionProductMachine(
-        mode="production",
-        coordinator=coordinator,
-        plugins=[CounterPlugin()],
-    )
-
-    result = await machine.run(
-        context=context,
-        action=CreateOrderAction(),
-        params=OrderParams(user_id="max", amount=100.0),
-        connections={"db": pg_manager, "cache": redis_manager},
-    )
 """
 
 import time
@@ -168,14 +103,8 @@ class ActionProductMachine(BaseActionMachine):
     Выполняет действие по конвейеру аспектов, проверяет роли и соединения,
     применяет чекеры к результатам аспектов, уведомляет плагины о событиях.
 
-    Все метаданные о действии (роли, зависимости, аспекты, чекеры, соединения)
-    получаются через GateCoordinator → ClassMetadata. Машина НЕ обращается
-    к внутренним атрибутам классов (_role_info, _depends_info и т.д.).
-
-    Фабрики зависимостей хранятся в координаторе и являются stateless.
-    PluginCoordinator — stateless, хранит только список плагинов.
-    Состояния плагинов инкапсулированы в PluginRunContext, который
-    создаётся и уничтожается в рамках одного вызова run().
+    Все метаданные получаются через GateCoordinator → ClassMetadata.
+    Машина НЕ обращается к внутренним атрибутам классов.
 
     Машина не хранит никакого мутабельного состояния между вызовами run().
 
@@ -183,13 +112,11 @@ class ActionProductMachine(BaseActionMachine):
         _mode : str
             Режим выполнения ("production", "test", "staging" и т.д.).
         _coordinator : GateCoordinator
-            Координатор метаданных и фабрик. Единственный владелец
-            ClassMetadata и DependencyFactory для каждого класса.
+            Координатор метаданных и фабрик.
         _plugin_coordinator : PluginCoordinator
-            Stateless-координатор плагинов. Хранит список плагинов
-            и предоставляет фабричный метод create_run_context().
+            Stateless-координатор плагинов.
         _log_coordinator : LogCoordinator
-            Координатор логирования. Рассылает логи по логгерам.
+            Координатор логирования.
     """
 
     def __init__(
@@ -204,11 +131,8 @@ class ActionProductMachine(BaseActionMachine):
 
         Аргументы:
             mode: режим выполнения (обязательный, не пустой).
-                  Примеры: "production", "test", "staging".
             coordinator: координатор метаданных и фабрик. Если не указан,
-                         создаётся новый экземпляр GateCoordinator().
-                         Координатор — единственный владелец метаданных
-                         и фабрик зависимостей.
+                         создаётся новый экземпляр.
             plugins: список экземпляров плагинов (по умолчанию пустой).
             log_coordinator: координатор логирования. Если не указан, создаётся
                              координатор с одним ConsoleLogger(use_colors=True).
@@ -220,16 +144,11 @@ class ActionProductMachine(BaseActionMachine):
             raise ValueError("mode must be non-empty")
 
         self._mode: str = mode
-
-        # Координатор метаданных и фабрик (DI или создание по умолчанию)
         self._coordinator: GateCoordinator = coordinator or GateCoordinator()
-
-        # Stateless-координатор плагинов
         self._plugin_coordinator: PluginCoordinator = PluginCoordinator(
             plugins=plugins or [],
         )
 
-        # Координатор логирования
         if log_coordinator is None:
             log_coordinator = LogCoordinator(loggers=[ConsoleLogger(use_colors=True)])
         self._log_coordinator: LogCoordinator = log_coordinator
@@ -241,9 +160,6 @@ class ActionProductMachine(BaseActionMachine):
     def _get_metadata(self, action: BaseAction[Any, Any]) -> ClassMetadata:
         """
         Возвращает ClassMetadata для действия через координатор.
-
-        Первый вызов для класса собирает метаданные через MetadataBuilder,
-        последующие возвращают кешированный объект из координатора.
 
         Аргументы:
             action: экземпляр действия.
@@ -267,7 +183,7 @@ class ActionProductMachine(BaseActionMachine):
 
         Аргументы:
             metadata: метаданные класса действия.
-            aspect_meta: метаданные аспекта, для которого ищем чекеры.
+            aspect_meta: метаданные аспекта.
 
         Возвращает:
             tuple[CheckerMeta, ...] — чекеры для метода аспекта.
@@ -283,7 +199,6 @@ class ActionProductMachine(BaseActionMachine):
         Применяет все чекеры к словарю результата аспекта.
 
         Каждый чекер создаётся из CheckerMeta и вызывается с результатом.
-        Если проверка не пройдена, чекер выбрасывает ValidationFieldError.
 
         Аргументы:
             checkers: кортеж метаданных чекеров.
@@ -306,10 +221,7 @@ class ActionProductMachine(BaseActionMachine):
     # ─────────────────────────────────────────────────────────────────────
 
     def _check_none_role(self, user_roles: list[str]) -> bool:
-        """
-        Проверка для CheckRoles.NONE — доступ без аутентификации.
-        Всегда возвращает True.
-        """
+        """Проверка для CheckRoles.NONE — доступ без аутентификации. Всегда True."""
         return True
 
     def _check_any_role(self, user_roles: list[str]) -> bool:
@@ -327,8 +239,7 @@ class ActionProductMachine(BaseActionMachine):
 
     def _check_list_role(self, spec: list[str], user_roles: list[str]) -> bool:
         """
-        Проверка для списка ролей — у пользователя должна быть хотя бы одна
-        из перечисленных ролей.
+        Проверка для списка ролей — у пользователя должна быть хотя бы одна.
 
         Исключения:
             AuthorizationError: если пересечение пустое.
@@ -362,17 +273,14 @@ class ActionProductMachine(BaseActionMachine):
         """
         Проверяет ролевые ограничения действия через ClassMetadata.
 
-        Читает metadata.role (RoleMeta) и сравнивает со списком ролей
-        текущего пользователя из контекста.
-
         Аргументы:
-            action: экземпляр действия (для сообщений об ошибках).
-            context: контекст выполнения с информацией о пользователе.
+            action: экземпляр действия.
+            context: контекст выполнения.
             metadata: метаданные класса действия.
 
         Исключения:
             TypeError: если действие не имеет декоратора @CheckRoles.
-            AuthorizationError: если роли пользователя не соответствуют требованиям.
+            AuthorizationError: если роли не соответствуют требованиям.
         """
         if not metadata.has_role() or metadata.role is None:
             raise TypeError(
@@ -458,17 +366,13 @@ class ActionProductMachine(BaseActionMachine):
         """
         Проверяет соответствие переданных connections объявленным через @connection.
 
-        Читает metadata.connections (tuple[ConnectionInfo, ...]), извлекает
-        объявленные ключи и сравнивает с фактическими ключами из аргумента.
-
         Аргументы:
-            action: экземпляр действия (для сообщений об ошибках).
+            action: экземпляр действия.
             connections: словарь соединений (или None).
             metadata: метаданные класса действия.
 
         Возвращает:
-            dict[str, BaseResourceManager] — проверенные соединения
-            (пустой словарь, если соединения не объявлены и не переданы).
+            dict[str, BaseResourceManager] — проверенные соединения.
 
         Исключения:
             ConnectionValidationError: при несоответствии ключей.
@@ -498,23 +402,13 @@ class ActionProductMachine(BaseActionMachine):
     def _get_regular_aspects(
         self, metadata: ClassMetadata,
     ) -> tuple[AspectMeta, ...]:
-        """
-        Извлекает regular-аспекты из ClassMetadata.
-
-        Возвращает:
-            tuple[AspectMeta, ...] — regular-аспекты в порядке объявления.
-        """
+        """Извлекает regular-аспекты из ClassMetadata."""
         return metadata.get_regular_aspects()
 
     def _get_summary_aspect(
         self, metadata: ClassMetadata,
     ) -> AspectMeta | None:
-        """
-        Извлекает summary-аспект из ClassMetadata.
-
-        Возвращает:
-            AspectMeta | None — summary-аспект или None.
-        """
+        """Извлекает summary-аспект из ClassMetadata."""
         return metadata.get_summary_aspect()
 
     # ─────────────────────────────────────────────────────────────────────
@@ -535,15 +429,14 @@ class ActionProductMachine(BaseActionMachine):
         Вызывает метод-аспект, обёрнутый в AspectMeta.
 
         Создаёт ScopedLogger с именем аспекта, оборачивает в новый
-        ToolsBox (чтобы логи показывали правильный aspect_name) и вызывает
-        метод: method(action, params, state, box, connections).
+        ToolsBox и вызывает метод.
 
         Аргументы:
             aspect_meta: метаданные аспекта (None → возвращает пустой BaseResult).
             action: экземпляр действия.
             params: входные параметры.
             state: текущее состояние конвейера.
-            box: базовый ToolsBox (будет заменён на box с правильным логером).
+            box: базовый ToolsBox.
             connections: словарь менеджеров ресурсов.
             context: контекст выполнения.
 
@@ -553,7 +446,6 @@ class ActionProductMachine(BaseActionMachine):
         if aspect_meta is None:
             return BaseResult()
 
-        # Создаём логер с координатами конкретного аспекта
         aspect_log = ScopedLogger(
             coordinator=self._log_coordinator,
             nest_level=box.nested_level,
@@ -564,7 +456,6 @@ class ActionProductMachine(BaseActionMachine):
             context=context,
         )
 
-        # Создаём ToolsBox с логером для конкретного аспекта
         aspect_box = ToolsBox(
             run_child=box.run_child,
             factory=box.factory,
@@ -574,7 +465,6 @@ class ActionProductMachine(BaseActionMachine):
             nested_level=box.nested_level,
         )
 
-        # Вызываем метод через method_ref из AspectMeta
         return await aspect_meta.method_ref(action, params, state, aspect_box, connections)
 
     # ─────────────────────────────────────────────────────────────────────
@@ -594,35 +484,28 @@ class ActionProductMachine(BaseActionMachine):
         """
         Последовательно выполняет regular-аспекты действия.
 
-        Для каждого аспекта:
-        1. Уведомляет плагины о событии before:{aspect_name} через plugin_ctx.
-        2. Вызывает метод аспекта.
-        3. Валидирует результат: regular-аспект должен вернуть dict.
-        4. Проверяет результат чекерами (если есть).
-        5. Объединяет результат с текущим состоянием.
-        6. Уведомляет плагины о событии after:{aspect_name} через plugin_ctx.
+        Для каждого аспекта: before-событие → вызов → валидация чекерами →
+        обновление state → after-событие.
 
         Правила чекеров:
-        - Если у аспекта нет чекеров и он вернул непустой dict — ошибка.
-          Это гарантирует, что каждое поле в state было провалидировано.
-        - Если у аспекта есть чекеры, проверяются только объявленные поля.
-          Лишние поля (не объявленные в чекерах) — ошибка.
+        - Нет чекеров + непустой dict → ошибка.
+        - Есть чекеры → лишние поля → ошибка.
 
         Аргументы:
             action: экземпляр действия.
             params: входные параметры.
-            box: ToolsBox для этого уровня вложенности.
+            box: ToolsBox для этого уровня.
             connections: словарь менеджеров ресурсов.
             context: контекст выполнения.
-            metadata: метаданные класса действия.
-            plugin_ctx: изолированный контекст плагинов для текущего запроса.
+            metadata: метаданные класса.
+            plugin_ctx: контекст плагинов.
 
         Возвращает:
-            BaseState — итоговое состояние после всех regular-аспектов.
+            BaseState — итоговое состояние.
 
         Исключения:
-            TypeError: если regular-аспект вернул не dict.
-            ValidationFieldError: если чекер не прошёл или есть лишние поля.
+            TypeError: regular-аспект вернул не dict.
+            ValidationFieldError: чекер не прошёл или лишние поля.
         """
         state = BaseState()
         regular_aspects = self._get_regular_aspects(metadata)
@@ -630,7 +513,6 @@ class ActionProductMachine(BaseActionMachine):
         for aspect_meta in regular_aspects:
             aspect_name = aspect_meta.method_name
 
-            # ── before-событие ──────────────────────────────────────────
             await plugin_ctx.emit_event(
                 event_name=f"before:{aspect_name}",
                 action=action,
@@ -644,7 +526,6 @@ class ActionProductMachine(BaseActionMachine):
                 nest_level=box.nested_level,
             )
 
-            # ── Выполнение аспекта ──────────────────────────────────────
             aspect_start = time.time()
 
             new_state_dict = await self._call_aspect(
@@ -657,7 +538,6 @@ class ActionProductMachine(BaseActionMachine):
                     f"got {type(new_state_dict).__name__}"
                 )
 
-            # ── Валидация чекерами ──────────────────────────────────────
             checkers = self._get_checkers_for_aspect(metadata, aspect_meta)
 
             if not checkers and new_state_dict:
@@ -677,12 +557,10 @@ class ActionProductMachine(BaseActionMachine):
                     )
                 self._apply_checkers(checkers, new_state_dict)
 
-            # ── Обновление состояния ────────────────────────────────────
             state = BaseState({**state.to_dict(), **new_state_dict})
 
             aspect_duration = time.time() - aspect_start
 
-            # ── after-событие ───────────────────────────────────────────
             await plugin_ctx.emit_event(
                 event_name=f"after:{aspect_name}",
                 action=action,
@@ -712,23 +590,10 @@ class ActionProductMachine(BaseActionMachine):
         """
         Асинхронно выполняет действие с поддержкой плагинов и вложенности.
 
-        Это публичная точка входа. Каждый вызов полностью изолирован
-        от предыдущих — машина не хранит состояния между запросами.
-
-        Последовательность выполнения:
-        1. Получить ClassMetadata через координатор.
-        2. Проверить роли (@CheckRoles).
-        3. Проверить соединения (@connection).
-        4. Получить stateless-фабрику зависимостей из координатора.
-        5. Создать изолированный PluginRunContext.
-        6. Уведомить плагины: global_start.
-        7. Выполнить regular-аспекты с чекерами.
-        8. Выполнить summary-аспект.
-        9. Уведомить плагины: global_finish.
-        10. Вернуть результат.
+        Каждый вызов полностью изолирован от предыдущих.
 
         Аргументы:
-            context: контекст выполнения (пользователь, запрос, окружение).
+            context: контекст выполнения.
             action: экземпляр действия.
             params: входные параметры.
             connections: словарь менеджеров ресурсов (или None).
@@ -757,26 +622,16 @@ class ActionProductMachine(BaseActionMachine):
         """
         Внутренний метод выполнения с поддержкой вложенности.
 
-        Вызывается из run() (для корневого вызова с nested_level=0)
-        и из ToolsBox.run() (для дочерних вызовов с nested_level > 0).
-
-        В начале создаётся изолированный PluginRunContext через
-        self._plugin_coordinator.create_run_context(). Все события
-        отправляются через этот контекст. По завершении контекст
-        уничтожается вместе с состояниями плагинов.
-
-        Фабрика зависимостей получается из координатора через
-        self._coordinator.get_factory(action.__class__). Координатор
-        кеширует фабрику — повторные вызовы для того же класса
-        возвращают существующую stateless-фабрику.
+        Вызывается из run() (nested_level=0) и из ToolsBox.run()
+        (nested_level > 0).
 
         Аргументы:
             context: контекст выполнения.
             action: экземпляр действия.
             params: входные параметры.
-            resources: внешние ресурсы для зависимостей (приоритет над фабрикой).
+            resources: внешние ресурсы (моки в тестах).
             connections: менеджеры ресурсов.
-            nested_level: текущий уровень вложенности (0 для корневого вызова).
+            nested_level: текущий уровень вложенности.
 
         Возвращает:
             R — результат действия.
@@ -785,20 +640,12 @@ class ActionProductMachine(BaseActionMachine):
         start_time = time.time()
 
         try:
-            # ── Метаданные ──────────────────────────────────────────────
             metadata = self._get_metadata(action)
-
-            # ── Проверки ────────────────────────────────────────────────
             self._check_action_roles(action, context, metadata)
             conns = self._check_connections(action, connections, metadata)
-
-            # ── Фабрика зависимостей из координатора ────────────────────
             factory = self._coordinator.get_factory(action.__class__)
-
-            # ── Изолированный контекст плагинов ─────────────────────────
             plugin_ctx = await self._plugin_coordinator.create_run_context()
 
-            # ── Логер для этого уровня ──────────────────────────────────
             log = ScopedLogger(
                 coordinator=self._log_coordinator,
                 nest_level=current_nest,
@@ -809,7 +656,6 @@ class ActionProductMachine(BaseActionMachine):
                 context=context,
             )
 
-            # ── Замыкание для запуска дочерних действий ─────────────────
             async def run_child(
                 child_action: BaseAction[Any, Any],
                 child_params: BaseParams,
@@ -824,7 +670,6 @@ class ActionProductMachine(BaseActionMachine):
                     nested_level=current_nest,
                 )
 
-            # ── ToolsBox ────────────────────────────────────────────────
             box = ToolsBox(
                 run_child=run_child,
                 factory=factory,
@@ -834,7 +679,6 @@ class ActionProductMachine(BaseActionMachine):
                 nested_level=current_nest,
             )
 
-            # ── global_start ────────────────────────────────────────────
             await plugin_ctx.emit_event(
                 event_name="global_start",
                 action=action,
@@ -848,12 +692,10 @@ class ActionProductMachine(BaseActionMachine):
                 nest_level=current_nest,
             )
 
-            # ── Regular-аспекты ─────────────────────────────────────────
             state = await self._execute_regular_aspects(
                 action, params, box, conns, context, metadata, plugin_ctx
             )
 
-            # ── Summary-аспект ──────────────────────────────────────────
             summary_meta = self._get_summary_aspect(metadata)
 
             result = await self._call_aspect(
@@ -862,7 +704,6 @@ class ActionProductMachine(BaseActionMachine):
 
             total_duration = time.time() - start_time
 
-            # ── global_finish ───────────────────────────────────────────
             await plugin_ctx.emit_event(
                 event_name="global_finish",
                 action=action,

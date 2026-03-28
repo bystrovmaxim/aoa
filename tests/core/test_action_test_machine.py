@@ -1,4 +1,4 @@
-# tests/decorators/test_depends_checks.py
+# tests/core/test_action_test_machine.py
 """
 Тесты проверок декоратора @depends.
 
@@ -48,7 +48,6 @@ class TestDependsObjectBoundSuccess:
         @depends(FakeService, description="Тестовый сервис")
         class MyAction(ObjectBoundHost):
             pass
-
         assert len(MyAction._depends_info) == 1
         assert MyAction._depends_info[0].cls is FakeService
 
@@ -56,7 +55,6 @@ class TestDependsObjectBoundSuccess:
         @depends(FakeResourceManager, description="Менеджер ресурсов")
         class MyAction(ObjectBoundHost):
             pass
-
         assert MyAction._depends_info[0].cls is FakeResourceManager
 
     def test_multiple_dependencies(self):
@@ -64,7 +62,6 @@ class TestDependsObjectBoundSuccess:
         @depends(AnotherService)
         class MyAction(ObjectBoundHost):
             pass
-
         assert len(MyAction._depends_info) == 2
 
     def test_bound_is_object(self):
@@ -80,7 +77,6 @@ class TestDependsResourceBoundSuccess:
         @depends(FakeResourceManager, description="БД")
         class MyPool(ResourceBoundHost):
             pass
-
         assert len(MyPool._depends_info) == 1
         assert MyPool._depends_info[0].cls is FakeResourceManager
 
@@ -89,7 +85,6 @@ class TestDependsResourceBoundSuccess:
         @depends(AnotherResourceManager)
         class MyPool(ResourceBoundHost):
             pass
-
         assert len(MyPool._depends_info) == 2
 
     def test_bound_is_base_resource_manager(self):
