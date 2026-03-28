@@ -14,6 +14,16 @@
 3. GateCoordinator — кеширование, ленивая сборка, инвалидация, инспекция.
 
 ═══════════════════════════════════════════════════════════════════════════════
+ПРИНЦИП СБОРА МЕТАДАННЫХ
+═══════════════════════════════════════════════════════════════════════════════
+
+Аспекты, чекеры и подписки собираются ТОЛЬКО из текущего класса (vars(cls)),
+без обхода MRO. Потомок не наследует аспекты, чекеры и подписки родителя.
+
+Зависимости, соединения, роли наследуются через getattr (учитывает MRO).
+Чувствительные поля наследуются через обход MRO (свойство модели данных).
+
+═══════════════════════════════════════════════════════════════════════════════
 ГЕЙТ-ХОСТЫ В ТЕСТОВЫХ КЛАССАХ
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -127,7 +137,7 @@ def _make_class_with_connections(*conn_tuples):
 
 def _make_class_with_aspects(*aspect_defs):
     """
-    Создаёт класс с аспектами. Наследует AspectGateHost.
+    Создаёт класс с аспектами. Наследует AspectGateHost и CheckerGateHost.
 
     aspect_defs: кортежи (method_name, aspect_type, description).
     """
@@ -622,24 +632,82 @@ class TestMetadataBuilderSensitive:
 
 class TestMetadataBuilderInheritance:
 
-    def test_child_inherits_parent_aspects(self):
-        parent = _make_class_with_aspects(("validate", "regular", "Валидация"), ("finish", "summary", "Итог"))
+    def test_child_does_not_inherit_parent_aspects(self):
+        """
+        Аспекты НЕ наследуются. Потомок без собственных аспектов
+        имеет пустой конвейер, даже если родитель объявлял аспекты.
+        Собираются только из vars(cls) текущего класса.
+        """
+        parent = _make_class_with_aspects(
+            ("validate", "regular", "Валидация"),
+            ("finish", "summary", "Итог"),
+        )
         child = type("ChildAction", (parent,), {})
         meta = MetadataBuilder.build(child)
-        assert len(meta.aspects) == 2
-        assert meta.aspects[0].method_name == "validate"
-        assert meta.aspects[1].method_name == "finish"
+        assert len(meta.aspects) == 0
 
-    def test_child_overrides_parent_aspect(self):
-        parent = _make_class_with_aspects(("validate", "regular", "Валидация родителя"), ("finish", "summary", "Итог"))
-        new_validate = _make_async_method("validate")
-        new_validate._new_aspect_meta = {"type": "regular", "description": "Валидация дочернего"}
-        child = type("ChildAction", (parent,), {"validate": new_validate})
+    def test_child_with_own_aspects_ignores_parent(self):
+        """
+        Потомок с собственными аспектами использует только свои.
+        Аспекты родителя полностью игнорируются.
+        """
+        parent = _make_class_with_aspects(
+            ("validate", "regular", "Валидация родителя"),
+            ("finish", "summary", "Итог"),
+        )
+        new_process = _make_async_method("process")
+        new_process._new_aspect_meta = {
+            "type": "regular",
+            "description": "Обработка дочернего",
+        }
+        new_summary = _make_async_method("summary")
+        new_summary._new_aspect_meta = {
+            "type": "summary",
+            "description": "Итог дочернего",
+        }
+        child = type("ChildAction", (parent,), {
+            "process": new_process,
+            "summary": new_summary,
+        })
         meta = MetadataBuilder.build(child)
-        validate_aspect = next(a for a in meta.aspects if a.method_name == "validate")
-        assert validate_aspect.description == "Валидация дочернего"
+        assert len(meta.aspects) == 2
+        names = [a.method_name for a in meta.aspects]
+        assert "process" in names
+        assert "summary" in names
+        # Родительские аспекты отсутствуют
+        assert "validate" not in names
+        assert "finish" not in names
+
+    def test_child_overrides_parent_aspect_must_redeclare(self):
+        """
+        Потомок, переопределяющий метод родителя, должен повесить
+        декоратор @regular_aspect/@summary_aspect заново. Простое
+        переопределение метода без декоратора не делает его аспектом.
+        Без summary потомок с regular-аспектом получит ошибку валидации.
+        """
+        parent = _make_class_with_aspects(
+            ("validate", "regular", "Валидация родителя"),
+            ("finish", "summary", "Итог"),
+        )
+        # Потомок переопределяет validate БЕЗ декоратора и добавляет summary
+        new_validate = _make_async_method("validate")
+        # НЕ прикрепляем _new_aspect_meta — это просто метод, не аспект
+        new_summary = _make_async_method("finish")
+        new_summary._new_aspect_meta = {
+            "type": "summary",
+            "description": "Итог дочернего",
+        }
+        child = type("ChildAction", (parent,), {
+            "validate": new_validate,
+            "finish": new_summary,
+        })
+        meta = MetadataBuilder.build(child)
+        # Только finish — аспект. validate без декоратора — просто метод.
+        assert len(meta.aspects) == 1
+        assert meta.aspects[0].method_name == "finish"
 
     def test_child_inherits_role(self):
+        """Роли наследуются через MRO (getattr)."""
         parent = _make_class_with_role("admin", "Только админ")
         child = type("ChildAction", (parent,), {})
         meta = MetadataBuilder.build(child)
@@ -647,11 +715,41 @@ class TestMetadataBuilderInheritance:
         assert meta.role.spec == "admin"
 
     def test_child_inherits_dependencies(self):
+        """Зависимости наследуются через MRO (getattr)."""
         parent = _make_class_with_dependencies((FakeServiceA, "Сервис A"))
         child = type("ChildAction", (parent,), {})
         meta = MetadataBuilder.build(child)
         assert len(meta.dependencies) == 1
         assert meta.dependencies[0].cls is FakeServiceA
+
+    def test_child_inherits_sensitive_fields(self):
+        """
+        Чувствительные поля наследуются через MRO.
+        Это исключение из правила "только свои" — @sensitive
+        описывает свойство модели данных, а не конвейер выполнения.
+        """
+        def email_getter(self):
+            return "secret@example.com"
+        email_getter._sensitive_config = {
+            "enabled": True, "max_chars": 3, "char": "*", "max_percent": 50,
+        }
+        parent = type("ParentModel", (), {"email": property(email_getter)})
+        child = type("ChildModel", (parent,), {})
+        meta = MetadataBuilder.build(child)
+        assert len(meta.sensitive_fields) == 1
+        assert meta.sensitive_fields[0].property_name == "email"
+
+    def test_child_does_not_inherit_subscriptions(self):
+        """
+        Подписки НЕ наследуются. Потомок плагина без собственных @on
+        не имеет подписок, даже если родитель объявлял их.
+        """
+        parent = _make_class_with_subscriptions(
+            ("on_finish", "global_finish", ".*"),
+        )
+        child = type("ChildPlugin", (parent,), {})
+        meta = MetadataBuilder.build(child)
+        assert len(meta.subscriptions) == 0
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -832,6 +930,12 @@ class TestGateCoordinatorErrors:
             coordinator.get(cls)
 
     def test_structural_error_not_cached(self):
+        """
+        При ошибке сборки метаданные не должны оставаться в кеше.
+        GateCoordinator помещает метаданные в кеш ДО валидации
+        (для защиты от циклических зависимостей), но при ошибке
+        должен удалить их.
+        """
         cls = _make_class_with_aspects(("step1", "regular", "Шаг"))
         coordinator = GateCoordinator()
         with pytest.raises(ValueError):
