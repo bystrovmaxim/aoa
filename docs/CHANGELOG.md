@@ -4,6 +4,42 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+
+
+## [0.0.7] – 2026-03-28
+
+### Added
+- **`metadata` subpackage** – extracted `MetadataBuilder` from monolithic `core/metadata_builder.py` into a dedicated subpackage `action_machine/metadata/` with four focused modules:
+  - `builder.py` – `MetadataBuilder` class with the single public method `build(cls)`, serving as the only entry point for metadata assembly.
+  - `collectors.py` – eight collector functions that read temporary decorator attributes from classes and methods: roles, dependencies, connections, aspects, checkers, subscriptions, sensitive fields, and dependency bound types.
+  - `validators.py` – structural validation functions enforcing invariants that cannot be checked by individual decorators (e.g., at most one summary aspect, summary must be last, checkers must be attached to existing aspects).
+  - `cleanup.py` – `cleanup_temporary_attributes()` function for explicit removal of decorator artifacts from classes and methods, available for special scenarios such as finalization or memory optimization.
+- **`_extract_bound` test coverage** – comprehensive tests for `DependencyGateHost` bound type extraction across multiple inheritance scenarios: explicit bound, no bound, three-level inheritance, multiple inheritance with mixins, `TypeVar` fallback to `object`, bound override in child classes, and diamond inheritance.
+- **New test files** –
+  - `tests/metadata/test_builder_integration.py` – integration tests for the new builder, including import verification, idempotency, validation, and coordinator compatibility.
+  - `tests/metadata/test_cleanup.py` – tests for explicit cleanup function covering class-level and method-level attributes, inheritance isolation, idempotency, and confirmation that `build()` does not auto-clean.
+  - `tests/metadata/test_extract_bound.py` – exhaustive tests for generic bound extraction from `DependencyGateHost[T]`.
+  - `tests/metadata/test_gate_coordinator_graph.py` – graph tests relocated to metadata test directory.
+  - `tests/metadata/test_metadata_and_coordinator.py` – updated tests with new import paths.
+
+### Changed
+- **`MetadataBuilder.build()` no longer auto-cleans temporary attributes** – classes defined at module level are shared across tests and multiple `GateCoordinator` instances. Auto-cleaning after the first `build()` caused subsequent builds to return empty metadata when tests ran in arbitrary order. `build()` is now idempotent: repeated calls on the same class return equivalent `ClassMetadata` objects. Cleanup is available as an explicit opt-in via `cleanup_temporary_attributes()`.
+- **All imports updated** – `gate_coordinator.py` and all test files now import `MetadataBuilder` from `action_machine.metadata` instead of the deleted `action_machine.core.metadata_builder`.
+- **`core/__init__.py` updated** – documents that `MetadataBuilder` is no longer part of the `core` package and must be imported from `action_machine.metadata`.
+- **Type annotations in `collectors.py`** – all return types now use explicit generic parameters (`dict[str, Any]`, `list[Any]`) instead of bare `dict` and `list`, resolving five mypy `type-arg` errors.
+
+### Removed
+- **`src/action_machine/core/metadata_builder.py`** – deleted entirely. All functionality moved to the `action_machine/metadata/` subpackage. Any remaining `__pycache__` artifacts from the old module should be cleared.
+
+### Fixed
+- **Test isolation for module-level classes** – tests that use `@CheckRoles`, `@connection`, `@depends`, and other decorators on module-level classes now work correctly regardless of test execution order. Previously, cleanup removed `_role_info` and `_connection_info` after the first `GateCoordinator` registered a class, causing all subsequent coordinators to see empty metadata for that class.
+- **`FakeDependencyInfo` in tests** – added missing `factory` field to test helper dataclass, resolving `AttributeError: 'FakeDependencyInfo' object has no attribute 'factory'` when `DependencyFactory.resolve()` accessed the field.
+
+### Technical Notes
+- **757 tests pass** after the refactoring, with no functionality broken.
+- All checks clean: ruff, pylint (10.00/10), mypy, vulture, radon complexity (average A, 2.34), radon maintainability (all files grade A).
+- The `cleanup.py` module and `cleanup_temporary_attributes()` function remain in the codebase for potential future use but are not called automatically by the framework.
+
 ## [0.0.6] – 2026-03-21
 
 ### Added
