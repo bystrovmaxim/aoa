@@ -18,35 +18,26 @@ GateCoordinator — единственная точка доступа к мет
    привязан к id(cls), что гарантирует корректность при наличии одноимённых
    классов из разных модулей.
 
-3. ВЛАДЕНИЕ ФАБРИКАМИ ЗАВИСИМОСТЕЙ: координатор при сборке метаданных
-   дополнительно строит DependencyGate из metadata.dependencies,
-   замораживает его и оборачивает в DependencyFactory. Фабрика хранится
-   рядом с метаданными. Поскольку DependencyFactory stateless (не хранит
-   кеш экземпляров), один экземпляр безопасно разделяется между всеми
-   вызовами run() для одного класса действия.
+3. ВЛАДЕНИЕ ФАБРИКАМИ ЗАВИСИМОСТЕЙ: координатор создаёт DependencyFactory
+   напрямую из metadata.dependencies (tuple[DependencyInfo, ...]). Промежуточный
+   DependencyGate удалён — фабрика сама хранит dict[type, DependencyInfo]
+   внутри. Фабрика stateless, один экземпляр безопасно разделяется между
+   всеми вызовами run() для одного класса действия.
 
 4. РЕКУРСИВНЫЙ ОБХОД ЗАВИСИМОСТЕЙ: после сборки ClassMetadata координатор
    проходит по metadata.dependencies и metadata.connections, рекурсивно
-   вызывая get() для каждого найденного класса. Кеш координатора защищает
-   от повторной сборки. Метаданные текущего класса помещаются в кеш ДО
-   начала рекурсии, что гарантирует остановку при циклических ссылках
-   на уровне кеша. Обнаружение циклов и корректная диагностика
-   делегируются графу.
+   вызывая get() для каждого найденного класса. Кеш защищает от повторной
+   сборки. Метаданные текущего класса помещаются в кеш ДО начала рекурсии.
 
 5. ПОСТРОЕНИЕ И КОНТРОЛЬ ГРАФА: координатор создаёт направленный граф
    rx.PyDiGraph при инициализации. При регистрации каждого класса граф
    заполняется узлами и рёбрами. После добавления каждого ребра типов
-   depends или connection проверяется ацикличность графа через
-   rx.is_directed_acyclic_graph(). Если добавление ребра создаёт цикл,
-   координатор выбрасывает CyclicDependencyError.
+   depends или connection проверяется ацикличность через
+   rx.is_directed_acyclic_graph(). При обнаружении цикла выбрасывается
+   CyclicDependencyError.
 
-6. ЕДИНООБРАЗНЫЙ ДОСТУП: вместо разрозненных обращений к cls._depends_info,
-   cls._role_info и т.д. — один вызов coordinator.get(cls) возвращает
-   полный снимок. Для фабрик — coordinator.get_factory(cls).
-
-7. ИНВАЛИДАЦИЯ: метод invalidate(cls) удаляет кеш метаданных и фабрику
-   для класса. Используется в тестах или при динамическом переопределении
-   декораторов. При инвалидации граф перестраивается из оставшихся классов.
+6. ИНВАЛИДАЦИЯ: метод invalidate(cls) удаляет кеш метаданных и фабрику
+   для класса. Используется в тестах.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ГРАФ СУЩНОСТЕЙ
@@ -63,8 +54,7 @@ subscription, sensitive, role.
 has_role, subscribes.
 
 Рёбра типов depends и connection проверяются на ацикличность после каждого
-добавления. Остальные типы рёбер по определению не создают циклов (направлены
-от класса к его компонентам).
+добавления. Остальные типы рёбер по определению не создают циклов.
 
 Payload каждого узла — словарь с полями: node_type, name, class_ref, meta.
 
@@ -106,19 +96,6 @@ Payload каждого узла — словарь с полями: node_type, n
 2. ПОСЛЕ РЕГИСТРАЦИИ КООРДИНАТОР НЕИЗМЕНЯЕМ (кроме инвалидации в тестах).
 3. КООРДИНАТОР НЕ ЗНАЕТ О БИЗНЕС-ЛОГИКЕ.
 4. ПОТОКОБЕЗОПАСНОСТЬ: не требуется (asyncio — один поток).
-
-═══════════════════════════════════════════════════════════════════════════════
-ИСПОЛЬЗОВАНИЕ
-═══════════════════════════════════════════════════════════════════════════════
-
-    coordinator = GateCoordinator()
-
-    meta = coordinator.get(CreateOrderAction)
-    factory = coordinator.get_factory(CreateOrderAction)
-    graph = coordinator.get_graph()
-    tree = coordinator.get_dependency_tree("action:test.CreateOrderAction")
-
-    coordinator.invalidate(CreateOrderAction)  # только для тестов
 """
 
 from __future__ import annotations
@@ -130,7 +107,6 @@ import rustworkx as rx
 from action_machine.core.class_metadata import ClassMetadata, RoleMeta
 from action_machine.core.exceptions import CyclicDependencyError
 from action_machine.dependencies.dependency_factory import DependencyFactory
-from action_machine.dependencies.dependency_gate import DependencyGate
 from action_machine.metadata import MetadataBuilder
 
 
@@ -172,6 +148,7 @@ class GateCoordinator:
 
         _factory_cache : dict[int, DependencyFactory]
             Кеш stateless-фабрик зависимостей. Ключ — id(cls).
+            Фабрика создаётся напрямую из metadata.dependencies.
 
         _class_map : dict[int, type]
             Обратная карта id(cls) → cls для методов инспекции.
@@ -196,18 +173,7 @@ class GateCoordinator:
     # ─────────────────────────────────────────────────────────────────────
 
     def _make_node_key(self, node_type: str, name: str) -> str:
-        """
-        Формирует уникальный ключ узла для индекса.
-
-        Формат: ``"тип:полное_имя"``, например ``"action:test.CreateOrderAction"``.
-
-        Аргументы:
-            node_type: тип узла.
-            name: полное имя класса или метода.
-
-        Возвращает:
-            str — уникальный ключ узла.
-        """
+        """Формирует уникальный ключ узла: ``"тип:полное_имя"``."""
         return f"{node_type}:{name}"
 
     def _ensure_node(
@@ -222,15 +188,6 @@ class GateCoordinator:
 
         Идемпотентен: если узел с таким ключом уже существует, возвращает
         его индекс без повторного добавления.
-
-        Аргументы:
-            node_type: тип узла.
-            name: полное имя класса или метода.
-            class_ref: ссылка на класс (None для аспектов, чекеров и т.д.).
-            meta: дополнительные метаданные узла.
-
-        Возвращает:
-            int — индекс узла в графе.
         """
         key = self._make_node_key(node_type, name)
         if key in self._node_index:
@@ -258,11 +215,6 @@ class GateCoordinator:
         Проверка выполняется только для рёбер типов ``depends`` и ``connection``,
         так как только они могут создать цикл между пользовательскими классами.
 
-        Аргументы:
-            source_idx: индекс исходного узла.
-            target_idx: индекс целевого узла.
-            edge_type: тип ребра.
-
         Исключения:
             CyclicDependencyError: если добавление ребра создаёт цикл.
         """
@@ -287,12 +239,6 @@ class GateCoordinator:
         Определяет тип узла для класса на основе его метаданных.
 
         Правила: подписки → plugin, аспекты → action, иначе → dependency.
-
-        Аргументы:
-            metadata: метаданные класса.
-
-        Возвращает:
-            str — тип узла.
         """
         if metadata.has_subscriptions():
             return "plugin"
@@ -301,26 +247,12 @@ class GateCoordinator:
         return "dependency"
 
     def _build_class_meta(self, node_type: str, metadata: ClassMetadata) -> dict[str, Any]:
-        """
-        Формирует словарь метаданных для узла класса в графе.
-
-        Аргументы:
-            node_type: тип узла.
-            metadata: метаданные класса.
-
-        Возвращает:
-            dict — метаданные для payload узла.
-        """
+        """Формирует словарь метаданных для узла класса в графе."""
         if node_type == "action":
             role_spec = metadata.role.spec if metadata.role else None
-            return {
-                "role": role_spec,
-                "aspect_count": len(metadata.aspects),
-            }
+            return {"role": role_spec, "aspect_count": len(metadata.aspects)}
         if node_type == "plugin":
-            return {
-                "subscription_count": len(metadata.subscriptions),
-            }
+            return {"subscription_count": len(metadata.subscriptions)}
         return {}
 
     def _populate_graph(self, cls: type, metadata: ClassMetadata) -> None:
@@ -330,16 +262,13 @@ class GateCoordinator:
         Добавляет узел класса, узлы и рёбра зависимостей, соединений,
         аспектов, чекеров, подписок, чувствительных полей и роли.
         Рёбра depends и connection проверяются на ацикличность.
-
-        Аргументы:
-            cls: класс.
-            metadata: метаданные класса.
         """
         class_name = metadata.class_name
         node_type = self._determine_class_node_type(metadata)
         class_meta = self._build_class_meta(node_type, metadata)
         class_idx = self._ensure_node(node_type, class_name, class_ref=cls, meta=class_meta)
 
+        # Зависимости
         for dep_info in metadata.dependencies:
             dep_name = _full_class_name(dep_info.cls)
             dep_idx = self._ensure_node(
@@ -348,6 +277,7 @@ class GateCoordinator:
             )
             self._add_edge_checked(class_idx, dep_idx, "depends")
 
+        # Соединения
         for conn_info in metadata.connections:
             conn_name = _full_class_name(conn_info.cls)
             conn_idx = self._ensure_node(
@@ -356,6 +286,7 @@ class GateCoordinator:
             )
             self._add_edge_checked(class_idx, conn_idx, "connection")
 
+        # Аспекты и их чекеры
         for aspect_meta in metadata.aspects:
             aspect_name = f"{class_name}.{aspect_meta.method_name}"
             aspect_idx = self._ensure_node(
@@ -368,8 +299,7 @@ class GateCoordinator:
             )
             self._graph.add_edge(class_idx, aspect_idx, "has_aspect")
 
-            aspect_checkers = metadata.get_checkers_for_aspect(aspect_meta.method_name)
-            for checker_meta in aspect_checkers:
+            for checker_meta in metadata.get_checkers_for_aspect(aspect_meta.method_name):
                 checker_name = f"{aspect_name}.{checker_meta.field_name}"
                 checker_idx = self._ensure_node(
                     "checker", checker_name,
@@ -382,6 +312,7 @@ class GateCoordinator:
                 )
                 self._graph.add_edge(aspect_idx, checker_idx, "has_checker")
 
+        # Подписки
         for i, sub_info in enumerate(metadata.subscriptions):
             sub_name = f"{class_name}.subscription_{i}_{sub_info.event_type}"
             sub_idx = self._ensure_node(
@@ -394,6 +325,7 @@ class GateCoordinator:
             )
             self._graph.add_edge(class_idx, sub_idx, "subscribes")
 
+        # Чувствительные поля
         for sf_meta in metadata.sensitive_fields:
             sf_name = f"{class_name}.{sf_meta.property_name}"
             sf_idx = self._ensure_node(
@@ -405,6 +337,7 @@ class GateCoordinator:
             )
             self._graph.add_edge(class_idx, sf_idx, "has_sensitive")
 
+        # Роль
         if metadata.role is not None:
             role_name = f"{class_name}.role"
             role_idx = self._ensure_node(
@@ -420,31 +353,18 @@ class GateCoordinator:
         """
         Рекурсивно обходит зависимости и соединения класса.
 
-        Для каждого класса из metadata.dependencies и metadata.connections
-        вызывает self.get(), что приводит к сборке метаданных, заполнению
-        графа и рекурсивному обходу зависимостей найденного класса.
-        Кеш координатора защищает от повторной сборки.
-
-        Аргументы:
-            metadata: метаданные класса, чьи зависимости нужно обойти.
+        Для каждого класса вызывает self.get(), что приводит к сборке
+        метаданных и рекурсивному обходу. Кеш защищает от повторной сборки.
         """
         for dep_info in metadata.dependencies:
             self.get(dep_info.cls)
-
         for conn_info in metadata.connections:
             self.get(conn_info.cls)
 
     def _rebuild_graph(self) -> None:
-        """
-        Перестраивает граф целиком из классов, оставшихся в кеше.
-
-        Вызывается после инвалидации отдельного класса. Создаёт новый
-        пустой граф и заново заполняет его из всех классов в _cache.
-        Инвалидация — операция для тестов, производительность не критична.
-        """
+        """Перестраивает граф из классов, оставшихся в кеше. Для инвалидации."""
         self._graph = rx.PyDiGraph()
         self._node_index = {}
-
         for class_id, metadata in self._cache.items():
             cls = self._class_map[class_id]
             self._populate_graph(cls, metadata)
@@ -458,11 +378,7 @@ class GateCoordinator:
         Возвращает ClassMetadata для указанного класса.
 
         При первом вызове собирает метаданные через MetadataBuilder.build(),
-        кеширует результат (до начала рекурсии), заполняет граф и рекурсивно
-        обходит зависимости. Повторные вызовы возвращают кешированный объект.
-
-        После сборки временные атрибуты декораторов удалены с класса
-        (выполняется внутри MetadataBuilder.build()).
+        кеширует результат, заполняет граф и рекурсивно обходит зависимости.
 
         Аргументы:
             cls: класс, метаданные которого нужно получить.
@@ -472,7 +388,6 @@ class GateCoordinator:
 
         Исключения:
             TypeError: если cls не является классом.
-            ValueError: если MetadataBuilder обнаруживает структурные ошибки.
             CyclicDependencyError: если обнаружена циклическая зависимость.
         """
         if not isinstance(cls, type):
@@ -488,6 +403,7 @@ class GateCoordinator:
 
         metadata = MetadataBuilder.build(cls)
 
+        # Помещаем в кеш ДО рекурсии — защита от циклов на уровне кеша
         self._cache[class_id] = metadata
         self._class_map[class_id] = cls
 
@@ -497,18 +413,7 @@ class GateCoordinator:
         return metadata
 
     def register(self, cls: type) -> ClassMetadata:
-        """
-        Явно регистрирует класс в координаторе.
-
-        Эквивалентен get(), но семантически выражает намерение
-        «зарегистрировать класс заранее».
-
-        Аргументы:
-            cls: класс для регистрации.
-
-        Возвращает:
-            ClassMetadata — собранные метаданные.
-        """
+        """Явно регистрирует класс. Эквивалентен get()."""
         return self.get(cls)
 
     # ─────────────────────────────────────────────────────────────────────
@@ -519,34 +424,24 @@ class GateCoordinator:
         """
         Возвращает DependencyFactory для указанного класса.
 
-        При первом вызове получает ClassMetadata через get(), строит
-        DependencyGate из metadata.dependencies, замораживает его,
-        оборачивает в DependencyFactory и кеширует.
+        Фабрика создаётся напрямую из metadata.dependencies
+        (tuple[DependencyInfo, ...]). Промежуточный DependencyGate
+        не используется — фабрика сама хранит dict[type, DependencyInfo].
 
         Фабрика stateless — один экземпляр безопасно разделяется
         между всеми вызовами run() для одного класса действия.
 
         Аргументы:
-            cls: класс действия, для которого нужна фабрика.
+            cls: класс действия.
 
         Возвращает:
             DependencyFactory — stateless-фабрика для резолва зависимостей.
-
-        Исключения:
-            TypeError: если cls не является классом.
-            ValueError: если MetadataBuilder обнаруживает структурные ошибки.
         """
         class_id = id(cls)
 
         if class_id not in self._factory_cache:
             metadata = self.get(cls)
-
-            gate = DependencyGate()
-            for dep_info in metadata.dependencies:
-                gate.register(dep_info)
-            gate.freeze()
-
-            self._factory_cache[class_id] = DependencyFactory(gate)
+            self._factory_cache[class_id] = DependencyFactory(metadata.dependencies)
 
         return self._factory_cache[class_id]
 
@@ -555,15 +450,7 @@ class GateCoordinator:
     # ─────────────────────────────────────────────────────────────────────
 
     def has(self, cls: type) -> bool:
-        """
-        Проверяет, есть ли метаданные класса в кеше. НЕ вызывает сборку.
-
-        Аргументы:
-            cls: класс для проверки.
-
-        Возвращает:
-            True если класс зарегистрирован, False иначе.
-        """
+        """Проверяет, есть ли метаданные класса в кеше. Не вызывает сборку."""
         return id(cls) in self._cache
 
     def invalidate(self, cls: type) -> bool:
@@ -572,11 +459,8 @@ class GateCoordinator:
 
         Используется в тестах для сброса состояния координатора.
 
-        Аргументы:
-            cls: класс для инвалидации.
-
         Возвращает:
-            True если метаданные были в кеше и удалены, False иначе.
+            True если метаданные были удалены, False если класса не было.
         """
         class_id = id(cls)
         if class_id not in self._cache:
@@ -595,7 +479,7 @@ class GateCoordinator:
         Полностью очищает все кеши, граф и индекс узлов.
 
         Возвращает:
-            int — количество удалённых записей из кеша метаданных.
+            int — количество удалённых записей.
         """
         count = len(self._cache)
         self._cache.clear()
@@ -610,68 +494,30 @@ class GateCoordinator:
     # ─────────────────────────────────────────────────────────────────────
 
     def get_graph(self) -> rx.PyDiGraph:
-        """
-        Возвращает копию графа сущностей.
-
-        Внешний код может свободно анализировать и модифицировать копию
-        без влияния на внутреннее состояние координатора.
-
-        Возвращает:
-            rx.PyDiGraph — копия направленного графа сущностей.
-        """
+        """Возвращает копию графа. Внешние изменения не влияют на оригинал."""
         return self._graph.copy()
 
     def get_node(self, key: str) -> dict[str, Any] | None:
-        """
-        Возвращает payload узла по его ключу.
-
-        Ключ имеет формат ``"тип:полное_имя"``.
-
-        Аргументы:
-            key: ключ узла.
-
-        Возвращает:
-            dict с payload узла или None, если узел не найден.
-        """
+        """Возвращает payload узла по ключу ``"тип:полное_имя"`` или None."""
         idx = self._node_index.get(key)
         if idx is None:
             return None
         return dict(self._graph[idx])
 
     def get_children(self, key: str) -> list[dict[str, Any]]:
-        """
-        Возвращает список payload-ов дочерних узлов (прямых потомков).
-
-        Аргументы:
-            key: ключ родительского узла.
-
-        Возвращает:
-            list[dict] — список payload-ов. Пустой список, если узел не найден.
-        """
+        """Возвращает payload-ы прямых потомков узла."""
         idx = self._node_index.get(key)
         if idx is None:
             return []
-        result = []
-        for target_idx in self._graph.successor_indices(idx):
-            result.append(dict(self._graph[target_idx]))
-        return result
+        return [dict(self._graph[t]) for t in self._graph.successor_indices(idx)]
 
     def get_nodes_by_type(self, node_type: str) -> list[dict[str, Any]]:
-        """
-        Возвращает все узлы указанного типа.
-
-        Аргументы:
-            node_type: тип узлов для фильтрации.
-
-        Возвращает:
-            list[dict] — список payload-ов узлов указанного типа.
-        """
-        result = []
-        for idx in self._graph.node_indices():
-            payload = self._graph[idx]
-            if payload.get("node_type") == node_type:
-                result.append(dict(payload))
-        return result
+        """Возвращает все узлы указанного типа."""
+        return [
+            dict(self._graph[idx])
+            for idx in self._graph.node_indices()
+            if self._graph[idx].get("node_type") == node_type
+        ]
 
     def get_dependency_tree(self, key: str) -> dict[str, Any]:
         """
@@ -679,34 +525,14 @@ class GateCoordinator:
 
         Рекурсивно обходит все исходящие рёбра. Защита от циклов: если узел
         уже посещён, включается с пометкой ``"cycle": True`` в meta.
-
-        Аргументы:
-            key: ключ корневого узла.
-
-        Возвращает:
-            dict — вложенный словарь. Пустой словарь, если узел не найден.
         """
         idx = self._node_index.get(key)
         if idx is None:
             return {}
-
         return self._build_tree_recursive(idx, set())
 
-    def _build_tree_recursive(
-        self,
-        idx: int,
-        visited: set[int],
-    ) -> dict[str, Any]:
-        """
-        Рекурсивно строит дерево зависимостей от указанного узла.
-
-        Аргументы:
-            idx: индекс текущего узла в графе.
-            visited: множество уже посещённых индексов (защита от циклов).
-
-        Возвращает:
-            dict — поддерево для текущего узла.
-        """
+    def _build_tree_recursive(self, idx: int, visited: set[int]) -> dict[str, Any]:
+        """Рекурсивно строит дерево зависимостей от указанного узла."""
         payload = self._graph[idx]
 
         node_result: dict[str, Any] = {
@@ -761,63 +587,23 @@ class GateCoordinator:
     # ─────────────────────────────────────────────────────────────────────
 
     def get_dependencies(self, cls: type) -> tuple[Any, ...]:
-        """
-        Возвращает кортеж зависимостей класса.
-
-        Аргументы:
-            cls: класс.
-
-        Возвращает:
-            tuple — кортеж объектов DependencyInfo.
-        """
+        """Возвращает кортеж зависимостей класса."""
         return self.get(cls).dependencies
 
     def get_connections(self, cls: type) -> tuple[Any, ...]:
-        """
-        Возвращает кортеж соединений класса.
-
-        Аргументы:
-            cls: класс.
-
-        Возвращает:
-            tuple — кортеж объектов ConnectionInfo.
-        """
+        """Возвращает кортеж соединений класса."""
         return self.get(cls).connections
 
     def get_role(self, cls: type) -> RoleMeta | None:
-        """
-        Возвращает RoleMeta класса или None.
-
-        Аргументы:
-            cls: класс.
-
-        Возвращает:
-            RoleMeta | None.
-        """
+        """Возвращает RoleMeta класса или None."""
         return self.get(cls).role
 
     def get_aspects(self, cls: type) -> tuple[Any, ...]:
-        """
-        Возвращает кортеж аспектов класса.
-
-        Аргументы:
-            cls: класс.
-
-        Возвращает:
-            tuple — кортеж объектов AspectMeta.
-        """
+        """Возвращает кортеж аспектов класса."""
         return self.get(cls).aspects
 
     def get_subscriptions(self, cls: type) -> tuple[Any, ...]:
-        """
-        Возвращает кортеж подписок класса (для плагинов).
-
-        Аргументы:
-            cls: класс.
-
-        Возвращает:
-            tuple — кортеж объектов SubscriptionInfo.
-        """
+        """Возвращает кортеж подписок класса (для плагинов)."""
         return self.get(cls).subscriptions
 
     # ─────────────────────────────────────────────────────────────────────
@@ -825,7 +611,7 @@ class GateCoordinator:
     # ─────────────────────────────────────────────────────────────────────
 
     def __repr__(self) -> str:
-        """Компактное строковое представление координатора для отладки."""
+        """Компактное строковое представление для отладки."""
         if not self._cache:
             return "GateCoordinator(empty)"
 

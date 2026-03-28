@@ -24,7 +24,6 @@ from action_machine.core.base_result import BaseResult
 from action_machine.core.base_state import BaseState
 from action_machine.core.tools_box import ToolsBox
 from action_machine.dependencies.dependency_factory import DependencyFactory
-from action_machine.dependencies.dependency_gate import DependencyGate
 from action_machine.plugins.decorators import on
 from action_machine.plugins.plugin import Plugin
 from action_machine.plugins.plugin_event import PluginEvent
@@ -219,10 +218,14 @@ def mock_context() -> Context:
 
 @pytest.fixture
 def mock_factory() -> DependencyFactory:
-    """Возвращает пустую фабрику зависимостей."""
-    gate = DependencyGate()
-    gate.freeze()
-    return DependencyFactory(gate)
+    """
+    Возвращает пустую фабрику зависимостей.
+
+    Фабрика создаётся из пустого кортежа — без зависимостей.
+    Используется в тестах плагинов, где зависимости не нужны,
+    но PluginEvent требует поле deps типа DependencyFactory.
+    """
+    return DependencyFactory(())
 
 
 @pytest.fixture

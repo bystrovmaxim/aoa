@@ -92,10 +92,10 @@ def _make_dummy_action() -> DummyAction:
 
 
 def _make_empty_factory() -> DependencyFactory:
-    from action_machine.dependencies.dependency_gate import DependencyGate
-    gate = DependencyGate()
-    gate.freeze()
-    return DependencyFactory(gate)
+    from action_machine.dependencies.dependency_factory import DependencyFactory
+
+
+    return DependencyFactory(())
 
 
 # ─────────────────────────────────────────────────────────────────────────────
