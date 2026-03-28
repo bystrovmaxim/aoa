@@ -1,14 +1,18 @@
 # tests/plugins/test_concurrency.py
 """
-Тесты параллельного выполнения обработчиков плагинов.
+Тесты параллельного и последовательного выполнения обработчиков плагинов.
 
-Проверяется:
-- Все обработчики запускаются параллельно через asyncio.gather
-  внутри PluginRunContext.emit_event().
-- Смешанные обработчики (с ignore_exceptions=True и False)
-  выполняются корректно.
-- Общее время выполнения близко к времени самого медленного
-  обработчика, а не к сумме задержек.
+═══════════════════════════════════════════════════════════════════════════════
+СТРАТЕГИЯ ВЫПОЛНЕНИЯ
+═══════════════════════════════════════════════════════════════════════════════
+
+PluginRunContext выбирает стратегию на основе флагов ignore_exceptions:
+
+- Все ignore=True → параллельно (asyncio.gather с return_exceptions=True).
+- Хотя бы один ignore=False → последовательно.
+
+Тесты на параллельность используют ignore_exceptions=True.
+Тесты на последовательность используют ignore_exceptions=False.
 
 Состояния плагинов изолированы в PluginRunContext, создаваемом
 через PluginCoordinator.create_run_context().
@@ -43,8 +47,10 @@ class DummyAction(BaseAction[BaseParams, BaseResult]):
         return BaseResult()
 
 
-class SlowPlugin(Plugin):
-    """Плагин с обработчиком, делающим паузу."""
+class SlowPluginIgnore(Plugin):
+    """
+    Плагин с паузой. ignore_exceptions=True — для тестов параллельности.
+    """
 
     def __init__(self, delay: float = 0.05):
         self._delay = delay
@@ -52,20 +58,20 @@ class SlowPlugin(Plugin):
     async def get_initial_state(self) -> dict:
         return {"calls": []}
 
-    @on("global_finish", ".*", ignore_exceptions=False)
+    @on("global_finish", ".*", ignore_exceptions=True)
     async def slow_handler(self, state: dict, event: PluginEvent) -> dict:
         await asyncio.sleep(self._delay)
         state["calls"].append("slow")
         return state
 
 
-class FastPlugin(Plugin):
-    """Плагин с быстрым обработчиком."""
+class FastPluginIgnore(Plugin):
+    """Быстрый плагин. ignore_exceptions=True."""
 
     async def get_initial_state(self) -> dict:
         return {"calls": []}
 
-    @on("global_finish", ".*", ignore_exceptions=False)
+    @on("global_finish", ".*", ignore_exceptions=True)
     async def fast_handler(self, state: dict, event: PluginEvent) -> dict:
         state["calls"].append("fast")
         return state
@@ -87,28 +93,26 @@ class FailingPlugin(Plugin):
 # ─────────────────────────────────────────────────────────────────────────────
 
 def _make_empty_factory() -> DependencyFactory:
-    """Создаёт пустую замороженную фабрику зависимостей."""
-    # removed: gate not needed
-    # removed: freeze not needed
+    """Создаёт пустую фабрику зависимостей."""
     return DependencyFactory(())
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Тесты
+# Тесты: параллельное выполнение (все ignore=True)
 # ─────────────────────────────────────────────────────────────────────────────
 
 class TestPluginCoordinatorConcurrency:
-    """Тесты параллельного выполнения обработчиков через PluginRunContext."""
+    """Тесты параллельного выполнения через PluginRunContext."""
 
     @pytest.mark.anyio
     async def test_all_handlers_run_concurrently(self):
         """
-        Несколько медленных обработчиков запускаются параллельно.
-        Общее время ~0.05с (время одного), а не ~0.1с (сумма).
+        Все обработчики имеют ignore_exceptions=True → параллельное выполнение.
+        Два медленных обработчика по 0.05с каждый. Параллельно — ~0.05с.
         """
-        slow1 = SlowPlugin(delay=0.05)
-        slow2 = SlowPlugin(delay=0.05)
-        fast = FastPlugin()
+        slow1 = SlowPluginIgnore(delay=0.05)
+        slow2 = SlowPluginIgnore(delay=0.05)
+        fast = FastPluginIgnore()
 
         coordinator = PluginCoordinator(plugins=[slow1, slow2, fast])
         plugin_ctx = await coordinator.create_run_context()
@@ -131,6 +135,7 @@ class TestPluginCoordinatorConcurrency:
         )
         elapsed = asyncio.get_event_loop().time() - start
 
+        # Параллельно — ~0.05с. Порог 0.09с с запасом.
         assert elapsed < 0.09
 
         assert plugin_ctx.get_plugin_state(slow1)["calls"] == ["slow"]
@@ -140,11 +145,11 @@ class TestPluginCoordinatorConcurrency:
     @pytest.mark.anyio
     async def test_mixed_handlers_run_concurrently(self):
         """
-        Смешанные обработчики: быстрый, медленный, падающий (ignore=True).
+        Все обработчики ignore=True (включая падающий) → параллельно.
         Падающий не прерывает остальных.
         """
-        slow = SlowPlugin(delay=0.05)
-        fast = FastPlugin()
+        slow = SlowPluginIgnore(delay=0.05)
+        fast = FastPluginIgnore()
         failing = FailingPlugin()
 
         coordinator = PluginCoordinator(plugins=[slow, fast, failing])

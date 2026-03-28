@@ -2,22 +2,39 @@
 """
 Тесты для ActionProductMachine — основной машины выполнения действий.
 
+═══════════════════════════════════════════════════════════════════════════════
+НАЗНАЧЕНИЕ
+═══════════════════════════════════════════════════════════════════════════════
+
 Проверяется:
 - Конструктор и параметры (mode, log_coordinator).
 - Проверка ролей (_check_action_roles) через ClassMetadata.
-- Проверка соединений (_check_connections) через ClassMetadata.
+- Проверка соединений (_check_connections) через ClassMetadata:
+  проверка ключей и проверка типов значений (isinstance BaseResourceManager).
 - Полный цикл выполнения run(): порядок аспектов, логирование,
   события плагинов, уровень вложенности.
 - Валидация результатов аспектов чекерами (ResultStringChecker).
 - Ошибки: regular-аспект вернул не dict, нет чекеров, лишние поля.
 
-Состояния плагинов изолированы в PluginRunContext. Каждый вызов run()
-создаёт новый контекст через plugin_coordinator.create_run_context().
-События плагинов отправляются через plugin_ctx.emit_event().
+═══════════════════════════════════════════════════════════════════════════════
+ПРИНЦИП НАСЛЕДОВАНИЯ АСПЕКТОВ
+═══════════════════════════════════════════════════════════════════════════════
 
-ResultStringChecker поддерживает двойной режим: как декоратор метода
-(записывает _checker_meta) и как валидатор dict (вызывается машиной).
-Порядок декораторов @regular_aspect и @ResultStringChecker не имеет значения.
+Аспекты НЕ наследуются от родительского класса. Каждый класс действия
+обязан явно объявить все свои аспекты через @regular_aspect и @summary_aspect.
+Потомок, не объявивший аспектов, имеет пустой конвейер.
+
+Поэтому ChildAction в этих тестах объявляет все свои аспекты самостоятельно,
+а не полагается на наследование от ParentAction.
+
+═══════════════════════════════════════════════════════════════════════════════
+ВАЛИДАЦИЯ СОЕДИНЕНИЙ
+═══════════════════════════════════════════════════════════════════════════════
+
+_check_connections выполняет двухуровневую проверку:
+1. Ключи: объявленные через @connection должны точно совпадать с фактическими.
+2. Типы: каждое значение должно быть экземпляром BaseResourceManager.
+   Строки, числа, None отклоняются с ConnectionValidationError.
 """
 
 from unittest.mock import AsyncMock, MagicMock
@@ -118,7 +135,10 @@ class ActionWithAspects(BaseAction[MockParams, MockResult]):
 
 @CheckRoles(CheckRoles.NONE, desc="No authentication")
 class ParentAction(BaseAction[MockParams, MockResult]):
-    """Родительское действие для проверки наследования аспектов."""
+    """
+    Родительское действие. Объявляет свой конвейер аспектов.
+    Аспекты не наследуются потомками — каждый класс объявляет свои.
+    """
 
     @regular_aspect("Parent")
     async def parent_aspect(
@@ -143,7 +163,12 @@ class ParentAction(BaseAction[MockParams, MockResult]):
 
 @CheckRoles(CheckRoles.NONE, desc="No authentication")
 class ChildAction(ParentAction):
-    """Дочернее действие, наследующее аспекты родителя и добавляющее свои."""
+    """
+    Дочернее действие. Явно объявляет ВСЕ свои аспекты.
+
+    Аспекты не наследуются от ParentAction. Потомок обязан объявить
+    полный конвейер самостоятельно: свои regular-аспекты + summary.
+    """
 
     @regular_aspect("Child")
     async def child_aspect(
@@ -155,7 +180,7 @@ class ChildAction(ParentAction):
     ) -> dict:
         return {}
 
-    @summary_aspect("Summary")
+    @summary_aspect("Child summary")
     async def summary(
         self,
         params: MockParams,
@@ -505,6 +530,33 @@ class TestCheckConnections:
         result = machine._check_connections(action, conns, metadata)
         assert result == conns
 
+    def test_connection_value_not_resource_manager_raises(self, machine):
+        """
+        Значение в connections не является BaseResourceManager — ошибка.
+        Проверка типов выполняется после проверки ключей.
+        """
+        action = ActionWithOneConnection()
+        metadata = machine._get_metadata(action)
+        conns = {"db": "это строка, а не менеджер"}
+        with pytest.raises(ConnectionValidationError, match="must be an instance of BaseResourceManager"):
+            machine._check_connections(action, conns, metadata)
+
+    def test_connection_value_none_raises(self, machine):
+        """None вместо менеджера — ошибка."""
+        action = ActionWithOneConnection()
+        metadata = machine._get_metadata(action)
+        conns = {"db": None}
+        with pytest.raises(ConnectionValidationError, match="must be an instance of BaseResourceManager"):
+            machine._check_connections(action, conns, metadata)
+
+    def test_connection_value_int_raises(self, machine):
+        """Число вместо менеджера — ошибка."""
+        action = ActionWithOneConnection()
+        metadata = machine._get_metadata(action)
+        conns = {"db": 42}
+        with pytest.raises(ConnectionValidationError, match="must be an instance of BaseResourceManager"):
+            machine._check_connections(action, conns, metadata)
+
 
 # ======================================================================
 # ТЕСТЫ: Полный цикл run()
@@ -625,3 +677,20 @@ class TestRun:
                 MockParams(),
                 connections={"db": MockResourceManager(), "extra": MockResourceManager()}
             )
+
+    @pytest.mark.anyio
+    async def test_child_action_uses_own_aspects(self, machine, context_with_roles):
+        """
+        ChildAction объявляет свои аспекты (child_aspect + summary).
+        Аспекты ParentAction (parent_aspect) НЕ наследуются.
+        """
+        result = await machine.run(context_with_roles, ChildAction(), MockParams())
+        assert isinstance(result, MockResult)
+
+        # Проверяем через метаданные, что у ChildAction только свои аспекты
+        metadata = machine._get_metadata(ChildAction())
+        aspect_names = [a.method_name for a in metadata.aspects]
+        assert "child_aspect" in aspect_names
+        assert "summary" in aspect_names
+        # Родительский аспект отсутствует
+        assert "parent_aspect" not in aspect_names

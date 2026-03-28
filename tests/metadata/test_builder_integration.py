@@ -11,6 +11,10 @@
 Где декораторы невозможно использовать (динамические классы через type()),
 атрибуты устанавливаются в точном формате, соответствующем реальным
 декораторам.
+
+Принцип сбора аспектов, чекеров и подписок: собираются ТОЛЬКО из текущего
+класса (vars(cls)), без обхода MRO. Потомок не наследует аспекты родителя.
+Зависимости, соединения, роли и чувствительные поля — наследуются через MRO.
 """
 
 import pytest
@@ -280,7 +284,6 @@ class TestBuildWithCheckers:
 class TestBuildWithSubscriptions:
 
     def test_subscriptions_collected(self):
-        # Метод @on ожидает 3 параметра, пересоздаём
         async def on_handler(self, state, event):
             pass
         on_handler.__name__ = "on_start"
@@ -387,6 +390,7 @@ class TestBuildFullAction:
 class TestBuildWithInheritance:
 
     def test_child_inherits_parent_role(self):
+        """Роли наследуются через MRO (getattr)."""
         parent = type("ParentAction", (), {
             "_role_info": _make_role_info("admin"),
         })
@@ -394,7 +398,13 @@ class TestBuildWithInheritance:
         meta = MetadataBuilder.build(child)
         assert meta.role is not None
 
-    def test_child_inherits_parent_aspects(self):
+    def test_child_does_not_inherit_parent_aspects(self):
+        """
+        Аспекты НЕ наследуются. Потомок без собственных аспектов
+        имеет пустой конвейер, даже если родитель объявлял аспекты.
+        Это принципиальное решение: потомок обязан явно объявить
+        все свои аспекты.
+        """
         validate = _attach_aspect(_async_method("validate"), "regular")
         finish = _attach_aspect(_async_method("finish"), "summary")
         parent = type("ParentAction", (AspectGateHost,), {
@@ -403,9 +413,37 @@ class TestBuildWithInheritance:
         })
         child = type("ChildAction", (parent,), {})
         meta = MetadataBuilder.build(child)
+        assert len(meta.aspects) == 0
+
+    def test_child_with_own_aspects_ignores_parent(self):
+        """
+        Потомок с собственными аспектами использует только свои.
+        Аспекты родителя полностью игнорируются.
+        """
+        parent_validate = _attach_aspect(_async_method("validate"), "regular")
+        parent_finish = _attach_aspect(_async_method("finish"), "summary")
+        parent = type("ParentAction", (AspectGateHost,), {
+            "validate": parent_validate,
+            "finish": parent_finish,
+        })
+
+        child_process = _attach_aspect(_async_method("process"), "regular")
+        child_summary = _attach_aspect(_async_method("summary"), "summary")
+        child = type("ChildAction", (parent,), {
+            "process": child_process,
+            "summary": child_summary,
+        })
+        meta = MetadataBuilder.build(child)
         assert len(meta.aspects) == 2
+        names = [a.method_name for a in meta.aspects]
+        assert "process" in names
+        assert "summary" in names
+        # Родительские аспекты отсутствуют
+        assert "validate" not in names
+        assert "finish" not in names
 
     def test_child_adds_own_dependencies(self):
+        """Зависимости наследуются через MRO (getattr)."""
         class ServiceA:
             pass
         class ServiceB:
@@ -422,6 +460,21 @@ class TestBuildWithInheritance:
         meta = MetadataBuilder.build(child)
         dep_classes = [d.cls for d in meta.dependencies]
         assert ServiceB in dep_classes
+
+    def test_child_inherits_sensitive_fields(self):
+        """
+        Чувствительные поля наследуются через MRO.
+        Это исключение из правила "только свои" — @sensitive
+        описывает свойство модели данных, а не конвейер выполнения.
+        """
+        def email_getter(self):
+            return "secret@example.com"
+        _attach_sensitive(email_getter, "email")
+        parent = type("ParentModel", (), {"email": property(email_getter)})
+        child = type("ChildModel", (parent,), {})
+        meta = MetadataBuilder.build(child)
+        assert len(meta.sensitive_fields) == 1
+        assert meta.sensitive_fields[0].property_name == "email"
 
 
 # ---------------------------------------------------------------------------
@@ -442,7 +495,6 @@ class TestBuildValidationErrors:
 
     def test_summary_must_be_last(self):
         """Summary-аспект должен быть последним в порядке vars(cls)."""
-        # Создаём класс где summary объявлен ПЕРВЫМ
         finish = _attach_aspect(_async_method("aaa_finish"), "summary")
         validate = _attach_aspect(_async_method("zzz_validate"), "regular")
         cls = type("BadOrderAction", (AspectGateHost,), {

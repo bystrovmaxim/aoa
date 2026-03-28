@@ -15,14 +15,14 @@ GateCoordinator — единственная точка доступа к мет
    Повторные обращения возвращают кешированный объект мгновенно.
 
 2. КЕШИРОВАНИЕ МЕТАДАННЫХ: каждый класс собирается ровно один раз. Кеш
-   привязан к id(cls), что гарантирует корректность при наличии одноимённых
-   классов из разных модулей.
+   привязан к самому объекту класса (type), а не к id(cls). Это гарантирует
+   корректность: пока класс находится в кеше как ключ, сборщик мусора
+   не уничтожит его, и никакой другой класс не получит тот же ключ.
 
 3. ВЛАДЕНИЕ ФАБРИКАМИ ЗАВИСИМОСТЕЙ: координатор создаёт DependencyFactory
-   напрямую из metadata.dependencies (tuple[DependencyInfo, ...]). Промежуточный
-   DependencyGate удалён — фабрика сама хранит dict[type, DependencyInfo]
-   внутри. Фабрика stateless, один экземпляр безопасно разделяется между
-   всеми вызовами run() для одного класса действия.
+   напрямую из metadata.dependencies (tuple[DependencyInfo, ...]). Фабрика
+   stateless, один экземпляр безопасно разделяется между всеми вызовами
+   run() для одного класса действия.
 
 4. РЕКУРСИВНЫЙ ОБХОД ЗАВИСИМОСТЕЙ: после сборки ClassMetadata координатор
    проходит по metadata.dependencies и metadata.connections, рекурсивно
@@ -38,6 +38,21 @@ GateCoordinator — единственная точка доступа к мет
 
 6. ИНВАЛИДАЦИЯ: метод invalidate(cls) удаляет кеш метаданных и фабрику
    для класса. Используется в тестах.
+
+═══════════════════════════════════════════════════════════════════════════════
+ПОЧЕМУ КЛЮЧ КЕША — type, А НЕ id(cls)
+═══════════════════════════════════════════════════════════════════════════════
+
+id(cls) возвращает адрес объекта в памяти. После удаления объекта Python
+может переиспользовать тот же адрес для нового объекта. Если динамически
+созданный класс удалён сборщиком мусора, а новый класс получил тот же id,
+координатор вернул бы метаданные старого класса — молчаливый баг.
+
+Использование самого объекта класса (type) как ключа dict устраняет
+проблему: dict хранит сильную ссылку на ключ, сборщик мусора не может
+уничтожить класс, пока он в кеше. Два разных класса никогда не будут
+равны как ключи (type использует object.__hash__ и object.__eq__,
+основанные на identity).
 
 ═══════════════════════════════════════════════════════════════════════════════
 ГРАФ СУЩНОСТЕЙ
@@ -75,9 +90,8 @@ Payload каждого узла — словарь с полями: node_type, n
     ┌──────────────────────────┐
     │  GateCoordinator          │
     │                          │
-    │  _cache: dict            │──── id(cls) → ClassMetadata
-    │  _factory_cache: dict    │──── id(cls) → DependencyFactory
-    │  _class_map: dict        │──── id(cls) → cls
+    │  _cache: dict[type, CM]  │──── cls → ClassMetadata
+    │  _factory_cache: dict    │──── cls → DependencyFactory
     │  _graph: rx.PyDiGraph    │──── направленный граф сущностей
     │  _node_index: dict       │──── ключ узла → индекс в графе
     │                          │
@@ -143,15 +157,15 @@ class GateCoordinator:
     Экземпляр создаётся явно и передаётся в конструктор машины через DI.
 
     Атрибуты:
-        _cache : dict[int, ClassMetadata]
-            Кеш метаданных. Ключ — id(cls).
+        _cache : dict[type, ClassMetadata]
+            Кеш метаданных. Ключ — сам объект класса (type).
+            Использование type вместо id(cls) гарантирует, что сборщик
+            мусора не уничтожит класс, пока он в кеше, и два разных
+            класса никогда не получат один ключ.
 
-        _factory_cache : dict[int, DependencyFactory]
-            Кеш stateless-фабрик зависимостей. Ключ — id(cls).
+        _factory_cache : dict[type, DependencyFactory]
+            Кеш stateless-фабрик зависимостей. Ключ — сам объект класса.
             Фабрика создаётся напрямую из metadata.dependencies.
-
-        _class_map : dict[int, type]
-            Обратная карта id(cls) → cls для методов инспекции.
 
         _graph : rx.PyDiGraph
             Направленный граф сущностей системы.
@@ -162,9 +176,8 @@ class GateCoordinator:
 
     def __init__(self) -> None:
         """Создаёт пустой координатор с пустым графом."""
-        self._cache: dict[int, ClassMetadata] = {}
-        self._factory_cache: dict[int, DependencyFactory] = {}
-        self._class_map: dict[int, type] = {}
+        self._cache: dict[type, ClassMetadata] = {}
+        self._factory_cache: dict[type, DependencyFactory] = {}
         self._graph: rx.PyDiGraph = rx.PyDiGraph()
         self._node_index: dict[str, int] = {}
 
@@ -365,8 +378,7 @@ class GateCoordinator:
         """Перестраивает граф из классов, оставшихся в кеше. Для инвалидации."""
         self._graph = rx.PyDiGraph()
         self._node_index = {}
-        for class_id, metadata in self._cache.items():
-            cls = self._class_map[class_id]
+        for cls, metadata in self._cache.items():
             self._populate_graph(cls, metadata)
 
     # ─────────────────────────────────────────────────────────────────────
@@ -396,16 +408,13 @@ class GateCoordinator:
                 f"получен {type(cls).__name__}: {cls!r}"
             )
 
-        class_id = id(cls)
-
-        if class_id in self._cache:
-            return self._cache[class_id]
+        if cls in self._cache:
+            return self._cache[cls]
 
         metadata = MetadataBuilder.build(cls)
 
         # Помещаем в кеш ДО рекурсии — защита от циклов на уровне кеша
-        self._cache[class_id] = metadata
-        self._class_map[class_id] = cls
+        self._cache[cls] = metadata
 
         self._populate_graph(cls, metadata)
         self._collect_linked_classes(metadata)
@@ -425,11 +434,9 @@ class GateCoordinator:
         Возвращает DependencyFactory для указанного класса.
 
         Фабрика создаётся напрямую из metadata.dependencies
-        (tuple[DependencyInfo, ...]). Промежуточный DependencyGate
-        не используется — фабрика сама хранит dict[type, DependencyInfo].
-
-        Фабрика stateless — один экземпляр безопасно разделяется
-        между всеми вызовами run() для одного класса действия.
+        (tuple[DependencyInfo, ...]). Фабрика stateless — один экземпляр
+        безопасно разделяется между всеми вызовами run() для одного
+        класса действия.
 
         Аргументы:
             cls: класс действия.
@@ -437,13 +444,11 @@ class GateCoordinator:
         Возвращает:
             DependencyFactory — stateless-фабрика для резолва зависимостей.
         """
-        class_id = id(cls)
-
-        if class_id not in self._factory_cache:
+        if cls not in self._factory_cache:
             metadata = self.get(cls)
-            self._factory_cache[class_id] = DependencyFactory(metadata.dependencies)
+            self._factory_cache[cls] = DependencyFactory(metadata.dependencies)
 
-        return self._factory_cache[class_id]
+        return self._factory_cache[cls]
 
     # ─────────────────────────────────────────────────────────────────────
     # Проверки и инвалидация
@@ -451,7 +456,7 @@ class GateCoordinator:
 
     def has(self, cls: type) -> bool:
         """Проверяет, есть ли метаданные класса в кеше. Не вызывает сборку."""
-        return id(cls) in self._cache
+        return cls in self._cache
 
     def invalidate(self, cls: type) -> bool:
         """
@@ -462,13 +467,11 @@ class GateCoordinator:
         Возвращает:
             True если метаданные были удалены, False если класса не было.
         """
-        class_id = id(cls)
-        if class_id not in self._cache:
+        if cls not in self._cache:
             return False
 
-        del self._cache[class_id]
-        self._factory_cache.pop(class_id, None)
-        del self._class_map[class_id]
+        del self._cache[cls]
+        self._factory_cache.pop(cls, None)
 
         self._rebuild_graph()
 
@@ -484,7 +487,6 @@ class GateCoordinator:
         count = len(self._cache)
         self._cache.clear()
         self._factory_cache.clear()
-        self._class_map.clear()
         self._graph = rx.PyDiGraph()
         self._node_index.clear()
         return count
@@ -565,7 +567,7 @@ class GateCoordinator:
 
     def get_all_classes(self) -> list[type]:
         """Возвращает список всех зарегистрированных классов."""
-        return list(self._class_map.values())
+        return list(self._cache.keys())
 
     @property
     def size(self) -> int:
