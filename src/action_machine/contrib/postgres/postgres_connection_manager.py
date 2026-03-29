@@ -15,8 +15,8 @@ import asyncpg
 
 from action_machine.core.exceptions import HandleError
 
-from .iconnection_manager import IConnectionManager
-from .wrapper_connection_manager import WrapperConnectionManager
+from ...resource_managers.iconnection_manager import IConnectionManager
+from ...resource_managers.wrapper_connection_manager import WrapperConnectionManager
 
 
 class PostgresConnectionManager(IConnectionManager):
