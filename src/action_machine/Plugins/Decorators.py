@@ -12,8 +12,22 @@
 эмитирует события (global_start, global_finish, before:{aspect}, after:{aspect}
 и др.), а плагины реагируют на них через методы, помеченные @on.
 
-Каждый обработчик получает текущее состояние плагина (state) и объект
-события (PluginEvent), возвращает обновлённое состояние.
+═══════════════════════════════════════════════════════════════════════════════
+СИГНАТУРА ОБРАБОТЧИКА
+═══════════════════════════════════════════════════════════════════════════════
+
+Все обработчики обязаны иметь сигнатуру с 4 параметрами:
+
+    async def handler(self, state, event, log) → state
+
+    - self   — экземпляр плагина.
+    - state  — текущее per-request состояние плагина.
+    - event  — объект PluginEvent с данными о событии.
+    - log    — ScopedLogger, привязанный к scope плагина. Scope содержит
+               поля: machine, mode, plugin, action, event, nest_level.
+               Все поля доступны в шаблонах через {%scope.*}.
+
+Обработчик обязан вернуть обновлённое состояние.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ОГРАНИЧЕНИЯ (ИНВАРИАНТЫ)
@@ -21,7 +35,7 @@
 
 - Применяется только к методам (callable), не к классам или свойствам.
 - Метод должен быть асинхронным (async def).
-- Сигнатура метода: ровно 3 параметра (self, state, event).
+- Сигнатура метода: ровно 4 параметра (self, state, event, log).
 - event_type должен быть непустой строкой.
 - action_filter должен быть строкой (регулярное выражение).
 
@@ -37,8 +51,8 @@
         ▼  MetadataBuilder._collect_subscriptions(cls)
     ClassMetadata.subscriptions = (SubscriptionInfo(...), ...)
         │
-        ▼  PluginCoordinator.emit_event(...)
-    Находит подписанные методы → вызывает handler(plugin, state, event)
+        ▼  PluginRunContext.emit_event(...)
+    Находит подписанные методы → создаёт ScopedLogger → вызывает handler
 
 ═══════════════════════════════════════════════════════════════════════════════
 ПРИМЕР ИСПОЛЬЗОВАНИЯ
@@ -49,21 +63,30 @@
             return {"count": 0}
 
         @on("global_finish", ".*", ignore_exceptions=False)
-        async def count_calls(self, state: dict, event: PluginEvent) -> dict:
+        async def count_calls(self, state: dict, event: PluginEvent, log) -> dict:
             state["count"] += 1
+            await log.info(
+                "[{%scope.plugin}] Действие {%scope.action} завершено "
+                "за {%var.duration}с",
+                duration=event.duration,
+            )
             return state
 
-        @on("aspect_before", "CreateOrder.*")
-        async def log_order_start(self, state: dict, event: PluginEvent) -> dict:
-            print(f"Starting: {event.action_name}")
+        @on("before:validate", "CreateOrder.*")
+        async def log_order_start(self, state: dict, event: PluginEvent, log) -> dict:
+            await log.debug(
+                "[{%scope.plugin}] Валидация заказа начата "
+                "на уровне {%scope.nest_level}"
+            )
             return state
 
 ═══════════════════════════════════════════════════════════════════════════════
 ОШИБКИ
 ═══════════════════════════════════════════════════════════════════════════════
 
-    TypeError — метод не callable; метод не асинхронный; неверное число параметров;
-               event_type не строка; action_filter не строка.
+    TypeError — метод не callable; метод не асинхронный; неверное число
+               параметров (не 4); event_type не строка;
+               action_filter не строка.
     ValueError — event_type пустая строка.
 """
 
@@ -75,11 +98,11 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
 
-# Ожидаемое число параметров для @on: self, state, event
-_EXPECTED_PARAM_COUNT = 3
+# Ожидаемое число параметров для @on: self, state, event, log
+_EXPECTED_PARAM_COUNT = 4
 
 # Имена параметров для сообщения об ошибке
-_EXPECTED_PARAM_NAMES = "self, state, event"
+_EXPECTED_PARAM_NAMES = "self, state, event, log"
 
 
 @dataclass(frozen=True)
@@ -89,14 +112,15 @@ class SubscriptionInfo:
 
     Создаётся декоратором @on и сохраняется в method._on_subscriptions.
     MetadataBuilder собирает подписки в ClassMetadata.subscriptions.
-    PluginCoordinator использует их для маршрутизации событий.
+    PluginCoordinator/PluginRunContext использует их для маршрутизации событий.
 
     Атрибуты:
         event_type: тип события (например, "global_finish", "before:validate").
         action_filter: регулярное выражение для фильтрации по имени действия.
                        По умолчанию ".*" — все действия.
-        ignore_exceptions: если True, обработчик вызывается даже при ошибке
-                           в действии. По умолчанию True.
+        ignore_exceptions: если True, ошибка обработчика подавляется
+                           и не прерывает выполнение действия.
+                           По умолчанию True.
     """
     event_type: str
     action_filter: str = ".*"
@@ -115,14 +139,17 @@ def on(
     Записывает SubscriptionInfo в атрибут method._on_subscriptions.
     Один метод может быть подписан на несколько событий (несколько @on).
 
+    Все обработчики обязаны иметь сигнатуру:
+        async def handler(self, state, event, log) → state
+
     Аргументы:
         event_type: тип события. Непустая строка.
                     Примеры: "global_start", "global_finish",
                     "before:validate", "after:process_payment".
         action_filter: регулярное выражение для фильтрации по имени действия.
                        По умолчанию ".*" — все действия.
-        ignore_exceptions: если True, обработчик вызывается даже при ошибке
-                           в действии. По умолчанию True.
+        ignore_exceptions: если True, ошибка обработчика подавляется.
+                           По умолчанию True.
 
     Возвращает:
         Декоратор, который прикрепляет SubscriptionInfo к методу
@@ -134,7 +161,7 @@ def on(
             - action_filter не строка.
             - Декорируемый объект не callable.
             - Метод не асинхронный.
-            - Неверное число параметров.
+            - Неверное число параметров (не 4).
         ValueError:
             - event_type пустая строка.
     """
@@ -165,7 +192,7 @@ def on(
         Проверяет:
         1. func — callable.
         2. func — async def.
-        3. Число параметров == 3 (self, state, event).
+        3. Число параметров == 4 (self, state, event, log).
 
         Затем добавляет SubscriptionInfo в func._on_subscriptions.
         """
@@ -184,7 +211,7 @@ def on(
                 f"Синхронные обработчики не поддерживаются."
             )
 
-        # ── Проверка: число параметров ──
+        # ── Проверка: число параметров == 4 ──
         sig = inspect.signature(func)
         param_count = len(sig.parameters)
         if param_count != _EXPECTED_PARAM_COUNT:
@@ -195,7 +222,6 @@ def on(
             )
 
         # ── Прикрепление подписки ──
-        # Один метод может иметь несколько @on — список дополняется
         if not hasattr(func, '_on_subscriptions'):
             func._on_subscriptions = []
 

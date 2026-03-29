@@ -1,6 +1,6 @@
 # src/action_machine/core/action_product_machine.py
 """
-Модуль: ActionProductMachine — production-реализация машины действий.
+ActionProductMachine — production-реализация машины действий.
 
 ═══════════════════════════════════════════════════════════════════════════════
 НАЗНАЧЕНИЕ
@@ -33,18 +33,26 @@ STATELESS МЕЖДУ ЗАПРОСАМИ
   создаётся в начале run() и уничтожается по завершении.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ИНТЕГРАЦИЯ С GATECOORDINATOR
+ЛОГИРОВАНИЕ И SCOPE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Машина НЕ обращается к «сырым» атрибутам класса (_role_info, _depends_info
-и т.д.). Вместо этого она получает иммутабельный снимок ClassMetadata
-через GateCoordinator:
+Для каждого аспекта создаётся ScopedLogger с полями scope:
+    machine, mode, action, aspect, nest_level.
 
-    metadata = self._coordinator.get(action.__class__)
+nest_level — уровень вложенности вызова (0 для корневого, 1 для дочернего
+через box.run() и т.д.). Доступен в шаблонах через {%scope.nest_level}.
 
-Фабрика зависимостей:
+Для плагинов ScopedLogger создаётся в PluginRunContext с полями scope:
+    machine, mode, plugin, action, event, nest_level.
 
-    factory = self._coordinator.get_factory(action.__class__)
+═══════════════════════════════════════════════════════════════════════════════
+ПЕРЕДАЧА ЛОГГЕРА ПЛАГИНАМ
+═══════════════════════════════════════════════════════════════════════════════
+
+При каждом emit_event() машина передаёт в PluginRunContext ссылку
+на LogCoordinator, имя машины и режим. PluginRunContext использует
+эти данные для создания ScopedLogger при вызове обработчиков плагинов
+с сигнатурой (self, state, event, log).
 
 ═══════════════════════════════════════════════════════════════════════════════
 ВАЛИДАЦИЯ СОЕДИНЕНИЙ
@@ -58,8 +66,7 @@ STATELESS МЕЖДУ ЗАПРОСАМИ
 
 2. Проверка типов значений: каждое значение в connections должно быть
    экземпляром BaseResourceManager. Строки, числа, None и другие типы
-   отклоняются с понятным сообщением об ошибке. Это позволяет обнаружить
-   ошибку конфигурации на входе в машину, а не глубоко внутри аспекта.
+   отклоняются с понятным сообщением об ошибке.
 
 ═══════════════════════════════════════════════════════════════════════════════
 АРХИТЕКТУРА ВЫПОЛНЕНИЯ
@@ -69,19 +76,17 @@ STATELESS МЕЖДУ ЗАПРОСАМИ
         │
         ├── 1. _check_action_roles(action, context, metadata)
         ├── 2. _check_connections(action, connections, metadata)
-        │       ├── проверка ключей (4 валидатора)
-        │       └── проверка типов (isinstance BaseResourceManager)
         ├── 3. coordinator.get_factory(action.__class__)
         ├── 4. plugin_ctx = plugin_coordinator.create_run_context()
-        ├── 5. plugin_ctx.emit_event("global_start", ...)
+        ├── 5. plugin_ctx.emit_event("global_start", ..., log_coordinator=...)
         ├── 6. _execute_regular_aspects(...)
         │       └── для каждого AspectMeta с type=="regular":
         │           ├── before-событие плагинам
-        │           ├── вызов метода аспекта
+        │           ├── вызов метода аспекта (с ScopedLogger через ToolsBox)
         │           ├── _apply_checkers(...)
         │           └── after-событие плагинам
         ├── 7. _call_aspect(summary, ...)
-        ├── 8. plugin_ctx.emit_event("global_finish", ...)
+        ├── 8. plugin_ctx.emit_event("global_finish", ..., log_coordinator=...)
         └── 9. return Result
 """
 
@@ -383,10 +388,6 @@ class ActionProductMachine(BaseActionMachine):
         """
         Проверяет, что каждое значение в connections — экземпляр BaseResourceManager.
 
-        Выполняется после проверки ключей. Обнаруживает ошибки конфигурации
-        на входе в машину, а не глубоко внутри аспекта, где сообщение об ошибке
-        было бы менее информативным.
-
         Аргументы:
             action_name: имя действия для сообщения об ошибке.
             connections: словарь соединений для проверки.
@@ -413,9 +414,9 @@ class ActionProductMachine(BaseActionMachine):
 
         Двухуровневая валидация:
         1. Проверка ключей: объявленные ключи должны точно совпадать
-           с фактическими. Лишние и недостающие ключи — ошибка.
+           с фактическими.
         2. Проверка типов: каждое значение должно быть экземпляром
-           BaseResourceManager. Строки, числа, None — ошибка.
+           BaseResourceManager.
 
         Аргументы:
             action: экземпляр действия.
@@ -432,7 +433,6 @@ class ActionProductMachine(BaseActionMachine):
         actual_keys: set[str] = set(connections.keys()) if connections else set()
         action_name: str = action.__class__.__name__
 
-        # Этап 1: проверка ключей
         key_validators = [
             self._validate_no_declarations_but_got_connections,
             self._validate_has_declarations_but_no_connections,
@@ -445,7 +445,6 @@ class ActionProductMachine(BaseActionMachine):
             if error:
                 raise ConnectionValidationError(error)
 
-        # Этап 2: проверка типов значений
         if connections:
             type_error = self._validate_connection_value_types(action_name, connections)
             if type_error:
@@ -487,7 +486,7 @@ class ActionProductMachine(BaseActionMachine):
         Вызывает метод-аспект, обёрнутый в AspectMeta.
 
         Создаёт ScopedLogger с именем аспекта, реальными state и params,
-        оборачивает в новый ToolsBox и вызывает метод.
+        nest_level из ToolsBox, оборачивает в новый ToolsBox и вызывает метод.
 
         Аргументы:
             aspect_meta: метаданные аспекта (None → возвращает пустой BaseResult).
@@ -526,6 +525,30 @@ class ActionProductMachine(BaseActionMachine):
         )
 
         return await aspect_meta.method_ref(action, params, state, aspect_box, connections)
+
+    # ─────────────────────────────────────────────────────────────────────
+    # Формирование аргументов для emit_event плагинов
+    # ─────────────────────────────────────────────────────────────────────
+
+    def _build_plugin_emit_kwargs(self, nest_level: int) -> dict[str, Any]:
+        """
+        Формирует дополнительные kwargs для передачи в plugin_ctx.emit_event().
+
+        Содержит log_coordinator, machine_name и mode — данные, необходимые
+        PluginRunContext для создания ScopedLogger при вызове обработчиков
+        плагинов с сигнатурой (self, state, event, log).
+
+        Аргументы:
+            nest_level: текущий уровень вложенности.
+
+        Возвращает:
+            dict с ключами log_coordinator, machine_name, mode.
+        """
+        return {
+            "log_coordinator": self._log_coordinator,
+            "machine_name": self.__class__.__name__,
+            "mode": self._mode,
+        }
 
     # ─────────────────────────────────────────────────────────────────────
     # Выполнение regular-аспектов
@@ -569,6 +592,7 @@ class ActionProductMachine(BaseActionMachine):
         """
         state = BaseState()
         regular_aspects = self._get_regular_aspects(metadata)
+        plugin_kwargs = self._build_plugin_emit_kwargs(box.nested_level)
 
         for aspect_meta in regular_aspects:
             aspect_name = aspect_meta.method_name
@@ -584,6 +608,7 @@ class ActionProductMachine(BaseActionMachine):
                 factory=box.factory,
                 context=context,
                 nest_level=box.nested_level,
+                **plugin_kwargs,
             )
 
             aspect_start = time.time()
@@ -632,6 +657,7 @@ class ActionProductMachine(BaseActionMachine):
                 factory=box.factory,
                 context=context,
                 nest_level=box.nested_level,
+                **plugin_kwargs,
             )
 
         return state
@@ -698,6 +724,7 @@ class ActionProductMachine(BaseActionMachine):
         """
         current_nest = nested_level + 1
         start_time = time.time()
+        plugin_kwargs = self._build_plugin_emit_kwargs(current_nest)
 
         try:
             metadata = self._get_metadata(action)
@@ -752,6 +779,7 @@ class ActionProductMachine(BaseActionMachine):
                 factory=factory,
                 context=context,
                 nest_level=current_nest,
+                **plugin_kwargs,
             )
 
             state = await self._execute_regular_aspects(
@@ -777,6 +805,7 @@ class ActionProductMachine(BaseActionMachine):
                 factory=factory,
                 context=context,
                 nest_level=current_nest,
+                **plugin_kwargs,
             )
 
             return cast(R, result)

@@ -59,7 +59,7 @@ class SlowPluginIgnore(Plugin):
         return {"calls": []}
 
     @on("global_finish", ".*", ignore_exceptions=True)
-    async def slow_handler(self, state: dict, event: PluginEvent) -> dict:
+    async def slow_handler(self, state: dict, event: PluginEvent, log) -> dict:
         await asyncio.sleep(self._delay)
         state["calls"].append("slow")
         return state
@@ -72,7 +72,7 @@ class FastPluginIgnore(Plugin):
         return {"calls": []}
 
     @on("global_finish", ".*", ignore_exceptions=True)
-    async def fast_handler(self, state: dict, event: PluginEvent) -> dict:
+    async def fast_handler(self, state: dict, event: PluginEvent, log) -> dict:
         state["calls"].append("fast")
         return state
 
@@ -84,7 +84,7 @@ class FailingPlugin(Plugin):
         return {}
 
     @on("global_finish", ".*", ignore_exceptions=True)
-    async def failing_handler(self, state: dict, event: PluginEvent) -> dict:
+    async def failing_handler(self, state: dict, event: PluginEvent, log) -> dict:
         raise RuntimeError("Plugin error")
 
 

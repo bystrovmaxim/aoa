@@ -46,7 +46,7 @@ class RecordingPlugin(Plugin):
         return {"events": []}
 
     @on("global_finish", ".*")
-    async def record_finish(self, state: dict, event: PluginEvent) -> dict:
+    async def record_finish(self, state: dict, event: PluginEvent, log) -> dict:
         state["events"].append({
             "event_name": event.event_name,
             "action_name": event.action_name,
@@ -62,7 +62,7 @@ class SelectivePlugin(Plugin):
         return {"count": 0}
 
     @on("global_finish", ".*DummyAction$")
-    async def on_dummy(self, state: dict, event: PluginEvent) -> dict:
+    async def on_dummy(self, state: dict, event: PluginEvent, log) -> dict:
         state["count"] += 1
         return state
 

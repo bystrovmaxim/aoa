@@ -1,6 +1,6 @@
 # src/action_machine/core/action_test_machine.py
 """
-Модуль: ActionTestMachine — тестовая машина действий с поддержкой моков.
+ActionTestMachine — тестовая машина действий с поддержкой моков.
 
 ═══════════════════════════════════════════════════════════════════════════════
 НАЗНАЧЕНИЕ
@@ -51,7 +51,19 @@ plugin_ctx — PluginRunContext, через который можно получ
 Обычный метод run() возвращает только результат (обратная совместимость).
 
 ═══════════════════════════════════════════════════════════════════════════════
-ИСПОЛЬЗОВАНИЕ
+ЛОГИРОВАНИЕ В ТЕСТАХ
+═══════════════════════════════════════════════════════════════════════════════
+
+Тестовая машина наследует всю инфраструктуру логирования от родителя:
+- ScopedLogger с nest_level в scope для аспектов.
+- ScopedLogger с plugin_name и event_name для плагинов.
+- Передача log_coordinator в PluginRunContext для создания логгеров.
+
+По умолчанию log_coordinator создаётся с ConsoleLogger(use_colors=True).
+В тестах можно передать мок-координатор для проверки логирования.
+
+═══════════════════════════════════════════════════════════════════════════════
+ПРИМЕР ИСПОЛЬЗОВАНИЯ
 ═══════════════════════════════════════════════════════════════════════════════
 
     machine = ActionTestMachine(
@@ -281,6 +293,7 @@ class ActionTestMachine(ActionProductMachine):
         """
         current_nest = nested_level + 1
         start_time = time.time()
+        plugin_kwargs = self._build_plugin_emit_kwargs(current_nest)
 
         try:
             metadata = self._get_metadata(action)
@@ -333,6 +346,7 @@ class ActionTestMachine(ActionProductMachine):
                 factory=factory,
                 context=context,
                 nest_level=current_nest,
+                **plugin_kwargs,
             )
 
             state = await self._execute_regular_aspects(
@@ -357,6 +371,7 @@ class ActionTestMachine(ActionProductMachine):
                 factory=factory,
                 context=context,
                 nest_level=current_nest,
+                **plugin_kwargs,
             )
 
             return cast(R, result), plugin_ctx

@@ -46,7 +46,7 @@ class CounterPlugin(Plugin):
         return {"count": 0}
 
     @on("global_finish", ".*", ignore_exceptions=False)
-    async def count(self, state: dict, event: PluginEvent) -> dict:
+    async def count(self, state: dict, event: PluginEvent, log) -> dict:
         state["count"] += 1
         return state
 
@@ -58,12 +58,12 @@ class DualHandlerPlugin(Plugin):
         return {"a": 0, "b": 0}
 
     @on("global_finish", ".*", ignore_exceptions=False)
-    async def handler_a(self, state: dict, event: PluginEvent) -> dict:
+    async def handler_a(self, state: dict, event: PluginEvent, log) -> dict:
         state["a"] += 1
         return state
 
     @on("global_finish", ".*", ignore_exceptions=False)
-    async def handler_b(self, state: dict, event: PluginEvent) -> dict:
+    async def handler_b(self, state: dict, event: PluginEvent, log) -> dict:
         state["b"] += 10
         return state
 
@@ -78,7 +78,7 @@ class CustomInitPlugin(Plugin):
         return {"value": self._initial}
 
     @on("global_finish", ".*")
-    async def increment(self, state: dict, event: PluginEvent) -> dict:
+    async def increment(self, state: dict, event: PluginEvent, log) -> dict:
         state["value"] += 1
         return state
 

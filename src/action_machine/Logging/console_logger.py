@@ -1,11 +1,97 @@
-# ActionMachine/Logging/console_logger.py
+# src/action_machine/logging/console_logger.py
 """
-Console logger for the AOA logging system.
-Outputs messages to the console via print, with support for indentation.
+Консольный логгер для системы логирования ActionMachine.
 
-Colors are now applied via template filters (e.g., `{%var.amount|red}`) and are
-processed by the logging coordinator. This logger does not add any automatic
-coloring or scope prefixes.
+═══════════════════════════════════════════════════════════════════════════════
+НАЗНАЧЕНИЕ
+═══════════════════════════════════════════════════════════════════════════════
+
+ConsoleLogger выводит сообщения в stdout через print. Поддерживает:
+
+- Отступы на основе уровня вложенности (nest_level), передаваемого
+  в параметре indent при вызове write().
+- Включение/отключение отступов через параметр use_indent.
+- Настройку ширины одного уровня отступа через indent_size.
+- Сохранение или удаление ANSI-цветов через use_colors.
+
+Цвета применяются через шаблонные фильтры (например, {%var.amount|red})
+и обрабатываются координатором логирования (LogCoordinator). ConsoleLogger
+сам не добавляет никаких автоматических цветов — он только решает,
+сохранять или удалять ANSI-коды, уже присутствующие в сообщении.
+
+═══════════════════════════════════════════════════════════════════════════════
+ПАРАМЕТРЫ КОНСТРУКТОРА
+═══════════════════════════════════════════════════════════════════════════════
+
+    filters : list[str] | None
+        Список регулярных выражений для фильтрации сообщений.
+        None или пустой список — принимать всё. Наследуется от BaseLogger.
+
+    use_colors : bool (по умолчанию True)
+        Если True — ANSI-коды сохраняются в выводе. Полезно для терминалов
+        с поддержкой цветов (локальная разработка, iTerm2, VS Code Terminal).
+        Если False — координатор удаляет ANSI-коды перед отправкой
+        в этот логгер. Полезно для production-логов, отправляемых в ELK/Loki.
+
+    use_indent : bool (по умолчанию True)
+        Если True — сообщения сдвигаются вправо на indent * indent_size
+        пробелов, где indent — уровень вложенности (nest_level), переданный
+        машиной. Визуально показывает иерархию вложенных действий.
+        Если False — все сообщения выводятся без отступов. Полезно для
+        production-логов, где отступы мешают парсингу.
+
+    indent_size : int (по умолчанию 2)
+        Количество пробелов на один уровень вложенности.
+        Используется только при use_indent=True. По умолчанию 2.
+        Для более наглядной иерархии можно установить 4.
+
+═══════════════════════════════════════════════════════════════════════════════
+ФОРМАТ ВЫВОДА
+═══════════════════════════════════════════════════════════════════════════════
+
+С отступами (use_indent=True, indent_size=2):
+
+    [INFO] Начало обработки заказа
+      [INFO] Валидация карты                    ← nest_level=1
+      [INFO] Списание средств                   ← nest_level=1
+        [INFO] Проверка лимита                  ← nest_level=2
+    [INFO] Заказ обработан
+
+Без отступов (use_indent=False):
+
+    [INFO] Начало обработки заказа
+    [INFO] Валидация карты
+    [INFO] Списание средств
+    [INFO] Проверка лимита
+    [INFO] Заказ обработан
+
+═══════════════════════════════════════════════════════════════════════════════
+ПРИМЕР ИСПОЛЬЗОВАНИЯ
+═══════════════════════════════════════════════════════════════════════════════
+
+    # Для локальной разработки — цвета и отступы
+    logger = ConsoleLogger()
+
+    # Для CI/CD — без цветов, с отступами
+    logger = ConsoleLogger(use_colors=False)
+
+    # Для production (ELK/Loki) — без цветов, без отступов
+    logger = ConsoleLogger(use_colors=False, use_indent=False)
+
+    # Для отладки — широкие отступы
+    logger = ConsoleLogger(use_indent=True, indent_size=4)
+
+    # С фильтрами — только определённые действия
+    logger = ConsoleLogger(filters=[r"CreateOrder", r"ProcessPayment"])
+
+    # Передача в координатор логирования
+    log_coordinator = LogCoordinator(loggers=[logger])
+
+    # Передача в машину
+    machine = ActionProductMachine(
+        mode="production",
+        log_coordinator=log_coordinator,
+    )
 """
 
 from typing import Any
@@ -19,43 +105,64 @@ from action_machine.logging.log_scope import LogScope
 
 class ConsoleLogger(BaseLogger):
     """
-    Logger that prints messages to the console via print.
-    Supports indentation based on the nesting level.
+    Логгер, выводящий сообщения в консоль через print.
 
-    Colorization is handled by template filters; this logger does not add any
-    automatic ANSI codes. It can, however, be configured to strip colors if
-    `use_colors=False` (colors are stripped by the coordinator, not here).
+    Поддерживает настраиваемые отступы на основе уровня вложенности
+    и опциональное сохранение ANSI-цветов.
 
-    Attributes:
-        _use_colors: whether ANSI color codes should be preserved (passed through).
-                     If False, the coordinator will strip them before sending.
+    Цветизация управляется шаблонными фильтрами в координаторе;
+    этот логгер не добавляет автоматических ANSI-кодов.
+
+    Атрибуты:
+        _use_colors : bool
+            Сохранять ли ANSI-коды в выводе. Если False, координатор
+            удаляет их перед отправкой.
+        _use_indent : bool
+            Добавлять ли отступы на основе уровня вложенности.
+        _indent_size : int
+            Количество пробелов на один уровень вложенности.
     """
 
     def __init__(
         self,
         filters: list[str] | None = None,
         use_colors: bool = True,
+        use_indent: bool = True,
+        indent_size: int = 2,
     ) -> None:
         """
-        Creates a console logger.
+        Создаёт консольный логгер.
 
-        Args:
-            filters: list of regex patterns for filtering messages.
-                     None or empty list means "accept all".
-            use_colors: if True, ANSI color codes are preserved.
-                        If False, they will be stripped by the coordinator.
-                        Default is True.
+        Аргументы:
+            filters: список regex-паттернов для фильтрации сообщений.
+                     None или пустой список — принимать всё.
+            use_colors: если True — ANSI-коды сохраняются в выводе.
+                        Если False — координатор удаляет их перед отправкой.
+                        По умолчанию True.
+            use_indent: если True — сообщения сдвигаются вправо
+                        на indent * indent_size пробелов.
+                        Если False — без отступов.
+                        По умолчанию True.
+            indent_size: количество пробелов на один уровень вложенности.
+                         Используется только при use_indent=True.
+                         По умолчанию 2.
         """
         super().__init__(filters=filters)
         self._use_colors: bool = use_colors
+        self._use_indent: bool = use_indent
+        self._indent_size: int = indent_size
 
     @property
     def supports_colors(self) -> bool:
         """
-        Indicates whether this logger preserves ANSI color codes.
+        Указывает, сохраняет ли этот логгер ANSI-коды.
 
-        Returns:
-            True if `use_colors` is True, otherwise False.
+        LogCoordinator проверяет это свойство перед отправкой сообщения.
+        Если False — координатор удаляет ANSI-последовательности
+        через BaseLogger.strip_ansi_codes().
+
+        Возвращает:
+            True если use_colors=True, иначе False.
         """
         return self._use_colors
 
@@ -65,17 +172,24 @@ class ConsoleLogger(BaseLogger):
         indent: int,
     ) -> str:
         """
-        Formats the final output line.
+        Форматирует финальную строку вывода.
 
-        Args:
-            message: the message string (already with all substitutions and colors).
-            indent: indentation level (each level = 2 spaces).
+        Если use_indent=True — добавляет отступ из пробелов перед сообщением.
+        Количество пробелов = indent * indent_size.
+        Если use_indent=False — возвращает сообщение без отступов.
 
-        Returns:
-            The formatted line ready for printing.
+        Аргументы:
+            message: текст сообщения (уже с подстановками и цветами).
+            indent: уровень вложенности (nest_level), определяющий
+                    величину отступа.
+
+        Возвращает:
+            Отформатированная строка, готовая к выводу через print.
         """
-        indent_str = "  " * indent
-        return f"{indent_str}{message}"
+        if self._use_indent:
+            indent_str = " " * (indent * self._indent_size)
+            return f"{indent_str}{message}"
+        return message
 
     async def write(
         self,
@@ -88,19 +202,21 @@ class ConsoleLogger(BaseLogger):
         indent: int,
     ) -> None:
         """
-        Prints the message to the console.
+        Выводит сообщение в консоль через print.
 
-        This method is called only after successful filtering.
-        No try/except is used – if print fails, the exception propagates.
+        Вызывается только после успешной фильтрации (match_filters
+        вернул True). Не подавляет исключения — если print не удаётся,
+        ошибка пробрасывается наверх.
 
-        Args:
-            scope: current call scope (location in the pipeline).
-            message: the fully substituted message (may contain ANSI codes).
-            var: developer‑supplied variables.
-            ctx: execution context (user, request, environment).
-            state: current pipeline state.
-            params: action input parameters.
-            indent: indentation level (for nested calls).
+        Аргументы:
+            scope: текущий scope вызова (местоположение в конвейере).
+            message: полностью подставленное сообщение (может содержать
+                     ANSI-коды, если supports_colors=True).
+            var: пользовательские переменные.
+            ctx: контекст выполнения (пользователь, запрос, окружение).
+            state: текущее состояние конвейера.
+            params: входные параметры действия.
+            indent: уровень вложенности (nest_level) для отступов.
         """
         line = self._format_line(message, indent)
         print(line)
