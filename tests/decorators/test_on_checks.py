@@ -2,16 +2,21 @@
 """
 Тесты проверок декоратора @on.
 
-Покрывают все инварианты, объявленные в Decorators.py:
-    - Применение к async-методу с 3 параметрами — успех.
-    - Несколько @on на одном методе — все подписки сохраняются.
-    - Применение к синхронному методу — TypeError.
-    - Применение к методу с неверным числом параметров — TypeError.
-    - Применение к не-callable объекту — TypeError.
-    - event_type не строка — TypeError.
-    - event_type пустая строка — ValueError.
-    - action_filter не строка — TypeError.
-    - Проверка сохранённых SubscriptionInfo после декорирования.
+═══════════════════════════════════════════════════════════════════════════════
+ПОКРЫВАЕМЫЕ ИНВАРИАНТЫ
+═══════════════════════════════════════════════════════════════════════════════
+
+- Применение к async-методу с 4 параметрами (self, state, event, log) — успех.
+- Несколько @on на одном методе — все подписки сохраняются.
+- Применение к синхронному методу — TypeError.
+- Применение к методу с менее чем 4 параметрами — TypeError.
+- Применение к методу с более чем 4 параметрами — TypeError.
+- Применение к не-callable объекту — TypeError.
+- event_type не строка — TypeError.
+- event_type пустая строка — ValueError.
+- action_filter не строка — TypeError.
+- Проверка сохранённых SubscriptionInfo после декорирования.
+- Иммутабельность SubscriptionInfo (frozen=True).
 """
 
 import pytest
@@ -23,13 +28,13 @@ from action_machine.plugins.decorators import SubscriptionInfo, on
 # ─────────────────────────────────────────────────────────────────────────────
 
 class TestOnSuccess:
-    """Проверка корректного применения @on."""
+    """Проверка корректного применения @on к обработчикам с 4 параметрами."""
 
     def test_valid_async_method(self):
-        """async-метод с 3 параметрами — подписка прикрепляется."""
+        """async-метод с 4 параметрами — подписка прикрепляется."""
 
         @on("global_finish", ".*")
-        async def handler(self, state, event):
+        async def handler(self, state, event, log):
             return state
 
         assert hasattr(handler, '_on_subscriptions')
@@ -44,7 +49,7 @@ class TestOnSuccess:
         """action_filter по умолчанию — '.*'."""
 
         @on("aspect_before")
-        async def handler(self, state, event):
+        async def handler(self, state, event, log):
             return state
 
         sub = handler._on_subscriptions[0]
@@ -54,34 +59,17 @@ class TestOnSuccess:
         """ignore_exceptions=False сохраняется."""
 
         @on("global_finish", ".*", ignore_exceptions=False)
-        async def handler(self, state, event):
+        async def handler(self, state, event, log):
             return state
 
         sub = handler._on_subscriptions[0]
         assert sub.ignore_exceptions is False
 
-    def test_multiple_on_same_method(self):
-        """Несколько @on на одном методе — все подписки сохраняются."""
-
-        @on("global_start", ".*")
-        @on("global_finish", ".*")
-        @on("aspect_before", "CreateOrder.*")
-        async def handler(self, state, event):
-            return state
-
-        assert len(handler._on_subscriptions) == 3
-
-        event_types = [sub.event_type for sub in handler._on_subscriptions]
-        # @on применяется снизу вверх: сначала aspect_before, потом global_finish, потом global_start
-        assert "global_start" in event_types
-        assert "global_finish" in event_types
-        assert "aspect_before" in event_types
-
     def test_custom_action_filter(self):
         """Кастомный action_filter сохраняется."""
 
         @on("aspect_after", "^CreateOrder.*$")
-        async def handler(self, state, event):
+        async def handler(self, state, event, log):
             return state
 
         sub = handler._on_subscriptions[0]
@@ -91,7 +79,7 @@ class TestOnSuccess:
         """Декоратор не меняет имя функции."""
 
         @on("global_finish")
-        async def my_handler(self, state, event):
+        async def my_handler(self, state, event, log):
             return state
 
         assert my_handler.__name__ == "my_handler"
@@ -100,10 +88,25 @@ class TestOnSuccess:
         """Декорированная функция остаётся вызываемой."""
 
         @on("global_finish")
-        async def handler(self, state, event):
+        async def handler(self, state, event, log):
             return state
 
         assert callable(handler)
+
+    def test_multiple_on_same_method(self):
+        """Несколько @on на одном методе — все подписки сохраняются."""
+
+        @on("global_start", ".*")
+        @on("global_finish", ".*")
+        @on("before:validate", "CreateOrder.*")
+        async def handler(self, state, event, log):
+            return state
+
+        assert len(handler._on_subscriptions) == 3
+        event_types = [sub.event_type for sub in handler._on_subscriptions]
+        assert "global_start" in event_types
+        assert "global_finish" in event_types
+        assert "before:validate" in event_types
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -117,29 +120,36 @@ class TestOnTargetErrors:
         """Синхронный метод — TypeError."""
         with pytest.raises(TypeError, match="должен быть асинхронным"):
             @on("global_finish")
-            def handler(self, state, event):
-                return state
-
-    def test_too_few_params_raises(self):
-        """Менее 3 параметров — TypeError."""
-        with pytest.raises(TypeError, match="должен принимать 3 параметра"):
-            @on("global_finish")
-            async def handler(self, state):
-                return state
-
-    def test_too_many_params_raises(self):
-        """Более 3 параметров — TypeError."""
-        with pytest.raises(TypeError, match="должен принимать 3 параметра"):
-            @on("global_finish")
-            async def handler(self, state, event, extra):
+            def handler(self, state, event, log):
                 return state
 
     def test_one_param_raises(self):
         """Один параметр — TypeError."""
-        with pytest.raises(TypeError, match="должен принимать 3 параметра"):
+        with pytest.raises(TypeError, match="должен принимать 4 параметра"):
             @on("global_finish")
             async def handler(self):
                 return {}
+
+    def test_two_params_raises(self):
+        """Два параметра — TypeError."""
+        with pytest.raises(TypeError, match="должен принимать 4 параметра"):
+            @on("global_finish")
+            async def handler(self, state):
+                return state
+
+    def test_three_params_raises(self):
+        """Три параметра (старая сигнатура без log) — TypeError."""
+        with pytest.raises(TypeError, match="должен принимать 4 параметра"):
+            @on("global_finish")
+            async def handler(self, state, event):
+                return state
+
+    def test_five_params_raises(self):
+        """Пять параметров — TypeError."""
+        with pytest.raises(TypeError, match="должен принимать 4 параметра"):
+            @on("global_finish")
+            async def handler(self, state, event, log, extra):
+                return state
 
     def test_not_callable_raises(self):
         """Не-callable объект — TypeError."""
@@ -203,19 +213,16 @@ class TestSubscriptionInfoImmutability:
     """Проверка, что SubscriptionInfo неизменяем (frozen=True)."""
 
     def test_cannot_modify_event_type(self):
-        """Попытка изменить event_type — FrozenInstanceError."""
         sub = SubscriptionInfo(event_type="global_finish", action_filter=".*")
         with pytest.raises(AttributeError):
             sub.event_type = "other"
 
     def test_cannot_modify_action_filter(self):
-        """Попытка изменить action_filter — FrozenInstanceError."""
         sub = SubscriptionInfo(event_type="global_finish", action_filter=".*")
         with pytest.raises(AttributeError):
             sub.action_filter = "other"
 
     def test_cannot_modify_ignore_exceptions(self):
-        """Попытка изменить ignore_exceptions — FrozenInstanceError."""
         sub = SubscriptionInfo(event_type="global_finish")
         with pytest.raises(AttributeError):
             sub.ignore_exceptions = False

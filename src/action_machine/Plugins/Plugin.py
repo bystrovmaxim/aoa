@@ -6,9 +6,52 @@
 НАЗНАЧЕНИЕ
 ═══════════════════════════════════════════════════════════════════════════════
 
-Плагины определяют обработчики событий с помощью декоратора @on.
-Каждый плагин должен реализовать асинхронный метод get_initial_state,
-который возвращает начальное состояние для одного запуска действия.
+Plugin — абстрактный базовый класс, от которого наследуются все плагины
+системы. Плагины расширяют поведение машины без изменения ядра: подсчёт
+вызовов, сбор метрик, аудит, логирование побочных эффектов и т.д.
+
+Каждый плагин определяет обработчики событий с помощью декоратора @on.
+Обработчики реагируют на события жизненного цикла действия: global_start,
+global_finish, before:{aspect}, after:{aspect}.
+
+═══════════════════════════════════════════════════════════════════════════════
+СОСТОЯНИЕ ПЛАГИНА
+═══════════════════════════════════════════════════════════════════════════════
+
+Плагины НЕ хранят состояние в атрибутах экземпляра. Состояние per-request
+управляется машиной через PluginRunContext:
+
+1. В начале каждого run() машина вызывает get_initial_state() для
+   каждого плагина и сохраняет результат в PluginRunContext.
+2. При каждом событии обработчик получает текущее состояние через
+   параметр state и возвращает обновлённое.
+3. По завершении run() контекст уничтожается вместе с состояниями.
+
+Если плагину нужно накапливать данные между запросами (метрики, счётчики),
+он использует внешнее хранилище, переданное через конструктор:
+
+    class MetricsPlugin(Plugin):
+        def __init__(self, storage: MetricsStorage):
+            self._storage = storage  # внешнее хранилище
+
+═══════════════════════════════════════════════════════════════════════════════
+СИГНАТУРА ОБРАБОТЧИКОВ
+═══════════════════════════════════════════════════════════════════════════════
+
+Все обработчики плагинов обязаны иметь сигнатуру с 4 параметрами:
+
+    async def handler(self, state, event, log) → state
+
+    - self   — экземпляр плагина.
+    - state  — текущее per-request состояние плагина (из get_initial_state()
+               или обновлённое предыдущим обработчиком).
+    - event  — объект PluginEvent с данными о событии (имя действия,
+               параметры, результат, длительность и т.д.).
+    - log    — ScopedLogger, привязанный к scope плагина. Scope содержит
+               поля: machine, mode, plugin, action, event, nest_level.
+               Все поля доступны в шаблонах через {%scope.*}.
+
+Обработчик обязан вернуть обновлённое состояние.
 
 ═══════════════════════════════════════════════════════════════════════════════
 АРХИТЕКТУРА ИНТЕГРАЦИИ
@@ -19,41 +62,82 @@
             return {"count": 0}
 
         @on("global_finish", ".*")
-        async def count_call(self, state, event):
+        async def count_call(self, state, event, log):
             state["count"] += 1
+            await log.info("Вызовов: {%var.count}", count=state["count"])
             return state
 
     # Декоратор @on записывает SubscriptionInfo в method._on_subscriptions.
     # MetadataBuilder собирает подписки в ClassMetadata.subscriptions.
-    # PluginCoordinator маршрутизирует события к подписанным методам.
+    # PluginRunContext маршрутизирует события к подписанным методам,
+    # создаёт ScopedLogger и передаёт его как параметр log.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ПРАВИЛА
+МЕТОД get_handlers()
 ═══════════════════════════════════════════════════════════════════════════════
 
-- Плагины НЕ хранят состояние в атрибутах экземпляра. Состояние
-  управляется машиной и передаётся через параметр state каждому обработчику.
-- Все методы-обработчики должны быть асинхронными (async def).
-- get_initial_state вызывается машиной перед первым событием.
+Метод get_handlers(event_name, class_name) сканирует MRO класса плагина,
+ищет методы с атрибутом _on_subscriptions и для каждой подписки проверяет:
+- Совпадает ли event_type с event_name.
+- Совпадает ли action_filter (regex) с class_name.
+
+Возвращает список кортежей (handler, ignore_exceptions), где handler —
+unbound-метод из cls.__dict__. Вызывающий код передаёт self (экземпляр
+плагина) при вызове.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ПРИМЕР ИСПОЛЬЗОВАНИЯ
 ═══════════════════════════════════════════════════════════════════════════════
 
-    class MetricsPlugin(Plugin):
+    # Простой плагин-счётчик
+    class SimpleCounter(Plugin):
         async def get_initial_state(self) -> dict:
-            return {"total": 0, "errors": 0}
+            return {"total": 0}
 
-        @on("global_finish")
-        async def track_total(self, state, event):
+        @on("global_finish", ".*")
+        async def track(self, state, event, log):
             state["total"] += 1
+            await log.info("Всего вызовов: {%var.total}", total=state["total"])
             return state
 
-        @on("global_finish")
-        async def track_errors(self, state, event):
-            if event.error is not None:
-                state["errors"] += 1
+    # Плагин аудита
+    class AuditPlugin(Plugin):
+        async def get_initial_state(self) -> dict:
+            return {"actions": []}
+
+        @on("global_start", ".*")
+        async def on_start(self, state, event, log):
+            await log.info(
+                "[{%scope.plugin}] Действие {%scope.action} начато "
+                "на уровне {%scope.nest_level}"
+            )
             return state
+
+        @on("global_finish", ".*")
+        async def on_finish(self, state, event, log):
+            state["actions"].append(event.action_name)
+            await log.info(
+                "[{%scope.plugin}] Действие {%scope.action} завершено "
+                "за {%var.duration}с",
+                duration=event.duration,
+            )
+            return state
+
+    # Плагин с фильтром по имени действия
+    class OrderMetrics(Plugin):
+        async def get_initial_state(self) -> dict:
+            return {}
+
+        @on("global_finish", ".*CreateOrder.*")
+        async def track_orders(self, state, event, log):
+            await log.info("Заказ создан: {%scope.action}")
+            return state
+
+    # Регистрация плагинов в машине
+    machine = ActionProductMachine(
+        mode="production",
+        plugins=[SimpleCounter(), AuditPlugin(), OrderMetrics()],
+    )
 """
 
 import re
@@ -64,58 +148,59 @@ from typing import Any
 
 class Plugin(ABC):
     """
-    Абстрактный базовый класс для всех плагинов.
+    Абстрактный базовый класс для всех плагинов ActionMachine.
 
-    Каждый плагин должен реализовать асинхронный метод get_initial_state,
-    который возвращает начальное состояние для одного запуска действия.
-    Состояние будет передано всем обработчикам плагина, и каждый обработчик
-    должен вернуть обновлённое состояние.
+    Каждый плагин реализует:
+    - get_initial_state() — возвращает начальное per-request состояние.
+    - Один или несколько @on-обработчиков событий с сигнатурой
+      (self, state, event, log).
 
-    Плагины не должны хранить состояние в атрибутах экземпляра,
-    поскольку оно должно быть изолировано для каждого вызова run.
-
-    Методы-обработчики помечаются декоратором @on из модуля decorators.
-    Они должны быть асинхронными (определены с async def), даже если
-    не содержат await, потому что машина вызывает их с await.
+    Плагины не хранят per-request состояние в атрибутах экземпляра.
+    Всё состояние управляется через PluginRunContext.
     """
 
     @abstractmethod
     async def get_initial_state(self) -> object:
         """
-        Возвращает начальное состояние плагина для одного выполнения действия.
+        Возвращает начальное состояние плагина для одного вызова run().
 
-        Этот метод вызывается машиной перед первым выполнением любого обработчика
-        данного плагина в рамках текущего вызова run. Возвращаемое значение
-        может быть любого типа (обычно словарь или пользовательский объект).
-        Оно будет передано всем обработчикам как первый аргумент state,
-        и каждый обработчик должен вернуть новое состояние.
+        Вызывается машиной (через PluginCoordinator.create_run_context())
+        перед первым событием каждого run(). Возвращаемое значение
+        может быть любого типа (обычно dict или пользовательский объект).
+
+        Состояние передаётся обработчикам как первый аргумент state,
+        и каждый обработчик обязан вернуть обновлённое состояние.
 
         Возвращает:
-            Начальное состояние для этого запуска.
+            Начальное состояние для текущего запуска. Тип определяется
+            конкретным плагином.
         """
 
     def get_handlers(
         self, event_name: str, class_name: str,
     ) -> list[tuple[Callable[..., Any], bool]]:
         """
-        Возвращает список подходящих обработчиков для указанного события
-        и класса действия.
+        Возвращает список подходящих обработчиков для события и действия.
 
-        Сканирует методы экземпляра плагина, ищет атрибут _on_subscriptions,
-        и для каждой подписки проверяет совпадение event_type и action_filter.
+        Сканирует MRO класса плагина, ищет методы с атрибутом
+        _on_subscriptions, и для каждой подписки проверяет:
+        - event_type совпадает с event_name.
+        - action_filter (regex) совпадает с class_name.
 
         Аргументы:
             event_name: имя события (например, 'global_finish',
-                        'before:validate').
+                        'before:validate', 'after:process_payment').
             class_name: полное имя класса действия (включая модуль).
 
         Возвращает:
-            Список кортежей (метод-обработчик, ignore_exceptions)
-            для всех подходящих подписок.
+            Список кортежей (handler, ignore_exceptions):
+            - handler: unbound-метод (требует передачи self при вызове).
+              Сигнатура: (self, state, event, log).
+            - ignore_exceptions: флаг из @on — если True, ошибка
+              обработчика подавляется; если False — пробрасывается.
         """
         handlers: list[tuple[Callable[..., Any], bool]] = []
 
-        # Обходим MRO класса плагина и ищем методы с _on_subscriptions
         for klass in type(self).__mro__:
             if klass is object:
                 continue
@@ -128,8 +213,6 @@ class Plugin(ABC):
                         continue
                     if not re.search(sub.action_filter, class_name):
                         continue
-                    # attr_value — unbound method из cls.__dict__,
-                    # вызывающий код должен передать self (plugin instance)
                     handlers.append((attr_value, sub.ignore_exceptions))
 
         return handlers

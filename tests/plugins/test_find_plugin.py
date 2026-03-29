@@ -31,7 +31,7 @@ class AlphaPlugin(Plugin):
         return {}
 
     @on("global_finish", ".*")
-    async def on_finish(self, state: dict, event: PluginEvent) -> dict:
+    async def on_finish(self, state: dict, event: PluginEvent, log) -> dict:
         return state
 
 
@@ -42,7 +42,7 @@ class BetaPlugin(Plugin):
         return {}
 
     @on("global_finish", ".*Order.*")
-    async def on_order_finish(self, state: dict, event: PluginEvent) -> dict:
+    async def on_order_finish(self, state: dict, event: PluginEvent, log) -> dict:
         return state
 
 
@@ -53,7 +53,7 @@ class GammaPlugin(Plugin):
         return {}
 
     @on("global_start", ".*")
-    async def on_start(self, state: dict, event: PluginEvent) -> dict:
+    async def on_start(self, state: dict, event: PluginEvent, log) -> dict:
         return state
 
 
@@ -64,15 +64,15 @@ class MultiHandlerPlugin(Plugin):
         return {}
 
     @on("global_start", ".*")
-    async def on_start(self, state: dict, event: PluginEvent) -> dict:
+    async def on_start(self, state: dict, event: PluginEvent, log) -> dict:
         return state
 
     @on("global_finish", ".*")
-    async def on_finish(self, state: dict, event: PluginEvent) -> dict:
+    async def on_finish(self, state: dict, event: PluginEvent, log) -> dict:
         return state
 
     @on("global_finish", ".*Order.*")
-    async def on_order_finish(self, state: dict, event: PluginEvent) -> dict:
+    async def on_order_finish(self, state: dict, event: PluginEvent, log) -> dict:
         return state
 
 

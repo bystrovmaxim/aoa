@@ -7,6 +7,9 @@
 - Фикстуры для параметров, состояний и результатов.
 - Базовые объекты для тестирования событий плагинов (SimplePlugin, SlowPlugin и др.).
 - Фикстуры фабрики зависимостей и контекста.
+
+Все обработчики плагинов имеют сигнатуру (self, state, event, log),
+где log — ScopedLogger, привязанный к scope плагина.
 """
 
 import asyncio
@@ -92,7 +95,7 @@ class SimplePlugin(Plugin):
         return {"counter": 0}
 
     @on("test_event", ".*")
-    async def handle_test(self, state: dict, event: PluginEvent) -> dict:
+    async def handle_test(self, state: dict, event: PluginEvent, log) -> dict:
         self.handlers_called.append(("handle_test", event.event_name))
         state["counter"] += 1
         return state
@@ -109,7 +112,7 @@ class SlowPlugin(Plugin):
         return {"done": False}
 
     @on("slow_event", ".*")
-    async def on_slow(self, state: dict, event: PluginEvent) -> dict:
+    async def on_slow(self, state: dict, event: PluginEvent, log) -> dict:
         await asyncio.sleep(self.delay)
         self.handlers_called.append(("slow", event.event_name))
         state["done"] = True
@@ -126,12 +129,12 @@ class IgnoreExceptionsPlugin(Plugin):
         return {"failed": False}
 
     @on("test_event", ".*", ignore_exceptions=True)
-    async def ignored_handler(self, state: dict, event: PluginEvent) -> dict:
+    async def ignored_handler(self, state: dict, event: PluginEvent, log) -> dict:
         self.handlers_called.append(("ignored", event.event_name))
         raise ValueError("This exception will be ignored")
 
     @on("critical_event", ".*", ignore_exceptions=False)
-    async def critical_handler(self, state: dict, event: PluginEvent) -> dict:
+    async def critical_handler(self, state: dict, event: PluginEvent, log) -> dict:
         self.handlers_called.append(("critical", event.event_name))
         raise RuntimeError("This exception will NOT be ignored")
 
@@ -146,13 +149,13 @@ class MultiHandlerPlugin(Plugin):
         return {"last": None, "any": False}
 
     @on("event1", ".*")
-    async def handle_event1(self, state: dict, event: PluginEvent) -> dict:
+    async def handle_event1(self, state: dict, event: PluginEvent, log) -> dict:
         self.handlers_called.append(("event1", event.event_name))
         state["last"] = "event1"
         return state
 
     @on(".*", ".*")  # ловит любое событие
-    async def handle_any_event(self, state: dict, event: PluginEvent) -> dict:
+    async def handle_any_event(self, state: dict, event: PluginEvent, log) -> dict:
         self.handlers_called.append(("any", event.event_name))
         state["any"] = True
         return state
@@ -177,7 +180,7 @@ class CustomStatePlugin(Plugin):
         return self.MyState()
 
     @on("custom_event", ".*")
-    async def on_custom(self, state: MyState, event: PluginEvent) -> MyState:
+    async def on_custom(self, state: MyState, event: PluginEvent, log) -> MyState:
         state.value = 42
         return state
 

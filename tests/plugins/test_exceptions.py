@@ -60,7 +60,7 @@ class IgnoredErrorPlugin(Plugin):
         return {"before_error": False, "after_error": False}
 
     @on("global_finish", ".*", ignore_exceptions=True)
-    async def failing_handler(self, state: dict, event: PluginEvent) -> dict:
+    async def failing_handler(self, state: dict, event: PluginEvent, log) -> dict:
         state["before_error"] = True
         raise RuntimeError("Ignored error")
         # state["after_error"] = True  # не выполнится
@@ -73,7 +73,7 @@ class PropagatedErrorPlugin(Plugin):
         return {"count": 0}
 
     @on("global_finish", ".*", ignore_exceptions=False)
-    async def strict_handler(self, state: dict, event: PluginEvent) -> dict:
+    async def strict_handler(self, state: dict, event: PluginEvent, log) -> dict:
         raise RuntimeError("Strict error must propagate")
 
 
@@ -89,7 +89,7 @@ class CustomExceptionPlugin(Plugin):
         return {}
 
     @on("global_finish", ".*", ignore_exceptions=False)
-    async def custom_handler(self, state: dict, event: PluginEvent) -> dict:
+    async def custom_handler(self, state: dict, event: PluginEvent, log) -> dict:
         raise CustomException("Custom plugin error")
 
 
@@ -100,7 +100,7 @@ class SuccessPlugin(Plugin):
         return {"count": 0}
 
     @on("global_finish", ".*", ignore_exceptions=False)
-    async def success_handler(self, state: dict, event: PluginEvent) -> dict:
+    async def success_handler(self, state: dict, event: PluginEvent, log) -> dict:
         state["count"] += 1
         return state
 
