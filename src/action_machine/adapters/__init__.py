@@ -19,18 +19,37 @@
 КОМПОНЕНТЫ
 ═══════════════════════════════════════════════════════════════════════════════
 
-- BaseAdapter[B] — абстрактный generic-класс адаптера. Параметр B —
-  тип fluent-builder для конкретного протокола. Определяет контракт:
-  route() для регистрации действий, build() для создания протокольного
-  приложения. Конкретные адаптеры (FastAPIAdapter, MCPAdapter)
-  наследуют BaseAdapter и реализуют _create_builder() и build().
+- BaseAdapter[R] — абстрактный generic-класс адаптера. Параметр R —
+  тип конкретного RouteRecord (наследника BaseRouteRecord). Определяет
+  контракт: хранение маршрутов в _routes, построение протокольного
+  приложения через build(). Конкретные адаптеры (FastAPIAdapter,
+  MCPAdapter) наследуют BaseAdapter, реализуют протокольные методы
+  регистрации (post, get, tool) и build().
 
 - BaseRouteRecord — абстрактный frozen-датакласс, хранящий конфигурацию
-  одного зарегистрированного маршрута. Содержит общие для всех протоколов
-  поля: класс действия, типы параметров/результата, модели запроса/ответа,
-  мапперы. Протокольно-специфичные поля (HTTP-метод, путь, теги, tool_name)
-  определяются в конкретных наследниках (FastAPIRouteRecord, MCPRouteRecord).
-  Нельзя инстанцировать напрямую.
+  одного зарегистрированного маршрута. Содержит общее для всех протоколов
+  обязательное поле action_class и опциональные поля маппинга
+  (request_model, response_model, params_mapper, result_mapper).
+  Протокольно-специфичные поля (HTTP-метод, путь, теги, tool_name)
+  определяются в конкретных наследниках (FastAPIRouteRecord,
+  MCPRouteRecord). Нельзя инстанцировать напрямую.
+
+- extract_action_types(action_class) — функция извлечения generic-
+  параметров P и R из BaseAction[P, R]. Обходит __orig_bases__ в MRO
+  класса действия. Вызывается автоматически при создании RouteRecord.
+
+═══════════════════════════════════════════════════════════════════════════════
+АВТОИЗВЛЕЧЕНИЕ ТИПОВ
+═══════════════════════════════════════════════════════════════════════════════
+
+params_type и result_type ВСЕГДА извлекаются автоматически из generic-
+параметров BaseAction[P, R] класса действия. Разработчик никогда не
+указывает их вручную. Это единый источник правды: типы определены
+в классе действия и не дублируются.
+
+Если протокольные модели (request_model, response_model) совпадают
+с params_type/result_type — они не указываются вовсе. Мапперы нужны
+только когда протокольные модели отличаются от типов действия.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ОБРАБОТКА ОШИБОК
@@ -40,9 +59,6 @@
 перехватывает исключения ActionMachine (AuthorizationError,
 ValidationFieldError, ConnectionValidationError и др.) в except-блоках
 и самостоятельно решает, как преобразовать их в протокольный ответ.
-
-Промежуточный слой маппинга ошибок не требуется: адаптер знает свой
-протокол, знает исключения ядра и обрабатывает их напрямую.
 
     Пример для FastAPI:
         except AuthorizationError as exc:
@@ -76,37 +92,43 @@ BaseRouteRecord — абстрактный, содержит только общ
 ИНВАРИАНТЫ МАППИНГА
 ═══════════════════════════════════════════════════════════════════════════════
 
-BaseRouteRecord проверяет два инварианта при создании:
+BaseRouteRecord проверяет инварианты при создании:
 
-1. Если params_type и request_model — разные классы, params_mapper
+1. Если request_model указан и отличается от params_type, params_mapper
    обязателен. Без маппера адаптер не может преобразовать протокольный
    запрос в параметры действия.
 
-2. Если result_type и response_model — разные классы, result_mapper
+2. Если response_model указан и отличается от result_type, result_mapper
    обязателен. Без маппера адаптер не может преобразовать результат
    действия в протокольный ответ.
 
-Если типы совпадают (params_type is request_model), маппер не нужен —
-адаптер передаёт объект напрямую без преобразования.
+Если request_model не указан (None) или совпадает с params_type —
+маппер не нужен, адаптер передаёт объект напрямую.
 
 ═══════════════════════════════════════════════════════════════════════════════
-FLUENT-BUILDER ПАТТЕРН
+API КОНКРЕТНОГО АДАПТЕРА
 ═══════════════════════════════════════════════════════════════════════════════
 
-Каждый конкретный адаптер определяет свой Builder-класс с протокольно-
-специфичными методами:
+Каждый конкретный адаптер определяет свои протокольные методы. Один
+вызов метода = один зарегистрированный маршрут. Минимальный вызов
+требует только путь и класс действия:
 
     adapter = FastAPIAdapter(machine=machine, auth_coordinator=auth)
 
-    adapter.route(CreateOrderAction) \\
-        .post("/api/v1/orders") \\
-        .tags(["orders"]) \\
-        .summary("Создание заказа") \\
-        .request_model(CreateOrderRequest) \\
-        .response_model(CreateOrderResponse) \\
-        .params_mapper(lambda req: OrderParams(...)) \\
-        .result_mapper(lambda res: CreateOrderResponse(...)) \\
-        .register()
+    # Минимум — request_model совпадает с params_type:
+    adapter.post("/orders/create", CreateOrderAction)
+
+    # request_model отличается — нужен params_mapper:
+    adapter.get("/orders/list", ListOrdersAction,
+                request_model=ListOrdersRequest,
+                params_mapper=map_list_request)
+
+    # Оба отличаются — нужны оба маппера:
+    adapter.get("/orders/{id}", GetOrderAction,
+                request_model=GetRequest,
+                response_model=GetResponse,
+                params_mapper=map_get_request,
+                result_mapper=map_get_response)
 
     app = adapter.build()
 
@@ -120,10 +142,11 @@ FLUENT-BUILDER ПАТТЕРН
                │
                ▼
     ┌──────────────────────┐
-    │  ConcreteAdapter[B]  │   FastAPIAdapter, MCPAdapter, ...
+    │  ConcreteAdapter     │   FastAPIAdapter, MCPAdapter, ...
     │  extends BaseAdapter │
     │                      │
-    │  route(ActionClass)  │──▶ Builder (fluent API)
+    │  post(path, action)  │──▶ Создаёт RouteRecord, добавляет в _routes
+    │  get(path, action)   │──▶ Создаёт RouteRecord, добавляет в _routes
     │  build()             │──▶ Протокольное приложение
     └──────────┬───────────┘
                │
@@ -135,9 +158,10 @@ FLUENT-BUILDER ПАТТЕРН
 """
 
 from .base_adapter import BaseAdapter
-from .base_route_record import BaseRouteRecord
+from .base_route_record import BaseRouteRecord, extract_action_types
 
 __all__ = [
     "BaseAdapter",
     "BaseRouteRecord",
+    "extract_action_types",
 ]
