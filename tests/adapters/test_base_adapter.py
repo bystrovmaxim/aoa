@@ -96,7 +96,7 @@ class ListOrdersRequest(BaseParams):
 
 class ListOrdersResponse(BaseResult):
     """Протокольная модель ответа списка (отличается от OrderResult)."""
-    items: list = Field(default_factory=list, description="Элементы")
+    order_items: list = Field(default_factory=list, description="Элементы списка")
     total: int = Field(default=0, description="Всего")
 
 
@@ -112,7 +112,7 @@ def map_list_request_to_params(req: Any) -> OrderParams:
 
 def map_order_result_to_list_response(res: Any) -> ListOrdersResponse:
     """Преобразует OrderResult в ListOrdersResponse."""
-    return ListOrdersResponse(items=[], total=0)
+    return ListOrdersResponse(order_items=[], total=0)
 
 
 def identity_mapper(x: Any) -> Any:
