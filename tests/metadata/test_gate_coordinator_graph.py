@@ -17,6 +17,7 @@ from action_machine.aspects.aspect_gate_host import AspectGateHost
 from action_machine.checkers.checker_gate_host import CheckerGateHost
 from action_machine.core.exceptions import CyclicDependencyError
 from action_machine.core.gate_coordinator import GateCoordinator
+from action_machine.core.meta_decorator import meta
 from action_machine.dependencies.depends import DependencyInfo
 from action_machine.plugins.decorators import SubscriptionInfo
 from action_machine.plugins.on_gate_host import OnGateHost
@@ -36,6 +37,7 @@ class FakeServiceB:
 class FakeServiceC:
     pass
 
+@meta(description="Fake resource manager for tests")
 class FakeResourceManager(BaseResourceManager):
     def get_wrapper_class(self):
         return None

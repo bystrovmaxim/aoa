@@ -1,3 +1,4 @@
+"""Contrib-пакет для работы с PostgreSQL через asyncpg."""
 try:
     import asyncpg  # noqa: F401
 except ImportError:

@@ -41,6 +41,7 @@ from action_machine.core.base_params import BaseParams
 from action_machine.core.base_result import BaseResult
 from action_machine.core.base_state import BaseState
 from action_machine.core.exceptions import AuthorizationError, ConnectionValidationError, ValidationFieldError
+from action_machine.core.meta_decorator import meta
 from action_machine.core.tools_box import ToolsBox
 from action_machine.logging.log_coordinator import LogCoordinator
 from action_machine.plugins.plugin import Plugin
@@ -63,6 +64,7 @@ class MockResult(BaseResult):
     pass
 
 
+@meta(description="Заглушка менеджера ресурсов для тестов")
 class MockResourceManager(BaseResourceManager):
     """Заглушка менеджера ресурсов для тестов соединений."""
     def get_wrapper_class(self) -> None:
@@ -72,6 +74,7 @@ class MockResourceManager(BaseResourceManager):
 # ----------------------------------------------------------------------
 # Действия: конфигурация аспектов
 # ----------------------------------------------------------------------
+@meta(description="Действие с несколькими аспектами для проверки порядка выполнения")
 @CheckRoles(CheckRoles.NONE, desc="No authentication")
 class ActionWithAspects(BaseAction[MockParams, MockResult]):
     """
@@ -119,6 +122,7 @@ class ActionWithAspects(BaseAction[MockParams, MockResult]):
         return MockResult()
 
 
+@meta(description="Родительское действие")
 @CheckRoles(CheckRoles.NONE, desc="No authentication")
 class ParentAction(BaseAction[MockParams, MockResult]):
     """Родительское действие. Аспекты не наследуются потомками."""
@@ -144,6 +148,7 @@ class ParentAction(BaseAction[MockParams, MockResult]):
         return MockResult()
 
 
+@meta(description="Дочернее действие")
 @CheckRoles(CheckRoles.NONE, desc="No authentication")
 class ChildAction(ParentAction):
     """Дочернее действие. Явно объявляет ВСЕ свои аспекты."""
@@ -172,6 +177,7 @@ class ChildAction(ParentAction):
 # ----------------------------------------------------------------------
 # Действия: проверка ролей
 # ----------------------------------------------------------------------
+@meta(description="Действие без аутентификации")
 @CheckRoles(CheckRoles.NONE, desc="No authentication")
 class ActionNone(BaseAction[MockParams, MockResult]):
     @summary_aspect("mock summary")
@@ -179,6 +185,7 @@ class ActionNone(BaseAction[MockParams, MockResult]):
         return MockResult()
 
 
+@meta(description="Действие с любой ролью")
 @CheckRoles(CheckRoles.ANY, desc="Any role")
 class ActionAny(BaseAction[MockParams, MockResult]):
     @summary_aspect("mock summary")
@@ -186,6 +193,7 @@ class ActionAny(BaseAction[MockParams, MockResult]):
         return MockResult()
 
 
+@meta(description="Действие только для админов")
 @CheckRoles("admin", desc="Only admin")
 class ActionSingleRole(BaseAction[MockParams, MockResult]):
     @summary_aspect("mock summary")
@@ -193,6 +201,7 @@ class ActionSingleRole(BaseAction[MockParams, MockResult]):
         return MockResult()
 
 
+@meta(description="Действие для админов или менеджеров")
 @CheckRoles(["admin", "manager"], desc="Admin or manager")
 class ActionListRole(BaseAction[MockParams, MockResult]):
     @summary_aspect("mock summary")
@@ -200,6 +209,7 @@ class ActionListRole(BaseAction[MockParams, MockResult]):
         return MockResult()
 
 
+@meta(description="Действие без декоратора CheckRoles")
 class ActionNoDecorator(BaseAction[MockParams, MockResult]):
     @summary_aspect("mock summary")
     async def summary(self, params, state, box, connections):
@@ -210,6 +220,7 @@ class ActionNoDecorator(BaseAction[MockParams, MockResult]):
 # Действия: проверка соединений
 # ----------------------------------------------------------------------
 @connection(MockResourceManager, key="db", description="Database")
+@meta(description="Действие с одним соединением")
 @CheckRoles(CheckRoles.NONE, desc="No authentication")
 class ActionWithOneConnection(BaseAction[MockParams, MockResult]):
     @summary_aspect("test")
@@ -220,6 +231,7 @@ class ActionWithOneConnection(BaseAction[MockParams, MockResult]):
 
 @connection(MockResourceManager, key="db")
 @connection(MockResourceManager, key="cache")
+@meta(description="Действие с двумя соединениями")
 @CheckRoles(CheckRoles.NONE, desc="No authentication")
 class ActionWithTwoConnections(BaseAction[MockParams, MockResult]):
     @summary_aspect("test")
@@ -229,6 +241,7 @@ class ActionWithTwoConnections(BaseAction[MockParams, MockResult]):
         return MockResult()
 
 
+@meta(description="Действие без соединений")
 @CheckRoles(CheckRoles.NONE, desc="No authentication")
 class ActionWithoutConnections(BaseAction[MockParams, MockResult]):
     @summary_aspect("test")
@@ -240,6 +253,7 @@ class ActionWithoutConnections(BaseAction[MockParams, MockResult]):
 # ----------------------------------------------------------------------
 # Действия для TestRun (ошибки)
 # ----------------------------------------------------------------------
+@meta(description="Действие с плохим аспектом")
 @CheckRoles(CheckRoles.NONE, desc="")
 class BadAction(BaseAction[MockParams, MockResult]):
     """regular-аспект возвращает не dict."""
@@ -252,6 +266,7 @@ class BadAction(BaseAction[MockParams, MockResult]):
         return MockResult()
 
 
+@meta(description="Действие без чекеров")
 @CheckRoles(CheckRoles.NONE, desc="")
 class ActionWithoutCheckers(BaseAction[MockParams, MockResult]):
     """regular-аспект без чекеров, возвращающий непустой dict."""
@@ -264,6 +279,7 @@ class ActionWithoutCheckers(BaseAction[MockParams, MockResult]):
         return MockResult()
 
 
+@meta(description="Действие с чекером и лишним полем")
 @CheckRoles(CheckRoles.NONE, desc="")
 class ActionWithChecker(BaseAction[MockParams, MockResult]):
     """Аспект с чекером на одно поле, но возвращает лишнее поле."""
@@ -343,6 +359,7 @@ class TestCheckActionRoles:
         machine._check_action_roles(ActionSingleRole(), context_with_roles, metadata)
 
     def test_single_role_no_match(self, machine, context_with_roles):
+        @meta(description="Действие для менеджеров")
         @CheckRoles("manager", desc="")
         class _ActionManager(BaseAction[MockParams, MockResult]):
             @summary_aspect("mock summary")
@@ -359,6 +376,7 @@ class TestCheckActionRoles:
         machine._check_action_roles(ActionListRole(), context_with_roles, metadata)
 
     def test_list_role_no_intersection(self, machine, context_with_roles):
+        @meta(description="Действие для менеджеров и редакторов")
         @CheckRoles(["manager", "editor"], desc="")
         class _ActionManagerEditor(BaseAction[MockParams, MockResult]):
             @summary_aspect("mock summary")
@@ -509,6 +527,7 @@ class TestRun:
     @pytest.mark.anyio
     async def test_nest_level_increments_and_decrements(self, machine, context_with_roles):
         """Уровень вложенности в ToolsBox равен 1 для корневого вызова."""
+        @meta(description="Проверка вложенности")
         @CheckRoles(CheckRoles.NONE, desc="")
         class CheckNestingAction(BaseAction[MockParams, MockResult]):
             @summary_aspect("test")

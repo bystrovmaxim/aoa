@@ -27,6 +27,7 @@ from action_machine.core.base_action import BaseAction
 from action_machine.core.base_params import BaseParams
 from action_machine.core.base_result import BaseResult
 from action_machine.core.base_state import BaseState
+from action_machine.core.meta_decorator import meta
 from action_machine.core.mock_action import MockAction
 from action_machine.core.tools_box import ToolsBox
 from action_machine.logging.scoped_logger import ScopedLogger
@@ -52,6 +53,7 @@ class DummyAction(BaseAction[DummyParams, DummyResult]):
     pass
 
 
+@meta(description="Минимальное действие с одним summary-аспектом для тестов")
 @CheckRoles(CheckRoles.NONE, desc="Без аутентификации")
 class SimpleSummaryAction(BaseAction[DummyParams, DummyResult]):
     """Минимальное действие с одним summary-аспектом для тестов."""

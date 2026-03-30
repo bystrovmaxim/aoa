@@ -38,6 +38,9 @@
 - Роли наследуются через getattr. Если потомок не объявил @CheckRoles,
   используется роль родителя.
 
+- Метаданные @meta наследуются через getattr. Если потомок не объявил
+  @meta, используются метаданные родителя.
+
 ИСКЛЮЧЕНИЕ: collect_sensitive_fields обходит MRO, потому что чувствительные
 свойства (@sensitive на property) наследуются — это свойство модели данных,
 а не конвейера выполнения.
@@ -46,6 +49,7 @@
 ВРЕМЕННЫЕ АТРИБУТЫ, ЧИТАЕМЫЕ КОЛЛЕКТОРАМИ
 ═══════════════════════════════════════════════════════════════════════════════
 
+    @meta           → cls._meta_info            : dict {"description": ..., "domain": ...}
     @CheckRoles     → cls._role_info            : dict {"spec": ..., "desc": ...}
     @depends        → cls._depends_info         : list[DependencyInfo]
     @connection     → cls._connection_info       : list[ConnectionInfo]
@@ -70,6 +74,7 @@ from typing import Any
 from action_machine.core.class_metadata import (
     AspectMeta,
     CheckerMeta,
+    MetaInfo,
     RoleMeta,
     SensitiveFieldMeta,
 )
@@ -99,6 +104,41 @@ def full_class_name(cls: type) -> str:
     if module and module != "__main__":
         return f"{module}.{cls.__qualname__}"
     return cls.__qualname__
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Описание и домен (@meta)
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+def collect_meta(cls: type) -> MetaInfo | None:
+    """
+    Извлекает метаданные описания и домена из ``cls._meta_info``.
+
+    Декоратор ``@meta`` записывает в ``cls._meta_info`` словарь:
+        ``{"description": str, "domain": type[BaseDomain] | None}``
+
+    Использует ``getattr(cls, ...)`` — учитывает MRO. Если потомок
+    не объявил ``@meta``, используются метаданные родителя.
+
+    Если ``_meta_info`` отсутствует — возвращает ``None`` (описание
+    не задано). MetadataBuilder затем проверяет обязательность @meta
+    для классов с ActionMetaGateHost или ResourceMetaGateHost.
+
+    Аргументы:
+        cls: класс для анализа.
+
+    Возвращает:
+        ``MetaInfo`` с полями ``description`` и ``domain``, или ``None``.
+    """
+    meta_info: dict[str, Any] | None = getattr(cls, "_meta_info", None)
+    if meta_info is None:
+        return None
+
+    return MetaInfo(
+        description=meta_info["description"],
+        domain=meta_info.get("domain"),
+    )
 
 
 # ─────────────────────────────────────────────────────────────────────────────

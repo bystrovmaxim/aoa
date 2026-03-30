@@ -25,6 +25,7 @@ from action_machine.core.base_action import BaseAction
 from action_machine.core.base_params import BaseParams
 from action_machine.core.base_result import BaseResult
 from action_machine.core.base_state import BaseState
+from action_machine.core.meta_decorator import meta
 from action_machine.core.tools_box import ToolsBox
 
 ################################################################################
@@ -42,6 +43,7 @@ class MockResult(BaseResult):
     pass
 
 
+@meta(description="Минимальное действие для тестирования sync_run")
 @CheckRoles(CheckRoles.NONE, desc="")
 class SimpleAction(BaseAction[MockParams, MockResult]):
     """

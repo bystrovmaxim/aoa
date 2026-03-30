@@ -1,20 +1,20 @@
 # tests/core/test_base_action.py
 """
-Tests for BaseAction — the base class for all actions.
+Тесты для BaseAction — базового класса для всех действий.
 
-Checks:
-- get_full_class_name returns full class name (module.Class)
-- Result is cached after first call
-
-Изменения (этап 1):
-- Нет изменений в логике BaseAction, так как аспекты не входят в этот файл.
-- Обновлены комментарии.
+Проверяем:
+- get_full_class_name возвращает полное имя класса (module.Class).
+- Результат кешируется после первого вызова.
+- BaseAction наследует ActionMetaGateHost, что делает @meta обязательным
+  для классов с аспектами.
 """
 
 from action_machine.aspects.summary_aspect import summary_aspect
 from action_machine.core.base_action import BaseAction
 from action_machine.core.base_params import BaseParams
 from action_machine.core.base_result import BaseResult
+from action_machine.core.meta_decorator import meta
+from action_machine.core.meta_gate_hosts import ActionMetaGateHost
 from action_machine.core.tools_box import ToolsBox
 
 
@@ -26,8 +26,9 @@ class MockResult(BaseResult):
     pass
 
 
+@meta(description="Тестовое действие для проверки get_full_class_name")
 class SampleAction(BaseAction[MockParams, MockResult]):
-    """Test action."""
+    """Тестовое действие."""
 
     @summary_aspect("test summary")
     async def summary(
@@ -41,20 +42,25 @@ class SampleAction(BaseAction[MockParams, MockResult]):
 
 
 class TestBaseAction:
-    """Tests for BaseAction."""
+    """Тесты для BaseAction."""
 
     def test_get_full_class_name_returns_module_and_class(self):
-        """Method returns string like 'module.ClassName'."""
+        """Метод возвращает строку вида 'module.ClassName'."""
         action = SampleAction()
         full_name = action.get_full_class_name()
 
         assert full_name == "tests.core.test_base_action.SampleAction"
 
     def test_get_full_class_name_caches_result(self):
-        """Subsequent call returns cached value."""
+        """Повторный вызов возвращает кешированное значение."""
         action = SampleAction()
         first = action.get_full_class_name()
         second = action.get_full_class_name()
 
-        assert first is second  # same object (string)
+        assert first is second  # тот же объект (строка)
         assert action._full_class_name is first
+
+    def test_base_action_inherits_action_meta_gate_host(self):
+        """BaseAction наследует ActionMetaGateHost."""
+        assert issubclass(BaseAction, ActionMetaGateHost)
+        assert issubclass(SampleAction, ActionMetaGateHost)
