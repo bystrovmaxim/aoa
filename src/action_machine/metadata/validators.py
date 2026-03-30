@@ -11,103 +11,158 @@
 отдельного декоратора — они требуют знания обо всех декораторах класса
 в совокупности.
 
-Валидаторы вызываются из ``MetadataBuilder.build()`` после завершения
-сбора данных коллекторами и перед созданием ``ClassMetadata``.
-При нарушении инварианта выбрасывается ``ValueError`` или ``TypeError``
-с информативным сообщением.
-
-═══════════════════════════════════════════════════════════════════════════════
-СИСТЕМА ГЕЙТ-ХОСТОВ
-═══════════════════════════════════════════════════════════════════════════════
-
-Каждый декоратор грамматики намерений ActionMachine требует, чтобы
-целевой класс наследовал соответствующий маркерный миксин (гейт-хост).
-Гейт-хост — это РАЗРЕШЕНИЕ на использование декоратора. Без гейта
-декоратор применён туда, куда нельзя, и это ошибка конфигурации.
-
-Полная таблица соответствий:
-
-    Декоратор              Гейт-хост              Кто проверяет
-    ─────────────────────  ─────────────────────── ──────────────────
-    @meta                  ActionMetaGateHost /    Декоратор (класс)
-                           ResourceMetaGateHost
-    @CheckRoles            RoleGateHost            Декоратор (класс)
-    @depends               DependencyGateHost      Декоратор (класс)
-    @connection            ConnectionGateHost      Декоратор (класс)
-    @regular_aspect        AspectGateHost          MetadataBuilder
-    @summary_aspect        AspectGateHost          MetadataBuilder
-    @on                    OnGateHost              MetadataBuilder
-    Чекеры                 CheckerGateHost         MetadataBuilder
-    @sensitive             (без ограничений)       —
-
-Декораторы уровня класса (@meta, @CheckRoles, @depends, @connection)
-проверяют issubclass самостоятельно в момент применения — они
-получают cls как аргумент и класс уже создан.
-
-Декораторы уровня метода (@regular_aspect, @summary_aspect, @on,
-чекеры) НЕ МОГУТ проверить issubclass самостоятельно — в момент
-их применения класс ещё не существует (Python сначала обрабатывает
-тело класса, декорирует методы, и только потом создаёт объект класса).
-Поэтому проверка гейтов для декораторов методов выполняется здесь.
-
-═══════════════════════════════════════════════════════════════════════════════
-ОБЯЗАТЕЛЬНОСТЬ @meta
-═══════════════════════════════════════════════════════════════════════════════
-
-Если класс наследует ActionMetaGateHost и содержит аспекты — @meta
-обязателен. Без него: TypeError с сообщением о необходимости добавить
-@meta(description="...").
-
-Если класс наследует ResourceMetaGateHost — @meta обязателен безусловно.
-
-Эта проверка является обратной к проверке декоратора @meta: декоратор
-проверяет, что гейт-хост есть → можно применить. Валидатор проверяет,
-что если гейт-хост есть → @meta обязан быть применён.
-
 ═══════════════════════════════════════════════════════════════════════════════
 ПРОВЕРЯЕМЫЕ ИНВАРИАНТЫ
 ═══════════════════════════════════════════════════════════════════════════════
 
+Обязательность описаний полей (validate_described_fields):
+    1. Если Params наследует DescribedFieldsGateHost и имеет поля —
+       каждое поле обязано иметь непустой description.
+    2. Если Result наследует DescribedFieldsGateHost и имеет поля —
+       каждое поле обязано иметь непустой description.
+
 Обязательность @meta (validate_meta_required):
-    1. ActionMetaGateHost + аспекты → @meta обязателен.
-    2. ResourceMetaGateHost → @meta обязателен.
+    3. ActionMetaGateHost + аспекты → @meta обязателен.
+    4. ResourceMetaGateHost → @meta обязателен.
 
 Гейт-хосты (validate_gate_hosts):
-    3. Аспекты → класс ОБЯЗАН наследовать AspectGateHost.
-    4. Чекеры → класс ОБЯЗАН наследовать CheckerGateHost.
-    5. Подписки → класс ОБЯЗАН наследовать OnGateHost.
-    6. @sensitive — без ограничений (допустим на любом классе).
+    5. Аспекты → AspectGateHost.
+    6. Чекеры → CheckerGateHost.
+    7. Подписки → OnGateHost.
 
 Аспекты (validate_aspects):
-    7. Не более одного summary-аспекта на класс.
-    8. Если есть regular-аспекты, должен быть ровно один summary.
-    9. Summary должен быть объявлен последним.
-    10. Классы без аспектов (Plugin, утилитарный класс) — допустимы.
+    8. Не более одного summary-аспекта.
+    9. Regular без summary — ошибка.
+    10. Summary последним.
 
 Чекеры (validate_checkers_belong_to_aspects):
-    11. Каждый чекер привязан к существующему аспекту (по method_name).
+    11. Каждый чекер привязан к существующему аспекту.
 """
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, get_args, get_origin
+
+from pydantic import BaseModel
 
 from action_machine.aspects.aspect_gate_host import AspectGateHost
 from action_machine.checkers.checker_gate_host import CheckerGateHost
-from action_machine.core.class_metadata import AspectMeta, CheckerMeta, MetaInfo
+from action_machine.core.class_metadata import AspectMeta, CheckerMeta, FieldDescriptionMeta, MetaInfo
+from action_machine.core.described_fields_gate_host import DescribedFieldsGateHost
 from action_machine.core.meta_gate_hosts import ActionMetaGateHost, ResourceMetaGateHost
 from action_machine.plugins.on_gate_host import OnGateHost
 
 # ═════════════════════════════════════════════════════════════════════════════
+# Валидация описаний полей Params и Result
+#
+# Если класс Params или Result наследует DescribedFieldsGateHost и содержит
+# pydantic-поля — каждое поле обязано иметь непустой description в Field().
+# Пустые классы (без собственных полей) не проверяются.
+# ═════════════════════════════════════════════════════════════════════════════
+
+
+def _extract_generic_params_result(cls: type) -> tuple[type | None, type | None]:
+    """
+    Извлекает generic-параметры P и R из BaseAction[P, R] в MRO класса.
+
+    Аргументы:
+        cls: класс действия.
+
+    Возвращает:
+        Кортеж (P, R). Если не найдены — (None, None).
+    """
+    from action_machine.core.base_action import BaseAction  # pylint: disable=import-outside-toplevel
+
+    for klass in cls.__mro__:
+        for base in getattr(klass, "__orig_bases__", ()):
+            origin = get_origin(base)
+            if origin is BaseAction:
+                args = get_args(base)
+                if len(args) >= 2:
+                    p_type = args[0] if isinstance(args[0], type) else None
+                    r_type = args[1] if isinstance(args[1], type) else None
+                    return p_type, r_type
+    return None, None
+
+
+def _validate_pydantic_model_descriptions(model_cls: type) -> list[str]:
+    """
+    Проверяет, что все поля pydantic-модели имеют непустой description.
+
+    Аргументы:
+        model_cls: pydantic-класс для проверки.
+
+    Возвращает:
+        Список имён полей без описания. Пустой список если всё OK.
+    """
+    if not isinstance(model_cls, type) or not issubclass(model_cls, BaseModel):
+        return []
+
+    missing: list[str] = []
+    for field_name, field_info in model_cls.model_fields.items():
+        description = field_info.description
+        if not description or not description.strip():
+            missing.append(field_name)
+
+    return missing
+
+
+def validate_described_fields(
+    cls: type,
+    params_fields: list[FieldDescriptionMeta],
+    result_fields: list[FieldDescriptionMeta],
+) -> None:
+    """
+    Проверяет обязательность описаний полей Params и Result.
+
+    Извлекает generic-параметры P и R из BaseAction[P, R]. Для каждого
+    проверяет: если класс наследует DescribedFieldsGateHost и содержит
+    pydantic-поля — каждое поле обязано иметь непустой description.
+
+    Пустые классы (BaseParams, BaseResult без собственных полей,
+    MockParams и т.д.) не проверяются.
+
+    Аргументы:
+        cls: класс действия для анализа.
+        params_fields: собранные описания полей Params.
+        result_fields: собранные описания полей Result.
+
+    Исключения:
+        TypeError: если хотя бы одно поле не имеет описания.
+    """
+    p_type, r_type = _extract_generic_params_result(cls)
+
+    # Проверка Params
+    if (
+        p_type is not None
+        and issubclass(p_type, DescribedFieldsGateHost)
+        and params_fields
+    ):
+        missing = _validate_pydantic_model_descriptions(p_type)
+        if missing:
+            fields_str = ", ".join(f"'{f}'" for f in missing)
+            raise TypeError(
+                f"Поля {fields_str} в {p_type.__name__} не имеют описания. "
+                f'Используйте Field(description="...") для каждого поля.'
+            )
+
+    # Проверка Result
+    if (
+        r_type is not None
+        and issubclass(r_type, DescribedFieldsGateHost)
+        and result_fields
+    ):
+        missing = _validate_pydantic_model_descriptions(r_type)
+        if missing:
+            fields_str = ", ".join(f"'{f}'" for f in missing)
+            raise TypeError(
+                f"Поля {fields_str} в {r_type.__name__} не имеют описания. "
+                f'Используйте Field(description="...") для каждого поля.'
+            )
+
+
+# ═════════════════════════════════════════════════════════════════════════════
 # Валидация обязательности @meta
-#
-# Если класс наследует ActionMetaGateHost (через BaseAction) и содержит
-# аспекты — @meta обязателен. Если класс наследует ResourceMetaGateHost
-# (через BaseResourceManager) — @meta обязателен безусловно.
-#
-# Это обратная проверка к проверке в декораторе @meta:
-# - Декоратор: "есть ли гейт-хост? → можно применить @meta"
-# - Валидатор: "есть гейт-хост? → @meta ОБЯЗАН быть"
 # ═════════════════════════════════════════════════════════════════════════════
 
 
@@ -120,18 +175,13 @@ def validate_meta_required(
     Проверяет обязательность декоратора @meta для классов с гейт-хостами.
 
     Правила:
-        1. Если класс наследует ActionMetaGateHost и содержит аспекты —
-           @meta обязателен. Действие без описания — ошибка конфигурации.
-        2. Если класс наследует ResourceMetaGateHost — @meta обязателен
-           безусловно. Ресурсный менеджер без описания — ошибка конфигурации.
-
-    Классы без гейт-хостов (Plugin, утилитарные классы, модели данных)
-    не проверяются — @meta для них не обязателен.
+        1. ActionMetaGateHost + аспекты → @meta обязателен.
+        2. ResourceMetaGateHost → @meta обязателен.
 
     Аргументы:
         cls: класс, который проверяется.
-        meta: собранные метаданные @meta из collect_meta() (или None).
-        aspects: собранные аспекты из collect_aspects().
+        meta: собранные метаданные @meta (или None).
+        aspects: собранные аспекты.
 
     Исключения:
         TypeError: если класс обязан иметь @meta, но декоратор не применён.
@@ -139,7 +189,6 @@ def validate_meta_required(
     if meta is not None:
         return
 
-    # Проверка для действий (Action)
     if issubclass(cls, ActionMetaGateHost) and aspects:
         raise TypeError(
             f"Action {cls.__name__} не имеет декоратора @meta. "
@@ -147,7 +196,6 @@ def validate_meta_required(
             f'Добавьте @meta(description="...") перед определением класса.'
         )
 
-    # Проверка для ресурсных менеджеров (ResourceManager)
     if issubclass(cls, ResourceMetaGateHost):
         raise TypeError(
             f"Ресурсный менеджер {cls.__name__} не имеет декоратора @meta. "
@@ -158,12 +206,6 @@ def validate_meta_required(
 
 # ═════════════════════════════════════════════════════════════════════════════
 # Валидация гейт-хостов
-#
-# Каждый декоратор грамматики намерений требует гейт-хоста.
-# Декораторы уровня класса проверяют гейт сами при применении.
-# Декораторы уровня метода не могут — класс ещё не создан.
-# Эта функция закрывает дыру для декораторов уровня метода.
-# Результат одинаковый: без гейта — TypeError до первого run().
 # ═════════════════════════════════════════════════════════════════════════════
 
 
@@ -177,31 +219,19 @@ def validate_gate_hosts(
     Проверяет, что класс наследует необходимые гейт-хосты для всех
     обнаруженных декораторов уровня метода.
 
-    Гейт-хост — маркерный миксин, РАЗРЕШАЮЩИЙ применение декоратора.
-    Без гейта декоратор применён к классу, не предназначенному для этого.
-
-    Эта функция дополняет проверки декораторов уровня класса
-    (@meta, @CheckRoles, @depends, @connection), которые проверяют гейты
-    самостоятельно. Декораторы уровня метода (@regular_aspect,
-    @summary_aspect, @on, чекеры) не могут проверить гейт в момент
-    применения, потому что класс ещё не существует.
-
     Проверки:
-        - Аспекты (@regular_aspect, @summary_aspect) → AspectGateHost.
-        - Чекеры (@ResultStringChecker и др.) → CheckerGateHost.
-        - Подписки (@on) → OnGateHost.
-        - @sensitive — не проверяется (допустим на любом классе).
+        - Аспекты → AspectGateHost.
+        - Чекеры → CheckerGateHost.
+        - Подписки → OnGateHost.
 
     Аргументы:
         cls: класс, который проверяется.
-        aspects: собранные аспекты из collect_aspects().
-        checkers: собранные чекеры из collect_checkers().
-        subscriptions: собранные подписки из collect_subscriptions().
+        aspects: собранные аспекты.
+        checkers: собранные чекеры.
+        subscriptions: собранные подписки.
 
     Исключения:
-        TypeError: если класс содержит декораторы, но не наследует
-                   соответствующий гейт-хост. Сообщение содержит имя
-                   класса, найденные декораторы и требуемый гейт-хост.
+        TypeError: если класс содержит декораторы без гейт-хоста.
     """
     if aspects and not issubclass(cls, AspectGateHost):
         aspect_names = ", ".join(a.method_name for a in aspects)
@@ -247,22 +277,15 @@ def validate_aspects(cls: type, aspects: list[AspectMeta]) -> None:
 
     Правила:
         1. Не более одного summary-аспекта.
-        2. Если есть regular-аспекты, должен быть ровно один summary-аспект
-           (действие без summary не может вернуть результат).
-        3. Summary-аспект должен быть объявлен последним.
-
-    Классы без аспектов (Plugin, утилитарный класс) — допустимы,
-    правила не применяются.
+        2. Regular без summary — ошибка.
+        3. Summary последним.
 
     Аргументы:
-        cls: класс (для формирования сообщений об ошибках).
-        aspects: собранные аспекты из collect_aspects().
+        cls: класс для сообщений об ошибках.
+        aspects: собранные аспекты.
 
     Исключения:
-        ValueError:
-            - Больше одного summary-аспекта.
-            - Есть regular-аспекты, но нет summary.
-            - Summary-аспект не является последним в списке.
+        ValueError: при нарушении инвариантов.
     """
     if not aspects:
         return
@@ -306,19 +329,13 @@ def validate_checkers_belong_to_aspects(
     """
     Проверяет, что каждый чекер привязан к существующему аспекту.
 
-    Чекер декорирует метод, который также должен быть аспектом
-    (помечен @regular_aspect или @summary_aspect). Если метод
-    с чекером не является аспектом — это ошибка конфигурации:
-    чекер никогда не будет вызван машиной.
-
     Аргументы:
-        cls: класс (для формирования сообщений об ошибках).
-        checkers: собранные чекеры из collect_checkers().
-        aspects: собранные аспекты из collect_aspects().
+        cls: класс для сообщений об ошибках.
+        checkers: собранные чекеры.
+        aspects: собранные аспекты.
 
     Исключения:
-        ValueError: если чекер привязан к методу, который не является
-                    аспектом.
+        ValueError: если чекер привязан к несуществующему аспекту.
     """
     aspect_names = {a.method_name for a in aspects}
 

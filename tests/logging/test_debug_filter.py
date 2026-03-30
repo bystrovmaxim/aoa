@@ -1,17 +1,21 @@
 # tests/logging/test_debug_filter.py
 """
-Unit tests for the |debug filter in logging templates.
+Тесты фильтра |debug в шаблонах логирования.
 
-Tests cover:
-- Basic usage: {%var.obj|debug} outputs object introspection.
-- Output includes public fields and properties, types, and values.
-- Sensitive data masking is preserved when the property has @sensitive.
-- Nested objects are NOT expanded (max_depth=1).
-- Works both inside and outside iif blocks.
-- Works with all namespaces (var, state, context, params, scope).
+═══════════════════════════════════════════════════════════════════════════════
+ПОКРЫВАЕМЫЕ СЦЕНАРИИ
+═══════════════════════════════════════════════════════════════════════════════
+
+- Базовое использование: {%var.obj|debug} выводит интроспекцию объекта.
+- Вывод содержит публичные поля и свойства, типы и значения.
+- Маскирование чувствительных данных (@sensitive) сохраняется.
+- Вложенные объекты НЕ раскрываются (max_depth=1).
+- Работает внутри и вне блоков iif.
+- Работает со всеми namespace (var, state, context, params, scope).
 """
 
 import pytest
+from pydantic import Field
 
 from action_machine.context.context import Context
 from action_machine.context.user_info import UserInfo
@@ -23,11 +27,12 @@ from action_machine.logging.sensitive_decorator import sensitive
 from action_machine.logging.variable_substitutor import VariableSubstitutor
 
 # ----------------------------------------------------------------------
-# Helper classes
+# Вспомогательные классы
 # ----------------------------------------------------------------------
 
+
 class SimpleObj:
-    """A simple object with public fields and a private field."""
+    """Простой объект с публичными и приватным полями."""
     def __init__(self):
         self.name = "Simple"
         self.value = 42
@@ -35,7 +40,7 @@ class SimpleObj:
 
 
 class UserWithSensitive:
-    """Class with a sensitive property."""
+    """Класс с чувствительным свойством."""
     def __init__(self, email: str, phone: str):
         self._email = email
         self._phone = phone
@@ -56,7 +61,7 @@ class UserWithSensitive:
 
 
 class DeepObj:
-    """Object with nested structure to verify non-recursion."""
+    """Объект с вложенной структурой для проверки отсутствия рекурсии."""
     def __init__(self):
         self.level1 = "visible"
         self.child = self.Child()
@@ -67,8 +72,9 @@ class DeepObj:
 
 
 # ----------------------------------------------------------------------
-# Fixtures
+# Фикстуры
 # ----------------------------------------------------------------------
+
 
 @pytest.fixture
 def substitutor():
@@ -97,19 +103,20 @@ def empty_params():
 
 @pytest.fixture
 def evaluator():
-    """ExpressionEvaluator for tests that need direct iif evaluation."""
+    """ExpressionEvaluator для тестов, требующих прямого вычисления iif."""
     return ExpressionEvaluator()
 
 
 # ----------------------------------------------------------------------
-# Tests
+# Тесты
 # ----------------------------------------------------------------------
 
+
 class TestDebugFilter:
-    """Tests for the |debug filter."""
+    """Тесты фильтра |debug."""
 
     def test_debug_filter_on_simple_object(self, substitutor, empty_scope, empty_context, empty_state, empty_params):
-        """Basic test: debug filter outputs public fields."""
+        """Базовый тест: фильтр debug выводит публичные поля."""
         obj = SimpleObj()
         var = {"obj": obj}
         template = "{%var.obj|debug}"
@@ -117,15 +124,13 @@ class TestDebugFilter:
             template, var=var, scope=empty_scope, ctx=empty_context,
             state=empty_state, params=empty_params
         )
-        # Check presence of expected fields
         assert "SimpleObj:" in result
         assert "name: str = 'Simple'" in result
         assert "value: int = 42" in result
-        # Private field should NOT appear
         assert "_private" not in result
 
     def test_debug_filter_on_dict(self, substitutor, empty_scope, empty_context, empty_state, empty_params):
-        """Debug filter on a dictionary."""
+        """Фильтр debug на словаре."""
         data = {"a": 1, "b": 2, "c": {"nested": "value"}}
         var = {"data": data}
         template = "{%var.data|debug}"
@@ -133,14 +138,13 @@ class TestDebugFilter:
             template, var=var, scope=empty_scope, ctx=empty_context,
             state=empty_state, params=empty_params
         )
-        # Dictionary output is flat (no recursion)
         assert "dict:" in result
         assert "'a': 1" in result
         assert "'b': 2" in result
         assert "'c': {'nested': 'value'}" in result
 
     def test_debug_filter_on_sensitive_property(self, substitutor, empty_scope, empty_context, empty_state, empty_params):
-        """Debug filter respects @sensitive decorator."""
+        """Фильтр debug учитывает декоратор @sensitive."""
         user = UserWithSensitive("secret@example.com", "+1234567890")
         var = {"user": user}
         template = "{%var.user|debug}"
@@ -148,15 +152,12 @@ class TestDebugFilter:
             template, var=var, scope=empty_scope, ctx=empty_context,
             state=empty_state, params=empty_params
         )
-        # Email should be masked
         assert "email: str (sensitive: enabled, max_chars=3, char='#', max_percent=50) = sec#####" in result
-        # Phone should be visible (masking disabled)
         assert "phone: str (sensitive: disabled) = '+1234567890'" in result
-        # Public property should be visible
         assert "public_name: str = 'Public Name'" in result
 
     def test_debug_filter_no_recursion(self, substitutor, empty_scope, empty_context, empty_state, empty_params):
-        """Debug filter should not expand nested objects (max_depth=1)."""
+        """Фильтр debug не раскрывает вложенные объекты (max_depth=1)."""
         obj = DeepObj()
         var = {"obj": obj}
         template = "{%var.obj|debug}"
@@ -166,13 +167,11 @@ class TestDebugFilter:
         )
         assert "DeepObj:" in result
         assert "level1: str = 'visible'" in result
-        # child is an object, should be shown as type + object reference, not expanded
         assert "child: Child = <tests.logging.test_debug_filter.DeepObj.Child object at" in result
-        # level2 should NOT appear in output (not expanded)
         assert "level2" not in result
 
     def test_debug_filter_inside_iif(self, substitutor, empty_scope, empty_context, empty_state, empty_params):
-        """Debug filter can be used inside iif expressions."""
+        """Фильтр debug работает внутри выражений iif."""
         obj = SimpleObj()
         var = {"obj": obj}
         template = "{iif(1==1; {%var.obj|debug}; '')}"
@@ -184,19 +183,18 @@ class TestDebugFilter:
         assert "name: str = 'Simple'" in result
 
     def test_debug_filter_with_exists(self, evaluator):
-        """Combined usage of exists and debug filter (using function inside iif)."""
+        """Совместное использование exists и debug."""
         obj = SimpleObj()
-        # Pass the object directly to the evaluator's names dict
         names = {"obj": obj}
         template = "{iif(exists('obj'); debug(obj); 'No object')}"
         result = evaluator.process_template(template, names)
         assert "SimpleObj:" in result
-        # When object missing, fallback should be used
+
         result2 = evaluator.process_template(template, {})
         assert result2 == "No object"
 
     def test_debug_filter_on_context_object(self, substitutor, empty_scope, empty_state, empty_params):
-        """Debug filter works with context namespace."""
+        """Фильтр debug работает с namespace context."""
         user = UserInfo(user_id="test_user", roles=["user"], extra={"org": "acme"})
         ctx = Context(user=user)
         template = "{%context.user|debug}"
@@ -210,23 +208,22 @@ class TestDebugFilter:
         assert "extra: dict = {'org': 'acme'}" in result
 
     def test_debug_filter_on_state(self, substitutor, empty_scope, empty_context, empty_params):
-        """Debug filter works with state namespace (no __dict__ needed)."""
+        """Фильтр debug работает с namespace state."""
         state = BaseState({"total": 100, "items": [1, 2, 3]})
         template = "{%state|debug}"
         result = substitutor.substitute(
             template, var={}, scope=empty_scope, ctx=empty_context,
             state=state, params=empty_params
         )
-        # BaseState outputs its public fields (the ones we set)
         assert "total: int = 100" in result
         assert "items: list = [1, 2, 3]" in result
 
     def test_debug_filter_on_params(self, substitutor, empty_scope, empty_context, empty_state):
-        """Debug filter works with params namespace."""
+        """Фильтр debug работает с namespace params (pydantic BaseParams)."""
+
         class MyParams(BaseParams):
-            def __init__(self):
-                self.param1 = "hello"
-                self.param2 = 42
+            param1: str = Field(default="hello", description="Первый параметр")
+            param2: int = Field(default=42, description="Второй параметр")
 
         params = MyParams()
         template = "{%params|debug}"
@@ -239,21 +236,20 @@ class TestDebugFilter:
         assert "param2: int = 42" in result
 
     def test_debug_filter_on_scope(self, substitutor, empty_context, empty_state, empty_params):
-        """Debug filter works with scope namespace."""
+        """Фильтр debug работает с namespace scope."""
         scope = LogScope(machine="TestMachine", mode="test", action="TestAction", aspect="test")
         template = "{%scope|debug}"
         result = substitutor.substitute(
             template, var={}, scope=scope, ctx=empty_context,
             state=empty_state, params=empty_params
         )
-        # LogScope inherits ReadableMixin; its public attributes are those passed to __init__
         assert "machine: str = 'TestMachine'" in result
         assert "mode: str = 'test'" in result
         assert "action: str = 'TestAction'" in result
         assert "aspect: str = 'test'" in result
 
     def test_debug_filter_on_missing_object_raises(self, substitutor, empty_scope, empty_context, empty_state, empty_params):
-        """Accessing a non-existent variable with |debug should raise LogTemplateError."""
+        """Обращение к несуществующей переменной с |debug → LogTemplateError."""
         var = {"obj": "some"}
         template = "{%var.missing|debug}"
         with pytest.raises(Exception) as exc_info:
@@ -264,7 +260,7 @@ class TestDebugFilter:
         assert "not found" in str(exc_info.value) or "LogTemplateError" in str(exc_info.value)
 
     def test_debug_filter_on_none_value(self, substitutor, empty_scope, empty_context, empty_state, empty_params):
-        """Debug filter on None should output 'NoneType = None'."""
+        """Фильтр debug на None выводит 'NoneType = None'."""
         var = {"nothing": None}
         template = "{%var.nothing|debug}"
         result = substitutor.substitute(

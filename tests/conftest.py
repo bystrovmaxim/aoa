@@ -3,7 +3,7 @@
 Корневые фикстуры pytest — доступны во всех тестах автоматически.
 
 Pytest подхватывает этот файл без явного импорта. Содержит:
-- Тестовые модели данных (ParamsTest).
+- Тестовые модели данных (ParamsTest на pydantic BaseModel).
 - RecordingLogger — логгер-шпион для проверки рассылки сообщений.
 - Базовые фикстуры для контекста, параметров, состояния, scope.
 - Вспомогательные функции создания контекста для тестов.
@@ -11,10 +11,10 @@ Pytest подхватывает этот файл без явного импор
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 from typing import Any
 
 import pytest
+from pydantic import Field
 
 from action_machine.context.context import Context
 from action_machine.context.request_info import RequestInfo
@@ -29,10 +29,13 @@ from action_machine.logging.log_scope import LogScope
 # ТЕСТОВЫЕ МОДЕЛИ ДАННЫХ
 # ======================================================================
 
-@dataclass(frozen=True)
+
 class ParamsTest(BaseParams):
     """
     Стандартные тестовые параметры для всех тестов.
+
+    Pydantic-модель с описанием каждого поля через Field(description="...").
+    Frozen — неизменяемые после создания.
 
     Содержит типичные поля, используемые в примерах:
     - user_id: идентификатор пользователя.
@@ -40,10 +43,10 @@ class ParamsTest(BaseParams):
     - amount: сумма (float).
     - success: флаг успеха (bool).
     """
-    user_id: int = 42
-    card_token: str = "tok_test_abc"
-    amount: float = 1500.0
-    success: bool = True
+    user_id: int = Field(default=42, description="Идентификатор пользователя")
+    card_token: str = Field(default="tok_test_abc", description="Токен банковской карты")
+    amount: float = Field(default=1500.0, description="Сумма операции")
+    success: bool = Field(default=True, description="Флаг успешности")
 
 
 class RecordingLogger(BaseLogger):

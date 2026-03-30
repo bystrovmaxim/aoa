@@ -1,53 +1,111 @@
-# ActionMachine/Core/BaseResult.py
+# src/action_machine/core/base_result.py
 """
 Базовый класс для результата выполнения действия.
 
-Наследует ReadableMixin и WritableMixin, обеспечивая dict-подобный интерфейс
-для чтения и записи полей результата.
+═══════════════════════════════════════════════════════════════════════════════
+НАЗНАЧЕНИЕ
+═══════════════════════════════════════════════════════════════════════════════
 
-Реализует протокол WritableDataProtocol через комбинацию миксинов.
-Не содержит собственных методов — вся функциональность
-наследуется из ReadableMixin (get, keys, items, resolve)
-и WritableMixin (__setitem__, __delitem__, write, update).
+BaseResult — базовый класс для всех результатов действий в системе
+ActionMachine. Наследует pydantic BaseModel для валидации типов,
+описания полей и генерации JSON Schema.
 
-Наследуйте BaseResult для создания конкретных результатов действий.
-Поля результата определяются как атрибуты класса или задаются
-динамически через dict-подобный доступ.
+В отличие от BaseParams, результат НЕ заморожен — поля могут быть
+изменены после создания. Это необходимо, потому что результат
+формируется поэтапно: summary-аспект создаёт базовый результат,
+а плагины или внешний код могут дополнять его.
 
-Поддерживает:
-    - dict-подобный доступ: result['key'], result['key'] = value
-    - атрибутный доступ:    result.key,    result.key = value
-    - итерацию по парам:    result.items()
-    - dot-path разрешение:  result.resolve('nested.key')
-    - контролируемую запись: result.write('key', value, allowed_keys=[...])
+Поддерживает динамические поля через extra="allow" — можно записывать
+произвольные ключи через dict-подобный интерфейс WritableMixin.
 
-Пример:
-    >>> result = BaseResult()
-    >>> result['status'] = 'ok'
-    >>> result.message = 'Done'
-    >>> result['message']
-    'Done'
-    >>> result.items()
-    [('status', 'ok'), ('message', 'Done')]
+═══════════════════════════════════════════════════════════════════════════════
+PYDANTIC КОНФИГУРАЦИЯ
+═══════════════════════════════════════════════════════════════════════════════
+
+    extra="allow" — разрешает запись полей, не объявленных в классе.
+        result["debug_info"] = "something" — не вызовет ошибку,
+        даже если поле debug_info не объявлено в модели.
+
+    arbitrary_types_allowed=True — разрешает нестандартные типы
+        в полях (например, кастомные объекты).
+
+    Без frozen — запись через setattr и WritableMixin работает.
+
+═══════════════════════════════════════════════════════════════════════════════
+СОВМЕСТИМОСТЬ С МИКСИНАМИ
+═══════════════════════════════════════════════════════════════════════════════
+
+ReadableMixin — dict-подобный доступ на чтение: result["key"],
+result.get("key"), result.keys(), result.resolve("nested.key").
+
+WritableMixin — dict-подобный доступ на запись: result["key"] = value,
+del result["key"], result.write("key", value, allowed_keys=[...]),
+result.update({"a": 1, "b": 2}).
+
+Оба миксина работают через getattr/setattr/delattr — совместимы
+с pydantic BaseModel без изменений.
+
+═══════════════════════════════════════════════════════════════════════════════
+ОТЛИЧИЕ ОТ BaseParams И BaseState
+═══════════════════════════════════════════════════════════════════════════════
+
+    BaseParams  — pydantic BaseModel, frozen=True, только чтение.
+    BaseResult  — pydantic BaseModel, mutable, чтение и запись.
+    BaseState   — dataclass, mutable, динамические поля. НЕ pydantic.
+
+═══════════════════════════════════════════════════════════════════════════════
+ПРИМЕР ИСПОЛЬЗОВАНИЯ
+═══════════════════════════════════════════════════════════════════════════════
+
+    from pydantic import Field
+    from action_machine.core.base_result import BaseResult
+
+    class OrderResult(BaseResult):
+        order_id: str = Field(description="ID созданного заказа")
+        status: str = Field(description="Статус заказа")
+        total: float = Field(description="Итоговая сумма", ge=0)
+
+    result = OrderResult(order_id="ORD-123", status="created", total=1500.0)
+
+    # Чтение через ReadableMixin:
+    result["status"]            # → "created"
+    result.resolve("total")     # → 1500.0
+
+    # Запись через WritableMixin:
+    result["status"] = "paid"
+    result["debug_info"] = "extra data"  # динамическое поле (extra="allow")
+
+    # JSON Schema для FastAPI:
+    OrderResult.model_json_schema()
 """
 
-from .readable_mixin import ReadableMixin
-from .writable_mixin import WritableMixin
+from pydantic import BaseModel, ConfigDict
+
+from action_machine.core.described_fields_gate_host import DescribedFieldsGateHost
+from action_machine.core.readable_mixin import ReadableMixin
+from action_machine.core.writable_mixin import WritableMixin
 
 
-class BaseResult(ReadableMixin, WritableMixin):
+class BaseResult(BaseModel, ReadableMixin, WritableMixin, DescribedFieldsGateHost):
     """
-    Результат действия.
+    Результат действия (mutable, pydantic-based).
 
     Наследуйте этот класс для создания конкретных результатов.
-    Может быть изменяемым — плагины и аспекты могут дополнять
-    результат новыми полями через dict-подобный интерфейс.
+    Каждое поле описывается через pydantic Field(description="...").
+    Описание обязательно — MetadataBuilder проверяет при сборке.
 
-    Пример наследования:
+    Результат может быть изменяемым — плагины и аспекты могут
+    дополнять его новыми полями через dict-подобный интерфейс.
+    Динамические поля разрешены через extra="allow".
+
+    Пример:
         class OrderResult(BaseResult):
-            order_id: str
-            total: float
-            status: str = "created"
+            order_id: str = Field(description="ID заказа")
+            total: float = Field(description="Итого", ge=0)
+            status: str = Field(description="Статус", examples=["created"])
     """
 
-    pass
+    model_config = ConfigDict(
+        arbitrary_types_allowed=True,
+        extra="allow",
+    )

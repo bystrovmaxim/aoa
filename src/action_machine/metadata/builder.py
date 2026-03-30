@@ -8,10 +8,9 @@
 
 MetadataBuilder — статический сборщик, который обходит класс (Action, Plugin,
 ResourceManager или любой другой), читает временные атрибуты, оставленные
-декораторами, валидирует структурные инварианты и гейт-хосты, и конструирует
+декораторами, валидирует структурные инварианты и гейт-хосты, собирает
+описания полей Params и Result из pydantic model_fields, и конструирует
 иммутабельный ``ClassMetadata``.
-
-Это единственный публичный класс подпакета ``action_machine.metadata``.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ПОРЯДОК ВЫПОЛНЕНИЯ В build()
@@ -19,39 +18,36 @@ ResourceManager или любой другой), читает временные
 
     1. Сбор данных коллекторами (collectors.py):
        - описание и домен (@meta), роли, зависимости, соединения,
-         аспекты, чекеры, подписки, чувствительные поля, bound-тип.
+         аспекты, чекеры, подписки, чувствительные поля, bound-тип,
+         описания полей Params и Result.
 
     2. Валидация обязательности @meta (validators.validate_meta_required):
        - ActionMetaGateHost + аспекты → @meta обязателен.
        - ResourceMetaGateHost → @meta обязателен.
-       Выполняется ПЕРВОЙ среди валидаций, чтобы ошибка отсутствия
-       описания не маскировалась ошибками структуры аспектов.
 
     3. Валидация гейт-хостов (validators.validate_gate_hosts):
        - Аспекты → AspectGateHost.
        - Чекеры → CheckerGateHost.
        - Подписки → OnGateHost.
 
-    4. Валидация структуры аспектов (validators.validate_aspects):
-       - Не более одного summary.
-       - Regular без summary — ошибка.
-       - Summary последним.
+    4. Валидация структуры аспектов (validators.validate_aspects).
 
-    5. Валидация привязки чекеров (validators.validate_checkers_belong_to_aspects):
-       - Чекер привязан к существующему аспекту.
+    5. Валидация привязки чекеров (validators.validate_checkers_belong_to_aspects).
 
-    6. Конструирование ClassMetadata (frozen dataclass).
+    6. Валидация описаний полей (validators.validate_described_fields):
+       - Params с DescribedFieldsGateHost → каждое поле обязано иметь description.
+       - Result с DescribedFieldsGateHost → каждое поле обязано иметь description.
+
+    7. Конструирование ClassMetadata (frozen dataclass).
 
 ═══════════════════════════════════════════════════════════════════════════════
 ИДЕМПОТЕНТНОСТЬ
 ═══════════════════════════════════════════════════════════════════════════════
 
 Временные атрибуты декораторов НЕ удаляются после сборки. Классы определяются
-на уровне модуля и могут быть зарегистрированы в нескольких координаторах
-(в тестах, при инвалидации и повторной сборке). Удаление атрибутов после
-первого ``build()`` привело бы к тому, что повторная сборка возвращала бы
-пустые метаданные. ``MetadataBuilder.build()`` идемпотентен — повторные
-вызовы возвращают эквивалентный результат.
+на уровне модуля и могут быть зарегистрированы в нескольких координаторах.
+``MetadataBuilder.build()`` идемпотентен — повторные вызовы возвращают
+эквивалентный результат.
 
 Кеширование результата — ответственность ``GateCoordinator``.
 
@@ -62,9 +58,9 @@ ResourceManager или любой другой), читает временные
     from action_machine.metadata import MetadataBuilder
 
     metadata = MetadataBuilder.build(CreateOrderAction)
-    # metadata — иммутабельный ClassMetadata
     # metadata.meta.description → "Создание нового заказа"
-    # metadata.meta.domain → OrdersDomain
+    # metadata.params_fields[0].description → "ID пользователя"
+    # metadata.result_fields[0].constraints → {"ge": 0}
 """
 
 from __future__ import annotations
@@ -78,6 +74,8 @@ from .collectors import (
     collect_dependencies,
     collect_depends_bound,
     collect_meta,
+    collect_params_fields,
+    collect_result_fields,
     collect_role,
     collect_sensitive_fields,
     collect_subscriptions,
@@ -86,6 +84,7 @@ from .collectors import (
 from .validators import (
     validate_aspects,
     validate_checkers_belong_to_aspects,
+    validate_described_fields,
     validate_gate_hosts,
     validate_meta_required,
 )
@@ -93,49 +92,41 @@ from .validators import (
 
 class MetadataBuilder:
     """
-    Статический сборщик ClassMetadata из временных атрибутов класса.
+    Статический сборщик ClassMetadata из временных атрибутов класса
+    и pydantic model_fields.
 
     Не создаёт экземпляров — единственный публичный метод ``build()``
-    является статическим. Делегирует работу модулям ``collectors``
-    и ``validators``.
+    является статическим.
 
     Порядок валидации:
-        1. validate_meta_required — проверка обязательности @meta для
-           классов с ActionMetaGateHost (+ аспекты) и ResourceMetaGateHost.
-           Выполняется ПЕРВОЙ, чтобы ошибка отсутствия описания
-           обнаруживалась раньше структурных ошибок аспектов.
-        2. validate_gate_hosts — проверка гейт-хостов для декораторов
-           уровня метода (аспекты → AspectGateHost, чекеры → CheckerGateHost,
-           подписки → OnGateHost).
+        1. validate_meta_required — обязательность @meta.
+        2. validate_gate_hosts — гейт-хосты для декораторов уровня метода.
         3. validate_aspects — структурные инварианты аспектов.
-        4. validate_checkers_belong_to_aspects — привязка чекеров к аспектам.
+        4. validate_checkers_belong_to_aspects — привязка чекеров.
+        5. validate_described_fields — обязательность описаний полей Params/Result.
     """
 
     @staticmethod
     def build(klass: type) -> ClassMetadata:
         """
-        Собирает ``ClassMetadata`` из временных атрибутов класса.
-
-        Выполняет: сбор → валидация @meta → валидация гейтов →
-        валидация структуры → конструирование.
+        Собирает ``ClassMetadata`` из временных атрибутов класса
+        и pydantic model_fields.
 
         Аргументы:
-            klass: класс (Action, Plugin, ResourceManager или любой другой),
-                   метаданные которого нужно собрать.
+            klass: класс (Action, Plugin, ResourceManager или любой другой).
 
         Возвращает:
             ``ClassMetadata`` — иммутабельный снимок всех метаданных.
 
         Исключения:
             TypeError:
-                - ``klass`` не является классом (``type``).
-                - Класс наследует ActionMetaGateHost с аспектами, но
-                  не имеет декоратора @meta.
-                - Класс наследует ResourceMetaGateHost, но не имеет
-                  декоратора @meta.
-                - Класс содержит аспекты, но не наследует ``AspectGateHost``.
-                - Класс содержит чекеры, но не наследует ``CheckerGateHost``.
-                - Класс содержит подписки, но не наследует ``OnGateHost``.
+                - ``klass`` не является классом.
+                - Класс наследует ActionMetaGateHost с аспектами без @meta.
+                - Класс наследует ResourceMetaGateHost без @meta.
+                - Класс содержит аспекты без AspectGateHost.
+                - Класс содержит чекеры без CheckerGateHost.
+                - Класс содержит подписки без OnGateHost.
+                - Поле Params или Result не имеет description.
             ValueError:
                 - Нарушены структурные инварианты аспектов.
                 - Чекер привязан к несуществующему аспекту.
@@ -158,21 +149,21 @@ class MetadataBuilder:
         subscriptions = collect_subscriptions(klass)
         sensitive_fields = collect_sensitive_fields(klass)
         depends_bound = collect_depends_bound(klass)
+        params_fields = collect_params_fields(klass)
+        result_fields = collect_result_fields(klass)
 
         # ── Валидация обязательности @meta (ПЕРВАЯ) ────────────────────
-        # Проверяет, что классы с ActionMetaGateHost (+ аспекты) и
-        # ResourceMetaGateHost имеют декоратор @meta с описанием.
         validate_meta_required(klass, meta, aspects)
 
         # ── Валидация гейт-хостов ──────────────────────────────────────
-        # Проверяет, что декораторы уровня метода применены к классам
-        # с соответствующими гейт-хостами. Декораторы уровня класса
-        # (@meta, @CheckRoles, @depends, @connection) проверяют гейты сами.
         validate_gate_hosts(klass, aspects, checkers, subscriptions)
 
         # ── Валидация структуры ────────────────────────────────────────
         validate_aspects(klass, aspects)
         validate_checkers_belong_to_aspects(klass, checkers, aspects)
+
+        # ── Валидация описаний полей Params и Result ───────────────────
+        validate_described_fields(klass, params_fields, result_fields)
 
         # ── Конструирование ────────────────────────────────────────────
         return ClassMetadata(
@@ -187,4 +178,6 @@ class MetadataBuilder:
             subscriptions=tuple(subscriptions),
             sensitive_fields=tuple(sensitive_fields),
             depends_bound=depends_bound,
+            params_fields=tuple(params_fields),
+            result_fields=tuple(result_fields),
         )

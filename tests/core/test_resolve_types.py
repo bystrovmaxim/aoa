@@ -1,3 +1,4 @@
+# tests/core/test_resolve_types.py
 """
 Тесты ReadableMixin.resolve для разных типов данных.
 
@@ -10,30 +11,23 @@
 - Вложенные структуры
 """
 
-from dataclasses import dataclass
+from pydantic import Field
 
 from action_machine.context.context import Context
 from action_machine.context.user_info import UserInfo
 from action_machine.core.base_params import BaseParams
 
 
-@dataclass
 class ParamsWithTypes(BaseParams):
     """Параметры с разными типами данных для тестов."""
 
-    int_val: int = 42
-    float_val: float = 3.14
-    str_val: str = "hello"
-    bool_val: bool = True
-    none_val: None = None
-    list_val: list = None
-    dict_val: dict = None
-
-    def __post_init__(self):
-        if self.list_val is None:
-            self.list_val = [1, 2, 3]
-        if self.dict_val is None:
-            self.dict_val = {"a": 1, "b": 2}
+    int_val: int = Field(default=42, description="Целое число")
+    float_val: float = Field(default=3.14, description="Число с плавающей точкой")
+    str_val: str = Field(default="hello", description="Строка")
+    bool_val: bool = Field(default=True, description="Булево значение")
+    none_val: str | None = Field(default=None, description="Пустое значение")
+    list_val: list = Field(default_factory=lambda: [1, 2, 3], description="Список")
+    dict_val: dict = Field(default_factory=lambda: {"a": 1, "b": 2}, description="Словарь")
 
 
 class TestResolveTypes:
@@ -58,9 +52,6 @@ class TestResolveTypes:
         user = UserInfo(roles=["admin", "user"])
         result = user.resolve("roles")  # получаем весь список
         assert isinstance(result, list)
-
-        # А вот так нельзя (и не должно работать)
-        # user.resolve("roles.0") — не поддерживается
 
     # ------------------------------------------------------------------
     # ТЕСТЫ: Числа
@@ -92,9 +83,8 @@ class TestResolveTypes:
     def test_resolve_boolean_false(self):
         """resolve возвращает False."""
 
-        @dataclass
         class TestParams(BaseParams):
-            active: bool = False
+            active: bool = Field(default=False, description="Флаг активности")
 
         params = TestParams()
         assert params.resolve("active") is False
