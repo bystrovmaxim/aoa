@@ -19,7 +19,7 @@ from action_machine.core.tools_box import ToolsBox
 from action_machine.resource_managers.base_resource_manager import BaseResourceManager
 
 
-class MockAction(BaseAction[BaseParams, BaseResult]):
+class MockAction(BaseAction[BaseParams, BaseResult]):  # pylint: disable=too-many-ancestors
     """
     Mock action for use in tests.
 

@@ -18,12 +18,14 @@
 Все тестовые классы, созданные через фабричные функции make_action_class
 и make_plugin_class, наследуют соответствующие гейт-хосты:
 
-    - Классы с аспектами → AspectGateHost, CheckerGateHost
+    - Классы с аспектами → AspectGateHost, CheckerGateHost, ActionMetaGateHost
     - Классы с подписками → OnGateHost
 
-Это обязательное требование: MetadataBuilder.build() проверяет наличие
-гейт-хостов и выбрасывает TypeError при их отсутствии. Гейт-хост —
-разрешение на использование декоратора.
+ActionMetaGateHost требует @meta для классов с аспектами. Фабричная функция
+make_action_class автоматически добавляет _meta_info с описанием.
+
+ResourceMetaGateHost требует @meta для ресурсных менеджеров. Фабричные
+классы FakeResourceManager и AnotherResourceManager имеют _meta_info.
 """
 
 from __future__ import annotations
@@ -38,8 +40,9 @@ from action_machine.aspects.aspect_gate_host import AspectGateHost
 from action_machine.checkers.checker_gate_host import CheckerGateHost
 from action_machine.core.exceptions import CyclicDependencyError
 from action_machine.core.gate_coordinator import GateCoordinator
+from action_machine.core.meta_decorator import meta
+from action_machine.core.meta_gate_hosts import ActionMetaGateHost, ResourceMetaGateHost
 from action_machine.plugins.on_gate_host import OnGateHost
-from action_machine.resource_managers.base_resource_manager import BaseResourceManager
 
 # ═════════════════════════════════════════════════════════════════════════════
 # Вспомогательные frozen-датаклассы
@@ -83,12 +86,18 @@ class FakeServiceC:
     pass
 
 
-class FakeResourceManager(BaseResourceManager):
+@meta(description="Fake resource manager for tests")
+class FakeResourceManager(ResourceMetaGateHost):
+    """Заглушка ресурсного менеджера."""
+
     def get_wrapper_class(self):
         return None
 
 
-class AnotherResourceManager(BaseResourceManager):
+@meta(description="Another resource manager")
+class AnotherResourceManager(ResourceMetaGateHost):
+    """Вторая заглушка ресурсного менеджера."""
+
     def get_wrapper_class(self):
         return None
 
@@ -179,16 +188,18 @@ def make_action_class(
     aspects: list[tuple[str, str, str]] | None = None,
     checkers: list[tuple[str, type, str, str, bool]] | None = None,
     sensitive: list[tuple[str, dict]] | None = None,
+    meta_description: str = "Тестовое действие",
+    meta_domain: type | None = None,
 ) -> type:
     """
     Создаёт тестовый класс с заданными метаданными.
 
     Автоматически добавляет гейт-хосты:
-    - AspectGateHost и CheckerGateHost если есть аспекты или чекеры.
+    - AspectGateHost, CheckerGateHost и ActionMetaGateHost если есть аспекты или чекеры.
     - Без хостов если нет аспектов и чекеров (модель данных).
 
-    Это обязательно: MetadataBuilder проверяет гейт-хосты и выбрасывает
-    TypeError при их отсутствии.
+    Автоматически добавляет _meta_info для классов с аспектами (ActionMetaGateHost
+    требует @meta для классов с аспектами).
     """
     attrs: dict[str, Any] = {}
 
@@ -202,9 +213,16 @@ def make_action_class(
     # Определяем базовые классы на основе наличия декораторов
     bases: tuple[type, ...] = ()
     if aspects or checkers:
-        bases = (AspectGateHost, CheckerGateHost)
+        bases = (ActionMetaGateHost, AspectGateHost, CheckerGateHost)
 
     cls = type(name, bases, attrs)
+
+    # Добавляем _meta_info для классов с аспектами (обязательность @meta)
+    if aspects or checkers:
+        cls._meta_info = {
+            "description": meta_description,
+            "domain": meta_domain,
+        }
 
     if role_spec is not None:
         cls._role_info = {"spec": role_spec, "desc": ""}
@@ -230,7 +248,6 @@ def make_plugin_class(
     Создаёт тестовый класс плагина с подписками.
 
     Автоматически добавляет OnGateHost если есть подписки.
-    Это обязательно: MetadataBuilder проверяет гейт-хосты.
     """
     attrs: dict[str, Any] = {}
     if subscriptions:
@@ -629,7 +646,7 @@ class TestGraphPublicAPI:
         for child in tree["children"]:
             assert "edge_type" in child
             assert child["edge_type"] in (
-                "depends", "connection", "has_aspect", "has_sensitive", "has_role",
+                "depends", "connection", "has_aspect", "has_sensitive", "has_role", "belongs_to",
             )
 
     def test_get_dependency_tree_missing_node(self):
