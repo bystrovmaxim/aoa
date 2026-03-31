@@ -6,8 +6,9 @@
 ПОКРЫВАЕМЫЕ СЦЕНАРИИ
 ═══════════════════════════════════════════════════════════════════════════════
 
-Дефолты, валидация method, валидация path, frozen, наследование
-инвариантов от BaseRouteRecord.
+Дефолты, пользовательские значения, валидация method, валидация path,
+frozen, наследование инвариантов от BaseRouteRecord, конвенция
+именования мапперов (response_mapper вместо result_mapper).
 """
 
 from __future__ import annotations
@@ -76,8 +77,8 @@ def dummy_params_mapper(x):
     return x
 
 
-def dummy_result_mapper(x):
-    """Тестовый маппер результата."""
+def dummy_response_mapper(x):
+    """Тестовый маппер ответа."""
     return x
 
 
@@ -180,7 +181,7 @@ class TestCustomValues:
             request_model=AltRequest,
             response_model=AltResponse,
             params_mapper=dummy_params_mapper,
-            result_mapper=dummy_result_mapper,
+            response_mapper=dummy_response_mapper,
             method="PUT",
             path="/api/v1/orders/{id}",
             tags=("orders", "update"),
@@ -344,7 +345,7 @@ class TestBaseRouteRecordInvariants:
         record = FastApiRouteRecord(
             action_class=SampleAction, path="/test",
             response_model=AltResponse,
-            result_mapper=dummy_result_mapper,
+            response_mapper=dummy_response_mapper,
         )
         assert record.effective_response_model is AltResponse
 
@@ -356,7 +357,7 @@ class TestBaseRouteRecordInvariants:
             )
 
     def test_different_response_model_without_mapper_raises(self):
-        with pytest.raises(ValueError, match="result_mapper не указан"):
+        with pytest.raises(ValueError, match="response_mapper не указан"):
             FastApiRouteRecord(
                 action_class=SampleAction, path="/test",
                 response_model=AltResponse,
