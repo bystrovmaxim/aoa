@@ -1,4 +1,4 @@
-# src/examples/fastapi_service/actions/create_order.py
+# src/examples/fastapi_mcp_services/actions/create_order.py
 """
 CreateOrderAction — действие создания заказа.
 
