@@ -78,7 +78,7 @@ class RoleGateHost:
 
     Атрибуты уровня класса (создаются динамически декоратором):
         _role_info : dict | None
-            Словарь {"spec": str | list[str], "desc": str}, записываемый
+            Словарь {"spec": str | list[str]}, записываемый
             декоратором @CheckRoles. Читается MetadataBuilder при сборке
             ClassMetadata.role (RoleMeta).
             НЕ используется напрямую — только через ClassMetadata.

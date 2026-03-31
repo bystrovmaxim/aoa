@@ -64,7 +64,7 @@
 
 Каждый чекер записывает в метод атрибут _checker_meta:
     [{"checker_class": ResultStringChecker, "field_name": "txn_id",
-      "description": "...", "required": True, ...}]
+      "required": True, ...}]
 
 Один метод может иметь несколько чекеров (для разных полей).
 
