@@ -72,7 +72,7 @@ from ..domains import SystemDomain
 
 
 @meta(description="Проверка доступности сервиса", domain=SystemDomain)
-@CheckRoles(CheckRoles.NONE, desc="Доступно без аутентификации")
+@CheckRoles(CheckRoles.NONE)
 class PingAction(BaseAction["PingAction.Params", "PingAction.Result"]):
 
     class Params(BaseParams):

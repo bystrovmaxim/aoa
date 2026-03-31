@@ -49,7 +49,7 @@ class MockResult(BaseResult):
 # Мок-действие для подписок плагинов
 # ----------------------------------------------------------------------
 
-@CheckRoles(CheckRoles.NONE, desc="Действие для тестов плагинов")
+@CheckRoles(CheckRoles.NONE)
 class MockAction(BaseAction[MockParams, MockResult]):
     """
     Действие-заглушка для проверки работы плагинов.

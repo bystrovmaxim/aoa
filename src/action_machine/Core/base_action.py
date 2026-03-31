@@ -86,7 +86,7 @@ BaseAction наследует шесть маркерных миксинов, к
 ═══════════════════════════════════════════════════════════════════════════════
 
     >>> @meta(description="Проверка доступности сервиса")
-    ... @CheckRoles(CheckRoles.NONE, desc="No authentication")
+    ... @CheckRoles(CheckRoles.NONE)
     ... class PingAction(BaseAction[BaseParams, BaseResult]):
     ...     @summary_aspect("Pong response")
     ...     async def summary(self, params, state, box, connections):

@@ -59,18 +59,6 @@ class ResultBoolChecker(ResultFieldChecker):
     и возвращает пустой словарь из базового класса.
     """
 
-    def __init__(
-        self, field_name: str, required: bool = True
-    ) -> None:
-        """
-        Инициализирует чекер.
-
-        Аргументы:
-            field_name: имя поля в словаре результата аспекта.
-            required: является ли поле обязательным. По умолчанию True.
-        """
-        super().__init__(field_name, required)
-
     def _check_type_and_constraints(self, value: Any) -> None:
         """
         Проверяет, что value является булевым значением (True или False).

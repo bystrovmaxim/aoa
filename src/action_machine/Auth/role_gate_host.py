@@ -47,7 +47,7 @@ RoleGateHost — миксин-маркер, который разрешает п
         ConnectionGateHost,
     ): ...
 
-    @CheckRoles("admin", desc="Только администратор")
+    @CheckRoles("admin")
     class AdminAction(BaseAction[P, R]):
         ...
 

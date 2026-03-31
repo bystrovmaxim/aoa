@@ -19,18 +19,18 @@ class OtherClass:
 
 class TestResultCheckersCoverage:
     def test_bool(self):
-        checker = ResultBoolChecker("f", "desc")
+        checker = ResultBoolChecker("f")
         checker.check({"f": True})
         with pytest.raises(ValidationFieldError, match="должен быть булевым"):
             checker.check({"f": 123})
 
     def test_date(self):
-        checker = ResultDateChecker("d", "desc", date_format="%Y-%m-%d", min_date=datetime(2020, 1, 1), max_date=datetime(2025, 1, 1))
+        checker = ResultDateChecker("d", date_format="%Y-%m-%d", min_date=datetime(2020, 1, 1), max_date=datetime(2025, 1, 1))
         checker.check({"d": "2023-01-01"})
         checker.check({"d": datetime(2023, 1, 1)})
 
         with pytest.raises(ValidationFieldError, match="требуется указать формат"):
-            ResultDateChecker("d", "desc").check({"d": "2023-01-01"})
+            ResultDateChecker("d").check({"d": "2023-01-01"})
         with pytest.raises(ValidationFieldError, match="соответствующей формату"):
             checker.check({"d": "invalid"})
         with pytest.raises(ValidationFieldError, match="не меньше"):
@@ -41,7 +41,7 @@ class TestResultCheckersCoverage:
             checker.check({"d": 123})
 
     def test_float(self):
-        checker = ResultFloatChecker("f", "desc", min_value=1.0, max_value=5.0)
+        checker = ResultFloatChecker("f", min_value=1.0, max_value=5.0)
         checker.check({"f": 3.0})
         checker.check({"f": 3})
 
@@ -53,7 +53,7 @@ class TestResultCheckersCoverage:
             checker.check({"f": 6.0})
 
     def test_int(self):
-        checker = ResultIntChecker("i", "desc", min_value=1, max_value=5)
+        checker = ResultIntChecker("i", min_value=1, max_value=5)
         checker.check({"i": 3})
 
         with pytest.raises(ValidationFieldError, match="должен быть целым числом"):
@@ -64,7 +64,7 @@ class TestResultCheckersCoverage:
             checker.check({"i": 6})
 
     def test_string(self):
-        checker = ResultStringChecker("s", "desc", min_length=2, max_length=5, not_empty=True)
+        checker = ResultStringChecker("s", min_length=2, max_length=5, not_empty=True)
         checker.check({"s": "abc"})
 
         with pytest.raises(ValidationFieldError, match="должен быть строкой"):
@@ -77,7 +77,7 @@ class TestResultCheckersCoverage:
             checker.check({"s": "abcdef"})
 
     def test_instance(self):
-        c1 = ResultInstanceChecker("obj", DummyClass, "desc")
+        c1 = ResultInstanceChecker("obj", DummyClass)
         c1.check({"obj": DummyClass()})
         with pytest.raises(ValidationFieldError, match="должно быть экземпляром класса DummyClass"):
             c1.check({"obj": OtherClass()})

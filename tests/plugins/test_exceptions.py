@@ -33,7 +33,7 @@ from action_machine.plugins.plugin_event import PluginEvent
 # Вспомогательные классы
 # ─────────────────────────────────────────────────────────────────────────────
 
-@CheckRoles(CheckRoles.NONE, desc="")
+@CheckRoles(CheckRoles.NONE)
 class DummyAction(BaseAction[BaseParams, BaseResult]):
     """Минимальное действие для тестов."""
 

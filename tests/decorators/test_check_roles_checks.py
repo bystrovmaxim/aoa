@@ -9,7 +9,6 @@
     - Некорректный тип spec (число, None, dict) — TypeError.
     - Пустой список ролей — ValueError.
     - Нестроковые элементы в списке — ValueError.
-    - Некорректный desc — TypeError.
     - Проверка сохранённых данных в _role_info.
 """
 
@@ -35,20 +34,28 @@ class TestCheckRolesSuccess:
     """Проверка корректного применения @CheckRoles."""
 
     def test_single_role_string(self):
-        """Одна роль строкой — сохраняется в _role_info."""
+        """Одна роль строкой — сохраняется в _role_info с ключом spec."""
 
-        @CheckRoles("admin", desc="Только администраторы")
+        @CheckRoles("admin")
         class MyAction(HostBase):
             pass
 
         assert hasattr(MyAction, '_role_info')
         assert MyAction._role_info["spec"] == "admin"
-        assert MyAction._role_info["desc"] == "Только администраторы"
+
+    def test_role_info_has_no_desc(self):
+        """_role_info не содержит ключ desc — параметр удалён из API."""
+
+        @CheckRoles("admin")
+        class MyAction(HostBase):
+            pass
+
+        assert "desc" not in MyAction._role_info
 
     def test_list_of_roles(self):
         """Список ролей — сохраняется как список."""
 
-        @CheckRoles(["user", "manager"], desc="Пользователи и менеджеры")
+        @CheckRoles(["user", "manager"])
         class MyAction(HostBase):
             pass
 
@@ -66,7 +73,7 @@ class TestCheckRolesSuccess:
     def test_none_marker(self):
         """CheckRoles.NONE — аутентификация не требуется."""
 
-        @CheckRoles(CheckRoles.NONE, desc="Без аутентификации")
+        @CheckRoles(CheckRoles.NONE)
         class MyAction(HostBase):
             pass
 
@@ -75,121 +82,101 @@ class TestCheckRolesSuccess:
     def test_any_marker(self):
         """CheckRoles.ANY — любая роль подходит."""
 
-        @CheckRoles(CheckRoles.ANY, desc="Любая роль")
+        @CheckRoles(CheckRoles.ANY)
         class MyAction(HostBase):
             pass
 
         assert MyAction._role_info["spec"] == CheckRoles.ANY
 
-    def test_default_desc(self):
-        """desc по умолчанию — пустая строка."""
+    def test_returns_same_class(self):
+        """Декоратор возвращает тот же класс без замены."""
 
-        @CheckRoles("user")
-        class MyAction(HostBase):
+        class OriginalAction(HostBase):
             pass
 
-        assert MyAction._role_info["desc"] == ""
+        result = CheckRoles("user")(OriginalAction)
+        assert result is OriginalAction
 
-    def test_class_returned_unchanged(self):
-        """Декоратор возвращает тот же класс."""
-
-        @CheckRoles("user")
-        class MyAction(HostBase):
-            pass
-
-        assert isinstance(MyAction, type)
-        assert issubclass(MyAction, HostBase)
+    def test_spec_property(self):
+        """Свойство spec возвращает спецификацию ролей."""
+        decorator = CheckRoles(["a", "b"])
+        assert decorator.spec == ["a", "b"]
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Ошибки: неправильная цель декоратора
+# Ошибки применения к не-классу
 # ─────────────────────────────────────────────────────────────────────────────
 
 class TestCheckRolesTargetErrors:
-    """Проверка ошибок при неправильном применении @CheckRoles."""
+    """Проверка ошибок при применении к не-классу."""
 
-    def test_applied_to_function_raises(self):
-        """@CheckRoles на функции — TypeError."""
+    def test_function_target_raises(self):
+        """Применение к функции — TypeError."""
         with pytest.raises(TypeError, match="только к классу"):
             @CheckRoles("admin")
-            def some_function():
+            def my_function():
                 pass
 
-    def test_applied_to_class_without_mixin_raises(self):
-        """@CheckRoles на классе без RoleGateHost — TypeError."""
-        with pytest.raises(TypeError, match="не наследует RoleGateHost"):
-            @CheckRoles("admin")
-            class PlainClass:
-                pass
-
-    def test_applied_to_lambda_raises(self):
-        """@CheckRoles на лямбде — TypeError."""
-        with pytest.raises(TypeError, match="только к классу"):
-            CheckRoles("admin")(lambda: None)
-
-    def test_applied_to_instance_raises(self):
-        """@CheckRoles на экземпляре — TypeError."""
+    def test_instance_target_raises(self):
+        """Применение к экземпляру — TypeError."""
         obj = HostBase()
         with pytest.raises(TypeError, match="только к классу"):
             CheckRoles("admin")(obj)
 
+    def test_string_target_raises(self):
+        """Применение к строке — TypeError."""
+        with pytest.raises(TypeError, match="только к классу"):
+            CheckRoles("admin")("not_a_class")
+
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Ошибки: неправильный spec
+# Ошибки отсутствия миксина
+# ─────────────────────────────────────────────────────────────────────────────
+
+class TestCheckRolesMixinErrors:
+    """Проверка ошибок при отсутствии RoleGateHost."""
+
+    def test_no_mixin_raises(self):
+        """Класс без RoleGateHost — TypeError."""
+        with pytest.raises(TypeError, match="не наследует RoleGateHost"):
+            @CheckRoles("admin")
+            class BadAction:
+                pass
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Ошибки spec
 # ─────────────────────────────────────────────────────────────────────────────
 
 class TestCheckRolesSpecErrors:
-    """Проверка ошибок при передаче некорректного spec."""
+    """Проверка ошибок в аргументе spec."""
 
     def test_number_spec_raises(self):
-        """Число вместо spec — TypeError."""
-        with pytest.raises(TypeError, match="ожидает строку или список строк"):
+        """Число в spec — TypeError."""
+        with pytest.raises(TypeError, match="строку или список строк"):
             CheckRoles(42)
 
     def test_none_spec_raises(self):
-        """None вместо spec — TypeError."""
-        with pytest.raises(TypeError, match="ожидает строку или список строк"):
+        """None в spec — TypeError."""
+        with pytest.raises(TypeError, match="строку или список строк"):
             CheckRoles(None)
 
     def test_dict_spec_raises(self):
-        """dict вместо spec — TypeError."""
-        with pytest.raises(TypeError, match="ожидает строку или список строк"):
+        """Словарь в spec — TypeError."""
+        with pytest.raises(TypeError, match="строку или список строк"):
             CheckRoles({"role": "admin"})
 
     def test_empty_list_raises(self):
         """Пустой список — ValueError."""
-        with pytest.raises(ValueError, match="пустой список ролей"):
+        with pytest.raises(ValueError, match="пустой список"):
             CheckRoles([])
 
-    def test_non_string_items_in_list_raises(self):
+    def test_non_string_in_list_raises(self):
         """Нестроковый элемент в списке — ValueError."""
-        with pytest.raises(ValueError, match="элемент списка ролей"):
-            CheckRoles(["admin", 123])
+        with pytest.raises(ValueError, match="должен быть строкой"):
+            CheckRoles(["admin", 42])
 
-    def test_none_item_in_list_raises(self):
-        """None в списке ролей — ValueError."""
-        with pytest.raises(ValueError, match="элемент списка ролей"):
+    def test_none_in_list_raises(self):
+        """None в списке — ValueError."""
+        with pytest.raises(ValueError, match="должен быть строкой"):
             CheckRoles(["admin", None])
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# Ошибки: неправильный desc
-# ─────────────────────────────────────────────────────────────────────────────
-
-class TestCheckRolesDescErrors:
-    """Проверка ошибок при передаче некорректного desc."""
-
-    def test_number_desc_raises(self):
-        """Числовой desc — TypeError."""
-        with pytest.raises(TypeError, match="desc должен быть строкой"):
-            CheckRoles("admin", desc=123)
-
-    def test_none_desc_raises(self):
-        """None вместо desc — TypeError."""
-        with pytest.raises(TypeError, match="desc должен быть строкой"):
-            CheckRoles("admin", desc=None)
-
-    def test_list_desc_raises(self):
-        """Список вместо desc — TypeError."""
-        with pytest.raises(TypeError, match="desc должен быть строкой"):
-            CheckRoles("admin", desc=["описание"])

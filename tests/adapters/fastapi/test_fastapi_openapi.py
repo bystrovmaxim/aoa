@@ -74,7 +74,7 @@ class OrderResult(BaseResult):
 
 
 @meta(description="Проверка доступности")
-@CheckRoles(CheckRoles.NONE, desc="")
+@CheckRoles(CheckRoles.NONE)
 class PingAction(BaseAction[EmptyParams, PingResult]):
     @summary_aspect("Pong")
     async def pong(
@@ -85,10 +85,10 @@ class PingAction(BaseAction[EmptyParams, PingResult]):
 
 
 @meta(description="Создание нового заказа")
-@CheckRoles(CheckRoles.NONE, desc="")
+@CheckRoles(CheckRoles.NONE)
 class CreateOrderAction(BaseAction[OrderParams, OrderResult]):
     @regular_aspect("Валидация")
-    @ResultStringChecker("validated_user", "Проверенный пользователь", required=True)
+    @ResultStringChecker("validated_user", required=True)
     async def validate(
         self, params: OrderParams, state: BaseState,
         box: ToolsBox, connections: dict[str, BaseResourceManager],
