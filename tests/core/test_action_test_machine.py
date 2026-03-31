@@ -54,7 +54,7 @@ class DummyAction(BaseAction[DummyParams, DummyResult]):
 
 
 @meta(description="Минимальное действие с одним summary-аспектом для тестов")
-@CheckRoles(CheckRoles.NONE, desc="Без аутентификации")
+@CheckRoles(CheckRoles.NONE)
 class SimpleSummaryAction(BaseAction[DummyParams, DummyResult]):
     """Минимальное действие с одним summary-аспектом для тестов."""
 

@@ -49,13 +49,13 @@
 1. Как декоратор метода-аспекта (порядок с @regular_aspect не важен):
 
     @regular_aspect("Обработка платежа")
-    @ResultStringChecker("txn_id", "ID транзакции", required=True)
+    @ResultStringChecker("txn_id", required=True)
     async def process_payment(self, params, state, box, connections):
         return {"txn_id": txn_id}
 
 2. Как валидатор результата (вызывается машиной):
 
-    checker = ResultStringChecker("txn_id", "ID транзакции", required=True)
+    checker = ResultStringChecker("txn_id", required=True)
     checker.check({"txn_id": txn_id})
 
 ═══════════════════════════════════════════════════════════════════════════════

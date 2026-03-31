@@ -55,7 +55,7 @@ class AltResponse(BaseResult):
 
 
 @meta(description="Тестовое действие")
-@CheckRoles(CheckRoles.NONE, desc="Без аутентификации")
+@CheckRoles(CheckRoles.NONE)
 class SampleAction(BaseAction[SampleParams, SampleResult]):
     """Действие для тестов RouteRecord."""
 

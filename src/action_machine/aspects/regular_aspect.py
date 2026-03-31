@@ -48,7 +48,7 @@
             return {}
 
         @regular_aspect("Обработка платежа")
-        @ResultStringChecker("txn_id", "Идентификатор транзакции", required=True)
+        @ResultStringChecker("txn_id", required=True)
         async def process_payment(self, params, state, box, connections):
             payment = box.resolve(PaymentService)
             txn_id = await payment.charge(params.amount, params.currency)

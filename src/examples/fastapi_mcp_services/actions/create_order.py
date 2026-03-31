@@ -59,7 +59,7 @@ from ..domains import OrdersDomain
 
 
 @meta(description="Создание нового заказа", domain=OrdersDomain)
-@CheckRoles(CheckRoles.NONE, desc="Доступно без аутентификации (для примера)")
+@CheckRoles(CheckRoles.NONE)
 class CreateOrderAction(BaseAction["CreateOrderAction.Params", "CreateOrderAction.Result"]):
 
     class Params(BaseParams):
@@ -104,7 +104,7 @@ class CreateOrderAction(BaseAction["CreateOrderAction.Params", "CreateOrderActio
         )
 
     @regular_aspect("Валидация данных заказа")
-    @ResultStringChecker("validated_user", "Проверенный ID пользователя", required=True)
+    @ResultStringChecker("validated_user", required=True)
     async def validate(
         self,
         params: "CreateOrderAction.Params",

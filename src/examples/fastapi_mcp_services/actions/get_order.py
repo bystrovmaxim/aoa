@@ -48,7 +48,7 @@ from ..domains import OrdersDomain
 
 
 @meta(description="Получение заказа по идентификатору", domain=OrdersDomain)
-@CheckRoles(CheckRoles.NONE, desc="Доступно без аутентификации (для примера)")
+@CheckRoles(CheckRoles.NONE)
 class GetOrderAction(BaseAction["GetOrderAction.Params", "GetOrderAction.Result"]):
 
     class Params(BaseParams):

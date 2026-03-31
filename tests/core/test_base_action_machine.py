@@ -44,7 +44,7 @@ class MockResult(BaseResult):
 
 
 @meta(description="Минимальное действие для тестирования sync_run")
-@CheckRoles(CheckRoles.NONE, desc="")
+@CheckRoles(CheckRoles.NONE)
 class SimpleAction(BaseAction[MockParams, MockResult]):
     """
     Минимальное действие для тестирования sync_run.

@@ -78,7 +78,7 @@ class AltResponse(BaseResult):
 
 
 @meta(description="Тестовое действие")
-@CheckRoles(CheckRoles.NONE, desc="Без аутентификации")
+@CheckRoles(CheckRoles.NONE)
 class SampleAction(BaseAction[SampleParams, SampleResult]):
     @summary_aspect("Тестовый summary")
     async def summary(self, params, state, box, connections):
@@ -86,7 +86,7 @@ class SampleAction(BaseAction[SampleParams, SampleResult]):
 
 
 @meta(description="Второе тестовое действие")
-@CheckRoles(CheckRoles.NONE, desc="Без аутентификации")
+@CheckRoles(CheckRoles.NONE)
 class AnotherAction(BaseAction[SampleParams, SampleResult]):
     @summary_aspect("Другой summary")
     async def summary(self, params, state, box, connections):

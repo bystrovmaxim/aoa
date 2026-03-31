@@ -114,7 +114,7 @@ class AltResponse(BaseResult):
 
 
 @meta(description="Проверка доступности сервиса")
-@CheckRoles(CheckRoles.NONE, desc="Без аутентификации")
+@CheckRoles(CheckRoles.NONE)
 class PingAction(BaseAction[EmptyParams, PingResult]):
     @summary_aspect("Pong")
     async def pong(self, params, state, box, connections):
@@ -122,10 +122,10 @@ class PingAction(BaseAction[EmptyParams, PingResult]):
 
 
 @meta(description="Создание заказа")
-@CheckRoles(CheckRoles.NONE, desc="Без аутентификации")
+@CheckRoles(CheckRoles.NONE)
 class CreateOrderAction(BaseAction[OrderParams, OrderResult]):
     @regular_aspect("Валидация")
-    @ResultStringChecker("validated_user", "Проверенный пользователь", required=True)
+    @ResultStringChecker("validated_user", required=True)
     async def validate(self, params, state, box, connections):
         return {"validated_user": params.user_id}
 
@@ -139,7 +139,7 @@ class CreateOrderAction(BaseAction[OrderParams, OrderResult]):
 
 
 @meta(description="Получение заказа")
-@CheckRoles(CheckRoles.NONE, desc="Без аутентификации")
+@CheckRoles(CheckRoles.NONE)
 class GetOrderAction(BaseAction[GetOrderParams, OrderResult]):
     @summary_aspect("Загрузка заказа")
     async def get(self, params, state, box, connections):
@@ -151,7 +151,7 @@ class GetOrderAction(BaseAction[GetOrderParams, OrderResult]):
 
 
 @meta(description="Действие с ошибкой авторизации")
-@CheckRoles("admin", desc="Только админ")
+@CheckRoles("admin")
 class AuthErrorAction(BaseAction[EmptyParams, PingResult]):
     @summary_aspect("Никогда не выполнится")
     async def summary(self, params, state, box, connections):
@@ -159,7 +159,7 @@ class AuthErrorAction(BaseAction[EmptyParams, PingResult]):
 
 
 @meta(description="Действие с ошибкой валидации")
-@CheckRoles(CheckRoles.NONE, desc="")
+@CheckRoles(CheckRoles.NONE)
 class ValidationErrorAction(BaseAction[EmptyParams, PingResult]):
     @summary_aspect("Бросает ValidationFieldError")
     async def summary(self, params, state, box, connections):
@@ -167,7 +167,7 @@ class ValidationErrorAction(BaseAction[EmptyParams, PingResult]):
 
 
 @meta(description="Действие с необработанным исключением")
-@CheckRoles(CheckRoles.NONE, desc="")
+@CheckRoles(CheckRoles.NONE)
 class InternalErrorAction(BaseAction[EmptyParams, PingResult]):
     @summary_aspect("Бросает RuntimeError")
     async def summary(self, params, state, box, connections):
@@ -175,7 +175,7 @@ class InternalErrorAction(BaseAction[EmptyParams, PingResult]):
 
 
 @meta(description="Действие для теста маппинга")
-@CheckRoles(CheckRoles.NONE, desc="")
+@CheckRoles(CheckRoles.NONE)
 class MappableAction(BaseAction[OrderParams, OrderResult]):
     @summary_aspect("Маппинг")
     async def summary(self, params, state, box, connections):
