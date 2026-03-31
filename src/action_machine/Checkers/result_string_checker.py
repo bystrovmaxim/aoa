@@ -1,22 +1,48 @@
+# src/action_machine/checkers/result_string_checker.py
 """
 Чекер для строковых полей результата аспекта.
 
-Назначение:
-    Проверяет, что поле результата является строкой и удовлетворяет условиям:
-    - not_empty: строка не пустая.
-    - min_length: минимальная длина.
-    - max_length: максимальная длина.
+═══════════════════════════════════════════════════════════════════════════════
+НАЗНАЧЕНИЕ
+═══════════════════════════════════════════════════════════════════════════════
 
-Двойное использование:
-    1. Как декоратор метода-аспекта (порядок с @regular_aspect не важен):
-        @regular_aspect("Валидация")
-        @ResultStringChecker("name", "Имя пользователя", required=True, min_length=3)
-        async def validate(self, ...):
-            return {"name": "John"}
+Проверяет, что поле результата является строкой и удовлетворяет условиям:
+- not_empty: строка не пустая.
+- min_length: минимальная длина.
+- max_length: максимальная длина.
 
-    2. Как валидатор результата (вызывается машиной):
-        checker = ResultStringChecker("name", "Имя пользователя", required=True)
-        checker.check({"name": "John"})
+═══════════════════════════════════════════════════════════════════════════════
+ДВОЙНОЕ ИСПОЛЬЗОВАНИЕ
+═══════════════════════════════════════════════════════════════════════════════
+
+1. Как декоратор метода-аспекта (порядок с @regular_aspect не важен):
+
+    @regular_aspect("Валидация")
+    @ResultStringChecker("name", required=True, min_length=3)
+    async def validate(self, ...):
+        return {"name": "John"}
+
+2. Как валидатор результата (вызывается машиной):
+
+    checker = ResultStringChecker("name", required=True)
+    checker.check({"name": "John"})
+
+═══════════════════════════════════════════════════════════════════════════════
+ПАРАМЕТРЫ КОНСТРУКТОРА
+═══════════════════════════════════════════════════════════════════════════════
+
+    field_name : str — имя поля в словаре результата аспекта.
+    required : bool — обязательно ли поле. По умолчанию True.
+    min_length : int | None — минимальная допустимая длина строки.
+    max_length : int | None — максимальная допустимая длина строки.
+    not_empty : bool — если True, строка не может быть пустой (len > 0).
+
+═══════════════════════════════════════════════════════════════════════════════
+ОШИБКИ
+═══════════════════════════════════════════════════════════════════════════════
+
+    ValidationFieldError — значение не строка; строка пуста при not_empty;
+                           длина вне допустимого диапазона.
 """
 
 from typing import Any
@@ -38,7 +64,6 @@ class ResultStringChecker(ResultFieldChecker):
     def __init__(
         self,
         field_name: str,
-        desc: str,
         required: bool = True,
         min_length: int | None = None,
         max_length: int | None = None,
@@ -48,14 +73,13 @@ class ResultStringChecker(ResultFieldChecker):
         Инициализирует чекер.
 
         Аргументы:
-            field_name: имя поля.
-            desc: описание чекера (обязательно).
-            required: обязательно ли поле.
+            field_name: имя поля в словаре результата аспекта.
+            required: обязательно ли поле. По умолчанию True.
             min_length: минимальная допустимая длина строки (включительно).
             max_length: максимальная допустимая длина строки (включительно).
-            not_empty: если True, строка не может быть пустой (len>0).
+            not_empty: если True, строка не может быть пустой (len > 0).
         """
-        super().__init__(field_name, required, desc)
+        super().__init__(field_name, required)
         self.min_length = min_length
         self.max_length = max_length
         self.not_empty = not_empty
@@ -85,7 +109,7 @@ class ResultStringChecker(ResultFieldChecker):
             value: проверяемое значение.
 
         Возвращает:
-            Значение, приведённое к строке.
+            Значение как строка.
 
         Исключения:
             ValidationFieldError: если value не строка.
@@ -133,7 +157,10 @@ class ResultStringChecker(ResultFieldChecker):
         Выполняет полную проверку: тип, пустоту (если требуется), длину.
 
         Аргументы:
-            value: значение для проверки.
+            value: значение для проверки (гарантированно не None).
+
+        Исключения:
+            ValidationFieldError: при любом нарушении ограничений.
         """
         str_value = self._validate_string_type(value)
         self._check_empty(str_value)

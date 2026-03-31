@@ -1,22 +1,46 @@
+# src/action_machine/checkers/result_bool_checker.py
 """
 Чекер для булевых полей результата аспекта.
 
-Назначение:
-    Проверяет, что поле результата является булевым значением (True/False).
+═══════════════════════════════════════════════════════════════════════════════
+НАЗНАЧЕНИЕ
+═══════════════════════════════════════════════════════════════════════════════
 
-Двойное использование:
-    1. Как декоратор метода-аспекта (порядок с @regular_aspect не важен):
-        @regular_aspect("Проверка")
-        @ResultBoolChecker("is_valid", "Флаг валидности", required=True)
-        async def validate(self, ...):
-            return {"is_valid": True}
+Проверяет, что поле результата является булевым значением (True/False).
+Числа (0, 1), строки ("true", "false") и другие типы не принимаются —
+только точное isinstance(value, bool).
 
-    2. Как валидатор результата (вызывается машиной):
-        checker = ResultBoolChecker("is_valid", "Флаг валидности")
-        checker.check({"is_valid": True})
+═══════════════════════════════════════════════════════════════════════════════
+ДВОЙНОЕ ИСПОЛЬЗОВАНИЕ
+═══════════════════════════════════════════════════════════════════════════════
+
+1. Как декоратор метода-аспекта (порядок с @regular_aspect не важен):
+
+    @regular_aspect("Проверка")
+    @ResultBoolChecker("is_valid", required=True)
+    async def validate(self, ...):
+        return {"is_valid": True}
+
+2. Как валидатор результата (вызывается машиной):
+
+    checker = ResultBoolChecker("is_valid")
+    checker.check({"is_valid": True})
+
+═══════════════════════════════════════════════════════════════════════════════
+ПАРАМЕТРЫ КОНСТРУКТОРА
+═══════════════════════════════════════════════════════════════════════════════
+
+    field_name : str — имя поля в словаре результата аспекта.
+    required : bool — обязательно ли поле. По умолчанию True.
 
 Дополнительных параметров нет — наследует _get_extra_params от базового
 класса ResultFieldChecker, который возвращает пустой словарь.
+
+═══════════════════════════════════════════════════════════════════════════════
+ОШИБКИ
+═══════════════════════════════════════════════════════════════════════════════
+
+    ValidationFieldError — значение не bool.
 """
 
 from typing import Any
@@ -36,17 +60,16 @@ class ResultBoolChecker(ResultFieldChecker):
     """
 
     def __init__(
-        self, field_name: str, desc: str, required: bool = True
+        self, field_name: str, required: bool = True
     ) -> None:
         """
         Инициализирует чекер.
 
         Аргументы:
-            field_name: имя поля.
-            desc: описание чекера (обязательно).
-            required: является ли поле обязательным.
+            field_name: имя поля в словаре результата аспекта.
+            required: является ли поле обязательным. По умолчанию True.
         """
-        super().__init__(field_name, required, desc)
+        super().__init__(field_name, required)
 
     def _check_type_and_constraints(self, value: Any) -> None:
         """

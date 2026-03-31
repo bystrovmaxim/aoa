@@ -38,9 +38,10 @@ model_fields.
 ═══════════════════════════════════════════════════════════════════════════════
 
 - MetaInfo — описание и доменная принадлежность (@meta).
-- RoleMeta — ролевые ограничения (@CheckRoles).
+- RoleMeta — спецификация ролей (@CheckRoles). Содержит только spec.
 - AspectMeta — аспекты конвейера (@regular_aspect, @summary_aspect).
-- CheckerMeta — чекеры полей результатов аспектов.
+- CheckerMeta — чекеры полей результатов аспектов. Содержит класс чекера,
+  имя поля, обязательность и дополнительные параметры (без описания).
 - SensitiveFieldMeta — чувствительные поля (@sensitive).
 - FieldDescriptionMeta — описание поля Params или Result (pydantic Field).
 
@@ -54,17 +55,16 @@ model_fields.
     metadata.meta.description          # → "Создание нового заказа"
     metadata.meta.domain.name          # → "orders"
 
+    # Роли:
+    metadata.role.spec                 # → "manager"
+
     # Поля параметров:
     for f in metadata.params_fields:
         print(f"{f.field_name}: {f.description}")
-        # user_id: ID пользователя
-        # amount: Сумма заказа в рублях
 
-    # Поля результата:
-    for f in metadata.result_fields:
-        print(f"{f.field_name}: {f.description}, constraints={f.constraints}")
-        # order_id: ID созданного заказа, constraints={}
-        # total: Итоговая сумма, constraints={'ge': 0}
+    # Чекеры:
+    for c in metadata.checkers:
+        print(f"{c.field_name}: required={c.required}")
 """
 
 from __future__ import annotations
@@ -120,17 +120,16 @@ class CheckerMeta:
     Метаданные одного чекера.
 
     Поля:
-        method_name    : str — имя метода-аспекта.
-        checker_class  : type — класс чекера.
-        field_name     : str — имя проверяемого поля.
-        description    : str — описание проверки.
+        method_name    : str — имя метода-аспекта, к которому привязан чекер.
+        checker_class  : type — класс чекера (ResultStringChecker и т.д.).
+        field_name     : str — имя проверяемого поля в словаре результата аспекта.
         required       : bool — обязательность поля.
-        extra_params   : dict[str, Any] — доп. параметры (min_length и т.д.).
+        extra_params   : dict[str, Any] — дополнительные параметры чекера
+                         (min_length, max_length, min_value, max_value и т.д.).
     """
     method_name: str
     checker_class: type
     field_name: str
-    description: str
     required: bool
     extra_params: dict[str, Any]
 
@@ -153,12 +152,13 @@ class RoleMeta:
     """
     Метаданные ролей класса (@CheckRoles).
 
+    Содержит только спецификацию ролей — строку, список строк
+    или специальное значение (CheckRoles.NONE, CheckRoles.ANY).
+
     Поля:
         spec : str | list[str] — спецификация ролей.
-        description : str — описание ролевого ограничения.
     """
     spec: Any
-    description: str
 
 
 @dataclass(frozen=True)
@@ -226,7 +226,7 @@ class ClassMetadata:
         class_ref : type — ссылка на класс.
         class_name : str — полное имя класса (module.ClassName).
         meta : MetaInfo | None — описание и домен (@meta).
-        role : RoleMeta | None — ролевые ограничения (@CheckRoles).
+        role : RoleMeta | None — спецификация ролей (@CheckRoles).
         dependencies : tuple[Any, ...] — зависимости (@depends).
         connections : tuple[Any, ...] — соединения (@connection).
         aspects : tuple[AspectMeta, ...] — аспекты конвейера.

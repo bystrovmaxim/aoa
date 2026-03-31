@@ -15,12 +15,11 @@ GateCoordinator — единственная точка доступа к мет
    Повторные обращения возвращают кешированный объект мгновенно.
 
 2. КЕШИРОВАНИЕ МЕТАДАННЫХ: каждый класс собирается ровно один раз. Кеш
-   привязан к самому объекту класса (type), а не к id(cls).
+   привязан к самому объекту класса (type).
 
 3. ВЛАДЕНИЕ ФАБРИКАМИ ЗАВИСИМОСТЕЙ: координатор создаёт DependencyFactory
-   напрямую из metadata.dependencies (tuple[DependencyInfo, ...]). Фабрика
-   stateless, один экземпляр безопасно разделяется между всеми вызовами
-   run() для одного класса действия.
+   напрямую из metadata.dependencies. Фабрика stateless, один экземпляр
+   безопасно разделяется между всеми вызовами run().
 
 4. РЕКУРСИВНЫЙ ОБХОД ЗАВИСИМОСТЕЙ: после сборки ClassMetadata координатор
    проходит по metadata.dependencies и metadata.connections, рекурсивно
@@ -28,16 +27,14 @@ GateCoordinator — единственная точка доступа к мет
 
 5. ПОСТРОЕНИЕ И КОНТРОЛЬ ГРАФА: координатор создаёт направленный граф
    rx.PyDiGraph при инициализации. При регистрации каждого класса граф
-   заполняется узлами и рёбрами. После добавления каждого ребра типов
-   depends или connection проверяется ацикличность.
+   заполняется узлами и рёбрами. Рёбра типов depends и connection
+   проверяются на ацикличность.
 
-6. STRICT-РЕЖИМ: если strict=True, координатор дополнительно проверяет,
-   что domain указан в @meta для классов с ActionMetaGateHost (+ аспекты)
-   и ResourceMetaGateHost. description проверяется всегда (MetadataBuilder).
+6. STRICT-РЕЖИМ: если strict=True, координатор проверяет, что domain указан
+   в @meta для Action и ResourceManager.
 
 7. ДОМЕННЫЕ УЗЛЫ: если @meta указывает domain, координатор создаёт узел
-   типа "domain" и ребро "belongs_to" от класса к домену. Узел домена
-   идемпотентен: несколько Action в одном домене ссылаются на один узел.
+   типа "domain" и ребро "belongs_to" от класса к домену.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ГРАФ СУЩНОСТЕЙ
@@ -53,8 +50,9 @@ subscription, sensitive, role, domain.
 Типы рёбер: depends, connection, has_aspect, has_checker, has_sensitive,
 has_role, subscribes, belongs_to.
 
-Рёбра типов depends и connection проверяются на ацикличность после каждого
-добавления. Остальные типы рёбер по определению не создают циклов.
+Узлы чекеров в графе содержат поля field_name, required и checker_class.
+Узлы ролей содержат только spec. Текстовые описания не хранятся в узлах
+ролей и чекеров — они не используются.
 
 ═══════════════════════════════════════════════════════════════════════════════
 АРХИТЕКТУРА
@@ -83,48 +81,18 @@ has_role, subscribes, belongs_to.
                │  cache miss → MetadataBuilder.build(cls)
                ▼
     ┌──────────────────┐
-    │  MetadataBuilder  │  (подпакет action_machine.metadata)
+    │  MetadataBuilder  │
     └──────────────────┘
-
-═══════════════════════════════════════════════════════════════════════════════
-STRICT-РЕЖИМ
-═══════════════════════════════════════════════════════════════════════════════
-
-Параметр strict: bool = False в конструкторе GateCoordinator.
-
-Если strict=True, при get(cls) координатор дополнительно проверяет, что
-domain указан в @meta для классов с ActionMetaGateHost (+ аспекты) и
-ResourceMetaGateHost. Если domain=None — ValueError.
-
-description проверяется всегда, независимо от strict (это безусловный
-инвариант, контролируемый MetadataBuilder).
-
-═══════════════════════════════════════════════════════════════════════════════
-ПРИНЦИПЫ
-═══════════════════════════════════════════════════════════════════════════════
-
-1. КООРДИНАТОР — ЕДИНСТВЕННЫЙ ВЛАДЕЛЕЦ метаданных, фабрик, графа.
-2. ПОСЛЕ РЕГИСТРАЦИИ КООРДИНАТОР НЕИЗМЕНЯЕМ (кроме инвалидации в тестах).
-3. КООРДИНАТОР НЕ ЗНАЕТ О БИЗНЕС-ЛОГИКЕ.
-4. ПОТОКОБЕЗОПАСНОСТЬ: не требуется (asyncio — один поток).
 
 ═══════════════════════════════════════════════════════════════════════════════
 ПРИМЕР ИСПОЛЬЗОВАНИЯ
 ═══════════════════════════════════════════════════════════════════════════════
 
-    # Обычный режим (strict=False):
     coordinator = GateCoordinator()
     machine = ActionProductMachine(mode="production", coordinator=coordinator)
 
-    # Strict-режим (domain обязателен):
     coordinator = GateCoordinator(strict=True)
     machine = ActionProductMachine(mode="production", coordinator=coordinator)
-
-    # Передача координатора в машину:
-    machine = ActionProductMachine(
-        mode="production",
-        coordinator=GateCoordinator(strict=True),
-    )
 """
 
 from __future__ import annotations
@@ -172,14 +140,12 @@ class GateCoordinator:
 
     В strict-режиме дополнительно проверяет обязательность domain в @meta.
 
-    Экземпляр создаётся явно и передаётся в конструктор машины через DI.
-
     Атрибуты:
         _cache : dict[type, ClassMetadata]
             Кеш метаданных. Ключ — сам объект класса (type).
 
         _factory_cache : dict[type, DependencyFactory]
-            Кеш stateless-фабрик зависимостей. Ключ — сам объект класса.
+            Кеш stateless-фабрик зависимостей.
 
         _graph : rx.PyDiGraph
             Направленный граф сущностей системы.
@@ -197,8 +163,7 @@ class GateCoordinator:
 
         Аргументы:
             strict: если True, при get(cls) проверяется обязательность
-                    domain в @meta для классов с ActionMetaGateHost (+ аспекты)
-                    и ResourceMetaGateHost. По умолчанию False.
+                    domain в @meta для Action и ResourceManager.
         """
         self._cache: dict[type, ClassMetadata] = {}
         self._factory_cache: dict[type, DependencyFactory] = {}
@@ -219,12 +184,6 @@ class GateCoordinator:
         """
         В strict-режиме проверяет обязательность domain в @meta.
 
-        Вызывается после успешной сборки метаданных. Проверяет:
-        - Если класс наследует ActionMetaGateHost, имеет аспекты и @meta,
-          но domain=None → ValueError.
-        - Если класс наследует ResourceMetaGateHost, имеет @meta,
-          но domain=None → ValueError.
-
         Аргументы:
             cls: класс, для которого проверяется domain.
             metadata: собранные метаданные класса.
@@ -241,7 +200,6 @@ class GateCoordinator:
         if metadata.meta.domain is not None:
             return
 
-        # Проверка для действий
         if issubclass(cls, ActionMetaGateHost) and metadata.has_aspects():
             raise ValueError(
                 f"strict режим: Action {cls.__name__} не привязан к домену. "
@@ -249,7 +207,6 @@ class GateCoordinator:
                 f'@meta(description="...", domain=MyDomain).'
             )
 
-        # Проверка для ресурсных менеджеров
         if issubclass(cls, ResourceMetaGateHost):
             raise ValueError(
                 f"strict режим: ресурсный менеджер {cls.__name__} не привязан "
@@ -301,8 +258,7 @@ class GateCoordinator:
         """
         Добавляет ребро в граф с проверкой ацикличности.
 
-        Проверка выполняется только для рёбер типов ``depends`` и ``connection``,
-        так как только они могут создать цикл между пользовательскими классами.
+        Проверка выполняется только для рёбер типов ``depends`` и ``connection``.
 
         Исключения:
             CyclicDependencyError: если добавление ребра создаёт цикл.
@@ -340,9 +296,7 @@ class GateCoordinator:
         Формирует словарь метаданных для узла класса в графе.
 
         Для action и dependency узлов обогащает payload описанием из @meta
-        и доменной принадлежностью. Это позволяет потребителям графа
-        (визуализаторы, отчёты, адаптеры) получить описание без обращения
-        к ClassMetadata.
+        и доменной принадлежностью.
         """
         description = metadata.meta.description if metadata.meta else ""
         domain_name = metadata.meta.domain.name if metadata.meta and metadata.meta.domain else None
@@ -361,7 +315,6 @@ class GateCoordinator:
                 "description": description,
                 "domain": domain_name,
             }
-        # dependency (включая ресурсные менеджеры)
         return {
             "description": description,
             "domain": domain_name,
@@ -372,11 +325,7 @@ class GateCoordinator:
         Создаёт узел домена и ребро belongs_to, если @meta указывает domain.
 
         Узел домена идемпотентен: несколько классов в одном домене ссылаются
-        на один узел. Имя узла формируется из BaseDomain.name.
-
-        Аргументы:
-            class_idx: индекс узла класса в графе.
-            metadata: метаданные класса.
+        на один узел.
         """
         if metadata.meta is None or metadata.meta.domain is None:
             return
@@ -395,7 +344,6 @@ class GateCoordinator:
 
         Добавляет узел класса, узлы и рёбра зависимостей, соединений,
         аспектов, чекеров, подписок, чувствительных полей, роли и домена.
-        Рёбра depends и connection проверяются на ацикличность.
         """
         class_name = metadata.class_name
         node_type = self._determine_class_node_type(metadata)
@@ -443,7 +391,6 @@ class GateCoordinator:
                     meta={
                         "field_name": checker_meta.field_name,
                         "required": checker_meta.required,
-                        "description": checker_meta.description,
                         "checker_class": checker_meta.checker_class.__name__,
                     },
                 )
@@ -481,7 +428,6 @@ class GateCoordinator:
                 "role", role_name,
                 meta={
                     "spec": metadata.role.spec,
-                    "description": metadata.role.description,
                 },
             )
             self._graph.add_edge(class_idx, role_idx, "has_role")
@@ -491,7 +437,7 @@ class GateCoordinator:
         Рекурсивно обходит зависимости и соединения класса.
 
         Для каждого класса вызывает self.get(), что приводит к сборке
-        метаданных и рекурсивному обходу. Кеш защищает от повторной сборки.
+        метаданных и рекурсивному обходу.
         """
         for dep_info in metadata.dependencies:
             self.get(dep_info.cls)
@@ -539,7 +485,6 @@ class GateCoordinator:
 
         metadata = MetadataBuilder.build(cls)
 
-        # Strict-валидация domain
         self._validate_strict_domain(cls, metadata)
 
         # Помещаем в кеш ДО рекурсии — защита от циклов на уровне кеша
@@ -562,10 +507,8 @@ class GateCoordinator:
         """
         Возвращает DependencyFactory для указанного класса.
 
-        Фабрика создаётся напрямую из metadata.dependencies
-        (tuple[DependencyInfo, ...]). Фабрика stateless — один экземпляр
-        безопасно разделяется между всеми вызовами run() для одного
-        класса действия.
+        Фабрика stateless — один экземпляр безопасно разделяется
+        между всеми вызовами run() для одного класса действия.
 
         Аргументы:
             cls: класс действия.

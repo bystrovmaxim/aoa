@@ -16,20 +16,29 @@
 1. Как декоратор метода-аспекта (порядок с @regular_aspect не важен):
 
     @regular_aspect("Получение пользователя")
-    @ResultInstanceChecker("user", User, "Объект пользователя", required=True)
+    @ResultInstanceChecker("user", User, required=True)
     async def get_user(self, ...):
         return {"user": User(id=1, name="John")}
 
 2. Как валидатор результата (вызывается машиной):
 
-    checker = ResultInstanceChecker("user", User, "Объект пользователя")
+    checker = ResultInstanceChecker("user", User)
     checker.check({"user": User(id=1, name="John")})
+
+═══════════════════════════════════════════════════════════════════════════════
+ПАРАМЕТРЫ КОНСТРУКТОРА
+═══════════════════════════════════════════════════════════════════════════════
+
+    field_name : str — имя поля в словаре результата аспекта.
+    expected_class : type | tuple[type, ...] — класс (или кортеж классов),
+                     которым должно соответствовать значение.
+    required : bool — обязательно ли поле. По умолчанию True.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ОШИБКИ
 ═══════════════════════════════════════════════════════════════════════════════
 
-    ValidationFieldError — если значение не является экземпляром ожидаемого класса.
+    ValidationFieldError — значение не является экземпляром ожидаемого класса.
 """
 
 from typing import Any
@@ -50,7 +59,10 @@ class ResultInstanceChecker(ResultFieldChecker):
     """
 
     def __init__(
-        self, field_name: str, expected_class: type[Any] | tuple[type[Any], ...], desc: str, required: bool = True
+        self,
+        field_name: str,
+        expected_class: type[Any] | tuple[type[Any], ...],
+        required: bool = True,
     ) -> None:
         """
         Инициализирует чекер.
@@ -59,10 +71,9 @@ class ResultInstanceChecker(ResultFieldChecker):
             field_name: имя поля в словаре результата аспекта.
             expected_class: класс (или кортеж классов), которым должно
                            соответствовать значение.
-            desc: описание чекера (обязательно).
             required: является ли поле обязательным. По умолчанию True.
         """
-        super().__init__(field_name, required, desc)
+        super().__init__(field_name, required)
         self.expected_class = expected_class
 
     def _get_extra_params(self) -> dict[str, Any]:
