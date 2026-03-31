@@ -74,17 +74,14 @@ Exception handlers регистрируются на уровне FastAPI-при
 
 Необработанные исключения перехватываются через middleware, которое
 оборачивает каждый запрос в try/except и возвращает 500 при любой
-ошибке, не пойманной выше. Это необходимо, потому что стандартный
-FastAPI exception_handler(Exception) не перехватывает все подклассы
-Exception (например, RuntimeError) в некоторых версиях Starlette.
+ошибке, не пойманной выше.
 
 ═══════════════════════════════════════════════════════════════════════════════
 HEALTH CHECK
 ═══════════════════════════════════════════════════════════════════════════════
 
 Эндпоинт ``GET /health`` добавляется автоматически при ``build()``.
-Возвращает ``{"status": "ok"}``. Используется для liveness probe
-в Kubernetes, мониторинга и health check балансировщиков нагрузки.
+Возвращает ``{"status": "ok"}``.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ПРИМЕР ИСПОЛЬЗОВАНИЯ
@@ -96,20 +93,13 @@ HEALTH CHECK
         machine=machine,
         title="Orders API",
         version="0.1.0",
-        description="API для управления заказами",
     )
 
-    # Fluent chain — регистрация и сборка в одном выражении:
     app = adapter \\
         .post("/api/v1/orders", CreateOrderAction, tags=["orders"]) \\
         .get("/api/v1/orders/{order_id}", GetOrderAction, tags=["orders"]) \\
         .get("/api/v1/ping", PingAction, tags=["system"]) \\
         .build()
-
-    # Или поэтапно:
-    adapter.post("/api/v1/orders", CreateOrderAction, tags=["orders"])
-    adapter.get("/api/v1/ping", PingAction, tags=["system"])
-    app = adapter.build()
 """
 
 from __future__ import annotations
@@ -136,8 +126,11 @@ from action_machine.resource_managers.base_resource_manager import BaseResourceM
 
 from .route_record import FastApiRouteRecord
 
+# ═════════════════════════════════════════════════════════════════════════════
+# Вспомогательные функции модульного уровня
+# ═════════════════════════════════════════════════════════════════════════════
+
 # Регулярное выражение для извлечения path-параметров из URL.
-# Находит все {param_name} в строке пути.
 _PATH_PARAM_PATTERN: re.Pattern[str] = re.compile(r"\{(\w+)\}")
 
 
@@ -200,8 +193,7 @@ def _has_body_method(method: str) -> bool:
     Определяет, поддерживает ли HTTP-метод тело запроса (body).
 
     POST, PUT, PATCH — поддерживают body.
-    GET, DELETE — не поддерживают body (параметры передаются через
-    query string и path parameters).
+    GET, DELETE — не поддерживают body.
 
     Аргументы:
         method: HTTP-метод в верхнем регистре.
@@ -210,6 +202,11 @@ def _has_body_method(method: str) -> bool:
         True если метод поддерживает body.
     """
     return method in ("POST", "PUT", "PATCH")
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# Фабрики endpoint-функций
+# ═════════════════════════════════════════════════════════════════════════════
 
 
 def _make_endpoint_with_body(
@@ -262,7 +259,6 @@ def _make_endpoint_with_body(
             return record.response_mapper(result)  # type: ignore[misc]
         return result
 
-    # Строим сигнатуру с правильной аннотацией body
     sig_params = [
         inspect.Parameter("request", inspect.Parameter.POSITIONAL_OR_KEYWORD, annotation=Request),
         inspect.Parameter("body", inspect.Parameter.POSITIONAL_OR_KEYWORD, annotation=req_model),
@@ -327,7 +323,6 @@ def _make_endpoint_with_query(
             return record.response_mapper(result)  # type: ignore[misc]
         return result
 
-    # Строим сигнатуру: request + каждое поле модели как отдельный параметр
     sig_params = [
         inspect.Parameter("request", inspect.Parameter.POSITIONAL_OR_KEYWORD, annotation=Request),
     ]
@@ -336,7 +331,6 @@ def _make_endpoint_with_query(
         annotation = field_info.annotation if field_info.annotation is not None else str
 
         if field_name in path_params:
-            # Path-параметр — FastAPI извлекает из URL автоматически
             if field_info.default is not None and not field_info.is_required():
                 sig_params.append(inspect.Parameter(
                     field_name, inspect.Parameter.POSITIONAL_OR_KEYWORD,
@@ -348,7 +342,6 @@ def _make_endpoint_with_query(
                     annotation=annotation,
                 ))
         else:
-            # Query-параметр
             default = field_info.default if not field_info.is_required() else inspect.Parameter.empty
             sig_params.append(inspect.Parameter(
                 field_name, inspect.Parameter.POSITIONAL_OR_KEYWORD,
@@ -441,16 +434,18 @@ def _make_endpoint(
     """
     model_fields = _get_model_fields(record.effective_request_model)
 
-    # Стратегия 1: пустая модель — endpoint без параметров
     if not model_fields:
         return _make_endpoint_no_params(record, machine, auth_coordinator, connections_factory)
 
-    # Стратегия 2: POST/PUT/PATCH — параметры в JSON body
     if _has_body_method(record.method):
         return _make_endpoint_with_body(record, machine, auth_coordinator, connections_factory)
 
-    # Стратегия 3: GET/DELETE — параметры из query string и path
     return _make_endpoint_with_query(record, machine, auth_coordinator, connections_factory)
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# Middleware
+# ═════════════════════════════════════════════════════════════════════════════
 
 
 class _CatchAllErrorsMiddleware(BaseHTTPMiddleware):
@@ -458,13 +453,9 @@ class _CatchAllErrorsMiddleware(BaseHTTPMiddleware):
     Middleware для перехвата необработанных исключений.
 
     Стандартный FastAPI ``exception_handler(Exception)`` не перехватывает
-    все подклассы Exception в некоторых версиях Starlette (RuntimeError,
-    ValueError и др. могут проскочить). Этот middleware оборачивает каждый
-    запрос в try/except и гарантирует возврат HTTP 500 при любой
-    непойманной ошибке.
-
-    AuthorizationError и ValidationFieldError обрабатываются до этого
-    middleware через exception_handler и не доходят сюда.
+    все подклассы Exception в некоторых версиях Starlette. Этот middleware
+    оборачивает каждый запрос в try/except и гарантирует возврат HTTP 500
+    при любой непойманной ошибке.
     """
 
     async def dispatch(
@@ -490,6 +481,11 @@ class _CatchAllErrorsMiddleware(BaseHTTPMiddleware):
             )
 
 
+# ═════════════════════════════════════════════════════════════════════════════
+# Класс адаптера
+# ═════════════════════════════════════════════════════════════════════════════
+
+
 class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
     """
     HTTP-адаптер для ActionMachine на базе FastAPI.
@@ -497,7 +493,7 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
     Наследует BaseAdapter[FastApiRouteRecord]. Предоставляет протокольные
     методы post(), get(), put(), delete(), patch() для регистрации
     HTTP-эндпоинтов. Все протокольные методы возвращают self для поддержки
-    fluent chain. Метод build() создаёт FastAPI-приложение.
+    fluent chain. Метод build() завершает цепочку и создаёт FastAPI-приложение.
 
     Атрибуты:
         _title : str
@@ -523,12 +519,23 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
         Инициализирует FastAPI-адаптер.
 
         Аргументы:
-            machine: машина выполнения действий.
-            auth_coordinator: координатор аутентификации.
-            connections_factory: фабрика соединений.
-            title: заголовок API для OpenAPI/Swagger UI.
-            version: версия API для OpenAPI.
+            machine: машина выполнения действий. Обязательный параметр.
+                     Должен быть экземпляром ActionProductMachine.
+            auth_coordinator: координатор аутентификации. Если указан,
+                              вызывается для каждого запроса, создаёт Context
+                              из данных HTTP-запроса. Если None — Context
+                              создаётся пустым.
+            connections_factory: фабрика соединений. Если указана, вызывается
+                                 перед каждым machine.run() и возвращает
+                                 dict[str, BaseResourceManager]. Если None —
+                                 connections не передаются.
+            title: заголовок API для OpenAPI/Swagger UI. Отображается
+                   в верхней части документации. По умолчанию "ActionMachine API".
+            version: версия API для OpenAPI. Отображается рядом с заголовком.
+                     По умолчанию "0.1.0".
             description: описание API для OpenAPI. Поддерживает Markdown.
+                         Отображается под заголовком в Swagger UI.
+                         По умолчанию пустая строка.
         """
         super().__init__(
             machine=machine,
@@ -583,6 +590,20 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
         Если ``summary`` пуст — автоматически подставляется description
         из ``@meta`` действия.
 
+        Аргументы:
+            method: HTTP-метод (GET, POST, PUT, DELETE, PATCH).
+            path: URL-путь эндпоинта.
+            action_class: класс действия.
+            request_model: протокольная модель запроса (или None).
+            response_model: протокольная модель ответа (или None).
+            params_mapper: функция request_model → params_type (или None).
+            response_mapper: функция result_type → response_model (или None).
+            tags: теги для группировки в OpenAPI (или None).
+            summary: краткое описание для OpenAPI (или пустая строка).
+            description: развёрнутое описание для OpenAPI (или пустая строка).
+            operation_id: уникальный ID операции в OpenAPI (или None).
+            deprecated: флаг устаревшего эндпоинта.
+
         Возвращает:
             Self — текущий экземпляр адаптера для fluent chain.
         """
@@ -622,7 +643,53 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
         operation_id: str | None = None,
         deprecated: bool = False,
     ) -> Self:
-        """Регистрирует POST-эндпоинт. Возвращает self для fluent chain."""
+        """
+        Регистрирует POST-эндпоинт. Возвращает self для fluent chain.
+
+        POST используется для создания ресурсов. Параметры передаются
+        в JSON body запроса. FastAPI автоматически валидирует body
+        по Pydantic-модели effective_request_model.
+
+        Аргументы:
+            path: URL-путь эндпоинта. Непустая строка, начинающаяся с ``/``.
+                  Поддерживает path-параметры: ``/orders/{order_id}``.
+            action_class: класс действия (наследник BaseAction[P, R]).
+                          P и R извлекаются автоматически из generic-параметров.
+            request_model: протокольная модель входящего запроса. Если None —
+                           используется params_type (P из BaseAction[P, R]).
+                           Если указана и отличается от params_type —
+                           params_mapper обязателен.
+            response_model: протокольная модель ответа. Если None —
+                            используется result_type (R из BaseAction[P, R]).
+                            Если указана и отличается от result_type —
+                            response_mapper обязателен.
+            params_mapper: функция преобразования request_model → params_type.
+                           Вызывается перед machine.run() для конвертации
+                           протокольного запроса в параметры действия.
+                           Назван по тому, что возвращает: params.
+                           None если request_model совпадает с params_type.
+            response_mapper: функция преобразования result_type → response_model.
+                             Вызывается после machine.run() для конвертации
+                             результата действия в протокольный ответ.
+                             Назван по тому, что возвращает: response.
+                             None если response_model совпадает с result_type.
+            tags: список тегов для группировки в OpenAPI/Swagger UI.
+                  Каждый тег отображается как секция в документации.
+                  None или пустой список — без тегов.
+            summary: краткое описание эндпоинта для OpenAPI. Отображается
+                     рядом с путём в Swagger UI. Пустая строка — адаптер
+                     подставит description из ``@meta`` действия.
+            description: развёрнутое описание эндпоинта для OpenAPI.
+                         Отображается при раскрытии эндпоинта. Поддерживает
+                         Markdown. По умолчанию пустая строка.
+            operation_id: уникальный идентификатор операции в OpenAPI.
+                          None — FastAPI генерирует автоматически.
+            deprecated: флаг устаревшего эндпоинта. True — в Swagger UI
+                        отображается зачёркнутым. По умолчанию False.
+
+        Возвращает:
+            Self — текущий экземпляр адаптера для fluent chain.
+        """
         return self._register(
             "POST", path, action_class, request_model, response_model,
             params_mapper, response_mapper, tags, summary, description,
@@ -643,7 +710,29 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
         operation_id: str | None = None,
         deprecated: bool = False,
     ) -> Self:
-        """Регистрирует GET-эндпоинт. Возвращает self для fluent chain."""
+        """
+        Регистрирует GET-эндпоинт. Возвращает self для fluent chain.
+
+        GET используется для чтения ресурсов. Параметры передаются через
+        query string и path-параметры. Если URL содержит ``{param_name}``,
+        FastAPI извлекает его из пути, остальные поля — из query string.
+
+        Аргументы:
+            path: URL-путь эндпоинта с опциональными path-параметрами.
+            action_class: класс действия (наследник BaseAction[P, R]).
+            request_model: протокольная модель запроса (или None).
+            response_model: протокольная модель ответа (или None).
+            params_mapper: функция request_model → params_type (или None).
+            response_mapper: функция result_type → response_model (или None).
+            tags: теги для OpenAPI (или None).
+            summary: краткое описание для OpenAPI.
+            description: развёрнутое описание для OpenAPI.
+            operation_id: уникальный ID операции (или None).
+            deprecated: флаг устаревшего эндпоинта.
+
+        Возвращает:
+            Self — текущий экземпляр адаптера для fluent chain.
+        """
         return self._register(
             "GET", path, action_class, request_model, response_model,
             params_mapper, response_mapper, tags, summary, description,
@@ -664,7 +753,28 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
         operation_id: str | None = None,
         deprecated: bool = False,
     ) -> Self:
-        """Регистрирует PUT-эндпоинт. Возвращает self для fluent chain."""
+        """
+        Регистрирует PUT-эндпоинт. Возвращает self для fluent chain.
+
+        PUT используется для полной замены ресурса. Параметры передаются
+        в JSON body запроса.
+
+        Аргументы:
+            path: URL-путь эндпоинта.
+            action_class: класс действия (наследник BaseAction[P, R]).
+            request_model: протокольная модель запроса (или None).
+            response_model: протокольная модель ответа (или None).
+            params_mapper: функция request_model → params_type (или None).
+            response_mapper: функция result_type → response_model (или None).
+            tags: теги для OpenAPI (или None).
+            summary: краткое описание для OpenAPI.
+            description: развёрнутое описание для OpenAPI.
+            operation_id: уникальный ID операции (или None).
+            deprecated: флаг устаревшего эндпоинта.
+
+        Возвращает:
+            Self — текущий экземпляр адаптера для fluent chain.
+        """
         return self._register(
             "PUT", path, action_class, request_model, response_model,
             params_mapper, response_mapper, tags, summary, description,
@@ -685,7 +795,28 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
         operation_id: str | None = None,
         deprecated: bool = False,
     ) -> Self:
-        """Регистрирует DELETE-эндпоинт. Возвращает self для fluent chain."""
+        """
+        Регистрирует DELETE-эндпоинт. Возвращает self для fluent chain.
+
+        DELETE используется для удаления ресурсов. Параметры передаются
+        через query string и path-параметры (аналогично GET).
+
+        Аргументы:
+            path: URL-путь эндпоинта.
+            action_class: класс действия (наследник BaseAction[P, R]).
+            request_model: протокольная модель запроса (или None).
+            response_model: протокольная модель ответа (или None).
+            params_mapper: функция request_model → params_type (или None).
+            response_mapper: функция result_type → response_model (или None).
+            tags: теги для OpenAPI (или None).
+            summary: краткое описание для OpenAPI.
+            description: развёрнутое описание для OpenAPI.
+            operation_id: уникальный ID операции (или None).
+            deprecated: флаг устаревшего эндпоинта.
+
+        Возвращает:
+            Self — текущий экземпляр адаптера для fluent chain.
+        """
         return self._register(
             "DELETE", path, action_class, request_model, response_model,
             params_mapper, response_mapper, tags, summary, description,
@@ -706,7 +837,28 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
         operation_id: str | None = None,
         deprecated: bool = False,
     ) -> Self:
-        """Регистрирует PATCH-эндпоинт. Возвращает self для fluent chain."""
+        """
+        Регистрирует PATCH-эндпоинт. Возвращает self для fluent chain.
+
+        PATCH используется для частичного обновления ресурса. Параметры
+        передаются в JSON body запроса.
+
+        Аргументы:
+            path: URL-путь эндпоинта.
+            action_class: класс действия (наследник BaseAction[P, R]).
+            request_model: протокольная модель запроса (или None).
+            response_model: протокольная модель ответа (или None).
+            params_mapper: функция request_model → params_type (или None).
+            response_mapper: функция result_type → response_model (или None).
+            tags: теги для OpenAPI (или None).
+            summary: краткое описание для OpenAPI.
+            description: развёрнутое описание для OpenAPI.
+            operation_id: уникальный ID операции (или None).
+            deprecated: флаг устаревшего эндпоинта.
+
+        Возвращает:
+            Self — текущий экземпляр адаптера для fluent chain.
+        """
         return self._register(
             "PATCH", path, action_class, request_model, response_model,
             params_mapper, response_mapper, tags, summary, description,
@@ -728,11 +880,12 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
         2. Добавление middleware для перехвата необработанных исключений.
         3. Регистрация exception handlers для AuthorizationError
            и ValidationFieldError.
-        4. Регистрация health check эндпоинта.
+        4. Регистрация health check эндпоинта GET /health.
         5. Генерация и регистрация endpoint для каждого маршрута.
 
         Возвращает:
-            FastAPI — готовое приложение.
+            FastAPI — готовое приложение с эндпоинтами, middleware,
+            exception handlers и health check.
         """
         app = FastAPI(
             title=self._title,
@@ -740,16 +893,10 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
             description=self._description,
         )
 
-        # ── Middleware для перехвата необработанных исключений ──────────
         app.add_middleware(_CatchAllErrorsMiddleware)
-
-        # ── Exception handlers для ошибок ActionMachine ────────────────
         self._register_exception_handlers(app)
-
-        # ── Health check ───────────────────────────────────────────────
         self._register_health_check(app)
 
-        # ── Эндпоинты из маршрутов ─────────────────────────────────────
         for record in self._routes:
             self._register_endpoint(app, record)
 
@@ -764,11 +911,13 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
         Генерирует и регистрирует один async endpoint из FastApiRouteRecord.
 
         Использует фабрику ``_make_endpoint`` для создания endpoint-функции
-        с правильной сигнатурой.
+        с правильной сигнатурой, затем добавляет маршрут в FastAPI-приложение
+        через ``app.add_api_route()``.
 
         Аргументы:
             app: FastAPI-приложение.
-            record: конфигурация маршрута.
+            record: конфигурация маршрута с action_class, моделями,
+                    маппингами и OpenAPI-метаданными.
         """
         endpoint = _make_endpoint(
             record=record,
@@ -804,6 +953,9 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
 
         Общие ошибки (RuntimeError, ValueError и др.) перехватываются
         middleware ``_CatchAllErrorsMiddleware`` и возвращают HTTP 500.
+
+        Аргументы:
+            app: FastAPI-приложение, к которому привязываются обработчики.
         """
 
         @app.exception_handler(AuthorizationError)
@@ -834,7 +986,11 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
         Добавляет эндпоинт ``GET /health → {"status": "ok"}``.
 
         Используется для liveness probe в Kubernetes, мониторинга
-        и health check балансировщиков нагрузки.
+        и health check балансировщиков нагрузки. Добавляется автоматически
+        при вызове build().
+
+        Аргументы:
+            app: FastAPI-приложение, к которому добавляется эндпоинт.
         """
 
         @app.get("/health", tags=["system"])

@@ -53,3 +53,6 @@ class WrapperConnectionManager(IConnectionManager):
             return await self._connection_manager.execute(query, params)
         except Exception as e:
             raise HandleError(f"Ошибка выполнения SQL: {e}") from e
+
+    def get_wrapper_class(self) -> type["IConnectionManager"] | None:
+        return WrapperConnectionManager
