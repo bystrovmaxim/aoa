@@ -42,16 +42,12 @@ Generic-параметры указываются как строковые forw
 на момент определения наследования. Функция ``extract_action_types``
 резолвит ForwardRef через модуль и пространство имён класса.
 
-Описание действия берётся из ``@meta(description=...)``, описания
-аспектов — из ``@summary_aspect("...")``. Отдельный docstring на классе
-действия не нужен — это дублирование.
-
 ═══════════════════════════════════════════════════════════════════════════════
 КОНФИГУРАЦИЯ
 ═══════════════════════════════════════════════════════════════════════════════
 
 - @meta: описание "Проверка доступности сервиса", домен SystemDomain.
-- @CheckRoles(NONE): доступно без аутентификации.
+- @check_roles(ROLE_NONE): доступно без аутентификации.
 - Params: пустые (BaseParams без полей).
 - Result: поле message.
 """
@@ -59,7 +55,7 @@ Generic-параметры указываются как строковые forw
 from pydantic import Field
 
 from action_machine.aspects.summary_aspect import summary_aspect
-from action_machine.auth.check_roles import CheckRoles
+from action_machine.auth import ROLE_NONE, check_roles
 from action_machine.core.base_action import BaseAction
 from action_machine.core.base_params import BaseParams
 from action_machine.core.base_result import BaseResult
@@ -72,7 +68,7 @@ from ..domains import SystemDomain
 
 
 @meta(description="Проверка доступности сервиса", domain=SystemDomain)
-@CheckRoles(CheckRoles.NONE)
+@check_roles(ROLE_NONE)
 class PingAction(BaseAction["PingAction.Params", "PingAction.Result"]):
 
     class Params(BaseParams):

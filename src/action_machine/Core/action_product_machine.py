@@ -9,7 +9,7 @@ ActionProductMachine — production-реализация машины дейст
 ActionProductMachine — центральный исполнитель действий (Action) в системе.
 Получает экземпляр действия, входные параметры и контекст, после чего:
 
-1. Проверяет ролевые ограничения (@CheckRoles) через ClassMetadata.
+1. Проверяет ролевые ограничения (@check_roles) через ClassMetadata.
 2. Валидирует соединения (@connection) через ClassMetadata:
    - Проверяет соответствие ключей (объявленные vs фактические).
    - Проверяет, что каждое значение — экземпляр BaseResourceManager.
@@ -42,6 +42,18 @@ STATELESS МЕЖДУ ЗАПРОСАМИ
 - Состояния плагинов инкапсулированы в PluginRunContext.
 
 ═══════════════════════════════════════════════════════════════════════════════
+ПРОВЕРКА РОЛЕЙ
+═══════════════════════════════════════════════════════════════════════════════
+
+Машина использует константы ROLE_NONE и ROLE_ANY из модуля
+``action_machine.auth.constants`` для определения режима проверки:
+
+    ROLE_NONE → доступ без аутентификации, всегда разрешён.
+    ROLE_ANY  → требуется хотя бы одна роль у пользователя.
+    list[str] → требуется одна из указанных ролей.
+    str       → требуется конкретная роль.
+
+═══════════════════════════════════════════════════════════════════════════════
 ЛОГИРОВАНИЕ И SCOPE
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -55,9 +67,9 @@ nest_level — уровень вложенности вызова (0 для ко
 ВАЛИДАЦИЯ ЧЕКЕРОВ
 ═══════════════════════════════════════════════════════════════════════════════
 
-При создании экземпляра чекера из CheckerMeta машина передаёт только
-field_name и required, а также extra_params. Параметр description
-не используется — чекеры работают без текстовых описаний.
+При создании экземпляра чекера из CheckerMeta машина передаёт field_name,
+required и extra_params. Чекеры создаются из классов, хранящихся
+в CheckerMeta.checker_class.
 
 ═══════════════════════════════════════════════════════════════════════════════
 АРХИТЕКТУРА ВЫПОЛНЕНИЯ
@@ -84,7 +96,7 @@ field_name и required, а также extra_params. Параметр description
 import time
 from typing import Any, TypeVar, cast
 
-from action_machine.auth.check_roles import CheckRoles
+from action_machine.auth.constants import ROLE_ANY, ROLE_NONE
 from action_machine.context.context import Context
 from action_machine.core.base_action import BaseAction
 from action_machine.core.base_action_machine import BaseActionMachine
@@ -236,12 +248,12 @@ class ActionProductMachine(BaseActionMachine):
     # ─────────────────────────────────────────────────────────────────────
 
     def _check_none_role(self, user_roles: list[str]) -> bool:
-        """Проверка для CheckRoles.NONE — доступ без аутентификации. Всегда True."""
+        """Проверка для ROLE_NONE — доступ без аутентификации. Всегда True."""
         return True
 
     def _check_any_role(self, user_roles: list[str]) -> bool:
         """
-        Проверка для CheckRoles.ANY — требуется хотя бы одна роль.
+        Проверка для ROLE_ANY — требуется хотя бы одна роль.
 
         Исключения:
             AuthorizationError: если у пользователя нет ни одной роли.
@@ -288,28 +300,32 @@ class ActionProductMachine(BaseActionMachine):
         """
         Проверяет ролевые ограничения действия через ClassMetadata.
 
+        Использует константы ROLE_NONE и ROLE_ANY для определения
+        режима проверки. Если действие не имеет декоратора @check_roles —
+        TypeError.
+
         Аргументы:
             action: экземпляр действия.
             context: контекст выполнения.
             metadata: метаданные класса действия.
 
         Исключения:
-            TypeError: если действие не имеет декоратора @CheckRoles.
+            TypeError: если действие не имеет декоратора @check_roles.
             AuthorizationError: если роли не соответствуют требованиям.
         """
         if not metadata.has_role() or metadata.role is None:
             raise TypeError(
-                f"Action {action.__class__.__name__} does not have a @CheckRoles "
-                f"decorator. Specify @CheckRoles(CheckRoles.NONE) explicitly if "
+                f"Action {action.__class__.__name__} does not have a @check_roles "
+                f"decorator. Specify @check_roles(ROLE_NONE) explicitly if "
                 f"the action is accessible without authentication."
             )
 
         role_spec = metadata.role.spec
         user_roles = context.user.roles
 
-        if role_spec == CheckRoles.NONE:
+        if role_spec == ROLE_NONE:
             self._check_none_role(user_roles)
-        elif role_spec == CheckRoles.ANY:
+        elif role_spec == ROLE_ANY:
             self._check_any_role(user_roles)
         elif isinstance(role_spec, list):
             self._check_list_role(role_spec, user_roles)

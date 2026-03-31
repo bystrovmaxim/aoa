@@ -10,47 +10,23 @@
 чекер (ResultStringChecker, ResultIntChecker и т.д.) наследует
 ResultFieldChecker и реализует метод _check_type_and_constraints.
 
-═══════════════════════════════════════════════════════════════════════════════
-ДВОЙНОЕ ИСПОЛЬЗОВАНИЕ
-═══════════════════════════════════════════════════════════════════════════════
-
-ResultFieldChecker и его наследники поддерживают два режима работы:
-
-1. Как декоратор метода-аспекта:
-   Применяется к async-методу и записывает _checker_meta в функцию.
-   Порядок с @regular_aspect/@summary_aspect не имеет значения.
-
-       @regular_aspect("Обработка")
-       @ResultStringChecker("txn_id", required=True)
-       async def process(self, params, state, box, connections):
-           return {"txn_id": "abc"}
-
-2. Как валидатор результата (вызов экземпляра с dict):
-   Вызывается машиной (ActionProductMachine._apply_checkers) для
-   проверки словаря, возвращённого аспектом.
-
-       checker = ResultStringChecker("txn_id", required=True)
-       checker.check({"txn_id": "abc"})  # OK
-       checker.check({})                  # ValidationFieldError
+ResultFieldChecker используется машиной (ActionProductMachine._apply_checkers)
+для проверки словаря, возвращённого аспектом. Машина создаёт экземпляр
+чекера из CheckerMeta и вызывает checker.check(result_dict).
 
 ═══════════════════════════════════════════════════════════════════════════════
-ИНТЕГРАЦИЯ С МЕТАДАННЫМИ
+ИНТЕГРАЦИЯ С ДЕКОРАТОРАМИ
 ═══════════════════════════════════════════════════════════════════════════════
 
-Каждый чекер записывает в метод атрибут _checker_meta — список словарей:
-    [{"checker_class": ResultStringChecker, "field_name": "txn_id",
-      "required": True, ...}]
-
-Один метод может иметь несколько чекеров (для разных полей).
-
-MetadataBuilder._collect_checkers(cls) обходит MRO класса, находит методы
-с _checker_meta и собирает их в ClassMetadata.checkers (tuple[CheckerMeta]).
+Функции-декораторы (result_string, result_int и т.д.) записывают метаданные
+чекера в атрибут ``_checker_meta`` метода-аспекта. MetadataBuilder собирает
+эти метаданные в ClassMetadata.checkers (tuple[CheckerMeta]).
 
 ActionProductMachine при выполнении regular-аспекта:
 1. Получает checkers = metadata.get_checkers_for_aspect(aspect_name).
 2. Если чекеров нет и аспект вернул непустой dict — ошибка.
 3. Если чекеры есть — проверяет, что результат содержит только
-   объявленные поля, и применяет каждый чекер.
+   объявленные поля, и применяет каждый чекер через check().
 
 ═══════════════════════════════════════════════════════════════════════════════
 КОНСТРУКТОР
@@ -62,6 +38,15 @@ ActionProductMachine при выполнении regular-аспекта:
 
 Конкретные наследники могут добавлять дополнительные параметры
 (min_length, max_value и т.д.) через свои конструкторы.
+
+═══════════════════════════════════════════════════════════════════════════════
+ПРИМЕР ИСПОЛЬЗОВАНИЯ
+═══════════════════════════════════════════════════════════════════════════════
+
+    # Машина создаёт экземпляр чекера из CheckerMeta и вызывает check():
+    checker = ResultStringChecker("txn_id", required=True)
+    checker.check({"txn_id": "abc"})  # OK
+    checker.check({})                  # ValidationFieldError
 """
 
 from abc import abstractmethod
@@ -74,9 +59,8 @@ class ResultFieldChecker:
     """
     Базовый чекер для полей результата аспекта.
 
-    Поддерживает два режима:
-    - Декоратор метода: записывает _checker_meta в функцию.
-    - Валидатор: проверяет dict результата через check().
+    Используется машиной для валидации словаря, возвращённого аспектом.
+    Машина создаёт экземпляр из CheckerMeta и вызывает check(result_dict).
 
     Наследники реализуют _check_type_and_constraints для проверки
     конкретного типа (строка, число, дата и т.д.).
@@ -98,72 +82,6 @@ class ResultFieldChecker:
         """
         self.field_name = field_name
         self.required = required
-
-    def __call__(self, func_or_result: Any) -> Any:
-        """
-        Двойной режим работы:
-
-        1. Если получает callable (функцию) — работает как декоратор,
-           записывает _checker_meta в функцию и возвращает её.
-        2. Если получает dict — работает как валидатор, вызывает check().
-
-        Аргументы:
-            func_or_result: функция (при использовании как декоратор)
-                           или dict (при использовании как валидатор).
-
-        Возвращает:
-            Функцию с прикреплённым _checker_meta (режим декоратора)
-            или None (режим валидатора).
-
-        Исключения:
-            ValidationFieldError: при ошибке валидации (режим валидатора).
-        """
-        if callable(func_or_result) and not isinstance(func_or_result, dict):
-            return self._decorate(func_or_result)
-        self.check(func_or_result)
-        return None
-
-    def _decorate(self, func: Any) -> Any:
-        """
-        Прикрепляет _checker_meta к функции.
-
-        Вызывается когда чекер используется как декоратор метода-аспекта.
-        Порядок с @regular_aspect/@summary_aspect не имеет значения,
-        так как оба декоратора записывают разные атрибуты в одну функцию.
-
-        Аргументы:
-            func: декорируемая функция (метод-аспект).
-
-        Возвращает:
-            Ту же функцию с прикреплённым атрибутом _checker_meta.
-        """
-        if not hasattr(func, "_checker_meta"):
-            func._checker_meta = []
-
-        func._checker_meta.append(self._build_meta())
-
-        return func
-
-    def _build_meta(self) -> dict[str, Any]:
-        """
-        Строит словарь метаданных чекера для _checker_meta.
-
-        Содержит все параметры, необходимые MetadataBuilder для создания
-        CheckerMeta, а ActionProductMachine._apply_checkers — для создания
-        экземпляра чекера.
-
-        Возвращает:
-            dict с ключами: checker_class, field_name, required,
-            а также дополнительные параметры конкретного чекера.
-        """
-        meta: dict[str, Any] = {
-            "checker_class": type(self),
-            "field_name": self.field_name,
-            "required": self.required,
-        }
-        extra = self._get_extra_params()
-        meta.update(extra)
-        return meta
 
     def _get_extra_params(self) -> dict[str, Any]:
         """

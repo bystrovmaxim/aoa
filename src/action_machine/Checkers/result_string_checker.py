@@ -1,34 +1,43 @@
 # src/action_machine/checkers/result_string_checker.py
 """
-Чекер для строковых полей результата аспекта.
+Чекер для строковых полей результата аспекта и функция-декоратор result_string.
 
 ═══════════════════════════════════════════════════════════════════════════════
 НАЗНАЧЕНИЕ
 ═══════════════════════════════════════════════════════════════════════════════
 
-Проверяет, что поле результата является строкой и удовлетворяет условиям:
-- not_empty: строка не пустая.
-- min_length: минимальная длина.
-- max_length: максимальная длина.
+Модуль содержит два компонента:
+
+1. **ResultStringChecker** — класс чекера. Проверяет, что поле результата
+   является строкой и удовлетворяет условиям: not_empty, min_length, max_length.
+   Создаётся машиной из CheckerMeta при выполнении аспекта.
+
+2. **result_string** — функция-декоратор. Применяется к методу-аспекту
+   и записывает метаданные чекера в атрибут ``_checker_meta`` метода.
+   MetadataBuilder собирает эти метаданные в ClassMetadata.checkers.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ДВОЙНОЕ ИСПОЛЬЗОВАНИЕ
+ИСПОЛЬЗОВАНИЕ КАК ДЕКОРАТОР
 ═══════════════════════════════════════════════════════════════════════════════
-
-1. Как декоратор метода-аспекта (порядок с @regular_aspect не важен):
 
     @regular_aspect("Валидация")
-    @ResultStringChecker("name", required=True, min_length=3)
-    async def validate(self, ...):
+    @result_string("name", required=True, min_length=3)
+    async def validate(self, params, state, box, connections):
         return {"name": "John"}
 
-2. Как валидатор результата (вызывается машиной):
-
-    checker = ResultStringChecker("name", required=True)
-    checker.check({"name": "John"})
+Порядок с @regular_aspect не важен — оба декоратора записывают разные
+атрибуты в одну функцию.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ПАРАМЕТРЫ КОНСТРУКТОРА
+ИСПОЛЬЗОВАНИЕ МАШИНОЙ
+═══════════════════════════════════════════════════════════════════════════════
+
+    # ActionProductMachine._apply_checkers() создаёт экземпляр:
+    checker = ResultStringChecker("name", required=True, min_length=3)
+    checker.check({"name": "John"})  # OK
+
+═══════════════════════════════════════════════════════════════════════════════
+ПАРАМЕТРЫ
 ═══════════════════════════════════════════════════════════════════════════════
 
     field_name : str — имя поля в словаре результата аспекта.
@@ -56,9 +65,12 @@ class ResultStringChecker(ResultFieldChecker):
     """
     Проверяет, что значение является строкой и соответствует заданным ограничениям.
 
-    Поддерживает двойной режим: декоратор метода-аспекта и валидатор dict.
-    При использовании как декоратор записывает _checker_meta в функцию,
-    включая дополнительные параметры min_length, max_length, not_empty.
+    Создаётся машиной из CheckerMeta при выполнении аспекта.
+
+    Атрибуты:
+        min_length : int | None — минимальная допустимая длина строки.
+        max_length : int | None — максимальная допустимая длина строки.
+        not_empty : bool — если True, строка не может быть пустой.
     """
 
     def __init__(
@@ -88,9 +100,9 @@ class ResultStringChecker(ResultFieldChecker):
         """
         Возвращает дополнительные параметры строкового чекера.
 
-        Эти параметры попадают в _checker_meta при использовании как декоратор
-        и затем передаются в конструктор при создании экземпляра машиной
-        в ActionProductMachine._apply_checkers().
+        Эти параметры сохраняются в CheckerMeta.extra_params при сборке
+        метаданных и передаются в конструктор при создании экземпляра
+        машиной в ActionProductMachine._apply_checkers().
 
         Возвращает:
             dict с ключами min_length, max_length, not_empty.
@@ -165,3 +177,86 @@ class ResultStringChecker(ResultFieldChecker):
         str_value = self._validate_string_type(value)
         self._check_empty(str_value)
         self._check_length(str_value)
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# Функция-декоратор
+# ═════════════════════════════════════════════════════════════════════════════
+
+
+def result_string(
+    field_name: str,
+    required: bool = True,
+    min_length: int | None = None,
+    max_length: int | None = None,
+    not_empty: bool = False,
+) -> Any:
+    """
+    Декоратор метода-аспекта. Объявляет строковое поле в результате аспекта.
+
+    Записывает метаданные чекера в атрибут ``_checker_meta`` метода.
+    MetadataBuilder собирает эти метаданные в ClassMetadata.checkers.
+    Машина создаёт экземпляр ResultStringChecker из CheckerMeta
+    и вызывает checker.check(result_dict) при выполнении аспекта.
+
+    Аргументы:
+        field_name: имя поля в словаре результата аспекта.
+        required: обязательно ли поле. По умолчанию True.
+        min_length: минимальная допустимая длина строки (включительно).
+        max_length: максимальная допустимая длина строки (включительно).
+        not_empty: если True, строка не может быть пустой (len > 0).
+
+    Возвращает:
+        Декоратор, записывающий _checker_meta в метод.
+
+    Пример:
+        @regular_aspect("Валидация")
+        @result_string("validated_user", required=True, min_length=1)
+        async def validate(self, params, state, box, connections):
+            return {"validated_user": params.user_id}
+    """
+    checker = ResultStringChecker(
+        field_name=field_name,
+        required=required,
+        min_length=min_length,
+        max_length=max_length,
+        not_empty=not_empty,
+    )
+    meta = _build_checker_meta(checker)
+
+    def decorator(func: Any) -> Any:
+        if not hasattr(func, "_checker_meta"):
+            func._checker_meta = []
+        func._checker_meta.append(meta)
+        return func
+
+    return decorator
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# Вспомогательная функция построения метаданных
+# ═════════════════════════════════════════════════════════════════════════════
+
+
+def _build_checker_meta(checker: ResultFieldChecker) -> dict[str, Any]:
+    """
+    Строит словарь метаданных чекера для _checker_meta.
+
+    Содержит все параметры, необходимые MetadataBuilder для создания
+    CheckerMeta, а ActionProductMachine._apply_checkers — для создания
+    экземпляра чекера.
+
+    Аргументы:
+        checker: экземпляр чекера с заполненными параметрами.
+
+    Возвращает:
+        dict с ключами: checker_class, field_name, required
+        и дополнительными параметрами конкретного чекера.
+    """
+    result: dict[str, Any] = {
+        "checker_class": type(checker),
+        "field_name": checker.field_name,
+        "required": checker.required,
+    }
+    result.update(checker._get_extra_params())
+    return result

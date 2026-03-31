@@ -1,12 +1,12 @@
 # src/action_machine/auth/check_roles.py
 """
-Декоратор @CheckRoles — объявление требований к ролям для выполнения действия.
+Декоратор @check_roles — объявление требований к ролям для выполнения действия.
 
 ═══════════════════════════════════════════════════════════════════════════════
 НАЗНАЧЕНИЕ
 ═══════════════════════════════════════════════════════════════════════════════
 
-Декоратор @CheckRoles — часть грамматики намерений ActionMachine. Он объявляет,
+Декоратор @check_roles — часть грамматики намерений ActionMachine. Объявляет,
 какие роли пользователя необходимы для выполнения действия. При запуске
 машина (ActionProductMachine) читает роли из ClassMetadata и сравнивает
 с ролями пользователя в контексте. Если роли не совпадают — действие
@@ -16,25 +16,27 @@
 СПЕЦИАЛЬНЫЕ ЗНАЧЕНИЯ
 ═══════════════════════════════════════════════════════════════════════════════
 
-    CheckRoles.NONE — действие не требует аутентификации. Любой пользователь
-                      (включая анонимного) может выполнить действие.
-    CheckRoles.ANY  — действие требует аутентификации, но любая роль подходит.
+Специальные значения определены на уровне модуля ``auth/constants.py``
+и реэкспортируются через ``auth/__init__.py``:
+
+    ROLE_NONE — действие не требует аутентификации. Любой пользователь
+                (включая анонимного) может выполнить действие.
+    ROLE_ANY  — действие требует аутентификации, но любая роль подходит.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ОГРАНИЧЕНИЯ (ИНВАРИАНТЫ)
 ═══════════════════════════════════════════════════════════════════════════════
 
 - Применяется только к классам, не к функциям, методам или свойствам.
-- Класс должен наследовать RoleGateHost — миксин, разрешающий @CheckRoles.
-- Аргумент spec должен быть строкой, списком строк,
-  CheckRoles.NONE или CheckRoles.ANY.
+- Класс должен наследовать RoleGateHost — миксин, разрешающий @check_roles.
+- Аргумент spec должен быть строкой, списком строк, ROLE_NONE или ROLE_ANY.
 - Пустой список ролей запрещён — это скорее всего ошибка.
 
 ═══════════════════════════════════════════════════════════════════════════════
 АРХИТЕКТУРА ИНТЕГРАЦИИ
 ═══════════════════════════════════════════════════════════════════════════════
 
-    @CheckRoles("admin")
+    @check_roles("admin")
         │
         ▼  Декоратор записывает в cls._role_info
     {"spec": "admin"}
@@ -43,22 +45,28 @@
     ClassMetadata.role = RoleMeta(spec="admin")
         │
         ▼  ActionProductMachine._check_action_roles(...)
-    Сравнивает spec с context.user.roles
+    Сравнивает spec с context.user.roles, используя ROLE_NONE/ROLE_ANY
 
 ═══════════════════════════════════════════════════════════════════════════════
 ПРИМЕР ИСПОЛЬЗОВАНИЯ
 ═══════════════════════════════════════════════════════════════════════════════
 
-    @CheckRoles("admin")
+    from action_machine.auth import check_roles, ROLE_NONE, ROLE_ANY
+
+    @check_roles("admin")
     class DeleteUserAction(BaseAction[DeleteParams, DeleteResult]):
         ...
 
-    @CheckRoles(["user", "manager"])
+    @check_roles(["user", "manager"])
     class CreateOrderAction(BaseAction[OrderParams, OrderResult]):
         ...
 
-    @CheckRoles(CheckRoles.NONE)
+    @check_roles(ROLE_NONE)
     class PingAction(BaseAction[BaseParams, BaseResult]):
+        ...
+
+    @check_roles(ROLE_ANY)
+    class ProfileAction(BaseAction[ProfileParams, ProfileResult]):
         ...
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -74,96 +82,90 @@ from __future__ import annotations
 
 from typing import Any
 
+from action_machine.auth.constants import ROLE_ANY, ROLE_NONE
 from action_machine.auth.role_gate_host import RoleGateHost
 
 
-class CheckRoles:
+def check_roles(spec: str | list[str]) -> Any:
     """
-    Декоратор и контейнер констант для объявления ролевых требований.
+    Декоратор уровня класса. Объявляет ролевые требования для действия.
 
-    Используется как декоратор класса:
-        @CheckRoles("admin")
-        @CheckRoles(["user", "manager"])
-        @CheckRoles(CheckRoles.NONE)
-        @CheckRoles(CheckRoles.ANY)
+    Записывает словарь ``{"spec": spec}`` в атрибут ``cls._role_info``
+    целевого класса. MetadataBuilder читает этот словарь при сборке
+    ClassMetadata.role (RoleMeta).
 
-    Константы:
-        NONE: str — маркер "аутентификация не требуется".
-        ANY: str  — маркер "любая роль подходит".
+    Аргументы:
+        spec: требуемые роли. Допустимые значения:
+              - строка: одна роль ("admin") или спецзначение (ROLE_NONE, ROLE_ANY).
+              - список строк: несколько ролей (["user", "manager"]).
+
+    Возвращает:
+        Декоратор, который записывает _role_info в класс и возвращает
+        класс без изменений.
+
+    Исключения:
+        TypeError: spec не строка и не список; декоратор применён не к классу;
+                  класс не наследует RoleGateHost.
+        ValueError: пустой список; элементы списка не строки.
+
+    Пример:
+        @check_roles("admin")
+        class AdminAction(BaseAction[P, R]):
+            ...
+
+        @check_roles(ROLE_NONE)
+        class PublicAction(BaseAction[P, R]):
+            ...
     """
-
-    NONE: str = "__NONE__"
-    ANY: str = "__ANY__"
-
-    def __init__(self, spec: str | list[str]) -> None:
-        """
-        Инициализирует декоратор с указанной спецификацией ролей.
-
-        Аргументы:
-            spec: требуемые роли. Допустимые значения:
-                  - строка: одна роль ("admin") или спецзначение (NONE, ANY).
-                  - список строк: несколько ролей (["user", "manager"]).
-
-        Исключения:
-            TypeError: spec не строка и не список.
-            ValueError: пустой список; элементы списка не строки.
-        """
-        if isinstance(spec, str):
-            self._spec: str | list[str] = spec
-        elif isinstance(spec, list):
-            if len(spec) == 0:
-                raise ValueError(
-                    "@CheckRoles: передан пустой список ролей. "
-                    "Укажите хотя бы одну роль или используйте CheckRoles.NONE."
-                )
-            for i, item in enumerate(spec):
-                if not isinstance(item, str):
-                    raise ValueError(
-                        f"@CheckRoles: элемент списка ролей [{i}] должен быть строкой, "
-                        f"получен {type(item).__name__}: {item!r}."
-                    )
-            self._spec = spec
-        else:
-            raise TypeError(
-                f"@CheckRoles ожидает строку или список строк, "
-                f"получен {type(spec).__name__}: {spec!r}."
+    # ── Валидация spec ──
+    if isinstance(spec, str):
+        validated_spec: str | list[str] = spec
+    elif isinstance(spec, list):
+        if len(spec) == 0:
+            raise ValueError(
+                "@check_roles: передан пустой список ролей. "
+                "Укажите хотя бы одну роль или используйте ROLE_NONE."
             )
+        for i, item in enumerate(spec):
+            if not isinstance(item, str):
+                raise ValueError(
+                    f"@check_roles: элемент списка ролей [{i}] должен быть строкой, "
+                    f"получен {type(item).__name__}: {item!r}."
+                )
+        validated_spec = spec
+    else:
+        raise TypeError(
+            f"@check_roles ожидает строку или список строк, "
+            f"получен {type(spec).__name__}: {spec!r}."
+        )
 
-    def __call__(self, cls: Any) -> Any:
+    def decorator(cls: Any) -> Any:
         """
-        Применяет декоратор к классу.
+        Внутренний декоратор, применяемый к классу.
 
-        Аргументы:
-            cls: класс, к которому применяется декоратор.
+        Проверяет:
+        1. cls — класс (type).
+        2. cls наследует RoleGateHost.
 
-        Возвращает:
-            Тот же класс с прикреплённой информацией о ролях в cls._role_info.
-
-        Исключения:
-            TypeError:
-                - cls не является классом (type).
-                - cls не наследует RoleGateHost.
+        Затем записывает _role_info в cls.
         """
         if not isinstance(cls, type):
             raise TypeError(
-                f"@CheckRoles можно применять только к классу. "
+                f"@check_roles можно применять только к классу. "
                 f"Получен объект типа {type(cls).__name__}: {cls!r}."
             )
 
         if not issubclass(cls, RoleGateHost):
             raise TypeError(
-                f"@CheckRoles применён к классу {cls.__name__}, "
+                f"@check_roles применён к классу {cls.__name__}, "
                 f"который не наследует RoleGateHost. "
                 f"Добавьте RoleGateHost в цепочку наследования."
             )
 
         cls._role_info = {
-            "spec": self._spec,
+            "spec": validated_spec,
         }
 
         return cls
 
-    @property
-    def spec(self) -> str | list[str]:
-        """Возвращает спецификацию ролей."""
-        return self._spec
+    return decorator

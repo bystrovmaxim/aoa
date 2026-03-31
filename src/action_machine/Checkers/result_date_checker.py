@@ -1,33 +1,40 @@
 # src/action_machine/checkers/result_date_checker.py
 """
-Чекер для полей с датой в результате аспекта.
+Чекер для полей с датой в результате аспекта и функция-декоратор result_date.
 
 ═══════════════════════════════════════════════════════════════════════════════
 НАЗНАЧЕНИЕ
 ═══════════════════════════════════════════════════════════════════════════════
 
-Проверяет, что поле результата является объектом datetime или строкой,
-разбираемой по указанному формату. Поддерживает проверку диапазона дат
-(min_date, max_date).
+Модуль содержит два компонента:
+
+1. **ResultDateChecker** — класс чекера. Проверяет, что поле результата
+   является объектом datetime или строкой, разбираемой по указанному
+   формату. Поддерживает проверку диапазона дат (min_date, max_date).
+   Создаётся машиной из CheckerMeta при выполнении аспекта.
+
+2. **result_date** — функция-декоратор. Применяется к методу-аспекту
+   и записывает метаданные чекера в атрибут ``_checker_meta`` метода.
+   MetadataBuilder собирает эти метаданные в ClassMetadata.checkers.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ДВОЙНОЕ ИСПОЛЬЗОВАНИЕ
+ИСПОЛЬЗОВАНИЕ КАК ДЕКОРАТОР
 ═══════════════════════════════════════════════════════════════════════════════
-
-1. Как декоратор метода-аспекта (порядок с @regular_aspect не важен):
 
     @regular_aspect("Проверка даты")
-    @ResultDateChecker("created_at", date_format="%Y-%m-%d")
-    async def check_date(self, ...):
+    @result_date("created_at", date_format="%Y-%m-%d")
+    async def check_date(self, params, state, box, connections):
         return {"created_at": "2024-01-15"}
 
-2. Как валидатор результата (вызывается машиной):
+═══════════════════════════════════════════════════════════════════════════════
+ИСПОЛЬЗОВАНИЕ МАШИНОЙ
+═══════════════════════════════════════════════════════════════════════════════
 
     checker = ResultDateChecker("created_at", date_format="%Y-%m-%d")
-    checker.check({"created_at": "2024-01-15"})
+    checker.check({"created_at": "2024-01-15"})  # OK
 
 ═══════════════════════════════════════════════════════════════════════════════
-ПАРАМЕТРЫ КОНСТРУКТОРА
+ПАРАМЕТРЫ
 ═══════════════════════════════════════════════════════════════════════════════
 
     field_name : str — имя поля в словаре результата аспекта.
@@ -52,15 +59,19 @@ from typing import Any
 from action_machine.core.exceptions import ValidationFieldError
 
 from .result_field_checker import ResultFieldChecker
+from .result_string_checker import _build_checker_meta
 
 
 class ResultDateChecker(ResultFieldChecker):
     """
     Проверяет, что значение является датой (datetime или строка с форматом).
 
-    Поддерживает двойной режим: декоратор метода-аспекта и валидатор dict.
-    При использовании как декоратор записывает _checker_meta в функцию,
-    включая дополнительные параметры date_format, min_date, max_date.
+    Создаётся машиной из CheckerMeta при выполнении аспекта.
+
+    Атрибуты:
+        date_format : str | None — формат строки даты. Обязателен для строковых значений.
+        min_date : datetime | None — минимально допустимая дата (включительно).
+        max_date : datetime | None — максимально допустимая дата (включительно).
     """
 
     def __init__(
@@ -92,9 +103,9 @@ class ResultDateChecker(ResultFieldChecker):
         """
         Возвращает дополнительные параметры чекера дат.
 
-        Эти параметры попадают в _checker_meta при использовании как декоратор
-        и затем передаются в конструктор при создании экземпляра машиной
-        в ActionProductMachine._apply_checkers().
+        Эти параметры сохраняются в CheckerMeta.extra_params при сборке
+        метаданных и передаются в конструктор при создании экземпляра
+        машиной в ActionProductMachine._apply_checkers().
 
         Возвращает:
             dict с ключами date_format, min_date, max_date.
@@ -174,3 +185,58 @@ class ResultDateChecker(ResultFieldChecker):
                 f"получен {type(value).__name__}"
             )
         self._check_range(dt_value)
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# Функция-декоратор
+# ═════════════════════════════════════════════════════════════════════════════
+
+
+def result_date(
+    field_name: str,
+    required: bool = True,
+    date_format: str | None = None,
+    min_date: datetime | None = None,
+    max_date: datetime | None = None,
+) -> Any:
+    """
+    Декоратор метода-аспекта. Объявляет поле с датой в результате аспекта.
+
+    Записывает метаданные чекера в атрибут ``_checker_meta`` метода.
+    MetadataBuilder собирает эти метаданные в ClassMetadata.checkers.
+    Машина создаёт экземпляр ResultDateChecker из CheckerMeta
+    и вызывает checker.check(result_dict) при выполнении аспекта.
+
+    Аргументы:
+        field_name: имя поля в словаре результата аспекта.
+        required: обязательно ли поле. По умолчанию True.
+        date_format: формат строки даты (например, "%Y-%m-%d"). Обязателен,
+                     если значение поля — строка.
+        min_date: минимально допустимая дата (включительно).
+        max_date: максимально допустимая дата (включительно).
+
+    Возвращает:
+        Декоратор, записывающий _checker_meta в метод.
+
+    Пример:
+        @regular_aspect("Проверка даты")
+        @result_date("created_at", date_format="%Y-%m-%d")
+        async def check_date(self, params, state, box, connections):
+            return {"created_at": "2024-01-15"}
+    """
+    checker = ResultDateChecker(
+        field_name=field_name,
+        required=required,
+        date_format=date_format,
+        min_date=min_date,
+        max_date=max_date,
+    )
+    meta = _build_checker_meta(checker)
+
+    def decorator(func: Any) -> Any:
+        if not hasattr(func, "_checker_meta"):
+            func._checker_meta = []
+        func._checker_meta.append(meta)
+        return func
+
+    return decorator

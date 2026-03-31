@@ -1,32 +1,39 @@
 # src/action_machine/checkers/result_float_checker.py
 """
-Чекер для числовых полей (int/float) результата аспекта.
+Чекер для числовых полей (int/float) результата аспекта и функция-декоратор result_float.
 
 ═══════════════════════════════════════════════════════════════════════════════
 НАЗНАЧЕНИЕ
 ═══════════════════════════════════════════════════════════════════════════════
 
-Проверяет, что поле результата является числом (int или float)
-и лежит в заданном диапазоне.
+Модуль содержит два компонента:
+
+1. **ResultFloatChecker** — класс чекера. Проверяет, что поле результата
+   является числом (int или float) и лежит в заданном диапазоне.
+   Создаётся машиной из CheckerMeta при выполнении аспекта.
+
+2. **result_float** — функция-декоратор. Применяется к методу-аспекту
+   и записывает метаданные чекера в атрибут ``_checker_meta`` метода.
+   MetadataBuilder собирает эти метаданные в ClassMetadata.checkers.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ДВОЙНОЕ ИСПОЛЬЗОВАНИЕ
+ИСПОЛЬЗОВАНИЕ КАК ДЕКОРАТОР
 ═══════════════════════════════════════════════════════════════════════════════
-
-1. Как декоратор метода-аспекта (порядок с @regular_aspect не важен):
 
     @regular_aspect("Расчёт")
-    @ResultFloatChecker("total", required=True, min_value=0.0)
-    async def calculate(self, ...):
+    @result_float("total", required=True, min_value=0.0)
+    async def calculate(self, params, state, box, connections):
         return {"total": 1500.0}
 
-2. Как валидатор результата (вызывается машиной):
+═══════════════════════════════════════════════════════════════════════════════
+ИСПОЛЬЗОВАНИЕ МАШИНОЙ
+═══════════════════════════════════════════════════════════════════════════════
 
     checker = ResultFloatChecker("total", min_value=0.0)
-    checker.check({"total": 1500.0})
+    checker.check({"total": 1500.0})  # OK
 
 ═══════════════════════════════════════════════════════════════════════════════
-ПАРАМЕТРЫ КОНСТРУКТОРА
+ПАРАМЕТРЫ
 ═══════════════════════════════════════════════════════════════════════════════
 
     field_name : str — имя поля в словаре результата аспекта.
@@ -46,15 +53,18 @@ from typing import Any
 from action_machine.core.exceptions import ValidationFieldError
 
 from .result_field_checker import ResultFieldChecker
+from .result_string_checker import _build_checker_meta
 
 
 class ResultFloatChecker(ResultFieldChecker):
     """
     Проверяет, что значение является числом (int или float) и лежит в заданном диапазоне.
 
-    Поддерживает двойной режим: декоратор метода-аспекта и валидатор dict.
-    При использовании как декоратор записывает _checker_meta в функцию,
-    включая дополнительные параметры min_value, max_value.
+    Создаётся машиной из CheckerMeta при выполнении аспекта.
+
+    Атрибуты:
+        min_value : float | None — минимально допустимое значение (включительно).
+        max_value : float | None — максимально допустимое значение (включительно).
     """
 
     def __init__(
@@ -81,9 +91,9 @@ class ResultFloatChecker(ResultFieldChecker):
         """
         Возвращает дополнительные параметры числового чекера.
 
-        Эти параметры попадают в _checker_meta при использовании как декоратор
-        и затем передаются в конструктор при создании экземпляра машиной
-        в ActionProductMachine._apply_checkers().
+        Эти параметры сохраняются в CheckerMeta.extra_params при сборке
+        метаданных и передаются в конструктор при создании экземпляра
+        машиной в ActionProductMachine._apply_checkers().
 
         Возвращает:
             dict с ключами min_value, max_value.
@@ -143,3 +153,54 @@ class ResultFloatChecker(ResultFieldChecker):
         """
         num_value = self._validate_number(value)
         self._check_range(num_value)
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# Функция-декоратор
+# ═════════════════════════════════════════════════════════════════════════════
+
+
+def result_float(
+    field_name: str,
+    required: bool = True,
+    min_value: float | None = None,
+    max_value: float | None = None,
+) -> Any:
+    """
+    Декоратор метода-аспекта. Объявляет числовое поле (int/float) в результате аспекта.
+
+    Записывает метаданные чекера в атрибут ``_checker_meta`` метода.
+    MetadataBuilder собирает эти метаданные в ClassMetadata.checkers.
+    Машина создаёт экземпляр ResultFloatChecker из CheckerMeta
+    и вызывает checker.check(result_dict) при выполнении аспекта.
+
+    Аргументы:
+        field_name: имя поля в словаре результата аспекта.
+        required: обязательно ли поле. По умолчанию True.
+        min_value: минимально допустимое значение (включительно).
+        max_value: максимально допустимое значение (включительно).
+
+    Возвращает:
+        Декоратор, записывающий _checker_meta в метод.
+
+    Пример:
+        @regular_aspect("Расчёт")
+        @result_float("total", required=True, min_value=0.0)
+        async def calculate(self, params, state, box, connections):
+            return {"total": 1500.0}
+    """
+    checker = ResultFloatChecker(
+        field_name=field_name,
+        required=required,
+        min_value=min_value,
+        max_value=max_value,
+    )
+    meta = _build_checker_meta(checker)
+
+    def decorator(func: Any) -> Any:
+        if not hasattr(func, "_checker_meta"):
+            func._checker_meta = []
+        func._checker_meta.append(meta)
+        return func
+
+    return decorator

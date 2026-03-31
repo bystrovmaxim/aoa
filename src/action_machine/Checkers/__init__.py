@@ -6,63 +6,55 @@
 НАЗНАЧЕНИЕ
 ═══════════════════════════════════════════════════════════════════════════════
 
-Содержит систему валидации полей результатов аспектов. Чекеры применяются
-как декораторы к методам-аспектам и проверяют словарь, возвращённый аспектом,
-на соответствие объявленным полям.
+Содержит систему валидации полей результатов аспектов. Каждый чекер
+представлен двумя компонентами:
+
+1. **Класс чекера** (ResultStringChecker, ResultIntChecker и т.д.) —
+   используется машиной для проверки словаря, возвращённого аспектом.
+   Машина создаёт экземпляр из CheckerMeta и вызывает checker.check().
+
+2. **Функция-декоратор** (result_string, result_int и т.д.) — применяется
+   к методу-аспекту и записывает метаданные чекера в ``_checker_meta``.
+   MetadataBuilder собирает эти метаданные в ClassMetadata.checkers.
 
 ═══════════════════════════════════════════════════════════════════════════════
 КОМПОНЕНТЫ
 ═══════════════════════════════════════════════════════════════════════════════
 
-- CheckerGateHost — маркерный миксин, обозначающий поддержку декораторов
+Маркерный миксин:
+
+- **CheckerGateHost** — маркерный миксин, обозначающий поддержку декораторов
   чекеров на методах-аспектах. Наследуется BaseAction.
 
-- ResultFieldChecker — базовый абстрактный чекер для полей результата аспекта.
-  Определяет общий интерфейс: check(), _check_type_and_constraints(),
-  _get_extra_params(). Поддерживает двойной режим: декоратор метода-аспекта
-  и валидатор dict.
+Базовый класс:
 
-- ResultStringChecker — чекер для строковых полей (наличие, тип, длина,
-  not_empty, min_length, max_length).
+- **ResultFieldChecker** — базовый абстрактный чекер для полей результата
+  аспекта. Определяет общий интерфейс: check(), _check_type_and_constraints(),
+  _get_extra_params().
 
-- ResultIntChecker — чекер для целочисленных полей (тип int, диапазон
-  min_value/max_value).
+Классы чекеров (используются машиной):
 
-- ResultFloatChecker — чекер для числовых полей int/float (тип, диапазон
-  min_value/max_value).
+- **ResultStringChecker** — строковые поля (тип, длина, not_empty).
+- **ResultIntChecker** — целочисленные поля (тип int, диапазон).
+- **ResultFloatChecker** — числовые поля int/float (тип, диапазон).
+- **ResultBoolChecker** — булевые поля (точное isinstance(value, bool)).
+- **ResultDateChecker** — поля с датой (datetime или строка с форматом, диапазон).
+- **ResultInstanceChecker** — проверка принадлежности значения указанному классу.
 
-- ResultBoolChecker — чекер для булевых полей (точное isinstance(value, bool),
-  числа и строки не принимаются).
+Функции-декораторы (применяются к методам-аспектам):
 
-- ResultDateChecker — чекер для полей с датой (datetime или строка
-  с указанным форматом, диапазон min_date/max_date).
-
-- ResultInstanceChecker — чекер для проверки принадлежности значения
-  указанному классу или кортежу классов.
-
-═══════════════════════════════════════════════════════════════════════════════
-ДВОЙНОЙ РЕЖИМ РАБОТЫ ЧЕКЕРОВ
-═══════════════════════════════════════════════════════════════════════════════
-
-Все чекеры поддерживают два режима:
-
-1. Как декоратор метода-аспекта (порядок с @regular_aspect не важен):
-
-    @regular_aspect("Обработка платежа")
-    @ResultStringChecker("txn_id", required=True)
-    async def process_payment(self, params, state, box, connections):
-        return {"txn_id": txn_id}
-
-2. Как валидатор результата (вызывается машиной):
-
-    checker = ResultStringChecker("txn_id", required=True)
-    checker.check({"txn_id": txn_id})
+- **result_string** — объявляет строковое поле в результате аспекта.
+- **result_int** — объявляет целочисленное поле.
+- **result_float** — объявляет числовое поле (int/float).
+- **result_bool** — объявляет булево поле.
+- **result_date** — объявляет поле с датой.
+- **result_instance** — объявляет поле-экземпляр класса.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ИНТЕГРАЦИЯ С МЕТАДАННЫМИ
 ═══════════════════════════════════════════════════════════════════════════════
 
-Каждый чекер записывает в метод атрибут _checker_meta:
+Функции-декораторы записывают в метод атрибут _checker_meta — список словарей:
     [{"checker_class": ResultStringChecker, "field_name": "txn_id",
       "required": True, ...}]
 
@@ -76,24 +68,55 @@ ActionProductMachine при выполнении regular-аспекта:
 2. Если чекеров нет и аспект вернул непустой dict — ошибка.
 3. Если чекеры есть — проверяет, что результат содержит только
    объявленные поля, и применяет каждый чекер.
+
+═══════════════════════════════════════════════════════════════════════════════
+ПРИМЕР ИСПОЛЬЗОВАНИЯ
+═══════════════════════════════════════════════════════════════════════════════
+
+    from action_machine.checkers import result_string, result_int, result_float
+
+    class CreateOrderAction(BaseAction[OrderParams, OrderResult]):
+
+        @regular_aspect("Обработка платежа")
+        @result_string("txn_id", required=True, min_length=1)
+        @result_float("charged_amount", required=True, min_value=0.0)
+        async def process_payment(self, params, state, box, connections):
+            payment = box.resolve(PaymentService)
+            txn_id = await payment.charge(params.amount, params.currency)
+            return {"txn_id": txn_id, "charged_amount": params.amount}
+
+        @regular_aspect("Подсчёт бонусов")
+        @result_int("bonus_points", required=True, min_value=0)
+        async def calc_bonus(self, params, state, box, connections):
+            return {"bonus_points": int(params.amount * 0.1)}
 """
 
 from .checker_gate_host import CheckerGateHost
-from .result_bool_checker import ResultBoolChecker
-from .result_date_checker import ResultDateChecker
+from .result_bool_checker import ResultBoolChecker, result_bool
+from .result_date_checker import ResultDateChecker, result_date
 from .result_field_checker import ResultFieldChecker
-from .result_float_checker import ResultFloatChecker
-from .result_instance_checker import ResultInstanceChecker
-from .result_int_checker import ResultIntChecker
-from .result_string_checker import ResultStringChecker
+from .result_float_checker import ResultFloatChecker, result_float
+from .result_instance_checker import ResultInstanceChecker, result_instance
+from .result_int_checker import ResultIntChecker, result_int
+from .result_string_checker import ResultStringChecker, result_string
 
 __all__ = [
+    # Маркерный миксин
     "CheckerGateHost",
+    # Базовый класс
     "ResultFieldChecker",
+    # Классы чекеров (используются машиной)
     "ResultStringChecker",
     "ResultIntChecker",
     "ResultFloatChecker",
     "ResultBoolChecker",
     "ResultDateChecker",
     "ResultInstanceChecker",
+    # Функции-декораторы (применяются к методам-аспектам)
+    "result_string",
+    "result_int",
+    "result_float",
+    "result_bool",
+    "result_date",
+    "result_instance",
 ]
