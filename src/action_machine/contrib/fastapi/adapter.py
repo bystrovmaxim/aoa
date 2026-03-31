@@ -8,11 +8,26 @@ FastApiAdapter — HTTP-адаптер для ActionMachine на базе FastAP
 
 FastApiAdapter превращает Action в HTTP-эндпоинты FastAPI. Один вызов
 протокольного метода (post, get, put, delete, patch) = один эндпоинт.
+Все протокольные методы возвращают self для поддержки fluent chain:
+
+    app = adapter \\
+        .get("/api/v1/ping", PingAction, tags=["system"]) \\
+        .post("/api/v1/orders", CreateOrderAction, tags=["orders"]) \\
+        .build()
 
 OpenAPI-документация генерируется автоматически из метаданных, которые
 уже есть в коде: описания полей из ``Field(description=...)``, ограничения
 из ``Field(gt=0, min_length=3, pattern=...)``, summary из ``@meta``,
 теги из аргумента ``tags`` при регистрации.
+
+═══════════════════════════════════════════════════════════════════════════════
+КОНВЕНЦИЯ ИМЕНОВАНИЯ МАППЕРОВ
+═══════════════════════════════════════════════════════════════════════════════
+
+Каждый маппер назван по тому, что он ВОЗВРАЩАЕТ:
+
+    params_mapper   → возвращает params   (преобразует request → params)
+    response_mapper → возвращает response (преобразует result  → response)
 
 ═══════════════════════════════════════════════════════════════════════════════
 СТРАТЕГИИ ГЕНЕРАЦИИ ENDPOINT
@@ -84,10 +99,16 @@ HEALTH CHECK
         description="API для управления заказами",
     )
 
-    adapter.post("/api/v1/orders", CreateOrderAction, tags=["orders"])
-    adapter.get("/api/v1/orders/{order_id}", GetOrderAction, tags=["orders"])
-    adapter.get("/api/v1/ping", PingAction, tags=["system"])
+    # Fluent chain — регистрация и сборка в одном выражении:
+    app = adapter \\
+        .post("/api/v1/orders", CreateOrderAction, tags=["orders"]) \\
+        .get("/api/v1/orders/{order_id}", GetOrderAction, tags=["orders"]) \\
+        .get("/api/v1/ping", PingAction, tags=["system"]) \\
+        .build()
 
+    # Или поэтапно:
+    adapter.post("/api/v1/orders", CreateOrderAction, tags=["orders"])
+    adapter.get("/api/v1/ping", PingAction, tags=["system"])
     app = adapter.build()
 """
 
@@ -96,7 +117,7 @@ from __future__ import annotations
 import inspect
 import re
 from collections.abc import Callable
-from typing import Any
+from typing import Any, Self
 
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
@@ -215,7 +236,7 @@ def _make_endpoint_with_body(
     """
     req_model = record.effective_request_model
     has_params_mapper = record.params_mapper is not None
-    has_result_mapper = record.result_mapper is not None
+    has_response_mapper = record.response_mapper is not None
 
     async def endpoint(request: Request, body: Any) -> Any:
         if has_params_mapper:
@@ -237,8 +258,8 @@ def _make_endpoint_with_body(
         action = record.action_class()
         result = await machine.run(context, action, params, connections)
 
-        if has_result_mapper:
-            return record.result_mapper(result)  # type: ignore[misc]
+        if has_response_mapper:
+            return record.response_mapper(result)  # type: ignore[misc]
         return result
 
     # Строим сигнатуру с правильной аннотацией body
@@ -276,7 +297,7 @@ def _make_endpoint_with_query(
     """
     req_model = record.effective_request_model
     has_params_mapper = record.params_mapper is not None
-    has_result_mapper = record.result_mapper is not None
+    has_response_mapper = record.response_mapper is not None
     model_fields = _get_model_fields(req_model)
     path_params = _extract_path_params(record.path)
 
@@ -302,8 +323,8 @@ def _make_endpoint_with_query(
         action = record.action_class()
         result = await machine.run(context, action, params, connections)
 
-        if has_result_mapper:
-            return record.result_mapper(result)  # type: ignore[misc]
+        if has_response_mapper:
+            return record.response_mapper(result)  # type: ignore[misc]
         return result
 
     # Строим сигнатуру: request + каждое поле модели как отдельный параметр
@@ -362,7 +383,7 @@ def _make_endpoint_no_params(
     """
     req_model = record.effective_request_model
     has_params_mapper = record.params_mapper is not None
-    has_result_mapper = record.result_mapper is not None
+    has_response_mapper = record.response_mapper is not None
 
     async def endpoint(request: Request) -> Any:
         body = req_model()
@@ -386,8 +407,8 @@ def _make_endpoint_no_params(
         action = record.action_class()
         result = await machine.run(context, action, params, connections)
 
-        if has_result_mapper:
-            return record.result_mapper(result)  # type: ignore[misc]
+        if has_response_mapper:
+            return record.response_mapper(result)  # type: ignore[misc]
         return result
 
     return endpoint
@@ -410,7 +431,7 @@ def _make_endpoint(
     3. GET/DELETE с полями → endpoint с query/path параметрами.
 
     Аргументы:
-        record: конфигурация маршрута с action_class, маппинами и моделями.
+        record: конфигурация маршрута с action_class, маппингами и моделями.
         machine: машина выполнения действий.
         auth_coordinator: координатор аутентификации (или None).
         connections_factory: фабрика соединений (или None).
@@ -475,7 +496,8 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
 
     Наследует BaseAdapter[FastApiRouteRecord]. Предоставляет протокольные
     методы post(), get(), put(), delete(), patch() для регистрации
-    HTTP-эндпоинтов. Метод build() создаёт FastAPI-приложение.
+    HTTP-эндпоинтов. Все протокольные методы возвращают self для поддержки
+    fluent chain. Метод build() создаёт FastAPI-приложение.
 
     Атрибуты:
         _title : str
@@ -537,7 +559,7 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
         return self._description
 
     # ─────────────────────────────────────────────────────────────────────
-    # Внутренний метод регистрации
+    # Внутренний метод регистрации (fluent)
     # ─────────────────────────────────────────────────────────────────────
 
     def _register(
@@ -548,18 +570,21 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
         request_model: type | None = None,
         response_model: type | None = None,
         params_mapper: Callable[..., Any] | None = None,
-        result_mapper: Callable[..., Any] | None = None,
+        response_mapper: Callable[..., Any] | None = None,
         tags: list[str] | None = None,
         summary: str = "",
         description: str = "",
         operation_id: str | None = None,
         deprecated: bool = False,
-    ) -> None:
+    ) -> Self:
         """
-        Создаёт FastApiRouteRecord и добавляет его в _routes.
+        Создаёт FastApiRouteRecord, добавляет его в _routes и возвращает self.
 
         Если ``summary`` пуст — автоматически подставляется description
         из ``@meta`` действия.
+
+        Возвращает:
+            Self — текущий экземпляр адаптера для fluent chain.
         """
         effective_summary = summary or _get_meta_description(action_class)
 
@@ -568,7 +593,7 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
             request_model=request_model,
             response_model=response_model,
             params_mapper=params_mapper,
-            result_mapper=result_mapper,
+            response_mapper=response_mapper,
             method=method,
             path=path,
             tags=tuple(tags or ()),
@@ -577,10 +602,10 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
             operation_id=operation_id,
             deprecated=deprecated,
         )
-        self._add_route(record)
+        return self._add_route(record)
 
     # ─────────────────────────────────────────────────────────────────────
-    # Протокольные методы
+    # Протокольные методы (fluent — возвращают Self)
     # ─────────────────────────────────────────────────────────────────────
 
     def post(
@@ -590,17 +615,17 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
         request_model: type | None = None,
         response_model: type | None = None,
         params_mapper: Callable[..., Any] | None = None,
-        result_mapper: Callable[..., Any] | None = None,
+        response_mapper: Callable[..., Any] | None = None,
         tags: list[str] | None = None,
         summary: str = "",
         description: str = "",
         operation_id: str | None = None,
         deprecated: bool = False,
-    ) -> None:
-        """Регистрирует POST-эндпоинт."""
-        self._register(
+    ) -> Self:
+        """Регистрирует POST-эндпоинт. Возвращает self для fluent chain."""
+        return self._register(
             "POST", path, action_class, request_model, response_model,
-            params_mapper, result_mapper, tags, summary, description,
+            params_mapper, response_mapper, tags, summary, description,
             operation_id, deprecated,
         )
 
@@ -611,17 +636,17 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
         request_model: type | None = None,
         response_model: type | None = None,
         params_mapper: Callable[..., Any] | None = None,
-        result_mapper: Callable[..., Any] | None = None,
+        response_mapper: Callable[..., Any] | None = None,
         tags: list[str] | None = None,
         summary: str = "",
         description: str = "",
         operation_id: str | None = None,
         deprecated: bool = False,
-    ) -> None:
-        """Регистрирует GET-эндпоинт."""
-        self._register(
+    ) -> Self:
+        """Регистрирует GET-эндпоинт. Возвращает self для fluent chain."""
+        return self._register(
             "GET", path, action_class, request_model, response_model,
-            params_mapper, result_mapper, tags, summary, description,
+            params_mapper, response_mapper, tags, summary, description,
             operation_id, deprecated,
         )
 
@@ -632,17 +657,17 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
         request_model: type | None = None,
         response_model: type | None = None,
         params_mapper: Callable[..., Any] | None = None,
-        result_mapper: Callable[..., Any] | None = None,
+        response_mapper: Callable[..., Any] | None = None,
         tags: list[str] | None = None,
         summary: str = "",
         description: str = "",
         operation_id: str | None = None,
         deprecated: bool = False,
-    ) -> None:
-        """Регистрирует PUT-эндпоинт."""
-        self._register(
+    ) -> Self:
+        """Регистрирует PUT-эндпоинт. Возвращает self для fluent chain."""
+        return self._register(
             "PUT", path, action_class, request_model, response_model,
-            params_mapper, result_mapper, tags, summary, description,
+            params_mapper, response_mapper, tags, summary, description,
             operation_id, deprecated,
         )
 
@@ -653,17 +678,17 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
         request_model: type | None = None,
         response_model: type | None = None,
         params_mapper: Callable[..., Any] | None = None,
-        result_mapper: Callable[..., Any] | None = None,
+        response_mapper: Callable[..., Any] | None = None,
         tags: list[str] | None = None,
         summary: str = "",
         description: str = "",
         operation_id: str | None = None,
         deprecated: bool = False,
-    ) -> None:
-        """Регистрирует DELETE-эндпоинт."""
-        self._register(
+    ) -> Self:
+        """Регистрирует DELETE-эндпоинт. Возвращает self для fluent chain."""
+        return self._register(
             "DELETE", path, action_class, request_model, response_model,
-            params_mapper, result_mapper, tags, summary, description,
+            params_mapper, response_mapper, tags, summary, description,
             operation_id, deprecated,
         )
 
@@ -674,17 +699,17 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
         request_model: type | None = None,
         response_model: type | None = None,
         params_mapper: Callable[..., Any] | None = None,
-        result_mapper: Callable[..., Any] | None = None,
+        response_mapper: Callable[..., Any] | None = None,
         tags: list[str] | None = None,
         summary: str = "",
         description: str = "",
         operation_id: str | None = None,
         deprecated: bool = False,
-    ) -> None:
-        """Регистрирует PATCH-эндпоинт."""
-        self._register(
+    ) -> Self:
+        """Регистрирует PATCH-эндпоинт. Возвращает self для fluent chain."""
+        return self._register(
             "PATCH", path, action_class, request_model, response_model,
-            params_mapper, result_mapper, tags, summary, description,
+            params_mapper, response_mapper, tags, summary, description,
             operation_id, deprecated,
         )
 
@@ -695,6 +720,8 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
     def build(self) -> FastAPI:
         """
         Создаёт FastAPI-приложение из зарегистрированных маршрутов.
+
+        Этот метод завершает fluent chain и возвращает готовое приложение.
 
         Порядок инициализации:
         1. Создание FastAPI-приложения с метаданными OpenAPI.

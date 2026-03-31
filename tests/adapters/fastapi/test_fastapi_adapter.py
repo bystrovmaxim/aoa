@@ -15,6 +15,7 @@
     - Регистрация с tags, summary, description, operation_id, deprecated.
     - Auto-summary из @meta действия.
     - Множественные маршруты.
+    - Fluent chain: методы возвращают self.
 
 build():
     - Возвращает FastAPI-приложение.
@@ -35,7 +36,11 @@ Exception handlers:
 
 Маппинг:
     - Route с params_mapper — маппер вызывается.
-    - Route с result_mapper — маппер вызывается.
+    - Route с response_mapper — маппер вызывается.
+
+Fluent chain:
+    - Цепочечная регистрация маршрутов.
+    - Цепочка завершается build().
 """
 
 from __future__ import annotations
@@ -332,6 +337,41 @@ class TestRouteRegistration:
         adapter.post("/test", PingAction, description="Подробное описание")
         assert adapter.routes[0].description == "Подробное описание"
 
+    def test_post_returns_self(self, adapter):
+        """post() возвращает self для fluent chain."""
+        result = adapter.post("/test", PingAction)
+        assert result is adapter
+
+    def test_get_returns_self(self, adapter):
+        """get() возвращает self для fluent chain."""
+        result = adapter.get("/test", PingAction)
+        assert result is adapter
+
+    def test_put_returns_self(self, adapter):
+        """put() возвращает self для fluent chain."""
+        result = adapter.put("/test", PingAction)
+        assert result is adapter
+
+    def test_delete_returns_self(self, adapter):
+        """delete() возвращает self для fluent chain."""
+        result = adapter.delete("/test", PingAction)
+        assert result is adapter
+
+    def test_patch_returns_self(self, adapter):
+        """patch() возвращает self для fluent chain."""
+        result = adapter.patch("/test", PingAction)
+        assert result is adapter
+
+    def test_fluent_chain(self, adapter):
+        """Цепочечная регистрация маршрутов."""
+        result = adapter \
+            .get("/a", PingAction, tags=["system"]) \
+            .post("/b", CreateOrderAction, tags=["orders"]) \
+            .get("/c", GetOrderAction, tags=["orders"])
+
+        assert result is adapter
+        assert len(adapter.routes) == 3
+
 
 # ═════════════════════════════════════════════════════════════════════════════
 # ТЕСТЫ: build()
@@ -357,6 +397,20 @@ class TestBuild:
         assert "/api/v1/orders" in paths
         assert "/api/v1/orders/{order_id}" in paths
         assert "/health" in paths
+
+    def test_fluent_chain_to_build(self, machine):
+        """Fluent chain завершается build()."""
+        adapter = FastApiAdapter(machine=machine, title="Chain API")
+        app = adapter \
+            .get("/ping", PingAction, tags=["system"]) \
+            .post("/orders", CreateOrderAction, tags=["orders"]) \
+            .build()
+
+        from fastapi import FastAPI
+        assert isinstance(app, FastAPI)
+        paths = [route.path for route in app.routes]
+        assert "/ping" in paths
+        assert "/orders" in paths
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -476,7 +530,7 @@ class TestExceptionHandlers:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# ТЕСТЫ: Маппинг (params_mapper, result_mapper)
+# ТЕСТЫ: Маппинг (params_mapper, response_mapper)
 # ═════════════════════════════════════════════════════════════════════════════
 
 
@@ -490,7 +544,7 @@ class TestMapping:
         def params_mapper(alt: AltRequest) -> OrderParams:
             return OrderParams(user_id=alt.raw_data, amount=999.0, currency="USD")
 
-        def result_mapper(res: OrderResult) -> AltResponse:
+        def response_mapper(res: OrderResult) -> AltResponse:
             return AltResponse(transformed=f"{res.order_id}:{res.status}")
 
         adapter = FastApiAdapter(machine=machine, title="Mapping API")
@@ -510,7 +564,7 @@ class TestMapping:
             request_model=AltRequest,
             response_model=AltResponse,
             params_mapper=params_mapper,
-            result_mapper=result_mapper,
+            response_mapper=response_mapper,
         )
 
         app = adapter.build()
@@ -531,8 +585,8 @@ class TestMapping:
         assert data["total"] == 999.0
 
     @pytest.mark.anyio
-    async def test_result_mapper_transforms_response(self, mapping_client):
-        """result_mapper преобразует OrderResult в AltResponse."""
+    async def test_response_mapper_transforms_response(self, mapping_client):
+        """response_mapper преобразует OrderResult в AltResponse."""
         response = await mapping_client.post(
             "/with-both-mappers",
             json={"raw_data": "both_user"},

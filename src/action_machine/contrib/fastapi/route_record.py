@@ -55,19 +55,28 @@ HTTP-СПЕЦИФИЧНЫЕ ПОЛЯ
 ═══════════════════════════════════════════════════════════════════════════════
 
 Наследует от BaseRouteRecord все общие поля: action_class, request_model,
-response_model, params_mapper, result_mapper. Наследует все инварианты:
+response_model, params_mapper, response_mapper. Наследует все инварианты:
 
 - action_class должен быть подклассом BaseAction.
 - params_type и result_type извлекаются автоматически из BaseAction[P, R].
 - Если request_model указан и отличается от params_type — params_mapper
   обязателен.
-- Если response_model указан и отличается от result_type — result_mapper
+- Если response_model указан и отличается от result_type — response_mapper
   обязателен.
 
 В ``__post_init__`` выполняются HTTP-специфичные проверки:
 
 - method из допустимого набора {GET, POST, PUT, DELETE, PATCH}.
 - path непустой и начинается с ``/``.
+
+═══════════════════════════════════════════════════════════════════════════════
+КОНВЕНЦИЯ ИМЕНОВАНИЯ МАППЕРОВ
+═══════════════════════════════════════════════════════════════════════════════
+
+Каждый маппер назван по тому, что он ВОЗВРАЩАЕТ:
+
+    params_mapper   → возвращает params   (преобразует request → params)
+    response_mapper → возвращает response (преобразует result  → response)
 
 ═══════════════════════════════════════════════════════════════════════════════
 ПРИМЕР СОЗДАНИЯ
@@ -85,7 +94,7 @@ response_model, params_mapper, result_mapper. Наследует все инва
         request_model=CreateOrderRequest,
         response_model=CreateOrderResponse,
         params_mapper=map_request_to_params,
-        result_mapper=map_result_to_response,
+        response_mapper=map_result_to_response,
         method="POST",
         path="/api/v1/orders",
         tags=("orders", "create"),
@@ -118,7 +127,7 @@ class FastApiRouteRecord(BaseRouteRecord):
     Frozen-датакласс маршрута для FastAPI-адаптера.
 
     Наследует BaseRouteRecord (action_class, request_model, response_model,
-    params_mapper, result_mapper) и добавляет HTTP-специфичные поля.
+    params_mapper, response_mapper) и добавляет HTTP-специфичные поля.
 
     Frozen — после создания ни одно поле изменить нельзя.
 

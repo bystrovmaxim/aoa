@@ -11,9 +11,10 @@ BaseAdapter:
       connections_factory.
     - Конструктор: TypeError при передаче не-ActionProductMachine.
     - Конструктор: значения по умолчанию (auth=None, connections=None).
-    - _add_route(): добавляет RouteRecord в _routes.
+    - _add_route(): добавляет RouteRecord в _routes и возвращает self.
     - routes: свойство возвращает список зарегистрированных маршрутов.
     - build(): вызывается и возвращает протокольное приложение.
+    - Fluent chain: протокольные методы возвращают self.
 
 BaseRouteRecord:
     - Нельзя инстанцировать напрямую (TypeError).
@@ -22,9 +23,9 @@ BaseRouteRecord:
       effective_request_model, effective_response_model.
     - Frozen: попытка изменения поля → FrozenInstanceError.
     - Значения по умолчанию: request_model=None, response_model=None,
-      params_mapper=None, result_mapper=None.
+      params_mapper=None, response_mapper=None.
     - Валидация: params_mapper обязателен если request_model != params_type.
-    - Валидация: result_mapper обязателен если response_model != result_type.
+    - Валидация: response_mapper обязателен если response_model != result_type.
     - Валидация: маппер при совпадающих типах допустим.
     - Протокольно-специфичные поля в наследнике типизированы.
 
@@ -37,6 +38,7 @@ extract_action_types:
     - Минимальная регистрация (только action_class).
     - Регистрация с request_model и маппером.
     - Регистрация с обоими моделями и обоими мапперами.
+    - Fluent chain: цепочечная регистрация маршрутов.
 """
 
 from __future__ import annotations
@@ -198,8 +200,8 @@ class MockAdapter(BaseAdapter[MockRouteRecord]):
     Mock-адаптер для тестирования BaseAdapter.
 
     Предоставляет протокольные методы post() и get(), имитирующие
-    API реального HTTP-адаптера. Каждый метод создаёт MockRouteRecord
-    и добавляет его через _add_route().
+    API реального HTTP-адаптера. Каждый метод создаёт MockRouteRecord,
+    добавляет его через _add_route() и возвращает self для fluent chain.
     """
 
     def post(
@@ -209,23 +211,23 @@ class MockAdapter(BaseAdapter[MockRouteRecord]):
         request_model: type | None = None,
         response_model: type | None = None,
         params_mapper: Any = None,
-        result_mapper: Any = None,
+        response_mapper: Any = None,
         tags: list[str] | None = None,
         summary: str = "",
-    ) -> None:
-        """Регистрирует POST-маршрут."""
+    ) -> MockAdapter:
+        """Регистрирует POST-маршрут. Возвращает self для fluent chain."""
         record = MockRouteRecord(
             action_class=action_class,
             request_model=request_model,
             response_model=response_model,
             params_mapper=params_mapper,
-            result_mapper=result_mapper,
+            response_mapper=response_mapper,
             method="POST",
             path=path,
             tags=tuple(tags or ()),
             summary=summary,
         )
-        self._add_route(record)
+        return self._add_route(record)
 
     def get(
         self,
@@ -234,23 +236,23 @@ class MockAdapter(BaseAdapter[MockRouteRecord]):
         request_model: type | None = None,
         response_model: type | None = None,
         params_mapper: Any = None,
-        result_mapper: Any = None,
+        response_mapper: Any = None,
         tags: list[str] | None = None,
         summary: str = "",
-    ) -> None:
-        """Регистрирует GET-маршрут."""
+    ) -> MockAdapter:
+        """Регистрирует GET-маршрут. Возвращает self для fluent chain."""
         record = MockRouteRecord(
             action_class=action_class,
             request_model=request_model,
             response_model=response_model,
             params_mapper=params_mapper,
-            result_mapper=result_mapper,
+            response_mapper=response_mapper,
             method="GET",
             path=path,
             tags=tuple(tags or ()),
             summary=summary,
         )
-        self._add_route(record)
+        return self._add_route(record)
 
     def build(self) -> dict[str, Any]:
         """Создаёт mock-приложение — словарь с маршрутами."""
@@ -418,7 +420,7 @@ class TestBaseRouteRecord:
         record = MockRouteRecord(
             action_class=CreateOrderAction,
             response_model=ListOrdersResponse,
-            result_mapper=map_order_result_to_list_response,
+            response_mapper=map_order_result_to_list_response,
         )
         assert record.effective_response_model is ListOrdersResponse
 
@@ -429,7 +431,7 @@ class TestBaseRouteRecord:
         assert record.request_model is None
         assert record.response_model is None
         assert record.params_mapper is None
-        assert record.result_mapper is None
+        assert record.response_mapper is None
 
     def test_frozen_prevents_modification(self):
         """Frozen: попытка изменения поля → FrozenInstanceError."""
@@ -482,7 +484,7 @@ class TestBaseRouteRecord:
 
 
 class TestRouteRecordMapperValidation:
-    """Тесты валидации params_mapper и result_mapper."""
+    """Тесты валидации params_mapper и response_mapper."""
 
     def test_different_request_model_without_mapper_raises(self):
         """request_model != params_type и params_mapper=None → ValueError."""
@@ -493,8 +495,8 @@ class TestRouteRecordMapperValidation:
             )
 
     def test_different_response_model_without_mapper_raises(self):
-        """response_model != result_type и result_mapper=None → ValueError."""
-        with pytest.raises(ValueError, match="result_mapper не указан"):
+        """response_model != result_type и response_mapper=None → ValueError."""
+        with pytest.raises(ValueError, match="response_mapper не указан"):
             MockRouteRecord(
                 action_class=CreateOrderAction,
                 response_model=ListOrdersResponse,
@@ -515,9 +517,9 @@ class TestRouteRecordMapperValidation:
         assert record.params_mapper is None
 
     def test_no_response_model_no_mapper_ok(self):
-        """response_model=None → result_mapper не нужен."""
+        """response_model=None → response_mapper не нужен."""
         record = MockRouteRecord(action_class=CreateOrderAction)
-        assert record.result_mapper is None
+        assert record.response_mapper is None
 
     def test_same_request_model_no_mapper_ok(self):
         """request_model == params_type → маппер не нужен."""
@@ -533,7 +535,7 @@ class TestRouteRecordMapperValidation:
             action_class=CreateOrderAction,
             response_model=OrderResult,
         )
-        assert record.result_mapper is None
+        assert record.response_mapper is None
 
     def test_same_types_with_mappers_ok(self):
         """Маппер при совпадающих типах допустим."""
@@ -542,10 +544,10 @@ class TestRouteRecordMapperValidation:
             request_model=OrderParams,
             response_model=OrderResult,
             params_mapper=identity_mapper,
-            result_mapper=identity_mapper,
+            response_mapper=identity_mapper,
         )
         assert record.params_mapper is identity_mapper
-        assert record.result_mapper is identity_mapper
+        assert record.response_mapper is identity_mapper
 
     def test_different_request_with_mapper_ok(self):
         """request_model != params_type с маппером → OK."""
@@ -561,9 +563,9 @@ class TestRouteRecordMapperValidation:
         record = MockRouteRecord(
             action_class=CreateOrderAction,
             response_model=ListOrdersResponse,
-            result_mapper=map_order_result_to_list_response,
+            response_mapper=map_order_result_to_list_response,
         )
-        assert record.result_mapper is map_order_result_to_list_response
+        assert record.response_mapper is map_order_result_to_list_response
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -588,7 +590,7 @@ class TestAdapterProtocolMethods:
         assert record.request_model is None
         assert record.response_model is None
         assert record.params_mapper is None
-        assert record.result_mapper is None
+        assert record.response_mapper is None
 
     def test_get_minimal(self, adapter: MockAdapter):
         """get() с минимальными аргументами."""
@@ -621,14 +623,14 @@ class TestAdapterProtocolMethods:
             request_model=ListOrdersRequest,
             response_model=ListOrdersResponse,
             params_mapper=map_list_request_to_params,
-            result_mapper=map_order_result_to_list_response,
+            response_mapper=map_order_result_to_list_response,
         )
 
         record = adapter.routes[0]
         assert record.request_model is ListOrdersRequest
         assert record.response_model is ListOrdersResponse
         assert record.params_mapper is map_list_request_to_params
-        assert record.result_mapper is map_order_result_to_list_response
+        assert record.response_mapper is map_order_result_to_list_response
 
     def test_post_with_tags_and_summary(self, adapter: MockAdapter):
         """post() с tags и summary."""
@@ -663,6 +665,29 @@ class TestAdapterProtocolMethods:
                 request_model=ListOrdersRequest,
             )
 
+    def test_fluent_chain_returns_self(self, adapter: MockAdapter):
+        """Протокольные методы возвращают self для fluent chain."""
+        result = adapter.post("/orders", CreateOrderAction)
+        assert result is adapter
+
+    def test_fluent_chain_get_returns_self(self, adapter: MockAdapter):
+        """get() возвращает self для fluent chain."""
+        result = adapter.get("/ping", SimpleAction)
+        assert result is adapter
+
+    def test_fluent_chain_multiple(self, adapter: MockAdapter):
+        """Цепочечные вызовы регистрируют все маршруты."""
+        result = adapter \
+            .post("/orders", CreateOrderAction) \
+            .get("/orders", ListOrdersAction) \
+            .get("/ping", SimpleAction)
+
+        assert result is adapter
+        assert len(adapter.routes) == 3
+        assert adapter.routes[0].method == "POST"
+        assert adapter.routes[1].method == "GET"
+        assert adapter.routes[2].path == "/ping"
+
 
 # ═════════════════════════════════════════════════════════════════════════════
 # ТЕСТЫ: build()
@@ -692,6 +717,17 @@ class TestBuild:
         app = adapter.build()
         assert app["routes"][0].path == "/first"
         assert app["routes"][1].path == "/second"
+
+    def test_fluent_chain_to_build(self, adapter: MockAdapter):
+        """Fluent chain завершается build()."""
+        app = adapter \
+            .get("/ping", SimpleAction) \
+            .post("/orders", CreateOrderAction) \
+            .build()
+
+        assert app["route_count"] == 2
+        assert app["routes"][0].path == "/ping"
+        assert app["routes"][1].path == "/orders"
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -731,7 +767,7 @@ class TestIntegration:
             request_model=ListOrdersRequest,
             response_model=ListOrdersResponse,
             params_mapper=map_list_request_to_params,
-            result_mapper=map_order_result_to_list_response,
+            response_mapper=map_order_result_to_list_response,
         )
 
         app = adapter.build()
@@ -739,7 +775,7 @@ class TestIntegration:
         assert record.effective_request_model is ListOrdersRequest
         assert record.effective_response_model is ListOrdersResponse
         assert record.params_mapper is map_list_request_to_params
-        assert record.result_mapper is map_order_result_to_list_response
+        assert record.response_mapper is map_order_result_to_list_response
 
     def test_full_cycle_mixed(self, adapter: MockAdapter):
         """Полный цикл: минимальный + с request_model + с обоими."""
@@ -758,7 +794,7 @@ class TestIntegration:
             request_model=ListOrdersRequest,
             response_model=ListOrdersResponse,
             params_mapper=map_list_request_to_params,
-            result_mapper=map_order_result_to_list_response,
+            response_mapper=map_order_result_to_list_response,
         )
 
         app = adapter.build()
@@ -768,19 +804,35 @@ class TestIntegration:
         assert app["routes"][0].effective_request_model is OrderParams
         assert app["routes"][0].effective_response_model is OrderResult
         assert app["routes"][0].params_mapper is None
-        assert app["routes"][0].result_mapper is None
+        assert app["routes"][0].response_mapper is None
 
         # Только request_model отличается
         assert app["routes"][1].effective_request_model is ListOrdersRequest
         assert app["routes"][1].effective_response_model is OrderResult
         assert app["routes"][1].params_mapper is map_list_request_to_params
-        assert app["routes"][1].result_mapper is None
+        assert app["routes"][1].response_mapper is None
 
         # Оба отличаются
         assert app["routes"][2].effective_request_model is ListOrdersRequest
         assert app["routes"][2].effective_response_model is ListOrdersResponse
         assert app["routes"][2].params_mapper is map_list_request_to_params
-        assert app["routes"][2].result_mapper is map_order_result_to_list_response
+        assert app["routes"][2].response_mapper is map_order_result_to_list_response
+
+    def test_full_cycle_fluent_chain(self, adapter: MockAdapter):
+        """Полный цикл через fluent chain."""
+        app = adapter \
+            .post("/orders/create", CreateOrderAction) \
+            .get("/orders/list", ListOrdersAction,
+                 request_model=ListOrdersRequest,
+                 params_mapper=map_list_request_to_params) \
+            .get("/orders/{id}", CreateOrderAction,
+                 request_model=ListOrdersRequest,
+                 response_model=ListOrdersResponse,
+                 params_mapper=map_list_request_to_params,
+                 response_mapper=map_order_result_to_list_response) \
+            .build()
+
+        assert app["route_count"] == 3
 
     def test_adapter_with_auth_and_connections(self, machine: ActionProductMachine):
         """Адаптер с auth_coordinator и connections_factory."""

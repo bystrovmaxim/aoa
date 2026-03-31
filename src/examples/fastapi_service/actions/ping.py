@@ -1,4 +1,4 @@
-# examples/fastapi_service/actions/ping.py
+# src/examples/fastapi_service/actions/ping.py
 """
 PingAction — действие проверки доступности сервиса.
 
@@ -17,13 +17,43 @@ PingAction — действие проверки доступности серв
     GET /api/v1/ping → {"message": "pong"}
 
 ═══════════════════════════════════════════════════════════════════════════════
+ПАТТЕРН ВЛОЖЕННЫХ МОДЕЛЕЙ
+═══════════════════════════════════════════════════════════════════════════════
+
+Params и Result определяются как вложенные классы внутри Action:
+
+    class PingAction(BaseAction["PingAction.Params", "PingAction.Result"]):
+        class Params(BaseParams): ...
+        class Result(BaseResult): ...
+
+Преимущества:
+
+1. ЛОКАЛЬНОСТЬ — модели данных находятся рядом с логикой, которая их
+   использует. Не нужно искать определение в другом месте файла.
+
+2. ПРОСТРАНСТВО ИМЁН — ``PingAction.Params`` и ``CreateOrderAction.Params``
+   не конфликтуют. Каждое действие владеет своими моделями.
+
+3. САМОДОКУМЕНТИРОВАНИЕ — открыв класс действия, разработчик видит
+   полную картину: входные данные, выходные данные, логику обработки.
+
+Generic-параметры указываются как строковые forward references
+(``"PingAction.Params"``), потому что вложенные классы ещё не существуют
+на момент определения наследования. Функция ``extract_action_types``
+резолвит ForwardRef через модуль и пространство имён класса.
+
+Описание действия берётся из ``@meta(description=...)``, описания
+аспектов — из ``@summary_aspect("...")``. Отдельный docstring на классе
+действия не нужен — это дублирование.
+
+═══════════════════════════════════════════════════════════════════════════════
 КОНФИГУРАЦИЯ
 ═══════════════════════════════════════════════════════════════════════════════
 
 - @meta: описание "Проверка доступности сервиса", домен SystemDomain.
 - @CheckRoles(NONE): доступно без аутентификации.
-- Params: пустые (BaseParams).
-- Result: PingResult с полем message.
+- Params: пустые (BaseParams без полей).
+- Result: поле message.
 """
 
 from pydantic import Field
@@ -41,33 +71,24 @@ from action_machine.resource_managers.base_resource_manager import BaseResourceM
 from ..domains import SystemDomain
 
 
-class PingParams(BaseParams):
-    """Параметры пинг-запроса. Пустые — действие не принимает входных данных."""
-    pass
-
-
-class PingResult(BaseResult):
-    """Результат пинг-запроса."""
-    message: str = Field(description="Ответное сообщение", examples=["pong"])
-
-
 @meta(description="Проверка доступности сервиса", domain=SystemDomain)
 @CheckRoles(CheckRoles.NONE, desc="Доступно без аутентификации")
-class PingAction(BaseAction[PingParams, PingResult]):
-    """
-    Действие проверки доступности.
+class PingAction(BaseAction["PingAction.Params", "PingAction.Result"]):
 
-    Возвращает фиксированный ответ ``{"message": "pong"}``.
-    Не требует аутентификации, не имеет зависимостей и соединений.
-    """
+    class Params(BaseParams):
+        """Параметры пинг-запроса. Пустые — действие не принимает входных данных."""
+        pass
+
+    class Result(BaseResult):
+        """Результат пинг-запроса."""
+        message: str = Field(description="Ответное сообщение", examples=["pong"])
 
     @summary_aspect("Формирование ответа pong")
     async def pong(
         self,
-        params: PingParams,
+        params: "PingAction.Params",
         state: BaseState,
         box: ToolsBox,
         connections: dict[str, BaseResourceManager],
-    ) -> PingResult:
-        """Формирует и возвращает ответ pong."""
-        return PingResult(message="pong")
+    ) -> "PingAction.Result":
+        return PingAction.Result(message="pong")
