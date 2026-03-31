@@ -48,9 +48,13 @@ dependencies = [
 ]
 
 # --------------------------------------------------------------------------
-# Optional (contrib)
+# Optional (contrib) — протокольные адаптеры и драйверы БД
 # --------------------------------------------------------------------------
 [project.optional-dependencies]
+fastapi = [
+    "fastapi>=0.115.0",
+    "uvicorn>=0.34.0",
+]
 postgres = [
     "asyncpg>=0.31.0",
 ]
@@ -91,6 +95,7 @@ test = [
     "pytest-asyncio>=1.3.0",
     "pytest-cov>=6.0.0",
     "anyio>=4.12.0",
+    "httpx>=0.28.0",
 ]
 
 # ============================================================================
@@ -99,7 +104,6 @@ test = [
 [tool.hatch.build.targets.wheel]
 packages = [
     "src/action_machine",
-    "src/action_machine_contrib",
 ]
 
 # ============================================================================
@@ -138,6 +142,10 @@ exclude = ["venv", ".venv", "build", "dist"]
 module = ["simpleeval.*", "asyncpg.*"]
 ignore_missing_imports = true
 
+[[tool.mypy.overrides]]
+module = ["action_machine.examples.*"]
+disable_error_code = ["type-arg"]
+
 # ============================================================================
 # COVERAGE
 # ============================================================================
@@ -175,6 +183,7 @@ disable = [
     "R0903",
     "R0902",
     "C0304",
+    "W0105",
     "W0718",
     "W0613",
     "W0212",
