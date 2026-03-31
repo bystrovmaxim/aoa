@@ -1,19 +1,44 @@
+# src/action_machine/checkers/result_int_checker.py
 """
 Чекер для целочисленных полей результата аспекта.
 
-Назначение:
-    Проверяет, что поле результата является целым числом и лежит в заданном диапазоне.
+═══════════════════════════════════════════════════════════════════════════════
+НАЗНАЧЕНИЕ
+═══════════════════════════════════════════════════════════════════════════════
 
-Двойное использование:
-    1. Как декоратор метода-аспекта (порядок с @regular_aspect не важен):
-        @regular_aspect("Подсчёт")
-        @ResultIntChecker("count", "Количество", required=True, min_value=0, max_value=100)
-        async def count_items(self, ...):
-            return {"count": 42}
+Проверяет, что поле результата является целым числом (int) и лежит
+в заданном диапазоне.
 
-    2. Как валидатор результата (вызывается машиной):
-        checker = ResultIntChecker("count", "Количество", min_value=0)
-        checker.check({"count": 42})
+═══════════════════════════════════════════════════════════════════════════════
+ДВОЙНОЕ ИСПОЛЬЗОВАНИЕ
+═══════════════════════════════════════════════════════════════════════════════
+
+1. Как декоратор метода-аспекта (порядок с @regular_aspect не важен):
+
+    @regular_aspect("Подсчёт")
+    @ResultIntChecker("count", required=True, min_value=0, max_value=100)
+    async def count_items(self, ...):
+        return {"count": 42}
+
+2. Как валидатор результата (вызывается машиной):
+
+    checker = ResultIntChecker("count", min_value=0)
+    checker.check({"count": 42})
+
+═══════════════════════════════════════════════════════════════════════════════
+ПАРАМЕТРЫ КОНСТРУКТОРА
+═══════════════════════════════════════════════════════════════════════════════
+
+    field_name : str — имя поля в словаре результата аспекта.
+    required : bool — обязательно ли поле. По умолчанию True.
+    min_value : int | None — минимально допустимое значение (включительно).
+    max_value : int | None — максимально допустимое значение (включительно).
+
+═══════════════════════════════════════════════════════════════════════════════
+ОШИБКИ
+═══════════════════════════════════════════════════════════════════════════════
+
+    ValidationFieldError — значение не int; значение вне диапазона.
 """
 
 from typing import Any
@@ -35,7 +60,6 @@ class ResultIntChecker(ResultFieldChecker):
     def __init__(
         self,
         field_name: str,
-        desc: str,
         required: bool = True,
         min_value: int | None = None,
         max_value: int | None = None,
@@ -44,13 +68,12 @@ class ResultIntChecker(ResultFieldChecker):
         Инициализирует чекер.
 
         Аргументы:
-            field_name: имя поля.
-            desc: описание чекера (обязательно).
-            required: обязательно ли поле.
+            field_name: имя поля в словаре результата аспекта.
+            required: обязательно ли поле. По умолчанию True.
             min_value: минимально допустимое значение (включительно).
             max_value: максимально допустимое значение (включительно).
         """
-        super().__init__(field_name, required, desc)
+        super().__init__(field_name, required)
         self.min_value = min_value
         self.max_value = max_value
 
@@ -110,10 +133,13 @@ class ResultIntChecker(ResultFieldChecker):
 
     def _check_type_and_constraints(self, value: Any) -> None:
         """
-        Проверяет тип и применяет ограничения диапазона.
+        Проверяет тип (int) и применяет ограничения диапазона.
 
         Аргументы:
             value: значение для проверки (гарантированно не None).
+
+        Исключения:
+            ValidationFieldError: при нарушении типа или диапазона.
         """
         int_value = self._validate_int(value)
         self._check_range(int_value)

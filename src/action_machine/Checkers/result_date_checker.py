@@ -17,22 +17,33 @@
 1. Как декоратор метода-аспекта (порядок с @regular_aspect не важен):
 
     @regular_aspect("Проверка даты")
-    @ResultDateChecker("created_at", "Дата создания", date_format="%Y-%m-%d")
+    @ResultDateChecker("created_at", date_format="%Y-%m-%d")
     async def check_date(self, ...):
         return {"created_at": "2024-01-15"}
 
 2. Как валидатор результата (вызывается машиной):
 
-    checker = ResultDateChecker("created_at", "Дата создания", date_format="%Y-%m-%d")
+    checker = ResultDateChecker("created_at", date_format="%Y-%m-%d")
     checker.check({"created_at": "2024-01-15"})
+
+═══════════════════════════════════════════════════════════════════════════════
+ПАРАМЕТРЫ КОНСТРУКТОРА
+═══════════════════════════════════════════════════════════════════════════════
+
+    field_name : str — имя поля в словаре результата аспекта.
+    required : bool — обязательно ли поле. По умолчанию True.
+    date_format : str | None — формат строки даты (например, "%Y-%m-%d").
+                  Обязателен, если значение поля — строка.
+    min_date : datetime | None — минимально допустимая дата (включительно).
+    max_date : datetime | None — максимально допустимая дата (включительно).
 
 ═══════════════════════════════════════════════════════════════════════════════
 ОШИБКИ
 ═══════════════════════════════════════════════════════════════════════════════
 
-    ValidationFieldError — если значение не datetime и не строка;
-                           если строка не соответствует формату;
-                           если дата вне допустимого диапазона.
+    ValidationFieldError — значение не datetime и не строка;
+                           строка не соответствует формату;
+                           дата вне допустимого диапазона.
 """
 
 from datetime import datetime
@@ -55,7 +66,6 @@ class ResultDateChecker(ResultFieldChecker):
     def __init__(
         self,
         field_name: str,
-        desc: str,
         required: bool = True,
         date_format: str | None = None,
         min_date: datetime | None = None,
@@ -66,7 +76,6 @@ class ResultDateChecker(ResultFieldChecker):
 
         Аргументы:
             field_name: имя поля в словаре результата аспекта.
-            desc: описание чекера (обязательно).
             required: обязательно ли поле. По умолчанию True.
             date_format: формат строки даты (например, "%Y-%m-%d"). Обязателен,
                          если значение поля — строка. Параметр назван date_format
@@ -74,7 +83,7 @@ class ResultDateChecker(ResultFieldChecker):
             min_date: минимально допустимая дата (включительно).
             max_date: максимально допустимая дата (включительно).
         """
-        super().__init__(field_name, required, desc)
+        super().__init__(field_name, required)
         self.date_format = date_format
         self.min_date = min_date
         self.max_date = max_date

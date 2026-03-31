@@ -1,44 +1,67 @@
-# src/action_machine/Checkers/ResultFieldChecker.py
+# src/action_machine/checkers/result_field_checker.py
 """
 Базовый абстрактный чекер для полей результата аспекта.
 
-Назначение:
-    Определяет общий интерфейс для всех чекеров полей. Каждый конкретный
-    чекер (ResultStringChecker, ResultIntChecker и т.д.) наследует
-    ResultFieldChecker и реализует метод _check_type_and_constraints.
+═══════════════════════════════════════════════════════════════════════════════
+НАЗНАЧЕНИЕ
+═══════════════════════════════════════════════════════════════════════════════
 
-Двойное использование:
-    ResultFieldChecker и его наследники поддерживают два режима работы:
+Определяет общий интерфейс для всех чекеров полей. Каждый конкретный
+чекер (ResultStringChecker, ResultIntChecker и т.д.) наследует
+ResultFieldChecker и реализует метод _check_type_and_constraints.
 
-    1. Как декоратор метода-аспекта:
-       Применяется к async-методу и записывает _checker_meta в функцию.
-       Порядок с @regular_aspect/@summary_aspect не имеет значения.
+═══════════════════════════════════════════════════════════════════════════════
+ДВОЙНОЕ ИСПОЛЬЗОВАНИЕ
+═══════════════════════════════════════════════════════════════════════════════
 
-           @regular_aspect("Обработка")
-           @ResultStringChecker("txn_id", "ID транзакции", required=True)
-           async def process(self, params, state, box, connections):
-               return {"txn_id": "abc"}
+ResultFieldChecker и его наследники поддерживают два режима работы:
 
-       или
+1. Как декоратор метода-аспекта:
+   Применяется к async-методу и записывает _checker_meta в функцию.
+   Порядок с @regular_aspect/@summary_aspect не имеет значения.
 
-           @ResultStringChecker("txn_id", "ID транзакции", required=True)
-           @regular_aspect("Обработка")
-           async def process(self, params, state, box, connections):
-               return {"txn_id": "abc"}
+       @regular_aspect("Обработка")
+       @ResultStringChecker("txn_id", required=True)
+       async def process(self, params, state, box, connections):
+           return {"txn_id": "abc"}
 
-    2. Как валидатор результата (вызов экземпляра с dict):
-       Вызывается машиной (ActionProductMachine._apply_checkers) для
-       проверки словаря, возвращённого аспектом.
+2. Как валидатор результата (вызов экземпляра с dict):
+   Вызывается машиной (ActionProductMachine._apply_checkers) для
+   проверки словаря, возвращённого аспектом.
 
-           checker = ResultStringChecker("txn_id", "ID транзакции", required=True)
-           checker.check({"txn_id": "abc"})  # OK
-           checker.check({})                  # ValidationFieldError
+       checker = ResultStringChecker("txn_id", required=True)
+       checker.check({"txn_id": "abc"})  # OK
+       checker.check({})                  # ValidationFieldError
 
-    MetadataBuilder._collect_checkers(cls) обходит MRO класса, находит методы
-    с _checker_meta и собирает их в ClassMetadata.checkers (tuple[CheckerMeta]).
+═══════════════════════════════════════════════════════════════════════════════
+ИНТЕГРАЦИЯ С МЕТАДАННЫМИ
+═══════════════════════════════════════════════════════════════════════════════
 
-    ActionProductMachine._apply_checkers() создаёт экземпляр чекера из
-    CheckerMeta и вызывает checker.check(result_dict).
+Каждый чекер записывает в метод атрибут _checker_meta — список словарей:
+    [{"checker_class": ResultStringChecker, "field_name": "txn_id",
+      "required": True, ...}]
+
+Один метод может иметь несколько чекеров (для разных полей).
+
+MetadataBuilder._collect_checkers(cls) обходит MRO класса, находит методы
+с _checker_meta и собирает их в ClassMetadata.checkers (tuple[CheckerMeta]).
+
+ActionProductMachine при выполнении regular-аспекта:
+1. Получает checkers = metadata.get_checkers_for_aspect(aspect_name).
+2. Если чекеров нет и аспект вернул непустой dict — ошибка.
+3. Если чекеры есть — проверяет, что результат содержит только
+   объявленные поля, и применяет каждый чекер.
+
+═══════════════════════════════════════════════════════════════════════════════
+КОНСТРУКТОР
+═══════════════════════════════════════════════════════════════════════════════
+
+Конструктор принимает два параметра:
+    - field_name: str — имя поля в словаре результата.
+    - required: bool — обязательно ли поле (по умолчанию True).
+
+Конкретные наследники могут добавлять дополнительные параметры
+(min_length, max_value и т.д.) через свои конструкторы.
 """
 
 from abc import abstractmethod
@@ -63,22 +86,18 @@ class ResultFieldChecker:
             Имя поля в словаре результата аспекта.
         required : bool
             Обязательно ли поле (True — отсутствие или None вызывает ошибку).
-        description : str
-            Человекочитаемое описание проверки.
     """
 
-    def __init__(self, field_name: str, required: bool = True, description: str = "") -> None:
+    def __init__(self, field_name: str, required: bool = True) -> None:
         """
         Инициализирует чекер.
 
         Аргументы:
             field_name: имя поля в словаре результата.
-            required: обязательно ли поле.
-            description: описание проверки для документации и интроспекции.
+            required: обязательно ли поле. По умолчанию True.
         """
         self.field_name = field_name
         self.required = required
-        self.description = description
 
     def __call__(self, func_or_result: Any) -> Any:
         """
@@ -101,7 +120,6 @@ class ResultFieldChecker:
         """
         if callable(func_or_result) and not isinstance(func_or_result, dict):
             return self._decorate(func_or_result)
-        # Режим валидатора: func_or_result — это dict результата
         self.check(func_or_result)
         return None
 
@@ -135,16 +153,14 @@ class ResultFieldChecker:
         экземпляра чекера.
 
         Возвращает:
-            dict с ключами: checker_class, field_name, description, required,
+            dict с ключами: checker_class, field_name, required,
             а также дополнительные параметры конкретного чекера.
         """
         meta: dict[str, Any] = {
             "checker_class": type(self),
             "field_name": self.field_name,
-            "description": self.description,
             "required": self.required,
         }
-        # Добавляем дополнительные параметры конкретного чекера
         extra = self._get_extra_params()
         meta.update(extra)
         return meta

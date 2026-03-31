@@ -1,20 +1,44 @@
+# src/action_machine/checkers/result_float_checker.py
 """
 Чекер для числовых полей (int/float) результата аспекта.
 
-Назначение:
-    Проверяет, что поле результата является числом (int или float)
-    и лежит в заданном диапазоне.
+═══════════════════════════════════════════════════════════════════════════════
+НАЗНАЧЕНИЕ
+═══════════════════════════════════════════════════════════════════════════════
 
-Двойное использование:
-    1. Как декоратор метода-аспекта (порядок с @regular_aspect не важен):
-        @regular_aspect("Расчёт")
-        @ResultFloatChecker("total", "Итого", required=True, min_value=0.0)
-        async def calculate(self, ...):
-            return {"total": 1500.0}
+Проверяет, что поле результата является числом (int или float)
+и лежит в заданном диапазоне.
 
-    2. Как валидатор результата (вызывается машиной):
-        checker = ResultFloatChecker("total", "Итого", min_value=0.0)
-        checker.check({"total": 1500.0})
+═══════════════════════════════════════════════════════════════════════════════
+ДВОЙНОЕ ИСПОЛЬЗОВАНИЕ
+═══════════════════════════════════════════════════════════════════════════════
+
+1. Как декоратор метода-аспекта (порядок с @regular_aspect не важен):
+
+    @regular_aspect("Расчёт")
+    @ResultFloatChecker("total", required=True, min_value=0.0)
+    async def calculate(self, ...):
+        return {"total": 1500.0}
+
+2. Как валидатор результата (вызывается машиной):
+
+    checker = ResultFloatChecker("total", min_value=0.0)
+    checker.check({"total": 1500.0})
+
+═══════════════════════════════════════════════════════════════════════════════
+ПАРАМЕТРЫ КОНСТРУКТОРА
+═══════════════════════════════════════════════════════════════════════════════
+
+    field_name : str — имя поля в словаре результата аспекта.
+    required : bool — обязательно ли поле. По умолчанию True.
+    min_value : float | None — минимально допустимое значение (включительно).
+    max_value : float | None — максимально допустимое значение (включительно).
+
+═══════════════════════════════════════════════════════════════════════════════
+ОШИБКИ
+═══════════════════════════════════════════════════════════════════════════════
+
+    ValidationFieldError — значение не int и не float; значение вне диапазона.
 """
 
 from typing import Any
@@ -36,7 +60,6 @@ class ResultFloatChecker(ResultFieldChecker):
     def __init__(
         self,
         field_name: str,
-        desc: str,
         required: bool = True,
         min_value: float | None = None,
         max_value: float | None = None,
@@ -45,13 +68,12 @@ class ResultFloatChecker(ResultFieldChecker):
         Инициализирует чекер.
 
         Аргументы:
-            field_name: имя поля.
-            desc: описание чекера (обязательно).
-            required: обязательно ли поле.
+            field_name: имя поля в словаре результата аспекта.
+            required: обязательно ли поле. По умолчанию True.
             min_value: минимально допустимое значение (включительно).
             max_value: максимально допустимое значение (включительно).
         """
-        super().__init__(field_name, required, desc)
+        super().__init__(field_name, required)
         self.min_value = min_value
         self.max_value = max_value
 
@@ -111,10 +133,13 @@ class ResultFloatChecker(ResultFieldChecker):
 
     def _check_type_and_constraints(self, value: Any) -> None:
         """
-        Проверяет тип и применяет ограничения диапазона.
+        Проверяет тип (int или float) и применяет ограничения диапазона.
 
         Аргументы:
             value: значение для проверки (гарантированно не None).
+
+        Исключения:
+            ValidationFieldError: при нарушении типа или диапазона.
         """
         num_value = self._validate_number(value)
         self._check_range(num_value)
