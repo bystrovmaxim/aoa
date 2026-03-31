@@ -23,16 +23,31 @@ Pydantic BaseModel хранит данные полей в атрибутах э
 определяет тип объекта через isinstance(self, BaseModel) и выбирает
 стратегию получения списка полей:
 
-- Для pydantic BaseModel: список полей берётся из type(self).model_fields.
-  Обращение через класс (type(self)), а не через экземпляр, чтобы избежать
-  DeprecationWarning в Pydantic V2.11+. Это гарантирует, что возвращаются
-  только объявленные поля модели, без внутренних атрибутов pydantic.
+- Для pydantic BaseModel: список полей берётся из type(self).model_fields
+  плюс extra-поля из self.__pydantic_extra__ (если extra="allow").
+  Обращение к model_fields через класс (type(self)), а не через экземпляр,
+  чтобы избежать DeprecationWarning в Pydantic V2.11+. Это гарантирует,
+  что возвращаются объявленные поля модели И динамические extra-поля.
 
 - Для dataclass и обычных классов: список полей берётся из vars(self)
   с фильтрацией приватных атрибутов (начинающихся с '_').
 
 Значения полей во всех случаях читаются через getattr(self, key),
 что работает единообразно для pydantic, dataclass и обычных классов.
+
+═══════════════════════════════════════════════════════════════════════════════
+EXTRA-ПОЛЯ PYDANTIC (extra="allow")
+═══════════════════════════════════════════════════════════════════════════════
+
+BaseResult использует ConfigDict(extra="allow"), что позволяет записывать
+произвольные поля через dict-подобный интерфейс WritableMixin:
+
+    result["debug_info"] = "something"
+
+Эти extra-поля хранятся в self.__pydantic_extra__ и НЕ входят в
+model_fields. ReadableMixin учитывает это: метод _get_field_names()
+объединяет ключи из model_fields и __pydantic_extra__, чтобы keys(),
+values(), items() возвращали полный набор полей, включая динамические.
 
 ═══════════════════════════════════════════════════════════════════════════════
 АРХИТЕКТУРА RESOLVE
@@ -70,6 +85,15 @@ Pydantic BaseModel хранит данные полей в атрибутах э
     ['agent_1', 1500.0]
     >>> params.items()
     [('user_id', 'agent_1'), ('amount', 1500.0)]
+
+    # Extra-поля в BaseResult:
+    >>> from action_machine.core.base_result import BaseResult
+    >>> result = BaseResult()
+    >>> result["debug"] = "info"
+    >>> result.keys()
+    ['debug']
+    >>> result["debug"]
+    'info'
 """
 
 from pydantic import BaseModel
@@ -88,8 +112,12 @@ class ReadableMixin:
     Метод resolve обеспечивает навигацию по вложенным объектам
     через dot-path строки вида "user.roles" или "request.trace_id".
 
-    Совместим с pydantic BaseModel (включая frozen=True), dataclass
-    и обычными классами.
+    Совместим с pydantic BaseModel (включая frozen=True и extra="allow"),
+    dataclass и обычными классами.
+
+    Для pydantic-моделей с extra="allow" (например, BaseResult)
+    метод keys() возвращает как объявленные поля, так и динамические
+    extra-поля, записанные через __setitem__.
 
     Результаты resolve кешируются в _resolve_cache.
     """
@@ -100,19 +128,26 @@ class ReadableMixin:
         """
         Возвращает список имён публичных полей объекта.
 
-        Для pydantic BaseModel использует type(self).model_fields —
-        обращение через класс, а не через экземпляр, чтобы избежать
-        DeprecationWarning в Pydantic V2.11+. Гарантированно возвращает
-        только объявленные поля модели, исключая внутренние атрибуты pydantic.
+        Для pydantic BaseModel:
+        - Объявленные поля из type(self).model_fields (обращение через класс,
+          а не через экземпляр, для совместимости с Pydantic V2.11+).
+        - Extra-поля из self.__pydantic_extra__ (если extra="allow" и есть
+          динамические поля). Это обеспечивает видимость полей, записанных
+          через result["key"] = value в BaseResult.
 
-        Для dataclass и обычных классов использует vars(self) с фильтрацией
-        приватных атрибутов (начинающихся с '_').
+        Для dataclass и обычных классов:
+        - Публичные атрибуты из vars(self), исключая начинающиеся с '_'.
 
         Возвращает:
             list[str] — имена публичных полей.
         """
         if isinstance(self, BaseModel):
-            return list(type(self).model_fields.keys())
+            names = list(type(self).model_fields.keys())
+            # Добавляем extra-поля (для моделей с extra="allow")
+            extra = getattr(self, "__pydantic_extra__", None)
+            if extra:
+                names.extend(extra.keys())
+            return names
         return [k for k in vars(self) if not k.startswith("_")]
 
     def __getitem__(self, key: str) -> object:
@@ -120,7 +155,8 @@ class ReadableMixin:
         Возвращает значение атрибута по имени ключа.
 
         Работает единообразно для pydantic, dataclass и обычных классов
-        через getattr.
+        через getattr. Для pydantic-моделей с extra="allow" getattr
+        автоматически ищет значение и в model_fields, и в __pydantic_extra__.
 
         Аргументы:
             key: имя атрибута (строка).
@@ -165,8 +201,9 @@ class ReadableMixin:
         """
         Возвращает список имён всех публичных полей объекта.
 
-        Для pydantic BaseModel возвращает имена полей модели (model_fields).
-        Для остальных классов возвращает публичные атрибуты из vars(self).
+        Для pydantic BaseModel возвращает имена полей модели (model_fields)
+        плюс extra-поля (если есть). Для остальных классов возвращает
+        публичные атрибуты из vars(self).
 
         Возвращает:
             list[str] — список имён полей.

@@ -1,4 +1,4 @@
-# src/examples/fastapi_service/actions/get_order.py
+# src/examples/fastapi_mcp_services/actions/get_order.py
 """
 GetOrderAction — действие получения заказа по идентификатору.
 

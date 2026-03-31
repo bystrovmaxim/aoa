@@ -1,4 +1,4 @@
-# src/examples/fastapi_service/actions/ping.py
+# src/examples/fastapi_mcp_services/actions/ping.py
 """
 PingAction — действие проверки доступности сервиса.
 

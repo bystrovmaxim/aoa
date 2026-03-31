@@ -1,4 +1,4 @@
-# src/examples/fastapi_service/domains.py
+# src/examples/fastapi_mcp_services/domains.py
 """
 Бизнес-домены для примера FastAPI-сервиса.
 
