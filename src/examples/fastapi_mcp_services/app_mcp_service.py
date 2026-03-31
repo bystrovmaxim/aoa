@@ -2,26 +2,33 @@
 """
 MCP-сервис на базе ActionMachine.
 
-Создаёт MCP-сервер из Action через McpAdapter. Те же Action, что
-обслуживают HTTP-клиентов через FastAPI в app_fastapi_service.py,
-здесь превращаются в MCP tools для AI-агентов.
+═══════════════════════════════════════════════════════════════════════════════
+НАЗНАЧЕНИЕ
+═══════════════════════════════════════════════════════════════════════════════
 
-Запуск:
+Демонстрирует создание MCP-сервера из тех же Action, что используются
+в FastAPI-сервисе. AI-агенты (Claude, ChatGPT, Cursor) видят каждое
+Action как tool с полной семантикой: описание из @meta, параметры
+из Pydantic Field(description=..., examples=...), constraints.
+
+═══════════════════════════════════════════════════════════════════════════════
+ЗАПУСК
+═══════════════════════════════════════════════════════════════════════════════
+
+    pip install action-machine[mcp]
+
     # stdio (Claude Desktop, Claude Code):
     python -m examples.fastapi_mcp_services.app_mcp_service
 
     # streamable-http (MCP Inspector):
     python -m examples.fastapi_mcp_services.app_mcp_service --transport streamable-http
 
-Tools:
-    system.ping     — проверка доступности
-    orders.create   — создание заказа
-    orders.get      — получение заказа по ID
+═══════════════════════════════════════════════════════════════════════════════
+CLAUDE DESKTOP
+═══════════════════════════════════════════════════════════════════════════════
 
-Resources:
-    system://graph  — структура системы
+В файле claude_desktop_config.json:
 
-Claude Desktop (claude_desktop_config.json):
     {
       "mcpServers": {
         "orders": {
@@ -31,8 +38,13 @@ Claude Desktop (claude_desktop_config.json):
       }
     }
 
-Claude Code:
-    claude mcp add orders -- python -m examples.fastapi_mcp_services.app_mcp_service
+═══════════════════════════════════════════════════════════════════════════════
+АУТЕНТИФИКАЦИЯ
+═══════════════════════════════════════════════════════════════════════════════
+
+auth_coordinator обязателен для всех адаптеров. В этом примере используется
+NoAuthCoordinator — явная декларация отсутствия аутентификации. В production
+заменяется на AuthCoordinator с реальными компонентами.
 """
 
 import sys
@@ -40,11 +52,12 @@ import sys
 from action_machine.contrib.mcp import McpAdapter
 
 from .actions import CreateOrderAction, GetOrderAction, PingAction
-from .infrastructure import machine
+from .infrastructure import auth, machine
 
 server = (
     McpAdapter(
         machine=machine,
+        auth_coordinator=auth,
         server_name="Orders MCP",
         server_version="0.1.0",
     )
@@ -56,19 +69,12 @@ server = (
 
 
 def main() -> None:
-    """
-    Запускает MCP-сервер.
-
-    По умолчанию stdio transport. Аргумент --transport выбирает транспорт:
-        python -m examples.fastapi_mcp_services.app_mcp_service --transport streamable-http
-    """
+    """Запускает MCP-сервер. --transport выбирает транспорт."""
     transport = "stdio"
-
     if "--transport" in sys.argv:
         idx = sys.argv.index("--transport")
         if idx + 1 < len(sys.argv):
             transport = sys.argv[idx + 1]
-
     server.run(transport=transport)
 
 
