@@ -7,8 +7,9 @@
 ═══════════════════════════════════════════════════════════════════════════════
 
 Конструктор:
-    - Корректная инициализация с machine, title, version, description.
+    - Корректная инициализация с machine, auth_coordinator, title, version.
     - TypeError при передаче не-ActionProductMachine.
+    - TypeError при auth_coordinator=None.
 
 Протокольные методы (post, get, put, delete, patch):
     - Регистрация маршрутов с минимальными параметрами.
@@ -54,6 +55,7 @@ from pydantic import Field
 from action_machine.aspects.regular_aspect import regular_aspect
 from action_machine.aspects.summary_aspect import summary_aspect
 from action_machine.auth.check_roles import CheckRoles
+from action_machine.auth.no_auth_coordinator import NoAuthCoordinator
 from action_machine.checkers.result_string_checker import ResultStringChecker
 from action_machine.contrib.fastapi import FastApiAdapter
 from action_machine.core.action_product_machine import ActionProductMachine
@@ -204,9 +206,15 @@ def machine(coordinator) -> ActionProductMachine:
 
 
 @pytest.fixture
-def adapter(machine) -> FastApiAdapter:
+def auth() -> NoAuthCoordinator:
+    return NoAuthCoordinator()
+
+
+@pytest.fixture
+def adapter(machine, auth) -> FastApiAdapter:
     return FastApiAdapter(
         machine=machine,
+        auth_coordinator=auth,
         title="Test API",
         version="1.0.0",
         description="API для тестов",
@@ -253,21 +261,28 @@ class TestConstructor:
     def test_stores_description(self, adapter):
         assert adapter.api_description == "API для тестов"
 
-    def test_default_title(self, machine):
-        a = FastApiAdapter(machine=machine)
+    def test_default_title(self, machine, auth):
+        a = FastApiAdapter(machine=machine, auth_coordinator=auth)
         assert a.title == "ActionMachine API"
 
-    def test_default_version(self, machine):
-        a = FastApiAdapter(machine=machine)
+    def test_default_version(self, machine, auth):
+        a = FastApiAdapter(machine=machine, auth_coordinator=auth)
         assert a.version == "0.1.0"
 
-    def test_default_description(self, machine):
-        a = FastApiAdapter(machine=machine)
+    def test_default_description(self, machine, auth):
+        a = FastApiAdapter(machine=machine, auth_coordinator=auth)
         assert a.api_description == ""
 
-    def test_non_machine_raises_type_error(self):
+    def test_non_machine_raises_type_error(self, auth):
         with pytest.raises(TypeError, match="ожидает ActionProductMachine"):
-            FastApiAdapter(machine="not a machine")
+            FastApiAdapter(machine="not a machine", auth_coordinator=auth)
+
+    def test_none_auth_raises_type_error(self, machine):
+        with pytest.raises(TypeError, match="auth_coordinator обязателен"):
+            FastApiAdapter(machine=machine, auth_coordinator=None)
+
+    def test_stores_auth_coordinator(self, adapter, auth):
+        assert adapter.auth_coordinator is auth
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -338,32 +353,26 @@ class TestRouteRegistration:
         assert adapter.routes[0].description == "Подробное описание"
 
     def test_post_returns_self(self, adapter):
-        """post() возвращает self для fluent chain."""
         result = adapter.post("/test", PingAction)
         assert result is adapter
 
     def test_get_returns_self(self, adapter):
-        """get() возвращает self для fluent chain."""
         result = adapter.get("/test", PingAction)
         assert result is adapter
 
     def test_put_returns_self(self, adapter):
-        """put() возвращает self для fluent chain."""
         result = adapter.put("/test", PingAction)
         assert result is adapter
 
     def test_delete_returns_self(self, adapter):
-        """delete() возвращает self для fluent chain."""
         result = adapter.delete("/test", PingAction)
         assert result is adapter
 
     def test_patch_returns_self(self, adapter):
-        """patch() возвращает self для fluent chain."""
         result = adapter.patch("/test", PingAction)
         assert result is adapter
 
     def test_fluent_chain(self, adapter):
-        """Цепочечная регистрация маршрутов."""
         result = adapter \
             .get("/a", PingAction, tags=["system"]) \
             .post("/b", CreateOrderAction, tags=["orders"]) \
@@ -398,9 +407,8 @@ class TestBuild:
         assert "/api/v1/orders/{order_id}" in paths
         assert "/health" in paths
 
-    def test_fluent_chain_to_build(self, machine):
-        """Fluent chain завершается build()."""
-        adapter = FastApiAdapter(machine=machine, title="Chain API")
+    def test_fluent_chain_to_build(self, machine, auth):
+        adapter = FastApiAdapter(machine=machine, auth_coordinator=auth, title="Chain API")
         app = adapter \
             .get("/ping", PingAction, tags=["system"]) \
             .post("/orders", CreateOrderAction, tags=["orders"]) \
@@ -448,7 +456,6 @@ class TestEndpoints:
 
     @pytest.mark.anyio
     async def test_create_order_invalid_amount(self, client):
-        """amount <= 0 нарушает constraint gt=0 → 422."""
         response = await client.post(
             "/api/v1/orders",
             json={"user_id": "user_1", "amount": -10, "currency": "RUB"},
@@ -457,7 +464,6 @@ class TestEndpoints:
 
     @pytest.mark.anyio
     async def test_create_order_invalid_currency(self, client):
-        """currency 'rubles' не соответствует pattern ^[A-Z]{3}$ → 422."""
         response = await client.post(
             "/api/v1/orders",
             json={"user_id": "user_1", "amount": 100, "currency": "rubles"},
@@ -466,7 +472,6 @@ class TestEndpoints:
 
     @pytest.mark.anyio
     async def test_create_order_missing_user_id(self, client):
-        """Отсутствие обязательного поля user_id → 422."""
         response = await client.post(
             "/api/v1/orders",
             json={"amount": 100},
@@ -492,9 +497,8 @@ class TestExceptionHandlers:
     """Тесты обработки ошибок ActionMachine."""
 
     @pytest.fixture
-    async def error_client(self, machine):
-        """Клиент с эндпоинтами, бросающими ошибки."""
-        adapter = FastApiAdapter(machine=machine, title="Error API")
+    async def error_client(self, machine, auth):
+        adapter = FastApiAdapter(machine=machine, auth_coordinator=auth, title="Error API")
         adapter.post("/auth-error", AuthErrorAction)
         adapter.post("/validation-error", ValidationErrorAction)
         adapter.post("/internal-error", InternalErrorAction)
@@ -505,7 +509,6 @@ class TestExceptionHandlers:
 
     @pytest.mark.anyio
     async def test_authorization_error_returns_403(self, error_client):
-        """AuthorizationError → 403 Forbidden."""
         response = await error_client.post("/auth-error", json={})
         assert response.status_code == 403
         data = response.json()
@@ -513,7 +516,6 @@ class TestExceptionHandlers:
 
     @pytest.mark.anyio
     async def test_validation_field_error_returns_422(self, error_client):
-        """ValidationFieldError → 422 Unprocessable Entity."""
         response = await error_client.post("/validation-error", json={})
         assert response.status_code == 422
         data = response.json()
@@ -522,7 +524,6 @@ class TestExceptionHandlers:
 
     @pytest.mark.anyio
     async def test_generic_error_returns_500(self, error_client):
-        """Необработанное исключение → 500 Internal Server Error."""
         response = await error_client.post("/internal-error", json={})
         assert response.status_code == 500
         data = response.json()
@@ -538,18 +539,15 @@ class TestMapping:
     """Тесты маппинга между протокольными моделями и типами действия."""
 
     @pytest.fixture
-    async def mapping_client(self, machine):
-        """Клиент с маршрутами, использующими мапперы."""
-
+    async def mapping_client(self, machine, auth):
         def params_mapper(alt: AltRequest) -> OrderParams:
             return OrderParams(user_id=alt.raw_data, amount=999.0, currency="USD")
 
         def response_mapper(res: OrderResult) -> AltResponse:
             return AltResponse(transformed=f"{res.order_id}:{res.status}")
 
-        adapter = FastApiAdapter(machine=machine, title="Mapping API")
+        adapter = FastApiAdapter(machine=machine, auth_coordinator=auth, title="Mapping API")
 
-        # Только params_mapper
         adapter.post(
             "/with-params-mapper",
             MappableAction,
@@ -557,7 +555,6 @@ class TestMapping:
             params_mapper=params_mapper,
         )
 
-        # Оба маппера
         adapter.post(
             "/with-both-mappers",
             MappableAction,
@@ -574,7 +571,6 @@ class TestMapping:
 
     @pytest.mark.anyio
     async def test_params_mapper_transforms_request(self, mapping_client):
-        """params_mapper преобразует AltRequest в OrderParams."""
         response = await mapping_client.post(
             "/with-params-mapper",
             json={"raw_data": "mapper_user"},
@@ -586,7 +582,6 @@ class TestMapping:
 
     @pytest.mark.anyio
     async def test_response_mapper_transforms_response(self, mapping_client):
-        """response_mapper преобразует OrderResult в AltResponse."""
         response = await mapping_client.post(
             "/with-both-mappers",
             json={"raw_data": "both_user"},

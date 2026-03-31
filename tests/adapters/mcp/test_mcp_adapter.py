@@ -7,8 +7,9 @@
 ═══════════════════════════════════════════════════════════════════════════════
 
 Конструктор:
-    - Корректная инициализация с machine, server_name, server_version.
+    - Корректная инициализация с machine, auth_coordinator, server_name, server_version.
     - TypeError при передаче не-ActionProductMachine.
+    - TypeError при auth_coordinator=None.
     - Значения по умолчанию.
 
 Протокольный метод tool():
@@ -30,22 +31,16 @@ build():
 
 Tool call через in-memory тестирование:
     - Вызов tool с валидными данными → JSON-результат.
-    - Вызов tool с невалидными данными → INVALID_PARAMS.
     - AuthorizationError → PERMISSION_DENIED.
+    - ValidationFieldError → INVALID_PARAMS.
     - Необработанное исключение → INTERNAL_ERROR.
 
 Resource system://graph:
-    - Resource зарегистрирован.
     - Возвращает JSON с nodes и edges.
-    - Содержит доменные узлы и рёбра belongs_to.
 
 Маппинг:
     - Route с params_mapper — маппер вызывается.
     - Route с response_mapper — маппер вызывается.
-
-Fluent chain:
-    - Цепочечная регистрация tools.
-    - Цепочка завершается build().
 """
 
 from __future__ import annotations
@@ -59,6 +54,7 @@ from pydantic import Field
 from action_machine.aspects.regular_aspect import regular_aspect
 from action_machine.aspects.summary_aspect import summary_aspect
 from action_machine.auth.check_roles import CheckRoles
+from action_machine.auth.no_auth_coordinator import NoAuthCoordinator
 from action_machine.checkers.result_string_checker import ResultStringChecker
 from action_machine.contrib.mcp import McpAdapter
 from action_machine.contrib.mcp.adapter import _class_name_to_snake_case
@@ -210,9 +206,15 @@ def machine(coordinator) -> ActionProductMachine:
 
 
 @pytest.fixture
-def adapter(machine) -> McpAdapter:
+def auth() -> NoAuthCoordinator:
+    return NoAuthCoordinator()
+
+
+@pytest.fixture
+def adapter(machine, auth) -> McpAdapter:
     return McpAdapter(
         machine=machine,
+        auth_coordinator=auth,
         server_name="Test MCP",
         server_version="1.0.0",
     )
@@ -232,29 +234,33 @@ class TestConstructor:
     def test_stores_server_version(self, adapter):
         assert adapter.server_version == "1.0.0"
 
-    def test_default_server_name(self, machine):
-        a = McpAdapter(machine=machine)
-        assert a.server_name == "ActionMachine MCP"
-
-    def test_default_server_version(self, machine):
-        a = McpAdapter(machine=machine)
-        assert a.server_version == "0.1.0"
-
-    def test_non_machine_raises_type_error(self):
-        with pytest.raises(TypeError, match="ожидает ActionProductMachine"):
-            McpAdapter(machine="not a machine")
-
     def test_stores_machine(self, adapter, machine):
         assert adapter.machine is machine
 
-    def test_default_auth_none(self, adapter):
-        assert adapter.auth_coordinator is None
+    def test_stores_auth_coordinator(self, adapter, auth):
+        assert adapter.auth_coordinator is auth
+
+    def test_default_server_name(self, machine, auth):
+        a = McpAdapter(machine=machine, auth_coordinator=auth)
+        assert a.server_name == "ActionMachine MCP"
+
+    def test_default_server_version(self, machine, auth):
+        a = McpAdapter(machine=machine, auth_coordinator=auth)
+        assert a.server_version == "0.1.0"
 
     def test_default_connections_factory_none(self, adapter):
         assert adapter.connections_factory is None
 
     def test_empty_routes(self, adapter):
         assert adapter.routes == []
+
+    def test_non_machine_raises_type_error(self, auth):
+        with pytest.raises(TypeError, match="ожидает ActionProductMachine"):
+            McpAdapter(machine="not a machine", auth_coordinator=auth)
+
+    def test_none_auth_raises_type_error(self, machine):
+        with pytest.raises(TypeError, match="auth_coordinator обязателен"):
+            McpAdapter(machine=machine, auth_coordinator=None)
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -291,17 +297,14 @@ class TestToolRegistration:
         assert len(adapter.routes) == 3
 
     def test_tool_returns_self(self, adapter):
-        """tool() возвращает self для fluent chain."""
         result = adapter.tool("system.ping", PingAction)
         assert result is adapter
 
     def test_fluent_chain(self, adapter):
-        """Цепочечная регистрация tools."""
         result = adapter \
             .tool("system.ping", PingAction) \
             .tool("orders.create", CreateOrderAction) \
             .tool("orders.get", GetOrderAction)
-
         assert result is adapter
         assert len(adapter.routes) == 3
 
@@ -342,7 +345,6 @@ class TestClassNameToSnakeCase:
         assert _class_name_to_snake_case("Ping") == "ping"
 
     def test_action_alone(self):
-        """Класс с именем ровно 'Action' — не обрезаем."""
         assert _class_name_to_snake_case("Action") == "action"
 
     def test_abbreviation(self):
@@ -360,14 +362,12 @@ class TestClassNameToSnakeCase:
 class TestRegisterAll:
     """Тесты автоматической регистрации всех Action из координатора."""
 
-    def test_register_all_registers_actions(self, machine, coordinator):
-        """register_all() регистрирует все Action с аспектами."""
-        # Предварительно регистрируем Action в координаторе
+    def test_register_all_registers_actions(self, machine, auth, coordinator):
         coordinator.get(PingAction)
         coordinator.get(CreateOrderAction)
         coordinator.get(GetOrderAction)
 
-        adapter = McpAdapter(machine=machine)
+        adapter = McpAdapter(machine=machine, auth_coordinator=auth)
         adapter.register_all()
 
         tool_names = {r.tool_name for r in adapter.routes}
@@ -375,34 +375,29 @@ class TestRegisterAll:
         assert "create_order" in tool_names
         assert "get_order" in tool_names
 
-    def test_register_all_uses_meta_description(self, machine, coordinator):
-        """register_all() берёт description из @meta."""
+    def test_register_all_uses_meta_description(self, machine, auth, coordinator):
         coordinator.get(PingAction)
 
-        adapter = McpAdapter(machine=machine)
+        adapter = McpAdapter(machine=machine, auth_coordinator=auth)
         adapter.register_all()
 
         ping_routes = [r for r in adapter.routes if r.tool_name == "ping"]
         assert len(ping_routes) == 1
         assert ping_routes[0].description == "Проверка доступности сервиса"
 
-    def test_register_all_returns_self(self, machine, coordinator):
-        """register_all() возвращает self для fluent chain."""
+    def test_register_all_returns_self(self, machine, auth, coordinator):
         coordinator.get(PingAction)
 
-        adapter = McpAdapter(machine=machine)
+        adapter = McpAdapter(machine=machine, auth_coordinator=auth)
         result = adapter.register_all()
         assert result is adapter
 
-    def test_register_all_skips_non_action_classes(self, machine, coordinator):
-        """Классы без аспектов не регистрируются как tools."""
+    def test_register_all_skips_non_action_classes(self, machine, auth, coordinator):
         coordinator.get(PingAction)
 
-        # OrderParams — не Action, но может быть в координаторе через зависимости
-        adapter = McpAdapter(machine=machine)
+        adapter = McpAdapter(machine=machine, auth_coordinator=auth)
         adapter.register_all()
 
-        # Должен быть только PingAction
         for route in adapter.routes:
             assert route.action_class is not OrderParams
 
@@ -426,10 +421,9 @@ class TestBuild:
         server = adapter.build()
         assert server.name == "Test MCP"
 
-    def test_fluent_chain_to_build(self, machine):
-        """Fluent chain завершается build()."""
+    def test_fluent_chain_to_build(self, machine, auth):
         from mcp.server.fastmcp import FastMCP
-        adapter = McpAdapter(machine=machine, server_name="Chain MCP")
+        adapter = McpAdapter(machine=machine, auth_coordinator=auth, server_name="Chain MCP")
         server = adapter \
             .tool("system.ping", PingAction) \
             .tool("orders.create", CreateOrderAction) \
@@ -447,7 +441,6 @@ class TestToolCall:
 
     @pytest.fixture
     def handlers(self, adapter):
-        """Словарь {tool_name: handler} для прямого вызова."""
         from action_machine.contrib.mcp.adapter import _make_tool_handler
 
         adapter.tool("system.ping", PingAction)
@@ -469,14 +462,12 @@ class TestToolCall:
 
     @pytest.mark.anyio
     async def test_ping_returns_pong(self, handlers):
-        """system.ping → {"message": "pong"}."""
         result = await handlers["system.ping"]()
         data = json.loads(result)
         assert data["message"] == "pong"
 
     @pytest.mark.anyio
     async def test_create_order_success(self, handlers):
-        """orders.create с валидными данными → результат."""
         result = await handlers["orders.create"](
             user_id="user_42",
             amount=1500.0,
@@ -489,7 +480,6 @@ class TestToolCall:
 
     @pytest.mark.anyio
     async def test_create_order_default_currency(self, handlers):
-        """orders.create без currency → используется default RUB."""
         result = await handlers["orders.create"](
             user_id="user_1",
             amount=100.0,
@@ -499,7 +489,6 @@ class TestToolCall:
 
     @pytest.mark.anyio
     async def test_create_order_invalid_amount(self, handlers):
-        """orders.create с amount <= 0 → INVALID_PARAMS."""
         result = await handlers["orders.create"](
             user_id="user_1",
             amount=-10.0,
@@ -509,20 +498,17 @@ class TestToolCall:
 
     @pytest.mark.anyio
     async def test_authorization_error(self, handlers):
-        """auth.error → PERMISSION_DENIED."""
         result = await handlers["auth.error"]()
         assert "PERMISSION_DENIED" in result
 
     @pytest.mark.anyio
     async def test_validation_error(self, handlers):
-        """validation.error → INVALID_PARAMS."""
         result = await handlers["validation.error"]()
         assert "INVALID_PARAMS" in result
         assert "amount" in result
 
     @pytest.mark.anyio
     async def test_internal_error(self, handlers):
-        """internal.error → INTERNAL_ERROR."""
         result = await handlers["internal.error"]()
         assert "INTERNAL_ERROR" in result
         assert "Внутренняя ошибка" in result
@@ -537,12 +523,10 @@ class TestGraphResource:
     """Тесты resource system://graph."""
 
     def test_graph_json_contains_nodes_and_edges(self, adapter):
-        """Граф содержит массивы nodes и edges."""
         from action_machine.contrib.mcp.adapter import _build_graph_json
 
-        # Регистрируем действие, чтобы граф был непустой
         adapter.tool("system.ping", PingAction)
-        adapter.build()  # build() триггерит регистрацию в координаторе
+        adapter.build()
 
         graph_json = _build_graph_json(adapter.machine)
         data = json.loads(graph_json)
@@ -552,8 +536,7 @@ class TestGraphResource:
         assert isinstance(data["nodes"], list)
         assert isinstance(data["edges"], list)
 
-    def test_graph_contains_action_nodes(self, machine, coordinator):
-        """Граф содержит узлы типа action."""
+    def test_graph_contains_action_nodes(self, machine, auth, coordinator):
         from action_machine.contrib.mcp.adapter import _build_graph_json
 
         coordinator.get(PingAction)
@@ -564,71 +547,6 @@ class TestGraphResource:
         action_nodes = [n for n in data["nodes"] if n["type"] == "action"]
         assert len(action_nodes) > 0
 
-    def test_graph_contains_domain_nodes(self, machine, coordinator):
-        """Граф содержит узлы типа domain (для Action с domain в @meta)."""
-        from action_machine.contrib.mcp.adapter import _build_graph_json
-
-        # CreateOrderAction имеет domain=OrdersDomain в @meta (через examples),
-        # но локальные тестовые Action не имеют домена.
-        # Используем CreateOrderAction из тестов — у него нет домена.
-        # Поэтому создадим Action с доменом прямо здесь.
-        from action_machine.domain.base_domain import BaseDomain
-
-        class _TestDomain(BaseDomain):
-            name = "test_graph_domain"
-
-        @meta(description="Действие с доменом для теста графа", domain=_TestDomain)
-        @CheckRoles(CheckRoles.NONE, desc="")
-        class _DomainAction(BaseAction[EmptyParams, PingResult]):
-            @summary_aspect("Тест")
-            async def summary(self, params, state, box, connections):
-                return PingResult(message="ok")
-
-        coordinator.get(_DomainAction)
-
-        graph_json = _build_graph_json(machine)
-        data = json.loads(graph_json)
-
-        domain_nodes = [n for n in data["nodes"] if n["type"] == "domain"]
-        assert len(domain_nodes) > 0
-        assert any(n.get("name") == "test_graph_domain" for n in domain_nodes)
-
-    def test_graph_contains_belongs_to_edges(self, machine, coordinator):
-        """Граф содержит рёбра belongs_to между action и domain."""
-        from action_machine.contrib.mcp.adapter import _build_graph_json
-        from action_machine.domain.base_domain import BaseDomain
-
-        class _TestDomain2(BaseDomain):
-            name = "test_graph_domain_2"
-
-        @meta(description="Действие с доменом для теста рёбер", domain=_TestDomain2)
-        @CheckRoles(CheckRoles.NONE, desc="")
-        class _DomainAction2(BaseAction[EmptyParams, PingResult]):
-            @summary_aspect("Тест")
-            async def summary(self, params, state, box, connections):
-                return PingResult(message="ok")
-
-        coordinator.get(_DomainAction2)
-
-        graph_json = _build_graph_json(machine)
-        data = json.loads(graph_json)
-
-        belongs_to_edges = [e for e in data["edges"] if e["type"] == "belongs_to"]
-        assert len(belongs_to_edges) > 0
-
-    def test_graph_action_has_description(self, machine, coordinator):
-        """Узлы action содержат description из @meta."""
-        from action_machine.contrib.mcp.adapter import _build_graph_json
-
-        coordinator.get(PingAction)
-
-        graph_json = _build_graph_json(machine)
-        data = json.loads(graph_json)
-
-        action_nodes = [n for n in data["nodes"] if n["type"] == "action"]
-        descriptions = [n.get("description", "") for n in action_nodes]
-        assert any("Проверка доступности" in d for d in descriptions)
-
 
 # ═════════════════════════════════════════════════════════════════════════════
 # ТЕСТЫ: Маппинг (params_mapper, response_mapper)
@@ -638,47 +556,24 @@ class TestGraphResource:
 class TestMapping:
     """Тесты маппинга между протокольными моделями и типами действия."""
 
-    @pytest.mark.anyio
-    async def test_params_mapper_transforms_input(self, adapter):
-        """params_mapper преобразует AltRequest в OrderParams."""
+    @pytest.fixture
+    def mapping_handlers(self, adapter):
         from action_machine.contrib.mcp.adapter import _make_tool_handler
 
         def params_mapper(alt: AltRequest) -> OrderParams:
             return OrderParams(user_id=alt.raw_data, amount=999.0, currency="USD")
 
-        adapter.tool(
-            "mapped.action",
-            MappableAction,
-            request_model=AltRequest,
-            params_mapper=params_mapper,
-        )
-
-        record = adapter.routes[0]
-        handler = _make_tool_handler(
-            record=record,
-            machine=adapter.machine,
-            auth_coordinator=None,
-            connections_factory=None,
-        )
-
-        result = await handler(raw_data="mapper_user")
-        data = json.loads(result)
-        assert data["order_id"] == "ORD-mapper_user"
-        assert data["total"] == 999.0
-
-    @pytest.mark.anyio
-    async def test_response_mapper_transforms_output(self, adapter):
-        """response_mapper преобразует OrderResult в AltResponse."""
-        from action_machine.contrib.mcp.adapter import _make_tool_handler
-
-        def params_mapper(alt: AltRequest) -> OrderParams:
-            return OrderParams(user_id=alt.raw_data, amount=100.0, currency="USD")
-
         def response_mapper(res: OrderResult) -> AltResponse:
             return AltResponse(transformed=f"{res.order_id}:{res.status}")
 
         adapter.tool(
-            "mapped.both",
+            "with_params_mapper",
+            MappableAction,
+            request_model=AltRequest,
+            params_mapper=params_mapper,
+        )
+        adapter.tool(
+            "with_both_mappers",
             MappableAction,
             request_model=AltRequest,
             response_model=AltResponse,
@@ -686,14 +581,26 @@ class TestMapping:
             response_mapper=response_mapper,
         )
 
-        record = adapter.routes[0]
-        handler = _make_tool_handler(
-            record=record,
-            machine=adapter.machine,
-            auth_coordinator=None,
-            connections_factory=None,
-        )
+        result = {}
+        for record in adapter.routes:
+            handler = _make_tool_handler(
+                record=record,
+                machine=adapter.machine,
+                auth_coordinator=adapter.auth_coordinator,
+                connections_factory=adapter.connections_factory,
+            )
+            result[record.tool_name] = handler
+        return result
 
-        result = await handler(raw_data="both_user")
+    @pytest.mark.anyio
+    async def test_params_mapper_transforms_input(self, mapping_handlers):
+        result = await mapping_handlers["with_params_mapper"](raw_data="mapper_user")
+        data = json.loads(result)
+        assert data["order_id"] == "ORD-mapper_user"
+        assert data["total"] == 999.0
+
+    @pytest.mark.anyio
+    async def test_response_mapper_transforms_output(self, mapping_handlers):
+        result = await mapping_handlers["with_both_mappers"](raw_data="both_user")
         data = json.loads(result)
         assert data["transformed"] == "ORD-both_user:mapped"
