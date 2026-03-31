@@ -1,32 +1,39 @@
 # src/action_machine/checkers/result_int_checker.py
 """
-Чекер для целочисленных полей результата аспекта.
+Чекер для целочисленных полей результата аспекта и функция-декоратор result_int.
 
 ═══════════════════════════════════════════════════════════════════════════════
 НАЗНАЧЕНИЕ
 ═══════════════════════════════════════════════════════════════════════════════
 
-Проверяет, что поле результата является целым числом (int) и лежит
-в заданном диапазоне.
+Модуль содержит два компонента:
+
+1. **ResultIntChecker** — класс чекера. Проверяет, что поле результата
+   является целым числом (int) и лежит в заданном диапазоне.
+   Создаётся машиной из CheckerMeta при выполнении аспекта.
+
+2. **result_int** — функция-декоратор. Применяется к методу-аспекту
+   и записывает метаданные чекера в атрибут ``_checker_meta`` метода.
+   MetadataBuilder собирает эти метаданные в ClassMetadata.checkers.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ДВОЙНОЕ ИСПОЛЬЗОВАНИЕ
+ИСПОЛЬЗОВАНИЕ КАК ДЕКОРАТОР
 ═══════════════════════════════════════════════════════════════════════════════
-
-1. Как декоратор метода-аспекта (порядок с @regular_aspect не важен):
 
     @regular_aspect("Подсчёт")
-    @ResultIntChecker("count", required=True, min_value=0, max_value=100)
-    async def count_items(self, ...):
+    @result_int("count", required=True, min_value=0, max_value=100)
+    async def count_items(self, params, state, box, connections):
         return {"count": 42}
 
-2. Как валидатор результата (вызывается машиной):
+═══════════════════════════════════════════════════════════════════════════════
+ИСПОЛЬЗОВАНИЕ МАШИНОЙ
+═══════════════════════════════════════════════════════════════════════════════
 
     checker = ResultIntChecker("count", min_value=0)
-    checker.check({"count": 42})
+    checker.check({"count": 42})  # OK
 
 ═══════════════════════════════════════════════════════════════════════════════
-ПАРАМЕТРЫ КОНСТРУКТОРА
+ПАРАМЕТРЫ
 ═══════════════════════════════════════════════════════════════════════════════
 
     field_name : str — имя поля в словаре результата аспекта.
@@ -46,15 +53,18 @@ from typing import Any
 from action_machine.core.exceptions import ValidationFieldError
 
 from .result_field_checker import ResultFieldChecker
+from .result_string_checker import _build_checker_meta
 
 
 class ResultIntChecker(ResultFieldChecker):
     """
     Проверяет, что значение является целым числом и лежит в заданном диапазоне.
 
-    Поддерживает двойной режим: декоратор метода-аспекта и валидатор dict.
-    При использовании как декоратор записывает _checker_meta в функцию,
-    включая дополнительные параметры min_value, max_value.
+    Создаётся машиной из CheckerMeta при выполнении аспекта.
+
+    Атрибуты:
+        min_value : int | None — минимально допустимое значение (включительно).
+        max_value : int | None — максимально допустимое значение (включительно).
     """
 
     def __init__(
@@ -81,9 +91,9 @@ class ResultIntChecker(ResultFieldChecker):
         """
         Возвращает дополнительные параметры целочисленного чекера.
 
-        Эти параметры попадают в _checker_meta при использовании как декоратор
-        и затем передаются в конструктор при создании экземпляра машиной
-        в ActionProductMachine._apply_checkers().
+        Эти параметры сохраняются в CheckerMeta.extra_params при сборке
+        метаданных и передаются в конструктор при создании экземпляра
+        машиной в ActionProductMachine._apply_checkers().
 
         Возвращает:
             dict с ключами min_value, max_value.
@@ -143,3 +153,54 @@ class ResultIntChecker(ResultFieldChecker):
         """
         int_value = self._validate_int(value)
         self._check_range(int_value)
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# Функция-декоратор
+# ═════════════════════════════════════════════════════════════════════════════
+
+
+def result_int(
+    field_name: str,
+    required: bool = True,
+    min_value: int | None = None,
+    max_value: int | None = None,
+) -> Any:
+    """
+    Декоратор метода-аспекта. Объявляет целочисленное поле в результате аспекта.
+
+    Записывает метаданные чекера в атрибут ``_checker_meta`` метода.
+    MetadataBuilder собирает эти метаданные в ClassMetadata.checkers.
+    Машина создаёт экземпляр ResultIntChecker из CheckerMeta
+    и вызывает checker.check(result_dict) при выполнении аспекта.
+
+    Аргументы:
+        field_name: имя поля в словаре результата аспекта.
+        required: обязательно ли поле. По умолчанию True.
+        min_value: минимально допустимое значение (включительно).
+        max_value: максимально допустимое значение (включительно).
+
+    Возвращает:
+        Декоратор, записывающий _checker_meta в метод.
+
+    Пример:
+        @regular_aspect("Подсчёт")
+        @result_int("count", required=True, min_value=0, max_value=1000)
+        async def count_items(self, params, state, box, connections):
+            return {"count": 42}
+    """
+    checker = ResultIntChecker(
+        field_name=field_name,
+        required=required,
+        min_value=min_value,
+        max_value=max_value,
+    )
+    meta = _build_checker_meta(checker)
+
+    def decorator(func: Any) -> Any:
+        if not hasattr(func, "_checker_meta"):
+            func._checker_meta = []
+        func._checker_meta.append(meta)
+        return func
+
+    return decorator

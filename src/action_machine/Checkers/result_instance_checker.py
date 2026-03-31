@@ -1,32 +1,39 @@
 # src/action_machine/checkers/result_instance_checker.py
 """
-Чекер для проверки, что значение результата является экземпляром указанного класса.
+Чекер для проверки принадлежности значения указанному классу и функция-декоратор result_instance.
 
 ═══════════════════════════════════════════════════════════════════════════════
 НАЗНАЧЕНИЕ
 ═══════════════════════════════════════════════════════════════════════════════
 
-Проверяет, что поле результата является экземпляром указанного класса
-(или одного из классов, если передан кортеж).
+Модуль содержит два компонента:
+
+1. **ResultInstanceChecker** — класс чекера. Проверяет, что поле результата
+   является экземпляром указанного класса (или одного из классов, если
+   передан кортеж). Создаётся машиной из CheckerMeta при выполнении аспекта.
+
+2. **result_instance** — функция-декоратор. Применяется к методу-аспекту
+   и записывает метаданные чекера в атрибут ``_checker_meta`` метода.
+   MetadataBuilder собирает эти метаданные в ClassMetadata.checkers.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ДВОЙНОЕ ИСПОЛЬЗОВАНИЕ
+ИСПОЛЬЗОВАНИЕ КАК ДЕКОРАТОР
 ═══════════════════════════════════════════════════════════════════════════════
-
-1. Как декоратор метода-аспекта (порядок с @regular_aspect не важен):
 
     @regular_aspect("Получение пользователя")
-    @ResultInstanceChecker("user", User, required=True)
-    async def get_user(self, ...):
+    @result_instance("user", User, required=True)
+    async def get_user(self, params, state, box, connections):
         return {"user": User(id=1, name="John")}
 
-2. Как валидатор результата (вызывается машиной):
+═══════════════════════════════════════════════════════════════════════════════
+ИСПОЛЬЗОВАНИЕ МАШИНОЙ
+═══════════════════════════════════════════════════════════════════════════════
 
     checker = ResultInstanceChecker("user", User)
-    checker.check({"user": User(id=1, name="John")})
+    checker.check({"user": User(id=1, name="John")})  # OK
 
 ═══════════════════════════════════════════════════════════════════════════════
-ПАРАМЕТРЫ КОНСТРУКТОРА
+ПАРАМЕТРЫ
 ═══════════════════════════════════════════════════════════════════════════════
 
     field_name : str — имя поля в словаре результата аспекта.
@@ -46,6 +53,7 @@ from typing import Any
 from action_machine.core.exceptions import ValidationFieldError
 
 from .result_field_checker import ResultFieldChecker
+from .result_string_checker import _build_checker_meta
 
 
 class ResultInstanceChecker(ResultFieldChecker):
@@ -53,9 +61,10 @@ class ResultInstanceChecker(ResultFieldChecker):
     Проверяет, что значение является экземпляром указанного класса
     (или одного из классов, если передан кортеж).
 
-    Поддерживает двойной режим: декоратор метода-аспекта и валидатор dict.
-    При использовании как декоратор записывает _checker_meta в функцию,
-    включая дополнительный параметр expected_class.
+    Создаётся машиной из CheckerMeta при выполнении аспекта.
+
+    Атрибуты:
+        expected_class : type | tuple[type, ...] — ожидаемый класс или кортеж классов.
     """
 
     def __init__(
@@ -80,9 +89,9 @@ class ResultInstanceChecker(ResultFieldChecker):
         """
         Возвращает дополнительные параметры чекера экземпляров.
 
-        Эти параметры попадают в _checker_meta при использовании как декоратор
-        и затем передаются в конструктор при создании экземпляра машиной
-        в ActionProductMachine._apply_checkers().
+        Эти параметры сохраняются в CheckerMeta.extra_params при сборке
+        метаданных и передаются в конструктор при создании экземпляра
+        машиной в ActionProductMachine._apply_checkers().
 
         Возвращает:
             dict с ключом expected_class.
@@ -113,3 +122,58 @@ class ResultInstanceChecker(ResultFieldChecker):
                 f"Поле '{self.field_name}' должно быть экземпляром класса {self.expected_class.__name__}, "
                 f"получен {type(value).__name__}"
             )
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# Функция-декоратор
+# ═════════════════════════════════════════════════════════════════════════════
+
+
+def result_instance(
+    field_name: str,
+    expected_class: type[Any] | tuple[type[Any], ...],
+    required: bool = True,
+) -> Any:
+    """
+    Декоратор метода-аспекта. Объявляет поле-экземпляр класса в результате аспекта.
+
+    Записывает метаданные чекера в атрибут ``_checker_meta`` метода.
+    MetadataBuilder собирает эти метаданные в ClassMetadata.checkers.
+    Машина создаёт экземпляр ResultInstanceChecker из CheckerMeta
+    и вызывает checker.check(result_dict) при выполнении аспекта.
+
+    Аргументы:
+        field_name: имя поля в словаре результата аспекта.
+        expected_class: класс (или кортеж классов), которым должно
+                       соответствовать значение.
+        required: обязательно ли поле. По умолчанию True.
+
+    Возвращает:
+        Декоратор, записывающий _checker_meta в метод.
+
+    Пример:
+        @regular_aspect("Получение пользователя")
+        @result_instance("user", User, required=True)
+        async def get_user(self, params, state, box, connections):
+            return {"user": User(id=1, name="John")}
+
+        # Несколько допустимых классов:
+        @regular_aspect("Получение данных")
+        @result_instance("data", (dict, list), required=True)
+        async def get_data(self, params, state, box, connections):
+            return {"data": {"key": "value"}}
+    """
+    checker = ResultInstanceChecker(
+        field_name=field_name,
+        expected_class=expected_class,
+        required=required,
+    )
+    meta = _build_checker_meta(checker)
+
+    def decorator(func: Any) -> Any:
+        if not hasattr(func, "_checker_meta"):
+            func._checker_meta = []
+        func._checker_meta.append(meta)
+        return func
+
+    return decorator

@@ -38,15 +38,15 @@ Params и Result определяются как вложенные классы
 аспектов — из ``@regular_aspect("...")`` и ``@summary_aspect("...")``.
 
 Действие содержит один regular-аспект (валидация) с чекером
-``@ResultStringChecker`` и один summary-аспект (формирование результата).
+``@result_string`` и один summary-аспект (формирование результата).
 """
 
 from pydantic import Field
 
 from action_machine.aspects.regular_aspect import regular_aspect
 from action_machine.aspects.summary_aspect import summary_aspect
-from action_machine.auth.check_roles import CheckRoles
-from action_machine.checkers.result_string_checker import ResultStringChecker
+from action_machine.auth import ROLE_NONE, check_roles
+from action_machine.checkers import result_string
 from action_machine.core.base_action import BaseAction
 from action_machine.core.base_params import BaseParams
 from action_machine.core.base_result import BaseResult
@@ -59,7 +59,7 @@ from ..domains import OrdersDomain
 
 
 @meta(description="Создание нового заказа", domain=OrdersDomain)
-@CheckRoles(CheckRoles.NONE)
+@check_roles(ROLE_NONE)
 class CreateOrderAction(BaseAction["CreateOrderAction.Params", "CreateOrderAction.Result"]):
 
     class Params(BaseParams):
@@ -104,7 +104,7 @@ class CreateOrderAction(BaseAction["CreateOrderAction.Params", "CreateOrderActio
         )
 
     @regular_aspect("Валидация данных заказа")
-    @ResultStringChecker("validated_user", required=True)
+    @result_string("validated_user", required=True)
     async def validate(
         self,
         params: "CreateOrderAction.Params",
