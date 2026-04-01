@@ -1,78 +1,50 @@
 # tests2/conftest.py
 """
-Общие pytest-фикстуры для всех тестов ActionMachine.
+Общие фикстуры для всех тестов в пакете tests2/.
 
 ═══════════════════════════════════════════════════════════════════════════════
 НАЗНАЧЕНИЕ
 ═══════════════════════════════════════════════════════════════════════════════
 
-Содержит фикстуры, используемые во всех тестовых файлах пакета tests2/.
-Фикстуры создают координатор, машины, TestBench с моками и контексты
-с разными ролями. Каждый тест получает готовую инфраструктуру через
-параметры фикстур — не нужно создавать машины и моки вручную.
-
-═══════════════════════════════════════════════════════════════════════════════
-СЛОИ ФИКСТУР
-═══════════════════════════════════════════════════════════════════════════════
-
-Слой 1 — Инфраструктура:
-    coordinator     — GateCoordinator (новый для каждого теста).
-    log_coordinator — LogCoordinator без логгеров (тихий режим для тестов).
-
-Слой 2 — Моки зависимостей:
-    mock_payment       — AsyncMock(spec=PaymentService), charge → "TXN-TEST-001".
-    mock_notification  — AsyncMock(spec=NotificationService), send → True.
-    mock_db            — AsyncMock(spec=TestDbManager).
-
-Слой 3 — TestBench:
-    bench         — TestBench с моками, без ролей (анонимный пользователь).
-    manager_bench — TestBench с ролью "manager" (для FullAction).
-    admin_bench   — TestBench с ролью "admin" (для AdminAction).
+Предоставляет готовые фикстуры, которые покрывают типичные потребности
+тестов: координатор метаданных, моки сервисов, TestBench с различными
+конфигурациями. Все фикстуры основаны на единой доменной модели
+из tests2/domain/.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ПРИНЦИПЫ
 ═══════════════════════════════════════════════════════════════════════════════
 
-1. ИЗОЛЯЦИЯ. Каждый тест получает свежий coordinator и bench.
-   Фикстуры со scope="function" (по умолчанию) гарантируют,
-   что метаданные одного теста не влияют на другой.
-
-2. ТИХИЕ ЛОГИ. LogCoordinator создаётся без логгеров — тесты
-   не засоряют stdout. Для отладки можно временно добавить
-   ConsoleLogger в фикстуру log_coordinator.
-
-3. ГОТОВЫЕ BENCH. Три варианта TestBench покрывают основные
-   сценарии: анонимный (bench), менеджер (manager_bench),
-   админ (admin_bench). Для нестандартных ролей тест использует
-   bench.with_user() напрямую.
+1. Каждая фикстура создаёт НОВЫЙ экземпляр — тесты изолированы.
+2. Моки сервисов настроены с разумными дефолтами, которые проходят
+   все чекеры доменных Action.
+3. TestBench фикстуры покрывают три уровня: без моков, с моками,
+   с моками и ролью.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ИСПОЛЬЗОВАНИЕ В ТЕСТАХ
+ЗНАЧЕНИЯ МОКОВ
 ═══════════════════════════════════════════════════════════════════════════════
 
-    async def test_ping(bench):
-        # bench — готовый TestBench с моками и анонимным пользователем
-        result = await bench.run(PingAction(), PingAction.Params(), rollup=False)
-        assert result.message == "pong"
+mock_payment.charge() → "TXN-TEST-001"
+    Проходит чекер result_string("txn_id", required=True, min_length=1).
+    Используется в smoke-тестах и bench-тестах для проверки txn_id.
 
-    async def test_full_action(manager_bench, mock_db):
-        # manager_bench — TestBench с ролью "manager"
-        result = await manager_bench.run(
-            FullAction(),
-            FullAction.Params(user_id="u1", amount=100.0),
-            rollup=False,
-            connections={"db": mock_db},
-        )
-        assert result.status == "created"
+mock_notification.send() → True
+    Уведомление «отправлено». Smoke-тесты проверяют вызов
+    send("user_42", "Заказ создан: TXN-TEST-001").
 
-    async def test_admin_only(admin_bench):
-        # admin_bench — TestBench с ролью "admin"
-        result = await admin_bench.run(
-            AdminAction(),
-            AdminAction.Params(target="user_456"),
-            rollup=False,
-        )
-        assert result.success is True
+═══════════════════════════════════════════════════════════════════════════════
+ФИКСТУРЫ
+═══════════════════════════════════════════════════════════════════════════════
+
+coordinator        — чистый GateCoordinator для каждого теста.
+mock_payment       — AsyncMock(spec=PaymentService), charge → "TXN-TEST-001".
+mock_notification  — AsyncMock(spec=NotificationService), send → True.
+mock_db            — AsyncMock(spec=TestDbManager).
+clean_bench        — TestBench без моков, с подавленным логированием.
+bench              — TestBench с моками PaymentService и NotificationService.
+manager_bench      — bench с ролью "manager" (для FullAction).
+admin_bench        — bench с ролью "admin" (для AdminAction).
 """
 
 from unittest.mock import AsyncMock
@@ -80,130 +52,99 @@ from unittest.mock import AsyncMock
 import pytest
 
 from action_machine.core.gate_coordinator import GateCoordinator
-from action_machine.logging.log_coordinator import LogCoordinator
 from action_machine.testing import TestBench
 
-from .domain import (
-    NotificationService,
-    PaymentService,
-    TestDbManager,
-)
-
-# ═════════════════════════════════════════════════════════════════════════════
-# Слой 1 — Инфраструктура
-# ═════════════════════════════════════════════════════════════════════════════
+from .domain import NotificationService, PaymentService, TestDbManager
 
 
-@pytest.fixture()
+@pytest.fixture
 def coordinator() -> GateCoordinator:
-    """
-    Свежий GateCoordinator для каждого теста.
-
-    Создаётся без strict-режима. Каждый тест получает чистый координатор
-    без кешированных метаданных от предыдущих тестов.
-    """
+    """Чистый координатор метаданных — без кеша, без графа."""
     return GateCoordinator()
 
 
-@pytest.fixture()
-def log_coordinator() -> LogCoordinator:
-    """
-    LogCoordinator без логгеров — тихий режим для тестов.
-
-    Тесты не выводят сообщения в stdout. Для отладки конкретного теста
-    можно временно заменить на LogCoordinator(loggers=[ConsoleLogger()]).
-    """
-    return LogCoordinator(loggers=[])
-
-
-# ═════════════════════════════════════════════════════════════════════════════
-# Слой 2 — Моки зависимостей
-# ═════════════════════════════════════════════════════════════════════════════
-
-
-@pytest.fixture()
+@pytest.fixture
 def mock_payment() -> AsyncMock:
     """
-    Мок PaymentService.
+    Мок PaymentService с дефолтным поведением.
 
-    charge() возвращает фиксированный txn_id "TXN-TEST-001".
-    Используется в FullAction через box.resolve(PaymentService).
+    charge() возвращает "TXN-TEST-001" — проходит чекер
+    result_string("txn_id", required=True, min_length=1).
     """
     mock = AsyncMock(spec=PaymentService)
     mock.charge.return_value = "TXN-TEST-001"
     return mock
 
 
-@pytest.fixture()
+@pytest.fixture
 def mock_notification() -> AsyncMock:
     """
-    Мок NotificationService.
+    Мок NotificationService с дефолтным поведением.
 
-    send() возвращает True (уведомление успешно отправлено).
-    Используется в FullAction через box.resolve(NotificationService).
+    send() возвращает True — уведомление «отправлено».
     """
     mock = AsyncMock(spec=NotificationService)
     mock.send.return_value = True
     return mock
 
 
-@pytest.fixture()
+@pytest.fixture
 def mock_db() -> AsyncMock:
     """
-    Мок TestDbManager для connections.
+    Мок TestDbManager для передачи в connections={"db": mock_db}.
 
-    Передаётся в connections={"db": mock_db} при вызове FullAction.
-    Не содержит настроенного поведения — тесты добавляют его при необходимости.
+    Используется в тестах FullAction, который объявляет
+    @connection(TestDbManager, key="db").
     """
     return AsyncMock(spec=TestDbManager)
 
 
-# ═════════════════════════════════════════════════════════════════════════════
-# Слой 3 — TestBench
-# ═════════════════════════════════════════════════════════════════════════════
-
-
-@pytest.fixture()
-def bench(
-    coordinator: GateCoordinator,
-    log_coordinator: LogCoordinator,
-    mock_payment: AsyncMock,
-    mock_notification: AsyncMock,
-) -> TestBench:
+@pytest.fixture
+def clean_bench() -> TestBench:
     """
-    TestBench с моками и анонимным пользователем (ROLE_NONE).
+    TestBench без моков — для тестирования действий без зависимостей.
 
-    Подходит для тестов PingAction, SimpleAction, ChildAction —
-    действий без ролевых ограничений. Для действий с ролями
-    используйте manager_bench, admin_bench или bench.with_user().
+    Логирование подавлено через AsyncMock, чтобы не засорять
+    вывод тестов сообщениями ConsoleLogger.
+    """
+    return TestBench(log_coordinator=AsyncMock())
+
+
+@pytest.fixture
+def bench(mock_payment: AsyncMock, mock_notification: AsyncMock) -> TestBench:
+    """
+    TestBench с моками PaymentService и NotificationService.
+
+    Дефолтный пользователь — user_id="test_user", roles=["tester"].
+    Для действий с конкретными ролями используйте manager_bench
+    или admin_bench.
     """
     return TestBench(
-        coordinator=coordinator,
-        log_coordinator=log_coordinator,
         mocks={
             PaymentService: mock_payment,
             NotificationService: mock_notification,
         },
+        log_coordinator=AsyncMock(),
     )
 
 
-@pytest.fixture()
+@pytest.fixture
 def manager_bench(bench: TestBench) -> TestBench:
     """
-    TestBench с ролью "manager".
+    TestBench с ролью "manager" — для тестирования FullAction.
 
-    Создаётся из bench через immutable fluent-метод with_user().
-    Оригинальный bench не мутируется. Подходит для FullAction.
+    FullAction требует @check_roles("manager"). Этот bench
+    создаёт пользователя с ролью "manager".
     """
-    return bench.with_user(user_id="manager_1", roles=["manager"])
+    return bench.with_user(user_id="mgr_1", roles=["manager"])
 
 
-@pytest.fixture()
+@pytest.fixture
 def admin_bench(bench: TestBench) -> TestBench:
     """
-    TestBench с ролью "admin".
+    TestBench с ролью "admin" — для тестирования AdminAction.
 
-    Создаётся из bench через immutable fluent-метод with_user().
-    Оригинальный bench не мутируется. Подходит для AdminAction.
+    AdminAction требует @check_roles("admin"). Этот bench
+    создаёт пользователя с ролью "admin".
     """
     return bench.with_user(user_id="admin_1", roles=["admin"])
