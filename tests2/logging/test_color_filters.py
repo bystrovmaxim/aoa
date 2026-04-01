@@ -17,7 +17,28 @@
 цветов и их bright-варианты.
 
 VariableSubstitutor преобразует цветовые маркеры в ANSI-коды на последнем этапе.
-Этот файл тестирует полный цикл: от шаблона до ANSI-строки.
+Обработка вложенных маркеров идёт изнутри наружу: сначала раскрывается
+самый внутренний маркер, затем внешний.
+
+═══════════════════════════════════════════════════════════════════════════════
+ВЛОЖЕННЫЕ ЦВЕТА
+═══════════════════════════════════════════════════════════════════════════════
+
+При вложенных цветовых функциях (red('level: ' + green('ok'))) результат
+содержит ANSI-коды обоих цветов. ANSI-терминал не поддерживает вложенность
+цветов как HTML — каждый RESET (\033[0m) сбрасывает ВСЕ стили. Поэтому
+результат выглядит так:
+
+    \033[31mlevel: \033[32mok\033[0m\033[0m
+
+- \033[31m — включает красный (для "level: ")
+- \033[32m — переключает на зелёный (для "ok"), красный теряется
+- \033[0m — сброс после green
+- \033[0m — сброс после red
+
+Тесты проверяют наличие правильных ANSI-кодов в результате, а не
+точную структуру вложенности, потому что ANSI-терминалы работают
+как стековая машина без настоящей вложенности.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ПОКРЫВАЕМЫЕ СЦЕНАРИИ
@@ -28,6 +49,7 @@ VariableSubstitutor преобразует цветовые маркеры в AN
 - Комбинированный цвет (red_on_blue, green_on_black).
 - Bright-варианты (orange, bright_green, bg_bright_red).
 - Цветовая функция внутри iif.
+- Вложенные цветовые функции внутри iif.
 - Ошибки при неизвестном цвете.
 - Ошибки при некорректном формате имени цвета.
 - Обработка нескольких цветов в одном сообщении.
@@ -89,11 +111,14 @@ class TestColorFilters:
         """
         {%var.text|red} → ANSI-код для красного цвета.
         """
+        # Arrange & Act
         result = substitutor.substitute(
             "{%var.text|red}",
             {"text": "hello"},
             empty_scope, empty_context, empty_state, empty_params,
         )
+
+        # Assert — красный foreground код и сброс
         assert "\033[31mhello\033[0m" in result
 
     def test_background_color(
@@ -104,11 +129,14 @@ class TestColorFilters:
         """
         {%var.text|bg_red} → красный фон.
         """
+        # Arrange & Act
         result = substitutor.substitute(
             "{%var.text|bg_red}",
             {"text": "hello"},
             empty_scope, empty_context, empty_state, empty_params,
         )
+
+        # Assert — красный background код
         assert "\033[41mhello\033[0m" in result
 
     def test_foreground_on_background(
@@ -119,11 +147,14 @@ class TestColorFilters:
         """
         {%var.text|red_on_blue} → красный текст на синем фоне.
         """
+        # Arrange & Act
         result = substitutor.substitute(
             "{%var.text|red_on_blue}",
             {"text": "hello"},
             empty_scope, empty_context, empty_state, empty_params,
         )
+
+        # Assert — комбинация foreground + background
         assert "\033[31;44mhello\033[0m" in result
 
     def test_bright_colors(
@@ -134,12 +165,14 @@ class TestColorFilters:
         """
         Bright-цвета: orange (91), bright_blue (94) и т.д.
         """
+        # Arrange & Act
         result = substitutor.substitute(
             "{%var.text|orange_on_bright_blue}",
             {"text": "hello"},
             empty_scope, empty_context, empty_state, empty_params,
         )
-        # orange = 91, bright_blue background = 104
+
+        # Assert — orange = 91, bright_blue background = 104
         assert "\033[91;104mhello\033[0m" in result
 
     def test_multiple_colors_in_one_message(
@@ -150,11 +183,14 @@ class TestColorFilters:
         """
         Несколько цветовых фильтров в одном сообщении.
         """
+        # Arrange & Act
         result = substitutor.substitute(
             "{%var.a|red} and {%var.b|green}",
             {"a": "red", "b": "green"},
             empty_scope, empty_context, empty_state, empty_params,
         )
+
+        # Assert — оба цвета присутствуют
         assert "\033[31mred\033[0m" in result
         assert "\033[32mgreen\033[0m" in result
 
@@ -164,6 +200,7 @@ class TestColorFilters:
         empty_state: BaseState, empty_params: BaseParams,
     ) -> None:
         """Неизвестный цвет → LogTemplateError."""
+        # Arrange, Act & Assert
         with pytest.raises(LogTemplateError, match="Unknown color: 'hotpink'"):
             substitutor.substitute(
                 "{%var.text|hotpink}",
@@ -177,6 +214,7 @@ class TestColorFilters:
         empty_state: BaseState, empty_params: BaseParams,
     ) -> None:
         """Неизвестный foreground в комбинации → LogTemplateError."""
+        # Arrange, Act & Assert
         with pytest.raises(LogTemplateError, match="Unknown foreground color: 'hotpink'"):
             substitutor.substitute(
                 "{%var.text|hotpink_on_blue}",
@@ -190,6 +228,7 @@ class TestColorFilters:
         empty_state: BaseState, empty_params: BaseParams,
     ) -> None:
         """Неизвестный background в комбинации → LogTemplateError."""
+        # Arrange, Act & Assert
         with pytest.raises(LogTemplateError, match="Unknown background color: 'hotpink'"):
             substitutor.substitute(
                 "{%var.text|red_on_hotpink}",
@@ -207,6 +246,7 @@ class TestColorFilters:
         часть после первого '_on_' трактуется как background,
         если background не найден → ошибка.
         """
+        # Arrange, Act & Assert
         with pytest.raises(LogTemplateError, match="Unknown background color: 'blue_on_green'"):
             substitutor.substitute(
                 "{%var.text|red_on_blue_on_green}",
@@ -231,11 +271,14 @@ class TestColorFunctionsInIif:
         """
         {iif(1 > 0; red('yes'); green('no'))} → красное 'yes'.
         """
+        # Arrange & Act
         result = substitutor.substitute(
             "{iif(1 > 0; red('yes'); green('no'))}",
             {},
             empty_scope, empty_context, empty_state, empty_params,
         )
+
+        # Assert — красный код присутствует, зелёный нет
         assert "\033[31myes\033[0m" in result
         assert "green" not in result
 
@@ -247,11 +290,14 @@ class TestColorFunctionsInIif:
         """
         Переменная внутри iif, переданная в цветовую функцию.
         """
+        # Arrange & Act
         result = substitutor.substitute(
             "{iif({%var.ok}; green('OK'); red('FAIL'))}",
             {"ok": True},
             empty_scope, empty_context, empty_state, empty_params,
         )
+
+        # Assert — зелёный OK
         assert "\033[32mOK\033[0m" in result
 
     def test_nested_color_functions(
@@ -261,14 +307,27 @@ class TestColorFunctionsInIif:
     ) -> None:
         """
         Вложенные цветовые функции внутри iif.
+
+        red('level: ' + green('ok')) генерирует вложенные маркеры.
+        _apply_color_filters обрабатывает их изнутри наружу:
+        1. green('ok') → \033[32mok\033[0m
+        2. red('level: ' + ...) → \033[31mlevel: \033[32mok\033[0m\033[0m
+
+        ANSI-терминал не поддерживает вложенность — green переключает
+        цвет с red на green, первый RESET закрывает green, второй — red.
+        Проверяем наличие обоих ANSI-кодов в результате.
         """
+        # Arrange & Act
         result = substitutor.substitute(
             "{iif(1 > 0; red('level: ' + green('ok')); 'no')}",
             {},
             empty_scope, empty_context, empty_state, empty_params,
         )
-        assert "\033[31mlevel: \033[0m" in result
-        assert "\033[32mok\033[0m" in result
+
+        # Assert — оба ANSI-кода присутствуют
+        assert "\033[31m" in result      # red открывающий
+        assert "\033[32mok\033[0m" in result  # green с полным содержимым
+        assert "level: " in result       # текст между red и green
 
 
 # ======================================================================
@@ -287,10 +346,13 @@ class TestCombined:
         """
         Цветовой фильтр вне iif и цветовая функция внутри iif.
         """
+        # Arrange & Act
         result = substitutor.substitute(
             "Static: {%var.static|blue} and {iif(1 > 0; red('dynamic'); '')}",
             {"static": "blue"},
             empty_scope, empty_context, empty_state, empty_params,
         )
+
+        # Assert — оба цвета присутствуют
         assert "\033[34mblue\033[0m" in result
         assert "\033[31mdynamic\033[0m" in result

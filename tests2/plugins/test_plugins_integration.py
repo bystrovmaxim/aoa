@@ -56,7 +56,6 @@ from action_machine.plugins.decorators import on
 from action_machine.plugins.plugin import Plugin
 from action_machine.plugins.plugin_event import PluginEvent
 from action_machine.testing import TestBench
-
 from tests2.domain import (
     FullAction,
     NotificationService,
@@ -65,7 +64,6 @@ from tests2.domain import (
     SimpleAction,
     TestDbManager,
 )
-
 
 # ═════════════════════════════════════════════════════════════════════════════
 # Плагины с внешним хранилищем для проверки из тестов
