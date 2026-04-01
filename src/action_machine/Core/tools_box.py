@@ -18,6 +18,40 @@ ToolsBox заменяет ранее существовавшие отдельн
 вложенности и передаётся во все аспекты этого уровня.
 
 ═══════════════════════════════════════════════════════════════════════════════
+ПОДДЕРЖКА ROLLUP
+═══════════════════════════════════════════════════════════════════════════════
+
+ToolsBox хранит флаг rollup и прокидывает его на все уровни:
+
+1. RESOLVE: при вызове box.resolve(cls) параметр rollup передаётся
+   в factory.resolve(cls, rollup=self._rollup). Если зависимость является
+   BaseResourceManager и не поддерживает rollup — RollupNotSupportedError.
+
+2. RUN (дочерние действия): при вызове box.run(ChildAction, params, connections)
+   замыкание run_child передаёт rollup в machine._run_internal().
+   Дочерняя машина создаёт новый ToolsBox с тем же rollup.
+
+3. CONNECTIONS: обёртки (WrapperConnectionManager) наследуют rollup
+   от оригинального менеджера через конструктор.
+
+Цепочка прокидывания rollup:
+
+    ActionProductMachine._run_internal(rollup=True)
+        │
+        └── ToolsBox(rollup=True)
+                │
+                ├── resolve(PaymentService)
+                │       → factory.resolve(PaymentService, rollup=True)
+                │       → check_rollup_support() если BaseResourceManager
+                │
+                └── run(ChildAction, params, connections)
+                        │
+                        └── machine._run_internal(rollup=True)
+                                │
+                                └── ToolsBox(rollup=True)
+                                        └── ... (рекурсивно)
+
+═══════════════════════════════════════════════════════════════════════════════
 АРХИТЕКТУРА
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -30,10 +64,11 @@ ToolsBox заменяет ранее существовавшие отдельн
         │  - context: Context текущего запроса
         │  - log: ScopedLogger с координатами аспекта
         │  - nested_level: уровень вложенности
+        │  - rollup: флаг автоотката транзакций
         ▼
     ToolsBox
         │
-        ├── resolve(cls, *args, **kwargs) → ищет в resources, затем в factory
+        ├── resolve(cls, *args, **kwargs) → ищет в resources, затем в factory (с rollup)
         ├── run(action, p)               → создаёт экземпляр, оборачивает connections, вызывает run_child
         ├── info(msg)                    → делегирует в ScopedLogger → LogCoordinator
         ├── warning(msg)                 → делегирует в ScopedLogger → LogCoordinator
@@ -47,17 +82,16 @@ ToolsBox заменяет ранее существовавшие отдельн
 Метод resolve(cls, *args, **kwargs) реализует двухуровневый поиск:
 
 1. Сначала проверяет resources — словарь внешних ресурсов. В production
-   он обычно None. В тестах (ActionTestMachine) содержит моки, которые
+   он обычно None. В тестах (TestBench) содержит моки, которые
    имеют приоритет над фабрикой.
 
-2. Если в resources не найдено — делегирует в factory.resolve(cls, *args, **kwargs),
-   который создаёт новый экземпляр через фабрику или конструктор.
-   DependencyFactory stateless — каждый вызов создаёт свежий экземпляр,
-   если пользователь не указал lambda-синглтон в @depends.
+2. Если в resources не найдено — делегирует в factory.resolve(cls, *args,
+   rollup=self._rollup, **kwargs), который создаёт новый экземпляр
+   через фабрику или конструктор. При rollup=True фабрика дополнительно
+   проверяет поддержку rollup для BaseResourceManager.
 
 Аргументы *args и **kwargs пробрасываются в factory.resolve(), что
 позволяет аспектам передавать рантайм-параметры при создании зависимостей.
-При вызове без аргументов поведение идентично прежнему.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ЗАПУСК ДОЧЕРНИХ ДЕЙСТВИЙ
@@ -66,7 +100,8 @@ ToolsBox заменяет ранее существовавшие отдельн
 Метод run(action_class, params, connections) позволяет аспекту запустить
 другое действие в рамках того же контекста. Connections оборачиваются
 через get_wrapper_class(), чтобы дочернее действие не могло управлять
-транзакциями родительского ресурса.
+транзакциями родительского ресурса. Rollup прокидывается через замыкание
+run_child в machine._run_internal().
 
 ═══════════════════════════════════════════════════════════════════════════════
 ПРИМЕР ИСПОЛЬЗОВАНИЯ
@@ -74,7 +109,7 @@ ToolsBox заменяет ранее существовавшие отдельн
 
     @regular_aspect("Обработка платежа")
     async def process_payment(self, params, state, box, connections):
-        # Получение зависимости (без параметров — обратная совместимость)
+        # Получение зависимости (rollup прокидывается автоматически)
         payment = box.resolve(PaymentService)
         txn_id = await payment.charge(params.amount, params.currency)
 
@@ -84,7 +119,7 @@ ToolsBox заменяет ранее существовавшие отдельн
         # Логирование
         await box.info("Платёж обработан", txn_id=txn_id)
 
-        # Запуск дочернего действия
+        # Запуск дочернего действия (rollup прокидывается через run_child)
         notify_result = await box.run(
             NotifyAction, NotifyParams(user_id=params.user_id, message="OK")
         )
@@ -115,12 +150,15 @@ class ToolsBox:
     дочерних действий. Создаётся один раз на уровень вложенности и передаётся
     во все аспекты вместо отдельных параметров deps и log.
 
+    Хранит флаг rollup и прокидывает его в resolve() и run().
+
     Атрибуты (доступны через свойства):
         run_child : Callable — замыкание для запуска дочерних действий.
         factory : DependencyFactory — stateless-фабрика зависимостей текущего действия.
         resources : dict[type, Any] | None — внешние ресурсы (моки в тестах).
         context : Context — контекст выполнения текущего запроса.
         nested_level : int — уровень вложенности вызова.
+        rollup : bool — флаг автоотката транзакций.
     """
 
     def __init__(
@@ -131,6 +169,7 @@ class ToolsBox:
         context: Context,
         log: ScopedLogger,
         nested_level: int,
+        rollup: bool = False,
     ) -> None:
         """
         Инициализирует ToolsBox.
@@ -138,7 +177,8 @@ class ToolsBox:
         Аргументы:
             run_child: функция для запуска дочернего действия (замыкание,
                        предоставляемое машиной). Принимает action, params,
-                       connections и возвращает BaseResult.
+                       connections и возвращает BaseResult. Замыкание
+                       захватывает rollup из машины.
             factory: stateless-фабрика зависимостей для текущего действия.
                      Каждый вызов factory.resolve() создаёт новый экземпляр.
             resources: словарь внешних ресурсов, переданных на этот уровень.
@@ -148,6 +188,10 @@ class ToolsBox:
             context: контекст выполнения текущего запроса.
             log: ScopedLogger, привязанный к текущему аспекту.
             nested_level: уровень вложенности вызова.
+            rollup: флаг автоотката транзакций. При True:
+                    - resolve() передаёт rollup=True в factory.resolve().
+                    - run() прокидывает rollup через замыкание run_child.
+                    По умолчанию False.
         """
         self.__run_child = run_child
         self.__factory = factory
@@ -155,6 +199,7 @@ class ToolsBox:
         self.__context = context
         self.__log = log
         self.__nested_level = nested_level
+        self.__rollup = rollup
 
     @property
     def run_child(self) -> Callable[..., Awaitable[BaseResult]]:
@@ -181,6 +226,11 @@ class ToolsBox:
         """Возвращает уровень вложенности."""
         return self.__nested_level
 
+    @property
+    def rollup(self) -> bool:
+        """Возвращает флаг автоотката транзакций."""
+        return self.__rollup
+
     def resolve(self, cls: type[Any], *args: Any, **kwargs: Any) -> Any:
         """
         Возвращает экземпляр зависимости указанного класса.
@@ -190,12 +240,11 @@ class ToolsBox:
            Если найдено — возвращает объект из resources.
            Аргументы *args и **kwargs игнорируются при возврате из resources,
            так как объект уже создан.
-        2. Если не найдено — делегирует в factory.resolve(cls, *args, **kwargs),
-           который создаёт новый экземпляр через фабрику или конструктор.
-
-        Аргументы *args и **kwargs пробрасываются в factory.resolve(),
-        что позволяет аспектам передавать рантайм-параметры. При вызове
-        без аргументов поведение идентично прежнему — обратная совместимость.
+        2. Если не найдено — делегирует в factory.resolve(cls, *args,
+           rollup=self.__rollup, **kwargs), который создаёт новый экземпляр
+           через фабрику или конструктор. При rollup=True фабрика
+           дополнительно проверяет check_rollup_support() для
+           BaseResourceManager.
 
         Аргументы:
             cls: класс зависимости.
@@ -207,10 +256,12 @@ class ToolsBox:
 
         Исключения:
             ValueError: если зависимость не найдена ни в ресурсах, ни в фабрике.
+            RollupNotSupportedError: если rollup=True и зависимость —
+                BaseResourceManager без поддержки rollup.
         """
         if self.__resources and cls in self.__resources:
             return self.__resources[cls]
-        return self.__factory.resolve(cls, *args, **kwargs)
+        return self.__factory.resolve(cls, *args, rollup=self.__rollup, **kwargs)
 
     def _wrap_connections(
         self, connections: dict[str, BaseResourceManager] | None
@@ -221,6 +272,9 @@ class ToolsBox:
         Обёртка запрещает дочернему действию управлять транзакциями
         (open/commit/rollback), но разрешает выполнять запросы (execute).
         Если get_wrapper_class() возвращает None, ресурс передаётся как есть.
+
+        Флаг rollup прокидывается через обёртку: WrapperConnectionManager
+        наследует rollup из оригинального менеджера в своём конструкторе.
 
         Аргументы:
             connections: исходный словарь ресурсных менеджеров.
@@ -250,7 +304,8 @@ class ToolsBox:
 
         Создаёт экземпляр действия, обёртывает connections (если переданы),
         и вызывает замыкание run_child, которое делегирует в
-        ActionProductMachine._run_internal() с увеличенным nested_level.
+        ActionProductMachine._run_internal() с увеличенным nested_level
+        и текущим rollup.
 
         Аргументы:
             action_class: класс дочернего действия.
