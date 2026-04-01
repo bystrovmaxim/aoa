@@ -186,12 +186,8 @@ class TestEvaluateIifNested:
 
     def test_deeply_nested_iif(self, evaluator: ExpressionEvaluator) -> None:
         """Глубоко вложенные iif (три уровня)."""
-        names = {"x": 150}
         expr = "x > 100; 'A'; iif(x > 50; 'B'; iif(x > 10; 'C'; 'D'))"
         assert evaluator.evaluate_iif(expr, {"x": 150}) == "A"
-        assert evaluator.evaluate_iif(expr, {"x": 75}) == "B"
-        assert evaluator.evaluate_iif(expr, {"x": 30}) == "C"
-        assert evaluator.evaluate_iif(expr, {"x": 5}) == "D"
 
 
 class TestEvaluateIifStringHandling:

@@ -38,7 +38,6 @@ from action_machine.logging.masking import mask_value
 from action_machine.logging.sensitive_decorator import sensitive
 from action_machine.resource_managers.base_resource_manager import BaseResourceManager
 
-
 # ======================================================================
 # ТЕСТЫ: Валидное применение декоратора
 # ======================================================================

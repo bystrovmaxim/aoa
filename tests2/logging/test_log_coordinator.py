@@ -12,6 +12,15 @@ namespace (var, context, params, state, scope) через VariableSubstitutor,
 вычисляет iif-конструкции, а затем рассылает результат всем зарегистрированным
 логгерам.
 
+Координатор вызывает logger.handle() для каждого логгера. Метод handle()
+определён в BaseLogger и выполняет двухфазный протокол:
+1. Фильтрация — match_filters() проверяет сообщение по регулярным выражениям.
+2. Запись — write() выполняет фактический вывод (только если фильтрация прошла).
+
+RecordingLogger в этом модуле наследует BaseLogger и использует его метод
+handle() без переопределения. Это гарантирует, что фильтрация работает
+так же, как в реальных логгерах.
+
 ═══════════════════════════════════════════════════════════════════════════════
 ПОКРЫВАЕМЫЕ СЦЕНАРИИ
 ═══════════════════════════════════════════════════════════════════════════════
@@ -30,7 +39,7 @@ iif-конструкции:
 
 Рассылка логгерам:
     - Сообщение доставляется всем зарегистрированным логгерам.
-    - Каждый логгер фильтрует независимо.
+    - Каждый логгер фильтрует независимо через BaseLogger.handle().
     - Пустой список логгеров не вызывает ошибок.
 
 Параметры:
@@ -44,27 +53,47 @@ iif-конструкции:
     - Имя с подчёркиванием → LogTemplateError.
 """
 
+from typing import Any
+
 import pytest
 
 from action_machine.context.context import Context
 from action_machine.core.base_params import BaseParams
 from action_machine.core.base_state import BaseState
 from action_machine.core.exceptions import LogTemplateError
+from action_machine.logging.base_logger import BaseLogger
 from action_machine.logging.log_coordinator import LogCoordinator
 from action_machine.logging.log_scope import LogScope
 
 
-class RecordingLogger:
-    """Логгер-шпион, записывающий все вызовы write."""
+class RecordingLogger(BaseLogger):
+    """
+    Логгер-шпион, наследующий BaseLogger для корректной фильтрации.
 
-    def __init__(self, filters: list[str] | None = None):
-        self.filters = filters or []
-        self.records: list[dict] = []
-        self.supports_colors = False
+    Наследует BaseLogger.handle(), который выполняет двухфазный протокол:
+    1. match_filters() — проверяет сообщение по regex-фильтрам.
+    2. write() — вызывается только если фильтрация прошла.
 
-    async def handle(
-        self, scope, message, var, ctx, state, params, indent
+    Метод write() записывает все полученные данные в список records
+    для последующей проверки в тестах. Это гарантирует, что фильтрация
+    работает идентично реальным логгерам (ConsoleLogger и др.).
+    """
+
+    def __init__(self, filters: list[str] | None = None) -> None:
+        super().__init__(filters=filters)
+        self.records: list[dict[str, Any]] = []
+
+    async def write(
+        self,
+        scope: LogScope,
+        message: str,
+        var: dict[str, Any],
+        ctx: Context,
+        state: BaseState,
+        params: BaseParams,
+        indent: int,
     ) -> None:
+        """Сохраняет вызов write в records."""
         self.records.append({
             "scope": scope,
             "message": message,
@@ -283,10 +312,6 @@ class TestIifConstructs:
         # Arrange
         logger = RecordingLogger()
         coordinator = LogCoordinator(loggers=[logger])
-        params = BaseParams()
-        # Подставляем значения напрямую, без переменных внутри iif
-        # (можно использовать {%var.amount} внутри iif, но проще с литералами)
-        # Для демонстрации используем условие с литералом
         var = {"amount": 1500.0}
 
         # Act — iif с {%var.amount} внутри
@@ -382,7 +407,7 @@ class TestBroadcast:
         """
         Каждый логгер получает сообщение (после своей фильтрации).
         """
-        # Arrange
+        # Arrange — два логгера без фильтров
         logger1 = RecordingLogger()
         logger2 = RecordingLogger()
         coordinator = LogCoordinator(loggers=[logger1, logger2])
@@ -398,7 +423,7 @@ class TestBroadcast:
             indent=0,
         )
 
-        # Assert
+        # Assert — оба получили сообщение
         assert len(logger1.records) == 1
         assert len(logger2.records) == 1
         assert logger1.records[0]["message"] == "Broadcast"
@@ -412,15 +437,20 @@ class TestBroadcast:
         empty_params: BaseParams,
     ) -> None:
         """
-        Каждый логгер фильтрует сообщение независимо.
+        Каждый логгер фильтрует сообщение независимо через BaseLogger.handle().
+
+        all_logger (без фильтров) принимает все сообщения.
+        filtered_logger (фильтр на "PaymentAction") отклоняет сообщение
+        с scope.action="OrderAction", потому что filter_string не содержит
+        "PaymentAction".
         """
-        # Arrange
+        # Arrange — логгер без фильтров и логгер с фильтром на PaymentAction
         all_logger = RecordingLogger()
         filtered_logger = RecordingLogger(filters=[r"PaymentAction"])
         coordinator = LogCoordinator(loggers=[all_logger, filtered_logger])
-        scope = LogScope(action="OrderAction")  # не PaymentAction
+        scope = LogScope(action="OrderAction")
 
-        # Act
+        # Act — отправляем сообщение от OrderAction (не PaymentAction)
         await coordinator.emit(
             message="Order created",
             var={},
@@ -431,7 +461,7 @@ class TestBroadcast:
             indent=0,
         )
 
-        # Assert — all_logger получил, filtered_logger — нет
+        # Assert — all_logger получил, filtered_logger отклонил
         assert len(all_logger.records) == 1
         assert len(filtered_logger.records) == 0
 

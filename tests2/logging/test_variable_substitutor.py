@@ -50,8 +50,9 @@ get_wrapper_class():
     - При rollup=True commit() перехватывается в IConnectionManager.commit().
 """
 
+from unittest.mock import AsyncMock
+
 import pytest
-from unittest.mock import AsyncMock, MagicMock
 
 from action_machine.contrib.postgres.postgres_connection_manager import PostgresConnectionManager
 from action_machine.core.exceptions import HandleError

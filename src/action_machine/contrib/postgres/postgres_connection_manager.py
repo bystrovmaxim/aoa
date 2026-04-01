@@ -26,13 +26,19 @@ PostgresConnectionManager полностью поддерживает режим
 Поведение при rollup=True:
 - open()    → реальное открытие соединения с PostgreSQL.
 - execute() → реальное выполнение SQL-запроса (INSERT, UPDATE, DELETE).
-- commit()  → вызывает self.rollback() вместо реального COMMIT.
-              Перехват происходит в IConnectionManager.commit().
+- commit()  → выполняет ROLLBACK вместо COMMIT.
 - rollback()→ реальный ROLLBACK через asyncpg.
 
-Это обеспечивает полноценное выполнение бизнес-логики на production-базе
-без побочных эффектов: все SQL-запросы выполняются реально, но изменения
-откатываются при завершении транзакции.
+Механизм перехвата commit при rollup=True:
+    PostgresConnectionManager.commit() проверяет self.rollup ПЕРВЫМ.
+    Если rollup=True — вызывает self.rollback() и возвращает управление
+    через return, НЕ выполняя код реального COMMIT. Это гарантирует,
+    что при rollup=True команда COMMIT никогда не отправляется в БД.
+
+    Этот подход надёжнее делегирования в super().commit(), потому что
+    не зависит от того, как базовый класс обрабатывает возврат из
+    await super().commit(). Каждый конкретный менеджер самостоятельно
+    реализует перехват rollup в своём commit().
 
 ═══════════════════════════════════════════════════════════════════════════════
 УПРАВЛЕНИЕ ТРАНЗАКЦИЯМИ
@@ -43,10 +49,6 @@ asyncpg.Connection не предоставляет методов commit()/rollb
 
     await connection.execute("COMMIT")
     await connection.execute("ROLLBACK")
-
-Альтернативно можно использовать connection.transaction(), но для
-совместимости с интерфейсом IConnectionManager используются прямые
-SQL-команды.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ПРИМЕР ИСПОЛЬЗОВАНИЯ
@@ -83,9 +85,8 @@ from typing import Any
 import asyncpg
 
 from action_machine.core.exceptions import HandleError
-
-from ...resource_managers.iconnection_manager import IConnectionManager
-from ...resource_managers.wrapper_connection_manager import WrapperConnectionManager
+from action_machine.resource_managers.iconnection_manager import IConnectionManager
+from action_machine.resource_managers.wrapper_connection_manager import WrapperConnectionManager
 
 
 class PostgresConnectionManager(IConnectionManager):
@@ -94,7 +95,12 @@ class PostgresConnectionManager(IConnectionManager):
 
     Использует asyncpg для подключения к базе данных. Поддерживает
     режим rollup: при rollup=True метод commit() выполняет ROLLBACK
-    вместо COMMIT (перехват в IConnectionManager.commit()).
+    вместо COMMIT.
+
+    Перехват rollup реализован непосредственно в commit() этого класса:
+    проверка self.rollup выполняется первой, и при True вызывается
+    self.rollback() с немедленным return. Код реального COMMIT
+    выполняется только при rollup=False.
 
     Атрибуты:
         _connection_params : dict[str, Any]
@@ -142,22 +148,24 @@ class PostgresConnectionManager(IConnectionManager):
         """
         Фиксирует транзакцию или откатывает при rollup=True.
 
-        Сначала вызывает super().commit(), который при rollup=True
-        перенаправляет вызов на self.rollback() и возвращает управление.
-        Если rollup=False, super().commit() ничего не делает, и выполняется
-        реальный COMMIT через SQL-команду.
+        При rollup=True вызывает self.rollback() и немедленно возвращает
+        управление. Команда COMMIT не отправляется в БД.
 
+        При rollup=False отправляет SQL-команду COMMIT через asyncpg.
         asyncpg не имеет метода connection.commit() — вместо этого
-        отправляется SQL-команда COMMIT напрямую.
+        используется прямая SQL-команда.
 
         Исключения:
-            HandleError: при ошибке выполнения COMMIT.
+            HandleError: при ошибке выполнения COMMIT или если
+                соединение не открыто.
         """
-        # Перехват rollup происходит здесь:
-        # при rollup=True → super вызывает self.rollback() и return
-        await super().commit()
+        # Перехват rollup: при True выполняем ROLLBACK вместо COMMIT
+        # и возвращаем управление, не доходя до кода реального COMMIT.
+        if self.rollup:
+            await self.rollback()
+            return
 
-        # Если дошли сюда — rollup=False, выполняем реальный COMMIT
+        # rollup=False — выполняем реальный COMMIT
         if self._conn is None:
             raise HandleError("Соединение не открыто")
         try:

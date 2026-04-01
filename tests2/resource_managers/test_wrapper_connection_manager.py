@@ -57,7 +57,6 @@ from action_machine.core.meta_decorator import meta
 from action_machine.resource_managers.iconnection_manager import IConnectionManager
 from action_machine.resource_managers.wrapper_connection_manager import WrapperConnectionManager
 
-
 # ======================================================================
 # Mock-менеджер соединений для тестов
 # ======================================================================
