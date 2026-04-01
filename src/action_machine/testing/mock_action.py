@@ -1,4 +1,4 @@
-# src/action_machine/core/mock_action.py
+# src/action_machine/testing/mock_action.py
 """
 MockAction — мок-действие для использования в тестах.
 
@@ -8,12 +8,14 @@ MockAction — мок-действие для использования в те
 
 MockAction позволяет заменять реальные действия в тестах, предоставляя
 фиксированный результат или вычисляемый через side_effect. Используется
-в ActionTestMachine для подстановки зависимостей.
+в тестовых машинах (AsyncTestMachine, SyncTestMachine) для подстановки
+зависимостей.
 
 MockAction — полноценное действие, наследующее BaseAction[BaseParams, BaseResult].
 Содержит summary-аспект (_mock_summary), что позволяет выполнять его
-через полный конвейер машины. Однако ActionTestMachine при обнаружении
-MockAction вызывает метод run() напрямую, минуя конвейер аспектов.
+через полный конвейер машины. Однако тестовые машины при обнаружении
+MockAction вызывают метод run() напрямую, минуя конвейер аспектов —
+это быстрее и не требует @meta и @check_roles.
 
 ═══════════════════════════════════════════════════════════════════════════════
 РЕЖИМЫ РАБОТЫ
@@ -45,6 +47,8 @@ MockAction отслеживает количество вызовов (call_coun
 ПРИМЕР ИСПОЛЬЗОВАНИЯ
 ═══════════════════════════════════════════════════════════════════════════════
 
+    from action_machine.testing import MockAction, AsyncTestMachine
+
     # Фиксированный результат:
     mock = MockAction(result=OrderResult(order_id="ORD-1", status="ok"))
     result = mock.run(OrderParams(user_id="u1"))
@@ -56,8 +60,8 @@ MockAction отслеживает количество вызовов (call_coun
     result = mock.run(OrderParams(user_id="u42"))
     assert result.order_id == "ORD-u42"
 
-    # В ActionTestMachine:
-    machine = ActionTestMachine(mocks={
+    # В тестовой машине:
+    machine = AsyncTestMachine(mocks={
         PaymentService: MockAction(result=PayResult(txn_id="TXN-1")),
     })
 """
@@ -80,6 +84,9 @@ class MockAction(BaseAction[BaseParams, BaseResult]):  # pylint: disable=too-man
     Заменяет реальное действие, позволяя задать фиксированный результат
     или функцию-генератор результата (side_effect). Отслеживает количество
     вызовов и сохраняет параметры последнего вызова.
+
+    Тестовые машины при обнаружении MockAction вызывают run() напрямую,
+    минуя конвейер аспектов — это не требует @meta и @check_roles.
 
     Атрибуты:
         result : BaseResult | None
@@ -156,7 +163,8 @@ class MockAction(BaseAction[BaseParams, BaseResult]):  # pylint: disable=too-man
         Заглушка summary-аспекта для выполнения через полный конвейер.
 
         Вызывается машиной при выполнении MockAction через конвейер
-        аспектов. Делегирует в метод run(), который возвращает
+        аспектов (если тестовая машина решит не обрабатывать MockAction
+        напрямую). Делегирует в метод run(), который возвращает
         фиксированный или вычисленный результат.
 
         Аргументы:

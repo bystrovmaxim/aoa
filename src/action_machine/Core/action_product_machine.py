@@ -1,23 +1,34 @@
 # src/action_machine/core/action_product_machine.py
 """
-ActionProductMachine — production-реализация машины действий.
+ActionProductMachine — асинхронная production-реализация машины действий.
 
 ═══════════════════════════════════════════════════════════════════════════════
 НАЗНАЧЕНИЕ
 ═══════════════════════════════════════════════════════════════════════════════
 
-ActionProductMachine — центральный исполнитель действий (Action) в системе.
-Получает экземпляр действия, входные параметры и контекст, после чего:
+ActionProductMachine — центральный асинхронный исполнитель действий (Action)
+в системе. Получает экземпляр действия, входные параметры и контекст,
+после чего:
 
 1. Проверяет ролевые ограничения (@check_roles) через ClassMetadata.
-2. Валидирует соединения (@connection) через ClassMetadata:
-   - Проверяет соответствие ключей (объявленные vs фактические).
-   - Проверяет, что каждое значение — экземпляр BaseResourceManager.
+2. Валидирует соединения (@connection) через ClassMetadata.
 3. Получает stateless-фабрику зависимостей через координатор.
 4. Создаёт изолированный PluginRunContext для текущего запроса.
 5. Последовательно выполняет regular-аспекты, проверяя результаты чекерами.
 6. Выполняет summary-аспект, формирующий итоговый Result.
 7. Уведомляет плагины о событиях через PluginRunContext.
+
+═══════════════════════════════════════════════════════════════════════════════
+ПУБЛИЧНЫЙ API
+═══════════════════════════════════════════════════════════════════════════════
+
+    await machine.run(context, action, params, connections)
+
+Метод run() — асинхронный. Для синхронного использования существует
+отдельный класс SyncActionProductMachine.
+
+Production-машины всегда передают rollup=False в _run_internal().
+Параметр rollup не входит в публичный API production-машин.
 
 ═══════════════════════════════════════════════════════════════════════════════
 КООРДИНАТОР (GateCoordinator)
@@ -62,14 +73,6 @@ STATELESS МЕЖДУ ЗАПРОСАМИ
 
 nest_level — уровень вложенности вызова (0 для корневого, 1 для дочернего
 через box.run() и т.д.). Доступен в шаблонах через {%scope.nest_level}.
-
-═══════════════════════════════════════════════════════════════════════════════
-ВАЛИДАЦИЯ ЧЕКЕРОВ
-═══════════════════════════════════════════════════════════════════════════════
-
-При создании экземпляра чекера из CheckerMeta машина передаёт field_name,
-required и extra_params. Чекеры создаются из классов, хранящихся
-в CheckerMeta.checker_class.
 
 ═══════════════════════════════════════════════════════════════════════════════
 АРХИТЕКТУРА ВЫПОЛНЕНИЯ
@@ -125,7 +128,7 @@ R = TypeVar("R", bound=BaseResult)
 
 class ActionProductMachine(BaseActionMachine):
     """
-    Production-реализация машины действий (полностью асинхронная).
+    Асинхронная production-реализация машины действий.
 
     Выполняет действие по конвейеру аспектов, проверяет роли и соединения,
     применяет чекеры к результатам аспектов, уведомляет плагины о событиях.
@@ -134,6 +137,9 @@ class ActionProductMachine(BaseActionMachine):
     Машина НЕ обращается к внутренним атрибутам классов.
 
     Машина не хранит никакого мутабельного состояния между вызовами run().
+
+    Публичный метод run() — асинхронный (async). Всегда передаёт
+    rollup=False в _run_internal().
 
     Атрибуты:
         _mode : str
@@ -663,7 +669,7 @@ class ActionProductMachine(BaseActionMachine):
         return state
 
     # ─────────────────────────────────────────────────────────────────────
-    # Публичный API: run
+    # Публичный API: run (асинхронный)
     # ─────────────────────────────────────────────────────────────────────
 
     async def run(
@@ -676,6 +682,7 @@ class ActionProductMachine(BaseActionMachine):
         """
         Асинхронно выполняет действие с поддержкой плагинов и вложенности.
 
+        Production-машина всегда передаёт rollup=False в _run_internal().
         Каждый вызов полностью изолирован от предыдущих.
 
         Аргументы:
@@ -687,6 +694,7 @@ class ActionProductMachine(BaseActionMachine):
         Возвращает:
             R — результат выполнения действия.
         """
+        # pylint: disable=invalid-overridden-method
         return await self._run_internal(
             context=context,
             action=action,
@@ -694,6 +702,7 @@ class ActionProductMachine(BaseActionMachine):
             resources=None,
             connections=connections,
             nested_level=0,
+            rollup=False,
         )
 
     async def _run_internal(
@@ -704,11 +713,12 @@ class ActionProductMachine(BaseActionMachine):
         resources: dict[type, Any] | None,
         connections: dict[str, BaseResourceManager] | None,
         nested_level: int,
+        rollup: bool,
     ) -> R:
         """
-        Внутренний метод выполнения с поддержкой вложенности.
+        Внутренний метод выполнения с поддержкой вложенности и rollup.
 
-        Вызывается из run() (nested_level=0) и из ToolsBox.run()
+        Вызывается из run() (nested_level=0, rollup=False) и из ToolsBox.run()
         (nested_level > 0).
 
         Аргументы:
@@ -718,6 +728,8 @@ class ActionProductMachine(BaseActionMachine):
             resources: внешние ресурсы (моки в тестах).
             connections: менеджеры ресурсов.
             nested_level: текущий уровень вложенности.
+            rollup: режим агрегации результатов (зарезервирован,
+                    production-машины всегда передают False).
 
         Возвращает:
             R — результат действия.
@@ -757,6 +769,7 @@ class ActionProductMachine(BaseActionMachine):
                     resources=resources,
                     connections=child_connections,
                     nested_level=current_nest,
+                    rollup=rollup,
                 )
 
             box = ToolsBox(
