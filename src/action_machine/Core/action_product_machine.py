@@ -31,6 +31,29 @@ Production-машины всегда передают rollup=False в _run_inter
 Параметр rollup не входит в публичный API production-машин.
 
 ═══════════════════════════════════════════════════════════════════════════════
+ROLLUP
+═══════════════════════════════════════════════════════════════════════════════
+
+Параметр rollup: bool присутствует в _run_internal() и прокидывается
+в ToolsBox. ToolsBox использует rollup при:
+
+- resolve() → factory.resolve(cls, rollup=rollup) — проверка поддержки
+  rollup для BaseResourceManager.
+- run() → замыкание run_child захватывает rollup и передаёт его
+  в рекурсивный вызов _run_internal().
+
+Production-машины (ActionProductMachine, SyncActionProductMachine)
+всегда передают rollup=False из публичного метода run().
+TestBench передаёт rollup из терминальных методов (run, run_aspect,
+run_summary), где тестировщик явно выбирает режим.
+
+Connections создаются снаружи с rollup в конструкторе — ответственность
+вызывающего кода:
+
+    db = PostgresConnectionManager(params, rollup=True)
+    result = await bench.run(action, params, rollup=True, connections={"db": db})
+
+═══════════════════════════════════════════════════════════════════════════════
 КООРДИНАТОР (GateCoordinator)
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -492,7 +515,8 @@ class ActionProductMachine(BaseActionMachine):
         Вызывает метод-аспект, обёрнутый в AspectMeta.
 
         Создаёт ScopedLogger с именем аспекта, реальными state и params,
-        nest_level из ToolsBox, оборачивает в новый ToolsBox и вызывает метод.
+        nest_level из ToolsBox, оборачивает в новый ToolsBox (с тем же rollup)
+        и вызывает метод.
 
         Аргументы:
             aspect_meta: метаданные аспекта (None → возвращает пустой BaseResult).
@@ -528,6 +552,7 @@ class ActionProductMachine(BaseActionMachine):
             context=box.context,
             log=aspect_log,
             nested_level=box.nested_level,
+            rollup=box.rollup,
         )
 
         return await aspect_meta.method_ref(action, params, state, aspect_box, connections)
@@ -583,7 +608,7 @@ class ActionProductMachine(BaseActionMachine):
         Аргументы:
             action: экземпляр действия.
             params: входные параметры.
-            box: ToolsBox для этого уровня.
+            box: ToolsBox для этого уровня (содержит rollup).
             connections: словарь менеджеров ресурсов.
             context: контекст выполнения.
             metadata: метаданные класса.
@@ -719,7 +744,8 @@ class ActionProductMachine(BaseActionMachine):
         Внутренний метод выполнения с поддержкой вложенности и rollup.
 
         Вызывается из run() (nested_level=0, rollup=False) и из ToolsBox.run()
-        (nested_level > 0).
+        (nested_level > 0). Rollup прокидывается в ToolsBox и через замыкание
+        run_child в дочерние вызовы _run_internal().
 
         Аргументы:
             context: контекст выполнения.
@@ -728,8 +754,9 @@ class ActionProductMachine(BaseActionMachine):
             resources: внешние ресурсы (моки в тестах).
             connections: менеджеры ресурсов.
             nested_level: текущий уровень вложенности.
-            rollup: режим агрегации результатов (зарезервирован,
-                    production-машины всегда передают False).
+            rollup: режим автоотката транзакций. Production-машины
+                    всегда передают False. TestBench передаёт значение
+                    из терминального метода.
 
         Возвращает:
             R — результат действия.
@@ -779,6 +806,7 @@ class ActionProductMachine(BaseActionMachine):
                 context=context,
                 log=log,
                 nested_level=current_nest,
+                rollup=rollup,
             )
 
             await plugin_ctx.emit_event(

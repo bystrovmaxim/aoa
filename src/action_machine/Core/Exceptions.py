@@ -20,6 +20,9 @@
   (WrapperConnectionManager).
 - ConnectionValidationError — несоответствие переданных connections объявленным
   через @connection (ActionProductMachine._check_connections).
+- RollupNotSupportedError — ресурсный менеджер или зависимость не поддерживает
+  режим rollup. Выбрасывается при попытке передать rollup=True классу,
+  который не реализовал поддержку автоотката.
 - LogTemplateError — ошибки в шаблонах логирования (VariableSubstitutor,
   ExpressionEvaluator).
 - CyclicDependencyError — обнаружена циклическая зависимость при построении
@@ -33,6 +36,17 @@ ActionMachine не подавляет исключения. Все ошибки 
 с информативными сообщениями, указывающими на причину и контекст.
 Это позволяет обнаруживать проблемы немедленно при первом запуске,
 а не через месяц по непонятным строкам в логах.
+
+═══════════════════════════════════════════════════════════════════════════════
+ИЕРАРХИЯ ТРАНЗАКЦИОННЫХ ИСКЛЮЧЕНИЙ
+═══════════════════════════════════════════════════════════════════════════════
+
+    TransactionError (базовое)
+        ├── ConnectionAlreadyOpenError
+        ├── ConnectionNotOpenError
+        ├── TransactionProhibitedError
+        ├── ConnectionValidationError
+        └── RollupNotSupportedError
 """
 
 
@@ -42,10 +56,10 @@ class AuthorizationError(Exception):
 
     Выбрасывается в ActionProductMachine._check_action_roles() при
     несоответствии ролей пользователя требованиям действия, заданным
-    через декоратор @CheckRoles.
+    через декоратор @check_roles.
 
     Сценарии:
-    - CheckRoles.ANY, но у пользователя нет ни одной роли.
+    - ROLE_ANY, но у пользователя нет ни одной роли.
     - Конкретная роль ("admin"), отсутствующая у пользователя.
     - Список ролей (["admin", "manager"]), ни одна из которых
       не совпадает с ролями пользователя.
@@ -98,8 +112,8 @@ class TransactionError(Exception):
     Базовое исключение для ошибок, связанных с транзакциями и соединениями.
 
     Является родительским для ConnectionAlreadyOpenError,
-    ConnectionNotOpenError, TransactionProhibitedError
-    и ConnectionValidationError.
+    ConnectionNotOpenError, TransactionProhibitedError,
+    ConnectionValidationError и RollupNotSupportedError.
     """
 
     pass
@@ -150,6 +164,35 @@ class ConnectionValidationError(TransactionError):
     2. Если у действия есть @connection, но connections не передан.
     3. Если ключи в connections не совпадают с объявленными
        (лишние или недостающие ключи).
+    """
+
+    pass
+
+
+class RollupNotSupportedError(TransactionError):
+    """
+    Ресурсный менеджер или зависимость не поддерживает режим rollup.
+
+    Выбрасывается при попытке передать rollup=True классу, который
+    не реализовал поддержку автоматического отката транзакций.
+
+    Режим rollup позволяет безопасно тестировать на production-базе:
+    все операции записи выполняются внутри транзакции, но вместо
+    COMMIT выполняется ROLLBACK. Если ресурсный менеджер не поддерживает
+    этот механизм (например, Redis, HTTP-клиент), он должен выбросить
+    RollupNotSupportedError, чтобы тестировщик узнал об этом немедленно.
+
+    Типичные сценарии:
+    - BaseResourceManager.check_rollup_support() по умолчанию выбрасывает
+      это исключение для всех менеджеров, не переопределивших метод.
+    - DependencyFactory.resolve() при rollup=True проверяет поддержку
+      rollup для каждого BaseResourceManager и выбрасывает это исключение
+      если менеджер не поддерживает rollup.
+
+    Пример сообщения:
+        "Класс 'RedisManager' не поддерживает rollup. Реализуйте метод
+         check_rollup_support() или используйте ресурс, поддерживающий
+         транзакционный откат."
     """
 
     pass
