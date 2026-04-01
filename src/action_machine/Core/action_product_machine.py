@@ -98,6 +98,18 @@ nest_level — уровень вложенности вызова (0 для ко
 через box.run() и т.д.). Доступен в шаблонах через {%scope.nest_level}.
 
 ═══════════════════════════════════════════════════════════════════════════════
+ЗАМЫКАНИЕ run_child
+═══════════════════════════════════════════════════════════════════════════════
+
+Замыкание run_child создаётся внутри _run_internal() и передаётся в
+ToolsBox. ToolsBox.run() вызывает его с именованными аргументами:
+    self.__run_child(action=..., params=..., connections=...)
+
+Имена параметров замыкания ОБЯЗАНЫ совпадать с именами kwargs в
+ToolsBox.run(): action, params, connections. Это контракт между
+ToolsBox и замыканием.
+
+═══════════════════════════════════════════════════════════════════════════════
 АРХИТЕКТУРА ВЫПОЛНЕНИЯ
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -747,6 +759,11 @@ class ActionProductMachine(BaseActionMachine):
         (nested_level > 0). Rollup прокидывается в ToolsBox и через замыкание
         run_child в дочерние вызовы _run_internal().
 
+        Замыкание run_child использует имена параметров action, params,
+        connections — они совпадают с именованными аргументами, которые
+        передаёт ToolsBox.run() при вызове self.__run_child(action=...,
+        params=..., connections=...).
+
         Аргументы:
             context: контекст выполнения.
             action: экземпляр действия.
@@ -785,16 +802,16 @@ class ActionProductMachine(BaseActionMachine):
             )
 
             async def run_child(
-                child_action: BaseAction[Any, Any],
-                child_params: BaseParams,
-                child_connections: dict[str, BaseResourceManager] | None = None,
+                action: BaseAction[Any, Any],
+                params: BaseParams,
+                connections: dict[str, BaseResourceManager] | None = None,
             ) -> BaseResult:
                 return await self._run_internal(
                     context=context,
-                    action=child_action,
-                    params=child_params,
+                    action=action,
+                    params=params,
                     resources=resources,
-                    connections=child_connections,
+                    connections=connections,
                     nested_level=current_nest,
                     rollup=rollup,
                 )
