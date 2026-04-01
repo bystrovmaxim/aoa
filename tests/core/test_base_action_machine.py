@@ -18,7 +18,7 @@ import warnings
 import pytest
 
 from action_machine.aspects.summary_aspect import summary_aspect
-from action_machine.auth.check_roles import CheckRoles
+from action_machine.auth import ROLE_NONE, check_roles
 from action_machine.context.context import Context
 from action_machine.core.action_product_machine import ActionProductMachine
 from action_machine.core.base_action import BaseAction
@@ -44,7 +44,7 @@ class MockResult(BaseResult):
 
 
 @meta(description="Минимальное действие для тестирования sync_run")
-@CheckRoles(CheckRoles.NONE)
+@check_roles(ROLE_NONE)
 class SimpleAction(BaseAction[MockParams, MockResult]):
     """
     Минимальное действие для тестирования sync_run.

@@ -50,8 +50,8 @@ from pydantic import Field
 
 from action_machine.aspects.regular_aspect import regular_aspect
 from action_machine.aspects.summary_aspect import summary_aspect
-from action_machine.auth.check_roles import CheckRoles
-from action_machine.checkers.result_string_checker import ResultStringChecker
+from action_machine.auth import ROLE_NONE, check_roles
+from action_machine.checkers import result_string
 from action_machine.core.base_action import BaseAction
 from action_machine.core.base_params import BaseParams
 from action_machine.core.base_result import BaseResult
@@ -100,7 +100,7 @@ class OrderResult(BaseResult):
 
 
 @meta(description="Проверка доступности")
-@CheckRoles(CheckRoles.NONE)
+@check_roles(ROLE_NONE)
 class PingAction(BaseAction[EmptyParams, PingResult]):
     @summary_aspect("Pong")
     async def pong(self, params, state, box, connections):
@@ -108,10 +108,10 @@ class PingAction(BaseAction[EmptyParams, PingResult]):
 
 
 @meta(description="Создание заказа")
-@CheckRoles(CheckRoles.NONE)
+@check_roles(ROLE_NONE)
 class CreateOrderAction(BaseAction[OrderParams, OrderResult]):
     @regular_aspect("Валидация")
-    @ResultStringChecker("validated_user", required=True)
+    @result_string("validated_user", required=True)
     async def validate(self, params, state, box, connections):
         return {"validated_user": params.user_id}
 

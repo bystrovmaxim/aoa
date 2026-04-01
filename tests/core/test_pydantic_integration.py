@@ -51,7 +51,7 @@ import pytest
 from pydantic import Field, ValidationError
 
 from action_machine.aspects.summary_aspect import summary_aspect
-from action_machine.auth.check_roles import CheckRoles
+from action_machine.auth import ROLE_NONE, check_roles
 from action_machine.core.base_action import BaseAction
 from action_machine.core.base_params import BaseParams
 from action_machine.core.base_result import BaseResult
@@ -110,7 +110,7 @@ class BadResultNoDescription(BaseResult):
 
 
 @meta(description="Действие с полностью описанными Params и Result")
-@CheckRoles(CheckRoles.NONE)
+@check_roles(ROLE_NONE)
 class GoodAction(BaseAction[OrderParams, OrderResult]):
     @summary_aspect("Создание заказа")
     async def summary(self, params, state, box, connections):
@@ -118,7 +118,7 @@ class GoodAction(BaseAction[OrderParams, OrderResult]):
 
 
 @meta(description="Действие с пустыми моделями")
-@CheckRoles(CheckRoles.NONE)
+@check_roles(ROLE_NONE)
 class EmptyModelsAction(BaseAction[EmptyParams, EmptyResult]):
     @summary_aspect("Пустой результат")
     async def summary(self, params, state, box, connections):
@@ -126,7 +126,7 @@ class EmptyModelsAction(BaseAction[EmptyParams, EmptyResult]):
 
 
 @meta(description="Действие с плохими Params")
-@CheckRoles(CheckRoles.NONE)
+@check_roles(ROLE_NONE)
 class BadParamsAction(BaseAction[BadParamsNoDescription, OrderResult]):
     @summary_aspect("Результат")
     async def summary(self, params, state, box, connections):
@@ -134,7 +134,7 @@ class BadParamsAction(BaseAction[BadParamsNoDescription, OrderResult]):
 
 
 @meta(description="Действие с пустым описанием поля Params")
-@CheckRoles(CheckRoles.NONE)
+@check_roles(ROLE_NONE)
 class BadParamsEmptyDescAction(BaseAction[BadParamsEmptyDescription, OrderResult]):
     @summary_aspect("Результат")
     async def summary(self, params, state, box, connections):
@@ -142,7 +142,7 @@ class BadParamsEmptyDescAction(BaseAction[BadParamsEmptyDescription, OrderResult
 
 
 @meta(description="Действие с плохим Result")
-@CheckRoles(CheckRoles.NONE)
+@check_roles(ROLE_NONE)
 class BadResultAction(BaseAction[OrderParams, BadResultNoDescription]):
     @summary_aspect("Результат")
     async def summary(self, params, state, box, connections):

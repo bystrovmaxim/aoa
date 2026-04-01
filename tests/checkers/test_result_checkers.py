@@ -3,12 +3,12 @@ from datetime import datetime
 
 import pytest
 
+from action_machine.checkers import ResultStringChecker
 from action_machine.checkers.result_bool_checker import ResultBoolChecker
 from action_machine.checkers.result_date_checker import ResultDateChecker
 from action_machine.checkers.result_float_checker import ResultFloatChecker
 from action_machine.checkers.result_instance_checker import ResultInstanceChecker
 from action_machine.checkers.result_int_checker import ResultIntChecker
-from action_machine.checkers.result_string_checker import ResultStringChecker
 from action_machine.core.exceptions import ValidationFieldError
 
 

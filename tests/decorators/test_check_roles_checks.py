@@ -14,7 +14,7 @@
 
 import pytest
 
-from action_machine.auth.check_roles import CheckRoles
+from action_machine.auth import ROLE_ANY, ROLE_NONE, check_roles
 from action_machine.auth.role_gate_host import RoleGateHost
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -36,7 +36,7 @@ class TestCheckRolesSuccess:
     def test_single_role_string(self):
         """Одна роль строкой — сохраняется в _role_info с ключом spec."""
 
-        @CheckRoles("admin")
+        @check_roles("admin")
         class MyAction(HostBase):
             pass
 
@@ -46,7 +46,7 @@ class TestCheckRolesSuccess:
     def test_role_info_has_no_desc(self):
         """_role_info не содержит ключ desc — параметр удалён из API."""
 
-        @CheckRoles("admin")
+        @check_roles("admin")
         class MyAction(HostBase):
             pass
 
@@ -55,7 +55,7 @@ class TestCheckRolesSuccess:
     def test_list_of_roles(self):
         """Список ролей — сохраняется как список."""
 
-        @CheckRoles(["user", "manager"])
+        @check_roles(["user", "manager"])
         class MyAction(HostBase):
             pass
 
@@ -64,29 +64,29 @@ class TestCheckRolesSuccess:
     def test_single_element_list(self):
         """Список из одного элемента — допустим."""
 
-        @CheckRoles(["admin"])
+        @check_roles(["admin"])
         class MyAction(HostBase):
             pass
 
         assert MyAction._role_info["spec"] == ["admin"]
 
     def test_none_marker(self):
-        """CheckRoles.NONE — аутентификация не требуется."""
+        """ROLE_NONE — аутентификация не требуется."""
 
-        @CheckRoles(CheckRoles.NONE)
+        @check_roles(ROLE_NONE)
         class MyAction(HostBase):
             pass
 
-        assert MyAction._role_info["spec"] == CheckRoles.NONE
+        assert MyAction._role_info["spec"] == ROLE_NONE
 
     def test_any_marker(self):
-        """CheckRoles.ANY — любая роль подходит."""
+        """ROLE_ANY — любая роль подходит."""
 
-        @CheckRoles(CheckRoles.ANY)
+        @check_roles(ROLE_ANY)
         class MyAction(HostBase):
             pass
 
-        assert MyAction._role_info["spec"] == CheckRoles.ANY
+        assert MyAction._role_info["spec"] == ROLE_ANY
 
     def test_returns_same_class(self):
         """Декоратор возвращает тот же класс без замены."""
@@ -94,13 +94,9 @@ class TestCheckRolesSuccess:
         class OriginalAction(HostBase):
             pass
 
-        result = CheckRoles("user")(OriginalAction)
+        result = check_roles("user")(OriginalAction)
         assert result is OriginalAction
 
-    def test_spec_property(self):
-        """Свойство spec возвращает спецификацию ролей."""
-        decorator = CheckRoles(["a", "b"])
-        assert decorator.spec == ["a", "b"]
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -113,7 +109,7 @@ class TestCheckRolesTargetErrors:
     def test_function_target_raises(self):
         """Применение к функции — TypeError."""
         with pytest.raises(TypeError, match="только к классу"):
-            @CheckRoles("admin")
+            @check_roles("admin")
             def my_function():
                 pass
 
@@ -121,12 +117,12 @@ class TestCheckRolesTargetErrors:
         """Применение к экземпляру — TypeError."""
         obj = HostBase()
         with pytest.raises(TypeError, match="только к классу"):
-            CheckRoles("admin")(obj)
+            check_roles("admin")(obj)
 
     def test_string_target_raises(self):
         """Применение к строке — TypeError."""
         with pytest.raises(TypeError, match="только к классу"):
-            CheckRoles("admin")("not_a_class")
+            check_roles("admin")("not_a_class")
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -139,7 +135,7 @@ class TestCheckRolesMixinErrors:
     def test_no_mixin_raises(self):
         """Класс без RoleGateHost — TypeError."""
         with pytest.raises(TypeError, match="не наследует RoleGateHost"):
-            @CheckRoles("admin")
+            @check_roles("admin")
             class BadAction:
                 pass
 
@@ -154,29 +150,29 @@ class TestCheckRolesSpecErrors:
     def test_number_spec_raises(self):
         """Число в spec — TypeError."""
         with pytest.raises(TypeError, match="строку или список строк"):
-            CheckRoles(42)
+            check_roles(42)
 
     def test_none_spec_raises(self):
         """None в spec — TypeError."""
         with pytest.raises(TypeError, match="строку или список строк"):
-            CheckRoles(None)
+            check_roles(None)
 
     def test_dict_spec_raises(self):
         """Словарь в spec — TypeError."""
         with pytest.raises(TypeError, match="строку или список строк"):
-            CheckRoles({"role": "admin"})
+            check_roles({"role": "admin"})
 
     def test_empty_list_raises(self):
         """Пустой список — ValueError."""
         with pytest.raises(ValueError, match="пустой список"):
-            CheckRoles([])
+            check_roles([])
 
     def test_non_string_in_list_raises(self):
         """Нестроковый элемент в списке — ValueError."""
         with pytest.raises(ValueError, match="должен быть строкой"):
-            CheckRoles(["admin", 42])
+            check_roles(["admin", 42])
 
     def test_none_in_list_raises(self):
         """None в списке — ValueError."""
         with pytest.raises(ValueError, match="должен быть строкой"):
-            CheckRoles(["admin", None])
+            check_roles(["admin", None])

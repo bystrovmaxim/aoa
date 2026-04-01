@@ -19,7 +19,7 @@ import pytest
 from pydantic import Field
 
 from action_machine.aspects.summary_aspect import summary_aspect
-from action_machine.auth.check_roles import CheckRoles
+from action_machine.auth import ROLE_NONE, check_roles
 from action_machine.contrib.mcp.route_record import McpRouteRecord
 from action_machine.core.base_action import BaseAction
 from action_machine.core.base_params import BaseParams
@@ -55,7 +55,7 @@ class AltResponse(BaseResult):
 
 
 @meta(description="Тестовое действие")
-@CheckRoles(CheckRoles.NONE)
+@check_roles(ROLE_NONE)
 class SampleAction(BaseAction[SampleParams, SampleResult]):
     """Действие для тестов RouteRecord."""
 
