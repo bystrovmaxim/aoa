@@ -19,7 +19,7 @@
 import pytest
 
 from action_machine.aspects.summary_aspect import summary_aspect
-from action_machine.auth.check_roles import CheckRoles
+from action_machine.auth import ROLE_NONE, check_roles
 from action_machine.context.context import Context
 from action_machine.context.user_info import UserInfo
 from action_machine.core.action_test_machine import ActionTestMachine
@@ -54,7 +54,7 @@ class DummyAction(BaseAction[DummyParams, DummyResult]):
 
 
 @meta(description="Минимальное действие с одним summary-аспектом для тестов")
-@CheckRoles(CheckRoles.NONE)
+@check_roles(ROLE_NONE)
 class SimpleSummaryAction(BaseAction[DummyParams, DummyResult]):
     """Минимальное действие с одним summary-аспектом для тестов."""
 

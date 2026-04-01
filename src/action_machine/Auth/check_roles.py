@@ -82,7 +82,6 @@ from __future__ import annotations
 
 from typing import Any
 
-from action_machine.auth.constants import ROLE_ANY, ROLE_NONE
 from action_machine.auth.role_gate_host import RoleGateHost
 
 

@@ -43,7 +43,7 @@ from pydantic import Field
 from action_machine.adapters.base_adapter import BaseAdapter
 from action_machine.adapters.base_route_record import BaseRouteRecord
 from action_machine.aspects.summary_aspect import summary_aspect
-from action_machine.auth.check_roles import CheckRoles
+from action_machine.auth import ROLE_NONE, check_roles
 from action_machine.auth.no_auth_coordinator import NoAuthCoordinator
 from action_machine.core.action_product_machine import ActionProductMachine
 from action_machine.core.base_action import BaseAction
@@ -78,7 +78,7 @@ class AltResponse(BaseResult):
 
 
 @meta(description="Тестовое действие")
-@CheckRoles(CheckRoles.NONE)
+@check_roles(ROLE_NONE)
 class SampleAction(BaseAction[SampleParams, SampleResult]):
     @summary_aspect("Тестовый summary")
     async def summary(self, params, state, box, connections):
@@ -86,7 +86,7 @@ class SampleAction(BaseAction[SampleParams, SampleResult]):
 
 
 @meta(description="Второе тестовое действие")
-@CheckRoles(CheckRoles.NONE)
+@check_roles(ROLE_NONE)
 class AnotherAction(BaseAction[SampleParams, SampleResult]):
     @summary_aspect("Другой summary")
     async def summary(self, params, state, box, connections):

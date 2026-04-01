@@ -26,7 +26,7 @@ import asyncio
 import pytest
 
 from action_machine.aspects.summary_aspect import summary_aspect
-from action_machine.auth.check_roles import CheckRoles
+from action_machine.auth import ROLE_NONE, check_roles
 from action_machine.context.context import Context
 from action_machine.core.base_action import BaseAction
 from action_machine.core.base_params import BaseParams
@@ -41,7 +41,7 @@ from action_machine.plugins.plugin_event import PluginEvent
 # Вспомогательные классы
 # ─────────────────────────────────────────────────────────────────────────────
 
-@CheckRoles(CheckRoles.NONE)
+@check_roles(ROLE_NONE)
 class DummyAction(BaseAction[BaseParams, BaseResult]):
     """Минимальное действие для тестов плагинов."""
 
