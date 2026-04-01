@@ -115,7 +115,11 @@ packages = [
 # PYTEST
 # ============================================================================
 [tool.pytest.ini_options]
-testpaths = ["tests"]
+# pythonpath добавляет корень проекта в sys.path, что позволяет
+# использовать абсолютные импорты вида "from tests2.domain import PingAction"
+# в тестовых файлах без установки tests2 как пакета.
+pythonpath = ["."]
+testpaths = ["tests", "tests2"]
 asyncio_mode = "auto"
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
@@ -156,7 +160,7 @@ disable_error_code = ["type-arg"]
 # ============================================================================
 [tool.coverage.run]
 source = ["src/action_machine"]
-omit = ["tests/*", "**/__init__.py"]
+omit = ["tests/*", "tests2/*", "**/__init__.py"]
 branch = true
 
 [tool.coverage.report]
@@ -178,7 +182,7 @@ fail_under = 85
 [tool.pylint.main]
 py-version = "3.12"
 jobs = 0
-ignore = ["venv", ".venv", "tests"]
+ignore = ["venv", ".venv", "tests", "tests2"]
 
 [tool.pylint."messages control"]
 disable = [
@@ -215,7 +219,7 @@ ignore-imports = "yes"
 [tool.ruff]
 target-version = "py312"
 line-length = 120
-src = ["src", "tests"]
+src = ["src", "tests", "tests2"]
 
 [tool.ruff.lint]
 select = ["F", "E", "W", "I", "UP", "ASYNC"]
@@ -223,6 +227,7 @@ ignore = ["E501", "E402"]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**/*.py" = ["ASYNC"]
+"tests2/**/*.py" = ["ASYNC"]
 
 # ============================================================================
 # BLACK
@@ -237,7 +242,7 @@ target-version = ["py312"]
 [tool.isort]
 profile = "black"
 line_length = 120
-src_paths = ["src", "tests"]
+src_paths = ["src", "tests", "tests2"]
 
 # ============================================================================
 # VULTURE
@@ -263,18 +268,19 @@ ignore_names = [
 # TASKIPY
 # ============================================================================
 [tool.taskipy.tasks]
-lint        = "ruff check src/ tests/"
-lint-fix    = "ruff check --fix src/ tests/"
+lint        = "ruff check src/ tests/ tests2/"
+lint-fix    = "ruff check --fix src/ tests/ tests2/"
 typecheck   = "mypy src/action_machine/"
 pylint      = "pylint src/action_machine/"
 dead        = "vulture"
-format      = "black src/ tests/"
-format-check = "black --check src/ tests/"
-sort        = "isort src/ tests/"
-sort-check  = "isort --check src/ tests/"
-test        = "pytest tests/"
-test-cov    = "pytest tests/ --cov=src/action_machine --cov-report=html --cov-report=term"
-test-fast   = "pytest tests/ -m 'not slow'"
+format      = "black src/ tests/ tests2/"
+format-check = "black --check src/ tests/ tests2/"
+sort        = "isort src/ tests/ tests2/"
+sort-check  = "isort --check src/ tests/ tests2/"
+test        = "pytest tests/ tests2/"
+test2       = "pytest tests2/"
+test-cov    = "pytest tests/ tests2/ --cov=src/action_machine --cov-report=html --cov-report=term"
+test-fast   = "pytest tests/ tests2/ -m 'not slow'"
 cc          = "radon cc src/action_machine/ -s -a"
 mi          = "radon mi src/action_machine/ -s"
 check-all   = "task lint && task typecheck && task pylint && task dead && task test && task cc && task mi"
