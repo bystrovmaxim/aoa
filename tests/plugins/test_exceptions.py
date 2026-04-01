@@ -2,186 +2,136 @@
 """
 Тесты обработки исключений в обработчиках плагинов.
 
-Проверяется:
-- ignore_exceptions=True: ошибка обработчика подавляется молча,
-  состояние плагина НЕ обновляется возвращённым значением (return
-  не выполняется), но in-place мутации dict, произведённые до raise,
-  остаются видны, так как dict — мутабельный объект.
-- ignore_exceptions=False: ошибка обработчика пробрасывается наружу
-  и прерывает выполнение.
-- Кастомные исключения корректно пробрасываются при ignore_exceptions=False.
+═══════════════════════════════════════════════════════════════════════════════
+НАЗНАЧЕНИЕ
+═══════════════════════════════════════════════════════════════════════════════
 
-Все события отправляются через PluginRunContext.emit_event(),
-создаваемый через PluginCoordinator.create_run_context().
+Проверяет поведение PluginRunContext при ошибках в обработчиках плагинов.
+Декоратор @on принимает параметр ignore_exceptions, который определяет
+стратегию обработки ошибок:
+
+- ignore_exceptions=True: ошибка обработчика подавляется молча.
+  Состояние плагина НЕ обновляется возвращённым значением (return
+  не выполняется), но in-place мутации dict, произведённые до raise,
+  остаются видны, так как dict — мутабельный объект и передаётся
+  по ссылке.
+
+- ignore_exceptions=False: ошибка обработчика пробрасывается наружу
+  через emit_event(). Это прерывает выполнение действия и позволяет
+  машине обработать ошибку на верхнем уровне.
+
+═══════════════════════════════════════════════════════════════════════════════
+ПОКРЫВАЕМЫЕ СЦЕНАРИИ
+═══════════════════════════════════════════════════════════════════════════════
+
+ignore_exceptions=True:
+- Ошибка подавляется, emit_event() не выбрасывает исключение.
+- In-place мутация state до raise видна (before_error=True).
+- Код после raise не выполняется (after_error остаётся False).
+
+ignore_exceptions=False:
+- RuntimeError пробрасывается из emit_event() с правильным сообщением.
+- Кастомное исключение CustomPluginException пробрасывается с сохранением типа.
 """
 
 import pytest
 
-from action_machine.aspects.summary_aspect import summary_aspect
-from action_machine.auth import ROLE_NONE, check_roles
-from action_machine.context.context import Context
-from action_machine.core.base_action import BaseAction
-from action_machine.core.base_params import BaseParams
-from action_machine.core.base_result import BaseResult
-from action_machine.dependencies.dependency_factory import DependencyFactory
-from action_machine.plugins.decorators import on
-from action_machine.plugins.plugin import Plugin
 from action_machine.plugins.plugin_coordinator import PluginCoordinator
-from action_machine.plugins.plugin_event import PluginEvent
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Вспомогательные классы
-# ─────────────────────────────────────────────────────────────────────────────
-
-@check_roles(ROLE_NONE)
-class DummyAction(BaseAction[BaseParams, BaseResult]):
-    """Минимальное действие для тестов."""
-
-    @summary_aspect("dummy")
-    async def summary(self, params, state, box, connections):
-        return BaseResult()
+from .conftest import (
+    CustomExceptionPlugin,
+    CustomPluginException,
+    IgnoredErrorPlugin,
+    PropagatedErrorPlugin,
+    emit_global_finish,
+)
 
 
-class IgnoredErrorPlugin(Plugin):
-    """
-    Плагин с обработчиком, который падает с ignore_exceptions=True.
-
-    Обработчик мутирует state["before_error"] = True до raise.
-    Поскольку state — dict (мутабельный объект), in-place мутация
-    сохраняется даже при ошибке. Однако return не выполняется,
-    поэтому _run_single_handler не вызывает присвоение нового state.
-    На практике, так как это тот же объект dict, мутация видна.
-
-    state["after_error"] остаётся False, так как код после raise
-    не выполняется.
-    """
-
-    async def get_initial_state(self) -> dict:
-        return {"before_error": False, "after_error": False}
-
-    @on("global_finish", ".*", ignore_exceptions=True)
-    async def failing_handler(self, state: dict, event: PluginEvent, log) -> dict:
-        state["before_error"] = True
-        raise RuntimeError("Ignored error")
-        # state["after_error"] = True  # не выполнится
-
-
-class PropagatedErrorPlugin(Plugin):
-    """Плагин с обработчиком, который падает с ignore_exceptions=False."""
-
-    async def get_initial_state(self) -> dict:
-        return {"count": 0}
-
-    @on("global_finish", ".*", ignore_exceptions=False)
-    async def strict_handler(self, state: dict, event: PluginEvent, log) -> dict:
-        raise RuntimeError("Strict error must propagate")
-
-
-class CustomException(Exception):
-    """Кастомное исключение для тестов."""
-    pass
-
-
-class CustomExceptionPlugin(Plugin):
-    """Плагин с обработчиком, выбрасывающим кастомное исключение."""
-
-    async def get_initial_state(self) -> dict:
-        return {}
-
-    @on("global_finish", ".*", ignore_exceptions=False)
-    async def custom_handler(self, state: dict, event: PluginEvent, log) -> dict:
-        raise CustomException("Custom plugin error")
-
-
-class SuccessPlugin(Plugin):
-    """Плагин с успешным обработчиком (для проверки совместной работы)."""
-
-    async def get_initial_state(self) -> dict:
-        return {"count": 0}
-
-    @on("global_finish", ".*", ignore_exceptions=False)
-    async def success_handler(self, state: dict, event: PluginEvent, log) -> dict:
-        state["count"] += 1
-        return state
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# Вспомогательные функции
-# ─────────────────────────────────────────────────────────────────────────────
-
-def _make_empty_factory() -> DependencyFactory:
-    # removed: gate not needed
-    # removed: freeze not needed
-    return DependencyFactory(())
-
-
-async def _emit_global_finish(plugin_ctx):
-    """Отправляет событие global_finish через контекст."""
-    await plugin_ctx.emit_event(
-        event_name="global_finish",
-        action=DummyAction(),
-        params=BaseParams(),
-        state_aspect=None,
-        is_summary=False,
-        result=None,
-        duration=1.0,
-        factory=_make_empty_factory(),
-        context=Context(),
-        nest_level=0,
-    )
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# Тесты
-# ─────────────────────────────────────────────────────────────────────────────
-
-class TestPluginCoordinatorExceptions:
-    """Тесты обработки исключений в обработчиках плагинов."""
+class TestIgnoreExceptionsTrue:
+    """Тесты поведения при ignore_exceptions=True — ошибки подавляются."""
 
     @pytest.mark.anyio
-    async def test_ignore_exceptions_true(self):
+    async def test_error_suppressed_no_exception(self):
         """
-        ignore_exceptions=True: ошибка обработчика подавляется молча.
-
-        Поскольку state — dict (мутабельный объект), in-place мутация
-        state["before_error"] = True, произведённая до raise, остаётся
-        видна. Код после raise не выполняется, поэтому
-        state["after_error"] остаётся False.
+        IgnoredErrorPlugin выбрасывает RuntimeError с ignore_exceptions=True.
+        emit_event() завершается без исключения — ошибка подавлена.
         """
+        # Arrange — плагин с падающим обработчиком (ignore=True)
         plugin = IgnoredErrorPlugin()
         coordinator = PluginCoordinator(plugins=[plugin])
         plugin_ctx = await coordinator.create_run_context()
 
-        # Не должно быть исключения
-        await _emit_global_finish(plugin_ctx)
-
-        state = plugin_ctx.get_plugin_state(plugin)
-        # Мутация до raise видна (dict мутируется in-place)
-        assert state["before_error"] is True
-        # Код после raise не выполнился
-        assert state["after_error"] is False
+        # Act + Assert — не должно быть исключения
+        await emit_global_finish(plugin_ctx)
 
     @pytest.mark.anyio
-    async def test_ignore_exceptions_false_propagates(self):
+    async def test_in_place_mutation_before_raise_visible(self):
         """
-        ignore_exceptions=False: ошибка обработчика пробрасывается наружу.
+        IgnoredErrorPlugin мутирует state["before_error"]=True до raise.
+        Поскольку state — dict (мутабельный объект, передаётся по ссылке),
+        in-place мутация остаётся видна даже при подавленной ошибке.
         """
+        # Arrange — плагин, мутирующий state до raise
+        plugin = IgnoredErrorPlugin()
+        coordinator = PluginCoordinator(plugins=[plugin])
+        plugin_ctx = await coordinator.create_run_context()
+
+        # Act — событие обрабатывается, ошибка подавляется
+        await emit_global_finish(plugin_ctx)
+
+        # Assert — мутация до raise видна
+        state = plugin_ctx.get_plugin_state(plugin)
+        assert state["before_error"] is True
+
+    @pytest.mark.anyio
+    async def test_code_after_raise_not_executed(self):
+        """
+        IgnoredErrorPlugin: код после raise не выполняется.
+        state["after_error"] остаётся False (начальное значение).
+        """
+        # Arrange — плагин с кодом после raise (который не выполнится)
+        plugin = IgnoredErrorPlugin()
+        coordinator = PluginCoordinator(plugins=[plugin])
+        plugin_ctx = await coordinator.create_run_context()
+
+        # Act — событие обрабатывается
+        await emit_global_finish(plugin_ctx)
+
+        # Assert — код после raise не выполнился
+        state = plugin_ctx.get_plugin_state(plugin)
+        assert state["after_error"] is False
+
+
+class TestIgnoreExceptionsFalse:
+    """Тесты поведения при ignore_exceptions=False — ошибки пробрасываются."""
+
+    @pytest.mark.anyio
+    async def test_runtime_error_propagates(self):
+        """
+        PropagatedErrorPlugin выбрасывает RuntimeError с ignore_exceptions=False.
+        Ошибка пробрасывается из emit_event() с правильным сообщением.
+        """
+        # Arrange — плагин с критическим обработчиком
         plugin = PropagatedErrorPlugin()
         coordinator = PluginCoordinator(plugins=[plugin])
         plugin_ctx = await coordinator.create_run_context()
 
+        # Act + Assert — RuntimeError пробрасывается
         with pytest.raises(RuntimeError, match="Strict error must propagate"):
-            await _emit_global_finish(plugin_ctx)
+            await emit_global_finish(plugin_ctx)
 
     @pytest.mark.anyio
-    async def test_ignore_exceptions_with_custom_exception(self):
+    async def test_custom_exception_preserves_type(self):
         """
-        ignore_exceptions=False с кастомным исключением: исключение
-        пробрасывается с правильным типом.
+        CustomExceptionPlugin выбрасывает CustomPluginException.
+        Тип кастомного исключения сохраняется при пробросе —
+        вызывающий код может поймать конкретный тип.
         """
+        # Arrange — плагин с кастомным исключением
         plugin = CustomExceptionPlugin()
         coordinator = PluginCoordinator(plugins=[plugin])
         plugin_ctx = await coordinator.create_run_context()
 
-        with pytest.raises(CustomException, match="Custom plugin error"):
-            await _emit_global_finish(plugin_ctx)
+        # Act + Assert — CustomPluginException пробрасывается с сообщением
+        with pytest.raises(CustomPluginException, match="Custom plugin error"):
+            await emit_global_finish(plugin_ctx)

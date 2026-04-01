@@ -1,380 +1,486 @@
 # tests/core/test_dependency_factory.py
 """
-Тесты для DependencyFactory — stateless-фабрики зависимостей действий.
+Тесты DependencyFactory — stateless-фабрика зависимостей.
 
 ═══════════════════════════════════════════════════════════════════════════════
 НАЗНАЧЕНИЕ
 ═══════════════════════════════════════════════════════════════════════════════
 
-DependencyFactory принимает tuple[DependencyInfo, ...] из
-ClassMetadata.dependencies и предоставляет resolve() для создания
-экземпляров зависимостей.
+DependencyFactory — stateless-фабрика, которая создаёт экземпляры
+зависимостей, объявленных через декоратор @depends. Каждый вызов resolve()
+создаёт новый экземпляр через factory-функцию или конструктор по умолчанию.
+Кеш экземпляров отсутствует — фабрика является чистой функцией.
 
-═══════════════════════════════════════════════════════════════════════════════
-КЛЮЧЕВЫЕ СВОЙСТВА
-═══════════════════════════════════════════════════════════════════════════════
-
-- Каждый вызов resolve() создаёт новый экземпляр (кеш отсутствует).
-- Синглтоны реализуются через lambda-замыкание в @depends(factory=...).
-- Поддержка *args и **kwargs в resolve() для параметризованных фабрик.
-- Обратная совместимость с list[dict] форматом для старых тестов.
+Фабрика создаётся GateCoordinator.get_factory(cls) из
+ClassMetadata.dependencies и передаётся в ToolsBox, откуда аспекты
+получают зависимости через box.resolve(PaymentService).
 
 ═══════════════════════════════════════════════════════════════════════════════
 ПОКРЫВАЕМЫЕ СЦЕНАРИИ
 ═══════════════════════════════════════════════════════════════════════════════
 
-1. resolve() создаёт новый экземпляр при каждом вызове.
-2. resolve() использует factory-функцию если задана.
-3. resolve() использует конструктор по умолчанию если factory=None.
-4. resolve() выбрасывает ValueError для необъявленного класса.
-5. resolve() пробрасывает *args и **kwargs в конструктор.
-6. resolve() пробрасывает *args и **kwargs в factory.
-7. Lambda-синглтон: factory=lambda: shared_instance.
-8. ToolsBox.resolve ищет сначала в resources, затем в factory.
-9. ToolsBox._wrap_connections оборачивает ресурсы в обёртки.
-10. ToolsBox.run вызывает run_child с обёрнутыми connections.
+Создание из DependencyInfo:
+    - Фабрика создаётся из tuple[DependencyInfo, ...].
+    - Пустой кортеж — фабрика без зависимостей.
+
+resolve() без factory:
+    - Зависимость без factory → конструктор по умолчанию klass().
+    - Каждый вызов создаёт новый экземпляр (не синглтон).
+    - Передача *args и **kwargs в конструктор.
+
+resolve() с factory:
+    - Зависимость с factory → вызывается factory(*args, **kwargs).
+    - Lambda-синглтон: factory=lambda: shared_instance.
+    - Параметризованная factory: factory=lambda env: Client(env).
+
+resolve() несуществующей зависимости:
+    - ValueError с информативным сообщением.
+
+resolve() с rollup:
+    - rollup=True для BaseResourceManager → check_rollup_support().
+    - rollup=True для не-BaseResourceManager → без проверки.
+    - rollup=False → без проверки для любого класса.
+    - RollupNotSupportedError для менеджера без поддержки rollup.
+
+Инспекция:
+    - has(cls) — проверка наличия зависимости.
+    - get_all_classes() — список всех зарегистрированных классов.
+
+Интеграция с доменной моделью:
+    - Фабрика из координатора для FullAction содержит PaymentService
+      и NotificationService.
 """
 
 import pytest
 
-from action_machine.context.context import Context
-from action_machine.core.base_action import BaseAction
-from action_machine.core.base_params import BaseParams
-from action_machine.core.base_result import BaseResult
-from action_machine.core.tools_box import ToolsBox
+from action_machine.core.exceptions import RollupNotSupportedError
+from action_machine.core.gate_coordinator import GateCoordinator
+from action_machine.core.meta_decorator import meta
 from action_machine.dependencies.dependency_factory import DependencyFactory, DependencyInfo
 from action_machine.resource_managers.base_resource_manager import BaseResourceManager
+from tests.domain import FullAction, NotificationService, PaymentService, PingAction
 
-# ----------------------------------------------------------------------
-# Вспомогательные классы
-# ----------------------------------------------------------------------
+# ═════════════════════════════════════════════════════════════════════════════
+# Вспомогательные классы для тестов
+# ═════════════════════════════════════════════════════════════════════════════
 
-class MockParams(BaseParams):
-    """Пустые параметры для тестов."""
+
+class _SimpleService:
+    """Простой сервис без конструкторных параметров."""
+
     pass
 
 
-class MockResult(BaseResult):
-    """Пустой результат для тестов."""
-    pass
+class _ConfigurableService:
+    """Сервис с параметрами конструктора."""
+
+    def __init__(self, host: str = "localhost", port: int = 8080):
+        self.host = host
+        self.port = port
 
 
-class MockAction(BaseAction[MockParams, MockResult]):
-    """Тестовое действие."""
-    pass
-
-
-class ServiceA:
-    """Тестовый сервис с опциональным параметром."""
-    def __init__(self, value=None):
-        self.value = value or "A"
-
-
-class ServiceB:
-    """Второй тестовый сервис."""
-    def __init__(self, value=None):
-        self.value = value or "B"
-
-
-class ResourceWithWrapper(BaseResourceManager):
-    """Ресурс, требующий обёртку при передаче в дочерние действия."""
-    def __init__(self, name="test"):
-        self.name = name
-
-    def get_wrapper_class(self):
-        return MockWrapper
-
-
-class ResourceWithoutWrapper(BaseResourceManager):
-    """Ресурс без обёртки — передаётся как есть."""
-    def get_wrapper_class(self):
-        return None
-
-
-class MockWrapper(BaseResourceManager):
-    """Обёртка ресурса — запрещает управление транзакциями."""
-    def __init__(self, inner):
-        self.inner = inner
+@meta(description="Мок-менеджер для тестов rollup")
+class _MockResourceManager(BaseResourceManager):
+    """Менеджер ресурсов БЕЗ поддержки rollup (по умолчанию)."""
 
     def get_wrapper_class(self):
         return None
 
 
-# ======================================================================
-# ТЕСТЫ: resolve() — создание экземпляров
-# ======================================================================
+@meta(description="Мок-менеджер с поддержкой rollup")
+class _RollupSupportedManager(BaseResourceManager):
+    """Менеджер ресурсов С поддержкой rollup."""
 
-class TestResolve:
-    """Тесты для метода resolve."""
+    def check_rollup_support(self) -> bool:
+        return True
 
-    def test_resolve_creates_new_instance_each_call(self):
-        """Каждый вызов resolve() создаёт новый экземпляр (кеш отсутствует)."""
-        factory = DependencyFactory((
-            DependencyInfo(cls=ServiceA, description="A"),
-        ))
+    def get_wrapper_class(self):
+        return None
 
-        first = factory.resolve(ServiceA)
-        second = factory.resolve(ServiceA)
 
-        assert isinstance(first, ServiceA)
-        assert isinstance(second, ServiceA)
-        assert first is not second
+# ═════════════════════════════════════════════════════════════════════════════
+# Создание фабрики
+# ═════════════════════════════════════════════════════════════════════════════
 
-    def test_resolve_creates_via_factory_function(self):
-        """Если задана factory-функция, она вызывается при каждом resolve()."""
-        factory = DependencyFactory((
-            DependencyInfo(cls=ServiceA, factory=lambda: ServiceA(value="from_factory")),
-        ))
 
-        instance = factory.resolve(ServiceA)
-        assert instance.value == "from_factory"
+class TestFactoryCreation:
+    """Создание DependencyFactory из DependencyInfo."""
 
-    def test_resolve_creates_via_default_constructor(self):
-        """Без factory используется конструктор по умолчанию."""
-        factory = DependencyFactory((
-            DependencyInfo(cls=ServiceA),
-        ))
+    def test_create_from_dependency_info_tuple(self) -> None:
+        """
+        Фабрика создаётся из кортежа DependencyInfo.
 
-        instance = factory.resolve(ServiceA)
-        assert instance.value == "A"
+        Основной формат — tuple[DependencyInfo, ...] из
+        ClassMetadata.dependencies, передаваемый GateCoordinator.
+        """
+        # Arrange — два DependencyInfo
+        deps = (
+            DependencyInfo(cls=_SimpleService, description="Простой сервис"),
+            DependencyInfo(cls=_ConfigurableService, description="Настраиваемый"),
+        )
 
-    def test_resolve_raises_for_undeclared_class(self):
-        """Если класс не объявлен в @depends — ValueError."""
+        # Act — создание фабрики из кортежа
+        factory = DependencyFactory(deps)
+
+        # Assert — оба класса зарегистрированы
+        assert factory.has(_SimpleService)
+        assert factory.has(_ConfigurableService)
+
+    def test_create_from_empty_tuple(self) -> None:
+        """
+        Пустой кортеж — фабрика без зависимостей.
+
+        Это штатная ситуация: действие без @depends (PingAction)
+        получает пустую фабрику.
+        """
+        # Arrange & Act — пустой кортеж
         factory = DependencyFactory(())
 
-        with pytest.raises(ValueError, match="not declared in @depends"):
-            factory.resolve(ServiceA)
+        # Assert — ни одной зависимости
+        assert factory.get_all_classes() == []
+        assert not factory.has(_SimpleService)
 
-    def test_resolve_with_args_passes_to_constructor(self):
-        """Позиционные аргументы пробрасываются в конструктор."""
+
+# ═════════════════════════════════════════════════════════════════════════════
+# resolve() без factory — конструктор по умолчанию
+# ═════════════════════════════════════════════════════════════════════════════
+
+
+class TestResolveDefault:
+    """resolve() без factory — используется конструктор по умолчанию."""
+
+    def test_resolve_creates_new_instance(self) -> None:
+        """
+        resolve(cls) без factory вызывает cls() — конструктор по умолчанию.
+
+        Каждый вызов создаёт НОВЫЙ экземпляр. Фабрика stateless,
+        кеш экземпляров отсутствует.
+        """
+        # Arrange — фабрика с одной зависимостью без factory
         factory = DependencyFactory((
-            DependencyInfo(cls=ServiceA),
+            DependencyInfo(cls=_SimpleService, description="Сервис"),
         ))
 
-        instance = factory.resolve(ServiceA, "custom_value")
-        assert instance.value == "custom_value"
+        # Act — два вызова resolve
+        first = factory.resolve(_SimpleService)
+        second = factory.resolve(_SimpleService)
 
-    def test_resolve_with_kwargs_passes_to_constructor(self):
-        """Именованные аргументы пробрасываются в конструктор."""
+        # Assert — два разных экземпляра (is-проверка)
+        assert isinstance(first, _SimpleService)
+        assert isinstance(second, _SimpleService)
+        assert first is not second
+
+    def test_resolve_passes_args_to_constructor(self) -> None:
+        """
+        resolve(cls, *args, **kwargs) передаёт аргументы в конструктор.
+
+        _ConfigurableService(host, port) → экземпляр с заданными параметрами.
+        """
+        # Arrange — фабрика с ConfigurableService
         factory = DependencyFactory((
-            DependencyInfo(cls=ServiceA),
+            DependencyInfo(cls=_ConfigurableService, description="Настраиваемый"),
         ))
 
-        instance = factory.resolve(ServiceA, value="from_kwargs")
-        assert instance.value == "from_kwargs"
+        # Act — resolve с аргументами конструктора
+        service = factory.resolve(_ConfigurableService, host="prod.db", port=5432)
 
-    def test_resolve_with_args_passes_to_factory(self):
-        """Аргументы пробрасываются в factory-функцию."""
+        # Assert — аргументы переданы в конструктор
+        assert service.host == "prod.db"
+        assert service.port == 5432
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# resolve() с factory
+# ═════════════════════════════════════════════════════════════════════════════
+
+
+class TestResolveWithFactory:
+    """resolve() с factory — вызывается пользовательская фабрика."""
+
+    def test_factory_function_called(self) -> None:
+        """
+        Зависимость с factory → resolve() вызывает factory(), не cls().
+
+        Factory-функция позволяет задать любую логику создания:
+        конструктор с параметрами, синглтон, пул, DI-контейнер.
+        """
+        # Arrange — factory создаёт ConfigurableService с фиксированными параметрами
         factory = DependencyFactory((
             DependencyInfo(
-                cls=ServiceA,
-                factory=lambda value="default": ServiceA(value=f"factory_{value}"),
+                cls=_ConfigurableService,
+                factory=lambda: _ConfigurableService(host="factory-host", port=9999),
+                description="Через фабрику",
             ),
         ))
 
-        instance = factory.resolve(ServiceA, value="custom")
-        assert instance.value == "factory_custom"
+        # Act — resolve вызывает factory, не конструктор напрямую
+        service = factory.resolve(_ConfigurableService)
 
-    def test_resolve_lambda_singleton_pattern(self):
-        """
-        Lambda-синглтон: factory возвращает один и тот же экземпляр.
-        Оба вызова resolve() возвращают один объект.
-        """
-        shared_instance = ServiceA(value="singleton")
+        # Assert — параметры из factory-функции
+        assert service.host == "factory-host"
+        assert service.port == 9999
 
+    def test_lambda_singleton(self) -> None:
+        """
+        Lambda-замыкание реализует синглтон: factory=lambda: shared.
+
+        Фреймворк не кеширует — но lambda захватывает один объект,
+        и каждый resolve() возвращает один и тот же экземпляр.
+        """
+        # Arrange — один shared-экземпляр, захваченный lambda
+        shared = _SimpleService()
         factory = DependencyFactory((
-            DependencyInfo(cls=ServiceA, factory=lambda: shared_instance),
+            DependencyInfo(
+                cls=_SimpleService,
+                factory=lambda: shared,
+                description="Синглтон",
+            ),
         ))
 
-        first = factory.resolve(ServiceA)
-        second = factory.resolve(ServiceA)
+        # Act — два вызова resolve
+        first = factory.resolve(_SimpleService)
+        second = factory.resolve(_SimpleService)
 
+        # Assert — один и тот же объект (синглтон через lambda)
+        assert first is shared
+        assert second is shared
         assert first is second
-        assert first is shared_instance
-        assert first.value == "singleton"
 
+    def test_factory_receives_args(self) -> None:
+        """
+        *args и **kwargs из resolve() передаются в factory().
 
-# ======================================================================
-# ТЕСТЫ: обратная совместимость с list[dict]
-# ======================================================================
-
-class TestResolveBackwardCompat:
-    """Тесты обратной совместимости с форматом list[dict]."""
-
-    def test_resolve_from_dict_format(self):
-        """DependencyFactory принимает list[dict] для старых тестов."""
-        factory = DependencyFactory([
-            {"class": ServiceA, "factory": None, "description": "A"},
-        ])
-
-        instance = factory.resolve(ServiceA)
-        assert isinstance(instance, ServiceA)
-        assert instance.value == "A"
-
-    def test_resolve_from_dict_with_factory(self):
-        """list[dict] с factory-функцией."""
-        factory = DependencyFactory([
-            {"class": ServiceA, "factory": lambda: ServiceA(value="dict_factory"), "description": ""},
-        ])
-
-        instance = factory.resolve(ServiceA)
-        assert instance.value == "dict_factory"
-
-
-# ======================================================================
-# ТЕСТЫ: вспомогательные методы
-# ======================================================================
-
-class TestFactoryHelpers:
-    """Тесты вспомогательных методов фабрики."""
-
-    def test_get_all_classes(self):
-        """get_all_classes() возвращает список зарегистрированных классов."""
+        Позволяет параметризовать создание зависимости из аспекта:
+        box.resolve(Client, "production") → factory("production").
+        """
+        # Arrange — factory принимает параметр env
         factory = DependencyFactory((
-            DependencyInfo(cls=ServiceA),
-            DependencyInfo(cls=ServiceB),
+            DependencyInfo(
+                cls=_ConfigurableService,
+                factory=lambda env: _ConfigurableService(host=f"{env}.db.local"),
+                description="Параметризованная фабрика",
+            ),
         ))
 
+        # Act — resolve с рантайм-параметром
+        service = factory.resolve(_ConfigurableService, "staging")
+
+        # Assert — параметр передан через factory
+        assert service.host == "staging.db.local"
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# resolve() несуществующей зависимости
+# ═════════════════════════════════════════════════════════════════════════════
+
+
+class TestResolveMissing:
+    """resolve() для незарегистрированной зависимости."""
+
+    def test_missing_dependency_raises_value_error(self) -> None:
+        """
+        resolve(cls) для незарегистрированной зависимости → ValueError.
+
+        Сообщение содержит имя запрошенного класса и список доступных
+        зависимостей для быстрой диагностики.
+        """
+        # Arrange — фабрика без _SimpleService
+        factory = DependencyFactory((
+            DependencyInfo(cls=_ConfigurableService, description="Только это"),
+        ))
+
+        # Act & Assert — запрос отсутствующей зависимости
+        with pytest.raises(ValueError, match="not declared"):
+            factory.resolve(_SimpleService)
+
+    def test_empty_factory_raises_value_error(self) -> None:
+        """
+        resolve() на пустой фабрике → ValueError.
+        """
+        # Arrange — пустая фабрика
+        factory = DependencyFactory(())
+
+        # Act & Assert
+        with pytest.raises(ValueError, match="not declared"):
+            factory.resolve(_SimpleService)
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# resolve() с rollup
+# ═════════════════════════════════════════════════════════════════════════════
+
+
+class TestResolveRollup:
+    """resolve() с параметром rollup — проверка поддержки для ресурсных менеджеров."""
+
+    def test_rollup_true_for_supported_manager(self) -> None:
+        """
+        rollup=True для менеджера с поддержкой rollup → resolve() проходит.
+
+        _RollupSupportedManager переопределяет check_rollup_support()
+        и возвращает True. DependencyFactory вызывает check_rollup_support()
+        и не бросает исключение.
+        """
+        # Arrange — фабрика с менеджером, поддерживающим rollup
+        factory = DependencyFactory((
+            DependencyInfo(cls=_RollupSupportedManager, description="С поддержкой rollup"),
+        ))
+
+        # Act — resolve с rollup=True
+        manager = factory.resolve(_RollupSupportedManager, rollup=True)
+
+        # Assert — экземпляр создан успешно
+        assert isinstance(manager, _RollupSupportedManager)
+
+    def test_rollup_true_for_unsupported_manager_raises(self) -> None:
+        """
+        rollup=True для менеджера БЕЗ поддержки rollup → RollupNotSupportedError.
+
+        _MockResourceManager не переопределяет check_rollup_support(),
+        поэтому используется реализация по умолчанию из BaseResourceManager,
+        которая бросает RollupNotSupportedError.
+        """
+        # Arrange — фабрика с менеджером без поддержки rollup
+        factory = DependencyFactory((
+            DependencyInfo(cls=_MockResourceManager, description="Без rollup"),
+        ))
+
+        # Act & Assert — RollupNotSupportedError
+        with pytest.raises(RollupNotSupportedError):
+            factory.resolve(_MockResourceManager, rollup=True)
+
+    def test_rollup_true_for_non_resource_manager(self) -> None:
+        """
+        rollup=True для класса, не наследующего BaseResourceManager →
+        проверка rollup НЕ выполняется.
+
+        Проверка check_rollup_support() применяется только к экземплярам
+        BaseResourceManager. Обычные сервисы проходят без проверки.
+        """
+        # Arrange — фабрика с обычным сервисом (не BaseResourceManager)
+        factory = DependencyFactory((
+            DependencyInfo(cls=_SimpleService, description="Обычный сервис"),
+        ))
+
+        # Act — resolve с rollup=True для обычного сервиса
+        service = factory.resolve(_SimpleService, rollup=True)
+
+        # Assert — экземпляр создан без ошибок
+        assert isinstance(service, _SimpleService)
+
+    def test_rollup_false_skips_check(self) -> None:
+        """
+        rollup=False → check_rollup_support() НЕ вызывается.
+
+        Даже для менеджера без поддержки rollup: если rollup=False,
+        проверка пропускается и экземпляр создаётся штатно.
+        """
+        # Arrange — фабрика с менеджером без поддержки rollup
+        factory = DependencyFactory((
+            DependencyInfo(cls=_MockResourceManager, description="Без rollup"),
+        ))
+
+        # Act — resolve с rollup=False (по умолчанию)
+        manager = factory.resolve(_MockResourceManager, rollup=False)
+
+        # Assert — экземпляр создан без ошибок
+        assert isinstance(manager, _MockResourceManager)
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# Инспекция
+# ═════════════════════════════════════════════════════════════════════════════
+
+
+class TestInspection:
+    """Методы инспекции: has(), get_all_classes()."""
+
+    def test_has_returns_true_for_registered(self) -> None:
+        """has(cls) → True для зарегистрированной зависимости."""
+        # Arrange
+        factory = DependencyFactory((
+            DependencyInfo(cls=_SimpleService, description="Сервис"),
+        ))
+
+        # Act & Assert
+        assert factory.has(_SimpleService) is True
+
+    def test_has_returns_false_for_unregistered(self) -> None:
+        """has(cls) → False для незарегистрированной зависимости."""
+        # Arrange
+        factory = DependencyFactory(())
+
+        # Act & Assert
+        assert factory.has(_SimpleService) is False
+
+    def test_get_all_classes(self) -> None:
+        """get_all_classes() возвращает список всех зарегистрированных классов."""
+        # Arrange — фабрика с двумя зависимостями
+        factory = DependencyFactory((
+            DependencyInfo(cls=_SimpleService, description="A"),
+            DependencyInfo(cls=_ConfigurableService, description="B"),
+        ))
+
+        # Act
         classes = factory.get_all_classes()
-        assert ServiceA in classes
-        assert ServiceB in classes
+
+        # Assert — оба класса присутствуют
+        assert _SimpleService in classes
+        assert _ConfigurableService in classes
         assert len(classes) == 2
 
-    def test_has_returns_true_for_registered(self):
-        """has() возвращает True для зарегистрированного класса."""
-        factory = DependencyFactory((DependencyInfo(cls=ServiceA),))
-        assert factory.has(ServiceA) is True
 
-    def test_has_returns_false_for_unregistered(self):
-        """has() возвращает False для незарегистрированного класса."""
-        factory = DependencyFactory(())
-        assert factory.has(ServiceA) is False
+# ═════════════════════════════════════════════════════════════════════════════
+# Интеграция с доменной моделью через GateCoordinator
+# ═════════════════════════════════════════════════════════════════════════════
 
 
-# ======================================================================
-# ТЕСТЫ: ToolsBox интеграция с DependencyFactory
-# ======================================================================
+class TestDomainIntegration:
+    """Фабрика из координатора для доменных действий."""
 
-class TestToolsBoxIntegration:
-    """Тесты ToolsBox, который использует DependencyFactory для резолва."""
+    def test_full_action_factory_has_dependencies(self) -> None:
+        """
+        GateCoordinator.get_factory(FullAction) содержит PaymentService
+        и NotificationService.
 
-    @pytest.fixture
-    def mock_log(self):
-        """Мок логгера."""
-        class MockLog:
-            async def info(self, msg, **kwargs): pass
-            async def warning(self, msg, **kwargs): pass
-            async def error(self, msg, **kwargs): pass
-            async def debug(self, msg, **kwargs): pass
-        return MockLog()
+        FullAction объявляет @depends(PaymentService) и
+        @depends(NotificationService). Координатор собирает метаданные
+        и создаёт DependencyFactory с обоими классами.
+        """
+        # Arrange — координатор, регистрирующий FullAction
+        coordinator = GateCoordinator()
+        factory = coordinator.get_factory(FullAction)
 
-    @pytest.fixture
-    def mock_machine(self):
-        """Мок машины с методом _run_internal."""
-        class MockMachineWithRun:
-            def __init__(self):
-                self.called = False
-                self.last_action = None
-                self.last_params = None
-                self.last_connections = None
-                self.last_nested_level = None
+        # Act & Assert — оба сервиса зарегистрированы
+        assert factory.has(PaymentService)
+        assert factory.has(NotificationService)
 
-            async def _run_internal(self, context, action, params, resources, connections, nested_level):
-                self.called = True
-                self.last_action = action
-                self.last_params = params
-                self.last_connections = connections
-                self.last_nested_level = nested_level
-                return MockResult()
-        return MockMachineWithRun()
+    def test_ping_action_factory_is_empty(self) -> None:
+        """
+        GateCoordinator.get_factory(PingAction) — пустая фабрика.
 
-    @pytest.fixture
-    def run_child(self, mock_machine):
-        """Замыкание run_child, вызывающее mock_machine._run_internal."""
-        async def _run_child(action, params, connections):
-            return await mock_machine._run_internal(
-                context=None, action=action, params=params,
-                resources=None, connections=connections, nested_level=0,
-            )
-        return _run_child
+        PingAction не объявляет @depends, поэтому фабрика
+        не содержит зависимостей.
+        """
+        # Arrange — координатор для PingAction без зависимостей
+        coordinator = GateCoordinator()
+        factory = coordinator.get_factory(PingAction)
 
-    @pytest.mark.anyio
-    async def test_resolve_uses_resources_first(self, run_child, mock_log):
-        """ToolsBox.resolve ищет сначала в resources, затем в factory."""
-        factory = DependencyFactory((DependencyInfo(cls=ServiceA),))
-        resources = {ServiceA: ServiceA(value="from_resources")}
+        # Act & Assert — фабрика пуста
+        assert factory.get_all_classes() == []
 
-        box = ToolsBox(
-            run_child=run_child, factory=factory, resources=resources,
-            context=Context(), log=mock_log, nested_level=0,
-        )
+    def test_factory_creates_payment_service(self) -> None:
+        """
+        factory.resolve(PaymentService) создаёт экземпляр PaymentService.
 
-        instance = box.resolve(ServiceA)
-        assert instance.value == "from_resources"
+        Это реальный resolve через конструктор по умолчанию, без моков.
+        """
+        # Arrange — фабрика из координатора
+        coordinator = GateCoordinator()
+        factory = coordinator.get_factory(FullAction)
 
-    @pytest.mark.anyio
-    async def test_resolve_falls_back_to_factory(self, run_child, mock_log):
-        """Если в resources нет — обращается к factory."""
-        factory = DependencyFactory((DependencyInfo(cls=ServiceA),))
+        # Act — resolve реального сервиса
+        service = factory.resolve(PaymentService)
 
-        box = ToolsBox(
-            run_child=run_child, factory=factory, resources=None,
-            context=Context(), log=mock_log, nested_level=0,
-        )
-
-        instance = box.resolve(ServiceA)
-        assert instance.value == "A"
-
-    @pytest.mark.anyio
-    async def test_resolve_with_kwargs(self, run_child, mock_log):
-        """ToolsBox.resolve пробрасывает kwargs в factory."""
-        factory = DependencyFactory((DependencyInfo(cls=ServiceA),))
-
-        box = ToolsBox(
-            run_child=run_child, factory=factory, resources=None,
-            context=Context(), log=mock_log, nested_level=0,
-        )
-
-        instance = box.resolve(ServiceA, value="custom")
-        assert instance.value == "custom"
-
-    @pytest.mark.anyio
-    async def test_wrap_connections(self, run_child, mock_log):
-        """ToolsBox._wrap_connections оборачивает ресурсы в обёртки."""
-        factory = DependencyFactory(())
-
-        box = ToolsBox(
-            run_child=run_child, factory=factory, resources=None,
-            context=Context(), log=mock_log, nested_level=0,
-        )
-
-        inner = ResourceWithWrapper(name="inner")
-        connections = {"db": inner}
-
-        wrapped = box._wrap_connections(connections)
-
-        assert "db" in wrapped
-        assert isinstance(wrapped["db"], MockWrapper)
-        assert wrapped["db"].inner is inner
-
-    @pytest.mark.anyio
-    async def test_run_calls_run_child(self, mock_machine, run_child, mock_log):
-        """ToolsBox.run вызывает run_child с обёрнутыми connections."""
-        factory = DependencyFactory((DependencyInfo(cls=MockAction),))
-
-        box = ToolsBox(
-            run_child=run_child, factory=factory, resources={"test": "resource"},
-            context=Context(), log=mock_log, nested_level=2,
-        )
-
-        params = MockParams()
-        connections = {"db": ResourceWithWrapper(name="inner")}
-
-        result = await box.run(MockAction, params, connections=connections)
-
-        assert mock_machine.called is True
-        assert isinstance(mock_machine.last_action, MockAction)
-        assert mock_machine.last_params is params
-        assert "db" in mock_machine.last_connections
-        assert isinstance(mock_machine.last_connections["db"], MockWrapper)
-        assert isinstance(result, MockResult)
+        # Assert — экземпляр создан
+        assert isinstance(service, PaymentService)

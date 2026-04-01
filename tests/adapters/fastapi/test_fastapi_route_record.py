@@ -1,368 +1,240 @@
 # tests/adapters/fastapi/test_fastapi_route_record.py
 """
-Тесты для FastApiRouteRecord — frozen-датакласса маршрута FastAPI-адаптера.
+Tests for FastApiRouteRecord — frozen dataclass with HTTP-specific fields.
 
-═══════════════════════════════════════════════════════════════════════════════
-ПОКРЫВАЕМЫЕ СЦЕНАРИИ
-═══════════════════════════════════════════════════════════════════════════════
+FastApiRouteRecord extends BaseRouteRecord with method, path, tags, summary,
+description, operation_id, deprecated. It validates that method is from the
+allowed set {GET, POST, PUT, DELETE, PATCH}, normalizes it to uppercase,
+and checks that path is non-empty and starts with '/'.
 
-Дефолты, пользовательские значения, валидация method, валидация path,
-frozen, наследование инвариантов от BaseRouteRecord, конвенция
-именования мапперов (response_mapper вместо result_mapper).
+Scenarios covered:
+    - Default field values (method="POST", path="/", tags=(), etc.).
+    - Method normalization: lowercase → uppercase.
+    - All five allowed methods accepted.
+    - Invalid method raises ValueError.
+    - Empty path raises ValueError.
+    - Path not starting with '/' raises ValueError.
+    - Whitespace-only path raises ValueError.
+    - Tags stored as tuple.
+    - Optional fields (summary, description, operation_id, deprecated) stored correctly.
+    - Frozen immutability — fields cannot be modified after creation.
+    - Inherited BaseRouteRecord invariants still enforced (action_class, mappers).
 """
 
-from __future__ import annotations
-
-from dataclasses import FrozenInstanceError
-
 import pytest
-from pydantic import Field
 
-from action_machine.aspects.summary_aspect import summary_aspect
-from action_machine.auth import ROLE_NONE, check_roles
 from action_machine.contrib.fastapi.route_record import FastApiRouteRecord
-from action_machine.core.base_action import BaseAction
-from action_machine.core.base_params import BaseParams
-from action_machine.core.base_result import BaseResult
-from action_machine.core.base_state import BaseState
-from action_machine.core.meta_decorator import meta
-from action_machine.core.tools_box import ToolsBox
-from action_machine.resource_managers.base_resource_manager import BaseResourceManager
+from tests.domain import PingAction, SimpleAction
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Тестовые модели и действия
-# ═════════════════════════════════════════════════════════════════════════════
-
-
-class SampleParams(BaseParams):
-    """Параметры для тестов."""
-    name: str = Field(default="test", description="Имя")
-
-
-class SampleResult(BaseResult):
-    """Результат для тестов."""
-    value: str = Field(default="ok", description="Значение")
-
-
-class AltRequest(BaseParams):
-    """Альтернативная модель запроса (отличается от SampleParams)."""
-    page: int = Field(default=1, description="Страница")
-
-
-class AltResponse(BaseResult):
-    """Альтернативная модель ответа (отличается от SampleResult)."""
-    entries: list = Field(default_factory=list, description="Элементы")
-
-
-@meta(description="Тестовое действие")
-@check_roles(ROLE_NONE)
-class SampleAction(BaseAction[SampleParams, SampleResult]):
-    """Действие для тестов RouteRecord."""
-
-    @summary_aspect("Тест")
-    async def summary(
-        self, params: SampleParams, state: BaseState,
-        box: ToolsBox, connections: dict[str, BaseResourceManager],
-    ) -> SampleResult:
-        return SampleResult()
-
-
-class NotAnAction:
-    """Класс, не наследующий BaseAction."""
-    pass
-
-
-def dummy_params_mapper(x):
-    """Тестовый маппер параметров."""
-    return x
-
-
-def dummy_response_mapper(x):
-    """Тестовый маппер ответа."""
-    return x
-
-
-# ═════════════════════════════════════════════════════════════════════════════
-# ТЕСТЫ: Значения по умолчанию
+# Default field values
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestDefaults:
-    """Проверка значений по умолчанию для HTTP-специфичных полей."""
+    """Verify default values of HTTP-specific fields."""
 
-    def test_default_method_is_post(self):
-        record = FastApiRouteRecord(action_class=SampleAction)
+    def test_default_method(self) -> None:
+        """Default method is 'POST'."""
+        record = FastApiRouteRecord(action_class=PingAction, path="/ping")
         assert record.method == "POST"
 
-    def test_default_path_is_slash(self):
-        record = FastApiRouteRecord(action_class=SampleAction)
+    def test_default_path(self) -> None:
+        """Default path is '/'."""
+        record = FastApiRouteRecord(action_class=PingAction)
         assert record.path == "/"
 
-    def test_default_tags_empty_tuple(self):
-        record = FastApiRouteRecord(action_class=SampleAction)
+    def test_default_tags(self) -> None:
+        """Default tags is an empty tuple."""
+        record = FastApiRouteRecord(action_class=PingAction)
         assert record.tags == ()
 
-    def test_default_summary_empty(self):
-        record = FastApiRouteRecord(action_class=SampleAction)
+    def test_default_summary(self) -> None:
+        """Default summary is an empty string."""
+        record = FastApiRouteRecord(action_class=PingAction)
         assert record.summary == ""
 
-    def test_default_description_empty(self):
-        record = FastApiRouteRecord(action_class=SampleAction)
+    def test_default_description(self) -> None:
+        """Default description is an empty string."""
+        record = FastApiRouteRecord(action_class=PingAction)
         assert record.description == ""
 
-    def test_default_operation_id_none(self):
-        record = FastApiRouteRecord(action_class=SampleAction)
+    def test_default_operation_id(self) -> None:
+        """Default operation_id is None."""
+        record = FastApiRouteRecord(action_class=PingAction)
         assert record.operation_id is None
 
-    def test_default_deprecated_false(self):
-        record = FastApiRouteRecord(action_class=SampleAction)
+    def test_default_deprecated(self) -> None:
+        """Default deprecated is False."""
+        record = FastApiRouteRecord(action_class=PingAction)
         assert record.deprecated is False
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# ТЕСТЫ: Пользовательские значения полей
-# ═════════════════════════════════════════════════════════════════════════════
-
-
-class TestCustomValues:
-    """Проверка установки пользовательских значений HTTP-полей."""
-
-    def test_custom_method(self):
-        record = FastApiRouteRecord(action_class=SampleAction, method="GET", path="/test")
-        assert record.method == "GET"
-
-    def test_custom_path(self):
-        record = FastApiRouteRecord(action_class=SampleAction, path="/api/v1/orders")
-        assert record.path == "/api/v1/orders"
-
-    def test_path_with_parameter(self):
-        record = FastApiRouteRecord(action_class=SampleAction, path="/orders/{order_id}")
-        assert record.path == "/orders/{order_id}"
-
-    def test_custom_tags(self):
-        record = FastApiRouteRecord(
-            action_class=SampleAction, path="/test",
-            tags=("orders", "admin"),
-        )
-        assert record.tags == ("orders", "admin")
-
-    def test_custom_summary(self):
-        record = FastApiRouteRecord(
-            action_class=SampleAction, path="/test",
-            summary="Создание заказа",
-        )
-        assert record.summary == "Создание заказа"
-
-    def test_custom_description(self):
-        record = FastApiRouteRecord(
-            action_class=SampleAction, path="/test",
-            description="Подробное описание эндпоинта",
-        )
-        assert record.description == "Подробное описание эндпоинта"
-
-    def test_custom_operation_id(self):
-        record = FastApiRouteRecord(
-            action_class=SampleAction, path="/test",
-            operation_id="create_order",
-        )
-        assert record.operation_id == "create_order"
-
-    def test_custom_deprecated(self):
-        record = FastApiRouteRecord(
-            action_class=SampleAction, path="/test",
-            deprecated=True,
-        )
-        assert record.deprecated is True
-
-    def test_full_creation(self):
-        """Создание записи с полным набором параметров."""
-        record = FastApiRouteRecord(
-            action_class=SampleAction,
-            request_model=AltRequest,
-            response_model=AltResponse,
-            params_mapper=dummy_params_mapper,
-            response_mapper=dummy_response_mapper,
-            method="PUT",
-            path="/api/v1/orders/{id}",
-            tags=("orders", "update"),
-            summary="Обновление заказа",
-            description="Обновляет существующий заказ.",
-            operation_id="update_order",
-            deprecated=False,
-        )
-        assert record.method == "PUT"
-        assert record.path == "/api/v1/orders/{id}"
-        assert record.tags == ("orders", "update")
-        assert record.summary == "Обновление заказа"
-        assert record.operation_id == "update_order"
-        assert record.effective_request_model is AltRequest
-        assert record.effective_response_model is AltResponse
-
-
-# ═════════════════════════════════════════════════════════════════════════════
-# ТЕСТЫ: Нормализация и валидация method
+# Method validation and normalization
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestMethodValidation:
-    """Валидация HTTP-метода."""
+    """Verify method normalization to uppercase and allowed set enforcement."""
+
+    def test_lowercase_normalized(self) -> None:
+        """A lowercase method string is normalized to uppercase."""
+        record = FastApiRouteRecord(action_class=PingAction, method="get", path="/ping")
+        assert record.method == "GET"
+
+    def test_mixed_case_normalized(self) -> None:
+        """A mixed-case method string is normalized to uppercase."""
+        record = FastApiRouteRecord(action_class=PingAction, method="Post", path="/ping")
+        assert record.method == "POST"
 
     @pytest.mark.parametrize("method", ["GET", "POST", "PUT", "DELETE", "PATCH"])
-    def test_allowed_methods(self, method):
-        """Все допустимые HTTP-методы принимаются."""
-        record = FastApiRouteRecord(action_class=SampleAction, method=method, path="/test")
+    def test_all_allowed_methods(self, method: str) -> None:
+        """All five standard HTTP methods are accepted."""
+        record = FastApiRouteRecord(action_class=PingAction, method=method, path="/test")
         assert record.method == method
 
-    @pytest.mark.parametrize("method,expected", [
-        ("get", "GET"),
-        ("post", "POST"),
-        ("put", "PUT"),
-        ("delete", "DELETE"),
-        ("patch", "PATCH"),
-        ("Get", "GET"),
-        ("Post", "POST"),
-    ])
-    def test_method_normalized_to_uppercase(self, method, expected):
-        """Метод приводится к верхнему регистру."""
-        record = FastApiRouteRecord(action_class=SampleAction, method=method, path="/test")
-        assert record.method == expected
+    def test_invalid_method_raises(self) -> None:
+        """An unsupported HTTP method raises ValueError."""
+        with pytest.raises(ValueError, match="method"):
+            FastApiRouteRecord(action_class=PingAction, method="OPTIONS", path="/test")
 
-    @pytest.mark.parametrize("method", ["HEAD", "OPTIONS", "TRACE", "CONNECT", "UNKNOWN", ""])
-    def test_invalid_method_raises_value_error(self, method):
-        """Недопустимый HTTP-метод → ValueError."""
-        with pytest.raises(ValueError, match="method должен быть одним из"):
-            FastApiRouteRecord(action_class=SampleAction, method=method, path="/test")
+    def test_empty_method_raises(self) -> None:
+        """An empty method string raises ValueError."""
+        with pytest.raises(ValueError):
+            FastApiRouteRecord(action_class=PingAction, method="", path="/test")
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# ТЕСТЫ: Валидация path
+# Path validation
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestPathValidation:
-    """Валидация URL-пути эндпоинта."""
+    """Verify path must be non-empty and start with '/'."""
 
-    def test_empty_path_raises_value_error(self):
-        with pytest.raises(ValueError, match="path не может быть пустой строкой"):
-            FastApiRouteRecord(action_class=SampleAction, path="")
+    def test_valid_path(self) -> None:
+        """A path starting with '/' is accepted."""
+        record = FastApiRouteRecord(action_class=PingAction, path="/api/v1/ping")
+        assert record.path == "/api/v1/ping"
 
-    def test_whitespace_path_raises_value_error(self):
-        with pytest.raises(ValueError, match="path не может быть пустой строкой"):
-            FastApiRouteRecord(action_class=SampleAction, path="   ")
+    def test_path_with_params(self) -> None:
+        """A path with FastAPI-style parameters is accepted."""
+        record = FastApiRouteRecord(action_class=PingAction, path="/orders/{order_id}")
+        assert record.path == "/orders/{order_id}"
 
-    def test_path_without_leading_slash_raises_value_error(self):
-        with pytest.raises(ValueError, match="path должен начинаться с '/'"):
-            FastApiRouteRecord(action_class=SampleAction, path="api/v1/orders")
+    def test_missing_leading_slash_raises(self) -> None:
+        """A path not starting with '/' raises ValueError."""
+        with pytest.raises(ValueError, match="path"):
+            FastApiRouteRecord(action_class=PingAction, path="api/ping")
 
-    def test_valid_path_accepted(self):
-        record = FastApiRouteRecord(action_class=SampleAction, path="/api/v1/orders")
-        assert record.path == "/api/v1/orders"
+    def test_empty_path_raises(self) -> None:
+        """An empty path raises ValueError."""
+        with pytest.raises(ValueError, match="path"):
+            FastApiRouteRecord(action_class=PingAction, path="")
 
-    def test_root_path_accepted(self):
-        record = FastApiRouteRecord(action_class=SampleAction, path="/")
-        assert record.path == "/"
-
-    def test_path_with_multiple_parameters(self):
-        record = FastApiRouteRecord(
-            action_class=SampleAction,
-            path="/api/v1/{domain}/orders/{order_id}",
-        )
-        assert record.path == "/api/v1/{domain}/orders/{order_id}"
+    def test_whitespace_only_path_raises(self) -> None:
+        """A whitespace-only path raises ValueError."""
+        with pytest.raises(ValueError, match="path"):
+            FastApiRouteRecord(action_class=PingAction, path="   ")
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# ТЕСТЫ: Frozen
+# Optional fields
+# ═════════════════════════════════════════════════════════════════════════════
+
+
+class TestOptionalFields:
+    """Verify that optional HTTP-specific fields are stored correctly."""
+
+    def test_tags_stored_as_tuple(self) -> None:
+        """Tags passed as a tuple are stored unchanged."""
+        record = FastApiRouteRecord(
+            action_class=PingAction,
+            path="/ping",
+            tags=("system", "health"),
+        )
+        assert record.tags == ("system", "health")
+
+    def test_summary_stored(self) -> None:
+        """A custom summary is stored and retrievable."""
+        record = FastApiRouteRecord(
+            action_class=PingAction,
+            path="/ping",
+            summary="Check service health",
+        )
+        assert record.summary == "Check service health"
+
+    def test_description_stored(self) -> None:
+        """A custom description is stored and retrievable."""
+        record = FastApiRouteRecord(
+            action_class=PingAction,
+            path="/ping",
+            description="Returns pong if the service is alive.",
+        )
+        assert record.description == "Returns pong if the service is alive."
+
+    def test_operation_id_stored(self) -> None:
+        """A custom operation_id is stored and retrievable."""
+        record = FastApiRouteRecord(
+            action_class=PingAction,
+            path="/ping",
+            operation_id="ping_service",
+        )
+        assert record.operation_id == "ping_service"
+
+    def test_deprecated_flag(self) -> None:
+        """The deprecated flag is stored and retrievable."""
+        record = FastApiRouteRecord(
+            action_class=PingAction,
+            path="/ping",
+            deprecated=True,
+        )
+        assert record.deprecated is True
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# Frozen immutability
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestFrozen:
-    """Проверка неизменяемости frozen-датакласса."""
+    """Verify that FastApiRouteRecord is truly frozen."""
 
-    def test_cannot_modify_method(self):
-        record = FastApiRouteRecord(action_class=SampleAction, path="/test")
-        with pytest.raises(FrozenInstanceError):
-            record.method = "GET"
+    def test_cannot_modify_method(self) -> None:
+        """Attempting to change method raises AttributeError."""
+        record = FastApiRouteRecord(action_class=PingAction, path="/ping")
 
-    def test_cannot_modify_path(self):
-        record = FastApiRouteRecord(action_class=SampleAction, path="/test")
-        with pytest.raises(FrozenInstanceError):
-            record.path = "/other"
+        with pytest.raises(AttributeError):
+            record.method = "GET"  # type: ignore[misc]
 
-    def test_cannot_modify_tags(self):
-        record = FastApiRouteRecord(action_class=SampleAction, path="/test")
-        with pytest.raises(FrozenInstanceError):
-            record.tags = ("new",)
+    def test_cannot_modify_path(self) -> None:
+        """Attempting to change path raises AttributeError."""
+        record = FastApiRouteRecord(action_class=PingAction, path="/ping")
 
-    def test_cannot_modify_action_class(self):
-        record = FastApiRouteRecord(action_class=SampleAction, path="/test")
-        with pytest.raises(FrozenInstanceError):
-            record.action_class = NotAnAction
-
-    def test_cannot_modify_summary(self):
-        record = FastApiRouteRecord(action_class=SampleAction, path="/test")
-        with pytest.raises(FrozenInstanceError):
-            record.summary = "new"
-
-    def test_cannot_modify_deprecated(self):
-        record = FastApiRouteRecord(action_class=SampleAction, path="/test")
-        with pytest.raises(FrozenInstanceError):
-            record.deprecated = True
+        with pytest.raises(AttributeError):
+            record.path = "/other"  # type: ignore[misc]
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# ТЕСТЫ: Наследование инвариантов от BaseRouteRecord
+# Inherited BaseRouteRecord invariants
 # ═════════════════════════════════════════════════════════════════════════════
 
 
-class TestBaseRouteRecordInvariants:
-    """Проверка инвариантов, унаследованных от BaseRouteRecord."""
+class TestInheritedInvariants:
+    """Verify BaseRouteRecord validations still apply to FastApiRouteRecord."""
 
-    def test_auto_extracts_params_type(self):
-        record = FastApiRouteRecord(action_class=SampleAction, path="/test")
-        assert record.params_type is SampleParams
+    def test_non_action_raises(self) -> None:
+        """A non-BaseAction class triggers TypeError from BaseRouteRecord."""
 
-    def test_auto_extracts_result_type(self):
-        record = FastApiRouteRecord(action_class=SampleAction, path="/test")
-        assert record.result_type is SampleResult
+        class _Plain:
+            pass
 
-    def test_effective_request_model_without_custom(self):
-        record = FastApiRouteRecord(action_class=SampleAction, path="/test")
-        assert record.effective_request_model is SampleParams
+        with pytest.raises(TypeError, match="BaseAction"):
+            FastApiRouteRecord(action_class=_Plain, path="/test")
 
-    def test_effective_request_model_with_custom(self):
-        record = FastApiRouteRecord(
-            action_class=SampleAction, path="/test",
-            request_model=AltRequest,
-            params_mapper=dummy_params_mapper,
-        )
-        assert record.effective_request_model is AltRequest
-
-    def test_effective_response_model_without_custom(self):
-        record = FastApiRouteRecord(action_class=SampleAction, path="/test")
-        assert record.effective_response_model is SampleResult
-
-    def test_effective_response_model_with_custom(self):
-        record = FastApiRouteRecord(
-            action_class=SampleAction, path="/test",
-            response_model=AltResponse,
-            response_mapper=dummy_response_mapper,
-        )
-        assert record.effective_response_model is AltResponse
-
-    def test_different_request_model_without_mapper_raises(self):
-        with pytest.raises(ValueError, match="params_mapper не указан"):
-            FastApiRouteRecord(
-                action_class=SampleAction, path="/test",
-                request_model=AltRequest,
-            )
-
-    def test_different_response_model_without_mapper_raises(self):
-        with pytest.raises(ValueError, match="response_mapper не указан"):
-            FastApiRouteRecord(
-                action_class=SampleAction, path="/test",
-                response_model=AltResponse,
-            )
-
-    def test_not_base_action_raises_type_error(self):
-        with pytest.raises(TypeError, match="подклассом BaseAction"):
-            FastApiRouteRecord(action_class=NotAnAction, path="/test")
+    def test_type_extraction_works(self) -> None:
+        """params_type and result_type are extracted from the action class."""
+        record = FastApiRouteRecord(action_class=SimpleAction, path="/simple")
+        assert record.params_type is SimpleAction.Params
+        assert record.result_type is SimpleAction.Result

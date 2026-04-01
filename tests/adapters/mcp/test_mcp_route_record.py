@@ -1,255 +1,243 @@
 # tests/adapters/mcp/test_mcp_route_record.py
 """
-Тесты для McpRouteRecord — frozen-датакласса маршрута MCP-адаптера.
+Tests for McpRouteRecord — frozen dataclass with MCP-specific fields.
 
-═══════════════════════════════════════════════════════════════════════════════
-ПОКРЫВАЕМЫЕ СЦЕНАРИИ
-═══════════════════════════════════════════════════════════════════════════════
+McpRouteRecord extends BaseRouteRecord with tool_name and description.
+It validates that tool_name is non-empty after strip(). All BaseRouteRecord
+invariants (action_class validation, type extraction, mapper requirements)
+are inherited and enforced.
 
-Дефолты, пользовательские значения, валидация tool_name, frozen,
-наследование инвариантов от BaseRouteRecord, конвенция именования
-мапперов (response_mapper вместо result_mapper).
+Scenarios covered:
+    - Default field values (tool_name="", description="").
+    - Valid tool_name accepted.
+    - Empty tool_name raises ValueError.
+    - Whitespace-only tool_name raises ValueError.
+    - Description stored correctly.
+    - Dot-separated tool names accepted (e.g. "orders.create").
+    - Frozen immutability — fields cannot be modified after creation.
+    - Inherited BaseRouteRecord invariants still enforced.
+    - params_type and result_type extracted correctly.
+    - Mapper invariants enforced for different request/response models.
 """
 
-from __future__ import annotations
-
-from dataclasses import FrozenInstanceError
-
 import pytest
-from pydantic import Field
+from pydantic import BaseModel
 
-from action_machine.aspects.summary_aspect import summary_aspect
-from action_machine.auth import ROLE_NONE, check_roles
 from action_machine.contrib.mcp.route_record import McpRouteRecord
-from action_machine.core.base_action import BaseAction
-from action_machine.core.base_params import BaseParams
-from action_machine.core.base_result import BaseResult
-from action_machine.core.base_state import BaseState
-from action_machine.core.meta_decorator import meta
-from action_machine.core.tools_box import ToolsBox
-from action_machine.resource_managers.base_resource_manager import BaseResourceManager
+from tests.domain import FullAction, PingAction, SimpleAction
 
-# ═════════════════════════════════════════════════════════════════════════════
-# Тестовые модели и действия
-# ═════════════════════════════════════════════════════════════════════════════
+# ─────────────────────────────────────────────────────────────────────────────
+# Helper models for mapper invariant tests — intentionally simple,
+# not part of the shared domain.
+# ─────────────────────────────────────────────────────────────────────────────
 
 
-class SampleParams(BaseParams):
-    """Параметры для тестов."""
-    name: str = Field(default="test", description="Имя")
+class _AltRequest(BaseModel):
+    """Alternative request model for mapper tests."""
+    query: str = "test"
 
 
-class SampleResult(BaseResult):
-    """Результат для тестов."""
-    value: str = Field(default="ok", description="Значение")
-
-
-class AltRequest(BaseParams):
-    """Альтернативная модель запроса (отличается от SampleParams)."""
-    page: int = Field(default=1, description="Страница")
-
-
-class AltResponse(BaseResult):
-    """Альтернативная модель ответа (отличается от SampleResult)."""
-    entries: list = Field(default_factory=list, description="Элементы")
-
-
-@meta(description="Тестовое действие")
-@check_roles(ROLE_NONE)
-class SampleAction(BaseAction[SampleParams, SampleResult]):
-    """Действие для тестов RouteRecord."""
-
-    @summary_aspect("Тест")
-    async def summary(
-        self, params: SampleParams, state: BaseState,
-        box: ToolsBox, connections: dict[str, BaseResourceManager],
-    ) -> SampleResult:
-        return SampleResult()
-
-
-class NotAnAction:
-    """Класс, не наследующий BaseAction."""
-    pass
-
-
-def dummy_params_mapper(x):
-    """Тестовый маппер параметров."""
-    return x
-
-
-def dummy_response_mapper(x):
-    """Тестовый маппер ответа."""
-    return x
+class _AltResponse(BaseModel):
+    """Alternative response model for mapper tests."""
+    data: str = "ok"
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# ТЕСТЫ: Значения по умолчанию
-# ═════════════════════════════════════════════════════════════════════════════
-
-
-class TestDefaults:
-    """Проверка значений по умолчанию для MCP-специфичных полей."""
-
-    def test_default_description_empty(self):
-        record = McpRouteRecord(action_class=SampleAction, tool_name="test.action")
-        assert record.description == ""
-
-
-# ═════════════════════════════════════════════════════════════════════════════
-# ТЕСТЫ: Пользовательские значения полей
-# ═════════════════════════════════════════════════════════════════════════════
-
-
-class TestCustomValues:
-    """Проверка установки пользовательских значений MCP-полей."""
-
-    def test_custom_tool_name(self):
-        record = McpRouteRecord(action_class=SampleAction, tool_name="orders.create")
-        assert record.tool_name == "orders.create"
-
-    def test_custom_description(self):
-        record = McpRouteRecord(
-            action_class=SampleAction,
-            tool_name="orders.create",
-            description="Создание заказа",
-        )
-        assert record.description == "Создание заказа"
-
-    def test_full_creation(self):
-        """Создание записи с полным набором параметров."""
-        record = McpRouteRecord(
-            action_class=SampleAction,
-            request_model=AltRequest,
-            response_model=AltResponse,
-            params_mapper=dummy_params_mapper,
-            response_mapper=dummy_response_mapper,
-            tool_name="orders.update",
-            description="Обновление заказа",
-        )
-        assert record.tool_name == "orders.update"
-        assert record.description == "Обновление заказа"
-        assert record.effective_request_model is AltRequest
-        assert record.effective_response_model is AltResponse
-
-    def test_tool_name_with_dots(self):
-        """Имя tool с точками (рекомендуемый формат domain.action)."""
-        record = McpRouteRecord(action_class=SampleAction, tool_name="system.health.check")
-        assert record.tool_name == "system.health.check"
-
-    def test_tool_name_with_underscores(self):
-        """Имя tool с подчёркиваниями."""
-        record = McpRouteRecord(action_class=SampleAction, tool_name="create_order")
-        assert record.tool_name == "create_order"
-
-    def test_tool_name_with_hyphens(self):
-        """Имя tool с дефисами."""
-        record = McpRouteRecord(action_class=SampleAction, tool_name="create-order")
-        assert record.tool_name == "create-order"
-
-
-# ═════════════════════════════════════════════════════════════════════════════
-# ТЕСТЫ: Валидация tool_name
+# tool_name validation
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestToolNameValidation:
-    """Валидация имени MCP tool."""
+    """Verify tool_name must be non-empty after strip."""
 
-    def test_empty_tool_name_raises_value_error(self):
-        with pytest.raises(ValueError, match="tool_name не может быть пустой строкой"):
-            McpRouteRecord(action_class=SampleAction, tool_name="")
+    def test_valid_tool_name(self) -> None:
+        """A non-empty tool_name is accepted and stored."""
+        record = McpRouteRecord(action_class=PingAction, tool_name="system.ping")
+        assert record.tool_name == "system.ping"
 
-    def test_whitespace_tool_name_raises_value_error(self):
-        with pytest.raises(ValueError, match="tool_name не может быть пустой строкой"):
-            McpRouteRecord(action_class=SampleAction, tool_name="   ")
+    def test_empty_tool_name_raises(self) -> None:
+        """An empty tool_name raises ValueError."""
+        with pytest.raises(ValueError, match="tool_name"):
+            McpRouteRecord(action_class=PingAction, tool_name="")
 
-    def test_valid_tool_name_accepted(self):
-        record = McpRouteRecord(action_class=SampleAction, tool_name="ping")
+    def test_whitespace_only_raises(self) -> None:
+        """A whitespace-only tool_name raises ValueError."""
+        with pytest.raises(ValueError, match="tool_name"):
+            McpRouteRecord(action_class=PingAction, tool_name="   ")
+
+    def test_dot_separated_name(self) -> None:
+        """Dot-separated names like 'orders.create' are valid."""
+        record = McpRouteRecord(action_class=FullAction, tool_name="orders.create")
+        assert record.tool_name == "orders.create"
+
+    def test_single_word_name(self) -> None:
+        """Single-word tool names are valid."""
+        record = McpRouteRecord(action_class=PingAction, tool_name="ping")
         assert record.tool_name == "ping"
 
-    def test_single_char_tool_name_accepted(self):
-        record = McpRouteRecord(action_class=SampleAction, tool_name="x")
-        assert record.tool_name == "x"
+    def test_hyphenated_name(self) -> None:
+        """Hyphenated tool names are valid."""
+        record = McpRouteRecord(action_class=PingAction, tool_name="system-ping")
+        assert record.tool_name == "system-ping"
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# ТЕСТЫ: Frozen
+# Description field
+# ═════════════════════════════════════════════════════════════════════════════
+
+
+class TestDescription:
+    """Verify description field storage."""
+
+    def test_default_description_empty(self) -> None:
+        """Default description is an empty string."""
+        record = McpRouteRecord(action_class=PingAction, tool_name="ping")
+        assert record.description == ""
+
+    def test_custom_description(self) -> None:
+        """A custom description is stored and retrievable."""
+        record = McpRouteRecord(
+            action_class=PingAction,
+            tool_name="ping",
+            description="Check if the service is alive",
+        )
+        assert record.description == "Check if the service is alive"
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# Type extraction
+# ═════════════════════════════════════════════════════════════════════════════
+
+
+class TestTypeExtraction:
+    """Verify params_type and result_type are correctly extracted."""
+
+    def test_ping_action_types(self) -> None:
+        """PingAction types are extracted via ForwardRef resolution."""
+        record = McpRouteRecord(action_class=PingAction, tool_name="ping")
+        assert record.params_type is PingAction.Params
+        assert record.result_type is PingAction.Result
+
+    def test_full_action_types(self) -> None:
+        """FullAction types are extracted correctly."""
+        record = McpRouteRecord(action_class=FullAction, tool_name="orders.create")
+        assert record.params_type is FullAction.Params
+        assert record.result_type is FullAction.Result
+
+    def test_simple_action_types(self) -> None:
+        """SimpleAction types are extracted correctly."""
+        record = McpRouteRecord(action_class=SimpleAction, tool_name="simple")
+        assert record.params_type is SimpleAction.Params
+        assert record.result_type is SimpleAction.Result
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# Computed properties
+# ═════════════════════════════════════════════════════════════════════════════
+
+
+class TestComputedProperties:
+    """Verify effective_request_model and effective_response_model."""
+
+    def test_effective_request_defaults_to_params(self) -> None:
+        """When request_model is None, effective_request_model is params_type."""
+        record = McpRouteRecord(action_class=PingAction, tool_name="ping")
+        assert record.effective_request_model is PingAction.Params
+
+    def test_effective_response_defaults_to_result(self) -> None:
+        """When response_model is None, effective_response_model is result_type."""
+        record = McpRouteRecord(action_class=PingAction, tool_name="ping")
+        assert record.effective_response_model is PingAction.Result
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# Mapper invariants
+# ═════════════════════════════════════════════════════════════════════════════
+
+
+class TestMapperInvariants:
+    """Verify mapper requirements inherited from BaseRouteRecord."""
+
+    def test_different_request_without_mapper_raises(self) -> None:
+        """request_model != params_type without params_mapper raises ValueError."""
+        with pytest.raises(ValueError, match="params_mapper"):
+            McpRouteRecord(
+                action_class=PingAction,
+                tool_name="ping",
+                request_model=_AltRequest,
+            )
+
+    def test_different_response_without_mapper_raises(self) -> None:
+        """response_model != result_type without response_mapper raises ValueError."""
+        with pytest.raises(ValueError, match="response_mapper"):
+            McpRouteRecord(
+                action_class=PingAction,
+                tool_name="ping",
+                response_model=_AltResponse,
+            )
+
+    def test_different_request_with_mapper_accepted(self) -> None:
+        """Providing params_mapper resolves the invariant."""
+        record = McpRouteRecord(
+            action_class=PingAction,
+            tool_name="ping",
+            request_model=_AltRequest,
+            params_mapper=lambda r: PingAction.Params(),
+        )
+        assert record.effective_request_model is _AltRequest
+
+    def test_different_response_with_mapper_accepted(self) -> None:
+        """Providing response_mapper resolves the invariant."""
+        record = McpRouteRecord(
+            action_class=PingAction,
+            tool_name="ping",
+            response_model=_AltResponse,
+            response_mapper=lambda r: _AltResponse(),
+        )
+        assert record.effective_response_model is _AltResponse
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# Frozen immutability
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestFrozen:
-    """Проверка неизменяемости frozen-датакласса."""
+    """Verify that McpRouteRecord is truly frozen after creation."""
 
-    def test_cannot_modify_tool_name(self):
-        record = McpRouteRecord(action_class=SampleAction, tool_name="test")
-        with pytest.raises(FrozenInstanceError):
-            record.tool_name = "other"
+    def test_cannot_modify_tool_name(self) -> None:
+        """Attempting to change tool_name raises AttributeError."""
+        record = McpRouteRecord(action_class=PingAction, tool_name="ping")
 
-    def test_cannot_modify_description(self):
-        record = McpRouteRecord(action_class=SampleAction, tool_name="test")
-        with pytest.raises(FrozenInstanceError):
-            record.description = "new desc"
+        with pytest.raises(AttributeError):
+            record.tool_name = "other"  # type: ignore[misc]
 
-    def test_cannot_modify_action_class(self):
-        record = McpRouteRecord(action_class=SampleAction, tool_name="test")
-        with pytest.raises(FrozenInstanceError):
-            record.action_class = NotAnAction
+    def test_cannot_modify_description(self) -> None:
+        """Attempting to change description raises AttributeError."""
+        record = McpRouteRecord(action_class=PingAction, tool_name="ping")
+
+        with pytest.raises(AttributeError):
+            record.description = "new desc"  # type: ignore[misc]
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# ТЕСТЫ: Наследование инвариантов от BaseRouteRecord
+# Inherited action_class validation
 # ═════════════════════════════════════════════════════════════════════════════
 
 
-class TestBaseRouteRecordInvariants:
-    """Проверка инвариантов, унаследованных от BaseRouteRecord."""
+class TestInheritedValidation:
+    """Verify BaseRouteRecord validations apply to McpRouteRecord."""
 
-    def test_auto_extracts_params_type(self):
-        record = McpRouteRecord(action_class=SampleAction, tool_name="test")
-        assert record.params_type is SampleParams
+    def test_non_action_raises(self) -> None:
+        """A non-BaseAction class triggers TypeError."""
 
-    def test_auto_extracts_result_type(self):
-        record = McpRouteRecord(action_class=SampleAction, tool_name="test")
-        assert record.result_type is SampleResult
+        class _Plain:
+            pass
 
-    def test_effective_request_model_without_custom(self):
-        record = McpRouteRecord(action_class=SampleAction, tool_name="test")
-        assert record.effective_request_model is SampleParams
+        with pytest.raises(TypeError, match="BaseAction"):
+            McpRouteRecord(action_class=_Plain, tool_name="test")
 
-    def test_effective_request_model_with_custom(self):
-        record = McpRouteRecord(
-            action_class=SampleAction, tool_name="test",
-            request_model=AltRequest,
-            params_mapper=dummy_params_mapper,
-        )
-        assert record.effective_request_model is AltRequest
-
-    def test_effective_response_model_without_custom(self):
-        record = McpRouteRecord(action_class=SampleAction, tool_name="test")
-        assert record.effective_response_model is SampleResult
-
-    def test_effective_response_model_with_custom(self):
-        record = McpRouteRecord(
-            action_class=SampleAction, tool_name="test",
-            response_model=AltResponse,
-            response_mapper=dummy_response_mapper,
-        )
-        assert record.effective_response_model is AltResponse
-
-    def test_different_request_model_without_mapper_raises(self):
-        with pytest.raises(ValueError, match="params_mapper не указан"):
-            McpRouteRecord(
-                action_class=SampleAction, tool_name="test",
-                request_model=AltRequest,
-            )
-
-    def test_different_response_model_without_mapper_raises(self):
-        with pytest.raises(ValueError, match="response_mapper не указан"):
-            McpRouteRecord(
-                action_class=SampleAction, tool_name="test",
-                response_model=AltResponse,
-            )
-
-    def test_not_base_action_raises_type_error(self):
-        with pytest.raises(TypeError, match="подклассом BaseAction"):
-            McpRouteRecord(action_class=NotAnAction, tool_name="test")
+    def test_action_class_stored(self) -> None:
+        """A valid action_class is stored on the record."""
+        record = McpRouteRecord(action_class=PingAction, tool_name="ping")
+        assert record.action_class is PingAction

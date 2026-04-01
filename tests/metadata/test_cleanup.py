@@ -1,175 +1,218 @@
-# src/action_machine/metadata/cleanup.py
+# tests/metadata/test_cleanup.py
 """
-Модуль: cleanup — удаление временных атрибутов с класса после сборки метаданных.
+Tests for cleanup_temporary_attributes — removal of decorator temp attrs.
 
-═══════════════════════════════════════════════════════════════════════════════
-НАЗНАЧЕНИЕ
-═══════════════════════════════════════════════════════════════════════════════
+After MetadataBuilder.build() reads temporary attributes left by decorators
+(@meta, @check_roles, @depends, @connection, @regular_aspect, @result_string,
+@on, @sensitive), those attributes are no longer needed. cleanup removes them
+from cls.__dict__ (class-level) and from method functions (method-level).
 
-После того как ``MetadataBuilder.build()`` прочитал временные атрибуты,
-оставленные декораторами, и собрал иммутабельный ``ClassMetadata``,
-эти атрибуты больше не нужны. Они остаются на классах и методах как мусор:
-видны через ``getattr`` и ``dir``, засоряют интроспекцию, создают ложное
-впечатление о публичном API и теоретически могут быть случайно прочитаны
-или модифицированы внешним кодом.
-
-Модуль содержит единственную функцию ``cleanup_temporary_attributes()``,
-которая удаляет все временные атрибуты с класса и его методов.
-
-═══════════════════════════════════════════════════════════════════════════════
-ПРАВИЛА УДАЛЕНИЯ
-═══════════════════════════════════════════════════════════════════════════════
-
-Атрибуты уровня класса (``_meta_info``, ``_role_info``, ``_depends_info``,
-``_connection_info``):
-    Удаляются только если присутствуют в ``cls.__dict__`` текущего класса.
-    Если атрибут унаследован от родителя и дочерний класс не добавлял
-    своих значений, удаление не выполняется. Это критически важно:
-    ``delattr`` на дочернем классе для унаследованного атрибута поднимется
-    к родителю и удалит его метаданные.
-
-Атрибуты уровня методов (``_new_aspect_meta``, ``_checker_meta``,
-``_on_subscriptions``, ``_sensitive_config``):
-    Удаляются только для методов из ``vars(cls)`` текущего класса
-    (не из всего MRO). Для ``property``-дескрипторов атрибут удаляется
-    с getter-функции (``fget``).
-
-═══════════════════════════════════════════════════════════════════════════════
-ИДЕМПОТЕНТНОСТЬ
-═══════════════════════════════════════════════════════════════════════════════
-
-Повторный вызов ``cleanup_temporary_attributes()`` на уже очищенном классе
-безопасен — ``delattr`` вызывается только для атрибутов, фактически
-присутствующих в ``cls.__dict__`` или на функции через ``hasattr``.
-
-═══════════════════════════════════════════════════════════════════════════════
-ИСПОЛЬЗОВАНИЕ
-═══════════════════════════════════════════════════════════════════════════════
-
-Функция вызывается только из ``MetadataBuilder.build()`` после завершения
-сборки и валидации. Не является частью публичного API пакета.
-
-    from action_machine.metadata.cleanup import cleanup_temporary_attributes
-
-    cleanup_temporary_attributes(cls)
+Scenarios covered:
+    - Class-level attrs (_role_info, _depends_info, _connection_info) removed.
+    - Method-level attrs (_new_aspect_meta, _checker_meta, _on_subscriptions,
+      _sensitive_config) removed from regular methods.
+    - Method-level attrs removed from property getters (fget).
+    - Inherited class-level attrs are NOT removed from the child class.
+    - Idempotent — second call on already-cleaned class is safe.
+    - Non-callable attrs on the class are left untouched.
+    - Built-in methods that reject delattr are handled gracefully.
 """
 
-from __future__ import annotations
 
-# Временные атрибуты, записываемые декораторами на уровне класса.
-# Каждый удаляется из cls.__dict__ (не из MRO), если присутствует.
-_CLASS_LEVEL_ATTRS: tuple[str, ...] = (
-    "_meta_info",
-    "_role_info",
-    "_depends_info",
-    "_connection_info",
+from action_machine.metadata.cleanup import (
+    _get_underlying_function,
+    cleanup_temporary_attributes,
 )
 
-# Временные атрибуты, записываемые декораторами на уровне методов/функций.
-# Каждый удаляется с функции через delattr, если присутствует.
-_METHOD_LEVEL_ATTRS: tuple[str, ...] = (
-    "_new_aspect_meta",
-    "_checker_meta",
-    "_on_subscriptions",
-    "_sensitive_config",
-)
+# ═════════════════════════════════════════════════════════════════════════════
+# Class-level attribute cleanup
+# ═════════════════════════════════════════════════════════════════════════════
 
 
-def _cleanup_class_attrs(cls: type) -> None:
-    """
-    Удаляет временные атрибуты уровня класса из ``cls.__dict__``.
+class TestClassLevelCleanup:
+    """Verify removal of class-level temporary attributes."""
 
-    Проверяет наличие каждого атрибута именно в ``cls.__dict__``
-    (а не через ``getattr``), чтобы не затронуть унаследованные
-    атрибуты родительских классов.
+    def test_removes_role_info(self) -> None:
+        """_role_info is removed from cls.__dict__ after cleanup."""
 
-    Аргументы:
-        cls: класс, с которого удаляются атрибуты.
-    """
-    for attr_name in _CLASS_LEVEL_ATTRS:
-        if attr_name in cls.__dict__:
-            delattr(cls, attr_name)
+        class _Action:
+            _role_info = {"spec": "admin", "desc": ""}
 
+        cleanup_temporary_attributes(_Action)
+        assert "_role_info" not in _Action.__dict__
 
-def _get_underlying_function(attr_value: object) -> object | None:
-    """
-    Извлекает функцию из дескриптора или возвращает callable как есть.
+    def test_removes_depends_info(self) -> None:
+        """_depends_info is removed from cls.__dict__ after cleanup."""
 
-    Для ``property``-дескрипторов возвращает getter (``fget``).
-    Для обычных callable возвращает сам объект.
-    Для всего остального возвращает ``None``.
+        class _Action:
+            _depends_info = [{"class": str}]
 
-    Аргументы:
-        attr_value: значение атрибута из ``vars(cls)``.
+        cleanup_temporary_attributes(_Action)
+        assert "_depends_info" not in _Action.__dict__
 
-    Возвращает:
-        Функцию, на которой могут быть временные атрибуты, или ``None``.
-    """
-    if isinstance(attr_value, property):
-        return attr_value.fget
-    if callable(attr_value):
-        return attr_value
-    return None
+    def test_removes_connection_info(self) -> None:
+        """_connection_info is removed from cls.__dict__ after cleanup."""
 
+        class _Action:
+            _connection_info = [{"class": str, "key": "db"}]
 
-def _cleanup_method_attrs(cls: type) -> None:
-    """
-    Удаляет временные атрибуты уровня методов из ``vars(cls)``.
+        cleanup_temporary_attributes(_Action)
+        assert "_connection_info" not in _Action.__dict__
 
-    Обходит только атрибуты текущего класса (``vars(cls)``), не MRO.
-    Для каждого метода или property-getter проверяет наличие временных
-    атрибутов и удаляет их.
+    def test_does_not_remove_inherited_attr(self) -> None:
+        """Inherited _role_info on parent is not removed via child cleanup."""
 
-    Аргументы:
-        cls: класс, методы которого очищаются.
-    """
-    for _attr_name, attr_value in vars(cls).items():
-        func = _get_underlying_function(attr_value)
-        if func is None:
-            continue
+        class _Parent:
+            _role_info = {"spec": "admin", "desc": ""}
 
-        for method_attr in _METHOD_LEVEL_ATTRS:
-            if hasattr(func, method_attr):
-                try:
-                    delattr(func, method_attr)
-                except AttributeError:
-                    # Некоторые объекты (built-in, C-расширения) не позволяют
-                    # удалять атрибуты. Это безопасно игнорировать.
-                    pass
+        class _Child(_Parent):
+            pass
+
+        # _role_info is inherited, not in _Child.__dict__
+        cleanup_temporary_attributes(_Child)
+
+        # Parent's attr must survive
+        assert hasattr(_Parent, "_role_info")
+        assert _Parent._role_info == {"spec": "admin", "desc": ""}
+
+    def test_removes_only_own_attr(self) -> None:
+        """Child's own _role_info is removed, parent's is preserved."""
+
+        class _Parent:
+            _role_info = {"spec": "admin", "desc": ""}
+
+        class _Child(_Parent):
+            _role_info = {"spec": "user", "desc": ""}
+
+        cleanup_temporary_attributes(_Child)
+
+        assert "_role_info" not in _Child.__dict__
+        assert _Parent._role_info == {"spec": "admin", "desc": ""}
 
 
-def cleanup_temporary_attributes(cls: type) -> None:
-    """
-    Удаляет все временные атрибуты декораторов с класса и его методов.
+# ═════════════════════════════════════════════════════════════════════════════
+# Method-level attribute cleanup
+# ═════════════════════════════════════════════════════════════════════════════
 
-    Вызывается ``MetadataBuilder.build()`` после завершения сборки
-    ``ClassMetadata``. После вызова этой функции повторная сборка
-    метаданных для того же класса вернёт пустой ``ClassMetadata``
-    (все декораторные данные удалены). Это не проблема, так как
-    ``GateCoordinator`` кеширует результат первой сборки.
 
-    Функция идемпотентна: повторный вызов на уже очищенном классе
-    безопасен и не вызывает ошибок.
+class TestMethodLevelCleanup:
+    """Verify removal of method-level temporary attributes."""
 
-    Удаление выполняется в два этапа:
-        1. Атрибуты уровня класса (``_meta_info``, ``_role_info``,
-           ``_depends_info``, ``_connection_info``) — только из ``cls.__dict__``.
-        2. Атрибуты уровня методов (``_new_aspect_meta``, ``_checker_meta``,
-           ``_on_subscriptions``, ``_sensitive_config``) — только для
-           методов из ``vars(cls)`` текущего класса.
+    def test_removes_aspect_meta(self) -> None:
+        """_new_aspect_meta is removed from a method function."""
 
-    Аргументы:
-        cls: класс, временные атрибуты которого нужно удалить.
+        class _Action:
+            async def process(self):
+                pass
 
-    Пример:
-        >>> class MyAction:
-        ...     _meta_info = {"description": "test", "domain": None}
-        ...     _role_info = {"spec": "admin", "desc": ""}
-        >>> cleanup_temporary_attributes(MyAction)
-        >>> hasattr(MyAction, '_meta_info')
-        False
-        >>> hasattr(MyAction, '_role_info')
-        False
-    """
-    _cleanup_class_attrs(cls)
-    _cleanup_method_attrs(cls)
+        _Action.process._new_aspect_meta = {"type": "regular"}
+
+        cleanup_temporary_attributes(_Action)
+        assert not hasattr(_Action.process, "_new_aspect_meta")
+
+    def test_removes_checker_meta(self) -> None:
+        """_checker_meta is removed from a method function."""
+
+        class _Action:
+            async def validate(self):
+                pass
+
+        _Action.validate._checker_meta = [{"field": "name"}]
+
+        cleanup_temporary_attributes(_Action)
+        assert not hasattr(_Action.validate, "_checker_meta")
+
+    def test_removes_on_subscriptions(self) -> None:
+        """_on_subscriptions is removed from a method function."""
+
+        class _Plugin:
+            async def handler(self):
+                pass
+
+        _Plugin.handler._on_subscriptions = [{"event": "global_finish"}]
+
+        cleanup_temporary_attributes(_Plugin)
+        assert not hasattr(_Plugin.handler, "_on_subscriptions")
+
+    def test_removes_sensitive_config(self) -> None:
+        """_sensitive_config is removed from a property getter."""
+
+        def _getter(self):
+            return "secret"
+
+        _getter._sensitive_config = {"mask": "***"}
+
+        class _Model:
+            secret = property(_getter)
+
+        cleanup_temporary_attributes(_Model)
+        assert not hasattr(_getter, "_sensitive_config")
+
+    def test_skips_non_callable_attrs(self) -> None:
+        """Non-callable class attributes are left untouched."""
+
+        class _Action:
+            name = "test"
+            count = 42
+
+        cleanup_temporary_attributes(_Action)
+        assert _Action.name == "test"
+        assert _Action.count == 42
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# _get_underlying_function
+# ═════════════════════════════════════════════════════════════════════════════
+
+
+class TestGetUnderlyingFunction:
+    """Verify function extraction from descriptors and callables."""
+
+    def test_returns_fget_for_property(self) -> None:
+        """For a property descriptor, returns the getter function."""
+
+        def _getter(self):
+            return 1
+
+        prop = property(_getter)
+        assert _get_underlying_function(prop) is _getter
+
+    def test_returns_callable_as_is(self) -> None:
+        """For a regular callable, returns it unchanged."""
+
+        def _func():
+            pass
+
+        assert _get_underlying_function(_func) is _func
+
+    def test_returns_none_for_non_callable(self) -> None:
+        """For a non-callable value, returns None."""
+        assert _get_underlying_function("string") is None
+        assert _get_underlying_function(42) is None
+        assert _get_underlying_function(None) is None
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# Idempotency
+# ═════════════════════════════════════════════════════════════════════════════
+
+
+class TestIdempotency:
+    """Verify that cleanup is safe to call multiple times."""
+
+    def test_double_cleanup_is_safe(self) -> None:
+        """Calling cleanup twice on the same class produces no error."""
+
+        class _Action:
+            _role_info = {"spec": "admin"}
+
+            async def process(self):
+                pass
+
+        _Action.process._new_aspect_meta = {"type": "regular"}
+
+        cleanup_temporary_attributes(_Action)
+        cleanup_temporary_attributes(_Action)  # second call — should not raise
+
+        assert "_role_info" not in _Action.__dict__
+        assert not hasattr(_Action.process, "_new_aspect_meta")

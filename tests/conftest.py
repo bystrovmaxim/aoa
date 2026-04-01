@@ -1,255 +1,150 @@
 # tests/conftest.py
 """
-Корневые фикстуры pytest — доступны во всех тестах автоматически.
+Общие фикстуры для всех тестов в пакете tests/.
 
-Pytest подхватывает этот файл без явного импорта. Содержит:
-- Тестовые модели данных (ParamsTest на pydantic BaseModel).
-- RecordingLogger — логгер-шпион для проверки рассылки сообщений.
-- Базовые фикстуры для контекста, параметров, состояния, scope.
-- Вспомогательные функции создания контекста для тестов.
+═══════════════════════════════════════════════════════════════════════════════
+НАЗНАЧЕНИЕ
+═══════════════════════════════════════════════════════════════════════════════
+
+Предоставляет готовые фикстуры, которые покрывают типичные потребности
+тестов: координатор метаданных, моки сервисов, TestBench с различными
+конфигурациями. Все фикстуры основаны на единой доменной модели
+из tests/domain/.
+
+═══════════════════════════════════════════════════════════════════════════════
+ПРИНЦИПЫ
+═══════════════════════════════════════════════════════════════════════════════
+
+1. Каждая фикстура создаёт НОВЫЙ экземпляр — тесты изолированы.
+2. Моки сервисов настроены с разумными дефолтами, которые проходят
+   все чекеры доменных Action.
+3. TestBench фикстуры покрывают три уровня: без моков, с моками,
+   с моками и ролью.
+
+═══════════════════════════════════════════════════════════════════════════════
+ЗНАЧЕНИЯ МОКОВ
+═══════════════════════════════════════════════════════════════════════════════
+
+mock_payment.charge() → "TXN-TEST-001"
+    Проходит чекер result_string("txn_id", required=True, min_length=1).
+    Используется в smoke-тестах и bench-тестах для проверки txn_id.
+
+mock_notification.send() → True
+    Уведомление «отправлено». Smoke-тесты проверяют вызов
+    send("user_42", "Заказ создан: TXN-TEST-001").
+
+═══════════════════════════════════════════════════════════════════════════════
+ФИКСТУРЫ
+═══════════════════════════════════════════════════════════════════════════════
+
+coordinator        — чистый GateCoordinator для каждого теста.
+mock_payment       — AsyncMock(spec=PaymentService), charge → "TXN-TEST-001".
+mock_notification  — AsyncMock(spec=NotificationService), send → True.
+mock_db            — AsyncMock(spec=TestDbManager).
+clean_bench        — TestBench без моков, с подавленным логированием.
+bench              — TestBench с моками PaymentService и NotificationService.
+manager_bench      — bench с ролью "manager" (для FullAction).
+admin_bench        — bench с ролью "admin" (для AdminAction).
 """
 
-from __future__ import annotations
-
-from typing import Any
+from unittest.mock import AsyncMock
 
 import pytest
-from pydantic import Field
 
-from action_machine.context.context import Context
-from action_machine.context.request_info import RequestInfo
-from action_machine.context.runtime_info import RuntimeInfo
-from action_machine.context.user_info import UserInfo
-from action_machine.core.base_params import BaseParams
-from action_machine.core.base_state import BaseState
-from action_machine.logging.base_logger import BaseLogger
-from action_machine.logging.log_scope import LogScope
+from action_machine.core.gate_coordinator import GateCoordinator
+from action_machine.testing import TestBench
 
-# ======================================================================
-# ТЕСТОВЫЕ МОДЕЛИ ДАННЫХ
-# ======================================================================
-
-
-class ParamsTest(BaseParams):
-    """
-    Стандартные тестовые параметры для всех тестов.
-
-    Pydantic-модель с описанием каждого поля через Field(description="...").
-    Frozen — неизменяемые после создания.
-
-    Содержит типичные поля, используемые в примерах:
-    - user_id: идентификатор пользователя.
-    - card_token: токен карты (строка).
-    - amount: сумма (float).
-    - success: флаг успеха (bool).
-    """
-    user_id: int = Field(default=42, description="Идентификатор пользователя")
-    card_token: str = Field(default="tok_test_abc", description="Токен банковской карты")
-    amount: float = Field(default=1500.0, description="Сумма операции")
-    success: bool = Field(default=True, description="Флаг успешности")
-
-
-class RecordingLogger(BaseLogger):
-    """
-    Логгер-шпион — записывает все сообщения в список records.
-
-    Используется для проверки:
-    - Что координатор правильно рассылает сообщения.
-    - Что фильтрация работает.
-    - Что подстановка переменных выполняется.
-
-    Не выводит ничего в консоль — только накапливает записи.
-
-    Атрибуты:
-        records : list[dict[str, Any]]
-            Список словарей с параметрами каждого вызова write.
-            Каждый словарь содержит ключи: scope, message, var, ctx,
-            state, params, indent.
-    """
-
-    def __init__(self, filters: list[str] | None = None) -> None:
-        """Создаёт логгер-шпион с опциональными фильтрами."""
-        super().__init__(filters=filters)
-        self.records: list[dict[str, Any]] = []
-
-    async def write(
-        self,
-        scope: LogScope,
-        message: str,
-        var: dict[str, Any],
-        ctx: Context,
-        state: BaseState,
-        params: BaseParams,
-        indent: int,
-    ) -> None:
-        """
-        Записывает сообщение в records.
-
-        Вызывается только если фильтры прошли (match_filters вернул True).
-        Сохраняет все параметры для последующей проверки в тестах.
-        """
-        self.records.append(
-            {
-                "scope": scope,
-                "message": message,
-                "var": var.copy(),
-                "ctx": ctx,
-                "state": state.to_dict(),
-                "params": params,
-                "indent": indent,
-            }
-        )
-
-    def clear(self) -> None:
-        """Очищает историю записей (полезно между тестами)."""
-        self.records.clear()
-
-
-# ======================================================================
-# БАЗОВЫЕ ФИКСТУРЫ
-# ======================================================================
-
-@pytest.fixture
-def params() -> ParamsTest:
-    """Стандартные тестовые параметры."""
-    return ParamsTest()
+from .domain import NotificationService, PaymentService, TestDbManager
 
 
 @pytest.fixture
-def context_fixture() -> Context:
-    """
-    Стандартный тестовый контекст.
+def coordinator() -> GateCoordinator:
+    """Чистый координатор метаданных — без кеша, без графа."""
+    return GateCoordinator()
 
-    Содержит:
-    - Пользователя с ролями ['user', 'admin'] и extra {'org': 'acme'}.
-    - Информацию о запросе с trace_id, путём и методом.
-    - Информацию об окружении с hostname, service_name.
+
+@pytest.fixture
+def mock_payment() -> AsyncMock:
     """
-    user = UserInfo(
-        user_id="agent_1",
-        roles=["user", "admin"],
-        extra={"org": "acme"},
+    Мок PaymentService с дефолтным поведением.
+
+    charge() возвращает "TXN-TEST-001" — проходит чекер
+    result_string("txn_id", required=True, min_length=1).
+    """
+    mock = AsyncMock(spec=PaymentService)
+    mock.charge.return_value = "TXN-TEST-001"
+    return mock
+
+
+@pytest.fixture
+def mock_notification() -> AsyncMock:
+    """
+    Мок NotificationService с дефолтным поведением.
+
+    send() возвращает True — уведомление «отправлено».
+    """
+    mock = AsyncMock(spec=NotificationService)
+    mock.send.return_value = True
+    return mock
+
+
+@pytest.fixture
+def mock_db() -> AsyncMock:
+    """
+    Мок TestDbManager для передачи в connections={"db": mock_db}.
+
+    Используется в тестах FullAction, который объявляет
+    @connection(TestDbManager, key="db").
+    """
+    return AsyncMock(spec=TestDbManager)
+
+
+@pytest.fixture
+def clean_bench() -> TestBench:
+    """
+    TestBench без моков — для тестирования действий без зависимостей.
+
+    Логирование подавлено через AsyncMock, чтобы не засорять
+    вывод тестов сообщениями ConsoleLogger.
+    """
+    return TestBench(log_coordinator=AsyncMock())
+
+
+@pytest.fixture
+def bench(mock_payment: AsyncMock, mock_notification: AsyncMock) -> TestBench:
+    """
+    TestBench с моками PaymentService и NotificationService.
+
+    Дефолтный пользователь — user_id="test_user", roles=["tester"].
+    Для действий с конкретными ролями используйте manager_bench
+    или admin_bench.
+    """
+    return TestBench(
+        mocks={
+            PaymentService: mock_payment,
+            NotificationService: mock_notification,
+        },
+        log_coordinator=AsyncMock(),
     )
-    request = RequestInfo(
-        trace_id="trace-abc-123",
-        request_path="/api/v1/orders",
-        request_method="POST",
-        client_ip="192.168.1.1",
-        user_agent="pytest/1.0",
-    )
-    runtime = RuntimeInfo(
-        hostname="pod-xyz-42",
-        service_name="order-service",
-        service_version="1.2.3"
-    )
-    return Context(user=user, request=request, runtime=runtime)
 
 
 @pytest.fixture
-def empty_context() -> Context:
-    """Пустой контекст для тестов, где не нужны данные."""
-    return Context()
-
-
-@pytest.fixture
-def recording_logger() -> RecordingLogger:
-    """Логгер-шпион без фильтров (принимает всё)."""
-    return RecordingLogger()
-
-
-@pytest.fixture
-def filtered_logger() -> RecordingLogger:
-    """Логгер-шпион с фильтром 'TestAction'."""
-    return RecordingLogger(filters=[r"TestAction"])
-
-
-@pytest.fixture
-def scope() -> LogScope:
-    """Стандартный тестовый scope с action, aspect и event."""
-    return LogScope(action="TestAction", aspect="test", event="before")
-
-
-@pytest.fixture
-def simple_scope() -> LogScope:
-    """Простой scope только с действием."""
-    return LogScope(action="TestAction")
-
-
-@pytest.fixture
-def state() -> BaseState:
-    """Пустое начальное состояние."""
-    return BaseState()
-
-
-@pytest.fixture
-def populated_state() -> BaseState:
+def manager_bench(bench: TestBench) -> TestBench:
     """
-    Состояние с данными для тестов.
+    TestBench с ролью "manager" — для тестирования FullAction.
 
-    Содержит:
-    - total: общая сумма (float).
-    - count: количество (int).
-    - processed: флаг обработки (bool).
-    - order: вложенный словарь с данными заказа.
+    FullAction требует @check_roles("manager"). Этот bench
+    создаёт пользователя с ролью "manager".
     """
-    return BaseState({
-        "total": 1500.0,
-        "count": 42,
-        "processed": True,
-        "order": {"id": 12345, "status": "pending"},
-    })
+    return bench.with_user(user_id="mgr_1", roles=["manager"])
 
 
-# ======================================================================
-# ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
-# ======================================================================
-
-def make_context(
-    user_id: str = "agent_1",
-    roles: list[str] | None = None,
-    trace_id: str = "trace-abc-123",
-) -> Context:
+@pytest.fixture
+def admin_bench(bench: TestBench) -> TestBench:
     """
-    Создаёт тестовый контекст с пользователем и запросом.
+    TestBench с ролью "admin" — для тестирования AdminAction.
 
-    Аргументы:
-        user_id: идентификатор пользователя.
-        roles: список ролей.
-        trace_id: идентификатор трассировки.
-
-    Возвращает:
-        Готовый Context для использования в тестах.
+    AdminAction требует @check_roles("admin"). Этот bench
+    создаёт пользователя с ролью "admin".
     """
-    user = UserInfo(
-        user_id=user_id,
-        roles=roles or ["user", "admin"],
-        extra={"org": "acme"},
-    )
-    request = RequestInfo(
-        trace_id=trace_id,
-        request_path="/api/v1/orders",
-        request_method="POST",
-    )
-    runtime = RuntimeInfo(
-        hostname="pod-xyz-42",
-        service_name="order-service"
-    )
-    return Context(user=user, request=request, runtime=runtime)
-
-
-def create_context_with_user(user_id: str, roles: list[str] | None = None) -> Context:
-    """
-    Создаёт контекст с конкретным пользователем.
-
-    Аргументы:
-        user_id: идентификатор пользователя.
-        roles: список ролей (по умолчанию пустой).
-
-    Возвращает:
-        Context с указанным пользователем.
-    """
-    return Context(
-        user=UserInfo(user_id=user_id, roles=roles or []),
-        request=RequestInfo(),
-        runtime=RuntimeInfo(),
-    )
+    return bench.with_user(user_id="admin_1", roles=["admin"])

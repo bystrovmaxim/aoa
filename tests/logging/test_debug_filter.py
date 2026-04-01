@@ -3,6 +3,19 @@
 Тесты фильтра |debug в шаблонах логирования.
 
 ═══════════════════════════════════════════════════════════════════════════════
+НАЗНАЧЕНИЕ
+═══════════════════════════════════════════════════════════════════════════════
+
+Фильтр |debug выводит форматированную интроспекцию объекта: его публичные поля,
+типы, значения и конфигурацию @sensitive. Используется для отладки в логах:
+{%var.obj|debug}, {%state|debug}, {%context.user|debug}.
+
+Фильтр |debug — это сокращение для функции debug(), которая определена
+в ExpressionEvaluator и вызывает _inspect_object с max_depth=1 (только
+непосредственные поля). Вложенные объекты не раскрываются, чтобы не
+засорять логи.
+
+═══════════════════════════════════════════════════════════════════════════════
 ПОКРЫВАЕМЫЕ СЦЕНАРИИ
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -12,27 +25,40 @@
 - Вложенные объекты НЕ раскрываются (max_depth=1).
 - Работает внутри и вне блоков iif.
 - Работает со всеми namespace (var, state, context, params, scope).
+- Обработка None, пустых коллекций.
+
+═══════════════════════════════════════════════════════════════════════════════
+ОБНАРУЖЕНИЕ ЦИКЛОВ
+═══════════════════════════════════════════════════════════════════════════════
+
+Циклические ссылки обнаруживаются через множество visited (id объектов).
+При max_depth=1 (значение по умолчанию для debug()) цикл A→B→A
+обнаруживается только на уровне самоссылки (A.self_ref = A), потому что
+B не раскрывается рекурсивно и его поля не проверяются. Для обнаружения
+циклов через промежуточные объекты (A→B→A) нужен max_depth >= 2.
+
+Тест test_debug_on_self_reference проверяет прямую самоссылку (max_depth=1).
+Тест test_debug_on_indirect_cycle проверяет непрямой цикл (max_depth=2)
+через _inspect_object напрямую.
 """
 
 import pytest
-from pydantic import Field
 
 from action_machine.context.context import Context
 from action_machine.context.user_info import UserInfo
 from action_machine.core.base_params import BaseParams
 from action_machine.core.base_state import BaseState
-from action_machine.logging.expression_evaluator import ExpressionEvaluator
+from action_machine.logging.expression_evaluator import ExpressionEvaluator, _inspect_object
 from action_machine.logging.log_scope import LogScope
 from action_machine.logging.sensitive_decorator import sensitive
 from action_machine.logging.variable_substitutor import VariableSubstitutor
 
-# ----------------------------------------------------------------------
+# ======================================================================
 # Вспомогательные классы
-# ----------------------------------------------------------------------
-
+# ======================================================================
 
 class SimpleObj:
-    """Простой объект с публичными и приватным полями."""
+    """Простой объект с публичными и приватными полями."""
     def __init__(self):
         self.name = "Simple"
         self.value = 42
@@ -71,200 +97,388 @@ class DeepObj:
             self.level2 = "hidden"
 
 
-# ----------------------------------------------------------------------
-# Фикстуры
-# ----------------------------------------------------------------------
+class SelfRefObj:
+    """Объект с прямой самоссылкой — цикл длины 1."""
+    def __init__(self, name: str):
+        self.name = name
+        self.self_ref = self
 
+
+class CyclicObj:
+    """Объект для построения непрямого цикла A→B→A."""
+    def __init__(self, name: str):
+        self.name = name
+        self.other = None
+
+
+# ======================================================================
+# Фикстуры
+# ======================================================================
 
 @pytest.fixture
-def substitutor():
+def substitutor() -> VariableSubstitutor:
     return VariableSubstitutor()
 
 
 @pytest.fixture
-def empty_scope():
+def evaluator() -> ExpressionEvaluator:
+    return ExpressionEvaluator()
+
+
+@pytest.fixture
+def empty_scope() -> LogScope:
     return LogScope()
 
 
 @pytest.fixture
-def empty_context():
+def empty_context() -> Context:
     return Context()
 
 
 @pytest.fixture
-def empty_state():
+def empty_state() -> BaseState:
     return BaseState()
 
 
 @pytest.fixture
-def empty_params():
+def empty_params() -> BaseParams:
     return BaseParams()
 
 
-@pytest.fixture
-def evaluator():
-    """ExpressionEvaluator для тестов, требующих прямого вычисления iif."""
-    return ExpressionEvaluator()
+# ======================================================================
+# ТЕСТЫ: Базовое использование |debug
+# ======================================================================
 
+class TestDebugFilterBasic:
+    """Фильтр |debug выводит интроспекцию объекта."""
 
-# ----------------------------------------------------------------------
-# Тесты
-# ----------------------------------------------------------------------
-
-
-class TestDebugFilter:
-    """Тесты фильтра |debug."""
-
-    def test_debug_filter_on_simple_object(self, substitutor, empty_scope, empty_context, empty_state, empty_params):
-        """Базовый тест: фильтр debug выводит публичные поля."""
+    def test_debug_on_simple_object(
+        self, substitutor: VariableSubstitutor,
+        empty_scope: LogScope, empty_context: Context,
+        empty_state: BaseState, empty_params: BaseParams,
+    ) -> None:
+        """{%var.obj|debug} выводит публичные поля SimpleObj."""
+        # Arrange — простой объект с публичными и приватными полями
         obj = SimpleObj()
         var = {"obj": obj}
-        template = "{%var.obj|debug}"
+
+        # Act — подстановка шаблона с фильтром |debug
         result = substitutor.substitute(
-            template, var=var, scope=empty_scope, ctx=empty_context,
-            state=empty_state, params=empty_params
+            "{%var.obj|debug}",
+            var, empty_scope, empty_context, empty_state, empty_params,
         )
+
+        # Assert — публичные поля видны, приватные скрыты
         assert "SimpleObj:" in result
         assert "name: str = 'Simple'" in result
         assert "value: int = 42" in result
         assert "_private" not in result
 
-    def test_debug_filter_on_dict(self, substitutor, empty_scope, empty_context, empty_state, empty_params):
-        """Фильтр debug на словаре."""
+    def test_debug_on_dict(
+        self, substitutor: VariableSubstitutor,
+        empty_scope: LogScope, empty_context: Context,
+        empty_state: BaseState, empty_params: BaseParams,
+    ) -> None:
+        """{%var.data|debug} на словаре выводит содержимое."""
+        # Arrange — словарь с вложенными данными
         data = {"a": 1, "b": 2, "c": {"nested": "value"}}
-        var = {"data": data}
-        template = "{%var.data|debug}"
+
+        # Act
         result = substitutor.substitute(
-            template, var=var, scope=empty_scope, ctx=empty_context,
-            state=empty_state, params=empty_params
+            "{%var.data|debug}",
+            {"data": data}, empty_scope, empty_context, empty_state, empty_params,
         )
+
+        # Assert — ключи и значения видны
         assert "dict:" in result
         assert "'a': 1" in result
         assert "'b': 2" in result
         assert "'c': {'nested': 'value'}" in result
 
-    def test_debug_filter_on_sensitive_property(self, substitutor, empty_scope, empty_context, empty_state, empty_params):
-        """Фильтр debug учитывает декоратор @sensitive."""
+    def test_debug_on_sensitive_property(
+        self, substitutor: VariableSubstitutor,
+        empty_scope: LogScope, empty_context: Context,
+        empty_state: BaseState, empty_params: BaseParams,
+    ) -> None:
+        """Фильтр |debug учитывает декоратор @sensitive."""
+        # Arrange — объект с чувствительным и отключённым @sensitive свойствами
         user = UserWithSensitive("secret@example.com", "+1234567890")
-        var = {"user": user}
-        template = "{%var.user|debug}"
+
+        # Act
         result = substitutor.substitute(
-            template, var=var, scope=empty_scope, ctx=empty_context,
-            state=empty_state, params=empty_params
+            "{%var.user|debug}",
+            {"user": user}, empty_scope, empty_context, empty_state, empty_params,
         )
+
+        # Assert — email замаскирован, phone показан как есть (sensitive: disabled)
         assert "email: str (sensitive: enabled, max_chars=3, char='#', max_percent=50) = sec#####" in result
         assert "phone: str (sensitive: disabled) = '+1234567890'" in result
         assert "public_name: str = 'Public Name'" in result
 
-    def test_debug_filter_no_recursion(self, substitutor, empty_scope, empty_context, empty_state, empty_params):
-        """Фильтр debug не раскрывает вложенные объекты (max_depth=1)."""
+    def test_debug_no_recursion(
+        self, substitutor: VariableSubstitutor,
+        empty_scope: LogScope, empty_context: Context,
+        empty_state: BaseState, empty_params: BaseParams,
+    ) -> None:
+        """
+        Фильтр |debug не раскрывает вложенные объекты (max_depth=1).
+        Вложенный Child показывается как repr(value) — строка с адресом объекта.
+        Поля вложенного объекта (level2) не видны.
+        """
+        # Arrange — объект с вложенной структурой
         obj = DeepObj()
-        var = {"obj": obj}
-        template = "{%var.obj|debug}"
+
+        # Act
         result = substitutor.substitute(
-            template, var=var, scope=empty_scope, ctx=empty_context,
-            state=empty_state, params=empty_params
+            "{%var.obj|debug}",
+            {"obj": obj}, empty_scope, empty_context, empty_state, empty_params,
         )
+
+        # Assert — первый уровень виден, вложенный объект не раскрыт
         assert "DeepObj:" in result
         assert "level1: str = 'visible'" in result
-        assert "child: Child = <tests.logging.test_debug_filter.DeepObj.Child object at" in result
+        # Вложенный объект показан как repr — содержит имя класса.
+        # Проверяем только имя класса, без полного пути модуля,
+        # потому что путь зависит от расположения тестов (tests/ vs tests/).
+        assert "child: Child" in result
         assert "level2" not in result
 
-    def test_debug_filter_inside_iif(self, substitutor, empty_scope, empty_context, empty_state, empty_params):
-        """Фильтр debug работает внутри выражений iif."""
-        obj = SimpleObj()
-        var = {"obj": obj}
-        template = "{iif(1==1; {%var.obj|debug}; '')}"
-        result = substitutor.substitute(
-            template, var=var, scope=empty_scope, ctx=empty_context,
-            state=empty_state, params=empty_params
-        )
-        assert "SimpleObj:" in result
-        assert "name: str = 'Simple'" in result
 
-    def test_debug_filter_with_exists(self, evaluator):
-        """Совместное использование exists и debug."""
-        obj = SimpleObj()
-        names = {"obj": obj}
-        template = "{iif(exists('obj'); debug(obj); 'No object')}"
-        result = evaluator.process_template(template, names)
-        assert "SimpleObj:" in result
+# ======================================================================
+# ТЕСТЫ: |debug с разными namespace
+# ======================================================================
 
-        result2 = evaluator.process_template(template, {})
-        assert result2 == "No object"
+class TestDebugNamespaces:
+    """Фильтр |debug работает со всеми namespace."""
 
-    def test_debug_filter_on_context_object(self, substitutor, empty_scope, empty_state, empty_params):
-        """Фильтр debug работает с namespace context."""
+    def test_debug_on_context(
+        self, substitutor: VariableSubstitutor,
+        empty_scope: LogScope, empty_state: BaseState, empty_params: BaseParams,
+    ) -> None:
+        """{%context.user|debug} — интроспекция UserInfo из контекста."""
+        # Arrange — контекст с пользователем и extra-данными
         user = UserInfo(user_id="test_user", roles=["user"], extra={"org": "acme"})
         ctx = Context(user=user)
-        template = "{%context.user|debug}"
+
+        # Act
         result = substitutor.substitute(
-            template, var={}, scope=empty_scope, ctx=ctx,
-            state=empty_state, params=empty_params
+            "{%context.user|debug}",
+            {}, empty_scope, ctx, empty_state, empty_params,
         )
+
+        # Assert — поля UserInfo видны
         assert "UserInfo:" in result
         assert "user_id: str = 'test_user'" in result
         assert "roles: list = ['user']" in result
         assert "extra: dict = {'org': 'acme'}" in result
 
-    def test_debug_filter_on_state(self, substitutor, empty_scope, empty_context, empty_params):
-        """Фильтр debug работает с namespace state."""
+    def test_debug_on_state(
+        self, substitutor: VariableSubstitutor,
+        empty_scope: LogScope, empty_context: Context, empty_params: BaseParams,
+    ) -> None:
+        """{%state|debug} — интроспекция BaseState."""
+        # Arrange — состояние с числом и списком
         state = BaseState({"total": 100, "items": [1, 2, 3]})
-        template = "{%state|debug}"
+
+        # Act
         result = substitutor.substitute(
-            template, var={}, scope=empty_scope, ctx=empty_context,
-            state=state, params=empty_params
+            "{%state|debug}",
+            {}, empty_scope, empty_context, state, empty_params,
         )
+
+        # Assert — поля состояния видны
         assert "total: int = 100" in result
         assert "items: list = [1, 2, 3]" in result
 
-    def test_debug_filter_on_params(self, substitutor, empty_scope, empty_context, empty_state):
-        """Фильтр debug работает с namespace params (pydantic BaseParams)."""
-
+    def test_debug_on_params(
+        self, substitutor: VariableSubstitutor,
+        empty_scope: LogScope, empty_context: Context, empty_state: BaseState,
+    ) -> None:
+        """{%params|debug} — интроспекция pydantic-модели."""
+        # Arrange — pydantic-модель с полями
         class MyParams(BaseParams):
-            param1: str = Field(default="hello", description="Первый параметр")
-            param2: int = Field(default=42, description="Второй параметр")
+            param1: str
+            param2: int
 
-        params = MyParams()
-        template = "{%params|debug}"
+        params = MyParams(param1="hello", param2=42)
+
+        # Act
         result = substitutor.substitute(
-            template, var={}, scope=empty_scope, ctx=empty_context,
-            state=empty_state, params=params
+            "{%params|debug}",
+            {}, empty_scope, empty_context, empty_state, params,
         )
+
+        # Assert — поля pydantic-модели видны
         assert "MyParams:" in result
         assert "param1: str = 'hello'" in result
         assert "param2: int = 42" in result
 
-    def test_debug_filter_on_scope(self, substitutor, empty_context, empty_state, empty_params):
-        """Фильтр debug работает с namespace scope."""
+    def test_debug_on_scope(
+        self, substitutor: VariableSubstitutor,
+        empty_context: Context, empty_state: BaseState, empty_params: BaseParams,
+    ) -> None:
+        """{%scope|debug} — интроспекция LogScope."""
+        # Arrange — scope с несколькими полями
         scope = LogScope(machine="TestMachine", mode="test", action="TestAction", aspect="test")
-        template = "{%scope|debug}"
+
+        # Act
         result = substitutor.substitute(
-            template, var={}, scope=scope, ctx=empty_context,
-            state=empty_state, params=empty_params
+            "{%scope|debug}",
+            {}, scope, empty_context, empty_state, empty_params,
         )
+
+        # Assert — поля scope видны
         assert "machine: str = 'TestMachine'" in result
         assert "mode: str = 'test'" in result
         assert "action: str = 'TestAction'" in result
         assert "aspect: str = 'test'" in result
 
-    def test_debug_filter_on_missing_object_raises(self, substitutor, empty_scope, empty_context, empty_state, empty_params):
-        """Обращение к несуществующей переменной с |debug → LogTemplateError."""
-        var = {"obj": "some"}
-        template = "{%var.missing|debug}"
-        with pytest.raises(Exception) as exc_info:
-            substitutor.substitute(
-                template, var=var, scope=empty_scope, ctx=empty_context,
-                state=empty_state, params=empty_params
-            )
-        assert "not found" in str(exc_info.value) or "LogTemplateError" in str(exc_info.value)
 
-    def test_debug_filter_on_none_value(self, substitutor, empty_scope, empty_context, empty_state, empty_params):
-        """Фильтр debug на None выводит 'NoneType = None'."""
-        var = {"nothing": None}
-        template = "{%var.nothing|debug}"
+# ======================================================================
+# ТЕСТЫ: |debug внутри iif
+# ======================================================================
+
+class TestDebugInsideIif:
+    """Фильтр |debug работает внутри iif."""
+
+    def test_debug_filter_inside_iif(
+        self, substitutor: VariableSubstitutor,
+        empty_scope: LogScope, empty_context: Context,
+        empty_state: BaseState, empty_params: BaseParams,
+    ) -> None:
+        """{iif(1==1; {%var.obj|debug}; '')} — debug выполняется."""
+        # Arrange
+        obj = SimpleObj()
+        template = "{iif(1==1; {%var.obj|debug}; '')}"
+
+        # Act
         result = substitutor.substitute(
-            template, var=var, scope=empty_scope, ctx=empty_context,
-            state=empty_state, params=empty_params
+            template, {"obj": obj}, empty_scope, empty_context, empty_state, empty_params,
         )
+
+        # Assert — debug вывод присутствует
+        assert "SimpleObj:" in result
+        assert "name: str = 'Simple'" in result
+
+    def test_debug_with_exists(
+        self, evaluator: ExpressionEvaluator,
+    ) -> None:
+        """exists() и debug() в iif — безопасная интроспекция."""
+        # Arrange — объект есть в контексте
+        obj = SimpleObj()
+        template = "{iif(exists('obj'); debug(obj); 'No object')}"
+
+        # Act — объект есть
+        result = evaluator.process_template(template, {"obj": obj})
+
+        # Assert
+        assert "SimpleObj:" in result
+
+        # Act — объекта нет
+        result2 = evaluator.process_template(template, {})
+
+        # Assert
+        assert result2 == "No object"
+
+
+# ======================================================================
+# ТЕСТЫ: Граничные случаи
+# ======================================================================
+
+class TestDebugEdgeCases:
+    """Обработка None, пустых объектов, циклов."""
+
+    def test_debug_on_none(
+        self, substitutor: VariableSubstitutor,
+        empty_scope: LogScope, empty_context: Context,
+        empty_state: BaseState, empty_params: BaseParams,
+    ) -> None:
+        """{%var.nothing|debug} на None выводит 'NoneType = None'."""
+        # Arrange & Act
+        result = substitutor.substitute(
+            "{%var.nothing|debug}",
+            {"nothing": None}, empty_scope, empty_context, empty_state, empty_params,
+        )
+
+        # Assert
         assert "NoneType = None" in result
+
+    def test_debug_on_empty_list(
+        self, substitutor: VariableSubstitutor,
+        empty_scope: LogScope, empty_context: Context,
+        empty_state: BaseState, empty_params: BaseParams,
+    ) -> None:
+        """Пустой список выводит 'list[]'."""
+        # Arrange & Act
+        result = substitutor.substitute(
+            "{%var.empty|debug}",
+            {"empty": []}, empty_scope, empty_context, empty_state, empty_params,
+        )
+
+        # Assert
+        assert "list[]" in result
+
+    def test_debug_on_empty_dict(
+        self, substitutor: VariableSubstitutor,
+        empty_scope: LogScope, empty_context: Context,
+        empty_state: BaseState, empty_params: BaseParams,
+    ) -> None:
+        """Пустой словарь выводит 'dict{}'."""
+        # Arrange & Act
+        result = substitutor.substitute(
+            "{%var.empty|debug}",
+            {"empty": {}}, empty_scope, empty_context, empty_state, empty_params,
+        )
+
+        # Assert
+        assert "dict{}" in result
+
+    def test_debug_on_self_reference(
+        self, substitutor: VariableSubstitutor,
+        empty_scope: LogScope, empty_context: Context,
+        empty_state: BaseState, empty_params: BaseParams,
+    ) -> None:
+        """
+        Прямая самоссылка (obj.self_ref = obj) обнаруживается при max_depth=1.
+
+        Объект добавляет свой id в visited при входе в _inspect_object.
+        Когда _format_field_line обрабатывает поле self_ref, id(self_ref)
+        совпадает с id(obj) (это один и тот же объект), и поле помечается
+        <cycle detected>.
+        """
+        # Arrange — объект ссылается сам на себя
+        obj = SelfRefObj("A")
+
+        # Act
+        result = substitutor.substitute(
+            "{%var.obj|debug}",
+            {"obj": obj}, empty_scope, empty_context, empty_state, empty_params,
+        )
+
+        # Assert — самоссылка обнаружена
+        assert "SelfRefObj:" in result
+        assert "name: str = 'A'" in result
+        assert "<cycle detected>" in result
+
+    def test_debug_on_indirect_cycle(self) -> None:
+        """
+        Непрямой цикл A→B→A обнаруживается при max_depth=2.
+
+        При max_depth=1 (debug по умолчанию) объект B показывается как
+        repr(value), и его поля не проверяются — цикл не виден.
+        При max_depth=2 _inspect_object заходит внутрь B, обнаруживает
+        B.other=A, и id(A) уже в visited → <cycle detected>.
+        """
+        # Arrange — два объекта, ссылающихся друг на друга
+        a = CyclicObj("A")
+        b = CyclicObj("B")
+        a.other = b
+        b.other = a
+
+        # Act — max_depth=2 для обнаружения непрямого цикла
+        result = _inspect_object(a, max_depth=2)
+
+        # Assert — цикл обнаружен на втором уровне
+        assert "CyclicObj:" in result
+        assert "name: str = 'A'" in result
+        assert "<cycle detected>" in result

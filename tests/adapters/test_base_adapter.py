@@ -1,413 +1,177 @@
 # tests/adapters/test_base_adapter.py
 """
-Тесты для BaseAdapter — абстрактного базового класса протокольных адаптеров.
+Tests for BaseAdapter — the abstract base class for all protocol adapters.
 
-═══════════════════════════════════════════════════════════════════════════════
-ПОКРЫВАЕМЫЕ СЦЕНАРИИ
-═══════════════════════════════════════════════════════════════════════════════
+BaseAdapter[R] stores the machine, auth_coordinator, connections_factory,
+and a list of route records. It enforces mandatory auth_coordinator (no None
+allowed) and validates that machine is an ActionProductMachine instance.
+The _add_route method provides a fluent API by returning self.
 
-Конструктор:
-    - Корректная инициализация с machine и auth_coordinator.
-    - Хранение connections_factory.
-    - TypeError при передаче не-ActionProductMachine.
-    - TypeError при auth_coordinator=None.
-    - Пустой список маршрутов при создании.
-
-Протокольные методы (через конкретный тестовый адаптер):
-    - Регистрация маршрутов с минимальными параметрами.
-    - Регистрация с request_model, response_model, mappers.
-    - Множественные маршруты.
-    - Fluent chain: методы возвращают self.
-    - ValueError при request_model без params_mapper.
-
-build():
-    - Возвращает протокольное приложение.
-    - Сохраняет порядок маршрутов.
-    - Fluent chain завершается build().
-
-Интеграция:
-    - Полный цикл: регистрация → build.
-    - С мапперами и без.
-    - Fluent chain.
+Scenarios covered:
+    - Constructor rejects None auth_coordinator with TypeError.
+    - Constructor rejects non-ActionProductMachine machine with TypeError.
+    - Constructor accepts valid machine + auth_coordinator.
+    - Properties expose machine, auth_coordinator, connections_factory, routes.
+    - _add_route appends a record and returns self (fluent).
+    - routes starts empty.
+    - connections_factory defaults to None.
+    - build() is abstract — cannot be called on BaseAdapter directly.
 """
 
-from __future__ import annotations
-
-from dataclasses import dataclass
-from typing import Any
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-from pydantic import Field
 
 from action_machine.adapters.base_adapter import BaseAdapter
 from action_machine.adapters.base_route_record import BaseRouteRecord
-from action_machine.aspects.summary_aspect import summary_aspect
-from action_machine.auth import ROLE_NONE, check_roles
-from action_machine.auth.no_auth_coordinator import NoAuthCoordinator
 from action_machine.core.action_product_machine import ActionProductMachine
-from action_machine.core.base_action import BaseAction
-from action_machine.core.base_params import BaseParams
-from action_machine.core.base_result import BaseResult
 from action_machine.core.gate_coordinator import GateCoordinator
-from action_machine.core.meta_decorator import meta
 
-# ═════════════════════════════════════════════════════════════════════════════
-# Тестовые модели и действия
-# ═════════════════════════════════════════════════════════════════════════════
-
-
-class SampleParams(BaseParams):
-    """Параметры для тестов."""
-    name: str = Field(default="test", description="Имя")
+# ─────────────────────────────────────────────────────────────────────────────
+# Concrete subclass for testing — BaseAdapter is abstract and cannot be
+# instantiated directly. This minimal subclass implements build() as a no-op.
+# ─────────────────────────────────────────────────────────────────────────────
 
 
-class SampleResult(BaseResult):
-    """Результат для тестов."""
-    value: str = Field(default="ok", description="Значение")
+class _TestAdapter(BaseAdapter[BaseRouteRecord]):
+    """Minimal concrete adapter for testing BaseAdapter behavior."""
+
+    def build(self):
+        """No-op build — returns None. Only needed to satisfy the abstract contract."""
+        return None
 
 
-class AltRequest(BaseParams):
-    """Альтернативная модель запроса для тестов маппинга."""
-    page: int = Field(default=1, description="Страница")
+# ─────────────────────────────────────────────────────────────────────────────
+# Helpers
+# ─────────────────────────────────────────────────────────────────────────────
 
 
-class AltResponse(BaseResult):
-    """Альтернативная модель ответа для тестов маппинга."""
-    entries: list = Field(default_factory=list, description="Элементы")
+def _make_machine() -> ActionProductMachine:
+    """Create a minimal ActionProductMachine for adapter tests."""
+    return ActionProductMachine(mode="test", coordinator=GateCoordinator())
 
 
-@meta(description="Тестовое действие")
-@check_roles(ROLE_NONE)
-class SampleAction(BaseAction[SampleParams, SampleResult]):
-    @summary_aspect("Тестовый summary")
-    async def summary(self, params, state, box, connections):
-        return SampleResult()
-
-
-@meta(description="Второе тестовое действие")
-@check_roles(ROLE_NONE)
-class AnotherAction(BaseAction[SampleParams, SampleResult]):
-    @summary_aspect("Другой summary")
-    async def summary(self, params, state, box, connections):
-        return SampleResult()
-
-
-def dummy_params_mapper(x: Any) -> Any:
-    return x
-
-
-def dummy_response_mapper(x: Any) -> Any:
-    return x
+def _make_auth() -> AsyncMock:
+    """Create a mock auth_coordinator with a process method."""
+    auth = AsyncMock()
+    auth.process.return_value = None
+    return auth
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Тестовый конкретный адаптер и RouteRecord
-#
-# Имена без префикса "Test", чтобы pytest не пытался собрать их
-# как тестовые классы (у dataclass и BaseAdapter есть __init__).
+# Constructor validation
 # ═════════════════════════════════════════════════════════════════════════════
 
 
-@dataclass(frozen=True)
-class StubRouteRecord(BaseRouteRecord):
-    """Тестовый RouteRecord для проверки BaseAdapter."""
-    method: str = "POST"
-    path: str = "/"
-    tags: tuple[str, ...] = ()
-    summary: str = ""
+class TestConstructorValidation:
+    """Verify that BaseAdapter enforces mandatory parameters at construction time."""
 
+    def test_rejects_none_auth_coordinator(self) -> None:
+        """Passing auth_coordinator=None raises TypeError with guidance message."""
+        machine = _make_machine()
 
-class StubAdapter(BaseAdapter[StubRouteRecord]):
-    """
-    Конкретный тестовый адаптер для проверки абстрактного BaseAdapter.
+        with pytest.raises(TypeError, match="auth_coordinator"):
+            _TestAdapter(machine=machine, auth_coordinator=None)
 
-    Реализует протокольные методы post() и get() и метод build(),
-    возвращающий список зарегистрированных маршрутов.
-    """
+    def test_rejects_non_machine(self) -> None:
+        """Passing a non-ActionProductMachine object as machine raises TypeError."""
+        with pytest.raises(TypeError, match="ActionProductMachine"):
+            _TestAdapter(machine="not_a_machine", auth_coordinator=_make_auth())
 
-    def post(
-        self,
-        path: str,
-        action_class: type,
-        request_model: type | None = None,
-        response_model: type | None = None,
-        params_mapper: Any = None,
-        response_mapper: Any = None,
-        tags: list[str] | None = None,
-        summary: str = "",
-    ) -> StubAdapter:
-        record = StubRouteRecord(
-            action_class=action_class,
-            request_model=request_model,
-            response_model=response_model,
-            params_mapper=params_mapper,
-            response_mapper=response_mapper,
-            method="POST",
-            path=path,
-            tags=tuple(tags or ()),
-            summary=summary,
-        )
-        return self._add_route(record)
+    def test_rejects_mock_as_machine(self) -> None:
+        """Even a MagicMock is rejected — must be a real ActionProductMachine."""
+        with pytest.raises(TypeError, match="ActionProductMachine"):
+            _TestAdapter(machine=MagicMock(), auth_coordinator=_make_auth())
 
-    def get(
-        self,
-        path: str,
-        action_class: type,
-        request_model: type | None = None,
-        response_model: type | None = None,
-        params_mapper: Any = None,
-        response_mapper: Any = None,
-        tags: list[str] | None = None,
-        summary: str = "",
-    ) -> StubAdapter:
-        record = StubRouteRecord(
-            action_class=action_class,
-            request_model=request_model,
-            response_model=response_model,
-            params_mapper=params_mapper,
-            response_mapper=response_mapper,
-            method="GET",
-            path=path,
-            tags=tuple(tags or ()),
-            summary=summary,
-        )
-        return self._add_route(record)
+    def test_accepts_valid_arguments(self) -> None:
+        """Valid machine + auth_coordinator creates the adapter without error."""
+        machine = _make_machine()
+        auth = _make_auth()
 
-    def build(self) -> list[StubRouteRecord]:
-        """Возвращает список зарегистрированных маршрутов."""
-        return list(self._routes)
+        adapter = _TestAdapter(machine=machine, auth_coordinator=auth)
 
-
-# ═════════════════════════════════════════════════════════════════════════════
-# Фикстуры
-# ═════════════════════════════════════════════════════════════════════════════
-
-
-@pytest.fixture
-def coordinator() -> GateCoordinator:
-    return GateCoordinator()
-
-
-@pytest.fixture
-def machine(coordinator) -> ActionProductMachine:
-    return ActionProductMachine(
-        mode="test",
-        coordinator=coordinator,
-        log_coordinator=AsyncMock(),
-    )
-
-
-@pytest.fixture
-def auth() -> NoAuthCoordinator:
-    return NoAuthCoordinator()
-
-
-@pytest.fixture
-def adapter(machine, auth) -> StubAdapter:
-    return StubAdapter(machine=machine, auth_coordinator=auth)
-
-
-# ═════════════════════════════════════════════════════════════════════════════
-# ТЕСТЫ: Конструктор
-# ═════════════════════════════════════════════════════════════════════════════
-
-
-class TestBaseAdapterConstructor:
-    """Тесты конструктора BaseAdapter."""
-
-    def test_stores_machine(self, machine, auth):
-        adapter = StubAdapter(machine=machine, auth_coordinator=auth)
         assert adapter.machine is machine
-
-    def test_stores_auth_coordinator(self, machine, auth):
-        adapter = StubAdapter(machine=machine, auth_coordinator=auth)
         assert adapter.auth_coordinator is auth
 
-    def test_stores_connections_factory(self, machine, auth):
-        def factory_fn():
-            return {}
-        adapter = StubAdapter(
-            machine=machine,
-            auth_coordinator=auth,
-            connections_factory=factory_fn,
-        )
-        assert adapter.connections_factory is factory_fn
 
-    def test_default_connections_factory_none(self, machine, auth):
-        adapter = StubAdapter(machine=machine, auth_coordinator=auth)
+# ═════════════════════════════════════════════════════════════════════════════
+# Properties
+# ═════════════════════════════════════════════════════════════════════════════
+
+
+class TestProperties:
+    """Verify read-only properties expose internal state correctly."""
+
+    def test_machine_property(self) -> None:
+        """machine property returns the ActionProductMachine passed to constructor."""
+        machine = _make_machine()
+        adapter = _TestAdapter(machine=machine, auth_coordinator=_make_auth())
+        assert adapter.machine is machine
+
+    def test_auth_coordinator_property(self) -> None:
+        """auth_coordinator property returns the coordinator passed to constructor."""
+        auth = _make_auth()
+        adapter = _TestAdapter(machine=_make_machine(), auth_coordinator=auth)
+        assert adapter.auth_coordinator is auth
+
+    def test_connections_factory_defaults_to_none(self) -> None:
+        """When not provided, connections_factory is None."""
+        adapter = _TestAdapter(machine=_make_machine(), auth_coordinator=_make_auth())
         assert adapter.connections_factory is None
 
-    def test_empty_routes(self, machine, auth):
-        adapter = StubAdapter(machine=machine, auth_coordinator=auth)
+    def test_connections_factory_stored(self) -> None:
+        """Explicitly passed connections_factory is stored and returned."""
+        factory = MagicMock()
+        adapter = _TestAdapter(
+            machine=_make_machine(),
+            auth_coordinator=_make_auth(),
+            connections_factory=factory,
+        )
+        assert adapter.connections_factory is factory
+
+    def test_routes_starts_empty(self) -> None:
+        """routes list is empty immediately after construction."""
+        adapter = _TestAdapter(machine=_make_machine(), auth_coordinator=_make_auth())
         assert adapter.routes == []
 
-    def test_non_machine_raises_type_error(self, auth):
-        with pytest.raises(TypeError, match="ожидает ActionProductMachine"):
-            StubAdapter(machine="not a machine", auth_coordinator=auth)
-
-    def test_none_machine_raises_type_error(self, auth):
-        with pytest.raises(TypeError, match="ожидает ActionProductMachine"):
-            StubAdapter(machine=None, auth_coordinator=auth)
-
-    def test_int_machine_raises_type_error(self, auth):
-        with pytest.raises(TypeError, match="ожидает ActionProductMachine"):
-            StubAdapter(machine=42, auth_coordinator=auth)
-
-    def test_none_auth_raises_type_error(self, machine):
-        with pytest.raises(TypeError, match="auth_coordinator обязателен"):
-            StubAdapter(machine=machine, auth_coordinator=None)
-
 
 # ═════════════════════════════════════════════════════════════════════════════
-# ТЕСТЫ: Протокольные методы
+# Fluent _add_route
 # ═════════════════════════════════════════════════════════════════════════════
 
 
-class TestAdapterProtocolMethods:
-    """Тесты протокольных методов (post, get)."""
+class TestAddRoute:
+    """Verify _add_route appends records and supports fluent chaining."""
 
-    def test_post_minimal(self, adapter):
-        adapter.post("/test", SampleAction)
-        assert len(adapter.routes) == 1
-        assert adapter.routes[0].method == "POST"
-        assert adapter.routes[0].path == "/test"
-        assert adapter.routes[0].action_class is SampleAction
+    def test_returns_self(self) -> None:
+        """_add_route returns the same adapter instance for fluent chaining."""
+        adapter = _TestAdapter(machine=_make_machine(), auth_coordinator=_make_auth())
+        sentinel = MagicMock()
 
-    def test_get_minimal(self, adapter):
-        adapter.get("/test", SampleAction)
-        assert len(adapter.routes) == 1
-        assert adapter.routes[0].method == "GET"
+        result = adapter._add_route(sentinel)
 
-    def test_post_with_request_model_and_mapper(self, adapter):
-        adapter.post(
-            "/test", SampleAction,
-            request_model=AltRequest,
-            params_mapper=dummy_params_mapper,
-        )
-        assert adapter.routes[0].request_model is AltRequest
-        assert adapter.routes[0].params_mapper is dummy_params_mapper
-
-    def test_get_with_both_models_and_mappers(self, adapter):
-        adapter.get(
-            "/test", SampleAction,
-            request_model=AltRequest,
-            response_model=AltResponse,
-            params_mapper=dummy_params_mapper,
-            response_mapper=dummy_response_mapper,
-        )
-        r = adapter.routes[0]
-        assert r.effective_request_model is AltRequest
-        assert r.effective_response_model is AltResponse
-
-    def test_post_with_tags_and_summary(self, adapter):
-        adapter.post("/test", SampleAction, tags=["orders"], summary="Создание")
-        r = adapter.routes[0]
-        assert r.tags == ("orders",)
-        assert r.summary == "Создание"
-
-    def test_multiple_routes(self, adapter):
-        adapter.post("/a", SampleAction)
-        adapter.get("/b", AnotherAction)
-        adapter.post("/c", SampleAction)
-        assert len(adapter.routes) == 3
-
-    def test_post_different_request_without_mapper_raises(self, adapter):
-        with pytest.raises(ValueError, match="params_mapper не указан"):
-            adapter.post("/test", SampleAction, request_model=AltRequest)
-
-    def test_fluent_chain_returns_self(self, adapter):
-        result = adapter.post("/test", SampleAction)
         assert result is adapter
 
-    def test_fluent_chain_get_returns_self(self, adapter):
-        result = adapter.get("/test", SampleAction)
+    def test_appends_record(self) -> None:
+        """Each _add_route call appends the record to routes."""
+        adapter = _TestAdapter(machine=_make_machine(), auth_coordinator=_make_auth())
+        r1 = MagicMock()
+        r2 = MagicMock()
+
+        adapter._add_route(r1)
+        adapter._add_route(r2)
+
+        assert len(adapter.routes) == 2
+        assert adapter.routes[0] is r1
+        assert adapter.routes[1] is r2
+
+    def test_fluent_chain(self) -> None:
+        """Multiple _add_route calls can be chained."""
+        adapter = _TestAdapter(machine=_make_machine(), auth_coordinator=_make_auth())
+        r1 = MagicMock()
+        r2 = MagicMock()
+
+        result = adapter._add_route(r1)._add_route(r2)
+
         assert result is adapter
-
-    def test_fluent_chain_multiple(self, adapter):
-        result = adapter \
-            .post("/a", SampleAction) \
-            .get("/b", AnotherAction) \
-            .post("/c", SampleAction)
-        assert result is adapter
-        assert len(adapter.routes) == 3
-
-
-# ═════════════════════════════════════════════════════════════════════════════
-# ТЕСТЫ: build()
-# ═════════════════════════════════════════════════════════════════════════════
-
-
-class TestBuild:
-    """Тесты метода build()."""
-
-    def test_returns_app(self, adapter):
-        adapter.post("/test", SampleAction)
-        app = adapter.build()
-        assert isinstance(app, list)
-        assert len(app) == 1
-
-    def test_empty_routes(self, adapter):
-        app = adapter.build()
-        assert app == []
-
-    def test_preserves_order(self, adapter):
-        adapter.post("/first", SampleAction)
-        adapter.get("/second", AnotherAction)
-        adapter.post("/third", SampleAction)
-        app = adapter.build()
-        assert [r.path for r in app] == ["/first", "/second", "/third"]
-
-    def test_fluent_chain_to_build(self, adapter):
-        app = adapter \
-            .post("/a", SampleAction) \
-            .get("/b", AnotherAction) \
-            .build()
-        assert len(app) == 2
-
-
-# ═════════════════════════════════════════════════════════════════════════════
-# ТЕСТЫ: Интеграция
-# ═════════════════════════════════════════════════════════════════════════════
-
-
-class TestIntegration:
-    """Интеграционные тесты полного цикла."""
-
-    def test_full_cycle_minimal(self, adapter):
-        app = adapter.post("/orders", SampleAction).build()
-        assert len(app) == 1
-        assert app[0].action_class is SampleAction
-        assert app[0].params_type is SampleParams
-        assert app[0].result_type is SampleResult
-
-    def test_full_cycle_with_mappers(self, adapter):
-        app = adapter.post(
-            "/orders", SampleAction,
-            request_model=AltRequest,
-            response_model=AltResponse,
-            params_mapper=dummy_params_mapper,
-            response_mapper=dummy_response_mapper,
-        ).build()
-        assert app[0].effective_request_model is AltRequest
-        assert app[0].effective_response_model is AltResponse
-
-    def test_full_cycle_mixed(self, adapter):
-        app = adapter \
-            .post("/create", SampleAction) \
-            .get("/list", AnotherAction, request_model=AltRequest, params_mapper=dummy_params_mapper) \
-            .build()
-        assert len(app) == 2
-        assert app[0].request_model is None
-        assert app[1].request_model is AltRequest
-
-    def test_full_cycle_fluent_chain(self, adapter):
-        app = adapter \
-            .post("/a", SampleAction, tags=["system"]) \
-            .get("/b", AnotherAction, tags=["orders"]) \
-            .post("/c", SampleAction, summary="Custom") \
-            .build()
-        assert len(app) == 3
-        assert app[0].tags == ("system",)
-        assert app[1].tags == ("orders",)
-        assert app[2].summary == "Custom"
+        assert len(adapter.routes) == 2

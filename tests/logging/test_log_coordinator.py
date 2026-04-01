@@ -1,388 +1,796 @@
 # tests/logging/test_log_coordinator.py
 """
-Tests for LogCoordinator – the logging coordinator.
+Тесты LogCoordinator — центральной шины логирования.
 
-Checks:
-- Variable substitution from different sources (var, context, params, state, scope)
-- iif construct handling
-- Broadcast to multiple loggers
-- Filtering through loggers
-- Error handling (non-existent variables, unknown namespace)
+═══════════════════════════════════════════════════════════════════════════════
+НАЗНАЧЕНИЕ
+═══════════════════════════════════════════════════════════════════════════════
+
+LogCoordinator — единственная шина, через которую проходят все сообщения
+логирования. Он принимает сообщение, подставляет переменные из разных
+namespace (var, context, params, state, scope) через VariableSubstitutor,
+вычисляет iif-конструкции, а затем рассылает результат всем зарегистрированным
+логгерам.
+
+Координатор вызывает logger.handle() для каждого логгера. Метод handle()
+определён в BaseLogger и выполняет двухфазный протокол:
+1. Фильтрация — match_filters() проверяет сообщение по регулярным выражениям.
+2. Запись — write() выполняет фактический вывод (только если фильтрация прошла).
+
+RecordingLogger в этом модуле наследует BaseLogger и использует его метод
+handle() без переопределения. Это гарантирует, что фильтрация работает
+так же, как в реальных логгерах.
+
+═══════════════════════════════════════════════════════════════════════════════
+ПОКРЫВАЕМЫЕ СЦЕНАРИИ
+═══════════════════════════════════════════════════════════════════════════════
+
+Подстановка переменных:
+    - Из var: {%var.key}
+    - Из context: {%context.user.user_id}
+    - Из params: {%params.amount}
+    - Из state: {%state.total}
+    - Из scope: {%scope.action}
+
+iif-конструкции:
+    - Простые условия внутри сообщения.
+    - Вложенные iif.
+    - Использование переменных внутри iif.
+
+Рассылка логгерам:
+    - Сообщение доставляется всем зарегистрированным логгерам.
+    - Каждый логгер фильтрует независимо через BaseLogger.handle().
+    - Пустой список логгеров не вызывает ошибок.
+
+Параметры:
+    - indent передаётся логгерам.
+    - scope передаётся логгерам.
+
+Ошибки:
+    - Отсутствующая переменная → LogTemplateError.
+    - Неизвестный namespace → LogTemplateError.
+    - Невалидный iif → LogTemplateError.
+    - Имя с подчёркиванием → LogTemplateError.
 """
+
+from typing import Any
 
 import pytest
 
+from action_machine.context.context import Context
+from action_machine.core.base_params import BaseParams
 from action_machine.core.base_state import BaseState
 from action_machine.core.exceptions import LogTemplateError
+from action_machine.logging.base_logger import BaseLogger
 from action_machine.logging.log_coordinator import LogCoordinator
 from action_machine.logging.log_scope import LogScope
-from tests.conftest import ParamsTest, RecordingLogger, make_context
 
 
-class TestLogCoordinator:
-    """Tests for the logging coordinator."""
+class RecordingLogger(BaseLogger):
+    """
+    Логгер-шпион, наследующий BaseLogger для корректной фильтрации.
 
-    # ------------------------------------------------------------------
-    # TESTS: Variable substitution from different sources
-    # ------------------------------------------------------------------
+    Наследует BaseLogger.handle(), который выполняет двухфазный протокол:
+    1. match_filters() — проверяет сообщение по regex-фильтрам.
+    2. write() — вызывается только если фильтрация прошла.
+
+    Метод write() записывает все полученные данные в список records
+    для последующей проверки в тестах. Это гарантирует, что фильтрация
+    работает идентично реальным логгерам (ConsoleLogger и др.).
+    """
+
+    def __init__(self, filters: list[str] | None = None) -> None:
+        super().__init__(filters=filters)
+        self.records: list[dict[str, Any]] = []
+
+    async def write(
+        self,
+        scope: LogScope,
+        message: str,
+        var: dict[str, Any],
+        ctx: Context,
+        state: BaseState,
+        params: BaseParams,
+        indent: int,
+    ) -> None:
+        """Сохраняет вызов write в records."""
+        self.records.append({
+            "scope": scope,
+            "message": message,
+            "var": var.copy(),
+            "ctx": ctx,
+            "state": state.to_dict(),
+            "params": params,
+            "indent": indent,
+        })
+
+
+@pytest.fixture
+def empty_context() -> Context:
+    return Context()
+
+
+@pytest.fixture
+def empty_state() -> BaseState:
+    return BaseState()
+
+
+@pytest.fixture
+def empty_params() -> BaseParams:
+    return BaseParams()
+
+
+@pytest.fixture
+def simple_scope() -> LogScope:
+    return LogScope(action="TestAction")
+
+
+@pytest.fixture
+def detailed_scope() -> LogScope:
+    return LogScope(action="TestAction", aspect="validate")
+
+
+# ======================================================================
+# ТЕСТЫ: Подстановка переменных из разных источников
+# ======================================================================
+
+
+class TestVariableSubstitution:
+    """LogCoordinator подставляет переменные из var, context, params, state, scope."""
+
     @pytest.mark.anyio
-    async def test_emit_substitutes_var(self, recording_logger, scope, context_fixture, params):
-        """emit substitutes variables from var."""
-        coordinator = LogCoordinator(loggers=[recording_logger])
+    async def test_substitutes_var(
+        self,
+        simple_scope: LogScope,
+        empty_context: Context,
+        empty_state: BaseState,
+        empty_params: BaseParams,
+    ) -> None:
+        """
+        {%var.count} заменяется на значение из словаря var.
+        """
+        # Arrange
+        logger = RecordingLogger()
+        coordinator = LogCoordinator(loggers=[logger])
+        var = {"count": 42}
+
+        # Act
         await coordinator.emit(
             message="Count is {%var.count}",
-            var={"count": 42},
-            scope=scope,
-            ctx=context_fixture,
-            state=BaseState(),
-            params=params,
+            var=var,
+            scope=simple_scope,
+            ctx=empty_context,
+            state=empty_state,
+            params=empty_params,
             indent=0,
         )
-        assert recording_logger.records[0]["message"] == "Count is 42"
+
+        # Assert
+        assert logger.records[0]["message"] == "Count is 42"
 
     @pytest.mark.anyio
-    async def test_emit_substitutes_context(self, recording_logger, scope, params):
-        """emit substitutes variables from context via resolve."""
-        coordinator = LogCoordinator(loggers=[recording_logger])
-        ctx = make_context(user_id="agent_007")
+    async def test_substitutes_context(
+        self,
+        simple_scope: LogScope,
+        empty_state: BaseState,
+        empty_params: BaseParams,
+    ) -> None:
+        """
+        {%context.user.user_id} подставляется через resolve из Context.
+        """
+        # Arrange
+        from action_machine.context.user_info import UserInfo
+        ctx = Context(user=UserInfo(user_id="agent_007"))
+        logger = RecordingLogger()
+        coordinator = LogCoordinator(loggers=[logger])
+
+        # Act
         await coordinator.emit(
             message="User: {%context.user.user_id}",
             var={},
-            scope=scope,
+            scope=simple_scope,
             ctx=ctx,
-            state=BaseState(),
-            params=params,
+            state=empty_state,
+            params=empty_params,
             indent=0,
         )
-        assert recording_logger.records[0]["message"] == "User: agent_007"
+
+        # Assert
+        assert logger.records[0]["message"] == "User: agent_007"
 
     @pytest.mark.anyio
-    async def test_emit_substitutes_params(self, recording_logger, scope, context_fixture):
-        """emit substitutes variables from params via resolve."""
-        coordinator = LogCoordinator(loggers=[recording_logger])
-        params = ParamsTest(amount=999.99)
+    async def test_substitutes_params(
+        self,
+        simple_scope: LogScope,
+        empty_context: Context,
+        empty_state: BaseState,
+    ) -> None:
+        """
+        {%params.amount} подставляется из pydantic-модели параметров.
+        """
+        # Arrange
+        from pydantic import Field
+        class TestParams(BaseParams):
+            amount: float = Field(default=999.99, description="Сумма")
+
+        params = TestParams(amount=999.99)
+        logger = RecordingLogger()
+        coordinator = LogCoordinator(loggers=[logger])
+
+        # Act
         await coordinator.emit(
             message="Amount: {%params.amount}",
             var={},
-            scope=scope,
-            ctx=context_fixture,
-            state=BaseState(),
+            scope=simple_scope,
+            ctx=empty_context,
+            state=empty_state,
             params=params,
             indent=0,
         )
-        assert recording_logger.records[0]["message"] == "Amount: 999.99"
+
+        # Assert
+        assert logger.records[0]["message"] == "Amount: 999.99"
 
     @pytest.mark.anyio
-    async def test_emit_substitutes_state(self, recording_logger, scope, context_fixture, params):
-        """emit substitutes variables from state."""
-        coordinator = LogCoordinator(loggers=[recording_logger])
+    async def test_substitutes_state(
+        self,
+        simple_scope: LogScope,
+        empty_context: Context,
+        empty_params: BaseParams,
+    ) -> None:
+        """
+        {%state.total} подставляется из BaseState.
+        """
+        # Arrange
+        state = BaseState({"total": 1500.0})
+        logger = RecordingLogger()
+        coordinator = LogCoordinator(loggers=[logger])
+
+        # Act
         await coordinator.emit(
             message="Total: {%state.total}",
             var={},
-            scope=scope,
-            ctx=context_fixture,
-            state=BaseState({"total": 1500.0}),
-            params=params,
+            scope=simple_scope,
+            ctx=empty_context,
+            state=state,
+            params=empty_params,
             indent=0,
         )
-        assert recording_logger.records[0]["message"] == "Total: 1500.0"
+
+        # Assert
+        assert logger.records[0]["message"] == "Total: 1500.0"
 
     @pytest.mark.anyio
-    async def test_emit_substitutes_scope(self, recording_logger, context_fixture, params):
-        """emit substitutes variables from scope."""
-        coordinator = LogCoordinator(loggers=[recording_logger])
+    async def test_substitutes_scope(
+        self,
+        empty_context: Context,
+        empty_state: BaseState,
+        empty_params: BaseParams,
+    ) -> None:
+        """
+        {%scope.action} подставляется из LogScope.
+        """
+        # Arrange
         scope = LogScope(action="ProcessOrder", aspect="validate")
+        logger = RecordingLogger()
+        coordinator = LogCoordinator(loggers=[logger])
+
+        # Act
         await coordinator.emit(
             message="Action: {%scope.action}",
             var={},
             scope=scope,
-            ctx=context_fixture,
-            state=BaseState(),
-            params=params,
+            ctx=empty_context,
+            state=empty_state,
+            params=empty_params,
             indent=0,
         )
-        assert recording_logger.records[0]["message"] == "Action: ProcessOrder"
 
-    # ------------------------------------------------------------------
-    # TESTS: iif constructs
-    # ------------------------------------------------------------------
+        # Assert
+        assert logger.records[0]["message"] == "Action: ProcessOrder"
+
+
+# ======================================================================
+# ТЕСТЫ: iif-конструкции
+# ======================================================================
+
+
+class TestIifConstructs:
+    """LogCoordinator обрабатывает конструкции {iif(...)}."""
+
     @pytest.mark.anyio
-    async def test_emit_with_iif_simple(self, recording_logger, scope, context_fixture):
-        """emit handles simple iif with unified {%...} syntax."""
-        coordinator = LogCoordinator(loggers=[recording_logger])
-        params = ParamsTest(amount=1500.0)
+    async def test_simple_iif(
+        self,
+        simple_scope: LogScope,
+        empty_context: Context,
+        empty_state: BaseState,
+        empty_params: BaseParams,
+    ) -> None:
+        """
+        {iif(условие; ветка_истина; ветка_ложь)} вычисляется и подставляется.
+        """
+        # Arrange
+        logger = RecordingLogger()
+        coordinator = LogCoordinator(loggers=[logger])
+        var = {"amount": 1500.0}
+
+        # Act — iif с {%var.amount} внутри
         await coordinator.emit(
-            message="Risk: {iif({%params.amount} > 1000; 'HIGH'; 'LOW')}",
-            var={},
-            scope=scope,
-            ctx=context_fixture,
-            state=BaseState(),
-            params=params,
+            message="Risk: {iif({%var.amount} > 1000; 'HIGH'; 'LOW')}",
+            var=var,
+            scope=simple_scope,
+            ctx=empty_context,
+            state=empty_state,
+            params=empty_params,
             indent=0,
         )
-        assert recording_logger.records[0]["message"] == "Risk: HIGH"
+
+        # Assert
+        assert logger.records[0]["message"] == "Risk: HIGH"
 
     @pytest.mark.anyio
-    async def test_emit_with_iif_nested(self, recording_logger, scope, context_fixture):
-        """emit handles nested iif with unified syntax."""
-        coordinator = LogCoordinator(loggers=[recording_logger])
-        params = ParamsTest(amount=1500000.0)
+    async def test_nested_iif(
+        self,
+        simple_scope: LogScope,
+        empty_context: Context,
+        empty_state: BaseState,
+        empty_params: BaseParams,
+    ) -> None:
+        """
+        Вложенные iif корректно вычисляются.
+        """
+        # Arrange
+        logger = RecordingLogger()
+        coordinator = LogCoordinator(loggers=[logger])
+        var = {"amount": 1500000.0}
+
+        # Act
         await coordinator.emit(
-            message="Level: {iif({%params.amount} > 1000000; 'CRITICAL'; iif({%params.amount} > 100000; 'HIGH'; 'LOW'))}",
-            var={},
-            scope=scope,
-            ctx=context_fixture,
-            state=BaseState(),
-            params=params,
+            message="Level: {iif({%var.amount} > 1000000; 'CRITICAL'; iif({%var.amount} > 100000; 'HIGH'; 'LOW'))}",
+            var=var,
+            scope=simple_scope,
+            ctx=empty_context,
+            state=empty_state,
+            params=empty_params,
             indent=0,
         )
-        assert recording_logger.records[0]["message"] == "Level: CRITICAL"
+
+        # Assert
+        assert logger.records[0]["message"] == "Level: CRITICAL"
 
     @pytest.mark.anyio
-    async def test_emit_with_iif_using_var(self, recording_logger, scope, context_fixture, params):
-        """iif uses variables from var."""
-        coordinator = LogCoordinator(loggers=[recording_logger])
-        await coordinator.emit(
-            message="Result: {iif({%var.success} == True; 'OK'; 'FAIL')}",
-            var={"success": True},
-            scope=scope,
-            ctx=context_fixture,
-            state=BaseState(),
-            params=params,
-            indent=0,
-        )
-        assert recording_logger.records[0]["message"] == "Result: OK"
+    async def test_iif_with_state(
+        self,
+        simple_scope: LogScope,
+        empty_context: Context,
+        empty_params: BaseParams,
+    ) -> None:
+        """
+        iif может использовать переменные из state.
+        """
+        # Arrange
+        state = BaseState({"processed": True})
+        logger = RecordingLogger()
+        coordinator = LogCoordinator(loggers=[logger])
 
-    @pytest.mark.anyio
-    async def test_emit_with_iif_using_state(self, recording_logger, scope, context_fixture, params):
-        """iif uses variables from state."""
-        coordinator = LogCoordinator(loggers=[recording_logger])
+        # Act
         await coordinator.emit(
             message="Status: {iif({%state.processed} == True; 'DONE'; 'PENDING')}",
             var={},
-            scope=scope,
-            ctx=context_fixture,
-            state=BaseState({"processed": True}),
-            params=params,
+            scope=simple_scope,
+            ctx=empty_context,
+            state=state,
+            params=empty_params,
             indent=0,
         )
-        assert recording_logger.records[0]["message"] == "Status: DONE"
 
-    # ------------------------------------------------------------------
-    # TESTS: Broadcast to multiple loggers
-    # ------------------------------------------------------------------
+        # Assert
+        assert logger.records[0]["message"] == "Status: DONE"
+
+
+# ======================================================================
+# ТЕСТЫ: Рассылка логгерам
+# ======================================================================
+
+
+class TestBroadcast:
+    """Сообщение рассылается всем зарегистрированным логгерам."""
+
     @pytest.mark.anyio
-    async def test_emit_broadcasts_to_all_loggers(self, scope, context_fixture, params):
-        """emit broadcasts the message to all registered loggers."""
+    async def test_broadcast_to_all_loggers(
+        self,
+        simple_scope: LogScope,
+        empty_context: Context,
+        empty_state: BaseState,
+        empty_params: BaseParams,
+    ) -> None:
+        """
+        Каждый логгер получает сообщение (после своей фильтрации).
+        """
+        # Arrange — два логгера без фильтров
         logger1 = RecordingLogger()
         logger2 = RecordingLogger()
         coordinator = LogCoordinator(loggers=[logger1, logger2])
+
+        # Act
         await coordinator.emit(
             message="Broadcast",
             var={},
-            scope=scope,
-            ctx=context_fixture,
-            state=BaseState(),
-            params=params,
+            scope=simple_scope,
+            ctx=empty_context,
+            state=empty_state,
+            params=empty_params,
             indent=0,
         )
+
+        # Assert — оба получили сообщение
         assert len(logger1.records) == 1
         assert len(logger2.records) == 1
         assert logger1.records[0]["message"] == "Broadcast"
         assert logger2.records[0]["message"] == "Broadcast"
 
     @pytest.mark.anyio
-    async def test_emit_respects_logger_filters(self, scope, context_fixture, params):
-        """emit calls all loggers, but each filters independently."""
-        logger_all = RecordingLogger()
-        logger_filtered = RecordingLogger(filters=[r"PaymentAction"])
-        coordinator = LogCoordinator(loggers=[logger_all, logger_filtered])
-        scope = LogScope(action="OrderAction")  # not PaymentAction
+    async def test_respects_logger_filters(
+        self,
+        empty_context: Context,
+        empty_state: BaseState,
+        empty_params: BaseParams,
+    ) -> None:
+        """
+        Каждый логгер фильтрует сообщение независимо через BaseLogger.handle().
+
+        all_logger (без фильтров) принимает все сообщения.
+        filtered_logger (фильтр на "PaymentAction") отклоняет сообщение
+        с scope.action="OrderAction", потому что filter_string не содержит
+        "PaymentAction".
+        """
+        # Arrange — логгер без фильтров и логгер с фильтром на PaymentAction
+        all_logger = RecordingLogger()
+        filtered_logger = RecordingLogger(filters=[r"PaymentAction"])
+        coordinator = LogCoordinator(loggers=[all_logger, filtered_logger])
+        scope = LogScope(action="OrderAction")
+
+        # Act — отправляем сообщение от OrderAction (не PaymentAction)
         await coordinator.emit(
             message="Order created",
             var={},
             scope=scope,
-            ctx=context_fixture,
-            state=BaseState(),
-            params=params,
+            ctx=empty_context,
+            state=empty_state,
+            params=empty_params,
             indent=0,
         )
-        assert len(logger_all.records) == 1
-        assert len(logger_filtered.records) == 0
+
+        # Assert — all_logger получил, filtered_logger отклонил
+        assert len(all_logger.records) == 1
+        assert len(filtered_logger.records) == 0
 
     @pytest.mark.anyio
-    async def test_add_logger(self, scope, context_fixture, params):
-        """add_logger adds a logger to the coordinator."""
+    async def test_add_logger(
+        self,
+        simple_scope: LogScope,
+        empty_context: Context,
+        empty_state: BaseState,
+        empty_params: BaseParams,
+    ) -> None:
+        """
+        Логгер можно добавить после создания координатора.
+        """
+        # Arrange
         coordinator = LogCoordinator()
         logger = RecordingLogger()
+
+        # Act
         coordinator.add_logger(logger)
         await coordinator.emit(
             message="After add",
             var={},
-            scope=scope,
-            ctx=context_fixture,
-            state=BaseState(),
-            params=params,
+            scope=simple_scope,
+            ctx=empty_context,
+            state=empty_state,
+            params=empty_params,
             indent=0,
         )
+
+        # Assert
         assert len(logger.records) == 1
 
     @pytest.mark.anyio
-    async def test_emit_without_loggers_does_nothing(self, scope, context_fixture, params):
-        """emit without loggers does nothing (no error)."""
+    async def test_emit_without_loggers(
+        self,
+        simple_scope: LogScope,
+        empty_context: Context,
+        empty_state: BaseState,
+        empty_params: BaseParams,
+    ) -> None:
+        """
+        emit без логгеров не вызывает ошибок.
+        """
+        # Arrange
         coordinator = LogCoordinator()
+
+        # Act — не должно быть исключений
         await coordinator.emit(
             message="No loggers",
             var={},
-            scope=scope,
-            ctx=context_fixture,
-            state=BaseState(),
-            params=params,
+            scope=simple_scope,
+            ctx=empty_context,
+            state=empty_state,
+            params=empty_params,
             indent=0,
         )
-        # no assertion, just shouldn't crash
 
-    # ------------------------------------------------------------------
-    # TESTS: Parameter passing
-    # ------------------------------------------------------------------
+
+# ======================================================================
+# ТЕСТЫ: Передача параметров логгерам
+# ======================================================================
+
+
+class TestParameterPassing:
+    """LogCoordinator передаёт параметры логгерам."""
+
     @pytest.mark.anyio
-    async def test_emit_passes_indent_to_loggers(self, recording_logger, scope, context_fixture, params):
-        """emit passes indent to each logger."""
-        coordinator = LogCoordinator(loggers=[recording_logger])
+    async def test_passes_indent(
+        self,
+        simple_scope: LogScope,
+        empty_context: Context,
+        empty_state: BaseState,
+        empty_params: BaseParams,
+    ) -> None:
+        """
+        indent передаётся каждому логгеру без изменений.
+        """
+        # Arrange
+        logger = RecordingLogger()
+        coordinator = LogCoordinator(loggers=[logger])
+
+        # Act
         await coordinator.emit(
             message="Indented",
             var={},
-            scope=scope,
-            ctx=context_fixture,
-            state=BaseState(),
-            params=params,
+            scope=simple_scope,
+            ctx=empty_context,
+            state=empty_state,
+            params=empty_params,
             indent=5,
         )
-        assert recording_logger.records[0]["indent"] == 5
+
+        # Assert
+        assert logger.records[0]["indent"] == 5
 
     @pytest.mark.anyio
-    async def test_emit_passes_scope_to_loggers(self, recording_logger, context_fixture, params):
-        """emit passes scope to each logger."""
-        coordinator = LogCoordinator(loggers=[recording_logger])
-        test_scope = LogScope(action="TestAction", aspect="test")
+    async def test_passes_scope(
+        self,
+        empty_context: Context,
+        empty_state: BaseState,
+        empty_params: BaseParams,
+    ) -> None:
+        """
+        scope передаётся логгерам.
+        """
+        # Arrange
+        scope = LogScope(action="MyAction", aspect="test")
+        logger = RecordingLogger()
+        coordinator = LogCoordinator(loggers=[logger])
+
+        # Act
         await coordinator.emit(
             message="Test",
             var={},
-            scope=test_scope,
-            ctx=context_fixture,
-            state=BaseState(),
-            params=params,
+            scope=scope,
+            ctx=empty_context,
+            state=empty_state,
+            params=empty_params,
             indent=0,
         )
-        assert recording_logger.records[0]["scope"] is test_scope
 
-    # ------------------------------------------------------------------
-    # TESTS: Nested structures
-    # ------------------------------------------------------------------
+        # Assert
+        assert logger.records[0]["scope"] is scope
+
+
+# ======================================================================
+# ТЕСТЫ: Вложенные структуры
+# ======================================================================
+
+
+class TestNestedStructures:
+    """Подстановка вложенных значений (dict внутри state, var и т.д.)."""
+
     @pytest.mark.anyio
-    async def test_emit_nested_state_dict(self, recording_logger, scope, context_fixture, params):
-        """emit substitutes nested values from state."""
-        coordinator = LogCoordinator(loggers=[recording_logger])
+    async def test_nested_state(
+        self,
+        simple_scope: LogScope,
+        empty_context: Context,
+        empty_params: BaseParams,
+    ) -> None:
+        """
+        Доступ к вложенным ключам state через точку: {%state.order.id}.
+        """
+        # Arrange
+        state = BaseState({"order": {"id": 42}})
+        logger = RecordingLogger()
+        coordinator = LogCoordinator(loggers=[logger])
+
+        # Act
         await coordinator.emit(
-            message="Nested: {%state.order.id}",
+            message="Order ID: {%state.order.id}",
             var={},
-            scope=scope,
-            ctx=context_fixture,
-            state=BaseState({"order": {"id": 42}}),
-            params=params,
+            scope=simple_scope,
+            ctx=empty_context,
+            state=state,
+            params=empty_params,
             indent=0,
         )
-        assert recording_logger.records[0]["message"] == "Nested: 42"
+
+        # Assert
+        assert logger.records[0]["message"] == "Order ID: 42"
 
     @pytest.mark.anyio
-    async def test_emit_nested_var_dict(self, recording_logger, scope, context_fixture, params):
-        """emit substitutes nested values from var."""
-        coordinator = LogCoordinator(loggers=[recording_logger])
+    async def test_nested_var(
+        self,
+        simple_scope: LogScope,
+        empty_context: Context,
+        empty_state: BaseState,
+        empty_params: BaseParams,
+    ) -> None:
+        """
+        Доступ к вложенным ключам var: {%var.data.value}.
+        """
+        # Arrange
+        logger = RecordingLogger()
+        coordinator = LogCoordinator(loggers=[logger])
+        var = {"data": {"value": "deep"}}
+
+        # Act
         await coordinator.emit(
-            message="Var nested: {%var.data.value}",
-            var={"data": {"value": "deep"}},
-            scope=scope,
-            ctx=context_fixture,
-            state=BaseState(),
-            params=params,
+            message="Value: {%var.data.value}",
+            var=var,
+            scope=simple_scope,
+            ctx=empty_context,
+            state=empty_state,
+            params=empty_params,
             indent=0,
         )
-        assert recording_logger.records[0]["message"] == "Var nested: deep"
 
-    # ------------------------------------------------------------------
-    # TESTS: Error handling
-    # ------------------------------------------------------------------
+        # Assert
+        assert logger.records[0]["message"] == "Value: deep"
+
+
+# ======================================================================
+# ТЕСТЫ: Обработка ошибок
+# ======================================================================
+
+
+class TestErrorHandling:
+    """LogCoordinator пробрасывает LogTemplateError при ошибках в шаблоне."""
+
     @pytest.mark.anyio
-    async def test_emit_missing_variable_raises(self, scope, context_fixture, params):
-        """Access to a non-existent variable raises LogTemplateError."""
-        coordinator = LogCoordinator(loggers=[RecordingLogger()])
+    async def test_missing_variable_raises(
+        self,
+        simple_scope: LogScope,
+        empty_context: Context,
+        empty_state: BaseState,
+        empty_params: BaseParams,
+    ) -> None:
+        """
+        Обращение к несуществующей переменной → LogTemplateError.
+        """
+        # Arrange
+        coordinator = LogCoordinator(loggers=[])
+
+        # Act & Assert
         with pytest.raises(LogTemplateError, match="not found"):
             await coordinator.emit(
                 message="Missing: {%var.nonexistent}",
                 var={},
-                scope=scope,
-                ctx=context_fixture,
-                state=BaseState(),
-                params=params,
+                scope=simple_scope,
+                ctx=empty_context,
+                state=empty_state,
+                params=empty_params,
                 indent=0,
             )
 
     @pytest.mark.anyio
-    async def test_emit_missing_variable_in_iif_raises(self, scope, context_fixture, params):
-        """Access to a non-existent variable inside iif raises LogTemplateError."""
-        coordinator = LogCoordinator(loggers=[RecordingLogger()])
-        with pytest.raises(LogTemplateError, match="not found"):
-            await coordinator.emit(
-                message="Result: {iif({%var.missing} > 10; 'yes'; 'no')}",
-                var={},
-                scope=scope,
-                ctx=context_fixture,
-                state=BaseState(),
-                params=params,
-                indent=0,
-            )
+    async def test_unknown_namespace_raises(
+        self,
+        simple_scope: LogScope,
+        empty_context: Context,
+        empty_state: BaseState,
+        empty_params: BaseParams,
+    ) -> None:
+        """
+        Неизвестный namespace в шаблоне → LogTemplateError.
+        """
+        # Arrange
+        coordinator = LogCoordinator(loggers=[])
 
-    @pytest.mark.anyio
-    async def test_emit_unknown_namespace_raises(self, scope, context_fixture, params):
-        """Unknown namespace in template raises LogTemplateError."""
-        coordinator = LogCoordinator(loggers=[RecordingLogger()])
+        # Act & Assert
         with pytest.raises(LogTemplateError, match="Unknown namespace"):
             await coordinator.emit(
                 message="Value: {%unknown.field}",
                 var={},
-                scope=scope,
-                ctx=context_fixture,
-                state=BaseState(),
-                params=params,
+                scope=simple_scope,
+                ctx=empty_context,
+                state=empty_state,
+                params=empty_params,
                 indent=0,
             )
 
     @pytest.mark.anyio
-    async def test_emit_underscore_name_raises(self, scope, context_fixture, params):
-        """Access to a name starting with underscore raises LogTemplateError."""
-        coordinator = LogCoordinator(loggers=[RecordingLogger()])
+    async def test_underscore_name_raises(
+        self,
+        simple_scope: LogScope,
+        empty_context: Context,
+        empty_state: BaseState,
+        empty_params: BaseParams,
+    ) -> None:
+        """
+        Доступ к имени, начинающемуся с подчёркивания → LogTemplateError.
+        """
+        # Arrange
+        coordinator = LogCoordinator(loggers=[])
+        var = {"_secret": "value"}
+
+        # Act & Assert
         with pytest.raises(LogTemplateError, match="Access to name starting with underscore is forbidden"):
             await coordinator.emit(
                 message="Secret: {%var._secret}",
-                var={"_secret": "value"},
-                scope=scope,
-                ctx=context_fixture,
-                state=BaseState(),
-                params=params,
+                var=var,
+                scope=simple_scope,
+                ctx=empty_context,
+                state=empty_state,
+                params=empty_params,
                 indent=0,
             )
 
     @pytest.mark.anyio
-    async def test_emit_invalid_iif_syntax_raises(self, scope, context_fixture, params):
-        """Invalid iif syntax (not 3 args) raises LogTemplateError."""
-        coordinator = LogCoordinator(loggers=[RecordingLogger()])
+    async def test_missing_variable_in_iif_raises(
+        self,
+        simple_scope: LogScope,
+        empty_context: Context,
+        empty_state: BaseState,
+        empty_params: BaseParams,
+    ) -> None:
+        """
+        Переменная внутри iif не найдена → LogTemplateError.
+        """
+        # Arrange
+        coordinator = LogCoordinator(loggers=[])
+
+        # Act & Assert
+        with pytest.raises(LogTemplateError, match="not found"):
+            await coordinator.emit(
+                message="Result: {iif({%var.missing} > 10; 'yes'; 'no')}",
+                var={},
+                scope=simple_scope,
+                ctx=empty_context,
+                state=empty_state,
+                params=empty_params,
+                indent=0,
+            )
+
+    @pytest.mark.anyio
+    async def test_invalid_iif_syntax_raises(
+        self,
+        simple_scope: LogScope,
+        empty_context: Context,
+        empty_state: BaseState,
+        empty_params: BaseParams,
+    ) -> None:
+        """
+        iif с неверным количеством аргументов → LogTemplateError.
+        """
+        # Arrange
+        coordinator = LogCoordinator(loggers=[])
+
+        # Act & Assert
         with pytest.raises(LogTemplateError, match="iif expects 3 arguments"):
             await coordinator.emit(
                 message="Bad: {iif(1 > 0; 'only_two_args')}",
                 var={},
-                scope=scope,
-                ctx=context_fixture,
-                state=BaseState(),
-                params=params,
+                scope=simple_scope,
+                ctx=empty_context,
+                state=empty_state,
+                params=empty_params,
                 indent=0,
             )
