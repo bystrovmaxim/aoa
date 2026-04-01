@@ -3,113 +3,83 @@
 Тесты параллельного и последовательного выполнения обработчиков плагинов.
 
 ═══════════════════════════════════════════════════════════════════════════════
-СТРАТЕГИЯ ВЫПОЛНЕНИЯ
+НАЗНАЧЕНИЕ
 ═══════════════════════════════════════════════════════════════════════════════
 
-PluginRunContext выбирает стратегию на основе флагов ignore_exceptions:
+Проверяет стратегию выполнения обработчиков в PluginRunContext.
+Стратегия выбирается автоматически на основе флагов ignore_exceptions
+всех обработчиков, подписанных на текущее событие:
 
-- Все ignore=True → параллельно (asyncio.gather с return_exceptions=True).
-- Хотя бы один ignore=False → последовательно.
+- ВСЕ обработчики имеют ignore_exceptions=True:
+  Запуск параллельно через asyncio.gather(return_exceptions=True).
+  Общее время ≈ время самого медленного обработчика. Падающие
+  обработчики не прерывают остальных — их исключения подавляются.
 
-Тесты на параллельность используют ignore_exceptions=True.
-Тесты на последовательность используют ignore_exceptions=False.
+- ХОТЯ БЫ ОДИН обработчик имеет ignore_exceptions=False:
+  Запуск последовательно. Общее время ≈ сумма всех задержек.
+  При ошибке критического обработчика (ignore_exceptions=False)
+  исключение пробрасывается наружу и прерывает выполнение.
 
-Состояния плагинов изолированы в PluginRunContext, создаваемом
-через PluginCoordinator.create_run_context().
+═══════════════════════════════════════════════════════════════════════════════
+ПОКРЫВАЕМЫЕ СЦЕНАРИИ
+═══════════════════════════════════════════════════════════════════════════════
+
+Параллельное выполнение (все ignore=True):
+- Два медленных плагина по 50мс каждый завершаются за ~50мс (не ~100мс).
+- Быстрый плагин завершается вместе с медленными.
+- Все обработчики обновляют свои состояния.
+- Падающий плагин (ignore=True) не прерывает остальных.
+
+Последовательное выполнение (хотя бы один ignore=False):
+- Два медленных плагина по 50мс выполняются за ~100мс (сумма).
+- Смешанные флаги (ignore=True + ignore=False): все обработчики
+  выполняются последовательно и обновляют состояния.
+
+═══════════════════════════════════════════════════════════════════════════════
+ЗАМЕЧАНИЕ О ТАЙМИНГАХ
+═══════════════════════════════════════════════════════════════════════════════
+
+Тесты с замером времени используют asyncio.get_event_loop().time() и
+пороговые значения с запасом (0.09с для параллельного, 0.09с порог
+для последовательного). На медленных CI-серверах возможны флакающие
+результаты — при необходимости пороги можно увеличить.
 """
 
 import asyncio
 
 import pytest
 
-from action_machine.aspects.summary_aspect import summary_aspect
-from action_machine.auth import ROLE_NONE, check_roles
-from action_machine.context.context import Context
-from action_machine.core.base_action import BaseAction
-from action_machine.core.base_params import BaseParams
-from action_machine.core.base_result import BaseResult
-from action_machine.dependencies.dependency_factory import DependencyFactory
-from action_machine.plugins.decorators import on
-from action_machine.plugins.plugin import Plugin
 from action_machine.plugins.plugin_coordinator import PluginCoordinator
-from action_machine.plugins.plugin_event import PluginEvent
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Вспомогательные классы
-# ─────────────────────────────────────────────────────────────────────────────
+from .conftest import (
+    FailingPluginIgnore,
+    FastPluginIgnore,
+    SlowPluginIgnore,
+    SlowPluginNoIgnore,
+    emit_global_finish,
+)
 
-@check_roles(ROLE_NONE)
-class DummyAction(BaseAction[BaseParams, BaseResult]):
-    """Минимальное действие для тестов."""
-
-    @summary_aspect("dummy")
-    async def summary(self, params, state, box, connections):
-        return BaseResult()
+# ═════════════════════════════════════════════════════════════════════════════
+# Тесты параллельного выполнения (все ignore_exceptions=True)
+# ═════════════════════════════════════════════════════════════════════════════
 
 
-class SlowPluginIgnore(Plugin):
+class TestParallelExecution:
     """
-    Плагин с паузой. ignore_exceptions=True — для тестов параллельности.
+    Тесты параллельного выполнения обработчиков.
+
+    Все обработчики имеют ignore_exceptions=True → PluginRunContext
+    запускает их через asyncio.gather(return_exceptions=True).
     """
-
-    def __init__(self, delay: float = 0.05):
-        self._delay = delay
-
-    async def get_initial_state(self) -> dict:
-        return {"calls": []}
-
-    @on("global_finish", ".*", ignore_exceptions=True)
-    async def slow_handler(self, state: dict, event: PluginEvent, log) -> dict:
-        await asyncio.sleep(self._delay)
-        state["calls"].append("slow")
-        return state
-
-
-class FastPluginIgnore(Plugin):
-    """Быстрый плагин. ignore_exceptions=True."""
-
-    async def get_initial_state(self) -> dict:
-        return {"calls": []}
-
-    @on("global_finish", ".*", ignore_exceptions=True)
-    async def fast_handler(self, state: dict, event: PluginEvent, log) -> dict:
-        state["calls"].append("fast")
-        return state
-
-
-class FailingPlugin(Plugin):
-    """Плагин, обработчик которого выбрасывает исключение (ignore=True)."""
-
-    async def get_initial_state(self) -> dict:
-        return {}
-
-    @on("global_finish", ".*", ignore_exceptions=True)
-    async def failing_handler(self, state: dict, event: PluginEvent, log) -> dict:
-        raise RuntimeError("Plugin error")
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# Вспомогательные функции
-# ─────────────────────────────────────────────────────────────────────────────
-
-def _make_empty_factory() -> DependencyFactory:
-    """Создаёт пустую фабрику зависимостей."""
-    return DependencyFactory(())
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# Тесты: параллельное выполнение (все ignore=True)
-# ─────────────────────────────────────────────────────────────────────────────
-
-class TestPluginCoordinatorConcurrency:
-    """Тесты параллельного выполнения через PluginRunContext."""
 
     @pytest.mark.anyio
-    async def test_all_handlers_run_concurrently(self):
+    async def test_two_slow_plugins_run_in_parallel(self):
         """
-        Все обработчики имеют ignore_exceptions=True → параллельное выполнение.
-        Два медленных обработчика по 0.05с каждый. Параллельно — ~0.05с.
+        Два SlowPluginIgnore по 50мс каждый. При параллельном выполнении
+        общее время ~50мс (время самого медленного), а не ~100мс (сумма).
+        Порог 90мс с запасом на overhead event loop.
         """
+        # Arrange — два медленных плагина + один быстрый
         slow1 = SlowPluginIgnore(delay=0.05)
         slow2 = SlowPluginIgnore(delay=0.05)
         fast = FastPluginIgnore()
@@ -117,59 +87,104 @@ class TestPluginCoordinatorConcurrency:
         coordinator = PluginCoordinator(plugins=[slow1, slow2, fast])
         plugin_ctx = await coordinator.create_run_context()
 
-        action = DummyAction()
-        factory = _make_empty_factory()
-
+        # Act — замеряем время выполнения
         start = asyncio.get_event_loop().time()
-        await plugin_ctx.emit_event(
-            event_name="global_finish",
-            action=action,
-            params=BaseParams(),
-            state_aspect=None,
-            is_summary=False,
-            result=None,
-            duration=None,
-            factory=factory,
-            context=Context(),
-            nest_level=0,
-        )
+        await emit_global_finish(plugin_ctx)
         elapsed = asyncio.get_event_loop().time() - start
 
-        # Параллельно — ~0.05с. Порог 0.09с с запасом.
-        assert elapsed < 0.09
+        # Assert — параллельно: ~50мс, не ~100мс
+        assert elapsed < 0.09, (
+            f"Параллельное выполнение заняло {elapsed:.3f}с, "
+            f"ожидалось < 0.09с (два плагина по 0.05с параллельно)"
+        )
 
+        # Assert — все обработчики выполнились и обновили состояния
         assert plugin_ctx.get_plugin_state(slow1)["calls"] == ["slow"]
         assert plugin_ctx.get_plugin_state(slow2)["calls"] == ["slow"]
         assert plugin_ctx.get_plugin_state(fast)["calls"] == ["fast"]
 
     @pytest.mark.anyio
-    async def test_mixed_handlers_run_concurrently(self):
+    async def test_failing_plugin_does_not_interrupt_others(self):
         """
-        Все обработчики ignore=True (включая падающий) → параллельно.
-        Падающий не прерывает остальных.
+        FailingPluginIgnore выбрасывает RuntimeError с ignore_exceptions=True.
+        Ошибка подавляется, остальные плагины (SlowPluginIgnore, FastPluginIgnore)
+        завершаются успешно и обновляют свои состояния.
         """
+        # Arrange — медленный, быстрый и падающий плагины (все ignore=True)
         slow = SlowPluginIgnore(delay=0.05)
         fast = FastPluginIgnore()
-        failing = FailingPlugin()
+        failing = FailingPluginIgnore()
 
         coordinator = PluginCoordinator(plugins=[slow, fast, failing])
         plugin_ctx = await coordinator.create_run_context()
 
-        action = DummyAction()
-        factory = _make_empty_factory()
+        # Act — emit_event не должен выбросить исключение
+        await emit_global_finish(plugin_ctx)
 
-        await plugin_ctx.emit_event(
-            event_name="global_finish",
-            action=action,
-            params=BaseParams(),
-            state_aspect=None,
-            is_summary=False,
-            result=None,
-            duration=None,
-            factory=factory,
-            context=Context(),
-            nest_level=0,
-        )
-
+        # Assert — успешные плагины обновили состояния
         assert plugin_ctx.get_plugin_state(slow)["calls"] == ["slow"]
         assert plugin_ctx.get_plugin_state(fast)["calls"] == ["fast"]
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# Тесты последовательного выполнения (хотя бы один ignore_exceptions=False)
+# ═════════════════════════════════════════════════════════════════════════════
+
+
+class TestSequentialExecution:
+    """
+    Тесты последовательного выполнения обработчиков.
+
+    Хотя бы один обработчик имеет ignore_exceptions=False →
+    PluginRunContext запускает все обработчики последовательно.
+    """
+
+    @pytest.mark.anyio
+    async def test_two_slow_plugins_run_sequentially(self):
+        """
+        Два SlowPluginNoIgnore по 50мс каждый. При последовательном
+        выполнении общее время ~100мс (сумма), а не ~50мс (параллельно).
+        Порог: elapsed >= 0.09с (с учётом overhead).
+        """
+        # Arrange — два медленных плагина с ignore=False
+        slow1 = SlowPluginNoIgnore(delay=0.05)
+        slow2 = SlowPluginNoIgnore(delay=0.05)
+
+        coordinator = PluginCoordinator(plugins=[slow1, slow2])
+        plugin_ctx = await coordinator.create_run_context()
+
+        # Act — замеряем время выполнения
+        start = asyncio.get_event_loop().time()
+        await emit_global_finish(plugin_ctx)
+        elapsed = asyncio.get_event_loop().time() - start
+
+        # Assert — последовательно: ~100мс, порог >= 90мс
+        assert elapsed >= 0.09, (
+            f"Последовательное выполнение заняло {elapsed:.3f}с, "
+            f"ожидалось >= 0.09с (два плагина по 0.05с последовательно)"
+        )
+
+        # Assert — оба обработчика выполнились
+        assert plugin_ctx.get_plugin_state(slow1)["calls"] == ["slow"]
+        assert plugin_ctx.get_plugin_state(slow2)["calls"] == ["slow"]
+
+    @pytest.mark.anyio
+    async def test_mixed_flags_all_handlers_complete(self):
+        """
+        SlowPluginNoIgnore (ignore=False) + FastPluginIgnore (ignore=True).
+        Наличие одного ignore=False переключает на последовательное
+        выполнение. Оба обработчика завершаются и обновляют состояния.
+        """
+        # Arrange — критический медленный + некритический быстрый
+        critical = SlowPluginNoIgnore(delay=0.01)
+        metrics = FastPluginIgnore()
+
+        coordinator = PluginCoordinator(plugins=[critical, metrics])
+        plugin_ctx = await coordinator.create_run_context()
+
+        # Act — последовательное выполнение из-за ignore=False
+        await emit_global_finish(plugin_ctx)
+
+        # Assert — оба обработчика выполнились
+        assert plugin_ctx.get_plugin_state(critical)["calls"] == ["slow"]
+        assert plugin_ctx.get_plugin_state(metrics)["calls"] == ["fast"]

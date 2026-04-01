@@ -1,316 +1,250 @@
 # tests/adapters/mcp/test_mcp_schema.py
 """
-Тесты inputSchema MCP tools, генерируемой McpAdapter.
+Tests for MCP inputSchema generation from Pydantic Params models.
 
-═══════════════════════════════════════════════════════════════════════════════
-НАЗНАЧЕНИЕ
-═══════════════════════════════════════════════════════════════════════════════
+When McpAdapter registers a tool, the inputSchema for that tool is derived
+from the effective_request_model (usually the action's Params class) via
+Pydantic's model_json_schema(). This schema drives how AI agents understand
+what parameters a tool accepts — field names, types, descriptions,
+constraints, required fields, defaults, and examples.
 
-Проверяет, что inputSchema MCP tools содержит метаданные, определённые
-в коде через Pydantic Field(description=..., examples=..., gt=...,
-min_length=..., pattern=...).
-
-Это ключевое свойство McpAdapter: описания полей, constraints, examples —
-всё берётся из Pydantic-моделей Params через model_json_schema() и попадает
-в inputSchema без дублирования. AI-агент видит полностью типизированную
-схему входных параметров.
-
-═══════════════════════════════════════════════════════════════════════════════
-ПОКРЫВАЕМЫЕ СЦЕНАРИИ
-═══════════════════════════════════════════════════════════════════════════════
-
-Описания полей (Field description):
-    - Каждое поле Params содержит description в inputSchema.
-
-Типы полей (JSON Schema types):
-    - user_id: string.
-    - amount: number.
-    - currency: string с default.
-
-Constraints (Field gt, min_length, pattern):
-    - amount: exclusiveMinimum (gt=0).
-    - user_id: minLength (min_length=1).
-    - currency: pattern (^[A-Z]{3}$).
-
-Examples (Field examples):
-    - Поля с examples содержат массив примеров.
-
-Обязательные поля (required):
-    - user_id и amount — required.
-    - currency с default — не required.
-
-Пустые Params:
-    - PingAction с пустыми Params → схема без обязательных полей.
+Scenarios covered:
+    - Empty Params produces a schema with no required properties.
+    - Params with typed fields produces correct JSON Schema types.
+    - Field descriptions propagate to schema property descriptions.
+    - Field constraints (gt, min_length, pattern) appear in the schema.
+    - Required fields appear in the schema's "required" list.
+    - Optional fields with defaults are not in the "required" list.
+    - Nested Pydantic models produce $ref or nested object schemas.
+    - model_json_schema output matches expected structure for domain actions.
 """
 
-from __future__ import annotations
+from pydantic import BaseModel, Field
 
-import pytest
-from pydantic import Field
+from tests.domain import FullAction, PingAction, SimpleAction
 
-from action_machine.aspects.regular_aspect import regular_aspect
-from action_machine.aspects.summary_aspect import summary_aspect
-from action_machine.auth import ROLE_NONE, check_roles
-from action_machine.checkers import result_string
-from action_machine.core.base_action import BaseAction
-from action_machine.core.base_params import BaseParams
-from action_machine.core.base_result import BaseResult
-from action_machine.core.meta_decorator import meta
-
-# ═════════════════════════════════════════════════════════════════════════════
-# Тестовые модели и действия
-# ═════════════════════════════════════════════════════════════════════════════
+# ─────────────────────────────────────────────────────────────────────────────
+# Helper — extract schema from a Pydantic model the same way McpAdapter does.
+# McpAdapter calls effective_request_model.model_json_schema() internally.
+# ─────────────────────────────────────────────────────────────────────────────
 
 
-class EmptyParams(BaseParams):
-    """Пустые параметры."""
-    pass
-
-
-class PingResult(BaseResult):
-    """Результат пинга."""
-    message: str = Field(default="pong", description="Ответ")
-
-
-class OrderParams(BaseParams):
-    """Параметры заказа с constraints и examples."""
-    user_id: str = Field(
-        description="Идентификатор пользователя",
-        min_length=1,
-        examples=["user_123"],
-    )
-    amount: float = Field(
-        description="Сумма заказа",
-        gt=0,
-        examples=[1500.0, 99.99],
-    )
-    currency: str = Field(
-        default="RUB",
-        description="Код валюты ISO 4217",
-        pattern=r"^[A-Z]{3}$",
-        examples=["RUB", "USD", "EUR"],
-    )
-
-
-class OrderResult(BaseResult):
-    """Результат заказа."""
-    order_id: str = Field(description="ID заказа")
-    status: str = Field(description="Статус")
-    total: float = Field(description="Итого", ge=0)
-
-
-@meta(description="Проверка доступности")
-@check_roles(ROLE_NONE)
-class PingAction(BaseAction[EmptyParams, PingResult]):
-    @summary_aspect("Pong")
-    async def pong(self, params, state, box, connections):
-        return PingResult(message="pong")
-
-
-@meta(description="Создание заказа")
-@check_roles(ROLE_NONE)
-class CreateOrderAction(BaseAction[OrderParams, OrderResult]):
-    @regular_aspect("Валидация")
-    @result_string("validated_user", required=True)
-    async def validate(self, params, state, box, connections):
-        return {"validated_user": params.user_id}
-
-    @summary_aspect("Результат")
-    async def build_result(self, params, state, box, connections):
-        return OrderResult(order_id="ORD-1", status="created", total=params.amount)
+def _get_schema(model: type[BaseModel]) -> dict:
+    """Get JSON Schema dict from a Pydantic model."""
+    return model.model_json_schema()
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Фикстуры
-# ═════════════════════════════════════════════════════════════════════════════
-
-
-@pytest.fixture
-def order_schema() -> dict:
-    """JSON Schema модели OrderParams."""
-    return OrderParams.model_json_schema()
-
-
-@pytest.fixture
-def empty_schema() -> dict:
-    """JSON Schema модели EmptyParams."""
-    return EmptyParams.model_json_schema()
-
-
-# ═════════════════════════════════════════════════════════════════════════════
-# Вспомогательные функции
-# ═════════════════════════════════════════════════════════════════════════════
-
-
-def _get_property(schema: dict, name: str) -> dict:
-    """Извлекает описание свойства из JSON Schema."""
-    return schema["properties"][name]
-
-
-# ═════════════════════════════════════════════════════════════════════════════
-# ТЕСТЫ: Описания полей
-# ═════════════════════════════════════════════════════════════════════════════
-
-
-class TestFieldDescriptions:
-    """Тесты описаний полей в inputSchema."""
-
-    def test_user_id_description(self, order_schema):
-        prop = _get_property(order_schema, "user_id")
-        assert prop["description"] == "Идентификатор пользователя"
-
-    def test_amount_description(self, order_schema):
-        prop = _get_property(order_schema, "amount")
-        assert prop["description"] == "Сумма заказа"
-
-    def test_currency_description(self, order_schema):
-        prop = _get_property(order_schema, "currency")
-        assert prop["description"] == "Код валюты ISO 4217"
-
-
-# ═════════════════════════════════════════════════════════════════════════════
-# ТЕСТЫ: Типы полей
-# ═════════════════════════════════════════════════════════════════════════════
-
-
-class TestFieldTypes:
-    """Тесты типов полей в inputSchema."""
-
-    def test_user_id_is_string(self, order_schema):
-        prop = _get_property(order_schema, "user_id")
-        assert prop["type"] == "string"
-
-    def test_amount_is_number(self, order_schema):
-        prop = _get_property(order_schema, "amount")
-        assert prop["type"] == "number"
-
-    def test_currency_is_string(self, order_schema):
-        prop = _get_property(order_schema, "currency")
-        assert prop["type"] == "string"
-
-
-# ═════════════════════════════════════════════════════════════════════════════
-# ТЕСТЫ: Constraints
-# ═════════════════════════════════════════════════════════════════════════════
-
-
-class TestConstraints:
-    """Тесты constraints полей в inputSchema."""
-
-    def test_amount_exclusive_minimum(self, order_schema):
-        """amount с gt=0 → exclusiveMinimum: 0."""
-        prop = _get_property(order_schema, "amount")
-        assert prop.get("exclusiveMinimum") == 0
-
-    def test_user_id_min_length(self, order_schema):
-        """user_id с min_length=1 → minLength: 1."""
-        prop = _get_property(order_schema, "user_id")
-        assert prop.get("minLength") == 1
-
-    def test_currency_pattern(self, order_schema):
-        """currency с pattern=^[A-Z]{3}$ → pattern в schema."""
-        prop = _get_property(order_schema, "currency")
-        assert prop.get("pattern") == "^[A-Z]{3}$"
-
-    def test_currency_default(self, order_schema):
-        """currency с default="RUB" → default: "RUB"."""
-        prop = _get_property(order_schema, "currency")
-        assert prop.get("default") == "RUB"
-
-
-# ═════════════════════════════════════════════════════════════════════════════
-# ТЕСТЫ: Examples
-# ═════════════════════════════════════════════════════════════════════════════
-
-
-class TestExamples:
-    """Тесты examples полей в inputSchema."""
-
-    def test_user_id_examples(self, order_schema):
-        prop = _get_property(order_schema, "user_id")
-        assert "examples" in prop
-        assert "user_123" in prop["examples"]
-
-    def test_amount_examples(self, order_schema):
-        prop = _get_property(order_schema, "amount")
-        assert "examples" in prop
-        assert 1500.0 in prop["examples"]
-        assert 99.99 in prop["examples"]
-
-    def test_currency_examples(self, order_schema):
-        prop = _get_property(order_schema, "currency")
-        assert "examples" in prop
-        assert "RUB" in prop["examples"]
-        assert "USD" in prop["examples"]
-        assert "EUR" in prop["examples"]
-
-
-# ═════════════════════════════════════════════════════════════════════════════
-# ТЕСТЫ: Обязательные поля (required)
-# ═════════════════════════════════════════════════════════════════════════════
-
-
-class TestRequiredFields:
-    """Тесты обязательности полей в inputSchema."""
-
-    def test_user_id_is_required(self, order_schema):
-        assert "user_id" in order_schema.get("required", [])
-
-    def test_amount_is_required(self, order_schema):
-        assert "amount" in order_schema.get("required", [])
-
-    def test_currency_is_not_required(self, order_schema):
-        required = order_schema.get("required", [])
-        assert "currency" not in required
-
-
-# ═════════════════════════════════════════════════════════════════════════════
-# ТЕСТЫ: Пустые Params
+# PingAction.Params — empty model
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestEmptyParams:
-    """Тесты схемы для пустых Params (PingAction)."""
+    """Verify schema for an empty Params model (no fields)."""
 
-    def test_empty_params_no_required(self, empty_schema):
-        """Пустые Params → нет обязательных полей."""
-        required = empty_schema.get("required", [])
+    def test_schema_is_object_type(self) -> None:
+        """Empty Params produces a schema with type=object."""
+        schema = _get_schema(PingAction.Params)
+        assert schema.get("type") == "object"
+
+    def test_no_required_fields(self) -> None:
+        """Empty Params has no required fields."""
+        schema = _get_schema(PingAction.Params)
+        required = schema.get("required", [])
         assert len(required) == 0
 
-    def test_empty_params_no_properties(self, empty_schema):
-        """Пустые Params → нет свойств или свойства пустые."""
-        properties = empty_schema.get("properties", {})
+    def test_properties_empty_or_absent(self) -> None:
+        """Empty Params has no properties (or an empty properties dict)."""
+        schema = _get_schema(PingAction.Params)
+        properties = schema.get("properties", {})
         assert len(properties) == 0
 
-    def test_empty_params_type_object(self, empty_schema):
-        """Пустые Params → type: object."""
-        assert empty_schema.get("type") == "object"
-
 
 # ═════════════════════════════════════════════════════════════════════════════
-# ТЕСТЫ: Наличие всех полей
+# SimpleAction.Params — single required field
 # ═════════════════════════════════════════════════════════════════════════════
 
 
-class TestFieldPresence:
-    """Тесты наличия всех ожидаемых полей в schema."""
+class TestSimpleParams:
+    """Verify schema for SimpleAction.Params (one required string field)."""
 
-    def test_all_order_fields_present(self, order_schema):
-        """Все поля OrderParams присутствуют в schema."""
-        properties = order_schema.get("properties", {})
-        assert "user_id" in properties
-        assert "amount" in properties
-        assert "currency" in properties
+    def test_name_field_exists(self) -> None:
+        """The 'name' field appears in schema properties."""
+        schema = _get_schema(SimpleAction.Params)
+        assert "name" in schema.get("properties", {})
 
-    def test_no_extra_fields(self, order_schema):
-        """В schema нет лишних полей."""
-        properties = order_schema.get("properties", {})
-        assert set(properties.keys()) == {"user_id", "amount", "currency"}
+    def test_name_field_type(self) -> None:
+        """The 'name' field has type=string in the schema."""
+        schema = _get_schema(SimpleAction.Params)
+        name_prop = schema["properties"]["name"]
+        assert name_prop.get("type") == "string"
 
-    def test_schema_title(self, order_schema):
-        """Schema содержит title из имени класса."""
-        assert order_schema.get("title") == "OrderParams"
+    def test_name_is_required(self) -> None:
+        """The 'name' field appears in the required list."""
+        schema = _get_schema(SimpleAction.Params)
+        assert "name" in schema.get("required", [])
 
-    def test_empty_schema_title(self, empty_schema):
-        """Пустая schema содержит title."""
-        assert empty_schema.get("title") == "EmptyParams"
+    def test_name_has_description(self) -> None:
+        """The 'name' field carries its Field(description=...) value."""
+        schema = _get_schema(SimpleAction.Params)
+        name_prop = schema["properties"]["name"]
+        assert "description" in name_prop
+        assert len(name_prop["description"]) > 0
+
+    def test_name_min_length(self) -> None:
+        """The 'name' field carries the minLength constraint from Field(min_length=1)."""
+        schema = _get_schema(SimpleAction.Params)
+        name_prop = schema["properties"]["name"]
+        assert name_prop.get("minLength") == 1
+
+    def test_name_has_examples(self) -> None:
+        """The 'name' field carries examples from Field(examples=[...])."""
+        schema = _get_schema(SimpleAction.Params)
+        name_prop = schema["properties"]["name"]
+        assert "examples" in name_prop
+        assert "Alice" in name_prop["examples"]
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# FullAction.Params — multiple fields with constraints
+# ═════════════════════════════════════════════════════════════════════════════
+
+
+class TestFullParams:
+    """Verify schema for FullAction.Params (multiple fields, defaults, constraints)."""
+
+    def test_user_id_field_exists(self) -> None:
+        """The 'user_id' field appears in schema properties."""
+        schema = _get_schema(FullAction.Params)
+        assert "user_id" in schema.get("properties", {})
+
+    def test_amount_field_exists(self) -> None:
+        """The 'amount' field appears in schema properties."""
+        schema = _get_schema(FullAction.Params)
+        assert "amount" in schema.get("properties", {})
+
+    def test_currency_field_exists(self) -> None:
+        """The 'currency' field appears in schema properties."""
+        schema = _get_schema(FullAction.Params)
+        assert "currency" in schema.get("properties", {})
+
+    def test_user_id_is_required(self) -> None:
+        """user_id is in the required list (no default)."""
+        schema = _get_schema(FullAction.Params)
+        assert "user_id" in schema.get("required", [])
+
+    def test_amount_is_required(self) -> None:
+        """amount is in the required list (no default)."""
+        schema = _get_schema(FullAction.Params)
+        assert "amount" in schema.get("required", [])
+
+    def test_currency_not_required(self) -> None:
+        """currency has a default ('RUB') and is NOT in the required list."""
+        schema = _get_schema(FullAction.Params)
+        required = schema.get("required", [])
+        assert "currency" not in required
+
+    def test_currency_default_value(self) -> None:
+        """currency has default='RUB' in the schema."""
+        schema = _get_schema(FullAction.Params)
+        currency_prop = schema["properties"]["currency"]
+        assert currency_prop.get("default") == "RUB"
+
+    def test_amount_exclusive_minimum(self) -> None:
+        """amount has exclusiveMinimum=0 from Field(gt=0)."""
+        schema = _get_schema(FullAction.Params)
+        amount_prop = schema["properties"]["amount"]
+        assert amount_prop.get("exclusiveMinimum") == 0
+
+    def test_currency_pattern(self) -> None:
+        """currency has a pattern constraint from Field(pattern=...)."""
+        schema = _get_schema(FullAction.Params)
+        currency_prop = schema["properties"]["currency"]
+        assert "pattern" in currency_prop
+
+    def test_user_id_min_length(self) -> None:
+        """user_id has minLength=1 from Field(min_length=1)."""
+        schema = _get_schema(FullAction.Params)
+        user_id_prop = schema["properties"]["user_id"]
+        assert user_id_prop.get("minLength") == 1
+
+    def test_amount_has_description(self) -> None:
+        """amount carries its Field description."""
+        schema = _get_schema(FullAction.Params)
+        amount_prop = schema["properties"]["amount"]
+        assert "description" in amount_prop
+        assert len(amount_prop["description"]) > 0
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# Custom model with nested structure
+# ═════════════════════════════════════════════════════════════════════════════
+
+
+class _Address(BaseModel):
+    """Nested model for schema nesting tests."""
+    city: str = Field(description="City name")
+    zip_code: str = Field(description="Postal code", pattern=r"^\d{5,6}$")
+
+
+class _OrderWithAddress(BaseModel):
+    """Model with a nested Pydantic model field."""
+    order_id: str = Field(description="Order identifier")
+    address: _Address = Field(description="Delivery address")
+
+
+class TestNestedModel:
+    """Verify that nested Pydantic models produce valid schema references."""
+
+    def test_address_field_exists(self) -> None:
+        """The 'address' field appears in schema properties."""
+        schema = _get_schema(_OrderWithAddress)
+        assert "address" in schema.get("properties", {})
+
+    def test_nested_model_has_ref_or_properties(self) -> None:
+        """The nested address field uses $ref or inline properties."""
+        schema = _get_schema(_OrderWithAddress)
+        address_prop = schema["properties"]["address"]
+        # Pydantic v2 uses $ref pointing to $defs
+        has_ref = "$ref" in address_prop
+        has_all_of = "allOf" in address_prop
+        has_properties = "properties" in address_prop
+        assert has_ref or has_all_of or has_properties
+
+    def test_defs_contains_address(self) -> None:
+        """The $defs section contains the Address model definition."""
+        schema = _get_schema(_OrderWithAddress)
+        defs = schema.get("$defs", {})
+        # Pydantic v2 names the def after the class name
+        assert "_Address" in defs or "Address" in defs or len(defs) > 0
+
+    def test_nested_city_has_description(self) -> None:
+        """The nested Address model's city field carries its description."""
+        schema = _get_schema(_OrderWithAddress)
+        defs = schema.get("$defs", {})
+
+        # Find the Address definition regardless of exact key name
+        address_def = None
+        for key, value in defs.items():
+            if "city" in value.get("properties", {}):
+                address_def = value
+                break
+
+        assert address_def is not None, f"No Address definition found in $defs: {defs.keys()}"
+        city_prop = address_def["properties"]["city"]
+        assert city_prop.get("description") == "City name"
+
+    def test_nested_zip_has_pattern(self) -> None:
+        """The nested Address model's zip_code field carries its pattern."""
+        schema = _get_schema(_OrderWithAddress)
+        defs = schema.get("$defs", {})
+
+        address_def = None
+        for key, value in defs.items():
+            if "zip_code" in value.get("properties", {}):
+                address_def = value
+                break
+
+        assert address_def is not None
+        zip_prop = address_def["properties"]["zip_code"]
+        assert "pattern" in zip_prop

@@ -1,412 +1,320 @@
 # tests/logging/test_expression_evaluator.py
 """
-Tests for ExpressionEvaluator – the safe expression evaluator for iif.
+Тесты ExpressionEvaluator — безопасного вычислителя выражений для шаблонов логирования.
 
-Checks:
-- Basic arithmetic and logical operations
-- String and number comparisons
-- Built-in functions (len, upper, lower, format_number)
-- iif construct with various conditions
-- Nested iif
-- Error handling (invalid expressions, missing variables)
-- Argument parsing with quotes and parentheses
+═══════════════════════════════════════════════════════════════════════════════
+НАЗНАЧЕНИЕ
+═══════════════════════════════════════════════════════════════════════════════
+
+ExpressionEvaluator использует библиотеку simpleeval для безопасного вычисления
+выражений внутри конструкции {iif(condition; true_value; false_value)}.
+Обеспечивает:
+
+- Операторы сравнения, логические, арифметические.
+- Встроенные функции: len, upper, lower, format_number, str, int, float, abs.
+- Цветовые функции: red, green, blue и др. (оборачивают в маркеры).
+- Функцию debug(obj) — интроспекция объектов.
+- Функцию exists(name) — проверка существования переменной.
+
+Все вычисления безопасны: simpleeval не даёт доступа к файловой системе,
+сети и встроенным опасным функциям.
+
+═══════════════════════════════════════════════════════════════════════════════
+ПОКРЫВАЕМЫЕ СЦЕНАРИИ
+═══════════════════════════════════════════════════════════════════════════════
+
+evaluate() — простые выражения:
+    - Числовые сравнения.
+    - Арифметические операции.
+    - Логические операторы (and, or, not).
+    - Строковые сравнения.
+    - Встроенные функции (len, upper, lower, format_number, str, int, float, abs).
+    - Цветовые функции (обёртка в маркер __COLOR(...)__COLOR_END__).
+
+evaluate_iif() — конструкция iif:
+    - Базовый iif с литералами и переменными.
+    - Вложенные iif.
+    - Разбор аргументов с учётом вложенных скобок и строковых литералов.
+    - Обработка строк с точкой с запятой внутри.
+
+process_template() — замена всех {iif(...)} в строке:
+    - Одиночный iif.
+    - Несколько iif.
+    - iif в начале/конце строки.
+
+Ошибки:
+    - Неверное количество аргументов iif → LogTemplateError.
+    - Неопределённая переменная → LogTemplateError.
+    - Синтаксическая ошибка в выражении → LogTemplateError.
+    - Деление на ноль → LogTemplateError.
 """
 
 import pytest
 
 from action_machine.core.exceptions import LogTemplateError
-from action_machine.logging.expression_evaluator import ExpressionEvaluator
+from action_machine.logging.expression_evaluator import ExpressionEvaluator, _IifArgSplitter
 
 
-class TestExpressionEvaluator:
-    """Tests for the iif expression evaluator."""
+@pytest.fixture
+def evaluator() -> ExpressionEvaluator:
+    """Свежий ExpressionEvaluator для каждого теста."""
+    return ExpressionEvaluator()
 
-    # ------------------------------------------------------------------
-    # SETUP
-    # ------------------------------------------------------------------
 
-    def setup_method(self) -> None:
-        """Creates a fresh ExpressionEvaluator before each test."""
-        self.evaluator = ExpressionEvaluator()
+# ======================================================================
+# ТЕСТЫ: evaluate() — простые выражения
+# ======================================================================
 
-    # ------------------------------------------------------------------
-    # TESTS: evaluate() – simple expressions
-    # ------------------------------------------------------------------
+class TestEvaluateSimple:
+    """Базовые арифметические и логические выражения."""
 
-    def test_evaluate_simple_condition(self) -> None:
-        """Check simple numeric condition."""
-        names: dict[str, object] = {"amount": 1500}
-        result = self.evaluator.evaluate("amount > 1000", names)
-        assert result is True
-
-        result = self.evaluator.evaluate("amount <= 1000", names)
-        assert result is False
-
-    def test_evaluate_arithmetic(self) -> None:
-        """Check arithmetic operations."""
-        names = {"x": 10, "y": 3}
-
-        assert self.evaluator.evaluate("x + y", names) == 13
-        assert self.evaluator.evaluate("x - y", names) == 7
-        assert self.evaluator.evaluate("x * y", names) == 30
-        assert self.evaluator.evaluate("x / y", names) == 10 / 3
-        assert self.evaluator.evaluate("x % y", names) == 1
-
-    def test_evaluate_string_comparison(self) -> None:
-        """Check string comparison."""
-        names: dict[str, object] = {"status": "active"}
-
-        result = self.evaluator.evaluate("status == 'active'", names)
-        assert result is True
-
-        result = self.evaluator.evaluate("status != 'active'", names)
-        assert result is False
-
-    def test_evaluate_logical_operators(self) -> None:
-        """Check logical operators."""
-        names = {"x": 5, "y": 10}
-
-        result = self.evaluator.evaluate("x > 3 and y < 20", names)
-        assert result is True
-
-        result = self.evaluator.evaluate("x > 10 or y < 5", names)
-        assert result is False
-
-        result = self.evaluator.evaluate("not (x > 10)", names)
-        assert result is True
-
-    def test_evaluate_parentheses(self) -> None:
-        """Check operator precedence with parentheses."""
-        names = {"x": 5, "y": 10, "z": 2}
-
-        assert self.evaluator.evaluate("x + y * z", names) == 25  # 5 + 20
-        assert self.evaluator.evaluate("(x + y) * z", names) == 30  # 15 * 2
-
-    # ------------------------------------------------------------------
-    # TESTS: evaluate() – built-in functions
-    # ------------------------------------------------------------------
-
-    def test_evaluate_builtin_functions(self) -> None:
-        """Check built-in functions len, upper, lower."""
-        names = {"text": "Hello", "items": [1, 2, 3]}
-
-        result = self.evaluator.evaluate("len(items)", names)
-        assert result == 3
-
-        result = self.evaluator.evaluate("upper(text)", names)
-        assert result == "HELLO"
-
-        result = self.evaluator.evaluate("lower(text)", names)
-        assert result == "hello"
-
-    def test_evaluate_str_function(self) -> None:
-        """Check str() function."""
-        names = {"num": 42, "flag": True}
-
-        assert self.evaluator.evaluate("str(num)", names) == "42"
-        assert self.evaluator.evaluate("str(flag)", names) == "True"
-        assert self.evaluator.evaluate("str(None)", names) == "None"
-
-    def test_evaluate_int_function(self) -> None:
-        """Check int() function."""
-        names = {"s": "123", "f": 45.67}
-
-        assert self.evaluator.evaluate("int(s)", names) == 123
-        assert self.evaluator.evaluate("int(f)", names) == 45
-
-    def test_evaluate_float_function(self) -> None:
-        """Check float() function."""
-        names = {"s": "123.45", "i": 67}
-
-        assert self.evaluator.evaluate("float(s)", names) == 123.45
-        assert self.evaluator.evaluate("float(i)", names) == 67.0
-
-    def test_evaluate_abs_function(self) -> None:
-        """Check abs() function."""
-        names = {"x": -42, "y": 3.14}
-
-        assert self.evaluator.evaluate("abs(x)", names) == 42
-        assert self.evaluator.evaluate("abs(y)", names) == 3.14
-
-    def test_evaluate_format_number(self) -> None:
-        """Check format_number() function."""
-        names = {"value": 1234567.89}
-
-        # Without decimal places (rounding)
-        result = self.evaluator.evaluate("format_number(value, 0)", names)
-        assert result == "1,234,568"  # rounded
-
-        # With two decimal places
-        result = self.evaluator.evaluate("format_number(value, 2)", names)
-        assert result == "1,234,567.89"
-
-        # Negative number
-        names2 = {"value": -9876.54}
-        result = self.evaluator.evaluate("format_number(value, 1)", names2)
-        assert result == "-9,876.5"
-
-    # ------------------------------------------------------------------
-    # TESTS: evaluate_iif() – basic construct
-    # ------------------------------------------------------------------
-
-    def test_iif_basic(self) -> None:
-        """Check basic iif construct."""
+    def test_numeric_comparison(self, evaluator: ExpressionEvaluator) -> None:
+        """Сравнение чисел."""
         names = {"amount": 1500}
-        result = self.evaluator.evaluate_iif("amount > 1000; 'HIGH'; 'LOW'", names)
-        assert result == "HIGH"
+        assert evaluator.evaluate("amount > 1000", names) is True
+        assert evaluator.evaluate("amount <= 1000", names) is False
 
-        names2 = {"amount": 500}
-        result = self.evaluator.evaluate_iif("amount > 1000; 'HIGH'; 'LOW'", names2)
-        assert result == "LOW"
+    def test_arithmetic(self, evaluator: ExpressionEvaluator) -> None:
+        """Арифметические операции."""
+        names = {"x": 10, "y": 3}
+        assert evaluator.evaluate("x + y", names) == 13
+        assert evaluator.evaluate("x - y", names) == 7
+        assert evaluator.evaluate("x * y", names) == 30
+        assert evaluator.evaluate("x / y", names) == 10 / 3
+        assert evaluator.evaluate("x % y", names) == 1
 
-    def test_iif_without_quotes_in_branches(self) -> None:
-        """Branches can be without quotes (numbers, variables)."""
+    def test_string_comparison(self, evaluator: ExpressionEvaluator) -> None:
+        """Сравнение строк."""
+        names = {"status": "active"}
+        assert evaluator.evaluate("status == 'active'", names) is True
+        assert evaluator.evaluate("status != 'active'", names) is False
+
+    def test_logical_operators(self, evaluator: ExpressionEvaluator) -> None:
+        """Логические операторы."""
+        names = {"x": 5, "y": 10}
+        assert evaluator.evaluate("x > 3 and y < 20", names) is True
+        assert evaluator.evaluate("x > 10 or y < 5", names) is False
+        assert evaluator.evaluate("not (x > 10)", names) is True
+
+    def test_parentheses(self, evaluator: ExpressionEvaluator) -> None:
+        """Приоритет операций со скобками."""
+        names = {"x": 5, "y": 10, "z": 2}
+        assert evaluator.evaluate("x + y * z", names) == 25
+        assert evaluator.evaluate("(x + y) * z", names) == 30
+
+
+class TestEvaluateBuiltins:
+    """Встроенные функции."""
+
+    def test_len_upper_lower(self, evaluator: ExpressionEvaluator) -> None:
+        """len, upper, lower."""
+        names = {"text": "Hello", "items": [1, 2, 3]}
+        assert evaluator.evaluate("len(items)", names) == 3
+        assert evaluator.evaluate("upper(text)", names) == "HELLO"
+        assert evaluator.evaluate("lower(text)", names) == "hello"
+
+    def test_str_int_float_abs(self, evaluator: ExpressionEvaluator) -> None:
+        """str, int, float, abs."""
+        names = {"s": "123", "f": 45.67, "x": -42}
+        assert evaluator.evaluate("str(42)", names) == "42"
+        assert evaluator.evaluate("int(s)", names) == 123
+        assert evaluator.evaluate("int(f)", names) == 45
+        assert evaluator.evaluate("float(s)", names) == 123.0
+        assert evaluator.evaluate("abs(x)", names) == 42
+
+    def test_format_number(self, evaluator: ExpressionEvaluator) -> None:
+        """format_number(value, decimals)."""
+        names = {"value": 1234567.89}
+        assert evaluator.evaluate("format_number(value, 0)", names) == "1,234,568"
+        assert evaluator.evaluate("format_number(value, 2)", names) == "1,234,567.89"
+
+    def test_color_functions_return_markers(self, evaluator: ExpressionEvaluator) -> None:
+        """Цветовые функции возвращают маркеры __COLOR(color)text__COLOR_END__."""
+        names = {}
+        assert evaluator.evaluate("red('alert')", names) == "__COLOR(red)alert__COLOR_END__"
+        assert evaluator.evaluate("green('ok')", names) == "__COLOR(green)ok__COLOR_END__"
+
+
+# ======================================================================
+# ТЕСТЫ: evaluate_iif() — конструкция iif
+# ======================================================================
+
+class TestEvaluateIifBasic:
+    """Базовые конструкции iif."""
+
+    def test_iif_with_literals(self, evaluator: ExpressionEvaluator) -> None:
+        """iif с литералами."""
+        assert evaluator.evaluate_iif("1 > 0; 'yes'; 'no'", {}) == "yes"
+        assert evaluator.evaluate_iif("1 < 0; 'yes'; 'no'", {}) == "no"
+
+    def test_iif_with_variables(self, evaluator: ExpressionEvaluator) -> None:
+        """iif с переменными."""
+        names = {"amount": 1500}
+        assert evaluator.evaluate_iif("amount > 1000; 'HIGH'; 'LOW'", names) == "HIGH"
+
+    def test_iif_without_quotes_in_branches(self, evaluator: ExpressionEvaluator) -> None:
+        """Ветки могут быть без кавычек (числа, переменные)."""
         names = {"value": 10, "threshold": 5}
+        assert evaluator.evaluate_iif("value > threshold; value * 2; value / 2", names) == "20"
 
-        result = self.evaluator.evaluate_iif("value > threshold; value * 2; value / 2", names)
-        assert result == "20"
-
-        names2 = {"value": 2}
-        result = self.evaluator.evaluate_iif("value > 5; value * 2; value / 2", names2)
-        assert result == "1.0"
-
-    def test_iif_with_boolean_literals(self) -> None:
-        """Check iif with boolean literals True/False."""
+    def test_iif_with_boolean_literals(self, evaluator: ExpressionEvaluator) -> None:
+        """Булевы литералы."""
         names = {"success": True}
-        result = self.evaluator.evaluate_iif("success == True; 'OK'; 'FAIL'", names)
-        assert result == "OK"
+        assert evaluator.evaluate_iif("success == True; 'OK'; 'FAIL'", names) == "OK"
+        assert evaluator.evaluate_iif("success; 'OK'; 'FAIL'", names) == "OK"
 
-        names2 = {"success": False}
-        result = self.evaluator.evaluate_iif("success == True; 'OK'; 'FAIL'", names2)
-        assert result == "FAIL"
+    def test_iif_with_complex_condition(self, evaluator: ExpressionEvaluator) -> None:
+        """Сложное условие с and/or."""
+        names = {"age": 25, "has_license": True}
+        assert evaluator.evaluate_iif("age >= 18 and has_license; 'CAN_DRIVE'; 'CANNOT_DRIVE'", names) == "CAN_DRIVE"
 
-    def test_iif_with_boolean_direct(self) -> None:
-        """Condition can be a simple boolean variable."""
-        names = {"enabled": True}
-        result = self.evaluator.evaluate_iif("enabled; 'ON'; 'OFF'", names)
-        assert result == "ON"
 
-        names2 = {"enabled": False}
-        result = self.evaluator.evaluate_iif("enabled; 'ON'; 'OFF'", names2)
-        assert result == "OFF"
+class TestEvaluateIifNested:
+    """Вложенные iif."""
 
-    # ------------------------------------------------------------------
-    # TESTS: evaluate_iif() – nested constructs
-    # ------------------------------------------------------------------
-
-    def test_iif_nested(self) -> None:
-        """Check nested iif."""
+    def test_nested_iif(self, evaluator: ExpressionEvaluator) -> None:
+        """Один уровень вложенности."""
         names = {"amount": 1500000}
         expr = "amount > 1000000; 'CRITICAL'; iif(amount > 100000; 'HIGH'; 'NORMAL')"
-
-        result = self.evaluator.evaluate_iif(expr, names)
-        assert result == "CRITICAL"
+        assert evaluator.evaluate_iif(expr, names) == "CRITICAL"
 
         names2 = {"amount": 500000}
-        result = self.evaluator.evaluate_iif(expr, names2)
-        assert result == "HIGH"
+        assert evaluator.evaluate_iif(expr, names2) == "HIGH"
 
         names3 = {"amount": 50000}
-        result = self.evaluator.evaluate_iif(expr, names3)
-        assert result == "NORMAL"
+        assert evaluator.evaluate_iif(expr, names3) == "NORMAL"
 
-    def test_iif_deeply_nested(self) -> None:
-        """Deeply nested iif (three levels)."""
-        names = {"x": 150}
+    def test_deeply_nested_iif(self, evaluator: ExpressionEvaluator) -> None:
+        """Глубоко вложенные iif (три уровня)."""
         expr = "x > 100; 'A'; iif(x > 50; 'B'; iif(x > 10; 'C'; 'D'))"
+        assert evaluator.evaluate_iif(expr, {"x": 150}) == "A"
 
-        assert self.evaluator.evaluate_iif(expr, names) == "A"
 
-        names2 = {"x": 75}
-        assert self.evaluator.evaluate_iif(expr, names2) == "B"
+class TestEvaluateIifStringHandling:
+    """Обработка строк с кавычками и точками с запятой."""
 
-        names3 = {"x": 30}
-        assert self.evaluator.evaluate_iif(expr, names3) == "C"
-
-        names4 = {"x": 5}
-        assert self.evaluator.evaluate_iif(expr, names4) == "D"
-
-    # ------------------------------------------------------------------
-    # TESTS: evaluate_iif() – complex conditions
-    # ------------------------------------------------------------------
-
-    def test_iif_with_complex_condition(self) -> None:
-        """iif condition can contain logical operators."""
-        names = {"age": 25, "has_license": True}
-
-        result = self.evaluator.evaluate_iif("age >= 18 and has_license; 'CAN_DRIVE'; 'CANNOT_DRIVE'", names)
-        assert result == "CAN_DRIVE"
-
-        names2 = {"age": 16, "has_license": True}
-        result = self.evaluator.evaluate_iif("age >= 18 and has_license; 'CAN_DRIVE'; 'CANNOT_DRIVE'", names2)
-        assert result == "CANNOT_DRIVE"
-
-    def test_iif_with_arithmetic_in_condition(self) -> None:
-        """Arithmetic can be used in the condition."""
-        names = {"a": 10, "b": 20, "c": 5}
-
-        result = self.evaluator.evaluate_iif("a + b > c * 5; 'YES'; 'NO'", names)
-        # 10 + 20 = 30, c * 5 = 25 → 30 > 25 → YES
-        assert result == "YES"
-
-    # ------------------------------------------------------------------
-    # TESTS: evaluate_iif() – strings
-    # ------------------------------------------------------------------
-
-    def test_iif_with_strings_containing_semicolon(self) -> None:
-        """Strings in branches can contain semicolons."""
+    def test_string_with_semicolon(self, evaluator: ExpressionEvaluator) -> None:
+        """Строковые литералы могут содержать точку с запятой."""
         names = {"lang": "ru"}
+        expr = "lang == 'ru'; 'Привет; как дела?'; 'Hello; how are you?'"
+        assert evaluator.evaluate_iif(expr, names) == "Привет; как дела?"
 
-        result = self.evaluator.evaluate_iif("lang == 'ru'; 'Привет; как дела?'; 'Hello; how are you?'", names)
-        assert result == "Привет; как дела?"
-
-    def test_iif_with_strings_containing_quotes(self) -> None:
-        """Strings in branches can contain escaped quotes."""
+    def test_string_with_quotes(self, evaluator: ExpressionEvaluator) -> None:
+        """Строки могут содержать кавычки (escaped)."""
         names = {"lang": "ru"}
+        expr = "lang == 'ru'; 'Он сказал: \"Привет\"'; 'He said: \"Hello\"'"
+        assert evaluator.evaluate_iif(expr, names) == 'Он сказал: "Привет"'
 
-        result = self.evaluator.evaluate_iif("lang == 'ru'; 'Он сказал: \"Привет\"'; 'He said: \"Hello\"'", names)
-        assert result == 'Он сказал: "Привет"'
 
-    # ------------------------------------------------------------------
-    # TESTS: process_template() – replacing iif in text
-    # ------------------------------------------------------------------
+# ======================================================================
+# ТЕСТЫ: process_template() — замена iif в строке
+# ======================================================================
 
-    def test_process_template_no_iif(self) -> None:
-        """Template without iif is returned unchanged."""
+class TestProcessTemplate:
+    """Замена всех {iif(...)} в строке."""
+
+    def test_no_iif(self, evaluator: ExpressionEvaluator) -> None:
+        """Шаблон без iif возвращается без изменений."""
         template = "Simple message"
-        result = self.evaluator.process_template(template, {})
-        assert result == template
+        assert evaluator.process_template(template, {}) == template
 
-    def test_process_template_single_iif(self) -> None:
-        """Template with one iif."""
+    def test_single_iif(self, evaluator: ExpressionEvaluator) -> None:
+        """Один iif в середине строки."""
         names = {"success": True}
         template = "Status: {iif(success == True; 'OK'; 'FAIL')}"
-        result = self.evaluator.process_template(template, names)
-        assert result == "Status: OK"
+        assert evaluator.process_template(template, names) == "Status: OK"
 
-    def test_process_template_multiple_iif(self) -> None:
-        """Template with multiple iif constructs."""
+    def test_multiple_iif(self, evaluator: ExpressionEvaluator) -> None:
+        """Несколько iif в одной строке."""
         names = {"x": 5, "y": 10}
         template = "{iif(x > 3; 'A'; 'B')} and {iif(y < 5; 'C'; 'D')}"
-        result = self.evaluator.process_template(template, names)
-        assert result == "A and D"
+        assert evaluator.process_template(template, names) == "A and D"
 
-    def test_process_template_iif_at_beginning(self) -> None:
-        """iif at the beginning of the string."""
+    def test_iif_at_beginning(self, evaluator: ExpressionEvaluator) -> None:
+        """iif в начале строки."""
         names = {"count": 150}
         template = "{iif(count > 100; 'Many'; 'Few')} items"
-        result = self.evaluator.process_template(template, names)
-        assert result == "Many items"
+        assert evaluator.process_template(template, names) == "Many items"
 
-    def test_process_template_iif_at_end(self) -> None:
-        """iif at the end of the string."""
+    def test_iif_at_end(self, evaluator: ExpressionEvaluator) -> None:
+        """iif в конце строки."""
         names = {"success": False}
         template = "Result: {iif(success; 'OK'; 'Error')}"
-        result = self.evaluator.process_template(template, names)
-        assert result == "Result: Error"
+        assert evaluator.process_template(template, names) == "Result: Error"
 
-    # ------------------------------------------------------------------
-    # TESTS: Error handling
-    # ------------------------------------------------------------------
 
-    def test_iif_syntax_error_raises(self) -> None:
-        """
-        iif with wrong number of arguments raises LogTemplateError.
-        """
-        names: dict[str, object] = {}
+# ======================================================================
+# ТЕСТЫ: Разбор аргументов iif (_IifArgSplitter)
+# ======================================================================
 
+class TestIifArgSplitter:
+    """Разбор строки аргументов iif с учётом вложенных скобок и кавычек."""
+
+    def test_split_with_nested_parens(self) -> None:
+        """Вложенные скобки в условии не мешают разделению."""
+        raw = "a + (b * c) > 10; 'yes'; 'no'"
+        splitter = _IifArgSplitter(raw)
+        parts = splitter.split()
+        assert len(parts) == 3
+        assert parts[0] == "a + (b * c) > 10"
+        assert parts[1].strip() == "'yes'"
+        assert parts[2].strip() == "'no'"
+
+    def test_split_with_string_containing_semicolon(self) -> None:
+        """Строковые литералы с точкой с запятой не разбивают аргументы."""
+        raw = "lang == 'ru'; 'Привет; как дела?'; 'Hello; how are you?'"
+        splitter = _IifArgSplitter(raw)
+        parts = splitter.split()
+        assert len(parts) == 3
+        assert parts[0] == "lang == 'ru'"
+        assert parts[1] == " 'Привет; как дела?'"
+        assert parts[2] == " 'Hello; how are you?'"
+
+    def test_split_with_nested_iif(self) -> None:
+        """Вложенный iif во второй ветке."""
+        raw = "amount > 1000; 'HIGH'; iif(amount > 500; 'MEDIUM'; 'LOW')"
+        splitter = _IifArgSplitter(raw)
+        parts = splitter.split()
+        assert len(parts) == 3
+        assert parts[0] == "amount > 1000"
+        assert parts[1] == " 'HIGH'"
+        assert parts[2] == " iif(amount > 500; 'MEDIUM'; 'LOW')"
+
+
+# ======================================================================
+# ТЕСТЫ: Обработка ошибок
+# ======================================================================
+
+class TestErrorHandling:
+    """ExpressionEvaluator выбрасывает LogTemplateError при ошибках."""
+
+    def test_iif_wrong_number_of_args(self, evaluator: ExpressionEvaluator) -> None:
+        """iif с 2 аргументами вместо 3 → LogTemplateError."""
         with pytest.raises(LogTemplateError, match="iif expects 3 arguments"):
-            self.evaluator.evaluate_iif("amount > 1000; 'HIGH'", names)
+            evaluator.evaluate_iif("amount > 1000; 'HIGH'", {})
 
-    def test_iif_undefined_variable_raises(self) -> None:
-        """
-        Referencing an undefined variable in iif raises LogTemplateError.
-        """
-        names: dict[str, object] = {}
-
+    def test_iif_undefined_variable(self, evaluator: ExpressionEvaluator) -> None:
+        """Переменная не определена → LogTemplateError."""
         with pytest.raises(LogTemplateError, match="Variable 'missing' not found"):
-            self.evaluator.evaluate_iif("missing > 10; 'yes'; 'no'", names)
+            evaluator.evaluate_iif("missing > 10; 'yes'; 'no'", {})
 
-    def test_evaluate_invalid_expression_raises(self) -> None:
-        """
-        Invalid expression in evaluate raises LogTemplateError.
-        """
+    def test_evaluate_invalid_expression(self, evaluator: ExpressionEvaluator) -> None:
+        """Синтаксически неверное выражение → LogTemplateError."""
         with pytest.raises(LogTemplateError, match="Error evaluating expression"):
-            self.evaluator.evaluate(">>>invalid<<<", {})
+            evaluator.evaluate(">>>invalid<<<", {})
 
-    def test_iif_invalid_condition_raises(self) -> None:
-        """
-        Invalid condition in iif raises LogTemplateError.
-        """
-        names = {"x": 10}
-
-        with pytest.raises(LogTemplateError, match="Error evaluating expression"):
-            self.evaluator.evaluate_iif("x >>> 5; 'A'; 'B'", names)
-
-    def test_iif_division_by_zero_raises(self) -> None:
-        """
-        Division by zero in iif raises LogTemplateError.
-        """
+    def test_iif_division_by_zero(self, evaluator: ExpressionEvaluator) -> None:
+        """Деление на ноль → LogTemplateError."""
         names = {"x": 10, "y": 0}
-
         with pytest.raises(LogTemplateError, match="Error evaluating expression"):
-            self.evaluator.evaluate_iif("y == 0; x / y; x * 2", names)
+            evaluator.evaluate_iif("y == 0; x / y; x * 2", names)
 
-    # ------------------------------------------------------------------
-    # TESTS: Literal values (without names)
-    # ------------------------------------------------------------------
-
-    def test_iif_with_literal_values(self) -> None:
-        """
-        Check iif with already substituted literal values.
-        simpleeval receives numbers/strings as literals, names={}.
-        """
-        # Numeric comparison – values already substituted as literals
-        result = self.evaluator.evaluate_iif("1500.0 > 1000; 'HIGH'; 'LOW'", {})
-        assert result == "HIGH"
-
-        result = self.evaluator.evaluate_iif("500.0 > 1000; 'HIGH'; 'LOW'", {})
-        assert result == "LOW"
-
-    def test_iif_with_literal_string_comparison(self) -> None:
-        """
-        Check iif with string comparison via literals.
-        """
-        result = self.evaluator.evaluate_iif("'admin' == 'admin'; 'ROOT'; 'USER'", {})
-        assert result == "ROOT"
-
-        result = self.evaluator.evaluate_iif("'agent_1' == 'admin'; 'ROOT'; 'USER'", {})
-        assert result == "USER"
-
-    def test_iif_with_literal_bool(self) -> None:
-        """
-        Check iif with boolean literals.
-        """
-        result = self.evaluator.evaluate_iif("True == True; 'OK'; 'FAIL'", {})
-        assert result == "OK"
-
-        result = self.evaluator.evaluate_iif("False == True; 'OK'; 'FAIL'", {})
-        assert result == "FAIL"
-
-    def test_iif_with_literal_arithmetic(self) -> None:
-        """Check iif with arithmetic on literals."""
-        result = self.evaluator.evaluate_iif("10 + 20 > 25; 'YES'; 'NO'", {})
-        assert result == "YES"
-
-    # ------------------------------------------------------------------
-    # TESTS: process_template with errors
-    # ------------------------------------------------------------------
-
-    def test_process_template_invalid_iif_raises(self) -> None:
-        """
-        Invalid iif inside template raises LogTemplateError.
-        """
+    def test_process_template_invalid_iif(self, evaluator: ExpressionEvaluator) -> None:
+        """Невалидный iif внутри шаблона → LogTemplateError."""
         with pytest.raises(LogTemplateError):
-            self.evaluator.process_template("Result: {iif(missing > 10; 'yes'; 'no')}", {})
+            evaluator.process_template("Bad: {iif(x > 10; 'yes')}", {})
 
-    def test_process_template_with_malformed_iif_raises(self) -> None:
-        """
-        iif with incorrect syntax inside template raises error.
-        """
+    def test_process_template_missing_variable(self, evaluator: ExpressionEvaluator) -> None:
+        """Переменная не определена в iif → LogTemplateError."""
         with pytest.raises(LogTemplateError):
-            self.evaluator.process_template("Bad: {iif(x > 10; 'yes')}", {})
+            evaluator.process_template("Result: {iif(missing > 10; 'yes'; 'no')}", {})

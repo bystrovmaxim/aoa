@@ -1,112 +1,331 @@
+# tests/logging/test_log_scope.py
+"""
+Тесты LogScope — объекта, описывающего местоположение в конвейере выполнения.
+
+═══════════════════════════════════════════════════════════════════════════════
+НАЗНАЧЕНИЕ
+═══════════════════════════════════════════════════════════════════════════════
+
+LogScope — объект, хранящий информацию о контексте вызова логгера:
+в каком действии, аспекте, плагине, на каком уровне вложенности
+и при каком событии происходит логирование.
+
+Значения передаются как kwargs и становятся атрибутами экземпляра.
+Наследует ReadableMixin, поддерживая dict-подобный доступ.
+
+═══════════════════════════════════════════════════════════════════════════════
+ПОЛЯ SCOPE
+═══════════════════════════════════════════════════════════════════════════════
+
+Для аспектов действий:
+    machine, mode, action, aspect, nest_level
+
+Для плагинов:
+    machine, mode, plugin, action, event, nest_level
+
+═══════════════════════════════════════════════════════════════════════════════
+ПОКРЫВАЕМЫЕ СЦЕНАРИИ
+═══════════════════════════════════════════════════════════════════════════════
+
+- as_dotpath() возвращает все непустые строковые значения, объединённые точками.
+- Порядок ключей сохраняется, пустые значения пропускаются.
+- Результат кешируется после первого вызова.
+- Dict-подобный доступ через ReadableMixin (__getitem__, __contains__, get, keys, values, items).
+- to_dict() возвращает копию всех полей.
+"""
+
 import pytest
 
 from action_machine.logging.log_scope import LogScope
 
+# ======================================================================
+# ТЕСТЫ: as_dotpath()
+# ======================================================================
 
-class TestLogScope:
 
-    def test_as_dotpath_single_key(self):
+class TestAsDotpath:
+    """Метод as_dotpath() формирует строку из всех непустых полей."""
+
+    def test_single_key(self) -> None:
+        """Один ключ → просто значение."""
+        # Arrange
         scope = LogScope(action="ProcessOrderAction")
-        assert scope.as_dotpath() == "ProcessOrderAction"
 
-    def test_as_dotpath_multiple_keys(self):
+        # Act
+        result = scope.as_dotpath()
+
+        # Assert
+        assert result == "ProcessOrderAction"
+
+    def test_multiple_keys(self) -> None:
+        """Несколько ключей → значения через точку."""
+        # Arrange
         scope = LogScope(
             action="ProcessOrderAction",
             aspect="validate_user",
             event="before",
         )
-        assert scope.as_dotpath() == "ProcessOrderAction.validate_user.before"
 
-    def test_as_dotpath_empty_scope(self):
-        scope = LogScope()
-        assert scope.as_dotpath() == ""
+        # Act
+        result = scope.as_dotpath()
 
-    def test_as_dotpath_skips_empty_values(self):
-        scope = LogScope(action="MyAction", aspect="", event="start", extra="")
-        assert scope.as_dotpath() == "MyAction.start"
+        # Assert
+        assert result == "ProcessOrderAction.validate_user.before"
 
-    def test_as_dotpath_preserves_order(self):
+    def test_skips_empty_values(self) -> None:
+        """Пустые строки и None пропускаются."""
+        # Arrange
+        scope = LogScope(
+            action="MyAction",
+            aspect="",
+            event="start",
+            extra=None,
+        )
+
+        # Act
+        result = scope.as_dotpath()
+
+        # Assert — aspect пропущен, extra пропущен
+        assert result == "MyAction.start"
+
+    def test_preserves_order(self) -> None:
+        """Порядок ключей соответствует порядку kwargs при создании."""
+        # Arrange
         scope = LogScope(first="1", second="2", third="3")
-        assert scope.as_dotpath() == "1.2.3"
 
-    def test_as_dotpath_cached(self):
+        # Act
+        result = scope.as_dotpath()
+
+        # Assert
+        assert result == "1.2.3"
+
+    def test_caches_result(self) -> None:
+        """Результат кешируется после первого вызова."""
+        # Arrange
         scope = LogScope(action="MyAction", aspect="load")
-        result1 = scope.as_dotpath()
-        assert result1 == "MyAction.load"
-        assert scope._cached_path == "MyAction.load"
-        result2 = scope.as_dotpath()
-        assert result2 == "MyAction.load"
-        assert result2 is result1
 
-    def test_getitem(self):
+        # Act
+        first = scope.as_dotpath()
+        second = scope.as_dotpath()
+
+        # Assert
+        assert first == "MyAction.load"
+        assert second == "MyAction.load"
+        assert first is second
+        assert scope._cached_path == "MyAction.load"
+
+    def test_empty_scope(self) -> None:
+        """Пустой scope → пустая строка."""
+        # Arrange
+        scope = LogScope()
+
+        # Act
+        result = scope.as_dotpath()
+
+        # Assert
+        assert result == ""
+
+    def test_scope_with_unicode(self) -> None:
+        """Юникодные символы корректно включаются в dotpath."""
+        # Arrange
+        scope = LogScope(action="действие", event="🚀 старт")
+
+        # Act
+        result = scope.as_dotpath()
+
+        # Assert
+        assert "действие" in result
+        assert "🚀" in result
+
+    def test_scope_with_special_characters(self) -> None:
+        """Специальные символы (точки, слеши) не обрабатываются особым образом."""
+        # Arrange
+        scope = LogScope(action="Test.Action", event="before:start", path="/api/v1/test")
+
+        # Act
+        result = scope.as_dotpath()
+
+        # Assert
+        assert result == "Test.Action.before:start./api/v1/test"
+
+
+# ======================================================================
+# ТЕСТЫ: Dict-подобный доступ (ReadableMixin)
+# ======================================================================
+
+
+class TestDictAccess:
+    """LogScope поддерживает dict-подобный доступ."""
+
+    def test_getitem(self) -> None:
+        """__getitem__ возвращает значение поля."""
+        # Arrange
         scope = LogScope(action="MyAction")
+
+        # Act & Assert
         assert scope["action"] == "MyAction"
 
-    def test_getitem_missing_raises_keyerror(self):
+    def test_getitem_missing_raises_key_error(self) -> None:
+        """Несуществующий ключ → KeyError."""
+        # Arrange
         scope = LogScope(action="MyAction")
-        with pytest.raises(KeyError, match="missing"):
+
+        # Act & Assert
+        with pytest.raises(KeyError):
             _ = scope["missing"]
 
-    def test_contains(self):
+    def test_contains(self) -> None:
+        """Оператор in проверяет наличие атрибута."""
+        # Arrange
         scope = LogScope(action="MyAction", aspect="load")
+
+        # Act & Assert
         assert "action" in scope
         assert "aspect" in scope
         assert "missing" not in scope
 
-    def test_get_with_default(self):
+    def test_get_with_default(self) -> None:
+        """get() возвращает значение или default."""
+        # Arrange
         scope = LogScope(action="MyAction")
+
+        # Act & Assert
         assert scope.get("action") == "MyAction"
         assert scope.get("missing", "fallback") == "fallback"
         assert scope.get("missing") is None
 
-    def test_keys(self):
+    def test_keys(self) -> None:
+        """keys() возвращает список имён публичных полей."""
+        # Arrange
         scope = LogScope(action="A", aspect="B", event="C")
-        # keys() возвращает список публичных атрибутов
-        assert set(scope.keys()) == {"action", "aspect", "event"}
 
-    def test_values(self):
-        scope = LogScope(action="A", aspect="B", event="C")
-        assert set(scope.values()) == {"A", "B", "C"}
+        # Act
+        keys = scope.keys()
 
-    def test_items(self):
+        # Assert
+        assert set(keys) == {"action", "aspect", "event"}
+
+    def test_values(self) -> None:
+        """values() возвращает список значений."""
+        # Arrange
         scope = LogScope(action="A", aspect="B", event="C")
+
+        # Act
+        values = scope.values()
+
+        # Assert
+        assert set(values) == {"A", "B", "C"}
+
+    def test_items(self) -> None:
+        """items() возвращает пары (ключ, значение)."""
+        # Arrange
+        scope = LogScope(action="A", aspect="B", event="C")
+
+        # Act
         items = scope.items()
+
+        # Assert
         assert len(items) == 3
         assert ("action", "A") in items
         assert ("aspect", "B") in items
         assert ("event", "C") in items
 
-    def test_to_dict_returns_copy(self):
+
+# ======================================================================
+# ТЕСТЫ: to_dict()
+# ======================================================================
+
+
+class TestToDict:
+    """to_dict() возвращает копию всех полей."""
+
+    def test_returns_copy(self) -> None:
+        """to_dict() возвращает новый словарь, изменения не влияют на scope."""
+        # Arrange
         scope = LogScope(action="MyAction")
+
+        # Act
         d = scope.to_dict()
         d["action"] = "Modified"
+
+        # Assert
         assert scope["action"] == "MyAction"
         assert d["action"] == "Modified"
 
-    def test_different_scope_lengths(self):
-        scope1 = LogScope(action="A")
-        scope2 = LogScope(action="A", aspect="B", event="C")
-        scope3 = LogScope(action="A", plugin="MetricsPlugin")
-        scope4 = LogScope(action="A", aspect="B", nested_action="ChildAction")
+    def test_includes_all_fields(self) -> None:
+        """to_dict() включает все переданные поля."""
+        # Arrange
+        scope = LogScope(action="A", aspect="B", event="C", nest_level=2)
 
-        assert scope1.as_dotpath() == "A"
-        assert scope2.as_dotpath() == "A.B.C"
-        assert scope3.as_dotpath() == "A.MetricsPlugin"
-        assert scope4.as_dotpath() == "A.B.ChildAction"
+        # Act
+        d = scope.to_dict()
 
-    def test_scope_with_special_characters(self):
-        scope = LogScope(action="Test.Action", event="before:start", path="/api/v1/test")
-        assert scope.as_dotpath() == "Test.Action.before:start./api/v1/test"
+        # Assert
+        assert d == {"action": "A", "aspect": "B", "event": "C", "nest_level": 2}
 
-    # Тесты для __repr__ удалены, так как мы не определяем кастомный __repr__
 
-    def test_scope_with_empty_string_key(self):
+# ======================================================================
+# ТЕСТЫ: Различные конфигурации scope
+# ======================================================================
+
+
+class TestDifferentScopes:
+    """Различные наборы полей для scope."""
+
+    def test_aspect_scope(self) -> None:
+        """Scope для аспекта действия."""
+        # Arrange & Act
+        scope = LogScope(
+            machine="ActionProductMachine",
+            mode="production",
+            action="module.CreateOrderAction",
+            aspect="process_payment",
+            nest_level=0,
+        )
+
+        # Assert
+        assert scope.as_dotpath() == "ActionProductMachine.production.module.CreateOrderAction.process_payment.0"
+        assert scope["machine"] == "ActionProductMachine"
+        assert scope["aspect"] == "process_payment"
+
+    def test_plugin_scope(self) -> None:
+        """Scope для обработчика плагина."""
+        # Arrange & Act
+        scope = LogScope(
+            machine="ActionProductMachine",
+            mode="production",
+            plugin="MetricsPlugin",
+            action="module.CreateOrderAction",
+            event="global_finish",
+            nest_level=1,
+        )
+
+        # Assert
+        assert scope.as_dotpath() == "ActionProductMachine.production.MetricsPlugin.module.CreateOrderAction.global_finish.1"
+        assert "plugin" in scope
+        assert "event" in scope
+        assert "aspect" not in scope
+
+    def test_empty_string_key(self) -> None:
+        """Пустое строковое значение пропускается в dotpath, но поле существует."""
+        # Arrange
         scope = LogScope(action="", event="start")
-        assert scope.as_dotpath() == "start"
+
+        # Act
+        dotpath = scope.as_dotpath()
+
+        # Assert — action пропущен, event остался
+        assert dotpath == "start"
         assert "action" in scope
         assert scope["action"] == ""
 
-    def test_scope_with_unicode(self):
-        scope = LogScope(action="действие", event="🚀 старт")
-        assert "действие" in scope.as_dotpath()
-        assert "🚀" in scope.as_dotpath()
+    def test_none_key(self) -> None:
+        """None-значение пропускается в dotpath."""
+        # Arrange
+        scope = LogScope(action="MyAction", aspect=None, event="start")
+
+        # Act
+        dotpath = scope.as_dotpath()
+
+        # Assert — aspect пропущен
+        assert dotpath == "MyAction.start"

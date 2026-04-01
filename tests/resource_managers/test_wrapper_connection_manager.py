@@ -1,15 +1,25 @@
 # tests/resource_managers/test_wrapper_connection_manager.py
 """
-Тесты для WrapperConnectionManager — прокси-обёртки, запрещающей управление
+Тесты WrapperConnectionManager — прокси-обёртки, запрещающей управление
 транзакциями на вложенных уровнях.
+
+═══════════════════════════════════════════════════════════════════════════════
+НАЗНАЧЕНИЕ
+═══════════════════════════════════════════════════════════════════════════════
+
+WrapperConnectionManager — прокси-обёртка вокруг реального IConnectionManager.
+Создаётся автоматически при передаче connections в дочерние действия через
+ToolsBox.run(). Обёртка запрещает дочернему действию управлять жизненным
+циклом ресурса (open, commit, rollback), но разрешает выполнять запросы
+(execute). Флаг rollup наследуется от оригинального менеджера.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ПОКРЫВАЕМЫЕ СЦЕНАРИИ
 ═══════════════════════════════════════════════════════════════════════════════
 
-Инстанциирование:
-    - WrapperConnectionManager успешно создаётся (get_wrapper_class реализован).
+Конструктор:
     - Хранит ссылку на оригинальный менеджер.
+    - Наследует rollup от оригинального менеджера.
 
 Запрет транзакций:
     - open() → TransactionProhibitedError.
@@ -23,7 +33,7 @@
 
 get_wrapper_class:
     - Возвращает WrapperConnectionManager (для повторной обёртки).
-    - Синхронный метод (не корутина).
+    - Синхронный метод.
 
 Двойная обёртка (вложенность):
     - WrapperConnectionManager оборачивается повторно через get_wrapper_class.
@@ -47,10 +57,9 @@ from action_machine.core.meta_decorator import meta
 from action_machine.resource_managers.iconnection_manager import IConnectionManager
 from action_machine.resource_managers.wrapper_connection_manager import WrapperConnectionManager
 
-# ═════════════════════════════════════════════════════════════════════════════
+# ======================================================================
 # Mock-менеджер соединений для тестов
-# ═════════════════════════════════════════════════════════════════════════════
-
+# ======================================================================
 
 @meta(description="Мок-менеджер соединений для тестов")
 class MockConnectionManager(IConnectionManager):
@@ -81,10 +90,9 @@ class MockConnectionManager(IConnectionManager):
         return WrapperConnectionManager
 
 
-# ═════════════════════════════════════════════════════════════════════════════
+# ======================================================================
 # Фикстуры
-# ═════════════════════════════════════════════════════════════════════════════
-
+# ======================================================================
 
 @pytest.fixture
 def mock_manager() -> MockConnectionManager:
@@ -104,93 +112,100 @@ def double_wrapper(wrapper: WrapperConnectionManager) -> WrapperConnectionManage
     return WrapperConnectionManager(wrapper)
 
 
-# ═════════════════════════════════════════════════════════════════════════════
-# ТЕСТЫ: Инстанциирование
-# ═════════════════════════════════════════════════════════════════════════════
+# ======================================================================
+# ТЕСТЫ: Конструктор
+# ======================================================================
 
-
-class TestInstantiation:
+class TestConstructor:
     """WrapperConnectionManager успешно создаётся."""
 
-    def test_creates_successfully(self, mock_manager):
-        """Экземпляр создаётся без TypeError (get_wrapper_class реализован)."""
-        wrapper = WrapperConnectionManager(mock_manager)
-        assert wrapper is not None
+    def test_creates_successfully(self, mock_manager: MockConnectionManager) -> None:
+        """Экземпляр создаётся без ошибок."""
+        w = WrapperConnectionManager(mock_manager)
+        assert w is not None
 
-    def test_stores_original_manager(self, wrapper, mock_manager):
+    def test_stores_original_manager(self, wrapper: WrapperConnectionManager, mock_manager: MockConnectionManager) -> None:
         """Хранит ссылку на оригинальный менеджер."""
         assert wrapper._connection_manager is mock_manager
 
-    def test_is_instance_of_iconnection_manager(self, wrapper):
+    def test_inherits_rollup_from_original(self, mock_manager: MockConnectionManager) -> None:
+        """rollup наследуется от оригинального менеджера."""
+        mock_manager._rollup = True
+        wrapper = WrapperConnectionManager(mock_manager)
+        assert wrapper.rollup is True
+
+    def test_is_instance_of_iconnection_manager(self, wrapper: WrapperConnectionManager) -> None:
         """Является экземпляром IConnectionManager."""
         assert isinstance(wrapper, IConnectionManager)
 
 
-# ═════════════════════════════════════════════════════════════════════════════
+# ======================================================================
 # ТЕСТЫ: Запрет транзакций
-# ═════════════════════════════════════════════════════════════════════════════
-
+# ======================================================================
 
 class TestTransactionProhibited:
     """Обёртка запрещает управление транзакциями."""
 
     @pytest.mark.anyio
-    async def test_open_raises_prohibited(self, wrapper):
+    async def test_open_raises_prohibited(self, wrapper: WrapperConnectionManager) -> None:
         """open() бросает TransactionProhibitedError."""
         with pytest.raises(TransactionProhibitedError, match="open недоступен"):
             await wrapper.open()
 
     @pytest.mark.anyio
-    async def test_commit_raises_prohibited(self, wrapper):
+    async def test_commit_raises_prohibited(self, wrapper: WrapperConnectionManager) -> None:
         """commit() бросает TransactionProhibitedError."""
         with pytest.raises(TransactionProhibitedError, match="commit недоступен"):
             await wrapper.commit()
 
     @pytest.mark.anyio
-    async def test_rollback_raises_prohibited(self, wrapper):
+    async def test_rollback_raises_prohibited(self, wrapper: WrapperConnectionManager) -> None:
         """rollback() бросает TransactionProhibitedError."""
         with pytest.raises(TransactionProhibitedError, match="rollback недоступен"):
             await wrapper.rollback()
 
     @pytest.mark.anyio
-    async def test_open_does_not_call_original(self, wrapper, mock_manager):
+    async def test_open_does_not_call_original(self, wrapper: WrapperConnectionManager, mock_manager: MockConnectionManager) -> None:
         """open() не вызывает оригинальный менеджер."""
         with pytest.raises(TransactionProhibitedError):
             await wrapper.open()
         mock_manager.open.assert_not_called()
 
     @pytest.mark.anyio
-    async def test_commit_does_not_call_original(self, wrapper, mock_manager):
+    async def test_commit_does_not_call_original(self, wrapper: WrapperConnectionManager, mock_manager: MockConnectionManager) -> None:
         """commit() не вызывает оригинальный менеджер."""
         with pytest.raises(TransactionProhibitedError):
             await wrapper.commit()
         mock_manager.commit.assert_not_called()
 
     @pytest.mark.anyio
-    async def test_rollback_does_not_call_original(self, wrapper, mock_manager):
+    async def test_rollback_does_not_call_original(self, wrapper: WrapperConnectionManager, mock_manager: MockConnectionManager) -> None:
         """rollback() не вызывает оригинальный менеджер."""
         with pytest.raises(TransactionProhibitedError):
             await wrapper.rollback()
         mock_manager.rollback.assert_not_called()
 
 
-# ═════════════════════════════════════════════════════════════════════════════
+# ======================================================================
 # ТЕСТЫ: Делегирование execute
-# ═════════════════════════════════════════════════════════════════════════════
-
+# ======================================================================
 
 class TestExecuteDelegation:
     """execute() делегирует в оригинальный менеджер."""
 
     @pytest.mark.anyio
-    async def test_execute_delegates_to_original(self, wrapper, mock_manager):
+    async def test_execute_delegates_to_original(
+        self, wrapper: WrapperConnectionManager, mock_manager: MockConnectionManager,
+    ) -> None:
         """execute() вызывает execute оригинального менеджера."""
         result = await wrapper.execute("SELECT 1")
         mock_manager.execute.assert_called_once_with("SELECT 1", None)
         assert result == "query_result"
 
     @pytest.mark.anyio
-    async def test_execute_passes_params(self, wrapper, mock_manager):
+    async def test_execute_passes_params(
+        self, wrapper: WrapperConnectionManager, mock_manager: MockConnectionManager,
+    ) -> None:
         """execute() пробрасывает параметры."""
         await wrapper.execute("SELECT * FROM users WHERE id = $1", (42,))
         mock_manager.execute.assert_called_once_with(
@@ -198,7 +213,9 @@ class TestExecuteDelegation:
         )
 
     @pytest.mark.anyio
-    async def test_execute_wraps_error_in_handle_error(self, wrapper, mock_manager):
+    async def test_execute_wraps_error_in_handle_error(
+        self, wrapper: WrapperConnectionManager, mock_manager: MockConnectionManager,
+    ) -> None:
         """execute() оборачивает ошибку оригинала в HandleError."""
         mock_manager.execute.side_effect = RuntimeError("connection lost")
 
@@ -206,7 +223,9 @@ class TestExecuteDelegation:
             await wrapper.execute("SELECT 1")
 
     @pytest.mark.anyio
-    async def test_execute_preserves_original_error_as_cause(self, wrapper, mock_manager):
+    async def test_execute_preserves_original_error_as_cause(
+        self, wrapper: WrapperConnectionManager, mock_manager: MockConnectionManager,
+    ) -> None:
         """HandleError содержит оригинальную ошибку в __cause__."""
         original_error = RuntimeError("timeout")
         mock_manager.execute.side_effect = original_error
@@ -217,76 +236,78 @@ class TestExecuteDelegation:
         assert exc_info.value.__cause__ is original_error
 
 
-# ═════════════════════════════════════════════════════════════════════════════
+# ======================================================================
 # ТЕСТЫ: get_wrapper_class
-# ═════════════════════════════════════════════════════════════════════════════
-
+# ======================================================================
 
 class TestGetWrapperClass:
     """get_wrapper_class() возвращает WrapperConnectionManager."""
 
-    def test_returns_wrapper_class(self, wrapper):
+    def test_returns_wrapper_class(self, wrapper: WrapperConnectionManager) -> None:
         """Возвращает WrapperConnectionManager для повторной обёртки."""
         result = wrapper.get_wrapper_class()
         assert result is WrapperConnectionManager
 
-    def test_is_synchronous(self, wrapper):
+    def test_is_synchronous(self, wrapper: WrapperConnectionManager) -> None:
         """Метод синхронный — возвращает класс, не корутину."""
         result = wrapper.get_wrapper_class()
         assert isinstance(result, type)
 
-    def test_returned_class_is_subclass_of_iconnection_manager(self, wrapper):
+    def test_returned_class_is_subclass_of_iconnection_manager(self, wrapper: WrapperConnectionManager) -> None:
         """Возвращённый класс — подкласс IConnectionManager."""
         result = wrapper.get_wrapper_class()
         assert issubclass(result, IConnectionManager)
 
 
-# ═════════════════════════════════════════════════════════════════════════════
+# ======================================================================
 # ТЕСТЫ: Двойная обёртка (вложенность уровня 2+)
-# ═════════════════════════════════════════════════════════════════════════════
-
+# ======================================================================
 
 class TestDoubleWrapping:
     """WrapperConnectionManager корректно оборачивается повторно."""
 
-    def test_double_wrapper_creates_successfully(self, wrapper):
+    def test_double_wrapper_creates_successfully(self, wrapper: WrapperConnectionManager) -> None:
         """Двойная обёртка создаётся без ошибок."""
         double = WrapperConnectionManager(wrapper)
         assert double is not None
 
-    def test_double_wrapper_stores_inner_wrapper(self, double_wrapper, wrapper):
+    def test_double_wrapper_stores_inner_wrapper(
+        self, double_wrapper: WrapperConnectionManager, wrapper: WrapperConnectionManager,
+    ) -> None:
         """Двойная обёртка хранит ссылку на внутреннюю обёртку."""
         assert double_wrapper._connection_manager is wrapper
 
     @pytest.mark.anyio
-    async def test_double_wrapper_prohibits_open(self, double_wrapper):
+    async def test_double_wrapper_prohibits_open(self, double_wrapper: WrapperConnectionManager) -> None:
         """Двойная обёртка запрещает open()."""
         with pytest.raises(TransactionProhibitedError):
             await double_wrapper.open()
 
     @pytest.mark.anyio
-    async def test_double_wrapper_prohibits_commit(self, double_wrapper):
+    async def test_double_wrapper_prohibits_commit(self, double_wrapper: WrapperConnectionManager) -> None:
         """Двойная обёртка запрещает commit()."""
         with pytest.raises(TransactionProhibitedError):
             await double_wrapper.commit()
 
     @pytest.mark.anyio
-    async def test_double_wrapper_prohibits_rollback(self, double_wrapper):
+    async def test_double_wrapper_prohibits_rollback(self, double_wrapper: WrapperConnectionManager) -> None:
         """Двойная обёртка запрещает rollback()."""
         with pytest.raises(TransactionProhibitedError):
             await double_wrapper.rollback()
 
     @pytest.mark.anyio
     async def test_double_wrapper_delegates_execute_to_original(
-        self, double_wrapper, mock_manager
-    ):
+        self, double_wrapper: WrapperConnectionManager, mock_manager: MockConnectionManager,
+    ) -> None:
         """execute() через двойную обёртку доходит до оригинального менеджера."""
         result = await double_wrapper.execute("SELECT 1")
         mock_manager.execute.assert_called_once_with("SELECT 1", None)
         assert result == "query_result"
 
     @pytest.mark.anyio
-    async def test_triple_wrapper_works(self, double_wrapper, mock_manager):
+    async def test_triple_wrapper_works(
+        self, double_wrapper: WrapperConnectionManager, mock_manager: MockConnectionManager,
+    ) -> None:
         """Тройная обёртка тоже работает — execute доходит до оригинала."""
         triple = WrapperConnectionManager(double_wrapper)
         result = await triple.execute("SELECT 42")
@@ -294,10 +315,9 @@ class TestDoubleWrapping:
         assert result == "query_result"
 
 
-# ═════════════════════════════════════════════════════════════════════════════
+# ======================================================================
 # ТЕСТЫ: Интеграция с _wrap_connections
-# ═════════════════════════════════════════════════════════════════════════════
-
+# ======================================================================
 
 class TestWrapConnectionsIntegration:
     """
@@ -306,7 +326,7 @@ class TestWrapConnectionsIntegration:
     """
 
     @staticmethod
-    def _wrap_connections(connections):
+    def _wrap_connections(connections: dict | None) -> dict | None:
         """Копия логики ToolsBox._wrap_connections для изолированного теста."""
         if connections is None:
             return None
@@ -319,7 +339,7 @@ class TestWrapConnectionsIntegration:
                 wrapped[key] = connection
         return wrapped
 
-    def test_wraps_mock_manager(self, mock_manager):
+    def test_wraps_mock_manager(self, mock_manager: MockConnectionManager) -> None:
         """Оборачивает MockConnectionManager в WrapperConnectionManager."""
         connections = {"db": mock_manager}
         wrapped = self._wrap_connections(connections)
@@ -328,7 +348,7 @@ class TestWrapConnectionsIntegration:
         assert isinstance(wrapped["db"], WrapperConnectionManager)
         assert wrapped["db"]._connection_manager is mock_manager
 
-    def test_wraps_wrapper_again(self, wrapper):
+    def test_wraps_wrapper_again(self, wrapper: WrapperConnectionManager) -> None:
         """Повторная обёртка WrapperConnectionManager работает."""
         connections = {"db": wrapper}
         wrapped = self._wrap_connections(connections)
@@ -337,7 +357,7 @@ class TestWrapConnectionsIntegration:
         assert wrapped["db"]._connection_manager is wrapper
 
     @pytest.mark.anyio
-    async def test_wrapped_execute_works(self, mock_manager):
+    async def test_wrapped_execute_works(self, mock_manager: MockConnectionManager) -> None:
         """execute() через обёрнутый менеджер работает."""
         connections = {"db": mock_manager}
         wrapped = self._wrap_connections(connections)
@@ -349,7 +369,7 @@ class TestWrapConnectionsIntegration:
         assert result == "query_result"
 
     @pytest.mark.anyio
-    async def test_wrapped_prohibits_transactions(self, mock_manager):
+    async def test_wrapped_prohibits_transactions(self, mock_manager: MockConnectionManager) -> None:
         """Обёрнутый менеджер запрещает транзакции."""
         connections = {"db": mock_manager}
         wrapped = self._wrap_connections(connections)
@@ -364,7 +384,7 @@ class TestWrapConnectionsIntegration:
             await wrapped["db"].rollback()
 
     @pytest.mark.anyio
-    async def test_double_wrap_execute_reaches_original(self, mock_manager):
+    async def test_double_wrap_execute_reaches_original(self, mock_manager: MockConnectionManager) -> None:
         """Двойная обёртка через _wrap_connections — execute доходит до оригинала."""
         # Первая обёртка (parent → child)
         wrapped_1 = self._wrap_connections({"db": mock_manager})
@@ -375,11 +395,11 @@ class TestWrapConnectionsIntegration:
         mock_manager.execute.assert_called_once_with("SELECT 1", None)
         assert result == "query_result"
 
-    def test_none_connections_returns_none(self):
+    def test_none_connections_returns_none(self) -> None:
         """None connections → None."""
         assert self._wrap_connections(None) is None
 
-    def test_empty_connections_returns_empty(self):
+    def test_empty_connections_returns_empty(self) -> None:
         """Пустой dict → пустой dict."""
         result = self._wrap_connections({})
         assert result == {}

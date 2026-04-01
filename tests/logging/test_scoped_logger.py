@@ -1,7 +1,30 @@
 # tests/logging/test_scoped_logger.py
 """
-Тесты для ScopedLogger — логгера, привязанного к scope текущего аспекта
-или плагина.
+Тесты ScopedLogger — логгера, привязанного к scope текущего аспекта или плагина.
+
+═══════════════════════════════════════════════════════════════════════════════
+НАЗНАЧЕНИЕ
+═══════════════════════════════════════════════════════════════════════════════
+
+ScopedLogger — обёртка над LogCoordinator, привязанная к конкретному
+scope выполнения. Автоматически добавляет координаты выполнения в LogScope
+и передаёт их в LogCoordinator при каждом вызове info/warning/error/debug.
+
+Создаётся ActionProductMachine (для аспектов) или PluginRunContext
+(для плагинов). Аспекты получают ScopedLogger через ToolsBox,
+обработчики плагинов — через параметр log.
+
+═══════════════════════════════════════════════════════════════════════════════
+ДВА РЕЖИМА ИСПОЛЬЗОВАНИЯ
+═══════════════════════════════════════════════════════════════════════════════
+
+1. Логгер для аспектов действий
+   Scope содержит поля: machine, mode, action, aspect, nest_level.
+   Создаётся без plugin_name и event_name.
+
+2. Логгер для обработчиков плагинов
+   Scope содержит поля: machine, mode, plugin, action, event, nest_level.
+   Создаётся с plugin_name и event_name.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ПОКРЫВАЕМЫЕ СЦЕНАРИИ
@@ -9,17 +32,11 @@
 
 - info/warning/error/debug добавляют ключ "level" в var с правильным значением.
 - Пользовательские kwargs попадают в var.
-- LogScope для аспектов создаётся с ключами: machine, mode, action, aspect,
-  nest_level (в этом порядке).
-- LogScope для плагинов создаётся с ключами: machine, mode, plugin, action,
-  event, nest_level (в этом порядке).
-- emit вызывается с правильными параметрами: BaseState(), BaseParams(),
-  переданный indent, scope, context.
-- Координатор логирования вызывается ровно один раз на каждый вызов метода.
-- Пользовательский ключ "level" в kwargs игнорируется — используется
-  системное значение.
-- nest_level доступен в scope через scope["nest_level"].
-- plugin_name и event_name корректно формируют scope плагина.
+- LogScope для аспектов создаётся с правильными ключами.
+- LogScope для плагинов создаётся с правильными ключами.
+- emit вызывается с правильными параметрами (state, params, indent, scope, context).
+- Пользовательский ключ "level" в kwargs игнорируется.
+- nest_level доступен в scope.
 """
 
 from unittest.mock import AsyncMock
@@ -34,24 +51,33 @@ from action_machine.logging.log_scope import LogScope
 from action_machine.logging.scoped_logger import ScopedLogger
 
 
-class TestScopedLogger:
-    """Тесты для ScopedLogger в режиме аспекта (без plugin_name)."""
+@pytest.fixture
+def mock_coordinator() -> AsyncMock:
+    """Мок координатора логирования."""
+    coordinator = AsyncMock(spec=LogCoordinator)
+    coordinator.emit = AsyncMock()
+    return coordinator
+
+
+@pytest.fixture
+def context() -> Context:
+    """Тестовый контекст."""
+    return Context()
+
+
+# ======================================================================
+# ТЕСТЫ: Логгер для аспектов
+# ======================================================================
+
+
+class TestAspectLogger:
+    """ScopedLogger в режиме аспекта (без plugin_name)."""
 
     @pytest.fixture
-    def mock_coordinator(self) -> AsyncMock:
-        """Мок координатора логирования с асинхронным методом emit."""
-        coordinator = AsyncMock(spec=LogCoordinator)
-        coordinator.emit = AsyncMock()
-        return coordinator
-
-    @pytest.fixture
-    def context(self) -> Context:
-        """Тестовый контекст."""
-        return Context()
-
-    @pytest.fixture
-    def logger(self, mock_coordinator: AsyncMock, context: Context) -> ScopedLogger:
-        """Создаёт ScopedLogger с параметрами аспекта (без plugin_name)."""
+    def aspect_logger(
+        self, mock_coordinator: AsyncMock, context: Context
+    ) -> ScopedLogger:
+        """Создаёт ScopedLogger с параметрами аспекта."""
         return ScopedLogger(
             coordinator=mock_coordinator,
             nest_level=2,
@@ -62,160 +88,60 @@ class TestScopedLogger:
             context=context,
         )
 
-    # ------------------------------------------------------------------
-    # ТЕСТЫ: Проверка вызова emit
-    # ------------------------------------------------------------------
-
     @pytest.mark.anyio
-    async def test_info_calls_emit_with_level_info(
-        self, logger: ScopedLogger, mock_coordinator: AsyncMock, context: Context
+    async def test_info_adds_level_info(
+        self, aspect_logger: ScopedLogger, mock_coordinator: AsyncMock
     ) -> None:
-        """info вызывает emit с level='info'."""
-        await logger.info("Test message", user="john", count=42)
+        """
+        info() вызывает emit с level='info' в var.
+        """
+        # Act
+        await aspect_logger.info("Test message", user="john", count=42)
 
+        # Assert
         mock_coordinator.emit.assert_awaited_once()
-        args, kwargs = mock_coordinator.emit.call_args
-
-        var = kwargs["var"]
+        var = mock_coordinator.emit.call_args.kwargs["var"]
         assert var["level"] == "info"
         assert var["user"] == "john"
         assert var["count"] == 42
 
     @pytest.mark.anyio
-    async def test_warning_calls_emit_with_level_warning(
-        self, logger: ScopedLogger, mock_coordinator: AsyncMock
+    async def test_warning_adds_level_warning(
+        self, aspect_logger: ScopedLogger, mock_coordinator: AsyncMock
     ) -> None:
-        """warning вызывает emit с level='warning'."""
-        await logger.warning("Test warning")
+        """warning() вызывает emit с level='warning'."""
+        await aspect_logger.warning("Warning message")
 
-        mock_coordinator.emit.assert_awaited_once()
         var = mock_coordinator.emit.call_args.kwargs["var"]
         assert var["level"] == "warning"
 
     @pytest.mark.anyio
-    async def test_error_calls_emit_with_level_error(
-        self, logger: ScopedLogger, mock_coordinator: AsyncMock
+    async def test_error_adds_level_error(
+        self, aspect_logger: ScopedLogger, mock_coordinator: AsyncMock
     ) -> None:
-        """error вызывает emit с level='error'."""
-        await logger.error("Test error")
+        """error() вызывает emit с level='error'."""
+        await aspect_logger.error("Error message")
 
-        mock_coordinator.emit.assert_awaited_once()
         var = mock_coordinator.emit.call_args.kwargs["var"]
         assert var["level"] == "error"
 
     @pytest.mark.anyio
-    async def test_debug_calls_emit_with_level_debug(
-        self, logger: ScopedLogger, mock_coordinator: AsyncMock
+    async def test_debug_adds_level_debug(
+        self, aspect_logger: ScopedLogger, mock_coordinator: AsyncMock
     ) -> None:
-        """debug вызывает emit с level='debug'."""
-        await logger.debug("Test debug")
+        """debug() вызывает emit с level='debug'."""
+        await aspect_logger.debug("Debug message")
 
-        mock_coordinator.emit.assert_awaited_once()
         var = mock_coordinator.emit.call_args.kwargs["var"]
         assert var["level"] == "debug"
 
-    # ------------------------------------------------------------------
-    # ТЕСТЫ: Передача параметров в emit
-    # ------------------------------------------------------------------
-
     @pytest.mark.anyio
-    async def test_emit_receives_correct_message(
-        self, logger: ScopedLogger, mock_coordinator: AsyncMock
+    async def test_user_kwargs_are_passed(
+        self, aspect_logger: ScopedLogger, mock_coordinator: AsyncMock
     ) -> None:
-        """Параметр message передаётся в emit без изменений."""
-        await logger.info("Hello, world!")
+        """Пользовательские kwargs попадают в var."""
+        await aspect_logger.info("msg", extra="data", flag=True, amount=100.5)
 
-        mock_coordinator.emit.assert_awaited_once()
-        assert mock_coordinator.emit.call_args.kwargs["message"] == "Hello, world!"
-
-    @pytest.mark.anyio
-    async def test_emit_receives_correct_scope(
-        self, logger: ScopedLogger, mock_coordinator: AsyncMock
-    ) -> None:
-        """
-        emit получает LogScope с правильными ключами для аспекта.
-
-        Порядок ключей: machine, mode, action, aspect, nest_level.
-        nest_level включён в scope и доступен через scope["nest_level"].
-        """
-        await logger.info("msg")
-
-        mock_coordinator.emit.assert_awaited_once()
-        scope = mock_coordinator.emit.call_args.kwargs["scope"]
-
-        assert isinstance(scope, LogScope)
-        assert scope["machine"] == "TestMachine"
-        assert scope["mode"] == "test_mode"
-        assert scope["action"] == "myapp.actions.TestAction"
-        assert scope["aspect"] == "test_aspect"
-        assert scope["nest_level"] == 2
-        # Проверка порядка ключей (важно для as_dotpath)
-        assert list(scope.keys()) == ["machine", "mode", "action", "aspect", "nest_level"]
-
-    @pytest.mark.anyio
-    async def test_emit_receives_context(
-        self, logger: ScopedLogger, mock_coordinator: AsyncMock, context: Context
-    ) -> None:
-        """emit получает тот же контекст, что был передан в логгер."""
-        await logger.info("msg")
-
-        mock_coordinator.emit.assert_awaited_once()
-        ctx = mock_coordinator.emit.call_args.kwargs["ctx"]
-        assert ctx is context
-
-    @pytest.mark.anyio
-    async def test_emit_receives_empty_state_and_params(
-        self, logger: ScopedLogger, mock_coordinator: AsyncMock
-    ) -> None:
-        """emit получает пустые экземпляры BaseState и BaseParams."""
-        await logger.info("msg")
-
-        mock_coordinator.emit.assert_awaited_once()
-        state = mock_coordinator.emit.call_args.kwargs["state"]
-        params = mock_coordinator.emit.call_args.kwargs["params"]
-
-        assert isinstance(state, BaseState)
-        assert state.to_dict() == {}
-        assert isinstance(params, BaseParams)
-
-    @pytest.mark.anyio
-    async def test_emit_receives_correct_indent(
-        self, logger: ScopedLogger, mock_coordinator: AsyncMock
-    ) -> None:
-        """emit получает уровень вложенности, заданный при создании логгера."""
-        await logger.info("msg")
-
-        mock_coordinator.emit.assert_awaited_once()
-        indent = mock_coordinator.emit.call_args.kwargs["indent"]
-        assert indent == 2
-
-    # ------------------------------------------------------------------
-    # ТЕСТЫ: Множественные вызовы
-    # ------------------------------------------------------------------
-
-    @pytest.mark.anyio
-    async def test_multiple_calls_multiple_emits(
-        self, logger: ScopedLogger, mock_coordinator: AsyncMock
-    ) -> None:
-        """Каждый вызов метода логирования приводит к отдельному emit."""
-        await logger.info("First")
-        await logger.warning("Second")
-        await logger.error("Third")
-
-        assert mock_coordinator.emit.await_count == 3
-
-    # ------------------------------------------------------------------
-    # ТЕСТЫ: Пользовательские kwargs
-    # ------------------------------------------------------------------
-
-    @pytest.mark.anyio
-    async def test_user_kwargs_are_passed_to_var(
-        self, logger: ScopedLogger, mock_coordinator: AsyncMock
-    ) -> None:
-        """Все пользовательские kwargs попадают в var."""
-        await logger.info("msg", extra="data", flag=True, amount=100.5)
-
-        mock_coordinator.emit.assert_awaited_once()
         var = mock_coordinator.emit.call_args.kwargs["var"]
         assert var["extra"] == "data"
         assert var["flag"] is True
@@ -223,61 +149,91 @@ class TestScopedLogger:
         assert var["level"] == "info"
 
     @pytest.mark.anyio
-    async def test_user_kwargs_override_nothing(
-        self, logger: ScopedLogger, mock_coordinator: AsyncMock
+    async def test_user_level_override_ignored(
+        self, aspect_logger: ScopedLogger, mock_coordinator: AsyncMock
     ) -> None:
-        """Пользователь может передать ключ 'level', но он будет перезаписан системным."""
-        await logger.info("msg", level="user_level")
+        """Пользовательский 'level' перезаписывается системным."""
+        await aspect_logger.info("msg", level="user_level")
 
-        mock_coordinator.emit.assert_awaited_once()
         var = mock_coordinator.emit.call_args.kwargs["var"]
         assert var["level"] == "info"
 
-    # ------------------------------------------------------------------
-    # ТЕСТЫ: Граничные случаи
-    # ------------------------------------------------------------------
+    @pytest.mark.anyio
+    async def test_scope_has_correct_keys(
+        self, aspect_logger: ScopedLogger, mock_coordinator: AsyncMock
+    ) -> None:
+        """
+        Scope содержит: machine, mode, action, aspect, nest_level.
+        Порядок ключей важен для as_dotpath.
+        """
+        await aspect_logger.info("msg")
+
+        scope = mock_coordinator.emit.call_args.kwargs["scope"]
+        assert isinstance(scope, LogScope)
+        assert scope["machine"] == "TestMachine"
+        assert scope["mode"] == "test_mode"
+        assert scope["action"] == "myapp.actions.TestAction"
+        assert scope["aspect"] == "test_aspect"
+        assert scope["nest_level"] == 2
+        assert list(scope.keys()) == ["machine", "mode", "action", "aspect", "nest_level"]
 
     @pytest.mark.anyio
-    async def test_empty_message(self, logger: ScopedLogger, mock_coordinator: AsyncMock) -> None:
-        """Пустое сообщение допустимо."""
-        await logger.info("")
+    async def test_passes_context(
+        self, aspect_logger: ScopedLogger, mock_coordinator: AsyncMock, context: Context
+    ) -> None:
+        """Контекст передаётся в emit."""
+        await aspect_logger.info("msg")
 
-        mock_coordinator.emit.assert_awaited_once()
-        assert mock_coordinator.emit.call_args.kwargs["message"] == ""
+        ctx = mock_coordinator.emit.call_args.kwargs["ctx"]
+        assert ctx is context
 
     @pytest.mark.anyio
-    async def test_no_kwargs(self, logger: ScopedLogger, mock_coordinator: AsyncMock) -> None:
-        """Вызов без kwargs передаёт только level."""
-        await logger.info("msg")
+    async def test_passes_empty_state_and_params(
+        self, aspect_logger: ScopedLogger, mock_coordinator: AsyncMock
+    ) -> None:
+        """Если state и params не переданы — создаются пустые экземпляры."""
+        await aspect_logger.info("msg")
 
-        mock_coordinator.emit.assert_awaited_once()
-        var = mock_coordinator.emit.call_args.kwargs["var"]
-        assert var == {"level": "info"}
+        state = mock_coordinator.emit.call_args.kwargs["state"]
+        params = mock_coordinator.emit.call_args.kwargs["params"]
+        assert isinstance(state, BaseState)
+        assert state.to_dict() == {}
+        assert isinstance(params, BaseParams)
+
+    @pytest.mark.anyio
+    async def test_passes_indent(
+        self, aspect_logger: ScopedLogger, mock_coordinator: AsyncMock
+    ) -> None:
+        """indent = nest_level (2) передаётся в emit."""
+        await aspect_logger.info("msg")
+
+        indent = mock_coordinator.emit.call_args.kwargs["indent"]
+        assert indent == 2
+
+    @pytest.mark.anyio
+    async def test_multiple_calls(
+        self, aspect_logger: ScopedLogger, mock_coordinator: AsyncMock
+    ) -> None:
+        """Каждый вызов метода логирования приводит к отдельному emit."""
+        await aspect_logger.info("First")
+        await aspect_logger.warning("Second")
+        await aspect_logger.error("Third")
+
+        assert mock_coordinator.emit.await_count == 3
 
 
-class TestScopedLoggerPluginMode:
-    """
-    Тесты для ScopedLogger в режиме плагина (с plugin_name).
+# ======================================================================
+# ТЕСТЫ: Логгер для плагинов
+# ======================================================================
 
-    Когда ScopedLogger создаётся с параметром plugin_name, scope содержит
-    поля: machine, mode, plugin, action, event, nest_level.
-    Поле aspect отсутствует — вместо него plugin и event.
-    """
+
+class TestPluginLogger:
+    """ScopedLogger в режиме плагина (с plugin_name)."""
 
     @pytest.fixture
-    def mock_coordinator(self) -> AsyncMock:
-        """Мок координатора логирования."""
-        coordinator = AsyncMock(spec=LogCoordinator)
-        coordinator.emit = AsyncMock()
-        return coordinator
-
-    @pytest.fixture
-    def context(self) -> Context:
-        """Тестовый контекст."""
-        return Context()
-
-    @pytest.fixture
-    def plugin_logger(self, mock_coordinator: AsyncMock, context: Context) -> ScopedLogger:
+    def plugin_logger(
+        self, mock_coordinator: AsyncMock, context: Context
+    ) -> ScopedLogger:
         """Создаёт ScopedLogger с параметрами плагина."""
         return ScopedLogger(
             coordinator=mock_coordinator,
@@ -292,18 +248,16 @@ class TestScopedLoggerPluginMode:
         )
 
     @pytest.mark.anyio
-    async def test_plugin_scope_has_correct_keys(
+    async def test_scope_has_correct_keys(
         self, plugin_logger: ScopedLogger, mock_coordinator: AsyncMock
     ) -> None:
         """
-        Scope плагина содержит поля: machine, mode, plugin, action,
-        event, nest_level (в этом порядке). Поле aspect отсутствует.
+        Scope плагина содержит: machine, mode, plugin, action, event, nest_level.
+        Поле aspect отсутствует.
         """
         await plugin_logger.info("Plugin message")
 
-        mock_coordinator.emit.assert_awaited_once()
         scope = mock_coordinator.emit.call_args.kwargs["scope"]
-
         assert isinstance(scope, LogScope)
         assert scope["machine"] == "TestMachine"
         assert scope["mode"] == "production"
@@ -311,11 +265,9 @@ class TestScopedLoggerPluginMode:
         assert scope["action"] == "myapp.actions.CreateOrder"
         assert scope["event"] == "global_finish"
         assert scope["nest_level"] == 1
-        # Проверка порядка ключей
         assert list(scope.keys()) == [
             "machine", "mode", "plugin", "action", "event", "nest_level"
         ]
-        # Поле aspect отсутствует в scope плагина
         assert "aspect" not in scope
 
     @pytest.mark.anyio
@@ -330,27 +282,27 @@ class TestScopedLoggerPluginMode:
         assert dotpath == "TestMachine.production.MetricsPlugin.myapp.actions.CreateOrder.global_finish.1"
 
     @pytest.mark.anyio
-    async def test_plugin_logger_passes_indent(
+    async def test_passes_indent(
         self, plugin_logger: ScopedLogger, mock_coordinator: AsyncMock
     ) -> None:
-        """indent для scope плагина равен nest_level."""
+        """indent = nest_level (1) передаётся в emit."""
         await plugin_logger.info("msg")
 
         indent = mock_coordinator.emit.call_args.kwargs["indent"]
         assert indent == 1
 
     @pytest.mark.anyio
-    async def test_plugin_logger_level_in_var(
+    async def test_level_in_var(
         self, plugin_logger: ScopedLogger, mock_coordinator: AsyncMock
     ) -> None:
-        """Уровень логирования корректно передаётся в var."""
+        """Уровень логирования передаётся в var."""
         await plugin_logger.warning("Warning from plugin")
 
         var = mock_coordinator.emit.call_args.kwargs["var"]
         assert var["level"] == "warning"
 
     @pytest.mark.anyio
-    async def test_plugin_logger_user_kwargs(
+    async def test_user_kwargs(
         self, plugin_logger: ScopedLogger, mock_coordinator: AsyncMock
     ) -> None:
         """Пользовательские kwargs попадают в var."""
@@ -362,18 +314,13 @@ class TestScopedLoggerPluginMode:
         assert var["level"] == "info"
 
 
-class TestScopedLoggerWithState:
-    """Тесты передачи реальных state и params в ScopedLogger."""
+# ======================================================================
+# ТЕСТЫ: Передача реальных state и params
+# ======================================================================
 
-    @pytest.fixture
-    def mock_coordinator(self) -> AsyncMock:
-        coordinator = AsyncMock(spec=LogCoordinator)
-        coordinator.emit = AsyncMock()
-        return coordinator
 
-    @pytest.fixture
-    def context(self) -> Context:
-        return Context()
+class TestWithStateAndParams:
+    """ScopedLogger может получать реальные state и params."""
 
     @pytest.mark.anyio
     async def test_custom_state_and_params_passed(
