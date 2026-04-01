@@ -1,14 +1,70 @@
-# src/action_machine/Core/BaseActionMachine.py
+# src/action_machine/core/base_action_machine.py
 """
-Abstract base class for all action machines.
-Defines the asynchronous run method and the synchronous sync_run wrapper.
+Абстрактный базовый класс для всех машин действий ActionMachine.
 
-Изменения (этап 0):
-- sync_run теперь вызывает _run_internal вместо run, так как убраны resources из публичного run.
-- Обновлены комментарии.
+═══════════════════════════════════════════════════════════════════════════════
+НАЗНАЧЕНИЕ
+═══════════════════════════════════════════════════════════════════════════════
+
+BaseActionMachine определяет контракт для всех машин действий в системе.
+Машина — центральный исполнитель, который принимает действие (Action),
+входные параметры (Params), контекст (Context) и соединения (connections),
+а затем выполняет конвейер аспектов с проверкой ролей, валидацией
+и уведомлением плагинов.
+
+═══════════════════════════════════════════════════════════════════════════════
+ИЕРАРХИЯ МАШИН
+═══════════════════════════════════════════════════════════════════════════════
+
+BaseActionMachine определяет два уровня API:
+
+1. ПУБЛИЧНЫЙ: абстрактный метод ``run()`` — точка входа для внешнего кода.
+   Конкретные реализации определяют, является ли run() асинхронным
+   (ActionProductMachine) или синхронным (SyncActionProductMachine).
+
+2. ВНУТРЕННИЙ: метод ``_run_internal()`` — реализация конвейера с поддержкой
+   вложенности, ресурсов и параметра rollup. Вызывается из run()
+   и рекурсивно из ToolsBox.run() для дочерних действий.
+
+═══════════════════════════════════════════════════════════════════════════════
+ПАРАМЕТР ROLLUP
+═══════════════════════════════════════════════════════════════════════════════
+
+Параметр ``rollup: bool`` в ``_run_internal()`` управляет режимом
+агрегации результатов. Production-машины (ActionProductMachine,
+SyncActionProductMachine) всегда передают rollup=False. Тестовые машины
+(AsyncTestMachine, SyncTestMachine) принимают rollup как обязательный
+параметр без значения по умолчанию — тестировщик явно выбирает режим.
+
+═══════════════════════════════════════════════════════════════════════════════
+АРХИТЕКТУРА
+═══════════════════════════════════════════════════════════════════════════════
+
+    BaseActionMachine (ABC)
+        │
+        ├── ActionProductMachine          (async, production)
+        │       │
+        │       └── AsyncTestMachine      (async, тестовая, в пакете testing/)
+        │
+        └── SyncActionProductMachine      (sync, production)
+                │
+                └── SyncTestMachine       (sync, тестовая, в пакете testing/)
+
+═══════════════════════════════════════════════════════════════════════════════
+ПРИНЦИПЫ
+═══════════════════════════════════════════════════════════════════════════════
+
+1. STATELESS МЕЖДУ ЗАПРОСАМИ: машина не хранит мутабельного состояния
+   между вызовами run(). Каждый вызов полностью изолирован.
+
+2. НЕ ПОДАВЛЯЕТ ИСКЛЮЧЕНИЯ: ошибки пробрасываются наружу с информативными
+   сообщениями.
+
+3. КОНТРАКТ _run_internal(): все конкретные машины реализуют _run_internal()
+   с единой сигнатурой, включающей resources, connections, nested_level
+   и rollup.
 """
 
-import asyncio
 from abc import ABC, abstractmethod
 from typing import Any, TypeVar
 
@@ -24,12 +80,13 @@ R = TypeVar("R", bound=BaseResult)
 
 class BaseActionMachine(ABC):
     """
-    Abstract action machine.
+    Абстрактный базовый класс для всех машин действий.
 
-    All implementations (production, test) inherit from this class
-    and implement the asynchronous run method. For synchronous usage,
-    the sync_run method is provided, which safely runs the async pipeline
-    outside an already running event loop.
+    Определяет контракт: публичный метод run() (абстрактный) и внутренний _run_internal().
+    Конкретные реализации наследуют этот класс и определяют поведение
+    run() (async или sync) и полную логику _run_internal().
+
+    Машина не содержит мутабельного состояния между вызовами run().
     """
 
     @abstractmethod
@@ -41,26 +98,23 @@ class BaseActionMachine(ABC):
         connections: dict[str, BaseResourceManager] | None = None,
     ) -> R:
         """
-        Asynchronously executes the action and returns the result.
+        Выполняет действие и возвращает результат.
 
-        This method should be used inside an asynchronous context
-        (e.g., in FastAPI endpoints, aiohttp handlers, asyncio applications).
-        It must be called with the await keyword.
+        Это публичная точка входа. В асинхронных машинах (ActionProductMachine)
+        это coroutine, вызываемый через await. В синхронных машинах
+        (SyncActionProductMachine) это обычный метод.
 
-        Args:
-            context: execution context for this specific request
-                     (contains user, request, and environment information).
-            action: action instance to execute.
-            params: action input parameters.
-            connections: dictionary of resource managers (connections),
-                         key – string connection name (matches the name in @connection),
-                         value – BaseResourceManager instance.
-                         Passed to all aspects as is.
-                         When passed to child actions via ToolsBox.run,
-                         each connection is wrapped using get_wrapper_class().
+        Аргументы:
+            context: контекст выполнения (пользователь, запрос, окружение).
+            action: экземпляр действия для выполнения.
+            params: входные параметры действия.
+            connections: словарь ресурсных менеджеров (соединений).
+                         Ключ — строковое имя (совпадает с key в @connection).
+                         Значение — экземпляр BaseResourceManager.
+                         None если действие не объявляет @connection.
 
-        Returns:
-            Result of the action execution.
+        Возвращает:
+            Результат выполнения действия (тип R).
         """
         pass
 
@@ -72,46 +126,29 @@ class BaseActionMachine(ABC):
         resources: dict[type[Any], Any] | None,
         connections: dict[str, BaseResourceManager] | None,
         nested_level: int,
+        rollup: bool,
     ) -> R:
         """
-        Internal execution method that handles resources and nesting.
+        Внутренний метод выполнения с поддержкой вложенности и rollup.
 
-        Concrete implementations must override this method.
+        Вызывается из run() (nested_level=0) и рекурсивно из ToolsBox.run()
+        для дочерних действий (nested_level > 0).
+
+        Аргументы:
+            context: контекст выполнения.
+            action: экземпляр действия.
+            params: входные параметры.
+            resources: внешние ресурсы (моки в тестах, None в production).
+            connections: словарь менеджеров ресурсов.
+            nested_level: текущий уровень вложенности (0 — корневой).
+            rollup: режим агрегации результатов. Production-машины
+                    всегда передают False. Тестовые машины принимают
+                    значение от тестировщика.
+
+        Возвращает:
+            R — результат выполнения действия.
+
+        Исключения:
+            NotImplementedError: если конкретная машина не переопределила метод.
         """
         raise NotImplementedError
-
-    def sync_run(
-        self,
-        context: Context,
-        action: BaseAction[P, R],
-        params: P,
-        connections: dict[str, BaseResourceManager] | None = None,
-    ) -> R:
-        """
-        Synchronous wrapper for use outside an async context.
-
-        Suitable for command‑line scripts, Celery tasks, Django views without
-        async support, and any other synchronous environment. The method creates
-        a new event loop, executes the action, and returns the result.
-
-        If called inside an already running event loop (e.g., accidentally in
-        a FastAPI endpoint), a RuntimeError is raised with a clear message.
-
-        Args:
-            context: execution context for this specific request.
-            action: action instance.
-            params: input parameters.
-            connections: dictionary of resource managers (optional).
-
-        Returns:
-            Result of the action execution.
-        """
-
-        try:
-            asyncio.get_running_loop()
-            raise RuntimeError(
-                "sync_run() called inside an already running asyncio loop. "
-                "In asynchronous code, use await run()."
-            )
-        except RuntimeError:
-            return asyncio.run(self.run(context, action, params, connections))
