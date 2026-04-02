@@ -1,38 +1,20 @@
-# src/action_machine/Auth/role_gate_host.py
+# src/action_machine/auth/role_gate_host.py
 """
-Модуль: RoleGateHost — маркерный миксин для декоратора @CheckRoles.
+Модуль: RoleGateHost — маркерный миксин для декоратора @check_roles.
 
 ═══════════════════════════════════════════════════════════════════════════════
 НАЗНАЧЕНИЕ
 ═══════════════════════════════════════════════════════════════════════════════
 
 RoleGateHost — миксин-маркер, который разрешает применение декоратора
-@CheckRoles к классу. Декоратор при применении проверяет:
+@check_roles к классу. Декоратор при применении проверяет:
 
     if not issubclass(cls, RoleGateHost):
         raise TypeError("Класс должен наследовать RoleGateHost")
 
-Без наследования от RoleGateHost декоратор @CheckRoles выбросит TypeError.
+Без наследования от RoleGateHost декоратор @check_roles выбросит TypeError.
 Это защита от случайного применения ролевых ограничений к классам,
 которые не являются действиями (Action).
-
-═══════════════════════════════════════════════════════════════════════════════
-ЧТО ИЗМЕНИЛОСЬ (рефакторинг «координатор»)
-═══════════════════════════════════════════════════════════════════════════════
-
-РАНЬШЕ (до рефакторинга):
-    - __init_subclass__ создавал RoleGate, сохранял его в cls._role_gate.
-    - Метод get_role_gate() возвращал гейт.
-    - Метод get_role_spec() делегировал в гейт.
-    - ActionProductMachine обращался к cls.get_role_spec().
-
-ТЕПЕРЬ (после рефакторинга):
-    - Миксин — пустой маркер. Никакой логики.
-    - Декоратор @CheckRoles записывает _role_info в класс.
-    - MetadataBuilder._collect_role(cls) читает _role_info и создаёт
-      RoleMeta в ClassMetadata.
-    - ActionProductMachine читает metadata.role.spec через координатор.
-    - RoleGate, get_role_gate(), get_role_spec() — УДАЛЕНЫ.
 
 ═══════════════════════════════════════════════════════════════════════════════
 АРХИТЕКТУРА
@@ -40,23 +22,23 @@ RoleGateHost — миксин-маркер, который разрешает п
 
     class BaseAction[P, R](
         ABC,
-        RoleGateHost,                   ← маркер: разрешает @CheckRoles
+        RoleGateHost,                   ← маркер: разрешает @check_roles
         DependencyGateHost[object],
         CheckerGateHost,
         AspectGateHost,
         ConnectionGateHost,
     ): ...
 
-    @CheckRoles("admin")
+    @check_roles("admin")
     class AdminAction(BaseAction[P, R]):
         ...
 
-    # Декоратор @CheckRoles проверяет:
+    # Декоратор @check_roles проверяет:
     #   issubclass(AdminAction, RoleGateHost) → True → OK
-    #   Записывает: cls._role_info = {"spec": "admin", "desc": "Только администратор"}
+    #   Записывает: cls._role_info = {"spec": "admin"}
 
     # MetadataBuilder.build(AdminAction) читает:
-    #   cls._role_info → RoleMeta(spec="admin", description="Только администратор")
+    #   cls._role_info → RoleMeta(spec="admin")
 
     # ActionProductMachine:
     #   metadata = coordinator.get(AdminAction)
@@ -68,9 +50,9 @@ from typing import Any, ClassVar
 
 class RoleGateHost:
     """
-    Маркерный миксин, разрешающий использование декоратора @CheckRoles.
+    Маркерный миксин, разрешающий использование декоратора @check_roles.
 
-    Класс, НЕ наследующий RoleGateHost, не может быть целью @CheckRoles —
+    Класс, НЕ наследующий RoleGateHost, не может быть целью @check_roles —
     декоратор выбросит TypeError при попытке применения.
 
     Миксин не содержит логики, полей или методов. Его единственная функция —
@@ -79,9 +61,8 @@ class RoleGateHost:
     Атрибуты уровня класса (создаются динамически декоратором):
         _role_info : dict | None
             Словарь {"spec": str | list[str]}, записываемый
-            декоратором @CheckRoles. Читается MetadataBuilder при сборке
+            декоратором @check_roles. Читается MetadataBuilder при сборке
             ClassMetadata.role (RoleMeta).
-            НЕ используется напрямую — только через ClassMetadata.
     """
 
     # Аннотация для mypy (создается декоратором)

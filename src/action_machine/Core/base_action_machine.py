@@ -32,9 +32,9 @@ BaseActionMachine определяет два уровня API:
 
 Параметр ``rollup: bool`` в ``_run_internal()`` управляет режимом
 агрегации результатов. Production-машины (ActionProductMachine,
-SyncActionProductMachine) всегда передают rollup=False. Тестовые машины
-(AsyncTestMachine, SyncTestMachine) принимают rollup как обязательный
-параметр без значения по умолчанию — тестировщик явно выбирает режим.
+SyncActionProductMachine) всегда передают rollup=False. TestBench принимает rollup как обязательный параметр без значения
+по умолчанию в терминальных методах (run, run_aspect, run_summary) —
+тестировщик явно выбирает режим.
 
 ═══════════════════════════════════════════════════════════════════════════════
 АРХИТЕКТУРА
@@ -43,12 +43,8 @@ SyncActionProductMachine) всегда передают rollup=False. Тесто
     BaseActionMachine (ABC)
         │
         ├── ActionProductMachine          (async, production)
-        │       │
-        │       └── AsyncTestMachine      (async, тестовая, в пакете testing/)
         │
         └── SyncActionProductMachine      (sync, production)
-                │
-                └── SyncTestMachine       (sync, тестовая, в пакете testing/)
 
 ═══════════════════════════════════════════════════════════════════════════════
 ПРИНЦИПЫ

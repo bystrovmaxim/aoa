@@ -129,9 +129,9 @@ from .plugin_run_context import PluginRunContext
 __all__ = [
     "OnGateHost",
     "Plugin",
-    "PluginEvent",
     "PluginCoordinator",
+    "PluginEvent",
     "PluginRunContext",
-    "on",
     "SubscriptionInfo",
+    "on",
 ]

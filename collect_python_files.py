@@ -64,7 +64,7 @@ class PythonFileCollector:
         try:
             with open(filepath, encoding="cp1251") as fh:
                 return fh.read()
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             return f"# Ошибка чтения файла: {exc}\n"
 
     def _scan_python_files(self, root_dir: str) -> list[str]:

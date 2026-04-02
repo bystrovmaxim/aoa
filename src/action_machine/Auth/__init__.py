@@ -85,13 +85,13 @@ from .no_auth_coordinator import NoAuthCoordinator
 from .role_gate_host import RoleGateHost
 
 __all__ = [
-    "check_roles",
-    "ROLE_NONE",
     "ROLE_ANY",
+    "ROLE_NONE",
     "AuthCoordinator",
-    "NoAuthCoordinator",
-    "CredentialExtractor",
     "Authenticator",
     "ContextAssembler",
+    "CredentialExtractor",
+    "NoAuthCoordinator",
     "RoleGateHost",
+    "check_roles",
 ]

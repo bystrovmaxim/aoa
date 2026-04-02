@@ -1,4 +1,4 @@
-# src/action_machine/ResourceManagers/connection_gate_host.py
+# src/action_machine/resource_managers/connection_gate_host.py
 """
 Модуль: ConnectionGateHost — маркерный миксин для декоратора @connection.
 

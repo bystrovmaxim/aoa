@@ -80,7 +80,7 @@ PropagatedErrorPlugin
 
 CustomExceptionPlugin
     Плагин с ignore_exceptions=False, выбрасывающий кастомное исключение
-    CustomPluginException. Проверяет, что тип исключения сохраняется.
+    CustomPluginError. Проверяет, что тип исключения сохраняется.
 
 SuccessAfterFailPlugin
     Плагин с успешным обработчиком. Используется для проверки, что
@@ -135,7 +135,7 @@ from tests.domain import PingAction
 # ═════════════════════════════════════════════════════════════════════════════
 
 
-class CustomPluginException(Exception):
+class CustomPluginError(Exception):
     """Кастомное исключение для проверки типа пробрасываемой ошибки."""
     pass
 
@@ -386,7 +386,7 @@ class PropagatedErrorPlugin(Plugin):
 
 class CustomExceptionPlugin(Plugin):
     """
-    Плагин с ignore_exceptions=False, выбрасывающий CustomPluginException.
+    Плагин с ignore_exceptions=False, выбрасывающий CustomPluginError.
 
     Проверяет, что тип кастомного исключения сохраняется при пробросе.
     """
@@ -396,7 +396,7 @@ class CustomExceptionPlugin(Plugin):
 
     @on("global_finish", ".*", ignore_exceptions=False)
     async def custom_handler(self, state: dict, event: PluginEvent, log) -> dict:
-        raise CustomPluginException("Custom plugin error")
+        raise CustomPluginError("Custom plugin error")
 
 
 class SuccessAfterFailPlugin(Plugin):

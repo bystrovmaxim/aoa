@@ -136,11 +136,11 @@ class TestValidArgs:
                 return BaseResult()
 
         # Act
-        _Decorated = meta(description="Описание")(_Original)
+        _decorated = meta(description="Описание")(_Original)
 
         # Assert — тот же класс
-        assert _Decorated is _Original
-        assert _Decorated.custom == 42
+        assert _decorated is _Original
+        assert _decorated.custom == 42
 
     def test_on_resource_manager(self) -> None:
         """

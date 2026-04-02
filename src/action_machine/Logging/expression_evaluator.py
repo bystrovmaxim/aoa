@@ -68,7 +68,7 @@ import re
 from typing import Any
 
 from pydantic import BaseModel
-from simpleeval import EvalWithCompoundTypes, NameNotDefined
+from simpleeval import EvalWithCompoundTypes, NameNotDefined  # type: ignore[import-untyped]
 
 from action_machine.core.exceptions import LogTemplateError
 from action_machine.logging.masking import mask_value
@@ -282,9 +282,6 @@ def _format_field_line(
         Одну или несколько строк для вывода.
     """
     # Проверка циклов ДО проверки max_depth — ключевой инвариант.
-    # При max_depth=1 рекурсия не запускается, но цикл всё равно
-    # должен быть обнаружен, потому что id(value) уже в visited
-    # (родительский объект добавил себя при входе в _inspect_object).
     if _is_custom_object(value) and id(value) in visited:
         return f"{indent_str}  {name}: <cycle detected>"
 

@@ -2,7 +2,7 @@
 # Файл: ActionMachine/ResourceManagers/Connections.py
 ################################################################################
 
-# ActionMachine/ResourceManagers/Connections.py
+# src/action_machine/resource_managers/Connections.py
 """
 Базовый TypedDict для словаря connections, передаваемого в аспекты.
 
@@ -22,7 +22,7 @@ TypedDict — это статический контракт для IDE и mypy.
 Пример использования (простой случай — 99%):
 
     @connection("connection", PostgresConnectionManager, description="Основная БД")
-    @CheckRoles(CheckRoles.ANY)
+    @check_roles(ROLE_ANY)
     class MyAction(BaseAction[...]):
 
         @aspect("Загрузка")
@@ -36,13 +36,13 @@ TypedDict — это статический контракт для IDE и mypy.
         cache: BaseResourceManager
         analytics_db: BaseResourceManager
 
-    @connection("connection", PostgresConnectionManager, description="Основная БД")
-    @connection("cache", RedisConnectionManager, description="Кеш")
-    @connection("analytics_db", PostgresConnectionManager, description="Аналитика")
+    @connection(PostgresConnectionManager, key="connection", description="Основная БД")
+    @connection(RedisConnectionManager, key="cache", description="Кеш")
+    @connection(PostgresConnectionManager, key="analytics_db", description="Аналитика")
     class ComplexAction(BaseAction[...]):
 
-        @aspect("Загрузка")
-        async def load(self, params, state, deps, connections: MyConnections) -> ...:
+        @regular_aspect("Загрузка")
+        async def load(self, params, state, box, connections) -> ...:
             db = connections["connection"]
             cache = connections["cache"]
             ...

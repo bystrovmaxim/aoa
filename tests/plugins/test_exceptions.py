@@ -40,7 +40,7 @@ from action_machine.plugins.plugin_coordinator import PluginCoordinator
 
 from .conftest import (
     CustomExceptionPlugin,
-    CustomPluginException,
+    CustomPluginError,
     IgnoredErrorPlugin,
     PropagatedErrorPlugin,
     emit_global_finish,
@@ -133,5 +133,5 @@ class TestIgnoreExceptionsFalse:
         plugin_ctx = await coordinator.create_run_context()
 
         # Act + Assert — CustomPluginException пробрасывается с сообщением
-        with pytest.raises(CustomPluginException, match="Custom plugin error"):
+        with pytest.raises(CustomPluginError, match="Custom plugin error"):
             await emit_global_finish(plugin_ctx)

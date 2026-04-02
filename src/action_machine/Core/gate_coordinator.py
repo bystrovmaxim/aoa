@@ -50,10 +50,6 @@ subscription, sensitive, role, domain.
 Типы рёбер: depends, connection, has_aspect, has_checker, has_sensitive,
 has_role, subscribes, belongs_to.
 
-Узлы чекеров в графе содержат поля field_name, required и checker_class.
-Узлы ролей содержат только spec. Текстовые описания не хранятся в узлах
-ролей и чекеров — они не используются.
-
 ═══════════════════════════════════════════════════════════════════════════════
 АРХИТЕКТУРА
 ═══════════════════════════════════════════════════════════════════════════════
@@ -99,7 +95,7 @@ from __future__ import annotations
 
 from typing import Any
 
-import rustworkx as rx
+import rustworkx as rx  # pylint: disable=no-member
 
 from action_machine.core.class_metadata import ClassMetadata, MetaInfo, RoleMeta
 from action_machine.core.exceptions import CyclicDependencyError
@@ -167,7 +163,7 @@ class GateCoordinator:
         """
         self._cache: dict[type, ClassMetadata] = {}
         self._factory_cache: dict[type, DependencyFactory] = {}
-        self._graph: rx.PyDiGraph = rx.PyDiGraph()
+        self._graph = rx.PyDiGraph()  # pylint: disable=no-member
         self._node_index: dict[str, int] = {}
         self._strict: bool = strict
 
@@ -266,7 +262,7 @@ class GateCoordinator:
         edge_idx = self._graph.add_edge(source_idx, target_idx, edge_type)
 
         if edge_type in ("depends", "connection"):
-            if not rx.is_directed_acyclic_graph(self._graph):
+            if not rx.is_directed_acyclic_graph(self._graph):  # pylint: disable=no-member
                 self._graph.remove_edge_from_index(edge_idx)
 
                 source_payload = self._graph[source_idx]
@@ -446,7 +442,7 @@ class GateCoordinator:
 
     def _rebuild_graph(self) -> None:
         """Перестраивает граф из классов, оставшихся в кеше. Для инвалидации."""
-        self._graph = rx.PyDiGraph()
+        self._graph = rx.PyDiGraph()  # pylint: disable=no-member
         self._node_index = {}
         for cls, metadata in self._cache.items():
             self._populate_graph(cls, metadata)
@@ -559,7 +555,7 @@ class GateCoordinator:
         count = len(self._cache)
         self._cache.clear()
         self._factory_cache.clear()
-        self._graph = rx.PyDiGraph()
+        self._graph = rx.PyDiGraph()  # pylint: disable=no-member
         self._node_index.clear()
         return count
 
@@ -567,7 +563,7 @@ class GateCoordinator:
     # Публичный API графа (только чтение)
     # ─────────────────────────────────────────────────────────────────────
 
-    def get_graph(self) -> rx.PyDiGraph:
+    def get_graph(self) -> rx.PyDiGraph:  # pylint: disable=no-member
         """Возвращает копию графа. Внешние изменения не влияют на оригинал."""
         return self._graph.copy()
 

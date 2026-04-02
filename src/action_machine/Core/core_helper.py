@@ -1,4 +1,4 @@
-# ActionMachine/Core/CoreHelper.py
+# src/action_machine/core/CoreHelper.py
 """
 Вспомогательные утилиты для ядра ActionMachine.
 Содержит статические методы для работы с асинхронностью и другими общими задачами.

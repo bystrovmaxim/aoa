@@ -168,11 +168,11 @@ class TestValidArgs:
                 return BaseResult()
 
         # Act
-        _Decorated = connection(_MockManager, key="db")(_Original)
+        _decorated = connection(_MockManager, key="db")(_Original)
 
         # Assert — тот же объект
-        assert _Decorated is _Original
-        assert _Decorated.custom == 77
+        assert _decorated is _Original
+        assert _decorated.custom == 77
 
     def test_connection_info_is_frozen(self) -> None:
         """

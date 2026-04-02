@@ -323,7 +323,7 @@ class ToolsBox:
             params=params,
             connections=wrapped_connections,
         )
-        return cast(R, result)
+        return cast("R", result)
 
     # ─────────────────────────────────────────────────────────────────────
     # Методы логирования (прокси к ScopedLogger)

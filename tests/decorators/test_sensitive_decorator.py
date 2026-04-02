@@ -248,7 +248,7 @@ class TestInvalidArgs:
         max_percent в диапазоне 0..100.
         """
         # Arrange & Act & Assert
-        with pytest.raises(ValueError, match="в диапазоне 0..100"):
+        with pytest.raises(ValueError, match=r"в диапазоне 0\.\.100"):
             sensitive(True, max_percent=-1)
 
     def test_max_percent_over_100_raises(self) -> None:
@@ -256,7 +256,7 @@ class TestInvalidArgs:
         @sensitive(max_percent=101) → ValueError.
         """
         # Arrange & Act & Assert
-        with pytest.raises(ValueError, match="в диапазоне 0..100"):
+        with pytest.raises(ValueError, match=r"в диапазоне 0\.\.100"):
             sensitive(True, max_percent=101)
 
 

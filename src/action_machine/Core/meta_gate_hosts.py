@@ -46,7 +46,7 @@ ResourceMetaGateHost — @meta обязателен.
         ...                             ← маркер: @meta обязателен
 
     @meta(description="Создание заказа", domain=OrdersDomain)
-    @CheckRoles("manager")
+    @check_roles("manager")
     class CreateOrderAction(BaseAction[OrderParams, OrderResult]):
         ...
 
@@ -84,7 +84,7 @@ ResourceMetaGateHost — @meta обязателен.
 
     # BaseAction уже наследует ActionMetaGateHost:
     @meta(description="Пинг-проверка", domain=InfraDomain)
-    @CheckRoles(CheckRoles.NONE)
+    @check_roles(ROLE_NONE)
     class PingAction(BaseAction[BaseParams, BaseResult]):
         @summary_aspect("Pong")
         async def pong(self, params, state, box, connections):

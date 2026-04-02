@@ -161,7 +161,7 @@ def cleanup_temporary_attributes(cls: type) -> None:
 
     Пример:
         >>> class MyAction:
-        ...     _role_info = {"spec": "admin", "desc": ""}
+        ...     _role_info = {"spec": "admin"}
         >>> cleanup_temporary_attributes(MyAction)
         >>> hasattr(MyAction, '_role_info')
         False

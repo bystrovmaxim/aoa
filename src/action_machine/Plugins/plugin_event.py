@@ -1,4 +1,4 @@
-# src/action_machine/Plugins/PluginEvent.py
+# src/action_machine/plugins/PluginEvent.py
 """
 Модуль, определяющий класс PluginEvent — контейнер для передачи данных в обработчики плагинов.
 

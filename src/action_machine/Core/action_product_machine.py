@@ -866,7 +866,7 @@ class ActionProductMachine(BaseActionMachine):
                 **plugin_kwargs,
             )
 
-            return cast(R, result)
+            return cast("R", result)
 
         finally:
             pass

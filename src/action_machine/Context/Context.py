@@ -1,4 +1,4 @@
-# src/action_machine/Context/context.py
+# src/action_machine/context/context.py
 """
 Контекст выполнения действия.
 

@@ -178,12 +178,12 @@ class TestInvalidArgs:
 
     def test_max_percent_negative_raises(self) -> None:
         """max_percent не может быть отрицательным."""
-        with pytest.raises(ValueError, match="в диапазоне 0..100"):
+        with pytest.raises(ValueError, match=r"в диапазоне 0\.\.100"):
             sensitive(True, max_percent=-1)
 
     def test_max_percent_over_100_raises(self) -> None:
         """max_percent не может быть больше 100."""
-        with pytest.raises(ValueError, match="в диапазоне 0..100"):
+        with pytest.raises(ValueError, match=r"в диапазоне 0\.\.100"):
             sensitive(True, max_percent=101)
 
 

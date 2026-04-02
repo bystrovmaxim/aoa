@@ -46,8 +46,8 @@ from .dependency_gate_host import DependencyGateHost
 from .depends import depends
 
 __all__ = [
+    "DependencyFactory",
     "DependencyGateHost",
     "DependencyInfo",
-    "DependencyFactory",
     "depends",
 ]

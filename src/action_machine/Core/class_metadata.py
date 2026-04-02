@@ -70,11 +70,7 @@ model_fields.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any
-
-if TYPE_CHECKING:
-    pass
-
+from typing import Any
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Вспомогательные frozen-датаклассы для хранения собранных метаданных
@@ -153,7 +149,7 @@ class RoleMeta:
     Метаданные ролей класса (@CheckRoles).
 
     Содержит только спецификацию ролей — строку, список строк
-    или специальное значение (CheckRoles.NONE, CheckRoles.ANY).
+    или специальное значение (ROLE_NONE, ROLE_ANY).
 
     Поля:
         spec : str | list[str] — спецификация ролей.
