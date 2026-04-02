@@ -65,7 +65,7 @@
 
     # Действие с привязкой к домену:
     @meta(description="Создание нового заказа", domain=OrdersDomain)
-    @CheckRoles("manager")
+    @check_roles("manager")
     @depends(PaymentService)
     @connection(PostgresManager, key="db")
     class CreateOrderAction(BaseAction[OrderParams, OrderResult]):
@@ -73,7 +73,7 @@
 
     # Действие без домена:
     @meta(description="Проверка доступности сервиса")
-    @CheckRoles(CheckRoles.NONE)
+    @check_roles(ROLE_NONE)
     class PingAction(BaseAction[BaseParams, BaseResult]):
         ...
 
@@ -227,7 +227,7 @@ def meta(
 
     Пример:
         @meta(description="Создание нового заказа", domain=OrdersDomain)
-        @CheckRoles("manager")
+        @check_roles("manager")
         class CreateOrderAction(BaseAction[OrderParams, OrderResult]):
             ...
 

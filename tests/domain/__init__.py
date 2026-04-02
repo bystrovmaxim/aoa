@@ -45,14 +45,14 @@ from .simple_action import SimpleAction
 from .test_db_manager import TestDbManager
 
 __all__ = [
-    "OrdersDomain",
-    "SystemDomain",
-    "PaymentService",
+    "AdminAction",
+    "ChildAction",
+    "FullAction",
     "NotificationService",
-    "TestDbManager",
+    "OrdersDomain",
+    "PaymentService",
     "PingAction",
     "SimpleAction",
-    "FullAction",
-    "ChildAction",
-    "AdminAction",
+    "SystemDomain",
+    "TestDbManager",
 ]

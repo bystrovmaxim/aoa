@@ -183,11 +183,11 @@ class TestValidArgs:
                 return BaseResult()
 
         # Act
-        _Decorated = depends(_ServiceA)(_Original)
+        _decorated = depends(_ServiceA)(_Original)
 
         # Assert — тот же класс
-        assert _Decorated is _Original
-        assert _Decorated.custom == 99
+        assert _decorated is _Original
+        assert _decorated.custom == 99
 
 
 # ═════════════════════════════════════════════════════════════════════════════

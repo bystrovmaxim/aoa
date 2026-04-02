@@ -75,7 +75,7 @@ def main() -> None:
         idx = sys.argv.index("--transport")
         if idx + 1 < len(sys.argv):
             transport = sys.argv[idx + 1]
-    server.run(transport=transport)
+    server.run(transport=transport)  # type: ignore[arg-type]
 
 
 if __name__ == "__main__":

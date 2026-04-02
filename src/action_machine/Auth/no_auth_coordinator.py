@@ -25,7 +25,7 @@ NoAuthCoordinator.process() всегда возвращает Context с:
 - runtime: пустой RuntimeInfo.
 
 Это гарантирует, что ActionProductMachine._check_action_roles() работает
-корректно: действия с @CheckRoles(CheckRoles.NONE) проходят проверку,
+корректно: действия с @check_roles(ROLE_NONE) проходят проверку,
 действия с конкретными ролями — отклоняются с AuthorizationError.
 
 ═══════════════════════════════════════════════════════════════════════════════

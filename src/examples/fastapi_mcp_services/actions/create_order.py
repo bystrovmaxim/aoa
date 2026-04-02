@@ -41,6 +41,8 @@ Params и Result определяются как вложенные классы
 ``@result_string`` и один summary-аспект (формирование результата).
 """
 
+from typing import Any
+
 from pydantic import Field
 
 from action_machine.aspects.regular_aspect import regular_aspect
@@ -61,6 +63,13 @@ from ..domains import OrdersDomain
 @meta(description="Создание нового заказа", domain=OrdersDomain)
 @check_roles(ROLE_NONE)
 class CreateOrderAction(BaseAction["CreateOrderAction.Params", "CreateOrderAction.Result"]):
+    """
+    Действие создания заказа.
+
+    Конвейер:
+    1. validate — проверяет входные данные и записывает validated_user в state.
+    2. build_result — формирует итоговый результат из params и state.
+    """
 
     class Params(BaseParams):
         """
@@ -111,7 +120,14 @@ class CreateOrderAction(BaseAction["CreateOrderAction.Params", "CreateOrderActio
         state: BaseState,
         box: ToolsBox,
         connections: dict[str, BaseResourceManager],
-    ) -> dict:
+    ) -> dict[str, Any]:
+        """
+        Валидирует входные данные и записывает идентификатор пользователя в state.
+
+        Логирует параметры заказа через шаблонную подстановку переменных.
+        Возвращает словарь с ключом validated_user, который проверяется
+        чекером @result_string.
+        """
         await box.info(
             "Валидация заказа: пользователь={%var.user_id}, сумма={%var.amount}",
             user_id=params.user_id,
@@ -127,12 +143,14 @@ class CreateOrderAction(BaseAction["CreateOrderAction.Params", "CreateOrderActio
         box: ToolsBox,
         connections: dict[str, BaseResourceManager],
     ) -> "CreateOrderAction.Result":
-        order_id = f"ORD-{state['validated_user']}-001"
+        """
+        Формирует итоговый результат из параметров и состояния конвейера.
 
-        await box.info("Заказ создан: {%var.order_id}", order_id=order_id)
-
+        Использует validated_user из state (записан аспектом validate)
+        для формирования order_id.
+        """
         return CreateOrderAction.Result(
-            order_id=order_id,
+            order_id=f"ORD-{state['validated_user']}-001",
             status="created",
             total=params.amount,
         )

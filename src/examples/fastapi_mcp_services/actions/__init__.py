@@ -19,7 +19,7 @@ from .get_order import GetOrderAction
 from .ping import PingAction
 
 __all__ = [
-    "PingAction",
     "CreateOrderAction",
     "GetOrderAction",
+    "PingAction",
 ]

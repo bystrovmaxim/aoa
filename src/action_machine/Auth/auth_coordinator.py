@@ -1,4 +1,4 @@
-# src/action_machine/Auth/auth_coordinator.py
+# src/action_machine/auth/auth_coordinator.py
 """
 Координатор процесса аутентификации и сборки контекста.
 

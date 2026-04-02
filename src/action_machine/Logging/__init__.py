@@ -97,11 +97,11 @@ from .sensitive_decorator import sensitive
 from .variable_substitutor import VariableSubstitutor
 
 __all__ = [
-    "LogCoordinator",
     "ConsoleLogger",
-    "ScopedLogger",
-    "LogScope",
-    "VariableSubstitutor",
     "ExpressionEvaluator",
+    "LogCoordinator",
+    "LogScope",
+    "ScopedLogger",
+    "VariableSubstitutor",
     "sensitive",
 ]

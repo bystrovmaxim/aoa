@@ -95,13 +95,13 @@ from .state_validator import validate_state_for_aspect, validate_state_for_summa
 from .stubs import ContextStub, RequestInfoStub, RuntimeInfoStub, UserInfoStub
 
 __all__ = [
-    "TestBench",
-    "MockAction",
-    "UserInfoStub",
-    "RuntimeInfoStub",
-    "RequestInfoStub",
     "ContextStub",
+    "MockAction",
+    "RequestInfoStub",
+    "RuntimeInfoStub",
+    "TestBench",
+    "UserInfoStub",
+    "compare_results",
     "validate_state_for_aspect",
     "validate_state_for_summary",
-    "compare_results",
 ]

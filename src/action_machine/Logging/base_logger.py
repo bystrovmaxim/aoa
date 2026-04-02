@@ -1,4 +1,4 @@
-# ActionMachine/Logging/base_logger.py
+# src/action_machine/logging/base_logger.py
 """
 Abstract base class for all loggers in the AOA logging system.
 BaseLogger defines a two‑phase protocol for message processing:

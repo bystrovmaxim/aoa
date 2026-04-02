@@ -1,4 +1,4 @@
-# ActionMachine/Core/WritableMixin.py
+# src/action_machine/core/WritableMixin.py
 """
 Миксин для реализации протокола WritableDataProtocol
 на основе атрибутов объекта.

@@ -143,11 +143,11 @@ class TestValidSpec:
             custom_attr = 42
 
         # Act — применение декоратора
-        _Decorated = check_roles("admin")(_Original)
+        _decorated = check_roles("admin")(_Original)
 
         # Assert — тот же класс, атрибуты сохранены
-        assert _Decorated is _Original
-        assert _Decorated.custom_attr == 42
+        assert _decorated is _Original
+        assert _decorated.custom_attr == 42
 
 
 # ═════════════════════════════════════════════════════════════════════════════

@@ -53,7 +53,7 @@
 
     # Домены используются в декораторе @meta (будет добавлен позже):
     @meta(domain=OrdersDomain, description="Создание заказа")
-    @CheckRoles("user")
+    @check_roles("user")
     class CreateOrderAction(BaseAction[OrderParams, OrderResult]):
         ...
 

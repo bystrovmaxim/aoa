@@ -1,4 +1,4 @@
-# ActionMachine/Core/BaseState.py
+# src/action_machine/core/BaseState.py
 """
 Base class for aspect pipeline state.
 

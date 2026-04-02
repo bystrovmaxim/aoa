@@ -248,7 +248,7 @@ def validate_gate_hosts(
         raise TypeError(
             f"Класс {cls.__name__} содержит чекеры для полей ({checker_fields}), "
             f"но не наследует CheckerGateHost. Декораторы чекеров "
-            f"(@ResultStringChecker, @ResultIntChecker и др.) разрешены "
+            f"(@result_string, @result_int и др.) разрешены "
             f"только на классах, наследующих CheckerGateHost. "
             f"Используйте BaseAction или добавьте CheckerGateHost "
             f"в цепочку наследования."

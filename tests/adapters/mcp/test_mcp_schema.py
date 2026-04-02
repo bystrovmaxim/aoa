@@ -225,7 +225,7 @@ class TestNestedModel:
 
         # Find the Address definition regardless of exact key name
         address_def = None
-        for key, value in defs.items():
+        for _key, value in defs.items():
             if "city" in value.get("properties", {}):
                 address_def = value
                 break
@@ -240,7 +240,7 @@ class TestNestedModel:
         defs = schema.get("$defs", {})
 
         address_def = None
-        for key, value in defs.items():
+        for _key, value in defs.items():
             if "zip_code" in value.get("properties", {}):
                 address_def = value
                 break

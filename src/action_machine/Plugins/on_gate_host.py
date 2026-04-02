@@ -1,4 +1,4 @@
-# src/action_machine/Plugins/on_gate_host.py
+# src/action_machine/plugins/on_gate_host.py
 """
 Модуль: OnGateHost — маркерный миксин для декоратора @on.
 
@@ -27,7 +27,7 @@ OnGateHost — миксин-маркер, который обозначает, �
             return {}
 
         @on("global_finish", ".*", ignore_exceptions=False)
-        async def count_call(self, state, event):
+        async def count_call(self, state, event, log):
             state[event.action_name] = state.get(event.action_name, 0) + 1
             return state
 
@@ -55,19 +55,19 @@ OnGateHost — миксин-маркер, который обозначает, �
             return {"total": 0, "errors": 0}
 
         @on("global_finish")
-        async def track_total(self, state, event):
+        async def track_total(self, state, event, log):
             state["total"] += 1
             return state
 
         @on("global_finish")
-        async def track_errors(self, state, event):
+        async def track_errors(self, state, event, log):
             if event.error is not None:
                 state["errors"] += 1
             return state
 
-        @on("aspect_before", "CreateOrder.*")
-        async def log_order_start(self, state, event):
-            print(f"Starting order: {event.action_name}")
+        @on("before:validate", "CreateOrder.*")
+        async def log_order_start(self, state, event, log):
+            await log.info(f"Starting order: {event.action_name}")
             return state
 
     # Класс без OnGateHost не может содержать @on-обработчики.

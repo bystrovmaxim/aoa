@@ -1,4 +1,4 @@
-# ActionMachine/Logging/log_coordinator.py
+# src/action_machine/logging/log_coordinator.py
 """
 Log coordinator for the AOA logging system.
 LogCoordinator is the single logging bus to which any number of independent

@@ -1,4 +1,4 @@
-# src/action_machine/Checkers/checker_gate_host.py
+# src/action_machine/checkers/checker_gate_host.py
 """
 Модуль: CheckerGateHost — маркерный миксин для декораторов чекеров.
 
@@ -7,7 +7,7 @@
 ═══════════════════════════════════════════════════════════════════════════════
 
 CheckerGateHost — миксин-маркер, обозначающий, что класс поддерживает
-декораторы чекеров (например, @StringFieldChecker). Чекеры применяются
+декораторы чекеров (например, @result_string). Чекеры применяются
 к методам-аспектам и проверяют возвращаемый ими словарь на соответствие
 объявленным полям.
 
@@ -30,12 +30,12 @@ CheckerGateHost — миксин-маркер, обозначающий, что 
     class CreateOrderAction(BaseAction[OrderParams, OrderResult]):
 
         @regular_aspect("Обработка платежа")
-        @StringFieldChecker("txn_id", "ID транзакции", required=True)
+        @result_string("txn_id", "ID транзакции", required=True)
         async def process_payment(self, params, state, box, connections):
             ...
             return {"txn_id": txn_id}
 
-    # Декоратор @StringFieldChecker записывает в метод:
+    # Декоратор @result_string записывает в метод:
     #   method._checker_meta = [{"checker_class": StringFieldChecker,
     #                            "field_name": "txn_id", ...}]
 
@@ -55,7 +55,7 @@ class CheckerGateHost:
     Маркерный миксин, обозначающий поддержку декораторов чекеров.
 
     Класс, наследующий CheckerGateHost, может содержать методы-аспекты
-    с декораторами чекеров (@StringFieldChecker и др.). MetadataBuilder
+    с декораторами чекеров (@result_string и др.). MetadataBuilder
     собирает чекеры в ClassMetadata.checkers, а ActionProductMachine
     применяет их к результатам аспектов.
 

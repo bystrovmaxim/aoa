@@ -432,7 +432,7 @@ class TestBench:
             R — результат выполнения действия (от async-машины).
         """
         if isinstance(action, MockAction):
-            return cast(R, action.run(params))
+            return cast("R", action.run(params))
 
         context = self._build_context()
 
@@ -542,7 +542,7 @@ class TestBench:
         conns = connections or {}
 
         return cast(
-            dict[str, Any],
+            "dict[str, Any]",
             await target_aspect.method_ref(action, params, base_state, box, conns),
         )
 
@@ -607,7 +607,7 @@ class TestBench:
         conns = connections or {}
 
         return cast(
-            BaseResult,
+            "BaseResult",
             await summary_meta.method_ref(action, params, base_state, box, conns),
         )
 

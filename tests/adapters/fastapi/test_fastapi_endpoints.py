@@ -98,7 +98,7 @@ class TestGetWithQueryParams:
     def test_get_extracts_query_params(self) -> None:
         """GET endpoint извлекает параметры из query string и возвращает 200."""
         # Arrange — SimpleAction.Params имеет поле name (обязательное)
-        adapter, machine = _make_app(
+        adapter, _machine = _make_app(
             run_return=SimpleAction.Result(greeting="Hello, Alice!"),
         )
         adapter.get("/simple", SimpleAction)
@@ -110,12 +110,12 @@ class TestGetWithQueryParams:
 
         # Assert — endpoint сработал, machine.run был вызван
         assert response.status_code == 200
-        machine.run.assert_called_once()
+        _machine.run.assert_called_once()
 
     def test_delete_extracts_query_params(self) -> None:
         """DELETE endpoint также использует стратегию query-параметров."""
         # Arrange
-        adapter, machine = _make_app(
+        adapter, _machine = _make_app(
             run_return=SimpleAction.Result(greeting="Deleted"),
         )
         adapter.delete("/simple", SimpleAction)
@@ -140,7 +140,7 @@ class TestGetEmptyParams:
     def test_get_no_params(self) -> None:
         """GET endpoint без полей в Params работает без query-параметров."""
         # Arrange — PingAction.Params не содержит полей
-        adapter, machine = _make_app()
+        adapter, _machine = _make_app()
         adapter.get("/ping", PingAction)
         app = adapter.build()
         client = TestClient(app)
@@ -155,7 +155,7 @@ class TestGetEmptyParams:
     def test_post_no_params(self) -> None:
         """POST endpoint без полей в Params работает с пустым body."""
         # Arrange
-        adapter, machine = _make_app()
+        adapter, _machine = _make_app()
         adapter.post("/ping", PingAction)
         app = adapter.build()
         client = TestClient(app)
@@ -182,7 +182,7 @@ class TestConnectionsFactory:
         mock_connections = {"db": MagicMock()}
         factory = MagicMock(return_value=mock_connections)
 
-        adapter, machine = _make_app(connections_factory=factory)
+        adapter, _machine = _make_app(connections_factory=factory)
         adapter.post("/ping", PingAction)
         app = adapter.build()
         client = TestClient(app)
@@ -199,7 +199,7 @@ class TestConnectionsFactory:
         mock_connections = {"db": MagicMock()}
         factory = MagicMock(return_value=mock_connections)
 
-        adapter, machine = _make_app(connections_factory=factory)
+        adapter, _machine = _make_app(connections_factory=factory)
         adapter.post("/ping", PingAction)
         app = adapter.build()
         client = TestClient(app)
@@ -208,7 +208,7 @@ class TestConnectionsFactory:
         client.post("/ping", json={})
 
         # Assert — machine.run получил connections
-        call_args = machine.run.call_args
+        call_args = _machine.run.call_args
         assert call_args is not None
 
 

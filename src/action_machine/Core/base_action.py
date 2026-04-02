@@ -22,9 +22,9 @@ BaseAction — абстрактный базовый класс, от котор
    если класс наследует ActionMetaGateHost и содержит аспекты — @meta
    обязателен. Без него — TypeError.
 
-2. @CheckRoles(...) — ролевые ограничения. Контролируется RoleGateHost.
+2. @check_roles(...) — ролевые ограничения. Контролируется RoleGateHost.
    ActionProductMachine при выполнении проверяет: если действие не имеет
-   @CheckRoles — TypeError.
+   @check_roles — TypeError.
 
 ═══════════════════════════════════════════════════════════════════════════════
 АСПЕКТЫ
@@ -58,9 +58,9 @@ BaseAction наследует шесть маркерных миксинов, к
 разрешает применение соответствующего декоратора:
 
     ActionMetaGateHost  → разрешает и ТРЕБУЕТ @meta
-    RoleGateHost        → разрешает @CheckRoles
+    RoleGateHost        → разрешает @check_roles
     DependencyGateHost  → разрешает @depends
-    CheckerGateHost     → разрешает чекеры (@ResultStringChecker и др.)
+    CheckerGateHost     → разрешает чекеры (@result_string и др.)
     AspectGateHost      → разрешает @regular_aspect и @summary_aspect
     ConnectionGateHost  → разрешает @connection
 
@@ -86,14 +86,14 @@ BaseAction наследует шесть маркерных миксинов, к
 ═══════════════════════════════════════════════════════════════════════════════
 
     >>> @meta(description="Проверка доступности сервиса")
-    ... @CheckRoles(CheckRoles.NONE)
+    ... @check_roles(ROLE_NONE)
     ... class PingAction(BaseAction[BaseParams, BaseResult]):
     ...     @summary_aspect("Pong response")
     ...     async def summary(self, params, state, box, connections):
     ...         return BaseResult(message="pong")
 
     >>> @meta(description="Создание заказа", domain=OrdersDomain)
-    ... @CheckRoles("manager")
+    ... @check_roles("manager")
     ... @depends(PaymentService)
     ... @connection(PostgresManager, key="db")
     ... class CreateOrderAction(BaseAction[OrderParams, OrderResult]):
@@ -134,8 +134,8 @@ class BaseAction[P: ReadableDataProtocol, R: WritableDataProtocol](
     и @summary_aspect. Не содержит состояния — все данные передаются
     через params и state (объект BaseState).
 
-    Каждое действие обязано иметь декораторы @meta и @CheckRoles.
-    @meta задаёт описание и опциональный домен. @CheckRoles задаёт
+    Каждое действие обязано иметь декораторы @meta и @check_roles.
+    @meta задаёт описание и опциональный домен. @check_roles задаёт
     ролевые ограничения.
 
     Метаданные (описание, домен, роли, зависимости, чекеры, аспекты,
