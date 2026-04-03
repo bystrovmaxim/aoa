@@ -87,7 +87,7 @@ class AdminAction(BaseAction["AdminAction.Params", "AdminAction.Result"]):
 
     @regular_aspect("Выполнение административной операции")
     @result_string("admin_note", required=True)
-    async def execute_admin(
+    async def execute_admin_aspect(
         self,
         params: "AdminAction.Params",
         state: BaseState,
@@ -106,7 +106,7 @@ class AdminAction(BaseAction["AdminAction.Params", "AdminAction.Result"]):
         return {"admin_note": f"admin_processed:{params.target}"}
 
     @summary_aspect("Формирование результата")
-    async def build_result(
+    async def build_result_summary(
         self,
         params: "AdminAction.Params",
         state: BaseState,

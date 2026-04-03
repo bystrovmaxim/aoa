@@ -49,21 +49,21 @@ class TestValidateForAspect:
     """Verify pre-aspect state validation against preceding checkers."""
 
     def test_valid_state_for_second_aspect(self, coordinator: GateCoordinator) -> None:
-        """State with txn_id satisfies checkers preceding calc_total."""
-        # Arrange — FullAction: process_payment → calc_total → summary
-        # calc_total requires txn_id from process_payment
+        """State with txn_id satisfies checkers preceding calc_total_aspect."""
+        # Arrange — FullAction: process_payment_aspect → calc_total_aspect → summary
+        # calc_total_aspect requires txn_id from process_payment_aspect
         metadata = coordinator.get(FullAction)
         state = {"txn_id": "TXN-001"}
 
         # Act — should not raise
-        validate_state_for_aspect(metadata, "calc_total", state)
+        validate_state_for_aspect(metadata, "calc_total_aspect", state)
 
     def test_missing_required_field(self, coordinator: GateCoordinator) -> None:
-        """Empty state before calc_total triggers error for missing txn_id."""
+        """Empty state before calc_total_aspect triggers error for missing txn_id."""
         metadata = coordinator.get(FullAction)
 
         with pytest.raises(StateValidationError, match="txn_id"):
-            validate_state_for_aspect(metadata, "calc_total", {})
+            validate_state_for_aspect(metadata, "calc_total_aspect", {})
 
     def test_wrong_field_type(self, coordinator: GateCoordinator) -> None:
         """Non-string txn_id triggers checker validation error."""
@@ -71,14 +71,14 @@ class TestValidateForAspect:
         state = {"txn_id": 12345}
 
         with pytest.raises(StateValidationError, match="txn_id"):
-            validate_state_for_aspect(metadata, "calc_total", state)
+            validate_state_for_aspect(metadata, "calc_total_aspect", state)
 
     def test_first_aspect_accepts_any_state(self, coordinator: GateCoordinator) -> None:
-        """First aspect (process_payment) has no preceding checkers — any state is fine."""
+        """First aspect (process_payment_aspect) has no preceding checkers — any state is fine."""
         metadata = coordinator.get(FullAction)
 
         # Act — should not raise even with empty state
-        validate_state_for_aspect(metadata, "process_payment", {})
+        validate_state_for_aspect(metadata, "process_payment_aspect", {})
 
     def test_nonexistent_aspect_raises(self, coordinator: GateCoordinator) -> None:
         """Unknown aspect name raises StateValidationError listing available aspects."""
@@ -91,8 +91,8 @@ class TestValidateForAspect:
         """SimpleAction has one regular aspect — validating it requires no preceding fields."""
         metadata = coordinator.get(SimpleAction)
 
-        # validate_name is the only regular aspect — no predecessors
-        validate_state_for_aspect(metadata, "validate_name", {})
+        # validate_name_aspect is the only regular aspect — no predecessors
+        validate_state_for_aspect(metadata, "validate_name_aspect", {})
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -112,7 +112,7 @@ class TestValidateForSummary:
         validate_state_for_summary(metadata, state)
 
     def test_missing_first_aspect_field(self, coordinator: GateCoordinator) -> None:
-        """Missing txn_id (from process_payment) raises error before summary."""
+        """Missing txn_id (from process_payment_aspect) raises error before summary."""
         metadata = coordinator.get(FullAction)
         state = {"total": 1500.0}
 
@@ -120,7 +120,7 @@ class TestValidateForSummary:
             validate_state_for_summary(metadata, state)
 
     def test_missing_second_aspect_field(self, coordinator: GateCoordinator) -> None:
-        """Missing total (from calc_total) raises error before summary."""
+        """Missing total (from calc_total_aspect) raises error before summary."""
         metadata = coordinator.get(FullAction)
         state = {"txn_id": "TXN-001"}
 
@@ -142,7 +142,7 @@ class TestValidateForSummary:
         validate_state_for_summary(metadata, {})
 
     def test_simple_action_summary(self, coordinator: GateCoordinator) -> None:
-        """SimpleAction summary requires validated_name from validate_name aspect."""
+        """SimpleAction summary requires validated_name from validate_name_aspect aspect."""
         metadata = coordinator.get(SimpleAction)
         state = {"validated_name": "Alice"}
 
@@ -170,7 +170,7 @@ class TestErrorAttributes:
         metadata = coordinator.get(FullAction)
 
         with pytest.raises(StateValidationError) as exc_info:
-            validate_state_for_aspect(metadata, "calc_total", {})
+            validate_state_for_aspect(metadata, "calc_total_aspect", {})
 
         assert exc_info.value.field == "txn_id"
 
@@ -179,9 +179,9 @@ class TestErrorAttributes:
         metadata = coordinator.get(FullAction)
 
         with pytest.raises(StateValidationError) as exc_info:
-            validate_state_for_aspect(metadata, "calc_total", {})
+            validate_state_for_aspect(metadata, "calc_total_aspect", {})
 
-        assert exc_info.value.source_aspect == "process_payment"
+        assert exc_info.value.source_aspect == "process_payment_aspect"
 
     def test_nonexistent_aspect_has_no_field(self, coordinator: GateCoordinator) -> None:
         """Error for non-existent aspect has field=None and source_aspect=None."""

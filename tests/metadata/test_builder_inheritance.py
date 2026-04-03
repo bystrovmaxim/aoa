@@ -1,4 +1,3 @@
-# tests/metadata/test_builder_inheritance.py
 """
 Тесты MetadataBuilder — наследование метаданных между классами.
 
@@ -94,7 +93,7 @@ class _ParentAction(BaseAction["_Params", "_Result"]):
     """Родительское действие с ролью, зависимостью и аспектами."""
 
     @regular_aspect("Родительский шаг")
-    async def parent_step(self, params, state, box, connections):
+    async def parent_step_aspect(self, params, state, box, connections):
         return {"data": "parent"}
 
     @summary_aspect("Родительский итог")
@@ -105,7 +104,7 @@ class _ParentAction(BaseAction["_Params", "_Result"]):
 # ─── Дочерний без переопределений ────────────────────────────────────────
 
 
-class _ChildNoOverrides(_ParentAction):
+class _ChildNoOverridesAction(_ParentAction):
     """Дочерний класс без переопределений — наследует role и dependencies."""
     pass
 
@@ -114,7 +113,7 @@ class _ChildNoOverrides(_ParentAction):
 
 
 @depends(_ServiceC)
-class _ChildWithExtraDep(_ParentAction):
+class _ChildWithExtraDepAction(_ParentAction):
     """Дочерний класс с дополнительной зависимостью."""
     pass
 
@@ -123,11 +122,11 @@ class _ChildWithExtraDep(_ParentAction):
 
 
 @meta("Дочернее действие с аспектами")
-class _ChildWithOwnAspects(_ParentAction):
+class _ChildWithOwnAspectsAction(_ParentAction):
     """Дочерний класс с собственными аспектами — игнорирует родительские."""
 
     @regular_aspect("Дочерний шаг")
-    async def child_step(self, params, state, box, connections):
+    async def child_step_aspect(self, params, state, box, connections):
         return {"data": "child"}
 
     @summary_aspect("Дочерний итог")
@@ -140,7 +139,7 @@ class _ChildWithOwnAspects(_ParentAction):
 
 @meta("Родитель с sensitive")
 @check_roles(ROLE_NONE)
-class _ParentWithSensitive(BaseAction["_Params", "_Result"]):
+class _ParentWithSensitiveAction(BaseAction["_Params", "_Result"]):
     """Родительское действие с sensitive-полем."""
 
     def __init__(self):
@@ -152,11 +151,11 @@ class _ParentWithSensitive(BaseAction["_Params", "_Result"]):
         return self._phone
 
     @summary_aspect("Итог")
-    async def finalize(self, params, state, box, connections):
+    async def finalize_summary(self, params, state, box, connections):
         return {"result": "ok"}
 
 
-class _ChildOfSensitive(_ParentWithSensitive):
+class _ChildOfSensitiveAction(_ParentWithSensitiveAction):
     """Дочерний класс — наследует sensitive-поля."""
     pass
 
@@ -172,7 +171,7 @@ class TestInheritRole:
     def test_child_inherits_parent_role(self):
         """Дочерний класс без @check_roles наследует role."""
         # Arrange & Act
-        result = MetadataBuilder().build(_ChildNoOverrides)
+        result = MetadataBuilder().build(_ChildNoOverridesAction)
 
         # Assert
         assert result.has_role() is True
@@ -198,7 +197,7 @@ class TestInheritDependencies:
     def test_child_inherits_parent_dependencies(self):
         """Дочерний класс наследует зависимости родителя."""
         # Arrange & Act
-        result = MetadataBuilder().build(_ChildNoOverrides)
+        result = MetadataBuilder().build(_ChildNoOverridesAction)
 
         # Assert
         assert result.has_dependencies() is True
@@ -208,7 +207,7 @@ class TestInheritDependencies:
     def test_child_adds_own_dependencies(self):
         """Дочерний класс добавляет свои зависимости к родительским."""
         # Arrange & Act
-        result = MetadataBuilder().build(_ChildWithExtraDep)
+        result = MetadataBuilder().build(_ChildWithExtraDepAction)
 
         # Assert
         classes = result.get_dependency_classes()
@@ -219,7 +218,7 @@ class TestInheritDependencies:
         """Зависимости родителя не изменяются при добавлении в дочернем."""
         # Arrange & Act
         parent_meta = MetadataBuilder().build(_ParentAction)
-        child_meta = MetadataBuilder().build(_ChildWithExtraDep)
+        child_meta = MetadataBuilder().build(_ChildWithExtraDepAction)
 
         # Assert
         assert len(parent_meta.dependencies) < len(child_meta.dependencies)
@@ -237,7 +236,7 @@ class TestAspectsNotInherited:
     def test_child_without_aspects_has_none(self):
         """Дочерний класс без собственных аспектов не наследует родительские."""
         # Arrange & Act
-        result = MetadataBuilder().build(_ChildNoOverrides)
+        result = MetadataBuilder().build(_ChildNoOverridesAction)
 
         # Assert
         assert result.has_aspects() is False
@@ -245,14 +244,14 @@ class TestAspectsNotInherited:
     def test_child_with_own_aspects_ignores_parent(self):
         """Дочерний класс с собственными аспектами игнорирует родительские."""
         # Arrange & Act
-        result = MetadataBuilder().build(_ChildWithOwnAspects)
+        result = MetadataBuilder().build(_ChildWithOwnAspectsAction)
 
         # Assert
         assert result.has_aspects() is True
         method_names = [a.method_name for a in result.aspects]
-        assert "child_step" in method_names
+        assert "child_step_aspect" in method_names
         assert "child_summary" in method_names
-        assert "parent_step" not in method_names
+        assert "parent_step_aspect" not in method_names
         assert "parent_summary" not in method_names
 
     def test_parent_aspects_unchanged(self):
@@ -262,7 +261,7 @@ class TestAspectsNotInherited:
 
         # Assert
         method_names = [a.method_name for a in parent_meta.aspects]
-        assert "parent_step" in method_names
+        assert "parent_step_aspect" in method_names
         assert "parent_summary" in method_names
 
 
@@ -277,7 +276,7 @@ class TestInheritSensitiveFields:
     def test_parent_has_sensitive_field(self):
         """Родитель имеет sensitive-поле."""
         # Arrange & Act
-        result = MetadataBuilder().build(_ParentWithSensitive)
+        result = MetadataBuilder().build(_ParentWithSensitiveAction)
 
         # Assert
         assert result.has_sensitive_fields() is True
@@ -286,7 +285,7 @@ class TestInheritSensitiveFields:
     def test_child_inherits_sensitive_fields(self):
         """Дочерний класс наследует sensitive-поля родителя."""
         # Arrange & Act
-        result = MetadataBuilder().build(_ChildOfSensitive)
+        result = MetadataBuilder().build(_ChildOfSensitiveAction)
 
         # Assert
         assert result.has_sensitive_fields() is True

@@ -156,7 +156,7 @@ class TestEventCount:
     ) -> None:
         """
         SimpleAction (1 regular, 1 summary) → 4 события:
-        global_start, before:validate_name, after:validate_name, global_finish.
+        global_start, before:validate_name_aspect, after:validate_name_aspect, global_finish.
 
         Формула: 2 + 2*N, где N=1 → 4.
         """
@@ -176,8 +176,8 @@ class TestEventCount:
     ) -> None:
         """
         FullAction (2 regular, 1 summary) → 6 событий:
-        global_start, before:process_payment, after:process_payment,
-        before:calc_total, after:calc_total, global_finish.
+        global_start, before:process_payment_aspect, after:process_payment_aspect,
+        before:calc_total_aspect, after:calc_total_aspect, global_finish.
 
         Формула: 2 + 2*N, где N=2 → 6.
         """
@@ -240,8 +240,8 @@ class TestEventNames:
         self, machine_with_mock_plugins, mock_plugin_ctx, context,
     ) -> None:
         """
-        SimpleAction: global_start → before:validate_name →
-        after:validate_name → global_finish.
+        SimpleAction: global_start → before:validate_name_aspect →
+        after:validate_name_aspect → global_finish.
         """
         # Arrange
         action = SimpleAction()
@@ -256,8 +256,8 @@ class TestEventNames:
 
         assert event_names == [
             "global_start",
-            "before:validate_name",
-            "after:validate_name",
+            "before:validate_name_aspect",
+            "after:validate_name_aspect",
             "global_finish",
         ]
 
@@ -266,8 +266,8 @@ class TestEventNames:
         self, machine_with_mock_plugins, mock_plugin_ctx, context,
     ) -> None:
         """
-        FullAction: global_start → before/after process_payment →
-        before/after calc_total → global_finish.
+        FullAction: global_start → before/after process_payment_aspect →
+        before/after calc_total_aspect → global_finish.
 
         Порядок before/after соответствует порядку объявления
         regular-аспектов в классе.
@@ -298,10 +298,10 @@ class TestEventNames:
 
         assert event_names == [
             "global_start",
-            "before:process_payment",
-            "after:process_payment",
-            "before:calc_total",
-            "after:calc_total",
+            "before:process_payment_aspect",
+            "after:process_payment_aspect",
+            "before:calc_total_aspect",
+            "after:calc_total_aspect",
             "global_finish",
         ]
 

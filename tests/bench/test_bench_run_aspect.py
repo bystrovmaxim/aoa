@@ -13,7 +13,7 @@
 - Несуществующий аспект — StateValidationError.
 
 Все тесты используют FullAction из tests/domain/, который имеет
-два regular-аспекта: process_payment (txn_id) и calc_total (total).
+два regular-аспекта: process_payment_aspect (txn_id) и calc_total_aspect (total).
 """
 
 from unittest.mock import AsyncMock
@@ -33,7 +33,7 @@ class TestFirstAspect:
         self, manager_bench: TestBench, mock_db: AsyncMock,
     ) -> None:
         """
-        process_payment — первый аспект FullAction. Перед ним нет
+        process_payment_aspect — первый аспект FullAction. Перед ним нет
         аспектов → нет чекеров для проверки → пустой state допустим.
         """
         # Arrange
@@ -42,7 +42,7 @@ class TestFirstAspect:
 
         # Act
         result = await manager_bench.run_aspect(
-            action, "process_payment", params,
+            action, "process_payment_aspect", params,
             state={},
             rollup=False,
             connections={"db": mock_db},
@@ -61,7 +61,7 @@ class TestSecondAspect:
         self, manager_bench: TestBench, mock_db: AsyncMock,
     ) -> None:
         """
-        calc_total — второй аспект. Требует txn_id от process_payment.
+        calc_total_aspect — второй аспект. Требует txn_id от process_payment_aspect.
         Передаём корректный state — аспект выполняется.
         """
         # Arrange
@@ -70,7 +70,7 @@ class TestSecondAspect:
 
         # Act
         result = await manager_bench.run_aspect(
-            action, "calc_total", params,
+            action, "calc_total_aspect", params,
             state={"txn_id": "TXN-001"},
             rollup=False,
             connections={"db": mock_db},
@@ -88,7 +88,7 @@ class TestInvalidState:
         self, manager_bench: TestBench, mock_db: AsyncMock,
     ) -> None:
         """
-        calc_total ожидает txn_id от process_payment. Пустой state —
+        calc_total_aspect ожидает txn_id от process_payment_aspect. Пустой state —
         StateValidationError с указанием отсутствующего поля.
         """
         # Arrange
@@ -98,7 +98,7 @@ class TestInvalidState:
         # Act & Assert
         with pytest.raises(StateValidationError, match="txn_id"):
             await manager_bench.run_aspect(
-                action, "calc_total", params,
+                action, "calc_total_aspect", params,
                 state={},
                 rollup=False,
                 connections={"db": mock_db},
@@ -119,7 +119,7 @@ class TestInvalidState:
         # Act & Assert
         with pytest.raises(StateValidationError, match="должен быть строкой"):
             await manager_bench.run_aspect(
-                action, "calc_total", params,
+                action, "calc_total_aspect", params,
                 state={"txn_id": 123},
                 rollup=False,
                 connections={"db": mock_db},

@@ -15,6 +15,20 @@ ResultFieldChecker используется машиной (ActionProductMachine
 чекера из CheckerMeta и вызывает checker.check(result_dict).
 
 ═══════════════════════════════════════════════════════════════════════════════
+ИНВАРИАНТ ИМЕНОВАНИЯ
+═══════════════════════════════════════════════════════════════════════════════
+
+Каждый класс, наследующий ResultFieldChecker (прямо или косвенно), обязан
+иметь суффикс "Checker" в имени. Проверка выполняется в __init_subclass__
+при определении класса. Нарушение → NamingSuffixError.
+
+Примеры:
+    class ResultStringChecker(ResultFieldChecker):  ← OK
+    class ResultIntChecker(ResultFieldChecker):     ← OK
+    class MyCustomChecker(ResultFieldChecker):      ← OK
+    class StringValidator(ResultFieldChecker):      ← NamingSuffixError
+
+═══════════════════════════════════════════════════════════════════════════════
 ИНТЕГРАЦИЯ С ДЕКОРАТОРАМИ
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -52,7 +66,10 @@ ActionProductMachine при выполнении regular-аспекта:
 from abc import abstractmethod
 from typing import Any
 
-from action_machine.core.exceptions import ValidationFieldError
+from action_machine.core.exceptions import NamingSuffixError, ValidationFieldError
+
+# Суффикс, обязательный для всех классов, наследующих ResultFieldChecker.
+_REQUIRED_SUFFIX = "Checker"
 
 
 class ResultFieldChecker:
@@ -65,12 +82,37 @@ class ResultFieldChecker:
     Наследники реализуют _check_type_and_constraints для проверки
     конкретного типа (строка, число, дата и т.д.).
 
+    Каждый класс-наследник обязан иметь суффикс "Checker" в имени.
+    Проверяется при определении класса через __init_subclass__.
+
     Атрибуты:
         field_name : str
             Имя поля в словаре результата аспекта.
         required : bool
             Обязательно ли поле (True — отсутствие или None вызывает ошибку).
     """
+
+    def __init_subclass__(cls, **kwargs: Any) -> None:
+        """
+        Вызывается Python при создании любого подкласса ResultFieldChecker.
+
+        Проверяет инвариант именования: имя класса обязано заканчиваться
+        на "Checker". Нарушение → NamingSuffixError.
+
+        Аргументы:
+            **kwargs: аргументы, передаваемые в type.__init_subclass__.
+
+        Исключения:
+            NamingSuffixError: если имя класса не заканчивается на "Checker".
+        """
+        super().__init_subclass__(**kwargs)
+
+        if not cls.__name__.endswith(_REQUIRED_SUFFIX):
+            raise NamingSuffixError(
+                f"Класс '{cls.__name__}' наследует ResultFieldChecker, "
+                f"но не имеет суффикса '{_REQUIRED_SUFFIX}'. "
+                f"Переименуйте в '{cls.__name__}{_REQUIRED_SUFFIX}'."
+            )
 
     def __init__(self, field_name: str, required: bool = True) -> None:
         """

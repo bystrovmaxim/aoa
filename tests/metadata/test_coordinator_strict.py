@@ -1,4 +1,3 @@
-# tests/metadata/test_coordinator_strict.py
 """
 Тесты GateCoordinator — strict mode, домены в графе, описания в узлах.
 
@@ -98,7 +97,7 @@ class _PaymentsDomain(BaseDomain):
 class _OrderAction(BaseAction["_Params", "_Result"]):
 
     @summary_aspect("Итог")
-    async def finalize(self, params, state, box, connections):
+    async def finalize_summary(self, params, state, box, connections):
         return {"result": "ok"}
 
 
@@ -110,7 +109,7 @@ class _OrderAction(BaseAction["_Params", "_Result"]):
 class _GetOrderAction(BaseAction["_Params", "_Result"]):
 
     @summary_aspect("Итог")
-    async def finalize(self, params, state, box, connections):
+    async def finalize_summary(self, params, state, box, connections):
         return {"result": "ok"}
 
 
@@ -122,7 +121,7 @@ class _GetOrderAction(BaseAction["_Params", "_Result"]):
 class _PaymentAction(BaseAction["_Params", "_Result"]):
 
     @summary_aspect("Итог")
-    async def finalize(self, params, state, box, connections):
+    async def finalize_summary(self, params, state, box, connections):
         return {"result": "ok"}
 
 
@@ -134,7 +133,7 @@ class _PaymentAction(BaseAction["_Params", "_Result"]):
 class _NoDomainAction(BaseAction["_Params", "_Result"]):
 
     @summary_aspect("Итог")
-    async def finalize(self, params, state, box, connections):
+    async def finalize_summary(self, params, state, box, connections):
         return {"result": "ok"}
 
 

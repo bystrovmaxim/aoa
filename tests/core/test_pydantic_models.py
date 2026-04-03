@@ -162,7 +162,7 @@ class GoodAction(BaseAction[OrderParams, OrderResult]):
     """Все поля Params и Result имеют description — проходит валидацию."""
 
     @summary_aspect("Создание заказа")
-    async def summary(self, params, state, box, connections):
+    async def finalize_summary(self, params, state, box, connections):
         return OrderResult(order_id="ORD-1", status="created", total=params.amount)
 
 
@@ -172,7 +172,7 @@ class EmptyModelsAction(BaseAction[EmptyParams, EmptyResult]):
     """Пустые Params и Result — нет полей для проверки, проходит валидацию."""
 
     @summary_aspect("Пустой результат")
-    async def summary(self, params, state, box, connections):
+    async def finalize_summary(self, params, state, box, connections):
         return EmptyResult()
 
 
@@ -182,7 +182,7 @@ class BadParamsAction(BaseAction[BadParamsNoDescription, OrderResult]):
     """Поле user_id в Params без description — TypeError при сборке."""
 
     @summary_aspect("Результат")
-    async def summary(self, params, state, box, connections):
+    async def finalize_summary(self, params, state, box, connections):
         return OrderResult(order_id="ORD-1", status="ok", total=100.0)
 
 
@@ -192,7 +192,7 @@ class BadParamsEmptyDescAction(BaseAction[BadParamsEmptyDescription, OrderResult
     """Пустая строка description — тоже ошибка."""
 
     @summary_aspect("Результат")
-    async def summary(self, params, state, box, connections):
+    async def finalize_summary(self, params, state, box, connections):
         return OrderResult(order_id="ORD-1", status="ok", total=100.0)
 
 
@@ -202,7 +202,7 @@ class BadResultAction(BaseAction[OrderParams, BadResultNoDescription]):
     """Поле order_id в Result без description — TypeError при сборке."""
 
     @summary_aspect("Результат")
-    async def summary(self, params, state, box, connections):
+    async def finalize_summary(self, params, state, box, connections):
         return BadResultNoDescription(order_id="ORD-1")
 
 

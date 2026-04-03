@@ -1,4 +1,3 @@
-# tests/metadata/test_builder_aspects.py
 """
 Тесты MetadataBuilder — сборка аспектов и структурные инварианты.
 
@@ -66,43 +65,43 @@ class _Result(BaseResult):
 
 @meta("Действие с одним regular и одним summary")
 @check_roles(ROLE_NONE)
-class _OneRegularOneSummary(BaseAction["_Params", "_Result"]):
+class _OneRegularOneSummaryAction(BaseAction["_Params", "_Result"]):
     """Действие с одним regular-аспектом и одним summary-аспектом."""
 
     @regular_aspect("Шаг 1")
-    async def step_one(self, params, state, box, connections):
+    async def step_one_aspect(self, params, state, box, connections):
         return {"data": "value"}
 
     @summary_aspect("Итог")
-    async def finalize(self, params, state, box, connections):
+    async def finalize_summary(self, params, state, box, connections):
         return {"result": "done"}
 
 
 @meta("Действие только с summary")
 @check_roles(ROLE_NONE)
-class _OnlySummary(BaseAction["_Params", "_Result"]):
+class _OnlySummaryAction(BaseAction["_Params", "_Result"]):
     """Действие с только summary-аспектом — валидно."""
 
     @summary_aspect("Итог")
-    async def finalize(self, params, state, box, connections):
+    async def finalize_summary(self, params, state, box, connections):
         return {"result": "done"}
 
 
 @meta("Действие с двумя regular и одним summary")
 @check_roles(ROLE_NONE)
-class _TwoRegularOneSummary(BaseAction["_Params", "_Result"]):
+class _TwoRegularOneSummaryAction(BaseAction["_Params", "_Result"]):
     """Действие с двумя regular-аспектами и одним summary."""
 
     @regular_aspect("Шаг 1")
-    async def step_one(self, params, state, box, connections):
+    async def step_one_aspect(self, params, state, box, connections):
         return {"a": 1}
 
     @regular_aspect("Шаг 2")
-    async def step_two(self, params, state, box, connections):
+    async def step_two_aspect(self, params, state, box, connections):
         return {"b": 2}
 
     @summary_aspect("Итог")
-    async def finalize(self, params, state, box, connections):
+    async def finalize_summary(self, params, state, box, connections):
         return {"result": "done"}
 
 
@@ -117,7 +116,7 @@ class TestRegularAndSummary:
     def test_two_aspects_collected(self):
         """Builder собирает два аспекта."""
         # Arrange & Act
-        result = MetadataBuilder().build(_OneRegularOneSummary)
+        result = MetadataBuilder().build(_OneRegularOneSummaryAction)
 
         # Assert
         assert result.has_aspects() is True
@@ -126,7 +125,7 @@ class TestRegularAndSummary:
     def test_first_aspect_is_regular(self):
         """Первый аспект — regular."""
         # Arrange & Act
-        result = MetadataBuilder().build(_OneRegularOneSummary)
+        result = MetadataBuilder().build(_OneRegularOneSummaryAction)
 
         # Assert
         assert result.aspects[0].aspect_type == "regular"
@@ -134,7 +133,7 @@ class TestRegularAndSummary:
     def test_last_aspect_is_summary(self):
         """Последний аспект — summary."""
         # Arrange & Act
-        result = MetadataBuilder().build(_OneRegularOneSummary)
+        result = MetadataBuilder().build(_OneRegularOneSummaryAction)
 
         # Assert
         assert result.aspects[-1].aspect_type == "summary"
@@ -142,16 +141,16 @@ class TestRegularAndSummary:
     def test_method_name_preserved(self):
         """method_name сохраняет имя метода."""
         # Arrange & Act
-        result = MetadataBuilder().build(_OneRegularOneSummary)
+        result = MetadataBuilder().build(_OneRegularOneSummaryAction)
 
         # Assert
-        assert result.aspects[0].method_name == "step_one"
-        assert result.aspects[1].method_name == "finalize"
+        assert result.aspects[0].method_name == "step_one_aspect"
+        assert result.aspects[1].method_name == "finalize_summary"
 
     def test_description_preserved(self):
         """description сохраняет описание из декоратора."""
         # Arrange & Act
-        result = MetadataBuilder().build(_OneRegularOneSummary)
+        result = MetadataBuilder().build(_OneRegularOneSummaryAction)
 
         # Assert
         assert result.aspects[0].description == "Шаг 1"
@@ -160,7 +159,7 @@ class TestRegularAndSummary:
     def test_method_ref_is_callable(self):
         """method_ref — вызываемый объект."""
         # Arrange & Act
-        result = MetadataBuilder().build(_OneRegularOneSummary)
+        result = MetadataBuilder().build(_OneRegularOneSummaryAction)
 
         # Assert
         assert callable(result.aspects[0].method_ref)
@@ -178,7 +177,7 @@ class TestOnlySummary:
     def test_single_summary_collected(self):
         """Builder собирает один summary-аспект."""
         # Arrange & Act
-        result = MetadataBuilder().build(_OnlySummary)
+        result = MetadataBuilder().build(_OnlySummaryAction)
 
         # Assert
         assert len(result.aspects) == 1
@@ -187,17 +186,17 @@ class TestOnlySummary:
     def test_get_summary_aspect(self):
         """get_summary_aspect возвращает summary-аспект."""
         # Arrange & Act
-        result = MetadataBuilder().build(_OnlySummary)
+        result = MetadataBuilder().build(_OnlySummaryAction)
 
         # Assert
         summary = result.get_summary_aspect()
         assert summary is not None
-        assert summary.method_name == "finalize"
+        assert summary.method_name == "finalize_summary"
 
     def test_get_regular_aspects_empty(self):
         """get_regular_aspects возвращает пустой кортеж."""
         # Arrange & Act
-        result = MetadataBuilder().build(_OnlySummary)
+        result = MetadataBuilder().build(_OnlySummaryAction)
 
         # Assert
         assert result.get_regular_aspects() == ()
@@ -214,7 +213,7 @@ class TestMultipleRegular:
     def test_three_aspects_collected(self):
         """Builder собирает три аспекта (два regular + один summary)."""
         # Arrange & Act
-        result = MetadataBuilder().build(_TwoRegularOneSummary)
+        result = MetadataBuilder().build(_TwoRegularOneSummaryAction)
 
         # Assert
         assert len(result.aspects) == 3
@@ -222,22 +221,22 @@ class TestMultipleRegular:
     def test_regular_aspects_order(self):
         """Порядок regular-аспектов сохраняется."""
         # Arrange & Act
-        result = MetadataBuilder().build(_TwoRegularOneSummary)
+        result = MetadataBuilder().build(_TwoRegularOneSummaryAction)
         regular = result.get_regular_aspects()
 
         # Assert
         assert len(regular) == 2
-        assert regular[0].method_name == "step_one"
-        assert regular[1].method_name == "step_two"
+        assert regular[0].method_name == "step_one_aspect"
+        assert regular[1].method_name == "step_two_aspect"
 
     def test_summary_is_last(self):
         """Summary-аспект последний в списке."""
         # Arrange & Act
-        result = MetadataBuilder().build(_TwoRegularOneSummary)
+        result = MetadataBuilder().build(_TwoRegularOneSummaryAction)
 
         # Assert
         assert result.aspects[-1].aspect_type == "summary"
-        assert result.aspects[-1].method_name == "finalize"
+        assert result.aspects[-1].method_name == "finalize_summary"
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -255,17 +254,17 @@ class TestStructuralErrors:
 
             @meta("Два summary")
             @check_roles(ROLE_NONE)
-            class _TwoSummaries(BaseAction["_Params", "_Result"]):
+            class _TwoSummariesAction(BaseAction["_Params", "_Result"]):
 
                 @summary_aspect("Итог 1")
-                async def summary_one(self, params, state, box, connections):
+                async def one_summary(self, params, state, box, connections):
                     return {}
 
                 @summary_aspect("Итог 2")
-                async def summary_two(self, params, state, box, connections):
+                async def two_summary(self, params, state, box, connections):
                     return {}
 
-            MetadataBuilder().build(_TwoSummaries)
+            MetadataBuilder().build(_TwoSummariesAction)
 
     def test_regular_without_summary_raises(self):
         """Regular-аспект без summary вызывает ValueError."""
@@ -274,13 +273,13 @@ class TestStructuralErrors:
 
             @meta("Regular без summary")
             @check_roles(ROLE_NONE)
-            class _RegularOnly(BaseAction["_Params", "_Result"]):
+            class _RegularOnlyAction(BaseAction["_Params", "_Result"]):
 
                 @regular_aspect("Шаг 1")
-                async def step_one(self, params, state, box, connections):
+                async def step_one_aspect(self, params, state, box, connections):
                     return {}
 
-            MetadataBuilder().build(_RegularOnly)
+            MetadataBuilder().build(_RegularOnlyAction)
 
     def test_summary_not_last_raises(self):
         """Summary-аспект не последним вызывает ValueError."""
@@ -289,17 +288,17 @@ class TestStructuralErrors:
 
             @meta("Summary не последний")
             @check_roles(ROLE_NONE)
-            class _SummaryNotLast(BaseAction["_Params", "_Result"]):
+            class _SummaryNotLastAction(BaseAction["_Params", "_Result"]):
 
                 @summary_aspect("Итог")
-                async def finalize(self, params, state, box, connections):
+                async def finalize_summary(self, params, state, box, connections):
                     return {}
 
                 @regular_aspect("Шаг после итога")
-                async def late_step(self, params, state, box, connections):
+                async def late_step_aspect(self, params, state, box, connections):
                     return {}
 
-            MetadataBuilder().build(_SummaryNotLast)
+            MetadataBuilder().build(_SummaryNotLastAction)
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -315,11 +314,11 @@ class TestAspectsWithoutGateHost:
         # Arrange — класс, не наследующий AspectGateHost
         class _NoHost:
             @regular_aspect("Шаг")
-            async def step(self, params, state, box, connections):
+            async def step_aspect(self, params, state, box, connections):
                 return {}
 
             @summary_aspect("Итог")
-            async def finalize(self, params, state, box, connections):
+            async def finalize_summary(self, params, state, box, connections):
                 return {}
 
         # Act & Assert
@@ -339,29 +338,29 @@ class TestAspectsRequireMeta:
         """BaseAction с аспектами, но без @meta — TypeError."""
         # Arrange
         @check_roles(ROLE_NONE)
-        class _NoMeta(BaseAction["_Params", "_Result"]):
+        class _NoMetaAction(BaseAction["_Params", "_Result"]):
 
             @regular_aspect("Шаг")
-            async def step(self, params, state, box, connections):
+            async def step_aspect(self, params, state, box, connections):
                 return {"data": 1}
 
             @summary_aspect("Итог")
-            async def finalize(self, params, state, box, connections):
+            async def finalize_summary(self, params, state, box, connections):
                 return {"result": "ok"}
 
         # Act & Assert
         with pytest.raises(TypeError):
-            MetadataBuilder().build(_NoMeta)
+            MetadataBuilder().build(_NoMetaAction)
 
     def test_action_without_aspects_without_meta_ok(self):
         """BaseAction без аспектов и без @meta — допустимо."""
         # Arrange
         @check_roles(ROLE_NONE)
-        class _NoMetaNoAspects(BaseAction["_Params", "_Result"]):
+        class _NoMetaNoAspectsAction(BaseAction["_Params", "_Result"]):
             pass
 
         # Act
-        result = MetadataBuilder().build(_NoMetaNoAspects)
+        result = MetadataBuilder().build(_NoMetaNoAspectsAction)
 
         # Assert
         assert result.has_meta() is False

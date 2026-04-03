@@ -63,13 +63,6 @@ from ..domains import OrdersDomain
 @meta(description="Создание нового заказа", domain=OrdersDomain)
 @check_roles(ROLE_NONE)
 class CreateOrderAction(BaseAction["CreateOrderAction.Params", "CreateOrderAction.Result"]):
-    """
-    Действие создания заказа.
-
-    Конвейер:
-    1. validate — проверяет входные данные и записывает validated_user в state.
-    2. build_result — формирует итоговый результат из params и state.
-    """
 
     class Params(BaseParams):
         """
@@ -114,7 +107,7 @@ class CreateOrderAction(BaseAction["CreateOrderAction.Params", "CreateOrderActio
 
     @regular_aspect("Валидация данных заказа")
     @result_string("validated_user", required=True)
-    async def validate(
+    async def validate_aspect(
         self,
         params: "CreateOrderAction.Params",
         state: BaseState,
@@ -136,7 +129,7 @@ class CreateOrderAction(BaseAction["CreateOrderAction.Params", "CreateOrderActio
         return {"validated_user": params.user_id}
 
     @summary_aspect("Формирование результата создания заказа")
-    async def build_result(
+    async def build_result_summary(
         self,
         params: "CreateOrderAction.Params",
         state: BaseState,

@@ -128,7 +128,7 @@ class FullAction(BaseAction["FullAction.Params", "FullAction.Result"]):
 
     @regular_aspect("Обработка платежа")
     @result_string("txn_id", required=True, min_length=1)
-    async def process_payment(
+    async def process_payment_aspect(
         self,
         params: "FullAction.Params",
         state: BaseState,
@@ -150,7 +150,7 @@ class FullAction(BaseAction["FullAction.Params", "FullAction.Result"]):
 
     @regular_aspect("Расчёт итоговой суммы")
     @result_float("total", required=True, min_value=0.0)
-    async def calc_total(
+    async def calc_total_aspect(
         self,
         params: "FullAction.Params",
         state: BaseState,
@@ -169,7 +169,7 @@ class FullAction(BaseAction["FullAction.Params", "FullAction.Result"]):
         return {"total": params.amount}
 
     @summary_aspect("Формирование результата заказа")
-    async def build_result(
+    async def build_result_summary(
         self,
         params: "FullAction.Params",
         state: BaseState,

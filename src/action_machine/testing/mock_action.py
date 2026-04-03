@@ -8,14 +8,13 @@ MockAction — мок-действие для использования в те
 
 MockAction позволяет заменять реальные действия в тестах, предоставляя
 фиксированный результат или вычисляемый через side_effect. Используется
-в тестовых машинах (AsyncTestMachine, SyncTestMachine) для подстановки
-зависимостей.
+в TestBench для подстановки зависимостей.
 
 MockAction — полноценное действие, наследующее BaseAction[BaseParams, BaseResult].
-Содержит summary-аспект (_mock_summary), что позволяет выполнять его
-через полный конвейер машины. Однако тестовые машины при обнаружении
-MockAction вызывают метод run() напрямую, минуя конвейер аспектов —
-это быстрее и не требует @meta и @check_roles.
+Содержит summary-аспект (_mock_result_summary), что позволяет выполнять его
+через полный конвейер машины. Однако TestBench при обнаружении MockAction
+вызывает метод run() напрямую, минуя конвейер аспектов — это быстрее
+и не требует @meta и @check_roles.
 
 ═══════════════════════════════════════════════════════════════════════════════
 РЕЖИМЫ РАБОТЫ
@@ -44,10 +43,18 @@ MockAction отслеживает количество вызовов (call_coun
 параметрами.
 
 ═══════════════════════════════════════════════════════════════════════════════
+ИНВАРИАНТ ИМЕНОВАНИЯ
+═══════════════════════════════════════════════════════════════════════════════
+
+MockAction имеет суффикс "Action" — инвариант именования BaseAction
+соблюдён. Summary-аспект имеет суффикс "_summary" — инвариант
+именования @summary_aspect соблюдён. Description обязателен.
+
+═══════════════════════════════════════════════════════════════════════════════
 ПРИМЕР ИСПОЛЬЗОВАНИЯ
 ═══════════════════════════════════════════════════════════════════════════════
 
-    from action_machine.testing import MockAction, AsyncTestMachine
+    from action_machine.testing import MockAction, TestBench
 
     # Фиксированный результат:
     mock = MockAction(result=OrderResult(order_id="ORD-1", status="ok"))
@@ -60,8 +67,8 @@ MockAction отслеживает количество вызовов (call_coun
     result = mock.run(OrderParams(user_id="u42"))
     assert result.order_id == "ORD-u42"
 
-    # В тестовой машине:
-    machine = AsyncTestMachine(mocks={
+    # В TestBench:
+    bench = TestBench(mocks={
         PaymentService: MockAction(result=PayResult(txn_id="TXN-1")),
     })
 """
@@ -85,7 +92,7 @@ class MockAction(BaseAction[BaseParams, BaseResult]):  # pylint: disable=too-man
     или функцию-генератор результата (side_effect). Отслеживает количество
     вызовов и сохраняет параметры последнего вызова.
 
-    Тестовые машины при обнаружении MockAction вызывают run() напрямую,
+    TestBench при обнаружении MockAction вызывает run() напрямую,
     минуя конвейер аспектов — это не требует @meta и @check_roles.
 
     Атрибуты:
@@ -151,8 +158,8 @@ class MockAction(BaseAction[BaseParams, BaseResult]):  # pylint: disable=too-man
 
         return self.result
 
-    @summary_aspect("mock summary")
-    async def _mock_summary(
+    @summary_aspect("Заглушка summary-аспекта для MockAction")
+    async def _mock_result_summary(
         self,
         params: BaseParams,
         state: BaseState,
@@ -163,7 +170,7 @@ class MockAction(BaseAction[BaseParams, BaseResult]):  # pylint: disable=too-man
         Заглушка summary-аспекта для выполнения через полный конвейер.
 
         Вызывается машиной при выполнении MockAction через конвейер
-        аспектов (если тестовая машина решит не обрабатывать MockAction
+        аспектов (если TestBench решит не обрабатывать MockAction
         напрямую). Делегирует в метод run(), который возвращает
         фиксированный или вычисленный результат.
 

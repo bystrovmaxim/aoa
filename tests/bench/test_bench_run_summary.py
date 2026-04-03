@@ -14,7 +14,7 @@
 
 FullAction имеет два regular-аспекта:
 - process_payment → txn_id (string, required)
-- calc_total → total (float, required, min_value=0.0)
+- calc_total_aspect → total (float, required, min_value=0.0)
 
 Summary build_result читает txn_id и total из state.
 """
@@ -69,7 +69,7 @@ class TestIncompleteState:
     ) -> None:
         """
         state содержит только txn_id от process_payment, но не
-        содержит total от calc_total. Валидатор обнаруживает
+        содержит total от calc_total_aspect. Валидатор обнаруживает
         отсутствующее поле и указывает аспект-источник.
         """
         # Arrange
@@ -77,7 +77,7 @@ class TestIncompleteState:
         params = FullAction.Params(user_id="u1", amount=100.0)
 
         # Act & Assert
-        with pytest.raises(StateValidationError, match="от аспекта 'calc_total'"):
+        with pytest.raises(StateValidationError, match="от аспекта 'calc_total_aspect'"):
             await manager_bench.run_summary(
                 action, params,
                 state={"txn_id": "TXN-1"},

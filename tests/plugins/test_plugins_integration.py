@@ -86,7 +86,7 @@ class ExternalCounterPlugin(Plugin):
         return {"count": 0}
 
     @on("global_finish", ".*")
-    async def count(self, state: dict, event: PluginEvent, log) -> dict:
+    async def on_count(self, state: dict, event: PluginEvent, log) -> dict:
         state["count"] += 1
         self._storage.append({
             "event": event.event_name,

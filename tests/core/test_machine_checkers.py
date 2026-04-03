@@ -14,13 +14,8 @@
 ActionProductMachine._execute_regular_aspects() применяет три правила:
 
 1. Если аспект вернул НЕ dict → TypeError.
-   Regular-аспект обязан возвращать dict (или пустой dict {}),
-   который мержится в state.
 
 2. Если аспект НЕ имеет чекеров и вернул НЕПУСТОЙ dict → ValidationFieldError.
-   Все поля в state должны быть объявлены через чекеры. Если чекеров нет,
-   но аспект вернул данные — это ошибка: либо забыли чекеры, либо аспект
-   не должен возвращать данные.
 
 3. Если аспект имеет чекеры:
    a. Лишние поля (не объявленные в чекерах) → ValidationFieldError.
@@ -43,8 +38,8 @@ ActionProductMachine._execute_regular_aspects() применяет три пра
     - Поле не проходит проверку типа (int вместо str) → ValidationFieldError.
 
 Интеграция с доменной моделью:
-    - SimpleAction: validate_name с result_string → OK.
-    - FullAction: process_payment (result_string) + calc_total (result_float) → OK.
+    - SimpleAction: validate_name_aspect с result_string → OK.
+    - FullAction: process_payment_aspect (result_string) + calc_total_aspect (result_float) → OK.
 """
 
 from unittest.mock import AsyncMock
@@ -67,7 +62,7 @@ from action_machine.logging.log_coordinator import LogCoordinator
 from tests.domain import FullAction, NotificationService, PaymentService, SimpleAction, TestDbManager
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Намеренно сломанные действия для edge-case тестов
+# Вспомогательные действия для edge-case тестов
 # ═════════════════════════════════════════════════════════════════════════════
 
 
@@ -83,7 +78,7 @@ class _MockResult(BaseResult):
 
 @meta(description="Аспект возвращает не dict — TypeError")
 @check_roles(ROLE_NONE)
-class _ActionBadReturn(BaseAction[_MockParams, _MockResult]):
+class _ActionBadReturnAction(BaseAction[_MockParams, _MockResult]):
     """Regular-аспект возвращает строку вместо dict."""
 
     @regular_aspect("bad")
@@ -91,81 +86,81 @@ class _ActionBadReturn(BaseAction[_MockParams, _MockResult]):
         return "not a dict"
 
     @summary_aspect("summary")
-    async def summary(self, params, state, box, connections):
+    async def build_summary(self, params, state, box, connections):
         return _MockResult()
 
 
 @meta(description="Нет чекеров, но вернул непустой dict")
 @check_roles(ROLE_NONE)
-class _ActionNoCheckersNonEmptyReturn(BaseAction[_MockParams, _MockResult]):
+class _ActionNoCheckersNonEmptyReturnAction(BaseAction[_MockParams, _MockResult]):
     """Regular-аспект без чекеров возвращает данные — ValidationFieldError."""
 
     @regular_aspect("no checkers")
-    async def aspect_no_checkers(self, params, state, box, connections):
+    async def no_checkers_aspect(self, params, state, box, connections):
         return {"field": "value"}
 
     @summary_aspect("summary")
-    async def summary(self, params, state, box, connections):
+    async def build_summary(self, params, state, box, connections):
         return _MockResult()
 
 
 @meta(description="Нет чекеров, вернул пустой dict")
 @check_roles(ROLE_NONE)
-class _ActionNoCheckersEmptyReturn(BaseAction[_MockParams, _MockResult]):
+class _ActionNoCheckersEmptyReturnAction(BaseAction[_MockParams, _MockResult]):
     """Regular-аспект без чекеров возвращает {} — OK."""
 
     @regular_aspect("no checkers empty")
-    async def aspect_empty(self, params, state, box, connections):
+    async def empty_aspect(self, params, state, box, connections):
         return {}
 
     @summary_aspect("summary")
-    async def summary(self, params, state, box, connections):
+    async def build_summary(self, params, state, box, connections):
         return _MockResult()
 
 
 @meta(description="Чекер на одно поле, но возвращает лишнее")
 @check_roles(ROLE_NONE)
-class _ActionExtraField(BaseAction[_MockParams, _MockResult]):
+class _ActionExtraFieldAction(BaseAction[_MockParams, _MockResult]):
     """Аспект с чекером на field, но возвращает ещё extra."""
 
     @regular_aspect("extra field")
     @result_string("field", required=True)
-    async def aspect_extra(self, params, state, box, connections):
+    async def extra_field_aspect(self, params, state, box, connections):
         return {"field": "ok", "extra": "forbidden"}
 
     @summary_aspect("summary")
-    async def summary(self, params, state, box, connections):
+    async def build_summary(self, params, state, box, connections):
         return _MockResult()
 
 
 @meta(description="Чекер ожидает строку, аспект возвращает int")
 @check_roles(ROLE_NONE)
-class _ActionWrongType(BaseAction[_MockParams, _MockResult]):
+class _ActionWrongTypeAction(BaseAction[_MockParams, _MockResult]):
     """Аспект возвращает int в поле, где ожидается строка."""
 
     @regular_aspect("wrong type")
     @result_string("name", required=True)
-    async def aspect_wrong_type(self, params, state, box, connections):
+    async def wrong_type_aspect(self, params, state, box, connections):
         return {"name": 42}  # int вместо str
 
     @summary_aspect("summary")
-    async def summary(self, params, state, box, connections):
+    async def build_summary(self, params, state, box, connections):
         return _MockResult()
 
 
 @meta(description="Два чекера, оба проходят")
 @check_roles(ROLE_NONE)
-class _ActionTwoCheckers(BaseAction[_MockParams, _MockResult]):
+class _ActionTwoCheckersAction(BaseAction[_MockParams, _MockResult]):
     """Два чекера на одном аспекте: result_string и result_float."""
 
     @regular_aspect("two checkers")
     @result_string("name", required=True)
     @result_float("amount", required=True, min_value=0.0)
-    async def aspect_two(self, params, state, box, connections):
+    async def two_checkers_aspect(self, params, state, box, connections):
         return {"name": "test", "amount": 99.9}
 
     @summary_aspect("summary")
-    async def summary(self, params, state, box, connections):
+    async def build_summary(self, params, state, box, connections):
         return _MockResult()
 
 
@@ -204,10 +199,9 @@ class TestNotDictReturn:
 
         ActionProductMachine._execute_regular_aspects() проверяет:
         if not isinstance(new_state_dict, dict): raise TypeError.
-        Сообщение содержит имя аспекта и фактический тип.
         """
         # Arrange — действие с аспектом, возвращающим строку
-        action = _ActionBadReturn()
+        action = _ActionBadReturnAction()
         params = _MockParams()
 
         # Act & Assert — TypeError с указанием имени аспекта
@@ -227,12 +221,9 @@ class TestNoCheckers:
     async def test_empty_return_without_checkers_ok(self, machine, context) -> None:
         """
         Regular-аспект без чекеров возвращает {} → OK.
-
-        Пустой dict — валидный результат: аспект выполнил побочный эффект
-        (логирование, проверку), но не записал данные в state.
         """
         # Arrange — действие без чекеров, аспект возвращает {}
-        action = _ActionNoCheckersEmptyReturn()
+        action = _ActionNoCheckersEmptyReturnAction()
         params = _MockParams()
 
         # Act — конвейер завершается без ошибок
@@ -246,13 +237,9 @@ class TestNoCheckers:
         """
         Regular-аспект без чекеров возвращает {"field": "value"} →
         ValidationFieldError.
-
-        Машина требует, чтобы все поля в state были объявлены через чекеры.
-        Если аспект возвращает данные без чекеров — это баг: либо забыли
-        добавить чекеры, либо аспект не должен возвращать данные.
         """
         # Arrange — действие без чекеров, аспект возвращает непустой dict
-        action = _ActionNoCheckersNonEmptyReturn()
+        action = _ActionNoCheckersNonEmptyReturnAction()
         params = _MockParams()
 
         # Act & Assert — ValidationFieldError с указанием аспекта
@@ -273,13 +260,9 @@ class TestCheckerValidation:
         """
         Аспект возвращает {"field": "ok", "extra": "forbidden"} →
         ValidationFieldError.
-
-        Чекер объявлен только для "field". Поле "extra" не объявлено.
-        Машина проверяет: set(result.keys()) - allowed_fields → {"extra"} →
-        ValidationFieldError с перечислением лишних полей.
         """
         # Arrange — действие с одним чекером, аспект возвращает лишнее поле
-        action = _ActionExtraField()
+        action = _ActionExtraFieldAction()
         params = _MockParams()
 
         # Act & Assert — ValidationFieldError с указанием лишнего поля
@@ -291,12 +274,9 @@ class TestCheckerValidation:
         """
         Аспект возвращает {"name": 42} где ожидается строка →
         ValidationFieldError.
-
-        Чекер result_string("name") проверяет isinstance(value, str).
-        42 — int, не str → ValidationFieldError с указанием поля и типа.
         """
         # Arrange — действие с чекером string, аспект возвращает int
-        action = _ActionWrongType()
+        action = _ActionWrongTypeAction()
         params = _MockParams()
 
         # Act & Assert — ValidationFieldError от ResultStringChecker
@@ -308,12 +288,9 @@ class TestCheckerValidation:
         """
         Аспект с двумя чекерами (result_string + result_float) — оба
         поля корректны → конвейер завершается без ошибок.
-
-        Машина применяет все чекеры последовательно через
-        _apply_checkers(). Если все проходят — state обновляется.
         """
         # Arrange — действие с двумя чекерами, аспект возвращает оба поля
-        action = _ActionTwoCheckers()
+        action = _ActionTwoCheckersAction()
         params = _MockParams()
 
         # Act — конвейер завершается успешно
@@ -334,11 +311,7 @@ class TestDomainModelCheckers:
     @pytest.mark.asyncio
     async def test_simple_action_checker_passes(self, machine, context) -> None:
         """
-        SimpleAction: validate_name с @result_string("validated_name") → OK.
-
-        validate_name возвращает {"validated_name": params.name.strip()}.
-        Чекер result_string проверяет: isinstance(str) и min_length=1.
-        Имя "Alice" → "Alice" → проходит.
+        SimpleAction: validate_name_aspect с @result_string("validated_name") → OK.
         """
         # Arrange — SimpleAction с корректным именем
         action = SimpleAction()
@@ -354,10 +327,6 @@ class TestDomainModelCheckers:
     async def test_full_action_checkers_pass(self, machine, context) -> None:
         """
         FullAction: два regular-аспекта с чекерами → оба проходят.
-
-        process_payment: @result_string("txn_id", min_length=1) → "TXN-001".
-        calc_total: @result_float("total", min_value=0.0) → 500.0.
-        Оба чекера проходят → summary формирует Result.
         """
         # Arrange — FullAction с моками зависимостей
         mock_payment = AsyncMock(spec=PaymentService)

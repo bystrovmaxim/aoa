@@ -68,7 +68,7 @@ import re
 from typing import Any
 
 from pydantic import BaseModel
-from simpleeval import EvalWithCompoundTypes, NameNotDefined  # type: ignore[import-untyped]
+from simpleeval import EvalWithCompoundTypes, NameNotDefined
 
 from action_machine.core.exceptions import LogTemplateError
 from action_machine.logging.masking import mask_value

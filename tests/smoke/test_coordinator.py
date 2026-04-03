@@ -104,7 +104,7 @@ def test_ping_metadata_single_summary_aspect(coordinator: GateCoordinator) -> No
     """
     PingAction содержит ровно один аспект типа summary.
 
-    Проверяет, что MetadataBuilder обнаружил summary-аспект pong.
+    Проверяет, что MetadataBuilder обнаружил summary-аспект pong_summary.
     """
     # Arrange & Act
     metadata = coordinator.get(PingAction)
@@ -112,7 +112,7 @@ def test_ping_metadata_single_summary_aspect(coordinator: GateCoordinator) -> No
     # Assert
     assert len(metadata.aspects) == 1
     assert metadata.aspects[0].aspect_type == "summary"
-    assert metadata.aspects[0].method_name == "pong"
+    assert metadata.aspects[0].method_name == "pong_summary"
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -148,7 +148,7 @@ def test_full_metadata_three_aspects(coordinator: GateCoordinator) -> None:
     """
     FullAction содержит три аспекта: 2 regular + 1 summary.
 
-    Порядок аспектов: process_payment, calc_total, build_result.
+    Порядок аспектов: process_payment_aspect, calc_total_aspect, build_result_summary.
     Summary-аспект обязан быть последним.
     """
     # Arrange & Act
@@ -157,11 +157,11 @@ def test_full_metadata_three_aspects(coordinator: GateCoordinator) -> None:
     # Assert
     assert len(metadata.aspects) == 3
     assert metadata.aspects[0].aspect_type == "regular"
-    assert metadata.aspects[0].method_name == "process_payment"
+    assert metadata.aspects[0].method_name == "process_payment_aspect"
     assert metadata.aspects[1].aspect_type == "regular"
-    assert metadata.aspects[1].method_name == "calc_total"
+    assert metadata.aspects[1].method_name == "calc_total_aspect"
     assert metadata.aspects[2].aspect_type == "summary"
-    assert metadata.aspects[2].method_name == "build_result"
+    assert metadata.aspects[2].method_name == "build_result_summary"
 
 
 def test_full_metadata_dependencies(coordinator: GateCoordinator) -> None:
@@ -194,8 +194,8 @@ def test_full_metadata_checkers(coordinator: GateCoordinator) -> None:
     """
     FullAction содержит чекеры для двух полей: txn_id и total.
 
-    txn_id привязан к аспекту process_payment (result_string).
-    total привязан к аспекту calc_total (result_float).
+    txn_id привязан к аспекту process_payment_aspect (result_string).
+    total привязан к аспекту calc_total_aspect (result_float).
     """
     # Arrange & Act
     metadata = coordinator.get(FullAction)

@@ -28,7 +28,7 @@
     к родителю и удалит его метаданные.
 
 Атрибуты уровня методов (``_new_aspect_meta``, ``_checker_meta``,
-``_on_subscriptions``, ``_sensitive_config``):
+``_on_subscriptions``, ``_sensitive_config``, ``_on_error_meta``):
     Удаляются только для методов из ``vars(cls)`` текущего класса
     (не из всего MRO). Для ``property``-дескрипторов атрибут удаляется
     с getter-функции (``fget``).
@@ -70,6 +70,7 @@ _METHOD_LEVEL_ATTRS: tuple[str, ...] = (
     "_checker_meta",
     "_on_subscriptions",
     "_sensitive_config",
+    "_on_error_meta",
 )
 
 
@@ -153,18 +154,12 @@ def cleanup_temporary_attributes(cls: type) -> None:
         1. Атрибуты уровня класса (``_role_info``, ``_depends_info``,
            ``_connection_info``) — только из ``cls.__dict__``.
         2. Атрибуты уровня методов (``_new_aspect_meta``, ``_checker_meta``,
-           ``_on_subscriptions``, ``_sensitive_config``) — только для
-           методов из ``vars(cls)`` текущего класса.
+           ``_on_subscriptions``, ``_sensitive_config``,
+           ``_on_error_meta``) — только для методов из ``vars(cls)``
+           текущего класса.
 
     Аргументы:
         cls: класс, временные атрибуты которого нужно удалить.
-
-    Пример:
-        >>> class MyAction:
-        ...     _role_info = {"spec": "admin"}
-        >>> cleanup_temporary_attributes(MyAction)
-        >>> hasattr(MyAction, '_role_info')
-        False
     """
     _cleanup_class_attrs(cls)
     _cleanup_method_attrs(cls)

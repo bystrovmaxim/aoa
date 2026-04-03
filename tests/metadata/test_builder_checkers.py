@@ -1,4 +1,3 @@
-# tests/metadata/test_builder_checkers.py
 """
 Тесты MetadataBuilder — сборка чекеров результата аспектов.
 
@@ -64,52 +63,52 @@ class _Result(BaseResult):
 
 @meta("Действие с одним чекером")
 @check_roles(ROLE_NONE)
-class _ActionOneChecker(BaseAction["_Params", "_Result"]):
+class _ActionOneCheckerAction(BaseAction["_Params", "_Result"]):
     """Действие с одним result_string чекером на regular-аспекте."""
 
     @regular_aspect("Получение имени")
     @result_string("name", required=True)
-    async def get_name(self, params, state, box, connections):
+    async def get_name_aspect(self, params, state, box, connections):
         return {"name": "Alice"}
 
     @summary_aspect("Итог")
-    async def finalize(self, params, state, box, connections):
+    async def finalize_summary(self, params, state, box, connections):
         return {"result": "ok"}
 
 
 @meta("Действие с двумя чекерами на одном аспекте")
 @check_roles(ROLE_NONE)
-class _ActionTwoCheckersOneAspect(BaseAction["_Params", "_Result"]):
+class _ActionTwoCheckersOneAspectAction(BaseAction["_Params", "_Result"]):
     """Действие с двумя чекерами на одном regular-аспекте."""
 
     @regular_aspect("Получение данных")
     @result_string("name", required=True)
     @result_int("age", required=True)
-    async def get_data(self, params, state, box, connections):
+    async def get_data_aspect(self, params, state, box, connections):
         return {"name": "Alice", "age": 30}
 
     @summary_aspect("Итог")
-    async def finalize(self, params, state, box, connections):
+    async def finalize_summary(self, params, state, box, connections):
         return {"result": "ok"}
 
 
 @meta("Действие с чекерами на разных аспектах")
 @check_roles(ROLE_NONE)
-class _ActionCheckersOnDifferentAspects(BaseAction["_Params", "_Result"]):
+class _ActionCheckersOnDifferentAspectsAction(BaseAction["_Params", "_Result"]):
     """Действие с чекерами на разных regular-аспектах."""
 
     @regular_aspect("Шаг 1")
     @result_string("name", required=True)
-    async def step_one(self, params, state, box, connections):
+    async def step_one_aspect(self, params, state, box, connections):
         return {"name": "Alice"}
 
     @regular_aspect("Шаг 2")
     @result_int("count", required=True)
-    async def step_two(self, params, state, box, connections):
+    async def step_two_aspect(self, params, state, box, connections):
         return {"count": 42}
 
     @summary_aspect("Итог")
-    async def finalize(self, params, state, box, connections):
+    async def finalize_summary(self, params, state, box, connections):
         return {"result": "ok"}
 
 
@@ -124,7 +123,7 @@ class TestCheckersOnAspect:
     def test_single_checker_collected(self):
         """Один чекер собирается в metadata.checkers."""
         # Arrange & Act
-        result = MetadataBuilder().build(_ActionOneChecker)
+        result = MetadataBuilder().build(_ActionOneCheckerAction)
 
         # Assert
         assert result.has_checkers() is True
@@ -133,7 +132,7 @@ class TestCheckersOnAspect:
     def test_two_checkers_on_one_aspect(self):
         """Два чекера на одном аспекте — оба собираются."""
         # Arrange & Act
-        result = MetadataBuilder().build(_ActionTwoCheckersOneAspect)
+        result = MetadataBuilder().build(_ActionTwoCheckersOneAspectAction)
 
         # Assert
         assert len(result.checkers) == 2
@@ -141,7 +140,7 @@ class TestCheckersOnAspect:
     def test_checkers_on_different_aspects(self):
         """Чекеры на разных аспектах — все собираются."""
         # Arrange & Act
-        result = MetadataBuilder().build(_ActionCheckersOnDifferentAspects)
+        result = MetadataBuilder().build(_ActionCheckersOnDifferentAspectsAction)
 
         # Assert
         assert len(result.checkers) == 2
@@ -149,11 +148,11 @@ class TestCheckersOnAspect:
     def test_get_checkers_for_aspect_filters(self):
         """get_checkers_for_aspect фильтрует чекеры по method_name."""
         # Arrange & Act
-        result = MetadataBuilder().build(_ActionCheckersOnDifferentAspects)
+        result = MetadataBuilder().build(_ActionCheckersOnDifferentAspectsAction)
 
         # Assert
-        step_one_checkers = result.get_checkers_for_aspect("step_one")
-        step_two_checkers = result.get_checkers_for_aspect("step_two")
+        step_one_checkers = result.get_checkers_for_aspect("step_one_aspect")
+        step_two_checkers = result.get_checkers_for_aspect("step_two_aspect")
         assert len(step_one_checkers) == 1
         assert step_one_checkers[0].field_name == "name"
         assert len(step_two_checkers) == 1
@@ -162,7 +161,7 @@ class TestCheckersOnAspect:
     def test_get_checkers_for_nonexistent_aspect(self):
         """get_checkers_for_aspect для несуществующего аспекта — пустой кортеж."""
         # Arrange & Act
-        result = MetadataBuilder().build(_ActionOneChecker)
+        result = MetadataBuilder().build(_ActionOneCheckerAction)
 
         # Assert
         assert result.get_checkers_for_aspect("nonexistent") == ()
@@ -179,7 +178,7 @@ class TestCheckerAttributes:
     def test_checker_class_preserved(self):
         """checker_class сохраняет класс чекера."""
         # Arrange & Act
-        result = MetadataBuilder().build(_ActionOneChecker)
+        result = MetadataBuilder().build(_ActionOneCheckerAction)
         checker = result.checkers[0]
 
         # Assert
@@ -188,7 +187,7 @@ class TestCheckerAttributes:
     def test_field_name_preserved(self):
         """field_name сохраняет имя поля."""
         # Arrange & Act
-        result = MetadataBuilder().build(_ActionOneChecker)
+        result = MetadataBuilder().build(_ActionOneCheckerAction)
         checker = result.checkers[0]
 
         # Assert
@@ -197,7 +196,7 @@ class TestCheckerAttributes:
     def test_required_preserved(self):
         """required сохраняет значение True."""
         # Arrange & Act
-        result = MetadataBuilder().build(_ActionOneChecker)
+        result = MetadataBuilder().build(_ActionOneCheckerAction)
         checker = result.checkers[0]
 
         # Assert
@@ -206,16 +205,16 @@ class TestCheckerAttributes:
     def test_method_name_matches_aspect(self):
         """method_name чекера совпадает с именем аспекта."""
         # Arrange & Act
-        result = MetadataBuilder().build(_ActionOneChecker)
+        result = MetadataBuilder().build(_ActionOneCheckerAction)
         checker = result.checkers[0]
 
         # Assert
-        assert checker.method_name == "get_name"
+        assert checker.method_name == "get_name_aspect"
 
     def test_two_checkers_have_different_classes(self):
         """Два чекера разных типов сохраняют свои классы."""
         # Arrange & Act
-        result = MetadataBuilder().build(_ActionTwoCheckersOneAspect)
+        result = MetadataBuilder().build(_ActionTwoCheckersOneAspectAction)
         classes = {c.checker_class for c in result.checkers}
 
         # Assert
@@ -236,19 +235,19 @@ class TestCheckerWithoutAspect:
         # Arrange
         @meta("Чекер без аспекта")
         @check_roles(ROLE_NONE)
-        class _BadAction(BaseAction["_Params", "_Result"]):
+        class _BadCheckerAction(BaseAction["_Params", "_Result"]):
 
             @result_string("name", required=True)
             async def not_an_aspect(self, params, state, box, connections):
                 return {"name": "Alice"}
 
             @summary_aspect("Итог")
-            async def finalize(self, params, state, box, connections):
+            async def finalize_summary(self, params, state, box, connections):
                 return {"result": "ok"}
 
         # Act & Assert
         with pytest.raises((TypeError, ValueError)):
-            MetadataBuilder().build(_BadAction)
+            MetadataBuilder().build(_BadCheckerAction)
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -265,11 +264,11 @@ class TestCheckerGateHost:
         class _NoHost:
             @regular_aspect("Шаг")
             @result_string("name")
-            async def step(self, params, state, box, connections):
+            async def step_aspect(self, params, state, box, connections):
                 return {"name": "value"}
 
             @summary_aspect("Итог")
-            async def finalize(self, params, state, box, connections):
+            async def finalize_summary(self, params, state, box, connections):
                 return {}
 
         # Act & Assert
