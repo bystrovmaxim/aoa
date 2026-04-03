@@ -9,8 +9,8 @@
 Декоратор @on — часть грамматики намерений ActionMachine для плагинов.
 Он объявляет, что метод плагина должен вызываться при наступлении
 определённого события. Машина (ActionProductMachine) через PluginCoordinator
-эмитирует события (global_start, global_finish, before:{aspect}, after:{aspect}
-и др.), а плагины реагируют на них через методы, помеченные @on.
+эмитирует события (global_start, global_finish, before:{aspect}, after:{aspect},
+on_error и др.), а плагины реагируют на них через методы, помеченные @on.
 
 ═══════════════════════════════════════════════════════════════════════════════
 СИГНАТУРА ОБРАБОТЧИКА
@@ -36,6 +36,7 @@
 - Применяется только к методам (callable), не к классам или свойствам.
 - Метод должен быть асинхронным (async def).
 - Сигнатура метода: ровно 4 параметра (self, state, event, log).
+- Имя метода обязано начинаться с "on_" (проверяется NamingPrefixError).
 - event_type должен быть непустой строкой.
 - action_filter должен быть строкой (регулярное выражение).
 
@@ -55,6 +56,20 @@
     Находит подписанные методы → создаёт ScopedLogger → вызывает handler
 
 ═══════════════════════════════════════════════════════════════════════════════
+СОБЫТИЕ on_error
+═══════════════════════════════════════════════════════════════════════════════
+
+Плагины могут подписаться на событие "on_error" для наблюдения за ошибками
+аспектов. Это событие эмитируется ПЕРЕД вызовом обработчика @on_error
+на уровне Action. Плагин-наблюдатель не может изменить результат или
+подавить ошибку — он только наблюдает.
+
+    @on("on_error", ".*")
+    async def on_observe_errors(self, state, event, log):
+        await log.error("Ошибка в {%scope.action}: {%var.error}")
+        return state
+
+═══════════════════════════════════════════════════════════════════════════════
 ПРИМЕР ИСПОЛЬЗОВАНИЯ
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -63,7 +78,7 @@
             return {"count": 0}
 
         @on("global_finish", ".*", ignore_exceptions=False)
-        async def count_calls(self, state: dict, event: PluginEvent, log) -> dict:
+        async def on_count_calls(self, state: dict, event: PluginEvent, log) -> dict:
             state["count"] += 1
             await log.info(
                 "[{%scope.plugin}] Действие {%scope.action} завершено "
@@ -73,7 +88,7 @@
             return state
 
         @on("before:validate", "CreateOrder.*")
-        async def log_order_start(self, state: dict, event: PluginEvent, log) -> dict:
+        async def on_log_order_start(self, state: dict, event: PluginEvent, log) -> dict:
             await log.debug(
                 "[{%scope.plugin}] Валидация заказа начата "
                 "на уровне {%scope.nest_level}"
@@ -88,6 +103,7 @@
                параметров (не 4); event_type не строка;
                action_filter не строка.
     ValueError — event_type пустая строка.
+    NamingPrefixError — имя метода не начинается с "on_".
 """
 
 from __future__ import annotations
@@ -98,11 +114,16 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
 
+from action_machine.core.exceptions import NamingPrefixError
+
 # Ожидаемое число параметров для @on: self, state, event, log
 _EXPECTED_PARAM_COUNT = 4
 
 # Имена параметров для сообщения об ошибке
 _EXPECTED_PARAM_NAMES = "self, state, event, log"
+
+# Обязательная приставка имени метода
+_REQUIRED_PREFIX = "on_"
 
 
 @dataclass(frozen=True)
@@ -115,7 +136,8 @@ class SubscriptionInfo:
     PluginCoordinator/PluginRunContext использует их для маршрутизации событий.
 
     Атрибуты:
-        event_type: тип события (например, "global_finish", "before:validate").
+        event_type: тип события (например, "global_finish", "before:validate",
+                    "on_error").
         action_filter: регулярное выражение для фильтрации по имени действия.
                        По умолчанию ".*" — все действия.
         ignore_exceptions: если True, ошибка обработчика подавляется
@@ -142,10 +164,12 @@ def on(
     Все обработчики обязаны иметь сигнатуру:
         async def handler(self, state, event, log) → state
 
+    Имя метода обязано начинаться с "on_".
+
     Аргументы:
         event_type: тип события. Непустая строка.
                     Примеры: "global_start", "global_finish",
-                    "before:validate", "after:process_payment".
+                    "before:validate", "after:process_payment", "on_error".
         action_filter: регулярное выражение для фильтрации по имени действия.
                        По умолчанию ".*" — все действия.
         ignore_exceptions: если True, ошибка обработчика подавляется.
@@ -164,6 +188,8 @@ def on(
             - Неверное число параметров (не 4).
         ValueError:
             - event_type пустая строка.
+        NamingPrefixError:
+            - Имя метода не начинается с "on_".
     """
     # ── Проверка аргументов декоратора ──
 
@@ -193,6 +219,7 @@ def on(
         1. func — callable.
         2. func — async def.
         3. Число параметров == 4 (self, state, event, log).
+        4. Имя метода начинается с "on_".
 
         Затем добавляет SubscriptionInfo в func._on_subscriptions.
         """
@@ -219,6 +246,15 @@ def on(
                 f"@on(\"{event_type}\"): метод {func.__name__} "
                 f"должен принимать {_EXPECTED_PARAM_COUNT} параметра "
                 f"({_EXPECTED_PARAM_NAMES}), получено {param_count}."
+            )
+
+        # ── Проверка: приставка имени метода ──
+        if not func.__name__.startswith(_REQUIRED_PREFIX):
+            raise NamingPrefixError(
+                f"@on(\"{event_type}\"): метод '{func.__name__}' "
+                f"должен начинаться с '{_REQUIRED_PREFIX}'. "
+                f"Переименуйте в '{_REQUIRED_PREFIX}{func.__name__}' "
+                f"или аналогичное имя с приставкой '{_REQUIRED_PREFIX}'."
             )
 
         # ── Прикрепление подписки ──

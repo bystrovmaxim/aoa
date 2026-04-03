@@ -29,14 +29,21 @@
     5. Аспекты → AspectGateHost.
     6. Чекеры → CheckerGateHost.
     7. Подписки → OnGateHost.
+    8. Обработчики ошибок → OnErrorGateHost.
 
 Аспекты (validate_aspects):
-    8. Не более одного summary-аспекта.
-    9. Regular без summary — ошибка.
-    10. Summary последним.
+    9. Не более одного summary-аспекта.
+    10. Regular без summary — ошибка.
+    11. Summary последним.
 
 Чекеры (validate_checkers_belong_to_aspects):
-    11. Каждый чекер привязан к существующему аспекту.
+    12. Каждый чекер привязан к существующему аспекту.
+
+Обработчики ошибок (validate_error_handlers):
+    13. Нижестоящий обработчик не перекрывается вышестоящим.
+        Если вышестоящий ловит тип T, нижестоящий не может ловить T
+        или подкласс T — это мёртвый код. Допустимо: сначала специфичный
+        (ValueError), потом общий (Exception).
 """
 
 from __future__ import annotations
@@ -47,9 +54,16 @@ from pydantic import BaseModel
 
 from action_machine.aspects.aspect_gate_host import AspectGateHost
 from action_machine.checkers.checker_gate_host import CheckerGateHost
-from action_machine.core.class_metadata import AspectMeta, CheckerMeta, FieldDescriptionMeta, MetaInfo
+from action_machine.core.class_metadata import (
+    AspectMeta,
+    CheckerMeta,
+    FieldDescriptionMeta,
+    MetaInfo,
+    OnErrorMeta,
+)
 from action_machine.core.described_fields_gate_host import DescribedFieldsGateHost
 from action_machine.core.meta_gate_hosts import ActionMetaGateHost, ResourceMetaGateHost
+from action_machine.on_error.on_error_gate_host import OnErrorGateHost
 from action_machine.plugins.on_gate_host import OnGateHost
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -214,6 +228,7 @@ def validate_gate_hosts(
     aspects: list[AspectMeta],
     checkers: list[CheckerMeta],
     subscriptions: list[Any],
+    error_handlers: list[OnErrorMeta],
 ) -> None:
     """
     Проверяет, что класс наследует необходимые гейт-хосты для всех
@@ -223,12 +238,14 @@ def validate_gate_hosts(
         - Аспекты → AspectGateHost.
         - Чекеры → CheckerGateHost.
         - Подписки → OnGateHost.
+        - Обработчики ошибок → OnErrorGateHost.
 
     Аргументы:
         cls: класс, который проверяется.
         aspects: собранные аспекты.
         checkers: собранные чекеры.
         subscriptions: собранные подписки.
+        error_handlers: собранные обработчики ошибок.
 
     Исключения:
         TypeError: если класс содержит декораторы без гейт-хоста.
@@ -263,6 +280,16 @@ def validate_gate_hosts(
             f"но не наследует OnGateHost. Декоратор @on разрешён только "
             f"на классах, наследующих OnGateHost. Используйте Plugin "
             f"или добавьте OnGateHost в цепочку наследования."
+        )
+
+    if error_handlers and not issubclass(cls, OnErrorGateHost):
+        handler_names = ", ".join(h.method_name for h in error_handlers)
+        raise TypeError(
+            f"Класс {cls.__name__} содержит обработчики ошибок ({handler_names}), "
+            f"но не наследует OnErrorGateHost. Декоратор @on_error разрешён "
+            f"только на классах, наследующих OnErrorGateHost. "
+            f"Используйте BaseAction или добавьте OnErrorGateHost "
+            f"в цепочку наследования."
         )
 
 
@@ -348,3 +375,94 @@ def validate_checkers_belong_to_aspects(
                 f"Чекеры можно применять только к методам с @regular_aspect "
                 f"или @summary_aspect."
             )
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# Валидация обработчиков ошибок (@on_error)
+# ═════════════════════════════════════════════════════════════════════════════
+
+
+def _is_type_covered_by(
+    candidate_type: type[Exception],
+    covering_types: tuple[type[Exception], ...],
+) -> bool:
+    """
+    Проверяет, перекрывается ли candidate_type одним из covering_types.
+
+    Тип считается перекрытым, если он совпадает с одним из covering_types
+    или является его подклассом. Это означает, что вышестоящий обработчик
+    всегда перехватит исключение этого типа раньше.
+
+    Аргументы:
+        candidate_type: тип исключения нижестоящего обработчика.
+        covering_types: типы исключений вышестоящего обработчика.
+
+    Возвращает:
+        True если candidate_type перекрыт covering_types.
+    """
+    for covering in covering_types:
+        if issubclass(candidate_type, covering):
+            return True
+    return False
+
+
+def validate_error_handlers(
+    cls: type,
+    error_handlers: list[OnErrorMeta],
+) -> None:
+    """
+    Проверяет порядок обработчиков ошибок и отсутствие перекрытия типов.
+
+    Инвариант: нижестоящий обработчик не может ловить типы исключений,
+    которые уже перехватываются вышестоящим обработчиком (совпадающие
+    или дочерние). Это защита от мёртвого кода — обработчик, который
+    никогда не получит управления, является ошибкой разработчика.
+
+    Допустимый порядок: сначала специфичные типы, потом общие.
+        @on_error(ValueError, ...)      ← специфичный
+        @on_error(Exception, ...)       ← общий fallback
+
+    Недопустимый порядок: сначала общий, потом специфичный.
+        @on_error(Exception, ...)       ← перехватит всё
+        @on_error(ValueError, ...)      ← мёртвый код → TypeError
+
+    Алгоритм: для каждого обработчика (начиная со второго) проверяем
+    каждый его тип исключения против ВСЕХ типов ВСЕХ вышестоящих
+    обработчиков. Если хотя бы один тип перекрыт — TypeError.
+
+    Аргументы:
+        cls: класс для сообщений об ошибках.
+        error_handlers: собранные обработчики ошибок в порядке объявления.
+
+    Исключения:
+        TypeError: если обнаружено перекрытие типов.
+    """
+    if len(error_handlers) < 2:
+        return
+
+    for i in range(1, len(error_handlers)):
+        current_handler = error_handlers[i]
+
+        for j in range(i):
+            upper_handler = error_handlers[j]
+
+            for candidate_type in current_handler.exception_types:
+                if _is_type_covered_by(candidate_type, upper_handler.exception_types):
+                    # Находим конкретный перекрывающий тип для сообщения
+                    covering_name = next(
+                        c.__name__
+                        for c in upper_handler.exception_types
+                        if issubclass(candidate_type, c)
+                    )
+                    raise TypeError(
+                        f"Класс {cls.__name__}: обработчик ошибок "
+                        f"'{current_handler.method_name}' ловит "
+                        f"{candidate_type.__name__}, но вышестоящий "
+                        f"обработчик '{upper_handler.method_name}' уже "
+                        f"перехватывает {covering_name}. Тип "
+                        f"{candidate_type.__name__} является подклассом "
+                        f"{covering_name} (или совпадает с ним), поэтому "
+                        f"обработчик '{current_handler.method_name}' никогда "
+                        f"не получит управления. Переместите более специфичный "
+                        f"обработчик выше более общего."
+                    )

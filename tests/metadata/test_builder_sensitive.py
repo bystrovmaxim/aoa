@@ -66,7 +66,7 @@ class _Result(BaseResult):
 
 @meta("Действие с sensitive")
 @check_roles(ROLE_NONE)
-class _ActionOneSensitive(BaseAction["_Params", "_Result"]):
+class _ActionOneSensitiveAction(BaseAction["_Params", "_Result"]):
 
     def __init__(self):
         self._phone = "+7-999-123-4567"
@@ -77,7 +77,7 @@ class _ActionOneSensitive(BaseAction["_Params", "_Result"]):
         return self._phone
 
     @summary_aspect("Итог")
-    async def finalize(self, params, state, box, connections):
+    async def finalize_summary(self, params, state, box, connections):
         return {"result": "ok"}
 
 
@@ -86,7 +86,7 @@ class _ActionOneSensitive(BaseAction["_Params", "_Result"]):
 
 @meta("Действие с несколькими sensitive")
 @check_roles(ROLE_NONE)
-class _ActionMultipleSensitive(BaseAction["_Params", "_Result"]):
+class _ActionMultipleSensitiveAction(BaseAction["_Params", "_Result"]):
 
     def __init__(self):
         self._phone = "+7-999-123-4567"
@@ -103,7 +103,7 @@ class _ActionMultipleSensitive(BaseAction["_Params", "_Result"]):
         return self._email
 
     @summary_aspect("Итог")
-    async def finalize(self, params, state, box, connections):
+    async def finalize_summary(self, params, state, box, connections):
         return {"result": "ok"}
 
 
@@ -112,7 +112,7 @@ class _ActionMultipleSensitive(BaseAction["_Params", "_Result"]):
 
 @meta("Действие с disabled sensitive")
 @check_roles(ROLE_NONE)
-class _ActionDisabledSensitive(BaseAction["_Params", "_Result"]):
+class _ActionDisabledSensitiveAction(BaseAction["_Params", "_Result"]):
 
     def __init__(self):
         self._token = "secret-token"
@@ -123,7 +123,7 @@ class _ActionDisabledSensitive(BaseAction["_Params", "_Result"]):
         return self._token
 
     @summary_aspect("Итог")
-    async def finalize(self, params, state, box, connections):
+    async def finalize_summary(self, params, state, box, connections):
         return {"result": "ok"}
 
 
@@ -132,10 +132,10 @@ class _ActionDisabledSensitive(BaseAction["_Params", "_Result"]):
 
 @meta("Действие без sensitive")
 @check_roles(ROLE_NONE)
-class _ActionNoSensitive(BaseAction["_Params", "_Result"]):
+class _ActionNoSensitiveAction(BaseAction["_Params", "_Result"]):
 
     @summary_aspect("Итог")
-    async def finalize(self, params, state, box, connections):
+    async def finalize_summary(self, params, state, box, connections):
         return {"result": "ok"}
 
 
@@ -175,7 +175,7 @@ class TestSensitiveFields:
     def test_single_sensitive_collected(self):
         """Одно sensitive-поле собирается."""
         # Arrange & Act
-        result = MetadataBuilder().build(_ActionOneSensitive)
+        result = MetadataBuilder().build(_ActionOneSensitiveAction)
 
         # Assert
         assert result.has_sensitive_fields() is True
@@ -184,7 +184,7 @@ class TestSensitiveFields:
     def test_multiple_sensitive_collected(self):
         """Несколько sensitive-полей собираются."""
         # Arrange & Act
-        result = MetadataBuilder().build(_ActionMultipleSensitive)
+        result = MetadataBuilder().build(_ActionMultipleSensitiveAction)
 
         # Assert
         assert len(result.sensitive_fields) == 2
@@ -194,7 +194,7 @@ class TestSensitiveFields:
     def test_disabled_sensitive_still_collected(self):
         """sensitive(enabled=False) всё равно собирается в метаданных."""
         # Arrange & Act
-        result = MetadataBuilder().build(_ActionDisabledSensitive)
+        result = MetadataBuilder().build(_ActionDisabledSensitiveAction)
 
         # Assert
         assert result.has_sensitive_fields() is True
@@ -203,7 +203,7 @@ class TestSensitiveFields:
     def test_no_sensitive_fields_empty(self):
         """Класс без sensitive → пустой кортеж."""
         # Arrange & Act
-        result = MetadataBuilder().build(_ActionNoSensitive)
+        result = MetadataBuilder().build(_ActionNoSensitiveAction)
 
         # Assert
         assert result.has_sensitive_fields() is False
@@ -221,7 +221,7 @@ class TestSensitiveFieldAttributes:
     def test_property_name_preserved(self):
         """property_name сохраняет имя свойства."""
         # Arrange & Act
-        result = MetadataBuilder().build(_ActionOneSensitive)
+        result = MetadataBuilder().build(_ActionOneSensitiveAction)
         sf = result.sensitive_fields[0]
 
         # Assert
@@ -229,25 +229,25 @@ class TestSensitiveFieldAttributes:
 
     def test_config_contains_max_chars(self):
         """config содержит max_chars из декоратора."""
-        result = MetadataBuilder().build(_ActionMultipleSensitive)
+        result = MetadataBuilder().build(_ActionMultipleSensitiveAction)
         phone_sf = next(sf for sf in result.sensitive_fields if sf.property_name == "phone")
         assert phone_sf.config["max_chars"] == 4
 
     def test_config_contains_char(self):
         """config содержит char из декоратора."""
-        result = MetadataBuilder().build(_ActionMultipleSensitive)
+        result = MetadataBuilder().build(_ActionMultipleSensitiveAction)
         phone_sf = next(sf for sf in result.sensitive_fields if sf.property_name == "phone")
         assert phone_sf.config["char"] == "*"
 
     def test_config_contains_max_percent(self):
         """config содержит max_percent из декоратора."""
-        result = MetadataBuilder().build(_ActionMultipleSensitive)
+        result = MetadataBuilder().build(_ActionMultipleSensitiveAction)
         email_sf = next(sf for sf in result.sensitive_fields if sf.property_name == "email")
         assert email_sf.config["max_percent"] == 50
 
     def test_disabled_sensitive_config_enabled_false(self):
         """enabled=False сохраняется в config."""
-        result = MetadataBuilder().build(_ActionDisabledSensitive)
+        result = MetadataBuilder().build(_ActionDisabledSensitiveAction)
         sf = result.sensitive_fields[0]
         assert sf.config["enabled"] is False
 

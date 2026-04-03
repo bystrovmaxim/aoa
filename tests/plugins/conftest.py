@@ -23,98 +23,76 @@
 CounterPlugin
     Минимальный плагин-счётчик. Один обработчик global_finish для ".*".
     Инкрементирует state["count"] при каждом вызове. ignore_exceptions=False.
-    Используется в тестах handlers и states.
 
 DualHandlerPlugin
     Плагин с двумя обработчиками на одно событие (global_finish).
-    Обработчик handler_a инкрементирует state["a"], handler_b добавляет 10
-    к state["b"]. ignore_exceptions=False. Используется для проверки
-    множественных обработчиков одного плагина.
+    on_handler_a инкрементирует state["a"], on_handler_b добавляет 10
+    к state["b"]. ignore_exceptions=False.
 
 CustomInitPlugin
     Плагин с параметризованным начальным состоянием. Принимает initial_value
-    в конструкторе, возвращает {"value": initial_value} из get_initial_state().
-    Обработчик increment инкрементирует value. Используется для проверки
-    кастомной инициализации.
+    в конструкторе. Обработчик on_increment инкрементирует value.
 
 RecordingPlugin
-    Плагин, записывающий все полученные события в state["events"] как список
-    словарей с event_name, action_name, nest_level. Используется для проверки
-    корректности PluginEvent.
+    Плагин, записывающий все полученные события в state["events"].
 
 SelectivePlugin
-    Плагин с фильтром action_filter=".*DummyAction$". Реагирует только на
-    события от DummyAction. Используется для проверки фильтрации по имени
-    действия.
+    Плагин с фильтром action_filter=".*PingAction$". Реагирует только
+    на PingAction.
 
 SlowPluginIgnore
     Плагин с задержкой asyncio.sleep(delay). ignore_exceptions=True.
-    Используется для проверки параллельного выполнения: два таких плагина
-    по 50мс каждый должны завершиться за ~50мс (параллельно), а не за ~100мс.
 
 FastPluginIgnore
-    Плагин без задержки. ignore_exceptions=True. Используется в паре
-    со SlowPluginIgnore для проверки параллельности.
+    Плагин без задержки. ignore_exceptions=True.
 
 SlowPluginNoIgnore
-    Плагин с задержкой. ignore_exceptions=False. При наличии хотя бы
-    одного такого обработчика PluginRunContext переключается на
-    последовательное выполнение.
+    Плагин с задержкой. ignore_exceptions=False.
 
 FastPluginNoIgnore
-    Плагин без задержки. ignore_exceptions=False. Используется в паре
-    со SlowPluginNoIgnore для проверки последовательности.
+    Плагин без задержки. ignore_exceptions=False.
 
 FailingPluginIgnore
     Плагин с обработчиком, выбрасывающим RuntimeError. ignore_exceptions=True.
-    Ошибка подавляется, остальные плагины продолжают работу.
 
 IgnoredErrorPlugin
-    Плагин, мутирующий state до raise. state["before_error"]=True записывается
-    до исключения. state["after_error"] остаётся False (код после raise
-    не выполняется). Демонстрирует in-place мутацию dict при ошибке.
+    Плагин, мутирующий state до raise. ignore_exceptions=True.
 
 PropagatedErrorPlugin
     Плагин с ignore_exceptions=False, выбрасывающий RuntimeError.
-    Ошибка пробрасывается наружу через emit_event.
 
 CustomExceptionPlugin
-    Плагин с ignore_exceptions=False, выбрасывающий кастомное исключение
-    CustomPluginError. Проверяет, что тип исключения сохраняется.
+    Плагин с ignore_exceptions=False, выбрасывающий CustomPluginError.
 
 SuccessAfterFailPlugin
-    Плагин с успешным обработчиком. Используется для проверки, что
-    исключение критического плагина прерывает выполнение.
+    Плагин с успешным обработчиком. ignore_exceptions=False.
 
 AlphaPlugin
-    Плагин с обработчиком global_finish для ".*" — реагирует на все действия.
+    Плагин с обработчиком global_finish для ".*".
 
 BetaPlugin
-    Плагин с обработчиком global_finish для ".*Order.*" — реагирует только
-    на действия, содержащие "Order" в имени.
+    Плагин с обработчиком global_finish для ".*Order.*".
 
 GammaPlugin
     Плагин с обработчиком global_start (не global_finish).
 
 MultiEventPlugin
     Плагин с тремя обработчиками: global_start для ".*", global_finish
-    для ".*", global_finish для ".*Order.*". Используется для проверки
-    множественных подписок одного плагина.
+    для ".*", global_finish для ".*Order.*".
 
 ═══════════════════════════════════════════════════════════════════════════════
 ФИКСТУРЫ
 ═══════════════════════════════════════════════════════════════════════════════
 
 empty_factory
-    Пустая DependencyFactory без зависимостей. Требуется для PluginEvent.deps.
+    Пустая DependencyFactory без зависимостей.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
 ═══════════════════════════════════════════════════════════════════════════════
 
 emit_global_finish(plugin_ctx, action, nest_level)
-    Отправляет событие global_finish через PluginRunContext. Используется
-    как сокращение в тестах, избавляя от повторения 10 параметров emit_event.
+    Отправляет событие global_finish через PluginRunContext.
 """
 
 import asyncio
@@ -158,7 +136,7 @@ class CounterPlugin(Plugin):
         return {"count": 0}
 
     @on("global_finish", ".*", ignore_exceptions=False)
-    async def count(self, state: dict, event: PluginEvent, log) -> dict:
+    async def on_count(self, state: dict, event: PluginEvent, log) -> dict:
         state["count"] += 1
         return state
 
@@ -167,8 +145,8 @@ class DualHandlerPlugin(Plugin):
     """
     Плагин с двумя обработчиками на одно событие (global_finish).
 
-    handler_a инкрементирует state["a"] на 1.
-    handler_b инкрементирует state["b"] на 10.
+    on_handler_a инкрементирует state["a"] на 1.
+    on_handler_b инкрементирует state["b"] на 10.
     Оба ignore_exceptions=False — последовательное выполнение.
     """
 
@@ -176,12 +154,12 @@ class DualHandlerPlugin(Plugin):
         return {"a": 0, "b": 0}
 
     @on("global_finish", ".*", ignore_exceptions=False)
-    async def handler_a(self, state: dict, event: PluginEvent, log) -> dict:
+    async def on_handler_a(self, state: dict, event: PluginEvent, log) -> dict:
         state["a"] += 1
         return state
 
     @on("global_finish", ".*", ignore_exceptions=False)
-    async def handler_b(self, state: dict, event: PluginEvent, log) -> dict:
+    async def on_handler_b(self, state: dict, event: PluginEvent, log) -> dict:
         state["b"] += 10
         return state
 
@@ -191,7 +169,7 @@ class CustomInitPlugin(Plugin):
     Плагин с параметризованным начальным состоянием.
 
     Принимает initial_value в конструкторе. get_initial_state() возвращает
-    {"value": initial_value}. Обработчик increment добавляет 1 к value.
+    {"value": initial_value}. Обработчик on_increment добавляет 1 к value.
     """
 
     def __init__(self, initial_value: int = 100):
@@ -201,7 +179,7 @@ class CustomInitPlugin(Plugin):
         return {"value": self._initial}
 
     @on("global_finish", ".*")
-    async def increment(self, state: dict, event: PluginEvent, log) -> dict:
+    async def on_increment(self, state: dict, event: PluginEvent, log) -> dict:
         state["value"] += 1
         return state
 
@@ -216,15 +194,14 @@ class RecordingPlugin(Plugin):
     Плагин, записывающий все полученные события global_finish.
 
     Каждое событие добавляется как словарь с event_name, action_name,
-    nest_level в state["events"]. Используется для проверки корректности
-    полей PluginEvent и подсчёта вызовов.
+    nest_level в state["events"].
     """
 
     async def get_initial_state(self) -> dict:
         return {"events": []}
 
     @on("global_finish", ".*")
-    async def record_finish(self, state: dict, event: PluginEvent, log) -> dict:
+    async def on_record_finish(self, state: dict, event: PluginEvent, log) -> dict:
         state["events"].append({
             "event_name": event.event_name,
             "action_name": event.action_name,
@@ -238,8 +215,6 @@ class SelectivePlugin(Plugin):
     Плагин с фильтром по имени действия.
 
     action_filter=".*PingAction$" — реагирует только на PingAction.
-    Используется для проверки, что события от других действий
-    не доставляются этому плагину.
     """
 
     async def get_initial_state(self) -> dict:
@@ -261,7 +236,7 @@ class SlowPluginIgnore(Plugin):
     Плагин с задержкой asyncio.sleep(delay). ignore_exceptions=True.
 
     При параллельном выполнении два таких плагина по 50мс каждый
-    завершаются за ~50мс (время самого медленного), а не за ~100мс.
+    завершаются за ~50мс, а не за ~100мс.
     """
 
     def __init__(self, delay: float = 0.05):
@@ -271,7 +246,7 @@ class SlowPluginIgnore(Plugin):
         return {"calls": []}
 
     @on("global_finish", ".*", ignore_exceptions=True)
-    async def slow_handler(self, state: dict, event: PluginEvent, log) -> dict:
+    async def on_slow_handler(self, state: dict, event: PluginEvent, log) -> dict:
         await asyncio.sleep(self._delay)
         state["calls"].append("slow")
         return state
@@ -280,16 +255,13 @@ class SlowPluginIgnore(Plugin):
 class FastPluginIgnore(Plugin):
     """
     Быстрый плагин без задержки. ignore_exceptions=True.
-
-    Используется в паре со SlowPluginIgnore для проверки, что все
-    обработчики завершаются при параллельном выполнении.
     """
 
     async def get_initial_state(self) -> dict:
         return {"calls": []}
 
     @on("global_finish", ".*", ignore_exceptions=True)
-    async def fast_handler(self, state: dict, event: PluginEvent, log) -> dict:
+    async def on_fast_handler(self, state: dict, event: PluginEvent, log) -> dict:
         state["calls"].append("fast")
         return state
 
@@ -300,7 +272,6 @@ class SlowPluginNoIgnore(Plugin):
 
     Наличие хотя бы одного обработчика с ignore_exceptions=False
     переключает PluginRunContext на последовательное выполнение.
-    Два таких плагина по 50мс завершаются за ~100мс (сумма).
     """
 
     def __init__(self, delay: float = 0.05):
@@ -310,7 +281,7 @@ class SlowPluginNoIgnore(Plugin):
         return {"calls": []}
 
     @on("global_finish", ".*", ignore_exceptions=False)
-    async def slow_handler(self, state: dict, event: PluginEvent, log) -> dict:
+    async def on_slow_handler(self, state: dict, event: PluginEvent, log) -> dict:
         await asyncio.sleep(self._delay)
         state["calls"].append("slow")
         return state
@@ -323,7 +294,7 @@ class FastPluginNoIgnore(Plugin):
         return {"calls": []}
 
     @on("global_finish", ".*", ignore_exceptions=False)
-    async def fast_handler(self, state: dict, event: PluginEvent, log) -> dict:
+    async def on_fast_handler(self, state: dict, event: PluginEvent, log) -> dict:
         state["calls"].append("fast")
         return state
 
@@ -332,15 +303,14 @@ class FailingPluginIgnore(Plugin):
     """
     Плагин с обработчиком, выбрасывающим RuntimeError. ignore_exceptions=True.
 
-    Ошибка подавляется. Используется для проверки, что падающий плагин
-    не прерывает параллельное выполнение остальных.
+    Ошибка подавляется. Остальные плагины продолжают работу.
     """
 
     async def get_initial_state(self) -> dict:
         return {}
 
     @on("global_finish", ".*", ignore_exceptions=True)
-    async def failing_handler(self, state: dict, event: PluginEvent, log) -> dict:
+    async def on_failing_handler(self, state: dict, event: PluginEvent, log) -> dict:
         raise RuntimeError("Plugin error")
 
 
@@ -353,16 +323,15 @@ class IgnoredErrorPlugin(Plugin):
     """
     Плагин, мутирующий state до raise. ignore_exceptions=True.
 
-    state["before_error"]=True записывается до исключения (in-place мутация
-    dict). state["after_error"] остаётся False — код после raise не выполняется.
-    Демонстрирует, что in-place мутации dict видны даже при подавленной ошибке.
+    state["before_error"]=True записывается до исключения.
+    state["after_error"] остаётся False — код после raise не выполняется.
     """
 
     async def get_initial_state(self) -> dict:
         return {"before_error": False, "after_error": False}
 
     @on("global_finish", ".*", ignore_exceptions=True)
-    async def failing_handler(self, state: dict, event: PluginEvent, log) -> dict:
+    async def on_failing_handler(self, state: dict, event: PluginEvent, log) -> dict:
         state["before_error"] = True
         raise RuntimeError("Ignored error")
         # state["after_error"] = True  # не выполнится
@@ -372,15 +341,14 @@ class PropagatedErrorPlugin(Plugin):
     """
     Плагин с ignore_exceptions=False, выбрасывающий RuntimeError.
 
-    Ошибка пробрасывается наружу через emit_event(). Используется для
-    проверки, что критические ошибки прерывают выполнение.
+    Ошибка пробрасывается наружу через emit_event().
     """
 
     async def get_initial_state(self) -> dict:
         return {"count": 0}
 
     @on("global_finish", ".*", ignore_exceptions=False)
-    async def strict_handler(self, state: dict, event: PluginEvent, log) -> dict:
+    async def on_strict_handler(self, state: dict, event: PluginEvent, log) -> dict:
         raise RuntimeError("Strict error must propagate")
 
 
@@ -395,7 +363,7 @@ class CustomExceptionPlugin(Plugin):
         return {}
 
     @on("global_finish", ".*", ignore_exceptions=False)
-    async def custom_handler(self, state: dict, event: PluginEvent, log) -> dict:
+    async def on_custom_handler(self, state: dict, event: PluginEvent, log) -> dict:
         raise CustomPluginError("Custom plugin error")
 
 
@@ -403,15 +371,15 @@ class SuccessAfterFailPlugin(Plugin):
     """
     Плагин с успешным обработчиком. ignore_exceptions=False.
 
-    Используется для проверки, что при совместной работе с PropagatedErrorPlugin
-    последовательное выполнение прерывается на критической ошибке.
+    Используется для проверки, что исключение критического плагина
+    прерывает выполнение.
     """
 
     async def get_initial_state(self) -> dict:
         return {"count": 0}
 
     @on("global_finish", ".*", ignore_exceptions=False)
-    async def success_handler(self, state: dict, event: PluginEvent, log) -> dict:
+    async def on_success_handler(self, state: dict, event: PluginEvent, log) -> dict:
         state["count"] += 1
         return state
 

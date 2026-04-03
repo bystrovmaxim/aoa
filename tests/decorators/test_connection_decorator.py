@@ -104,15 +104,15 @@ class TestValidArgs:
         @meta(description="Тест")
         @check_roles(ROLE_NONE)
         @connection(_MockManager, key="db", description="Основная БД")
-        class _Action(BaseAction[BaseParams, BaseResult]):
+        class _SingleConnAction(BaseAction[BaseParams, BaseResult]):
             @summary_aspect("test")
-            async def summary(self, params, state, box, connections):
+            async def build_summary(self, params, state, box, connections):
                 return BaseResult()
 
         # Assert — _connection_info содержит одну запись
-        assert hasattr(_Action, "_connection_info")
-        assert len(_Action._connection_info) == 1
-        info = _Action._connection_info[0]
+        assert hasattr(_SingleConnAction, "_connection_info")
+        assert len(_SingleConnAction._connection_info) == 1
+        info = _SingleConnAction._connection_info[0]
         assert info.cls is _MockManager
         assert info.key == "db"
         assert info.description == "Основная БД"
@@ -126,14 +126,14 @@ class TestValidArgs:
         @check_roles(ROLE_NONE)
         @connection(_MockManager, key="db", description="БД")
         @connection(_CacheManager, key="cache", description="Кеш")
-        class _Action(BaseAction[BaseParams, BaseResult]):
+        class _MultiConnAction(BaseAction[BaseParams, BaseResult]):
             @summary_aspect("test")
-            async def summary(self, params, state, box, connections):
+            async def build_summary(self, params, state, box, connections):
                 return BaseResult()
 
         # Assert — обе записи
-        assert len(_Action._connection_info) == 2
-        keys = [c.key for c in _Action._connection_info]
+        assert len(_MultiConnAction._connection_info) == 2
+        keys = [c.key for c in _MultiConnAction._connection_info]
         assert "db" in keys
         assert "cache" in keys
 
@@ -145,13 +145,13 @@ class TestValidArgs:
         @meta(description="Тест")
         @check_roles(ROLE_NONE)
         @connection(_MockManager, key="db")
-        class _Action(BaseAction[BaseParams, BaseResult]):
+        class _NoDescConnAction(BaseAction[BaseParams, BaseResult]):
             @summary_aspect("test")
-            async def summary(self, params, state, box, connections):
+            async def build_summary(self, params, state, box, connections):
                 return BaseResult()
 
         # Assert — description по умолчанию ""
-        assert _Action._connection_info[0].description == ""
+        assert _NoDescConnAction._connection_info[0].description == ""
 
     def test_returns_class_unchanged(self) -> None:
         """
@@ -160,18 +160,18 @@ class TestValidArgs:
         # Arrange
         @meta(description="Тест")
         @check_roles(ROLE_NONE)
-        class _Original(BaseAction[BaseParams, BaseResult]):
+        class _OriginalAction(BaseAction[BaseParams, BaseResult]):
             custom = 77
 
             @summary_aspect("test")
-            async def summary(self, params, state, box, connections):
+            async def build_summary(self, params, state, box, connections):
                 return BaseResult()
 
         # Act
-        _decorated = connection(_MockManager, key="db")(_Original)
+        _decorated = connection(_MockManager, key="db")(_OriginalAction)
 
         # Assert — тот же объект
-        assert _decorated is _Original
+        assert _decorated is _OriginalAction
         assert _decorated.custom == 77
 
     def test_connection_info_is_frozen(self) -> None:
@@ -202,18 +202,18 @@ class TestInheritance:
         @meta(description="Родитель")
         @check_roles(ROLE_NONE)
         @connection(_MockManager, key="db")
-        class _Parent(BaseAction[BaseParams, BaseResult]):
+        class _ParentAction(BaseAction[BaseParams, BaseResult]):
             @summary_aspect("test")
-            async def summary(self, params, state, box, connections):
+            async def build_summary(self, params, state, box, connections):
                 return BaseResult()
 
         @meta(description="Дочерний")
         @check_roles(ROLE_NONE)
-        class _Child(_Parent):
+        class _ChildAction(_ParentAction):
             pass
 
         # Act
-        child_conns = getattr(_Child, "_connection_info", [])
+        child_conns = getattr(_ChildAction, "_connection_info", [])
 
         # Assert — дочерний видит connection родителя
         assert len(child_conns) == 1
@@ -227,25 +227,25 @@ class TestInheritance:
         @meta(description="Родитель")
         @check_roles(ROLE_NONE)
         @connection(_MockManager, key="db")
-        class _Parent(BaseAction[BaseParams, BaseResult]):
+        class _ParentAction(BaseAction[BaseParams, BaseResult]):
             @summary_aspect("test")
-            async def summary(self, params, state, box, connections):
+            async def build_summary(self, params, state, box, connections):
                 return BaseResult()
 
         # Act
         @meta(description="Дочерний")
         @check_roles(ROLE_NONE)
         @connection(_CacheManager, key="cache")
-        class _Child(_Parent):
+        class _ChildAction(_ParentAction):
             pass
 
         # Assert — родитель: только db
-        parent_conns = _Parent.__dict__.get("_connection_info", [])
+        parent_conns = _ParentAction.__dict__.get("_connection_info", [])
         assert len(parent_conns) == 1
         assert parent_conns[0].key == "db"
 
         # Assert — дочерний: db + cache
-        child_conns = _Child._connection_info
+        child_conns = _ChildAction._connection_info
         assert len(child_conns) == 2
 
 
@@ -319,7 +319,7 @@ class TestInvalidArgs:
         with pytest.raises(ValueError, match='ключ "db" уже объявлен'):
             @connection(_MockManager, key="db")
             @connection(_CacheManager, key="db")
-            class _Action(ConnectionGateHost):
+            class _DuplicateAction(ConnectionGateHost):
                 pass
 
 
@@ -387,15 +387,15 @@ class TestMetadataIntegration:
         @check_roles(ROLE_NONE)
         @connection(_MockManager, key="db")
         @connection(_CacheManager, key="cache")
-        class _Action(BaseAction[BaseParams, BaseResult]):
+        class _TwoConnAction(BaseAction[BaseParams, BaseResult]):
             @summary_aspect("test")
-            async def summary(self, params, state, box, connections):
+            async def build_summary(self, params, state, box, connections):
                 return BaseResult()
 
         coordinator = GateCoordinator()
 
         # Act
-        metadata = coordinator.get(_Action)
+        metadata = coordinator.get(_TwoConnAction)
         keys = metadata.get_connection_keys()
 
         # Assert — кортеж из двух ключей

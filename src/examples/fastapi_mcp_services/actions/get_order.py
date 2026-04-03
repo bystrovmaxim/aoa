@@ -80,7 +80,7 @@ class GetOrderAction(BaseAction["GetOrderAction.Params", "GetOrderAction.Result"
         )
 
     @summary_aspect("Загрузка и возврат данных заказа")
-    async def get_order(
+    async def get_order_summary(
         self,
         params: "GetOrderAction.Params",
         state: BaseState,

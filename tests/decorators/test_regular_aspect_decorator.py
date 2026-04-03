@@ -11,11 +11,12 @@
 регулярные аспекты последовательно, в порядке их объявления в классе.
 
 Декоратор при применении:
-1. Проверяет, что description — строка.
+1. Проверяет, что description — непустая строка.
 2. Проверяет, что цель — callable.
 3. Проверяет, что метод — async def.
 4. Проверяет, что число параметров == 5 (self, params, state, box, connections).
-5. Записывает _new_aspect_meta = {"type": "regular", "description": ...}.
+5. Проверяет, что имя метода заканчивается на _aspect.
+6. Записывает _new_aspect_meta = {"type": "regular", "description": ...}.
 
 MetadataBuilder._collect_aspects(cls) находит методы с _new_aspect_meta
 и включает их в ClassMetadata.aspects.
@@ -25,13 +26,14 @@ MetadataBuilder._collect_aspects(cls) находит методы с _new_aspect
 ═══════════════════════════════════════════════════════════════════════════════
 
 Валидное применение:
-    - Async-метод с 5 параметрами — записывает _new_aspect_meta.
+    - Async-метод с 5 параметрами и суффиксом _aspect — записывает _new_aspect_meta.
     - С описанием — description сохраняется в meta.
-    - Без описания — пустая строка по умолчанию.
     - Метод возвращается без изменений.
 
 Невалидные аргументы:
     - description не строка → TypeError.
+    - description пустая строка → ValueError.
+    - description не передан → TypeError.
 
 Невалидные цели:
     - Не callable → TypeError.
@@ -70,37 +72,35 @@ class TestValidUsage:
         """
         # Arrange & Act — декоратор на async-методе с 5 параметрами
         @regular_aspect("Валидация данных")
-        async def validate(self, params, state, box, connections):
+        async def validate_aspect(self, params, state, box, connections):
             return {}
 
         # Assert — _new_aspect_meta записан
-        assert hasattr(validate, "_new_aspect_meta")
-        assert validate._new_aspect_meta["type"] == "regular"
-        assert validate._new_aspect_meta["description"] == "Валидация данных"
+        assert hasattr(validate_aspect, "_new_aspect_meta")
+        assert validate_aspect._new_aspect_meta["type"] == "regular"
+        assert validate_aspect._new_aspect_meta["description"] == "Валидация данных"
 
-    def test_empty_description(self) -> None:
+    def test_description_is_required(self) -> None:
         """
-        @regular_aspect() без описания — пустая строка по умолчанию.
-        """
-        # Arrange & Act
-        @regular_aspect()
-        async def step(self, params, state, box, connections):
-            return {}
+        @regular_aspect() без аргументов → TypeError.
 
-        # Assert — description пустая строка
-        assert step._new_aspect_meta["description"] == ""
-
-    def test_explicit_empty_description(self) -> None:
+        description — обязательный позиционный аргумент.
         """
-        @regular_aspect("") — явная пустая строка допустима.
-        """
-        # Arrange & Act
-        @regular_aspect("")
-        async def step(self, params, state, box, connections):
-            return {}
+        # Arrange & Act & Assert
+        with pytest.raises(TypeError):
+            regular_aspect()
 
-        # Assert
-        assert step._new_aspect_meta["description"] == ""
+    def test_empty_description_raises(self) -> None:
+        """
+        @regular_aspect("") — пустая строка → ValueError.
+
+        description не может быть пустой строкой.
+        """
+        # Arrange & Act & Assert
+        with pytest.raises(ValueError, match="пустой"):
+            @regular_aspect("")
+            async def step_aspect(self, params, state, box, connections):
+                return {}
 
     def test_returns_function_unchanged(self) -> None:
         """
@@ -110,14 +110,14 @@ class TestValidUsage:
         не создаёт wrapper-функцию.
         """
         # Arrange
-        async def original(self, params, state, box, connections):
+        async def original_aspect(self, params, state, box, connections):
             return {}
 
         # Act
-        decorated = regular_aspect("test")(original)
+        decorated = regular_aspect("test")(original_aspect)
 
         # Assert — тот же объект
-        assert decorated is original
+        assert decorated is original_aspect
 
     def test_type_is_regular(self) -> None:
         """
@@ -127,11 +127,11 @@ class TestValidUsage:
         """
         # Arrange & Act
         @regular_aspect("шаг")
-        async def step(self, params, state, box, connections):
+        async def step_aspect(self, params, state, box, connections):
             return {}
 
         # Assert
-        assert step._new_aspect_meta["type"] == "regular"
+        assert step_aspect._new_aspect_meta["type"] == "regular"
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -196,7 +196,7 @@ class TestInvalidTarget:
         # Arrange & Act & Assert
         with pytest.raises(TypeError, match="асинхронным"):
             @regular_aspect("test")
-            def sync_method(self, params, state, box, connections):
+            def sync_method_aspect(self, params, state, box, connections):
                 return {}
 
     def test_wrong_param_count_raises(self) -> None:
@@ -208,7 +208,7 @@ class TestInvalidTarget:
         # Arrange & Act & Assert
         with pytest.raises(TypeError, match="5 параметров"):
             @regular_aspect("test")
-            async def bad_method(self, params, state):
+            async def bad_method_aspect(self, params, state):
                 return {}
 
     def test_too_many_params_raises(self) -> None:
@@ -218,7 +218,7 @@ class TestInvalidTarget:
         # Arrange & Act & Assert
         with pytest.raises(TypeError, match="5 параметров"):
             @regular_aspect("test")
-            async def bad_method(self, params, state, box, connections, extra):
+            async def bad_method_aspect(self, params, state, box, connections, extra):
                 return {}
 
     def test_no_params_raises(self) -> None:
@@ -228,7 +228,7 @@ class TestInvalidTarget:
         # Arrange & Act & Assert
         with pytest.raises(TypeError, match="5 параметров"):
             @regular_aspect("test")
-            async def bad_method():
+            async def bad_method_aspect():
                 return {}
 
 
@@ -247,24 +247,24 @@ class TestMetadataIntegration:
         # Arrange
         @meta(description="Тест")
         @check_roles(ROLE_NONE)
-        class _Action(BaseAction[BaseParams, BaseResult]):
+        class _ValidateAction(BaseAction[BaseParams, BaseResult]):
             @regular_aspect("Валидация")
-            async def validate(self, params, state, box, connections):
+            async def validate_aspect(self, params, state, box, connections):
                 return {}
 
             @summary_aspect("Результат")
-            async def summary(self, params, state, box, connections):
+            async def build_summary(self, params, state, box, connections):
                 return BaseResult()
 
         coordinator = GateCoordinator()
 
         # Act
-        metadata = coordinator.get(_Action)
+        metadata = coordinator.get(_ValidateAction)
         regulars = metadata.get_regular_aspects()
 
         # Assert — один regular-аспект
         assert len(regulars) == 1
-        assert regulars[0].method_name == "validate"
+        assert regulars[0].method_name == "validate_aspect"
         assert regulars[0].aspect_type == "regular"
         assert regulars[0].description == "Валидация"
 
@@ -277,29 +277,29 @@ class TestMetadataIntegration:
         # Arrange
         @meta(description="Тест")
         @check_roles(ROLE_NONE)
-        class _Action(BaseAction[BaseParams, BaseResult]):
+        class _TwoStepAction(BaseAction[BaseParams, BaseResult]):
             @regular_aspect("Первый")
-            async def step_one(self, params, state, box, connections):
+            async def step_one_aspect(self, params, state, box, connections):
                 return {}
 
             @regular_aspect("Второй")
-            async def step_two(self, params, state, box, connections):
+            async def step_two_aspect(self, params, state, box, connections):
                 return {}
 
             @summary_aspect("Итог")
-            async def summary(self, params, state, box, connections):
+            async def build_summary(self, params, state, box, connections):
                 return BaseResult()
 
         coordinator = GateCoordinator()
 
         # Act
-        metadata = coordinator.get(_Action)
+        metadata = coordinator.get(_TwoStepAction)
         regulars = metadata.get_regular_aspects()
 
         # Assert — порядок сохранён
         assert len(regulars) == 2
-        assert regulars[0].method_name == "step_one"
-        assert regulars[1].method_name == "step_two"
+        assert regulars[0].method_name == "step_one_aspect"
+        assert regulars[1].method_name == "step_two_aspect"
 
     def test_method_ref_is_callable(self) -> None:
         """
@@ -311,19 +311,19 @@ class TestMetadataIntegration:
         # Arrange
         @meta(description="Тест")
         @check_roles(ROLE_NONE)
-        class _Action(BaseAction[BaseParams, BaseResult]):
+        class _StepAction(BaseAction[BaseParams, BaseResult]):
             @regular_aspect("Шаг")
-            async def step(self, params, state, box, connections):
+            async def step_aspect(self, params, state, box, connections):
                 return {}
 
             @summary_aspect("Итог")
-            async def summary(self, params, state, box, connections):
+            async def build_summary(self, params, state, box, connections):
                 return BaseResult()
 
         coordinator = GateCoordinator()
 
         # Act
-        metadata = coordinator.get(_Action)
+        metadata = coordinator.get(_StepAction)
         regulars = metadata.get_regular_aspects()
 
         # Assert — method_ref callable

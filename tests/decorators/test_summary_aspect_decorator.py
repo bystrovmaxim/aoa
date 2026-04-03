@@ -12,23 +12,27 @@ summary_aspect. Он выполняется после всех regular_aspect, 
 накопленный state и возвращает типизированный Result.
 
 Декоратор при применении:
-1. Проверяет, что description — строка.
+1. Проверяет, что description — непустая строка.
 2. Проверяет, что цель — callable.
 3. Проверяет, что метод — async def.
 4. Проверяет, что число параметров == 5 (self, params, state, box, connections).
-5. Записывает _new_aspect_meta = {"type": "summary", "description": ...}.
+5. Проверяет, что имя метода заканчивается на _summary или равно "summary".
+6. Записывает _new_aspect_meta = {"type": "summary", "description": ...}.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ПОКРЫВАЕМЫЕ СЦЕНАРИИ
 ═══════════════════════════════════════════════════════════════════════════════
 
 Валидное применение:
-    - Async-метод с 5 параметрами — записывает _new_aspect_meta.
+    - Async-метод с 5 параметрами и суффиксом _summary — записывает _new_aspect_meta.
+    - Метод с именем "summary" — допустим (исключение из правила дублирования).
     - type="summary" в meta.
-    - С описанием и без описания.
+    - С описанием.
 
 Невалидные аргументы:
     - description не строка → TypeError.
+    - description пустая строка → ValueError.
+    - description не передан → TypeError.
 
 Невалидные цели:
     - Не callable → TypeError.
@@ -68,13 +72,13 @@ class TestValidUsage:
         """
         # Arrange & Act
         @summary_aspect("Формирование результата")
-        async def build_result(self, params, state, box, connections):
+        async def build_result_summary(self, params, state, box, connections):
             return BaseResult()
 
         # Assert
-        assert hasattr(build_result, "_new_aspect_meta")
-        assert build_result._new_aspect_meta["type"] == "summary"
-        assert build_result._new_aspect_meta["description"] == "Формирование результата"
+        assert hasattr(build_result_summary, "_new_aspect_meta")
+        assert build_result_summary._new_aspect_meta["type"] == "summary"
+        assert build_result_summary._new_aspect_meta["description"] == "Формирование результата"
 
     def test_type_is_summary(self) -> None:
         """
@@ -84,37 +88,62 @@ class TestValidUsage:
         """
         # Arrange & Act
         @summary_aspect("итог")
-        async def finish(self, params, state, box, connections):
+        async def finish_summary(self, params, state, box, connections):
             return BaseResult()
 
         # Assert
-        assert finish._new_aspect_meta["type"] == "summary"
+        assert finish_summary._new_aspect_meta["type"] == "summary"
 
-    def test_empty_description(self) -> None:
+    def test_description_is_required(self) -> None:
         """
-        @summary_aspect() без описания — пустая строка по умолчанию.
-        """
-        # Arrange & Act
-        @summary_aspect()
-        async def finish(self, params, state, box, connections):
-            return BaseResult()
+        @summary_aspect() без аргументов → TypeError.
 
-        # Assert
-        assert finish._new_aspect_meta["description"] == ""
+        description — обязательный позиционный аргумент.
+        """
+        # Arrange & Act & Assert
+        with pytest.raises(TypeError):
+            summary_aspect()
+
+    def test_empty_description_raises(self) -> None:
+        """
+        @summary_aspect("") — пустая строка → ValueError.
+
+        description не может быть пустой строкой.
+        """
+        # Arrange & Act & Assert
+        with pytest.raises(ValueError, match="пустой"):
+            @summary_aspect("")
+            async def finish_summary(self, params, state, box, connections):
+                return BaseResult()
 
     def test_returns_function_unchanged(self) -> None:
         """
         Декоратор возвращает ту же функцию — не оборачивает.
         """
         # Arrange
-        async def original(self, params, state, box, connections):
+        async def original_summary(self, params, state, box, connections):
             return BaseResult()
 
         # Act
-        decorated = summary_aspect("test")(original)
+        decorated = summary_aspect("test")(original_summary)
 
         # Assert — тот же объект
-        assert decorated is original
+        assert decorated is original_summary
+
+    def test_bare_summary_name_is_valid(self) -> None:
+        """
+        Метод с именем "summary" допустим — не требуется "summary_summary".
+
+        Исключение из правила дублирования: имя "summary" уже содержит
+        семантику суффикса.
+        """
+        # Arrange & Act
+        @summary_aspect("итог")
+        async def summary(self, params, state, box, connections):
+            return BaseResult()
+
+        # Assert
+        assert summary._new_aspect_meta["type"] == "summary"
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -165,7 +194,7 @@ class TestInvalidTarget:
         # Arrange & Act & Assert
         with pytest.raises(TypeError, match="асинхронным"):
             @summary_aspect("test")
-            def sync_method(self, params, state, box, connections):
+            def sync_method_summary(self, params, state, box, connections):
                 return BaseResult()
 
     def test_wrong_param_count_raises(self) -> None:
@@ -177,7 +206,7 @@ class TestInvalidTarget:
         # Arrange & Act & Assert
         with pytest.raises(TypeError, match="5 параметров"):
             @summary_aspect("test")
-            async def bad_method(self, params, state):
+            async def bad_method_summary(self, params, state):
                 return BaseResult()
 
     def test_too_many_params_raises(self) -> None:
@@ -187,7 +216,7 @@ class TestInvalidTarget:
         # Arrange & Act & Assert
         with pytest.raises(TypeError, match="5 параметров"):
             @summary_aspect("test")
-            async def bad_method(self, params, state, box, connections, extra):
+            async def bad_method_summary(self, params, state, box, connections, extra):
                 return BaseResult()
 
     def test_no_params_raises(self) -> None:
@@ -197,7 +226,7 @@ class TestInvalidTarget:
         # Arrange & Act & Assert
         with pytest.raises(TypeError, match="5 параметров"):
             @summary_aspect("test")
-            async def bad_method():
+            async def bad_method_summary():
                 return BaseResult()
 
 
@@ -218,20 +247,20 @@ class TestStructuralInvariants:
         # Arrange
         @meta(description="Тест")
         @check_roles(ROLE_NONE)
-        class _Action(BaseAction[BaseParams, BaseResult]):
+        class _TwoSummaryAction(BaseAction[BaseParams, BaseResult]):
             @summary_aspect("Первый")
-            async def summary_one(self, params, state, box, connections):
+            async def one_summary(self, params, state, box, connections):
                 return BaseResult()
 
             @summary_aspect("Второй")
-            async def summary_two(self, params, state, box, connections):
+            async def two_summary(self, params, state, box, connections):
                 return BaseResult()
 
         coordinator = GateCoordinator()
 
         # Act & Assert — ValueError при сборке
         with pytest.raises(ValueError, match="summary"):
-            coordinator.get(_Action)
+            coordinator.get(_TwoSummaryAction)
 
     def test_regular_without_summary_raises(self) -> None:
         """
@@ -242,16 +271,16 @@ class TestStructuralInvariants:
         # Arrange
         @meta(description="Тест")
         @check_roles(ROLE_NONE)
-        class _Action(BaseAction[BaseParams, BaseResult]):
+        class _NoSummaryAction(BaseAction[BaseParams, BaseResult]):
             @regular_aspect("Шаг")
-            async def step(self, params, state, box, connections):
+            async def step_aspect(self, params, state, box, connections):
                 return {}
 
         coordinator = GateCoordinator()
 
         # Act & Assert — ValueError
         with pytest.raises(ValueError, match="summary"):
-            coordinator.get(_Action)
+            coordinator.get(_NoSummaryAction)
 
     def test_summary_not_last_raises(self) -> None:
         """
@@ -262,20 +291,20 @@ class TestStructuralInvariants:
         # Arrange
         @meta(description="Тест")
         @check_roles(ROLE_NONE)
-        class _Action(BaseAction[BaseParams, BaseResult]):
+        class _SummaryNotLastAction(BaseAction[BaseParams, BaseResult]):
             @summary_aspect("Итог")
-            async def summary(self, params, state, box, connections):
+            async def build_summary(self, params, state, box, connections):
                 return BaseResult()
 
             @regular_aspect("Шаг после summary")
-            async def step_after(self, params, state, box, connections):
+            async def step_after_aspect(self, params, state, box, connections):
                 return {}
 
         coordinator = GateCoordinator()
 
         # Act & Assert — ValueError
         with pytest.raises(ValueError, match="последним"):
-            coordinator.get(_Action)
+            coordinator.get(_SummaryNotLastAction)
 
     def test_only_summary_is_valid(self) -> None:
         """
@@ -287,15 +316,15 @@ class TestStructuralInvariants:
         # Arrange
         @meta(description="Минимальное действие")
         @check_roles(ROLE_NONE)
-        class _Action(BaseAction[BaseParams, BaseResult]):
+        class _MinimalAction(BaseAction[BaseParams, BaseResult]):
             @summary_aspect("Pong")
-            async def summary(self, params, state, box, connections):
+            async def build_summary(self, params, state, box, connections):
                 return BaseResult()
 
         coordinator = GateCoordinator()
 
         # Act — сборка без ошибок
-        metadata = coordinator.get(_Action)
+        metadata = coordinator.get(_MinimalAction)
 
         # Assert — один summary, ноль regular
         assert metadata.get_summary_aspect() is not None
@@ -317,20 +346,20 @@ class TestMetadataIntegration:
         # Arrange
         @meta(description="Тест")
         @check_roles(ROLE_NONE)
-        class _Action(BaseAction[BaseParams, BaseResult]):
+        class _BuildAction(BaseAction[BaseParams, BaseResult]):
             @summary_aspect("Формирование ответа")
-            async def build(self, params, state, box, connections):
+            async def build_summary(self, params, state, box, connections):
                 return BaseResult()
 
         coordinator = GateCoordinator()
 
         # Act
-        metadata = coordinator.get(_Action)
+        metadata = coordinator.get(_BuildAction)
         summary = metadata.get_summary_aspect()
 
         # Assert
         assert summary is not None
         assert summary.aspect_type == "summary"
         assert summary.description == "Формирование ответа"
-        assert summary.method_name == "build"
+        assert summary.method_name == "build_summary"
         assert callable(summary.method_ref)

@@ -13,12 +13,23 @@
 которые добавляются в state для следующего аспекта.
 
 ═══════════════════════════════════════════════════════════════════════════════
+ПАРАМЕТРЫ
+═══════════════════════════════════════════════════════════════════════════════
+
+    description : str
+        Обязательное человекочитаемое описание шага. Непустая строка.
+        Используется в логах, плагинах, интроспекции и графе координатора.
+        Примеры: "Валидация суммы", "Обработка платежа".
+
+═══════════════════════════════════════════════════════════════════════════════
 ОГРАНИЧЕНИЯ (ИНВАРИАНТЫ)
 ═══════════════════════════════════════════════════════════════════════════════
 
 - Применяется только к методам (callable), не к классам или свойствам.
 - Метод должен быть асинхронным (async def).
 - Сигнатура метода: ровно 5 параметров (self, params, state, box, connections).
+- description — обязательная непустая строка.
+- Имя метода обязано заканчиваться на "_aspect" (проверяется NamingSuffixError).
 
 ═══════════════════════════════════════════════════════════════════════════════
 АРХИТЕКТУРА ИНТЕГРАЦИИ
@@ -30,7 +41,7 @@
     {"type": "regular", "description": "Валидация суммы"}
         │
         ▼  MetadataBuilder._collect_aspects(cls)
-    ClassMetadata.aspects = (AspectMeta("validate_amount", "regular", ...), ...)
+    ClassMetadata.aspects = (AspectMeta("validate_aspect", "regular", ...), ...)
         │
         ▼  ActionProductMachine._execute_regular_aspects(...)
     Последовательно вызывает каждый regular-аспект, мержит результат в state
@@ -42,14 +53,14 @@
     class CreateOrderAction(BaseAction[OrderParams, OrderResult]):
 
         @regular_aspect("Валидация суммы")
-        async def validate_amount(self, params, state, box, connections):
+        async def validate_amount_aspect(self, params, state, box, connections):
             if params.amount <= 0:
                 raise ValueError("Сумма должна быть положительной")
             return {}
 
         @regular_aspect("Обработка платежа")
         @result_string("txn_id", required=True)
-        async def process_payment(self, params, state, box, connections):
+        async def process_payment_aspect(self, params, state, box, connections):
             payment = box.resolve(PaymentService)
             txn_id = await payment.charge(params.amount, params.currency)
             return {"txn_id": txn_id}
@@ -58,8 +69,10 @@
 ОШИБКИ
 ═══════════════════════════════════════════════════════════════════════════════
 
-    TypeError — метод не callable; метод не асинхронный; неверное число параметров;
-               description не строка.
+    TypeError — метод не callable; метод не асинхронный; неверное число
+               параметров; description не строка.
+    ValueError — description пустая строка или строка из пробелов.
+    NamingSuffixError — имя метода не заканчивается на "_aspect".
 """
 
 from __future__ import annotations
@@ -69,14 +82,19 @@ import inspect
 from collections.abc import Callable
 from typing import Any
 
+from action_machine.core.exceptions import NamingSuffixError
+
 # Ожидаемое число параметров для regular_aspect: self, params, state, box, connections
 _EXPECTED_PARAM_COUNT = 5
 
 # Имена параметров для сообщения об ошибке
 _EXPECTED_PARAM_NAMES = "self, params, state, box, connections"
 
+# Обязательный суффикс имени метода
+_REQUIRED_SUFFIX = "_aspect"
 
-def regular_aspect(description: str = "") -> Callable[[Any], Any]:
+
+def regular_aspect(description: str) -> Callable[[Any], Any]:
     """
     Декоратор уровня метода. Помечает метод как регулярный аспект конвейера.
 
@@ -85,9 +103,8 @@ def regular_aspect(description: str = "") -> Callable[[Any], Any]:
     и включает метод в ClassMetadata.aspects.
 
     Аргументы:
-        description: человекочитаемое описание шага. Используется в логах,
-                     плагинах и интроспекции. Например: "Валидация суммы",
-                     "Обработка платежа". По умолчанию пустая строка.
+        description: обязательное человекочитаемое описание шага. Непустая
+                     строка. Используется в логах, плагинах и интроспекции.
 
     Возвращает:
         Декоратор, который прикрепляет _new_aspect_meta к методу
@@ -99,11 +116,22 @@ def regular_aspect(description: str = "") -> Callable[[Any], Any]:
             - Декорируемый объект не callable.
             - Метод не асинхронный (не async def).
             - Неверное число параметров (ожидается 5).
+        ValueError:
+            - description пустая строка или строка из пробелов.
+        NamingSuffixError:
+            - Имя метода не заканчивается на "_aspect".
     """
+    # ── Валидация description ──
     if not isinstance(description, str):
         raise TypeError(
             f"@regular_aspect ожидает строку description, "
             f"получен {type(description).__name__}."
+        )
+
+    if not description.strip():
+        raise ValueError(
+            "@regular_aspect: description не может быть пустой строкой. "
+            "Укажите описание шага конвейера."
         )
 
     def decorator(func: Any) -> Any:
@@ -114,6 +142,7 @@ def regular_aspect(description: str = "") -> Callable[[Any], Any]:
         1. func — callable.
         2. func — async def.
         3. Число параметров == 5 (self, params, state, box, connections).
+        4. Имя метода заканчивается на "_aspect".
 
         Затем записывает _new_aspect_meta в func.
         """
@@ -140,6 +169,15 @@ def regular_aspect(description: str = "") -> Callable[[Any], Any]:
                 f"@regular_aspect(\"{description}\"): метод {func.__name__} "
                 f"должен принимать {_EXPECTED_PARAM_COUNT} параметров "
                 f"({_EXPECTED_PARAM_NAMES}), получено {param_count}."
+            )
+
+        # ── Проверка: суффикс имени метода ──
+        if not func.__name__.endswith(_REQUIRED_SUFFIX):
+            raise NamingSuffixError(
+                f"@regular_aspect(\"{description}\"): метод '{func.__name__}' "
+                f"должен заканчиваться на '{_REQUIRED_SUFFIX}'. "
+                f"Переименуйте в '{func.__name__}{_REQUIRED_SUFFIX}' "
+                f"или аналогичное имя с суффиксом '{_REQUIRED_SUFFIX}'."
             )
 
         # ── Прикрепление метаданных ──

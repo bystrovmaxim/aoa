@@ -65,13 +65,13 @@ class TestValidSpec:
         """
         # Arrange & Act — декоратор с ROLE_NONE
         @check_roles(ROLE_NONE)
-        class _Action(RoleGateHost):
+        class _PublicAction(RoleGateHost):
             pass
 
         # Assert — _role_info записан с правильным spec
-        assert hasattr(_Action, "_role_info")
-        assert _Action._role_info["spec"] == ROLE_NONE
-        assert _Action._role_info["spec"] == "__NONE__"
+        assert hasattr(_PublicAction, "_role_info")
+        assert _PublicAction._role_info["spec"] == ROLE_NONE
+        assert _PublicAction._role_info["spec"] == "__NONE__"
 
     def test_role_any(self) -> None:
         """
@@ -82,12 +82,12 @@ class TestValidSpec:
         """
         # Arrange & Act — декоратор с ROLE_ANY
         @check_roles(ROLE_ANY)
-        class _Action(RoleGateHost):
+        class _AnyRoleAction(RoleGateHost):
             pass
 
         # Assert
-        assert _Action._role_info["spec"] == ROLE_ANY
-        assert _Action._role_info["spec"] == "__ANY__"
+        assert _AnyRoleAction._role_info["spec"] == ROLE_ANY
+        assert _AnyRoleAction._role_info["spec"] == "__ANY__"
 
     def test_single_role(self) -> None:
         """
@@ -97,11 +97,11 @@ class TestValidSpec:
         """
         # Arrange & Act
         @check_roles("admin")
-        class _Action(RoleGateHost):
+        class _AdminOnlyAction(RoleGateHost):
             pass
 
         # Assert
-        assert _Action._role_info["spec"] == "admin"
+        assert _AdminOnlyAction._role_info["spec"] == "admin"
 
     def test_role_list(self) -> None:
         """
@@ -111,11 +111,11 @@ class TestValidSpec:
         """
         # Arrange & Act
         @check_roles(["admin", "manager"])
-        class _Action(RoleGateHost):
+        class _MultiRoleAction(RoleGateHost):
             pass
 
         # Assert — spec сохранён как список
-        assert _Action._role_info["spec"] == ["admin", "manager"]
+        assert _MultiRoleAction._role_info["spec"] == ["admin", "manager"]
 
     def test_single_element_list(self) -> None:
         """
@@ -125,11 +125,11 @@ class TestValidSpec:
         """
         # Arrange & Act
         @check_roles(["editor"])
-        class _Action(RoleGateHost):
+        class _EditorAction(RoleGateHost):
             pass
 
         # Assert
-        assert _Action._role_info["spec"] == ["editor"]
+        assert _EditorAction._role_info["spec"] == ["editor"]
 
     def test_returns_class_unchanged(self) -> None:
         """
@@ -139,14 +139,14 @@ class TestValidSpec:
         Класс остаётся тем же объектом.
         """
         # Arrange
-        class _Original(RoleGateHost):
+        class _OriginalHost(RoleGateHost):
             custom_attr = 42
 
         # Act — применение декоратора
-        _decorated = check_roles("admin")(_Original)
+        _decorated = check_roles("admin")(_OriginalHost)
 
         # Assert — тот же класс, атрибуты сохранены
-        assert _decorated is _Original
+        assert _decorated is _OriginalHost
         assert _decorated.custom_attr == 42
 
 
@@ -178,13 +178,13 @@ class TestWithBaseAction:
 
         @meta(description="Тестовое действие")
         @check_roles("manager")
-        class _TestAction(BaseAction[BaseParams, BaseResult]):
+        class _ManagerAction(BaseAction[BaseParams, BaseResult]):
             @summary_aspect("test")
-            async def summary(self, params, state, box, connections):
+            async def finalize_summary(self, params, state, box, connections):
                 return BaseResult()
 
         # Assert — _role_info записан
-        assert _TestAction._role_info["spec"] == "manager"
+        assert _ManagerAction._role_info["spec"] == "manager"
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -211,7 +211,7 @@ class TestMetadataIntegration:
         @check_roles("admin")
         class _RoledAction(BaseAction[BaseParams, BaseResult]):
             @summary_aspect("test")
-            async def summary(self, params, state, box, connections):
+            async def build_summary(self, params, state, box, connections):
                 return BaseResult()
 
         coordinator = GateCoordinator()
@@ -323,10 +323,10 @@ class TestInvalidTarget:
         Декоратор ожидает класс (type), не экземпляр.
         """
         # Arrange
-        class _MyClass(RoleGateHost):
+        class _MyHost(RoleGateHost):
             pass
 
-        instance = _MyClass()
+        instance = _MyHost()
 
         # Act & Assert
         with pytest.raises(TypeError, match="только к классу"):

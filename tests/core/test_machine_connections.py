@@ -14,20 +14,10 @@ ActionProductMachine._check_connections() — второй шаг конвейе
 Двухуровневая валидация:
 
 1. Проверка ключей — объявленные ключи должны точно совпадать
-   с фактическими:
-   - Нет @connection, но переданы connections → ConnectionValidationError.
-   - Есть @connection, но connections не переданы → ConnectionValidationError.
-   - Лишние ключи в connections → ConnectionValidationError.
-   - Недостающие ключи в connections → ConnectionValidationError.
+   с фактическими.
 
 2. Проверка типов — каждое значение должно быть экземпляром
-   BaseResourceManager:
-   - Строка вместо менеджера → ConnectionValidationError.
-   - None вместо менеджера → ConnectionValidationError.
-   - Число вместо менеджера → ConnectionValidationError.
-
-Успешная проверка возвращает проверенный dict connections (или пустой dict
-если действие не объявляет @connection).
+   BaseResourceManager.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ПОКРЫВАЕМЫЕ СЦЕНАРИИ
@@ -42,8 +32,6 @@ ActionProductMachine._check_connections() — второй шаг конвейе
     - Без connections → ConnectionValidationError.
     - Лишний ключ → ConnectionValidationError.
     - Значение не BaseResourceManager → ConnectionValidationError.
-    - Значение None → ConnectionValidationError.
-    - Значение int → ConnectionValidationError.
 
 Действие с двумя @connection:
     - Оба ключа переданы → OK.
@@ -91,11 +79,11 @@ class _MockResourceManager(BaseResourceManager):
 @check_roles(ROLE_NONE)
 @connection(_MockResourceManager, key="db", description="База данных")
 @connection(_MockResourceManager, key="cache", description="Кеш")
-class _ActionTwoConnections(BaseAction[BaseParams, BaseResult]):
+class _ActionTwoConnectionsAction(BaseAction[BaseParams, BaseResult]):
     """Объявляет два подключения: db и cache."""
 
     @summary_aspect("test")
-    async def summary(self, params, state, box, connections):
+    async def build_summary(self, params, state, box, connections):
         return BaseResult()
 
 
@@ -106,9 +94,7 @@ class _ActionTwoConnections(BaseAction[BaseParams, BaseResult]):
 
 @pytest.fixture()
 def machine() -> ActionProductMachine:
-    """
-    ActionProductMachine с тихим логгером для unit-тестов.
-    """
+    """ActionProductMachine с тихим логгером для unit-тестов."""
     return ActionProductMachine(
         mode="test",
         log_coordinator=LogCoordinator(loggers=[]),
@@ -117,12 +103,7 @@ def machine() -> ActionProductMachine:
 
 @pytest.fixture()
 def context() -> Context:
-    """
-    Контекст с ролями для прохождения проверки ролей.
-
-    Используется для FullAction (роль "manager") и для действий
-    с ROLE_NONE (проходит любой пользователь).
-    """
+    """Контекст с ролями для прохождения проверки ролей."""
     return Context(user=UserInfo(user_id="mgr_1", roles=["manager", "admin"]))
 
 
@@ -143,9 +124,6 @@ class TestNoConnectionDeclaration:
     def test_no_connections_returns_empty_dict(self, machine, context) -> None:
         """
         Действие без @connection + connections=None → пустой dict.
-
-        PingAction не объявляет @connection. При вызове без connections
-        машина возвращает пустой dict, и аспект получает connections={}.
         """
         # Arrange — PingAction без @connection
         action = PingAction()
@@ -160,10 +138,6 @@ class TestNoConnectionDeclaration:
     def test_connections_provided_raises(self, machine, context, mock_resource) -> None:
         """
         Действие без @connection + connections={"db": ...} → ConnectionValidationError.
-
-        Если действие не объявляет connections, но вызывающий код передаёт
-        их — это ошибка конфигурации. Машина бросает исключение с указанием
-        переданных ключей.
         """
         # Arrange — PingAction без @connection, но с переданным connections
         action = PingAction()
@@ -186,10 +160,6 @@ class TestSingleConnection:
     def test_correct_key_passes(self, machine, context) -> None:
         """
         FullAction + connections={"db": MockResourceManager} → OK.
-
-        FullAction объявляет @connection(TestDbManager, key="db").
-        Фактический ключ "db" совпадает с объявленным. Значение —
-        экземпляр BaseResourceManager → проверка типов проходит.
         """
         # Arrange — FullAction с @connection(key="db")
         action = FullAction()
@@ -205,24 +175,18 @@ class TestSingleConnection:
     def test_no_connections_raises(self, machine, context) -> None:
         """
         FullAction + connections=None → ConnectionValidationError.
-
-        FullAction объявляет @connection(key="db"), но connections
-        не переданы. Машина бросает ошибку с перечислением
-        объявленных ключей.
         """
         # Arrange — FullAction, connections=None
         action = FullAction()
         metadata = machine._get_metadata(action)
 
-        # Act & Assert — ConnectionValidationError с указанием объявленных ключей
+        # Act & Assert — ConnectionValidationError
         with pytest.raises(ConnectionValidationError, match="declares connections"):
             machine._check_connections(action, None, metadata)
 
     def test_extra_key_raises(self, machine, context, mock_resource) -> None:
         """
         FullAction + connections={"db": ..., "extra": ...} → ConnectionValidationError.
-
-        Лишний ключ "extra" не объявлен в @connection.
         """
         # Arrange — FullAction с лишним ключом "extra"
         action = FullAction()
@@ -230,16 +194,13 @@ class TestSingleConnection:
         mock_db = AsyncMock(spec=TestDbManager)
         connections = {"db": mock_db, "extra": mock_resource}
 
-        # Act & Assert — ConnectionValidationError с указанием лишнего ключа
+        # Act & Assert — ConnectionValidationError
         with pytest.raises(ConnectionValidationError, match="received extra connections"):
             machine._check_connections(action, connections, metadata)
 
     def test_value_not_resource_manager_raises(self, machine, context) -> None:
         """
         connections={"db": "строка"} → ConnectionValidationError.
-
-        Каждое значение в connections должно быть экземпляром
-        BaseResourceManager. Строка не является менеджером ресурсов.
         """
         # Arrange — строка вместо менеджера
         action = FullAction()
@@ -253,8 +214,6 @@ class TestSingleConnection:
     def test_value_none_raises(self, machine, context) -> None:
         """
         connections={"db": None} → ConnectionValidationError.
-
-        None не является экземпляром BaseResourceManager.
         """
         # Arrange — None вместо менеджера
         action = FullAction()
@@ -268,8 +227,6 @@ class TestSingleConnection:
     def test_value_int_raises(self, machine, context) -> None:
         """
         connections={"db": 42} → ConnectionValidationError.
-
-        Число не является экземпляром BaseResourceManager.
         """
         # Arrange — число вместо менеджера
         action = FullAction()
@@ -291,12 +248,10 @@ class TestTwoConnections:
 
     def test_both_keys_present_passes(self, machine, context, mock_resource) -> None:
         """
-        _ActionTwoConnections + connections={"db": ..., "cache": ...} → OK.
-
-        Оба объявленных ключа присутствуют, оба значения — BaseResourceManager.
+        _ActionTwoConnectionsAction + connections={"db": ..., "cache": ...} → OK.
         """
         # Arrange — действие с двумя @connection, оба ключа переданы
-        action = _ActionTwoConnections()
+        action = _ActionTwoConnectionsAction()
         metadata = machine._get_metadata(action)
         connections = {
             "db": _MockResourceManager(),
@@ -312,19 +267,15 @@ class TestTwoConnections:
 
     def test_missing_key_raises(self, machine, context, mock_resource) -> None:
         """
-        _ActionTwoConnections + connections={"db": ...} (без cache) →
+        _ActionTwoConnectionsAction + connections={"db": ...} (без cache) →
         ConnectionValidationError.
-
-        Объявлено два ключа: db и cache. Передан только db.
-        Недостающий ключ cache указывается в сообщении ошибки.
         """
         # Arrange — только один ключ из двух объявленных
-        action = _ActionTwoConnections()
+        action = _ActionTwoConnectionsAction()
         metadata = machine._get_metadata(action)
         connections = {"db": mock_resource}
 
-        # Act & Assert — ConnectionValidationError с указанием
-        # недостающего ключа "cache"
+        # Act & Assert — ConnectionValidationError
         with pytest.raises(ConnectionValidationError, match="missing required connections"):
             machine._check_connections(action, connections, metadata)
 
@@ -341,9 +292,6 @@ class TestConnectionsViaRun:
     async def test_full_action_with_valid_connections(self, machine, context) -> None:
         """
         FullAction через run() с корректными connections → результат.
-
-        Полный конвейер: проверка ролей → проверка connections →
-        конвейер аспектов → Result.
         """
         # Arrange — FullAction с моками зависимостей и connections
         mock_payment = AsyncMock(spec=PaymentService)
@@ -374,10 +322,6 @@ class TestConnectionsViaRun:
     async def test_full_action_without_connections_raises(self, machine, context) -> None:
         """
         FullAction через run() без connections → ConnectionValidationError.
-
-        Проверка connections выполняется ДО конвейера аспектов.
-        Машина обнаруживает отсутствие объявленного ключа "db" и бросает
-        ошибку, не запуская ни одного аспекта.
         """
         # Arrange — FullAction без connections
         action = FullAction()
@@ -408,8 +352,6 @@ class TestConnectionsViaRun:
     async def test_ping_action_without_connections_ok(self, machine, context) -> None:
         """
         PingAction через run() без connections → OK.
-
-        PingAction не объявляет @connection, поэтому connections=None допустим.
         """
         # Arrange — PingAction без @connection
         action = PingAction()

@@ -91,15 +91,15 @@ class TestValidArgs:
         # Arrange & Act
         @meta(description="Проверка доступности")
         @check_roles(ROLE_NONE)
-        class _Action(BaseAction[BaseParams, BaseResult]):
+        class _PingAction(BaseAction[BaseParams, BaseResult]):
             @summary_aspect("test")
-            async def summary(self, params, state, box, connections):
+            async def build_summary(self, params, state, box, connections):
                 return BaseResult()
 
         # Assert — _meta_info записан с description и domain=None
-        assert hasattr(_Action, "_meta_info")
-        assert _Action._meta_info["description"] == "Проверка доступности"
-        assert _Action._meta_info["domain"] is None
+        assert hasattr(_PingAction, "_meta_info")
+        assert _PingAction._meta_info["description"] == "Проверка доступности"
+        assert _PingAction._meta_info["domain"] is None
 
     def test_description_with_domain(self) -> None:
         """
@@ -111,14 +111,14 @@ class TestValidArgs:
         # Arrange & Act
         @meta(description="Создание заказа", domain=_OrdersDomain)
         @check_roles(ROLE_NONE)
-        class _Action(BaseAction[BaseParams, BaseResult]):
+        class _CreateOrderAction(BaseAction[BaseParams, BaseResult]):
             @summary_aspect("test")
-            async def summary(self, params, state, box, connections):
+            async def build_summary(self, params, state, box, connections):
                 return BaseResult()
 
         # Assert — оба поля записаны
-        assert _Action._meta_info["description"] == "Создание заказа"
-        assert _Action._meta_info["domain"] is _OrdersDomain
+        assert _CreateOrderAction._meta_info["description"] == "Создание заказа"
+        assert _CreateOrderAction._meta_info["domain"] is _OrdersDomain
 
     def test_returns_class_unchanged(self) -> None:
         """
@@ -128,18 +128,18 @@ class TestValidArgs:
         """
         # Arrange
         @check_roles(ROLE_NONE)
-        class _Original(BaseAction[BaseParams, BaseResult]):
+        class _OriginalAction(BaseAction[BaseParams, BaseResult]):
             custom = 42
 
             @summary_aspect("test")
-            async def summary(self, params, state, box, connections):
+            async def build_summary(self, params, state, box, connections):
                 return BaseResult()
 
         # Act
-        _decorated = meta(description="Описание")(_Original)
+        _decorated = meta(description="Описание")(_OriginalAction)
 
         # Assert — тот же класс
-        assert _decorated is _Original
+        assert _decorated is _OriginalAction
         assert _decorated.custom == 42
 
     def test_on_resource_manager(self) -> None:
@@ -151,12 +151,12 @@ class TestValidArgs:
         """
         # Arrange & Act
         @meta(description="Менеджер PostgreSQL")
-        class _Manager(BaseResourceManager):
+        class _PostgresManager(BaseResourceManager):
             def get_wrapper_class(self):
                 return None
 
         # Assert — _meta_info записан
-        assert _Manager._meta_info["description"] == "Менеджер PostgreSQL"
+        assert _PostgresManager._meta_info["description"] == "Менеджер PostgreSQL"
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -255,11 +255,11 @@ class TestInvalidTarget:
         meta(description="...")(instance) → TypeError.
         """
         # Arrange
-        class _Cls(BaseResourceManager):
+        class _SomeManager(BaseResourceManager):
             def get_wrapper_class(self):
                 return None
 
-        instance = _Cls()
+        instance = _SomeManager()
 
         # Act & Assert
         with pytest.raises(TypeError, match="только к классу"):
@@ -285,7 +285,7 @@ class TestMetaRequired:
         @check_roles(ROLE_NONE)
         class _NoMetaAction(BaseAction[BaseParams, BaseResult]):
             @summary_aspect("test")
-            async def summary(self, params, state, box, connections):
+            async def build_summary(self, params, state, box, connections):
                 return BaseResult()
 
         coordinator = GateCoordinator()
@@ -325,15 +325,15 @@ class TestMetadataIntegration:
         # Arrange
         @meta(description="Тестовое действие")
         @check_roles(ROLE_NONE)
-        class _Action(BaseAction[BaseParams, BaseResult]):
+        class _DescAction(BaseAction[BaseParams, BaseResult]):
             @summary_aspect("test")
-            async def summary(self, params, state, box, connections):
+            async def build_summary(self, params, state, box, connections):
                 return BaseResult()
 
         coordinator = GateCoordinator()
 
         # Act
-        metadata = coordinator.get(_Action)
+        metadata = coordinator.get(_DescAction)
 
         # Assert
         assert metadata.has_meta()
@@ -347,15 +347,15 @@ class TestMetadataIntegration:
         # Arrange
         @meta(description="Действие с доменом", domain=_TestDomain)
         @check_roles(ROLE_NONE)
-        class _Action(BaseAction[BaseParams, BaseResult]):
+        class _DomainAction(BaseAction[BaseParams, BaseResult]):
             @summary_aspect("test")
-            async def summary(self, params, state, box, connections):
+            async def build_summary(self, params, state, box, connections):
                 return BaseResult()
 
         coordinator = GateCoordinator()
 
         # Act
-        metadata = coordinator.get(_Action)
+        metadata = coordinator.get(_DomainAction)
 
         # Assert
         assert metadata.meta is not None
@@ -369,15 +369,15 @@ class TestMetadataIntegration:
         # Arrange
         @meta(description="Без домена")
         @check_roles(ROLE_NONE)
-        class _Action(BaseAction[BaseParams, BaseResult]):
+        class _NoDomainAction(BaseAction[BaseParams, BaseResult]):
             @summary_aspect("test")
-            async def summary(self, params, state, box, connections):
+            async def build_summary(self, params, state, box, connections):
                 return BaseResult()
 
         coordinator = GateCoordinator()
 
         # Act
-        metadata = coordinator.get(_Action)
+        metadata = coordinator.get(_NoDomainAction)
 
         # Assert
         assert metadata.meta is not None

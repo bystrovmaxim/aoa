@@ -79,33 +79,33 @@ class TestValidDomain:
     def test_multiple_domains(self):
         """Несколько доменов с разными именами."""
         # Arrange & Act
-        class Alpha(BaseDomain):
+        class AlphaDomain(BaseDomain):
             name = "alpha"
 
-        class Beta(BaseDomain):
+        class BetaDomain(BaseDomain):
             name = "beta"
 
         # Assert
-        assert Alpha.name == "alpha"
-        assert Beta.name == "beta"
+        assert AlphaDomain.name == "alpha"
+        assert BetaDomain.name == "beta"
 
     def test_name_with_special_characters(self):
         """Имя со спецсимволами — допустимо."""
         # Arrange & Act
-        class Special(BaseDomain):
+        class SpecialDomain(BaseDomain):
             name = "my-domain.v2"
 
         # Assert
-        assert Special.name == "my-domain.v2"
+        assert SpecialDomain.name == "my-domain.v2"
 
     def test_name_single_char(self):
         """Имя из одного символа — допустимо."""
         # Arrange & Act
-        class Short(BaseDomain):
+        class ShortDomain(BaseDomain):
             name = "x"
 
         # Assert
-        assert Short.name == "x"
+        assert ShortDomain.name == "x"
 
     def test_base_domain_is_abc(self):
         """BaseDomain — абстрактный базовый класс."""
@@ -127,49 +127,49 @@ class TestInheritance:
     def test_child_overrides_name(self):
         """Дочерний домен переопределяет name."""
         # Arrange
-        class Parent(BaseDomain):
+        class ParentDomain(BaseDomain):
             name = "parent"
 
         # Act
-        class Child(Parent):
+        class ChildDomain(ParentDomain):
             name = "child"
 
         # Assert
-        assert Child.name == "child"
-        assert Parent.name == "parent"
+        assert ChildDomain.name == "child"
+        assert ParentDomain.name == "parent"
 
     def test_deep_inheritance_with_override(self):
         """Глубокое наследование с переопределением на каждом уровне."""
         # Arrange
-        class Level1(BaseDomain):
+        class Level1Domain(BaseDomain):
             name = "level1"
 
-        class Level2(Level1):
+        class Level2Domain(Level1Domain):
             name = "level2"
 
         # Act
-        class Level3(Level2):
+        class Level3Domain(Level2Domain):
             name = "level3"
 
         # Assert
-        assert Level1.name == "level1"
-        assert Level2.name == "level2"
-        assert Level3.name == "level3"
+        assert Level1Domain.name == "level1"
+        assert Level2Domain.name == "level2"
+        assert Level3Domain.name == "level3"
 
     def test_child_inherits_additional_attributes(self):
         """Дочерний домен наследует дополнительные атрибуты."""
         # Arrange
-        class Parent(BaseDomain):
+        class ParentDomain(BaseDomain):
             name = "parent"
             version = 1
 
         # Act
-        class Child(Parent):
+        class ChildDomain(ParentDomain):
             name = "child"
 
         # Assert
-        assert Child.version == 1
-        assert Child.name == "child"
+        assert ChildDomain.version == 1
+        assert ChildDomain.name == "child"
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -184,14 +184,14 @@ class TestMissingName:
         """Домен без name → ValueError."""
         # Act & Assert
         with pytest.raises(ValueError):
-            class NoName(BaseDomain):
+            class NoNameDomain(BaseDomain):
                 pass
 
     def test_no_name_with_other_attrs_raises(self):
         """Домен с другими атрибутами, но без name → ValueError."""
         # Act & Assert
         with pytest.raises(ValueError):
-            class NoNameOther(BaseDomain):
+            class NoNameOtherDomain(BaseDomain):
                 version = 2
 
 
@@ -207,28 +207,28 @@ class TestEmptyName:
         """Пустая строка → ValueError."""
         # Act & Assert
         with pytest.raises(ValueError):
-            class Empty(BaseDomain):
+            class EmptyDomain(BaseDomain):
                 name = ""
 
     def test_whitespace_only_raises(self):
         """Только пробелы → ValueError."""
         # Act & Assert
         with pytest.raises(ValueError):
-            class Whitespace(BaseDomain):
+            class WhitespaceDomain(BaseDomain):
                 name = "   "
 
     def test_tab_only_raises(self):
         """Только табуляция → ValueError."""
         # Act & Assert
         with pytest.raises(ValueError):
-            class Tab(BaseDomain):
+            class TabDomain(BaseDomain):
                 name = "\t"
 
     def test_newline_only_raises(self):
         """Только перенос строки → ValueError."""
         # Act & Assert
         with pytest.raises(ValueError):
-            class Newline(BaseDomain):
+            class NewlineDomain(BaseDomain):
                 name = "\n"
 
 
@@ -244,49 +244,49 @@ class TestWrongTypeName:
         """int → TypeError или ValueError."""
         # Act & Assert
         with pytest.raises((TypeError, ValueError)):
-            class IntName(BaseDomain):
+            class IntNameDomain(BaseDomain):
                 name = 42
 
     def test_none_name_raises(self):
         """None → TypeError или ValueError."""
         # Act & Assert
         with pytest.raises((TypeError, ValueError)):
-            class NoneName(BaseDomain):
+            class NoneNameDomain(BaseDomain):
                 name = None
 
     def test_list_name_raises(self):
         """list → TypeError или ValueError."""
         # Act & Assert
         with pytest.raises((TypeError, ValueError)):
-            class ListName(BaseDomain):
+            class ListNameDomain(BaseDomain):
                 name = ["orders"]
 
     def test_bool_name_raises(self):
         """bool → TypeError или ValueError."""
         # Act & Assert
         with pytest.raises((TypeError, ValueError)):
-            class BoolName(BaseDomain):
+            class BoolNameDomain(BaseDomain):
                 name = True
 
     def test_dict_name_raises(self):
         """dict → TypeError или ValueError."""
         # Act & Assert
         with pytest.raises((TypeError, ValueError)):
-            class DictName(BaseDomain):
+            class DictNameDomain(BaseDomain):
                 name = {"name": "orders"}
 
     def test_tuple_name_raises(self):
         """tuple → TypeError или ValueError."""
         # Act & Assert
         with pytest.raises((TypeError, ValueError)):
-            class TupleName(BaseDomain):
+            class TupleNameDomain(BaseDomain):
                 name = ("orders",)
 
     def test_float_name_raises(self):
         """float → TypeError или ValueError."""
         # Act & Assert
         with pytest.raises((TypeError, ValueError)):
-            class FloatName(BaseDomain):
+            class FloatNameDomain(BaseDomain):
                 name = 3.14
 
 
@@ -301,37 +301,37 @@ class TestIsolation:
     def test_domains_do_not_share_name(self):
         """Разные домены не разделяют name."""
         # Arrange & Act
-        class DomainA(BaseDomain):
+        class DomainADomain(BaseDomain):
             name = "a"
 
-        class DomainB(BaseDomain):
+        class DomainBDomain(BaseDomain):
             name = "b"
 
         # Assert
-        assert DomainA.name != DomainB.name
+        assert DomainADomain.name != DomainBDomain.name
 
     def test_child_override_does_not_affect_parent(self):
         """Переопределение в дочернем не влияет на родителя."""
         # Arrange
-        class Parent(BaseDomain):
+        class ParentDomain(BaseDomain):
             name = "parent"
 
-        class Child(Parent):
+        class ChildDomain(ParentDomain):
             name = "child"
 
         # Assert
-        assert Parent.name == "parent"
-        assert Child.name == "child"
+        assert ParentDomain.name == "parent"
+        assert ChildDomain.name == "child"
 
     def test_two_domains_same_name_different_classes(self):
         """Два домена с одинаковым name — разные классы."""
         # Arrange & Act
-        class DomainOne(BaseDomain):
+        class DomainOneDomain(BaseDomain):
             name = "shared"
 
-        class DomainTwo(BaseDomain):
+        class DomainTwoDomain(BaseDomain):
             name = "shared"
 
         # Assert
-        assert DomainOne is not DomainTwo
-        assert DomainOne.name == DomainTwo.name
+        assert DomainOneDomain is not DomainTwoDomain
+        assert DomainOneDomain.name == DomainTwoDomain.name

@@ -73,7 +73,7 @@ class SimpleAction(BaseAction["SimpleAction.Params", "SimpleAction.Result"]):
 
     @regular_aspect("Валидация имени")
     @result_string("validated_name", required=True, min_length=1)
-    async def validate_name(
+    async def validate_name_aspect(
         self,
         params: "SimpleAction.Params",
         state: BaseState,
@@ -93,7 +93,7 @@ class SimpleAction(BaseAction["SimpleAction.Params", "SimpleAction.Result"]):
         return {"validated_name": params.name.strip()}
 
     @summary_aspect("Формирование приветствия")
-    async def build_greeting(
+    async def build_greeting_summary(
         self,
         params: "SimpleAction.Params",
         state: BaseState,

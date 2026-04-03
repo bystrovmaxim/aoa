@@ -1,4 +1,3 @@
-# tests/metadata/test_builder_basic.py
 """
 Тесты MetadataBuilder — базовые сценарии сборки ClassMetadata.
 
@@ -122,7 +121,7 @@ class _MultiRoleAction(BaseAction["_SimpleParams", "_SimpleResult"]):
 
 @check_roles(ROLE_NONE)
 @depends(_ServiceA)
-class _ActionWithOneDep(BaseAction["_SimpleParams", "_SimpleResult"]):
+class _ActionWithOneDepAction(BaseAction["_SimpleParams", "_SimpleResult"]):
     """Действие с одной зависимостью."""
     pass
 
@@ -130,14 +129,14 @@ class _ActionWithOneDep(BaseAction["_SimpleParams", "_SimpleResult"]):
 @check_roles(ROLE_NONE)
 @depends(_ServiceA)
 @depends(_ServiceB)
-class _ActionWithTwoDeps(BaseAction["_SimpleParams", "_SimpleResult"]):
+class _ActionWithTwoDepsAction(BaseAction["_SimpleParams", "_SimpleResult"]):
     """Действие с двумя зависимостями."""
     pass
 
 
 @check_roles(ROLE_NONE)
 @connection(_MockManager, key="db", description="Основная БД")
-class _ActionWithOneConn(BaseAction["_SimpleParams", "_SimpleResult"]):
+class _ActionWithOneConnAction(BaseAction["_SimpleParams", "_SimpleResult"]):
     """Действие с одним соединением."""
     pass
 
@@ -145,7 +144,7 @@ class _ActionWithOneConn(BaseAction["_SimpleParams", "_SimpleResult"]):
 @check_roles(ROLE_NONE)
 @connection(_MockManager, key="db", description="Основная БД")
 @connection(_CacheManager, key="cache", description="Кеш")
-class _ActionWithTwoConns(BaseAction["_SimpleParams", "_SimpleResult"]):
+class _ActionWithTwoConnsAction(BaseAction["_SimpleParams", "_SimpleResult"]):
     """Действие с двумя соединениями."""
     pass
 
@@ -259,7 +258,7 @@ class TestBuildWithDependencies:
     def test_single_dependency_collected(self):
         """Одна зависимость корректно собирается."""
         # Arrange & Act
-        result = MetadataBuilder().build(_ActionWithOneDep)
+        result = MetadataBuilder().build(_ActionWithOneDepAction)
 
         # Assert
         assert result.has_dependencies() is True
@@ -268,7 +267,7 @@ class TestBuildWithDependencies:
     def test_dependency_class_preserved(self):
         """Класс зависимости сохраняется в DependencyInfo."""
         # Arrange & Act
-        result = MetadataBuilder().build(_ActionWithOneDep)
+        result = MetadataBuilder().build(_ActionWithOneDepAction)
 
         # Assert
         assert result.dependencies[0].cls is _ServiceA
@@ -276,7 +275,7 @@ class TestBuildWithDependencies:
     def test_two_dependencies_collected(self):
         """Две зависимости корректно собираются."""
         # Arrange & Act
-        result = MetadataBuilder().build(_ActionWithTwoDeps)
+        result = MetadataBuilder().build(_ActionWithTwoDepsAction)
 
         # Assert
         assert len(result.dependencies) == 2
@@ -284,7 +283,7 @@ class TestBuildWithDependencies:
     def test_dependency_classes_preserved(self):
         """Классы обеих зависимостей сохраняются."""
         # Arrange & Act
-        result = MetadataBuilder().build(_ActionWithTwoDeps)
+        result = MetadataBuilder().build(_ActionWithTwoDepsAction)
 
         # Assert
         classes = result.get_dependency_classes()
@@ -303,7 +302,7 @@ class TestBuildWithConnections:
     def test_single_connection_collected(self):
         """Одно соединение корректно собирается."""
         # Arrange & Act
-        result = MetadataBuilder().build(_ActionWithOneConn)
+        result = MetadataBuilder().build(_ActionWithOneConnAction)
 
         # Assert
         assert result.has_connections() is True
@@ -312,7 +311,7 @@ class TestBuildWithConnections:
     def test_connection_key_preserved(self):
         """Ключ соединения сохраняется в ConnectionInfo."""
         # Arrange & Act
-        result = MetadataBuilder().build(_ActionWithOneConn)
+        result = MetadataBuilder().build(_ActionWithOneConnAction)
 
         # Assert
         assert result.connections[0].key == "db"
@@ -320,7 +319,7 @@ class TestBuildWithConnections:
     def test_two_connections_collected(self):
         """Два соединения корректно собираются."""
         # Arrange & Act
-        result = MetadataBuilder().build(_ActionWithTwoConns)
+        result = MetadataBuilder().build(_ActionWithTwoConnsAction)
 
         # Assert
         assert len(result.connections) == 2
@@ -328,7 +327,7 @@ class TestBuildWithConnections:
     def test_connection_keys_preserved(self):
         """Ключи обоих соединений сохраняются."""
         # Arrange & Act
-        result = MetadataBuilder().build(_ActionWithTwoConns)
+        result = MetadataBuilder().build(_ActionWithTwoConnsAction)
 
         # Assert
         keys = result.get_connection_keys()

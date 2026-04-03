@@ -93,17 +93,17 @@ class TestValidArgs:
         @meta(description="Тест")
         @check_roles(ROLE_NONE)
         @depends(_ServiceA)
-        class _Action(BaseAction[BaseParams, BaseResult]):
+        class _BasicDepAction(BaseAction[BaseParams, BaseResult]):
             @summary_aspect("test")
-            async def summary(self, params, state, box, connections):
+            async def build_summary(self, params, state, box, connections):
                 return BaseResult()
 
         # Assert — _depends_info содержит одну зависимость
-        assert hasattr(_Action, "_depends_info")
-        assert len(_Action._depends_info) == 1
-        assert _Action._depends_info[0].cls is _ServiceA
-        assert _Action._depends_info[0].factory is None
-        assert _Action._depends_info[0].description == ""
+        assert hasattr(_BasicDepAction, "_depends_info")
+        assert len(_BasicDepAction._depends_info) == 1
+        assert _BasicDepAction._depends_info[0].cls is _ServiceA
+        assert _BasicDepAction._depends_info[0].factory is None
+        assert _BasicDepAction._depends_info[0].description == ""
 
     def test_dependency_with_factory(self) -> None:
         """
@@ -119,13 +119,13 @@ class TestValidArgs:
         @meta(description="Тест")
         @check_roles(ROLE_NONE)
         @depends(_ServiceA, factory=factory_fn)
-        class _Action(BaseAction[BaseParams, BaseResult]):
+        class _FactoryDepAction(BaseAction[BaseParams, BaseResult]):
             @summary_aspect("test")
-            async def summary(self, params, state, box, connections):
+            async def build_summary(self, params, state, box, connections):
                 return BaseResult()
 
         # Assert — factory записана
-        assert _Action._depends_info[0].factory is factory_fn
+        assert _FactoryDepAction._depends_info[0].factory is factory_fn
 
     def test_dependency_with_description(self) -> None:
         """
@@ -137,13 +137,13 @@ class TestValidArgs:
         @meta(description="Тест")
         @check_roles(ROLE_NONE)
         @depends(_ServiceA, description="Сервис обработки платежей")
-        class _Action(BaseAction[BaseParams, BaseResult]):
+        class _DescDepAction(BaseAction[BaseParams, BaseResult]):
             @summary_aspect("test")
-            async def summary(self, params, state, box, connections):
+            async def build_summary(self, params, state, box, connections):
                 return BaseResult()
 
         # Assert — description записан
-        assert _Action._depends_info[0].description == "Сервис обработки платежей"
+        assert _DescDepAction._depends_info[0].description == "Сервис обработки платежей"
 
     def test_multiple_dependencies(self) -> None:
         """
@@ -157,14 +157,14 @@ class TestValidArgs:
         @check_roles(ROLE_NONE)
         @depends(_ServiceA, description="A")
         @depends(_ServiceB, description="B")
-        class _Action(BaseAction[BaseParams, BaseResult]):
+        class _MultiDepAction(BaseAction[BaseParams, BaseResult]):
             @summary_aspect("test")
-            async def summary(self, params, state, box, connections):
+            async def build_summary(self, params, state, box, connections):
                 return BaseResult()
 
         # Assert — обе зависимости записаны
-        assert len(_Action._depends_info) == 2
-        classes = [d.cls for d in _Action._depends_info]
+        assert len(_MultiDepAction._depends_info) == 2
+        classes = [d.cls for d in _MultiDepAction._depends_info]
         assert _ServiceA in classes
         assert _ServiceB in classes
 
@@ -175,18 +175,18 @@ class TestValidArgs:
         # Arrange
         @meta(description="Тест")
         @check_roles(ROLE_NONE)
-        class _Original(BaseAction[BaseParams, BaseResult]):
+        class _OriginalAction(BaseAction[BaseParams, BaseResult]):
             custom = 99
 
             @summary_aspect("test")
-            async def summary(self, params, state, box, connections):
+            async def build_summary(self, params, state, box, connections):
                 return BaseResult()
 
         # Act
-        _decorated = depends(_ServiceA)(_Original)
+        _decorated = depends(_ServiceA)(_OriginalAction)
 
         # Assert — тот же класс
-        assert _decorated is _Original
+        assert _decorated is _OriginalAction
         assert _decorated.custom == 99
 
 
@@ -209,18 +209,18 @@ class TestInheritance:
         @meta(description="Родитель")
         @check_roles(ROLE_NONE)
         @depends(_ServiceA)
-        class _Parent(BaseAction[BaseParams, BaseResult]):
+        class _ParentAction(BaseAction[BaseParams, BaseResult]):
             @summary_aspect("test")
-            async def summary(self, params, state, box, connections):
+            async def build_summary(self, params, state, box, connections):
                 return BaseResult()
 
         @meta(description="Дочерний")
         @check_roles(ROLE_NONE)
-        class _Child(_Parent):
+        class _ChildAction(_ParentAction):
             pass
 
         # Act — getattr обходит MRO
-        child_deps = getattr(_Child, "_depends_info", [])
+        child_deps = getattr(_ChildAction, "_depends_info", [])
 
         # Assert — дочерний класс видит зависимости родителя
         assert len(child_deps) == 1
@@ -238,25 +238,25 @@ class TestInheritance:
         @meta(description="Родитель")
         @check_roles(ROLE_NONE)
         @depends(_ServiceA)
-        class _Parent(BaseAction[BaseParams, BaseResult]):
+        class _ParentAction(BaseAction[BaseParams, BaseResult]):
             @summary_aspect("test")
-            async def summary(self, params, state, box, connections):
+            async def build_summary(self, params, state, box, connections):
                 return BaseResult()
 
         # Act — дочерний добавляет ServiceB
         @meta(description="Дочерний")
         @check_roles(ROLE_NONE)
         @depends(_ServiceB)
-        class _Child(_Parent):
+        class _ChildAction(_ParentAction):
             pass
 
         # Assert — родитель не изменился (только ServiceA)
-        parent_deps = _Parent.__dict__.get("_depends_info", [])
+        parent_deps = _ParentAction.__dict__.get("_depends_info", [])
         assert len(parent_deps) == 1
         assert parent_deps[0].cls is _ServiceA
 
         # Assert — дочерний имеет обе зависимости (ServiceA + ServiceB)
-        child_deps = _Child._depends_info
+        child_deps = _ChildAction._depends_info
         assert len(child_deps) == 2
 
 
@@ -306,7 +306,7 @@ class TestInvalidArgs:
         with pytest.raises(ValueError, match="уже объявлен"):
             @depends(_ServiceA)
             @depends(_ServiceA)
-            class _Action(DependencyGateHost[object]):
+            class _DuplicateDepAction(DependencyGateHost[object]):
                 pass
 
 
@@ -370,7 +370,7 @@ class TestDependsBound:
         # Act & Assert — _ServiceA не наследует BaseResourceManager
         with pytest.raises(TypeError, match="не является подклассом"):
             @depends(_ServiceA)
-            class _Action(_RestrictedHost):
+            class _RestrictedAction(_RestrictedHost):
                 pass
 
 

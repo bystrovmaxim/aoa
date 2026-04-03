@@ -80,7 +80,7 @@ class PingAction(BaseAction["PingAction.Params", "PingAction.Result"]):
         message: str = Field(description="Ответное сообщение", examples=["pong"])
 
     @summary_aspect("Формирование ответа pong")
-    async def pong(
+    async def pong_summary(
         self,
         params: "PingAction.Params",
         state: BaseState,
