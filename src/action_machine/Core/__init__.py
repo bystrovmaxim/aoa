@@ -68,23 +68,40 @@ Production-машины (не принимают моки, rollup всегда F
   Тестировщик явно выбирает режим.
 
 ═══════════════════════════════════════════════════════════════════════════════
+FROZEN CORE-ТИПЫ
+═══════════════════════════════════════════════════════════════════════════════
+
+Все core-типы данных — read-only после создания:
+
+    BaseParams  — pydantic BaseModel, frozen=True. Входные параметры.
+    BaseResult  — pydantic BaseModel, frozen=True. Результат действия.
+                  Строгая структура: только объявленные поля, без extra.
+    BaseState   — обычный класс, frozen (__setattr__/__delattr__ запрещены).
+                  Промежуточное состояние конвейера с динамическими полями.
+
+Единственный способ «изменить» любой из них — создать новый экземпляр.
+Единственный протокол доступа к данным — ReadableDataProtocol.
+
+═══════════════════════════════════════════════════════════════════════════════
 ОСТАЛЬНЫЕ КОМПОНЕНТЫ ЯДРА
 ═══════════════════════════════════════════════════════════════════════════════
 
 - BaseAction — абстрактный базовый класс для всех действий.
   Наследует ActionMetaGateHost, что делает @meta обязательным.
+  Оба generic-параметра (P, R) соответствуют ReadableDataProtocol.
 - BaseActionMachine — абстрактная машина с методом run().
 - GateCoordinator — центральный реестр метаданных, фабрик и графа.
   Поддерживает strict-режим для обязательности domain в @meta.
+  Граф содержит узлы context_field и рёбра requires_context
+  для контекстных зависимостей аспектов и обработчиков ошибок.
 - ClassMetadata — иммутабельный снимок метаданных класса.
   Содержит поле meta: MetaInfo | None для описания и домена.
-- BaseParams — read-only параметры действия (pydantic, frozen).
-- BaseResult — read-write результат действия (pydantic, mutable).
-- BaseState — read-write состояние конвейера аспектов.
-- ToolsBox — контейнер инструментов для аспектов.
-- ReadableMixin — миксин для dict-подобного доступа к атрибутам.
-- WritableMixin — миксин для записи атрибутов через dict-интерфейс.
-- Протоколы ReadableDataProtocol / WritableDataProtocol.
+- ToolsBox — frozen-контейнер инструментов для аспектов. Не предоставляет
+  публичного доступа к Context — аспекты получают данные контекста
+  через ContextView при наличии @context_requires.
+- ReadableMixin — миксин для dict-подобного доступа к атрибутам на чтение.
+- ReadableDataProtocol — единственный протокол доступа к данным.
+  Все core-типы реализуют его.
 
 - ActionMetaGateHost — маркерный миксин, обозначающий обязательность
   декоратора @meta для действий. Наследуется BaseAction.
@@ -93,7 +110,8 @@ Production-машины (не принимают моки, rollup всегда F
 - meta — декоратор для объявления описания и доменной принадлежности класса.
 
 - Исключения: AuthorizationError, ValidationFieldError, HandleError,
-  TransactionError, CyclicDependencyError и др.
+  TransactionError, CyclicDependencyError, ContextAccessError,
+  OnErrorHandlerError, NamingSuffixError, NamingPrefixError и др.
 
 ═══════════════════════════════════════════════════════════════════════════════
 МЕТАДАННЫЕ

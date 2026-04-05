@@ -1,6 +1,6 @@
 # src/action_machine/core/gate_coordinator.py
 """
-Модуль: GateCoordinator — центральный реестр метаданных, фабрик зависимостей
+GateCoordinator — центральный реестр метаданных, фабрик зависимостей
 и направленного ациклического графа всех сущностей системы.
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -27,9 +27,12 @@ GateCoordinator — единственная точка доступа к мет
 
 5. ПОСТРОЕНИЕ И КОНТРОЛЬ ГРАФА: координатор создаёт направленный граф
    rx.PyDiGraph при инициализации. При регистрации каждого класса граф
-   заполняется узлами и рёбрами. Ацикличность проверяется для КАЖДОГО
-   добавляемого ребра — не только depends/connection, но и belongs_to,
-   has_aspect, has_error_handler и всех остальных типов.
+   заполняется узлами и рёбрами. Ацикличность проверяется для структурных
+   рёбер (depends, connection) через _add_edge_checked. Leaf-рёбра
+   (has_aspect, has_checker, has_role, has_sensitive, subscribes,
+   belongs_to, has_error_handler, requires_context) добавляются напрямую
+   без проверки ацикличности — они ведут к leaf-узлам, не имеющим
+   исходящих рёбер, и цикл невозможен по конструкции.
 
 6. STRICT-РЕЖИМ: если strict=True, координатор проверяет, что domain указан
    в @meta для Action и ResourceManager.
@@ -41,22 +44,84 @@ GateCoordinator — единственная точка доступа к мет
    узлом типа "error_handler" с атрибутами exception_types, method_name,
    description. Ребро "has_error_handler" от action к error_handler.
 
+9. УЗЛЫ КОНТЕКСТНЫХ ЗАВИСИМОСТЕЙ: для каждого аспекта или обработчика
+   ошибок с @context_requires создаются рёбра "requires_context" от узла
+   аспекта/обработчика к узлам типа "context_field". Узлы context_field
+   переиспользуются: если два аспекта запрашивают user.user_id, создаётся
+   один узел и два ребра к нему.
+
 ═══════════════════════════════════════════════════════════════════════════════
 ГРАФ СУЩНОСТЕЙ
 ═══════════════════════════════════════════════════════════════════════════════
 
 Граф строится на библиотеке rustworkx (rx.PyDiGraph) и содержит все сущности
 системы: действия, зависимости, соединения, плагины, аспекты, чекеры,
-обработчики ошибок, подписки, чувствительные поля, роли и домены.
+обработчики ошибок, подписки, чувствительные поля, роли, домены и поля
+контекста.
 
-Типы узлов: action, dependency, connection, plugin, aspect, checker,
-error_handler, subscription, sensitive, role, domain.
+Типы узлов:
+    action, dependency, connection, plugin, aspect, checker,
+    error_handler, subscription, sensitive, role, domain, context_field.
 
-Типы рёбер: depends, connection, has_aspect, has_checker, has_error_handler,
-has_sensitive, has_role, subscribes, belongs_to.
+Типы рёбер:
+    depends, connection — структурные, проверяются на ацикличность.
+    has_aspect, has_checker, has_error_handler, has_sensitive, has_role,
+    subscribes, belongs_to, requires_context — leaf-рёбра, добавляются
+    напрямую без проверки.
 
-Ацикличность проверяется для КАЖДОГО добавляемого ребра. Если добавление
-ребра создаёт цикл — ребро удаляется и выбрасывается CyclicDependencyError.
+═══════════════════════════════════════════════════════════════════════════════
+ФОРМАТ КЛЮЧЕЙ УЗЛОВ
+═══════════════════════════════════════════════════════════════════════════════
+
+Каждый узел идентифицируется строковым ключом формата ``"тип:полное_имя"``.
+Ключ используется в публичных методах get_node(), get_children(),
+get_dependency_tree():
+
+    "action:module.path.CreateOrderAction"
+    "dependency:module.path.PaymentService"
+    "connection:module.path.PostgresManager"
+    "domain:orders"
+    "aspect:module.path.CreateOrderAction.validate_aspect"
+    "checker:module.path.CreateOrderAction.validate_aspect.txn_id"
+    "error_handler:module.path.CreateOrderAction.validation_on_error"
+    "context_field:user.user_id"
+    "context_field:request.trace_id"
+    "role:module.path.CreateOrderAction.role"
+    "sensitive:module.path.UserAccount.email"
+    "subscription:module.path.MetricsPlugin.subscription_0_global_finish"
+    "plugin:module.path.MetricsPlugin"
+
+Примеры использования:
+
+    coordinator.get_node("action:module.CreateOrderAction")
+    coordinator.get_node("context_field:user.user_id")
+    coordinator.get_children("domain:orders")
+    coordinator.get_nodes_by_type("context_field")
+
+═══════════════════════════════════════════════════════════════════════════════
+КОНТЕКСТНЫЕ ЗАВИСИМОСТИ В ГРАФЕ
+═══════════════════════════════════════════════════════════════════════════════
+
+Декоратор @context_requires записывает frozenset ключей (dot-path) в
+AspectMeta.context_keys и OnErrorMeta.context_keys. При заполнении графа
+координатор создаёт:
+
+- Узел "context_field" для каждого уникального dot-path (например,
+  "user.user_id", "request.trace_id"). Узлы переиспользуются через
+  _ensure_node — идемпотентно.
+
+- Ребро "requires_context" от узла аспекта (или обработчика ошибок)
+  к узлу context_field.
+
+Рёбра requires_context — leaf-рёбра. Узлы context_field не имеют
+исходящих рёбер, поэтому цикл невозможен по конструкции. Проверка
+ацикличности не выполняется — используется прямой graph.add_edge().
+
+Это позволяет:
+- Визуализировать, какие аспекты обращаются к каким полям контекста.
+- Строить отчёты: coordinator.get_nodes_by_type("context_field").
+- AI-агенту через MCP resource system://graph видеть зависимости.
+- Обнаруживать чрезмерные зависимости от контекста.
 
 ═══════════════════════════════════════════════════════════════════════════════
 АРХИТЕКТУРА
@@ -123,7 +188,11 @@ class GateCoordinator:
 
     При первом обращении к классу автоматически вызывает MetadataBuilder.build(),
     кеширует результат, рекурсивно обходит зависимости и соединения,
-    заполняет граф узлами и рёбрами с проверкой ацикличности для каждого ребра.
+    заполняет граф узлами и рёбрами.
+
+    Структурные рёбра (depends, connection) проверяются на ацикличность.
+    Leaf-рёбра (has_aspect, has_checker, requires_context и др.) добавляются
+    напрямую — цикл невозможен по конструкции.
 
     В strict-режиме дополнительно проверяет обязательность domain в @meta.
 
@@ -135,7 +204,10 @@ class GateCoordinator:
         _graph : rx.PyDiGraph
             Направленный граф сущностей системы.
         _node_index : dict[str, int]
-            Карта ключ_узла → индекс_в_графе. Ключ: ``"тип:полное_имя"``.
+            Карта ключ_узла → индекс_в_графе.
+            Формат ключа: ``"тип:полное_имя"`` (например,
+            ``"action:module.CreateOrderAction"``,
+            ``"context_field:user.user_id"``).
         _strict : bool
             Если True — domain обязателен в @meta для Action и ResourceManager.
     """
@@ -193,7 +265,17 @@ class GateCoordinator:
     # ─────────────────────────────────────────────────────────────────────
 
     def _make_node_key(self, node_type: str, name: str) -> str:
-        """Формирует уникальный ключ узла: ``"тип:полное_имя"``."""
+        """
+        Формирует уникальный ключ узла: ``"тип:полное_имя"``.
+
+        Этот же формат используется в публичных методах get_node(),
+        get_children(), get_dependency_tree().
+
+        Примеры:
+            ``"action:module.CreateOrderAction"``
+            ``"context_field:user.user_id"``
+            ``"domain:orders"``
+        """
         return f"{node_type}:{name}"
 
     def _ensure_node(
@@ -207,7 +289,9 @@ class GateCoordinator:
         Добавляет узел в граф, если его ещё нет. Возвращает индекс узла.
 
         Идемпотентен: если узел с таким ключом уже существует, возвращает
-        его индекс без повторного добавления.
+        его индекс без повторного добавления. Это критично для узлов
+        context_field — если два аспекта запрашивают user.user_id,
+        создаётся один узел и два ребра к нему.
         """
         key = self._make_node_key(node_type, name)
         if key in self._node_index:
@@ -230,12 +314,16 @@ class GateCoordinator:
         edge_type: str,
     ) -> None:
         """
-        Добавляет ребро в граф с проверкой ацикличности.
+        Добавляет структурное ребро в граф с проверкой ацикличности.
 
-        Проверка ацикличности выполняется для КАЖДОГО добавляемого ребра,
-        независимо от его типа (depends, connection, belongs_to, has_aspect,
-        has_error_handler и т.д.). Это гарантирует, что граф всегда остаётся
-        направленным ациклическим графом (DAG).
+        Используется ТОЛЬКО для рёбер depends и connection — типов,
+        где реально возможны циклы (A зависит от B, B зависит от A).
+
+        Для leaf-рёбер (has_aspect, has_checker, has_role, has_sensitive,
+        subscribes, belongs_to, has_error_handler, requires_context)
+        используется прямой self._graph.add_edge() без проверки —
+        эти рёбра ведут к leaf-узлам без исходящих рёбер, цикл
+        невозможен по конструкции.
 
         Исключения:
             CyclicDependencyError: если добавление ребра создаёт цикл.
@@ -253,6 +341,30 @@ class GateCoordinator:
                 f"'{target_payload['name']}' создаёт цикл в графе. "
                 f"Проверьте структуру зависимостей для этих классов."
             )
+
+    def _add_leaf_edge(
+        self,
+        source_idx: int,
+        target_idx: int,
+        edge_type: str,
+    ) -> None:
+        """
+        Добавляет leaf-ребро в граф БЕЗ проверки ацикличности.
+
+        Leaf-рёбра ведут к узлам, не имеющим исходящих рёбер (aspect,
+        checker, role, sensitive, subscription, domain, error_handler,
+        context_field). Цикл невозможен по конструкции — target-узел
+        никогда не ссылается обратно на source.
+
+        Типы leaf-рёбер: has_aspect, has_checker, has_role, has_sensitive,
+        subscribes, belongs_to, has_error_handler, requires_context.
+
+        Аргументы:
+            source_idx: индекс исходного узла.
+            target_idx: индекс целевого узла (leaf).
+            edge_type: тип ребра.
+        """
+        self._graph.add_edge(source_idx, target_idx, edge_type)
 
     def _determine_class_node_type(self, metadata: ClassMetadata) -> str:
         """
@@ -292,7 +404,7 @@ class GateCoordinator:
         }
 
     def _populate_domain_node(self, class_idx: int, metadata: ClassMetadata) -> None:
-        """Создаёт узел домена и ребро belongs_to, если @meta указывает domain."""
+        """Создаёт узел домена и leaf-ребро belongs_to, если @meta указывает domain."""
         if metadata.meta is None or metadata.meta.domain is None:
             return
 
@@ -302,15 +414,19 @@ class GateCoordinator:
             "domain", domain_name, class_ref=domain_cls,
             meta={"name": domain_name},
         )
-        self._add_edge_checked(class_idx, domain_idx, "belongs_to")
+        self._add_leaf_edge(class_idx, domain_idx, "belongs_to")
 
     def _populate_error_handlers(self, class_idx: int, class_name: str, metadata: ClassMetadata) -> None:
         """
-        Создаёт узлы и рёбра для обработчиков ошибок (@on_error).
+        Создаёт узлы и leaf-рёбра для обработчиков ошибок (@on_error).
 
         Каждый обработчик — узел типа "error_handler" с атрибутами:
         exception_types (имена классов), method_name, description.
-        Ребро "has_error_handler" от action к error_handler.
+        Leaf-ребро "has_error_handler" от action к error_handler.
+
+        Если обработчик имеет @context_requires (непустые context_keys),
+        создаются дополнительные leaf-рёбра "requires_context" от узла
+        обработчика к узлам context_field.
         """
         for handler_meta in metadata.error_handlers:
             handler_name = f"{class_name}.{handler_meta.method_name}"
@@ -323,25 +439,70 @@ class GateCoordinator:
                     "description": handler_meta.description,
                 },
             )
-            self._add_edge_checked(class_idx, handler_idx, "has_error_handler")
+            self._add_leaf_edge(class_idx, handler_idx, "has_error_handler")
+
+            # Контекстные зависимости обработчика ошибок
+            for ctx_key in sorted(handler_meta.context_keys):
+                field_idx = self._ensure_node(
+                    "context_field", ctx_key,
+                    meta={"path": ctx_key},
+                )
+                self._add_leaf_edge(handler_idx, field_idx, "requires_context")
+
+    def _populate_context_fields(self, class_name: str, metadata: ClassMetadata) -> None:
+        """
+        Создаёт узлы context_field и leaf-рёбра requires_context для аспектов.
+
+        Для каждого аспекта с непустыми context_keys (из @context_requires)
+        создаются рёбра от узла аспекта к узлам полей контекста.
+
+        Узлы context_field переиспользуются через _ensure_node —
+        если два аспекта запрашивают user.user_id, создаётся один
+        узел и два ребра к нему.
+
+        Рёбра requires_context — leaf-рёбра. Узлы context_field
+        не имеют исходящих рёбер, цикл невозможен по конструкции.
+        """
+        for aspect_meta in metadata.aspects:
+            if not aspect_meta.context_keys:
+                continue
+
+            aspect_key = self._make_node_key(
+                "aspect", f"{class_name}.{aspect_meta.method_name}",
+            )
+            aspect_idx = self._node_index.get(aspect_key)
+            if aspect_idx is None:
+                continue
+
+            for ctx_key in sorted(aspect_meta.context_keys):
+                field_idx = self._ensure_node(
+                    "context_field", ctx_key,
+                    meta={"path": ctx_key},
+                )
+                self._add_leaf_edge(aspect_idx, field_idx, "requires_context")
 
     def _populate_graph(self, cls: type, metadata: ClassMetadata) -> None:
         """
         Заполняет граф узлами и рёбрами на основе метаданных класса.
 
         Добавляет узел класса, узлы и рёбра зависимостей, соединений,
-        аспектов, чекеров, обработчиков ошибок, подписок, чувствительных
-        полей, роли и домена.
+        аспектов, чекеров, обработчиков ошибок (с их контекстными
+        зависимостями), контекстных зависимостей аспектов, подписок,
+        чувствительных полей, роли и домена.
+
+        Структурные рёбра (depends, connection) проверяются на ацикличность
+        через _add_edge_checked. Все остальные — leaf-рёбра, добавляются
+        через _add_leaf_edge без проверки.
         """
         class_name = metadata.class_name
         node_type = self._determine_class_node_type(metadata)
         class_meta = self._build_class_meta(node_type, metadata)
         class_idx = self._ensure_node(node_type, class_name, class_ref=cls, meta=class_meta)
 
-        # Домен (belongs_to)
+        # Домен (leaf-ребро belongs_to)
         self._populate_domain_node(class_idx, metadata)
 
-        # Зависимости
+        # Зависимости (структурное ребро depends — проверка ацикличности)
         for dep_info in metadata.dependencies:
             dep_name = _full_class_name(dep_info.cls)
             dep_idx = self._ensure_node(
@@ -350,7 +511,7 @@ class GateCoordinator:
             )
             self._add_edge_checked(class_idx, dep_idx, "depends")
 
-        # Соединения
+        # Соединения (структурное ребро connection — проверка ацикличности)
         for conn_info in metadata.connections:
             conn_name = _full_class_name(conn_info.cls)
             conn_idx = self._ensure_node(
@@ -359,7 +520,7 @@ class GateCoordinator:
             )
             self._add_edge_checked(class_idx, conn_idx, "connection")
 
-        # Аспекты и их чекеры
+        # Аспекты и их чекеры (leaf-рёбра)
         for aspect_meta in metadata.aspects:
             aspect_name = f"{class_name}.{aspect_meta.method_name}"
             aspect_idx = self._ensure_node(
@@ -370,7 +531,7 @@ class GateCoordinator:
                     "method_name": aspect_meta.method_name,
                 },
             )
-            self._add_edge_checked(class_idx, aspect_idx, "has_aspect")
+            self._add_leaf_edge(class_idx, aspect_idx, "has_aspect")
 
             for checker_meta in metadata.get_checkers_for_aspect(aspect_meta.method_name):
                 checker_name = f"{aspect_name}.{checker_meta.field_name}"
@@ -382,12 +543,15 @@ class GateCoordinator:
                         "checker_class": checker_meta.checker_class.__name__,
                     },
                 )
-                self._add_edge_checked(aspect_idx, checker_idx, "has_checker")
+                self._add_leaf_edge(aspect_idx, checker_idx, "has_checker")
 
-        # Обработчики ошибок (@on_error)
+        # Контекстные зависимости аспектов (leaf-рёбра requires_context)
+        self._populate_context_fields(class_name, metadata)
+
+        # Обработчики ошибок и их контекстные зависимости (leaf-рёбра)
         self._populate_error_handlers(class_idx, class_name, metadata)
 
-        # Подписки
+        # Подписки (leaf-рёбра)
         for i, sub_info in enumerate(metadata.subscriptions):
             sub_name = f"{class_name}.subscription_{i}_{sub_info.event_type}"
             sub_idx = self._ensure_node(
@@ -398,9 +562,9 @@ class GateCoordinator:
                     "ignore_exceptions": sub_info.ignore_exceptions,
                 },
             )
-            self._add_edge_checked(class_idx, sub_idx, "subscribes")
+            self._add_leaf_edge(class_idx, sub_idx, "subscribes")
 
-        # Чувствительные поля
+        # Чувствительные поля (leaf-рёбра)
         for sf_meta in metadata.sensitive_fields:
             sf_name = f"{class_name}.{sf_meta.property_name}"
             sf_idx = self._ensure_node(
@@ -410,9 +574,9 @@ class GateCoordinator:
                     "config": dict(sf_meta.config),
                 },
             )
-            self._add_edge_checked(class_idx, sf_idx, "has_sensitive")
+            self._add_leaf_edge(class_idx, sf_idx, "has_sensitive")
 
-        # Роль
+        # Роль (leaf-ребро)
         if metadata.role is not None:
             role_name = f"{class_name}.role"
             role_idx = self._ensure_node(
@@ -421,7 +585,7 @@ class GateCoordinator:
                     "spec": metadata.role.spec,
                 },
             )
-            self._add_edge_checked(class_idx, role_idx, "has_role")
+            self._add_leaf_edge(class_idx, role_idx, "has_role")
 
     def _collect_linked_classes(self, metadata: ClassMetadata) -> None:
         """Рекурсивно обходит зависимости и соединения класса."""
@@ -524,21 +688,63 @@ class GateCoordinator:
         return self._graph.copy()
 
     def get_node(self, key: str) -> dict[str, Any] | None:
-        """Возвращает payload узла по ключу ``"тип:полное_имя"`` или None."""
+        """
+        Возвращает payload узла по ключу или None.
+
+        Формат ключа: ``"тип:полное_имя"``.
+
+        Примеры:
+            >>> coordinator.get_node("action:module.CreateOrderAction")
+            {"node_type": "action", "name": "module.CreateOrderAction", ...}
+
+            >>> coordinator.get_node("context_field:user.user_id")
+            {"node_type": "context_field", "name": "user.user_id",
+             "meta": {"path": "user.user_id"}, ...}
+
+            >>> coordinator.get_node("domain:orders")
+            {"node_type": "domain", "name": "orders", ...}
+
+            >>> coordinator.get_node("nonexistent:key")
+            None
+        """
         idx = self._node_index.get(key)
         if idx is None:
             return None
         return dict(self._graph[idx])
 
     def get_children(self, key: str) -> list[dict[str, Any]]:
-        """Возвращает payload-ы прямых потомков узла."""
+        """
+        Возвращает payload-ы прямых потомков узла.
+
+        Формат ключа: ``"тип:полное_имя"``.
+
+        Примеры:
+            >>> coordinator.get_children("domain:orders")
+            []  # домен — leaf-узел, потомков нет
+
+            >>> coordinator.get_children("action:module.CreateOrderAction")
+            [{"node_type": "aspect", ...}, {"node_type": "role", ...}, ...]
+
+            >>> coordinator.get_children("aspect:module.CreateOrderAction.audit_aspect")
+            [{"node_type": "context_field", "name": "user.user_id", ...}, ...]
+        """
         idx = self._node_index.get(key)
         if idx is None:
             return []
         return [dict(self._graph[t]) for t in self._graph.successor_indices(idx)]
 
     def get_nodes_by_type(self, node_type: str) -> list[dict[str, Any]]:
-        """Возвращает все узлы указанного типа."""
+        """
+        Возвращает все узлы указанного типа.
+
+        Примеры:
+            >>> coordinator.get_nodes_by_type("context_field")
+            [{"node_type": "context_field", "name": "user.user_id", ...},
+             {"node_type": "context_field", "name": "request.trace_id", ...}]
+
+            >>> coordinator.get_nodes_by_type("action")
+            [{"node_type": "action", "name": "module.CreateOrderAction", ...}]
+        """
         return [
             dict(self._graph[idx])
             for idx in self._graph.node_indices()
@@ -546,7 +752,28 @@ class GateCoordinator:
         ]
 
     def get_dependency_tree(self, key: str) -> dict[str, Any]:
-        """Возвращает полное дерево зависимостей узла в виде вложенного словаря."""
+        """
+        Возвращает полное дерево зависимостей узла в виде вложенного словаря.
+
+        Формат ключа: ``"тип:полное_имя"``.
+
+        Рекурсивно обходит все исходящие рёбра от узла. Каждый потомок
+        содержит поле ``edge_type`` с типом ребра от родителя.
+        Циклы обнаруживаются через множество visited и помечаются
+        ``meta.cycle = True``.
+
+        Пример:
+            >>> coordinator.get_dependency_tree("action:module.CreateOrderAction")
+            {
+                "node_type": "action",
+                "name": "module.CreateOrderAction",
+                "meta": {...},
+                "children": [
+                    {"node_type": "aspect", "edge_type": "has_aspect", ...},
+                    {"node_type": "dependency", "edge_type": "depends", ...},
+                ]
+            }
+        """
         idx = self._node_index.get(key)
         if idx is None:
             return {}

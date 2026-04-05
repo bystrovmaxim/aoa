@@ -11,8 +11,8 @@ dataclass, pydantic BaseModel, обычного класса. Наследует
 ключевыми компонентами системы:
 
 - BaseParams — входные параметры действия (pydantic, frozen).
-- BaseResult — результат действия (pydantic, mutable, extra).
-- BaseState — состояние конвейера (динамические поля).
+- BaseResult — результат действия (pydantic, frozen, extra="forbid").
+- BaseState — состояние конвейера (динамические поля, frozen).
 - Context, UserInfo, RequestInfo, RuntimeInfo — контекст выполнения.
 - LogScope — scope логирования.
 
@@ -37,9 +37,10 @@ dataclass, pydantic BaseModel, обычного класса. Наследует
     - _resolve_cache, __mangled и другие приватные не попадают в вывод.
 
 Совместимость с pydantic BaseModel:
-    - keys() для pydantic-модели возвращает model_fields + extra-поля.
+    - keys() для pydantic-модели возвращает только model_fields.
     - Внутренние pydantic-атрибуты (__pydantic_fields_set__ и т.д.)
       не попадают в keys/values/items.
+    - Для моделей с extra="forbid" (BaseResult) динамических полей нет.
 
 Совместимость с обычными классами:
     - keys() для обычного класса возвращает публичные атрибуты из vars().
@@ -60,7 +61,7 @@ class SimpleReadable(ReadableMixin):
     Простой класс с ReadableMixin для тестирования.
 
     Имитирует объект с произвольными атрибутами — аналог BaseState,
-    но без WritableMixin. Используется для изолированного тестирования
+    но без frozen. Используется для изолированного тестирования
     ReadableMixin без влияния pydantic или dataclass.
     """
 
@@ -171,8 +172,7 @@ class TestKeysValuesItems:
         берётся из type(self).model_fields.keys(), а не из vars(self).
         Это исключает внутренние pydantic-атрибуты.
         """
-        # Arrange — BaseState — не pydantic, BaseResult — pydantic.
-        # Используем BaseResult для проверки pydantic-ветки
+        # Arrange — BaseResult — pydantic-модель с extra="forbid"
         result = BaseResult()
 
         # Act — получение ключей для пустой pydantic-модели
@@ -180,26 +180,6 @@ class TestKeysValuesItems:
 
         # Assert — у пустого BaseResult нет объявленных полей
         assert keys == []
-
-    def test_keys_for_pydantic_with_extra_fields(self) -> None:
-        """
-        keys() для pydantic с extra="allow" возвращает и объявленные,
-        и динамические extra-поля.
-
-        BaseResult использует ConfigDict(extra="allow"), что позволяет
-        записывать произвольные поля через result["key"] = value.
-        ReadableMixin._get_field_names() объединяет model_fields.keys()
-        и __pydantic_extra__.keys() для полного списка.
-        """
-        # Arrange — BaseResult с динамическим extra-полем
-        result = BaseResult()
-        result["debug_info"] = "extra data"
-
-        # Act — ключи включают и объявленные поля, и extra
-        keys = result.keys()
-
-        # Assert — динамическое поле debug_info присутствует в списке
-        assert "debug_info" in keys
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -314,15 +294,22 @@ class TestDictAccess:
         __getitem__ работает на pydantic BaseModel через getattr.
 
         Pydantic хранит значения полей в атрибутах экземпляра.
-        getattr(params, "name") возвращает значение поля,
-        включая extra-поля для моделей с extra="allow".
+        getattr(params, "name") возвращает значение поля.
+        Для моделей с extra="forbid" динамических полей нет.
         """
-        # Arrange — pydantic-модель BaseResult с extra-полем
-        result = BaseResult()
-        result["metric"] = 99.5
+        # Arrange — pydantic-модель BaseResult с объявленным полем
+        # Создаём кастомный результат с полем для теста
+        class _TestResult(BaseResult):
+            metric: float
 
-        # Act — чтение extra-поля через __getitem__
+        result = _TestResult(metric=99.5)
+
+        # Act — чтение поля через __getitem__
         value = result["metric"]
 
-        # Assert — getattr нашёл значение в __pydantic_extra__
+        # Assert — getattr нашёл значение
         assert value == 99.5
+
+        # Act & Assert — обращение к несуществующему полю даёт KeyError
+        with pytest.raises(KeyError):
+            _ = result["nonexistent"]
