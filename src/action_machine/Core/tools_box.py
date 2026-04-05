@@ -13,9 +13,18 @@ ToolsBox — единый объект, передаваемый в каждый
 - Запуск дочерних действий через run(action_class, params, connections).
 - Логирование через info/warning/error/debug.
 
-ToolsBox заменяет ранее существовавшие отдельные параметры deps и log
-единым интерфейсом. Создаётся ActionProductMachine один раз на уровень
-вложенности и передаётся во все аспекты этого уровня.
+ToolsBox НЕ предоставляет прямого доступа к контексту выполнения.
+Доступ к полям контекста осуществляется исключительно через ContextView,
+который машина создаёт для аспектов с декоратором @context_requires
+и передаёт как параметр ctx. Это реализация принципа минимальных
+привилегий: аспект видит ровно те данные контекста, которые объявил
+как необходимые.
+
+ToolsBox хранит контекст в приватном атрибуте (name mangling) для
+собственных внутренних нужд: передача в ScopedLogger, передача
+в замыкание run_child для дочерних действий, передача в машину
+при создании aspect_box. Внешний код (аспекты) не может получить
+контекст через ToolsBox — публичное свойство context отсутствует.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ПОДДЕРЖКА ROLLUP
@@ -34,23 +43,6 @@ ToolsBox хранит флаг rollup и прокидывает его на вс
 3. CONNECTIONS: обёртки (WrapperConnectionManager) наследуют rollup
    от оригинального менеджера через конструктор.
 
-Цепочка прокидывания rollup:
-
-    ActionProductMachine._run_internal(rollup=True)
-        │
-        └── ToolsBox(rollup=True)
-                │
-                ├── resolve(PaymentService)
-                │       → factory.resolve(PaymentService, rollup=True)
-                │       → check_rollup_support() если BaseResourceManager
-                │
-                └── run(ChildAction, params, connections)
-                        │
-                        └── machine._run_internal(rollup=True)
-                                │
-                                └── ToolsBox(rollup=True)
-                                        └── ... (рекурсивно)
-
 ═══════════════════════════════════════════════════════════════════════════════
 АРХИТЕКТУРА
 ═══════════════════════════════════════════════════════════════════════════════
@@ -61,7 +53,7 @@ ToolsBox хранит флаг rollup и прокидывает его на вс
         │  - run_child: замыкание для запуска дочерних действий
         │  - factory: DependencyFactory для текущего действия
         │  - resources: внешние ресурсы (моки в тестах)
-        │  - context: Context текущего запроса
+        │  - context: Context (приватный, для внутреннего использования)
         │  - log: ScopedLogger с координатами аспекта
         │  - nested_level: уровень вложенности
         │  - rollup: флаг автоотката транзакций
@@ -75,6 +67,9 @@ ToolsBox хранит флаг rollup и прокидывает его на вс
         ├── error(msg)                   → делегирует в ScopedLogger → LogCoordinator
         └── debug(msg)                   → делегирует в ScopedLogger → LogCoordinator
 
+    Аспект НЕ может получить Context через box — только через ctx: ContextView,
+    предоставляемый машиной при наличии @context_requires.
+
 ═══════════════════════════════════════════════════════════════════════════════
 РЕЗОЛВ ЗАВИСИМОСТЕЙ
 ═══════════════════════════════════════════════════════════════════════════════
@@ -87,11 +82,7 @@ ToolsBox хранит флаг rollup и прокидывает его на вс
 
 2. Если в resources не найдено — делегирует в factory.resolve(cls, *args,
    rollup=self._rollup, **kwargs), который создаёт новый экземпляр
-   через фабрику или конструктор. При rollup=True фабрика дополнительно
-   проверяет поддержку rollup для BaseResourceManager.
-
-Аргументы *args и **kwargs пробрасываются в factory.resolve(), что
-позволяет аспектам передавать рантайм-параметры при создании зависимостей.
+   через фабрику или конструктор.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ЗАПУСК ДОЧЕРНИХ ДЕЙСТВИЙ
@@ -100,31 +91,34 @@ ToolsBox хранит флаг rollup и прокидывает его на вс
 Метод run(action_class, params, connections) позволяет аспекту запустить
 другое действие в рамках того же контекста. Connections оборачиваются
 через get_wrapper_class(), чтобы дочернее действие не могло управлять
-транзакциями родительского ресурса. Rollup прокидывается через замыкание
-run_child в machine._run_internal().
+транзакциями родительского ресурса.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ПРИМЕР ИСПОЛЬЗОВАНИЯ
 ═══════════════════════════════════════════════════════════════════════════════
 
     @regular_aspect("Обработка платежа")
-    async def process_payment(self, params, state, box, connections):
-        # Получение зависимости (rollup прокидывается автоматически)
+    async def process_payment_aspect(self, params, state, box, connections):
+        # Получение зависимости
         payment = box.resolve(PaymentService)
         txn_id = await payment.charge(params.amount, params.currency)
-
-        # Получение зависимости с рантайм-параметрами
-        logger = box.resolve(AuditLogger, level="verbose")
 
         # Логирование
         await box.info("Платёж обработан", txn_id=txn_id)
 
-        # Запуск дочернего действия (rollup прокидывается через run_child)
+        # Запуск дочернего действия
         notify_result = await box.run(
             NotifyAction, NotifyParams(user_id=params.user_id, message="OK")
         )
 
         return {"txn_id": txn_id}
+
+    # Доступ к контексту — только через @context_requires:
+    @regular_aspect("Аудит")
+    @context_requires(Ctx.User.user_id)
+    async def audit_aspect(self, params, state, box, connections, ctx):
+        user_id = ctx.get(Ctx.User.user_id)  # ← единственный путь к контексту
+        return {}
 """
 
 from collections.abc import Awaitable, Callable
@@ -150,13 +144,19 @@ class ToolsBox:
     дочерних действий. Создаётся один раз на уровень вложенности и передаётся
     во все аспекты вместо отдельных параметров deps и log.
 
+    НЕ предоставляет прямого доступа к контексту выполнения. Контекст
+    хранится в приватном атрибуте __context (name mangling) и используется
+    только внутри ToolsBox — для передачи в замыкание run_child и для
+    передачи в машину при создании aspect_box. Аспекты получают данные
+    контекста через ContextView, создаваемый машиной при наличии
+    @context_requires. Публичное свойство context отсутствует.
+
     Хранит флаг rollup и прокидывает его в resolve() и run().
 
-    Атрибуты (доступны через свойства):
+    Публичные свойства (только чтение):
         run_child : Callable — замыкание для запуска дочерних действий.
-        factory : DependencyFactory — stateless-фабрика зависимостей текущего действия.
+        factory : DependencyFactory — stateless-фабрика зависимостей.
         resources : dict[type, Any] | None — внешние ресурсы (моки в тестах).
-        context : Context — контекст выполнения текущего запроса.
         nested_level : int — уровень вложенности вызова.
         rollup : bool — флаг автоотката транзакций.
     """
@@ -176,27 +176,23 @@ class ToolsBox:
 
         Аргументы:
             run_child: функция для запуска дочернего действия (замыкание,
-                       предоставляемое машиной). Принимает action, params,
-                       connections и возвращает BaseResult. Замыкание
-                       захватывает rollup из машины.
+                       предоставляемое машиной).
             factory: stateless-фабрика зависимостей для текущего действия.
-                     Каждый вызов factory.resolve() создаёт новый экземпляр.
-            resources: словарь внешних ресурсов, переданных на этот уровень.
-                       В production обычно None. В тестах — моки.
-                       При наличии ресурса в этом словаре он имеет приоритет
-                       над фабрикой.
-            context: контекст выполнения текущего запроса.
+            resources: словарь внешних ресурсов. В production обычно None.
+                       В тестах — моки.
+            context: контекст выполнения текущего запроса. Хранится
+                     в приватном атрибуте __context (name mangling).
+                     НЕ доступен извне — аспекты получают данные контекста
+                     через ContextView при наличии @context_requires.
+                     Используется внутри для run_child и передачи в машину.
             log: ScopedLogger, привязанный к текущему аспекту.
             nested_level: уровень вложенности вызова.
-            rollup: флаг автоотката транзакций. При True:
-                    - resolve() передаёт rollup=True в factory.resolve().
-                    - run() прокидывает rollup через замыкание run_child.
-                    По умолчанию False.
+            rollup: флаг автоотката транзакций. По умолчанию False.
         """
         self.__run_child = run_child
         self.__factory = factory
         self.__resources = resources
-        self.__context = context
+        self.__context = context  # приватный, без публичного свойства
         self.__log = log
         self.__nested_level = nested_level
         self.__rollup = rollup
@@ -217,11 +213,6 @@ class ToolsBox:
         return self.__resources
 
     @property
-    def context(self) -> Context:
-        """Возвращает контекст выполнения."""
-        return self.__context
-
-    @property
     def nested_level(self) -> int:
         """Возвращает уровень вложенности."""
         return self.__nested_level
@@ -237,14 +228,7 @@ class ToolsBox:
 
         Двухуровневый поиск:
         1. Сначала ищет в resources (внешние ресурсы / моки).
-           Если найдено — возвращает объект из resources.
-           Аргументы *args и **kwargs игнорируются при возврате из resources,
-           так как объект уже создан.
-        2. Если не найдено — делегирует в factory.resolve(cls, *args,
-           rollup=self.__rollup, **kwargs), который создаёт новый экземпляр
-           через фабрику или конструктор. При rollup=True фабрика
-           дополнительно проверяет check_rollup_support() для
-           BaseResourceManager.
+        2. Если не найдено — делегирует в factory.resolve().
 
         Аргументы:
             cls: класс зависимости.
@@ -255,9 +239,9 @@ class ToolsBox:
             Экземпляр зависимости.
 
         Исключения:
-            ValueError: если зависимость не найдена ни в ресурсах, ни в фабрике.
-            RollupNotSupportedError: если rollup=True и зависимость —
-                BaseResourceManager без поддержки rollup.
+            ValueError: если зависимость не найдена.
+            RollupNotSupportedError: если rollup=True и зависимость
+                не поддерживает rollup.
         """
         if self.__resources and cls in self.__resources:
             return self.__resources[cls]
@@ -271,10 +255,6 @@ class ToolsBox:
 
         Обёртка запрещает дочернему действию управлять транзакциями
         (open/commit/rollback), но разрешает выполнять запросы (execute).
-        Если get_wrapper_class() возвращает None, ресурс передаётся как есть.
-
-        Флаг rollup прокидывается через обёртку: WrapperConnectionManager
-        наследует rollup из оригинального менеджера в своём конструкторе.
 
         Аргументы:
             connections: исходный словарь ресурсных менеджеров.

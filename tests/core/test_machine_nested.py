@@ -17,6 +17,9 @@ Connections оборачиваются в WrapperConnectionManager, которы
 nest_level прокидывается в ToolsBox, ScopedLogger и PluginEvent. Доступен
 в шаблонах логирования через {%scope.nest_level}.
 
+Прямой доступ к контексту через box закрыт. Аспекты получают данные
+контекста исключительно через ContextView при наличии @context_requires.
+
 ═══════════════════════════════════════════════════════════════════════════════
 ПОКРЫВАЕМЫЕ СЦЕНАРИИ
 ═══════════════════════════════════════════════════════════════════════════════
@@ -376,6 +379,9 @@ class TestContextIsolation:
     async def test_child_receives_same_context(self, machine, context) -> None:
         """
         Дочернее действие получает тот же Context, что и родительское.
+        Контекст прокидывается через замыкание run_child внутри машины.
+        Прямой доступ к контексту через box закрыт — аспекты получают
+        данные контекста через ContextView при наличии @context_requires.
         """
         # Arrange — родительское действие, вызывающее дочернее
         action = _ParentTestAction()
@@ -505,8 +511,16 @@ class TestToolsBoxProperties:
         )
         assert box.rollup is True
 
-    def test_context_property(self) -> None:
-        """context возвращает контекст выполнения."""
+    def test_context_not_accessible(self) -> None:
+        """
+        Публичное свойство context удалено из ToolsBox.
+
+        Прямой доступ к контексту через box закрыт. Аспекты получают
+        данные контекста исключительно через ContextView, который
+        машина создаёт при наличии @context_requires. Это реализация
+        принципа минимальных привилегий.
+        """
+        # Arrange — ToolsBox создан с контекстом
         ctx = Context(user=UserInfo(user_id="test"))
         box = ToolsBox(
             run_child=AsyncMock(),
@@ -517,5 +531,6 @@ class TestToolsBoxProperties:
             nested_level=1,
             rollup=False,
         )
-        assert box.context is ctx
-        assert box.context.user.user_id == "test"
+
+        # Act / Assert — атрибут context недоступен как публичное свойство
+        assert not hasattr(box, "context")

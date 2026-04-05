@@ -1,6 +1,6 @@
 # src/action_machine/core/exceptions.py
 """
-Исключения, используемые в ActionMachine.
+Исключения ActionMachine.
 
 ═══════════════════════════════════════════════════════════════════════════════
 НАЗНАЧЕНИЕ
@@ -29,6 +29,9 @@
 - OnErrorHandlerError — ошибка, возникшая внутри обработчика @on_error.
   Оборачивает исходное исключение обработчика через __cause__, позволяя
   отличить «ошибка в бизнес-логике аспекта» от «ошибка в обработчике ошибок».
+- ContextAccessError — попытка доступа к полю контекста, не указанному
+  в @context_requires. Выбрасывается ContextView при обращении к ключу,
+  отсутствующему в множестве разрешённых ключей аспекта.
 - NamingSuffixError — нарушение инварианта именования (суффикс Action, Domain,
   _aspect, _summary, _on_error, Checker). Выбрасывается в __init_subclass__
   гейтхостов или при валидации декораторов.
@@ -274,6 +277,49 @@ class OnErrorHandlerError(Exception):
         self.original_error: Exception = original_error
 
 
+class ContextAccessError(Exception):
+    """
+    Попытка доступа к полю контекста, не указанному в @context_requires.
+
+    Выбрасывается ContextView при обращении к ключу, который не входит
+    в множество разрешённых ключей текущего аспекта или обработчика ошибок.
+
+    Механизм работы:
+    1. Аспект декларирует нужные поля через @context_requires(Ctx.User.user_id).
+    2. Машина создаёт ContextView с frozenset разрешённых ключей.
+    3. Аспект вызывает ctx.get("user.user_id") — ContextView проверяет,
+       что ключ входит в allowed_keys, и возвращает значение.
+    4. Аспект вызывает ctx.get("user.roles") — ключ не в allowed_keys,
+       выбрасывается ContextAccessError.
+
+    Ошибка доступа — это баг разработчика: аспект пытается прочитать
+    данные, которые не объявил как необходимые. Решение — добавить
+    недостающий ключ в @context_requires.
+
+    Атрибуты:
+        key : str
+            Ключ (dot-path), к которому был запрошен доступ.
+        allowed_keys : frozenset[str]
+            Множество ключей, разрешённых через @context_requires.
+    """
+
+    def __init__(self, key: str, allowed_keys: frozenset[str]) -> None:
+        """
+        Инициализирует исключение.
+
+        Аргументы:
+            key: ключ (dot-path), к которому был запрошен доступ.
+            allowed_keys: множество разрешённых ключей из @context_requires.
+        """
+        self.key: str = key
+        self.allowed_keys: frozenset[str] = allowed_keys
+        super().__init__(
+            f"Доступ к полю контекста '{key}' запрещён. "
+            f"Разрешённые поля: {sorted(allowed_keys)}. "
+            f"Добавьте '{key}' в @context_requires декоратор аспекта."
+        )
+
+
 class NamingSuffixError(TypeError):
     """
     Нарушение инварианта именования компонента ActionMachine (суффикс).
@@ -291,10 +337,6 @@ class NamingSuffixError(TypeError):
     - Метод с @summary_aspect → суффикс "_summary".
     - Метод с @on_error → суффикс "_on_error".
     - Класс чекера (наследник ResultFieldChecker) → суффикс "Checker".
-
-    Пример сообщения:
-        "Класс 'CreateOrder' наследует BaseAction, но не имеет суффикса
-         'Action'. Переименуйте в 'CreateOrderAction'."
     """
 
     pass
@@ -311,10 +353,6 @@ class NamingPrefixError(TypeError):
 
     Обязательные приставки:
     - Метод плагина с @on → приставка "on_".
-
-    Пример сообщения:
-        "@on(\"global_finish\"): метод 'count_calls' должен начинаться
-         с 'on_'. Переименуйте в 'on_count_calls'."
     """
 
     pass

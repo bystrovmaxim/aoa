@@ -29,23 +29,37 @@
         Используется в логах, интроспекции и графе координатора.
 
 ═══════════════════════════════════════════════════════════════════════════════
-СИГНАТУРА ОБРАБОТЧИКА
+ПЕРЕМЕННАЯ СИГНАТУРА
 ═══════════════════════════════════════════════════════════════════════════════
 
-    @on_error(ValueError, description="Обработка ошибки валидации")
+Количество параметров зависит от наличия декоратора @context_requires
+на методе. @context_requires применяется ближе к функции (снизу),
+поэтому при проверке сигнатуры в @on_error атрибут
+_required_context_keys уже записан.
+
+    Без @context_requires:
+        6 параметров: self, params, state, box, connections, error
+
+    С @context_requires:
+        7 параметров: self, params, state, box, connections, error, ctx
+
+Обработчик имеет собственный @context_requires, независимый от аспекта,
+который упал. Если обработчику нужен контекст — он декларирует свои ключи,
+и машина создаёт отдельный ContextView.
+
+Примеры:
+
+    # Без контекста — 6 параметров:
+    @on_error(ValueError, description="Ошибка валидации")
     async def handle_validation_on_error(self, params, state, box, connections, error):
-        return MyResult(...)
+        return MyResult(status="validation_error")
 
-    Ровно 6 параметров: self, params, state, box, connections, error.
-
-    - self        — экземпляр действия.
-    - params      — входные параметры действия (BaseParams, frozen).
-    - state       — состояние конвейера на момент ошибки (BaseState, read-only).
-    - box         — ToolsBox с зависимостями, логированием, дочерними действиями.
-    - connections — словарь ресурсных менеджеров (или пустой dict).
-    - error       — перехваченное исключение (экземпляр одного из exception_types).
-
-    Обработчик обязан вернуть объект Result (тип R из BaseAction[P, R]).
+    # С контекстом — 7 параметров:
+    @on_error(ValueError, description="Ошибка валидации с аудитом")
+    @context_requires(Ctx.User.user_id)
+    async def handle_validation_on_error(self, params, state, box, connections, error, ctx):
+        user_id = ctx.get(Ctx.User.user_id)
+        return MyResult(status="validation_error", user_id=user_id)
 
 ═══════════════════════════════════════════════════════════════════════════════
 ОГРАНИЧЕНИЯ (ИНВАРИАНТЫ)
@@ -53,7 +67,8 @@
 
 - Применяется только к методам (callable), не к классам или свойствам.
 - Метод должен быть асинхронным (async def).
-- Сигнатура: ровно 6 параметров (self, params, state, box, connections, error).
+- Сигнатура: 6 параметров без @context_requires,
+  7 параметров с @context_requires.
 - Имя метода обязано заканчиваться на "_on_error".
 - description — обязательная непустая строка.
 - exception_types — один тип Exception или кортеж типов Exception.
@@ -69,16 +84,32 @@
     @on_error(ValueError, description="Обработка ошибки валидации")
         │
         ▼  Декоратор записывает в method._on_error_meta
-    {"exception_types": (ValueError,), "description": "Обработка ошибки валидации"}
+    {"exception_types": (ValueError,), "description": "..."}
         │
         ▼  MetadataBuilder → collectors.collect_error_handlers(cls)
-    ClassMetadata.error_handlers = (OnErrorMeta(...), ...)
+    OnErrorMeta(..., context_keys=frozenset(...))
         │
         ▼  validators.validate_error_handler_overlap(cls, error_handlers)
-    Проверяет, что нижестоящий обработчик не перекрывается вышестоящим.
+    Проверяет перекрытие типов.
         │
-        ▼  ActionProductMachine._execute_regular_aspects(...)
-    Аспект бросает ValueError → машина ищет обработчик → вызывает → Result
+        ▼  ActionProductMachine._handle_aspect_error(...)
+    Если context_keys непустой — создаёт ContextView, передаёт как ctx.
+    Аспект бросает ValueError → машина ищет обработчик → вызывает → Result.
+
+═══════════════════════════════════════════════════════════════════════════════
+ПОРЯДОК ОБРАБОТЧИКОВ И ПЕРЕКРЫТИЕ ТИПОВ
+═══════════════════════════════════════════════════════════════════════════════
+
+Обработчики проверяются сверху вниз в порядке объявления в классе.
+Первый подходящий (isinstance(error, exception_types)) вызывается.
+
+Допустимо: сначала более специфичный, потом более общий:
+    @on_error(ValueError, ...)      ← специфичный
+    @on_error(Exception, ...)       ← общий fallback
+
+Недопустимо: сначала общий, потом специфичный:
+    @on_error(Exception, ...)       ← общий перехватит всё
+    @on_error(ValueError, ...)      ← мёртвый код → TypeError при сборке
 
 ═══════════════════════════════════════════════════════════════════════════════
 ПРИМЕР ИСПОЛЬЗОВАНИЯ
@@ -89,7 +120,6 @@
     class CreateOrderAction(BaseAction[OrderParams, OrderResult]):
 
         @regular_aspect("Валидация данных")
-        @result_string("validated_user", required=True)
         async def validate_aspect(self, params, state, box, connections):
             if not params.user_id:
                 raise ValueError("user_id обязателен")
@@ -99,34 +129,17 @@
         async def build_result_summary(self, params, state, box, connections):
             return OrderResult(order_id="ORD-1", status="created", total=params.amount)
 
-        @on_error(ValueError, description="Обработка ошибки валидации")
+        @on_error(ValueError, description="Ошибка валидации")
         async def handle_validation_on_error(self, params, state, box, connections, error):
             return OrderResult(order_id="ERR", status="validation_error", total=0)
 
-    # Один обработчик на кортеж типов:
-    @on_error((ConnectionError, TimeoutError), description="Сетевая ошибка")
-    async def handle_network_on_error(self, params, state, box, connections, error):
-        return OrderResult(order_id="ERR", status="network_error", total=0)
-
-═══════════════════════════════════════════════════════════════════════════════
-ПОРЯДОК ОБРАБОТЧИКОВ И ПЕРЕКРЫТИЕ ТИПОВ
-═══════════════════════════════════════════════════════════════════════════════
-
-Обработчики проверяются сверху вниз в порядке объявления в классе.
-Первый подходящий (isinstance(error, exception_types)) вызывается.
-
-Нижестоящий обработчик НЕ может ловить типы, которые уже перехватываются
-вышестоящим (совпадающие или дочерние). Это защита от мёртвого кода:
-если вышестоящий ловит Exception, нижестоящий с ValueError никогда
-не получит управления.
-
-Допустимо: сначала более специфичный, потом более общий:
-    @on_error(ValueError, ...)      ← специфичный
-    @on_error(Exception, ...)       ← общий fallback
-
-Недопустимо: сначала общий, потом специфичный:
-    @on_error(Exception, ...)       ← общий перехватит всё
-    @on_error(ValueError, ...)      ← мёртвый код → TypeError при сборке
+        # С контекстом:
+        @on_error((ConnectionError, TimeoutError), description="Сетевая ошибка")
+        @context_requires(Ctx.User.user_id, Ctx.Request.trace_id)
+        async def handle_network_on_error(self, params, state, box, connections, error, ctx):
+            user_id = ctx.get(Ctx.User.user_id)
+            trace = ctx.get(Ctx.Request.trace_id)
+            return OrderResult(order_id="ERR", status="network_error", total=0)
 
 ═══════════════════════════════════════════════════════════════════════════════
 ОШИБКИ
@@ -148,11 +161,15 @@ from typing import Any
 
 from action_machine.core.exceptions import NamingSuffixError
 
-# Ожидаемое число параметров: self, params, state, box, connections, error
-_EXPECTED_PARAM_COUNT = 6
+# Количество параметров без @context_requires: self, params, state, box, connections, error
+_BASE_PARAM_COUNT = 6
 
-# Имена параметров для сообщения об ошибке
-_EXPECTED_PARAM_NAMES = "self, params, state, box, connections, error"
+# Количество параметров с @context_requires: self, params, state, box, connections, error, ctx
+_CTX_PARAM_COUNT = 7
+
+# Имена параметров для сообщений об ошибках
+_BASE_PARAM_NAMES = "self, params, state, box, connections, error"
+_CTX_PARAM_NAMES = "self, params, state, box, connections, error, ctx"
 
 # Обязательный суффикс имени метода
 _REQUIRED_SUFFIX = "_on_error"
@@ -244,6 +261,10 @@ def _validate_method(func: Any, description: str) -> None:
     Проверяет, что декорируемый объект — асинхронный метод
     с правильной сигнатурой и суффиксом имени.
 
+    Количество параметров проверяется с учётом наличия @context_requires:
+    если функция имеет атрибут _required_context_keys — ожидается 7
+    параметров (с ctx), иначе 6 (без ctx).
+
     Аргументы:
         func: декорируемый объект.
         description: описание из декоратора (для сообщений об ошибках).
@@ -267,14 +288,18 @@ def _validate_method(func: Any, description: str) -> None:
             f"Синхронные обработчики не поддерживаются."
         )
 
-    # Проверка: число параметров
+    # Проверка: число параметров (с учётом @context_requires)
+    has_context = hasattr(func, "_required_context_keys")
+    expected_count = _CTX_PARAM_COUNT if has_context else _BASE_PARAM_COUNT
+    expected_names = _CTX_PARAM_NAMES if has_context else _BASE_PARAM_NAMES
+
     sig = inspect.signature(func)
     param_count = len(sig.parameters)
-    if param_count != _EXPECTED_PARAM_COUNT:
+    if param_count != expected_count:
         raise TypeError(
             f"@on_error(\"{description}\"): метод {func.__name__} "
-            f"должен принимать {_EXPECTED_PARAM_COUNT} параметров "
-            f"({_EXPECTED_PARAM_NAMES}), получено {param_count}."
+            f"должен принимать {expected_count} параметров "
+            f"({expected_names}), получено {param_count}."
         )
 
     # Проверка: суффикс имени метода
@@ -303,6 +328,10 @@ def on_error(
     Записывает метаданные в атрибут method._on_error_meta. MetadataBuilder
     собирает эти метаданные в ClassMetadata.error_handlers (tuple[OnErrorMeta]).
 
+    Количество параметров проверяется с учётом наличия @context_requires:
+    если функция имеет атрибут _required_context_keys — ожидается 7
+    параметров (с ctx), иначе 6 (без ctx).
+
     Аргументы:
         exception_types: один тип Exception или кортеж типов, которые
                          перехватывает этот обработчик. Каждый элемент
@@ -321,20 +350,12 @@ def on_error(
             - description не строка.
             - Метод не callable.
             - Метод не асинхронный.
-            - Неверное число параметров (не 6).
+            - Неверное число параметров (6 без @context_requires,
+              7 с @context_requires).
         ValueError:
             - description пустая строка.
         NamingSuffixError:
             - Имя метода не заканчивается на "_on_error".
-
-    Пример:
-        @on_error(ValueError, description="Ошибка валидации")
-        async def handle_validation_on_error(self, params, state, box, connections, error):
-            return MyResult(status="error")
-
-        @on_error((IOError, TimeoutError), description="Сетевая ошибка")
-        async def handle_network_on_error(self, params, state, box, connections, error):
-            return MyResult(status="network_error")
     """
     # Валидация аргументов декоратора (до применения к методу)
     normalized_types = _normalize_exception_types(exception_types)
@@ -344,12 +365,7 @@ def on_error(
         """
         Внутренний декоратор, применяемый к методу.
 
-        Проверяет:
-        1. func — callable.
-        2. func — async def.
-        3. Число параметров == 6 (self, params, state, box, connections, error).
-        4. Имя метода заканчивается на "_on_error".
-
+        Проверяет callable, async, количество параметров, суффикс.
         Затем записывает _on_error_meta в func.
         """
         _validate_method(func, description)
