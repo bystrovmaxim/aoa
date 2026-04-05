@@ -21,6 +21,35 @@
         Примеры: "Формирование результата", "Сборка ответа".
 
 ═══════════════════════════════════════════════════════════════════════════════
+ПЕРЕМЕННАЯ СИГНАТУРА
+═══════════════════════════════════════════════════════════════════════════════
+
+Количество параметров зависит от наличия декоратора @context_requires
+на методе. @context_requires применяется ближе к функции (снизу),
+поэтому при проверке сигнатуры в @summary_aspect атрибут
+_required_context_keys уже записан.
+
+    Без @context_requires:
+        5 параметров: self, params, state, box, connections
+
+    С @context_requires:
+        6 параметров: self, params, state, box, connections, ctx
+
+Примеры:
+
+    # Без контекста — 5 параметров:
+    @summary_aspect("Формирование результата")
+    async def build_result_summary(self, params, state, box, connections):
+        return OrderResult(...)
+
+    # С контекстом — 6 параметров:
+    @summary_aspect("Формирование результата с аудитом")
+    @context_requires(Ctx.User.user_id)
+    async def build_result_summary(self, params, state, box, connections, ctx):
+        user_id = ctx.get(Ctx.User.user_id)
+        return OrderResult(created_by=user_id, ...)
+
+═══════════════════════════════════════════════════════════════════════════════
 ОТЛИЧИЯ ОТ @regular_aspect
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -36,11 +65,11 @@
 
 - Применяется только к методам (callable), не к классам или свойствам.
 - Метод должен быть асинхронным (async def).
-- Сигнатура метода: ровно 5 параметров (self, params, state, box, connections).
+- Сигнатура метода: 5 параметров без @context_requires,
+  6 параметров с @context_requires.
 - description — обязательная непустая строка.
 - Имя метода обязано заканчиваться на "_summary" или быть равным "summary"
   (исключение из правила дублирования: "summary_summary" не требуется).
-  Проверяется через NamingSuffixError.
 
 ═══════════════════════════════════════════════════════════════════════════════
 АРХИТЕКТУРА ИНТЕГРАЦИИ
@@ -52,10 +81,11 @@
     {"type": "summary", "description": "Формирование результата"}
         │
         ▼  MetadataBuilder._collect_aspects(cls)
-    ClassMetadata.aspects = (..., AspectMeta("build_result_summary", "summary", ...))
+    AspectMeta("build_result_summary", "summary", ..., context_keys=frozenset(...))
         │
         ▼  ActionProductMachine._call_aspect(summary_meta, ...)
-    Вызывает метод, получает BaseResult
+    Если context_keys непустой — создаёт ContextView, передаёт как ctx.
+    Вызывает метод, получает BaseResult.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ПРИМЕР ИСПОЛЬЗОВАНИЯ
@@ -96,11 +126,15 @@ from typing import Any
 
 from action_machine.core.exceptions import NamingSuffixError
 
-# Ожидаемое число параметров: self, params, state, box, connections
-_EXPECTED_PARAM_COUNT = 5
+# Количество параметров без @context_requires: self, params, state, box, connections
+_BASE_PARAM_COUNT = 5
 
-# Имена параметров для сообщения об ошибке
-_EXPECTED_PARAM_NAMES = "self, params, state, box, connections"
+# Количество параметров с @context_requires: self, params, state, box, connections, ctx
+_CTX_PARAM_COUNT = 6
+
+# Имена параметров для сообщений об ошибках
+_BASE_PARAM_NAMES = "self, params, state, box, connections"
+_CTX_PARAM_NAMES = "self, params, state, box, connections, ctx"
 
 # Обязательный суффикс имени метода
 _REQUIRED_SUFFIX = "_summary"
@@ -117,6 +151,10 @@ def summary_aspect(description: str) -> Callable[[Any], Any]:
     MetadataBuilder._collect_aspects(cls) позже обнаруживает этот атрибут
     и включает метод в ClassMetadata.aspects.
 
+    Количество параметров проверяется с учётом наличия @context_requires:
+    если функция имеет атрибут _required_context_keys — ожидается 6
+    параметров (с ctx), иначе 5 (без ctx).
+
     Аргументы:
         description: обязательное человекочитаемое описание шага. Непустая
                      строка. Используется в логах, плагинах и интроспекции.
@@ -130,7 +168,8 @@ def summary_aspect(description: str) -> Callable[[Any], Any]:
             - description не является строкой.
             - Декорируемый объект не callable.
             - Метод не асинхронный (не async def).
-            - Неверное число параметров (ожидается 5).
+            - Неверное число параметров (5 без @context_requires,
+              6 с @context_requires).
         ValueError:
             - description пустая строка или строка из пробелов.
         NamingSuffixError:
@@ -156,7 +195,7 @@ def summary_aspect(description: str) -> Callable[[Any], Any]:
         Проверяет:
         1. func — callable.
         2. func — async def.
-        3. Число параметров == 5 (self, params, state, box, connections).
+        3. Число параметров корректно (5 без @context_requires, 6 с ним).
         4. Имя метода заканчивается на "_summary" или равно "summary".
 
         Затем записывает _new_aspect_meta в func.
@@ -176,14 +215,18 @@ def summary_aspect(description: str) -> Callable[[Any], Any]:
                 f"Синхронные методы не поддерживаются."
             )
 
-        # ── Проверка: число параметров ──
+        # ── Проверка: число параметров (с учётом @context_requires) ──
+        has_context = hasattr(func, "_required_context_keys")
+        expected_count = _CTX_PARAM_COUNT if has_context else _BASE_PARAM_COUNT
+        expected_names = _CTX_PARAM_NAMES if has_context else _BASE_PARAM_NAMES
+
         sig = inspect.signature(func)
         param_count = len(sig.parameters)
-        if param_count != _EXPECTED_PARAM_COUNT:
+        if param_count != expected_count:
             raise TypeError(
                 f"@summary_aspect(\"{description}\"): метод {func.__name__} "
-                f"должен принимать {_EXPECTED_PARAM_COUNT} параметров "
-                f"({_EXPECTED_PARAM_NAMES}), получено {param_count}."
+                f"должен принимать {expected_count} параметров "
+                f"({expected_names}), получено {param_count}."
             )
 
         # ── Проверка: суффикс имени метода ──

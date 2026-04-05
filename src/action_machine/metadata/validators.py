@@ -30,20 +30,28 @@
     6. Чекеры → CheckerGateHost.
     7. Подписки → OnGateHost.
     8. Обработчики ошибок → OnErrorGateHost.
+    9. Контекстные зависимости → ContextRequiresGateHost.
 
 Аспекты (validate_aspects):
-    9. Не более одного summary-аспекта.
-    10. Regular без summary — ошибка.
-    11. Summary последним.
+    10. Не более одного summary-аспекта.
+    11. Regular без summary — ошибка.
+    12. Summary последним.
 
 Чекеры (validate_checkers_belong_to_aspects):
-    12. Каждый чекер привязан к существующему аспекту.
+    13. Каждый чекер привязан к существующему аспекту.
 
 Обработчики ошибок (validate_error_handlers):
-    13. Нижестоящий обработчик не перекрывается вышестоящим.
+    14. Нижестоящий обработчик не перекрывается вышестоящим.
         Если вышестоящий ловит тип T, нижестоящий не может ловить T
         или подкласс T — это мёртвый код. Допустимо: сначала специфичный
         (ValueError), потом общий (Exception).
+
+Контекстные зависимости (validate_context_requires):
+    15. Если метод имеет context_keys — класс обязан наследовать
+        ContextRequiresGateHost.
+    16. Согласованность наличия @context_requires и количества параметров
+        метода проверяется декораторами @regular_aspect, @summary_aspect
+        и @on_error на этапе определения класса (не здесь).
 """
 
 from __future__ import annotations
@@ -54,6 +62,7 @@ from pydantic import BaseModel
 
 from action_machine.aspects.aspect_gate_host import AspectGateHost
 from action_machine.checkers.checker_gate_host import CheckerGateHost
+from action_machine.context.context_requires_gate_host import ContextRequiresGateHost
 from action_machine.core.class_metadata import (
     AspectMeta,
     CheckerMeta,
@@ -223,6 +232,30 @@ def validate_meta_required(
 # ═════════════════════════════════════════════════════════════════════════════
 
 
+def _has_any_context_keys(
+    aspects: list[AspectMeta],
+    error_handlers: list[OnErrorMeta],
+) -> bool:
+    """
+    Проверяет, есть ли хотя бы один аспект или обработчик ошибок
+    с непустыми context_keys.
+
+    Аргументы:
+        aspects: собранные аспекты.
+        error_handlers: собранные обработчики ошибок.
+
+    Возвращает:
+        True если хотя бы один метод имеет непустые context_keys.
+    """
+    for aspect in aspects:
+        if aspect.context_keys:
+            return True
+    for handler in error_handlers:
+        if handler.context_keys:
+            return True
+    return False
+
+
 def validate_gate_hosts(
     cls: type,
     aspects: list[AspectMeta],
@@ -239,6 +272,7 @@ def validate_gate_hosts(
         - Чекеры → CheckerGateHost.
         - Подписки → OnGateHost.
         - Обработчики ошибок → OnErrorGateHost.
+        - Контекстные зависимости → ContextRequiresGateHost.
 
     Аргументы:
         cls: класс, который проверяется.
@@ -290,6 +324,23 @@ def validate_gate_hosts(
             f"только на классах, наследующих OnErrorGateHost. "
             f"Используйте BaseAction или добавьте OnErrorGateHost "
             f"в цепочку наследования."
+        )
+
+    if _has_any_context_keys(aspects, error_handlers) and not issubclass(cls, ContextRequiresGateHost):
+        methods_with_ctx: list[str] = []
+        for a in aspects:
+            if a.context_keys:
+                methods_with_ctx.append(a.method_name)
+        for h in error_handlers:
+            if h.context_keys:
+                methods_with_ctx.append(h.method_name)
+        methods_str = ", ".join(methods_with_ctx)
+        raise TypeError(
+            f"Класс {cls.__name__} содержит методы с @context_requires "
+            f"({methods_str}), но не наследует ContextRequiresGateHost. "
+            f"Декоратор @context_requires разрешён только на классах, "
+            f"наследующих ContextRequiresGateHost. Используйте BaseAction "
+            f"или добавьте ContextRequiresGateHost в цепочку наследования."
         )
 
 
@@ -426,10 +477,6 @@ def validate_error_handlers(
         @on_error(Exception, ...)       ← перехватит всё
         @on_error(ValueError, ...)      ← мёртвый код → TypeError
 
-    Алгоритм: для каждого обработчика (начиная со второго) проверяем
-    каждый его тип исключения против ВСЕХ типов ВСЕХ вышестоящих
-    обработчиков. Если хотя бы один тип перекрыт — TypeError.
-
     Аргументы:
         cls: класс для сообщений об ошибках.
         error_handlers: собранные обработчики ошибок в порядке объявления.
@@ -448,7 +495,6 @@ def validate_error_handlers(
 
             for candidate_type in current_handler.exception_types:
                 if _is_type_covered_by(candidate_type, upper_handler.exception_types):
-                    # Находим конкретный перекрывающий тип для сообщения
                     covering_name = next(
                         c.__name__
                         for c in upper_handler.exception_types

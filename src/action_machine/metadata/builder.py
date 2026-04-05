@@ -18,8 +18,10 @@ ResourceManager или любой другой), читает временные
 
     1. Сбор данных коллекторами (collectors.py):
        - описание и домен (@meta), роли, зависимости, соединения,
-         аспекты, чекеры, обработчики ошибок, подписки, чувствительные
-         поля, bound-тип, описания полей Params и Result.
+         аспекты (с context_keys из @context_requires), чекеры,
+         обработчики ошибок (с context_keys из @context_requires),
+         подписки, чувствительные поля, bound-тип, описания полей
+         Params и Result.
 
     2. Валидация обязательности @meta (validators.validate_meta_required):
        - ActionMetaGateHost + аспекты → @meta обязателен.
@@ -30,6 +32,7 @@ ResourceManager или любой другой), читает временные
        - Чекеры → CheckerGateHost.
        - Подписки → OnGateHost.
        - Обработчики ошибок → OnErrorGateHost.
+       - Контекстные зависимости → ContextRequiresGateHost.
 
     4. Валидация структуры аспектов (validators.validate_aspects).
 
@@ -43,6 +46,22 @@ ResourceManager или любой другой), читает временные
        - Result с DescribedFieldsGateHost → каждое поле обязано иметь description.
 
     8. Конструирование ClassMetadata (frozen dataclass).
+
+═══════════════════════════════════════════════════════════════════════════════
+КОНТЕКСТНЫЕ ЗАВИСИМОСТИ
+═══════════════════════════════════════════════════════════════════════════════
+
+Декоратор @context_requires записывает _required_context_keys в метод.
+Коллекторы collect_aspects и collect_error_handlers читают этот атрибут
+и включают в AspectMeta.context_keys и OnErrorMeta.context_keys.
+
+Валидация гейт-хоста ContextRequiresGateHost выполняется в
+validate_gate_hosts: если хотя бы один аспект или обработчик имеет
+непустые context_keys — класс обязан наследовать ContextRequiresGateHost.
+
+Согласованность количества параметров метода с наличием @context_requires
+проверяется декораторами @regular_aspect, @summary_aspect и @on_error
+на этапе определения класса (до вызова MetadataBuilder).
 
 ═══════════════════════════════════════════════════════════════════════════════
 ИДЕМПОТЕНТНОСТЬ
@@ -63,8 +82,8 @@ ResourceManager или любой другой), читает временные
 
     metadata = MetadataBuilder.build(CreateOrderAction)
     # metadata.meta.description → "Создание нового заказа"
-    # metadata.error_handlers[0].exception_types → (ValueError,)
-    # metadata.params_fields[0].description → "ID пользователя"
+    # metadata.aspects[0].context_keys → frozenset({"user.user_id"})
+    # metadata.error_handlers[0].context_keys → frozenset()
 """
 
 from __future__ import annotations
@@ -106,7 +125,8 @@ class MetadataBuilder:
 
     Порядок валидации:
         1. validate_meta_required — обязательность @meta.
-        2. validate_gate_hosts — гейт-хосты для декораторов уровня метода.
+        2. validate_gate_hosts — гейт-хосты для декораторов уровня метода
+           (включая ContextRequiresGateHost для @context_requires).
         3. validate_aspects — структурные инварианты аспектов.
         4. validate_checkers_belong_to_aspects — привязка чекеров.
         5. validate_error_handlers — перекрытие типов обработчиков ошибок.
@@ -134,6 +154,7 @@ class MetadataBuilder:
                 - Класс содержит чекеры без CheckerGateHost.
                 - Класс содержит подписки без OnGateHost.
                 - Класс содержит обработчики ошибок без OnErrorGateHost.
+                - Класс содержит @context_requires без ContextRequiresGateHost.
                 - Поле Params или Result не имеет description.
                 - Нижестоящий обработчик ошибок перекрывается вышестоящим.
             ValueError:
@@ -165,7 +186,7 @@ class MetadataBuilder:
         # ── Валидация обязательности @meta (ПЕРВАЯ) ────────────────────
         validate_meta_required(klass, meta, aspects)
 
-        # ── Валидация гейт-хостов ──────────────────────────────────────
+        # ── Валидация гейт-хостов (включая ContextRequiresGateHost) ────
         validate_gate_hosts(klass, aspects, checkers, subscriptions, error_handlers)
 
         # ── Валидация структуры аспектов ───────────────────────────────
