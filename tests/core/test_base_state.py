@@ -6,15 +6,14 @@
 НАЗНАЧЕНИЕ
 ═══════════════════════════════════════════════════════════════════════════════
 
-BaseState — мутабельный контейнер данных, накапливаемых regular-аспектами
-в ходе выполнения конвейера ActionProductMachine. Каждый regular-аспект
-возвращает dict, который машина мержит в текущий state. Summary-аспект
-читает накопленные данные из state и формирует Result.
+BaseState — неизменяемый объект, хранящий накопленные данные между шагами
+конвейера аспектов. Каждый regular-аспект возвращает dict с новыми полями,
+машина (ActionProductMachine) проверяет их чекерами и создаёт НОВЫЙ
+BaseState, объединяя предыдущие данные с новыми. Аспект получает state
+только на чтение — мутация невозможна после создания.
 
-BaseState наследует ReadableMixin (dict-подобное чтение, resolve по dot-path)
-и WritableMixin (dict-подобная запись, write с allowed_keys, update).
-Это НЕ pydantic-модель — это лёгкий контейнер с динамическими полями,
-аналог dict с атрибутным доступом.
+BaseState наследует ReadableMixin (dict-подобное чтение, resolve по dot-path).
+Методы записи (__setitem__, __delitem__, write, update) отсутствуют.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ПОКРЫВАЕМЫЕ СЦЕНАРИИ
@@ -29,11 +28,11 @@ BaseState наследует ReadableMixin (dict-подобное чтение, 
     - __getitem__, __contains__, get, keys, values, items.
     - resolve для плоских полей и с default для отсутствующих.
 
-Запись (WritableMixin):
-    - __setitem__ создаёт и перезаписывает атрибуты.
-    - __delitem__ удаляет атрибуты, KeyError для отсутствующих.
-    - write с allowed_keys — контролируемая запись.
-    - update — массовое обновление из словаря.
+Неизменяемость:
+    - __setitem__ отсутствует (AttributeError или TypeError).
+    - __delitem__ отсутствует.
+    - write и update отсутствуют.
+    - setattr запрещён (AttributeError).
 
 Сериализация:
     - to_dict() возвращает только публичные поля, без приватных.
@@ -254,119 +253,100 @@ class TestReadAccess:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Запись через WritableMixin
+# Неизменяемость (frozen)
 # ═════════════════════════════════════════════════════════════════════════════
 
 
-class TestWriteAccess:
-    """Dict-подобная запись атрибутов BaseState через WritableMixin."""
+class TestFrozen:
+    """BaseState полностью неизменяем после создания."""
 
-    def test_setitem_creates_new_attribute(self) -> None:
+    def test_setattr_raises(self) -> None:
         """
-        state["key"] = value — создание нового атрибута.
+        Прямая запись атрибута через точку запрещена.
 
-        Аспекты могут динамически добавлять поля в state
-        через dict-подобный интерфейс.
+        __setattr__ переопределён и всегда бросает AttributeError.
+        Единственный способ записать данные — через конструктор.
         """
-        # Arrange — пустой state
-        state = BaseState()
+        # Arrange — state с начальным значением
+        state = BaseState({"value": 1})
 
-        # Act — запись нового ключа через WritableMixin.__setitem__,
-        # который делегирует в setattr(self, "count", 42)
-        state["count"] = 42
+        # Act & Assert — попытка изменить существующий атрибут
+        with pytest.raises(AttributeError, match="frozen"):
+            state.value = 2
 
-        # Assert — значение доступно и через точку, и через скобки
-        assert state.count == 42
-        assert state["count"] == 42
-
-    def test_setitem_overwrites_existing(self) -> None:
+    def test_setattr_new_key_raises(self) -> None:
         """
-        Повторная запись по тому же ключу — перезапись значения.
-        """
-        # Arrange — state с начальным значением status
-        state = BaseState({"status": "pending"})
+        Добавление нового атрибута запрещено.
 
-        # Act — перезапись существующего атрибута
-        state["status"] = "completed"
-
-        # Assert — старое значение заменено новым
-        assert state["status"] == "completed"
-
-    def test_delitem_removes_attribute(self) -> None:
-        """
-        del state["key"] — удаление атрибута. KeyError если ключа нет.
-        """
-        # Arrange — state с временным полем temp
-        state = BaseState({"temp": True})
-
-        # Act — удаление через WritableMixin.__delitem__,
-        # который делегирует в delattr(self, "temp")
-        del state["temp"]
-
-        # Assert — ключ удалён, больше не доступен
-        assert "temp" not in state
-
-        # Act & Assert — удаление несуществующего ключа бросает KeyError,
-        # WritableMixin.__delitem__ ловит AttributeError и бросает KeyError
-        with pytest.raises(KeyError):
-            del state["missing"]
-
-    def test_write_with_allowed_keys(self) -> None:
-        """
-        write(key, value, allowed_keys) — контролируемая запись.
-
-        Позволяет ограничить набор полей, которые можно изменить.
-        Если ключ не в allowed_keys — KeyError. Это защита от
-        случайной перезаписи критичных данных в плагинах и аспектах.
-        """
-        # Arrange — пустой state и список разрешённых ключей
-        state = BaseState()
-        allowed = ["total", "discount"]
-
-        # Act — запись разрешённого ключа total
-        state.write("total", 1500, allowed_keys=allowed)
-
-        # Assert — значение записано успешно
-        assert state.total == 1500
-
-        # Act & Assert — запись запрещённого ключа secret бросает KeyError
-        # с сообщением, содержащим список разрешённых ключей
-        with pytest.raises(KeyError, match="не входит в список разрешённых"):
-            state.write("secret", 42, allowed_keys=allowed)
-
-    def test_write_without_allowed_keys(self) -> None:
-        """
-        write(key, value) без allowed_keys — запись любого ключа.
-
-        Если allowed_keys не передан (None), валидация отключена.
-        Эквивалентно state["key"] = value.
+        Даже если атрибут не существовал, запись запрещена.
         """
         # Arrange — пустой state
         state = BaseState()
 
-        # Act — запись без ограничений
-        state.write("anything", "allowed")
+        # Act & Assert — попытка добавить новый атрибут
+        with pytest.raises(AttributeError, match="frozen"):
+            state.new_key = "value"
 
-        # Assert — значение записано
-        assert state["anything"] == "allowed"
-
-    def test_update_mass_assignment(self) -> None:
+    def test_delattr_raises(self) -> None:
         """
-        update(dict) — массовое обновление нескольких полей за один вызов.
+        Удаление атрибута запрещено.
 
-        Удобно для инициализации state из словаря или применения
-        пакета изменений от плагина.
+        __delattr__ переопределён и всегда бросает AttributeError.
         """
-        # Arrange — пустой state
+        # Arrange — state с полем для удаления
+        state = BaseState({"to_delete": "value"})
+
+        # Act & Assert — попытка удалить атрибут
+        with pytest.raises(AttributeError, match="frozen"):
+            del state.to_delete
+
+    def test_setitem_raises(self) -> None:
+        """
+        Dict-подобная запись через [] отсутствует.
+
+        BaseState не наследует WritableMixin, поэтому __setitem__
+        не определён. Попытка записи через квадратные скобки
+        вызывает TypeError или AttributeError.
+        """
+        # Arrange — state с существующим ключом
+        state = BaseState({"key": "old"})
+
+        # Act & Assert — попытка записи через []
+        with pytest.raises((TypeError, AttributeError)):
+            state["key"] = "new"
+
+    def test_delitem_raises(self) -> None:
+        """
+        Dict-подобное удаление через del [] отсутствует.
+
+        __delitem__ не определён.
+        """
+        # Arrange — state с ключом
+        state = BaseState({"key": "value"})
+
+        # Act & Assert — попытка удаления через []
+        with pytest.raises((TypeError, AttributeError)):
+            del state["key"]
+
+    def test_write_method_missing(self) -> None:
+        """
+        Метод write() отсутствует (WritableMixin не используется).
+
+        Ранее write использовался для контролируемой записи,
+        но в frozen-модели этот метод не нужен.
+        """
         state = BaseState()
+        assert not hasattr(state, "write")
 
-        # Act — массовое обновление, каждая пара (key, value) записывается
-        # через setattr внутри WritableMixin.update()
-        state.update({"a": 1, "b": 2})
+    def test_update_method_missing(self) -> None:
+        """
+        Метод update() отсутствует (WritableMixin не используется).
 
-        # Assert — оба поля записаны
-        assert state.a == 1
-        assert state.b == 2
+        Массовое обновление state теперь выполняется через создание
+        нового экземпляра: BaseState({**old_state.to_dict(), **new_data}).
+        """
+        state = BaseState()
+        assert not hasattr(state, "update")
 
 
 # ═════════════════════════════════════════════════════════════════════════════

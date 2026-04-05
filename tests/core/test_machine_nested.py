@@ -20,6 +20,9 @@ nest_level прокидывается в ToolsBox, ScopedLogger и PluginEvent. 
 Прямой доступ к контексту через box закрыт. Аспекты получают данные
 контекста исключительно через ContextView при наличии @context_requires.
 
+Все core-типы (Params, Result, State) — frozen. Аспекты не могут мутировать
+state или result — только создавать новые экземпляры.
+
 ═══════════════════════════════════════════════════════════════════════════════
 ПОКРЫВАЕМЫЕ СЦЕНАРИИ
 ═══════════════════════════════════════════════════════════════════════════════
@@ -49,6 +52,7 @@ ToolsBox.resolve() — двухуровневый поиск:
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
+from pydantic import Field
 
 from action_machine.aspects.regular_aspect import regular_aspect
 from action_machine.aspects.summary_aspect import summary_aspect
@@ -79,21 +83,24 @@ class _ChildParams(BaseParams):
 
 
 class _ChildResult(BaseResult):
-    """Результат дочернего действия."""
-    pass
+    """Результат дочернего действия — frozen, все поля задаются в конструкторе."""
+    child_data: str = Field(description="Данные из дочернего действия")
+    nest: int = Field(description="Уровень вложенности")
 
 
 @meta(description="Дочернее действие для тестов вложенности")
 @check_roles(ROLE_NONE)
 class _ChildTestAction(BaseAction[_ChildParams, _ChildResult]):
-    """Простое дочернее действие, возвращающее фиксированный результат."""
+    """
+    Простое дочернее действие, возвращающее фиксированный результат.
+
+    Результат создаётся через конструктор (frozen), а не через мутацию.
+    """
 
     @summary_aspect("Результат дочернего действия")
     async def build_summary(self, params, state, box, connections):
-        result = _ChildResult()
-        result["child_data"] = "from_child"
-        result["nest"] = box.nested_level
-        return result
+        # Создаём frozen-результат через конструктор
+        return _ChildResult(child_data="from_child", nest=box.nested_level)
 
 
 class _ParentParams(BaseParams):
@@ -102,8 +109,9 @@ class _ParentParams(BaseParams):
 
 
 class _ParentResult(BaseResult):
-    """Результат родительского действия."""
-    pass
+    """Результат родительского действия — frozen."""
+    combined: str = Field(description="Скомбинированный результат")
+    parent_nest: int = Field(description="Уровень вложенности родителя")
 
 
 @meta(description="Родительское действие, вызывающее дочернее через box.run()")
@@ -118,14 +126,16 @@ class _ParentTestAction(BaseAction[_ParentParams, _ParentResult]):
     @result_string("child_result", required=True)
     async def call_child_aspect(self, params, state, box, connections):
         child_result = await box.run(_ChildTestAction, _ChildParams())
-        return {"child_result": child_result["child_data"]}
+        # child_result — frozen, читаем поле через dot-доступ
+        return {"child_result": child_result.child_data}
 
     @summary_aspect("Формирование результата родителя")
     async def build_summary(self, params, state, box, connections):
-        result = _ParentResult()
-        result["combined"] = f"parent+{state['child_result']}"
-        result["parent_nest"] = box.nested_level
-        return result
+        # Создаём frozen-результат через конструктор
+        return _ParentResult(
+            combined=f"parent+{state['child_result']}",
+            parent_nest=box.nested_level,
+        )
 
 
 @meta(description="Действие, записывающее nest_level в результат")
@@ -135,9 +145,7 @@ class _NestLevelTestAction(BaseAction[_ChildParams, _ChildResult]):
 
     @summary_aspect("Записать nest_level")
     async def build_summary(self, params, state, box, connections):
-        result = _ChildResult()
-        result["nest_level"] = box.nested_level
-        return result
+        return _ChildResult(child_data="", nest=box.nested_level)
 
 
 @meta(description="Родитель, вызывающий _NestLevelTestAction")
@@ -149,14 +157,12 @@ class _NestLevelParentAction(BaseAction[_ParentParams, _ParentResult]):
     @result_string("info", required=True)
     async def call_child_aspect(self, params, state, box, connections):
         child_result = await box.run(_NestLevelTestAction, _ChildParams())
-        child_nest = child_result["nest_level"]
+        child_nest = child_result.nest
         return {"info": f"parent={box.nested_level},child={child_nest}"}
 
     @summary_aspect("Результат")
     async def build_summary(self, params, state, box, connections):
-        result = _ParentResult()
-        result["info"] = state["info"]
-        return result
+        return _ParentResult(combined=state["info"], parent_nest=box.nested_level)
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -204,12 +210,14 @@ class TestBasicNestedCall:
         result = await machine.run(context, action, params)
 
         # Assert — результат содержит данные от дочернего действия
-        assert result["combined"] == "parent+from_child"
+        assert result.combined == "parent+from_child"
 
     @pytest.mark.asyncio
     async def test_child_action_executes_independently(self, machine, context) -> None:
         """
         _ChildTestAction может быть запущен и как самостоятельное действие.
+
+        Проверяет, что дочернее действие корректно выполняется вне родителя.
         """
         # Arrange — дочернее действие напрямую
         action = _ChildTestAction()
@@ -219,7 +227,7 @@ class TestBasicNestedCall:
         result = await machine.run(context, action, params)
 
         # Assert — результат содержит child_data
-        assert result["child_data"] == "from_child"
+        assert result.child_data == "from_child"
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -234,6 +242,9 @@ class TestNestLevel:
     async def test_root_action_has_nest_level_one(self, machine, context) -> None:
         """
         Корневое действие через run() получает nest_level=1.
+
+        Проверяет, что в корневом вызове box.nested_level = 1
+        (0 + 1 внутри _run_internal).
         """
         # Arrange — действие, записывающее nest_level в результат
         action = _NestLevelTestAction()
@@ -243,12 +254,14 @@ class TestNestLevel:
         result = await machine.run(context, action, params)
 
         # Assert — nest_level=1 для корневого действия
-        assert result["nest_level"] == 1
+        assert result.nest == 1
 
     @pytest.mark.asyncio
     async def test_child_has_incremented_nest_level(self, machine, context) -> None:
         """
         Дочернее действие через box.run() получает nest_level=2.
+
+        Корневое действие имеет nest_level=1, дочернее — nest_level=2.
         """
         # Arrange — родитель, вызывающий _NestLevelTestAction
         action = _NestLevelParentAction()
@@ -258,12 +271,14 @@ class TestNestLevel:
         result = await machine.run(context, action, params)
 
         # Assert — info содержит parent=1, child=2
-        assert result["info"] == "parent=1,child=2"
+        assert result.combined == "parent=1,child=2"
 
     @pytest.mark.asyncio
     async def test_plugin_receives_correct_nest_level(self, machine, context) -> None:
         """
         Плагины получают nest_level через emit_event.
+
+        Проверяем, что в первом вызове emit_event (global_start) nest_level=1.
         """
         # Arrange — машина с замоканным PluginCoordinator
         mock_plugin_ctx = AsyncMock(spec=PluginRunContext)
@@ -294,7 +309,6 @@ class TestConnectionWrapping:
         """
         Менеджер с get_wrapper_class() → оборачивается в WrapperConnectionManager.
         """
-        # Arrange — мок менеджера с wrapper_class
         from action_machine.resource_managers.iconnection_manager import IConnectionManager
         from action_machine.resource_managers.wrapper_connection_manager import WrapperConnectionManager
 
@@ -324,7 +338,6 @@ class TestConnectionWrapping:
         """
         Менеджер с get_wrapper_class() → None → передаётся как есть.
         """
-        # Arrange — мок менеджера без wrapper_class
         mock_manager = MagicMock(spec=BaseResourceManager)
         mock_manager.get_wrapper_class.return_value = None
 
@@ -349,7 +362,6 @@ class TestConnectionWrapping:
         """
         _wrap_connections(None) → None.
         """
-        # Arrange — ToolsBox
         box = ToolsBox(
             run_child=AsyncMock(),
             factory=MagicMock(),
@@ -391,7 +403,7 @@ class TestContextIsolation:
         result = await machine.run(context, action, params)
 
         # Assert — конвейер завершился, дочернее действие получило контекст
-        assert result["combined"] == "parent+from_child"
+        assert result.combined == "parent+from_child"
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -406,7 +418,6 @@ class TestToolsBoxResolve:
         """
         resolve(cls) сначала ищет в resources (моки).
         """
-        # Arrange — ToolsBox с resources, содержащим мок
         mock_service = MagicMock()
         mock_factory = MagicMock()
 
@@ -431,7 +442,6 @@ class TestToolsBoxResolve:
         """
         resolve(cls) делегирует в factory, если cls нет в resources.
         """
-        # Arrange — ToolsBox без resources для запрашиваемого класса
         mock_factory = MagicMock()
         mock_factory.resolve.return_value = "factory_result"
 
@@ -456,7 +466,6 @@ class TestToolsBoxResolve:
         """
         resolve() передаёт rollup из ToolsBox в factory.resolve().
         """
-        # Arrange — ToolsBox с rollup=True
         mock_factory = MagicMock()
         mock_factory.resolve.return_value = "result"
 

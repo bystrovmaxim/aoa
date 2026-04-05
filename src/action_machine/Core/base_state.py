@@ -1,64 +1,131 @@
-# src/action_machine/core/BaseState.py
+# src/action_machine/core/base_state.py
 """
-Base class for aspect pipeline state.
+BaseState — frozen-состояние конвейера аспектов.
 
-Inherits ReadableMixin and WritableMixin, providing a dict‑like interface
-for reading and writing, as well as dot‑path resolution via the resolve method.
+═══════════════════════════════════════════════════════════════════════════════
+НАЗНАЧЕНИЕ
+═══════════════════════════════════════════════════════════════════════════════
 
-Replaces the previously used implicit dict[str, Any] in all aspects and plugins.
+BaseState — неизменяемый объект, хранящий накопленные данные между шагами
+конвейера аспектов. Каждый regular-аспект возвращает dict с новыми полями,
+машина (ActionProductMachine) проверяет их чекерами и создаёт НОВЫЙ
+BaseState, объединяя предыдущие данные с новыми. Аспект получает state
+только на чтение — мутация невозможна после создания.
 
-Advantages of replacing dict with BaseState:
-    1. Uniform interface – state supports resolve, get, keys, items,
-       write, update – just like all other objects based on ReadableMixin.
-    2. Controlled writing – the write(key, value, allowed_keys) method
-       allows restricting the set of fields that can be modified.
-    3. Typing – IDE and mypy see the concrete type BaseState,
-       not a vague dict[str, Any].
-    4. Extensibility – you can subclass BaseState to add validation,
-       change logging, or immutable fields.
+═══════════════════════════════════════════════════════════════════════════════
+FROZEN-СЕМАНТИКА
+═══════════════════════════════════════════════════════════════════════════════
 
-Can be initialized from a dictionary. All keys become object attributes.
-Supports dict‑like access (obj['key']) and attribute access (obj.key).
+BaseState полностью неизменяем после создания:
 
-Example:
-    >>> state = BaseState({"total": 1500, "user": "agent"})
-    >>> state["count"] = 42
-    >>> state.processed = True
-    >>> state.resolve("user")
-    'agent'
-    >>> state.to_dict()
-    {'total': 1500, 'user': 'agent', 'count': 42, 'processed': True}
+- ``__setattr__`` выбрасывает ``AttributeError`` (кроме инициализации
+  через ``object.__setattr__`` в ``__init__``).
+- ``__delattr__`` выбрасывает ``AttributeError``.
+- Нет методов ``__setitem__``, ``__delitem__``, ``write``, ``update``.
+
+Единственный способ «изменить» состояние — создать новый экземпляр:
+
+    old_state = BaseState({"total": 100})
+    new_state = BaseState({**old_state.to_dict(), "discount": 10})
+
+Это гарантирует, что аспект не может записать данные в state напрямую,
+обойдя чекеры. Машина контролирует каждое добавление поля через валидацию
+dict, возвращённого аспектом.
+
+═══════════════════════════════════════════════════════════════════════════════
+НАСЛЕДОВАНИЕ
+═══════════════════════════════════════════════════════════════════════════════
+
+BaseState наследует ``ReadableMixin``, что обеспечивает:
+
+- Dict-подобный доступ на чтение: ``state["key"]``, ``state.get("key")``.
+- Навигацию по вложенным объектам: ``state.resolve("nested.field")``.
+- Итерацию: ``state.keys()``, ``state.values()``, ``state.items()``.
+- Проверку наличия: ``"key" in state``.
+
+═══════════════════════════════════════════════════════════════════════════════
+КОНВЕЙЕР АСПЕКТОВ — КАК STATE ИСПОЛЬЗУЕТСЯ МАШИНОЙ
+═══════════════════════════════════════════════════════════════════════════════
+
+    1. Машина создаёт пустой state: ``state = BaseState()``.
+    2. Для каждого regular-аспекта:
+       a. Вызывает аспект, передавая текущий frozen state.
+       b. Аспект возвращает dict с новыми полями.
+       c. Машина проверяет dict чекерами.
+       d. Машина создаёт новый state: ``BaseState({**state.to_dict(), **new_dict})``.
+    3. Summary-аспект получает финальный frozen state и формирует Result.
+
+На каждом шаге state — новый объект. Предыдущий state не модифицируется.
+
+═══════════════════════════════════════════════════════════════════════════════
+ОТЛИЧИЕ ОТ BaseParams И BaseResult
+═══════════════════════════════════════════════════════════════════════════════
+
+    BaseParams  — pydantic BaseModel, frozen=True. Входные параметры действия.
+    BaseResult  — pydantic BaseModel, frozen=True. Результат действия.
+    BaseState   — обычный класс (не pydantic), frozen. Промежуточное состояние
+                  конвейера. Не pydantic, потому что поля динамические —
+                  определяются возвращаемыми dict аспектов, а не схемой класса.
+
+═══════════════════════════════════════════════════════════════════════════════
+ПРИМЕР ИСПОЛЬЗОВАНИЯ
+═══════════════════════════════════════════════════════════════════════════════
+
+    # Создание с начальными данными
+    state = BaseState({"total": 1500, "user": "agent"})
+
+    # Чтение
+    state["total"]            # → 1500
+    state.get("user")         # → "agent"
+    state.resolve("user")     # → "agent"
+    state.to_dict()           # → {"total": 1500, "user": "agent"}
+
+    # Запись запрещена
+    state["count"] = 42       # → AttributeError
+    state.processed = True    # → AttributeError
+    del state["total"]        # → AttributeError
+
+    # «Изменение» — создание нового экземпляра
+    new_state = BaseState({**state.to_dict(), "count": 42})
+    new_state["count"]        # → 42
+    new_state["total"]        # → 1500 (унаследовано)
 """
 
 from typing import Any
 
 from .readable_mixin import ReadableMixin
-from .writable_mixin import WritableMixin
 
 
-class BaseState(ReadableMixin, WritableMixin):
+class BaseState(ReadableMixin):
     """
-    Aspect pipeline state.
+    Frozen-состояние конвейера аспектов.
 
-    Can be initialized from a dictionary. All keys become attributes.
-    Supports dict‑like access (obj['key']) and attribute access (obj.key).
-    Also provides the resolve method for dot‑notation navigation
-    and write for controlled writing with validation.
+    Инициализируется из словаря. Все ключи становятся атрибутами.
+    После создания запись и удаление атрибутов запрещены.
+
+    Поддерживает dict-подобный доступ на чтение через ReadableMixin:
+    ``state["key"]``, ``state.get("key")``, ``state.keys()``,
+    ``state.resolve("nested.path")``.
     """
+
+    # Флаг, разрешающий запись только во время __init__.
+    # Создаётся через type.__setattr__ на уровне класса,
+    # поэтому не попадает под проверку экземплярного __setattr__.
+    _initializing: bool = False
 
     def __init__(self, initial: dict[str, Any] | None = None) -> None:
         """
-        Initializes the state.
+        Инициализирует frozen-состояние.
 
-        If an initial dictionary is provided, each (key, value) pair
-        is set as an attribute via setattr. None or an empty dictionary
-        mean an empty state.
+        Каждая пара (ключ, значение) из словаря записывается как атрибут
+        через ``object.__setattr__``, минуя переопределённый ``__setattr__``.
+        После завершения ``__init__`` любая запись запрещена.
 
-        Args:
-            initial: initial values as a dictionary. Keys become object attributes.
-                     None means empty state.
+        Аргументы:
+            initial: начальные значения. Ключи становятся атрибутами.
+                     None или пустой словарь — пустое состояние.
 
-        Example:
+        Пример:
             >>> state = BaseState({"total": 1500})
             >>> state.total
             1500
@@ -68,38 +135,64 @@ class BaseState(ReadableMixin, WritableMixin):
         """
         if initial:
             for key, value in initial.items():
-                setattr(self, key, value)
+                object.__setattr__(self, key, value)
+
+    def __setattr__(self, name: str, value: Any) -> None:
+        """
+        Запрещает запись атрибутов. BaseState полностью frozen после создания.
+
+        Исключения:
+            AttributeError: всегда.
+        """
+        raise AttributeError(
+            f"BaseState является frozen-объектом. "
+            f"Запись атрибута '{name}' запрещена. "
+            f"Создайте новый BaseState с нужными данными: "
+            f"BaseState({{**state.to_dict(), '{name}': value}})."
+        )
+
+    def __delattr__(self, name: str) -> None:
+        """
+        Запрещает удаление атрибутов. BaseState полностью frozen после создания.
+
+        Исключения:
+            AttributeError: всегда.
+        """
+        raise AttributeError(
+            f"BaseState является frozen-объектом. "
+            f"Удаление атрибута '{name}' запрещено."
+        )
 
     def to_dict(self) -> dict[str, Any]:
         """
-        Returns a dictionary of all public attributes of the state.
+        Возвращает словарь всех публичных атрибутов состояния.
 
-        Used to pass the state to loggers, serializers, and other components
-        that expect a dictionary. Uses vars(self) and filters out private
-        attributes (those starting with '_').
+        Используется машиной для создания нового BaseState при мерже
+        с результатом аспекта, а также для передачи в плагины
+        (PluginEvent.state_aspect) и логгеры.
 
-        Returns:
-            dict[str, Any]: dictionary with (key, value) pairs for all
-            public fields.
+        Фильтрует приватные атрибуты (начинающиеся с '_').
 
-        Example:
+        Возвращает:
+            dict[str, Any] — словарь {ключ: значение} публичных полей.
+
+        Пример:
             >>> state = BaseState({"a": 1, "b": 2})
             >>> state.to_dict()
             {'a': 1, 'b': 2}
         """
-        # Collect all instance attributes except private ones (starting with '_')
-        return {k: v for k, v in vars(self).items() if not k.startswith('_')}
+        return {k: v for k, v in vars(self).items() if not k.startswith("_")}
 
     def __repr__(self) -> str:
         """
-        Human‑readable representation of the state for debugging.
+        Человекочитаемое представление для отладки.
 
-        Format: BaseState(key1=value1, key2=value2, ...).
+        Формат: ``BaseState(key1=value1, key2=value2, ...)``.
 
-        Returns:
-            str: string representation of the object.
+        Возвращает:
+            str — строковое представление объекта.
 
-        Example:
+        Пример:
             >>> state = BaseState({"total": 1500})
             >>> repr(state)
             "BaseState(total=1500)"

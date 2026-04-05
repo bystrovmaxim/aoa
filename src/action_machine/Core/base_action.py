@@ -8,8 +8,8 @@
 
 BaseAction — абстрактный базовый класс, от которого наследуются все
 действия (Action) в системе. Параметризован типами Params и Result,
-которые должны соответствовать протоколам ReadableDataProtocol
-и WritableDataProtocol.
+которые должны соответствовать протоколу ReadableDataProtocol.
+Оба типа — read-only после создания (frozen).
 
 ═══════════════════════════════════════════════════════════════════════════════
 ОБЯЗАТЕЛЬНЫЕ ДЕКОРАТОРЫ
@@ -17,14 +17,14 @@ BaseAction — абстрактный базовый класс, от котор
 
 Каждое действие обязано иметь два декоратора:
 
-1. @meta(description="...", domain=...) — описание и доменная принадлежность.
-   Контролируется ActionMetaGateHost. MetadataBuilder при сборке проверяет:
-   если класс наследует ActionMetaGateHost и содержит аспекты — @meta
-   обязателен. Без него — TypeError.
+1. ``@meta(description="...", domain=...)`` — описание и доменная
+   принадлежность. Контролируется ActionMetaGateHost. MetadataBuilder
+   при сборке проверяет: если класс наследует ActionMetaGateHost
+   и содержит аспекты — @meta обязателен. Без него — TypeError.
 
-2. @check_roles(...) — ролевые ограничения. Контролируется RoleGateHost.
-   ActionProductMachine при выполнении проверяет: если действие не имеет
-   @check_roles — TypeError.
+2. ``@check_roles(...)`` — ролевые ограничения. Контролируется
+   RoleGateHost. ActionProductMachine при выполнении проверяет:
+   если действие не имеет @check_roles — TypeError.
 
 ═══════════════════════════════════════════════════════════════════════════════
 АСПЕКТЫ
@@ -34,9 +34,10 @@ BaseAction — абстрактный базовый класс, от котор
 с помощью декораторов @regular_aspect и @summary_aspect из модуля aspects.
 BaseAction не содержит методов аспектов — только общую инфраструктуру.
 
-Аспекты принимают параметр state типа BaseState (вместо dict[str, Any]),
-что обеспечивает единообразный интерфейс (resolve, get, write, items)
-и контролируемую запись.
+Аспекты принимают параметр state типа BaseState (frozen-объект),
+что обеспечивает единообразный интерфейс (resolve, get, keys, items)
+и запрет записи. Аспект не может мутировать state — только вернуть
+dict с новыми полями, который машина провалидирует чекерами.
 
 ═══════════════════════════════════════════════════════════════════════════════
 УПРАВЛЯЕМЫЙ ДОСТУП К КОНТЕКСТУ
@@ -63,8 +64,8 @@ connections, ctx).
 Действия могут объявлять обработчики неперехваченных исключений аспектов
 через декоратор @on_error. Контролируется OnErrorGateHost. Когда аспект
 бросает исключение, ActionProductMachine ищет подходящий обработчик
-по типу исключения (isinstance) и вызывает его. Обработчик может
-вернуть Result, подменяя результат действия.
+по типу исключения (isinstance) и вызывает его. Обработчик создаёт
+и возвращает новый Result, подменяя результат действия.
 
 Обработчики НЕ наследуются от родительского Action — каждый Action
 объявляет свои обработчики явно. Имя метода обязано заканчиваться
@@ -107,7 +108,7 @@ BaseAction наследует девять маркерных миксинов, 
 Декораторы уровня метода (@regular_aspect, @summary_aspect, чекеры,
 @on_error, @context_requires) не могут проверить гейт-хост в момент
 применения (класс ещё не создан), поэтому проверка выполняется
-в MetadataBuilder.
+в MetadataBuilder при первом обращении к классу через GateCoordinator.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ИНВАРИАНТ ИМЕНОВАНИЯ
@@ -126,6 +127,15 @@ BaseAction наследует девять маркерных миксинов, 
 Это означает, что все экземпляры одного класса разделяют один кеш.
 
 ═══════════════════════════════════════════════════════════════════════════════
+FROZEN CORE-ТИПЫ
+═══════════════════════════════════════════════════════════════════════════════
+
+Оба generic-параметра P и R соответствуют ReadableDataProtocol —
+оба read-only после создания. P (Params) — frozen pydantic,
+R (Result) — frozen pydantic. Это единый контракт: все данные,
+проходящие через конвейер, неизменяемы.
+
+═══════════════════════════════════════════════════════════════════════════════
 ПРИМЕР ИСПОЛЬЗОВАНИЯ
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -134,7 +144,7 @@ BaseAction наследует девять маркерных миксинов, 
     ... class PingAction(BaseAction[BaseParams, BaseResult]):
     ...     @summary_aspect("Pong response")
     ...     async def pong_summary(self, params, state, box, connections):
-    ...         return BaseResult(message="pong")
+    ...         return BaseResult()
 
     >>> @meta(description="Создание заказа", domain=OrdersDomain)
     ... @check_roles("manager")
@@ -166,7 +176,7 @@ from action_machine.checkers.checker_gate_host import CheckerGateHost
 from action_machine.context.context_requires_gate_host import ContextRequiresGateHost
 from action_machine.core.exceptions import NamingSuffixError
 from action_machine.core.meta_gate_hosts import ActionMetaGateHost
-from action_machine.core.protocols import ReadableDataProtocol, WritableDataProtocol
+from action_machine.core.protocols import ReadableDataProtocol
 from action_machine.dependencies.dependency_gate_host import DependencyGateHost
 from action_machine.on_error.on_error_gate_host import OnErrorGateHost
 from action_machine.resource_managers.connection_gate_host import ConnectionGateHost
@@ -175,7 +185,7 @@ from action_machine.resource_managers.connection_gate_host import ConnectionGate
 _REQUIRED_SUFFIX = "Action"
 
 
-class BaseAction[P: ReadableDataProtocol, R: WritableDataProtocol](
+class BaseAction[P: ReadableDataProtocol, R: ReadableDataProtocol](
     ABC,
     ActionMetaGateHost,
     RoleGateHost,
@@ -193,18 +203,15 @@ class BaseAction[P: ReadableDataProtocol, R: WritableDataProtocol](
     и @summary_aspect, а обработчики ошибок — через @on_error. Аспекты
     и обработчики могут декларировать доступ к полям контекста через
     @context_requires. Не содержит состояния — все данные передаются
-    через params и state (объект BaseState).
+    через params (frozen) и state (frozen BaseState).
 
     Каждое действие обязано иметь декораторы @meta и @check_roles.
-    @meta задаёт описание и опциональный домен. @check_roles задаёт
-    ролевые ограничения.
 
     Каждый класс, наследующий BaseAction, обязан иметь суффикс "Action"
     в имени. Проверяется при определении класса через __init_subclass__.
 
-    Метаданные (описание, домен, роли, зависимости, чекеры, аспекты,
-    соединения, обработчики ошибок, контекстные зависимости) собираются
-    автоматически при первом обращении к классу через GateCoordinator.
+    Оба generic-параметра P и R соответствуют ReadableDataProtocol —
+    оба read-only после создания.
 
     Атрибуты класса:
         _full_class_name : str | None
