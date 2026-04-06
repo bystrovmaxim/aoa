@@ -19,7 +19,7 @@ VariableSubstitutor отвечает за:
    - Проход 1: замена {%namespace.path} на значения.
      Внутри {iif(...)} значения подставляются как литералы
      (строки в кавычках, числа как есть).
-   - Проход 2: вычисление {iif(...)} через ExpressionEvaluator.
+   - Проход 2: вычисление {iif(...)} через ExpressionEvaluator [11].
 
 3. Строгую политику ошибок:
    - Переменная не найдена → LogTemplateError.
@@ -36,7 +36,7 @@ VariableSubstitutor отвечает за:
 
 6. Маскирование чувствительных данных: если разрешённая переменная
    является свойством с декоратором @sensitive, значение маскируется
-   по параметрам декоратора.
+   по параметрам декоратора [12].
 
 ═══════════════════════════════════════════════════════════════════════════════
 ЗАЩИТА ОТ ДОСТУПА К ПРИВАТНЫМ АТРИБУТАМ
@@ -73,7 +73,26 @@ VariableSubstitutor использует navigate_with_source(), который
 и имя последнего сегмента пути. Это необходимо для обнаружения
 @sensitive-свойств: декоратор @sensitive вешается на property объекта
 source, и для его обнаружения нужно знать, на каком объекте и по
-какому имени было прочитано финальное значение.
+какому имени было прочитано финальное значение [12].
+
+═══════════════════════════════════════════════════════════════════════════════
+ВНУТРЕННЯЯ АРХИТЕКТУРА РАЗРЕШЕНИЯ ПЕРЕМЕННЫХ
+═══════════════════════════════════════════════════════════════════════════════
+
+Разрешение переменной проходит через конвейер из трёх уровней:
+
+1. _resolve_variable_raw(namespace, path, ...) → (raw_value, source, last_segment)
+   Выбирает namespace-резольвер и делегирует навигацию DotPathNavigator.
+
+2. _resolve_and_mask(namespace, path, ...) → (raw_value, masked_str, config)
+   Общая логика: валидация пути на '_', вызов _resolve_variable_raw,
+   проверка _SENTINEL, обнаружение @sensitive, маскирование.
+   Единая точка для шагов 1–5, устраняющая дублирование.
+
+3. Финальное форматирование — зависит от контекста вызова:
+   - _resolve_variable() → возвращает masked_str (для простых подстановок).
+   - _format_variable_for_template() → форматирует с учётом inside_iif
+     (литералы для simpleeval) и фильтров (|color, |debug).
 
 ═══════════════════════════════════════════════════════════════════════════════
 ОБРАБОТКА ЦВЕТОВЫХ МАРКЕРОВ
@@ -193,6 +212,9 @@ class VariableSubstitutor:
     - Проверка безопасности: каждый сегмент dot-path проверяется на
       префикс '_' до выполнения навигации. Это предотвращает доступ
       к приватным атрибутам объектов через шаблоны логирования.
+    - Общая логика разрешения и маскирования вынесена в _resolve_and_mask(),
+      устраняя дублирование между _resolve_variable и
+      _format_variable_for_template.
     - Форматирование значений как литералов для simpleeval
       (строки в кавычках, числа как есть).
     - Двухпроходная подстановка: сначала {%...}, затем {iif(...)}.
@@ -200,10 +222,10 @@ class VariableSubstitutor:
     - Цветовые фильтры через |color (вне iif) и цветовые функции (внутри iif),
       преобразуемые в маркеры и постобрабатываемые в ANSI-коды.
     - Debug-фильтр через |debug, выводящий интроспекцию объекта.
-    - Маскирование @sensitive-свойств.
+    - Маскирование @sensitive-свойств [12].
 
     Атрибуты:
-        _evaluator: экземпляр ExpressionEvaluator для вычисления iif.
+        _evaluator: экземпляр ExpressionEvaluator для вычисления iif [11].
         _namespace_resolvers: dispatch-словарь namespace → метод-резольвер.
     """
 
@@ -271,7 +293,7 @@ class VariableSubstitutor:
         кортеж (value, source, last_segment), где:
             - value        — найденное значение или _SENTINEL.
             - source       — предпоследний объект в цепочке (нужен
-                             для обнаружения @sensitive-свойств).
+                             для обнаружения @sensitive-свойств) [12].
             - last_segment — имя последнего сегмента пути.
 
         Аргументы:
@@ -332,7 +354,7 @@ class VariableSubstitutor:
         """
         Проверяет, имеет ли свойство attr_name на объекте obj декоратор @sensitive.
 
-        Обходит MRO класса объекта, ищет property с _sensitive_config на getter.
+        Обходит MRO класса объекта, ищет property с _sensitive_config на getter [12].
 
         Аргументы:
             obj: объект-источник (предпоследний в цепочке навигации).
@@ -400,10 +422,10 @@ class VariableSubstitutor:
         return resolver(path or "", var, scope, ctx, state, params)
 
     # ----------------------------------------------------------------
-    # Строковое разрешение с проверкой подчёркиваний и маскированием
+    # Общая логика разрешения, валидации и маскирования
     # ----------------------------------------------------------------
 
-    def _resolve_variable(
+    def _resolve_and_mask(
         self,
         namespace: str,
         path: str | None,
@@ -412,15 +434,18 @@ class VariableSubstitutor:
         ctx: Context,
         state: BaseState,
         params: BaseParams,
-    ) -> str:
+    ) -> tuple[object, str, dict[str, Any] | None]:
         """
-        Разрешает одну переменную — возвращает строковое представление,
-        возможно замаскированное.
+        Единая точка разрешения переменной с валидацией и маскированием.
 
-        Выполняет проверки:
-        - Каждый сегмент пути проверяется на префикс '_' → LogTemplateError.
-        - Переменная не найдена → LogTemplateError.
-        - @sensitive-свойство → маскирование через mask_value.
+        Выполняет все общие шаги, которые нужны и _resolve_variable,
+        и _format_variable_for_template:
+
+            1. Валидация всех сегментов пути на префикс '_'.
+            2. Разрешение через _resolve_variable_raw.
+            3. Проверка _SENTINEL → LogTemplateError.
+            4. Обнаружение @sensitive через _get_property_config [12].
+            5. Маскирование через mask_value если config найден [12].
 
         Аргументы:
             namespace: имя источника данных.
@@ -432,7 +457,11 @@ class VariableSubstitutor:
             params: входные параметры действия [2].
 
         Возвращает:
-            Строковое представление значения переменной.
+            Кортеж (raw_value, masked_str, config):
+                raw_value  — сырое значение (для isinstance-проверок в iif).
+                masked_str — строковое представление (замаскированное если
+                             @sensitive, иначе str(raw_value)).
+                config     — sensitive-конфигурация или None.
 
         Исключения:
             LogTemplateError: если переменная не найдена или любой
@@ -455,12 +484,54 @@ class VariableSubstitutor:
         if source is not None and last_segment is not None:
             config = self._get_property_config(source, last_segment)
 
-        if config:
-            if not config.get('enabled', True):
-                return str(raw_value)
-            return mask_value(raw_value, config)
+        if config and config.get('enabled', True):
+            masked_str = mask_value(raw_value, config)
+        else:
+            masked_str = str(raw_value)
 
-        return str(raw_value)
+        return raw_value, masked_str, config
+
+    # ----------------------------------------------------------------
+    # Строковое разрешение (тонкая обёртка над _resolve_and_mask)
+    # ----------------------------------------------------------------
+
+    def _resolve_variable(
+        self,
+        namespace: str,
+        path: str | None,
+        var: dict[str, Any],
+        scope: LogScope,
+        ctx: Context,
+        state: BaseState,
+        params: BaseParams,
+    ) -> str:
+        """
+        Разрешает одну переменную — возвращает строковое представление,
+        возможно замаскированное.
+
+        Делегирует всю логику _resolve_and_mask и возвращает masked_str.
+        Используется на быстром пути (шаблоны без iif).
+
+        Аргументы:
+            namespace: имя источника данных.
+            path: dot-path после namespace.
+            var: словарь пользовательских переменных.
+            scope: текущий scope логирования [3].
+            ctx: контекст выполнения [2].
+            state: текущее состояние конвейера.
+            params: входные параметры действия [2].
+
+        Возвращает:
+            Строковое представление значения переменной.
+
+        Исключения:
+            LogTemplateError: если переменная не найдена или любой
+                              сегмент пути начинается с подчёркивания.
+        """
+        _, masked_str, _ = self._resolve_and_mask(
+            namespace, path, var, scope, ctx, state, params
+        )
+        return masked_str
 
     # ----------------------------------------------------------------
     # Форматирование значений как литералов для iif
@@ -469,7 +540,7 @@ class VariableSubstitutor:
     @staticmethod
     def _quote_if_string(raw_value: object) -> str:
         """
-        Форматирует сырое значение как литерал для simpleeval.
+        Форматирует сырое значение как литерал для simpleeval [11].
 
         Числа и булевы значения возвращаются как строки без кавычек.
         Строки оборачиваются в одинарные кавычки.
@@ -526,20 +597,20 @@ class VariableSubstitutor:
             path = match.group(2)
             filter_name = match.group(3)
 
-            value = self._resolve_variable(
-                namespace, path, var, scope, ctx, state, params
-            )
-
             if filter_name == "debug":
-                raw_value, _, _ = self._resolve_variable_raw(
+                raw_value, _, _ = self._resolve_and_mask(
                     namespace, path, var, scope, ctx, state, params
                 )
                 return debug_value(raw_value)
 
-            if filter_name:
-                return f"__COLOR({filter_name}){value}__COLOR_END__"
+            _, masked_str, _ = self._resolve_and_mask(
+                namespace, path, var, scope, ctx, state, params
+            )
 
-            return value
+            if filter_name:
+                return f"__COLOR({filter_name}){masked_str}__COLOR_END__"
+
+            return masked_str
 
         return _VARIABLE_PATTERN.sub(replacer, message)
 
@@ -557,9 +628,11 @@ class VariableSubstitutor:
         Форматирует одно вхождение переменной в шаблоне, учитывая
         маскировку, фильтры и нахождение внутри/вне iif.
 
-        Внутри iif значения форматируются как литералы для simpleeval:
-        строки в кавычках, числа и булевы как есть. Вне iif —
-        простое строковое представление.
+        Делегирует разрешение и маскирование _resolve_and_mask.
+        Финальное форматирование зависит от inside_iif:
+        - Внутри iif: числа и булевы как литералы без кавычек,
+          строки в кавычках через _quote_if_string [11].
+        - Вне iif: masked_str как есть.
 
         Аргументы:
             match: объект совпадения regex.
@@ -577,38 +650,17 @@ class VariableSubstitutor:
         path = match.group(2)
         filter_name = match.group(3)
 
-        if path is not None:
-            self._validate_path_segments(namespace, path)
-
-        raw_value, source, last_segment = self._resolve_variable_raw(
+        raw_value, masked_str, _ = self._resolve_and_mask(
             namespace, path, var, scope, ctx, state, params
         )
 
-        if raw_value is _SENTINEL:
-            raise LogTemplateError(
-                f"Variable '{{%{namespace}.{path or ''}}}' not found. "
-                f"Check the template and ensure the value exists in source '{namespace}'."
-            )
-
-        config = None
-        if source is not None and last_segment is not None:
-            config = self._get_property_config(source, last_segment)
-
         if inside_iif:
-            if config:
-                str_value = mask_value(raw_value, config)
-            else:
-                str_value = str(raw_value)
-
             if isinstance(raw_value, (bool, int, float)):
-                formatted = str_value
+                formatted = masked_str
             else:
-                formatted = self._quote_if_string(str_value)
+                formatted = self._quote_if_string(masked_str)
         else:
-            if config:
-                formatted = mask_value(raw_value, config)
-            else:
-                formatted = str(raw_value)
+            formatted = masked_str
 
         if filter_name == "debug":
             return debug_value(raw_value)
@@ -797,7 +849,7 @@ class VariableSubstitutor:
            Цветовые фильтры (|color) превращаются в маркеры.
            Debug-фильтр (|debug) выводит интроспекцию объекта.
 
-        2. Вычисление {iif(...)} через ExpressionEvaluator. simpleeval
+        2. Вычисление {iif(...)} через ExpressionEvaluator [11]. simpleeval
            получает выражения с уже подставленными литералами и пустой
            словарь имён. Цветовые функции (red('text')) внутри iif
            возвращают маркеры.
