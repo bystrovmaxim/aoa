@@ -136,7 +136,6 @@ from typing import Any, ForwardRef, get_args, get_origin
 
 from action_machine.core.base_action import BaseAction
 
-
 # ═════════════════════════════════════════════════════════════════════════════
 # Резолв ForwardRef → конкретный тип
 # ═════════════════════════════════════════════════════════════════════════════

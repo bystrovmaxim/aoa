@@ -46,7 +46,6 @@ from action_machine.logging.variable_substitutor import VariableSubstitutor
 from action_machine.testing.stubs import ContextStub
 from tests.domain import SimpleAction
 
-
 # ─────────────────────────────────────────────────────────────────────────────
 # Общие фикстуры
 # ─────────────────────────────────────────────────────────────────────────────

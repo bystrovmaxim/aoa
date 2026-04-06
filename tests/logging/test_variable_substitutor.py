@@ -37,20 +37,15 @@
 """
 
 import pytest
-from pydantic import Field
 
 from action_machine.context.context import Context
-from action_machine.context.user_info import UserInfo
 from action_machine.core.base_params import BaseParams
-from action_machine.core.base_result import BaseResult
 from action_machine.core.base_state import BaseState
 from action_machine.core.exceptions import LogTemplateError
 from action_machine.logging.log_scope import LogScope
-from action_machine.logging.masking import mask_value
 from action_machine.logging.variable_substitutor import VariableSubstitutor
 from action_machine.testing.stubs import ContextStub
 from tests.domain import SimpleAction
-
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Вспомогательные модели для тестов
