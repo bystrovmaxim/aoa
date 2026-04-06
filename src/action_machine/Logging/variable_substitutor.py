@@ -25,7 +25,7 @@ VariableSubstitutor отвечает за:
    - Переменная не найдена → LogTemplateError.
    - Неизвестный namespace → LogTemplateError.
    - Невалидный iif → LogTemplateError.
-   - Обращение к имени с подчёркиванием → LogTemplateError.
+   - Обращение к имени с подчёркиванием в любом сегменте пути → LogTemplateError.
 
 4. Цветовые фильтры: синтаксис {%var.amount|red} (вне iif) и цветовые
    функции red('text') (внутри iif). Преобразуются в маркеры, затем
@@ -37,6 +37,23 @@ VariableSubstitutor отвечает за:
 6. Маскирование чувствительных данных: если разрешённая переменная
    является свойством с декоратором @sensitive, значение маскируется
    по параметрам декоратора.
+
+═══════════════════════════════════════════════════════════════════════════════
+ЗАЩИТА ОТ ДОСТУПА К ПРИВАТНЫМ АТРИБУТАМ
+═══════════════════════════════════════════════════════════════════════════════
+
+Шаблоны логирования не должны позволять доступ к приватным атрибутам
+объектов. Проверка выполняется для КАЖДОГО сегмента dot-path, а не
+только для последнего. Это предотвращает обход защиты через
+промежуточные приватные сегменты:
+
+    {%context.user._secret}        → LogTemplateError  (последний сегмент)
+    {%context._internal.public}    → LogTemplateError  (промежуточный сегмент)
+    {%context.__dict__.keys}       → LogTemplateError  (dunder-сегмент)
+
+Проверка применяется только в VariableSubstitutor (шаблоны логирования).
+BaseSchema.resolve() [2] вызывается из доверенного кода и не ограничивает
+доступ к приватным атрибутам.
 
 ═══════════════════════════════════════════════════════════════════════════════
 НАВИГАЦИЯ ПО ВЛОЖЕННЫМ ОБЪЕКТАМ
@@ -173,6 +190,9 @@ class VariableSubstitutor:
     - Разрешение переменных из пяти namespace через dispatch-словарь.
     - Навигация по вложенным объектам через dot-path делегируется
       единому DotPathNavigator из core.navigation.
+    - Проверка безопасности: каждый сегмент dot-path проверяется на
+      префикс '_' до выполнения навигации. Это предотвращает доступ
+      к приватным атрибутам объектов через шаблоны логирования.
     - Форматирование значений как литералов для simpleeval
       (строки в кавычках, числа как есть).
     - Двухпроходная подстановка: сначала {%...}, затем {iif(...)}.
@@ -203,6 +223,37 @@ class VariableSubstitutor:
             "context": self._resolve_ns_context,
             "params": self._resolve_ns_params,
         }
+
+    # ----------------------------------------------------------------
+    # Проверка безопасности dot-path
+    # ----------------------------------------------------------------
+
+    @staticmethod
+    def _validate_path_segments(namespace: str, path: str) -> None:
+        """
+        Проверяет, что ни один сегмент dot-path не начинается с подчёркивания.
+
+        Проверяются ВСЕ сегменты пути, а не только последний. Это
+        предотвращает обход защиты через промежуточные приватные сегменты:
+
+            {%context._internal.public_key}  → блокируется на '_internal'
+            {%context.__dict__.keys}         → блокируется на '__dict__'
+            {%context.user._secret}          → блокируется на '_secret'
+
+        Аргументы:
+            namespace: имя источника данных (для сообщения об ошибке).
+            path: dot-path строка для проверки.
+
+        Исключения:
+            LogTemplateError: если любой сегмент начинается с '_'.
+        """
+        for segment in path.split("."):
+            if segment.startswith("_"):
+                raise LogTemplateError(
+                    f"Access to name starting with underscore is forbidden: "
+                    f"'{segment}' in variable {{%{namespace}.{path}}}. "
+                    f"Use a public property if output is needed."
+                )
 
     # ----------------------------------------------------------------
     # Навигация по вложенным объектам
@@ -349,7 +400,7 @@ class VariableSubstitutor:
         return resolver(path or "", var, scope, ctx, state, params)
 
     # ----------------------------------------------------------------
-    # Строковое разрешение с проверкой None, подчёркиваний и маскированием
+    # Строковое разрешение с проверкой подчёркиваний и маскированием
     # ----------------------------------------------------------------
 
     def _resolve_variable(
@@ -367,7 +418,7 @@ class VariableSubstitutor:
         возможно замаскированное.
 
         Выполняет проверки:
-        - Имя с подчёркиванием → LogTemplateError.
+        - Каждый сегмент пути проверяется на префикс '_' → LogTemplateError.
         - Переменная не найдена → LogTemplateError.
         - @sensitive-свойство → маскирование через mask_value.
 
@@ -384,18 +435,13 @@ class VariableSubstitutor:
             Строковое представление значения переменной.
 
         Исключения:
-            LogTemplateError: если переменная не найдена или имя с подчёркиванием.
+            LogTemplateError: если переменная не найдена или любой
+                              сегмент пути начинается с подчёркивания.
         """
-        last_segment = None
         if path is not None:
-            last_segment = path.split(".")[-1]
-            if last_segment.startswith("_"):
-                raise LogTemplateError(
-                    f"Access to name starting with underscore is forbidden: '{last_segment}' "
-                    f"in variable {{%{namespace}.{path}}}. Use a public property if output is needed."
-                )
+            self._validate_path_segments(namespace, path)
 
-        raw_value, source, _ = self._resolve_variable_raw(
+        raw_value, source, last_segment = self._resolve_variable_raw(
             namespace, path, var, scope, ctx, state, params
         )
 
@@ -531,7 +577,10 @@ class VariableSubstitutor:
         path = match.group(2)
         filter_name = match.group(3)
 
-        raw_value, source, _ = self._resolve_variable_raw(
+        if path is not None:
+            self._validate_path_segments(namespace, path)
+
+        raw_value, source, last_segment = self._resolve_variable_raw(
             namespace, path, var, scope, ctx, state, params
         )
 
@@ -540,10 +589,6 @@ class VariableSubstitutor:
                 f"Variable '{{%{namespace}.{path or ''}}}' not found. "
                 f"Check the template and ensure the value exists in source '{namespace}'."
             )
-
-        last_segment = None
-        if path is not None:
-            last_segment = path.split(".")[-1]
 
         config = None
         if source is not None and last_segment is not None:
@@ -774,7 +819,8 @@ class VariableSubstitutor:
 
         Исключения:
             LogTemplateError: если переменная не найдена, namespace неизвестен,
-                              iif невалиден или обращение к имени с подчёркиванием.
+                              iif невалиден или любой сегмент пути начинается
+                              с подчёркивания.
         """
         has_iif = "{iif(" in message
 
