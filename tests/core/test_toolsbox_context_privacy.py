@@ -25,7 +25,6 @@ from action_machine.core.tools_box import ToolsBox
 from action_machine.dependencies.dependency_factory import DependencyFactory
 from action_machine.logging.scoped_logger import ScopedLogger
 
-
 # ═════════════════════════════════════════════════════════════════════════════
 # Фикстура создания ToolsBox
 # ═════════════════════════════════════════════════════════════════════════════

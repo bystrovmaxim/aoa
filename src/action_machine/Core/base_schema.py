@@ -123,7 +123,7 @@ from __future__ import annotations
 
 from pydantic import BaseModel, ConfigDict
 
-from action_machine.core.navigation import DotPathNavigator, _SENTINEL
+from action_machine.core.navigation import _SENTINEL, DotPathNavigator
 
 
 class BaseSchema(BaseModel):

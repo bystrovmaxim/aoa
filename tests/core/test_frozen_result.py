@@ -19,7 +19,6 @@ from pydantic import Field, ValidationError
 
 from action_machine.core.base_result import BaseResult
 
-
 # ═════════════════════════════════════════════════════════════════════════════
 # Тестовый наследник BaseResult
 # ═════════════════════════════════════════════════════════════════════════════
