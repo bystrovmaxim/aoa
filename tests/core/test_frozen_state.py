@@ -20,6 +20,7 @@ keys, values, items, to_dict, repr.
 """
 
 import pytest
+from pydantic import ValidationError
 
 from action_machine.core.base_state import BaseState
 
@@ -164,7 +165,7 @@ class TestBaseStateFrozen:
         state = BaseState(value=1)
 
         # Act & Assert
-        with pytest.raises(Exception):
+        with pytest.raises(ValidationError):
             state.value = 2
 
     def test_setattr_new_key_raises(self) -> None:
@@ -173,7 +174,7 @@ class TestBaseStateFrozen:
         state = BaseState()
 
         # Act & Assert
-        with pytest.raises(Exception):
+        with pytest.raises(ValidationError):
             state.new_key = "value"
 
     def test_delattr_raises(self) -> None:
@@ -182,7 +183,7 @@ class TestBaseStateFrozen:
         state = BaseState(to_delete="value")
 
         # Act & Assert
-        with pytest.raises(Exception):
+        with pytest.raises(ValidationError):
             del state.to_delete
 
     def test_no_setitem(self) -> None:

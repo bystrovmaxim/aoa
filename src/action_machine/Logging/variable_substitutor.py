@@ -319,7 +319,7 @@ class VariableSubstitutor:
                 if isinstance(prop, property):
                     fget = prop.fget
                     if fget is not None and hasattr(fget, "_sensitive_config"):
-                        return fget._sensitive_config
+                        return fget._sensitive_config # type: ignore[no-any-return]
         return None
 
     # ----------------------------------------------------------------
