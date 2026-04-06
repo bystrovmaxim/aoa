@@ -10,10 +10,10 @@ VariableSubstitutor отвечает за:
 
 1. Разрешение переменных {%namespace.dotpath} из пяти источников:
    - var — словарь пользовательских переменных.
-   - state — текущее состояние конвейера (BaseState).
-   - scope — LogScope (местоположение в конвейере).
-   - context — контекст выполнения (ReadableMixin).
-   - params — входные параметры действия (ReadableMixin).
+   - state — текущее состояние конвейера (BaseState, наследник BaseSchema).
+   - scope — LogScope (объект с dict-доступом, не pydantic).
+   - context — контекст выполнения (Context, наследник BaseSchema).
+   - params — входные параметры действия (BaseParams, наследник BaseSchema).
 
 2. Двухпроходную подстановку:
    - Проход 1: замена {%namespace.path} на значения.
@@ -80,9 +80,9 @@ from typing import Any
 
 from action_machine.context.context import Context
 from action_machine.core.base_params import BaseParams
+from action_machine.core.base_schema import BaseSchema
 from action_machine.core.base_state import BaseState
 from action_machine.core.exceptions import LogTemplateError
-from action_machine.core.readable_mixin import ReadableMixin
 from action_machine.logging.expression_evaluator import ExpressionEvaluator, debug_value
 from action_machine.logging.log_scope import LogScope
 from action_machine.logging.masking import mask_value
@@ -91,9 +91,6 @@ from action_machine.logging.masking import mask_value
 # Регулярные выражения
 # ---------------------------------------------------------------------------
 # Формат: {%namespace} или {%namespace.dotpath} с опциональным |color или |debug
-# Группа 1 (namespace): источник данных (var, state, scope, context, params).
-# Группа 2 (опциональный путь): dot-path внутри источника (может быть None).
-# Группа 3 (опциональный фильтр): имя цвета или "debug".
 _VARIABLE_PATTERN: re.Pattern[str] = re.compile(
     r"\{%([a-zA-Z_][a-zA-Z0-9_]*)\.?([a-zA-Z_][a-zA-Z0-9_.]*)?(?:\|([a-zA-Z_]+))?\}"
 )
@@ -187,60 +184,55 @@ class VariableSubstitutor:
         }
 
     # ----------------------------------------------------------------
-    # Навигация по вложенным объектам (аналог ReadableMixin._resolve_one_step)
+    # Навигация по вложенным объектам
     # ----------------------------------------------------------------
 
     @staticmethod
-    def _resolve_step_readable(
-        current: ReadableMixin,
-        segment: str,
-    ) -> object:
-        """Шаг навигации для объектов с ReadableMixin (через __getitem__)."""
+    def _resolve_step_schema(current: BaseSchema, segment: str) -> object:
+        """
+        Шаг навигации для объектов BaseSchema (через __getitem__).
+        """
         try:
             return current[segment]
         except KeyError:
             return _SENTINEL
 
     @staticmethod
-    def _resolve_step_dict(
-        current: dict[str, object],
-        segment: str,
-    ) -> object:
+    def _resolve_step_scope(current: LogScope, segment: str) -> object:
+        """
+        Шаг навигации для LogScope (через __getitem__).
+        """
+        try:
+            return current[segment]
+        except KeyError:
+            return _SENTINEL
+
+    @staticmethod
+    def _resolve_step_dict(current: dict[str, object], segment: str) -> object:
         """Шаг навигации для обычных словарей."""
         if segment in current:
             return current[segment]
         return _SENTINEL
 
     @staticmethod
-    def _resolve_step_generic(
-        current: object,
-        segment: str,
-    ) -> object:
+    def _resolve_step_generic(current: object, segment: str) -> object:
         """Шаг навигации для произвольных объектов через getattr."""
         return getattr(current, segment, _SENTINEL)
 
-    def _resolve_one_step(
-        self,
-        current: object,
-        segment: str,
-    ) -> object:
+    def _resolve_one_step(self, current: object, segment: str) -> object:
         """
-        Выполняет один шаг навигации, выбирая стратегию по типу объекта.
+        Выполняет один шаг навигации, выбирая стратегию по типу текущего объекта.
 
         Приоритет стратегий:
-            1. ReadableMixin — __getitem__.
-            2. dict — прямой доступ по ключу.
-            3. Любой другой объект — getattr.
-
-        Аргументы:
-            current: текущий объект на этом шаге навигации.
-            segment: имя ключа/атрибута для перехода.
-
-        Возвращает:
-            Найденное значение или _SENTINEL если шаг не удался.
+            1. BaseSchema — __getitem__.
+            2. LogScope — __getitem__.
+            3. dict — прямой доступ по ключу.
+            4. Любой другой объект — getattr.
         """
-        if isinstance(current, ReadableMixin):
-            return self._resolve_step_readable(current, segment)
+        if isinstance(current, BaseSchema):
+            return self._resolve_step_schema(current, segment)
+        if isinstance(current, LogScope):
+            return self._resolve_step_scope(current, segment)
         if isinstance(current, dict):
             return self._resolve_step_dict(current, segment)
         return self._resolve_step_generic(current, segment)
@@ -256,21 +248,12 @@ class VariableSubstitutor:
         Возвращает кортеж (value, source_object), где source_object —
         объект, из которого был взят последний сегмент пути (нужен
         для обнаружения @sensitive-свойств).
-
-        Аргументы:
-            start: начальный объект.
-            path: dot-separated путь.
-
-        Возвращает:
-            (value, source) или (_SENTINEL, None) при неудаче.
         """
         if not path:
             return start, None
-
         segments = path.split(".")
         current = start
         source = None
-
         for segment in segments:
             source = current
             current = self._resolve_one_step(current, segment)
@@ -279,7 +262,7 @@ class VariableSubstitutor:
         return current, source
 
     # ----------------------------------------------------------------
-    # Namespace-резольверы (используют _resolve_path)
+    # Namespace-резольверы
     # ----------------------------------------------------------------
 
     def _resolve_ns_var(
@@ -326,13 +309,6 @@ class VariableSubstitutor:
         Проверяет, имеет ли свойство attr_name на объекте obj декоратор @sensitive.
 
         Обходит MRO класса объекта, ищет property с _sensitive_config на getter.
-
-        Аргументы:
-            obj: объект-источник атрибута.
-            attr_name: имя атрибута.
-
-        Возвращает:
-            dict с конфигурацией маскирования или None.
         """
         if obj is None:
             return None
@@ -343,7 +319,7 @@ class VariableSubstitutor:
                 if isinstance(prop, property):
                     fget = prop.fget
                     if fget is not None and hasattr(fget, "_sensitive_config"):
-                        return fget._sensitive_config  # type: ignore[no-any-return]
+                        return fget._sensitive_config
         return None
 
     # ----------------------------------------------------------------
@@ -365,17 +341,6 @@ class VariableSubstitutor:
 
         Использует dispatch-словарь _namespace_resolvers.
         Неизвестный namespace → LogTemplateError.
-
-        Аргументы:
-            namespace: первый сегмент переменной ("var", "context", ...).
-            path: оставшийся dot-path после namespace (может быть None).
-            var, scope, ctx, state, params: источники данных.
-
-        Возвращает:
-            Кортеж (raw_value, source_object).
-
-        Исключения:
-            LogTemplateError: если namespace неизвестен.
         """
         resolver = self._namespace_resolvers.get(namespace)
         if resolver is None:
@@ -412,7 +377,6 @@ class VariableSubstitutor:
                     f"Access to name starting with underscore is forbidden: '{last_segment}' "
                     f"in variable {{%{namespace}.{path}}}. Use a public property if output is needed."
                 )
-
         raw_value, source = self._resolve_variable_raw(
             namespace, path, var, scope, ctx, state, params
         )
@@ -421,16 +385,13 @@ class VariableSubstitutor:
                 f"Variable '{{%{namespace}.{path or ''}}}' not found. "
                 f"Check the template and ensure the value exists in source '{namespace}'."
             )
-
         config = None
         if source is not None and last_segment is not None:
             config = self._get_property_config(source, last_segment)
-
         if config:
             if not config.get('enabled', True):
                 return str(raw_value)
             return mask_value(raw_value, config)
-
         return str(raw_value)
 
     # ----------------------------------------------------------------
@@ -446,12 +407,6 @@ class VariableSubstitutor:
         Строки оборачиваются в одинарные кавычки.
         Цветовые маркеры (__COLOR(...)) возвращаются без кавычек,
         чтобы сохранить маркер для последующей обработки.
-
-        Аргументы:
-            raw_value: сырое значение.
-
-        Возвращает:
-            Строка, пригодная для вставки в выражение simpleeval.
         """
         if isinstance(raw_value, bool):
             return str(raw_value)
@@ -487,7 +442,6 @@ class VariableSubstitutor:
             value = self._resolve_variable(
                 namespace, path, var, scope, ctx, state, params
             )
-
             if filter_name == "debug":
                 raw_value, _ = self._resolve_variable_raw(
                     namespace, path, var, scope, ctx, state, params
@@ -496,7 +450,6 @@ class VariableSubstitutor:
             if filter_name:
                 return f"__COLOR({filter_name}){value}__COLOR_END__"
             return value
-
         return _VARIABLE_PATTERN.sub(replacer, message)
 
     def _format_variable_for_template(
@@ -524,15 +477,12 @@ class VariableSubstitutor:
                 f"Variable '{{%{namespace}.{path or ''}}}' not found. "
                 f"Check the template and ensure the value exists in source '{namespace}'."
             )
-
         last_segment = None
         if path is not None:
             last_segment = path.split(".")[-1]
-
         config = None
         if source is not None and last_segment is not None:
             config = self._get_property_config(source, last_segment)
-
         if inside_iif:
             if config:
                 str_value = mask_value(raw_value, config)
@@ -547,7 +497,6 @@ class VariableSubstitutor:
                 formatted = mask_value(raw_value, config)
             else:
                 formatted = str(raw_value)
-
         if filter_name == "debug":
             return debug_value(raw_value)
         if filter_name:
@@ -571,16 +520,13 @@ class VariableSubstitutor:
             (m.start(), m.end())
             for m in _IIF_BLOCK_PATTERN.finditer(message)
         ]
-
         def _inside_iif(pos: int) -> bool:
             return any(start <= pos < end for start, end in iif_ranges)
-
         def replacer(match: re.Match[str]) -> str:
             inside = _inside_iif(match.start())
             return self._format_variable_for_template(
                 match, var, scope, ctx, state, params, inside
             )
-
         return _VARIABLE_PATTERN.sub(replacer, message)
 
     def _substitute_variables(
@@ -617,15 +563,6 @@ class VariableSubstitutor:
         - "bg_<color>" — только фон.
         - "<fg>_on_<bg>" — foreground + background.
         - "<color>" — только foreground.
-
-        Аргументы:
-            color_name: имя цвета из маркера.
-
-        Возвращает:
-            ANSI escape-последовательность (например, "\\033[31m").
-
-        Исключения:
-            LogTemplateError: если имя цвета неизвестно.
         """
         if color_name.startswith("bg_"):
             bg_name = color_name[3:]
@@ -633,7 +570,6 @@ class VariableSubstitutor:
             if bg_code is None:
                 raise LogTemplateError(f"Unknown background color: '{bg_name}'")
             return f"\033[{bg_code}m"
-
         if "_on_" in color_name:
             parts = color_name.split("_on_", 1)
             if len(parts) != 2:
@@ -649,7 +585,6 @@ class VariableSubstitutor:
             if bg_code is None:
                 raise LogTemplateError(f"Unknown background color: '{bg_name}'")
             return f"\033[{fg_code};{bg_code}m"
-
         fg_code = _FG_COLORS.get(color_name)
         if fg_code is None:
             raise LogTemplateError(f"Unknown color: '{color_name}'")
@@ -663,22 +598,6 @@ class VariableSubstitutor:
         маркеры, не содержащие вложенных __COLOR( внутри контента.
         Цикл повторяется, пока в строке остаются маркеры. Это гарантирует
         корректную обработку вложенных цветов любой глубины.
-
-        Пример вложенных маркеров:
-            __COLOR(red)level: __COLOR(green)ok__COLOR_END____COLOR_END__
-        Первая итерация обрабатывает внутренний:
-            __COLOR(red)level: \\033[32mok\\033[0m__COLOR_END__
-        Вторая итерация обрабатывает внешний:
-            \\033[31mlevel: \\033[32mok\\033[0m\\033[0m
-
-        Аргументы:
-            text: строка с цветовыми маркерами.
-
-        Возвращает:
-            Строка с ANSI-кодами вместо маркеров.
-
-        Исключения:
-            LogTemplateError: если имя цвета неизвестно.
         """
         # Паттерн захватывает маркер, контент которого НЕ содержит
         # вложенных __COLOR(. Это заставляет обработку идти изнутри наружу.
@@ -686,16 +605,13 @@ class VariableSubstitutor:
             r"__COLOR\(([a-zA-Z_]+)\)((?:(?!__COLOR\().)*)__COLOR_END__",
             re.DOTALL,
         )
-
         while pattern.search(text):
             def replacer(match: re.Match[str]) -> str:
                 color_name = match.group(1)
                 content = match.group(2)
                 ansi_code = self._resolve_color_name(color_name)
                 return f"{ansi_code}{content}{_RESET_CODE}"
-
             text = pattern.sub(replacer, text)
-
         return text
 
     # ----------------------------------------------------------------
@@ -747,15 +663,12 @@ class VariableSubstitutor:
                               iif невалиден или обращение к имени с подчёркиванием.
         """
         has_iif = "{iif(" in message
-
         # Проход 1: подстановка {%...}, маркеры цветов
         resolved = self._substitute_variables(
             message, var, scope, ctx, state, params, has_iif
         )
-
         # Проход 2: вычисление {iif(...)}
         if has_iif:
             resolved = self._evaluator.process_template(resolved, {})
-
         # Проход 3: замена цветовых маркеров на ANSI-коды (изнутри наружу)
         return self._apply_color_filters(resolved)

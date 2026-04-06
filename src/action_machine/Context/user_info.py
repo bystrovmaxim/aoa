@@ -1,43 +1,124 @@
+# src/action_machine/context/user_info.py
 """
-Компонент контекста, содержащий информацию о пользователе, инициировавшем действие.
-Используется внутри класса Context для хранения данных об аутентифицированном пользователе.
-Реализует ReadableDataProtocol через ReadableMixin для обеспечения dict-подобного доступа.
+UserInfo — информация о пользователе, инициировавшем действие.
+
+═══════════════════════════════════════════════════════════════════════════════
+НАЗНАЧЕНИЕ
+═══════════════════════════════════════════════════════════════════════════════
+
+UserInfo — компонент контекста выполнения (Context), содержащий данные
+об аутентифицированном пользователе: идентификатор и список ролей.
+
+Используется машиной (ActionProductMachine) для проверки ролевых
+ограничений (@check_roles), аспектами — для аудита и логирования
+через @context_requires и ContextView.
+
+═══════════════════════════════════════════════════════════════════════════════
+ИЕРАРХИЯ
+═══════════════════════════════════════════════════════════════════════════════
+
+    BaseSchema(BaseModel)
+        └── UserInfo (frozen=True, extra="forbid")
+
+═══════════════════════════════════════════════════════════════════════════════
+FROZEN И FORBID
+═══════════════════════════════════════════════════════════════════════════════
+
+UserInfo неизменяем после создания. Это гарантирует, что информация
+о пользователе не может быть случайно модифицирована аспектами или
+плагинами в ходе выполнения конвейера.
+
+Произвольные поля запрещены (extra="forbid"). Если конкретному проекту
+нужны дополнительные данные о пользователе (billing_plan, department,
+tenant_id), создаётся наследник с явно объявленными полями:
+
+    class BillingUserInfo(UserInfo):
+        billing_plan: str = "free"
+        tenant_id: str | None = None
+
+═══════════════════════════════════════════════════════════════════════════════
+АНОНИМНЫЙ ПОЛЬЗОВАТЕЛЬ
+═══════════════════════════════════════════════════════════════════════════════
+
+UserInfo() без аргументов создаёт анонимного пользователя:
+user_id=None, roles=[]. Используется NoAuthCoordinator для открытых API.
+
+Действия с @check_roles(ROLE_NONE) пропускают анонимных пользователей.
+Действия с конкретными ролями отклоняют их с AuthorizationError.
+
+═══════════════════════════════════════════════════════════════════════════════
+ДОСТУП В АСПЕКТАХ
+═══════════════════════════════════════════════════════════════════════════════
+
+Прямой доступ к UserInfo из аспекта невозможен. Единственный путь —
+через @context_requires и ContextView:
+
+    @regular_aspect("Аудит")
+    @context_requires(Ctx.User.user_id, Ctx.User.roles)
+    async def audit_aspect(self, params, state, box, connections, ctx):
+        user_id = ctx.get(Ctx.User.user_id)    # → "agent_123"
+        roles = ctx.get(Ctx.User.roles)          # → ["admin", "user"]
+        return {}
+
+═══════════════════════════════════════════════════════════════════════════════
+DICT-ПОДОБНЫЙ ДОСТУП (унаследован от BaseSchema)
+═══════════════════════════════════════════════════════════════════════════════
+
+    user = UserInfo(user_id="agent_123", roles=["admin"])
+
+    user["user_id"]         # → "agent_123"
+    user["roles"]           # → ["admin"]
+    "user_id" in user       # → True
+    user.get("user_id")     # → "agent_123"
+    list(user.keys())       # → ["user_id", "roles"]
+
+═══════════════════════════════════════════════════════════════════════════════
+ПРИМЕР ИСПОЛЬЗОВАНИЯ
+═══════════════════════════════════════════════════════════════════════════════
+
+    # Аутентифицированный пользователь:
+    user = UserInfo(user_id="john_doe", roles=["user", "manager"])
+
+    # Анонимный пользователь:
+    anon = UserInfo()
+    anon.user_id    # → None
+    anon.roles      # → []
+
+    # Расширение через наследование:
+    class TenantUserInfo(UserInfo):
+        tenant_id: str = "default"
+        department: str | None = None
+
+    user = TenantUserInfo(
+        user_id="john",
+        roles=["user"],
+        tenant_id="acme",
+        department="engineering",
+    )
 """
 
-from dataclasses import dataclass, field
-from typing import Any
+from pydantic import ConfigDict
 
-from action_machine.core.readable_mixin import ReadableMixin
+from action_machine.core.base_schema import BaseSchema
 
 
-@dataclass
-class UserInfo(ReadableMixin):
+class UserInfo(BaseSchema):
     """
-    Информация о пользователе.
+    Информация о пользователе, инициировавшем действие.
 
-    Этот датакласс является частью контекста выполнения и хранит идентификатор пользователя,
-    его роли, а также дополнительные произвольные данные, которые могут быть добавлены
-    при аутентификации (например, имя ключа, способ аутентификации и т.п.).
+    Frozen после создания. Произвольные поля запрещены.
+    Расширение — только через наследование с явными полями.
 
-    Благодаря наследованию от ReadableMixin, объект UserInfo поддерживает dict-подобный доступ:
-    - user["user_id"], user.get("roles"), "user_id" in user, user.keys(), user.values(), user.items().
-    При этом сохраняется и атрибутный доступ (user.user_id).
+    Наследует dict-подобный доступ и dot-path навигацию от BaseSchema.
 
     Атрибуты:
-        user_id: Уникальный идентификатор пользователя (строка). Может быть None для гостя.
-        roles: Список ролей пользователя (например, ["user", "admin"]). По умолчанию пустой список.
-        extra: Словарь для хранения любых дополнительных данных, специфичных для конкретного
-               способа аутентификации или бизнес-логики.
-
-    Пример:
-        >>> user = UserInfo(user_id="john_doe", roles=["user", "manager"])
-        >>> print(user.user_id)
-        john_doe
-        >>> print(user["user_id"])
-        john_doe
-        >>> user.extra["auth_method"] = "api_key"
+        user_id: уникальный идентификатор пользователя.
+                 None для анонимного пользователя.
+        roles: список ролей пользователя (например, ["user", "admin"]).
+               Пустой список для анонимного пользователя.
     """
 
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
     user_id: str | None = None
-    roles: list[str] = field(default_factory=list)
-    extra: dict[str, Any] = field(default_factory=dict)
+    roles: list[str] = []

@@ -585,7 +585,7 @@ class ActionProductMachine(BaseActionMachine):
                 event_name=f"before:{aspect_name}",
                 action=action,
                 params=params,
-                state_aspect=state.to_dict(),
+                state_aspect=state.model_dump(),
                 is_summary=False,
                 result=None,
                 duration=None,
@@ -626,7 +626,8 @@ class ActionProductMachine(BaseActionMachine):
                     )
                 self._apply_checkers(checkers, new_state_dict)
 
-            state = BaseState({**state.to_dict(), **new_state_dict})
+            # Создаём новый state, объединяя старый с новыми данными
+            state = BaseState({**state.model_dump(), **new_state_dict})
 
             aspect_duration = time.time() - aspect_start
 
@@ -634,7 +635,7 @@ class ActionProductMachine(BaseActionMachine):
                 event_name=f"after:{aspect_name}",
                 action=action,
                 params=params,
-                state_aspect=state.to_dict(),
+                state_aspect=state.model_dump(),
                 is_summary=False,
                 result=None,
                 duration=aspect_duration,

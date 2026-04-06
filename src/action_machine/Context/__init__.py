@@ -13,7 +13,7 @@
   (RuntimeInfo). Передаётся в машину при вызове run() и используется
   для проверки ролей и логирования.
 
-- **UserInfo** — информация о пользователе (user_id, roles, extra).
+- **UserInfo** — информация о пользователе (user_id, roles).
 
 - **RequestInfo** — метаданные входящего запроса (trace_id, client_ip,
   request_path, protocol и др.).
@@ -23,7 +23,7 @@
 
 - **Ctx** — вложенная структура констант dot-path для декоратора
   @context_requires. Каждая константа строго соответствует реальному
-  полю dataclass'а: Ctx.User.user_id == "user.user_id",
+  полю: Ctx.User.user_id == "user.user_id",
   Ctx.Request.trace_id == "request.trace_id" и т.д. IDE автодополняет,
   mypy проверяет статически.
 
@@ -40,11 +40,31 @@
   ctx: ContextView.
 
 - **ContextRequiresGateHost** — маркерный миксин, обозначающий поддержку
-  @context_requires. Наследуется BaseAction. MetadataBuilder проверяет
-  наличие миксина для каждого метода с _required_context_keys.
+  @context_requires. Наследуется BaseAction.
 
 ═══════════════════════════════════════════════════════════════════════════════
-АРХИТЕКТУРА УПРАВЛЯЕМОГО ДОСТУПА К КОНТЕКСТУ
+АРХИТЕКТУРА
+═══════════════════════════════════════════════════════════════════════════════
+
+Все компоненты контекста наследуют BaseSchema, что обеспечивает:
+- Dict-подобный доступ к полям (obj["key"], obj.keys(), ...).
+- Dot-path навигацию (context.resolve("user.user_id")).
+- Иммутабельность (frozen=True на всех компонентах).
+- Запрет произвольных полей (extra="forbid"). Расширение — только
+  через наследование с явно объявленными полями.
+- Сериализацию через model_dump() для логов и адаптеров.
+
+    BaseSchema(BaseModel)
+        ├── UserInfo       — frozen, forbid
+        ├── RequestInfo    — frozen, forbid
+        ├── RuntimeInfo    — frozen, forbid
+        └── Context        — frozen, forbid
+                ├── user: UserInfo
+                ├── request: RequestInfo
+                └── runtime: RuntimeInfo
+
+═══════════════════════════════════════════════════════════════════════════════
+УПРАВЛЯЕМЫЙ ДОСТУП К КОНТЕКСТУ
 ═══════════════════════════════════════════════════════════════════════════════
 
 Прямой доступ к контексту через ToolsBox закрыт. Единственный легальный
@@ -76,17 +96,15 @@
         Без @context_requires → (self, params, state, box, connections, error)      — 6 параметров
         С @context_requires   → (self, params, state, box, connections, error, ctx) — 7 параметров
 
-Гейтхост гарантирует консистентность: нельзя иметь лишний параметр
-без декоратора и нельзя пропустить параметр с декоратором.
-
 ═══════════════════════════════════════════════════════════════════════════════
-КАСТОМНЫЕ ПОЛЯ
+РАСШИРЕНИЕ КОМПОНЕНТОВ КОНТЕКСТА
 ═══════════════════════════════════════════════════════════════════════════════
 
-UserInfo, RequestInfo, RuntimeInfo могут быть расширены наследниками.
-Константы Ctx покрывают стандартные поля. Для кастомных — строки:
+UserInfo, RequestInfo, RuntimeInfo расширяются через наследование
+с явно объявленными полями. Константы Ctx покрывают стандартные поля.
+Для кастомных полей — строки напрямую:
 
-    @context_requires(Ctx.User.user_id, "user.extra.billing_plan")
+    @context_requires(Ctx.User.user_id, "user.billing_plan")
 
 ═══════════════════════════════════════════════════════════════════════════════
 ПРИМЕР ИСПОЛЬЗОВАНИЯ
@@ -101,7 +119,7 @@ UserInfo, RequestInfo, RuntimeInfo могут быть расширены нас
         ip = ctx.get(Ctx.Request.client_ip)
         return {"audited_by": user}
 
-    # Аспект без контекста — работает как раньше:
+    # Аспект без контекста — стандартная сигнатура:
     @regular_aspect("Расчёт")
     async def calculate_aspect(self, params, state, box, connections):
         return {"total": params.amount * 1.2}

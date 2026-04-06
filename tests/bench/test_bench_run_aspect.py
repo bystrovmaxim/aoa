@@ -14,6 +14,9 @@
 
 Все тесты используют FullAction из tests/domain/, который имеет
 два regular-аспекта: process_payment_aspect (txn_id) и calc_total_aspect (total).
+
+Все core-типы (Params, Result, State) — неизменяемы. State передаётся как
+словарь, аспект возвращает словарь, машина создаёт новый frozen BaseState.
 """
 
 from unittest.mock import AsyncMock
@@ -36,11 +39,9 @@ class TestFirstAspect:
         process_payment_aspect — первый аспект FullAction. Перед ним нет
         аспектов → нет чекеров для проверки → пустой state допустим.
         """
-        # Arrange
         action = FullAction()
         params = FullAction.Params(user_id="u1", amount=100.0)
 
-        # Act
         result = await manager_bench.run_aspect(
             action, "process_payment_aspect", params,
             state={},
@@ -48,7 +49,7 @@ class TestFirstAspect:
             connections={"db": mock_db},
         )
 
-        # Assert — аспект вернул dict с txn_id
+        # Аспект вернул dict с txn_id
         assert "txn_id" in result
         assert result["txn_id"] == "TXN-TEST-001"
 
@@ -64,11 +65,9 @@ class TestSecondAspect:
         calc_total_aspect — второй аспект. Требует txn_id от process_payment_aspect.
         Передаём корректный state — аспект выполняется.
         """
-        # Arrange
         action = FullAction()
         params = FullAction.Params(user_id="u1", amount=250.0)
 
-        # Act
         result = await manager_bench.run_aspect(
             action, "calc_total_aspect", params,
             state={"txn_id": "TXN-001"},
@@ -76,7 +75,7 @@ class TestSecondAspect:
             connections={"db": mock_db},
         )
 
-        # Assert — аспект вернул dict с total
+        # Аспект вернул dict с total
         assert result["total"] == 250.0
 
 
@@ -91,11 +90,9 @@ class TestInvalidState:
         calc_total_aspect ожидает txn_id от process_payment_aspect. Пустой state —
         StateValidationError с указанием отсутствующего поля.
         """
-        # Arrange
         action = FullAction()
         params = FullAction.Params(user_id="u1", amount=100.0)
 
-        # Act & Assert
         with pytest.raises(StateValidationError, match="txn_id"):
             await manager_bench.run_aspect(
                 action, "calc_total_aspect", params,
@@ -112,11 +109,9 @@ class TestInvalidState:
         txn_id=123 вместо строки — чекер ResultStringChecker отклоняет
         до выполнения аспекта.
         """
-        # Arrange
         action = FullAction()
         params = FullAction.Params(user_id="u1", amount=100.0)
 
-        # Act & Assert
         with pytest.raises(StateValidationError, match="должен быть строкой"):
             await manager_bench.run_aspect(
                 action, "calc_total_aspect", params,
@@ -137,11 +132,9 @@ class TestNonexistentAspect:
         Аспект "nonexistent" не найден в FullAction.
         StateValidationError с перечислением доступных аспектов.
         """
-        # Arrange
         action = FullAction()
         params = FullAction.Params(user_id="u1", amount=100.0)
 
-        # Act & Assert
         with pytest.raises(StateValidationError, match="не найден"):
             await manager_bench.run_aspect(
                 action, "nonexistent", params,
