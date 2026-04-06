@@ -9,23 +9,22 @@ Core-тесты — полное покрытие ядра ActionMachine.
 Тесты всех компонентов ядра системы ActionMachine:
 
 - BaseState — состояние конвейера аспектов. Динамические поля, создание
-  из словаря, dict-подобный доступ через ReadableMixin и WritableMixin,
-  сериализация через to_dict(), resolve по dot-path.
+  из словаря, dict-подобный доступ через BaseSchema [2], extra="allow"
+  для динамических полей [1], сериализация через to_dict(),
+  resolve по dot-path.
 
 - BaseParams — входные параметры действия. Pydantic BaseModel с frozen=True.
-  Валидация типов, constraints (gt, min_length, pattern), ReadableMixin
-  для dict-подобного чтения, JSON Schema через model_json_schema().
+  Валидация типов, constraints (gt, min_length, pattern), dict-подобный
+  доступ через BaseSchema [2], JSON Schema через model_json_schema().
 
-- BaseResult — результат действия. Pydantic BaseModel без frozen. Поддержка
-  динамических extra-полей через extra="allow", WritableMixin для записи.
+- BaseResult — результат действия. Pydantic BaseModel с frozen=True [1].
+  Строгая структура: только объявленные поля, без extra.
+  Dict-подобный доступ через BaseSchema [2].
 
-- ReadableMixin — миксин для dict-подобного чтения атрибутов объекта.
-  Методы keys(), values(), items(), __getitem__, __contains__, get().
-  Метод resolve() для навигации по вложенным объектам через dot-path.
-  Кеширование результатов resolve в _resolve_cache.
-
-- WritableMixin — миксин для dict-подобной записи атрибутов объекта.
-  Методы __setitem__, __delitem__, write() с allowed_keys, update().
+- BaseSchema — единая базовая схема данных [2]. Наследует pydantic.BaseModel,
+  добавляет dict-подобный доступ к полям (keys, values, items, __getitem__,
+  __contains__, get) и dot-path навигацию через resolve(). Все core-типы
+  данных наследуют BaseSchema.
 
 - BaseAction — абстрактный базовый класс действий. Кеширование полного
   имени класса через get_full_class_name(). Наследование шести

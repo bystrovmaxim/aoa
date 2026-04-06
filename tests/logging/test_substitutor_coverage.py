@@ -6,20 +6,20 @@
 НАЗНАЧЕНИЕ
 ═══════════════════════════════════════════════════════════════════════════════
 
-Закрывает непокрытые строки в variable_substitutor.py:
+Закрывает непокрытые строки в variable_substitutor.py [4]:
 
-- Строки 201-202: _resolve_step_readable — навигация по ReadableMixin.
-- Строка 220: _resolve_step_dict — навигация по обычному dict (ключ не найден).
-- Строка 246: _resolve_step_generic — навигация через getattr.
-- Строки 338, 344-346: _get_property_config — обнаружение @sensitive.
-- Строки 430-432: _quote_if_string — форматирование цветовых маркеров.
-- Строки 457, 459, 462: _format_variable_for_template — inside_iif ветки
+- Навигация по BaseSchema через DotPathNavigator [2].
+- Навигация по обычному dict (ключ не найден).
+- Навигация через getattr для произвольных объектов.
+- _get_property_config — обнаружение @sensitive [1].
+- _quote_if_string — форматирование цветовых маркеров.
+- _format_variable_for_template — inside_iif ветки
   для bool, int, string.
-- Строки 529→532, 533→536, 538: _substitute_with_iif_detection — переменные
+- _substitute_with_iif_detection — переменные
   внутри и вне блоков iif одновременно.
-- Строка 547: _substitute_variables — диспетчер быстрого/медленного пути.
-- Строка 634: _resolve_color_name — ветка bg_ (только фон).
-- Строка 640: _resolve_color_name — ветка fg_on_bg (foreground + background).
+- _substitute_variables — диспетчер быстрого/медленного пути.
+- _resolve_color_name — ветка bg_ (только фон).
+- _resolve_color_name — ветка fg_on_bg (foreground + background).
 
 ═══════════════════════════════════════════════════════════════════════════════
 ОРГАНИЗАЦИЯ
@@ -31,7 +31,8 @@
   и вне {iif(...)}.
 - TestNamespaceResolution — state, params, context namespace.
 - TestDebugInsideIifTemplate — debug-фильтр рядом с iif.
-- TestNavigationSteps — _resolve_one_step для ReadableMixin, dict, generic.
+- TestNavigationSteps — навигация через DotPathNavigator для BaseSchema,
+  dict, произвольных объектов.
 """
 
 import pytest
@@ -45,10 +46,10 @@ from action_machine.logging.variable_substitutor import VariableSubstitutor
 from action_machine.testing.stubs import ContextStub
 from tests.domain import SimpleAction
 
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Общие фикстуры
 # ─────────────────────────────────────────────────────────────────────────────
-
 
 @pytest.fixture()
 def sub() -> VariableSubstitutor:
@@ -83,7 +84,6 @@ def params() -> BaseParams:
 # ═════════════════════════════════════════════════════════════════════════════
 # _quote_if_string — форматирование литералов для simpleeval
 # ═════════════════════════════════════════════════════════════════════════════
-
 
 class TestQuoteIfString:
     """Покрывает _quote_if_string для всех типов значений."""
@@ -152,7 +152,6 @@ class TestQuoteIfString:
 # _resolve_color_name — все три формата имени цвета
 # ═════════════════════════════════════════════════════════════════════════════
 
-
 class TestResolveColorName:
     """Покрывает _resolve_color_name: fg, bg_, fg_on_bg и ошибки."""
 
@@ -208,7 +207,6 @@ class TestResolveColorName:
 # ═════════════════════════════════════════════════════════════════════════════
 # Переменные одновременно внутри и вне {iif(...)}
 # ═════════════════════════════════════════════════════════════════════════════
-
 
 class TestIifWithMixedVariables:
     """Покрывает _substitute_with_iif_detection — медленный путь."""
@@ -274,7 +272,6 @@ class TestIifWithMixedVariables:
 # Разрешение namespace: state, params, context
 # ═════════════════════════════════════════════════════════════════════════════
 
-
 class TestNamespaceResolution:
     """Покрывает резольверы для state, params, context namespace."""
 
@@ -312,7 +309,7 @@ class TestNamespaceResolution:
         assert "test_user" in result
 
     def test_scope_nested_variable(self, sub, ctx, state, params) -> None:
-        """Namespace scope разрешает поля LogScope."""
+        """Namespace scope разрешает поля LogScope [3]."""
         # Arrange — LogScope содержит action
         sc = LogScope(machine="M", mode="test", action="MyAction", aspect="a", nest_level=0)
 
@@ -326,7 +323,6 @@ class TestNamespaceResolution:
 # ═════════════════════════════════════════════════════════════════════════════
 # Debug-фильтр рядом с iif в одном шаблоне
 # ═════════════════════════════════════════════════════════════════════════════
-
 
 class TestDebugInsideIifTemplate:
     """Покрывает шаблон с |debug и {iif(...)} одновременно."""
@@ -349,12 +345,11 @@ class TestDebugInsideIifTemplate:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Навигация — _resolve_one_step для разных типов объектов
+# Навигация — DotPathNavigator для разных типов объектов
 # ═════════════════════════════════════════════════════════════════════════════
 
-
 class TestNavigationSteps:
-    """Покрывает _resolve_one_step для ReadableMixin, dict, generic."""
+    """Покрывает навигацию через DotPathNavigator для BaseSchema, dict, generic."""
 
     def test_dict_navigation(self, sub, scope, ctx, state, params) -> None:
         """Навигация по вложенному dict через dot-path."""
@@ -380,7 +375,7 @@ class TestNavigationSteps:
         assert "test_user" in result
 
     def test_state_navigation(self, sub, scope, ctx, params) -> None:
-        """Навигация по BaseState (ReadableMixin) через __getitem__."""
+        """Навигация по BaseState (BaseSchema) через __getitem__ [2]."""
         # Arrange — BaseState поддерживает __getitem__
         st = BaseState(nested={"key": "value"})
 
