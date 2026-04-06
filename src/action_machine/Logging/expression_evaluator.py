@@ -332,6 +332,16 @@ def _inspect_custom(
             except Exception:
                 continue
 
+    # --- Добавлено: извлечение extra-полей из Pydantic моделей с extra="allow" ---
+    if hasattr(obj, "__pydantic_extra__") and isinstance(obj.__pydantic_extra__, dict):
+        for key, value in obj.__pydantic_extra__.items():
+            if key.startswith('_'):
+                continue
+            if key in data_attrs or key in props:
+                continue   # регулярный атрибут имеет приоритет
+            data_attrs[key] = value
+    # -------------------------------------------------------------------------
+
     all_fields = {**data_attrs, **props}
 
     if not all_fields:

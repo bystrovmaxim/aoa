@@ -171,7 +171,7 @@ class BaseSchema(BaseModel):
         Возвращает:
             True если поле существует.
         """
-        if key in self.model_fields:
+        if key in self.__class__.model_fields:
             return True
         extra = self.__pydantic_extra__
         if extra and key in extra:
@@ -203,7 +203,7 @@ class BaseSchema(BaseModel):
         Возвращает:
             list[str] — имена полей.
         """
-        names = list(self.model_fields.keys())
+        names = list(self.__class__.model_fields.keys())
         extra = self.__pydantic_extra__
         if extra:
             names.extend(extra.keys())

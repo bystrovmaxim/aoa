@@ -6,18 +6,12 @@
 НАЗНАЧЕНИЕ
 ═══════════════════════════════════════════════════════════════════════════════
 
-RequestInfo — dataclass с ReadableMixin, хранящий метаданные входящего
-запроса: trace_id для сквозной трассировки, путь эндпоинта, HTTP-метод,
-IP клиента, протокол, User-Agent и произвольные дополнительные данные.
+RequestInfo — frozen pydantic-модель (наследник BaseSchema), хранящая
+метаданные входящего запроса: trace_id для сквозной трассировки, путь
+эндпоинта, HTTP-метод, IP клиента, протокол, User-Agent.
 
-RequestInfo заполняется:
-- ContextAssembler.assemble() — извлекает метаданные из HTTP-запроса
-  (FastAPI Request) или MCP tool call.
-- Напрямую в тестах — через конструктор RequestInfo(...).
-- NoAuthCoordinator — создаёт пустой RequestInfo() с дефолтами.
-
-Используется в шаблонах логирования через {%context.request.trace_id},
-{%context.request.request_path} и т.д.
+Произвольные поля запрещены (extra="forbid"). Расширение — только через
+наследование с явно объявленными полями.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ПОКРЫВАЕМЫЕ СЦЕНАРИИ
@@ -25,29 +19,38 @@ RequestInfo заполняется:
 
 Создание:
     - С полным набором полей — реальный HTTP-запрос.
-    - Без аргументов — все поля None/пустые (анонимный контекст).
+    - Без аргументов — все поля None.
     - С частичными данными — только trace_id и path.
 
-ReadableMixin — dict-подобный доступ:
+BaseSchema — dict-подобный доступ:
     - __getitem__, __contains__, get, keys.
 
-ReadableMixin — resolve:
+BaseSchema — resolve:
     - Плоские поля: resolve("trace_id"), resolve("client_ip").
-    - Вложенные через extra: resolve("extra.correlation_id").
-    - Теги: resolve("tags") → словарь.
+    - Отсутствующие пути: resolve("missing") → default.
 
-Поле extra:
-    - Протокольно-специфичные данные (correlation_id, grpc_metadata).
-    - Пустой extra по умолчанию.
-
-Поле tags:
-    - Произвольные теги для маркировки (A/B-тестирование, feature flags).
-    - Пустой tags по умолчанию.
+Расширение через наследование:
+    - Наследник с полями correlation_id, ab_variant, tags.
+    - resolve через наследника.
 """
 
 from datetime import UTC, datetime
 
+from pydantic import ConfigDict
+
 from action_machine.context.request_info import RequestInfo
+
+# ═════════════════════════════════════════════════════════════════════════════
+# Наследник RequestInfo для тестов расширения
+# ═════════════════════════════════════════════════════════════════════════════
+
+
+class _ExtendedRequestInfo(RequestInfo):
+    """Наследник RequestInfo с дополнительными полями для тестов."""
+    model_config = ConfigDict(frozen=True)
+    correlation_id: str | None = None
+    tags: dict[str, str] = {}
+
 
 # ═════════════════════════════════════════════════════════════════════════════
 # Создание и инициализация
@@ -59,13 +62,12 @@ class TestRequestInfoCreation:
 
     def test_create_full_http_request(self) -> None:
         """
-        RequestInfo с полным набором полей — реальный HTTP POST запрос.
+        RequestInfo с полным набором стандартных полей — реальный HTTP POST.
 
-        ContextAssembler извлекает все доступные метаданные из
-        FastAPI Request: trace_id из заголовка X-Request-ID, путь,
-        метод, IP из X-Forwarded-For, протокол, User-Agent.
+        Расширение для протокольно-специфичных полей (correlation_id, tags) —
+        через наследника _ExtendedRequestInfo.
         """
-        # Arrange & Act — полный набор данных реального HTTP-запроса
+        # Arrange & Act — полный набор стандартных HTTP-данных
         now = datetime.now(UTC)
         request = RequestInfo(
             trace_id="trace-abc-123",
@@ -76,11 +78,9 @@ class TestRequestInfoCreation:
             client_ip="192.168.1.100",
             protocol="https",
             user_agent="Mozilla/5.0",
-            extra={"correlation_id": "corr-xyz"},
-            tags={"ab_test": "variant_b"},
         )
 
-        # Assert — все поля установлены
+        # Assert — все стандартные поля установлены
         assert request.trace_id == "trace-abc-123"
         assert request.request_timestamp is now
         assert request.request_path == "/api/v1/orders"
@@ -89,15 +89,27 @@ class TestRequestInfoCreation:
         assert request.client_ip == "192.168.1.100"
         assert request.protocol == "https"
         assert request.user_agent == "Mozilla/5.0"
-        assert request.extra == {"correlation_id": "corr-xyz"}
+
+    def test_create_extended_http_request(self) -> None:
+        """
+        _ExtendedRequestInfo с дополнительными полями — correlation_id, tags.
+        """
+        # Arrange & Act — наследник с дополнительными полями
+        request = _ExtendedRequestInfo(
+            trace_id="trace-abc-123",
+            request_path="/api/v1/orders",
+            correlation_id="corr-xyz",
+            tags={"ab_test": "variant_b"},
+        )
+
+        # Assert — стандартные и дополнительные поля
+        assert request.trace_id == "trace-abc-123"
+        assert request.correlation_id == "corr-xyz"
         assert request.tags == {"ab_test": "variant_b"}
 
     def test_create_default(self) -> None:
         """
-        RequestInfo без аргументов — пустой контекст запроса.
-
-        NoAuthCoordinator создаёт Context с RequestInfo() —
-        все поля None, extra и tags — пустые словари.
+        RequestInfo без аргументов — все поля None.
         """
         # Arrange & Act — без аргументов
         request = RequestInfo()
@@ -111,15 +123,10 @@ class TestRequestInfoCreation:
         assert request.client_ip is None
         assert request.protocol is None
         assert request.user_agent is None
-        assert request.extra == {}
-        assert request.tags == {}
 
     def test_create_partial(self) -> None:
         """
         RequestInfo с частичными данными — только trace_id и path.
-
-        Типичная ситуация для MCP-запросов, где нет HTTP-метода,
-        IP и User-Agent, но есть trace_id и имя tool.
         """
         # Arrange & Act — минимальные данные MCP-запроса
         request = RequestInfo(
@@ -135,51 +142,17 @@ class TestRequestInfoCreation:
         assert request.request_method is None
         assert request.client_ip is None
 
-    def test_extra_is_independent_dict(self) -> None:
-        """
-        Каждый экземпляр RequestInfo имеет свой словарь extra.
-
-        Dataclass field(default_factory=dict) гарантирует независимость.
-        """
-        # Arrange — два экземпляра без явного extra
-        r1 = RequestInfo()
-        r2 = RequestInfo()
-
-        # Act — модификация extra одного экземпляра
-        r1.extra["key"] = "value"
-
-        # Assert — второй экземпляр не затронут
-        assert r1.extra == {"key": "value"}
-        assert r2.extra == {}
-
-    def test_tags_is_independent_dict(self) -> None:
-        """
-        Каждый экземпляр RequestInfo имеет свой словарь tags.
-        """
-        # Arrange — два экземпляра
-        r1 = RequestInfo()
-        r2 = RequestInfo()
-
-        # Act — модификация tags
-        r1.tags["env"] = "prod"
-
-        # Assert — независимость
-        assert r1.tags == {"env": "prod"}
-        assert r2.tags == {}
-
 
 # ═════════════════════════════════════════════════════════════════════════════
-# ReadableMixin — dict-подобный доступ
+# BaseSchema — dict-подобный доступ
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestRequestInfoDictAccess:
-    """Dict-подобный доступ к полям RequestInfo через ReadableMixin."""
+    """Dict-подобный доступ к полям RequestInfo через BaseSchema."""
 
     def test_getitem(self) -> None:
-        """
-        request["trace_id"] → значение поля.
-        """
+        """request["trace_id"] → значение поля."""
         # Arrange
         request = RequestInfo(trace_id="trace-001")
 
@@ -188,24 +161,18 @@ class TestRequestInfoDictAccess:
 
     def test_contains(self) -> None:
         """
-        "trace_id" in request → True для существующих атрибутов dataclass.
-
-        Все поля dataclass существуют как атрибуты (даже если значение None),
-        поэтому hasattr возвращает True.
+        "trace_id" in request → True для объявленных pydantic-полей.
         """
         # Arrange
         request = RequestInfo()
 
-        # Act & Assert — поля dataclass всегда существуют
+        # Act & Assert — объявленные поля присутствуют
         assert "trace_id" in request
         assert "request_path" in request
-        assert "extra" in request
         assert "nonexistent" not in request
 
     def test_get_with_default(self) -> None:
-        """
-        request.get("nonexistent", "default") → "default".
-        """
+        """request.get("nonexistent", "default") → "default"."""
         # Arrange
         request = RequestInfo(trace_id="t1")
 
@@ -213,13 +180,12 @@ class TestRequestInfoDictAccess:
         assert request.get("trace_id") == "t1"
         assert request.get("nonexistent", "fallback") == "fallback"
 
-    def test_keys_contains_all_dataclass_fields(self) -> None:
+    def test_keys_contains_all_fields(self) -> None:
         """
-        keys() возвращает все публичные поля dataclass.
-
-        RequestInfo имеет 10 полей: trace_id, request_timestamp,
+        keys() возвращает объявленные pydantic-поля.
+        RequestInfo имеет 8 полей: trace_id, request_timestamp,
         request_path, request_method, full_url, client_ip, protocol,
-        user_agent, extra, tags.
+        user_agent.
         """
         # Arrange
         request = RequestInfo(trace_id="t1")
@@ -232,12 +198,10 @@ class TestRequestInfoDictAccess:
         assert "request_path" in keys
         assert "client_ip" in keys
         assert "protocol" in keys
-        assert "extra" in keys
-        assert "tags" in keys
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# ReadableMixin — resolve
+# BaseSchema — resolve
 # ═════════════════════════════════════════════════════════════════════════════
 
 
@@ -245,9 +209,7 @@ class TestRequestInfoResolve:
     """Навигация по полям RequestInfo через resolve()."""
 
     def test_resolve_flat_field(self) -> None:
-        """
-        resolve("trace_id") — прямой доступ к плоскому полю.
-        """
+        """resolve("trace_id") — прямой доступ к плоскому полю."""
         # Arrange
         request = RequestInfo(trace_id="trace-abc-123")
 
@@ -258,39 +220,35 @@ class TestRequestInfoResolve:
         assert result == "trace-abc-123"
 
     def test_resolve_none_field(self) -> None:
-        """
-        resolve("client_ip") когда client_ip=None → возвращает None.
-
-        None — валидное значение, поле существует в dataclass.
-        """
+        """resolve("client_ip") когда client_ip=None → None."""
         # Arrange — client_ip не задан, по умолчанию None
         request = RequestInfo()
 
         # Act
         result = request.resolve("client_ip")
 
-        # Assert — None из атрибута
+        # Assert — None из поля
         assert result is None
 
-    def test_resolve_extra_nested(self) -> None:
+    def test_resolve_extended_nested(self) -> None:
         """
-        resolve("extra.correlation_id") — навигация через extra-словарь.
+        resolve("correlation_id") на наследнике — навигация к полю наследника.
         """
-        # Arrange
-        request = RequestInfo(extra={"correlation_id": "corr-xyz"})
+        # Arrange — наследник с полем correlation_id
+        request = _ExtendedRequestInfo(correlation_id="corr-xyz")
 
         # Act
-        result = request.resolve("extra.correlation_id")
+        result = request.resolve("correlation_id")
 
         # Assert
         assert result == "corr-xyz"
 
-    def test_resolve_tags(self) -> None:
+    def test_resolve_extended_tags(self) -> None:
         """
-        resolve("tags") → весь словарь тегов.
+        resolve("tags") на наследнике → весь словарь тегов.
         """
-        # Arrange
-        request = RequestInfo(tags={"ab_test": "control", "feature": "new_ui"})
+        # Arrange — наследник с dict-полем tags
+        request = _ExtendedRequestInfo(tags={"ab_test": "control", "feature": "new_ui"})
 
         # Act
         result = request.resolve("tags")
@@ -299,9 +257,7 @@ class TestRequestInfoResolve:
         assert result == {"ab_test": "control", "feature": "new_ui"}
 
     def test_resolve_missing_returns_default(self) -> None:
-        """
-        resolve("nonexistent", default="N/A") → "N/A".
-        """
+        """resolve("nonexistent", default="N/A") → "N/A"."""
         # Arrange
         request = RequestInfo()
 
@@ -314,7 +270,6 @@ class TestRequestInfoResolve:
     def test_resolve_timestamp(self) -> None:
         """
         resolve("request_timestamp") → объект datetime.
-
         resolve возвращает значение любого типа без преобразования.
         """
         # Arrange

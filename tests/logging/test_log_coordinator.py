@@ -242,7 +242,7 @@ class TestVariableSubstitution:
         {%state.total} подставляется из BaseState.
         """
         # Arrange
-        state = BaseState({"total": 1500.0})
+        state = BaseState(total=1500.0)
         logger = RecordingLogger()
         coordinator = LogCoordinator(loggers=[logger])
 
@@ -369,7 +369,7 @@ class TestIifConstructs:
         iif может использовать переменные из state.
         """
         # Arrange
-        state = BaseState({"processed": True})
+        state = BaseState(processed=True)
         logger = RecordingLogger()
         coordinator = LogCoordinator(loggers=[logger])
 
@@ -607,7 +607,7 @@ class TestNestedStructures:
         Доступ к вложенным ключам state через точку: {%state.order.id}.
         """
         # Arrange
-        state = BaseState({"order": {"id": 42}})
+        state = BaseState(order={"id": 42})
         logger = RecordingLogger()
         coordinator = LogCoordinator(loggers=[logger])
 

@@ -327,7 +327,7 @@ class TestWithStateAndParams:
         self, mock_coordinator: AsyncMock, context: Context
     ) -> None:
         """Если state и params переданы в конструктор, они попадают в emit."""
-        state = BaseState({"total": 1500.0, "count": 5})
+        state = BaseState(total=1500.0, count=5)
         params = BaseParams()
 
         logger = ScopedLogger(

@@ -6,9 +6,9 @@
 НАЗНАЧЕНИЕ
 ═══════════════════════════════════════════════════════════════════════════════
 
-UserInfo — dataclass с ReadableMixin, хранящий идентификатор пользователя,
-список ролей и произвольные дополнительные данные (extra). Является частью
-Context и используется машиной для проверки ролей через
+UserInfo — frozen pydantic-модель (наследник BaseSchema), хранящая
+идентификатор пользователя и список ролей. Является частью Context
+и используется машиной для проверки ролей через
 ActionProductMachine._check_action_roles().
 
 UserInfo создаётся:
@@ -16,34 +16,51 @@ UserInfo создаётся:
 - NoAuthCoordinator.process() — анонимный пользователь (user_id=None, roles=[]).
 - Напрямую в тестах — через конструктор UserInfo(...).
 
+Произвольные поля запрещены (extra="forbid"). Расширение — только через
+наследование с явно объявленными полями.
+
 ═══════════════════════════════════════════════════════════════════════════════
 ПОКРЫВАЕМЫЕ СЦЕНАРИИ
 ═══════════════════════════════════════════════════════════════════════════════
 
 Создание:
-    - С полным набором полей (user_id, roles, extra).
+    - С полным набором полей (user_id, roles).
     - С минимальными данными (только user_id).
-    - Без аргументов — все поля по умолчанию (user_id=None, roles=[], extra={}).
+    - Без аргументов — user_id=None, roles=[].
     - С None в user_id — анонимный пользователь.
 
-ReadableMixin — dict-подобный доступ:
+BaseSchema — dict-подобный доступ:
     - __getitem__, __contains__, get, keys, values, items.
-    - KeyError для несуществующих атрибутов.
+    - KeyError для несуществующих полей.
 
-ReadableMixin — resolve:
+BaseSchema — resolve:
     - Плоские поля: resolve("user_id"), resolve("roles").
-    - Вложенные через extra: resolve("extra.org").
     - Отсутствующие пути: resolve("missing") → None.
 
-Поле extra:
-    - Произвольные данные доступны через resolve("extra.key").
-    - Вложенные словари: resolve("extra.nested.key").
-    - Пустой extra: resolve("extra.missing") → default.
+Расширение через наследование:
+    - Наследник с дополнительными полями (org, settings).
+    - resolve через наследника: resolve("org"), resolve("settings.theme").
 """
 
+from typing import Any
+
 import pytest
+from pydantic import ConfigDict
 
 from action_machine.context.user_info import UserInfo
+
+# ═════════════════════════════════════════════════════════════════════════════
+# Наследник UserInfo для тестов расширения
+# ═════════════════════════════════════════════════════════════════════════════
+
+
+class _ExtendedUserInfo(UserInfo):
+    """Наследник UserInfo с дополнительными полями для тестов."""
+    model_config = ConfigDict(frozen=True)
+    org: str | None = None
+    department: str | None = None
+    settings: dict[str, Any] = {}
+
 
 # ═════════════════════════════════════════════════════════════════════════════
 # Создание и инициализация
@@ -58,41 +75,35 @@ class TestUserInfoCreation:
         UserInfo со всеми полями — типичный аутентифицированный пользователь.
 
         AuthCoordinator.process() создаёт UserInfo с данными из токена
-        или API-ключа: user_id, roles и дополнительные данные в extra.
+        или API-ключа: user_id и roles.
         """
         # Arrange & Act — создание с полным набором полей
         user = UserInfo(
             user_id="agent_007",
             roles=["admin", "manager"],
-            extra={"org": "acme", "department": "sales"},
         )
 
         # Assert — все поля установлены
         assert user.user_id == "agent_007"
         assert user.roles == ["admin", "manager"]
-        assert user.extra == {"org": "acme", "department": "sales"}
 
     def test_create_with_user_id_only(self) -> None:
         """
         UserInfo только с user_id — минимальный аутентифицированный пользователь.
-
-        roles и extra получают значения по умолчанию из dataclass:
-        roles=[], extra={}.
+        roles получает значение по умолчанию: [].
         """
         # Arrange & Act — только user_id
         user = UserInfo(user_id="u42")
 
-        # Assert — user_id установлен, остальное по умолчанию
+        # Assert — user_id установлен, roles по умолчанию
         assert user.user_id == "u42"
         assert user.roles == []
-        assert user.extra == {}
 
     def test_create_default(self) -> None:
         """
         UserInfo без аргументов — анонимный пользователь.
-
         NoAuthCoordinator создаёт Context с UserInfo() — все поля
-        по умолчанию: user_id=None, roles=[], extra={}.
+        по умолчанию: user_id=None, roles=[].
         """
         # Arrange & Act — создание без аргументов
         user = UserInfo()
@@ -100,12 +111,10 @@ class TestUserInfoCreation:
         # Assert — все поля по умолчанию
         assert user.user_id is None
         assert user.roles == []
-        assert user.extra == {}
 
     def test_create_with_none_user_id(self) -> None:
         """
         user_id=None — явно анонимный пользователь.
-
         Эквивалентно UserInfo() по умолчанию, но может быть задано явно
         при создании контекста для гостевого доступа.
         """
@@ -116,38 +125,40 @@ class TestUserInfoCreation:
         assert user.user_id is None
         assert user.roles == ["guest"]
 
-    def test_roles_is_independent_list(self) -> None:
+    def test_extended_user_info_with_extra_fields(self) -> None:
         """
-        Каждый экземпляр UserInfo имеет свой список ролей.
+        Расширение UserInfo через наследование с явно объявленными полями.
 
-        Dataclass field(default_factory=list) гарантирует, что
-        roles — новый список для каждого экземпляра.
+        UserInfo имеет extra="forbid" — произвольные поля запрещены.
+        Для дополнительных данных создаётся наследник.
         """
-        # Arrange — два экземпляра без явных ролей
-        user1 = UserInfo(user_id="u1")
-        user2 = UserInfo(user_id="u2")
+        # Arrange & Act — наследник с дополнительными полями
+        user = _ExtendedUserInfo(
+            user_id="agent_007",
+            roles=["admin", "manager"],
+            org="acme",
+            department="sales",
+        )
 
-        # Act — модификация ролей одного экземпляра
-        user1.roles.append("admin")
-
-        # Assert — второй экземпляр не затронут
-        assert user1.roles == ["admin"]
-        assert user2.roles == []
+        # Assert — все поля установлены
+        assert user.user_id == "agent_007"
+        assert user.roles == ["admin", "manager"]
+        assert user.org == "acme"
+        assert user.department == "sales"
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# ReadableMixin — dict-подобный доступ
+# BaseSchema — dict-подобный доступ
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestUserInfoDictAccess:
-    """Dict-подобный доступ к полям UserInfo через ReadableMixin."""
+    """Dict-подобный доступ к полям UserInfo через BaseSchema."""
 
     def test_getitem(self) -> None:
         """
         user["user_id"] — доступ к полю через квадратные скобки.
-
-        ReadableMixin.__getitem__ делегирует в getattr(self, key).
+        BaseSchema.__getitem__ делегирует в getattr(self, key).
         """
         # Arrange — UserInfo с user_id
         user = UserInfo(user_id="agent_007")
@@ -158,11 +169,10 @@ class TestUserInfoDictAccess:
     def test_getitem_missing_raises_key_error(self) -> None:
         """
         user["nonexistent"] → KeyError.
-
-        ReadableMixin.__getitem__ ловит AttributeError и перебрасывает
+        BaseSchema.__getitem__ ловит AttributeError и перебрасывает
         как KeyError — поведение идентично dict.
         """
-        # Arrange — UserInfo без атрибута "nonexistent"
+        # Arrange — UserInfo без поля "nonexistent"
         user = UserInfo(user_id="u1")
 
         # Act & Assert — KeyError для несуществующего ключа
@@ -172,21 +182,19 @@ class TestUserInfoDictAccess:
     def test_contains(self) -> None:
         """
         "user_id" in user → True; "missing" in user → False.
-
-        ReadableMixin.__contains__ делегирует в hasattr(self, key).
+        BaseSchema.__contains__ проверяет model_fields.
         """
         # Arrange
         user = UserInfo(user_id="u1", roles=["admin"])
 
-        # Act & Assert — проверка наличия
+        # Act & Assert — проверка наличия объявленных полей
         assert "user_id" in user
         assert "roles" in user
-        assert "extra" in user
         assert "nonexistent" not in user
 
     def test_get_existing(self) -> None:
         """
-        user.get("user_id") → значение атрибута.
+        user.get("user_id") → значение поля.
         """
         # Arrange
         user = UserInfo(user_id="u1")
@@ -216,25 +224,22 @@ class TestUserInfoDictAccess:
 
     def test_keys(self) -> None:
         """
-        keys() возвращает публичные поля dataclass.
-
-        UserInfo — не pydantic, поэтому ReadableMixin использует
-        vars(self) с фильтрацией приватных атрибутов.
+        keys() возвращает объявленные pydantic-поля.
+        UserInfo имеет два поля: user_id, roles.
         """
         # Arrange
-        user = UserInfo(user_id="u1", roles=["admin"], extra={"org": "acme"})
+        user = UserInfo(user_id="u1", roles=["admin"])
 
         # Act
         keys = user.keys()
 
-        # Assert — три публичных поля dataclass
+        # Assert — два объявленных поля
         assert "user_id" in keys
         assert "roles" in keys
-        assert "extra" in keys
 
     def test_values(self) -> None:
         """
-        values() возвращает значения публичных полей.
+        values() возвращает значения объявленных полей.
         """
         # Arrange
         user = UserInfo(user_id="u1", roles=["admin"])
@@ -248,7 +253,7 @@ class TestUserInfoDictAccess:
 
     def test_items(self) -> None:
         """
-        items() возвращает пары (ключ, значение) для публичных полей.
+        items() возвращает пары (ключ, значение) для объявленных полей.
         """
         # Arrange
         user = UserInfo(user_id="u1")
@@ -261,7 +266,7 @@ class TestUserInfoDictAccess:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# ReadableMixin — resolve
+# BaseSchema — resolve
 # ═════════════════════════════════════════════════════════════════════════════
 
 
@@ -271,8 +276,6 @@ class TestUserInfoResolve:
     def test_resolve_flat_field(self) -> None:
         """
         resolve("user_id") — прямой доступ к плоскому полю.
-
-        Один сегмент пути, один вызов _resolve_one_step.
         """
         # Arrange
         user = UserInfo(user_id="agent_007")
@@ -296,33 +299,31 @@ class TestUserInfoResolve:
         # Assert — список целиком
         assert result == ["admin", "user"]
 
-    def test_resolve_extra_value(self) -> None:
+    def test_resolve_extended_field(self) -> None:
         """
-        resolve("extra.org") — навигация через extra-словарь.
-
-        Два шага: UserInfo → extra (dict) → значение.
-        _resolve_one_step переключается с ReadableMixin на dict-стратегию.
+        resolve("org") на наследнике — навигация к полю наследника.
         """
-        # Arrange
-        user = UserInfo(extra={"org": "acme"})
+        # Arrange — наследник с полем org
+        user = _ExtendedUserInfo(org="acme")
 
         # Act
-        result = user.resolve("extra.org")
+        result = user.resolve("org")
 
         # Assert
         assert result == "acme"
 
-    def test_resolve_nested_extra(self) -> None:
+    def test_resolve_extended_nested_dict(self) -> None:
         """
-        resolve("extra.settings.theme") — глубокая навигация через extra.
+        resolve("settings.theme") на наследнике — навигация через dict-поле.
 
-        Три шага: UserInfo → extra (dict) → settings (dict) → theme (str).
+        Два шага: _ExtendedUserInfo → settings (dict) → theme (str).
+        resolve переключается с BaseSchema.__getitem__ на dict-доступ.
         """
-        # Arrange — вложенные словари в extra
-        user = UserInfo(extra={"settings": {"theme": "dark", "lang": "ru"}})
+        # Arrange — наследник с dict-полем settings
+        user = _ExtendedUserInfo(settings={"theme": "dark", "lang": "ru"})
 
         # Act
-        result = user.resolve("extra.settings.theme")
+        result = user.resolve("settings.theme")
 
         # Assert
         assert result == "dark"
@@ -330,7 +331,6 @@ class TestUserInfoResolve:
     def test_resolve_missing_returns_none(self) -> None:
         """
         resolve("nonexistent") — отсутствующее поле → None.
-
         resolve никогда не бросает исключение при отсутствии ключа.
         """
         # Arrange
@@ -358,9 +358,7 @@ class TestUserInfoResolve:
     def test_resolve_none_user_id(self) -> None:
         """
         resolve("user_id") когда user_id=None → возвращает None, не default.
-
-        None — валидное значение поля, не отсутствие. resolve различает
-        "атрибут существует со значением None" и "атрибут не найден".
+        None — валидное значение поля, не отсутствие.
         """
         # Arrange — user_id явно None
         user = UserInfo(user_id=None)
@@ -368,5 +366,5 @@ class TestUserInfoResolve:
         # Act
         result = user.resolve("user_id", default="fallback")
 
-        # Assert — None из атрибута, не "fallback"
+        # Assert — None из поля, не "fallback"
         assert result is None

@@ -7,17 +7,18 @@
 ═══════════════════════════════════════════════════════════════════════════════
 
 Context — корневой объект, объединяющий UserInfo, RequestInfo и RuntimeInfo.
-Передаётся в машину при вызове run() и доступен аспектам через box.context,
+Передаётся в машину при вызове run() и доступен аспектам через ContextView,
 плагинам через event.context, шаблонам логирования через {%context.*}.
 
-Context наследует ReadableMixin, что обеспечивает:
+Context наследует BaseSchema, что обеспечивает:
 - Dict-подобный доступ: ctx["user"], ctx.get("request").
 - Навигация по вложенным компонентам: ctx.resolve("user.user_id"),
   ctx.resolve("request.trace_id"), ctx.resolve("runtime.hostname").
 
 При создании без аргументов все компоненты инициализируются дефолтами:
-UserInfo(), RequestInfo(), RuntimeInfo(). Это гарантирует, что обращение
-к ctx.user, ctx.request, ctx.runtime никогда не вернёт None.
+UserInfo(), RequestInfo(), RuntimeInfo(). Явный None в любом компоненте
+заменяется дефолтным экземпляром через field_validator. Это гарантирует,
+что ctx.user, ctx.request, ctx.runtime никогда не равны None.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ПОКРЫВАЕМЫЕ СЦЕНАРИИ
@@ -27,14 +28,14 @@ UserInfo(), RequestInfo(), RuntimeInfo(). Это гарантирует, что 
     - С полным набором компонентов — production-контекст.
     - Без аргументов — все компоненты по умолчанию (не None).
     - С частичными данными — только user.
-    - None-компоненты заменяются дефолтами.
+    - None-компоненты заменяются дефолтами (field_validator).
 
-ReadableMixin — dict-подобный доступ:
+BaseSchema — dict-подобный доступ:
     - __getitem__, __contains__, get, keys.
 
 Навигация через resolve:
     - Два уровня: ctx.resolve("user.user_id").
-    - Три уровня: ctx.resolve("user.extra.org").
+    - Три уровня: ctx.resolve("user.org") через наследника UserInfo.
     - Все компоненты: user, request, runtime.
     - Отсутствующие пути на любом уровне.
 
@@ -42,12 +43,49 @@ ReadableMixin — dict-подобный доступ:
     - ctx.user — экземпляр UserInfo.
     - ctx.request — экземпляр RequestInfo.
     - ctx.runtime — экземпляр RuntimeInfo.
+
+Расширение через наследование:
+    - Наследники UserInfo, RequestInfo, RuntimeInfo с явно объявленными
+      полями используются для тестирования трёхуровневой навигации.
+      Это единственный способ добавить поля — extra="forbid" на всех
+      Info-классах запрещает произвольные поля.
 """
+
+from typing import Any
+
+from pydantic import ConfigDict
 
 from action_machine.context.context import Context
 from action_machine.context.request_info import RequestInfo
 from action_machine.context.runtime_info import RuntimeInfo
 from action_machine.context.user_info import UserInfo
+
+# ═════════════════════════════════════════════════════════════════════════════
+# Наследники Info-классов для тестов трёхуровневой навигации.
+#
+# UserInfo, RequestInfo, RuntimeInfo не имеют поля extra (extra="forbid").
+# Расширение — только через наследование с явно объявленными полями.
+# ═════════════════════════════════════════════════════════════════════════════
+
+
+class _ExtendedUserInfo(UserInfo):
+    """Наследник UserInfo с дополнительными полями для тестов."""
+    model_config = ConfigDict(frozen=True)
+    org: str | None = None
+    settings: dict[str, Any] = {}
+
+
+class _ExtendedRequestInfo(RequestInfo):
+    """Наследник RequestInfo с дополнительным полем для тестов."""
+    model_config = ConfigDict(frozen=True)
+    correlation_id: str | None = None
+
+
+class _ExtendedRuntimeInfo(RuntimeInfo):
+    """Наследник RuntimeInfo с дополнительным полем для тестов."""
+    model_config = ConfigDict(frozen=True)
+    region: str | None = None
+
 
 # ═════════════════════════════════════════════════════════════════════════════
 # Создание и инициализация
@@ -98,7 +136,6 @@ class TestContextCreation:
     def test_create_default_user_values(self) -> None:
         """
         Context() создаёт UserInfo с дефолтами: user_id=None, roles=[].
-
         Это анонимный контекст, создаваемый NoAuthCoordinator.
         """
         # Arrange & Act
@@ -130,7 +167,8 @@ class TestContextCreation:
         Явный None в компоненте заменяется дефолтным экземпляром.
 
         Context(user=None) эквивалентен Context() — user будет
-        UserInfo() с дефолтами, а не None.
+        UserInfo() с дефолтами, а не None. Реализовано через
+        field_validator("user", mode="before") в модели Context.
         """
         # Arrange & Act — явные None
         ctx = Context(user=None, request=None, runtime=None)
@@ -140,21 +178,23 @@ class TestContextCreation:
         assert ctx.request is not None
         assert ctx.runtime is not None
         assert isinstance(ctx.user, UserInfo)
+        assert isinstance(ctx.request, RequestInfo)
+        assert isinstance(ctx.runtime, RuntimeInfo)
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# ReadableMixin — dict-подобный доступ
+# BaseSchema — dict-подобный доступ
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestContextDictAccess:
-    """Dict-подобный доступ к компонентам Context через ReadableMixin."""
+    """Dict-подобный доступ к компонентам Context через BaseSchema."""
 
     def test_getitem_user(self) -> None:
         """
         ctx["user"] → объект UserInfo.
 
-        ReadableMixin.__getitem__ делегирует в getattr(self, "user").
+        BaseSchema.__getitem__ делегирует в getattr(self, "user").
         """
         # Arrange
         user = UserInfo(user_id="u1")
@@ -215,8 +255,8 @@ class TestContextDictAccess:
         """
         keys() содержит user, request, runtime.
 
-        Context хранит три компонента как атрибуты. ReadableMixin.keys()
-        через vars(self) возвращает публичные атрибуты.
+        Context хранит три компонента как pydantic-поля.
+        BaseSchema.keys() возвращает model_fields.keys().
         """
         # Arrange
         ctx = Context()
@@ -242,8 +282,8 @@ class TestContextResolveTwoLevels:
         """
         resolve("user.user_id") — Context → UserInfo → user_id.
 
-        Первый шаг: _resolve_step_readable(ctx, "user") → UserInfo.
-        Второй шаг: _resolve_step_readable(UserInfo, "user_id") → "agent_007".
+        Первый шаг: BaseSchema.__getitem__(ctx, "user") → UserInfo.
+        Второй шаг: BaseSchema.__getitem__(UserInfo, "user_id") → "agent_007".
         """
         # Arrange
         ctx = Context(user=UserInfo(user_id="agent_007"))
@@ -321,67 +361,78 @@ class TestContextResolveTwoLevels:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Навигация через resolve — три уровня
+# Навигация через resolve — три уровня (через наследников Info-классов)
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestContextResolveThreeLevels:
-    """resolve через три уровня: Context → компонент → dict → значение."""
+    """
+    resolve через три уровня: Context → наследник Info → поле наследника.
 
-    def test_resolve_user_extra(self) -> None:
-        """
-        resolve("user.extra.org") — Context → UserInfo → extra → значение.
+    UserInfo, RequestInfo, RuntimeInfo не имеют поля extra (extra="forbid").
+    Трёхуровневая навигация тестируется через наследников с явно
+    объявленными полями — единственный способ расширения в новой
+    архитектуре.
+    """
 
-        Три шага: ReadableMixin → ReadableMixin → dict → значение.
+    def test_resolve_user_extended_field(self) -> None:
         """
-        # Arrange
-        ctx = Context(user=UserInfo(extra={"org": "acme"}))
+        resolve("user.org") — Context → _ExtendedUserInfo → org.
+
+        Три уровня: BaseSchema (Context) → BaseSchema (_ExtendedUserInfo)
+        → значение поля.
+        """
+        # Arrange — наследник UserInfo с полем org
+        ctx = Context(user=_ExtendedUserInfo(org="acme"))
 
         # Act
-        result = ctx.resolve("user.extra.org")
+        result = ctx.resolve("user.org")
 
         # Assert
         assert result == "acme"
 
-    def test_resolve_request_extra(self) -> None:
+    def test_resolve_request_extended_field(self) -> None:
         """
-        resolve("request.extra.correlation_id") — через extra RequestInfo.
+        resolve("request.correlation_id") — Context → _ExtendedRequestInfo
+        → correlation_id.
         """
-        # Arrange
-        ctx = Context(request=RequestInfo(extra={"correlation_id": "corr-001"}))
+        # Arrange — наследник RequestInfo с полем correlation_id
+        ctx = Context(request=_ExtendedRequestInfo(correlation_id="corr-001"))
 
         # Act
-        result = ctx.resolve("request.extra.correlation_id")
+        result = ctx.resolve("request.correlation_id")
 
         # Assert
         assert result == "corr-001"
 
-    def test_resolve_runtime_extra(self) -> None:
+    def test_resolve_runtime_extended_field(self) -> None:
         """
-        resolve("runtime.extra.region") — через extra RuntimeInfo.
+        resolve("runtime.region") — Context → _ExtendedRuntimeInfo → region.
         """
-        # Arrange
-        ctx = Context(runtime=RuntimeInfo(extra={"region": "eu-west-1"}))
+        # Arrange — наследник RuntimeInfo с полем region
+        ctx = Context(runtime=_ExtendedRuntimeInfo(region="eu-west-1"))
 
         # Act
-        result = ctx.resolve("runtime.extra.region")
+        result = ctx.resolve("runtime.region")
 
         # Assert
         assert result == "eu-west-1"
 
-    def test_resolve_deep_nested_extra(self) -> None:
+    def test_resolve_deep_nested_dict_field(self) -> None:
         """
-        resolve("user.extra.settings.theme") — четыре уровня навигации.
+        resolve("user.settings.theme") — четыре уровня навигации.
 
-        Context → UserInfo → extra (dict) → settings (dict) → theme.
+        Context → _ExtendedUserInfo → settings (dict) → theme (значение).
+        Навигация переключается со стратегии __getitem__ (BaseSchema)
+        на прямой доступ по ключу (dict).
         """
-        # Arrange
-        ctx = Context(user=UserInfo(extra={
-            "settings": {"theme": "dark", "lang": "ru"},
-        }))
+        # Arrange — наследник UserInfo с полем settings (dict)
+        ctx = Context(user=_ExtendedUserInfo(
+            settings={"theme": "dark", "lang": "ru"},
+        ))
 
         # Act
-        result = ctx.resolve("user.extra.settings.theme")
+        result = ctx.resolve("user.settings.theme")
 
         # Assert
         assert result == "dark"
@@ -424,15 +475,20 @@ class TestContextResolveMissing:
         # Assert
         assert result == "fallback"
 
-    def test_missing_extra_key(self) -> None:
+    def test_missing_extended_field_key(self) -> None:
         """
-        resolve("user.extra.missing_key") — ключ не существует в extra.
+        resolve("user.settings.missing_key") — ключ не существует в dict.
+
+        _ExtendedUserInfo имеет поле settings: dict. Навигация доходит
+        до dict, но ключ "missing_key" в нём отсутствует → default.
         """
-        # Arrange
-        ctx = Context(user=UserInfo(extra={"org": "acme"}))
+        # Arrange — наследник UserInfo с полем settings
+        ctx = Context(user=_ExtendedUserInfo(
+            settings={"org": "acme"},
+        ))
 
         # Act
-        result = ctx.resolve("user.extra.missing_key", default="none")
+        result = ctx.resolve("user.settings.missing_key", default="none")
 
         # Assert
         assert result == "none"

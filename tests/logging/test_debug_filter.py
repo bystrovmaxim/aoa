@@ -257,7 +257,7 @@ class TestDebugNamespaces:
     ) -> None:
         """{%context.user|debug} — интроспекция UserInfo из контекста."""
         # Arrange — контекст с пользователем и extra-данными
-        user = UserInfo(user_id="test_user", roles=["user"], extra={"org": "acme"})
+        user = UserInfo(user_id="test_user", roles=["user"])
         ctx = Context(user=user)
 
         # Act
@@ -268,9 +268,9 @@ class TestDebugNamespaces:
 
         # Assert — поля UserInfo видны
         assert "UserInfo:" in result
+        assert "UserInfo:" in result
         assert "user_id: str = 'test_user'" in result
         assert "roles: list = ['user']" in result
-        assert "extra: dict = {'org': 'acme'}" in result
 
     def test_debug_on_state(
         self, substitutor: VariableSubstitutor,
@@ -278,7 +278,7 @@ class TestDebugNamespaces:
     ) -> None:
         """{%state|debug} — интроспекция BaseState."""
         # Arrange — состояние с числом и списком
-        state = BaseState({"total": 100, "items": [1, 2, 3]})
+        state = BaseState(total=100, items=[1, 2, 3])
 
         # Act
         result = substitutor.substitute(

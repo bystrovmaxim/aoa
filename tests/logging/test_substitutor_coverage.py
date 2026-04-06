@@ -281,7 +281,7 @@ class TestNamespaceResolution:
     def test_state_variable(self, sub, scope, ctx, params) -> None:
         """Namespace state разрешает значения из BaseState."""
         # Arrange — state содержит txn_id
-        st = BaseState({"txn_id": "TXN-001"})
+        st = BaseState(txn_id="TXN-001")
 
         # Act
         result = sub.substitute("{%state.txn_id}", {}, scope, ctx, st, params)
@@ -382,7 +382,7 @@ class TestNavigationSteps:
     def test_state_navigation(self, sub, scope, ctx, params) -> None:
         """Навигация по BaseState (ReadableMixin) через __getitem__."""
         # Arrange — BaseState поддерживает __getitem__
-        st = BaseState({"nested": {"key": "value"}})
+        st = BaseState(nested={"key": "value"})
 
         # Act
         result = sub.substitute("{%state.nested.key}", {}, scope, ctx, st, params)
