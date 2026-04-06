@@ -6,7 +6,8 @@
 НАЗНАЧЕНИЕ
 ═══════════════════════════════════════════════════════════════════════════════
 
-BaseParams и BaseResult наследуют pydantic BaseModel, что обеспечивает:
+BaseParams и BaseResult наследуют pydantic BaseModel (через BaseSchema),
+что обеспечивает:
 
 1. Валидация типов при создании экземпляра — передача str в int-поле
    вызывает ValidationError.
@@ -17,13 +18,14 @@ BaseParams и BaseResult наследуют pydantic BaseModel, что обес�
 4. JSON Schema через model_json_schema() — используется FastAPI для
    автоматической генерации OpenAPI и MCP-адаптером для inputSchema.
 
-BaseParams: frozen=True (неизменяемый после создания). ReadableMixin
-обеспечивает dict-подобное чтение.
+BaseParams: frozen=True (неизменяемый после создания). BaseSchema
+обеспечивает dict-подобное чтение и dot-path навигацию.
 
 BaseResult: frozen=True, extra="forbid". Неизменяемый результат со строгой
 структурой. Запись запрещена, произвольные поля запрещены.
 
-BaseState: НЕ pydantic, динамические поля, frozen. Покрыт в test_base_state.py.
+BaseState: pydantic с extra="allow", динамические поля, frozen.
+Покрыт в test_base_state.py и test_frozen_state.py.
 
 DescribedFieldsGateHost: маркерный миксин, обозначающий обязательность
 описания каждого поля через Field(description="..."). MetadataBuilder
@@ -40,7 +42,7 @@ BaseParams (pydantic, frozen):
     - Constraints: gt, min_length, max_length, pattern.
     - Default-значения полей.
     - Пустые Params (без полей) — валидны.
-    - ReadableMixin: keys, values, items, getitem, contains, get.
+    - BaseSchema: keys, values, items, getitem, contains, get.
     - resolve() на pydantic-полях.
 
 BaseResult (pydantic, frozen, extra="forbid"):
@@ -49,7 +51,7 @@ BaseResult (pydantic, frozen, extra="forbid"):
     - Frozen: изменение через __setitem__ → TypeError (нет метода).
     - Extra-поля запрещены (extra="forbid").
     - Constraints: ge и другие.
-    - ReadableMixin: keys работает только для объявленных полей.
+    - BaseSchema: keys работает только для объявленных полей.
     - Пустой Result — валиден.
 
 JSON Schema:
@@ -68,6 +70,12 @@ ClassMetadata — params_fields и result_fields:
     - result_fields содержит описания и constraints.
     - FieldDescriptionMeta.required и default корректны.
     - FieldDescriptionMeta.field_type — строковое представление типа.
+
+BaseState (pydantic, extra="allow", frozen):
+    - Создание через kwargs.
+    - Динамические поля.
+    - to_dict() и resolve().
+    - Отсутствие write/update.
 """
 
 import pytest
@@ -90,7 +98,6 @@ from tests.domain import FullAction, PingAction, SimpleAction
 
 class OrderParams(BaseParams):
     """Параметры заказа — все поля с описанием и constraints."""
-
     user_id: str = Field(
         description="Идентификатор пользователя",
         examples=["user_123"],
@@ -113,7 +120,6 @@ class OrderParams(BaseParams):
 
 class OrderResult(BaseResult):
     """Результат заказа — все поля с описанием."""
-
     order_id: str = Field(description="Идентификатор заказа")
     status: str = Field(
         description="Статус заказа",
@@ -124,31 +130,26 @@ class OrderResult(BaseResult):
 
 class EmptyParams(BaseParams):
     """Пустые параметры — допустимы для действий без входных данных."""
-
     pass
 
 
 class EmptyResult(BaseResult):
     """Пустой результат — допустим для действий без выходных данных."""
-
     pass
 
 
 class BadParamsNoDescription(BaseParams):
     """Параметры с полем без description — для теста ошибки валидации."""
-
     user_id: str  # нет Field(description="...")
 
 
 class BadParamsEmptyDescription(BaseParams):
     """Параметры с пустым description — для теста ошибки валидации."""
-
     user_id: str = Field(description="")
 
 
 class BadResultNoDescription(BaseResult):
     """Результат с полем без description — для теста ошибки валидации."""
-
     order_id: str  # нет Field(description="...")
 
 
@@ -161,7 +162,6 @@ class BadResultNoDescription(BaseResult):
 @check_roles(ROLE_NONE)
 class GoodAction(BaseAction[OrderParams, OrderResult]):
     """Все поля Params и Result имеют description — проходит валидацию."""
-
     @summary_aspect("Создание заказа")
     async def finalize_summary(self, params, state, box, connections):
         return OrderResult(order_id="ORD-1", status="created", total=params.amount)
@@ -171,7 +171,6 @@ class GoodAction(BaseAction[OrderParams, OrderResult]):
 @check_roles(ROLE_NONE)
 class EmptyModelsAction(BaseAction[EmptyParams, EmptyResult]):
     """Пустые Params и Result — нет полей для проверки, проходит валидацию."""
-
     @summary_aspect("Пустой результат")
     async def finalize_summary(self, params, state, box, connections):
         return EmptyResult()
@@ -181,7 +180,6 @@ class EmptyModelsAction(BaseAction[EmptyParams, EmptyResult]):
 @check_roles(ROLE_NONE)
 class BadParamsAction(BaseAction[BadParamsNoDescription, OrderResult]):
     """Поле user_id в Params без description — TypeError при сборке."""
-
     @summary_aspect("Результат")
     async def finalize_summary(self, params, state, box, connections):
         return OrderResult(order_id="ORD-1", status="ok", total=100.0)
@@ -191,7 +189,6 @@ class BadParamsAction(BaseAction[BadParamsNoDescription, OrderResult]):
 @check_roles(ROLE_NONE)
 class BadParamsEmptyDescAction(BaseAction[BadParamsEmptyDescription, OrderResult]):
     """Пустая строка description — тоже ошибка."""
-
     @summary_aspect("Результат")
     async def finalize_summary(self, params, state, box, connections):
         return OrderResult(order_id="ORD-1", status="ok", total=100.0)
@@ -201,7 +198,6 @@ class BadParamsEmptyDescAction(BaseAction[BadParamsEmptyDescription, OrderResult
 @check_roles(ROLE_NONE)
 class BadResultAction(BaseAction[OrderParams, BadResultNoDescription]):
     """Поле order_id в Result без description — TypeError при сборке."""
-
     @summary_aspect("Результат")
     async def finalize_summary(self, params, state, box, connections):
         return BadResultNoDescription(order_id="ORD-1")
@@ -218,9 +214,7 @@ class TestBaseParamsPydantic:
     def test_create_with_valid_data(self) -> None:
         """
         Создание OrderParams с валидными данными — все поля заполнены.
-
         Pydantic валидирует типы и constraints при создании экземпляра.
-        Если всё корректно — экземпляр создаётся без ошибок.
         """
         # Arrange — валидные данные для всех обязательных полей
         # Act — pydantic проверяет типы и constraints в __init__
@@ -235,119 +229,95 @@ class TestBaseParamsPydantic:
     def test_frozen_prevents_modification(self) -> None:
         """
         frozen=True: попытка изменить поле → ValidationError.
-
-        BaseParams использует ConfigDict(frozen=True). Это делает
-        экземпляр неизменяемым после создания — аспекты и плагины
-        не могут случайно изменить входные параметры.
         """
         # Arrange — созданный frozen-экземпляр
         params = OrderParams(user_id="user_123", amount=1500.0)
 
-        # Act & Assert — pydantic бросает ValidationError при попытке
-        # записать значение в frozen-модель
+        # Act & Assert
         with pytest.raises(ValidationError):
             params.user_id = "other_user"
 
     def test_type_validation_rejects_wrong_type(self) -> None:
         """
         Передача неверного типа → ValidationError.
-
-        user_id ожидает str, amount ожидает float. Передача int в user_id
-        и str в amount вызывает ошибку валидации pydantic.
         """
-        # Arrange & Act & Assert — неверные типы для обоих полей
+        # Arrange & Act & Assert — неверные типы
         with pytest.raises(ValidationError):
             OrderParams(user_id=123, amount="not_a_number")
 
     def test_constraint_gt_zero(self) -> None:
         """
         Constraint gt=0: amount должен быть строго больше нуля.
-
-        gt=0 в Field() означает exclusive minimum: 0 не допускается,
-        только положительные значения.
         """
         # Arrange & Act & Assert — amount=0, нарушает gt=0
         with pytest.raises(ValidationError):
             OrderParams(user_id="u1", amount=0)
 
-        # Arrange & Act & Assert — amount=-100, тоже нарушает gt=0
+        # Arrange & Act & Assert — amount=-100
         with pytest.raises(ValidationError):
             OrderParams(user_id="u1", amount=-100)
 
     def test_constraint_min_max_length(self) -> None:
         """
         Constraints min_length=3, max_length=3 для currency.
-
-        Код валюты ISO 4217 — ровно 3 символа. Меньше или больше —
-        ValidationError.
         """
-        # Arrange & Act & Assert — 2 символа, нарушает min_length=3
+        # Arrange & Act & Assert — 2 символа
         with pytest.raises(ValidationError):
             OrderParams(user_id="u1", amount=100, currency="US")
 
-        # Arrange & Act & Assert — 4 символа, нарушает max_length=3
+        # Arrange & Act & Assert — 4 символа
         with pytest.raises(ValidationError):
             OrderParams(user_id="u1", amount=100, currency="EURO")
 
     def test_default_values_applied(self) -> None:
         """
         Поля с default получают значения по умолчанию при создании.
-
-        currency="RUB" (из Field(default="RUB")), comment=None.
         """
         # Arrange & Act — создание без optional-полей
         params = OrderParams(user_id="u1", amount=100.0)
 
-        # Assert — default-значения из Field(default=...)
+        # Assert
         assert params.currency == "RUB"
         assert params.comment is None
 
     def test_empty_params_valid(self) -> None:
         """
         Пустые BaseParams без полей — валидны.
-
-        EmptyParams() не содержит полей, pydantic создаёт пустой экземпляр.
-        Это штатный сценарий для PingAction и подобных.
         """
-        # Arrange & Act — создание пустых параметров
+        # Arrange & Act
         params = EmptyParams()
 
-        # Assert — экземпляр создан, является BaseParams
+        # Assert
         assert isinstance(params, BaseParams)
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# BaseParams — ReadableMixin совместимость
+# BaseParams — BaseSchema совместимость
 # ═════════════════════════════════════════════════════════════════════════════
 
 
-class TestBaseParamsReadableMixin:
-    """ReadableMixin работает на pydantic BaseParams."""
+class TestBaseParamsBaseSchema:
+    """BaseSchema работает на pydantic BaseParams."""
 
     def test_getitem(self) -> None:
         """
-        params["user_id"] — dict-подобный доступ через ReadableMixin.
-
-        getattr(params, "user_id") возвращает значение pydantic-поля.
+        params["user_id"] — dict-подобный доступ через BaseSchema.
         """
-        # Arrange — pydantic-модель с данными
+        # Arrange
         params = OrderParams(user_id="u1", amount=500.0)
 
-        # Act — чтение через квадратные скобки
-        # Assert — значение из pydantic-поля
+        # Act & Assert
         assert params["user_id"] == "u1"
         assert params["amount"] == 500.0
 
     def test_getitem_missing_raises_key_error(self) -> None:
         """
         params["nonexistent"] → KeyError.
-
-        getattr бросает AttributeError, ReadableMixin оборачивает в KeyError.
         """
         # Arrange
         params = OrderParams(user_id="u1", amount=500.0)
 
-        # Act & Assert — несуществующее поле
+        # Act & Assert
         with pytest.raises(KeyError):
             _ = params["nonexistent"]
 
@@ -358,7 +328,7 @@ class TestBaseParamsReadableMixin:
         # Arrange
         params = OrderParams(user_id="u1", amount=500.0)
 
-        # Act & Assert — hasattr проверяет наличие pydantic-атрибута
+        # Act & Assert
         assert "user_id" in params
         assert "amount" in params
         assert "nonexistent" not in params
@@ -370,24 +340,19 @@ class TestBaseParamsReadableMixin:
         # Arrange
         params = OrderParams(user_id="u1", amount=500.0)
 
-        # Act & Assert — существующий ключ
+        # Act & Assert
         assert params.get("user_id") == "u1"
-
-        # Act & Assert — несуществующий ключ с default
         assert params.get("nonexistent", "fallback") == "fallback"
 
     def test_keys_returns_model_fields(self) -> None:
         """
         keys() возвращает только объявленные поля pydantic-модели.
-
-        ReadableMixin._get_field_names() для pydantic использует
-        type(self).model_fields.keys(). Внутренние pydantic-атрибуты
-        (__pydantic_fields_set__ и т.д.) не включаются.
+        BaseSchema.keys() использует model_fields.keys().
         """
         # Arrange
         params = OrderParams(user_id="u1", amount=500.0)
 
-        # Act — получение ключей
+        # Act
         keys = params.keys()
 
         # Assert — четыре объявленных поля модели
@@ -396,9 +361,6 @@ class TestBaseParamsReadableMixin:
         assert "currency" in keys
         assert "comment" in keys
         assert len(keys) == 4
-
-        # Assert — внутренние pydantic-атрибуты отсутствуют
-        assert "_resolve_cache" not in keys
 
     def test_values_returns_field_values(self) -> None:
         """
@@ -410,7 +372,7 @@ class TestBaseParamsReadableMixin:
         # Act
         values = params.values()
 
-        # Assert — значения всех четырёх полей
+        # Assert
         assert "u1" in values
         assert 500.0 in values
         assert "RUB" in values
@@ -425,7 +387,7 @@ class TestBaseParamsReadableMixin:
         # Act
         items = params.items()
 
-        # Assert — пары содержат ключи и значения
+        # Assert
         assert ("user_id", "u1") in items
         assert ("amount", 500.0) in items
         assert ("currency", "RUB") in items
@@ -433,14 +395,12 @@ class TestBaseParamsReadableMixin:
     def test_resolve_flat_field(self) -> None:
         """
         resolve() работает для плоских полей pydantic-модели.
-
         Используется в шаблонах логирования: {%params.amount}.
         """
         # Arrange
         params = OrderParams(user_id="u1", amount=1500.0)
 
-        # Act — resolve плоских полей
-        # Assert — значения из pydantic-атрибутов
+        # Act & Assert
         assert params.resolve("user_id") == "u1"
         assert params.resolve("amount") == 1500.0
         assert params.resolve("currency") == "RUB"
@@ -452,23 +412,20 @@ class TestBaseParamsReadableMixin:
         # Arrange
         params = OrderParams(user_id="u1", amount=500.0)
 
-        # Act & Assert — несуществующее поле → default
+        # Act & Assert
         assert params.resolve("nonexistent", default="N/A") == "N/A"
 
     def test_resolve_none_field(self) -> None:
         """
         resolve("comment") возвращает None когда поле = None.
-
-        comment имеет default=None. resolve возвращает None,
-        а не подставляет default.
         """
         # Arrange — comment не передан, default=None
         params = OrderParams(user_id="u1", amount=500.0)
 
-        # Act — resolve поля со значением None
+        # Act
         result = params.resolve("comment")
 
-        # Assert — None из атрибута, не default
+        # Assert — None из поля, не default
         assert result is None
 
 
@@ -484,10 +441,10 @@ class TestBaseResultPydantic:
         """
         Создание OrderResult и чтение полей.
         """
-        # Arrange & Act — создание результата
+        # Arrange & Act
         result = OrderResult(order_id="ORD-1", status="created", total=1500.0)
 
-        # Assert — все поля доступны
+        # Assert
         assert result.order_id == "ORD-1"
         assert result.status == "created"
         assert result.total == 1500.0
@@ -495,35 +452,28 @@ class TestBaseResultPydantic:
     def test_frozen_prevents_setattr(self) -> None:
         """
         BaseResult frozen=True — поля нельзя изменить через setattr.
-
-        Попытка изменить существующее поле вызывает ValidationError.
         """
-        # Arrange — создание результата
+        # Arrange
         result = OrderResult(order_id="ORD-1", status="created", total=1500.0)
 
-        # Act & Assert — изменение через setattr запрещено
+        # Act & Assert
         with pytest.raises(ValidationError):
             result.status = "paid"
 
     def test_no_setitem_method(self) -> None:
         """
         BaseResult не имеет __setitem__ — dict-подобная запись запрещена.
-
-        В отличие от старой версии (с WritableMixin), новый frozen-Result
-        не поддерживает запись через квадратные скобки.
         """
         # Arrange
         result = OrderResult(order_id="ORD-1", status="created", total=1500.0)
 
-        # Act & Assert — попытка записи через [] вызывает TypeError
+        # Act & Assert
         with pytest.raises((TypeError, AttributeError)):
             result["status"] = "shipped"
 
     def test_extra_fields_forbidden_at_creation(self) -> None:
         """
         extra="forbid": передача лишнего поля при создании → ValidationError.
-
-        Результат имеет строгую структуру — только объявленные поля.
         """
         # Arrange & Act & Assert
         with pytest.raises(ValidationError):
@@ -537,23 +487,17 @@ class TestBaseResultPydantic:
     def test_extra_fields_forbidden_after_creation(self) -> None:
         """
         extra="forbid": добавление нового поля после создания запрещено.
-
-        Даже через __setattr__ (если бы оно работало) нельзя добавить
-        необъявленное поле, потому что frozen=True + extra="forbid"
-        блокирует любую запись.
         """
         # Arrange
         result = OrderResult(order_id="ORD-1", status="created", total=1500.0)
 
-        # Act & Assert — добавление нового атрибута запрещено
+        # Act & Assert
         with pytest.raises((ValidationError, TypeError, AttributeError)):
             result.debug_info = "extra"
 
     def test_constraint_ge_zero(self) -> None:
         """
         Constraint ge=0 на total: допускается 0 и выше.
-
-        ge=0 (greater than or equal) в отличие от gt=0 (strictly greater).
         """
         # Arrange & Act & Assert — total=-10 нарушает ge=0
         with pytest.raises(ValidationError):
@@ -562,10 +506,8 @@ class TestBaseResultPydantic:
     def test_keys_returns_only_declared_fields(self) -> None:
         """
         keys() возвращает только объявленные поля модели.
-
-        Поскольку extra="forbid", динамических полей нет.
         """
-        # Arrange — результат с объявленными полями
+        # Arrange
         result = OrderResult(order_id="ORD-1", status="created", total=1500.0)
 
         # Act
@@ -596,15 +538,12 @@ class TestJsonSchema:
     def test_params_schema_has_descriptions(self) -> None:
         """
         model_json_schema() содержит описания полей из Field(description=...).
-
-        JSON Schema используется FastAPI для OpenAPI-документации
-        и MCP-адаптером для inputSchema.
         """
-        # Arrange & Act — генерация schema
+        # Arrange & Act
         schema = OrderParams.model_json_schema()
         props = schema["properties"]
 
-        # Assert — описания всех полей присутствуют
+        # Assert
         assert props["user_id"]["description"] == "Идентификатор пользователя"
         assert props["amount"]["description"] == "Сумма заказа в рублях"
         assert props["currency"]["description"] == "Код валюты ISO 4217"
@@ -612,14 +551,12 @@ class TestJsonSchema:
     def test_params_schema_has_constraints(self) -> None:
         """
         JSON Schema содержит ограничения из Field(gt=0, min_length=3 и т.д.).
-
-        gt=0 → exclusiveMinimum=0, min_length=3 → minLength=3.
         """
         # Arrange & Act
         schema = OrderParams.model_json_schema()
         props = schema["properties"]
 
-        # Assert — constraints преобразованы в JSON Schema формат
+        # Assert
         assert props["amount"].get("exclusiveMinimum") == 0
         assert props["currency"].get("minLength") == 3
         assert props["currency"].get("maxLength") == 3
@@ -632,7 +569,7 @@ class TestJsonSchema:
         schema = OrderParams.model_json_schema()
         props = schema["properties"]
 
-        # Assert — examples присутствуют
+        # Assert
         assert "examples" in props["user_id"]
         assert "user_123" in props["user_id"]["examples"]
 
@@ -672,56 +609,45 @@ class TestDescribedFieldsValidation:
     def test_good_action_passes(self) -> None:
         """
         Действие с полностью описанными Params и Result — проходит валидацию.
-
-        GateCoordinator.get() вызывает MetadataBuilder.build(), который
-        проверяет все поля через validate_described_fields().
         """
-        # Arrange — координатор для сборки метаданных
+        # Arrange
         coordinator = GateCoordinator()
 
-        # Act — сборка метаданных GoodAction (все поля с description)
+        # Act
         metadata = coordinator.get(GoodAction)
 
-        # Assert — params_fields и result_fields собраны
+        # Assert
         assert metadata.has_params_fields()
         assert metadata.has_result_fields()
 
     def test_empty_models_pass(self) -> None:
         """
         Действие с пустыми Params и Result — нет полей для проверки.
-
-        EmptyParams и EmptyResult не содержат полей. Валидатор
-        пропускает пустые модели — нечего проверять.
         """
         # Arrange
         coordinator = GateCoordinator()
 
-        # Act — сборка метаданных EmptyModelsAction
+        # Act
         metadata = coordinator.get(EmptyModelsAction)
 
-        # Assert — нет полей
+        # Assert
         assert not metadata.has_params_fields()
         assert not metadata.has_result_fields()
 
     def test_params_without_description_raises(self) -> None:
         """
         Поле Params без description → TypeError при сборке метаданных.
-
-        BadParamsNoDescription содержит user_id: str без Field(description=...).
-        MetadataBuilder.build() → validate_described_fields() → TypeError.
         """
         # Arrange
         coordinator = GateCoordinator()
 
-        # Act & Assert — сборка бросает TypeError с указанием поля
+        # Act & Assert
         with pytest.raises(TypeError, match="не имеют описания"):
             coordinator.get(BadParamsAction)
 
     def test_params_empty_description_raises(self) -> None:
         """
         Поле Params с пустым description → TypeError.
-
-        Field(description="") — пустая строка, считается отсутствием описания.
         """
         # Arrange
         coordinator = GateCoordinator()
@@ -744,8 +670,6 @@ class TestDescribedFieldsValidation:
     def test_domain_actions_pass_validation(self) -> None:
         """
         Все действия из доменной модели tests/domain/ проходят валидацию.
-
-        PingAction, SimpleAction, FullAction — все поля имеют description.
         """
         # Arrange
         coordinator = GateCoordinator()
@@ -772,33 +696,29 @@ class TestClassMetadataFields:
     def test_params_fields_count(self) -> None:
         """
         ClassMetadata содержит params_fields для каждого поля Params.
-
         OrderParams имеет 4 поля: user_id, amount, currency, comment.
         """
         # Arrange — метаданные собраны в setup_method
-
-        # Act & Assert — четыре FieldDescriptionMeta
+        # Act & Assert
         assert len(self.metadata.params_fields) == 4
 
     def test_result_fields_count(self) -> None:
         """
         ClassMetadata содержит result_fields для каждого поля Result.
-
         OrderResult имеет 3 поля: order_id, status, total.
         """
         # Arrange — метаданные собраны в setup_method
-
-        # Act & Assert — три FieldDescriptionMeta
+        # Act & Assert
         assert len(self.metadata.result_fields) == 3
 
     def test_params_field_description(self) -> None:
         """
         FieldDescriptionMeta.description содержит текст из Field(description=...).
         """
-        # Arrange — словарь полей по имени
+        # Arrange
         fields = {f.field_name: f for f in self.metadata.params_fields}
 
-        # Act & Assert — описания всех четырёх полей
+        # Act & Assert
         assert fields["user_id"].description == "Идентификатор пользователя"
         assert fields["amount"].description == "Сумма заказа в рублях"
         assert fields["currency"].description == "Код валюты ISO 4217"
@@ -807,9 +727,6 @@ class TestClassMetadataFields:
     def test_params_field_constraints(self) -> None:
         """
         FieldDescriptionMeta.constraints содержит ограничения из Field().
-
-        Constraints извлекаются из FieldInfo.metadata — списка
-        pydantic annotated-объектов (Gt, MinLen и т.д.).
         """
         # Arrange
         fields = {f.field_name: f for f in self.metadata.params_fields}
@@ -829,21 +746,18 @@ class TestClassMetadataFields:
         # Arrange
         fields = {f.field_name: f for f in self.metadata.params_fields}
 
-        # Act & Assert — examples для user_id
+        # Act & Assert
         assert fields["user_id"].examples is not None
         assert "user_123" in fields["user_id"].examples
 
     def test_params_field_required(self) -> None:
         """
         FieldDescriptionMeta.required — True если нет default.
-
-        user_id и amount — обязательные (нет default).
-        currency и comment — необязательные (есть default).
         """
         # Arrange
         fields = {f.field_name: f for f in self.metadata.params_fields}
 
-        # Act & Assert — обязательные и необязательные поля
+        # Act & Assert
         assert fields["user_id"].required is True
         assert fields["amount"].required is True
         assert fields["currency"].required is False
@@ -852,35 +766,28 @@ class TestClassMetadataFields:
     def test_params_field_default(self) -> None:
         """
         FieldDescriptionMeta.default содержит значение по умолчанию.
-
-        currency default="RUB", comment default=None.
         """
         # Arrange
         fields = {f.field_name: f for f in self.metadata.params_fields}
 
-        # Act & Assert — default-значения
+        # Act & Assert
         assert fields["currency"].default == "RUB"
         assert fields["comment"].default is None
 
     def test_params_field_type_is_string(self) -> None:
         """
         FieldDescriptionMeta.field_type — строковое представление типа.
-
-        Аннотации типов могут содержать Union, Optional и другие формы,
-        не являющиеся type. Поэтому field_type — строка, а не type.
         """
         # Arrange
         fields = {f.field_name: f for f in self.metadata.params_fields}
 
-        # Act & Assert — строковые представления типов
+        # Act & Assert
         assert fields["user_id"].field_type == "str"
         assert fields["amount"].field_type == "float"
 
     def test_result_field_constraints(self) -> None:
         """
-        Constraints для Result-полей.
-
-        OrderResult.total имеет ge=0.
+        Constraints для Result-полей. OrderResult.total имеет ge=0.
         """
         # Arrange
         fields = {f.field_name: f for f in self.metadata.result_fields}
@@ -902,20 +809,22 @@ class TestClassMetadataFields:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# BaseState не затронут pydantic-миграцией
+# BaseState — pydantic с extra="allow", динамические поля, frozen
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestBaseStateUnchanged:
-    """BaseState — не pydantic, динамические поля, frozen."""
+    """BaseState — pydantic с extra="allow", динамические поля, frozen."""
 
     def test_create_from_dict(self) -> None:
         """
-        BaseState создаётся из словаря — ключи становятся атрибутами.
-        Это НЕ pydantic: нет валидации типов, но frozen.
+        BaseState создаётся через kwargs — ключи становятся extra-полями.
+
+        Машина создаёт BaseState через распаковку:
+        BaseState(**{**old_state.to_dict(), **new_dict})
         """
-        # Arrange & Act
-        state = BaseState({"total": 1500, "user": "agent"})
+        # Arrange & Act — создание через распаковку kwargs
+        state = BaseState(total=1500, user="agent")
 
         # Assert
         assert state["total"] == 1500
@@ -923,26 +832,26 @@ class TestBaseStateUnchanged:
 
     def test_dynamic_fields(self) -> None:
         """
-        BaseState поддерживает динамическое добавление полей ТОЛЬКО через конструктор.
+        BaseState поддерживает динамическое добавление полей ТОЛЬКО через kwargs.
         После создания добавлять поля нельзя — frozen.
         """
-        # Arrange — динамическое поле должно быть задано при создании
-        state = BaseState({"count": 42, "processed": True})
+        # Arrange — динамические поля задаются при создании через kwargs
+        state = BaseState(count=42, processed=True)
 
         # Assert — оба поля доступны
         assert state.count == 42
         assert state.processed is True
 
         # Act & Assert — попытка добавить поле после создания запрещена
-        with pytest.raises(AttributeError):
+        with pytest.raises(Exception):
             state.new_field = "value"
 
     def test_to_dict(self) -> None:
         """
-        to_dict() возвращает словарь публичных атрибутов.
+        to_dict() возвращает словарь всех extra-полей.
         """
         # Arrange
-        state = BaseState({"a": 1, "b": 2})
+        state = BaseState(a=1, b=2)
 
         # Act
         d = state.to_dict()
@@ -952,7 +861,7 @@ class TestBaseStateUnchanged:
 
     def test_no_write_method(self) -> None:
         """
-        Метод write() отсутствует (WritableMixin удалён).
+        Метод write() отсутствует.
         """
         # Arrange
         state = BaseState()
@@ -960,12 +869,12 @@ class TestBaseStateUnchanged:
         # Act & Assert
         assert not hasattr(state, "write")
 
-    def test_readable_mixin(self) -> None:
+    def test_base_schema_interface(self) -> None:
         """
-        ReadableMixin: resolve, contains, keys — работают на BaseState.
+        BaseSchema: resolve, contains, keys — работают на BaseState.
         """
-        # Arrange
-        state = BaseState({"total": 1500})
+        # Arrange — создание через kwargs
+        state = BaseState(total=1500)
 
         # Act & Assert
         assert state.resolve("total") == 1500

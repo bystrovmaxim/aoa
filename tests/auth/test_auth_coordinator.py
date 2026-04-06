@@ -159,16 +159,13 @@ class TestAuthCoordinatorSuccess:
     async def test_user_info_preserved_in_context(self) -> None:
         """
         UserInfo из Authenticator передаётся в Context без изменений.
-
-        Все поля UserInfo (user_id, roles, extra) доступны через
-        context.user.
+        Все поля UserInfo (user_id, roles) доступны через context.user.
         """
-        # Arrange — UserInfo с extra
-        user = UserInfo(user_id="agent_007", roles=["spy"], extra={"org": "mi6"})
+        # Arrange — UserInfo с user_id и roles
+        user = UserInfo(user_id="agent_007", roles=["spy"])
         extractor = _MockExtractor({"token": "valid"})
         authenticator = _MockAuthenticator(user)
         assembler = _MockAssembler()
-
         coordinator = AuthCoordinator(
             extractor=extractor,
             auth_instance=authenticator,
@@ -182,7 +179,6 @@ class TestAuthCoordinatorSuccess:
         assert result is not None
         assert result.user.user_id == "agent_007"
         assert result.user.roles == ["spy"]
-        assert result.user.extra == {"org": "mi6"}
 
 
 # ═════════════════════════════════════════════════════════════════════════════

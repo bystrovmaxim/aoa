@@ -357,7 +357,7 @@ class TestParameterPassing:
         """
         # Arrange — логгер без фильтров, чтобы гарантировать вызов write
         logger = RecordingLogger()
-        state = BaseState({"total": 100, "processed": True})
+        state = BaseState(total=100, processed=True)
         var = {"key": "value", "count": 42}
         indent = 3
 
@@ -415,7 +415,7 @@ class TestParameterPassing:
         """
         # Arrange
         logger = RecordingLogger()
-        original_state = BaseState({"total": 100})
+        original_state = BaseState(total=100)
         original_dict = original_state.to_dict()
 
         # Act

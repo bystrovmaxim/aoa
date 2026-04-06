@@ -1,6 +1,6 @@
 # tests/core/test_resolve_flat.py
 """
-Тесты ReadableMixin.resolve() для плоских полей (без вложенности).
+Тесты BaseSchema.resolve() для плоских полей (без вложенности).
 
 ═══════════════════════════════════════════════════════════════════════════════
 НАЗНАЧЕНИЕ
@@ -11,14 +11,11 @@
 {%state.total}, {%params.amount} разрешаются через resolve().
 
 Этот файл тестирует самый простой случай: плоские поля без вложенности.
-resolve("user_id") эквивалентно getattr(self, "user_id"), но с поддержкой
-default и без выброса исключений при отсутствии атрибута.
+resolve("user_id") для одного сегмента пути эквивалентно __getitem__("user_id")
+с обработкой KeyError → возврат default.
 
-Плоский resolve — это однократный вызов _resolve_one_step() с единственным
-сегментом пути. Более сложные случаи (вложенные объекты, словари,
-разные типы данных, кеширование) покрыты в отдельных файлах:
-test_resolve_nested.py, test_resolve_missing.py, test_resolve_types.py,
-test_resolve_caching.py.
+Более сложные случаи (вложенные объекты, словари, смешанные типы)
+покрыты в test_base_schema_resolve.py.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ПОКРЫВАЕМЫЕ СЦЕНАРИИ
@@ -35,9 +32,14 @@ None как значение:
     - None с default — default НЕ подставляется, потому что поле существует.
 
 Разные типы объектов:
-    - UserInfo (dataclass + ReadableMixin) — плоские поля.
-    - BaseState (динамические поля + ReadableMixin) — плоские поля.
-    - BaseParams (pydantic + ReadableMixin) — плоские поля.
+    - UserInfo (BaseSchema, frozen, forbid) — плоские поля.
+    - BaseState (BaseSchema, frozen, allow) — динамические extra-поля.
+    - BaseParams (BaseSchema, frozen, forbid) — объявленные pydantic-поля.
+
+Falsy-значения:
+    - Пустая строка "" — валидное значение, не отсутствие.
+    - Числовой ноль 0 — валидное значение, не отсутствие.
+    - Булев False — валидное значение, не отсутствие.
 """
 
 from pydantic import Field
@@ -56,11 +58,11 @@ class TestResolveFlatBasic:
 
     def test_resolve_string_field(self) -> None:
         """
-        resolve("user_id") возвращает строковое значение атрибута.
+        resolve("user_id") возвращает строковое значение поля.
 
-        UserInfo — dataclass с ReadableMixin. resolve разбивает
-        "user_id" по точкам → ["user_id"], вызывает
-        _resolve_one_step(self, "user_id") → getattr(self, "user_id").
+        UserInfo наследует BaseSchema. resolve разбивает "user_id"
+        по точкам → ["user_id"], вызывает __getitem__("user_id")
+        → getattr(self, "user_id").
         """
         # Arrange — UserInfo с user_id="agent_007"
         user = UserInfo(user_id="agent_007", roles=["agent"])
@@ -68,7 +70,7 @@ class TestResolveFlatBasic:
         # Act — resolve по одному сегменту, без вложенности
         result = user.resolve("user_id")
 
-        # Assert — строковое значение из атрибута user.user_id
+        # Assert — строковое значение из поля user.user_id
         assert result == "agent_007"
 
     def test_resolve_list_field(self) -> None:
@@ -119,13 +121,13 @@ class TestResolveFlatNone:
         Поле со значением None — resolve возвращает None.
 
         UserInfo(user_id=None) — поле user_id существует, но равно None.
-        resolve НЕ считает None отсутствием: _resolve_one_step вернул
-        не _SENTINEL, а реальное значение None.
+        resolve находит поле через __getitem__ и возвращает его значение
+        как есть, не заменяя на default.
         """
         # Arrange — user_id явно установлен в None
         user = UserInfo(user_id=None)
 
-        # Act — resolve находит атрибут, его значение — None
+        # Act — resolve находит поле, его значение — None
         result = user.resolve("user_id")
 
         # Assert — возвращён None, а не default
@@ -137,8 +139,7 @@ class TestResolveFlatNone:
 
         Ключевое отличие от отсутствия поля: если поле существует
         и равно None, default не применяется. Default применяется
-        только когда _resolve_one_step вернул _SENTINEL (атрибут
-        не найден через getattr).
+        только когда __getitem__ бросает KeyError (поле не найдено).
         """
         # Arrange — user_id явно равен None
         user = UserInfo(user_id=None)
@@ -152,30 +153,29 @@ class TestResolveFlatNone:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Разные типы объектов с ReadableMixin
+# Разные типы объектов с BaseSchema
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestResolveFlatDifferentObjects:
-    """resolve() работает единообразно на разных типах объектов."""
+    """resolve() работает единообразно на разных наследниках BaseSchema."""
 
     def test_resolve_on_base_state(self) -> None:
         """
-        resolve() на BaseState — динамические атрибуты.
+        resolve() на BaseState — динамические extra-поля.
 
-        BaseState не является pydantic-моделью. ReadableMixin для него
-        использует ветку vars(self) в _get_field_names(). resolve
-        обращается к атрибутам через _resolve_step_readable → __getitem__
-        → getattr.
+        BaseState — pydantic-модель с extra="allow". Динамические поля,
+        переданные через kwargs при создании, доступны через __getitem__
+        и resolve так же, как объявленные поля.
         """
-        # Arrange — BaseState с двумя динамическими полями
-        state = BaseState({"txn_id": "TXN-001", "total": 1500.0})
+        # Arrange — BaseState с двумя динамическими полями (kwargs)
+        state = BaseState(txn_id="TXN-001", total=1500.0)
 
         # Act — resolve плоских полей
         txn_id = state.resolve("txn_id")
         total = state.resolve("total")
 
-        # Assert — значения из динамических атрибутов
+        # Assert — значения из extra-полей
         assert txn_id == "TXN-001"
         assert total == 1500.0
 
@@ -183,10 +183,9 @@ class TestResolveFlatDifferentObjects:
         """
         resolve() на pydantic BaseParams — объявленные поля модели.
 
-        BaseParams наследует pydantic BaseModel. ReadableMixin определяет
-        это через isinstance(self, BaseModel) и использует model_fields
-        для списка полей. resolve обращается к значениям через getattr,
-        который работает одинаково для pydantic и обычных классов.
+        BaseParams наследует BaseSchema (pydantic BaseModel).
+        resolve обращается к значениям через __getitem__ → getattr,
+        который работает одинаково для всех наследников BaseSchema.
         """
         # Arrange — pydantic-модель с описанными полями
         class TestParams(BaseParams):
@@ -205,38 +204,34 @@ class TestResolveFlatDifferentObjects:
 
     def test_resolve_on_user_info(self) -> None:
         """
-        resolve() на UserInfo — dataclass с ReadableMixin.
+        resolve() на UserInfo — frozen BaseSchema с двумя полями.
 
-        UserInfo — @dataclass с полями user_id, roles, extra.
-        ReadableMixin работает через vars(self) для не-pydantic объектов.
+        UserInfo содержит user_id и roles. Поле extra удалено —
+        расширение через наследование с явно объявленными полями.
         """
-        # Arrange — UserInfo со всеми полями
+        # Arrange — UserInfo с обоими полями
         user = UserInfo(
             user_id="test_user",
             roles=["admin", "manager"],
-            extra={"org": "acme"},
         )
 
         # Act — resolve каждого плоского поля
         user_id = user.resolve("user_id")
         roles = user.resolve("roles")
-        extra = user.resolve("extra")
 
         # Assert — каждое поле возвращает своё значение с правильным типом
         assert user_id == "test_user"
         assert roles == ["admin", "manager"]
-        assert extra == {"org": "acme"}
 
     def test_resolve_empty_string_field(self) -> None:
         """
         Пустая строка "" — это валидное значение, не отсутствие.
-
         resolve возвращает "", а не default.
         """
         # Arrange — user_id = пустая строка
         user = UserInfo(user_id="")
 
-        # Act — resolve находит атрибут, его значение — ""
+        # Act — resolve находит поле, его значение — ""
         result = user.resolve("user_id")
 
         # Assert — пустая строка, не None и не default
@@ -246,14 +241,14 @@ class TestResolveFlatDifferentObjects:
     def test_resolve_zero_value(self) -> None:
         """
         Числовой ноль 0 — это валидное значение, не отсутствие.
-
         resolve возвращает 0, а не default. Ноль — falsy в Python,
-        но resolve проверяет через _SENTINEL, а не через truthiness.
+        но resolve различает «поле найдено со значением 0»
+        и «поле не найдено → default».
         """
-        # Arrange — state с нулевым значением
-        state = BaseState({"count": 0})
+        # Arrange — state с нулевым значением (kwargs)
+        state = BaseState(count=0)
 
-        # Act — resolve находит атрибут, его значение — 0
+        # Act — resolve находит поле, его значение — 0
         result = state.resolve("count")
 
         # Assert — числовой ноль, не None и не default
@@ -263,14 +258,13 @@ class TestResolveFlatDifferentObjects:
     def test_resolve_false_value(self) -> None:
         """
         Булев False — это валидное значение, не отсутствие.
-
         Аналогично нулю: False — falsy, но resolve различает
-        "атрибут существует со значением False" и "атрибут не найден".
+        «поле существует со значением False» и «поле не найдено».
         """
-        # Arrange — state с False
-        state = BaseState({"active": False})
+        # Arrange — state с False (kwargs)
+        state = BaseState(active=False)
 
-        # Act — resolve находит атрибут со значением False
+        # Act — resolve находит поле со значением False
         result = state.resolve("active")
 
         # Assert — булев False, не None

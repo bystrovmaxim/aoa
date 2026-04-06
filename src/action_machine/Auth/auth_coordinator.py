@@ -58,6 +58,5 @@ class AuthCoordinator:
         # Шаг 4: формирование контекста
         return Context(
             user=authenticated_user,
-            request=req_info,
-            runtime=None  # будет заполнен позже или останется пустым
+            request=req_info
         )

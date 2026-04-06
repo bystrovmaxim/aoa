@@ -101,13 +101,13 @@ class ToolsBox:
     """
 
     __slots__ = (
-        "__run_child",
-        "__factory",
-        "__resources",
         "__context",
+        "__factory",
         "__log",
         "__nested_level",
+        "__resources",
         "__rollup",
+        "__run_child",
     )
 
     def __init__(
