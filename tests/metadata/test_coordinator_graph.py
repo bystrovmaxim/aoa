@@ -1,20 +1,16 @@
 # tests/metadata/test_coordinator_graph.py
 """
 Тесты GateCoordinator — граф зависимостей, узлы, рёбра, циклы, публичное API.
-
 ═══════════════════════════════════════════════════════════════════════════════
 НАЗНАЧЕНИЕ
 ═══════════════════════════════════════════════════════════════════════════════
-
 Проверяет, что GateCoordinator строит направленный граф из
 зарегистрированных классов, создаёт узлы для действий, зависимостей,
 соединений, аспектов, чекеров, подписок, sensitive-полей, обнаруживает
 циклические зависимости и предоставляет публичное API для инспекции.
-
 ═══════════════════════════════════════════════════════════════════════════════
 СЦЕНАРИИ
 ═══════════════════════════════════════════════════════════════════════════════
-
 TestBasicNodes — создание базовых узлов графа.
 TestDependenciesAndConnections — узлы и рёбра зависимостей и соединений.
 TestAspectsAndCheckers — узлы аспектов и чекеров.
@@ -25,7 +21,6 @@ TestPublicAPI — публичные методы инспекции графа.
 TestInvalidation — инвалидация кеша координатора.
 TestCoordinatorBasic — базовое API координатора.
 """
-
 import pytest
 
 from action_machine.aspects.regular_aspect import regular_aspect
@@ -42,14 +37,14 @@ from action_machine.core.meta_decorator import meta
 from action_machine.dependencies.depends import depends
 from action_machine.logging.sensitive_decorator import sensitive
 from action_machine.plugins.decorators import on
-from action_machine.plugins.on_gate_host import OnGateHost
+from action_machine.plugins.events import GlobalStartEvent
+from action_machine.plugins.plugin import Plugin
 from action_machine.resource_managers.base_resource_manager import BaseResourceManager
 from action_machine.resource_managers.connection import connection
 
 # ═════════════════════════════════════════════════════════════════════════════
 # Вспомогательные классы
 # ═════════════════════════════════════════════════════════════════════════════
-
 
 def _node_key(node_type: str, cls: type, suffix: str = "") -> str:
     """Формирует ключ узла графа: 'тип:модуль.ИмяКласса[.суффикс]'."""
@@ -78,7 +73,6 @@ class _ServiceB:
 @meta("Мок менеджер")
 class _MockManager(BaseResourceManager):
     """Минимальная реализация BaseResourceManager для тестов графа."""
-
     def get_wrapper_class(self):
         return None
 
@@ -91,7 +85,6 @@ class _EmptyClass:
 @check_roles(ROLE_NONE)
 class _PingGraphAction(BaseAction["_Params", "_Result"]):
     """Минимальное действие для тестов графа."""
-
     @summary_aspect("Pong")
     async def pong_summary(self, params, state, box, connections):
         return {"message": "pong"}
@@ -103,7 +96,6 @@ class _PingGraphAction(BaseAction["_Params", "_Result"]):
 @depends(_ServiceB)
 class _ActionWithDepsAction(BaseAction["_Params", "_Result"]):
     """Действие с двумя зависимостями для тестов графа."""
-
     @summary_aspect("Итог")
     async def finalize_summary(self, params, state, box, connections):
         return {}
@@ -114,7 +106,6 @@ class _ActionWithDepsAction(BaseAction["_Params", "_Result"]):
 @connection(_MockManager, key="db", description="БД")
 class _ActionWithConnAction(BaseAction["_Params", "_Result"]):
     """Действие с одним соединением для тестов графа."""
-
     @summary_aspect("Итог")
     async def finalize_summary(self, params, state, box, connections):
         return {}
@@ -124,7 +115,6 @@ class _ActionWithConnAction(BaseAction["_Params", "_Result"]):
 @check_roles(ROLE_NONE)
 class _ActionWithCheckersAction(BaseAction["_Params", "_Result"]):
     """Действие с regular-аспектом и чекером для тестов графа."""
-
     @regular_aspect("Шаг")
     @result_string("name")
     async def step_aspect(self, params, state, box, connections):
@@ -139,7 +129,6 @@ class _ActionWithCheckersAction(BaseAction["_Params", "_Result"]):
 @check_roles(ROLE_NONE)
 class _ActionWithSensitiveAction(BaseAction["_Params", "_Result"]):
     """Действие с sensitive-свойством для тестов графа."""
-
     def __init__(self):
         self._secret = "hidden"
 
@@ -153,11 +142,14 @@ class _ActionWithSensitiveAction(BaseAction["_Params", "_Result"]):
         return {}
 
 
-class _TestPlugin(OnGateHost):
+class _TestPlugin(Plugin):
     """Тестовый плагин с одной подпиской для тестов графа."""
 
-    @on("global_start")
-    async def on_start_on(self, state, event, log):
+    async def get_initial_state(self) -> dict:
+        return {}
+
+    @on(GlobalStartEvent)
+    async def on_start(self, state, event: GlobalStartEvent, log):
         return state
 
 
@@ -165,7 +157,6 @@ class _TestPlugin(OnGateHost):
 @check_roles("admin")
 class _RoledGraphAction(BaseAction["_Params", "_Result"]):
     """Действие с конкретной ролью для тестов графа."""
-
     @summary_aspect("Итог")
     async def finalize_summary(self, params, state, box, connections):
         return {}
@@ -176,7 +167,6 @@ class _RoledGraphAction(BaseAction["_Params", "_Result"]):
 @depends(_ServiceA)
 class _AnotherActionWithServiceAAction(BaseAction["_Params", "_Result"]):
     """Второе действие, зависящее от _ServiceA, для тестов разделения узлов."""
-
     @summary_aspect("Итог")
     async def finalize_summary(self, params, state, box, connections):
         return {}
@@ -185,7 +175,6 @@ class _AnotherActionWithServiceAAction(BaseAction["_Params", "_Result"]):
 # ═════════════════════════════════════════════════════════════════════════════
 # Базовые узлы
 # ═════════════════════════════════════════════════════════════════════════════
-
 
 class TestBasicNodes:
     """Проверяет создание базовых узлов графа."""
@@ -227,7 +216,6 @@ class TestBasicNodes:
 # Зависимости и соединения
 # ═════════════════════════════════════════════════════════════════════════════
 
-
 class TestDependenciesAndConnections:
     """Проверяет создание узлов и рёбер для зависимостей и соединений."""
 
@@ -259,7 +247,6 @@ class TestDependenciesAndConnections:
 # Аспекты и чекеры
 # ═════════════════════════════════════════════════════════════════════════════
 
-
 class TestAspectsAndCheckers:
     """Проверяет создание узлов для аспектов и чекеров."""
 
@@ -282,7 +269,6 @@ class TestAspectsAndCheckers:
 # Подписки и sensitive
 # ═════════════════════════════════════════════════════════════════════════════
 
-
 class TestSubscriptionsAndSensitive:
     """Проверяет создание узлов для подписок и sensitive-полей."""
 
@@ -304,7 +290,6 @@ class TestSubscriptionsAndSensitive:
 # ═════════════════════════════════════════════════════════════════════════════
 # Рекурсивный сбор зависимостей
 # ═════════════════════════════════════════════════════════════════════════════
-
 
 class TestRecursiveCollection:
     """Проверяет автоматический рекурсивный сбор зависимостей."""
@@ -336,7 +321,6 @@ class TestRecursiveCollection:
 # Обнаружение циклов
 # ═════════════════════════════════════════════════════════════════════════════
 
-
 class TestCycleDetection:
     """Проверяет обнаружение циклических зависимостей."""
 
@@ -345,7 +329,6 @@ class TestCycleDetection:
         class _SelfRef:
             pass
         _SelfRef._depends_info = [type("DI", (), {"cls": _SelfRef, "factory": None, "description": ""})()]
-
         coord = GateCoordinator()
         with pytest.raises(CyclicDependencyError):
             coord.get(_SelfRef)
@@ -354,13 +337,10 @@ class TestCycleDetection:
         """Взаимная зависимость обнаруживается."""
         class _MutualA:
             pass
-
         class _MutualB:
             pass
-
         _MutualA._depends_info = [type("DI", (), {"cls": _MutualB, "factory": None, "description": ""})()]
         _MutualB._depends_info = [type("DI", (), {"cls": _MutualA, "factory": None, "description": ""})()]
-
         coord = GateCoordinator()
         with pytest.raises(CyclicDependencyError):
             coord.get(_MutualA)
@@ -369,17 +349,13 @@ class TestCycleDetection:
         """Цикл из трёх классов обнаруживается."""
         class _CycA:
             pass
-
         class _CycB:
             pass
-
         class _CycC:
             pass
-
         _CycA._depends_info = [type("DI", (), {"cls": _CycB, "factory": None, "description": ""})()]
         _CycB._depends_info = [type("DI", (), {"cls": _CycC, "factory": None, "description": ""})()]
         _CycC._depends_info = [type("DI", (), {"cls": _CycA, "factory": None, "description": ""})()]
-
         coord = GateCoordinator()
         with pytest.raises(CyclicDependencyError):
             coord.get(_CycA)
@@ -397,7 +373,6 @@ class TestCycleDetection:
 # ═════════════════════════════════════════════════════════════════════════════
 # Публичное API
 # ═════════════════════════════════════════════════════════════════════════════
-
 
 class TestPublicAPI:
     """Проверяет публичные методы GateCoordinator для инспекции графа."""
@@ -490,7 +465,6 @@ class TestPublicAPI:
 # Инвалидация
 # ═════════════════════════════════════════════════════════════════════════════
 
-
 class TestInvalidation:
     """Проверяет инвалидацию кеша координатора."""
 
@@ -542,7 +516,6 @@ class TestInvalidation:
 # ═════════════════════════════════════════════════════════════════════════════
 # Базовое API координатора
 # ═════════════════════════════════════════════════════════════════════════════
-
 
 class TestCoordinatorBasic:
     """Проверяет базовые методы GateCoordinator."""

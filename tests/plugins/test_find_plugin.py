@@ -1,35 +1,40 @@
 # tests/plugins/test_find_plugin.py
 """
 Тесты поиска обработчиков плагинов через plugin.get_handlers().
-
 ═══════════════════════════════════════════════════════════════════════════════
 НАЗНАЧЕНИЕ
 ═══════════════════════════════════════════════════════════════════════════════
-
 Проверяет механизм поиска обработчиков в экземпляре Plugin. Метод
-get_handlers(event_name, class_name) сканирует MRO класса плагина,
-находит методы с атрибутом _on_subscriptions и для каждой подписки
-проверяет совпадение event_type и action_filter (regex через re.search).
+get_handlers(event) сканирует MRO класса плагина, находит методы с
+атрибутом _on_subscriptions и для каждой подписки проверяет совпадение
+event_class через isinstance [1].
 
-Возвращает список кортежей (handler, ignore_exceptions), где handler —
-unbound-метод из cls.__dict__. Вызывающий код (PluginRunContext)
-передаёт экземпляр плагина как self при вызове.
+Возвращает список кортежей (handler, subscription), где handler —
+unbound-метод из cls.__dict__, subscription — SubscriptionInfo с полной
+конфигурацией фильтров. Вызывающий код (PluginRunContext) проверяет
+остальные фильтры (action_name_pattern, nest_level и т.д.) через
+SubscriptionInfo.matches_*() и передаёт экземпляр плагина как self
+при вызове [1].
+
+Шаг 1 (isinstance по event_class) выполняется в get_handlers().
+Шаги 2–7 (action_class, action_name_pattern, aspect_name_pattern,
+nest_level, domain, predicate) выполняются в PluginRunContext [1].
 
 ═══════════════════════════════════════════════════════════════════════════════
 ПОКРЫВАЕМЫЕ СЦЕНАРИИ
 ═══════════════════════════════════════════════════════════════════════════════
-
-- Плагин с обработчиком ".*" находит обработчик для любого действия.
-- Плагин с фильтром ".*Order.*" находит обработчик только для действий
-  с "Order" в имени.
-- Плагин, подписанный на global_start, не находится при поиске global_finish.
+- Плагин с обработчиком GlobalFinishEvent находит обработчик для любого
+  события этого типа.
+- Плагин с action_name_pattern=".*Order.*" — фильтрация проверяется
+  на уровне SubscriptionInfo, а не get_handlers() (шаг 3, не шаг 1).
+  get_handlers() возвращает кандидатов по event_class, а action_name_pattern
+  проверяется вызывающим кодом.
+- Плагин, подписанный на GlobalStartEvent, не находится при поиске
+  по GlobalFinishEvent.
 - Плагин с несколькими обработчиками на разные события возвращает
-  правильное количество для каждой комбинации event+action.
-- Фильтр action_filter применяется через re.search (не fullmatch) —
-  совпадение в любом месте строки.
+  правильное количество для каждого типа события.
 - Координатор без плагинов корректно работает.
 """
-
 from action_machine.plugins.plugin_coordinator import PluginCoordinator
 
 from .conftest import (
@@ -37,148 +42,191 @@ from .conftest import (
     BetaPlugin,
     GammaPlugin,
     MultiEventPlugin,
+    make_global_finish_event,
+    make_global_start_event,
 )
 
 
 class TestPluginGetHandlers:
-    """Тесты метода Plugin.get_handlers() — поиск обработчиков по событию и действию."""
+    """
+    Тесты метода Plugin.get_handlers() — поиск обработчиков по типу события.
+
+    get_handlers(event) выполняет ТОЛЬКО шаг 1 цепочки фильтров:
+    isinstance(event, sub.event_class). Остальные фильтры (action_name_pattern,
+    action_class, nest_level и т.д.) проверяются в PluginRunContext [1].
+    """
 
     def test_find_handler_for_any_action(self):
         """
-        AlphaPlugin подписан на global_finish с фильтром ".*".
-        Для любого действия должен найтись ровно один обработчик on_finish.
+        AlphaPlugin подписан на GlobalFinishEvent без дополнительных фильтров.
+        Для любого GlobalFinishEvent должен найтись ровно один обработчик on_finish.
         """
         # Arrange — создаём плагин с обработчиком для всех действий
         plugin = AlphaPlugin()
+        event = make_global_finish_event()
 
-        # Act — ищем обработчики global_finish для произвольного действия
-        handlers = plugin.get_handlers("global_finish", "test.module.SomeAction")
+        # Act — ищем обработчики по типу события
+        handlers = plugin.get_handlers(event)
 
         # Assert — найден один обработчик с правильным именем
         assert len(handlers) == 1
-        handler_func, _ignore = handlers[0]
+        handler_func, sub = handlers[0]
         assert handler_func.__name__ == "on_finish"
 
-    def test_find_handler_with_order_filter(self):
+    def test_beta_plugin_returns_candidate_for_any_finish_event(self):
         """
-        BetaPlugin подписан на global_finish с фильтром ".*Order.*".
-        Для CreateOrderAction должен найтись обработчик.
-        Для PingAction — не должен.
+        BetaPlugin подписан на GlobalFinishEvent с action_name_pattern=".*Order.*".
+        get_handlers() проверяет ТОЛЬКО event_class (шаг 1) — isinstance.
+        action_name_pattern — это шаг 3, проверяемый в PluginRunContext.
+
+        Поэтому get_handlers() возвращает кандидата для ЛЮБОГО GlobalFinishEvent,
+        а фильтрация по action_name происходит позже.
         """
-        # Arrange — плагин реагирует только на действия с "Order" в имени
+        # Arrange — плагин с action_name_pattern (шаг 3, не шаг 1)
         plugin = BetaPlugin()
+        event_order = make_global_finish_event(action_name="app.actions.CreateOrderAction")
+        event_ping = make_global_finish_event(action_name="app.actions.PingAction")
 
-        # Act + Assert — действие с "Order" в имени → обработчик найден
-        order_handlers = plugin.get_handlers("global_finish", "app.actions.CreateOrderAction")
-        assert len(order_handlers) == 1
+        # Act — get_handlers проверяет только event_class
+        handlers_order = plugin.get_handlers(event_order)
+        handlers_ping = plugin.get_handlers(event_ping)
 
-        # Act + Assert — действие без "Order" → обработчик не найден
-        ping_handlers = plugin.get_handlers("global_finish", "app.actions.PingAction")
-        assert len(ping_handlers) == 0
+        # Assert — оба возвращают кандидата (шаг 1 проходит для обоих)
+        assert len(handlers_order) == 1
+        assert len(handlers_ping) == 1
 
-    def test_two_plugins_different_filters(self):
+        # Assert — action_name_pattern сохранён в SubscriptionInfo для шага 3
+        _, sub = handlers_order[0]
+        assert sub.action_name_pattern == ".*Order.*"
+
+    def test_action_name_pattern_checked_via_subscription_info(self):
         """
-        AlphaPlugin (".*") и BetaPlugin (".*Order.*") — для CreateOrderAction
-        оба находят обработчики, для PingAction — только AlphaPlugin.
+        Проверка action_name_pattern выполняется через SubscriptionInfo.matches_action_name(),
+        а не в get_handlers(). Демонстрируем разделение ответственности.
         """
-        # Arrange — два плагина с разными фильтрами
+        # Arrange
+        plugin = BetaPlugin()
+        event = make_global_finish_event(action_name="app.actions.CreateOrderAction")
+
+        # Act — get_handlers возвращает кандидата
+        handlers = plugin.get_handlers(event)
+        _, sub = handlers[0]
+
+        # Assert — matches_action_name проверяет regex
+        assert sub.matches_action_name("app.actions.CreateOrderAction") is True
+        assert sub.matches_action_name("app.actions.PingAction") is False
+
+    def test_two_plugins_both_match_event_class(self):
+        """
+        AlphaPlugin и BetaPlugin оба подписаны на GlobalFinishEvent.
+        get_handlers() возвращает кандидатов для обоих — event_class совпадает.
+        """
+        # Arrange — два плагина с разными action_name_pattern
         alpha = AlphaPlugin()
         beta = BetaPlugin()
+        event = make_global_finish_event(action_name="test.CreateOrderAction")
 
-        # Act — ищем обработчики для CreateOrderAction
-        alpha_order = alpha.get_handlers("global_finish", "test.CreateOrderAction")
-        beta_order = beta.get_handlers("global_finish", "test.CreateOrderAction")
+        # Act — оба находят кандидатов по event_class
+        alpha_handlers = alpha.get_handlers(event)
+        beta_handlers = beta.get_handlers(event)
 
-        # Assert — оба нашли обработчики для Order
-        assert len(alpha_order) == 1
-        assert len(beta_order) == 1
-
-        # Act — ищем обработчики для PingAction
-        alpha_ping = alpha.get_handlers("global_finish", "test.PingAction")
-        beta_ping = beta.get_handlers("global_finish", "test.PingAction")
-
-        # Assert — только Alpha нашёл (.*), Beta не нашёл (нет "Order")
-        assert len(alpha_ping) == 1
-        assert len(beta_ping) == 0
+        # Assert — оба вернули по одному кандидату
+        assert len(alpha_handlers) == 1
+        assert len(beta_handlers) == 1
 
     def test_wrong_event_type_returns_empty(self):
         """
-        GammaPlugin подписан на global_start, не на global_finish.
-        Поиск для global_finish возвращает пустой список.
+        GammaPlugin подписан на GlobalStartEvent, не на GlobalFinishEvent.
+        Поиск по GlobalFinishEvent возвращает пустой список — isinstance не проходит.
         """
-        # Arrange — плагин подписан только на global_start
+        # Arrange — плагин подписан только на GlobalStartEvent
         plugin = GammaPlugin()
+        event = make_global_finish_event()
 
-        # Act — ищем обработчики global_finish
-        handlers = plugin.get_handlers("global_finish", "test.SomeAction")
+        # Act — ищем обработчики GlobalFinishEvent
+        handlers = plugin.get_handlers(event)
 
-        # Assert — обработчики не найдены (событие не совпадает)
+        # Assert — обработчики не найдены (event_class не совпадает)
         assert len(handlers) == 0
 
-    def test_multi_event_plugin_global_finish_with_order(self):
+    def test_gamma_plugin_found_for_start_event(self):
         """
-        MultiEventPlugin имеет три обработчика. Для global_finish +
-        CreateOrderAction должны найтись два: on_finish (".*")
-        и on_order_finish (".*Order.*").
+        GammaPlugin подписан на GlobalStartEvent.
+        Поиск по GlobalStartEvent возвращает обработчик.
+        """
+        # Arrange
+        plugin = GammaPlugin()
+        event = make_global_start_event()
+
+        # Act
+        handlers = plugin.get_handlers(event)
+
+        # Assert — один обработчик on_start
+        assert len(handlers) == 1
+        assert handlers[0][0].__name__ == "on_start"
+
+    def test_multi_event_plugin_global_finish(self):
+        """
+        MultiEventPlugin имеет три обработчика:
+        - on_start: GlobalStartEvent
+        - on_finish: GlobalFinishEvent
+        - on_order_finish: GlobalFinishEvent (с action_name_pattern)
+
+        Для GlobalFinishEvent get_handlers() возвращает ДВА кандидата:
+        on_finish и on_order_finish (оба подписаны на GlobalFinishEvent).
+        action_name_pattern проверяется позже в PluginRunContext.
         """
         # Arrange — плагин с тремя подписками на разные события
         plugin = MultiEventPlugin()
+        event = make_global_finish_event(action_name="test.CreateOrderAction")
 
-        # Act — ищем обработчики global_finish для OrderAction
-        handlers = plugin.get_handlers("global_finish", "test.CreateOrderAction")
+        # Act — ищем обработчики GlobalFinishEvent
+        handlers = plugin.get_handlers(event)
 
         # Assert — два обработчика: on_finish и on_order_finish
         assert len(handlers) == 2
         handler_names = {h[0].__name__ for h in handlers}
         assert handler_names == {"on_finish", "on_order_finish"}
 
-    def test_multi_event_plugin_global_finish_without_order(self):
-        """
-        MultiEventPlugin: для global_finish + PingAction должен найтись
-        только один обработчик on_finish (".*"), on_order_finish не совпадает.
-        """
-        # Arrange — тот же плагин с тремя подписками
-        plugin = MultiEventPlugin()
-
-        # Act — ищем обработчики global_finish для PingAction
-        handlers = plugin.get_handlers("global_finish", "test.PingAction")
-
-        # Assert — только on_finish (.*), on_order_finish не совпадает
-        assert len(handlers) == 1
-        assert handlers[0][0].__name__ == "on_finish"
-
     def test_multi_event_plugin_global_start(self):
         """
-        MultiEventPlugin: для global_start должен найтись только
+        MultiEventPlugin: для GlobalStartEvent должен найтись только
         один обработчик on_start.
         """
         # Arrange
         plugin = MultiEventPlugin()
+        event = make_global_start_event()
 
-        # Act — ищем обработчики global_start
-        handlers = plugin.get_handlers("global_start", "test.AnyAction")
+        # Act — ищем обработчики GlobalStartEvent
+        handlers = plugin.get_handlers(event)
 
         # Assert — один обработчик on_start
         assert len(handlers) == 1
         assert handlers[0][0].__name__ == "on_start"
 
-    def test_action_filter_uses_re_search(self):
+    def test_handler_returns_subscription_info(self):
         """
-        action_filter применяется через re.search (не fullmatch).
-        ".*Order.*" совпадает с любой строкой, содержащей "Order"
-        в любой позиции.
+        get_handlers() возвращает кортежи (handler, SubscriptionInfo).
+        SubscriptionInfo содержит event_class, method_name, action_name_pattern,
+        ignore_exceptions и другие фильтры.
         """
-        # Arrange — плагин с фильтром ".*Order.*"
+        # Arrange
         plugin = BetaPlugin()
+        event = make_global_finish_event()
 
-        # Act + Assert — "Order" в середине → совпадает
-        assert len(plugin.get_handlers("global_finish", "app.actions.CreateOrderAction")) == 1
+        # Act
+        handlers = plugin.get_handlers(event)
+        handler_func, sub = handlers[0]
 
-        # Act + Assert — "Order" в начале → совпадает
-        assert len(plugin.get_handlers("global_finish", "OrderService.process")) == 1
+        # Assert — SubscriptionInfo содержит корректные данные
+        from action_machine.plugins.events import GlobalFinishEvent
+        from action_machine.plugins.subscription_info import SubscriptionInfo
 
-        # Act + Assert — нет "Order" → не совпадает
-        assert len(plugin.get_handlers("global_finish", "app.actions.UserAction")) == 0
+        assert isinstance(sub, SubscriptionInfo)
+        assert sub.event_class is GlobalFinishEvent
+        assert sub.method_name == "on_order_finish"
+        assert sub.action_name_pattern == ".*Order.*"
+        assert sub.ignore_exceptions is True  # default
 
     def test_empty_coordinator_has_no_plugins(self):
         """
@@ -188,9 +236,10 @@ class TestPluginGetHandlers:
         # Arrange — координатор пуст, плагин существует отдельно
         coordinator = PluginCoordinator(plugins=[])
         alpha = AlphaPlugin()
+        event = make_global_finish_event()
 
         # Act + Assert — координатор пуст
         assert len(coordinator.plugins) == 0
 
         # Act + Assert — плагин сам по себе находит обработчики
-        assert len(alpha.get_handlers("global_finish", "test.Action")) == 1
+        assert len(alpha.get_handlers(event)) == 1
