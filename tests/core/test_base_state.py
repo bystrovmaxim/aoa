@@ -95,7 +95,7 @@ class TestCreation:
         """
         # Arrange & Act — None вместо словаря, конструктор
         # проверяет truthiness: if initial: ... — None не проходит
-        state = BaseState(None)
+        state = BaseState()
 
         # Assert — state пустой, как при создании без аргументов
         assert state.to_dict() == {}

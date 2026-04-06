@@ -16,7 +16,8 @@
 
     ctx = ContextStub()
 
-Все стабы поддерживают переопределение любого поля через kwargs:
+Все стабы поддерживают переопределение любого поля через именованные
+аргументы:
 
     ctx = ContextStub(user=UserInfoStub(user_id="admin", roles=["admin"]))
 
@@ -49,14 +50,19 @@
    Тестировщику не нужно думать о минимально валидном контексте.
 
 2. ПЕРЕОПРЕДЕЛЯЕМОСТЬ. Любое поле может быть переопределено через
-   именованные аргументы конструктора.
+   именованные аргументы. Для добавления кастомных полей — создаётся
+   наследник соответствующего Info-класса.
 
-3. ТИПОБЕЗОПАСНОСТЬ. Стабы наследуют реальные классы (UserInfo,
-   RequestInfo, RuntimeInfo, Context), поэтому они проходят
+3. ТИПОБЕЗОПАСНОСТЬ. Стабы возвращают экземпляры реальных классов
+   (UserInfo, RequestInfo, RuntimeInfo, Context), поэтому они проходят
    isinstance-проверки и совместимы со всеми компонентами системы.
 
 4. НЕЗАВИСИМОСТЬ. Каждый стаб самодостаточен. UserInfoStub можно
    использовать отдельно от ContextStub.
+
+5. СТРОГАЯ СТРУКТУРА. Все Info-классы имеют extra="forbid". Стабы
+   принимают только объявленные поля — произвольные kwargs запрещены.
+   Расширение — через наследование Info-класса с явными полями.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ПРИМЕР ИСПОЛЬЗОВАНИЯ
@@ -67,7 +73,6 @@
         UserInfoStub,
         RequestInfoStub,
         RuntimeInfoStub,
-        AsyncTestMachine,
     )
 
     # Минимальный тест — одна строка для контекста:
@@ -92,9 +97,14 @@
     user = UserInfoStub(roles=["admin"])
     runtime = RuntimeInfoStub(hostname="prod-server-01")
     request = RequestInfoStub(request_path="/api/v1/orders", protocol="https")
-"""
 
-from typing import Any
+    # Расширение через наследование Info-класса:
+    class TenantUserInfo(UserInfo):
+        tenant_id: str = "default"
+
+    tenant_user = TenantUserInfo(user_id="admin", roles=["admin"], tenant_id="acme")
+    ctx = ContextStub(user=tenant_user)
+"""
 
 from action_machine.context.context import Context
 from action_machine.context.request_info import RequestInfo
@@ -105,18 +115,16 @@ from action_machine.context.user_info import UserInfo
 def UserInfoStub(
     user_id: str = "test_user",
     roles: list[str] | None = None,
-    **kwargs: Any,
 ) -> UserInfo:
     """
     Создаёт стаб информации о пользователе с разумными дефолтами.
 
     Возвращает экземпляр реального класса UserInfo, заполненный
-    тестовыми значениями. Все поля могут быть переопределены.
+    тестовыми значениями. Все объявленные поля могут быть переопределены.
 
     Аргументы:
         user_id: идентификатор пользователя. По умолчанию "test_user".
         roles: список ролей пользователя. По умолчанию ["tester"].
-        **kwargs: дополнительные поля для UserInfo.extra.
 
     Возвращает:
         UserInfo — стаб с тестовыми значениями.
@@ -131,14 +139,15 @@ def UserInfoStub(
     """
     if roles is None:
         roles = ["tester"]
-    return UserInfo(user_id=user_id, roles=roles, extra=kwargs)
+    return UserInfo(user_id=user_id, roles=roles)
 
 
 def RuntimeInfoStub(
     hostname: str = "test-host",
     service_name: str = "test-service",
     service_version: str = "0.0.1",
-    **kwargs: Any,
+    container_id: str | None = None,
+    pod_name: str | None = None,
 ) -> RuntimeInfo:
     """
     Создаёт стаб информации об окружении выполнения с разумными дефолтами.
@@ -150,7 +159,8 @@ def RuntimeInfoStub(
         hostname: имя хоста. По умолчанию "test-host".
         service_name: название сервиса. По умолчанию "test-service".
         service_version: версия сервиса. По умолчанию "0.0.1".
-        **kwargs: дополнительные поля (container_id, pod_name и т.д.).
+        container_id: идентификатор Docker-контейнера. По умолчанию None.
+        pod_name: имя пода Kubernetes. По умолчанию None.
 
     Возвращает:
         RuntimeInfo — стаб с тестовыми значениями.
@@ -165,7 +175,8 @@ def RuntimeInfoStub(
         hostname=hostname,
         service_name=service_name,
         service_version=service_version,
-        **kwargs,
+        container_id=container_id,
+        pod_name=pod_name,
     )
 
 
@@ -174,7 +185,10 @@ def RequestInfoStub(
     request_path: str = "/test",
     protocol: str = "test",
     request_method: str = "TEST",
-    **kwargs: Any,
+    full_url: str | None = None,
+    client_ip: str | None = None,
+    user_agent: str | None = None,
+    request_timestamp: None = None,
 ) -> RequestInfo:
     """
     Создаёт стаб информации о входящем запросе с разумными дефолтами.
@@ -187,7 +201,10 @@ def RequestInfoStub(
         request_path: путь запроса. По умолчанию "/test".
         protocol: протокол вызова. По умолчанию "test".
         request_method: HTTP-метод или тип вызова. По умолчанию "TEST".
-        **kwargs: дополнительные поля (client_ip, user_agent и т.д.).
+        full_url: полный URL запроса. По умолчанию None.
+        client_ip: IP-адрес клиента. По умолчанию None.
+        user_agent: заголовок User-Agent. По умолчанию None.
+        request_timestamp: время получения запроса. По умолчанию None.
 
     Возвращает:
         RequestInfo — стаб с тестовыми значениями.
@@ -208,7 +225,10 @@ def RequestInfoStub(
         request_path=request_path,
         protocol=protocol,
         request_method=request_method,
-        **kwargs,
+        full_url=full_url,
+        client_ip=client_ip,
+        user_agent=user_agent,
+        request_timestamp=request_timestamp,
     )
 
 

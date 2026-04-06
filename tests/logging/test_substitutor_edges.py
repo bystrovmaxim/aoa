@@ -46,7 +46,7 @@ def ctx() -> Context:
 
 @pytest.fixture()
 def state() -> BaseState:
-    return BaseState({})
+    return BaseState()
 
 
 @pytest.fixture()

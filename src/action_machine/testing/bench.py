@@ -524,7 +524,7 @@ class TestBench:
             action_name=action.get_full_class_name(),
             aspect_name=aspect_name,
             context=context,
-            state=BaseState(state),
+            state=BaseState(**state) if state else BaseState(),
             params=params,
         )
 
@@ -538,7 +538,7 @@ class TestBench:
             rollup=rollup,
         )
 
-        base_state = BaseState(state)
+        base_state = BaseState(**state) if state else BaseState()
         conns = connections or {}
 
         return cast(
@@ -589,7 +589,7 @@ class TestBench:
             action_name=action.get_full_class_name(),
             aspect_name=summary_meta.method_name,
             context=context,
-            state=BaseState(state),
+            state=BaseState(**state) if state else BaseState(),
             params=params,
         )
 
@@ -603,7 +603,7 @@ class TestBench:
             rollup=rollup,
         )
 
-        base_state = BaseState(state)
+        base_state = BaseState(**state) if state else BaseState()
         conns = connections or {}
 
         return cast(
