@@ -24,11 +24,11 @@ TypeError с указанием класса и поля.
 АРХИТЕКТУРА
 ═══════════════════════════════════════════════════════════════════════════════
 
-    class BaseParams(BaseModel, ReadableMixin, DescribedFieldsGateHost):
-        model_config = ConfigDict(frozen=True)
+    class BaseParams(BaseSchema, DescribedFieldsGateHost):
+        model_config = ConfigDict(frozen=True, extra="forbid")
 
-    class BaseResult(BaseModel, ReadableMixin, WritableMixin, DescribedFieldsGateHost):
-        model_config = ConfigDict(arbitrary_types_allowed=True, extra="allow")
+    class BaseResult(BaseSchema, DescribedFieldsGateHost):
+        model_config = ConfigDict(frozen=True, extra="forbid")
 
     class OrderParams(BaseParams):
         user_id: str = Field(description="ID пользователя")    ← OK
@@ -37,9 +37,13 @@ TypeError с указанием класса и поля.
     class BadParams(BaseParams):
         user_id: str                                             ← нет Field()
         amount: float = Field()                                  ← нет description
+
     # MetadataBuilder.build(Action с BadParams) → TypeError:
     # "Поле 'user_id' в BadParams не имеет описания.
     #  Используйте Field(description=\"...\")."
+
+BaseParams и BaseResult наследуют BaseSchema [2], которая предоставляет
+dict-подобный доступ к полям и dot-path навигацию через resolve().
 
 ═══════════════════════════════════════════════════════════════════════════════
 ПРИНЦИПЫ

@@ -1,6 +1,7 @@
 # src/action_machine/logging/log_coordinator.py
 """
 Log coordinator for the AOA logging system.
+
 LogCoordinator is the single logging bus to which any number of independent
 loggers can be attached. Aspects and plugins send messages to the coordinator
 without knowing about the specific recipients.
@@ -10,16 +11,18 @@ and broadcasts the result to all attached loggers.
 
 Variable substitution uses the pattern {%namespace.dotpath}, where namespace
 determines the data source:
+
 - {%var.amount} – looks in the developer‑supplied var dictionary.
 - {%context.user.user_id} – calls context.resolve("user.user_id").
 - {%params.card_token} – calls params.resolve("card_token").
 - {%state.total} – accesses state by key "total".
 - {%scope.action} – looks up scope by key "action".
 
-For objects with ReadableMixin (Context, UserInfo, RequestInfo, EnvironmentInfo,
+For objects inheriting BaseSchema (Context, UserInfo, RequestInfo, RuntimeInfo,
 BaseParams, BaseResult), the resolve method is used, which traverses nested
-objects via dot‑separated keys. For plain dictionaries (var) and LogScope,
-direct key access with manual traversal is used.
+objects via dot‑separated keys through the unified DotPathNavigator. For plain
+dictionaries (var) and LogScope, the same navigator handles traversal
+transparently via duck-typed __getitem__ access.
 
 Unified variable syntax:
 The {%namespace.dotpath} pattern works EVERYWHERE – both in the message text
@@ -30,6 +33,7 @@ Strict error policy:
 - If a variable is not found – LogTemplateError is raised.
 - If an iif expression is invalid – LogTemplateError is raised.
 - If the namespace is unknown – LogTemplateError is raised.
+
 An error in a log template is a developer bug and must be detected immediately
 on the first run.
 
@@ -39,12 +43,12 @@ the exception propagates up the stack.
 All methods are asynchronous – the coordinator and loggers may perform I/O
 (file writes, network sends) without blocking the event loop.
 
-New in 0.0.5:
-- Color support: messages may contain ANSI color codes via template filters
-  (e.g., `{%var.amount|red}`) and color functions inside iif (e.g., `red('text')`).
-  Before sending to a logger, the coordinator checks `logger.supports_colors`.
-  If False, ANSI codes are stripped using `BaseLogger.strip_ansi_codes`.
-- Sensitive data masking: handled by VariableSubstitutor; see its documentation.
+Color support: messages may contain ANSI color codes via template filters
+(e.g., `{%var.amount|red}`) and color functions inside iif (e.g., `red('text')`).
+Before sending to a logger, the coordinator checks `logger.supports_colors`.
+If False, ANSI codes are stripped using `BaseLogger.strip_ansi_codes`.
+
+Sensitive data masking: handled by VariableSubstitutor; see its documentation.
 """
 
 from typing import Any
@@ -156,6 +160,7 @@ class LogCoordinator:
             msg_to_send = resolved_message
             if not logger.supports_colors:
                 msg_to_send = BaseLogger.strip_ansi_codes(resolved_message)
+
             await logger.handle(
                 scope=scope,
                 message=msg_to_send,

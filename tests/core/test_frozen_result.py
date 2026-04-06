@@ -8,9 +8,9 @@
 
 Проверяет, что BaseResult и его наследники полностью неизменяемы после
 создания: запись атрибутов, добавление произвольных полей, dict-подобная
-запись — всё запрещено. Произвольные поля запрещены (extra="forbid").
+запись — всё запрещено. Произвольные поля запрещены (extra="forbid") [1].
 
-Также проверяет корректность чтения через ReadableMixin и сериализацию
+Также проверяет корректность чтения через BaseSchema [2] и сериализацию
 через pydantic model_dump() / model_json_schema().
 """
 
@@ -19,10 +19,10 @@ from pydantic import Field, ValidationError
 
 from action_machine.core.base_result import BaseResult
 
+
 # ═════════════════════════════════════════════════════════════════════════════
 # Тестовый наследник BaseResult
 # ═════════════════════════════════════════════════════════════════════════════
-
 
 class OrderResult(BaseResult):
     """Тестовый результат с тремя явно объявленными полями."""
@@ -39,7 +39,6 @@ class EmptyResult(BaseResult):
 # ═════════════════════════════════════════════════════════════════════════════
 # Создание и чтение
 # ═════════════════════════════════════════════════════════════════════════════
-
 
 class TestBaseResultCreation:
     """Тесты создания и чтения данных из BaseResult."""
@@ -62,7 +61,7 @@ class TestBaseResultCreation:
             OrderResult(order_id="ORD-1", status="created", total=-1.0)
 
     def test_getitem_access(self) -> None:
-        """Dict-подобный доступ через квадратные скобки (ReadableMixin)."""
+        """Dict-подобный доступ через квадратные скобки (BaseSchema)."""
         result = OrderResult(order_id="ORD-1", status="created", total=100.0)
         assert result["order_id"] == "ORD-1"
         assert result["status"] == "created"
@@ -116,7 +115,6 @@ class TestBaseResultCreation:
 # Frozen-семантика: запись запрещена
 # ═════════════════════════════════════════════════════════════════════════════
 
-
 class TestBaseResultFrozen:
     """Тесты неизменяемости BaseResult после создания."""
 
@@ -143,7 +141,7 @@ class TestBaseResultFrozen:
             )
 
     def test_setitem_raises(self) -> None:
-        """Dict-подобная запись через [] отсутствует (нет WritableMixin)."""
+        """Dict-подобная запись через [] отсутствует (BaseResult frozen, __setitem__ не определён)."""
         result = OrderResult(order_id="ORD-1", status="ok", total=0.0)
         with pytest.raises((TypeError, AttributeError)):
             result["status"] = "new"
@@ -155,12 +153,12 @@ class TestBaseResultFrozen:
             del result["status"]
 
     def test_write_method_missing(self) -> None:
-        """Метод write() не существует (WritableMixin удалён)."""
+        """Метод write() не существует (BaseResult не предоставляет запись)."""
         result = OrderResult(order_id="ORD-1", status="ok", total=0.0)
         assert not hasattr(result, "write")
 
     def test_update_method_missing(self) -> None:
-        """Метод update() не существует (WritableMixin удалён)."""
+        """Метод update() не существует (BaseResult не предоставляет запись)."""
         result = OrderResult(order_id="ORD-1", status="ok", total=0.0)
         assert not hasattr(result, "update")
 
@@ -168,7 +166,6 @@ class TestBaseResultFrozen:
 # ═════════════════════════════════════════════════════════════════════════════
 # Паттерн «изменения» — model_copy
 # ═════════════════════════════════════════════════════════════════════════════
-
 
 class TestBaseResultImmutableUpdate:
     """Тесты паттерна обновления через model_copy (pydantic)."""

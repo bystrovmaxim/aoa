@@ -136,7 +136,7 @@ class OrderEntity(BaseEntity):
 
 **Зачем:** единый стандарт для всех сущностей домена. Иммутабельность, обязательные описания, поддержка автоматов.
 
-**Родитель:** `BaseEntity` наследует `BaseModel` (Pydantic) с `frozen=True`, `extra="forbid"`, а также `ABC` (абстрактный) и `ReadableMixin`.
+Родитель: BaseEntity наследует BaseSchema base_schema.py с frozen=True, extra="forbid", а также ABC (абстрактный). Dict-подобный доступ и dot-path навигация через resolve() наследуются от BaseSchema автоматически.
 
 **Поля состояний:** любое количество полей типа `BaseState`.
 

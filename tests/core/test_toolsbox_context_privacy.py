@@ -7,9 +7,9 @@
 ═══════════════════════════════════════════════════════════════════════════════
 
 Проверяет ключевой инвариант: ToolsBox НЕ предоставляет публичного
-доступа к контексту выполнения (Context). Аспекты получают данные
+доступа к контексту выполнения (Context) [1]. Аспекты получают данные
 контекста исключительно через ContextView, создаваемый машиной
-при наличии @context_requires.
+при наличии @context_requires [1].
 
 Также проверяет frozen-семантику ToolsBox: запись и удаление
 атрибутов запрещены после создания.
@@ -25,10 +25,10 @@ from action_machine.core.tools_box import ToolsBox
 from action_machine.dependencies.dependency_factory import DependencyFactory
 from action_machine.logging.scoped_logger import ScopedLogger
 
+
 # ═════════════════════════════════════════════════════════════════════════════
 # Фикстура создания ToolsBox
 # ═════════════════════════════════════════════════════════════════════════════
-
 
 def _make_toolsbox(context: Context | None = None) -> ToolsBox:
     """
@@ -53,7 +53,6 @@ def _make_toolsbox(context: Context | None = None) -> ToolsBox:
 # ═════════════════════════════════════════════════════════════════════════════
 # Приватность контекста
 # ═════════════════════════════════════════════════════════════════════════════
-
 
 class TestToolsBoxContextPrivacy:
     """Тесты отсутствия публичного доступа к Context через ToolsBox."""
@@ -99,8 +98,8 @@ class TestToolsBoxContextPrivacy:
         # Arrange
         box = _make_toolsbox()
 
-        # Act & Assert — ToolsBox не наследует ReadableMixin,
-        # __getitem__ не существует или не содержит context
+        # Act & Assert — ToolsBox не наследует BaseSchema и не имеет
+        # __getitem__, поэтому доступ по ключу невозможен
         with pytest.raises((TypeError, KeyError, AttributeError)):
             _ = box["context"]  # type: ignore[index]
 
@@ -152,7 +151,6 @@ class TestToolsBoxContextPrivacy:
 # Frozen-семантика ToolsBox
 # ═════════════════════════════════════════════════════════════════════════════
 
-
 class TestToolsBoxFrozen:
     """Тесты неизменяемости ToolsBox после создания."""
 
@@ -196,7 +194,6 @@ class TestToolsBoxFrozen:
 # ═════════════════════════════════════════════════════════════════════════════
 # Публичные свойства работают корректно
 # ═════════════════════════════════════════════════════════════════════════════
-
 
 class TestToolsBoxPublicAPI:
     """Тесты корректности публичных свойств ToolsBox."""
