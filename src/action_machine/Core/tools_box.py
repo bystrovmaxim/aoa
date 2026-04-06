@@ -110,6 +110,15 @@ class ToolsBox:
         "__run_child",
     )
 
+    # Аннотации типов для приватных атрибутов (для mypy и pylint)
+    __run_child: Callable[..., Awaitable[BaseResult]]
+    __factory: DependencyFactory
+    __resources: dict[type[Any], Any] | None
+    __context: Context
+    __log: ScopedLogger
+    __nested_level: int
+    __rollup: bool
+
     def __init__(
         self,
         run_child: Callable[..., Awaitable[BaseResult]],
@@ -194,7 +203,7 @@ class ToolsBox:
         for key, connection in connections.items():
             wrapper_class = connection.get_wrapper_class()
             if wrapper_class is not None:
-                wrapped[key] = wrapper_class(connection)
+                wrapped[key] = wrapper_class(connection) # type: ignore[call-arg]
             else:
                 wrapped[key] = connection
         return wrapped

@@ -843,7 +843,7 @@ class TestBaseStateUnchanged:
         assert state.processed is True
 
         # Act & Assert — попытка добавить поле после создания запрещена
-        with pytest.raises(Exception):
+        with pytest.raises(ValidationError):
             state.new_field = "value"
 
     def test_to_dict(self) -> None:

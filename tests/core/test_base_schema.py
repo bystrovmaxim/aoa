@@ -42,7 +42,7 @@ Pydantic-совместимость:
 """
 
 import pytest
-from pydantic import ConfigDict, Field
+from pydantic import ConfigDict, Field, ValidationError
 
 from action_machine.core.base_result import BaseResult
 from action_machine.core.base_schema import BaseSchema
@@ -309,8 +309,8 @@ class TestFrozenSemantics:
         # Arrange
         obj = FrozenSchema(metric=3.14)
 
-        # Act & Assert
-        with pytest.raises(Exception):
+        # Act & Assert — pydantic бросает ValidationError для frozen моделей
+        with pytest.raises(ValidationError):
             obj.metric = 0.0
 
     def test_state_is_frozen(self) -> None:
@@ -318,8 +318,8 @@ class TestFrozenSemantics:
         # Arrange
         state = BaseState(total=100)
 
-        # Act & Assert
-        with pytest.raises(Exception):
+        # Act & Assert — pydantic бросает ValidationError для frozen моделей
+        with pytest.raises(ValidationError):
             state.total = 200  # type: ignore[misc]
 
     def test_result_is_frozen(self) -> None:
@@ -331,8 +331,8 @@ class TestFrozenSemantics:
         # Arrange
         result = _TestResult(status="ok")
 
-        # Act & Assert
-        with pytest.raises(Exception):
+        # Act & Assert — pydantic бросает ValidationError для frozen моделей
+        with pytest.raises(ValidationError):
             result.status = "fail"  # type: ignore[misc]
 
 

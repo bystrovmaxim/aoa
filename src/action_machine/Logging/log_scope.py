@@ -148,6 +148,10 @@ class LogScope:
             при первом вызове.
     """
 
+    # Аннотации типов для приватных атрибутов (для mypy и pylint)
+    _key_order: list[str]
+    _cached_path: str | None
+
     def __init__(self, **kwargs: Any) -> None:
         """
         Инициализирует scope с произвольным набором именованных аргументов.
@@ -224,7 +228,7 @@ class LogScope:
                 if val is not None and val != "":
                     values.append(str(val))
             object.__setattr__(self, "_cached_path", ".".join(values))
-        return self._cached_path
+        return self._cached_path # type: ignore[return-value]
 
     def to_dict(self) -> dict[str, Any]:
         """

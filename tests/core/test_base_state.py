@@ -43,6 +43,7 @@ BaseState наследует BaseSchema (dict-подобное чтение, res
 """
 
 import pytest
+from pydantic import ValidationError
 
 from action_machine.core.base_state import BaseState
 
@@ -228,7 +229,7 @@ class TestFrozen:
         state = BaseState(value=1)
 
         # Act & Assert — попытка изменить существующий атрибут
-        with pytest.raises(Exception):
+        with pytest.raises(ValidationError):
             state.value = 2
 
     def test_setattr_new_key_raises(self) -> None:
@@ -240,18 +241,19 @@ class TestFrozen:
         state = BaseState()
 
         # Act & Assert — попытка добавить новый атрибут
-        with pytest.raises(Exception):
+        with pytest.raises(ValidationError):
             state.new_key = "value"
 
     def test_delattr_raises(self) -> None:
         """
         Удаление атрибута запрещено.
+        Pydantic frozen=True бросает ValidationError при удалении.
         """
         # Arrange — state с полем для удаления
         state = BaseState(to_delete="value")
 
         # Act & Assert
-        with pytest.raises(Exception):
+        with pytest.raises(ValidationError):
             del state.to_delete
 
     def test_setitem_raises(self) -> None:
