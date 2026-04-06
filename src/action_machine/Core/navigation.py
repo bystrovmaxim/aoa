@@ -115,6 +115,12 @@ if TYPE_CHECKING:
 # Сравнение выполняется только через оператор `is`, коллизии невозможны.
 _SENTINEL: object = object()
 
+# Кеш для ленивого импорта BaseSchema. Заполняется при первом вызове
+# resolve_step(). Это избавляет от поиска в sys.modules на каждом шаге
+# навигации, сохраняя при этом отсутствие циклической зависимости
+# на уровне модуля.
+_BaseSchemaType: type | None = None
+
 
 class DotPathNavigator:
     """
@@ -224,13 +230,13 @@ class DotPathNavigator:
             1. BaseSchema — pydantic-модель с dict-подобным доступом [2].
             2. dict — обычный словарь Python.
             3. Объект с __getitem__ — любой объект с dict-подобным
-               интерфейсом (LogScope [3] и др.).
+            интерфейсом (LogScope [3] и др.).
             4. Любой другой объект — доступ через getattr.
 
-        Импорт BaseSchema выполняется внутри метода, чтобы избежать
-        циклических зависимостей на уровне модуля (BaseSchema
-        импортирует navigation, navigation не должен импортировать
-        BaseSchema на уровне модуля).
+        Импорт BaseSchema выполняется один раз при первом вызове и
+        кешируется в переменной модуля _BaseSchemaType. Это избавляет
+        от поиска в sys.modules на каждом шаге навигации, сохраняя
+        при этом отсутствие циклической зависимости на уровне модуля.
 
         Аргументы:
             current: текущий объект в цепочке навигации.
@@ -239,9 +245,12 @@ class DotPathNavigator:
         Возвращает:
             Значение сегмента или _SENTINEL если сегмент не найден.
         """
-        from action_machine.core.base_schema import BaseSchema
+        global _BaseSchemaType  # noqa: PLW0603
+        if _BaseSchemaType is None:
+            from action_machine.core.base_schema import BaseSchema
+            _BaseSchemaType = BaseSchema
 
-        if isinstance(current, BaseSchema):
+        if isinstance(current, _BaseSchemaType):
             return DotPathNavigator._step_schema(current, segment)
         if isinstance(current, dict):
             return DotPathNavigator._step_dict(current, segment)

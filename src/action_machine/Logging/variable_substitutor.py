@@ -200,6 +200,13 @@ _BG_COLORS: dict[str, str] = {
 
 _RESET_CODE: str = "\033[0m"
 
+# Паттерн для обработки цветовых маркеров. Захватывает только маркеры
+# без вложенных __COLOR( внутри контента, что обеспечивает обработку
+# изнутри наружу при многократном применении в цикле.
+_COLOR_MARKER_PATTERN: re.Pattern[str] = re.compile(
+    r"__COLOR\(([a-zA-Z_]+)\)((?:(?!__COLOR\().)*)__COLOR_END__",
+    re.DOTALL,
+)
 
 class VariableSubstitutor:
     """
@@ -803,25 +810,23 @@ class VariableSubstitutor:
         Цикл повторяется, пока в строке остаются маркеры. Это гарантирует
         корректную обработку вложенных цветов любой глубины.
 
+        Паттерн предкомпилирован на уровне модуля (_COLOR_MARKER_PATTERN),
+        что исключает повторную компиляцию regex при каждом вызове.
+
         Аргументы:
             text: строка с цветовыми маркерами.
 
         Возвращает:
             Строка с ANSI escape-кодами вместо маркеров.
         """
-        pattern = re.compile(
-            r"__COLOR\(([a-zA-Z_]+)\)((?:(?!__COLOR\().)*)__COLOR_END__",
-            re.DOTALL,
-        )
-
-        while pattern.search(text):
+        while _COLOR_MARKER_PATTERN.search(text):
             def replacer(match: re.Match[str]) -> str:
                 color_name = match.group(1)
                 content = match.group(2)
                 ansi_code = self._resolve_color_name(color_name)
                 return f"{ansi_code}{content}{_RESET_CODE}"
 
-            text = pattern.sub(replacer, text)
+            text = _COLOR_MARKER_PATTERN.sub(replacer, text)
 
         return text
 
