@@ -71,7 +71,7 @@ def ctx() -> Context:
 @pytest.fixture()
 def state() -> BaseState:
     """Пустой BaseState для тестов подстановки."""
-    return BaseState({})
+    return BaseState()
 
 
 @pytest.fixture()
