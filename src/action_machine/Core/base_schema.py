@@ -1,11 +1,9 @@
 # src/action_machine/core/base_schema.py
 """
 BaseSchema — единая базовая схема данных фреймворка ActionMachine.
-
 ═══════════════════════════════════════════════════════════════════════════════
 НАЗНАЧЕНИЕ
 ═══════════════════════════════════════════════════════════════════════════════
-
 BaseSchema — корневой класс для всех структур данных фреймворка. Наследует
 pydantic.BaseModel и добавляет два интерфейса поверх стандартных полей:
 
@@ -76,6 +74,7 @@ DOT-PATH НАВИГАЦИЯ
     state.resolve("payment.txn_id")      → state.payment.txn_id
 
 Каждый шаг навигации выбирает стратегию по типу текущего объекта:
+
     - BaseSchema → __getitem__
     - dict       → прямой доступ по ключу
     - любой объект → getattr
@@ -119,6 +118,11 @@ DOT-PATH НАВИГАЦИЯ
 from __future__ import annotations
 
 from pydantic import BaseModel, ConfigDict
+
+# Уникальный объект-маркер, используемый в resolve() для отличия ситуации
+# «атрибут не найден» от «атрибут существует, но равен None».
+# Сравнение выполняется только через оператор `is`, коллизии невозможны.
+_SENTINEL: object = object()
 
 
 class BaseSchema(BaseModel):
@@ -244,7 +248,9 @@ class BaseSchema(BaseModel):
             - любой объект → getattr.
 
         Если на любом шаге цепочки значение не найдено, возвращает
-        default без выброса исключения.
+        default без выброса исключения. Поля со значением None
+        возвращаются корректно — default используется только при
+        отсутствии атрибута.
 
         Аргументы:
             dotpath: строка вида "user.user_id" или "address.city".
@@ -258,6 +264,7 @@ class BaseSchema(BaseModel):
             context.resolve("user.user_id")     → "agent_123"
             context.resolve("user.missing")     → None
             context.resolve("user.missing", "") → ""
+            context.resolve("user.field_none")  → None  (поле существует)
         """
         segments = dotpath.split(".")
         current: object = self
@@ -268,14 +275,16 @@ class BaseSchema(BaseModel):
                     current = current[segment]
                 except KeyError:
                     return default
+
             elif isinstance(current, dict):
                 if segment in current:
                     current = current[segment]
                 else:
                     return default
+
             else:
-                value = getattr(current, segment, None)
-                if value is None:
+                value = getattr(current, segment, _SENTINEL)
+                if value is _SENTINEL:
                     return default
                 current = value
 
