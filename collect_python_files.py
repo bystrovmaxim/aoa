@@ -172,7 +172,7 @@ if __name__ == "__main__":
     PythonFileCollector(
         output_file="archive/logs/code.txt",
         exclude_dirs=[
-            "__pycache__", ".venv", "venv", ".git",
-            ".pytest_cache", ".ruff_cache", ".mypy_cache"
+            "__pycache__", ".venv", "venv", ".git", ".ruff_cache", "archive", "scripts",
+            ".pytest_cache", ".ruff_cache", ".mypy_cache", ".import_linter_cache", "docs", "htmlcov", "tests"
         ],
     ).collect()

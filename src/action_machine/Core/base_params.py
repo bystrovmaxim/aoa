@@ -1,64 +1,84 @@
 # src/action_machine/core/base_params.py
 """
-Базовый класс для параметров действия.
+BaseParams — иммутабельные параметры действия.
 
 ═══════════════════════════════════════════════════════════════════════════════
 НАЗНАЧЕНИЕ
 ═══════════════════════════════════════════════════════════════════════════════
 
 BaseParams — базовый класс для всех параметров действий в системе
-ActionMachine. Наследует pydantic BaseModel для валидации типов,
-описания полей и генерации JSON Schema.
+ActionMachine. Определяет структуру входных данных, которые передаются
+в конвейер аспектов при выполнении действия (Action).
 
-Параметры действия являются неизменяемыми (frozen=True) после создания.
-Это предотвращает случайное изменение входных данных аспектами или
-плагинами в ходе выполнения конвейера.
-
-Наследует ReadableMixin для dict-подобного доступа к полям и навигации
-по вложенным объектам через метод resolve(). Наследует
-DescribedFieldsGateHost для контроля обязательности описаний полей.
+Параметры задаются один раз при создании и не могут быть изменены
+в процессе обработки — это гарантируется настройкой frozen=True.
+Произвольные поля запрещены (extra="forbid") — только явно объявленные
+в классе-наследнике.
 
 ═══════════════════════════════════════════════════════════════════════════════
-PYDANTIC BASEMODEL
+ИЕРАРХИЯ
 ═══════════════════════════════════════════════════════════════════════════════
 
-Переход с dataclass на pydantic BaseModel даёт:
-
-1. ВАЛИДАЦИЯ ТИПОВ — pydantic проверяет типы при создании экземпляра.
-   Передача строки в поле int вызовет ValidationError.
-
-2. ОПИСАНИЕ ПОЛЕЙ — каждое поле описывается через Field(description="...").
-   MetadataBuilder проверяет обязательность описаний при сборке метаданных.
-
-3. ОГРАНИЧЕНИЯ — Field поддерживает gt, ge, lt, le, min_length,
-   max_length, pattern, examples и другие constraints из коробки.
-
-4. JSON SCHEMA — model_json_schema() генерирует JSON Schema
-   с descriptions, constraints, examples. FastAPI использует это
-   для автоматической генерации OpenAPI документации.
-
-5. FASTAPI СОВМЕСТИМОСТЬ — pydantic BaseModel является нативным типом
-   для FastAPI. Модели передаются в эндпоинты напрямую, без адаптеров.
+    BaseSchema(BaseModel)
+        └── BaseParams (frozen=True, extra="forbid")
 
 ═══════════════════════════════════════════════════════════════════════════════
-СОВМЕСТИМОСТЬ С МИКСИНАМИ
+ИММУТАБЕЛЬНОСТЬ
 ═══════════════════════════════════════════════════════════════════════════════
 
-ReadableMixin работает через getattr/hasattr/vars(). Pydantic BaseModel
-хранит данные полей в атрибутах экземпляра. Все методы ReadableMixin
-(keys, values, items, resolve, __getitem__, __contains__, get)
-совместимы без изменений.
+Иммутабельность параметров — архитектурное решение, обеспечивающее:
 
-DescribedFieldsGateHost — маркерный миксин без логики. Совместим
-с любым классом.
+- Предсказуемость: аспекты не могут случайно изменить входные данные.
+- Безопасность: один и тот же объект Params безопасно передаётся
+  во все аспекты, плагины и обработчики ошибок.
+- Отладку: параметры на любом этапе конвейера всегда совпадают
+  с тем, что было передано на входе.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ОТЛИЧИЕ ОТ BaseResult И BaseState
+СТРОГАЯ СТРУКТУРА (extra="forbid")
 ═══════════════════════════════════════════════════════════════════════════════
 
-    BaseParams  — pydantic BaseModel, frozen=True, только чтение.
-    BaseResult  — pydantic BaseModel, mutable, чтение и запись.
-    BaseState   — dataclass, mutable, динамические поля. НЕ pydantic.
+Параметры содержат ровно те поля, которые объявлены в конкретном
+наследнике. Передача неизвестного поля при создании вызывает
+ValidationError. Это защита от опечаток и случайных данных.
+
+Если нужны дополнительные поля — создаётся наследник с явным
+объявлением:
+
+    class ExtendedOrderParams(OrderParams):
+        priority: int = Field(description="Приоритет заказа")
+
+═══════════════════════════════════════════════════════════════════════════════
+ОПИСАНИЕ ПОЛЕЙ
+═══════════════════════════════════════════════════════════════════════════════
+
+Каждое поле описывается через pydantic Field(description="...").
+Описание обязательно — MetadataBuilder проверяет при сборке метаданных
+через DescribedFieldsGateHost. Описания используются для генерации
+OpenAPI-документации (FastAPI), JSON Schema (MCP) и интроспекции.
+
+═══════════════════════════════════════════════════════════════════════════════
+PYDANTIC ВОЗМОЖНОСТИ
+═══════════════════════════════════════════════════════════════════════════════
+
+Наследование от pydantic BaseModel (через BaseSchema) даёт:
+
+- Валидация типов при создании экземпляра.
+- Ограничения через Field(gt=0, min_length=3, pattern=...).
+- Примеры через Field(examples=["user_123"]).
+- JSON Schema через model_json_schema() — для OpenAPI и MCP.
+- Сериализация через model_dump() — для адаптеров и логов.
+
+═══════════════════════════════════════════════════════════════════════════════
+DICT-ПОДОБНЫЙ ДОСТУП (унаследован от BaseSchema)
+═══════════════════════════════════════════════════════════════════════════════
+
+    params["user_id"]                    # → "user_123"
+    "amount" in params                   # → True
+    params.get("currency", "RUB")        # → "RUB"
+    list(params.keys())                  # → ["user_id", "amount", "currency"]
+    params.resolve("address.city")       # → "Moscow"
+    params.model_dump()                  # → {"user_id": "user_123", ...}
 
 ═══════════════════════════════════════════════════════════════════════════════
 ПРИМЕР ИСПОЛЬЗОВАНИЯ
@@ -74,41 +94,43 @@ DescribedFieldsGateHost — маркерный миксин без логики.
 
     params = OrderParams(user_id="user_123", amount=1500.0)
 
-    # Dict-подобный доступ через ReadableMixin:
     params["user_id"]           # → "user_123"
     params.resolve("currency")  # → "RUB"
     params.keys()               # → ["user_id", "amount", "currency"]
 
-    # Frozen — нельзя изменить:
+    # Запись запрещена (frozen):
     params.amount = 0           # → ValidationError
 
-    # JSON Schema для FastAPI:
+    # Лишние поля запрещены (forbid):
+    OrderParams(user_id="x", amount=1, unknown="y")  # → ValidationError
+
+    # JSON Schema для FastAPI и MCP:
     OrderParams.model_json_schema()
     # {"properties": {"user_id": {"description": "ID пользователя", ...}, ...}}
 """
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import ConfigDict
 
+from action_machine.core.base_schema import BaseSchema
 from action_machine.core.described_fields_gate_host import DescribedFieldsGateHost
-from action_machine.core.readable_mixin import ReadableMixin
 
 
-class BaseParams(BaseModel, ReadableMixin, DescribedFieldsGateHost):
+class BaseParams(BaseSchema, DescribedFieldsGateHost):
     """
-    Параметры действия (read-only, pydantic-based).
+    Иммутабельные параметры действия (frozen, forbid).
 
-    Наследуйте этот класс для создания конкретных параметров.
-    Каждое поле описывается через pydantic Field(description="...").
-    Описание обязательно — MetadataBuilder проверяет при сборке.
+    Наследует dict-подобный доступ и dot-path навигацию от BaseSchema.
+    Наследует контроль обязательности описаний полей от DescribedFieldsGateHost.
 
-    Параметры передаются в конвейер аспектов и доступны на всех этапах.
-    Аспекты читают параметры, но не могут их изменять (frozen=True).
+    Запись в поля запрещена на уровне pydantic (frozen=True).
+    Произвольные поля запрещены (extra="forbid").
 
-    Пример:
+    Конкретные параметры создаются наследованием:
+
         class CreateUserParams(BaseParams):
             username: str = Field(description="Имя пользователя", min_length=3)
             email: str = Field(description="Email адрес")
             role: str = Field(default="user", description="Роль пользователя")
     """
 
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True, extra="forbid")

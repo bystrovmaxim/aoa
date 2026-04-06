@@ -1,6 +1,6 @@
 # src/action_machine/logging/log_scope.py
 """
-Scope логирования — хранит информацию о местоположении в конвейере выполнения.
+LogScope — scope логирования, хранит информацию о местоположении в конвейере.
 
 ═══════════════════════════════════════════════════════════════════════════════
 НАЗНАЧЕНИЕ
@@ -11,8 +11,15 @@ LogScope — объект, описывающий контекст вызова 
 происходит логирование. Значения передаются как kwargs и становятся
 атрибутами экземпляра.
 
-Наследует ReadableMixin, поэтому поддерживает dict-подобный доступ:
-    scope['action'], scope.get('aspect'), 'nest_level' in scope
+LogScope НЕ наследует BaseSchema. Это не pydantic-модель, а лёгкий объект
+с динамическими атрибутами и dict-подобным доступом. Причина: LogScope
+создаётся с произвольным набором kwargs, не имеет фиксированной схемы
+полей и не нуждается в валидации типов, JSON Schema или сериализации
+через model_dump(). Его единственная задача — хранить координаты
+вызова и предоставлять к ним доступ через ["key"] и as_dotpath().
+
+VariableSubstitutor обрабатывает LogScope отдельной стратегией навигации
+(_resolve_step_scope) через __getitem__, без зависимости от BaseSchema.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ПОЛЯ SCOPE ДЛЯ АСПЕКТОВ
@@ -26,7 +33,7 @@ ScopedLogger создаёт LogScope со следующими полями:
     action     : str — полное имя класса действия (модуль + класс).
     aspect     : str — имя метода-аспекта ("validate_amount", "process_payment").
     nest_level : int — уровень вложенности вызова (0 для корневого, 1 для
-                       дочернего через box.run(), 2 для вложенного в дочернее и т.д.).
+                       дочернего через box.run(), 2 для вложенного в дочернее).
 
 ═══════════════════════════════════════════════════════════════════════════════
 ПОЛЯ SCOPE ДЛЯ ПЛАГИНОВ
@@ -44,7 +51,7 @@ ScopedLogger создаёт LogScope со следующими полями:
     nest_level : int — уровень вложенности вызова.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ИСПОЛЬЗОВАНИЕ В ШАБЛОНАХ
+ИСПОЛЬЗОВАНИЕ В ШАБЛОНАХ ЛОГИРОВАНИЯ
 ═══════════════════════════════════════════════════════════════════════════════
 
 Все поля scope доступны в шаблонах логирования через namespace {%scope.*}:
@@ -75,6 +82,20 @@ kwargs. Используется при формировании строки д
 Результат кешируется после первого вызова.
 
 ═══════════════════════════════════════════════════════════════════════════════
+DICT-ПОДОБНЫЙ ДОСТУП
+═══════════════════════════════════════════════════════════════════════════════
+
+LogScope поддерживает dict-подобный доступ к полям:
+
+    scope = LogScope(machine="APM", action="OrderAction")
+
+    scope["machine"]        # → "APM"
+    scope["action"]         # → "OrderAction"
+    "machine" in scope      # → True
+    scope.get("missing")    # → None
+    list(scope.keys())      # → ["machine", "action"]
+
+═══════════════════════════════════════════════════════════════════════════════
 ПРИМЕР СОЗДАНИЯ
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -100,16 +121,14 @@ kwargs. Используется при формировании строки д
 
 from typing import Any
 
-from action_machine.core.readable_mixin import ReadableMixin
 
-
-class LogScope(ReadableMixin):
+class LogScope:
     """
-    Scope логирования — хранит информацию о местоположении в конвейере.
+    Scope логирования — хранит координаты вызова в конвейере.
 
-    Значения передаются как kwargs и становятся атрибутами экземпляра.
-    Наследует ReadableMixin, поддерживая dict-подобный доступ:
-    scope['action'], scope.get('aspect'), scope.keys() и т.д.
+    Лёгкий объект с динамическими атрибутами и dict-подобным доступом.
+    Не является pydantic-моделью. Значения передаются как kwargs
+    и становятся атрибутами экземпляра.
 
     Поддерживаемые поля (все опциональные, задаются через kwargs):
         machine    : str — имя класса машины.
@@ -138,13 +157,53 @@ class LogScope(ReadableMixin):
 
         Аргументы:
             **kwargs: произвольные именованные аргументы, задающие поля scope.
-                      Типичные ключи: machine, mode, action, aspect, plugin,
-                      event, nest_level.
         """
         for key, value in kwargs.items():
-            setattr(self, key, value)
-        self._key_order = list(kwargs.keys())
-        self._cached_path: str | None = None
+            object.__setattr__(self, key, value)
+        object.__setattr__(self, "_key_order", list(kwargs.keys()))
+        object.__setattr__(self, "_cached_path", None)
+
+    # ─── dict-подобный доступ ─────────────────────────────────────────
+
+    def __getitem__(self, key: str) -> object:
+        """
+        Доступ к полю по ключу: scope["field_name"].
+
+        Аргументы:
+            key: имя поля.
+
+        Возвращает:
+            Значение поля.
+
+        Исключения:
+            KeyError: если поле с таким именем не существует.
+        """
+        try:
+            return getattr(self, key)
+        except AttributeError:
+            raise KeyError(key) from None
+
+    def __contains__(self, key: str) -> bool:
+        """Проверка наличия поля: "field_name" in scope."""
+        return key in self._key_order
+
+    def get(self, key: str, default: object = None) -> object:
+        """Получение значения поля с fallback на default."""
+        return getattr(self, key, default)
+
+    def keys(self) -> list[str]:
+        """Список имён полей в порядке создания."""
+        return list(self._key_order)
+
+    def values(self) -> list[object]:
+        """Список значений полей в порядке создания."""
+        return [getattr(self, k) for k in self._key_order]
+
+    def items(self) -> list[tuple[str, object]]:
+        """Список пар (имя, значение) в порядке создания."""
+        return [(k, getattr(self, k)) for k in self._key_order]
+
+    # ─── dotpath и сериализация ───────────────────────────────────────
 
     def as_dotpath(self) -> str:
         """
@@ -157,11 +216,6 @@ class LogScope(ReadableMixin):
 
         Возвращает:
             str — dotpath вида "machine.mode.action.aspect" или пустая строка.
-
-        Пример:
-            >>> scope = LogScope(machine="APM", mode="prod", action="Order", aspect="validate")
-            >>> scope.as_dotpath()
-            'APM.prod.Order.validate'
         """
         if self._cached_path is None:
             values = []
@@ -169,7 +223,7 @@ class LogScope(ReadableMixin):
                 val = getattr(self, key, None)
                 if val is not None and val != "":
                     values.append(str(val))
-            self._cached_path = ".".join(values)
+            object.__setattr__(self, "_cached_path", ".".join(values))
         return self._cached_path
 
     def to_dict(self) -> dict[str, Any]:
@@ -179,6 +233,6 @@ class LogScope(ReadableMixin):
         Используется для отладки, сериализации и передачи в шаблоны.
 
         Возвращает:
-            dict[str, Any] — словарь {ключ: значение} для всех полей scope.
+            dict[str, Any] — словарь {ключ: значение} для всех полей.
         """
         return {key: getattr(self, key) for key in self._key_order}

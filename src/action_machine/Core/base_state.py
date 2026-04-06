@@ -1,202 +1,171 @@
 # src/action_machine/core/base_state.py
 """
-BaseState — frozen-состояние конвейера аспектов.
+BaseState — frozen-состояние конвейера аспектов с динамическими полями.
 
 ═══════════════════════════════════════════════════════════════════════════════
 НАЗНАЧЕНИЕ
 ═══════════════════════════════════════════════════════════════════════════════
 
 BaseState — неизменяемый объект, хранящий накопленные данные между шагами
-конвейера аспектов. Каждый regular-аспект возвращает dict с новыми полями,
-машина (ActionProductMachine) проверяет их чекерами и создаёт НОВЫЙ
-BaseState, объединяя предыдущие данные с новыми. Аспект получает state
-только на чтение — мутация невозможна после создания.
+конвейера аспектов. Каждый regular-аспект возвращает обычный dict с новыми
+полями, машина (ActionProductMachine) проверяет dict чекерами и создаёт
+НОВЫЙ BaseState, объединяя предыдущие данные с новыми. Аспект получает
+state только на чтение — мутация невозможна после создания.
+
+═══════════════════════════════════════════════════════════════════════════════
+ИЕРАРХИЯ
+═══════════════════════════════════════════════════════════════════════════════
+
+    BaseSchema(BaseModel)
+        └── BaseState (frozen=True, extra="allow")
 
 ═══════════════════════════════════════════════════════════════════════════════
 FROZEN-СЕМАНТИКА
 ═══════════════════════════════════════════════════════════════════════════════
 
-BaseState полностью неизменяем после создания:
+BaseState полностью неизменяем после создания (frozen=True):
 
-- ``__setattr__`` выбрасывает ``AttributeError`` (кроме инициализации
-  через ``object.__setattr__`` в ``__init__``).
-- ``__delattr__`` выбрасывает ``AttributeError``.
-- Нет методов ``__setitem__``, ``__delitem__``, ``write``, ``update``.
+    state = BaseState(total=1500, user="agent")
+    state.total = 0           # → ValidationError
+    state["total"] = 0        # → TypeError (нет __setitem__)
 
 Единственный способ «изменить» состояние — создать новый экземпляр:
 
-    old_state = BaseState({"total": 100})
-    new_state = BaseState({**old_state.to_dict(), "discount": 10})
+    new_state = BaseState(**{**old_state.to_dict(), "discount": 10})
 
 Это гарантирует, что аспект не может записать данные в state напрямую,
 обойдя чекеры. Машина контролирует каждое добавление поля через валидацию
 dict, возвращённого аспектом.
 
 ═══════════════════════════════════════════════════════════════════════════════
-НАСЛЕДОВАНИЕ
+ДИНАМИЧЕСКИЕ ПОЛЯ (extra="allow")
 ═══════════════════════════════════════════════════════════════════════════════
 
-BaseState наследует ``ReadableMixin``, что обеспечивает:
-
-- Dict-подобный доступ на чтение: ``state["key"]``, ``state.get("key")``.
-- Навигацию по вложенным объектам: ``state.resolve("nested.field")``.
-- Итерацию: ``state.keys()``, ``state.values()``, ``state.items()``.
-- Проверку наличия: ``"key" in state``.
+В отличие от BaseParams и BaseResult, BaseState не имеет заранее
+объявленных полей. Поля определяются возвращаемыми dict аспектов
+и могут быть произвольными. Pydantic с extra="allow" принимает любые
+ключи при создании экземпляра через kwargs.
 
 ═══════════════════════════════════════════════════════════════════════════════
 КОНВЕЙЕР АСПЕКТОВ — КАК STATE ИСПОЛЬЗУЕТСЯ МАШИНОЙ
 ═══════════════════════════════════════════════════════════════════════════════
 
-    1. Машина создаёт пустой state: ``state = BaseState()``.
+    1. Машина создаёт пустой state: state = BaseState()
     2. Для каждого regular-аспекта:
        a. Вызывает аспект, передавая текущий frozen state.
-       b. Аспект возвращает dict с новыми полями.
+       b. Аспект работает с локальным dict, возвращает dict с новыми полями.
        c. Машина проверяет dict чекерами.
-       d. Машина создаёт новый state: ``BaseState({**state.to_dict(), **new_dict})``.
+       d. Машина создаёт новый state: BaseState(**{**state.to_dict(), **new_dict})
     3. Summary-аспект получает финальный frozen state и формирует Result.
 
 На каждом шаге state — новый объект. Предыдущий state не модифицируется.
 
 ═══════════════════════════════════════════════════════════════════════════════
+СЕРИАЛИЗАЦИЯ
+═══════════════════════════════════════════════════════════════════════════════
+
+Метод to_dict() возвращает словарь всех полей через model_dump().
+Используется машиной для мержа с результатом аспекта, для передачи
+в плагины (PluginEvent.state_aspect) и в логгеры.
+
+═══════════════════════════════════════════════════════════════════════════════
 ОТЛИЧИЕ ОТ BaseParams И BaseResult
 ═══════════════════════════════════════════════════════════════════════════════
 
-    BaseParams  — pydantic BaseModel, frozen=True. Входные параметры действия.
-    BaseResult  — pydantic BaseModel, frozen=True. Результат действия.
-    BaseState   — обычный класс (не pydantic), frozen. Промежуточное состояние
-                  конвейера. Не pydantic, потому что поля динамические —
-                  определяются возвращаемыми dict аспектов, а не схемой класса.
+    BaseParams  — frozen, extra="forbid". Входные параметры. Строгая структура.
+    BaseState   — frozen, extra="allow".  Промежуточное состояние. Динамические поля.
+    BaseResult  — frozen, extra="forbid". Результат действия. Строгая структура.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ПРИМЕР ИСПОЛЬЗОВАНИЯ
 ═══════════════════════════════════════════════════════════════════════════════
 
-    # Создание с начальными данными
-    state = BaseState({"total": 1500, "user": "agent"})
+    # Создание с начальными данными (kwargs)
+    state = BaseState(total=1500, user="agent")
 
-    # Чтение
+    # Чтение — dict-стиль (унаследовано от BaseSchema)
     state["total"]            # → 1500
     state.get("user")         # → "agent"
     state.resolve("user")     # → "agent"
-    state.to_dict()           # → {"total": 1500, "user": "agent"}
 
-    # Запись запрещена
-    state["count"] = 42       # → AttributeError
-    state.processed = True    # → AttributeError
-    del state["total"]        # → AttributeError
+    # Сериализация
+    state.to_dict()           # → {"total": 1500, "user": "agent"}
+    state.model_dump()        # → {"total": 1500, "user": "agent"}
+
+    # Запись запрещена (frozen)
+    state.total = 42          # → ValidationError
+    state["count"] = 42       # → TypeError
 
     # «Изменение» — создание нового экземпляра
-    new_state = BaseState({**state.to_dict(), "count": 42})
+    new_state = BaseState(**{**state.to_dict(), "count": 42})
     new_state["count"]        # → 42
     new_state["total"]        # → 1500 (унаследовано)
+
+    # Пустое состояние
+    empty = BaseState()
+    empty.to_dict()           # → {}
+
+    # Использование в аспекте
+    @regular_aspect("Обработка платежа")
+    async def process_payment_aspect(self, params, state, box, connections):
+        # state — frozen BaseState, только чтение
+        # Аспект работает с локальным dict и возвращает его
+        txn_id = await payment.charge(params.amount)
+        return {"txn_id": txn_id, "charged": True}
 """
 
-from typing import Any
+from pydantic import ConfigDict
 
-from .readable_mixin import ReadableMixin
+from action_machine.core.base_schema import BaseSchema
 
 
-class BaseState(ReadableMixin):
+class BaseState(BaseSchema):
     """
-    Frozen-состояние конвейера аспектов.
+    Frozen-состояние конвейера аспектов с динамическими полями.
 
-    Инициализируется из словаря. Все ключи становятся атрибутами.
-    После создания запись и удаление атрибутов запрещены.
+    Создаётся машиной из dict, возвращённого аспектом, через kwargs.
+    После создания — полностью иммутабелен.
 
-    Поддерживает dict-подобный доступ на чтение через ReadableMixin:
-    ``state["key"]``, ``state.get("key")``, ``state.keys()``,
-    ``state.resolve("nested.path")``.
+    extra="allow" — принимает произвольные поля при создании.
+    frozen=True — запрещает любые мутации после создания.
+
+    Наследует dict-подобный доступ и dot-path навигацию от BaseSchema.
     """
 
-    # Флаг, разрешающий запись только во время __init__.
-    # Создаётся через type.__setattr__ на уровне класса,
-    # поэтому не попадает под проверку экземплярного __setattr__.
-    _initializing: bool = False
+    model_config = ConfigDict(frozen=True, extra="allow")
 
-    def __init__(self, initial: dict[str, Any] | None = None) -> None:
+    def to_dict(self) -> dict[str, object]:
         """
-        Инициализирует frozen-состояние.
-
-        Каждая пара (ключ, значение) из словаря записывается как атрибут
-        через ``object.__setattr__``, минуя переопределённый ``__setattr__``.
-        После завершения ``__init__`` любая запись запрещена.
-
-        Аргументы:
-            initial: начальные значения. Ключи становятся атрибутами.
-                     None или пустой словарь — пустое состояние.
-
-        Пример:
-            >>> state = BaseState({"total": 1500})
-            >>> state.total
-            1500
-            >>> state = BaseState()
-            >>> state.to_dict()
-            {}
-        """
-        if initial:
-            for key, value in initial.items():
-                object.__setattr__(self, key, value)
-
-    def __setattr__(self, name: str, value: Any) -> None:
-        """
-        Запрещает запись атрибутов. BaseState полностью frozen после создания.
-
-        Исключения:
-            AttributeError: всегда.
-        """
-        raise AttributeError(
-            f"BaseState является frozen-объектом. "
-            f"Запись атрибута '{name}' запрещена. "
-            f"Создайте новый BaseState с нужными данными: "
-            f"BaseState({{**state.to_dict(), '{name}': value}})."
-        )
-
-    def __delattr__(self, name: str) -> None:
-        """
-        Запрещает удаление атрибутов. BaseState полностью frozen после создания.
-
-        Исключения:
-            AttributeError: всегда.
-        """
-        raise AttributeError(
-            f"BaseState является frozen-объектом. "
-            f"Удаление атрибута '{name}' запрещено."
-        )
-
-    def to_dict(self) -> dict[str, Any]:
-        """
-        Возвращает словарь всех публичных атрибутов состояния.
+        Возвращает словарь всех полей состояния.
 
         Используется машиной для создания нового BaseState при мерже
-        с результатом аспекта, а также для передачи в плагины
-        (PluginEvent.state_aspect) и логгеры.
-
-        Фильтрует приватные атрибуты (начинающиеся с '_').
+        с результатом аспекта, для передачи в плагины
+        (PluginEvent.state_aspect) и в логгеры.
 
         Возвращает:
-            dict[str, Any] — словарь {ключ: значение} публичных полей.
+            dict[str, object] — словарь {ключ: значение} всех полей.
 
         Пример:
-            >>> state = BaseState({"a": 1, "b": 2})
+            >>> state = BaseState(total=1500, user="agent")
             >>> state.to_dict()
-            {'a': 1, 'b': 2}
+            {"total": 1500, "user": "agent"}
         """
-        return {k: v for k, v in vars(self).items() if not k.startswith("_")}
+        return self.model_dump()
 
     def __repr__(self) -> str:
         """
         Человекочитаемое представление для отладки.
 
-        Формат: ``BaseState(key1=value1, key2=value2, ...)``.
+        Формат: BaseState(key1=value1, key2=value2, ...)
 
         Возвращает:
             str — строковое представление объекта.
 
         Пример:
-            >>> state = BaseState({"total": 1500})
+            >>> state = BaseState(total=1500)
             >>> repr(state)
             "BaseState(total=1500)"
         """
-        fields: dict[str, Any] = self.to_dict()
-        pairs: str = ", ".join(f"{k}={v!r}" for k, v in fields.items())
+        fields = self.to_dict()
+        pairs = ", ".join(f"{k}={v!r}" for k, v in fields.items())
         return f"{type(self).__name__}({pairs})"

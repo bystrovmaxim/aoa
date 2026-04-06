@@ -7,91 +7,65 @@ BaseResult — frozen-результат выполнения действия.
 ═══════════════════════════════════════════════════════════════════════════════
 
 BaseResult — базовый класс для всех результатов действий в системе
-ActionMachine. Наследует pydantic BaseModel для валидации типов,
-описания полей и генерации JSON Schema.
+ActionMachine. Определяет структуру выходных данных, которые формируются
+summary-аспектом и возвращаются вызывающему коду после завершения действия.
 
 Результат полностью неизменяем после создания (frozen=True). Summary-аспект
 создаёт экземпляр Result с конкретными полями, обработчик @on_error
 создаёт альтернативный экземпляр. После создания — никаких мутаций.
 
 ═══════════════════════════════════════════════════════════════════════════════
+ИЕРАРХИЯ
+═══════════════════════════════════════════════════════════════════════════════
+
+    BaseSchema(BaseModel)
+        └── BaseResult (frozen=True, extra="forbid")
+
+═══════════════════════════════════════════════════════════════════════════════
 FROZEN-СЕМАНТИКА
 ═══════════════════════════════════════════════════════════════════════════════
 
-Pydantic с ``frozen=True`` запрещает любую запись после создания:
+Pydantic с frozen=True запрещает любую запись после создания:
 
     result = OrderResult(order_id="ORD-1", status="created", total=1500.0)
     result.status = "paid"        # → ValidationError
-    result["status"] = "paid"     # → TypeError (нет __setitem__)
 
 Единственный способ «изменить» результат — создать новый экземпляр:
 
     updated = result.model_copy(update={"status": "paid"})
-
-Или через конструктор:
-
-    new_result = OrderResult(order_id=result.order_id, status="paid", total=result.total)
 
 ═══════════════════════════════════════════════════════════════════════════════
 СТРОГАЯ СТРУКТУРА (extra="forbid")
 ═══════════════════════════════════════════════════════════════════════════════
 
 Результат содержит ровно те поля, которые объявлены в конкретном
-наследнике. Произвольные поля запрещены — установлен ``extra="forbid"``.
-Это обеспечивает:
+наследнике. Произвольные поля запрещены. Это обеспечивает:
 
 - Предсказуемость: результат имеет фиксированную структуру, известную
   на этапе определения класса.
 - Типобезопасность: mypy и IDE видят все поля, автодополняют,
   проверяют типы.
-- Защита от разрастания: нельзя дописать ``result["debug"] = "info"``
-  в рантайме. Если нужно дополнительное поле — объявляй в классе.
-
-Если конкретному Result требуется произвольная типизация поля,
-используйте ``dict`` или ``Any`` в объявлении:
-
-    class DebugResult(BaseResult):
-        order_id: str = Field(description="ID заказа")
-        debug_data: dict[str, Any] = Field(default_factory=dict, description="Отладочные данные")
+- Защита от разрастания: нельзя дописать произвольное поле в рантайме.
+  Если нужно дополнительное поле — объяви в классе.
 
 ═══════════════════════════════════════════════════════════════════════════════
-PYDANTIC BASEMODEL
+ОПИСАНИЕ ПОЛЕЙ
 ═══════════════════════════════════════════════════════════════════════════════
 
-Наследование от pydantic BaseModel даёт:
+Каждое поле описывается через pydantic Field(description="...").
+Описание обязательно — MetadataBuilder проверяет при сборке метаданных
+через DescribedFieldsGateHost. Описания используются для генерации
+OpenAPI-документации (FastAPI), JSON Schema (MCP) и интроспекции.
+
+═══════════════════════════════════════════════════════════════════════════════
+PYDANTIC ВОЗМОЖНОСТИ
+═══════════════════════════════════════════════════════════════════════════════
 
 - Валидация типов при создании экземпляра.
-- Описание полей через ``Field(description="...")``.
-- Ограничения через ``Field(gt=0, min_length=3, pattern=...)``.
-- JSON Schema через ``model_json_schema()`` — для OpenAPI и MCP.
-- Сериализация через ``model_dump()`` — для FastAPI и MCP адаптеров.
-
-═══════════════════════════════════════════════════════════════════════════════
-СОВМЕСТИМОСТЬ С МИКСИНАМИ
-═══════════════════════════════════════════════════════════════════════════════
-
-ReadableMixin обеспечивает dict-подобный доступ на чтение:
-
-    result["order_id"]           # → "ORD-1"
-    result.get("status")         # → "created"
-    result.resolve("total")      # → 1500.0
-    result.keys()                # → ["order_id", "status", "total"]
-
-DescribedFieldsGateHost — маркерный миксин, обязывающий каждое поле
-иметь ``Field(description="...")``. MetadataBuilder проверяет это
-при сборке метаданных.
-
-═══════════════════════════════════════════════════════════════════════════════
-ОТЛИЧИЕ ОТ BaseParams И BaseState
-═══════════════════════════════════════════════════════════════════════════════
-
-    BaseParams  — pydantic BaseModel, frozen=True. Входные параметры.
-    BaseResult  — pydantic BaseModel, frozen=True. Результат действия.
-    BaseState   — обычный класс (не pydantic), frozen. Промежуточное
-                  состояние конвейера с динамическими полями.
-
-Все три типа — read-only после создания. Единственный способ «изменить»
-любой из них — создать новый экземпляр.
+- Ограничения через Field(ge=0, max_length=100).
+- Примеры через Field(examples=["created"]).
+- JSON Schema через model_json_schema() — для OpenAPI и MCP.
+- Сериализация через model_dump() — для FastAPI и MCP адаптеров.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ИСПОЛЬЗОВАНИЕ В КОНВЕЙЕРЕ
@@ -117,6 +91,17 @@ Summary-аспект создаёт Result:
 Адаптеры (FastAPI, MCP) сериализуют через model_dump().
 
 ═══════════════════════════════════════════════════════════════════════════════
+ОТЛИЧИЕ ОТ BaseParams И BaseState
+═══════════════════════════════════════════════════════════════════════════════
+
+    BaseParams  — frozen, extra="forbid". Входные параметры.
+    BaseState   — frozen, extra="allow".  Промежуточное состояние конвейера.
+    BaseResult  — frozen, extra="forbid". Результат действия.
+
+Params приходит снаружи и не меняется. State живёт внутри конвейера.
+Result формируется summary-аспектом и возвращается вызывающему коду.
+
+═══════════════════════════════════════════════════════════════════════════════
 ПРИМЕР ИСПОЛЬЗОВАНИЯ
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -125,19 +110,24 @@ Summary-аспект создаёт Result:
 
     class OrderResult(BaseResult):
         order_id: str = Field(description="ID созданного заказа")
-        status: str = Field(description="Статус заказа")
+        status: str = Field(description="Статус заказа", examples=["created"])
         total: float = Field(description="Итоговая сумма", ge=0)
 
     result = OrderResult(order_id="ORD-123", status="created", total=1500.0)
 
-    # Чтение через ReadableMixin:
+    # Чтение — dict-стиль (унаследовано от BaseSchema):
     result["status"]            # → "created"
     result.resolve("total")     # → 1500.0
     result.keys()               # → ["order_id", "status", "total"]
 
+    # Сериализация:
+    result.model_dump()         # → {"order_id": "ORD-123", "status": "created", "total": 1500.0}
+
     # Запись запрещена (frozen):
     result.status = "paid"      # → ValidationError
-    result["status"] = "paid"   # → TypeError
+
+    # Лишние поля запрещены (forbid):
+    OrderResult(order_id="x", status="y", total=0, unknown="z")  # → ValidationError
 
     # «Изменение» — создание нового экземпляра:
     updated = result.model_copy(update={"status": "paid"})
@@ -147,24 +137,24 @@ Summary-аспект создаёт Result:
     # {"properties": {"order_id": {"description": "ID созданного заказа", ...}, ...}}
 """
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import ConfigDict
 
+from action_machine.core.base_schema import BaseSchema
 from action_machine.core.described_fields_gate_host import DescribedFieldsGateHost
-from action_machine.core.readable_mixin import ReadableMixin
 
 
-class BaseResult(BaseModel, ReadableMixin, DescribedFieldsGateHost):
+class BaseResult(BaseSchema, DescribedFieldsGateHost):
     """
-    Frozen-результат действия (pydantic-based).
+    Frozen-результат действия (frozen, forbid).
 
-    Наследуйте этот класс для создания конкретных результатов.
-    Каждое поле описывается через pydantic ``Field(description="...")``.
-    Описание обязательно — MetadataBuilder проверяет при сборке.
+    Наследует dict-подобный доступ и dot-path навигацию от BaseSchema.
+    Наследует контроль обязательности описаний полей от DescribedFieldsGateHost.
 
-    Результат неизменяем после создания (frozen=True). Все поля должны быть
-    объявлены в классе-наследнике — произвольные поля запрещены (extra="forbid").
+    Запись в поля запрещена на уровне pydantic (frozen=True).
+    Произвольные поля запрещены (extra="forbid").
 
-    Пример:
+    Конкретные результаты создаются наследованием:
+
         class OrderResult(BaseResult):
             order_id: str = Field(description="ID заказа")
             total: float = Field(description="Итого", ge=0)

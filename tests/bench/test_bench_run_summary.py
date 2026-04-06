@@ -17,6 +17,7 @@ FullAction имеет два regular-аспекта:
 - calc_total_aspect → total (float, required, min_value=0.0)
 
 Summary build_result читает txn_id и total из state.
+Все core-типы (Params, Result, State) — неизменяемы.
 """
 
 from unittest.mock import AsyncMock
@@ -39,7 +40,6 @@ class TestCompleteState:
         build_result читает txn_id и total из state и формирует
         FullAction.Result с order_id, txn_id, total, status.
         """
-        # Arrange
         action = FullAction()
         params = FullAction.Params(user_id="u1", amount=300.0)
         state = {
@@ -47,13 +47,11 @@ class TestCompleteState:
             "total": 300.0,
         }
 
-        # Act
         result = await manager_bench.run_summary(
             action, params, state=state,
             rollup=False, connections={"db": mock_db},
         )
 
-        # Assert
         assert result.order_id == "ORD-u1"
         assert result.txn_id == "TXN-300"
         assert result.total == 300.0
@@ -72,11 +70,9 @@ class TestIncompleteState:
         содержит total от calc_total_aspect. Валидатор обнаруживает
         отсутствующее поле и указывает аспект-источник.
         """
-        # Arrange
         action = FullAction()
         params = FullAction.Params(user_id="u1", amount=100.0)
 
-        # Act & Assert
         with pytest.raises(StateValidationError, match="от аспекта 'calc_total_aspect'"):
             await manager_bench.run_summary(
                 action, params,
@@ -92,11 +88,9 @@ class TestIncompleteState:
         state не содержит txn_id от process_payment.
         Ошибка указывает на аспект process_payment.
         """
-        # Arrange
         action = FullAction()
         params = FullAction.Params(user_id="u1", amount=100.0)
 
-        # Act & Assert
         with pytest.raises(StateValidationError, match="txn_id"):
             await manager_bench.run_summary(
                 action, params,
@@ -116,11 +110,9 @@ class TestWrongTypeInState:
         total="строка" вместо float — чекер ResultFloatChecker
         отклоняет до выполнения summary.
         """
-        # Arrange
         action = FullAction()
         params = FullAction.Params(user_id="u1", amount=100.0)
 
-        # Act & Assert
         with pytest.raises(StateValidationError, match="total"):
             await manager_bench.run_summary(
                 action, params,
@@ -140,16 +132,13 @@ class TestSummaryOnlyAction:
         PingAction не имеет regular-аспектов — нечего валидировать.
         Пустой state допустим.
         """
-        # Arrange
         action = PingAction()
         params = PingAction.Params()
 
-        # Act
         result = await clean_bench.run_summary(
             action, params, state={}, rollup=False,
         )
 
-        # Assert
         assert result.message == "pong"
 
 
@@ -163,11 +152,9 @@ class TestRollupRequired:
         """
         Вызов run_summary() без rollup — TypeError.
         """
-        # Arrange
         action = PingAction()
         params = PingAction.Params()
 
-        # Act & Assert
         with pytest.raises(TypeError):
             await clean_bench.run_summary(  # type: ignore[call-arg]
                 action, params, state={},
