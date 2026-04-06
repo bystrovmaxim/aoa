@@ -1,52 +1,52 @@
 # tests/plugins/test_emit.py
 """
 Тесты отправки событий плагинам через PluginRunContext.emit_event().
-
 ═══════════════════════════════════════════════════════════════════════════════
 НАЗНАЧЕНИЕ
 ═══════════════════════════════════════════════════════════════════════════════
+Проверяет механизм доставки типизированных событий от машины к плагинам.
+Машина (ActionProductMachine) создаёт конкретные объекты событий из
+иерархии BasePluginEvent (GlobalStartEvent, GlobalFinishEvent,
+BeforeRegularAspectEvent и т.д.) в ключевых точках конвейера и передаёт
+их в plugin_ctx.emit_event(event) [1].
 
-Проверяет механизм доставки событий от машины к плагинам. Машина
-(ActionProductMachine) вызывает plugin_ctx.emit_event() в ключевых
-точках конвейера: global_start, before:{aspect}, after:{aspect},
-global_finish. PluginRunContext находит подписанные обработчики через
-plugin.get_handlers() и вызывает каждый с текущим состоянием и PluginEvent.
+PluginRunContext находит подписанные обработчики через plugin.get_handlers()
+(шаг 1: isinstance по event_class), проверяет остальные фильтры
+(шаги 2–7) и вызывает каждый обработчик с текущим состоянием
+и типизированным объектом события [1].
 
 ═══════════════════════════════════════════════════════════════════════════════
 ПОКРЫВАЕМЫЕ СЦЕНАРИИ
 ═══════════════════════════════════════════════════════════════════════════════
-
-- Обработчик вызывается при совпадении event_name с подпиской.
-- PluginEvent содержит корректные поля (event_name, action_name, nest_level).
+- Обработчик вызывается при совпадении event_class с подпиской.
+- Объект события содержит корректные поля (event_type, action_name,
+  nest_level, duration_ms).
 - Повторные вызовы emit_event() корректно накапливают данные в state.
-- Событие, не совпадающее с подпиской (другой event_type), не доставляется.
-- Событие, не совпадающее с action_filter, не доставляется.
+- Событие другого типа (GlobalStartEvent вместо GlobalFinishEvent)
+  не доставляется обработчику, подписанному на GlobalFinishEvent.
+- action_name_pattern корректно фильтрует по имени действия.
 - Пустой список плагинов — emit_event() завершается без ошибок.
 """
-
 import pytest
 
-from action_machine.context.context import Context
-from action_machine.core.base_params import BaseParams
-from action_machine.dependencies.dependency_factory import DependencyFactory
 from action_machine.plugins.plugin_coordinator import PluginCoordinator
-from tests.domain import PingAction
 
 from .conftest import (
     RecordingPlugin,
     SelectivePlugin,
     emit_global_finish,
+    emit_global_start,
 )
 
 
 class TestEmitEvent:
-    """Тесты доставки событий через PluginRunContext.emit_event()."""
+    """Тесты доставки типизированных событий через PluginRunContext.emit_event()."""
 
     @pytest.mark.anyio
     async def test_handler_called_on_matching_event(self):
         """
-        RecordingPlugin подписан на global_finish для ".*".
-        При отправке global_finish обработчик вызывается и записывает
+        RecordingPlugin подписан на GlobalFinishEvent.
+        При отправке GlobalFinishEvent обработчик вызывается и записывает
         событие в state["events"].
         """
         # Arrange — плагин, записывающий все события
@@ -54,32 +54,34 @@ class TestEmitEvent:
         coordinator = PluginCoordinator(plugins=[plugin])
         plugin_ctx = await coordinator.create_run_context()
 
-        # Act — отправляем global_finish
+        # Act — отправляем GlobalFinishEvent
         await emit_global_finish(plugin_ctx)
 
-        # Assert — одно событие записано
+        # Assert — одно событие записано с правильным типом
         state = plugin_ctx.get_plugin_state(plugin)
         assert len(state["events"]) == 1
-        assert state["events"][0]["event_name"] == "global_finish"
+        assert state["events"][0]["event_type"] == "GlobalFinishEvent"
 
     @pytest.mark.anyio
-    async def test_plugin_event_contains_correct_fields(self):
+    async def test_event_contains_correct_fields(self):
         """
-        PluginEvent, передаваемый в обработчик, содержит корректные
-        значения action_name и nest_level из аргументов emit_event().
+        Типизированный объект GlobalFinishEvent, передаваемый в обработчик,
+        содержит корректные значения action_name, nest_level и duration_ms
+        из аргументов конструктора события.
         """
         # Arrange — плагин, записывающий поля события
         plugin = RecordingPlugin()
         coordinator = PluginCoordinator(plugins=[plugin])
         plugin_ctx = await coordinator.create_run_context()
 
-        # Act — отправляем событие с nest_level=3
-        await emit_global_finish(plugin_ctx, nest_level=3)
+        # Act — отправляем событие с nest_level=3 и duration_ms=42.5
+        await emit_global_finish(plugin_ctx, nest_level=3, duration_ms=42.5)
 
         # Assert — поля события корректны
         state = plugin_ctx.get_plugin_state(plugin)
         event_record = state["events"][0]
         assert event_record["nest_level"] == 3
+        assert event_record["duration_ms"] == 42.5
         assert "PingAction" in event_record["action_name"]
 
     @pytest.mark.anyio
@@ -106,54 +108,67 @@ class TestEmitEvent:
     @pytest.mark.anyio
     async def test_wrong_event_type_not_delivered(self):
         """
-        SelectivePlugin подписан на global_finish. Отправка global_start
-        не доставляется этому плагину — state["count"] остаётся 0.
+        SelectivePlugin подписан на GlobalFinishEvent с action_name_pattern.
+        Отправка GlobalStartEvent не доставляется — isinstance(event,
+        GlobalFinishEvent) возвращает False на шаге 1 цепочки фильтров.
+        state["order_events"] остаётся пустым.
         """
-        # Arrange — плагин, реагирующий только на global_finish для PingAction
+        # Arrange — плагин, реагирующий только на GlobalFinishEvent
         plugin = SelectivePlugin()
         coordinator = PluginCoordinator(plugins=[plugin])
         plugin_ctx = await coordinator.create_run_context()
 
-        # Act — отправляем global_start (плагин подписан на global_finish)
-        await plugin_ctx.emit_event(
-            event_name="global_start",
-            action=PingAction(),
-            params=BaseParams(),
-            state_aspect=None,
-            is_summary=False,
-            result=None,
-            duration=None,
-            factory=DependencyFactory(()),
-            context=Context(),
-            nest_level=0,
-        )
+        # Act — отправляем GlobalStartEvent (плагин подписан на GlobalFinishEvent)
+        await emit_global_start(plugin_ctx)
 
-        # Assert — обработчик не вызван
+        # Assert — обработчик не вызван (event_class не совпадает)
         state = plugin_ctx.get_plugin_state(plugin)
-        assert state["count"] == 0
+        assert state["order_events"] == []
 
     @pytest.mark.anyio
-    async def test_action_filter_blocks_non_matching_action(self):
+    async def test_action_name_pattern_filters_matching_action(self):
         """
-        SelectivePlugin подписан на global_finish с фильтром ".*PingAction$".
-        Событие global_finish существует, но action_name другого действия
-        не проходит фильтр — обработчик не вызывается.
-
-        Для проверки создаём действие с именем, не содержащим "PingAction".
-        Используем PingAction, но отправляем событие с другим event_name,
-        чтобы показать, что фильтрация работает по action_name.
+        SelectivePlugin подписан на GlobalFinishEvent с
+        action_name_pattern=".*Order.*". Событие с action_name
+        содержащим "Order" доставляется обработчику.
         """
-        # Arrange — плагин с фильтром ".*PingAction$"
+        # Arrange — плагин с фильтром ".*Order.*"
         plugin = SelectivePlugin()
         coordinator = PluginCoordinator(plugins=[plugin])
         plugin_ctx = await coordinator.create_run_context()
 
-        # Act — отправляем global_finish для PingAction (совпадает с фильтром)
-        await emit_global_finish(plugin_ctx)
+        # Act — отправляем GlobalFinishEvent с "Order" в action_name
+        await emit_global_finish(
+            plugin_ctx,
+            action_name="app.actions.CreateOrderAction",
+        )
 
-        # Assert — обработчик вызван (PingAction совпадает с ".*PingAction$")
+        # Assert — обработчик вызван (action_name совпадает с паттерном)
         state = plugin_ctx.get_plugin_state(plugin)
-        assert state["count"] == 1
+        assert len(state["order_events"]) == 1
+        assert state["order_events"][0] == "app.actions.CreateOrderAction"
+
+    @pytest.mark.anyio
+    async def test_action_name_pattern_blocks_non_matching_action(self):
+        """
+        SelectivePlugin подписан на GlobalFinishEvent с
+        action_name_pattern=".*Order.*". Событие с action_name
+        НЕ содержащим "Order" не доставляется обработчику.
+        """
+        # Arrange — плагин с фильтром ".*Order.*"
+        plugin = SelectivePlugin()
+        coordinator = PluginCoordinator(plugins=[plugin])
+        plugin_ctx = await coordinator.create_run_context()
+
+        # Act — отправляем GlobalFinishEvent без "Order" в action_name
+        await emit_global_finish(
+            plugin_ctx,
+            action_name="app.actions.PingAction",
+        )
+
+        # Assert — обработчик не вызван (action_name не совпадает)
+        state = plugin_ctx.get_plugin_state(plugin)
+        assert state["order_events"] == []
 
     @pytest.mark.anyio
     async def test_empty_plugins_list_no_error(self):

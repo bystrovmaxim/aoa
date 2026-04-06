@@ -245,7 +245,7 @@ class DotPathNavigator:
         Возвращает:
             Значение сегмента или _SENTINEL если сегмент не найден.
         """
-        global _BaseSchemaType  # noqa: PLW0603
+        global _BaseSchemaType
         if _BaseSchemaType is None:
             from action_machine.core.base_schema import BaseSchema
             _BaseSchemaType = BaseSchema

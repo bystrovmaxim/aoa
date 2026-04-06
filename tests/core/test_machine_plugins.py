@@ -1,61 +1,55 @@
 # tests/core/test_machine_plugins.py
 """
 Тесты событий плагинов в ActionProductMachine.
-
 ═══════════════════════════════════════════════════════════════════════════════
 НАЗНАЧЕНИЕ
 ═══════════════════════════════════════════════════════════════════════════════
-
-ActionProductMachine эмитирует события плагинам на каждом этапе конвейера
-через PluginRunContext.emit_event(). Плагины подписываются на события
-через @on и получают PluginEvent с данными о действии, параметрах,
-состоянии, результате и длительности.
+ActionProductMachine эмитирует типизированные события плагинам на каждом
+этапе конвейера через PluginRunContext.emit_event(event, **kwargs) [1].
+Машина создаёт конкретные объекты событий из иерархии BasePluginEvent
+и передаёт их как первый позиционный аргумент в emit_event().
 
 Жизненный цикл событий для действия с N regular-аспектами:
 
-    global_start           → 1 событие (перед конвейером)
-    before:{aspect_1}      → 1 событие
-    after:{aspect_1}       → 1 событие
-    ...
-    before:{aspect_N}      → 1 событие
-    after:{aspect_N}       → 1 событие
-    global_finish          → 1 событие (после summary)
+    GlobalStartEvent              → 1 событие (перед конвейером)
+    BeforeRegularAspectEvent      → N событий
+    AfterRegularAspectEvent       → N событий
+    BeforeSummaryAspectEvent      → 1 событие
+    AfterSummaryAspectEvent       → 1 событие
+    GlobalFinishEvent             → 1 событие (после summary)
     ─────────────────────────────────
-    Итого: 2 + 2*N событий
+    Итого: 4 + 2*N событий
 
-Для PingAction (0 regular, 1 summary): 2 события (global_start + global_finish).
-Для SimpleAction (1 regular, 1 summary): 4 события.
-Для FullAction (2 regular, 1 summary): 6 событий.
+Для PingAction (0 regular, 1 summary): 4 события.
+Для SimpleAction (1 regular, 1 summary): 6 событий.
+Для FullAction (2 regular, 1 summary): 8 событий.
 
-Машина передаёт в emit_event() дополнительные kwargs:
+Дополнительные kwargs передаются в emit_event():
 - log_coordinator — координатор логирования для создания ScopedLogger.
 - machine_name — имя класса машины (для scope плагина).
 - mode — режим выполнения (для scope плагина).
+- coordinator — GateCoordinator для фильтра domain.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ПОКРЫВАЕМЫЕ СЦЕНАРИИ
 ═══════════════════════════════════════════════════════════════════════════════
-
 Количество событий:
-    - PingAction (0 regular) → 2 события.
-    - SimpleAction (1 regular) → 4 события.
-    - FullAction (2 regular) → 6 событий.
-
-Имена событий:
-    - global_start первым, global_finish последним.
-    - before/after для каждого regular-аспекта в порядке объявления.
-
+    - PingAction (0 regular) → 4 события.
+    - SimpleAction (1 regular) → 6 событий.
+    - FullAction (2 regular) → 8 событий.
+Типы событий и порядок:
+    - GlobalStartEvent первым, GlobalFinishEvent последним.
+    - BeforeRegularAspectEvent/AfterRegularAspectEvent для каждого regular.
+    - BeforeSummaryAspectEvent/AfterSummaryAspectEvent для summary.
 Данные в emit_event:
-    - log_coordinator передаётся в каждый emit_event.
-    - machine_name и mode передаются в каждый emit_event.
-    - action и params передаются в каждый emit_event.
-    - nest_level передаётся в каждый emit_event.
-
+    - Первый позиционный аргумент — объект события из иерархии BasePluginEvent.
+    - log_coordinator, machine_name, mode, coordinator в kwargs.
+    - Поля события: action_class, action_name, nest_level, params, context.
+    - GlobalFinishEvent содержит result и duration_ms.
 Изоляция между запросами:
     - Каждый run() создаёт свой PluginRunContext.
     - Состояния плагинов одного run() не влияют на другой.
 """
-
 from unittest.mock import AsyncMock
 
 import pytest
@@ -64,6 +58,15 @@ from action_machine.context.context import Context
 from action_machine.context.user_info import UserInfo
 from action_machine.core.action_product_machine import ActionProductMachine
 from action_machine.logging.log_coordinator import LogCoordinator
+from action_machine.plugins.events import (
+    AfterRegularAspectEvent,
+    AfterSummaryAspectEvent,
+    BasePluginEvent,
+    BeforeRegularAspectEvent,
+    BeforeSummaryAspectEvent,
+    GlobalFinishEvent,
+    GlobalStartEvent,
+)
 from action_machine.plugins.plugin_coordinator import PluginCoordinator
 from action_machine.plugins.plugin_run_context import PluginRunContext
 from tests.domain import (
@@ -76,9 +79,34 @@ from tests.domain import (
 )
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Фикстуры
+# Хелпер для извлечения типов событий из mock-вызовов
 # ═════════════════════════════════════════════════════════════════════════════
 
+def _extract_event_types(mock_plugin_ctx: AsyncMock) -> list[str]:
+    """
+    Извлекает имена классов событий из записанных вызовов emit_event().
+
+    Машина передаёт объект события как первый позиционный аргумент:
+        await plugin_ctx.emit_event(GlobalStartEvent(...), **kwargs)
+
+    Возвращает список строк: ["GlobalStartEvent", "BeforeRegularAspectEvent", ...].
+    """
+    event_types = []
+    for call in mock_plugin_ctx.emit_event.call_args_list:
+        event = call.args[0] if call.args else None
+        if event is not None:
+            event_types.append(type(event).__name__)
+    return event_types
+
+
+def _extract_event(mock_plugin_ctx: AsyncMock, index: int) -> BasePluginEvent:
+    """Извлекает объект события из записанного вызова emit_event() по индексу."""
+    return mock_plugin_ctx.emit_event.call_args_list[index].args[0]
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# Фикстуры
+# ═════════════════════════════════════════════════════════════════════════════
 
 @pytest.fixture()
 def log_coordinator() -> LogCoordinator:
@@ -90,7 +118,6 @@ def log_coordinator() -> LogCoordinator:
 def mock_plugin_ctx() -> AsyncMock:
     """
     Мок PluginRunContext для отслеживания вызовов emit_event().
-
     Все вызовы emit_event записываются в call_args_list.
     """
     return AsyncMock(spec=PluginRunContext)
@@ -112,7 +139,6 @@ def machine_with_mock_plugins(log_coordinator, mock_plugin_ctx) -> ActionProduct
         log_coordinator=log_coordinator,
     )
     machine._plugin_coordinator = mock_coordinator
-
     return machine
 
 
@@ -126,19 +152,24 @@ def context() -> Context:
 # Количество событий
 # ═════════════════════════════════════════════════════════════════════════════
 
-
 class TestEventCount:
-    """Количество emit_event вызовов зависит от числа regular-аспектов."""
+    """
+    Количество emit_event вызовов зависит от числа regular-аспектов.
+
+    Формула: 4 + 2*N, где N — число regular-аспектов.
+    4 = GlobalStartEvent + BeforeSummaryAspectEvent +
+        AfterSummaryAspectEvent + GlobalFinishEvent.
+    2*N = BeforeRegularAspectEvent + AfterRegularAspectEvent для каждого regular.
+    """
 
     @pytest.mark.asyncio
-    async def test_ping_action_emits_two_events(
+    async def test_ping_action_emits_four_events(
         self, machine_with_mock_plugins, mock_plugin_ctx, context,
     ) -> None:
         """
-        PingAction (0 regular, 1 summary) → 2 события: global_start + global_finish.
-
-        PingAction содержит только summary-аспект. Нет regular-аспектов →
-        нет before/after событий. Только обрамляющие global_start и global_finish.
+        PingAction (0 regular, 1 summary) → 4 события:
+        GlobalStartEvent, BeforeSummaryAspectEvent,
+        AfterSummaryAspectEvent, GlobalFinishEvent.
         """
         # Arrange — PingAction без regular-аспектов
         action = PingAction()
@@ -147,18 +178,18 @@ class TestEventCount:
         # Act — полный конвейер
         await machine_with_mock_plugins.run(context, action, params)
 
-        # Assert — ровно 2 события
-        assert mock_plugin_ctx.emit_event.await_count == 2
+        # Assert — ровно 4 события
+        assert mock_plugin_ctx.emit_event.await_count == 4
 
     @pytest.mark.asyncio
-    async def test_simple_action_emits_four_events(
+    async def test_simple_action_emits_six_events(
         self, machine_with_mock_plugins, mock_plugin_ctx, context,
     ) -> None:
         """
-        SimpleAction (1 regular, 1 summary) → 4 события:
-        global_start, before:validate_name_aspect, after:validate_name_aspect, global_finish.
-
-        Формула: 2 + 2*N, где N=1 → 4.
+        SimpleAction (1 regular, 1 summary) → 6 событий:
+        GlobalStartEvent, BeforeRegularAspectEvent, AfterRegularAspectEvent,
+        BeforeSummaryAspectEvent, AfterSummaryAspectEvent, GlobalFinishEvent.
+        Формула: 4 + 2*1 = 6.
         """
         # Arrange — SimpleAction с одним regular-аспектом
         action = SimpleAction()
@@ -167,19 +198,20 @@ class TestEventCount:
         # Act
         await machine_with_mock_plugins.run(context, action, params)
 
-        # Assert — 4 события
-        assert mock_plugin_ctx.emit_event.await_count == 4
+        # Assert — 6 событий
+        assert mock_plugin_ctx.emit_event.await_count == 6
 
     @pytest.mark.asyncio
-    async def test_full_action_emits_six_events(
+    async def test_full_action_emits_eight_events(
         self, machine_with_mock_plugins, mock_plugin_ctx, context,
     ) -> None:
         """
-        FullAction (2 regular, 1 summary) → 6 событий:
-        global_start, before:process_payment_aspect, after:process_payment_aspect,
-        before:calc_total_aspect, after:calc_total_aspect, global_finish.
-
-        Формула: 2 + 2*N, где N=2 → 6.
+        FullAction (2 regular, 1 summary) → 8 событий:
+        GlobalStartEvent,
+        BeforeRegularAspectEvent, AfterRegularAspectEvent (×2),
+        BeforeSummaryAspectEvent, AfterSummaryAspectEvent,
+        GlobalFinishEvent.
+        Формула: 4 + 2*2 = 8.
         """
         # Arrange — FullAction с моками зависимостей и connections
         mock_payment = AsyncMock(spec=PaymentService)
@@ -201,24 +233,23 @@ class TestEventCount:
             rollup=False,
         )
 
-        # Assert — 6 событий
-        assert mock_plugin_ctx.emit_event.await_count == 6
+        # Assert — 8 событий
+        assert mock_plugin_ctx.emit_event.await_count == 8
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Имена событий и порядок
+# Типы событий и порядок
 # ═════════════════════════════════════════════════════════════════════════════
 
-
-class TestEventNames:
-    """Имена событий и их порядок."""
+class TestEventTypes:
+    """Типы событий и их порядок."""
 
     @pytest.mark.asyncio
-    async def test_ping_event_names(
+    async def test_ping_event_types(
         self, machine_with_mock_plugins, mock_plugin_ctx, context,
     ) -> None:
         """
-        PingAction: первое событие — global_start, последнее — global_finish.
+        PingAction: GlobalStartEvent первый, GlobalFinishEvent последний.
         """
         # Arrange
         action = PingAction()
@@ -227,21 +258,21 @@ class TestEventNames:
         # Act
         await machine_with_mock_plugins.run(context, action, params)
 
-        # Assert — извлекаем event_name из каждого вызова emit_event
-        calls = mock_plugin_ctx.emit_event.call_args_list
-        event_names = [call.kwargs["event_name"] for call in calls]
+        # Assert — извлекаем типы событий из каждого вызова emit_event
+        event_types = _extract_event_types(mock_plugin_ctx)
 
-        # Assert — global_start первый, global_finish последний
-        assert event_names[0] == "global_start"
-        assert event_names[-1] == "global_finish"
+        # Assert — GlobalStartEvent первый, GlobalFinishEvent последний
+        assert event_types[0] == "GlobalStartEvent"
+        assert event_types[-1] == "GlobalFinishEvent"
 
     @pytest.mark.asyncio
     async def test_simple_action_event_order(
         self, machine_with_mock_plugins, mock_plugin_ctx, context,
     ) -> None:
         """
-        SimpleAction: global_start → before:validate_name_aspect →
-        after:validate_name_aspect → global_finish.
+        SimpleAction: GlobalStartEvent → BeforeRegularAspectEvent →
+        AfterRegularAspectEvent → BeforeSummaryAspectEvent →
+        AfterSummaryAspectEvent → GlobalFinishEvent.
         """
         # Arrange
         action = SimpleAction()
@@ -250,15 +281,15 @@ class TestEventNames:
         # Act
         await machine_with_mock_plugins.run(context, action, params)
 
-        # Assert — порядок событий
-        calls = mock_plugin_ctx.emit_event.call_args_list
-        event_names = [call.kwargs["event_name"] for call in calls]
-
-        assert event_names == [
-            "global_start",
-            "before:validate_name_aspect",
-            "after:validate_name_aspect",
-            "global_finish",
+        # Assert — порядок типов событий
+        event_types = _extract_event_types(mock_plugin_ctx)
+        assert event_types == [
+            "GlobalStartEvent",
+            "BeforeRegularAspectEvent",
+            "AfterRegularAspectEvent",
+            "BeforeSummaryAspectEvent",
+            "AfterSummaryAspectEvent",
+            "GlobalFinishEvent",
         ]
 
     @pytest.mark.asyncio
@@ -266,11 +297,9 @@ class TestEventNames:
         self, machine_with_mock_plugins, mock_plugin_ctx, context,
     ) -> None:
         """
-        FullAction: global_start → before/after process_payment_aspect →
-        before/after calc_total_aspect → global_finish.
-
-        Порядок before/after соответствует порядку объявления
-        regular-аспектов в классе.
+        FullAction: GlobalStartEvent → before/after process_payment_aspect →
+        before/after calc_total_aspect → before/after summary →
+        GlobalFinishEvent.
         """
         # Arrange
         mock_payment = AsyncMock(spec=PaymentService)
@@ -292,24 +321,45 @@ class TestEventNames:
             rollup=False,
         )
 
-        # Assert — порядок шести событий
-        calls = mock_plugin_ctx.emit_event.call_args_list
-        event_names = [call.kwargs["event_name"] for call in calls]
-
-        assert event_names == [
-            "global_start",
-            "before:process_payment_aspect",
-            "after:process_payment_aspect",
-            "before:calc_total_aspect",
-            "after:calc_total_aspect",
-            "global_finish",
+        # Assert — порядок восьми типов событий
+        event_types = _extract_event_types(mock_plugin_ctx)
+        assert event_types == [
+            "GlobalStartEvent",
+            "BeforeRegularAspectEvent",
+            "AfterRegularAspectEvent",
+            "BeforeRegularAspectEvent",
+            "AfterRegularAspectEvent",
+            "BeforeSummaryAspectEvent",
+            "AfterSummaryAspectEvent",
+            "GlobalFinishEvent",
         ]
+
+    @pytest.mark.asyncio
+    async def test_events_are_correct_isinstance(
+        self, machine_with_mock_plugins, mock_plugin_ctx, context,
+    ) -> None:
+        """
+        Каждый объект события является экземпляром соответствующего класса
+        из иерархии BasePluginEvent [1].
+        """
+        # Arrange
+        action = PingAction()
+        params = PingAction.Params()
+
+        # Act
+        await machine_with_mock_plugins.run(context, action, params)
+
+        # Assert — проверяем isinstance для каждого события
+        calls = mock_plugin_ctx.emit_event.call_args_list
+        assert isinstance(calls[0].args[0], GlobalStartEvent)
+        assert isinstance(calls[1].args[0], BeforeSummaryAspectEvent)
+        assert isinstance(calls[2].args[0], AfterSummaryAspectEvent)
+        assert isinstance(calls[3].args[0], GlobalFinishEvent)
 
 
 # ═════════════════════════════════════════════════════════════════════════════
 # Данные в emit_event
 # ═════════════════════════════════════════════════════════════════════════════
-
 
 class TestEventData:
     """Данные, передаваемые в каждый emit_event."""
@@ -319,11 +369,7 @@ class TestEventData:
         self, machine_with_mock_plugins, mock_plugin_ctx, context, log_coordinator,
     ) -> None:
         """
-        log_coordinator передаётся в каждый emit_event.
-
-        PluginRunContext использует log_coordinator для создания
-        ScopedLogger обработчикам плагинов. Без него log=None
-        в обработчике, и любой вызов log.info() упадёт.
+        log_coordinator передаётся в каждый emit_event через kwargs.
         """
         # Arrange
         action = PingAction()
@@ -342,11 +388,7 @@ class TestEventData:
         self, machine_with_mock_plugins, mock_plugin_ctx, context,
     ) -> None:
         """
-        machine_name и mode передаются в каждый emit_event.
-
-        Используются PluginRunContext для создания ScopedLogger с scope:
-        LogScope(machine=machine_name, mode=mode, plugin=..., action=...,
-        event=..., nest_level=...).
+        machine_name и mode передаются в каждый emit_event через kwargs.
         """
         # Arrange
         action = PingAction()
@@ -355,21 +397,38 @@ class TestEventData:
         # Act
         await machine_with_mock_plugins.run(context, action, params)
 
-        # Assert — machine_name и mode в первом вызове
-        first_call = mock_plugin_ctx.emit_event.call_args_list[0]
-        assert first_call.kwargs["machine_name"] == "ActionProductMachine"
-        assert first_call.kwargs["mode"] == "test"
+        # Assert — machine_name и mode в каждом вызове
+        for call in mock_plugin_ctx.emit_event.call_args_list:
+            assert call.kwargs["machine_name"] == "ActionProductMachine"
+            assert call.kwargs["mode"] == "test"
 
     @pytest.mark.asyncio
-    async def test_action_and_params_passed(
+    async def test_coordinator_passed(
         self, machine_with_mock_plugins, mock_plugin_ctx, context,
     ) -> None:
         """
-        action и params передаются в каждый emit_event.
+        coordinator (GateCoordinator) передаётся в каждый emit_event
+        через kwargs для поддержки фильтра domain [1].
+        """
+        # Arrange
+        action = PingAction()
+        params = PingAction.Params()
 
-        Плагины используют action для получения имени класса
-        (action.get_full_class_name()) и params для чтения
-        входных параметров.
+        # Act
+        await machine_with_mock_plugins.run(context, action, params)
+
+        # Assert — coordinator присутствует в kwargs
+        for call in mock_plugin_ctx.emit_event.call_args_list:
+            assert "coordinator" in call.kwargs
+
+    @pytest.mark.asyncio
+    async def test_event_contains_action_class_and_name(
+        self, machine_with_mock_plugins, mock_plugin_ctx, context,
+    ) -> None:
+        """
+        Каждый объект события содержит action_class и action_name [1].
+        action_class — type для isinstance-фильтрации.
+        action_name — строка для regex-фильтрации и логирования.
         """
         # Arrange
         action = SimpleAction()
@@ -378,20 +437,20 @@ class TestEventData:
         # Act
         await machine_with_mock_plugins.run(context, action, params)
 
-        # Assert — action и params в первом вызове (global_start)
-        first_call = mock_plugin_ctx.emit_event.call_args_list[0]
-        assert first_call.kwargs["action"] is action
-        assert first_call.kwargs["params"] is params
+        # Assert — первое событие (GlobalStartEvent) содержит поля действия
+        event = _extract_event(mock_plugin_ctx, 0)
+        assert event.action_class is SimpleAction
+        assert "SimpleAction" in event.action_name
+        assert event.params is params
 
     @pytest.mark.asyncio
-    async def test_nest_level_passed(
+    async def test_nest_level_in_event(
         self, machine_with_mock_plugins, mock_plugin_ctx, context,
     ) -> None:
         """
-        nest_level передаётся в каждый emit_event.
-
+        nest_level содержится в объекте события.
         Для корневого вызова run() nested_level=0, машина увеличивает
-        на 1 → current_nest=1 → передаётся в emit_event.
+        на 1 → current_nest=1 → записывается в event.nest_level.
         """
         # Arrange
         action = PingAction()
@@ -400,19 +459,18 @@ class TestEventData:
         # Act
         await machine_with_mock_plugins.run(context, action, params)
 
-        # Assert — nest_level=1 (0+1) в первом вызове
-        first_call = mock_plugin_ctx.emit_event.call_args_list[0]
-        assert first_call.kwargs["nest_level"] == 1
+        # Assert — nest_level=1 (0+1) в первом событии
+        event = _extract_event(mock_plugin_ctx, 0)
+        assert event.nest_level == 1
 
     @pytest.mark.asyncio
     async def test_global_finish_contains_result_and_duration(
         self, machine_with_mock_plugins, mock_plugin_ctx, context,
     ) -> None:
         """
-        global_finish содержит result (Result действия) и duration (секунды).
-
+        GlobalFinishEvent содержит result и duration_ms [1].
         result — объект, возвращённый summary-аспектом.
-        duration — общее время выполнения действия (float, секунды).
+        duration_ms — общее время выполнения в миллисекундах.
         """
         # Arrange
         action = PingAction()
@@ -421,22 +479,65 @@ class TestEventData:
         # Act
         await machine_with_mock_plugins.run(context, action, params)
 
-        # Assert — последний вызов = global_finish
-        last_call = mock_plugin_ctx.emit_event.call_args_list[-1]
-        assert last_call.kwargs["event_name"] == "global_finish"
+        # Assert — последнее событие — GlobalFinishEvent
+        event = _extract_event(mock_plugin_ctx, -1)
+        assert isinstance(event, GlobalFinishEvent)
 
         # Assert — result не None (это PingAction.Result)
-        assert last_call.kwargs["result"] is not None
+        assert event.result is not None
 
-        # Assert — duration — положительное число (время выполнения)
-        assert last_call.kwargs["duration"] is not None
-        assert last_call.kwargs["duration"] >= 0
+        # Assert — duration_ms — неотрицательное число (миллисекунды)
+        assert event.duration_ms >= 0
+
+    @pytest.mark.asyncio
+    async def test_regular_aspect_event_contains_aspect_name(
+        self, machine_with_mock_plugins, mock_plugin_ctx, context,
+    ) -> None:
+        """
+        BeforeRegularAspectEvent и AfterRegularAspectEvent содержат
+        aspect_name — имя метода-аспекта [1].
+        """
+        # Arrange
+        action = SimpleAction()
+        params = SimpleAction.Params(name="Test")
+
+        # Act
+        await machine_with_mock_plugins.run(context, action, params)
+
+        # Assert — BeforeRegularAspectEvent содержит aspect_name
+        event_types = _extract_event_types(mock_plugin_ctx)
+        before_idx = event_types.index("BeforeRegularAspectEvent")
+        before_event = _extract_event(mock_plugin_ctx, before_idx)
+        assert isinstance(before_event, BeforeRegularAspectEvent)
+        assert isinstance(before_event.aspect_name, str)
+        assert len(before_event.aspect_name) > 0
+
+    @pytest.mark.asyncio
+    async def test_after_regular_aspect_contains_result_and_duration(
+        self, machine_with_mock_plugins, mock_plugin_ctx, context,
+    ) -> None:
+        """
+        AfterRegularAspectEvent содержит aspect_result и duration_ms [1].
+        """
+        # Arrange
+        action = SimpleAction()
+        params = SimpleAction.Params(name="Test")
+
+        # Act
+        await machine_with_mock_plugins.run(context, action, params)
+
+        # Assert — AfterRegularAspectEvent содержит aspect_result
+        event_types = _extract_event_types(mock_plugin_ctx)
+        after_idx = event_types.index("AfterRegularAspectEvent")
+        after_event = _extract_event(mock_plugin_ctx, after_idx)
+        assert isinstance(after_event, AfterRegularAspectEvent)
+        assert isinstance(after_event.aspect_result, dict)
+        assert after_event.duration_ms >= 0
 
 
 # ═════════════════════════════════════════════════════════════════════════════
 # Изоляция между запросами
 # ═════════════════════════════════════════════════════════════════════════════
-
 
 class TestPluginIsolation:
     """Каждый run() создаёт свой PluginRunContext."""
@@ -445,16 +546,13 @@ class TestPluginIsolation:
     async def test_separate_contexts_per_run(self, log_coordinator, context) -> None:
         """
         Два вызова run() создают два разных PluginRunContext.
-
         create_run_context() вызывается в начале каждого _run_internal().
-        Каждый контекст изолирован: состояния плагинов одного run()
-        не влияют на другой, даже при параллельном выполнении.
+        Каждый контекст изолирован [1].
         """
         # Arrange — машина с замоканным PluginCoordinator, который
         # возвращает новый mock PluginRunContext на каждый вызов
         ctx1 = AsyncMock(spec=PluginRunContext)
         ctx2 = AsyncMock(spec=PluginRunContext)
-
         mock_coordinator = AsyncMock(spec=PluginCoordinator)
         mock_coordinator.create_run_context = AsyncMock(side_effect=[ctx1, ctx2])
 
@@ -474,6 +572,6 @@ class TestPluginIsolation:
         # Assert — create_run_context вызван дважды
         assert mock_coordinator.create_run_context.await_count == 2
 
-        # Assert — каждый контекст получил свои события
-        assert ctx1.emit_event.await_count == 2  # global_start + global_finish
-        assert ctx2.emit_event.await_count == 2  # global_start + global_finish
+        # Assert — каждый контекст получил свои события (4 на PingAction)
+        assert ctx1.emit_event.await_count == 4
+        assert ctx2.emit_event.await_count == 4

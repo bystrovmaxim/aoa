@@ -5,6 +5,129 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [0.1.0] – 2026-04-07
+
+### Added
+
+- **Frozen `BaseState` and `BaseResult`.** Both types are now fully immutable after creation. `BaseState` uses `__setattr__` override to forbid any writes; the only way to modify state is to create a new instance via `BaseState({**old.to_dict(), **new_data})`. `BaseResult` is a frozen Pydantic model (`frozen=True`, `extra="forbid"`), ensuring that result fields are strictly declared and cannot be mutated after the summary aspect returns. This eliminates entire classes of bugs where aspects could silently bypass checkers or mutate results.
+
+- **`@context_requires` decorator for controlled context access.** Aspects and error handlers can now declare exactly which context fields they need using dot‑path strings (e.g., `@context_requires(Ctx.User.user_id, Ctx.Request.trace_id)`). The machine provides a `ContextView` object that only grants access to the requested fields; any attempt to read an undeclared field raises `ContextAccessError`. Without the decorator, an aspect receives **no** context access at all. This implements the principle of least privilege and makes context dependencies explicit and statically verifiable.
+
+- **`Ctx` constant hierarchy.** A structured set of constants (`Ctx.User.user_id`, `Ctx.Request.trace_id`, `Ctx.Runtime.hostname`, etc.) providing IDE autocompletion and compile‑time checks for standard context fields. Custom fields can be passed as plain strings, e.g., `"user.billing_plan"`.
+
+- **`DotPathNavigator` – unified dot‑path navigation.** Centralised the navigation logic previously duplicated between `BaseSchema.resolve()` and `VariableSubstitutor`. The navigator uses duck typing (`__getitem__` detection) to support `BaseSchema`, `LogScope`, `dict`, and any custom object with a dict‑like interface, without creating circular dependencies between core and logging.
+
+- **Strict underscore rule in log templates.** Any template variable whose **any** path segment starts with an underscore now raises `LogTemplateError`. Previously only the last segment was checked, which allowed bypassing private attributes through intermediate segments (`{%context._internal.public_key}`). All segments are now validated.
+
+- **`@on_error` decorator for action‑level error handling.** Actions can declare handlers for exceptions raised by any aspect. Handlers receive the error and can return an alternative `Result`, effectively replacing the action’s outcome. Handlers are checked in declaration order; the first matching exception type (via `isinstance`) is executed. Handlers can also request context via `@context_requires`, receiving their own `ContextView`. Cyclic exception type coverage (e.g., `Exception` before `ValueError`) is detected at metadata build time and raises `TypeError`.
+
+- **`OnErrorHandlerError` exception.** Wraps exceptions that occur inside an `@on_error` handler, preserving the original exception as `__cause__`. Distinguishes between business logic errors (original aspect exception) and bugs in error handling code.
+
+- **Naming invariants (suffix checks).** The framework now enforces naming conventions via `__init_subclass__` and decorator validations:
+  - Action classes must end with `Action`.
+  - Domain classes must end with `Domain`.
+  - Methods with `@regular_aspect` must end with `_aspect`.
+  - Methods with `@summary_aspect` must end with `_summary`.
+  - Methods with `@on_error` must end with `_on_error`.
+  - Plugin methods with `@on` must start with `on_`.
+  - Checker classes must end with `Checker`.
+  Violations raise `NamingSuffixError` or `NamingPrefixError`.
+
+- **`check_roles` as a function (decorator).** Replaced the old `CheckRoles` class with a plain function `check_roles(spec)`. The `desc` parameter (previously ignored) has been removed entirely. Special values `ROLE_NONE` and `ROLE_ANY` are now module‑level constants.
+
+- **Result checkers as function decorators.** Each checker now has a dedicated function decorator: `result_string`, `result_int`, `result_float`, `result_bool`, `result_date`, `result_instance`. The old class‑based invocation has been removed. Decorators no longer accept a `description` parameter, keeping the API minimal.
+
+- **`SyncActionProductMachine` – synchronous production machine.** A synchronous counterpart to `ActionProductMachine` that wraps the async pipeline in `asyncio.run()`. The public `run()` method is synchronous. Designed for CLI scripts, Celery tasks, and Django views without async support. Both production machines always pass `rollup=False` internally.
+
+- **`TestBench` – immutable fluent testing API.** A single entry point for testing actions across both async and sync machines. Supports `.with_user()`, `.with_mocks()`, `.with_runtime()`, etc., each returning a new immutable instance. Terminal methods (`run`, `run_aspect`, `run_summary`) accept a mandatory `rollup: bool` parameter (no default). Automatically resets mock state between the async and sync runs so that `assert_called_once_with()` works correctly.
+
+- **`validate_state_for_aspect` and `validate_state_for_summary`.** Helper functions that verify that a manually provided `state` dictionary contains all required fields (according to checkers of preceding aspects) before executing a single aspect or summary in tests. Produces clear error messages indicating which aspect should have written which field.
+
+- **`compare_results` for multi‑machine result comparison.** Compares results from async and sync machines, showing field‑level differences when results diverge. Used internally by `TestBench` and available for custom test assertions.
+
+- **Context stub helpers.** `UserInfoStub`, `RuntimeInfoStub`, `RequestInfoStub`, `ContextStub` provide reasonable defaults for testing, reducing boilerplate.
+
+- **`rollup` support in dependency resolution and connection managers.** The `rollup` flag now propagates through `ToolsBox.resolve()` and into connection managers. When `rollup=True`, any `IConnectionManager` will execute `rollback()` instead of `commit()`, enabling safe testing on production databases. Managers that do not support rollup raise `RollupNotSupportedError`.
+
+- **`BaseResourceManager.check_rollup_support()`.** A new method that concrete managers can override to declare rollup support (default raises `RollupNotSupportedError`). `IConnectionManager` overrides it to return `True`.
+
+- **Context field nodes in the coordinator graph.** `GateCoordinator` now creates nodes of type `context_field` for every unique dot‑path requested by `@context_requires`. Edges of type `requires_context` connect aspect nodes (or error handler nodes) to these fields. This closes the last gap in the system graph, allowing full introspection of context dependencies.
+
+- **Documentation of graph node key format.** Public methods `get_node()`, `get_children()`, `get_dependency_tree()` now have docstrings explaining the `"type:full_name"` key format, with examples for `context_field`, `action`, `domain`, etc.
+
+### Changed
+
+- **`BaseParams` and `BaseResult` now strictly require `Field(description=...)` for every field** (via `DescribedFieldsGateHost`). Previously descriptions were optional; now a missing or empty description raises `TypeError` during metadata assembly. This ensures that all API parameters and results are self‑documented from the start.
+
+- **`@on` decorator now accepts typed event classes instead of strings.** The old string‑based `event_type` and `action_filter` are removed. New signature: `@on(event_class, *, action_class=None, action_name_pattern=None, aspect_name_pattern=None, nest_level=None, domain=None, predicate=None, ignore_exceptions=True)`. Filter order follows cheapest‑first (`isinstance` → regex → predicate). Multiple `@on` decorators on the same method produce OR semantics.
+
+- **`PluginEvent` replaced by a hierarchy of event classes.** `BasePluginEvent` → `GlobalLifecycleEvent` → `GlobalStartEvent`/`GlobalFinishEvent`, `AspectEvent` → `RegularAspectEvent` → `BeforeRegularAspectEvent`/`AfterRegularAspectEvent`, etc. Each class contains only the fields relevant to that event, eliminating the “bag of optional None” anti‑pattern.
+
+- **`Plugin.get_handlers()` now filters by type (`isinstance`) instead of string matching.** The `event_name` string parameter is replaced by the event class itself.
+
+- **`PluginRunContext.emit_event()` now accepts a concrete event object instead of a list of parameters.** The method applies the filter chain described above and executes matching handlers in parallel or sequentially depending on `ignore_exceptions` flags.
+
+- **`ToolsBox` no longer exposes any public access to `Context`.** The `context` property has been removed. The only way for aspects to obtain context data is through `ContextView` provided by the machine when `@context_requires` is used. Internal use of the context (for logging and child actions) remains through a mangled private attribute.
+
+- **`BaseAction` generic parameters `P` and `R` are now bound to `BaseSchema` instead of `ReadableDataProtocol`.** This reflects the architectural shift: all data structures inherit `BaseSchema`.
+
+- **`WritableMixin` and `WritableDataProtocol` removed.** After freezing `BaseState` and `BaseResult`, there are no remaining consumers of write‑able dict‑like access. The read‑only protocol `ReadableDataProtocol` remains for compatibility.
+
+- **`CheckRoles` class removed; use `check_roles` function.** Old code: `@CheckRoles("admin", desc="...")` → new: `@check_roles("admin")`. The `desc` parameter is no longer accepted.
+
+- **Checker decorators no longer accept a `description` parameter.** Use `@result_string("txn_id", required=True)` instead of `@result_string("txn_id", "Transaction ID", required=True)`.
+
+- **`ResultFieldChecker.__init__` signature changed:** removed `description`, now only `field_name` and `required`. All checkers follow the same pattern.
+
+- **`RoleMeta` and `CheckerMeta` dataclasses no longer contain a `description` field.** The `description` was dead code (never used) and has been removed from metadata.
+
+- **`ActionProductMachine._check_action_roles()` now expects `ROLE_NONE` and `ROLE_ANY` as module‑level constants, not class attributes.**
+
+- **`ActionProductMachine._call_aspect()` and `_handle_aspect_error()` now create `ContextView` and pass it as the last argument when `context_keys` is non‑empty.** The number of parameters in aspect methods is now validated based on the presence of `@context_requires` (5 without, 6 with).
+
+- **`SyncActionProductMachine` moved from `core/` to its own file and made a proper subclass of `ActionProductMachine`.** Previously it was a separate class; now it inherits all pipeline logic and only overrides `run()` to be synchronous.
+
+- **`ActionTestMachine` moved to `testing/async_test_machine.py` and renamed to `AsyncTestMachine`.** A corresponding `SyncTestMachine` was added. Both are instantiated by `TestBench`.
+
+- **`MockAction` moved to `testing/mock_action.py`.** Its behaviour remains unchanged.
+
+### Removed
+
+- **`WritableMixin` and `WritableDataProtocol`.** Completely removed from the codebase. The framework no longer provides any dict‑like write interface for core data types.
+
+- **`CheckRoles` class.** Replaced by `check_roles` function.
+
+- **`regular_aspect` and `summary_aspect` no longer accept a `desc` parameter.** Description is now mandatory and passed as the first positional argument.
+
+- **`PluginEvent` monolithic class.** Replaced by the typed event hierarchy.
+
+- **String‑based event types in `@on`.** All subscriptions must use event classes.
+
+- **`description` parameter from all result checker decorators.**
+
+- **`ResultFieldChecker._build_meta()` inclusion of `description`.**
+
+- **Dead code from `core/action_test_machine.py` and `core/mock_action.py` (moved).**
+
+- **`extra="allow"` and `arbitrary_types_allowed=True` from `BaseResult`.** Results are now strictly typed and forbid extra fields.
+
+- **`__setitem__`, `__delitem__`, `write`, `update` from `BaseState`.** The class is now fully immutable.
+
+- **`ReadableDataProtocol` and `ReadableMixin` are still present** (not removed), but all references in docstrings have been updated to reflect that `BaseSchema` is the primary interface.
+
+### Security
+
+- **Access to private attributes in log templates is now blocked for any path segment, not only the last one.** This prevents bypassing the underscore rule via intermediate segments (`{%context._internal.public_key}`).
+
+
 ## [0.0.9] – 2026-03-31
 
 ### Added

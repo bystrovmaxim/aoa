@@ -11,6 +11,10 @@
 отдельного декоратора — они требуют знания обо всех декораторах класса
 в совокупности.
 
+Все проверки выполняются в MetadataBuilder.build() при первом обращении
+к классу через GateCoordinator, ДО обработки первого запроса. Нарушение
+любого инварианта — ошибка, приложение не запускается.
+
 ═══════════════════════════════════════════════════════════════════════════════
 ПРОВЕРЯЕМЫЕ ИНВАРИАНТЫ
 ═══════════════════════════════════════════════════════════════════════════════
@@ -42,20 +46,28 @@
 
 Обработчики ошибок (validate_error_handlers):
     14. Нижестоящий обработчик не перекрывается вышестоящим.
-        Если вышестоящий ловит тип T, нижестоящий не может ловить T
-        или подкласс T — это мёртвый код. Допустимо: сначала специфичный
-        (ValueError), потом общий (Exception).
 
-Контекстные зависимости (validate_context_requires):
-    15. Если метод имеет context_keys — класс обязан наследовать
+Подписки плагинов (validate_subscriptions):
+    15. event_class из @on совместим с аннотацией параметра event
+        в сигнатуре обработчика: event_class должен быть подклассом
+        аннотации (или совпадать). Если аннотация — GlobalFinishEvent,
+        а event_class — GlobalLifecycleEvent, это ошибка: обработчик
+        получит GlobalStartEvent, у которого нет полей GlobalFinishEvent.
+    16. aspect_name_pattern указан только для подписок на AspectEvent
+        и наследники. Проверяется в SubscriptionInfo.__post_init__,
+        но дублируется здесь для полноты диагностики.
+
+Контекстные зависимости:
+    17. Если метод имеет context_keys — класс обязан наследовать
         ContextRequiresGateHost.
-    16. Согласованность наличия @context_requires и количества параметров
+    18. Согласованность наличия @context_requires и количества параметров
         метода проверяется декораторами @regular_aspect, @summary_aspect
         и @on_error на этапе определения класса (не здесь).
 """
 
 from __future__ import annotations
 
+import inspect
 from typing import Any, get_args, get_origin
 
 from pydantic import BaseModel
@@ -73,7 +85,9 @@ from action_machine.core.class_metadata import (
 from action_machine.core.described_fields_gate_host import DescribedFieldsGateHost
 from action_machine.core.meta_gate_hosts import ActionMetaGateHost, ResourceMetaGateHost
 from action_machine.on_error.on_error_gate_host import OnErrorGateHost
+from action_machine.plugins.events import BasePluginEvent
 from action_machine.plugins.on_gate_host import OnGateHost
+from action_machine.plugins.subscription_info import SubscriptionInfo
 
 # ═════════════════════════════════════════════════════════════════════════════
 # Валидация описаний полей Params и Result
@@ -274,11 +288,14 @@ def validate_gate_hosts(
         - Обработчики ошибок → OnErrorGateHost.
         - Контекстные зависимости → ContextRequiresGateHost.
 
+    Для подписок в диагностическом сообщении выводятся имена классов
+    событий (event_class.__name__) вместо строковых event_type.
+
     Аргументы:
         cls: класс, который проверяется.
         aspects: собранные аспекты.
         checkers: собранные чекеры.
-        subscriptions: собранные подписки.
+        subscriptions: собранные подписки (list[SubscriptionInfo]).
         error_handlers: собранные обработчики ошибок.
 
     Исключения:
@@ -306,11 +323,12 @@ def validate_gate_hosts(
         )
 
     if subscriptions and not issubclass(cls, OnGateHost):
-        event_types = ", ".join(
-            getattr(s, "event_type", str(s)) for s in subscriptions
+        event_classes = ", ".join(
+            s.event_class.__name__ if isinstance(s, SubscriptionInfo) else str(s)
+            for s in subscriptions
         )
         raise TypeError(
-            f"Класс {cls.__name__} содержит подписки на события ({event_types}), "
+            f"Класс {cls.__name__} содержит подписки на события ({event_classes}), "
             f"но не наследует OnGateHost. Декоратор @on разрешён только "
             f"на классах, наследующих OnGateHost. Используйте Plugin "
             f"или добавьте OnGateHost в цепочку наследования."
@@ -512,3 +530,123 @@ def validate_error_handlers(
                         f"не получит управления. Переместите более специфичный "
                         f"обработчик выше более общего."
                     )
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# Валидация подписок плагинов (@on)
+# ═════════════════════════════════════════════════════════════════════════════
+
+
+def _extract_event_annotation(cls: type, method_name: str) -> type | None:
+    """
+    Извлекает аннотацию типа параметра event из сигнатуры метода плагина.
+
+    Обработчик плагина имеет сигнатуру (self, state, event, log).
+    Параметр event — третий (индекс 2). Аннотация может быть конкретным
+    классом (GlobalFinishEvent), групповым (AspectEvent) или базовым
+    (BasePluginEvent).
+
+    Если аннотация отсутствует или не является подклассом BasePluginEvent,
+    возвращает None (проверка пропускается — аннотация необязательна).
+
+    Аргументы:
+        cls: класс плагина.
+        method_name: имя метода-обработчика.
+
+    Возвращает:
+        type — аннотация параметра event (подкласс BasePluginEvent),
+        или None если аннотация отсутствует или не является типом события.
+    """
+    # Ищем метод в MRO
+    func = None
+    for klass in cls.__mro__:
+        if method_name in vars(klass):
+            func = vars(klass)[method_name]
+            break
+
+    if func is None:
+        return None
+
+    try:
+        sig = inspect.signature(func)
+    except (ValueError, TypeError):
+        return None
+
+    params_list = list(sig.parameters.values())
+    # Параметр event — третий (self=0, state=1, event=2, log=3)
+    if len(params_list) < 3:
+        return None
+
+    event_param = params_list[2]
+    annotation = event_param.annotation
+
+    if annotation is inspect.Parameter.empty:
+        return None
+
+    if isinstance(annotation, type) and issubclass(annotation, BasePluginEvent):
+        return annotation
+
+    return None
+
+
+def validate_subscriptions(
+    cls: type,
+    subscriptions: list[SubscriptionInfo],
+) -> None:
+    """
+    Проверяет совместимость подписок плагинов с аннотациями обработчиков.
+
+    Для каждой подписки (SubscriptionInfo) проверяет: если метод-обработчик
+    имеет аннотацию типа на параметре event, то event_class из @on должен
+    быть подклассом этой аннотации (или совпадать с ней).
+
+    Это гарантирует, что обработчик всегда получит событие, совместимое
+    с аннотацией. Если аннотация — GlobalFinishEvent, а event_class —
+    GlobalLifecycleEvent, обработчик может получить GlobalStartEvent,
+    у которого нет полей GlobalFinishEvent (result, duration_ms).
+    Это ошибка типизации, обнаруживаемая при сборке метаданных.
+
+    Допустимые комбинации:
+        @on(GlobalFinishEvent) + event: GlobalFinishEvent     — OK (совпадает)
+        @on(GlobalFinishEvent) + event: GlobalLifecycleEvent  — OK (подкласс)
+        @on(GlobalFinishEvent) + event: BasePluginEvent       — OK (подкласс)
+        @on(GlobalLifecycleEvent) + event: GlobalFinishEvent  — ОШИБКА
+        @on(AspectEvent) + event: AfterRegularAspectEvent     — ОШИБКА
+
+    Если аннотация отсутствует — проверка пропускается для этой подписки.
+    Один метод может иметь несколько @on (OR-семантика) — каждая подписка
+    проверяется независимо.
+
+    Аргументы:
+        cls: класс плагина для сообщений об ошибках.
+        subscriptions: собранные подписки (list[SubscriptionInfo]).
+
+    Исключения:
+        TypeError: если event_class несовместим с аннотацией event.
+    """
+    for sub in subscriptions:
+        if not isinstance(sub, SubscriptionInfo):
+            continue
+
+        annotation = _extract_event_annotation(cls, sub.method_name)
+
+        if annotation is None:
+            # Аннотация отсутствует или не является типом события —
+            # проверка пропускается.
+            continue
+
+        # event_class из @on должен быть подклассом аннотации.
+        # Это гарантирует: если обработчик аннотирован GlobalFinishEvent,
+        # он получит только GlobalFinishEvent (или его наследника),
+        # а не GlobalStartEvent.
+        if not issubclass(sub.event_class, annotation):
+            raise TypeError(
+                f"Класс {cls.__name__}: метод '{sub.method_name}' подписан "
+                f"на {sub.event_class.__name__} через @on, но параметр event "
+                f"аннотирован как {annotation.__name__}. Тип "
+                f"{sub.event_class.__name__} не является подклассом "
+                f"{annotation.__name__}, поэтому обработчик может получить "
+                f"событие без ожидаемых полей. Измените аннотацию на "
+                f"{sub.event_class.__name__} или более общий тип "
+                f"(например, BasePluginEvent)."
+            )

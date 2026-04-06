@@ -300,16 +300,15 @@ class TestOnErrorSuffix:
 # Префикс "on_" для @on (плагины)
 # ═════════════════════════════════════════════════════════════════════════════
 
-
 class TestPluginOnPrefix:
     """Метод плагина с @on обязан начинаться с 'on_'."""
 
     def test_correct_prefix_passes(self) -> None:
         """Имя 'on_track_finish' → декоратор применяется."""
-
         from action_machine.plugins.decorators import on
+        from action_machine.plugins.events import GlobalFinishEvent
 
-        @on("global_finish", ".*")
+        @on(GlobalFinishEvent)
         async def on_track_finish(self, state, event, log):
             return state
 
@@ -317,21 +316,21 @@ class TestPluginOnPrefix:
 
     def test_missing_prefix_raises(self) -> None:
         """Имя 'track_finish' без 'on_' → NamingPrefixError."""
-
         from action_machine.plugins.decorators import on
+        from action_machine.plugins.events import GlobalFinishEvent
 
         with pytest.raises(NamingPrefixError, match="on_"):
-            @on("global_finish", ".*")
+            @on(GlobalFinishEvent)
             async def track_finish(self, state, event, log):
                 return state
 
     def test_wrong_prefix_raises(self) -> None:
         """Имя 'handle_track_finish' → NamingPrefixError (не начинается с 'on_')."""
-
         from action_machine.plugins.decorators import on
+        from action_machine.plugins.events import GlobalFinishEvent
 
         with pytest.raises(NamingPrefixError, match="on_"):
-            @on("global_finish", ".*")
+            @on(GlobalFinishEvent)
             async def handle_track_finish(self, state, event, log):
                 return state
 

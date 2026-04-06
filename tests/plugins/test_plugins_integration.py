@@ -1,40 +1,43 @@
 # tests/plugins/test_plugins_integration.py
 """
 Интеграционные тесты плагинов с полным конвейером ActionMachine.
-
 ═══════════════════════════════════════════════════════════════════════════════
 НАЗНАЧЕНИЕ
 ═══════════════════════════════════════════════════════════════════════════════
+Проверяет, что плагины корректно получают типизированные события от
+реального конвейера выполнения действий. В отличие от остальных тестов
+пакета plugins/, которые вызывают emit_event() напрямую, эти тесты
+прогоняют действия через TestBench.run() — полный конвейер на async
+и sync машинах с проверкой совпадения результатов.
 
-Проверяет, что плагины корректно получают события от реального конвейера
-выполнения действий. В отличие от остальных тестов пакета plugins/,
-которые вызывают emit_event() напрямую, эти тесты прогоняют действия
-через TestBench.run() — полный конвейер на async и sync машинах
-с проверкой совпадения результатов.
+Машина (ActionProductMachine) создаёт конкретные объекты событий из
+иерархии BasePluginEvent [1] в ключевых точках конвейера:
 
-TestBench.run() выполняет действие на ActionProductMachine (async),
-сбрасывает моки, выполняет на SyncActionProductMachine (sync) и
-сравнивает результаты через compare_results(). Плагины получают
-события от обеих машин — global_start, before/after каждого аспекта,
-global_finish.
+    GlobalStartEvent          — перед первым аспектом
+    BeforeRegularAspectEvent  — перед каждым regular-аспектом
+    AfterRegularAspectEvent   — после каждого regular-аспекта
+    BeforeSummaryAspectEvent  — перед summary-аспектом
+    AfterSummaryAspectEvent   — после summary-аспекта
+    GlobalFinishEvent         — после успешного завершения
+
+Плагины подписываются через @on(EventClass) и получают типизированные
+объекты событий с конкретными полями (без Optional-полей) [1].
 
 ═══════════════════════════════════════════════════════════════════════════════
 ПОКРЫВАЕМЫЕ СЦЕНАРИИ
 ═══════════════════════════════════════════════════════════════════════════════
-
-- Плагин-счётчик получает global_finish при прогоне PingAction.
-- Плагин-счётчик получает global_finish при прогоне SimpleAction
+- Плагин-счётчик получает GlobalFinishEvent при прогоне PingAction.
+- Плагин-счётчик получает GlobalFinishEvent при прогоне SimpleAction
   (regular + summary).
-- Плагин-записыватель фиксирует все события конвейера FullAction
-  (global_start, before/after каждого аспекта, global_finish).
-- Плагин с фильтром action_filter получает события только от
-  подходящих действий.
+- Плагин-записыватель фиксирует GlobalStartEvent и GlobalFinishEvent
+  конвейера PingAction.
+- Плагин с action_name_pattern получает события только от подходящих
+  действий.
 - Несколько плагинов одновременно — все получают события.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ДОСТУП К СОСТОЯНИЮ ПЛАГИНОВ
 ═══════════════════════════════════════════════════════════════════════════════
-
 TestBench использует production-машины (ActionProductMachine,
 SyncActionProductMachine), которые создают PluginRunContext внутри
 _run_internal(). После завершения run() контекст уничтожается —
@@ -45,7 +48,6 @@ _run_internal(). После завершения run() контекст унич
 записывает данные во внешний список/словарь, который тест читает
 после завершения run().
 """
-
 from unittest.mock import AsyncMock
 
 import pytest
@@ -53,8 +55,11 @@ import pytest
 from action_machine.core.gate_coordinator import GateCoordinator
 from action_machine.logging.log_coordinator import LogCoordinator
 from action_machine.plugins.decorators import on
+from action_machine.plugins.events import (
+    GlobalFinishEvent,
+    GlobalStartEvent,
+)
 from action_machine.plugins.plugin import Plugin
-from action_machine.plugins.plugin_event import PluginEvent
 from action_machine.testing import TestBench
 from tests.domain import (
     FullAction,
@@ -69,14 +74,13 @@ from tests.domain import (
 # Плагины с внешним хранилищем для проверки из тестов
 # ═════════════════════════════════════════════════════════════════════════════
 
-
 class ExternalCounterPlugin(Plugin):
     """
     Плагин-счётчик с внешним хранилищем.
 
-    Записывает количество вызовов global_finish во внешний список,
-    переданный через конструктор. Тест читает список после run()
-    для проверки, что плагин получил события.
+    Подписан на GlobalFinishEvent — записывает количество вызовов,
+    тип события и имя действия во внешний список. Тест читает список
+    после run() для проверки, что плагин получил события.
     """
 
     def __init__(self, storage: list):
@@ -85,13 +89,14 @@ class ExternalCounterPlugin(Plugin):
     async def get_initial_state(self) -> dict:
         return {"count": 0}
 
-    @on("global_finish", ".*")
-    async def on_count(self, state: dict, event: PluginEvent, log) -> dict:
+    @on(GlobalFinishEvent)
+    async def on_count(self, state: dict, event: GlobalFinishEvent, log) -> dict:
         state["count"] += 1
         self._storage.append({
-            "event": event.event_name,
+            "event_type": type(event).__name__,
             "action": event.action_name,
             "count": state["count"],
+            "duration_ms": event.duration_ms,
         })
         return state
 
@@ -100,9 +105,9 @@ class ExternalRecorderPlugin(Plugin):
     """
     Плагин-записыватель с внешним хранилищем.
 
-    Подписан на ВСЕ события (".*") для всех действий (".*").
-    Записывает event_name и action_name во внешний список.
-    Позволяет тесту увидеть полную последовательность событий конвейера.
+    Подписан на GlobalStartEvent и GlobalFinishEvent.
+    Записывает имя класса события во внешний список.
+    Позволяет тесту увидеть последовательность событий конвейера.
     """
 
     def __init__(self, storage: list):
@@ -111,14 +116,14 @@ class ExternalRecorderPlugin(Plugin):
     async def get_initial_state(self) -> dict:
         return {}
 
-    @on("global_start", ".*")
-    async def on_start(self, state: dict, event: PluginEvent, log) -> dict:
-        self._storage.append(event.event_name)
+    @on(GlobalStartEvent)
+    async def on_start(self, state: dict, event: GlobalStartEvent, log) -> dict:
+        self._storage.append(type(event).__name__)
         return state
 
-    @on("global_finish", ".*")
-    async def on_finish(self, state: dict, event: PluginEvent, log) -> dict:
-        self._storage.append(event.event_name)
+    @on(GlobalFinishEvent)
+    async def on_finish(self, state: dict, event: GlobalFinishEvent, log) -> dict:
+        self._storage.append(type(event).__name__)
         return state
 
 
@@ -126,8 +131,9 @@ class SelectiveCounterPlugin(Plugin):
     """
     Плагин-счётчик с фильтром по имени действия.
 
-    Реагирует только на global_finish от действий, содержащих "Simple"
-    в имени. Записывает во внешний список.
+    Подписан на GlobalFinishEvent с action_name_pattern=".*Simple.*".
+    Реагирует только на действия, содержащие "Simple" в полном имени.
+    Записывает action_name во внешний список.
     """
 
     def __init__(self, storage: list):
@@ -136,8 +142,8 @@ class SelectiveCounterPlugin(Plugin):
     async def get_initial_state(self) -> dict:
         return {}
 
-    @on("global_finish", ".*Simple.*")
-    async def on_simple(self, state: dict, event: PluginEvent, log) -> dict:
+    @on(GlobalFinishEvent, action_name_pattern=".*Simple.*")
+    async def on_simple(self, state: dict, event: GlobalFinishEvent, log) -> dict:
         self._storage.append(event.action_name)
         return state
 
@@ -145,7 +151,6 @@ class SelectiveCounterPlugin(Plugin):
 # ═════════════════════════════════════════════════════════════════════════════
 # Тесты
 # ═════════════════════════════════════════════════════════════════════════════
-
 
 class TestPluginsIntegration:
     """
@@ -159,7 +164,7 @@ class TestPluginsIntegration:
     @pytest.mark.anyio
     async def test_counter_plugin_receives_global_finish_from_ping(self):
         """
-        ExternalCounterPlugin получает global_finish при прогоне PingAction
+        ExternalCounterPlugin получает GlobalFinishEvent при прогоне PingAction
         через TestBench. PingAction — только summary, ROLE_NONE.
 
         Хранилище содержит записи от обеих машин (async + sync),
@@ -170,7 +175,6 @@ class TestPluginsIntegration:
         # Arrange — внешнее хранилище и плагин
         storage: list = []
         plugin = ExternalCounterPlugin(storage)
-
         bench = TestBench(
             coordinator=GateCoordinator(),
             log_coordinator=LogCoordinator(loggers=[]),
@@ -189,19 +193,18 @@ class TestPluginsIntegration:
 
         # Assert — плагин получил события (от async и sync машин)
         assert len(storage) >= 1
-        assert all(record["event"] == "global_finish" for record in storage)
+        assert all(record["event_type"] == "GlobalFinishEvent" for record in storage)
         assert all("PingAction" in record["action"] for record in storage)
 
     @pytest.mark.anyio
     async def test_counter_plugin_receives_global_finish_from_simple(self):
         """
-        ExternalCounterPlugin получает global_finish при прогоне SimpleAction.
+        ExternalCounterPlugin получает GlobalFinishEvent при прогоне SimpleAction.
         SimpleAction имеет regular + summary, ROLE_NONE.
         """
         # Arrange — хранилище и плагин
         storage: list = []
         plugin = ExternalCounterPlugin(storage)
-
         bench = TestBench(
             coordinator=GateCoordinator(),
             log_coordinator=LogCoordinator(loggers=[]),
@@ -225,13 +228,12 @@ class TestPluginsIntegration:
     @pytest.mark.anyio
     async def test_recorder_plugin_captures_event_sequence(self):
         """
-        ExternalRecorderPlugin подписан на global_start и global_finish.
-        При прогоне PingAction записывает последовательность событий.
+        ExternalRecorderPlugin подписан на GlobalStartEvent и GlobalFinishEvent.
+        При прогоне PingAction записывает последовательность типов событий.
         """
         # Arrange — хранилище и плагин-записыватель
         storage: list = []
         plugin = ExternalRecorderPlugin(storage)
-
         bench = TestBench(
             coordinator=GateCoordinator(),
             log_coordinator=LogCoordinator(loggers=[]),
@@ -245,10 +247,10 @@ class TestPluginsIntegration:
             rollup=False,
         )
 
-        # Assert — последовательность содержит global_start и global_finish
+        # Assert — последовательность содержит типы событий
         # (от обеих машин, поэтому записей может быть 4: start+finish × 2)
-        assert "global_start" in storage
-        assert "global_finish" in storage
+        assert "GlobalStartEvent" in storage
+        assert "GlobalFinishEvent" in storage
 
     @pytest.mark.anyio
     async def test_selective_plugin_filters_by_action_name(self):
@@ -260,7 +262,6 @@ class TestPluginsIntegration:
         # Arrange — хранилище и плагин с фильтром
         storage: list = []
         plugin = SelectiveCounterPlugin(storage)
-
         bench = TestBench(
             coordinator=GateCoordinator(),
             log_coordinator=LogCoordinator(loggers=[]),
@@ -315,15 +316,15 @@ class TestPluginsIntegration:
 
         # Assert — оба плагина получили события
         assert len(counter_storage) >= 1
-        assert "global_start" in recorder_storage
-        assert "global_finish" in recorder_storage
+        assert "GlobalStartEvent" in recorder_storage
+        assert "GlobalFinishEvent" in recorder_storage
 
     @pytest.mark.anyio
     async def test_plugin_with_full_action_and_mocks(self):
         """
         ExternalCounterPlugin с FullAction — действие с зависимостями
         (PaymentService, NotificationService) и connection ("db").
-        Плагин получает global_finish от полного конвейера.
+        Плагин получает GlobalFinishEvent от полного конвейера.
         """
         # Arrange — моки зависимостей
         mock_payment = AsyncMock(spec=PaymentService)
@@ -335,7 +336,6 @@ class TestPluginsIntegration:
         # Arrange — хранилище и плагин
         storage: list = []
         plugin = ExternalCounterPlugin(storage)
-
         bench = TestBench(
             coordinator=GateCoordinator(),
             log_coordinator=LogCoordinator(loggers=[]),

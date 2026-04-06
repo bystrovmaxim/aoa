@@ -1,39 +1,37 @@
 # tests/metadata/test_builder_sensitive.py
 """
 Тесты MetadataBuilder — сборка sensitive-полей и подписок (subscriptions).
-
 ═══════════════════════════════════════════════════════════════════════════════
 НАЗНАЧЕНИЕ
 ═══════════════════════════════════════════════════════════════════════════════
-
 Проверяет, что MetadataBuilder корректно собирает sensitive-поля
 (SensitiveFieldMeta) из свойств, декорированных @sensitive, и подписки
 (SubscriptionInfo) из методов, декорированных @on.
 
+Подписки используют типизированную систему событий из иерархии
+BasePluginEvent. Декоратор @on принимает класс события как первый
+аргумент вместо строки. SubscriptionInfo содержит event_class
+(тип события), method_name, фильтры и ignore_exceptions.
 ═══════════════════════════════════════════════════════════════════════════════
 СЦЕНАРИИ
 ═══════════════════════════════════════════════════════════════════════════════
-
 TestSensitiveFields
     - Одно sensitive-поле собирается.
     - Несколько sensitive-полей собираются.
     - sensitive(enabled=False) всё равно собирается.
     - Класс без sensitive — пустой кортеж.
-
 TestSensitiveFieldAttributes
     - property_name сохраняется.
     - config содержит max_chars, char, max_percent, enabled.
-
 TestSubscriptions
     - Одна подписка собирается.
     - Несколько подписок собираются.
-    - event_type, action_filter, ignore_exceptions сохраняются.
+    - event_class сохраняется в SubscriptionInfo.
+    - ignore_exceptions сохраняется в SubscriptionInfo.
     - Класс без подписок — пустой кортеж.
-
 TestSubscriptionsWithoutGateHost
     - Подписки на классе без OnGateHost → ошибка.
 """
-
 import pytest
 
 from action_machine.aspects.summary_aspect import summary_aspect
@@ -46,12 +44,15 @@ from action_machine.core.meta_decorator import meta
 from action_machine.logging.sensitive_decorator import sensitive
 from action_machine.metadata.builder import MetadataBuilder
 from action_machine.plugins.decorators import on
-from action_machine.plugins.on_gate_host import OnGateHost
+from action_machine.plugins.events import (
+    GlobalFinishEvent,
+    GlobalStartEvent,
+)
+from action_machine.plugins.plugin import Plugin
 
 # ═════════════════════════════════════════════════════════════════════════════
 # Вспомогательные классы
 # ═════════════════════════════════════════════════════════════════════════════
-
 
 class _Params(BaseParams):
     pass
@@ -63,13 +64,11 @@ class _Result(BaseResult):
 
 # ─── Действие с одним sensitive-полем ────────────────────────────────────
 
-
 @meta("Действие с sensitive")
 @check_roles(ROLE_NONE)
 class _ActionOneSensitiveAction(BaseAction["_Params", "_Result"]):
-
     def __init__(self):
-        self._phone = "+7-999-123-4567"
+        self._phone = "[PHONE_PLUS7_REDACTED]"
 
     @sensitive()
     @property
@@ -83,14 +82,12 @@ class _ActionOneSensitiveAction(BaseAction["_Params", "_Result"]):
 
 # ─── Действие с несколькими sensitive-полями ─────────────────────────────
 
-
 @meta("Действие с несколькими sensitive")
 @check_roles(ROLE_NONE)
 class _ActionMultipleSensitiveAction(BaseAction["_Params", "_Result"]):
-
     def __init__(self):
-        self._phone = "+7-999-123-4567"
-        self._email = "alice@example.com"
+        self._phone = "[PHONE_PLUS7_REDACTED]"
+        self._email = "[EMAIL_REDACTED]"
 
     @sensitive(max_chars=4, char="*", max_percent=30)
     @property
@@ -109,11 +106,9 @@ class _ActionMultipleSensitiveAction(BaseAction["_Params", "_Result"]):
 
 # ─── Действие с disabled sensitive ───────────────────────────────────────
 
-
 @meta("Действие с disabled sensitive")
 @check_roles(ROLE_NONE)
 class _ActionDisabledSensitiveAction(BaseAction["_Params", "_Result"]):
-
     def __init__(self):
         self._token = "secret-token"
 
@@ -129,45 +124,52 @@ class _ActionDisabledSensitiveAction(BaseAction["_Params", "_Result"]):
 
 # ─── Действие без sensitive ──────────────────────────────────────────────
 
-
 @meta("Действие без sensitive")
 @check_roles(ROLE_NONE)
 class _ActionNoSensitiveAction(BaseAction["_Params", "_Result"]):
-
     @summary_aspect("Итог")
     async def finalize_summary(self, params, state, box, connections):
         return {"result": "ok"}
 
 
-# ─── Плагин-наследник OnGateHost с подписками ───────────────────────────
+# ─── Плагин-наследник Plugin с подписками ────────────────────────────────
+
+class _AuditPlugin(Plugin):
+    """Тестовый плагин с двумя подписками на разные типы событий."""
+
+    async def get_initial_state(self) -> dict:
+        return {}
+
+    @on(GlobalStartEvent)
+    async def on_start(self, state, event: GlobalStartEvent, log):
+        return state
+
+    @on(GlobalFinishEvent, ignore_exceptions=True)
+    async def on_finish(self, state, event: GlobalFinishEvent, log):
+        return state
 
 
-class _AuditPlugin(OnGateHost):
+class _MetricsPlugin(Plugin):
+    """Тестовый плагин с одной подпиской."""
 
-    @on("global.start")
-    async def on_start(self, event, state, logger):
-        pass
+    async def get_initial_state(self) -> dict:
+        return {}
 
-    @on("global.finish", action_filter="*", ignore_exceptions=True)
-    async def on_finish(self, event, state, logger):
-        pass
-
-
-class _MetricsPlugin(OnGateHost):
-
-    @on("global.finish")
-    async def on_finish(self, event, state, logger):
-        pass
+    @on(GlobalFinishEvent)
+    async def on_finish(self, state, event: GlobalFinishEvent, log):
+        return state
 
 
-class _EmptyPluginHost(OnGateHost):
-    pass
+class _EmptyPluginHost(Plugin):
+    """Плагин без подписок — для проверки пустых subscriptions."""
+
+    async def get_initial_state(self) -> dict:
+        return {}
 
 
 # ═════════════════════════════════════════════════════════════════════════════
 # Sensitive-поля
 # ═════════════════════════════════════════════════════════════════════════════
-
 
 class TestSensitiveFields:
     """Проверяет сборку sensitive-полей из декоратора @sensitive."""
@@ -214,7 +216,6 @@ class TestSensitiveFields:
 # Атрибуты sensitive-поля
 # ═════════════════════════════════════════════════════════════════════════════
 
-
 class TestSensitiveFieldAttributes:
     """Проверяет атрибуты SensitiveFieldMeta."""
 
@@ -256,7 +257,6 @@ class TestSensitiveFieldAttributes:
 # Подписки (subscriptions)
 # ═════════════════════════════════════════════════════════════════════════════
 
-
 class TestSubscriptions:
     """Проверяет сборку подписок из декоратора @on."""
 
@@ -277,32 +277,55 @@ class TestSubscriptions:
         # Assert
         assert len(result.subscriptions) == 2
 
-    def test_event_type_preserved(self):
-        """event_type сохраняется в SubscriptionInfo."""
+    def test_event_class_preserved(self):
+        """event_class сохраняется в SubscriptionInfo."""
         # Arrange & Act
         result = MetadataBuilder().build(_MetricsPlugin)
         sub = result.subscriptions[0]
 
         # Assert
-        assert sub.event_type == "global.finish"
+        assert sub.event_class is GlobalFinishEvent
 
-    def test_action_filter_preserved(self):
-        """action_filter сохраняется в SubscriptionInfo."""
+    def test_event_class_start_preserved(self):
+        """event_class GlobalStartEvent сохраняется в SubscriptionInfo."""
         # Arrange & Act
         result = MetadataBuilder().build(_AuditPlugin)
-        finish_sub = next(s for s in result.subscriptions if s.event_type == "global.finish")
+        start_sub = next(
+            s for s in result.subscriptions if s.event_class is GlobalStartEvent
+        )
 
         # Assert
-        assert finish_sub.action_filter == "*"
+        assert start_sub.event_class is GlobalStartEvent
+        assert start_sub.method_name == "on_start"
 
     def test_ignore_exceptions_preserved(self):
         """ignore_exceptions сохраняется в SubscriptionInfo."""
         # Arrange & Act
         result = MetadataBuilder().build(_AuditPlugin)
-        finish_sub = next(s for s in result.subscriptions if s.event_type == "global.finish")
+        finish_sub = next(
+            s for s in result.subscriptions if s.event_class is GlobalFinishEvent
+        )
 
         # Assert
         assert finish_sub.ignore_exceptions is True
+
+    def test_ignore_exceptions_default_true(self):
+        """ignore_exceptions по умолчанию True."""
+        # Arrange & Act
+        result = MetadataBuilder().build(_MetricsPlugin)
+        sub = result.subscriptions[0]
+
+        # Assert
+        assert sub.ignore_exceptions is True
+
+    def test_method_name_preserved(self):
+        """method_name сохраняется в SubscriptionInfo."""
+        # Arrange & Act
+        result = MetadataBuilder().build(_MetricsPlugin)
+        sub = result.subscriptions[0]
+
+        # Assert
+        assert sub.method_name == "on_finish"
 
     def test_no_subscriptions_empty(self):
         """Класс без подписок → пустой кортеж."""
@@ -318,18 +341,17 @@ class TestSubscriptions:
 # Подписки без GateHost
 # ═════════════════════════════════════════════════════════════════════════════
 
-
 class TestSubscriptionsWithoutGateHost:
     """Проверяет, что подписки на классе без OnGateHost вызывают ошибку."""
 
     def test_subscriptions_without_host_raises(self):
-        """@on на классе без OnGateHost отклоняется."""
+        """@on на классе без OnGateHost отклоняется MetadataBuilder."""
         # Arrange
         class _NoHost:
-            @on("global.start")
-            async def on_start(self, event, state, logger):
-                pass
+            @on(GlobalStartEvent)
+            async def on_start(self, state, event: GlobalStartEvent, log):
+                return state
 
         # Act & Assert
-        with pytest.raises((TypeError, ValueError)):
+        with pytest.raises(TypeError, match="OnGateHost"):
             MetadataBuilder().build(_NoHost)

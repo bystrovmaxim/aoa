@@ -11,36 +11,127 @@
 аудит, логирование побочных эффектов и т.д.
 
 ═══════════════════════════════════════════════════════════════════════════════
+ТИПОБЕЗОПАСНАЯ ПОДПИСКА ЧЕРЕЗ КЛАССЫ СОБЫТИЙ
+═══════════════════════════════════════════════════════════════════════════════
+
+Плагины подписываются на события через декоратор @on, принимающий класс
+события из иерархии BasePluginEvent как первый аргумент:
+
+    @on(GlobalFinishEvent)                — только global_finish
+    @on(GlobalLifecycleEvent)             — global_start + global_finish
+    @on(AspectEvent)                      — все before/after всех аспектов
+    @on(AfterRegularAspectEvent)          — только after regular-аспектов
+    @on(UnhandledErrorEvent)              — ошибки без @on_error обработчика
+
+Опечатка в имени класса → ImportError при импорте модуля, а не молчаливый
+баг в рантайме. IDE автодополняет имена классов и проверяет поля событий.
+
+═══════════════════════════════════════════════════════════════════════════════
+ИЕРАРХИЯ КЛАССОВ СОБЫТИЙ
+═══════════════════════════════════════════════════════════════════════════════
+
+    BasePluginEvent                              — корень, общие поля
+    ├── GlobalLifecycleEvent                     — группа: start + finish
+    │   ├── GlobalStartEvent                     — старт конвейера
+    │   └── GlobalFinishEvent                    — финиш (+ result, duration_ms)
+    ├── AspectEvent                              — группа: все аспектные события
+    │   ├── RegularAspectEvent                   — группа: regular-аспекты
+    │   │   ├── BeforeRegularAspectEvent         — перед regular
+    │   │   └── AfterRegularAspectEvent          — после regular (+ aspect_result)
+    │   ├── SummaryAspectEvent                   — группа: summary-аспекты
+    │   │   ├── BeforeSummaryAspectEvent         — перед summary
+    │   │   └── AfterSummaryAspectEvent          — после summary (+ result)
+    │   ├── OnErrorAspectEvent                   — группа: on_error обработчики
+    │   │   ├── BeforeOnErrorAspectEvent         — перед on_error (+ error)
+    │   │   └── AfterOnErrorAspectEvent          — после on_error (+ handler_result)
+    │   └── CompensateAspectEvent                — группа: compensate (зарезервировано)
+    │       ├── BeforeCompensateAspectEvent       — перед compensate
+    │       └── AfterCompensateAspectEvent        — после compensate
+    ├── ErrorEvent                               — группа: ошибки конвейера
+    │   └── UnhandledErrorEvent                  — ошибка без @on_error обработчика
+    └── (будущие группы расширяются наследованием)
+
+Каждый класс содержит РОВНО те поля, которые имеют смысл для данного типа
+события. GlobalStartEvent не имеет result, AfterRegularAspectEvent содержит
+aspect_result и duration_ms. Групповые классы (GlobalLifecycleEvent,
+AspectEvent) не создаются машиной напрямую — они существуют только для
+групповой подписки через isinstance.
+
+═══════════════════════════════════════════════════════════════════════════════
+ФИЛЬТРЫ В ДЕКОРАТОРЕ @on
+═══════════════════════════════════════════════════════════════════════════════
+
+Помимо event_class, декоратор @on принимает опциональные фильтры:
+
+    @on(
+        GlobalFinishEvent,
+        action_class=OrderAction,              # фильтр по типу действия
+        action_name_pattern=r"orders\\..*",    # regex по имени действия
+        aspect_name_pattern=r"validate_.*",    # regex по имени аспекта
+        nest_level=0,                          # фильтр по вложенности
+        domain=OrdersDomain,                   # фильтр по домену
+        predicate=lambda e: e.duration_ms > 1000,  # произвольный фильтр
+        ignore_exceptions=True,                # подавление ошибок
+    )
+
+Внутри одного @on фильтры проверяются с AND-логикой: все указанные
+должны пройти одновременно. Неуказанные (None) пропускаются.
+
+OR-логика реализуется между несколькими @on на одном методе:
+
+    @on(GlobalStartEvent)               # ИЛИ start
+    @on(GlobalFinishEvent)              # ИЛИ finish
+    async def on_lifecycle(self, state, event: GlobalLifecycleEvent, log):
+        ...
+
+═══════════════════════════════════════════════════════════════════════════════
 КОМПОНЕНТЫ
 ═══════════════════════════════════════════════════════════════════════════════
 
-- OnGateHost — маркерный миксин, обозначающий поддержку декоратора @on
-  для подписки методов на события машины. Наследуется Plugin.
+Классы событий (events.py):
 
-- Plugin — абстрактный базовый класс плагинов. Каждый плагин реализует
-  get_initial_state(), возвращающий начальное состояние для одного запроса.
-  Состояние передаётся в обработчики и обновляется после каждого вызова.
+- BasePluginEvent — корневой класс всех событий. Содержит action_class,
+  action_name, nest_level, context, params.
+- GlobalLifecycleEvent, GlobalStartEvent, GlobalFinishEvent — события
+  жизненного цикла действия.
+- AspectEvent — групповой класс аспектных событий. Добавляет aspect_name,
+  state_snapshot.
+- RegularAspectEvent, BeforeRegularAspectEvent, AfterRegularAspectEvent —
+  события regular-аспектов.
+- SummaryAspectEvent, BeforeSummaryAspectEvent, AfterSummaryAspectEvent —
+  события summary-аспектов.
+- OnErrorAspectEvent, BeforeOnErrorAspectEvent, AfterOnErrorAspectEvent —
+  события обработчиков @on_error.
+- CompensateAspectEvent и наследники — зарезервированы для будущих версий.
+- ErrorEvent, UnhandledErrorEvent — ошибки конвейера.
 
-- PluginEvent — frozen-датакласс, описывающий событие, доставляемое
-  обработчику. Содержит имя действия, параметры, состояние аспекта,
-  результат, длительность и другие поля.
+Подписка и конфигурация:
 
-- PluginCoordinator — stateless-координатор, управляющий списком плагинов.
-  Не хранит мутабельного состояния между запросами. Предоставляет
-  фабричный метод create_run_context() для создания изолированного
-  контекста на каждый вызов run().
-
-- PluginRunContext — изолированный контекст плагинов для одного вызова
-  run(). Хранит состояния плагинов, маршрутизирует события к подписанным
-  методам, создаёт ScopedLogger для каждого обработчика и передаёт его
-  как параметр log.
+- SubscriptionInfo — frozen-датакласс конфигурации одной подписки. Содержит
+  event_class, все фильтры, ignore_exceptions и method_name.
+  Компилирует regex при создании. Предоставляет методы matches_*()
+  для проверки каждого фильтра.
 
 - on — декоратор для подписки async-метода плагина на событие.
-  Записывает SubscriptionInfo в method._on_subscriptions.
-  Обработчик обязан иметь сигнатуру (self, state, event, log).
+  Принимает event_class и опциональные фильтры. Создаёт SubscriptionInfo
+  и добавляет в method._on_subscriptions.
 
-- SubscriptionInfo — frozen-датакласс с параметрами подписки
-  (event_type, action_filter, ignore_exceptions).
+Инфраструктура:
+
+- OnGateHost — маркерный миксин, обозначающий поддержку @on.
+  Наследуется Plugin. MetadataBuilder проверяет наличие при сборке.
+
+- Plugin — абстрактный базовый класс плагинов. Каждый плагин реализует
+  get_initial_state() и определяет @on-обработчики. Метод get_handlers()
+  находит подписки, совпавшие с событием по event_class (шаг 1 фильтрации).
+
+- PluginCoordinator — stateless-координатор. Хранит список Plugin,
+  создаёт изолированный PluginRunContext для каждого вызова run().
+
+- PluginRunContext — изолированный контекст для одного run(). Хранит
+  per-request состояния плагинов. Метод emit_event() принимает объект
+  события, проверяет полную цепочку фильтров (7 шагов) и доставляет
+  событие обработчикам.
 
 ═══════════════════════════════════════════════════════════════════════════════
 СИГНАТУРА ОБРАБОТЧИКОВ
@@ -48,18 +139,16 @@
 
 Все обработчики плагинов обязаны иметь сигнатуру с 4 параметрами:
 
-    async def handler(self, state, event, log) → state
+    async def handler(self, state, event: EventClass, log) -> state
 
     - self   — экземпляр плагина.
     - state  — текущее per-request состояние плагина.
-    - event  — объект PluginEvent с данными о событии.
+    - event  — объект события из иерархии BasePluginEvent. Аннотация типа
+               может быть конкретным классом (GlobalFinishEvent), групповым
+               (AspectEvent) или базовым (BasePluginEvent). MetadataBuilder
+               проверяет совместимость: event_class из @on должен быть
+               подклассом аннотации event.
     - log    — ScopedLogger, привязанный к scope плагина.
-
-Scope логгера плагина содержит поля: machine, mode, plugin, action,
-event, nest_level. Все поля доступны в шаблонах через {%scope.*}:
-
-    await log.info("[{%scope.plugin}] Действие {%scope.action} завершено")
-    await log.debug("Уровень вложенности: {%scope.nest_level}")
 
 ═══════════════════════════════════════════════════════════════════════════════
 ЖИЗНЕННЫЙ ЦИКЛ ПЛАГИНОВ В РАМКАХ ОДНОГО ЗАПРОСА
@@ -69,69 +158,103 @@ event, nest_level. Все поля доступны в шаблонах чере
        plugin_coordinator.create_run_context().
     2. create_run_context() вызывает get_initial_state() для каждого
        плагина и создаёт PluginRunContext с начальными состояниями.
-    3. Все события (global_start, before/after аспектов, global_finish)
-       отправляются через plugin_ctx.emit_event().
-    4. Машина передаёт в emit_event() ссылку на log_coordinator,
-       machine_name и mode — для создания ScopedLogger обработчикам.
-    5. PluginRunContext создаёт ScopedLogger для каждого обработчика
-       и вызывает handler(plugin, state, event, log).
-    6. Каждый обработчик получает текущее состояние и возвращает новое.
-    7. По завершении run() контекст уничтожается.
+    3. Машина создаёт типизированные события (GlobalStartEvent,
+       BeforeRegularAspectEvent и т.д.) в ключевых точках конвейера.
+    4. Каждое событие передаётся в plugin_ctx.emit_event(event, ...).
+    5. PluginRunContext проверяет цепочку фильтров (7 шагов) для каждой
+       подписки каждого плагина.
+    6. Прошедшие обработчики получают ScopedLogger и вызываются.
+    7. Каждый обработчик получает текущее состояние и возвращает новое.
+    8. По завершении run() контекст уничтожается.
 
 ═══════════════════════════════════════════════════════════════════════════════
-АККУМУЛЯЦИЯ ДАННЫХ МЕЖДУ ЗАПРОСАМИ
+ПРИМЕР: ПЛАГИН МЕТРИК
 ═══════════════════════════════════════════════════════════════════════════════
 
-Фреймворк обеспечивает изоляцию per-request состояния. Если плагину
-необходимо накапливать данные между запросами (метрики, счётчики), он
-использует внешнее хранилище, переданное через конструктор плагина.
+    from action_machine.plugins import Plugin, on
+    from action_machine.plugins.events import (
+        GlobalFinishEvent,
+        UnhandledErrorEvent,
+    )
 
-═══════════════════════════════════════════════════════════════════════════════
-ПРИМЕР: ПЛАГИН-СЧЁТЧИК
-═══════════════════════════════════════════════════════════════════════════════
-
-    class CounterPlugin(Plugin):
+    class MetricsPlugin(Plugin):
         async def get_initial_state(self) -> dict:
-            return {"count": 0}
+            return {"total": 0, "slow": 0}
 
-        @on("global_finish", ".*")
-        async def count(self, state, event, log):
-            state["count"] += 1
-            await log.info("Вызовов: {%var.count}", count=state["count"])
+        @on(GlobalFinishEvent)
+        async def on_track(self, state, event: GlobalFinishEvent, log):
+            state["total"] += 1
+            if event.duration_ms > 1000:
+                state["slow"] += 1
+                await log.warning(
+                    "Медленное действие: {%var.name} за {%var.ms}мс",
+                    name=event.action_name,
+                    ms=event.duration_ms,
+                )
             return state
 
-═══════════════════════════════════════════════════════════════════════════════
-ПРИМЕР: ПЛАГИН АУДИТА
-═══════════════════════════════════════════════════════════════════════════════
-
-    class AuditPlugin(Plugin):
-        async def get_initial_state(self) -> dict:
-            return {"actions": []}
-
-        @on("global_finish", ".*")
-        async def audit(self, state, event, log):
-            state["actions"].append(event.action_name)
-            await log.info(
-                "[{%scope.plugin}] Действие {%scope.action} завершено "
-                "за {%var.duration}с на уровне {%scope.nest_level}",
-                duration=event.duration,
-            )
+        @on(UnhandledErrorEvent)
+        async def on_error(self, state, event: UnhandledErrorEvent, log):
+            await log.error("Необработанная ошибка: {%var.err}", err=str(event.error))
             return state
 """
 
-from .decorators import SubscriptionInfo, on
+from .decorators import on
+from .events import (
+    AfterCompensateAspectEvent,
+    AfterOnErrorAspectEvent,
+    AfterRegularAspectEvent,
+    AfterSummaryAspectEvent,
+    AspectEvent,
+    BasePluginEvent,
+    BeforeCompensateAspectEvent,
+    BeforeOnErrorAspectEvent,
+    BeforeRegularAspectEvent,
+    BeforeSummaryAspectEvent,
+    CompensateAspectEvent,
+    ErrorEvent,
+    GlobalFinishEvent,
+    GlobalLifecycleEvent,
+    GlobalStartEvent,
+    OnErrorAspectEvent,
+    RegularAspectEvent,
+    SummaryAspectEvent,
+    UnhandledErrorEvent,
+)
 from .on_gate_host import OnGateHost
 from .plugin import Plugin
 from .plugin_coordinator import PluginCoordinator
-from .plugin_event import PluginEvent
 from .plugin_run_context import PluginRunContext
+from .subscription_info import SubscriptionInfo
 
 __all__ = [
+    # Классы событий — корневые и групповые
+    "BasePluginEvent",
+    "GlobalLifecycleEvent",
+    "AspectEvent",
+    "RegularAspectEvent",
+    "SummaryAspectEvent",
+    "OnErrorAspectEvent",
+    "CompensateAspectEvent",
+    "ErrorEvent",
+    # Классы событий — конкретные (leaf)
+    "GlobalStartEvent",
+    "GlobalFinishEvent",
+    "BeforeRegularAspectEvent",
+    "AfterRegularAspectEvent",
+    "BeforeSummaryAspectEvent",
+    "AfterSummaryAspectEvent",
+    "BeforeOnErrorAspectEvent",
+    "AfterOnErrorAspectEvent",
+    "BeforeCompensateAspectEvent",
+    "AfterCompensateAspectEvent",
+    "UnhandledErrorEvent",
+    # Подписка и конфигурация
+    "SubscriptionInfo",
+    "on",
+    # Инфраструктура
     "OnGateHost",
     "Plugin",
     "PluginCoordinator",
-    "PluginEvent",
     "PluginRunContext",
-    "SubscriptionInfo",
-    "on",
 ]

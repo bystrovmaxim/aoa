@@ -276,9 +276,11 @@ class TestNestLevel:
     @pytest.mark.asyncio
     async def test_plugin_receives_correct_nest_level(self, machine, context) -> None:
         """
-        Плагины получают nest_level через emit_event.
+        Плагины получают nest_level через объект события.
 
-        Проверяем, что в первом вызове emit_event (global_start) nest_level=1.
+        Машина создаёт типизированный GlobalStartEvent с nest_level
+        как полем объекта и передаёт его как первый позиционный
+        аргумент в emit_event().
         """
         # Arrange — машина с замоканным PluginCoordinator
         mock_plugin_ctx = AsyncMock(spec=PluginRunContext)
@@ -292,9 +294,10 @@ class TestNestLevel:
         # Act — запуск с отслеживанием emit_event
         await machine.run(context, action, params)
 
-        # Assert — nest_level=1 в первом вызове emit_event (global_start)
+        # Assert — nest_level=1 в первом событии (GlobalStartEvent)
         first_call = mock_plugin_ctx.emit_event.call_args_list[0]
-        assert first_call.kwargs["nest_level"] == 1
+        event = first_call.args[0]  # первый позиционный аргумент — объект события
+        assert event.nest_level == 1
 
 
 # ═════════════════════════════════════════════════════════════════════════════

@@ -553,13 +553,14 @@ class GateCoordinator:
 
         # Подписки (leaf-рёбра)
         for i, sub_info in enumerate(metadata.subscriptions):
-            sub_name = f"{class_name}.subscription_{i}_{sub_info.event_type}"
+            sub_name = f"{class_name}.subscription_{i}_{sub_info.event_class.__name__}"
             sub_idx = self._ensure_node(
                 "subscription", sub_name,
                 meta={
-                    "event_type": sub_info.event_type,
-                    "action_filter": sub_info.action_filter,
+                    "event_class": sub_info.event_class.__name__,
+                    "action_name_pattern": sub_info.action_name_pattern,
                     "ignore_exceptions": sub_info.ignore_exceptions,
+                    "method_name": sub_info.method_name,
                 },
             )
             self._add_leaf_edge(class_idx, sub_idx, "subscribes")

@@ -1,28 +1,42 @@
 # tests/on_error/test_on_error_plugins.py
 """
-Тесты события "on_error" в плагинной системе.
-
+Тесты событий ошибок в плагинной системе.
 ═══════════════════════════════════════════════════════════════════════════════
 НАЗНАЧЕНИЕ
 ═══════════════════════════════════════════════════════════════════════════════
+Проверяет, что плагины получают типизированные события ошибок при
+исключении в аспекте:
 
-Проверяет, что плагины получают событие "on_error" при ошибке в аспекте:
-- Плагин вызывается ДО обработчика @on_error на Action.
-- Плагин получает полный scope: error, has_action_handler, action_name.
+- BeforeOnErrorAspectEvent эмитируется когда Action имеет @on_error
+  обработчик — плагин вызывается ДО вызова обработчика [1].
+- UnhandledErrorEvent эмитируется когда Action НЕ имеет подходящего
+  @on_error обработчика — плагин вызывается ДО проброса исключения [1].
 - Плагин не может изменить результат — только наблюдает.
 - Плагин вызывается и когда Action имеет обработчик, и когда не имеет.
-- Без ошибки в аспекте — событие "on_error" не эмитируется.
+- Без ошибки в аспекте — события ошибок не эмитируются.
+
+В новой типизированной системе вместо единого строкового события
+"on_error" с Optional-полем has_action_handler используются два
+отдельных типа событий с разными полями:
+
+    BeforeOnErrorAspectEvent  — обработчик найден (поля: error, handler_name)
+    UnhandledErrorEvent       — обработчик не найден (поля: error, failed_aspect_name)
 
 Тесты используют плагины из tests/domain/error_plugins.py
 и Action из tests/domain/error_actions.py.
 """
-
 import pytest
 
 from action_machine.context.context import Context
 from action_machine.core.action_product_machine import ActionProductMachine
 from action_machine.core.gate_coordinator import GateCoordinator
 from action_machine.logging.log_coordinator import LogCoordinator
+from action_machine.plugins.decorators import on
+from action_machine.plugins.events import (
+    BeforeOnErrorAspectEvent,
+    UnhandledErrorEvent,
+)
+from action_machine.plugins.plugin import Plugin
 from tests.domain import (
     ErrorHandledAction,
     ErrorTestParams,
@@ -33,7 +47,6 @@ from tests.domain.error_plugins import ErrorCounterPlugin, ErrorObserverPlugin
 # ═════════════════════════════════════════════════════════════════════════════
 # Вспомогательная функция для создания машины с плагинами
 # ═════════════════════════════════════════════════════════════════════════════
-
 
 def _make_machine(
     plugins: list,
@@ -51,14 +64,18 @@ def _make_machine(
 # Плагин вызывается при ошибке с обработчиком на Action
 # ═════════════════════════════════════════════════════════════════════════════
 
-
 class TestOnErrorPluginWithHandler:
-    """Плагин получает событие "on_error" когда Action имеет @on_error обработчик."""
+    """
+    Плагин получает BeforeOnErrorAspectEvent когда Action имеет @on_error обработчик.
+
+    Машина эмитирует BeforeOnErrorAspectEvent перед вызовом найденного
+    @on_error обработчика [1]. Событие содержит error (исключение) и
+    handler_name (имя метода обработчика).
+    """
 
     @pytest.mark.asyncio()
     async def test_observer_receives_error_event(self) -> None:
         """ErrorObserverPlugin записывает ошибку в state["errors"]."""
-
         # Arrange — плагин-наблюдатель + Action с обработчиком ValueError
         observer = ErrorObserverPlugin()
         machine = _make_machine(plugins=[observer])
@@ -71,31 +88,18 @@ class TestOnErrorPluginWithHandler:
         # Assert — результат от обработчика (ошибка обработана)
         assert result.status == "handled"
 
-
     @pytest.mark.asyncio()
     async def test_observer_records_error_details(self) -> None:
         """Плагин записывает тип ошибки, сообщение и наличие обработчика."""
-
-        # Arrange — используем прямой доступ к машине для проверки состояния плагина.
-        # Создаём машину с плагином и выполняем действие через run(),
-        # затем проверяем, что плагин получил корректные данные.
-        # Для этого нужен доступ к PluginRunContext — переделываем через
-        # ручной вызов _run_internal и перехват состояния.
-
+        # Arrange
         observer = ErrorObserverPlugin()
         counter = ErrorCounterPlugin()
-        coordinator = GateCoordinator()
-        log_coordinator = LogCoordinator(loggers=[])
-
-
-        # Создаём машину без плагинов (плагины вызовем вручную через ctx)
         machine = ActionProductMachine(
             mode="test",
-            coordinator=coordinator,
+            coordinator=GateCoordinator(),
             plugins=[observer, counter],
-            log_coordinator=log_coordinator,
+            log_coordinator=LogCoordinator(loggers=[]),
         )
-
         params = ErrorTestParams(value="broken", should_fail=True)
         context = Context()
 
@@ -107,30 +111,29 @@ class TestOnErrorPluginWithHandler:
 
     @pytest.mark.asyncio()
     async def test_counter_increments_handled(self) -> None:
-        """ErrorCounterPlugin инкрементирует handled_count при ошибке с обработчиком."""
+        """
+        Плагин с внешним хранилищем инкрементирует handled_count
+        при ошибке с обработчиком на Action.
 
-        # Arrange — прямая проверка через полный цикл run + доступ к состоянию.
-        # Поскольку per-request состояние уничтожается после run(),
-        # проверяем поведение через кастомный плагин, сохраняющий данные
-        # во внешнее хранилище.
-
-        from action_machine.plugins.decorators import on
-        from action_machine.plugins.plugin import Plugin
-        from action_machine.plugins.plugin_event import PluginEvent
-
+        Подписан на BeforeOnErrorAspectEvent — эмитируется когда машина
+        нашла подходящий @on_error обработчик [1].
+        """
         external_storage: dict = {"count": 0, "handled": 0, "unhandled": 0}
 
         class StoringCounterPlugin(Plugin):
             async def get_initial_state(self) -> dict:
                 return {}
 
-            @on("on_error", ".*")
-            async def on_count(self, state, event: PluginEvent, log):
+            @on(BeforeOnErrorAspectEvent)
+            async def on_count_handled(self, state, event: BeforeOnErrorAspectEvent, log):
                 external_storage["count"] += 1
-                if event.has_action_handler:
-                    external_storage["handled"] += 1
-                else:
-                    external_storage["unhandled"] += 1
+                external_storage["handled"] += 1
+                return state
+
+            @on(UnhandledErrorEvent)
+            async def on_count_unhandled(self, state, event: UnhandledErrorEvent, log):
+                external_storage["count"] += 1
+                external_storage["unhandled"] += 1
                 return state
 
         machine = _make_machine(plugins=[StoringCounterPlugin()])
@@ -150,29 +153,28 @@ class TestOnErrorPluginWithHandler:
 # Плагин вызывается при ошибке БЕЗ обработчика на Action
 # ═════════════════════════════════════════════════════════════════════════════
 
-
 class TestOnErrorPluginWithoutHandler:
-    """Плагин получает on_error даже когда Action не имеет @on_error."""
+    """
+    Плагин получает UnhandledErrorEvent когда Action не имеет @on_error.
+
+    Машина эмитирует UnhandledErrorEvent когда ни один @on_error обработчик
+    не подошёл по типу исключения [1]. После эмиссии события исходное
+    исключение пробрасывается наружу.
+    """
 
     @pytest.mark.asyncio()
     async def test_plugin_called_before_error_propagates(self) -> None:
-        """Плагин получает on_error с has_action_handler=False, затем ошибка пробрасывается."""
-
-        from action_machine.plugins.decorators import on
-        from action_machine.plugins.plugin import Plugin
-        from action_machine.plugins.plugin_event import PluginEvent
-
-        external_storage: dict = {"called": False, "has_handler": None, "error_type": None}
+        """Плагин получает UnhandledErrorEvent, затем ошибка пробрасывается."""
+        external_storage: dict = {"called": False, "error_type": None}
 
         class ObserverPlugin(Plugin):
             async def get_initial_state(self) -> dict:
                 return {}
 
-            @on("on_error", ".*")
-            async def on_observe(self, state, event: PluginEvent, log):
+            @on(UnhandledErrorEvent)
+            async def on_observe(self, state, event: UnhandledErrorEvent, log):
                 external_storage["called"] = True
-                external_storage["has_handler"] = event.has_action_handler
-                external_storage["error_type"] = type(event.error).__name__ if event.error else None
+                external_storage["error_type"] = type(event.error).__name__
                 return state
 
         machine = _make_machine(plugins=[ObserverPlugin()])
@@ -184,14 +186,12 @@ class TestOnErrorPluginWithoutHandler:
 
         # Assert — плагин всё равно был вызван ДО проброса
         assert external_storage["called"] is True
-        assert external_storage["has_handler"] is False
         assert external_storage["error_type"] == "ValueError"
 
 
 # ═════════════════════════════════════════════════════════════════════════════
 # Плагин не может подавить ошибку
 # ═════════════════════════════════════════════════════════════════════════════
-
 
 class TestOnErrorPluginCannotSuppressError:
     """Плагин наблюдает, но не может подавить ошибку или изменить результат."""
@@ -200,17 +200,14 @@ class TestOnErrorPluginCannotSuppressError:
     async def test_plugin_cannot_change_result(self) -> None:
         """Даже если плагин вернёт что-то — результат определяется Action, не плагином."""
 
-        from action_machine.plugins.decorators import on
-        from action_machine.plugins.plugin import Plugin
-        from action_machine.plugins.plugin_event import PluginEvent
-
         class AggressivePlugin(Plugin):
             """Плагин, который пытается 'обработать' ошибку — но не может."""
+
             async def get_initial_state(self) -> dict:
                 return {"tried_to_handle": False}
 
-            @on("on_error", ".*")
-            async def on_try_handle(self, state, event: PluginEvent, log):
+            @on(BeforeOnErrorAspectEvent)
+            async def on_try_handle(self, state, event: BeforeOnErrorAspectEvent, log):
                 state["tried_to_handle"] = True
                 # Плагин не может подавить ошибку — только наблюдает.
                 # Возвращаем state, но это не влияет на результат Action.
@@ -227,29 +224,28 @@ class TestOnErrorPluginCannotSuppressError:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Без ошибки — событие "on_error" не эмитируется
+# Без ошибки — события ошибок не эмитируются
 # ═════════════════════════════════════════════════════════════════════════════
 
-
 class TestOnErrorPluginNotCalledOnSuccess:
-    """При успешном выполнении событие 'on_error' не эмитируется."""
+    """При успешном выполнении события ошибок не эмитируются."""
 
     @pytest.mark.asyncio()
-    async def test_no_error_no_on_error_event(self) -> None:
-        """Нормальное выполнение → плагин on_error НЕ вызывается."""
-
-        from action_machine.plugins.decorators import on
-        from action_machine.plugins.plugin import Plugin
-        from action_machine.plugins.plugin_event import PluginEvent
-
+    async def test_no_error_no_error_event(self) -> None:
+        """Нормальное выполнение → плагины на события ошибок НЕ вызываются."""
         external_storage: dict = {"called": False}
 
         class NeverCalledPlugin(Plugin):
             async def get_initial_state(self) -> dict:
                 return {}
 
-            @on("on_error", ".*")
-            async def on_should_not_be_called(self, state, event: PluginEvent, log):
+            @on(BeforeOnErrorAspectEvent)
+            async def on_should_not_be_called_handled(self, state, event: BeforeOnErrorAspectEvent, log):
+                external_storage["called"] = True
+                return state
+
+            @on(UnhandledErrorEvent)
+            async def on_should_not_be_called_unhandled(self, state, event: UnhandledErrorEvent, log):
                 external_storage["called"] = True
                 return state
 
@@ -259,41 +255,35 @@ class TestOnErrorPluginNotCalledOnSuccess:
         # Act — нормальное выполнение, без ошибки
         result = await machine.run(Context(), ErrorHandledAction(), params)
 
-        # Assert — результат от summary, плагин on_error НЕ вызван
+        # Assert — результат от summary, плагины ошибок НЕ вызваны
         assert result.status == "ok"
         assert external_storage["called"] is False
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Плагин получает полный scope в событии on_error
+# Плагин получает полный scope в событии ошибки
 # ═════════════════════════════════════════════════════════════════════════════
 
-
 class TestOnErrorPluginEventScope:
-    """Плагин получает корректные данные в PluginEvent при on_error."""
+    """Плагин получает корректные данные в типизированном событии ошибки."""
 
     @pytest.mark.asyncio()
     async def test_event_contains_error_and_action_name(self) -> None:
-        """PluginEvent содержит error, action_name, has_action_handler."""
-
-        from action_machine.plugins.decorators import on
-        from action_machine.plugins.plugin import Plugin
-        from action_machine.plugins.plugin_event import PluginEvent
-
+        """BeforeOnErrorAspectEvent содержит error, action_name, handler_name."""
         captured_events: list[dict] = []
 
         class CapturingPlugin(Plugin):
             async def get_initial_state(self) -> dict:
                 return {}
 
-            @on("on_error", ".*")
-            async def on_capture(self, state, event: PluginEvent, log):
+            @on(BeforeOnErrorAspectEvent)
+            async def on_capture(self, state, event: BeforeOnErrorAspectEvent, log):
                 captured_events.append({
-                    "event_name": event.event_name,
+                    "event_type": type(event).__name__,
                     "action_name": event.action_name,
                     "error": event.error,
-                    "error_type": type(event.error).__name__ if event.error else None,
-                    "has_action_handler": event.has_action_handler,
+                    "error_type": type(event.error).__name__,
+                    "handler_name": event.handler_name,
                     "nest_level": event.nest_level,
                 })
                 return state
@@ -308,10 +298,49 @@ class TestOnErrorPluginEventScope:
         assert len(captured_events) == 1
         ev = captured_events[0]
 
-        # Assert — поля события корректны
-        assert ev["event_name"] == "on_error"
+        # Assert — поля типизированного события корректны
+        assert ev["event_type"] == "BeforeOnErrorAspectEvent"
         assert "ErrorHandledAction" in ev["action_name"]
         assert ev["error_type"] == "ValueError"
         assert isinstance(ev["error"], ValueError)
-        assert ev["has_action_handler"] is True
+        assert isinstance(ev["handler_name"], str)
+        assert ev["nest_level"] >= 1
+
+    @pytest.mark.asyncio()
+    async def test_unhandled_event_contains_failed_aspect_name(self) -> None:
+        """UnhandledErrorEvent содержит error и failed_aspect_name."""
+        captured_events: list[dict] = []
+
+        class CapturingPlugin(Plugin):
+            async def get_initial_state(self) -> dict:
+                return {}
+
+            @on(UnhandledErrorEvent)
+            async def on_capture_unhandled(self, state, event: UnhandledErrorEvent, log):
+                captured_events.append({
+                    "event_type": type(event).__name__,
+                    "action_name": event.action_name,
+                    "error": event.error,
+                    "error_type": type(event.error).__name__,
+                    "failed_aspect_name": event.failed_aspect_name,
+                    "nest_level": event.nest_level,
+                })
+                return state
+
+        machine = _make_machine(plugins=[CapturingPlugin()])
+        params = ErrorTestParams(value="fail", should_fail=True)
+
+        # Act & Assert — ошибка пробрасывается
+        with pytest.raises(ValueError):
+            await machine.run(Context(), NoErrorHandlerAction(), params)
+
+        # Assert — один event захвачен
+        assert len(captured_events) == 1
+        ev = captured_events[0]
+
+        # Assert — поля UnhandledErrorEvent корректны
+        assert ev["event_type"] == "UnhandledErrorEvent"
+        assert "NoErrorHandlerAction" in ev["action_name"]
+        assert ev["error_type"] == "ValueError"
+        assert isinstance(ev["error"], ValueError)
         assert ev["nest_level"] >= 1
