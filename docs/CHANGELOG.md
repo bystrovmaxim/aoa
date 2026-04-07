@@ -128,7 +128,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Access to private attributes in log templates is now blocked for any path segment, not only the last one.** This prevents bypassing the underscore rule via intermediate segments (`{%context._internal.public_key}`).
 
 
-## [0.0.9] – 2026-03-31
+## [0.7.0] – 2026-03-31
 
 ### Added
 
@@ -164,7 +164,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Unified example service (`fastapi_mcp_services`).** A single example package demonstrates the same three Actions (PingAction, CreateOrderAction, GetOrderAction) served simultaneously via FastAPI HTTP endpoints and MCP tools. Shared infrastructure (GateCoordinator, ActionProductMachine, NoAuthCoordinator) is defined once in `infrastructure.py`. Actions use nested Params/Result classes with forward references. Domains (OrdersDomain, SystemDomain) group actions by business area.
 
-## [0.0.8] – 2026-03-28
+## [0.6.0] – 2026-03-28
 
 ### Added
 
@@ -174,7 +174,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Comprehensive `_extract_bound` test coverage.** Added exhaustive tests for `DependencyGateHost` generic bound type extraction across all inheritance scenarios: explicit bound specification, missing bound fallback to `object`, three-level and four-level inheritance chains, multiple inheritance with mixins, `TypeVar` fallback, bound override in child classes, and diamond inheritance patterns.
 
-## [0.0.7] – 2026-03-21
+## [0.5.0] – 2026-03-21
 
 ### Added
 
@@ -188,7 +188,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **`RuntimeInfo` (renamed from `EnvironmentInfo`).** The context component storing runtime information (hostname, service name, version, container ID) is now named `RuntimeInfo` to better reflect its purpose. The context attribute is `context.runtime` instead of the previous `context.environment`.
 
-## [0.0.6] – 2026-03-19
+## [0.4.] – 2026-03-19
 
 ### Added
 
@@ -206,7 +206,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Context as a per-request parameter.** `context` is now passed directly to `machine.run(context, action, params, connections)` instead of being stored in the machine constructor. This reflects the architectural reality that the machine is a long-lived singleton while each request carries its own context containing user identity, request metadata, and runtime information. All internal methods receive `context` as an explicit argument.
 
-## [0.0.5] – 2026-03-19
+## [0.3.0] – 2026-03-19
 
 ### Added
 
@@ -216,7 +216,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Level-based coloring in `ConsoleLogger`.** Messages are automatically colored based on logging level: `info` — green, `warning` — yellow, `error` — red, `debug` — gray. The level is extracted from the `var["level"]` field set by `ScopedLogger`. Unresolved variable markers are colored red for immediate visibility.
 
-## [0.0.4] – 2026-03-18
+## [0.2.5] – 2026-03-18
 
 ### Added
 
@@ -224,7 +224,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Centralized linter configuration.** All ruff, pylint, and mypy settings consolidated in `pyproject.toml` with documented reasons for each disabled rule. Added `lint-fix` and `pre-commit` taskipy commands for automatic formatting. Achieved pylint 10.00/10, zero mypy errors, zero vulture warnings.
 
-## [0.0.3] – 2026-03-17
+## [0.2.0] – 2026-03-17
 
 ### Added
 
@@ -236,7 +236,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Connection validation chain.** The monolithic `_check_connections` method in `ActionProductMachine` decomposed into four focused validators, each checking one invariant: no declarations but connections passed, declarations but no connections, extra keys, and missing keys. A fifth validator checks that each value is an instance of `BaseResourceManager`. The main method calls validators in sequence with clear error messages.
 
-## [0.0.2] – 2026-03-16
+## [0.1.5] – 2026-03-16
 
 ### Added
 
@@ -250,7 +250,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Dict-like access for context components.** `UserInfo`, `RequestInfo`, and `RuntimeInfo` inherit `ReadableMixin`, enabling access as `user["user_id"]`, `request["trace_id"]`, `runtime["hostname"]` in addition to attribute access. This unifies data access patterns across plugins, logging templates, and business logic.
 
-## [0.0.1] – 2026-03-15
+## [0.1.0] – 2026-03-15
 
 ### Added
 
