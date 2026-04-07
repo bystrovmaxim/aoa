@@ -994,7 +994,7 @@ class ActionProductMachine(BaseActionMachine):
 
         # Стек компенсации — локальный для этого конвейера.
         # Не создаётся при rollup=True.
-        build_saga = not box.rollup and metadata.has_compensators()
+        build_saga = metadata.has_compensators()
 
         for aspect_meta in regular_aspects:
             # ── BeforeRegularAspectEvent ──────────────────────────────
@@ -1156,7 +1156,7 @@ class ActionProductMachine(BaseActionMachine):
             # Выполняется ДО @on_error: сначала откат побочных эффектов,
             # потом обработка бизнес-логики. Иначе @on_error работает
             # с неконсистентными данными.
-            if not box.rollup and saga_stack:
+            if saga_stack:
                 await self._rollback_saga(
                     saga_stack=saga_stack,
                     error=aspect_error,
