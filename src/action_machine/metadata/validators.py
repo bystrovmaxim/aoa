@@ -95,7 +95,6 @@ from action_machine.plugins.events import BasePluginEvent
 from action_machine.plugins.on_gate_host import OnGateHost
 from action_machine.plugins.subscription_info import SubscriptionInfo
 
-
 # ═════════════════════════════════════════════════════════════════════════════
 # Валидация описаний полей Params и Result
 #

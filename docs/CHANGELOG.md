@@ -13,7 +13,59 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.1.0] – 2026-04-07
+## [0.9.0] – 2026-04-07
+
+### Added
+
+- **Saga compensation (`@compensate`).** Added a compensation mechanism (Saga pattern) to roll back side effects when an error occurs in the regular aspect pipeline. Any regular aspect can have a compensator method declared with `@compensate(target_aspect_name, description)`. When an error occurs in any aspect, all previously completed aspects are rolled back in reverse order. Compensators can use `@context_requires` and receive two states: `state_before` (state before the aspect) and `state_after` (state after the aspect, `None` if a checker rejected the result). The return value of a compensator is ignored.
+
+- **Local compensation stacks.** Each `_run_internal()` call creates its own local `SagaFrame` stack. There is no global stack, ensuring correct isolation for nested `box.run()` calls. If a parent aspect catches a child action exception via `try/except`, the child stack is already unwound, and the parent aspect is added to the parent stack – subsequent errors in the parent cause only the parent stack to be rolled back.
+
+- **Silent compensator errors.** Exceptions raised inside a compensator are completely suppressed and do not interrupt stack unwinding. All remaining compensators still get a chance to execute. Failure information is available only through the new typed event `CompensateFailedEvent`, which monitoring plugins can subscribe to. This guarantees that a rollback error does not mask the original business error and does not break consistency.
+
+- **New typed compensation events.** Added two levels of events:
+  - **Whole‑rollback level:** `SagaRollbackStartedEvent` (contains `stack_depth`, `compensator_count`, `aspect_names`) and `SagaRollbackCompletedEvent` (contains `total_frames`, `succeeded`, `failed`, `skipped`, `duration_ms`, `failed_aspects`).
+  - **Single compensator level:** `BeforeCompensateAspectEvent` (contains `error`, `compensator_name`, `state_before`, `state_after`), `AfterCompensateAspectEvent` (contains `duration_ms`), and `CompensateFailedEvent` (contains `original_error`, `compensator_error`, `failed_for_aspect`).
+
+- **`SagaFrame` – compensation stack frame.** An immutable dataclass that stores, for each successfully executed regular aspect: a reference to its compensator (`CompensatorMeta`), the aspect name, and the state before and after the aspect. The stack is accumulated in `_execute_regular_aspects()` and consumed by `_rollback_saga()`.
+
+- **`CompensatorMeta` in `ClassMetadata`.** Added field `compensators: tuple[CompensatorMeta, ...]` and helper methods `has_compensators()`, `get_compensator_for_aspect(aspect_name)`. Compensators are collected from `vars(cls)` (not inherited). Invariants are validated in `MetadataBuilder.build()`: target aspect must exist, must be a regular aspect, and at most one compensator per aspect.
+
+- **Compensator graph in `GateCoordinator`.** New node type `"compensator"` and edge type `"has_compensator"` (leaf edge, no cycle check). Compensator nodes store metadata `target_aspect`, `description`, `method_name`. If a compensator uses `@context_requires`, additional `"requires_context"` edges are added to `context_field` nodes.
+
+- **`TestBench.run_compensator()` method.** Allows unit‑testing a compensator in isolation by passing `params`, `state_before`, `state_after`, `error`, and optionally `box`, `connections`, `context`. Unlike production, compensator errors are **not** suppressed – this makes it easy to test boundary conditions and verify that a compensator behaves correctly when it must fail. The API is symmetric with `run_aspect()`: method lookup by name, validation of the `@compensate` decorator, and support for `@context_requires`.
+
+- **Naming rule for compensators.** Compensator method names must end with `_compensate` (enforced by `@compensate`, violation raises `ValueError`). The suffix ensures visual identification of compensators in action classes.
+
+- **`rollup=True` skips compensation.** When `box.rollup is True`, the compensation stack is not built and `_rollback_saga()` is never called. Transactional rollback in that mode is handled by `IConnectionManager` (which executes `rollback()` instead of `commit()`), while non‑transactional side effects (HTTP requests, email sending) are not compensated in rollup mode.
+
+### Changed
+
+- **`ActionProductMachine._execute_regular_aspects()` now returns a tuple `(state, saga_stack)`.** This allows `_execute_aspects_with_error_handling()` to obtain the stack for later unwinding when an exception occurs.
+
+- **Error handling order:** compensation stack unwinding (`_rollback_saga()`) now happens **before** calling an `@on_error` handler (if any). This guarantees that the error handler works with consistent data after all side effects of previously completed aspects have been rolled back.
+
+- **`ActionProductMachine._execute_aspects_with_error_handling()` declares `saga_stack` before the `try` block.** The stack is accessible in the `except` clause even if the exception originates inside `_execute_regular_aspects()`. Frames for the failed aspect are not added, but frames for all previous successful aspects remain.
+
+- **`_rollback_saga()` never raises exceptions.** Compensator errors are caught, logged via `CompensateFailedEvent`, and the unwinding continues. After the loop, a `SagaRollbackCompletedEvent` is emitted with the final counters. The original aspect error is then propagated (or passed to `@on_error`).
+
+### Fixed
+
+- **Nested `try/except` with `box.run()` now works correctly.** Previously, if a parent aspect caught an exception from a child action, the parent aspect was not added to the parent stack, causing missing compensation for the parent when a later aspect failed. Now the child’s internal stack is unwound independently, and the parent aspect is added to the parent stack as if the child call succeeded (from the parent’s perspective).
+
+- **Compensator `state_after=None` handling.** When a checker rejects an aspect’s result, the aspect may still have performed a side effect (e.g., an HTTP request was already sent). The compensator now receives `state_after=None` and can choose to skip compensation or perform a best‑effort rollback based on available data from `state_before` or other sources.
+
+- **`rollup=True` no longer causes compensator stack to be built.** Previously the stack was built but not used; now the entire stack creation is skipped, improving performance and avoiding misleading `skipped` counters in events.
+
+### Removed
+
+- **`CompensateGateHost` (never introduced).** Compensators rely on `AspectGateHost` (already inherited by `BaseAction`). No separate gate host is required.
+
+### Security
+
+- **Compensator errors never expose internal state to `@on_error` handlers.** The original business exception is preserved; compensator failures are isolated to monitoring events, preventing information leakage or unexpected error masking.
+
+## [0.8.0] – 2026-04-07
 
 ### Added
 

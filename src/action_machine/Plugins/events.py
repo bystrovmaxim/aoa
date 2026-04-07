@@ -234,7 +234,6 @@ from typing import Any
 from action_machine.context.context import Context
 from action_machine.core.base_schema import BaseSchema
 
-
 # ═════════════════════════════════════════════════════════════════════════════
 # Корневой класс
 # ═════════════════════════════════════════════════════════════════════════════

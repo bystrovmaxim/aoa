@@ -936,7 +936,8 @@ class ActionProductMachine(BaseActionMachine):
         context: Context,
         metadata: ClassMetadata,
         plugin_ctx: PluginRunContext,
-    ) -> tuple[BaseState, list[SagaFrame]]:
+        saga_stack: list[SagaFrame],
+    ) -> BaseState:
         """
         Последовательно выполняет regular-аспекты действия.
 
@@ -945,18 +946,17 @@ class ActionProductMachine(BaseActionMachine):
         2. Вызывает аспект (с ContextView если context_keys).
         3. Валидирует результат чекерами.
         4. Обновляет state.
-        5. Добавляет SagaFrame в стек компенсации (если rollup=False).
+        5. Добавляет SagaFrame в переданный saga_stack (если build_saga=True).
         6. Эмитирует AfterRegularAspectEvent.
 
         Исключения аспектов НЕ перехватываются здесь — они пробрасываются
         наверх в _execute_aspects_with_error_handling().
 
-        Возвращает кортеж (state, saga_stack):
-            - state: итоговое состояние после всех regular-аспектов.
-            - saga_stack: список SagaFrame для размотки при ошибке.
-
-        Стек saga_stack объявляется ДО цикла — при исключении на N-м
-        аспекте он содержит фреймы первых (N-1) успешных аспектов.
+        Заполняет переданный saga_stack фреймами SagaFrame для каждого
+        успешного аспекта (если build_saga=True). При исключении на N-м
+        аспекте saga_stack содержит фреймы первых (N-1) успешных аспектов,
+        доступные вызывающему коду в блоке except — потому что saga_stack
+        передаётся как мутабельный список, а не возвращается через return.
 
         При rollup=True стек НЕ заполняется — компенсация предназначена
         для нетранзакционных побочных эффектов в production-режиме.
@@ -970,6 +970,22 @@ class ActionProductMachine(BaseActionMachine):
 
         Когда фрейм НЕ добавляется:
             - Аспект бросил исключение до возврата dict.
+
+        Аргументы:
+            action: экземпляр действия.
+            params: входные параметры (frozen).
+            box: ToolsBox текущего уровня.
+            connections: словарь ресурсных менеджеров.
+            context: контекст выполнения.
+            metadata: метаданные класса действия.
+            plugin_ctx: контекст плагинов для эмиссии событий.
+            saga_stack: мутабельный список, заполняемый фреймами компенсации.
+                Создаётся в _execute_aspects_with_error_handling() и передаётся
+                сюда для заполнения. При исключении список доступен в except-блоке
+                вызывающего метода — это решает проблему потери стека при ошибке.
+
+        Возвращает:
+            BaseState — итоговое состояние после всех regular-аспектов.
         """
         state = BaseState()
         regular_aspects = self._get_regular_aspects(metadata)
@@ -978,7 +994,6 @@ class ActionProductMachine(BaseActionMachine):
 
         # Стек компенсации — локальный для этого конвейера.
         # Не создаётся при rollup=True.
-        saga_stack: list[SagaFrame] = []
         build_saga = not box.rollup and metadata.has_compensators()
 
         for aspect_meta in regular_aspects:
@@ -1055,7 +1070,7 @@ class ActionProductMachine(BaseActionMachine):
                 **plugin_kwargs,
             )
 
-        return state, saga_stack
+        return state
 
     # ─────────────────────────────────────────────────────────────────────
     # Выполнение конвейера с обработкой ошибок
@@ -1091,12 +1106,13 @@ class ActionProductMachine(BaseActionMachine):
         base_fields = self._base_event_fields(action, context, params, box.nested_level)
         plugin_kwargs = self._build_plugin_emit_kwargs(box.nested_level)
 
-        failed_aspect_name: str | None = None
         saga_stack: list[SagaFrame] = []
+        failed_aspect_name: str | None = None
 
         try:
-            state, saga_stack = await self._execute_regular_aspects(
+            state = await self._execute_regular_aspects(
                 action, params, box, connections, context, metadata, plugin_ctx,
+                saga_stack,
             )
 
             summary_meta = self._get_summary_aspect(metadata)

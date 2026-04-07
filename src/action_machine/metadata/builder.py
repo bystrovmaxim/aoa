@@ -135,6 +135,7 @@ GlobalStartEvent без полей GlobalFinishEvent — это ошибка т�
 from __future__ import annotations
 
 from action_machine.core.class_metadata import ClassMetadata
+
 from .collectors import (
     collect_aspects,
     collect_checkers,
