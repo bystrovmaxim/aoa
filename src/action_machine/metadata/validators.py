@@ -47,22 +47,27 @@
 Обработчики ошибок (validate_error_handlers):
     14. Нижестоящий обработчик не перекрывается вышестоящим.
 
+Компенсаторы (validate_compensators):
+    15. Каждый компенсатор привязан к существующему аспекту.
+    16. Целевой аспект имеет тип "regular" (не "summary").
+    17. Для одного аспекта — не более одного компенсатора.
+
 Подписки плагинов (validate_subscriptions):
-    15. event_class из @on совместим с аннотацией параметра event
+    18. event_class из @on совместим с аннотацией параметра event
         в сигнатуре обработчика: event_class должен быть подклассом
         аннотации (или совпадать). Если аннотация — GlobalFinishEvent,
         а event_class — GlobalLifecycleEvent, это ошибка: обработчик
         получит GlobalStartEvent, у которого нет полей GlobalFinishEvent.
-    16. aspect_name_pattern указан только для подписок на AspectEvent
+    19. aspect_name_pattern указан только для подписок на AspectEvent
         и наследники. Проверяется в SubscriptionInfo.__post_init__,
         но дублируется здесь для полноты диагностики.
 
 Контекстные зависимости:
-    17. Если метод имеет context_keys — класс обязан наследовать
+    20. Если метод имеет context_keys — класс обязан наследовать
         ContextRequiresGateHost.
-    18. Согласованность наличия @context_requires и количества параметров
-        метода проверяется декораторами @regular_aspect, @summary_aspect
-        и @on_error на этапе определения класса (не здесь).
+    21. Согласованность наличия @context_requires и количества параметров
+        метода проверяется декораторами @regular_aspect, @summary_aspect,
+        @on_error и @compensate на этапе определения класса (не здесь).
 """
 
 from __future__ import annotations
@@ -78,6 +83,7 @@ from action_machine.context.context_requires_gate_host import ContextRequiresGat
 from action_machine.core.class_metadata import (
     AspectMeta,
     CheckerMeta,
+    CompensatorMeta,
     FieldDescriptionMeta,
     MetaInfo,
     OnErrorMeta,
@@ -88,6 +94,7 @@ from action_machine.on_error.on_error_gate_host import OnErrorGateHost
 from action_machine.plugins.events import BasePluginEvent
 from action_machine.plugins.on_gate_host import OnGateHost
 from action_machine.plugins.subscription_info import SubscriptionInfo
+
 
 # ═════════════════════════════════════════════════════════════════════════════
 # Валидация описаний полей Params и Result
@@ -140,7 +147,6 @@ def _validate_pydantic_model_descriptions(model_cls: type) -> list[str]:
         description = field_info.description
         if not description or not description.strip():
             missing.append(field_name)
-
     return missing
 
 
@@ -232,7 +238,6 @@ def validate_meta_required(
             f"Каждое действие обязано иметь описание. "
             f'Добавьте @meta(description="...") перед определением класса.'
         )
-
     if issubclass(cls, ResourceMetaGateHost):
         raise TypeError(
             f"Ресурсный менеджер {cls.__name__} не имеет декоратора @meta. "
@@ -249,14 +254,16 @@ def validate_meta_required(
 def _has_any_context_keys(
     aspects: list[AspectMeta],
     error_handlers: list[OnErrorMeta],
+    compensators: list[CompensatorMeta],
 ) -> bool:
     """
-    Проверяет, есть ли хотя бы один аспект или обработчик ошибок
-    с непустыми context_keys.
+    Проверяет, есть ли хотя бы один аспект, обработчик ошибок
+    или компенсатор с непустыми context_keys.
 
     Аргументы:
         aspects: собранные аспекты.
         error_handlers: собранные обработчики ошибок.
+        compensators: собранные компенсаторы.
 
     Возвращает:
         True если хотя бы один метод имеет непустые context_keys.
@@ -267,6 +274,9 @@ def _has_any_context_keys(
     for handler in error_handlers:
         if handler.context_keys:
             return True
+    for comp in compensators:
+        if comp.context_keys:
+            return True
     return False
 
 
@@ -276,6 +286,7 @@ def validate_gate_hosts(
     checkers: list[CheckerMeta],
     subscriptions: list[Any],
     error_handlers: list[OnErrorMeta],
+    compensators: list[CompensatorMeta],
 ) -> None:
     """
     Проверяет, что класс наследует необходимые гейт-хосты для всех
@@ -286,7 +297,13 @@ def validate_gate_hosts(
         - Чекеры → CheckerGateHost.
         - Подписки → OnGateHost.
         - Обработчики ошибок → OnErrorGateHost.
-        - Контекстные зависимости → ContextRequiresGateHost.
+        - Контекстные зависимости (аспекты, обработчики, компенсаторы)
+          → ContextRequiresGateHost.
+
+    Компенсаторы работают в контексте Action, который уже наследует
+    AspectGateHost. Отдельный CompensateGateHost не требуется —
+    компенсаторы проверяются только на наличие ContextRequiresGateHost
+    при использовании @context_requires.
 
     Для подписок в диагностическом сообщении выводятся имена классов
     событий (event_class.__name__) вместо строковых event_type.
@@ -297,6 +314,7 @@ def validate_gate_hosts(
         checkers: собранные чекеры.
         subscriptions: собранные подписки (list[SubscriptionInfo]).
         error_handlers: собранные обработчики ошибок.
+        compensators: собранные компенсаторы.
 
     Исключения:
         TypeError: если класс содержит декораторы без гейт-хоста.
@@ -344,7 +362,7 @@ def validate_gate_hosts(
             f"в цепочку наследования."
         )
 
-    if _has_any_context_keys(aspects, error_handlers) and not issubclass(cls, ContextRequiresGateHost):
+    if _has_any_context_keys(aspects, error_handlers, compensators) and not issubclass(cls, ContextRequiresGateHost):
         methods_with_ctx: list[str] = []
         for a in aspects:
             if a.context_keys:
@@ -352,6 +370,9 @@ def validate_gate_hosts(
         for h in error_handlers:
             if h.context_keys:
                 methods_with_ctx.append(h.method_name)
+        for c in compensators:
+            if c.context_keys:
+                methods_with_ctx.append(c.method_name)
         methods_str = ", ".join(methods_with_ctx)
         raise TypeError(
             f"Класс {cls.__name__} содержит методы с @context_requires "
@@ -434,7 +455,6 @@ def validate_checkers_belong_to_aspects(
         ValueError: если чекер привязан к несуществующему аспекту.
     """
     aspect_names = {a.method_name for a in aspects}
-
     for checker in checkers:
         if checker.method_name not in aspect_names:
             raise ValueError(
@@ -507,10 +527,8 @@ def validate_error_handlers(
 
     for i in range(1, len(error_handlers)):
         current_handler = error_handlers[i]
-
         for j in range(i):
             upper_handler = error_handlers[j]
-
             for candidate_type in current_handler.exception_types:
                 if _is_type_covered_by(candidate_type, upper_handler.exception_types):
                     covering_name = next(
@@ -530,6 +548,98 @@ def validate_error_handlers(
                         f"не получит управления. Переместите более специфичный "
                         f"обработчик выше более общего."
                     )
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# Валидация компенсаторов (@compensate)
+# ═════════════════════════════════════════════════════════════════════════════
+
+
+def validate_compensators(
+    cls: type,
+    compensators: list[CompensatorMeta],
+    aspects: list[AspectMeta],
+) -> None:
+    """
+    Проверяет структурные инварианты компенсаторов при сборке метаданных.
+
+    Все проверки выполняются ДО обработки первого запроса (fail-fast).
+    Приложение не запустится при нарушении любого инварианта. Это исключает
+    класс ошибок «компенсатор привязан к несуществующему аспекту» в runtime.
+
+    Проверки:
+
+    1. ПРИВЯЗКА К СУЩЕСТВУЮЩЕМУ АСПЕКТУ.
+       target_aspect_name компенсатора совпадает с method_name одного
+       из собранных аспектов. Аналог validate_checkers_belong_to_aspects.
+       Если аспект не найден — разработчик допустил опечатку в имени
+       или удалил аспект, не удалив компенсатор.
+
+    2. ТОЛЬКО REGULAR-АСПЕКТЫ.
+       Целевой аспект имеет aspect_type == "regular".
+       Компенсаторы для summary-аспектов запрещены: summary формирует
+       итоговый Result и не выполняет побочных эффектов, требующих отката.
+       Компенсация summary не имеет смысла — summary не добавляется
+       в стек SagaFrame.
+
+    3. УНИКАЛЬНОСТЬ.
+       Для одного regular-аспекта — не более одного компенсатора.
+       Дубли означают конфликт: какой из двух компенсаторов вызывать
+       при откате? Неоднозначность разрешается ошибкой при сборке.
+
+    Аргументы:
+        cls: класс для сообщений об ошибках.
+        compensators: собранные компенсаторы.
+        aspects: собранные аспекты.
+
+    Исключения:
+        ValueError: если компенсатор привязан к несуществующему аспекту,
+            к summary-аспекту, или обнаружены дубли.
+    """
+    if not compensators:
+        return
+
+    # Построить маппинг имя_аспекта → AspectMeta для быстрого поиска
+    aspect_map: dict[str, AspectMeta] = {a.method_name: a for a in aspects}
+
+    # Отслеживание уникальности: аспект → компенсатор
+    seen_targets: dict[str, str] = {}
+
+    for comp in compensators:
+        target = comp.target_aspect_name
+
+        # ── Проверка 1: привязка к существующему аспекту ──────────────────
+        if target not in aspect_map:
+            available = ", ".join(sorted(aspect_map.keys())) if aspect_map else "(нет аспектов)"
+            raise ValueError(
+                f"Класс {cls.__name__}: компенсатор '{comp.method_name}' "
+                f"привязан к аспекту '{target}', который не существует. "
+                f"Доступные аспекты: {available}. "
+                f"Проверьте target_aspect_name в @compensate."
+            )
+
+        # ── Проверка 2: только regular-аспекты ────────────────────────────
+        target_aspect = aspect_map[target]
+        if target_aspect.aspect_type != "regular":
+            raise ValueError(
+                f"Класс {cls.__name__}: компенсатор '{comp.method_name}' "
+                f"привязан к аспекту '{target}', который имеет тип "
+                f"'{target_aspect.aspect_type}'. Компенсаторы разрешены "
+                f"только для regular-аспектов. Summary-аспект формирует "
+                f"итоговый Result и не выполняет побочных эффектов, "
+                f"требующих отката."
+            )
+
+        # ── Проверка 3: уникальность ─────────────────────────────────────
+        if target in seen_targets:
+            existing_comp = seen_targets[target]
+            raise ValueError(
+                f"Класс {cls.__name__}: аспект '{target}' имеет два "
+                f"компенсатора: '{existing_comp}' и '{comp.method_name}'. "
+                f"Для одного аспекта допускается не более одного компенсатора."
+            )
+
+        seen_targets[target] = comp.method_name
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -573,13 +683,13 @@ def _extract_event_annotation(cls: type, method_name: str) -> type | None:
         return None
 
     params_list = list(sig.parameters.values())
+
     # Параметр event — третий (self=0, state=1, event=2, log=3)
     if len(params_list) < 3:
         return None
 
     event_param = params_list[2]
     annotation = event_param.annotation
-
     if annotation is inspect.Parameter.empty:
         return None
 
@@ -629,7 +739,6 @@ def validate_subscriptions(
             continue
 
         annotation = _extract_event_annotation(cls, sub.method_name)
-
         if annotation is None:
             # Аннотация отсутствует или не является типом события —
             # проверка пропускается.

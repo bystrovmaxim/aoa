@@ -29,20 +29,39 @@ mock_payment.charge() → "TXN-TEST-001"
     Проходит чекер result_string("txn_id", required=True, min_length=1).
     Используется в smoke-тестах и bench-тестах для проверки txn_id.
 
+mock_payment.refund() → True
+    Компенсатор вызывает refund() при откате платежа.
+    Возвращает True — откат «выполнен».
+
 mock_notification.send() → True
     Уведомление «отправлено». Smoke-тесты проверяют вызов
     send("user_42", "Заказ создан: TXN-TEST-001").
+
+mock_inventory.reserve() → "RES-TEST-001"
+    Проходит чекер result_string("reservation_id", required=True, min_length=1).
+    Используется в тестах компенсации для проверки reservation_id.
+
+mock_inventory.unreserve() → True
+    Компенсатор вызывает unreserve() при откате резервирования.
+    Возвращает True — отмена «выполнена».
 
 ═══════════════════════════════════════════════════════════════════════════════
 ФИКСТУРЫ
 ═══════════════════════════════════════════════════════════════════════════════
 
 coordinator        — чистый GateCoordinator для каждого теста.
-mock_payment       — AsyncMock(spec=PaymentService), charge → "TXN-TEST-001".
+
+mock_payment       — AsyncMock(spec=PaymentService), charge → "TXN-TEST-001",
+                     refund → True.
 mock_notification  — AsyncMock(spec=NotificationService), send → True.
+mock_inventory     — AsyncMock(spec=InventoryService), reserve → "RES-TEST-001",
+                     unreserve → True.
 mock_db            — AsyncMock(spec=TestDbManager).
+
 clean_bench        — TestBench без моков, с подавленным логированием.
 bench              — TestBench с моками PaymentService и NotificationService.
+compensate_bench   — TestBench с моками PaymentService и InventoryService,
+                     для тестов компенсации.
 manager_bench      — bench с ролью "manager" (для FullAction).
 admin_bench        — bench с ролью "admin" (для AdminAction).
 """
@@ -54,7 +73,7 @@ import pytest
 from action_machine.core.gate_coordinator import GateCoordinator
 from action_machine.testing import TestBench
 
-from .domain import NotificationService, PaymentService, TestDbManager
+from .domain import InventoryService, NotificationService, PaymentService, TestDbManager
 
 
 @pytest.fixture
@@ -70,9 +89,14 @@ def mock_payment() -> AsyncMock:
 
     charge() возвращает "TXN-TEST-001" — проходит чекер
     result_string("txn_id", required=True, min_length=1).
+
+    refund() возвращает True — компенсатор вызывает при откате платежа.
+    Метод refund() определён в PaymentService, поэтому AsyncMock(spec=...)
+    разрешает доступ к нему.
     """
     mock = AsyncMock(spec=PaymentService)
     mock.charge.return_value = "TXN-TEST-001"
+    mock.refund.return_value = True
     return mock
 
 
@@ -85,6 +109,23 @@ def mock_notification() -> AsyncMock:
     """
     mock = AsyncMock(spec=NotificationService)
     mock.send.return_value = True
+    return mock
+
+
+@pytest.fixture
+def mock_inventory() -> AsyncMock:
+    """
+    Мок InventoryService с дефолтным поведением.
+
+    reserve() возвращает "RES-TEST-001" — проходит чекер
+    result_string("reservation_id", required=True, min_length=1).
+
+    unreserve() возвращает True — компенсатор вызывает при откате
+    резервирования товара.
+    """
+    mock = AsyncMock(spec=InventoryService)
+    mock.reserve.return_value = "RES-TEST-001"
+    mock.unreserve.return_value = True
     return mock
 
 
@@ -123,6 +164,28 @@ def bench(mock_payment: AsyncMock, mock_notification: AsyncMock) -> TestBench:
         mocks={
             PaymentService: mock_payment,
             NotificationService: mock_notification,
+        },
+        log_coordinator=AsyncMock(),
+    )
+
+
+@pytest.fixture
+def compensate_bench(mock_payment: AsyncMock, mock_inventory: AsyncMock) -> TestBench:
+    """
+    TestBench с моками PaymentService и InventoryService.
+
+    Предназначен для тестов компенсации (Saga). Содержит оба сервиса,
+    используемых в CompensatedOrderAction, CompensateErrorAction,
+    CompensateAndOnErrorAction и CompensateWithContextAction.
+
+    Дефолтный пользователь — user_id="test_user", roles=["tester"].
+    Все компенсируемые Action используют ROLE_NONE, поэтому
+    дефолтный пользователь подходит.
+    """
+    return TestBench(
+        mocks={
+            PaymentService: mock_payment,
+            InventoryService: mock_inventory,
         },
         log_coordinator=AsyncMock(),
     )

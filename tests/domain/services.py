@@ -8,36 +8,48 @@
 
 Определяет классы сервисов, которые Action объявляют как зависимости
 через декоратор @depends. В тестах реальные экземпляры этих классов
-заменяются моками (AsyncMock) через TestBench.with_mocks() или
-через фикстуры в conftest.py.
+заменяются моками (AsyncMock) через TestBench или через фикстуры
+в conftest.py.
 
 Сервисы определяют интерфейс — набор async-методов, которые аспекты
-вызывают через box.resolve(PaymentService). В production сервисы
+вызывают через box.resolve(ServiceClass). В production сервисы
 содержат реальную логику; в тестах — подменяются моками.
+
+AsyncMock(spec=ServiceClass) строго ограничивает доступные атрибуты
+мока теми, что определены в классе. Поэтому КАЖДЫЙ метод, который
+вызывается в аспектах или компенсаторах, ОБЯЗАН быть объявлен
+в классе сервиса — иначе мок с spec бросит AttributeError.
 
 ═══════════════════════════════════════════════════════════════════════════════
 СЕРВИСЫ
 ═══════════════════════════════════════════════════════════════════════════════
 
-- PaymentService — сервис обработки платежей. Метод charge() списывает
-  средства и возвращает ID транзакции. Используется в FullAction.
+- PaymentService — сервис обработки платежей.
+  charge() — списание средств, возвращает ID транзакции.
+  refund() — возврат средств по ID транзакции (используется
+  компенсаторами при откате платежа).
+  Используется в FullAction и компенсируемых действиях
+  (CompensatedOrderAction, CompensateAndOnErrorAction и др.).
 
-- NotificationService — сервис отправки уведомлений. Метод send()
-  отправляет уведомление пользователю. Используется в FullAction.
+- NotificationService — сервис отправки уведомлений.
+  send() — отправка уведомления пользователю.
+  Используется в FullAction.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ИСПОЛЬЗОВАНИЕ В ACTION
 ═══════════════════════════════════════════════════════════════════════════════
 
-    @depends(PaymentService, description="Сервис обработки платежей")
-    @depends(NotificationService, description="Сервис уведомлений")
-    class FullAction(BaseAction[...]): ...
-
-    # В аспекте:
-    async def process_payment(self, params, state, box, connections):
+    # В аспекте — списание:
+    async def charge_aspect(self, params, state, box, connections):
         payment = box.resolve(PaymentService)
         txn_id = await payment.charge(params.amount, params.currency)
         return {"txn_id": txn_id}
+
+    # В компенсаторе — возврат:
+    async def rollback_charge_compensate(self, params, state_before,
+                                         state_after, box, connections, error):
+        payment = box.resolve(PaymentService)
+        await payment.refund(state_after["txn_id"])
 
 ═══════════════════════════════════════════════════════════════════════════════
 ИСПОЛЬЗОВАНИЕ В ТЕСТАХ
@@ -47,6 +59,7 @@
 
     mock_payment = AsyncMock(spec=PaymentService)
     mock_payment.charge.return_value = "TXN-TEST-001"
+    mock_payment.refund.return_value = True
 
     bench = TestBench(mocks={PaymentService: mock_payment})
     result = await bench.run(FullAction(), params, rollup=False)
@@ -57,8 +70,12 @@ class PaymentService:
     """
     Сервис обработки платежей.
 
-    Предоставляет метод charge() для списания средств. В production
-    подключается к платёжному шлюзу. В тестах подменяется AsyncMock.
+    Предоставляет методы charge() для списания средств и refund()
+    для возврата. В production подключается к платёжному шлюзу.
+    В тестах подменяется AsyncMock(spec=PaymentService).
+
+    Метод refund() используется компенсаторами (@compensate) для
+    отката платежа при возникновении ошибки в конвейере аспектов.
     """
 
     async def charge(self, amount: float, currency: str) -> str:
@@ -73,6 +90,23 @@ class PaymentService:
             str — уникальный идентификатор транзакции.
         """
         raise NotImplementedError("PaymentService.charge() не реализован")
+
+    async def refund(self, txn_id: str) -> bool:
+        """
+        Выполняет возврат средств по ID транзакции.
+
+        Вызывается компенсатором при откате платежа в паттерне Saga.
+        При ошибке в любом аспекте после успешного charge()
+        ActionProductMachine разматывает стек компенсации и вызывает
+        refund() для отмены списания.
+
+        Аргументы:
+            txn_id: идентификатор транзакции, полученный от charge().
+
+        Возвращает:
+            bool — True если возврат выполнен успешно.
+        """
+        raise NotImplementedError("PaymentService.refund() не реализован")
 
 
 class NotificationService:

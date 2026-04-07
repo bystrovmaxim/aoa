@@ -30,9 +30,9 @@ GateCoordinator — единственная точка доступа к мет
    заполняется узлами и рёбрами. Ацикличность проверяется для структурных
    рёбер (depends, connection) через _add_edge_checked. Leaf-рёбра
    (has_aspect, has_checker, has_role, has_sensitive, subscribes,
-   belongs_to, has_error_handler, requires_context) добавляются напрямую
-   без проверки ацикличности — они ведут к leaf-узлам, не имеющим
-   исходящих рёбер, и цикл невозможен по конструкции.
+   belongs_to, has_error_handler, has_compensator, requires_context)
+   добавляются напрямую без проверки ацикличности — они ведут к leaf-узлам,
+   не имеющим исходящих рёбер, и цикл невозможен по конструкции.
 
 6. STRICT-РЕЖИМ: если strict=True, координатор проверяет, что domain указан
    в @meta для Action и ResourceManager.
@@ -44,11 +44,19 @@ GateCoordinator — единственная точка доступа к мет
    узлом типа "error_handler" с атрибутами exception_types, method_name,
    description. Ребро "has_error_handler" от action к error_handler.
 
-9. УЗЛЫ КОНТЕКСТНЫХ ЗАВИСИМОСТЕЙ: для каждого аспекта или обработчика
-   ошибок с @context_requires создаются рёбра "requires_context" от узла
-   аспекта/обработчика к узлам типа "context_field". Узлы context_field
-   переиспользуются: если два аспекта запрашивают user.user_id, создаётся
-   один узел и два ребра к нему.
+9. УЗЛЫ КОНТЕКСТНЫХ ЗАВИСИМОСТЕЙ: для каждого аспекта, обработчика ошибок
+   или компенсатора с @context_requires создаются рёбра "requires_context"
+   от узла аспекта/обработчика/компенсатора к узлам типа "context_field".
+   Узлы context_field переиспользуются: если два аспекта запрашивают
+   user.user_id, создаётся один узел и два ребра к нему.
+
+10. УЗЛЫ КОМПЕНСАТОРОВ: каждый @compensate компенсатор представлен узлом
+    типа "compensator" с атрибутами target_aspect, description, method_name.
+    Ребро "has_compensator" от action к compensator. Компенсатор —
+    терминальный узел: он не вызывает другие Action, поэтому ребро leaf —
+    оно не участвует в проверке циклов графа. Если компенсатор имеет
+    @context_requires, создаются дополнительные рёбра "requires_context"
+    от узла компенсатора к узлам context_field.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ГРАФ СУЩНОСТЕЙ
@@ -56,18 +64,19 @@ GateCoordinator — единственная точка доступа к мет
 
 Граф строится на библиотеке rustworkx (rx.PyDiGraph) и содержит все сущности
 системы: действия, зависимости, соединения, плагины, аспекты, чекеры,
-обработчики ошибок, подписки, чувствительные поля, роли, домены и поля
-контекста.
+обработчики ошибок, компенсаторы, подписки, чувствительные поля, роли,
+домены и поля контекста.
 
 Типы узлов:
     action, dependency, connection, plugin, aspect, checker,
-    error_handler, subscription, sensitive, role, domain, context_field.
+    error_handler, compensator, subscription, sensitive, role,
+    domain, context_field.
 
 Типы рёбер:
     depends, connection — структурные, проверяются на ацикличность.
-    has_aspect, has_checker, has_error_handler, has_sensitive, has_role,
-    subscribes, belongs_to, requires_context — leaf-рёбра, добавляются
-    напрямую без проверки.
+    has_aspect, has_checker, has_error_handler, has_compensator,
+    has_sensitive, has_role, subscribes, belongs_to,
+    requires_context — leaf-рёбра, добавляются напрямую без проверки.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ФОРМАТ КЛЮЧЕЙ УЗЛОВ
@@ -84,6 +93,7 @@ get_dependency_tree():
     "aspect:module.path.CreateOrderAction.validate_aspect"
     "checker:module.path.CreateOrderAction.validate_aspect.txn_id"
     "error_handler:module.path.CreateOrderAction.validation_on_error"
+    "compensator:module.path.CreateOrderAction.rollback_payment_compensate"
     "context_field:user.user_id"
     "context_field:request.trace_id"
     "role:module.path.CreateOrderAction.role"
@@ -94,24 +104,25 @@ get_dependency_tree():
 Примеры использования:
 
     coordinator.get_node("action:module.CreateOrderAction")
+    coordinator.get_node("compensator:module.CreateOrderAction.rollback_payment_compensate")
     coordinator.get_node("context_field:user.user_id")
     coordinator.get_children("domain:orders")
-    coordinator.get_nodes_by_type("context_field")
+    coordinator.get_nodes_by_type("compensator")
 
 ═══════════════════════════════════════════════════════════════════════════════
 КОНТЕКСТНЫЕ ЗАВИСИМОСТИ В ГРАФЕ
 ═══════════════════════════════════════════════════════════════════════════════
 
 Декоратор @context_requires записывает frozenset ключей (dot-path) в
-AspectMeta.context_keys и OnErrorMeta.context_keys. При заполнении графа
-координатор создаёт:
+AspectMeta.context_keys, OnErrorMeta.context_keys и
+CompensatorMeta.context_keys. При заполнении графа координатор создаёт:
 
 - Узел "context_field" для каждого уникального dot-path (например,
   "user.user_id", "request.trace_id"). Узлы переиспользуются через
   _ensure_node — идемпотентно.
 
-- Ребро "requires_context" от узла аспекта (или обработчика ошибок)
-  к узлу context_field.
+- Ребро "requires_context" от узла аспекта (или обработчика ошибок,
+  или компенсатора) к узлу context_field.
 
 Рёбра requires_context — leaf-рёбра. Узлы context_field не имеют
 исходящих рёбер, поэтому цикл невозможен по конструкции. Проверка
@@ -122,6 +133,35 @@ AspectMeta.context_keys и OnErrorMeta.context_keys. При заполнении
 - Строить отчёты: coordinator.get_nodes_by_type("context_field").
 - AI-агенту через MCP resource system://graph видеть зависимости.
 - Обнаруживать чрезмерные зависимости от контекста.
+
+═══════════════════════════════════════════════════════════════════════════════
+КОМПЕНСАТОРЫ В ГРАФЕ
+═══════════════════════════════════════════════════════════════════════════════
+
+Каждый компенсатор (@compensate) представлен в графе как leaf-узел типа
+"compensator". Ребро "has_compensator" соединяет узел action с узлом
+compensator.
+
+Метаданные узла compensator:
+    - target_aspect: строковое имя regular-аспекта, к которому привязан.
+    - description: человекочитаемое описание действия компенсатора.
+    - method_name: имя метода-компенсатора.
+
+Если компенсатор использует @context_requires, от узла компенсатора
+создаются дополнительные leaf-рёбра "requires_context" к узлам
+context_field.
+
+Компенсатор — терминальный узел: он не вызывает другие Action
+(хотя технически может через box.run, это антипаттерн). Поэтому
+ребро leaf — оно не участвует в проверке циклов графа.
+
+Пример дерева:
+
+    action:CreateOrderAction
+    ├── has_aspect → aspect:process_payment_aspect
+    ├── has_compensator → compensator:rollback_payment_compensate
+    │   └── requires_context → context_field:user.role
+    └── has_error_handler → error_handler:payment_on_error
 
 ═══════════════════════════════════════════════════════════════════════════════
 АРХИТЕКТУРА
@@ -169,7 +209,6 @@ from action_machine.metadata import MetadataBuilder
 def _full_class_name(cls: type) -> str:
     """
     Формирует полное имя класса: module.ClassName.
-
     Если модуль ``__main__`` или отсутствует, возвращает просто имя класса.
     """
     module = getattr(cls, "__module__", None)
@@ -191,8 +230,8 @@ class GateCoordinator:
     заполняет граф узлами и рёбрами.
 
     Структурные рёбра (depends, connection) проверяются на ацикличность.
-    Leaf-рёбра (has_aspect, has_checker, requires_context и др.) добавляются
-    напрямую — цикл невозможен по конструкции.
+    Leaf-рёбра (has_aspect, has_checker, has_compensator, requires_context
+    и др.) добавляются напрямую — цикл невозможен по конструкции.
 
     В strict-режиме дополнительно проверяет обязательность domain в @meta.
 
@@ -207,6 +246,7 @@ class GateCoordinator:
             Карта ключ_узла → индекс_в_графе.
             Формат ключа: ``"тип:полное_имя"`` (например,
             ``"action:module.CreateOrderAction"``,
+            ``"compensator:module.CreateOrderAction.rollback_payment_compensate"``,
             ``"context_field:user.user_id"``).
         _strict : bool
             Если True — domain обязателен в @meta для Action и ResourceManager.
@@ -239,20 +279,16 @@ class GateCoordinator:
         """В strict-режиме проверяет обязательность domain в @meta."""
         if not self._strict:
             return
-
         if metadata.meta is None:
             return
-
         if metadata.meta.domain is not None:
             return
-
         if issubclass(cls, ActionMetaGateHost) and metadata.has_aspects():
             raise ValueError(
                 f"strict режим: Action {cls.__name__} не привязан к домену. "
                 f"Укажите domain в @meta, например: "
                 f'@meta(description="...", domain=MyDomain).'
             )
-
         if issubclass(cls, ResourceMetaGateHost):
             raise ValueError(
                 f"strict режим: ресурсный менеджер {cls.__name__} не привязан "
@@ -273,6 +309,7 @@ class GateCoordinator:
 
         Примеры:
             ``"action:module.CreateOrderAction"``
+            ``"compensator:module.CreateOrderAction.rollback_payment_compensate"``
             ``"context_field:user.user_id"``
             ``"domain:orders"``
         """
@@ -296,7 +333,6 @@ class GateCoordinator:
         key = self._make_node_key(node_type, name)
         if key in self._node_index:
             return self._node_index[key]
-
         payload = {
             "node_type": node_type,
             "name": name,
@@ -320,19 +356,17 @@ class GateCoordinator:
         где реально возможны циклы (A зависит от B, B зависит от A).
 
         Для leaf-рёбер (has_aspect, has_checker, has_role, has_sensitive,
-        subscribes, belongs_to, has_error_handler, requires_context)
-        используется прямой self._graph.add_edge() без проверки —
-        эти рёбра ведут к leaf-узлам без исходящих рёбер, цикл
-        невозможен по конструкции.
+        subscribes, belongs_to, has_error_handler, has_compensator,
+        requires_context) используется прямой self._graph.add_edge()
+        без проверки — эти рёбра ведут к leaf-узлам без исходящих рёбер,
+        цикл невозможен по конструкции.
 
         Исключения:
             CyclicDependencyError: если добавление ребра создаёт цикл.
         """
         edge_idx = self._graph.add_edge(source_idx, target_idx, edge_type)
-
         if not rx.is_directed_acyclic_graph(self._graph):  # pylint: disable=no-member
             self._graph.remove_edge_from_index(edge_idx)
-
             source_payload = self._graph[source_idx]
             target_payload = self._graph[target_idx]
             raise CyclicDependencyError(
@@ -353,11 +387,12 @@ class GateCoordinator:
 
         Leaf-рёбра ведут к узлам, не имеющим исходящих рёбер (aspect,
         checker, role, sensitive, subscription, domain, error_handler,
-        context_field). Цикл невозможен по конструкции — target-узел
-        никогда не ссылается обратно на source.
+        compensator, context_field). Цикл невозможен по конструкции —
+        target-узел никогда не ссылается обратно на source.
 
         Типы leaf-рёбер: has_aspect, has_checker, has_role, has_sensitive,
-        subscribes, belongs_to, has_error_handler, requires_context.
+        subscribes, belongs_to, has_error_handler, has_compensator,
+        requires_context.
 
         Аргументы:
             source_idx: индекс исходного узла.
@@ -369,7 +404,6 @@ class GateCoordinator:
     def _determine_class_node_type(self, metadata: ClassMetadata) -> str:
         """
         Определяет тип узла для класса на основе его метаданных.
-
         Правила: подписки → plugin, аспекты → action, иначе → dependency.
         """
         if metadata.has_subscriptions():
@@ -389,6 +423,7 @@ class GateCoordinator:
                 "role": role_spec,
                 "aspect_count": len(metadata.aspects),
                 "error_handler_count": len(metadata.error_handlers),
+                "compensator_count": len(metadata.compensators),
                 "description": description,
                 "domain": domain_name,
             }
@@ -407,7 +442,6 @@ class GateCoordinator:
         """Создаёт узел домена и leaf-ребро belongs_to, если @meta указывает domain."""
         if metadata.meta is None or metadata.meta.domain is None:
             return
-
         domain_cls = metadata.meta.domain
         domain_name = domain_cls.name
         domain_idx = self._ensure_node(
@@ -431,6 +465,7 @@ class GateCoordinator:
         for handler_meta in metadata.error_handlers:
             handler_name = f"{class_name}.{handler_meta.method_name}"
             exc_type_names = [t.__name__ for t in handler_meta.exception_types]
+
             handler_idx = self._ensure_node(
                 "error_handler", handler_name,
                 meta={
@@ -449,6 +484,44 @@ class GateCoordinator:
                 )
                 self._add_leaf_edge(handler_idx, field_idx, "requires_context")
 
+    def _populate_compensators(self, class_idx: int, class_name: str, metadata: ClassMetadata) -> None:
+        """
+        Создаёт узлы и leaf-рёбра для компенсаторов (@compensate).
+
+        Каждый компенсатор — узел типа "compensator" с атрибутами:
+        target_aspect (имя regular-аспекта), description, method_name.
+        Leaf-ребро "has_compensator" от action к compensator.
+
+        Компенсатор — терминальный узел: он не вызывает другие Action
+        (хотя технически может через box.run, это антипаттерн). Поэтому
+        ребро leaf — оно не участвует в проверке циклов графа.
+
+        Если компенсатор имеет @context_requires (непустые context_keys),
+        создаются дополнительные leaf-рёбра "requires_context" от узла
+        компенсатора к узлам context_field. Узлы context_field
+        переиспользуются через _ensure_node — идемпотентно.
+        """
+        for comp_meta in metadata.compensators:
+            comp_name = f"{class_name}.{comp_meta.method_name}"
+
+            comp_idx = self._ensure_node(
+                "compensator", comp_name,
+                meta={
+                    "target_aspect": comp_meta.target_aspect_name,
+                    "description": comp_meta.description,
+                    "method_name": comp_meta.method_name,
+                },
+            )
+            self._add_leaf_edge(class_idx, comp_idx, "has_compensator")
+
+            # Контекстные зависимости компенсатора
+            for ctx_key in sorted(comp_meta.context_keys):
+                field_idx = self._ensure_node(
+                    "context_field", ctx_key,
+                    meta={"path": ctx_key},
+                )
+                self._add_leaf_edge(comp_idx, field_idx, "requires_context")
+
     def _populate_context_fields(self, class_name: str, metadata: ClassMetadata) -> None:
         """
         Создаёт узлы context_field и leaf-рёбра requires_context для аспектов.
@@ -462,18 +535,20 @@ class GateCoordinator:
 
         Рёбра requires_context — leaf-рёбра. Узлы context_field
         не имеют исходящих рёбер, цикл невозможен по конструкции.
+
+        Контекстные зависимости обработчиков ошибок и компенсаторов
+        обрабатываются в _populate_error_handlers() и
+        _populate_compensators() соответственно.
         """
         for aspect_meta in metadata.aspects:
             if not aspect_meta.context_keys:
                 continue
-
             aspect_key = self._make_node_key(
                 "aspect", f"{class_name}.{aspect_meta.method_name}",
             )
             aspect_idx = self._node_index.get(aspect_key)
             if aspect_idx is None:
                 continue
-
             for ctx_key in sorted(aspect_meta.context_keys):
                 field_idx = self._ensure_node(
                     "context_field", ctx_key,
@@ -487,8 +562,9 @@ class GateCoordinator:
 
         Добавляет узел класса, узлы и рёбра зависимостей, соединений,
         аспектов, чекеров, обработчиков ошибок (с их контекстными
-        зависимостями), контекстных зависимостей аспектов, подписок,
-        чувствительных полей, роли и домена.
+        зависимостями), компенсаторов (с их контекстными зависимостями),
+        контекстных зависимостей аспектов, подписок, чувствительных полей,
+        роли и домена.
 
         Структурные рёбра (depends, connection) проверяются на ацикличность
         через _add_edge_checked. Все остальные — leaf-рёбра, добавляются
@@ -550,6 +626,9 @@ class GateCoordinator:
 
         # Обработчики ошибок и их контекстные зависимости (leaf-рёбра)
         self._populate_error_handlers(class_idx, class_name, metadata)
+
+        # Компенсаторы и их контекстные зависимости (leaf-рёбра)
+        self._populate_compensators(class_idx, class_name, metadata)
 
         # Подписки (leaf-рёбра)
         for i, sub_info in enumerate(metadata.subscriptions):
@@ -619,20 +698,14 @@ class GateCoordinator:
                 f"GateCoordinator.get() ожидает класс (type), "
                 f"получен {type(cls).__name__}: {cls!r}"
             )
-
         if cls in self._cache:
             return self._cache[cls]
-
         metadata = MetadataBuilder.build(cls)
-
         self._validate_strict_domain(cls, metadata)
-
         # Помещаем в кеш ДО рекурсии — защита от циклов на уровне кеша
         self._cache[cls] = metadata
-
         self._populate_graph(cls, metadata)
         self._collect_linked_classes(metadata)
-
         return metadata
 
     def register(self, cls: type) -> ClassMetadata:
@@ -648,7 +721,6 @@ class GateCoordinator:
         if cls not in self._factory_cache:
             metadata = self.get(cls)
             self._factory_cache[cls] = DependencyFactory(metadata.dependencies)
-
         return self._factory_cache[cls]
 
     # ─────────────────────────────────────────────────────────────────────
@@ -663,12 +735,9 @@ class GateCoordinator:
         """Удаляет метаданные и фабрику класса из кешей и перестраивает граф."""
         if cls not in self._cache:
             return False
-
         del self._cache[cls]
         self._factory_cache.pop(cls, None)
-
         self._rebuild_graph()
-
         return True
 
     def invalidate_all(self) -> int:
@@ -698,6 +767,9 @@ class GateCoordinator:
             >>> coordinator.get_node("action:module.CreateOrderAction")
             {"node_type": "action", "name": "module.CreateOrderAction", ...}
 
+            >>> coordinator.get_node("compensator:module.CreateOrderAction.rollback_payment_compensate")
+            {"node_type": "compensator", "name": "...", "meta": {"target_aspect": "...", ...}}
+
             >>> coordinator.get_node("context_field:user.user_id")
             {"node_type": "context_field", "name": "user.user_id",
              "meta": {"path": "user.user_id"}, ...}
@@ -724,10 +796,10 @@ class GateCoordinator:
             []  # домен — leaf-узел, потомков нет
 
             >>> coordinator.get_children("action:module.CreateOrderAction")
-            [{"node_type": "aspect", ...}, {"node_type": "role", ...}, ...]
+            [{"node_type": "aspect", ...}, {"node_type": "compensator", ...}, ...]
 
-            >>> coordinator.get_children("aspect:module.CreateOrderAction.audit_aspect")
-            [{"node_type": "context_field", "name": "user.user_id", ...}, ...]
+            >>> coordinator.get_children("compensator:module.CreateOrderAction.rollback_payment_compensate")
+            [{"node_type": "context_field", "name": "user.role", ...}]
         """
         idx = self._node_index.get(key)
         if idx is None:
@@ -739,6 +811,9 @@ class GateCoordinator:
         Возвращает все узлы указанного типа.
 
         Примеры:
+            >>> coordinator.get_nodes_by_type("compensator")
+            [{"node_type": "compensator", "name": "...", "meta": {"target_aspect": "...", ...}}]
+
             >>> coordinator.get_nodes_by_type("context_field")
             [{"node_type": "context_field", "name": "user.user_id", ...},
              {"node_type": "context_field", "name": "request.trace_id", ...}]
@@ -760,6 +835,7 @@ class GateCoordinator:
 
         Рекурсивно обходит все исходящие рёбра от узла. Каждый потомок
         содержит поле ``edge_type`` с типом ребра от родителя.
+
         Циклы обнаруживаются через множество visited и помечаются
         ``meta.cycle = True``.
 
@@ -771,6 +847,7 @@ class GateCoordinator:
                 "meta": {...},
                 "children": [
                     {"node_type": "aspect", "edge_type": "has_aspect", ...},
+                    {"node_type": "compensator", "edge_type": "has_compensator", ...},
                     {"node_type": "dependency", "edge_type": "depends", ...},
                 ]
             }
@@ -783,25 +860,20 @@ class GateCoordinator:
     def _build_tree_recursive(self, idx: int, visited: set[int]) -> dict[str, Any]:
         """Рекурсивно строит дерево зависимостей от указанного узла."""
         payload = self._graph[idx]
-
         node_result: dict[str, Any] = {
             "node_type": payload["node_type"],
             "name": payload["name"],
             "meta": dict(payload.get("meta", {})),
             "children": [],
         }
-
         if idx in visited:
             node_result["meta"]["cycle"] = True
             return node_result
-
         visited = visited | {idx}
-
         for _source, target, edge_data in self._graph.out_edges(idx):
             child_tree = self._build_tree_recursive(target, visited)
             child_tree["edge_type"] = edge_data
             node_result["children"].append(child_tree)
-
         return node_result
 
     # ─────────────────────────────────────────────────────────────────────
@@ -867,7 +939,6 @@ class GateCoordinator:
         """Компактное строковое представление для отладки."""
         if not self._cache:
             return f"GateCoordinator(empty, strict={self._strict})"
-
         class_names = ", ".join(
             meta.class_name for meta in self._cache.values()
         )
