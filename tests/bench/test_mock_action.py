@@ -18,7 +18,7 @@ import pytest
 
 from action_machine.core.base_params import BaseParams
 from action_machine.testing import MockAction
-from tests.domain import PingAction
+from tests.domain_model import PingAction
 
 
 class TestFixedResult:

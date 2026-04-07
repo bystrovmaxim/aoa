@@ -9,7 +9,7 @@
 Предоставляет готовые фикстуры, которые покрывают типичные потребности
 тестов: координатор метаданных, моки сервисов, TestBench с различными
 конфигурациями. Все фикстуры основаны на единой доменной модели
-из tests/domain/.
+из tests/domain_model/.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ПРИНЦИПЫ
@@ -73,7 +73,7 @@ import pytest
 from action_machine.core.gate_coordinator import GateCoordinator
 from action_machine.testing import TestBench
 
-from .domain import InventoryService, NotificationService, PaymentService, TestDbManager
+from .domain_model import InventoryService, NotificationService, PaymentService, TestDbManager
 
 
 @pytest.fixture

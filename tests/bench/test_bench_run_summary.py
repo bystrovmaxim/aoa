@@ -26,7 +26,7 @@ import pytest
 
 from action_machine.testing import TestBench
 from action_machine.testing.state_validator import StateValidationError
-from tests.domain import FullAction, PingAction
+from tests.domain_model import FullAction, PingAction
 
 
 class TestCompleteState:

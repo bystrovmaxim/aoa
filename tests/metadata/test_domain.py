@@ -72,6 +72,7 @@ class TestValidDomain:
         # Arrange & Act
         class OrdersDomain(BaseDomain):
             name = "orders"
+            description = "Домен заказов"
 
         # Assert
         assert OrdersDomain.name == "orders"
@@ -81,9 +82,11 @@ class TestValidDomain:
         # Arrange & Act
         class AlphaDomain(BaseDomain):
             name = "alpha"
+            description = "Альфа домен"
 
         class BetaDomain(BaseDomain):
             name = "beta"
+            description = "Бета домен"
 
         # Assert
         assert AlphaDomain.name == "alpha"
@@ -94,6 +97,7 @@ class TestValidDomain:
         # Arrange & Act
         class SpecialDomain(BaseDomain):
             name = "my-domain.v2"
+            description = "Специальный домен с точками"
 
         # Assert
         assert SpecialDomain.name == "my-domain.v2"
@@ -103,6 +107,7 @@ class TestValidDomain:
         # Arrange & Act
         class ShortDomain(BaseDomain):
             name = "x"
+            description = "Короткий домен"
 
         # Assert
         assert ShortDomain.name == "x"
@@ -129,10 +134,12 @@ class TestInheritance:
         # Arrange
         class ParentDomain(BaseDomain):
             name = "parent"
+            description = "test parent"
 
         # Act
         class ChildDomain(ParentDomain):
             name = "child"
+            description = "test child"
 
         # Assert
         assert ChildDomain.name == "child"
@@ -143,13 +150,16 @@ class TestInheritance:
         # Arrange
         class Level1Domain(BaseDomain):
             name = "level1"
+            description = "level1"
 
         class Level2Domain(Level1Domain):
             name = "level2"
+            description = "level2"
 
         # Act
         class Level3Domain(Level2Domain):
             name = "level3"
+            description = "level3"
 
         # Assert
         assert Level1Domain.name == "level1"
@@ -161,11 +171,13 @@ class TestInheritance:
         # Arrange
         class ParentDomain(BaseDomain):
             name = "parent"
+            description = "parent"
             version = 1
 
         # Act
         class ChildDomain(ParentDomain):
             name = "child"
+            description = "child"
 
         # Assert
         assert ChildDomain.version == 1
@@ -303,9 +315,11 @@ class TestIsolation:
         # Arrange & Act
         class DomainADomain(BaseDomain):
             name = "a"
+            description = "a"
 
         class DomainBDomain(BaseDomain):
             name = "b"
+            description = "b"
 
         # Assert
         assert DomainADomain.name != DomainBDomain.name
@@ -315,9 +329,11 @@ class TestIsolation:
         # Arrange
         class ParentDomain(BaseDomain):
             name = "parent"
+            description = "parent"
 
         class ChildDomain(ParentDomain):
             name = "child"
+            description = "child"
 
         # Assert
         assert ParentDomain.name == "parent"
@@ -328,9 +344,11 @@ class TestIsolation:
         # Arrange & Act
         class DomainOneDomain(BaseDomain):
             name = "shared"
+            description = "one"
 
         class DomainTwoDomain(BaseDomain):
             name = "shared"
+            description = "two"
 
         # Assert
         assert DomainOneDomain is not DomainTwoDomain

@@ -111,7 +111,7 @@ from action_machine.plugins.events import (
 )
 from action_machine.plugins.plugin import Plugin
 from action_machine.plugins.plugin_run_context import PluginRunContext
-from tests.domain import PingAction
+from tests.domain_model import PingAction
 
 # ═════════════════════════════════════════════════════════════════════════════
 # Кастомное исключение для тестов

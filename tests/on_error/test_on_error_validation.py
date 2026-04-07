@@ -1,20 +1,20 @@
 # tests/on_error/test_on_error_validation.py
 """
-Тесты валидации обработчиков @on_error при сборке метаданных.
+Tests for validation of @on_error handlers during metadata build.
 
 ═══════════════════════════════════════════════════════════════════════════════
-НАЗНАЧЕНИЕ
+PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Проверяет валидацию порядка обработчиков и перекрытия типов:
-- Общий обработчик выше специфичного → TypeError при сборке.
-- Одинаковые типы в двух обработчиках → TypeError при сборке.
-- Подкласс вышестоящего типа → TypeError при сборке.
-- Допустимый порядок (специфичный → общий) → сборка проходит.
-- Обработчик без OnErrorGateHost → TypeError при сборке.
+Verifies validation of handler order and type overlaps:
+- General handler above specific → TypeError on build.
+- Same types in two handlers → TypeError on build.
+- Subclass covered by parent type → TypeError on build.
+- Valid order (specific → general) → build passes.
+- Handler without OnErrorGateHost → TypeError on build.
 
-Все тесты создают намеренно сломанные классы внутри тестов, потому что
-они не могут быть частью рабочей доменной модели.
+All tests create intentionally broken classes inside tests, because
+they cannot be part of the working domain model.
 """
 
 import pytest
@@ -22,18 +22,18 @@ import pytest
 from action_machine.metadata import MetadataBuilder
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Перекрытие типов (общий выше специфичного)
+# Type overlaps (general above specific)
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestOnErrorOverlapValidation:
-    """Тесты перекрытия типов между обработчиками @on_error."""
+    """Tests for type overlaps between @on_error handlers."""
 
     def test_general_above_specific_raises(self) -> None:
-        """Exception выше ValueError → TypeError: ValueError перекрыт Exception."""
+        """Exception above ValueError → TypeError: ValueError covered by Exception."""
 
-        # Arrange — определяем Action с неправильным порядком обработчиков.
-        # Exception ловит всё, ValueError никогда не получит управления.
+        # Arrange — define Action with wrong handler order.
+        # Exception catches everything, ValueError never gets control.
 
         from action_machine.aspects.summary_aspect import summary_aspect
         from action_machine.auth import ROLE_NONE, check_roles
@@ -42,30 +42,30 @@ class TestOnErrorOverlapValidation:
         from action_machine.core.base_result import BaseResult
         from action_machine.core.meta_decorator import meta
         from action_machine.on_error import on_error
-        from tests.domain import OrdersDomain
+        from tests.domain_model import OrdersDomain
 
-        @meta(description="Неправильный порядок обработчиков", domain=OrdersDomain)
+        @meta(description="Wrong handler order", domain=OrdersDomain)
         @check_roles(ROLE_NONE)
         class BadOrderAction(BaseAction[BaseParams, BaseResult]):
 
-            @summary_aspect("Результат")
+            @summary_aspect("Result")
             async def result_summary(self, params, state, box, connections):
                 return BaseResult()
 
-            @on_error(Exception, description="Общий — перехватит всё")
+            @on_error(Exception, description="General — catches everything")
             async def general_on_error(self, params, state, box, connections, error):
                 return BaseResult()
 
-            @on_error(ValueError, description="Специфичный — мёртвый код")
+            @on_error(ValueError, description="Specific — dead code")
             async def specific_on_error(self, params, state, box, connections, error):
                 return BaseResult()
 
-        # Act & Assert — MetadataBuilder обнаруживает перекрытие
+        # Act & Assert — MetadataBuilder detects overlap
         with pytest.raises(TypeError, match="перехватывает"):
             MetadataBuilder.build(BadOrderAction)
 
     def test_same_type_in_two_handlers_raises(self) -> None:
-        """Один и тот же тип в двух обработчиках → TypeError."""
+        """Same type in two handlers → TypeError."""
 
         from action_machine.aspects.summary_aspect import summary_aspect
         from action_machine.auth import ROLE_NONE, check_roles
@@ -74,21 +74,21 @@ class TestOnErrorOverlapValidation:
         from action_machine.core.base_result import BaseResult
         from action_machine.core.meta_decorator import meta
         from action_machine.on_error import on_error
-        from tests.domain import OrdersDomain
+        from tests.domain_model import OrdersDomain
 
-        @meta(description="Два обработчика на один тип", domain=OrdersDomain)
+        @meta(description="Two handlers for one type", domain=OrdersDomain)
         @check_roles(ROLE_NONE)
         class DuplicateHandlerAction(BaseAction[BaseParams, BaseResult]):
 
-            @summary_aspect("Результат")
+            @summary_aspect("Result")
             async def result_summary(self, params, state, box, connections):
                 return BaseResult()
 
-            @on_error(ValueError, description="Первый обработчик ValueError")
+            @on_error(ValueError, description="First ValueError handler")
             async def first_on_error(self, params, state, box, connections, error):
                 return BaseResult()
 
-            @on_error(ValueError, description="Второй обработчик ValueError — дубль")
+            @on_error(ValueError, description="Second ValueError handler — duplicate")
             async def second_on_error(self, params, state, box, connections, error):
                 return BaseResult()
 
@@ -97,7 +97,7 @@ class TestOnErrorOverlapValidation:
             MetadataBuilder.build(DuplicateHandlerAction)
 
     def test_subclass_covered_by_parent_raises(self) -> None:
-        """Вышестоящий ловит родительский тип, нижестоящий — дочерний → TypeError."""
+        """Parent catches parent type, child catches child → TypeError."""
 
         class ParentError(Exception):
             pass
@@ -112,39 +112,39 @@ class TestOnErrorOverlapValidation:
         from action_machine.core.base_result import BaseResult
         from action_machine.core.meta_decorator import meta
         from action_machine.on_error import on_error
-        from tests.domain import OrdersDomain
+        from tests.domain_model import OrdersDomain
 
-        @meta(description="Родитель перекрывает дочерний", domain=OrdersDomain)
+        @meta(description="Parent covers child", domain=OrdersDomain)
         @check_roles(ROLE_NONE)
         class ParentCoversChildAction(BaseAction[BaseParams, BaseResult]):
 
-            @summary_aspect("Результат")
+            @summary_aspect("Result")
             async def result_summary(self, params, state, box, connections):
                 return BaseResult()
 
-            @on_error(ParentError, description="Ловит ParentError и всех наследников")
+            @on_error(ParentError, description="Catches ParentError and all subclasses")
             async def parent_on_error(self, params, state, box, connections, error):
                 return BaseResult()
 
-            @on_error(ChildError, description="ChildError — мёртвый код")
+            @on_error(ChildError, description="ChildError — dead code")
             async def child_on_error(self, params, state, box, connections, error):
                 return BaseResult()
 
-        # Act & Assert — ChildError подкласс ParentError → перекрытие
+        # Act & Assert — ChildError is subclass of ParentError → overlap
         with pytest.raises(TypeError, match="перехватывает"):
             MetadataBuilder.build(ParentCoversChildAction)
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Допустимый порядок (специфичный → общий)
+# Valid order (specific → general)
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestOnErrorValidOrder:
-    """Допустимый порядок обработчиков — сборка проходит без ошибок."""
+    """Valid handler order — build passes without errors."""
 
     def test_specific_above_general_ok(self) -> None:
-        """ValueError выше Exception → допустимо, сборка проходит."""
+        """ValueError above Exception → valid, build passes."""
 
         from action_machine.aspects.summary_aspect import summary_aspect
         from action_machine.auth import ROLE_NONE, check_roles
@@ -153,28 +153,28 @@ class TestOnErrorValidOrder:
         from action_machine.core.base_result import BaseResult
         from action_machine.core.meta_decorator import meta
         from action_machine.on_error import on_error
-        from tests.domain import OrdersDomain
+        from tests.domain_model import OrdersDomain
 
-        @meta(description="Правильный порядок обработчиков", domain=OrdersDomain)
+        @meta(description="Correct handler order", domain=OrdersDomain)
         @check_roles(ROLE_NONE)
         class CorrectOrderAction(BaseAction[BaseParams, BaseResult]):
 
-            @summary_aspect("Результат")
+            @summary_aspect("Result")
             async def result_summary(self, params, state, box, connections):
                 return BaseResult()
 
-            @on_error(ValueError, description="Специфичный — первый")
+            @on_error(ValueError, description="Specific — first")
             async def specific_on_error(self, params, state, box, connections, error):
                 return BaseResult()
 
-            @on_error(Exception, description="Общий fallback — последний")
+            @on_error(Exception, description="General fallback — last")
             async def general_on_error(self, params, state, box, connections, error):
                 return BaseResult()
 
-        # Act — сборка проходит без ошибок
+        # Act — build passes without errors
         metadata = MetadataBuilder.build(CorrectOrderAction)
 
-        # Assert — оба обработчика собраны
+        # Assert — both handlers collected
         assert len(metadata.error_handlers) == 2
         assert metadata.error_handlers[0].method_name == "specific_on_error"
         assert metadata.error_handlers[1].method_name == "general_on_error"
@@ -189,7 +189,7 @@ class TestOnErrorValidOrder:
         from action_machine.core.base_result import BaseResult
         from action_machine.core.meta_decorator import meta
         from action_machine.on_error import on_error
-        from tests.domain import OrdersDomain
+        from tests.domain_model import OrdersDomain
 
         @meta(description="Несвязанные типы", domain=OrdersDomain)
         @check_roles(ROLE_NONE)
@@ -252,7 +252,7 @@ class TestOnErrorMetadataCollection:
     def test_single_handler_collected(self) -> None:
         """Один обработчик → собирается в metadata.error_handlers."""
 
-        from tests.domain import ErrorHandledAction
+        from tests.domain_model import ErrorHandledAction
 
         # Act
         metadata = MetadataBuilder.build(ErrorHandledAction)
@@ -268,8 +268,8 @@ class TestOnErrorMetadataCollection:
     def test_multiple_handlers_collected_in_order(self) -> None:
         """Несколько обработчиков → собираются в порядке объявления."""
 
-        from tests.domain import MultiErrorAction
-        from tests.domain.error_actions import InsufficientFundsError, PaymentGatewayError
+        from tests.domain_model import MultiErrorAction
+        from tests.domain_model.error_actions import InsufficientFundsError, PaymentGatewayError
 
         # Act
         metadata = MetadataBuilder.build(MultiErrorAction)
@@ -283,7 +283,7 @@ class TestOnErrorMetadataCollection:
     def test_no_handlers_collected(self) -> None:
         """Действие без @on_error → error_handlers пустой."""
 
-        from tests.domain import NoErrorHandlerAction
+        from tests.domain_model import NoErrorHandlerAction
 
         # Act
         metadata = MetadataBuilder.build(NoErrorHandlerAction)

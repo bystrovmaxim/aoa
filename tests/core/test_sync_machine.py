@@ -52,7 +52,7 @@ from action_machine.core.action_product_machine import ActionProductMachine
 from action_machine.core.exceptions import AuthorizationError, ConnectionValidationError
 from action_machine.core.sync_action_product_machine import SyncActionProductMachine
 from action_machine.logging.log_coordinator import LogCoordinator
-from tests.domain import (
+from tests.domain_model import (
     FullAction,
     NotificationService,
     PaymentService,

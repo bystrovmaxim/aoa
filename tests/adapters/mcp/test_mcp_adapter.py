@@ -28,7 +28,7 @@ from action_machine.contrib.mcp.adapter import McpAdapter, _class_name_to_snake_
 from action_machine.contrib.mcp.route_record import McpRouteRecord
 from action_machine.core.action_product_machine import ActionProductMachine
 from action_machine.core.gate_coordinator import GateCoordinator
-from tests.domain import FullAction, PingAction, SimpleAction
+from tests.domain_model import FullAction, PingAction, SimpleAction
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Helpers

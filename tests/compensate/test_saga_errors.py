@@ -24,12 +24,12 @@ from __future__ import annotations
 
 import pytest
 
-from tests.domain.compensate_actions import (
+from tests.domain_model.compensate_actions import (
     CompensateAndOnErrorAction,
     CompensateErrorAction,
     CompensateTestParams,
 )
-from tests.domain.services import InventoryService, PaymentService
+from tests.domain_model.services import InventoryService, PaymentService
 
 # ═════════════════════════════════════════════════════════════════════════════
 # TestCompensatorErrorSuppressed

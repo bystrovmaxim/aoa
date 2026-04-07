@@ -1,21 +1,16 @@
 # tests/on_error/test_on_error_decorator.py
 """
-Тесты декоратора @on_error.
+Tests for the @on_error decorator.
 
 ═══════════════════════════════════════════════════════════════════════════════
-НАЗНАЧЕНИЕ
+PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Проверяет валидацию аргументов декоратора @on_error:
-- Корректные аргументы → метод декорируется, _on_error_meta записывается.
-- Некорректные типы исключений → TypeError.
-- Пустое или отсутствующее description → ValueError/TypeError.
-- Синхронный метод → TypeError.
-- Неверное число параметров → TypeError.
-- Имя метода без суффикса "_on_error" → NamingSuffixError.
+Verifies the behavior of the @on_error decorator with correct and incorrect
+arguments and method signatures.
 
-Все тесты используют намеренно сломанные функции, определённые внутри
-тестов, потому что они заведомо не могут быть частью рабочей доменной модели.
+The file contains tests for negative scenarios, so all functions are created
+inside test methods and are not part of the working domain model.
 """
 
 import pytest
@@ -24,114 +19,116 @@ from action_machine.core.exceptions import NamingSuffixError
 from action_machine.on_error import on_error
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Успешное декорирование
+# Successful decoration
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestOnErrorDecoratorSuccess:
-    """Тесты успешного применения @on_error к корректным методам."""
+    """Tests for successful application of @on_error to correct methods."""
 
     def test_single_exception_type(self) -> None:
-        """Один тип исключения → метод декорируется, _on_error_meta содержит кортеж из одного типа."""
+        """Single exception type → method is decorated, _on_error_meta contains a tuple with one type."""
 
-        # Arrange — определяем async-метод с правильной сигнатурой и суффиксом
-        @on_error(ValueError, description="Обработка ValueError")
+        # Arrange — define an async method with correct signature and suffix
+        @on_error(ValueError, description="Handling ValueError")
         async def handle_value_on_error(self, params, state, box, connections, error):
             pass
 
-        # Assert — метаданные записаны корректно
+        # Assert — metadata is recorded correctly
         assert hasattr(handle_value_on_error, "_on_error_meta")
         meta = handle_value_on_error._on_error_meta
         assert meta["exception_types"] == (ValueError,)
-        assert meta["description"] == "Обработка ValueError"
+        assert meta["description"] == "Handling ValueError"
 
     def test_tuple_of_exception_types(self) -> None:
-        """Кортеж типов исключений → все типы сохраняются в _on_error_meta."""
+        """Tuple of exception types → all types are saved in _on_error_meta."""
 
-        # Arrange — кортеж из двух типов
-        @on_error((ValueError, TypeError), description="Обработка нескольких типов")
+        # Arrange — tuple of two types
+        @on_error((ValueError, TypeError), description="Handling multiple types")
         async def handle_multi_on_error(self, params, state, box, connections, error):
             pass
 
-        # Assert — оба типа в кортеже
+        # Assert — both types in the tuple
         meta = handle_multi_on_error._on_error_meta
         assert meta["exception_types"] == (ValueError, TypeError)
-        assert meta["description"] == "Обработка нескольких типов"
+        assert meta["description"] == "Handling multiple types"
 
     def test_custom_exception_type(self) -> None:
-        """Пользовательский тип исключения (наследник Exception) → принимается."""
+        """Custom exception type (Exception subclass) → accepted."""
 
-        # Arrange — кастомное исключение
+        # Arrange — define a custom error class and async method
         class MyCustomError(Exception):
             pass
 
-        @on_error(MyCustomError, description="Кастомная ошибка")
+        @on_error(MyCustomError, description="Custom error")
         async def handle_custom_on_error(self, params, state, box, connections, error):
             pass
 
-        # Assert
+        # Assert — metadata should contain exactly the custom type
         meta = handle_custom_on_error._on_error_meta
         assert meta["exception_types"] == (MyCustomError,)
 
     def test_method_returns_unchanged(self) -> None:
-        """Декоратор возвращает тот же объект функции без обёртки."""
+        """Decorator returns the same function object without wrapping."""
 
-        # Arrange
+        # Arrange — define the original async function
         async def original_on_error(self, params, state, box, connections, error):
             pass
 
-        # Act
-        decorated = on_error(ValueError, description="Тест")(original_on_error)
+        # Act — apply the decorator to the function
+        decorated = on_error(ValueError, description="Test")(original_on_error)
 
-        # Assert — тот же объект
+        # Assert — decorator does not wrap the function, returns the same object
         assert decorated is original_on_error
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Ошибки типов исключений
+# Exception type errors
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestOnErrorExceptionTypeErrors:
-    """Тесты ошибок при некорректных типах исключений."""
+    """Tests for errors with incorrect exception types."""
 
     def test_not_a_type(self) -> None:
-        """Строка вместо типа → TypeError."""
+        """String instead of type → TypeError."""
 
-        # Act & Assert — строка не является типом
+        # Act — call the decorator with incorrect first argument
+        # Assert — expect error about invalid exception type
         with pytest.raises(TypeError, match="должен быть типом Exception"):
             on_error("ValueError", description="Тест")  # type: ignore[arg-type]
 
     def test_not_exception_subclass(self) -> None:
-        """Тип, не наследующий Exception → TypeError."""
+        """Type not inheriting from Exception → TypeError."""
 
-        # Act & Assert — int не подкласс Exception
+        # Act — pass a class that does not inherit from Exception
+        # Assert — expect error about incompatibility with Exception
         with pytest.raises(TypeError, match="не является подклассом Exception"):
             on_error(int, description="Тест")  # type: ignore[arg-type]
 
     def test_empty_tuple(self) -> None:
-        """Пустой кортеж типов → TypeError."""
+        """Empty tuple of types → TypeError."""
 
         # Act & Assert
         with pytest.raises(TypeError, match="пустой кортеж"):
             on_error((), description="Тест")
 
     def test_tuple_with_non_type(self) -> None:
-        """Кортеж с не-типом внутри → TypeError."""
+        """Tuple with non-type inside → TypeError."""
 
         # Act & Assert
         with pytest.raises(TypeError, match="не является типом"):
             on_error((ValueError, "not_a_type"), description="Тест")  # type: ignore[arg-type]
 
     def test_tuple_with_non_exception(self) -> None:
-        """Кортеж с типом, не наследующим Exception → TypeError."""
+        """Tuple with type not inheriting from Exception → TypeError."""
 
         # Act & Assert
         with pytest.raises(TypeError, match="не является подклассом Exception"):
             on_error((ValueError, int), description="Тест")  # type: ignore[arg-type]
 
     def test_integer_instead_of_type(self) -> None:
-        """Число вместо типа → TypeError."""
+        """Number instead of type → TypeError."""
 
         # Act & Assert
         with pytest.raises(TypeError, match="должен быть типом Exception"):
@@ -139,29 +136,29 @@ class TestOnErrorExceptionTypeErrors:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Ошибки description
+# Description errors
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestOnErrorDescriptionErrors:
-    """Тесты ошибок при некорректном description."""
+    """Tests for errors with incorrect description."""
 
     def test_description_not_string(self) -> None:
-        """Число вместо строки description → TypeError."""
+        """Number instead of string for description → TypeError."""
 
         # Act & Assert
         with pytest.raises(TypeError, match="description должен быть строкой"):
             on_error(ValueError, description=42)  # type: ignore[arg-type]
 
     def test_description_empty(self) -> None:
-        """Пустая строка description → ValueError."""
+        """Empty string for description → ValueError."""
 
         # Act & Assert
         with pytest.raises(ValueError, match="не может быть пустой"):
             on_error(ValueError, description="")
 
     def test_description_whitespace_only(self) -> None:
-        """Строка из пробелов в description → ValueError."""
+        """String of whitespace only in description → ValueError."""
 
         # Act & Assert
         with pytest.raises(ValueError, match="не может быть пустой"):
@@ -169,24 +166,24 @@ class TestOnErrorDescriptionErrors:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Ошибки метода
+# Method errors
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestOnErrorMethodErrors:
-    """Тесты ошибок при некорректном декорируемом методе."""
+    """Tests for errors with incorrect decorated method."""
 
     def test_not_callable(self) -> None:
-        """Применение к не-callable → TypeError."""
+        """Application to non-callable → TypeError."""
 
         # Act & Assert
         with pytest.raises(TypeError, match="только к методам"):
             on_error(ValueError, description="Тест")(42)
 
     def test_sync_method(self) -> None:
-        """Синхронный метод → TypeError."""
+        """Synchronous method → TypeError."""
 
-        # Arrange — синхронная функция
+        # Arrange — synchronous function
         def sync_on_error(self, params, state, box, connections, error):
             pass
 
@@ -195,9 +192,9 @@ class TestOnErrorMethodErrors:
             on_error(ValueError, description="Тест")(sync_on_error)
 
     def test_wrong_param_count_too_few(self) -> None:
-        """Меньше 6 параметров → TypeError."""
+        """Fewer than 6 parameters → TypeError."""
 
-        # Arrange — 5 параметров вместо 6
+        # Arrange — 5 parameters instead of 6
         async def short_on_error(self, params, state, box, connections):
             pass
 
@@ -206,9 +203,9 @@ class TestOnErrorMethodErrors:
             on_error(ValueError, description="Тест")(short_on_error)
 
     def test_wrong_param_count_too_many(self) -> None:
-        """Больше 6 параметров → TypeError."""
+        """More than 6 parameters → TypeError."""
 
-        # Arrange — 7 параметров
+        # Arrange — 7 parameters
         async def long_on_error(self, params, state, box, connections, error, extra):
             pass
 
@@ -218,17 +215,17 @@ class TestOnErrorMethodErrors:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Ошибки суффикса имени
+# Naming suffix errors
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestOnErrorNamingSuffix:
-    """Тесты проверки суффикса '_on_error' в имени метода."""
+    """Tests for checking the '_on_error' suffix in the method name."""
 
     def test_missing_suffix(self) -> None:
-        """Имя без суффикса '_on_error' → NamingSuffixError."""
+        """Name without '_on_error' suffix → NamingSuffixError."""
 
-        # Arrange — метод с правильной сигнатурой, но без суффикса
+        # Arrange — method with correct signature but without suffix
         async def handle_validation(self, params, state, box, connections, error):
             pass
 
@@ -237,9 +234,9 @@ class TestOnErrorNamingSuffix:
             on_error(ValueError, description="Тест")(handle_validation)
 
     def test_wrong_suffix(self) -> None:
-        """Имя с неправильным суффиксом → NamingSuffixError."""
+        """Name with wrong suffix → NamingSuffixError."""
 
-        # Arrange — суффикс "_handler" вместо "_on_error"
+        # Arrange — suffix "_handler" instead of "_on_error"
         async def handle_validation_handler(self, params, state, box, connections, error):
             pass
 
@@ -248,12 +245,12 @@ class TestOnErrorNamingSuffix:
             on_error(ValueError, description="Тест")(handle_validation_handler)
 
     def test_correct_suffix_passes(self) -> None:
-        """Имя с правильным суффиксом → декоратор применяется без ошибок."""
+        """Name with correct suffix → decorator applies without errors."""
 
-        # Arrange & Act — суффикс "_on_error" корректен
-        @on_error(ValueError, description="Тест суффикса")
+        # Arrange & Act — suffix "_on_error" is correct
+        @on_error(ValueError, description="Suffix test")
         async def handle_validation_on_error(self, params, state, box, connections, error):
             pass
 
-        # Assert — метаданные записаны
+        # Assert — metadata is recorded
         assert hasattr(handle_validation_on_error, "_on_error_meta")

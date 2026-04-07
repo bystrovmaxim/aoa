@@ -89,7 +89,7 @@ from action_machine.core.base_result import BaseResult
 from action_machine.core.base_state import BaseState
 from action_machine.core.gate_coordinator import GateCoordinator
 from action_machine.core.meta_decorator import meta
-from tests.domain import FullAction, PingAction, SimpleAction
+from tests.domain_model import FullAction, PingAction, SimpleAction
 
 # ═════════════════════════════════════════════════════════════════════════════
 # Вспомогательные модели для edge-case тестов

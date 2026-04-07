@@ -112,6 +112,7 @@ class TestDomainSuffix:
 
         class ShippingDomain(BaseDomain):
             name = "shipping"
+            description = "Домен доставки"
 
         assert ShippingDomain.__name__.endswith("Domain")
 
@@ -123,6 +124,7 @@ class TestDomainSuffix:
         with pytest.raises(NamingSuffixError, match="Domain"):
             class Shipping(BaseDomain):
                 name = "shipping"
+                description = "Домен доставки без суффикса"
 
     def test_intermediate_without_name_still_needs_suffix(self) -> None:
         """Промежуточный абстрактный домен без name, но с правильным суффиксом → OK."""
@@ -132,6 +134,7 @@ class TestDomainSuffix:
         # Промежуточный класс без name — допускается, но суффикс обязателен
         class ExternalServiceDomain(BaseDomain):
             name = "external_service"
+            description = "Внешний сервис"
             is_external = True
 
         assert ExternalServiceDomain.__name__.endswith("Domain")
@@ -143,6 +146,7 @@ class TestDomainSuffix:
 
         with pytest.raises(NamingSuffixError, match="Domain"):
             class ExternalService(BaseDomain):
+                description = "Внешний сервис без суффикса"
                 is_external = True
 
 

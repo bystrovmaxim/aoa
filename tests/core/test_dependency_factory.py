@@ -58,7 +58,7 @@ from action_machine.core.gate_coordinator import GateCoordinator
 from action_machine.core.meta_decorator import meta
 from action_machine.dependencies.dependency_factory import DependencyFactory, DependencyInfo
 from action_machine.resource_managers.base_resource_manager import BaseResourceManager
-from tests.domain import FullAction, NotificationService, PaymentService, PingAction
+from tests.domain_model import FullAction, NotificationService, PaymentService, PingAction
 
 # ═════════════════════════════════════════════════════════════════════════════
 # Вспомогательные классы для тестов

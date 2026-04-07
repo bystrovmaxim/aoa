@@ -54,7 +54,7 @@ from action_machine.core.base_action import BaseAction
 from action_machine.core.meta_gate_hosts import ActionMetaGateHost
 from action_machine.dependencies.dependency_gate_host import DependencyGateHost
 from action_machine.resource_managers.connection_gate_host import ConnectionGateHost
-from tests.domain import FullAction, PingAction, SimpleAction
+from tests.domain_model import FullAction, PingAction, SimpleAction
 
 # ═════════════════════════════════════════════════════════════════════════════
 # get_full_class_name()
@@ -93,8 +93,8 @@ class TestGetFullClassName:
         # Assert — содержит модуль и имя класса, разделённые точкой.
         # Модуль: tests.domain.ping_action, класс: PingAction
         assert "PingAction" in full_name
-        assert "tests.domain.ping_action" in full_name
-        assert full_name == "tests.domain.ping_action.PingAction"
+        assert "tests.domain_model.ping_action" in full_name
+        assert full_name == "tests.domain_model.ping_action.PingAction"
 
     def test_full_action_class_name(self) -> None:
         """
@@ -107,7 +107,7 @@ class TestGetFullClassName:
         full_name = action.get_full_class_name()
 
         # Assert — модуль full_action, класс FullAction
-        assert full_name == "tests.domain.full_action.FullAction"
+        assert full_name == "tests.domain_model.full_action.FullAction"
 
     def test_result_is_cached_on_class_level(self) -> None:
         """

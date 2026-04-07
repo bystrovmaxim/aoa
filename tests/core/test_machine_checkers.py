@@ -59,7 +59,7 @@ from action_machine.core.base_result import BaseResult
 from action_machine.core.exceptions import ValidationFieldError
 from action_machine.core.meta_decorator import meta
 from action_machine.logging.log_coordinator import LogCoordinator
-from tests.domain import FullAction, NotificationService, PaymentService, SimpleAction, TestDbManager
+from tests.domain_model import FullAction, NotificationService, PaymentService, SimpleAction, TestDbManager
 
 # ═════════════════════════════════════════════════════════════════════════════
 # Вспомогательные действия для edge-case тестов

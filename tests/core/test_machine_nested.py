@@ -70,7 +70,7 @@ from action_machine.logging.log_coordinator import LogCoordinator
 from action_machine.plugins.plugin_coordinator import PluginCoordinator
 from action_machine.plugins.plugin_run_context import PluginRunContext
 from action_machine.resource_managers.base_resource_manager import BaseResourceManager
-from tests.domain import PingAction
+from tests.domain_model import PingAction
 
 # ═════════════════════════════════════════════════════════════════════════════
 # Вспомогательные действия для вложенных вызовов

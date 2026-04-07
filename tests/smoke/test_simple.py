@@ -18,7 +18,7 @@ regular → state → summary или в чекерах.
 import pytest
 
 from action_machine.testing import TestBench
-from tests.domain import SimpleAction
+from tests.domain_model import SimpleAction
 
 
 @pytest.mark.asyncio

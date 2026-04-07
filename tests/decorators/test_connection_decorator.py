@@ -62,7 +62,7 @@ from action_machine.core.meta_decorator import meta
 from action_machine.resource_managers.base_resource_manager import BaseResourceManager
 from action_machine.resource_managers.connection import ConnectionInfo, connection
 from action_machine.resource_managers.connection_gate_host import ConnectionGateHost
-from tests.domain import FullAction
+from tests.domain_model import FullAction
 
 # ═════════════════════════════════════════════════════════════════════════════
 # Вспомогательные классы
