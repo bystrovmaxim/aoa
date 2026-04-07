@@ -18,7 +18,7 @@ Action тестовой доменной модели. Метаданные вк
 
 
 from action_machine.core.gate_coordinator import GateCoordinator
-from tests.domain import (
+from tests.domain_model import (
     AdminAction,
     ChildAction,
     FullAction,

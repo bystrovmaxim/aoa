@@ -1,20 +1,20 @@
 # tests/on_error/test_on_error_execution.py
 """
-Тесты выполнения обработчиков @on_error в ActionProductMachine.
+Tests for executing @on_error handlers in ActionProductMachine.
 ═══════════════════════════════════════════════════════════════════════════════
-НАЗНАЧЕНИЕ
+PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
-Проверяет механизм обработки ошибок аспектов в машине:
-- Обработчик ловит нужное исключение → возвращает Result.
-- Обработчик не ловит чужое исключение → пробрасывается наружу.
-- Несколько обработчиков — первый подходящий (сверху вниз).
-- Обработчик бросает исключение → OnErrorHandlerError.
-- Действие без @on_error → исключение пробрасывается.
-- Нормальное выполнение (без ошибки) → @on_error не вызывается.
-- Regression: Action с @on_error БЕЗ компенсаторов — поведение
-  не изменилось после внедрения механизма компенсации (Saga).
+Verifies the error handling mechanism for aspects in the machine:
+- Handler catches the appropriate exception → returns Result.
+- Handler does not catch foreign exceptions → propagates outward.
+- Multiple handlers — first suitable one (top to bottom).
+- Handler throws exception → OnErrorHandlerError.
+- Action without @on_error → exception propagates.
+- Normal execution (no error) → @on_error not called.
+- Regression: Action with @on_error WITHOUT compensators — behavior
+  unchanged after introducing compensation mechanism (Saga).
 
-Все тесты используют Action из tests/domain/error_actions.py.
+All tests use Actions from tests/domain/error_actions.py.
 """
 import pytest
 
@@ -22,7 +22,7 @@ from action_machine.core.exceptions import OnErrorHandlerError
 from action_machine.core.gate_coordinator import GateCoordinator
 from action_machine.logging.log_coordinator import LogCoordinator
 from action_machine.testing import TestBench
-from tests.domain import (
+from tests.domain_model import (
     ErrorHandledAction,
     ErrorTestParams,
     HandlerRaisesAction,
@@ -31,13 +31,13 @@ from tests.domain import (
 )
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Фикстуры
+# Fixtures
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 @pytest.fixture()
 def bench() -> TestBench:
-    """TestBench с тихим логгером (без вывода в консоль)."""
+    """TestBench with quiet logger (no console output)."""
     return TestBench(
         coordinator=GateCoordinator(),
         log_coordinator=LogCoordinator(loggers=[]),
@@ -45,128 +45,128 @@ def bench() -> TestBench:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Обработчик ловит нужное исключение
+# Handler catches matching exception
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestOnErrorCatchesMatchingException:
-    """Обработчик @on_error перехватывает исключение подходящего типа и возвращает Result."""
+    """@on_error handler catches exception of matching type and returns Result."""
 
     @pytest.mark.asyncio()
     async def test_value_error_handled(self, bench: TestBench) -> None:
-        """ValueError в аспекте → обработчик возвращает Result со статусом 'handled'."""
-        # Arrange — параметры, вызывающие ошибку в аспекте
+        """ValueError in aspect → handler returns Result with status 'handled'."""
+        # Arrange — parameters causing error in aspect
         params = ErrorTestParams(value="test", should_fail=True)
-        # Act — машина выполняет действие, аспект бросает ValueError,
-        # обработчик перехватывает и возвращает Result
+        # Act — machine executes action, aspect throws ValueError,
+        # handler catches and returns Result
         result = await bench.run(
             ErrorHandledAction(),
             params,
             rollup=False,
         )
-        # Assert — результат от обработчика, а не от summary
+        # Assert — result from handler, not from summary
         assert result.status == "handled"
         assert "Ошибка обработки: test" in result.detail
 
     @pytest.mark.asyncio()
     async def test_normal_execution_no_error(self, bench: TestBench) -> None:
-        """Без ошибки в аспекте → нормальный Result, обработчик не вызывается."""
-        # Arrange — параметры без ошибки
+        """No error in aspect → normal Result, handler not called."""
+        # Arrange — parameters without error
         params = ErrorTestParams(value="hello", should_fail=False)
-        # Act — нормальное выполнение конвейера
+        # Act — normal pipeline execution
         result = await bench.run(
             ErrorHandledAction(),
             params,
             rollup=False,
         )
-        # Assert — результат от summary, а не от обработчика
+        # Assert — result from summary, not from handler
         assert result.status == "ok"
         assert result.detail == "hello"
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Несколько обработчиков — порядок сверху вниз
+# Multiple handlers — order top to bottom
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestOnErrorMultipleHandlers:
-    """Несколько @on_error — первый подходящий обработчик вызывается."""
+    """Multiple @on_error — first suitable handler is called."""
 
     @pytest.mark.asyncio()
     async def test_insufficient_funds_caught_by_specific_handler(self, bench: TestBench) -> None:
-        """InsufficientFundsError → первый (специфичный) обработчик."""
-        # Arrange — value="insufficient" вызывает InsufficientFundsError в аспекте
+        """InsufficientFundsError → first (specific) handler."""
+        # Arrange — value="insufficient" triggers InsufficientFundsError in aspect
         params = ErrorTestParams(value="insufficient")
         # Act
         result = await bench.run(MultiErrorAction(), params, rollup=False)
-        # Assert — перехвачено специфичным обработчиком
+        # Assert — caught by specific handler
         assert result.status == "insufficient_funds"
 
     @pytest.mark.asyncio()
     async def test_gateway_error_caught_by_specific_handler(self, bench: TestBench) -> None:
-        """PaymentGatewayError → второй (специфичный) обработчик."""
-        # Arrange — value="gateway" вызывает PaymentGatewayError
+        """PaymentGatewayError → second (specific) handler."""
+        # Arrange — value="gateway" triggers PaymentGatewayError
         params = ErrorTestParams(value="gateway")
         # Act
         result = await bench.run(MultiErrorAction(), params, rollup=False)
-        # Assert — перехвачено вторым обработчиком
+        # Assert — caught by second handler
         assert result.status == "gateway_error"
 
     @pytest.mark.asyncio()
     async def test_runtime_error_caught_by_fallback(self, bench: TestBench) -> None:
-        """RuntimeError → третий (общий fallback) обработчик Exception."""
-        # Arrange — should_fail=True вызывает RuntimeError
+        """RuntimeError → third (general fallback) handler Exception."""
+        # Arrange — should_fail=True triggers RuntimeError
         params = ErrorTestParams(value="anything", should_fail=True)
         # Act
         result = await bench.run(MultiErrorAction(), params, rollup=False)
-        # Assert — перехвачено fallback-обработчиком
+        # Assert — caught by fallback handler
         assert result.status == "unknown_error"
 
     @pytest.mark.asyncio()
     async def test_normal_execution(self, bench: TestBench) -> None:
-        """Без ошибки → нормальный Result, ни один обработчик не вызван."""
-        # Arrange — нормальные параметры
+        """No error → normal Result, no handler called."""
+        # Arrange — normal parameters
         params = ErrorTestParams(value="ok", should_fail=False)
         # Act
         result = await bench.run(MultiErrorAction(), params, rollup=False)
-        # Assert — результат от summary
+        # Assert — result from summary
         assert result.status == "ok"
         assert result.detail == "ok"
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Действие без @on_error — ошибка пробрасывается
+# Action without @on_error — error propagates
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestOnErrorNoHandler:
-    """Действие без @on_error — исключение аспекта пробрасывается наружу."""
+    """Action without @on_error — aspect exception propagates outward."""
 
     @pytest.mark.asyncio()
     async def test_error_propagates_without_handler(self, bench: TestBench) -> None:
-        """ValueError без обработчика → пробрасывается до вызывающего кода."""
-        # Arrange — параметры, вызывающие ошибку
+        """ValueError without handler → propagates to calling code."""
+        # Arrange — parameters causing error
         params = ErrorTestParams(value="fail", should_fail=True)
-        # Act & Assert — ValueError не перехвачен, летит наружу
+        # Act & Assert — ValueError not caught, propagates outward
         with pytest.raises(ValueError, match="Ошибка: fail"):
             await bench.run(NoErrorHandlerAction(), params, rollup=False)
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Обработчик не подходит по типу — ошибка пробрасывается
+# Handler does not match type — error propagates
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestOnErrorTypeMismatch:
-    """Обработчик ловит только свой тип — чужие исключения пробрасываются."""
+    """Handler catches only its type — foreign exceptions propagate."""
 
     @pytest.mark.asyncio()
     async def test_type_error_not_caught_by_value_error_handler(self, bench: TestBench) -> None:
-        """TypeError не перехватывается обработчиком ValueError → пробрасывается."""
-        # Arrange — создаём Action, чей аспект бросает TypeError,
-        # а обработчик ловит только ValueError.
-        # ErrorHandledAction ловит ValueError. Подменим аспект через
-        # наследование (edge-case тест — класс создаётся внутри теста).
+        """TypeError not caught by ValueError handler → propagates."""
+        # Arrange — create Action whose aspect throws TypeError,
+        # but handler catches only ValueError.
+        # ErrorHandledAction catches ValueError. Override aspect via
+        # inheritance (edge-case test — class created inside test).
         from action_machine.aspects.regular_aspect import regular_aspect
         from action_machine.aspects.summary_aspect import summary_aspect
         from action_machine.auth import ROLE_NONE, check_roles
@@ -174,49 +174,49 @@ class TestOnErrorTypeMismatch:
         from action_machine.core.base_action import BaseAction
         from action_machine.core.meta_decorator import meta
         from action_machine.on_error import on_error
-        from tests.domain import OrdersDomain
-        from tests.domain.error_actions import ErrorTestParams, ErrorTestResult
+        from tests.domain_model import OrdersDomain
+        from tests.domain_model.error_actions import ErrorTestParams, ErrorTestResult
 
-        @meta(description="Бросает TypeError, ловит ValueError", domain=OrdersDomain)
+        @meta(description="Throws TypeError, catches ValueError", domain=OrdersDomain)
         @check_roles(ROLE_NONE)
         class TypeMismatchAction(BaseAction[ErrorTestParams, ErrorTestResult]):
-            @regular_aspect("Бросает TypeError")
+            @regular_aspect("Throws TypeError")
             @result_string("processed", required=True)
             async def process_aspect(self, params, state, box, connections):
-                raise TypeError("Неверный тип")
+                raise TypeError("Invalid type")
                 return {"processed": "never"}
 
-            @summary_aspect("Результат")
+            @summary_aspect("Result")
             async def result_summary(self, params, state, box, connections):
                 return ErrorTestResult(status="ok")
 
-            @on_error(ValueError, description="Ловит только ValueError")
+            @on_error(ValueError, description="Catches only ValueError")
             async def handle_value_on_error(self, params, state, box, connections, error):
                 return ErrorTestResult(status="handled")
 
         params = ErrorTestParams(value="test")
-        # Act & Assert — TypeError не перехвачен обработчиком ValueError
-        with pytest.raises(TypeError, match="Неверный тип"):
+        # Act & Assert — TypeError not caught by ValueError handler
+        with pytest.raises(TypeError, match="Invalid type"):
             await bench.run(TypeMismatchAction(), params, rollup=False)
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Обработчик сам бросает исключение → OnErrorHandlerError
+# Handler itself throws exception → OnErrorHandlerError
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestOnErrorHandlerRaises:
-    """Обработчик сам бросает исключение → OnErrorHandlerError."""
+    """Handler itself throws exception → OnErrorHandlerError."""
 
     @pytest.mark.asyncio()
     async def test_handler_exception_wrapped(self, bench: TestBench) -> None:
-        """Обработчик бросает RuntimeError → OnErrorHandlerError с __cause__."""
-        # Arrange — should_fail=True → ValueError → обработчик → RuntimeError
+        """Handler throws RuntimeError → OnErrorHandlerError with __cause__."""
+        # Arrange — should_fail=True → ValueError → handler → RuntimeError
         params = ErrorTestParams(value="test", should_fail=True)
-        # Act & Assert — OnErrorHandlerError оборачивает RuntimeError
+        # Act & Assert — OnErrorHandlerError wraps RuntimeError
         with pytest.raises(OnErrorHandlerError) as exc_info:
             await bench.run(HandlerRaisesAction(), params, rollup=False)
-        # Assert — проверяем атрибуты OnErrorHandlerError
+        # Assert — check OnErrorHandlerError attributes
         error = exc_info.value
         assert error.handler_name == "handle_and_fail_on_error"
         assert isinstance(error.original_error, ValueError)
@@ -225,100 +225,100 @@ class TestOnErrorHandlerRaises:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Обработчики не наследуются
+# Handlers are not inherited
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestOnErrorNotInherited:
-    """Обработчики @on_error НЕ наследуются от родительского Action."""
+    """@on_error handlers are NOT inherited from parent Action."""
 
     @pytest.mark.asyncio()
     async def test_child_action_does_not_inherit_handlers(self, bench: TestBench) -> None:
-        """Дочерний Action без собственных @on_error — ошибка пробрасывается."""
-        # Arrange — создаём дочерний класс ErrorHandledAction без своих обработчиков.
-        # Родительский ErrorHandledAction имеет @on_error(ValueError),
-        # но дочерний не должен его наследовать.
+        """Child Action without own @on_error — error propagates."""
+        # Arrange — create child class of ErrorHandledAction without its own handlers.
+        # Parent ErrorHandledAction has @on_error(ValueError),
+        # but child should not inherit it.
         from action_machine.aspects.regular_aspect import regular_aspect
         from action_machine.aspects.summary_aspect import summary_aspect
         from action_machine.auth import ROLE_NONE, check_roles
         from action_machine.checkers import result_string
         from action_machine.core.base_action import BaseAction
         from action_machine.core.meta_decorator import meta
-        from tests.domain import OrdersDomain
-        from tests.domain.error_actions import ErrorTestParams, ErrorTestResult
+        from tests.domain_model import OrdersDomain
+        from tests.domain_model.error_actions import ErrorTestParams, ErrorTestResult
 
-        @meta(description="Дочерний без собственных обработчиков", domain=OrdersDomain)
+        @meta(description="Child without own handlers", domain=OrdersDomain)
         @check_roles(ROLE_NONE)
         class ChildNoHandlerAction(BaseAction[ErrorTestParams, ErrorTestResult]):
-            """Дочерний Action — переопределяет аспекты, но не имеет @on_error."""
+            """Child Action — overrides aspects but has no @on_error."""
 
-            @regular_aspect("Обработка с ошибкой")
+            @regular_aspect("Processing with error")
             @result_string("processed", required=True)
             async def process_aspect(self, params, state, box, connections):
                 if params.should_fail:
-                    raise ValueError("Ошибка в дочернем")
+                    raise ValueError("Error in child")
                 return {"processed": params.value}
 
-            @summary_aspect("Результат")
+            @summary_aspect("Result")
             async def result_summary(self, params, state, box, connections):
                 return ErrorTestResult(status="ok", detail=state["processed"])
 
         params = ErrorTestParams(value="test", should_fail=True)
-        # Act & Assert — ValueError пробрасывается, обработчик родителя НЕ работает
-        with pytest.raises(ValueError, match="Ошибка в дочернем"):
+        # Act & Assert — ValueError propagates, parent handler does NOT work
+        with pytest.raises(ValueError, match="Error in child"):
             await bench.run(ChildNoHandlerAction(), params, rollup=False)
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Regression: @on_error без компенсаторов — поведение не изменилось
+# Regression: @on_error without compensators — behavior unchanged
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestOnErrorWithoutCompensatorsRegression:
     """
-    Regression-тест: Action с @on_error БЕЗ компенсаторов работает
-    так же, как до внедрения механизма компенсации (Saga).
+    Regression test: Action with @on_error WITHOUT compensators works
+    the same as before introducing the compensation mechanism (Saga).
 
-    После добавления saga_stack в _execute_regular_aspects() и
-    _rollback_saga() в _execute_aspects_with_error_handling() важно
-    убедиться, что Action без @compensate продолжают корректно
-    обрабатывать ошибки через @on_error — без попытки размотки
-    пустого стека, без лишних событий, без побочных эффектов.
+    After adding saga_stack to _execute_regular_aspects() and
+    _rollback_saga() to _execute_aspects_with_error_handling(), it is important
+    to ensure that Actions without @compensate continue to handle errors
+    correctly through @on_error — without attempting to unwind an empty stack,
+    without extra events, without side effects.
     """
 
     @pytest.mark.asyncio()
     async def test_on_error_works_without_compensators(self, bench: TestBench) -> None:
         """
-        ErrorHandledAction не имеет @compensate.
-        ValueError в аспекте → @on_error перехватывает → Result(status="handled").
-        Размотка стека не выполняется (saga_stack пуст, has_compensators=False).
-        Поведение идентично до внедрения Saga.
+        ErrorHandledAction has no @compensate.
+        ValueError in aspect → @on_error catches → Result(status="handled").
+        Stack unwinding not performed (saga_stack empty, has_compensators=False).
+        Behavior identical to before Saga introduction.
         """
-        # Arrange — параметры, вызывающие ошибку в аспекте
+        # Arrange — parameters causing error in aspect
         params = ErrorTestParams(value="regression_test", should_fail=True)
 
-        # Act — машина выполняет действие, аспект бросает ValueError,
-        # @on_error перехватывает без участия механизма компенсации
+        # Act — machine executes action, aspect throws ValueError,
+        # @on_error catches without compensation mechanism involvement
         result = await bench.run(
             ErrorHandledAction(),
             params,
             rollup=False,
         )
 
-        # Assert — результат от @on_error обработчика
+        # Assert — result from @on_error handler
         assert result.status == "handled"
         assert "Ошибка обработки: regression_test" in result.detail
 
     @pytest.mark.asyncio()
     async def test_no_handler_propagates_without_compensators(self, bench: TestBench) -> None:
         """
-        NoErrorHandlerAction не имеет ни @compensate, ни @on_error.
-        ValueError пробрасывается наружу — поведение идентично
-        до внедрения Saga.
+        NoErrorHandlerAction has neither @compensate nor @on_error.
+        ValueError propagates outward — behavior identical
+        to before Saga introduction.
         """
-        # Arrange — параметры, вызывающие ошибку
+        # Arrange — parameters causing error
         params = ErrorTestParams(value="no_handler", should_fail=True)
 
-        # Act & Assert — ValueError пробрасывается без изменений
+        # Act & Assert — ValueError propagates unchanged
         with pytest.raises(ValueError, match="Ошибка: no_handler"):
             await bench.run(NoErrorHandlerAction(), params, rollup=False)

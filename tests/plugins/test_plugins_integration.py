@@ -61,7 +61,7 @@ from action_machine.plugins.events import (
 )
 from action_machine.plugins.plugin import Plugin
 from action_machine.testing import TestBench
-from tests.domain import (
+from tests.domain_model import (
     FullAction,
     NotificationService,
     PaymentService,

@@ -20,7 +20,7 @@ from unittest.mock import AsyncMock
 import pytest
 
 from action_machine.testing import TestBench
-from tests.domain import FullAction
+from tests.domain_model import FullAction
 
 
 @pytest.mark.asyncio

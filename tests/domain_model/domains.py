@@ -37,8 +37,10 @@ from action_machine.domain.base_domain import BaseDomain
 class OrdersDomain(BaseDomain):
     """Домен заказов — используется для действий, связанных с обработкой заказов."""
     name = "orders"
+    description = "Домен для обработки заказов клиентов"
 
 
 class SystemDomain(BaseDomain):
     """Системный домен — используется для инфраструктурных действий (ping, health check)."""
     name = "system"
+    description = "Системный домен для инфраструктурных операций"

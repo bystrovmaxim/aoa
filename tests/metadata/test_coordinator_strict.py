@@ -83,10 +83,12 @@ class _Result(BaseResult):
 
 class _OrdersDomain(BaseDomain):
     name = "orders"
+    description = "Домен заказов"
 
 
 class _PaymentsDomain(BaseDomain):
     name = "payments"
+    description = "Домен платежей"
 
 
 # ─── Действие с доменом ──────────────────────────────────────────────────

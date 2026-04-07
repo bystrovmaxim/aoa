@@ -48,7 +48,7 @@ from action_machine.contrib.fastapi.adapter import FastApiAdapter
 from action_machine.core.action_product_machine import ActionProductMachine
 from action_machine.core.exceptions import AuthorizationError, ValidationFieldError
 from action_machine.core.gate_coordinator import GateCoordinator
-from tests.domain import PingAction, SimpleAction
+from tests.domain_model import PingAction, SimpleAction
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Хелпер — создание адаптера с замоканной machine.run

@@ -19,7 +19,7 @@ PingAction не имеет параметров, зависимостей, conne
 import pytest
 
 from action_machine.testing import TestBench
-from tests.domain import PingAction
+from tests.domain_model import PingAction
 
 
 @pytest.mark.asyncio

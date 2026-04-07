@@ -49,7 +49,7 @@ from action_machine.adapters.base_route_record import (
     _resolve_generic_arg,
 )
 from action_machine.core.base_params import BaseParams
-from tests.domain import PingAction
+from tests.domain_model import PingAction
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Хелперы — заведомо нестандартные модели, не часть рабочей доменной модели.

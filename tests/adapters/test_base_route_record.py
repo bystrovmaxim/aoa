@@ -31,7 +31,7 @@ import pytest
 from pydantic import BaseModel
 
 from action_machine.adapters.base_route_record import BaseRouteRecord, extract_action_types
-from tests.domain import FullAction, PingAction, SimpleAction
+from tests.domain_model import FullAction, PingAction, SimpleAction
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Minimal concrete subclass — needed because BaseRouteRecord cannot be

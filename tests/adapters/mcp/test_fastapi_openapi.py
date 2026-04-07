@@ -27,7 +27,7 @@ from fastapi.testclient import TestClient
 from action_machine.contrib.fastapi.adapter import FastApiAdapter
 from action_machine.core.action_product_machine import ActionProductMachine
 from action_machine.core.gate_coordinator import GateCoordinator
-from tests.domain import PingAction, SimpleAction
+from tests.domain_model import PingAction, SimpleAction
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Helpers

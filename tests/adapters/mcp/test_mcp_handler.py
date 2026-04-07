@@ -42,7 +42,7 @@ from action_machine.contrib.mcp.route_record import McpRouteRecord
 from action_machine.core.action_product_machine import ActionProductMachine
 from action_machine.core.exceptions import AuthorizationError, ValidationFieldError
 from action_machine.core.gate_coordinator import GateCoordinator
-from tests.domain import PingAction
+from tests.domain_model import PingAction
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Helpers

@@ -27,7 +27,7 @@ from action_machine.testing.state_validator import (
     validate_state_for_aspect,
     validate_state_for_summary,
 )
-from tests.domain import FullAction, PingAction, SimpleAction
+from tests.domain_model import FullAction, PingAction, SimpleAction
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Shared fixture — coordinator with registered domain actions

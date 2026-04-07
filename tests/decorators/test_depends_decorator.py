@@ -57,7 +57,7 @@ from action_machine.core.gate_coordinator import GateCoordinator
 from action_machine.core.meta_decorator import meta
 from action_machine.dependencies.dependency_gate_host import DependencyGateHost
 from action_machine.dependencies.depends import depends
-from tests.domain import FullAction, NotificationService, PaymentService
+from tests.domain_model import FullAction, NotificationService, PaymentService
 
 # ═════════════════════════════════════════════════════════════════════════════
 # Вспомогательные классы

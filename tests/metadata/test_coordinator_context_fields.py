@@ -46,7 +46,7 @@ from action_machine.core.meta_decorator import meta
 from action_machine.core.tools_box import ToolsBox
 from action_machine.on_error.on_error_decorator import on_error
 from action_machine.resource_managers.base_resource_manager import BaseResourceManager
-from tests.domain.domains import SystemDomain
+from tests.domain_model.domains import SystemDomain
 
 # ═════════════════════════════════════════════════════════════════════════════
 # Вспомогательные тестовые компоненты

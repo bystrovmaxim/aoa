@@ -60,7 +60,7 @@ from action_machine.core.meta_decorator import meta
 from action_machine.logging.log_coordinator import LogCoordinator
 from action_machine.resource_managers.base_resource_manager import BaseResourceManager
 from action_machine.resource_managers.connection import connection
-from tests.domain import FullAction, NotificationService, PaymentService, PingAction, TestDbManager
+from tests.domain_model import FullAction, NotificationService, PaymentService, PingAction, TestDbManager
 
 # ═════════════════════════════════════════════════════════════════════════════
 # Вспомогательные действия для edge-case тестов

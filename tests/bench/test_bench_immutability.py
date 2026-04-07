@@ -17,7 +17,7 @@
 """
 
 from action_machine.testing import TestBench
-from tests.domain import PaymentService
+from tests.domain_model import PaymentService
 
 
 class TestWithUser:

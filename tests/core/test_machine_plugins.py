@@ -69,7 +69,7 @@ from action_machine.plugins.events import (
 )
 from action_machine.plugins.plugin_coordinator import PluginCoordinator
 from action_machine.plugins.plugin_run_context import PluginRunContext
-from tests.domain import (
+from tests.domain_model import (
     FullAction,
     NotificationService,
     PaymentService,

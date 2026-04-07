@@ -41,12 +41,12 @@ from action_machine.core.base_state import BaseState
 from action_machine.core.meta_decorator import meta
 from action_machine.dependencies.depends import depends
 from action_machine.testing import TestBench
-from tests.domain.compensate_actions import (
+from tests.domain_model.compensate_actions import (
     CompensatedOrderAction,
     CompensateTestParams,
     CompensateWithContextAction,
 )
-from tests.domain.services import InventoryService, PaymentService
+from tests.domain_model.services import InventoryService, PaymentService
 
 # ═════════════════════════════════════════════════════════════════════════════
 # Вспомогательная функция для создания BaseState с данными

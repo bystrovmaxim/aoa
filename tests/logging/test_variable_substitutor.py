@@ -45,7 +45,7 @@ from action_machine.core.exceptions import LogTemplateError
 from action_machine.logging.log_scope import LogScope
 from action_machine.logging.variable_substitutor import VariableSubstitutor
 from action_machine.testing.stubs import ContextStub
-from tests.domain import SimpleAction
+from tests.domain_model import SimpleAction
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Вспомогательные модели для тестов

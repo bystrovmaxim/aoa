@@ -63,7 +63,7 @@ from action_machine.core.exceptions import AuthorizationError
 from action_machine.core.meta_decorator import meta
 from action_machine.logging.log_coordinator import LogCoordinator
 from action_machine.testing import TestBench
-from tests.domain import AdminAction, FullAction, PingAction
+from tests.domain_model import AdminAction, FullAction, PingAction
 
 # ═════════════════════════════════════════════════════════════════════════════
 # Вспомогательные действия для edge-case тестов
@@ -361,7 +361,7 @@ class TestRolesWithBench:
         # Arrange — FullAction с ролью "manager", мок db для connections
         from unittest.mock import AsyncMock
 
-        from tests.domain import NotificationService, PaymentService, TestDbManager
+        from tests.domain_model import NotificationService, PaymentService, TestDbManager
 
         mock_payment = AsyncMock(spec=PaymentService)
         mock_payment.charge.return_value = "TXN-BENCH"

@@ -1,80 +1,146 @@
-# src/action_machine/domain/__init__.py
 """
-Пакет доменов ActionMachine.
+Пакет доменов и модели предметной области ActionMachine.
 
 ═══════════════════════════════════════════════════════════════════════════════
 НАЗНАЧЕНИЕ
 ═══════════════════════════════════════════════════════════════════════════════
 
-Содержит систему доменов — механизм группировки действий, ресурсов,
-плагинов и других сущностей по бизнес-области. Домен — это явный объект
-в коде (класс, наследующий BaseDomain), а не папка или модуль.
+Содержит декларативную модель предметной области. Модель описывает
+сущности, их поля, связи между ними и жизненные циклы — и больше ничего.
+Она не знает про базы данных, HTTP, файлы или любой другой внешний мир.
+Это чистое ядро в терминах гексагональной архитектуры.
 
-Домен появляется в графе GateCoordinator как отдельный тип узла ("domain"),
-что позволяет визуализировать принадлежность действий к бизнес-областям,
-фильтровать граф по доменам и строить отчёты.
+═══════════════════════════════════════════════════════════════════════════════
+КООРДИНАТОР
+═══════════════════════════════════════════════════════════════════════════════
+
+Единый координатор системы — GateCoordinator из core/. Сущности
+регистрируются в том же графе rustworkx, что и Action, Plugin,
+ResourceManager — один граф на всю систему. Информация о сущностях
+хранится в payload узлов графа, как и для Action.
 
 ═══════════════════════════════════════════════════════════════════════════════
 КОМПОНЕНТЫ
 ═══════════════════════════════════════════════════════════════════════════════
 
-- BaseDomain — абстрактный базовый класс для всех доменов. Определяет
-  единственный обязательный атрибут ``name`` (ClassVar[str]) — уникальное
-  имя бизнес-области. Конкретные домены создаются наследованием.
+Домены:
+    BaseDomain — абстрактный базовый класс для всех доменов.
 
-═══════════════════════════════════════════════════════════════════════════════
-ПРИНЦИПЫ
-═══════════════════════════════════════════════════════════════════════════════
+Сущности:
+    BaseEntity — абстрактный базовый класс для всех сущностей.
+    EntityGateHost — маркерный миксин, разрешающий @entity.
+    entity — декоратор уровня класса для объявления сущности.
 
-1. ДОМЕН — ЭТО КЛАСС, А НЕ СТРОКА. Опечатка в имени домена обнаруживается
-   на этапе импорта (ImportError), а не в рантайме при сравнении строк.
-   IDE автодополняет имена доменов. Рефакторинг переименования работает.
+Конечные автоматы:
+    Lifecycle — декларативный конечный автомат жизненного цикла.
+    StateType — enum классификации состояний: INITIAL, INTERMEDIATE, FINAL.
+    StateInfo — frozen dataclass метаданных одного состояния.
 
-2. ДОМЕН — ДЕКЛАРАТИВНЫЙ. Он не содержит логики, не хранит состояния,
-   не имеет методов. Только имя. Это чистый маркер принадлежности.
+Связи между сущностями:
+    CompositeOne[T], CompositeMany[T]     — Composition
+    AggregateOne[T], AggregateMany[T]     — Aggregation
+    AssociationOne[T], AssociationMany[T]  — Association
+    RelationType — enum типа владения.
+    Inverse, NoInverse, Rel — маркеры связей.
 
-3. ДОМЕН — ТИПИЗИРОВАННЫЙ. Конкретный домен — это отдельный тип
-   (OrdersDomain, CrmDomain), что позволяет использовать его в аннотациях
-   типов и проверках isinstance.
+Утилиты:
+    build — сборка сущностей из плоских данных.
+    make — тестовая фабрика с автогенерацией дефолтов.
+
+Исключения:
+    FieldNotLoadedError, RelationNotLoadedError,
+    EntityDecoratorError, LifecycleValidationError.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ПРИМЕР ИСПОЛЬЗОВАНИЯ
 ═══════════════════════════════════════════════════════════════════════════════
 
-    # Определение доменов:
-    class OrdersDomain(BaseDomain):
-        name = "orders"
+    from action_machine.domain import (
+        BaseDomain, BaseEntity, entity,
+        Lifecycle, StateType,
+        AssociationOne, CompositeMany,
+        Inverse, Rel, build, make,
+    )
+    from action_machine.core.gate_coordinator import GateCoordinator
 
-    class CrmDomain(BaseDomain):
-        name = "crm"
+    class ShopDomain(BaseDomain):
+        name = "shop"
+        description = "Интернет-магазин"
 
-    class WarehouseDomain(BaseDomain):
-        name = "warehouse"
+    @entity(description="Заказ клиента", domain=ShopDomain)
+    class OrderEntity(BaseEntity):
+        lifecycle = (
+            Lifecycle("Жизненный цикл заказа")
+            .state("new", "Новый").to("confirmed", "cancelled").initial()
+            .state("confirmed", "Подтверждён").to("shipped").intermediate()
+            .state("delivered", "Доставлен").final()
+            .state("cancelled", "Отменён").final()
+        )
+        id: str = Field(description="ID заказа")
+        amount: float = Field(description="Сумма", ge=0)
 
-    # Домены используются в декораторе @meta (будет добавлен позже):
-    @meta(domain=OrdersDomain, description="Создание заказа")
-    @check_roles("user")
-    class CreateOrderAction(BaseAction[OrderParams, OrderResult]):
-        ...
-
-═══════════════════════════════════════════════════════════════════════════════
-ИНТЕГРАЦИЯ С ГРАФОМ (БУДУЩЕЕ)
-═══════════════════════════════════════════════════════════════════════════════
-
-При регистрации действия с доменом в GateCoordinator граф будет содержать:
-
-    [domain:orders] ──has_member──▶ [action:CreateOrderAction]
-    [domain:orders] ──has_member──▶ [action:CancelOrderAction]
-    [domain:crm]    ──has_member──▶ [action:CreateLeadAction]
-
-Это позволяет:
-- Фильтровать граф по домену: coordinator.get_nodes_by_domain("orders").
-- Строить отчёты: «все действия домена orders».
-- Визуализировать архитектуру системы по бизнес-областям.
+    coordinator = GateCoordinator()
+    coordinator.register_entity(OrderEntity)
+    order = build({"id": "123", "amount": 100.0}, OrderEntity)
 """
 
 from .base_domain import BaseDomain
+from .entity import BaseEntity
+from .entity_decorator import entity
+from .entity_gate_host import EntityGateHost
+from .exceptions import (
+    EntityDecoratorError,
+    FieldNotLoadedError,
+    LifecycleValidationError,
+    RelationNotLoadedError,
+)
+from .hydration import build
+from .lifecycle import Lifecycle, StateInfo, StateType
+from .relation_containers import (
+    AggregateMany,
+    AggregateOne,
+    AssociationMany,
+    AssociationOne,
+    BaseRelationMany,
+    BaseRelationOne,
+    CompositeMany,
+    CompositeOne,
+    RelationType,
+)
+from .relation_markers import Inverse, NoInverse, Rel
+from .testing import make
 
 __all__ = [
+    # Домены
     "BaseDomain",
+    # Сущности
+    "BaseEntity",
+    "EntityGateHost",
+    "entity",
+    # Конечные автоматы
+    "Lifecycle",
+    "StateType",
+    "StateInfo",
+    # Контейнеры связей
+    "BaseRelationOne",
+    "BaseRelationMany",
+    "CompositeOne",
+    "CompositeMany",
+    "AggregateOne",
+    "AggregateMany",
+    "AssociationOne",
+    "AssociationMany",
+    "RelationType",
+    # Маркеры связей
+    "Inverse",
+    "NoInverse",
+    "Rel",
+    # Утилиты
+    "build",
+    "make",
+    # Исключения
+    "EntityDecoratorError",
+    "FieldNotLoadedError",
+    "LifecycleValidationError",
+    "RelationNotLoadedError",
 ]

@@ -68,10 +68,13 @@ from action_machine.resource_managers.base_resource_manager import BaseResourceM
 
 class _TestDomain(BaseDomain):
     name = "test_domain"
+    description = "Тестовый домен для _TestDomain"
+
 
 
 class _OrdersDomain(BaseDomain):
     name = "orders"
+    description = "Тестовый домен для _OrdersDomain"
 
 
 # ═════════════════════════════════════════════════════════════════════════════

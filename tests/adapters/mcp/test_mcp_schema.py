@@ -21,7 +21,7 @@ Scenarios covered:
 
 from pydantic import BaseModel, Field
 
-from tests.domain import FullAction, PingAction, SimpleAction
+from tests.domain_model import FullAction, PingAction, SimpleAction
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Helper — extract schema from a Pydantic model the same way McpAdapter does.
