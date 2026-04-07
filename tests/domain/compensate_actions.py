@@ -35,53 +35,7 @@ Action с компенсаторами (@compensate) для тестирован
 ═══════════════════════════════════════════════════════════════════════════════
 
 - InventoryService — сервис управления запасами. Методы reserve()
-  и unreserve(). В тестах заменяется AsyncMock.
-
-═══════════════════════════════════════════════════════════════════════════════
-АРХИТЕКТУРА КОМПЕНСАЦИИ
-═══════════════════════════════════════════════════════════════════════════════
-
-Компенсатор — async-метод, декорированный @compensate(target_aspect_name,
-description). Привязан к конкретному regular-аспекту по строковому имени.
-При ошибке в любом аспекте ActionProductMachine разматывает стек
-SagaFrame в обратном порядке, вызывая компенсаторы уже выполненных
-аспектов.
-
-Сигнатура компенсатора (7 параметров без @context_requires):
-    async def name_compensate(self, params, state_before, state_after,
-                              box, connections, error)
-
-Сигнатура компенсатора (8 параметров с @context_requires):
-    async def name_compensate(self, params, state_before, state_after,
-                              box, connections, error, ctx)
-
-Параметры:
-    params       — входные параметры действия (frozen BaseParams).
-    state_before — состояние ДО выполнения аспекта (frozen BaseState).
-    state_after  — состояние ПОСЛЕ аспекта (frozen BaseState или None).
-    box          — ToolsBox (тот же экземпляр, что у аспектов).
-    connections  — словарь ресурсных менеджеров.
-    error        — исключение, вызвавшее размотку стека.
-    ctx          — ContextView (только при @context_requires).
-
-Возвращаемое значение компенсатора ИГНОРИРУЕТСЯ.
-
-═══════════════════════════════════════════════════════════════════════════════
-ИСПОЛЬЗОВАНИЕ В ТЕСТАХ
-═══════════════════════════════════════════════════════════════════════════════
-
-    from tests.domain.compensate_actions import (
-        CompensatedOrderAction,
-        PartialCompensateAction,
-        CompensateErrorAction,
-        CompensateAndOnErrorAction,
-        CompensateWithContextAction,
-        InventoryService,
-    )
-
-    mock_inventory = AsyncMock(spec=InventoryService)
-    mock_inventory.reserve.return_value = "RES-001"
-    mock_inventory.unreserve.return_value = True
+  и unreserve(). В тестах заменяется AsyncMock. Импортируется из services.py.
 """
 
 from typing import Any
@@ -91,7 +45,7 @@ from pydantic import Field
 from action_machine.aspects.regular_aspect import regular_aspect
 from action_machine.aspects.summary_aspect import summary_aspect
 from action_machine.auth import ROLE_NONE, check_roles
-from action_machine.checkers import result_float, result_string
+from action_machine.checkers import result_string
 from action_machine.compensate import compensate
 from action_machine.context import Ctx, context_requires
 from action_machine.core.base_action import BaseAction
@@ -105,47 +59,7 @@ from action_machine.on_error import on_error
 from action_machine.resource_managers.base_resource_manager import BaseResourceManager
 
 from .domains import OrdersDomain
-from .services import PaymentService
-
-
-# ═════════════════════════════════════════════════════════════════════════════
-# Вспомогательный сервис
-# ═════════════════════════════════════════════════════════════════════════════
-
-
-class InventoryService:
-    """
-    Сервис управления запасами.
-
-    Предоставляет методы reserve() и unreserve(). В production
-    обращается к складской системе. В тестах заменяется AsyncMock.
-    """
-
-    async def reserve(self, item_id: str, quantity: int) -> str:
-        """
-        Резервирует товар на складе.
-
-        Аргументы:
-            item_id: идентификатор товара.
-            quantity: количество для резервирования.
-
-        Возвращает:
-            str — идентификатор резервации.
-        """
-        raise NotImplementedError("InventoryService.reserve() не реализован")
-
-    async def unreserve(self, reservation_id: str) -> bool:
-        """
-        Отменяет резервацию товара.
-
-        Аргументы:
-            reservation_id: идентификатор резервации для отмены.
-
-        Возвращает:
-            bool — True если отмена успешна.
-        """
-        raise NotImplementedError("InventoryService.unreserve() не реализован")
-
+from .services import InventoryService, PaymentService
 
 # ═════════════════════════════════════════════════════════════════════════════
 # Общие Params и Result для компенсируемых действий

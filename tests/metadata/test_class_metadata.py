@@ -1,34 +1,27 @@
 # tests/metadata/test_class_metadata.py
 """
 Тесты ClassMetadata — frozen-датакласс полной конфигурации класса.
-
 ═══════════════════════════════════════════════════════════════════════════════
 НАЗНАЧЕНИЕ
 ═══════════════════════════════════════════════════════════════════════════════
-
 Проверяет корректность создания ClassMetadata, неизменяемость полей,
 хелперы для инспекции (has_*, get_*) и строковое представление (__repr__).
 
 ClassMetadata создаётся MetadataBuilder и хранится в GateCoordinator.
 В рабочем коде никогда не создаётся вручную — только через Builder.
 В тестах создаём напрямую для проверки контракта.
-
 ═══════════════════════════════════════════════════════════════════════════════
 СЦЕНАРИИ
 ═══════════════════════════════════════════════════════════════════════════════
-
 TestMinimalCreation
     - Создание с минимальными параметрами (class_ref, class_name).
     - Все коллекции по умолчанию пустые.
-
 TestFullCreation
     - Создание со всеми полями заполненными.
     - Поля сохраняют переданные значения.
-
 TestImmutability
     - Frozen-датакласс: присвоение в class_ref, class_name, role,
       dependencies, aspects — FrozenInstanceError.
-
 TestHasHelpers
     - has_role: True/False.
     - has_dependencies: True/False.
@@ -38,27 +31,31 @@ TestHasHelpers
     - has_subscriptions: True/False.
     - has_sensitive_fields: True/False.
     - has_meta: True/False.
-
+    - has_compensators: True/False.
 TestGetHelpers
     - get_regular_aspects: фильтрует по type="regular".
     - get_summary_aspect: возвращает аспект с type="summary" или None.
     - get_checkers_for_aspect: фильтрует чекеры по method_name.
     - get_dependency_classes: возвращает tuple классов.
     - get_connection_keys: возвращает tuple ключей.
-
+TestCompensatorFields
+    - compensators по умолчанию пустой кортеж.
+    - has_compensators: True/False.
+    - get_compensator_for_aspect: существующий/несуществующий аспект.
+    - compensators хранит CompensatorMeta с правильными полями.
 TestRepr
     - Пустой класс: repr содержит имя класса.
     - С ролью: repr содержит role.
     - С зависимостями: repr содержит deps.
     - С аспектами: repr содержит aspects.
 """
-
 import pytest
 
 from action_machine.core.class_metadata import (
     AspectMeta,
     CheckerMeta,
     ClassMetadata,
+    CompensatorMeta,
     MetaInfo,
     RoleMeta,
 )
@@ -101,6 +98,12 @@ async def _fake_summary(self, params, state, box, connections):
     return {}
 
 
+async def _fake_compensator(self, params, state_before, state_after,
+                            box, connections, error):
+    """Фейковый метод-компенсатор."""
+    pass
+
+
 # ═════════════════════════════════════════════════════════════════════════════
 # Минимальное создание
 # ═════════════════════════════════════════════════════════════════════════════
@@ -113,7 +116,6 @@ class TestMinimalCreation:
         """class_ref сохраняет ссылку на класс."""
         # Arrange & Act
         meta = ClassMetadata(class_ref=_EmptyClass, class_name="test._EmptyClass")
-
         # Assert
         assert meta.class_ref is _EmptyClass
 
@@ -121,7 +123,6 @@ class TestMinimalCreation:
         """class_name сохраняет полное имя класса."""
         # Arrange & Act
         meta = ClassMetadata(class_ref=_EmptyClass, class_name="test._EmptyClass")
-
         # Assert
         assert meta.class_name == "test._EmptyClass"
 
@@ -129,7 +130,6 @@ class TestMinimalCreation:
         """По умолчанию meta равна None."""
         # Arrange & Act
         meta = ClassMetadata(class_ref=_EmptyClass, class_name="test._EmptyClass")
-
         # Assert
         assert meta.meta is None
 
@@ -137,7 +137,6 @@ class TestMinimalCreation:
         """По умолчанию role равна None."""
         # Arrange & Act
         meta = ClassMetadata(class_ref=_EmptyClass, class_name="test._EmptyClass")
-
         # Assert
         assert meta.role is None
 
@@ -145,7 +144,6 @@ class TestMinimalCreation:
         """По умолчанию все коллекции пустые кортежи."""
         # Arrange & Act
         meta = ClassMetadata(class_ref=_EmptyClass, class_name="test._EmptyClass")
-
         # Assert
         assert meta.dependencies == ()
         assert meta.connections == ()
@@ -153,12 +151,12 @@ class TestMinimalCreation:
         assert meta.checkers == ()
         assert meta.subscriptions == ()
         assert meta.sensitive_fields == ()
+        assert meta.compensators == ()
 
     def test_default_field_descriptions_empty(self):
         """По умолчанию params_fields и result_fields — пустые кортежи."""
         # Arrange & Act
         meta = ClassMetadata(class_ref=_EmptyClass, class_name="test._EmptyClass")
-
         # Assert
         assert meta.params_fields == ()
         assert meta.result_fields == ()
@@ -176,14 +174,12 @@ class TestFullCreation:
         """MetaInfo сохраняется в поле meta."""
         # Arrange
         meta_info = MetaInfo(description="Тестовое действие", domain=None)
-
         # Act
         cm = ClassMetadata(
             class_ref=_EmptyClass,
             class_name="test._EmptyClass",
             meta=meta_info,
         )
-
         # Assert
         assert cm.meta is meta_info
         assert cm.meta.description == "Тестовое действие"
@@ -192,14 +188,12 @@ class TestFullCreation:
         """RoleMeta сохраняется в поле role."""
         # Arrange
         role = RoleMeta(spec="admin")
-
         # Act
         cm = ClassMetadata(
             class_ref=_EmptyClass,
             class_name="test._EmptyClass",
             role=role,
         )
-
         # Assert
         assert cm.role is role
         assert cm.role.spec == "admin"
@@ -211,14 +205,12 @@ class TestFullCreation:
             DependencyInfo(cls=_ServiceA, factory=None, description=""),
             DependencyInfo(cls=_ServiceB, factory=None, description=""),
         )
-
         # Act
         cm = ClassMetadata(
             class_ref=_EmptyClass,
             class_name="test._EmptyClass",
             dependencies=deps,
         )
-
         # Assert
         assert len(cm.dependencies) == 2
         assert cm.dependencies[0].cls is _ServiceA
@@ -230,14 +222,12 @@ class TestFullCreation:
         conns = (
             ConnectionInfo(cls=_MockManager, key="db", description=""),
         )
-
         # Act
         cm = ClassMetadata(
             class_ref=_EmptyClass,
             class_name="test._EmptyClass",
             connections=conns,
         )
-
         # Assert
         assert len(cm.connections) == 1
         assert cm.connections[0].key == "db"
@@ -259,18 +249,42 @@ class TestFullCreation:
                 description="Итог",
             ),
         )
-
         # Act
         cm = ClassMetadata(
             class_ref=_EmptyClass,
             class_name="test._EmptyClass",
             aspects=aspects,
         )
-
         # Assert
         assert len(cm.aspects) == 2
         assert cm.aspects[0].aspect_type == "regular"
         assert cm.aspects[1].aspect_type == "summary"
+
+    def test_compensators_stored(self):
+        """Кортеж компенсаторов сохраняется с правильными полями."""
+        # Arrange
+        compensators = (
+            CompensatorMeta(
+                method_name="rollback_charge_compensate",
+                target_aspect_name="charge_aspect",
+                description="Откат платежа",
+                method_ref=_fake_compensator,
+                context_keys=frozenset(),
+            ),
+        )
+        # Act
+        cm = ClassMetadata(
+            class_ref=_EmptyClass,
+            class_name="test._EmptyClass",
+            compensators=compensators,
+        )
+        # Assert
+        assert len(cm.compensators) == 1
+        assert cm.compensators[0].method_name == "rollback_charge_compensate"
+        assert cm.compensators[0].target_aspect_name == "charge_aspect"
+        assert cm.compensators[0].description == "Откат платежа"
+        assert cm.compensators[0].method_ref is _fake_compensator
+        assert cm.compensators[0].context_keys == frozenset()
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -285,7 +299,6 @@ class TestImmutability:
         """Присвоение в class_ref вызывает ошибку."""
         # Arrange
         cm = ClassMetadata(class_ref=_EmptyClass, class_name="test._EmptyClass")
-
         # Act & Assert
         with pytest.raises(AttributeError):
             cm.class_ref = _ServiceA
@@ -294,7 +307,6 @@ class TestImmutability:
         """Присвоение в class_name вызывает ошибку."""
         # Arrange
         cm = ClassMetadata(class_ref=_EmptyClass, class_name="test._EmptyClass")
-
         # Act & Assert
         with pytest.raises(AttributeError):
             cm.class_name = "other"
@@ -307,7 +319,6 @@ class TestImmutability:
             class_name="test._EmptyClass",
             role=RoleMeta(spec="admin"),
         )
-
         # Act & Assert
         with pytest.raises(AttributeError):
             cm.role = None
@@ -316,7 +327,6 @@ class TestImmutability:
         """Присвоение в dependencies вызывает ошибку."""
         # Arrange
         cm = ClassMetadata(class_ref=_EmptyClass, class_name="test._EmptyClass")
-
         # Act & Assert
         with pytest.raises(AttributeError):
             cm.dependencies = ()
@@ -325,10 +335,17 @@ class TestImmutability:
         """Присвоение в aspects вызывает ошибку."""
         # Arrange
         cm = ClassMetadata(class_ref=_EmptyClass, class_name="test._EmptyClass")
-
         # Act & Assert
         with pytest.raises(AttributeError):
             cm.aspects = ()
+
+    def test_cannot_modify_compensators(self):
+        """Присвоение в compensators вызывает ошибку."""
+        # Arrange
+        cm = ClassMetadata(class_ref=_EmptyClass, class_name="test._EmptyClass")
+        # Act & Assert
+        with pytest.raises(AttributeError):
+            cm.compensators = ()
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -343,7 +360,6 @@ class TestHasHelpers:
         """has_role возвращает False, если role не задана."""
         # Arrange
         cm = ClassMetadata(class_ref=_EmptyClass, class_name="x")
-
         # Assert
         assert cm.has_role() is False
 
@@ -355,7 +371,6 @@ class TestHasHelpers:
             class_name="x",
             role=RoleMeta(spec="admin"),
         )
-
         # Assert
         assert cm.has_role() is True
 
@@ -363,7 +378,6 @@ class TestHasHelpers:
         """has_dependencies возвращает False для пустого кортежа."""
         # Arrange
         cm = ClassMetadata(class_ref=_EmptyClass, class_name="x")
-
         # Assert
         assert cm.has_dependencies() is False
 
@@ -372,7 +386,6 @@ class TestHasHelpers:
         # Arrange
         deps = (DependencyInfo(cls=_ServiceA, factory=None, description=""),)
         cm = ClassMetadata(class_ref=_EmptyClass, class_name="x", dependencies=deps)
-
         # Assert
         assert cm.has_dependencies() is True
 
@@ -380,7 +393,6 @@ class TestHasHelpers:
         """has_connections возвращает False для пустого кортежа."""
         # Arrange
         cm = ClassMetadata(class_ref=_EmptyClass, class_name="x")
-
         # Assert
         assert cm.has_connections() is False
 
@@ -389,7 +401,6 @@ class TestHasHelpers:
         # Arrange
         conns = (ConnectionInfo(cls=_MockManager, key="db", description=""),)
         cm = ClassMetadata(class_ref=_EmptyClass, class_name="x", connections=conns)
-
         # Assert
         assert cm.has_connections() is True
 
@@ -397,7 +408,6 @@ class TestHasHelpers:
         """has_aspects возвращает False для пустого кортежа."""
         # Arrange
         cm = ClassMetadata(class_ref=_EmptyClass, class_name="x")
-
         # Assert
         assert cm.has_aspects() is False
 
@@ -413,7 +423,6 @@ class TestHasHelpers:
             ),
         )
         cm = ClassMetadata(class_ref=_EmptyClass, class_name="x", aspects=aspects)
-
         # Assert
         assert cm.has_aspects() is True
 
@@ -421,7 +430,6 @@ class TestHasHelpers:
         """has_checkers возвращает False для пустого кортежа."""
         # Arrange
         cm = ClassMetadata(class_ref=_EmptyClass, class_name="x")
-
         # Assert
         assert cm.has_checkers() is False
 
@@ -429,7 +437,6 @@ class TestHasHelpers:
         """has_subscriptions возвращает False для пустого кортежа."""
         # Arrange
         cm = ClassMetadata(class_ref=_EmptyClass, class_name="x")
-
         # Assert
         assert cm.has_subscriptions() is False
 
@@ -437,7 +444,6 @@ class TestHasHelpers:
         """has_sensitive_fields возвращает False для пустого кортежа."""
         # Arrange
         cm = ClassMetadata(class_ref=_EmptyClass, class_name="x")
-
         # Assert
         assert cm.has_sensitive_fields() is False
 
@@ -445,7 +451,6 @@ class TestHasHelpers:
         """has_meta возвращает False, если meta не задана."""
         # Arrange
         cm = ClassMetadata(class_ref=_EmptyClass, class_name="x")
-
         # Assert
         assert cm.has_meta() is False
 
@@ -457,9 +462,35 @@ class TestHasHelpers:
             class_name="x",
             meta=MetaInfo(description="test", domain=None),
         )
-
         # Assert
         assert cm.has_meta() is True
+
+    def test_has_compensators_false_when_empty(self):
+        """has_compensators возвращает False для пустого кортежа."""
+        # Arrange
+        cm = ClassMetadata(class_ref=_EmptyClass, class_name="x")
+        # Assert
+        assert cm.has_compensators() is False
+
+    def test_has_compensators_true_when_present(self):
+        """has_compensators возвращает True при наличии компенсаторов."""
+        # Arrange
+        compensators = (
+            CompensatorMeta(
+                method_name="rollback_compensate",
+                target_aspect_name="charge_aspect",
+                description="Откат",
+                method_ref=_fake_compensator,
+                context_keys=frozenset(),
+            ),
+        )
+        cm = ClassMetadata(
+            class_ref=_EmptyClass,
+            class_name="x",
+            compensators=compensators,
+        )
+        # Assert
+        assert cm.has_compensators() is True
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -479,10 +510,8 @@ class TestGetHelpers:
             AspectMeta(method_name="finalize", method_ref=_fake_summary, aspect_type="summary", description="s"),
         )
         cm = ClassMetadata(class_ref=_EmptyClass, class_name="x", aspects=aspects)
-
         # Act
         regular = cm.get_regular_aspects()
-
         # Assert
         assert len(regular) == 2
         assert all(a.aspect_type == "regular" for a in regular)
@@ -491,10 +520,8 @@ class TestGetHelpers:
         """get_regular_aspects возвращает пустой кортеж без аспектов."""
         # Arrange
         cm = ClassMetadata(class_ref=_EmptyClass, class_name="x")
-
         # Act
         regular = cm.get_regular_aspects()
-
         # Assert
         assert regular == ()
 
@@ -506,10 +533,8 @@ class TestGetHelpers:
             AspectMeta(method_name="finalize", method_ref=_fake_summary, aspect_type="summary", description=""),
         )
         cm = ClassMetadata(class_ref=_EmptyClass, class_name="x", aspects=aspects)
-
         # Act
         summary = cm.get_summary_aspect()
-
         # Assert
         assert summary is not None
         assert summary.method_name == "finalize"
@@ -519,10 +544,8 @@ class TestGetHelpers:
         """get_summary_aspect возвращает None, если summary-аспекта нет."""
         # Arrange
         cm = ClassMetadata(class_ref=_EmptyClass, class_name="x")
-
         # Act
         summary = cm.get_summary_aspect()
-
         # Assert
         assert summary is None
 
@@ -530,7 +553,6 @@ class TestGetHelpers:
         """get_checkers_for_aspect фильтрует чекеры по method_name."""
         # Arrange
         from action_machine.checkers.result_string_checker import ResultStringChecker
-
         checkers = (
             CheckerMeta(
                 method_name="step_one",
@@ -548,10 +570,8 @@ class TestGetHelpers:
             ),
         )
         cm = ClassMetadata(class_ref=_EmptyClass, class_name="x", checkers=checkers)
-
         # Act
         step_one_checkers = cm.get_checkers_for_aspect("step_one")
-
         # Assert
         assert len(step_one_checkers) == 1
         assert step_one_checkers[0].field_name == "name"
@@ -560,10 +580,8 @@ class TestGetHelpers:
         """get_checkers_for_aspect возвращает пустой кортеж для несуществующего аспекта."""
         # Arrange
         cm = ClassMetadata(class_ref=_EmptyClass, class_name="x")
-
         # Act
         result = cm.get_checkers_for_aspect("nonexistent")
-
         # Assert
         assert result == ()
 
@@ -575,10 +593,8 @@ class TestGetHelpers:
             DependencyInfo(cls=_ServiceB, factory=None, description=""),
         )
         cm = ClassMetadata(class_ref=_EmptyClass, class_name="x", dependencies=deps)
-
         # Act
         classes = cm.get_dependency_classes()
-
         # Assert
         assert classes == (_ServiceA, _ServiceB)
 
@@ -586,10 +602,8 @@ class TestGetHelpers:
         """get_dependency_classes возвращает пустой кортеж без зависимостей."""
         # Arrange
         cm = ClassMetadata(class_ref=_EmptyClass, class_name="x")
-
         # Act
         classes = cm.get_dependency_classes()
-
         # Assert
         assert classes == ()
 
@@ -601,10 +615,8 @@ class TestGetHelpers:
             ConnectionInfo(cls=_MockManager, key="cache", description=""),
         )
         cm = ClassMetadata(class_ref=_EmptyClass, class_name="x", connections=conns)
-
         # Act
         keys = cm.get_connection_keys()
-
         # Assert
         assert keys == ("db", "cache")
 
@@ -612,12 +624,148 @@ class TestGetHelpers:
         """get_connection_keys возвращает пустой кортеж без соединений."""
         # Arrange
         cm = ClassMetadata(class_ref=_EmptyClass, class_name="x")
-
         # Act
         keys = cm.get_connection_keys()
-
         # Assert
         assert keys == ()
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# Поля и хелперы компенсаторов
+# ═════════════════════════════════════════════════════════════════════════════
+
+
+class TestCompensatorFields:
+    """
+    Проверяет поле compensators и хелперы has_compensators(),
+    get_compensator_for_aspect() в ClassMetadata.
+
+    Добавлено как часть реализации механизма компенсации (Saga).
+    CompensatorMeta — frozen-датакласс, аналогичный AspectMeta и OnErrorMeta.
+    """
+
+    def test_default_compensators_empty(self):
+        """По умолчанию compensators — пустой кортеж."""
+        # Arrange & Act
+        cm = ClassMetadata(class_ref=_EmptyClass, class_name="x")
+        # Assert
+        assert cm.compensators == ()
+
+    def test_has_compensators_false_when_empty(self):
+        """has_compensators() возвращает False для пустого кортежа."""
+        # Arrange
+        cm = ClassMetadata(class_ref=_EmptyClass, class_name="x")
+        # Assert
+        assert cm.has_compensators() is False
+
+    def test_has_compensators_true_when_present(self):
+        """has_compensators() возвращает True при наличии компенсаторов."""
+        # Arrange
+        compensators = (
+            CompensatorMeta(
+                method_name="rollback_compensate",
+                target_aspect_name="charge_aspect",
+                description="Откат платежа",
+                method_ref=_fake_compensator,
+                context_keys=frozenset(),
+            ),
+        )
+        cm = ClassMetadata(
+            class_ref=_EmptyClass,
+            class_name="x",
+            compensators=compensators,
+        )
+        # Assert
+        assert cm.has_compensators() is True
+        assert len(cm.compensators) == 1
+
+    def test_get_compensator_for_existing_aspect(self):
+        """get_compensator_for_aspect() возвращает CompensatorMeta для существующего аспекта."""
+        # Arrange
+        compensators = (
+            CompensatorMeta(
+                method_name="rollback_charge_compensate",
+                target_aspect_name="charge_aspect",
+                description="Откат платежа",
+                method_ref=_fake_compensator,
+                context_keys=frozenset(),
+            ),
+            CompensatorMeta(
+                method_name="rollback_reserve_compensate",
+                target_aspect_name="reserve_aspect",
+                description="Откат резервирования",
+                method_ref=_fake_compensator,
+                context_keys=frozenset(),
+            ),
+        )
+        cm = ClassMetadata(
+            class_ref=_EmptyClass,
+            class_name="x",
+            compensators=compensators,
+        )
+        # Act
+        comp = cm.get_compensator_for_aspect("charge_aspect")
+        # Assert
+        assert comp is not None
+        assert comp.target_aspect_name == "charge_aspect"
+        assert comp.method_name == "rollback_charge_compensate"
+
+    def test_get_compensator_for_nonexistent_aspect(self):
+        """get_compensator_for_aspect() возвращает None для несуществующего аспекта."""
+        # Arrange
+        compensators = (
+            CompensatorMeta(
+                method_name="rollback_charge_compensate",
+                target_aspect_name="charge_aspect",
+                description="Откат платежа",
+                method_ref=_fake_compensator,
+                context_keys=frozenset(),
+            ),
+        )
+        cm = ClassMetadata(
+            class_ref=_EmptyClass,
+            class_name="x",
+            compensators=compensators,
+        )
+        # Act
+        comp = cm.get_compensator_for_aspect("nonexistent_aspect")
+        # Assert
+        assert comp is None
+
+    def test_get_compensator_for_aspect_empty_compensators(self):
+        """get_compensator_for_aspect() возвращает None при пустых compensators."""
+        # Arrange
+        cm = ClassMetadata(class_ref=_EmptyClass, class_name="x")
+        # Act
+        comp = cm.get_compensator_for_aspect("any_aspect")
+        # Assert
+        assert comp is None
+
+    def test_compensator_meta_fields_correct(self):
+        """CompensatorMeta хранит все поля корректно, включая context_keys."""
+        # Arrange
+        compensators = (
+            CompensatorMeta(
+                method_name="rollback_with_ctx_compensate",
+                target_aspect_name="payment_aspect",
+                description="Откат с контекстом",
+                method_ref=_fake_compensator,
+                context_keys=frozenset({"user.user_id", "user.email"}),
+            ),
+        )
+        cm = ClassMetadata(
+            class_ref=_EmptyClass,
+            class_name="x",
+            compensators=compensators,
+        )
+        # Act
+        comp = cm.compensators[0]
+        # Assert
+        assert comp.method_name == "rollback_with_ctx_compensate"
+        assert comp.target_aspect_name == "payment_aspect"
+        assert comp.description == "Откат с контекстом"
+        assert comp.method_ref is _fake_compensator
+        assert comp.context_keys == frozenset({"user.user_id", "user.email"})
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -632,10 +780,8 @@ class TestRepr:
         """repr содержит имя класса."""
         # Arrange
         cm = ClassMetadata(class_ref=_EmptyClass, class_name="test._EmptyClass")
-
         # Act
         result = repr(cm)
-
         # Assert
         assert "_EmptyClass" in result
 
@@ -643,10 +789,8 @@ class TestRepr:
         """repr пустого класса не содержит слово role с непустым значением."""
         # Arrange
         cm = ClassMetadata(class_ref=_EmptyClass, class_name="test._EmptyClass")
-
         # Act
         result = repr(cm)
-
         # Assert — просто проверяем, что repr не падает
         assert isinstance(result, str)
 
@@ -658,10 +802,8 @@ class TestRepr:
             class_name="test._EmptyClass",
             role=RoleMeta(spec="admin"),
         )
-
         # Act
         result = repr(cm)
-
         # Assert
         assert "role" in result.lower() or "admin" in result
 
@@ -670,10 +812,8 @@ class TestRepr:
         # Arrange
         deps = (DependencyInfo(cls=_ServiceA, factory=None, description=""),)
         cm = ClassMetadata(class_ref=_EmptyClass, class_name="x", dependencies=deps)
-
         # Act
         result = repr(cm)
-
         # Assert
         assert "dep" in result.lower() or "1" in result
 
@@ -684,9 +824,7 @@ class TestRepr:
             AspectMeta(method_name="step", method_ref=_fake_aspect, aspect_type="regular", description=""),
         )
         cm = ClassMetadata(class_ref=_EmptyClass, class_name="x", aspects=aspects)
-
         # Act
         result = repr(cm)
-
         # Assert
         assert "aspect" in result.lower() or "1" in result

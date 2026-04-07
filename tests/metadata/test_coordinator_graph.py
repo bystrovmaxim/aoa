@@ -6,8 +6,9 @@
 ═══════════════════════════════════════════════════════════════════════════════
 Проверяет, что GateCoordinator строит направленный граф из
 зарегистрированных классов, создаёт узлы для действий, зависимостей,
-соединений, аспектов, чекеров, подписок, sensitive-полей, обнаруживает
-циклические зависимости и предоставляет публичное API для инспекции.
+соединений, аспектов, чекеров, подписок, sensitive-полей, компенсаторов,
+обнаруживает циклические зависимости и предоставляет публичное API
+для инспекции.
 ═══════════════════════════════════════════════════════════════════════════════
 СЦЕНАРИИ
 ═══════════════════════════════════════════════════════════════════════════════
@@ -15,6 +16,7 @@ TestBasicNodes — создание базовых узлов графа.
 TestDependenciesAndConnections — узлы и рёбра зависимостей и соединений.
 TestAspectsAndCheckers — узлы аспектов и чекеров.
 TestSubscriptionsAndSensitive — узлы подписок и sensitive-полей.
+TestCompensatorNodes — узлы компенсаторов и рёбра has_compensator.
 TestRecursiveCollection — автоматический рекурсивный сбор зависимостей.
 TestCycleDetection — обнаружение циклических зависимостей.
 TestPublicAPI — публичные методы инспекции графа.
@@ -28,6 +30,7 @@ from action_machine.aspects.summary_aspect import summary_aspect
 from action_machine.auth.check_roles import check_roles
 from action_machine.auth.constants import ROLE_NONE
 from action_machine.checkers.result_string_checker import result_string
+from action_machine.compensate import compensate
 from action_machine.core.base_action import BaseAction
 from action_machine.core.base_params import BaseParams
 from action_machine.core.base_result import BaseResult
@@ -45,6 +48,7 @@ from action_machine.resource_managers.connection import connection
 # ═════════════════════════════════════════════════════════════════════════════
 # Вспомогательные классы
 # ═════════════════════════════════════════════════════════════════════════════
+
 
 def _node_key(node_type: str, cls: type, suffix: str = "") -> str:
     """Формирует ключ узла графа: 'тип:модуль.ИмяКласса[.суффикс]'."""
@@ -144,7 +148,6 @@ class _ActionWithSensitiveAction(BaseAction["_Params", "_Result"]):
 
 class _TestPlugin(Plugin):
     """Тестовый плагин с одной подпиской для тестов графа."""
-
     async def get_initial_state(self) -> dict:
         return {}
 
@@ -172,9 +175,34 @@ class _AnotherActionWithServiceAAction(BaseAction["_Params", "_Result"]):
         return {}
 
 
+@meta("Действие с компенсатором для тестов графа")
+@check_roles(ROLE_NONE)
+class _ActionWithCompensatorGraphAction(BaseAction["_Params", "_Result"]):
+    """
+    Действие с regular-аспектом и компенсатором для тестов графа.
+    Используется в TestCompensatorNodes для проверки, что координатор
+    создаёт узлы типа "compensator" и рёбра "has_compensator" в общем
+    графе зависимостей.
+    """
+    @regular_aspect("Шаг с компенсатором")
+    @result_string("value")
+    async def step_aspect(self, params, state, box, connections):
+        return {"value": "test"}
+
+    @compensate("step_aspect", "Откат шага")
+    async def rollback_step_compensate(self, params, state_before, state_after,
+                                       box, connections, error):
+        pass
+
+    @summary_aspect("Итог")
+    async def finalize_summary(self, params, state, box, connections):
+        return {}
+
+
 # ═════════════════════════════════════════════════════════════════════════════
 # Базовые узлы
 # ═════════════════════════════════════════════════════════════════════════════
+
 
 class TestBasicNodes:
     """Проверяет создание базовых узлов графа."""
@@ -216,6 +244,7 @@ class TestBasicNodes:
 # Зависимости и соединения
 # ═════════════════════════════════════════════════════════════════════════════
 
+
 class TestDependenciesAndConnections:
     """Проверяет создание узлов и рёбер для зависимостей и соединений."""
 
@@ -247,6 +276,7 @@ class TestDependenciesAndConnections:
 # Аспекты и чекеры
 # ═════════════════════════════════════════════════════════════════════════════
 
+
 class TestAspectsAndCheckers:
     """Проверяет создание узлов для аспектов и чекеров."""
 
@@ -269,6 +299,7 @@ class TestAspectsAndCheckers:
 # Подписки и sensitive
 # ═════════════════════════════════════════════════════════════════════════════
 
+
 class TestSubscriptionsAndSensitive:
     """Проверяет создание узлов для подписок и sensitive-полей."""
 
@@ -288,8 +319,71 @@ class TestSubscriptionsAndSensitive:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
+# Компенсаторы в графе
+# ═════════════════════════════════════════════════════════════════════════════
+
+
+class TestCompensatorNodes:
+    """
+    Проверяет, что компенсаторы создают узлы типа "compensator" и рёбра
+    "has_compensator" в общем графе GateCoordinator.
+
+    Добавлено как часть реализации механизма компенсации (Saga).
+    Детальные тесты графа компенсаторов (метаданные узлов, requires_context,
+    dependency tree) покрыты в tests/compensate/test_compensate_graph.py.
+    Здесь — минимальная проверка интеграции в общий граф координатора.
+    """
+
+    def test_compensator_node_created_in_graph(self):
+        """
+        При регистрации действия с @compensate в графе появляется
+        узел типа "compensator".
+        """
+        # Arrange & Act
+        coord = GateCoordinator()
+        coord.get(_ActionWithCompensatorGraphAction)
+
+        # Assert
+        nodes = coord.get_nodes_by_type("compensator")
+        assert len(nodes) >= 1
+        node = nodes[0]
+        assert node["node_type"] == "compensator"
+        assert "rollback_step_compensate" in node["name"]
+
+    def test_has_compensator_edge_in_graph(self):
+        """
+        Ребро "has_compensator" соединяет узел action с узлом compensator
+        в общем графе координатора.
+        """
+        # Arrange & Act
+        coord = GateCoordinator()
+        coord.get(_ActionWithCompensatorGraphAction)
+
+        # Assert — проверяем через dependency tree
+        action_nodes = coord.get_nodes_by_type("action")
+        action_name = None
+        for n in action_nodes:
+            if "ActionWithCompensatorGraph" in n["name"]:
+                action_name = n["name"]
+                break
+        assert action_name is not None
+
+        tree = coord.get_dependency_tree(f"action:{action_name}")
+        assert tree is not None
+
+        # Ищем дочерний узел с edge_type="has_compensator"
+        compensator_children = [
+            child for child in tree.get("children", [])
+            if child.get("edge_type") == "has_compensator"
+        ]
+        assert len(compensator_children) == 1
+        assert "rollback_step_compensate" in compensator_children[0].get("name", "")
+
+
+# ═════════════════════════════════════════════════════════════════════════════
 # Рекурсивный сбор зависимостей
 # ═════════════════════════════════════════════════════════════════════════════
+
 
 class TestRecursiveCollection:
     """Проверяет автоматический рекурсивный сбор зависимостей."""
@@ -320,6 +414,7 @@ class TestRecursiveCollection:
 # ═════════════════════════════════════════════════════════════════════════════
 # Обнаружение циклов
 # ═════════════════════════════════════════════════════════════════════════════
+
 
 class TestCycleDetection:
     """Проверяет обнаружение циклических зависимостей."""
@@ -373,6 +468,7 @@ class TestCycleDetection:
 # ═════════════════════════════════════════════════════════════════════════════
 # Публичное API
 # ═════════════════════════════════════════════════════════════════════════════
+
 
 class TestPublicAPI:
     """Проверяет публичные методы GateCoordinator для инспекции графа."""
@@ -465,6 +561,7 @@ class TestPublicAPI:
 # Инвалидация
 # ═════════════════════════════════════════════════════════════════════════════
 
+
 class TestInvalidation:
     """Проверяет инвалидацию кеша координатора."""
 
@@ -516,6 +613,7 @@ class TestInvalidation:
 # ═════════════════════════════════════════════════════════════════════════════
 # Базовое API координатора
 # ═════════════════════════════════════════════════════════════════════════════
+
 
 class TestCoordinatorBasic:
     """Проверяет базовые методы GateCoordinator."""
