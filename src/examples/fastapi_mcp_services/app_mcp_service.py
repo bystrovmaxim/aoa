@@ -1,18 +1,18 @@
 # src/examples/fastapi_mcp_services/app_mcp_service.py
 """
-MCP-сервис на базе ActionMachine.
+MCP Service based on ActionMachine.
 
 ═══════════════════════════════════════════════════════════════════════════════
-НАЗНАЧЕНИЕ
+PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Демонстрирует создание MCP-сервера из тех же Action, что используются
-в FastAPI-сервисе. AI-агенты (Claude, ChatGPT, Cursor) видят каждое
-Action как tool с полной семантикой: описание из @meta, параметры
-из Pydantic Field(description=..., examples=...), constraints.
+Demonstrates creating an MCP server from the same Actions used in the
+FastAPI service. AI agents (Claude, ChatGPT, Cursor) see each Action
+as a tool with full semantics: description from @meta, parameters
+from Pydantic Field(description=..., examples=...), constraints.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ЗАПУСК
+LAUNCH
 ═══════════════════════════════════════════════════════════════════════════════
 
     pip install action-machine[mcp]
@@ -27,7 +27,7 @@ Action как tool с полной семантикой: описание из @
 CLAUDE DESKTOP
 ═══════════════════════════════════════════════════════════════════════════════
 
-В файле claude_desktop_config.json:
+In the claude_desktop_config.json file:
 
     {
       "mcpServers": {
@@ -39,12 +39,12 @@ CLAUDE DESKTOP
     }
 
 ═══════════════════════════════════════════════════════════════════════════════
-АУТЕНТИФИКАЦИЯ
+AUTHENTICATION
 ═══════════════════════════════════════════════════════════════════════════════
 
-auth_coordinator обязателен для всех адаптеров. В этом примере используется
-NoAuthCoordinator — явная декларация отсутствия аутентификации. В production
-заменяется на AuthCoordinator с реальными компонентами.
+auth_coordinator is required for all adapters. This example uses
+NoAuthCoordinator — explicit declaration of no authentication. In production
+it is replaced with AuthCoordinator with real components.
 """
 
 import sys
@@ -69,7 +69,7 @@ server = (
 
 
 def main() -> None:
-    """Запускает MCP-сервер. --transport выбирает транспорт."""
+    """Starts the MCP server. --transport selects the transport."""
     transport = "stdio"
     if "--transport" in sys.argv:
         idx = sys.argv.index("--transport")

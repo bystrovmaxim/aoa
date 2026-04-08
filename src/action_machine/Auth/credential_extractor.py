@@ -1,6 +1,6 @@
 """
-Базовый класс для извлечения учётных данных из запроса.
-Все методы асинхронные для возможности выполнения I/O-операций.
+Base class for extracting credentials from a request.
+All methods are asynchronous to allow I/O operations.
 """
 
 from abc import ABC, abstractmethod
@@ -9,21 +9,21 @@ from typing import Any
 
 class CredentialExtractor(ABC):
     """
-    Базовый класс для извлечения учётных данных из запроса.
+    Base class for extracting credentials from a request.
 
-    Конкретные реализации должны переопределять асинхронный метод extract.
-    Если извлечение не требует I/O, достаточно добавить async def.
+    Concrete implementations must override the asynchronous extract method.
+    If extraction does not require I/O, async def is still sufficient.
     """
 
     @abstractmethod
     async def extract(self, request_data: Any) -> dict[str, Any]:
         """
-        Асинхронно извлекает учётные данные из объекта запроса.
+        Asynchronously extracts credentials from the request object.
 
-        Аргументы:
-            request_data: объект запроса (например, fastapi.Request)
+        Args:
+            request_data: the request object (for example, fastapi.Request)
 
-        Возвращает:
-            Словарь с учётными данными или пустой словарь.
+        Returns:
+            A dictionary with credentials or an empty dictionary.
         """
         pass

@@ -1,11 +1,11 @@
 # src/examples/fastapi_mcp_services/app_fastapi_service.py
 """
-FastAPI-сервис на базе ActionMachine.
+FastAPI Service based on ActionMachine.
 
-Запуск:
+Launch:
     uvicorn examples.fastapi_mcp_services.app_fastapi_service:app --reload
 
-Документация:
+Documentation:
     Swagger UI: http://localhost:8000/docs
     ReDoc:      http://localhost:8000/redoc
 """
@@ -22,10 +22,10 @@ app = (
         title="Orders API",
         version="0.1.0",
         description=(
-            "Пример HTTP-сервиса на базе ActionMachine.\n\n"
-            "Демонстрирует автоматическую генерацию OpenAPI из Pydantic-моделей "
-            "и декоратора `@meta`. Описания полей, constraints, examples — "
-            "всё берётся из кода без дублирования."
+            "Example HTTP service based on ActionMachine.\n\n"
+            "Demonstrates automatic OpenAPI generation from Pydantic models "
+            "and the `@meta` decorator. Field descriptions, constraints, examples — "
+            "all taken from code without duplication."
         ),
     )
     .get("/api/v1/ping", PingAction, tags=["system"])

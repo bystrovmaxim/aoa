@@ -1,14 +1,14 @@
 # src/action_machine/auth/auth_coordinator.py
 """
-Координатор процесса аутентификации и сборки контекста.
+Authentication and context assembly coordinator.
 
-Объединяет извлечение учётных данных, аутентификацию и сбор метаданных.
-Все методы асинхронные, так как делегируют работу асинхронным компонентам.
+Combines credential extraction, authentication, and metadata collection.
+All methods are asynchronous because they delegate work to async components.
 """
 
 from typing import Any
 
-# Строгие и явные импорты вместо фасадов
+# Strict and explicit imports instead of facades
 from action_machine.context.context import Context
 from action_machine.context.request_info import RequestInfo
 
@@ -19,12 +19,12 @@ from .credential_extractor import CredentialExtractor
 
 class AuthCoordinator:
     """
-    Координатор, управляющий процессом создания контекста выполнения.
+    Coordinator that manages the creation of execution context.
 
-    Последовательно вызывает:
-    1. Извлечение учётных данных из запроса.
-    2. Аутентификация (проверку учётных данных).
-    3. Сбор метаданных запроса.
+    It sequentially performs:
+    1. credential extraction from the request.
+    2. authentication (credential verification).
+    3. request metadata assembly.
     """
 
     def __init__(
@@ -39,23 +39,23 @@ class AuthCoordinator:
 
     async def process(self, request_data: Any) -> Context | None:
         """
-        Асинхронно выполняет полный цикл аутентификации и сборки контекста.
+        Asynchronously performs the full authentication and context assembly flow.
         """
-        # Шаг 1: извлечение учётных данных
+        # Step 1: credential extraction
         credentials = await self.extractor.extract(request_data)
         if not credentials:
             return None
 
-        # Шаг 2: аутентификация
+        # Step 2: authentication
         authenticated_user = await self.authenticator.authenticate(credentials)
         if not authenticated_user:
             return None
 
-        # Шаг 3: сбор метаданных
+        # Step 3: metadata collection
         metadata = await self.assembler.assemble(request_data)
         req_info = RequestInfo(**metadata)
 
-        # Шаг 4: формирование контекста
+        # Step 4: build context
         return Context(
             user=authenticated_user,
             request=req_info

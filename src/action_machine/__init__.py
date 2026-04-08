@@ -1,1 +1,1 @@
-"""Корневой пакет ActionMachine."""
+"""Root package for ActionMachine."""

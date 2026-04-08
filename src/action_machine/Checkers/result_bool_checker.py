@@ -86,7 +86,7 @@ class ResultBoolChecker(ResultFieldChecker):
         """
         if not isinstance(value, bool):
             raise ValidationFieldError(
-                f"Параметр '{self.field_name}' должен быть булевым, получен {type(value).__name__}"
+                f"Parameter '{self.field_name}' must be boolean, got {type(value).__name__}"
             )
 
 
@@ -100,22 +100,22 @@ def result_bool(
     required: bool = True,
 ) -> Any:
     """
-    Декоратор метода-аспекта. Объявляет булево поле в результате аспекта.
+    Decorator for an aspect method. Declares a boolean field in the aspect result.
 
-    Записывает метаданные чекера в атрибут ``_checker_meta`` метода.
-    MetadataBuilder собирает эти метаданные в ClassMetadata.checkers.
-    Машина создаёт экземпляр ResultBoolChecker из CheckerMeta
-    и вызывает checker.check(result_dict) при выполнении аспекта.
+    Writes checker metadata to the method attribute ``_checker_meta``.
+    MetadataBuilder collects this metadata into ClassMetadata.checkers.
+    The machine creates a ResultBoolChecker instance from CheckerMeta and calls
+    checker.check(result_dict) when the aspect executes.
 
-    Аргументы:
-        field_name: имя поля в словаре результата аспекта.
-        required: обязательно ли поле. По умолчанию True.
+    Args:
+        field_name: the field name in the aspect result dict.
+        required: whether the field is required. Defaults to True.
 
-    Возвращает:
-        Декоратор, записывающий _checker_meta в метод.
+    Returns:
+        A decorator that writes _checker_meta to the method.
 
-    Пример:
-        @regular_aspect("Проверка")
+    Example:
+        @regular_aspect("Validation")
         @result_bool("is_valid", required=True)
         async def validate(self, params, state, box, connections):
             return {"is_valid": True}

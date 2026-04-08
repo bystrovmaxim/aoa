@@ -1,115 +1,55 @@
 # src/action_machine/aspects/regular_aspect.py
 """
-Декоратор @regular_aspect — объявление шага конвейера бизнес-логики.
+Decorator @regular_aspect declares a step in the business logic pipeline.
 
-═══════════════════════════════════════════════════════════════════════════════
-НАЗНАЧЕНИЕ
-═══════════════════════════════════════════════════════════════════════════════
+Purpose:
+- Marks an action method as a regular aspect, a pipeline step that returns a
+  dict of new fields to merge into state.
+- ActionProductMachine executes regular aspects sequentially in declaration
+  order.
 
-Помечает метод действия как регулярный аспект — один шаг в линейном
-конвейере обработки. Машина (ActionProductMachine) выполняет регулярные
-аспекты последовательно, в порядке их объявления в классе. Каждый аспект
-получает params, state, box и connections, возвращает dict с новыми полями,
-которые добавляются в state для следующего аспекта.
+Parameters:
+    description: required human-readable step description. Must be non-empty.
+                 Used for logs, plugins, introspection, and coordinator graphs.
 
-═══════════════════════════════════════════════════════════════════════════════
-ПАРАМЕТРЫ
-═══════════════════════════════════════════════════════════════════════════════
+Signature:
+- Without @context_requires: self, params, state, box, connections
+- With @context_requires: self, params, state, box, connections, ctx
 
-    description : str
-        Обязательное человекочитаемое описание шага. Непустая строка.
-        Используется в логах, плагинах, интроспекции и графе координатора.
-        Примеры: "Валидация суммы", "Обработка платежа".
+Restrictions:
+- Applies only to methods, not classes or properties.
+- Method must be async.
+- Description must be a non-empty string.
+- Method name must end with "_aspect" (NamingSuffixError if not).
 
-═══════════════════════════════════════════════════════════════════════════════
-ПЕРЕМЕННАЯ СИГНАТУРА
-═══════════════════════════════════════════════════════════════════════════════
+Integration:
+- @regular_aspect stores _new_aspect_meta on the method.
+- MetadataBuilder._collect_aspects(cls) finds methods with this metadata.
+- ActionProductMachine executes each regular aspect and merges returned dict
+  into the current state.
+- If context_keys are present, ContextView is created and passed as ctx.
 
-Количество параметров зависит от наличия декоратора @context_requires
-на методе. @context_requires применяется ближе к функции (снизу),
-поэтому при проверке сигнатуры в @regular_aspect атрибут
-_required_context_keys уже записан.
-
-    Без @context_requires:
-        5 параметров: self, params, state, box, connections
-
-    С @context_requires:
-        6 параметров: self, params, state, box, connections, ctx
-
-Примеры:
-
-    # Без контекста — 5 параметров:
-    @regular_aspect("Расчёт суммы")
-    async def calculate_aspect(self, params, state, box, connections):
-        return {"total": params.amount * 1.2}
-
-    # С контекстом — 6 параметров:
-    @regular_aspect("Проверка прав")
-    @context_requires(Ctx.User.user_id, Ctx.User.roles)
-    async def check_permissions_aspect(self, params, state, box, connections, ctx):
-        user_id = ctx.get(Ctx.User.user_id)
-        return {}
-
-═══════════════════════════════════════════════════════════════════════════════
-ОГРАНИЧЕНИЯ (ИНВАРИАНТЫ)
-═══════════════════════════════════════════════════════════════════════════════
-
-- Применяется только к методам (callable), не к классам или свойствам.
-- Метод должен быть асинхронным (async def).
-- Сигнатура метода: 5 параметров без @context_requires,
-  6 параметров с @context_requires.
-- description — обязательная непустая строка.
-- Имя метода обязано заканчиваться на "_aspect" (проверяется NamingSuffixError).
-
-═══════════════════════════════════════════════════════════════════════════════
-АРХИТЕКТУРА ИНТЕГРАЦИИ
-═══════════════════════════════════════════════════════════════════════════════
-
-    @regular_aspect("Валидация суммы")
-        │
-        ▼  Декоратор записывает в method._new_aspect_meta
-    {"type": "regular", "description": "Валидация суммы"}
-        │
-        ▼  MetadataBuilder._collect_aspects(cls)
-    AspectMeta("validate_aspect", "regular", ..., context_keys=frozenset(...))
-        │
-        ▼  ActionProductMachine._execute_regular_aspects(...)
-    Последовательно вызывает каждый regular-аспект, мержит результат в state.
-    Если context_keys непустой — создаёт ContextView, передаёт как ctx.
-
-═══════════════════════════════════════════════════════════════════════════════
-ПРИМЕР ИСПОЛЬЗОВАНИЯ
-═══════════════════════════════════════════════════════════════════════════════
-
+Example:
     class CreateOrderAction(BaseAction[OrderParams, OrderResult]):
 
-        @regular_aspect("Валидация суммы")
+        @regular_aspect("Validate amount")
         async def validate_amount_aspect(self, params, state, box, connections):
             if params.amount <= 0:
-                raise ValueError("Сумма должна быть положительной")
+                raise ValueError("Amount must be positive")
             return {}
 
-        @regular_aspect("Обработка платежа")
+        @regular_aspect("Process payment")
         @result_string("txn_id", required=True)
         async def process_payment_aspect(self, params, state, box, connections):
             payment = box.resolve(PaymentService)
             txn_id = await payment.charge(params.amount, params.currency)
             return {"txn_id": txn_id}
 
-        @regular_aspect("Аудит")
+        @regular_aspect("Audit")
         @context_requires(Ctx.User.user_id, Ctx.Request.client_ip)
         async def audit_aspect(self, params, state, box, connections, ctx):
             user_id = ctx.get(Ctx.User.user_id)
             return {}
-
-═══════════════════════════════════════════════════════════════════════════════
-ОШИБКИ
-═══════════════════════════════════════════════════════════════════════════════
-
-    TypeError — метод не callable; метод не асинхронный; неверное число
-               параметров; description не строка.
-    ValueError — description пустая строка или строка из пробелов.
-    NamingSuffixError — имя метода не заканчивается на "_aspect".
 """
 
 from __future__ import annotations

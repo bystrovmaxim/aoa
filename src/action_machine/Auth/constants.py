@@ -1,36 +1,35 @@
 # src/action_machine/auth/constants.py
 """
-Константы аутентификации ActionMachine.
+ActionMachine authentication constants.
 
 ═══════════════════════════════════════════════════════════════════════════════
-НАЗНАЧЕНИЕ
+PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Модуль содержит специальные строковые константы, используемые декоратором
-@check_roles и машиной ActionProductMachine для определения режима
-проверки ролей.
+This module contains special string constants used by the @check_roles decorator
+and ActionProductMachine to determine the role-checking mode.
 
-Константы определены на уровне модуля (а не внутри класса), что обеспечивает
-простой импорт и использование:
+Constants are defined at module scope (not inside a class), which enables
+easy import and usage:
 
     from action_machine.auth import ROLE_NONE, ROLE_ANY
 
 ═══════════════════════════════════════════════════════════════════════════════
-КОНСТАНТЫ
+CONSTANTS
 ═══════════════════════════════════════════════════════════════════════════════
 
     ROLE_NONE : str
-        Маркер «аутентификация не требуется». Действие доступно любому
-        пользователю, включая анонимного (без ролей). Машина при проверке
-        ролей пропускает действие без каких-либо проверок.
+        Marker for "authentication not required." The action is available to any
+        user, including anonymous users with no roles. The machine skips role
+        checks when validating this marker.
 
     ROLE_ANY : str
-        Маркер «любая роль подходит». Действие требует аутентификации —
-        у пользователя должна быть хотя бы одна роль. Конкретная роль
-        не имеет значения.
+        Marker for "any role is acceptable." The action requires authentication
+        and the user must have at least one role, but the specific role does not
+        matter.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ИСПОЛЬЗОВАНИЕ
+USAGE
 ═══════════════════════════════════════════════════════════════════════════════
 
     from action_machine.auth import check_roles, ROLE_NONE, ROLE_ANY
@@ -52,24 +51,24 @@
         ...
 
 ═══════════════════════════════════════════════════════════════════════════════
-ИНТЕГРАЦИЯ С МАШИНОЙ
+INTEGRATION WITH THE MACHINE
 ═══════════════════════════════════════════════════════════════════════════════
 
-ActionProductMachine._check_action_roles() сравнивает spec из ClassMetadata
-с этими константами:
+ActionProductMachine._check_action_roles() compares the spec from ClassMetadata
+against these constants:
 
     if role_spec == ROLE_NONE:
-        # Доступ без аутентификации — всегда разрешён
+        # Access without authentication is always allowed
     elif role_spec == ROLE_ANY:
-        # Требуется хотя бы одна роль
+        # At least one role is required
     elif isinstance(role_spec, list):
-        # Требуется одна из указанных ролей
+        # One of the listed roles is required
     else:
-        # Требуется конкретная роль
+        # A specific role is required
 """
 
 ROLE_NONE: str = "__NONE__"
-"""Действие не требует аутентификации. Доступно всем, включая анонимных."""
+"""Action does not require authentication. Available to everyone, including anonymous users."""
 
 ROLE_ANY: str = "__ANY__"
-"""Действие требует аутентификации, но подходит любая роль."""
+"""Action requires authentication, but any role is acceptable."""

@@ -1,35 +1,35 @@
 # src/action_machine/auth/no_auth_coordinator.py
 """
-NoAuthCoordinator — провайдер аутентификации для открытых API.
+NoAuthCoordinator — authentication provider for open APIs.
 
 ═══════════════════════════════════════════════════════════════════════════════
-НАЗНАЧЕНИЕ
+PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-NoAuthCoordinator — явная реализация AuthCoordinator, которая создаёт
-анонимный Context для каждого запроса. Используется для API, не требующих
-аутентификации: публичные сервисы, примеры, health check эндпоинты.
+NoAuthCoordinator is an explicit implementation of AuthCoordinator that creates
+an anonymous Context for every request. It is used for APIs that do not require
+authentication: public services, examples, health check endpoints.
 
-Разработчик не может «забыть» подключить аутентификацию — параметр
-auth_coordinator обязателен в BaseAdapter. Для открытых API разработчик
-осознанно передаёт NoAuthCoordinator(), явно декларируя отсутствие
-аутентификации в коде.
-
-═══════════════════════════════════════════════════════════════════════════════
-АНОНИМНЫЙ CONTEXT
-═══════════════════════════════════════════════════════════════════════════════
-
-NoAuthCoordinator.process() всегда возвращает Context с:
-- user: UserInfo(user_id=None, roles=[]) — анонимный пользователь.
-- request: пустой RequestInfo.
-- runtime: пустой RuntimeInfo.
-
-Это гарантирует, что ActionProductMachine._check_action_roles() работает
-корректно: действия с @check_roles(ROLE_NONE) проходят проверку,
-действия с конкретными ролями — отклоняются с AuthorizationError.
+The developer cannot "forget" to configure authentication because the
+auth_coordinator parameter is required in BaseAdapter. For open APIs, the
+developer intentionally passes NoAuthCoordinator(), explicitly declaring the
+absence of authentication in code.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ПРИМЕР ИСПОЛЬЗОВАНИЯ
+ANONYMOUS CONTEXT
+═══════════════════════════════════════════════════════════════════════════════
+
+NoAuthCoordinator.process() always returns a Context with:
+- user: UserInfo(user_id=None, roles=[]) — anonymous user.
+- request: empty RequestInfo.
+- runtime: empty RuntimeInfo.
+
+This ensures that ActionProductMachine._check_action_roles() behaves correctly:
+actions with @check_roles(ROLE_NONE) pass, while actions requiring specific
+roles are rejected with AuthorizationError.
+
+═══════════════════════════════════════════════════════════════════════════════
+USAGE EXAMPLE
 ═══════════════════════════════════════════════════════════════════════════════
 
     from action_machine.auth.no_auth_coordinator import NoAuthCoordinator
@@ -40,7 +40,7 @@ NoAuthCoordinator.process() всегда возвращает Context с:
         auth_coordinator=NoAuthCoordinator(),
     )
 
-    # Для MCP:
+    # For MCP:
     adapter = McpAdapter(
         machine=machine,
         auth_coordinator=NoAuthCoordinator(),
@@ -54,26 +54,26 @@ from action_machine.context.context import Context
 
 class NoAuthCoordinator:
     """
-    Провайдер аутентификации для открытых API.
+    Authentication provider for open APIs.
 
-    Всегда возвращает анонимный Context без пользователя и ролей.
-    Используется для явной декларации отсутствия аутентификации.
+    Always returns an anonymous Context without a user or roles.
+    Used to explicitly declare the absence of authentication.
 
-    Реализует тот же интерфейс, что и AuthCoordinator:
-    асинхронный метод process(request_data) → Context.
+    Implements the same interface as AuthCoordinator:
+    async method process(request_data) -> Context.
     """
 
     async def process(self, request_data: Any) -> Context:
         """
-        Создаёт анонимный Context для каждого запроса.
+        Creates an anonymous Context for every request.
 
-        Не выполняет никаких проверок. Всегда возвращает Context
-        с пустым UserInfo (user_id=None, roles=[]).
+        Does not perform any checks. Always returns a Context with empty
+        UserInfo (user_id=None, roles=[]).
 
-        Аргументы:
-            request_data: данные запроса (игнорируются).
+        Args:
+            request_data: request data (ignored).
 
-        Возвращает:
-            Context — анонимный контекст выполнения.
+        Returns:
+            Context — anonymous execution context.
         """
         return Context()
