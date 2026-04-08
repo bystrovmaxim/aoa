@@ -1,9 +1,9 @@
 """
-Абстрактный сборщик метаданных запроса.
+Abstract request metadata collector.
 
-Конкретные реализации должны извлекать из объекта запроса все метаданные,
-которые впоследствии будут использованы для формирования RequestInfo в контексте.
-Все методы асинхронные для возможности выполнения I/O-операций.
+Concrete implementations should extract all metadata from the request object
+that will subsequently be used to form RequestInfo in the context.
+All methods are asynchronous to allow I/O operations.
 """
 
 from abc import ABC, abstractmethod
@@ -12,22 +12,22 @@ from typing import Any
 
 class ContextAssembler(ABC):
     """
-    Интерфейс сборщика метаданных.
+    Interface for the metadata collector.
 
-    Метод assemble получает исходный объект запроса (протокол-специфичный)
-    и возвращает словарь, который будет использован для создания RequestInfo.
-    В словаре могут быть поля: trace_id, request_timestamp, client_ip и т.д.
+    The assemble method receives the original request object (protocol-specific)
+    and returns a dictionary that will be used to create RequestInfo.
+    The dictionary may contain fields: trace_id, request_timestamp, client_ip, etc.
     """
 
     @abstractmethod
     async def assemble(self, request_data: Any) -> dict[str, Any]:
         """
-        Асинхронно извлекает метаданные из запроса.
+        Asynchronously extracts metadata from the request.
 
-        Аргументы:
-            request_data: объект запроса (например, fastapi.Request)
+        Args:
+            request_data: the request object (e.g., fastapi.Request)
 
-        Возвращает:
-            Словарь с метаданными для последующего создания RequestInfo.
+        Returns:
+            A dictionary with metadata for subsequent RequestInfo creation.
         """
         pass

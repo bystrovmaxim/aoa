@@ -1,36 +1,36 @@
 # tests/__init__.py
 """
-Пакет тестов ActionMachine (v2).
+ActionMachine Test Suite (v2).
 
 ═══════════════════════════════════════════════════════════════════════════════
-НАЗНАЧЕНИЕ
+PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Полный набор тестов для фреймворка ActionMachine, построенный на единой
-доменной модели и общих фикстурах. Все тесты используют TestBench как
-единую точку входа для тестирования.
+Complete test suite for the ActionMachine framework, built on a unified
+domain model and shared fixtures. All tests use TestBench as a single
+entry point for testing.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ПРИНЦИПЫ
+PRINCIPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
-1. ЕДИНАЯ ДОМЕННАЯ МОДЕЛЬ. Все рабочие Action, сервисы, домены — в пакете
-   domain/. Тестовые файлы импортируют оттуда. Внутри тестов Action
-   НЕ создаются, за исключением намеренно сломанных классов для проверки
-   ошибок (без @meta, без summary и т.д.).
+1. UNIFIED DOMAIN MODEL. All working Actions, services, domains — in the
+   domain/ package. Test files import from there. Inside tests, Actions
+   are NOT created, except for intentionally broken classes to verify
+   errors (no @meta, no summary, etc.).
 
-2. AAA-ФОРМАТ. Каждый тест структурирован по Arrange–Act–Assert.
-   Комментарии объясняют суть сценария новому человеку, а не
-   пересказывают код. Каждый блок AAA описывает, ЧТО мы готовим,
-   ЧТО делаем и ЧТО проверяем — на уровне бизнес-смысла.
+2. AAA FORMAT. Each test is structured as Arrange–Act–Assert.
+   Comments explain the scenario's essence to newcomers, not re-narrate
+   the code. Each AAA block describes WHAT we prepare, WHAT we do,
+   and WHAT we check — at the business-logic level.
 
-3. TESTBENCH. Все интеграционные тесты используют TestBench — единую
-   immutable точку входа, которая прогоняет действие на async и sync
-   машинах и сравнивает результаты.
+3. TESTBENCH. All integration tests use TestBench — a single
+   immutable entry point that runs the action on async and sync
+   machines and compares results.
 
-4. ТЕСТЫ В ПОДПАПКАХ. Тестовые файлы никогда не лежат в корне tests/.
-   Каждая группа — в своей подпапке по теме: smoke/, core/, roles/ и т.д.
+4. TESTS IN SUBFOLDERS. Test files never lie in the tests/ root.
+   Each group — in its own subfolder by topic: smoke/, core/, roles/, etc.
 
-5. КОМПАКТНОСТЬ. Каждый файл тестирует один аспект системы
-   и содержит 100-250 строк.
+5. COMPACTNESS. Each file tests one aspect of the system
+   and contains 100-250 lines.
 """

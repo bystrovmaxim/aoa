@@ -1,45 +1,45 @@
 # src/action_machine/auth/__init__.py
 """
-Пакет аутентификации ActionMachine.
+ActionMachine authentication package.
 
 ═══════════════════════════════════════════════════════════════════════════════
-НАЗНАЧЕНИЕ
+PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Содержит все компоненты системы аутентификации и авторизации:
+Contains all components of the authentication and authorization system:
 
-- **check_roles** — декоратор-функция для объявления ролевых ограничений
-  на классе действия. Записывает спецификацию ролей в ``cls._role_info``.
+- **check_roles** — decorator function for declaring role restrictions on an
+  action class. Writes the role specification to ``cls._role_info``.
 
-- **ROLE_NONE** — строковая константа-маркер «аутентификация не требуется».
-  Действие доступно любому пользователю, включая анонимного.
+- **ROLE_NONE** — string marker constant for "authentication not required." The
+  action is available to any user, including anonymous users.
 
-- **ROLE_ANY** — строковая константа-маркер «любая роль подходит».
-  Действие требует аутентификации, но конкретная роль не важна.
+- **ROLE_ANY** — string marker constant for "any role is acceptable." The action
+  requires authentication, but the specific role is not important.
 
-- **AuthCoordinator** — координатор процесса аутентификации. Объединяет
-  три компонента: CredentialExtractor → Authenticator → ContextAssembler.
-  Последовательно извлекает учётные данные, проверяет их и собирает
-  Context с информацией о пользователе и запросе.
+- **AuthCoordinator** — authentication process coordinator. Combines three
+  components: CredentialExtractor → Authenticator → ContextAssembler. It
+  sequentially extracts credentials, validates them, and builds a Context with
+  user and request information.
 
-- **NoAuthCoordinator** — провайдер для открытых API. Всегда возвращает
-  анонимный Context без пользователя и ролей. Используется для явной
-  декларации отсутствия аутентификации.
+- **NoAuthCoordinator** — provider for open APIs. Always returns an anonymous
+  Context without a user or roles. Used to explicitly declare the absence of
+  authentication.
 
-- **CredentialExtractor** — абстрактный экстрактор учётных данных из
-  протокольного запроса (HTTP, MCP и т.д.).
+- **CredentialExtractor** — abstract extractor for credentials from a protocol
+  request (HTTP, MCP, etc.).
 
-- **Authenticator** — абстрактный аутентификатор. Преобразует учётные
-  данные в информацию о пользователе (UserInfo).
+- **Authenticator** — abstract authenticator. Transforms credentials into user
+  information (UserInfo).
 
-- **ContextAssembler** — абстрактный сборщик метаданных запроса
-  (trace_id, client_ip, request_path и т.д.).
+- **ContextAssembler** — abstract request metadata assembler
+  (trace_id, client_ip, request_path, etc.).
 
-- **RoleGateHost** — маркерный миксин, разрешающий применение @check_roles.
-  Наследуется BaseAction.
+- **RoleGateHost** — marker mixin that enables @check_roles. Inherited by
+  BaseAction.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ТИПИЧНОЕ ИСПОЛЬЗОВАНИЕ
+TYPICAL USAGE
 ═══════════════════════════════════════════════════════════════════════════════
 
     from action_machine.auth import check_roles, ROLE_NONE, ROLE_ANY
@@ -57,13 +57,13 @@
         ...
 
 ═══════════════════════════════════════════════════════════════════════════════
-АРХИТЕКТУРА АУТЕНТИФИКАЦИИ
+AUTHENTICATION ARCHITECTURE
 ═══════════════════════════════════════════════════════════════════════════════
 
     ┌──────────────────┐     ┌────────────────┐     ┌──────────────────┐
     │ CredentialExtract│ ──▶ │  Authenticator │ ──▶ │ ContextAssembler │
-    │ (извлечение      │     │  (проверка     │     │  (сбор метаданных│
-    │  учётных данных) │     │   credentials) │     │   запроса)       │
+    │ (credential      │     │  (credential   │     │  (metadata       │
+    │  extraction)     │     │   verification)│     │   assembly)      │
     └──────────────────┘     └────────────────┘     └──────────────────┘
               │                       │                       │
               └───────────────────────┴───────────────────────┘

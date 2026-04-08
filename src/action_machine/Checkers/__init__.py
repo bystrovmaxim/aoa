@@ -1,83 +1,85 @@
 # src/action_machine/checkers/__init__.py
 """
-Пакет чекеров ActionMachine.
+ActionMachine checkers package.
 
 ═══════════════════════════════════════════════════════════════════════════════
-НАЗНАЧЕНИЕ
+PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Содержит систему валидации полей результатов аспектов. Каждый чекер
-представлен двумя компонентами:
+Contains the field validation system for aspect results. Each checker is
+represented by two components:
 
-1. **Класс чекера** (ResultStringChecker, ResultIntChecker и т.д.) —
-   используется машиной для проверки словаря, возвращённого аспектом.
-   Машина создаёт экземпляр из CheckerMeta и вызывает checker.check().
+1. **Checker class** (ResultStringChecker, ResultIntChecker, etc.) — used by the
+   machine to validate the dict returned by an aspect. The machine creates an
+   instance from CheckerMeta and calls checker.check().
 
-2. **Функция-декоратор** (result_string, result_int и т.д.) — применяется
-   к методу-аспекту и записывает метаданные чекера в ``_checker_meta``.
-   MetadataBuilder собирает эти метаданные в ClassMetadata.checkers.
+2. **Decorator function** (result_string, result_int, etc.) — applied to the
+   aspect method and writes checker metadata to ``_checker_meta``. MetadataBuilder
+   collects this metadata into ClassMetadata.checkers.
 
 ═══════════════════════════════════════════════════════════════════════════════
-КОМПОНЕНТЫ
+COMPONENTS
 ═══════════════════════════════════════════════════════════════════════════════
 
-Маркерный миксин:
+Marker mixin:
 
-- **CheckerGateHost** — маркерный миксин, обозначающий поддержку декораторов
-  чекеров на методах-аспектах. Наследуется BaseAction.
+- **CheckerGateHost** — marker mixin indicating support for checker decorators on
+  aspect methods. Inherited by BaseAction.
 
-Базовый класс:
+Base class:
 
-- **ResultFieldChecker** — базовый абстрактный чекер для полей результата
-  аспекта. Определяет общий интерфейс: check(), _check_type_and_constraints(),
+- **ResultFieldChecker** — base abstract checker for aspect result fields. It
+defines the shared interface: check(), _check_type_and_constraints(),
   _get_extra_params().
 
-Классы чекеров (используются машиной):
+Checker classes (used by the machine):
 
-- **ResultStringChecker** — строковые поля (тип, длина, not_empty).
-- **ResultIntChecker** — целочисленные поля (тип int, диапазон).
-- **ResultFloatChecker** — числовые поля int/float (тип, диапазон).
-- **ResultBoolChecker** — булевые поля (точное isinstance(value, bool)).
-- **ResultDateChecker** — поля с датой (datetime или строка с форматом, диапазон).
-- **ResultInstanceChecker** — проверка принадлежности значения указанному классу.
+- **ResultStringChecker** — string fields (type, length, not_empty).
+- **ResultIntChecker** — integer fields (int type, range).
+- **ResultFloatChecker** — numeric fields int/float (type, range).
+- **ResultBoolChecker** — boolean fields (exact isinstance(value, bool)).
+- **ResultDateChecker** — date fields (datetime or formatted string, range).
+- **ResultInstanceChecker** — checks value against an expected class.
 
-Функции-декораторы (применяются к методам-аспектам):
+Decorator functions (applied to aspect methods):
 
-- **result_string** — объявляет строковое поле в результате аспекта.
-- **result_int** — объявляет целочисленное поле.
-- **result_float** — объявляет числовое поле (int/float).
-- **result_bool** — объявляет булево поле.
-- **result_date** — объявляет поле с датой.
-- **result_instance** — объявляет поле-экземпляр класса.
+- **result_string** — declares a string field in the aspect result.
+- **result_int** — declares an integer field.
+- **result_float** — declares a numeric field (int/float).
+- **result_bool** — declares a boolean field.
+- **result_date** — declares a date field.
+- **result_instance** — declares an instance-of-class field.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ИНТЕГРАЦИЯ С МЕТАДАННЫМИ
+METADATA INTEGRATION
 ═══════════════════════════════════════════════════════════════════════════════
 
-Функции-декораторы записывают в метод атрибут _checker_meta — список словарей:
+Decorator functions write a _checker_meta attribute on the method — a list of
+metadata dicts:
     [{"checker_class": ResultStringChecker, "field_name": "txn_id",
       "required": True, ...}]
 
-Один метод может иметь несколько чекеров (для разных полей).
+A single method can have multiple checkers (for different fields).
 
-MetadataBuilder._collect_checkers(cls) обходит MRO класса, находит методы
-с _checker_meta и собирает их в ClassMetadata.checkers (tuple[CheckerMeta]).
+MetadataBuilder._collect_checkers(cls) walks the class MRO, finds methods with
+_checker_meta, and collects them into ClassMetadata.checkers
+(tuple[CheckerMeta]).
 
-ActionProductMachine при выполнении regular-аспекта:
-1. Получает checkers = metadata.get_checkers_for_aspect(aspect_name).
-2. Если чекеров нет и аспект вернул непустой dict — ошибка.
-3. Если чекеры есть — проверяет, что результат содержит только
-   объявленные поля, и применяет каждый чекер.
+When ActionProductMachine executes a regular aspect:
+1. It gets checkers = metadata.get_checkers_for_aspect(aspect_name).
+2. If no checkers exist and the aspect returned a non-empty dict — error.
+3. If checkers exist — it validates that the result contains only declared
+   fields and applies each checker.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ПРИМЕР ИСПОЛЬЗОВАНИЯ
+USAGE EXAMPLE
 ═══════════════════════════════════════════════════════════════════════════════
 
     from action_machine.checkers import result_string, result_int, result_float
 
     class CreateOrderAction(BaseAction[OrderParams, OrderResult]):
 
-        @regular_aspect("Обработка платежа")
+        @regular_aspect("Payment processing")
         @result_string("txn_id", required=True, min_length=1)
         @result_float("charged_amount", required=True, min_value=0.0)
         async def process_payment(self, params, state, box, connections):
@@ -85,7 +87,7 @@ ActionProductMachine при выполнении regular-аспекта:
             txn_id = await payment.charge(params.amount, params.currency)
             return {"txn_id": txn_id, "charged_amount": params.amount}
 
-        @regular_aspect("Подсчёт бонусов")
+        @regular_aspect("Bonus calculation")
         @result_int("bonus_points", required=True, min_value=0)
         async def calc_bonus(self, params, state, box, connections):
             return {"bonus_points": int(params.amount * 0.1)}

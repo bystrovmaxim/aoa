@@ -1,46 +1,45 @@
 # tests/domain/domains.py
 """
-Бизнес-домены тестовой доменной модели.
+Business domains for the test domain model.
 
 ═══════════════════════════════════════════════════════════════════════════════
-НАЗНАЧЕНИЕ
+PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Определяет бизнес-домены, используемые в тестовых Action. Домены —
-типизированные маркеры принадлежности действия к бизнес-области.
-Каждый домен — класс, наследующий BaseDomain, с уникальным строковым
-именем в атрибуте name.
+Defines business domains used in test Actions. Domains are typed markers
+of an action's belonging to a business area. Each domain is a class
+inheriting from BaseDomain, with a unique string name in the name attribute.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ДОМЕНЫ
+DOMAINS
 ═══════════════════════════════════════════════════════════════════════════════
 
-- OrdersDomain — домен заказов. Используется в FullAction, SimpleAction.
-- SystemDomain — системный домен. Используется в PingAction, ChildAction.
+- OrdersDomain — orders domain. Used in FullAction, SimpleAction.
+- SystemDomain — system domain. Used in PingAction, ChildAction.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ИСПОЛЬЗОВАНИЕ В ТЕСТАХ
+USAGE IN TESTS
 ═══════════════════════════════════════════════════════════════════════════════
 
-Домены передаются в декоратор @meta(domain=...) при объявлении Action:
+Domains are passed to the @meta(domain=...) decorator when declaring an Action:
 
-    @meta(description="Создание заказа", domain=OrdersDomain)
+    @meta(description="Create an order", domain=OrdersDomain)
     class FullAction(BaseAction[...]): ...
 
-Домены попадают в граф GateCoordinator как узлы типа "domain" с рёбрами
-"belongs_to" от Action к домену.
+Domains appear in the GateCoordinator graph as "domain" type nodes with
+"belongs_to" edges from Action to domain.
 """
 
 from action_machine.domain.base_domain import BaseDomain
 
 
 class OrdersDomain(BaseDomain):
-    """Домен заказов — используется для действий, связанных с обработкой заказов."""
+    """Orders domain — used for actions related to order processing."""
     name = "orders"
-    description = "Домен для обработки заказов клиентов"
+    description = "Domain for processing customer orders"
 
 
 class SystemDomain(BaseDomain):
-    """Системный домен — используется для инфраструктурных действий (ping, health check)."""
+    """System domain — used for infrastructure actions (ping, health check)."""
     name = "system"
-    description = "Системный домен для инфраструктурных операций"
+    description = "System domain for infrastructure operations"

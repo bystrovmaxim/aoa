@@ -1,61 +1,60 @@
 # src/action_machine/domain/hydration.py
 """
-Утилиты гидратации сущностей.
+Entity hydration utilities.
 
 ═══════════════════════════════════════════════════════════════════════════════
-НАЗНАЧЕНИЕ
+PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Модуль предоставляет функцию build() для сборки frozen-сущностей
-из плоских словарей данных с типизированным маппингом через лямбду.
+The module provides a build() function for assembling frozen entities
+from flat data dictionaries with typed mapping via lambda.
 
-build() — основной способ создания сущностей из данных, полученных
-из хранилища (БД, API, файлы). Маппинг через EntityProxy обеспечивает
-автодополнение полей в IDE.
+build() is the primary way to create entities from data obtained from
+storage (database, API, files). Mapping through EntityProxy provides
+autocomplete for fields in the IDE.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ENTITYPROXY — ТИПИЗИРОВАННЫЙ ДОСТУП К ПОЛЯМ
+ENTITYPROXY — TYPED FIELD ACCESS
 ═══════════════════════════════════════════════════════════════════════════════
 
-EntityProxy[T] — прокси-объект, возвращающий имена полей сущности
-как строки. Используется внутри маппера build() для типизированного
-доступа к полям:
+EntityProxy[T] is a proxy object that returns entity field names as strings.
+It's used inside the build() mapper for typed field access:
 
     build(row, OrderEntity, lambda e, r: {
         e.id: r["order_id"],        # e.id → "id"
         e.amount: r["total"],       # e.amount → "amount"
     })
 
-IDE видит тип T и подсказывает поля. При обращении к несуществующему
-полю — AttributeError.
+The IDE sees type T and suggests fields. Accessing a non-existent field
+raises AttributeError.
 
 ═══════════════════════════════════════════════════════════════════════════════
-СВЯЗИ И DEFAULT_FACTORY
+RELATIONS AND DEFAULT_FACTORY
 ═══════════════════════════════════════════════════════════════════════════════
 
-Поля связей (AggregateMany, AssociationOne и т.д.) объявляются с
-default_factory=list или default=None в Pydantic Field [5]. При создании
-сущности через build() без явного указания значения связи Pydantic
-использует default_factory и создаёт обычный list [], а не экземпляр
-контейнера (AggregateMany и т.д.).
+Relation fields (AggregateMany, AssociationOne, etc.) are declared with
+default_factory=list or default=None in Pydantic Field [5]. When creating
+an entity via build() without explicitly specifying a relation value, Pydantic
+uses default_factory and creates a plain list [], not a container instance
+(AggregateMany, etc.).
 
-Это ожидаемое поведение: контейнеры связей — аннотации типов для
-метаданных координатора (ArchiMate, OCEL), а не runtime-обёртки [5].
-Координатор читает аннотацию через get_origin() и извлекает
-ownership_type и cardinality.
+This is expected behavior: relation containers are type annotations for
+coordinator metadata (ArchiMate, OCEL), not runtime wrappers [5].
+The coordinator reads the annotation via get_origin() and extracts
+ownership_type and cardinality.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ПРИМЕР ИСПОЛЬЗОВАНИЯ
+USAGE EXAMPLE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Прямой маппинг (ключи словаря совпадают с полями сущности):
+Direct mapping (dictionary keys match entity fields):
 
     order = build(
         {"id": "ORD-001", "amount": 100.0, "status": "new"},
         OrderEntity,
     )
 
-Маппинг через лямбду (ключи словаря отличаются от полей):
+Mapping via lambda (dictionary keys differ from fields):
 
     order = build(row, OrderEntity, lambda e, r: {
         e.id: r["order_id"],
@@ -65,7 +64,7 @@ ownership_type и cardinality.
         }),
     })
 
-Прокси e типизирован — IDE подсказывает поля OrderEntity.
+Proxy e is typed — the IDE suggests OrderEntity fields.
 """
 
 from __future__ import annotations
@@ -78,15 +77,15 @@ T = TypeVar("T")
 
 class EntityProxy(Generic[T]):
     """
-    Прокси для типизированного доступа к полям сущности в build().
+    Proxy for typed field access to entities in build().
 
-    При обращении к атрибуту возвращает имя поля как строку.
-    Используется как первый аргумент маппера в build().
+    When accessing an attribute, returns the field name as a string.
+    Used as the first argument to the mapper in build().
 
-    Атрибуты:
-        _cls: класс сущности, поля которого проксируются.
+    Attributes:
+        _cls: the entity class whose fields are being proxied.
 
-    Пример:
+    Example:
         proxy = EntityProxy(OrderEntity)
         proxy.id      # → "id"
         proxy.amount  # → "amount"
@@ -98,19 +97,19 @@ class EntityProxy(Generic[T]):
 
     def __getattr__(self, name: str) -> str:
         """
-        Возвращает имя поля для маппинга.
+        Returns the field name for mapping.
 
-        Проверяет, что запрашиваемый атрибут является объявленным
-        полем модели (model_fields). Если нет — AttributeError [10].
+        Verifies that the requested attribute is a declared field of the model
+        (model_fields). If not, raises AttributeError [10].
 
-        Аргументы:
-            name: имя запрашиваемого атрибута.
+        Args:
+            name: the name of the requested attribute.
 
-        Возвращает:
-            str — имя поля (совпадает с name).
+        Returns:
+            str — the field name (matches name).
 
-        Исключения:
-            AttributeError: если поле не объявлено в модели.
+        Raises:
+            AttributeError: if the field is not declared in the model.
         """
         if name in self._cls.model_fields:
             return name
@@ -123,22 +122,22 @@ def build(
     mapper: Callable[[EntityProxy[T], dict[str, Any]], dict[str, Any]] | None = None,
 ) -> T:
     """
-    Собирает сущность из плоского словаря с типизированным маппингом.
+    Assembles an entity from a flat dictionary with typed mapping.
 
-    Аргументы:
-        data:       плоский словарь данных из хранилища.
-        entity_cls: класс сущности для создания.
-        mapper:     функция маппинга (proxy, data) -> dict полей.
-                    Если None — прямой маппинг (ключи data = поля сущности).
+    Args:
+        data:       a flat dictionary of data from storage.
+        entity_cls: the entity class to create.
+        mapper:     a mapping function (proxy, data) -> dict of fields.
+                    If None — direct mapping (data keys = entity fields).
 
-    Возвращает:
-        T — экземпляр сущности, созданный через конструктор Pydantic
-        с полной валидацией типов и обязательности полей.
+    Returns:
+        T — an entity instance created via Pydantic constructor
+        with full validation of types and field requirements.
 
-    Пример прямого маппинга:
+    Example of direct mapping:
         entity = build({"id": "123", "name": "Test", "value": 42}, TestEntity)
 
-    Пример маппинга через лямбду:
+    Example of mapping via lambda:
         entity = build(row, OrderEntity, lambda e, r: {
             e.id: r["order_id"],
             e.amount: r["total"],

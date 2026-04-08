@@ -1,130 +1,129 @@
 # src/action_machine/adapters/base_route_record.py
 """
-BaseRouteRecord — абстрактный frozen-датакласс конфигурации маршрута адаптера.
+BaseRouteRecord — abstract frozen dataclass for adapter route configuration.
 
 ═══════════════════════════════════════════════════════════════════════════════
-НАЗНАЧЕНИЕ
+PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-BaseRouteRecord хранит конфигурацию одного зарегистрированного маршрута
-адаптера. Содержит поля, общие для любого протокола. Протокольно-
-специфичные поля определяются в наследниках.
+BaseRouteRecord stores the configuration for a single registered adapter
+route. It contains fields common to any protocol. Protocol-specific fields are
+defined in subclasses.
 
-BaseRouteRecord нельзя инстанцировать напрямую — только через наследников.
+BaseRouteRecord cannot be instantiated directly — only through subclasses.
 
 ═══════════════════════════════════════════════════════════════════════════════
-АВТОИЗВЛЕЧЕНИЕ ТИПОВ ИЗ ACTION
+TYPE EXTRACTION FROM ACTION
 ═══════════════════════════════════════════════════════════════════════════════
 
-params_type и result_type ВСЕГДА извлекаются автоматически из generic-
-параметров BaseAction[P, R] при создании записи. Разработчик никогда
-не указывает их вручную. Это обеспечивает единый источник правды:
-типы определены в классе действия и не дублируются.
+params_type and result_type are ALWAYS extracted automatically from the
+generic parameters BaseAction[P, R] when the record is created. The developer
+never specifies them manually. This provides a single source of truth: the
+types are defined in the action class and are not duplicated.
 
-Извлечение выполняется функцией ``extract_action_types(action_class)``,
-которая обходит ``__orig_bases__`` в MRO класса и находит запись вида
-``BaseAction[P, R]``. Аргументы P и R могут быть:
+Extraction is performed by the ``extract_action_types(action_class)`` function,
+which walks ``__orig_bases__`` in the class MRO and finds a base of the form
+``BaseAction[P, R]``. The P and R arguments may be:
 
-- Конкретными типами (type) — используются напрямую.
-- Строковыми ForwardRef (при вложенных Params/Result внутри Action) —
-  резолвятся через модуль, в котором определён класс действия.
+- concrete types (type) — used directly.
+- string ForwardRefs (for nested Params/Result inside the Action) — resolved
+  using the module where the action class is defined.
 
-Это позволяет использовать паттерн вложенных моделей:
+This supports the nested model pattern:
 
     class CreateOrderAction(BaseAction["CreateOrderAction.Params", "CreateOrderAction.Result"]):
         class Params(BaseParams): ...
         class Result(BaseResult): ...
 
-Результат извлечения кешируется в приватных полях ``_cached_params_type``
-и ``_cached_result_type`` через ``object.__setattr__`` (обход frozen).
+The extraction result is cached in private fields ``_cached_params_type`` and
+``_cached_result_type`` using ``object.__setattr__`` (to bypass frozen).
 
 ═══════════════════════════════════════════════════════════════════════════════
-ОПЦИОНАЛЬНЫЕ ПОЛЯ
+OPTIONAL FIELDS
 ═══════════════════════════════════════════════════════════════════════════════
 
     request_model : type | None
-        Модель входящего запроса на протокольном уровне. Если None —
-        используется params_type (типы совпадают, маппер не нужен).
-        Если указана и отличается от params_type — params_mapper обязателен.
+        Protocol-level request model. If None, params_type is used (types match,
+        no mapper needed). If provided and different from params_type,
+        params_mapper is required.
 
     response_model : type | None
-        Модель ответа на протокольном уровне. Если None — используется
-        result_type. Если указана и отличается от result_type —
-        response_mapper обязателен.
+        Protocol-level response model. If None, result_type is used. If provided
+        and different from result_type, response_mapper is required.
 
     params_mapper : Callable[[request_model], params_type] | None
-        Преобразование протокольного запроса в параметры действия.
-        Обязателен если request_model указан и отличается от params_type.
-        Назван по тому, что возвращает: params.
+        Transforms the protocol request into action params.
+        Required if request_model is provided and differs from params_type.
+        Named for what it returns: params.
 
     response_mapper : Callable[[result_type], response_model] | None
-        Преобразование результата действия в протокольный ответ.
-        Обязателен если response_model указан и отличается от result_type.
-        Назван по тому, что возвращает: response.
+        Transforms the action result into a protocol response.
+        Required if response_model is provided and differs from result_type.
+        Named for what it returns: response.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ВАЛИДАЦИЯ ИНВАРИАНТОВ
+INVARIANT VALIDATION
 ═══════════════════════════════════════════════════════════════════════════════
 
-При создании экземпляра (в __post_init__) проверяются инварианты:
+The following invariants are checked during instance creation (in __post_init__):
 
-1. Нельзя создать экземпляр BaseRouteRecord напрямую → TypeError.
-2. action_class должен быть подклассом BaseAction → TypeError.
-3. Из action_class должны извлекаться P и R → TypeError если не удалось.
-4. Если request_model указан, отличается от params_type, и params_mapper
-   не указан → ValueError.
-5. Если response_model указан, отличается от result_type, и response_mapper
-   не указан → ValueError.
-
-═══════════════════════════════════════════════════════════════════════════════
-КЕШИРОВАНИЕ ИЗВЛЕЧЁННЫХ ТИПОВ
-═══════════════════════════════════════════════════════════════════════════════
-
-Frozen dataclass не позволяет записывать атрибуты через ``self.attr = val``.
-Для кеширования результата ``extract_action_types()`` используется
-``object.__setattr__(self, "_cached_params_type", p_type)`` — тот же
-приём, что в pydantic frozen-моделях. Pylint не видит эти атрибуты —
-подавлено через ``# pylint: disable=no-member`` на свойствах.
+1. BaseRouteRecord cannot be instantiated directly → TypeError.
+2. action_class must be a subclass of BaseAction → TypeError.
+3. P and R must be extractable from action_class → TypeError if extraction fails.
+4. If request_model is provided, differs from params_type, and params_mapper is
+   not provided → ValueError.
+5. If response_model is provided, differs from result_type, and response_mapper
+   is not provided → ValueError.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ВЫЧИСЛЯЕМЫЕ СВОЙСТВА
+CACHING EXTRACTED TYPES
+═══════════════════════════════════════════════════════════════════════════════
+
+A frozen dataclass does not allow assignment via ``self.attr = val``. To cache the
+result of ``extract_action_types()``, ``object.__setattr__(self,
+"_cached_params_type", p_type)`` is used — the same pattern as in pydantic
+frozen models. Pylint does not recognize these attributes and is suppressed with
+``# pylint: disable=no-member`` on the properties.
+
+═══════════════════════════════════════════════════════════════════════════════
+COMPUTED PROPERTIES
 ═══════════════════════════════════════════════════════════════════════════════
 
     params_type : type
-        Тип параметров действия (P из BaseAction[P, R]).
+        The action params type (P from BaseAction[P, R]).
 
     result_type : type
-        Тип результата действия (R из BaseAction[P, R]).
+        The action result type (R from BaseAction[P, R]).
 
     effective_request_model : type
-        Фактическая модель запроса: request_model если указан, иначе params_type.
+        The effective request model: request_model if provided, otherwise params_type.
 
     effective_response_model : type
-        Фактическая модель ответа: response_model если указан, иначе result_type.
+        The effective response model: response_model if provided, otherwise result_type.
 
 ═══════════════════════════════════════════════════════════════════════════════
-КОНВЕНЦИЯ ИМЕНОВАНИЯ МАППЕРОВ
+MAPPER NAMING CONVENTION
 ═══════════════════════════════════════════════════════════════════════════════
 
-Каждый маппер назван по тому, что он ВОЗВРАЩАЕТ:
+Each mapper is named for what it RETURNS:
 
-    params_mapper   → возвращает params   (преобразует request → params)
-    response_mapper → возвращает response (преобразует result  → response)
+    params_mapper   → returns params   (transforms request → params)
+    response_mapper → returns response (transforms result  → response)
 
 ═══════════════════════════════════════════════════════════════════════════════
-АРХИТЕКТУРА НАСЛЕДОВАНИЯ
+INHERITANCE ARCHITECTURE
 ═══════════════════════════════════════════════════════════════════════════════
 
-    BaseRouteRecord (frozen, нельзя инстанцировать)
+    BaseRouteRecord (frozen, cannot be instantiated)
         │
         ├── FastApiRouteRecord (frozen)
-        │       Поля: method, path, tags, summary, ...
+        │       Fields: method, path, tags, summary, ...
         │
         ├── MCPRouteRecord (frozen)
-        │       Поля: tool_name, description, ...
+        │       Fields: tool_name, description, ...
         │
         └── GRPCRouteRecord (frozen)
-                Поля: service_name, method_name, ...
+                Fields: service_name, method_name, ...
 """
 
 from __future__ import annotations
@@ -142,26 +141,26 @@ from action_machine.core.base_action import BaseAction
 
 def _resolve_forward_ref(ref: ForwardRef, action_class: type) -> type | None:
     """
-    Резолвит ForwardRef в конкретный тип, используя контекст модуля
-    и пространство имён класса действия.
+    Resolves a ForwardRef to a concrete type using the module context and the
+    action class namespace.
 
-    ForwardRef возникает, когда generic-параметры BaseAction указаны
-    строками (forward references):
+    ForwardRef occurs when the generic parameters of BaseAction are specified
+    as strings (forward references):
 
         class MyAction(BaseAction["MyAction.Params", "MyAction.Result"]):
             class Params(BaseParams): ...
             class Result(BaseResult): ...
 
-    Python записывает строки как ForwardRef в __orig_bases__. Для резолва
-    нужен globalns (из модуля, где определён класс) и localns (атрибуты
-    самого класса для вложенных классов).
+    Python stores these strings as ForwardRef objects in __orig_bases__. To resolve
+    them, a globalns (from the module where the class is defined) and a localns
+    (the class attributes for nested classes) are needed.
 
-    Аргументы:
-        ref: объект ForwardRef для резолва.
-        action_class: класс действия, в контексте которого выполняется резолв.
+    Args:
+        ref: the ForwardRef object to resolve.
+        action_class: the action class in whose context the resolution occurs.
 
-    Возвращает:
-        Конкретный тип (type) или None если резолв не удался.
+    Returns:
+        A concrete type or None if resolution fails.
     """
     # Пространство имён модуля, где определён action_class
     module = sys.modules.get(action_class.__module__, None)
@@ -186,19 +185,19 @@ def _resolve_forward_ref(ref: ForwardRef, action_class: type) -> type | None:
 
 def _resolve_generic_arg(arg: Any, action_class: type) -> type | None:
     """
-    Резолвит один generic-аргумент в конкретный тип.
+    Resolves one generic argument to a concrete type.
 
-    Обрабатывает три случая:
-    1. arg уже является type → возвращает как есть.
-    2. arg является ForwardRef → резолвит через _resolve_forward_ref.
-    3. arg является строкой → оборачивает в ForwardRef и резолвит.
+    Handles three cases:
+    1. arg is already a type → returns it.
+    2. arg is a ForwardRef → resolves it via _resolve_forward_ref.
+    3. arg is a string → wraps it in a ForwardRef and resolves it.
 
-    Аргументы:
-        arg: generic-аргумент из get_args(base).
-        action_class: класс действия для контекста резолва.
+    Args:
+        arg: generic argument from get_args(base).
+        action_class: the action class used as the resolution context.
 
-    Возвращает:
-        Конкретный тип (type) или None если резолв не удался.
+    Returns:
+        A concrete type or None if resolution fails.
     """
     if isinstance(arg, type):
         return arg
@@ -215,29 +214,30 @@ def _resolve_generic_arg(arg: Any, action_class: type) -> type | None:
 
 def extract_action_types(action_class: type) -> tuple[type, type]:
     """
-    Извлекает типы P (params) и R (result) из BaseAction[P, R].
+    Extracts P (params) and R (result) types from BaseAction[P, R].
 
-    Обходит ``__orig_bases__`` текущего класса и всех родителей в MRO.
-    Ищет запись вида ``BaseAction[P, R]``. Аргументы P и R могут быть:
+    Walks ``__orig_bases__`` of the current class and all parents in the MRO.
+    It looks for a base of the form ``BaseAction[P, R]``. The P and R arguments
+    may be:
 
-    - Конкретными типами (type) — используются напрямую.
-    - ForwardRef (строковые forward references) — резолвятся через
-      модуль и пространство имён класса действия.
+    - concrete types (type) — used directly.
+    - ForwardRef (string forward references) — resolved using the module and
+      action class namespace.
 
-    Это обеспечивает поддержку паттерна вложенных моделей:
+    This supports the nested model pattern:
 
         class MyAction(BaseAction["MyAction.Params", "MyAction.Result"]):
             class Params(BaseParams): ...
             class Result(BaseResult): ...
 
-    Аргументы:
-        action_class: класс действия (наследник BaseAction).
+    Args:
+        action_class: the action class (subclass of BaseAction).
 
-    Возвращает:
-        Кортеж (params_type, result_type).
+    Returns:
+        A tuple (params_type, result_type).
 
-    Исключения:
-        TypeError: если не удалось извлечь или резолвить generic-параметры.
+    Raises:
+        TypeError: if generic parameters could not be extracted or resolved.
     """
     for klass in action_class.__mro__:
         for base in getattr(klass, "__orig_bases__", ()):
@@ -251,9 +251,9 @@ def extract_action_types(action_class: type) -> tuple[type, type]:
                         return p_type, r_type
 
     raise TypeError(
-        f"Не удалось извлечь generic-параметры P и R из {action_class.__name__}. "
-        f"Класс действия должен быть объявлен как "
-        f"BaseAction[ConcreteParams, ConcreteResult], например: "
+        f"Failed to extract generic parameters P and R from {action_class.__name__}. "
+        f"The action class must be declared as "
+        f"BaseAction[ConcreteParams, ConcreteResult], for example: "
         f"class {action_class.__name__}(BaseAction[MyParams, MyResult]): ..."
     )
 

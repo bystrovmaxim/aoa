@@ -1,7 +1,7 @@
 """
-Базовый класс для всех аутентификаторов.
-Преобразует предоставленные учётные данные в информацию о пользователе.
-Все методы асинхронные для возможности выполнения I/O-операций.
+Base class for all authenticators.
+Transforms provided credentials into user information.
+All methods are asynchronous to allow I/O operations.
 """
 
 from abc import ABC, abstractmethod
@@ -12,22 +12,22 @@ from ..context.user_info import UserInfo
 
 class Authenticator(ABC):
     """
-    Базовый класс для всех аутентификаторов.
+    Base class for all authenticators.
 
-    Конкретные реализации должны переопределять асинхронный метод authenticate.
-    Если реализация не выполняет реальных I/O-операций, достаточно добавить
-    ключевое слово async и вернуть результат как обычно.
+    Concrete implementations must override the asynchronous authenticate method.
+    If an implementation does not perform real I/O, it can still be async and
+    return the result normally.
     """
 
     @abstractmethod
     async def authenticate(self, credentials: Any) -> UserInfo | None:
         """
-        Асинхронно проверяет учётные данные и возвращает информацию о пользователе.
+        Asynchronously verifies credentials and returns user information.
 
-        Аргументы:
-            credentials: учётные данные (строка API-ключа, логин/пароль, JWT и т.д.)
+        Args:
+            credentials: credentials (API key string, login/password, JWT, etc.)
 
-        Возвращает:
-            UserInfo в случае успеха, иначе None.
+        Returns:
+            UserInfo on success, otherwise None.
         """
         pass

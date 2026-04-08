@@ -1,29 +1,29 @@
 # src/examples/fastapi_mcp_services/domains.py
 """
-Бизнес-домены для примера FastAPI-сервиса.
+Business domains for the FastAPI service example.
 
 ═══════════════════════════════════════════════════════════════════════════════
-НАЗНАЧЕНИЕ
+PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Домены — типизированные маркеры принадлежности действий к бизнес-областям.
-Каждый домен — это класс, наследующий BaseDomain, с уникальным строковым
-именем. Домены появляются в графе GateCoordinator как отдельные узлы,
-что позволяет визуализировать архитектуру по бизнес-областям.
+Domains are typed markers of actions' belonging to business areas.
+Each domain is a class inheriting from BaseDomain, with a unique string
+name. Domains appear in the GateCoordinator graph as separate nodes,
+allowing visualization of the architecture by business areas.
 
-В этом примере определены два домена:
-- OrdersDomain — действия, связанные с заказами.
-- SystemDomain — системные действия (пинг, health check).
+This example defines two domains:
+- OrdersDomain — actions related to orders.
+- SystemDomain — system actions (ping, health check).
 """
 
 from action_machine.domain.base_domain import BaseDomain
 
 
 class OrdersDomain(BaseDomain):
-    """Домен заказов. Объединяет действия создания, получения и управления заказами."""
+    """Orders domain. Combines actions for creating, retrieving, and managing orders."""
     name = "orders"
 
 
 class SystemDomain(BaseDomain):
-    """Системный домен. Объединяет служебные действия: пинг, мониторинг."""
+    """System domain. Combines utility actions: ping, monitoring."""
     name = "system"
