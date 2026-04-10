@@ -118,10 +118,10 @@ class AspectExecutor:
             return BaseResult()
 
         aspect_log = ScopedLogger(
-            coordinator=machine._log_coordinator,  # noqa: SLF001
+            coordinator=machine._log_coordinator,
             nest_level=box.nested_level,
             machine_name=machine.__class__.__name__,
-            mode=machine._mode,  # noqa: SLF001
+            mode=machine._mode,
             action_name=action.get_full_class_name(),
             aspect_name=aspect_meta.method_name,
             context=context,
