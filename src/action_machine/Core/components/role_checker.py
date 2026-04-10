@@ -51,11 +51,11 @@ ERRORS / LIMITATIONS
 AI-CORE-BEGIN
 ═══════════════════════════════════════════════════════════════════════════════
 ROLE: Role-check component scaffolding.
-CONTRACT: check(machine, action, context, runtime) -> None or AuthorizationError.
-INVARIANTS: GateCoordinator injected; delegation is temporary.
-FLOW: machine -> RoleChecker.check -> legacy machine method.
+CONTRACT: check(action, context, runtime) -> None or AuthorizationError.
+INVARIANTS: GateCoordinator injected; role semantics must match machine contract.
+FLOW: runtime.role_spec + context.user.roles -> allow or AuthorizationError.
 FAILURES: AuthorizationError raised on role mismatch.
-EXTENSION POINTS: future replacement of delegation with direct snapshot-based check.
+EXTENSION POINTS: custom role strategies can replace this component.
 AI-CORE-END
 ═══════════════════════════════════════════════════════════════════════════════
 """
@@ -63,7 +63,12 @@ AI-CORE-END
 from __future__ import annotations
 
 from action_machine.context.context import Context
+from action_machine.core.base_action import BaseAction
+from action_machine.core.base_params import BaseParams
+from action_machine.core.base_result import BaseResult
+from action_machine.core.exceptions import AuthorizationError
 from action_machine.metadata.gate_coordinator import GateCoordinator
+from action_machine.auth.constants import ROLE_ANY, ROLE_NONE
 
 
 class RoleChecker:
@@ -77,7 +82,40 @@ class RoleChecker:
     def __init__(self, coordinator: GateCoordinator) -> None:
         self._coordinator = coordinator
 
-    def check(self, machine: object, action, context: Context, runtime) -> None:
-        """Delegate role checking to current machine logic."""
-        _ = self._coordinator  # kept for future use
-        machine._check_action_roles(action, context, runtime)  # noqa: SLF001
+    def check(
+        self,
+        action: BaseAction[BaseParams, BaseResult],
+        context: Context,
+        runtime,
+    ) -> None:
+        """Validate action role access from runtime role spec."""
+        _ = self._coordinator
+        role_spec = runtime.role_spec
+        if role_spec is None:
+            raise TypeError(
+                f"Action {action.__class__.__name__} does not have a @check_roles "
+                f"decorator. Specify @check_roles(ROLE_NONE) explicitly if "
+                f"the action is accessible without authentication."
+            )
+        user_roles = context.user.roles
+
+        if role_spec == ROLE_NONE:
+            return
+        if role_spec == ROLE_ANY:
+            if not user_roles:
+                raise AuthorizationError(
+                    "Authentication required: user must have at least one role"
+                )
+            return
+        if isinstance(role_spec, list):
+            if any(role in user_roles for role in role_spec):
+                return
+            raise AuthorizationError(
+                f"Access denied. Required one of the roles: {role_spec}, "
+                f"user roles: {user_roles}"
+            )
+        if role_spec in user_roles:
+            return
+        raise AuthorizationError(
+            f"Access denied. Required role: '{role_spec}', user roles: {user_roles}"
+        )

@@ -146,7 +146,7 @@ ARCHITECTURE / DATA FLOW ВЫПОЛНЕНИЯ
 
     machine.run(context, action, params, connections)
         │
-        ├── 1. _check_action_roles(action, context, runtime)
+        ├── 1. _role_checker.check(action, context, runtime)
         ├── 2. _check_connections(action, connections, runtime)
         ├── 3. _dependency_factory_for(action.__class__)
         ├── 4. plugin_ctx = plugin_coordinator.create_run_context()
@@ -1465,7 +1465,7 @@ class ActionProductMachine(BaseActionMachine):
         try:
             action_cls = action.__class__
             runtime = self._get_execution_cache(action_cls)
-            self._check_action_roles(action, context, runtime)
+            self._role_checker.check(action, context, runtime)
             conns = self._check_connections(action, connections, runtime)
             factory = self._dependency_factory_for(action_cls)
             plugin_ctx = await self._plugin_coordinator.create_run_context()
