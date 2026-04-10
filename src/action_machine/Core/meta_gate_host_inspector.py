@@ -153,7 +153,11 @@ class MetaGateHostInspector(BaseGateHostInspector):
             Returns:
                 Экземпляр ``Snapshot``.
             """
-            meta_info: dict[str, object] = target_cls._meta_info
+            meta_info = getattr(target_cls, "_meta_info", None)
+            if not isinstance(meta_info, dict):
+                raise TypeError(
+                    f"{target_cls.__name__} does not contain valid _meta_info.",
+                )
             return cls(
                 class_ref=target_cls,
                 description=meta_info.get("description"),

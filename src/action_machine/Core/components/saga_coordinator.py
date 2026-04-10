@@ -65,7 +65,7 @@ AI-CORE-END
 from __future__ import annotations
 
 import time
-from typing import Any
+from typing import Any, Protocol, cast
 
 from action_machine.compensate.compensate_gate_host_inspector import (
     CompensateGateHostInspector,
@@ -105,7 +105,7 @@ class SagaCoordinator:
 
     async def execute(
         self,
-        machine: object,
+        machine: _MachineLike,
         *,
         saga_stack: list[SagaFrame],
         error: Exception,
@@ -195,7 +195,8 @@ class SagaCoordinator:
                 )
                 if comp_meta.context_keys:
                     ctx_view = ContextView(context, comp_meta.context_keys)
-                    await comp_meta.method_ref(
+                    method_ref = cast(Any, comp_meta.method_ref)
+                    await method_ref(
                         action,
                         params,
                         frame.state_before,
@@ -206,7 +207,8 @@ class SagaCoordinator:
                         ctx_view,
                     )
                 else:
-                    await comp_meta.method_ref(
+                    method_ref = cast(Any, comp_meta.method_ref)
+                    await method_ref(
                         action,
                         params,
                         frame.state_before,
@@ -259,3 +261,18 @@ class SagaCoordinator:
             **plugin_kwargs,
         )
 
+
+class _MachineLike(Protocol):
+    _mode: str
+
+    def _base_event_fields(
+        self,
+        action: Any,
+        context: Any,
+        params: Any,
+        nest_level: int,
+    ) -> dict[str, Any]:
+        pass
+
+    def _build_plugin_emit_kwargs(self, nest_level: int) -> dict[str, Any]:
+        pass

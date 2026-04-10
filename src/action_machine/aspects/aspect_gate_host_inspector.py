@@ -103,7 +103,7 @@ class AspectGateHostInspector(BaseGateHostInspector):
         AI-CORE-END
         ═══════════════════════════════════════════════════════════════════════
         """
-        from action_machine.core.base_action import BaseAction
+        from action_machine.core.base_action import BaseAction  # pylint: disable=import-outside-toplevel
 
         if issubclass(target_cls, BaseAction):
             return tuple(target_cls.scratch_aspects())

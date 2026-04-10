@@ -31,18 +31,18 @@ class CheckerGateHostInspector(BaseGateHostInspector):
 
     @classmethod
     def _collect_checkers(cls, target_cls: type) -> tuple[Snapshot.Checker, ...]:
-        from action_machine.core.base_action import BaseAction
+        from action_machine.core.base_action import BaseAction  # pylint: disable=import-outside-toplevel
 
         if issubclass(target_cls, BaseAction):
-            out: list[CheckerGateHostInspector.Snapshot.Checker] = []
+            action_out: list[CheckerGateHostInspector.Snapshot.Checker] = []
             for aspect in target_cls.scratch_aspects():
-                out.extend(
+                action_out.extend(
                     target_cls.scratch_checkers_for_aspect(
                         aspect.method_name,
                         method_ref=aspect.method_ref,
                     ),
                 )
-            return tuple(out)
+            return tuple(action_out)
         out: list[CheckerGateHostInspector.Snapshot.Checker] = []
         for attr_name, attr_value in vars(target_cls).items():
             func: Any = attr_value.fget if isinstance(attr_value, property) and attr_value.fget else attr_value

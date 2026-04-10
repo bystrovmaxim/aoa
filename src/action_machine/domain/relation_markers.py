@@ -135,7 +135,7 @@ ERRORS / LIMITATIONS
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, cast
 
 
 class Inverse:
@@ -197,12 +197,12 @@ class Inverse:
     @property
     def target_entity(self) -> type:
         """Related entity class."""
-        return self._target_entity
+        return cast(type, object.__getattribute__(self, "_target_entity"))
 
     @property
     def field_name(self) -> str:
         """Paired field name on ``target_entity``."""
-        return self._field_name
+        return cast(str, object.__getattribute__(self, "_field_name"))
 
     def __setattr__(self, name: str, value: Any) -> None:
         raise AttributeError("Inverse is frozen; assigning to attributes is not allowed.")
@@ -211,18 +211,24 @@ class Inverse:
         raise AttributeError("Inverse is frozen; deleting attributes is not allowed.")
 
     def __repr__(self) -> str:
-        return f"Inverse({self._target_entity.__name__}, '{self._field_name}')"
+        target_entity = cast(type, object.__getattribute__(self, "_target_entity"))
+        field_name = cast(str, object.__getattribute__(self, "_field_name"))
+        return f"Inverse({target_entity.__name__}, '{field_name}')"
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, Inverse):
             return NotImplemented
+        target_entity = cast(type, object.__getattribute__(self, "_target_entity"))
+        field_name = cast(str, object.__getattribute__(self, "_field_name"))
         return (
-            self._target_entity is other._target_entity
-            and self._field_name == other._field_name
+            target_entity is other.target_entity
+            and field_name == other.field_name
         )
 
     def __hash__(self) -> int:
-        return hash((id(self._target_entity), self._field_name))
+        target_entity = cast(type, object.__getattribute__(self, "_target_entity"))
+        field_name = cast(str, object.__getattribute__(self, "_field_name"))
+        return hash((id(target_entity), field_name))
 
 
 class NoInverse:
@@ -310,7 +316,7 @@ class Rel:
     @property
     def description(self) -> str:
         """Relation description for this direction."""
-        return self._description
+        return cast(str, object.__getattribute__(self, "_description"))
 
     def __setattr__(self, name: str, value: Any) -> None:
         raise AttributeError("Rel is frozen; assigning to attributes is not allowed.")
@@ -319,12 +325,15 @@ class Rel:
         raise AttributeError("Rel is frozen; deleting attributes is not allowed.")
 
     def __repr__(self) -> str:
-        return f"Rel(description='{self._description}')"
+        description = cast(str, object.__getattribute__(self, "_description"))
+        return f"Rel(description='{description}')"
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, Rel):
             return NotImplemented
-        return self._description == other._description
+        description = cast(str, object.__getattribute__(self, "_description"))
+        return description == other.description
 
     def __hash__(self) -> int:
-        return hash(self._description)
+        description = cast(str, object.__getattribute__(self, "_description"))
+        return hash(description)

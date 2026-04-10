@@ -291,18 +291,17 @@ def _validate_string_or_none(value: Any, param_name: str) -> None:
 
 def _normalize_nest_level(
     nest_level: int | tuple[int, ...] | None,
-) -> int | tuple[int, ...] | None:
+) -> tuple[int, ...] | None:
     """
     Проверяет корректность nest_level.
 
-    Нормализация int → tuple[int] выполняется в SubscriptionInfo.__post_init__.
-    Здесь проверяем только типы и неотрицательность.
+    Нормализует ``int`` в ``tuple[int]`` и проверяет неотрицательность.
 
     Аргументы:
         nest_level: значение параметра.
 
     Возвращает:
-        Значение без изменений (нормализация в SubscriptionInfo).
+        Кортеж уровней вложенности либо ``None``.
 
     Исключения:
         TypeError: если nest_level не int, не tuple[int] и не None.
@@ -317,7 +316,7 @@ def _normalize_nest_level(
                 f"@on: nest_level не может быть отрицательным, "
                 f"получено {nest_level}."
             )
-        return nest_level
+        return (nest_level,)
 
     if isinstance(nest_level, tuple):
         for i, item in enumerate(nest_level):

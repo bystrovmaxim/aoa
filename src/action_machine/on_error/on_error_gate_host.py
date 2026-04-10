@@ -118,7 +118,12 @@ ActionProductMachine:
 
 from __future__ import annotations
 
-from typing import Any, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar
+
+if TYPE_CHECKING:
+    from action_machine.on_error.on_error_gate_host_inspector import (
+        OnErrorGateHostInspector,
+    )
 
 
 class OnErrorGateHost:

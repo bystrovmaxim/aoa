@@ -89,12 +89,8 @@ class ConnectionValidatorProtocol(Protocol):
             connections: Raw connections dict passed to `run()` (may be None).
             runtime: Pre‑computed action execution cache containing connection keys.
 
-        Returns:
-            Normalized connections dictionary with only declared keys and valid
-            resource manager instances.
-
         Raises:
             ConnectionValidationError: If connections do not satisfy declared
                 `@connection` requirements.
         """
-        ...
+        pass

@@ -70,7 +70,7 @@ class TestPluginGetHandlers:
 
         # Assert — найден один обработчик с правильным именем
         assert len(handlers) == 1
-        handler_func, sub = handlers[0]
+        handler_func, _sub = handlers[0]
         assert handler_func.__name__ == "on_finish"
 
     def test_beta_plugin_returns_candidate_for_any_finish_event(self):
@@ -216,7 +216,7 @@ class TestPluginGetHandlers:
 
         # Act
         handlers = plugin.get_handlers(event)
-        handler_func, sub = handlers[0]
+        _handler_func, sub = handlers[0]
 
         # Assert — SubscriptionInfo содержит корректные данные
         from action_machine.plugins.events import GlobalFinishEvent

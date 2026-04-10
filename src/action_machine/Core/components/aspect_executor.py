@@ -68,7 +68,7 @@ AI-CORE-END
 from __future__ import annotations
 
 import time
-from typing import Any
+from typing import Any, Protocol, cast
 
 from action_machine.aspects.aspect_gate_host_inspector import AspectGateHostInspector
 from action_machine.checkers.checker_gate_host_inspector import CheckerGateHostInspector
@@ -103,7 +103,7 @@ class AspectExecutor:
 
     async def call(
         self,
-        machine: object,
+        machine: _MachineLike,
         *,
         aspect_meta: AspectGateHostInspector.Snapshot.Aspect | None,
         action: BaseAction[Any, Any],
@@ -111,7 +111,7 @@ class AspectExecutor:
         state: BaseState,
         box: ToolsBox,
         connections: dict[str, BaseResourceManager],
-        context,
+        context: Any,
     ) -> Any:
         """Call one aspect preserving ContextView and per-aspect logging."""
         if aspect_meta is None:
@@ -139,27 +139,29 @@ class AspectExecutor:
         )
         if aspect_meta.context_keys:
             ctx_view = ContextView(context, aspect_meta.context_keys)
-            return await aspect_meta.method_ref(
+            method_ref = cast(Any, aspect_meta.method_ref)
+            return await method_ref(
                 action, params, state, aspect_box, connections, ctx_view,
             )
-        return await aspect_meta.method_ref(
+        method_ref = cast(Any, aspect_meta.method_ref)
+        return await method_ref(
             action, params, state, aspect_box, connections,
         )
 
     async def execute_regular(
         self,
-        machine: object,
+        machine: _MachineLike,
         *,
-        aspect_meta,
-        action,
-        params,
+        aspect_meta: AspectGateHostInspector.Snapshot.Aspect,
+        action: BaseAction[Any, Any],
+        params: BaseParams,
         state: BaseState,
-        box,
-        connections,
-        context,
-        runtime,
+        box: ToolsBox,
+        connections: dict[str, BaseResourceManager],
+        context: Any,
+        runtime: _RuntimeLike,
         saga_stack: list[SagaFrame],
-    ) -> tuple[BaseState, dict, float]:
+    ) -> tuple[BaseState, dict[str, Any], float]:
         """Execute one regular aspect with checker validation and state merge."""
         state_before = state
         aspect_start = time.time()
@@ -213,17 +215,19 @@ class AspectExecutor:
 
     async def execute_summary(
         self,
-        machine: object,
+        machine: _MachineLike,
         *,
-        summary_meta,
-        action,
-        params,
+        summary_meta: AspectGateHostInspector.Snapshot.Aspect | None,
+        action: BaseAction[Any, Any],
+        params: BaseParams,
         state: BaseState,
-        box,
-        connections,
-        context,
+        box: ToolsBox,
+        connections: dict[str, BaseResourceManager],
+        context: Any,
     ) -> tuple[object, float]:
         """Execute summary aspect and return result with duration."""
+        if summary_meta is None:
+            return BaseResult(), 0.0
         summary_start = time.time()
         result = await self.call(
             machine,
@@ -236,3 +240,21 @@ class AspectExecutor:
             context=context,
         )
         return result, (time.time() - summary_start)
+
+
+class _MachineLike(Protocol):
+    _log_coordinator: Any
+    _mode: str
+
+
+class _RuntimeLike(Protocol):
+    @property
+    def checkers_by_aspect(
+        self,
+    ) -> dict[str, tuple[CheckerGateHostInspector.Snapshot.Checker, ...]]: ...
+
+    @property
+    def has_compensators(self) -> bool: ...
+
+    @property
+    def compensators_by_aspect(self) -> dict[str, Any]: ...

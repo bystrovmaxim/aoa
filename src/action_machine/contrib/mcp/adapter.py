@@ -579,7 +579,7 @@ class McpAdapter(BaseAdapter[McpRouteRecord]):
 
             tool_name = _class_name_to_snake_case(cls.__name__)
             m = coordinator.get_snapshot(cls, "meta")
-            description = m.description if m is not None else ""
+            description = m.description if m is not None and hasattr(m, "description") else ""
 
             self.tool(
                 name=tool_name,

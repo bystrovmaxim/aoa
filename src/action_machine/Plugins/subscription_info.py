@@ -98,7 +98,7 @@ from __future__ import annotations
 import re
 from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, cast
 
 from action_machine.plugins.events import AspectEvent, BasePluginEvent
 
@@ -273,7 +273,10 @@ class SubscriptionInfo:
         Создаётся один раз в __post_init__ через object.__setattr__.
         None если action_name_pattern не указан.
         """
-        return self._compiled_action_name_pattern  # type: ignore[attr-defined, no-any-return]
+        return cast(
+            re.Pattern[str] | None,
+            object.__getattribute__(self, "_compiled_action_name_pattern"),
+        )
 
     @property
     def compiled_aspect_name_pattern(self) -> re.Pattern[str] | None:
@@ -283,7 +286,10 @@ class SubscriptionInfo:
         Создаётся один раз в __post_init__ через object.__setattr__.
         None если aspect_name_pattern не указан.
         """
-        return self._compiled_aspect_name_pattern  # type: ignore[attr-defined, no-any-return]
+        return cast(
+            re.Pattern[str] | None,
+            object.__getattribute__(self, "_compiled_aspect_name_pattern"),
+        )
 
     # ── Методы проверки фильтров ───────────────────────────────────────
 
@@ -336,7 +342,7 @@ class SubscriptionInfo:
         Возвращает:
             True если action_name_pattern is None или regex совпал.
         """
-        pattern = self._compiled_action_name_pattern  # type: ignore[attr-defined]
+        pattern = object.__getattribute__(self, "_compiled_action_name_pattern")
         if pattern is None:
             return True
         return pattern.search(action_name) is not None
@@ -356,7 +362,7 @@ class SubscriptionInfo:
             True если aspect_name_pattern is None, или событие
             не является AspectEvent, или regex совпал с aspect_name.
         """
-        pattern = self._compiled_aspect_name_pattern  # type: ignore[attr-defined]
+        pattern = object.__getattribute__(self, "_compiled_aspect_name_pattern")
         if pattern is None:
             return True
         if not isinstance(event, AspectEvent):

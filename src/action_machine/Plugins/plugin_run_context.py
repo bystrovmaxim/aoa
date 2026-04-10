@@ -270,7 +270,7 @@ class PluginRunContext:
     # ─────────────────────────────────────────────────────────────────────
 
     @staticmethod
-    def _matches_all_filters(
+    def _matches_all_filters(  # pylint: disable=too-many-return-statements
         event: BasePluginEvent,
         sub: SubscriptionInfo,
         coordinator: Any | None = None,

@@ -105,7 +105,7 @@ EXAMPLES
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, cast
 
 if TYPE_CHECKING:
     from action_machine.core.base_schema import BaseSchema
@@ -115,11 +115,18 @@ if TYPE_CHECKING:
 # Сравнение выполняется только через оператор `is`, коллизии невозможны.
 _SENTINEL: object = object()
 
-# Кеш для ленивого импорта BaseSchema. Заполняется при первом вызове
-# resolve_step(). Это избавляет от поиска в sys.modules на каждом шаге
-# навигации, сохраняя при этом отсутствие циклической зависимости
-# на уровне модуля.
-_BaseSchemaType: type | None = None
+# Кеш для ленивого импорта BaseSchema (мутация списка без global).
+_base_schema_holder: list[type] = []
+
+
+def _runtime_base_schema_type() -> type:
+    if not _base_schema_holder:
+        from action_machine.core.base_schema import (  # pylint: disable=import-outside-toplevel
+            BaseSchema,
+        )
+
+        _base_schema_holder.append(BaseSchema)
+    return _base_schema_holder[0]
 
 
 class DotPathNavigator:
@@ -161,7 +168,7 @@ class DotPathNavigator:
             return _SENTINEL
 
     @staticmethod
-    def _step_dict(current: dict, segment: str) -> object:
+    def _step_dict(current: dict[str, Any], segment: str) -> object:
         """
         Шаг навигации для обычных словарей.
 
@@ -234,7 +241,7 @@ class DotPathNavigator:
             4. Любой другой объект — доступ через getattr.
 
         Импорт BaseSchema выполняется один раз при первом вызове и
-        кешируется в переменной модуля _BaseSchemaType. Это избавляет
+        кешируется в ``_base_schema_holder``. Это избавляет
         от поиска в sys.modules на каждом шаге навигации, сохраняя
         при этом отсутствие циклической зависимости на уровне модуля.
 
@@ -245,13 +252,9 @@ class DotPathNavigator:
         Returns:
             Значение сегмента или _SENTINEL если сегмент не найден.
         """
-        global _BaseSchemaType
-        if _BaseSchemaType is None:
-            from action_machine.core.base_schema import BaseSchema
-            _BaseSchemaType = BaseSchema
-
-        if isinstance(current, _BaseSchemaType):
-            return DotPathNavigator._step_schema(current, segment)
+        base_schema_type = _runtime_base_schema_type()
+        if isinstance(current, base_schema_type):
+            return DotPathNavigator._step_schema(cast("BaseSchema", current), segment)
         if isinstance(current, dict):
             return DotPathNavigator._step_dict(current, segment)
         if hasattr(current, "__getitem__"):

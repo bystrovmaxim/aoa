@@ -149,6 +149,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
+from typing import cast
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # EXCEPTIONS
@@ -474,7 +475,7 @@ class Lifecycle:
         for klass in cls.__mro__:
             template = klass.__dict__.get("_template")
             if template is not None and isinstance(template, Lifecycle):
-                return template
+                return cast(Lifecycle, template)
         return None
 
     # ─────────────────────────────────────────────────────────────────────

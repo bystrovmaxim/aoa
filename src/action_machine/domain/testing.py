@@ -21,12 +21,13 @@ when new primitive patterns appear in your test entities.
 
 from __future__ import annotations
 
-from typing import Any, TypeVar
+from typing import Any, cast
 
-T = TypeVar("T")
+from .entity import BaseEntity
+from .lifecycle import Lifecycle
 
 
-def make(entity_cls: type[T], **overrides: Any) -> T:
+def make[T](entity_cls: type[T], **overrides: Any) -> T:
     """
     Create a test entity with auto-generated defaults merged with ``overrides``.
 
@@ -43,10 +44,9 @@ def make(entity_cls: type[T], **overrides: Any) -> T:
         Relation containers and complex nested types are not fully handled;
         pass them explicitly via ``overrides`` when needed.
     """
-    from .lifecycle import Lifecycle  # Local import avoids import cycles.
-
     defaults: dict[str, Any] = {}
-    for name, field in entity_cls.model_fields.items():
+    model_cls = cast(type[BaseEntity], entity_cls)
+    for name, field in model_cls.model_fields.items():
         if name in overrides:
             continue
         ann = field.annotation

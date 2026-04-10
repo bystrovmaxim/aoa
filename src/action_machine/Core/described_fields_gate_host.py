@@ -109,8 +109,6 @@ class DescribedFieldsGateHost:
 
 
 def _extract_generic_params_result(cls: type) -> tuple[type | None, type | None]:
-    from action_machine.core.base_action import BaseAction
-
     for klass in cls.__mro__:
         for base in getattr(klass, "__orig_bases__", ()):
             origin = get_origin(base)

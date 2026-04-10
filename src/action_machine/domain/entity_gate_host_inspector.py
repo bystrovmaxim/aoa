@@ -102,6 +102,8 @@ ERRORS / LIMITATIONS
 from __future__ import annotations
 
 import inspect
+import types
+import typing
 from dataclasses import dataclass, field
 from typing import Annotated, Any, get_args, get_origin
 
@@ -109,6 +111,9 @@ from pydantic.fields import FieldInfo
 from pydantic_core import PydanticUndefined
 
 from action_machine.domain.entity_gate_host import EntityGateHost, entity_info_is_set
+from action_machine.domain.lifecycle import Lifecycle
+from action_machine.domain.relation_containers import BaseRelationMany, BaseRelationOne
+from action_machine.domain.relation_markers import Inverse, NoInverse, Rel
 from action_machine.metadata.base_facet_snapshot import BaseFacetSnapshot
 from action_machine.metadata.base_gate_host_inspector import BaseGateHostInspector
 from action_machine.metadata.payload import FacetPayload
@@ -180,11 +185,6 @@ def _is_lifecycle_subclass(annotation: Any) -> bool:
     Whether ``annotation`` (possibly ``Annotated`` / optional union) refers to a
     ``Lifecycle`` subclass.
     """
-    import types
-    import typing
-
-    from action_machine.domain.lifecycle import Lifecycle  # pylint: disable=import-outside-toplevel
-
     if get_origin(annotation) is Annotated:
         base = get_args(annotation)[0]
         return _is_lifecycle_subclass(base)
@@ -195,7 +195,7 @@ def _is_lifecycle_subclass(annotation: Any) -> bool:
     origin = get_origin(annotation)
     if origin is types.UnionType or origin is typing.Union:
         for arg in get_args(annotation):
-            if arg is type(None):
+            if arg is types.NoneType:
                 continue
             if _is_lifecycle_subclass(arg):
                 return True
@@ -206,11 +206,6 @@ def _is_lifecycle_subclass(annotation: Any) -> bool:
 
 def _extract_lifecycle_class(annotation: Any) -> type | None:
     """Resolve the concrete ``Lifecycle`` subclass from a field annotation."""
-    import types
-    import typing
-
-    from action_machine.domain.lifecycle import Lifecycle  # pylint: disable=import-outside-toplevel
-
     if get_origin(annotation) is Annotated:
         base = get_args(annotation)[0]
         return _extract_lifecycle_class(base)
@@ -221,7 +216,7 @@ def _extract_lifecycle_class(annotation: Any) -> type | None:
     origin = get_origin(annotation)
     if origin is types.UnionType or origin is typing.Union:
         for arg in get_args(annotation):
-            if arg is type(None):
+            if arg is types.NoneType:
                 continue
             result = _extract_lifecycle_class(arg)
             if result is not None:
@@ -235,14 +230,6 @@ def _is_relation_container(annotation: Any) -> bool:
     True if ``annotation`` denotes ``BaseRelationOne`` / ``BaseRelationMany``
     (including inside ``Optional`` / ``Annotated``).
     """
-    import types
-    import typing
-
-    from action_machine.domain.relation_containers import (  # pylint: disable=import-outside-toplevel
-        BaseRelationMany,
-        BaseRelationOne,
-    )
-
     if get_origin(annotation) is Annotated:
         base = get_args(annotation)[0]
         return _is_relation_container(base)
@@ -250,7 +237,7 @@ def _is_relation_container(annotation: Any) -> bool:
     origin = get_origin(annotation)
     if origin is types.UnionType or origin is typing.Union:
         for arg in get_args(annotation):
-            if arg is type(None):
+            if arg is types.NoneType:
                 continue
             if _is_relation_container(arg):
                 return True
@@ -268,7 +255,7 @@ def _is_relation_container(annotation: Any) -> bool:
     return False
 
 
-def collect_entity_fields(cls: type) -> list[EntityFieldInfo]:
+def collect_entity_fields(cls: type) -> list[EntityFieldInfo]:  # pylint: disable=too-many-branches
     """
     Collect scalar entity fields from ``model_fields``.
 
@@ -326,7 +313,7 @@ def collect_entity_fields(cls: type) -> list[EntityFieldInfo]:
     return fields
 
 
-def _extract_relation_info(
+def _extract_relation_info(  # pylint: disable=too-many-branches
     field_name: str,
     annotation: Any,
     field_info: FieldInfo,
@@ -343,19 +330,6 @@ def _extract_relation_info(
     Returns:
         ``EntityRelationInfo`` or ``None`` if no relation container is found.
     """
-    import types
-    import typing
-
-    from action_machine.domain.relation_containers import (  # pylint: disable=import-outside-toplevel
-        BaseRelationMany,
-        BaseRelationOne,
-    )
-    from action_machine.domain.relation_markers import (  # pylint: disable=import-outside-toplevel
-        Inverse,
-        NoInverse,
-        Rel,
-    )
-
     base_type = annotation
     annotated_metadata: tuple[Any, ...] = ()
 
@@ -368,7 +342,7 @@ def _extract_relation_info(
     origin = get_origin(base_type)
     if origin is types.UnionType or origin is typing.Union:
         for arg in get_args(base_type):
-            if arg is not type(None):
+            if arg is not types.NoneType:
                 unwrapped = arg
                 break
     base_type = unwrapped
@@ -392,6 +366,8 @@ def _extract_relation_info(
     container_args = get_args(base_type)
     if container_args and isinstance(container_args[0], type):
         target_entity = container_args[0]
+    if target_entity is None:
+        return None
 
     relation_type = container_class.relation_type.value
     cardinality = "one" if issubclass(container_class, BaseRelationOne) else "many"

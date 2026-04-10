@@ -34,7 +34,7 @@ class CompensateGateHostInspector(BaseGateHostInspector):
     def _collect_compensators(
         cls, target_cls: type,
     ) -> tuple[Snapshot.Compensator, ...]:
-        from action_machine.core.base_action import BaseAction
+        from action_machine.core.base_action import BaseAction  # pylint: disable=import-outside-toplevel
 
         if issubclass(target_cls, BaseAction):
             return tuple(target_cls.scratch_compensators())

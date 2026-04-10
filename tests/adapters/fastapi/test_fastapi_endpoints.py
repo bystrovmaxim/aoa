@@ -66,7 +66,7 @@ def _make_app(
     Возвращает кортеж (adapter, machine) для дополнительных assert-ов.
     По умолчанию machine.run возвращает PingAction.Result(message="pong").
     """
-    coordinator = GateCoordinator()
+    GateCoordinator()
     machine = ActionProductMachine(mode="test")
 
     auth = AsyncMock()

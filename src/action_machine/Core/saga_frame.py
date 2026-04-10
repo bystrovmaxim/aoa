@@ -88,8 +88,6 @@ class SagaFrame:
     """
 
     compensator: CompensateGateHostInspector.Snapshot.Compensator | None
-
-    compensator: CompensateGateHostInspector.Snapshot.Compensator | None
     aspect_name: str
     state_before: object  # BaseState — frozen-экземпляр
     state_after: object | None  # BaseState | None — frozen-экземпляр или None

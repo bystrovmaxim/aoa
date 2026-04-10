@@ -69,7 +69,7 @@ AI-CORE-END
 from __future__ import annotations
 
 import time
-from typing import Any, cast
+from typing import Any, Protocol, cast
 
 from action_machine.context.context_view import ContextView
 from action_machine.core.base_result import BaseResult
@@ -86,7 +86,7 @@ class ErrorHandlerExecutor:
 
     async def handle(
         self,
-        machine: object,
+        machine: _MachineLike,
         *,
         error: Exception,
         action: Any,
@@ -179,3 +179,15 @@ class ErrorHandlerExecutor:
                 handler_name=handler_meta.method_name,
                 original_error=error,
             ) from handler_error
+
+
+class _MachineLike(Protocol):
+    def _base_event_fields(
+        self,
+        action: Any,
+        context: Any,
+        params: Any,
+        nest_level: int,
+    ) -> dict[str, Any]: ...
+
+    def _build_plugin_emit_kwargs(self, nest_level: int) -> dict[str, Any]: ...

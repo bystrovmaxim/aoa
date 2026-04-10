@@ -27,8 +27,7 @@ Dependency ``DependencyFactory`` instances may be cached on this object under
 ``dependency_factory.DEPENDENCY_FACTORY_CACHE_KEY``; clearing that cache does
 not rebuild or invalidate the facet graph.
 
-Applications may import from ``action_machine.core.gate_coordinator`` (thin
-re-export); the canonical implementation is **this** module. Typical apps use
+The canonical implementation is **this** module. Typical apps use
 ``CoreActionMachine.create_coordinator()`` for a pre-built coordinator.
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -236,8 +235,11 @@ class GateCoordinator:
 
         Raises:
             RuntimeError: second ``build()``.
-            PayloadValidationError, DuplicateNodeError, InvalidGraphError,
-            CyclicDependencyError — see phase 2 and the @depends cycle wrapper.
+            PayloadValidationError: Invalid facet payloads in phase 2.
+            DuplicateNodeError: Duplicate graph keys in phase 2.
+            InvalidGraphError: Structural graph validation failed in phase 2.
+            CyclicDependencyError: Dependency cycle detected (wrapped from
+                ``InvalidGraphError`` in ``_phase2_check_acyclicity``).
         """
         if self._built:
             raise RuntimeError(

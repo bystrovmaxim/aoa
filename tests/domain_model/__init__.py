@@ -100,38 +100,38 @@ from .simple_action import SimpleAction
 from .test_db_manager import TestDbManager
 
 __all__ = [
-    # Base actions
-    "PingAction",
-    "SimpleAction",
-    "FullAction",
-    "ChildAction",
     "AdminAction",
-    # Actions with @on_error
-    "ErrorHandledAction",
-    "MultiErrorAction",
-    "NoErrorHandlerAction",
-    "HandlerRaisesAction",
-    # Actions with @compensate
-    "CompensatedOrderAction",
+    "ChildAction",
     "CompensateAndOnErrorAction",
     "CompensateErrorAction",
-    "CompensateWithContextAction",
-    "PartialCompensateAction",
     # Params/Result
     "CompensateTestParams",
     "CompensateTestResult",
-    "ErrorTestParams",
-    "ErrorTestResult",
+    "CompensateWithContextAction",
+    # Actions with @compensate
+    "CompensatedOrderAction",
     # Plugins
     "ErrorCounterPlugin",
+    # Actions with @on_error
+    "ErrorHandledAction",
     "ErrorObserverPlugin",
-    "SagaObserverPlugin",
-    # Domains
-    "OrdersDomain",
-    "SystemDomain",
+    "ErrorTestParams",
+    "ErrorTestResult",
+    "FullAction",
+    "HandlerRaisesAction",
     # Services
     "InventoryService",
+    "MultiErrorAction",
+    "NoErrorHandlerAction",
     "NotificationService",
+    # Domains
+    "OrdersDomain",
+    "PartialCompensateAction",
     "PaymentService",
+    # Base actions
+    "PingAction",
+    "SagaObserverPlugin",
+    "SimpleAction",
+    "SystemDomain",
     "TestDbManager",
 ]

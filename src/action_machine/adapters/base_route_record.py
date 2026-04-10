@@ -90,7 +90,7 @@ from __future__ import annotations
 
 import sys
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, ForwardRef, get_args, get_origin
 
 from action_machine.core.base_action import BaseAction
@@ -176,6 +176,8 @@ class BaseRouteRecord:
     response_model: type | None = None
     params_mapper: Callable[..., Any] | None = None
     response_mapper: Callable[..., Any] | None = None
+    _cached_params_type: type = field(init=False, repr=False)
+    _cached_result_type: type = field(init=False, repr=False)
 
     def __post_init__(self) -> None:
         """Validate invariants and cache extracted types."""
@@ -217,12 +219,12 @@ class BaseRouteRecord:
     @property
     def params_type(self) -> type:
         """Action params type (P from BaseAction[P, R])."""
-        return self._cached_params_type  # type: ignore[attr-defined]  # pylint: disable=no-member
+        return self._cached_params_type
 
     @property
     def result_type(self) -> type:
         """Action result type (R from BaseAction[P, R])."""
-        return self._cached_result_type  # type: ignore[attr-defined]  # pylint: disable=no-member
+        return self._cached_result_type
 
     @property
     def effective_request_model(self) -> type:

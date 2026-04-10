@@ -93,4 +93,4 @@ class RoleCheckerProtocol(Protocol):
         Raises:
             AuthorizationError: If role requirements are not satisfied.
         """
-        ...
+        pass

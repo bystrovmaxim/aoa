@@ -100,9 +100,12 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from action_machine.resource_managers.base_resource_manager import BaseResourceManager
+
+if TYPE_CHECKING:
+    from action_machine.metadata.gate_coordinator import GateCoordinator
 
 
 @dataclass(frozen=True)
@@ -275,7 +278,7 @@ def cached_dependency_factory(
         raise RuntimeError(
             "GateCoordinator is not built. Register inspectors and call build() first.",
         )
-    cache: dict[type, DependencyFactory] = coordinator.__dict__.setdefault(  # type: ignore[assignment]
+    cache: dict[type, DependencyFactory] = coordinator.__dict__.setdefault(
         DEPENDENCY_FACTORY_CACHE_KEY,
         {},
     )

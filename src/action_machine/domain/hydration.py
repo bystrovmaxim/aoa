@@ -70,12 +70,12 @@ Proxy e is typed — the IDE suggests OrderEntity fields.
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import Any, Generic, TypeVar
+from typing import Any, cast
 
-T = TypeVar("T")
+from .entity import BaseEntity
 
 
-class EntityProxy(Generic[T]):
+class EntityProxy[T]:
     """
     Proxy for typed field access to entities in build().
 
@@ -92,7 +92,7 @@ class EntityProxy(Generic[T]):
         proxy.foo     # → AttributeError
     """
 
-    def __init__(self, cls: type[T]) -> None:
+    def __init__(self, cls: type[BaseEntity]) -> None:
         self._cls = cls
 
     def __getattr__(self, name: str) -> str:
@@ -116,7 +116,7 @@ class EntityProxy(Generic[T]):
         raise AttributeError(f"'{self._cls.__name__}' has no field '{name}'")
 
 
-def build(
+def build[T](
     data: dict[str, Any],
     entity_cls: type[T],
     mapper: Callable[[EntityProxy[T], dict[str, Any]], dict[str, Any]] | None = None,
@@ -146,6 +146,6 @@ def build(
     if mapper is None:
         return entity_cls(**data)
 
-    proxy = EntityProxy(entity_cls)
+    proxy = cast(EntityProxy[T], EntityProxy(cast(type[BaseEntity], entity_cls)))
     mapped = mapper(proxy, data)
     return entity_cls(**mapped)

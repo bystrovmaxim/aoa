@@ -178,13 +178,13 @@ R = TypeVar("R", bound=BaseResult)
 
 
 def _scratch_aspects(
-    cls: type[BaseAction],
+    cls: type[BaseAction[Any, Any]],
 ) -> list[AspectGateHostInspector.Snapshot.Aspect]:
     return list(cls.scratch_aspects())
 
 
 def _scratch_checkers_for_aspect(
-    cls: type[BaseAction],
+    cls: type[BaseAction[Any, Any]],
     aspect_name: str,
     func: Any,
 ) -> tuple[CheckerGateHostInspector.Snapshot.Checker, ...]:
@@ -192,18 +192,18 @@ def _scratch_checkers_for_aspect(
 
 
 def _scratch_error_handlers(
-    cls: type[BaseAction],
+    cls: type[BaseAction[Any, Any]],
 ) -> tuple[OnErrorGateHostInspector.Snapshot.ErrorHandler, ...]:
     return tuple(cls.scratch_error_handlers())
 
 
 def _scratch_compensators(
-    cls: type[BaseAction],
+    cls: type[BaseAction[Any, Any]],
 ) -> tuple[CompensateGateHostInspector.Snapshot.Compensator, ...]:
     return tuple(cls.scratch_compensators())
 
 
-def _scratch_connection_keys(cls: type[BaseAction]) -> tuple[str, ...]:
+def _scratch_connection_keys(cls: type[BaseAction[Any, Any]]) -> tuple[str, ...]:
     return tuple(cls.scratch_connection_keys())
 
 
@@ -305,7 +305,7 @@ class _ActionExecutionCache:
         error_handlers = getattr(eh_snap, "error_handlers", ()) if eh_snap is not None else ()
 
         conn_snap = gate_coordinator.get_snapshot(action_cls, "connections")
-        if conn_snap is not None:
+        if conn_snap is not None and hasattr(conn_snap, "connections"):
             connection_keys = tuple(c.key for c in conn_snap.connections)
         else:
             connection_keys = ()

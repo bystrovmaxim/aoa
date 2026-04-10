@@ -238,12 +238,8 @@ class BaseGateHostInspector(ABC):
 
         Args:
             target_cls: Candidate class (subclass of the marker mixin).
-
-        Returns:
-            ``FacetPayload`` when this inspector owns the class; ``None`` when
-            the class lacks the expected decorator data.
         """
-        ...
+        pass
 
     @classmethod
     def facet_snapshot_for_class(cls, target_cls: type) -> BaseFacetSnapshot | None:
@@ -282,11 +278,8 @@ class BaseGateHostInspector(ABC):
 
         Args:
             target_cls: Class that already passed ``inspect()``.
-
-        Returns:
-            Complete node description including edges.
         """
-        ...
+        pass
 
     # ═══════════════════════════════════════════════════════════════════
     # Helpers for _build_payload

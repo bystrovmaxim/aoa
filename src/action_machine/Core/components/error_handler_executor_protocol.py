@@ -110,11 +110,8 @@ class ErrorHandlerExecutorProtocol(Protocol):
             failed_aspect_name: Name of the aspect that raised the error,
                 or None if the error occurred outside an aspect.
 
-        Returns:
-            A `BaseResult` produced by the matched `@on_error` handler.
-
         Raises:
-            The original exception if no handler matches.
-            OnErrorHandlerError if a matched handler raises an exception.
+            Exception: Re-raised when no handler matches.
+            OnErrorHandlerError: When a matched handler raises an exception.
         """
-        ...
+        pass
