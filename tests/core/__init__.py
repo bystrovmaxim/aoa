@@ -48,11 +48,11 @@ Core-тесты — полное покрытие ядра ActionMachine.
 
 - GateCoordinator — центральный реестр метаданных, фабрик и графа.
   Ленивая сборка через MetadataBuilder, кеширование, рекурсивный обход
-  зависимостей, направленный ациклический граф на rustworkx, strict-режим
-  для обязательности domain в @meta, доменные узлы и рёбра belongs_to.
+  зависимостей, направленный ациклический граф на rustworkx, инвариант
+  domain в @meta при get() для действий с аспектами и ресурсов, доменные узлы.
 
 - Pydantic-интеграция — валидация описаний полей через
-  DescribedFieldsGateHost, сбор FieldDescriptionMeta с constraints
+  DescribedFieldsGateHost, сбор snapshot описаний полей с constraints
   и examples, JSON Schema.
 
 ═══════════════════════════════════════════════════════════════════════════════

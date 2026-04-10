@@ -1,18 +1,22 @@
 # src/action_machine/domain/testing.py
 """
-Утилиты для создания сущностей.
+Test helpers for constructing domain entities quickly.
 
 ═══════════════════════════════════════════════════════════════════════════════
-make() — фабрика сущностей с автогенерацией дефолтов.
+make() — ENTITY FACTORY WITH SIMPLE AUTO-DEFAULTS
 ═══════════════════════════════════════════════════════════════════════════════
 
-Создаёт сущность с автогенерацией дефолтов по типам полей.
-Используется для быстрого создания экземпляров в тестах, примерах,
-прототипировании и разработке.
+`make()` builds an entity instance with **heuristic defaults** per field type,
+then applies your overrides. It is meant for **tests**, examples, and
+prototyping — **not** for production persistence logic.
 
-Пример:
+Example:
+
     order = make(OrderEntity, amount=100.0)
-    # id сгенерируется как str, status="new" и т.д.
+    # `id` and other string fields may become "test_<field_name>", etc.
+
+The implementation is intentionally small and extensible: add more branches
+when new primitive patterns appear in your test entities.
 """
 
 from __future__ import annotations
@@ -24,34 +28,42 @@ T = TypeVar("T")
 
 def make(entity_cls: type[T], **overrides: Any) -> T:
     """
-    Создаёт тестовую сущность с автогенерацией дефолтов.
+    Create a test entity with auto-generated defaults merged with ``overrides``.
 
-    Аргументы:
-        entity_cls: класс сущности.
-        **overrides: поля для переопределения.
+    Args:
+        entity_cls:
+            Concrete `BaseEntity` subclass.
+        **overrides:
+            Field values that replace or supplement generated defaults.
 
-    Возвращает:
-        Экземпляр сущности.
+    Returns:
+        A validated entity instance (`entity_cls(...)`).
+
+    Note:
+        Relation containers and complex nested types are not fully handled;
+        pass them explicitly via ``overrides`` when needed.
     """
-    from .lifecycle import Lifecycle  # Import here to avoid circular
+    from .lifecycle import Lifecycle  # Local import avoids import cycles.
 
-    defaults = {}
+    defaults: dict[str, Any] = {}
     for name, field in entity_cls.model_fields.items():
-        if name not in overrides:
-            if field.annotation == str:
-                defaults[name] = f"test_{name}"
-            elif field.annotation == int:
-                defaults[name] = 1
-            elif field.annotation == float:
-                defaults[name] = 1.0
-            elif field.annotation == Lifecycle:
-                # Try to get lifecycle from class method
-                if hasattr(entity_cls, f'get_{name}'):
-                    try:
-                        defaults[name] = getattr(entity_cls, f'get_{name}')()
-                    except:
-                        pass
-            # Add more types as needed
+        if name in overrides:
+            continue
+        ann = field.annotation
+        if ann is str:
+            defaults[name] = f"test_{name}"
+        elif ann is int:
+            defaults[name] = 1
+        elif ann is float:
+            defaults[name] = 1.0
+        elif ann is Lifecycle:
+            getter = f"get_{name}"
+            if hasattr(entity_cls, getter):
+                try:
+                    defaults[name] = getattr(entity_cls, getter)()
+                except Exception:
+                    pass
+        # Extend with more types as your test model grows.
 
     data = {**defaults, **overrides}
     return entity_cls(**data)

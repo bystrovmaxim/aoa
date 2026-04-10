@@ -1,26 +1,24 @@
-# tests/domain/ping_action.py
+# tests/domain_model/ping_action.py
 """
-PingAction — минимальное действие для smoke-тестов.
+PingAction — minimal Action for smoke tests.
 
 ═══════════════════════════════════════════════════════════════════════════════
-НАЗНАЧЕНИЕ
+PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Самое простое действие в тестовой доменной модели. Не принимает
-параметров, не имеет зависимостей и connections, содержит только
-summary-аспект, возвращающий фиксированное сообщение "pong".
+Simplest Action in the test domain: no parameters, no dependencies or
+connections, only a summary aspect returning a fixed "pong" message.
 
-Доступно всем пользователям (ROLE_NONE), включая анонимных.
-Принадлежит SystemDomain.
+Available to everyone (ROLE_NONE), including anonymous users.
+Belongs to SystemDomain.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ИСПОЛЬЗОВАНИЕ В ТЕСТАХ
+USAGE IN TESTS
 ═══════════════════════════════════════════════════════════════════════════════
 
-- Smoke-тесты: проверка базовой инфраструктуры (машина запускается,
-  координатор собирает метаданные, конвейер выполняется).
-- Тесты ROLE_NONE: анонимный пользователь без ролей проходит проверку.
-- Тесты TestBench: минимальный прогон без моков и connections.
+- Smoke tests: machine runs, coordinator builds metadata, pipeline executes.
+- ROLE_NONE tests: anonymous user without roles passes.
+- TestBench: minimal run without mocks or connections.
 
     result = await bench.run(PingAction(), PingAction.Params(), rollup=False)
     assert result.message == "pong"
@@ -41,25 +39,24 @@ from action_machine.resource_managers.base_resource_manager import BaseResourceM
 from .domains import SystemDomain
 
 
-@meta(description="Проверка доступности сервиса", domain=SystemDomain)
+@meta(description="Service health check", domain=SystemDomain)
 @check_roles(ROLE_NONE)
 class PingAction(BaseAction["PingAction.Params", "PingAction.Result"]):
     """
-    Минимальное действие без параметров и зависимостей.
+    Minimal Action without parameters or dependencies.
 
-    Только summary-аспект, возвращающий фиксированный результат "pong".
-    Доступно всем пользователям (ROLE_NONE).
+    Summary-only aspect returning a fixed "pong" result. ROLE_NONE.
     """
 
     class Params(BaseParams):
-        """Параметры PingAction — пустые, действие не требует входных данных."""
+        """PingAction parameters — empty; no input required."""
         pass
 
     class Result(BaseResult):
-        """Результат PingAction — сообщение pong."""
-        message: str = Field(description="Ответное сообщение сервиса")
+        """PingAction result — pong message."""
+        message: str = Field(description="Service response message")
 
-    @summary_aspect("Формирование ответа pong")
+    @summary_aspect("Build pong response")
     async def pong_summary(
         self,
         params: "PingAction.Params",
@@ -67,5 +64,5 @@ class PingAction(BaseAction["PingAction.Params", "PingAction.Result"]):
         box: ToolsBox,
         connections: dict[str, BaseResourceManager],
     ) -> "PingAction.Result":
-        """Возвращает фиксированный результат с сообщением 'pong'."""
+        """Return a fixed Result with message 'pong'."""
         return PingAction.Result(message="pong")

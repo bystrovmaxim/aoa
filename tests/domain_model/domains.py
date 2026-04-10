@@ -1,4 +1,4 @@
-# tests/domain/domains.py
+# tests/domain_model/domains.py
 """
 Business domains for the test domain model.
 

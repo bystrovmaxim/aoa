@@ -1,34 +1,32 @@
-# tests/domain/error_actions.py
+# tests/domain_model/error_actions.py
 """
-Action с обработчиками ошибок (@on_error) для тестирования Этапа 1.
+Actions with @on_error handlers for error-handling tests.
 
 ═══════════════════════════════════════════════════════════════════════════════
-НАЗНАЧЕНИЕ
+PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Содержит Action, демонстрирующие и тестирующие различные сценарии
-обработки ошибок через @on_error:
+Provides Actions that exercise @on_error scenarios:
 
-- ErrorHandledAction — один обработчик, ловит ValueError.
-- MultiErrorAction — несколько обработчиков (специфичный → общий).
-- NoErrorHandlerAction — действие без @on_error (ошибки пробрасываются).
-- HandlerRaisesAction — обработчик сам бросает исключение → OnErrorHandlerError.
-
-═══════════════════════════════════════════════════════════════════════════════
-ПОЛЬЗОВАТЕЛЬСКИЕ ИСКЛЮЧЕНИЯ
-═══════════════════════════════════════════════════════════════════════════════
-
-- InsufficientFundsError — недостаточно средств на счёте.
-- PaymentGatewayError — ошибка платёжного шлюза.
-
-Оба наследуют Exception напрямую. Используются для тестирования
-порядка обработчиков и перекрытия типов.
+- ErrorHandledAction — single handler catching ValueError.
+- MultiErrorAction — multiple handlers (specific → general).
+- NoErrorHandlerAction — no @on_error (errors propagate).
+- HandlerRaisesAction — handler raises → OnErrorHandlerError.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ИСПОЛЬЗОВАНИЕ В ТЕСТАХ
+CUSTOM EXCEPTIONS
 ═══════════════════════════════════════════════════════════════════════════════
 
-    from tests.domain.error_actions import (
+- InsufficientFundsError — not enough balance.
+- PaymentGatewayError — payment gateway failure.
+
+Both inherit Exception directly. Used to test handler ordering and type matching.
+
+═══════════════════════════════════════════════════════════════════════════════
+USAGE IN TESTS
+═══════════════════════════════════════════════════════════════════════════════
+
+    from tests.domain_model.error_actions import (
         ErrorHandledAction,
         MultiErrorAction,
         NoErrorHandlerAction,
@@ -58,58 +56,60 @@ from action_machine.resource_managers.base_resource_manager import BaseResourceM
 from .domains import OrdersDomain
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Пользовательские исключения
+# Custom exceptions
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class InsufficientFundsError(Exception):
-    """Недостаточно средств на счёте."""
+    """Not enough funds on the account."""
     pass
 
 
 class PaymentGatewayError(Exception):
-    """Ошибка платёжного шлюза."""
+    """Payment gateway failure."""
     pass
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Общие Params и Result для error-действий
+# Shared Params / Result for error Actions
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class ErrorTestParams(BaseParams):
-    """Параметры для тестовых error-действий."""
-    value: str = Field(description="Значение для обработки")
-    should_fail: bool = Field(default=False, description="Если True — аспект бросит исключение")
+    """Parameters for error-handling test Actions."""
+    value: str = Field(description="Value to process")
+    should_fail: bool = Field(
+        default=False,
+        description="If True, the regular aspect raises an exception",
+    )
 
 
 class ErrorTestResult(BaseResult):
-    """Результат тестовых error-действий."""
-    status: str = Field(description="Статус выполнения")
-    detail: str = Field(default="", description="Детали результата")
+    """Result type for error-handling test Actions."""
+    status: str = Field(description="Execution status")
+    detail: str = Field(default="", description="Result details")
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# ErrorHandledAction — один обработчик ValueError
+# ErrorHandledAction — single ValueError handler
 # ═════════════════════════════════════════════════════════════════════════════
 
 
-@meta(description="Действие с одним обработчиком ValueError", domain=OrdersDomain)
+@meta(description="Action with a single ValueError handler", domain=OrdersDomain)
 @check_roles(ROLE_NONE)
 class ErrorHandledAction(BaseAction[ErrorTestParams, ErrorTestResult]):
     """
-    Действие с одним @on_error обработчиком для ValueError.
+    Action with one @on_error handler for ValueError.
 
-    Если should_fail=True, regular-аспект бросает ValueError.
-    Обработчик handle_validation_on_error перехватывает ValueError
-    и возвращает Result со статусом "handled".
+    When should_fail=True, the regular aspect raises ValueError.
+    handle_validation_on_error catches it and returns Result(status="handled").
 
-    Сценарии тестирования:
-    - should_fail=False → нормальный Result(status="ok").
-    - should_fail=True → обработчик → Result(status="handled").
+    Test scenarios:
+    - should_fail=False → normal Result(status="ok").
+    - should_fail=True → handler → Result(status="handled").
     """
 
-    @regular_aspect("Обработка значения")
+    @regular_aspect("Process value")
     @result_string("processed", required=True)
     async def process_aspect(
         self,
@@ -119,10 +119,10 @@ class ErrorHandledAction(BaseAction[ErrorTestParams, ErrorTestResult]):
         connections: dict[str, BaseResourceManager],
     ) -> dict[str, Any]:
         if params.should_fail:
-            raise ValueError(f"Ошибка обработки: {params.value}")
+            raise ValueError(f"Processing error: {params.value}")
         return {"processed": params.value}
 
-    @summary_aspect("Формирование результата")
+    @summary_aspect("Build result")
     async def build_result_summary(
         self,
         params: ErrorTestParams,
@@ -132,7 +132,7 @@ class ErrorHandledAction(BaseAction[ErrorTestParams, ErrorTestResult]):
     ) -> ErrorTestResult:
         return ErrorTestResult(status="ok", detail=state["processed"])
 
-    @on_error(ValueError, description="Обработка ошибки валидации")
+    @on_error(ValueError, description="Handle validation error")
     async def handle_validation_on_error(
         self,
         params: ErrorTestParams,
@@ -145,29 +145,29 @@ class ErrorHandledAction(BaseAction[ErrorTestParams, ErrorTestResult]):
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# MultiErrorAction — несколько обработчиков (специфичный → общий)
+# MultiErrorAction — multiple handlers (specific → general)
 # ═════════════════════════════════════════════════════════════════════════════
 
 
-@meta(description="Действие с несколькими обработчиками ошибок", domain=OrdersDomain)
+@meta(description="Action with multiple error handlers", domain=OrdersDomain)
 @check_roles(ROLE_NONE)
 class MultiErrorAction(BaseAction[ErrorTestParams, ErrorTestResult]):
     """
-    Действие с тремя @on_error обработчиками в порядке от специфичного к общему.
+    Action with three @on_error handlers from specific to general.
 
-    Порядок обработчиков:
-    1. InsufficientFundsError — специфичный.
-    2. PaymentGatewayError — специфичный.
-    3. Exception — общий fallback.
+    Handler order:
+    1. InsufficientFundsError — specific.
+    2. PaymentGatewayError — specific.
+    3. Exception — general fallback.
 
-    Сценарии тестирования:
-    - InsufficientFundsError → обработчик 1 → status="insufficient_funds".
-    - PaymentGatewayError → обработчик 2 → status="gateway_error".
-    - RuntimeError (или любой Exception) → обработчик 3 → status="unknown_error".
-    - Нет ошибки → нормальный Result(status="ok").
+    Test scenarios:
+    - InsufficientFundsError → handler 1 → status="insufficient_funds".
+    - PaymentGatewayError → handler 2 → status="gateway_error".
+    - RuntimeError (or any Exception) → handler 3 → status="unknown_error".
+    - No error → normal Result(status="ok").
     """
 
-    @regular_aspect("Выполнение операции")
+    @regular_aspect("Execute operation")
     @result_string("processed", required=True)
     async def execute_aspect(
         self,
@@ -177,14 +177,14 @@ class MultiErrorAction(BaseAction[ErrorTestParams, ErrorTestResult]):
         connections: dict[str, BaseResourceManager],
     ) -> dict[str, Any]:
         if params.value == "insufficient":
-            raise InsufficientFundsError("Недостаточно средств")
+            raise InsufficientFundsError("Insufficient funds")
         if params.value == "gateway":
-            raise PaymentGatewayError("Шлюз недоступен")
+            raise PaymentGatewayError("Gateway unavailable")
         if params.should_fail:
-            raise RuntimeError("Непредвиденная ошибка")
+            raise RuntimeError("Unexpected error")
         return {"processed": params.value}
 
-    @summary_aspect("Формирование результата")
+    @summary_aspect("Build result")
     async def build_result_summary(
         self,
         params: ErrorTestParams,
@@ -194,7 +194,7 @@ class MultiErrorAction(BaseAction[ErrorTestParams, ErrorTestResult]):
     ) -> ErrorTestResult:
         return ErrorTestResult(status="ok", detail=state["processed"])
 
-    @on_error(InsufficientFundsError, description="Недостаточно средств")
+    @on_error(InsufficientFundsError, description="Insufficient funds")
     async def insufficient_funds_on_error(
         self,
         params: ErrorTestParams,
@@ -205,7 +205,7 @@ class MultiErrorAction(BaseAction[ErrorTestParams, ErrorTestResult]):
     ) -> ErrorTestResult:
         return ErrorTestResult(status="insufficient_funds", detail=str(error))
 
-    @on_error(PaymentGatewayError, description="Ошибка платёжного шлюза")
+    @on_error(PaymentGatewayError, description="Payment gateway error")
     async def gateway_on_error(
         self,
         params: ErrorTestParams,
@@ -216,7 +216,7 @@ class MultiErrorAction(BaseAction[ErrorTestParams, ErrorTestResult]):
     ) -> ErrorTestResult:
         return ErrorTestResult(status="gateway_error", detail=str(error))
 
-    @on_error(Exception, description="Непредвиденная ошибка")
+    @on_error(Exception, description="Unexpected error")
     async def fallback_on_error(
         self,
         params: ErrorTestParams,
@@ -229,22 +229,22 @@ class MultiErrorAction(BaseAction[ErrorTestParams, ErrorTestResult]):
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# NoErrorHandlerAction — без @on_error (ошибки пробрасываются)
+# NoErrorHandlerAction — no @on_error (errors propagate)
 # ═════════════════════════════════════════════════════════════════════════════
 
 
-@meta(description="Действие без обработчиков ошибок", domain=OrdersDomain)
+@meta(description="Action without error handlers", domain=OrdersDomain)
 @check_roles(ROLE_NONE)
 class NoErrorHandlerAction(BaseAction[ErrorTestParams, ErrorTestResult]):
     """
-    Действие без @on_error — ошибки аспектов пробрасываются наружу.
+    Action without @on_error — aspect errors propagate to the caller.
 
-    Сценарии тестирования:
-    - should_fail=True → ValueError пробрасывается до вызывающего кода.
-    - should_fail=False → нормальный Result(status="ok").
+    Test scenarios:
+    - should_fail=True → ValueError propagates.
+    - should_fail=False → normal Result(status="ok").
     """
 
-    @regular_aspect("Обработка значения")
+    @regular_aspect("Process value")
     @result_string("processed", required=True)
     async def process_aspect(
         self,
@@ -254,10 +254,10 @@ class NoErrorHandlerAction(BaseAction[ErrorTestParams, ErrorTestResult]):
         connections: dict[str, BaseResourceManager],
     ) -> dict[str, Any]:
         if params.should_fail:
-            raise ValueError(f"Ошибка: {params.value}")
+            raise ValueError(f"Error: {params.value}")
         return {"processed": params.value}
 
-    @summary_aspect("Формирование результата")
+    @summary_aspect("Build result")
     async def build_result_summary(
         self,
         params: ErrorTestParams,
@@ -269,27 +269,26 @@ class NoErrorHandlerAction(BaseAction[ErrorTestParams, ErrorTestResult]):
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# HandlerRaisesAction — обработчик сам бросает исключение
+# HandlerRaisesAction — handler itself raises
 # ═════════════════════════════════════════════════════════════════════════════
 
 
-@meta(description="Действие с обработчиком, который сам бросает исключение", domain=OrdersDomain)
+@meta(description="Action whose error handler raises", domain=OrdersDomain)
 @check_roles(ROLE_NONE)
 class HandlerRaisesAction(BaseAction[ErrorTestParams, ErrorTestResult]):
     """
-    Действие, чей @on_error обработчик сам бросает исключение.
+    Action whose @on_error handler raises.
 
-    Аспект бросает ValueError. Обработчик handle_and_fail_on_error
-    перехватывает ValueError, но сам бросает RuntimeError.
-    Машина оборачивает RuntimeError в OnErrorHandlerError.
+    The aspect raises ValueError. handle_and_fail_on_error catches it
+    but raises RuntimeError. The machine wraps that in OnErrorHandlerError.
 
-    Сценарии тестирования:
-    - should_fail=True → ValueError → обработчик → RuntimeError →
-      OnErrorHandlerError с __cause__=RuntimeError
-      и original_error=ValueError.
+    Test scenarios:
+    - should_fail=True → ValueError → handler → RuntimeError →
+      OnErrorHandlerError with __cause__=RuntimeError
+      and original_error=ValueError.
     """
 
-    @regular_aspect("Обработка значения")
+    @regular_aspect("Process value")
     @result_string("processed", required=True)
     async def process_aspect(
         self,
@@ -299,10 +298,10 @@ class HandlerRaisesAction(BaseAction[ErrorTestParams, ErrorTestResult]):
         connections: dict[str, BaseResourceManager],
     ) -> dict[str, Any]:
         if params.should_fail:
-            raise ValueError(f"Ошибка: {params.value}")
+            raise ValueError(f"Error: {params.value}")
         return {"processed": params.value}
 
-    @summary_aspect("Формирование результата")
+    @summary_aspect("Build result")
     async def build_result_summary(
         self,
         params: ErrorTestParams,
@@ -312,7 +311,7 @@ class HandlerRaisesAction(BaseAction[ErrorTestParams, ErrorTestResult]):
     ) -> ErrorTestResult:
         return ErrorTestResult(status="ok", detail=state["processed"])
 
-    @on_error(ValueError, description="Обработчик, который сам падает")
+    @on_error(ValueError, description="Handler that fails")
     async def handle_and_fail_on_error(
         self,
         params: ErrorTestParams,
@@ -321,4 +320,4 @@ class HandlerRaisesAction(BaseAction[ErrorTestParams, ErrorTestResult]):
         connections: dict[str, BaseResourceManager],
         error: Exception,
     ) -> ErrorTestResult:
-        raise RuntimeError(f"Ошибка в обработчике: {error}")
+        raise RuntimeError(f"Error in handler: {error}")

@@ -29,7 +29,7 @@ import pytest
 
 from action_machine.context.context import Context
 from action_machine.core.action_product_machine import ActionProductMachine
-from action_machine.core.gate_coordinator import GateCoordinator
+from action_machine.core.core_action_machine import CoreActionMachine
 from action_machine.logging.log_coordinator import LogCoordinator
 from action_machine.plugins.decorators import on
 from action_machine.plugins.events import (
@@ -54,7 +54,7 @@ def _make_machine(
     """Creates machine with given plugins and quiet logger."""
     return ActionProductMachine(
         mode="test",
-        coordinator=GateCoordinator(),
+        coordinator=CoreActionMachine.create_coordinator(),
         plugins=plugins,
         log_coordinator=LogCoordinator(loggers=[]),
     )
@@ -96,7 +96,7 @@ class TestOnErrorPluginWithHandler:
         counter = ErrorCounterPlugin()
         machine = ActionProductMachine(
             mode="test",
-            coordinator=GateCoordinator(),
+            coordinator=CoreActionMachine.create_coordinator(),
             plugins=[observer, counter],
             log_coordinator=LogCoordinator(loggers=[]),
         )
@@ -181,7 +181,7 @@ class TestOnErrorPluginWithoutHandler:
         params = ErrorTestParams(value="fail", should_fail=True)
 
         # Act & Assert — error propagates (no @on_error on Action)
-        with pytest.raises(ValueError, match="Ошибка: fail"):
+        with pytest.raises(ValueError, match="Error: fail"):
             await machine.run(Context(), NoErrorHandlerAction(), params)
 
         # Assert — plugin was still called BEFORE propagation

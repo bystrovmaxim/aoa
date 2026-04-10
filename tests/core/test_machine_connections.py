@@ -8,7 +8,7 @@
 
 ActionProductMachine._check_connections() — второй шаг конвейера после
 проверки ролей. Машина сравнивает ключи, объявленные через @connection
-в ClassMetadata, с фактически переданными connections и проверяет типы
+из графа координатора, с фактически переданными connections и проверяет типы
 значений.
 
 Двухуровневая валидация:
@@ -127,10 +127,8 @@ class TestNoConnectionDeclaration:
         """
         # Arrange — PingAction без @connection
         action = PingAction()
-        metadata = machine._get_metadata(action)
-
         # Act — проверка с connections=None
-        result = machine._check_connections(action, None, metadata)
+        result = machine._check_connections(action, None)
 
         # Assert — пустой dict, не None
         assert result == {}
@@ -141,12 +139,11 @@ class TestNoConnectionDeclaration:
         """
         # Arrange — PingAction без @connection, но с переданным connections
         action = PingAction()
-        metadata = machine._get_metadata(action)
         connections = {"db": mock_resource}
 
         # Act & Assert — ConnectionValidationError с указанием ключей
         with pytest.raises(ConnectionValidationError, match="does not declare any @connection"):
-            machine._check_connections(action, connections, metadata)
+            machine._check_connections(action, connections)
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -163,11 +160,10 @@ class TestSingleConnection:
         """
         # Arrange — FullAction с @connection(key="db")
         action = FullAction()
-        metadata = machine._get_metadata(action)
         mock_db = AsyncMock(spec=TestDbManager)
 
         # Act — проверка connections
-        result = machine._check_connections(action, {"db": mock_db}, metadata)
+        result = machine._check_connections(action, {"db": mock_db})
 
         # Assert — connections прошёл проверку, возвращён как есть
         assert "db" in result
@@ -178,11 +174,9 @@ class TestSingleConnection:
         """
         # Arrange — FullAction, connections=None
         action = FullAction()
-        metadata = machine._get_metadata(action)
-
         # Act & Assert — ConnectionValidationError
         with pytest.raises(ConnectionValidationError, match="declares connections"):
-            machine._check_connections(action, None, metadata)
+            machine._check_connections(action, None)
 
     def test_extra_key_raises(self, machine, context, mock_resource) -> None:
         """
@@ -190,13 +184,12 @@ class TestSingleConnection:
         """
         # Arrange — FullAction с лишним ключом "extra"
         action = FullAction()
-        metadata = machine._get_metadata(action)
         mock_db = AsyncMock(spec=TestDbManager)
         connections = {"db": mock_db, "extra": mock_resource}
 
         # Act & Assert — ConnectionValidationError
         with pytest.raises(ConnectionValidationError, match="received extra connections"):
-            machine._check_connections(action, connections, metadata)
+            machine._check_connections(action, connections)
 
     def test_value_not_resource_manager_raises(self, machine, context) -> None:
         """
@@ -204,12 +197,11 @@ class TestSingleConnection:
         """
         # Arrange — строка вместо менеджера
         action = FullAction()
-        metadata = machine._get_metadata(action)
         connections = {"db": "это строка, а не менеджер"}
 
         # Act & Assert — проверка типа значения
         with pytest.raises(ConnectionValidationError, match="must be an instance of BaseResourceManager"):
-            machine._check_connections(action, connections, metadata)
+            machine._check_connections(action, connections)
 
     def test_value_none_raises(self, machine, context) -> None:
         """
@@ -217,12 +209,11 @@ class TestSingleConnection:
         """
         # Arrange — None вместо менеджера
         action = FullAction()
-        metadata = machine._get_metadata(action)
         connections = {"db": None}
 
         # Act & Assert
         with pytest.raises(ConnectionValidationError, match="must be an instance of BaseResourceManager"):
-            machine._check_connections(action, connections, metadata)
+            machine._check_connections(action, connections)
 
     def test_value_int_raises(self, machine, context) -> None:
         """
@@ -230,12 +221,11 @@ class TestSingleConnection:
         """
         # Arrange — число вместо менеджера
         action = FullAction()
-        metadata = machine._get_metadata(action)
         connections = {"db": 42}
 
         # Act & Assert
         with pytest.raises(ConnectionValidationError, match="must be an instance of BaseResourceManager"):
-            machine._check_connections(action, connections, metadata)
+            machine._check_connections(action, connections)
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -252,14 +242,13 @@ class TestTwoConnections:
         """
         # Arrange — действие с двумя @connection, оба ключа переданы
         action = _ActionTwoConnectionsAction()
-        metadata = machine._get_metadata(action)
         connections = {
             "db": _MockResourceManager(),
             "cache": _MockResourceManager(),
         }
 
         # Act — проверка проходит
-        result = machine._check_connections(action, connections, metadata)
+        result = machine._check_connections(action, connections)
 
         # Assert — оба ключа в результате
         assert "db" in result
@@ -272,12 +261,11 @@ class TestTwoConnections:
         """
         # Arrange — только один ключ из двух объявленных
         action = _ActionTwoConnectionsAction()
-        metadata = machine._get_metadata(action)
         connections = {"db": mock_resource}
 
         # Act & Assert — ConnectionValidationError
         with pytest.raises(ConnectionValidationError, match="missing required connections"):
-            machine._check_connections(action, connections, metadata)
+            machine._check_connections(action, connections)
 
 
 # ═════════════════════════════════════════════════════════════════════════════

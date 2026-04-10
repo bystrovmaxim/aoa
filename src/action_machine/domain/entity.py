@@ -1,170 +1,163 @@
 # src/action_machine/domain/entity.py
 """
-BaseEntity — абстрактный базовый класс для всех сущностей доменной модели.
+Abstract base for all domain **entities** in ActionMachine.
+
+`BaseEntity` is the shared shape of in-memory business objects (orders, customers,
+products): typed fields, immutability, strict structure, optional partial loads
+from storage, and hooks into metadata via gate hosts and the coordinator. It is
+**not** an API transport type; use Params/Result or explicit DTOs for wire formats.
 
 ═══════════════════════════════════════════════════════════════════════════════
-НАЗНАЧЕНИЕ
+PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-BaseEntity — единый стандарт для всех сущностей домена в системе
-ActionMachine. Определяет структуру бизнес-объекта: его поля, жизненные
-циклы (Lifecycle) и правила доступа к данным.
-
-Сущность — это внутреннее представление бизнес-объекта (заказ, клиент,
-товар), а не объект для передачи через API. Для внешнего API используются
-отдельные Params и Result (как в Action). В простых случаях model_dump()
-работает, но для production API рекомендуется создавать DTO.
-
-Модель не знает про базы данных, HTTP, файлы или любой другой внешний мир.
-Это чистое ядро в терминах гексагональной архитектуры. Один и тот же
-OrderEntity может читаться из PostgreSQL, MongoDB, REST API или мока —
-это забота ресурсного менеджера (адаптера), а не модели.
+Entities are the **internal** representation of domain objects. They stay free of
+I/O: no SQL, HTTP, or filesystem. Adapters and resource managers load data and
+construct entities; the type itself does not know *where* data came from.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ИЕРАРХИЯ НАСЛЕДОВАНИЯ
+SCOPE (IN / OUT)
 ═══════════════════════════════════════════════════════════════════════════════
 
-    BaseSchema(BaseModel)           — dict-подобный доступ, dot-path навигация
-        └── BaseEntity(ABC)         — frozen=True, extra="forbid"
-                ├── EntityGateHost          — разрешает @entity
-                └── DescribedFieldsGateHost — обязательность description у полей
+**In scope for this module**
+    Class-level naming invariant (`*Entity` suffix).
+    Pydantic model config: `frozen=True`, `extra="forbid"`.
+    Partial construction via `partial()` and fail-fast access via `__getattr__`.
+    Mixins `EntityGateHost` and `DescribedFieldsGateHost` so `@entity` and
+    non-empty `Field(description=...)` are part of the entity contract.
 
-BaseEntity наследует BaseSchema, получая:
-- Dict-подобный доступ к полям: entity["field"], "field" in entity.
-- Dot-path навигацию: entity.resolve("address.city").
-- Сериализацию через model_dump().
-- Валидацию типов при создании через Pydantic.
+**Out of scope (by design)**
+    Persistence queries, caching, and lazy loading — partial instances never
+    fetch missing fields.
+    API schemas, OpenAPI, or RPC payloads — use separate DTOs when needed.
+    Coordinator graph construction — lives in metadata inspectors and
+    `GateCoordinator.build()`, not in this file.
 
 ═══════════════════════════════════════════════════════════════════════════════
-FROZEN-СЕМАНТИКА
+TERMINOLOGY (USE CONSISTENTLY)
 ═══════════════════════════════════════════════════════════════════════════════
 
-Все сущности неизменяемы после создания (frozen=True). Это гарантирует:
+**Gate host** — mixin marking that a class may use a slice of the framework
+grammar (here: `@entity`, described fields).
 
-- Предсказуемость: аспекты и менеджеры не могут случайно изменить
-  бизнес-объект.
-- Безопасность: один и тот же экземпляр сущности безопасно передаётся
-  во все аспекты, плагины и обработчики ошибок.
-- Консистентность: данные сущности на любом этапе конвейера совпадают
-  с тем, что было загружено из хранилища.
+**Decorator** — import-time marker (`@entity`) that writes **scratch** on the class.
 
-Единственный способ «изменить» сущность — создать новый экземпляр:
+**Scratch** — class-level data produced by decorators (e.g. `_entity_info`).
 
+**Inspector** — code that reads model + scratch and feeds the coordinator graph
+(e.g. `EntityGateHostInspector`); not defined here.
+
+**Gate coordinator** — builds and holds the global facet graph after `build()`;
+validates entities together with actions and other facets.
+
+═══════════════════════════════════════════════════════════════════════════════
+ARCHITECTURE / DATA FLOW
+═══════════════════════════════════════════════════════════════════════════════
+
+Inheritance (simplified):
+
+    BaseModel (Pydantic)
+        └── BaseSchema          — dict-like access, dot-path `resolve()`
+                └── BaseEntity (ABC)
+                        + EntityGateHost           — authorizes `@entity`
+                        + DescribedFieldsGateHost  — non-empty field descriptions
+
+Coordinator-facing flow (conceptual):
+
+    @entity  ──writes──>  _entity_info  (scratch)
+         │
+         ▼
+    EntityGateHostInspector  ──reads model + scratch──>  facet payloads / graph
+         │
+         ▼
+    GateCoordinator  (after `build()`)
+
+Partial load vs full construction:
+
+    Adapter / repository
+         │
+         ├─ all required fields + validation ──>  OrderEntity(...)
+         │
+         └─ subset only ──>  OrderEntity.partial(id=..., amount=...)
+                                    │
+                                    ▼
+                            __getattr__ on missing **model** field
+                                    │
+                                    └─> FieldNotLoadedError (not lazy I/O)
+
+═══════════════════════════════════════════════════════════════════════════════
+INVARIANTS
+═══════════════════════════════════════════════════════════════════════════════
+
+- Every concrete subclass name **must** end with `"Entity"` (checked in
+  `__init_subclass__`); violation → `NamingSuffixError` at **class definition** time.
+- Instances are **immutable** (`frozen=True`); updates use `model_copy(update=...)`.
+- No undeclared fields (`extra="forbid"`).
+- Each declared field uses `Field(description="...")` with a non-empty description
+  (enforced when the entity is wired through the coordinator / described-fields
+  pipeline — see `DescribedFieldsGateHost` and inspectors).
+- Concrete entities should be decorated with `@entity(...)` so `_entity_info`
+  exists for the coordinator; without it, entity discovery in the graph fails.
+
+═══════════════════════════════════════════════════════════════════════════════
+RATIONALE
+═══════════════════════════════════════════════════════════════════════════════
+
+Immutability and `extra="forbid"` reduce accidental mutation and typo-driven
+schema drift in long action pipelines. Splitting **entity** types from **API**
+types avoids leaking persistence shapes and partial-load internals to clients.
+`partial()` skips validation intentionally: the loader is trusted to supply
+consistent subsets; raising on first read of a missing field surfaces bugs
+immediately without hidden queries. Mixing gate hosts into the base class keeps
+the rule “only entities use `@entity`” enforceable via `issubclass` at decorator
+time rather than ad hoc checks.
+
+═══════════════════════════════════════════════════════════════════════════════
+LIFECYCLE (IMPORT VS BUILD VS RUNTIME)
+═══════════════════════════════════════════════════════════════════════════════
+
+- **Import / class body**: `__init_subclass__` enforces the `Entity` suffix;
+  `@entity` runs and sets `_entity_info`; Pydantic builds `model_fields`.
+- **Coordinator `build()`**: inspectors validate lifecycles, descriptions,
+  relations, and graph consistency — **not** in this module.
+- **Runtime**: normal construction validates types; `partial()` does not;
+  attribute access on partial instances may raise `FieldNotLoadedError`.
+
+═══════════════════════════════════════════════════════════════════════════════
+EXAMPLES
+═══════════════════════════════════════════════════════════════════════════════
+
+Happy path — full load and copy-on-update::
+
+    order = OrderEntity(id="ORD-001", amount=100.0, status="new")
+    order["id"]                     # dict-like
     updated = order.model_copy(update={"status": "shipped"})
 
-═══════════════════════════════════════════════════════════════════════════════
-СТРОГАЯ СТРУКТУРА (extra="forbid")
-═══════════════════════════════════════════════════════════════════════════════
+Edge — partial instance, missing field::
 
-Сущность содержит ровно те поля, которые объявлены в конкретном
-наследнике. Произвольные поля запрещены. Это защита от опечаток,
-случайных данных и разрастания структуры.
-
-═══════════════════════════════════════════════════════════════════════════════
-ОБЯЗАТЕЛЬНЫЕ ОПИСАНИЯ ПОЛЕЙ
-═══════════════════════════════════════════════════════════════════════════════
-
-Каждое поле сущности обязано иметь описание через Field(description="...").
-Это контролируется DescribedFieldsGateHost. Координатор сущностей при
-сборке метаданных проверяет: если класс наследует DescribedFieldsGateHost
-и содержит pydantic-поля — каждое поле обязано иметь непустой description.
-
-Описание — это структурное метаданное, которое попадёт в ArchiMate-диаграмму,
-OCEL-схему и автогенерированную документацию. Модель без описаний — это код,
-а не спецификация.
-
-═══════════════════════════════════════════════════════════════════════════════
-ОБЯЗАТЕЛЬНЫЙ ДЕКОРАТОР @entity
-═══════════════════════════════════════════════════════════════════════════════
-
-Каждая конкретная сущность обязана быть декорирована @entity:
-
-    @entity(description="Заказ клиента", domain=ShopDomain)
-    class OrderEntity(BaseEntity):
-        ...
-
-Декоратор записывает _entity_info = {"description": ..., "domain": ...}
-на класс. Координатор сущностей читает этот атрибут при сборке метаданных.
-Без @entity координатор не увидит сущность.
-
-═══════════════════════════════════════════════════════════════════════════════
-ЖИЗНЕННЫЕ ЦИКЛЫ (LIFECYCLE)
-═══════════════════════════════════════════════════════════════════════════════
-
-Сущность может содержать любое количество полей типа Lifecycle или
-ни одного. Каждый Lifecycle — декларативный конечный автомат, описывающий
-допустимые состояния и переходы бизнес-объекта.
-
-Поля Lifecycle объявляются как атрибуты уровня класса (ClassVar),
-а не как pydantic-поля. Они не участвуют в сериализации, валидации
-и создании экземпляров — это метаданные структуры, а не данные.
-
-Координатор сущностей автоматически обнаруживает все поля типа Lifecycle
-и проверяет каждый на восемь правил целостности при сборке метаданных.
-
-═══════════════════════════════════════════════════════════════════════════════
-ИНВАРИАНТ ИМЕНОВАНИЯ
-═══════════════════════════════════════════════════════════════════════════════
-
-Каждый класс, наследующий BaseEntity (прямо или косвенно), обязан иметь
-суффикс "Entity" в имени. Проверка выполняется в __init_subclass__
-при определении класса. Нарушение → NamingSuffixError.
-
-Примеры:
-    class OrderEntity(BaseEntity):     ← OK
-    class CustomerEntity(BaseEntity):  ← OK
-    class Order(BaseEntity):           ← NamingSuffixError
-
-═══════════════════════════════════════════════════════════════════════════════
-ЧАСТИЧНАЯ ЗАГРУЗКА ЧЕРЕЗ partial()
-═══════════════════════════════════════════════════════════════════════════════
-
-Из хранилища часто читаются только нужные поля (SELECT id, amount FROM ...).
-Classmethod partial() создаёт экземпляр без Pydantic-валидации через
-model_construct(). При обращении к незагруженному полю — FieldNotLoadedError
-с перечислением загруженных полей.
-
-Это НЕ lazy-loading. Никаких скрытых запросов к хранилищу. Поле либо
-загружено при создании, либо нет. Обращение к незагруженному полю —
-немедленная ошибка с информативным сообщением.
-
-Частичная загрузка реализуется через переопределение __getattr__:
-Pydantic вызывает __getattr__ только для атрибутов, НЕ найденных
-через обычный механизм (object.__getattribute__). Если поле было
-передано в partial() — оно записано в __dict__ экземпляра через
-model_construct() и найдётся через __getattribute__, минуя __getattr__.
-Если поле НЕ было передано — __getattribute__ не найдёт его и вызовет
-__getattr__, где мы проверяем, является ли запрашиваемый атрибут
-объявленным полем модели (model_fields), и если да — выбрасываем
-FieldNotLoadedError. Для атрибутов, не являющихся полями модели,
-поведение не меняется.
-
-Метка _partial_instance и множество _loaded_fields записываются через
-object.__setattr__ для обхода frozen-ограничения Pydantic.
-
-    # Полная загрузка — все обязательные поля, Pydantic-валидация:
-    order = OrderEntity(id="ORD-001", amount=100.0, status="new")
-
-    # Частичная загрузка — только нужные поля, без валидации:
     order = OrderEntity.partial(id="ORD-001", amount=100.0)
-    order.id      # → "ORD-001" ✅
-    order.status  # → FieldNotLoadedError
+    order.id        # OK
+    order.status    # FieldNotLoadedError (not lazy-loaded)
+
+Edge — bad class name (fails when the class statement runs)::
+
+    class Order(BaseEntity):
+        pass
+    # NamingSuffixError: name must end with 'Entity'
 
 ═══════════════════════════════════════════════════════════════════════════════
-СЕРИАЛИЗАЦИЯ
+ERRORS / LIMITATIONS
 ═══════════════════════════════════════════════════════════════════════════════
 
-Сериализация выполняется через model_dump() из Pydantic. Для частично
-загруженных сущностей model_dump() вернёт только загруженные поля
-(через параметр include).
-
-Для внешнего API рекомендуется создавать отдельные DTO, потому что:
-- partial() может вызвать FieldNotLoadedError при сериализации.
-- Контейнеры связей (этап 3) сериализуются со внутренней структурой.
-- Глубина вложенности связей не контролируется.
+- `NamingSuffixError`: subclass name does not end with `"Entity"`.
+- `FieldNotLoadedError`: on a `partial()` instance, reading a model field that
+  was not passed into `partial()`.
+- `AttributeError`: unknown attribute name (same message style as Pydantic).
+- `model_dump()` on partial instances only includes loaded fields; serializing
+  for external APIs may still need DTOs and explicit handling of relations.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ПРИМЕР ИСПОЛЬЗОВАНИЯ
+LONGER ILLUSTRATION (DOMAIN + LIFECYCLE)
 ═══════════════════════════════════════════════════════════════════════════════
 
     from pydantic import Field
@@ -173,36 +166,35 @@ object.__setattr__ для обхода frozen-ограничения Pydantic.
 
     class ShopDomain(BaseDomain):
         name = "shop"
-        description = "Интернет-магазин"
+        description = "Online store"
 
-    @entity(description="Заказ клиента", domain=ShopDomain)
+    @entity(description="Customer order", domain=ShopDomain)
     class OrderEntity(BaseEntity):
         lifecycle = (
-            Lifecycle("Жизненный цикл заказа")
-            .state("new", "Новый").to("confirmed", "cancelled").initial()
-            .state("confirmed", "Подтверждён").to("shipped").intermediate()
-            .state("shipped", "Отправлен").to("delivered").intermediate()
-            .state("delivered", "Доставлен").final()
-            .state("cancelled", "Отменён").final()
+            Lifecycle("Order lifecycle")
+            .state("new", "New").to("confirmed", "cancelled").initial()
+            .state("confirmed", "Confirmed").to("shipped").intermediate()
+            .state("shipped", "Shipped").to("delivered").intermediate()
+            .state("delivered", "Delivered").final()
+            .state("cancelled", "Cancelled").final()
         )
 
-        id: str = Field(description="Идентификатор заказа")
-        amount: float = Field(description="Сумма заказа", ge=0)
-        status: str = Field(description="Текущий статус заказа")
-        currency: str = Field(default="RUB", description="Код валюты ISO 4217")
+        id: str = Field(description="Order identifier")
+        amount: float = Field(description="Order total", ge=0)
+        status: str = Field(description="Current order status")
+        currency: str = Field(default="USD", description="ISO 4217 currency code")
 
-    # Полная загрузка:
+    # Full load — validation applies:
     order = OrderEntity(id="ORD-001", amount=1500.0, status="new")
-    order["id"]                  # → "ORD-001"
-    order.resolve("amount")      # → 1500.0
-    order.model_dump()           # → {"id": "ORD-001", "amount": 1500.0, ...}
+    order["id"]
+    order.resolve("amount")
+    order.model_dump()
 
-    # Частичная загрузка:
+    # Partial load — no validation; missing fields error on access:
     order = OrderEntity.partial(id="ORD-001", amount=1500.0)
-    order.id                     # → "ORD-001"
-    order.status                 # → FieldNotLoadedError
+    order.status  # FieldNotLoadedError
 
-    # «Изменение» — создание нового экземпляра:
+    # Immutability — new instance instead of mutation:
     updated = order.model_copy(update={"status": "confirmed"})
 """
 
@@ -219,102 +211,93 @@ from action_machine.core.exceptions import NamingSuffixError
 from action_machine.domain.entity_gate_host import EntityGateHost
 from action_machine.domain.exceptions import FieldNotLoadedError
 
-# Суффикс, обязательный для всех классов, наследующих BaseEntity.
+# Suffix required for every class that inherits BaseEntity (directly or indirectly).
 _REQUIRED_SUFFIX = "Entity"
 
 
 class BaseEntity(BaseSchema, ABC, EntityGateHost, DescribedFieldsGateHost):
     """
-    Абстрактный базовый класс для всех сущностей доменной модели.
+    Abstract base for all domain entities.
 
-    Frozen после создания. Произвольные поля запрещены.
-    Каждое поле обязано иметь описание через Field(description="...").
+    **Role**
+        Defines immutability, forbidden extras, integration with `@entity` and
+        described fields, and optional partial construction for repository-style
+        reads.
 
-    Наследует dict-подобный доступ и dot-path навигацию от BaseSchema.
-    Наследует EntityGateHost (разрешает @entity).
-    Наследует DescribedFieldsGateHost (обязательность описаний полей).
+    **Invariants**
+        - `frozen=True`, `extra="forbid"`.
+        - Subclass names end with the suffix ``Entity`` (see `__init_subclass__`).
+        - Partial instances set `_partial_instance` and `_loaded_fields` via
+          `object.__setattr__` to bypass frozen instance protection.
 
-    Предоставляет classmethod partial() для частичной загрузки — создание
-    экземпляра с подмножеством полей без Pydantic-валидации. Обращение
-    к незагруженному полю → FieldNotLoadedError.
+    **Neighbors**
+        - `BaseSchema`: dict-like access and `resolve()`.
+        - `EntityGateHost`: allows `@entity` on subclasses.
+        - `DescribedFieldsGateHost`: field descriptions required for coordinator
+          validation.
+        - `FieldNotLoadedError`: raised from `__getattr__` for missing partial
+          fields.
 
-    Каждый конкретный наследник обязан:
-    1. Иметь суффикс "Entity" в имени класса.
-    2. Быть декорирован @entity(description="...", domain=...).
-    3. Каждое поле — Field(description="...").
+    **Class / instance attributes**
+        `_entity_info` (`ClassVar[dict[str, Any]]`)
+            Metadata written by `@entity` (`description`, `domain`, …).
 
-    Атрибуты экземпляра (для частично загруженных сущностей):
-        _partial_instance : bool
-            True если экземпляр создан через partial(). False для
-            полностью загруженных сущностей. Записывается через
-            object.__setattr__ для обхода frozen.
+        `_partial_instance` (`bool`, instance)
+            True if built with `partial()`.
 
-        _loaded_fields : frozenset[str]
-            Множество имён полей, загруженных при создании через partial().
-            Пустой frozenset для полностью загруженных сущностей.
-            Записывается через object.__setattr__ для обхода frozen.
-
-    Атрибуты уровня класса:
-        _entity_info : dict[str, Any]
-            Словарь метаданных, записываемый декоратором @entity.
-            Содержит "description" и "domain".
+        `_loaded_fields` (`frozenset[str]`, instance)
+            Names supplied to `partial()`; empty for fully constructed instances.
     """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
-    # Аннотация для mypy (создаётся декоратором @entity)
+    # Typing hook; `@entity` sets this on concrete classes.
     _entity_info: ClassVar[dict[str, Any]]
 
     def __init_subclass__(cls, **kwargs: Any) -> None:
         """
-        Вызывается Python при создании любого подкласса BaseEntity.
+        Enforce the ``*Entity`` naming invariant when a subclass is defined.
 
-        Проверяет инвариант именования: имя класса обязано заканчиваться
-        на "Entity". Нарушение → NamingSuffixError.
+        Called by Python for every direct or indirect subclass of `BaseEntity`.
 
-        Аргументы:
-            **kwargs: аргументы, передаваемые в type.__init_subclass__.
+        Args:
+            **kwargs: Forwarded to `type.__init_subclass__`.
 
-        Исключения:
-            NamingSuffixError: если имя класса не заканчивается на "Entity".
+        Raises:
+            NamingSuffixError: If ``cls.__name__`` does not end with ``Entity``.
         """
         super().__init_subclass__(**kwargs)
 
         if not cls.__name__.endswith(_REQUIRED_SUFFIX):
             raise NamingSuffixError(
-                f"Класс '{cls.__name__}' наследует BaseEntity, но не имеет "
-                f"суффикса '{_REQUIRED_SUFFIX}'. "
-                f"Переименуйте в '{cls.__name__}{_REQUIRED_SUFFIX}'."
+                f"Class '{cls.__name__}' inherits from BaseEntity but its name must "
+                f"end with the suffix '{_REQUIRED_SUFFIX}'. "
+                f"Rename it to '{cls.__name__}{_REQUIRED_SUFFIX}'."
             )
 
     @classmethod
     def partial(cls, **kwargs: Any) -> Self:
         """
-        Создаёт частично загруженную сущность без Pydantic-валидации.
+        Build a **partial** entity without Pydantic validation.
 
-        Использует model_construct() для создания экземпляра с подмножеством
-        полей. Пропускает валидацию типов и обязательность полей — это
-        ответственность менеджера, загружающего данные из хранилища.
+        Uses `model_construct()` so type checks and required-field rules are
+        skipped — callers that load from storage are responsible for consistency.
+        Sets `_partial_instance=True` and `_loaded_fields=frozenset(kwargs)` via
+        `object.__setattr__` to satisfy `frozen` instances.
 
-        После создания записывает метки _partial_instance=True и
-        _loaded_fields=frozenset(kwargs.keys()) через object.__setattr__
-        для обхода frozen-ограничения Pydantic.
+        Args:
+            **kwargs: Field names and values present in this load.
 
-        При обращении к незагруженному полю __getattr__ выбрасывает
-        FieldNotLoadedError с информативным сообщением.
+        Returns:
+            An instance with only the given fields materialized in ``__dict__``.
 
-        Аргументы:
-            **kwargs: загружаемые поля и их значения.
-                      Ключи — имена полей сущности.
-                      Значения — данные из хранилища.
+        Raises:
+            Does not validate; invalid combinations may only surface later on
+            access or when merging into a full instance.
 
-        Возвращает:
-            Self — экземпляр сущности с загруженным подмножеством полей.
-
-        Пример:
-            order = OrderEntity.partial(id="ORD-001", amount=1500.0)
-            order.id      # → "ORD-001"
-            order.status  # → FieldNotLoadedError
+        Example:
+            ``OrderEntity.partial(id="ORD-001", amount=1500.0)`` — reading
+            ``status`` raises `FieldNotLoadedError`.
         """
         instance = cls.model_construct(**kwargs)
         object.__setattr__(instance, "_partial_instance", True)
@@ -323,36 +306,25 @@ class BaseEntity(BaseSchema, ABC, EntityGateHost, DescribedFieldsGateHost):
 
     def __getattr__(self, name: str) -> Any:
         """
-        Перехватывает доступ к незагруженным полям частичных сущностей.
+        Handle access to **declared** fields that were not passed to `partial()`.
 
-        Pydantic вызывает __getattr__ только для атрибутов, НЕ найденных
-        через стандартный object.__getattribute__. Для полностью
-        загруженных сущностей все поля записаны в __dict__ экземпляра
-        и найдутся через __getattribute__, поэтому __getattr__ не вызывается.
+        Pydantic invokes this only when `object.__getattribute__` does not find
+        ``name``. Fully constructed instances store all fields in ``__dict__``,
+        so this path is mainly for partial instances.
 
-        Для частично загруженных сущностей (created via partial()):
-        - Загруженные поля записаны в __dict__ → __getattribute__ найдёт их.
-        - Незагруженные поля НЕ записаны → __getattribute__ не найдёт →
-          вызовется __getattr__ → проверяем, является ли имя полем модели →
-          если да, выбрасываем FieldNotLoadedError.
+        Args:
+            name: Attribute name.
 
-        Для атрибутов, не являющихся полями модели (методы, свойства,
-        внутренние атрибуты Pydantic), поведение стандартное — AttributeError.
+        Returns:
+            Never returns for a missing partial field; see Raises.
 
-        Аргументы:
-            name: имя запрашиваемого атрибута.
-
-        Возвращает:
-            Никогда не возвращает значение для незагруженных полей.
-
-        Исключения:
-            FieldNotLoadedError: если это поле модели и сущность частичная.
-            AttributeError: если атрибут не является полем модели.
+        Raises:
+            FieldNotLoadedError: ``name`` is a model field, the instance is
+                partial, and ``name`` was not in `_loaded_fields`.
+            AttributeError: ``name`` is not a model field (standard object
+                semantics).
         """
-        # Проверяем, является ли запрашиваемый атрибут полем pydantic-модели
         if name in self.__class__.model_fields:
-            # Проверяем, является ли экземпляр частичным
-            # Используем object.__getattribute__ для обхода рекурсии
             try:
                 is_partial = object.__getattribute__(self, "_partial_instance")
             except AttributeError:
@@ -366,7 +338,6 @@ class BaseEntity(BaseSchema, ABC, EntityGateHost, DescribedFieldsGateHost):
                     loaded_fields=loaded,
                 )
 
-        # Стандартное поведение для нeполей
         raise AttributeError(
             f"'{self.__class__.__name__}' object has no attribute '{name}'"
         )

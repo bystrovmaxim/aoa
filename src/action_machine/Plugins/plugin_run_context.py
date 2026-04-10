@@ -75,7 +75,7 @@ AfterRegularAspectEvent содержит aspect_result и duration_ms. Это у
              │
              ▼
     Шаг 6: domain указан? → проверка через координатор метаданных
-             │  Дороже — обращение к GateCoordinator.get_metadata().
+             │  Дороже — ``coordinator.get_snapshot(event.action_class, \"meta\")``.
              │  НЕТ → пропускаем
              │
              ▼
@@ -322,8 +322,8 @@ class PluginRunContext:
         # ── Шаг 6: domain ──
         if sub.domain is not None and coordinator is not None:
             try:
-                metadata = coordinator.get(event.action_class)
-                action_domain = metadata.meta.domain if metadata.meta else None
+                m = coordinator.get_snapshot(event.action_class, "meta")
+                action_domain = m.domain if m is not None else None
                 if action_domain is not sub.domain:
                     return False
             except Exception:

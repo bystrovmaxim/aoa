@@ -35,7 +35,7 @@ mock_payment.refund() → True
 
 mock_notification.send() → True
     Уведомление «отправлено». Smoke-тесты проверяют вызов
-    send("user_42", "Заказ создан: TXN-TEST-001").
+    send("user_42", "Order created: TXN-TEST-001").
 
 mock_inventory.reserve() → "RES-TEST-001"
     Проходит чекер result_string("reservation_id", required=True, min_length=1).
@@ -70,7 +70,8 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from action_machine.core.gate_coordinator import GateCoordinator
+from action_machine.core.core_action_machine import CoreActionMachine
+from action_machine.metadata.gate_coordinator import GateCoordinator
 from action_machine.testing import TestBench
 
 from .domain_model import InventoryService, NotificationService, PaymentService, TestDbManager
@@ -78,8 +79,8 @@ from .domain_model import InventoryService, NotificationService, PaymentService,
 
 @pytest.fixture
 def coordinator() -> GateCoordinator:
-    """Чистый координатор метаданных — без кеша, без графа."""
-    return GateCoordinator()
+    """Built coordinator with default inspector graph."""
+    return CoreActionMachine.create_coordinator()
 
 
 @pytest.fixture
@@ -141,18 +142,22 @@ def mock_db() -> AsyncMock:
 
 
 @pytest.fixture
-def clean_bench() -> TestBench:
+def clean_bench(coordinator: GateCoordinator) -> TestBench:
     """
     TestBench без моков — для тестирования действий без зависимостей.
 
     Логирование подавлено через AsyncMock, чтобы не засорять
     вывод тестов сообщениями ConsoleLogger.
     """
-    return TestBench(log_coordinator=AsyncMock())
+    return TestBench(coordinator=coordinator, log_coordinator=AsyncMock())
 
 
 @pytest.fixture
-def bench(mock_payment: AsyncMock, mock_notification: AsyncMock) -> TestBench:
+def bench(
+    coordinator: GateCoordinator,
+    mock_payment: AsyncMock,
+    mock_notification: AsyncMock,
+) -> TestBench:
     """
     TestBench с моками PaymentService и NotificationService.
 
@@ -161,6 +166,7 @@ def bench(mock_payment: AsyncMock, mock_notification: AsyncMock) -> TestBench:
     или admin_bench.
     """
     return TestBench(
+        coordinator=coordinator,
         mocks={
             PaymentService: mock_payment,
             NotificationService: mock_notification,
@@ -170,7 +176,11 @@ def bench(mock_payment: AsyncMock, mock_notification: AsyncMock) -> TestBench:
 
 
 @pytest.fixture
-def compensate_bench(mock_payment: AsyncMock, mock_inventory: AsyncMock) -> TestBench:
+def compensate_bench(
+    coordinator: GateCoordinator,
+    mock_payment: AsyncMock,
+    mock_inventory: AsyncMock,
+) -> TestBench:
     """
     TestBench с моками PaymentService и InventoryService.
 
@@ -183,6 +193,7 @@ def compensate_bench(mock_payment: AsyncMock, mock_inventory: AsyncMock) -> Test
     дефолтный пользователь подходит.
     """
     return TestBench(
+        coordinator=coordinator,
         mocks={
             PaymentService: mock_payment,
             InventoryService: mock_inventory,

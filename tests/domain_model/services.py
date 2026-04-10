@@ -1,191 +1,153 @@
-# tests/domain/services.py
+# tests/domain_model/services.py
 """
-Сервисы-зависимости тестовой доменной модели.
+Dependency service types for the test domain model.
 
 ═══════════════════════════════════════════════════════════════════════════════
-НАЗНАЧЕНИЕ
+PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Определяет классы сервисов, которые Action объявляют как зависимости
-через декоратор @depends. В тестах реальные экземпляры этих классов
-заменяются моками (AsyncMock) через TestBench или через фикстуры
-в conftest.py.
+Service interfaces used by `@depends`. Tests replace implementations with
+`AsyncMock(spec=ServiceClass)` and call them via `box.resolve(...)`.
 
-Сервисы определяют интерфейс — набор async-методов, которые аспекты
-вызывают через box.resolve(ServiceClass). В production сервисы
-содержат реальную логику; в тестах — подменяются моками.
-
-AsyncMock(spec=ServiceClass) строго ограничивает доступные атрибуты
-мока теми, что определены в классе. Поэтому КАЖДЫЙ метод, который
-вызывается в аспектах или компенсаторах, ОБЯЗАН быть объявлен
-в классе сервиса — иначе мок с spec бросит AttributeError.
+Key rule: every method used by aspects/compensators must be declared here,
+otherwise spec mocks raise `AttributeError`.
 
 ═══════════════════════════════════════════════════════════════════════════════
-СЕРВИСЫ
+INTERFACES
 ═══════════════════════════════════════════════════════════════════════════════
 
-- PaymentService — сервис обработки платежей.
-  charge() — списание средств, возвращает ID транзакции.
-  refund() — возврат средств по ID транзакции (используется
-  компенсаторами при откате платежа).
-
-- NotificationService — сервис отправки уведомлений.
-  send() — отправка уведомления пользователю.
-
-- InventoryService — сервис управления запасами.
-  reserve() — резервирование товара, возвращает ID резервации.
-  unreserve() — отмена резервации (используется компенсаторами).
+`PaymentService` (`charge`, `refund`), `NotificationService` (`send`),
+`InventoryService` (`reserve`, `unreserve`).
 
 ═══════════════════════════════════════════════════════════════════════════════
-ИСПОЛЬЗОВАНИЕ В ACTION
+EXAMPLE
 ═══════════════════════════════════════════════════════════════════════════════
 
-    # В аспекте — списание:
     async def charge_aspect(self, params, state, box, connections):
         payment = box.resolve(PaymentService)
         txn_id = await payment.charge(params.amount, params.currency)
         return {"txn_id": txn_id}
 
-    # В компенсаторе — возврат:
     async def rollback_charge_compensate(self, params, state_before,
                                          state_after, box, connections, error):
         payment = box.resolve(PaymentService)
         await payment.refund(state_after["txn_id"])
 
-    # В аспекте — резервирование:
     async def reserve_aspect(self, params, state, box, connections):
         inventory = box.resolve(InventoryService)
         reservation_id = await inventory.reserve(params.item_id, 1)
         return {"reservation_id": reservation_id}
 
-    # В компенсаторе — отмена резервирования:
-    async def rollback_reserve_compensate(self, params, state_before,
-                                          state_after, box, connections, error):
-        inventory = box.resolve(InventoryService)
-        await inventory.unreserve(state_after["reservation_id"])
-
-═══════════════════════════════════════════════════════════════════════════════
-ИСПОЛЬЗОВАНИЕ В ТЕСТАХ
-═══════════════════════════════════════════════════════════════════════════════
-
-    from unittest.mock import AsyncMock
-
+    # Tests
     mock_payment = AsyncMock(spec=PaymentService)
-    mock_payment.charge.return_value = "TXN-TEST-001"
-    mock_payment.refund.return_value = True
+    bench = TestBench(mocks={PaymentService: mock_payment})
 
-    mock_inventory = AsyncMock(spec=InventoryService)
-    mock_inventory.reserve.return_value = "RES-TEST-001"
-    mock_inventory.unreserve.return_value = True
+═══════════════════════════════════════════════════════════════════════════════
+LIMITATIONS
+═══════════════════════════════════════════════════════════════════════════════
 
-    bench = TestBench(mocks={PaymentService: mock_payment, InventoryService: mock_inventory})
-    result = await bench.run(Action(), params, rollup=False)
+This module defines only interfaces and intentionally raises
+`NotImplementedError`. Behavior lives in mocks/fixtures.
 """
 
 
 class PaymentService:
     """
-    Сервис обработки платежей.
+    Payment processing service.
 
-    Предоставляет методы charge() для списания средств и refund()
-    для возврата. В production подключается к платёжному шлюзу.
-    В тестах подменяется AsyncMock(spec=PaymentService).
+    Provides charge() for debits and refund() for refunds. In production
+    this would talk to a payment gateway. In tests, use AsyncMock(spec=PaymentService).
 
-    Метод refund() используется компенсаторами (@compensate) для
-    отката платежа при возникновении ошибки в конвейере аспектов.
+    refund() is used by @compensate handlers to undo a successful charge
+    when a later aspect fails.
     """
 
     async def charge(self, amount: float, currency: str) -> str:
         """
-        Списывает средства и возвращает ID транзакции.
+        Charge funds and return a transaction id.
 
-        Аргументы:
-            amount: сумма списания.
-            currency: код валюты ISO 4217 (например, "RUB", "USD").
+        Args:
+            amount: amount to charge.
+            currency: ISO 4217 code (e.g. "RUB", "USD").
 
-        Возвращает:
-            str — уникальный идентификатор транзакции.
+        Returns:
+            Unique transaction identifier.
         """
-        raise NotImplementedError("PaymentService.charge() не реализован")
+        raise NotImplementedError("PaymentService.charge() is not implemented")
 
     async def refund(self, txn_id: str) -> bool:
         """
-        Выполняет возврат средств по ID транзакции.
+        Refund a transaction by id.
 
-        Вызывается компенсатором при откате платежа в паттерне Saga.
-        При ошибке в любом аспекте после успешного charge()
-        ActionProductMachine разматывает стек компенсации и вызывает
-        refund() для отмены списания.
+        Called by compensators during Saga rollback after a successful charge()
+        when a later aspect fails. ActionProductMachine unwinds the compensation
+        stack and calls refund() to reverse the charge.
 
-        Аргументы:
-            txn_id: идентификатор транзакции, полученный от charge().
+        Args:
+            txn_id: transaction id from charge().
 
-        Возвращает:
-            bool — True если возврат выполнен успешно.
+        Returns:
+            True if the refund succeeded.
         """
-        raise NotImplementedError("PaymentService.refund() не реализован")
+        raise NotImplementedError("PaymentService.refund() is not implemented")
 
 
 class NotificationService:
     """
-    Сервис отправки уведомлений.
+    Notification service.
 
-    Предоставляет метод send() для отправки уведомлений пользователям.
-    В production отправляет email/SMS/push. В тестах подменяется AsyncMock.
+    Provides send() for user messages. In production: email/SMS/push.
+    In tests: AsyncMock.
     """
 
     async def send(self, user_id: str, message: str) -> bool:
         """
-        Отправляет уведомление пользователю.
+        Send a notification to a user.
 
-        Аргументы:
-            user_id: идентификатор получателя.
-            message: текст уведомления.
+        Args:
+            user_id: recipient id.
+            message: message body.
 
-        Возвращает:
-            bool — True если уведомление отправлено успешно.
+        Returns:
+            True if the send succeeded.
         """
-        raise NotImplementedError("NotificationService.send() не реализован")
+        raise NotImplementedError("NotificationService.send() is not implemented")
 
 
 class InventoryService:
     """
-    Сервис управления запасами.
+    Inventory / stock service.
 
-    Предоставляет методы reserve() для резервирования товара и unreserve()
-    для отмены резервации. Используется в компенсируемых действиях
-    (CompensatedOrderAction, CompensateAndOnErrorAction и др.).
+    Provides reserve() and unreserve(). Used by compensating Actions
+    (CompensatedOrderAction, CompensateAndOnErrorAction, etc.).
 
-    Метод unreserve() вызывается компенсатором при откате резервирования
-    в паттерне Saga.
+    unreserve() is called by compensators when rolling back a reservation.
     """
 
     async def reserve(self, item_id: str, quantity: int) -> str:
         """
-        Резервирует товар на складе.
+        Reserve stock for an item.
 
-        Аргументы:
-            item_id: идентификатор товара.
-            quantity: количество для резервирования.
+        Args:
+            item_id: product id.
+            quantity: units to reserve.
 
-        Возвращает:
-            str — уникальный идентификатор резервации.
+        Returns:
+            Unique reservation identifier.
         """
-        raise NotImplementedError("InventoryService.reserve() не реализован")
+        raise NotImplementedError("InventoryService.reserve() is not implemented")
 
     async def unreserve(self, reservation_id: str) -> bool:
         """
-        Отменяет резервацию товара.
+        Cancel a reservation.
 
-        Вызывается компенсатором при откате резервирования.
-        При ошибке в любом аспекте после успешного reserve()
-        ActionProductMachine разматывает стек компенсации и вызывает
-        unreserve() для отмены резервации.
+        Called by compensators during rollback after a successful reserve()
+        when a later aspect fails.
 
-        Аргументы:
-            reservation_id: идентификатор резервации, полученный от reserve().
+        Args:
+            reservation_id: id returned by reserve().
 
-        Возвращает:
-            bool — True если отмена выполнена успешно.
+        Returns:
+            True if unreserve succeeded.
         """
-        raise NotImplementedError("InventoryService.unreserve() не реализован")
+        raise NotImplementedError("InventoryService.unreserve() is not implemented")

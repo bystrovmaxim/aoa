@@ -11,8 +11,8 @@ DependencyFactory — stateless-фабрика, которая создаёт э
 создаёт новый экземпляр через factory-функцию или конструктор по умолчанию.
 Кеш экземпляров отсутствует — фабрика является чистой функцией.
 
-Фабрика создаётся GateCoordinator.get_factory(cls) из
-ClassMetadata.dependencies и передаётся в ToolsBox, откуда аспекты
+Фабрика создаётся ``cached_dependency_factory(coordinator, cls)`` из
+снимка ``depends`` координатора и передаётся в ToolsBox, откуда аспекты
 получают зависимости через box.resolve(PaymentService).
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -54,9 +54,13 @@ resolve() с rollup:
 import pytest
 
 from action_machine.core.exceptions import RollupNotSupportedError
-from action_machine.core.gate_coordinator import GateCoordinator
+from action_machine.core.core_action_machine import CoreActionMachine
 from action_machine.core.meta_decorator import meta
-from action_machine.dependencies.dependency_factory import DependencyFactory, DependencyInfo
+from action_machine.dependencies.dependency_factory import (
+    DependencyFactory,
+    DependencyInfo,
+    cached_dependency_factory,
+)
 from action_machine.resource_managers.base_resource_manager import BaseResourceManager
 from tests.domain_model import FullAction, NotificationService, PaymentService, PingAction
 
@@ -110,8 +114,8 @@ class TestFactoryCreation:
         """
         Фабрика создаётся из кортежа DependencyInfo.
 
-        Основной формат — tuple[DependencyInfo, ...] из
-        ClassMetadata.dependencies, передаваемый GateCoordinator.
+        Основной формат — tuple[DependencyInfo, ...] из снимка ``depends``
+        (или напрямую из ``@depends`` в тестах).
         """
         # Arrange — два DependencyInfo
         deps = (
@@ -440,7 +444,7 @@ class TestDomainIntegration:
 
     def test_full_action_factory_has_dependencies(self) -> None:
         """
-        GateCoordinator.get_factory(FullAction) содержит PaymentService
+        ``cached_dependency_factory(coordinator, FullAction)`` содержит PaymentService
         и NotificationService.
 
         FullAction объявляет @depends(PaymentService) и
@@ -448,8 +452,8 @@ class TestDomainIntegration:
         и создаёт DependencyFactory с обоими классами.
         """
         # Arrange — координатор, регистрирующий FullAction
-        coordinator = GateCoordinator()
-        factory = coordinator.get_factory(FullAction)
+        coordinator = CoreActionMachine.create_coordinator()
+        factory = cached_dependency_factory(coordinator, FullAction)
 
         # Act & Assert — оба сервиса зарегистрированы
         assert factory.has(PaymentService)
@@ -457,14 +461,14 @@ class TestDomainIntegration:
 
     def test_ping_action_factory_is_empty(self) -> None:
         """
-        GateCoordinator.get_factory(PingAction) — пустая фабрика.
+        ``cached_dependency_factory(coordinator, PingAction)`` — пустая фабрика.
 
         PingAction не объявляет @depends, поэтому фабрика
         не содержит зависимостей.
         """
         # Arrange — координатор для PingAction без зависимостей
-        coordinator = GateCoordinator()
-        factory = coordinator.get_factory(PingAction)
+        coordinator = CoreActionMachine.create_coordinator()
+        factory = cached_dependency_factory(coordinator, PingAction)
 
         # Act & Assert — фабрика пуста
         assert factory.get_all_classes() == []
@@ -476,8 +480,8 @@ class TestDomainIntegration:
         Это реальный resolve через конструктор по умолчанию, без моков.
         """
         # Arrange — фабрика из координатора
-        coordinator = GateCoordinator()
-        factory = coordinator.get_factory(FullAction)
+        coordinator = CoreActionMachine.create_coordinator()
+        factory = cached_dependency_factory(coordinator, FullAction)
 
         # Act — resolve реального сервиса
         service = factory.resolve(PaymentService)

@@ -6,91 +6,107 @@ ActionMachine checkers package.
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Contains the field validation system for aspect results. Each checker is
-represented by two components:
+Provide a field‑validation system for aspect results. Checkers ensure that
+the dictionaries returned by regular aspects contain only declared fields and
+that each field satisfies type and constraint requirements.
 
-1. **Checker class** (ResultStringChecker, ResultIntChecker, etc.) — used by the
-   machine to validate the dict returned by an aspect. The machine creates an
-   instance from CheckerMeta and calls checker.check().
-
-2. **Decorator function** (result_string, result_int, etc.) — applied to the
-   aspect method and writes checker metadata to ``_checker_meta``. MetadataBuilder
-   collects this metadata into ClassMetadata.checkers.
+Each checker is composed of:
+- A **checker class** (e.g., ``ResultStringChecker``) that validates a value.
+- A **decorator** (e.g., ``result_string``) that attaches checker metadata to
+  the aspect method.
 
 ═══════════════════════════════════════════════════════════════════════════════
-COMPONENTS
+ARCHITECTURE / DATA FLOW
+═══════════════════════════════════════════════════════════════════════════════
+
+::
+
+    @result_string("txn_id", required=True)
+    async def payment_aspect(self, ...):
+        return {"txn_id": "..."}
+
+          │ decorator writes _checker_meta on method
+          ▼
+    CheckerGateHostInspector collects _checker_meta → checker snapshot
+          │
+          ▼
+    ActionProductMachine._apply_checkers()
+          │
+          ▼
+    Checker instance created and invoked on aspect result dict
+
+The machine validates that:
+- The result dict contains only fields for which checkers are declared.
+- Each field passes the associated checker's validation.
+
+═══════════════════════════════════════════════════════════════════════════════
+INVARIANTS
+═══════════════════════════════════════════════════════════════════════════════
+
+- Classes using checkers must inherit ``CheckerGateHost``.
+- Every field returned by a regular aspect must have a corresponding checker.
+- Checker metadata is immutable and stored on the method as ``_checker_meta``.
+- The machine creates checker instances per invocation; checkers are stateless.
+
+═══════════════════════════════════════════════════════════════════════════════
+EXPORTS
 ═══════════════════════════════════════════════════════════════════════════════
 
 Marker mixin:
-
-- **CheckerGateHost** — marker mixin indicating support for checker decorators on
-  aspect methods. Inherited by BaseAction.
+- ``CheckerGateHost``
 
 Base class:
+- ``ResultFieldChecker``
 
-- **ResultFieldChecker** — base abstract checker for aspect result fields. It
-defines the shared interface: check(), _check_type_and_constraints(),
-  _get_extra_params().
+Checker classes:
+- ``ResultStringChecker``   – string fields (type, length, not_empty)
+- ``ResultIntChecker``      – integer fields (type, range)
+- ``ResultFloatChecker``    – numeric fields int/float (type, range)
+- ``ResultBoolChecker``     – boolean fields (exact isinstance(value, bool))
+- ``ResultDateChecker``     – date fields (datetime or formatted string, range)
+- ``ResultInstanceChecker`` – checks value against an expected class
 
-Checker classes (used by the machine):
-
-- **ResultStringChecker** — string fields (type, length, not_empty).
-- **ResultIntChecker** — integer fields (int type, range).
-- **ResultFloatChecker** — numeric fields int/float (type, range).
-- **ResultBoolChecker** — boolean fields (exact isinstance(value, bool)).
-- **ResultDateChecker** — date fields (datetime or formatted string, range).
-- **ResultInstanceChecker** — checks value against an expected class.
-
-Decorator functions (applied to aspect methods):
-
-- **result_string** — declares a string field in the aspect result.
-- **result_int** — declares an integer field.
-- **result_float** — declares a numeric field (int/float).
-- **result_bool** — declares a boolean field.
-- **result_date** — declares a date field.
-- **result_instance** — declares an instance-of-class field.
+Decorators:
+- ``result_string``
+- ``result_int``
+- ``result_float``
+- ``result_bool``
+- ``result_date``
+- ``result_instance``
 
 ═══════════════════════════════════════════════════════════════════════════════
-METADATA INTEGRATION
+EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
-Decorator functions write a _checker_meta attribute on the method — a list of
-metadata dicts:
-    [{"checker_class": ResultStringChecker, "field_name": "txn_id",
-      "required": True, ...}]
-
-A single method can have multiple checkers (for different fields).
-
-MetadataBuilder._collect_checkers(cls) walks the class MRO, finds methods with
-_checker_meta, and collects them into ClassMetadata.checkers
-(tuple[CheckerMeta]).
-
-When ActionProductMachine executes a regular aspect:
-1. It gets checkers = metadata.get_checkers_for_aspect(aspect_name).
-2. If no checkers exist and the aspect returned a non-empty dict — error.
-3. If checkers exist — it validates that the result contains only declared
-   fields and applies each checker.
-
-═══════════════════════════════════════════════════════════════════════════════
-USAGE EXAMPLE
-═══════════════════════════════════════════════════════════════════════════════
-
-    from action_machine.checkers import result_string, result_int, result_float
+    from action_machine.checkers import result_string, result_float
 
     class CreateOrderAction(BaseAction[OrderParams, OrderResult]):
-
-        @regular_aspect("Payment processing")
+        @regular_aspect("Process payment")
         @result_string("txn_id", required=True, min_length=1)
         @result_float("charged_amount", required=True, min_value=0.0)
         async def process_payment(self, params, state, box, connections):
-            payment = box.resolve(PaymentService)
-            txn_id = await payment.charge(params.amount, params.currency)
-            return {"txn_id": txn_id, "charged_amount": params.amount}
+            ...
+            return {"txn_id": "TXN-001", "charged_amount": 100.0}
 
-        @regular_aspect("Bonus calculation")
-        @result_int("bonus_points", required=True, min_value=0)
-        async def calc_bonus(self, params, state, box, connections):
-            return {"bonus_points": int(params.amount * 0.1)}
+═══════════════════════════════════════════════════════════════════════════════
+ERRORS / LIMITATIONS
+═══════════════════════════════════════════════════════════════════════════════
+
+- Missing checker for a returned field raises ``ValidationFieldError``.
+- Checker validation failures raise ``ValidationFieldError`` with details.
+- Checkers are applied only to regular aspects; summary aspects are not checked.
+
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE-BEGIN
+═══════════════════════════════════════════════════════════════════════════════
+ROLE: Checkers package API surface.
+CONTRACT: Export checker classes, decorators, and gate‑host marker.
+INVARIANTS: All aspect result fields must have checkers; checkers are stateless.
+FLOW: decorator metadata -> inspector snapshot -> machine validation -> checker execution.
+FAILURES: ValidationFieldError for missing or invalid fields.
+EXTENSION POINTS: New checker types can be added by subclassing ResultFieldChecker and providing a decorator.
+AI-CORE-END
+═══════════════════════════════════════════════════════════════════════════════
 """
 
 from .checker_gate_host import CheckerGateHost
@@ -103,18 +119,14 @@ from .result_int_checker import ResultIntChecker, result_int
 from .result_string_checker import ResultStringChecker, result_string
 
 __all__ = [
-    # Маркерный миксин
     "CheckerGateHost",
-    # Базовый класс
     "ResultFieldChecker",
-    # Классы чекеров (используются машиной)
     "ResultStringChecker",
     "ResultIntChecker",
     "ResultFloatChecker",
     "ResultBoolChecker",
     "ResultDateChecker",
     "ResultInstanceChecker",
-    # Функции-декораторы (применяются к методам-аспектам)
     "result_string",
     "result_int",
     "result_float",

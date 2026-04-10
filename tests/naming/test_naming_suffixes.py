@@ -352,7 +352,7 @@ class TestDescriptionRequired:
 
         from action_machine.aspects.regular_aspect import regular_aspect
 
-        with pytest.raises(ValueError, match="не может быть пустой"):
+        with pytest.raises(ValueError, match="(не может быть пустой|cannot be empty)"):
             @regular_aspect("")
             async def validate_aspect(self, params, state, box, connections):
                 return {}
@@ -362,7 +362,7 @@ class TestDescriptionRequired:
 
         from action_machine.aspects.summary_aspect import summary_aspect
 
-        with pytest.raises(ValueError, match="не может быть пустой"):
+        with pytest.raises(ValueError, match="(не может быть пустой|cannot be empty)"):
             @summary_aspect("")
             async def result_summary(self, params, state, box, connections):
                 pass
@@ -380,7 +380,7 @@ class TestDescriptionRequired:
 
         from action_machine.aspects.regular_aspect import regular_aspect
 
-        with pytest.raises(ValueError, match="не может быть пустой"):
+        with pytest.raises(ValueError, match="(cannot be empty|не может быть пустой)"):
             @regular_aspect("   ")
             async def validate_aspect(self, params, state, box, connections):
                 return {}

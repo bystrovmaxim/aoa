@@ -1,103 +1,37 @@
 # src/action_machine/metadata/__init__.py
 """
-Подпакет сборки метаданных ActionMachine.
+ActionMachine **metadata and graph** subpackage.
 
 ═══════════════════════════════════════════════════════════════════════════════
-НАЗНАЧЕНИЕ
+PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Содержит полную подсистему сборки иммутабельных метаданных классов
-(Action, Plugin, ResourceManager, модели данных) из временных атрибутов,
-оставленных декораторами (@meta, @CheckRoles, @depends, @connection,
-@regular_aspect, @summary_aspect, чекеры, @on, @sensitive).
+1. **Facet snapshots** — typed immutable snapshots per inspector.
+   Roles, @meta, aspects/checkers, subscriptions, sensitive fields,
+   error handlers and compensators live on facet snapshots
+   (``get_role`` / ``get_meta``).
 
-Подпакет разделяет ответственность на четыре модуля:
+2. **GateCoordinator** — registry of ``BaseGateHostInspector`` classes plus a
+   transactional **facet graph** (``rx.PyDiGraph``): ``FacetPayload`` nodes,
+   edges, key-uniqueness rules, structural acyclicity, and stub materialization
+   for edge targets (including domain classes).
 
-- **builder** — класс ``MetadataBuilder`` с единственным публичным методом
-  ``build(cls)``. Точка входа для сборки ``ClassMetadata``. Вызывает
-  коллекторы, валидаторы и очистку.
-
-- **collectors** — функции извлечения данных из временных атрибутов класса:
-  описание и домен (@meta), роли, зависимости, соединения, аспекты, чекеры,
-  подписки, чувствительные поля, bound-тип зависимостей. Каждая функция
-  принимает класс и возвращает собранные данные.
-
-- **validators** — функции структурной валидации собранных данных:
-  проверка обязательности @meta (ActionMetaGateHost + аспекты →
-  @meta обязателен; ResourceMetaGateHost → @meta обязателен),
-  проверка инвариантов аспектов (не более одного summary, summary последний),
-  проверка привязки чекеров к существующим аспектам, проверка гейт-хостов
-  для декораторов уровня метода.
-
-- **cleanup** — функция удаления временных атрибутов с класса после
-  завершения сборки. Удаляет только атрибуты из ``cls.__dict__``
-  текущего класса, не затрагивая унаследованные. Список атрибутов включает
-  ``_meta_info``, ``_role_info``, ``_depends_info``, ``_connection_info``
-  на уровне класса и ``_new_aspect_meta``, ``_checker_meta``,
-  ``_on_subscriptions``, ``_sensitive_config`` на уровне методов.
+Public imports: ``BaseFacetSnapshot``, ``GateCoordinator``.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ПРИНЦИПЫ
+RELATION TO ``action_machine.core``
 ═══════════════════════════════════════════════════════════════════════════════
 
-1. ЕДИНСТВЕННАЯ ТОЧКА ВХОДА: внешний код импортирует только
-   ``MetadataBuilder`` из этого пакета. Внутренние модули
-   (collectors, validators, cleanup) не являются частью публичного API.
-
-2. ОДНОКРАТНАЯ СБОРКА: ``MetadataBuilder.build(cls)`` для одного класса
-   вызывается ровно один раз. Результат идемпотентен — повторные вызовы
-   возвращают эквивалентный результат. Кеширование — ответственность
-   ``GateCoordinator``.
-
-3. ПОРЯДОК ВАЛИДАЦИИ:
-   - Первая: validate_meta_required — обязательность @meta.
-   - Вторая: validate_gate_hosts — гейт-хосты для декораторов уровня метода.
-   - Третья: validate_aspects — структурные инварианты аспектов.
-   - Четвёртая: validate_checkers_belong_to_aspects — привязка чекеров.
-
-4. ИДЕМПОТЕНТНОСТЬ ОЧИСТКИ: повторный вызов очистки на уже очищенном
-   классе безопасен — ``delattr`` вызывается только для атрибутов,
-   присутствующих в ``cls.__dict__``.
-
-5. ИЗОЛЯЦИЯ НАСЛЕДОВАНИЯ: очистка не затрагивает атрибуты родительских
-   классов. Если дочерний класс унаследовал ``_depends_info`` от родителя
-   и не добавлял своих зависимостей, атрибут остаётся на родителе.
-
-═══════════════════════════════════════════════════════════════════════════════
-ИСПОЛЬЗОВАНИЕ
-═══════════════════════════════════════════════════════════════════════════════
-
-    from action_machine.metadata import MetadataBuilder
-
-    metadata = MetadataBuilder.build(CreateOrderAction)
-    # metadata — иммутабельный ClassMetadata
-    # metadata.meta.description → "Создание нового заказа"
-    # metadata.meta.domain → OrdersDomain
-
-═══════════════════════════════════════════════════════════════════════════════
-ИНТЕГРАЦИЯ
-═══════════════════════════════════════════════════════════════════════════════
-
-    GateCoordinator.get(cls)
-        │
-        │  cache miss → MetadataBuilder.build(cls)
-        │                  ├── collectors: извлечение данных (включая collect_meta)
-        │                  ├── validators: validate_meta_required (ПЕРВАЯ)
-        │                  ├── validators: validate_gate_hosts
-        │                  ├── validators: validate_aspects
-        │                  ├── validators: validate_checkers_belong_to_aspects
-        │                  ├── ClassMetadata: сборка снимка (с полем meta: MetaInfo)
-        │                  └── (cleanup вызывается при необходимости)
-        │
-        │  strict check → _validate_strict_domain (domain обязателен)
-        │
-        │  cache hit  → возврат кешированного ClassMetadata
-        ▼
-    ClassMetadata (frozen, с meta: MetaInfo | None)
+``GateCoordinator`` is also re-exported from ``action_machine.core.gate_coordinator``.
 """
 
-from .builder import MetadataBuilder
+from __future__ import annotations
+
+from .base_facet_snapshot import BaseFacetSnapshot
+from .gate_coordinator import GateCoordinator
+
 
 __all__ = [
-    "MetadataBuilder",
+    "BaseFacetSnapshot",
+    "GateCoordinator",
 ]

@@ -3,7 +3,7 @@
 FastAPI-адаптер для ActionMachine.
 
 ═══════════════════════════════════════════════════════════════════════════════
-НАЗНАЧЕНИЕ
+PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 Превращает Action в HTTP-эндпоинты FastAPI. Разработчик пишет
@@ -24,7 +24,7 @@ Params/Result и декоратора ``@meta``.
 ═══════════════════════════════════════════════════════════════════════════════
 
 - FastApiAdapter — конкретный адаптер, наследующий BaseAdapter[FastApiRouteRecord].
-  Предоставляет протокольные методы post(), get(), put(), delete(), patch().
+  Предоставляет протокольные methodы post(), get(), put(), delete(), patch().
   Метод build() создаёт FastAPI-приложение из зарегистрированных маршрутов.
 
 - FastApiRouteRecord — frozen-датакласс маршрута с HTTP-специфичными полями:
@@ -35,11 +35,11 @@ Params/Result и декоратора ``@meta``.
 ═══════════════════════════════════════════════════════════════════════════════
 
     from action_machine.core.action_product_machine import ActionProductMachine
-    from action_machine.core.gate_coordinator import GateCoordinator
+    from action_machine.metadata.gate_coordinator import GateCoordinator
     from action_machine.contrib.fastapi import FastApiAdapter
 
     coordinator = GateCoordinator()
-    machine = ActionProductMachine(mode="production", coordinator=coordinator)
+    machine = ActionProductMachine(mode="production")
 
     adapter = FastApiAdapter(
         machine=machine,
@@ -96,7 +96,7 @@ HEALTH CHECK
 ═══════════════════════════════════════════════════════════════════════════════
 
 Эндпоинт ``GET /health`` добавляется автоматически при ``build()``.
-Возвращает ``{"status": "ok"}``. Используется для liveness probe
+Returns ``{"status": "ok"}``. Используется для liveness probe
 в Kubernetes, мониторинга и health check балансировщиков нагрузки.
 """
 

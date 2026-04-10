@@ -32,5 +32,5 @@
 1. Корректную запись метаданных при валидных аргументах.
 2. TypeError/ValueError при невалидных аргументах.
 3. TypeError при применении к невалидной цели.
-4. Интеграцию с MetadataBuilder и ClassMetadata.
+4. Интеграцию с MetadataBuilder и runtime metadata.
 """

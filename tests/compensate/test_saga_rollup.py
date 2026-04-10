@@ -115,7 +115,7 @@ class TestCompensatorsWorkWithRollup:
         )
 
         # ── Act ──
-        with pytest.raises(ValueError, match="Ошибка финализации"):
+        with pytest.raises(ValueError, match="Finalize error"):
             await rollup_bench.run(
                 CompensatedOrderAction(),
                 params,

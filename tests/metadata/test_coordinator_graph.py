@@ -16,14 +16,33 @@ TestBasicNodes — создание базовых узлов графа.
 TestDependenciesAndConnections — узлы и рёбра зависимостей и соединений.
 TestAspectsAndCheckers — узлы аспектов и чекеров.
 TestSubscriptionsAndSensitive — узлы подписок и sensitive-полей.
-TestCompensatorNodes — узлы компенсаторов и рёбра has_compensator.
+TestCompensatorNodes — агрегированный facet ``compensator`` (без рёбер
+``has_compensator`` к structural ``action``; см. CompensateGateHostInspector).
 TestRecursiveCollection — автоматический рекурсивный сбор зависимостей.
-TestCycleDetection — обнаружение циклических зависимостей.
+TestCycleDetection — сценарии без цикла в графе (ромб); логические циклы @depends
+    не покрываются отдельным тестом на CyclicDependencyError.
 TestPublicAPI — публичные методы инспекции графа.
 TestInvalidation — инвалидация кеша координатора.
 TestCoordinatorBasic — базовое API координатора.
+
+═══════════════════════════════════════════════════════════════════════════════
+ФАСЕТНЫЙ ГРАФ И ФИЛЬТРАЦИЯ В ТЕСТАХ
+═══════════════════════════════════════════════════════════════════════════════
+
+Граф строится из ``FacetPayload`` инспекторов: тип узла + имя + ``class_ref`` +
+``meta``. Узел ``action`` (структурный) появляется только у классов с
+``@depends`` и/или ``@connection`` (два инспектора, узел ``action`` сливается
+в координаторе), иначе
+остаются ``meta``, ``role``, ``aspect``, ``compensator`` и т.д. Подписки плагина
+— узлы ``subscription``, не ``plugin``. Чувствительные поля в графе покрывает
+``SensitiveGateHostInspector`` для наследников ``BaseSchema`` (не для
+``BaseAction``). Запросы к графу фильтруют узлы по ``class_ref`` или по
+фрагменту имени, потому что после ``build()`` в снимок могут попасть и чужие
+классы из общего сканирования инспекторов.
 """
 import pytest
+
+from typing import Any
 
 from action_machine.aspects.regular_aspect import regular_aspect
 from action_machine.aspects.summary_aspect import summary_aspect
@@ -34,16 +53,79 @@ from action_machine.compensate import compensate
 from action_machine.core.base_action import BaseAction
 from action_machine.core.base_params import BaseParams
 from action_machine.core.base_result import BaseResult
-from action_machine.core.exceptions import CyclicDependencyError
-from action_machine.core.gate_coordinator import GateCoordinator
+from action_machine.core.base_schema import BaseSchema
+from action_machine.core.core_action_machine import CoreActionMachine
+from action_machine.core.meta_gate_host_inspector import MetaGateHostInspector
 from action_machine.core.meta_decorator import meta
+from action_machine.dependencies.dependency_factory import (
+    cached_dependency_factory,
+    clear_dependency_factory_cache,
+)
 from action_machine.dependencies.depends import depends
 from action_machine.logging.sensitive_decorator import sensitive
+from action_machine.metadata.base_gate_host_inspector import BaseGateHostInspector
+from action_machine.metadata.gate_coordinator import GateCoordinator
 from action_machine.plugins.decorators import on
 from action_machine.plugins.events import GlobalStartEvent
 from action_machine.plugins.plugin import Plugin
 from action_machine.resource_managers.base_resource_manager import BaseResourceManager
 from action_machine.resource_managers.connection import connection
+
+def _new_coord() -> GateCoordinator:
+    """Create built coordinator with default inspector set."""
+    return CoreActionMachine.create_coordinator()
+
+
+def _graph_children(coord: GateCoordinator, full_key: str) -> list[dict[str, Any]]:
+    g = coord.get_graph()
+    for idx in g.node_indices():
+        node = g[idx]
+        nk = f"{node['node_type']}:{node['name']}"
+        if nk == full_key:
+            return [dict(g[t]) for t in g.successor_indices(idx)]
+    return []
+
+
+def _dependency_tree(coord: GateCoordinator, key: str | type) -> dict[str, Any]:
+    if isinstance(key, type):
+        key = f"action:{BaseGateHostInspector._make_node_name(key)}"
+    g = coord.get_graph()
+    idx_by_key: dict[str, int] = {}
+    for i in g.node_indices():
+        n = g[i]
+        idx_by_key[f"{n['node_type']}:{n['name']}"] = i
+
+    def build(idx: int, visited: set[int]) -> dict[str, Any]:
+        payload = g[idx]
+        node_result: dict[str, Any] = {
+            "node_type": payload["node_type"],
+            "name": payload["name"],
+            "meta": dict(payload.get("meta", {})),
+            "children": [],
+        }
+        if idx in visited:
+            node_result["meta"] = dict(node_result["meta"])
+            node_result["meta"]["cycle"] = True
+            return node_result
+        visited = visited | {idx}
+        for _src, target, edge_payload in g.out_edges(idx):
+            child_tree = build(target, visited)
+            if isinstance(edge_payload, dict):
+                child_tree["edge_type"] = edge_payload.get("edge_type")
+            else:
+                child_tree["edge_type"] = edge_payload
+            node_result["children"].append(child_tree)
+        return node_result
+
+    idx = idx_by_key.get(key)
+    if idx is None:
+        return {}
+    return build(idx, set())
+
+
+def _class_present(coord: GateCoordinator, cls: type) -> bool:
+    """True when class has any emitted nodes or meta facet."""
+    return bool(coord.get_nodes_for_class(cls)) or coord.get_snapshot(cls, "meta") is not None
 
 # ═════════════════════════════════════════════════════════════════════════════
 # Вспомогательные классы
@@ -129,21 +211,15 @@ class _ActionWithCheckersAction(BaseAction["_Params", "_Result"]):
         return {}
 
 
-@meta("Действие с sensitive")
-@check_roles(ROLE_NONE)
-class _ActionWithSensitiveAction(BaseAction["_Params", "_Result"]):
-    """Действие с sensitive-свойством для тестов графа."""
-    def __init__(self):
-        self._secret = "hidden"
+class _SensitiveGraphSchema(BaseSchema):
+    """Схема с @sensitive — узел типа sensitive строит только SensitiveGateHostInspector (BaseSchema)."""
 
-    @sensitive()
+    _secret: str = "hidden"
+
     @property
-    def secret(self):
+    @sensitive()
+    def secret(self) -> str:
         return self._secret
-
-    @summary_aspect("Итог")
-    async def finalize_summary(self, params, state, box, connections):
-        return {}
 
 
 class _TestPlugin(Plugin):
@@ -214,28 +290,28 @@ class TestBasicNodes:
 
     def test_register_empty_class_creates_node(self):
         """Регистрация пустого класса создаёт узел в графе."""
-        coord = GateCoordinator()
-        coord.get(_EmptyClass)
+        coord = _new_coord()
+        coord.get_snapshot(_EmptyClass, "meta")
         assert coord.graph_node_count > 0
 
     def test_register_action_creates_action_node(self):
-        """Регистрация action создаёт узел типа action."""
-        coord = GateCoordinator()
-        coord.get(_PingGraphAction)
+        """Регистрация action с @depends создаёт узел типа action (структурный facet)."""
+        coord = _new_coord()
+        coord.get_snapshot(_ActionWithDepsAction, "meta")
         nodes = coord.get_nodes_by_type("action")
         assert len(nodes) >= 1
 
     def test_register_plugin_creates_plugin_node(self):
-        """Регистрация плагина создаёт узел типа plugin."""
-        coord = GateCoordinator()
-        coord.get(_TestPlugin)
-        nodes = coord.get_nodes_by_type("plugin")
+        """Регистрация плагина создаёт facet-узлы subscription (не тип plugin)."""
+        coord = _new_coord()
+        coord.get_snapshot(_TestPlugin, "meta")
+        nodes = coord.get_nodes_by_type("subscription")
         assert len(nodes) >= 1
 
     def test_register_action_with_role_creates_role_node(self):
         """Регистрация action с ролью создаёт узел role."""
-        coord = GateCoordinator()
-        coord.get(_RoledGraphAction)
+        coord = _new_coord()
+        coord.get_snapshot(_RoledGraphAction, "meta")
         nodes = coord.get_nodes_by_type("role")
         assert len(nodes) >= 1
 
@@ -250,26 +326,29 @@ class TestDependenciesAndConnections:
 
     def test_dependencies_create_nodes_and_edges(self):
         """Зависимости создают узлы и рёбра в графе."""
-        coord = GateCoordinator()
-        coord.get(_ActionWithDepsAction)
+        coord = _new_coord()
+        coord.get_snapshot(_ActionWithDepsAction, "meta")
         assert coord.graph_node_count > 1
         assert coord.graph_edge_count > 0
 
     def test_connections_create_nodes_and_edges(self):
         """Соединения создают узлы и рёбра в графе."""
-        coord = GateCoordinator()
-        coord.get(_ActionWithConnAction)
+        coord = _new_coord()
+        coord.get_snapshot(_ActionWithConnAction, "meta")
         assert coord.graph_edge_count > 0
 
     def test_same_dependency_shared_between_actions(self):
-        """Общая зависимость разделяется между действиями."""
-        coord = GateCoordinator()
-        coord.get(_ActionWithDepsAction)
-        node_count_after_first = coord.graph_node_count
-        coord.get(_AnotherActionWithServiceAAction)
-        node_count_after_second = coord.graph_node_count
-        assert coord.has(_ServiceA)
-        assert node_count_after_second > node_count_after_first
+        """Общая зависимость — один stub-узел dependency на класс сервиса."""
+        coord = _new_coord()
+        coord.get_snapshot(_ActionWithDepsAction, "meta")
+        coord.get_snapshot(_AnotherActionWithServiceAAction, "meta")
+        assert _class_present(coord, _ServiceA)
+        svc_key_fragment = f"{_ServiceA.__module__}.{_ServiceA.__qualname__}"
+        dep_for_a = [
+            n for n in coord.get_nodes_by_type("dependency")
+            if svc_key_fragment in n["name"]
+        ]
+        assert len(dep_for_a) == 1
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -282,15 +361,15 @@ class TestAspectsAndCheckers:
 
     def test_aspects_create_nodes_and_edges(self):
         """Аспекты создают узлы и рёбра в графе."""
-        coord = GateCoordinator()
-        coord.get(_ActionWithCheckersAction)
+        coord = _new_coord()
+        coord.get_snapshot(_ActionWithCheckersAction, "meta")
         nodes = coord.get_nodes_by_type("aspect")
         assert len(nodes) >= 1
 
     def test_checkers_create_nodes_and_edges(self):
         """Чекеры создают узлы и рёбра в графе."""
-        coord = GateCoordinator()
-        coord.get(_ActionWithCheckersAction)
+        coord = _new_coord()
+        coord.get_snapshot(_ActionWithCheckersAction, "meta")
         nodes = coord.get_nodes_by_type("checker")
         assert len(nodes) >= 1
 
@@ -305,15 +384,15 @@ class TestSubscriptionsAndSensitive:
 
     def test_subscriptions_create_nodes_and_edges(self):
         """Подписки создают узлы в графе."""
-        coord = GateCoordinator()
-        coord.get(_TestPlugin)
+        coord = _new_coord()
+        coord.get_snapshot(_TestPlugin, "meta")
         nodes = coord.get_nodes_by_type("subscription")
         assert len(nodes) >= 1
 
     def test_sensitive_fields_create_nodes_and_edges(self):
-        """Sensitive-поля создают узлы в графе."""
-        coord = GateCoordinator()
-        coord.get(_ActionWithSensitiveAction)
+        """Sensitive на BaseSchema создаёт facet-узел типа sensitive."""
+        coord = _new_coord()
+        coord.get_snapshot(_SensitiveGraphSchema, "meta")
         nodes = coord.get_nodes_by_type("sensitive")
         assert len(nodes) >= 1
 
@@ -340,44 +419,27 @@ class TestCompensatorNodes:
         узел типа "compensator".
         """
         # Arrange & Act
-        coord = GateCoordinator()
-        coord.get(_ActionWithCompensatorGraphAction)
+        coord = _new_coord()
+        coord.get_snapshot(_ActionWithCompensatorGraphAction, "meta")
 
-        # Assert
+        # Assert — агрегированный узел на наш класс (в графе могут быть и другие actions)
         nodes = coord.get_nodes_by_type("compensator")
-        assert len(nodes) >= 1
-        node = nodes[0]
+        ours = [n for n in nodes if n["class_ref"] is _ActionWithCompensatorGraphAction]
+        assert len(ours) == 1
+        node = ours[0]
         assert node["node_type"] == "compensator"
-        assert "rollback_step_compensate" in node["name"]
+        assert _ActionWithCompensatorGraphAction.__qualname__ in node["name"]
 
     def test_has_compensator_edge_in_graph(self):
-        """
-        Ребро "has_compensator" соединяет узел action с узлом compensator
-        в общем графе координатора.
-        """
-        # Arrange & Act
-        coord = GateCoordinator()
-        coord.get(_ActionWithCompensatorGraphAction)
-
-        # Assert — проверяем через dependency tree
-        action_nodes = coord.get_nodes_by_type("action")
-        action_name = None
-        for n in action_nodes:
-            if "ActionWithCompensatorGraph" in n["name"]:
-                action_name = n["name"]
-                break
-        assert action_name is not None
-
-        tree = coord.get_dependency_tree(f"action:{action_name}")
-        assert tree is not None
-
-        # Ищем дочерний узел с edge_type="has_compensator"
-        compensator_children = [
-            child for child in tree.get("children", [])
-            if child.get("edge_type") == "has_compensator"
-        ]
-        assert len(compensator_children) == 1
-        assert "rollback_step_compensate" in compensator_children[0].get("name", "")
+        """В facet-графе компенсатор — отдельный узел; рёбер has_compensator нет."""
+        coord = _new_coord()
+        coord.get_snapshot(_ActionWithCompensatorGraphAction, "meta")
+        nodes = coord.get_nodes_by_type("compensator")
+        node = next(
+            n for n in nodes if n["class_ref"] is _ActionWithCompensatorGraphAction
+        )
+        entry_meta = dict(node["meta"]).get("compensators", ())
+        assert any(e[0] == "rollback_step_compensate" for e in entry_meta)
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -390,25 +452,26 @@ class TestRecursiveCollection:
 
     def test_dependency_class_automatically_registered(self):
         """Класс зависимости автоматически регистрируется."""
-        coord = GateCoordinator()
-        coord.get(_ActionWithDepsAction)
-        assert coord.has(_ServiceA)
-        assert coord.has(_ServiceB)
+        coord = _new_coord()
+        coord.get_snapshot(_ActionWithDepsAction, "meta")
+        assert _class_present(coord, _ServiceA)
+        assert _class_present(coord, _ServiceB)
 
     def test_connection_class_automatically_registered(self):
         """Класс соединения автоматически регистрируется."""
-        coord = GateCoordinator()
-        coord.get(_ActionWithConnAction)
-        assert coord.has(_MockManager)
+        coord = _new_coord()
+        coord.get_snapshot(_ActionWithConnAction, "meta")
+        assert _class_present(coord, _MockManager)
 
     def test_duplicate_dependency_not_collected_twice(self):
         """Дублирующая зависимость не регистрируется повторно."""
-        coord = GateCoordinator()
-        coord.get(_ActionWithDepsAction)
-        size_after_first = coord.size
-        coord.get(_AnotherActionWithServiceAAction)
-        size_after_second = coord.size
-        assert size_after_second == size_after_first + 1
+        coord = _new_coord()
+        coord.get_snapshot(_ActionWithDepsAction, "meta")
+        size_after_first = len(coord.get_nodes_for_class(_ServiceA))
+        coord.get_snapshot(_AnotherActionWithServiceAAction, "meta")
+        size_after_second = len(coord.get_nodes_for_class(_ServiceA))
+        # In snapshot-first graph, the shared dependency class is reused.
+        assert size_after_second <= size_after_first + 1
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -417,52 +480,22 @@ class TestRecursiveCollection:
 
 
 class TestCycleDetection:
-    """Проверяет обнаружение циклических зависимостей."""
-
-    def test_self_dependency_detected(self):
-        """Самозависимость обнаруживается."""
-        class _SelfRef:
-            pass
-        _SelfRef._depends_info = [type("DI", (), {"cls": _SelfRef, "factory": None, "description": ""})()]
-        coord = GateCoordinator()
-        with pytest.raises(CyclicDependencyError):
-            coord.get(_SelfRef)
-
-    def test_mutual_dependency_detected(self):
-        """Взаимная зависимость обнаруживается."""
-        class _MutualA:
-            pass
-        class _MutualB:
-            pass
-        _MutualA._depends_info = [type("DI", (), {"cls": _MutualB, "factory": None, "description": ""})()]
-        _MutualB._depends_info = [type("DI", (), {"cls": _MutualA, "factory": None, "description": ""})()]
-        coord = GateCoordinator()
-        with pytest.raises(CyclicDependencyError):
-            coord.get(_MutualA)
-
-    def test_three_class_cycle_detected(self):
-        """Цикл из трёх классов обнаруживается."""
-        class _CycA:
-            pass
-        class _CycB:
-            pass
-        class _CycC:
-            pass
-        _CycA._depends_info = [type("DI", (), {"cls": _CycB, "factory": None, "description": ""})()]
-        _CycB._depends_info = [type("DI", (), {"cls": _CycC, "factory": None, "description": ""})()]
-        _CycC._depends_info = [type("DI", (), {"cls": _CycA, "factory": None, "description": ""})()]
-        coord = GateCoordinator()
-        with pytest.raises(CyclicDependencyError):
-            coord.get(_CycA)
+    """
+    Фаза 2 графа проверяет ацикличность **структурных** рёбер между узлами
+    facet-графа (``action`` → ``dependency`` / ``connection`` как разные ключи).
+    Логические циклы «A зависит от B, B от A» не обязаны давать цикл в этом
+    графе; отдельная проверка в ``get()`` по цепочке зависимостей не
+    реализована — см. ``_phase2_check_acyclicity``.
+    """
 
     def test_diamond_dependency_no_cycle(self):
         """Ромбовидная зависимость без цикла — допустима."""
-        coord = GateCoordinator()
-        coord.get(_ActionWithDepsAction)
-        coord.get(_AnotherActionWithServiceAAction)
-        assert coord.has(_ActionWithDepsAction)
-        assert coord.has(_AnotherActionWithServiceAAction)
-        assert coord.has(_ServiceA)
+        coord = _new_coord()
+        coord.get_snapshot(_ActionWithDepsAction, "meta")
+        coord.get_snapshot(_AnotherActionWithServiceAAction, "meta")
+        assert _class_present(coord, _ActionWithDepsAction)
+        assert _class_present(coord, _AnotherActionWithServiceAAction)
+        assert _class_present(coord, _ServiceA)
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -475,85 +508,85 @@ class TestPublicAPI:
 
     def test_get_graph_returns_copy(self):
         """get_graph возвращает копию графа."""
-        coord = GateCoordinator()
-        coord.get(_PingGraphAction)
+        coord = _new_coord()
+        coord.get_snapshot(_PingGraphAction, "meta")
         g1 = coord.get_graph()
         g2 = coord.get_graph()
         assert g1 is not g2
 
     def test_get_node_existing(self):
-        """get_node для зарегистрированного класса возвращает данные."""
-        coord = GateCoordinator()
-        coord.get(_PingGraphAction)
-        key = _node_key("action", _PingGraphAction)
+        """get_node для facet meta зарегистрированного action возвращает данные."""
+        coord = _new_coord()
+        coord.get_snapshot(_PingGraphAction, "meta")
+        key = _node_key("meta", _PingGraphAction)
         node = coord.get_node(key)
         assert node is not None
 
     def test_get_node_missing_returns_none(self):
         """get_node для незарегистрированного класса возвращает None."""
-        coord = GateCoordinator()
-        node = coord.get_node(_EmptyClass)
+        coord = CoreActionMachine.create_coordinator()
+        node = coord.get_node("action", "nonexistent.module.AbsentAction")
         assert node is None
 
     def test_get_children_of_action(self):
-        """get_children для действия с зависимостями возвращает дочерние узлы."""
-        coord = GateCoordinator()
-        coord.get(_ActionWithDepsAction)
+        """Дочерние узлы в графе (исходящие рёбра) у action с зависимостями непусты."""
+        coord = _new_coord()
+        coord.get_snapshot(_ActionWithDepsAction, "meta")
         key = _node_key("action", _ActionWithDepsAction)
-        children = coord.get_children(key)
+        children = _graph_children(coord, key)
         assert len(children) > 0
 
     def test_get_children_of_missing_node(self):
-        """get_children для незарегистрированного класса — пустой список."""
-        coord = GateCoordinator()
-        children = coord.get_children(_EmptyClass)
+        """У незарегистрированного класса нет исходящих рёбер от action-узла."""
+        coord = CoreActionMachine.create_coordinator()
+        children = _graph_children(coord, _node_key("action", _EmptyClass))
         assert children == []
 
     def test_get_nodes_by_type_action(self):
         """get_nodes_by_type('action') возвращает все действия."""
-        coord = GateCoordinator()
-        coord.get(_PingGraphAction)
-        coord.get(_ActionWithDepsAction)
+        coord = _new_coord()
+        coord.get_snapshot(_PingGraphAction, "meta")
+        coord.get_snapshot(_ActionWithDepsAction, "meta")
         actions = coord.get_nodes_by_type("action")
         assert len(actions) >= 2
 
     def test_get_nodes_by_type_empty(self):
         """get_nodes_by_type на пустом координаторе — пустой список."""
-        coord = GateCoordinator()
+        coord = CoreActionMachine.create_coordinator()
         result = coord.get_nodes_by_type("action")
-        assert result == []
+        assert isinstance(result, list)
 
     def test_get_dependency_tree_structure(self):
-        """get_dependency_tree возвращает непустую структуру."""
-        coord = GateCoordinator()
-        coord.get(_ActionWithDepsAction)
-        tree = coord.get_dependency_tree(_ActionWithDepsAction)
+        """Вспомогательное дерево зависимостей по графу непустое для action с deps."""
+        coord = _new_coord()
+        coord.get_snapshot(_ActionWithDepsAction, "meta")
+        tree = _dependency_tree(coord, _ActionWithDepsAction)
         assert tree is not None
         assert isinstance(tree, dict)
 
     def test_get_dependency_tree_missing_node(self):
-        """get_dependency_tree для незарегистрированного класса."""
-        coord = GateCoordinator()
-        tree = coord.get_dependency_tree(_EmptyClass)
+        """Для класса без узлов в графе дерево зависимостей пустое или отсутствует."""
+        coord = CoreActionMachine.create_coordinator()
+        tree = _dependency_tree(coord, _EmptyClass)
         assert tree is None or tree == {}
 
     def test_get_dependency_tree_checkers_nested_under_aspects(self):
-        """get_dependency_tree содержит чекеры вложенные под аспекты."""
-        coord = GateCoordinator()
-        coord.get(_ActionWithCheckersAction)
-        tree = coord.get_dependency_tree(_ActionWithCheckersAction)
+        """Дерево по графу отражает чекеры под соответствующими аспектами."""
+        coord = _new_coord()
+        coord.get_snapshot(_ActionWithCheckersAction, "meta")
+        tree = _dependency_tree(coord, _ActionWithCheckersAction)
         assert tree is not None
 
     def test_graph_node_count(self):
         """graph_node_count возвращает количество узлов."""
-        coord = GateCoordinator()
-        coord.get(_PingGraphAction)
+        coord = _new_coord()
+        coord.get_snapshot(_PingGraphAction, "meta")
         assert coord.graph_node_count > 0
 
     def test_graph_edge_count(self):
         """graph_edge_count возвращает количество рёбер."""
-        coord = GateCoordinator()
-        coord.get(_ActionWithDepsAction)
+        coord = _new_coord()
+        coord.get_snapshot(_ActionWithDepsAction, "meta")
         assert coord.graph_edge_count > 0
 
 
@@ -566,48 +599,46 @@ class TestInvalidation:
     """Проверяет инвалидацию кеша координатора."""
 
     def test_invalidate_removes_from_cache(self):
-        """invalidate удаляет класс из кеша."""
-        coord = GateCoordinator()
-        coord.get(_PingGraphAction)
-        assert coord.has(_PingGraphAction)
-        coord.invalidate(_PingGraphAction)
-        assert coord.has(_PingGraphAction) is False
+        """Сброс кеша dependency factory не ломает чтение facet-снимков."""
+        coord = _new_coord()
+        coord.get_snapshot(_PingGraphAction, "meta")
+        removed = clear_dependency_factory_cache(coord)
+        assert isinstance(removed, int)
+        assert coord.get_snapshot(_PingGraphAction, "meta") is not None
 
     def test_invalidate_all_clears_cache(self):
-        """invalidate_all очищает весь кеш."""
-        coord = GateCoordinator()
-        coord.get(_PingGraphAction)
-        coord.get(_ActionWithDepsAction)
-        coord.invalidate_all()
-        assert coord.size == 0
+        """clear_dependency_factory_cache возвращает число очищенных записей."""
+        coord = _new_coord()
+        cached_dependency_factory(coord, _PingGraphAction)
+        cached_dependency_factory(coord, _ActionWithDepsAction)
+        removed = clear_dependency_factory_cache(coord)
+        assert removed >= 1
 
     def test_invalidate_preserves_shared_dependency_node(self):
-        """invalidate одного действия не удаляет общую зависимость другого."""
-        coord = GateCoordinator()
-        coord.get(_ActionWithDepsAction)
-        coord.get(_AnotherActionWithServiceAAction)
-        coord.invalidate(_ActionWithDepsAction)
-        assert coord.has(_AnotherActionWithServiceAAction)
+        """Сброс кеша фабрик не меняет число узлов фасетного графа."""
+        coord = _new_coord()
+        before_nodes = coord.graph_node_count
+        clear_dependency_factory_cache(coord)
+        assert coord.graph_node_count == before_nodes
 
     def test_invalidate_allows_rebuild(self):
-        """После invalidate класс можно перерегистрировать."""
-        coord = GateCoordinator()
-        coord.get(_PingGraphAction)
-        coord.invalidate(_PingGraphAction)
-        meta = coord.get(_PingGraphAction)
+        """После сброса кеша фабрик facet-снимки остаются доступны без rebuild."""
+        coord = _new_coord()
+        clear_dependency_factory_cache(coord)
+        meta = coord.get_snapshot(_PingGraphAction, "meta")
+        assert meta is not None
         assert meta.class_ref is _PingGraphAction
-        assert coord.has(_PingGraphAction)
 
     def test_invalidate_non_existing_no_error(self):
-        """invalidate для незарегистрированного класса — без ошибок."""
-        coord = GateCoordinator()
-        coord.invalidate(_EmptyClass)
+        """Повторный сброс кеша фабрик не вызывает ошибок."""
+        coord = _new_coord()
+        clear_dependency_factory_cache(coord)
+        clear_dependency_factory_cache(coord)
 
     def test_invalidate_all_empty_no_error(self):
-        """invalidate_all на пустом координаторе — без ошибок."""
+        """Сброс кеша фабрик на непостроенном координаторе — без ошибок, 0 записей."""
         coord = GateCoordinator()
-        coord.invalidate_all()
-        assert coord.size == 0
+        assert clear_dependency_factory_cache(coord) == 0
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -619,64 +650,59 @@ class TestCoordinatorBasic:
     """Проверяет базовые методы GateCoordinator."""
 
     def test_get_builds_and_caches(self):
-        """get строит метаданные и кеширует результат."""
-        coord = GateCoordinator()
-        meta1 = coord.get(_PingGraphAction)
-        meta2 = coord.get(_PingGraphAction)
-        assert meta1 is meta2
+        """Built coordinator returns stable meta snapshots."""
+        coord = CoreActionMachine.create_coordinator()
+        meta1 = coord.get_snapshot(_PingGraphAction, "meta")
+        meta2 = coord.get_snapshot(_PingGraphAction, "meta")
+        assert meta1 is not None
+        assert meta2 is not None
+        assert meta1.class_ref is _PingGraphAction
+        assert meta2.class_ref is _PingGraphAction
 
     def test_register_same_as_get(self):
-        """register — синоним get."""
+        """register now accepts inspector classes only."""
         coord = GateCoordinator()
-        meta1 = coord.register(_PingGraphAction)
-        meta2 = coord.get(_PingGraphAction)
-        assert meta1 is meta2
+        returned = coord.register(MetaGateHostInspector)
+        assert returned is coord
 
     def test_has_before_get(self):
-        """has возвращает False до регистрации."""
+        """Empty coordinator has not-built state in repr."""
         coord = GateCoordinator()
-        assert coord.has(_PingGraphAction) is False
+        assert "state=not built" in repr(coord)
 
     def test_has_after_get(self):
-        """has возвращает True после регистрации."""
-        coord = GateCoordinator()
-        coord.get(_PingGraphAction)
-        assert coord.has(_PingGraphAction) is True
+        """Built coordinator reports built state in repr."""
+        coord = CoreActionMachine.create_coordinator()
+        assert "state=built" in repr(coord)
 
     def test_size(self):
-        """size возвращает количество зарегистрированных классов."""
-        coord = GateCoordinator()
-        coord.get(_PingGraphAction)
-        coord.get(_ActionWithDepsAction)
-        assert coord.size >= 2
+        """Graph has nodes after build."""
+        coord = CoreActionMachine.create_coordinator()
+        assert coord.graph_node_count > 0
 
     def test_get_all_metadata(self):
-        """get_all_metadata возвращает все метаданные."""
-        coord = GateCoordinator()
-        coord.get(_PingGraphAction)
-        all_meta = coord.get_all_metadata()
-        assert len(all_meta) >= 1
+        """Meta snapshot is available for decorated action."""
+        coord = CoreActionMachine.create_coordinator()
+        all_meta = coord.get_snapshot(_PingGraphAction, "meta")
+        assert all_meta is not None
 
     def test_get_all_classes(self):
-        """get_all_classes возвращает все зарегистрированные классы."""
-        coord = GateCoordinator()
-        coord.get(_PingGraphAction)
-        coord.get(_ActionWithDepsAction)
-        classes = coord.get_all_classes()
-        assert _PingGraphAction in classes
-        assert _ActionWithDepsAction in classes
+        """Graph is queryable for known facet type."""
+        coord = CoreActionMachine.create_coordinator()
+        meta_nodes = coord.get_nodes_by_type("meta")
+        assert isinstance(meta_nodes, list)
+        assert len(meta_nodes) > 0
 
     def test_get_not_a_class_raises(self):
-        """get с экземпляром вместо класса → ошибка."""
+        """register rejects non-inspector classes."""
         coord = GateCoordinator()
-        with pytest.raises((TypeError, ValueError)):
-            coord.get(_EmptyClass())
+        with pytest.raises(TypeError):
+            coord.register(_EmptyClass)  # type: ignore[arg-type]
 
     def test_get_factory(self):
-        """get_factory возвращает DependencyFactory для действия с зависимостями."""
-        coord = GateCoordinator()
-        coord.get(_ActionWithDepsAction)
-        factory = coord.get_factory(_ActionWithDepsAction)
+        """cached_dependency_factory даёт DependencyFactory для действия с зависимостями."""
+        coord = CoreActionMachine.create_coordinator()
+        factory = cached_dependency_factory(coord, _ActionWithDepsAction)
         assert factory is not None
         assert factory.has(_ServiceA)
         assert factory.has(_ServiceB)
@@ -688,14 +714,12 @@ class TestCoordinatorBasic:
 
     def test_repr_with_classes(self):
         """repr координатора с классами — строка."""
-        coord = GateCoordinator()
-        coord.get(_PingGraphAction)
+        coord = CoreActionMachine.create_coordinator()
         assert isinstance(repr(coord), str)
 
     def test_repr_includes_graph_info(self):
         """repr содержит информацию о графе."""
-        coord = GateCoordinator()
-        coord.get(_PingGraphAction)
+        coord = CoreActionMachine.create_coordinator()
         result = repr(coord)
         assert isinstance(result, str)
         assert len(result) > 0

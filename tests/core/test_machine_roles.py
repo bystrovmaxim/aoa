@@ -7,8 +7,8 @@
 ═══════════════════════════════════════════════════════════════════════════════
 
 ActionProductMachine._check_action_roles() — первый шаг конвейера
-выполнения действия. Машина читает RoleMeta из ClassMetadata и сравнивает
-spec с ролями пользователя в Context.
+выполнения действия. Машина читает спецификацию ролей из графа координатора
+и сравнивает её с ролями пользователя в Context.
 
 Четыре режима проверки ролей:
 
@@ -155,10 +155,8 @@ class TestRoleNone:
         """
         # Arrange — PingAction с ROLE_NONE, контекст без ролей
         action = PingAction()
-        metadata = machine._get_metadata(action)
-
         # Act — проверка ролей не бросает исключений
-        machine._check_action_roles(action, context_no_roles, metadata)
+        machine._check_action_roles(action, context_no_roles)
 
     def test_user_with_roles_passes(self, machine, context_admin) -> None:
         """
@@ -166,10 +164,8 @@ class TestRoleNone:
         """
         # Arrange — PingAction с ROLE_NONE, контекст с ролями admin, user
         action = PingAction()
-        metadata = machine._get_metadata(action)
-
         # Act — проверка не бросает исключений
-        machine._check_action_roles(action, context_admin, metadata)
+        machine._check_action_roles(action, context_admin)
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -186,10 +182,9 @@ class TestRoleAny:
         """
         # Arrange — _ActionRoleAnyAction с ROLE_ANY, контекст с ролями
         action = _ActionRoleAnyAction()
-        metadata = machine._get_metadata(action)
 
         # Act — проверка проходит
-        machine._check_action_roles(action, context_admin, metadata)
+        machine._check_action_roles(action, context_admin)
 
     def test_user_without_roles_rejected(self, machine, context_no_roles) -> None:
         """
@@ -197,11 +192,9 @@ class TestRoleAny:
         """
         # Arrange — _ActionRoleAnyAction с ROLE_ANY, контекст без ролей
         action = _ActionRoleAnyAction()
-        metadata = machine._get_metadata(action)
-
         # Act & Assert — AuthorizationError с информативным сообщением
         with pytest.raises(AuthorizationError, match="Authentication required"):
-            machine._check_action_roles(action, context_no_roles, metadata)
+            machine._check_action_roles(action, context_no_roles)
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -218,10 +211,8 @@ class TestSingleRole:
         """
         # Arrange — AdminAction с ролью "admin", контекст с admin в ролях
         action = AdminAction()
-        metadata = machine._get_metadata(action)
-
         # Act — проверка проходит
-        machine._check_action_roles(action, context_admin, metadata)
+        machine._check_action_roles(action, context_admin)
 
     def test_non_matching_role_rejected(self, machine, context_manager) -> None:
         """
@@ -229,11 +220,9 @@ class TestSingleRole:
         """
         # Arrange — AdminAction с ролью "admin", контекст с ролью "manager"
         action = AdminAction()
-        metadata = machine._get_metadata(action)
-
         # Act & Assert — AuthorizationError с указанием требуемой роли
         with pytest.raises(AuthorizationError, match="Required role: 'admin'"):
-            machine._check_action_roles(action, context_manager, metadata)
+            machine._check_action_roles(action, context_manager)
 
     def test_no_roles_rejected(self, machine, context_no_roles) -> None:
         """
@@ -241,11 +230,9 @@ class TestSingleRole:
         """
         # Arrange — AdminAction, анонимный контекст
         action = AdminAction()
-        metadata = machine._get_metadata(action)
-
         # Act & Assert
         with pytest.raises(AuthorizationError):
-            machine._check_action_roles(action, context_no_roles, metadata)
+            machine._check_action_roles(action, context_no_roles)
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -262,10 +249,8 @@ class TestRoleList:
         """
         # Arrange — _ActionRoleListAction с ["manager", "editor"], контекст с "manager"
         action = _ActionRoleListAction()
-        metadata = machine._get_metadata(action)
-
         # Act — проверка проходит
-        machine._check_action_roles(action, context_manager, metadata)
+        machine._check_action_roles(action, context_manager)
 
     def test_no_intersection_rejected(self, machine, context_admin) -> None:
         """
@@ -275,11 +260,9 @@ class TestRoleList:
         # Arrange — _ActionRoleListAction с ["manager", "editor"],
         # контекст с ["admin", "user"] — нет пересечения
         action = _ActionRoleListAction()
-        metadata = machine._get_metadata(action)
-
         # Act & Assert — AuthorizationError с указанием требуемых ролей
         with pytest.raises(AuthorizationError, match="Required one of the roles"):
-            machine._check_action_roles(action, context_admin, metadata)
+            machine._check_action_roles(action, context_admin)
 
     def test_no_roles_rejected(self, machine, context_no_roles) -> None:
         """
@@ -287,11 +270,9 @@ class TestRoleList:
         """
         # Arrange — _ActionRoleListAction, анонимный контекст
         action = _ActionRoleListAction()
-        metadata = machine._get_metadata(action)
-
         # Act & Assert
         with pytest.raises(AuthorizationError):
-            machine._check_action_roles(action, context_no_roles, metadata)
+            machine._check_action_roles(action, context_no_roles)
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -308,11 +289,9 @@ class TestMissingCheckRoles:
         """
         # Arrange — _ActionNoCheckRolesAction без @check_roles
         action = _ActionNoCheckRolesAction()
-        metadata = machine._get_metadata(action)
-
         # Act & Assert — TypeError, не AuthorizationError
         with pytest.raises(TypeError, match="does not have a @check_roles"):
-            machine._check_action_roles(action, context_admin, metadata)
+            machine._check_action_roles(action, context_admin)
 
 
 # ═════════════════════════════════════════════════════════════════════════════

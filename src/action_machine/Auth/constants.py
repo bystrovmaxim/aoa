@@ -6,30 +6,20 @@ ActionMachine authentication constants.
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-This module contains special string constants used by the @check_roles decorator
-and ActionProductMachine to determine the role-checking mode.
-
-Constants are defined at module scope (not inside a class), which enables
-easy import and usage:
-
-    from action_machine.auth import ROLE_NONE, ROLE_ANY
+Provide special string constants used by the ``@check_roles`` decorator and
+``ActionProductMachine`` to determine the role-checking mode.
 
 ═══════════════════════════════════════════════════════════════════════════════
 CONSTANTS
 ═══════════════════════════════════════════════════════════════════════════════
 
-    ROLE_NONE : str
-        Marker for "authentication not required." The action is available to any
-        user, including anonymous users with no roles. The machine skips role
-        checks when validating this marker.
-
-    ROLE_ANY : str
-        Marker for "any role is acceptable." The action requires authentication
-        and the user must have at least one role, but the specific role does not
-        matter.
+- ``ROLE_NONE`` — authentication not required; action is available to everyone,
+  including anonymous users.
+- ``ROLE_ANY``  — authentication required, but any role is acceptable; the user
+  must have at least one role.
 
 ═══════════════════════════════════════════════════════════════════════════════
-USAGE
+EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
     from action_machine.auth import check_roles, ROLE_NONE, ROLE_ANY
@@ -42,29 +32,24 @@ USAGE
     class ProfileAction(BaseAction[ProfileParams, ProfileResult]):
         ...
 
-    @check_roles("admin")
-    class AdminAction(BaseAction[AdminParams, AdminResult]):
-        ...
-
-    @check_roles(["user", "manager"])
-    class OrderAction(BaseAction[OrderParams, OrderResult]):
-        ...
-
 ═══════════════════════════════════════════════════════════════════════════════
-INTEGRATION WITH THE MACHINE
+INTEGRATION
 ═══════════════════════════════════════════════════════════════════════════════
 
-ActionProductMachine._check_action_roles() compares the spec from ClassMetadata
-against these constants:
+``ActionProductMachine._check_action_roles()`` compares the role spec from the
+snapshot against these constants to decide whether to allow or deny execution.
 
-    if role_spec == ROLE_NONE:
-        # Access without authentication is always allowed
-    elif role_spec == ROLE_ANY:
-        # At least one role is required
-    elif isinstance(role_spec, list):
-        # One of the listed roles is required
-    else:
-        # A specific role is required
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE-BEGIN
+═══════════════════════════════════════════════════════════════════════════════
+ROLE: Authentication constants module.
+CONTRACT: Export ROLE_NONE and ROLE_ANY as immutable string markers.
+INVARIANTS: Constants are read‑only; their values are fixed.
+FLOW: Imported by decorators and machine; used in runtime role checks.
+FAILURES: None (pure constants).
+EXTENSION POINTS: New special markers can be added following the same pattern.
+AI-CORE-END
+═══════════════════════════════════════════════════════════════════════════════
 """
 
 ROLE_NONE: str = "__NONE__"

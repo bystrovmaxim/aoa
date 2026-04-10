@@ -1,175 +1,116 @@
 # src/action_machine/adapters/__init__.py
 """
-ActionMachine adapters package.
+ActionMachine adapter package exports.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Contains the adapter infrastructure — components that translate external
-protocols (HTTP, MCP, gRPC, CLI) into calls to
+Expose the shared adapter contract used to bridge external protocols to
 ``machine.run(context, action, params, connections)``.
 
-An adapter is a bridge between the outside world and the ActionMachine core.
-It accepts a protocol-specific request (HTTP request, MCP tool call, gRPC
-message), extracts parameters, authenticates the user, invokes the action via
-the machine, and returns the result in a protocol-specific format.
+The package-level docstring is an operator-facing overview: what components are
+exported, how data flows through adapters, and which invariants govern
+route typing and mapper usage.
 
 ═══════════════════════════════════════════════════════════════════════════════
-COMPONENTS
+ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-- BaseAdapter[R] — abstract generic adapter class. The R parameter is the type
-  of a concrete RouteRecord (subclass of BaseRouteRecord). It defines the
-  contract: storing routes in _routes and building a protocol application via
-  build(). Concrete adapters (FastApiAdapter, McpAdapter) inherit BaseAdapter,
-  implement protocol-specific registration methods (post, get, tool), and
-  implement build().
+Concrete adapters register protocol routes/tools into typed route records.
+At runtime they map protocol payloads to action params, execute machine calls,
+and map action results back to protocol responses.
 
-- BaseRouteRecord — abstract frozen dataclass that stores the configuration of
-  a single registered route. It contains fields common to all protocols and
-  optional mapping fields (request_model, response_model, params_mapper,
-  response_mapper). Protocol-specific fields (HTTP method, path, tags,
-  tool_name) are defined in concrete subclasses (FastApiRouteRecord,
-  McpRouteRecord). It cannot be instantiated directly.
+This package exports the protocol-agnostic core:
+- ``BaseAdapter`` for route registration and build lifecycle.
+- ``BaseRouteRecord`` for route metadata and mapping contracts.
+- ``extract_action_types`` to derive params/result types from action generics.
 
-- extract_action_types(action_class) — function that extracts the generic P
-  and R parameters from BaseAction[P, R]. It walks __orig_bases__ in the action
-  class MRO. It is called automatically when creating a RouteRecord.
+Concrete adapters overview:
+- ``contrib.fastapi.FastApiAdapter`` registers HTTP routes (``post/get/...``),
+  builds FastAPI app, and maps machine/domain errors to HTTP responses.
+- ``contrib.mcp.McpAdapter`` registers MCP tools (``tool``), builds MCP server,
+  and maps machine/domain errors to MCP-compatible error semantics.
 
-═══════════════════════════════════════════════════════════════════════════════
-CONCRETE ADAPTERS
-═══════════════════════════════════════════════════════════════════════════════
+Architecture sketch:
 
-FastApiAdapter (action_machine.contrib.fastapi):
-    Converts an Action into FastAPI HTTP endpoints. Protocol methods:
-    post(), get(), put(), delete(), patch(). It generates OpenAPI schema from
-    Pydantic Params/Result models and the @meta decorator.
-
-McpAdapter (action_machine.contrib.mcp):
-    Converts an Action into MCP tools for AI agents. Protocol method:
-    tool(). It generates inputSchema from Pydantic Params models. It registers
-    the system resource graph with system://graph. It supports register_all()
-    for automatic registration of all Actions from the coordinator.
-
-═══════════════════════════════════════════════════════════════════════════════
-TYPE EXTRACTION
-═══════════════════════════════════════════════════════════════════════════════
-
-params_type and result_type are ALWAYS extracted automatically from the generic
-parameters BaseAction[P, R] of the action class. The developer never specifies
-them manually. This is the single source of truth: the types are defined in the
-action class and are not duplicated.
-
-If protocol models (request_model, response_model) match params_type/result_type,
-then they are omitted. Mappers are only needed when protocol models differ
-from the action types.
+    ┌──────────────────────┐
+    │  External protocol   │  HTTP / MCP / ...
+    └──────────┬───────────┘
+               │
+               ▼
+    ┌──────────────────────┐
+    │  Concrete Adapter    │  FastApiAdapter / McpAdapter
+    │  extends BaseAdapter │
+    │  registers route/tool│
+    └──────────┬───────────┘
+               │ machine.run(context, action, params, connections)
+               ▼
+    ┌──────────────────────┐
+    │ ActionProductMachine │
+    └──────────────────────┘
 
 ═══════════════════════════════════════════════════════════════════════════════
-ERROR HANDLING
+INVARIANTS
 ═══════════════════════════════════════════════════════════════════════════════
 
-Error handling is the responsibility of the concrete adapter. The adapter
-catches ActionMachine exceptions (AuthorizationError, ValidationFieldError,
-ConnectionValidationError, etc.) and maps them to protocol-specific responses:
-
-    FastApiAdapter:
-        AuthorizationError      → HTTP 403 {"detail": "..."}
-        ValidationFieldError    → HTTP 422 {"detail": "..."}
-        Exception               → HTTP 500 {"detail": "Internal server error"}
-
-    McpAdapter:
-        AuthorizationError      → "PERMISSION_DENIED: ..."
-        ValidationFieldError    → "INVALID_PARAMS: ..."
-        Exception               → "INTERNAL_ERROR: ..."
+- Action params/result types come from action generic declarations.
+- Mappers are required only when protocol models differ from action types.
+- ``BaseRouteRecord`` remains abstract; concrete adapters provide protocol fields.
+- Mapper naming follows return value semantics:
+  ``params_mapper`` returns params, ``response_mapper`` returns response.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ROUTE TYPING
+EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
-BaseRouteRecord is abstract and contains only common fields. Each concrete
-adapter defines its own subclass with typed protocol-specific fields. IDEs
-autocomplete concrete fields and mypy verifies types:
-
-    @dataclass(frozen=True)
-    class FastApiRouteRecord(BaseRouteRecord):
-        method: str = "POST"
-        path: str = "/"
-        tags: tuple[str, ...] = ()
-        summary: str = ""
-
-    @dataclass(frozen=True)
-    class McpRouteRecord(BaseRouteRecord):
-        tool_name: str = ""
-        description: str = ""
-
-═══════════════════════════════════════════════════════════════════════════════
-MAPPING INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-BaseRouteRecord validates invariants during creation:
-
-1. If request_model is provided and differs from params_type, params_mapper
-   is required. Without a mapper, the adapter cannot translate the protocol
-   request into action params.
-
-2. If response_model is provided and differs from result_type,
-   response_mapper is required. Without a mapper, the adapter cannot translate
-   the action result into a protocol response.
-
-If request_model is omitted (None) or matches params_type, no mapper is needed
-and the adapter passes the object directly.
-
-═══════════════════════════════════════════════════════════════════════════════
-MAPPER NAMING CONVENTION
-═══════════════════════════════════════════════════════════════════════════════
-
-Each mapper is named for what it RETURNS:
-
-    params_mapper   → returns params   (transforms request → params)
-    response_mapper → returns response (transforms result  → response)
-
-═══════════════════════════════════════════════════════════════════════════════
-CONCRETE ADAPTER API
-═══════════════════════════════════════════════════════════════════════════════
-
-Each concrete adapter defines its own protocol methods. One method call = one
-registered route. The minimal call requires only the path/name and the action
-class:
-
-    # FastAPI:
+    # Happy path
     adapter = FastApiAdapter(machine=machine)
     adapter.post("/orders/create", CreateOrderAction)
     app = adapter.build()
 
-    # MCP:
-    adapter = McpAdapter(machine=machine)
-    adapter.tool("orders.create", CreateOrderAction)
-    server = adapter.build()
+    mcp = McpAdapter(machine=machine)
+    mcp.tool("orders.create", CreateOrderAction)
+    server = mcp.build()
+
+    # Edge case: mapper required when models differ
+    adapter.post("/orders", CreateOrderAction,
+                 request_model=LegacyOrderRequest,
+                 params_mapper=legacy_to_params)
+
+    # Route typing is protocol-specific via BaseRouteRecord subclasses:
+    # FastApiRouteRecord(method, path, tags, ...)
+    # McpRouteRecord(tool_name, description, ...)
 
 ═══════════════════════════════════════════════════════════════════════════════
-ARCHITECTURE
+ERRORS / LIMITATIONS
 ═══════════════════════════════════════════════════════════════════════════════
 
-    ┌──────────────────────┐
-    │  External protocol   │   HTTP, MCP, gRPC, CLI
-    └──────────┬───────────┘
-               │
-               ▼
-    ┌──────────────────────┐
-    │  ConcreteAdapter     │   FastApiAdapter, McpAdapter, ...
-    │  extends BaseAdapter │
-    │                      │
-    │  post(path, action)  │──▶ creates RouteRecord, adds to _routes
-    │  tool(name, action)  │──▶ creates RouteRecord, adds to _routes
-    │  build()             │──▶ protocol application / server
-    └──────────┬───────────┘
-               │
-               │  machine.run(context, action, params, connections)
-               ▼
-    ┌──────────────────────┐
-    │  ActionProductMachine │
-    └──────────────────────┘
+Protocol-specific error mapping is implemented by concrete adapters
+(``contrib.fastapi``, ``contrib.mcp``). This package only exports shared base
+contracts and type-extraction helpers.
+
+Typical mapping examples (implemented in concrete adapters):
+- ``AuthorizationError`` -> HTTP 403 / MCP permission-denied equivalent.
+- ``ValidationFieldError`` -> HTTP 422 / MCP invalid-params equivalent.
+- fallback ``Exception`` -> transport-specific internal-error response.
+
+Type extraction and mapping limitations:
+- ``extract_action_types`` relies on action generic declarations.
+- If protocol request/response models differ from action params/result models,
+  corresponding mappers are required to preserve deterministic conversion.
+
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE-BEGIN
+═══════════════════════════════════════════════════════════════════════════════
+ROLE: Adapters package API surface.
+CONTRACT: Export protocol-agnostic adapter abstractions and action-type extraction helper.
+INVARIANTS: generic action types are source of truth; mapping contracts are validated by route records.
+FLOW: protocol registration -> route records -> machine.run invocation -> protocol response mapping.
+FAILURES: adapter-specific failures and transport error mapping are outside this package.
+EXTENSION POINTS: implement new concrete adapters on top of BaseAdapter/BaseRouteRecord.
+AI-CORE-END
+═══════════════════════════════════════════════════════════════════════════════
 """
 
 from .base_adapter import BaseAdapter

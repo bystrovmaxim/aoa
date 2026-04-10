@@ -25,11 +25,11 @@ HTTP-клиент и т.д.), управляемый через ResourceManager.
         ▼  Декоратор записывает в cls._connection_info
     ConnectionInfo(cls=PostgresManager, key="db", description="Основная БД")
         │
-        ▼  MetadataBuilder._collect_connections(cls)
-    ClassMetadata.connections = (ConnectionInfo(...), ...)
+        ▼  ConnectionGateHostInspector reads _connection_info
+    get_connections(cls) → (ConnectionInfo(...), ...)
         │
         ▼  ActionProductMachine._check_connections(action, connections, metadata)
-    Сравнивает metadata.get_connection_keys() с фактическими ключами
+    Сравнивает объявленные ключи (scratch / снимок ``connections``) с фактическими
         │
         ▼  Аспекты получают connections["db"] — экземпляр PostgresManager
 
@@ -97,9 +97,8 @@ class ConnectionInfo:
     Неизменяемая запись об одном подключении к внешнему ресурсу.
 
     Создаётся декоратором @connection и сохраняется в cls._connection_info.
-    MetadataBuilder читает этот список и включает в ClassMetadata.connections.
-    ActionProductMachine использует metadata.get_connection_keys() для
-    валидации переданных соединений.
+    Снимок соединений строит ``ConnectionGateHostInspector``; машина валидирует
+    ключи по scratch класса действия (см. ``scratch_connection_keys()``).
 
     Атрибуты:
         cls: класс менеджера ресурсов (подкласс BaseResourceManager).

@@ -22,8 +22,8 @@
 
 - on_error — декоратор уровня метода. Принимает один тип исключения
   или кортеж типов и обязательное описание (description). Записывает
-  метаданные в атрибут method._on_error_meta. MetadataBuilder собирает
-  их в ClassMetadata.error_handlers (tuple[OnErrorMeta, ...]).
+  метаданные в атрибут method._on_error_meta. Typed-снимок формирует
+  OnErrorGateHostInspector; чтение снимка — ``get_snapshot(cls, \"error_handler\")``.
 
 ═══════════════════════════════════════════════════════════════════════════════
 МЕХАНИЗМ РАБОТЫ

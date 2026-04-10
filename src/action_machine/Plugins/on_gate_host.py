@@ -55,10 +55,10 @@ aspect_name_pattern, nest_level, domain, predicate) сужают выборку
     #       ignore_exceptions=False,
     #   )]
 
-    # MetadataBuilder → collectors.collect_subscriptions(cls)
-    #   Обходит vars(cls), находит _on_subscriptions → ClassMetadata.subscriptions.
+    # MetadataBuilder / SubscriptionGateHostInspector собирают subscriptions (валидация);
+    #   снимок подписок — GateCoordinator.get_subscriptions().
 
-    # MetadataBuilder → validators.validate_gate_hosts(cls, ...)
+    # MetadataBuilder → require_*_gate_host_marker + validate_subscriptions
     #   Проверяет: есть подписки → issubclass(cls, OnGateHost) → OK.
 
     # PluginRunContext.emit_event(event):
@@ -102,6 +102,14 @@ ContextRequiresGateHost и DescribedFieldsGateHost.
             return state
 """
 
+from __future__ import annotations
+
+import inspect
+from typing import Any
+
+from action_machine.plugins.events import BasePluginEvent
+from action_machine.plugins.subscription_info import SubscriptionInfo
+
 
 class OnGateHost:
     """
@@ -112,9 +120,9 @@ class OnGateHost:
     BasePluginEvent (GlobalStartEvent, GlobalFinishEvent,
     AfterRegularAspectEvent, UnhandledErrorEvent и т.д.).
 
-    MetadataBuilder собирает подписки из method._on_subscriptions
-    в ClassMetadata.subscriptions, а PluginRunContext использует их
-    для маршрутизации событий через цепочку фильтров.
+    MetadataBuilder валидирует подписки из method._on_subscriptions;
+    снимок — ``GateCoordinator.get_subscriptions()``. PluginRunContext
+    маршрутизирует события через цепочку фильтров.
 
     Миксин не содержит логики, полей или методов. Его функция —
     документировать контракт и обеспечивать единообразие с другими
@@ -133,7 +141,79 @@ class OnGateHost:
             - predicate: Callable | None — произвольный фильтр
             - ignore_exceptions: bool — подавление ошибок обработчика
             - method_name: str — имя метода-обработчика
-            Читается MetadataBuilder при сборке ClassMetadata.subscriptions.
+            Читается collect_subscriptions при сборке (валидация).
     """
 
     pass
+
+
+def require_on_gate_host_marker(cls: type, subscriptions: list[Any]) -> None:
+    """Есть подписки @on → класс должен наследовать OnGateHost."""
+    if subscriptions and not issubclass(cls, OnGateHost):
+        event_classes = ", ".join(
+            s.event_class.__name__ if isinstance(s, SubscriptionInfo) else str(s)
+            for s in subscriptions
+        )
+        raise TypeError(
+            f"Класс {cls.__name__} содержит подписки на события ({event_classes}), "
+            f"но не наследует OnGateHost. Декоратор @on разрешён только "
+            f"на классах, наследующих OnGateHost. Используйте Plugin "
+            f"или добавьте OnGateHost в цепочку наследования."
+        )
+
+
+def _extract_event_annotation(cls: type, method_name: str) -> type | None:
+    func = None
+    for klass in cls.__mro__:
+        if method_name in vars(klass):
+            func = vars(klass)[method_name]
+            break
+
+    if func is None:
+        return None
+
+    try:
+        sig = inspect.signature(func)
+    except (ValueError, TypeError):
+        return None
+
+    params_list = list(sig.parameters.values())
+
+    if len(params_list) < 3:
+        return None
+
+    event_param = params_list[2]
+    annotation = event_param.annotation
+    if annotation is inspect.Parameter.empty:
+        return None
+
+    if isinstance(annotation, type) and issubclass(annotation, BasePluginEvent):
+        return annotation
+
+    return None
+
+
+def validate_subscriptions(
+    cls: type,
+    subscriptions: list[SubscriptionInfo],
+) -> None:
+    """Совместимость event_class из @on с аннотацией параметра event."""
+    for sub in subscriptions:
+        if not isinstance(sub, SubscriptionInfo):
+            continue
+
+        annotation = _extract_event_annotation(cls, sub.method_name)
+        if annotation is None:
+            continue
+
+        if not issubclass(sub.event_class, annotation):
+            raise TypeError(
+                f"Класс {cls.__name__}: метод '{sub.method_name}' подписан "
+                f"на {sub.event_class.__name__} через @on, но параметр event "
+                f"аннотирован как {annotation.__name__}. Тип "
+                f"{sub.event_class.__name__} не является подклассом "
+                f"{annotation.__name__}, поэтому обработчик может получить "
+                f"событие без ожидаемых полей. Измените аннотацию на "
+                f"{sub.event_class.__name__} или более общий тип "
+                f"(например, BasePluginEvent)."
+            )

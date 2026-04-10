@@ -1,42 +1,41 @@
-# tests/domain/error_plugins.py
+# tests/domain_model/error_plugins.py
 """
-Тестовые плагины для наблюдения за ошибками аспектов.
-═══════════════════════════════════════════════════════════════════════════════
-НАЗНАЧЕНИЕ
-═══════════════════════════════════════════════════════════════════════════════
-Содержит плагины, подписанные на типизированные события ошибок из
-иерархии BasePluginEvent для тестирования механизма наблюдения за
-ошибками аспектов. Плагины-наблюдатели не могут изменить результат
-или подавить ошибку — они только записывают информацию в своё
-per-request состояние.
-
-Типизированные события ошибок:
-    UnhandledErrorEvent       — ошибка без подходящего @on_error обработчика
-    BeforeOnErrorAspectEvent  — перед вызовом найденного @on_error обработчика
-    AfterOnErrorAspectEvent   — после успешного @on_error обработчика
-
-Машина (ActionProductMachine) эмитирует эти события в _handle_aspect_error():
-- Если @on_error обработчик найден → BeforeOnErrorAspectEvent, затем
-  AfterOnErrorAspectEvent после успешного вызова.
-- Если @on_error обработчик не найден → UnhandledErrorEvent, затем
-  исходное исключение пробрасывается наружу.
+Test plugins that observe aspect errors.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ПЛАГИНЫ
+PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
-- ErrorObserverPlugin — записывает все ошибки в state["errors"].
-  Подписан на UnhandledErrorEvent и BeforeOnErrorAspectEvent.
-  Записывает action_name, тип ошибки, сообщение и тип события.
 
-- ErrorCounterPlugin — считает количество ошибок в state["count"].
-  Подписан на UnhandledErrorEvent и BeforeOnErrorAspectEvent.
-  Разделяет на handled (BeforeOnErrorAspectEvent — обработчик найден)
-  и unhandled (UnhandledErrorEvent — обработчик не найден).
+Plugins subscribed to typed error events from the BasePluginEvent hierarchy
+for testing aspect error observation. Observer plugins cannot change the outcome
+or suppress errors — they only record information in per-request state.
+
+Typed error events:
+    UnhandledErrorEvent       — no matching @on_error handler
+    BeforeOnErrorAspectEvent  — before invoking a matched @on_error handler
+    AfterOnErrorAspectEvent   — after a successful @on_error handler
+
+ActionProductMachine emits these in _handle_aspect_error():
+- If a handler is found → BeforeOnErrorAspectEvent, then AfterOnErrorAspectEvent
+  after a successful call.
+- If no handler → UnhandledErrorEvent, then the original exception propagates.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ИСПОЛЬЗОВАНИЕ В ТЕСТАХ
+PLUGINS
 ═══════════════════════════════════════════════════════════════════════════════
-    from tests.domain.error_plugins import ErrorObserverPlugin, ErrorCounterPlugin
+
+- ErrorObserverPlugin — appends all errors to state["errors"].
+  Subscribes to UnhandledErrorEvent and BeforeOnErrorAspectEvent.
+  Records action_name, error type, message, and event type.
+
+- ErrorCounterPlugin — counts errors in state["count"].
+  Same subscriptions. Splits into handled (BeforeOnErrorAspectEvent — handler found)
+  and unhandled (UnhandledErrorEvent — no handler).
+
+═══════════════════════════════════════════════════════════════════════════════
+USAGE IN TESTS
+═══════════════════════════════════════════════════════════════════════════════
+    from tests.domain_model.error_plugins import ErrorObserverPlugin, ErrorCounterPlugin
 
     observer = ErrorObserverPlugin()
     counter = ErrorCounterPlugin()
@@ -57,26 +56,26 @@ from action_machine.plugins.plugin import Plugin
 
 class ErrorObserverPlugin(Plugin):
     """
-    Плагин-наблюдатель, записывающий все ошибки аспектов в state.
+    Observer plugin that records aspect errors into state.
 
-    Per-request состояние: {"errors": []}. Каждая ошибка добавляется
-    как словарь с полями action, error_type, error_message, event_type.
+    Per-request state: {"errors": []}. Each error is appended as a dict with
+    action, error_type, error_message, event_type.
 
-    Подписан на два типа событий:
+    Subscribed events:
 
-    1. UnhandledErrorEvent — ошибка без подходящего @on_error обработчика.
-       Поля: error (Exception), failed_aspect_name (str | None).
-       has_handler записывается как False.
+    1. UnhandledErrorEvent — no matching @on_error handler.
+       Fields: error (Exception), failed_aspect_name (str | None).
+       has_handler is False.
 
-    2. BeforeOnErrorAspectEvent — перед вызовом найденного @on_error.
-       Поля: error (Exception), handler_name (str).
-       has_handler записывается как True.
+    2. BeforeOnErrorAspectEvent — before calling a matched @on_error handler.
+       Fields: error (Exception), handler_name (str).
+       has_handler is True.
 
-    Не подавляет ошибки и не изменяет результат — только наблюдает.
+    Does not suppress errors or alter results — observation only.
     """
 
     async def get_initial_state(self) -> dict:
-        """Начальное состояние — пустой список ошибок."""
+        """Initial state — empty error list."""
         return {"errors": []}
 
     @on(UnhandledErrorEvent)
@@ -87,11 +86,10 @@ class ErrorObserverPlugin(Plugin):
         log: ScopedLogger | None,
     ) -> dict:
         """
-        Записывает информацию о необработанной ошибке в state["errors"].
+        Record an unhandled error in state["errors"].
 
-        UnhandledErrorEvent эмитируется когда ни один @on_error обработчик
-        не подошёл по типу исключения. После эмиссии этого события
-        исходное исключение пробрасывается наружу из machine.run().
+        UnhandledErrorEvent is emitted when no @on_error handler matches.
+        After this event, the original exception propagates from machine.run().
         """
         state["errors"].append({
             "action": event.action_name,
@@ -111,11 +109,10 @@ class ErrorObserverPlugin(Plugin):
         log: ScopedLogger | None,
     ) -> dict:
         """
-        Записывает информацию об ошибке перед вызовом @on_error обработчика.
+        Record an error before the @on_error handler runs.
 
-        BeforeOnErrorAspectEvent эмитируется когда машина нашла подходящий
-        @on_error обработчик, но ещё не вызвала его. Плагин-наблюдатель
-        фиксирует факт ошибки и имя обработчика.
+        BeforeOnErrorAspectEvent is emitted when a handler was found but not yet
+        invoked. The observer records the error and handler name.
         """
         state["errors"].append({
             "action": event.action_name,
@@ -130,18 +127,18 @@ class ErrorObserverPlugin(Plugin):
 
 class ErrorCounterPlugin(Plugin):
     """
-    Плагин-счётчик ошибок аспектов.
+    Counter plugin for aspect errors.
 
-    Per-request состояние: {"count": 0, "handled_count": 0, "unhandled_count": 0}.
-    Инкрементирует count при каждом событии ошибки.
-    Разделяет на handled (BeforeOnErrorAspectEvent — обработчик найден)
-    и unhandled (UnhandledErrorEvent — обработчик не найден).
+    Per-request state: {"count": 0, "handled_count": 0, "unhandled_count": 0}.
+    Increments count on each error event.
+    handled = BeforeOnErrorAspectEvent (handler exists).
+    unhandled = UnhandledErrorEvent (no handler).
 
-    Подписан на два типа событий для раздельного подсчёта.
+    Subscribes to both event types for separate counts.
     """
 
     async def get_initial_state(self) -> dict:
-        """Начальное состояние — нулевые счётчики."""
+        """Initial state — zero counters."""
         return {"count": 0, "handled_count": 0, "unhandled_count": 0}
 
     @on(UnhandledErrorEvent)
@@ -152,10 +149,10 @@ class ErrorCounterPlugin(Plugin):
         log: ScopedLogger | None,
     ) -> dict:
         """
-        Инкрементирует счётчики для необработанной ошибки.
+        Increment counters for an unhandled error.
 
-        count — общее количество ошибок.
-        unhandled_count — ошибки без обработчика (пробросятся наружу).
+        count — total errors.
+        unhandled_count — errors without a handler (will propagate).
         """
         state["count"] += 1
         state["unhandled_count"] += 1
@@ -169,10 +166,10 @@ class ErrorCounterPlugin(Plugin):
         log: ScopedLogger | None,
     ) -> dict:
         """
-        Инкрементирует счётчики для обработанной ошибки.
+        Increment counters for a handled error.
 
-        count — общее количество ошибок.
-        handled_count — ошибки, для которых Action имеет обработчик.
+        count — total errors.
+        handled_count — errors for which the Action has a handler.
         """
         state["count"] += 1
         state["handled_count"] += 1

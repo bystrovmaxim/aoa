@@ -26,7 +26,7 @@ from fastapi.testclient import TestClient
 
 from action_machine.contrib.fastapi.adapter import FastApiAdapter
 from action_machine.core.action_product_machine import ActionProductMachine
-from action_machine.core.gate_coordinator import GateCoordinator
+from action_machine.metadata.gate_coordinator import GateCoordinator
 from tests.domain_model import PingAction, SimpleAction
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -37,7 +37,7 @@ from tests.domain_model import PingAction, SimpleAction
 def _build_app_with_routes(**adapter_kwargs) -> TestClient:
     """Build a FastAPI app with standard test routes and return a TestClient."""
     coordinator = GateCoordinator()
-    machine = ActionProductMachine(mode="test", coordinator=coordinator)
+    machine = ActionProductMachine(mode="test")
     auth = AsyncMock()
     auth.process.return_value = None
 
@@ -214,7 +214,7 @@ class TestDeprecatedFlag:
     def test_deprecated_in_schema(self) -> None:
         """A route registered with deprecated=True shows deprecated in schema."""
         coordinator = GateCoordinator()
-        machine = ActionProductMachine(mode="test", coordinator=coordinator)
+        machine = ActionProductMachine(mode="test")
         auth = AsyncMock()
         auth.process.return_value = None
 

@@ -19,7 +19,7 @@ All tests use Actions from tests/domain/error_actions.py.
 import pytest
 
 from action_machine.core.exceptions import OnErrorHandlerError
-from action_machine.core.gate_coordinator import GateCoordinator
+from action_machine.core.core_action_machine import CoreActionMachine
 from action_machine.logging.log_coordinator import LogCoordinator
 from action_machine.testing import TestBench
 from tests.domain_model import (
@@ -39,7 +39,7 @@ from tests.domain_model import (
 def bench() -> TestBench:
     """TestBench with quiet logger (no console output)."""
     return TestBench(
-        coordinator=GateCoordinator(),
+        coordinator=CoreActionMachine.create_coordinator(),
         log_coordinator=LogCoordinator(loggers=[]),
     )
 
@@ -66,7 +66,7 @@ class TestOnErrorCatchesMatchingException:
         )
         # Assert — result from handler, not from summary
         assert result.status == "handled"
-        assert "Ошибка обработки: test" in result.detail
+        assert "Processing error: test" in result.detail
 
     @pytest.mark.asyncio()
     async def test_normal_execution_no_error(self, bench: TestBench) -> None:
@@ -148,7 +148,7 @@ class TestOnErrorNoHandler:
         # Arrange — parameters causing error
         params = ErrorTestParams(value="fail", should_fail=True)
         # Act & Assert — ValueError not caught, propagates outward
-        with pytest.raises(ValueError, match="Ошибка: fail"):
+        with pytest.raises(ValueError, match="Error: fail"):
             await bench.run(NoErrorHandlerAction(), params, rollup=False)
 
 
@@ -307,7 +307,7 @@ class TestOnErrorWithoutCompensatorsRegression:
 
         # Assert — result from @on_error handler
         assert result.status == "handled"
-        assert "Ошибка обработки: regression_test" in result.detail
+        assert "Processing error: regression_test" in result.detail
 
     @pytest.mark.asyncio()
     async def test_no_handler_propagates_without_compensators(self, bench: TestBench) -> None:
@@ -320,5 +320,5 @@ class TestOnErrorWithoutCompensatorsRegression:
         params = ErrorTestParams(value="no_handler", should_fail=True)
 
         # Act & Assert — ValueError propagates unchanged
-        with pytest.raises(ValueError, match="Ошибка: no_handler"):
+        with pytest.raises(ValueError, match="Error: no_handler"):
             await bench.run(NoErrorHandlerAction(), params, rollup=False)

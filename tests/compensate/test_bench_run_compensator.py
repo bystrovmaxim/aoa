@@ -38,6 +38,7 @@ from action_machine.core.base_action import BaseAction
 from action_machine.core.base_params import BaseParams
 from action_machine.core.base_result import BaseResult
 from action_machine.core.base_state import BaseState
+from action_machine.core.core_action_machine import CoreActionMachine
 from action_machine.core.meta_decorator import meta
 from action_machine.dependencies.depends import depends
 from action_machine.testing import TestBench
@@ -136,6 +137,7 @@ class TestRunCompensatorBasic:
         mock_payment.refund.reset_mock()
 
         bench = TestBench(
+            coordinator=CoreActionMachine.create_coordinator(),
             mocks={
                 PaymentService: mock_payment,
                 InventoryService: mock_inventory,
@@ -179,6 +181,7 @@ class TestRunCompensatorBasic:
         mock_payment.refund.side_effect = RuntimeError("Шлюз недоступен")
 
         bench = TestBench(
+            coordinator=CoreActionMachine.create_coordinator(),
             mocks={
                 PaymentService: mock_payment,
                 InventoryService: mock_inventory,
@@ -221,6 +224,7 @@ class TestRunCompensatorBasic:
         mock_payment.refund.reset_mock()
 
         bench = TestBench(
+            coordinator=CoreActionMachine.create_coordinator(),
             mocks={
                 PaymentService: mock_payment,
                 InventoryService: mock_inventory,
@@ -266,7 +270,10 @@ class TestRunCompensatorValidation:
         Несуществующий метод → ValueError с понятным сообщением.
         """
         # ── Arrange ──
-        bench = TestBench(log_coordinator=AsyncMock())
+        bench = TestBench(
+            coordinator=CoreActionMachine.create_coordinator(),
+            log_coordinator=AsyncMock(),
+        )
 
         params = CompensateTestParams(user_id="u", amount=1.0)
         state_before = BaseState()
@@ -290,7 +297,10 @@ class TestRunCompensatorValidation:
         charge_aspect — это regular-аспект, не компенсатор.
         """
         # ── Arrange ──
-        bench = TestBench(log_coordinator=AsyncMock())
+        bench = TestBench(
+            coordinator=CoreActionMachine.create_coordinator(),
+            log_coordinator=AsyncMock(),
+        )
 
         params = CompensateTestParams(user_id="u", amount=1.0)
         state_before = BaseState()
@@ -320,6 +330,7 @@ class TestRunCompensatorValidation:
         # ── Arrange ──
         mock_payment = AsyncMock(spec=PaymentService)
         bench = TestBench(
+            coordinator=CoreActionMachine.create_coordinator(),
             mocks={PaymentService: mock_payment},
             log_coordinator=AsyncMock(),
         )
@@ -363,6 +374,7 @@ class TestRunCompensatorContext:
         mock_payment.refund.reset_mock()
 
         bench = TestBench(
+            coordinator=CoreActionMachine.create_coordinator(),
             mocks={PaymentService: mock_payment},
             log_coordinator=AsyncMock(),
         ).with_user(user_id="ctx_user_99", roles=["tester"])
@@ -404,6 +416,7 @@ class TestRunCompensatorContext:
         # run_compensator() использует этот контекст для создания
         # ContextView, а не аргумент context=.
         bench = TestBench(
+            coordinator=CoreActionMachine.create_coordinator(),
             mocks={PaymentService: mock_payment},
             log_coordinator=AsyncMock(),
         ).with_user(user_id="verified_user_42", roles=["tester"])

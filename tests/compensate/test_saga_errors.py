@@ -69,7 +69,7 @@ class TestCompensatorErrorSuppressed:
         )
 
         # ── Act & Assert ──
-        with pytest.raises(ValueError, match="Ошибка финализации"):
+        with pytest.raises(ValueError, match="Finalize error"):
             await compensate_bench.run(
                 CompensateErrorAction(),
                 params,
@@ -150,7 +150,7 @@ class TestOnErrorReceivesOriginalError:
     2. _rollback_saga(): rollback_reserve → rollback_charge (оба успешно).
     3. _handle_aspect_error(): @on_error(ValueError) → Result.
 
-    @on_error получает ValueError с сообщением "Ошибка финализации для ...",
+    @on_error receives ValueError with message "Finalize error for ...",
     а не какую-либо ошибку компенсатора.
     """
 
@@ -180,7 +180,7 @@ class TestOnErrorReceivesOriginalError:
 
         # ── Assert ──
         assert result.status == "handled_after_compensate"
-        assert "Ошибка финализации для user_original" in result.detail
+        assert "Finalize error for user_original" in result.detail
 
     @pytest.mark.anyio
     async def test_compensators_called_before_on_error(

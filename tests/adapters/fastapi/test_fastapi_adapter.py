@@ -29,7 +29,6 @@ from fastapi.testclient import TestClient
 from action_machine.contrib.fastapi.adapter import FastApiAdapter
 from action_machine.contrib.fastapi.route_record import FastApiRouteRecord
 from action_machine.core.action_product_machine import ActionProductMachine
-from action_machine.core.gate_coordinator import GateCoordinator
 from tests.domain_model import PingAction, SimpleAction
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -39,7 +38,7 @@ from tests.domain_model import PingAction, SimpleAction
 
 def _make_adapter(**kwargs) -> FastApiAdapter:
     """Create a FastApiAdapter with sensible test defaults."""
-    machine = ActionProductMachine(mode="test", coordinator=GateCoordinator())
+    machine = ActionProductMachine(mode="test")
     auth = AsyncMock()
     auth.process.return_value = None
     return FastApiAdapter(
@@ -146,7 +145,7 @@ class TestRouteRegistration:
         adapter = _make_adapter()
         adapter.post("/ping", PingAction)
 
-        # PingAction has @meta(description="Проверка доступности сервиса")
+        # PingAction has @meta(description="Service health check")
         assert adapter.routes[0].summary != ""
 
     def test_operation_id_passed(self) -> None:

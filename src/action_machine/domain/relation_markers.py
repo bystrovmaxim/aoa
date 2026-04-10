@@ -1,102 +1,136 @@
 # src/action_machine/domain/relation_markers.py
 """
-Маркеры связей доменной модели: Inverse, NoInverse, Rel.
+**Relation markers** for entity fields: ``Inverse``, ``NoInverse``, and ``Rel``.
+
+These types sit beside relation **container** types (``AssociationOne``, …) in
+``typing.Annotated`` and in field defaults. They tell the gate **coordinator**
+how edges connect, whether a back-reference exists, and supply human-readable
+**scratch** for diagrams and generated docs.
 
 ═══════════════════════════════════════════════════════════════════════════════
-НАЗНАЧЕНИЕ
+PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Модуль содержит три компонента, используемых при объявлении связей между
-сущностями в доменной модели ActionMachine:
-
-1. Inverse — маркер обратной связи. Указывает, какое поле целевой сущности
-   является парой для данной связи.
-
-2. NoInverse — маркер отсутствия обратной связи. Явное указание, что
-   у данной связи нет парного поля на целевой сущности.
-
-3. Rel — дескриптор описания связи. Содержит обязательное текстовое
-   описание связи и используется как значение по умолчанию для поля.
-
-Каждая связь между сущностями обязана иметь:
-- Контейнер связи (CompositeOne, AssociationMany и т.д.) — тип поля.
-- Inverse или NoInverse — в Annotated-аннотации.
-- Rel(description="...") — как значение поля (default).
-
-Отсутствие Inverse или NoInverse — ошибка сборки координатора.
-Отсутствие Rel — ошибка сборки координатора.
+Disambiguate multi-edge graphs (e.g. two ``AssociationMany[OrderEntity]`` fields
+on ``CustomerEntity``) with an explicit **inverse** pointer, require a **non-empty
+relation description** on every declared edge, and support truly one-way links
+via ``NoInverse``.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ПОЧЕМУ INVERSE ОБЯЗАТЕЛЕН
+SCOPE (IN / OUT)
 ═══════════════════════════════════════════════════════════════════════════════
 
-Автоматический поиск обратных связей ломается при дублировании типов.
-Если у сущности Customer есть два поля orders и invoices, оба типа
-AssociationMany[OrderEntity], координатор не сможет определить, какое
-из них является парой для OrderEntity.customer. Явный Inverse — одна
-строка, которая делает связь однозначной, читаемой и безопасной при
-рефакторинге.
+**In scope**
+    Constructing immutable marker objects and validating their constructor inputs.
+    Pairing with ``Annotated[..., Inverse(...)]`` or ``NoInverse()`` plus
+    ``= Rel(description=...)`` on entity model fields.
+
+**Out of scope**
+    Proving the inverse field exists, types match, or ownership is compatible —
+    **inspectors** and ``GateCoordinator.build()`` do that.
+    Loading related rows from storage.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ПОЧЕМУ ОПИСАНИЕ ОБЯЗАТЕЛЬНО
+TERMINOLOGY (USE CONSISTENTLY)
 ═══════════════════════════════════════════════════════════════════════════════
 
-Каждая связь обязана иметь текстовое описание. Описание — структурное
-метаданное, которое попадёт в ArchiMate-диаграмму, OCEL-схему и
-автогенерированную документацию. Если связь двусторонняя (есть Inverse) —
-обе стороны обязаны иметь Rel(description). Координатор проверяет при
-сборке.
+**Gate host / decorator / scratch / inspector / gate coordinator** — entity
+relation metadata becomes facet payloads when **inspectors** read annotations
+and defaults; the **gate coordinator** graph stores validated edges.
 
 ═══════════════════════════════════════════════════════════════════════════════
-СИНТАКСИС ОБЪЯВЛЕНИЯ СВЯЗИ
+ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-    from typing import Annotated
-    from action_machine.domain import (
-        AssociationOne, AssociationMany, Inverse, NoInverse, Rel,
-    )
-
-    @entity(description="Заказ клиента", domain=ShopDomain)
-    class OrderEntity(BaseEntity):
-        # Двусторонняя связь: OrderEntity.customer ↔ CustomerEntity.orders
-        customer: Annotated[
-            AssociationOne[CustomerEntity],
-            Inverse(CustomerEntity, "orders"),
-        ] = Rel(description="Клиент, оформивший заказ")
-
-    @entity(description="Клиент", domain=ShopDomain)
-    class CustomerEntity(BaseEntity):
-        # Обратная сторона связи
-        orders: Annotated[
-            AssociationMany[OrderEntity],
-            Inverse(OrderEntity, "customer"),
-        ] = Rel(description="Заказы клиента")
-
-    # Односторонняя связь (без обратной стороны):
-    @entity(description="Лог аудита", domain=AuditDomain)
-    class AuditLogEntity(BaseEntity):
-        target: Annotated[
-            AssociationOne[OrderEntity],
-            NoInverse(),
-        ] = Rel(description="Объект аудита")
-
-═══════════════════════════════════════════════════════════════════════════════
-АРХИТЕКТУРА ИНТЕГРАЦИИ
-═══════════════════════════════════════════════════════════════════════════════
+::
 
     Annotated[AssociationOne[CustomerEntity], Inverse(CustomerEntity, "orders")]
         │
-        ▼  EntityCoordinator при сборке метаданных
-    Извлекает из аннотации: контейнер, Inverse/NoInverse
-    Извлекает из значения поля: Rel(description)
+        │  class default
+        v
+    = Rel(description="…")
         │
-        ▼  Проверки координатора
-    1. Inverse-пара существует на целевой сущности.
-    2. Обе стороны имеют Rel(description).
-    3. Типы владения совместимы (матрица).
-        │
-        ▼  Граф координатора
-    Рёбра между узлами entity с типом связи (composition/aggregation/association).
+        │  GateCoordinator.build() + EntityGateHostInspector
+        v
+    validated entity–entity edges (composition / aggregation / association)
+
+Coordinator checks (conceptually): inverse field present and typed, both ends
+carry ``Rel``, ownership matrix, etc.
+
+═══════════════════════════════════════════════════════════════════════════════
+INVARIANTS
+═══════════════════════════════════════════════════════════════════════════════
+
+- Every relation field must carry **either** ``Inverse`` **or** ``NoInverse`` in
+  its annotation (validated at **build** time, not in this module).
+- Every relation field must use ``Rel(description=...)`` as the declared default
+  (also build time).
+- ``Inverse.target_entity`` is a ``type``; ``Inverse.field_name`` is a non-empty
+  stripped string.
+- ``Rel.description`` is a non-empty stripped string.
+- All three public classes are **frozen** after ``__init__``.
+
+═══════════════════════════════════════════════════════════════════════════════
+RATIONALE
+═══════════════════════════════════════════════════════════════════════════════
+
+Heuristic inverse discovery breaks when multiple fields share the same target
+type; an explicit ``Inverse(Target, "field")`` is one line, refactor-friendly,
+and matches how architects draw navigable graphs. Mandatory descriptions keep
+the model a **specification**, not just code. ``NoInverse`` makes one-way edges
+explicit instead of relying on absence, which would be ambiguous for the
+coordinator.
+
+═══════════════════════════════════════════════════════════════════════════════
+LIFECYCLE (IMPORT VS BUILD VS RUNTIME)
+═══════════════════════════════════════════════════════════════════════════════
+
+- **Import**: markers are instantiated in class bodies as annotations/defaults.
+- **Build**: coordinator consumes markers from entity metadata.
+- **Runtime**: entity instances hold **container** values; ``Rel`` typically
+  remains only as the class-level default unless the constructor still sees it
+  (e.g. optional relation omitted in ``build()``).
+
+═══════════════════════════════════════════════════════════════════════════════
+EXAMPLES
+═══════════════════════════════════════════════════════════════════════════════
+
+Bidirectional::
+
+    customer: Annotated[
+        AssociationOne[CustomerEntity],
+        Inverse(CustomerEntity, "orders"),
+    ] = Rel(description="Customer who placed the order")
+
+    orders: Annotated[
+        AssociationMany[OrderEntity],
+        Inverse(OrderEntity, "customer"),
+    ] = Rel(description="Orders for this customer")
+
+One-way::
+
+    target: Annotated[
+        AssociationOne[OrderEntity],
+        NoInverse(),
+    ] = Rel(description="Object under audit")
+
+Edge — invalid ``Inverse``::
+
+    Inverse("not_a_type", "field")  # TypeError
+
+Edge — empty ``Rel``::
+
+    Rel(description="   ")  # ValueError
+
+═══════════════════════════════════════════════════════════════════════════════
+ERRORS / LIMITATIONS
+═══════════════════════════════════════════════════════════════════════════════
+
+- ``TypeError`` / ``ValueError``: invalid ``Inverse`` or ``Rel`` constructor
+  arguments (this module).
+- ``AttributeError``: mutation of frozen marker instances.
+- Missing ``Inverse``/``NoInverse`` or ``Rel`` on a relation field — reported
+  during coordinator **build**, not here.
 """
 
 from __future__ import annotations
@@ -106,64 +140,55 @@ from typing import Any
 
 class Inverse:
     """
-    Маркер обратной связи в Annotated-аннотации поля сущности.
+    **Inverse-side marker** inside ``Annotated[..., ...]`` for a relation field.
 
-    Указывает координатору, какое поле целевой сущности является парой
-    для данной связи. Координатор при сборке метаданных проверяет:
-    1. Целевая сущность существует и зарегистрирована.
-    2. Указанное поле существует на целевой сущности.
-    3. Поле целевой сущности является контейнером связи.
-    4. Типы владения совместимы (матрица).
-    5. Обе стороны имеют Rel(description).
+    **Role**
+        Name the **target entity class** and the **field name** on that class
+        that completes the edge, so the coordinator can validate a consistent pair.
 
-    Inverse — frozen-объект. После создания изменение невозможно.
+    **Invariants**
+        ``target_entity`` is a ``type``. ``field_name`` is a non-empty ``str``
+        after stripping. Instance is frozen.
 
-    Атрибуты:
-        target_entity : type
-            Класс целевой сущности (наследник BaseEntity).
-            Используется координатором для поиска обратной стороны.
+    **Neighbors**
+        Works with relation **containers** and ``Rel``. Validated against the
+        peer field at ``GateCoordinator.build()``.
 
-        field_name : str
-            Имя поля на целевой сущности, являющегося обратной стороной
-            связи. Координатор проверяет его существование и тип.
-
-    Пример:
-        customer: Annotated[
-            AssociationOne[CustomerEntity],
-            Inverse(CustomerEntity, "orders"),
-        ] = Rel(description="Клиент, оформивший заказ")
+    **Attributes**
+        ``target_entity``
+            Related entity **type** (subclass of ``BaseEntity`` in practice).
+        ``field_name``
+            Attribute name on ``target_entity`` that points back (or across).
     """
 
     __slots__ = ("_field_name", "_target_entity")
 
     def __init__(self, target_entity: type, field_name: str) -> None:
         """
-        Инициализирует маркер обратной связи.
+        Args:
+            target_entity: Related entity class.
+            field_name: Name of the paired field on ``target_entity``.
 
-        Аргументы:
-            target_entity: класс целевой сущности (наследник BaseEntity).
-            field_name: имя поля на целевой сущности.
-
-        Исключения:
-            TypeError: если target_entity не является классом.
-            TypeError: если field_name не является строкой.
-            ValueError: если field_name — пустая строка.
+        Raises:
+            TypeError: ``target_entity`` is not a type, or ``field_name`` is not
+                a ``str``.
+            ValueError: ``field_name`` is empty or whitespace-only.
         """
         if not isinstance(target_entity, type):
             raise TypeError(
-                f"Inverse: target_entity должен быть классом, "
-                f"получен {type(target_entity).__name__}: {target_entity!r}."
+                f"Inverse: target_entity must be a type, "
+                f"got {type(target_entity).__name__}: {target_entity!r}."
             )
 
         if not isinstance(field_name, str):
             raise TypeError(
-                f"Inverse: field_name должен быть строкой, "
-                f"получен {type(field_name).__name__}: {field_name!r}."
+                f"Inverse: field_name must be str, "
+                f"got {type(field_name).__name__}: {field_name!r}."
             )
 
         if not field_name.strip():
             raise ValueError(
-                "Inverse: field_name не может быть пустой строкой."
+                "Inverse: field_name cannot be empty or whitespace-only."
             )
 
         object.__setattr__(self, "_target_entity", target_entity)
@@ -171,19 +196,19 @@ class Inverse:
 
     @property
     def target_entity(self) -> type:
-        """Класс целевой сущности."""
+        """Related entity class."""
         return self._target_entity
 
     @property
     def field_name(self) -> str:
-        """Имя поля на целевой сущности."""
+        """Paired field name on ``target_entity``."""
         return self._field_name
 
     def __setattr__(self, name: str, value: Any) -> None:
-        raise AttributeError("Inverse является frozen-объектом. Запись запрещена.")
+        raise AttributeError("Inverse is frozen; assigning to attributes is not allowed.")
 
     def __delattr__(self, name: str) -> None:
-        raise AttributeError("Inverse является frozen-объектом. Удаление запрещено.")
+        raise AttributeError("Inverse is frozen; deleting attributes is not allowed.")
 
     def __repr__(self) -> str:
         return f"Inverse({self._target_entity.__name__}, '{self._field_name}')"
@@ -202,36 +227,27 @@ class Inverse:
 
 class NoInverse:
     """
-    Маркер отсутствия обратной связи в Annotated-аннотации поля сущности.
+    Explicit **no back-reference** marker in ``Annotated[..., ...]``.
 
-    Явное указание, что у данной связи нет парного поля на целевой
-    сущности. Это НЕ умолчание — каждая связь обязана иметь либо
-    Inverse, либо NoInverse. Отсутствие обоих — ошибка сборки координатора.
+    **Role**
+        State that the target side has **no** paired field in the model (audit
+        log → subject, etc.). This is not implicit omission: the coordinator
+        expects **either** ``Inverse`` **or** ``NoInverse``.
 
-    NoInverse используется для односторонних связей, когда обратная
-    навигация не нужна или не имеет смысла:
+    **Invariants**
+        Singleton-like immutable instance (no attributes, frozen).
 
-    - Лог аудита → целевой объект (логу не нужна обратная ссылка).
-    - Настройка → создатель (настройке не нужен список создателей).
-    - Уведомление → получатель (получателю не нужен список уведомлений
-      в модели, хотя в БД связь может существовать).
-
-    NoInverse — frozen-объект без атрибутов.
-
-    Пример:
-        target: Annotated[
-            AssociationOne[OrderEntity],
-            NoInverse(),
-        ] = Rel(description="Объект аудита")
+    **Neighbors**
+        Combined with a relation container and ``Rel(description=...)``.
     """
 
     __slots__ = ()
 
     def __setattr__(self, name: str, value: Any) -> None:
-        raise AttributeError("NoInverse является frozen-объектом. Запись запрещена.")
+        raise AttributeError("NoInverse is frozen; assigning to attributes is not allowed.")
 
     def __delattr__(self, name: str) -> None:
-        raise AttributeError("NoInverse является frozen-объектом. Удаление запрещено.")
+        raise AttributeError("NoInverse is frozen; deleting attributes is not allowed.")
 
     def __repr__(self) -> str:
         return "NoInverse()"
@@ -247,71 +263,60 @@ class NoInverse:
 
 class Rel:
     """
-    Дескриптор описания связи. Используется как значение по умолчанию
-    для поля-связи сущности.
+    **Relation description** object used as the field **default** for relations.
 
-    Содержит обязательное текстовое описание связи в данном направлении.
-    Описание попадает в ArchiMate-диаграммы, OCEL-схемы и автогенерированную
-    документацию. Если связь двусторонняя (Inverse) — обе стороны обязаны
-    иметь Rel(description). Координатор проверяет при сборке.
+    **Role**
+        Carry a mandatory, non-empty ``description`` string for documentation and
+        graph exports. Pydantic uses it as the declared default; hydrated
+        instances usually replace the field with a **container** value.
 
-    Rel — frozen-объект. После создания изменение невозможно.
+    **Invariants**
+        ``description`` is a non-empty ``str`` after strip. Instance is frozen.
 
-    Rel используется Pydantic как default-значение поля. При создании
-    экземпляра сущности через конструктор или partial() поле-связь
-    получает фактическое значение (контейнер связи), а Rel остаётся
-    только в определении класса как метаданное.
+    **Neighbors**
+        Appears with ``Inverse`` or ``NoInverse`` on the same field. Validated
+        together at coordinator **build**.
 
-    Атрибуты:
-        description : str
-            Текстовое описание связи в данном направлении.
-            Непустая строка. Обязательна.
-
-    Пример:
-        customer: Annotated[
-            AssociationOne[CustomerEntity],
-            Inverse(CustomerEntity, "orders"),
-        ] = Rel(description="Клиент, оформивший заказ")
+    **Attributes**
+        ``description``
+            Human-readable text for **this** direction of the edge.
     """
 
     __slots__ = ("_description",)
 
     def __init__(self, *, description: str) -> None:
         """
-        Инициализирует дескриптор описания связи.
+        Args:
+            description: Non-empty relation description (keyword-only).
 
-        Аргументы:
-            description: текстовое описание связи. Обязательный keyword-only
-                         параметр. Непустая строка.
-
-        Исключения:
-            TypeError: если description не строка.
-            ValueError: если description — пустая строка.
+        Raises:
+            TypeError: ``description`` is not a ``str``.
+            ValueError: Empty or whitespace-only ``description``.
         """
         if not isinstance(description, str):
             raise TypeError(
-                f"Rel: description должен быть строкой, "
-                f"получен {type(description).__name__}: {description!r}."
+                f"Rel: description must be str, "
+                f"got {type(description).__name__}: {description!r}."
             )
 
         if not description.strip():
             raise ValueError(
-                "Rel: description не может быть пустой строкой. "
-                "Укажите описание связи."
+                "Rel: description cannot be empty or whitespace-only. "
+                "Provide a non-empty relation description."
             )
 
         object.__setattr__(self, "_description", description)
 
     @property
     def description(self) -> str:
-        """Текстовое описание связи."""
+        """Relation description for this direction."""
         return self._description
 
     def __setattr__(self, name: str, value: Any) -> None:
-        raise AttributeError("Rel является frozen-объектом. Запись запрещена.")
+        raise AttributeError("Rel is frozen; assigning to attributes is not allowed.")
 
     def __delattr__(self, name: str) -> None:
-        raise AttributeError("Rel является frozen-объектом. Удаление запрещено.")
+        raise AttributeError("Rel is frozen; deleting attributes is not allowed.")
 
     def __repr__(self) -> str:
         return f"Rel(description='{self._description}')"

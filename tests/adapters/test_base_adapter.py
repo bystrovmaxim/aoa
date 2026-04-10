@@ -25,7 +25,6 @@ import pytest
 from action_machine.adapters.base_adapter import BaseAdapter
 from action_machine.adapters.base_route_record import BaseRouteRecord
 from action_machine.core.action_product_machine import ActionProductMachine
-from action_machine.core.gate_coordinator import GateCoordinator
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Concrete subclass for testing — BaseAdapter is abstract and cannot be
@@ -48,7 +47,7 @@ class _TestAdapter(BaseAdapter[BaseRouteRecord]):
 
 def _make_machine() -> ActionProductMachine:
     """Create a minimal ActionProductMachine for adapter tests."""
-    return ActionProductMachine(mode="test", coordinator=GateCoordinator())
+    return ActionProductMachine(mode="test")
 
 
 def _make_auth() -> AsyncMock:

@@ -103,7 +103,7 @@ async def test_full_action_calls_notification_service(
 
     # Assert
     mock_notification.send.assert_called_once_with(
-        "user_42", "Заказ создан: TXN-TEST-001",
+        "user_42", "Order created: TXN-TEST-001",
     )
 
 

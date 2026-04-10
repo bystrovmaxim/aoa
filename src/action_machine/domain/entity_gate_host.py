@@ -1,114 +1,193 @@
 # src/action_machine/domain/entity_gate_host.py
 """
-EntityGateHost — маркерный миксин для декоратора @entity.
+EntityGateHost — marker mixin and invariants for the ``@entity`` decorator.
 
 ═══════════════════════════════════════════════════════════════════════════════
-НАЗНАЧЕНИЕ
+PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-EntityGateHost — миксин-маркер, который разрешает применение декоратора
-@entity к классу. Декоратор при применении проверяет:
+``EntityGateHost`` is a **marker mixin** that **authorizes** applying ``@entity``
+to a class. The decorator checks:
 
     if not issubclass(cls, EntityGateHost):
-        raise EntityDecoratorError("Класс должен наследовать EntityGateHost")
+        raise EntityDecoratorError(...)
 
-Без наследования от EntityGateHost декоратор @entity выбросит
-EntityDecoratorError. Это защита от случайного применения @entity
-к классам, которые не являются сущностями доменной модели.
+Without ``EntityGateHost`` in the MRO, ``@entity`` raises ``EntityDecoratorError``.
+That prevents accidentally tagging arbitrary classes as domain entities.
 
-BaseEntity наследует EntityGateHost автоматически, поэтому разработчику
-не нужно указывать его вручную. Но если кто-то попытается повесить
-@entity на голый класс — он получит понятную ошибку.
+``BaseEntity`` already inherits ``EntityGateHost``, so normal entities need no
+extra mixin. If someone applies ``@entity`` to a “bare” class, they get an
+explicit, early error.
 
-═══════════════════════════════════════════════════════════════════════════════
-ПАТТЕРН GATE-HOST
-═══════════════════════════════════════════════════════════════════════════════
-
-Gate-host — общий паттерн ActionMachine. Каждый декоратор уровня класса
-требует наличия соответствующего маркерного миксина в MRO:
-
-    ActionMetaGateHost       → разрешает @meta для Action
-    ResourceMetaGateHost     → разрешает @meta для ResourceManager
-    RoleGateHost             → разрешает @check_roles
-    DependencyGateHost       → разрешает @depends
-    ConnectionGateHost       → разрешает @connection
-    EntityGateHost           → разрешает @entity
-
-Миксины не содержат логики — только служат проверочными маркерами
-для issubclass(). Это явное согласие разработчика на подключение
-функциональности, а не магия.
+All **argument** and **target** checks for ``@entity`` live in this module
+(``validate_entity_*``). The ``entity`` decorator only calls them and then
+writes ``_entity_info`` (scratch).
 
 ═══════════════════════════════════════════════════════════════════════════════
-АРХИТЕКТУРА
+GATE-HOST PATTERN (AOA)
 ═══════════════════════════════════════════════════════════════════════════════
 
-    class BaseEntity(BaseSchema, ABC, EntityGateHost, DescribedFieldsGateHost):
-        ...                             ← маркер: разрешает @entity
+Gate hosts are a cross-cutting pattern in ActionMachine: each **class-level**
+decorator expects a matching **marker mixin** in the MRO:
 
-    @entity(description="Заказ клиента", domain=ShopDomain)
+    ActionMetaGateHost       → authorizes ``@meta`` on Action
+    ResourceMetaGateHost     → authorizes ``@meta`` on ResourceManager
+    RoleGateHost             → authorizes ``@check_roles``
+    DependencyGateHost       → authorizes ``@depends``
+    ConnectionGateHost       → authorizes ``@connection``
+    EntityGateHost           → authorizes ``@entity``
+
+Mixins carry **no behavior** — they exist so ``issubclass`` expresses **opt-in**
+to a grammar fragment. That is deliberate, not magic.
+
+═══════════════════════════════════════════════════════════════════════════════
+ARCHITECTURE (SCRATCH → INSPECTOR → COORDINATOR)
+═══════════════════════════════════════════════════════════════════════════════
+
+    class BaseEntity(..., EntityGateHost, DescribedFieldsGateHost):
+        ...                             # marker: @entity is allowed
+
+    @entity(description="Customer order", domain=ShopDomain)
     class OrderEntity(BaseEntity):
         ...
 
-    # Декоратор @entity проверяет:
-    #   issubclass(OrderEntity, EntityGateHost) → True → OK
-    #   Записывает: cls._entity_info = {"description": ..., "domain": ...}
+    # Decorator checks:
+    #   issubclass(OrderEntity, EntityGateHost) → OK
+    #   cls._entity_info = {"description": ..., "domain": ...}   # scratch
 
-    # EntityCoordinator при сборке метаданных:
-    #   Читает cls._entity_info → EntityMetadata
+    # EntityGateHostInspector during GateCoordinator.build():
+    #   reads _entity_info + model_fields → FacetPayload + typed snapshot
 
 ═══════════════════════════════════════════════════════════════════════════════
-АТРИБУТЫ УРОВНЯ КЛАССА
+CLASS-LEVEL SCRATCH
 ═══════════════════════════════════════════════════════════════════════════════
 
-Декоратор @entity записывает на класс атрибут _entity_info — словарь
-с ключами "description" и "domain". Этот атрибут читается координатором
-сущностей (EntityCoordinator) при сборке метаданных.
+``@entity`` writes ``_entity_info`` on the class — a dict with ``"description"``
+and ``"domain"``. ``EntityGateHostInspector`` and graph tooling read it when the
+coordinator is built.
 
     _entity_info : dict[str, Any]
         {"description": str, "domain": type[BaseDomain] | None}
 
-Атрибут создаётся динамически декоратором @entity, а не объявляется
-в EntityGateHost. Аннотация ClassVar указана для mypy.
+The attribute is created by the decorator, not declared on ``EntityGateHost``.
+A ``ClassVar`` annotation is provided for type checkers.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ПРИМЕР ИСПОЛЬЗОВАНИЯ
+USAGE
 ═══════════════════════════════════════════════════════════════════════════════
 
-    # BaseEntity уже наследует EntityGateHost — всё работает:
-    @entity(description="Клиент", domain=CrmDomain)
+    # BaseEntity already includes EntityGateHost:
+    @entity(description="Customer", domain=CrmDomain)
     class CustomerEntity(BaseEntity):
-        id: str = Field(description="Идентификатор клиента")
-        name: str = Field(description="Имя клиента")
+        id: str = Field(description="Customer id")
+        name: str = Field(description="Display name")
 
-    # Попытка применить @entity к голому классу — ошибка:
-    @entity(description="Не сущность")
-    class NotAnEntity:
-        pass
-    # → EntityDecoratorError: @entity применён к классу NotAnEntity,
-    #   который не наследует EntityGateHost.
+    # @entity on a class without EntityGateHost → EntityDecoratorError
 """
 
 from __future__ import annotations
 
 from typing import Any, ClassVar
 
+from action_machine.domain.base_domain import BaseDomain
+from action_machine.domain.exceptions import EntityDecoratorError
+
 
 class EntityGateHost:
     """
-    Маркерный миксин, разрешающий использование декоратора @entity.
+    Marker mixin: ``@entity`` may be applied to this class.
 
-    Класс, НЕ наследующий EntityGateHost, не может быть целью @entity —
-    декоратор выбросит EntityDecoratorError при попытке применения.
+    A class **without** ``EntityGateHost`` in its MRO cannot be decorated with
+    ``@entity`` — the decorator raises ``EntityDecoratorError``.
 
-    Миксин не содержит логики, полей или методов. Его единственная
-    функция — служить проверочным маркером для issubclass() в декораторе
-    @entity и в валидаторах координатора сущностей.
+    The mixin has no methods or instance state; it exists for ``issubclass``
+    checks in the decorator and in entity facet validation during
+    ``GateCoordinator.build()``.
 
-    Атрибуты уровня класса (создаются динамически декоратором @entity):
+    Class attributes (written by ``@entity``):
         _entity_info : dict[str, Any]
-            Словарь {"description": str, "domain": type[BaseDomain] | None},
-            записываемый декоратором @entity. Читается координатором
-            сущностей при сборке метаданных.
+            ``{"description": str, "domain": type[BaseDomain] | None}``.
     """
 
     _entity_info: ClassVar[dict[str, Any]]
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# @entity invariants (decorator + graph inspectors)
+# ═════════════════════════════════════════════════════════════════════════════
+
+
+def entity_info_is_set(cls: type) -> bool:
+    """
+    Graph invariant: class was decorated with ``@entity`` (has ``_entity_info``).
+
+    Does not validate dict shape — only presence of the scratch attribute.
+    """
+    return getattr(cls, "_entity_info", None) is not None
+
+
+def validate_entity_description(description: Any) -> None:
+    """
+    Invariant: ``description`` is a non-empty ``str`` (after strip).
+
+    Raises:
+        EntityDecoratorError: not a string, or blank after strip.
+    """
+    if not isinstance(description, str):
+        raise EntityDecoratorError(
+            f"@entity: parameter 'description' must be str, "
+            f"got {type(description).__name__}: {description!r}."
+        )
+
+    if not description.strip():
+        raise EntityDecoratorError(
+            "@entity: description cannot be empty. "
+            "Provide a non-empty entity description, e.g. "
+            '@entity(description="Customer order").'
+        )
+
+
+def validate_entity_domain(domain: Any) -> None:
+    """
+    Invariant: ``domain`` is ``None`` or a ``BaseDomain`` subclass.
+
+    Raises:
+        EntityDecoratorError: invalid ``domain`` type or not a subclass of ``BaseDomain``.
+    """
+    if domain is None:
+        return
+
+    if not isinstance(domain, type):
+        raise EntityDecoratorError(
+            f"@entity: parameter 'domain' must be a BaseDomain subclass or None, "
+            f"got {type(domain).__name__}: {domain!r}. "
+            f"Pass a domain class, e.g. domain=ShopDomain."
+        )
+
+    if not issubclass(domain, BaseDomain):
+        raise EntityDecoratorError(
+            f"@entity: parameter 'domain' must inherit BaseDomain, "
+            f"got {domain.__name__}. Define a domain class such as "
+            f"class {domain.__name__}Domain(BaseDomain): name = \"...\"."
+        )
+
+
+def validate_entity_decorator_target(cls: Any) -> None:
+    """
+    Invariant: decorator target is a ``type`` with ``EntityGateHost`` in the MRO.
+
+    Raises:
+        EntityDecoratorError: not a class, or missing ``EntityGateHost``.
+    """
+    if not isinstance(cls, type):
+        raise EntityDecoratorError(
+            f"@entity applies only to a class. "
+            f"Got {type(cls).__name__}: {cls!r}."
+        )
+
+    if not issubclass(cls, EntityGateHost):
+        raise EntityDecoratorError(
+            f"@entity applied to {cls.__name__}, which does not inherit "
+            f"EntityGateHost. Subclass BaseEntity, e.g. "
+            f"class {cls.__name__}(BaseEntity): ..."
+        )

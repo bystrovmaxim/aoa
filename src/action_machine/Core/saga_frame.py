@@ -5,13 +5,13 @@
 Каждый успешно выполненный regular-аспект порождает один SagaFrame.
 Фреймы накапливаются в локальном стеке внутри _execute_regular_aspects().
 При возникновении ошибки в любом аспекте стек разматывается в обратном
-порядке методом _rollback_saga().
+порядке methodом _rollback_saga().
 
 Архитектура:
     Фрейм хранит только данные, УНИКАЛЬНЫЕ для конкретного аспекта:
-    - state_before: состояние до выполнения аспекта
-    - state_after: состояние после выполнения аспекта (None если чекер отклонил)
-    - compensator: метаданные компенсатора (None если не определён)
+    - state_before: state до выполнения аспекта
+    - state_after: state после выполнения аспекта (None если checker отклонил)
+    - compensator: метаданные compensatorа (None если не определён)
     - aspect_name: имя аспекта для диагностики и событий плагинов
 
     Данные, ОБЩИЕ для всего конвейера одного _run_internal (params,
@@ -27,8 +27,8 @@
     в аспекте родителя.
 
 Связь с CompensatorMeta:
-    Поле compensator ссылается на CompensatorMeta из class_metadata.
-    Если для аспекта не определён компенсатор, поле равно None —
+    Поле compensator ссылается на snapshot-метаданные compensatorа.
+    Если для аспекта не определён compensator, поле равно None —
     такой фрейм пропускается при размотке (счётчик skipped).
 """
 
@@ -38,7 +38,9 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from action_machine.core.class_metadata import CompensatorMeta
+    from action_machine.compensate.compensate_gate_host_inspector import (
+        CompensateGateHostInspector,
+    )
 
 
 @dataclass(frozen=True)
@@ -47,11 +49,11 @@ class SagaFrame:
     Один фрейм стека компенсации.
 
     Создаётся после успешного выполнения regular-аспекта
-    (аспект вернул dict, независимо от результата чекера).
+    (аспект вернул dict, независимо от result checkerа).
 
     Когда фрейм создаётся:
-        - Аспект вернул dict, чекеры пройдены → state_after = новый state.
-        - Аспект вернул dict, чекер отклонил → state_after = None.
+        - Аспект вернул dict, checkerы пройдены → state_after = новый state.
+        - Аспект вернул dict, checker отклонил → state_after = None.
           Побочный эффект МОГ произойти (например, HTTP-запрос к платёжному
           шлюзу уже отправлен), поэтому фрейм создаётся для возможной
           компенсации.
@@ -62,12 +64,12 @@ class SagaFrame:
 
     Атрибуты:
         compensator:
-            Метаданные компенсатора для этого аспекта.
+            Метаданные compensatorа для этого аспекта.
             None — если для аспекта не определён декоратор @compensate.
-            Фреймы без компенсатора пропускаются при размотке.
+            Фреймы без compensatorа пропускаются при размотке.
 
         aspect_name:
-            Строковое имя метода-аспекта (например, "process_payment_aspect").
+            Строковое имя methodа-аспекта (например, "process_payment_aspect").
             Используется для диагностики, логирования и событий плагинов
             (SagaRollbackStartedEvent.aspect_names, CompensateFailedEvent.failed_for_aspect).
 
@@ -79,13 +81,15 @@ class SagaFrame:
         state_after:
             Состояние конвейера ПОСЛЕ выполнения этого аспекта.
             Frozen-экземпляр BaseState или None.
-            None означает: аспект выполнился, но чекер отклонил результат —
+            None означает: аспект выполнился, но checker отклонил результат —
             state не обновился, однако побочный эффект мог произойти.
             Компенсатор использует state_after для извлечения данных,
             необходимых для отката (txn_id, record_id и т.д.).
     """
 
-    compensator: CompensatorMeta | None
+    compensator: CompensateGateHostInspector.Snapshot.Compensator | None
+
+    compensator: CompensateGateHostInspector.Snapshot.Compensator | None
     aspect_name: str
     state_before: object  # BaseState — frozen-экземпляр
     state_after: object | None  # BaseState | None — frozen-экземпляр или None

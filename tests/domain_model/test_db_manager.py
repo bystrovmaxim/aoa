@@ -1,27 +1,27 @@
-# tests/domain/test_db_manager.py
+# tests/domain_model/test_db_manager.py
 """
-Тестовый ресурсный менеджер БД.
+Minimal database resource manager for tests.
 
 ═══════════════════════════════════════════════════════════════════════════════
-НАЗНАЧЕНИЕ
+PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Минимальная реализация BaseResourceManager для использования в декораторе
-@connection(TestDbManager, key="db") на тестовых Action.
+Minimal BaseResourceManager implementation for use with
+``@connection(TestDbManager, key="db")`` on test Actions.
 
-В реальных тестах экземпляр TestDbManager передаётся через
-connections={"db": mock_db}, где mock_db — мок с нужным поведением.
-TestDbManager нужен только как ТИП для декоратора @connection.
+Tests pass a concrete instance via ``connections={"db": mock_db}`` where
+``mock_db`` is a mock with the desired behavior. TestDbManager is only
+needed as the TYPE for the @connection decorator.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ИСПОЛЬЗОВАНИЕ
+USAGE
 ═══════════════════════════════════════════════════════════════════════════════
 
-    # В Action:
-    @connection(TestDbManager, key="db", description="Основная БД")
+    # In an Action:
+    @connection(TestDbManager, key="db", description="Primary database")
     class FullAction(BaseAction[...]): ...
 
-    # В тесте:
+    # In a test:
     mock_db = AsyncMock(spec=TestDbManager)
     result = await bench.run(action, params, rollup=False, connections={"db": mock_db})
 """
@@ -30,15 +30,15 @@ from action_machine.core.meta_decorator import meta
 from action_machine.resource_managers.base_resource_manager import BaseResourceManager
 
 
-@meta(description="Тестовый менеджер БД для тестов connections")
+@meta(description="Test DB manager for connection decorator tests")
 class TestDbManager(BaseResourceManager):
     """
-    Минимальная реализация BaseResourceManager для тестов.
+    Minimal BaseResourceManager for tests.
 
-    Используется как тип в декораторе @connection. В тестах заменяется
-    моком. Не содержит реальной логики работы с БД.
+    Used as the type in @connection; tests replace it with a mock.
+    No real database logic.
     """
 
     def get_wrapper_class(self) -> type["BaseResourceManager"] | None:
-        """Обёртка не требуется для тестового менеджера."""
+        """No wrapper class is required for this test manager."""
         return None

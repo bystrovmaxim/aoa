@@ -6,52 +6,22 @@ BaseAdapter[R] — abstract base class for all protocol adapters.
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-BaseAdapter is the unified contract for adapters that translate external
-protocols (HTTP, MCP, gRPC, CLI) into calls to
-``machine.run(context, action, params, connections)``.
+Define the unified contract for adapters that translate external protocols
+(HTTP, MCP, gRPC, CLI) into calls to ``machine.run(context, action, params, connections)``.
 
 ═══════════════════════════════════════════════════════════════════════════════
-REQUIRED AUTHENTICATION
+ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-The auth_coordinator parameter is required. The developer cannot "forget"
-to configure authentication — this is a constructor error (TypeError), not a
-silent production bug.
+Concrete adapters (FastApiAdapter, McpAdapter, etc.) inherit ``BaseAdapter``,
+implement protocol-specific registration methods (``post``, ``get``, ``tool``),
+and implement ``build()`` to return a protocol application.
 
-For open APIs, use NoAuthCoordinator — an explicit declaration of no
-authentication:
+The adapter holds a reference to the machine, an authentication coordinator,
+and an optional connections factory. Registered routes are stored in ``_routes``
+as concrete ``BaseRouteRecord`` subclasses.
 
-    from action_machine.auth.no_auth_coordinator import NoAuthCoordinator
-
-    adapter = FastApiAdapter(
-        machine=machine,
-        auth_coordinator=NoAuthCoordinator(),
-    )
-
-NoAuthCoordinator implements the same interface as AuthCoordinator:
-async method process(request_data) → Context. It always returns an anonymous
-Context with empty UserInfo (user_id=None, roles=[]).
-
-═══════════════════════════════════════════════════════════════════════════════
-MAPPER NAMING CONVENTION
-═══════════════════════════════════════════════════════════════════════════════
-
-    params_mapper   → returns params   (transforms request → params)
-    response_mapper → returns response (transforms result  → response)
-
-═══════════════════════════════════════════════════════════════════════════════
-FLUENT API
-═══════════════════════════════════════════════════════════════════════════════
-
-The ``_add_route(record)`` method returns ``self``, allowing concrete adapters
-to build chains using ``return self._add_route(record)`` in protocol methods
-(post, get, tool, etc.).
-
-The ``build()`` method terminates the chain and returns the protocol app.
-
-═══════════════════════════════════════════════════════════════════════════════
-ARCHITECTURE
-═══════════════════════════════════════════════════════════════════════════════
+::
 
     ┌──────────────────────────────────────┐
     │  BaseAdapter[R]                      │
@@ -71,26 +41,48 @@ ARCHITECTURE
     └──────────────────────────────────────┘
 
 ═══════════════════════════════════════════════════════════════════════════════
-EXAMPLE USAGE
+INVARIANTS
 ═══════════════════════════════════════════════════════════════════════════════
 
-    # With authentication:
+- ``auth_coordinator`` is required; passing ``None`` raises ``TypeError``.
+- ``machine`` must be an instance of ``ActionProductMachine``.
+- Route records are stored in ``_routes`` and remain immutable after registration.
+- The fluent API returns ``self``, enabling method chaining.
+
+═══════════════════════════════════════════════════════════════════════════════
+EXAMPLES
+═══════════════════════════════════════════════════════════════════════════════
+
+    # With authentication
     adapter = FastApiAdapter(
         machine=machine,
         auth_coordinator=AuthCoordinator(extractor, authenticator, assembler),
     )
 
-    # Without authentication (explicit declaration):
+    # Without authentication (explicit declaration)
     adapter = FastApiAdapter(
         machine=machine,
         auth_coordinator=NoAuthCoordinator(),
     )
 
-    # MCP adapter:
-    adapter = McpAdapter(
-        machine=machine,
-        auth_coordinator=NoAuthCoordinator(),
-    )
+═══════════════════════════════════════════════════════════════════════════════
+ERRORS / LIMITATIONS
+═══════════════════════════════════════════════════════════════════════════════
+
+- ``TypeError`` if ``machine`` is not ``ActionProductMachine``.
+- ``TypeError`` if ``auth_coordinator`` is ``None``.
+
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE-BEGIN
+═══════════════════════════════════════════════════════════════════════════════
+ROLE: Abstract base for all protocol adapters.
+CONTRACT: Subclasses must implement protocol methods and ``build()``; auth is required.
+INVARIANTS: ``_routes`` holds route records; fluent API returns ``self``.
+FLOW: route registration -> ``_add_route`` -> ``build()`` produces protocol app.
+FAILURES: Constructor raises ``TypeError`` on invalid machine or missing auth.
+EXTENSION POINTS: New adapters subclass ``BaseAdapter`` and define concrete ``RouteRecord``.
+AI-CORE-END
+═══════════════════════════════════════════════════════════════════════════════
 """
 
 from __future__ import annotations
@@ -111,20 +103,6 @@ class BaseAdapter[R: BaseRouteRecord](ABC):
 
     The auth_coordinator parameter is required. For open APIs, use
     NoAuthCoordinator as an explicit declaration of no authentication.
-
-    Attributes:
-        _machine : ActionProductMachine
-            The action execution machine.
-
-        _auth_coordinator : Any
-            The authentication coordinator. AuthCoordinator or NoAuthCoordinator.
-            This parameter is required and cannot be None.
-
-        _connections_factory : Callable[..., dict[str, BaseResourceManager]] | None
-            The connections factory.
-
-        _routes : list[R]
-            The list of registered routes.
     """
 
     def __init__(
@@ -134,16 +112,7 @@ class BaseAdapter[R: BaseRouteRecord](ABC):
         connections_factory: Callable[..., dict[str, BaseResourceManager]] | None = None,
     ) -> None:
         """
-        Initializes the adapter.
-
-        Args:
-            machine: the action execution machine. Required parameter.
-                     Must be an instance of ActionProductMachine.
-            auth_coordinator: the authentication coordinator. Required parameter.
-                              For open APIs, use NoAuthCoordinator().
-                              None is not allowed — TypeError.
-            connections_factory: the connections factory. If None,
-                                 connections are not passed.
+        Initialize the adapter.
 
         Raises:
             TypeError: if machine is not ActionProductMachine.
@@ -158,19 +127,13 @@ class BaseAdapter[R: BaseRouteRecord](ABC):
         if auth_coordinator is None:
             raise TypeError(
                 "auth_coordinator is required. Pass AuthCoordinator "
-                "for authenticated APIs or NoAuthCoordinator() for open APIs. "
-                "Example: adapter = FastApiAdapter(machine=machine, "
-                "auth_coordinator=NoAuthCoordinator())"
+                "for authenticated APIs or NoAuthCoordinator() for open APIs."
             )
 
         self._machine: ActionProductMachine = machine
         self._auth_coordinator: Any = auth_coordinator
         self._connections_factory: Callable[..., dict[str, BaseResourceManager]] | None = connections_factory
         self._routes: list[R] = []
-
-    # ─────────────────────────────────────────────────────────────────────
-    # Properties (read-only)
-    # ─────────────────────────────────────────────────────────────────────
 
     @property
     def machine(self) -> ActionProductMachine:
@@ -192,30 +155,16 @@ class BaseAdapter[R: BaseRouteRecord](ABC):
         """Returns the list of registered routes."""
         return self._routes
 
-    # ─────────────────────────────────────────────────────────────────────
-    # Internal registration method (fluent)
-    # ─────────────────────────────────────────────────────────────────────
-
     def _add_route(self, record: R) -> Self:
-        """
-        Adds a RouteRecord to the route list and returns self.
-
-        Returning self enables a fluent API.
-        """
+        """Add a RouteRecord to the route list and return self (fluent API)."""
         self._routes.append(record)
         return self
-
-    # ─────────────────────────────────────────────────────────────────────
-    # Abstract methods
-    # ─────────────────────────────────────────────────────────────────────
 
     @abstractmethod
     def build(self) -> Any:
         """
-        Creates the protocol application from registered routes.
+        Create the protocol application from registered routes.
 
         Returns:
-            Protocol-specific application:
-            - FastAPIAdapter.build() → FastAPI
-            - MCPAdapter.build() → FastMCP
+            Protocol-specific application (FastAPI, FastMCP, etc.).
         """

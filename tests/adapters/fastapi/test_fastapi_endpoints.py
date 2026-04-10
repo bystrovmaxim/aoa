@@ -47,7 +47,7 @@ from fastapi.testclient import TestClient
 from action_machine.contrib.fastapi.adapter import FastApiAdapter
 from action_machine.core.action_product_machine import ActionProductMachine
 from action_machine.core.exceptions import AuthorizationError, ValidationFieldError
-from action_machine.core.gate_coordinator import GateCoordinator
+from action_machine.metadata.gate_coordinator import GateCoordinator
 from tests.domain_model import PingAction, SimpleAction
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -67,7 +67,7 @@ def _make_app(
     По умолчанию machine.run возвращает PingAction.Result(message="pong").
     """
     coordinator = GateCoordinator()
-    machine = ActionProductMachine(mode="test", coordinator=coordinator)
+    machine = ActionProductMachine(mode="test")
 
     auth = AsyncMock()
     auth.process.return_value = None

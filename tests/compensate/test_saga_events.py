@@ -154,7 +154,7 @@ class TestSagaRollbackEvents:
         started = events[0]
         assert started["event_type"] == "SagaRollbackStartedEvent"
         assert started["error_type"] == "ValueError"
-        assert "Ошибка финализации" in started["error_message"]
+        assert "Finalize error" in started["error_message"]
         assert started["stack_depth"] == 2
         assert started["compensator_count"] == 2
         assert "reserve_aspect" in started["aspect_names"]
@@ -398,7 +398,7 @@ class TestCompensateFailedEvent:
         failed = failed_events[0]
         assert failed["original_error_type"] == "ValueError"
         assert failed["compensator_error_type"] == "RuntimeError"
-        assert "Платёжный шлюз недоступен" in failed["compensator_error_message"]
+        assert "Payment gateway unavailable" in failed["compensator_error_message"]
         assert failed["compensator_name"] == "rollback_charge_compensate"
         assert failed["failed_for_aspect"] == "charge_aspect"
 
