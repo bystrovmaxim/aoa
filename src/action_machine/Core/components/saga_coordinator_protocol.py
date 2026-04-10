@@ -5,9 +5,8 @@ Protocol for saga coordination component.
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Define the contract for rollback coordination over saga frames after aspect
-failures. Implementations orchestrate compensator execution and saga-level
-event semantics.
+Define the contract for rollback orchestration over saga frames after aspect
+failures. Implementations coordinate compensator execution and rollback events.
 
 ═══════════════════════════════════════════════════════════════════════════════
 INVARIANTS
@@ -52,5 +51,17 @@ from typing import Any, Protocol
 class SagaCoordinatorProtocol(Protocol):
     """Contract for rollback coordination and saga flow execution."""
 
-    async def rollback(self, machine: object, **kwargs: Any) -> None:
-        """Execute rollback for currently accumulated saga frames."""
+    async def execute(
+        self,
+        machine: object,
+        *,
+        saga_stack: list[Any],
+        error: Exception,
+        action: Any,
+        params: Any,
+        box: Any,
+        connections: Any,
+        context: Any,
+        plugin_ctx: Any,
+    ) -> None:
+        """Execute rollback for accumulated saga frames."""

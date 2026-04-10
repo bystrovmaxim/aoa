@@ -30,7 +30,6 @@ from __future__ import annotations
 from .base_facet_snapshot import BaseFacetSnapshot
 from .gate_coordinator import GateCoordinator
 
-
 __all__ = [
     "BaseFacetSnapshot",
     "GateCoordinator",

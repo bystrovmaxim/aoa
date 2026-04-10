@@ -69,8 +69,7 @@ AI-CORE-END
 from __future__ import annotations
 
 import time
-from typing import Any
-from typing import cast
+from typing import Any, cast
 
 from action_machine.context.context_view import ContextView
 from action_machine.core.base_result import BaseResult
@@ -101,13 +100,13 @@ class ErrorHandlerExecutor:
         failed_aspect_name: str | None,
     ) -> BaseResult:
         """Resolve and invoke matching `@on_error` handler."""
-        base_fields = machine._base_event_fields(  # noqa: SLF001
+        base_fields = machine._base_event_fields(
             action,
             context,
             params,
             box.nested_level,
         )
-        plugin_kwargs = machine._build_plugin_emit_kwargs(box.nested_level)  # noqa: SLF001
+        plugin_kwargs = machine._build_plugin_emit_kwargs(box.nested_level)
 
         handler_meta = None
         for candidate in runtime.error_handlers:

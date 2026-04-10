@@ -90,7 +90,7 @@ class AspectExecutor:
         context,
     ):
         """Call one aspect preserving context injection semantics."""
-        return await machine._call_aspect(  # noqa: SLF001
+        return await machine._call_aspect(
             aspect_meta=aspect_meta,
             action=action,
             params=params,
@@ -148,7 +148,7 @@ class AspectExecutor:
                     f"Aspect {aspect_meta.method_name} returned extra fields: "
                     f"{extra_fields}. Allowed only: {allowed_fields}"
                 )
-            machine._apply_checkers(checkers, new_state_dict)  # noqa: SLF001
+            machine._apply_checkers(checkers, new_state_dict)
 
         merged_state = BaseState(**{**state.to_dict(), **new_state_dict})
         if runtime.has_compensators:

@@ -62,13 +62,13 @@ AI-CORE-END
 
 from __future__ import annotations
 
+from action_machine.auth.constants import ROLE_ANY, ROLE_NONE
 from action_machine.context.context import Context
 from action_machine.core.base_action import BaseAction
 from action_machine.core.base_params import BaseParams
 from action_machine.core.base_result import BaseResult
 from action_machine.core.exceptions import AuthorizationError
 from action_machine.metadata.gate_coordinator import GateCoordinator
-from action_machine.auth.constants import ROLE_ANY, ROLE_NONE
 
 
 class RoleChecker:

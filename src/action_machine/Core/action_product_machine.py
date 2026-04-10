@@ -195,23 +195,22 @@ from action_machine.compensate.compensate_gate_host_inspector import (
 )
 from action_machine.context.context import Context
 from action_machine.context.context_view import ContextView
+from action_machine.core.base_action import BaseAction
+from action_machine.core.base_action_machine import BaseActionMachine
+from action_machine.core.base_params import BaseParams
+from action_machine.core.base_result import BaseResult
+from action_machine.core.base_state import BaseState
 from action_machine.core.components.aspect_executor import AspectExecutor
 from action_machine.core.components.connection_validator import ConnectionValidator
 from action_machine.core.components.error_handler_executor import ErrorHandlerExecutor
 from action_machine.core.components.role_checker import RoleChecker
 from action_machine.core.components.saga_coordinator import SagaCoordinator
 from action_machine.core.components.tools_box_factory import ToolsBoxFactory
-from action_machine.core.base_action import BaseAction
-from action_machine.core.base_action_machine import BaseActionMachine
-from action_machine.core.base_params import BaseParams
-from action_machine.core.base_result import BaseResult
-from action_machine.core.base_state import BaseState
 from action_machine.core.core_action_machine import CoreActionMachine
 from action_machine.core.exceptions import (
     AuthorizationError,
     ConnectionValidationError,
     OnErrorHandlerError,
-    ValidationFieldError,
 )
 from action_machine.core.saga_frame import SagaFrame
 from action_machine.core.tools_box import ToolsBox
@@ -1341,7 +1340,8 @@ class ActionProductMachine(BaseActionMachine):
             # потом обработка бизнес-логики. Иначе @on_error работает
             # с неконсистентными данными.
             if saga_stack:
-                await self._rollback_saga(
+                await self._saga_coordinator.execute(
+                    self,
                     saga_stack=saga_stack,
                     error=aspect_error,
                     action=action,

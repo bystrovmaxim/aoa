@@ -63,10 +63,10 @@ from action_machine.core.base_params import BaseParams
 from action_machine.core.base_result import BaseResult
 from action_machine.core.base_state import BaseState
 from action_machine.core.core_action_machine import CoreActionMachine
-from action_machine.dependencies.dependency_factory import clear_dependency_factory_cache
-from action_machine.metadata.gate_coordinator import GateCoordinator
 from action_machine.core.meta_decorator import meta
 from action_machine.core.tools_box import ToolsBox
+from action_machine.dependencies.dependency_factory import clear_dependency_factory_cache
+from action_machine.metadata.gate_coordinator import GateCoordinator
 from action_machine.on_error.on_error_decorator import on_error
 from action_machine.resource_managers.base_resource_manager import BaseResourceManager
 from tests.domain_model.domains import SystemDomain

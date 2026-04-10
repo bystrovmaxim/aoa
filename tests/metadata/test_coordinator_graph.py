@@ -40,9 +40,9 @@ TestCoordinatorBasic — базовое API координатора.
 фрагменту имени, потому что после ``build()`` в снимок могут попасть и чужие
 классы из общего сканирования инспекторов.
 """
-import pytest
-
 from typing import Any
+
+import pytest
 
 from action_machine.aspects.regular_aspect import regular_aspect
 from action_machine.aspects.summary_aspect import summary_aspect
@@ -55,8 +55,8 @@ from action_machine.core.base_params import BaseParams
 from action_machine.core.base_result import BaseResult
 from action_machine.core.base_schema import BaseSchema
 from action_machine.core.core_action_machine import CoreActionMachine
-from action_machine.core.meta_gate_host_inspector import MetaGateHostInspector
 from action_machine.core.meta_decorator import meta
+from action_machine.core.meta_gate_host_inspector import MetaGateHostInspector
 from action_machine.dependencies.dependency_factory import (
     cached_dependency_factory,
     clear_dependency_factory_cache,
@@ -70,6 +70,7 @@ from action_machine.plugins.events import GlobalStartEvent
 from action_machine.plugins.plugin import Plugin
 from action_machine.resource_managers.base_resource_manager import BaseResourceManager
 from action_machine.resource_managers.connection import connection
+
 
 def _new_coord() -> GateCoordinator:
     """Create built coordinator with default inspector set."""

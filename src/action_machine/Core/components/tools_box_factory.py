@@ -102,17 +102,17 @@ class ToolsBoxFactory:
         _ = (self._log_coordinator, self._coordinator)
         action_name = f"{action_cls.__module__}.{action_cls.__name__}"
         log = ScopedLogger(
-            coordinator=machine._log_coordinator,  # noqa: SLF001
+            coordinator=machine._log_coordinator,
             nest_level=nest_level,
             machine_name=machine.__class__.__name__,
-            mode=machine._mode,  # noqa: SLF001
+            mode=machine._mode,
             action_name=action_name,
             aspect_name="",
             context=context,
             state=BaseState(),
             params=params,
         )
-        factory = machine._dependency_factory_for(action_cls)  # noqa: SLF001
+        factory = machine._dependency_factory_for(action_cls)
         return ToolsBox(
             run_child=run_child,
             factory=factory,

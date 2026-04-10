@@ -4,13 +4,13 @@ from __future__ import annotations
 
 import pytest
 
+from action_machine.core.core_action_machine import CoreActionMachine
 from action_machine.metadata.base_gate_host_inspector import BaseGateHostInspector
 from action_machine.metadata.exceptions import (
     DuplicateNodeError,
     InvalidGraphError,
     PayloadValidationError,
 )
-from action_machine.core.core_action_machine import CoreActionMachine
 from action_machine.metadata.gate_coordinator import GateCoordinator
 from action_machine.metadata.payload import EdgeInfo, FacetPayload
 

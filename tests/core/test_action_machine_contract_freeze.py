@@ -99,16 +99,8 @@ from action_machine.logging.log_coordinator import LogCoordinator
 from action_machine.plugins.decorators import on
 from action_machine.plugins.events import (
     AfterOnErrorAspectEvent,
-    AfterRegularAspectEvent,
-    AfterSummaryAspectEvent,
     BasePluginEvent,
     BeforeOnErrorAspectEvent,
-    BeforeRegularAspectEvent,
-    BeforeSummaryAspectEvent,
-    GlobalFinishEvent,
-    GlobalStartEvent,
-    SagaRollbackCompletedEvent,
-    SagaRollbackStartedEvent,
 )
 from action_machine.plugins.plugin import Plugin
 from action_machine.resource_managers.base_resource_manager import BaseResourceManager
@@ -303,7 +295,7 @@ class TestActionMachineContractFreeze:
             log_coordinator=LogCoordinator(loggers=[]),
         )
 
-        result = await machine._run_internal(  # noqa: SLF001 - contract-level nested/rollup test
+        result = await machine._run_internal(
             context=_context(),
             action=_NestedParentAction(),
             params=_NestedParams(value="x"),
