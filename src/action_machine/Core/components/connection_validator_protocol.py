@@ -53,7 +53,7 @@ ERRORS / LIMITATIONS
 AI-CORE-BEGIN
 ═══════════════════════════════════════════════════════════════════════════════
 ROLE: Connection validator contract.
-CONTRACT: validate(machine, action, connections, runtime) -> normalized connections.
+CONTRACT: validate(action, connections, runtime) -> normalized connections.
 INVARIANTS: raises ConnectionValidationError on mismatch; returns normalized dict.
 FLOW: input connections -> validation -> normalized connections or error.
 FAILURES: ConnectionValidationError for missing/extra/invalid connections.
@@ -77,7 +77,6 @@ class ConnectionValidatorProtocol(Protocol):
 
     def validate(
         self,
-        machine: object,
         action: BaseAction[BaseParams, BaseResult],
         connections: dict[str, BaseResourceManager] | None,
         runtime: Any,
@@ -86,7 +85,6 @@ class ConnectionValidatorProtocol(Protocol):
         Validate and normalize runtime connections.
 
         Args:
-            machine: The executing machine (used for fallback cache retrieval).
             action: Action instance being executed.
             connections: Raw connections dict passed to `run()` (may be None).
             runtime: Pre‑computed action execution cache containing connection keys.
