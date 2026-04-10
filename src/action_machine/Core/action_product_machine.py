@@ -82,6 +82,17 @@ from ``ToolsBox``; ``@context_requires`` is satisfied via ``ContextView`` inside
 ``AspectExecutor``, ``SagaCoordinator``, and ``ErrorHandlerExecutor``.
 
 ═══════════════════════════════════════════════════════════════════════════════
+COMPATIBILITY GUARANTEES
+═══════════════════════════════════════════════════════════════════════════════
+
+- Constructor extension points are keyword-only parameters after ``*``:
+  ``role_checker``, ``connection_validator``, ``tools_box_factory``,
+  ``aspect_executor``, ``error_handler_executor``, ``saga_coordinator``.
+- Default behavior remains unchanged when extension points are not provided.
+- Compatibility contract is behavioral (pipeline order + event semantics),
+  not private-method availability.
+
+═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
