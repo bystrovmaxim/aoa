@@ -1,4 +1,3 @@
-```python
 # src/action_machine/auth/check_roles.py
 """
 Decorator ``@check_roles`` — declare role requirements for action execution.
@@ -173,4 +172,3 @@ def check_roles(spec: str | list[str]) -> Any:
         return cls
 
     return decorator
-```
