@@ -2,7 +2,7 @@
 """
 Tests for DependencyFactory — stateless factory for creating dependency instances.
 
-DependencyFactory accepts a tuple of DependencyInfo (from ClassMetadata) and
+DependencyFactory accepts a tuple of DependencyInfo (from coordinator snapshots) and
 provides resolve() to create instances. Each resolve() call creates a new
 instance — no caching. Supports custom factory functions, rollup checking for
 BaseResourceManager subclasses, and both DependencyInfo tuples and legacy

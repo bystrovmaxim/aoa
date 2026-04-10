@@ -1,54 +1,48 @@
 # src/action_machine/metadata/exceptions.py
 """
-Исключения подсистемы метаданных и построения графа ActionMachine.
+Exceptions for ActionMachine metadata and graph construction.
 
 ═══════════════════════════════════════════════════════════════════════════════
-НАЗНАЧЕНИЕ
+PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Модуль содержит все исключения, возникающие при построении графа
-координатором (GateCoordinator.build()) и при инспекции классов
-гейтхостами (AbstractGateHost.inspect()).
+All errors raised while ``GateCoordinator.build()`` walks inspectors or while
+hosts validate facet payloads.
 
-Исключения вынесены в отдельный модуль, чтобы:
-1. Гейтхосты и координатор импортировали их без циклических зависимостей.
-2. Пользовательский код мог перехватывать конкретные типы ошибок.
-3. Тесты могли проверять конкретные типы исключений через pytest.raises.
-
-═══════════════════════════════════════════════════════════════════════════════
-ФИЛОСОФИЯ ОБРАБОТКИ ОШИБОК
-═══════════════════════════════════════════════════════════════════════════════
-
-ActionMachine не подавляет исключения. Ошибки построения графа
-обнаруживаются при старте приложения (build() вызывается один раз)
-и содержат информативные сообщения с указанием конкретных классов,
-гейтхостов и ключей, вызвавших проблему.
-
-Все исключения этого модуля — ошибки разработчика, а не пользовательских
-данных. Они обнаруживаются при первом запуске и исправляются в коде.
+Keeping them in a dedicated module allows:
+1. Hosts and coordinator to import without circular imports.
+2. Callers to catch specific exception types.
+3. Tests to assert with ``pytest.raises`` on concrete classes.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ИСКЛЮЧЕНИЯ
+ERROR-HANDLING PHILOSOPHY
+═══════════════════════════════════════════════════════════════════════════════
+
+ActionMachine does not swallow graph errors. They surface when the graph is
+built (typically once at startup) and messages name the offending classes,
+inspectors, and keys.
+
+Every exception here signals a **developer** mistake, not bad end-user input.
+Fix the code and rebuild.
+
+═══════════════════════════════════════════════════════════════════════════════
+EXCEPTIONS
 ═══════════════════════════════════════════════════════════════════════════════
 
 DuplicateNodeError
-    Два гейтхоста создали узлы с одинаковым ключом "node_type:node_name".
-    Выбрасывается на фазе 1 (сбор) координатора при обнаружении
-    конфликта ключей. Сообщение содержит имена обоих гейтхостов
-    для быстрой диагностики.
+    Two inspectors produced the same ``"node_type:node_name"`` key. Raised
+    during phase 1 (collect). The message names both inspectors for quick
+    diagnosis.
 
 InvalidGraphError
-    Нарушение структурной целостности графа. Выбрасывается на фазе 2
-    (проверки) координатора в двух случаях:
-    - Ребро ссылается на несуществующий узел (ссылочная целостность).
-    - Структурные рёбра (depends, connection) образуют цикл (ацикличность).
+    Structural graph integrity failed during phase 2:
+    - an edge references a missing node, or
+    - structural edges (depends / connection) contain a cycle.
 
 PayloadValidationError
-    Некорректные данные в FacetPayload. Выбрасывается на фазе 2
-    координатора при проверке обязательных полей payload:
-    - node_type пустой.
-    - node_name пустой.
-    - node_class не является типом (type).
+    A ``FacetPayload`` field failed validation during phase 2:
+    - empty ``node_type`` / ``node_name``, or
+    - ``node_class`` is not a ``type``.
 """
 
 from __future__ import annotations
@@ -56,33 +50,26 @@ from __future__ import annotations
 
 class DuplicateNodeError(ValueError):
     """
-    Два гейтхоста создали узлы с одинаковым ключом в графе.
+    Two inspectors claimed the same graph node key.
 
-    Выбрасывается координатором на фазе 1 (сбор payload) при
-    обнаружении конфликта ключей "node_type:node_name". Сообщение
-    содержит полный ключ и имена обоих гейтхостов, чтобы разработчик
-    мог быстро определить источник конфликта.
+    Raised in phase 1 when duplicate ``"node_type:node_name"`` keys cannot be
+    merged. The message contains the key and both inspector names.
 
-    Наследует ValueError, потому что это ошибка конфигурации системы:
-    два гейтхоста претендуют на один и тот же узел графа.
+    Subclasses ``ValueError`` because this is a configuration conflict: two
+    inspectors fight over one node.
 
-    Типичные причины:
-    - Два гейтхоста используют одинаковый node_type для одного класса.
-    - Гейтхост создаёт дочерний узел с именем, совпадающим с узлом
-      другого гейтхоста.
+    Typical causes:
+    - two inspectors reuse the same ``node_type`` for one class without merge
+      support, or
+    - a child node name collides with another inspector's node.
 
-    Пример сообщения:
-        "Конфликт ключа 'action:module.CreateOrderAction':
-           создан:    DependencyGateHost
-           конфликт:  ConnectionGateHost"
-
-    Атрибуты:
+    Attributes:
         key : str
-            Конфликтующий ключ узла графа.
+            Conflicting graph key.
         first_gate_host : str
-            Имя гейтхоста, создавшего узел первым.
+            Inspector that registered the node first.
         second_gate_host : str
-            Имя гейтхоста, обнаружившего конфликт.
+            Inspector that detected the conflict.
     """
 
     def __init__(
@@ -92,49 +79,43 @@ class DuplicateNodeError(ValueError):
         second_gate_host: str,
     ) -> None:
         """
-        Инициализирует исключение.
-
-        Аргументы:
-            key: конфликтующий ключ "node_type:node_name".
-            first_gate_host: имя гейтхоста, создавшего узел первым.
-            second_gate_host: имя гейтхоста, обнаружившего конфликт.
+        Args:
+            key: Conflicting ``"node_type:node_name"`` key.
+            first_gate_host: Inspector that created the node first.
+            second_gate_host: Inspector that triggered the conflict.
         """
         self.key: str = key
         self.first_gate_host: str = first_gate_host
         self.second_gate_host: str = second_gate_host
         super().__init__(
-            f"Конфликт ключа '{key}':\n"
-            f"  создан:    {first_gate_host}\n"
-            f"  конфликт:  {second_gate_host}"
+            f"Node key conflict '{key}':\n"
+            f"  created by:    {first_gate_host}\n"
+            f"  conflict with: {second_gate_host}"
         )
 
 
 class InvalidGraphError(Exception):
     """
-    Нарушение структурной целостности графа.
+    The facet graph failed structural validation.
 
-    Выбрасывается координатором на фазе 2 (проверки) в двух случаях:
+    Raised in phase 2 when:
 
-    1. Ссылочная целостность — ребро ссылается на узел, которого нет
-       среди собранных payload. Это означает, что класс-цель не был
-       обнаружен ни одним гейтхостом.
+    1. **Referential integrity** — an edge names a target missing from the
+       collected payloads (the target class was never materialized).
 
-       Пример: @depends(PaymentService), но PaymentService не наследует
-       ни один гейтхост и не порождает узел в графе.
+       Example: ``@depends(PaymentService)`` but ``PaymentService`` does not
+       appear as a graph node.
 
-    2. Ацикличность — структурные рёбра (is_structural=True) образуют
-       цикл. Проверяется через симуляцию на временном графе с помощью
-       rustworkx.is_directed_acyclic_graph().
+    2. **Acyclicity** — structural edges (``is_structural=True``) form a cycle,
+       detected via ``rustworkx.is_directed_acyclic_graph()`` on a scratch graph.
 
-       Пример: A depends B, B depends C, C depends A → цикл.
+       Example: A → B → C → A.
 
-    Информационные рёбра (is_structural=False) не проверяются на
-    ацикличность — циклические связи между сущностями (Order ↔ Customer)
-    являются нормальной бизнес-реальностью.
+    Informational edges (``is_structural=False``) are **not** checked for
+    cycles — cyclic business links (e.g. Order ↔ Customer) are expected.
 
-    Наследует Exception (не ValueError и не TypeError), потому что
-    это ошибка структуры графа — категория, отличная от ошибок
-    значений или типов.
+    Subclasses ``Exception`` (not ``ValueError``/``TypeError``) because this
+    is a graph-shape failure, not a simple type/value issue.
     """
 
     pass
@@ -142,31 +123,29 @@ class InvalidGraphError(Exception):
 
 class PayloadValidationError(TypeError):
     """
-    Некорректные данные в FacetPayload.
+    A ``FacetPayload`` field is invalid.
 
-    Выбрасывается координатором на фазе 2 при проверке обязательных
-    полей payload, собранных гейтхостами. Каждый payload проверяется:
+    Raised in phase 2 while checking mandatory fields:
 
-    - node_type — непустая строка.
-    - node_name — непустая строка.
-    - node_class — экземпляр type (класс Python).
+    - ``node_type`` — non-empty string.
+    - ``node_name`` — non-empty string.
+    - ``node_class`` — Python ``type``.
 
-    Наследует TypeError, потому что все три проверки по сути являются
-    проверками типа: пустая строка — не валидный идентификатор,
-    не-type — не валидный класс.
+    Subclasses ``TypeError`` because violations are essentially type/shape
+    mistakes (empty identifiers, non-type ``node_class``, …).
 
-    Типичные причины:
-    - Гейтхост забыл указать node_type в _build_payload().
-    - _make_node_name() получил класс без __module__.
-    - В node_class передан экземпляр вместо класса.
+    Typical causes:
+    - inspector omitted ``node_type`` in ``_build_payload()``,
+    - ``_make_node_name()`` ran on a broken class reference,
+    - ``node_class`` contains an instance instead of a class.
 
-    Атрибуты:
+    Attributes:
         node_class : type | object
-            Класс (или объект), для которого payload невалиден.
+            Value carried in the offending payload's ``node_class``.
         field_name : str
-            Имя поля payload, вызвавшего ошибку.
+            Field that failed (``"node_type"``, ``"node_name"``, ``"node_class"``).
         detail : str
-            Описание проблемы.
+            Human-readable explanation.
     """
 
     def __init__(
@@ -176,12 +155,10 @@ class PayloadValidationError(TypeError):
         detail: str,
     ) -> None:
         """
-        Инициализирует исключение.
-
-        Аргументы:
-            node_class: класс или объект из payload.node_class.
-            field_name: имя поля ("node_type", "node_name", "node_class").
-            detail: описание проблемы.
+        Args:
+            node_class: Payload ``node_class`` field (may be invalid).
+            field_name: Which field failed validation.
+            detail: Explanation string.
         """
         self.node_class: object = node_class
         self.field_name: str = field_name
@@ -193,6 +170,6 @@ class PayloadValidationError(TypeError):
             else repr(node_class)
         )
         super().__init__(
-            f"Невалидный payload для {class_name}: "
-            f"поле '{field_name}' — {detail}"
+            f"Invalid FacetPayload for {class_name}: "
+            f"field '{field_name}' — {detail}"
         )

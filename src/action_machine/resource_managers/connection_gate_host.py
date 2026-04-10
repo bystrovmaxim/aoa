@@ -41,13 +41,9 @@ TypeError. Это защита от случайного объявления с
     #   4. Дубликатов по ключу нет → OK
     #   5. Записывает ConnectionInfo в cls._connection_info
 
-    # MetadataBuilder.build(DataAction) читает:
-    #   cls._connection_info → tuple(ConnectionInfo(...), ConnectionInfo(...))
-    #   → ClassMetadata.connections
+    # ConnectionGateHostInspector читает cls._connection_info при build().
 
-    # ActionProductMachine:
-    #   metadata = coordinator.get(DataAction)
-    #   metadata.get_connection_keys() → ("db", "cache")
+    # ActionProductMachine: ключи из scratch_connection_keys(DataAction).
 
 ═══════════════════════════════════════════════════════════════════════════════
 ПРИМЕР ИСПОЛЬЗОВАНИЯ
@@ -85,8 +81,8 @@ class ConnectionGateHost:
     Атрибуты уровня класса (создаются динамически декоратором):
         _connection_info : list[ConnectionInfo]
             Список объектов ConnectionInfo(cls, key, description),
-            записываемый декоратором @connection. Читается MetadataBuilder
-            при сборке ClassMetadata.connections.
+            записываемый декоратором @connection. Читается инспектором
+            соединений при ``GateCoordinator.build()``.
     """
 
     # Аннотация для mypy, чтобы он не ругался на динамический атрибут

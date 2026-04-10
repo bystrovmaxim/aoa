@@ -1,0 +1,720 @@
+# src/action_machine/domain/entity_gate_host_inspector.py
+"""
+``EntityGateHostInspector`` — gate-host **inspector** for ``@entity`` classes.
+
+Walks ``EntityGateHost`` subclasses and, when ``entity_info_is_set()`` holds,
+materializes a coordinator **facet** as ``FacetPayload`` (description, domain,
+scalar fields, relations, lifecycles). This is the canonical place to derive
+entity facet tuples from Pydantic ``model_fields`` plus relation/lifecycle
+annotations.
+
+═══════════════════════════════════════════════════════════════════════════════
+PURPOSE
+═══════════════════════════════════════════════════════════════════════════════
+
+Turn declared entity models into **structured node metadata** for the shared
+``GateCoordinator`` graph without a separate “entity coordinator” or ad hoc
+collector layer. The inspector plugs into the same pipeline as other facet
+inspectors (actions, checkers, …).
+
+═══════════════════════════════════════════════════════════════════════════════
+SCOPE (IN / OUT)
+═══════════════════════════════════════════════════════════════════════════════
+
+**In scope**
+    ``collect_entity_info``, ``collect_entity_fields``, ``collect_entity_relations``,
+    ``collect_entity_lifecycles`` — read ``_entity_info`` and ``model_fields`` and
+    return frozen-friendly snapshot dataclasses.
+    ``EntityGateHostInspector.inspect`` / ``facet_snapshot_for_class`` — produce
+    ``FacetPayload`` with ``node_type=\"entity\"`` and ``edges=()``.
+
+**Out of scope**
+    Emitting graph **edges** between entity nodes (payload carries ``edges=()``;
+    edge wiring lives in coordinator policies elsewhere).
+    ORM loading or hydrating relation containers.
+
+═══════════════════════════════════════════════════════════════════════════════
+TERMINOLOGY (USE CONSISTENTLY)
+═══════════════════════════════════════════════════════════════════════════════
+
+**Gate host** — ``EntityGateHost`` marks classes that may use ``@entity``.
+**Decorator** — ``@entity`` writes **scratch** (``_entity_info``).
+**Inspector** — this module’s class, paired with that gate host.
+**Gate coordinator** — after ``register(...).build()``, holds the facet graph;
+``CoreActionMachine`` registers ``EntityGateHostInspector`` on the default
+coordinator setup.
+
+═══════════════════════════════════════════════════════════════════════════════
+ARCHITECTURE / DATA FLOW
+═══════════════════════════════════════════════════════════════════════════════
+
+::
+
+    @entity  ──>  _entity_info  (scratch on class)
+         │
+         │  entity_info_is_set(cls)
+         v
+    EntityGateHostInspector.inspect(cls)
+         │
+         ├─ collect_entity_info / fields / relations / lifecycles
+         │
+         v
+    Snapshot.to_facet_payload()  ──>  FacetPayload(node_type="entity", edges=())
+
+═══════════════════════════════════════════════════════════════════════════════
+INVARIANTS
+═══════════════════════════════════════════════════════════════════════════════
+
+- ``inspect`` returns a payload only when ``entity_info_is_set(target_cls)``.
+- Scalar field extraction skips relation **containers** and ``Lifecycle``-typed
+  fields (they appear under relations / lifecycles buckets).
+- Module must not import legacy metadata collector modules; keep domain ↔
+  metadata boundaries explicit (``payload``, ``base_gate_host_inspector``, …).
+
+═══════════════════════════════════════════════════════════════════════════════
+RATIONALE
+═══════════════════════════════════════════════════════════════════════════════
+
+Centralizing ``collect_entity_*`` here avoids duplicating Pydantic introspection
+for entities and keeps facet shape aligned with ``FacetPayload`` tuples. The
+public functions are stable hooks for **tests** and optional tooling without
+pulling the whole coordinator.
+
+═══════════════════════════════════════════════════════════════════════════════
+LIFECYCLE (IMPORT VS BUILD VS RUNTIME)
+═══════════════════════════════════════════════════════════════════════════════
+
+- **Import**: entity classes and inspector class are defined.
+- **Coordinator ``build()``**: inspector runs over registered targets and emits
+  facet payloads.
+- **Runtime**: domain entities are data; this module does not run per request.
+
+═══════════════════════════════════════════════════════════════════════════════
+ERRORS / LIMITATIONS
+═══════════════════════════════════════════════════════════════════════════════
+
+- ``get_type_hints`` failures fall back to empty hints; relation detection may be
+  less precise in exotic typing setups.
+- Does not validate relation **rules** (inverse required, ownership matrix);
+  that belongs to entity/relation validation during graph build.
+"""
+
+from __future__ import annotations
+
+import inspect
+from dataclasses import dataclass, field
+from typing import Annotated, Any, get_args, get_origin
+
+from pydantic.fields import FieldInfo
+from pydantic_core import PydanticUndefined
+
+from action_machine.domain.entity_gate_host import EntityGateHost, entity_info_is_set
+from action_machine.metadata.base_facet_snapshot import BaseFacetSnapshot
+from action_machine.metadata.base_gate_host_inspector import BaseGateHostInspector
+from action_machine.metadata.payload import FacetPayload
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Scalar field constraints (aligned with Params/Result facet extraction)
+# ─────────────────────────────────────────────────────────────────────────────
+
+_ENTITY_CONSTRAINT_ATTRS: tuple[str, ...] = (
+    "gt", "ge", "lt", "le",
+    "min_length", "max_length",
+    "pattern",
+    "multiple_of",
+    "strict",
+)
+
+
+def _extract_entity_field_constraints(field_info: FieldInfo) -> dict[str, Any]:
+    """
+    Pull Pydantic constraint-like data from ``FieldInfo`` for entity scalars.
+
+    Reads direct ``FieldInfo`` attributes and items in ``metadata``.
+
+    Args:
+        field_info: Pydantic field descriptor from ``model_fields``.
+
+    Returns:
+        Dict of non-null constraints; empty if none found.
+    """
+    constraints: dict[str, Any] = {}
+    for attr in _ENTITY_CONSTRAINT_ATTRS:
+        value = getattr(field_info, attr, None)
+        if value is not None:
+            constraints[attr] = value
+    for meta_item in field_info.metadata or []:
+        for attr in _ENTITY_CONSTRAINT_ATTRS:
+            value = getattr(meta_item, attr, None)
+            if value is not None and attr not in constraints:
+                constraints[attr] = value
+    return constraints
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Public materialization helpers (also used by EntityGateHostInspector)
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+def collect_entity_info(cls: type) -> EntityInfo | None:
+    """
+    Read ``_entity_info`` from ``cls`` (MRO-aware via ``getattr``).
+
+    Args:
+        cls: Entity class decorated with ``@entity``.
+
+    Returns:
+        ``EntityInfo`` or ``None`` if ``_entity_info`` is missing.
+    """
+    entity_info: dict[str, Any] | None = getattr(cls, "_entity_info", None)
+    if entity_info is None:
+        return None
+    return EntityInfo(
+        description=entity_info["description"],
+        domain=entity_info.get("domain"),
+    )
+
+
+def _is_lifecycle_subclass(annotation: Any) -> bool:
+    """
+    Whether ``annotation`` (possibly ``Annotated`` / optional union) refers to a
+    ``Lifecycle`` subclass.
+    """
+    import types
+    import typing
+
+    from action_machine.domain.lifecycle import Lifecycle  # pylint: disable=import-outside-toplevel
+
+    if get_origin(annotation) is Annotated:
+        base = get_args(annotation)[0]
+        return _is_lifecycle_subclass(base)
+
+    if isinstance(annotation, type) and issubclass(annotation, Lifecycle):
+        return True
+
+    origin = get_origin(annotation)
+    if origin is types.UnionType or origin is typing.Union:
+        for arg in get_args(annotation):
+            if arg is type(None):
+                continue
+            if _is_lifecycle_subclass(arg):
+                return True
+        return False
+
+    return False
+
+
+def _extract_lifecycle_class(annotation: Any) -> type | None:
+    """Resolve the concrete ``Lifecycle`` subclass from a field annotation."""
+    import types
+    import typing
+
+    from action_machine.domain.lifecycle import Lifecycle  # pylint: disable=import-outside-toplevel
+
+    if get_origin(annotation) is Annotated:
+        base = get_args(annotation)[0]
+        return _extract_lifecycle_class(base)
+
+    if isinstance(annotation, type) and issubclass(annotation, Lifecycle):
+        return annotation
+
+    origin = get_origin(annotation)
+    if origin is types.UnionType or origin is typing.Union:
+        for arg in get_args(annotation):
+            if arg is type(None):
+                continue
+            result = _extract_lifecycle_class(arg)
+            if result is not None:
+                return result
+
+    return None
+
+
+def _is_relation_container(annotation: Any) -> bool:
+    """
+    True if ``annotation`` denotes ``BaseRelationOne`` / ``BaseRelationMany``
+    (including inside ``Optional`` / ``Annotated``).
+    """
+    import types
+    import typing
+
+    from action_machine.domain.relation_containers import (  # pylint: disable=import-outside-toplevel
+        BaseRelationMany,
+        BaseRelationOne,
+    )
+
+    if get_origin(annotation) is Annotated:
+        base = get_args(annotation)[0]
+        return _is_relation_container(base)
+
+    origin = get_origin(annotation)
+    if origin is types.UnionType or origin is typing.Union:
+        for arg in get_args(annotation):
+            if arg is type(None):
+                continue
+            if _is_relation_container(arg):
+                return True
+        return False
+
+    if origin is not None and inspect.isclass(origin):
+        if issubclass(origin, (BaseRelationOne, BaseRelationMany)):
+            return True
+
+    if isinstance(annotation, type) and issubclass(
+        annotation, (BaseRelationOne, BaseRelationMany)
+    ):
+        return True
+
+    return False
+
+
+def collect_entity_fields(cls: type) -> list[EntityFieldInfo]:
+    """
+    Collect scalar entity fields from ``model_fields``.
+
+    Skips relation containers and ``Lifecycle``-typed fields.
+
+    Args:
+        cls: Entity class with ``@entity``.
+
+    Returns:
+        List of ``EntityFieldInfo``; empty if ``model_fields`` is missing.
+    """
+    model_fields = getattr(cls, "model_fields", None)
+    if not model_fields:
+        return []
+
+    try:
+        from typing_extensions import get_type_hints  # pylint: disable=import-outside-toplevel
+
+        hints = get_type_hints(cls, include_extras=True)
+    except Exception:
+        hints = {}
+
+    fields: list[EntityFieldInfo] = []
+
+    for field_name, field_info in model_fields.items():
+        annotation = hints.get(field_name, field_info.annotation)
+
+        if _is_relation_container(annotation):
+            continue
+
+        if _is_lifecycle_subclass(field_info.annotation):
+            continue
+
+        raw_annotation = field_info.annotation
+        field_type_str = str(raw_annotation) if raw_annotation is not None else "Any"
+        if raw_annotation is not None and hasattr(raw_annotation, "__name__"):
+            field_type_str = raw_annotation.__name__
+
+        description = field_info.description or ""
+        constraints = _extract_entity_field_constraints(field_info)
+        is_required = field_info.is_required()
+        default = field_info.default if not is_required else PydanticUndefined
+        deprecated = bool(getattr(field_info, "deprecated", False))
+
+        fields.append(EntityFieldInfo(
+            field_name=field_name,
+            field_type=field_type_str,
+            description=description,
+            required=is_required,
+            default=default,
+            constraints=constraints,
+            deprecated=deprecated,
+        ))
+
+    return fields
+
+
+def _extract_relation_info(
+    field_name: str,
+    annotation: Any,
+    field_info: FieldInfo,
+) -> EntityRelationInfo | None:
+    """
+    Parse ``Annotated[..., Inverse | NoInverse, ...]`` plus container type into
+    ``EntityRelationInfo``.
+
+    Args:
+        field_name: Model field name.
+        annotation: Full annotation (may include ``Annotated`` / unions).
+        field_info: Pydantic ``FieldInfo``.
+
+    Returns:
+        ``EntityRelationInfo`` or ``None`` if no relation container is found.
+    """
+    import types
+    import typing
+
+    from action_machine.domain.relation_containers import (  # pylint: disable=import-outside-toplevel
+        BaseRelationMany,
+        BaseRelationOne,
+    )
+    from action_machine.domain.relation_markers import (  # pylint: disable=import-outside-toplevel
+        Inverse,
+        NoInverse,
+        Rel,
+    )
+
+    base_type = annotation
+    annotated_metadata: tuple[Any, ...] = ()
+
+    if get_origin(annotation) is Annotated:
+        args = get_args(annotation)
+        base_type = args[0]
+        annotated_metadata = tuple(args[1:])
+
+    unwrapped = base_type
+    origin = get_origin(base_type)
+    if origin is types.UnionType or origin is typing.Union:
+        for arg in get_args(base_type):
+            if arg is not type(None):
+                unwrapped = arg
+                break
+    base_type = unwrapped
+
+    origin = get_origin(base_type)
+    container_class = None
+
+    if origin is not None and inspect.isclass(origin) and issubclass(
+        origin, (BaseRelationOne, BaseRelationMany)
+    ):
+        container_class = origin
+    elif isinstance(base_type, type) and issubclass(
+        base_type, (BaseRelationOne, BaseRelationMany)
+    ):
+        container_class = base_type
+
+    if container_class is None:
+        return None
+
+    target_entity = None
+    container_args = get_args(base_type)
+    if container_args and isinstance(container_args[0], type):
+        target_entity = container_args[0]
+
+    relation_type = container_class.relation_type.value
+    cardinality = "one" if issubclass(container_class, BaseRelationOne) else "many"
+
+    has_inverse = False
+    inverse_entity = None
+    inverse_field = None
+    for item in annotated_metadata:
+        if isinstance(item, Inverse):
+            has_inverse = True
+            inverse_entity = item.target_entity
+            inverse_field = item.field_name
+            break
+        if isinstance(item, NoInverse):
+            break
+
+    description = ""
+    default_val = field_info.default
+    if isinstance(default_val, Rel):
+        description = default_val.description
+    elif field_info.description:
+        description = field_info.description
+
+    deprecated = bool(getattr(field_info, "deprecated", False))
+
+    return EntityRelationInfo(
+        field_name=field_name,
+        container_class=container_class,
+        relation_type=relation_type,
+        target_entity=target_entity,
+        cardinality=cardinality,
+        description=description,
+        has_inverse=has_inverse,
+        inverse_entity=inverse_entity,
+        inverse_field=inverse_field,
+        deprecated=deprecated,
+    )
+
+
+def collect_entity_relations(cls: type) -> list[EntityRelationInfo]:
+    """
+    Collect relation fields from ``model_fields``.
+
+    Args:
+        cls: Entity class with ``@entity``.
+
+    Returns:
+        List of ``EntityRelationInfo``.
+    """
+    model_fields = getattr(cls, "model_fields", None)
+    if not model_fields:
+        return []
+
+    try:
+        from typing_extensions import get_type_hints  # pylint: disable=import-outside-toplevel
+
+        hints = get_type_hints(cls, include_extras=True)
+    except Exception:
+        hints = {}
+
+    relations: list[EntityRelationInfo] = []
+
+    for field_name, field_info in model_fields.items():
+        annotation = hints.get(field_name, field_info.annotation)
+
+        if not _is_relation_container(annotation):
+            continue
+
+        rel_info = _extract_relation_info(field_name, annotation, field_info)
+        if rel_info is not None:
+            relations.append(rel_info)
+
+    return relations
+
+
+def collect_entity_lifecycles(cls: type) -> list[EntityLifecycleInfo]:
+    """
+    Collect fields whose type is a specialized ``Lifecycle`` with ``_template``.
+
+    Args:
+        cls: Entity class with ``@entity``.
+
+    Returns:
+        ``EntityLifecycleInfo`` entries for fields whose class exposes a non-null
+        ``_get_template()``.
+    """
+    model_fields = getattr(cls, "model_fields", None)
+    if not model_fields:
+        return []
+
+    lifecycles: list[EntityLifecycleInfo] = []
+
+    for field_name, field_info in model_fields.items():
+        annotation = field_info.annotation
+
+        if not _is_lifecycle_subclass(annotation):
+            continue
+
+        lifecycle_class = _extract_lifecycle_class(annotation)
+        if lifecycle_class is None:
+            continue
+
+        template = None
+        if hasattr(lifecycle_class, "_get_template"):
+            template = lifecycle_class._get_template()
+
+        if template is None:
+            continue
+
+        states = template.get_states()
+        initial_keys = template.get_initial_keys()
+        final_keys = template.get_final_keys()
+
+        lifecycles.append(EntityLifecycleInfo(
+            field_name=field_name,
+            lifecycle_class=lifecycle_class,
+            template_ref=template,
+            state_count=len(states),
+            initial_count=len(initial_keys),
+            final_count=len(final_keys),
+        ))
+
+    return lifecycles
+
+
+class EntityGateHostInspector(BaseGateHostInspector):
+    """
+    Inspector for ``EntityGateHost`` / ``@entity`` classes.
+
+    When ``_entity_info`` is present, builds ``FacetPayload`` with ``node_type``
+    ``entity`` and bundles field/relation/lifecycle tuples under ``node_meta``.
+    Does not attach structural **edges** (``edges=()``).
+    """
+
+    _target_mixin: type = EntityGateHost
+
+    @dataclass(frozen=True)
+    class Snapshot(BaseFacetSnapshot):
+        """Frozen facet snapshot before tuple encoding for ``FacetPayload``."""
+
+        @dataclass(frozen=True)
+        class EntityInfo:
+            """``@entity`` scratch: description and optional domain type."""
+
+            description: str
+            domain: Any = None
+
+        @dataclass(frozen=True)
+        class EntityFieldInfo:
+            """Scalar model field metadata for the entity facet."""
+
+            field_name: str
+            field_type: str
+            description: str
+            required: bool
+            default: Any
+            constraints: dict[str, Any] = field(default_factory=dict)
+            deprecated: bool = False
+
+        @dataclass(frozen=True)
+        class EntityRelationInfo:
+            """Relation field: container type, cardinality, inverse markers, etc."""
+
+            field_name: str
+            container_class: type
+            relation_type: str
+            target_entity: type
+            cardinality: str
+            description: str
+            has_inverse: bool
+            inverse_entity: type | None = None
+            inverse_field: str | None = None
+            deprecated: bool = False
+
+        @dataclass(frozen=True)
+        class EntityLifecycleInfo:
+            """Lifecycle field with template statistics."""
+
+            field_name: str
+            lifecycle_class: type
+            template_ref: Any
+            state_count: int
+            initial_count: int
+            final_count: int
+
+        class_ref: type
+        entity_info: EntityInfo
+        entity_fields: tuple[EntityFieldInfo, ...]
+        entity_relations: tuple[EntityRelationInfo, ...]
+        entity_lifecycles: tuple[EntityLifecycleInfo, ...]
+
+        def to_facet_payload(self) -> FacetPayload:
+            """Serialize this snapshot into a coordinator ``FacetPayload``."""
+            fields_meta: tuple[tuple[Any, ...], ...] = tuple(
+                (
+                    item.field_name,
+                    item.field_type,
+                    item.description,
+                    item.required,
+                    item.default,
+                    tuple(item.constraints.items()),
+                    item.deprecated,
+                )
+                for item in self.entity_fields
+            )
+            relations_meta: tuple[tuple[Any, ...], ...] = tuple(
+                (
+                    item.field_name,
+                    item.container_class,
+                    item.relation_type,
+                    item.target_entity,
+                    item.cardinality,
+                    item.description,
+                    item.has_inverse,
+                    item.inverse_entity,
+                    item.inverse_field,
+                    item.deprecated,
+                )
+                for item in self.entity_relations
+            )
+            lifecycles_meta: tuple[tuple[Any, ...], ...] = tuple(
+                (
+                    item.field_name,
+                    item.lifecycle_class,
+                    item.template_ref,
+                    item.state_count,
+                    item.initial_count,
+                    item.final_count,
+                )
+                for item in self.entity_lifecycles
+            )
+            return FacetPayload(
+                node_type="entity",
+                node_name=EntityGateHostInspector._make_node_name(self.class_ref),
+                node_class=self.class_ref,
+                node_meta=EntityGateHostInspector._make_meta(
+                    description=self.entity_info.description,
+                    domain=self.entity_info.domain,
+                    fields=fields_meta,
+                    relations=relations_meta,
+                    lifecycles=lifecycles_meta,
+                ),
+                edges=(),
+            )
+
+    @classmethod
+    def _subclasses_recursive(cls) -> list[type]:
+        """All direct and indirect subclasses of ``EntityGateHost``."""
+        return cls._collect_subclasses(cls._target_mixin)
+
+    @classmethod
+    def _has_entity_info_invariant(cls, target_cls: type) -> bool:
+        """True when ``@entity`` has written ``_entity_info`` on ``target_cls``."""
+        return entity_info_is_set(target_cls)
+
+    @classmethod
+    def inspect(cls, target_cls: type) -> FacetPayload | None:
+        """
+        Build an entity facet payload, or ``None`` if the class is not a decorated
+        entity.
+
+        Args:
+            target_cls: Candidate class.
+
+        Returns:
+            ``FacetPayload`` when the entity invariant holds; otherwise ``None``.
+        """
+        if not cls._has_entity_info_invariant(target_cls):
+            return None
+        return cls._build_payload(target_cls)
+
+    @classmethod
+    def facet_snapshot_for_class(
+        cls, target_cls: type,
+    ) -> Snapshot | None:
+        """
+        Materialize a typed ``Snapshot`` without encoding tuples for ``node_meta``.
+
+        Returns:
+            ``Snapshot`` or ``None`` if ``_entity_info`` is missing or
+            ``collect_entity_info`` returns ``None``.
+        """
+        if not cls._has_entity_info_invariant(target_cls):
+            return None
+        entity_info = collect_entity_info(target_cls)
+        entity_fields = collect_entity_fields(target_cls)
+        entity_relations = collect_entity_relations(target_cls)
+        entity_lifecycles = collect_entity_lifecycles(target_cls)
+        if entity_info is None:
+            return None
+        return cls.Snapshot(
+            class_ref=target_cls,
+            entity_info=entity_info,
+            entity_fields=tuple(entity_fields),
+            entity_relations=tuple(entity_relations),
+            entity_lifecycles=tuple(entity_lifecycles),
+        )
+
+    @classmethod
+    def facet_snapshot_storage_key(
+        cls, _target_cls: type, _payload: FacetPayload,
+    ) -> str:
+        """Storage bucket key for entity facet snapshots."""
+        return "entity"
+
+    @classmethod
+    def _build_payload(cls, target_cls: type) -> FacetPayload:
+        """
+        Wrap ``collect_entity_*`` results into ``FacetPayload``.
+
+        Args:
+            target_cls: Entity class with non-empty ``_entity_info``.
+
+        Returns:
+            ``FacetPayload`` with ``node_type=\"entity\"``.
+        """
+        snap = cls.facet_snapshot_for_class(target_cls)
+        assert snap is not None
+        return snap.to_facet_payload()
+
+
+# Backward-compatible module-level aliases for helper collectors.
+EntityInfo = EntityGateHostInspector.Snapshot.EntityInfo
+EntityFieldInfo = EntityGateHostInspector.Snapshot.EntityFieldInfo
+EntityRelationInfo = EntityGateHostInspector.Snapshot.EntityRelationInfo
+EntityLifecycleInfo = EntityGateHostInspector.Snapshot.EntityLifecycleInfo

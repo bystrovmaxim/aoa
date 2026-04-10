@@ -195,11 +195,12 @@ from action_machine.core.base_action import BaseAction
 from action_machine.core.base_params import BaseParams
 from action_machine.core.base_result import BaseResult
 from action_machine.core.base_state import BaseState
-from action_machine.core.gate_coordinator import GateCoordinator
 from action_machine.core.sync_action_product_machine import SyncActionProductMachine
 from action_machine.core.tools_box import ToolsBox
+from action_machine.dependencies.dependency_factory import cached_dependency_factory
 from action_machine.logging.log_coordinator import LogCoordinator
 from action_machine.logging.scoped_logger import ScopedLogger
+from action_machine.metadata.gate_coordinator import GateCoordinator
 from action_machine.plugins.plugin import Plugin
 from action_machine.resource_managers.base_resource_manager import BaseResourceManager
 
@@ -234,6 +235,27 @@ _CONTEXT_REQUIRES_ATTR = "_required_context_keys"
 # ═════════════════════════════════════════════════════════════════════════════
 # Вспомогательные функции модульного уровня
 # ═════════════════════════════════════════════════════════════════════════════
+
+
+def _aspect_tuple_from_coordinator(
+    coordinator: GateCoordinator,
+    action_cls: type,
+) -> tuple[Any, ...]:
+    snap = coordinator.get_snapshot(action_cls, "aspect")
+    if snap is None or not hasattr(snap, "aspects"):
+        return ()
+    return tuple(snap.aspects)
+
+
+def _checkers_for_aspect_name(
+    coordinator: GateCoordinator,
+    action_cls: type,
+    method_name: str,
+) -> tuple[Any, ...]:
+    snap = coordinator.get_snapshot(action_cls, "checker")
+    if snap is None or not hasattr(snap, "checkers"):
+        return ()
+    return tuple(c for c in snap.checkers if c.method_name == method_name)
 
 
 def _prepare_mock(value: Any) -> Any:
@@ -407,7 +429,6 @@ class TestBench:
         """Создаёт асинхронную production-машину с текущими настройками."""
         kwargs: dict[str, Any] = {
             "mode": "test",
-            "coordinator": self._coordinator,
             "plugins": self._plugins,
         }
         if self._log_coordinator is not None:
@@ -418,7 +439,6 @@ class TestBench:
         """Создаёт синхронную production-машину с текущими настройками."""
         kwargs: dict[str, Any] = {
             "mode": "test",
-            "coordinator": self._coordinator,
             "plugins": self._plugins,
         }
         if self._log_coordinator is not None:
@@ -588,25 +608,27 @@ class TestBench:
             dict[str, Any] — результат regular-аспекта.
         """
         context = self._build_context()
-        metadata = self._coordinator.get(action.__class__)
+        action_cls = action.__class__
+        aspects = _aspect_tuple_from_coordinator(self._coordinator, action_cls)
+        _chk = lambda n: _checkers_for_aspect_name(self._coordinator, action_cls, n)
 
-        validate_state_for_aspect(metadata, aspect_name, state)
+        validate_state_for_aspect(aspects, _chk, aspect_name, state)
 
         target_aspect = None
-        for aspect_meta in metadata.aspects:
+        for aspect_meta in aspects:
             if aspect_meta.method_name == aspect_name:
                 target_aspect = aspect_meta
                 break
 
         if target_aspect is None:
-            available = [a.method_name for a in metadata.aspects]
+            available = [a.method_name for a in aspects]
             raise ValueError(
                 f"Аспект '{aspect_name}' не найден в {action.__class__.__name__}. "
                 f"Доступные: {available}."
             )
 
         async_machine = self._build_async_machine()
-        factory = self._coordinator.get_factory(action.__class__)
+        factory = cached_dependency_factory(self._coordinator, action.__class__)
 
         log = ScopedLogger(
             coordinator=async_machine._log_coordinator,
@@ -660,18 +682,21 @@ class TestBench:
             BaseResult — результат summary-аспекта.
         """
         context = self._build_context()
-        metadata = self._coordinator.get(action.__class__)
+        action_cls = action.__class__
+        aspects = _aspect_tuple_from_coordinator(self._coordinator, action_cls)
+        _chk = lambda n: _checkers_for_aspect_name(self._coordinator, action_cls, n)
 
-        validate_state_for_summary(metadata, state)
+        validate_state_for_summary(aspects, _chk, state)
 
-        summary_meta = metadata.get_summary_aspect()
+        summaries = [a for a in aspects if a.aspect_type == "summary"]
+        summary_meta = summaries[0] if summaries else None
         if summary_meta is None:
             raise ValueError(
                 f"Действие {action.__class__.__name__} не содержит summary-аспект."
             )
 
         async_machine = self._build_async_machine()
-        factory = self._coordinator.get_factory(action.__class__)
+        factory = cached_dependency_factory(self._coordinator, action.__class__)
 
         log = ScopedLogger(
             coordinator=async_machine._log_coordinator,
@@ -795,7 +820,7 @@ class TestBench:
         ctx = self._build_context()
 
         async_machine = self._build_async_machine()
-        factory = self._coordinator.get_factory(action_class)
+        factory = cached_dependency_factory(self._coordinator, action_class)
 
         log = ScopedLogger(
             coordinator=async_machine._log_coordinator,

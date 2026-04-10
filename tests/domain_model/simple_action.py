@@ -1,26 +1,25 @@
-# tests/domain/simple_action.py
+# tests/domain_model/simple_action.py
 """
-SimpleAction — действие средней сложности с одним regular-аспектом.
+SimpleAction — medium-complexity Action with one regular aspect.
 
 ═══════════════════════════════════════════════════════════════════════════════
-НАЗНАЧЕНИЕ
+PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Действие с одним regular-аспектом и одним summary-аспектом. Regular-аспект
-валидирует входное имя и записывает validated_name в state. Чекер
-result_string гарантирует, что validated_name — непустая строка.
+One regular aspect and one summary aspect. The regular aspect validates the
+input name and writes validated_name to state. result_string ensures
+validated_name is a non-empty string.
 
-Не имеет зависимостей и connections. Доступно всем (ROLE_NONE).
-Принадлежит OrdersDomain.
+No dependencies or connections. ROLE_NONE. Belongs to OrdersDomain.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ИСПОЛЬЗОВАНИЕ В ТЕСТАХ
+USAGE IN TESTS
 ═══════════════════════════════════════════════════════════════════════════════
 
-- Тесты чекеров: result_string проверяет validated_name.
-- Тесты run_aspect: выполнение validate_name отдельно.
-- Тесты run_summary: передача state с validated_name в summary.
-- Тесты базового конвейера: regular → state → summary → result.
+- Checker tests: result_string validates validated_name.
+- run_aspect tests: validate_name in isolation.
+- run_summary tests: state with validated_name → summary.
+- Basic pipeline tests: regular → state → summary → result.
 
     result = await bench.run(
         SimpleAction(),
@@ -47,31 +46,31 @@ from action_machine.resource_managers.base_resource_manager import BaseResourceM
 from .domains import OrdersDomain
 
 
-@meta(description="Простое действие с одним аспектом", domain=OrdersDomain)
+@meta(description="Simple Action with a single aspect", domain=OrdersDomain)
 @check_roles(ROLE_NONE)
 class SimpleAction(BaseAction["SimpleAction.Params", "SimpleAction.Result"]):
     """
-    Действие с одним regular-аспектом и чекером.
+    Action with one regular aspect and one checker.
 
-    Конвейер:
-    1. validate_name (regular) — записывает validated_name в state.
-       Чекер: result_string("validated_name", required=True, min_length=1).
-    2. build_greeting (summary) — формирует приветствие из state.
+    Pipeline:
+    1. validate_name (regular) — writes validated_name to state.
+       Checker: result_string("validated_name", required=True, min_length=1).
+    2. build_greeting (summary) — greeting from state.
     """
 
     class Params(BaseParams):
-        """Параметры SimpleAction — имя для обработки."""
+        """SimpleAction parameters — name to validate."""
         name: str = Field(
-            description="Имя для обработки",
+            description="Name to process",
             min_length=1,
             examples=["Alice"],
         )
 
     class Result(BaseResult):
-        """Результат SimpleAction — приветственное сообщение."""
-        greeting: str = Field(description="Приветственное сообщение")
+        """SimpleAction result — greeting message."""
+        greeting: str = Field(description="Greeting message")
 
-    @regular_aspect("Валидация имени")
+    @regular_aspect("Validate name")
     @result_string("validated_name", required=True, min_length=1)
     async def validate_name_aspect(
         self,
@@ -81,18 +80,17 @@ class SimpleAction(BaseAction["SimpleAction.Params", "SimpleAction.Result"]):
         connections: dict[str, BaseResourceManager],
     ) -> dict:
         """
-        Валидирует и нормализует имя из параметров.
+        Validate and normalize the name from params.
 
-        Записывает в state поле validated_name — имя без пробелов
-        по краям. Чекер result_string проверяет, что результат —
-        непустая строка длиной >= 1.
+        Writes validated_name — trimmed name. result_string checks
+        non-empty string with length >= 1.
 
-        Возвращает:
-            dict с ключом validated_name.
+        Returns:
+            dict with key validated_name.
         """
         return {"validated_name": params.name.strip()}
 
-    @summary_aspect("Формирование приветствия")
+    @summary_aspect("Build greeting")
     async def build_greeting_summary(
         self,
         params: "SimpleAction.Params",
@@ -101,10 +99,10 @@ class SimpleAction(BaseAction["SimpleAction.Params", "SimpleAction.Result"]):
         connections: dict[str, BaseResourceManager],
     ) -> "SimpleAction.Result":
         """
-        Формирует приветственное сообщение из validated_name в state.
+        Build greeting from validated_name in state.
 
-        Возвращает:
-            SimpleAction.Result с полем greeting = "Hello, {name}!".
+        Returns:
+            SimpleAction.Result with greeting = "Hello, {name}!".
         """
         name = state["validated_name"]
         return SimpleAction.Result(greeting=f"Hello, {name}!")

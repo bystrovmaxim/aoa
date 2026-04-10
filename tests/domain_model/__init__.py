@@ -1,85 +1,74 @@
 # tests/domain_model/__init__.py
 """
-Единая тестовая доменная модель ActionMachine.
+Shared test domain model for ActionMachine.
 
 ═══════════════════════════════════════════════════════════════════════════════
-НАЗНАЧЕНИЕ
+PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Содержит все компоненты тестовой доменной модели: бизнес-домены,
-сервисы-зависимости, ресурсные менеджеры, действия (Action) с вложенными
-Params/Result и плагины-наблюдатели. Каждый компонент — в отдельном файле.
-
-Эта модель используется ВСЕМИ тестами в пакете tests/. Если тесту
-нужен рабочий Action — он импортирует его отсюда. Если тесту нужен
-намеренно сломанный Action (без @meta, без summary, с неправильным
-порядком обработчиков) — он создаёт его внутри тестового файла.
+Central export point for reusable test Actions, domains, services, and plugins.
+Use these classes when tests need a working Action pipeline. Intentionally
+broken edge-case Actions should stay local to the test module.
 
 ═══════════════════════════════════════════════════════════════════════════════
-КАТАЛОГ ДЕЙСТВИЙ
+ACTIONS
 ═══════════════════════════════════════════════════════════════════════════════
 
-PingAction              — только summary, ROLE_NONE, без зависимостей.
-SimpleAction            — 1 regular (чекер string) + summary, ROLE_NONE.
-FullAction              — 2 regular (чекеры string + float) + summary,
-                          depends (PaymentService, NotificationService),
-                          connection ("db"), роль "manager".
-ChildAction             — 1 regular + summary, ROLE_NONE, для box.run().
-AdminAction             — 1 regular + summary, роль "admin".
+PingAction              — summary only, ROLE_NONE.
+SimpleAction            — regular + summary, ROLE_NONE.
+FullAction              — two regular + summary, depends + connection("db"), role "manager".
+ChildAction             — nested call target for box.run().
+AdminAction             — admin-only Action.
 
 ═══════════════════════════════════════════════════════════════════════════════
-КАТАЛОГ ДЕЙСТВИЙ С ОБРАБОТЧИКАМИ ОШИБОК (@on_error)
+ERROR-HANDLING ACTIONS (@on_error)
 ═══════════════════════════════════════════════════════════════════════════════
 
-ErrorHandledAction      — 1 regular + summary + @on_error(ValueError).
-MultiErrorAction        — 1 regular + summary + 3 @on_error (специфичный → общий).
-NoErrorHandlerAction    — 1 regular + summary, без @on_error.
-HandlerRaisesAction     — 1 regular + summary + @on_error, обработчик бросает исключение.
+ErrorHandledAction      — catches ValueError.
+MultiErrorAction        — three handlers (specific → general).
+NoErrorHandlerAction    — no handler; errors propagate.
+HandlerRaisesAction     — handler itself raises.
 
 ═══════════════════════════════════════════════════════════════════════════════
-КАТАЛОГ ДЕЙСТВИЙ С КОМПЕНСАТОРАМИ (@compensate)
+COMPENSATION ACTIONS (@compensate)
 ═══════════════════════════════════════════════════════════════════════════════
 
-CompensatedOrderAction      — 2 regular с компенсаторами + 1 regular без + summary.
-                              Тестирует базовую размотку стека в обратном порядке.
-PartialCompensateAction     — 3 regular, компенсатор только у первого + summary.
-                              Тестирует skipped-фреймы при размотке.
-CompensateErrorAction       — 2 regular с компенсаторами (первый бросает) + 1 regular + summary.
-                              Тестирует молчаливое подавление ошибок компенсаторов.
-CompensateAndOnErrorAction  — 2 regular с компенсаторами + 1 regular + summary + @on_error.
-                              Тестирует порядок: компенсация → @on_error.
-CompensateWithContextAction — 1 regular с компенсатором + @context_requires + 1 regular + summary.
-                              Тестирует передачу ContextView в компенсатор.
+CompensatedOrderAction      — baseline reverse-order unwind.
+PartialCompensateAction     — skipped frames (no compensator on some aspects).
+CompensateErrorAction       — compensator failure suppression.
+CompensateAndOnErrorAction  — order: compensate first, then @on_error.
+CompensateWithContextAction — compensator receives ContextView.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ПОЛЬЗОВАТЕЛЬСКИЕ ИСКЛЮЧЕНИЯ
+CUSTOM EXCEPTIONS
 ═══════════════════════════════════════════════════════════════════════════════
 
-InsufficientFundsError  — недостаточно средств на счёте.
-PaymentGatewayError     — ошибка платёжного шлюза.
+InsufficientFundsError  — not enough balance.
+PaymentGatewayError     — payment gateway failure.
 
 ═══════════════════════════════════════════════════════════════════════════════
-СЕРВИСЫ-ЗАВИСИМОСТИ
+DEPENDENCY SERVICES
 ═══════════════════════════════════════════════════════════════════════════════
 
-PaymentService          — сервис обработки платежей (charge, refund).
-NotificationService     — сервис отправки уведомлений (send).
-InventoryService        — сервис управления запасами (reserve, unreserve).
+PaymentService          — payments (charge, refund).
+NotificationService     — notifications (send).
+InventoryService        — inventory (reserve, unreserve).
 
 ═══════════════════════════════════════════════════════════════════════════════
-ПЛАГИНЫ-НАБЛЮДАТЕЛИ
+OBSERVER PLUGINS
 ═══════════════════════════════════════════════════════════════════════════════
 
-ErrorObserverPlugin     — записывает события ошибок аспектов в state.
-ErrorCounterPlugin      — считает количество обработанных/необработанных ошибок.
-SagaObserverPlugin      — записывает все 5 типов событий компенсации в state.
+ErrorObserverPlugin     — records aspect error events into plugin state.
+ErrorCounterPlugin      — counts handled vs unhandled aspect errors.
+SagaObserverPlugin      — records all five compensation event types into state.
 
 ═══════════════════════════════════════════════════════════════════════════════
-РАСШИРЕНИЕ
+LIMITATIONS
 ═══════════════════════════════════════════════════════════════════════════════
 
-Новый Action добавляется в отдельный файл в этой папке, затем
-импортируется и реэкспортируется в этом __init__.py.
+This package is test-only. It does not define production behavior or adapter
+contracts. Add new reusable test Actions in separate modules and re-export them
+from this file.
 """
 
 from .admin_action import AdminAction
@@ -111,18 +100,18 @@ from .simple_action import SimpleAction
 from .test_db_manager import TestDbManager
 
 __all__ = [
-    # Actions (базовые)
+    # Base actions
     "PingAction",
     "SimpleAction",
     "FullAction",
     "ChildAction",
     "AdminAction",
-    # Actions (обработчики ошибок)
+    # Actions with @on_error
     "ErrorHandledAction",
     "MultiErrorAction",
     "NoErrorHandlerAction",
     "HandlerRaisesAction",
-    # Actions (компенсаторы)
+    # Actions with @compensate
     "CompensatedOrderAction",
     "CompensateAndOnErrorAction",
     "CompensateErrorAction",

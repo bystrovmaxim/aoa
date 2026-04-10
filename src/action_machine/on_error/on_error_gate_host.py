@@ -82,8 +82,9 @@ ActionProductMachine:
     #       "description": "Обработка ошибки валидации",
     #   }
     #
-    # MetadataBuilder собирает в ClassMetadata.error_handlers:
-    #   (OnErrorMeta(method_name="handle_validation_on_error",
+    # OnErrorGateHostInspector собирает снимок error_handler:
+    #   coordinator.get_snapshot(CreateOrderAction, "error_handler") ->
+    #   (ErrorHandler(method_name="handle_validation_on_error",
     #                exception_types=(ValueError,), description="...",
     #                method_ref=<func>),)
     #
@@ -115,6 +116,8 @@ ActionProductMachine:
             return PayResult(status="gateway_error", txn_id="")
 """
 
+from __future__ import annotations
+
 from typing import Any, ClassVar
 
 
@@ -124,8 +127,8 @@ class OnErrorGateHost:
 
     Класс, наследующий OnErrorGateHost, может содержать методы,
     декорированные @on_error для обработки неперехваченных исключений
-    в аспектах. MetadataBuilder собирает эти методы в
-    ClassMetadata.error_handlers (tuple[OnErrorMeta, ...]).
+    в аспектах. Снимок строит ``OnErrorGateHostInspector``;
+    чтение снимка — ``GateCoordinator.get_snapshot(cls, \"error_handler\")``.
 
     Миксин не содержит логики, полей или методов. Его функция —
     документировать контракт и обеспечивать единообразие с другими
@@ -135,7 +138,65 @@ class OnErrorGateHost:
         method._on_error_meta : dict
             Словарь {"exception_types": tuple[type, ...], "description": str},
             записываемый декоратором @on_error в сам метод. Читается
-            MetadataBuilder при сборке ClassMetadata.error_handlers.
+            инспектором ``OnErrorGateHostInspector`` при построении snapshot.
     """
 
     _on_error_meta: ClassVar[dict[str, Any]]
+
+
+def require_on_error_gate_host_marker(
+    cls: type, error_handlers: list[OnErrorGateHostInspector.Snapshot.ErrorHandler],
+) -> None:
+    """Есть @on_error → класс должен наследовать OnErrorGateHost."""
+    if error_handlers and not issubclass(cls, OnErrorGateHost):
+        handler_names = ", ".join(h.method_name for h in error_handlers)
+        raise TypeError(
+            f"Класс {cls.__name__} содержит обработчики ошибок ({handler_names}), "
+            f"но не наследует OnErrorGateHost. Декоратор @on_error разрешён "
+            f"только на классах, наследующих OnErrorGateHost. "
+            f"Используйте BaseAction или добавьте OnErrorGateHost "
+            f"в цепочку наследования."
+        )
+
+
+def _is_type_covered_by(
+    candidate_type: type[Exception],
+    covering_types: tuple[type[Exception], ...],
+) -> bool:
+    for covering in covering_types:
+        if issubclass(candidate_type, covering):
+            return True
+    return False
+
+
+def validate_error_handlers(
+    cls: type,
+    error_handlers: list[OnErrorGateHostInspector.Snapshot.ErrorHandler],
+) -> None:
+    """Порядок @on_error: нижестоящий не перекрыт вышестоящим по типам исключений."""
+    if len(error_handlers) < 2:
+        return
+
+    for i in range(1, len(error_handlers)):
+        current_handler = error_handlers[i]
+        for j in range(i):
+            upper_handler = error_handlers[j]
+            for candidate_type in current_handler.exception_types:
+                if _is_type_covered_by(candidate_type, upper_handler.exception_types):
+                    covering_name = next(
+                        c.__name__
+                        for c in upper_handler.exception_types
+                        if issubclass(candidate_type, c)
+                    )
+                    raise TypeError(
+                        f"Класс {cls.__name__}: обработчик ошибок "
+                        f"'{current_handler.method_name}' ловит "
+                        f"{candidate_type.__name__}, но вышестоящий "
+                        f"обработчик '{upper_handler.method_name}' уже "
+                        f"перехватывает {covering_name}. Тип "
+                        f"{candidate_type.__name__} является подклассом "
+                        f"{covering_name} (или совпадает с ним), поэтому "
+                        f"обработчик '{current_handler.method_name}' никогда "
+                        f"не получит управления. Переместите более специфичный "
+                        f"обработчик выше более общего."
+                    )

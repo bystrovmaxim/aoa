@@ -1,40 +1,37 @@
 # src/action_machine/domain/exceptions.py
 """
-Исключения подсистемы доменной модели ActionMachine.
+Exceptions for the ActionMachine **domain** subsystem (entities, relations, lifecycles).
 
 ═══════════════════════════════════════════════════════════════════════════════
-НАЗНАЧЕНИЕ
+PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Модуль содержит все пользовательские исключения, специфичные для доменной
-модели: сущностей (BaseEntity), связей (контейнеры связей), жизненных
-циклов (Lifecycle) и координатора сущностей (EntityCoordinator).
-
-Исключения вынесены в отдельный модуль (а не в core/exceptions.py), потому
-что доменная модель — независимая подсистема, не имеющая обратных
-зависимостей от ядра ActionMachine. Ядро (core) не импортирует доменные
-исключения. Доменный код импортирует только core-исключения (NamingSuffixError)
-через стандартные пути.
+This module defines domain-specific exceptions. They live here (not in
+`core/exceptions.py`) so the domain layer stays a **cohesive subsystem**:
+core does not import domain exceptions, while domain code may still use
+core errors such as `NamingSuffixError` where naming invariants are shared.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ИСКЛЮЧЕНИЯ
+EXCEPTION TYPES
 ═══════════════════════════════════════════════════════════════════════════════
 
 FieldNotLoadedError
-    Обращение к полю сущности, которое не было загружено при частичной
-    загрузке через BaseEntity.partial(). Наследует AttributeError.
+    Access to an entity field that was **not** included in a partial load via
+    `BaseEntity.partial()`. Subclasses `AttributeError`.
 
 RelationNotLoadedError
-    Обращение к атрибуту связанной сущности через контейнер связи
-    (CompositeOne, AssociationOne и т.д.), когда объект (entity) не
-    загружен — загружен только id. Наследует AttributeError.
+    Access through a relation container (`CompositeOne`, `AssociationOne`, …)
+    to attributes of the related entity when only **ids** were loaded and the
+    full `entity` / `entities` payload is missing. Subclasses `AttributeError`.
 
 EntityDecoratorError
-    Ошибки декоратора @entity. Наследует TypeError.
+    Violations of the `@entity` decorator contract. Subclasses `TypeError`
+    (import-time / developer error).
 
 LifecycleValidationError
-    Нарушение целостности конечного автомата Lifecycle. Выбрасывается
-    координатором сущностей при сборке метаданных.
+    A `Lifecycle` template attached to an entity fails one of the eight
+    structural integrity rules when validated during `GateCoordinator.build()`
+    (via `EntityGateHostInspector` / entity lifecycle validation).
 """
 
 from __future__ import annotations
@@ -44,28 +41,26 @@ from typing import Any
 
 class FieldNotLoadedError(AttributeError):
     """
-    Обращение к незагруженному полю частично загруженной сущности.
+    Access to a field that was not loaded on a **partial** entity instance.
 
-    Выбрасывается при доступе к атрибуту, который не был передан
-    в BaseEntity.partial(). Наследует AttributeError, потому что
-    семантически это ошибка доступа к атрибуту — поле существует
-    в схеме класса, но не было загружено в данном экземпляре.
+    Raised when code reads an attribute that was **not** passed to
+    `BaseEntity.partial()`. Subclassing `AttributeError` keeps semantics
+    aligned with attribute access: the field exists on the **model**, but
+    not in this **instance**’s loaded subset.
 
-    Наследование от AttributeError обеспечивает корректное поведение
-    с hasattr(): hasattr(entity, "status") вернёт False для
-    незагруженного поля.
+    `hasattr(entity, "status")` returns `False` for a non-loaded model field
+    in the partial case, which matches “attribute not available on this object.”
 
-    Это НЕ lazy-loading. Никаких скрытых запросов к хранилищу. Поле
-    либо загружено при создании через partial(), либо нет. Обращение
-    к незагруженному полю — немедленная ошибка.
+    This is **not** lazy loading: there is no hidden I/O. Either the field was
+    supplied at construction time or access fails immediately with a clear error.
 
-    Атрибуты:
-        field_name : str
-            Имя поля, к которому обратились.
-        entity_class_name : str
-            Имя класса сущности.
-        loaded_fields : frozenset[str]
-            Множество полей, загруженных при создании.
+    Attributes:
+        field_name:
+            Name of the field that was accessed.
+        entity_class_name:
+            Entity class name (for messages).
+        loaded_fields:
+            Frozen set of field names that *were* loaded.
     """
 
     def __init__(
@@ -74,52 +69,39 @@ class FieldNotLoadedError(AttributeError):
         entity_class_name: str,
         loaded_fields: frozenset[str],
     ) -> None:
-        """
-        Инициализирует исключение.
-
-        Аргументы:
-            field_name: имя запрошенного поля.
-            entity_class_name: имя класса сущности.
-            loaded_fields: множество загруженных полей.
-        """
         self.field_name: str = field_name
         self.entity_class_name: str = entity_class_name
         self.loaded_fields: frozenset[str] = loaded_fields
 
-        sorted_fields = ", ".join(sorted(loaded_fields)) if loaded_fields else "(нет полей)"
+        sorted_fields = ", ".join(sorted(loaded_fields)) if loaded_fields else "(none)"
         super().__init__(
-            f"Поле '{field_name}' сущности '{entity_class_name}' не загружено. "
-            f"Загруженные поля: {sorted_fields}. "
-            f"Используйте полную загрузку или добавьте '{field_name}' в partial()."
+            f"Field '{field_name}' on entity '{entity_class_name}' is not loaded. "
+            f"Loaded fields: {sorted_fields}. "
+            f"Use a full constructor or include '{field_name}' in partial()."
         )
 
 
 class RelationNotLoadedError(AttributeError):
     """
-    Обращение к атрибуту связанной сущности, когда объект не загружен.
+    Access to a related entity’s attributes when the relation object is not hydrated.
 
-    Выбрасывается контейнерами связей One (CompositeOne, AggregateOne,
-    AssociationOne) при попытке проксирования атрибута на entity, когда
-    entity is None (менеджер загрузил только id). Также выбрасывается
-    контейнерами Many при попытке итерации или индексного доступа,
-    когда entities пуст.
+    Raised by **One** containers when `__getattr__` would forward to `entity` but
+    `entity is None` (only `id` is present). **Many** containers raise it when
+    iteration or indexing is attempted while no `entities` were loaded.
 
-    Наследует AttributeError по той же причине, что и FieldNotLoadedError:
-    семантически это ошибка доступа к атрибуту, а hasattr() должен
-    возвращать False для недоступных атрибутов.
+    Subclassing `AttributeError` matches “this attribute path is not available
+    on the current partially-loaded graph of objects.”
 
-    Это НЕ lazy-loading. Контейнер хранит id связанной сущности, но
-    полный объект не загружен. Никаких скрытых запросов к хранилищу.
-    Для загрузки объекта нужно явно обратиться к менеджеру.
+    Again: **not** lazy loading — load the related entity explicitly in your
+    adapter / repository layer.
 
-    Атрибуты:
-        container_class_name : str
-            Имя класса контейнера связи (например, "AssociationOne").
-        attribute_name : str
-            Имя запрошенного атрибута (например, "name", "[0]", "__iter__").
-        entity_id : Any
-            Идентификатор связанной сущности (или кортеж id для Many).
-            Включается в сообщение для диагностики.
+    Attributes:
+        container_class_name:
+            Relation container class name (e.g. `AssociationOne`).
+        attribute_name:
+            Requested attribute or pseudo-name (e.g. `"name"`, `"[0]"`, `"__iter__"`).
+        entity_id:
+            Related id (or tuple of ids for Many) for diagnostics.
     """
 
     def __init__(
@@ -128,38 +110,29 @@ class RelationNotLoadedError(AttributeError):
         attribute_name: str,
         entity_id: Any,
     ) -> None:
-        """
-        Инициализирует исключение.
-
-        Аргументы:
-            container_class_name: имя класса контейнера связи.
-            attribute_name: имя запрошенного атрибута.
-            entity_id: идентификатор связанной сущности (или кортеж).
-        """
         self.container_class_name: str = container_class_name
         self.attribute_name: str = attribute_name
         self.entity_id: Any = entity_id
 
         super().__init__(
-            f"Объект связи в {container_class_name} не загружен (id={entity_id!r}). "
-            f"Обращение к '{attribute_name}' невозможно — загружен только идентификатор. "
-            f"Загрузите связанную сущность через менеджер."
+            f"Related object in {container_class_name} is not loaded (id={entity_id!r}). "
+            f"Cannot access '{attribute_name}' — only the identifier is present. "
+            f"Load the related entity through your persistence / manager layer."
         )
 
 
 class EntityDecoratorError(TypeError):
     """
-    Ошибка декоратора @entity.
+    `@entity` was used in a way that breaks its contract.
 
-    Выбрасывается при нарушении контракта декоратора:
-    - Декоратор применён не к классу.
-    - Класс не наследует EntityGateHost.
-    - Параметр description не является строкой или пуст.
-    - Параметр domain не является подклассом BaseDomain и не None.
+    Typical causes:
+    - Applied to something that is not a class.
+    - Target class does not inherit `EntityGateHost` (usually via `BaseEntity`).
+    - `description` is not a non-empty string.
+    - `domain` is neither `None` nor a `BaseDomain` subclass.
 
-    Наследует TypeError, потому что ошибки декоратора обнаруживаются
-    на этапе определения класса (import-time) и являются ошибками
-    разработчика, а не пользовательских данных.
+    Subclasses `TypeError` because these are **developer** mistakes at class
+    definition time, not invalid end-user input.
     """
 
     pass
@@ -167,29 +140,27 @@ class EntityDecoratorError(TypeError):
 
 class LifecycleValidationError(Exception):
     """
-    Нарушение целостности конечного автомата Lifecycle.
+    A `Lifecycle` template failed structural validation.
 
-    Выбрасывается координатором сущностей (EntityCoordinator) при
-    сборке метаданных, когда Lifecycle сущности не проходит проверки
-    целостности.
+    Raised while the coordinator graph is built (entity facet inspection), when
+    a lifecycle field’s `_template` violates the eight integrity rules:
 
-    Восемь проверок целостности:
-    1. Каждое состояние завершено флагом (.initial()/.intermediate()/.final()).
-    2. Есть хотя бы одно начальное состояние.
-    3. Есть хотя бы одно финальное состояние.
-    4. Финальные состояния не имеют переходов.
-    5. Все цели переходов существуют как объявленные состояния.
-    6. Каждое не-финальное состояние имеет хотя бы один переход.
-    7. Из каждого начального состояния достижимо хотя бы одно финальное.
-    8. Каждое не-initial состояние является целью хотя бы одного перехода.
+    1. Every state is tagged with `.initial()`, `.intermediate()`, or `.final()`.
+    2. At least one initial state exists.
+    3. At least one final state exists.
+    4. Final states have no outgoing transitions.
+    5. Every transition target names an existing state.
+    6. Every non-final state has at least one outgoing transition.
+    7. From every initial state, some final state is reachable.
+    8. Every non-initial state is the target of at least one transition.
 
-    Атрибуты:
-        entity_name : str
-            Имя класса сущности, содержащей невалидный Lifecycle.
-        field_name : str
-            Имя поля Lifecycle в сущности.
-        details : str
-            Детальное описание нарушения.
+    Attributes:
+        entity_name:
+            Entity class name containing the invalid lifecycle field.
+        field_name:
+            Name of the `Lifecycle` field on that entity.
+        details:
+            Human-readable explanation of the violation.
     """
 
     def __init__(
@@ -198,18 +169,10 @@ class LifecycleValidationError(Exception):
         field_name: str,
         details: str,
     ) -> None:
-        """
-        Инициализирует исключение.
-
-        Аргументы:
-            entity_name: имя класса сущности.
-            field_name: имя поля Lifecycle.
-            details: описание нарушения.
-        """
         self.entity_name: str = entity_name
         self.field_name: str = field_name
         self.details: str = details
 
         super().__init__(
-            f"Ошибка Lifecycle '{field_name}' в сущности '{entity_name}': {details}"
+            f"Lifecycle '{field_name}' on entity '{entity_name}' is invalid: {details}"
         )

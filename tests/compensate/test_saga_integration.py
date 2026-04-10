@@ -111,7 +111,7 @@ class TestFullSagaE2E:
 
         # ── Assert: результат ──
         assert result.status == "handled_after_compensate"
-        assert "Ошибка финализации для user_e2e" in result.detail
+        assert "Finalize error for user_e2e" in result.detail
 
         # ── Assert: компенсаторы вызваны ──
         assert mock_payment.refund.call_count >= 1
@@ -150,7 +150,7 @@ class TestFullSagaE2E:
         )
 
         # ── Act & Assert: ошибка пробрасывается ──
-        with pytest.raises(ValueError, match="Ошибка финализации для user_no_handler"):
+        with pytest.raises(ValueError, match="Finalize error for user_no_handler"):
             await e2e_bench.run(
                 CompensatedOrderAction(),
                 params,
@@ -193,7 +193,7 @@ class TestFullSagaE2E:
         )
 
         # ── Act ──
-        with pytest.raises(ValueError, match="Ошибка финализации"):
+        with pytest.raises(ValueError, match="Finalize error"):
             await bench.run(
                 CompensateWithContextAction(),
                 params,

@@ -86,10 +86,10 @@ _required_context_keys уже записан.
         ▼  Декоратор записывает в method._on_error_meta
     {"exception_types": (ValueError,), "description": "..."}
         │
-        ▼  MetadataBuilder → collectors.collect_error_handlers(cls)
-    OnErrorMeta(..., context_keys=frozenset(...))
+        ▼  OnErrorGateHostInspector._collect_error_handlers(cls)
+    ErrorHandler(..., context_keys=frozenset(...))
         │
-        ▼  validators.validate_error_handler_overlap(cls, error_handlers)
+        ▼  on_error_gate_host.validate_error_handlers(cls, error_handlers)
     Проверяет перекрытие типов.
         │
         ▼  ActionProductMachine._handle_aspect_error(...)
@@ -233,6 +233,12 @@ def _normalize_exception_types(
     )
 
 
+def _exception_types_invariant(
+    exception_types: type[Exception] | tuple[type[Exception], ...],
+) -> tuple[type[Exception], ...]:
+    return _normalize_exception_types(exception_types)
+
+
 def _validate_description(description: Any) -> None:
     """
     Проверяет, что description — непустая строка.
@@ -254,6 +260,10 @@ def _validate_description(description: Any) -> None:
             "@on_error: description не может быть пустой строкой. "
             "Укажите описание обработчика ошибки."
         )
+
+
+def _description_invariant(description: Any) -> None:
+    _validate_description(description)
 
 
 def _validate_method(func: Any, description: str) -> None:
@@ -312,6 +322,10 @@ def _validate_method(func: Any, description: str) -> None:
         )
 
 
+def _method_contract_invariant(func: Any, description: str) -> None:
+    _validate_method(func, description)
+
+
 # ═════════════════════════════════════════════════════════════════════════════
 # Основной декоратор
 # ═════════════════════════════════════════════════════════════════════════════
@@ -326,7 +340,7 @@ def on_error(
     Декоратор уровня метода. Объявляет обработчик ошибок аспектов действия.
 
     Записывает метаданные в атрибут method._on_error_meta. MetadataBuilder
-    собирает эти метаданные в ClassMetadata.error_handlers (tuple[OnErrorMeta]).
+    собирает эти метаданные в snapshot ``error_handler`` (ErrorHandler).
 
     Количество параметров проверяется с учётом наличия @context_requires:
     если функция имеет атрибут _required_context_keys — ожидается 7
@@ -358,8 +372,8 @@ def on_error(
             - Имя метода не заканчивается на "_on_error".
     """
     # Валидация аргументов декоратора (до применения к методу)
-    normalized_types = _normalize_exception_types(exception_types)
-    _validate_description(description)
+    normalized_types = _exception_types_invariant(exception_types)
+    _description_invariant(description)
 
     def decorator(func: Any) -> Any:
         """
@@ -368,7 +382,7 @@ def on_error(
         Проверяет callable, async, количество параметров, суффикс.
         Затем записывает _on_error_meta в func.
         """
-        _validate_method(func, description)
+        _method_contract_invariant(func, description)
 
         func._on_error_meta = {
             "exception_types": normalized_types,

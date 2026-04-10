@@ -1,163 +1,161 @@
 # src/action_machine/domain/relation_containers.py
 """
-Контейнеры связей доменной модели ActionMachine.
+Relation **containers** for entity fields: ids always, full objects optional.
+
+Six generic types cover **ownership** (composition, aggregation, association)
+times **cardinality** (one vs many). They mirror ArchiMate-style structure,
+stay **frozen** like `BaseEntity`, and raise `RelationNotLoadedError` when code
+reaches through a container for related data that was never hydrated.
 
 ═══════════════════════════════════════════════════════════════════════════════
-НАЗНАЧЕНИЕ
+PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Модуль содержит шесть generic-контейнеров для объявления связей между
-сущностями доменной модели. Контейнеры различаются по двум осям:
-
-1. ТИП ВЛАДЕНИЯ (три типа из ArchiMate):
-   - Composition — сильное владение. При удалении родителя дочерние
-     объекты удаляются. Ребёнок не может существовать без родителя.
-     Пример: Заказ → Позиции заказа.
-   - Aggregation — слабое владение. При удалении родителя дочерние
-     объекты отвязываются, но продолжают существовать.
-     Пример: Команда → Сотрудники.
-   - Association — равноправная связь без владения. Удаление одной
-     стороны не затрагивает другую.
-     Пример: Заказ ↔ Клиент.
-
-2. КАРДИНАЛЬНОСТЬ (два варианта):
-   - One — ссылка на одну сущность.
-   - Many — ссылка на коллекцию сущностей.
-
-Итого шесть контейнеров:
-    CompositeOne[T]     — один дочерний объект (composition)
-    CompositeMany[T]    — коллекция дочерних объектов (composition)
-    AggregateOne[T]     — один агрегированный объект
-    AggregateMany[T]    — коллекция агрегированных объектов
-    AssociationOne[T]   — одна ассоциированная сущность
-    AssociationMany[T]  — коллекция ассоциированных сущностей
+Express how entities link to each other in the type system while keeping a clear
+split between **identity** (always stored) and **hydration** (optional `entity` /
+`entities`). Adapters can load only ids; domain code that needs attributes must
+load full rows or accept `RelationNotLoadedError`.
 
 ═══════════════════════════════════════════════════════════════════════════════
-КОНТЕЙНЕР СВЯЗИ: id ВСЕГДА, ОБЪЕКТ — ОПЦИОНАЛЬНО
+SCOPE (IN / OUT)
 ═══════════════════════════════════════════════════════════════════════════════
 
-Контейнеры One (CompositeOne, AggregateOne, AssociationOne) хранят:
-- id : Any — идентификатор связанной сущности. Всегда присутствует.
-- entity : T | None — полный загруженный объект. Может быть None,
-  если менеджер загрузил только id.
+**In scope**
+    Storing related ids and optional object graphs for One/Many shapes.
+    Attribute **proxying** on One containers (`customer_ref.name` → `entity.name`).
+    Indexing, slicing, iteration on Many over **loaded** `entities` only.
+    Immutability after construction.
 
-Контейнеры Many (CompositeMany, AggregateMany, AssociationMany) хранят:
-- ids : tuple[Any, ...] — кортеж идентификаторов связанных сущностей.
-- entities : tuple[T, ...] — кортеж загруженных объектов. Может быть
-  пустым, если менеджер загрузил только идентификаторы.
-
-Тип id не фиксирован — это обычное поле целевой сущности, определяемое
-разработчиком. Модель не навязывает формат идентификатора: str, int,
-UUID — любой тип. У сущности может не быть поля id вообще.
-
-═══════════════════════════════════════════════════════════════════════════════
-ПРОКСИРОВАНИЕ АТРИБУТОВ (КОНТЕЙНЕРЫ ONE)
-═══════════════════════════════════════════════════════════════════════════════
-
-Контейнеры One поддерживают проксирование атрибутов на загруженную
-сущность через __getattr__:
-
-    order.customer.name    # → проксируется на entity.name
-
-Если entity загружен (не None) — атрибут читается с entity.
-Если entity не загружен (None) — RelationNotLoadedError с информативным
-сообщением.
-
-Доступ к id всегда работает, независимо от загрузки entity:
-
-    order.customer.id      # → всегда работает (id хранится в контейнере)
-    order.customer.name    # → работает только если entity загружен
+**Out of scope**
+    Lazy loading or automatic fetches — see `RelationNotLoadedError` in
+    `exceptions.py`.
+    Enforcing the inverse-side **compatibility matrix** — the gate coordinator
+    validates `Inverse` / `Rel` pairings at **build** time, not inside these
+    containers.
+    Choosing id types (``str``, ``int``, ``UUID``, …) — whatever the target
+    entity uses.
 
 ═══════════════════════════════════════════════════════════════════════════════
-FROZEN-СЕМАНТИКА
+TERMINOLOGY (USE CONSISTENTLY)
 ═══════════════════════════════════════════════════════════════════════════════
 
-Все контейнеры неизменяемы после создания. Запись и удаление атрибутов
-запрещены через __setattr__ и __delattr__. Это согласуется с frozen-
-семантикой BaseEntity: данные сущности фиксируются при загрузке и
-не меняются в ходе обработки.
+**Gate host / decorator / scratch / inspector / gate coordinator** — containers
+appear on entity fields declared with `Rel` / `Inverse`; **inspectors** read
+annotations and scratch during **gate coordinator** `build()` to validate
+relation graphs and ownership rules.
 
 ═══════════════════════════════════════════════════════════════════════════════
-МАТРИЦА СОВМЕСТИМОСТИ ТИПОВ ВЛАДЕНИЯ
+ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-При двусторонней связи (Inverse) типы владения обеих сторон должны быть
-совместимы. Координатор проверяет по матрице:
+**One** (`CompositeOne`, `AggregateOne`, `AssociationOne`)::
 
-    Composite  ↔ Association    — допустимо (родитель → дочерний → обратная ссылка)
-    Aggregate  ↔ Association    — допустимо
-    Association ↔ Association   — допустимо (равноправная связь)
-    Composite  ↔ Composite      — запрещено (два владельца)
-    Composite  ↔ Aggregate      — запрещено (конфликт семантики владения)
-    Aggregate  ↔ Aggregate      — запрещено (два владельца)
+    id: Any              — always set
+    entity: T | None     — optional hydrated row
+    other attrs          — proxied to `entity` if set, else RelationNotLoadedError
 
-Обратная сторона Composite/Aggregate-связи должна быть Association.
+**Many** (`CompositeMany`, …)::
+
+    ids: tuple[Any, ...]     — always (possibly empty)
+    entities: tuple[T, ...]  — optional; may be empty when only ids loaded
+    __getitem__ / __iter__   — require non-empty `entities` or RelationNotLoadedError
+
+::
+
+    repository / adapter
+         │
+         ├─ full row(s)     ──>  AssociationOne(id=…, entity=obj)
+         │
+         └─ ids only        ──>  AssociationOne(id=…)
+                                    │
+                                    └─> ref.name  ──> RelationNotLoadedError
 
 ═══════════════════════════════════════════════════════════════════════════════
-ENUM ТИПОВ ВЛАДЕНИЯ
+OWNERSHIP × CARDINALITY MATRIX
 ═══════════════════════════════════════════════════════════════════════════════
 
-RelationType — enum, классифицирующий тип владения контейнера.
-Используется координатором для проверки матрицы совместимости
-и построения ArchiMate-диаграмм.
++-------------------+----------------------------------+
+| Type              | Role                             |
++===================+==================================+
+| `CompositeOne`    | one child, strong ownership      |
+| `CompositeMany`   | many children, strong ownership  |
+| `AggregateOne`    | one child, weak ownership        |
+| `AggregateMany`   | many children, weak ownership    |
+| `AssociationOne`  | one peer, no ownership           |
+| `AssociationMany` | many peers, no ownership         |
++-------------------+----------------------------------+
+
+**Inverse compatibility** (checked at coordinator build, not here): composite or
+aggregate on one side pairs with **association** on the other; composite↔composite,
+aggregate↔aggregate, composite↔aggregate are rejected.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ПРИМЕР ИСПОЛЬЗОВАНИЯ
+INVARIANTS
 ═══════════════════════════════════════════════════════════════════════════════
 
-    from typing import Annotated
-    from pydantic import Field
-    from action_machine.domain import (
-        BaseEntity, entity, BaseDomain, Lifecycle,
-        AssociationOne, AssociationMany, CompositeMany,
-        Inverse, NoInverse, Rel,
-    )
+- **One:** `id` is never `None` at construction.
+- All containers are **frozen**: no `__setattr__` / `__delattr__` on instances.
+- Proxy / index / iteration paths require hydrated payloads or they raise
+  `RelationNotLoadedError` (message format lives in `exceptions.py`).
 
-    class ShopDomain(BaseDomain):
-        name = "shop"
-        description = "Интернет-магазин"
+═══════════════════════════════════════════════════════════════════════════════
+RATIONALE
+═══════════════════════════════════════════════════════════════════════════════
 
-    @entity(description="Клиент", domain=ShopDomain)
-    class CustomerEntity(BaseEntity):
-        id: str = Field(description="ID клиента")
-        name: str = Field(description="Имя клиента")
+Ids-without-rows is a normal partial-load shape; failing fast on accidental
+attribute access avoids silent `None` bugs. Distinct container classes encode
+ownership for static analysis and coordinator rules without a parallel string
+enum everywhere. Frozen instances align with immutable entities and make relation
+snapshots safe to pass through pipelines.
 
-        orders: Annotated[
-            AssociationMany[OrderEntity],
-            Inverse(OrderEntity, "customer"),
-        ] = Rel(description="Заказы клиента")
+═══════════════════════════════════════════════════════════════════════════════
+LIFECYCLE (IMPORT VS BUILD VS RUNTIME)
+═══════════════════════════════════════════════════════════════════════════════
 
-    @entity(description="Заказ", domain=ShopDomain)
-    class OrderEntity(BaseEntity):
-        id: str = Field(description="ID заказа")
-        amount: float = Field(description="Сумма", ge=0)
+- **Import**: types and `RelationType` enum are defined.
+- **Build**: coordinator validates relation declarations; containers are not
+  involved in that pass.
+- **Runtime**: adapters construct containers; domain code reads ids or pays
+  the hydration cost before drilling into related fields.
 
-        customer: Annotated[
-            AssociationOne[CustomerEntity],
-            Inverse(CustomerEntity, "orders"),
-        ] = Rel(description="Клиент, оформивший заказ")
+═══════════════════════════════════════════════════════════════════════════════
+EXAMPLES
+═══════════════════════════════════════════════════════════════════════════════
 
-        items: Annotated[
-            CompositeMany[OrderItemEntity],
-            Inverse(OrderItemEntity, "order"),
-        ] = Rel(description="Позиции заказа")
+Hydrated One container::
 
-    # Создание контейнера One (менеджером):
-    customer_ref = AssociationOne(id="CUST-001", entity=customer_obj)
-    customer_ref.id        # → "CUST-001"
-    customer_ref.name      # → проксируется на customer_obj.name
+    ref = AssociationOne(id="CUST-001", entity=customer)
+    ref.id
+    ref.name   # proxies to customer.name
 
-    # Создание контейнера One (только id):
-    customer_ref = AssociationOne(id="CUST-001")
-    customer_ref.id        # → "CUST-001"
-    customer_ref.name      # → RelationNotLoadedError
+Ids-only One (edge)::
 
-    # Создание контейнера Many (менеджером):
-    items_ref = CompositeMany(ids=("ITEM-1", "ITEM-2"), entities=(item1, item2))
-    items_ref.ids           # → ("ITEM-1", "ITEM-2")
-    items_ref.entities      # → (item1, item2)
-    len(items_ref)          # → 2
-    items_ref[0]            # → item1
+    ref = AssociationOne(id="CUST-001")
+    ref.id
+    ref.name   # RelationNotLoadedError (see exceptions.py wording)
+
+Many with entities::
+
+    bag = CompositeMany(ids=("A", "B"), entities=(e1, e2))
+    len(bag)
+    bag[0]
+
+Many ids only (edge)::
+
+    bag = CompositeMany(ids=("A", "B"))
+    bag[0]     # RelationNotLoadedError
+
+═══════════════════════════════════════════════════════════════════════════════
+ERRORS / LIMITATIONS
+═══════════════════════════════════════════════════════════════════════════════
+
+- `ValueError`: One container constructed with `id=None`.
+- `RelationNotLoadedError`: proxy/index/iter without `entity` / `entities`.
+- `AttributeError`: mutation attempted on a frozen container; or proxy target
+  missing attribute when `entity` is loaded.
+- Message text for `RelationNotLoadedError` is centralized in
+  `action_machine.domain.exceptions` — keep docs aligned there, not duplicated
+  verbatim here.
 """
 
 from __future__ import annotations
@@ -172,22 +170,20 @@ T = TypeVar("T")
 
 class RelationType(Enum):
     """
-    Тип владения связи между сущностями.
+    Ownership flavour for a relation field.
 
-    Соответствует трём структурным отношениям ArchiMate:
+    Maps to ArchiMate structural relationships:
 
-    COMPOSITION — сильное владение. Дочерний объект не существует без
-                  родителя. При удалении родителя дочерние удаляются.
-                  ArchiMate: Composition relationship.
+    COMPOSITION
+        Strong ownership; children do not exist without the parent; parent
+        deletion removes children.
 
-    AGGREGATION — слабое владение. Дочерний объект может существовать
-                  самостоятельно. При удалении родителя дочерние
-                  отвязываются.
-                  ArchiMate: Aggregation relationship.
+    AGGREGATION
+        Weak ownership; children can exist independently; parent deletion
+        detaches them.
 
-    ASSOCIATION — равноправная связь без владения. Удаление одной
-                  стороны не затрагивает другую.
-                  ArchiMate: Association relationship.
+    ASSOCIATION
+        Peer link; neither side owns the other’s lifecycle.
     """
 
     COMPOSITION = "composition"
@@ -196,99 +192,86 @@ class RelationType(Enum):
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Базовые классы контейнеров
+# Base containers
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class BaseRelationOne(Generic[T]):
     """
-    Базовый контейнер связи «к одному» (One).
+    Base **to-one** relation container.
 
-    Хранит идентификатор связанной сущности (id) и опционально загруженный
-    объект (entity). Поддерживает проксирование атрибутов на entity:
-    обращение к атрибуту контейнера, не являющемуся id или entity,
-    делегируется в entity если он загружен.
+    **Role**
+        Hold a related **id** and optionally the full **entity**. Unknown
+        attribute names delegate to `entity` when hydrated.
 
-    Frozen после создания. Запись и удаление атрибутов запрещены.
+    **Invariants**
+        `id` is mandatory and non-None. Instance is immutable.
 
-    Подклассы (CompositeOne, AggregateOne, AssociationOne) отличаются
-    только значением класс-атрибута relation_type, определяющего
-    семантику владения.
+    **Neighbors**
+        Subclasses only override `relation_type`. Errors for unloaded graphs use
+        `RelationNotLoadedError` from `exceptions.py`.
 
-    Атрибуты:
-        id : Any
-            Идентификатор связанной сущности. Всегда присутствует.
-            Тип определяется разработчиком (str, int, UUID и т.д.).
-
-        entity : T | None
-            Загруженный объект связанной сущности. None если менеджер
-            загрузил только id. Проксирование атрибутов работает
-            только при entity is not None.
-
-        relation_type : RelationType
-            Тип владения. Определяется в подклассах. Используется
-            координатором для проверки матрицы совместимости.
+    **Attributes**
+        ``id``
+            Related primary key (any type the model uses).
+        ``entity``
+            Hydrated row or ``None`` when only the id was loaded.
+        ``relation_type``
+            Set on concrete subclasses for coordinator / diagram metadata.
     """
 
     __slots__ = ("_entity", "_id")
 
-    relation_type: RelationType  # Определяется в подклассах
+    relation_type: RelationType
 
     def __init__(self, *, id: Any, entity: T | None = None) -> None:
         """
-        Инициализирует контейнер связи «к одному».
+        Args:
+            id: Related entity identifier (required).
+            entity: Hydrated entity, or ``None`` if only ``id`` was loaded.
 
-        Аргументы:
-            id: идентификатор связанной сущности. Обязательный.
-            entity: загруженный объект сущности. Опциональный.
-                    None означает: менеджер загрузил только id.
-
-        Исключения:
-            ValueError: если id is None.
+        Raises:
+            ValueError: If ``id`` is ``None``.
         """
         if id is None:
             raise ValueError(
-                f"{self.__class__.__name__}: id не может быть None. "
-                f"Контейнер связи обязан хранить идентификатор."
+                f"{self.__class__.__name__}: id cannot be None. "
+                f"A relation container must always store an identifier."
             )
         object.__setattr__(self, "_id", id)
         object.__setattr__(self, "_entity", entity)
 
     @property
     def id(self) -> Any:
-        """Идентификатор связанной сущности. Всегда доступен."""
+        """Related id; always available."""
         return self._id
 
     @property
     def entity(self) -> T | None:
-        """Загруженный объект или None."""
+        """Hydrated related object, or ``None``."""
         return self._entity
 
     @property
     def is_loaded(self) -> bool:
-        """True если объект сущности загружен (entity is not None)."""
+        """True when ``entity`` is not ``None``."""
         return self._entity is not None
 
     def __getattr__(self, name: str) -> Any:
         """
-        Проксирует доступ к атрибутам на загруженную сущность.
+        Forward attribute access to ``entity`` when it is loaded.
 
-        Вызывается Python только для атрибутов, НЕ найденных через
-        стандартный __getattribute__ (т.е. не id, entity, is_loaded,
-        relation_type и не приватные атрибуты __slots__).
+        ``id``, ``entity``, ``is_loaded``, ``relation_type``, and ``__slots__``
+        fields are resolved without entering this hook.
 
-        Если entity загружен — делегирует getattr(entity, name).
-        Если entity не загружен — RelationNotLoadedError.
+        Args:
+            name: Attribute requested on the container.
 
-        Аргументы:
-            name: имя запрашиваемого атрибута.
+        Returns:
+            Attribute value from ``entity``.
 
-        Возвращает:
-            Значение атрибута entity.
-
-        Исключения:
-            RelationNotLoadedError: если entity is None.
-            AttributeError: если entity загружен, но не имеет атрибута.
+        Raises:
+            RelationNotLoadedError: ``entity`` is ``None`` (see ``exceptions.py``).
+            AttributeError: ``entity`` is set but has no such attribute.
         """
         entity = object.__getattribute__(self, "_entity")
         if entity is None:
@@ -302,14 +285,12 @@ class BaseRelationOne(Generic[T]):
 
     def __setattr__(self, name: str, value: Any) -> None:
         raise AttributeError(
-            f"{self.__class__.__name__} является frozen-объектом. "
-            f"Запись атрибута '{name}' запрещена."
+            f"{self.__class__.__name__} is frozen; assigning to '{name}' is not allowed."
         )
 
     def __delattr__(self, name: str) -> None:
         raise AttributeError(
-            f"{self.__class__.__name__} является frozen-объектом. "
-            f"Удаление атрибута '{name}' запрещено."
+            f"{self.__class__.__name__} is frozen; deleting '{name}' is not allowed."
         )
 
     def __repr__(self) -> str:
@@ -327,32 +308,24 @@ class BaseRelationOne(Generic[T]):
 
 class BaseRelationMany(Generic[T]):
     """
-    Базовый контейнер связи «ко многим» (Many).
+    Base **to-many** relation container.
 
-    Хранит кортеж идентификаторов связанных сущностей (ids) и опционально
-    кортеж загруженных объектов (entities). Поддерживает итерацию,
-    индексный доступ и len().
+    **Role**
+        Hold ``ids`` and optionally parallel ``entities``; support ``len``,
+        indexing, slicing, and iteration over loaded rows.
 
-    Frozen после создания. Запись и удаление атрибутов запрещены.
+    **Invariants**
+        Immutable instance. Indexing and iteration require a non-empty
+        ``entities`` tuple or they raise `RelationNotLoadedError`.
 
-    Подклассы (CompositeMany, AggregateMany, AssociationMany) отличаются
-    только значением класс-атрибута relation_type.
-
-    Атрибуты:
-        ids : tuple[Any, ...]
-            Кортеж идентификаторов связанных сущностей. Может быть пустым.
-
-        entities : tuple[T, ...]
-            Кортеж загруженных объектов. Может быть пустым, если менеджер
-            загрузил только идентификаторы.
-
-        relation_type : RelationType
-            Тип владения. Определяется в подклассах.
+    **Neighbors**
+        Concrete classes set `relation_type`. Coordinator validates pairing with
+        inverse side at build time.
     """
 
     __slots__ = ("_entities", "_ids")
 
-    relation_type: RelationType  # Определяется в подклассах
+    relation_type: RelationType
 
     def __init__(
         self,
@@ -361,32 +334,30 @@ class BaseRelationMany(Generic[T]):
         entities: tuple[T, ...] = (),
     ) -> None:
         """
-        Инициализирует контейнер связи «ко многим».
-
-        Аргументы:
-            ids: кортеж идентификаторов связанных сущностей.
-            entities: кортеж загруженных объектов. Может быть пустым.
+        Args:
+            ids: Related identifiers (may be empty).
+            entities: Hydrated rows; may be empty when only ids are known.
         """
         object.__setattr__(self, "_ids", ids)
         object.__setattr__(self, "_entities", entities)
 
     @property
     def ids(self) -> tuple[Any, ...]:
-        """Кортеж идентификаторов связанных сущностей."""
+        """Tuple of related ids."""
         return self._ids
 
     @property
     def entities(self) -> tuple[T, ...]:
-        """Кортеж загруженных объектов (может быть пустым)."""
+        """Tuple of hydrated entities (possibly empty)."""
         return self._entities
 
     @property
     def is_loaded(self) -> bool:
-        """True если хотя бы один объект загружен."""
+        """True when at least one entity tuple element is present."""
         return len(self._entities) > 0
 
     def __len__(self) -> int:
-        """Количество идентификаторов (не загруженных объектов)."""
+        """Number of ids (not necessarily loaded entities)."""
         return len(self._ids)
 
     @overload
@@ -397,17 +368,15 @@ class BaseRelationMany(Generic[T]):
 
     def __getitem__(self, index: int | slice) -> T | tuple[T, ...]:
         """
-        Индексный доступ к загруженным объектам.
+        Args:
+            index: Integer index or slice over ``entities``.
 
-        Аргументы:
-            index: целочисленный индекс или срез.
+        Returns:
+            One entity or a tuple slice.
 
-        Возвращает:
-            Один объект (при int) или кортеж объектов (при slice).
-
-        Исключения:
-            RelationNotLoadedError: если объекты не загружены.
-            IndexError: если индекс вне диапазона.
+        Raises:
+            RelationNotLoadedError: ``entities`` is empty.
+            IndexError: Index out of range.
         """
         if not self._entities:
             raise RelationNotLoadedError(
@@ -422,10 +391,10 @@ class BaseRelationMany(Generic[T]):
 
     def __iter__(self):  # type: ignore[override]
         """
-        Итерация по загруженным объектам.
+        Yields hydrated entities in order.
 
-        Исключения:
-            RelationNotLoadedError: если объекты не загружены.
+        Raises:
+            RelationNotLoadedError: ``entities`` is empty.
         """
         if not self._entities:
             raise RelationNotLoadedError(
@@ -437,14 +406,12 @@ class BaseRelationMany(Generic[T]):
 
     def __setattr__(self, name: str, value: Any) -> None:
         raise AttributeError(
-            f"{self.__class__.__name__} является frozen-объектом. "
-            f"Запись атрибута '{name}' запрещена."
+            f"{self.__class__.__name__} is frozen; assigning to '{name}' is not allowed."
         )
 
     def __delattr__(self, name: str) -> None:
         raise AttributeError(
-            f"{self.__class__.__name__} является frozen-объектом. "
-            f"Удаление атрибута '{name}' запрещено."
+            f"{self.__class__.__name__} is frozen; deleting '{name}' is not allowed."
         )
 
     def __repr__(self) -> str:
@@ -462,28 +429,24 @@ class BaseRelationMany(Generic[T]):
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Конкретные контейнеры: Composition
+# Composition
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class CompositeOne(BaseRelationOne[T]):
     """
-    Контейнер связи «к одному» с семантикой Composition.
+    To-one **composition** (strong ownership).
 
-    Composition — сильное владение. Дочерний объект не существует без
-    родителя. При удалении родителя дочерние объекты удаляются.
+    The child cannot exist without the parent in domain terms; inverse side
+    should be modeled as **association**. Coordinator enforces the compatibility
+    matrix at build time.
 
-    ArchiMate: Composition relationship.
+    Example::
 
-    Обратная сторона Composite-связи обязана быть Association (не Composite
-    и не Aggregate). Координатор проверяет по матрице совместимости.
-
-    Пример:
-        # Заказ владеет адресом доставки (один адрес, удаляется с заказом):
         shipping_address: Annotated[
             CompositeOne[AddressEntity],
             Inverse(AddressEntity, "order"),
-        ] = Rel(description="Адрес доставки")
+        ] = Rel(description="Delivery address")
     """
 
     relation_type = RelationType.COMPOSITION
@@ -491,46 +454,34 @@ class CompositeOne(BaseRelationOne[T]):
 
 class CompositeMany(BaseRelationMany[T]):
     """
-    Контейнер связи «ко многим» с семантикой Composition.
+    To-many **composition** (strong ownership).
 
-    Composition — сильное владение. Дочерние объекты не существуют без
-    родителя. При удалении родителя все дочерние удаляются.
+    Example::
 
-    ArchiMate: Composition relationship.
-
-    Пример:
-        # Заказ владеет позициями (позиции удаляются с заказом):
         items: Annotated[
             CompositeMany[OrderItemEntity],
             Inverse(OrderItemEntity, "order"),
-        ] = Rel(description="Позиции заказа")
+        ] = Rel(description="Line items")
     """
 
     relation_type = RelationType.COMPOSITION
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Конкретные контейнеры: Aggregation
+# Aggregation
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class AggregateOne(BaseRelationOne[T]):
     """
-    Контейнер связи «к одному» с семантикой Aggregation.
+    To-one **aggregation** (weak ownership).
 
-    Aggregation — слабое владение. Дочерний объект может существовать
-    самостоятельно. При удалении родителя дочерний отвязывается.
+    Example::
 
-    ArchiMate: Aggregation relationship.
-
-    Обратная сторона Aggregate-связи обязана быть Association.
-
-    Пример:
-        # Команда агрегирует лидера (лидер существует без команды):
         leader: Annotated[
             AggregateOne[EmployeeEntity],
             Inverse(EmployeeEntity, "led_team"),
-        ] = Rel(description="Лидер команды")
+        ] = Rel(description="Team lead")
     """
 
     relation_type = RelationType.AGGREGATION
@@ -538,47 +489,36 @@ class AggregateOne(BaseRelationOne[T]):
 
 class AggregateMany(BaseRelationMany[T]):
     """
-    Контейнер связи «ко многим» с семантикой Aggregation.
+    To-many **aggregation** (weak ownership).
 
-    Aggregation — слабое владение. Дочерние объекты могут существовать
-    самостоятельно. При удалении родителя дочерние отвязываются.
+    Example::
 
-    ArchiMate: Aggregation relationship.
-
-    Пример:
-        # Команда агрегирует сотрудников (сотрудники существуют без команды):
         members: Annotated[
             AggregateMany[EmployeeEntity],
             Inverse(EmployeeEntity, "team"),
-        ] = Rel(description="Члены команды")
+        ] = Rel(description="Team members")
     """
 
     relation_type = RelationType.AGGREGATION
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Конкретные контейнеры: Association
+# Association
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class AssociationOne(BaseRelationOne[T]):
     """
-    Контейнер связи «к одному» с семантикой Association.
+    To-one **association** (no ownership).
 
-    Association — равноправная связь без владения. Удаление одной
-    стороны не затрагивает другую.
+    Pairs with composite, aggregate, or another association on the inverse.
 
-    ArchiMate: Association relationship.
+    Example::
 
-    Association может быть парой для любого типа связи: Composite,
-    Aggregate или другой Association.
-
-    Пример:
-        # Заказ ассоциирован с клиентом (клиент существует независимо):
         customer: Annotated[
             AssociationOne[CustomerEntity],
             Inverse(CustomerEntity, "orders"),
-        ] = Rel(description="Клиент, оформивший заказ")
+        ] = Rel(description="Customer who placed the order")
     """
 
     relation_type = RelationType.ASSOCIATION
@@ -586,19 +526,14 @@ class AssociationOne(BaseRelationOne[T]):
 
 class AssociationMany(BaseRelationMany[T]):
     """
-    Контейнер связи «ко многим» с семантикой Association.
+    To-many **association** (no ownership).
 
-    Association — равноправная связь без владения. Удаление одной
-    стороны не затрагивает другую.
+    Example::
 
-    ArchiMate: Association relationship.
-
-    Пример:
-        # Клиент ассоциирован с заказами:
         orders: Annotated[
             AssociationMany[OrderEntity],
             Inverse(OrderEntity, "customer"),
-        ] = Rel(description="Заказы клиента")
+        ] = Rel(description="Customer orders")
     """
 
     relation_type = RelationType.ASSOCIATION

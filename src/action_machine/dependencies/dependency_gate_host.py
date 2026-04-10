@@ -81,7 +81,7 @@ class DependencyGateHost[T]:
     Атрибуты уровня класса (создаются динамически):
         _depends_info : list[DependencyInfo]
             Временный список, заполняемый декоратором @depends.
-            Читается MetadataBuilder при сборке ClassMetadata.
+            Читается MetadataBuilder при сборке runtime metadata.
 
         _depends_bound : type
             Тип-ограничитель, извлечённый из generic-параметра T.

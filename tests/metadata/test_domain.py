@@ -1,58 +1,71 @@
 # tests/metadata/test_domain.py
 """
-Тесты BaseDomain — абстрактный базовый класс для доменов.
+Tests for `BaseDomain` — abstract base for domain marker classes.
 
 ═══════════════════════════════════════════════════════════════════════════════
-НАЗНАЧЕНИЕ
+PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Проверяет, что BaseDomain корректно валидирует атрибут name при
-наследовании: обязателен, строка, не пустой. Проверяет наследование,
-переопределение и изоляцию между доменами.
+Asserts that `BaseDomain` validates `name` and `description` at subclass
+definition time: required, `str`, non-empty after strip. Covers inheritance,
+overrides, and isolation between domain classes.
 
-BaseDomain используется в @meta(description, domain=SomeDomain) для
-группировки действий и ресурсов. В strict mode координатора domain
-обязателен.
+Domains are referenced from decorators (e.g. `@meta(..., domain=SomeDomain)`)
+and entity metadata; the **GateCoordinator** consumes those types during
+`build()`.
 
 ═══════════════════════════════════════════════════════════════════════════════
-СЦЕНАРИИ
+TERMINOLOGY
+═══════════════════════════════════════════════════════════════════════════════
+
+- **BaseDomain** — abstract marker class; subclasses supply `name` and
+  `description` as class attributes.
+- **Coordinator** — metadata `build()` walks Actions and entities; domain types
+  appear as graph nodes / facet metadata, not as runtime instances in these
+  tests.
+
+═══════════════════════════════════════════════════════════════════════════════
+INVARIANTS
+═══════════════════════════════════════════════════════════════════════════════
+
+At **subclass definition time**, every concrete `BaseDomain` subclass must
+define `name` and `description` as non-empty `str` values after stripping
+whitespace. Violations fail while the class object is being created.
+
+═══════════════════════════════════════════════════════════════════════════════
+ERRORS / LIMITATIONS
+═══════════════════════════════════════════════════════════════════════════════
+
+- **ValueError** — missing attribute, or empty / whitespace-only `name` or
+  `description`.
+- **TypeError** — `name` or `description` is not a `str`.
+
+These tests do **not** cover coordinator graph shape or adapter exposure of
+domains — only `BaseDomain` validation.
+
+═══════════════════════════════════════════════════════════════════════════════
+SCENARIOS
 ═══════════════════════════════════════════════════════════════════════════════
 
 TestValidDomain
-    - Простой домен с name.
-    - Несколько доменов с разными именами.
-    - Имя со спецсимволами.
-    - Имя из одного символа.
-    - BaseDomain — ABC, нельзя создать экземпляр без name.
+    Simple domain; multiple domains; special-character name; single-char name;
+    `BaseDomain` subclasses `ABC`.
 
 TestInheritance
-    - Дочерний домен переопределяет name.
-    - Глубокое наследование с переопределением.
-    - Дочерний домен наследует дополнительные атрибуты.
+    Child overrides `name`; deep inheritance; child inherits extra class attrs.
 
-TestMissingName
-    - Домен без name → ValueError.
-    - Домен с другими атрибутами, но без name → ValueError.
+TestMissingName / TestMissingDescription
+    Missing required class attribute → `ValueError`.
 
-TestEmptyName
-    - Пустая строка → ValueError.
-    - Только пробелы → ValueError.
-    - Только табуляция → ValueError.
-    - Только перенос строки → ValueError.
+TestEmptyName / TestEmptyDescription
+    Empty or whitespace-only string → `ValueError`.
 
-TestWrongTypeName
-    - int → TypeError/ValueError.
-    - None → TypeError/ValueError.
-    - list → TypeError/ValueError.
-    - bool → TypeError/ValueError.
-    - dict → TypeError/ValueError.
-    - tuple → TypeError/ValueError.
-    - float → TypeError/ValueError.
+TestWrongTypeName / TestWrongTypeDescription
+    Non-string value → `TypeError`.
 
 TestIsolation
-    - Разные домены не разделяют name.
-    - Переопределение в дочернем не влияет на родителя.
-    - Два домена с одинаковым name — разные классы.
+    Domains keep separate types; parent `name` unchanged; two classes may share
+    the same `name` string value.
 """
 
 import pytest
@@ -60,94 +73,73 @@ import pytest
 from action_machine.domain.base_domain import BaseDomain
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Валидные домены
+# Valid domains
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestValidDomain:
-    """Проверяет создание валидных доменов."""
+    """Valid `name` + `description` combinations succeed."""
 
     def test_simple_domain(self):
-        """Простой домен с name — создаётся без ошибок."""
-        # Arrange & Act
         class OrdersDomain(BaseDomain):
             name = "orders"
-            description = "Домен заказов"
+            description = "Orders domain"
 
-        # Assert
         assert OrdersDomain.name == "orders"
 
     def test_multiple_domains(self):
-        """Несколько доменов с разными именами."""
-        # Arrange & Act
         class AlphaDomain(BaseDomain):
             name = "alpha"
-            description = "Альфа домен"
+            description = "Alpha domain"
 
         class BetaDomain(BaseDomain):
             name = "beta"
-            description = "Бета домен"
+            description = "Beta domain"
 
-        # Assert
         assert AlphaDomain.name == "alpha"
         assert BetaDomain.name == "beta"
 
     def test_name_with_special_characters(self):
-        """Имя со спецсимволами — допустимо."""
-        # Arrange & Act
         class SpecialDomain(BaseDomain):
             name = "my-domain.v2"
-            description = "Специальный домен с точками"
+            description = "Domain name with dots"
 
-        # Assert
         assert SpecialDomain.name == "my-domain.v2"
 
     def test_name_single_char(self):
-        """Имя из одного символа — допустимо."""
-        # Arrange & Act
         class ShortDomain(BaseDomain):
             name = "x"
-            description = "Короткий домен"
+            description = "Short name"
 
-        # Assert
         assert ShortDomain.name == "x"
 
     def test_base_domain_is_abc(self):
-        """BaseDomain — абстрактный базовый класс."""
-        # Assert
         import abc
-        assert issubclass(BaseDomain, abc.ABC) or hasattr(BaseDomain, '__abstractmethods__') or True
-        # BaseDomain валидирует name в __init_subclass__, поэтому создать
-        # наследника без name нельзя
+
+        assert issubclass(BaseDomain, abc.ABC) or hasattr(BaseDomain, "__abstractmethods__") or True
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Наследование
+# Inheritance
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestInheritance:
-    """Проверяет наследование доменов."""
+    """Domain inheritance and overrides."""
 
     def test_child_overrides_name(self):
-        """Дочерний домен переопределяет name."""
-        # Arrange
         class ParentDomain(BaseDomain):
             name = "parent"
             description = "test parent"
 
-        # Act
         class ChildDomain(ParentDomain):
             name = "child"
             description = "test child"
 
-        # Assert
         assert ChildDomain.name == "child"
         assert ParentDomain.name == "parent"
 
     def test_deep_inheritance_with_override(self):
-        """Глубокое наследование с переопределением на каждом уровне."""
-        # Arrange
         class Level1Domain(BaseDomain):
             name = "level1"
             description = "level1"
@@ -156,163 +148,186 @@ class TestInheritance:
             name = "level2"
             description = "level2"
 
-        # Act
         class Level3Domain(Level2Domain):
             name = "level3"
             description = "level3"
 
-        # Assert
         assert Level1Domain.name == "level1"
         assert Level2Domain.name == "level2"
         assert Level3Domain.name == "level3"
 
     def test_child_inherits_additional_attributes(self):
-        """Дочерний домен наследует дополнительные атрибуты."""
-        # Arrange
         class ParentDomain(BaseDomain):
             name = "parent"
             description = "parent"
             version = 1
 
-        # Act
         class ChildDomain(ParentDomain):
             name = "child"
             description = "child"
 
-        # Assert
         assert ChildDomain.version == 1
         assert ChildDomain.name == "child"
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Отсутствие name
+# Missing name
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestMissingName:
-    """Проверяет, что домен без name вызывает ошибку."""
+    """Domain without `name` raises `ValueError`."""
 
     def test_no_name_raises(self):
-        """Домен без name → ValueError."""
-        # Act & Assert
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="does not define"):
             class NoNameDomain(BaseDomain):
                 pass
 
     def test_no_name_with_other_attrs_raises(self):
-        """Домен с другими атрибутами, но без name → ValueError."""
-        # Act & Assert
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="does not define"):
             class NoNameOtherDomain(BaseDomain):
                 version = 2
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Пустое name
+# Missing description
+# ═════════════════════════════════════════════════════════════════════════════
+
+
+class TestMissingDescription:
+    """Domain with `name` but no `description` raises `ValueError`."""
+
+    def test_no_description_raises(self):
+        with pytest.raises(ValueError, match="does not define"):
+            class NoDescDomain(BaseDomain):
+                name = "no_desc"
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# Empty name
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestEmptyName:
-    """Проверяет, что пустое или whitespace-only name отклоняется."""
+    """Empty or whitespace-only `name` raises `ValueError`."""
 
     def test_empty_string_raises(self):
-        """Пустая строка → ValueError."""
-        # Act & Assert
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="cannot be empty"):
             class EmptyDomain(BaseDomain):
                 name = ""
 
     def test_whitespace_only_raises(self):
-        """Только пробелы → ValueError."""
-        # Act & Assert
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="cannot be empty"):
             class WhitespaceDomain(BaseDomain):
                 name = "   "
 
     def test_tab_only_raises(self):
-        """Только табуляция → ValueError."""
-        # Act & Assert
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="cannot be empty"):
             class TabDomain(BaseDomain):
                 name = "\t"
 
     def test_newline_only_raises(self):
-        """Только перенос строки → ValueError."""
-        # Act & Assert
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="cannot be empty"):
             class NewlineDomain(BaseDomain):
                 name = "\n"
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Неверный тип name
+# Empty description
+# ═════════════════════════════════════════════════════════════════════════════
+
+
+class TestEmptyDescription:
+    """Empty or whitespace-only `description` raises `ValueError`."""
+
+    def test_empty_description_raises(self):
+        with pytest.raises(ValueError, match="cannot be empty"):
+            class EmptyDescDomain(BaseDomain):
+                name = "x"
+                description = ""
+
+    def test_whitespace_only_description_raises(self):
+        with pytest.raises(ValueError, match="cannot be empty"):
+            class WsDescDomain(BaseDomain):
+                name = "x"
+                description = "   \t"
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# Wrong type name
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestWrongTypeName:
-    """Проверяет, что нестроковый name отклоняется."""
+    """Non-string `name` raises `TypeError`."""
 
     def test_int_name_raises(self):
-        """int → TypeError или ValueError."""
-        # Act & Assert
-        with pytest.raises((TypeError, ValueError)):
+        with pytest.raises(TypeError, match="must be str"):
             class IntNameDomain(BaseDomain):
                 name = 42
+                description = "ok"
 
     def test_none_name_raises(self):
-        """None → TypeError или ValueError."""
-        # Act & Assert
-        with pytest.raises((TypeError, ValueError)):
+        with pytest.raises(TypeError, match="must be str"):
             class NoneNameDomain(BaseDomain):
                 name = None
+                description = "ok"
 
     def test_list_name_raises(self):
-        """list → TypeError или ValueError."""
-        # Act & Assert
-        with pytest.raises((TypeError, ValueError)):
+        with pytest.raises(TypeError, match="must be str"):
             class ListNameDomain(BaseDomain):
                 name = ["orders"]
+                description = "ok"
 
     def test_bool_name_raises(self):
-        """bool → TypeError или ValueError."""
-        # Act & Assert
-        with pytest.raises((TypeError, ValueError)):
+        with pytest.raises(TypeError, match="must be str"):
             class BoolNameDomain(BaseDomain):
                 name = True
+                description = "ok"
 
     def test_dict_name_raises(self):
-        """dict → TypeError или ValueError."""
-        # Act & Assert
-        with pytest.raises((TypeError, ValueError)):
+        with pytest.raises(TypeError, match="must be str"):
             class DictNameDomain(BaseDomain):
                 name = {"name": "orders"}
+                description = "ok"
 
     def test_tuple_name_raises(self):
-        """tuple → TypeError или ValueError."""
-        # Act & Assert
-        with pytest.raises((TypeError, ValueError)):
+        with pytest.raises(TypeError, match="must be str"):
             class TupleNameDomain(BaseDomain):
                 name = ("orders",)
+                description = "ok"
 
     def test_float_name_raises(self):
-        """float → TypeError или ValueError."""
-        # Act & Assert
-        with pytest.raises((TypeError, ValueError)):
+        with pytest.raises(TypeError, match="must be str"):
             class FloatNameDomain(BaseDomain):
                 name = 3.14
+                description = "ok"
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Изоляция доменов
+# Wrong type description
+# ═════════════════════════════════════════════════════════════════════════════
+
+
+class TestWrongTypeDescription:
+    """Non-string `description` raises `TypeError`."""
+
+    def test_int_description_raises(self):
+        with pytest.raises(TypeError, match="must be str"):
+            class IntDescDomain(BaseDomain):
+                name = "x"
+                description = 99
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# Isolation
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestIsolation:
-    """Проверяет изоляцию имён между доменами."""
+    """Domain classes are isolated types even when `name` matches."""
 
     def test_domains_do_not_share_name(self):
-        """Разные домены не разделяют name."""
-        # Arrange & Act
         class DomainADomain(BaseDomain):
             name = "a"
             description = "a"
@@ -321,12 +336,9 @@ class TestIsolation:
             name = "b"
             description = "b"
 
-        # Assert
         assert DomainADomain.name != DomainBDomain.name
 
     def test_child_override_does_not_affect_parent(self):
-        """Переопределение в дочернем не влияет на родителя."""
-        # Arrange
         class ParentDomain(BaseDomain):
             name = "parent"
             description = "parent"
@@ -335,13 +347,10 @@ class TestIsolation:
             name = "child"
             description = "child"
 
-        # Assert
         assert ParentDomain.name == "parent"
         assert ChildDomain.name == "child"
 
     def test_two_domains_same_name_different_classes(self):
-        """Два домена с одинаковым name — разные классы."""
-        # Arrange & Act
         class DomainOneDomain(BaseDomain):
             name = "shared"
             description = "one"
@@ -350,6 +359,5 @@ class TestIsolation:
             name = "shared"
             description = "two"
 
-        # Assert
         assert DomainOneDomain is not DomainTwoDomain
         assert DomainOneDomain.name == DomainTwoDomain.name

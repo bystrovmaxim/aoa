@@ -1,54 +1,48 @@
 """
-Тесты GateCoordinator — strict mode, домены в графе, описания в узлах.
+Тесты GateCoordinator — домены в графе, описания в узлах, repr.
 
 ═══════════════════════════════════════════════════════════════════════════════
 НАЗНАЧЕНИЕ
 ═══════════════════════════════════════════════════════════════════════════════
 
-Проверяет режим strict координатора (обязательный domain для действий
-и ресурсов с @meta), создание узлов доменов в графе, описания в payload
-узлов и строковое представление координатора.
+``domain`` в @meta не обязателен (политику задаёт
+приложение). Проверяются узлы ``domain`` в facet-графе, описания в payload узлов
+и строковое представление координатора.
 
 ═══════════════════════════════════════════════════════════════════════════════
 СЦЕНАРИИ
 ═══════════════════════════════════════════════════════════════════════════════
 
-TestStrictProperty
-    - По умолчанию strict=False.
-    - strict=True устанавливается через конструктор.
+TestDomainInvariantActions
+    - Действие с domain — допустимо.
+    - Действие с аспектами без domain — допустимо (meta.domain is None).
+    - Действие без аспектов без domain — допустимо.
 
-TestStrictActionWithDomain
-    - Действие с domain в strict mode — допустимо.
-    - Действие без domain в strict mode → ошибка.
-    - Действие без domain в non-strict mode — допустимо.
+TestDomainInvariantResources
+    - ResourceManager с domain — допустимо.
+    - ResourceManager без domain — допустимо (meta.domain is None).
 
-TestStrictResourceWithDomain
-    - ResourceManager с domain в strict mode — допустимо.
-    - ResourceManager без domain в strict mode → ошибка.
-    - ResourceManager без domain в non-strict mode — допустимо.
-
-TestStrictEdgeCases
-    - Пустой класс (без @meta) в strict mode — допустимо (strict
-      проверяет только классы с @meta и аспектами/ресурсами).
-    - Действие без аспектов в strict mode — допустимо (проверка
-      domain только для классов с аспектами).
+TestDomainEdgeCases
+    - Пустой класс (без @meta) — допустимо.
+    - Действие без @meta и без аспектов — допустимо.
 
 TestDomainNodes
-    - Действие с domain создаёт domain-узел в графе.
-    - Два действия с одним доменом — один domain-узел.
-    - Два действия с разными доменами — два domain-узла.
-    - Действие без domain — нет domain-узла.
+    - Действие с domain создаёт stub-узел ``domain`` с ``class_ref`` на класс домена.
+    - Два действия с одним доменом — один такой узел на класс ``_OrdersDomain``.
+    - Разные домены — проверка по множеству ``class_ref`` в ``{_OrdersDomain, …}``.
+    - Действие без аспектов без domain: нет domain-узла у класса; meta.domain is None.
+    - **Важно:** после ``build()`` в граф могут попасть чужие ``domain`` от других
+      классов экосистемы; тесты фильтруют узлы по ``class_ref is _OrdersDomain`` и т.п.
 
 TestGraphDescriptions
-    - Узел action содержит description в payload.
-    - Узел dependency содержит description в payload.
+    - Описание действия доступно через узел ``meta``.
+    - Действие без аспектов без domain регистрируется без ошибок.
     - Пустой класс — пустое description.
 
 TestCoordinatorRepr
-    - repr содержит strict.
+    - repr содержит state и cached.
 """
 
-import pytest
 
 from action_machine.aspects.summary_aspect import summary_aspect
 from action_machine.auth.check_roles import check_roles
@@ -56,9 +50,11 @@ from action_machine.auth.constants import ROLE_NONE
 from action_machine.core.base_action import BaseAction
 from action_machine.core.base_params import BaseParams
 from action_machine.core.base_result import BaseResult
-from action_machine.core.gate_coordinator import GateCoordinator
+from action_machine.core.core_action_machine import CoreActionMachine
 from action_machine.core.meta_decorator import meta
 from action_machine.domain.base_domain import BaseDomain
+from action_machine.metadata.base_gate_host_inspector import BaseGateHostInspector
+from action_machine.metadata.gate_coordinator import GateCoordinator
 from action_machine.resource_managers.base_resource_manager import BaseResourceManager
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -72,6 +68,7 @@ def _node_key(node_type: str, cls: type, suffix: str = "") -> str:
     if suffix:
         name = f"{name}.{suffix}"
     return f"{node_type}:{name}"
+
 
 class _Params(BaseParams):
     pass
@@ -127,7 +124,7 @@ class _PaymentAction(BaseAction["_Params", "_Result"]):
         return {"result": "ok"}
 
 
-# ─── Действие без домена ─────────────────────────────────────────────────
+# ─── Действие с аспектами без домена (невалидно для get) ─────────────────
 
 
 @meta("Ping без домена")
@@ -163,7 +160,7 @@ class _PlainAction(BaseAction["_Params", "_Result"]):
     pass
 
 
-# ─── Действие без аспектов, с @meta ─────────────────────────────────────
+# ─── Действие без аспектов, с @meta без domain ───────────────────────────
 
 
 @meta("Действие без аспектов")
@@ -176,140 +173,74 @@ class _EmptyClass:
     pass
 
 
-# ═════════════════════════════════════════════════════════════════════════════
-# Свойство strict
-# ═════════════════════════════════════════════════════════════════════════════
-
-
-class TestStrictProperty:
-    """Проверяет свойство strict координатора."""
-
-    def test_default_is_false(self):
-        """По умолчанию strict=False."""
-        # Arrange & Act
-        coord = GateCoordinator()
-
-        # Assert
-        assert coord.strict is False
-
-    def test_strict_true_via_constructor(self):
-        """strict=True устанавливается через конструктор."""
-        # Arrange & Act
-        coord = GateCoordinator(strict=True)
-
-        # Assert
-        assert coord.strict is True
+def _coord() -> GateCoordinator:
+    """Built coordinator with default inspectors."""
+    return CoreActionMachine.create_coordinator()
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Strict mode — действия
+# Инвариант domain — действия
 # ═════════════════════════════════════════════════════════════════════════════
 
 
-class TestStrictActionWithDomain:
-    """Проверяет strict mode для действий."""
+class TestDomainInvariantActions:
+    """Домен в @meta для действий с аспектами."""
 
     def test_action_with_domain_ok(self):
-        """Действие с domain в strict mode — допустимо."""
-        # Arrange
-        coord = GateCoordinator(strict=True)
+        coord = _coord()
+        m = coord.get_snapshot(_OrderAction, "meta")
+        assert m is not None
+        assert m.domain is _OrdersDomain
 
-        # Act
-        result = coord.get(_OrderAction)
+    def test_action_with_aspects_without_domain_ok(self):
+        coord = _coord()
+        m = coord.get_snapshot(_NoDomainAction, "meta")
+        assert m is not None
+        assert m.domain is None
 
-        # Assert
-        assert result.meta.domain is _OrdersDomain
-
-    def test_action_without_domain_raises(self):
-        """Действие без domain в strict mode → ошибка."""
-        # Arrange
-        coord = GateCoordinator(strict=True)
-
-        # Act & Assert
-        with pytest.raises((TypeError, ValueError)):
-            coord.get(_NoDomainAction)
-
-    def test_action_without_domain_non_strict_ok(self):
-        """Действие без domain в non-strict mode — допустимо."""
-        # Arrange
-        coord = GateCoordinator(strict=False)
-
-        # Act
-        result = coord.get(_NoDomainAction)
-
-        # Assert
-        assert result.meta.domain is None
+    def test_action_without_aspects_without_domain_ok(self):
+        coord = _coord()
+        m = coord.get_snapshot(_NoAspectsAction, "meta")
+        assert m is not None
+        assert m.domain is None
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Strict mode — ресурсы
+# Инвариант domain — ресурсы
 # ═════════════════════════════════════════════════════════════════════════════
 
 
-class TestStrictResourceWithDomain:
-    """Проверяет strict mode для ResourceManager."""
+class TestDomainInvariantResources:
+    """Домен в @meta для ResourceManager."""
 
     def test_resource_with_domain_ok(self):
-        """ResourceManager с domain в strict mode — допустимо."""
-        # Arrange
-        coord = GateCoordinator(strict=True)
+        coord = _coord()
+        m = coord.get_snapshot(_OrderManager, "meta")
+        assert m is not None
+        assert m.domain is _OrdersDomain
 
-        # Act
-        result = coord.get(_OrderManager)
-
-        # Assert
-        assert result.meta.domain is _OrdersDomain
-
-    def test_resource_without_domain_raises(self):
-        """ResourceManager без domain в strict mode → ошибка."""
-        # Arrange
-        coord = GateCoordinator(strict=True)
-
-        # Act & Assert
-        with pytest.raises((TypeError, ValueError)):
-            coord.get(_NoDomainManager)
-
-    def test_resource_without_domain_non_strict_ok(self):
-        """ResourceManager без domain в non-strict mode — допустимо."""
-        # Arrange
-        coord = GateCoordinator(strict=False)
-
-        # Act
-        result = coord.get(_NoDomainManager)
-
-        # Assert
-        assert result.meta.domain is None
+    def test_resource_without_domain_ok(self):
+        coord = _coord()
+        m = coord.get_snapshot(_NoDomainManager, "meta")
+        assert m is not None
+        assert m.domain is None
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Strict mode — граничные случаи
+# Граничные случаи
 # ═════════════════════════════════════════════════════════════════════════════
 
 
-class TestStrictEdgeCases:
-    """Проверяет граничные случаи strict mode."""
+class TestDomainEdgeCases:
+    """Классы без затронутых инвариантов."""
 
     def test_plain_class_no_effect(self):
-        """Пустой класс без @meta в strict mode — допустимо."""
-        # Arrange
-        coord = GateCoordinator(strict=True)
+        coord = _coord()
+        assert coord.get_snapshot(_EmptyClass, "meta") is None
 
-        # Act
-        result = coord.get(_EmptyClass)
-
-        # Assert
-        assert result.has_meta() is False
-
-    def test_action_without_aspects_no_effect(self):
-        """Действие без аспектов в strict mode — допустимо (нет проверки domain)."""
-        # Arrange
-        coord = GateCoordinator(strict=True)
-
-        # Act — не должно поднять исключение
-        result = coord.get(_PlainAction)
-
-        # Assert
-        assert result.has_meta() is False
+    def test_action_without_aspects_no_meta_ok(self):
+        coord = _coord()
+        assert coord.get_snapshot(_PlainAction, "meta") is None
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -318,81 +249,59 @@ class TestStrictEdgeCases:
 
 
 class TestDomainNodes:
-    """Проверяет создание domain-узлов в графе."""
+    """Создание domain-узлов в графе."""
 
     def test_action_with_domain_creates_domain_node(self):
-        """Действие с domain создаёт domain-узел."""
-        # Arrange
-        coord = GateCoordinator()
-
-        # Act
-        coord.get(_OrderAction)
-        nodes = coord.get_nodes_by_type("domain")
-
-        # Assert
+        coord = _coord()
+        nodes = [
+            n for n in coord.get_nodes_by_type("domain")
+            if n.get("class_ref") is _OrdersDomain
+        ]
         assert len(nodes) >= 1
 
     def test_two_actions_same_domain_one_node(self):
-        """Два действия с одним доменом — один domain-узел."""
-        # Arrange
-        coord = GateCoordinator()
-
-        # Act
-        coord.get(_OrderAction)
-        coord.get(_GetOrderAction)
-        domain_nodes = coord.get_nodes_by_type("domain")
-
-        # Assert
+        coord = _coord()
+        domain_nodes = [
+            n for n in coord.get_nodes_by_type("domain")
+            if n.get("class_ref") is _OrdersDomain
+        ]
         assert len(domain_nodes) == 1
 
     def test_two_actions_different_domains_two_nodes(self):
-        """Два действия с разными доменами — два domain-узла."""
-        # Arrange
-        coord = GateCoordinator()
+        coord = _coord()
+        refs = {
+            n["class_ref"] for n in coord.get_nodes_by_type("domain")
+            if n.get("class_ref") in (_OrdersDomain, _PaymentsDomain)
+        }
+        assert refs == {_OrdersDomain, _PaymentsDomain}
 
-        # Act
-        coord.get(_OrderAction)
-        coord.get(_PaymentAction)
-        nodes = coord.get_nodes_by_type("domain")
-
-        # Assert
-        assert len(nodes) >= 2
-
-    def test_action_without_domain_no_domain_node(self):
-        """Действие без domain не создаёт domain-узел."""
-        # Arrange
-        coord = GateCoordinator()
-
-        # Act
-        coord.get(_NoDomainAction)
-        nodes = coord.get_nodes_by_type("domain")
-
-        # Assert
-        assert len(nodes) == 0
+    def test_action_without_aspects_no_domain_node(self):
+        coord = _coord()
+        assert not any(
+            n["node_type"] == "domain"
+            for n in coord.get_nodes_for_class(_NoAspectsAction)
+        )
+        nm = BaseGateHostInspector._make_node_name(_NoAspectsAction)
+        meta_node = coord.get_node("meta", nm)
+        assert meta_node is not None
+        meta = meta_node.get("meta")
+        assert meta is not None
+        assert meta.get("domain") is None
 
     def test_resource_with_domain_creates_domain_node(self):
-        """ResourceManager с domain создаёт domain-узел."""
-        # Arrange
-        coord = GateCoordinator()
-
-        # Act
-        coord.get(_OrderManager)
-        nodes = coord.get_nodes_by_type("domain")
-
-        # Assert
+        coord = _coord()
+        nodes = [
+            n for n in coord.get_nodes_by_type("domain")
+            if n.get("class_ref") is _OrdersDomain
+        ]
         assert len(nodes) >= 1
 
     def test_action_and_resource_same_domain_shared_node(self):
-        """Действие и ресурс с одним доменом используют один domain-узел."""
-        # Arrange
-        coord = GateCoordinator()
-
-        # Act
-        coord.get(_OrderAction)
-        coord.get(_OrderManager)
-        domain_nodes = coord.get_nodes_by_type("domain")
-
-        # Assert — orders один раз
+        coord = _coord()
+        domain_nodes = [
+            n for n in coord.get_nodes_by_type("domain")
+            if n.get("class_ref") is _OrdersDomain
+        ]
         assert len(domain_nodes) == 1
 
 
@@ -402,41 +311,20 @@ class TestDomainNodes:
 
 
 class TestGraphDescriptions:
-    """Проверяет, что узлы графа содержат описания в payload."""
+    """Узлы графа содержат описания в payload."""
 
     def test_action_node_contains_description(self):
-        """Узел action доступен через get_node по ключу."""
-        # Arrange
-        coord = GateCoordinator()
-        coord.get(_OrderAction)
-
-        # Act
-        key = _node_key("action", _OrderAction)
+        coord = _coord()
+        key = _node_key("meta", _OrderAction)
         node = coord.get_node(key)
-
-        # Assert
         assert node is not None
 
-    def test_action_node_without_domain_has_no_domain_in_payload(self):
-        """Действие без domain регистрируется без ошибок."""
-        # Arrange
-        coord = GateCoordinator()
-
-        # Act
-        coord.get(_NoDomainAction)
-
-        # Assert
-        assert coord.has(_NoDomainAction)
+    def test_action_without_aspects_without_domain_registers(self):
+        coord = _coord()
+        assert coord.get_snapshot(_NoAspectsAction, "meta") is not None
 
     def test_empty_class_empty_description(self):
-        """Пустой класс регистрируется без ошибок."""
-        # Arrange
-        coord = GateCoordinator()
-
-        # Act
-        coord.get(_EmptyClass)
-
-        # Assert
+        coord = _coord()
         assert coord.graph_node_count >= 1
 
 
@@ -446,28 +334,17 @@ class TestGraphDescriptions:
 
 
 class TestCoordinatorRepr:
-    """Проверяет __repr__ GateCoordinator."""
+    """__repr__ GateCoordinator."""
 
-    def test_empty_repr_contains_strict(self):
-        """repr пустого координатора содержит strict."""
-        # Arrange
-        coord = GateCoordinator(strict=True)
-
-        # Act
+    def test_empty_repr(self):
+        coord = GateCoordinator()
         result = repr(coord)
+        assert "GateCoordinator(" in result
+        assert "state=not built" in result
 
-        # Assert
-        assert "strict" in result.lower() or "True" in result
-
-    def test_non_empty_repr_contains_strict(self):
-        """repr координатора с классами содержит strict."""
-        # Arrange
-        coord = GateCoordinator(strict=False)
-        coord.get(_NoDomainAction)
-
-        # Act
+    def test_nonempty_repr(self):
+        coord = _coord()
         result = repr(coord)
-
-        # Assert
         assert isinstance(result, str)
-        assert "strict" in result.lower() or "False" in result
+        assert "GateCoordinator(" in result
+        assert "state=built" in result

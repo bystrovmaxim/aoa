@@ -3,7 +3,7 @@
 Реальный менеджер соединения для PostgreSQL.
 
 ═══════════════════════════════════════════════════════════════════════════════
-НАЗНАЧЕНИЕ
+PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 PostgresConnectionManager — конкретная реализация IConnectionManager для
@@ -44,14 +44,14 @@ PostgresConnectionManager полностью поддерживает режим
 УПРАВЛЕНИЕ ТРАНЗАКЦИЯМИ
 ═══════════════════════════════════════════════════════════════════════════════
 
-asyncpg.Connection не предоставляет методов commit()/rollback() напрямую —
+asyncpg.Connection не предоставляет methodов commit()/rollback() напрямую —
 управление транзакциями осуществляется через SQL-команды:
 
     await connection.execute("COMMIT")
     await connection.execute("ROLLBACK")
 
 ═══════════════════════════════════════════════════════════════════════════════
-ПРИМЕР ИСПОЛЬЗОВАНИЯ
+EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
     # Production — обычный режим:
@@ -94,7 +94,7 @@ class PostgresConnectionManager(IConnectionManager):
     Реальный менеджер соединения для PostgreSQL.
 
     Использует asyncpg для подключения к базе данных. Поддерживает
-    режим rollup: при rollup=True метод commit() выполняет ROLLBACK
+    режим rollup: при rollup=True method commit() выполняет ROLLBACK
     вместо COMMIT.
 
     Перехват rollup реализован непосредственно в commit() этого класса:
@@ -118,8 +118,8 @@ class PostgresConnectionManager(IConnectionManager):
         """
         Инициализирует менеджер соединения с PostgreSQL.
 
-        Аргументы:
-            connection_params: словарь параметров для asyncpg.connect().
+        Args:
+            connection_params: словарь parameters для asyncpg.connect().
                 Обязательные ключи зависят от конфигурации PostgreSQL.
                 Типичные: host, port, user, password, database.
             rollup: если True, commit() будет выполнять ROLLBACK вместо
@@ -134,7 +134,7 @@ class PostgresConnectionManager(IConnectionManager):
         """
         Открывает соединение с PostgreSQL через asyncpg.connect().
 
-        Исключения:
+        Raises:
             HandleError: при ошибке подключения к PostgreSQL.
                 Оборачивает исходное исключение asyncpg с информативным
                 сообщением.
@@ -152,10 +152,10 @@ class PostgresConnectionManager(IConnectionManager):
         управление. Команда COMMIT не отправляется в БД.
 
         При rollup=False отправляет SQL-команду COMMIT через asyncpg.
-        asyncpg не имеет метода connection.commit() — вместо этого
+        asyncpg не имеет methodа connection.commit() — вместо этого
         используется прямая SQL-команда.
 
-        Исключения:
+        Raises:
             HandleError: при ошибке выполнения COMMIT или если
                 соединение не открыто.
         """
@@ -177,10 +177,10 @@ class PostgresConnectionManager(IConnectionManager):
         """
         Откатывает транзакцию.
 
-        asyncpg не имеет метода connection.rollback() — вместо этого
+        asyncpg не имеет methodа connection.rollback() — вместо этого
         отправляется SQL-команда ROLLBACK напрямую.
 
-        Исключения:
+        Raises:
             HandleError: при ошибке выполнения ROLLBACK или если
                 соединение не открыто.
         """
@@ -195,18 +195,18 @@ class PostgresConnectionManager(IConnectionManager):
         """
         Выполняет SQL-запрос через asyncpg.
 
-        Запрос выполняется в контексте текущей транзакции. При rollup=True
+        Запрос выполняется в contextе текущей транзакции. При rollup=True
         изменения будут откачены при вызове commit().
 
-        Аргументы:
+        Args:
             query: строка SQL-запроса.
             params: параметры запроса (опционально). Передаются
                     как позиционные аргументы в asyncpg.execute().
 
-        Возвращает:
+        Returns:
             Результат выполнения запроса от asyncpg.
 
-        Исключения:
+        Raises:
             HandleError: при ошибке выполнения SQL или если соединение
                 не открыто.
         """
@@ -219,13 +219,13 @@ class PostgresConnectionManager(IConnectionManager):
 
     def get_wrapper_class(self) -> type[IConnectionManager] | None:
         """
-        Возвращает класс прокси-обёртки для передачи в дочерние действия.
+        Returns класс прокси-обёртки для передачи в дочерние действия.
 
         WrapperConnectionManager запрещает дочерним действиям управлять
         транзакциями (open/commit/rollback), но разрешает выполнять
         запросы (execute). Флаг rollup прокидывается через обёртку.
 
-        Возвращает:
+        Returns:
             WrapperConnectionManager — класс прокси-обёртки.
         """
         return WrapperConnectionManager

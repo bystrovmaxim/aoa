@@ -15,30 +15,21 @@
 КОМПОНЕНТЫ
 ═══════════════════════════════════════════════════════════════════════════════
 
-ClassMetadata
-    Frozen-датакласс, хранящий полную конфигурацию одного класса:
-    class_ref, class_name, meta (MetaInfo), role (RoleMeta),
-    dependencies, connections, aspects, checkers, subscriptions,
-    sensitive_fields, params_fields, result_fields. Предоставляет
-    хелперы: has_role, has_dependencies, has_connections, has_aspects,
-    get_regular_aspects, get_summary_aspect, get_checkers_for_aspect,
-    get_dependency_classes, get_connection_keys.
+Runtime / scratch
+    Декораторы вешают на классы атрибуты (``_meta_info``, gate-host metadata и т.д.).
+    Исполняемая машина и адаптеры могут читать их напрямую; для согласованности
+    с графом предпочтительны снимки координатора.
 
-MetadataBuilder
-    Собирает ClassMetadata из класса, обходя его атрибуты и методы.
-    Вызывает коллекторы (collect_meta, collect_role, collect_dependencies,
-    collect_connections, collect_aspects, collect_checkers,
-    collect_subscriptions, collect_sensitive_fields) и валидаторы
-    (validate_aspects, validate_gate_hosts, validate_meta_required,
-    validate_described_fields, validate_checkers_belong_to_aspects).
+MetadataBuilder (внутри координатора при ``build()``)
+    Инспекторы facet’ов собирают payload’ы, валидируют ссылки и циклы,
+    материализуют узлы/рёбра графа и typed facet snapshots.
 
-GateCoordinator
-    Реестр метаданных. Кеширует ClassMetadata по классу,
-    строит направленный граф зависимостей (nodes, edges),
-    обнаруживает циклы, поддерживает strict mode (обязательный domain),
-    предоставляет публичное API (get, register, has, invalidate,
-    invalidate_all, get_graph, get_node, get_children, get_nodes_by_type,
-    get_dependency_tree, get_factory).
+GateCoordinator (публичный контракт)
+    ``register`` / ``build`` / ``is_built``; обход графа —
+    ``get_graph``, ``get_node``, ``get_nodes_by_type``, ``get_nodes_for_class``;
+    typed данные по классу — ``get_snapshot(cls, facet_key)``.
+    Доменные хелперы (роли, аспекты, чекеры, …) не входят в API координатора:
+    их читают через соответствующие facet-снимки или scratch на классе.
 
 BaseDomain
     Абстрактный базовый класс для доменов. Валидирует атрибут name
@@ -51,13 +42,9 @@ BaseDomain
 
     tests/metadata/
     ├── __init__.py                     — этот файл
-    ├── test_class_metadata.py          — ClassMetadata: создание, immutability, хелперы, repr
-    ├── test_builder_basic.py           — MetadataBuilder: пустой класс, роль, зависимости, соединения
-    ├── test_builder_aspects.py         — MetadataBuilder: аспекты, структурные инварианты
-    ├── test_builder_checkers.py        — MetadataBuilder: чекеры на аспектах
-    ├── test_builder_inheritance.py     — MetadataBuilder: наследование метаданных
-    ├── test_builder_sensitive.py       — MetadataBuilder: sensitive fields, subscriptions
+    ├── test_new_gate_coordinator_*.py  — построение графа и снимки facet’ов
+    ├── test_*_gate_host_inspector.py   — инспекторы отдельных facet’ов
     ├── test_coordinator_graph.py       — GateCoordinator: граф, узлы, рёбра, циклы, API
-    ├── test_coordinator_strict.py      — GateCoordinator: strict mode, домены в графе
+    ├── test_coordinator_strict.py      — GateCoordinator: инвариант domain, домены в графе
     └── test_domain.py                  — BaseDomain: валидация name, наследование, изоляция
 """

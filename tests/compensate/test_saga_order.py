@@ -91,7 +91,7 @@ class TestCompensateBeforeOnError:
         assert mock_payment.refund.call_count >= 1
         assert mock_inventory.unreserve.call_count >= 1
         assert result.status == "handled_after_compensate"
-        assert "Ошибка финализации для user_order_mock" in result.detail
+        assert "Finalize error for user_order_mock" in result.detail
 
     @pytest.mark.anyio
     async def test_compensators_execute_before_on_error_via_events(

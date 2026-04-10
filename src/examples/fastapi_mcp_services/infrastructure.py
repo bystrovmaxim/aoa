@@ -13,8 +13,8 @@ NoAuthCoordinator явно декларирует, что этот пример 
 
 from action_machine.auth.no_auth_coordinator import NoAuthCoordinator
 from action_machine.core.action_product_machine import ActionProductMachine
-from action_machine.core.gate_coordinator import GateCoordinator
+from action_machine.metadata.gate_coordinator import GateCoordinator
 
 coordinator = GateCoordinator()
-machine = ActionProductMachine(mode="production", coordinator=coordinator)
+machine = ActionProductMachine(mode="production")
 auth = NoAuthCoordinator()

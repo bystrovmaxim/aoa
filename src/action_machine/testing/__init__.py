@@ -42,10 +42,8 @@ state и сравнение результатов между машинами.
 
 Валидация:
 
-- **validate_state_for_aspect** — проверяет, что state содержит все
-  обязательные поля от предшествующих аспектов (по чекерам).
-- **validate_state_for_summary** — проверяет полноту state перед
-  summary-аспектом.
+- **validate_state_for_aspect** / **validate_state_for_summary** —
+  принимают кортеж аспектов и колбэк чекеров (как у ``GateCoordinator``).
 
 Сравнение:
 

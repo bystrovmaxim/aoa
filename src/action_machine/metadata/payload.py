@@ -1,75 +1,78 @@
 # src/action_machine/metadata/payload.py
 """
-Транспортные объекты для передачи данных между гейтхостами и координатором.
+Transport objects between inspectors and ``GateCoordinator``.
 
 ═══════════════════════════════════════════════════════════════════════════════
-НАЗНАЧЕНИЕ
+PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Модуль содержит два frozen-датакласса, образующих контракт между
-гейтхостами (AbstractGateHost) и координатором (GateCoordinator):
+The module defines two frozen dataclasses — the contract between
+**inspectors** (``BaseGateHostInspector``) and ``GateCoordinator``:
 
-1. EdgeInfo — описание одного ребра графа, исходящего из узла.
-2. FacetPayload — полное описание одного узла графа с его рёбрами.
+1. ``EdgeInfo`` — one outgoing edge from a node.
+2. ``FacetPayload`` — one graph node plus all of its outgoing edges.
 
-Оба объекта являются транспортными: они создаются гейтхостом в методе
-_build_payload(), передаются координатору в build(), и после коммита
-в граф выбрасываются. В граф данные попадают как обычные dict —
-конвертация tuple → dict происходит один раз при коммите.
-
-═══════════════════════════════════════════════════════════════════════════════
-ИММУТАБЕЛЬНОСТЬ
-═══════════════════════════════════════════════════════════════════════════════
-
-Оба датакласса frozen=True. После создания ни одно поле изменить нельзя.
-Это гарантирует, что данные, собранные гейтхостом, не будут случайно
-модифицированы между фазами build() координатора (сбор → проверки → коммит).
-
-Поля node_meta и edge_meta имеют тип tuple[tuple[str, Any], ...] вместо
-dict[str, Any]. Причина: frozen dataclass должен быть хешируемым, а dict
-не хешируем. tuple of tuples — иммутабельная и хешируемая альтернатива.
-Конвертация в dict выполняется координатором один раз при коммите.
+Both are transport-only: an inspector builds them in ``_build_payload()`` /
+``inspect()``, the coordinator consumes them in phase 1 of ``build()``, and
+they are discarded after commit. Values land in the graph as ordinary dicts;
+tuple → dict conversion happens once at commit time.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ДВА ТИПА РЁБЕР
+IMMUTABILITY
 ═══════════════════════════════════════════════════════════════════════════════
 
-Рёбра графа делятся на два типа по полю is_structural:
+Both dataclasses are ``frozen=True``. That prevents accidental mutation of data
+collected by an inspector between coordinator phases (collect → validate →
+commit).
 
-    is_structural=True  — структурные рёбра (depends, connection).
-        Образуют скелет системы. Циклы запрещены. Координатор проверяет
-        ацикличность на фазе 2 через симуляцию на временном графе.
-        Цикл → InvalidGraphError.
-
-    is_structural=False — информационные рёбра (has_aspect, belongs_to,
-        requires_context, has_checker, subscribes и т.д.).
-        Несут метаданные. Циклы допустимы (например, двусторонние связи
-        сущностей). Координатор не проверяет ацикличность для них.
+``node_meta`` and ``edge_meta`` use ``tuple[tuple[str, Any], ...]`` instead of
+``dict[str, Any]`` because a frozen dataclass should be hashable and dicts are
+not. Tuple-of-tuples is immutable and hashable; the coordinator turns it into a
+dict once during commit.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ФОРМАТ КЛЮЧЕЙ УЗЛОВ
+TWO EDGE CLASSES
 ═══════════════════════════════════════════════════════════════════════════════
 
-Каждый узел графа идентифицируется строковым ключом формата "тип:имя".
-Гейтхост формирует только имя (node_name) через хелпер _make_node_name().
-Координатор собирает полный ключ "node_type:node_name" самостоятельно.
+Edges are split by ``is_structural``:
+
+    is_structural=True  — structural edges (depends, connection).
+        Define the system skeleton. Cycles are forbidden. The coordinator
+        checks acyclicity in phase 2 using a scratch graph. A cycle raises
+        ``InvalidGraphError``.
+
+    is_structural=False — informational edges (e.g. ``belongs_to`` a domain,
+        ``has_aspect`` in some scenarios, etc., depending on the inspector).
+        They carry visualization semantics. Cycles are not forbidden as they
+        are for structural edges. Each inspector chooses ``edge_type`` values;
+        some details (context keys, compensator internals) deliberately stay
+        in runtime metadata rather than in edges.
+
+═══════════════════════════════════════════════════════════════════════════════
+NODE KEY FORMAT
+═══════════════════════════════════════════════════════════════════════════════
+
+Every graph node has a string key ``"type:name"``. The inspector supplies only
+the name (``node_name``) via ``_make_node_name()``; the coordinator builds the
+full ``node_type:node_name`` key.
 
     node_type = "action",  node_name = "module.CreateOrderAction"
-    → ключ в графе: "action:module.CreateOrderAction"
+    → graph key: "action:module.CreateOrderAction"
 
     node_type = "role",    node_name = "module.CreateOrderAction"
-    → ключ в графе: "role:module.CreateOrderAction"
+    → graph key: "role:module.CreateOrderAction"
 
-Один класс может порождать несколько узлов разных типов от разных
-гейтхостов. Например, CreateOrderAction порождает узел "action:..." от
-DependencyGateHost и узел "role:..." от RoleGateHost. Ключи уникальны
-благодаря префиксу типа.
+One class may emit several nodes with different ``node_type`` values from
+different inspectors (``role``, ``meta``, ``aspect``, …; structural ``action``
+appears when ``@depends`` and/or ``@connection`` is present — two inspectors,
+merged by the coordinator into one node with the same key). Uniqueness follows
+from the pair ``node_type`` + ``node_name``.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ПРИМЕР ЖИЗНЕННОГО ЦИКЛА
+LIFECYCLE EXAMPLE
 ═══════════════════════════════════════════════════════════════════════════════
 
-    # 1. Гейтхост создаёт payload в _build_payload():
+    # 1. Inspector creates a payload in _build_payload():
     payload = FacetPayload(
         node_type="role",
         node_name="module.CreateOrderAction",
@@ -78,16 +81,16 @@ DependencyGateHost и узел "role:..." от RoleGateHost. Ключи уник
         edges=(),
     )
 
-    # 2. Координатор собирает все payload в фазе 1 (сбор).
+    # 2. Coordinator gathers every payload in phase 1 (collect).
 
-    # 3. Координатор проверяет payload в фазе 2 (проверки):
-    #    - node_type и node_name непустые
-    #    - node_class — тип
-    #    - ключи уникальны
-    #    - цели рёбер существуют
-    #    - структурные рёбра ацикличны
+    # 3. Coordinator validates payloads in phase 2:
+    #    - node_type and node_name non-empty
+    #    - node_class is a type
+    #    - keys unique
+    #    - edge targets exist
+    #    - structural edges acyclic
 
-    # 4. Координатор коммитит в граф в фазе 3:
+    # 4. Coordinator commits in phase 3:
     #    graph.add_node({
     #        "node_type": "role",
     #        "name": "module.CreateOrderAction",
@@ -95,7 +98,7 @@ DependencyGateHost и узел "role:..." от RoleGateHost. Ключи уник
     #        "meta": {"spec": "admin"},
     #    })
 
-    # 5. payload выбрасывается. Граф — единственный источник правды.
+    # 5. Payload objects are discarded. The graph is the source of truth.
 """
 
 from __future__ import annotations
@@ -107,39 +110,40 @@ from typing import Any
 @dataclass(frozen=True)
 class EdgeInfo:
     """
-    Описание одного ребра графа, исходящего из узла.
+    One directed edge leaving a graph node.
 
-    Создаётся гейтхостом через хелпер AbstractGateHost._make_edge().
-    Передаётся координатору внутри FacetPayload.edges. Координатор
-    использует EdgeInfo для проверки ссылочной целостности (цель
-    существует) и ацикличности (для структурных рёбер).
+    Produced via inspector helpers (see ``BaseGateHostInspector._make_edge()``).
+    Lives inside ``FacetPayload.edges``. The coordinator uses ``EdgeInfo`` for
+    referential integrity (target exists) and, for structural edges, acyclicity.
 
-    Атрибуты:
+    Attributes:
         target_node_type : str
-            Тип целевого узла ("action", "entity", "domain" и т.д.).
-            Используется координатором для формирования полного ключа
-            цели: "target_node_type:target_name".
+            Target facet type (``"action"``, ``"entity"``, ``"domain"``, …).
+            Used to build the full target key ``target_node_type:target_name``.
 
         target_name : str
-            Имя целевого узла (формат "module.ClassName" или
-            "module.ClassName.suffix"). Формируется гейтхостом
-            через _make_node_name().
+            Target node name (``"module.ClassName"`` or ``"module.ClassName.suffix"``),
+            from ``_make_node_name()``.
 
         edge_type : str
-            Тип ребра: "depends", "connection", "has_aspect",
-            "belongs_to", "requires_context", "has_checker",
-            "subscribes", "has_error_handler", "has_compensator",
-            "has_sensitive", "has_role", "has_field",
-            "has_relation", "has_lifecycle".
+            Edge kind: ``"depends"``, ``"connection"``, ``"has_aspect"``,
+            ``"belongs_to"``, ``"requires_context"``, ``"has_checker"``,
+            ``"subscribes"``, ``"has_error_handler"``, ``"has_compensator"``,
+            ``"has_sensitive"``, ``"has_role"``, ``"has_field"``,
+            ``"has_relation"``, ``"has_lifecycle"``.
 
         is_structural : bool
-            True — структурное ребро. Циклы запрещены.
-            False — информационное ребро. Циклы допустимы.
+            True — structural edge; cycles forbidden.
+            False — informational edge; cycles allowed.
 
         edge_meta : tuple[tuple[str, Any], ...]
-            Дополнительные метаданные ребра в формате tuple of tuples.
-            Конвертируется в dict при коммите в граф.
-            Пустой tuple по умолчанию.
+            Extra metadata as tuple-of-tuples; converted to dict at commit.
+            Defaults to empty tuple.
+
+        target_class_ref : type | None
+            When the target is a concrete class (dependency or connection
+            manager), the coordinator may synthesize a facet node if no
+            inspector emitted one. ``None`` for name-only targets.
     """
 
     target_node_type: str
@@ -147,60 +151,58 @@ class EdgeInfo:
     edge_type: str
     is_structural: bool
     edge_meta: tuple[tuple[str, Any], ...] = field(default_factory=tuple)
+    target_class_ref: type | None = None
 
 
 @dataclass(frozen=True)
 class FacetPayload:
     """
-    Полное описание одного узла графа с его исходящими рёбрами.
+    One graph node with all of its outgoing edges.
 
-    Создаётся гейтхостом в методе _build_payload(). Один вызов
-    inspect() → один FacetPayload (или None если класс не подходит).
-    Координатор собирает все payload от всех гейтхостов в фазе 1,
-    проверяет в фазе 2 и коммитит в граф в фазе 3.
+    Built by an inspector in ``_build_payload()`` (or ``inspect()``). One call
+    → one ``FacetPayload`` (or ``None`` if the class does not match). The
+    coordinator collects everything in phase 1, validates in phase 2, commits in
+    phase 3.
 
-    Один класс может порождать несколько FacetPayload от разных
-    гейтхостов. Например, CreateOrderAction порождает:
-    - FacetPayload(node_type="role", ...) от RoleGateHost
-    - FacetPayload(node_type="action", ..., edges=[depends...]) от DependencyGateHost
-    - FacetPayload(node_type="aspect", ...) от AspectGateHost (для каждого аспекта)
+    A single class may emit several payloads from different inspectors. For
+    example, ``CreateOrderAction`` may yield:
+    - ``FacetPayload(node_type="role", ...)`` from ``RoleGateHostInspector``
+    - One merged ``FacetPayload(node_type="action", ...)`` with depends and/or
+      connection edges (two inspectors → merged in ``GateCoordinator._phase1_collect``)
+    - ``FacetPayload(node_type="aspect", ...)`` from ``AspectGateHostInspector``
+      (per method)
 
-    Уникальность гарантируется комбинацией node_type + node_name.
+    After merging structural ``action`` facets, uniqueness is still
+    ``node_type`` + ``node_name``.
 
-    Атрибуты:
+    Attributes:
         node_type : str
-            Тип узла в графе: "action", "role", "aspect", "checker",
-            "entity", "domain", "dependency", "connection",
-            "error_handler", "compensator", "subscription",
-            "sensitive", "context_field", "entity_field",
-            "entity_relation", "entity_lifecycle".
+            Facet type: ``"action"``, ``"role"``, ``"aspect"``, ``"checker"``,
+            ``"entity"``, ``"domain"``, ``"dependency"``, ``"connection"``,
+            ``"error_handler"``, ``"compensator"``, ``"subscription"``,
+            ``"sensitive"``, ``"context_field"``, ``"entity_field"``,
+            ``"entity_relation"``, ``"entity_lifecycle"``.
 
         node_name : str
-            Имя узла без префикса типа. Формат "module.ClassName"
-            или "module.ClassName.suffix". Формируется гейтхостом
-            через _make_node_name(). Координатор собирает полный
-            ключ "node_type:node_name".
+            Name without the type prefix. Format ``"module.ClassName"`` or
+            ``"module.ClassName.suffix"``, from ``_make_node_name()``; the
+            coordinator forms ``"node_type:node_name"``.
 
         node_class : type
-            Ссылка на класс Python, породивший этот узел.
-            Используется координатором для хранения в графе
-            и для рантайм-доступа к классу.
+            Python class that owns this node; stored in the graph and used for
+            runtime lookups.
 
         node_meta : tuple[tuple[str, Any], ...]
-            Метаданные узла, специфичные для гейтхоста.
-            Формат: tuple of (key, value) пар.
-            Конвертируется в dict при коммите в граф.
-            Содержимое зависит от гейтхоста:
-            - RoleGateHost: (("spec", "admin"),)
-            - AspectGateHost: (("aspect_type", "regular"), ("method_name", "validate"), ...)
-            - EntityGateHost: (("description", "Заказ"), ("domain", "shop"), ...)
-            Пустой tuple по умолчанию.
+            Node-specific metadata as ``(key, value)`` pairs; becomes a dict at
+            commit. Examples:
+            - Role: ``(("spec", "admin"),)``
+            - Aspect: ``(("aspect_type", "regular"), ("method_name", "validate"), ...)``
+            - Entity: ``(("description", "Order"), ("domain", "shop"), ...)``
+            Defaults to empty tuple.
 
         edges : tuple[EdgeInfo, ...]
-            Исходящие рёбра от этого узла. Каждое ребро описывает
-            связь с другим узлом графа. Гейтхосты без рёбер
-            (например, RoleGateHost) возвращают пустой tuple.
-            Пустой tuple по умолчанию.
+            Outgoing edges. Facets without graph edges (e.g. bare role nodes) use
+            an empty tuple. Defaults to empty tuple.
     """
 
     node_type: str

@@ -19,12 +19,11 @@ test_compensate_decorator.py
     корректные аргументы, некорректные типы, суффикс имени, сигнатура.
 
 test_compensate_metadata.py
-    Сборка метаданных через MetadataBuilder и валидация инвариантов:
-    collect_compensators, validate_compensators, ClassMetadata API.
+    Typed-снимки и инварианты компенсаторов (facet ``compensator`` / инспектор).
 
 test_compensate_graph.py
-    Граф в GateCoordinator: узлы "compensator", рёбра "has_compensator"
-    и "requires_context", dependency tree.
+    Граф в GateCoordinator: узлы ``compensator``, рёбра ``has_compensator``
+    и ``requires_context``; обход через ``get_nodes_for_class`` / примитивы графа.
 
 test_saga_rollback.py
     Ядро механизма — размотка стека SagaFrame в обратном порядке

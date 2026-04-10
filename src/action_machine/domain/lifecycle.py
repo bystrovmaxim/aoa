@@ -1,157 +1,148 @@
 # src/action_machine/domain/lifecycle.py
 """
-Lifecycle — декларативный конечный автомат жизненного цикла сущности.
+Declarative finite-state **lifecycle** templates and typed **runtime** state for entities.
+
+`Lifecycle` serves two roles: a **template** built with a fluent import-time API
+(state graph), and a **specialized subclass** whose instances hold the current
+state key on each entity. The gate coordinator validates graph rules at
+**build** time; instances enforce valid keys and transitions at **runtime**.
 
 ═══════════════════════════════════════════════════════════════════════════════
-НАЗНАЧЕНИЕ
+PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Модуль содержит два уровня API:
-
-1. Lifecycle — шаблон конечного автомата (граф состояний и переходов).
-   Определяется через fluent-цепочку при определении класса (import-time).
-   Координатор проверяет 8 правил целостности при старте приложения.
-
-2. Специализированный класс состояния (наследник Lifecycle) — хранит
-   конкретное текущее состояние экземпляра сущности. Используется как
-   обычное pydantic-поле сущности.
+Model business state machines next to entity fields so transitions stay explicit,
+testable, and documented. Frozen entities update lifecycles by replacing the
+field value (`transition` returns a new instance), not by mutating in place.
 
 ═══════════════════════════════════════════════════════════════════════════════
-СПЕЦИАЛИЗИРОВАННЫЙ КЛАСС СОСТОЯНИЯ
+SCOPE (IN / OUT)
 ═══════════════════════════════════════════════════════════════════════════════
 
-Для каждого конечного автомата создаётся класс-наследник Lifecycle
-с конкретным графом состояний в атрибуте _template:
+**In scope**
+    Fluent template construction (`.state().to().initial()` / `intermediate` / `final`).
+    `StateInfo` metadata, `StateType` classification, instance API (`current_state`,
+    `can_transition`, `transition`).
+    Strict validation while building templates (keys, display names, final states
+    without transitions).
+
+**Out of scope**
+    The eight global integrity rules (exactly one initial set semantics, reachability,
+    etc.) — enforced by **inspectors** when the gate coordinator **builds**, not in
+    this module’s fluent builder alone.
+    Persistence, timers, and side effects on transition — application code.
+    Automatic persistence when transitioning — callers use `model_copy` on the entity.
+
+═══════════════════════════════════════════════════════════════════════════════
+TERMINOLOGY (USE CONSISTENTLY)
+═══════════════════════════════════════════════════════════════════════════════
+
+**Gate host / decorator / scratch / inspector / gate coordinator** — same as
+elsewhere in ActionMachine: entity fields typed as a `Lifecycle` subclass are
+discovered at build time; **inspectors** read `_template` **scratch** and attach
+facets to the **gate coordinator** graph.
+
+═══════════════════════════════════════════════════════════════════════════════
+ARCHITECTURE / DATA FLOW
+═══════════════════════════════════════════════════════════════════════════════
+
+::
+
+    import-time fluent chain          specialized subclass
+    Lifecycle().state(...).to(...).initial()
+              │
+              └── stored as _template on OrderLifecycle(Lifecycle)
+                        │
+                        ├── coordinator.build()  → validates full graph (8 rules)
+                        │
+                        └── runtime: OrderLifecycle("new")  → instance with current_state
+
+    entity field (pydantic)     frozen update path
+    lifecycle: OrderLifecycle   new_lc = entity.lifecycle.transition("confirmed")
+                                entity.model_copy(update={"lifecycle": new_lc})
+
+═══════════════════════════════════════════════════════════════════════════════
+INVARIANTS
+═══════════════════════════════════════════════════════════════════════════════
+
+- Every state in a template is **finished** with exactly one of `.initial()`,
+  `.intermediate()`, or `.final()` before another `.state(...)` begins.
+- **Final** states have **no** outgoing transitions (enforced in `.final()`).
+- Instance construction: `current_state` must exist in the subclass `_template`
+  graph keys.
+- `transition(target)` only succeeds if `target` is in the current state’s
+  `transitions` set.
+
+═══════════════════════════════════════════════════════════════════════════════
+RATIONALE
+═══════════════════════════════════════════════════════════════════════════════
+
+Encoding the graph in a fluent DSL keeps the FSM colocated with the domain model
+and avoids scattering stringly state checks. Splitting **template** (class body)
+from **instance** (field value) matches pydantic’s model: the template is shared
+metadata; each entity row holds one current key. Immutability aligns with
+`BaseEntity`: transitions return new lifecycle objects suitable for `model_copy`.
+
+═══════════════════════════════════════════════════════════════════════════════
+LIFECYCLE (IMPORT VS BUILD VS RUNTIME)
+═══════════════════════════════════════════════════════════════════════════════
+
+- **Import / class body**: `_template = Lifecycle().state(...)...` runs; template
+  graph is fixed.
+- **Coordinator `build()`**: structural validation of lifecycles on entities.
+- **Runtime**: constructing `OrderLifecycle("new")`, `can_transition`, `transition`.
+
+═══════════════════════════════════════════════════════════════════════════════
+EXAMPLES
+═══════════════════════════════════════════════════════════════════════════════
+
+Specialized subclass with `_template`::
 
     class OrderLifecycle(Lifecycle):
         _template = (
             Lifecycle()
-            .state("new", "Новый").to("confirmed", "cancelled").initial()
-            .state("confirmed", "Подтверждён").to("shipped").intermediate()
-            .state("shipped", "Отправлен").to("delivered").intermediate()
-            .state("delivered", "Доставлен").final()
-            .state("cancelled", "Отменён").final()
+            .state("new", "New").to("confirmed", "cancelled").initial()
+            .state("confirmed", "Confirmed").to("shipped").intermediate()
+            .state("shipped", "Shipped").to("delivered").intermediate()
+            .state("delivered", "Delivered").final()
+            .state("cancelled", "Cancelled").final()
         )
 
-    class PaymentLifecycle(Lifecycle):
-        _template = (
-            Lifecycle()
-            .state("pending", "Ожидает").to("paid", "failed").initial()
-            .state("paid", "Оплачен").final()
-            .state("failed", "Ошибка").to("pending").intermediate()
-        )
+    order_lc = OrderLifecycle("new")
+    order_lc.can_transition("confirmed")  # True
+    new_lc = order_lc.transition("confirmed")
 
-_template создаётся при определении класса (import-time). GateCoordinator
-при старте находит все поля-наследники Lifecycle в model_fields сущности,
-читает _template и проверяет 8 правил целостности. Приложение не
-запустится при нарушении любого правила.
+Edge — invalid transition::
 
-═══════════════════════════════════════════════════════════════════════════════
-ИСПОЛЬЗОВАНИЕ В СУЩНОСТИ
-═══════════════════════════════════════════════════════════════════════════════
+    order_lc.transition("delivered")  # InvalidTransitionError
 
-Lifecycle-поле — обычное pydantic-поле. Может быть любое количество
-полей с разными типами автоматов, или ни одного. Имя поля — любое.
+Edge — partial entity without lifecycle field::
 
-    @entity(description="Заказ клиента", domain=ShopDomain)
-    class OrderEntity(BaseEntity):
-        id: str = Field(description="ID заказа")
-        amount: float = Field(description="Сумма", ge=0)
-        lifecycle: OrderLifecycle | None = Field(
-            description="Жизненный цикл заказа",
-        )
-        payment: PaymentLifecycle | None = Field(
-            description="Статус оплаты",
-        )
-
-Поле без default — обязательное при полном создании. При partial()
-незагруженное поле → FieldNotLoadedError.
+    # FieldNotLoadedError from BaseEntity.partial / __getattr__, not from Lifecycle
 
 ═══════════════════════════════════════════════════════════════════════════════
-ЧТЕНИЕ ТЕКУЩЕГО СОСТОЯНИЯ
+FLUENT API (REFERENCE)
 ═══════════════════════════════════════════════════════════════════════════════
 
-    # Полная загрузка из БД:
-    order = OrderEntity(
-        id="ORD-001",
-        amount=1500.0,
-        lifecycle=OrderLifecycle("new"),
-        payment=PaymentLifecycle("pending"),
-    )
-
-    order.lifecycle.current_state       # → "new"
-    order.payment.current_state         # → "pending"
-
-    # Проверка допустимости перехода:
-    order.lifecycle.can_transition("confirmed")  # → True
-    order.lifecycle.can_transition("delivered")  # → False
-
-    # Доступные переходы из текущего состояния:
-    order.lifecycle.available_transitions  # → {"confirmed", "cancelled"}
-
-    # Текущее состояние — начальное? финальное?
-    order.lifecycle.is_initial  # → True
-    order.lifecycle.is_final    # → False
-
-    # Частичная загрузка без lifecycle:
-    order = OrderEntity.partial(id="ORD-001", amount=1500.0)
-    order.lifecycle  # → FieldNotLoadedError
-
-═══════════════════════════════════════════════════════════════════════════════
-ПЕРЕХОД СОСТОЯНИЯ (FROZEN-СУЩНОСТЬ)
-═══════════════════════════════════════════════════════════════════════════════
-
-Сущность frozen после создания. Переход состояния = новый экземпляр:
-
-    # transition() возвращает НОВЫЙ OrderLifecycle:
-    new_lifecycle = order.lifecycle.transition("confirmed")
-
-    # Новый экземпляр сущности:
-    confirmed_order = order.model_copy(update={"lifecycle": new_lifecycle})
-    confirmed_order.lifecycle.current_state  # → "confirmed"
-
-    # Старый не изменился:
-    order.lifecycle.current_state  # → "new"
-
-    # Недопустимый переход → InvalidTransitionError:
-    order.lifecycle.transition("delivered")
-    # → InvalidTransitionError
-
-═══════════════════════════════════════════════════════════════════════════════
-КЛАССИФИКАЦИЯ СОСТОЯНИЙ (StateType)
-═══════════════════════════════════════════════════════════════════════════════
-
-    INITIAL       — входная точка. Сущность создаётся в этом состоянии.
-    INTERMEDIATE  — промежуточное. Обязано иметь хотя бы один переход.
-    FINAL         — конечное. НЕ должно иметь переходов.
-
-StateType — enum, исключающий невалидные комбинации на уровне типа.
-
-═══════════════════════════════════════════════════════════════════════════════
-ПРОВЕРКИ ЦЕЛОСТНОСТИ (КООРДИНАТОР ПРИ СТАРТЕ)
-═══════════════════════════════════════════════════════════════════════════════
-
-1. Каждое состояние завершено флагом (.initial()/.intermediate()/.final()).
-2. Есть хотя бы одно начальное состояние.
-3. Есть хотя бы одно финальное состояние.
-4. Финальные состояния не имеют переходов.
-5. Все цели переходов существуют.
-6. Каждое не-финальное состояние имеет хотя бы один переход.
-7. Из каждого начального достижимо хотя бы одно финальное.
-8. Каждое не-initial состояние является целью хотя бы одного перехода.
-
-═══════════════════════════════════════════════════════════════════════════════
-FLUENT API ДЛЯ ПОСТРОЕНИЯ ШАБЛОНА
-═══════════════════════════════════════════════════════════════════════════════
+::
 
     Lifecycle()
-        .state(key, display_name)       → _StateBuilder
-            .to(*target_keys)           → _StateBuilder
-            .initial()                  → Lifecycle
-            .intermediate()             → Lifecycle
-            .final()                    → Lifecycle
+        .state(key, display_name)   → _StateBuilder
+            .to(*target_keys)       → _StateBuilder
+            .initial() | .intermediate() | .final()  → Lifecycle
 
-Порядок объявления состояний НЕ ВАЖЕН. Forward-ссылки в .to() разрешены.
+State declaration order does not matter; forward references in `.to()` are allowed.
+
+═══════════════════════════════════════════════════════════════════════════════
+ERRORS / LIMITATIONS
+═══════════════════════════════════════════════════════════════════════════════
+
+- `InvalidStateError`: instance `current_state` not in template keys.
+- `InvalidTransitionError`: `transition` to a non-adjacent state.
+- `TypeError` / `ValueError`: bad keys or display names while building template.
+- `RuntimeError`: incomplete previous state when calling `.state()`; or reading
+  `current_state` on a bare template instance.
+- This module does **not** perform I/O or async workflows.
 """
 
 from __future__ import annotations
@@ -160,21 +151,21 @@ from dataclasses import dataclass
 from enum import Enum
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# ИСКЛЮЧЕНИЯ
+# EXCEPTIONS
 # ═══════════════════════════════════════════════════════════════════════════════
 
 
 class InvalidStateError(ValueError):
     """
-    Неизвестное состояние при создании экземпляра Lifecycle.
+    ``current_state`` is not a declared state key on this lifecycle class.
 
-    Выбрасывается когда current_state не входит в множество
-    объявленных состояний _template.
+    Raised when constructing an instance with a key that does not appear in
+    the subclass ``_template`` graph.
 
-    Атрибуты:
-        state_key:       переданный ключ состояния.
-        lifecycle_class: имя класса Lifecycle.
-        valid_states:    множество допустимых ключей.
+    Attributes:
+        state_key: Value passed to the constructor.
+        lifecycle_class: Specialized lifecycle class name.
+        valid_states: Declared state keys from the template.
     """
 
     def __init__(
@@ -188,23 +179,23 @@ class InvalidStateError(ValueError):
         self.valid_states = valid_states
         sorted_states = ", ".join(sorted(valid_states))
         super().__init__(
-            f"Состояние '{state_key}' не объявлено в {lifecycle_class}. "
-            f"Допустимые состояния: {sorted_states}."
+            f"State '{state_key}' is not defined on {lifecycle_class}. "
+            f"Valid states: {sorted_states}."
         )
 
 
 class InvalidTransitionError(ValueError):
     """
-    Недопустимый переход между состояниями.
+    Disallowed transition for the current state.
 
-    Выбрасывается при вызове transition() когда переход
-    из current_state в target_state не разрешён графом.
+    Raised by ``transition()`` when ``target`` is not in the current state’s
+    outgoing transition set.
 
-    Атрибуты:
-        current_state:   текущее состояние.
-        target_state:    целевое состояние.
-        lifecycle_class: имя класса Lifecycle.
-        valid_targets:   множество допустимых целей.
+    Attributes:
+        current_state: Current state key.
+        target_state: Requested target key.
+        lifecycle_class: Specialized lifecycle class name.
+        valid_targets: Allowed targets from the current state (possibly empty).
     """
 
     def __init__(
@@ -218,29 +209,30 @@ class InvalidTransitionError(ValueError):
         self.target_state = target_state
         self.lifecycle_class = lifecycle_class
         self.valid_targets = valid_targets
-        sorted_targets = ", ".join(sorted(valid_targets)) if valid_targets else "(нет переходов)"
+        sorted_targets = ", ".join(sorted(valid_targets)) if valid_targets else "(no transitions)"
         super().__init__(
-            f"Переход '{current_state}' → '{target_state}' недопустим "
-            f"в {lifecycle_class}. "
-            f"Допустимые переходы из '{current_state}': {sorted_targets}."
+            f"Transition '{current_state}' → '{target_state}' is not allowed "
+            f"on {lifecycle_class}. "
+            f"Allowed transitions from '{current_state}': {sorted_targets}."
         )
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# КЛАССИФИКАЦИЯ СОСТОЯНИЙ
+# STATE CLASSIFICATION
 # ═══════════════════════════════════════════════════════════════════════════════
 
 
 class StateType(Enum):
     """
-    Тип состояния в конечном автомате.
+    How a state participates in the lifecycle graph.
 
-    Три взаимоисключающих варианта — невалидная комбинация невозможна.
+    Exactly one of these applies per state — invalid combinations are rejected
+    at template build time via distinct builder methods.
 
-    Значения:
-        INITIAL      — входная точка жизненного цикла.
-        INTERMEDIATE — промежуточное состояние.
-        FINAL        — конечное состояние.
+    Values:
+        INITIAL: Entry state(s) for new business objects.
+        INTERMEDIATE: Non-terminal states with at least one outgoing edge.
+        FINAL: Terminal states with no outgoing edges.
     """
 
     INITIAL = "initial"
@@ -249,22 +241,20 @@ class StateType(Enum):
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# МЕТАДАННЫЕ СОСТОЯНИЯ
+# STATE METADATA
 # ═══════════════════════════════════════════════════════════════════════════════
 
 
 @dataclass(frozen=True)
 class StateInfo:
     """
-    Полные метаданные одного состояния в Lifecycle.
+    Immutable metadata for one state in a template.
 
-    Frozen dataclass. Содержит всю информацию о состоянии в одном месте.
-
-    Атрибуты:
-        key          : уникальный строковый ключ ("new", "confirmed").
-        display_name : человекочитаемое имя ("Новый заказ", "Подтверждён").
-        state_type   : классификация: INITIAL, INTERMEDIATE или FINAL.
-        transitions  : множество ключей допустимых целевых состояний.
+    Attributes:
+        key: Stable machine key (e.g. ``"new"``, ``"confirmed"``).
+        display_name: Human-readable label for UI and diagrams.
+        state_type: ``INITIAL``, ``INTERMEDIATE``, or ``FINAL``.
+        transitions: Frozen set of target state keys allowed from this state.
     """
 
     key: str
@@ -274,37 +264,37 @@ class StateInfo:
 
     @property
     def is_initial(self) -> bool:
-        """True если состояние начальное."""
+        """True if this state is classified as initial."""
         return self.state_type == StateType.INITIAL
 
     @property
     def is_final(self) -> bool:
-        """True если состояние финальное."""
+        """True if this state is classified as final."""
         return self.state_type == StateType.FINAL
 
     @property
     def is_intermediate(self) -> bool:
-        """True если состояние промежуточное."""
+        """True if this state is classified as intermediate."""
         return self.state_type == StateType.INTERMEDIATE
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# BUILDER ОДНОГО СОСТОЯНИЯ
+# SINGLE-STATE BUILDER (FLUENT)
 # ═══════════════════════════════════════════════════════════════════════════════
 
 
 class _StateBuilder:
     """
-    Builder для одного состояния в fluent-цепочке Lifecycle.
+    Internal fluent builder for one state in a ``Lifecycle`` template.
 
-    Создаётся Lifecycle.state(). Не для прямого использования.
+    Created by ``Lifecycle.state()``; not part of the public surface.
 
-    Атрибуты:
-        _lifecycle    : родительский Lifecycle.
-        _key          : ключ состояния.
-        _display_name : отображаемое имя.
-        _transitions  : накопленные ключи целей переходов.
-        _completed    : True после .initial()/.intermediate()/.final().
+    Attributes:
+        _lifecycle: Parent template under construction.
+        _key: State key.
+        _display_name: Display label.
+        _transitions: Target keys added via ``.to()``.
+        _completed: Set after ``.initial()`` / ``.intermediate()`` / ``.final()``.
     """
 
     def __init__(self, lifecycle: Lifecycle, key: str, display_name: str) -> None:
@@ -316,67 +306,69 @@ class _StateBuilder:
 
     def to(self, *target_keys: str) -> _StateBuilder:
         """
-        Задаёт допустимые переходы из текущего состояния.
+        Add allowed transition targets from this state.
 
-        Forward-ссылки разрешены. Может вызываться несколько раз.
+        Forward references to not-yet-declared states are allowed. May be called
+        multiple times.
 
-        Аргументы:
-            *target_keys: ключи целевых состояний.
+        Args:
+            *target_keys: Target state keys.
 
-        Возвращает:
-            self — для продолжения fluent-цепочки.
+        Returns:
+            ``self`` for chaining.
 
-        Исключения:
-            TypeError:  target_key — не строка.
-            ValueError: target_key — пустая строка.
+        Raises:
+            TypeError: A target key is not a ``str``.
+            ValueError: A target key is empty or whitespace-only.
         """
         for key in target_keys:
             if not isinstance(key, str):
                 raise TypeError(
-                    f"Ключ перехода должен быть строкой, "
-                    f"получен {type(key).__name__}: {key!r}."
+                    f"Transition target key must be str, got {type(key).__name__}: {key!r}."
                 )
             if not key.strip():
                 raise ValueError(
-                    f"Ключ перехода не может быть пустой строкой "
-                    f"в состоянии '{self._key}'."
+                    f"Transition target key cannot be empty or whitespace-only "
+                    f"in state '{self._key}'."
                 )
             self._transitions.add(key)
         return self
 
     def initial(self) -> Lifecycle:
-        """Помечает состояние как начальное (INITIAL)."""
+        """Mark this state as ``INITIAL`` and register it on the template."""
         return self._finalize(StateType.INITIAL)
 
     def intermediate(self) -> Lifecycle:
-        """Помечает состояние как промежуточное (INTERMEDIATE)."""
+        """Mark this state as ``INTERMEDIATE`` and register it on the template."""
         return self._finalize(StateType.INTERMEDIATE)
 
     def final(self) -> Lifecycle:
         """
-        Помечает состояние как финальное (FINAL).
+        Mark this state as ``FINAL`` and register it on the template.
 
-        Исключения:
-            ValueError: если у финального состояния есть переходы.
+        Raises:
+            ValueError: If any outgoing transitions were added (final states
+                must have an empty transition set).
         """
         if self._transitions:
             raise ValueError(
-                f"Финальное состояние '{self._key}' не может иметь переходов, "
-                f"но указаны: {sorted(self._transitions)}"
+                f"Final state '{self._key}' cannot have outgoing transitions, "
+                f"but these were set: {sorted(self._transitions)}"
             )
         return self._finalize(StateType.FINAL)
 
     def _finalize(self, state_type: StateType) -> Lifecycle:
         """
-        Завершает объявление состояния и регистрирует в Lifecycle.
+        Close this state and append it to the parent template.
 
-        Исключения:
-            RuntimeError: если состояние уже завершено.
+        Raises:
+            RuntimeError: If ``.initial()`` / ``.intermediate()`` / ``.final()``
+                was already called on this builder.
         """
         if self._completed:
             raise RuntimeError(
-                f"Состояние '{self._key}' уже завершено. "
-                f"Нельзя вызывать .initial()/.intermediate()/.final() повторно."
+                f"State '{self._key}' is already complete. "
+                f"Do not call .initial(), .intermediate(), or .final() twice."
             )
         self._completed = True
         state_info = StateInfo(
@@ -390,7 +382,7 @@ class _StateBuilder:
 
     @property
     def is_completed(self) -> bool:
-        """True если состояние завершено."""
+        """True after the state has been finalized."""
         return self._completed
 
 
@@ -401,54 +393,52 @@ class _StateBuilder:
 
 class Lifecycle:
     """
-    Конечный автомат жизненного цикла сущности.
+    Finite-state lifecycle: **template** builder and **instance** value.
 
-    Два режима использования:
+    **Template mode**
+        Call ``Lifecycle()`` then ``.state(...).to(...).initial()`` (etc.) to
+        build a graph. Store the result as ``_template`` on a subclass.
 
-    1. ШАБЛОН — создаётся через fluent-цепочку, содержит граф состояний.
-       Используется в _template специализированных классов.
-       GateCoordinator проверяет 8 правил целостности при старте.
+    **Instance mode**
+        Call ``Subclass("state_key")`` to bind the current state for an entity
+        field. Instances are immutable; ``transition`` returns a new instance.
 
-    2. ЭКЗЕМПЛЯР — создаётся с current_state, хранит текущее состояние
-       конкретного бизнес-объекта. Является обычным pydantic-полем
-       сущности. Frozen — переход = новый экземпляр.
-
-    Специализированный класс определяет _template и наследует Lifecycle:
+    Example subclass::
 
         class OrderLifecycle(Lifecycle):
             _template = (
                 Lifecycle()
-                .state("new", "Новый").to("confirmed", "cancelled").initial()
-                .state("confirmed", "Подтверждён").final()
+                .state("new", "New").to("confirmed").initial()
+                .state("confirmed", "Confirmed").final()
             )
 
-    Экземпляр создаётся с текущим состоянием:
+    Example instance::
 
         lc = OrderLifecycle("new")
-        lc.current_state              # → "new"
-        lc.can_transition("confirmed") # → True
-        new_lc = lc.transition("confirmed")  # → новый OrderLifecycle
+        lc.current_state
+        new_lc = lc.transition("confirmed")
 
-    Атрибуты:
-        _states        : dict[str, StateInfo] — граф состояний (для шаблона).
-        _current_state : str | None — текущее состояние (для экземпляра).
-        _current_builder : _StateBuilder | None — текущий незавершённый builder.
+    Attributes (internal):
+        _states: Map of state key → ``StateInfo`` (template graph).
+        _current_state: Current key for an instance; ``None`` on a bare template.
+        _current_builder: Open ``_StateBuilder`` while a state is unfinished.
     """
 
     _template: Lifecycle | None = None
 
     def __init__(self, current_state: str | None = None) -> None:
         """
-        Создаёт Lifecycle.
+        Create a template (no argument) or an instance (with ``current_state``).
 
-        Без аргументов — пустой шаблон для fluent-цепочки.
-        С current_state — экземпляр с конкретным текущим состоянием.
+        Args:
+            current_state: If set, build a runtime instance validated against
+                the subclass ``_template``. If ``None``, start an empty template
+                for fluent construction.
 
-        Аргументы:
-            current_state: текущее состояние экземпляра. None для шаблона.
-
-        Исключения:
-            InvalidStateError: если current_state не входит в _template.
+        Raises:
+            TypeError: Specialized subclass has no ``_template`` but a state
+                was requested.
+            InvalidStateError: ``current_state`` is not a key in ``_template``.
         """
         self._states: dict[str, StateInfo] = {}
         self._current_state: str | None = None
@@ -458,9 +448,9 @@ class Lifecycle:
             template = self._get_template()
             if template is None:
                 raise TypeError(
-                    f"{self.__class__.__name__} не имеет _template. "
-                    f"Определите _template в классе или используйте "
-                    f"fluent-цепочку .state().to().initial() для шаблона."
+                    f"{self.__class__.__name__} has no _template. "
+                    f"Define _template on the subclass, or use the fluent "
+                    f".state().to()… chain to build a template."
                 )
             valid_states = set(template._states.keys())
             if current_state not in valid_states:
@@ -475,12 +465,11 @@ class Lifecycle:
     @classmethod
     def _get_template(cls) -> Lifecycle | None:
         """
-        Возвращает _template класса.
+        Resolve ``_template`` from the class MRO.
 
-        Обходит MRO для поиска _template в наследниках.
-
-        Возвращает:
-            Lifecycle с графом состояний или None.
+        Returns:
+            The first ``Lifecycle`` template found on ``cls`` or its bases, or
+            ``None``.
         """
         for klass in cls.__mro__:
             template = klass.__dict__.get("_template")
@@ -489,54 +478,52 @@ class Lifecycle:
         return None
 
     # ─────────────────────────────────────────────────────────────────────
-    # FLUENT API (для построения шаблона)
+    # Fluent API (template construction)
     # ─────────────────────────────────────────────────────────────────────
 
     def state(self, key: str, display_name: str) -> _StateBuilder:
         """
-        Объявляет новое состояние в шаблоне.
+        Declare a new state on this template.
 
-        Аргументы:
-            key:          уникальный строковый ключ.
-            display_name: человекочитаемое имя для UI и диаграмм.
+        Args:
+            key: Unique state key.
+            display_name: Non-empty label for UI and exports.
 
-        Возвращает:
-            _StateBuilder для настройки переходов и классификации.
+        Returns:
+            ``_StateBuilder`` for ``.to()`` and classification.
 
-        Исключения:
-            TypeError:    key или display_name — не строка.
-            ValueError:   key или display_name — пустая строка.
-            ValueError:   состояние с таким key уже объявлено.
-            RuntimeError: предыдущее состояние не завершено.
+        Raises:
+            RuntimeError: Previous state was not finalized.
+            TypeError: ``key`` or ``display_name`` is not a ``str``.
+            ValueError: Empty / whitespace-only ``key`` or ``display_name``, or
+                duplicate ``key``.
         """
         if self._current_builder is not None and not self._current_builder.is_completed:
             raise RuntimeError(
-                f"Состояние '{self._current_builder._key}' не завершено. "
-                f"Вызовите .initial(), .intermediate() или .final() "
-                f"перед объявлением нового состояния '{key}'."
+                f"State '{self._current_builder._key}' is not complete. "
+                f"Call .initial(), .intermediate(), or .final() "
+                f"before declaring a new state '{key}'."
             )
 
         if not isinstance(key, str):
             raise TypeError(
-                f"Ключ состояния должен быть строкой, "
-                f"получен {type(key).__name__}: {key!r}."
+                f"State key must be str, got {type(key).__name__}: {key!r}."
             )
         if not key.strip():
-            raise ValueError("Ключ состояния не может быть пустой строкой.")
+            raise ValueError("State key cannot be empty or whitespace-only.")
 
         if not isinstance(display_name, str):
             raise TypeError(
-                f"Отображаемое имя состояния должно быть строкой, "
-                f"получен {type(display_name).__name__}: {display_name!r}."
+                f"State display name must be str, got {type(display_name).__name__}: {display_name!r}."
             )
         if not display_name.strip():
             raise ValueError(
-                f"Отображаемое имя состояния '{key}' не может быть пустой строкой."
+                f"State display name for '{key}' cannot be empty or whitespace-only."
             )
 
         if key in self._states:
             raise ValueError(
-                f"Состояние '{key}' уже объявлено."
+                f"State '{key}' is already defined."
             )
 
         builder = _StateBuilder(self, key, display_name)
@@ -544,93 +531,79 @@ class Lifecycle:
         return builder
 
     def _register_state(self, state_info: StateInfo) -> None:
-        """
-        Регистрирует завершённое состояние.
-
-        Вызывается из _StateBuilder._finalize(). Не для прямого использования.
-        """
+        """Register a finalized ``StateInfo`` (used by ``_StateBuilder``)."""
         self._states[state_info.key] = state_info
 
     # ─────────────────────────────────────────────────────────────────────
-    # API ЭКЗЕМПЛЯРА (текущее состояние)
+    # Instance API (current state)
     # ─────────────────────────────────────────────────────────────────────
 
     @property
     def current_state(self) -> str:
         """
-        Текущее состояние экземпляра.
+        Current state key for this instance.
 
-        Исключения:
-            RuntimeError: если Lifecycle — шаблон (нет current_state).
+        Raises:
+            RuntimeError: This object is a template without ``current_state``.
         """
         if self._current_state is None:
             raise RuntimeError(
-                f"{self.__class__.__name__} — шаблон, не экземпляр. "
-                f"Текущее состояние доступно только у экземпляров: "
+                f"{self.__class__.__name__} is a template, not an instance. "
+                f"current_state is only available on instances such as "
                 f"{self.__class__.__name__}('state_key')."
             )
         return self._current_state
 
     @property
     def current_state_info(self) -> StateInfo:
-        """
-        Полные метаданные текущего состояния.
-
-        Возвращает:
-            StateInfo текущего состояния.
-        """
+        """``StateInfo`` for ``current_state``."""
         return self._states[self.current_state]
 
     @property
     def available_transitions(self) -> set[str]:
-        """
-        Множество допустимых целевых состояний из текущего.
-
-        Возвращает:
-            set[str] — ключи состояний, в которые можно перейти.
-        """
+        """Set of state keys reachable in one step from ``current_state``."""
         return set(self.current_state_info.transitions)
 
     @property
     def is_initial(self) -> bool:
-        """True если текущее состояние — начальное."""
+        """True if the current state is initial."""
         return self.current_state_info.is_initial
 
     @property
     def is_final(self) -> bool:
-        """True если текущее состояние — финальное."""
+        """True if the current state is final."""
         return self.current_state_info.is_final
 
     def can_transition(self, target: str) -> bool:
         """
-        Проверяет допустимость перехода.
+        Whether ``target`` is an allowed successor of ``current_state``.
 
-        Аргументы:
-            target: ключ целевого состояния.
+        Args:
+            target: Candidate next state key.
 
-        Возвращает:
-            True если переход из current_state в target разрешён.
+        Returns:
+            ``True`` if the template allows an edge from the current state to
+            ``target``.
         """
         return target in self.current_state_info.transitions
 
     def transition(self, target: str) -> Lifecycle:
         """
-        Создаёт НОВЫЙ экземпляр Lifecycle с новым current_state.
+        Return a **new** instance of this class with ``current_state == target``.
 
-        Не мутирует текущий объект — сущность frozen, поэтому
-        переход состояния = новый экземпляр через model_copy():
+        Does not mutate ``self``. Typical entity update::
 
-            new_lc = order.lifecycle.transition("confirmed")
-            confirmed_order = order.model_copy(update={"lifecycle": new_lc})
+            new_lc = entity.lifecycle.transition("confirmed")
+            updated = entity.model_copy(update={"lifecycle": new_lc})
 
-        Аргументы:
-            target: ключ целевого состояния.
+        Args:
+            target: Destination state key.
 
-        Возвращает:
-            Новый экземпляр того же класса с current_state=target.
+        Returns:
+            New instance of the same specialized class.
 
-        Исключения:
-            InvalidTransitionError: если переход недопустим.
+        Raises:
+            InvalidTransitionError: Edge not present in the template.
         """
         if not self.can_transition(target):
             raise InvalidTransitionError(
@@ -642,27 +615,27 @@ class Lifecycle:
         return self.__class__(target)
 
     # ─────────────────────────────────────────────────────────────────────
-    # API ШАБЛОНА (для координатора)
+    # Template introspection (coordinator / tooling)
     # ─────────────────────────────────────────────────────────────────────
 
     def get_states(self) -> dict[str, StateInfo]:
         """
-        Все состояния автомата.
+        Copy of all ``StateInfo`` entries in this template.
 
-        Возвращает:
-            dict[str, StateInfo] — копия словаря {ключ: метаданные}.
+        Returns:
+            ``dict`` mapping state key → ``StateInfo``.
         """
         return dict(self._states)
 
     def get_initial_keys(self) -> set[str]:
-        """Ключи всех начальных состояний."""
+        """Keys of all states marked ``INITIAL``."""
         return {
             key for key, info in self._states.items()
             if info.state_type == StateType.INITIAL
         }
 
     def get_final_keys(self) -> set[str]:
-        """Ключи всех финальных состояний."""
+        """Keys of all states marked ``FINAL``."""
         return {
             key for key, info in self._states.items()
             if info.state_type == StateType.FINAL
@@ -670,10 +643,10 @@ class Lifecycle:
 
     def get_transitions(self) -> dict[str, set[str]]:
         """
-        Граф переходов автомата.
+        Adjacency map for the template.
 
-        Возвращает:
-            dict[str, set[str]] — {ключ_источника: {ключи_целей}}.
+        Returns:
+            Map ``source_key → set(target_keys)``.
         """
         return {
             key: set(info.transitions)
@@ -681,7 +654,7 @@ class Lifecycle:
         }
 
     def has_state(self, key: str) -> bool:
-        """Проверяет существование состояния."""
+        """Return whether ``key`` exists in this template."""
         return key in self._states
 
     def __repr__(self) -> str:

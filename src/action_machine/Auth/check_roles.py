@@ -1,54 +1,52 @@
+```python
 # src/action_machine/auth/check_roles.py
 """
-Decorator @check_roles — declare role requirements for action execution.
+Decorator ``@check_roles`` — declare role requirements for action execution.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-The @check_roles decorator is part of ActionMachine's intent grammar. It
-declares which user roles are required to execute an action. At runtime,
-ActionProductMachine reads the roles from ClassMetadata and compares them with
-the roles of the user in the context. If the roles do not match, the action is
-rejected with AuthorizationError.
+Declare which user roles are required to execute an action. The decorator writes
+the role specification to ``cls._role_info``, which is consumed by the inspector
+and coordinator. At runtime, ``ActionProductMachine`` compares the spec against
+the user's roles and raises ``AuthorizationError`` on mismatch.
 
 ═══════════════════════════════════════════════════════════════════════════════
-SPECIAL VALUES
+ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-The special values are defined in ``auth/constants.py`` and re-exported via
-``auth/__init__.py``:
-
-    ROLE_NONE — the action does not require authentication. Any user
-                (including anonymous) may execute the action.
-    ROLE_ANY  — the action requires authentication, but any role is acceptable.
-
-═══════════════════════════════════════════════════════════════════════════════
-CONSTRAINTS (INVARIANTS)
-═══════════════════════════════════════════════════════════════════════════════
-
-- Applies only to classes, not functions, methods, or properties.
-- The class must inherit RoleGateHost — the mixin that enables @check_roles.
-- The spec argument must be a string, a list of strings, ROLE_NONE, or ROLE_ANY.
-- An empty role list is forbidden — this is most likely an error.
-
-═══════════════════════════════════════════════════════════════════════════════
-INTEGRATION ARCHITECTURE
-═══════════════════════════════════════════════════════════════════════════════
+::
 
     @check_roles("admin")
-        │
-        ▼  Decorator writes to cls._role_info
-    {"spec": "admin"}
-        │
-        ▼  MetadataBuilder → collectors.collect_role(cls)
-    ClassMetadata.role = RoleMeta(spec="admin")
-        │
-        ▼  ActionProductMachine._check_action_roles(...)
-    Compares spec against context.user.roles using ROLE_NONE/ROLE_ANY
+          │
+          ▼
+    cls._role_info = {"spec": "admin"}
+          │
+          ▼
+    RoleGateHostInspector → Snapshot + graph node ``role``
+          │
+          ▼
+    GateCoordinator.get_snapshot(cls, "role")
+          │
+          ▼
+    ActionProductMachine._check_action_roles()
+          │
+          ▼
+    AuthorizationError or pass
 
 ═══════════════════════════════════════════════════════════════════════════════
-USAGE EXAMPLE
+INVARIANTS
+═══════════════════════════════════════════════════════════════════════════════
+
+- Applies only to classes inheriting ``RoleGateHost``.
+- ``spec`` must be a non‑empty string, a non‑empty list of strings, ``ROLE_NONE``,
+  or ``ROLE_ANY``.
+- An empty list or empty string is forbidden.
+- The decorator writes ``_role_info`` on the class; the inspector reads it.
+
+═══════════════════════════════════════════════════════════════════════════════
+EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
     from action_machine.auth import check_roles, ROLE_NONE, ROLE_ANY
@@ -69,13 +67,29 @@ USAGE EXAMPLE
     class ProfileAction(BaseAction[ProfileParams, ProfileResult]):
         ...
 
+Edge case (raises ValueError):
+    @check_roles([])   # empty list
+
 ═══════════════════════════════════════════════════════════════════════════════
-ERRORS
+ERRORS / LIMITATIONS
 ═══════════════════════════════════════════════════════════════════════════════
 
-    TypeError — decorator applied to a non-class; class does not inherit RoleGateHost;
-               spec has an invalid type.
-    ValueError — an empty role list was provided; list items are not strings.
+- ``TypeError``: applied to non‑class, missing ``RoleGateHost``, invalid spec type.
+- ``ValueError``: empty role list, list items not strings.
+- The decorator does not validate that roles actually exist; that is deferred to
+  runtime or coordinator validation.
+
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE-BEGIN
+═══════════════════════════════════════════════════════════════════════════════
+ROLE: Role requirement declaration module.
+CONTRACT: ``@check_roles(spec)`` writes ``_role_info``; spec may be str, list[str], ROLE_NONE, or ROLE_ANY.
+INVARIANTS: Class must inherit RoleGateHost; spec non‑empty; list items strings.
+FLOW: decorator -> _role_info -> inspector snapshot -> coordinator -> runtime check.
+FAILURES: TypeError / ValueError on invalid declaration.
+EXTENSION POINTS: New role markers should follow the same metadata contract.
+AI-CORE-END
+═══════════════════════════════════════════════════════════════════════════════
 """
 
 from __future__ import annotations
@@ -85,86 +99,78 @@ from typing import Any
 from action_machine.auth.role_gate_host import RoleGateHost
 
 
-def check_roles(spec: str | list[str]) -> Any:
-    """
-    Class-level decorator that declares role requirements for an action.
-
-    Writes the dictionary ``{"spec": spec}`` to the target class attribute
-    ``cls._role_info``. MetadataBuilder reads this dictionary when building
-    ClassMetadata.role (RoleMeta).
-
-    Args:
-        spec: required roles. Valid values:
-              - str: a single role ("admin") or a special value (ROLE_NONE, ROLE_ANY).
-              - list[str]: multiple roles (["user", "manager"]).
-
-    Returns:
-        A decorator that writes _role_info to the class and returns the class
-        unchanged.
-
-    Raises:
-        TypeError: spec is not a string or a list; decorator applied to a non-class;
-                   class does not inherit RoleGateHost.
-        ValueError: empty list; list items are not strings.
-
-    Example:
-        @check_roles("admin")
-        class AdminAction(BaseAction[P, R]):
-            ...
-
-        @check_roles(ROLE_NONE)
-        class PublicAction(BaseAction[P, R]):
-            ...
-    """
-    # ── Validate spec ──
+def _spec_type_invariant(spec: Any) -> str | list[str]:
     if isinstance(spec, str):
-        validated_spec: str | list[str] = spec
-    elif isinstance(spec, list):
-        if len(spec) == 0:
-            raise ValueError(
-                "@check_roles: an empty role list was provided. "
-                "Specify at least one role or use ROLE_NONE."
-            )
+        return spec
+    if isinstance(spec, list):
+        return spec
+    raise TypeError(
+        f"@check_roles expects a string or a list of strings, "
+        f"got {type(spec).__name__}: {spec!r}."
+    )
+
+
+def _spec_non_empty_list_invariant(spec: str | list[str]) -> None:
+    if isinstance(spec, list) and len(spec) == 0:
+        raise ValueError(
+            "@check_roles: an empty role list was provided. "
+            "Specify at least one role or use ROLE_NONE."
+        )
+
+
+def _spec_list_items_are_str_invariant(spec: str | list[str]) -> None:
+    if isinstance(spec, list):
         for i, item in enumerate(spec):
             if not isinstance(item, str):
                 raise ValueError(
                     f"@check_roles: role list item [{i}] must be a string, "
                     f"got {type(item).__name__}: {item!r}."
                 )
-        validated_spec = spec
-    else:
+
+
+def _target_is_class_invariant(cls: Any) -> None:
+    if not isinstance(cls, type):
         raise TypeError(
-            f"@check_roles expects a string or a list of strings, "
-            f"got {type(spec).__name__}: {spec!r}."
+            f"@check_roles can only be applied to a class. "
+            f"Got object of type {type(cls).__name__}: {cls!r}."
         )
 
+
+def _target_inherits_role_gate_host_invariant(cls: type) -> None:
+    if not issubclass(cls, RoleGateHost):
+        raise TypeError(
+            f"@check_roles was applied to class {cls.__name__}, "
+            f"which does not inherit RoleGateHost. "
+            f"Add RoleGateHost to the inheritance chain."
+        )
+
+
+def check_roles(spec: str | list[str]) -> Any:
+    """
+    Class-level decorator that declares role requirements for an action.
+
+    ═══════════════════════════════════════════════════════════════════════════
+    AI-CORE-BEGIN
+    ═══════════════════════════════════════════════════════════════════════════
+    ROLE: Public decorator contract for role restrictions.
+    CONTRACT: Validate spec and target class, then attach ``_role_info``.
+    INVARIANTS: Target must be class and inherit RoleGateHost; spec non‑empty.
+    FLOW: validation -> _role_info write -> inspector consumption -> runtime check.
+    FAILURES: TypeError / ValueError on contract violation.
+    EXTENSION POINTS: Special values ROLE_NONE / ROLE_ANY defined in constants.
+    AI-CORE-END
+    ═══════════════════════════════════════════════════════════════════════════
+    """
+    validated_spec = _spec_type_invariant(spec)
+    _spec_non_empty_list_invariant(validated_spec)
+    _spec_list_items_are_str_invariant(validated_spec)
+
     def decorator(cls: Any) -> Any:
-        """
-        Внутренний декоратор, применяемый к классу.
+        _target_is_class_invariant(cls)
+        _target_inherits_role_gate_host_invariant(cls)
 
-        Проверяет:
-        1. cls — класс (type).
-        2. cls наследует RoleGateHost.
-
-        Затем записывает _role_info в cls.
-        """
-        if not isinstance(cls, type):
-            raise TypeError(
-                f"@check_roles can only be applied to a class. "
-                f"Got object of type {type(cls).__name__}: {cls!r}."
-            )
-
-        if not issubclass(cls, RoleGateHost):
-            raise TypeError(
-                f"@check_roles was applied to class {cls.__name__}, "
-                f"which does not inherit RoleGateHost. "
-                f"Add RoleGateHost to the inheritance chain."
-            )
-
-        cls._role_info = {
-            "spec": validated_spec,
-        }
-
+        cls._role_info = {"spec": validated_spec}
         return cls
 
     return decorator
+```

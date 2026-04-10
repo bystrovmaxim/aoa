@@ -64,7 +64,7 @@ ResultInstanceChecker / result_instance
 
 Каждый декоратор (result_string, result_int, ...) выполняет одну задачу:
 записывает словарь метаданных в атрибут _checker_meta метода-аспекта.
-MetadataBuilder собирает эти метаданные в ClassMetadata.checkers.
+MetadataBuilder собирает эти метаданные в checker snapshot (GateCoordinator.get_checkers).
 Декоратор не изменяет функцию — возвращает оригинал. Несколько
 декораторов на одном методе накапливают список _checker_meta.
 

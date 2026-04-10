@@ -1,33 +1,54 @@
 # tests/metadata/test_coordinator_context_fields.py
 """
-Тесты узлов context_field и рёбер requires_context в графе координатора.
+Метаданные @context_requires: runtime metadata cache и фасетный граф.
 
 ═══════════════════════════════════════════════════════════════════════════════
 НАЗНАЧЕНИЕ
 ═══════════════════════════════════════════════════════════════════════════════
 
-Проверяет, что GateCoordinator корректно создаёт узлы типа "context_field"
-и рёбра "requires_context" при регистрации Action с @context_requires
-на аспектах и обработчиках ошибок.
+Проверяет, что ключи контекста, объявленные через ``@context_requires``, попадают
+в снимки facet’ов так, как их видит рантайм: на regular-аспектах и на
+обработчиках ``@on_error``. Координатор после ``build()`` отдаёт их через
+``get_snapshot(cls, \"aspect\")`` / ``get_snapshot(cls, \"error_handler\")`` и т.д.
 
-Узлы context_field переиспользуются: если два аспекта запрашивают
-user.user_id, создаётся один узел и два ребра к нему.
+═══════════════════════════════════════════════════════════════════════════════
+ЭВОЛЮЦИЯ МОДЕЛИ (почему тесты больше не про «узлы context_field»)
+═══════════════════════════════════════════════════════════════════════════════
 
-Рёбра requires_context — leaf-рёбра, добавляемые без проверки
-ацикличности (через _add_leaf_edge).
+В ранней модели координатора **отдельные узлы** ``context_field`` и **рёбра**
+``requires_context`` визуализировали запрос контекста на графе: два аспекта с
+одним и тем же ключом ссылались на один узел поля, reuse был явен на диаграмме.
+
+После перехода на **транзакционное построение графа из FacetPayload** визуальная
+детализация «каждое поле контекста = узел» **не дублируется** в том же виде:
+контекст остаётся **семантикой шага** — кортеж строковых ключей на ``AspectMeta``,
+``OnErrorMeta`` и т.д., а граф описывает фасеты (role, meta, aspect, …) и
+структурные рёбра (depends, connection, belongs_to, …). Это сознательный обмен:
+меньше шума в PyDiGraph, богаче исполняемая snapshot-модель.
+
+Данный файл **не отменяет** инвариант reuse: два аспекта с ``user.user_id`` по-прежнему
+должны отдавать один и тот же ключ в своих ``context_keys``; мы проверяем
+согласованность **на уровне метаданных**, а не подсчётом узлов графа.
+
+═══════════════════════════════════════════════════════════════════════════════
+СБРОС КЕША DEPENDENCY FACTORY
+═══════════════════════════════════════════════════════════════════════════════
+
+``clear_dependency_factory_cache(coordinator)`` очищает только кеш фабрик
+зависимостей на объекте координатора; построенный фасетный граф и снимки
+facet’ов не пересобираются — контекстные ключи на аспектах остаются читаемыми.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ТЕСТОВЫЕ ACTION
 ═══════════════════════════════════════════════════════════════════════════════
 
-Тесты в этом файле создают намеренно специфичные Action внутри тестов
-(не в tests/domain/), потому что они нужны только для проверки
-конкретных сценариев графа:
+Классы объявляются **внутри модуля теста** (не в tests/domain/), чтобы не
+загрязнять доменные фикстуры и держать сценарии узкими:
 
-- Action с одним аспектом и @context_requires.
-- Action с двумя аспектами, запрашивающими одно и то же поле.
-- Action с обработчиком ошибок и @context_requires.
-- Action без @context_requires (для проверки отсутствия рёбер).
+- один аспект с двумя ключами контекста;
+- два аспекта, пересекающиеся по ``user.user_id``;
+- ``@on_error`` с собственным набором ключей;
+- аспекты без ``@context_requires`` (пустой ``context_keys``).
 """
 
 from pydantic import Field
@@ -41,12 +62,29 @@ from action_machine.core.base_action import BaseAction
 from action_machine.core.base_params import BaseParams
 from action_machine.core.base_result import BaseResult
 from action_machine.core.base_state import BaseState
-from action_machine.core.gate_coordinator import GateCoordinator
+from action_machine.core.core_action_machine import CoreActionMachine
+from action_machine.dependencies.dependency_factory import clear_dependency_factory_cache
+from action_machine.metadata.gate_coordinator import GateCoordinator
 from action_machine.core.meta_decorator import meta
 from action_machine.core.tools_box import ToolsBox
 from action_machine.on_error.on_error_decorator import on_error
 from action_machine.resource_managers.base_resource_manager import BaseResourceManager
 from tests.domain_model.domains import SystemDomain
+
+
+def _regular_aspects(coordinator: GateCoordinator, cls: type):
+    snap = coordinator.get_snapshot(cls, "aspect")
+    if snap is None or not hasattr(snap, "aspects"):
+        return ()
+    return tuple(a for a in snap.aspects if a.aspect_type == "regular")
+
+
+def _error_handlers(coordinator: GateCoordinator, cls: type):
+    snap = coordinator.get_snapshot(cls, "error_handler")
+    if snap is None or not hasattr(snap, "error_handlers"):
+        return ()
+    return tuple(snap.error_handlers)
+
 
 # ═════════════════════════════════════════════════════════════════════════════
 # Вспомогательные тестовые компоненты
@@ -54,24 +92,26 @@ from tests.domain_model.domains import SystemDomain
 
 
 class _CtxTestParams(BaseParams):
-    """Параметры для тестовых Action контекстных зависимостей."""
+    """Параметры для минимальных Action в сценариях context_requires."""
+
     value: str = Field(description="Тестовое значение")
 
 
 class _CtxTestResult(BaseResult):
-    """Результат для тестовых Action контекстных зависимостей."""
+    """Результат для минимальных Action в сценариях context_requires."""
+
     status: str = Field(description="Статус")
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Тестовые Action (edge-case, создаются внутри тестов)
+# Тестовые Action (узкие edge-case, не выносятся в domain_model)
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 @meta(description="Action с одним аспектом и context_requires", domain=SystemDomain)
 @check_roles(ROLE_NONE)
 class _SingleContextAction(BaseAction[_CtxTestParams, _CtxTestResult]):
-    """Один regular-аспект запрашивает user.user_id и request.trace_id."""
+    """Один regular-аспект запрашивает ``user.user_id`` и ``request.trace_id``."""
 
     @regular_aspect("Аудит")
     @context_requires(Ctx.User.user_id, Ctx.Request.trace_id)
@@ -93,7 +133,7 @@ class _SingleContextAction(BaseAction[_CtxTestParams, _CtxTestResult]):
 @meta(description="Action с двумя аспектами, запрашивающими одно поле", domain=SystemDomain)
 @check_roles(ROLE_NONE)
 class _SharedContextFieldAction(BaseAction[_CtxTestParams, _CtxTestResult]):
-    """Два regular-аспекта запрашивают user.user_id — узел переиспользуется."""
+    """Два аспекта делят ``user.user_id``; второй добавляет ``user.roles``."""
 
     @regular_aspect("Первый аспект")
     @context_requires(Ctx.User.user_id)
@@ -124,7 +164,7 @@ class _SharedContextFieldAction(BaseAction[_CtxTestParams, _CtxTestResult]):
 @meta(description="Action с on_error и context_requires", domain=SystemDomain)
 @check_roles(ROLE_NONE)
 class _ErrorHandlerContextAction(BaseAction[_CtxTestParams, _CtxTestResult]):
-    """Обработчик ошибок запрашивает контекстные поля."""
+    """Обработчик ``ValueError`` требует ``user.user_id`` и ``request.client_ip``."""
 
     @regular_aspect("Операция")
     async def operation_aspect(
@@ -153,7 +193,7 @@ class _ErrorHandlerContextAction(BaseAction[_CtxTestParams, _CtxTestResult]):
 @meta(description="Action без context_requires", domain=SystemDomain)
 @check_roles(ROLE_NONE)
 class _NoContextAction(BaseAction[_CtxTestParams, _CtxTestResult]):
-    """Все аспекты без @context_requires — рёбер requires_context не будет."""
+    """Ни один метод не помечен ``@context_requires`` — ожидаем пустые ``context_keys``."""
 
     @regular_aspect("Простой аспект")
     async def simple_aspect(
@@ -171,217 +211,81 @@ class _NoContextAction(BaseAction[_CtxTestParams, _CtxTestResult]):
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Тесты: узлы context_field
+# Сборка runtime metadata и ключи контекста
 # ═════════════════════════════════════════════════════════════════════════════
 
 
-class TestContextFieldNodes:
-    """Тесты создания узлов context_field в графе координатора."""
+class TestContextKeysViaMetadata:
+    """Проверки ``context_keys`` на аспектах и обработчиках через facet-снимки."""
 
-    def test_context_fields_created_for_aspect(self) -> None:
-        """Регистрация Action с @context_requires создаёт узлы context_field."""
-        # Arrange
-        coordinator = GateCoordinator()
+    def test_aspect_context_keys(self) -> None:
+        coordinator = CoreActionMachine.create_coordinator()
+        audit = next(
+            a for a in _regular_aspects(coordinator,_SingleContextAction)
+            if a.method_name == "audit_aspect"
+        )
+        assert "user.user_id" in audit.context_keys
+        assert "request.trace_id" in audit.context_keys
 
-        # Act — регистрация Action с аспектом, запрашивающим два поля
-        coordinator.get(_SingleContextAction)
+    def test_shared_user_id_across_aspects(self) -> None:
+        """Оба аспекта видят ``user.user_id``; расширение ключей только у второго."""
 
-        # Assert — узлы context_field созданы
-        ctx_nodes = coordinator.get_nodes_by_type("context_field")
-        ctx_names = {n["name"] for n in ctx_nodes}
-        assert "user.user_id" in ctx_names
-        assert "request.trace_id" in ctx_names
+        coordinator = CoreActionMachine.create_coordinator()
+        first = next(
+            a for a in _regular_aspects(coordinator,_SharedContextFieldAction)
+            if a.method_name == "first_aspect"
+        )
+        second = next(
+            a for a in _regular_aspects(coordinator,_SharedContextFieldAction)
+            if a.method_name == "second_aspect"
+        )
+        assert "user.user_id" in first.context_keys
+        assert "user.user_id" in second.context_keys
+        assert "user.roles" in second.context_keys
+        assert "user.roles" not in first.context_keys
 
-    def test_context_field_node_has_path_meta(self) -> None:
-        """Узел context_field содержит meta.path с dot-path ключом."""
-        # Arrange
-        coordinator = GateCoordinator()
+    def test_no_context_keys_when_undeclrared(self) -> None:
+        """Без декоратора — пустой набор ключей на regular-аспекте."""
 
-        # Act
-        coordinator.get(_SingleContextAction)
+        coordinator = CoreActionMachine.create_coordinator()
+        simple = next(
+            a for a in _regular_aspects(coordinator,_NoContextAction)
+            if a.method_name == "simple_aspect"
+        )
+        assert len(simple.context_keys) == 0
 
-        # Assert — payload узла содержит path
-        node = coordinator.get_node("context_field:user.user_id")
-        assert node is not None
-        assert node["meta"]["path"] == "user.user_id"
+    def test_error_handler_context_keys(self) -> None:
+        """``OnErrorMeta`` получает те же строковые пути, что декларировал обработчик."""
 
-    def test_context_field_reused_across_aspects(self) -> None:
-        """Один узел context_field переиспользуется несколькими аспектами."""
-        # Arrange
-        coordinator = GateCoordinator()
-
-        # Act — два аспекта запрашивают user.user_id
-        coordinator.get(_SharedContextFieldAction)
-
-        # Assert — узел user.user_id один, но два ребра к нему
-        ctx_nodes = coordinator.get_nodes_by_type("context_field")
-        user_id_nodes = [n for n in ctx_nodes if n["name"] == "user.user_id"]
-        assert len(user_id_nodes) == 1
-
-    def test_no_context_fields_without_decorator(self) -> None:
-        """Action без @context_requires не создаёт узлов context_field."""
-        # Arrange
-        coordinator = GateCoordinator()
-
-        # Act
-        coordinator.get(_NoContextAction)
-
-        # Assert — нет узлов context_field
-        ctx_nodes = coordinator.get_nodes_by_type("context_field")
-        assert len(ctx_nodes) == 0
-
-    def test_context_fields_for_error_handler(self) -> None:
-        """@context_requires на обработчике ошибок создаёт узлы context_field."""
-        # Arrange
-        coordinator = GateCoordinator()
-
-        # Act
-        coordinator.get(_ErrorHandlerContextAction)
-
-        # Assert — поля из обработчика ошибок в графе
-        ctx_nodes = coordinator.get_nodes_by_type("context_field")
-        ctx_names = {n["name"] for n in ctx_nodes}
-        assert "user.user_id" in ctx_names
-        assert "request.client_ip" in ctx_names
+        coordinator = CoreActionMachine.create_coordinator()
+        handler = next(
+            h for h in _error_handlers(coordinator,_ErrorHandlerContextAction)
+            if h.method_name == "handle_value_on_error"
+        )
+        assert "user.user_id" in handler.context_keys
+        assert "request.client_ip" in handler.context_keys
 
 
-# ═════════════════════════════════════════════════════════════════════════════
-# Тесты: рёбра requires_context
-# ═════════════════════════════════════════════════════════════════════════════
+class TestContextMetadataAfterFactoryCacheClear:
+    """Стабильность ``context_keys`` после сброса кеша dependency factory."""
 
+    def test_reread_context_keys_stable(self) -> None:
+        """Повторное чтение из built coordinator стабильно возвращает те же ``context_keys``."""
+        coordinator = CoreActionMachine.create_coordinator()
+        audit = next(
+            a for a in _regular_aspects(coordinator,_SingleContextAction)
+            if a.method_name == "audit_aspect"
+        )
+        assert "user.user_id" in audit.context_keys
 
-class TestRequiresContextEdges:
-    """Тесты рёбер requires_context от аспектов/обработчиков к полям контекста."""
-
-    def test_edges_from_aspect_to_context_fields(self) -> None:
-        """Аспект с @context_requires имеет рёбра requires_context к полям."""
-        # Arrange
-        coordinator = GateCoordinator()
-        coordinator.get(_SingleContextAction)
-        class_name = coordinator.get(_SingleContextAction).class_name
-
-        # Act — получаем потомков узла аспекта
-        aspect_key = f"aspect:{class_name}.audit_aspect"
-        children = coordinator.get_children(aspect_key)
-
-        # Assert — два потомка (user.user_id, request.trace_id)
-        child_names = {c["name"] for c in children}
-        assert "user.user_id" in child_names
-        assert "request.trace_id" in child_names
-
-    def test_shared_field_has_multiple_incoming_edges(self) -> None:
-        """Один context_field может иметь рёбра от нескольких аспектов."""
-        # Arrange
-        coordinator = GateCoordinator()
-        coordinator.get(_SharedContextFieldAction)
-
-        # Act — проверяем граф: user.user_id должен быть потомком обоих аспектов
-        class_name = coordinator.get(_SharedContextFieldAction).class_name
-        first_key = f"aspect:{class_name}.first_aspect"
-        second_key = f"aspect:{class_name}.second_aspect"
-
-        first_children = {c["name"] for c in coordinator.get_children(first_key)}
-        second_children = {c["name"] for c in coordinator.get_children(second_key)}
-
-        # Assert — оба аспекта ведут к user.user_id
-        assert "user.user_id" in first_children
-        assert "user.user_id" in second_children
-
-        # Assert — второй аспект дополнительно ведёт к user.roles
-        assert "user.roles" in second_children
-        assert "user.roles" not in first_children
-
-    def test_edges_from_error_handler_to_context_fields(self) -> None:
-        """Обработчик ошибок с @context_requires имеет рёбра requires_context."""
-        # Arrange
-        coordinator = GateCoordinator()
-        coordinator.get(_ErrorHandlerContextAction)
-        class_name = coordinator.get(_ErrorHandlerContextAction).class_name
-
-        # Act — потомки узла обработчика ошибок
-        handler_key = f"error_handler:{class_name}.handle_value_on_error"
-        children = coordinator.get_children(handler_key)
-
-        # Assert — два контекстных поля
-        child_names = {c["name"] for c in children}
-        assert "user.user_id" in child_names
-        assert "request.client_ip" in child_names
-
-    def test_no_edges_without_context_requires(self) -> None:
-        """Аспекты без @context_requires не имеют рёбер requires_context."""
-        # Arrange
-        coordinator = GateCoordinator()
-        coordinator.get(_NoContextAction)
-        class_name = coordinator.get(_NoContextAction).class_name
-
-        # Act — потомки аспекта
-        aspect_key = f"aspect:{class_name}.simple_aspect"
-        children = coordinator.get_children(aspect_key)
-
-        # Assert — нет потомков типа context_field
-        ctx_children = [c for c in children if c["node_type"] == "context_field"]
-        assert len(ctx_children) == 0
-
-    def test_requires_context_in_dependency_tree(self) -> None:
-        """Рёбра requires_context видны в get_dependency_tree()."""
-        # Arrange
-        coordinator = GateCoordinator()
-        coordinator.get(_SingleContextAction)
-        class_name = coordinator.get(_SingleContextAction).class_name
-
-        # Act — полное дерево от Action
-        action_key = f"action:{class_name}"
-        tree = coordinator.get_dependency_tree(action_key)
-
-        # Assert — где-то в дереве есть edge_type "requires_context"
-        def find_edge_types(node: dict) -> set:
-            types = set()
-            for child in node.get("children", []):
-                edge_type = child.get("edge_type")
-                if edge_type:
-                    types.add(edge_type)
-                types |= find_edge_types(child)
-            return types
-
-        all_edge_types = find_edge_types(tree)
-        assert "requires_context" in all_edge_types
-
-
-# ═════════════════════════════════════════════════════════════════════════════
-# Тесты: интеграция с invalidate и rebuild
-# ═════════════════════════════════════════════════════════════════════════════
-
-
-class TestContextFieldsAfterInvalidate:
-    """Тесты корректности узлов context_field после инвалидации кеша."""
-
-    def test_invalidate_rebuilds_context_fields(self) -> None:
-        """После invalidate и повторной регистрации узлы пересоздаются."""
-        # Arrange
-        coordinator = GateCoordinator()
-        coordinator.get(_SingleContextAction)
-
-        # Act — инвалидируем и перестраиваем
-        coordinator.invalidate(_SingleContextAction)
-        coordinator.get(_SingleContextAction)
-
-        # Assert — узлы context_field на месте
-        ctx_nodes = coordinator.get_nodes_by_type("context_field")
-        ctx_names = {n["name"] for n in ctx_nodes}
-        assert "user.user_id" in ctx_names
-        assert "request.trace_id" in ctx_names
-
-    def test_invalidate_all_clears_context_fields(self) -> None:
-        """invalidate_all() очищает все узлы, включая context_field."""
-        # Arrange
-        coordinator = GateCoordinator()
-        coordinator.get(_SingleContextAction)
-        assert coordinator.graph_node_count > 0
-
-        # Act
-        coordinator.invalidate_all()
-
-        # Assert — граф полностью пуст
-        assert coordinator.graph_node_count == 0
-        ctx_nodes = coordinator.get_nodes_by_type("context_field")
-        assert len(ctx_nodes) == 0
+    def test_factory_cache_clear_preserves_context_keys(self) -> None:
+        """
+        Сброс кеша фабрик не ломает чтение контекстных ключей из facet-снимков.
+        """
+        coordinator = CoreActionMachine.create_coordinator()
+        clear_dependency_factory_cache(coordinator)
+        audit = next(
+            a for a in _regular_aspects(coordinator,_SingleContextAction)
+            if a.method_name == "audit_aspect"
+        )
+        assert "user.user_id" in audit.context_keys

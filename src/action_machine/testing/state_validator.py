@@ -19,10 +19,10 @@
 АЛГОРИТМ validate_state_for_aspect
 ═══════════════════════════════════════════════════════════════════════════════
 
-1. Находит целевой аспект по имени в metadata.aspects.
+1. Находит целевой аспект по имени в переданном кортеже аспектов.
 2. Собирает все regular-аспекты, объявленные ДО целевого.
 3. Для каждого предшествующего аспекта получает чекеры через
-   metadata.get_checkers_for_aspect(aspect_name).
+   колбэк ``method_name -> чекеры`` (например из ``get_snapshot(cls, \"checker\")``).
 4. Для каждого чекера с required=True проверяет наличие поля в state.
 5. Если поле присутствует — создаёт экземпляр чекера и вызывает
    checker.check(state) для проверки типа и constraints.
@@ -33,7 +33,7 @@
 АЛГОРИТМ validate_state_for_summary
 ═══════════════════════════════════════════════════════════════════════════════
 
-1. Собирает ВСЕ regular-аспекты из metadata.aspects.
+1. Собирает ВСЕ regular-аспекты из переданного кортежа аспектов.
 2. Для каждого regular-аспекта получает чекеры.
 3. Проверяет наличие обязательных полей и применяет чекеры.
 4. Логика проверки идентична validate_state_for_aspect, но охватывает
@@ -45,15 +45,15 @@
 
     from action_machine.testing import validate_state_for_aspect
 
-    # Проверка state перед вторым аспектом:
-    validate_state_for_aspect(metadata, "process_payment", state)
+    # Проверка state перед вторым аспектом (aspects из get_snapshot(cls, "aspect")):
+    validate_state_for_aspect(aspects, get_checkers_for_aspect, "process_payment", state)
     # Если поле 'validated_user' отсутствует:
     # StateValidationError: "Аспект 'process_payment' ожидает поле
     #   'validated_user' (ResultStringChecker, required) от аспекта
     #   'validate', но оно отсутствует в state"
 
     # Проверка state перед summary:
-    validate_state_for_summary(metadata, state)
+    validate_state_for_summary(aspects, get_checkers_for_aspect, state)
     # Если поле 'txn_id' имеет неверный тип:
     # StateValidationError: "Summary ожидает поле 'txn_id'
     #   (ResultStringChecker, required) от аспекта 'process_payment':
@@ -70,9 +70,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable, Sequence
 from typing import Any
-
-from action_machine.core.class_metadata import CheckerMeta, ClassMetadata
 
 
 class StateValidationError(Exception):
@@ -102,25 +101,25 @@ class StateValidationError(Exception):
         self.source_aspect = source_aspect
 
 
-def _find_aspect_index(metadata: ClassMetadata, aspect_name: str) -> int:
+def _find_aspect_index(aspects: Sequence[Any], aspect_name: str) -> int:
     """
-    Находит индекс аспекта по имени в metadata.aspects.
+    Находит индекс аспекта по имени в кортеже аспектов.
 
     Аргументы:
-        metadata: метаданные класса действия.
+        aspects: аспекты класса (порядок объявления).
         aspect_name: имя метода-аспекта.
 
     Возвращает:
-        int — индекс аспекта в metadata.aspects.
+        int — индекс в ``aspects``.
 
     Исключения:
         StateValidationError: если аспект не найден.
     """
-    for i, aspect in enumerate(metadata.aspects):
+    for i, aspect in enumerate(aspects):
         if aspect.method_name == aspect_name:
             return i
 
-    available = [a.method_name for a in metadata.aspects]
+    available = [a.method_name for a in aspects]
     raise StateValidationError(
         f"Аспект '{aspect_name}' не найден в метаданных. "
         f"Доступные аспекты: {available}."
@@ -128,27 +127,29 @@ def _find_aspect_index(metadata: ClassMetadata, aspect_name: str) -> int:
 
 
 def _get_preceding_regular_checkers(
-    metadata: ClassMetadata,
+    aspects: Sequence[Any],
+    get_checkers_for_aspect: Callable[[str], tuple[Any, ...]],
     up_to_index: int,
-) -> list[tuple[str, CheckerMeta]]:
+) -> list[tuple[str, Any]]:
     """
     Собирает чекеры всех regular-аспектов до указанного индекса (не включая).
 
     Аргументы:
-        metadata: метаданные класса действия.
+        aspects: аспекты класса.
+        get_checkers_for_aspect: ``method_name -> tuple[checker, ...]``.
         up_to_index: индекс целевого аспекта (не включается).
 
     Возвращает:
-        Список кортежей (aspect_name, CheckerMeta) для всех regular-аспектов
+        Список кортежей ``(aspect_name, checker_meta)`` для всех regular-аспектов
         с индексом < up_to_index.
     """
-    result: list[tuple[str, CheckerMeta]] = []
+    result: list[tuple[str, Any]] = []
 
     for i in range(up_to_index):
-        aspect = metadata.aspects[i]
+        aspect = aspects[i]
         if aspect.aspect_type != "regular":
             continue
-        checkers = metadata.get_checkers_for_aspect(aspect.method_name)
+        checkers = get_checkers_for_aspect(aspect.method_name)
         for checker_meta in checkers:
             result.append((aspect.method_name, checker_meta))
 
@@ -156,23 +157,25 @@ def _get_preceding_regular_checkers(
 
 
 def _get_all_regular_checkers(
-    metadata: ClassMetadata,
-) -> list[tuple[str, CheckerMeta]]:
+    aspects: Sequence[Any],
+    get_checkers_for_aspect: Callable[[str], tuple[Any, ...]],
+) -> list[tuple[str, Any]]:
     """
     Собирает чекеры ВСЕХ regular-аспектов действия.
 
     Аргументы:
-        metadata: метаданные класса действия.
+        aspects: аспекты класса.
+        get_checkers_for_aspect: ``method_name -> tuple[checker, ...]``.
 
     Возвращает:
-        Список кортежей (aspect_name, CheckerMeta).
+        Список кортежей ``(aspect_name, checker_meta)``.
     """
-    result: list[tuple[str, CheckerMeta]] = []
+    result: list[tuple[str, Any]] = []
 
-    for aspect in metadata.aspects:
+    for aspect in aspects:
         if aspect.aspect_type != "regular":
             continue
-        checkers = metadata.get_checkers_for_aspect(aspect.method_name)
+        checkers = get_checkers_for_aspect(aspect.method_name)
         for checker_meta in checkers:
             result.append((aspect.method_name, checker_meta))
 
@@ -180,7 +183,7 @@ def _get_all_regular_checkers(
 
 
 def _validate_checker_against_state(
-    checker_meta: CheckerMeta,
+    checker_meta: Any,
     source_aspect: str,
     target_context: str,
     state: dict[str, Any],
@@ -238,7 +241,8 @@ def _validate_checker_against_state(
 
 
 def validate_state_for_aspect(
-    metadata: ClassMetadata,
+    aspects: Sequence[Any],
+    get_checkers_for_aspect: Callable[[str], tuple[Any, ...]],
     aspect_name: str,
     state: dict[str, Any],
 ) -> None:
@@ -253,7 +257,8 @@ def validate_state_for_aspect(
     нет, и state не проверяется (любой state допустим).
 
     Аргументы:
-        metadata: метаданные класса действия (из GateCoordinator.get()).
+        aspects: кортеж аспектов (например поле ``aspects`` снимка ``get_snapshot(cls, \"aspect\")``).
+        get_checkers_for_aspect: колбэк ``method_name -> чекеры`` (например по снимку ``checker``).
         aspect_name: имя метода целевого аспекта.
         state: словарь state, переданный тестировщиком.
 
@@ -262,11 +267,17 @@ def validate_state_for_aspect(
             отсутствует; значение поля не проходит проверку чекером.
 
     Пример:
-        metadata = coordinator.get(CreateOrderAction)
-        validate_state_for_aspect(metadata, "process_payment", {"validated_user": "u1"})
+        asp = coordinator.get_snapshot(CreateOrderAction, "aspect")
+        aspects = getattr(asp, "aspects", ()) if asp is not None else ()
+        ch_snap = coordinator.get_snapshot(CreateOrderAction, "checker")
+        rows = getattr(ch_snap, "checkers", ()) if ch_snap is not None else ()
+        chk = lambda n: tuple(c for c in rows if c.method_name == n)
+        validate_state_for_aspect(aspects, chk, "process_payment", {"validated_user": "u1"})
     """
-    target_index = _find_aspect_index(metadata, aspect_name)
-    preceding_checkers = _get_preceding_regular_checkers(metadata, target_index)
+    target_index = _find_aspect_index(aspects, aspect_name)
+    preceding_checkers = _get_preceding_regular_checkers(
+        aspects, get_checkers_for_aspect, target_index,
+    )
     target_context = f"Аспект '{aspect_name}'"
 
     for source_aspect, checker_meta in preceding_checkers:
@@ -276,7 +287,8 @@ def validate_state_for_aspect(
 
 
 def validate_state_for_summary(
-    metadata: ClassMetadata,
+    aspects: Sequence[Any],
+    get_checkers_for_aspect: Callable[[str], tuple[Any, ...]],
     state: dict[str, Any],
 ) -> None:
     """
@@ -286,7 +298,8 @@ def validate_state_for_summary(
     и корректность обязательных полей в state.
 
     Аргументы:
-        metadata: метаданные класса действия (из GateCoordinator.get()).
+        aspects: кортеж аспектов (поле ``aspects`` снимка ``get_snapshot(cls, \"aspect\")``).
+        get_checkers_for_aspect: колбэк ``method_name -> чекеры``.
         state: словарь state, переданный тестировщиком.
 
     Исключения:
@@ -294,10 +307,14 @@ def validate_state_for_summary(
             значение поля не проходит проверку чекером.
 
     Пример:
-        metadata = coordinator.get(CreateOrderAction)
-        validate_state_for_summary(metadata, {"validated_user": "u1", "txn_id": "TXN-1"})
+        asp = coordinator.get_snapshot(CreateOrderAction, "aspect")
+        aspects = getattr(asp, "aspects", ()) if asp is not None else ()
+        ch_snap = coordinator.get_snapshot(CreateOrderAction, "checker")
+        rows = getattr(ch_snap, "checkers", ()) if ch_snap is not None else ()
+        chk = lambda n: tuple(c for c in rows if c.method_name == n)
+        validate_state_for_summary(aspects, chk, {"validated_user": "u1", "txn_id": "TXN-1"})
     """
-    all_checkers = _get_all_regular_checkers(metadata)
+    all_checkers = _get_all_regular_checkers(aspects, get_checkers_for_aspect)
 
     for source_aspect, checker_meta in all_checkers:
         _validate_checker_against_state(

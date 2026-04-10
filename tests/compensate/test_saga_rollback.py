@@ -53,7 +53,7 @@ class TestCompensatorsCalledInReverseOrder:
         )
 
         # ── Act ──
-        with pytest.raises(ValueError, match="Ошибка финализации для user_123"):
+        with pytest.raises(ValueError, match="Finalize error for user_123"):
             await compensate_bench.run(
                 CompensatedOrderAction(),
                 params,

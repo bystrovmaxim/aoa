@@ -27,7 +27,7 @@ from mcp.server.fastmcp import FastMCP
 from action_machine.contrib.mcp.adapter import McpAdapter, _class_name_to_snake_case
 from action_machine.contrib.mcp.route_record import McpRouteRecord
 from action_machine.core.action_product_machine import ActionProductMachine
-from action_machine.core.gate_coordinator import GateCoordinator
+from action_machine.core.core_action_machine import CoreActionMachine
 from tests.domain_model import FullAction, PingAction, SimpleAction
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -37,11 +37,7 @@ from tests.domain_model import FullAction, PingAction, SimpleAction
 
 def _make_adapter(**kwargs) -> McpAdapter:
     """Create an McpAdapter with sensible test defaults."""
-    coordinator = GateCoordinator()
-    # Register domain actions so register_all() can discover them
-    coordinator.get(PingAction)
-    coordinator.get(SimpleAction)
-    coordinator.get(FullAction)
+    coordinator = CoreActionMachine.create_coordinator()
     machine = ActionProductMachine(mode="test", coordinator=coordinator)
     auth = AsyncMock()
     auth.process.return_value = None
@@ -106,7 +102,7 @@ class TestToolRegistration:
         adapter = _make_adapter()
         adapter.tool("ping", PingAction)
 
-        # PingAction has @meta(description="Проверка доступности сервиса")
+        # PingAction has @meta(description="Service health check")
         assert adapter.routes[0].description != ""
 
     def test_multiple_tools(self) -> None:

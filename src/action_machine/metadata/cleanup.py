@@ -1,52 +1,49 @@
 # src/action_machine/metadata/cleanup.py
 """
-Модуль: cleanup — удаление временных атрибутов с класса после сборки метаданных.
+Remove decorator scratch attributes from a class after metadata assembly.
 
 ═══════════════════════════════════════════════════════════════════════════════
-НАЗНАЧЕНИЕ
+PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-После того как ``MetadataBuilder.build()`` прочитал временные атрибуты,
-оставленные декораторами, и собрал иммутабельный ``ClassMetadata``,
-эти атрибуты больше не нужны. Они остаются на классах и методах как мусор:
-видны через ``getattr`` и ``dir``, засоряют интроспекцию, создают ложное
-впечатление о публичном API и теоретически могут быть случайно прочитаны
-или модифицированы внешним кодом.
+After ``MetadataBuilder.build()`` reads the temporary attributes left by
+decorators and produces immutable runtime metadata, those attributes are no
+longer needed. Leaving them attached pollutes ``getattr``/``dir``, suggests
+false public API, and could be read or mutated accidentally.
 
-Модуль содержит единственную функцию ``cleanup_temporary_attributes()``,
-которая удаляет все временные атрибуты с класса и его методов.
+``cleanup_temporary_attributes()`` deletes every temporary attribute from the
+class and from methods declared on that class.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ПРАВИЛА УДАЛЕНИЯ
+DELETION RULES
 ═══════════════════════════════════════════════════════════════════════════════
 
-Атрибуты уровня класса (``_role_info``, ``_depends_info``, ``_connection_info``):
-    Удаляются только если присутствуют в ``cls.__dict__`` текущего класса.
-    Если атрибут унаследован от родителя и дочерний класс не добавлял
-    своих значений, удаление не выполняется. Это критически важно:
-    ``delattr`` на дочернем классе для унаследованного атрибута поднимется
-    к родителю и удалит его метаданные.
+Class-level scratch (``_role_info``, ``_depends_info``, ``_connection_info``):
+    Removed only when present in the **current** ``cls.__dict__``. If the value
+    is inherited and the subclass never defined its own copy, we **do not**
+    delete — ``delattr`` on a child for an inherited attribute would walk up the
+    MRO and erase parent metadata.
 
-Атрибуты уровня методов (``_new_aspect_meta``, ``_checker_meta``,
+Method-level scratch (``_new_aspect_meta``, ``_checker_meta``,
 ``_on_subscriptions``, ``_sensitive_config``, ``_on_error_meta``):
-    Удаляются только для методов из ``vars(cls)`` текущего класса
-    (не из всего MRO). Для ``property``-дескрипторов атрибут удаляется
-    с getter-функции (``fget``).
+    Removed only for entries in ``vars(cls)`` for the current class (not the
+    entire MRO). For ``property`` objects the attribute is removed from the
+    getter function (``fget``).
 
 ═══════════════════════════════════════════════════════════════════════════════
-ИДЕМПОТЕНТНОСТЬ
+IDEMPOTENCY
 ═══════════════════════════════════════════════════════════════════════════════
 
-Повторный вызов ``cleanup_temporary_attributes()`` на уже очищенном классе
-безопасен — ``delattr`` вызывается только для атрибутов, фактически
-присутствующих в ``cls.__dict__`` или на функции через ``hasattr``.
+Calling ``cleanup_temporary_attributes()`` again on a scrubbed class is safe —
+``delattr`` runs only when ``cls.__dict__`` or ``hasattr`` on the underlying
+function confirms the attribute exists.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ИСПОЛЬЗОВАНИЕ
+USAGE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Функция вызывается только из ``MetadataBuilder.build()`` после завершения
-сборки и валидации. Не является частью публичного API пакета.
+Invoked solely from ``MetadataBuilder.build()`` after metadata assembly and
+validation. Not part of the package's public API.
 
     from action_machine.metadata.cleanup import cleanup_temporary_attributes
 
@@ -55,16 +52,15 @@
 
 from __future__ import annotations
 
-# Временные атрибуты, записываемые декораторами на уровне класса.
-# Каждый удаляется из cls.__dict__ (не из MRO), если присутствует.
+# Scratch attributes written by decorators at class scope.
+# Each is removed from cls.__dict__ only (never from inherited dicts).
 _CLASS_LEVEL_ATTRS: tuple[str, ...] = (
     "_role_info",
     "_depends_info",
     "_connection_info",
 )
 
-# Временные атрибуты, записываемые декораторами на уровне методов/функций.
-# Каждый удаляется с функции через delattr, если присутствует.
+# Scratch attributes on methods / callables.
 _METHOD_LEVEL_ATTRS: tuple[str, ...] = (
     "_new_aspect_meta",
     "_checker_meta",
@@ -76,14 +72,10 @@ _METHOD_LEVEL_ATTRS: tuple[str, ...] = (
 
 def _cleanup_class_attrs(cls: type) -> None:
     """
-    Удаляет временные атрибуты уровня класса из ``cls.__dict__``.
+    Drop class-level scratch keys present in ``cls.__dict__`` only.
 
-    Проверяет наличие каждого атрибута именно в ``cls.__dict__``
-    (а не через ``getattr``), чтобы не затронуть унаследованные
-    атрибуты родительских классов.
-
-    Аргументы:
-        cls: класс, с которого удаляются атрибуты.
+    Args:
+        cls: Class being cleaned.
     """
     for attr_name in _CLASS_LEVEL_ATTRS:
         if attr_name in cls.__dict__:
@@ -92,17 +84,16 @@ def _cleanup_class_attrs(cls: type) -> None:
 
 def _get_underlying_function(attr_value: object) -> object | None:
     """
-    Извлекает функцию из дескриптора или возвращает callable как есть.
+    Return the callable backing a descriptor, if any.
 
-    Для ``property``-дескрипторов возвращает getter (``fget``).
-    Для обычных callable возвращает сам объект.
-    Для всего остального возвращает ``None``.
+    ``property`` → ``fget``. Plain callables pass through. Everything else
+    yields ``None``.
 
-    Аргументы:
-        attr_value: значение атрибута из ``vars(cls)``.
+    Args:
+        attr_value: Entry from ``vars(cls)``.
 
-    Возвращает:
-        Функцию, на которой могут быть временные атрибуты, или ``None``.
+    Returns:
+        Callable that may carry method scratch, or ``None``.
     """
     if isinstance(attr_value, property):
         return attr_value.fget
@@ -113,14 +104,10 @@ def _get_underlying_function(attr_value: object) -> object | None:
 
 def _cleanup_method_attrs(cls: type) -> None:
     """
-    Удаляет временные атрибуты уровня методов из ``vars(cls)``.
+    Drop method-level scratch for declarations owned by ``cls`` only.
 
-    Обходит только атрибуты текущего класса (``vars(cls)``), не MRO.
-    Для каждого метода или property-getter проверяет наличие временных
-    атрибутов и удаляет их.
-
-    Аргументы:
-        cls: класс, методы которого очищаются.
+    Args:
+        cls: Class whose direct attributes are inspected.
     """
     for _attr_name, attr_value in vars(cls).items():
         func = _get_underlying_function(attr_value)
@@ -132,34 +119,29 @@ def _cleanup_method_attrs(cls: type) -> None:
                 try:
                     delattr(func, method_attr)
                 except AttributeError:
-                    # Некоторые объекты (built-in, C-расширения) не позволяют
-                    # удалять атрибуты. Это безопасно игнорировать.
+                    # builtins / C extensions may forbid deletions — safe to skip.
                     pass
 
 
 def cleanup_temporary_attributes(cls: type) -> None:
     """
-    Удаляет все временные атрибуты декораторов с класса и его методов.
+    Remove decorator scratch from ``cls`` and from methods defined on ``cls``.
 
-    Вызывается ``MetadataBuilder.build()`` после завершения сборки
-    ``ClassMetadata``. После вызова этой функции повторная сборка
-    метаданных для того же класса вернёт пустой ``ClassMetadata``
-    (все декораторные данные удалены). Это не проблема, так как
-    ``GateCoordinator`` кеширует результат первой сборки.
+    Called from ``MetadataBuilder.build()`` after runtime metadata is ready.
+    Subsequent rebuilds for the same class return empty metadata unless
+    decorators run again — usually fine because ``GateCoordinator`` caches the
+    first successful build.
 
-    Функция идемпотентна: повторный вызов на уже очищенном классе
-    безопасен и не вызывает ошибок.
+    Idempotent: repeated calls on an already cleaned class do nothing harmful.
 
-    Удаление выполняется в два этапа:
-        1. Атрибуты уровня класса (``_role_info``, ``_depends_info``,
-           ``_connection_info``) — только из ``cls.__dict__``.
-        2. Атрибуты уровня методов (``_new_aspect_meta``, ``_checker_meta``,
-           ``_on_subscriptions``, ``_sensitive_config``,
-           ``_on_error_meta``) — только для методов из ``vars(cls)``
-           текущего класса.
+    Steps:
+        1. Class-level keys (``_role_info``, ``_depends_info``, ``_connection_info``)
+           — only if they live in ``cls.__dict__``.
+        2. Method-level keys (``_new_aspect_meta``, ``_checker_meta``, …) — only
+           for attributes from ``vars(cls)``.
 
-    Аргументы:
-        cls: класс, временные атрибуты которого нужно удалить.
+    Args:
+        cls: Class whose scratch attributes should be removed.
     """
     _cleanup_class_attrs(cls)
     _cleanup_method_attrs(cls)

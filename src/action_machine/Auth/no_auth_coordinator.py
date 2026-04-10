@@ -6,30 +6,41 @@ NoAuthCoordinator — authentication provider for open APIs.
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-NoAuthCoordinator is an explicit implementation of AuthCoordinator that creates
-an anonymous Context for every request. It is used for APIs that do not require
-authentication: public services, examples, health check endpoints.
-
-The developer cannot "forget" to configure authentication because the
-auth_coordinator parameter is required in BaseAdapter. For open APIs, the
-developer intentionally passes NoAuthCoordinator(), explicitly declaring the
-absence of authentication in code.
+Provide an explicit “no authentication” coordinator that returns an anonymous
+``Context`` for every request. Used for public APIs, examples, and health
+endpoints where authentication is intentionally absent.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ANONYMOUS CONTEXT
+ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-NoAuthCoordinator.process() always returns a Context with:
-- user: UserInfo(user_id=None, roles=[]) — anonymous user.
-- request: empty RequestInfo.
-- runtime: empty RuntimeInfo.
+::
 
-This ensures that ActionProductMachine._check_action_roles() behaves correctly:
-actions with @check_roles(ROLE_NONE) pass, while actions requiring specific
-roles are rejected with AuthorizationError.
+    request_data (ignored)
+            │
+            ▼
+    NoAuthCoordinator.process()
+            │
+            ▼
+    Context(user=UserInfo(user_id=None, roles=[]),
+            request=RequestInfo(),
+            runtime=RuntimeInfo())
+
+The coordinator implements the same async ``process(request_data) -> Context``
+interface as ``AuthCoordinator``, allowing adapters to use it as a drop‑in
+replacement.
 
 ═══════════════════════════════════════════════════════════════════════════════
-USAGE EXAMPLE
+INVARIANTS
+═══════════════════════════════════════════════════════════════════════════════
+
+- Always returns a valid ``Context`` (never ``None``).
+- The returned ``Context`` contains an anonymous ``UserInfo`` (``user_id=None``,
+  ``roles=[]``) and empty request/runtime info.
+- The coordinator does not inspect or depend on the incoming ``request_data``.
+
+═══════════════════════════════════════════════════════════════════════════════
+EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
     from action_machine.auth.no_auth_coordinator import NoAuthCoordinator
@@ -40,11 +51,31 @@ USAGE EXAMPLE
         auth_coordinator=NoAuthCoordinator(),
     )
 
-    # For MCP:
+    # MCP adapter
     adapter = McpAdapter(
         machine=machine,
         auth_coordinator=NoAuthCoordinator(),
     )
+
+═══════════════════════════════════════════════════════════════════════════════
+ERRORS / LIMITATIONS
+═══════════════════════════════════════════════════════════════════════════════
+
+- Does not provide any user identity; actions that require specific roles or
+  ``ROLE_ANY`` will fail with ``AuthorizationError``.
+- Not suitable for endpoints that need real user context.
+
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE-BEGIN
+═══════════════════════════════════════════════════════════════════════════════
+ROLE: No‑authentication coordinator.
+CONTRACT: Async ``process(request_data) -> Context`` returning anonymous context.
+INVARIANTS: Always returns non‑null Context; user is anonymous; ignores input.
+FLOW: request → process() → anonymous Context.
+FAILURES: None (always succeeds).
+EXTENSION POINTS: Used wherever an auth coordinator is required but no auth is desired.
+AI-CORE-END
+═══════════════════════════════════════════════════════════════════════════════
 """
 
 from typing import Any
@@ -58,22 +89,8 @@ class NoAuthCoordinator:
 
     Always returns an anonymous Context without a user or roles.
     Used to explicitly declare the absence of authentication.
-
-    Implements the same interface as AuthCoordinator:
-    async method process(request_data) -> Context.
     """
 
     async def process(self, request_data: Any) -> Context:
-        """
-        Creates an anonymous Context for every request.
-
-        Does not perform any checks. Always returns a Context with empty
-        UserInfo (user_id=None, roles=[]).
-
-        Args:
-            request_data: request data (ignored).
-
-        Returns:
-            Context — anonymous execution context.
-        """
+        """Create an anonymous Context for every request."""
         return Context()

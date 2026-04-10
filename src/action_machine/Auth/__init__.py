@@ -6,40 +6,51 @@ ActionMachine authentication package.
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Contains all components of the authentication and authorization system:
-
-- **check_roles** — decorator function for declaring role restrictions on an
-  action class. Writes the role specification to ``cls._role_info``.
-
-- **ROLE_NONE** — string marker constant for "authentication not required." The
-  action is available to any user, including anonymous users.
-
-- **ROLE_ANY** — string marker constant for "any role is acceptable." The action
-  requires authentication, but the specific role is not important.
-
-- **AuthCoordinator** — authentication process coordinator. Combines three
-  components: CredentialExtractor → Authenticator → ContextAssembler. It
-  sequentially extracts credentials, validates them, and builds a Context with
-  user and request information.
-
-- **NoAuthCoordinator** — provider for open APIs. Always returns an anonymous
-  Context without a user or roles. Used to explicitly declare the absence of
-  authentication.
-
-- **CredentialExtractor** — abstract extractor for credentials from a protocol
-  request (HTTP, MCP, etc.).
-
-- **Authenticator** — abstract authenticator. Transforms credentials into user
-  information (UserInfo).
-
-- **ContextAssembler** — abstract request metadata assembler
-  (trace_id, client_ip, request_path, etc.).
-
-- **RoleGateHost** — marker mixin that enables @check_roles. Inherited by
-  BaseAction.
+Provides the authentication and authorization system for ActionMachine.
+Components include role declaration decorators, authentication coordinators,
+and abstract interfaces for credential extraction, verification, and context
+assembly.
 
 ═══════════════════════════════════════════════════════════════════════════════
-TYPICAL USAGE
+ARCHITECTURE / DATA FLOW
+═══════════════════════════════════════════════════════════════════════════════
+
+::
+
+    ┌──────────────────┐     ┌────────────────┐     ┌──────────────────┐
+    │ CredentialExtract│ ──▶ │  Authenticator │ ──▶ │ ContextAssembler │
+    │ (credential      │     │  (credential   │     │  (metadata       │
+    │  extraction)     │     │   verification)│     │   assembly)      │
+    └──────────────────┘     └────────────────┘     └──────────────────┘
+              │                       │                       │
+              └───────────────────────┴───────────────────────┘
+                                      │
+                                      ▼
+                              ┌──────────────┐
+                              │ AuthCoordinator│
+                              │ .process()     │ → Context
+                              └──────────────┘
+
+Components exported:
+- ``check_roles``: decorator for role restrictions, writes ``_role_info``.
+- ``ROLE_NONE`` / ``ROLE_ANY``: special role markers.
+- ``AuthCoordinator``: orchestrates credential extraction, authentication,
+  and context assembly.
+- ``NoAuthCoordinator``: explicit no‑authentication provider.
+- Abstract bases: ``CredentialExtractor``, ``Authenticator``, ``ContextAssembler``.
+- ``RoleGateHost``: marker mixin enabling ``@check_roles``.
+
+═══════════════════════════════════════════════════════════════════════════════
+INVARIANTS
+═══════════════════════════════════════════════════════════════════════════════
+
+- ``@check_roles`` requires the target class to inherit ``RoleGateHost``.
+- ``ROLE_NONE`` allows anonymous access; ``ROLE_ANY`` requires any authenticated role.
+- ``AuthCoordinator`` requires non‑null extractor, authenticator, and assembler.
+- ``NoAuthCoordinator`` always returns an anonymous ``Context``.
+
+═══════════════════════════════════════════════════════════════════════════════
+EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
     from action_machine.auth import check_roles, ROLE_NONE, ROLE_ANY
@@ -56,23 +67,33 @@ TYPICAL USAGE
     class OrderAction(BaseAction[OrderParams, OrderResult]):
         ...
 
+    # AuthCoordinator usage
+    auth = AuthCoordinator(extractor, authenticator, assembler)
+    context = await auth.process(request)
+
+    # Open API with explicit no‑auth
+    auth = NoAuthCoordinator()
+    adapter = FastApiAdapter(machine=machine, auth_coordinator=auth)
+
 ═══════════════════════════════════════════════════════════════════════════════
-AUTHENTICATION ARCHITECTURE
+ERRORS / LIMITATIONS
 ═══════════════════════════════════════════════════════════════════════════════
 
-    ┌──────────────────┐     ┌────────────────┐     ┌──────────────────┐
-    │ CredentialExtract│ ──▶ │  Authenticator │ ──▶ │ ContextAssembler │
-    │ (credential      │     │  (credential   │     │  (metadata       │
-    │  extraction)     │     │   verification)│     │   assembly)      │
-    └──────────────────┘     └────────────────┘     └──────────────────┘
-              │                       │                       │
-              └───────────────────────┴───────────────────────┘
-                                      │
-                                      ▼
-                              ┌──────────────┐
-                              │ AuthCoordinator│
-                              │ .process()     │ → Context
-                              └──────────────┘
+- ``TypeError`` if ``@check_roles`` is applied to a class missing ``RoleGateHost``.
+- ``AuthorizationError`` at runtime when role requirements are not met.
+- ``NoAuthCoordinator`` provides no user identity; only works with ``ROLE_NONE`` actions.
+
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE-BEGIN
+═══════════════════════════════════════════════════════════════════════════════
+ROLE: Authentication package API surface.
+CONTRACT: Export role decorators, markers, coordinators, and abstract interfaces.
+INVARIANTS: Metadata written to ``_role_info``; coordinators produce ``Context``.
+FLOW: request -> extract -> authenticate -> assemble -> context -> role check.
+FAILURES: AuthorizationError at runtime; TypeError for decorator misuse.
+EXTENSION POINTS: Implement custom CredentialExtractor/Authenticator/ContextAssembler.
+AI-CORE-END
+═══════════════════════════════════════════════════════════════════════════════
 """
 
 from .auth_coordinator import AuthCoordinator

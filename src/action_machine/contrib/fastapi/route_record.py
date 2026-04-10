@@ -3,11 +3,11 @@
 FastApiRouteRecord — frozen-датакласс маршрута для FastAPI-адаптера.
 
 ═══════════════════════════════════════════════════════════════════════════════
-НАЗНАЧЕНИЕ
+PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 FastApiRouteRecord — конкретный наследник BaseRouteRecord с HTTP-специфичными
-полями. Хранит полную конфигурацию одного HTTP-эндпоинта: метод, путь, теги,
+полями. Хранит полную конфигурацию одного HTTP-эндпоинта: method, путь, теги,
 описание, operation_id, deprecated. Используется FastApiAdapter при build()
 для генерации FastAPI-маршрутов.
 
@@ -16,7 +16,7 @@ HTTP-СПЕЦИФИЧНЫЕ ПОЛЯ
 ═══════════════════════════════════════════════════════════════════════════════
 
     method : str
-        HTTP-метод: GET, POST, PUT, DELETE, PATCH. Приводится к верхнему
+        HTTP-method: GET, POST, PUT, DELETE, PATCH. Приводится к верхнему
         регистру при валидации. Допустимые значения определены в множестве
         ``_ALLOWED_METHODS``. По умолчанию "POST".
 
@@ -111,7 +111,7 @@ from dataclasses import dataclass
 
 from action_machine.adapters.base_route_record import BaseRouteRecord
 
-# Допустимые HTTP-методы.
+# Допустимые HTTP-methodы.
 _ALLOWED_METHODS: frozenset[str] = frozenset({
     "GET",
     "POST",
@@ -131,15 +131,15 @@ class FastApiRouteRecord(BaseRouteRecord):
 
     Frozen — после создания ни одно поле изменить нельзя.
 
-    Валидация в ``__post_init__``:
+    Validation в ``__post_init__``:
     - Вызывает ``super().__post_init__()`` для проверки инвариантов
       BaseRouteRecord (action_class, маппинг, извлечение P и R).
-    - Проверяет method из допустимого набора.
-    - Проверяет path непустой и начинается с ``/``.
+    - Checks method из допустимого набора.
+    - Checks path непустой и начинается с ``/``.
 
     Атрибуты (HTTP-специфичные поля):
         method : str
-            HTTP-метод. По умолчанию "POST".
+            HTTP-method. По умолчанию "POST".
 
         path : str
             URL-путь эндпоинта. По умолчанию "/".
@@ -170,11 +170,11 @@ class FastApiRouteRecord(BaseRouteRecord):
     operation_id: str | None = None
     deprecated: bool = False
 
-    # ── Валидация ──────────────────────────────────────────────────────
+    # ── Validation ──────────────────────────────────────────────────────
 
     def __post_init__(self) -> None:
         """
-        Проверяет HTTP-специфичные инварианты после создания экземпляра.
+        Checks HTTP-специфичные инварианты после создания экземпляра.
 
         Порядок:
 
@@ -190,7 +190,7 @@ class FastApiRouteRecord(BaseRouteRecord):
 
         4. Проверка path: непустой и начинается с ``/``.
 
-        Исключения:
+        Raises:
             TypeError: от BaseRouteRecord (action_class не BaseAction,
                        не удалось извлечь P и R).
             ValueError: от BaseRouteRecord (маппер отсутствует при

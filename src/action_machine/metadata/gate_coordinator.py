@@ -1,119 +1,111 @@
 # src/action_machine/metadata/gate_coordinator.py
 """
-GateCoordinator — центральный реестр и сборщик графа зависимостей системы.
+GateCoordinator — transactional facet graph and typed facet snapshots.
 
 ═══════════════════════════════════════════════════════════════════════════════
-НАЗНАЧЕНИЕ
+PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-GateCoordinator — единственная точка входа для построения и чтения графа
-всех сущностей системы ActionMachine. Координатор:
+Registry for **static** metadata: registered **inspectors** (subclasses of
+``BaseGateHostInspector``) discover gate-host markers on classes, emit
+``FacetPayload`` nodes, and may attach typed per-class snapshots via
+``facet_snapshot_for_class()`` / ``facet_snapshot_storage_key()``.
 
-1. Принимает регистрацию инспекторов гейтхостов через fluent-метод register().
-2. Строит граф один раз при вызове build() через транзакционный трёхфазный
-   процесс.
-3. Предоставляет типизированные методы чтения данных из графа для рантайма
-   (машина, адаптеры, плагины).
+After a successful ``register(...).build()``:
 
-После build() граф становится единственным источником правды. Координатор
-только читает граф, никогда не модифицирует его после коммита.
+1. **Facet graph** (``rx.PyDiGraph``) — committed nodes and edges from payloads.
+   Used for traversal, MCP ``system://graph``, and structural cycle checks.
 
-═══════════════════════════════════════════════════════════════════════════════
-ТРАНЗАКЦИОННЫЙ build() — ТРИ ФАЗЫ
-═══════════════════════════════════════════════════════════════════════════════
+2. **Facet snapshot map** (``_facet_snapshots``) — optional typed views keyed by
+   ``(owner class, facet storage key)``. Read via ``get_snapshot(cls, facet_key)``.
 
-Граф либо строится полностью и корректно, либо не строится вообще.
-Никакого частичного состояния.
+**Public API (domain-agnostic):** ``register``, ``build``, ``is_built``,
+``graph_node_count``, ``graph_edge_count``, ``get_graph``, ``get_node``,
+``get_nodes_by_type``, ``get_nodes_for_class``, ``get_snapshot``.
 
-    ФАЗА 1 — СБОР
-        Для каждого зарегистрированного инспектора обходятся наследники
-        его маркерного миксина (_subclasses_recursive). Для каждого
-        наследника вызывается inspect(). Результат (FacetPayload или None)
-        накапливается в список. Граф не трогается.
+Dependency ``DependencyFactory`` instances may be cached on this object under
+``dependency_factory.DEPENDENCY_FACTORY_CACHE_KEY``; clearing that cache does
+not rebuild or invalidate the facet graph.
 
-    ФАЗА 2 — ПРОВЕРКИ
-        Все собранные payload проверяются на:
-        2a. Обязательные поля непустые (PayloadValidationError).
-        2b. Уникальность ключей "node_type:node_name" (DuplicateNodeError).
-        2c. Ссылочная целостность рёбер — цель существует (InvalidGraphError).
-        2d. Ацикличность структурных рёбер через симуляцию на временном
-            графе (InvalidGraphError).
-        Граф не трогается.
-
-    ФАЗА 3 — КОММИТ
-        Только если фаза 2 прошла. Все узлы и рёбра добавляются в граф.
-        tuple of tuples конвертируется в dict. Флаг _built = True.
+Applications may import from ``action_machine.core.gate_coordinator`` (thin
+re-export); the canonical implementation is **this** module. Typical apps use
+``CoreActionMachine.create_coordinator()`` for a pre-built coordinator.
 
 ═══════════════════════════════════════════════════════════════════════════════
-РАЗДЕЛЕНИЕ ВАЛИДАЦИИ
+EXPLICIT ``build()``
 ═══════════════════════════════════════════════════════════════════════════════
 
-    Декораторы (@check_roles, @regular_aspect, @depends...)
-        Проверяют аргументы при import-time. Типы, пустоту, issubclass.
-        Ошибки обнаруживаются немедленно при определении класса.
+- Inspectors are registered with ``register(InspectorClass)`` **before**
+  ``build()``; after ``build()``, further ``register()`` calls raise
+  ``RuntimeError``.
+- ``build()`` runs once; a second ``build()`` raises ``RuntimeError``.
+- Until ``build()`` completes, graph accessors and ``get_snapshot`` call
+  ``_require_built()`` and raise ``RuntimeError`` (there is no implicit lazy
+  build from read APIs).
 
-    Координатор (build(), фаза 2)
-        Глобальные структурные проверки: уникальность ключей, ссылочная
-        целостность, ацикличность. Одно место для всех проверок графа.
-
-Логика проверки не размазывается. Декоратор отвечает за свои аргументы,
-координатор — за целостность графа.
-
-═══════════════════════════════════════════════════════════════════════════════
-ОГРАНИЧЕНИЯ
-═══════════════════════════════════════════════════════════════════════════════
-
-- build() вызывается ровно один раз. Повторный вызов → RuntimeError.
-- register() после build() → RuntimeError.
-- Дубликат инспектора при register() → ValueError.
+If the inspector list is empty at ``build()``, validation still runs with no
+payloads (caller's responsibility to register a useful set).
 
 ═══════════════════════════════════════════════════════════════════════════════
-ФОРМАТ КЛЮЧЕЙ УЗЛОВ
+TRANSACTIONAL ``build()`` — THREE PHASES
 ═══════════════════════════════════════════════════════════════════════════════
 
-Каждый узел графа идентифицируется строковым ключом "node_type:node_name".
-Инспектор формирует node_type и node_name. Координатор собирает ключ:
+The graph is either built completely and consistently, or not committed at all.
 
-    node_type="role", node_name="module.CreateOrderAction"
-    → ключ: "role:module.CreateOrderAction"
+    PHASE 1 — COLLECT
+        For each inspector: walk ``_subclasses_recursive()`` over gate-host
+        markers; ``inspect()`` → ``FacetPayload | None``.
+        ``DependencyGateHostInspector`` and ``ConnectionGateHostInspector`` may
+        emit the same node key ``action:<full name>`` for one action class;
+        those payloads are **merged** into one node (edges concatenated) so
+        keys stay unique without a combined "structure" inspector.
 
-Один класс может порождать несколько узлов от разных инспекторов.
-Уникальность гарантируется комбинацией node_type + node_name.
+    PHASE 1b — MATERIALIZE
+        ``_materialize_edge_targets`` adds missing nodes for edges that carry
+        ``target_class_ref`` (stub ``dependency`` / ``connection`` /
+        ``domain``), iterating to a fixed point until all targets exist.
+
+    PHASE 2 — VALIDATE
+        Payload fields, uniqueness of ``node_type:node_name`` keys, referential
+        integrity, acyclicity of **structural** edges; @depends cycles surface
+        as ``CyclicDependencyError``.
+
+    PHASE 3 — COMMIT
+        Nodes and edges into ``rx.PyDiGraph``; ``_node_index`` /
+        ``_class_index`` populated; ``_built = True``. The graph is read-only
+        afterward.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ГРАФ
+WHERE VALIDATION LIVES
 ═══════════════════════════════════════════════════════════════════════════════
 
-Граф построен на библиотеке rustworkx (rx.PyDiGraph). Узлы хранят dict
-с полями: node_type, name, class_ref, meta. Рёбра хранят dict с полями:
-edge_type, meta.
+Decorators validate arguments at import time. Coordinator phase 2 validates
+global graph shape. Per-class invariants are enforced in gate hosts / inspectors.
 
 ═══════════════════════════════════════════════════════════════════════════════
-РАНТАЙМ-ДОСТУП
+NODE AND KEY FORMAT
 ═══════════════════════════════════════════════════════════════════════════════
 
-Координатор предоставляет типизированные методы чтения данных из графа.
-Машина (ActionProductMachine) и адаптеры используют эти методы вместо
-прямого доступа к ClassMetadata.
+Node key: ``f"{node_type}:{node_name}"``. One Python class may have several
+nodes (``meta``, ``role``, ``aspect``, ``compensator``, …) — see
+``get_nodes_for_class``.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ПРИМЕР ИСПОЛЬЗОВАНИЯ
+EXAMPLE (EXPLICIT INSPECTOR REGISTRATION)
 ═══════════════════════════════════════════════════════════════════════════════
 
     from action_machine.metadata.gate_coordinator import GateCoordinator
     from action_machine.auth.role_gate_host_inspector import RoleGateHostInspector
-    from action_machine.aspects.aspect_gate_host_inspector import AspectGateHostInspector
 
     coordinator = (
-        GateCoordinator(strict=True)
+        GateCoordinator()
         .register(RoleGateHostInspector)
-        .register(AspectGateHostInspector)
+        # ... other inspectors
         .build()
     )
 
-    # Рантайм-доступ:
-    spec = coordinator.get_role_spec(CreateOrderAction)
-    aspects = coordinator.get_regular_aspects(CreateOrderAction)
+In a typical app, use ``CoreActionMachine.create_coordinator()`` to obtain a
+pre-registered and built coordinator.
 """
 
 from __future__ import annotations
@@ -122,6 +114,9 @@ from typing import Any
 
 import rustworkx as rx
 
+from action_machine.core.exceptions import CyclicDependencyError
+from action_machine.dependencies.dependency_factory import DEPENDENCY_FACTORY_CACHE_KEY
+from action_machine.metadata.base_facet_snapshot import BaseFacetSnapshot
 from action_machine.metadata.base_gate_host_inspector import BaseGateHostInspector
 from action_machine.metadata.exceptions import (
     DuplicateNodeError,
@@ -133,155 +128,160 @@ from action_machine.metadata.payload import FacetPayload
 
 class GateCoordinator:
     """
-    Центральный реестр и сборщик графа зависимостей системы ActionMachine.
+    Transactional facet graph plus typed facet snapshots.
 
-    Принимает регистрацию инспекторов, строит граф через транзакционный
-    build() и предоставляет типизированные методы чтения.
+    See the module docstring for ``build()`` phases and the public read API.
+    Safe to share across the execution engine and adapters after ``build()``.
 
-    Атрибуты:
-        _strict : bool
-            Если True — дополнительные проверки при build()
-            (например, обязательность domain в @meta для Action).
-
+    Attributes:
         _inspectors : list[type[BaseGateHostInspector]]
-            Зарегистрированные инспекторы в порядке регистрации.
+            Registered inspectors, in registration order.
 
         _registered : set[type[BaseGateHostInspector]]
-            Множество зарегистрированных инспекторов для проверки
-            дубликатов.
+            Set of registered inspectors (duplicate registration guard).
 
         _graph : rx.PyDiGraph
-            Направленный граф сущностей системы. Заполняется
-            при коммите (фаза 3). После build() — только чтение.
+            Directed system graph. Filled at commit (phase 3). Read-only after
+            ``build()``.
 
         _node_index : dict[str, int]
-            Карта ключ_узла → индекс_в_графе. Заполняется при коммите.
+            Node key → graph index. Populated at commit.
 
         _class_index : dict[type, list[str]]
-            Карта класс → список ключей узлов, порождённых этим классом.
-            Заполняется при коммите. Используется рантайм-методами
-            для поиска узлов по классу.
+            Class → list of node keys emitted for that class. Populated at
+            commit.
 
         _built : bool
-            Флаг завершения build(). После True — register() запрещён,
-            повторный build() запрещён.
+            After True, ``register()`` and a second ``build()`` are forbidden.
+
+        _facet_snapshots : dict[tuple[type, str], BaseFacetSnapshot]
+            Typed facet snapshots keyed by ``(owner class, facet_key)`` where
+            ``facet_key`` comes from ``facet_snapshot_storage_key()`` (e.g.
+            ``"role"``, ``"depends"``), filled when
+            ``inspector.facet_snapshot_for_class()`` is non-``None``.
     """
 
-    def __init__(self, strict: bool = False) -> None:
-        """
-        Создаёт координатор с пустым графом.
-
-        Аргументы:
-            strict: если True — дополнительные проверки при build().
-        """
-        self._strict: bool = strict
+    def __init__(self) -> None:
+        """Create a coordinator with an empty graph."""
         self._inspectors: list[type[BaseGateHostInspector]] = []
         self._registered: set[type[BaseGateHostInspector]] = set()
         self._graph: rx.PyDiGraph = rx.PyDiGraph()
         self._node_index: dict[str, int] = {}
         self._class_index: dict[type, list[str]] = {}
         self._built: bool = False
+        self._facet_snapshots: dict[tuple[type, str], BaseFacetSnapshot] = {}
+
+    def _require_built(self) -> None:
+        """Fail-fast guard: coordinator must be explicitly built before reads."""
+        if not self._built:
+            raise RuntimeError(
+                "GateCoordinator is not built. Register inspectors and call build() first.",
+            )
 
     # ═══════════════════════════════════════════════════════════════════
-    # Fluent-регистрация инспекторов
+    # Fluent inspector registration
     # ═══════════════════════════════════════════════════════════════════
 
-    def register(
-        self, inspector_cls: type[BaseGateHostInspector],
+    def register(self, target: type) -> GateCoordinator:
+        """Register a gate-host inspector before ``build()``."""
+        if not isinstance(target, type):
+            raise TypeError(f"register() expects a type, got {type(target)!r}")
+        if not issubclass(target, BaseGateHostInspector):
+            raise TypeError(
+                f"register() accepts only BaseGateHostInspector subclasses, got {target!r}",
+            )
+        return self._register_inspector(target)
+
+    def _register_inspector(
+        self,
+        inspector_cls: type[BaseGateHostInspector],
     ) -> GateCoordinator:
         """
-        Регистрирует инспектор гейтхоста.
+        Register a gate-host inspector before ``build()``.
 
-        Вызывается до build(). Поддерживает fluent-цепочку:
+        Supports fluent chaining::
 
-            coordinator = GateCoordinator()\\
-                .register(RoleGateHostInspector)\\
-                .register(AspectGateHostInspector)\\
-                .build()
-
-        Аргументы:
-            inspector_cls: класс инспектора (наследник BaseGateHostInspector).
-
-        Возвращает:
-            self — для fluent-цепочки.
-
-        Исключения:
-            RuntimeError: если build() уже вызван.
-            ValueError: если инспектор уже зарегистрирован.
+            GateCoordinator().register(RoleGateHostInspector).build()
         """
         if self._built:
             raise RuntimeError(
-                f"Регистрация {inspector_cls.__name__} после build() запрещена. "
-                f"Все инспекторы регистрируются до вызова build()."
+                f"Cannot register {inspector_cls.__name__} after build(). "
+                f"All inspectors must be registered before build()."
             )
         if inspector_cls in self._registered:
             raise ValueError(
-                f"Инспектор {inspector_cls.__name__} уже зарегистрирован."
+                f"Inspector {inspector_cls.__name__} is already registered."
             )
         self._inspectors.append(inspector_cls)
         self._registered.add(inspector_cls)
         return self
 
     # ═══════════════════════════════════════════════════════════════════
-    # Построение графа
+    # Graph build
     # ═══════════════════════════════════════════════════════════════════
 
     def build(self) -> GateCoordinator:
         """
-        Транзакционное построение графа.
+        Transactionally build the facet graph and facet snapshot map.
 
-        Вызывается ровно один раз после регистрации всех инспекторов.
-        Три фазы: сбор → проверки → коммит. Если любая проверка
-        не прошла — граф не изменяется, исключение пробрасывается.
+        Invoked **explicitly** in a fluent chain (or via
+        ``CoreActionMachine.create_coordinator()``). A second call after
+        ``_built is True`` raises ``RuntimeError``.
 
-        Возвращает:
-            self — для fluent-цепочки (coordinator = GateCoordinator()...build()).
+        Three phases: collect payloads → validate → commit into ``rx.PyDiGraph``.
+        Any phase-2 failure means nothing from this build is committed.
 
-        Исключения:
-            RuntimeError: если build() уже вызван.
-            PayloadValidationError: невалидные поля payload (фаза 2a).
-            DuplicateNodeError: конфликт ключей узлов (фаза 2b).
-            InvalidGraphError: битая ссылка ребра или цикл (фаза 2c, 2d).
+        Returns:
+            ``self`` (fluent).
+
+        Raises:
+            RuntimeError: second ``build()``.
+            PayloadValidationError, DuplicateNodeError, InvalidGraphError,
+            CyclicDependencyError — see phase 2 and the @depends cycle wrapper.
         """
         if self._built:
             raise RuntimeError(
-                "build() уже вызван. Координатор строит граф один раз."
+                "build() already completed. The coordinator builds the graph once."
             )
 
+        self._facet_snapshots.clear()
         all_payloads, payload_sources = self._phase1_collect()
+        all_payloads = self._materialize_edge_targets(all_payloads, payload_sources)
         self._phase2_check_payloads(all_payloads)
         self._phase2_check_key_uniqueness(all_payloads, payload_sources)
         self._phase2_check_referential_integrity(all_payloads)
-        self._phase2_check_acyclicity(all_payloads)
+        try:
+            self._phase2_check_acyclicity(all_payloads)
+        except InvalidGraphError as exc:
+            raise CyclicDependencyError(str(exc)) from exc
         self._phase3_commit(all_payloads)
 
         self._built = True
         return self
 
     # ═══════════════════════════════════════════════════════════════════
-    # Фаза 1 — Сбор
+    # Phase 1 — Collect
     # ═══════════════════════════════════════════════════════════════════
 
     def _phase1_collect(
         self,
     ) -> tuple[list[FacetPayload], dict[str, str]]:
         """
-        Обходит всех инспекторов и собирает FacetPayload.
+        Run every inspector and collect ``FacetPayload`` instances.
 
-        Для каждого инспектора вызывает _subclasses_recursive(), затем
-        inspect() для каждого найденного класса. payload с None
-        отфильтровываются.
+        For each inspector: ``_subclasses_recursive()``, then ``inspect()`` per
+        discovered class. Payloads that are ``None`` are skipped.
 
-        Дополнительно отслеживает, какой инспектор создал каждый payload,
-        для информативных сообщений об ошибках в фазе 2.
+        Also records which inspector produced each payload for clearer phase-2
+        error messages.
 
-        Возвращает:
-            Кортеж из двух элементов:
-            - list[FacetPayload] — все собранные payload.
-            - dict[str, str] — карта ключ_узла → имя_инспектора
-              (для сообщений об ошибках DuplicateNodeError).
+        Returns:
+            A tuple of:
+            - ``list[FacetPayload]`` — all collected payloads (after merge).
+            - ``dict[str, str]`` — node key → inspector name(s), for
+              ``DuplicateNodeError`` diagnostics.
         """
-        all_payloads: list[FacetPayload] = []
+        by_key: dict[str, FacetPayload] = {}
         payload_sources: dict[str, str] = {}
 
         for inspector_cls in self._inspectors:
@@ -293,59 +293,110 @@ class GateCoordinator:
                 if payload is None:
                     continue
 
+                snap = inspector_cls.facet_snapshot_for_class(target_cls)
+                if snap is not None:
+                    sk = inspector_cls.facet_snapshot_storage_key(target_cls, payload)
+                    self._facet_snapshots[(target_cls, sk)] = snap
+
                 key = self._make_key(payload.node_type, payload.node_name)
 
-                if key in payload_sources:
+                if key not in by_key:
+                    by_key[key] = payload
+                    payload_sources[key] = inspector_name
+                    continue
+
+                merged = self._merge_facets_same_action_node(by_key[key], payload)
+                if merged is None:
                     raise DuplicateNodeError(
                         key=key,
                         first_gate_host=payload_sources[key],
                         second_gate_host=inspector_name,
                     )
+                by_key[key] = merged
+                payload_sources[key] = f"{payload_sources[key]}+{inspector_name}"
 
-                payload_sources[key] = inspector_name
-                all_payloads.append(payload)
+        return list(by_key.values()), payload_sources
 
-        return all_payloads, payload_sources
+    def _materialize_edge_targets(
+        self,
+        payloads: list[FacetPayload],
+        payload_sources: dict[str, str],
+    ) -> list[FacetPayload]:
+        """
+        Ensure every edge target key exists when the edge carries ``target_class_ref``.
+
+        Covers structural depends/connection stubs and informational belongs_to
+        (domain classes are not otherwise visited by inspectors).
+        """
+        keys = {self._make_key(p.node_type, p.node_name) for p in payloads}
+        synthetic_source = "__edge_target__"
+        result = list(payloads)
+        changed = True
+        while changed:
+            changed = False
+            extra: list[FacetPayload] = []
+            for p in result:
+                for edge in p.edges:
+                    if edge.target_class_ref is None:
+                        continue
+                    tkey = self._make_key(edge.target_node_type, edge.target_name)
+                    if tkey in keys:
+                        continue
+                    keys.add(tkey)
+                    extra.append(
+                        FacetPayload(
+                            node_type=edge.target_node_type,
+                            node_name=edge.target_name,
+                            node_class=edge.target_class_ref,
+                            node_meta=(),
+                            edges=(),
+                        ),
+                    )
+                    if tkey not in payload_sources:
+                        payload_sources[tkey] = synthetic_source
+                    changed = True
+            result.extend(extra)
+        return result
 
     # ═══════════════════════════════════════════════════════════════════
-    # Фаза 2 — Проверки
+    # Phase 2 — Validate
     # ═══════════════════════════════════════════════════════════════════
 
     def _phase2_check_payloads(
         self, payloads: list[FacetPayload],
     ) -> None:
         """
-        Проверка 2a: обязательные поля payload непустые.
+        Validation 2a: required payload fields are non-empty.
 
-        Каждый payload должен иметь:
-        - node_type — непустая строка.
-        - node_name — непустая строка.
-        - node_class — экземпляр type.
+        Each payload must have:
+        - ``node_type`` — non-empty string.
+        - ``node_name`` — non-empty string.
+        - ``node_class`` — a ``type`` instance.
 
-        Аргументы:
-            payloads: список payload для проверки.
+        Args:
+            payloads: Payloads to validate.
 
-        Исключения:
-            PayloadValidationError: если любое обязательное поле невалидно.
+        Raises:
+            PayloadValidationError: if any required field is invalid.
         """
         for p in payloads:
             if not p.node_type:
                 raise PayloadValidationError(
                     node_class=p.node_class,
                     field_name="node_type",
-                    detail="пустая строка",
+                    detail="empty string",
                 )
             if not p.node_name:
                 raise PayloadValidationError(
                     node_class=p.node_class,
                     field_name="node_name",
-                    detail="пустая строка",
+                    detail="empty string",
                 )
             if not isinstance(p.node_class, type):
                 raise PayloadValidationError(
                     node_class=p.node_class,
                     field_name="node_class",
-                    detail=f"ожидался type, получен {type(p.node_class).__name__}",
+                    detail=f"expected type, got {type(p.node_class).__name__}",
                 )
 
     def _phase2_check_key_uniqueness(
@@ -354,19 +405,18 @@ class GateCoordinator:
         payload_sources: dict[str, str],
     ) -> None:
         """
-        Проверка 2b: уникальность ключей узлов.
+        Validation 2b: node-key uniqueness.
 
-        Дубликаты уже обнаруживаются в _phase1_collect при заполнении
-        payload_sources. Этот метод — дополнительная защита на случай
-        если payload_sources не используется (прямой вызов фазы 2
-        в тестах).
+        Duplicates are normally resolved in ``_phase1_collect`` (merge or
+        error). This method is a safety net when phase 2 is invoked directly in
+        tests without going through the same bookkeeping.
 
-        Аргументы:
-            payloads: список payload для проверки.
-            payload_sources: карта ключ → имя инспектора.
+        Args:
+            payloads: Payloads to validate.
+            payload_sources: Key → inspector name map.
 
-        Исключения:
-            DuplicateNodeError: если обнаружен дубликат ключа.
+        Raises:
+            DuplicateNodeError: if a duplicate key remains.
         """
         seen: set[str] = set()
         for p in payloads:
@@ -383,17 +433,16 @@ class GateCoordinator:
         self, payloads: list[FacetPayload],
     ) -> None:
         """
-        Проверка 2c: ссылочная целостность рёбер.
+        Validation 2c: referential integrity of edges.
 
-        Каждое ребро ссылается на целевой узел через
-        "target_node_type:target_name". Этот ключ обязан существовать
-        среди собранных payload. Если цель не найдена — ребро битое.
+        Every edge names its target via ``target_node_type:target_name``. That
+        key must exist among collected payloads; otherwise the edge is broken.
 
-        Аргументы:
-            payloads: список payload для проверки.
+        Args:
+            payloads: Payloads to validate.
 
-        Исключения:
-            InvalidGraphError: если ребро ссылается на несуществующий узел.
+        Raises:
+            InvalidGraphError: if an edge points at a missing node.
         """
         all_keys: set[str] = {
             self._make_key(p.node_type, p.node_name)
@@ -408,29 +457,28 @@ class GateCoordinator:
                 )
                 if target_key not in all_keys:
                     raise InvalidGraphError(
-                        f"Ребро '{edge.edge_type}' из '{source_key}' "
-                        f"ссылается на несуществующий узел '{target_key}'. "
-                        f"Класс-цель не обнаружен ни одним инспектором."
+                        f"Edge '{edge.edge_type}' from '{source_key}' "
+                        f"references missing node '{target_key}'. "
+                        f"No inspector materialized the target class."
                     )
 
     def _phase2_check_acyclicity(
         self, payloads: list[FacetPayload],
     ) -> None:
         """
-        Проверка 2d: ацикличность структурных рёбер.
+        Validation 2d: acyclicity of structural edges.
 
-        Создаёт временный граф, добавляет только структурные рёбра
-        (is_structural=True) и проверяет ацикличность через
-        rustworkx.is_directed_acyclic_graph().
+        Builds a scratch graph with only structural edges (``is_structural is
+        True``) and checks acyclicity via ``rustworkx.is_directed_acyclic_graph``.
 
-        Информационные рёбра (is_structural=False) не проверяются —
-        циклические связи между сущностями допустимы.
+        Informational edges (``is_structural is False``) are ignored — cyclic
+        informational links are allowed.
 
-        Аргументы:
-            payloads: список payload для проверки.
+        Args:
+            payloads: Payloads to validate.
 
-        Исключения:
-            InvalidGraphError: если структурные рёбра образуют цикл.
+        Raises:
+            InvalidGraphError: if structural edges form a cycle.
         """
         test_graph: rx.PyDiGraph = rx.PyDiGraph()
         test_index: dict[str, int] = {}
@@ -456,26 +504,25 @@ class GateCoordinator:
 
         if has_structural_edges and not rx.is_directed_acyclic_graph(test_graph):
             raise InvalidGraphError(
-                "Структурные рёбра (depends, connection) образуют цикл. "
-                "Проверьте зависимости между классами."
+                "Structural edges (depends, connection) form a cycle. "
+                "Review dependencies between classes."
             )
 
     # ═══════════════════════════════════════════════════════════════════
-    # Фаза 3 — Коммит
+    # Phase 3 — Commit
     # ═══════════════════════════════════════════════════════════════════
 
     def _phase3_commit(self, payloads: list[FacetPayload]) -> None:
         """
-        Коммит всех payload в граф.
+        Commit all payloads into the graph.
 
-        Выполняется только если фаза 2 прошла полностью.
-        Конвертирует tuple of tuples в dict для хранения в узлах графа.
-        Заполняет _node_index и _class_index.
+        Runs only after phase 2 succeeds. Converts tuple-of-tuples metadata to
+        dicts for graph storage. Populates ``_node_index`` and ``_class_index``.
 
-        Аргументы:
-            payloads: список провалидированных payload.
+        Args:
+            payloads: Validated payloads.
         """
-        # Добавляем все узлы
+        # Add all nodes
         for p in payloads:
             key = self._make_key(p.node_type, p.node_name)
             idx = self._graph.add_node({
@@ -486,12 +533,12 @@ class GateCoordinator:
             })
             self._node_index[key] = idx
 
-            # Заполняем class_index
+            # Populate class_index
             if p.node_class not in self._class_index:
                 self._class_index[p.node_class] = []
             self._class_index[p.node_class].append(key)
 
-        # Добавляем все рёбра
+        # Add all edges
         for p in payloads:
             source_key = self._make_key(p.node_type, p.node_name)
             source_idx = self._node_index[source_key]
@@ -506,77 +553,92 @@ class GateCoordinator:
                 })
 
     # ═══════════════════════════════════════════════════════════════════
-    # Утилиты
+    # Utilities
     # ═══════════════════════════════════════════════════════════════════
+
+    @staticmethod
+    def _merge_facets_same_action_node(
+        first: FacetPayload,
+        second: FacetPayload,
+    ) -> FacetPayload | None:
+        """
+        Merge two payloads with the same ``action:<name>`` key when both describe
+        the same action class and carry identical ``node_meta``.
+
+        Used for ``DependencyGateHostInspector`` + ``ConnectionGateHostInspector``.
+        Any other key collision must remain a ``DuplicateNodeError``.
+        """
+        if first.node_type != "action" or second.node_type != "action":
+            return None
+        if first.node_name != second.node_name or first.node_class is not second.node_class:
+            return None
+        if first.node_meta != second.node_meta:
+            return None
+        return FacetPayload(
+            node_type=first.node_type,
+            node_name=first.node_name,
+            node_class=first.node_class,
+            node_meta=first.node_meta,
+            edges=first.edges + second.edges,
+        )
 
     @staticmethod
     def _make_key(node_type: str, name: str) -> str:
         """
-        Формирует уникальный ключ узла: "node_type:name".
+        Build the unique node key ``node_type:name``.
 
-        Аргументы:
-            node_type: тип узла ("role", "action", "entity" и т.д.).
-            name: имя узла ("module.ClassName").
+        Args:
+            node_type: Facet type (``"role"``, ``"action"``, ``"entity"``, …).
+            name: Node name (``"module.ClassName"``).
 
-        Возвращает:
-            str — ключ вида "role:module.CreateOrderAction".
+        Returns:
+            Key string such as ``"role:module.CreateOrderAction"``.
         """
         return f"{node_type}:{name}"
 
     # ═══════════════════════════════════════════════════════════════════
-    # Публичные свойства
+    # Public properties
     # ═══════════════════════════════════════════════════════════════════
 
     @property
-    def strict(self) -> bool:
-        """Возвращает strict-режим координатора."""
-        return self._strict
-
-    @property
     def is_built(self) -> bool:
-        """True если build() уже вызван."""
+        """True after ``build()`` has completed."""
         return self._built
 
     @property
     def graph_node_count(self) -> int:
-        """Количество узлов в графе."""
+        """Number of nodes (0 before the first build / lazy build)."""
+        if not self._built:
+            return 0
         return self._graph.num_nodes()
 
     @property
     def graph_edge_count(self) -> int:
-        """Количество рёбер в графе."""
+        """Number of edges (0 before the first build / lazy build)."""
+        if not self._built:
+            return 0
         return self._graph.num_edges()
 
     # ═══════════════════════════════════════════════════════════════════
-    # Чтение графа — низкоуровневые методы
+    # Graph access — public API (domain-agnostic)
     # ═══════════════════════════════════════════════════════════════════
 
-    def has_node(self, node_type: str, name: str) -> bool:
+    def get_node(
+        self,
+        node_type_or_full_key: str,
+        name: str | None = None,
+    ) -> dict[str, Any] | None:
         """
-        Проверяет существование узла в графе.
+        Return the node record.
 
-        Аргументы:
-            node_type: тип узла.
-            name: имя узла.
-
-        Возвращает:
-            True если узел существует.
+        Call ``get_node("action", "pkg.MyAction")`` or pass the full key
+        ``get_node("action:pkg.MyAction")`` — ``type:name``.
         """
-        return self._make_key(node_type, name) in self._node_index
-
-    def get_node(self, node_type: str, name: str) -> dict[str, Any] | None:
-        """
-        Возвращает payload узла по типу и имени.
-
-        Аргументы:
-            node_type: тип узла.
-            name: имя узла.
-
-        Возвращает:
-            dict с полями node_type, name, class_ref, meta.
-            None если узел не найден.
-        """
-        key = self._make_key(node_type, name)
+        self._require_built()
+        if name is not None:
+            key = self._make_key(node_type_or_full_key, name)
+        else:
+            key = node_type_or_full_key
         idx = self._node_index.get(key)
         if idx is None:
             return None
@@ -584,14 +646,15 @@ class GateCoordinator:
 
     def get_nodes_by_type(self, node_type: str) -> list[dict[str, Any]]:
         """
-        Возвращает все узлы указанного типа.
+        Return every node of the given facet type.
 
-        Аргументы:
-            node_type: тип узлов для поиска.
+        Args:
+            node_type: Facet type to filter by.
 
-        Возвращает:
-            Список dict с данными узлов.
+        Returns:
+            List of node dicts.
         """
+        self._require_built()
         return [
             dict(self._graph[idx])
             for idx in self._graph.node_indices()
@@ -600,18 +663,18 @@ class GateCoordinator:
 
     def get_nodes_for_class(self, cls: type) -> list[dict[str, Any]]:
         """
-        Возвращает все узлы графа, порождённые указанным классом.
+        Return all graph nodes emitted for ``cls``.
 
-        Один класс может порождать несколько узлов от разных инспекторов
-        (например, "role:...", "action:...", "aspect:...").
+        One class may spawn multiple nodes from different inspectors (e.g.
+        ``"role:..."``, ``"action:..."``, ``"aspect:..."``).
 
-        Аргументы:
-            cls: класс Python.
+        Args:
+            cls: Python class.
 
-        Возвращает:
-            Список dict с данными узлов. Пустой список если класс
-            не порождал узлов.
+        Returns:
+            List of node dicts; empty if the class produced no nodes.
         """
+        self._require_built()
         keys = self._class_index.get(cls, [])
         result: list[dict[str, Any]] = []
         for key in keys:
@@ -620,74 +683,48 @@ class GateCoordinator:
                 result.append(dict(self._graph[idx]))
         return result
 
-    def get_node_meta(
-        self, cls: type, node_type: str,
-    ) -> dict[str, Any] | None:
-        """
-        Возвращает meta узла указанного типа для класса.
-
-        Ищет среди узлов, порождённых cls, узел с node_type.
-        Возвращает его meta как dict.
-
-        Аргументы:
-            cls: класс Python.
-            node_type: тип искомого узла.
-
-        Возвращает:
-            dict с метаданными узла. None если узел не найден.
-        """
-        name = BaseGateHostInspector._make_node_name(cls)
-        node = self.get_node(node_type, name)
-        if node is None:
-            return None
-        return node.get("meta")
-
     def get_graph(self) -> rx.PyDiGraph:
         """
-        Возвращает копию графа.
+        Return a copy of the graph.
 
-        Копия — чтобы внешний код не мог модифицировать граф.
+        Copying prevents external code from mutating the coordinator's graph.
 
-        Возвращает:
-            rx.PyDiGraph — копия направленного графа.
+        Returns:
+            ``rx.PyDiGraph`` clone.
         """
+        self._require_built()
         return self._graph.copy()
 
     # ═══════════════════════════════════════════════════════════════════
-    # Рантайм-доступ — типизированные методы
+    # Facet snapshots (storage key is inspector-defined, e.g. "role", "depends")
     # ═══════════════════════════════════════════════════════════════════
 
-    def get_role_spec(self, cls: type) -> Any:
+    def get_snapshot(self, cls: type, facet_key: str) -> BaseFacetSnapshot | None:
         """
-        Возвращает ролевую спецификацию класса.
+        Typed facet snapshot for owner class ``cls`` and storage key ``facet_key``.
 
-        Читает spec из node_meta узла типа "role" для указанного класса.
-
-        Аргументы:
-            cls: класс Action.
-
-        Возвращает:
-            str | list[str] — спецификация ролей.
-            None — если класс не имеет @check_roles.
+        Populated during ``build()`` when the inspector returns a snapshot from
+        ``facet_snapshot_for_class()``. The key may differ from graph
+        ``node_type`` (e.g. ``depends`` / ``connections`` on merged ``action`` nodes).
         """
-        meta = self.get_node_meta(cls, "role")
-        if meta is None:
-            return None
-        return meta.get("spec")
+        self._require_built()
+        return self._facet_snapshots.get((cls, facet_key))
 
     # ═══════════════════════════════════════════════════════════════════
-    # Строковое представление
+    # String representation
     # ═══════════════════════════════════════════════════════════════════
 
     def __repr__(self) -> str:
-        """Компактное строковое представление для отладки."""
+        """Compact debug representation."""
         state = "built" if self._built else "not built"
         inspector_names = ", ".join(i.__name__ for i in self._inspectors)
+        nodes = self._graph.num_nodes() if self._built else 0
+        edges = self._graph.num_edges() if self._built else 0
+        fc = self.__dict__.get(DEPENDENCY_FACTORY_CACHE_KEY)
+        n_factories = len(fc) if isinstance(fc, dict) else 0
         return (
             f"GateCoordinator("
-            f"state={state}, "
-            f"strict={self._strict}, "
-            f"inspectors=[{inspector_names}], "
-            f"nodes={self.graph_node_count}, "
-            f"edges={self.graph_edge_count})"
+            f"state={state}, factories={n_factories}, "
+            f"inspectors=[{inspector_names}], nodes={nodes}, edges={edges}"
+            f")"
         )

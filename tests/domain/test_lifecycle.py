@@ -1,18 +1,29 @@
 # tests/domain/test_lifecycle.py
 """
-Тесты для Lifecycle — декларативного конечного автомата.
+Tests for `Lifecycle` — declarative finite-state machines for entities.
 
 ═══════════════════════════════════════════════════════════════════════════════
-НАЗНАЧЕНИЕ
+PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Проверяет:
-- Создание шаблона Lifecycle через fluent-цепочку.
-- StateType enum (INITIAL, INTERMEDIATE, FINAL).
-- Специализированные классы с _template.
-- Экземпляры с current_state.
-- Переходы (transition) и проверки (can_transition).
-- Ошибки: InvalidStateError, InvalidTransitionError.
+Covers template construction (fluent API), `StateType`, specialized
+`_template` subclasses, instance transitions, and failure paths.
+
+═══════════════════════════════════════════════════════════════════════════════
+TERMINOLOGY
+═══════════════════════════════════════════════════════════════════════════════
+
+**Template** — fluent `Lifecycle()` chain defining states and transitions.
+**Instance** — frozen value object with `current_state` and `transition()`.
+
+═══════════════════════════════════════════════════════════════════════════════
+ERRORS / LIMITATIONS
+═══════════════════════════════════════════════════════════════════════════════
+
+- **InvalidStateError** — unknown state key on an instance.
+- **InvalidTransitionError** — disallowed transition for current state.
+
+Coordinator-level lifecycle integrity validation is tested elsewhere.
 """
 
 import pytest
@@ -26,37 +37,37 @@ from action_machine.domain.lifecycle import (
 
 
 class TestLifecycleTemplate:
-    """Тесты для шаблона Lifecycle (fluent-цепочка)."""
+    """Template `Lifecycle` (fluent chain)."""
 
     def test_create_empty_lifecycle(self):
-        """Создание пустого шаблона."""
+        """Empty template has no states."""
         lifecycle = Lifecycle()
         assert len(lifecycle._states) == 0
 
     def test_add_state(self):
-        """Добавление состояния через fluent-цепочку."""
-        lifecycle = Lifecycle().state("draft", "Черновик").initial()
+        """Add a state via the fluent API."""
+        lifecycle = Lifecycle().state("draft", "Draft").initial()
         assert len(lifecycle._states) == 1
         assert "draft" in lifecycle._states
 
     def test_state_properties(self):
-        """Свойства состояния: ключ, имя, тип."""
-        lifecycle = Lifecycle().state("draft", "Черновик").initial()
+        """State metadata: key, display name, type flags."""
+        lifecycle = Lifecycle().state("draft", "Draft").initial()
         state = lifecycle._states["draft"]
         assert state.key == "draft"
-        assert state.display_name == "Черновик"
+        assert state.display_name == "Draft"
         assert state.state_type == StateType.INITIAL
         assert state.is_initial
         assert not state.is_final
         assert not state.is_intermediate
 
     def test_multiple_states(self):
-        """Несколько состояний разных типов."""
+        """Several states with different classifications."""
         lifecycle = (
             Lifecycle()
-            .state("draft", "Черновик").to("active").initial()
-            .state("active", "Активный").to("archived").intermediate()
-            .state("archived", "Архивирован").final()
+            .state("draft", "Draft").to("active").initial()
+            .state("active", "Active").to("archived").intermediate()
+            .state("archived", "Archived").final()
         )
         assert len(lifecycle._states) == 3
         assert lifecycle._states["draft"].state_type == StateType.INITIAL
@@ -64,13 +75,13 @@ class TestLifecycleTemplate:
         assert lifecycle._states["archived"].state_type == StateType.FINAL
 
     def test_transitions(self):
-        """Переходы между состояниями в шаблоне."""
+        """Transition graph on the template."""
         lifecycle = (
             Lifecycle()
-            .state("draft", "Черновик").to("active", "cancelled").initial()
-            .state("active", "Активный").to("archived").intermediate()
-            .state("archived", "Архивирован").final()
-            .state("cancelled", "Отменён").final()
+            .state("draft", "Draft").to("active", "cancelled").initial()
+            .state("active", "Active").to("archived").intermediate()
+            .state("archived", "Archived").final()
+            .state("cancelled", "Cancelled").final()
         )
         transitions = lifecycle.get_transitions()
         assert transitions["draft"] == {"active", "cancelled"}
@@ -79,131 +90,120 @@ class TestLifecycleTemplate:
         assert transitions["cancelled"] == set()
 
     def test_get_initial_keys(self):
-        """Получение начальных состояний."""
+        """Collect initial state keys."""
         lifecycle = (
             Lifecycle()
-            .state("new", "Новый").to("active").initial()
-            .state("imported", "Импортирован").to("active").initial()
-            .state("active", "Активный").final()
+            .state("new", "New").to("active").initial()
+            .state("imported", "Imported").to("active").initial()
+            .state("active", "Active").final()
         )
         assert lifecycle.get_initial_keys() == {"new", "imported"}
 
     def test_get_final_keys(self):
-        """Получение финальных состояний."""
+        """Collect final state keys."""
         lifecycle = (
             Lifecycle()
-            .state("draft", "Черновик").to("done", "cancelled").initial()
-            .state("done", "Завершён").final()
-            .state("cancelled", "Отменён").final()
+            .state("draft", "Draft").to("done", "cancelled").initial()
+            .state("done", "Done").final()
+            .state("cancelled", "Cancelled").final()
         )
         assert lifecycle.get_final_keys() == {"done", "cancelled"}
 
     def test_has_state(self):
-        """Проверка существования состояния."""
-        lifecycle = Lifecycle().state("draft", "Черновик").initial()
+        """`has_state` reflects declared keys."""
+        lifecycle = Lifecycle().state("draft", "Draft").initial()
         assert lifecycle.has_state("draft")
         assert not lifecycle.has_state("nonexistent")
 
     def test_final_state_with_transitions_raises(self):
-        """Финальное состояние с переходами — ошибка."""
-        with pytest.raises(ValueError, match="не может иметь переходов"):
-            Lifecycle().state("done", "Завершён").to("other").final()
+        """Final state must not declare outgoing transitions."""
+        with pytest.raises(ValueError, match="cannot have outgoing"):
+            Lifecycle().state("done", "Done").to("other").final()
 
     def test_duplicate_state_raises(self):
-        """Дублирование ключа состояния — ошибка."""
-        with pytest.raises(ValueError, match="уже объявлено"):
+        """Duplicate state key is rejected."""
+        with pytest.raises(ValueError, match="already defined"):
             (
                 Lifecycle()
-                .state("draft", "Черновик").initial()
-                .state("draft", "Дубликат").initial()
+                .state("draft", "Draft").initial()
+                .state("draft", "Duplicate").initial()
             )
 
     def test_uncompleted_state_raises(self):
-        """Незавершённое состояние перед новым — ошибка."""
+        """Starting a new state before finalizing the previous one fails."""
         lc = Lifecycle()
-        lc.state("draft", "Черновик")  # возвращает _StateBuilder, не завершён
-        with pytest.raises(RuntimeError, match="не завершено"):
-            lc.state("active", "Активный")  # вызываем state() на Lifecycle, не на builder
+        lc.state("draft", "Draft")
+        with pytest.raises(RuntimeError, match="not complete"):
+            lc.state("active", "Active")
 
     def test_double_finalize_raises(self):
-        """Двойной вызов initial/intermediate/final — ошибка."""
-        builder = Lifecycle().state("draft", "Черновик")
+        """Calling initial/intermediate/final twice on the same builder fails."""
+        builder = Lifecycle().state("draft", "Draft")
         builder.initial()
-        with pytest.raises(RuntimeError, match="уже завершено"):
+        with pytest.raises(RuntimeError, match="already complete"):
             builder.initial()
 
 
 class TestSpecializedLifecycle:
-    """Тесты для специализированных классов Lifecycle с _template."""
+    """Specialized `Lifecycle` subclasses with `_template`."""
 
     def setup_method(self):
-        """Создаёт специализированный класс для каждого теста."""
-
         class TestLC(Lifecycle):
             _template = (
                 Lifecycle()
-                .state("draft", "Черновик").to("active").initial()
-                .state("active", "Активный").to("archived").intermediate()
-                .state("archived", "Архивирован").final()
+                .state("draft", "Draft").to("active").initial()
+                .state("active", "Active").to("archived").intermediate()
+                .state("archived", "Archived").final()
             )
 
         self.TestLC = TestLC
 
     def test_create_instance(self):
-        """Создание экземпляра с текущим состоянием."""
+        """Construct instance with current state key."""
         lc = self.TestLC("draft")
         assert lc.current_state == "draft"
 
     def test_invalid_state_raises(self):
-        """Неизвестное состояние при создании — ошибка."""
-        with pytest.raises(InvalidStateError, match="не объявлено"):
+        """Unknown state key at construction time."""
+        with pytest.raises(InvalidStateError, match="not defined"):
             self.TestLC("nonexistent")
 
     def test_is_initial(self):
-        """Проверка is_initial."""
-        lc = self.TestLC("draft")
-        assert lc.is_initial
-        assert not lc.is_final
+        assert self.TestLC("draft").is_initial
+        assert not self.TestLC("draft").is_final
 
     def test_is_final(self):
-        """Проверка is_final."""
         lc = self.TestLC("archived")
         assert lc.is_final
         assert not lc.is_initial
 
     def test_available_transitions(self):
-        """Доступные переходы из текущего состояния."""
         lc = self.TestLC("draft")
         assert lc.available_transitions == {"active"}
 
     def test_can_transition(self):
-        """Проверка допустимости перехода."""
         lc = self.TestLC("draft")
         assert lc.can_transition("active")
         assert not lc.can_transition("archived")
 
     def test_transition(self):
-        """Переход создаёт новый экземпляр."""
+        """`transition` returns a new instance; original unchanged."""
         lc = self.TestLC("draft")
         new_lc = lc.transition("active")
 
         assert new_lc.current_state == "active"
-        assert lc.current_state == "draft"  # старый не изменился
+        assert lc.current_state == "draft"
         assert type(new_lc) is self.TestLC
 
     def test_invalid_transition_raises(self):
-        """Недопустимый переход — ошибка."""
-        lc = self.TestLC("draft")
-        with pytest.raises(InvalidTransitionError, match="недопустим"):
-            lc.transition("archived")
+        with pytest.raises(InvalidTransitionError, match="not allowed"):
+            self.TestLC("draft").transition("archived")
 
     def test_final_state_no_transitions(self):
-        """Финальное состояние — нет доступных переходов."""
         lc = self.TestLC("archived")
         assert lc.available_transitions == set()
 
     def test_template_access(self):
-        """Доступ к _template для координатора."""
         template = self.TestLC._get_template()
         assert template is not None
         assert len(template.get_states()) == 3
@@ -211,19 +211,16 @@ class TestSpecializedLifecycle:
         assert template.get_final_keys() == {"archived"}
 
     def test_equality(self):
-        """Два экземпляра с одинаковым состоянием равны."""
         lc1 = self.TestLC("draft")
         lc2 = self.TestLC("draft")
         assert lc1 == lc2
 
     def test_inequality(self):
-        """Два экземпляра с разным состоянием не равны."""
         lc1 = self.TestLC("draft")
         lc2 = self.TestLC("active")
         assert lc1 != lc2
 
     def test_hash(self):
-        """Hash одинаковых экземпляров совпадает."""
         lc1 = self.TestLC("draft")
         lc2 = self.TestLC("draft")
         assert hash(lc1) == hash(lc2)

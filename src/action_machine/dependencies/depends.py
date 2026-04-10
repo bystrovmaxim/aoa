@@ -8,7 +8,7 @@
 
 Прикрепляет к классу действия информацию о требуемой зависимости.
 При выполнении действия машина (ActionProductMachine) читает список зависимостей
-через ClassMetadata, создаёт DependencyFactory и передаёт в ToolsBox,
+через runtime metadata cache, создаёт DependencyFactory и передаёт в ToolsBox,
 откуда аспект получает зависимость через box.resolve(PaymentService).
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -42,11 +42,11 @@
         ▼  Декоратор записывает в cls._depends_info
     DependencyInfo(cls=PaymentService, description="Сервис оплаты")
         │
-        ▼  MetadataBuilder.build(cls) → collectors.collect_dependencies(cls)
-    ClassMetadata.dependencies = (DependencyInfo(...), ...)
+        ▼  DependencyGateHostInspector reads _depends_info
+    Снимок: ``coordinator.get_snapshot(cls, \"depends\")`` → зависимости …
         │
-        ▼  GateCoordinator.get_factory(cls)
-    DependencyFactory(metadata.dependencies)
+        ▼  ``cached_dependency_factory(coordinator, cls)``
+    ``DependencyFactory`` из снимка ``depends``
         │
         ▼  ToolsBox.resolve(PaymentService)
     factory.resolve(PaymentService) → PaymentService()

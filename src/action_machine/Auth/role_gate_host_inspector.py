@@ -1,235 +1,161 @@
+```python
 # src/action_machine/auth/role_gate_host_inspector.py
 """
-RoleGateHostInspector — инспектор гейтхоста ролей для построения графа.
+Role gate-host inspector for role facet snapshots.
 
 ═══════════════════════════════════════════════════════════════════════════════
-НАЗНАЧЕНИЕ
+PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-RoleGateHostInspector обходит всех наследников маркерного миксина
-RoleGateHost, обнаруживает классы с декоратором @check_roles и собирает
-из них FacetPayload для графа координатора.
+Walk subclasses of ``RoleGateHost``, extract role specifications from classes
+decorated with ``@check_roles``, and produce ``FacetPayload`` nodes for the
+coordinator graph.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ДВА КЛАССА — ДВЕ ОТВЕТСТВЕННОСТИ
+ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-    RoleGateHost (маркерный миксин, auth/role_gate_host.py)
-        Живёт в MRO класса BaseAction. Разрешает применение декоратора
-        @check_roles через issubclass-проверку. Не содержит логики
-        инспекции. Не наследует BaseGateHostInspector. Не меняется.
+::
 
-    RoleGateHostInspector (инспектор, этот файл)
-        Наследует BaseGateHostInspector. Реализует inspect() и
-        _build_payload(). Обходит наследников RoleGateHost через
-        _target_mixin. Регистрируется в координаторе.
+    @check_roles("admin")
+          │
+          ▼
+    cls._role_info = {"spec": "admin"}
+          │
+          ▼
+    RoleGateHostInspector.inspect()
+          │
+          ▼
+    Snapshot.from_target() → FacetPayload(node_type="role")
+          │
+          ▼
+    GateCoordinator graph node ``role:<class_name>``
 
-Связь между ними — поле _target_mixin. Инспектор знает, наследников
-какого маркера обходить. Маркер не знает про инспектор.
-
-═══════════════════════════════════════════════════════════════════════════════
-ДАННЫЕ, СОБИРАЕМЫЕ ИНСПЕКТОРОМ
-═══════════════════════════════════════════════════════════════════════════════
-
-Декоратор @check_roles при применении записывает на класс атрибут:
-
-    cls._role_info = {"spec": "admin"}           # одна роль
-    cls._role_info = {"spec": ["user", "mgr"]}   # список ролей
-    cls._role_info = {"spec": "__NONE__"}         # ROLE_NONE
-    cls._role_info = {"spec": "__ANY__"}          # ROLE_ANY
-
-Инспектор читает _role_info и формирует узел графа типа "role"
-с метаданными spec.
+The inspector uses ``_target_mixin = RoleGateHost`` to discover candidate
+classes. For each class with a non‑null ``_role_info``, it builds a payload
+containing the role spec. No outgoing edges are added.
 
 ═══════════════════════════════════════════════════════════════════════════════
-УЗЕЛ В ГРАФЕ
+INVARIANTS
 ═══════════════════════════════════════════════════════════════════════════════
 
-    node_type : "role"
-    node_name : "module.CreateOrderAction" (полное имя класса)
-    node_meta : (("spec", "admin"),)
-    edges     : () — ролевой узел не имеет исходящих рёбер
-
-Ключ в графе координатора: "role:module.CreateOrderAction".
-
-═══════════════════════════════════════════════════════════════════════════════
-ЛОГИКА inspect()
-═══════════════════════════════════════════════════════════════════════════════
-
-    1. getattr(target_cls, "_role_info", None)
-    2. Если None → return None (класс без @check_roles, пропускаем)
-    3. Если не None → _build_payload() → return payload
-
-Инспектор НЕ выбрасывает TypeError при отсутствии _role_info. Класс
-может наследовать RoleGateHost через BaseAction, но не иметь @check_roles.
-Это допустимо — машина (ActionProductMachine) проверит наличие ролей
-при выполнении и выбросит TypeError если роли обязательны.
+- Only classes inheriting ``RoleGateHost`` are inspected.
+- A class may inherit ``RoleGateHost`` without ``@check_roles``; such classes
+  produce ``None`` from ``inspect()``.
+- The ``spec`` value is taken directly from ``_role_info["spec"]``.
+- The facet storage key is ``"role"``.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ВАЛИДАЦИЯ
-═══════════════════════════════════════════════════════════════════════════════
-
-Валидация разделена между двумя уровнями:
-
-    Декоратор @check_roles (import-time):
-        Проверяет аргументы при определении класса — spec является
-        строкой или списком строк, пустой список запрещён, элементы
-        списка — строки. Ошибки обнаруживаются немедленно при импорте.
-
-    Координатор GateCoordinator.build() (build-time):
-        Глобальные структурные проверки — уникальность ключей узлов,
-        ссылочная целостность рёбер, ацикличность структурных рёбер.
-
-Логика проверки не размазывается. Декоратор отвечает за свои аргументы,
-координатор — за целостность графа.
-
-═══════════════════════════════════════════════════════════════════════════════
-ОБХОД НАСЛЕДНИКОВ
-═══════════════════════════════════════════════════════════════════════════════
-
-_subclasses_recursive() переопределён: обходит наследников _target_mixin
-(RoleGateHost) через хелпер _collect_subclasses() базового класса,
-а не наследников самого RoleGateHostInspector.
-
-Координатор вызывает RoleGateHostInspector._subclasses_recursive()
-и получает [BaseAction, CreateOrderAction, UpdateOrderAction, ...].
-Затем для каждого вызывает inspect(). BaseAction без @check_roles →
-None (пропущен). CreateOrderAction с @check_roles → FacetPayload.
-
-═══════════════════════════════════════════════════════════════════════════════
-ПРИМЕР
+EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
     @check_roles("admin")
     class AdminAction(BaseAction[AdminParams, AdminResult]):
         ...
 
-    # Координатор при build():
-    # RoleGateHostInspector.inspect(AdminAction)
-    # → FacetPayload(
-    #       node_type="role",
-    #       node_name="myapp.actions.AdminAction",
-    #       node_class=AdminAction,
-    #       node_meta=(("spec", "admin"),),
-    #       edges=(),
-    #   )
+    # inspect(AdminAction) → FacetPayload(
+    #     node_type="role",
+    #     node_name="module.AdminAction",
+    #     node_meta=(("spec", "admin"),),
+    #     edges=()
+    # )
 
     @check_roles(ROLE_NONE)
     class PingAction(BaseAction[BaseParams, BaseResult]):
         ...
 
-    # RoleGateHostInspector.inspect(PingAction)
-    # → FacetPayload(
-    #       node_type="role",
-    #       node_name="myapp.actions.PingAction",
-    #       node_class=PingAction,
-    #       node_meta=(("spec", "__NONE__"),),
-    #       edges=(),
-    #   )
+    # inspect(PingAction) → spec = "__NONE__"
 
     class BaseAction(ABC, RoleGateHost, ...):
         ...
 
-    # RoleGateHostInspector.inspect(BaseAction)
-    # → None (нет _role_info)
+    # inspect(BaseAction) → None (no _role_info)
+
+═══════════════════════════════════════════════════════════════════════════════
+ERRORS / LIMITATIONS
+═══════════════════════════════════════════════════════════════════════════════
+
+- The inspector does not validate the role spec; validation is performed by
+  ``@check_roles`` at import time and by the machine at runtime.
+- Global graph checks (key uniqueness, acyclicity) are performed by
+  ``GateCoordinator.build()``.
+
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE-BEGIN
+═══════════════════════════════════════════════════════════════════════════════
+ROLE: Role facet inspector.
+CONTRACT: Convert ``_role_info`` into a ``FacetPayload`` of type ``"role"``.
+INVARIANTS: Target mixin is RoleGateHost; storage key is "role"; no edges.
+FLOW: _role_info present → Snapshot → FacetPayload → coordinator graph.
+FAILURES: Returns None when ``_role_info`` is missing.
+EXTENSION POINTS: Payload consumed by coordinator and role-checking runtime.
+AI-CORE-END
+═══════════════════════════════════════════════════════════════════════════════
 """
 
 from __future__ import annotations
 
+from dataclasses import dataclass
+from typing import Any
+
 from action_machine.auth.role_gate_host import RoleGateHost
+from action_machine.metadata.base_facet_snapshot import BaseFacetSnapshot
 from action_machine.metadata.base_gate_host_inspector import BaseGateHostInspector
 from action_machine.metadata.payload import FacetPayload
 
 
 class RoleGateHostInspector(BaseGateHostInspector):
     """
-    Инспектор гейтхоста ролей.
+    Role gate-host inspector.
 
-    Обходит наследников RoleGateHost, обнаруживает классы с декоратором
-    @check_roles и собирает FacetPayload с ролевой спецификацией
-    для графа координатора.
-
-    Узел в графе: тип "role", без исходящих рёбер.
-    Метаданные узла: spec (строка, список строк, ROLE_NONE, ROLE_ANY).
-
-    Атрибуты класса:
-        _target_mixin : type
-            Маркерный миксин, наследников которого обходит инспектор.
-            RoleGateHost — миксин, разрешающий @check_roles.
+    Walks ``RoleGateHost`` subclasses, detects ``@check_roles``, and builds
+    ``FacetPayload`` with role ``spec`` for the coordinator.
     """
 
     _target_mixin: type = RoleGateHost
 
-    # ═══════════════════════════════════════════════════════════════════
-    # Обход наследников маркерного миксина
-    # ═══════════════════════════════════════════════════════════════════
+    @dataclass(frozen=True)
+    class Snapshot(BaseFacetSnapshot):
+        """Typed role facet for a target class."""
+
+        class_ref: type
+        spec: Any
+
+        def to_facet_payload(self) -> FacetPayload:
+            return FacetPayload(
+                node_type="role",
+                node_name=RoleGateHostInspector._make_node_name(self.class_ref),
+                node_class=self.class_ref,
+                node_meta=RoleGateHostInspector._make_meta(spec=self.spec),
+                edges=(),
+            )
+
+        @classmethod
+        def from_target(cls, target_cls: type) -> RoleGateHostInspector.Snapshot:
+            info = target_cls._role_info
+            return cls(class_ref=target_cls, spec=info["spec"])
 
     @classmethod
     def _subclasses_recursive(cls) -> list[type]:
-        """
-        Возвращает всех наследников RoleGateHost.
-
-        Переопределяет метод BaseGateHostInspector, чтобы обходить
-        наследников маркерного миксина (_target_mixin), а не
-        наследников самого RoleGateHostInspector.
-
-        Использует хелпер _collect_subclasses() из базового класса
-        BaseGateHostInspector.
-
-        Координатор вызывает этот метод при build() и получает
-        список классов для инспекции: [BaseAction, CreateOrderAction, ...].
-        Классы без @check_roles будут отфильтрованы в inspect() → None.
-
-        Возвращает:
-            list[type] — все наследники RoleGateHost.
-        """
+        """Return all subclasses of ``RoleGateHost``."""
         return cls._collect_subclasses(cls._target_mixin)
-
-    # ═══════════════════════════════════════════════════════════════════
-    # Контракт BaseGateHostInspector
-    # ═══════════════════════════════════════════════════════════════════
 
     @classmethod
     def inspect(cls, target_cls: type) -> FacetPayload | None:
-        """
-        Проверяет наличие @check_roles и собирает данные.
-
-        Читает атрибут _role_info, записанный декоратором @check_roles.
-        Если атрибут отсутствует — класс не имеет ролевых ограничений,
-        возвращает None. Если присутствует — собирает payload.
-
-        Аргументы:
-            target_cls: класс для инспекции (наследник RoleGateHost).
-
-        Возвращает:
-            FacetPayload — класс имеет @check_roles, данные собраны.
-            None — класс не имеет @check_roles (нет _role_info).
-        """
+        """Build payload if ``@check_roles`` is present."""
         role_info = getattr(target_cls, "_role_info", None)
         if role_info is None:
             return None
         return cls._build_payload(target_cls)
 
     @classmethod
+    def facet_snapshot_for_class(cls, target_cls: type) -> RoleGateHostInspector.Snapshot | None:
+        if getattr(target_cls, "_role_info", None) is None:
+            return None
+        return cls.Snapshot.from_target(target_cls)
+
+    @classmethod
     def _build_payload(cls, target_cls: type) -> FacetPayload:
-        """
-        Собирает FacetPayload из _role_info класса.
-
-        Формирует узел типа "role" с метаданными spec. Рёбра
-        отсутствуют — ролевой узел не ссылается на другие узлы.
-
-        Аргументы:
-            target_cls: класс с атрибутом _role_info.
-
-        Возвращает:
-            FacetPayload с node_type="role" и spec в node_meta.
-        """
-        return FacetPayload(
-            node_type="role",
-            node_name=cls._make_node_name(target_cls),
-            node_class=target_cls,
-            node_meta=cls._make_meta(
-                spec=target_cls._role_info["spec"],
-            ),
-            edges=(),
-        )
+        """Build a ``role`` node from ``_role_info``."""
+        return cls.Snapshot.from_target(target_cls).to_facet_payload()
+```

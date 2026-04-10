@@ -52,8 +52,8 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from action_machine.core.gate_coordinator import GateCoordinator
 from action_machine.logging.log_coordinator import LogCoordinator
+from action_machine.core.core_action_machine import CoreActionMachine
 from action_machine.plugins.decorators import on
 from action_machine.plugins.events import (
     GlobalFinishEvent,
@@ -176,7 +176,7 @@ class TestPluginsIntegration:
         storage: list = []
         plugin = ExternalCounterPlugin(storage)
         bench = TestBench(
-            coordinator=GateCoordinator(),
+            coordinator=CoreActionMachine.create_coordinator(),
             log_coordinator=LogCoordinator(loggers=[]),
             plugins=[plugin],
         )
@@ -206,7 +206,7 @@ class TestPluginsIntegration:
         storage: list = []
         plugin = ExternalCounterPlugin(storage)
         bench = TestBench(
-            coordinator=GateCoordinator(),
+            coordinator=CoreActionMachine.create_coordinator(),
             log_coordinator=LogCoordinator(loggers=[]),
             plugins=[plugin],
         )
@@ -235,7 +235,7 @@ class TestPluginsIntegration:
         storage: list = []
         plugin = ExternalRecorderPlugin(storage)
         bench = TestBench(
-            coordinator=GateCoordinator(),
+            coordinator=CoreActionMachine.create_coordinator(),
             log_coordinator=LogCoordinator(loggers=[]),
             plugins=[plugin],
         )
@@ -263,7 +263,7 @@ class TestPluginsIntegration:
         storage: list = []
         plugin = SelectiveCounterPlugin(storage)
         bench = TestBench(
-            coordinator=GateCoordinator(),
+            coordinator=CoreActionMachine.create_coordinator(),
             log_coordinator=LogCoordinator(loggers=[]),
             plugins=[plugin],
         )
@@ -302,7 +302,7 @@ class TestPluginsIntegration:
         recorder_plugin = ExternalRecorderPlugin(recorder_storage)
 
         bench = TestBench(
-            coordinator=GateCoordinator(),
+            coordinator=CoreActionMachine.create_coordinator(),
             log_coordinator=LogCoordinator(loggers=[]),
             plugins=[counter_plugin, recorder_plugin],
         )
@@ -337,7 +337,7 @@ class TestPluginsIntegration:
         storage: list = []
         plugin = ExternalCounterPlugin(storage)
         bench = TestBench(
-            coordinator=GateCoordinator(),
+            coordinator=CoreActionMachine.create_coordinator(),
             log_coordinator=LogCoordinator(loggers=[]),
             mocks={
                 PaymentService: mock_payment,

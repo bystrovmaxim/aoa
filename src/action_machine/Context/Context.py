@@ -1,12 +1,12 @@
 # src/action_machine/context/context.py
 """
-Context — контекст выполнения действия.
+Context — context выполнения действия.
 
 ═══════════════════════════════════════════════════════════════════════════════
-НАЗНАЧЕНИЕ
+PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Context — корневой объект контекста, объединяющий информацию о пользователе
+Context — корневой объект contextа, объединяющий информацию о пользователе
 (UserInfo), входящем запросе (RequestInfo) и среде выполнения (RuntimeInfo).
 
 Создаётся один раз на каждый запрос координатором аутентификации
@@ -57,7 +57,7 @@ ValidationError.
 АНОНИМНЫЙ КОНТЕКСТ
 ═══════════════════════════════════════════════════════════════════════════════
 
-Context() без аргументов создаёт анонимный контекст: пустой UserInfo
+Context() без аргументов создаёт анонимный context: пустой UserInfo
 (user_id=None, roles=[]), пустой RequestInfo и пустой RuntimeInfo.
 Используется NoAuthCoordinator для открытых API.
 
@@ -94,7 +94,7 @@ Context наследует resolve() от BaseSchema, что позволяет 
         ip = ctx.get(Ctx.Request.client_ip)       # → "192.168.1.1"
         return {}
 
-ContextView делегирует в context.resolve(key) для получения значений.
+ContextView делегирует в context.resolve(key) для gotия значений.
 
 ═══════════════════════════════════════════════════════════════════════════════
 DICT-ПОДОБНЫЙ ДОСТУП (унаследован от BaseSchema)
@@ -112,7 +112,7 @@ DICT-ПОДОБНЫЙ ДОСТУП (унаследован от BaseSchema)
     ctx.resolve("user.user_id")          # → "agent_123"
 
 ═══════════════════════════════════════════════════════════════════════════════
-ПРИМЕР ИСПОЛЬЗОВАНИЯ
+EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
     from action_machine.context.context import Context
@@ -120,7 +120,7 @@ DICT-ПОДОБНЫЙ ДОСТУП (унаследован от BaseSchema)
     from action_machine.context.request_info import RequestInfo
     from action_machine.context.runtime_info import RuntimeInfo
 
-    # Полный контекст:
+    # Полный context:
     ctx = Context(
         user=UserInfo(user_id="john_doe", roles=["user", "manager"]),
         request=RequestInfo(
@@ -140,7 +140,7 @@ DICT-ПОДОБНЫЙ ДОСТУП (унаследован от BaseSchema)
     ctx.resolve("request.trace_id")       # → "abc-123"
     ctx.resolve("runtime.service_name")   # → "orders-api"
 
-    # Анонимный контекст:
+    # Анонимный context:
     anon_ctx = Context()
     anon_ctx.resolve("user.user_id")      # → None
     anon_ctx.resolve("user.roles")        # → []

@@ -1,195 +1,167 @@
 # src/action_machine/domain/base_domain.py
 """
-Модуль: BaseDomain — абстрактный базовый класс для всех доменов ActionMachine.
-═══════════════════════════════════════════════════════════════════════════════
-НАЗНАЧЕНИЕ
-═══════════════════════════════════════════════════════════════════════════════
-BaseDomain — абстрактный базовый класс (ABC), от которого наследуются все
-домены в системе. Домен — это типизированный маркер принадлежности действия
-и сущности к бизнес-области. Он не содержит логики, не хранит состояния
-и не имеет методов помимо валидации.
+Abstract base for all **domain markers** in ActionMachine.
 
-Наследование от ABC подчёркивает, что BaseDomain нельзя использовать
-напрямую — только через конкретные подклассы с определёнными ``name``
-и ``description``.
-
-Два обязательных атрибута:
-
-    name : ClassVar[str]
-        Уникальное строковое имя бизнес-области. Используется:
-        - В графе GateCoordinator как имя узла типа "domain".
-        - В логах и интроспекции для идентификации домена.
-        - В фильтрах плагинов для маршрутизации событий по доменам.
-
-    description : ClassVar[str]
-        Текстовое описание бизнес-области. Используется:
-        - В ArchiMate-диаграммах как описание домена.
-        - В автогенерированной документации.
-        - В интроспекции через координатор.
-        Описание обязательно, потому что модель без описаний — это код,
-        а не спецификация. Отсутствие описания — ошибка сборки.
+A domain is a typed class-level tag that groups actions, entities, and other
+facets under one business area. It carries no runtime behavior and no instance
+state—only validated ``ClassVar`` metadata consumed by coordinators and
+documentation exporters.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ИНВАРИАНТЫ
-═══════════════════════════════════════════════════════════════════════════════
-1. Имя класса обязано заканчиваться на "Domain". Проверяется в
-   ``__init_subclass__``. Нарушение → NamingSuffixError.
-
-2. ``name`` — обязательный атрибут. Класс без ``name`` или с пустым ``name``
-   вызывает ``ValueError`` при создании подкласса (в ``__init_subclass__``).
-3. ``name`` — строка (str). Нестроковый тип вызывает ``TypeError``.
-4. ``name`` — непустая строка после strip(). Пробельные строки ("  ")
-   считаются пустыми и вызывают ``ValueError``.
-
-5. ``description`` — обязательный атрибут. Класс без ``description`` или
-   с пустым ``description`` вызывает ``ValueError``.
-6. ``description`` — строка (str). Нестроковый тип вызывает ``TypeError``.
-7. ``description`` — непустая строка после strip().
-
-8. BaseDomain сам по себе не проверяется — валидация срабатывает только
-   при создании конкретных подклассов.
-
-9. Промежуточные абстрактные подклассы (без ``name`` и ``description``
-   в ``__dict__``, но добавляющие общие методы или атрибуты) допускаются —
-   валидация name и description пропускается, если они определены выше
-   в MRO. Но проверка суффикса "Domain" в имени класса выполняется ВСЕГДА.
-
-═══════════════════════════════════════════════════════════════════════════════
-АРХИТЕКТУРА
+PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-    class BaseDomain(ABC):
-        name: ClassVar[str]             ← обязательный атрибут
-        description: ClassVar[str]      ← обязательный атрибут
-        __init_subclass__()             ← валидация суффикса + name + description
+``BaseDomain`` lets code refer to ``OrdersDomain`` instead of bare strings like
+``"orders"``, so typos break at import time, IDEs can navigate and rename, and
+metadata (name + human-readable description) stays attached to a single type.
+
+═══════════════════════════════════════════════════════════════════════════════
+SCOPE (IN / OUT)
+═══════════════════════════════════════════════════════════════════════════════
+
+**In scope**
+    Enforcing the ``*Domain`` class-name suffix.
+    Validating ``name`` and ``description`` as non-empty strings on concrete
+    domain classes (with a defined MRO escape hatch for intermediate bases).
+
+**Out of scope**
+    Domain logic, workflows, or persistence.
+    Uniqueness of ``name`` across the whole program (multiple classes may
+    legally share the same string until a higher layer forbids it).
+    Registering domains in ``GateCoordinator``—that happens at **build** time
+    via inspectors, not in this module.
+
+═══════════════════════════════════════════════════════════════════════════════
+TERMINOLOGY (USE CONSISTENTLY)
+═══════════════════════════════════════════════════════════════════════════════
+
+**Gate host / decorator / scratch / inspector / gate coordinator** — same
+meaning as in ``action_machine.domain`` and metadata packages: domains are
+**referenced** by type from decorators (e.g. ``@entity(..., domain=...)``); the
+coordinator graph is built elsewhere from those references.
+
+═══════════════════════════════════════════════════════════════════════════════
+ARCHITECTURE / DATA FLOW
+═══════════════════════════════════════════════════════════════════════════════
+
+::
+
+    BaseDomain (ABC)
+        ├── __init_subclass__  → suffix check → _validate_class_attr(name)
+        │                                              → _validate_class_attr(description)
+        └── concrete:  class OrdersDomain(BaseDomain):
+                            name = "orders"
+                            description = "…"
+
+Conceptual use (declarations only)::
+
+    @meta(..., domain=OrdersDomain)
+    @entity(..., domain=OrdersDomain)
+
+═══════════════════════════════════════════════════════════════════════════════
+INVARIANTS
+═══════════════════════════════════════════════════════════════════════════════
+
+- Every subclass name **must** end with ``"Domain"`` → else ``NamingSuffixError``
+  at **class definition** time (including intermediate abstract subclasses).
+- Leaf domains must expose non-empty ``str`` values for ``name`` and
+  ``description`` (after ``strip()``), either on the class or on an intermediate
+  base **below** ``BaseDomain`` in the MRO.
+- ``BaseDomain`` itself is not validated as a subclass body; rules apply when
+  **subclasses** are defined.
+
+═══════════════════════════════════════════════════════════════════════════════
+RATIONALE
+═══════════════════════════════════════════════════════════════════════════════
+
+String-only domain identifiers hide typos until runtime or log analysis. A class
+per domain gives static checking, refactoring, and a natural place for
+``description`` text used in diagrams and generated docs. Requiring non-empty
+descriptions matches the rest of ActionMachine: undocumented models are treated
+as incomplete specifications, not silent defaults.
+
+═══════════════════════════════════════════════════════════════════════════════
+LIFECYCLE (IMPORT VS BUILD VS RUNTIME)
+═══════════════════════════════════════════════════════════════════════════════
+
+- **Import / class body**: ``__init_subclass__`` runs; suffix and attributes are
+  validated immediately when the subclass statement executes.
+- **Coordinator ``build()``**: reads domain types from scratch elsewhere; no
+  extra validation in this file.
+
+═══════════════════════════════════════════════════════════════════════════════
+EXAMPLES
+═══════════════════════════════════════════════════════════════════════════════
+
+Valid — concrete domain::
 
     class OrdersDomain(BaseDomain):
         name = "orders"
-        description = "Домен заказов — обработка, оплата, доставка"
+        description = "Order capture, payment, and fulfillment"
 
-    class CrmDomain(BaseDomain):
-        name = "crm"
-        description = "Управление взаимоотношениями с клиентами"
+Valid — intermediate base without ``name`` / ``description``, then concrete::
 
-    # Домен — это класс. Не экземпляр, не строка.
-    # Используется как тип: @meta(domain=OrdersDomain)
-    # Или для сущностей: @entity(description="...", domain=OrdersDomain)
-
-═══════════════════════════════════════════════════════════════════════════════
-ПОЧЕМУ КЛАСС, А НЕ СТРОКА
-═══════════════════════════════════════════════════════════════════════════════
-Строковые домены ("orders", "crm") страдают от трёх проблем:
-
-1. ОПЕЧАТКИ НЕ ОБНАРУЖИВАЮТСЯ. Строка "ordres" вместо "orders" —
-   молчаливый баг, обнаруживаемый только при анализе логов или графа.
-   Класс OrdersDomain при опечатке → ImportError при импорте.
-
-2. IDE НЕ ПОМОГАЕТ. Строки не автодополняются. Класс — автодополняется.
-
-3. РЕФАКТОРИНГ НЕ РАБОТАЕТ. Переименование строки "orders" → "order"
-   требует ручного поиска по всему коду. Переименование класса
-   OrdersDomain → OrderDomain — одна команда в IDE.
-
-═══════════════════════════════════════════════════════════════════════════════
-ПОЧЕМУ ОПИСАНИЕ ОБЯЗАТЕЛЬНО
-═══════════════════════════════════════════════════════════════════════════════
-Домен без описания — это просто строка с именем. Описание превращает
-его в документированную бизнес-область:
-
-- ArchiMate-экспортёр использует description для аннотации узла домена
-  на диаграмме.
-- Автогенерированная документация показывает description в каталоге
-  доменов.
-- Новый разработчик видит назначение домена без чтения исходников
-  всех Action, привязанных к нему.
-
-Отсутствие описания — ошибка сборки, а не предупреждение. Это общий
-принцип ActionMachine: модель без описаний — это код, а не спецификация.
-
-═══════════════════════════════════════════════════════════════════════════════
-ПРИМЕР ОПРЕДЕЛЕНИЯ ДОМЕНОВ
-═══════════════════════════════════════════════════════════════════════════════
-
-    class OrdersDomain(BaseDomain):
-        name = "orders"
-        description = "Домен заказов — обработка, оплата, доставка"
-
-    class CrmDomain(BaseDomain):
-        name = "crm"
-        description = "Управление взаимоотношениями с клиентами"
-
-    class WarehouseDomain(BaseDomain):
-        name = "warehouse"
-        description = "Складской учёт — приёмка, хранение, отгрузка"
-
-═══════════════════════════════════════════════════════════════════════════════
-ПРИМЕР ПРОМЕЖУТОЧНОГО АБСТРАКТНОГО ДОМЕНА
-═══════════════════════════════════════════════════════════════════════════════
-
-    # Промежуточный класс без name и description — допускается.
-    # Но суффикс "Domain" обязателен.
     class ExternalServiceDomain(BaseDomain):
         is_external = True
 
-    # Конкретные домены задают name и description:
     class StripeDomain(ExternalServiceDomain):
         name = "stripe"
-        description = "Интеграция с платёжной системой Stripe"
+        description = "Card payments via Stripe"
 
-    class TwilioDomain(ExternalServiceDomain):
-        name = "twilio"
-        description = "Интеграция с сервисом SMS и звонков Twilio"
+Edge — bad class name::
 
-═══════════════════════════════════════════════════════════════════════════════
-ПРИМЕР ОШИБОК
-═══════════════════════════════════════════════════════════════════════════════
-
-    # Без суффикса "Domain" → NamingSuffixError при определении класса
     class Orders(BaseDomain):
         name = "orders"
-        description = "Заказы"
-    # NamingSuffixError: Класс 'Orders' наследует BaseDomain, но не имеет
-    # суффикса 'Domain'. Переименуйте в 'OrdersDomain'.
+        description = "Orders"
+    # NamingSuffixError
 
-    # Без name → ValueError при определении класса
+Edge — missing ``description``::
+
+    class OnlyNameDomain(BaseDomain):
+        name = "only"
+    # ValueError: missing 'description'
+
+═══════════════════════════════════════════════════════════════════════════════
+ERROR EXAMPLES (MESSAGE SHAPES)
+═══════════════════════════════════════════════════════════════════════════════
+
+Naming suffix::
+
+    class Orders(BaseDomain):
+        name = "orders"
+        description = "Orders"
+    # NamingSuffixError: ... inherits from BaseDomain ... suffix 'Domain' ...
+
+Missing attribute::
+
     class BadDomain(BaseDomain):
-        description = "Есть описание, но нет имени"
-    # ValueError: Класс 'BadDomain' наследует BaseDomain,
-    # но не определяет атрибут 'name'.
+        description = "Has description but no name"
+    # ValueError: ... does not define ... 'name' ...
 
-    # Без description → ValueError при определении класса
-    class NoDescDomain(BaseDomain):
-        name = "no_desc"
-    # ValueError: Класс 'NoDescDomain' наследует BaseDomain,
-    # но не определяет атрибут 'description'.
+Empty string::
 
-    # Пустой name → ValueError
     class EmptyDomain(BaseDomain):
         name = ""
-        description = "Описание есть"
-    # ValueError: Атрибут 'name' класса 'EmptyDomain' не может быть
-    # пустой строкой.
+        description = "Has description"
+    # ValueError: ... cannot be empty or whitespace-only ...
 
-    # Пустой description → ValueError
-    class EmptyDescDomain(BaseDomain):
-        name = "empty_desc"
-        description = ""
-    # ValueError: Атрибут 'description' класса 'EmptyDescDomain'
-    # не может быть пустой строкой.
+Wrong type::
 
-    # Нестроковый name → TypeError
     class IntDomain(BaseDomain):
         name = 42
-        description = "Описание"
-    # TypeError: Атрибут 'name' класса 'IntDomain' должен быть строкой,
-    # получен int.
+        description = "text"
+    # TypeError: ... must be str, got int ...
 
-    # Нестроковый description → TypeError
-    class IntDescDomain(BaseDomain):
-        name = "int_desc"
-        description = 42
-    # TypeError: Атрибут 'description' класса 'IntDescDomain' должен быть
-    # строкой, получен int.
+═══════════════════════════════════════════════════════════════════════════════
+ERRORS / LIMITATIONS
+═══════════════════════════════════════════════════════════════════════════════
+
+- ``NamingSuffixError``: class name does not end with ``"Domain"``.
+- ``ValueError``: missing ``name`` / ``description``, or empty after ``strip()``.
+- ``TypeError``: ``name`` or ``description`` is not a ``str``.
+
+This module does **not** deduplicate ``name`` strings or enforce global registry
+uniqueness.
 """
 from __future__ import annotations
 
@@ -198,43 +170,33 @@ from typing import Any, ClassVar
 
 from action_machine.core.exceptions import NamingSuffixError
 
-# Суффикс, обязательный для всех классов, наследующих BaseDomain.
+# Suffix required for every class that inherits BaseDomain (directly or indirectly).
 _REQUIRED_SUFFIX = "Domain"
 
 
 class BaseDomain(ABC):
     """
-    Абстрактный базовый класс для всех доменов ActionMachine.
+    Abstract base for all domain marker classes.
 
-    Домен — типизированный маркер принадлежности действия и сущности
-    к бизнес-области. Конкретные домены создаются наследованием
-    и определяют атрибуты ``name`` и ``description``.
+    **Role**
+        Supply ``name`` and ``description`` as ``ClassVar[str]`` metadata for a
+        business area. Subclasses are never instantiated for domain identity;
+        the **type** is the handle.
 
-    Наследует ABC, подчёркивая, что BaseDomain не предназначен для прямого
-    использования — только через конкретные подклассы.
+    **Invariants**
+        - Subclass names end with the suffix ``Domain`` (``__init_subclass__``).
+        - Concrete branches define non-empty string ``name`` and ``description``
+          (possibly inherited from an intermediate base above ``BaseDomain``).
 
-    Валидация выполняется в ``__init_subclass__`` при создании подкласса:
-    1. Проверка суффикса "Domain" в имени класса → NamingSuffixError.
-    2. Проверка наличия атрибута ``name`` → ValueError.
-    3. Проверка типа ``name`` (str) → TypeError.
-    4. Проверка непустоты ``name`` → ValueError.
-    5. Проверка наличия атрибута ``description`` → ValueError.
-    6. Проверка типа ``description`` (str) → TypeError.
-    7. Проверка непустоты ``description`` → ValueError.
+    **Neighbors**
+        - Referenced from decorators such as ``@entity`` and ``@meta``.
+        - Consumed by metadata inspectors when building the gate coordinator graph.
 
-    Атрибуты уровня класса:
-        name : ClassVar[str]
-            Уникальное строковое имя бизнес-области. Обязательно для всех
-            конкретных (листовых) доменов.
-
-        description : ClassVar[str]
-            Текстовое описание бизнес-области. Обязательно для всех
-            конкретных (листовых) доменов. Используется в ArchiMate-диаграммах,
-            автогенерированной документации и интроспекции.
-
-        Промежуточные абстрактные подклассы могут не определять ``name``
-        и ``description`` — валидация пропускается, если атрибуты определены
-        выше в MRO. Но проверка суффикса выполняется всегда.
+    **Class attributes**
+        ``name``
+            Short stable identifier (e.g. ``"orders"``).
+        ``description``
+            Human-readable specification text for docs and diagrams.
     """
 
     name: ClassVar[str]
@@ -242,103 +204,78 @@ class BaseDomain(ABC):
 
     def __init_subclass__(cls, **kwargs: Any) -> None:
         """
-        Вызывается Python при создании любого подкласса BaseDomain.
+        Validate naming and required class attributes for each subclass.
 
-        Выполняет валидацию в следующем порядке:
+        Order:
+            1. Class name must end with ``Domain`` (always, including
+               intermediate bases).
+            2. ``name`` — present in MRO, ``str``, non-empty after ``strip()``.
+            3. ``description`` — same rules.
 
-        1. Проверка суффикса "Domain" в имени класса. Выполняется ВСЕГДА
-           для каждого подкласса, включая промежуточные абстрактные.
-           Нарушение → NamingSuffixError.
+        Intermediate abstract subclasses may omit ``name`` and ``description``
+        in their own ``__dict__`` if a base between them and ``BaseDomain`` defines
+        those attributes; suffix validation still runs.
 
-        2. Проверка ``name``:
-           a. Наличие в ``cls.__dict__`` или в промежуточных родителях MRO.
-           b. Тип — str.
-           c. Непустота после strip().
+        Args:
+            **kwargs: Forwarded to ``type.__init_subclass__``.
 
-        3. Проверка ``description``:
-           a. Наличие в ``cls.__dict__`` или в промежуточных родителях MRO.
-           b. Тип — str.
-           c. Непустота после strip().
-
-        Аргументы:
-            **kwargs: аргументы, передаваемые в ``type.__init_subclass__``.
-
-        Исключения:
-            NamingSuffixError:
-                - Имя класса не заканчивается на "Domain".
-            ValueError:
-                - ``name`` или ``description`` не определены ни в подклассе,
-                  ни в промежуточных родителях (кроме BaseDomain).
-                - ``name`` или ``description`` — пустая строка.
-            TypeError:
-                - ``name`` или ``description`` — не строка.
+        Raises:
+            NamingSuffixError: Class name does not end with ``Domain``.
+            ValueError: Missing ``name`` / ``description``, or whitespace-only value.
+            TypeError: ``name`` or ``description`` is not a ``str``.
         """
         super().__init_subclass__(**kwargs)
 
-        # ── 1. Проверка суффикса "Domain" ──────────────────────────────
         if not cls.__name__.endswith(_REQUIRED_SUFFIX):
             raise NamingSuffixError(
-                f"Класс '{cls.__name__}' наследует BaseDomain, но не имеет "
-                f"суффикса '{_REQUIRED_SUFFIX}'. "
-                f"Переименуйте в '{cls.__name__}{_REQUIRED_SUFFIX}'."
+                f"Class '{cls.__name__}' inherits from BaseDomain but its name must "
+                f"end with the suffix '{_REQUIRED_SUFFIX}'. "
+                f"Rename it to '{cls.__name__}{_REQUIRED_SUFFIX}'."
             )
 
-        # ── 2. Проверка name ───────────────────────────────────────────
         _validate_class_attr(cls, "name")
-
-        # ── 3. Проверка description ────────────────────────────────────
         _validate_class_attr(cls, "description")
 
 
 def _validate_class_attr(cls: type, attr_name: str) -> None:
     """
-    Проверяет обязательный строковый атрибут уровня класса.
+    Ensure a required class attribute exists, is a ``str``, and is non-empty.
 
-    Выполняет три проверки для атрибута ``attr_name``:
-    1. Наличие — атрибут определён в ``cls.__dict__`` или в промежуточном
-       родителе MRO (не BaseDomain). Если отсутствует — ValueError.
-    2. Тип — значение является строкой. Иначе — TypeError.
-    3. Непустота — строка не пустая после strip(). Иначе — ValueError.
+    If ``attr_name`` is absent from ``cls.__dict__``, walk the MRO: if an
+    intermediate base (not ``BaseDomain``) defines it, treat the subclass as
+    inheriting a valid value and return. Otherwise raise ``ValueError``.
 
-    Промежуточные абстрактные подклассы (без атрибута в ``__dict__``)
-    допускаются — если атрибут найден выше в MRO, валидация пропускается.
+    Args:
+        cls: Subclass being validated.
+        attr_name: ``"name"`` or ``"description"``.
 
-    Аргументы:
-        cls: класс, в котором проверяется атрибут.
-        attr_name: имя проверяемого атрибута ("name" или "description").
-
-    Исключения:
-        ValueError: атрибут не определён или пустая строка.
-        TypeError: атрибут не является строкой.
+    Raises:
+        ValueError: Attribute missing from the class and from qualifying bases,
+            or empty / whitespace-only when set on ``cls``.
+        TypeError: Value on ``cls`` is not a ``str``.
     """
     if attr_name not in cls.__dict__:
-        # Проверяем промежуточных родителей в MRO
         for base in cls.__mro__[1:]:
             if base is BaseDomain:
                 continue
             if attr_name in base.__dict__:
-                # Атрибут определён в промежуточном родителе —
-                # текущий класс наследует его, валидация не нужна.
                 return
-        # Атрибут не найден нигде — ошибка.
         raise ValueError(
-            f"Класс '{cls.__name__}' наследует BaseDomain, "
-            f"но не определяет атрибут '{attr_name}'. "
-            f"Укажите значение: {attr_name} = \"...\"."
+            f"Class '{cls.__name__}' inherits from BaseDomain but does not define "
+            f"the class attribute '{attr_name}'. "
+            f"Set e.g. {attr_name} = \"...\" in the class body."
         )
 
     raw_value = cls.__dict__[attr_name]
 
-    # Проверка типа
     if not isinstance(raw_value, str):
         raise TypeError(
-            f"Атрибут '{attr_name}' класса '{cls.__name__}' должен быть "
-            f"строкой (str), получен {type(raw_value).__name__}: {raw_value!r}."
+            f"Class attribute '{attr_name}' on '{cls.__name__}' must be str, "
+            f"got {type(raw_value).__name__}: {raw_value!r}."
         )
 
-    # Проверка непустоты
     if not raw_value.strip():
         raise ValueError(
-            f"Атрибут '{attr_name}' класса '{cls.__name__}' не может быть "
-            f"пустой строкой. Укажите значение: {attr_name} = \"...\"."
+            f"Class attribute '{attr_name}' on '{cls.__name__}' cannot be empty "
+            f"or whitespace-only. Set a non-empty string, e.g. {attr_name} = \"...\"."
         )

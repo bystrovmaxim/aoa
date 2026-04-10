@@ -112,10 +112,10 @@ OR-ЛОГИКА МЕЖДУ НЕСКОЛЬКИМИ @on НА ОДНОМ МЕТОД
         ...
     )
         │
-        ▼  MetadataBuilder → collectors.collect_subscriptions(cls)
-    ClassMetadata.subscriptions = (SubscriptionInfo(...), ...)
+        ▼  collect_subscriptions в MetadataBuilder (валидация)
+        ▼  GateCoordinator.get_subscriptions() — снимок
         │
-        ▼  MetadataBuilder → validators.validate_subscriptions(cls, ...)
+        ▼  MetadataBuilder → on_gate_host.validate_subscriptions(cls, ...)
     Проверка совместимости event_class ↔ аннотация event параметра
         │
         ▼  PluginRunContext.emit_event(event)

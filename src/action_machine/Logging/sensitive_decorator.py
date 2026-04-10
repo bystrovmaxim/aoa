@@ -47,8 +47,7 @@
       def email(self): ...
 
 - Свойство должно быть публичным (имя не начинается с '_').
-  Проверка имени выполняется позже, при сборке метаданных
-  (MetadataBuilder._collect_sensitive_fields), так как на этапе
+  Проверка имени выполняется позже (инспектор / инструменты), так как на этапе
   декорирования имя атрибута ещё неизвестно.
 - enabled должен быть bool.
 - max_chars должен быть неотрицательным int.
@@ -64,8 +63,7 @@
         ▼
     property.fget._sensitive_config = {...}
         │
-        ▼  MetadataBuilder._collect_sensitive_fields(cls)
-    ClassMetadata.sensitive_fields = (SensitiveFieldMeta(...), ...)
+        ▼  SensitiveGateHostInspector.Snapshot + ``get_sensitive_fields()``
         │
         ▼  VariableSubstitutor._get_property_config(obj, attr_name)
     Обнаруживает _sensitive_config → вызывает mask_value(value, config)
@@ -199,8 +197,8 @@ def sensitive(
     (функции, которая позже станет getter свойства).
 
     Записывает конфигурацию маскирования в атрибут _sensitive_config целевой
-    функции. MetadataBuilder._collect_sensitive_fields(cls) позже обнаруживает
-    этот атрибут и включает поле в ClassMetadata.sensitive_fields.
+    функции. Инспектор ``sensitive`` строит снимок; ``get_sensitive_fields()``
+    отдаёт ``SensitiveFieldMeta``.
 
     Аргументы:
         enabled: включено ли маскирование. По умолчанию True.

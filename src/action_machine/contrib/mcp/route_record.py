@@ -3,7 +3,7 @@
 McpRouteRecord — frozen-датакласс маршрута для MCP-адаптера.
 
 ═══════════════════════════════════════════════════════════════════════════════
-НАЗНАЧЕНИЕ
+PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 McpRouteRecord — конкретный наследник BaseRouteRecord с MCP-специфичными
@@ -95,10 +95,10 @@ class McpRouteRecord(BaseRouteRecord):
 
     Frozen — после создания ни одно поле изменить нельзя.
 
-    Валидация в ``__post_init__``:
+    Validation в ``__post_init__``:
     - Вызывает ``super().__post_init__()`` для проверки инвариантов
       BaseRouteRecord (action_class, маппинг, извлечение P и R).
-    - Проверяет tool_name: непустой после strip.
+    - Checks tool_name: непустой после strip.
 
     Атрибуты (MCP-специфичные поля):
         tool_name : str
@@ -113,11 +113,11 @@ class McpRouteRecord(BaseRouteRecord):
     tool_name: str = ""
     description: str = ""
 
-    # ── Валидация ──────────────────────────────────────────────────────
+    # ── Validation ──────────────────────────────────────────────────────
 
     def __post_init__(self) -> None:
         """
-        Проверяет MCP-специфичные инварианты после создания экземпляра.
+        Checks MCP-специфичные инварианты после создания экземпляра.
 
         Порядок:
 
@@ -127,7 +127,7 @@ class McpRouteRecord(BaseRouteRecord):
 
         2. Проверка tool_name: непустой после strip().
 
-        Исключения:
+        Raises:
             TypeError: от BaseRouteRecord (action_class не BaseAction,
                        не удалось извлечь P и R).
             ValueError: от BaseRouteRecord (маппер отсутствует при

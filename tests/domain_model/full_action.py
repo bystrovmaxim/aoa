@@ -1,51 +1,49 @@
-# tests/domain/full_action.py
+# tests/domain_model/full_action.py
 """
-FullAction — полнофункциональное действие с зависимостями и connections.
+FullAction — full-featured Action with dependencies and connections.
 
 ═══════════════════════════════════════════════════════════════════════════════
-НАЗНАЧЕНИЕ
+PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Самое сложное действие в тестовой доменной модели. Содержит два
-regular-аспекта с чекерами, summary-аспект, две зависимости
-(PaymentService, NotificationService) и одно connection ("db").
-Требует роль "manager".
+The richest Action in the test domain: two regular aspects with checkers,
+one summary aspect, two dependencies (PaymentService, NotificationService),
+and one connection ("db"). Requires role "manager".
 
-Покрывает максимальное количество сценариев: ролевые ограничения,
-валидация connections, резолв зависимостей через box.resolve(),
-чекеры на каждом аспекте, формирование result из state.
+Exercises role checks, connection validation, dependency resolution via
+box.resolve(), per-aspect checkers, and building the result from state.
 
 ═══════════════════════════════════════════════════════════════════════════════
-КОНВЕЙЕР АСПЕКТОВ
+ASPECT PIPELINE
 ═══════════════════════════════════════════════════════════════════════════════
 
     1. process_payment (regular)
-       - Резолвит PaymentService через box.resolve().
-       - Вызывает payment.charge(amount, currency).
-       - Записывает txn_id в state.
-       - Чекер: result_string("txn_id", required=True, min_length=1).
+       - Resolves PaymentService via box.resolve().
+       - Calls payment.charge(amount, currency).
+       - Writes txn_id to state.
+       - Checker: result_string("txn_id", required=True, min_length=1).
 
     2. calc_total (regular)
-       - Вычисляет итоговую сумму.
-       - Записывает total в state.
-       - Чекер: result_float("total", required=True, min_value=0.0).
+       - Computes the order total.
+       - Writes total to state.
+       - Checker: result_float("total", required=True, min_value=0.0).
 
     3. build_result (summary)
-       - Резолвит NotificationService через box.resolve().
-       - Отправляет уведомление пользователю.
-       - Формирует Result из state (txn_id, total).
+       - Resolves NotificationService via box.resolve().
+       - Sends a notification to the user.
+       - Builds Result from state (txn_id, total).
 
 ═══════════════════════════════════════════════════════════════════════════════
-ИСПОЛЬЗОВАНИЕ В ТЕСТАХ
+USAGE IN TESTS
 ═══════════════════════════════════════════════════════════════════════════════
 
-- Тесты ролей: только "manager" проходит, "user" — AuthorizationError.
-- Тесты connections: "db" обязателен, лишние/недостающие ключи — ошибка.
-- Тесты depends: PaymentService и NotificationService подменяются моками.
-- Тесты чекеров: txn_id (string), total (float) проверяются.
-- Тесты run_aspect: process_payment и calc_total по отдельности.
-- Тесты run_summary: state с txn_id и total → Result.
-- Тесты rollup: прокидывание rollup через resolve и connections.
+- Role tests: only "manager" passes; "user" gets AuthorizationError.
+- Connection tests: "db" required; wrong/missing keys fail.
+- Depends tests: PaymentService and NotificationService are mocked.
+- Checker tests: txn_id (string), total (float).
+- run_aspect tests: process_payment and calc_total individually.
+- run_summary tests: state with txn_id and total → Result.
+- Rollup tests: rollup passed through resolve and connections.
 
     mock_payment = AsyncMock(spec=PaymentService)
     mock_payment.charge.return_value = "TXN-001"
@@ -87,46 +85,46 @@ from .services import NotificationService, PaymentService
 from .test_db_manager import TestDbManager
 
 
-@meta(description="Создание заказа с оплатой и уведомлением", domain=OrdersDomain)
+@meta(description="Create order with payment and notification", domain=OrdersDomain)
 @check_roles("manager")
-@depends(PaymentService, description="Сервис обработки платежей")
-@depends(NotificationService, description="Сервис уведомлений")
-@connection(TestDbManager, key="db", description="Основная БД")
+@depends(PaymentService, description="Payment processing service")
+@depends(NotificationService, description="Notification service")
+@connection(TestDbManager, key="db", description="Primary database")
 class FullAction(BaseAction["FullAction.Params", "FullAction.Result"]):
     """
-    Полнофункциональное действие: 2 regular + summary, depends, connection.
+    Full-featured Action: two regular + summary, depends, connection.
 
-    Требует роль "manager". Зависимости: PaymentService, NotificationService.
+    Requires role "manager". Dependencies: PaymentService, NotificationService.
     Connection: "db" (TestDbManager).
     """
 
     class Params(BaseParams):
-        """Параметры создания заказа."""
+        """Order creation parameters."""
         user_id: str = Field(
-            description="Идентификатор пользователя",
+            description="User identifier",
             min_length=1,
             examples=["user_123"],
         )
         amount: float = Field(
-            description="Сумма заказа",
+            description="Order amount",
             gt=0,
             examples=[1500.0],
         )
         currency: str = Field(
             default="RUB",
-            description="Код валюты ISO 4217",
+            description="ISO 4217 currency code",
             pattern=r"^[A-Z]{3}$",
             examples=["RUB", "USD"],
         )
 
     class Result(BaseResult):
-        """Результат создания заказа."""
-        order_id: str = Field(description="Идентификатор созданного заказа")
-        txn_id: str = Field(description="Идентификатор транзакции оплаты")
-        total: float = Field(description="Итоговая сумма заказа")
-        status: str = Field(description="Статус заказа")
+        """Order creation result."""
+        order_id: str = Field(description="Created order identifier")
+        txn_id: str = Field(description="Payment transaction identifier")
+        total: float = Field(description="Order total amount")
+        status: str = Field(description="Order status")
 
-    @regular_aspect("Обработка платежа")
+    @regular_aspect("Process payment")
     @result_string("txn_id", required=True, min_length=1)
     async def process_payment_aspect(
         self,
@@ -136,19 +134,19 @@ class FullAction(BaseAction["FullAction.Params", "FullAction.Result"]):
         connections: dict[str, BaseResourceManager],
     ) -> dict:
         """
-        Списывает средства через PaymentService.
+        Charge funds via PaymentService.
 
-        Резолвит PaymentService из box, вызывает charge() с суммой
-        и валютой из params. Записывает полученный txn_id в state.
+        Resolves PaymentService from box, calls charge() with amount and
+        currency from params, stores returned txn_id in state.
 
-        Возвращает:
-            dict с ключом txn_id — идентификатор транзакции.
+        Returns:
+            dict with key txn_id — transaction identifier.
         """
         payment = box.resolve(PaymentService)
         txn_id = await payment.charge(params.amount, params.currency)
         return {"txn_id": txn_id}
 
-    @regular_aspect("Расчёт итоговой суммы")
+    @regular_aspect("Calculate total")
     @result_float("total", required=True, min_value=0.0)
     async def calc_total_aspect(
         self,
@@ -158,17 +156,17 @@ class FullAction(BaseAction["FullAction.Params", "FullAction.Result"]):
         connections: dict[str, BaseResourceManager],
     ) -> dict:
         """
-        Вычисляет итоговую сумму заказа.
+        Compute order total.
 
-        В текущей реализации итог равен сумме из params.
-        В реальном проекте здесь может быть логика скидок, налогов и т.д.
+        Current implementation: total equals params.amount.
+        A real system might apply discounts, tax, etc.
 
-        Возвращает:
-            dict с ключом total — итоговая сумма.
+        Returns:
+            dict with key total — final amount.
         """
         return {"total": params.amount}
 
-    @summary_aspect("Формирование результата заказа")
+    @summary_aspect("Build order result")
     async def build_result_summary(
         self,
         params: "FullAction.Params",
@@ -177,17 +175,17 @@ class FullAction(BaseAction["FullAction.Params", "FullAction.Result"]):
         connections: dict[str, BaseResourceManager],
     ) -> "FullAction.Result":
         """
-        Формирует итоговый результат из данных state.
+        Build the final Result from state.
 
-        Резолвит NotificationService и отправляет уведомление
-        пользователю о создании заказа. Собирает Result из
-        txn_id и total, накопленных regular-аспектами.
+        Resolves NotificationService and notifies the user that the order
+        was created. Assembles Result from txn_id and total produced by
+        regular aspects.
 
-        Возвращает:
-            FullAction.Result с order_id, txn_id, total, status.
+        Returns:
+            FullAction.Result with order_id, txn_id, total, status.
         """
         notification = box.resolve(NotificationService)
-        await notification.send(params.user_id, f"Заказ создан: {state['txn_id']}")
+        await notification.send(params.user_id, f"Order created: {state['txn_id']}")
 
         return FullAction.Result(
             order_id=f"ORD-{params.user_id}",

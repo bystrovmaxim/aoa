@@ -26,22 +26,30 @@
   записывает DependencyInfo в cls._depends_info.
 
 - DependencyFactory — stateless-фабрика, резолвящая зависимости.
-  Принимает tuple[DependencyInfo, ...] из ClassMetadata.dependencies.
-  Каждый вызов resolve() создаёт новый экземпляр (кеш отсутствует).
+  Принимает tuple[DependencyInfo, ...] (из снимка ``depends`` координатора).
+  Каждый вызов resolve() создаёт новый экземпляр (кеш экземпляров отсутствует).
   Синглтоны реализуются через lambda-замыкание в @depends(factory=...).
+
+- ``cached_dependency_factory`` / ``clear_dependency_factory_cache`` —
+  кеш ``DependencyFactory`` на экземпляре ``GateCoordinator`` (словарь в ``__dict__``).
 
 ═══════════════════════════════════════════════════════════════════════════════
 ТИПИЧНЫЙ ПОТОК
 ═══════════════════════════════════════════════════════════════════════════════
 
     1. @depends(PaymentService) записывает DependencyInfo в cls._depends_info.
-    2. MetadataBuilder.build(cls) читает _depends_info → ClassMetadata.dependencies.
-    3. GateCoordinator.get_factory(cls) передаёт metadata.dependencies
-       напрямую в DependencyFactory (без промежуточного шлюза).
+    2. Инспектор ``depends`` строит снимок из ``_depends_info``.
+    3. ``cached_dependency_factory(coordinator, cls)`` читает
+       ``coordinator.get_snapshot(cls, \"depends\")`` и строит DependencyFactory.
     4. ToolsBox.resolve(PaymentService) делегирует в фабрику.
 """
 
-from .dependency_factory import DependencyFactory, DependencyInfo
+from .dependency_factory import (
+    DependencyFactory,
+    DependencyInfo,
+    cached_dependency_factory,
+    clear_dependency_factory_cache,
+)
 from .dependency_gate_host import DependencyGateHost
 from .depends import depends
 
@@ -49,5 +57,7 @@ __all__ = [
     "DependencyFactory",
     "DependencyGateHost",
     "DependencyInfo",
+    "cached_dependency_factory",
+    "clear_dependency_factory_cache",
     "depends",
 ]

@@ -40,8 +40,8 @@ from action_machine.contrib.mcp.adapter import (
 )
 from action_machine.contrib.mcp.route_record import McpRouteRecord
 from action_machine.core.action_product_machine import ActionProductMachine
+from action_machine.core.core_action_machine import CoreActionMachine
 from action_machine.core.exceptions import AuthorizationError, ValidationFieldError
-from action_machine.core.gate_coordinator import GateCoordinator
 from tests.domain_model import PingAction
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -87,7 +87,7 @@ def _make_record(
 
 def _make_machine() -> ActionProductMachine:
     """Create a minimal machine for handler tests."""
-    return ActionProductMachine(mode="test", coordinator=GateCoordinator())
+    return ActionProductMachine(mode="test")
 
 
 def _make_auth(context=None) -> AsyncMock:
@@ -326,8 +326,7 @@ class TestBuildGraphJson:
 
     def test_returns_valid_json(self) -> None:
         """_build_graph_json returns a parseable JSON string."""
-        coordinator = GateCoordinator()
-        coordinator.get(PingAction)
+        coordinator = CoreActionMachine.create_coordinator()
         machine = ActionProductMachine(mode="test", coordinator=coordinator)
 
         json_str = _build_graph_json(machine)
@@ -340,8 +339,7 @@ class TestBuildGraphJson:
 
     def test_contains_action_node(self) -> None:
         """Graph contains a node for the registered action."""
-        coordinator = GateCoordinator()
-        coordinator.get(PingAction)
+        coordinator = CoreActionMachine.create_coordinator()
         machine = ActionProductMachine(mode="test", coordinator=coordinator)
 
         json_str = _build_graph_json(machine)

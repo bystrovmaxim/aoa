@@ -1,4 +1,12 @@
-"""Contrib-пакет для работы с PostgreSQL через asyncpg."""
+"""Contrib-пакет для работы с PostgreSQL через asyncpg.
+
+AI-CORE-BEGIN
+ROLE: module __init__
+CONTRACT: Keep runtime behavior unchanged; documentation defines key contracts and flow for humans and AI.
+INVARIANTS: Preserve declared interfaces and validation semantics.
+FLOW: declaration -> inspector/coordinator snapshot -> runtime consumption.
+AI-CORE-END
+"""
 try:
     import asyncpg  # noqa: F401
 except ImportError:

@@ -50,8 +50,8 @@
 
 - sensitive — декоратор для маскирования чувствительных данных в логах.
   Применяется к property, записывает _sensitive_config в getter.
-  MetadataBuilder._collect_sensitive_fields(cls) собирает конфигурации
-  в ClassMetadata.sensitive_fields.
+  SensitiveGateHostInspector._collect_sensitive_fields(cls) собирает конфигурации
+  в ``GateCoordinator.get_sensitive_fields()``.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ДОСТУП К NEST_LEVEL В ШАБЛОНАХ
