@@ -6,9 +6,8 @@ Protocol for aspect execution component.
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Define the contract for executing a single aspect (regular or summary) within
-an action pipeline. The executor handles context injection, checker validation,
-and state merging.
+Define the contract for aspect execution in an action pipeline. The executor
+handles invocation, regular-aspect validation, and immutable state merge.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
@@ -18,47 +17,42 @@ ARCHITECTURE / DATA FLOW
 
     ActionProductMachine / SagaCoordinator
         │
-        └── AspectExecutorProtocol.call(machine, aspect_meta, action,
-                                        params, state, box, connections, context)
-                │
-                ├── creates ContextView if aspect has @context_requires
-                ├── invokes the aspect method with appropriate arguments
-                ├── for regular aspects: validates returned dict with checkers
-                └── returns raw result (dict for regular, BaseResult for summary)
+        ├── call(...)
+        ├── execute_regular(...)
+        └── execute_summary(...)
 
 ═══════════════════════════════════════════════════════════════════════════════
 INVARIANTS
 ═══════════════════════════════════════════════════════════════════════════════
 
-- The executor must not modify the input `state`; it returns the aspect result.
-- Checker validation must be applied only to regular aspects.
-- ContextView creation must be performed when `aspect_meta.context_keys` is non-empty.
+- `call(...)` preserves ContextView behavior for `context_requires`.
+- `execute_regular(...)` validates checker contracts before merge.
+- State transitions are immutable (new `BaseState` instance).
 
 ═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
 Happy path:
-- Regular aspect returns state patch dict and passes checker validation.
+- `execute_regular(...)` returns merged state and payload dict.
 
 Edge case:
-- Summary aspect returns final `BaseResult` and bypasses regular checker flow.
+- Regular aspect returning unknown fields raises `ValidationFieldError`.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ERRORS / LIMITATIONS
 ═══════════════════════════════════════════════════════════════════════════════
 
-- Validation errors (e.g., missing required field) raise `ValidationFieldError`.
-- Type mismatches in aspect return values raise `TypeError`.
-- The executor does not manage state merging; that is the caller's responsibility.
+- Validation errors raise `ValidationFieldError`.
+- Type mismatches in regular result raise `TypeError`.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN
 ═══════════════════════════════════════════════════════════════════════════════
-ROLE: Aspect executor contract.
-CONTRACT: call(...) -> aspect raw result.
-INVARIANTS: context injection per aspect meta; checkers applied to regular results.
-FLOW: aspect meta + runtime data -> method invocation -> raw result.
+ROLE: Aspect execution component contract.
+CONTRACT: call/execute_regular/execute_summary signatures.
+INVARIANTS: context injection, checker validation, immutable merge.
+FLOW: invoke -> validate -> merge -> optional saga stack update.
 FAILURES: ValidationFieldError, TypeError on contract violations.
 EXTENSION POINTS: custom aspect execution can be injected via implementation.
 AI-CORE-END
@@ -71,7 +65,7 @@ from typing import Any, Protocol
 
 
 class AspectExecutorProtocol(Protocol):
-    """Contract for executing one regular/summary aspect."""
+    """Contract for aspect execution component."""
 
     async def call(
         self,
@@ -85,21 +79,37 @@ class AspectExecutorProtocol(Protocol):
         connections: Any,
         context: Any,
     ) -> Any:
-        """
-        Execute one aspect and return its raw result.
+        """Call one aspect and return raw result."""
+        ...
 
-        Args:
-            machine: The executing machine (provides log coordinator and helpers).
-            aspect_meta: Aspect snapshot metadata (type, method_ref, context_keys).
-            action: Action instance being executed.
-            params: Input parameters (frozen BaseParams).
-            state: Current pipeline state (frozen BaseState).
-            box: ToolsBox instance for the current execution scope.
-            connections: Normalized resource managers dictionary.
-            context: Execution context.
+    async def execute_regular(
+        self,
+        machine: object,
+        *,
+        aspect_meta: Any,
+        action: Any,
+        params: Any,
+        state: Any,
+        box: Any,
+        connections: Any,
+        context: Any,
+        runtime: Any,
+        saga_stack: list[Any],
+    ) -> tuple[Any, dict[str, Any], float]:
+        """Execute one regular aspect with validation and merge."""
+        ...
 
-        Returns:
-            For regular aspects: a `dict` of fields to merge into state.
-            For summary aspects: a `BaseResult` instance.
-        """
+    async def execute_summary(
+        self,
+        machine: object,
+        *,
+        summary_meta: Any,
+        action: Any,
+        params: Any,
+        state: Any,
+        box: Any,
+        connections: Any,
+        context: Any,
+    ) -> tuple[Any, float]:
+        """Execute summary aspect and return result with duration."""
         ...
