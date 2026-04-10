@@ -6,10 +6,9 @@
 НАЗНАЧЕНИЕ
 ═══════════════════════════════════════════════════════════════════════════════
 
-ActionProductMachine._check_connections() — второй шаг конвейера после
-проверки ролей. Машина сравнивает ключи, объявленные через @connection
-из графа координатора, с фактически переданными connections и проверяет типы
-значений.
+``ConnectionValidator.validate()`` (invoked from ``ActionProductMachine._run_internal``)
+is the connections gate: declared keys vs passed ``connections`` and
+``BaseResourceManager`` value types.
 
 Двухуровневая валидация:
 
@@ -61,6 +60,16 @@ from action_machine.logging.log_coordinator import LogCoordinator
 from action_machine.resource_managers.base_resource_manager import BaseResourceManager
 from action_machine.resource_managers.connection import connection
 from tests.domain_model import FullAction, NotificationService, PaymentService, PingAction, TestDbManager
+
+
+def _validate_connections(
+    machine: ActionProductMachine,
+    action: BaseAction[BaseParams, BaseResult],
+    connections: dict[str, BaseResourceManager] | None,
+) -> dict[str, BaseResourceManager]:
+    rt = machine._get_execution_cache(action.__class__)
+    return machine._connection_validator.validate(action, connections, rt)
+
 
 # ═════════════════════════════════════════════════════════════════════════════
 # Вспомогательные действия для edge-case тестов
@@ -128,7 +137,7 @@ class TestNoConnectionDeclaration:
         # Arrange — PingAction без @connection
         action = PingAction()
         # Act — проверка с connections=None
-        result = machine._check_connections(action, None)
+        result = _validate_connections(machine, action, None)
 
         # Assert — пустой dict, не None
         assert result == {}
@@ -143,7 +152,7 @@ class TestNoConnectionDeclaration:
 
         # Act & Assert — ConnectionValidationError с указанием ключей
         with pytest.raises(ConnectionValidationError, match="does not declare any @connection"):
-            machine._check_connections(action, connections)
+            _validate_connections(machine, action, connections)
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -163,7 +172,7 @@ class TestSingleConnection:
         mock_db = AsyncMock(spec=TestDbManager)
 
         # Act — проверка connections
-        result = machine._check_connections(action, {"db": mock_db})
+        result = _validate_connections(machine, action, {"db": mock_db})
 
         # Assert — connections прошёл проверку, возвращён как есть
         assert "db" in result
@@ -176,7 +185,7 @@ class TestSingleConnection:
         action = FullAction()
         # Act & Assert — ConnectionValidationError
         with pytest.raises(ConnectionValidationError, match="declares connections"):
-            machine._check_connections(action, None)
+            _validate_connections(machine, action, None)
 
     def test_extra_key_raises(self, machine, context, mock_resource) -> None:
         """
@@ -189,7 +198,7 @@ class TestSingleConnection:
 
         # Act & Assert — ConnectionValidationError
         with pytest.raises(ConnectionValidationError, match="received extra connections"):
-            machine._check_connections(action, connections)
+            _validate_connections(machine, action, connections)
 
     def test_value_not_resource_manager_raises(self, machine, context) -> None:
         """
@@ -201,7 +210,7 @@ class TestSingleConnection:
 
         # Act & Assert — проверка типа значения
         with pytest.raises(ConnectionValidationError, match="must be an instance of BaseResourceManager"):
-            machine._check_connections(action, connections)
+            _validate_connections(machine, action, connections)
 
     def test_value_none_raises(self, machine, context) -> None:
         """
@@ -213,7 +222,7 @@ class TestSingleConnection:
 
         # Act & Assert
         with pytest.raises(ConnectionValidationError, match="must be an instance of BaseResourceManager"):
-            machine._check_connections(action, connections)
+            _validate_connections(machine, action, connections)
 
     def test_value_int_raises(self, machine, context) -> None:
         """
@@ -225,7 +234,7 @@ class TestSingleConnection:
 
         # Act & Assert
         with pytest.raises(ConnectionValidationError, match="must be an instance of BaseResourceManager"):
-            machine._check_connections(action, connections)
+            _validate_connections(machine, action, connections)
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -248,7 +257,7 @@ class TestTwoConnections:
         }
 
         # Act — проверка проходит
-        result = machine._check_connections(action, connections)
+        result = _validate_connections(machine, action, connections)
 
         # Assert — оба ключа в результате
         assert "db" in result
@@ -265,7 +274,7 @@ class TestTwoConnections:
 
         # Act & Assert — ConnectionValidationError
         with pytest.raises(ConnectionValidationError, match="missing required connections"):
-            machine._check_connections(action, connections)
+            _validate_connections(machine, action, connections)
 
 
 # ═════════════════════════════════════════════════════════════════════════════

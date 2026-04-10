@@ -185,8 +185,7 @@ class TestSyncRoles:
         """
         PingAction (ROLE_NONE) проходит через sync-машину без ролей.
 
-        Логика проверки ролей наследуется от ActionProductMachine.
-        ROLE_NONE → _check_none_role() → всегда True.
+        Role gate uses the same ``RoleChecker`` pipeline as ``ActionProductMachine``.
         """
         # Arrange — PingAction с ROLE_NONE, контекст без ролей
         action = PingAction()
@@ -203,8 +202,7 @@ class TestSyncRoles:
         FullAction (роль "manager") через sync-машину без ролей →
         AuthorizationError.
 
-        Проверка ролей выполняется ДО конвейера аспектов. Sync-машина
-        наследует _check_action_roles() от ActionProductMachine.
+        Role check runs before the aspect pipeline, same as the async machine.
         """
         # Arrange — FullAction требует "manager", контекст без ролей
         action = FullAction()

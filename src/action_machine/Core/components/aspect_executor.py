@@ -32,7 +32,7 @@ ARCHITECTURE / DATA FLOW
 INVARIANTS
 ═══════════════════════════════════════════════════════════════════════════════
 
-- ContextView injection behavior is delegated through `call(...)` and preserved.
+- `call(...)` owns ContextView injection and per-aspect `ScopedLogger` wiring.
 - Regular aspect execution validates checker contracts before state merge.
 - State merge remains immutable (`BaseState` new instance per step).
 
@@ -68,36 +68,82 @@ AI-CORE-END
 from __future__ import annotations
 
 import time
+from typing import Any
 
+from action_machine.aspects.aspect_gate_host_inspector import AspectGateHostInspector
+from action_machine.checkers.checker_gate_host_inspector import CheckerGateHostInspector
+from action_machine.context.context_view import ContextView
+from action_machine.core.base_action import BaseAction
+from action_machine.core.base_params import BaseParams
+from action_machine.core.base_result import BaseResult
 from action_machine.core.base_state import BaseState
 from action_machine.core.exceptions import ValidationFieldError
 from action_machine.core.saga_frame import SagaFrame
+from action_machine.core.tools_box import ToolsBox
+from action_machine.logging.scoped_logger import ScopedLogger
+from action_machine.resource_managers.base_resource_manager import BaseResourceManager
 
 
 class AspectExecutor:
     """Component owning regular/summary aspect execution behavior."""
 
+    @staticmethod
+    def _apply_checkers(
+        checkers: tuple[CheckerGateHostInspector.Snapshot.Checker, ...],
+        result: dict[str, Any],
+    ) -> None:
+        """Run checker instances against a regular-aspect state patch."""
+        for checker_meta in checkers:
+            checker_instance = checker_meta.checker_class(
+                checker_meta.field_name,
+                required=checker_meta.required,
+                **checker_meta.extra_params,
+            )
+            checker_instance.check(result)
+
     async def call(
         self,
         machine: object,
         *,
-        aspect_meta,
-        action,
-        params,
-        state,
-        box,
-        connections,
+        aspect_meta: AspectGateHostInspector.Snapshot.Aspect | None,
+        action: BaseAction[Any, Any],
+        params: BaseParams,
+        state: BaseState,
+        box: ToolsBox,
+        connections: dict[str, BaseResourceManager],
         context,
-    ):
-        """Call one aspect preserving context injection semantics."""
-        return await machine._call_aspect(
-            aspect_meta=aspect_meta,
-            action=action,
-            params=params,
-            state=state,
-            box=box,
-            connections=connections,
+    ) -> Any:
+        """Call one aspect preserving ContextView and per-aspect logging."""
+        if aspect_meta is None:
+            return BaseResult()
+
+        aspect_log = ScopedLogger(
+            coordinator=machine._log_coordinator,  # noqa: SLF001
+            nest_level=box.nested_level,
+            machine_name=machine.__class__.__name__,
+            mode=machine._mode,  # noqa: SLF001
+            action_name=action.get_full_class_name(),
+            aspect_name=aspect_meta.method_name,
             context=context,
+            state=state,
+            params=params,
+        )
+        aspect_box = ToolsBox(
+            run_child=box.run_child,
+            factory=box.factory,
+            resources=box.resources,
+            context=context,
+            log=aspect_log,
+            nested_level=box.nested_level,
+            rollup=box.rollup,
+        )
+        if aspect_meta.context_keys:
+            ctx_view = ContextView(context, aspect_meta.context_keys)
+            return await aspect_meta.method_ref(
+                action, params, state, aspect_box, connections, ctx_view,
+            )
+        return await aspect_meta.method_ref(
+            action, params, state, aspect_box, connections,
         )
 
     async def execute_regular(
@@ -148,7 +194,7 @@ class AspectExecutor:
                     f"Aspect {aspect_meta.method_name} returned extra fields: "
                     f"{extra_fields}. Allowed only: {allowed_fields}"
                 )
-            machine._apply_checkers(checkers, new_state_dict)
+            self._apply_checkers(checkers, new_state_dict)
 
         merged_state = BaseState(**{**state.to_dict(), **new_state_dict})
         if runtime.has_compensators:

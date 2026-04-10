@@ -6,9 +6,8 @@ Role checker component wrapper.
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Provide a component entry point for the role-check stage in the machine
-orchestration. Currently delegates to existing machine internals; full logic
-migration happens in a later step.
+Provide the role-check stage for machine orchestration. Implementation owns
+``@check_roles`` semantics against ``runtime.role_spec`` and ``Context.user.roles``.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
@@ -16,46 +15,44 @@ ARCHITECTURE / DATA FLOW
 
 ::
 
-    ActionProductMachine
+    ActionProductMachine._run_internal
         │
-        └── RoleChecker.check(machine, action, context, runtime)
+        └── RoleChecker.check(action, context, runtime)
                 │
-                └── machine._check_action_roles(...)   // temporary delegation
+                └── role_spec + user.roles → allow or AuthorizationError
 
 ═══════════════════════════════════════════════════════════════════════════════
 INVARIANTS
 ═══════════════════════════════════════════════════════════════════════════════
 
-- Component receives a reference to `GateCoordinator` for future snapshot reads.
-- Delegation target remains stable during scaffolding phase.
+- ``runtime.role_spec`` must come from the same coordinator facet contract as the machine.
+- Missing ``@check_roles`` surfaces as ``TypeError`` (explicit ``ROLE_NONE`` required).
 
 ═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
 Happy path:
-- `RoleChecker.check(...)` delegates to `machine._check_action_roles(...)` and
-  returns `None` when access is allowed.
+- ``check(...)`` returns ``None`` when the user satisfies the role spec.
 
 Edge case:
-- Delegated check raises `AuthorizationError` for missing required role.
+- ``ROLE_ANY`` with empty ``user.roles`` raises ``AuthorizationError``.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ERRORS / LIMITATIONS
 ═══════════════════════════════════════════════════════════════════════════════
 
-- Implementation is temporary and delegates to a private machine method.
-- AuthorizationError propagation matches existing machine behavior.
+- Does not consult ``ActionProductMachine`` private helpers; logic is local to this class.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN
 ═══════════════════════════════════════════════════════════════════════════════
-ROLE: Role-check component scaffolding.
-CONTRACT: check(action, context, runtime) -> None or AuthorizationError.
-INVARIANTS: GateCoordinator injected; role semantics must match machine contract.
-FLOW: runtime.role_spec + context.user.roles -> allow or AuthorizationError.
-FAILURES: AuthorizationError raised on role mismatch.
-EXTENSION POINTS: custom role strategies can replace this component.
+ROLE: Role-check component.
+CONTRACT: check(action, context, runtime) -> None; raises on deny.
+INVARIANTS: spec from runtime; same semantics as machine pipeline gate.
+FLOW: role_spec + user.roles -> allow or AuthorizationError / TypeError.
+FAILURES: AuthorizationError, TypeError when spec missing.
+EXTENSION POINTS: inject custom ``RoleChecker`` via machine constructor.
 AI-CORE-END
 ═══════════════════════════════════════════════════════════════════════════════
 """
@@ -72,12 +69,7 @@ from action_machine.metadata.gate_coordinator import GateCoordinator
 
 
 class RoleChecker:
-    """Component entry point for role-check stage.
-
-    This is a scaffolding implementation that delegates to the existing
-    machine's internal method. Full migration of role-checking logic will
-    happen in a subsequent step.
-    """
+    """Enforces ``@check_roles`` for one run using the machine execution runtime snapshot."""
 
     def __init__(self, coordinator: GateCoordinator) -> None:
         self._coordinator = coordinator
