@@ -1354,7 +1354,8 @@ class ActionProductMachine(BaseActionMachine):
 
             # ── Делегируем обработку ошибки ────────────────────────────
             error_state = BaseState()
-            handled_result = await self._handle_aspect_error(
+            handled_result = await self._error_handler_executor.handle(
+                self,
                 error=aspect_error,
                 action=action,
                 params=params,
