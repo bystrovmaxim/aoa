@@ -1467,20 +1467,7 @@ class ActionProductMachine(BaseActionMachine):
             runtime = self._get_execution_cache(action_cls)
             self._role_checker.check(action, context, runtime)
             conns = self._connection_validator.validate(action, connections, runtime)
-            factory = self._dependency_factory_for(action_cls)
             plugin_ctx = await self._plugin_coordinator.create_run_context()
-
-            log = ScopedLogger(
-                coordinator=self._log_coordinator,
-                nest_level=current_nest,
-                machine_name=self.__class__.__name__,
-                mode=self._mode,
-                action_name=action.get_full_class_name(),
-                aspect_name="",
-                context=context,
-                state=BaseState(),
-                params=params,
-            )
 
             async def run_child(
                 action: BaseAction[Any, Any],
@@ -1497,14 +1484,15 @@ class ActionProductMachine(BaseActionMachine):
                     rollup=rollup,
                 )
 
-            box = ToolsBox(
-                run_child=run_child,
-                factory=factory,
-                resources=resources,
+            box = self._tools_box_factory.create(
+                self,
+                nest_level=current_nest,
                 context=context,
-                log=log,
-                nested_level=current_nest,
+                action_cls=action.__class__,
+                params=params,
+                resources=resources,
                 rollup=rollup,
+                run_child=run_child,
             )
 
             base_fields = self._base_event_fields(action, context, params, current_nest)
