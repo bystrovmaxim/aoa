@@ -195,6 +195,12 @@ from action_machine.compensate.compensate_gate_host_inspector import (
 )
 from action_machine.context.context import Context
 from action_machine.context.context_view import ContextView
+from action_machine.core.components.aspect_executor import AspectExecutor
+from action_machine.core.components.connection_validator import ConnectionValidator
+from action_machine.core.components.error_handler_executor import ErrorHandlerExecutor
+from action_machine.core.components.role_checker import RoleChecker
+from action_machine.core.components.saga_coordinator import SagaCoordinator
+from action_machine.core.components.tools_box_factory import ToolsBoxFactory
 from action_machine.core.base_action import BaseAction
 from action_machine.core.base_action_machine import BaseActionMachine
 from action_machine.core.base_params import BaseParams
@@ -428,9 +434,16 @@ class ActionProductMachine(BaseActionMachine):
     def __init__(
         self,
         mode: str,
+        *,
         plugins: list[Plugin] | None = None,
         log_coordinator: LogCoordinator | None = None,
         coordinator: GateCoordinator | None = None,
+        role_checker: RoleChecker | None = None,
+        connection_validator: ConnectionValidator | None = None,
+        tools_box_factory: ToolsBoxFactory | None = None,
+        aspect_executor: AspectExecutor | None = None,
+        error_handler_executor: ErrorHandlerExecutor | None = None,
+        saga_coordinator: SagaCoordinator | None = None,
     ) -> None:
         """
         Инициализирует машину действий.
@@ -442,6 +455,12 @@ class ActionProductMachine(BaseActionMachine):
                              координатор с одним ConsoleLogger(use_colors=True).
             coordinator: ``GateCoordinator`` для графа; если None — создаётся
                          и сразу строится default coordinator.
+            role_checker: опциональный компонент проверки ролей.
+            connection_validator: опциональный компонент валидации connections.
+            tools_box_factory: опциональная фабрика ToolsBox.
+            aspect_executor: опциональный исполнитель одного аспекта.
+            error_handler_executor: опциональный исполнитель @on_error.
+            saga_coordinator: опциональный координатор rollback/Saga.
 
         Raises:
             ValueError: если mode — пустая строка.
@@ -465,6 +484,39 @@ class ActionProductMachine(BaseActionMachine):
                 "ActionProductMachine requires a built GateCoordinator. "
                 "Call register(...).build() before passing custom coordinator.",
             )
+
+        # Step 1 wiring: extension points and deterministic component order.
+        self._role_checker = (
+            role_checker if role_checker is not None else RoleChecker(self._coordinator)
+        )
+        self._connection_validator = (
+            connection_validator
+            if connection_validator is not None
+            else ConnectionValidator(self._coordinator)
+        )
+        self._tools_box_factory = (
+            tools_box_factory
+            if tools_box_factory is not None
+            else ToolsBoxFactory(self._log_coordinator, self._coordinator)
+        )
+        self._aspect_executor = (
+            aspect_executor if aspect_executor is not None else AspectExecutor()
+        )
+        self._error_handler_executor = (
+            error_handler_executor
+            if error_handler_executor is not None
+            else ErrorHandlerExecutor()
+        )
+        self._saga_coordinator = (
+            saga_coordinator
+            if saga_coordinator is not None
+            else SagaCoordinator(
+                self._aspect_executor,
+                self._error_handler_executor,
+                self._plugin_coordinator,
+                self._log_coordinator,
+            )
+        )
 
     def _get_execution_cache(self, action_cls: type) -> _ActionExecutionCache:
         return _ActionExecutionCache.from_action_class(
