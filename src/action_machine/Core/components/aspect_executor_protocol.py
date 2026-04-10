@@ -80,7 +80,7 @@ class AspectExecutorProtocol(Protocol):
         context: Any,
     ) -> Any:
         """Call one aspect and return raw result."""
-        ...
+        pass
 
     async def execute_regular(
         self,
@@ -97,7 +97,7 @@ class AspectExecutorProtocol(Protocol):
         saga_stack: list[Any],
     ) -> tuple[Any, dict[str, Any], float]:
         """Execute one regular aspect with validation and merge."""
-        ...
+        pass
 
     async def execute_summary(
         self,
@@ -112,4 +112,4 @@ class AspectExecutorProtocol(Protocol):
         context: Any,
     ) -> tuple[Any, float]:
         """Execute summary aspect and return result with duration."""
-        ...
+        pass

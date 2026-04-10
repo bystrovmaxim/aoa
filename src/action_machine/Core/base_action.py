@@ -281,7 +281,10 @@ class BaseAction[P: BaseSchema, R: BaseSchema](
     @classmethod
     def scratch_aspects(cls) -> tuple[Any, ...]:
         """Read aspect metadata directly from class scratch attributes."""
-        from action_machine.aspects.aspect_gate_host_inspector import AspectGateHostInspector
+        # Deferred: avoid import cycles with gate-host inspectors.
+        from action_machine.aspects.aspect_gate_host_inspector import (  # pylint: disable=import-outside-toplevel
+            AspectGateHostInspector,
+        )
 
         result: list[Any] = []
         for name, attr in vars(cls).items():
@@ -311,7 +314,7 @@ class BaseAction[P: BaseSchema, R: BaseSchema](
         method_ref: Any | None = None,
     ) -> tuple[Any, ...]:
         """Read checker rows bound to one aspect method."""
-        from action_machine.checkers.checker_gate_host_inspector import (
+        from action_machine.checkers.checker_gate_host_inspector import (  # pylint: disable=import-outside-toplevel
             CheckerGateHostInspector,
         )
 
@@ -342,7 +345,7 @@ class BaseAction[P: BaseSchema, R: BaseSchema](
     @classmethod
     def scratch_error_handlers(cls) -> tuple[Any, ...]:
         """Read @on_error handler metadata directly from class methods."""
-        from action_machine.on_error.on_error_gate_host_inspector import (
+        from action_machine.on_error.on_error_gate_host_inspector import (  # pylint: disable=import-outside-toplevel
             OnErrorGateHostInspector,
         )
 
@@ -375,7 +378,7 @@ class BaseAction[P: BaseSchema, R: BaseSchema](
     @classmethod
     def scratch_compensators(cls) -> tuple[Any, ...]:
         """Read @compensate metadata directly from class methods."""
-        from action_machine.compensate.compensate_gate_host_inspector import (
+        from action_machine.compensate.compensate_gate_host_inspector import (  # pylint: disable=import-outside-toplevel
             CompensateGateHostInspector,
         )
 

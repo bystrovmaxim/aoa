@@ -54,4 +54,3 @@ class CoreActionMachine:
             .register(EntityGateHostInspector)
             .build()
         )
-

@@ -26,7 +26,7 @@ class OnErrorGateHostInspector(BaseGateHostInspector):
     def _collect_error_handlers(
         cls, target_cls: type,
     ) -> tuple[Snapshot.ErrorHandler, ...]:
-        from action_machine.core.base_action import BaseAction
+        from action_machine.core.base_action import BaseAction  # pylint: disable=import-outside-toplevel
 
         if issubclass(target_cls, BaseAction):
             return tuple(target_cls.scratch_error_handlers())

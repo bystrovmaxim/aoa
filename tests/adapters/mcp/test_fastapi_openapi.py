@@ -36,7 +36,7 @@ from tests.domain_model import PingAction, SimpleAction
 
 def _build_app_with_routes(**adapter_kwargs) -> TestClient:
     """Build a FastAPI app with standard test routes and return a TestClient."""
-    coordinator = GateCoordinator()
+    GateCoordinator()
     machine = ActionProductMachine(mode="test")
     auth = AsyncMock()
     auth.process.return_value = None
@@ -213,7 +213,7 @@ class TestDeprecatedFlag:
 
     def test_deprecated_in_schema(self) -> None:
         """A route registered with deprecated=True shows deprecated in schema."""
-        coordinator = GateCoordinator()
+        GateCoordinator()
         machine = ActionProductMachine(mode="test")
         auth = AsyncMock()
         auth.process.return_value = None

@@ -36,6 +36,6 @@ class CoordinatorActionProductMachine(ActionProductMachine):
 
     def _dependency_factory_for(self, action_cls: type) -> DependencyFactory:
         snap = self._coordinator.get_snapshot(action_cls, "depends")
-        if snap is None:
+        if snap is None or not hasattr(snap, "dependencies"):
             return DependencyFactory(())
         return DependencyFactory(tuple(snap.dependencies))

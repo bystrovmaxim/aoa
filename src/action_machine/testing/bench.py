@@ -610,7 +610,11 @@ class TestBench:
         context = self._build_context()
         action_cls = action.__class__
         aspects = _aspect_tuple_from_coordinator(self._coordinator, action_cls)
-        _chk = lambda n: _checkers_for_aspect_name(self._coordinator, action_cls, n)
+
+        def _chk(method_name: str) -> tuple[Any, ...]:
+            return _checkers_for_aspect_name(
+                self._coordinator, action_cls, method_name,
+            )
 
         validate_state_for_aspect(aspects, _chk, aspect_name, state)
 
@@ -684,7 +688,11 @@ class TestBench:
         context = self._build_context()
         action_cls = action.__class__
         aspects = _aspect_tuple_from_coordinator(self._coordinator, action_cls)
-        _chk = lambda n: _checkers_for_aspect_name(self._coordinator, action_cls, n)
+
+        def _chk(method_name: str) -> tuple[Any, ...]:
+            return _checkers_for_aspect_name(
+                self._coordinator, action_cls, method_name,
+            )
 
         validate_state_for_summary(aspects, _chk, state)
 

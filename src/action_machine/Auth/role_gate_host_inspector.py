@@ -131,7 +131,11 @@ class RoleGateHostInspector(BaseGateHostInspector):
 
         @classmethod
         def from_target(cls, target_cls: type) -> RoleGateHostInspector.Snapshot:
-            info = target_cls._role_info
+            info = getattr(target_cls, "_role_info", None)
+            if not isinstance(info, dict):
+                raise TypeError(
+                    f"{target_cls.__name__} does not contain valid _role_info.",
+                )
             return cls(class_ref=target_cls, spec=info["spec"])
 
     @classmethod

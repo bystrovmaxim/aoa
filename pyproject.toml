@@ -176,6 +176,7 @@ disable = [
     "C0116",  # missing-function-docstring
 
     # ── Архитектурные решения фреймворка (осознанные) ──
+    "R0401",  # cyclic-import — цепочка BaseAction ↔ gate-host inspectors разорвана ленивыми импортами; граф pylint всё равно видит цикл
     "R0903",  # too-few-public-methods
     "R0801",  # duplicate-code
     "R0913",  # too-many-arguments — pipeline-методы принимают контекстные данные
@@ -212,8 +213,8 @@ max-line-length = 120
 good-names = ["i", "e", "f", "k", "v", "p", "R", "P", "T"]
 
 [tool.pylint.typecheck]
-# rustworkx — C-расширение, pylint не видит членов модуля
-generated-members = ["rustworkx.*"]
+# rustworkx — C-расширение, pylint не видит членов модуля (в т.ч. при `import … as rx`)
+generated-members = ["rustworkx.*", "rx.*"]
 
 # ============================================================================
 # RUFF

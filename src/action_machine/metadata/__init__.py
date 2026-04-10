@@ -17,12 +17,6 @@ PURPOSE
    for edge targets (including domain classes).
 
 Public imports: ``BaseFacetSnapshot``, ``GateCoordinator``.
-
-═══════════════════════════════════════════════════════════════════════════════
-RELATION TO ``action_machine.core``
-═══════════════════════════════════════════════════════════════════════════════
-
-``GateCoordinator`` is also re-exported from ``action_machine.core.gate_coordinator``.
 """
 
 from __future__ import annotations

@@ -65,6 +65,8 @@ AI-CORE-END
 
 from __future__ import annotations
 
+from typing import Any, Protocol
+
 from action_machine.core.base_state import BaseState
 from action_machine.core.tools_box import ToolsBox
 from action_machine.logging.log_coordinator import LogCoordinator
@@ -88,16 +90,16 @@ class ToolsBoxFactory:
 
     def create(
         self,
-        machine: object,
+        machine: _MachineLike,
         *,
         nest_level: int,
-        context,
+        context: Any,
         action_cls: type,
-        params,
-        resources,
+        params: Any,
+        resources: Any,
         rollup: bool,
-        run_child,
-    ):
+        run_child: Any,
+    ) -> ToolsBox:
         """Create a configured ToolsBox for one execution scope."""
         _ = (self._log_coordinator, self._coordinator)
         action_name = f"{action_cls.__module__}.{action_cls.__name__}"
@@ -122,3 +124,10 @@ class ToolsBoxFactory:
             nested_level=nest_level,
             rollup=rollup,
         )
+
+
+class _MachineLike(Protocol):
+    _log_coordinator: LogCoordinator
+    _mode: str
+
+    def _dependency_factory_for(self, action_cls: type) -> Any: ...

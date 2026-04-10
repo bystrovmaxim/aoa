@@ -160,8 +160,9 @@ ERRORS / LIMITATIONS
 
 from __future__ import annotations
 
+from collections.abc import Iterator
 from enum import Enum
-from typing import Any, Generic, TypeVar, overload
+from typing import Any, ClassVar, TypeVar, cast, overload
 
 from action_machine.domain.exceptions import RelationNotLoadedError
 
@@ -196,7 +197,7 @@ class RelationType(Enum):
 # ═════════════════════════════════════════════════════════════════════════════
 
 
-class BaseRelationOne(Generic[T]):
+class BaseRelationOne[T]:
     """
     Base **to-one** relation container.
 
@@ -222,9 +223,9 @@ class BaseRelationOne(Generic[T]):
 
     __slots__ = ("_entity", "_id")
 
-    relation_type: RelationType
+    relation_type: ClassVar[RelationType]  # pylint: disable=declare-non-slot
 
-    def __init__(self, *, id: Any, entity: T | None = None) -> None:
+    def __init__(self, *, id: Any, entity: T | None = None) -> None:  # pylint: disable=redefined-builtin
         """
         Args:
             id: Related entity identifier (required).
@@ -244,12 +245,12 @@ class BaseRelationOne(Generic[T]):
     @property
     def id(self) -> Any:
         """Related id; always available."""
-        return self._id
+        return object.__getattribute__(self, "_id")
 
     @property
     def entity(self) -> T | None:
         """Hydrated related object, or ``None``."""
-        return self._entity
+        return cast(T | None, object.__getattribute__(self, "_entity"))
 
     @property
     def is_loaded(self) -> bool:
@@ -294,19 +295,21 @@ class BaseRelationOne(Generic[T]):
         )
 
     def __repr__(self) -> str:
-        loaded = "loaded" if self._entity is not None else "id_only"
-        return f"{self.__class__.__name__}(id={self._id!r}, {loaded})"
+        entity = object.__getattribute__(self, "_entity")
+        entity_id = object.__getattribute__(self, "_id")
+        loaded = "loaded" if entity is not None else "id_only"
+        return f"{self.__class__.__name__}(id={entity_id!r}, {loaded})"
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, BaseRelationOne):
             return NotImplemented
-        return self._id == other._id and type(self) is type(other)
+        return self.id == other.id and type(self) is type(other)
 
     def __hash__(self) -> int:
-        return hash((type(self), self._id))
+        return hash((type(self), self.id))
 
 
-class BaseRelationMany(Generic[T]):
+class BaseRelationMany[T]:
     """
     Base **to-many** relation container.
 
@@ -325,7 +328,7 @@ class BaseRelationMany(Generic[T]):
 
     __slots__ = ("_entities", "_ids")
 
-    relation_type: RelationType
+    relation_type: ClassVar[RelationType]  # pylint: disable=declare-non-slot
 
     def __init__(
         self,
@@ -344,21 +347,21 @@ class BaseRelationMany(Generic[T]):
     @property
     def ids(self) -> tuple[Any, ...]:
         """Tuple of related ids."""
-        return self._ids
+        return cast(tuple[Any, ...], object.__getattribute__(self, "_ids"))
 
     @property
     def entities(self) -> tuple[T, ...]:
         """Tuple of hydrated entities (possibly empty)."""
-        return self._entities
+        return cast(tuple[T, ...], object.__getattribute__(self, "_entities"))
 
     @property
     def is_loaded(self) -> bool:
         """True when at least one entity tuple element is present."""
-        return len(self._entities) > 0
+        return len(self.entities) > 0
 
     def __len__(self) -> int:
         """Number of ids (not necessarily loaded entities)."""
-        return len(self._ids)
+        return len(self.ids)
 
     @overload
     def __getitem__(self, index: int) -> T: ...
@@ -378,31 +381,33 @@ class BaseRelationMany(Generic[T]):
             RelationNotLoadedError: ``entities`` is empty.
             IndexError: Index out of range.
         """
-        if not self._entities:
+        entities = self.entities
+        if not entities:
             raise RelationNotLoadedError(
                 container_class_name=self.__class__.__name__,
                 attribute_name=f"[{index}]",
-                entity_id=self._ids,
+                entity_id=self.ids,
             )
-        result = self._entities[index]
+        result = entities[index]
         if isinstance(index, slice):
-            return tuple(result)  # type: ignore[arg-type]
-        return result  # type: ignore[return-value]
+            return cast(tuple[T, ...], result)
+        return cast(T, result)
 
-    def __iter__(self):  # type: ignore[override]
+    def __iter__(self) -> Iterator[T]:
         """
         Yields hydrated entities in order.
 
         Raises:
             RelationNotLoadedError: ``entities`` is empty.
         """
-        if not self._entities:
+        entities = self.entities
+        if not entities:
             raise RelationNotLoadedError(
                 container_class_name=self.__class__.__name__,
                 attribute_name="__iter__",
-                entity_id=self._ids,
+                entity_id=self.ids,
             )
-        return iter(self._entities)
+        return iter(entities)
 
     def __setattr__(self, name: str, value: Any) -> None:
         raise AttributeError(
@@ -415,17 +420,17 @@ class BaseRelationMany(Generic[T]):
         )
 
     def __repr__(self) -> str:
-        count = len(self._ids)
-        loaded = len(self._entities)
+        count = len(self.ids)
+        loaded = len(self.entities)
         return f"{self.__class__.__name__}(count={count}, loaded={loaded})"
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, BaseRelationMany):
             return NotImplemented
-        return self._ids == other._ids and type(self) is type(other)
+        return self.ids == other.ids and type(self) is type(other)
 
     def __hash__(self) -> int:
-        return hash((type(self), self._ids))
+        return hash((type(self), self.ids))
 
 
 # ═════════════════════════════════════════════════════════════════════════════

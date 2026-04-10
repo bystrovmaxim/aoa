@@ -64,7 +64,7 @@ AI-CORE-END
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Protocol
 
 from action_machine.core.base_action import BaseAction
 from action_machine.core.base_params import BaseParams
@@ -156,7 +156,7 @@ class ConnectionValidator:
         self,
         action: BaseAction[BaseParams, BaseResult],
         connections: dict[str, BaseResourceManager] | None,
-        runtime,
+        runtime: _ConnectionRuntime,
     ) -> dict[str, BaseResourceManager]:
         """Validate connections against declared runtime keys."""
         _ = self._coordinator
@@ -181,3 +181,8 @@ class ConnectionValidator:
                 raise ConnectionValidationError(type_error)
 
         return connections or {}
+
+
+class _ConnectionRuntime(Protocol):
+    @property
+    def connection_keys(self) -> tuple[str, ...]: ...

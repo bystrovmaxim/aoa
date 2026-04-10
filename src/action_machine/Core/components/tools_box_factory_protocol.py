@@ -98,8 +98,5 @@ class ToolsBoxFactoryProtocol(Protocol):
             resources: Optional external resources (e.g., mocks in tests).
             rollup: Whether transaction rollup mode is active.
             run_child: Callback to execute nested actions.
-
-        Returns:
-            A fully configured `ToolsBox` instance ready for aspect execution.
         """
-        ...
+        pass

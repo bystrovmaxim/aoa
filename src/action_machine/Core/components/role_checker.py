@@ -59,6 +59,8 @@ AI-CORE-END
 
 from __future__ import annotations
 
+from typing import Any, Protocol
+
 from action_machine.auth.constants import ROLE_ANY, ROLE_NONE
 from action_machine.context.context import Context
 from action_machine.core.base_action import BaseAction
@@ -78,7 +80,7 @@ class RoleChecker:
         self,
         action: BaseAction[BaseParams, BaseResult],
         context: Context,
-        runtime,
+        runtime: _RoleRuntime,
     ) -> None:
         """Validate action role access from runtime role spec."""
         _ = self._coordinator
@@ -111,3 +113,8 @@ class RoleChecker:
         raise AuthorizationError(
             f"Access denied. Required role: '{role_spec}', user roles: {user_roles}"
         )
+
+
+class _RoleRuntime(Protocol):
+    @property
+    def role_spec(self) -> Any: ...

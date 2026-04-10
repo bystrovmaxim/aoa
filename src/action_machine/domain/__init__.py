@@ -160,36 +160,36 @@ from .relation_markers import Inverse, NoInverse, Rel
 from .testing import make
 
 __all__ = [
+    "AggregateMany",
+    "AggregateOne",
+    "AssociationMany",
+    "AssociationOne",
     # Domains
     "BaseDomain",
     # Entities
     "BaseEntity",
-    "EntityGateHost",
-    "entity",
-    # State machines
-    "Lifecycle",
-    "StateType",
-    "StateInfo",
+    "BaseRelationMany",
     # Relation containers
     "BaseRelationOne",
-    "BaseRelationMany",
-    "CompositeOne",
     "CompositeMany",
-    "AggregateOne",
-    "AggregateMany",
-    "AssociationOne",
-    "AssociationMany",
-    "RelationType",
-    # Relation markers
-    "Inverse",
-    "NoInverse",
-    "Rel",
-    # Utilities
-    "build",
-    "make",
+    "CompositeOne",
     # Exceptions
     "EntityDecoratorError",
+    "EntityGateHost",
     "FieldNotLoadedError",
+    # Relation markers
+    "Inverse",
+    # State machines
+    "Lifecycle",
     "LifecycleValidationError",
+    "NoInverse",
+    "Rel",
     "RelationNotLoadedError",
+    "RelationType",
+    "StateInfo",
+    "StateType",
+    # Utilities
+    "build",
+    "entity",
+    "make",
 ]
