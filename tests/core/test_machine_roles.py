@@ -6,9 +6,9 @@
 НАЗНАЧЕНИЕ
 ═══════════════════════════════════════════════════════════════════════════════
 
-ActionProductMachine._check_action_roles() — первый шаг конвейера
-выполнения действия. Машина читает спецификацию ролей из графа координатора
-и сравнивает её с ролями пользователя в Context.
+``RoleChecker.check()`` (used from ``ActionProductMachine._run_internal``) is the
+first gate. It reads the role spec from the coordinator facet and compares it to
+``Context.user.roles``.
 
 Четыре режима проверки ролей:
 
@@ -156,7 +156,8 @@ class TestRoleNone:
         # Arrange — PingAction с ROLE_NONE, контекст без ролей
         action = PingAction()
         # Act — проверка ролей не бросает исключений
-        machine._check_action_roles(action, context_no_roles)
+        rt = machine._get_execution_cache(action.__class__)
+        machine._role_checker.check(action, context_no_roles, rt)
 
     def test_user_with_roles_passes(self, machine, context_admin) -> None:
         """
@@ -165,7 +166,8 @@ class TestRoleNone:
         # Arrange — PingAction с ROLE_NONE, контекст с ролями admin, user
         action = PingAction()
         # Act — проверка не бросает исключений
-        machine._check_action_roles(action, context_admin)
+        rt = machine._get_execution_cache(action.__class__)
+        machine._role_checker.check(action, context_admin, rt)
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -184,7 +186,8 @@ class TestRoleAny:
         action = _ActionRoleAnyAction()
 
         # Act — проверка проходит
-        machine._check_action_roles(action, context_admin)
+        rt = machine._get_execution_cache(action.__class__)
+        machine._role_checker.check(action, context_admin, rt)
 
     def test_user_without_roles_rejected(self, machine, context_no_roles) -> None:
         """
@@ -194,7 +197,8 @@ class TestRoleAny:
         action = _ActionRoleAnyAction()
         # Act & Assert — AuthorizationError с информативным сообщением
         with pytest.raises(AuthorizationError, match="Authentication required"):
-            machine._check_action_roles(action, context_no_roles)
+            rt = machine._get_execution_cache(action.__class__)
+            machine._role_checker.check(action, context_no_roles, rt)
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -212,7 +216,8 @@ class TestSingleRole:
         # Arrange — AdminAction с ролью "admin", контекст с admin в ролях
         action = AdminAction()
         # Act — проверка проходит
-        machine._check_action_roles(action, context_admin)
+        rt = machine._get_execution_cache(action.__class__)
+        machine._role_checker.check(action, context_admin, rt)
 
     def test_non_matching_role_rejected(self, machine, context_manager) -> None:
         """
@@ -222,7 +227,8 @@ class TestSingleRole:
         action = AdminAction()
         # Act & Assert — AuthorizationError с указанием требуемой роли
         with pytest.raises(AuthorizationError, match="Required role: 'admin'"):
-            machine._check_action_roles(action, context_manager)
+            rt = machine._get_execution_cache(action.__class__)
+            machine._role_checker.check(action, context_manager, rt)
 
     def test_no_roles_rejected(self, machine, context_no_roles) -> None:
         """
@@ -232,7 +238,8 @@ class TestSingleRole:
         action = AdminAction()
         # Act & Assert
         with pytest.raises(AuthorizationError):
-            machine._check_action_roles(action, context_no_roles)
+            rt = machine._get_execution_cache(action.__class__)
+            machine._role_checker.check(action, context_no_roles, rt)
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -250,7 +257,8 @@ class TestRoleList:
         # Arrange — _ActionRoleListAction с ["manager", "editor"], контекст с "manager"
         action = _ActionRoleListAction()
         # Act — проверка проходит
-        machine._check_action_roles(action, context_manager)
+        rt = machine._get_execution_cache(action.__class__)
+        machine._role_checker.check(action, context_manager, rt)
 
     def test_no_intersection_rejected(self, machine, context_admin) -> None:
         """
@@ -262,7 +270,8 @@ class TestRoleList:
         action = _ActionRoleListAction()
         # Act & Assert — AuthorizationError с указанием требуемых ролей
         with pytest.raises(AuthorizationError, match="Required one of the roles"):
-            machine._check_action_roles(action, context_admin)
+            rt = machine._get_execution_cache(action.__class__)
+            machine._role_checker.check(action, context_admin, rt)
 
     def test_no_roles_rejected(self, machine, context_no_roles) -> None:
         """
@@ -272,7 +281,8 @@ class TestRoleList:
         action = _ActionRoleListAction()
         # Act & Assert
         with pytest.raises(AuthorizationError):
-            machine._check_action_roles(action, context_no_roles)
+            rt = machine._get_execution_cache(action.__class__)
+            machine._role_checker.check(action, context_no_roles, rt)
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -291,7 +301,8 @@ class TestMissingCheckRoles:
         action = _ActionNoCheckRolesAction()
         # Act & Assert — TypeError, не AuthorizationError
         with pytest.raises(TypeError, match="does not have a @check_roles"):
-            machine._check_action_roles(action, context_admin)
+            rt = machine._get_execution_cache(action.__class__)
+            machine._role_checker.check(action, context_admin, rt)
 
 
 # ═════════════════════════════════════════════════════════════════════════════
