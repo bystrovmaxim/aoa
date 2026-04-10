@@ -264,7 +264,7 @@ DEPENDENCY_FACTORY_CACHE_KEY = "_action_machine_dependency_factory_cache"
 
 
 def cached_dependency_factory(
-    coordinator: "GateCoordinator",
+    coordinator: GateCoordinator,
     cls: type,
 ) -> DependencyFactory:
     """
@@ -289,7 +289,7 @@ def cached_dependency_factory(
     return cache[cls]
 
 
-def clear_dependency_factory_cache(coordinator: "GateCoordinator") -> int:
+def clear_dependency_factory_cache(coordinator: GateCoordinator) -> int:
     """Очищает кеш фабрик на координаторе; возвращает число удалённых записей."""
     raw = coordinator.__dict__.get(DEPENDENCY_FACTORY_CACHE_KEY)
     if not isinstance(raw, dict) or not raw:

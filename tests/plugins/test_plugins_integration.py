@@ -52,8 +52,8 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from action_machine.logging.log_coordinator import LogCoordinator
 from action_machine.core.core_action_machine import CoreActionMachine
+from action_machine.logging.log_coordinator import LogCoordinator
 from action_machine.plugins.decorators import on
 from action_machine.plugins.events import (
     GlobalFinishEvent,

@@ -18,4 +18,4 @@ from action_machine.core.coordinator_action_product_machine import (
 )
 from action_machine.core.core_action_machine import CoreActionMachine
 
-__all__ = ["CoreActionMachine", "CoordinatorActionProductMachine"]
+__all__ = ["CoordinatorActionProductMachine", "CoreActionMachine"]

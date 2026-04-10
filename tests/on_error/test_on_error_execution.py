@@ -18,8 +18,8 @@ All tests use Actions from tests/domain/error_actions.py.
 """
 import pytest
 
-from action_machine.core.exceptions import OnErrorHandlerError
 from action_machine.core.core_action_machine import CoreActionMachine
+from action_machine.core.exceptions import OnErrorHandlerError
 from action_machine.logging.log_coordinator import LogCoordinator
 from action_machine.testing import TestBench
 from tests.domain_model import (

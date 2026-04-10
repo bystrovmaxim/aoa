@@ -53,8 +53,8 @@ resolve() с rollup:
 
 import pytest
 
-from action_machine.core.exceptions import RollupNotSupportedError
 from action_machine.core.core_action_machine import CoreActionMachine
+from action_machine.core.exceptions import RollupNotSupportedError
 from action_machine.core.meta_decorator import meta
 from action_machine.dependencies.dependency_factory import (
     DependencyFactory,
