@@ -1224,58 +1224,20 @@ class ActionProductMachine(BaseActionMachine):
                 **plugin_kwargs,
             )
 
-            # Запомнить state ДО аспекта для SagaFrame
-            state_before = state
-
-            aspect_start = time.time()
-
-            new_state_dict = await self._call_aspect(
-                aspect_meta, action, params, state, box, connections, context,
+            state, new_state_dict, aspect_duration = (
+                await self._aspect_executor.execute_regular(
+                    self,
+                    aspect_meta=aspect_meta,
+                    action=action,
+                    params=params,
+                    state=state,
+                    box=box,
+                    connections=connections,
+                    context=context,
+                    runtime=runtime,
+                    saga_stack=saga_stack if build_saga else [],
+                )
             )
-
-            if not isinstance(new_state_dict, dict):
-                raise TypeError(
-                    f"Aspect {aspect_meta.method_name} must return a dict, "
-                    f"got {type(new_state_dict).__name__}"
-                )
-
-            checkers = runtime.checkers_by_aspect.get(
-                aspect_meta.method_name, (),
-            )
-
-            if not checkers and new_state_dict:
-                raise ValidationFieldError(
-                    f"Aspect {aspect_meta.method_name} has no checkers, "
-                    f"but returned non-empty state: {new_state_dict}. "
-                    f"Either add checkers for all fields, or return an empty dict."
-                )
-
-            if checkers:
-                allowed_fields = {c.field_name for c in checkers}
-                extra_fields = set(new_state_dict.keys()) - allowed_fields
-                if extra_fields:
-                    raise ValidationFieldError(
-                        f"Aspect {aspect_meta.method_name} returned extra fields: "
-                        f"{extra_fields}. Allowed only: {allowed_fields}"
-                    )
-                self._apply_checkers(checkers, new_state_dict)
-
-            # Создаём новый state, объединяя старый с новыми данными
-            state = BaseState(**{**state.to_dict(), **new_state_dict})
-
-            # ── Добавить SagaFrame в стек компенсации ─────────────────
-            if build_saga:
-                compensator = runtime.compensators_by_aspect.get(
-                    aspect_meta.method_name,
-                )
-                saga_stack.append(SagaFrame(
-                    compensator=compensator,
-                    aspect_name=aspect_meta.method_name,
-                    state_before=state_before,
-                    state_after=state,
-                ))
-
-            aspect_duration = time.time() - aspect_start
 
             # ── AfterRegularAspectEvent ───────────────────────────────
             await plugin_ctx.emit_event(
@@ -1348,13 +1310,16 @@ class ActionProductMachine(BaseActionMachine):
             )
 
             failed_aspect_name = summary_name
-            summary_start = time.time()
-
-            result = await self._call_aspect(
-                summary_meta, action, params, state, box, connections, context,
+            result, summary_duration = await self._aspect_executor.execute_summary(
+                self,
+                summary_meta=summary_meta,
+                action=action,
+                params=params,
+                state=state,
+                box=box,
+                connections=connections,
+                context=context,
             )
-
-            summary_duration = time.time() - summary_start
 
             # ── AfterSummaryAspectEvent ───────────────────────────────
             await plugin_ctx.emit_event(
