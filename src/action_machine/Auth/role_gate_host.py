@@ -1,4 +1,3 @@
-```python
 # src/action_machine/auth/role_gate_host.py
 """
 RoleGateHost — marker mixin for the @check_roles decorator.
@@ -90,4 +89,3 @@ class RoleGateHost:
     """
 
     _role_info: ClassVar[dict[str, Any]]
-```

@@ -1,4 +1,3 @@
-```python
 # src/action_machine/auth/role_gate_host_inspector.py
 """
 Role gate-host inspector for role facet snapshots.
@@ -158,4 +157,3 @@ class RoleGateHostInspector(BaseGateHostInspector):
     def _build_payload(cls, target_cls: type) -> FacetPayload:
         """Build a ``role`` node from ``_role_info``."""
         return cls.Snapshot.from_target(target_cls).to_facet_payload()
-```
