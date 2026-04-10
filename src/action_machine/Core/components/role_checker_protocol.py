@@ -54,7 +54,7 @@ ERRORS / LIMITATIONS
 AI-CORE-BEGIN
 ═══════════════════════════════════════════════════════════════════════════════
 ROLE: Role checker contract.
-CONTRACT: check(machine, action, context, runtime) -> None or AuthorizationError.
+CONTRACT: check(action, context, runtime) -> None or AuthorizationError.
 INVARIANTS: raises AuthorizationError on access denial; handles ROLE_NONE/ROLE_ANY.
 FLOW: input context + runtime -> role validation -> None or error.
 FAILURES: AuthorizationError when role requirements are not met.
@@ -78,7 +78,6 @@ class RoleCheckerProtocol(Protocol):
 
     def check(
         self,
-        machine: object,
         action: BaseAction[BaseParams, BaseResult],
         context: Context,
         runtime: Any,
@@ -87,7 +86,6 @@ class RoleCheckerProtocol(Protocol):
         Validate role access for an action execution.
 
         Args:
-            machine: The executing machine (used for fallback cache retrieval).
             action: Action instance being executed.
             context: Execution context containing user roles.
             runtime: Pre‑computed action execution cache.
