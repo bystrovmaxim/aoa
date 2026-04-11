@@ -43,3 +43,9 @@ class SystemDomain(BaseDomain):
     """System domain — used for infrastructure actions (ping, health check)."""
     name = "system"
     description = "System domain for infrastructure operations"
+
+
+class TestDomain(BaseDomain):
+    """Generic domain for tests where the scenario does not care which domain is used."""
+    name = "test"
+    description = "Shared test domain for @meta"

@@ -65,6 +65,7 @@ from action_machine.core.base_result import BaseResult
 from action_machine.core.core_action_machine import CoreActionMachine
 from action_machine.core.meta_decorator import meta
 from action_machine.metadata.gate_coordinator import GateCoordinator
+from tests.domain_model.domains import TestDomain
 
 # ═════════════════════════════════════════════════════════════════════════════
 # Вспомогательные функции и классы
@@ -98,7 +99,7 @@ class EmptyResult(BaseResult):
     pass
 
 
-@meta(description="Тестовое действие с компенсатором")
+@meta(description="Тестовое действие с компенсатором", domain=TestDomain)
 @check_roles(ROLE_NONE)
 class ActionWithCompensatorAction(BaseAction[EmptyParams, EmptyResult]):
 
@@ -116,7 +117,7 @@ class ActionWithCompensatorAction(BaseAction[EmptyParams, EmptyResult]):
         return EmptyResult()
 
 
-@meta(description="Тестовое действие с компенсатором и контекстом")
+@meta(description="Тестовое действие с компенсатором и контекстом", domain=TestDomain)
 @check_roles(ROLE_NONE)
 class ActionWithContextCompensatorAction(BaseAction[EmptyParams, EmptyResult]):
 

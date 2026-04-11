@@ -140,7 +140,7 @@ GENERIC-PARAMETERS
 EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
-    >>> @meta(description="Проверка доступности сервиса")
+    >>> @meta(description="Проверка доступности сервиса", domain=SystemDomain)
     ... @check_roles(ROLE_NONE)
     ... class PingAction(BaseAction[BaseParams, BaseResult]):
     ...     @summary_aspect("Pong response")

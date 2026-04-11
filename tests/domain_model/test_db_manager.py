@@ -29,8 +29,10 @@ USAGE
 from action_machine.core.meta_decorator import meta
 from action_machine.resource_managers.base_resource_manager import BaseResourceManager
 
+from .domains import TestDomain
 
-@meta(description="Test DB manager for connection decorator tests")
+
+@meta(description="Test DB manager for connection decorator tests", domain=TestDomain)
 class TestDbManager(BaseResourceManager):
     """
     Minimal BaseResourceManager for tests.

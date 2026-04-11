@@ -42,6 +42,7 @@ from action_machine.core.exceptions import ContextAccessError
 from action_machine.core.meta_decorator import meta
 from action_machine.on_error import on_error
 from action_machine.testing import TestBench
+from tests.domain_model.domains import TestDomain
 
 # ═════════════════════════════════════════════════════════════════════════════
 # Тестовые модели Params и Result (frozen, как требуется)
@@ -68,7 +69,7 @@ class _BoxCheckResult(BaseResult):
 # ═════════════════════════════════════════════════════════════════════════════
 
 
-@meta(description="Action с аспектом, читающим user_id из контекста")
+@meta(description="Action с аспектом, читающим user_id из контекста", domain=TestDomain)
 @check_roles(ROLE_NONE)
 class _CtxReadAction(BaseAction[_IntegrationParams, _IntegrationResult]):
     """
@@ -89,7 +90,7 @@ class _CtxReadAction(BaseAction[_IntegrationParams, _IntegrationResult]):
         return _IntegrationResult(message=f"user={state['ctx_user_id']}")
 
 
-@meta(description="Action без @context_requires — стандартная сигнатура")
+@meta(description="Action без @context_requires — стандартная сигнатура", domain=TestDomain)
 @check_roles(ROLE_NONE)
 class _NoCtxAction(BaseAction[_IntegrationParams, _IntegrationResult]):
     """
@@ -102,7 +103,7 @@ class _NoCtxAction(BaseAction[_IntegrationParams, _IntegrationResult]):
         return _IntegrationResult(message=f"hello {params.name}")
 
 
-@meta(description="Action с аспектом, обращающимся к незапрошенному полю")
+@meta(description="Action с аспектом, обращающимся к незапрошенному полю", domain=TestDomain)
 @check_roles(ROLE_NONE)
 class _CtxAccessViolationAction(BaseAction[_IntegrationParams, _IntegrationResult]):
     """
@@ -121,7 +122,7 @@ class _CtxAccessViolationAction(BaseAction[_IntegrationParams, _IntegrationResul
         return _IntegrationResult(message="should not reach")
 
 
-@meta(description="Action с обработчиком ошибок, читающим контекст")
+@meta(description="Action с обработчиком ошибок, читающим контекст", domain=TestDomain)
 @check_roles(ROLE_NONE)
 class _OnErrorCtxAction(BaseAction[_IntegrationParams, _IntegrationResult]):
     """
@@ -143,7 +144,7 @@ class _OnErrorCtxAction(BaseAction[_IntegrationParams, _IntegrationResult]):
         return _IntegrationResult(message=f"error handled by {user_id}")
 
 
-@meta(description="Action с обработчиком ошибок без @context_requires")
+@meta(description="Action с обработчиком ошибок без @context_requires", domain=TestDomain)
 @check_roles(ROLE_NONE)
 class _OnErrorNoCtxAction(BaseAction[_IntegrationParams, _IntegrationResult]):
     """
@@ -163,7 +164,7 @@ class _OnErrorNoCtxAction(BaseAction[_IntegrationParams, _IntegrationResult]):
         return _IntegrationResult(message=f"error: {error}")
 
 
-@meta(description="Action с summary, читающим контекст")
+@meta(description="Action с summary, читающим контекст", domain=TestDomain)
 @check_roles(ROLE_NONE)
 class _SummaryCtxAction(BaseAction[_IntegrationParams, _IntegrationResult]):
     """
@@ -177,7 +178,7 @@ class _SummaryCtxAction(BaseAction[_IntegrationParams, _IntegrationResult]):
         return _IntegrationResult(message=f"host={hostname}")
 
 
-@meta(description="Проверка отсутствия box.context")
+@meta(description="Проверка отсутствия box.context", domain=TestDomain)
 @check_roles(ROLE_NONE)
 class _BoxCheckAction(BaseAction[BaseParams, _BoxCheckResult]):
     """

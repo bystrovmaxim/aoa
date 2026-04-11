@@ -56,12 +56,13 @@ from action_machine.core.exceptions import HandleError, TransactionProhibitedErr
 from action_machine.core.meta_decorator import meta
 from action_machine.resource_managers.iconnection_manager import IConnectionManager
 from action_machine.resource_managers.wrapper_connection_manager import WrapperConnectionManager
+from tests.domain_model.domains import TestDomain
 
 # ======================================================================
 # Mock-менеджер соединений для тестов
 # ======================================================================
 
-@meta(description="Мок-менеджер соединений для тестов")
+@meta(description="Мок-менеджер соединений для тестов", domain=TestDomain)
 class MockConnectionManager(IConnectionManager):
     """
     Мок-реализация IConnectionManager для тестирования WrapperConnectionManager.

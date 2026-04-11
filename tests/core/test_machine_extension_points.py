@@ -33,6 +33,7 @@ from action_machine.core.tools_box import ToolsBox
 from action_machine.logging.log_coordinator import LogCoordinator
 from action_machine.resource_managers.base_resource_manager import BaseResourceManager
 from tests.domain_model import PingAction
+from tests.domain_model.domains import TestDomain
 
 
 @pytest.fixture()
@@ -45,7 +46,7 @@ class _HandledResult(BaseResult):
     marker: str
 
 
-@meta(description="Action with regular + failing summary for saga override tests")
+@meta(description="Action with regular + failing summary for saga override tests", domain=TestDomain)
 @check_roles(ROLE_NONE)
 class _FailingSagaAction(BaseAction[BaseParams, BaseResult]):
     @regular_aspect("touch")

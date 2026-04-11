@@ -47,6 +47,7 @@ from tests.domain_model.compensate_actions import (
     CompensateTestParams,
     CompensateWithContextAction,
 )
+from tests.domain_model.domains import TestDomain
 from tests.domain_model.services import InventoryService, PaymentService
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -83,7 +84,7 @@ class CtxCheckResult(BaseResult):
     status: str = Field(default="ok", description="Статус выполнения")
 
 
-@meta(description="Action для проверки контекста в компенсаторе")
+@meta(description="Action для проверки контекста в компенсаторе", domain=TestDomain)
 @check_roles(ROLE_NONE)
 @depends(PaymentService, description="Платежи")
 class CtxCheckAction(BaseAction[CtxCheckParams, CtxCheckResult]):

@@ -64,6 +64,7 @@ from action_machine.core.meta_decorator import meta
 from action_machine.logging.log_coordinator import LogCoordinator
 from action_machine.testing import TestBench
 from tests.domain_model import AdminAction, FullAction, PingAction
+from tests.domain_model.domains import TestDomain
 
 # ═════════════════════════════════════════════════════════════════════════════
 # Вспомогательные действия для edge-case тестов
@@ -80,7 +81,7 @@ class _MockResult(BaseResult):
     pass
 
 
-@meta(description="Действие с ROLE_ANY для тестов")
+@meta(description="Действие с ROLE_ANY для тестов", domain=TestDomain)
 @check_roles(ROLE_ANY)
 class _ActionRoleAnyAction(BaseAction[_MockParams, _MockResult]):
     """Требует любую роль — пользователь должен быть аутентифицирован."""
@@ -90,7 +91,7 @@ class _ActionRoleAnyAction(BaseAction[_MockParams, _MockResult]):
         return _MockResult()
 
 
-@meta(description="Действие для менеджеров и редакторов")
+@meta(description="Действие для менеджеров и редакторов", domain=TestDomain)
 @check_roles(["manager", "editor"])
 class _ActionRoleListAction(BaseAction[_MockParams, _MockResult]):
     """Требует одну из ролей: manager или editor."""
@@ -100,7 +101,7 @@ class _ActionRoleListAction(BaseAction[_MockParams, _MockResult]):
         return _MockResult()
 
 
-@meta(description="Действие без @check_roles — баг разработчика")
+@meta(description="Действие без @check_roles — баг разработчика", domain=TestDomain)
 class _ActionNoCheckRolesAction(BaseAction[_MockParams, _MockResult]):
     """Нет @check_roles — TypeError при выполнении."""
 

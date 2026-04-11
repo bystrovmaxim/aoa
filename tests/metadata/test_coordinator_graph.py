@@ -70,6 +70,7 @@ from action_machine.plugins.events import GlobalStartEvent
 from action_machine.plugins.plugin import Plugin
 from action_machine.resource_managers.base_resource_manager import BaseResourceManager
 from action_machine.resource_managers.connection import connection
+from tests.domain_model.domains import TestDomain
 
 
 def _new_coord() -> GateCoordinator:
@@ -157,7 +158,7 @@ class _ServiceB:
     pass
 
 
-@meta("Мок менеджер")
+@meta("Мок менеджер", domain=TestDomain)
 class _MockManager(BaseResourceManager):
     """Минимальная реализация BaseResourceManager для тестов графа."""
     def get_wrapper_class(self):
@@ -168,7 +169,7 @@ class _EmptyClass:
     pass
 
 
-@meta("Ping")
+@meta("Ping", domain=TestDomain)
 @check_roles(ROLE_NONE)
 class _PingGraphAction(BaseAction["_Params", "_Result"]):
     """Минимальное действие для тестов графа."""
@@ -177,7 +178,7 @@ class _PingGraphAction(BaseAction["_Params", "_Result"]):
         return {"message": "pong"}
 
 
-@meta("Действие с зависимостями")
+@meta("Действие с зависимостями", domain=TestDomain)
 @check_roles(ROLE_NONE)
 @depends(_ServiceA)
 @depends(_ServiceB)
@@ -188,7 +189,7 @@ class _ActionWithDepsAction(BaseAction["_Params", "_Result"]):
         return {}
 
 
-@meta("Действие с соединением")
+@meta("Действие с соединением", domain=TestDomain)
 @check_roles(ROLE_NONE)
 @connection(_MockManager, key="db", description="БД")
 class _ActionWithConnAction(BaseAction["_Params", "_Result"]):
@@ -198,7 +199,7 @@ class _ActionWithConnAction(BaseAction["_Params", "_Result"]):
         return {}
 
 
-@meta("Действие с чекерами")
+@meta("Действие с чекерами", domain=TestDomain)
 @check_roles(ROLE_NONE)
 class _ActionWithCheckersAction(BaseAction["_Params", "_Result"]):
     """Действие с regular-аспектом и чекером для тестов графа."""
@@ -233,7 +234,7 @@ class _TestPlugin(Plugin):
         return state
 
 
-@meta("Действие с ролью")
+@meta("Действие с ролью", domain=TestDomain)
 @check_roles("admin")
 class _RoledGraphAction(BaseAction["_Params", "_Result"]):
     """Действие с конкретной ролью для тестов графа."""
@@ -242,7 +243,7 @@ class _RoledGraphAction(BaseAction["_Params", "_Result"]):
         return {}
 
 
-@meta("Другое действие с ServiceA")
+@meta("Другое действие с ServiceA", domain=TestDomain)
 @check_roles(ROLE_NONE)
 @depends(_ServiceA)
 class _AnotherActionWithServiceAAction(BaseAction["_Params", "_Result"]):
@@ -252,7 +253,7 @@ class _AnotherActionWithServiceAAction(BaseAction["_Params", "_Result"]):
         return {}
 
 
-@meta("Действие с компенсатором для тестов графа")
+@meta("Действие с компенсатором для тестов графа", domain=TestDomain)
 @check_roles(ROLE_NONE)
 class _ActionWithCompensatorGraphAction(BaseAction["_Params", "_Result"]):
     """
