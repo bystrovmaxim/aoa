@@ -8,9 +8,9 @@ PURPOSE
 
 Provide a small, typed surface for data passed into ``PluginRunContext.emit_event``:
 shared ``BasePluginEvent`` keyword arguments, extra kwargs for ``emit_event``, and
-async helpers that build and emit **regular** and **summary** aspect events. Keeps
-``ActionProductMachine`` and coordinators such as ``SagaCoordinator`` free of
-duplicated event construction for those pipeline stages.
+async helpers that build and emit **global** lifecycle events plus **regular** and
+**summary** aspect events. Keeps ``ActionProductMachine`` and coordinators such as
+``SagaCoordinator`` free of duplicated event construction for those pipeline stages.
 
 ═══════════════════════════════════════════════════════════════════════════════
 INVARIANTS
@@ -40,6 +40,8 @@ ARCHITECTURE / DATA FLOW
                 │
                 ├── emit_extra_kwargs(nest_level) ──► **kwargs for emit_event
                 │
+                ├── emit_global_start / emit_global_finish(plugin_ctx, ...)
+                │
                 └── emit_*_aspect(plugin_ctx, ...)  ──► await emit_event(...)
 
     SagaCoordinator.execute
@@ -48,6 +50,12 @@ ARCHITECTURE / DATA FLOW
         ├── plugin_emit.emit_extra_kwargs(box.nested_level)
         └── ScopedLogger(..., machine_name=plugin_emit.machine_class_name,
                            mode=plugin_emit.mode, ...)
+
+    ActionProductMachine._run_internal
+        │
+        ├── await plugin_emit.emit_global_start(plugin_ctx, ...)
+        ├── await _execute_aspects_with_error_handling(...)
+        └── await plugin_emit.emit_global_finish(plugin_ctx, ...)
 
     ActionProductMachine._execute_regular_aspects / _execute_aspects_with_error_handling
         │
@@ -60,8 +68,9 @@ ARCHITECTURE / DATA FLOW
 EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
-Happy path: the machine constructs one ``PluginEmitSupport``; the aspect pipeline
-calls the ``emit_*_aspect`` helpers with the run-local ``plugin_ctx``.
+Happy path: the machine constructs one ``PluginEmitSupport``; ``_run_internal`` calls
+``emit_global_start`` / ``emit_global_finish`` and the aspect pipeline uses the
+``emit_*_aspect`` helpers, all with the run-local ``plugin_ctx``.
 
 Edge case: a test passes a stub ``plugin_ctx`` that records ``emit_event`` calls
 to assert event types and payloads without a full ``PluginCoordinator``.
@@ -70,19 +79,20 @@ to assert event types and payloads without a full ``PluginCoordinator``.
 ERRORS / LIMITATIONS
 ═══════════════════════════════════════════════════════════════════════════════
 
-Exceptions from ``plugin_ctx.emit_event`` propagate to the caller. Global start
-and finish events are still emitted by the machine (see plan: part 2 may move them
-here).
+Exceptions from ``plugin_ctx.emit_event`` propagate to the caller. Saga and
+``@on_error`` events are emitted by ``SagaCoordinator`` and ``ErrorHandlerExecutor``,
+not by this type.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN
 ═══════════════════════════════════════════════════════════════════════════════
-ROLE: Plugin event envelope factory + aspect-pipeline emit façade.
-CONTRACT: Stable shapes for BasePluginEvent kwargs and emit_event extras;
-  regular/summary aspect events built only inside this type for those stages.
+ROLE: Plugin event envelope factory + emit façade for global and aspect pipeline
+  events owned by the production machine path.
+CONTRACT: Stable shapes for BasePluginEvent kwargs and emit_event extras; global
+  start/finish and regular/summary aspect events built only here for those stages.
 INVARIANTS: No I/O; immutable config after construction; no stored PluginRunContext.
-FLOW: Machine constructs once → components call base_fields / emit_extra_kwargs /
-  emit_*_aspect with a per-run plugin_ctx.
+FLOW: Machine constructs once → _run_internal and nested helpers call emit_* with
+  a per-run plugin_ctx.
 FAILURES: Delegates to plugin_ctx.emit_event (handler/plugin errors propagate).
 EXTENSION POINTS: Subclass or replace when custom event base shapes are required.
 AI-CORE-END
@@ -103,18 +113,20 @@ from action_machine.plugins.events import (
     AfterSummaryAspectEvent,
     BeforeRegularAspectEvent,
     BeforeSummaryAspectEvent,
+    GlobalFinishEvent,
+    GlobalStartEvent,
 )
 from action_machine.plugins.plugin_run_context import PluginRunContext
 
 
 class PluginEmitSupport:
     """
-    Builds shared plugin event fields, emit extras, and emits aspect pipeline events.
+    Builds shared plugin fields, emit extras, and emits global + aspect pipeline events.
 
     AI-CORE-BEGIN
     ROLE: Public alternative to inlined event construction on the machine.
     CONTRACT: ``base_fields`` + ``emit_extra_kwargs`` match historical machine output;
-      aspect emit helpers delegate to ``plugin_ctx.emit_event`` with a passed-in ctx.
+      global and aspect emit helpers delegate to ``plugin_ctx.emit_event``.
     INVARIANTS: ``machine_class_name`` frozen at construction; no ``PluginRunContext``
       stored on ``self``.
     AI-CORE-END
@@ -172,6 +184,39 @@ class PluginEmitSupport:
             "machine_name": self._machine_class_name,
             "mode": self._mode,
         }
+
+    async def emit_global_start(
+        self,
+        plugin_ctx: PluginRunContext,
+        *,
+        action: BaseAction[Any, Any],
+        context: Context,
+        params: BaseParams,
+        nest_level: int,
+    ) -> None:
+        """Emit ``GlobalStartEvent`` after gates and before the aspect pipeline."""
+        base = self.base_fields(action, context, params, nest_level)
+        kwargs = self.emit_extra_kwargs(nest_level)
+        await plugin_ctx.emit_event(GlobalStartEvent(**base), **kwargs)
+
+    async def emit_global_finish(
+        self,
+        plugin_ctx: PluginRunContext,
+        *,
+        action: BaseAction[Any, Any],
+        context: Context,
+        params: BaseParams,
+        nest_level: int,
+        result: BaseResult,
+        duration_ms: float,
+    ) -> None:
+        """Emit ``GlobalFinishEvent`` with the final result and total duration."""
+        base = self.base_fields(action, context, params, nest_level)
+        kwargs = self.emit_extra_kwargs(nest_level)
+        await plugin_ctx.emit_event(
+            GlobalFinishEvent(**base, result=result, duration_ms=duration_ms),
+            **kwargs,
+        )
 
     async def emit_before_regular_aspect(
         self,

@@ -12,7 +12,8 @@ typed plugin lifecycle events, saga rollback on failure, and ``@on_error``
 handling. Heavy logic lives in injectable components (``RoleChecker``,
 ``ConnectionValidator``, ``ToolsBoxFactory``, ``AspectExecutor``,
 ``ErrorHandlerExecutor``, ``SagaCoordinator``); this class wires order and
-shared helpers (execution cache, ``PluginEmitSupport`` for plugin event fields).
+shared helpers (execution cache, ``PluginEmitSupport`` for all machine-owned
+plugin lifecycle emissions: global start/finish and regular/summary aspect events).
 
 ═══════════════════════════════════════════════════════════════════════════════
 INVARIANTS
@@ -51,7 +52,7 @@ ARCHITECTURE / DATA FLOW
                 ├── plugin_ctx = await _plugin_coordinator.create_run_context()
                 ├── box = _tools_box_factory.create(factory_resolver=self, ...,
                 │         mode, machine_class_name, nest_level, context, ...)
-                ├── emit GlobalStartEvent
+                ├── plugin_emit.emit_global_start(...)
                 ├── _execute_aspects_with_error_handling(...)
                 │       ├── _execute_regular_aspects (per aspect):
                 │       │       plugin_emit.emit_before_regular_aspect(...)
@@ -63,7 +64,7 @@ ARCHITECTURE / DATA FLOW
                 │       └── on exception (saga_stack prefilled):
                 │               _saga_coordinator.execute(saga_stack=..., ...)   [if stack]
                 │               _error_handler_executor.handle(...)
-                ├── emit GlobalFinishEvent
+                ├── plugin_emit.emit_global_finish(...)
                 └── return Result
 
 ``DependencyFactory`` for ``ToolsBox`` is resolved via the public
@@ -72,10 +73,11 @@ ARCHITECTURE / DATA FLOW
 
 **Where plugin events are emitted**
 
-- This module: ``GlobalStartEvent``, ``GlobalFinishEvent`` (direct ``emit_event`` calls).
-  Regular and summary aspect events: ``PluginEmitSupport.emit_before_regular_aspect``,
+- This module does **not** call ``plugin_ctx.emit_event`` or construct the six
+  machine-owned event types directly. It delegates to ``PluginEmitSupport``:
+  ``emit_global_start``, ``emit_global_finish``, ``emit_before_regular_aspect``,
   ``emit_after_regular_aspect``, ``emit_before_summary_aspect``,
-  ``emit_after_summary_aspect`` (called from this module).
+  ``emit_after_summary_aspect``.
 - ``SagaCoordinator``: ``SagaRollbackStartedEvent``, compensation before/after/failed,
   ``SagaRollbackCompletedEvent``.
 - ``ErrorHandlerExecutor``: ``BeforeOnErrorAspectEvent``, ``AfterOnErrorAspectEvent``,
@@ -124,9 +126,8 @@ ROLE: Thin orchestrator over decomposed core components.
 CONTRACT: run/_run_internal sequence; execution cache from coordinator facets;
   component DI via keyword-only constructor args.
 INVARIANTS: local saga stack per run; rollback before @on_error; typed plugin
-  emission: aspect regular/summary via ``PluginEmitSupport`` helpers; globals on
-  machine; SagaCoordinator,
-  ErrorHandlerExecutor;
+  emission for globals + regular/summary aspects via ``PluginEmitSupport`` only;
+  SagaCoordinator, ErrorHandlerExecutor for saga and @on_error events;
   inspector types for cache fields are TYPE_CHECKING-only imports.
 FLOW: cache → gates → tools box → aspect pipeline → finish event.
 FAILURES: component and pipeline exceptions unchanged by orchestration layer.
@@ -161,7 +162,6 @@ from action_machine.dependencies.dependency_factory import DependencyFactory
 from action_machine.logging.console_logger import ConsoleLogger
 from action_machine.logging.log_coordinator import LogCoordinator
 from action_machine.metadata.gate_coordinator import GateCoordinator
-from action_machine.plugins.events import GlobalFinishEvent, GlobalStartEvent
 from action_machine.plugins.plugin import Plugin
 from action_machine.plugins.plugin_coordinator import PluginCoordinator
 from action_machine.plugins.plugin_emit_support import PluginEmitSupport
@@ -597,10 +597,9 @@ class ActionProductMachine(BaseActionMachine):
         nested_level: int,
         rollup: bool,
     ) -> R:
-        """Single run level: gates, ``ToolsBox``, global plugin events, aspect pipeline."""
+        """Single run level: gates, ``ToolsBox``, plugin lifecycle via support, aspects."""
         current_nest = nested_level + 1
         start_time = time.time()
-        plugin_kwargs = self._plugin_emit.emit_extra_kwargs(current_nest)
 
         action_cls = action.__class__
         runtime = self._get_execution_cache(action_cls)
@@ -636,14 +635,12 @@ class ActionProductMachine(BaseActionMachine):
             machine_class_name=self.__class__.__name__,
         )
 
-        base_fields = self._plugin_emit.base_fields(
-            action, context, params, current_nest,
-        )
-
-        # ── GlobalStartEvent ──────────────────────────────────────
-        await plugin_ctx.emit_event(
-            GlobalStartEvent(**base_fields),
-            **plugin_kwargs,
+        await self._plugin_emit.emit_global_start(
+            plugin_ctx,
+            action=action,
+            context=context,
+            params=params,
+            nest_level=current_nest,
         )
 
         result = await self._execute_aspects_with_error_handling(
@@ -652,14 +649,14 @@ class ActionProductMachine(BaseActionMachine):
 
         total_duration = time.time() - start_time
 
-        # ── GlobalFinishEvent ─────────────────────────────────────
-        await plugin_ctx.emit_event(
-            GlobalFinishEvent(
-                **base_fields,
-                result=cast("BaseResult", result),
-                duration_ms=total_duration * 1000,
-            ),
-            **plugin_kwargs,
+        await self._plugin_emit.emit_global_finish(
+            plugin_ctx,
+            action=action,
+            context=context,
+            params=params,
+            nest_level=current_nest,
+            result=cast("BaseResult", result),
+            duration_ms=total_duration * 1000,
         )
 
         return result
