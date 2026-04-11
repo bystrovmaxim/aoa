@@ -15,6 +15,8 @@ from action_machine.plugins.events import (
     AfterSummaryAspectEvent,
     BeforeRegularAspectEvent,
     BeforeSummaryAspectEvent,
+    GlobalFinishEvent,
+    GlobalStartEvent,
 )
 from action_machine.plugins.plugin_emit_support import PluginEmitSupport
 from tests.domain_model import PingAction
@@ -175,3 +177,50 @@ async def test_emit_summary_aspect_helpers() -> None:
     assert isinstance(ev1, AfterSummaryAspectEvent)
     assert ev1.result is result
     assert ev1.duration_ms == 7.5
+
+
+@pytest.mark.asyncio
+async def test_emit_global_lifecycle_helpers() -> None:
+    """Global start/finish events use base_fields and emit_extra_kwargs."""
+    log = LogCoordinator(loggers=[])
+    emit = PluginEmitSupport(
+        log,
+        machine_class_name="ActionProductMachine",
+        mode="test",
+    )
+    action = PingAction()
+    ctx = Context(user=UserInfo(user_id="g1", roles=[]))
+    params = PingAction.Params()
+    plugin_ctx = _RecordingPluginCtx()
+    result = PingAction.Result(message="pong")
+
+    await emit.emit_global_start(
+        plugin_ctx,
+        action=action,
+        context=ctx,
+        params=params,
+        nest_level=3,
+    )
+    await emit.emit_global_finish(
+        plugin_ctx,
+        action=action,
+        context=ctx,
+        params=params,
+        nest_level=3,
+        result=result,
+        duration_ms=100.0,
+    )
+
+    assert len(plugin_ctx.emitted) == 2
+    ev0, kw0 = plugin_ctx.emitted[0]
+    ev1, kw1 = plugin_ctx.emitted[1]
+    assert isinstance(ev0, GlobalStartEvent)
+    assert isinstance(ev1, GlobalFinishEvent)
+    assert ev0.nest_level == 3
+    assert ev1.nest_level == 3
+    assert ev1.result is result
+    assert ev1.duration_ms == 100.0
+    for kw in (kw0, kw1):
+        assert kw["log_coordinator"] is log
+        assert kw["machine_name"] == "ActionProductMachine"
+        assert kw["mode"] == "test"

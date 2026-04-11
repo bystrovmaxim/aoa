@@ -9,12 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Plugin aspect pipeline events** (`BeforeRegularAspectEvent`, `AfterRegularAspectEvent`,
+- **Machine-owned plugin lifecycle events** — all six types (`GlobalStartEvent`,
+  `GlobalFinishEvent`, `BeforeRegularAspectEvent`, `AfterRegularAspectEvent`,
   `BeforeSummaryAspectEvent`, `AfterSummaryAspectEvent`) are emitted through async helpers on
-  `PluginEmitSupport` (`emit_before_regular_aspect`, `emit_after_regular_aspect`,
-  `emit_before_summary_aspect`, `emit_after_summary_aspect`). `ActionProductMachine` calls those
-  helpers instead of constructing event types inline. `PluginRunContext` is always passed as an
-  argument; it is not stored on `PluginEmitSupport` (per-run isolation, no reset between runs).
+  `PluginEmitSupport` (`emit_global_start`, `emit_global_finish`, `emit_before_regular_aspect`,
+  `emit_after_regular_aspect`, `emit_before_summary_aspect`, `emit_after_summary_aspect`).
+  `ActionProductMachine` no longer calls `plugin_ctx.emit_event` or constructs those event
+  classes directly. `PluginRunContext` is always passed into each helper; it is not stored on
+  `PluginEmitSupport` (per-run isolation, no reset between runs).
 
 ## [0.9.0] – 2026-04-07
 
