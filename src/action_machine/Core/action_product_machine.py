@@ -12,7 +12,7 @@ typed plugin lifecycle events, saga rollback on failure, and ``@on_error``
 handling. Heavy logic lives in injectable components (``RoleChecker``,
 ``ConnectionValidator``, ``ToolsBoxFactory``, ``AspectExecutor``,
 ``ErrorHandlerExecutor``, ``SagaCoordinator``); this class wires order and
-shared helpers (execution cache, plugin event base fields).
+shared helpers (execution cache, ``PluginEmitSupport`` for plugin event fields).
 
 ═══════════════════════════════════════════════════════════════════════════════
 INVARIANTS
@@ -61,7 +61,7 @@ ARCHITECTURE / DATA FLOW
                 │       ├── _aspect_executor.execute_summary(...)
                 │       ├── emit AfterSummaryAspectEvent
                 │       └── on exception (saga_stack prefilled):
-                │               _saga_coordinator.execute(...)   [if stack non-empty]
+                │               _saga_coordinator.execute(saga_stack=..., ...)   [if stack]
                 │               _error_handler_executor.handle(...)
                 ├── emit GlobalFinishEvent
                 └── return Result
@@ -121,7 +121,8 @@ ROLE: Thin orchestrator over decomposed core components.
 CONTRACT: run/_run_internal sequence; execution cache from coordinator facets;
   component DI via keyword-only constructor args.
 INVARIANTS: local saga stack per run; rollback before @on_error; typed plugin
-  emission split between machine, SagaCoordinator, ErrorHandlerExecutor;
+  emission split between machine (via ``PluginEmitSupport``), SagaCoordinator,
+  ErrorHandlerExecutor;
   inspector types for cache fields are TYPE_CHECKING-only imports.
 FLOW: cache → gates → tools box → aspect pipeline → finish event.
 FAILURES: component and pipeline exceptions unchanged by orchestration layer.
@@ -166,6 +167,7 @@ from action_machine.plugins.events import (
 )
 from action_machine.plugins.plugin import Plugin
 from action_machine.plugins.plugin_coordinator import PluginCoordinator
+from action_machine.plugins.plugin_emit_support import PluginEmitSupport
 from action_machine.plugins.plugin_run_context import PluginRunContext
 from action_machine.resource_managers.base_resource_manager import BaseResourceManager
 
@@ -298,7 +300,8 @@ class ActionProductMachine(BaseActionMachine):
 
         Defaults wire ``RoleChecker`` → ``ConnectionValidator`` → ``ToolsBoxFactory`` →
         ``AspectExecutor`` → ``ErrorHandlerExecutor`` → ``SagaCoordinator`` in that order.
-        Custom ``saga_coordinator`` must satisfy its own dependencies if replaced.
+        Custom ``saga_coordinator`` must accept ``PluginEmitSupport`` (and other
+        deps) if replaced; default wiring passes ``self._plugin_emit``.
 
         Raises:
             ValueError: empty ``mode``.
@@ -324,6 +327,12 @@ class ActionProductMachine(BaseActionMachine):
                 "Call register(...).build() before passing custom coordinator.",
             )
 
+        self._plugin_emit = PluginEmitSupport(
+            self._log_coordinator,
+            machine_class_name=self.__class__.__name__,
+            mode=self._mode,
+        )
+
         # Step 1 wiring: extension points and deterministic component order.
         self._role_checker = (
             role_checker if role_checker is not None else RoleChecker(self._coordinator)
@@ -344,7 +353,7 @@ class ActionProductMachine(BaseActionMachine):
         self._error_handler_executor = (
             error_handler_executor
             if error_handler_executor is not None
-            else ErrorHandlerExecutor()
+            else ErrorHandlerExecutor(self._plugin_emit)
         )
         self._saga_coordinator = (
             saga_coordinator
@@ -353,7 +362,7 @@ class ActionProductMachine(BaseActionMachine):
                 self._aspect_executor,
                 self._error_handler_executor,
                 self._plugin_coordinator,
-                self._log_coordinator,
+                self._plugin_emit,
             )
         )
 
@@ -364,6 +373,11 @@ class ActionProductMachine(BaseActionMachine):
         Adapters and tools should use this property instead of ``_coordinator``.
         """
         return self._coordinator
+
+    @property
+    def plugin_emit_support(self) -> PluginEmitSupport:
+        """Public read-only access to plugin event field helpers (base fields + emit extras)."""
+        return self._plugin_emit
 
     def _get_execution_cache(self, action_cls: type) -> _ActionExecutionCache:
         return _ActionExecutionCache.from_coordinator_facets(
@@ -376,38 +390,6 @@ class ActionProductMachine(BaseActionMachine):
         if snap is None or not hasattr(snap, "dependencies"):
             return DependencyFactory(())
         return DependencyFactory(tuple(snap.dependencies))
-
-    # ─────────────────────────────────────────────────────────────────────
-    # Shared fields for plugin events
-    # ─────────────────────────────────────────────────────────────────────
-
-    @staticmethod
-    def _base_event_fields(
-        action: BaseAction[Any, Any],
-        context: Context,
-        params: BaseParams,
-        nest_level: int,
-    ) -> dict[str, Any]:
-        """Shared kwargs for ``BasePluginEvent`` subclasses emitted from this machine."""
-        return {
-            "action_class": type(action),
-            "action_name": action.get_full_class_name(),
-            "nest_level": nest_level,
-            "context": context,
-            "params": params,
-        }
-
-    # ─────────────────────────────────────────────────────────────────────
-    # Extra kwargs for plugin_ctx.emit_event
-    # ─────────────────────────────────────────────────────────────────────
-
-    def _build_plugin_emit_kwargs(self, nest_level: int) -> dict[str, Any]:
-        """Extra kwargs passed to ``plugin_ctx.emit_event`` (log + machine identity)."""
-        return {
-            "log_coordinator": self._log_coordinator,
-            "machine_name": self.__class__.__name__,
-            "mode": self._mode,
-        }
 
     # ─────────────────────────────────────────────────────────────────────
     # Regular aspects
@@ -432,8 +414,10 @@ class ActionProductMachine(BaseActionMachine):
         """
         state = BaseState()
         regular_aspects = runtime.regular_aspects
-        base_fields = self._base_event_fields(action, context, params, box.nested_level)
-        plugin_kwargs = self._build_plugin_emit_kwargs(box.nested_level)
+        base_fields = self._plugin_emit.base_fields(
+            action, context, params, box.nested_level,
+        )
+        plugin_kwargs = self._plugin_emit.emit_extra_kwargs(box.nested_level)
 
         # Local compensation stack for this pipeline (empty when rollup=True).
         build_saga = runtime.has_compensators
@@ -497,8 +481,10 @@ class ActionProductMachine(BaseActionMachine):
         ``saga_stack`` is created before ``try`` so ``except`` sees frames from aspects
         that completed before the failure.
         """
-        base_fields = self._base_event_fields(action, context, params, box.nested_level)
-        plugin_kwargs = self._build_plugin_emit_kwargs(box.nested_level)
+        base_fields = self._plugin_emit.base_fields(
+            action, context, params, box.nested_level,
+        )
+        plugin_kwargs = self._plugin_emit.emit_extra_kwargs(box.nested_level)
 
         saga_stack: list[SagaFrame] = []
         failed_aspect_name: str | None = None
@@ -553,7 +539,6 @@ class ActionProductMachine(BaseActionMachine):
             # Undo side effects first so @on_error sees a consistent story.
             if saga_stack:
                 await self._saga_coordinator.execute(
-                    self,
                     saga_stack=saga_stack,
                     error=aspect_error,
                     action=action,
@@ -567,7 +552,6 @@ class ActionProductMachine(BaseActionMachine):
             # ── @on_error / unhandled path ─────────────────────────────
             error_state = BaseState()
             handled_result = await self._error_handler_executor.handle(
-                self,
                 error=aspect_error,
                 action=action,
                 params=params,
@@ -617,7 +601,7 @@ class ActionProductMachine(BaseActionMachine):
         """Single run level: gates, ``ToolsBox``, global plugin events, aspect pipeline."""
         current_nest = nested_level + 1
         start_time = time.time()
-        plugin_kwargs = self._build_plugin_emit_kwargs(current_nest)
+        plugin_kwargs = self._plugin_emit.emit_extra_kwargs(current_nest)
 
         action_cls = action.__class__
         runtime = self._get_execution_cache(action_cls)
@@ -651,7 +635,9 @@ class ActionProductMachine(BaseActionMachine):
             run_child=run_child,
         )
 
-        base_fields = self._base_event_fields(action, context, params, current_nest)
+        base_fields = self._plugin_emit.base_fields(
+            action, context, params, current_nest,
+        )
 
         # ── GlobalStartEvent ──────────────────────────────────────
         await plugin_ctx.emit_event(
