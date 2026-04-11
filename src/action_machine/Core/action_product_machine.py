@@ -49,8 +49,8 @@ ARCHITECTURE / DATA FLOW
                 ├── _role_checker.check(action, context, runtime)
                 ├── conns = _connection_validator.validate(action, connections, runtime)
                 ├── plugin_ctx = await _plugin_coordinator.create_run_context()
-                ├── box = _tools_box_factory.create(self, nest_level, context,
-                │         action_cls, params, resources, rollup, run_child)
+                ├── box = _tools_box_factory.create(factory_resolver=self, ...,
+                │         mode, machine_class_name, nest_level, context, ...)
                 ├── emit GlobalStartEvent
                 ├── _execute_aspects_with_error_handling(...)
                 │       ├── _execute_regular_aspects (per aspect):
@@ -66,8 +66,9 @@ ARCHITECTURE / DATA FLOW
                 ├── emit GlobalFinishEvent
                 └── return Result
 
-``DependencyFactory`` for ``ToolsBox`` is resolved inside ``ToolsBoxFactory``,
-not as a separate step on the machine.
+``DependencyFactory`` for ``ToolsBox`` is resolved via the public
+``dependency_factory_for`` hook passed as ``DependencyFactoryResolver`` into
+``ToolsBoxFactory.create``.
 
 **Where plugin events are emitted**
 
@@ -302,6 +303,9 @@ class ActionProductMachine(BaseActionMachine):
         ``AspectExecutor`` → ``ErrorHandlerExecutor`` → ``SagaCoordinator`` in that order.
         Custom ``saga_coordinator`` must accept ``PluginEmitSupport`` (and other
         deps) if replaced; default wiring passes ``self._plugin_emit``.
+        Custom ``AspectExecutor`` must be constructed with ``log_coordinator``,
+        ``machine_class_name``, and ``mode``. Custom ``ToolsBoxFactory`` only
+        receives ``LogCoordinator``; ``create`` supplies resolver and strings explicitly.
 
         Raises:
             ValueError: empty ``mode``.
@@ -345,10 +349,16 @@ class ActionProductMachine(BaseActionMachine):
         self._tools_box_factory = (
             tools_box_factory
             if tools_box_factory is not None
-            else ToolsBoxFactory(self._log_coordinator, self._coordinator)
+            else ToolsBoxFactory(self._log_coordinator)
         )
         self._aspect_executor = (
-            aspect_executor if aspect_executor is not None else AspectExecutor()
+            aspect_executor
+            if aspect_executor is not None
+            else AspectExecutor(
+                self._log_coordinator,
+                machine_class_name=self.__class__.__name__,
+                mode=self._mode,
+            )
         )
         self._error_handler_executor = (
             error_handler_executor
@@ -390,6 +400,10 @@ class ActionProductMachine(BaseActionMachine):
         if snap is None or not hasattr(snap, "dependencies"):
             return DependencyFactory(())
         return DependencyFactory(tuple(snap.dependencies))
+
+    def dependency_factory_for(self, action_cls: type) -> DependencyFactory:
+        """Public resolver for ``ToolsBoxFactory`` (``DependencyFactoryResolver``)."""
+        return self._dependency_factory_for(action_cls)
 
     # ─────────────────────────────────────────────────────────────────────
     # Regular aspects
@@ -435,7 +449,6 @@ class ActionProductMachine(BaseActionMachine):
 
             state, new_state_dict, aspect_duration = (
                 await self._aspect_executor.execute_regular(
-                    self,
                     aspect_meta=aspect_meta,
                     action=action,
                     params=params,
@@ -510,7 +523,6 @@ class ActionProductMachine(BaseActionMachine):
 
             failed_aspect_name = summary_name
             result, summary_duration = await self._aspect_executor.execute_summary(
-                self,
                 summary_meta=summary_meta,
                 action=action,
                 params=params,
@@ -625,7 +637,7 @@ class ActionProductMachine(BaseActionMachine):
             )
 
         box = self._tools_box_factory.create(
-            self,
+            factory_resolver=self,
             nest_level=current_nest,
             context=context,
             action_cls=action.__class__,
@@ -633,6 +645,8 @@ class ActionProductMachine(BaseActionMachine):
             resources=resources,
             rollup=rollup,
             run_child=run_child,
+            mode=self._mode,
+            machine_class_name=self.__class__.__name__,
         )
 
         base_fields = self._plugin_emit.base_fields(

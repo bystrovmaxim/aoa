@@ -94,13 +94,12 @@ class _AspectExecutorFake:
         self.regular_called = 0
         self.summary_called = 0
 
-    async def call(self, machine: object, **kwargs: Any):
-        _ = (machine, kwargs)
+    async def call(self, **kwargs: Any):
+        _ = kwargs
         return {}
 
     async def execute_regular(
         self,
-        machine: object,
         *,
         aspect_meta,
         action,
@@ -113,7 +112,6 @@ class _AspectExecutorFake:
         saga_stack: list[SagaFrame],
     ) -> tuple[BaseState, dict[str, Any], float]:
         _ = (
-            machine,
             aspect_meta,
             action,
             params,
@@ -128,7 +126,6 @@ class _AspectExecutorFake:
 
     async def execute_summary(
         self,
-        machine: object,
         *,
         summary_meta,
         action,
@@ -138,7 +135,7 @@ class _AspectExecutorFake:
         connections,
         context,
     ) -> tuple[BaseResult, float]:
-        _ = (machine, summary_meta, action, params, state, box, connections, context)
+        _ = (summary_meta, action, params, state, box, connections, context)
         self.summary_called += 1
         return PingAction.Result(message="fake"), 0.0
 

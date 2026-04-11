@@ -8,7 +8,9 @@ PURPOSE
 
 Provide a dedicated component for aspect execution in machine orchestration.
 This Step 5 implementation owns regular/summary execution paths, including
-`context_requires`, checker validation, and state merge.
+``context_requires``, checker validation, and state merge. Logging metadata
+(``LogCoordinator``, ``mode``, ``machine_class_name``) is injected at construction
+so aspect calls do not depend on a machine-shaped protocol.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
@@ -18,40 +20,42 @@ ARCHITECTURE / DATA FLOW
 
     ActionProductMachine
         │
-        ├── AspectExecutor.execute_regular(...)
-                │
+        ├── AspectExecutor(log_coordinator, machine_class_name, mode)
+        │
+        ├── execute_regular(...)
         │       ├── call(...)
         │       ├── checker application
         │       ├── state merge
         │       └── optional saga frame append
         │
-        └── AspectExecutor.execute_summary(...)
+        └── execute_summary(...)
                 └── call(...)
 
 ═══════════════════════════════════════════════════════════════════════════════
 INVARIANTS
 ═══════════════════════════════════════════════════════════════════════════════
 
-- `call(...)` owns ContextView injection, per-aspect `ScopedLogger` (with context),
-  and builds a `ToolsBox` that does not carry `Context` on the instance.
+- ``call(...)`` owns ContextView injection, per-aspect ``ScopedLogger`` (with context),
+  and builds a ``ToolsBox`` that does not carry ``Context`` on the instance.
 - Regular aspect execution validates checker contracts before state merge.
-- State merge remains immutable (`BaseState` new instance per step).
+- State merge remains immutable (``BaseState`` new instance per step).
+- No ``_MachineLike`` protocol on aspect entry points.
 
 ═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
 Happy path:
-- `execute_regular(...)` returns merged `BaseState` and aspect payload dict.
+- ``execute_regular(...)`` returns merged ``BaseState`` and aspect payload dict.
 
 Edge case:
-- Regular aspect returning unknown fields raises `ValidationFieldError`.
+- Regular aspect returning unknown fields raises ``ValidationFieldError``.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ERRORS / LIMITATIONS
 ═══════════════════════════════════════════════════════════════════════════════
 
-Summary execution remains thin and delegates invocation to `call(...)`.
+Summary execution remains thin and delegates invocation to ``call(...)``.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN
@@ -81,12 +85,24 @@ from action_machine.core.base_state import BaseState
 from action_machine.core.exceptions import ValidationFieldError
 from action_machine.core.saga_frame import SagaFrame
 from action_machine.core.tools_box import ToolsBox
+from action_machine.logging.log_coordinator import LogCoordinator
 from action_machine.logging.scoped_logger import ScopedLogger
 from action_machine.resource_managers.base_resource_manager import BaseResourceManager
 
 
 class AspectExecutor:
     """Component owning regular/summary aspect execution behavior."""
+
+    def __init__(
+        self,
+        log_coordinator: LogCoordinator,
+        *,
+        machine_class_name: str,
+        mode: str,
+    ) -> None:
+        self._log_coordinator = log_coordinator
+        self._machine_class_name = machine_class_name
+        self._mode = mode
 
     @staticmethod
     def _apply_checkers(
@@ -104,7 +120,6 @@ class AspectExecutor:
 
     async def call(
         self,
-        machine: _MachineLike,
         *,
         aspect_meta: AspectGateHostInspector.Snapshot.Aspect | None,
         action: BaseAction[Any, Any],
@@ -119,10 +134,10 @@ class AspectExecutor:
             return BaseResult()
 
         aspect_log = ScopedLogger(
-            coordinator=machine._log_coordinator,
+            coordinator=self._log_coordinator,
             nest_level=box.nested_level,
-            machine_name=machine.__class__.__name__,
-            mode=machine._mode,
+            machine_name=self._machine_class_name,
+            mode=self._mode,
             action_name=action.get_full_class_name(),
             aspect_name=aspect_meta.method_name,
             context=context,
@@ -150,7 +165,6 @@ class AspectExecutor:
 
     async def execute_regular(
         self,
-        machine: _MachineLike,
         *,
         aspect_meta: AspectGateHostInspector.Snapshot.Aspect,
         action: BaseAction[Any, Any],
@@ -166,7 +180,6 @@ class AspectExecutor:
         state_before = state
         aspect_start = time.time()
         new_state_dict = await self.call(
-            machine,
             aspect_meta=aspect_meta,
             action=action,
             params=params,
@@ -215,7 +228,6 @@ class AspectExecutor:
 
     async def execute_summary(
         self,
-        machine: _MachineLike,
         *,
         summary_meta: AspectGateHostInspector.Snapshot.Aspect | None,
         action: BaseAction[Any, Any],
@@ -230,7 +242,6 @@ class AspectExecutor:
             return BaseResult(), 0.0
         summary_start = time.time()
         result = await self.call(
-            machine,
             aspect_meta=summary_meta,
             action=action,
             params=params,
@@ -240,11 +251,6 @@ class AspectExecutor:
             context=context,
         )
         return result, (time.time() - summary_start)
-
-
-class _MachineLike(Protocol):
-    _log_coordinator: Any
-    _mode: str
 
 
 class _RuntimeLike(Protocol):
