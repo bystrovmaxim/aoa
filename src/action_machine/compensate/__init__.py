@@ -22,13 +22,14 @@ ARCHITECTURE
 - Декоратор ``@compensate`` пишет ``_compensate_meta`` на method.
 - ``CompensateGateHostInspector`` при ``GateCoordinator.build()`` формирует
   facet ``compensator``; снимок читают как ``get_snapshot(cls, \"compensator\")``.
-- ``ActionProductMachine._rollback_saga()`` разматывает стек ``SagaFrame`` и
-  вызывает compensatorы (исполнение идёт по scratch/runtime, не через координатор).
+- ``ActionProductMachine._rollback_saga()`` unwinds the ``SagaFrame`` stack and
+  invokes compensator callables; frames are populated from coordinator **compensator**
+  facet snapshots at run setup — rollback does not re-query the graph.
 
-CompensateGateHostInspector (через локальный сборщик `_collect_compensators`) собирает
-эти атрибуты из vars(cls) и формирует snapshot CompensatorMeta.
-Модуль compensate_gate_host проверяет инварианты при сборке метаданных.
-ActionProductMachine использует CompensatorMeta при размотке стека SagaFrame.
+``CompensateGateHostInspector._collect_compensators`` reads declaring-class members
+and builds the typed compensator facet; ``compensate_gate_host`` validates
+invariants at graph build time. The machine drives rollback using metadata
+cached from those snapshots when the run started.
 
 ═══════════════════════════════════════════════════════════════════════════════
 КЛЮЧЕВЫЕ ПРАВИЛА

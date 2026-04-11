@@ -1,50 +1,79 @@
 # tests/metadata/__init__.py
 """
-Пакет тестов метаданных ActionMachine.
+Tests for ActionMachine metadata: decorators, inspectors, and ``GateCoordinator``.
 
 ═══════════════════════════════════════════════════════════════════════════════
-НАЗНАЧЕНИЕ
+PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Содержит тесты для системы метаданных — центрального механизма,
-связывающего декораторы, классы действий и координатор. Метаданные
-собираются из атрибутов классов (установленных декораторами) и
-описывают полную конфигурацию каждого зарегистрированного компонента.
+These tests exercise how declaration-time attributes on classes (written by
+decorators) are read by **gate-host inspectors** during ``GateCoordinator.build()``,
+how the graph and **facet snapshots** are produced, and how public coordinator APIs
+behave. They do not reintroduce removed class-level introspection helpers on
+``BaseAction`` — the production machine reads pipeline metadata from coordinator
+snapshots only.
 
 ═══════════════════════════════════════════════════════════════════════════════
-КОМПОНЕНТЫ
+INVARIANTS
 ═══════════════════════════════════════════════════════════════════════════════
 
-Runtime / scratch
-    Декораторы вешают на классы атрибуты (``_meta_info``, gate-host metadata и т.д.).
-    Исполняемая машина и адаптеры могут читать их напрямую; для согласованности
-    с графом предпочтительны снимки координатора.
-
-MetadataBuilder (внутри координатора при ``build()``)
-    Инспекторы facet’ов собирают payload’ы, валидируют ссылки и циклы,
-    материализуют узлы/рёбра графа и typed facet snapshots.
-
-GateCoordinator (публичный контракт)
-    ``register`` / ``build`` / ``is_built``; обход графа —
-    ``get_graph``, ``get_node``, ``get_nodes_by_type``, ``get_nodes_for_class``;
-    typed данные по классу — ``get_snapshot(cls, facet_key)``.
-    Доменные хелперы (роли, аспекты, чекеры, …) не входят в API координатора:
-    их читают через соответствующие facet-снимки или scratch на классе.
-
-BaseDomain
-    Абстрактный базовый класс для доменов. Валидирует атрибут name
-    при наследовании: обязателен, строка, не пустой. Используется
-    в @meta(description, domain=SomeDomain) для группировки компонентов.
+- Tests use the same coordinator registration and ``build()`` flow as production
+  unless a case explicitly constructs a partial coordinator.
+- Facet keys and payload shapes must match the corresponding inspector modules.
 
 ═══════════════════════════════════════════════════════════════════════════════
-СТРУКТУРА ТЕСТОВ
+DATA FLOW
+═══════════════════════════════════════════════════════════════════════════════
+
+::
+
+    Action / entity classes (tests fixtures, domain_model)
+              │
+              ▼
+    GateCoordinator.register(...).build()
+              │
+              ├────► test_*_gate_host_inspector.py   (per-facet collection)
+              ├────► test_coordinator_*.py         (graph, snapshots, strict rules)
+              └────► test_domain.py                (BaseDomain naming rules)
+
+═══════════════════════════════════════════════════════════════════════════════
+LAYOUT
 ═══════════════════════════════════════════════════════════════════════════════
 
     tests/metadata/
-    ├── __init__.py                     — этот файл
-    ├── test_new_gate_coordinator_*.py  — построение графа и снимки facet’ов
-    ├── test_*_gate_host_inspector.py   — инспекторы отдельных facet’ов
-    ├── test_coordinator_graph.py       — GateCoordinator: граф, узлы, рёбра, циклы, API
-    ├── test_coordinator_strict.py      — GateCoordinator: инвариант domain, домены в графе
-    └── test_domain.py                  — BaseDomain: валидация name, наследование, изоляция
+    ├── __init__.py                     — this file
+    ├── test_new_gate_coordinator_*.py  — graph build and facet accessors
+    ├── test_*_gate_host_inspector.py   — individual facet inspectors
+    ├── test_coordinator_graph.py       — graph API, nodes, edges, cycles
+    ├── test_coordinator_strict.py      — domain invariant and graph consistency
+    └── test_domain.py                  — BaseDomain: name validation, inheritance
+
+═══════════════════════════════════════════════════════════════════════════════
+EXAMPLES
+═══════════════════════════════════════════════════════════════════════════════
+
+Happy path: build a coordinator with default inspectors, assert ``is_built`` and
+that ``get_snapshot(SomeAction, "aspect")`` returns expected rows.
+
+Edge case: missing required decorator or structural cycle → build fails with the
+documented exception type.
+
+═══════════════════════════════════════════════════════════════════════════════
+ERRORS / LIMITATIONS
+═══════════════════════════════════════════════════════════════════════════════
+
+Tests focus on metadata assembly, not full HTTP or DB adapters. Heavy integration
+smoke lives under ``tests/smoke/``.
+
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE-BEGIN
+═══════════════════════════════════════════════════════════════════════════════
+ROLE: Test package init for metadata / coordinator coverage.
+CONTRACT: Describes scope; no runtime exports.
+INVARIANTS: Coordinator snapshot model; no BaseAction scratch_* API.
+FLOW: fixtures → coordinator build → assertions on graph and snapshots.
+FAILURES: test failures map to coordinator or inspector regressions.
+EXTENSION POINTS: add inspector tests alongside new facets.
+AI-CORE-END
+═══════════════════════════════════════════════════════════════════════════════
 """

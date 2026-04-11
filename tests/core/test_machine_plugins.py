@@ -407,7 +407,10 @@ class TestEventData:
         self, machine_with_mock_plugins, mock_plugin_ctx, context,
     ) -> None:
         """
-        GateCoordinator не передаётся в emit_event: scratch-исполнение без графа.
+        ``GateCoordinator`` is not passed through ``emit_event`` kwargs.
+
+        Plugins receive machine identity (``machine_name``, ``mode``) but not a
+        coordinator reference; graph access is not part of the plugin event channel.
         """
         # Arrange
         action = PingAction()
