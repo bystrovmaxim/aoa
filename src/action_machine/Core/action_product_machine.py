@@ -54,12 +54,12 @@ ARCHITECTURE / DATA FLOW
                 ├── emit GlobalStartEvent
                 ├── _execute_aspects_with_error_handling(...)
                 │       ├── _execute_regular_aspects (per aspect):
-                │       │       emit BeforeRegularAspectEvent
+                │       │       plugin_emit.emit_before_regular_aspect(...)
                 │       │       _aspect_executor.execute_regular(...)
-                │       │       emit AfterRegularAspectEvent
-                │       ├── emit BeforeSummaryAspectEvent
+                │       │       plugin_emit.emit_after_regular_aspect(...)
+                │       ├── plugin_emit.emit_before_summary_aspect(...)
                 │       ├── _aspect_executor.execute_summary(...)
-                │       ├── emit AfterSummaryAspectEvent
+                │       ├── plugin_emit.emit_after_summary_aspect(...)
                 │       └── on exception (saga_stack prefilled):
                 │               _saga_coordinator.execute(saga_stack=..., ...)   [if stack]
                 │               _error_handler_executor.handle(...)
@@ -72,8 +72,10 @@ ARCHITECTURE / DATA FLOW
 
 **Where plugin events are emitted**
 
-- This module: ``GlobalStartEvent``, ``GlobalFinishEvent``, ``BeforeRegularAspectEvent``,
-  ``AfterRegularAspectEvent``, ``BeforeSummaryAspectEvent``, ``AfterSummaryAspectEvent``.
+- This module: ``GlobalStartEvent``, ``GlobalFinishEvent`` (direct ``emit_event`` calls).
+  Regular and summary aspect events: ``PluginEmitSupport.emit_before_regular_aspect``,
+  ``emit_after_regular_aspect``, ``emit_before_summary_aspect``,
+  ``emit_after_summary_aspect`` (called from this module).
 - ``SagaCoordinator``: ``SagaRollbackStartedEvent``, compensation before/after/failed,
   ``SagaRollbackCompletedEvent``.
 - ``ErrorHandlerExecutor``: ``BeforeOnErrorAspectEvent``, ``AfterOnErrorAspectEvent``,
@@ -122,7 +124,8 @@ ROLE: Thin orchestrator over decomposed core components.
 CONTRACT: run/_run_internal sequence; execution cache from coordinator facets;
   component DI via keyword-only constructor args.
 INVARIANTS: local saga stack per run; rollback before @on_error; typed plugin
-  emission split between machine (via ``PluginEmitSupport``), SagaCoordinator,
+  emission: aspect regular/summary via ``PluginEmitSupport`` helpers; globals on
+  machine; SagaCoordinator,
   ErrorHandlerExecutor;
   inspector types for cache fields are TYPE_CHECKING-only imports.
 FLOW: cache → gates → tools box → aspect pipeline → finish event.
@@ -158,14 +161,7 @@ from action_machine.dependencies.dependency_factory import DependencyFactory
 from action_machine.logging.console_logger import ConsoleLogger
 from action_machine.logging.log_coordinator import LogCoordinator
 from action_machine.metadata.gate_coordinator import GateCoordinator
-from action_machine.plugins.events import (
-    AfterRegularAspectEvent,
-    AfterSummaryAspectEvent,
-    BeforeRegularAspectEvent,
-    BeforeSummaryAspectEvent,
-    GlobalFinishEvent,
-    GlobalStartEvent,
-)
+from action_machine.plugins.events import GlobalFinishEvent, GlobalStartEvent
 from action_machine.plugins.plugin import Plugin
 from action_machine.plugins.plugin_coordinator import PluginCoordinator
 from action_machine.plugins.plugin_emit_support import PluginEmitSupport
@@ -428,23 +424,19 @@ class ActionProductMachine(BaseActionMachine):
         """
         state = BaseState()
         regular_aspects = runtime.regular_aspects
-        base_fields = self._plugin_emit.base_fields(
-            action, context, params, box.nested_level,
-        )
-        plugin_kwargs = self._plugin_emit.emit_extra_kwargs(box.nested_level)
 
         # Local compensation stack for this pipeline (empty when rollup=True).
         build_saga = runtime.has_compensators
 
         for aspect_meta in regular_aspects:
-            # ── BeforeRegularAspectEvent ──────────────────────────────
-            await plugin_ctx.emit_event(
-                BeforeRegularAspectEvent(
-                    **base_fields,
-                    aspect_name=aspect_meta.method_name,
-                    state_snapshot=state.to_dict(),
-                ),
-                **plugin_kwargs,
+            await self._plugin_emit.emit_before_regular_aspect(
+                plugin_ctx,
+                action=action,
+                context=context,
+                params=params,
+                nest_level=box.nested_level,
+                aspect_name=aspect_meta.method_name,
+                state_snapshot=state.to_dict(),
             )
 
             state, new_state_dict, aspect_duration = (
@@ -461,16 +453,16 @@ class ActionProductMachine(BaseActionMachine):
                 )
             )
 
-            # ── AfterRegularAspectEvent ───────────────────────────────
-            await plugin_ctx.emit_event(
-                AfterRegularAspectEvent(
-                    **base_fields,
-                    aspect_name=aspect_meta.method_name,
-                    state_snapshot=state.to_dict(),
-                    aspect_result=new_state_dict,
-                    duration_ms=aspect_duration * 1000,
-                ),
-                **plugin_kwargs,
+            await self._plugin_emit.emit_after_regular_aspect(
+                plugin_ctx,
+                action=action,
+                context=context,
+                params=params,
+                nest_level=box.nested_level,
+                aspect_name=aspect_meta.method_name,
+                state_snapshot=state.to_dict(),
+                aspect_result=new_state_dict,
+                duration_ms=aspect_duration * 1000,
             )
 
         return state
@@ -494,11 +486,6 @@ class ActionProductMachine(BaseActionMachine):
         ``saga_stack`` is created before ``try`` so ``except`` sees frames from aspects
         that completed before the failure.
         """
-        base_fields = self._plugin_emit.base_fields(
-            action, context, params, box.nested_level,
-        )
-        plugin_kwargs = self._plugin_emit.emit_extra_kwargs(box.nested_level)
-
         saga_stack: list[SagaFrame] = []
         failed_aspect_name: str | None = None
 
@@ -511,14 +498,14 @@ class ActionProductMachine(BaseActionMachine):
             summary_meta = runtime.summary_aspect
             summary_name = summary_meta.method_name if summary_meta else "summary"
 
-            # ── BeforeSummaryAspectEvent ──────────────────────────────
-            await plugin_ctx.emit_event(
-                BeforeSummaryAspectEvent(
-                    **base_fields,
-                    aspect_name=summary_name,
-                    state_snapshot=state.to_dict(),
-                ),
-                **plugin_kwargs,
+            await self._plugin_emit.emit_before_summary_aspect(
+                plugin_ctx,
+                action=action,
+                context=context,
+                params=params,
+                nest_level=box.nested_level,
+                aspect_name=summary_name,
+                state_snapshot=state.to_dict(),
             )
 
             failed_aspect_name = summary_name
@@ -532,16 +519,16 @@ class ActionProductMachine(BaseActionMachine):
                 context=context,
             )
 
-            # ── AfterSummaryAspectEvent ───────────────────────────────
-            await plugin_ctx.emit_event(
-                AfterSummaryAspectEvent(
-                    **base_fields,
-                    aspect_name=summary_name,
-                    state_snapshot=state.to_dict(),
-                    result=cast("BaseResult", result),
-                    duration_ms=summary_duration * 1000,
-                ),
-                **plugin_kwargs,
+            await self._plugin_emit.emit_after_summary_aspect(
+                plugin_ctx,
+                action=action,
+                context=context,
+                params=params,
+                nest_level=box.nested_level,
+                aspect_name=summary_name,
+                state_snapshot=state.to_dict(),
+                result=cast("BaseResult", result),
+                duration_ms=summary_duration * 1000,
             )
 
             return cast("R", result)
