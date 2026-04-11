@@ -29,8 +29,8 @@
        в cls._connection_info.
     2. ``ConnectionGateHostInspector`` при ``GateCoordinator.build()`` читает
        ``_connection_info`` и формирует facet-снимок / узел графа.
-    3. ActionProductMachine._check_connections() сравнивает ключи из scratch
-       класса действия с аргументом ``connections``.
+    3. ActionProductMachine._check_connections() сравнивает ключи из facet-снимка
+       ``connections`` с аргументом ``connections``.
     4. Аспекты получают connections["db"] — экземпляр менеджера ресурсов.
 """
 

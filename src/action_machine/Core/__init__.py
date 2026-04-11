@@ -3,6 +3,8 @@
 Canonical coordinator assembly lives in ``CoreActionMachine``:
 it creates ``GateCoordinator``, registers all default inspectors, and builds it.
 Production machines consume a built coordinator (fail-fast contract).
+``ActionProductMachine`` reads the aspect pipeline, connections, roles, and
+``depends`` list only from coordinator facet snapshots (no scratch-first path).
 
 
 AI-CORE-BEGIN
@@ -13,9 +15,6 @@ FLOW: declaration -> inspector/coordinator snapshot -> runtime consumption.
 AI-CORE-END
 """
 
-from action_machine.core.coordinator_action_product_machine import (
-    CoordinatorActionProductMachine,
-)
 from action_machine.core.core_action_machine import CoreActionMachine
 
-__all__ = ["CoordinatorActionProductMachine", "CoreActionMachine"]
+__all__ = ["CoreActionMachine"]

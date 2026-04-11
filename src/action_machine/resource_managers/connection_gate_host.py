@@ -43,7 +43,7 @@ TypeError. Это защита от случайного объявления с
 
     # ConnectionGateHostInspector читает cls._connection_info при build().
 
-    # ActionProductMachine: ключи из scratch_connection_keys(DataAction).
+    # ActionProductMachine: ключи из facet-снимка connections (GateCoordinator).
 
 ═══════════════════════════════════════════════════════════════════════════════
 ПРИМЕР ИСПОЛЬЗОВАНИЯ
