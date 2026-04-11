@@ -119,7 +119,6 @@ class ToolsBoxFactory:
             run_child=run_child,
             factory=factory,
             resources=resources,
-            context=context,
             log=log,
             nested_level=nest_level,
             rollup=rollup,

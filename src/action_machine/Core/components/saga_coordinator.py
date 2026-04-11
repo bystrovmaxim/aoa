@@ -188,7 +188,6 @@ class SagaCoordinator:
                     run_child=box.run_child,
                     factory=box.factory,
                     resources=box.resources,
-                    context=context,
                     log=comp_log,
                     nested_level=box.nested_level,
                     rollup=box.rollup,

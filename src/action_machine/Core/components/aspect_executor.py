@@ -32,7 +32,8 @@ ARCHITECTURE / DATA FLOW
 INVARIANTS
 ═══════════════════════════════════════════════════════════════════════════════
 
-- `call(...)` owns ContextView injection and per-aspect `ScopedLogger` wiring.
+- `call(...)` owns ContextView injection, per-aspect `ScopedLogger` (with context),
+  and builds a `ToolsBox` that does not carry `Context` on the instance.
 - Regular aspect execution validates checker contracts before state merge.
 - State merge remains immutable (`BaseState` new instance per step).
 
@@ -132,7 +133,6 @@ class AspectExecutor:
             run_child=box.run_child,
             factory=box.factory,
             resources=box.resources,
-            context=context,
             log=aspect_log,
             nested_level=box.nested_level,
             rollup=box.rollup,

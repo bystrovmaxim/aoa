@@ -83,9 +83,9 @@ Context наследует resolve() от BaseSchema, что позволяет 
 ДОСТУП В АСПЕКТАХ
 ═══════════════════════════════════════════════════════════════════════════════
 
-Прямой доступ к Context из аспекта невозможен. ToolsBox не предоставляет
-публичного свойства context. Единственный путь — через @context_requires
-и ContextView:
+Прямой доступ к Context из аспекта невозможен: экземпляр ToolsBox не хранит
+Context (ни публично, ни через name mangling). Единственный путь к данным
+контекста в аспекте — через @context_requires и ContextView:
 
     @regular_aspect("Аудит")
     @context_requires(Ctx.User.user_id, Ctx.Request.client_ip)
