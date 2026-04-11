@@ -109,6 +109,11 @@ The base class exposes five helpers shared by inspectors:
     _make_meta(**kwargs) → tuple[tuple[str, Any], ...]
         Friendly kwargs → immutable tuple-of-tuples for frozen dataclasses.
 
+    _unwrap_declaring_class_member(attr) → Any
+        For ``vars(cls)`` iteration: return ``property.fget`` when ``attr`` is a
+        property with a getter, otherwise return ``attr`` (used to read decorator
+        scratch on methods).
+
     _collect_subclasses(mixin) → list[type]
         Depth-first walk of every subclass registered on the marker mixin.
 
@@ -190,6 +195,18 @@ EXAMPLE — INSPECTOR WITH EDGES
                 node_class=target_cls,
                 edges=edges,
             )
+
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE-BEGIN
+═══════════════════════════════════════════════════════════════════════════════
+ROLE: Abstract inspector base for all gate-host graph facets.
+CONTRACT: ``inspect`` / ``_build_payload`` + shared payload and traversal helpers.
+INVARIANTS: Stateless classmethods; markers never import inspectors.
+FLOW: coordinator → ``_subclasses_recursive`` → ``inspect`` → ``FacetPayload``.
+FAILURES: abstract until concrete inspector implements hooks.
+EXTENSION POINTS: concrete inspectors override traversal and payload shape.
+AI-CORE-END
+═══════════════════════════════════════════════════════════════════════════════
 """
 
 from __future__ import annotations
@@ -206,8 +223,8 @@ class BaseGateHostInspector(ABC):
     Abstract base for all gate-host inspectors.
 
     Defines two abstract ``classmethod`` hooks (``inspect``, ``_build_payload``)
-    and five helpers that build ``FacetPayload`` / ``EdgeInfo`` without duplicating
-    boilerplate.
+    and shared helpers that build ``FacetPayload`` / ``EdgeInfo`` and traverse
+    marker subclasses without duplicating boilerplate.
 
     Everything is a ``classmethod`` or ``staticmethod`` — inspectors are
     stateless and need no instances. The class exists for namespacing, shared
@@ -406,6 +423,23 @@ class BaseGateHostInspector(ABC):
             → (("spec", "admin"), ("description", "Administrator"))
         """
         return tuple(kwargs.items())
+
+    @staticmethod
+    def _unwrap_declaring_class_member(attr: Any) -> Any:
+        """
+        Normalize a class dict entry so decorator scratch can be read.
+
+        Properties store metadata on ``fget``; bare callables use the value as-is.
+
+        Args:
+            attr: Value from ``vars(target_cls).items()``.
+
+        Returns:
+            Unwrapped callable target for ``getattr(..., "_…_meta")`` probes.
+        """
+        if isinstance(attr, property) and attr.fget is not None:
+            return attr.fget
+        return attr
 
     # ═══════════════════════════════════════════════════════════════════
     # Subclass traversal

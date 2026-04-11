@@ -1,58 +1,69 @@
 # src/action_machine/aspects/aspect_gate_host_inspector.py
 """
-Aspect gate-host inspector for aspect facet snapshots.
+Aspect gate-host inspector: aspect facet snapshots for ``GateCoordinator``.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Collect aspect declaration metadata from target classes and convert it into the
-coordinator-facing ``FacetPayload`` with node type ``"aspect"``.
-
-═══════════════════════════════════════════════════════════════════════════════
-ARCHITECTURE / DATA FLOW
-═══════════════════════════════════════════════════════════════════════════════
-
-Decorators write ``_new_aspect_meta`` on methods. This inspector reads those
-attributes, normalizes entries into typed snapshot records, and exports a
-payload node with tuple-encoded aspect entries. No edges are produced here.
+Collect per-class aspect declarations (``@regular_aspect`` / ``@summary_aspect``)
+from method-level scratch (``_new_aspect_meta``) and expose them as a typed
+``Snapshot`` plus coordinator ``FacetPayload`` with ``node_type="aspect"``.
 
 ═══════════════════════════════════════════════════════════════════════════════
 INVARIANTS
 ═══════════════════════════════════════════════════════════════════════════════
 
-- Class is inspected only when aspect methods exist.
-- Snapshot preserves declaration order for non-``BaseAction`` classes.
+- Only classes that declare at least one aspect produce a payload; otherwise
+  ``inspect`` / ``facet_snapshot_for_class`` return ``None``.
+- Collection reads **declaring** class members via ``vars(target_cls)`` (same
+  surface decorators attach to); order follows iteration order of that mapping.
 - Facet snapshot storage key is always ``"aspect"``.
+- No graph edges are emitted from this inspector.
+
+═══════════════════════════════════════════════════════════════════════════════
+DATA FLOW
+═══════════════════════════════════════════════════════════════════════════════
+
+::
+
+    vars(target_cls)
+         │
+         ▼
+    BaseGateHostInspector._unwrap_declaring_class_member
+         │
+         ▼
+    getattr(func, "_new_aspect_meta") → Snapshot.Aspect
+         │
+         ▼
+    Snapshot.to_facet_payload()  →  FacetPayload(node_type="aspect")
 
 ═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
-Happy path:
-- Class declares methods decorated with ``@regular_aspect``/``@summary_aspect``.
-- Inspector emits ``FacetPayload`` with ``node_type="aspect"`` and populated
-  ``node_meta["aspects"]`` tuple.
+Happy path: a class defines ``@regular_aspect`` / ``@summary_aspect`` methods;
+``inspect(target_cls)`` returns a payload whose ``node_meta`` carries aspect
+entries.
 
-Edge case:
-- Class has no aspect metadata -> ``inspect(...)`` returns ``None``.
+Edge case: no aspect metadata on the class → ``inspect`` returns ``None``.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ERRORS / LIMITATIONS
 ═══════════════════════════════════════════════════════════════════════════════
 
-This module expects decorator metadata to be already validated by declaration
-and gate-host validation layers. It does not enforce business semantics.
+Assumes decorators already validated declarations. This module does not run
+aspects or enforce runtime semantics.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN
 ═══════════════════════════════════════════════════════════════════════════════
-ROLE: Aspect inspector module.
-CONTRACT: Convert method-level aspect metadata into deterministic aspect facet payload.
-INVARIANTS: inspect only classes with aspect methods; emit node_type "aspect"; no edges.
-FLOW: class methods -> Snapshot.Aspect tuple -> FacetPayload(node_meta["aspects"]).
-FAILURES: returns None when class has no aspects; no runtime execution happens here.
-EXTENSION POINTS: payload consumed by coordinator and compatible inspectors.
+ROLE: Aspect facet inspector module.
+CONTRACT: Declarative aspect metadata → typed snapshot → ``FacetPayload``.
+INVARIANTS: Single facet key ``aspect``; collection from declaring class dict only.
+FLOW: vars → unwrap → _new_aspect_meta → Snapshot → payload.
+FAILURES: absent metadata → None from inspect; no exceptions for empty classes.
+EXTENSION POINTS: coordinator and machine consume cached snapshots.
 AI-CORE-END
 ═══════════════════════════════════════════════════════════════════════════════
 """
@@ -60,7 +71,6 @@ AI-CORE-END
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any
 
 from action_machine.aspects.aspect_gate_host import AspectGateHost
 from action_machine.metadata.base_facet_snapshot import BaseFacetSnapshot
@@ -70,46 +80,30 @@ from action_machine.metadata.payload import FacetPayload
 
 class AspectGateHostInspector(BaseGateHostInspector):
     """
-    Public inspector for aspect gate-host classes.
+    Inspector for ``AspectGateHost`` subclasses: builds aspect facet snapshots.
 
-    ═══════════════════════════════════════════════════════════════════════════
     AI-CORE-BEGIN
-    ═══════════════════════════════════════════════════════════════════════════
-    ROLE: Framework inspector contract.
-    CONTRACT: Produce aspect facet snapshot/payload for classes using aspect decorators.
-    INVARIANTS: target mixin is AspectGateHost; storage key remains "aspect".
-    FLOW: collect -> snapshot -> payload.
-    FAILURES: no-aspect classes are filtered out by invariant checks.
-    EXTENSION POINTS: subclasses can adapt collection/build strategy.
+    ROLE: Concrete gate-host inspector for aspects.
+    CONTRACT: ``inspect`` / ``Snapshot.from_target`` for classes with aspects.
+    INVARIANTS: ``_target_mixin`` is ``AspectGateHost``; storage key ``aspect``.
     AI-CORE-END
-    ═══════════════════════════════════════════════════════════════════════════
     """
 
     _target_mixin: type = AspectGateHost
 
     @classmethod
-    def _collect_aspects(cls, target_cls: type) -> tuple[Snapshot.Aspect, ...]:
+    def _collect_aspects(cls, target_cls: type) -> tuple[AspectGateHostInspector.Snapshot.Aspect, ...]:
         """
-        Collect normalized aspect entries from a target class.
+        Collect aspect entries declared on ``target_cls`` (own ``__dict__`` / ``vars``).
 
-        ═══════════════════════════════════════════════════════════════════════
-        AI-CORE-BEGIN
-        ═══════════════════════════════════════════════════════════════════════
-        PURPOSE: extract declaration metadata for coordinator-ready snapshots.
-        INPUT/OUTPUT: target class -> tuple of typed Aspect entries.
-        SIDE EFFECTS: none.
-        FAILURES: no exceptions by design for absent metadata; returns empty tuple.
-        ORDER: called before inspect/build/snapshot emission.
-        AI-CORE-END
-        ═══════════════════════════════════════════════════════════════════════
+        Walks declaring members only; reads ``_new_aspect_meta`` and optional
+        ``_required_context_keys`` on unwrapped callables.
         """
-        from action_machine.core.base_action import BaseAction  # pylint: disable=import-outside-toplevel
-
-        if issubclass(target_cls, BaseAction):
-            return tuple(target_cls.scratch_aspects())
         out: list[AspectGateHostInspector.Snapshot.Aspect] = []
         for attr_name, attr_value in vars(target_cls).items():
-            func: Any = attr_value.fget if isinstance(attr_value, property) and attr_value.fget else attr_value
+            func = cls._unwrap_declaring_class_member(attr_value)
+            if not callable(func):
+                continue
             meta = getattr(func, "_new_aspect_meta", None)
             if meta is None:
                 continue
@@ -119,7 +113,9 @@ class AspectGateHostInspector(BaseGateHostInspector):
                     aspect_type=meta["type"],
                     description=meta.get("description", ""),
                     method_ref=func,
-                    context_keys=frozenset(getattr(func, "_required_context_keys", ())),
+                    context_keys=frozenset(
+                        getattr(func, "_required_context_keys", ()) or (),
+                    ),
                 ),
             )
         return tuple(out)
@@ -130,10 +126,12 @@ class AspectGateHostInspector(BaseGateHostInspector):
 
     @dataclass(frozen=True)
     class Snapshot(BaseFacetSnapshot):
-        """Typed aspect facet for class-level aspect entries."""
+        """Frozen aspect facet: class ref plus ordered aspect rows."""
 
         @dataclass(frozen=True)
         class Aspect:
+            """One aspect method after decorator normalization."""
+
             method_name: str
             aspect_type: str
             description: str
@@ -144,7 +142,7 @@ class AspectGateHostInspector(BaseGateHostInspector):
         aspects: tuple[Aspect, ...]
 
         def to_facet_payload(self) -> FacetPayload:
-            """Convert typed snapshot into coordinator ``FacetPayload`` node."""
+            """Project snapshot into a coordinator ``FacetPayload`` node."""
             entries = tuple(
                 (
                     a.aspect_type,
@@ -165,7 +163,7 @@ class AspectGateHostInspector(BaseGateHostInspector):
 
         @classmethod
         def from_target(cls, target_cls: type) -> AspectGateHostInspector.Snapshot:
-            """Build typed aspect snapshot for one class."""
+            """Build a snapshot for one concrete action (or aspect host) class."""
             return cls(
                 class_ref=target_cls,
                 aspects=AspectGateHostInspector._collect_aspects(target_cls),
@@ -179,12 +177,12 @@ class AspectGateHostInspector(BaseGateHostInspector):
 
     @classmethod
     def _has_aspect_methods_invariant(cls, target_cls: type) -> bool:
-        """Return True when target class declares at least one aspect."""
+        """True when ``target_cls`` declares at least one aspect method."""
         return bool(cls._collect_aspects(target_cls))
 
     @classmethod
     def inspect(cls, target_cls: type) -> FacetPayload | None:
-        """Return aspect payload or ``None`` when target has no aspects."""
+        """Return aspect payload or ``None`` when the class has no aspects."""
         if not cls._has_aspect_methods_invariant(target_cls):
             return None
         return cls._build_payload(target_cls)
@@ -193,12 +191,12 @@ class AspectGateHostInspector(BaseGateHostInspector):
     def facet_snapshot_for_class(
         cls, target_cls: type,
     ) -> AspectGateHostInspector.Snapshot | None:
-        """Return typed snapshot or ``None`` when target has no aspects."""
+        """Return typed snapshot or ``None`` when there are no aspects."""
         if not cls._has_aspect_methods_invariant(target_cls):
             return None
         return cls.Snapshot.from_target(target_cls)
 
     @classmethod
     def _build_payload(cls, target_cls: type) -> FacetPayload:
-        """Build aspect payload from typed snapshot."""
+        """Materialize ``FacetPayload`` from the typed snapshot."""
         return cls.Snapshot.from_target(target_cls).to_facet_payload()

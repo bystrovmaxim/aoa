@@ -1,23 +1,69 @@
 # src/action_machine/compensate/compensate_gate_host_inspector.py
 """
-CompensateGateHostInspector — graph inspector for `@compensate` declarations.
+Compensate gate-host inspector: ``@compensate`` facet snapshots for ``GateCoordinator``.
 
-The inspector reads method-level `_compensate_meta` and optional
-`_required_context_keys`, then emits one aggregated payload per class.
+═══════════════════════════════════════════════════════════════════════════════
+PURPOSE
+═══════════════════════════════════════════════════════════════════════════════
 
+Read method-level ``_compensate_meta`` and optional ``_required_context_keys``,
+then emit a typed ``Snapshot`` and ``FacetPayload`` with
+``node_type="compensator"``.
 
+═══════════════════════════════════════════════════════════════════════════════
+INVARIANTS
+═══════════════════════════════════════════════════════════════════════════════
+
+- Collection scans ``vars(target_cls)`` (declaring members only).
+- Only callable members after property unwrapping are considered.
+- Storage key for facet snapshots is always ``"compensator"``.
+- No edges from this inspector.
+
+═══════════════════════════════════════════════════════════════════════════════
+DATA FLOW
+═══════════════════════════════════════════════════════════════════════════════
+
+::
+
+    vars(target_cls)
+         │
+         ▼
+    _unwrap_declaring_class_member  →  _compensate_meta
+         │
+         ▼
+    Snapshot.Compensator  →  FacetPayload(node_type="compensator")
+
+═══════════════════════════════════════════════════════════════════════════════
+EXAMPLES
+═══════════════════════════════════════════════════════════════════════════════
+
+Happy path: compensating methods carry ``_compensate_meta`` → non-empty payload.
+
+Edge case: no compensators → ``inspect`` returns ``None``.
+
+═══════════════════════════════════════════════════════════════════════════════
+ERRORS / LIMITATIONS
+═══════════════════════════════════════════════════════════════════════════════
+
+Does not run compensation; only surfaces declaration metadata for the graph and
+runtime cache.
+
+═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN
-ROLE: module compensate_gate_host_inspector
-CONTRACT: Keep runtime behavior unchanged; decorators/inspectors expose metadata consumed by coordinator/machine.
-INVARIANTS: Validate declarations early and provide deterministic metadata shape.
-FLOW: declarations -> inspector snapshot -> coordinator cache -> runtime usage.
+═══════════════════════════════════════════════════════════════════════════════
+ROLE: Compensator facet inspector module.
+CONTRACT: _compensate_meta → Snapshot → FacetPayload.
+INVARIANTS: Declaring-class scan; key ``compensator``.
+FLOW: vars → unwrap → meta → snapshot rows → payload.
+FAILURES: no compensators → None from inspect.
+EXTENSION POINTS: saga coordinator reads compensator snapshot from cache.
 AI-CORE-END
+═══════════════════════════════════════════════════════════════════════════════
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any
 
 from action_machine.compensate.compensate_gate_host import CompensateGateHost
 from action_machine.metadata.base_facet_snapshot import BaseFacetSnapshot
@@ -26,21 +72,30 @@ from action_machine.metadata.payload import FacetPayload
 
 
 class CompensateGateHostInspector(BaseGateHostInspector):
-    """Inspector that maps `_compensate_meta` into compensator payload entries."""
+    """
+    Inspector for ``CompensateGateHost`` subclasses: compensator facet snapshots.
+
+    AI-CORE-BEGIN
+    ROLE: Concrete inspector for ``@compensate`` declarations.
+    CONTRACT: ``inspect`` when compensator metadata exists.
+    INVARIANTS: ``_target_mixin`` is ``CompensateGateHost``.
+    AI-CORE-END
+    """
 
     _target_mixin: type = CompensateGateHost
 
     @classmethod
     def _collect_compensators(
         cls, target_cls: type,
-    ) -> tuple[Snapshot.Compensator, ...]:
-        from action_machine.core.base_action import BaseAction  # pylint: disable=import-outside-toplevel
-
-        if issubclass(target_cls, BaseAction):
-            return tuple(target_cls.scratch_compensators())
+    ) -> tuple[CompensateGateHostInspector.Snapshot.Compensator, ...]:
+        """
+        Collect compensator methods declared on ``target_cls``.
+        """
         out: list[CompensateGateHostInspector.Snapshot.Compensator] = []
         for attr_name, attr_value in vars(target_cls).items():
-            func: Any = attr_value.fget if isinstance(attr_value, property) and attr_value.fget else attr_value
+            func = cls._unwrap_declaring_class_member(attr_value)
+            if not callable(func):
+                continue
             meta = getattr(func, "_compensate_meta", None)
             if meta is None:
                 continue
@@ -50,7 +105,9 @@ class CompensateGateHostInspector(BaseGateHostInspector):
                     target_aspect_name=meta.get("target_aspect_name", ""),
                     description=meta.get("description", ""),
                     method_ref=func,
-                    context_keys=frozenset(getattr(func, "_required_context_keys", ())),
+                    context_keys=frozenset(
+                        getattr(func, "_required_context_keys", ()) or (),
+                    ),
                 ),
             )
         return tuple(out)
@@ -61,10 +118,12 @@ class CompensateGateHostInspector(BaseGateHostInspector):
 
     @dataclass(frozen=True)
     class Snapshot(BaseFacetSnapshot):
-        """Typed ``@compensate`` facet."""
+        """Frozen ``@compensate`` facet for one class."""
 
         @dataclass(frozen=True)
         class Compensator:
+            """One compensator method binding."""
+
             method_name: str
             target_aspect_name: str
             description: str
@@ -75,6 +134,7 @@ class CompensateGateHostInspector(BaseGateHostInspector):
         compensators: tuple[Compensator, ...]
 
         def to_facet_payload(self) -> FacetPayload:
+            """Project snapshot into coordinator ``FacetPayload``."""
             entries = tuple(
                 (
                     c.method_name,
@@ -95,6 +155,7 @@ class CompensateGateHostInspector(BaseGateHostInspector):
 
         @classmethod
         def from_target(cls, target_cls: type) -> CompensateGateHostInspector.Snapshot:
+            """Build snapshot for one class."""
             return cls(
                 class_ref=target_cls,
                 compensators=CompensateGateHostInspector._collect_compensators(
@@ -110,10 +171,12 @@ class CompensateGateHostInspector(BaseGateHostInspector):
 
     @classmethod
     def _has_compensators_invariant(cls, target_cls: type) -> bool:
+        """True when any member carries ``_compensate_meta``."""
         return bool(cls._collect_compensators(target_cls))
 
     @classmethod
     def inspect(cls, target_cls: type) -> FacetPayload | None:
+        """Return payload or ``None`` when there are no compensators."""
         if not cls._has_compensators_invariant(target_cls):
             return None
         return cls._build_payload(target_cls)
@@ -122,10 +185,12 @@ class CompensateGateHostInspector(BaseGateHostInspector):
     def facet_snapshot_for_class(
         cls, target_cls: type,
     ) -> CompensateGateHostInspector.Snapshot | None:
+        """Return typed snapshot or ``None`` when there are no compensators."""
         if not cls._has_compensators_invariant(target_cls):
             return None
         return cls.Snapshot.from_target(target_cls)
 
     @classmethod
     def _build_payload(cls, target_cls: type) -> FacetPayload:
+        """Materialize ``FacetPayload`` from the typed snapshot."""
         return cls.Snapshot.from_target(target_cls).to_facet_payload()

@@ -1,22 +1,71 @@
-# src/action_machine/checkers/checker_gate_host_inspector.py
+# src/action_machine/Checkers/checker_gate_host_inspector.py
 """
-CheckerGateHostInspector — graph inspector for checker declarations.
+Checker gate-host inspector: checker facet snapshots for ``GateCoordinator``.
 
-Typed data: ``Snapshot`` under cache key ``\"checker\"`` (``collect_checkers``).
+═══════════════════════════════════════════════════════════════════════════════
+PURPOSE
+═══════════════════════════════════════════════════════════════════════════════
 
+Read method-level ``_checker_meta`` lists (attached by aspect/checker decorators)
+on each **declaring** class member and emit a typed ``Snapshot`` plus
+``FacetPayload`` with ``node_type="checker"``.
 
+═══════════════════════════════════════════════════════════════════════════════
+INVARIANTS
+═══════════════════════════════════════════════════════════════════════════════
+
+- Collection uses ``vars(target_cls)`` and ``BaseGateHostInspector._unwrap_declaring_class_member``
+  so property-based aspect methods expose metadata on ``fget``.
+- Only callable members are considered as checker carriers (same as aspect collection).
+- Facet snapshot storage key is always ``"checker"``.
+- No edges are emitted from this inspector.
+
+═══════════════════════════════════════════════════════════════════════════════
+DATA FLOW
+═══════════════════════════════════════════════════════════════════════════════
+
+::
+
+    vars(target_cls)
+         │
+         ▼
+    _unwrap_declaring_class_member  →  getattr(func, "_checker_meta")
+         │
+         ▼
+    Snapshot.Checker rows  →  FacetPayload(node_type="checker")
+
+═══════════════════════════════════════════════════════════════════════════════
+EXAMPLES
+═══════════════════════════════════════════════════════════════════════════════
+
+Happy path: an aspect method carries ``_checker_meta``; ``inspect`` returns a
+payload listing checker rows for that method name.
+
+Edge case: no ``_checker_meta`` on any member → ``inspect`` returns ``None``.
+
+═══════════════════════════════════════════════════════════════════════════════
+ERRORS / LIMITATIONS
+═══════════════════════════════════════════════════════════════════════════════
+
+Does not validate checker classes at graph build time; declaration-time
+validators own that contract.
+
+═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN
-ROLE: module checker_gate_host_inspector
-CONTRACT: Keep runtime behavior unchanged; decorators/inspectors expose metadata consumed by coordinator/machine.
-INVARIANTS: Validate declarations early and provide deterministic metadata shape.
-FLOW: declarations -> inspector snapshot -> coordinator cache -> runtime usage.
+═══════════════════════════════════════════════════════════════════════════════
+ROLE: Checker facet inspector module.
+CONTRACT: Method-level _checker_meta → snapshot → FacetPayload.
+INVARIANTS: Declaring-class scan only; storage key ``checker``.
+FLOW: vars → unwrap → _checker_meta → Snapshot.Checker tuple → payload.
+FAILURES: no checkers → None from inspect.
+EXTENSION POINTS: runtime reads checker snapshot via coordinator cache.
 AI-CORE-END
+═══════════════════════════════════════════════════════════════════════════════
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any
 
 from action_machine.checkers.checker_gate_host import CheckerGateHost
 from action_machine.metadata.base_facet_snapshot import BaseFacetSnapshot
@@ -25,27 +74,33 @@ from action_machine.metadata.payload import FacetPayload
 
 
 class CheckerGateHostInspector(BaseGateHostInspector):
-    """Inspector that maps `_checker_meta` into checker payload entries."""
+    """
+    Inspector for ``CheckerGateHost`` subclasses: checker facet snapshots.
+
+    AI-CORE-BEGIN
+    ROLE: Concrete inspector for checker metadata on methods.
+    CONTRACT: ``inspect`` / ``Snapshot.from_target`` when checkers exist.
+    INVARIANTS: ``_target_mixin`` is ``CheckerGateHost``.
+    AI-CORE-END
+    """
 
     _target_mixin: type = CheckerGateHost
 
     @classmethod
-    def _collect_checkers(cls, target_cls: type) -> tuple[Snapshot.Checker, ...]:
-        from action_machine.core.base_action import BaseAction  # pylint: disable=import-outside-toplevel
+    def _collect_checkers(
+        cls, target_cls: type,
+    ) -> tuple[CheckerGateHostInspector.Snapshot.Checker, ...]:
+        """
+        Flatten all checker rows declared on members of ``target_cls``.
 
-        if issubclass(target_cls, BaseAction):
-            action_out: list[CheckerGateHostInspector.Snapshot.Checker] = []
-            for aspect in target_cls.scratch_aspects():
-                action_out.extend(
-                    target_cls.scratch_checkers_for_aspect(
-                        aspect.method_name,
-                        method_ref=aspect.method_ref,
-                    ),
-                )
-            return tuple(action_out)
+        Matches prior ``BaseAction.scratch_checkers_for_aspect`` aggregation: for
+        each own member with ``_checker_meta``, append normalized ``Checker`` rows.
+        """
         out: list[CheckerGateHostInspector.Snapshot.Checker] = []
         for attr_name, attr_value in vars(target_cls).items():
-            func: Any = attr_value.fget if isinstance(attr_value, property) and attr_value.fget else attr_value
+            func = cls._unwrap_declaring_class_member(attr_value)
+            if not callable(func):
+                continue
             checker_list = getattr(func, "_checker_meta", None)
             if checker_list is None:
                 continue
@@ -71,10 +126,12 @@ class CheckerGateHostInspector(BaseGateHostInspector):
 
     @dataclass(frozen=True)
     class Snapshot(BaseFacetSnapshot):
-        """Typed checker facet."""
+        """Frozen checker facet for one class."""
 
         @dataclass(frozen=True)
         class Checker:
+            """One checker binding to an aspect method name."""
+
             method_name: str
             checker_class: type
             field_name: str
@@ -85,6 +142,7 @@ class CheckerGateHostInspector(BaseGateHostInspector):
         checkers: tuple[Checker, ...]
 
         def to_facet_payload(self) -> FacetPayload:
+            """Project snapshot into coordinator ``FacetPayload``."""
             entries = tuple(
                 (
                     c.method_name,
@@ -105,6 +163,7 @@ class CheckerGateHostInspector(BaseGateHostInspector):
 
         @classmethod
         def from_target(cls, target_cls: type) -> CheckerGateHostInspector.Snapshot:
+            """Build snapshot for one class."""
             return cls(
                 class_ref=target_cls,
                 checkers=CheckerGateHostInspector._collect_checkers(target_cls),
@@ -118,10 +177,12 @@ class CheckerGateHostInspector(BaseGateHostInspector):
 
     @classmethod
     def _has_checker_methods_invariant(cls, target_cls: type) -> bool:
+        """True when any member exposes ``_checker_meta``."""
         return bool(cls._collect_checkers(target_cls))
 
     @classmethod
     def inspect(cls, target_cls: type) -> FacetPayload | None:
+        """Return checker payload or ``None`` when no checker metadata exists."""
         if not cls._has_checker_methods_invariant(target_cls):
             return None
         return cls._build_payload(target_cls)
@@ -130,10 +191,12 @@ class CheckerGateHostInspector(BaseGateHostInspector):
     def facet_snapshot_for_class(
         cls, target_cls: type,
     ) -> CheckerGateHostInspector.Snapshot | None:
+        """Return typed snapshot or ``None`` when there are no checkers."""
         if not cls._has_checker_methods_invariant(target_cls):
             return None
         return cls.Snapshot.from_target(target_cls)
 
     @classmethod
     def _build_payload(cls, target_cls: type) -> FacetPayload:
+        """Materialize ``FacetPayload`` from the typed snapshot."""
         return cls.Snapshot.from_target(target_cls).to_facet_payload()
