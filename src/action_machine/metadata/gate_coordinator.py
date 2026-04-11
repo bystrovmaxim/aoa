@@ -20,8 +20,8 @@ After a successful ``register(...).build()``:
    ``(owner class, facet storage key)``. Read via ``get_snapshot(cls, facet_key)``.
 
 **Public API (domain-agnostic):** ``register``, ``build``, ``is_built``,
-``graph_node_count``, ``graph_edge_count``, ``get_graph``, ``get_node``,
-``get_nodes_by_type``, ``get_nodes_for_class``, ``get_snapshot``.
+``build_status``, ``graph_node_count``, ``graph_edge_count``, ``get_graph``,
+``get_node``, ``get_nodes_by_type``, ``get_nodes_for_class``, ``get_snapshot``.
 
 Dependency ``DependencyFactory`` instances may be cached on this object under
 ``dependency_factory.DEPENDENCY_FACTORY_CACHE_KEY``; clearing that cache does
@@ -38,9 +38,10 @@ EXPLICIT ``build()``
   ``build()``; after ``build()``, further ``register()`` calls raise
   ``RuntimeError``.
 - ``build()`` runs once; a second ``build()`` raises ``RuntimeError``.
-- Until ``build()`` completes, graph accessors and ``get_snapshot`` call
-  ``_require_built()`` and raise ``RuntimeError`` (there is no implicit lazy
-  build from read APIs).
+- Until ``build()`` completes, graph accessors, counts, and ``get_snapshot``
+  call ``_require_built()`` and raise ``RuntimeError`` (there is no implicit
+  lazy build from read APIs). Use ``build_status()`` or ``is_built`` to branch
+  without triggering those errors.
 
 If the inspector list is empty at ``build()``, validation still runs with no
 payloads (caller's responsibility to register a useful set).
@@ -109,7 +110,7 @@ pre-registered and built coordinator.
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Literal
 
 import rustworkx as rx
 
@@ -177,6 +178,14 @@ class GateCoordinator:
                 "GateCoordinator is not built. Register inspectors and call build() first.",
             )
 
+    def _require_not_built(self, operation: str) -> None:
+        """Fail-fast guard: mutation APIs that are invalid after ``build()``."""
+        if self._built:
+            raise RuntimeError(
+                f"Cannot {operation} after build(). "
+                "The facet graph and snapshots are immutable once committed.",
+            )
+
     # ═══════════════════════════════════════════════════════════════════
     # Fluent inspector registration
     # ═══════════════════════════════════════════════════════════════════
@@ -202,11 +211,7 @@ class GateCoordinator:
 
             GateCoordinator().register(RoleGateHostInspector).build()
         """
-        if self._built:
-            raise RuntimeError(
-                f"Cannot register {inspector_cls.__name__} after build(). "
-                f"All inspectors must be registered before build()."
-            )
+        self._require_not_built(f"register {inspector_cls.__name__}")
         if inspector_cls in self._registered:
             raise ValueError(
                 f"Inspector {inspector_cls.__name__} is already registered."
@@ -243,7 +248,7 @@ class GateCoordinator:
         """
         if self._built:
             raise RuntimeError(
-                "build() already completed. The coordinator builds the graph once."
+                "build() already completed. The coordinator builds the graph once.",
             )
 
         self._facet_snapshots.clear()
@@ -607,18 +612,26 @@ class GateCoordinator:
         """True after ``build()`` has completed."""
         return self._built
 
+    def build_status(self) -> Literal["not_built", "built"]:
+        """
+        Explicit lifecycle label for logging and guards.
+
+        Safe to call at any time; does not raise. Prefer this or ``is_built``
+        when you need to branch before calling graph or snapshot APIs (those
+        require a completed ``build()``).
+        """
+        return "built" if self._built else "not_built"
+
     @property
     def graph_node_count(self) -> int:
-        """Number of nodes (0 before the first build / lazy build)."""
-        if not self._built:
-            return 0
+        """Number of nodes in the committed graph. Requires ``build()`` first."""
+        self._require_built()
         return self._graph.num_nodes()
 
     @property
     def graph_edge_count(self) -> int:
-        """Number of edges (0 before the first build / lazy build)."""
-        if not self._built:
-            return 0
+        """Number of edges in the committed graph. Requires ``build()`` first."""
+        self._require_built()
         return self._graph.num_edges()
 
     # ═══════════════════════════════════════════════════════════════════

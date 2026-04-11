@@ -286,9 +286,14 @@ class TestBasicNodes:
     """Проверяет создание базовых узлов графа."""
 
     def test_empty_coordinator_empty_graph(self):
-        """Пустой координатор имеет пустой граф."""
+        """До build() счётчики графа недоступны — только явный статус."""
         coord = GateCoordinator()
-        assert coord.graph_node_count == 0
+        assert coord.build_status() == "not_built"
+        assert coord.is_built is False
+        with pytest.raises(RuntimeError, match="not built"):
+            _ = coord.graph_node_count
+        with pytest.raises(RuntimeError, match="not built"):
+            _ = coord.graph_edge_count
 
     def test_register_empty_class_creates_node(self):
         """Регистрация пустого класса создаёт узел в графе."""
