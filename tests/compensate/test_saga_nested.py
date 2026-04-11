@@ -40,6 +40,7 @@ from action_machine.core.tools_box import ToolsBox
 from action_machine.dependencies.depends import depends
 from action_machine.resource_managers.base_resource_manager import BaseResourceManager
 from action_machine.testing import TestBench
+from tests.domain_model.domains import TestDomain
 from tests.domain_model.services import InventoryService, PaymentService
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -67,7 +68,7 @@ class NestedResult(BaseResult):
     )
 
 
-@meta(description="Дочернее действие, которое может упасть")
+@meta(description="Дочернее действие, которое может упасть", domain=TestDomain)
 @check_roles(ROLE_NONE)
 @depends(InventoryService, description="Сервис запасов")
 class FailableChildAction(BaseAction[NestedParams, NestedResult]):
@@ -106,7 +107,7 @@ class FailableChildAction(BaseAction[NestedParams, NestedResult]):
         return NestedResult(status="child_ok")
 
 
-@meta(description="Родительское действие, вызывающее дочернее через box.run")
+@meta(description="Родительское действие, вызывающее дочернее через box.run", domain=TestDomain)
 @check_roles(ROLE_NONE)
 @depends(PaymentService, description="Сервис платежей")
 @depends(InventoryService, description="Сервис запасов")

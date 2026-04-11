@@ -5,9 +5,9 @@
 НАЗНАЧЕНИЕ
 ═══════════════════════════════════════════════════════════════════════════════
 
-``domain`` в @meta не обязателен (политику задаёт
-приложение). Проверяются узлы ``domain`` в facet-графе, описания в payload узлов
-и строковое представление координатора.
+Параметр ``domain`` в ``@meta`` обязателен (keyword-only). Проверяются узлы
+``domain`` в facet-графе, описания в payload узлов и строковое представление
+координатора.
 
 ═══════════════════════════════════════════════════════════════════════════════
 СЦЕНАРИИ
@@ -15,12 +15,11 @@
 
 TestDomainInvariantActions
     - Действие с domain — допустимо.
-    - Действие с аспектами без domain — допустимо (meta.domain is None).
-    - Действие без аспектов без domain — допустимо.
+    - Вызов ``meta(...)`` без ``domain=`` — TypeError.
+    - Действие без аспектов с domain — допустимо.
 
 TestDomainInvariantResources
     - ResourceManager с domain — допустимо.
-    - ResourceManager без domain — допустимо (meta.domain is None).
 
 TestDomainEdgeCases
     - Пустой класс (без @meta) — допустимо.
@@ -30,19 +29,21 @@ TestDomainNodes
     - Действие с domain создаёт stub-узел ``domain`` с ``class_ref`` на класс домена.
     - Два действия с одним доменом — один такой узел на класс ``_OrdersDomain``.
     - Разные домены — проверка по множеству ``class_ref`` в ``{_OrdersDomain, …}``.
-    - Действие без аспектов без domain: нет domain-узла у класса; meta.domain is None.
+    - Действие без аспектов с domain: в meta facet указан класс домена.
     - **Важно:** после ``build()`` в граф могут попасть чужие ``domain`` от других
       классов экосистемы; тесты фильтруют узлы по ``class_ref is _OrdersDomain`` и т.п.
 
 TestGraphDescriptions
     - Описание действия доступно через узел ``meta``.
-    - Действие без аспектов без domain регистрируется без ошибок.
+    - Действие без аспектов с domain регистрируется без ошибок.
     - Пустой класс — пустое description.
 
 TestCoordinatorRepr
     - repr содержит state и cached.
 """
 
+
+import pytest
 
 from action_machine.aspects.summary_aspect import summary_aspect
 from action_machine.auth.check_roles import check_roles
@@ -124,10 +125,10 @@ class _PaymentAction(BaseAction["_Params", "_Result"]):
         return {"result": "ok"}
 
 
-# ─── Действие с аспектами без домена (невалидно для get) ─────────────────
+# ─── Действие с аспектами и доменом payments ─────────────────────────────
 
 
-@meta("Ping без домена")
+@meta("Ping с доменом payments", domain=_PaymentsDomain)
 @check_roles(ROLE_NONE)
 class _NoDomainAction(BaseAction["_Params", "_Result"]):
 
@@ -144,10 +145,10 @@ class _OrderManager(BaseResourceManager):
     pass
 
 
-# ─── ResourceManager без домена ──────────────────────────────────────────
+# ─── ResourceManager с доменом payments ─────────────────────────────────
 
 
-@meta("Менеджер без домена")
+@meta("Менеджер с доменом payments", domain=_PaymentsDomain)
 class _NoDomainManager(BaseResourceManager):
     pass
 
@@ -160,10 +161,10 @@ class _PlainAction(BaseAction["_Params", "_Result"]):
     pass
 
 
-# ─── Действие без аспектов, с @meta без domain ───────────────────────────
+# ─── Действие без аспектов, с @meta и доменом ────────────────────────────
 
 
-@meta("Действие без аспектов")
+@meta("Действие без аспектов", domain=_OrdersDomain)
 @check_roles(ROLE_NONE)
 class _NoAspectsAction(BaseAction["_Params", "_Result"]):
     pass
@@ -192,17 +193,21 @@ class TestDomainInvariantActions:
         assert m is not None
         assert m.domain is _OrdersDomain
 
-    def test_action_with_aspects_without_domain_ok(self):
+    def test_action_with_aspects_with_payments_domain_ok(self):
         coord = _coord()
         m = coord.get_snapshot(_NoDomainAction, "meta")
         assert m is not None
-        assert m.domain is None
+        assert m.domain is _PaymentsDomain
 
-    def test_action_without_aspects_without_domain_ok(self):
+    def test_action_without_aspects_with_domain_ok(self):
         coord = _coord()
         m = coord.get_snapshot(_NoAspectsAction, "meta")
         assert m is not None
-        assert m.domain is None
+        assert m.domain is _OrdersDomain
+
+    def test_meta_missing_domain_raises_typeerror(self):
+        with pytest.raises(TypeError, match="domain"):
+            meta("Описание без домена")
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -219,11 +224,11 @@ class TestDomainInvariantResources:
         assert m is not None
         assert m.domain is _OrdersDomain
 
-    def test_resource_without_domain_ok(self):
+    def test_resource_with_payments_domain_ok(self):
         coord = _coord()
         m = coord.get_snapshot(_NoDomainManager, "meta")
         assert m is not None
-        assert m.domain is None
+        assert m.domain is _PaymentsDomain
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -275,18 +280,14 @@ class TestDomainNodes:
         }
         assert refs == {_OrdersDomain, _PaymentsDomain}
 
-    def test_action_without_aspects_no_domain_node(self):
+    def test_action_without_aspects_has_domain_in_meta_node(self):
         coord = _coord()
-        assert not any(
-            n["node_type"] == "domain"
-            for n in coord.get_nodes_for_class(_NoAspectsAction)
-        )
         nm = BaseGateHostInspector._make_node_name(_NoAspectsAction)
         meta_node = coord.get_node("meta", nm)
         assert meta_node is not None
         meta = meta_node.get("meta")
         assert meta is not None
-        assert meta.get("domain") is None
+        assert meta.get("domain") is _OrdersDomain
 
     def test_resource_with_domain_creates_domain_node(self):
         coord = _coord()

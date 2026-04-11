@@ -63,6 +63,7 @@ from action_machine.dependencies.dependency_factory import (
 )
 from action_machine.resource_managers.base_resource_manager import BaseResourceManager
 from tests.domain_model import FullAction, NotificationService, PaymentService, PingAction
+from tests.domain_model.domains import TestDomain
 
 # ═════════════════════════════════════════════════════════════════════════════
 # Вспомогательные классы для тестов
@@ -83,7 +84,7 @@ class _ConfigurableService:
         self.port = port
 
 
-@meta(description="Мок-менеджер для тестов rollup")
+@meta(description="Мок-менеджер для тестов rollup", domain=TestDomain)
 class _MockResourceManager(BaseResourceManager):
     """Менеджер ресурсов БЕЗ поддержки rollup (по умолчанию)."""
 
@@ -91,7 +92,7 @@ class _MockResourceManager(BaseResourceManager):
         return None
 
 
-@meta(description="Мок-менеджер с поддержкой rollup")
+@meta(description="Мок-менеджер с поддержкой rollup", domain=TestDomain)
 class _RollupSupportedManager(BaseResourceManager):
     """Менеджер ресурсов С поддержкой rollup."""
 

@@ -60,6 +60,7 @@ from action_machine.logging.log_coordinator import LogCoordinator
 from action_machine.resource_managers.base_resource_manager import BaseResourceManager
 from action_machine.resource_managers.connection import connection
 from tests.domain_model import FullAction, NotificationService, PaymentService, PingAction, TestDbManager
+from tests.domain_model.domains import TestDomain
 
 
 def _validate_connections(
@@ -76,7 +77,7 @@ def _validate_connections(
 # ═════════════════════════════════════════════════════════════════════════════
 
 
-@meta(description="Заглушка ресурсного менеджера для тестов connections")
+@meta(description="Заглушка ресурсного менеджера для тестов connections", domain=TestDomain)
 class _MockResourceManager(BaseResourceManager):
     """Минимальная реализация BaseResourceManager для тестов."""
 
@@ -84,7 +85,7 @@ class _MockResourceManager(BaseResourceManager):
         return None
 
 
-@meta(description="Действие с двумя connections")
+@meta(description="Действие с двумя connections", domain=TestDomain)
 @check_roles(ROLE_NONE)
 @connection(_MockResourceManager, key="db", description="База данных")
 @connection(_MockResourceManager, key="cache", description="Кеш")

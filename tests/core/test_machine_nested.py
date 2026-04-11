@@ -71,6 +71,7 @@ from action_machine.plugins.plugin_coordinator import PluginCoordinator
 from action_machine.plugins.plugin_run_context import PluginRunContext
 from action_machine.resource_managers.base_resource_manager import BaseResourceManager
 from tests.domain_model import PingAction
+from tests.domain_model.domains import TestDomain
 
 # ═════════════════════════════════════════════════════════════════════════════
 # Вспомогательные действия для вложенных вызовов
@@ -88,7 +89,7 @@ class _ChildResult(BaseResult):
     nest: int = Field(description="Уровень вложенности")
 
 
-@meta(description="Дочернее действие для тестов вложенности")
+@meta(description="Дочернее действие для тестов вложенности", domain=TestDomain)
 @check_roles(ROLE_NONE)
 class _ChildTestAction(BaseAction[_ChildParams, _ChildResult]):
     """
@@ -114,7 +115,7 @@ class _ParentResult(BaseResult):
     parent_nest: int = Field(description="Уровень вложенности родителя")
 
 
-@meta(description="Родительское действие, вызывающее дочернее через box.run()")
+@meta(description="Родительское действие, вызывающее дочернее через box.run()", domain=TestDomain)
 @check_roles(ROLE_NONE)
 class _ParentTestAction(BaseAction[_ParentParams, _ParentResult]):
     """
@@ -138,7 +139,7 @@ class _ParentTestAction(BaseAction[_ParentParams, _ParentResult]):
         )
 
 
-@meta(description="Действие, записывающее nest_level в результат")
+@meta(description="Действие, записывающее nest_level в результат", domain=TestDomain)
 @check_roles(ROLE_NONE)
 class _NestLevelTestAction(BaseAction[_ChildParams, _ChildResult]):
     """Записывает текущий nest_level из box в результат для проверки."""
@@ -148,7 +149,7 @@ class _NestLevelTestAction(BaseAction[_ChildParams, _ChildResult]):
         return _ChildResult(child_data="", nest=box.nested_level)
 
 
-@meta(description="Родитель, вызывающий _NestLevelTestAction")
+@meta(description="Родитель, вызывающий _NestLevelTestAction", domain=TestDomain)
 @check_roles(ROLE_NONE)
 class _NestLevelParentAction(BaseAction[_ParentParams, _ParentResult]):
     """Вызывает _NestLevelTestAction и сохраняет свой и дочерний nest_level."""

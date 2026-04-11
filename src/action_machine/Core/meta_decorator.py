@@ -28,11 +28,9 @@ PARAMETERS
         Непустая строка после strip(). Пустая строка или строка
         из пробелов — ValueError.
 
-    domain : type[BaseDomain] | None
-        Привязка к бизнес-домену. Если указан — проверяется, что это подкласс
-        BaseDomain. **Обязателен** для действий с аспектами и для ресурсных
-        менеджеров (инвариант при ``build()`` координатора). Для действия без
-        аспектов допускается ``None``.
+    domain : type[BaseDomain]
+        Подкласс ``BaseDomain``. **Обязательный** keyword-only параметр; без него
+        вызов ``@meta`` невозможен.
 
 ═══════════════════════════════════════════════════════════════════════════════
 LIMITATIONS (INVARIANTS)
@@ -41,8 +39,7 @@ LIMITATIONS (INVARIANTS)
 - Применяется только к классам, не к функциям, methodам или свойствам.
 - Class должен наследовать ActionMetaGateHost или ResourceMetaGateHost.
 - description — непустая строка (str), после strip() не пустая.
-- domain — подкласс BaseDomain или None (None только там, где инвариант
-  координатора не требует домена — действие без аспектов).
+- domain — подкласс BaseDomain (всегда обязателен).
 - Повторное применение @meta к одному классу перезаписывает предыдущее.
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -72,8 +69,8 @@ EXAMPLES
     class CreateOrderAction(BaseAction[OrderParams, OrderResult]):
         ...
 
-    # Действие без аспектов — domain может быть None:
-    @meta(description="Проверка доступности сервиса")
+    # Действие без аспектов — domain всё равно обязателен:
+    @meta(description="Проверка доступности сервиса", domain=SystemDomain)
     @check_roles(ROLE_NONE)
     class PingAction(BaseAction[BaseParams, BaseResult]):
         ...
@@ -88,8 +85,8 @@ ERRORS
 ═══════════════════════════════════════════════════════════════════════════════
 
     TypeError — декоратор применён не к классу; класс не наследует ни один
-               из гейт-хостов; description не строка; domain не подкласс
-               BaseDomain и не None.
+               из гейт-хостов; description не строка; domain не передан, None
+               или не подкласс BaseDomain.
     ValueError — description пустая строка или строка из пробелов.
 """
 
@@ -139,14 +136,17 @@ def _validate_meta_domain(domain: Any) -> None:
         domain: значение, переданное в @meta.
 
     Raises:
-        TypeError: если domain не None и не подкласс BaseDomain.
+        TypeError: если domain is None или не подкласс BaseDomain.
     """
     if domain is None:
-        return
+        raise TypeError(
+            "@meta: параметр domain обязателен. Укажите подкласс BaseDomain, "
+            "например: domain=OrdersDomain."
+        )
 
     if not isinstance(domain, type):
         raise TypeError(
-            f"@meta: параметр domain должен быть подклассом BaseDomain или None, "
+            f"@meta: параметр domain должен быть подклассом BaseDomain, "
             f"получен {type(domain).__name__}: {domain!r}. "
             f"Передайте класс домена, например: domain=OrdersDomain."
         )
@@ -197,7 +197,7 @@ def _validate_meta_target(cls: Any) -> None:
 def meta(
     description: str,
     *,
-    domain: type[BaseDomain] | None = None,
+    domain: type[BaseDomain],
 ) -> Callable[[type], type]:
     """
     Decorator уровня класса. Объявляет описание и доменную принадлежность.
@@ -209,9 +209,7 @@ def meta(
     Args:
         description: обязательное текстовое описание класса. Непустая строка.
                      Что делает действие или ресурсный менеджер.
-        domain: подкласс BaseDomain или None. Обязателен для действий с
-                аспектами и для ресурсных менеджеров при сборке координатора;
-                для действия без аспектов допускается None.
+        domain: подкласс BaseDomain (обязательный keyword-only аргумент).
 
     Returns:
         Decorator, который записывает _meta_info в класс и возвращает
@@ -220,7 +218,7 @@ def meta(
     Raises:
         TypeError:
             - description не строка.
-            - domain не None и не подкласс BaseDomain.
+            - domain не передан, None или не подкласс BaseDomain.
             - Decorator применён не к классу.
             - Class не наследует ActionMetaGateHost и не наследует
               ResourceMetaGateHost.
@@ -233,7 +231,7 @@ def meta(
         class CreateOrderAction(BaseAction[OrderParams, OrderResult]):
             ...
 
-        @meta(description="Менеджер соединений с PostgreSQL")
+        @meta(description="Менеджер соединений с PostgreSQL", domain=WarehouseDomain)
         class PostgresManager(BaseResourceManager):
             ...
     """

@@ -50,7 +50,7 @@ ARCHITECTURE / DATA FLOW
     class CreateOrderAction(BaseAction[OrderParams, OrderResult]):
         ...
 
-    @meta(description="Менеджер PostgreSQL")
+    @meta(description="Менеджер PostgreSQL", domain=WarehouseDomain)
     class PostgresManager(BaseResourceManager):
         ...
 
@@ -91,7 +91,7 @@ EXAMPLES
             return BaseResult()
 
     # BaseResourceManager уже наследует ResourceMetaGateHost:
-    @meta(description="Менеджер соединений Redis")
+    @meta(description="Менеджер соединений Redis", domain=CacheDomain)
     class RedisManager(BaseResourceManager):
         def get_wrapper_class(self):
             return None

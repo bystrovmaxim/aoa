@@ -18,6 +18,8 @@ small and deterministic for inspector units.
 
 from __future__ import annotations
 
+import pytest
+
 from action_machine.core.meta_decorator import meta
 from action_machine.core.meta_gate_host_inspector import MetaGateHostInspector
 from action_machine.core.meta_gate_hosts import ActionMetaGateHost
@@ -43,11 +45,6 @@ class _OrdersDomain(BaseDomain):
 
 @meta(description="Meta with domain", domain=_OrdersDomain)
 class _MetaWithDomain(ActionMetaGateHost):
-    pass
-
-
-@meta(description="Meta without domain")
-class _MetaNoDomain(ActionMetaGateHost):
     pass
 
 
@@ -107,10 +104,9 @@ def test_meta_inspector_builds_payload_with_domain_edge() -> None:
     assert payload.edges[0].is_structural is False
 
 
-def test_meta_inspector_builds_payload_without_domain_edge() -> None:
-    payload = MetaGateHostInspector.inspect(_MetaNoDomain)
-    assert payload is not None
-    assert payload.edges == ()
+def test_meta_decorator_requires_domain_keyword() -> None:
+    with pytest.raises(TypeError, match="domain"):
+        meta("no domain argument")
 
 
 def test_dependency_inspector_returns_none_without_depends() -> None:

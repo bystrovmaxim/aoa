@@ -56,11 +56,11 @@ rollup — RollupNotSupportedError пробрасывается наружу, и
         __init__(rollup=False)         (принимает флаг rollup)
         commit()                       (при rollup=True → rollback вместо commit)
 
-    @meta(description="Менеджер PostgreSQL")
+    @meta(description="Менеджер PostgreSQL", domain=WarehouseDomain)
     class PostgresConnectionManager(IConnectionManager):
         __init__(params, rollup=False) (прокидывает rollup в super)
 
-    @meta(description="Менеджер Redis-кеша")
+    @meta(description="Менеджер Redis-кеша", domain=CacheDomain)
     class RedisManager(BaseResourceManager):
         check_rollup_support()         (НЕ переопределяет → RollupNotSupportedError)
 
@@ -100,7 +100,7 @@ class BaseResourceManager(ABC, ResourceMetaGateHost):
     для всех конкретных реализаций.
 
     Каждый ресурсный менеджер обязан:
-    1. Иметь декоратор @meta(description="...") с описанием.
+    1. Иметь декоратор @meta(description="...", domain=SomeDomain) с описанием и доменом.
     2. Реализовать метод get_wrapper_class(), возвращающий класс-обёртку
        для передачи ресурса в дочерние действия, или None если обёртка
        не требуется.

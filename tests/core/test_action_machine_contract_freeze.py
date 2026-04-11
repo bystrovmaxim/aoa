@@ -116,6 +116,7 @@ from tests.domain_model import (
     SimpleAction,
 )
 from tests.domain_model.compensate_plugins import SagaObserverPlugin
+from tests.domain_model.domains import TestDomain
 
 
 def _context() -> Context:
@@ -173,7 +174,7 @@ class _NestedResult(BaseResult):
     trace: str
 
 
-@meta(description="Golden nested child action")
+@meta(description="Golden nested child action", domain=TestDomain)
 @check_roles(ROLE_NONE)
 class _NestedChildAction(BaseAction[_NestedParams, _NestedResult]):
     @summary_aspect("Build child trace")
@@ -187,7 +188,7 @@ class _NestedChildAction(BaseAction[_NestedParams, _NestedResult]):
         return _NestedResult(trace=f"child_nest={box.nested_level};child_rollup={box.rollup}")
 
 
-@meta(description="Golden nested parent action")
+@meta(description="Golden nested parent action", domain=TestDomain)
 @check_roles(ROLE_NONE)
 class _NestedParentAction(BaseAction[_NestedParams, _NestedResult]):
     @regular_aspect("Run nested child")
