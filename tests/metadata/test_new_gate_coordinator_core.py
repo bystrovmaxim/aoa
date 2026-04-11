@@ -55,6 +55,14 @@ class _InspectorDup(BaseGateHostInspector):
         raise NotImplementedError
 
 
+def test_build_status_transitions() -> None:
+    coord = GateCoordinator()
+    assert coord.build_status() == "not_built"
+    coord.register(_InspectorA).build()
+    assert coord.build_status() == "built"
+    assert coord.is_built is True
+
+
 def test_build_and_graph_read_api() -> None:
     coord = GateCoordinator().register(_InspectorA).build()
     assert coord.is_built is True
