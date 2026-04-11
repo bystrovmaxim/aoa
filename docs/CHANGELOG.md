@@ -135,6 +135,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **`PluginEmitSupport` and coordinator decoupling.** `ActionProductMachine` builds a `PluginEmitSupport` instance (public `plugin_emit_support` property) for `base_fields` / `emit_extra_kwargs` used with `PluginRunContext.emit_event`. `SagaCoordinator` takes `PluginEmitSupport` instead of `LogCoordinator` and no longer receives the machine in `execute()`. `ErrorHandlerExecutor` takes `PluginEmitSupport` in its constructor and `handle()` no longer takes the machine as the first argument. Removed private `_base_event_fields` / `_build_plugin_emit_kwargs` from the machine (logic lives on `PluginEmitSupport`).
 
+- **`DependencyFactoryResolver`, `ToolsBoxFactory`, and `AspectExecutor` without `_MachineLike`.** New protocol `DependencyFactoryResolver` with `dependency_factory_for(action_cls)`; `ActionProductMachine` implements it publicly. `ToolsBoxFactory` takes only `LogCoordinator` and `create(..., factory_resolver=..., mode=..., machine_class_name=..., ...)`. `AspectExecutor` is constructed with `log_coordinator`, `machine_class_name`, and `mode`; `call` / `execute_regular` / `execute_summary` no longer accept a machine-shaped first argument.
+
 - **`BaseAction` generic parameters `P` and `R` are now bound to `BaseSchema` instead of `ReadableDataProtocol`.** This reflects the architectural shift: all data structures inherit `BaseSchema`.
 
 - **`WritableMixin` and `WritableDataProtocol` removed.** After freezing `BaseState` and `BaseResult`, there are no remaining consumers of write‑able dict‑like access. The read‑only protocol `ReadableDataProtocol` remains for compatibility.

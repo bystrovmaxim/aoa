@@ -33,8 +33,8 @@ Target orchestration flow (final state after migration):
     ┌─────────────────────────── Core Components ──────────────────────────────────┐
     │ RoleChecker            -> GateCoordinator role snapshot / AuthorizationError │
     │ ConnectionValidator    -> GateCoordinator connection snapshot / validation   │
-    │ ToolsBoxFactory        -> ToolsBox with depth, rollup, nested-run callback   │
-    │ AspectExecutor         -> aspect invoke + context injection + checkers/state │
+    │ ToolsBoxFactory        -> ToolsBox (explicit resolver + mode + class name)   │
+    │ AspectExecutor         -> aspect invoke (injected log coordinator + mode)     │
     │ ErrorHandlerExecutor   -> @on_error resolution + fallback semantics          │
     │ SagaCoordinator        -> regular/summary flow + rollback + plugin/log events│
     └──────────────────────────────────────────────────────────────────────────────┘
@@ -54,19 +54,19 @@ INVARIANTS
 EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
-Happy path (current Step 1):
-- Components are wired in constructor and delegate to existing machine methods.
+Happy path:
+- Components are wired in the machine constructor and used from `_run_internal`.
 
 Edge case:
-- Calling placeholder `ToolsBoxFactory.create()` before Step 4 raises
-  `NotImplementedError` by design.
+- Custom `AspectExecutor` / `ToolsBoxFactory` must match current constructor and
+  method signatures (see each component module).
 
 ═══════════════════════════════════════════════════════════════════════════════
 ERRORS / LIMITATIONS
 ═══════════════════════════════════════════════════════════════════════════════
 
-This package introduces component boundaries and extension points. Runtime
-execution logic remains in `ActionProductMachine` until later migration steps.
+Orchestration order and contracts live in `ActionProductMachine`; this package
+exports building blocks only.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN
@@ -83,6 +83,7 @@ AI-CORE-END
 
 from .aspect_executor import AspectExecutor
 from .connection_validator import ConnectionValidator
+from .dependency_factory_resolver import DependencyFactoryResolver
 from .error_handler_executor import ErrorHandlerExecutor
 from .role_checker import RoleChecker
 from .saga_coordinator import SagaCoordinator
@@ -91,6 +92,7 @@ from .tools_box_factory import ToolsBoxFactory
 __all__ = [
     "AspectExecutor",
     "ConnectionValidator",
+    "DependencyFactoryResolver",
     "ErrorHandlerExecutor",
     "RoleChecker",
     "SagaCoordinator",
