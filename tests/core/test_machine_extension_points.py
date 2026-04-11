@@ -147,8 +147,8 @@ class _ErrorHandlerFake:
     def __init__(self) -> None:
         self.called = False
 
-    async def handle(self, machine: object, **kwargs: Any) -> BaseResult:
-        _ = (machine, kwargs)
+    async def handle(self, **kwargs: Any) -> BaseResult:
+        _ = kwargs
         self.called = True
         return _HandledResult(marker="handled")
 
@@ -160,7 +160,6 @@ class _SagaCoordinatorFake:
 
     async def execute(
         self,
-        machine: object,
         *,
         saga_stack: list[SagaFrame],
         error: Exception,
@@ -171,7 +170,7 @@ class _SagaCoordinatorFake:
         context: Context,
         plugin_ctx,
     ) -> None:
-        _ = (machine, error, action, params, box, connections, context, plugin_ctx)
+        _ = (error, action, params, box, connections, context, plugin_ctx)
         self.called = True
         self.frames = len(saga_stack)
 

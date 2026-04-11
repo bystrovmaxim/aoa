@@ -8,7 +8,8 @@ PURPOSE
 
 Provide a dedicated component for the `@on_error` stage in machine execution.
 This Step 6 implementation owns handler resolution, invocation, and fallback
-event contracts.
+event contracts. Plugin event payloads come from ``PluginEmitSupport``, not from
+private methods on the machine.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
@@ -18,10 +19,11 @@ ARCHITECTURE / DATA FLOW
 
     ActionProductMachine
         │
-        └── ErrorHandlerExecutor.handle(machine, error, action, params,
+        └── ErrorHandlerExecutor.handle(error, action, params,
                                         state, box, connections, context,
                                         runtime, plugin_ctx, failed_aspect_name)
                 │
+                ├── plugin_emit.base_fields / emit_extra_kwargs
                 ├── resolve first matching handler by isinstance
                 ├── emit BeforeOnErrorAspectEvent
                 ├── invoke handler (with ContextView when required)
@@ -35,6 +37,7 @@ INVARIANTS
 - Handler resolution order is declaration order, first match wins.
 - Event ordering and fallback semantics are preserved.
 - Handler failures are wrapped into `OnErrorHandlerError`.
+- All plugin emissions use the injected ``PluginEmitSupport`` instance.
 
 ═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES
@@ -50,15 +53,15 @@ Edge case:
 ERRORS / LIMITATIONS
 ═══════════════════════════════════════════════════════════════════════════════
 
-- Component depends on machine helper methods for event base fields.
-- Executor does not mutate pipeline state; it returns handled result only.
+Executor does not mutate pipeline state; it returns handled result only.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN
 ═══════════════════════════════════════════════════════════════════════════════
 ROLE: On-error handler execution component.
 CONTRACT: handle(...) -> BaseResult or re‑raise original exception.
-INVARIANTS: first matching handler wins; event order remains stable.
+INVARIANTS: first matching handler wins; event order remains stable;
+  plugin fields from PluginEmitSupport only.
 FLOW: resolve handler -> emit before -> invoke -> emit after/fallback.
 FAILURES: OnErrorHandlerError on handler failure; original error when unhandled.
 EXTENSION POINTS: custom handler strategy can replace this component.
@@ -69,7 +72,7 @@ AI-CORE-END
 from __future__ import annotations
 
 import time
-from typing import Any, Protocol, cast
+from typing import Any, cast
 
 from action_machine.context.context_view import ContextView
 from action_machine.core.base_result import BaseResult
@@ -79,14 +82,17 @@ from action_machine.plugins.events import (
     BeforeOnErrorAspectEvent,
     UnhandledErrorEvent,
 )
+from action_machine.plugins.plugin_emit_support import PluginEmitSupport
 
 
 class ErrorHandlerExecutor:
     """Component owning `@on_error` resolution and invocation."""
 
+    def __init__(self, plugin_emit: PluginEmitSupport) -> None:
+        self._plugin_emit = plugin_emit
+
     async def handle(
         self,
-        machine: _MachineLike,
         *,
         error: Exception,
         action: Any,
@@ -100,13 +106,13 @@ class ErrorHandlerExecutor:
         failed_aspect_name: str | None,
     ) -> BaseResult:
         """Resolve and invoke matching `@on_error` handler."""
-        base_fields = machine._base_event_fields(
+        base_fields = self._plugin_emit.base_fields(
             action,
             context,
             params,
             box.nested_level,
         )
-        plugin_kwargs = machine._build_plugin_emit_kwargs(box.nested_level)
+        plugin_kwargs = self._plugin_emit.emit_extra_kwargs(box.nested_level)
 
         handler_meta = None
         for candidate in runtime.error_handlers:
@@ -179,15 +185,3 @@ class ErrorHandlerExecutor:
                 handler_name=handler_meta.method_name,
                 original_error=error,
             ) from handler_error
-
-
-class _MachineLike(Protocol):
-    def _base_event_fields(
-        self,
-        action: Any,
-        context: Any,
-        params: Any,
-        nest_level: int,
-    ) -> dict[str, Any]: ...
-
-    def _build_plugin_emit_kwargs(self, nest_level: int) -> dict[str, Any]: ...

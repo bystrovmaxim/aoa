@@ -133,6 +133,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **`BaseAdapter` optional `gate_coordinator` (keyword-only) and `gate_coordinator` property.** Defaults to `machine.gate_coordinator`. `McpAdapter` and `FastApiAdapter` forward the same parameter. MCP graph JSON helpers take a `GateCoordinator` directly instead of reaching into private machine fields.
 
+- **`PluginEmitSupport` and coordinator decoupling.** `ActionProductMachine` builds a `PluginEmitSupport` instance (public `plugin_emit_support` property) for `base_fields` / `emit_extra_kwargs` used with `PluginRunContext.emit_event`. `SagaCoordinator` takes `PluginEmitSupport` instead of `LogCoordinator` and no longer receives the machine in `execute()`. `ErrorHandlerExecutor` takes `PluginEmitSupport` in its constructor and `handle()` no longer takes the machine as the first argument. Removed private `_base_event_fields` / `_build_plugin_emit_kwargs` from the machine (logic lives on `PluginEmitSupport`).
+
 - **`BaseAction` generic parameters `P` and `R` are now bound to `BaseSchema` instead of `ReadableDataProtocol`.** This reflects the architectural shift: all data structures inherit `BaseSchema`.
 
 - **`WritableMixin` and `WritableDataProtocol` removed.** After freezing `BaseState` and `BaseResult`, there are no remaining consumers of write‑able dict‑like access. The read‑only protocol `ReadableDataProtocol` remains for compatibility.
