@@ -1,11 +1,33 @@
 # tests/plugins/test_plugin_emit_support.py
 """Unit tests for ``PluginEmitSupport`` — plugin event payload helpers."""
 
+from __future__ import annotations
+
+from typing import Any
+
+import pytest
+
 from action_machine.context.context import Context
 from action_machine.context.user_info import UserInfo
 from action_machine.logging.log_coordinator import LogCoordinator
+from action_machine.plugins.events import (
+    AfterRegularAspectEvent,
+    AfterSummaryAspectEvent,
+    BeforeRegularAspectEvent,
+    BeforeSummaryAspectEvent,
+)
 from action_machine.plugins.plugin_emit_support import PluginEmitSupport
 from tests.domain_model import PingAction
+
+
+class _RecordingPluginCtx:
+    """Minimal stand-in for ``PluginRunContext`` — only ``emit_event`` is used."""
+
+    def __init__(self) -> None:
+        self.emitted: list[tuple[object, dict[str, Any]]] = []
+
+    async def emit_event(self, event: object, **kwargs: Any) -> None:
+        self.emitted.append((event, kwargs))
 
 
 def test_base_fields_shape() -> None:
@@ -56,3 +78,100 @@ def test_properties_expose_config() -> None:
     assert emit.log_coordinator is log
     assert emit.machine_class_name == "X"
     assert emit.mode == "m"
+
+
+@pytest.mark.asyncio
+async def test_emit_regular_aspect_helpers() -> None:
+    """Before/after regular aspect events use base_fields and emit_extra_kwargs."""
+    log = LogCoordinator(loggers=[])
+    emit = PluginEmitSupport(
+        log,
+        machine_class_name="ActionProductMachine",
+        mode="test",
+    )
+    action = PingAction()
+    ctx = Context(user=UserInfo(user_id="u1", roles=[]))
+    params = PingAction.Params()
+    plugin_ctx = _RecordingPluginCtx()
+
+    await emit.emit_before_regular_aspect(
+        plugin_ctx,
+        action=action,
+        context=ctx,
+        params=params,
+        nest_level=1,
+        aspect_name="alpha_aspect",
+        state_snapshot={"k": 1},
+    )
+    await emit.emit_after_regular_aspect(
+        plugin_ctx,
+        action=action,
+        context=ctx,
+        params=params,
+        nest_level=1,
+        aspect_name="alpha_aspect",
+        state_snapshot={"k": 2},
+        aspect_result={"out": True},
+        duration_ms=42.0,
+    )
+
+    assert len(plugin_ctx.emitted) == 2
+    ev0, kw0 = plugin_ctx.emitted[0]
+    ev1, kw1 = plugin_ctx.emitted[1]
+    assert isinstance(ev0, BeforeRegularAspectEvent)
+    assert isinstance(ev1, AfterRegularAspectEvent)
+    assert ev0.aspect_name == "alpha_aspect"
+    assert ev1.aspect_name == "alpha_aspect"
+    assert ev0.state_snapshot == {"k": 1}
+    assert ev1.state_snapshot == {"k": 2}
+    assert ev1.aspect_result == {"out": True}
+    assert ev1.duration_ms == 42.0
+    for kw in (kw0, kw1):
+        assert kw["log_coordinator"] is log
+        assert kw["machine_name"] == "ActionProductMachine"
+        assert kw["mode"] == "test"
+
+
+@pytest.mark.asyncio
+async def test_emit_summary_aspect_helpers() -> None:
+    """Before/after summary aspect events carry state snapshot and result."""
+    log = LogCoordinator(loggers=[])
+    emit = PluginEmitSupport(
+        log,
+        machine_class_name="M",
+        mode="prod",
+    )
+    action = PingAction()
+    ctx = Context(user=UserInfo(user_id="u2", roles=[]))
+    params = PingAction.Params()
+    plugin_ctx = _RecordingPluginCtx()
+    result = PingAction.Result(message="pong")
+
+    await emit.emit_before_summary_aspect(
+        plugin_ctx,
+        action=action,
+        context=ctx,
+        params=params,
+        nest_level=0,
+        aspect_name="pong_summary",
+        state_snapshot={},
+    )
+    await emit.emit_after_summary_aspect(
+        plugin_ctx,
+        action=action,
+        context=ctx,
+        params=params,
+        nest_level=0,
+        aspect_name="pong_summary",
+        state_snapshot={},
+        result=result,
+        duration_ms=7.5,
+    )
+
+    assert len(plugin_ctx.emitted) == 2
+    ev0, _ = plugin_ctx.emitted[0]
+    ev1, _ = plugin_ctx.emitted[1]
+    assert isinstance(ev0, BeforeSummaryAspectEvent)
+    assert isinstance(ev1, AfterSummaryAspectEvent)
+    assert ev1.result is result
+    assert ev1.duration_ms == 7.5
