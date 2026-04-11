@@ -18,12 +18,11 @@ shared helpers (execution cache, plugin event base fields).
 INVARIANTS
 ═══════════════════════════════════════════════════════════════════════════════
 
-- Pipeline metadata for scratch mode is read from the action **class** scratch
-  attributes (aspects, checkers, compensators, error handlers, connection keys).
-  Role spec for execution comes from ``GateCoordinator.get_snapshot(cls, "role")``
-  (same source as the graph).
-- ``CoordinatorActionProductMachine`` overrides only cache and dependency-factory
-  construction; orchestration sequence stays identical.
+- Pipeline metadata (aspects, checkers, compensators, error handlers, connection
+  keys) and role spec come only from ``GateCoordinator.get_snapshot`` facet
+  snapshots (same source as the graph); there is no parallel scratch-first path.
+- ``DependencyFactory`` for ``ToolsBox`` is built from the ``depends`` facet
+  snapshot (not from ``cls._depends_info``).
 - Each ``_run_internal`` call owns a **local** saga stack; nested ``run_child``
   calls get independent stacks.
 - When ``rollup=True``, successful regular aspects do not append saga frames;
@@ -117,7 +116,7 @@ ERRORS / LIMITATIONS
 AI-CORE-BEGIN
 ═══════════════════════════════════════════════════════════════════════════════
 ROLE: Thin orchestrator over decomposed core components.
-CONTRACT: run/_run_internal sequence; scratch cache + facet role spec;
+CONTRACT: run/_run_internal sequence; execution cache from coordinator facets;
   component DI via keyword-only constructor args.
 INVARIANTS: local saga stack per run; rollback before @on_error; typed plugin
   emission split between machine, SagaCoordinator, ErrorHandlerExecutor.
@@ -177,36 +176,6 @@ P = TypeVar("P", bound=BaseParams)
 R = TypeVar("R", bound=BaseResult)
 
 
-def _scratch_aspects(
-    cls: type[BaseAction[Any, Any]],
-) -> list[AspectGateHostInspector.Snapshot.Aspect]:
-    return list(cls.scratch_aspects())
-
-
-def _scratch_checkers_for_aspect(
-    cls: type[BaseAction[Any, Any]],
-    aspect_name: str,
-    func: Any,
-) -> tuple[CheckerGateHostInspector.Snapshot.Checker, ...]:
-    return tuple(cls.scratch_checkers_for_aspect(aspect_name, method_ref=func))
-
-
-def _scratch_error_handlers(
-    cls: type[BaseAction[Any, Any]],
-) -> tuple[OnErrorGateHostInspector.Snapshot.ErrorHandler, ...]:
-    return tuple(cls.scratch_error_handlers())
-
-
-def _scratch_compensators(
-    cls: type[BaseAction[Any, Any]],
-) -> tuple[CompensateGateHostInspector.Snapshot.Compensator, ...]:
-    return tuple(cls.scratch_compensators())
-
-
-def _scratch_connection_keys(cls: type[BaseAction[Any, Any]]) -> tuple[str, ...]:
-    return tuple(cls.scratch_connection_keys())
-
-
 def _role_spec_from_coordinator(action_cls: type, coordinator: GateCoordinator) -> Any:
     """Return ``@check_roles`` spec from coordinator facet ``role`` (graph-aligned)."""
     snap = coordinator.get_snapshot(action_cls, "role")
@@ -215,7 +184,7 @@ def _role_spec_from_coordinator(action_cls: type, coordinator: GateCoordinator) 
 
 @dataclass(frozen=True)
 class _ActionExecutionCache:
-    """Per-run snapshot from class scratch attributes (roles, connections, pipeline)."""
+    """Per-run snapshot of pipeline metadata from ``GateCoordinator`` facet snapshots."""
 
     role_spec: Any
     connection_keys: tuple[str, ...]
@@ -230,51 +199,14 @@ class _ActionExecutionCache:
     ]
 
     @classmethod
-    def from_action_class(
-        cls,
-        action_cls: type,
-        *,
-        gate_coordinator: GateCoordinator,
-    ) -> _ActionExecutionCache:
-        aspects = _scratch_aspects(action_cls)
-        regular = tuple(a for a in aspects if a.aspect_type == "regular")
-        summary = next((a for a in aspects if a.aspect_type == "summary"), None)
-        checkers_by_aspect = {
-            a.method_name: _scratch_checkers_for_aspect(action_cls, a.method_name, a.method_ref)
-            for a in regular
-        }
-        compensators = _scratch_compensators(action_cls)
-        compensators_by_aspect: dict[
-            str,
-            CompensateGateHostInspector.Snapshot.Compensator | None,
-        ] = {}
-        for aspect in regular:
-            compensators_by_aspect[aspect.method_name] = next(
-                (c for c in compensators if c.target_aspect_name == aspect.method_name),
-                None,
-            )
-        return cls(
-            role_spec=_role_spec_from_coordinator(action_cls, gate_coordinator),
-            connection_keys=_scratch_connection_keys(action_cls),
-            regular_aspects=regular,
-            checkers_by_aspect=checkers_by_aspect,
-            has_compensators=len(compensators) > 0,
-            error_handlers=_scratch_error_handlers(action_cls),
-            summary_aspect=summary,
-            compensators_by_aspect=compensators_by_aspect,
-        )
-
-    @classmethod
     def from_coordinator_facets(
         cls,
         action_cls: type,
         *,
         gate_coordinator: GateCoordinator,
     ) -> _ActionExecutionCache:
-        """
-        Same pipeline layout as ``from_action_class``, but aspects/checkers/
-        compensators/error-handlers/connections come from facet snapshots
-        (``get_snapshot``) instead of ``BaseAction.scratch_*`` helpers.
+        """Build cache from ``aspect``, ``checker``, ``compensator``, ``error_handler``,
+        ``connections``, and ``role`` facet snapshots (``get_snapshot``).
         """
         asp_snap = gate_coordinator.get_snapshot(action_cls, "aspect")
         aspects = getattr(asp_snap, "aspects", ()) if asp_snap is not None else ()
@@ -328,8 +260,8 @@ class ActionProductMachine(BaseActionMachine):
     AI-CORE-BEGIN
     ROLE: Public production machine entry point.
     CONTRACT: ``run`` → orchestrated pipeline; keyword-only component overrides.
-    INVARIANTS: built ``GateCoordinator``; per-run execution cache from scratch
-      (role facet from coordinator).
+    INVARIANTS: built ``GateCoordinator``; per-run execution cache from facet
+      snapshots only.
     AI-CORE-END
     """
 
@@ -416,13 +348,16 @@ class ActionProductMachine(BaseActionMachine):
         )
 
     def _get_execution_cache(self, action_cls: type) -> _ActionExecutionCache:
-        return _ActionExecutionCache.from_action_class(
+        return _ActionExecutionCache.from_coordinator_facets(
             action_cls,
             gate_coordinator=self._coordinator,
         )
 
     def _dependency_factory_for(self, action_cls: type) -> DependencyFactory:
-        return DependencyFactory(tuple(getattr(action_cls, "_depends_info", ()) or ()))
+        snap = self._coordinator.get_snapshot(action_cls, "depends")
+        if snap is None or not hasattr(snap, "dependencies"):
+            return DependencyFactory(())
+        return DependencyFactory(tuple(snap.dependencies))
 
     # ─────────────────────────────────────────────────────────────────────
     # Общие поля для создания событий
