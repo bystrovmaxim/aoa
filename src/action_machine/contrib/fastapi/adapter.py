@@ -123,6 +123,7 @@ from action_machine.context.context import Context
 from action_machine.core.action_product_machine import ActionProductMachine
 from action_machine.core.base_action import BaseAction
 from action_machine.core.exceptions import AuthorizationError, ValidationFieldError
+from action_machine.metadata.gate_coordinator import GateCoordinator
 from action_machine.resource_managers.base_resource_manager import BaseResourceManager
 
 from .route_record import FastApiRouteRecord
@@ -490,6 +491,8 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
         machine: ActionProductMachine,
         auth_coordinator: Any,
         connections_factory: Callable[..., dict[str, BaseResourceManager]] | None = None,
+        *,
+        gate_coordinator: GateCoordinator | None = None,
         title: str = "ActionMachine API",
         version: str = "0.1.0",
         description: str = "",
@@ -504,6 +507,8 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
                               None не допускается — TypeError.
             connections_factory: фабрика соединений. Если None —
                                  connections не передаются.
+            gate_coordinator: явный ``GateCoordinator``; по умолчанию
+                              ``machine.gate_coordinator``.
             title: заголовок API для OpenAPI/Swagger UI.
             version: версия API для OpenAPI.
             description: описание API для OpenAPI. Поддерживает Markdown.
@@ -512,6 +517,7 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
             machine=machine,
             auth_coordinator=auth_coordinator,
             connections_factory=connections_factory,
+            gate_coordinator=gate_coordinator,
         )
         self._title: str = title
         self._version: str = version

@@ -25,6 +25,7 @@ import pytest
 from action_machine.adapters.base_adapter import BaseAdapter
 from action_machine.adapters.base_route_record import BaseRouteRecord
 from action_machine.core.action_product_machine import ActionProductMachine
+from action_machine.metadata.gate_coordinator import GateCoordinator
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Concrete subclass for testing — BaseAdapter is abstract and cannot be
@@ -127,6 +128,23 @@ class TestProperties:
             connections_factory=factory,
         )
         assert adapter.connections_factory is factory
+
+    def test_gate_coordinator_defaults_to_machine(self) -> None:
+        """When omitted, gate_coordinator matches machine.gate_coordinator."""
+        machine = _make_machine()
+        adapter = _TestAdapter(machine=machine, auth_coordinator=_make_auth())
+        assert adapter.gate_coordinator is machine.gate_coordinator
+
+    def test_gate_coordinator_explicit_override(self) -> None:
+        """Optional gate_coordinator replaces the machine's coordinator reference."""
+        machine = _make_machine()
+        alt = MagicMock(spec=GateCoordinator)
+        adapter = _TestAdapter(
+            machine=machine,
+            auth_coordinator=_make_auth(),
+            gate_coordinator=alt,
+        )
+        assert adapter.gate_coordinator is alt
 
     def test_routes_starts_empty(self) -> None:
         """routes list is empty immediately after construction."""
