@@ -20,7 +20,6 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 from action_machine.context.context import Context
-from action_machine.context.user_info import UserInfo
 from action_machine.core.tools_box import ToolsBox
 from action_machine.dependencies.dependency_factory import DependencyFactory
 from action_machine.logging.scoped_logger import ScopedLogger
@@ -29,20 +28,17 @@ from action_machine.logging.scoped_logger import ScopedLogger
 # Фикстура создания ToolsBox
 # ═════════════════════════════════════════════════════════════════════════════
 
-def _make_toolsbox(context: Context | None = None) -> ToolsBox:
+def _make_toolsbox() -> ToolsBox:
     """
     Создаёт ToolsBox с минимальными заглушками для тестирования.
 
-    Все зависимости (run_child, factory, log) замокированы.
-    Контекст передаётся как аргумент — именно он должен быть
-    недоступен через публичный API.
+    ``Context`` не хранится на экземпляре; зависимости (run_child, factory, log)
+    замокированы.
     """
-    ctx = context or Context(user=UserInfo(user_id="test_user", roles=["tester"]))
     return ToolsBox(
         run_child=AsyncMock(),
         factory=DependencyFactory(()),
         resources=None,
-        context=ctx,
         log=MagicMock(spec=ScopedLogger),
         nested_level=0,
         rollup=False,
@@ -105,8 +101,7 @@ class TestToolsBoxContextPrivacy:
     def test_public_properties_do_not_leak_context(self) -> None:
         """Ни одно публичное свойство не возвращает объект типа Context."""
         # Arrange
-        ctx = Context(user=UserInfo(user_id="secret_user", roles=["admin"]))
-        box = _make_toolsbox(context=ctx)
+        box = _make_toolsbox()
 
         # Act — собираем значения всех публичных свойств
         public_names = [name for name in dir(box) if not name.startswith("_")]
@@ -125,25 +120,17 @@ class TestToolsBoxContextPrivacy:
                 f"Публичное свойство вернуло Context: {val!r}"
             )
 
-    def test_context_stored_via_name_mangling(self) -> None:
+    def test_context_not_stored_on_box_instance(self) -> None:
         """
-        Context хранится через name mangling (_ToolsBox__context).
+        ``Context`` is not kept on ``ToolsBox`` (no ``_ToolsBox__context`` or similar).
 
-        Это не публичный API — тест документирует механизм хранения.
-        Доступ через mangled-имя является нарушением контракта фреймворка,
-        но физически возможен в Python. Тест подтверждает, что context
-        действительно передан и хранится внутри.
+        Aspects cannot recover execution context from ``box``; only ``ContextView``
+        (when declared) or the logger's internal reference applies.
         """
-        # Arrange
-        ctx = Context(user=UserInfo(user_id="hidden_user"))
-        box = _make_toolsbox(context=ctx)
-
-        # Act — доступ через mangled-имя (нарушение контракта, но работает)
-        mangled_ctx = object.__getattribute__(box, "_ToolsBox__context")
-
-        # Assert — context действительно хранится внутри
-        assert mangled_ctx is ctx
-        assert mangled_ctx.user.user_id == "hidden_user"
+        box = _make_toolsbox()
+        assert not hasattr(box, "_ToolsBox__context")
+        with pytest.raises(AttributeError):
+            object.__getattribute__(box, "_ToolsBox__context")
 
 
 # ═════════════════════════════════════════════════════════════════════════════

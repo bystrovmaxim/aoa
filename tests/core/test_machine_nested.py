@@ -324,7 +324,6 @@ class TestConnectionWrapping:
             run_child=AsyncMock(),
             factory=MagicMock(),
             resources=None,
-            context=Context(),
             log=MagicMock(),
             nested_level=1,
             rollup=False,
@@ -349,7 +348,6 @@ class TestConnectionWrapping:
             run_child=AsyncMock(),
             factory=MagicMock(),
             resources=None,
-            context=Context(),
             log=MagicMock(),
             nested_level=1,
             rollup=False,
@@ -370,7 +368,6 @@ class TestConnectionWrapping:
             run_child=AsyncMock(),
             factory=MagicMock(),
             resources=None,
-            context=Context(),
             log=MagicMock(),
             nested_level=1,
             rollup=False,
@@ -429,7 +426,6 @@ class TestToolsBoxResolve:
             run_child=AsyncMock(),
             factory=mock_factory,
             resources={str: mock_service},
-            context=Context(),
             log=MagicMock(),
             nested_level=1,
             rollup=False,
@@ -453,7 +449,6 @@ class TestToolsBoxResolve:
             run_child=AsyncMock(),
             factory=mock_factory,
             resources=None,
-            context=Context(),
             log=MagicMock(),
             nested_level=1,
             rollup=False,
@@ -477,7 +472,6 @@ class TestToolsBoxResolve:
             run_child=AsyncMock(),
             factory=mock_factory,
             resources=None,
-            context=Context(),
             log=MagicMock(),
             nested_level=1,
             rollup=True,
@@ -504,7 +498,6 @@ class TestToolsBoxProperties:
             run_child=AsyncMock(),
             factory=MagicMock(),
             resources=None,
-            context=Context(),
             log=MagicMock(),
             nested_level=3,
             rollup=False,
@@ -517,7 +510,6 @@ class TestToolsBoxProperties:
             run_child=AsyncMock(),
             factory=MagicMock(),
             resources=None,
-            context=Context(),
             log=MagicMock(),
             nested_level=1,
             rollup=True,
@@ -533,13 +525,10 @@ class TestToolsBoxProperties:
         машина создаёт при наличии @context_requires. Это реализация
         принципа минимальных привилегий.
         """
-        # Arrange — ToolsBox создан с контекстом
-        ctx = Context(user=UserInfo(user_id="test"))
         box = ToolsBox(
             run_child=AsyncMock(),
             factory=MagicMock(),
             resources=None,
-            context=ctx,
             log=MagicMock(),
             nested_level=1,
             rollup=False,

@@ -80,9 +80,10 @@ not as a separate step on the machine.
 
 **Context access**
 
-Aspects, compensators, and ``@on_error`` handlers do not read ``Context`` directly
-from ``ToolsBox``; ``@context_requires`` is satisfied via ``ContextView`` inside
-``AspectExecutor``, ``SagaCoordinator``, and ``ErrorHandlerExecutor``.
+Aspects, compensators, and ``@on_error`` handlers cannot read ``Context`` from
+``ToolsBox`` (it is not stored there). ``@context_requires`` is satisfied via
+``ContextView`` inside ``AspectExecutor``, ``SagaCoordinator``, and
+``ErrorHandlerExecutor``.
 
 ═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES

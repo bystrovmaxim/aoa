@@ -127,7 +127,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **`PluginRunContext.emit_event()` now accepts a concrete event object instead of a list of parameters.** The method applies the filter chain described above and executes matching handlers in parallel or sequentially depending on `ignore_exceptions` flags.
 
-- **`ToolsBox` no longer exposes any public access to `Context`.** The `context` property has been removed. The only way for aspects to obtain context data is through `ContextView` provided by the machine when `@context_requires` is used. Internal use of the context (for logging and child actions) remains through a mangled private attribute.
+- **`ToolsBox` does not store `Context` on the instance.** Aspects cannot access execution context via `box` at all (including mangled attributes). `ContextView` from `@context_requires` is the only aspect-visible path to context data. `ScopedLogger` still receives `Context` for template substitution; nested runs use a machine closure that captures `Context` for `_run_internal`.
 
 - **`BaseAction` generic parameters `P` and `R` are now bound to `BaseSchema` instead of `ReadableDataProtocol`.** This reflects the architectural shift: all data structures inherit `BaseSchema`.
 
