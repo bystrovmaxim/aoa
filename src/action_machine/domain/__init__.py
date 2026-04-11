@@ -25,9 +25,13 @@ stable anchor.
 **scratch** (class-level attributes such as `_entity_info`) that describe what
 was declared.
 
-**Scratch** — the class’s **self-description** of which grammar was applied
-(attributes and helpers such as `BaseEntity.partial`, relation containers, etc.).
-Reads are local and fast; they do not require traversing the coordinator graph.
+**Scratch** — class-level attributes written by decorators at import time
+(e.g. `_entity_info`, `_role_info`, method-level `_new_aspect_meta`). Inspectors
+read them during ``GateCoordinator.build()`` to build facet snapshots and graph
+nodes. For **actions**, the execution engine consumes those facets from the
+**coordinator** after ``build()`` — not via removed ``BaseAction.scratch_*``
+helpers. Domain entities may still read local scratch for helpers such as
+``BaseEntity.partial`` without loading the graph.
 
 **Inspector** — a class **paired with** gate hosts: discovers relevant subclasses,
 reads scratch / model structure, emits `FacetPayload` nodes (and optional typed
