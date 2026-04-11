@@ -46,7 +46,7 @@ machine internals. The final state above will be reached incrementally.
 INVARIANTS
 ═══════════════════════════════════════════════════════════════════════════════
 
-- One entity per file (class/protocol/dataclass).
+- One entity per file (class or dataclass).
 - No shared "god-modules" with mixed unrelated responsibilities.
 - Components are initialized in deterministic dependency order.
 
@@ -72,7 +72,7 @@ execution logic remains in `ActionProductMachine` until later migration steps.
 AI-CORE-BEGIN
 ═══════════════════════════════════════════════════════════════════════════════
 ROLE: Core components package API surface.
-CONTRACT: Export isolated execution components and their protocols.
+CONTRACT: Export isolated execution components.
 INVARIANTS: one file per entity; deterministic composition order.
 FLOW: machine constructor wires components -> run delegates in later steps.
 FAILURES: no behavior changes expected at this scaffold stage.
