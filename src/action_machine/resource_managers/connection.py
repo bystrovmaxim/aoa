@@ -29,7 +29,7 @@ HTTP-клиент и т.д.), управляемый через ResourceManager.
     get_connections(cls) → (ConnectionInfo(...), ...)
         │
         ▼  ActionProductMachine._check_connections(action, connections, metadata)
-    Сравнивает объявленные ключи (scratch / снимок ``connections``) с фактическими
+    Сравнивает объявленные ключи (facet snapshot ``connections``) с фактическими
         │
         ▼  Аспекты получают connections["db"] — экземпляр PostgresManager
 
@@ -94,19 +94,17 @@ from action_machine.resource_managers.connection_gate_host import ConnectionGate
 @dataclass(frozen=True)
 class ConnectionInfo:
     """
-    Неизменяемая запись об одном подключении к внешнему ресурсу.
+    Immutable record for one declared resource connection.
 
-    Создаётся декоратором @connection и сохраняется в cls._connection_info.
-    Снимок соединений строит ``ConnectionGateHostInspector``; машина валидирует
-    ключи по scratch класса действия (см. ``scratch_connection_keys()``).
+    Created by ``@connection`` and stored on ``cls._connection_info``.
+    ``ConnectionGateHostInspector`` builds the coordinator facet; the machine
+    compares keys from the ``connections`` facet snapshot to the runtime
+    ``connections`` mapping passed into ``run``.
 
-    Атрибуты:
-        cls: класс менеджера ресурсов (подкласс BaseResourceManager).
-             Определяет тип ресурса: PostgresConnectionManager, RedisManager и т.д.
-        key: строковый ключ для доступа из аспекта через connections[key].
-             Должен быть уникальным в пределах одного класса действия.
-        description: человекочитаемое описание подключения.
-                     Используется для интроспекции и документации.
+    Attributes:
+        cls: ``BaseResourceManager`` subclass (resource type).
+        key: Non-empty string key for ``connections[key]`` inside aspects.
+        description: Human-readable label for introspection and docs.
     """
     cls: type
     key: str

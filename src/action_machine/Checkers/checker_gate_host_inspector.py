@@ -93,8 +93,8 @@ class CheckerGateHostInspector(BaseGateHostInspector):
         """
         Flatten all checker rows declared on members of ``target_cls``.
 
-        Matches prior ``BaseAction.scratch_checkers_for_aspect`` aggregation: for
-        each own member with ``_checker_meta``, append normalized ``Checker`` rows.
+        For each declaring member with ``_checker_meta``, append normalized
+        ``Checker`` rows (same shape as coordinator checker facet entries).
         """
         out: list[CheckerGateHostInspector.Snapshot.Checker] = []
         for attr_name, attr_value in vars(target_cls).items():
