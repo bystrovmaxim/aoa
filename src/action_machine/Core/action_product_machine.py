@@ -21,6 +21,10 @@ INVARIANTS
 - Pipeline metadata (aspects, checkers, compensators, error handlers, connection
   keys) and role spec come only from ``GateCoordinator.get_snapshot`` facet
   snapshots (same source as the graph); there is no parallel scratch-first path.
+- Row shapes in ``_ActionExecutionCache`` match each inspector’s nested
+  ``Snapshot.*`` dataclasses; those inspector classes are imported only under
+  ``typing.TYPE_CHECKING`` so this module does not load inspector implementations
+  at import time.
 - ``DependencyFactory`` for ``ToolsBox`` is built from the ``depends`` facet
   snapshot (not from ``cls._depends_info``).
 - Each ``_run_internal`` call owns a **local** saga stack; nested ``run_child``
@@ -81,17 +85,6 @@ from ``ToolsBox``; ``@context_requires`` is satisfied via ``ContextView`` inside
 ``AspectExecutor``, ``SagaCoordinator``, and ``ErrorHandlerExecutor``.
 
 ═══════════════════════════════════════════════════════════════════════════════
-COMPATIBILITY GUARANTEES
-═══════════════════════════════════════════════════════════════════════════════
-
-- Constructor extension points are keyword-only parameters after ``*``:
-  ``role_checker``, ``connection_validator``, ``tools_box_factory``,
-  ``aspect_executor``, ``error_handler_executor``, ``saga_coordinator``.
-- Default behavior remains unchanged when extension points are not provided.
-- Compatibility contract is behavioral (pipeline order + event semantics),
-  not private-method availability.
-
-═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -111,6 +104,9 @@ ERRORS / LIMITATIONS
 - Role, connection, checker, and handler failures preserve existing exception types
   (e.g. ``AuthorizationError``, ``ConnectionValidationError``, ``ValidationFieldError``,
   ``OnErrorHandlerError``) from delegated components.
+- Constructor extension points are keyword-only after ``*``; omitted arguments keep
+  default component wiring. Behavioral contract is pipeline order and event
+  semantics, not stability of private helpers.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN
@@ -119,7 +115,8 @@ ROLE: Thin orchestrator over decomposed core components.
 CONTRACT: run/_run_internal sequence; execution cache from coordinator facets;
   component DI via keyword-only constructor args.
 INVARIANTS: local saga stack per run; rollback before @on_error; typed plugin
-  emission split between machine, SagaCoordinator, ErrorHandlerExecutor.
+  emission split between machine, SagaCoordinator, ErrorHandlerExecutor;
+  inspector types for cache fields are TYPE_CHECKING-only imports.
 FLOW: cache → gates → tools box → aspect pipeline → finish event.
 FAILURES: component and pipeline exceptions unchanged by orchestration layer.
 EXTENSION POINTS: role_checker, connection_validator, tools_box_factory,
@@ -132,13 +129,8 @@ from __future__ import annotations
 
 import time
 from dataclasses import dataclass
-from typing import Any, TypeVar, cast
+from typing import TYPE_CHECKING, Any, TypeVar, cast
 
-from action_machine.aspects.aspect_gate_host_inspector import AspectGateHostInspector
-from action_machine.checkers.checker_gate_host_inspector import CheckerGateHostInspector
-from action_machine.compensate.compensate_gate_host_inspector import (
-    CompensateGateHostInspector,
-)
 from action_machine.context.context import Context
 from action_machine.core.base_action import BaseAction
 from action_machine.core.base_action_machine import BaseActionMachine
@@ -158,7 +150,6 @@ from action_machine.dependencies.dependency_factory import DependencyFactory
 from action_machine.logging.console_logger import ConsoleLogger
 from action_machine.logging.log_coordinator import LogCoordinator
 from action_machine.metadata.gate_coordinator import GateCoordinator
-from action_machine.on_error.on_error_gate_host_inspector import OnErrorGateHostInspector
 from action_machine.plugins.events import (
     AfterRegularAspectEvent,
     AfterSummaryAspectEvent,
@@ -172,6 +163,14 @@ from action_machine.plugins.plugin_coordinator import PluginCoordinator
 from action_machine.plugins.plugin_run_context import PluginRunContext
 from action_machine.resource_managers.base_resource_manager import BaseResourceManager
 
+if TYPE_CHECKING:
+    from action_machine.aspects.aspect_gate_host_inspector import AspectGateHostInspector
+    from action_machine.checkers.checker_gate_host_inspector import CheckerGateHostInspector
+    from action_machine.compensate.compensate_gate_host_inspector import (
+        CompensateGateHostInspector,
+    )
+    from action_machine.on_error.on_error_gate_host_inspector import OnErrorGateHostInspector
+
 P = TypeVar("P", bound=BaseParams)
 R = TypeVar("R", bound=BaseResult)
 
@@ -184,7 +183,12 @@ def _role_spec_from_coordinator(action_cls: type, coordinator: GateCoordinator) 
 
 @dataclass(frozen=True)
 class _ActionExecutionCache:
-    """Per-run snapshot of pipeline metadata from ``GateCoordinator`` facet snapshots."""
+    """
+    Frozen bundle of facet-derived pipeline metadata for one ``run`` / ``_run_internal``.
+
+    Populated exclusively from ``get_snapshot``; field types align with inspector
+    ``Snapshot`` rows (see module INVARIANTS).
+    """
 
     role_spec: Any
     connection_keys: tuple[str, ...]
@@ -360,7 +364,7 @@ class ActionProductMachine(BaseActionMachine):
         return DependencyFactory(tuple(snap.dependencies))
 
     # ─────────────────────────────────────────────────────────────────────
-    # Общие поля для создания событий
+    # Shared fields for plugin events
     # ─────────────────────────────────────────────────────────────────────
 
     @staticmethod
@@ -380,7 +384,7 @@ class ActionProductMachine(BaseActionMachine):
         }
 
     # ─────────────────────────────────────────────────────────────────────
-    # Формирование kwargs для emit_event
+    # Extra kwargs for plugin_ctx.emit_event
     # ─────────────────────────────────────────────────────────────────────
 
     def _build_plugin_emit_kwargs(self, nest_level: int) -> dict[str, Any]:
@@ -392,7 +396,7 @@ class ActionProductMachine(BaseActionMachine):
         }
 
     # ─────────────────────────────────────────────────────────────────────
-    # Выполнение regular-аспектов
+    # Regular aspects
     # ─────────────────────────────────────────────────────────────────────
 
     async def _execute_regular_aspects(
@@ -417,8 +421,7 @@ class ActionProductMachine(BaseActionMachine):
         base_fields = self._base_event_fields(action, context, params, box.nested_level)
         plugin_kwargs = self._build_plugin_emit_kwargs(box.nested_level)
 
-        # Стек компенсации — локальный для этого конвейера.
-        # Не создаётся при rollup=True.
+        # Local compensation stack for this pipeline (empty when rollup=True).
         build_saga = runtime.has_compensators
 
         for aspect_meta in regular_aspects:
@@ -462,7 +465,7 @@ class ActionProductMachine(BaseActionMachine):
         return state
 
     # ─────────────────────────────────────────────────────────────────────
-    # Выполнение конвейера с обработкой ошибок
+    # Aspect pipeline + error path
     # ─────────────────────────────────────────────────────────────────────
 
     async def _execute_aspects_with_error_handling(
@@ -532,10 +535,8 @@ class ActionProductMachine(BaseActionMachine):
             return cast("R", result)
 
         except Exception as aspect_error:
-            # ── Размотка стека компенсации (Saga) ─────────────────────
-            # Выполняется ДО @on_error: сначала откат побочных эффектов,
-            # потом обработка бизнес-логики. Иначе @on_error работает
-            # с неконсистентными данными.
+            # ── Saga rollback (before @on_error) ───────────────────────
+            # Undo side effects first so @on_error sees a consistent story.
             if saga_stack:
                 await self._saga_coordinator.execute(
                     self,
@@ -549,7 +550,7 @@ class ActionProductMachine(BaseActionMachine):
                     plugin_ctx=plugin_ctx,
                 )
 
-            # ── Делегируем обработку ошибки ────────────────────────────
+            # ── @on_error / unhandled path ─────────────────────────────
             error_state = BaseState()
             handled_result = await self._error_handler_executor.handle(
                 self,
@@ -567,7 +568,7 @@ class ActionProductMachine(BaseActionMachine):
             return cast("R", handled_result)
 
     # ─────────────────────────────────────────────────────────────────────
-    # Публичный API: run (асинхронный)
+    # Public entry: run
     # ─────────────────────────────────────────────────────────────────────
 
     async def run(
