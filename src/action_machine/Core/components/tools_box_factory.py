@@ -30,7 +30,7 @@ INVARIANTS
 ═══════════════════════════════════════════════════════════════════════════════
 
 - Component receives references to `LogCoordinator` and `GateCoordinator`.
-- Method signature matches `ToolsBoxFactoryProtocol`.
+- Public `create(...)` API is stable for `ActionProductMachine` wiring.
 - Returned `ToolsBox` preserves incoming `nest_level`, `resources`, and `rollup`.
 
 ═══════════════════════════════════════════════════════════════════════════════
