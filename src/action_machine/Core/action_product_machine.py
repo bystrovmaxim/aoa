@@ -85,6 +85,11 @@ Aspects, compensators, and ``@on_error`` handlers cannot read ``Context`` from
 ``ContextView`` inside ``AspectExecutor``, ``SagaCoordinator``, and
 ``ErrorHandlerExecutor``.
 
+**Coordinator access**
+
+Protocol adapters and tools should use the public ``gate_coordinator`` property
+instead of private ``_coordinator``.
+
 ═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
@@ -351,6 +356,14 @@ class ActionProductMachine(BaseActionMachine):
                 self._log_coordinator,
             )
         )
+
+    @property
+    def gate_coordinator(self) -> GateCoordinator:
+        """Public read-only access to the built ``GateCoordinator`` (graph, facets).
+
+        Adapters and tools should use this property instead of ``_coordinator``.
+        """
+        return self._coordinator
 
     def _get_execution_cache(self, action_cls: type) -> _ActionExecutionCache:
         return _ActionExecutionCache.from_coordinator_facets(

@@ -18,6 +18,7 @@ implement protocol-specific registration methods (``post``, ``get``, ``tool``),
 and implement ``build()`` to return a protocol application.
 
 The adapter holds a reference to the machine, an authentication coordinator,
+an optional explicit ``GateCoordinator`` (defaults to ``machine.gate_coordinator``),
 and an optional connections factory. Registered routes are stored in ``_routes``
 as concrete ``BaseRouteRecord`` subclasses.
 
@@ -28,6 +29,8 @@ as concrete ``BaseRouteRecord`` subclasses.
     │                                      │
     │  machine: ActionProductMachine       │
     │  auth_coordinator: Any (required)    │
+    │  gate_coordinator: GateCoordinator   │
+    │    (optional; defaults to machine)     │
     │  connections_factory: Fn | None      │
     │  _routes: list[R]                    │
     │                                      │
@@ -36,8 +39,8 @@ as concrete ``BaseRouteRecord`` subclasses.
     └──────────────────────────────────────┘
                ▲
     ┌──────────┴──────────────────────────┐
-    │  FastAPIAdapter                      │
-    │  MCPAdapter                          │
+    │  FastApiAdapter                      │
+    │  McpAdapter                          │
     └──────────────────────────────────────┘
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -46,6 +49,7 @@ INVARIANTS
 
 - ``auth_coordinator`` is required; passing ``None`` raises ``TypeError``.
 - ``machine`` must be an instance of ``ActionProductMachine``.
+- ``gate_coordinator`` defaults to ``machine.gate_coordinator`` when omitted.
 - Route records are stored in ``_routes`` and remain immutable after registration.
 - The fluent API returns ``self``, enabling method chaining.
 
@@ -77,7 +81,8 @@ AI-CORE-BEGIN
 ═══════════════════════════════════════════════════════════════════════════════
 ROLE: Abstract base for all protocol adapters.
 CONTRACT: Subclasses must implement protocol methods and ``build()``; auth is required.
-INVARIANTS: ``_routes`` holds route records; fluent API returns ``self``.
+INVARIANTS: ``_routes`` holds route records; ``gate_coordinator`` resolved at init;
+  fluent API returns ``self``.
 FLOW: route registration -> ``_add_route`` -> ``build()`` produces protocol app.
 FAILURES: Constructor raises ``TypeError`` on invalid machine or missing auth.
 EXTENSION POINTS: New adapters subclass ``BaseAdapter`` and define concrete ``RouteRecord``.
@@ -92,6 +97,7 @@ from collections.abc import Callable
 from typing import Any, Self
 
 from action_machine.core.action_product_machine import ActionProductMachine
+from action_machine.metadata.gate_coordinator import GateCoordinator
 from action_machine.resource_managers.base_resource_manager import BaseResourceManager
 
 from .base_route_record import BaseRouteRecord
@@ -110,6 +116,8 @@ class BaseAdapter[R: BaseRouteRecord](ABC):
         machine: ActionProductMachine,
         auth_coordinator: Any,
         connections_factory: Callable[..., dict[str, BaseResourceManager]] | None = None,
+        *,
+        gate_coordinator: GateCoordinator | None = None,
     ) -> None:
         """
         Initialize the adapter.
@@ -132,6 +140,11 @@ class BaseAdapter[R: BaseRouteRecord](ABC):
 
         self._machine: ActionProductMachine = machine
         self._auth_coordinator: Any = auth_coordinator
+        self._gate_coordinator: GateCoordinator = (
+            gate_coordinator
+            if gate_coordinator is not None
+            else machine.gate_coordinator
+        )
         self._connections_factory: Callable[..., dict[str, BaseResourceManager]] | None = connections_factory
         self._routes: list[R] = []
 
@@ -144,6 +157,11 @@ class BaseAdapter[R: BaseRouteRecord](ABC):
     def auth_coordinator(self) -> Any:
         """Returns the authentication coordinator."""
         return self._auth_coordinator
+
+    @property
+    def gate_coordinator(self) -> GateCoordinator:
+        """Returns the gate graph coordinator (explicit or from ``machine``)."""
+        return self._gate_coordinator
 
     @property
     def connections_factory(self) -> Callable[..., dict[str, BaseResourceManager]] | None:

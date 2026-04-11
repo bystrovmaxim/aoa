@@ -160,7 +160,9 @@ class TestHandlerSuccess:
         mock_result = PingAction.Result(message="pong")
         machine.run = AsyncMock(return_value=mock_result)
 
-        handler = _make_tool_handler(record, machine, auth, None)
+        handler = _make_tool_handler(
+            record, machine, auth, None, machine.gate_coordinator,
+        )
         result_str = await handler()
 
         parsed = json.loads(result_str)
@@ -172,7 +174,9 @@ class TestHandlerSuccess:
         machine = _make_machine()
         record = _make_record(tool_name="orders.create")
 
-        handler = _make_tool_handler(record, machine, _make_auth(), None)
+        handler = _make_tool_handler(
+            record, machine, _make_auth(), None, machine.gate_coordinator,
+        )
 
         assert handler.__name__ == "orders_create"
 
@@ -182,7 +186,9 @@ class TestHandlerSuccess:
         machine = _make_machine()
         record = _make_record(tool_name="my-tool-name")
 
-        handler = _make_tool_handler(record, machine, _make_auth(), None)
+        handler = _make_tool_handler(
+            record, machine, _make_auth(), None, machine.gate_coordinator,
+        )
 
         assert handler.__name__ == "my_tool_name"
 
@@ -202,7 +208,9 @@ class TestHandlerErrors:
         machine.run = AsyncMock(side_effect=AuthorizationError("no access"))
         record = _make_record()
 
-        handler = _make_tool_handler(record, machine, _make_auth(), None)
+        handler = _make_tool_handler(
+            record, machine, _make_auth(), None, machine.gate_coordinator,
+        )
         result = await handler()
 
         assert "PERMISSION_DENIED" in result
@@ -217,7 +225,9 @@ class TestHandlerErrors:
         )
         record = _make_record()
 
-        handler = _make_tool_handler(record, machine, _make_auth(), None)
+        handler = _make_tool_handler(
+            record, machine, _make_auth(), None, machine.gate_coordinator,
+        )
         result = await handler()
 
         assert "INVALID_PARAMS" in result
@@ -229,7 +239,9 @@ class TestHandlerErrors:
         machine.run = AsyncMock(side_effect=RuntimeError("boom"))
         record = _make_record()
 
-        handler = _make_tool_handler(record, machine, _make_auth(), None)
+        handler = _make_tool_handler(
+            record, machine, _make_auth(), None, machine.gate_coordinator,
+        )
         result = await handler()
 
         assert "INTERNAL_ERROR" in result
@@ -263,7 +275,9 @@ class TestHandlerWithMappers:
             params_mapper=params_mapper,
         )
 
-        handler = _make_tool_handler(record, machine, _make_auth(), None)
+        handler = _make_tool_handler(
+            record, machine, _make_auth(), None, machine.gate_coordinator,
+        )
         await handler()
 
         assert len(mapper_called_with) == 1
@@ -281,7 +295,9 @@ class TestHandlerWithMappers:
             response_mapper=lambda r: _AltResponse(data=r.message),
         )
 
-        handler = _make_tool_handler(record, machine, _make_auth(), None)
+        handler = _make_tool_handler(
+            record, machine, _make_auth(), None, machine.gate_coordinator,
+        )
         result_str = await handler()
 
         parsed = json.loads(result_str)
@@ -307,7 +323,9 @@ class TestHandlerWithConnections:
         factory = MagicMock(return_value=mock_conn)
 
         record = _make_record()
-        handler = _make_tool_handler(record, machine, _make_auth(), factory)
+        handler = _make_tool_handler(
+            record, machine, _make_auth(), factory, machine.gate_coordinator,
+        )
         await handler()
 
         factory.assert_called_once()
@@ -329,7 +347,7 @@ class TestBuildGraphJson:
         coordinator = CoreActionMachine.create_coordinator()
         machine = ActionProductMachine(mode="test", coordinator=coordinator)
 
-        json_str = _build_graph_json(machine)
+        json_str = _build_graph_json(machine.gate_coordinator)
         parsed = json.loads(json_str)
 
         assert "nodes" in parsed
@@ -342,7 +360,7 @@ class TestBuildGraphJson:
         coordinator = CoreActionMachine.create_coordinator()
         machine = ActionProductMachine(mode="test", coordinator=coordinator)
 
-        json_str = _build_graph_json(machine)
+        json_str = _build_graph_json(machine.gate_coordinator)
         parsed = json.loads(json_str)
 
         node_ids = [n.get("id", "") for n in parsed["nodes"]]

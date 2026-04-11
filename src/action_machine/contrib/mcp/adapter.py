@@ -204,20 +204,20 @@ def _class_name_to_snake_case(name: str) -> str:
     return result.lower()
 
 
-def _build_graph_json(machine: ActionProductMachine) -> str:
+def _build_graph_json(coordinator: GateCoordinator) -> str:
     """
-    Строит JSON-представление графа системы из координатора машины.
+    Строит JSON-представление графа системы из координатора.
 
     Извлекает все узлы и рёбра из rx.PyDiGraph координатора и формирует
     компактное JSON-представление с массивами nodes и edges.
 
     Args:
-        machine: машина действий, содержащая координатор с графом.
+        coordinator: построенный ``GateCoordinator`` с графом.
 
     Returns:
         str — JSON-строка с графом системы.
     """
-    graph = machine._coordinator.get_graph()
+    graph = coordinator.get_graph()
 
     nodes: list[dict[str, Any]] = []
     edges: list[dict[str, Any]] = []
@@ -285,6 +285,7 @@ def _make_tool_handler(
     machine: ActionProductMachine,
     auth_coordinator: Any,
     connections_factory: Callable[..., dict[str, BaseResourceManager]] | None,
+    gate_coordinator: GateCoordinator,
 ) -> Callable[..., Any]:
     """
     Создаёт async handler для одного MCP tool.
@@ -302,6 +303,7 @@ def _make_tool_handler(
         auth_coordinator: координатор аутентификации (AuthCoordinator
                           или NoAuthCoordinator).
         connections_factory: фабрика соединений (или None).
+        gate_coordinator: координатор для метаданных tool (описание из facet).
 
     Returns:
         Async-функцию для передачи в FastMCP через add_tool.
@@ -333,7 +335,7 @@ def _make_tool_handler(
     handler.__name__ = record.tool_name.replace(".", "_").replace("-", "_")
     handler.__doc__ = record.description or _get_meta_description(
         record.action_class,
-        coordinator=machine._coordinator,
+        coordinator=gate_coordinator,
     )
 
     return handler
@@ -444,6 +446,8 @@ class McpAdapter(BaseAdapter[McpRouteRecord]):
         machine: ActionProductMachine,
         auth_coordinator: Any,
         connections_factory: Callable[..., dict[str, BaseResourceManager]] | None = None,
+        *,
+        gate_coordinator: GateCoordinator | None = None,
         server_name: str = "ActionMachine MCP",
         server_version: str = "0.1.0",
     ) -> None:
@@ -459,6 +463,8 @@ class McpAdapter(BaseAdapter[McpRouteRecord]):
             connections_factory: фабрика соединений. Если указана, вызывается
                                  перед каждым machine.run(). Если None —
                                  connections не передаются.
+            gate_coordinator: явный ``GateCoordinator`` для графа и снапшотов;
+                              по умолчанию ``machine.gate_coordinator``.
             server_name: имя MCP-сервера. Отображается при подключении
                          клиента (Claude Desktop, MCP Inspector и др.).
                          По умолчанию "ActionMachine MCP".
@@ -468,6 +474,7 @@ class McpAdapter(BaseAdapter[McpRouteRecord]):
             machine=machine,
             auth_coordinator=auth_coordinator,
             connections_factory=connections_factory,
+            gate_coordinator=gate_coordinator,
         )
         self._server_name: str = server_name
         self._server_version: str = server_version
@@ -527,7 +534,7 @@ class McpAdapter(BaseAdapter[McpRouteRecord]):
         """
         effective_description = description or _get_meta_description(
             action_class,
-            coordinator=self._machine._coordinator,
+            coordinator=self.gate_coordinator,
         )
 
         record = McpRouteRecord(
@@ -560,7 +567,7 @@ class McpAdapter(BaseAdapter[McpRouteRecord]):
         Returns:
             Self — текущий экземпляр адаптера для fluent chain.
         """
-        coordinator = self._machine._coordinator
+        coordinator = self.gate_coordinator
 
         action_nodes = coordinator.get_nodes_by_type("aspect")
         seen: set[type] = set()
@@ -632,6 +639,7 @@ class McpAdapter(BaseAdapter[McpRouteRecord]):
             machine=self._machine,
             auth_coordinator=self._auth_coordinator,
             connections_factory=self._connections_factory,
+            gate_coordinator=self.gate_coordinator,
         )
 
         mcp.add_tool(
@@ -655,7 +663,7 @@ class McpAdapter(BaseAdapter[McpRouteRecord]):
         Args:
             mcp: FastMCP-сервер, на котором регистрируется resource.
         """
-        machine = self._machine
+        coordinator = self.gate_coordinator
 
         @mcp.resource("system://graph")
         def get_system_graph() -> str:
@@ -666,4 +674,4 @@ class McpAdapter(BaseAdapter[McpRouteRecord]):
             resource managers) и рёбрами (depends, belongs_to, connection)
             графа координатора.
             """
-            return _build_graph_json(machine)
+            return _build_graph_json(coordinator)

@@ -129,6 +129,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **`ToolsBox` does not store `Context` on the instance.** Aspects cannot access execution context via `box` at all (including mangled attributes). `ContextView` from `@context_requires` is the only aspect-visible path to context data. `ScopedLogger` still receives `Context` for template substitution; nested runs use a machine closure that captures `Context` for `_run_internal`.
 
+- **`ActionProductMachine.gate_coordinator` (read-only property).** Public access to the built `GateCoordinator` for adapters, tooling, and tests. Prefer this over reading `machine._coordinator`.
+
+- **`BaseAdapter` optional `gate_coordinator` (keyword-only) and `gate_coordinator` property.** Defaults to `machine.gate_coordinator`. `McpAdapter` and `FastApiAdapter` forward the same parameter. MCP graph JSON helpers take a `GateCoordinator` directly instead of reaching into private machine fields.
+
 - **`BaseAction` generic parameters `P` and `R` are now bound to `BaseSchema` instead of `ReadableDataProtocol`.** This reflects the architectural shift: all data structures inherit `BaseSchema`.
 
 - **`WritableMixin` and `WritableDataProtocol` removed.** After freezing `BaseState` and `BaseResult`, there are no remaining consumers of write‑able dict‑like access. The read‑only protocol `ReadableDataProtocol` remains for compatibility.
