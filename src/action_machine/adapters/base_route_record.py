@@ -71,7 +71,8 @@ ERRORS / LIMITATIONS
   failure.
 - ``ValueError`` when a required mapper is missing.
 - Forward references in action generics are resolved using the module where the
-  action class is defined.
+  action class is defined (via ``ForwardRef._evaluate``; public
+  ``typing.evaluate_forward_ref`` when the minimum Python is 3.14+).
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN
@@ -89,6 +90,7 @@ AI-CORE-END
 from __future__ import annotations
 
 import sys
+import typing
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any, ForwardRef, get_args, get_origin
@@ -100,14 +102,32 @@ from action_machine.core.base_action import BaseAction
 # ═════════════════════════════════════════════════════════════════════════════
 
 def _resolve_forward_ref(ref: ForwardRef, action_class: type) -> type | None:
-    """Resolve a ForwardRef using the action class module and namespace."""
+    """
+    Resolve a ForwardRef using the action class module and namespace.
+
+    Uses ``ForwardRef._evaluate`` (typing internals) instead of ``eval`` on the
+    raw string. When ``typing.evaluate_forward_ref`` is available (3.14+), it is
+    used in preference to ``_evaluate``.
+    """
     module = sys.modules.get(action_class.__module__, None)
     globalns: dict[str, Any] = vars(module) if module else {}
     localns: dict[str, Any] = {action_class.__name__: action_class}
+    guard: frozenset[Any] = frozenset()
 
-    ref_str: str = ref.__forward_arg__
     try:
-        resolved = eval(ref_str, globalns, localns)  # pylint: disable=eval-used
+        evaluate_forward_ref = getattr(typing, "evaluate_forward_ref", None)
+        if evaluate_forward_ref is not None:
+            resolved = evaluate_forward_ref(
+                ref,
+                globals=globalns,
+                locals=localns,
+                type_params=(),
+            )
+        else:
+            resolved = ref._evaluate(
+                globalns, localns, None, recursive_guard=guard
+            )
+
         if isinstance(resolved, type):
             return resolved
     except Exception:

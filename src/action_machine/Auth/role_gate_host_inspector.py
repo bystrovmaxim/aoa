@@ -16,10 +16,10 @@ ARCHITECTURE / DATA FLOW
 
 ::
 
-    @check_roles("admin")
+    @check_roles(AdminRole)
           │
           ▼
-    cls._role_info = {"spec": "admin"}
+    cls._role_info = {"spec": <BaseRole subtype> | tuple[...] | ROLE_* }
           │
           ▼
     RoleGateHostInspector.inspect()
@@ -32,7 +32,9 @@ ARCHITECTURE / DATA FLOW
 
 The inspector uses ``_target_mixin = RoleGateHost`` to discover candidate
 classes. For each class with a non‑null ``_role_info``, it builds a payload
-containing the role spec. No outgoing edges are added.
+containing the role spec. No outgoing edges are added here; ``RoleClassInspector``
+may attach informational ``requires_role`` edges **to** these nodes from
+``role_class`` facets.
 
 ═══════════════════════════════════════════════════════════════════════════════
 INVARIANTS
@@ -41,22 +43,21 @@ INVARIANTS
 - Only classes inheriting ``RoleGateHost`` are inspected.
 - A class may inherit ``RoleGateHost`` without ``@check_roles``; such classes
   produce ``None`` from ``inspect()``.
-- The ``spec`` value is taken directly from ``_role_info["spec"]``.
+- The ``spec`` value is taken directly from ``_role_info["spec"]`` (``BaseRole``
+  type, tuple of types, ``ROLE_NONE``, or ``ROLE_ANY``).
 - The facet storage key is ``"role"``.
 
 ═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
-    @check_roles("admin")
+    @check_roles(AdminRole)
     class AdminAction(BaseAction[AdminParams, AdminResult]):
         ...
 
     # inspect(AdminAction) → FacetPayload(
     #     node_type="role",
-    #     node_name="module.AdminAction",
-    #     node_meta=(("spec", "admin"),),
-    #     edges=()
+    #     node_meta includes spec == AdminRole,
     # )
 
     @check_roles(ROLE_NONE)
@@ -76,8 +77,9 @@ ERRORS / LIMITATIONS
 
 - The inspector does not validate the role spec; validation is performed by
   ``@check_roles`` at import time and by the machine at runtime.
-- Global graph checks (key uniqueness, acyclicity) are performed by
-  ``GateCoordinator.build()``.
+- Global graph checks (key uniqueness, acyclicity, role topology) are performed
+  by ``GateCoordinator.build()`` together with ``RoleClassInspector`` /
+  ``RoleModeGateHostInspector``.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN

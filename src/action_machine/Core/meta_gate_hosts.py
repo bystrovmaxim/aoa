@@ -46,7 +46,7 @@ ARCHITECTURE / DATA FLOW
         ...                             ← маркер: @meta обязателен
 
     @meta(description="Создание заказа", domain=OrdersDomain)
-    @check_roles("manager")
+    @check_roles(ManagerRole)
     class CreateOrderAction(BaseAction[OrderParams, OrderResult]):
         ...
 

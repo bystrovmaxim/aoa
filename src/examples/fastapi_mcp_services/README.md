@@ -6,6 +6,10 @@
 Три действия (PingAction, CreateOrderAction, GetOrderAction) определены один раз
 и подключены к двум транспортам: HTTP REST API (FastAPI) и MCP tools (для AI-агентов).
 
+> **Production:** не копируйте `NoAuthCoordinator` из примера в прод без обдумывания.
+> Для защищённых API замените его на свой `AuthCoordinator` с реальной аутентификацией.
+> `NoAuthCoordinator` здесь — явное «endpoint открыт», только для демонстрации.
+
 ## Установка
 
 ```bash

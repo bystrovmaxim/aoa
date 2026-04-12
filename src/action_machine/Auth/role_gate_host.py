@@ -19,13 +19,13 @@ ARCHITECTURE / DATA FLOW
     class BaseAction(ABC, RoleGateHost, ...):
         pass
 
-    @check_roles("admin")
+    @check_roles(AdminRole)
     class AdminAction(BaseAction):
         ...
 
     # @check_roles checks:
     #   issubclass(AdminAction, RoleGateHost) → True
-    #   writes cls._role_info = {"spec": "admin"}
+    #   writes cls._role_info = {"spec": AdminRole}
 
     # RoleGateHostInspector reads _role_info → Snapshot → graph node "role"
     # ActionProductMachine reads spec via GateCoordinator.get_snapshot(cls, "role")
@@ -45,12 +45,12 @@ EXAMPLES
 
     from action_machine.auth import RoleGateHost, check_roles
 
-    @check_roles("admin")
+    @check_roles(AdminRole)
     class AdminAction(BaseAction[P, R]):   # BaseAction already inherits RoleGateHost
         ...
 
 Edge case (raises TypeError):
-    @check_roles("user")
+    @check_roles(EditorRole)
     class NotAnAction:                     # does not inherit RoleGateHost
         ...
 

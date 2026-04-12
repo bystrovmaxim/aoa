@@ -207,7 +207,7 @@ def manager_bench(bench: TestBench) -> TestBench:
     """
     TestBench с ролью "manager" — для тестирования FullAction.
 
-    FullAction требует @check_roles("manager"). Этот bench
+    FullAction требует роль manager (тип ManagerRole). Этот bench
     создаёт пользователя с ролью "manager".
     """
     return bench.with_user(user_id="mgr_1", roles=["manager"])
@@ -218,7 +218,7 @@ def admin_bench(bench: TestBench) -> TestBench:
     """
     TestBench с ролью "admin" — для тестирования AdminAction.
 
-    AdminAction требует @check_roles("admin"). Этот bench
+    AdminAction требует роль admin (тип AdminRole). Этот bench
     создаёт пользователя с ролью "admin".
     """
     return bench.with_user(user_id="admin_1", roles=["admin"])

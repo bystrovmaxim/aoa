@@ -17,7 +17,7 @@ version = "0.1.0"
 description = "Intent-first business logic framework with metadata-driven actions, role-based access control, and adapter layer for FastAPI/MCP."
 readme = "README.md"
 license = { text = "MIT" }
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 authors = [
     { name = "ActionMachine Team" },
 ]
