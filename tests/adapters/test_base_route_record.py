@@ -23,6 +23,7 @@ Scenarios covered:
     - Missing response_mapper with different response_model raises ValueError.
     - Mapper present — no error even with different models.
     - Same request_model as params_type — no mapper needed.
+    - ensure_machine_params / ensure_protocol_response raise TypeError on wrong types.
 """
 
 from dataclasses import dataclass
@@ -30,7 +31,14 @@ from dataclasses import dataclass
 import pytest
 from pydantic import BaseModel
 
-from action_machine.adapters.base_route_record import BaseRouteRecord, extract_action_types
+from action_machine.adapters.base_route_record import (
+    BaseRouteRecord,
+    ensure_machine_params,
+    ensure_protocol_response,
+    extract_action_types,
+)
+from action_machine.core.base_params import BaseParams
+from action_machine.core.base_result import BaseResult
 from tests.domain_model import FullAction, PingAction, SimpleAction
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -251,3 +259,34 @@ class TestFrozen:
 
         with pytest.raises(AttributeError):
             record.action_class = SimpleAction  # type: ignore[misc]
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# Runtime mapper output guards (used by FastAPI / MCP adapters)
+# ═════════════════════════════════════════════════════════════════════════════
+
+
+class _ProbeParams(BaseParams):
+    pass
+
+
+class _NotParams:
+    pass
+
+
+class TestMapperOutputGuards:
+    """ensure_* helpers reject wrong runtime types at the adapter boundary."""
+
+    def test_ensure_machine_params_ok(self) -> None:
+        ensure_machine_params(_ProbeParams(), _ProbeParams, adapter="Test", route_label="x")
+
+    def test_ensure_machine_params_raises(self) -> None:
+        with pytest.raises(TypeError, match="params must be an instance"):
+            ensure_machine_params(_NotParams(), _ProbeParams, adapter="Test", route_label="route")
+
+    def test_ensure_protocol_response_ok(self) -> None:
+        ensure_protocol_response(BaseResult(), BaseResult, adapter="Test", route_label="x")
+
+    def test_ensure_protocol_response_raises(self) -> None:
+        with pytest.raises(TypeError, match="response_mapper must return"):
+            ensure_protocol_response(_NotParams(), BaseResult, adapter="Test", route_label="route")

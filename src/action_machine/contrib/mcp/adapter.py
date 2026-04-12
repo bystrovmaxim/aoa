@@ -141,6 +141,10 @@ from mcp.types import CallToolResult, TextContent
 from pydantic import BaseModel
 
 from action_machine.adapters.base_adapter import BaseAdapter
+from action_machine.adapters.base_route_record import (
+    ensure_machine_params,
+    ensure_protocol_response,
+)
 from action_machine.context.context import Context
 from action_machine.core.action_product_machine import ActionProductMachine
 from action_machine.core.base_action import BaseAction
@@ -387,6 +391,13 @@ async def _execute_tool_call(
 
     params = record.params_mapper(body) if has_params_mapper else body  # type: ignore[misc]
 
+    ensure_machine_params(
+        params,
+        record.params_type,
+        adapter="MCP",
+        route_label=record.tool_name,
+    )
+
     context = await auth_coordinator.process(None)
     if context is None:
         context = Context()
@@ -419,6 +430,12 @@ def _serialize_result(
     """
     if has_response_mapper:
         mapped = record.response_mapper(result)  # type: ignore[misc]
+        ensure_protocol_response(
+            mapped,
+            record.effective_response_model,
+            adapter="MCP",
+            route_label=record.tool_name,
+        )
         obj = mapped.model_dump() if hasattr(mapped, "model_dump") else mapped
     else:
         obj = result.model_dump() if hasattr(result, "model_dump") else result

@@ -122,6 +122,46 @@ def extract_action_types(action_class: type) -> tuple[type, type]:
     return p_type, r_type
 
 
+def ensure_machine_params(
+    params: object,
+    expected: type,
+    *,
+    adapter: str,
+    route_label: str,
+) -> None:
+    """
+    Ensure the object passed to ``machine.run(..., params)`` is the action's ``P``.
+
+    Adapters call this after ``params_mapper`` (or when using the request model
+    directly). Raises ``TypeError`` on mismatch.
+    """
+    if not isinstance(params, expected):
+        raise TypeError(
+            f"{adapter} [{route_label}]: params must be an instance of "
+            f"{expected.__name__} (from params_mapper or request model), "
+            f"got {type(params).__name__!r}."
+        )
+
+
+def ensure_protocol_response(
+    value: object,
+    expected: type,
+    *,
+    adapter: str,
+    route_label: str,
+) -> None:
+    """
+    Ensure ``response_mapper`` output matches the effective wire response type.
+
+    Pass ``record.effective_response_model`` as ``expected``.
+    """
+    if not isinstance(value, expected):
+        raise TypeError(
+            f"{adapter} [{route_label}]: response_mapper must return an instance of "
+            f"{expected.__name__}, got {type(value).__name__!r}."
+        )
+
+
 # ═════════════════════════════════════════════════════════════════════════════
 # BaseRouteRecord
 # ═════════════════════════════════════════════════════════════════════════════
