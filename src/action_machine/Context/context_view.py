@@ -58,12 +58,14 @@ resolve() возвращает None.
 EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
+    # AdminRole, UserRole — иллюстративные подклассы BaseRole.
+
     # Машина создаёт ContextView при вызове аспекта:
     ctx_view = ContextView(context, frozenset({"user.user_id", "user.roles"}))
 
     # Аспект использует ctx_view:
     user_id = ctx_view.get("user.user_id")    # → "agent_123"
-    roles = ctx_view.get("user.roles")         # → ["admin", "user"]
+    roles = ctx_view.get("user.roles")         # → (AdminRole, UserRole)
     ip = ctx_view.get("request.client_ip")     # → ContextAccessError
 
     # Frozen:

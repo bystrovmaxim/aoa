@@ -22,7 +22,7 @@ TypedDict — это статический контракт для IDE и mypy.
 Пример использования (простой случай — 99%):
 
     @connection("connection", PostgresConnectionManager, description="Основная БД")
-    @check_roles(ROLE_ANY)
+    @check_roles(AnyRole)
     class MyAction(BaseAction[...]):
 
         @aspect("Загрузка")

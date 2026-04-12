@@ -109,7 +109,7 @@ FastMCP возвращает их как TextContent, что позволяет 
 EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
-    from action_machine.auth.no_auth_coordinator import NoAuthCoordinator
+    from action_machine.auth import NoAuthCoordinator
     from action_machine.contrib.mcp import McpAdapter
 
     adapter = McpAdapter(

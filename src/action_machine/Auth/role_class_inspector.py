@@ -1,17 +1,16 @@
 # src/action_machine/auth/role_class_inspector.py
 """
-Graph inspector for typed role topology (``includes``, ``requires_role``, names).
+Graph inspector for typed role topology (MRO, ``requires_role``, names).
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 Materialize ``role_class`` nodes for every ``BaseRole`` subtype (except
-``BaseRole`` itself) that participates in the static graph, connect them with
-structural ``role_includes`` edges for ``includes``, and attach informational
-``requires_role`` edges toward existing action ``role`` facet nodes. Run
-graph-level validations that belong to role topology rather than lifecycle
-scratch.
+``BaseRole`` itself) that participates in the static graph, and attach
+informational ``requires_role`` edges toward existing action ``role`` facet
+nodes. Run graph-level validations that belong to role topology rather than
+lifecycle scratch.
 
 ═══════════════════════════════════════════════════════════════════════════════
 INVARIANTS
@@ -19,12 +18,8 @@ INVARIANTS
 
 - Every graphed role must carry ``@role_mode`` (``_role_mode_info`` present).
 - **Unique** stable ``name`` among all graphed ``BaseRole`` subclasses.
-- **No** ``RoleMode.UNUSED`` role in the transitive ``includes`` closure of any
-  graphed role.
 - **No** ``RoleMode.UNUSED`` ``BaseRole`` ancestor (other than ``BaseRole``) in
   the MRO of a graphed role.
-- Structural ``role_includes`` edges participate in coordinator acyclicity
-  (cycles raise ``CyclicDependencyError`` from ``GateCoordinator.build()``).
 - **Does not** re-validate non-empty ``name`` / ``description`` strings (handled
   in ``BaseRole.__init_subclass__``). **Does not** duplicate lifecycle facet
   work (see ``RoleModeIntentInspector``).
@@ -37,8 +32,6 @@ DATA FLOW
 
     BaseRole subclasses (with @role_mode)
           │
-          ├── includes → structural edges ``role_includes`` → included role_class
-          │
           └── scan RoleIntent + _role_info → informational ``requires_role``
                     → existing ``role:<Action>`` nodes
 
@@ -46,28 +39,24 @@ DATA FLOW
 EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
-Happy path: ``ManagerRole`` includes ``ViewerRole`` → one structural edge
-``ManagerRole`` → ``ViewerRole``.
-
-Edge case: two unrelated classes both use ``name = "dup"`` →
+Happy path: two unrelated classes both use ``name = "dup"`` →
 ``InvalidGraphError`` at ``build()``.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ERRORS / LIMITATIONS
 ═══════════════════════════════════════════════════════════════════════════════
 
-- ``InvalidGraphError``: duplicate ``name``, ``UNUSED`` in ``includes`` / MRO,
+- ``InvalidGraphError``: duplicate ``name``, ``UNUSED`` in MRO,
   missing ``@role_mode``, broken ``requires_role`` target (missing action
   ``role`` node — should not happen when ``RoleIntentInspector`` is
   registered).
-- Cycle detection: delegated to ``GateCoordinator`` structural pass.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN
 ═══════════════════════════════════════════════════════════════════════════════
 ROLE: Role-class topology inspector.
-CONTRACT: ``role_class`` nodes; ``role_includes`` + ``requires_role`` edges.
-INVARIANTS: Unique name; no UNUSED in includes/MRO; acyclic includes via graph.
+CONTRACT: ``role_class`` nodes; ``requires_role`` edges.
+INVARIANTS: Unique name; no UNUSED in MRO.
 FLOW: collect subclasses → validate → FacetPayload per role type.
 FAILURES: InvalidGraphError on broken topology.
 EXTENSION POINTS: Align new cross-facet edges with ``RoleIntentInspector``.
@@ -79,10 +68,11 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from action_machine.auth.any_role import AnyRole
 from action_machine.auth.base_role import BaseRole
-from action_machine.auth.constants import ROLE_ANY, ROLE_NONE
+from action_machine.auth.none_role import NoneRole
 from action_machine.auth.role_intent import RoleIntent
-from action_machine.auth.role_mode import RoleMode, get_declared_role_mode
+from action_machine.auth.role_mode import RoleMode
 from action_machine.metadata.base_facet_snapshot import BaseFacetSnapshot
 from action_machine.metadata.base_intent_inspector import BaseIntentInspector
 from action_machine.metadata.exceptions import InvalidGraphError
@@ -110,22 +100,6 @@ def _assert_unique_role_name(cls: type[BaseRole]) -> None:
             )
 
 
-def _assert_includes_no_unused(root: type[BaseRole]) -> None:
-    stack: list[type[BaseRole]] = list(root.includes)
-    seen: set[type[BaseRole]] = set()
-    while stack:
-        cur = stack.pop()
-        if cur in seen:
-            continue
-        seen.add(cur)
-        if get_declared_role_mode(cur) is RoleMode.UNUSED:
-            raise InvalidGraphError(
-                f"Role {root.__qualname__!r} includes {cur.__qualname__!r}, "
-                f"which is RoleMode.UNUSED. Remove the inclusion or revive the role.",
-            )
-        stack.extend(cur.includes)
-
-
 def _assert_mro_no_unused_base(cls: type[BaseRole]) -> None:
     for base in cls.__mro__[1:]:
         if base is BaseRole or base is object:
@@ -133,7 +107,7 @@ def _assert_mro_no_unused_base(cls: type[BaseRole]) -> None:
         if not (isinstance(base, type) and issubclass(base, BaseRole)):
             continue
         try:
-            mode = get_declared_role_mode(base)
+            mode = RoleMode.declared_for(base)
         except TypeError:
             continue
         if mode is RoleMode.UNUSED:
@@ -148,7 +122,7 @@ def _iter_action_classes_with_role_spec() -> tuple[type, ...]:
 
 
 def _required_role_types_from_spec(spec: object) -> tuple[type[BaseRole], ...]:
-    if spec in (ROLE_NONE, ROLE_ANY):
+    if spec in (NoneRole, AnyRole):
         return ()
     if isinstance(spec, type) and issubclass(spec, BaseRole):
         return (spec,)
@@ -159,7 +133,7 @@ def _required_role_types_from_spec(spec: object) -> tuple[type[BaseRole], ...]:
 
 class RoleClassInspector(BaseIntentInspector):
     """
-    Emits ``role_class`` topology: ``includes`` structure and action requirements.
+    Emits ``role_class`` topology and action requirements.
     """
 
     _target_intent: type = BaseRole
@@ -204,7 +178,6 @@ class RoleClassInspector(BaseIntentInspector):
                 f"declare a lifecycle mode.",
             )
         _assert_unique_role_name(role_cls)
-        _assert_includes_no_unused(role_cls)
         _assert_mro_no_unused_base(role_cls)
         return cls._build_payload(role_cls)
 
@@ -231,15 +204,6 @@ class RoleClassInspector(BaseIntentInspector):
 
     @classmethod
     def _edges_for_role(cls, target_cls: type[BaseRole]) -> tuple[EdgeInfo, ...]:
-        inc_edges = tuple(
-            cls._make_edge(
-                target_node_type="role_class",
-                target_cls=inc,
-                edge_type="role_includes",
-                is_structural=True,
-            )
-            for inc in target_cls.includes
-        )
         req_edges: list[EdgeInfo] = []
         for action_cls in _iter_action_classes_with_role_spec():
             info = getattr(action_cls, "_role_info", None)
@@ -258,4 +222,4 @@ class RoleClassInspector(BaseIntentInspector):
                     edge_meta=cls._make_meta(required_role=target_cls.__qualname__),
                 ),
             )
-        return inc_edges + tuple(req_edges)
+        return tuple(req_edges)

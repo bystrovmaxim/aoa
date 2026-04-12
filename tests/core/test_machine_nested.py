@@ -56,7 +56,7 @@ from pydantic import Field
 
 from action_machine.aspects.regular_aspect import regular_aspect
 from action_machine.aspects.summary_aspect import summary_aspect
-from action_machine.auth import ROLE_NONE, check_roles
+from action_machine.auth import NoneRole, check_roles
 from action_machine.checkers import result_string
 from action_machine.context.context import Context
 from action_machine.context.user_info import UserInfo
@@ -72,6 +72,7 @@ from action_machine.plugins.plugin_run_context import PluginRunContext
 from action_machine.resource_managers.base_resource_manager import BaseResourceManager
 from tests.domain_model import PingAction
 from tests.domain_model.domains import TestDomain
+from tests.domain_model.roles import AdminRole, ManagerRole
 
 # ═════════════════════════════════════════════════════════════════════════════
 # Вспомогательные действия для вложенных вызовов
@@ -90,7 +91,7 @@ class _ChildResult(BaseResult):
 
 
 @meta(description="Дочернее действие для тестов вложенности", domain=TestDomain)
-@check_roles(ROLE_NONE)
+@check_roles(NoneRole)
 class _ChildTestAction(BaseAction[_ChildParams, _ChildResult]):
     """
     Простое дочернее действие, возвращающее фиксированный результат.
@@ -116,7 +117,7 @@ class _ParentResult(BaseResult):
 
 
 @meta(description="Родительское действие, вызывающее дочернее через box.run()", domain=TestDomain)
-@check_roles(ROLE_NONE)
+@check_roles(NoneRole)
 class _ParentTestAction(BaseAction[_ParentParams, _ParentResult]):
     """
     Действие с regular-аспектом, который вызывает _ChildTestAction через box.run().
@@ -140,7 +141,7 @@ class _ParentTestAction(BaseAction[_ParentParams, _ParentResult]):
 
 
 @meta(description="Действие, записывающее nest_level в результат", domain=TestDomain)
-@check_roles(ROLE_NONE)
+@check_roles(NoneRole)
 class _NestLevelTestAction(BaseAction[_ChildParams, _ChildResult]):
     """Записывает текущий nest_level из box в результат для проверки."""
 
@@ -150,7 +151,7 @@ class _NestLevelTestAction(BaseAction[_ChildParams, _ChildResult]):
 
 
 @meta(description="Родитель, вызывающий _NestLevelTestAction", domain=TestDomain)
-@check_roles(ROLE_NONE)
+@check_roles(NoneRole)
 class _NestLevelParentAction(BaseAction[_ParentParams, _ParentResult]):
     """Вызывает _NestLevelTestAction и сохраняет свой и дочерний nest_level."""
 
@@ -183,7 +184,7 @@ def machine() -> ActionProductMachine:
 @pytest.fixture()
 def context() -> Context:
     """Контекст с ролями для прохождения любых проверок."""
-    return Context(user=UserInfo(user_id="tester", roles=["manager", "admin"]))
+    return Context(user=UserInfo(user_id="tester", roles=(ManagerRole, AdminRole)))
 
 
 # ═════════════════════════════════════════════════════════════════════════════

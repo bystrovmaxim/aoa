@@ -47,7 +47,7 @@ import pytest
 from action_machine.aspects.regular_aspect import regular_aspect
 from action_machine.aspects.summary_aspect import summary_aspect
 from action_machine.auth.check_roles import check_roles
-from action_machine.auth.constants import ROLE_NONE
+from action_machine.auth.none_role import NoneRole
 from action_machine.checkers.result_string_checker import result_string
 from action_machine.compensate import compensate
 from action_machine.core.base_action import BaseAction
@@ -171,7 +171,7 @@ class _EmptyClass:
 
 
 @meta("Ping", domain=TestDomain)
-@check_roles(ROLE_NONE)
+@check_roles(NoneRole)
 class _PingGraphAction(BaseAction["_Params", "_Result"]):
     """Минимальное действие для тестов графа."""
     @summary_aspect("Pong")
@@ -180,7 +180,7 @@ class _PingGraphAction(BaseAction["_Params", "_Result"]):
 
 
 @meta("Действие с зависимостями", domain=TestDomain)
-@check_roles(ROLE_NONE)
+@check_roles(NoneRole)
 @depends(_ServiceA)
 @depends(_ServiceB)
 class _ActionWithDepsAction(BaseAction["_Params", "_Result"]):
@@ -191,7 +191,7 @@ class _ActionWithDepsAction(BaseAction["_Params", "_Result"]):
 
 
 @meta("Действие с соединением", domain=TestDomain)
-@check_roles(ROLE_NONE)
+@check_roles(NoneRole)
 @connection(_MockManager, key="db", description="БД")
 class _ActionWithConnAction(BaseAction["_Params", "_Result"]):
     """Действие с одним соединением для тестов графа."""
@@ -201,7 +201,7 @@ class _ActionWithConnAction(BaseAction["_Params", "_Result"]):
 
 
 @meta("Действие с чекерами", domain=TestDomain)
-@check_roles(ROLE_NONE)
+@check_roles(NoneRole)
 class _ActionWithCheckersAction(BaseAction["_Params", "_Result"]):
     """Действие с regular-аспектом и чекером для тестов графа."""
     @regular_aspect("Шаг")
@@ -245,7 +245,7 @@ class _RoledGraphAction(BaseAction["_Params", "_Result"]):
 
 
 @meta("Другое действие с ServiceA", domain=TestDomain)
-@check_roles(ROLE_NONE)
+@check_roles(NoneRole)
 @depends(_ServiceA)
 class _AnotherActionWithServiceAAction(BaseAction["_Params", "_Result"]):
     """Второе действие, зависящее от _ServiceA, для тестов разделения узлов."""
@@ -255,7 +255,7 @@ class _AnotherActionWithServiceAAction(BaseAction["_Params", "_Result"]):
 
 
 @meta("Действие с компенсатором для тестов графа", domain=TestDomain)
-@check_roles(ROLE_NONE)
+@check_roles(NoneRole)
 class _ActionWithCompensatorGraphAction(BaseAction["_Params", "_Result"]):
     """
     Действие с regular-аспектом и компенсатором для тестов графа.

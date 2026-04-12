@@ -1,17 +1,15 @@
 # tests/auth/test_role_checker_pr2.py
-"""PR-2: ``RoleChecker`` modes, transitive ``includes``, and ``@check_roles`` mode validation."""
+"""PR-2: ``RoleChecker`` modes, MRO expansion, and ``@check_roles`` mode validation."""
 
 from __future__ import annotations
 
 import pytest
 
 from action_machine.aspects.summary_aspect import summary_aspect
-from action_machine.auth import check_roles, get_declared_role_mode
+from action_machine.auth import check_roles
+from action_machine.auth.any_role import AnyRole
 from action_machine.auth.base_role import BaseRole
-from action_machine.auth.constants import ROLE_ANY
-from action_machine.auth.role_expansion import expand_role_privileges, resolve_role_name_to_type
-from action_machine.auth.role_mode import RoleMode
-from action_machine.auth.role_mode_decorator import role_mode
+from action_machine.auth.role_mode import RoleMode, role_mode
 from action_machine.context.context import Context
 from action_machine.context.user_info import UserInfo
 from action_machine.core.action_product_machine import ActionProductMachine
@@ -28,42 +26,36 @@ from tests.domain_model.domains import TestDomain
 class OrderViewerRole(BaseRole):
     name = "order_viewer"
     description = "View orders."
-    includes = ()
 
 
 @role_mode(RoleMode.ALIVE)
-class OrderCreatorRole(BaseRole):
+class OrderCreatorRole(OrderViewerRole):
     name = "order_creator"
     description = "Create orders."
-    includes = (OrderViewerRole,)
 
 
 @role_mode(RoleMode.ALIVE)
-class OrderManagerRole(BaseRole):
+class OrderManagerRole(OrderCreatorRole):
     name = "order_manager"
     description = "Manage orders."
-    includes = (OrderCreatorRole,)
 
 
 @role_mode(RoleMode.DEPRECATED)
 class LegacyAdminRole(BaseRole):
     name = "legacy_admin"
     description = "Deprecated admin."
-    includes = ()
 
 
 @role_mode(RoleMode.UNUSED)
 class RetiredRole(BaseRole):
     name = "retired"
     description = "Retired."
-    includes = ()
 
 
 @role_mode(RoleMode.SILENCED)
 class GhostRole(BaseRole):
     name = "ghost"
     description = "Silenced role."
-    includes = ()
 
 
 class _P(BaseParams):
@@ -83,22 +75,16 @@ class _GetOrderAction(BaseAction[_P, _R]):
 
 
 @meta(description="any role", domain=TestDomain)
-@check_roles(ROLE_ANY)
+@check_roles(AnyRole)
 class _AnyRoleAction(BaseAction[_P, _R]):
     @summary_aspect("s")
     async def build_summary(self, params, state, box, connections):
         return _R()
 
 
-def test_expand_privileges_includes_chain() -> None:
-    priv = expand_role_privileges(OrderManagerRole)
-    assert OrderManagerRole in priv
-    assert OrderCreatorRole in priv
-    assert OrderViewerRole in priv
-
-
-def test_resolve_prefers_declared_class_over_registry() -> None:
-    assert resolve_role_name_to_type("order_manager") is OrderManagerRole
+def test_role_mro_implies_viewer_via_subclass() -> None:
+    assert issubclass(OrderManagerRole, OrderViewerRole)
+    assert issubclass(OrderManagerRole, OrderCreatorRole)
 
 
 def test_check_roles_unused_raises() -> None:
@@ -111,13 +97,13 @@ def test_check_roles_deprecated_warns() -> None:
         check_roles(LegacyAdminRole)
 
 
-def test_manager_user_passes_viewer_requirement_via_includes() -> None:
+def test_manager_user_passes_viewer_requirement_via_mro() -> None:
     machine = ActionProductMachine(
         mode="test",
         log_coordinator=LogCoordinator(loggers=[]),
     )
     action = _GetOrderAction()
-    ctx = Context(user=UserInfo(user_id="u1", roles=["order_manager"]))
+    ctx = Context(user=UserInfo(user_id="u1", roles=(OrderManagerRole,)))
     rt = machine._get_execution_cache(action.__class__)
     machine._role_checker.check(action, ctx, rt)
 
@@ -128,11 +114,7 @@ def test_silenced_only_user_fails_role_any() -> None:
         log_coordinator=LogCoordinator(loggers=[]),
     )
     action = _AnyRoleAction()
-    ctx = Context(user=UserInfo(user_id="u1", roles=["ghost"]))
+    ctx = Context(user=UserInfo(user_id="u1", roles=(GhostRole,)))
     rt = machine._get_execution_cache(action.__class__)
     with pytest.raises(AuthorizationError, match="Authentication required"):
         machine._role_checker.check(action, ctx, rt)
-
-
-def test_get_declared_role_mode_round_trip() -> None:
-    assert get_declared_role_mode(OrderViewerRole) is RoleMode.ALIVE

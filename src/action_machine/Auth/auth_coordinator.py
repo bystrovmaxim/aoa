@@ -84,14 +84,33 @@ AI-CORE-END
 ═══════════════════════════════════════════════════════════════════════════════
 """
 
+from __future__ import annotations
+
+from abc import ABC, abstractmethod
 from typing import Any
 
 from action_machine.context.context import Context
 from action_machine.context.request_info import RequestInfo
 
 from .authenticator import Authenticator
-from .context_assembler import ContextAssembler
-from .credential_extractor import CredentialExtractor
+
+
+class CredentialExtractor(ABC):
+    """Extract credentials from a protocol-specific request; used by ``AuthCoordinator``."""
+
+    @abstractmethod
+    async def extract(self, request_data: Any) -> dict[str, Any]:
+        """Return credentials dict or empty dict if none."""
+        pass
+
+
+class ContextAssembler(ABC):
+    """Build request metadata for ``RequestInfo``; used by ``AuthCoordinator``."""
+
+    @abstractmethod
+    async def assemble(self, request_data: Any) -> dict[str, Any]:
+        """Return kwargs-compatible dict for ``RequestInfo``."""
+        pass
 
 
 class AuthCoordinator:
@@ -130,3 +149,17 @@ class AuthCoordinator:
 
         # Step 4: build context
         return Context(user=authenticated_user, request=req_info)
+
+
+class NoAuthCoordinator:
+    """
+    Explicit “no authentication” coordinator for open APIs.
+
+    Implements the same async ``process(request_data) -> Context`` surface as
+    ``AuthCoordinator``, but always returns an anonymous ``Context`` (never
+    ``None``). ``request_data`` is ignored.
+    """
+
+    async def process(self, request_data: Any) -> Context:
+        """Return a fresh anonymous ``Context`` for every call."""
+        return Context()

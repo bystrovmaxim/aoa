@@ -72,12 +72,14 @@ from the pair ``node_type`` + ``node_name``.
 LIFECYCLE EXAMPLE
 ═══════════════════════════════════════════════════════════════════════════════
 
+    # Illustrative: AdminRole is a BaseRole subtype; CreateOrderAction is any action class.
+
     # 1. Inspector creates a payload in _build_payload():
     payload = FacetPayload(
         node_type="role",
         node_name="module.CreateOrderAction",
         node_class=CreateOrderAction,
-        node_meta=(("spec", "admin"),),
+        node_meta=(("spec", AdminRole),),
         edges=(),
     )
 
@@ -95,7 +97,7 @@ LIFECYCLE EXAMPLE
     #        "node_type": "role",
     #        "name": "module.CreateOrderAction",
     #        "class_ref": CreateOrderAction,
-    #        "meta": {"spec": "admin"},
+    #        "meta": {"spec": AdminRole},
     #    })
 
     # 5. Payload objects are discarded. The graph is the source of truth.
@@ -130,7 +132,7 @@ class EdgeInfo:
             ``"belongs_to"``, ``"requires_context"``, ``"has_checker"``,
             ``"subscribes"``, ``"has_error_handler"``, ``"has_compensator"``,
             ``"has_sensitive"``, ``"has_role"``, ``"has_field"``,
-            ``"has_relation"``, ``"has_lifecycle"``, ``"role_includes"``,
+            ``"has_relation"``, ``"has_lifecycle"``,
             ``"requires_role"``.
 
         is_structural : bool
@@ -200,7 +202,7 @@ class FacetPayload:
         node_meta : tuple[tuple[str, Any], ...]
             Node-specific metadata as ``(key, value)`` pairs; becomes a dict at
             commit. Examples:
-            - Role: ``(("spec", "admin"),)``
+            - Role: ``(("spec", AdminRole),)`` (``AdminRole`` — подкласс ``BaseRole``)
             - Aspect: ``(("aspect_type", "regular"), ("method_name", "validate"), ...)``
             - Entity: ``(("description", "Order"), ("domain", "shop"), ...)``
             Defaults to empty tuple.

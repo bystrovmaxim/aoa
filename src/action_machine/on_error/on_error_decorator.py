@@ -116,7 +116,7 @@ _required_context_keys уже записан.
 ═══════════════════════════════════════════════════════════════════════════════
 
     @meta(description="Создание заказа", domain=OrdersDomain)
-    @check_roles(ROLE_NONE)
+    @check_roles(NoneRole)
     class CreateOrderAction(BaseAction[OrderParams, OrderResult]):
 
         @regular_aspect("Валидация данных")

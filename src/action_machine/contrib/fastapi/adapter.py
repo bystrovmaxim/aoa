@@ -29,7 +29,7 @@ OpenAPI-документация генерируется автоматичес
 компиляции (TypeError при auth_coordinator=None), а не молчаливый баг
 в production. Для открытых API используется NoAuthCoordinator:
 
-    from action_machine.auth.no_auth_coordinator import NoAuthCoordinator
+    from action_machine.auth import NoAuthCoordinator
 
     adapter = FastApiAdapter(
         machine=machine,
@@ -87,7 +87,7 @@ Returns ``{"status": "ok"}``.
 EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
-    from action_machine.auth.no_auth_coordinator import NoAuthCoordinator
+    from action_machine.auth import NoAuthCoordinator
     from action_machine.contrib.fastapi import FastApiAdapter
 
     adapter = FastApiAdapter(

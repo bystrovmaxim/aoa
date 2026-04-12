@@ -101,8 +101,8 @@ class TestRoleCheck:
         self, clean_bench: TestBench,
     ) -> None:
         """
-        Дефолтный пользователь — roles=["tester"]. AdminAction
-        требует "admin". Проверка ролей отклоняет.
+        Дефолтный пользователь — StubTesterRole. AdminAction
+        требует AdminRole. Проверка ролей отклоняет.
         """
         action = AdminAction()
         params = AdminAction.Params(target="user_456")
@@ -115,7 +115,7 @@ class TestRoleCheck:
         self, admin_bench: TestBench,
     ) -> None:
         """
-        admin_bench создаёт пользователя с ролью "admin".
+        admin_bench создаёт пользователя с AdminRole.
         AdminAction проходит проверку ролей.
         """
         action = AdminAction()

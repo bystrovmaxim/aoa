@@ -58,7 +58,7 @@ ValidationError.
 ═══════════════════════════════════════════════════════════════════════════════
 
 Context() без аргументов создаёт анонимный context: пустой UserInfo
-(user_id=None, roles=[]), пустой RequestInfo и пустой RuntimeInfo.
+(user_id=None, roles=()), пустой RequestInfo и пустой RuntimeInfo.
 Используется NoAuthCoordinator для открытых API.
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -69,7 +69,7 @@ Context наследует resolve() от BaseSchema, что позволяет 
 вложенные компоненты через dot-path:
 
     context.resolve("user.user_id")           → "agent_123"
-    context.resolve("user.roles")             → ["admin", "user"]
+    context.resolve("user.roles")             → (AdminRole, UserRole)
     context.resolve("request.trace_id")       → "abc-123"
     context.resolve("request.client_ip")      → "192.168.1.1"
     context.resolve("runtime.hostname")       → "pod-xyz-123"
@@ -78,6 +78,8 @@ Context наследует resolve() от BaseSchema, что позволяет 
 Это используется ContextView для предоставления данных аспектам
 с @context_requires и VariableSubstitutor для шаблонов логирования
 ({%context.user.user_id}).
+
+В примерах ниже ``AdminRole`` и ``UserRole`` обозначают подклассы ``BaseRole``.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ДОСТУП В АСПЕКТАХ
@@ -101,7 +103,7 @@ DICT-ПОДОБНЫЙ ДОСТУП (унаследован от BaseSchema)
 ═══════════════════════════════════════════════════════════════════════════════
 
     ctx = Context(
-        user=UserInfo(user_id="agent_123", roles=["admin"]),
+        user=UserInfo(user_id="agent_123", roles=(AdminRole,)),
         request=RequestInfo(trace_id="abc-123"),
     )
 
@@ -122,7 +124,7 @@ EXAMPLES
 
     # Полный context:
     ctx = Context(
-        user=UserInfo(user_id="john_doe", roles=["user", "manager"]),
+        user=UserInfo(user_id="john_doe", roles=(UserRole, ManagerRole)),
         request=RequestInfo(
             trace_id="abc-123",
             request_path="/api/v1/orders",
@@ -176,7 +178,7 @@ class Context(BaseSchema):
 
     Атрибуты:
         user: информация о пользователе. По умолчанию — анонимный
-              (user_id=None, roles=[]).
+              (user_id=None, roles=()).
         request: метаданные входящего запроса. По умолчанию — пустой.
         runtime: информация о среде выполнения. По умолчанию — пустой.
     """

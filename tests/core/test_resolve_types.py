@@ -57,6 +57,7 @@ from action_machine.context.context import Context
 from action_machine.context.user_info import UserInfo
 from action_machine.core.base_params import BaseParams
 from action_machine.core.base_state import BaseState
+from tests.domain_model.roles import AdminRole, UserRole
 
 # ═════════════════════════════════════════════════════════════════════════════
 # Наследник UserInfo для тестов вложенных структур
@@ -198,18 +199,18 @@ class TestResolveCollections:
     """resolve для коллекций: list и dict."""
 
     def test_list_value(self) -> None:
-        """resolve возвращает список целиком."""
-        user = UserInfo(roles=["admin", "user"])
+        """resolve возвращает кортеж ролей целиком."""
+        user = UserInfo(roles=(AdminRole, UserRole))
         result = user.resolve("roles")
-        assert result == ["admin", "user"]
-        assert isinstance(result, list)
+        assert result == (AdminRole, UserRole)
+        assert isinstance(result, tuple)
 
     def test_empty_list_is_valid_value(self) -> None:
-        """Пустой список [] — валидное значение, не отсутствие."""
-        user = UserInfo(roles=[])
+        """Пустой кортеж ролей — валидное значение, не отсутствие."""
+        user = UserInfo(roles=())
         result = user.resolve("roles")
-        assert result == []
-        assert isinstance(result, list)
+        assert result == ()
+        assert isinstance(result, tuple)
 
     def test_dict_value(self) -> None:
         """resolve возвращает словарь целиком."""
@@ -249,7 +250,7 @@ class TestResolveMixedNested:
         # Arrange — наследник UserInfo с вложенным dict
         user = _ExtendedUserInfo(
             user_id="42",
-            roles=["admin"],
+            roles=(AdminRole,),
             settings={
                 "notifications": {
                     "email": True,

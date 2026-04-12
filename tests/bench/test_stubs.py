@@ -21,12 +21,14 @@ from action_machine.context.context import Context
 from action_machine.context.request_info import RequestInfo
 from action_machine.context.runtime_info import RuntimeInfo
 from action_machine.context.user_info import UserInfo
+from action_machine.testing import StubTesterRole
 from action_machine.testing.stubs import (
     ContextStub,
     RequestInfoStub,
     RuntimeInfoStub,
     UserInfoStub,
 )
+from tests.domain_model.roles import AdminRole, ManagerRole
 
 # ═════════════════════════════════════════════════════════════════════════════
 # UserInfoStub
@@ -47,9 +49,9 @@ class TestUserInfoStub:
         assert user.user_id == "test_user"
 
     def test_default_roles(self) -> None:
-        """Default roles list is ['tester']."""
+        """Default roles tuple is (StubTesterRole,)."""
         user = UserInfoStub()
-        assert user.roles == ["tester"]
+        assert user.roles == (StubTesterRole,)
 
     def test_override_user_id(self) -> None:
         """user_id can be overridden to any string value."""
@@ -57,14 +59,14 @@ class TestUserInfoStub:
         assert user.user_id == "admin_1"
 
     def test_override_roles(self) -> None:
-        """roles can be overridden to any list of strings."""
-        user = UserInfoStub(roles=["admin", "manager"])
-        assert user.roles == ["admin", "manager"]
+        """roles can be overridden to a tuple of BaseRole subclasses."""
+        user = UserInfoStub(roles=(AdminRole, ManagerRole))
+        assert user.roles == (AdminRole, ManagerRole)
 
     def test_empty_roles(self) -> None:
-        """Explicitly passing an empty list produces a user with no roles."""
-        user = UserInfoStub(roles=[])
-        assert user.roles == []
+        """Explicitly passing an empty tuple produces a user with no roles."""
+        user = UserInfoStub(roles=())
+        assert user.roles == ()
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -164,10 +166,10 @@ class TestContextStub:
         assert isinstance(ctx, Context)
 
     def test_default_user(self) -> None:
-        """Default context user has user_id='test_user' and roles=['tester']."""
+        """Default context user has user_id='test_user' and StubTesterRole."""
         ctx = ContextStub()
         assert ctx.user.user_id == "test_user"
-        assert ctx.user.roles == ["tester"]
+        assert ctx.user.roles == (StubTesterRole,)
 
     def test_default_runtime(self) -> None:
         """Default context runtime has hostname='test-host'."""
@@ -181,11 +183,11 @@ class TestContextStub:
 
     def test_override_user(self) -> None:
         """Passing a custom UserInfoStub overrides only the user component."""
-        ctx = ContextStub(user=UserInfoStub(user_id="admin", roles=["admin"]))
+        ctx = ContextStub(user=UserInfoStub(user_id="admin", roles=(AdminRole,)))
 
         # Overridden component
         assert ctx.user.user_id == "admin"
-        assert ctx.user.roles == ["admin"]
+        assert ctx.user.roles == (AdminRole,)
 
         # Other components keep defaults
         assert ctx.runtime.hostname == "test-host"
@@ -206,7 +208,7 @@ class TestContextStub:
     def test_all_overrides(self) -> None:
         """All three components can be overridden simultaneously."""
         ctx = ContextStub(
-            user=UserInfoStub(user_id="u1", roles=[]),
+            user=UserInfoStub(user_id="u1", roles=()),
             request=RequestInfoStub(trace_id="t1"),
             runtime=RuntimeInfoStub(hostname="h1"),
         )

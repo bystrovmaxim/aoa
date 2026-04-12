@@ -2,10 +2,20 @@
 
 from __future__ import annotations
 
+from action_machine.auth.base_role import BaseRole
 from action_machine.auth.role_intent import RoleIntent
 from action_machine.auth.role_intent_inspector import RoleIntentInspector
+from action_machine.auth.role_mode import RoleMode, role_mode
 from action_machine.core.meta_intent_inspector import MetaIntentInspector
 from action_machine.core.meta_intents import ActionMetaIntent
+
+
+@role_mode(RoleMode.ALIVE)
+class _InspectFixtureRole(BaseRole):
+    """Minimal assignable role for RoleIntentInspector branch coverage."""
+
+    name = "inspect_fixture"
+    description = "Fixture role for inspector tests."
 
 
 class _RoleMissing(RoleIntent):
@@ -13,7 +23,7 @@ class _RoleMissing(RoleIntent):
 
 
 class _RoleFilled(RoleIntent):
-    _role_info = {"spec": "admin"}
+    _role_info = {"spec": _InspectFixtureRole}
 
 
 class _MetaMissing(ActionMetaIntent):
@@ -29,7 +39,7 @@ def test_role_intent_inspector_branches() -> None:
     payload = RoleIntentInspector.inspect(_RoleFilled)
     assert payload is not None
     assert payload.node_type == "role"
-    assert dict(payload.node_meta)["spec"] == "admin"
+    assert dict(payload.node_meta)["spec"] is _InspectFixtureRole
     assert isinstance(RoleIntentInspector._subclasses_recursive(), list)
 
 

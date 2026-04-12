@@ -30,7 +30,7 @@ from pydantic import Field
 
 from action_machine.aspects.regular_aspect import regular_aspect
 from action_machine.aspects.summary_aspect import summary_aspect
-from action_machine.auth import ROLE_NONE, check_roles
+from action_machine.auth import NoneRole, check_roles
 from action_machine.checkers import result_string
 from action_machine.compensate import compensate
 from action_machine.context import Ctx, context_requires
@@ -41,7 +41,7 @@ from action_machine.core.base_state import BaseState
 from action_machine.core.core_action_machine import CoreActionMachine
 from action_machine.core.meta_decorator import meta
 from action_machine.dependencies.depends import depends
-from action_machine.testing import TestBench
+from action_machine.testing import StubTesterRole, TestBench
 from tests.domain_model.compensate_actions import (
     CompensatedOrderAction,
     CompensateTestParams,
@@ -85,7 +85,7 @@ class CtxCheckResult(BaseResult):
 
 
 @meta(description="Action для проверки контекста в компенсаторе", domain=TestDomain)
-@check_roles(ROLE_NONE)
+@check_roles(NoneRole)
 @depends(PaymentService, description="Платежи")
 class CtxCheckAction(BaseAction[CtxCheckParams, CtxCheckResult]):
     """
@@ -378,7 +378,7 @@ class TestRunCompensatorContext:
             coordinator=CoreActionMachine.create_coordinator(),
             mocks={PaymentService: mock_payment},
             log_coordinator=AsyncMock(),
-        ).with_user(user_id="ctx_user_99", roles=["tester"])
+        ).with_user(user_id="ctx_user_99", roles=(StubTesterRole,))
 
         params = CompensateTestParams(
             user_id="ctx_user_99",
@@ -420,7 +420,7 @@ class TestRunCompensatorContext:
             coordinator=CoreActionMachine.create_coordinator(),
             mocks={PaymentService: mock_payment},
             log_coordinator=AsyncMock(),
-        ).with_user(user_id="verified_user_42", roles=["tester"])
+        ).with_user(user_id="verified_user_42", roles=(StubTesterRole,))
 
         # ── Act ──
         await bench.run_compensator(

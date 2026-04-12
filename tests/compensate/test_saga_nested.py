@@ -28,7 +28,7 @@ from pydantic import Field
 
 from action_machine.aspects.regular_aspect import regular_aspect
 from action_machine.aspects.summary_aspect import summary_aspect
-from action_machine.auth import ROLE_NONE, check_roles
+from action_machine.auth import NoneRole, check_roles
 from action_machine.checkers import result_string
 from action_machine.compensate import compensate
 from action_machine.core.base_action import BaseAction
@@ -69,7 +69,7 @@ class NestedResult(BaseResult):
 
 
 @meta(description="Дочернее действие, которое может упасть", domain=TestDomain)
-@check_roles(ROLE_NONE)
+@check_roles(NoneRole)
 @depends(InventoryService, description="Сервис запасов")
 class FailableChildAction(BaseAction[NestedParams, NestedResult]):
 
@@ -108,7 +108,7 @@ class FailableChildAction(BaseAction[NestedParams, NestedResult]):
 
 
 @meta(description="Родительское действие, вызывающее дочернее через box.run", domain=TestDomain)
-@check_roles(ROLE_NONE)
+@check_roles(NoneRole)
 @depends(PaymentService, description="Сервис платежей")
 @depends(InventoryService, description="Сервис запасов")
 class ParentWithNestedCallAction(BaseAction[NestedParams, NestedResult]):

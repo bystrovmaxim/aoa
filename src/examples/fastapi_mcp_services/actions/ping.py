@@ -47,7 +47,7 @@ Generic-параметры указываются как строковые forw
 ═══════════════════════════════════════════════════════════════════════════════
 
 - @meta: описание "Проверка доступности сервиса", домен SystemDomain.
-- @check_roles(ROLE_NONE): доступно без аутентификации.
+- @check_roles(NoneRole): доступно без аутентификации.
 - Params: пустые (BaseParams без полей).
 - Result: поле message.
 """
@@ -55,7 +55,7 @@ Generic-параметры указываются как строковые forw
 from pydantic import Field
 
 from action_machine.aspects.summary_aspect import summary_aspect
-from action_machine.auth import ROLE_NONE, check_roles
+from action_machine.auth import NoneRole, check_roles
 from action_machine.core.base_action import BaseAction
 from action_machine.core.base_params import BaseParams
 from action_machine.core.base_result import BaseResult
@@ -68,7 +68,7 @@ from ..domains import SystemDomain
 
 
 @meta(description="Проверка доступности сервиса", domain=SystemDomain)
-@check_roles(ROLE_NONE)
+@check_roles(NoneRole)
 class PingAction(BaseAction["PingAction.Params", "PingAction.Result"]):
 
     class Params(BaseParams):

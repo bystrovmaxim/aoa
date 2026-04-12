@@ -13,7 +13,7 @@ ActionProductMachine._check_action_roles().
 
 UserInfo создаётся:
 - AuthCoordinator.process() — при аутентификации реального запроса.
-- NoAuthCoordinator.process() — анонимный пользователь (user_id=None, roles=[]).
+- NoAuthCoordinator.process() — анонимный пользователь (user_id=None, roles=()).
 - Напрямую в тестах — через конструктор UserInfo(...).
 
 Произвольные поля запрещены (extra="forbid"). Расширение — только через
@@ -26,7 +26,7 @@ UserInfo создаётся:
 Создание:
     - С полным набором полей (user_id, roles).
     - С минимальными данными (только user_id).
-    - Без аргументов — user_id=None, roles=[].
+    - Без аргументов — user_id=None, roles=().
     - С None в user_id — анонимный пользователь.
 
 BaseSchema — dict-подобный доступ:
@@ -48,6 +48,7 @@ import pytest
 from pydantic import ConfigDict
 
 from action_machine.context.user_info import UserInfo
+from tests.domain_model.roles import AdminRole, GuestRole, ManagerRole, UserRole
 
 # ═════════════════════════════════════════════════════════════════════════════
 # Наследник UserInfo для тестов расширения
@@ -80,37 +81,37 @@ class TestUserInfoCreation:
         # Arrange & Act — создание с полным набором полей
         user = UserInfo(
             user_id="agent_007",
-            roles=["admin", "manager"],
+            roles=(AdminRole, ManagerRole),
         )
 
         # Assert — все поля установлены
         assert user.user_id == "agent_007"
-        assert user.roles == ["admin", "manager"]
+        assert user.roles == (AdminRole, ManagerRole)
 
     def test_create_with_user_id_only(self) -> None:
         """
         UserInfo только с user_id — минимальный аутентифицированный пользователь.
-        roles получает значение по умолчанию: [].
+        roles получает значение по умолчанию: ().
         """
         # Arrange & Act — только user_id
         user = UserInfo(user_id="u42")
 
         # Assert — user_id установлен, roles по умолчанию
         assert user.user_id == "u42"
-        assert user.roles == []
+        assert user.roles == ()
 
     def test_create_default(self) -> None:
         """
         UserInfo без аргументов — анонимный пользователь.
         NoAuthCoordinator создаёт Context с UserInfo() — все поля
-        по умолчанию: user_id=None, roles=[].
+        по умолчанию: user_id=None, roles=().
         """
         # Arrange & Act — создание без аргументов
         user = UserInfo()
 
         # Assert — все поля по умолчанию
         assert user.user_id is None
-        assert user.roles == []
+        assert user.roles == ()
 
     def test_create_with_none_user_id(self) -> None:
         """
@@ -119,11 +120,11 @@ class TestUserInfoCreation:
         при создании контекста для гостевого доступа.
         """
         # Arrange & Act — явный None
-        user = UserInfo(user_id=None, roles=["guest"])
+        user = UserInfo(user_id=None, roles=(GuestRole,))
 
         # Assert — user_id=None, но роль задана
         assert user.user_id is None
-        assert user.roles == ["guest"]
+        assert user.roles == (GuestRole,)
 
     def test_extended_user_info_with_extra_fields(self) -> None:
         """
@@ -135,14 +136,14 @@ class TestUserInfoCreation:
         # Arrange & Act — наследник с дополнительными полями
         user = _ExtendedUserInfo(
             user_id="agent_007",
-            roles=["admin", "manager"],
+            roles=(AdminRole, ManagerRole),
             org="acme",
             department="sales",
         )
 
         # Assert — все поля установлены
         assert user.user_id == "agent_007"
-        assert user.roles == ["admin", "manager"]
+        assert user.roles == (AdminRole, ManagerRole)
         assert user.org == "acme"
         assert user.department == "sales"
 
@@ -185,7 +186,7 @@ class TestUserInfoDictAccess:
         BaseSchema.__contains__ проверяет model_fields.
         """
         # Arrange
-        user = UserInfo(user_id="u1", roles=["admin"])
+        user = UserInfo(user_id="u1", roles=(AdminRole,))
 
         # Act & Assert — проверка наличия объявленных полей
         assert "user_id" in user
@@ -228,7 +229,7 @@ class TestUserInfoDictAccess:
         UserInfo имеет два поля: user_id, roles.
         """
         # Arrange
-        user = UserInfo(user_id="u1", roles=["admin"])
+        user = UserInfo(user_id="u1", roles=(AdminRole,))
 
         # Act
         keys = user.keys()
@@ -242,14 +243,14 @@ class TestUserInfoDictAccess:
         values() возвращает значения объявленных полей.
         """
         # Arrange
-        user = UserInfo(user_id="u1", roles=["admin"])
+        user = UserInfo(user_id="u1", roles=(AdminRole,))
 
         # Act
         values = user.values()
 
         # Assert — значения присутствуют
         assert "u1" in values
-        assert ["admin"] in values
+        assert (AdminRole,) in values
 
     def test_items(self) -> None:
         """
@@ -288,16 +289,16 @@ class TestUserInfoResolve:
 
     def test_resolve_roles(self) -> None:
         """
-        resolve("roles") — доступ к полю-списку.
+        resolve("roles") — доступ к кортежу типов ролей.
         """
         # Arrange
-        user = UserInfo(roles=["admin", "user"])
+        user = UserInfo(roles=(AdminRole, UserRole))
 
         # Act
         result = user.resolve("roles")
 
-        # Assert — список целиком
-        assert result == ["admin", "user"]
+        # Assert — кортеж целиком
+        assert result == (AdminRole, UserRole)
 
     def test_resolve_extended_field(self) -> None:
         """

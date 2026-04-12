@@ -12,7 +12,7 @@ summary-аспект, TestBench прогоняет на async и sync машин
 и сравнивает результаты.
 
 PingAction не имеет параметров, зависимостей, connections и ролевых
-ограничений (ROLE_NONE). Если этот тест красный — сломано что-то
+ограничений (NoneRole). Если этот тест красный — сломано что-то
 фундаментальное.
 """
 
@@ -28,7 +28,7 @@ async def test_ping_returns_pong(bench: TestBench) -> None:
     PingAction возвращает Result с message='pong'.
 
     Проверяет полный цикл: сборка метаданных → проверка ролей
-    (ROLE_NONE) → выполнение summary-аспекта → формирование Result.
+    (NoneRole) → выполнение summary-аспекта → формирование Result.
     TestBench прогоняет на async и sync машинах и сравнивает.
     """
     # Arrange

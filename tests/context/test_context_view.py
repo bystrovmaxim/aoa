@@ -56,6 +56,7 @@ from action_machine.context.request_info import RequestInfo
 from action_machine.context.runtime_info import RuntimeInfo
 from action_machine.context.user_info import UserInfo
 from action_machine.core.exceptions import ContextAccessError
+from tests.domain_model.roles import AdminRole, ManagerRole, UserRole
 
 # ═════════════════════════════════════════════════════════════════════════════
 # Наследники Info-классов для тестов кастомных полей.
@@ -105,17 +106,17 @@ class TestAllowedAccess:
 
     def test_get_user_roles(self) -> None:
         """
-        ContextView.get(Ctx.User.roles) возвращает список ролей.
+        ContextView.get(Ctx.User.roles) возвращает кортеж типов ролей.
         """
         # Arrange — контекст с ролями, ContextView разрешает user.roles
-        context = Context(user=UserInfo(roles=["admin", "user"]))
+        context = Context(user=UserInfo(roles=(AdminRole, UserRole)))
         view = ContextView(context, frozenset({Ctx.User.roles}))
 
         # Act — запрашиваем разрешённое поле
         result = view.get(Ctx.User.roles)
 
-        # Assert — список ролей из контекста
-        assert result == ["admin", "user"]
+        # Assert — кортеж ролей из контекста
+        assert result == (AdminRole, UserRole)
 
     def test_get_request_trace_id(self) -> None:
         """
@@ -151,7 +152,7 @@ class TestAllowedAccess:
         """
         # Arrange — ContextView разрешает несколько ключей
         context = Context(
-            user=UserInfo(user_id="u1", roles=["manager"]),
+            user=UserInfo(user_id="u1", roles=(ManagerRole,)),
             request=RequestInfo(client_ip="10.0.0.1"),
         )
         allowed = frozenset({Ctx.User.user_id, Ctx.User.roles, Ctx.Request.client_ip})
@@ -164,7 +165,7 @@ class TestAllowedAccess:
 
         # Assert — все значения корректны
         assert user_id == "u1"
-        assert roles == ["manager"]
+        assert roles == (ManagerRole,)
         assert ip == "10.0.0.1"
 
 
@@ -184,7 +185,7 @@ class TestDeniedAccess:
         user.roles — ContextAccessError с указанием ключа.
         """
         # Arrange — ContextView разрешает только user.user_id
-        context = Context(user=UserInfo(user_id="u1", roles=["admin"]))
+        context = Context(user=UserInfo(user_id="u1", roles=(AdminRole,)))
         view = ContextView(context, frozenset({Ctx.User.user_id}))
 
         # Act / Assert — доступ к user.roles запрещён

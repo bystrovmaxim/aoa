@@ -127,8 +127,10 @@ FLUENT API (IMMUTABLE)
 
 Каждый fluent-метод возвращает НОВЫЙ экземпляр TestBench:
 
+    from action_machine.testing import StubTesterRole
+
     bench = TestBench(mocks={PaymentService: mock})
-    admin_bench = bench.with_user(user_id="admin", roles=["admin"])
+    admin_bench = bench.with_user(user_id="admin", roles=(StubTesterRole,))
     # bench и admin_bench — два разных объекта.
     # bench не изменился после вызова with_user.
 
@@ -142,8 +144,10 @@ FLUENT API (IMMUTABLE)
     mock_payment = AsyncMock(spec=PaymentService)
     mock_payment.charge.return_value = "TXN-001"
 
+    from action_machine.testing import StubTesterRole
+
     bench = TestBench(mocks={PaymentService: mock_payment})
-    admin_bench = bench.with_user(user_id="admin", roles=["admin"])
+    admin_bench = bench.with_user(user_id="admin", roles=(StubTesterRole,))
 
     result = await admin_bench.run(
         CreateOrderAction(),
@@ -196,6 +200,7 @@ from __future__ import annotations
 from typing import Any, TypeVar, cast
 from unittest.mock import Mock
 
+from action_machine.auth.base_role import BaseRole
 from action_machine.context.context import Context
 from action_machine.context.context_view import ContextView
 from action_machine.core.action_product_machine import ActionProductMachine
@@ -473,7 +478,7 @@ class TestBench:
     def with_user(
         self,
         user_id: str = "test_user",
-        roles: list[str] | None = None,
+        roles: tuple[type[BaseRole], ...] | list[type[BaseRole]] | None = None,
         **kwargs: Any,
     ) -> TestBench:
         """Возвращает новый TestBench с изменённым пользователем."""

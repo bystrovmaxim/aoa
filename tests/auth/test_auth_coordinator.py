@@ -38,7 +38,7 @@ AuthCoordinator — неуспешная аутентификация:
 
 NoAuthCoordinator:
     - Всегда возвращает Context (не None).
-    - UserInfo: user_id=None, roles=[].
+    - UserInfo: user_id=None, roles=().
     - Игнорирует request_data.
 
 Интерфейсная совместимость:
@@ -47,13 +47,16 @@ NoAuthCoordinator:
 
 import pytest
 
-from action_machine.auth.auth_coordinator import AuthCoordinator
+from action_machine.auth.auth_coordinator import (
+    AuthCoordinator,
+    ContextAssembler,
+    CredentialExtractor,
+    NoAuthCoordinator,
+)
 from action_machine.auth.authenticator import Authenticator
-from action_machine.auth.context_assembler import ContextAssembler
-from action_machine.auth.credential_extractor import CredentialExtractor
-from action_machine.auth.no_auth_coordinator import NoAuthCoordinator
 from action_machine.context.context import Context
 from action_machine.context.user_info import UserInfo
+from tests.domain_model.roles import AdminRole, SpyRole
 
 # ═════════════════════════════════════════════════════════════════════════════
 # Мок-реализации компонентов аутентификации
@@ -124,14 +127,14 @@ class TestAuthCoordinatorSuccess:
 
         Цепочка:
         1. Extractor.extract() → {"api_key": "secret-123"}
-        2. Authenticator.authenticate(credentials) → UserInfo(user_id="u1", roles=["admin"])
+        2. Authenticator.authenticate(credentials) → UserInfo(user_id="u1", roles=(AdminRole,))
         3. Assembler.assemble() → {"trace_id": "t1", "request_path": "/api"}
         4. Результат → Context(user=UserInfo, request=RequestInfo)
         """
         # Arrange — три компонента с валидными данными
         extractor = _MockExtractor({"api_key": "secret-123"})
         authenticator = _MockAuthenticator(
-            UserInfo(user_id="u1", roles=["admin"]),
+            UserInfo(user_id="u1", roles=(AdminRole,)),
         )
         assembler = _MockAssembler({
             "trace_id": "trace-full",
@@ -151,7 +154,7 @@ class TestAuthCoordinatorSuccess:
         assert result is not None
         assert isinstance(result, Context)
         assert result.user.user_id == "u1"
-        assert result.user.roles == ["admin"]
+        assert result.user.roles == (AdminRole,)
         assert result.request.trace_id == "trace-full"
         assert result.request.request_path == "/api/v1/orders"
 
@@ -162,7 +165,7 @@ class TestAuthCoordinatorSuccess:
         Все поля UserInfo (user_id, roles) доступны через context.user.
         """
         # Arrange — UserInfo с user_id и roles
-        user = UserInfo(user_id="agent_007", roles=["spy"])
+        user = UserInfo(user_id="agent_007", roles=(SpyRole,))
         extractor = _MockExtractor({"token": "valid"})
         authenticator = _MockAuthenticator(user)
         assembler = _MockAssembler()
@@ -178,7 +181,7 @@ class TestAuthCoordinatorSuccess:
         # Assert — UserInfo полностью сохранён
         assert result is not None
         assert result.user.user_id == "agent_007"
-        assert result.user.roles == ["spy"]
+        assert result.user.roles == (SpyRole,)
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -273,7 +276,7 @@ class TestNoAuthCoordinator:
         """
         NoAuthCoordinator создаёт анонимного пользователя.
 
-        UserInfo: user_id=None, roles=[]. Действия с @check_roles(ROLE_NONE)
+        UserInfo: user_id=None, roles=(). Действия с @check_roles(NoneRole)
         проходят проверку, действия с конкретными ролями — отклоняются.
         """
         # Arrange
@@ -284,7 +287,7 @@ class TestNoAuthCoordinator:
 
         # Assert — анонимный пользователь
         assert result.user.user_id is None
-        assert result.user.roles == []
+        assert result.user.roles == ()
 
     @pytest.mark.asyncio
     async def test_ignores_request_data(self) -> None:

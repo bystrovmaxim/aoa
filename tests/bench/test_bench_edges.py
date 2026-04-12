@@ -46,6 +46,7 @@ from action_machine.testing.bench import (
 )
 from action_machine.testing.mock_action import MockAction
 from tests.domain_model import PingAction
+from tests.domain_model.roles import AdminRole
 from tests.domain_model.services import PaymentService
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -278,11 +279,11 @@ class TestBuildContext:
 
     def test_context_after_with_user(self) -> None:
         """with_user changes only the user in the context."""
-        bench = TestBench().with_user(user_id="admin", roles=["admin"])
+        bench = TestBench().with_user(user_id="admin", roles=(AdminRole,))
         ctx = bench._build_context()
 
         assert ctx.user.user_id == "admin"
-        assert ctx.user.roles == ["admin"]
+        assert ctx.user.roles == (AdminRole,)
         assert ctx.request.trace_id == "test-trace-000"
 
     def test_context_after_with_request(self) -> None:

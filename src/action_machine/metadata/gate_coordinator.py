@@ -68,8 +68,7 @@ The graph is either built completely and consistently, or not committed at all.
     PHASE 2 — VALIDATE
         Payload fields, uniqueness of ``node_type:node_name`` keys, referential
         integrity, acyclicity of **structural** edges; @depends cycles surface
-        as ``CyclicDependencyError``. Role ``role_includes`` edges are structural
-        and participate in the same acyclicity pass.
+        as ``CyclicDependencyError``.
 
     PHASE 3 — COMMIT
         Nodes and edges into ``rx.PyDiGraph``; ``_node_index`` /

@@ -35,7 +35,7 @@ Params и Result определяются как вложенные классы
 from pydantic import Field
 
 from action_machine.aspects.summary_aspect import summary_aspect
-from action_machine.auth import ROLE_NONE, check_roles
+from action_machine.auth import NoneRole, check_roles
 from action_machine.core.base_action import BaseAction
 from action_machine.core.base_params import BaseParams
 from action_machine.core.base_result import BaseResult
@@ -49,7 +49,7 @@ from ..domains import OrdersDomain
 
 
 @meta(description="Получение заказа по идентификатору", domain=OrdersDomain)
-@check_roles(ROLE_NONE)
+@check_roles(NoneRole)
 class GetOrderAction(BaseAction["GetOrderAction.Params", "GetOrderAction.Result"]):
 
     class Params(BaseParams):

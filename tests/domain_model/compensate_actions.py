@@ -34,7 +34,7 @@ from pydantic import Field
 
 from action_machine.aspects.regular_aspect import regular_aspect
 from action_machine.aspects.summary_aspect import summary_aspect
-from action_machine.auth import ROLE_NONE, check_roles
+from action_machine.auth import NoneRole, check_roles
 from action_machine.checkers import result_string
 from action_machine.compensate import compensate
 from action_machine.context import Ctx, context_requires
@@ -84,7 +84,7 @@ class CompensateTestResult(BaseResult):
     description="Order with two compensatable steps: payment and reservation",
     domain=OrdersDomain,
 )
-@check_roles(ROLE_NONE)
+@check_roles(NoneRole)
 @depends(PaymentService, description="Payment processing service")
 @depends(InventoryService, description="Inventory service")
 class CompensatedOrderAction(
@@ -217,7 +217,7 @@ class CompensatedOrderAction(
     description="Action with partial compensation — first aspect only",
     domain=OrdersDomain,
 )
-@check_roles(ROLE_NONE)
+@check_roles(NoneRole)
 @depends(PaymentService, description="Payment processing service")
 class PartialCompensateAction(
     BaseAction[CompensateTestParams, CompensateTestResult],
@@ -307,7 +307,7 @@ class PartialCompensateAction(
     description="Action whose compensator raises an exception",
     domain=OrdersDomain,
 )
-@check_roles(ROLE_NONE)
+@check_roles(NoneRole)
 @depends(PaymentService, description="Payment processing service")
 @depends(InventoryService, description="Inventory service")
 class CompensateErrorAction(
@@ -415,7 +415,7 @@ class CompensateErrorAction(
     description="Action with compensators and an @on_error handler",
     domain=OrdersDomain,
 )
-@check_roles(ROLE_NONE)
+@check_roles(NoneRole)
 @depends(PaymentService, description="Payment processing service")
 @depends(InventoryService, description="Inventory service")
 class CompensateAndOnErrorAction(
@@ -538,7 +538,7 @@ class CompensateAndOnErrorAction(
     description="Action with a compensator that uses @context_requires",
     domain=OrdersDomain,
 )
-@check_roles(ROLE_NONE)
+@check_roles(NoneRole)
 @depends(PaymentService, description="Payment processing service")
 class CompensateWithContextAction(
     BaseAction[CompensateTestParams, CompensateTestResult],

@@ -31,7 +31,7 @@ from pydantic import Field
 
 from action_machine.aspects.regular_aspect import regular_aspect
 from action_machine.aspects.summary_aspect import summary_aspect
-from action_machine.auth import ROLE_NONE, check_roles
+from action_machine.auth import NoneRole, check_roles
 from action_machine.checkers import result_string
 from action_machine.context.context_requires_decorator import context_requires
 from action_machine.context.ctx_constants import Ctx
@@ -43,6 +43,7 @@ from action_machine.core.meta_decorator import meta
 from action_machine.on_error import on_error
 from action_machine.testing import TestBench
 from tests.domain_model.domains import TestDomain
+from tests.domain_model.roles import AdminRole
 
 # ═════════════════════════════════════════════════════════════════════════════
 # Тестовые модели Params и Result (frozen, как требуется)
@@ -70,7 +71,7 @@ class _BoxCheckResult(BaseResult):
 
 
 @meta(description="Action с аспектом, читающим user_id из контекста", domain=TestDomain)
-@check_roles(ROLE_NONE)
+@check_roles(NoneRole)
 class _CtxReadAction(BaseAction[_IntegrationParams, _IntegrationResult]):
     """
     Аспект с @context_requires читает user_id и записывает в результат.
@@ -91,7 +92,7 @@ class _CtxReadAction(BaseAction[_IntegrationParams, _IntegrationResult]):
 
 
 @meta(description="Action без @context_requires — стандартная сигнатура", domain=TestDomain)
-@check_roles(ROLE_NONE)
+@check_roles(NoneRole)
 class _NoCtxAction(BaseAction[_IntegrationParams, _IntegrationResult]):
     """
     Аспект без @context_requires работает с 5 параметрами как раньше.
@@ -104,7 +105,7 @@ class _NoCtxAction(BaseAction[_IntegrationParams, _IntegrationResult]):
 
 
 @meta(description="Action с аспектом, обращающимся к незапрошенному полю", domain=TestDomain)
-@check_roles(ROLE_NONE)
+@check_roles(NoneRole)
 class _CtxAccessViolationAction(BaseAction[_IntegrationParams, _IntegrationResult]):
     """
     Аспект запрашивает user.user_id, но обращается к user.roles — ContextAccessError.
@@ -123,7 +124,7 @@ class _CtxAccessViolationAction(BaseAction[_IntegrationParams, _IntegrationResul
 
 
 @meta(description="Action с обработчиком ошибок, читающим контекст", domain=TestDomain)
-@check_roles(ROLE_NONE)
+@check_roles(NoneRole)
 class _OnErrorCtxAction(BaseAction[_IntegrationParams, _IntegrationResult]):
     """
     Аспект бросает ValueError, обработчик с @context_requires читает user_id.
@@ -145,7 +146,7 @@ class _OnErrorCtxAction(BaseAction[_IntegrationParams, _IntegrationResult]):
 
 
 @meta(description="Action с обработчиком ошибок без @context_requires", domain=TestDomain)
-@check_roles(ROLE_NONE)
+@check_roles(NoneRole)
 class _OnErrorNoCtxAction(BaseAction[_IntegrationParams, _IntegrationResult]):
     """
     Аспект бросает ValueError, обработчик без @context_requires — 6 параметров.
@@ -165,7 +166,7 @@ class _OnErrorNoCtxAction(BaseAction[_IntegrationParams, _IntegrationResult]):
 
 
 @meta(description="Action с summary, читающим контекст", domain=TestDomain)
-@check_roles(ROLE_NONE)
+@check_roles(NoneRole)
 class _SummaryCtxAction(BaseAction[_IntegrationParams, _IntegrationResult]):
     """
     Summary-аспект с @context_requires читает hostname.
@@ -179,7 +180,7 @@ class _SummaryCtxAction(BaseAction[_IntegrationParams, _IntegrationResult]):
 
 
 @meta(description="Проверка отсутствия box.context", domain=TestDomain)
-@check_roles(ROLE_NONE)
+@check_roles(NoneRole)
 class _BoxCheckAction(BaseAction[BaseParams, _BoxCheckResult]):
     """
     Проверяет, что у ToolsBox нет публичного свойства context.
@@ -246,8 +247,8 @@ class TestContextAccessViolation:
         Аспект запрашивает user.user_id, но обращается к user.roles.
         ContextView выбрасывает ContextAccessError с указанием ключа.
         """
-        # Arrange — bench с пользователем u1, roles=["admin"]
-        bench = TestBench().with_user(user_id="u1", roles=["admin"])
+        # Arrange — bench с пользователем u1, roles=(AdminRole,)
+        bench = TestBench().with_user(user_id="u1", roles=(AdminRole,))
         params = _IntegrationParams(name="test")
 
         # Act / Assert — ContextAccessError пробрасывается наружу

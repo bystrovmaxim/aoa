@@ -55,7 +55,7 @@ from pydantic import Field
 
 from action_machine.aspects.regular_aspect import regular_aspect
 from action_machine.aspects.summary_aspect import summary_aspect
-from action_machine.auth import ROLE_NONE, check_roles
+from action_machine.auth import NoneRole, check_roles
 from action_machine.context.context_requires_decorator import context_requires
 from action_machine.context.ctx_constants import Ctx
 from action_machine.core.base_action import BaseAction
@@ -109,7 +109,7 @@ class _CtxTestResult(BaseResult):
 
 
 @meta(description="Action с одним аспектом и context_requires", domain=SystemDomain)
-@check_roles(ROLE_NONE)
+@check_roles(NoneRole)
 class _SingleContextAction(BaseAction[_CtxTestParams, _CtxTestResult]):
     """Один regular-аспект запрашивает ``user.user_id`` и ``request.trace_id``."""
 
@@ -131,7 +131,7 @@ class _SingleContextAction(BaseAction[_CtxTestParams, _CtxTestResult]):
 
 
 @meta(description="Action с двумя аспектами, запрашивающими одно поле", domain=SystemDomain)
-@check_roles(ROLE_NONE)
+@check_roles(NoneRole)
 class _SharedContextFieldAction(BaseAction[_CtxTestParams, _CtxTestResult]):
     """Два аспекта делят ``user.user_id``; второй добавляет ``user.roles``."""
 
@@ -162,7 +162,7 @@ class _SharedContextFieldAction(BaseAction[_CtxTestParams, _CtxTestResult]):
 
 
 @meta(description="Action с on_error и context_requires", domain=SystemDomain)
-@check_roles(ROLE_NONE)
+@check_roles(NoneRole)
 class _ErrorHandlerContextAction(BaseAction[_CtxTestParams, _CtxTestResult]):
     """Обработчик ``ValueError`` требует ``user.user_id`` и ``request.client_ip``."""
 
@@ -191,7 +191,7 @@ class _ErrorHandlerContextAction(BaseAction[_CtxTestParams, _CtxTestResult]):
 
 
 @meta(description="Action без context_requires", domain=SystemDomain)
-@check_roles(ROLE_NONE)
+@check_roles(NoneRole)
 class _NoContextAction(BaseAction[_CtxTestParams, _CtxTestResult]):
     """Ни один метод не помечен ``@context_requires`` — ожидаем пустые ``context_keys``."""
 

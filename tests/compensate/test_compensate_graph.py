@@ -56,7 +56,7 @@ from __future__ import annotations
 
 from action_machine.aspects.regular_aspect import regular_aspect
 from action_machine.aspects.summary_aspect import summary_aspect
-from action_machine.auth import ROLE_NONE, check_roles
+from action_machine.auth import NoneRole, check_roles
 from action_machine.compensate import compensate
 from action_machine.context import Ctx, context_requires
 from action_machine.core.base_action import BaseAction
@@ -100,7 +100,7 @@ class EmptyResult(BaseResult):
 
 
 @meta(description="Тестовое действие с компенсатором", domain=TestDomain)
-@check_roles(ROLE_NONE)
+@check_roles(NoneRole)
 class ActionWithCompensatorAction(BaseAction[EmptyParams, EmptyResult]):
 
     @regular_aspect("Аспект")
@@ -118,7 +118,7 @@ class ActionWithCompensatorAction(BaseAction[EmptyParams, EmptyResult]):
 
 
 @meta(description="Тестовое действие с компенсатором и контекстом", domain=TestDomain)
-@check_roles(ROLE_NONE)
+@check_roles(NoneRole)
 class ActionWithContextCompensatorAction(BaseAction[EmptyParams, EmptyResult]):
 
     @regular_aspect("Аспект")

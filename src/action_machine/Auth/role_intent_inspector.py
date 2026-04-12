@@ -19,7 +19,7 @@ ARCHITECTURE / DATA FLOW
     @check_roles(AdminRole)
           │
           ▼
-    cls._role_info = {"spec": <BaseRole subtype> | tuple[...] | ROLE_* }
+    cls._role_info = {"spec": <BaseRole subtype> | tuple[...] | NoneRole | AnyRole }
           │
           ▼
     RoleIntentInspector.inspect()
@@ -44,7 +44,7 @@ INVARIANTS
 - A class may inherit ``RoleIntent`` without ``@check_roles``; such classes
   produce ``None`` from ``inspect()``.
 - The ``spec`` value is taken directly from ``_role_info["spec"]`` (``BaseRole``
-  type, tuple of types, ``ROLE_NONE``, or ``ROLE_ANY``).
+  type, tuple of types, ``NoneRole``, or ``AnyRole``).
 - The facet storage key is ``"role"``.
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -60,11 +60,11 @@ EXAMPLES
     #     node_meta includes spec == AdminRole,
     # )
 
-    @check_roles(ROLE_NONE)
+    @check_roles(NoneRole)
     class PingAction(BaseAction[BaseParams, BaseResult]):
         ...
 
-    # inspect(PingAction) → spec = "__NONE__"
+    # inspect(PingAction) → spec is NoneRole
 
     class BaseAction(ABC, RoleIntent, ...):
         ...

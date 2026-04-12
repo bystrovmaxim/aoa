@@ -47,7 +47,7 @@ from unittest.mock import AsyncMock
 import pytest
 
 from action_machine.aspects.summary_aspect import summary_aspect
-from action_machine.auth import ROLE_NONE, check_roles
+from action_machine.auth import NoneRole, check_roles
 from action_machine.context.context import Context
 from action_machine.context.user_info import UserInfo
 from action_machine.core.action_product_machine import ActionProductMachine
@@ -61,6 +61,7 @@ from action_machine.resource_managers.base_resource_manager import BaseResourceM
 from action_machine.resource_managers.connection import connection
 from tests.domain_model import FullAction, NotificationService, PaymentService, PingAction, TestDbManager
 from tests.domain_model.domains import TestDomain
+from tests.domain_model.roles import AdminRole, ManagerRole
 
 
 def _validate_connections(
@@ -86,7 +87,7 @@ class _MockResourceManager(BaseResourceManager):
 
 
 @meta(description="Действие с двумя connections", domain=TestDomain)
-@check_roles(ROLE_NONE)
+@check_roles(NoneRole)
 @connection(_MockResourceManager, key="db", description="База данных")
 @connection(_MockResourceManager, key="cache", description="Кеш")
 class _ActionTwoConnectionsAction(BaseAction[BaseParams, BaseResult]):
@@ -114,7 +115,7 @@ def machine() -> ActionProductMachine:
 @pytest.fixture()
 def context() -> Context:
     """Контекст с ролями для прохождения проверки ролей."""
-    return Context(user=UserInfo(user_id="mgr_1", roles=["manager", "admin"]))
+    return Context(user=UserInfo(user_id="mgr_1", roles=(ManagerRole, AdminRole)))
 
 
 @pytest.fixture()

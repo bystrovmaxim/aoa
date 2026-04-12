@@ -7,7 +7,7 @@ PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 Types that carry ``RoleIntent`` in MRO **commit** to expressing access rules via
-``@check_roles`` (or explicit ``ROLE_NONE`` / ``ROLE_ANY``). The decorator checks
+``@check_roles`` (or explicit ``NoneRole`` / ``AnyRole``). The decorator checks
 ``issubclass`` at apply time and writes ``cls._role_info``; ``RoleIntentInspector``
 and ``GateCoordinator`` validate completeness during ``build()``.
 

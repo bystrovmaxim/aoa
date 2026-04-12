@@ -14,8 +14,8 @@ def test_default_coordinator_emits_role_mode_and_role_class_nodes() -> None:
     assert len(role_class_nodes) >= 1
 
 
-def test_order_roles_have_role_includes_edges() -> None:
-    """PR-2 fixtures (Order*Role) define a chain; structural edges must exist."""
+def test_order_roles_present_and_requires_role_edges_exist() -> None:
+    """PR-2 fixtures (Order*Role) load MRO chain; graph has role_class + requires_role."""
     import tests.auth.test_role_checker_pr2 as _pr2  # noqa: F401
 
     coord = CoreActionMachine.create_coordinator()
@@ -29,5 +29,4 @@ def test_order_roles_have_role_includes_edges() -> None:
         g.get_edge_data(e[0], e[1])["edge_type"]
         for e in g.edge_list()
     }
-    assert "role_includes" in edge_types
-
+    assert "requires_role" in edge_types

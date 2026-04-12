@@ -19,14 +19,14 @@
 Все стабы поддерживают переопределение любого поля через именованные
 аргументы:
 
-    ctx = ContextStub(user=UserInfoStub(user_id="admin", roles=["admin"]))
+    ctx = ContextStub(user=UserInfoStub(user_id="admin", roles=(AdminRole,)))
 
 ═══════════════════════════════════════════════════════════════════════════════
 КОМПОНЕНТЫ
 ═══════════════════════════════════════════════════════════════════════════════
 
 - **UserInfoStub** — стаб информации о пользователе.
-  Дефолты: user_id="test_user", roles=["tester"].
+  Дефолты: user_id="test_user", roles=(StubTesterRole,).
 
 - **RuntimeInfoStub** — стаб информации об окружении выполнения.
   Дефолты: hostname="test-host", service_name="test-service",
@@ -85,7 +85,7 @@
 
     # Тест с конкретным пользователем:
     admin_ctx = ContextStub(
-        user=UserInfoStub(user_id="admin_1", roles=["admin", "manager"]),
+        user=UserInfoStub(user_id="admin_1", roles=(AdminRole, ManagerRole)),
     )
 
     # Тест с конкретным trace_id:
@@ -94,7 +94,7 @@
     )
 
     # Отдельные стабы:
-    user = UserInfoStub(roles=["admin"])
+    user = UserInfoStub(roles=(AdminRole,))
     runtime = RuntimeInfoStub(hostname="prod-server-01")
     request = RequestInfoStub(request_path="/api/v1/orders", protocol="https")
 
@@ -102,19 +102,30 @@
     class TenantUserInfo(UserInfo):
         tenant_id: str = "default"
 
-    tenant_user = TenantUserInfo(user_id="admin", roles=["admin"], tenant_id="acme")
+    tenant_user = TenantUserInfo(user_id="admin", roles=(AdminRole,), tenant_id="acme")
     ctx = ContextStub(user=tenant_user)
 """
 
+from action_machine.auth.application_role import ApplicationRole
+from action_machine.auth.base_role import BaseRole
+from action_machine.auth.role_mode import RoleMode, role_mode
 from action_machine.context.context import Context
 from action_machine.context.request_info import RequestInfo
 from action_machine.context.runtime_info import RuntimeInfo
 from action_machine.context.user_info import UserInfo
 
 
+@role_mode(RoleMode.ALIVE)
+class StubTesterRole(ApplicationRole):
+    """Default assignable role for ``UserInfoStub`` and TestBench user defaults."""
+
+    name = "tester"
+    description = "Default role for UserInfoStub in tests."
+
+
 def UserInfoStub(
     user_id: str = "test_user",
-    roles: list[str] | None = None,
+    roles: tuple[type[BaseRole], ...] | list[type[BaseRole]] | None = None,
 ) -> UserInfo:
     """
     Создаёт стаб информации о пользователе с разумными дефолтами.
@@ -124,7 +135,8 @@ def UserInfoStub(
 
     Аргументы:
         user_id: идентификатор пользователя. По умолчанию "test_user".
-        roles: список ролей пользователя. По умолчанию ["tester"].
+        roles: кортеж (или список) подклассов ``BaseRole``. По умолчанию
+            ``(StubTesterRole,)``.
 
     Возвращает:
         UserInfo — стаб с тестовыми значениями.
@@ -132,14 +144,15 @@ def UserInfoStub(
     Пример:
         user = UserInfoStub()
         assert user.user_id == "test_user"
-        assert user.roles == ["tester"]
+        assert user.roles == (StubTesterRole,)
 
-        admin = UserInfoStub(user_id="admin_1", roles=["admin"])
-        assert admin.roles == ["admin"]
+        admin = UserInfoStub(user_id="admin_1", roles=(StubTesterRole,))
+        assert StubTesterRole in admin.roles
     """
-    if roles is None:
-        roles = ["tester"]
-    return UserInfo(user_id=user_id, roles=roles)
+    resolved: tuple[type[BaseRole], ...] = (
+        (StubTesterRole,) if roles is None else tuple(roles)
+    )
+    return UserInfo(user_id=user_id, roles=resolved)
 
 
 def RuntimeInfoStub(
@@ -261,7 +274,7 @@ def ContextStub(
         assert ctx.runtime.hostname == "test-host"
 
         # Контекст с конкретным пользователем:
-        ctx = ContextStub(user=UserInfoStub(user_id="admin", roles=["admin"]))
+        ctx = ContextStub(user=UserInfoStub(user_id="admin", roles=(StubTesterRole,)))
         assert ctx.user.user_id == "admin"
 
         # Контекст с конкретным trace_id:

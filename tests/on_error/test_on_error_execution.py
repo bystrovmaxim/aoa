@@ -169,7 +169,7 @@ class TestOnErrorTypeMismatch:
         # inheritance (edge-case test — class created inside test).
         from action_machine.aspects.regular_aspect import regular_aspect
         from action_machine.aspects.summary_aspect import summary_aspect
-        from action_machine.auth import ROLE_NONE, check_roles
+        from action_machine.auth import NoneRole, check_roles
         from action_machine.checkers import result_string
         from action_machine.core.base_action import BaseAction
         from action_machine.core.meta_decorator import meta
@@ -178,7 +178,7 @@ class TestOnErrorTypeMismatch:
         from tests.domain_model.error_actions import ErrorTestParams, ErrorTestResult
 
         @meta(description="Throws TypeError, catches ValueError", domain=OrdersDomain)
-        @check_roles(ROLE_NONE)
+        @check_roles(NoneRole)
         class TypeMismatchAction(BaseAction[ErrorTestParams, ErrorTestResult]):
             @regular_aspect("Throws TypeError")
             @result_string("processed", required=True)
@@ -240,7 +240,7 @@ class TestOnErrorNotInherited:
         # but child should not inherit it.
         from action_machine.aspects.regular_aspect import regular_aspect
         from action_machine.aspects.summary_aspect import summary_aspect
-        from action_machine.auth import ROLE_NONE, check_roles
+        from action_machine.auth import NoneRole, check_roles
         from action_machine.checkers import result_string
         from action_machine.core.base_action import BaseAction
         from action_machine.core.meta_decorator import meta
@@ -248,7 +248,7 @@ class TestOnErrorNotInherited:
         from tests.domain_model.error_actions import ErrorTestParams, ErrorTestResult
 
         @meta(description="Child without own handlers", domain=OrdersDomain)
-        @check_roles(ROLE_NONE)
+        @check_roles(NoneRole)
         class ChildNoHandlerAction(BaseAction[ErrorTestParams, ErrorTestResult]):
             """Child Action — overrides aspects but has no @on_error."""
 

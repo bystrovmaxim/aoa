@@ -83,7 +83,7 @@ import pytest
 
 from action_machine.aspects.regular_aspect import regular_aspect
 from action_machine.aspects.summary_aspect import summary_aspect
-from action_machine.auth import ROLE_NONE, check_roles
+from action_machine.auth import NoneRole, check_roles
 from action_machine.checkers import result_string
 from action_machine.context.context import Context
 from action_machine.context.user_info import UserInfo
@@ -104,7 +104,7 @@ from action_machine.plugins.events import (
 )
 from action_machine.plugins.plugin import Plugin
 from action_machine.resource_managers.base_resource_manager import BaseResourceManager
-from action_machine.testing import TestBench
+from action_machine.testing import StubTesterRole, TestBench
 from tests.domain_model import (
     CompensateAndOnErrorAction,
     CompensateTestParams,
@@ -117,10 +117,16 @@ from tests.domain_model import (
 )
 from tests.domain_model.compensate_plugins import SagaObserverPlugin
 from tests.domain_model.domains import TestDomain
+from tests.domain_model.roles import AdminRole, ManagerRole
 
 
 def _context() -> Context:
-    return Context(user=UserInfo(user_id="contract_tester", roles=["admin", "manager", "tester"]))
+    return Context(
+        user=UserInfo(
+            user_id="contract_tester",
+            roles=(AdminRole, ManagerRole, StubTesterRole),
+        ),
+    )
 
 
 @dataclass
@@ -175,7 +181,7 @@ class _NestedResult(BaseResult):
 
 
 @meta(description="Golden nested child action", domain=TestDomain)
-@check_roles(ROLE_NONE)
+@check_roles(NoneRole)
 class _NestedChildAction(BaseAction[_NestedParams, _NestedResult]):
     @summary_aspect("Build child trace")
     async def build_result_summary(
@@ -189,7 +195,7 @@ class _NestedChildAction(BaseAction[_NestedParams, _NestedResult]):
 
 
 @meta(description="Golden nested parent action", domain=TestDomain)
-@check_roles(ROLE_NONE)
+@check_roles(NoneRole)
 class _NestedParentAction(BaseAction[_NestedParams, _NestedResult]):
     @regular_aspect("Run nested child")
     @result_string("trace", required=True)
