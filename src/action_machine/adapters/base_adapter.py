@@ -184,5 +184,5 @@ class BaseAdapter[R: BaseRouteRecord](ABC):
         Create the protocol application from registered routes.
 
         Returns:
-            Protocol-specific application (FastAPI, FastMCP, etc.).
+            Protocol-specific application (FastAPI, MCP, etc.).
         """

@@ -35,7 +35,7 @@ belongs_to, connection) и описания из @meta.
 
 - McpAdapter — конкретный адаптер, наследующий BaseAdapter[McpRouteRecord].
   Предоставляет протокольный method tool() для регистрации MCP tools.
-  Метод build() создаёт FastMCP-сервер из зарегистрированных маршрутов.
+  Метод build() создаёт MCP-сервер из зарегистрированных маршрутов.
   Метод register_all() автоматически регистрирует все Action из координатора.
 
 - McpRouteRecord — frozen-датакласс маршрута с MCP-специфичными полями:

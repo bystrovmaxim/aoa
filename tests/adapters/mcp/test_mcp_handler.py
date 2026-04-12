@@ -2,7 +2,7 @@
 """
 Tests for MCP tool handler execution and error handling.
 
-When McpAdapter.build() creates a FastMCP server, each registered tool gets
+When McpAdapter.build() creates an MCP server, each registered tool gets
 an async handler function. The handler deserializes kwargs into the Params model,
 runs the action through the machine, serializes the result to JSON, and catches
 exceptions to return error strings (PERMISSION_DENIED, INVALID_PARAMS,

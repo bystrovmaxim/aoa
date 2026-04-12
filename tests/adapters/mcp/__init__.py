@@ -8,7 +8,7 @@ validation, field defaults).
 
 Test modules:
     test_mcp_adapter.py       — Adapter construction, tool() registration,
-                                build() producing a FastMCP server, fluent
+                                build() producing an MCP server, fluent
                                 chaining, register_all() auto-registration,
                                 snake_case tool naming, error string formats.
     test_mcp_route_record.py  — MCP-specific validation (tool_name non-empty),

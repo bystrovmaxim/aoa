@@ -1,6 +1,6 @@
 # src/action_machine/contrib/mcp/adapter.py
 """
-McpAdapter — MCP-адаптер для ActionMachine на базе FastMCP.
+McpAdapter — MCP-адаптер для ActionMachine.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
@@ -49,7 +49,7 @@ constraints из Field(gt=0, min_length=3), examples — всё попадает
 Для каждого зарегистрированного McpRouteRecord адаптер создаёт
 async handler-функцию, которая:
 
-1. Получает аргументы tool call как kwargs от FastMCP.
+1. Получает аргументы tool call как kwargs от MCP-хоста.
 2. Десериализует их в effective_request_model через model_validate().
 3. Если params_mapper указан — преобразует в params_type.
 4. Создаёт Context (через auth_coordinator).
@@ -60,7 +60,7 @@ async handler-функцию, которая:
 
 При ошибке handler возвращает строку с описанием ошибки и пометкой
 типа ошибки (PERMISSION_DENIED, INVALID_PARAMS, INTERNAL_ERROR).
-FastMCP доставляет это как TextContent с isError=True.
+MCP-хост доставляет это как TextContent с isError=True.
 
 ═══════════════════════════════════════════════════════════════════════════════
 RESOURCE system://graph
@@ -102,7 +102,7 @@ Resource возвращает JSON с узлами и рёбрами графа 
     ValidationFieldError    → "INVALID_PARAMS: ..."
     Exception               → "INTERNAL_ERROR: ..."
 
-FastMCP возвращает их как TextContent, что позволяет AI-агенту прочитать
+MCP-хост возвращает их как TextContent, что позволяет AI-агенту прочитать
 сообщение об ошибке и скорректировать следующий запрос.
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -136,6 +136,9 @@ from collections.abc import Callable
 from typing import Any, Self
 
 from mcp.server.fastmcp import FastMCP
+from mcp.server.fastmcp.tools.base import Tool
+from mcp.server.fastmcp.utilities.func_metadata import ArgModelBase, FuncMetadata
+from pydantic import BaseModel
 
 from action_machine.adapters.base_adapter import BaseAdapter
 from action_machine.context.context import Context
@@ -290,11 +293,11 @@ def _make_tool_handler(
     """
     Создаёт async handler для одного MCP tool.
 
-    Handler принимает kwargs от FastMCP (аргументы tool call от агента),
+    Handler принимает kwargs от MCP (аргументы tool call от агента),
     десериализует их в Pydantic-модель, выполняет действие через machine.run()
     и возвращает JSON-строку result.
 
-    При ошибке возвращает строку с описанием ошибки — FastMCP доставляет
+    При ошибке возвращает строку с описанием ошибки — MCP-хост доставляет
     её как TextContent агенту.
 
     Args:
@@ -306,7 +309,7 @@ def _make_tool_handler(
         gate_coordinator: координатор для метаданных tool (описание из facet).
 
     Returns:
-        Async-функцию для передачи в FastMCP через add_tool.
+        Async-функцию для регистрации как MCP tool.
     """
     req_model = record.effective_request_model
     has_params_mapper = record.params_mapper is not None
@@ -316,7 +319,7 @@ def _make_tool_handler(
         """
         Handler MCP tool call.
 
-        Принимает kwargs от FastMCP, десериализует, выполняет действие,
+        Принимает kwargs от MCP, десериализует, выполняет действие,
         возвращает JSON-строку result или строку ошибки.
         """
         try:
@@ -418,11 +421,11 @@ def _serialize_result(
 
 class McpAdapter(BaseAdapter[McpRouteRecord]):
     """
-    MCP-адаптер для ActionMachine на базе FastMCP.
+    MCP-адаптер для ActionMachine.
 
     Наследует BaseAdapter[McpRouteRecord]. Предоставляет протокольный
     method tool() для регистрации MCP tools. Метод build() завершает
-    fluent chain и создаёт FastMCP-сервер.
+    fluent chain и создаёт MCP-сервер (хост).
 
     Метод register_all() автоматически регистрирует все Action из
     координатора машины, формируя имена tools в snake_case.
@@ -597,42 +600,63 @@ class McpAdapter(BaseAdapter[McpRouteRecord]):
         return self
 
     # ─────────────────────────────────────────────────────────────────────
-    # Построение FastMCP-сервера
+    # Построение MCP-сервера
     # ─────────────────────────────────────────────────────────────────────
 
     def build(self) -> FastMCP:
         """
-        Создаёт FastMCP-сервер из зарегистрированных маршрутов.
+        Создаёт MCP-сервер из зарегистрированных маршрутов.
 
         Порядок инициализации:
-        1. Создание FastMCP-сервера с именем и версией.
-        2. Для каждого маршрута: создание handler и регистрация tool.
+        1. Для каждого маршрута: сборка ``Tool`` (handler + inputSchema из Params).
+        2. Создание хоста MCP с именем и предсобранным списком tools.
         3. Регистрация resource ``system://graph``.
 
         Returns:
-            FastMCP — готовый MCP-сервер с зарегистрированными tools
-            и resource system://graph.
+            Готовый MCP-сервер с зарегистрированными tools и resource system://graph.
         """
-        mcp = FastMCP(self._server_name)
-
-        for record in self._routes:
-            self._register_tool(mcp, record)
+        tools = [self._make_mcp_tool(record) for record in self._routes]
+        mcp = FastMCP(self._server_name, tools=tools)
 
         self._register_graph_resource(mcp)
 
         return mcp
 
     # ─────────────────────────────────────────────────────────────────────
-    # Регистрация одного tool на FastMCP-сервере
+    # Сборка MCP Tool (inputSchema + валидация аргументов)
     # ─────────────────────────────────────────────────────────────────────
 
-    def _register_tool(self, mcp: FastMCP, record: McpRouteRecord) -> None:
+    def _mcp_argument_model(self, record: McpRouteRecord) -> type[ArgModelBase]:
         """
-        Создаёт и регистрирует один MCP tool на FastMCP-сервере.
+        Строит Pydantic-модель аргументов tool для MCP-хоста.
 
-        Args:
-            mcp: FastMCP-сервер, на котором регистрируется tool.
-            record: конфигурация маршрута.
+        Наследует ``effective_request_model`` и ``ArgModelBase``, чтобы
+        ``FuncMetadata.call_fn_with_arg_validation`` мог использовать
+        ``model_dump_one_level()`` как в типовом tool пакета ``mcp``.
+
+        Raises:
+            TypeError: если effective_request_model не подкласс BaseModel.
+        """
+        req = record.effective_request_model
+        if not isinstance(req, type) or not issubclass(req, BaseModel):
+            raise TypeError(
+                f"MCP tool {record.tool_name!r} requires effective_request_model "
+                f"to be a Pydantic BaseModel subclass; got {req!r}."
+            )
+        safe_tool = "".join(ch if ch.isalnum() else "_" for ch in record.tool_name)
+        return type(
+            f"{req.__name__}_{safe_tool}McpArgs",
+            (req, ArgModelBase),
+            {},
+        )
+
+    def _make_mcp_tool(self, record: McpRouteRecord) -> Tool:
+        """
+        Создаёт ``Tool`` с корректным ``parameters`` (JSON Schema) для MCP.
+
+        Регистрация только по ``handler`` выводит схему из сигнатуры
+        функции; наш handler принимает только ``**kwargs``, поэтому схема
+        собирается явно из Pydantic-модели параметров действия.
         """
         handler = _make_tool_handler(
             record=record,
@@ -641,11 +665,25 @@ class McpAdapter(BaseAdapter[McpRouteRecord]):
             connections_factory=self._connections_factory,
             gate_coordinator=self.gate_coordinator,
         )
-
-        mcp.add_tool(
-            handler,
+        arg_model = self._mcp_argument_model(record)
+        fn_meta = FuncMetadata(arg_model=arg_model)
+        parameters = arg_model.model_json_schema(by_alias=True)
+        description = record.description or _get_meta_description(
+            record.action_class,
+            coordinator=self.gate_coordinator,
+        )
+        return Tool(
+            fn=handler,
             name=record.tool_name,
-            description=record.description,
+            title=None,
+            description=description,
+            parameters=parameters,
+            fn_metadata=fn_meta,
+            is_async=True,
+            context_kwarg=None,
+            annotations=None,
+            icons=None,
+            meta=None,
         )
 
     # ─────────────────────────────────────────────────────────────────────
@@ -654,14 +692,14 @@ class McpAdapter(BaseAdapter[McpRouteRecord]):
 
     def _register_graph_resource(self, mcp: FastMCP) -> None:
         """
-        Регистрирует MCP resource ``system://graph`` на FastMCP-сервере.
+        Регистрирует MCP resource ``system://graph`` на MCP-сервере.
 
         AI-агент может запросить этот ресурс, чтобы увидеть структуру
         системы: какие действия существуют, к каким доменам принадлежат,
         от чего зависят.
 
         Args:
-            mcp: FastMCP-сервер, на котором регистрируется resource.
+            mcp: MCP-хост, на котором регистрируется resource.
         """
         coordinator = self.gate_coordinator
 
