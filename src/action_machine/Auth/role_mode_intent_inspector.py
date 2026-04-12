@@ -78,7 +78,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from action_machine.auth.role_mode import RoleMode
+from action_machine.auth.role_mode_decorator import RoleMode
 from action_machine.auth.role_mode_intent import RoleModeIntent
 from action_machine.metadata.base_facet_snapshot import BaseFacetSnapshot
 from action_machine.metadata.base_intent_inspector import BaseIntentInspector

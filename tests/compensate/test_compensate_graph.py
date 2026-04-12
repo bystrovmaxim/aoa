@@ -54,8 +54,8 @@ TestCompensatorInDependencyTree — историческое имя класса
 
 from __future__ import annotations
 
-from action_machine.aspects.regular_aspect import regular_aspect
-from action_machine.aspects.summary_aspect import summary_aspect
+from action_machine.aspects.regular_aspect_decorator import regular_aspect
+from action_machine.aspects.summary_aspect_decorator import summary_aspect
 from action_machine.auth import NoneRole, check_roles
 from action_machine.compensate import compensate
 from action_machine.context import Ctx, context_requires

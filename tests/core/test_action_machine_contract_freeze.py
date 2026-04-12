@@ -81,8 +81,8 @@ from typing import Any
 
 import pytest
 
-from action_machine.aspects.regular_aspect import regular_aspect
-from action_machine.aspects.summary_aspect import summary_aspect
+from action_machine.aspects.regular_aspect_decorator import regular_aspect
+from action_machine.aspects.summary_aspect_decorator import summary_aspect
 from action_machine.auth import NoneRole, check_roles
 from action_machine.checkers import result_string
 from action_machine.context.context import Context
@@ -96,12 +96,12 @@ from action_machine.core.core_action_machine import CoreActionMachine
 from action_machine.core.meta_decorator import meta
 from action_machine.core.tools_box import ToolsBox
 from action_machine.logging.log_coordinator import LogCoordinator
-from action_machine.plugins.decorators import on
 from action_machine.plugins.events import (
     AfterOnErrorAspectEvent,
     BasePluginEvent,
     BeforeOnErrorAspectEvent,
 )
+from action_machine.plugins.on_decorator import on
 from action_machine.plugins.plugin import Plugin
 from action_machine.resource_managers.base_resource_manager import BaseResourceManager
 from action_machine.testing import StubTesterRole, TestBench

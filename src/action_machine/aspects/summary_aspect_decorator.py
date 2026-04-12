@@ -1,4 +1,4 @@
-# src/action_machine/aspects/summary_aspect.py
+# src/action_machine/aspects/summary_aspect_decorator.py
 """
 Decorator ``@summary_aspect`` declares the final action step.
 

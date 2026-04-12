@@ -72,7 +72,7 @@ from action_machine.auth.any_role import AnyRole
 from action_machine.auth.base_role import BaseRole
 from action_machine.auth.none_role import NoneRole
 from action_machine.auth.role_intent import RoleIntent
-from action_machine.auth.role_mode import RoleMode
+from action_machine.auth.role_mode_decorator import RoleMode
 from action_machine.metadata.base_facet_snapshot import BaseFacetSnapshot
 from action_machine.metadata.base_intent_inspector import BaseIntentInspector
 from action_machine.metadata.exceptions import InvalidGraphError

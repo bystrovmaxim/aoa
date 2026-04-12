@@ -69,8 +69,8 @@ AI-CORE-END
 """
 
 from .aspect_intent import AspectIntent
-from .regular_aspect import regular_aspect
-from .summary_aspect import summary_aspect
+from .regular_aspect_decorator import regular_aspect
+from .summary_aspect_decorator import summary_aspect
 
 __all__ = [
     "AspectIntent",

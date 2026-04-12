@@ -16,7 +16,7 @@ from dataclasses import dataclass
 from action_machine.metadata.base_facet_snapshot import BaseFacetSnapshot
 from action_machine.metadata.base_intent_inspector import BaseIntentInspector
 from action_machine.metadata.payload import FacetPayload
-from action_machine.resource_managers.connection import ConnectionInfo
+from action_machine.resource_managers.connection_decorator import ConnectionInfo
 from action_machine.resource_managers.connection_intent import ConnectionIntent
 
 

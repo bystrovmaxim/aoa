@@ -28,8 +28,8 @@ from unittest.mock import AsyncMock
 import pytest
 from pydantic import Field
 
-from action_machine.aspects.regular_aspect import regular_aspect
-from action_machine.aspects.summary_aspect import summary_aspect
+from action_machine.aspects.regular_aspect_decorator import regular_aspect
+from action_machine.aspects.summary_aspect_decorator import summary_aspect
 from action_machine.auth import NoneRole, check_roles
 from action_machine.checkers import result_string
 from action_machine.compensate import compensate
@@ -40,7 +40,7 @@ from action_machine.core.base_result import BaseResult
 from action_machine.core.base_state import BaseState
 from action_machine.core.core_action_machine import CoreActionMachine
 from action_machine.core.meta_decorator import meta
-from action_machine.dependencies.depends import depends
+from action_machine.dependencies.depends_decorator import depends
 from action_machine.testing import StubTesterRole, TestBench
 from tests.domain_model.compensate_actions import (
     CompensatedOrderAction,

@@ -71,7 +71,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, ClassVar
 
 if TYPE_CHECKING:
-    from action_machine.auth.role_mode import RoleMode
+    from action_machine.auth.role_mode_decorator import RoleMode
 
 
 class RoleModeIntent:

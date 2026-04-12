@@ -51,7 +51,7 @@ from .dependency_factory import (
     clear_dependency_factory_cache,
 )
 from .dependency_intent import DependencyIntent
-from .depends import depends
+from .depends_decorator import depends
 
 __all__ = [
     "DependencyFactory",

@@ -51,7 +51,7 @@ AnyRole:
 
 import pytest
 
-from action_machine.aspects.summary_aspect import summary_aspect
+from action_machine.aspects.summary_aspect_decorator import summary_aspect
 from action_machine.auth import AnyRole, check_roles
 from action_machine.context.context import Context
 from action_machine.context.user_info import UserInfo

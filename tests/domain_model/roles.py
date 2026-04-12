@@ -2,7 +2,7 @@
 """Shared ``ApplicationRole`` markers for the test domain."""
 
 from action_machine.auth.application_role import ApplicationRole
-from action_machine.auth.role_mode import RoleMode, role_mode
+from action_machine.auth.role_mode_decorator import RoleMode, role_mode
 
 
 @role_mode(RoleMode.ALIVE)

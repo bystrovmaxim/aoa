@@ -54,8 +54,8 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from pydantic import Field
 
-from action_machine.aspects.regular_aspect import regular_aspect
-from action_machine.aspects.summary_aspect import summary_aspect
+from action_machine.aspects.regular_aspect_decorator import regular_aspect
+from action_machine.aspects.summary_aspect_decorator import summary_aspect
 from action_machine.auth import NoneRole, check_roles
 from action_machine.checkers import result_string
 from action_machine.context.context import Context

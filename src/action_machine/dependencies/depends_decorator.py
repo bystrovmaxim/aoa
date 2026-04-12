@@ -1,4 +1,4 @@
-# src/action_machine/dependencies/depends.py
+# src/action_machine/dependencies/depends_decorator.py
 """
 Декоратор @depends — объявление зависимости действия от внешнего сервиса.
 

@@ -167,8 +167,8 @@ class TestOnErrorTypeMismatch:
         # but handler catches only ValueError.
         # ErrorHandledAction catches ValueError. Override aspect via
         # inheritance (edge-case test — class created inside test).
-        from action_machine.aspects.regular_aspect import regular_aspect
-        from action_machine.aspects.summary_aspect import summary_aspect
+        from action_machine.aspects.regular_aspect_decorator import regular_aspect
+        from action_machine.aspects.summary_aspect_decorator import summary_aspect
         from action_machine.auth import NoneRole, check_roles
         from action_machine.checkers import result_string
         from action_machine.core.base_action import BaseAction
@@ -238,8 +238,8 @@ class TestOnErrorNotInherited:
         # Arrange — create child class of ErrorHandledAction without its own handlers.
         # Parent ErrorHandledAction has @on_error(ValueError),
         # but child should not inherit it.
-        from action_machine.aspects.regular_aspect import regular_aspect
-        from action_machine.aspects.summary_aspect import summary_aspect
+        from action_machine.aspects.regular_aspect_decorator import regular_aspect
+        from action_machine.aspects.summary_aspect_decorator import summary_aspect
         from action_machine.auth import NoneRole, check_roles
         from action_machine.checkers import result_string
         from action_machine.core.base_action import BaseAction

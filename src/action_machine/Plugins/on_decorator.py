@@ -1,4 +1,4 @@
-# src/action_machine/plugins/decorators.py
+# src/action_machine/plugins/on_decorator.py
 """
 Декоратор @on — подписка метода плагина на событие машины.
 

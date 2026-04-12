@@ -10,7 +10,7 @@ from __future__ import annotations
 from abc import ABC
 
 from action_machine.auth.base_role import BaseRole
-from action_machine.auth.role_mode import RoleMode, role_mode
+from action_machine.auth.role_mode_decorator import RoleMode, role_mode
 
 
 @role_mode(RoleMode.ALIVE)

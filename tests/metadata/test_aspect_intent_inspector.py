@@ -5,8 +5,8 @@ from __future__ import annotations
 
 from action_machine.aspects.aspect_intent import AspectIntent
 from action_machine.aspects.aspect_intent_inspector import AspectIntentInspector
-from action_machine.aspects.regular_aspect import regular_aspect
-from action_machine.aspects.summary_aspect import summary_aspect
+from action_machine.aspects.regular_aspect_decorator import regular_aspect
+from action_machine.aspects.summary_aspect_decorator import summary_aspect
 from action_machine.context.context_requires_decorator import context_requires
 from action_machine.context.ctx_constants import Ctx
 

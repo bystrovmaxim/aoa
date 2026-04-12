@@ -44,9 +44,9 @@ from typing import Any
 
 import pytest
 
-from action_machine.aspects.regular_aspect import regular_aspect
-from action_machine.aspects.summary_aspect import summary_aspect
-from action_machine.auth.check_roles import check_roles
+from action_machine.aspects.regular_aspect_decorator import regular_aspect
+from action_machine.aspects.summary_aspect_decorator import summary_aspect
+from action_machine.auth.check_roles_decorator import check_roles
 from action_machine.auth.none_role import NoneRole
 from action_machine.checkers.result_string_checker import result_string
 from action_machine.compensate import compensate
@@ -61,15 +61,15 @@ from action_machine.dependencies.dependency_factory import (
     cached_dependency_factory,
     clear_dependency_factory_cache,
 )
-from action_machine.dependencies.depends import depends
+from action_machine.dependencies.depends_decorator import depends
 from action_machine.logging.sensitive_decorator import sensitive
 from action_machine.metadata.base_intent_inspector import BaseIntentInspector
 from action_machine.metadata.gate_coordinator import GateCoordinator
-from action_machine.plugins.decorators import on
 from action_machine.plugins.events import GlobalStartEvent
+from action_machine.plugins.on_decorator import on
 from action_machine.plugins.plugin import Plugin
 from action_machine.resource_managers.base_resource_manager import BaseResourceManager
-from action_machine.resource_managers.connection import connection
+from action_machine.resource_managers.connection_decorator import connection
 from tests.domain_model.domains import TestDomain
 from tests.domain_model.roles import AdminRole
 

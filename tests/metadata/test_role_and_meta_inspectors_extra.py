@@ -5,7 +5,7 @@ from __future__ import annotations
 from action_machine.auth.base_role import BaseRole
 from action_machine.auth.role_intent import RoleIntent
 from action_machine.auth.role_intent_inspector import RoleIntentInspector
-from action_machine.auth.role_mode import RoleMode, role_mode
+from action_machine.auth.role_mode_decorator import RoleMode, role_mode
 from action_machine.core.meta_intent_inspector import MetaIntentInspector
 from action_machine.core.meta_intents import ActionMetaIntent
 

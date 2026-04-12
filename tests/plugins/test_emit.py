@@ -33,11 +33,11 @@ import pytest
 from action_machine.context.context import Context
 from action_machine.core.base_params import BaseParams
 from action_machine.logging.scoped_logger import ScopedLogger
-from action_machine.plugins.decorators import on
 from action_machine.plugins.events import (
     CompensateFailedEvent,
     SagaRollbackCompletedEvent,
 )
+from action_machine.plugins.on_decorator import on
 from action_machine.plugins.plugin import Plugin
 from action_machine.plugins.plugin_coordinator import PluginCoordinator
 
