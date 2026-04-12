@@ -23,6 +23,7 @@ Scenarios covered:
     - _build_graph_json returns valid JSON with nodes and edges.
     - Handler with params_mapper transforms input before execution.
     - Handler with response_mapper transforms output after execution.
+    - Bad params_mapper / response_mapper types → INTERNAL_ERROR with guard message.
     - Handler __name__ is derived from tool_name with dots/hyphens replaced.
 """
 
@@ -42,7 +43,7 @@ from action_machine.contrib.mcp.route_record import McpRouteRecord
 from action_machine.core.action_product_machine import ActionProductMachine
 from action_machine.core.core_action_machine import CoreActionMachine
 from action_machine.core.exceptions import AuthorizationError, ValidationFieldError
-from tests.domain_model import PingAction
+from tests.domain_model import PingAction, SimpleAction
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Helpers
@@ -318,6 +319,52 @@ class TestHandlerWithMappers:
         assert result.isError is False
         parsed = json.loads(_tool_result_text(result))
         assert parsed["data"] == "pong"
+
+    @pytest.mark.asyncio
+    async def test_bad_params_mapper_surfaces_as_internal_error(self) -> None:
+        """Wrong params type before run → INTERNAL_ERROR, machine.run not called."""
+        machine = _make_machine()
+        machine.run = AsyncMock(return_value=SimpleAction.Result(greeting="x"))
+
+        record = _make_record(
+            action_class=SimpleAction,
+            tool_name="test.bad_params_map",
+            params_mapper=lambda _p: PingAction.Params(),  # not SimpleAction.Params
+        )
+        handler = _make_tool_handler(
+            record, machine, _make_auth(), None, machine.gate_coordinator,
+        )
+        result = await handler(name="Alice")
+
+        assert result.isError is True
+        assert "INTERNAL_ERROR" in _tool_result_text(result)
+        assert "params must be an instance" in _tool_result_text(result)
+        machine.run.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_bad_response_mapper_surfaces_as_internal_error(self) -> None:
+        """Wrong response_mapper output → INTERNAL_ERROR after machine.run."""
+        machine = _make_machine()
+        machine.run = AsyncMock(
+            return_value=SimpleAction.Result(greeting="Hi"),
+        )
+
+        record = _make_record(
+            action_class=SimpleAction,
+            tool_name="test.bad_response_map",
+            response_model=_AltResponse,
+            response_mapper=lambda _r: "not-alt-response",  # type: ignore[return-value]
+        )
+        handler = _make_tool_handler(
+            record, machine, _make_auth(), None, machine.gate_coordinator,
+        )
+        result = await handler(name="Bob")
+
+        assert result.isError is True
+        text = _tool_result_text(result)
+        assert "INTERNAL_ERROR" in text
+        assert "response_mapper must return" in text
+        machine.run.assert_called_once()
 
 
 # ═════════════════════════════════════════════════════════════════════════════

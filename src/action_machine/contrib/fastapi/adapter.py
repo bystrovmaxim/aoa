@@ -119,6 +119,10 @@ from starlette.requests import Request as StarletteRequest
 from starlette.responses import Response as StarletteResponse
 
 from action_machine.adapters.base_adapter import BaseAdapter
+from action_machine.adapters.base_route_record import (
+    ensure_machine_params,
+    ensure_protocol_response,
+)
 from action_machine.context.context import Context
 from action_machine.core.action_product_machine import ActionProductMachine
 from action_machine.core.base_action import BaseAction
@@ -133,6 +137,10 @@ from .route_record import FastApiRouteRecord
 # ═════════════════════════════════════════════════════════════════════════════
 
 _PATH_PARAM_PATTERN: re.Pattern[str] = re.compile(r"\{(\w+)\}")
+
+
+def _fastapi_route_label(record: FastApiRouteRecord) -> str:
+    return f"{record.method} {record.path}"
 
 
 def _get_meta_description(action_class: type) -> str:
@@ -239,6 +247,13 @@ def _make_endpoint_with_body(
         else:
             params = body
 
+        ensure_machine_params(
+            params,
+            record.params_type,
+            adapter="FastAPI",
+            route_label=_fastapi_route_label(record),
+        )
+
         context = await auth_coordinator.process(request)
         if context is None:
             context = Context()
@@ -251,7 +266,14 @@ def _make_endpoint_with_body(
         result = await machine.run(context, action, params, connections)
 
         if has_response_mapper:
-            return record.response_mapper(result)  # type: ignore[misc]
+            mapped = record.response_mapper(result)  # type: ignore[misc]
+            ensure_protocol_response(
+                mapped,
+                record.effective_response_model,
+                adapter="FastAPI",
+                route_label=_fastapi_route_label(record),
+            )
+            return mapped
         return result
 
     sig_params = [
@@ -300,6 +322,13 @@ def _make_endpoint_with_query(
         else:
             params = body
 
+        ensure_machine_params(
+            params,
+            record.params_type,
+            adapter="FastAPI",
+            route_label=_fastapi_route_label(record),
+        )
+
         context = await auth_coordinator.process(request)
         if context is None:
             context = Context()
@@ -312,7 +341,14 @@ def _make_endpoint_with_query(
         result = await machine.run(context, action, params, connections)
 
         if has_response_mapper:
-            return record.response_mapper(result)  # type: ignore[misc]
+            mapped = record.response_mapper(result)  # type: ignore[misc]
+            ensure_protocol_response(
+                mapped,
+                record.effective_response_model,
+                adapter="FastAPI",
+                route_label=_fastapi_route_label(record),
+            )
+            return mapped
         return result
 
     sig_params = [
@@ -378,6 +414,13 @@ def _make_endpoint_no_params(
         else:
             params = body
 
+        ensure_machine_params(
+            params,
+            record.params_type,
+            adapter="FastAPI",
+            route_label=_fastapi_route_label(record),
+        )
+
         context = await auth_coordinator.process(request)
         if context is None:
             context = Context()
@@ -390,7 +433,14 @@ def _make_endpoint_no_params(
         result = await machine.run(context, action, params, connections)
 
         if has_response_mapper:
-            return record.response_mapper(result)  # type: ignore[misc]
+            mapped = record.response_mapper(result)  # type: ignore[misc]
+            ensure_protocol_response(
+                mapped,
+                record.effective_response_model,
+                adapter="FastAPI",
+                route_label=_fastapi_route_label(record),
+            )
+            return mapped
         return result
 
     return endpoint
