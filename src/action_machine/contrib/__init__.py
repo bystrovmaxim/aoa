@@ -36,7 +36,7 @@ PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 - action_machine.contrib.postgres — менеджер соединений PostgreSQL
-  на базе asyncpg. Реализует IConnectionManager с methodами
+  на базе asyncpg. Реализует SqlConnectionManager с methodами
   open/begin/commit/rollback/execute.
 
 ═══════════════════════════════════════════════════════════════════════════════

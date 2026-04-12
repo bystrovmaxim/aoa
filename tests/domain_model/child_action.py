@@ -19,7 +19,7 @@ USAGE IN TESTS
 - Nesting: root Action calls ChildAction via
   box.run(ChildAction, ChildAction.Params(value="test")).
 - nest_level increases on nested runs.
-- WrapperConnectionManager: connections passed into box.run() reach the child.
+- WrapperSqlConnectionManager: connections passed into box.run() reach the child.
 - Rollup: rollup propagates through box.run().
 
     async def some_aspect(self, params, state, box, connections):

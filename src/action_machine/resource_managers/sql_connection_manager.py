@@ -1,4 +1,4 @@
-# src/action_machine/resource_managers/iconnection_manager.py
+# src/action_machine/resource_managers/sql_connection_manager.py
 """
 Интерфейс менеджера соединений с базами данных.
 
@@ -6,8 +6,8 @@
 НАЗНАЧЕНИЕ
 ═══════════════════════════════════════════════════════════════════════════════
 
-IConnectionManager — абстрактный интерфейс для всех менеджеров соединений
-с базами данных и другими транзакционными ресурсами. Определяет контракт:
+SqlConnectionManager — абстрактный базовый класс для менеджеров SQL-соединений
+с транзакциями. Определяет контракт:
 open(), begin(), commit(), rollback(), execute().
 
 Наследует BaseResourceManager, что обеспечивает:
@@ -19,7 +19,7 @@ open(), begin(), commit(), rollback(), execute().
 ПОДДЕРЖКА ROLLUP
 ═══════════════════════════════════════════════════════════════════════════════
 
-IConnectionManager полностью поддерживает режим rollup. Параметр rollup
+SqlConnectionManager полностью поддерживает режим rollup. Параметр rollup
 передаётся в конструктор и сохраняется в атрибуте self._rollup.
 
 Когда rollup=True, метод commit() вызывает self.rollback() вместо
@@ -28,7 +28,7 @@ IConnectionManager полностью поддерживает режим rollup
 без begin() драйверы вроде asyncpg фиксируют операторы по одному (autocommit).
 
 Метод check_rollup_support() переопределён и возвращает True —
-все наследники IConnectionManager автоматически поддерживают rollup.
+все наследники SqlConnectionManager автоматически поддерживают rollup.
 
 Конкретные реализации (PostgresConnectionManager и др.) прокидывают
 параметр rollup в super().__init__(rollup=rollup).
@@ -64,7 +64,7 @@ rollup возвращает False (безопасное значение по у
 ПЕРЕДАЧА ROLLUP В ДОЧЕРНИЕ ДЕЙСТВИЯ
 ═══════════════════════════════════════════════════════════════════════════════
 
-WrapperConnectionManager при создании обёртки сохраняет флаг rollup
+WrapperSqlConnectionManager при создании обёртки сохраняет флаг rollup
 из оригинального менеджера. Дочерние действия, получающие connections
 через обёртку, также работают в режиме rollup — цепочка не прерывается.
 
@@ -74,7 +74,7 @@ WrapperConnectionManager при создании обёртки сохраняе
 
     BaseResourceManager (ABC)
         │
-        └── IConnectionManager (ABC)
+        └── SqlConnectionManager (ABC)
                 │   _rollup: bool
                 │   check_rollup_support() → True
                 │   commit() → rollback() если _rollup=True
@@ -83,7 +83,7 @@ WrapperConnectionManager при создании обёртки сохраняе
                 │       __init__(params, rollup=False)
                 │       begin() → старт транзакции (корневое действие)
                 │
-                └── WrapperConnectionManager (прокси)
+                └── WrapperSqlConnectionManager (прокси)
                         __init__(connection_manager)
                         _rollup берётся из оригинала
                         begin/open/commit/rollback запрещены
@@ -113,9 +113,9 @@ from typing import Any
 from .base_resource_manager import BaseResourceManager
 
 
-class IConnectionManager(BaseResourceManager):
+class SqlConnectionManager(BaseResourceManager):
     """
-    Интерфейс для всех менеджеров соединений с базами данных.
+    Базовый класс для менеджеров SQL-соединений с транзакциями.
 
     Определяет контракт транзакционного управления: open, begin,
     commit, rollback, execute. Поддерживает режим rollup через параметр
@@ -160,7 +160,7 @@ class IConnectionManager(BaseResourceManager):
         """
         Подтверждает поддержку режима rollup.
 
-        IConnectionManager и все его наследники поддерживают rollup,
+        SqlConnectionManager и все его наследники поддерживают rollup,
         так как управляют транзакционными ресурсами с операциями
         commit/rollback.
 

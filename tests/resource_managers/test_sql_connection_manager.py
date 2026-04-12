@@ -1,8 +1,8 @@
-# tests/resource_managers/test_iconnection_manager.py
+# tests/resource_managers/test_sql_connection_manager.py
 """
-Tests for IConnectionManager — abstract interface for transactional connections.
+Tests for SqlConnectionManager — abstract base for transactional SQL connections.
 
-IConnectionManager extends BaseResourceManager with transaction lifecycle:
+SqlConnectionManager extends BaseResourceManager with transaction lifecycle:
 open(), begin(), commit(), rollback(), execute(). It supports rollup mode where commit()
 calls rollback() instead of real commit. The rollup property uses getattr
 with a False fallback for resilience against subclasses that skip super().__init__().
@@ -22,15 +22,15 @@ Scenarios covered:
 
 import pytest
 
-from action_machine.resource_managers.iconnection_manager import IConnectionManager
+from action_machine.resource_managers.sql_connection_manager import SqlConnectionManager
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Concrete subclass for testing — IConnectionManager is abstract.
+# Concrete subclass for testing — SqlConnectionManager is abstract.
 # ─────────────────────────────────────────────────────────────────────────────
 
 
-class _TestConnectionManager(IConnectionManager):
-    """Minimal concrete implementation for testing IConnectionManager behavior."""
+class _TestConnectionManager(SqlConnectionManager):
+    """Minimal concrete implementation for testing SqlConnectionManager behavior."""
 
     def __init__(self, rollup: bool = False) -> None:
         super().__init__(rollup=rollup)
@@ -64,7 +64,7 @@ class _TestConnectionManager(IConnectionManager):
         self.committed = True
 
 
-class _NoSuperInitManager(IConnectionManager):
+class _NoSuperInitManager(SqlConnectionManager):
     """Subclass that intentionally skips super().__init__()."""
 
     def __init__(self) -> None:
@@ -122,10 +122,10 @@ class TestRollupProperty:
 
 
 class TestCheckRollupSupport:
-    """Verify that IConnectionManager always supports rollup."""
+    """Verify that SqlConnectionManager always supports rollup."""
 
     def test_returns_true(self) -> None:
-        """check_rollup_support() returns True for any IConnectionManager."""
+        """check_rollup_support() returns True for any SqlConnectionManager."""
         mgr = _TestConnectionManager()
         assert mgr.check_rollup_support() is True
 
@@ -170,11 +170,11 @@ class TestCommitRollup:
 
     @pytest.mark.asyncio
     async def test_base_commit_with_rollup(self) -> None:
-        """IConnectionManager.commit() itself calls rollback when rollup=True."""
+        """SqlConnectionManager.commit() itself calls rollback when rollup=True."""
         mgr = _TestConnectionManager(rollup=True)
 
         # Call the base class commit directly
-        await IConnectionManager.commit(mgr)
+        await SqlConnectionManager.commit(mgr)
 
         assert mgr.rolled_back is True
 
@@ -190,7 +190,7 @@ class TestAbstractMethods:
     def test_cannot_instantiate_without_open(self) -> None:
         """Subclass missing open() cannot be instantiated."""
 
-        class _Incomplete(IConnectionManager):
+        class _Incomplete(SqlConnectionManager):
             def get_wrapper_class(self):
                 return None
 
@@ -209,7 +209,7 @@ class TestAbstractMethods:
     def test_cannot_instantiate_without_begin(self) -> None:
         """Subclass missing begin() cannot be instantiated."""
 
-        class _Incomplete(IConnectionManager):
+        class _Incomplete(SqlConnectionManager):
             def get_wrapper_class(self):
                 return None
 
@@ -228,7 +228,7 @@ class TestAbstractMethods:
     def test_cannot_instantiate_without_rollback(self) -> None:
         """Subclass missing rollback() cannot be instantiated."""
 
-        class _Incomplete(IConnectionManager):
+        class _Incomplete(SqlConnectionManager):
             def get_wrapper_class(self):
                 return None
 
@@ -247,7 +247,7 @@ class TestAbstractMethods:
     def test_cannot_instantiate_without_execute(self) -> None:
         """Subclass missing execute() cannot be instantiated."""
 
-        class _Incomplete(IConnectionManager):
+        class _Incomplete(SqlConnectionManager):
             def get_wrapper_class(self):
                 return None
 
