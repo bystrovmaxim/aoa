@@ -37,7 +37,7 @@ PURPOSE
 
 - action_machine.contrib.postgres — менеджер соединений PostgreSQL
   на базе asyncpg. Реализует IConnectionManager с methodами
-  open/commit/rollback/execute.
+  open/begin/commit/rollback/execute.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW

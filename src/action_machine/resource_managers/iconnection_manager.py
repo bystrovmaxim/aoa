@@ -8,7 +8,7 @@
 
 IConnectionManager — абстрактный интерфейс для всех менеджеров соединений
 с базами данных и другими транзакционными ресурсами. Определяет контракт:
-open(), commit(), rollback(), execute().
+open(), begin(), commit(), rollback(), execute().
 
 Наследует BaseResourceManager, что обеспечивает:
 - Обязательность декоратора @meta с описанием.
@@ -23,9 +23,9 @@ IConnectionManager полностью поддерживает режим rollup
 передаётся в конструктор и сохраняется в атрибуте self._rollup.
 
 Когда rollup=True, метод commit() вызывает self.rollback() вместо
-реальной фиксации транзакции. Это позволяет безопасно тестировать
-на production-базе: INSERT, UPDATE, DELETE выполняются реально,
-но при завершении транзакция откатывается.
+реальной фиксации транзакции. Чтобы изменения действительно жили в одной
+транзакции и откатывались, перед мутациями вызывают begin() после open();
+без begin() драйверы вроде asyncpg фиксируют операторы по одному (autocommit).
 
 Метод check_rollup_support() переопределён и возвращает True —
 все наследники IConnectionManager автоматически поддерживают rollup.
@@ -52,9 +52,10 @@ rollup возвращает False (безопасное значение по у
     db = PostgresConnectionManager(params, rollup=True)
 
     # Аспект работает как обычно:
-    await db.open()                    # → реальное открытие соединения
-    await db.execute("INSERT ...")     # → реальный INSERT
-    await db.execute("UPDATE ...")     # → реальный UPDATE
+    await db.open()
+    await db.begin()                   # → одна транзакция для всех execute
+    await db.execute("INSERT ...")
+    await db.execute("UPDATE ...")
     await db.commit()                  # → ROLLBACK (вместо COMMIT!)
 
     # Все изменения откачены, production-база не затронута.
@@ -80,10 +81,12 @@ WrapperConnectionManager при создании обёртки сохраняе
                 │
                 ├── PostgresConnectionManager
                 │       __init__(params, rollup=False)
+                │       begin() → старт транзакции (корневое действие)
                 │
                 └── WrapperConnectionManager (прокси)
                         __init__(connection_manager)
                         _rollup берётся из оригинала
+                        begin/open/commit/rollback запрещены
 
 ═══════════════════════════════════════════════════════════════════════════════
 ПРИМЕР ИСПОЛЬЗОВАНИЯ
@@ -92,12 +95,14 @@ WrapperConnectionManager при создании обёртки сохраняе
     # Production — обычный режим:
     db = PostgresConnectionManager(params, rollup=False)
     await db.open()
+    await db.begin()
     await db.execute("INSERT INTO orders ...")
     await db.commit()  # → COMMIT
 
     # Тестирование — rollup:
     db = PostgresConnectionManager(params, rollup=True)
     await db.open()
+    await db.begin()
     await db.execute("INSERT INTO orders ...")
     await db.commit()  # → ROLLBACK (данные не сохранены)
 """
@@ -112,8 +117,8 @@ class IConnectionManager(BaseResourceManager):
     """
     Интерфейс для всех менеджеров соединений с базами данных.
 
-    Определяет контракт транзакционного управления: open, commit,
-    rollback, execute. Поддерживает режим rollup через параметр
+    Определяет контракт транзакционного управления: open, begin,
+    commit, rollback, execute. Поддерживает режим rollup через параметр
     конструктора.
 
     Атрибуты:
@@ -167,6 +172,11 @@ class IConnectionManager(BaseResourceManager):
     @abstractmethod
     async def open(self) -> None:
         """Открывает соединение с ресурсом."""
+        pass
+
+    @abstractmethod
+    async def begin(self) -> None:
+        """Начинает транзакцию (после open, до мутаций в одной транзакции)."""
         pass
 
     async def commit(self) -> None:

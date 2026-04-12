@@ -23,11 +23,12 @@ PostgresConnectionManager полностью поддерживает режим
 от IConnectionManager. Параметр rollup передаётся в конструктор и
 прокидывается в super().__init__(rollup=rollup).
 
-Поведение при rollup=True:
-- open()    → реальное открытие соединения с PostgreSQL.
-- execute() → реальное выполнение SQL-запроса (INSERT, UPDATE, DELETE).
-- commit()  → выполняет ROLLBACK вместо COMMIT.
-- rollback()→ реальный ROLLBACK через asyncpg.
+Транзакционный цикл (asyncpg без явного BEGIN фиксирует каждый оператор отдельно):
+- open()    → asyncpg.connect()
+- begin()   → SQL ``BEGIN`` — дальнейшие execute в одной транзакции
+- execute() → реальное выполнение SQL
+- commit()  → ``COMMIT``, или при rollup=True — ROLLBACK вместо COMMIT
+- rollback()→ ``ROLLBACK``
 
 Механизм перехвата commit при rollup=True:
     PostgresConnectionManager.commit() проверяет self.rollup ПЕРВЫМ.
@@ -45,10 +46,7 @@ PostgresConnectionManager полностью поддерживает режим
 ═══════════════════════════════════════════════════════════════════════════════
 
 asyncpg.Connection не предоставляет methodов commit()/rollback() напрямую —
-управление транзакциями осуществляется через SQL-команды:
-
-    await connection.execute("COMMIT")
-    await connection.execute("ROLLBACK")
+управление транзакциями через SQL: ``BEGIN``, ``COMMIT``, ``ROLLBACK``.
 
 ═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES
@@ -59,6 +57,7 @@ EXAMPLES
         connection_params={"host": "localhost", "database": "orders"},
     )
     await db.open()
+    await db.begin()
     await db.execute("INSERT INTO orders (id, amount) VALUES ($1, $2)", (1, 100.0))
     await db.commit()  # → реальный COMMIT
 
@@ -68,6 +67,7 @@ EXAMPLES
         rollup=True,
     )
     await db.open()
+    await db.begin()
     await db.execute("INSERT INTO orders (id, amount) VALUES ($1, $2)", (1, 100.0))
     await db.commit()  # → ROLLBACK (изменения не сохранены)
 
@@ -144,6 +144,20 @@ class PostgresConnectionManager(IConnectionManager):
         except Exception as e:
             raise HandleError(f"Ошибка подключения к PostgreSQL: {e}") from e
 
+    async def begin(self) -> None:
+        """
+        Начинает транзакцию (SQL ``BEGIN``).
+
+        Raises:
+            HandleError: если соединение не открыто или ``BEGIN`` не выполнен.
+        """
+        if self._conn is None:
+            raise HandleError("Соединение не открыто")
+        try:
+            await self._conn.execute("BEGIN")
+        except Exception as e:
+            raise HandleError(f"Ошибка при begin: {e}") from e
+
     async def commit(self) -> None:
         """
         Фиксирует транзакцию или откатывает при rollup=True.
@@ -195,8 +209,8 @@ class PostgresConnectionManager(IConnectionManager):
         """
         Выполняет SQL-запрос через asyncpg.
 
-        Запрос выполняется в contextе текущей транзакции. При rollup=True
-        изменения будут откачены при вызове commit().
+        После ``begin()`` запросы выполняются в одной транзакции; при
+        rollup=True ``commit()`` откатывает её.
 
         Args:
             query: строка SQL-запроса.
