@@ -3,7 +3,7 @@
 Tests for McpAdapter — MCP adapter that turns Actions into MCP tools.
 
 McpAdapter inherits BaseAdapter[McpRouteRecord] and provides the protocol
-method tool() for registering MCP tools. build() creates a FastMCP server.
+method tool() for registering MCP tools. build() creates an MCP server.
 register_all() auto-registers all Actions from the coordinator. All protocol
 methods return self for fluent chaining.
 
@@ -13,7 +13,7 @@ Scenarios covered:
     - tool() with custom description stores it on the record.
     - Auto-description from @meta when description is empty.
     - Fluent chaining across multiple tool() calls.
-    - build() returns a FastMCP instance.
+    - build() returns an MCP server instance.
     - register_all() registers all actions from the coordinator.
     - _class_name_to_snake_case converts CamelCase correctly.
     - Routes list reflects all registered tools.
@@ -22,6 +22,7 @@ Scenarios covered:
 
 from unittest.mock import AsyncMock
 
+import pytest
 from mcp.server.fastmcp import FastMCP
 
 from action_machine.contrib.mcp.adapter import McpAdapter, _class_name_to_snake_case
@@ -161,10 +162,10 @@ class TestFluentChain:
 
 
 class TestBuild:
-    """Verify that build() produces a FastMCP server."""
+    """Verify that build() produces an MCP server."""
 
-    def test_returns_fastmcp_instance(self) -> None:
-        """build() returns a FastMCP object."""
+    def test_returns_mcp_server_instance(self) -> None:
+        """build() returns the MCP server host object."""
         adapter = _make_adapter()
         adapter.tool("ping", PingAction)
         server = adapter.build()
@@ -177,6 +178,37 @@ class TestBuild:
         server = adapter.build()
 
         assert isinstance(server, FastMCP)
+
+
+class TestMcpInputSchema:
+    """MCP tools expose inputSchema derived from action Params (Pydantic)."""
+
+    @pytest.mark.asyncio
+    async def test_list_tools_includes_param_properties(self) -> None:
+        """Non-empty Params → inputSchema.properties matches model fields."""
+        adapter = _make_adapter()
+        adapter.tool("orders.create", FullAction)
+        server = adapter.build()
+        tools = await server.list_tools()
+        assert len(tools) == 1
+        schema = tools[0].inputSchema
+        assert isinstance(schema, dict)
+        assert schema.get("type") == "object"
+        props = schema.get("properties") or {}
+        assert "user_id" in props
+        assert "amount" in props
+        assert "currency" in props
+
+    @pytest.mark.asyncio
+    async def test_ping_tool_schema_is_object(self) -> None:
+        """Empty Params still yields a JSON object schema for the tool."""
+        adapter = _make_adapter()
+        adapter.tool("system.ping", PingAction)
+        server = adapter.build()
+        tools = await server.list_tools()
+        assert len(tools) == 1
+        schema = tools[0].inputSchema
+        assert schema.get("type") == "object"
 
 
 # ═════════════════════════════════════════════════════════════════════════════
