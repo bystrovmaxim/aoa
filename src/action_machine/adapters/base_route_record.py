@@ -89,61 +89,17 @@ AI-CORE-END
 
 from __future__ import annotations
 
-import sys
-import typing
 from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import Any, ForwardRef, get_args, get_origin
+from typing import Any
 
+from action_machine.core import action_generic_params as _action_generic_params
 from action_machine.core.base_action import BaseAction
 
-# ═════════════════════════════════════════════════════════════════════════════
-# ForwardRef resolution helpers
-# ═════════════════════════════════════════════════════════════════════════════
-
-def _resolve_forward_ref(ref: ForwardRef, action_class: type) -> type | None:
-    """
-    Resolve a ForwardRef using the action class module and namespace.
-
-    Uses ``ForwardRef._evaluate`` (typing internals) instead of ``eval`` on the
-    raw string. When ``typing.evaluate_forward_ref`` is available (3.14+), it is
-    used in preference to ``_evaluate``.
-    """
-    module = sys.modules.get(action_class.__module__, None)
-    globalns: dict[str, Any] = vars(module) if module else {}
-    localns: dict[str, Any] = {action_class.__name__: action_class}
-    guard: frozenset[Any] = frozenset()
-
-    try:
-        evaluate_forward_ref = getattr(typing, "evaluate_forward_ref", None)
-        if evaluate_forward_ref is not None:
-            resolved = evaluate_forward_ref(
-                ref,
-                globals=globalns,
-                locals=localns,
-                type_params=(),
-            )
-        else:
-            resolved = ref._evaluate(
-                globalns, localns, None, recursive_guard=guard
-            )
-
-        if isinstance(resolved, type):
-            return resolved
-    except Exception:
-        pass
-    return None
-
-
-def _resolve_generic_arg(arg: Any, action_class: type) -> type | None:
-    """Resolve a single generic argument (type, ForwardRef, or string)."""
-    if isinstance(arg, type):
-        return arg
-    if isinstance(arg, ForwardRef):
-        return _resolve_forward_ref(arg, action_class)
-    if isinstance(arg, str):
-        return _resolve_forward_ref(ForwardRef(arg), action_class)
-    return None
+extract_action_params_result_types = _action_generic_params.extract_action_params_result_types
+# Re-exported for adapter edge tests (forward-ref resolution helpers).
+_resolve_forward_ref = _action_generic_params._resolve_forward_ref
+_resolve_generic_arg = _action_generic_params._resolve_generic_arg
 
 
 def extract_action_types(action_class: type) -> tuple[type, type]:
@@ -157,21 +113,13 @@ def extract_action_types(action_class: type) -> tuple[type, type]:
     Raises:
         TypeError: if extraction fails.
     """
-    for klass in action_class.__mro__:
-        for base in getattr(klass, "__orig_bases__", ()):
-            origin = get_origin(base)
-            if origin is BaseAction:
-                args = get_args(base)
-                if len(args) >= 2:
-                    p_type = _resolve_generic_arg(args[0], action_class)
-                    r_type = _resolve_generic_arg(args[1], action_class)
-                    if p_type is not None and r_type is not None:
-                        return p_type, r_type
-
-    raise TypeError(
-        f"Failed to extract generic parameters P and R from {action_class.__name__}. "
-        f"Action must be declared as BaseAction[Params, Result]."
-    )
+    p_type, r_type = extract_action_params_result_types(action_class)
+    if p_type is None or r_type is None:
+        raise TypeError(
+            f"Failed to extract generic parameters P and R from {action_class.__name__}. "
+            f"Action must be declared as BaseAction[Params, Result]."
+        )
+    return p_type, r_type
 
 
 # ═════════════════════════════════════════════════════════════════════════════

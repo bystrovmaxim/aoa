@@ -72,11 +72,16 @@ AI-CORE-END
 from __future__ import annotations
 
 import time
-from typing import Any, cast
+from typing import Any
 
 from action_machine.context.context_view import ContextView
+from action_machine.core.action_result_binding import bind_pipeline_result_to_action
 from action_machine.core.base_result import BaseResult
-from action_machine.core.exceptions import OnErrorHandlerError
+from action_machine.core.exceptions import (
+    ActionResultDeclarationError,
+    ActionResultTypeError,
+    OnErrorHandlerError,
+)
 from action_machine.plugins.events import (
     AfterOnErrorAspectEvent,
     BeforeOnErrorAspectEvent,
@@ -163,6 +168,11 @@ class ErrorHandlerExecutor:
                     connections,
                     error,
                 )
+            bound = bind_pipeline_result_to_action(
+                type(action),
+                result,
+                source=f"@on_error handler `{handler_meta.method_name}`",
+            )
             duration = time.time() - started_at
             await plugin_ctx.emit_event(
                 AfterOnErrorAspectEvent(
@@ -171,12 +181,14 @@ class ErrorHandlerExecutor:
                     state_snapshot=state.to_dict(),
                     error=error,
                     handler_name=handler_meta.method_name,
-                    handler_result=cast("BaseResult", result),
+                    handler_result=bound,
                     duration_ms=duration * 1000,
                 ),
                 **plugin_kwargs,
             )
-            return cast("BaseResult", result)
+            return bound
+        except (ActionResultTypeError, ActionResultDeclarationError):
+            raise
         except Exception as handler_error:
             raise OnErrorHandlerError(
                 f"Error handler '{handler_meta.method_name}' in "
