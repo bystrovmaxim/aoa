@@ -4,7 +4,7 @@ Abstract base for all domain **entities** in ActionMachine.
 
 `BaseEntity` is the shared shape of in-memory business objects (orders, customers,
 products): typed fields, immutability, strict structure, optional partial loads
-from storage, and hooks into metadata via gate hosts and the coordinator. It is
+from storage, and hooks into metadata via intent markers and the coordinator. It is
 **not** an API transport type; use Params/Result or explicit DTOs for wire formats.
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -23,7 +23,7 @@ SCOPE (IN / OUT)
     Class-level naming invariant (`*Entity` suffix).
     Pydantic model config: `frozen=True`, `extra="forbid"`.
     Partial construction via `partial()` and fail-fast access via `__getattr__`.
-    Mixins `EntityGateHost` and `DescribedFieldsGateHost` so `@entity` and
+    Mixins `EntityIntent` and `DescribedFieldsIntent` so `@entity` and
     non-empty `Field(description=...)` are part of the entity contract.
 
 **Out of scope (by design)**
@@ -37,15 +37,15 @@ SCOPE (IN / OUT)
 TERMINOLOGY (USE CONSISTENTLY)
 ═══════════════════════════════════════════════════════════════════════════════
 
-**Gate host** — mixin marking that a class may use a slice of the framework
-grammar (here: `@entity`, described fields).
+**Intent** — mixin declaring that a class participates in a slice of the
+framework grammar (here: `@entity`, described fields).
 
 **Decorator** — import-time marker (`@entity`) that writes **scratch** on the class.
 
 **Scratch** — class-level data produced by decorators (e.g. `_entity_info`).
 
 **Inspector** — code that reads model + scratch and feeds the coordinator graph
-(e.g. `EntityGateHostInspector`); not defined here.
+(e.g. `EntityIntentInspector`); not defined here.
 
 **Gate coordinator** — builds and holds the global facet graph after `build()`;
 validates entities together with actions and other facets.
@@ -59,15 +59,15 @@ Inheritance (simplified):
     BaseModel (Pydantic)
         └── BaseSchema          — dict-like access, dot-path `resolve()`
                 └── BaseEntity (ABC)
-                        + EntityGateHost           — authorizes `@entity`
-                        + DescribedFieldsGateHost  — non-empty field descriptions
+                        + EntityIntent           — declares `@entity` grammar
+                        + DescribedFieldsIntent  — non-empty field descriptions
 
 Coordinator-facing flow (conceptual):
 
     @entity  ──writes──>  _entity_info  (scratch)
          │
          ▼
-    EntityGateHostInspector  ──reads model + scratch──>  facet payloads / graph
+    EntityIntentInspector  ──reads model + scratch──>  facet payloads / graph
          │
          ▼
     GateCoordinator  (after `build()`)
@@ -95,7 +95,7 @@ INVARIANTS
 - No undeclared fields (`extra="forbid"`).
 - Each declared field uses `Field(description="...")` with a non-empty description
   (enforced when the entity is wired through the coordinator / described-fields
-  pipeline — see `DescribedFieldsGateHost` and inspectors).
+  pipeline — see `DescribedFieldsIntent` and inspectors).
 - Concrete entities should be decorated with `@entity(...)` so `_entity_info`
   exists for the coordinator; without it, entity discovery in the graph fails.
 
@@ -108,7 +108,7 @@ schema drift in long action pipelines. Splitting **entity** types from **API**
 types avoids leaking persistence shapes and partial-load internals to clients.
 `partial()` skips validation intentionally: the loader is trusted to supply
 consistent subsets; raising on first read of a missing field surfaces bugs
-immediately without hidden queries. Mixing gate hosts into the base class keeps
+immediately without hidden queries. Mixing intent markers into the base class keeps
 the rule “only entities use `@entity`” enforceable via `issubclass` at decorator
 time rather than ad hoc checks.
 
@@ -206,16 +206,16 @@ from typing import Any, ClassVar, Self
 from pydantic import ConfigDict
 
 from action_machine.core.base_schema import BaseSchema
-from action_machine.core.described_fields_gate_host import DescribedFieldsGateHost
+from action_machine.core.described_fields_intent import DescribedFieldsIntent
 from action_machine.core.exceptions import NamingSuffixError
-from action_machine.domain.entity_gate_host import EntityGateHost
+from action_machine.domain.entity_intent import EntityIntent
 from action_machine.domain.exceptions import FieldNotLoadedError
 
 # Suffix required for every class that inherits BaseEntity (directly or indirectly).
 _REQUIRED_SUFFIX = "Entity"
 
 
-class BaseEntity(BaseSchema, ABC, EntityGateHost, DescribedFieldsGateHost):
+class BaseEntity(BaseSchema, ABC, EntityIntent, DescribedFieldsIntent):
     """
     Abstract base for all domain entities.
 
@@ -232,8 +232,8 @@ class BaseEntity(BaseSchema, ABC, EntityGateHost, DescribedFieldsGateHost):
 
     **Neighbors**
         - `BaseSchema`: dict-like access and `resolve()`.
-        - `EntityGateHost`: allows `@entity` on subclasses.
-        - `DescribedFieldsGateHost`: field descriptions required for coordinator
+        - `EntityIntent`: allows `@entity` on subclasses.
+        - `DescribedFieldsIntent`: field descriptions required for coordinator
           validation.
         - `FieldNotLoadedError`: raised from `__getattr__` for missing partial
           fields.

@@ -16,10 +16,10 @@
 ═══════════════════════════════════════════════════════════════════════════════
 
 - Применяется только к классам, не к функциям, методам или свойствам.
-- Класс должен наследовать DependencyGateHost — миксин, разрешающий @depends.
+- Класс должен наследовать DependencyIntent — миксин, разрешающий @depends.
 - Аргумент klass должен быть классом (type), не экземпляром и не строкой.
 - klass должен быть подклассом верхней границы, заданной в дженерик-параметре
-  DependencyGateHost[T]. Для BaseAction (T=object) — любой класс допустим.
+  DependencyIntent[T]. Для BaseAction (T=object) — любой класс допустим.
 - Повторное объявление одной и той же зависимости на одном классе запрещено.
 - Параметр description должен быть строкой.
 - Параметр factory (опциональный) должен быть callable или None.
@@ -42,7 +42,7 @@
         ▼  Декоратор записывает в cls._depends_info
     DependencyInfo(cls=PaymentService, description="Сервис оплаты")
         │
-        ▼  DependencyGateHostInspector reads _depends_info
+        ▼  DependencyIntentInspector reads _depends_info
     Снимок: ``coordinator.get_snapshot(cls, \"depends\")`` → зависимости …
         │
         ▼  ``cached_dependency_factory(coordinator, cls)``
@@ -87,7 +87,7 @@
 ═══════════════════════════════════════════════════════════════════════════════
 
     TypeError — klass не является классом; klass не подкласс верхней границы;
-               декоратор применён не к классу; класс не наследует DependencyGateHost;
+               декоратор применён не к классу; класс не наследует DependencyIntent;
                description не строка.
     ValueError — зависимость klass уже объявлена для этого класса.
 """
@@ -98,7 +98,7 @@ from collections.abc import Callable
 from typing import Any
 
 from action_machine.dependencies.dependency_factory import DependencyInfo
-from action_machine.dependencies.dependency_gate_host import DependencyGateHost
+from action_machine.dependencies.dependency_intent import DependencyIntent
 
 
 def depends(
@@ -116,7 +116,7 @@ def depends(
 
     Аргументы:
         klass: класс зависимости. Должен быть типом (type).
-               Должен быть подклассом верхней границы DependencyGateHost[T].
+               Должен быть подклассом верхней границы DependencyIntent[T].
         factory: опциональная фабрика для создания экземпляра.
                  Если None — используется конструктор по умолчанию.
                  Для синглтонов: factory=lambda: shared_instance.
@@ -132,7 +132,7 @@ def depends(
             - klass не подкласс верхней границы (bound).
             - description не является строкой.
             - Декоратор применён не к классу.
-            - Класс не наследует DependencyGateHost.
+            - Класс не наследует DependencyIntent.
         ValueError:
             - Зависимость klass уже объявлена для этого класса.
     """
@@ -156,7 +156,7 @@ def depends(
 
         Проверяет:
         1. cls — класс (type).
-        2. cls наследует DependencyGateHost.
+        2. cls наследует DependencyIntent.
         3. klass — подкласс верхней границы дженерика.
         4. Дубликатов нет.
 
@@ -169,11 +169,11 @@ def depends(
                 f"Получен объект типа {type(cls).__name__}: {cls!r}."
             )
 
-        if not issubclass(cls, DependencyGateHost):
+        if not issubclass(cls, DependencyIntent):
             raise TypeError(
                 f"@depends({klass.__name__}) применён к классу {cls.__name__}, "
-                f"который не наследует DependencyGateHost. "
-                f"Добавьте DependencyGateHost в цепочку наследования."
+                f"который не наследует DependencyIntent. "
+                f"Добавьте DependencyIntent в цепочку наследования."
             )
 
         # ── Проверка верхней границы дженерика ──

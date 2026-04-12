@@ -5,7 +5,64 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Terminology
+
+Older entries below may use the legacy names **GateHost** / `*GateHostInspector` /
+`BaseGateHostInspector`. The current public API uses **Intent** mixins and
+**IntentInspector** classes (e.g. `RoleIntent`, `AspectIntent`, `BaseIntentInspector`).
+The coordinator class name **`GateCoordinator`** is unchanged.
+
 ## Unreleased
+
+### BREAKING
+
+- **GateHost → Intent (public API and module layout).** Marker mixins and
+  inspectors were renamed for consistent «grammar of intents» language:
+  `*GateHost` → `*Intent`, `*GateHostInspector` → `*IntentInspector`,
+  `BaseGateHostInspector` → `BaseIntentInspector`. Files follow
+  `*_intent.py` / `*_intent_inspector.py`. Imports and MRO references must be
+  updated; there are no compatibility aliases in this release line.
+
+| Legacy (removed) | Replacement |
+|------------------|-------------|
+| `ActionMetaGateHost` | `ActionMetaIntent` |
+| `ResourceMetaGateHost` | `ResourceMetaIntent` |
+| `RoleGateHost` | `RoleIntent` |
+| `DependencyGateHost` | `DependencyIntent` |
+| `CheckerGateHost` | `CheckerIntent` |
+| `AspectGateHost` | `AspectIntent` |
+| `CompensateGateHost` | `CompensateIntent` |
+| `ConnectionGateHost` | `ConnectionIntent` |
+| `OnErrorGateHost` | `OnErrorIntent` |
+| `ContextRequiresGateHost` | `ContextRequiresIntent` |
+| `DescribedFieldsGateHost` | `DescribedFieldsIntent` |
+| `EntityGateHost` | `EntityIntent` |
+| `OnGateHost` | `OnIntent` |
+| `RoleModeGateHost` | `RoleModeIntent` |
+| `BaseGateHostInspector` | `BaseIntentInspector` |
+| `RoleGateHostInspector` | `RoleIntentInspector` |
+| (same pattern) | `*IntentInspector` for each facet |
+| `SensitiveGateHostInspector` | `SensitiveIntentInspector` |
+
+### Compatibility (PR-3)
+
+- **No deprecation aliases** (e.g. `RoleGateHost = RoleIntent`) and no
+  `action_machine.compat` shim are provided. The API surface uses **Intent**
+  names only; this keeps imports and documentation unambiguous while the
+  project is pre-`1.0.0`. If temporary aliases are ever needed for a major
+  migration, they would be introduced in a dedicated release with explicit
+  removal timeline and `DeprecationWarning` on each alias.
+
+### Documentation (PR-3)
+
+- **Glossary** — end of `README.md` and `README-2.md`: Intent, IntentInspector,
+  `GateCoordinator`, decorator, scratch, and distinction from «business intent»
+  in prose.
+- **Repository verification (2026-04-12):** `GateHost`, `gate_host`, and
+  `*gate_host*` filenames — **no matches** in `src/**/*.py` and `tests/**/*.py`;
+  no `*gate_host*` files under `src/` or `tests/`. Historical names remain only
+  in this changelog (Terminology + migration table + older release bullets where
+  not yet rewritten).
 
 ### Changed
 
@@ -64,7 +121,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
-- **`CompensateGateHost` (never introduced).** Compensators rely on `AspectGateHost` (already inherited by `BaseAction`). No separate gate host is required.
+- **`CompensateIntent` (no extra mixin required for compensators).** Compensators rely on `AspectIntent` (already inherited by `BaseAction`). No separate intent mixin is required.
 
 ### Security
 
@@ -122,7 +179,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **`BaseParams` and `BaseResult` now strictly require `Field(description=...)` for every field** (via `DescribedFieldsGateHost`). Previously descriptions were optional; now a missing or empty description raises `TypeError` during metadata assembly. This ensures that all API parameters and results are self‑documented from the start.
+- **`BaseParams` and `BaseResult` now strictly require `Field(description=...)` for every field** (via `DescribedFieldsIntent`). Previously descriptions were optional; now a missing or empty description raises `TypeError` during metadata assembly. This ensures that all API parameters and results are self‑documented from the start.
 
 - **`@on` decorator now accepts typed event classes instead of strings.** The old string‑based `event_type` and `action_filter` are removed. New signature: `@on(event_class, *, action_class=None, action_name_pattern=None, aspect_name_pattern=None, nest_level=None, domain=None, predicate=None, ignore_exceptions=True)`. Filter order follows cheapest‑first (`isinstance` → regex → predicate). Multiple `@on` decorators on the same method produce OR semantics.
 
@@ -205,7 +262,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Business domains (`BaseDomain`).** Introduced the `action_machine.domain` package with `BaseDomain` — an abstract base class for declaring typed business domains. Each domain is a class with a mandatory `name: ClassVar[str]` attribute, validated at class creation time via `__init_subclass__`. Domains serve as typed markers for grouping actions and resources by business area. Unlike string-based identifiers, class-based domains provide IDE autocompletion, import-time error detection for typos, and refactoring support. Domains appear as dedicated nodes in the GateCoordinator graph with `belongs_to` edges from actions and resources.
 
-- **`@meta` decorator for mandatory class descriptions.** Every Action (with aspects) and every ResourceManager must now have a `@meta(description="...", domain=...)` decorator. The `description` parameter is mandatory and must be a non-empty string. The `domain` parameter is optional and accepts a `BaseDomain` subclass. Two gate hosts enforce this requirement: `ActionMetaGateHost` (inherited by `BaseAction`) and `ResourceMetaGateHost` (inherited by `BaseResourceManager`). MetadataBuilder raises `TypeError` if `@meta` is missing. The description and domain are stored in `ClassMetadata.meta` as a frozen `MetaInfo` dataclass and are used by adapters for OpenAPI summaries and MCP tool descriptions.
+- **`@meta` decorator for mandatory class descriptions.** Every Action (with aspects) and every ResourceManager must now have a `@meta(description="...", domain=...)` decorator. The `description` parameter is mandatory and must be a non-empty string. The `domain` parameter is optional and accepts a `BaseDomain` subclass. Two intent markers enforce this requirement: `ActionMetaIntent` (inherited by `BaseAction`) and `ResourceMetaIntent` (inherited by `BaseResourceManager`). MetadataBuilder raises `TypeError` if `@meta` is missing. The description and domain are stored in `ClassMetadata.meta` as a frozen `MetaInfo` dataclass and are used by adapters for OpenAPI summaries and MCP tool descriptions.
 
 - **Domain nodes and `belongs_to` edges in the coordinator graph.** When `@meta` specifies a `domain`, GateCoordinator creates a node of type `domain` and a `belongs_to` edge from the class to the domain. Domain nodes are idempotent — multiple actions in the same domain share a single node. Action and dependency node payloads are enriched with `description` and `domain` fields from `@meta`, making the graph self-documenting without requiring access to ClassMetadata.
 
@@ -213,7 +270,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Pydantic-based `BaseParams` and `BaseResult`.** `BaseParams` now inherits from `pydantic.BaseModel` with `frozen=True`, providing immutable parameters with automatic type validation, constraints (`gt`, `min_length`, `pattern`), and JSON Schema generation via `model_json_schema()`. `BaseResult` inherits from `pydantic.BaseModel` with `extra="allow"`, supporting both declared fields and dynamic extra fields written through `WritableMixin`. Both classes retain full `ReadableMixin` compatibility (`resolve()`, `keys()`, `values()`, `items()`, `__getitem__`). `BaseState` remains a plain class — it is not converted to Pydantic because its fields are dynamic and determined at runtime.
 
-- **`DescribedFieldsGateHost` for mandatory field descriptions.** A marker mixin inherited by `BaseParams` and `BaseResult`. MetadataBuilder validates that every Pydantic field in classes inheriting this mixin has a non-empty `description` in `Field(description="...")`. Fields without descriptions raise `TypeError` at metadata assembly time, ensuring that all API parameters and results are self-documented from the start.
+- **`DescribedFieldsIntent` for mandatory field descriptions.** A marker mixin inherited by `BaseParams` and `BaseResult`. MetadataBuilder validates that every Pydantic field in classes inheriting this mixin has a non-empty `description` in `Field(description="...")`. Fields without descriptions raise `TypeError` at metadata assembly time, ensuring that all API parameters and results are self-documented from the start.
 
 - **`FieldDescriptionMeta` in `ClassMetadata`.** A new frozen dataclass capturing field-level metadata: `field_name`, `field_type`, `description`, `examples`, `constraints` (gt, ge, min_length, max_length, pattern, etc.), `required`, and `default`. ClassMetadata now includes `params_fields` and `result_fields` tuples, populated by collectors that extract generic parameters P and R from `BaseAction[P, R]` and read Pydantic `model_fields`. Adapters use these tuples to generate OpenAPI schemas and MCP inputSchemas without any manual configuration.
 
@@ -237,13 +294,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Idempotent metadata building.** `MetadataBuilder.build()` no longer auto-cleans temporary attributes from classes. Classes defined at module level are shared across tests and multiple `GateCoordinator` instances, so auto-cleaning caused data loss on subsequent builds. The builder is now fully idempotent — repeated calls on the same class return equivalent `ClassMetadata` objects. Explicit cleanup remains available via `cleanup_temporary_attributes()` for special scenarios.
 
-- **Comprehensive `_extract_bound` test coverage.** Added exhaustive tests for `DependencyGateHost` generic bound type extraction across all inheritance scenarios: explicit bound specification, missing bound fallback to `object`, three-level and four-level inheritance chains, multiple inheritance with mixins, `TypeVar` fallback, bound override in child classes, and diamond inheritance patterns.
+- **Comprehensive `_extract_bound` test coverage.** Added exhaustive tests for `DependencyIntent` generic bound type extraction across all inheritance scenarios: explicit bound specification, missing bound fallback to `object`, three-level and four-level inheritance chains, multiple inheritance with mixins, `TypeVar` fallback, bound override in child classes, and diamond inheritance patterns.
 
 ## [0.5.0] – 2026-03-21
 
 ### Added
 
-- **Gate-based aspect architecture (`AspectGateHost`).** Introduced `AspectGateHost` as a marker mixin for classes that support `@regular_aspect` and `@summary_aspect` decorators. Decorators write `_new_aspect_meta` metadata directly to methods. `MetadataBuilder` scans MRO to collect aspects into `ClassMetadata.aspects`. This replaces the previous magic-based aspect collection with an explicit, type-safe system where aspects are discovered through decorator metadata rather than method name conventions.
+- **Intent-based aspect architecture (`AspectIntent`).** Introduced `AspectIntent` as a marker mixin for classes that support `@regular_aspect` and `@summary_aspect` decorators. Decorators write `_new_aspect_meta` metadata directly to methods. `MetadataBuilder` scans MRO to collect aspects into `ClassMetadata.aspects`. This replaces the previous magic-based aspect collection with an explicit, type-safe system where aspects are discovered through decorator metadata rather than method name conventions.
 
 - **`ToolsBox` — unified container for aspect tools.** A single object passed to every aspect as the `box` parameter, replacing the previous separate `deps` and `log` parameters. Provides `resolve(cls)` for dependency injection (checking external resources first, then the factory), `info/warning/error/debug` for logging with automatic scope enrichment (machine, mode, action, aspect), and `run(action_class, params, connections)` for launching child actions with automatic connection wrapping to prevent nested transaction control. Reduces aspect parameter count from 5 to 4: `(params, state, box, connections)`.
 
@@ -321,7 +378,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Action-Oriented Architecture (AOA) core.** Actions are atomic business operations consisting of a linear sequence of aspects (processing steps). Each action is a class inheriting `BaseAction[P, R]` where `P` is the params type and `R` is the result type. Aspects are async methods decorated with `@regular_aspect` (intermediate steps returning dict) and `@summary_aspect` (final step returning Result). The machine executes aspects sequentially, merging intermediate results into shared state.
 
-- **Declarative dependency injection (`@depends`).** Actions declare dependencies on external services via class-level decorators: `@depends(PaymentService)`. Dependencies are resolved at runtime through `DependencyFactory` — each `resolve()` call creates a new instance via the factory function or default constructor. Singleton pattern is supported through lambda closures: `@depends(Service, factory=lambda: shared_instance)`. A generic bound `DependencyGateHost[T]` restricts which types are allowed as dependencies.
+- **Declarative dependency injection (`@depends`).** Actions declare dependencies on external services via class-level decorators: `@depends(PaymentService)`. Dependencies are resolved at runtime through `DependencyFactory` — each `resolve()` call creates a new instance via the factory function or default constructor. Singleton pattern is supported through lambda closures: `@depends(Service, factory=lambda: shared_instance)`. A generic bound `DependencyIntent[T]` restricts which types are allowed as dependencies.
 
 - **Connection management (`@connection`).** Actions declare required resource managers (database connections, caches, queues) via `@connection(PostgresManager, key="db")`. The machine validates that passed connections exactly match declared keys — extra keys, missing keys, and non-`BaseResourceManager` values are rejected with descriptive errors. `WrapperConnectionManager` wraps connections passed to child actions, preventing nested transaction control (open/commit/rollback) while allowing query execution.
 

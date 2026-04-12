@@ -49,7 +49,7 @@ regular) выполняется НЕ в декораторе, а в MetadataBuil
     }
 
 Этот атрибут читается локальным сборщиком compensatorов
-(``CompensateGateHostInspector._collect_compensators`` / builder helper),
+(``CompensateIntentInspector._collect_compensators`` / builder helper),
 который обходит ``vars(cls)`` и создаёт snapshot-элементы compensatorов.
 
 ═══════════════════════════════════════════════════════════════════════════════

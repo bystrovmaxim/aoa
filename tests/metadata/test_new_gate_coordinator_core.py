@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 
 from action_machine.core.core_action_machine import CoreActionMachine
-from action_machine.metadata.base_gate_host_inspector import BaseGateHostInspector
+from action_machine.metadata.base_intent_inspector import BaseIntentInspector
 from action_machine.metadata.exceptions import (
     DuplicateNodeError,
     InvalidGraphError,
@@ -27,7 +27,7 @@ class _M:
     pass
 
 
-class _InspectorA(BaseGateHostInspector):
+class _InspectorA(BaseIntentInspector):
     @classmethod
     def _subclasses_recursive(cls) -> list[type]:
         return [_A]
@@ -41,7 +41,7 @@ class _InspectorA(BaseGateHostInspector):
         raise NotImplementedError
 
 
-class _InspectorDup(BaseGateHostInspector):
+class _InspectorDup(BaseIntentInspector):
     @classmethod
     def _subclasses_recursive(cls) -> list[type]:
         return [_B]

@@ -27,7 +27,7 @@ INVARIANTS
   (cycles raise ``CyclicDependencyError`` from ``GateCoordinator.build()``).
 - **Does not** re-validate non-empty ``name`` / ``description`` strings (handled
   in ``BaseRole.__init_subclass__``). **Does not** duplicate lifecycle facet
-  work (see ``RoleModeGateHostInspector``).
+  work (see ``RoleModeIntentInspector``).
 
 ═══════════════════════════════════════════════════════════════════════════════
 DATA FLOW
@@ -39,7 +39,7 @@ DATA FLOW
           │
           ├── includes → structural edges ``role_includes`` → included role_class
           │
-          └── scan RoleGateHost + _role_info → informational ``requires_role``
+          └── scan RoleIntent + _role_info → informational ``requires_role``
                     → existing ``role:<Action>`` nodes
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -58,7 +58,7 @@ ERRORS / LIMITATIONS
 
 - ``InvalidGraphError``: duplicate ``name``, ``UNUSED`` in ``includes`` / MRO,
   missing ``@role_mode``, broken ``requires_role`` target (missing action
-  ``role`` node — should not happen when ``RoleGateHostInspector`` is
+  ``role`` node — should not happen when ``RoleIntentInspector`` is
   registered).
 - Cycle detection: delegated to ``GateCoordinator`` structural pass.
 
@@ -70,7 +70,7 @@ CONTRACT: ``role_class`` nodes; ``role_includes`` + ``requires_role`` edges.
 INVARIANTS: Unique name; no UNUSED in includes/MRO; acyclic includes via graph.
 FLOW: collect subclasses → validate → FacetPayload per role type.
 FAILURES: InvalidGraphError on broken topology.
-EXTENSION POINTS: Align new cross-facet edges with ``RoleGateHostInspector``.
+EXTENSION POINTS: Align new cross-facet edges with ``RoleIntentInspector``.
 AI-CORE-END
 ═══════════════════════════════════════════════════════════════════════════════
 """
@@ -81,10 +81,10 @@ from dataclasses import dataclass
 
 from action_machine.auth.base_role import BaseRole
 from action_machine.auth.constants import ROLE_ANY, ROLE_NONE
-from action_machine.auth.role_gate_host import RoleGateHost
+from action_machine.auth.role_intent import RoleIntent
 from action_machine.auth.role_mode import RoleMode, get_declared_role_mode
 from action_machine.metadata.base_facet_snapshot import BaseFacetSnapshot
-from action_machine.metadata.base_gate_host_inspector import BaseGateHostInspector
+from action_machine.metadata.base_intent_inspector import BaseIntentInspector
 from action_machine.metadata.exceptions import InvalidGraphError
 from action_machine.metadata.payload import EdgeInfo, FacetPayload
 
@@ -92,7 +92,7 @@ from action_machine.metadata.payload import EdgeInfo, FacetPayload
 def _all_base_role_types() -> tuple[type[BaseRole], ...]:
     return tuple(
         c
-        for c in BaseGateHostInspector._collect_subclasses(BaseRole)
+        for c in BaseIntentInspector._collect_subclasses(BaseRole)
         if c is not BaseRole
     )
 
@@ -144,7 +144,7 @@ def _assert_mro_no_unused_base(cls: type[BaseRole]) -> None:
 
 
 def _iter_action_classes_with_role_spec() -> tuple[type, ...]:
-    return tuple(BaseGateHostInspector._collect_subclasses(RoleGateHost))
+    return tuple(BaseIntentInspector._collect_subclasses(RoleIntent))
 
 
 def _required_role_types_from_spec(spec: object) -> tuple[type[BaseRole], ...]:
@@ -157,12 +157,12 @@ def _required_role_types_from_spec(spec: object) -> tuple[type[BaseRole], ...]:
     return ()
 
 
-class RoleClassInspector(BaseGateHostInspector):
+class RoleClassInspector(BaseIntentInspector):
     """
     Emits ``role_class`` topology: ``includes`` structure and action requirements.
     """
 
-    _target_mixin: type = BaseRole
+    _target_intent: type = BaseRole
 
     @dataclass(frozen=True)
     class Snapshot(BaseFacetSnapshot):
@@ -188,7 +188,7 @@ class RoleClassInspector(BaseGateHostInspector):
 
     @classmethod
     def _subclasses_recursive(cls) -> list[type]:
-        return list(cls._collect_subclasses(cls._target_mixin))
+        return list(cls._collect_subclasses(cls._target_intent))
 
     @classmethod
     def inspect(cls, target_cls: type) -> FacetPayload | None:

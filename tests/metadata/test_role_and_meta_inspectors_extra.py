@@ -2,41 +2,41 @@
 
 from __future__ import annotations
 
-from action_machine.auth.role_gate_host import RoleGateHost
-from action_machine.auth.role_gate_host_inspector import RoleGateHostInspector
-from action_machine.core.meta_gate_host_inspector import MetaGateHostInspector
-from action_machine.core.meta_gate_hosts import ActionMetaGateHost
+from action_machine.auth.role_intent import RoleIntent
+from action_machine.auth.role_intent_inspector import RoleIntentInspector
+from action_machine.core.meta_intent_inspector import MetaIntentInspector
+from action_machine.core.meta_intents import ActionMetaIntent
 
 
-class _RoleMissing(RoleGateHost):
+class _RoleMissing(RoleIntent):
     pass
 
 
-class _RoleFilled(RoleGateHost):
+class _RoleFilled(RoleIntent):
     _role_info = {"spec": "admin"}
 
 
-class _MetaMissing(ActionMetaGateHost):
+class _MetaMissing(ActionMetaIntent):
     pass
 
 
-class _MetaFilled(ActionMetaGateHost):
+class _MetaFilled(ActionMetaIntent):
     _meta_info = {"description": "desc", "domain": None}
 
 
-def test_role_gate_host_inspector_branches() -> None:
-    assert RoleGateHostInspector.inspect(_RoleMissing) is None
-    payload = RoleGateHostInspector.inspect(_RoleFilled)
+def test_role_intent_inspector_branches() -> None:
+    assert RoleIntentInspector.inspect(_RoleMissing) is None
+    payload = RoleIntentInspector.inspect(_RoleFilled)
     assert payload is not None
     assert payload.node_type == "role"
     assert dict(payload.node_meta)["spec"] == "admin"
-    assert isinstance(RoleGateHostInspector._subclasses_recursive(), list)
+    assert isinstance(RoleIntentInspector._subclasses_recursive(), list)
 
 
-def test_meta_gate_host_inspector_branches() -> None:
-    assert MetaGateHostInspector.inspect(_MetaMissing) is None
-    payload = MetaGateHostInspector.inspect(_MetaFilled)
+def test_meta_intent_inspector_branches() -> None:
+    assert MetaIntentInspector.inspect(_MetaMissing) is None
+    payload = MetaIntentInspector.inspect(_MetaFilled)
     assert payload is not None
     assert payload.node_type == "meta"
     assert dict(payload.node_meta)["description"] == "desc"
-    assert MetaGateHostInspector._has_domain_invariant(_MetaFilled) is False
+    assert MetaIntentInspector._has_domain_invariant(_MetaFilled) is False

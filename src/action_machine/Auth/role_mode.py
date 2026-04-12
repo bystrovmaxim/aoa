@@ -46,7 +46,7 @@ ERRORS / LIMITATIONS
 
 - ``RoleChecker`` and ``@check_roles`` enforce ``SILENCED``, ``DEPRECATED``, and
   ``UNUSED`` at runtime / decoration time (see ``get_declared_role_mode``).
-  ``RoleClassInspector`` / ``RoleModeGateHostInspector`` add graph-level facets.
+  ``RoleClassInspector`` / ``RoleModeIntentInspector`` add graph-level facets.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN

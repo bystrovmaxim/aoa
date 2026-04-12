@@ -30,6 +30,10 @@ INVARIANTS
   snapshot (not from ``cls._depends_info``).
 - Each ``_run_internal`` call owns a **local** saga stack; nested ``run_child``
   calls get independent stacks.
+- Each ``_run_internal`` call (including every nested ``run_child``) creates a
+  **new** ``PluginRunContext`` via ``PluginCoordinator.create_run_context()``;
+  plugin handler state for a nested action does not share the parent run’s
+  per-run mutable state (see ``PluginCoordinator`` module docstring).
 - When ``rollup=True``, successful regular aspects do not append saga frames;
   compensators are not driven by this stack (transactional rollback uses
   connection wrappers in production paths).
@@ -169,12 +173,12 @@ from action_machine.plugins.plugin_run_context import PluginRunContext
 from action_machine.resource_managers.base_resource_manager import BaseResourceManager
 
 if TYPE_CHECKING:
-    from action_machine.aspects.aspect_gate_host_inspector import AspectGateHostInspector
-    from action_machine.checkers.checker_gate_host_inspector import CheckerGateHostInspector
-    from action_machine.compensate.compensate_gate_host_inspector import (
-        CompensateGateHostInspector,
+    from action_machine.aspects.aspect_intent_inspector import AspectIntentInspector
+    from action_machine.checkers.checker_intent_inspector import CheckerIntentInspector
+    from action_machine.compensate.compensate_intent_inspector import (
+        CompensateIntentInspector,
     )
-    from action_machine.on_error.on_error_gate_host_inspector import OnErrorGateHostInspector
+    from action_machine.on_error.on_error_intent_inspector import OnErrorIntentInspector
 
 P = TypeVar("P", bound=BaseParams)
 R = TypeVar("R", bound=BaseResult)
@@ -197,14 +201,14 @@ class _ActionExecutionCache:
 
     role_spec: Any
     connection_keys: tuple[str, ...]
-    regular_aspects: tuple[AspectGateHostInspector.Snapshot.Aspect, ...]
-    checkers_by_aspect: dict[str, tuple[CheckerGateHostInspector.Snapshot.Checker, ...]]
+    regular_aspects: tuple[AspectIntentInspector.Snapshot.Aspect, ...]
+    checkers_by_aspect: dict[str, tuple[CheckerIntentInspector.Snapshot.Checker, ...]]
     has_compensators: bool
-    error_handlers: tuple[OnErrorGateHostInspector.Snapshot.ErrorHandler, ...]
-    summary_aspect: AspectGateHostInspector.Snapshot.Aspect | None
+    error_handlers: tuple[OnErrorIntentInspector.Snapshot.ErrorHandler, ...]
+    summary_aspect: AspectIntentInspector.Snapshot.Aspect | None
     compensators_by_aspect: dict[
         str,
-        CompensateGateHostInspector.Snapshot.Compensator | None,
+        CompensateIntentInspector.Snapshot.Compensator | None,
     ]
 
     @classmethod
@@ -224,7 +228,7 @@ class _ActionExecutionCache:
 
         ch_snap = gate_coordinator.get_snapshot(action_cls, "checker")
         all_checkers = getattr(ch_snap, "checkers", ()) if ch_snap is not None else ()
-        checkers_by_aspect: dict[str, tuple[CheckerGateHostInspector.Snapshot.Checker, ...]] = {}
+        checkers_by_aspect: dict[str, tuple[CheckerIntentInspector.Snapshot.Checker, ...]] = {}
         for a in regular:
             checkers_by_aspect[a.method_name] = tuple(
                 c for c in all_checkers if c.method_name == a.method_name
@@ -234,7 +238,7 @@ class _ActionExecutionCache:
         compensators = getattr(comp_snap, "compensators", ()) if comp_snap is not None else ()
         compensators_by_aspect: dict[
             str,
-            CompensateGateHostInspector.Snapshot.Compensator | None,
+            CompensateIntentInspector.Snapshot.Compensator | None,
         ] = {}
         for aspect in regular:
             compensators_by_aspect[aspect.method_name] = next(
@@ -386,6 +390,14 @@ class ActionProductMachine(BaseActionMachine):
         return self._plugin_emit
 
     def _get_execution_cache(self, action_cls: type) -> _ActionExecutionCache:
+        """Build frozen pipeline metadata for ``action_cls`` from facet snapshots.
+
+        Returns an ``_ActionExecutionCache`` whose fields are derived only from
+        ``GateCoordinator.get_snapshot`` (aspects, checkers, compensators,
+        error handlers, connections, role). Used for the whole ``_run_internal``
+        path so execution does not read parallel class-level scratch for these
+        facets.
+        """
         return _ActionExecutionCache.from_coordinator_facets(
             action_cls,
             gate_coordinator=self._coordinator,
@@ -597,7 +609,12 @@ class ActionProductMachine(BaseActionMachine):
         nested_level: int,
         rollup: bool,
     ) -> R:
-        """Single run level: gates, ``ToolsBox``, plugin lifecycle via support, aspects."""
+        """Single run level: gates, ``ToolsBox``, plugin lifecycle via support, aspects.
+
+        Creates a **fresh** ``PluginRunContext`` for this invocation (nested
+        ``run_child`` → another ``_run_internal`` → another context). Saga stack
+        is also local to this call.
+        """
         current_nest = nested_level + 1
         start_time = time.time()
 

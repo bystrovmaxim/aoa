@@ -86,10 +86,10 @@ _required_context_keys уже записан.
         ▼  Декоратор записывает в method._on_error_meta
     {"exception_types": (ValueError,), "description": "..."}
         │
-        ▼  OnErrorGateHostInspector._collect_error_handlers(cls)
+        ▼  OnErrorIntentInspector._collect_error_handlers(cls)
     ErrorHandler(..., context_keys=frozenset(...))
         │
-        ▼  on_error_gate_host.validate_error_handlers(cls, error_handlers)
+        ▼  on_error_intent.validate_error_handlers(cls, error_handlers)
     Проверяет перекрытие типов.
         │
         ▼  ActionProductMachine._handle_aspect_error(...)

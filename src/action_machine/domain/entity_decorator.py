@@ -9,14 +9,14 @@ PURPOSE
 ``@entity`` is the single entry point for declaring an **entity** in the
 ActionMachine domain model. It does three things:
 
-1. **Gate-host check** — the target class must inherit ``EntityGateHost``
+1. **Intent check** — the target class must inherit ``EntityIntent``
    (``BaseEntity`` does this for you). Otherwise → ``EntityDecoratorError``.
 
 2. **Scratch metadata** — writes ``_entity_info`` on the class with keys
    ``"description"`` and ``"domain"``. This is the **grammar trace** decorators
-   leave for tools and for ``EntityGateHostInspector``.
+   leave for tools and for ``EntityIntentInspector``.
 
-3. **Discovery** — ``EntityGateHostInspector`` finds decorated classes during
+3. **Discovery** — ``EntityIntentInspector`` finds decorated classes during
    ``GateCoordinator.build()`` and emits facet payloads / snapshots. The
    decorator itself never touches the coordinator.
 
@@ -25,14 +25,14 @@ WHY NOT ``@meta``
 ═══════════════════════════════════════════════════════════════════════════════
 
 Actions and resource managers use ``@meta``. Entities use ``@entity``. Different
-gate hosts, different scratch keys:
+intent markers, different scratch keys:
 
-    @meta   → ActionMetaGateHost or ResourceMetaGateHost  → ``_meta_info``
-    @entity → EntityGateHost                             → ``_entity_info``
+    @meta   → ActionMetaIntent or ResourceMetaIntent  → ``_meta_info``
+    @entity → EntityIntent                             → ``_entity_info``
 
 Reasons:
 - Entities belong to the **domain** package; actions belong to **core**.
-  Mixing gate hosts would couple layers unnecessarily.
+  Mixing intent markers would couple layers unnecessarily.
 - Entities do not use aspects, roles, or dependency wiring — they should not
   pull in action-centric validation paths.
 
@@ -55,7 +55,7 @@ INVARIANTS
 ═══════════════════════════════════════════════════════════════════════════════
 
 - Applies only to **classes**, not functions or methods.
-- Target must inherit ``EntityGateHost`` (typically via ``BaseEntity``).
+- Target must inherit ``EntityIntent`` (typically via ``BaseEntity``).
 - ``description`` — non-empty ``str``.
 - ``domain`` — ``None`` or ``BaseDomain`` subclass.
 - Decorator order relative to other class decorators is otherwise unconstrained.
@@ -69,7 +69,7 @@ INTEGRATION (SCRATCH → COORDINATOR)
         ▼  writes scratch on cls
     _entity_info = {"description": ..., "domain": ShopDomain}
         │
-        ▼  EntityGateHostInspector at GateCoordinator.build()
+        ▼  EntityIntentInspector at GateCoordinator.build()
     Reads _entity_info + pydantic model_fields → FacetPayload / snapshot
         │
         ▼
@@ -98,7 +98,7 @@ EXAMPLE
 ERRORS
 ═══════════════════════════════════════════════════════════════════════════════
 
-    EntityDecoratorError — wrong target type, missing gate host, bad
+    EntityDecoratorError — wrong target type, missing ``EntityIntent``, bad
                            ``description`` / ``domain``.
 """
 
@@ -107,7 +107,7 @@ from __future__ import annotations
 from collections.abc import Callable
 
 from action_machine.domain.base_domain import BaseDomain
-from action_machine.domain.entity_gate_host import (
+from action_machine.domain.entity_intent import (
     validate_entity_decorator_target,
     validate_entity_description,
     validate_entity_domain,
@@ -125,7 +125,7 @@ def entity(
     """
     Class decorator: declare a domain entity.
 
-    Writes ``_entity_info`` on the target class. ``EntityGateHostInspector``
+    Writes ``_entity_info`` on the target class. ``EntityIntentInspector``
     reads it when the coordinator graph is built.
 
     Args:
@@ -140,7 +140,7 @@ def entity(
     Raises:
         EntityDecoratorError:
             Invalid ``description`` / ``domain``, or target is not an
-            ``EntityGateHost`` subclass.
+            ``EntityIntent`` subclass.
 
     Example:
         @entity(description="Customer order", domain=ShopDomain)

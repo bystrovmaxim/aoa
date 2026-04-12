@@ -75,8 +75,8 @@ from __future__ import annotations
 import time
 from typing import Any, cast
 
-from action_machine.compensate.compensate_gate_host_inspector import (
-    CompensateGateHostInspector,
+from action_machine.compensate.compensate_intent_inspector import (
+    CompensateIntentInspector,
 )
 from action_machine.context.context_view import ContextView
 from action_machine.core.base_state import BaseState
@@ -161,7 +161,7 @@ class SagaCoordinator:
             if frame.compensator is None:
                 skipped += 1
                 continue
-            comp_meta: CompensateGateHostInspector.Snapshot.Compensator = frame.compensator
+            comp_meta: CompensateIntentInspector.Snapshot.Compensator = frame.compensator
             await plugin_ctx.emit_event(
                 BeforeCompensateAspectEvent(
                     **base_fields,

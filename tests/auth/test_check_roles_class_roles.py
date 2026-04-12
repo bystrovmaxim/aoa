@@ -13,7 +13,7 @@ import pytest
 from action_machine.aspects.summary_aspect import summary_aspect
 from action_machine.auth.base_role import BaseRole
 from action_machine.auth.check_roles import check_roles
-from action_machine.auth.role_gate_host import RoleGateHost
+from action_machine.auth.role_intent import RoleIntent
 from action_machine.auth.role_mode import RoleMode
 from action_machine.auth.role_mode_decorator import role_mode
 from action_machine.auth.string_role_registry import StringRoleRegistry
@@ -26,11 +26,11 @@ from tests.domain_model.domains import TestDomain
 
 
 class TestRoleModeDecorator:
-    def test_role_mode_requires_role_mode_gate_host(self) -> None:
+    def test_role_mode_requires_role_mode_intent(self) -> None:
         class Plain:
             pass
 
-        with pytest.raises(TypeError, match="RoleModeGateHost"):
+        with pytest.raises(TypeError, match="RoleModeIntent"):
             role_mode(RoleMode.ALIVE)(Plain)  # type: ignore[arg-type]
 
 
@@ -102,7 +102,7 @@ class TestCheckRolesNormalization:
                 return _R()
 
         assert _NormTypeAction._role_info["spec"] is _EditorRole
-        assert issubclass(_NormTypeAction, RoleGateHost)
+        assert issubclass(_NormTypeAction, RoleIntent)
 
     def test_list_of_role_types_becomes_tuple(self) -> None:
         class _P(BaseParams):

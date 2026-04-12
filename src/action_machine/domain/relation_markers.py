@@ -34,9 +34,9 @@ SCOPE (IN / OUT)
 TERMINOLOGY (USE CONSISTENTLY)
 ═══════════════════════════════════════════════════════════════════════════════
 
-**Gate host / decorator / scratch / inspector / gate coordinator** — entity
+**Intent / decorator / scratch / inspector / GateCoordinator** — entity
 relation metadata becomes facet payloads when **inspectors** read annotations
-and defaults; the **gate coordinator** graph stores validated edges.
+and defaults; the **GateCoordinator** graph stores validated edges.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
@@ -50,7 +50,7 @@ ARCHITECTURE / DATA FLOW
         v
     = Rel(description="…")
         │
-        │  GateCoordinator.build() + EntityGateHostInspector
+        │  GateCoordinator.build() + EntityIntentInspector
         v
     validated entity–entity edges (composition / aggregation / association)
 

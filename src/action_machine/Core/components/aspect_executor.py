@@ -76,8 +76,8 @@ from __future__ import annotations
 import time
 from typing import Any, Protocol, cast
 
-from action_machine.aspects.aspect_gate_host_inspector import AspectGateHostInspector
-from action_machine.checkers.checker_gate_host_inspector import CheckerGateHostInspector
+from action_machine.aspects.aspect_intent_inspector import AspectIntentInspector
+from action_machine.checkers.checker_intent_inspector import CheckerIntentInspector
 from action_machine.context.context_view import ContextView
 from action_machine.core.base_action import BaseAction
 from action_machine.core.base_params import BaseParams
@@ -108,7 +108,7 @@ class AspectExecutor:
 
     @staticmethod
     def _apply_checkers(
-        checkers: tuple[CheckerGateHostInspector.Snapshot.Checker, ...],
+        checkers: tuple[CheckerIntentInspector.Snapshot.Checker, ...],
         result: dict[str, Any],
     ) -> None:
         """Run checker instances against a regular-aspect state patch."""
@@ -123,7 +123,7 @@ class AspectExecutor:
     async def call(
         self,
         *,
-        aspect_meta: AspectGateHostInspector.Snapshot.Aspect | None,
+        aspect_meta: AspectIntentInspector.Snapshot.Aspect | None,
         action: BaseAction[Any, Any],
         params: BaseParams,
         state: BaseState,
@@ -169,7 +169,7 @@ class AspectExecutor:
     async def execute_regular(
         self,
         *,
-        aspect_meta: AspectGateHostInspector.Snapshot.Aspect,
+        aspect_meta: AspectIntentInspector.Snapshot.Aspect,
         action: BaseAction[Any, Any],
         params: BaseParams,
         state: BaseState,
@@ -232,7 +232,7 @@ class AspectExecutor:
     async def execute_summary(
         self,
         *,
-        summary_meta: AspectGateHostInspector.Snapshot.Aspect | None,
+        summary_meta: AspectIntentInspector.Snapshot.Aspect | None,
         action: BaseAction[Any, Any],
         params: BaseParams,
         state: BaseState,
@@ -260,7 +260,7 @@ class _RuntimeLike(Protocol):
     @property
     def checkers_by_aspect(
         self,
-    ) -> dict[str, tuple[CheckerGateHostInspector.Snapshot.Checker, ...]]: ...
+    ) -> dict[str, tuple[CheckerIntentInspector.Snapshot.Checker, ...]]: ...
 
     @property
     def has_compensators(self) -> bool: ...

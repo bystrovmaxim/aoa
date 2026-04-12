@@ -20,9 +20,9 @@
 ═══════════════════════════════════════════════════════════════════════════════
 
 Каждый ресурсный менеджер обязан иметь декоратор @meta с описанием.
-Контролируется ResourceMetaGateHost, который входит в цепочку наследования
+Контролируется ResourceMetaIntent, который входит в цепочку наследования
 BaseResourceManager. MetadataBuilder при сборке проверяет: если класс
-наследует ResourceMetaGateHost — @meta обязателен. Без него — TypeError.
+наследует ResourceMetaIntent — @meta обязателен. Без него — TypeError.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ПОДДЕРЖКА ROLLUP
@@ -47,7 +47,7 @@ rollup — RollupNotSupportedError пробрасывается наружу, и
 АРХИТЕКТУРА
 ═══════════════════════════════════════════════════════════════════════════════
 
-    class BaseResourceManager(ABC, ResourceMetaGateHost):
+    class BaseResourceManager(ABC, ResourceMetaIntent):
         check_rollup_support() → raises RollupNotSupportedError
         get_wrapper_class()    → type | None
 
@@ -88,15 +88,15 @@ rollup — RollupNotSupportedError пробрасывается наружу, и
 from abc import ABC, abstractmethod
 
 from action_machine.core.exceptions import RollupNotSupportedError
-from action_machine.core.meta_gate_hosts import ResourceMetaGateHost
+from action_machine.core.meta_intents import ResourceMetaIntent
 
 
-class BaseResourceManager(ABC, ResourceMetaGateHost):
+class BaseResourceManager(ABC, ResourceMetaIntent):
     """
     Базовый абстрактный класс для всех ресурсных менеджеров.
 
     Позволяет идентифицировать ресурс через isinstance. Наследует
-    ResourceMetaGateHost, что делает декоратор @meta обязательным
+    ResourceMetaIntent, что делает декоратор @meta обязательным
     для всех конкретных реализаций.
 
     Каждый ресурсный менеджер обязан:

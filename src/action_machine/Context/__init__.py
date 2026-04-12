@@ -29,8 +29,8 @@ PURPOSE
 
 - **ContextView** — frozen-объект с контролируемым доступом к полям
   contextа. Создаётся машиной для аспектов с @context_requires.
-  Единственный публичный method get(key) проверяет принадлежность ключа
-  к множеству разрешённых и делегирует в context.resolve(key).
+  Единственный публичный method get(key) проверяет, что ключ входит в
+  подмножество, заданное @context_requires, и делегирует в context.resolve(key).
   Обращение к незапрошенному полю — ContextAccessError.
 
 - **context_requires** — декоратор уровня methodа. Декларирует поля
@@ -39,7 +39,7 @@ PURPOSE
   меняет ожидаемую сигнатуру: аспект получает дополнительный параметр
   ctx: ContextView.
 
-- **ContextRequiresGateHost** — marker mixin, обозначающий поддержку
+- **ContextRequiresIntent** — marker mixin, обозначающий поддержку
   @context_requires. Наследуется BaseAction.
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -127,7 +127,7 @@ EXAMPLES
 
 from .context import Context
 from .context_requires_decorator import context_requires
-from .context_requires_gate_host import ContextRequiresGateHost
+from .context_requires_intent import ContextRequiresIntent
 from .context_view import ContextView
 from .ctx_constants import Ctx
 from .request_info import RequestInfo
@@ -136,7 +136,7 @@ from .user_info import UserInfo
 
 __all__ = [
     "Context",
-    "ContextRequiresGateHost",
+    "ContextRequiresIntent",
     "ContextView",
     "Ctx",
     "RequestInfo",

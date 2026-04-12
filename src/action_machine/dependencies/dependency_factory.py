@@ -114,7 +114,7 @@ class DependencyInfo:
     Неизменяемая информация об одной зависимости действия.
 
     Создаётся декоратором @depends и сохраняется в cls._depends_info.
-    Снимок строит ``DependencyGateHostInspector`` (``collect_dependencies``).
+    Снимок строит ``DependencyIntentInspector`` (``collect_dependencies``).
     GateCoordinator передаёт этот кортеж в DependencyFactory.
 
     Атрибуты:

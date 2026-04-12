@@ -7,7 +7,7 @@ PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 All errors raised while ``GateCoordinator.build()`` walks inspectors or while
-hosts validate facet payloads.
+inspectors validate facet payloads.
 
 Keeping them in a dedicated module allows:
 1. Hosts and coordinator to import without circular imports.
@@ -66,31 +66,31 @@ class DuplicateNodeError(ValueError):
     Attributes:
         key : str
             Conflicting graph key.
-        first_gate_host : str
+        first_inspector : str
             Inspector that registered the node first.
-        second_gate_host : str
+        second_inspector : str
             Inspector that detected the conflict.
     """
 
     def __init__(
         self,
         key: str,
-        first_gate_host: str,
-        second_gate_host: str,
+        first_inspector: str,
+        second_inspector: str,
     ) -> None:
         """
         Args:
             key: Conflicting ``"node_type:node_name"`` key.
-            first_gate_host: Inspector that created the node first.
-            second_gate_host: Inspector that triggered the conflict.
+            first_inspector: Inspector that created the node first.
+            second_inspector: Inspector that triggered the conflict.
         """
         self.key: str = key
-        self.first_gate_host: str = first_gate_host
-        self.second_gate_host: str = second_gate_host
+        self.first_inspector: str = first_inspector
+        self.second_inspector: str = second_inspector
         super().__init__(
             f"Node key conflict '{key}':\n"
-            f"  created by:    {first_gate_host}\n"
-            f"  conflict with: {second_gate_host}"
+            f"  created by:    {first_inspector}\n"
+            f"  conflict with: {second_inspector}"
         )
 
 

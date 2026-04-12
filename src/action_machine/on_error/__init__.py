@@ -15,15 +15,15 @@
 КОМПОНЕНТЫ
 ═══════════════════════════════════════════════════════════════════════════════
 
-- OnErrorGateHost — маркерный миксин, обозначающий поддержку декоратора
-  @on_error. Наследуется BaseAction. Класс без OnErrorGateHost в MRO
+- OnErrorIntent — маркерный миксин, обозначающий поддержку декоратора
+  @on_error. Наследуется BaseAction. Класс без OnErrorIntent в MRO
   не может содержать методы с @on_error — MetadataBuilder выбросит
   TypeError при сборке метаданных.
 
 - on_error — декоратор уровня метода. Принимает один тип исключения
   или кортеж типов и обязательное описание (description). Записывает
   метаданные в атрибут method._on_error_meta. Typed-снимок формирует
-  OnErrorGateHostInspector; чтение снимка — ``get_snapshot(cls, \"error_handler\")``.
+  OnErrorIntentInspector; чтение снимка — ``get_snapshot(cls, \"error_handler\")``.
 
 ═══════════════════════════════════════════════════════════════════════════════
 МЕХАНИЗМ РАБОТЫ
@@ -98,9 +98,9 @@
 """
 
 from .on_error_decorator import on_error
-from .on_error_gate_host import OnErrorGateHost
+from .on_error_intent import OnErrorIntent
 
 __all__ = [
-    "OnErrorGateHost",
+    "OnErrorIntent",
     "on_error",
 ]

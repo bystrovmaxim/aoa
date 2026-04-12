@@ -35,7 +35,7 @@ SCOPE (IN / OUT)
 TERMINOLOGY (USE CONSISTENTLY)
 ═══════════════════════════════════════════════════════════════════════════════
 
-**Gate host / decorator / scratch / inspector / gate coordinator** — same
+**Intent / decorator / scratch / inspector / GateCoordinator** — same
 meaning as in ``action_machine.domain`` and metadata packages: domains are
 **referenced** by type from decorators (e.g. ``@entity(..., domain=...)``); the
 coordinator graph is built elsewhere from those references.
@@ -190,7 +190,7 @@ class BaseDomain(ABC):
 
     **Neighbors**
         - Referenced from decorators such as ``@entity`` and ``@meta``.
-        - Consumed by metadata inspectors when building the gate coordinator graph.
+        - Consumed by metadata inspectors when building the ``GateCoordinator`` graph.
 
     **Class attributes**
         ``name``

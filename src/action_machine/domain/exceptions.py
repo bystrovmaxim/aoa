@@ -31,7 +31,7 @@ EntityDecoratorError
 LifecycleValidationError
     A `Lifecycle` template attached to an entity fails one of the eight
     structural integrity rules when validated during `GateCoordinator.build()`
-    (via `EntityGateHostInspector` / entity lifecycle validation).
+    (via `EntityIntentInspector` / entity lifecycle validation).
 """
 
 from __future__ import annotations
@@ -127,7 +127,7 @@ class EntityDecoratorError(TypeError):
 
     Typical causes:
     - Applied to something that is not a class.
-    - Target class does not inherit `EntityGateHost` (usually via `BaseEntity`).
+    - Target class does not inherit `EntityIntent` (usually via `BaseEntity`).
     - `description` is not a non-empty string.
     - `domain` is neither `None` nor a `BaseDomain` subclass.
 

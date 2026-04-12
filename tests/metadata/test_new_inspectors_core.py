@@ -3,9 +3,9 @@
 Unit tests for newly introduced graph inspectors in metadata migration.
 
 Covered inspectors:
-- MetaGateHostInspector
-- DependencyGateHostInspector
-- ConnectionGateHostInspector
+- MetaIntentInspector
+- DependencyIntentInspector
+- ConnectionIntentInspector
 
 The tests verify inspector-local behavior only:
 - returns None when source metadata is missing
@@ -21,20 +21,20 @@ from __future__ import annotations
 import pytest
 
 from action_machine.core.meta_decorator import meta
-from action_machine.core.meta_gate_host_inspector import MetaGateHostInspector
-from action_machine.core.meta_gate_hosts import ActionMetaGateHost
-from action_machine.dependencies.dependency_gate_host import DependencyGateHost
-from action_machine.dependencies.dependency_gate_host_inspector import (
-    DependencyGateHostInspector,
+from action_machine.core.meta_intent_inspector import MetaIntentInspector
+from action_machine.core.meta_intents import ActionMetaIntent
+from action_machine.dependencies.dependency_intent import DependencyIntent
+from action_machine.dependencies.dependency_intent_inspector import (
+    DependencyIntentInspector,
 )
 from action_machine.dependencies.depends import depends
 from action_machine.domain.base_domain import BaseDomain
 from action_machine.metadata.gate_coordinator import GateCoordinator
 from action_machine.resource_managers.base_resource_manager import BaseResourceManager
 from action_machine.resource_managers.connection import connection
-from action_machine.resource_managers.connection_gate_host import ConnectionGateHost
-from action_machine.resource_managers.connection_gate_host_inspector import (
-    ConnectionGateHostInspector,
+from action_machine.resource_managers.connection_intent import ConnectionIntent
+from action_machine.resource_managers.connection_intent_inspector import (
+    ConnectionIntentInspector,
 )
 
 
@@ -44,11 +44,11 @@ class _OrdersDomain(BaseDomain):
 
 
 @meta(description="Meta with domain", domain=_OrdersDomain)
-class _MetaWithDomain(ActionMetaGateHost):
+class _MetaWithDomain(ActionMetaIntent):
     pass
 
 
-class _MetaMissing(ActionMetaGateHost):
+class _MetaMissing(ActionMetaIntent):
     pass
 
 
@@ -62,11 +62,11 @@ class _ServiceB:
 
 @depends(_ServiceA, description="a")
 @depends(_ServiceB, description="b")
-class _DependsAction(DependencyGateHost[object]):
+class _DependsAction(DependencyIntent[object]):
     pass
 
 
-class _NoDependsAction(DependencyGateHost[object]):
+class _NoDependsAction(DependencyIntent[object]):
     pass
 
 
@@ -76,26 +76,26 @@ class _DbManager(BaseResourceManager):
 
 
 @connection(_DbManager, key="db", description="primary")
-class _ConnectionAction(ConnectionGateHost):
+class _ConnectionAction(ConnectionIntent):
     pass
 
 
-class _NoConnectionAction(ConnectionGateHost):
+class _NoConnectionAction(ConnectionIntent):
     pass
 
 
 @depends(_ServiceA, description="svc")
 @connection(_DbManager, key="db", description="primary")
-class _DependsAndConnectionAction(DependencyGateHost[object], ConnectionGateHost):
+class _DependsAndConnectionAction(DependencyIntent[object], ConnectionIntent):
     pass
 
 
 def test_meta_inspector_returns_none_without_meta() -> None:
-    assert MetaGateHostInspector.inspect(_MetaMissing) is None
+    assert MetaIntentInspector.inspect(_MetaMissing) is None
 
 
 def test_meta_inspector_builds_payload_with_domain_edge() -> None:
-    payload = MetaGateHostInspector.inspect(_MetaWithDomain)
+    payload = MetaIntentInspector.inspect(_MetaWithDomain)
     assert payload is not None
     assert payload.node_type == "meta"
     assert dict(payload.node_meta)["description"] == "Meta with domain"
@@ -110,11 +110,11 @@ def test_meta_decorator_requires_domain_keyword() -> None:
 
 
 def test_dependency_inspector_returns_none_without_depends() -> None:
-    assert DependencyGateHostInspector.inspect(_NoDependsAction) is None
+    assert DependencyIntentInspector.inspect(_NoDependsAction) is None
 
 
 def test_dependency_inspector_builds_structural_depends_edges() -> None:
-    payload = DependencyGateHostInspector.inspect(_DependsAction)
+    payload = DependencyIntentInspector.inspect(_DependsAction)
     assert payload is not None
     assert payload.node_type == "action"
     assert len(payload.edges) == 2
@@ -123,11 +123,11 @@ def test_dependency_inspector_builds_structural_depends_edges() -> None:
 
 
 def test_connection_inspector_returns_none_without_connections() -> None:
-    assert ConnectionGateHostInspector.inspect(_NoConnectionAction) is None
+    assert ConnectionIntentInspector.inspect(_NoConnectionAction) is None
 
 
 def test_connection_inspector_builds_structural_connection_edge() -> None:
-    payload = ConnectionGateHostInspector.inspect(_ConnectionAction)
+    payload = ConnectionIntentInspector.inspect(_ConnectionAction)
     assert payload is not None
     assert payload.node_type == "action"
     assert len(payload.edges) == 1
@@ -140,8 +140,8 @@ def test_connection_inspector_builds_structural_connection_edge() -> None:
 def test_coordinator_merges_action_payloads_from_dependency_and_connection() -> None:
     coord = (
         GateCoordinator()
-        .register(DependencyGateHostInspector)
-        .register(ConnectionGateHostInspector)
+        .register(DependencyIntentInspector)
+        .register(ConnectionIntentInspector)
         .build()
     )
     action_nodes = [n for n in coord.get_nodes_for_class(_DependsAndConnectionAction) if n.get("node_type") == "action"]

@@ -29,7 +29,7 @@ SCOPE (IN / OUT)
 **Out of scope**
     Lazy loading or automatic fetches — see `RelationNotLoadedError` in
     `exceptions.py`.
-    Enforcing the inverse-side **compatibility matrix** — the gate coordinator
+    Enforcing the inverse-side **compatibility matrix** — ``GateCoordinator``
     validates `Inverse` / `Rel` pairings at **build** time, not inside these
     containers.
     Choosing id types (``str``, ``int``, ``UUID``, …) — whatever the target
@@ -39,9 +39,9 @@ SCOPE (IN / OUT)
 TERMINOLOGY (USE CONSISTENTLY)
 ═══════════════════════════════════════════════════════════════════════════════
 
-**Gate host / decorator / scratch / inspector / gate coordinator** — containers
+**Intent / decorator / scratch / inspector / GateCoordinator** — containers
 appear on entity fields declared with `Rel` / `Inverse`; **inspectors** read
-annotations and scratch during **gate coordinator** `build()` to validate
+annotations and scratch during ``GateCoordinator.build()`` to validate
 relation graphs and ownership rules.
 
 ═══════════════════════════════════════════════════════════════════════════════

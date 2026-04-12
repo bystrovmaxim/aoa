@@ -11,7 +11,7 @@
   open/commit/rollback/execute.
 - WrapperConnectionManager — прокси-обёртка, запрещающая управление
   транзакциями на вложенных уровнях, но разрешающая выполнение запросов.
-- ConnectionGateHost — маркерный миксин, разрешающий применение @connection.
+- ConnectionIntent — маркерный миксин, разрешающий применение @connection.
   Класс без этого миксина не может быть целью @connection.
 - ConnectionInfo — frozen-датакласс, описывающий одно соединение
   (класс менеджера, ключ, описание).
@@ -27,7 +27,7 @@
 Типичный поток:
     1. @connection(PostgresManager, key="db") записывает ConnectionInfo
        в cls._connection_info.
-    2. ``ConnectionGateHostInspector`` при ``GateCoordinator.build()`` читает
+    2. ``ConnectionIntentInspector`` при ``GateCoordinator.build()`` читает
        ``_connection_info`` и формирует facet-снимок / узел графа.
     3. ActionProductMachine._check_connections() сравнивает ключи из facet-снимка
        ``connections`` с аргументом ``connections``.
@@ -36,11 +36,11 @@
 
 from .base_resource_manager import BaseResourceManager
 from .connection import ConnectionInfo, connection
-from .connection_gate_host import ConnectionGateHost
+from .connection_intent import ConnectionIntent
 
 __all__ = [
     "BaseResourceManager",
-    "ConnectionGateHost",
     "ConnectionInfo",
+    "ConnectionIntent",
     "connection",
 ]

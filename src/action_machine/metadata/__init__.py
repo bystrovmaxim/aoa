@@ -11,7 +11,7 @@ PURPOSE
    error handlers and compensators live on facet snapshots
    (``get_role`` / ``get_meta``).
 
-2. **GateCoordinator** — registry of ``BaseGateHostInspector`` classes plus a
+2. **GateCoordinator** — registry of ``BaseIntentInspector`` classes plus a
    transactional **facet graph** (``rx.PyDiGraph``): ``FacetPayload`` nodes,
    edges, key-uniqueness rules, structural acyclicity, and stub materialization
    for edge targets (including domain classes).

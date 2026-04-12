@@ -97,16 +97,16 @@ Result формируется summary-аспектом и возвращаетс
 from pydantic import ConfigDict
 
 from action_machine.core.base_schema import BaseSchema
-from action_machine.core.described_fields_gate_host import DescribedFieldsGateHost
+from action_machine.core.described_fields_intent import DescribedFieldsIntent
 
 
-class BaseResult(BaseSchema, DescribedFieldsGateHost):
+class BaseResult(BaseSchema, DescribedFieldsIntent):
     """
     Базовый frozen-результат действия.
 
     Наследники объявляют итоговые поля и их описания через Field(...).
     Запись после создания запрещена (frozen=True), лишние поля не допускаются
-    (extra="forbid"), описания полей контролирует DescribedFieldsGateHost.
+    (extra="forbid"), описания полей контролирует DescribedFieldsIntent.
 
     Конкретный Result создаётся наследованием:
 
