@@ -64,6 +64,17 @@ The coordinator class name **`GateCoordinator`** is unchanged.
   in this changelog (Terminology + migration table + older release bullets where
   not yet rewritten).
 
+### Changed (facet graph — described fields)
+
+- **`DescribedFieldsIntentInspector` now follows `DescribedFieldsIntent`.** It walks schema classes (``BaseParams`` / ``BaseResult`` / ``BaseEntity`` subtrees), not ``BaseAction``. Graph nodes ``described_fields:<module.Schema>`` carry per-model field metadata; ``node_meta`` uses key ``schema_fields`` (not ``params_fields`` / ``result_fields``).
+- **`ActionTypedSchemasInspector` (new).** Registered after ``DescribedFieldsIntentInspector``. For each action class it resolves ``BaseAction[P, R]`` via ``extract_action_params_result_types`` and emits an ``action_schemas`` node with informational edges ``uses_params`` / ``uses_result`` to the corresponding ``described_fields`` targets. Facet snapshot key: ``"action_schemas"``.
+- **`extract_action_params_result_types`** lives in ``action_machine.core.action_generic_params`` (single place for generic extraction).
+- **Validation API:** removed ``validate_described_fields(action_cls, params_fields, result_fields)``. Use ``validate_described_schema(model_cls | None)`` for one schema, or ``validate_described_schemas_for_action(action_cls)`` to validate both ``P`` and ``R`` after resolving them from the action class.
+
+### BREAKING (facet snapshots)
+
+- **``get_snapshot(SomeAction, "described_fields")`` is removed.** Described-field snapshots are stored per schema class: ``get_snapshot(OrderParams, "described_fields")``, ``get_snapshot(OrderResult, "described_fields")``. Use ``get_snapshot(SomeAction, "action_schemas")`` for the action’s resolved ``P``/``R`` types and graph linkage.
+
 ### Changed
 
 - **Machine-owned plugin lifecycle events** — all six types (`GlobalStartEvent`,

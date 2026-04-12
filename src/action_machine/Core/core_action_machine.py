@@ -8,6 +8,9 @@ from action_machine.checkers.checker_intent_inspector import CheckerIntentInspec
 from action_machine.compensate.compensate_intent_inspector import (
     CompensateIntentInspector,
 )
+from action_machine.core.action_typed_schemas_inspector import (
+    ActionTypedSchemasInspector,
+)
 from action_machine.core.described_fields_intent import (
     DescribedFieldsIntentInspector,
 )
@@ -49,6 +52,7 @@ class CoreActionMachine:
             .register(DependencyIntentInspector)
             .register(ConnectionIntentInspector)
             .register(DescribedFieldsIntentInspector)
+            .register(ActionTypedSchemasInspector)
             .register(AspectIntentInspector)
             .register(CheckerIntentInspector)
             .register(OnErrorIntentInspector)

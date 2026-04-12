@@ -104,7 +104,7 @@ class BaseResult(BaseSchema, DescribedFieldsIntent):
     """
     Базовый frozen-результат действия.
 
-    Наследники объявляют итоговые поля и их описания через Field(...).
+    Наследники объявляют итоговые поля и их описания через Field(..., description=...).
     Запись после создания запрещена (frozen=True), лишние поля не допускаются
     (extra="forbid"), описания полей контролирует DescribedFieldsIntent.
 

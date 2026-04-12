@@ -8,16 +8,17 @@ PURPOSE
 
 ``DescribedFieldsIntent`` маркирует ``BaseParams`` / ``BaseResult`` (и любые pydantic-модели
 в роли P/R действия): каждое поле с данными обязано иметь непустой
-``Field(description=...)``. ``DescribedFieldsIntentInspector`` читает поля носителя
-и эмитит узел/метаданные фасета ``described_fields`` для ``GateCoordinator``.
+``Field(description=...)``.
+
+``DescribedFieldsIntentInspector`` обходит подклассы ``DescribedFieldsIntent``, читает
+поля каждой **модели-схемы** и эмитит узел фасета ``described_fields`` для
+``GateCoordinator``. Связь «действие → свои P/R`` задаётся отдельно
+:class:`ActionTypedSchemasInspector` (узлы ``action_schemas`` с рёбрами к этим узлам).
 
 Класс ``DescribedFieldsIntent`` (миксин):
-    Намерение: все pydantic-поля носителя снабжены явными описаниями; проверка при
-    сборке метаданных (``validate_described_fields`` / MetadataBuilder).
-
-Класс ``DescribedFieldsIntentInspector``:
-    Обходит подклассы ``BaseAction``, строит типизированный ``Snapshot`` с описаниями
-    полей Params/Result и ``FacetPayload`` для графа.
+    Намерение: все pydantic-поля носителя снабжены явными описаниями; проверка через
+    ``validate_described_schema`` / ``validate_described_schemas_for_action`` при сборке
+    метаданных (MetadataBuilder и т.п.).
 
 ═══════════════════════════════════════════════════════════════════════════════
 INVARIANTS
@@ -28,7 +29,7 @@ INVARIANTS
   ``BaseResult`` и модели без полей не валидируются.
 - Тексты ошибок формулируются как невыполненное **намерение описать поля**, не как
   «отсутствие разрешения».
-- Ключ фасета в координаторе — ``described_fields`` (без изменения сериализации графа).
+- Ключ фасета в координаторе для схемы — ``described_fields`` (по классу модели).
 
 ═══════════════════════════════════════════════════════════════════════════════
 DATA FLOW
@@ -36,51 +37,27 @@ DATA FLOW
 
 ::
 
-    class BaseParams(BaseSchema, DescribedFieldsIntent):
-        model_config = ConfigDict(frozen=True, extra="forbid")
-
-    class BaseResult(BaseSchema, DescribedFieldsIntent):
-        model_config = ConfigDict(frozen=True, extra="forbid")
-
     class OrderParams(BaseParams):
         user_id: str = Field(description="ID пользователя")
-        amount: float = Field(description="Сумма заказа")
 
-    class BadParams(BaseParams):
-        user_id: str
-        amount: float = Field()
+    → described_fields:tests…OrderParams (поля + constraints)
 
-    # MetadataBuilder → TypeError: непустое description обязательно.
+    class CreateOrderAction(BaseAction[OrderParams, OrderResult]): ...
 
-    # Inspector: Action[P,R] → Snapshot(params_fields, result_fields) → graph node
-
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-::
-
-    from pydantic import Field
-    from action_machine.core.base_params import BaseParams
-
-    class OrderParams(BaseParams):
-        user_id: str = Field(description="ID пользователя")
-        amount: float = Field(description="Сумма заказа", gt=0)
-
-    class BadParams(BaseParams):
-        user_id: str  # → TypeError при сборке метаданных
+    → action_schemas:…CreateOrderAction — рёбра uses_params / uses_result
+      к узлам described_fields для OrderParams и OrderResult
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, get_args, get_origin
+from typing import Any
 
 from pydantic import BaseModel
 from pydantic.fields import FieldInfo
 from pydantic_core import PydanticUndefined
 
-from action_machine.core.base_action import BaseAction
+from action_machine.core.action_generic_params import extract_action_params_result_types
 from action_machine.metadata.base_facet_snapshot import BaseFacetSnapshot
 from action_machine.metadata.base_intent_inspector import BaseIntentInspector
 from action_machine.metadata.payload import FacetPayload
@@ -93,8 +70,8 @@ class DescribedFieldsIntent:
 
     Наследуется BaseParams и BaseResult. Class, наследующий
     DescribedFieldsIntent и содержащий pydantic-поля, обязан
-    иметь непустое description для каждого поля. MetadataBuilder
-    проверяет это при сборке runtime metadata.
+    иметь непустое description для каждого поля.     Вызывайте ``validate_described_schema`` на классе модели или
+    ``validate_described_schemas_for_action`` на классе действия при сборке метаданных.
 
     Миксин не содержит логики, полей или methodов.
     """
@@ -102,23 +79,8 @@ class DescribedFieldsIntent:
     pass
 
 
-def _extract_generic_params_result(cls: type) -> tuple[type | None, type | None]:
-    for klass in cls.__mro__:
-        for base in getattr(klass, "__orig_bases__", ()):
-            origin = get_origin(base)
-            if origin is BaseAction:
-                args = get_args(base)
-                if len(args) >= 2:
-                    p_type = args[0] if isinstance(args[0], type) else None
-                    r_type = args[1] if isinstance(args[1], type) else None
-                    return p_type, r_type
-    return None, None
-
-
-def _validate_pydantic_model_descriptions(model_cls: type) -> list[str]:
-    if not isinstance(model_cls, type) or not issubclass(model_cls, BaseModel):
-        return []
-
+def _field_names_missing_description(model_cls: type) -> list[str]:
+    """Return names of model fields with missing or empty ``Field(description=...)``."""
     missing: list[str] = []
     for field_name, field_info in model_cls.model_fields.items():
         description = field_info.description
@@ -127,45 +89,50 @@ def _validate_pydantic_model_descriptions(model_cls: type) -> list[str]:
     return missing
 
 
-def validate_described_fields(
-    cls: type,
-    params_fields: list[Any],
-    result_fields: list[Any],
-) -> None:
-    """Инварианты DescribedFieldsIntent для Params/Result (вызов из builder)."""
-    p_type, r_type = _extract_generic_params_result(cls)
+def validate_described_schema(model_cls: type | None) -> None:
+    """
+    Enforce ``DescribedFieldsIntent`` for one Pydantic model class.
 
-    if (
-        p_type is not None
-        and issubclass(p_type, DescribedFieldsIntent)
-        and params_fields
-    ):
-        missing = _validate_pydantic_model_descriptions(p_type)
-        if missing:
-            fields_str = ", ".join(f"'{f}'" for f in missing)
-            raise TypeError(
-                f"Поля {fields_str} в {p_type.__name__} не имеют описания. "
-                f'Используйте Field(description="...") для каждого поля.'
-            )
+    No-op when ``model_cls`` is ``None``, is not a ``DescribedFieldsIntent`` subtype,
+    is not a ``BaseModel`` subclass, or declares no fields (empty schema shells).
 
-    if (
-        r_type is not None
-        and issubclass(r_type, DescribedFieldsIntent)
-        and result_fields
-    ):
-        missing = _validate_pydantic_model_descriptions(r_type)
-        if missing:
-            fields_str = ", ".join(f"'{f}'" for f in missing)
-            raise TypeError(
-                f"Поля {fields_str} в {r_type.__name__} не имеют описания. "
-                f'Используйте Field(description="...") для каждого поля.'
-            )
+    Raises:
+        TypeError: A declared field lacks a non-empty ``description``.
+    """
+    if model_cls is None:
+        return
+    if not isinstance(model_cls, type):
+        return
+    if not issubclass(model_cls, DescribedFieldsIntent):
+        return
+    if not issubclass(model_cls, BaseModel):
+        return
+    if not model_cls.model_fields:
+        return
+    missing = _field_names_missing_description(model_cls)
+    if missing:
+        fields_str = ", ".join(f"'{f}'" for f in missing)
+        raise TypeError(
+            f"Поля {fields_str} в {model_cls.__name__} не имеют описания. "
+            f'Используйте Field(description="...") для каждого поля.'
+        )
+
+
+def validate_described_schemas_for_action(action_cls: type) -> None:
+    """
+    Resolve ``BaseAction[P, R]`` on ``action_cls`` and validate ``P`` and ``R``.
+
+    Each resolved type is passed to :func:`validate_described_schema`.
+    """
+    p_type, r_type = extract_action_params_result_types(action_cls)
+    validate_described_schema(p_type)
+    validate_described_schema(r_type)
 
 
 class DescribedFieldsIntentInspector(BaseIntentInspector):
-    """Inspector that captures Params/Result field descriptions for actions."""
+    """Inspector: pydantic field docs for each class that carries ``DescribedFieldsIntent``."""
 
-    _target_intent: type = BaseAction
+    _target_intent: type = DescribedFieldsIntent
 
     @dataclass(frozen=True)
     class Snapshot(BaseFacetSnapshot):
@@ -180,8 +147,7 @@ class DescribedFieldsIntentInspector(BaseIntentInspector):
             default: Any
 
         class_ref: type
-        params_fields: tuple[FieldDescription, ...]
-        result_fields: tuple[FieldDescription, ...]
+        fields: tuple[FieldDescription, ...]
 
         def to_facet_payload(self) -> FacetPayload:
             def _to_row(fd: DescribedFieldsIntentInspector.Snapshot.FieldDescription) -> tuple[Any, ...]:
@@ -200,8 +166,7 @@ class DescribedFieldsIntentInspector(BaseIntentInspector):
                 node_name=DescribedFieldsIntentInspector._make_node_name(self.class_ref),
                 node_class=self.class_ref,
                 node_meta=DescribedFieldsIntentInspector._make_meta(
-                    params_fields=tuple(_to_row(f) for f in self.params_fields),
-                    result_fields=tuple(_to_row(f) for f in self.result_fields),
+                    schema_fields=tuple(_to_row(f) for f in self.fields),
                 ),
                 edges=(),
             )
@@ -262,16 +227,9 @@ class DescribedFieldsIntentInspector(BaseIntentInspector):
         return tuple(result)
 
     @classmethod
-    def _collect_fields_for_action(
-        cls, target_cls: type,
-    ) -> tuple[tuple[Snapshot.FieldDescription, ...], tuple[Snapshot.FieldDescription, ...]]:
-        p_type, r_type = _extract_generic_params_result(target_cls)
-        return cls._collect_pydantic_fields(p_type), cls._collect_pydantic_fields(r_type)
-
-    @classmethod
     def inspect(cls, target_cls: type) -> FacetPayload | None:
-        params_fields, result_fields = cls._collect_fields_for_action(target_cls)
-        if not params_fields and not result_fields:
+        fields = cls._collect_pydantic_fields(target_cls)
+        if not fields:
             return None
         return cls._build_payload(target_cls)
 
@@ -279,14 +237,10 @@ class DescribedFieldsIntentInspector(BaseIntentInspector):
     def facet_snapshot_for_class(
         cls, target_cls: type,
     ) -> Snapshot | None:
-        params_fields, result_fields = cls._collect_fields_for_action(target_cls)
-        if not params_fields and not result_fields:
+        fields = cls._collect_pydantic_fields(target_cls)
+        if not fields:
             return None
-        return cls.Snapshot(
-            class_ref=target_cls,
-            params_fields=params_fields,
-            result_fields=result_fields,
-        )
+        return cls.Snapshot(class_ref=target_cls, fields=fields)
 
     @classmethod
     def facet_snapshot_storage_key(
@@ -297,12 +251,5 @@ class DescribedFieldsIntentInspector(BaseIntentInspector):
     @classmethod
     def _build_payload(cls, target_cls: type) -> FacetPayload:
         snap = cls.facet_snapshot_for_class(target_cls)
-        if snap is None:
-            return FacetPayload(
-                node_type="described_fields",
-                node_name=cls._make_node_name(target_cls),
-                node_class=target_cls,
-                node_meta=(),
-                edges=(),
-            )
+        assert snap is not None
         return snap.to_facet_payload()
