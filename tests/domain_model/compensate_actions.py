@@ -18,6 +18,9 @@ SCENARIOS
 - `PartialCompensateAction` — skipped frames without compensators.
 - `CompensateErrorAction` — compensator raises but rollback continues.
 - `CompensateAndOnErrorAction` — rollback before `@on_error`.
+- `FirstRegularFailsOnErrorAction` — падает первый regular; `@on_error` и пустой state.
+- `SecondRegularFailsOnErrorAction` — падает второй regular; state только от первого шага.
+- `SummaryFailsOnErrorStateAction` — summary fails after regular; `@on_error` sees state.
 - `CompensateWithContextAction` — `@context_requires` in compensator.
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -522,10 +525,279 @@ class CompensateAndOnErrorAction(
         """
         Error handler. Runs AFTER compensation unwind completes.
         Receives the ORIGINAL aspect error.
+
+        ``pipeline_txn`` / ``pipeline_res`` echo state keys so tests assert the
+        ``BaseState`` passed into this handler matches the failing aspect's input.
         """
         return CompensateTestResult(
             status="handled_after_compensate",
-            detail=str(error),
+            detail=(
+                f"{error}|pipeline_txn={state.get('txn_id')!r}|"
+                f"pipeline_res={state.get('reservation_id')!r}"
+            ),
+        )
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# FirstRegularFailsOnErrorAction — first regular raises; @on_error empty state
+# ═════════════════════════════════════════════════════════════════════════════
+
+
+@meta(
+    description="First regular aspect raises; @on_error sees empty incoming state",
+    domain=OrdersDomain,
+)
+@check_roles(NoneRole)
+class FirstRegularFailsOnErrorAction(
+    BaseAction[CompensateTestParams, CompensateTestResult],
+):
+    """
+    ValueError in the first regular aspect.
+
+    The ``BaseState`` passed into that aspect is empty; ``@on_error`` must receive
+    the same (no txn / reservation keys).
+    """
+
+    @regular_aspect("Fail immediately")
+    async def boom_first_aspect(
+        self,
+        params: CompensateTestParams,
+        state: BaseState,
+        box: ToolsBox,
+        connections: dict[str, BaseResourceManager],
+    ) -> dict[str, Any]:
+        raise ValueError("first_regular_failed")
+
+    @summary_aspect("Unreachable in failure path")
+    async def build_result_summary(
+        self,
+        params: CompensateTestParams,
+        state: BaseState,
+        box: ToolsBox,
+        connections: dict[str, BaseResourceManager],
+    ) -> CompensateTestResult:
+        return CompensateTestResult(status="ok")
+
+    @on_error(ValueError, description="Observe pipeline state at first failure")
+    async def handle_first_fail_on_error(
+        self,
+        params: CompensateTestParams,
+        state: BaseState,
+        box: ToolsBox,
+        connections: dict[str, BaseResourceManager],
+        error: Exception,
+    ) -> CompensateTestResult:
+        return CompensateTestResult(
+            status="handled_first_regular",
+            detail=(
+                f"txn={state.get('txn_id')!r}|"
+                f"res={state.get('reservation_id')!r}|err={error!s}"
+            ),
+        )
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# SecondRegularFailsOnErrorAction — second regular raises; state from charge only
+# ═════════════════════════════════════════════════════════════════════════════
+
+
+@meta(
+    description="Charge succeeds, second regular raises; @on_error sees charge state",
+    domain=OrdersDomain,
+)
+@check_roles(NoneRole)
+@depends(PaymentService, description="Payment processing service")
+class SecondRegularFailsOnErrorAction(
+    BaseAction[CompensateTestParams, CompensateTestResult],
+):
+    """
+    First regular adds ``txn_id``; second raises before any reservation.
+
+    ``@on_error`` must receive the ``BaseState`` **passed into** the failing second
+    aspect (has ``txn_id``, no ``reservation_id``).
+    """
+
+    @regular_aspect("Charge payment")
+    @result_string("txn_id", required=True)
+    async def charge_aspect(
+        self,
+        params: CompensateTestParams,
+        state: BaseState,
+        box: ToolsBox,
+        connections: dict[str, BaseResourceManager],
+    ) -> dict[str, Any]:
+        payment = box.resolve(PaymentService)
+        txn_id = await payment.charge(params.amount, "RUB")
+        return {"txn_id": txn_id}
+
+    @compensate("charge_aspect", "Rollback payment")
+    async def rollback_charge_compensate(
+        self,
+        params: CompensateTestParams,
+        state_before: BaseState,
+        state_after: BaseState | None,
+        box: ToolsBox,
+        connections: dict[str, BaseResourceManager],
+        error: Exception,
+    ) -> None:
+        if state_after is None:
+            return
+        payment = box.resolve(PaymentService)
+        await payment.refund(state_after["txn_id"])
+
+    @regular_aspect("Second fails")
+    async def boom_second_aspect(
+        self,
+        params: CompensateTestParams,
+        state: BaseState,
+        box: ToolsBox,
+        connections: dict[str, BaseResourceManager],
+    ) -> dict[str, Any]:
+        raise ValueError("second_regular_failed")
+
+    @summary_aspect("Unreachable in failure path")
+    async def build_result_summary(
+        self,
+        params: CompensateTestParams,
+        state: BaseState,
+        box: ToolsBox,
+        connections: dict[str, BaseResourceManager],
+    ) -> CompensateTestResult:
+        return CompensateTestResult(status="ok")
+
+    @on_error(ValueError, description="Observe pipeline state at second failure")
+    async def handle_second_fail_on_error(
+        self,
+        params: CompensateTestParams,
+        state: BaseState,
+        box: ToolsBox,
+        connections: dict[str, BaseResourceManager],
+        error: Exception,
+    ) -> CompensateTestResult:
+        return CompensateTestResult(
+            status="handled_second_regular",
+            detail=(
+                f"txn={state.get('txn_id')!r}|"
+                f"res={state.get('reservation_id')!r}|err={error!s}"
+            ),
+        )
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# SummaryFailsOnErrorStateAction — summary error; @on_error must see state
+# ═════════════════════════════════════════════════════════════════════════════
+
+
+@meta(
+    description="Regular succeeds, summary raises; @on_error reads pipeline state",
+    domain=OrdersDomain,
+)
+@check_roles(NoneRole)
+@depends(PaymentService, description="Payment processing service")
+@depends(InventoryService, description="Inventory service")
+class SummaryFailsOnErrorStateAction(
+    BaseAction[CompensateTestParams, CompensateTestResult],
+):
+    """
+    All regular aspects complete; ``summary_aspect`` raises.
+
+    Used to assert ``@on_error`` receives the accumulated ``BaseState`` from the
+    regular pipeline (not an empty ``BaseState()``).
+    """
+
+    @regular_aspect("Charge payment")
+    @result_string("txn_id", required=True)
+    async def charge_aspect(
+        self,
+        params: CompensateTestParams,
+        state: BaseState,
+        box: ToolsBox,
+        connections: dict[str, BaseResourceManager],
+    ) -> dict[str, Any]:
+        payment = box.resolve(PaymentService)
+        txn_id = await payment.charge(params.amount, "RUB")
+        return {"txn_id": txn_id}
+
+    @compensate("charge_aspect", "Rollback payment")
+    async def rollback_charge_compensate(
+        self,
+        params: CompensateTestParams,
+        state_before: BaseState,
+        state_after: BaseState | None,
+        box: ToolsBox,
+        connections: dict[str, BaseResourceManager],
+        error: Exception,
+    ) -> None:
+        if state_after is None:
+            return
+        payment = box.resolve(PaymentService)
+        await payment.refund(state_after["txn_id"])
+
+    @regular_aspect("Reserve inventory")
+    @result_string("reservation_id", required=True)
+    async def reserve_aspect(
+        self,
+        params: CompensateTestParams,
+        state: BaseState,
+        box: ToolsBox,
+        connections: dict[str, BaseResourceManager],
+    ) -> dict[str, Any]:
+        inventory = box.resolve(InventoryService)
+        reservation_id = await inventory.reserve(params.item_id, 1)
+        return {"reservation_id": reservation_id}
+
+    @compensate("reserve_aspect", "Rollback reservation")
+    async def rollback_reserve_compensate(
+        self,
+        params: CompensateTestParams,
+        state_before: BaseState,
+        state_after: BaseState | None,
+        box: ToolsBox,
+        connections: dict[str, BaseResourceManager],
+        error: Exception,
+    ) -> None:
+        if state_after is None:
+            return
+        inventory = box.resolve(InventoryService)
+        await inventory.unreserve(state_after["reservation_id"])
+
+    @regular_aspect("Finalize order")
+    @result_string("order_id", required=True)
+    async def finalize_aspect(
+        self,
+        params: CompensateTestParams,
+        state: BaseState,
+        box: ToolsBox,
+        connections: dict[str, BaseResourceManager],
+    ) -> dict[str, Any]:
+        return {"order_id": f"ORD-{params.user_id}"}
+
+    @summary_aspect("Build result")
+    async def build_result_summary(
+        self,
+        params: CompensateTestParams,
+        state: BaseState,
+        box: ToolsBox,
+        connections: dict[str, BaseResourceManager],
+    ) -> CompensateTestResult:
+        raise ValueError("summary failed")
+
+    @on_error(ValueError, description="Handle summary failure with state")
+    async def handle_summary_on_error(
+        self,
+        params: CompensateTestParams,
+        state: BaseState,
+        box: ToolsBox,
+        connections: dict[str, BaseResourceManager],
+        error: Exception,
+    ) -> CompensateTestResult:
+        return CompensateTestResult(
+            status="handled_summary_error",
+            detail=(
+                f"txn={state.get('txn_id')!s}|"
+                f"order={state.get('order_id')!s}|"
+                f"err={error!s}"
+            ),
         )
 
 
