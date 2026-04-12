@@ -79,7 +79,7 @@ class DescribedFieldsIntent:
     pass
 
 
-def _field_names_missing_description(model_cls: type) -> list[str]:
+def _field_names_missing_description(model_cls: type[BaseModel]) -> list[str]:
     """Return names of model fields with missing or empty ``Field(description=...)``."""
     missing: list[str] = []
     for field_name, field_info in model_cls.model_fields.items():
