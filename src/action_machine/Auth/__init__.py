@@ -30,7 +30,7 @@ ARCHITECTURE / DATA FLOW
 
     Role model (types, not strings at runtime in snapshots):
 
-        RoleModeGateHost  ◀──  BaseRole  ◀──  your concrete *Role classes
+        RoleModeIntent  ◀──  BaseRole  ◀──  your concrete *Role classes
               ▲                      │
               │               @role_mode(RoleMode.…)
               │                      │
@@ -38,11 +38,11 @@ ARCHITECTURE / DATA FLOW
               │
         StringRoleRegistry.resolve("token")   ← runtime: map user role string → type
 
-        Action classes (RoleGateHost) + @check_roles(AdminRole | [RoleA, RoleB] | …)
+        Action classes (RoleIntent) + @check_roles(AdminRole | [RoleA, RoleB] | …)
               │
-              ├── RoleGateHostInspector → facet ``role`` (per action)
+              ├── RoleIntentInspector → facet ``role`` (per action)
               │
-              ├── RoleModeGateHostInspector → facet ``role_mode`` (lifecycle)
+              ├── RoleModeIntentInspector → facet ``role_mode`` (lifecycle)
               │
               └── RoleClassInspector → facet ``role_class`` (includes + requires_role)
               │
@@ -53,11 +53,11 @@ ARCHITECTURE / DATA FLOW
 INVARIANTS
 ═══════════════════════════════════════════════════════════════════════════════
 
-- ``@check_roles`` requires the target class to inherit ``RoleGateHost``.
+- ``@check_roles`` requires the target class to inherit ``RoleIntent``.
 - Stored role specs use ``BaseRole`` types only; ``ROLE_NONE`` / ``ROLE_ANY`` are
   sentinel objects. ``StringRoleRegistry`` is for resolving user token strings
   at runtime, not for ``@check_roles`` arguments.
-- ``@role_mode`` applies only to ``RoleModeGateHost`` subclasses (typically
+- ``@role_mode`` applies only to ``RoleModeIntent`` subclasses (typically
   ``BaseRole``).
 - ``AuthCoordinator`` requires non-null extractor, authenticator, and assembler.
 - ``NoAuthCoordinator`` always returns an anonymous ``Context``.
@@ -122,10 +122,10 @@ from .constants import ROLE_ANY, ROLE_NONE
 from .context_assembler import ContextAssembler
 from .credential_extractor import CredentialExtractor
 from .no_auth_coordinator import NoAuthCoordinator
-from .role_gate_host import RoleGateHost
+from .role_intent import RoleIntent
 from .role_mode import RoleMode, get_declared_role_mode
 from .role_mode_decorator import role_mode
-from .role_mode_gate_host import RoleModeGateHost
+from .role_mode_intent import RoleModeIntent
 from .string_role_registry import StringRoleRegistry
 
 __all__ = [
@@ -137,9 +137,9 @@ __all__ = [
     "ContextAssembler",
     "CredentialExtractor",
     "NoAuthCoordinator",
-    "RoleGateHost",
+    "RoleIntent",
     "RoleMode",
-    "RoleModeGateHost",
+    "RoleModeIntent",
     "StringRoleRegistry",
     "check_roles",
     "get_declared_role_mode",

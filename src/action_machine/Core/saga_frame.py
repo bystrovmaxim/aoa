@@ -38,8 +38,8 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from action_machine.compensate.compensate_gate_host_inspector import (
-        CompensateGateHostInspector,
+    from action_machine.compensate.compensate_intent_inspector import (
+        CompensateIntentInspector,
     )
 
 
@@ -87,7 +87,7 @@ class SagaFrame:
             необходимых для отката (txn_id, record_id и т.д.).
     """
 
-    compensator: CompensateGateHostInspector.Snapshot.Compensator | None
+    compensator: CompensateIntentInspector.Snapshot.Compensator | None
     aspect_name: str
     state_before: object  # BaseState — frozen-экземпляр
     state_after: object | None  # BaseState | None — frozen-экземпляр или None

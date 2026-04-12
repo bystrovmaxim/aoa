@@ -13,13 +13,13 @@ Mongo, a REST API, or a test double; persistence belongs to resource managers,
 not to the entity type itself.
 
 ═══════════════════════════════════════════════════════════════════════════════
-HOW THIS FITS THE AOA GRAMMAR (GATE HOST → DECORATOR → SCRATCH → INSPECTOR → COORDINATOR)
+HOW THIS FITS THE AOA GRAMMAR (INTENT → DECORATOR → SCRATCH → INSPECTOR → COORDINATOR)
 ═══════════════════════════════════════════════════════════════════════════════
 
-**Gate host** — a marker mixin on a class: “this type is allowed to use a
-specific slice of the AOA grammar.” Decorators and validators use
-`issubclass(cls, SomeGateHost)` so intent is explicit and invariants have a
-stable anchor.
+**Intent** — a marker mixin on a class: the type **declares** participation in a
+slice of the AOA grammar and the framework **checks** declarations at
+``GateCoordinator.build()``. Decorators use ``issubclass(cls, SomeIntent)`` so
+obligations are explicit and invariants have a stable anchor.
 
 **Decorator** — the **grammar of business intent** at import time: it writes
 **scratch** (class-level attributes such as `_entity_info`) that describe what
@@ -33,7 +33,7 @@ nodes. For **actions**, the execution engine consumes those facets from the
 helpers. Domain entities may still read local scratch for helpers such as
 ``BaseEntity.partial`` without loading the graph.
 
-**Inspector** — a class **paired with** gate hosts: discovers relevant subclasses,
+**Inspector** — a class **paired with** intent markers: discovers relevant subclasses,
 reads scratch / model structure, emits `FacetPayload` nodes (and optional typed
 facet snapshots) for the coordinator.
 
@@ -41,17 +41,17 @@ facet snapshots) for the coordinator.
 facet graph (`rustworkx`) and facet snapshots: checks **acyclicity** of
 structural edges and **consistency** of all declared intentions together.
 Entities participate in the **same** graph as Actions and other facets when
-`EntityGateHostInspector` is registered on that coordinator.
+`EntityIntentInspector` is registered on that coordinator.
 
     @entity  ──writes──>  _entity_info  (scratch)
          │
          │ requires
          v
-    EntityGateHost  (marker: “this class may use @entity”)
+    EntityIntent  (marker: “this class declares the @entity grammar”)
          │
          │ at coordinator.build()
          v
-    EntityGateHostInspector  ──reads scratch + model_fields──>  FacetPayload / snapshots
+    EntityIntentInspector  ──reads scratch + model_fields──>  FacetPayload / snapshots
          │
          v
     GateCoordinator graph  (entity nodes, belongs_to domain, relation edges, …)
@@ -75,7 +75,8 @@ Domains:
 
 Entities:
     BaseEntity — abstract base for all entities (frozen, `extra="forbid"`).
-    EntityGateHost — marker mixin that authorizes `@entity`.
+    EntityIntent — marker mixin: the type declares participation in the
+    ``@entity`` grammar (facet / inspector at ``GateCoordinator.build()``).
     entity — class decorator declaring an entity (`_entity_info`).
 
 State machines:
@@ -140,7 +141,7 @@ USAGE SKETCH
 from .base_domain import BaseDomain
 from .entity import BaseEntity
 from .entity_decorator import entity
-from .entity_gate_host import EntityGateHost
+from .entity_intent import EntityIntent
 from .exceptions import (
     EntityDecoratorError,
     FieldNotLoadedError,
@@ -179,7 +180,7 @@ __all__ = [
     "CompositeOne",
     # Exceptions
     "EntityDecoratorError",
-    "EntityGateHost",
+    "EntityIntent",
     "FieldNotLoadedError",
     # Relation markers
     "Inverse",

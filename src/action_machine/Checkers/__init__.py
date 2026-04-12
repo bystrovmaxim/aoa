@@ -27,7 +27,7 @@ ARCHITECTURE / DATA FLOW
 
           │ decorator writes _checker_meta on method
           ▼
-    CheckerGateHostInspector collects _checker_meta → checker snapshot
+    CheckerIntentInspector collects _checker_meta → checker snapshot
           │
           ▼
     ActionProductMachine._apply_checkers()
@@ -43,7 +43,7 @@ The machine validates that:
 INVARIANTS
 ═══════════════════════════════════════════════════════════════════════════════
 
-- Classes using checkers must inherit ``CheckerGateHost``.
+- Classes using checkers must inherit ``CheckerIntent``.
 - Every field returned by a regular aspect must have a corresponding checker.
 - Checker metadata is immutable and stored on the method as ``_checker_meta``.
 - The machine creates checker instances per invocation; checkers are stateless.
@@ -53,7 +53,7 @@ EXPORTS
 ═══════════════════════════════════════════════════════════════════════════════
 
 Marker mixin:
-- ``CheckerGateHost``
+- ``CheckerIntent``
 
 Base class:
 - ``ResultFieldChecker``
@@ -100,7 +100,7 @@ ERRORS / LIMITATIONS
 AI-CORE-BEGIN
 ═══════════════════════════════════════════════════════════════════════════════
 ROLE: Checkers package API surface.
-CONTRACT: Export checker classes, decorators, and gate‑host marker.
+CONTRACT: Export checker classes, decorators, and ``CheckerIntent`` marker.
 INVARIANTS: All aspect result fields must have checkers; checkers are stateless.
 FLOW: decorator metadata -> inspector snapshot -> machine validation -> checker execution.
 FAILURES: ValidationFieldError for missing or invalid fields.
@@ -109,7 +109,7 @@ AI-CORE-END
 ═══════════════════════════════════════════════════════════════════════════════
 """
 
-from .checker_gate_host import CheckerGateHost
+from .checker_intent import CheckerIntent
 from .result_bool_checker import ResultBoolChecker, result_bool
 from .result_date_checker import ResultDateChecker, result_date
 from .result_field_checker import ResultFieldChecker
@@ -119,7 +119,7 @@ from .result_int_checker import ResultIntChecker, result_int
 from .result_string_checker import ResultStringChecker, result_string
 
 __all__ = [
-    "CheckerGateHost",
+    "CheckerIntent",
     "ResultFieldChecker",
     "ResultStringChecker",
     "ResultIntChecker",

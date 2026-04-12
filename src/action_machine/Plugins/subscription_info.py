@@ -9,7 +9,7 @@ SubscriptionInfo — frozen-датакласс конфигурации одно
 SubscriptionInfo хранит полную конфигурацию одной подписки метода плагина
 на событие. Создаётся декоратором @on при определении класса плагина и
 сохраняется в атрибуте method._on_subscriptions. Снимок подписок —
-``GateCoordinator.get_subscriptions()`` (``SubscriptionGateHostInspector.Snapshot``).
+``GateCoordinator.get_subscriptions()`` (``SubscriptionIntentInspector.Snapshot``).
 PluginRunContext использует их для маршрутизации событий к обработчикам.
 
 Один метод плагина может иметь несколько подписок (несколько @on),

@@ -5,20 +5,20 @@ from __future__ import annotations
 
 from typing import Any, cast
 
-from action_machine.aspects.aspect_gate_host_inspector import AspectGateHostInspector
-from action_machine.checkers.checker_gate_host_inspector import CheckerGateHostInspector
-from action_machine.compensate.compensate_gate_host_inspector import (
-    CompensateGateHostInspector,
+from action_machine.aspects.aspect_intent_inspector import AspectIntentInspector
+from action_machine.checkers.checker_intent_inspector import CheckerIntentInspector
+from action_machine.compensate.compensate_intent_inspector import (
+    CompensateIntentInspector,
 )
-from action_machine.on_error.on_error_gate_host_inspector import OnErrorGateHostInspector
+from action_machine.on_error.on_error_intent_inspector import OnErrorIntentInspector
 
 
 def aspect_tuple_to_meta(
     row: tuple[Any, ...],
-) -> AspectGateHostInspector.Snapshot.Aspect:
+) -> AspectIntentInspector.Snapshot.Aspect:
     aspect_type, method_name, description, method_ref, context_keys = row
     ck = context_keys if isinstance(context_keys, frozenset) else frozenset(context_keys or ())
-    return AspectGateHostInspector.Snapshot.Aspect(
+    return AspectIntentInspector.Snapshot.Aspect(
         method_name=method_name,
         aspect_type=aspect_type,
         description=description,
@@ -29,9 +29,9 @@ def aspect_tuple_to_meta(
 
 def checker_tuple_to_meta(
     row: tuple[Any, ...],
-) -> CheckerGateHostInspector.Snapshot.Checker:
+) -> CheckerIntentInspector.Snapshot.Checker:
     method_name, checker_class, field_name, required, extra_kv = row
-    return CheckerGateHostInspector.Snapshot.Checker(
+    return CheckerIntentInspector.Snapshot.Checker(
         method_name=method_name,
         checker_class=checker_class,
         field_name=field_name,
@@ -42,10 +42,10 @@ def checker_tuple_to_meta(
 
 def compensator_tuple_to_meta(
     row: tuple[Any, ...],
-) -> CompensateGateHostInspector.Snapshot.Compensator:
+) -> CompensateIntentInspector.Snapshot.Compensator:
     method_name, target_aspect_name, description, method_ref, context_keys = row
     ck = context_keys if isinstance(context_keys, frozenset) else frozenset(context_keys or ())
-    return CompensateGateHostInspector.Snapshot.Compensator(
+    return CompensateIntentInspector.Snapshot.Compensator(
         method_name=method_name,
         target_aspect_name=target_aspect_name,
         description=description,
@@ -56,11 +56,11 @@ def compensator_tuple_to_meta(
 
 def on_error_tuple_to_meta(
     row: tuple[Any, ...],
-) -> OnErrorGateHostInspector.Snapshot.ErrorHandler:
+) -> OnErrorIntentInspector.Snapshot.ErrorHandler:
     method_name, exception_types, description, method_ref, context_keys = row
     ck = context_keys if isinstance(context_keys, frozenset) else frozenset(context_keys or ())
     et = tuple(exception_types)
-    return OnErrorGateHostInspector.Snapshot.ErrorHandler(
+    return OnErrorIntentInspector.Snapshot.ErrorHandler(
         method_name=method_name,
         exception_types=cast("tuple[type[Exception], ...]", et),
         description=description,

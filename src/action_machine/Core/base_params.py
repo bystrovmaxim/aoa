@@ -54,7 +54,7 @@ ValidationError. Это защита от опечаток и случайных
 
 Каждое поле описывается через pydantic Field(description="...").
 Описание обязательно — MetadataBuilder проверяет при сборке метаданных
-через DescribedFieldsGateHost. Описания используются для генерации
+через DescribedFieldsIntent. Описания используются для генерации
 OpenAPI-документации (FastAPI), JSON Schema (MCP) и интроспекции.
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -112,15 +112,15 @@ EXAMPLES
 from pydantic import ConfigDict
 
 from action_machine.core.base_schema import BaseSchema
-from action_machine.core.described_fields_gate_host import DescribedFieldsGateHost
+from action_machine.core.described_fields_intent import DescribedFieldsIntent
 
 
-class BaseParams(BaseSchema, DescribedFieldsGateHost):
+class BaseParams(BaseSchema, DescribedFieldsIntent):
     """
     Иммутабельные параметры действия (frozen, forbid).
 
     Наследует dict-подобный доступ и dot-path навигацию от BaseSchema.
-    Наследует контроль обязательности описаний полей от DescribedFieldsGateHost.
+    Наследует контроль обязательности описаний полей от DescribedFieldsIntent.
 
     Запись в поля запрещена на уровне pydantic (frozen=True).
     Произвольные поля запрещены (extra="forbid").

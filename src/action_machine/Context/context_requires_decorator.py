@@ -88,7 +88,7 @@ ARCHITECTURE / DATA FLOW ИНТЕГРАЦИИ
         ▼  @regular_aspect проверяет сигнатуру
     Видит _required_context_keys → ожидает 6 parameters
         │
-        ▼  AspectGateHostInspector._collect_aspects(cls)
+        ▼  AspectIntentInspector._collect_aspects(cls)
     aspect_snapshot.context_keys = frozenset({"user.user_id", "request.trace_id"})
         │
         ▼  ActionProductMachine._call_aspect(...)

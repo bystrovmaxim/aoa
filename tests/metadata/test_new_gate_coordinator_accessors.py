@@ -3,16 +3,16 @@
 
 from __future__ import annotations
 
-from action_machine.aspects.aspect_gate_host_inspector import AspectGateHostInspector
-from action_machine.checkers.checker_gate_host_inspector import CheckerGateHostInspector
-from action_machine.compensate.compensate_gate_host_inspector import (
-    CompensateGateHostInspector,
+from action_machine.aspects.aspect_intent_inspector import AspectIntentInspector
+from action_machine.checkers.checker_intent_inspector import CheckerIntentInspector
+from action_machine.compensate.compensate_intent_inspector import (
+    CompensateIntentInspector,
 )
 from action_machine.core.core_action_machine import CoreActionMachine
-from action_machine.metadata.base_gate_host_inspector import BaseGateHostInspector
+from action_machine.metadata.base_intent_inspector import BaseIntentInspector
 from action_machine.metadata.gate_coordinator import GateCoordinator
 from action_machine.metadata.payload import EdgeInfo, FacetPayload
-from action_machine.on_error.on_error_gate_host_inspector import OnErrorGateHostInspector
+from action_machine.on_error.on_error_intent_inspector import OnErrorIntentInspector
 from tests.domain_model import FullAction
 from tests.domain_model.services import NotificationService, PaymentService
 
@@ -27,8 +27,8 @@ class _DemoAction:
 
 def test_new_coordinator_runtime_accessors() -> None:
     coordinator = GateCoordinator()
-    entity_name = BaseGateHostInspector._make_node_name(_DemoEntity)
-    action_name = BaseGateHostInspector._make_node_name(_DemoAction)
+    entity_name = BaseIntentInspector._make_node_name(_DemoEntity)
+    action_name = BaseIntentInspector._make_node_name(_DemoAction)
     do_aspect_ref = object()
     summary_ref = object()
     coordinator._phase3_commit(  # pylint: disable=protected-access
@@ -104,17 +104,17 @@ def test_new_coordinator_runtime_accessors() -> None:
     # Keep manually seeded graph/snapshots intact: skip lazy auto-build path.
     coordinator._built = True  # pylint: disable=protected-access
     coordinator._facet_snapshots[(_DemoAction, "aspect")] = (  # pylint: disable=protected-access
-        AspectGateHostInspector.Snapshot(
+        AspectIntentInspector.Snapshot(
             class_ref=_DemoAction,
             aspects=(
-                AspectGateHostInspector.Snapshot.Aspect(
+                AspectIntentInspector.Snapshot.Aspect(
                     method_name="do_aspect",
                     aspect_type="regular",
                     description="Do step",
                     method_ref=do_aspect_ref,
                     context_keys=frozenset(),
                 ),
-                AspectGateHostInspector.Snapshot.Aspect(
+                AspectIntentInspector.Snapshot.Aspect(
                     method_name="result_summary",
                     aspect_type="summary",
                     description="Make result",
@@ -125,10 +125,10 @@ def test_new_coordinator_runtime_accessors() -> None:
         )
     )
     coordinator._facet_snapshots[(_DemoAction, "checker")] = (  # pylint: disable=protected-access
-        CheckerGateHostInspector.Snapshot(
+        CheckerIntentInspector.Snapshot(
             class_ref=_DemoAction,
             checkers=(
-                CheckerGateHostInspector.Snapshot.Checker(
+                CheckerIntentInspector.Snapshot.Checker(
                     method_name="do_aspect",
                     checker_class=object,
                     field_name="value",
@@ -139,10 +139,10 @@ def test_new_coordinator_runtime_accessors() -> None:
         )
     )
     coordinator._facet_snapshots[(_DemoAction, "error_handler")] = (  # pylint: disable=protected-access
-        OnErrorGateHostInspector.Snapshot(
+        OnErrorIntentInspector.Snapshot(
             class_ref=_DemoAction,
             error_handlers=(
-                OnErrorGateHostInspector.Snapshot.ErrorHandler(
+                OnErrorIntentInspector.Snapshot.ErrorHandler(
                     method_name="handle_value_on_error",
                     exception_types=(ValueError,),
                     description="Handle value error",
@@ -153,10 +153,10 @@ def test_new_coordinator_runtime_accessors() -> None:
         )
     )
     coordinator._facet_snapshots[(_DemoAction, "compensator")] = (  # pylint: disable=protected-access
-        CompensateGateHostInspector.Snapshot(
+        CompensateIntentInspector.Snapshot(
             class_ref=_DemoAction,
             compensators=(
-                CompensateGateHostInspector.Snapshot.Compensator(
+                CompensateIntentInspector.Snapshot.Compensator(
                     method_name="rollback_do_compensate",
                     target_aspect_name="do_aspect",
                     description="Rollback step",

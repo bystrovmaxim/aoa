@@ -17,7 +17,7 @@ TestDependenciesAndConnections — узлы и рёбра зависимосте
 TestAspectsAndCheckers — узлы аспектов и чекеров.
 TestSubscriptionsAndSensitive — узлы подписок и sensitive-полей.
 TestCompensatorNodes — агрегированный facet ``compensator`` (без рёбер
-``has_compensator`` к structural ``action``; см. CompensateGateHostInspector).
+``has_compensator`` к structural ``action``; см. CompensateIntentInspector).
 TestRecursiveCollection — автоматический рекурсивный сбор зависимостей.
 TestCycleDetection — сценарии без цикла в графе (ромб); логические циклы @depends
     не покрываются отдельным тестом на CyclicDependencyError.
@@ -35,7 +35,7 @@ TestCoordinatorBasic — базовое API координатора.
 в координаторе), иначе
 остаются ``meta``, ``role``, ``aspect``, ``compensator`` и т.д. Подписки плагина
 — узлы ``subscription``, не ``plugin``. Чувствительные поля в графе покрывает
-``SensitiveGateHostInspector`` для наследников ``BaseSchema`` (не для
+``SensitiveIntentInspector`` для наследников ``BaseSchema`` (не для
 ``BaseAction``). Запросы к графу фильтруют узлы по ``class_ref`` или по
 фрагменту имени, потому что после ``build()`` в снимок могут попасть и чужие
 классы из общего сканирования инспекторов.
@@ -56,14 +56,14 @@ from action_machine.core.base_result import BaseResult
 from action_machine.core.base_schema import BaseSchema
 from action_machine.core.core_action_machine import CoreActionMachine
 from action_machine.core.meta_decorator import meta
-from action_machine.core.meta_gate_host_inspector import MetaGateHostInspector
+from action_machine.core.meta_intent_inspector import MetaIntentInspector
 from action_machine.dependencies.dependency_factory import (
     cached_dependency_factory,
     clear_dependency_factory_cache,
 )
 from action_machine.dependencies.depends import depends
 from action_machine.logging.sensitive_decorator import sensitive
-from action_machine.metadata.base_gate_host_inspector import BaseGateHostInspector
+from action_machine.metadata.base_intent_inspector import BaseIntentInspector
 from action_machine.metadata.gate_coordinator import GateCoordinator
 from action_machine.plugins.decorators import on
 from action_machine.plugins.events import GlobalStartEvent
@@ -91,7 +91,7 @@ def _graph_children(coord: GateCoordinator, full_key: str) -> list[dict[str, Any
 
 def _dependency_tree(coord: GateCoordinator, key: str | type) -> dict[str, Any]:
     if isinstance(key, type):
-        key = f"action:{BaseGateHostInspector._make_node_name(key)}"
+        key = f"action:{BaseIntentInspector._make_node_name(key)}"
     g = coord.get_graph()
     idx_by_key: dict[str, int] = {}
     for i in g.node_indices():
@@ -215,7 +215,7 @@ class _ActionWithCheckersAction(BaseAction["_Params", "_Result"]):
 
 
 class _SensitiveGraphSchema(BaseSchema):
-    """Схема с @sensitive — узел типа sensitive строит только SensitiveGateHostInspector (BaseSchema)."""
+    """Схема с @sensitive — узел типа sensitive строит только SensitiveIntentInspector (BaseSchema)."""
 
     _secret: str = "hidden"
 
@@ -670,7 +670,7 @@ class TestCoordinatorBasic:
     def test_register_same_as_get(self):
         """register now accepts inspector classes only."""
         coord = GateCoordinator()
-        returned = coord.register(MetaGateHostInspector)
+        returned = coord.register(MetaIntentInspector)
         assert returned is coord
 
     def test_has_before_get(self):

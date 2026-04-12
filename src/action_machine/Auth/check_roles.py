@@ -8,7 +8,7 @@ PURPOSE
 
 Declare which **role types** are required to execute an action. The decorator
 writes a normalized specification to ``cls._role_info["spec"]``, consumed by
-``RoleGateHostInspector`` and ``ActionProductMachine`` / ``RoleChecker``. The
+``RoleIntentInspector`` and ``ActionProductMachine`` / ``RoleChecker``. The
 spec must be ``ROLE_NONE``, ``ROLE_ANY``, a ``BaseRole`` subclass, or a
 non-empty list of ``BaseRole`` subclasses (OR semantics). User tokens in
 ``Context.user.roles`` remain strings and are resolved to types separately
@@ -31,7 +31,7 @@ ARCHITECTURE / DATA FLOW
           ├── validate modes (UNUSED → error, DEPRECATED → warn)
           │
           ▼
-    RoleGateHostInspector → Snapshot + graph node ``role``
+    RoleIntentInspector → Snapshot + graph node ``role``
           │
           ▼
     GateCoordinator.get_snapshot(cls, "role")
@@ -43,7 +43,7 @@ ARCHITECTURE / DATA FLOW
 INVARIANTS
 ═══════════════════════════════════════════════════════════════════════════════
 
-- Applies only to classes inheriting ``RoleGateHost``.
+- Applies only to classes inheriting ``RoleIntent``.
 - ``spec`` may be: ``ROLE_NONE``, ``ROLE_ANY``, a ``BaseRole`` subclass, or a
   non-empty ``list`` of ``BaseRole`` subclasses (homogeneous types only).
 - Stored ``spec`` is always ``ROLE_NONE``, ``ROLE_ANY``, exactly one
@@ -82,19 +82,19 @@ Edge case: ``@check_roles([])`` → ``ValueError``.
 ERRORS / LIMITATIONS
 ═══════════════════════════════════════════════════════════════════════════════
 
-- ``TypeError``: non-class target, missing ``RoleGateHost``, invalid spec type,
+- ``TypeError``: non-class target, missing ``RoleIntent``, invalid spec type,
   non-``BaseRole`` type, or heterogeneous list.
 - ``ValueError``: empty list, or a required role is ``RoleMode.UNUSED``.
 - ``DeprecationWarning``: a required role is ``RoleMode.DEPRECATED``.
 - Does not prove global role topology; ``RoleClassInspector`` and
-  ``RoleModeGateHostInspector`` run at ``GateCoordinator.build()``.
+  ``RoleModeIntentInspector`` run at ``GateCoordinator.build()``.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN
 ═══════════════════════════════════════════════════════════════════════════════
 ROLE: Action role-requirement declaration module.
 CONTRACT: ``@check_roles(spec)`` writes normalized ``_role_info`` for facet ``role``.
-INVARIANTS: Target inherits RoleGateHost; stored spec uses types + constants.
+INVARIANTS: Target inherits RoleIntent; stored spec uses types + constants.
 FLOW: decorator → normalize → _role_info → inspector.
 FAILURES: TypeError / ValueError; ``DeprecationWarning`` for deprecated roles.
 EXTENSION POINTS: N/A.
@@ -109,7 +109,7 @@ from typing import Any
 
 from action_machine.auth.base_role import BaseRole
 from action_machine.auth.constants import ROLE_ANY, ROLE_NONE
-from action_machine.auth.role_gate_host import RoleGateHost
+from action_machine.auth.role_intent import RoleIntent
 from action_machine.auth.role_mode import RoleMode, get_declared_role_mode
 
 
@@ -190,12 +190,12 @@ def _target_is_class_invariant(cls: Any) -> None:
         )
 
 
-def _target_inherits_role_gate_host_invariant(cls: type) -> None:
-    if not issubclass(cls, RoleGateHost):
+def _target_inherits_role_intent_invariant(cls: type) -> None:
+    if not issubclass(cls, RoleIntent):
         raise TypeError(
             f"@check_roles was applied to class {cls.__name__}, "
-            f"which does not inherit RoleGateHost. "
-            f"Add RoleGateHost to the inheritance chain."
+            f"which does not inherit RoleIntent. "
+            f"Add RoleIntent to the inheritance chain."
         )
 
 
@@ -210,7 +210,7 @@ def check_roles(spec: Any) -> Any:
 
     def decorator(cls: Any) -> Any:
         _target_is_class_invariant(cls)
-        _target_inherits_role_gate_host_invariant(cls)
+        _target_inherits_role_intent_invariant(cls)
 
         cls._role_info = {"spec": normalized}
         return cls

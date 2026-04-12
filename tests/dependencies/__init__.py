@@ -15,11 +15,11 @@
    для BaseResourceManager, и оба формата входных данных
    (DependencyInfo и legacy dict).
 
-2. DependencyGateHost — маркерный generic-миксин, разрешающий
+2. DependencyIntent — маркерный generic-миксин, разрешающий
    использование декоратора @depends. Параметр T определяет
    bound — базовый тип, которому должны соответствовать все
    зависимости. Функция _extract_bound извлекает bound из
-   generic-параметра DependencyGateHost[T] в __init_subclass__.
+   generic-параметра DependencyIntent[T] в __init_subclass__.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ТЕСТОВЫЕ МОДУЛИ
@@ -32,10 +32,10 @@
                                   get_all_classes(), legacy dict формат,
                                   DependencyInfo иммутабельность.
 
-- test_dependency_gate_host.py  — _extract_bound для DependencyGateHost[object],
-                                  DependencyGateHost[конкретный_тип],
+- test_dependency_intent.py  — _extract_bound для DependencyIntent[object],
+                                  DependencyIntent[конкретный_тип],
                                   наследование bound от родителя,
-                                  класс без DependencyGateHost → object,
+                                  класс без DependencyIntent → object,
                                   get_depends_bound(), интеграция
                                   с BaseAction (PingAction, FullAction).
 

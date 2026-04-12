@@ -86,13 +86,13 @@ from __future__ import annotations
 from abc import ABC
 from typing import Any, ClassVar
 
-from action_machine.auth.role_mode_gate_host import RoleModeGateHost
+from action_machine.auth.role_mode_intent import RoleModeIntent
 from action_machine.core.exceptions import NamingSuffixError
 
 _REQUIRED_SUFFIX = "Role"
 
 
-class BaseRole(RoleModeGateHost, ABC):
+class BaseRole(RoleModeIntent, ABC):
     """
     Abstract base for role marker classes (type-as-capability, like ``BaseDomain``).
 

@@ -54,7 +54,7 @@ from action_machine.core.base_result import BaseResult
 from action_machine.core.core_action_machine import CoreActionMachine
 from action_machine.core.meta_decorator import meta
 from action_machine.domain.base_domain import BaseDomain
-from action_machine.metadata.base_gate_host_inspector import BaseGateHostInspector
+from action_machine.metadata.base_intent_inspector import BaseIntentInspector
 from action_machine.metadata.gate_coordinator import GateCoordinator
 from action_machine.resource_managers.base_resource_manager import BaseResourceManager
 
@@ -282,7 +282,7 @@ class TestDomainNodes:
 
     def test_action_without_aspects_has_domain_in_meta_node(self):
         coord = _coord()
-        nm = BaseGateHostInspector._make_node_name(_NoAspectsAction)
+        nm = BaseIntentInspector._make_node_name(_NoAspectsAction)
         meta_node = coord.get_node("meta", nm)
         assert meta_node is not None
         meta = meta_node.get("meta")

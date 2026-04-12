@@ -25,7 +25,7 @@ HTTP-клиент и т.д.), управляемый через ResourceManager.
         ▼  Декоратор записывает в cls._connection_info
     ConnectionInfo(cls=PostgresManager, key="db", description="Основная БД")
         │
-        ▼  ConnectionGateHostInspector reads _connection_info
+        ▼  ConnectionIntentInspector reads _connection_info
     get_connections(cls) → (ConnectionInfo(...), ...)
         │
         ▼  ActionProductMachine._check_connections(action, connections, metadata)
@@ -38,7 +38,7 @@ HTTP-клиент и т.д.), управляемый через ResourceManager.
 ═══════════════════════════════════════════════════════════════════════════════
 
 - Применяется только к классам, не к функциям, методам или свойствам.
-- Класс должен наследовать ConnectionGateHost — миксин, разрешающий @connection.
+- Класс должен наследовать ConnectionIntent — миксин, разрешающий @connection.
 - klass должен быть подклассом BaseResourceManager.
 - key должен быть непустой строкой.
 - description должен быть строкой.
@@ -72,7 +72,7 @@ HTTP-клиент и т.д.), управляемый через ResourceManager.
 ═══════════════════════════════════════════════════════════════════════════════
 
     TypeError — klass не подкласс BaseResourceManager; декоратор применён
-               не к классу; класс не наследует ConnectionGateHost;
+               не к классу; класс не наследует ConnectionIntent;
                key не строка; description не строка.
     ValueError — key пустая строка; дублирование ключа.
 """
@@ -84,7 +84,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from action_machine.resource_managers.base_resource_manager import BaseResourceManager
-from action_machine.resource_managers.connection_gate_host import ConnectionGateHost
+from action_machine.resource_managers.connection_intent import ConnectionIntent
 
 # ═════════════════════════════════════════════════════════════════════════════
 # Датакласс для хранения информации о соединении
@@ -97,7 +97,7 @@ class ConnectionInfo:
     Immutable record for one declared resource connection.
 
     Created by ``@connection`` and stored on ``cls._connection_info``.
-    ``ConnectionGateHostInspector`` builds the coordinator facet; the machine
+    ``ConnectionIntentInspector`` builds the coordinator facet; the machine
     compares keys from the ``connections`` facet snapshot to the runtime
     ``connections`` mapping passed into ``run``.
 
@@ -203,7 +203,7 @@ def connection(klass: Any, *, key: str, description: str = "") -> Callable[[type
             - key не строка.
             - description не строка.
             - Декоратор применён не к классу.
-            - Класс не наследует ConnectionGateHost.
+            - Класс не наследует ConnectionIntent.
         ValueError:
             - key пустая строка.
             - Ключ key уже объявлен для этого класса.
@@ -223,7 +223,7 @@ def connection(klass: Any, *, key: str, description: str = "") -> Callable[[type
 
         Проверяет:
         1. cls — класс (type), не функция/метод/свойство.
-        2. cls наследует ConnectionGateHost.
+        2. cls наследует ConnectionIntent.
         3. Ключ key не дублируется в _connection_info.
 
         Затем добавляет ConnectionInfo в cls._connection_info.
@@ -237,12 +237,12 @@ def connection(klass: Any, *, key: str, description: str = "") -> Callable[[type
                 f"Получен объект типа {type(cls).__name__}: {cls!r}."
             )
 
-        # Класс наследует ConnectionGateHost
-        if not issubclass(cls, ConnectionGateHost):
+        # Класс наследует ConnectionIntent
+        if not issubclass(cls, ConnectionIntent):
             raise TypeError(
                 f"@connection(key=\"{key}\") применён к классу {cls.__name__}, "
-                f"который не наследует ConnectionGateHost. "
-                f"Добавьте ConnectionGateHost в цепочку наследования."
+                f"который не наследует ConnectionIntent. "
+                f"Добавьте ConnectionIntent в цепочку наследования."
             )
 
         # ── Создание собственного списка соединений ──

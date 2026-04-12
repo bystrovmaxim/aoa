@@ -20,14 +20,14 @@ ARCHITECTURE
 ═══════════════════════════════════════════════════════════════════════════════
 
 - Декоратор ``@compensate`` пишет ``_compensate_meta`` на method.
-- ``CompensateGateHostInspector`` при ``GateCoordinator.build()`` формирует
+- ``CompensateIntentInspector`` при ``GateCoordinator.build()`` формирует
   facet ``compensator``; снимок читают как ``get_snapshot(cls, \"compensator\")``.
 - ``ActionProductMachine._rollback_saga()`` unwinds the ``SagaFrame`` stack and
   invokes compensator callables; frames are populated from coordinator **compensator**
   facet snapshots at run setup — rollback does not re-query the graph.
 
-``CompensateGateHostInspector._collect_compensators`` reads declaring-class members
-and builds the typed compensator facet; ``compensate_gate_host`` validates
+``CompensateIntentInspector._collect_compensators`` reads declaring-class members
+and builds the typed compensator facet; ``compensate_intent`` validates
 invariants at graph build time. The machine drives rollback using metadata
 cached from those snapshots when the run started.
 
@@ -108,9 +108,9 @@ AI-CORE-END
 """
 
 from action_machine.compensate.compensate_decorator import compensate
-from action_machine.compensate.compensate_gate_host import CompensateGateHost
+from action_machine.compensate.compensate_intent import CompensateIntent
 
 __all__ = [
-    "CompensateGateHost",
+    "CompensateIntent",
     "compensate",
 ]

@@ -9,7 +9,7 @@ PURPOSE
 Expose decorators and marker mixin used to define action pipeline steps:
 - ``regular_aspect`` for intermediate state-producing steps.
 - ``summary_aspect`` for the final Result-producing step.
-- ``AspectGateHost`` as the gate-host marker for aspect-enabled classes.
+- ``AspectIntent`` as the intent marker for aspect-enabled classes.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
@@ -68,12 +68,12 @@ AI-CORE-END
 ═══════════════════════════════════════════════════════════════════════════════
 """
 
-from .aspect_gate_host import AspectGateHost
+from .aspect_intent import AspectIntent
 from .regular_aspect import regular_aspect
 from .summary_aspect import summary_aspect
 
 __all__ = [
-    "AspectGateHost",
+    "AspectIntent",
     "regular_aspect",
     "summary_aspect",
 ]

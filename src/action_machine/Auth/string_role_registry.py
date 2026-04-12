@@ -11,6 +11,7 @@ types when no declared role class with a matching ``name`` exists
 (``resolve_role_name_to_type``). Each distinct key maps to one cached synthetic
 class per process. ``@check_roles`` does **not** accept strings; pass real role
 types on actions.
+types on actions.
 
 ═══════════════════════════════════════════════════════════════════════════════
 INVARIANTS
@@ -26,11 +27,11 @@ DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
 ::
-
     resolve_role_name_to_type("manager")  # user token
          │
          ▼
     StringRoleRegistry.resolve("manager")  # if no declared role.name match
+    StringRoleRegistry.resolve("manager")
          │
          ├── cache hit → existing type
          │

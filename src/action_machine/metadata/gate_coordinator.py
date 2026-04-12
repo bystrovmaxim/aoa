@@ -7,7 +7,7 @@ PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 Registry for **static** metadata: registered **inspectors** (subclasses of
-``BaseGateHostInspector``) discover gate-host markers on classes, emit
+``BaseIntentInspector``) discover intent markers on classes, emit
 ``FacetPayload`` nodes, and may attach typed per-class snapshots via
 ``facet_snapshot_for_class()`` / ``facet_snapshot_storage_key()``.
 
@@ -53,9 +53,9 @@ TRANSACTIONAL ``build()`` — THREE PHASES
 The graph is either built completely and consistently, or not committed at all.
 
     PHASE 1 — COLLECT
-        For each inspector: walk ``_subclasses_recursive()`` over gate-host
+        For each inspector: walk ``_subclasses_recursive()`` over intent
         markers; ``inspect()`` → ``FacetPayload | None``.
-        ``DependencyGateHostInspector`` and ``ConnectionGateHostInspector`` may
+        ``DependencyIntentInspector`` and ``ConnectionIntentInspector`` may
         emit the same node key ``action:<full name>`` for one action class;
         those payloads are **merged** into one node (edges concatenated) so
         keys stay unique without a combined "structure" inspector.
@@ -81,7 +81,7 @@ WHERE VALIDATION LIVES
 ═══════════════════════════════════════════════════════════════════════════════
 
 Decorators validate arguments at import time. Coordinator phase 2 validates
-global graph shape. Per-class invariants are enforced in gate hosts / inspectors.
+global graph shape. Per-class invariants are enforced in intent modules / inspectors.
 
 ═══════════════════════════════════════════════════════════════════════════════
 NODE AND KEY FORMAT
@@ -97,15 +97,15 @@ EXAMPLE (EXPLICIT INSPECTOR REGISTRATION)
 
     from action_machine.metadata.gate_coordinator import GateCoordinator
     from action_machine.auth.role_class_inspector import RoleClassInspector
-    from action_machine.auth.role_gate_host_inspector import RoleGateHostInspector
-    from action_machine.auth.role_mode_gate_host_inspector import (
-        RoleModeGateHostInspector,
+    from action_machine.auth.role_intent_inspector import RoleIntentInspector
+    from action_machine.auth.role_mode_intent_inspector import (
+        RoleModeIntentInspector,
     )
 
     coordinator = (
         GateCoordinator()
-        .register(RoleGateHostInspector)
-        .register(RoleModeGateHostInspector)
+        .register(RoleIntentInspector)
+        .register(RoleModeIntentInspector)
         .register(RoleClassInspector)
         # ... other inspectors
         .build()
@@ -124,7 +124,7 @@ import rustworkx as rx
 from action_machine.core.exceptions import CyclicDependencyError
 from action_machine.dependencies.dependency_factory import DEPENDENCY_FACTORY_CACHE_KEY
 from action_machine.metadata.base_facet_snapshot import BaseFacetSnapshot
-from action_machine.metadata.base_gate_host_inspector import BaseGateHostInspector
+from action_machine.metadata.base_intent_inspector import BaseIntentInspector
 from action_machine.metadata.exceptions import (
     DuplicateNodeError,
     InvalidGraphError,
@@ -141,10 +141,10 @@ class GateCoordinator:
     Safe to share across the execution engine and adapters after ``build()``.
 
     Attributes:
-        _inspectors : list[type[BaseGateHostInspector]]
+        _inspectors : list[type[BaseIntentInspector]]
             Registered inspectors, in registration order.
 
-        _registered : set[type[BaseGateHostInspector]]
+        _registered : set[type[BaseIntentInspector]]
             Set of registered inspectors (duplicate registration guard).
 
         _graph : rx.PyDiGraph
@@ -170,8 +170,8 @@ class GateCoordinator:
 
     def __init__(self) -> None:
         """Create a coordinator with an empty graph."""
-        self._inspectors: list[type[BaseGateHostInspector]] = []
-        self._registered: set[type[BaseGateHostInspector]] = set()
+        self._inspectors: list[type[BaseIntentInspector]] = []
+        self._registered: set[type[BaseIntentInspector]] = set()
         self._graph: rx.PyDiGraph = rx.PyDiGraph()
         self._node_index: dict[str, int] = {}
         self._class_index: dict[type, list[str]] = {}
@@ -198,25 +198,25 @@ class GateCoordinator:
     # ═══════════════════════════════════════════════════════════════════
 
     def register(self, target: type) -> GateCoordinator:
-        """Register a gate-host inspector before ``build()``."""
+        """Register an intent inspector before ``build()``."""
         if not isinstance(target, type):
             raise TypeError(f"register() expects a type, got {type(target)!r}")
-        if not issubclass(target, BaseGateHostInspector):
+        if not issubclass(target, BaseIntentInspector):
             raise TypeError(
-                f"register() accepts only BaseGateHostInspector subclasses, got {target!r}",
+                f"register() accepts only BaseIntentInspector subclasses, got {target!r}",
             )
         return self._register_inspector(target)
 
     def _register_inspector(
         self,
-        inspector_cls: type[BaseGateHostInspector],
+        inspector_cls: type[BaseIntentInspector],
     ) -> GateCoordinator:
         """
-        Register a gate-host inspector before ``build()``.
+        Register an intent inspector before ``build()``.
 
         Supports fluent chaining::
 
-            GateCoordinator().register(RoleGateHostInspector).build()
+            GateCoordinator().register(RoleIntentInspector).build()
         """
         self._require_not_built(f"register {inspector_cls.__name__}")
         if inspector_cls in self._registered:
@@ -323,8 +323,8 @@ class GateCoordinator:
                 if merged is None:
                     raise DuplicateNodeError(
                         key=key,
-                        first_gate_host=payload_sources[key],
-                        second_gate_host=inspector_name,
+                        first_inspector=payload_sources[key],
+                        second_inspector=inspector_name,
                     )
                 by_key[key] = merged
                 payload_sources[key] = f"{payload_sources[key]}+{inspector_name}"
@@ -438,8 +438,8 @@ class GateCoordinator:
             if key in seen:
                 raise DuplicateNodeError(
                     key=key,
-                    first_gate_host=payload_sources.get(key, "unknown"),
-                    second_gate_host="unknown",
+                    first_inspector=payload_sources.get(key, "unknown"),
+                    second_inspector="unknown",
                 )
             seen.add(key)
 
@@ -579,7 +579,7 @@ class GateCoordinator:
         Merge two payloads with the same ``action:<name>`` key when both describe
         the same action class and carry identical ``node_meta``.
 
-        Used for ``DependencyGateHostInspector`` + ``ConnectionGateHostInspector``.
+        Used for ``DependencyIntentInspector`` + ``ConnectionIntentInspector``.
         Any other key collision must remain a ``DuplicateNodeError``.
         """
         if first.node_type != "action" or second.node_type != "action":
@@ -728,6 +728,18 @@ class GateCoordinator:
         Populated during ``build()`` when the inspector returns a snapshot from
         ``facet_snapshot_for_class()``. The key may differ from graph
         ``node_type`` (e.g. ``depends`` / ``connections`` on merged ``action`` nodes).
+
+        Args:
+            cls: action, plugin, entity, or other registered class that owns the facet.
+            facet_key: inspector storage key (e.g. ``"role"``, ``"aspect"``, ``"depends"``).
+
+        Returns:
+            Frozen snapshot dataclass for that facet, or ``None`` if no inspector
+            produced a snapshot for this pair (optional facets, or class not in
+            the inspector’s candidate set).
+
+        Raises:
+            RuntimeError: if ``build()`` has not completed (``_require_built``).
         """
         self._require_built()
         return self._facet_snapshots.get((cls, facet_key))

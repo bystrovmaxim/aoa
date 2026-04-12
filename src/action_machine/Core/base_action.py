@@ -9,7 +9,7 @@ PURPOSE
 ``BaseAction`` is parameterized by frozen Pydantic types ``P`` (params) and ``R``
 (result). Subclasses declare behavior with class- and method-level decorators;
 markers in the MRO enable those decorators. Runtime execution and metadata reads
-go through ``GateCoordinator`` facet snapshots (built by gate-host inspectors),
+go through ``GateCoordinator`` facet snapshots (built by intent inspectors),
 not through helper APIs on this class.
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -48,15 +48,15 @@ ARCHITECTURE — MARKER MIXINS
 
 ``BaseAction`` inherits marker mixins only (no inspector logic):
 
-    ActionMetaGateHost       → ``@meta`` (required)
-    RoleGateHost             → ``@check_roles``
-    DependencyGateHost       → ``@depends``
-    CheckerGateHost          → result / field checkers on aspect methods
-    AspectGateHost           → ``@regular_aspect`` / ``@summary_aspect``
-    CompensateGateHost       → ``@compensate``
-    ConnectionGateHost       → ``@connection``
-    OnErrorGateHost          → ``@on_error``
-    ContextRequiresGateHost  → ``@context_requires``
+    ActionMetaIntent       → ``@meta`` (required)
+    RoleIntent             → ``@check_roles``
+    DependencyIntent       → ``@depends``
+    CheckerIntent          → result / field checkers on aspect methods
+    AspectIntent           → ``@regular_aspect`` / ``@summary_aspect``
+    CompensateIntent       → ``@compensate``
+    ConnectionIntent       → ``@connection``
+    OnErrorIntent          → ``@on_error``
+    ContextRequiresIntent  → ``@context_requires``
 
 Class-level decorators validate the marker immediately; method-level decorators
 are validated when the coordinator runs inspectors on the class.
@@ -106,32 +106,32 @@ from __future__ import annotations
 from abc import ABC
 from typing import Any
 
-from action_machine.aspects.aspect_gate_host import AspectGateHost
-from action_machine.auth.role_gate_host import RoleGateHost
-from action_machine.checkers.checker_gate_host import CheckerGateHost
-from action_machine.compensate.compensate_gate_host import CompensateGateHost
-from action_machine.context.context_requires_gate_host import ContextRequiresGateHost
+from action_machine.aspects.aspect_intent import AspectIntent
+from action_machine.auth.role_intent import RoleIntent
+from action_machine.checkers.checker_intent import CheckerIntent
+from action_machine.compensate.compensate_intent import CompensateIntent
+from action_machine.context.context_requires_intent import ContextRequiresIntent
 from action_machine.core.base_schema import BaseSchema
 from action_machine.core.exceptions import NamingSuffixError
-from action_machine.core.meta_gate_hosts import ActionMetaGateHost
-from action_machine.dependencies.dependency_gate_host import DependencyGateHost
-from action_machine.on_error.on_error_gate_host import OnErrorGateHost
-from action_machine.resource_managers.connection_gate_host import ConnectionGateHost
+from action_machine.core.meta_intents import ActionMetaIntent
+from action_machine.dependencies.dependency_intent import DependencyIntent
+from action_machine.on_error.on_error_intent import OnErrorIntent
+from action_machine.resource_managers.connection_intent import ConnectionIntent
 
 _REQUIRED_SUFFIX = "Action"
 
 
 class BaseAction[P: BaseSchema, R: BaseSchema](
     ABC,
-    ActionMetaGateHost,
-    RoleGateHost,
-    DependencyGateHost[object],
-    CheckerGateHost,
-    AspectGateHost,
-    CompensateGateHost,
-    ConnectionGateHost,
-    OnErrorGateHost,
-    ContextRequiresGateHost,
+    ActionMetaIntent,
+    RoleIntent,
+    DependencyIntent[object],
+    CheckerIntent,
+    AspectIntent,
+    CompensateIntent,
+    ConnectionIntent,
+    OnErrorIntent,
+    ContextRequiresIntent,
 ):
     """
     Abstract action: decorators declare pipeline behavior; runtime uses coordinator snapshots.

@@ -7,7 +7,7 @@ PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 The module defines two frozen dataclasses — the contract between
-**inspectors** (``BaseGateHostInspector``) and ``GateCoordinator``:
+**inspectors** (``BaseIntentInspector``) and ``GateCoordinator``:
 
 1. ``EdgeInfo`` — one outgoing edge from a node.
 2. ``FacetPayload`` — one graph node plus all of its outgoing edges.
@@ -112,7 +112,7 @@ class EdgeInfo:
     """
     One directed edge leaving a graph node.
 
-    Produced via inspector helpers (see ``BaseGateHostInspector._make_edge()``).
+    Produced via inspector helpers (see ``BaseIntentInspector._make_edge()``).
     Lives inside ``FacetPayload.edges``. The coordinator uses ``EdgeInfo`` for
     referential integrity (target exists) and, for structural edges, acyclicity.
 
@@ -167,13 +167,13 @@ class FacetPayload:
 
     A single class may emit several payloads from different inspectors. For
     example, ``CreateOrderAction`` may yield:
-    - ``FacetPayload(node_type="role", ...)`` from ``RoleGateHostInspector``
+    - ``FacetPayload(node_type="role", ...)`` from ``RoleIntentInspector``
     - ``FacetPayload(node_type="role_mode", ...)`` from
-      ``RoleModeGateHostInspector`` (same role class as ``node_class``)
+      ``RoleModeIntentInspector`` (same role class as ``node_class``)
     - ``FacetPayload(node_type="role_class", ...)`` from ``RoleClassInspector``
     - One merged ``FacetPayload(node_type="action", ...)`` with depends and/or
       connection edges (two inspectors → merged in ``GateCoordinator._phase1_collect``)
-    - ``FacetPayload(node_type="aspect", ...)`` from ``AspectGateHostInspector``
+    - ``FacetPayload(node_type="aspect", ...)`` from ``AspectIntentInspector``
       (per method)
 
     After merging structural ``action`` facets, uniqueness is still

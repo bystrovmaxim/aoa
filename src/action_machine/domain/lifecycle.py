@@ -4,7 +4,7 @@ Declarative finite-state **lifecycle** templates and typed **runtime** state for
 
 `Lifecycle` serves two roles: a **template** built with a fluent import-time API
 (state graph), and a **specialized subclass** whose instances hold the current
-state key on each entity. The gate coordinator validates graph rules at
+state key on each entity. ``GateCoordinator`` validates graph rules at
 **build** time; instances enforce valid keys and transitions at **runtime**.
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -28,7 +28,7 @@ SCOPE (IN / OUT)
 
 **Out of scope**
     The eight global integrity rules (exactly one initial set semantics, reachability,
-    etc.) — enforced by **inspectors** when the gate coordinator **builds**, not in
+    etc.) — enforced by **inspectors** when ``GateCoordinator`` **builds**, not in
     this module’s fluent builder alone.
     Persistence, timers, and side effects on transition — application code.
     Automatic persistence when transitioning — callers use `model_copy` on the entity.
@@ -37,10 +37,10 @@ SCOPE (IN / OUT)
 TERMINOLOGY (USE CONSISTENTLY)
 ═══════════════════════════════════════════════════════════════════════════════
 
-**Gate host / decorator / scratch / inspector / gate coordinator** — same as
+**Intent / decorator / scratch / inspector / GateCoordinator** — same as
 elsewhere in ActionMachine: entity fields typed as a `Lifecycle` subclass are
 discovered at build time; **inspectors** read `_template` **scratch** and attach
-facets to the **gate coordinator** graph.
+facets to the **GateCoordinator** graph.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW

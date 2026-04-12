@@ -12,17 +12,17 @@
 КОМПОНЕНТЫ
 ═══════════════════════════════════════════════════════════════════════════════
 
-- DependencyGateHost[T] — маркерный generic-миксин, разрешающий @depends.
+- DependencyIntent[T] — маркерный generic-миксин, разрешающий @depends.
   Параметр T задаёт bound — какие классы допустимы как зависимости.
-  Например: DependencyGateHost[object] — любой класс,
-  DependencyGateHost[BaseResourceManager] — только ресурс-менеджеры.
+  Например: DependencyIntent[object] — любой класс,
+  DependencyIntent[BaseResourceManager] — только ресурс-менеджеры.
   Наследуется BaseAction.
 
 - DependencyInfo — frozen-датакласс, описывающий одну зависимость:
   класс, опциональная фабрика, описание. Создаётся декоратором @depends.
 
 - depends — декоратор уровня класса для объявления зависимостей.
-  Проверяет issubclass(cls, DependencyGateHost), проверяет bound,
+  Проверяет issubclass(cls, DependencyIntent), проверяет bound,
   записывает DependencyInfo в cls._depends_info.
 
 - DependencyFactory — stateless-фабрика, резолвящая зависимости.
@@ -50,13 +50,13 @@ from .dependency_factory import (
     cached_dependency_factory,
     clear_dependency_factory_cache,
 )
-from .dependency_gate_host import DependencyGateHost
+from .dependency_intent import DependencyIntent
 from .depends import depends
 
 __all__ = [
     "DependencyFactory",
-    "DependencyGateHost",
     "DependencyInfo",
+    "DependencyIntent",
     "cached_dependency_factory",
     "clear_dependency_factory_cache",
     "depends",

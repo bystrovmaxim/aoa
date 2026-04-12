@@ -28,8 +28,8 @@ Core-тесты — полное покрытие ядра ActionMachine.
 
 - BaseAction — абстрактный базовый класс действий. Кеширование полного
   имени класса через get_full_class_name(). Наследование шести
-  гейт-хостов (ActionMetaGateHost, RoleGateHost, DependencyGateHost,
-  CheckerGateHost, AspectGateHost, ConnectionGateHost).
+  гейт-хостов (ActionMetaIntent, RoleIntent, DependencyIntent,
+  CheckerIntent, AspectIntent, ConnectionIntent).
 
 - ActionProductMachine — асинхронная machine выполнения действий.
   Проверка ролей, валидация connections, конвейер аспектов с чекерами,
@@ -52,7 +52,7 @@ Core-тесты — полное покрытие ядра ActionMachine.
   domain в @meta при get() для действий с аспектами и ресурсов, доменные узлы.
 
 - Pydantic-интеграция — валидация описаний полей через
-  DescribedFieldsGateHost, сбор snapshot описаний полей с constraints
+  DescribedFieldsIntent, сбор snapshot описаний полей с constraints
   и examples, JSON Schema.
 
 ═══════════════════════════════════════════════════════════════════════════════

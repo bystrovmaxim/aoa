@@ -123,11 +123,11 @@ from collections.abc import Callable
 from typing import Any
 
 from action_machine.plugins.events import BasePluginEvent
-from action_machine.plugins.on_gate_host import OnGateHost
+from action_machine.plugins.on_intent import OnIntent
 from action_machine.plugins.subscription_info import SubscriptionInfo
 
 
-class Plugin(OnGateHost, ABC):
+class Plugin(OnIntent, ABC):
     """
     Абстрактный базовый класс для всех плагинов ActionMachine.
 
