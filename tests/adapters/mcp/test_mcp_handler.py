@@ -4,19 +4,18 @@ Tests for MCP tool handler execution and error handling.
 
 When McpAdapter.build() creates an MCP server, each registered tool gets
 an async handler function. The handler deserializes kwargs into the Params model,
-runs the action through the machine, serializes the result to JSON, and catches
-exceptions to return error strings (PERMISSION_DENIED, INVALID_PARAMS,
-INTERNAL_ERROR).
+runs the action through the machine, serializes the result to JSON inside
+``CallToolResult`` (``isError=False``), and catches exceptions to return
+``CallToolResult`` with ``isError=True`` and the same textual prefixes
+(PERMISSION_DENIED, INVALID_PARAMS, INTERNAL_ERROR).
 
 This file tests the handler internals: _make_tool_handler, _execute_tool_call,
 _serialize_result, _build_graph_json, and error formatting — covering the
 uncovered lines in contrib/mcp/adapter.py (lines 169, 208-256, 381-387, 634).
 
 Scenarios covered:
-    - Handler returns JSON string for successful execution.
-    - Handler returns PERMISSION_DENIED string for AuthorizationError.
-    - Handler returns INVALID_PARAMS string for ValidationFieldError.
-    - Handler returns INTERNAL_ERROR string for unexpected exceptions.
+    - Handler returns CallToolResult with JSON text and isError=False on success.
+    - Handler returns CallToolResult isError=True for AuthorizationError, etc.
     - _serialize_result with pydantic model uses model_dump.
     - _serialize_result with response_mapper applies the mapper.
     - _serialize_result with non-pydantic object uses default serializer.
@@ -31,6 +30,7 @@ import json
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
+from mcp.types import CallToolResult
 from pydantic import BaseModel
 
 from action_machine.contrib.mcp.adapter import (
@@ -47,6 +47,13 @@ from tests.domain_model import PingAction
 # ─────────────────────────────────────────────────────────────────────────────
 # Helpers
 # ─────────────────────────────────────────────────────────────────────────────
+
+
+def _tool_result_text(result: CallToolResult) -> str:
+    """First TextContent block text from a CallToolResult (handler return value)."""
+    assert isinstance(result, CallToolResult)
+    assert result.content
+    return result.content[0].text
 
 
 class _MockResult(BaseModel):
@@ -147,11 +154,11 @@ class TestSerializeResult:
 
 
 class TestHandlerSuccess:
-    """Verify handler returns JSON on successful action execution."""
+    """Verify handler returns CallToolResult with JSON on success."""
 
     @pytest.mark.asyncio
     async def test_returns_json_string(self) -> None:
-        """Handler returns a JSON string containing the action result."""
+        """Handler returns CallToolResult with JSON text and isError=False."""
         machine = _make_machine()
         auth = _make_auth()
         record = _make_record(action_class=PingAction, tool_name="system.ping")
@@ -163,9 +170,11 @@ class TestHandlerSuccess:
         handler = _make_tool_handler(
             record, machine, auth, None, machine.gate_coordinator,
         )
-        result_str = await handler()
+        result = await handler()
 
-        parsed = json.loads(result_str)
+        assert isinstance(result, CallToolResult)
+        assert result.isError is False
+        parsed = json.loads(_tool_result_text(result))
         assert parsed["message"] == "pong"
 
     @pytest.mark.asyncio
@@ -199,11 +208,11 @@ class TestHandlerSuccess:
 
 
 class TestHandlerErrors:
-    """Verify handler catches exceptions and returns error strings."""
+    """Verify handler catches exceptions and returns CallToolResult with isError=True."""
 
     @pytest.mark.asyncio
     async def test_authorization_error(self) -> None:
-        """AuthorizationError is caught and returned as PERMISSION_DENIED."""
+        """AuthorizationError → isError=True, PERMISSION_DENIED text."""
         machine = _make_machine()
         machine.run = AsyncMock(side_effect=AuthorizationError("no access"))
         record = _make_record()
@@ -213,12 +222,15 @@ class TestHandlerErrors:
         )
         result = await handler()
 
-        assert "PERMISSION_DENIED" in result
-        assert "no access" in result
+        assert isinstance(result, CallToolResult)
+        assert result.isError is True
+        text = _tool_result_text(result)
+        assert "PERMISSION_DENIED" in text
+        assert "no access" in text
 
     @pytest.mark.asyncio
     async def test_validation_error(self) -> None:
-        """ValidationFieldError is caught and returned as INVALID_PARAMS."""
+        """ValidationFieldError → isError=True, INVALID_PARAMS text."""
         machine = _make_machine()
         machine.run = AsyncMock(
             side_effect=ValidationFieldError("bad field", "name"),
@@ -230,11 +242,12 @@ class TestHandlerErrors:
         )
         result = await handler()
 
-        assert "INVALID_PARAMS" in result
+        assert result.isError is True
+        assert "INVALID_PARAMS" in _tool_result_text(result)
 
     @pytest.mark.asyncio
     async def test_unexpected_error(self) -> None:
-        """Unexpected exceptions are caught and returned as INTERNAL_ERROR."""
+        """Unexpected exceptions → isError=True, INTERNAL_ERROR text."""
         machine = _make_machine()
         machine.run = AsyncMock(side_effect=RuntimeError("boom"))
         record = _make_record()
@@ -244,8 +257,10 @@ class TestHandlerErrors:
         )
         result = await handler()
 
-        assert "INTERNAL_ERROR" in result
-        assert "boom" in result
+        assert result.isError is True
+        text = _tool_result_text(result)
+        assert "INTERNAL_ERROR" in text
+        assert "boom" in text
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -298,9 +313,10 @@ class TestHandlerWithMappers:
         handler = _make_tool_handler(
             record, machine, _make_auth(), None, machine.gate_coordinator,
         )
-        result_str = await handler()
+        result = await handler()
 
-        parsed = json.loads(result_str)
+        assert result.isError is False
+        parsed = json.loads(_tool_result_text(result))
         assert parsed["data"] == "pong"
 
 
