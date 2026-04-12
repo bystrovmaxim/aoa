@@ -157,13 +157,20 @@ ignore_exceptions:
 
 Все обработчики плагинов получают ScopedLogger как параметр log.
 PluginRunContext создаёт ScopedLogger для каждого вызова обработчика
-со scope: machine, mode, plugin, action, event, nest_level.
+со scope: machine, mode, plugin, action, event, nest_level и с
+``domain=resolve_domain(event.action_class)`` (см. ``_create_plugin_logger``).
 
 Поля scope доступны в шаблонах логирования через {%scope.*}:
-    await log.info("[{%scope.plugin}] Действие {%scope.action} завершено")
+    from action_machine.logging.channel import Channel
+
+    await log.info(
+        Channel.debug,
+        "[{%scope.plugin}] Действие {%scope.action} завершено",
+    )
 
 Для создания ScopedLogger требуются log_coordinator, machine_name и mode,
-которые передаются в emit_event() из машины через именованные аргументы.
+которые передаются в emit_event() из машины через именованные аргументы;
+домен задаётся из класса действия события, как указано выше.
 
 ═══════════════════════════════════════════════════════════════════════════════
 АРХИТЕКТУРА
@@ -223,6 +230,7 @@ from typing import Any
 
 from action_machine.core.base_params import BaseParams
 from action_machine.core.base_state import BaseState
+from action_machine.logging.domain_resolver import resolve_domain
 from action_machine.logging.log_coordinator import LogCoordinator
 from action_machine.logging.scoped_logger import ScopedLogger
 from action_machine.plugins.events import BasePluginEvent
@@ -384,8 +392,9 @@ class PluginRunContext:
         """
         Создаёт ScopedLogger для обработчика плагина.
 
-        Scope содержит поля: machine, mode, plugin, action, event_type,
-        nest_level. Все поля доступны в шаблонах через {%scope.*}.
+        ``domain=resolve_domain(event.action_class)``. Scope содержит поля:
+        machine, mode, plugin, action, event (имя типа события), nest_level.
+        Все поля доступны в шаблонах через {%scope.*}.
 
         Аргументы:
             log_coordinator: координатор логирования (или None).
@@ -412,6 +421,7 @@ class PluginRunContext:
             params=event.params if isinstance(event.params, BaseParams) else BaseParams(),
             plugin_name=type(plugin).__name__,
             event_name=type(event).__name__,
+            domain=resolve_domain(event.action_class),
         )
 
     # ─────────────────────────────────────────────────────────────────────

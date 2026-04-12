@@ -10,8 +10,8 @@ ConsoleLogger — конкретный логгер, выводящий сооб
 Поддерживает отступы на основе уровня вложенности (indent) и опциональное
 сохранение ANSI-цветов.
 
-Цвета управляются шаблонными фильтрами в координаторе; сам логгер не добавляет
-автоматических ANSI-кодов, только решает, сохранять их или удалять.
+При ``use_colors=True`` и сообщении без ANSI логгер оборачивает строку в
+truecolor по ``var["level"].mask``; явные escape в тексте отключают эту обёртку.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ПОКРЫВАЕМЫЕ СЦЕНАРИИ
@@ -21,7 +21,7 @@ ConsoleLogger — конкретный логгер, выводящий сооб
 - Поддержка отступов (indent) — сообщение сдвигается вправо.
 - Настройка use_indent — включение/отключение отступов.
 - Настройка indent_size — количество пробелов на один уровень.
-- Поддержка цветов (use_colors) — ANSI-коды сохраняются или удаляются.
+- Поддержка цветов (use_colors) — сохранение/удаление ANSI и авто-truecolor по уровню.
 - Пустые scope и сообщения обрабатываются корректно.
 """
 
@@ -30,8 +30,28 @@ import pytest
 from action_machine.context.context import Context
 from action_machine.core.base_params import BaseParams
 from action_machine.core.base_state import BaseState
-from action_machine.logging.console_logger import ConsoleLogger
+from action_machine.logging.channel import Channel, channel_mask_label
+from action_machine.logging.console_logger import (
+    DEFAULT_LEVEL_FG_PREFIX,
+    ConsoleLogger,
+)
+from action_machine.logging.level import Level, level_label
 from action_machine.logging.log_scope import LogScope
+from action_machine.logging.log_var_payloads import LogChannelPayload, LogLevelPayload
+
+
+def _write_var(
+    level: Level,
+    *,
+    channels: Channel | None = None,
+) -> dict:
+    ch = Channel.debug if channels is None else channels
+    return {
+        "level": LogLevelPayload(mask=level, name=level_label(level)),
+        "channels": LogChannelPayload(mask=ch, names=channel_mask_label(ch)),
+        "domain": None,
+        "domain_name": None,
+    }
 
 
 @pytest.fixture
@@ -83,8 +103,13 @@ class TestBasicOutput:
 
         # Act
         await logger.write(
-            simple_scope, "Hello world", {"level": "info"},
-            empty_context, empty_state, empty_params, indent=0,
+            simple_scope,
+            "Hello world",
+            _write_var(Level.info),
+            empty_context,
+            empty_state,
+            empty_params,
+            indent=0,
         )
 
         # Assert — сообщение появилось в stdout, заканчивается переводом строки
@@ -224,8 +249,9 @@ class TestColors:
     """
     ConsoleLogger сохраняет или удаляет ANSI-коды в зависимости от use_colors.
 
-    Само добавление цветов происходит в координаторе через шаблонные фильтры.
-    Логгер только решает, сохранять их или нет.
+    С ``LogLevelPayload`` в ``var["level"]`` вся строка получает базовый truecolor
+    уровня; явные escape
+    в шаблоне сохраняются, после ``\\033[0m`` снова подставляется базовый цвет.
     """
 
     @pytest.mark.anyio
@@ -250,11 +276,12 @@ class TestColors:
             empty_context, empty_state, empty_params, indent=0,
         )
 
-        # Assert — ANSI-коды присутствуют
+        # Assert — без level в var базовая раскраска не включается
         captured = capsys.readouterr()
         assert "\033[31m" in captured.out
         assert "red text" in captured.out
         assert "\033[0m" in captured.out
+        assert "\033[38;2;" not in captured.out
 
     @pytest.mark.anyio
     async def test_strips_ansi_codes_when_use_colors_false(
@@ -303,6 +330,94 @@ class TestColors:
         # Assert
         assert logger_true.supports_colors is True
         assert logger_false.supports_colors is False
+
+    @pytest.mark.parametrize("level", [Level.info, Level.warning, Level.critical])
+    @pytest.mark.anyio
+    async def test_auto_truecolor_wraps_plain_message_by_level(
+        self,
+        capsys: pytest.CaptureFixture[str],
+        simple_scope: LogScope,
+        empty_context: Context,
+        empty_state: BaseState,
+        empty_params: BaseParams,
+        level: Level,
+    ) -> None:
+        """Текст без ANSI получает обёртку truecolor по уровню."""
+        logger = ConsoleLogger(use_colors=True)
+        var = _write_var(level)
+        await logger.write(
+            simple_scope, "plain", var, empty_context, empty_state, empty_params, 0,
+        )
+        out = capsys.readouterr().out
+        assert DEFAULT_LEVEL_FG_PREFIX[level] in out
+        assert "plain" in out
+        assert "\033[0m" in out
+        assert out.endswith("\n")
+
+    @pytest.mark.anyio
+    async def test_level_fg_prefixes_override(
+        self,
+        capsys: pytest.CaptureFixture[str],
+        simple_scope: LogScope,
+        empty_context: Context,
+        empty_state: BaseState,
+        empty_params: BaseParams,
+    ) -> None:
+        """level_fg_prefixes переопределяет дефолтные префиксы (merge)."""
+        logger = ConsoleLogger(
+            use_colors=True,
+            level_fg_prefixes={Level.info: "\033[32m"},
+        )
+        var = _write_var(Level.info)
+        await logger.write(
+            simple_scope, "hi", var, empty_context, empty_state, empty_params, 0,
+        )
+        out = capsys.readouterr().out
+        assert "\033[32m" in out
+        assert DEFAULT_LEVEL_FG_PREFIX[Level.info] not in out
+
+    @pytest.mark.anyio
+    async def test_auto_truecolor_wraps_indent_inside_color(
+        self,
+        capsys: pytest.CaptureFixture[str],
+        simple_scope: LogScope,
+        empty_context: Context,
+        empty_state: BaseState,
+        empty_params: BaseParams,
+    ) -> None:
+        """Отступ входит в обёртку: строка начинается с escape, не с пробелов."""
+        logger = ConsoleLogger(use_colors=True, indent_size=2)
+        var = _write_var(Level.warning)
+        await logger.write(
+            simple_scope, "x", var, empty_context, empty_state, empty_params, indent=2,
+        )
+        out = capsys.readouterr().out
+        assert out.startswith(DEFAULT_LEVEL_FG_PREFIX[Level.warning])
+        assert "    x" in out
+
+    @pytest.mark.anyio
+    async def test_base_level_restored_after_explicit_reset(
+        self,
+        capsys: pytest.CaptureFixture[str],
+        simple_scope: LogScope,
+        empty_context: Context,
+        empty_state: BaseState,
+        empty_params: BaseParams,
+    ) -> None:
+        """После явного span и \\033[0m хвост снова в базовом цвете уровня."""
+        logger = ConsoleLogger(use_colors=True)
+        base = DEFAULT_LEVEL_FG_PREFIX[Level.info]
+        var = _write_var(Level.info)
+        msg = "before \033[31mRED\033[0m after"
+        await logger.write(
+            simple_scope, msg, var, empty_context, empty_state, empty_params, 0,
+        )
+        out = capsys.readouterr().out
+        assert out.startswith(base)
+        assert "\033[31mRED\033[0m" in out
+        # сразу после сброса явного красного снова базовый truecolor
+        assert f"\033[0m{base} after" in out
+        assert out.endswith("\033[0m\n")
 
 
 # ======================================================================

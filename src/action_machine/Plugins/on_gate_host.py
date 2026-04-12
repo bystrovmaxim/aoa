@@ -81,6 +81,7 @@ ContextRequiresGateHost и DescribedFieldsGateHost.
 ═══════════════════════════════════════════════════════════════════════════════
 
     # Plugin уже наследует OnGateHost — любой плагин поддерживает @on:
+    from action_machine.logging.channel import Channel
 
     class MetricsPlugin(Plugin):
         async def get_initial_state(self) -> dict:
@@ -98,7 +99,11 @@ ContextRequiresGateHost и DescribedFieldsGateHost.
 
         @on(AfterRegularAspectEvent, aspect_name_pattern=r"validate_.*")
         async def on_validation_done(self, state, event: AfterRegularAspectEvent, log):
-            await log.info("Валидация завершена: {%var.name}", name=event.aspect_name)
+            await log.info(
+                Channel.debug,
+                "Валидация завершена: {%var.name}",
+                name=event.aspect_name,
+            )
             return state
 """
 

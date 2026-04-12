@@ -1,17 +1,17 @@
 # src/action_machine/core/tools_box.py
 """
-ToolsBox — frozen-контейнер инструментов для аспектов действий.
+Frozen toolbox passed into every action aspect as ``box``.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-ToolsBox — единый объект, передаваемый в каждый аспект действия как
-параметр box. Обеспечивает аспектам доступ ко всем инструментам:
+- Resolve dependencies: ``resolve(cls, *args, **kwargs)``.
+- Run child actions: ``run(action_class, params, connections)``.
+- Log: ``info`` / ``warning`` / ``critical`` with mandatory ``Channel`` first.
 
-- Получение зависимостей через resolve(cls, *args, **kwargs).
-- Запуск дочерних действий через run(action_class, params, connections).
-- Логирование через info/warning/error/debug.
+The embedded ``ScopedLogger`` is created by ``ToolsBoxFactory`` (or test bench)
+with ``domain=resolve_domain(action_cls)`` so ``var`` carries domain metadata.
 
 ═══════════════════════════════════════════════════════════════════════════════
 CONTEXT PRIVACY — KEY INVARIANT
@@ -33,43 +33,51 @@ The only way an aspect reads context data is ``ContextView``, injected by
 ``@context_requires`` is present. Unrequested keys → ``ContextAccessError``.
 
 ═══════════════════════════════════════════════════════════════════════════════
-СВЯЗЬ С FROZEN CORE-ТИПАМИ
+FROZEN CORE TYPES
 ═══════════════════════════════════════════════════════════════════════════════
 
-Приватность contextа и frozen-семантика State/Result — два аспекта
-одной идеи: аспект работает в песочнице.
-
-- Frozen State: аспект не может записать данные мимо checkerов.
-- No Context on box: aspect cannot read execution context except via ContextView.
+Context privacy and immutable state/results share one idea: aspects run in a
+sandbox (frozen ``State``; no ``Context`` on ``box`` except via ``ContextView``).
 
 ═══════════════════════════════════════════════════════════════════════════════
-ПОДДЕРЖКА ROLLUP
+ROLLUP
 ═══════════════════════════════════════════════════════════════════════════════
 
-ToolsBox хранит флаг rollup и прокидывает его на все уровни.
+``rollup`` is stored on ``ToolsBox`` and forwarded through resolves and nested
+``run`` calls.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
+::
+
     ActionProductMachine._run_internal(...)
         │
-        │  Создаёт ToolsBox с:
-        │  - run_child: замыкание для запуска дочерних действий (closure holds Context)
-        │  - factory: DependencyFactory для текущего действия
-        │  - resources: внешние ресурсы (моки в тестах)
-        │  - log: ScopedLogger (context only inside logger, for templates)
-        │  - nested_level: уровень вложенности
-        │  - rollup: флаг автоотката транзакций
+        │  Builds ToolsBox with:
+        │  - run_child: nested-run closure (captures Context)
+        │  - factory: DependencyFactory for current action
+        │  - resources: external deps (mocks in tests)
+        │  - log: ScopedLogger(domain=resolve_domain(...), …)
+        │  - nested_level, rollup
         ▼
     ToolsBox
         │
-        ├── resolve(cls, *args, **kwargs) → ищет в resources, затем в factory
-        ├── run(action, params)           → создаёт экземпляр, оборачивает connections
-        ├── info(msg)                     → делегирует в ScopedLogger
-        ├── warning(msg)                  → делегирует в ScopedLogger
-        ├── error(msg)                    → делегирует в ScopedLogger
-        └── debug(msg)                    → делегирует в ScopedLogger
+        ├── resolve(cls, *args, **kwargs) → resources then factory
+        ├── run(action, params)           → instantiate, wrap connections
+        ├── info / warning / critical     → delegate to ScopedLogger
+
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE-BEGIN
+═══════════════════════════════════════════════════════════════════════════════
+ROLE: Per-aspect frozen API surface (resolve, run, log).
+CONTRACT: no Context on instance; log methods require Channel.
+INVARIANTS: rollup propagation; ScopedLogger owns context for templates only.
+FLOW: machine builds ToolsBox → aspect uses box.* → logger emits via coordinator.
+FAILURES: dependency / run errors propagate; logging uses same coordinator rules.
+EXTENSION POINTS: none on box shape; custom factories build different loggers.
+AI-CORE-END
+═══════════════════════════════════════════════════════════════════════════════
 """
 
 from collections.abc import Awaitable, Callable
@@ -79,6 +87,7 @@ from action_machine.core.base_action import BaseAction
 from action_machine.core.base_params import BaseParams
 from action_machine.core.base_result import BaseResult
 from action_machine.dependencies.dependency_factory import DependencyFactory
+from action_machine.logging.channel import Channel
 from action_machine.logging.scoped_logger import ScopedLogger
 from action_machine.resource_managers.base_resource_manager import BaseResourceManager
 
@@ -88,12 +97,9 @@ R = TypeVar("R", bound=BaseResult)
 
 class ToolsBox:
     """
-    Frozen-контейнер инструментов для аспектов.
+    Frozen toolbox: dependencies, child ``run``, and channel-scoped logging.
 
-    Предоставляет methodы для работы с зависимостями, логированием и запуском
-    дочерних действий. Создаётся один раз на уровень вложенности.
-
-    НЕ предоставляет доступа к contextу выполнения (Context).
+    One instance per nesting level. Does **not** expose ``Context`` on the box.
     """
 
     __slots__ = (
@@ -217,14 +223,17 @@ class ToolsBox:
         )
         return cast("R", result)
 
-    async def info(self, message: str, **kwargs: Any) -> None:
-        await self.__log.info(message, **kwargs)
+    async def info(
+        self, channels: Channel, message: str, **kwargs: Any,
+    ) -> None:
+        await self.__log.info(channels, message, **kwargs)
 
-    async def warning(self, message: str, **kwargs: Any) -> None:
-        await self.__log.warning(message, **kwargs)
+    async def warning(
+        self, channels: Channel, message: str, **kwargs: Any,
+    ) -> None:
+        await self.__log.warning(channels, message, **kwargs)
 
-    async def error(self, message: str, **kwargs: Any) -> None:
-        await self.__log.error(message, **kwargs)
-
-    async def debug(self, message: str, **kwargs: Any) -> None:
-        await self.__log.debug(message, **kwargs)
+    async def critical(
+        self, channels: Channel, message: str, **kwargs: Any,
+    ) -> None:
+        await self.__log.critical(channels, message, **kwargs)

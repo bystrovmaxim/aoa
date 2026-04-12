@@ -28,7 +28,7 @@ ARCHITECTURE / DATA FLOW
                 machine_class_name=self.__class__.__name__,
             )
                 │
-                ├── ScopedLogger(log_coordinator, machine_name, mode, ...)
+                ├── ScopedLogger(..., domain=resolve_domain(action_cls))
                 ├── factory = factory_resolver.dependency_factory_for(action_cls)
                 └── returns ToolsBox
 
@@ -79,6 +79,7 @@ from action_machine.core.components.dependency_factory_resolver import (
     DependencyFactoryResolver,
 )
 from action_machine.core.tools_box import ToolsBox
+from action_machine.logging.domain_resolver import resolve_domain
 from action_machine.logging.log_coordinator import LogCoordinator
 from action_machine.logging.scoped_logger import ScopedLogger
 
@@ -118,6 +119,7 @@ class ToolsBoxFactory:
             context=context,
             state=BaseState(),
             params=params,
+            domain=resolve_domain(action_cls),
         )
         factory = factory_resolver.dependency_factory_for(action_cls)
         return ToolsBox(

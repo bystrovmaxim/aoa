@@ -16,6 +16,14 @@ TestBench immutable: каждый fluent-вызов (.with_user, .with_mocks и 
 использования и предсказуемым в тестах.
 
 ═══════════════════════════════════════════════════════════════════════════════
+LOGGING (SCOPEDLOGGER)
+═══════════════════════════════════════════════════════════════════════════════
+
+Когда TestBench создаёт ``ScopedLogger`` для ``run_aspect`` / ``run_summary`` /
+компенсаторов, передаётся ``domain=resolve_domain(action_cls)`` — как в
+боевом ``ToolsBoxFactory``, чтобы ``var`` и подписки логгеров вели себя так же.
+
+═══════════════════════════════════════════════════════════════════════════════
 КОЛЛЕКЦИЯ МАШИН
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -198,6 +206,7 @@ from action_machine.core.base_state import BaseState
 from action_machine.core.sync_action_product_machine import SyncActionProductMachine
 from action_machine.core.tools_box import ToolsBox
 from action_machine.dependencies.dependency_factory import cached_dependency_factory
+from action_machine.logging.domain_resolver import resolve_domain
 from action_machine.logging.log_coordinator import LogCoordinator
 from action_machine.logging.scoped_logger import ScopedLogger
 from action_machine.metadata.gate_coordinator import GateCoordinator
@@ -644,6 +653,7 @@ class TestBench:
             context=context,
             state=BaseState(**state) if state else BaseState(),
             params=params,
+            domain=resolve_domain(action_cls),
         )
 
         box = ToolsBox(
@@ -715,6 +725,7 @@ class TestBench:
             context=context,
             state=BaseState(**state) if state else BaseState(),
             params=params,
+            domain=resolve_domain(action_cls),
         )
 
         box = ToolsBox(
@@ -838,6 +849,7 @@ class TestBench:
             context=ctx,
             state=state_before,
             params=params,
+            domain=resolve_domain(action_class),
         )
 
         box = ToolsBox(

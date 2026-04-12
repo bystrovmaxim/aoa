@@ -1,82 +1,77 @@
 # src/action_machine/core/meta_decorator.py
 """
-Decorator @meta — объявление описания и доменной принадлежности класса.
+``@meta`` — human description plus **mandatory** domain binding for gated classes.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Decorator @meta — часть грамматики намерений ActionMachine. Он объявляет
-обязательное текстовое описание класса (что это и зачем) и привязку к
-бизнес-домену там, где она требуется инвариантом (см. ниже). Описание
-хранится в runtime metadata и попадает в граф координатора.
+Part of the ActionMachine intent grammar. Stores a non-empty description and a
+``BaseDomain`` subclass on the class. Metadata feeds the coordinator graph and
+logging via ``resolve_domain``.
 
-@meta применяется к двум типам классов:
-1. Действия (Action) — наследники BaseAction через ActionMetaGateHost.
-2. Ресурсные менеджеры — наследники BaseResourceManager через ResourceMetaGateHost.
+Applies only to:
 
-Decorator при применении проверяет, что целевой класс наследует хотя бы
-один из двух гейт-хостов (ActionMetaGateHost или ResourceMetaGateHost).
-Если ни один не найден — TypeError.
+1. Actions — ``BaseAction`` subclasses using ``ActionMetaGateHost``.
+2. Resource managers — ``BaseResourceManager`` subclasses using
+   ``ResourceMetaGateHost``.
+
+The decorator requires at least one of those gate hosts; otherwise
+``TypeError``.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PARAMETERS
 ═══════════════════════════════════════════════════════════════════════════════
 
-    description : str
-        Обязательный. Что делает действие или ресурсный менеджер.
-        Непустая строка после strip(). Пустая строка или строка
-        из пробелов — ValueError.
+``description : str``
+    Required. What the action or manager does. Non-empty after ``strip()``;
+    whitespace-only → ``ValueError``.
 
-    domain : type[BaseDomain]
-        Подкласс ``BaseDomain``. **Обязательный** keyword-only параметр; без него
-        вызов ``@meta`` невозможен.
+``domain : type[BaseDomain]``
+    Required **keyword-only** argument (no default). Must be a ``BaseDomain``
+    subclass. Omitted, ``None``, or wrong type → ``TypeError``.
 
 ═══════════════════════════════════════════════════════════════════════════════
 LIMITATIONS (INVARIANTS)
 ═══════════════════════════════════════════════════════════════════════════════
 
-- Применяется только к классам, не к функциям, methodам или свойствам.
-- Class должен наследовать ActionMetaGateHost или ResourceMetaGateHost.
-- description — непустая строка (str), после strip() не пустая.
-- domain — подкласс BaseDomain (всегда обязателен).
-- Повторное применение @meta к одному классу перезаписывает предыдущее.
+- Classes only (not functions, methods, or properties).
+- Target must inherit ``ActionMetaGateHost`` or ``ResourceMetaGateHost``.
+- Re-applying ``@meta`` overwrites prior metadata on the same class.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ARCHITECTURE / DATA FLOW ИНТЕГРАЦИИ
+ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-    @meta(description="Создание нового заказа", domain=OrdersDomain)
+::
+
+    @meta(description="Create a new order", domain=OrdersDomain)
         │
-        ▼  Decorator записывает в cls._meta_info
-    {"description": "Создание нового заказа", "domain": OrdersDomain}
+        ▼  writes cls._meta_info
+    {"description": "...", "domain": OrdersDomain}
         │
-        ▼  MetaGateHostInspector.Snapshot + узел ``meta`` в графе
+        ▼  MetaGateHostInspector snapshot + ``meta`` graph node
         │
-        ▼  GateCoordinator.build() — commit графа
-    Узел action обогащается description и domain.
-    Создаётся узел domain с ребром belongs_to.
+        ▼  GateCoordinator.build()
+    Action node enriched; domain node with ``belongs_to`` edge.
 
 ═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
-    # Действие с привязкой к домену:
-    @meta(description="Создание нового заказа", domain=OrdersDomain)
+::
+
+    @meta(description="Create a new order", domain=OrdersDomain)
     @check_roles("manager")
-    @depends(PaymentService)
-    @connection(PostgresManager, key="db")
     class CreateOrderAction(BaseAction[OrderParams, OrderResult]):
         ...
 
-    # Действие без аспектов — domain всё равно обязателен:
-    @meta(description="Проверка доступности сервиса", domain=SystemDomain)
+    @meta(description="Ping dependency", domain=SystemDomain)
     @check_roles(ROLE_NONE)
     class PingAction(BaseAction[BaseParams, BaseResult]):
         ...
 
-    # Ресурсный менеджер:
-    @meta(description="Менеджер соединений с PostgreSQL", domain=WarehouseDomain)
+    @meta(description="PostgreSQL connection manager", domain=WarehouseDomain)
     class WarehouseDbManager(BaseResourceManager):
         ...
 
@@ -84,10 +79,22 @@ EXAMPLES
 ERRORS
 ═══════════════════════════════════════════════════════════════════════════════
 
-    TypeError — декоратор применён не к классу; класс не наследует ни один
-               из гейт-хостов; description не строка; domain не передан, None
-               или не подкласс BaseDomain.
-    ValueError — description пустая строка или строка из пробелов.
+``TypeError`` — not a class; missing gate host; ``description`` not ``str``;
+``domain`` missing, ``None``, or not a ``BaseDomain`` subclass.
+
+``ValueError`` — empty / whitespace ``description``.
+
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE-BEGIN
+═══════════════════════════════════════════════════════════════════════════════
+ROLE: Class-level description + domain metadata decorator.
+CONTRACT: @meta(description=..., domain=...) keyword-only domain required.
+INVARIANTS: gate-host check; domain never optional.
+FLOW: validate → attach _meta_info → graph consumers (logging, coordinator).
+FAILURES: TypeError/ValueError as above.
+EXTENSION POINTS: graph side consumed by inspectors only.
+AI-CORE-END
+═══════════════════════════════════════════════════════════════════════════════
 """
 
 from __future__ import annotations

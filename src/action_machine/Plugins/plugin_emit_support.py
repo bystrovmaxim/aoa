@@ -49,7 +49,7 @@ ARCHITECTURE / DATA FLOW
         ├── plugin_emit.base_fields(action, context, params, nest_level)
         ├── plugin_emit.emit_extra_kwargs(box.nested_level)
         └── ScopedLogger(..., machine_name=plugin_emit.machine_class_name,
-                           mode=plugin_emit.mode, ...)
+                           mode=plugin_emit.mode, domain=resolve_domain(type(action)), ...)
 
     ActionProductMachine._run_internal
         │

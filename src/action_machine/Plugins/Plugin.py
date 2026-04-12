@@ -83,6 +83,7 @@ get_handlers() при каждом emit_event() и проверяет кажду
 ПРИМЕР ПЛАГИНА
 ═══════════════════════════════════════════════════════════════════════════════
 
+    from action_machine.logging.channel import Channel
     from action_machine.plugins.events import (
         GlobalFinishEvent,
         AfterRegularAspectEvent,
@@ -102,7 +103,11 @@ get_handlers() при каждом emit_event() и проверяет кажду
 
         @on(AfterRegularAspectEvent, aspect_name_pattern=r"validate_.*")
         async def on_validation_done(self, state, event: AfterRegularAspectEvent, log):
-            await log.debug("Валидация завершена: {%var.name}", name=event.aspect_name)
+            await log.info(
+                Channel.debug,
+                "Валидация завершена: {%var.name}",
+                name=event.aspect_name,
+            )
             return state
 
         @on(UnhandledErrorEvent)

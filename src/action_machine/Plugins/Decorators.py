@@ -125,6 +125,7 @@ OR-ЛОГИКА МЕЖДУ НЕСКОЛЬКИМИ @on НА ОДНОМ МЕТОД
 ПРИМЕР ИСПОЛЬЗОВАНИЯ
 ═══════════════════════════════════════════════════════════════════════════════
 
+    from action_machine.logging.channel import Channel
     from action_machine.plugins.events import (
         GlobalFinishEvent,
         AfterRegularAspectEvent,
@@ -144,6 +145,7 @@ OR-ЛОГИКА МЕЖДУ НЕСКОЛЬКИМИ @on НА ОДНОМ МЕТОД
         async def on_slow_actions(self, state, event: GlobalFinishEvent, log):
             state["slow_count"] += 1
             await log.warning(
+                Channel.business,
                 "Медленное действие: {%var.name} за {%var.ms}мс",
                 name=event.action_name,
                 ms=event.duration_ms,
@@ -153,7 +155,7 @@ OR-ЛОГИКА МЕЖДУ НЕСКОЛЬКИМИ @on НА ОДНОМ МЕТОД
         # Групповое событие — все аспекты
         @on(AspectEvent)
         async def on_any_aspect(self, state, event: AspectEvent, log):
-            await log.debug("Аспект: {%var.name}", name=event.aspect_name)
+            await log.info(Channel.debug, "Аспект: {%var.name}", name=event.aspect_name)
             return state
 
         # Фильтр по типу аспекта и имени

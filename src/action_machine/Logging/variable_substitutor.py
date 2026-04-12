@@ -1,133 +1,77 @@
 # src/action_machine/logging/variable_substitutor.py
 """
-Подстановщик переменных для шаблонов логирования ActionMachine.
+Template engine for ``{%namespace.path}`` and ``{iif(...)}`` in log lines.
 
 ═══════════════════════════════════════════════════════════════════════════════
-НАЗНАЧЕНИЕ
+PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-VariableSubstitutor отвечает за:
+``VariableSubstitutor`` resolves placeholders from five namespaces, runs a
+second pass for ``iif`` via ``ExpressionEvaluator``, applies color markers, and
+honors ``@sensitive`` masking. ``LogCoordinator`` delegates substitution here.
 
-1. Разрешение переменных {%namespace.dotpath} из пяти источников:
-   - var     — словарь пользовательских переменных.
-   - state   — текущее состояние конвейера (BaseState, наследник BaseSchema).
-   - scope   — LogScope (объект с dict-доступом, не pydantic) [3].
-   - context — контекст выполнения (Context, наследник BaseSchema) [2].
-   - params  — входные параметры действия (BaseParams, наследник BaseSchema) [2].
+Namespaces:
 
-2. Двухпроходную подстановку:
-   - Проход 1: замена {%namespace.path} на значения.
-     Внутри {iif(...)} значения подставляются как литералы
-     (строки в кавычках, числа как есть).
-   - Проход 2: вычисление {iif(...)} через ExpressionEvaluator [11].
-
-3. Строгую политику ошибок:
-   - Переменная не найдена → LogTemplateError.
-   - Неизвестный namespace → LogTemplateError.
-   - Невалидный iif → LogTemplateError.
-   - Обращение к имени с подчёркиванием в любом сегменте пути → LogTemplateError.
-
-4. Цветовые фильтры: синтаксис {%var.amount|red} (вне iif) и цветовые
-   функции red('text') (внутри iif). Преобразуются в маркеры, затем
-   заменяются на ANSI-коды.
-
-5. Debug-фильтр: синтаксис {%var.obj|debug} выводит форматированную
-   интроспекцию объекта (публичные поля и свойства).
-
-6. Маскирование чувствительных данных: если разрешённая переменная
-   является свойством с декоратором @sensitive, значение маскируется
-   по параметрам декоратора [12].
+- **var** — message field dict. User kwargs plus system keys set by
+  ``ScopedLogger``. ``level`` / ``channels`` are ``LogLevelPayload`` /
+  ``LogChannelPayload`` (``mask`` + ``name`` / ``names``). Use
+  ``{%var.level.name}``, ``{%var.channels.names}`` for display; ``.mask`` for raw
+  flags if needed. For domain text use ``{%var.domain_name}``; ``{%var.domain}``
+  stringifies the domain **type** (typically not user-facing).
+- **state** — pipeline ``BaseState`` (``BaseSchema``).
+- **scope** — ``LogScope`` (dict-like, not Pydantic).
+- **context** — execution ``Context`` (``BaseSchema``).
+- **params** — action ``BaseParams`` (``BaseSchema``).
 
 ═══════════════════════════════════════════════════════════════════════════════
-ЗАЩИТА ОТ ДОСТУПА К ПРИВАТНЫМ АТРИБУТАМ
+INVARIANTS
 ═══════════════════════════════════════════════════════════════════════════════
 
-Шаблоны логирования не должны позволять доступ к приватным атрибутам
-объектов. Проверка выполняется для КАЖДОГО сегмента dot-path, а не
-только для последнего. Это предотвращает обход защиты через
-промежуточные приватные сегменты:
-
-    {%context.user._secret}        → LogTemplateError  (последний сегмент)
-    {%context._internal.public}    → LogTemplateError  (промежуточный сегмент)
-    {%context.__dict__.keys}       → LogTemplateError  (dunder-сегмент)
-
-Проверка применяется только в VariableSubstitutor (шаблоны логирования).
-BaseSchema.resolve() [2] вызывается из доверенного кода и не ограничивает
-доступ к приватным атрибутам.
+- Unknown variable, unknown namespace, bad ``iif``, underscore-leading path
+  segment, or unknown color → ``LogTemplateError``.
+- Inside ``{iif(...)}``, substituted values are formatted as literals for
+  ``simpleeval`` (quoted strings, plain numbers/bools).
+- Color: ``{%var.x|red}`` outside ``iif``; color helpers inside ``iif`` become
+  markers, then ANSI in an inside-out pass for nesting.
+- ``|debug`` renders a structured introspection of public fields/properties.
 
 ═══════════════════════════════════════════════════════════════════════════════
-НАВИГАЦИЯ ПО ВЛОЖЕННЫМ ОБЪЕКТАМ
+DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-Навигация по dot-path делегируется единому DotPathNavigator из модуля
-core.navigation. Навигатор обеспечивает единообразное поведение для
-всех компонентов фреймворка:
+1. ``_resolve_variable_raw`` / ``DotPathNavigator.navigate_with_source`` —
+   resolve path; yield ``source`` + last segment for ``@sensitive`` detection.
+2. ``_resolve_and_mask`` — underscore guard, sentinel check, masking.
+3. ``_resolve_variable`` vs ``_format_variable_for_template`` — final string vs
+   literal formatting for ``iif``.
 
-    - BaseSchema → __getitem__ (dict-подобный доступ pydantic-модели) [2].
-    - LogScope   → __getitem__ (dict-подобный доступ scope логирования) [3].
-    - dict       → прямой доступ по ключу.
-    - Любой объект → getattr.
-
-VariableSubstitutor использует navigate_with_source(), который
-дополнительно возвращает предпоследний объект в цепочке (source)
-и имя последнего сегмента пути. Это необходимо для обнаружения
-@sensitive-свойств: декоратор @sensitive вешается на property объекта
-source, и для его обнаружения нужно знать, на каком объекте и по
-какому имени было прочитано финальное значение [12].
+Private attribute guard applies to **every** path segment (not only the leaf),
+e.g. ``{%context._internal.public}`` and ``{%context.user._secret}`` are rejected.
+Trusted code may still use ``BaseSchema.resolve`` without this restriction.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ВНУТРЕННЯЯ АРХИТЕКТУРА РАЗРЕШЕНИЯ ПЕРЕМЕННЫХ
+EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
-Разрешение переменной проходит через конвейер из трёх уровней:
-
-1. _resolve_variable_raw(namespace, path, ...) → (raw_value, source, last_segment)
-   Выбирает namespace-резольвер и делегирует навигацию DotPathNavigator.
-
-2. _resolve_and_mask(namespace, path, ...) → (raw_value, masked_str, config)
-   Общая логика: валидация пути на '_', вызов _resolve_variable_raw,
-   проверка _SENTINEL, обнаружение @sensitive, маскирование.
-   Единая точка для шагов 1–5, устраняющая дублирование.
-
-3. Финальное форматирование — зависит от контекста вызова:
-   - _resolve_variable() → возвращает masked_str (для простых подстановок).
-   - _format_variable_for_template() → форматирует с учётом inside_iif
-     (литералы для simpleeval) и фильтров (|color, |debug).
+``{%var.amount|red}``, ``{iif({%var.ok}, green('yes'), red('no'))}``.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ОБРАБОТКА ЦВЕТОВЫХ МАРКЕРОВ
+ERRORS / LIMITATIONS
 ═══════════════════════════════════════════════════════════════════════════════
 
-Цветовые маркеры имеют вид __COLOR(color)content__COLOR_END__. При
-вложенных цветах (например, red('level: ' + green('ok'))) возникают
-вложенные маркеры:
-
-    __COLOR(red)level: __COLOR(green)ok__COLOR_END____COLOR_END__
-
-Метод _apply_color_filters обрабатывает маркеры ИЗНУТРИ НАРУЖУ:
-паттерн захватывает только маркеры без вложенных __COLOR( внутри,
-и применяется в цикле до тех пор, пока маркеры остаются. Это
-гарантирует корректную обработку любой глубины вложенности.
+Template mistakes are treated as developer bugs and fail fast on first use.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ПОДДЕРЖИВАЕМЫЕ ЦВЕТА
+AI-CORE-BEGIN
 ═══════════════════════════════════════════════════════════════════════════════
-
-Имя цвета может быть:
-- Простой foreground: "red", "green", "blue", "yellow", "magenta",
-  "cyan", "white", "grey", "orange", "bright_green" и т.д.
-- Background с префиксом "bg_": "bg_red", "bg_blue".
-- Комбинация "foreground_on_background": "red_on_blue", "green_on_black".
-
-Неизвестное имя цвета → LogTemplateError.
-
+ROLE: Sole substitution + iif + color pipeline for LogCoordinator.
+CONTRACT: substitute(message, var, scope, ctx, state, params) -> final str.
+INVARIANTS: strict LogTemplateError policy; private segment ban; sensitive mask.
+FLOW: replace {%...} → process iif → expand color markers.
+FAILURES: LogTemplateError on resolution/template issues.
+EXTENSION POINTS: new namespaces need resolver registration in __init__.
+AI-CORE-END
 ═══════════════════════════════════════════════════════════════════════════════
-ЕДИНСТВЕННЫЙ ПУБЛИЧНЫЙ МЕТОД
-═══════════════════════════════════════════════════════════════════════════════
-
-substitute() — принимает шаблон и все источники данных, выполняет
-подстановку и возвращает финальную строку. LogCoordinator вызывает
-substitute() вместо собственной реализации.
 """
 
 import re
@@ -210,34 +154,15 @@ _COLOR_MARKER_PATTERN: re.Pattern[str] = re.compile(
 
 class VariableSubstitutor:
     """
-    Подстановщик переменных и вычислитель iif для шаблонов логирования.
+    Resolves ``{%...}``, evaluates ``{iif}``, applies colors and ``@sensitive``.
 
-    Содержит всю логику:
-    - Разрешение переменных из пяти namespace через dispatch-словарь.
-    - Навигация по вложенным объектам через dot-path делегируется
-      единому DotPathNavigator из core.navigation.
-    - Проверка безопасности: каждый сегмент dot-path проверяется на
-      префикс '_' до выполнения навигации. Это предотвращает доступ
-      к приватным атрибутам объектов через шаблоны логирования.
-    - Общая логика разрешения и маскирования вынесена в _resolve_and_mask(),
-      устраняя дублирование между _resolve_variable и
-      _format_variable_for_template.
-    - Форматирование значений как литералов для simpleeval
-      (строки в кавычках, числа как есть).
-    - Двухпроходная подстановка: сначала {%...}, затем {iif(...)}.
-    - Строгая обработка ошибок: подчёркивания → LogTemplateError.
-    - Цветовые фильтры через |color (вне iif) и цветовые функции (внутри iif),
-      преобразуемые в маркеры и постобрабатываемые в ANSI-коды.
-    - Debug-фильтр через |debug, выводящий интроспекцию объекта.
-    - Маскирование @sensitive-свойств [12].
-
-    Атрибуты:
-        _evaluator: экземпляр ExpressionEvaluator для вычисления iif [11].
-        _namespace_resolvers: dispatch-словарь namespace → метод-резольвер.
+    Dispatch table maps namespace names to resolver methods; navigation uses
+    ``DotPathNavigator``. Shared resolution and masking live in
+    ``_resolve_and_mask``.
     """
 
     def __init__(self) -> None:
-        """Инициализирует подстановщик с вычислителем и резольверами."""
+        """Create evaluator and per-namespace resolver map."""
         self._evaluator: ExpressionEvaluator = ExpressionEvaluator()
         self._namespace_resolvers: dict[
             str,
@@ -844,40 +769,23 @@ class VariableSubstitutor:
         params: BaseParams,
     ) -> str:
         """
-        Выполняет все подстановки переменных и вычисление iif.
+        Run ``{%...}`` replacement, then ``{iif}``, then expand color markers.
 
-        Три прохода:
+        Args:
+            message: Template string.
+            var: Per-message dict (user keys + ``level``, ``channels``,
+                ``domain``, ``domain_name`` from the logging system).
+            scope: Current ``LogScope``.
+            ctx: Execution context.
+            state: Pipeline state.
+            params: Action parameters.
 
-        1. Подстановка {%namespace.dotpath} во всём шаблоне, включая
-           внутри {iif(...)}. Внутри iif значения форматируются как
-           литералы (строки в кавычках, числа и булевы как есть).
-           Цветовые фильтры (|color) превращаются в маркеры.
-           Debug-фильтр (|debug) выводит интроспекцию объекта.
+        Returns:
+            Fully resolved text, possibly with ANSI codes.
 
-        2. Вычисление {iif(...)} через ExpressionEvaluator [11]. simpleeval
-           получает выражения с уже подставленными литералами и пустой
-           словарь имён. Цветовые функции (red('text')) внутри iif
-           возвращают маркеры.
-
-        3. Постобработка цветовых маркеров: замена __COLOR(...)...__COLOR_END__
-           на реальные ANSI-коды. Обработка идёт изнутри наружу для
-           поддержки вложенных цветов.
-
-        Аргументы:
-            message: строка шаблона с переменными.
-            var: пользовательские переменные.
-            scope: текущий scope вызова [3].
-            ctx: контекст выполнения [2].
-            state: текущее состояние конвейера.
-            params: входные параметры действия [2].
-
-        Возвращает:
-            Строка со всеми подстановками, вычисленными iif и ANSI-цветами.
-
-        Исключения:
-            LogTemplateError: если переменная не найдена, namespace неизвестен,
-                              iif невалиден или любой сегмент пути начинается
-                              с подчёркивания.
+        Raises:
+            LogTemplateError: missing key, bad namespace, bad ``iif``, private
+                path segment, or unknown color.
         """
         has_iif = "{iif(" in message
 

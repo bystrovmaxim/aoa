@@ -14,12 +14,10 @@ namespace (var, context, params, state, scope) через VariableSubstitutor,
 
 Координатор вызывает logger.handle() для каждого логгера. Метод handle()
 определён в BaseLogger и выполняет двухфазный протокол:
-1. Фильтрация — match_filters() проверяет сообщение по регулярным выражениям.
+1. Фильтрация — match_filters() и подписки subscribe().
 2. Запись — write() выполняет фактический вывод (только если фильтрация прошла).
 
-RecordingLogger в этом модуле наследует BaseLogger и использует его метод
-handle() без переопределения. Это гарантирует, что фильтрация работает
-так же, как в реальных логгерах.
+RecordingLogger наследует BaseLogger.handle() без переопределения.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ПОКРЫВАЕМЫЕ СЦЕНАРИИ
@@ -62,25 +60,30 @@ from action_machine.core.base_params import BaseParams
 from action_machine.core.base_state import BaseState
 from action_machine.core.exceptions import LogTemplateError
 from action_machine.logging.base_logger import BaseLogger
+from action_machine.logging.channel import Channel, channel_mask_label
+from action_machine.logging.level import Level, level_label
 from action_machine.logging.log_coordinator import LogCoordinator
 from action_machine.logging.log_scope import LogScope
+from action_machine.logging.log_var_payloads import LogChannelPayload, LogLevelPayload
+
+
+def _valid_emit_var(**extra: Any) -> dict[str, Any]:
+    li = Level.info
+    cd = Channel.debug
+    return {
+        "level": LogLevelPayload(mask=li, name=level_label(li)),
+        "channels": LogChannelPayload(mask=cd, names=channel_mask_label(cd)),
+        "domain": None,
+        "domain_name": None,
+        **extra,
+    }
 
 
 class RecordingLogger(BaseLogger):
-    """
-    Логгер-шпион, наследующий BaseLogger для корректной фильтрации.
+    """Шпион: write складывает вызовы в records (как ConsoleLogger по протоколу)."""
 
-    Наследует BaseLogger.handle(), который выполняет двухфазный протокол:
-    1. match_filters() — проверяет сообщение по regex-фильтрам.
-    2. write() — вызывается только если фильтрация прошла.
-
-    Метод write() записывает все полученные данные в список records
-    для последующей проверки в тестах. Это гарантирует, что фильтрация
-    работает идентично реальным логгерам (ConsoleLogger и др.).
-    """
-
-    def __init__(self, filters: list[str] | None = None) -> None:
-        super().__init__(filters=filters)
+    def __init__(self) -> None:
+        super().__init__()
         self.records: list[dict[str, Any]] = []
 
     async def write(
@@ -152,7 +155,7 @@ class TestVariableSubstitution:
         # Arrange
         logger = RecordingLogger()
         coordinator = LogCoordinator(loggers=[logger])
-        var = {"count": 42}
+        var = _valid_emit_var(count=42)
 
         # Act
         await coordinator.emit(
@@ -187,7 +190,7 @@ class TestVariableSubstitution:
         # Act
         await coordinator.emit(
             message="User: {%context.user.user_id}",
-            var={},
+            var=_valid_emit_var(),
             scope=simple_scope,
             ctx=ctx,
             state=empty_state,
@@ -220,7 +223,7 @@ class TestVariableSubstitution:
         # Act
         await coordinator.emit(
             message="Amount: {%params.amount}",
-            var={},
+            var=_valid_emit_var(),
             scope=simple_scope,
             ctx=empty_context,
             state=empty_state,
@@ -249,7 +252,7 @@ class TestVariableSubstitution:
         # Act
         await coordinator.emit(
             message="Total: {%state.total}",
-            var={},
+            var=_valid_emit_var(),
             scope=simple_scope,
             ctx=empty_context,
             state=state,
@@ -278,7 +281,7 @@ class TestVariableSubstitution:
         # Act
         await coordinator.emit(
             message="Action: {%scope.action}",
-            var={},
+            var=_valid_emit_var(),
             scope=scope,
             ctx=empty_context,
             state=empty_state,
@@ -312,7 +315,7 @@ class TestIifConstructs:
         # Arrange
         logger = RecordingLogger()
         coordinator = LogCoordinator(loggers=[logger])
-        var = {"amount": 1500.0}
+        var = _valid_emit_var(amount=1500.0)
 
         # Act — iif с {%var.amount} внутри
         await coordinator.emit(
@@ -342,7 +345,7 @@ class TestIifConstructs:
         # Arrange
         logger = RecordingLogger()
         coordinator = LogCoordinator(loggers=[logger])
-        var = {"amount": 1500000.0}
+        var = _valid_emit_var(amount=1500000.0)
 
         # Act
         await coordinator.emit(
@@ -376,7 +379,7 @@ class TestIifConstructs:
         # Act
         await coordinator.emit(
             message="Status: {iif({%state.processed} == True; 'DONE'; 'PENDING')}",
-            var={},
+            var=_valid_emit_var(),
             scope=simple_scope,
             ctx=empty_context,
             state=state,
@@ -415,7 +418,7 @@ class TestBroadcast:
         # Act
         await coordinator.emit(
             message="Broadcast",
-            var={},
+            var=_valid_emit_var(),
             scope=simple_scope,
             ctx=empty_context,
             state=empty_state,
@@ -437,23 +440,18 @@ class TestBroadcast:
         empty_params: BaseParams,
     ) -> None:
         """
-        Каждый логгер фильтрует сообщение независимо через BaseLogger.handle().
-
-        all_logger (без фильтров) принимает все сообщения.
-        filtered_logger (фильтр на "PaymentAction") отклоняет сообщение
-        с scope.action="OrderAction", потому что filter_string не содержит
-        "PaymentAction".
+        Логгеры независимо решают, писать ли сообщение: подписки у второго
+        логгера не совпадают с каналом в var (debug vs business).
         """
-        # Arrange — логгер без фильтров и логгер с фильтром на PaymentAction
         all_logger = RecordingLogger()
-        filtered_logger = RecordingLogger(filters=[r"PaymentAction"])
+        filtered_logger = RecordingLogger()
+        filtered_logger.subscribe("only_business", channels=Channel.business)
         coordinator = LogCoordinator(loggers=[all_logger, filtered_logger])
         scope = LogScope(action="OrderAction")
 
-        # Act — отправляем сообщение от OrderAction (не PaymentAction)
         await coordinator.emit(
             message="Order created",
-            var={},
+            var=_valid_emit_var(),
             scope=scope,
             ctx=empty_context,
             state=empty_state,
@@ -461,7 +459,6 @@ class TestBroadcast:
             indent=0,
         )
 
-        # Assert — all_logger получил, filtered_logger отклонил
         assert len(all_logger.records) == 1
         assert len(filtered_logger.records) == 0
 
@@ -484,7 +481,7 @@ class TestBroadcast:
         coordinator.add_logger(logger)
         await coordinator.emit(
             message="After add",
-            var={},
+            var=_valid_emit_var(),
             scope=simple_scope,
             ctx=empty_context,
             state=empty_state,
@@ -512,7 +509,7 @@ class TestBroadcast:
         # Act — не должно быть исключений
         await coordinator.emit(
             message="No loggers",
-            var={},
+            var=_valid_emit_var(),
             scope=simple_scope,
             ctx=empty_context,
             state=empty_state,
@@ -547,7 +544,7 @@ class TestParameterPassing:
         # Act
         await coordinator.emit(
             message="Indented",
-            var={},
+            var=_valid_emit_var(),
             scope=simple_scope,
             ctx=empty_context,
             state=empty_state,
@@ -576,7 +573,7 @@ class TestParameterPassing:
         # Act
         await coordinator.emit(
             message="Test",
-            var={},
+            var=_valid_emit_var(),
             scope=scope,
             ctx=empty_context,
             state=empty_state,
@@ -614,7 +611,7 @@ class TestNestedStructures:
         # Act
         await coordinator.emit(
             message="Order ID: {%state.order.id}",
-            var={},
+            var=_valid_emit_var(),
             scope=simple_scope,
             ctx=empty_context,
             state=state,
@@ -639,7 +636,7 @@ class TestNestedStructures:
         # Arrange
         logger = RecordingLogger()
         coordinator = LogCoordinator(loggers=[logger])
-        var = {"data": {"value": "deep"}}
+        var = _valid_emit_var(data={"value": "deep"})
 
         # Act
         await coordinator.emit(
@@ -655,6 +652,27 @@ class TestNestedStructures:
         # Assert
         assert logger.records[0]["message"] == "Value: deep"
 
+    @pytest.mark.anyio
+    async def test_substitutes_level_name_and_channel_names(
+        self,
+        simple_scope: LogScope,
+        empty_context: Context,
+        empty_state: BaseState,
+        empty_params: BaseParams,
+    ) -> None:
+        logger = RecordingLogger()
+        coordinator = LogCoordinator(loggers=[logger])
+        await coordinator.emit(
+            message="{%var.level.name}|{%var.channels.names}",
+            var=_valid_emit_var(),
+            scope=simple_scope,
+            ctx=empty_context,
+            state=empty_state,
+            params=empty_params,
+            indent=0,
+        )
+        assert logger.records[0]["message"] == "INFO|debug"
+
 
 # ======================================================================
 # ТЕСТЫ: Обработка ошибок
@@ -663,6 +681,49 @@ class TestNestedStructures:
 
 class TestErrorHandling:
     """LogCoordinator пробрасывает LogTemplateError при ошибках в шаблоне."""
+
+    @pytest.mark.anyio
+    async def test_emit_requires_level_and_channels(
+        self,
+        simple_scope: LogScope,
+        empty_context: Context,
+        empty_state: BaseState,
+        empty_params: BaseParams,
+    ) -> None:
+        coordinator = LogCoordinator(loggers=[])
+        with pytest.raises(ValueError, match="var must contain"):
+            await coordinator.emit(
+                message="x",
+                var={"channels": LogChannelPayload(
+                    mask=Channel.debug, names=channel_mask_label(Channel.debug),
+                )},
+                scope=simple_scope,
+                ctx=empty_context,
+                state=empty_state,
+                params=empty_params,
+                indent=0,
+            )
+
+    @pytest.mark.anyio
+    async def test_emit_rejects_raw_level_not_payload(
+        self,
+        simple_scope: LogScope,
+        empty_context: Context,
+        empty_state: BaseState,
+        empty_params: BaseParams,
+    ) -> None:
+        coordinator = LogCoordinator(loggers=[])
+        bad = {**_valid_emit_var(), "level": Level.info}
+        with pytest.raises(TypeError, match="LogLevelPayload"):
+            await coordinator.emit(
+                message="x",
+                var=bad,
+                scope=simple_scope,
+                ctx=empty_context,
+                state=empty_state,
+                params=empty_params,
+                indent=0,
+            )
 
     @pytest.mark.anyio
     async def test_missing_variable_raises(
@@ -682,7 +743,7 @@ class TestErrorHandling:
         with pytest.raises(LogTemplateError, match="not found"):
             await coordinator.emit(
                 message="Missing: {%var.nonexistent}",
-                var={},
+                var=_valid_emit_var(),
                 scope=simple_scope,
                 ctx=empty_context,
                 state=empty_state,
@@ -708,7 +769,7 @@ class TestErrorHandling:
         with pytest.raises(LogTemplateError, match="Unknown namespace"):
             await coordinator.emit(
                 message="Value: {%unknown.field}",
-                var={},
+                var=_valid_emit_var(),
                 scope=simple_scope,
                 ctx=empty_context,
                 state=empty_state,
@@ -729,7 +790,7 @@ class TestErrorHandling:
         """
         # Arrange
         coordinator = LogCoordinator(loggers=[])
-        var = {"_secret": "value"}
+        var = {**_valid_emit_var(), "_secret": "value"}
 
         # Act & Assert
         with pytest.raises(LogTemplateError, match="Access to name starting with underscore is forbidden"):
@@ -761,7 +822,7 @@ class TestErrorHandling:
         with pytest.raises(LogTemplateError, match="not found"):
             await coordinator.emit(
                 message="Result: {iif({%var.missing} > 10; 'yes'; 'no')}",
-                var={},
+                var=_valid_emit_var(),
                 scope=simple_scope,
                 ctx=empty_context,
                 state=empty_state,
@@ -787,7 +848,7 @@ class TestErrorHandling:
         with pytest.raises(LogTemplateError, match="iif expects 3 arguments"):
             await coordinator.emit(
                 message="Bad: {iif(1 > 0; 'only_two_args')}",
-                var={},
+                var=_valid_emit_var(),
                 scope=simple_scope,
                 ctx=empty_context,
                 state=empty_state,
