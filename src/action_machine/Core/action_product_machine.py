@@ -184,6 +184,28 @@ P = TypeVar("P", bound=BaseParams)
 R = TypeVar("R", bound=BaseResult)
 
 
+class _AspectPipelineError(Exception):
+    """
+    Internal: attaches the ``BaseState`` relevant at the failing pipeline step.
+
+    The original error is ``__cause__``. ``pipeline_state`` is the state passed
+    into the aspect call for ``emit_before`` / ``execute_regular`` failures, or the
+    merged state after a successful ``execute_regular`` when ``emit_after`` fails.
+    """
+
+    def __init__(self, pipeline_state: BaseState) -> None:
+        super().__init__()
+        self.pipeline_state = pipeline_state
+
+
+def _aspect_pipeline_chained_exception(apf: _AspectPipelineError) -> Exception:
+    """``Exception`` for saga / ``@on_error`` (``__cause__`` is typed as ``BaseException``)."""
+    cause = apf.__cause__
+    if isinstance(cause, Exception):
+        return cause
+    return apf
+
+
 def _role_spec_from_coordinator(action_cls: type, coordinator: GateCoordinator) -> Any:
     """Return ``@check_roles`` spec from coordinator facet ``role`` (graph-aligned)."""
     snap = coordinator.get_snapshot(action_cls, "role")
@@ -441,47 +463,98 @@ class ActionProductMachine(BaseActionMachine):
         build_saga = runtime.has_compensators
 
         for aspect_meta in regular_aspects:
-            await self._plugin_emit.emit_before_regular_aspect(
-                plugin_ctx,
-                action=action,
-                context=context,
-                params=params,
-                nest_level=box.nested_level,
-                aspect_name=aspect_meta.method_name,
-                state_snapshot=state.to_dict(),
-            )
-
-            state, new_state_dict, aspect_duration = (
-                await self._aspect_executor.execute_regular(
-                    aspect_meta=aspect_meta,
+            state_passed_into_aspect = state
+            try:
+                await self._plugin_emit.emit_before_regular_aspect(
+                    plugin_ctx,
                     action=action,
-                    params=params,
-                    state=state,
-                    box=box,
-                    connections=connections,
                     context=context,
-                    runtime=runtime,
-                    saga_stack=saga_stack if build_saga else [],
+                    params=params,
+                    nest_level=box.nested_level,
+                    aspect_name=aspect_meta.method_name,
+                    state_snapshot=state_passed_into_aspect.to_dict(),
                 )
-            )
+            except Exception as exc:
+                raise _AspectPipelineError(state_passed_into_aspect) from exc
 
-            await self._plugin_emit.emit_after_regular_aspect(
-                plugin_ctx,
-                action=action,
-                context=context,
-                params=params,
-                nest_level=box.nested_level,
-                aspect_name=aspect_meta.method_name,
-                state_snapshot=state.to_dict(),
-                aspect_result=new_state_dict,
-                duration_ms=aspect_duration * 1000,
-            )
+            try:
+                state, new_state_dict, aspect_duration = (
+                    await self._aspect_executor.execute_regular(
+                        aspect_meta=aspect_meta,
+                        action=action,
+                        params=params,
+                        state=state_passed_into_aspect,
+                        box=box,
+                        connections=connections,
+                        context=context,
+                        runtime=runtime,
+                        saga_stack=saga_stack if build_saga else [],
+                    )
+                )
+            except Exception as exc:
+                raise _AspectPipelineError(state_passed_into_aspect) from exc
+
+            try:
+                await self._plugin_emit.emit_after_regular_aspect(
+                    plugin_ctx,
+                    action=action,
+                    context=context,
+                    params=params,
+                    nest_level=box.nested_level,
+                    aspect_name=aspect_meta.method_name,
+                    state_snapshot=state.to_dict(),
+                    aspect_result=new_state_dict,
+                    duration_ms=aspect_duration * 1000,
+                )
+            except Exception as exc:
+                raise _AspectPipelineError(state) from exc
 
         return state
 
     # ─────────────────────────────────────────────────────────────────────
     # Aspect pipeline + error path
     # ─────────────────────────────────────────────────────────────────────
+
+    async def _finish_aspect_pipeline_error(
+        self,
+        *,
+        aspect_error: Exception,
+        error_state: BaseState,
+        failed_aspect_name: str | None,
+        saga_stack: list[SagaFrame],
+        action: BaseAction[P, R],
+        params: P,
+        box: ToolsBox,
+        connections: dict[str, BaseResourceManager],
+        context: Context,
+        runtime: _ActionExecutionCache,
+        plugin_ctx: PluginRunContext,
+    ) -> R:
+        """Saga unwind (if any), then ``@on_error`` / unhandled with ``error_state``."""
+        if saga_stack:
+            await self._saga_coordinator.execute(
+                saga_stack=saga_stack,
+                error=aspect_error,
+                action=action,
+                params=params,
+                box=box,
+                connections=connections,
+                context=context,
+                plugin_ctx=plugin_ctx,
+            )
+        handled_result = await self._error_handler_executor.handle(
+            error=aspect_error,
+            action=action,
+            params=params,
+            state=error_state,
+            box=box,
+            connections=connections,
+            runtime=runtime,
+            context=context,
+            plugin_ctx=plugin_ctx,
+            failed_aspect_name=failed_aspect_name,
+        )
+        return cast("R", handled_result)
 
     async def _execute_aspects_with_error_handling(
         self,
@@ -497,9 +570,14 @@ class ActionProductMachine(BaseActionMachine):
 
         ``saga_stack`` is created before ``try`` so ``except`` sees frames from aspects
         that completed before the failure.
+
+        ``@on_error`` receives the ``BaseState`` that was passed into the failing
+        regular or summary step (``execute_regular`` / ``execute_summary`` input), or
+        the merged state after that aspect when only the ``emit_after_*`` hook fails.
         """
         saga_stack: list[SagaFrame] = []
         failed_aspect_name: str | None = None
+        state: BaseState | None = None
 
         try:
             state = await self._execute_regular_aspects(
@@ -509,72 +587,80 @@ class ActionProductMachine(BaseActionMachine):
 
             summary_meta = runtime.summary_aspect
             summary_name = summary_meta.method_name if summary_meta else "summary"
-
-            await self._plugin_emit.emit_before_summary_aspect(
-                plugin_ctx,
-                action=action,
-                context=context,
-                params=params,
-                nest_level=box.nested_level,
-                aspect_name=summary_name,
-                state_snapshot=state.to_dict(),
-            )
-
             failed_aspect_name = summary_name
-            result, summary_duration = await self._aspect_executor.execute_summary(
-                summary_meta=summary_meta,
-                action=action,
-                params=params,
-                state=state,
-                box=box,
-                connections=connections,
-                context=context,
-            )
+            state_passed_into_summary = state
 
-            await self._plugin_emit.emit_after_summary_aspect(
-                plugin_ctx,
-                action=action,
-                context=context,
-                params=params,
-                nest_level=box.nested_level,
-                aspect_name=summary_name,
-                state_snapshot=state.to_dict(),
-                result=cast("BaseResult", result),
-                duration_ms=summary_duration * 1000,
-            )
+            try:
+                await self._plugin_emit.emit_before_summary_aspect(
+                    plugin_ctx,
+                    action=action,
+                    context=context,
+                    params=params,
+                    nest_level=box.nested_level,
+                    aspect_name=summary_name,
+                    state_snapshot=state_passed_into_summary.to_dict(),
+                )
+            except Exception as exc:
+                raise _AspectPipelineError(state_passed_into_summary) from exc
 
-            return cast("R", result)
-
-        except Exception as aspect_error:
-            # ── Saga rollback (before @on_error) ───────────────────────
-            # Undo side effects first so @on_error sees a consistent story.
-            if saga_stack:
-                await self._saga_coordinator.execute(
-                    saga_stack=saga_stack,
-                    error=aspect_error,
+            try:
+                result, summary_duration = await self._aspect_executor.execute_summary(
+                    summary_meta=summary_meta,
                     action=action,
                     params=params,
+                    state=state_passed_into_summary,
                     box=box,
                     connections=connections,
                     context=context,
-                    plugin_ctx=plugin_ctx,
                 )
+            except Exception as exc:
+                raise _AspectPipelineError(state_passed_into_summary) from exc
 
-            # ── @on_error / unhandled path ─────────────────────────────
-            error_state = BaseState()
-            handled_result = await self._error_handler_executor.handle(
-                error=aspect_error,
+            try:
+                await self._plugin_emit.emit_after_summary_aspect(
+                    plugin_ctx,
+                    action=action,
+                    context=context,
+                    params=params,
+                    nest_level=box.nested_level,
+                    aspect_name=summary_name,
+                    state_snapshot=state_passed_into_summary.to_dict(),
+                    result=cast("BaseResult", result),
+                    duration_ms=summary_duration * 1000,
+                )
+            except Exception as exc:
+                raise _AspectPipelineError(state_passed_into_summary) from exc
+
+            return cast("R", result)
+
+        except _AspectPipelineError as apf:
+            return await self._finish_aspect_pipeline_error(
+                aspect_error=_aspect_pipeline_chained_exception(apf),
+                error_state=apf.pipeline_state,
+                failed_aspect_name=failed_aspect_name,
+                saga_stack=saga_stack,
                 action=action,
                 params=params,
-                state=error_state,
                 box=box,
                 connections=connections,
-                runtime=runtime,
                 context=context,
+                runtime=runtime,
                 plugin_ctx=plugin_ctx,
-                failed_aspect_name=failed_aspect_name,
             )
-            return cast("R", handled_result)
+        except Exception as aspect_error:
+            return await self._finish_aspect_pipeline_error(
+                aspect_error=aspect_error,
+                error_state=state if state is not None else BaseState(),
+                failed_aspect_name=failed_aspect_name,
+                saga_stack=saga_stack,
+                action=action,
+                params=params,
+                box=box,
+                connections=connections,
+                context=context,
+                runtime=runtime,
+                plugin_ctx=plugin_ctx,
+            )
 
     # ─────────────────────────────────────────────────────────────────────
     # Public entry: run
