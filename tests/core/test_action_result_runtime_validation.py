@@ -8,6 +8,7 @@ from action_machine.aspects.regular_aspect_decorator import regular_aspect
 from action_machine.aspects.summary_aspect_decorator import summary_aspect
 from action_machine.auth import NoneRole, check_roles
 from action_machine.checkers import result_string
+from action_machine.compensate.compensate_decorator import compensate
 from action_machine.context.context import Context
 from action_machine.context.user_info import UserInfo
 from action_machine.core.action_product_machine import ActionProductMachine
@@ -328,3 +329,123 @@ async def test_forward_ref_action_wrong_summary_type_raises(bench: TestBench) ->
         await bench.run(_FwdAction(), _FwdAction.Params(), rollup=False)
     assert ei.value.expected_type is _FwdAction.Result
     assert ei.value.actual_type is BaseResult
+
+
+@pytest.mark.asyncio
+async def test_summary_contract_violation_still_unwinds_saga(bench: TestBench) -> None:
+    """Wrong summary Result type must run compensators before raising (no partial commit)."""
+    rollback_calls: list[str] = []
+
+    @meta(description="saga then bad summary", domain=TestDomain)
+    @check_roles(NoneRole)
+    class _SagaWrongSummaryAction(BaseAction[_P, _R]):
+        @regular_aspect("t")
+        async def t_aspect(
+            self,
+            params: _P,
+            state: BaseState,
+            box: ToolsBox,
+            connections: dict[str, BaseResourceManager],
+        ) -> dict[str, str]:
+            return {}
+
+        @compensate("t_aspect", "rollback")
+        async def rollback_t_aspect_compensate(
+            self,
+            params: _P,
+            state_before: BaseState,
+            state_after: BaseState,
+            box: ToolsBox,
+            connections: dict[str, BaseResourceManager],
+            error: Exception,
+        ) -> None:
+            rollback_calls.append("rollback")
+
+        @summary_aspect("s")
+        async def build_bad_after_saga_summary(
+            self,
+            params: _P,
+            state: BaseState,
+            box: ToolsBox,
+            connections: dict[str, BaseResourceManager],
+        ) -> _R:
+            return _WrongR()  # type: ignore[return-value]
+
+    with pytest.raises(ActionResultTypeError):
+        await bench.run(_SagaWrongSummaryAction(), _P(), rollup=False)
+
+    assert rollback_calls == ["rollback"]
+
+
+@pytest.mark.asyncio
+async def test_summary_contract_violation_without_compensators_does_not_call_saga(
+    bench: TestBench,
+) -> None:
+    """No saga frames → rollback path is a no-op; compensator must not run."""
+    rollback_calls: list[str] = []
+
+    @meta(description="no compensate, bad summary", domain=TestDomain)
+    @check_roles(NoneRole)
+    class _NoCompensateWrongSummaryAction(BaseAction[_P, _R]):
+        @regular_aspect("t")
+        async def t_only_aspect(
+            self,
+            params: _P,
+            state: BaseState,
+            box: ToolsBox,
+            connections: dict[str, BaseResourceManager],
+        ) -> dict[str, str]:
+            return {}
+
+        @summary_aspect("s")
+        async def bad_return_summary(
+            self,
+            params: _P,
+            state: BaseState,
+            box: ToolsBox,
+            connections: dict[str, BaseResourceManager],
+        ) -> _R:
+            return _WrongR()  # type: ignore[return-value]
+
+    with pytest.raises(ActionResultTypeError):
+        await bench.run(_NoCompensateWrongSummaryAction(), _P(), rollup=False)
+
+    assert rollback_calls == []
+
+
+@pytest.mark.asyncio
+async def test_missing_summary_aspect_unwinds_saga_when_compensators_exist(
+    bench: TestBench,
+) -> None:
+    """Missing summary for custom R after regular aspects must still compensate."""
+    rollback_calls: list[str] = []
+
+    @meta(description="no summary custom R + saga", domain=TestDomain)
+    @check_roles(NoneRole)
+    class _MissingSummarySagaAction(BaseAction[_P, _R]):
+        @regular_aspect("t")
+        async def t_aspect_only_aspect(
+            self,
+            params: _P,
+            state: BaseState,
+            box: ToolsBox,
+            connections: dict[str, BaseResourceManager],
+        ) -> dict[str, str]:
+            return {}
+
+        @compensate("t_aspect_only_aspect", "rollback")
+        async def t_aspect_only_aspect_compensate(
+            self,
+            params: _P,
+            state_before: BaseState,
+            state_after: BaseState,
+            box: ToolsBox,
+            connections: dict[str, BaseResourceManager],
+            error: Exception,
+        ) -> None:
+            rollback_calls.append("rollback")
+
+    with pytest.raises(MissingSummaryAspectError):
+        await bench.run(_MissingSummarySagaAction(), _P(), rollup=False)
+
+    assert rollback_calls == ["rollback"]
