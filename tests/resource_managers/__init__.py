@@ -17,7 +17,7 @@
 
 IConnectionManager
     Интерфейс для всех менеджеров соединений с базами данных.
-    Определяет контракт: open(), commit(), rollback(), execute().
+    Определяет контракт: open(), begin(), commit(), rollback(), execute().
 
 PostgresConnectionManager
     Реальная реализация IConnectionManager для PostgreSQL на базе asyncpg.
@@ -39,7 +39,7 @@ Connections
 
     tests/resource_managers/
     ├── __init__.py                             — этот файл
-    ├── test_postgres_connection_manager.py     — open/execute/commit/rollback, rollup
+    ├── test_postgres_connection_manager.py     — open/begin/execute/commit/rollback, rollup
     ├── test_wrapper_connection_manager.py      — запрет транзакций, делегирование execute
     └── test_connections.py                     — TypedDict Connections
 """

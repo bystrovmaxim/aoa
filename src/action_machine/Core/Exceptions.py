@@ -142,7 +142,7 @@ class ConnectionNotOpenError(TransactionError):
     """
     Соединение не открыто (попытка выполнить операцию без открытого соединения).
 
-    Выбрасывается при вызове execute(), commit() или rollback()
+    Выбрасывается при вызове execute(), begin(), commit() или rollback()
     на неоткрытом соединении.
     """
 
@@ -154,7 +154,7 @@ class TransactionProhibitedError(TransactionError):
     Попытка управления транзакцией на вложенном уровне.
 
     Выбрасывается WrapperConnectionManager при попытке вызвать
-    open(), commit() или rollback() на обёрнутом соединении.
+    open(), begin(), commit() или rollback() на обёрнутом соединении.
     Дочернее действие получает соединение через обёртку (прокси),
     которая запрещает управление жизненным циклом ресурса,
     но разрешает выполнение запросов (execute).

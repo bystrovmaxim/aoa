@@ -16,6 +16,12 @@ The coordinator class name **`GateCoordinator`** is unchanged.
 
 ### BREAKING
 
+- **`IConnectionManager.begin()`.** Transactional connection managers must implement
+  `async def begin(self) -> None` (start one DB transaction after `open()`, before
+  mutating `execute` calls so rollup and `commit`/`rollback` are meaningful with
+  asyncpg). `WrapperConnectionManager.begin()` raises `TransactionProhibitedError`
+  (same as `open`/`commit`/`rollback`). `PostgresConnectionManager` runs `BEGIN`.
+
 - **GateHost → Intent (public API and module layout).** Marker mixins and
   inspectors were renamed for consistent «grammar of intents» language:
   `*GateHost` → `*Intent`, `*GateHostInspector` → `*IntentInspector`,

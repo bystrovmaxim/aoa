@@ -3,7 +3,7 @@
 Tests for IConnectionManager — abstract interface for transactional connections.
 
 IConnectionManager extends BaseResourceManager with transaction lifecycle:
-open(), commit(), rollback(), execute(). It supports rollup mode where commit()
+open(), begin(), commit(), rollback(), execute(). It supports rollup mode where commit()
 calls rollback() instead of real commit. The rollup property uses getattr
 with a False fallback for resilience against subclasses that skip super().__init__().
 
@@ -15,7 +15,7 @@ Scenarios covered:
     - check_rollup_support() always returns True.
     - commit() calls rollback() when rollup=True.
     - commit() does NOT call rollback() when rollup=False.
-    - Abstract methods (open, rollback, execute) must be implemented.
+    - Abstract methods (open, begin, rollback, execute) must be implemented.
     - Subclass with rollup=True — commit delegates to rollback.
 """
 
@@ -35,6 +35,7 @@ class _TestConnectionManager(IConnectionManager):
     def __init__(self, rollup: bool = False) -> None:
         super().__init__(rollup=rollup)
         self.opened = False
+        self.begun = False
         self.rolled_back = False
         self.committed = False
         self.executed_queries: list[str] = []
@@ -44,6 +45,9 @@ class _TestConnectionManager(IConnectionManager):
 
     async def open(self) -> None:
         self.opened = True
+
+    async def begin(self) -> None:
+        self.begun = True
 
     async def rollback(self) -> None:
         self.rolled_back = True
@@ -71,6 +75,9 @@ class _NoSuperInitManager(IConnectionManager):
         return None
 
     async def open(self) -> None:
+        pass
+
+    async def begin(self) -> None:
         pass
 
     async def rollback(self) -> None:
@@ -187,6 +194,28 @@ class TestAbstractMethods:
             def get_wrapper_class(self):
                 return None
 
+            async def begin(self):
+                pass
+
+            async def rollback(self):
+                pass
+
+            async def execute(self, query, params=None):
+                pass
+
+        with pytest.raises(TypeError):
+            _Incomplete()
+
+    def test_cannot_instantiate_without_begin(self) -> None:
+        """Subclass missing begin() cannot be instantiated."""
+
+        class _Incomplete(IConnectionManager):
+            def get_wrapper_class(self):
+                return None
+
+            async def open(self):
+                pass
+
             async def rollback(self):
                 pass
 
@@ -206,6 +235,9 @@ class TestAbstractMethods:
             async def open(self):
                 pass
 
+            async def begin(self):
+                pass
+
             async def execute(self, query, params=None):
                 pass
 
@@ -220,6 +252,9 @@ class TestAbstractMethods:
                 return None
 
             async def open(self):
+                pass
+
+            async def begin(self):
                 pass
 
             async def rollback(self):
@@ -239,28 +274,32 @@ class TestFullLifecycle:
 
     @pytest.mark.asyncio
     async def test_normal_lifecycle(self) -> None:
-        """open → execute → commit works in non-rollup mode."""
+        """open → begin → execute → commit works in non-rollup mode."""
         mgr = _TestConnectionManager(rollup=False)
 
         await mgr.open()
+        await mgr.begin()
         await mgr.execute("INSERT INTO t VALUES (1)")
         await mgr.commit()
 
         assert mgr.opened is True
+        assert mgr.begun is True
         assert mgr.executed_queries == ["INSERT INTO t VALUES (1)"]
         assert mgr.committed is True
         assert mgr.rolled_back is False
 
     @pytest.mark.asyncio
     async def test_rollup_lifecycle(self) -> None:
-        """open → execute → commit (rollup=True) rolls back instead."""
+        """open → begin → execute → commit (rollup=True) rolls back instead."""
         mgr = _TestConnectionManager(rollup=True)
 
         await mgr.open()
+        await mgr.begin()
         await mgr.execute("INSERT INTO t VALUES (1)")
         await mgr.commit()
 
         assert mgr.opened is True
+        assert mgr.begun is True
         assert mgr.executed_queries == ["INSERT INTO t VALUES (1)"]
         assert mgr.committed is False
         assert mgr.rolled_back is True
@@ -271,6 +310,7 @@ class TestFullLifecycle:
         mgr = _TestConnectionManager(rollup=False)
 
         await mgr.open()
+        await mgr.begin()
         await mgr.execute("INSERT INTO t VALUES (1)")
         await mgr.rollback()
 

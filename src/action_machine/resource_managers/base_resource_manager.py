@@ -12,7 +12,7 @@
 
 Каждый ресурсный менеджер должен уметь возвращать класс-обёртку (wrapper),
 который используется при передаче ресурса в дочерние действия.
-Обёртка запрещает управление жизненным циклом ресурса (open/commit/rollback),
+Обёртка запрещает управление жизненным циклом ресурса (open/begin/commit/rollback),
 но разрешает выполнение запросов (execute).
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -71,12 +71,14 @@ rollup — RollupNotSupportedError пробрасывается наружу, и
     # Production — rollup выключен:
     db = PostgresConnectionManager(params)
     await db.open()
+    await db.begin()
     await db.execute("INSERT ...")
     await db.commit()  # → реальный COMMIT
 
     # Тестирование на production-базе — rollup включён:
     db = PostgresConnectionManager(params, rollup=True)
     await db.open()
+    await db.begin()
     await db.execute("INSERT ...")
     await db.commit()  # → ROLLBACK вместо COMMIT
 
