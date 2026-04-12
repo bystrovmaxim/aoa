@@ -55,6 +55,7 @@ from action_machine.core.base_result import BaseResult
 from action_machine.core.base_state import BaseState
 from action_machine.core.meta_decorator import meta
 from action_machine.core.tools_box import ToolsBox
+from action_machine.logging.channel import Channel
 from action_machine.resource_managers.base_resource_manager import BaseResourceManager
 
 from ..domains import OrdersDomain
@@ -122,6 +123,7 @@ class CreateOrderAction(BaseAction["CreateOrderAction.Params", "CreateOrderActio
         чекером @result_string.
         """
         await box.info(
+            Channel.business,
             "Валидация заказа: пользователь={%var.user_id}, сумма={%var.amount}",
             user_id=params.user_id,
             amount=params.amount,

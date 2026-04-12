@@ -1,206 +1,131 @@
 # src/action_machine/logging/console_logger.py
 """
-Консольный логгер для системы логирования ActionMachine.
+Stdout logger with optional ANSI colors and indent.
 
 ═══════════════════════════════════════════════════════════════════════════════
-НАЗНАЧЕНИЕ
+PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-ConsoleLogger выводит сообщения в stdout через print. Поддерживает:
+``ConsoleLogger`` prints resolved lines via ``print``. Indentation follows the
+nested call depth passed as ``indent`` to ``write``. Message filtering uses
+``BaseLogger.subscribe`` (channel / level / domain), not constructor flags.
 
-- Отступы на основе уровня вложенности (nest_level), передаваемого
-  в параметре indent при вызове write().
-- Включение/отключение отступов через параметр use_indent.
-- Настройку ширины одного уровня отступа через indent_size.
-- Сохранение или удаление ANSI-цветов через use_colors.
-
-Цвета применяются через шаблонные фильтры (например, {%var.amount|red})
-и обрабатываются координатором логирования (LogCoordinator). ConsoleLogger
-сам не добавляет никаких автоматических цветов — он только решает,
-сохранять или удалять ANSI-коды, уже присутствующие в сообщении.
-
-ANSI-коды удаляются на двух уровнях:
-- LogCoordinator проверяет logger.supports_colors и вызывает strip перед
-  передачей в handle().
-- ConsoleLogger.write() дополнительно удаляет ANSI-коды если use_colors=False,
-  чтобы гарантировать чистый вывод даже при прямом вызове write() без
-  координатора (например, в тестах или при кастомной интеграции).
+When ``use_colors`` is true and ``var["level"]`` is a ``LogLevelPayload``, the formatted
+line (including indent) gets a truecolor **base** foreground for that level.
+Explicit colors from templates still apply inside their spans; each full SGR
+reset (``\\033[0m``) is followed by the base color again so unstyled segments
+stay on the level color, not the terminal default.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ПАРАМЕТРЫ КОНСТРУКТОРА
+INVARIANTS
 ═══════════════════════════════════════════════════════════════════════════════
 
-    filters : list[str] | None
-        Список регулярных выражений для фильтрации сообщений.
-        None или пустой список — принимать всё. Наследуется от BaseLogger.
-
-    use_colors : bool (по умолчанию True)
-        Если True — ANSI-коды сохраняются в выводе. Полезно для терминалов
-        с поддержкой цветов (локальная разработка, iTerm2, VS Code Terminal).
-        Если False — ANSI-коды удаляются перед выводом. Полезно для
-        production-логов, отправляемых в ELK/Loki.
-
-    use_indent : bool (по умолчанию True)
-        Если True — сообщения сдвигаются вправо на indent * indent_size
-        пробелов, где indent — уровень вложенности (nest_level), переданный
-        машиной. Визуально показывает иерархию вложенных действий.
-        Если False — все сообщения выводятся без отступов. Полезно для
-        production-логов, где отступы мешают парсингу.
-
-    indent_size : int (по умолчанию 2)
-        Количество пробелов на один уровень вложенности.
-        Используется только при use_indent=True. По умолчанию 2.
-        Для более наглядной иерархии можно установить 4.
+- Does not add automatic level *text* prefixes; use templates if you need
+  ``{%var.level.name}`` (or ``level_label(var["level"].mask)``) in the body.
+- When ``use_colors`` is false, ``write`` strips ANSI before printing.
+- Override defaults with ``level_fg_prefixes`` (merged into
+  ``DEFAULT_LEVEL_FG_PREFIX``).
 
 ═══════════════════════════════════════════════════════════════════════════════
-ФОРМАТ ВЫВОДА
+EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
-С отступами (use_indent=True, indent_size=2):
+::
 
-    [INFO] Начало обработки заказа
-      [INFO] Валидация карты                    ← nest_level=1
-      [INFO] Списание средств                   ← nest_level=1
-        [INFO] Проверка лимита                  ← nest_level=2
-    [INFO] Заказ обработан
+    from action_machine.logging import Channel
+    from action_machine.logging.console_logger import ConsoleLogger
+    from action_machine.logging.log_coordinator import LogCoordinator
 
-Без отступов (use_indent=False):
-
-    [INFO] Начало обработки заказа
-    [INFO] Валидация карты
-    [INFO] Списание средств
-    [INFO] Проверка лимита
-    [INFO] Заказ обработан
-
-═══════════════════════════════════════════════════════════════════════════════
-ПРИМЕР ИСПОЛЬЗОВАНИЯ
-═══════════════════════════════════════════════════════════════════════════════
-
-    # Для локальной разработки — цвета и отступы
     logger = ConsoleLogger()
+    logger.subscribe("biz", channels=Channel.business)
+    coordinator = LogCoordinator(loggers=[logger])
 
-    # Для CI/CD — без цветов, с отступами
-    logger = ConsoleLogger(use_colors=False)
+═══════════════════════════════════════════════════════════════════════════════
+ERRORS / LIMITATIONS
+═══════════════════════════════════════════════════════════════════════════════
 
-    # Для production (ELK/Loki) — без цветов, без отступов
-    logger = ConsoleLogger(use_colors=False, use_indent=False)
+If ``var`` lacks a ``Level`` instance, no base coloring is applied (message is
+printed as formatted). Without a base, explicit spans that end in a full reset revert to the terminal
+default, as usual.
 
-    # Для отладки — широкие отступы
-    logger = ConsoleLogger(use_indent=True, indent_size=4)
-
-    # С фильтрами — только определённые действия
-    logger = ConsoleLogger(filters=[r"CreateOrder", r"ProcessPayment"])
-
-    # Передача в координатор логирования
-    log_coordinator = LogCoordinator(loggers=[logger])
-
-    # Передача в машину
-    machine = ActionProductMachine(
-        mode="production",
-        log_coordinator=log_coordinator,
-    )
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE-BEGIN
+═══════════════════════════════════════════════════════════════════════════════
+ROLE: Reference console sink for development.
+CONTRACT: write prints one line; respects supports_colors for stripping.
+INVARIANTS: super().__init__ owns subscription dict; indent optional.
+FLOW: handle → match_filters → write → print.
+FAILURES: none added here; print errors propagate.
+EXTENSION POINTS: replace write for file/network sinks following same contract.
+AI-CORE-END
+═══════════════════════════════════════════════════════════════════════════════
 """
 
+from __future__ import annotations
+
+from collections.abc import Mapping
 from typing import Any
 
 from action_machine.context.context import Context
 from action_machine.core.base_params import BaseParams
 from action_machine.core.base_state import BaseState
 from action_machine.logging.base_logger import BaseLogger
+from action_machine.logging.level import Level
 from action_machine.logging.log_scope import LogScope
+from action_machine.logging.log_var_payloads import LogLevelPayload
+
+# Truecolor foreground (24-bit). Reset matches VariableSubstitutor.
+_ANSI_RESET: str = "\033[0m"
+
+DEFAULT_LEVEL_FG_PREFIX: dict[Level, str] = {
+    Level.info: "\033[38;2;255;255;255m",  # #FFFFFF
+    Level.warning: "\033[38;2;255;204;0m",  # #FFCC00
+    Level.critical: "\033[38;2;255;34;34m",  # #FF2222
+}
 
 
 class ConsoleLogger(BaseLogger):
-    """
-    Логгер, выводящий сообщения в консоль через print.
-
-    Поддерживает настраиваемые отступы на основе уровня вложенности
-    и опциональное сохранение ANSI-цветов.
-
-    Цветизация управляется шаблонными фильтрами в координаторе;
-    этот логгер не добавляет автоматических ANSI-кодов.
-
-    При use_colors=False метод write() самостоятельно удаляет ANSI-коды
-    из сообщения перед выводом, гарантируя чистый текст независимо от
-    того, как был вызван write() — через координатор или напрямую.
-
-    Атрибуты:
-        _use_colors : bool
-            Сохранять ли ANSI-коды в выводе. Если False, write() удаляет
-            их через strip_ansi_codes() перед print.
-        _use_indent : bool
-            Добавлять ли отступы на основе уровня вложенности.
-        _indent_size : int
-            Количество пробелов на один уровень вложенности.
-    """
+    """Stdout backend: indentation, optional ANSI, inherited subscription API."""
 
     def __init__(
         self,
-        filters: list[str] | None = None,
         use_colors: bool = True,
         use_indent: bool = True,
         indent_size: int = 2,
+        level_fg_prefixes: Mapping[Level, str] | None = None,
     ) -> None:
-        """
-        Создаёт консольный логгер.
-
-        Аргументы:
-            filters: список regex-паттернов для фильтрации сообщений.
-                     None или пустой список — принимать всё.
-            use_colors: если True — ANSI-коды сохраняются в выводе.
-                        Если False — ANSI-коды удаляются перед выводом.
-                        По умолчанию True.
-            use_indent: если True — сообщения сдвигаются вправо
-                        на indent * indent_size пробелов.
-                        Если False — без отступов.
-                        По умолчанию True.
-            indent_size: количество пробелов на один уровень вложенности.
-                         Используется только при use_indent=True.
-                         По умолчанию 2.
-        """
-        super().__init__(filters=filters)
+        super().__init__()
         self._use_colors: bool = use_colors
         self._use_indent: bool = use_indent
         self._indent_size: int = indent_size
+        self._level_fg: dict[Level, str] = dict(DEFAULT_LEVEL_FG_PREFIX)
+        if level_fg_prefixes is not None:
+            self._level_fg.update(level_fg_prefixes)
 
     @property
     def supports_colors(self) -> bool:
-        """
-        Указывает, сохраняет ли этот логгер ANSI-коды.
-
-        LogCoordinator проверяет это свойство перед отправкой сообщения.
-        Если False — координатор удаляет ANSI-последовательности
-        через BaseLogger.strip_ansi_codes() перед вызовом handle().
-
-        Возвращает:
-            True если use_colors=True, иначе False.
-        """
         return self._use_colors
 
-    def _format_line(
-        self,
-        message: str,
-        indent: int,
-    ) -> str:
-        """
-        Форматирует финальную строку вывода.
-
-        Если use_indent=True — добавляет отступ из пробелов перед сообщением.
-        Количество пробелов = indent * indent_size.
-        Если use_indent=False — возвращает сообщение без отступов.
-
-        Аргументы:
-            message: текст сообщения (уже с подстановками и цветами).
-            indent: уровень вложенности (nest_level), определяющий
-                    величину отступа.
-
-        Возвращает:
-            Отформатированная строка, готовая к выводу через print.
-        """
+    def _format_line(self, message: str, indent: int) -> str:
         if self._use_indent:
             indent_str = " " * (indent * self._indent_size)
             return f"{indent_str}{message}"
         return message
+
+    @staticmethod
+    def _wrap_line_with_level_base(line: str, base_prefix: str) -> str:
+        """
+        Prefix the line with base color; after each full reset, re-apply base.
+
+        Expects **real ANSI SGR** (e.g. ``\\033[0m``), not ``__COLOR(...)`` /
+        ``__COLOR_END__`` markers — those are expanded in ``VariableSubstitutor``
+        before ``LogCoordinator`` calls ``write``.
+
+        Explicit SGR sequences in ``line`` remain in effect until a reset; then
+        text returns to the level base, not the terminal default.
+        """
+        restored = line.replace(_ANSI_RESET, _ANSI_RESET + base_prefix)
+        return f"{base_prefix}{restored}{_ANSI_RESET}"
 
     async def write(
         self,
@@ -212,28 +137,14 @@ class ConsoleLogger(BaseLogger):
         params: BaseParams,
         indent: int,
     ) -> None:
-        """
-        Выводит сообщение в консоль через print.
-
-        Вызывается только после успешной фильтрации (match_filters
-        вернул True). Не подавляет исключения — если print не удаётся,
-        ошибка пробрасывается наверх.
-
-        Если use_colors=False — удаляет ANSI-коды из сообщения перед
-        выводом через strip_ansi_codes(). Это гарантирует чистый текст
-        даже при прямом вызове write() без координатора.
-
-        Аргументы:
-            scope: текущий scope вызова (местоположение в конвейере).
-            message: полностью подставленное сообщение (может содержать
-                     ANSI-коды, если supports_colors=True).
-            var: пользовательские переменные.
-            ctx: контекст выполнения (пользователь, запрос, окружение).
-            state: текущее состояние конвейера.
-            params: входные параметры действия.
-            indent: уровень вложенности (nest_level) для отступов.
-        """
         if not self._use_colors:
             message = self.strip_ansi_codes(message)
-        line = self._format_line(message, indent)
+            line = self._format_line(message, indent)
+        else:
+            line = self._format_line(message, indent)
+            level = var.get("level")
+            if isinstance(level, LogLevelPayload) and level.mask in self._level_fg:
+                line = self._wrap_line_with_level_base(
+                    line, self._level_fg[level.mask],
+                )
         print(line)

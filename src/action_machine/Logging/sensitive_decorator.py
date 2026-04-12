@@ -1,107 +1,79 @@
 # src/action_machine/logging/sensitive_decorator.py
 """
-Декоратор @sensitive — маскирование чувствительных данных в логах.
+``@sensitive`` — mark properties whose log output should be masked.
 
 ═══════════════════════════════════════════════════════════════════════════════
-НАЗНАЧЕНИЕ
+PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Декоратор @sensitive — часть грамматики намерений ActionMachine для защиты
-персональных данных. Он помечает свойство (property) класса как содержащее
-чувствительные данные. При подстановке значения в шаблон лога
-(VariableSubstitutor) система обнаруживает конфигурацию @sensitive и
-автоматически маскирует значение по заданным правилам.
+Intent-grammar hook for PII: attach masking config to a property getter.
+``VariableSubstitutor`` reads ``_sensitive_config`` during ``{%...}`` resolution
+and applies ``mask_value``.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ПРАВИЛА МАСКИРОВАНИЯ
+MASKING RULE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Алгоритм определяет, сколько символов показать:
+::
+
     visible = min(max_chars, ceil(len(value) * max_percent / 100))
 
-Если visible >= len(value), строка возвращается без изменений.
-Иначе: первые `visible` символов + 5 символов замены (char * 5).
+If ``visible >= len(value)``, return unchanged. Else: first ``visible``
+characters plus five repeats of ``char``.
 
-Параметры:
-    - enabled (bool): включено ли маскирование. По умолчанию True.
-    - max_chars (int): максимальное число видимых символов с начала строки.
-      По умолчанию 3.
-    - char (str): символ замены, одиночный символ. По умолчанию '*'.
-    - max_percent (int): максимальный процент видимых символов (0..100).
-      По умолчанию 50.
+Parameters: ``enabled`` (default True), ``max_chars`` (default 3), ``char``
+(default ``'*'``), ``max_percent`` (default 50, range 0–100).
 
 ═══════════════════════════════════════════════════════════════════════════════
-ОГРАНИЧЕНИЯ (ИНВАРИАНТЫ)
+INVARIANTS
 ═══════════════════════════════════════════════════════════════════════════════
 
-- Применяется только к свойствам (property) или к функциям, которые станут
-  свойствами (перед @property).
-- Поддерживается два порядка декораторов:
-
-      @property
-      @sensitive(...)
-      def email(self): ...
-
-      @sensitive(...)     # тоже работает, но рекомендуется порядок выше
-      @property
-      def email(self): ...
-
-- Свойство должно быть публичным (имя не начинается с '_').
-  Проверка имени выполняется позже (инспектор / инструменты), так как на этапе
-  декорирования имя атрибута ещё неизвестно.
-- enabled должен быть bool.
-- max_chars должен быть неотрицательным int.
-- char должен быть строкой длиной 1.
-- max_percent должен быть int в диапазоне 0..100.
+- Target is a ``property`` or a callable that will be wrapped by ``@property``.
+- Supported stacks: ``@property`` above ``@sensitive`` (preferred), or the
+  reverse order.
+- Public property names should not start with ``_`` (enforced elsewhere).
+- Parameter types/ranges validated at decoration time.
 
 ═══════════════════════════════════════════════════════════════════════════════
-АРХИТЕКТУРА ИНТЕГРАЦИИ
+DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-    @sensitive(True, max_chars=3, char='*', max_percent=50)
-        │
-        ▼
-    property.fget._sensitive_config = {...}
-        │
-        ▼  SensitiveGateHostInspector.Snapshot + ``get_sensitive_fields()``
-        │
-        ▼  VariableSubstitutor._get_property_config(obj, attr_name)
-    Обнаруживает _sensitive_config → вызывает mask_value(value, config)
-        │
-        ▼
-    Маскированная строка в шаблоне лога
+``@sensitive`` → ``fget._sensitive_config`` → inspector snapshot /
+``get_sensitive_fields`` → ``VariableSubstitutor._get_property_config`` →
+``mask_value`` → masked string in template output.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ПРИМЕР ИСПОЛЬЗОВАНИЯ
+EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
+
+::
 
     class UserAccount:
-        def __init__(self, email: str, phone: str):
-            self._email = email
-            self._phone = phone
-
         @property
-        @sensitive(True, max_chars=3, char='*', max_percent=50)
+        @sensitive(True, max_chars=3, char="*", max_percent=50)
         def email(self) -> str:
             return self._email
 
-        @property
-        @sensitive(True, max_chars=4, char='#', max_percent=100)
-        def phone(self) -> str:
-            return self._phone
-
-    В шаблоне лога:
-        "Email: {%context.account.email}"  →  "Email: max*****"
-        "Phone: {%context.account.phone}"  →  "Phone: +123#####"
+    Template ``Email: {%context.account.email}`` → ``Email: max*****``.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ОШИБКИ
+ERRORS
 ═══════════════════════════════════════════════════════════════════════════════
 
-    TypeError — enabled не bool; max_chars не int; char не строка;
-               max_percent не int; декоратор применён к не-callable/не-property.
-    ValueError — max_chars отрицательный; char не один символ;
-                max_percent вне диапазона 0..100.
+``TypeError`` / ``ValueError`` from parameter validation or wrong decorator
+target (see runtime messages).
+
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE-BEGIN
+═══════════════════════════════════════════════════════════════════════════════
+ROLE: Property decorator storing masking config for log substitution.
+CONTRACT: @sensitive(enabled, max_chars, char, max_percent) on getters.
+INVARIANTS: config on fget; consumed only by VariableSubstitutor + inspectors.
+FLOW: decorate → _sensitive_config → resolve path → mask_value.
+FAILURES: validation at decorate time; masking never suppress errors silently.
+EXTENSION POINTS: mask_value rules live in masking module.
+AI-CORE-END
+═══════════════════════════════════════════════════════════════════════════════
 """
 
 from __future__ import annotations

@@ -37,6 +37,7 @@ INVARIANTS
 - Compensator failures never stop remaining rollback frames.
 - Saga start/completion events are emitted exactly once per execution.
 - All plugin emissions use the injected ``PluginEmitSupport`` instance.
+- Compensator ``ScopedLogger`` instances use ``domain=resolve_domain(type(action))``.
 
 ═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES
@@ -83,6 +84,7 @@ from action_machine.core.components.aspect_executor import AspectExecutor
 from action_machine.core.components.error_handler_executor import ErrorHandlerExecutor
 from action_machine.core.saga_frame import SagaFrame
 from action_machine.core.tools_box import ToolsBox
+from action_machine.logging.domain_resolver import resolve_domain
 from action_machine.logging.scoped_logger import ScopedLogger
 from action_machine.plugins.events import (
     AfterCompensateAspectEvent,
@@ -189,6 +191,7 @@ class SagaCoordinator:
                         else BaseState()
                     ),
                     params=params,
+                    domain=resolve_domain(type(action)),
                 )
                 comp_box = ToolsBox(
                     run_child=box.run_child,

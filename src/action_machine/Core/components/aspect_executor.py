@@ -35,8 +35,9 @@ ARCHITECTURE / DATA FLOW
 INVARIANTS
 ═══════════════════════════════════════════════════════════════════════════════
 
-- ``call(...)`` owns ContextView injection, per-aspect ``ScopedLogger`` (with context),
-  and builds a ``ToolsBox`` that does not carry ``Context`` on the instance.
+- ``call(...)`` owns ContextView injection, per-aspect ``ScopedLogger`` with
+  ``domain=resolve_domain(type(action))`` (and context for templates), and builds
+  a ``ToolsBox`` that does not carry ``Context`` on the instance.
 - Regular aspect execution validates checker contracts before state merge.
 - State merge remains immutable (``BaseState`` new instance per step).
 - No ``_MachineLike`` protocol on aspect entry points.
@@ -85,6 +86,7 @@ from action_machine.core.base_state import BaseState
 from action_machine.core.exceptions import ValidationFieldError
 from action_machine.core.saga_frame import SagaFrame
 from action_machine.core.tools_box import ToolsBox
+from action_machine.logging.domain_resolver import resolve_domain
 from action_machine.logging.log_coordinator import LogCoordinator
 from action_machine.logging.scoped_logger import ScopedLogger
 from action_machine.resource_managers.base_resource_manager import BaseResourceManager
@@ -143,6 +145,7 @@ class AspectExecutor:
             context=context,
             state=state,
             params=params,
+            domain=resolve_domain(type(action)),
         )
         aspect_box = ToolsBox(
             run_child=box.run_child,

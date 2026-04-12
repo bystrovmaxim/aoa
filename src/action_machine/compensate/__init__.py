@@ -72,6 +72,7 @@ cached from those snapshots when the run started.
 ═══════════════════════════════════════════════════════════════════════════════
 
     from action_machine.compensate import compensate
+    from action_machine.logging.channel import Channel
 
     class CreateOrderAction(BaseAction[CreateOrderParams, CreateOrderResult]):
 
@@ -90,9 +91,11 @@ cached from those snapshots when the run started.
                 payment = box.resolve(PaymentService)
                 await payment.refund(state_after.txn_id)
             except Exception as e:
-                await box.log.error(
+                await box.critical(
+                    Channel.error,
                     "Не удалось откатить платёж {%var.txn}: {%var.err}",
-                    txn=state_after.txn_id, err=str(e),
+                    txn=state_after.txn_id,
+                    err=str(e),
                 )
 
 

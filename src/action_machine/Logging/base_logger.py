@@ -1,137 +1,156 @@
 # src/action_machine/logging/base_logger.py
 """
 Abstract base class for all loggers in the AOA logging system.
-BaseLogger defines a two‑phase protocol for message processing:
-1. Filtering – the match_filters method quickly determines whether
-   this logger should process the message.
-2. Writing – the abstract write method is implemented by descendants
-   and performs the actual output (console, file, ELK, etc.).
 
-Filtering is based on regular expressions. Each logger receives a list
-of filters at creation time. Filters are compiled in __init__ for
-performance (they are not recompiled on every call).
+BaseLogger defines a two-phase protocol for message processing:
+1. Filtering — ``match_filters`` decides whether this logger should handle
+   the message, using optional ``LogSubscription`` rules added via
+   ``subscribe``.
+2. Writing — the abstract ``write`` method performs the actual output.
 
-The filter string is built from scope.as_dotpath() and serialized var
-keys – this allows filtering by any combination of conditions.
+With no subscriptions, the logger accepts every message. With one or more
+subscriptions, the message is accepted if **any** subscription matches (OR);
+within a single subscription, channel, level, and domain conditions are AND.
 
-If the filter list is empty, the logger accepts all messages (no filters
-means “accept everything”). If at least one filter matches, the message
-is accepted. If none match, the message is discarded.
+``var`` is always validated by ``LogCoordinator.emit`` before loggers run
+(``level``, ``channels``, ``domain``).
 
-BaseLogger does NOT suppress exceptions. If the write method fails,
-the exception propagates up the stack. This is a conscious decision:
-a broken logger should be discovered immediately, not a month later
-when logs are needed.
+BaseLogger does NOT suppress exceptions from ``write``.
 
-All methods are asynchronous – loggers may perform I/O (file writes,
-network sends) without blocking the event loop.
+All methods are asynchronous so loggers may perform I/O without blocking
+the event loop.
 
-New in 0.0.5:
-- `supports_colors` property to indicate whether the logger can handle
-  ANSI color codes.
-- `strip_ansi_codes` static method to remove ANSI sequences from a string.
+``supports_colors`` and ``strip_ansi_codes`` — see subclass docs.
+
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE-BEGIN
+═══════════════════════════════════════════════════════════════════════════════
+ROLE: Abstract logger with optional subscription filtering.
+CONTRACT: handle → match_filters then write; subscribe/unsubscribe API.
+INVARIANTS: OR across subscriptions; AND inside one LogSubscription; var pre-validated.
+FLOW: coordinator → handle → match_filters(var) → write or skip.
+FAILURES: write exceptions propagate; subscribe enforces unique keys; subscription
+    fields validated in ``LogSubscription.__post_init__``.
+EXTENSION POINTS: implement write in subclasses (ConsoleLogger, etc.).
+AI-CORE-END
+═══════════════════════════════════════════════════════════════════════════════
 """
+
+from __future__ import annotations
 
 import re
 from abc import ABC, abstractmethod
-from typing import Any
+from typing import Any, Self, overload
 
 from action_machine.context.context import Context
 from action_machine.core.base_params import BaseParams
 from action_machine.core.base_state import BaseState
+from action_machine.domain.base_domain import BaseDomain
+from action_machine.logging.channel import Channel
+from action_machine.logging.level import Level
 from action_machine.logging.log_scope import LogScope
+from action_machine.logging.subscription import LogSubscription
 
 # Regular expression to match ANSI escape sequences
-_ANSI_ESCAPE = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
+_ANSI_ESCAPE = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
 
 
 class BaseLogger(ABC):
     """
-    Abstract base class for all loggers.
-    Defines the message processing protocol: filtering via regular expressions,
-    then writing via the abstract write method.
-    Descendants only need to implement write – filtering and the call to write
-    are handled by the base class through the handle method.
-    Exceptions from write are not suppressed – if a logger is broken,
-    the system must know about it immediately.
+    Abstract base logger: optional subscriptions, then ``write``.
+
+    Subclasses implement ``write`` only; ``handle`` runs matching and dispatch.
     """
 
-    def __init__(self, filters: list[str] | None = None) -> None:
+    def __init__(self) -> None:
+        super().__init__()
+        self._subscriptions: dict[str, LogSubscription] = {}
+
+    @overload
+    def subscribe(
+        self,
+        key: str,
+        *,
+        channels: Channel | None = None,
+        levels: Level | None = None,
+        domains: type[BaseDomain],
+    ) -> Self: ...
+
+    @overload
+    def subscribe(
+        self,
+        key: str,
+        *,
+        channels: Channel | None = None,
+        levels: Level | None = None,
+        domains: list[type[BaseDomain]],
+    ) -> Self: ...
+
+    @overload
+    def subscribe(
+        self,
+        key: str,
+        *,
+        channels: Channel | None = None,
+        levels: Level | None = None,
+        domains: tuple[type[BaseDomain], ...],
+    ) -> Self: ...
+
+    @overload
+    def subscribe(
+        self,
+        key: str,
+        *,
+        channels: Channel | None = None,
+        levels: Level | None = None,
+        domains: None = None,
+    ) -> Self: ...
+
+    def subscribe(
+        self,
+        key: str,
+        *,
+        channels: Channel | None = None,
+        levels: Level | None = None,
+        domains: type[BaseDomain]
+        | list[type[BaseDomain]]
+        | tuple[type[BaseDomain], ...]
+        | None = None,
+    ) -> Self:
         """
-        Initializes the logger with a set of filters.
+        Add a subscription with a unique key (validated in ``LogSubscription``).
 
-        Filters are strings containing regular expressions, compiled at
-        instance creation for performance. Each filter is applied using
-        re.search (not fullmatch), allowing matches anywhere in the context string.
-
-        If filters is empty or None, filtering is disabled – the logger accepts
-        all messages.
-
-        Args:
-            filters: list of regex strings for filtering.
-                     Each string is compiled into a re.Pattern.
-                     None or empty list means "accept all".
+        ``channels`` / ``levels`` / ``domains`` are AND within this rule.
+        ``domains`` may be one ``BaseDomain`` subclass, a non-empty list, or a
+        non-empty tuple of subclasses. Returns ``self`` for chaining.
         """
-        self._filters: list[re.Pattern[str]] = [re.compile(f) for f in (filters or [])]
+        if key in self._subscriptions:
+            raise ValueError(f"subscription key '{key}' already exists")
+
+        self._subscriptions[key] = LogSubscription(
+            key=key,
+            channels=channels,
+            levels=levels,
+            _domains_raw=domains,
+        )
+        return self
+
+    def unsubscribe(self, key: str) -> Self:
+        """Remove subscription by key. Raises KeyError if missing."""
+        if key not in self._subscriptions:
+            raise KeyError(f"subscription key '{key}' not found")
+        del self._subscriptions[key]
+        return self
 
     @property
     def supports_colors(self) -> bool:
-        """
-        Indicates whether this logger can handle ANSI color codes.
-
-        Returns:
-            True if the logger preserves ANSI codes, False if they should be stripped.
-            Base implementation returns False; descendants may override.
-        """
+        """Whether this logger preserves ANSI color codes."""
         return False
 
     @staticmethod
     def strip_ansi_codes(text: str) -> str:
-        """
-        Removes ANSI escape sequences from a string.
-
-        Args:
-            text: input string possibly containing ANSI codes.
-
-        Returns:
-            String with all ANSI sequences removed.
-        """
-        return _ANSI_ESCAPE.sub('', text)
-
-    def _build_filter_string(
-        self,
-        scope: LogScope,
-        message: str,
-        var: dict[str, Any],
-    ) -> str:
-        """
-        Builds the context string for filter matching.
-
-        The string is composed of three parts:
-        1. scope.as_dotpath() – location in the pipeline.
-        2. The message text.
-        3. Serialized var keys and values as "key=value".
-
-        Parts are joined by spaces. This allows filtering by any combination:
-        by action name, by message text, by variable values.
-
-        Args:
-            scope: current call scope.
-            message: already substituted message text.
-            var: dictionary of variables passed to the log call.
-
-        Returns:
-            A single string for regex matching.
-        """
-        parts: list[str] = []
-        dotpath = scope.as_dotpath()
-        if dotpath:
-            parts.append(dotpath)
-        if message:
-            parts.append(message)
-        for key, value in var.items():
-            parts.append(f"{key}={value}")
-        return " ".join(parts)
+        """Remove ANSI escape sequences from text."""
+        return _ANSI_ESCAPE.sub("", text)
 
     async def match_filters(
         self,
@@ -144,36 +163,16 @@ class BaseLogger(ABC):
         indent: int,
     ) -> bool:
         """
-        Checks whether this logger should process the message.
+        No subscriptions → accept all.
 
-        Filtering logic:
-        1. If the filter list is empty, return True (no filters – accept all).
-        2. Build the filter string via _build_filter_string.
-        3. Apply each compiled re.Pattern using search.
-        4. As soon as one filter matches, return True.
-        5. If none match, return False.
-
-        The method is asynchronous for interface uniformity, although the
-        current implementation does not perform I/O.
-
-        Args:
-            scope: current call scope.
-            message: substituted message text.
-            var: developer‑supplied variables.
-            ctx: execution context (user, request, environment).
-            state: current pipeline state.
-            params: action input parameters.
-            indent: indentation level (for nested calls).
-
-        Returns:
-            True if the message passed filtering and should be written,
-            False if it is rejected by all filters.
+        With subscriptions → accept if any subscription matches (OR).
+        ``var`` is already validated by the coordinator.
         """
-        if not self._filters:
+        if not self._subscriptions:
             return True
-        filter_string = self._build_filter_string(scope, message, var)
-        for pattern in self._filters:
-            if pattern.search(filter_string):
+
+        for subscription in self._subscriptions.values():
+            if subscription.matches(var):
                 return True
         return False
 
@@ -187,26 +186,10 @@ class BaseLogger(ABC):
         params: BaseParams,
         indent: int,
     ) -> None:
-        """
-        Entry point for processing a message by the logger.
-
-        Called by LogCoordinator in a loop for each registered logger.
-        Performs two phases:
-        1. Filtering – calls match_filters. If False, exits without further action.
-        2. Writing – calls the abstract write method.
-
-        No try/except – if write fails, the exception propagates upward.
-
-        Args:
-            scope: current call scope.
-            message: substituted message text.
-            var: developer‑supplied variables.
-            ctx: execution context.
-            state: current pipeline state.
-            params: action input parameters.
-            indent: indentation level.
-        """
-        matched = await self.match_filters(scope, message, var, ctx, state, params, indent)
+        """Run ``match_filters``; if True, call ``write``."""
+        matched = await self.match_filters(
+            scope, message, var, ctx, state, params, indent,
+        )
         if not matched:
             return
         await self.write(scope, message, var, ctx, state, params, indent)
@@ -222,20 +205,5 @@ class BaseLogger(ABC):
         params: BaseParams,
         indent: int,
     ) -> None:
-        """
-        Writes the message to the specific output channel.
-
-        Abstract method – implemented by each concrete logger.
-        Called only if match_filters returned True.
-        Must NOT suppress exceptions.
-
-        Args:
-            scope: current call scope.
-            message: substituted message text.
-            var: developer‑supplied variables.
-            ctx: execution context.
-            state: current pipeline state.
-            params: action input parameters.
-            indent: indentation level.
-        """
+        """Write the message; called only when ``match_filters`` returned True."""
         pass

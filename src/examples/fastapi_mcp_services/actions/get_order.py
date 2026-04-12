@@ -42,6 +42,7 @@ from action_machine.core.base_result import BaseResult
 from action_machine.core.base_state import BaseState
 from action_machine.core.meta_decorator import meta
 from action_machine.core.tools_box import ToolsBox
+from action_machine.logging.channel import Channel
 from action_machine.resource_managers.base_resource_manager import BaseResourceManager
 
 from ..domains import OrdersDomain
@@ -87,7 +88,11 @@ class GetOrderAction(BaseAction["GetOrderAction.Params", "GetOrderAction.Result"
         box: ToolsBox,
         connections: dict[str, BaseResourceManager],
     ) -> "GetOrderAction.Result":
-        await box.info("Запрос заказа: {%var.order_id}", order_id=params.order_id)
+        await box.info(
+            Channel.business,
+            "Запрос заказа: {%var.order_id}",
+            order_id=params.order_id,
+        )
 
         return GetOrderAction.Result(
             order_id=params.order_id,
