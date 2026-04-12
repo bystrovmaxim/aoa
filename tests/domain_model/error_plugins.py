@@ -46,11 +46,11 @@ USAGE IN TESTS
     result = await bench.run(ErrorHandledAction(), params, rollup=False)
 """
 from action_machine.logging.scoped_logger import ScopedLogger
-from action_machine.plugins.decorators import on
 from action_machine.plugins.events import (
     BeforeOnErrorAspectEvent,
     UnhandledErrorEvent,
 )
+from action_machine.plugins.on_decorator import on
 from action_machine.plugins.plugin import Plugin
 
 

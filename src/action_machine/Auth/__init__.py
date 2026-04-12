@@ -121,10 +121,10 @@ from .auth_coordinator import (
 )
 from .authenticator import Authenticator
 from .base_role import BaseRole
-from .check_roles import check_roles
+from .check_roles_decorator import check_roles
 from .none_role import NoneRole
 from .role_intent import RoleIntent
-from .role_mode import RoleMode, role_mode
+from .role_mode_decorator import RoleMode, role_mode
 from .role_mode_intent import RoleModeIntent
 
 __all__ = [

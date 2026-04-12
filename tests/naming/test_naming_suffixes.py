@@ -211,7 +211,7 @@ class TestRegularAspectSuffix:
     def test_correct_suffix_passes(self) -> None:
         """Имя 'validate_data_aspect' → декоратор применяется без ошибок."""
 
-        from action_machine.aspects.regular_aspect import regular_aspect
+        from action_machine.aspects.regular_aspect_decorator import regular_aspect
 
         @regular_aspect("Валидация данных")
         async def validate_data_aspect(self, params, state, box, connections):
@@ -222,7 +222,7 @@ class TestRegularAspectSuffix:
     def test_missing_suffix_raises(self) -> None:
         """Имя 'validate_data' без '_aspect' → NamingSuffixError."""
 
-        from action_machine.aspects.regular_aspect import regular_aspect
+        from action_machine.aspects.regular_aspect_decorator import regular_aspect
 
         with pytest.raises(NamingSuffixError, match="_aspect"):
             @regular_aspect("Валидация данных")
@@ -232,7 +232,7 @@ class TestRegularAspectSuffix:
     def test_wrong_suffix_raises(self) -> None:
         """Имя 'validate_data_step' → NamingSuffixError."""
 
-        from action_machine.aspects.regular_aspect import regular_aspect
+        from action_machine.aspects.regular_aspect_decorator import regular_aspect
 
         with pytest.raises(NamingSuffixError, match="_aspect"):
             @regular_aspect("Валидация данных")
@@ -251,7 +251,7 @@ class TestSummaryAspectSuffix:
     def test_correct_suffix_passes(self) -> None:
         """Имя 'build_result_summary' → декоратор применяется без ошибок."""
 
-        from action_machine.aspects.summary_aspect import summary_aspect
+        from action_machine.aspects.summary_aspect_decorator import summary_aspect
 
         @summary_aspect("Формирование результата")
         async def build_result_summary(self, params, state, box, connections):
@@ -262,7 +262,7 @@ class TestSummaryAspectSuffix:
     def test_missing_suffix_raises(self) -> None:
         """Имя 'build_result' без '_summary' → NamingSuffixError."""
 
-        from action_machine.aspects.summary_aspect import summary_aspect
+        from action_machine.aspects.summary_aspect_decorator import summary_aspect
 
         with pytest.raises(NamingSuffixError, match="_summary"):
             @summary_aspect("Формирование результата")
@@ -309,8 +309,8 @@ class TestPluginOnPrefix:
 
     def test_correct_prefix_passes(self) -> None:
         """Имя 'on_track_finish' → декоратор применяется."""
-        from action_machine.plugins.decorators import on
         from action_machine.plugins.events import GlobalFinishEvent
+        from action_machine.plugins.on_decorator import on
 
         @on(GlobalFinishEvent)
         async def on_track_finish(self, state, event, log):
@@ -320,8 +320,8 @@ class TestPluginOnPrefix:
 
     def test_missing_prefix_raises(self) -> None:
         """Имя 'track_finish' без 'on_' → NamingPrefixError."""
-        from action_machine.plugins.decorators import on
         from action_machine.plugins.events import GlobalFinishEvent
+        from action_machine.plugins.on_decorator import on
 
         with pytest.raises(NamingPrefixError, match="on_"):
             @on(GlobalFinishEvent)
@@ -330,8 +330,8 @@ class TestPluginOnPrefix:
 
     def test_wrong_prefix_raises(self) -> None:
         """Имя 'handle_track_finish' → NamingPrefixError (не начинается с 'on_')."""
-        from action_machine.plugins.decorators import on
         from action_machine.plugins.events import GlobalFinishEvent
+        from action_machine.plugins.on_decorator import on
 
         with pytest.raises(NamingPrefixError, match="on_"):
             @on(GlobalFinishEvent)
@@ -350,7 +350,7 @@ class TestDescriptionRequired:
     def test_regular_aspect_empty_description_raises(self) -> None:
         """@regular_aspect("") → ValueError."""
 
-        from action_machine.aspects.regular_aspect import regular_aspect
+        from action_machine.aspects.regular_aspect_decorator import regular_aspect
 
         with pytest.raises(
             ValueError,
@@ -363,7 +363,7 @@ class TestDescriptionRequired:
     def test_summary_aspect_empty_description_raises(self) -> None:
         """@summary_aspect("") → ValueError."""
 
-        from action_machine.aspects.summary_aspect import summary_aspect
+        from action_machine.aspects.summary_aspect_decorator import summary_aspect
 
         with pytest.raises(
             ValueError,
@@ -384,7 +384,7 @@ class TestDescriptionRequired:
     def test_regular_aspect_whitespace_description_raises(self) -> None:
         """@regular_aspect("   ") → ValueError."""
 
-        from action_machine.aspects.regular_aspect import regular_aspect
+        from action_machine.aspects.regular_aspect_decorator import regular_aspect
 
         with pytest.raises(
             ValueError,

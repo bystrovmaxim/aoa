@@ -16,7 +16,7 @@
 - ConnectionInfo — frozen-датакласс, описывающий одно соединение
   (класс менеджера, ключ, описание).
 - connection — декоратор для объявления соединений на классе действия.
-- Connections — базовый TypedDict для словаря connections.
+- Connections — базовый TypedDict для словаря connections (модуль ``connections_typed_dict``).
 
 Конкретные реализации менеджеров (PostgreSQL, Redis и др.) находятся
 в пакете action_machine.contrib и устанавливаются отдельно:
@@ -35,12 +35,14 @@
 """
 
 from .base_resource_manager import BaseResourceManager
-from .connection import ConnectionInfo, connection
+from .connection_decorator import ConnectionInfo, connection
 from .connection_intent import ConnectionIntent
+from .connections_typed_dict import Connections
 
 __all__ = [
     "BaseResourceManager",
     "ConnectionInfo",
     "ConnectionIntent",
+    "Connections",
     "connection",
 ]

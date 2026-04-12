@@ -1,4 +1,4 @@
-# tests/resource_managers/test_connections.py
+# tests/resource_managers/test_connections_typed_dict.py
 """
 Тесты Connections — базового TypedDict для словаря connections.
 
@@ -24,7 +24,7 @@ TypedDict — это статический контракт для IDE и mypy.
 """
 
 from action_machine.resource_managers.base_resource_manager import BaseResourceManager
-from action_machine.resource_managers.connections import Connections
+from action_machine.resource_managers.connections_typed_dict import Connections
 
 
 class DummyResourceManager(BaseResourceManager):

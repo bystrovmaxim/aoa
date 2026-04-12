@@ -27,11 +27,11 @@ from action_machine.dependencies.dependency_intent import DependencyIntent
 from action_machine.dependencies.dependency_intent_inspector import (
     DependencyIntentInspector,
 )
-from action_machine.dependencies.depends import depends
+from action_machine.dependencies.depends_decorator import depends
 from action_machine.domain.base_domain import BaseDomain
 from action_machine.metadata.gate_coordinator import GateCoordinator
 from action_machine.resource_managers.base_resource_manager import BaseResourceManager
-from action_machine.resource_managers.connection import connection
+from action_machine.resource_managers.connection_decorator import connection
 from action_machine.resource_managers.connection_intent import ConnectionIntent
 from action_machine.resource_managers.connection_intent_inspector import (
     ConnectionIntentInspector,

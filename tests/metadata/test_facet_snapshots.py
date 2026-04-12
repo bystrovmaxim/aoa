@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from action_machine.auth.check_roles import check_roles
+from action_machine.auth.check_roles_decorator import check_roles
 from action_machine.auth.role_intent_inspector import RoleIntentInspector
 from action_machine.core.base_action import BaseAction
 from action_machine.core.base_params import BaseParams

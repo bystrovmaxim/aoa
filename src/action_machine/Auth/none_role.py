@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import Any, final
 
-from action_machine.auth.role_mode import RoleMode, role_mode
+from action_machine.auth.role_mode_decorator import RoleMode, role_mode
 from action_machine.auth.system_role import SystemRole
 
 

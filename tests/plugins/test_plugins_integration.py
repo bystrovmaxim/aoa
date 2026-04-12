@@ -54,11 +54,11 @@ import pytest
 
 from action_machine.core.core_action_machine import CoreActionMachine
 from action_machine.logging.log_coordinator import LogCoordinator
-from action_machine.plugins.decorators import on
 from action_machine.plugins.events import (
     GlobalFinishEvent,
     GlobalStartEvent,
 )
+from action_machine.plugins.on_decorator import on
 from action_machine.plugins.plugin import Plugin
 from action_machine.testing import TestBench
 from tests.domain_model import (

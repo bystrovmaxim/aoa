@@ -1,8 +1,4 @@
-################################################################################
-# Файл: ActionMachine/ResourceManagers/Connections.py
-################################################################################
-
-# src/action_machine/resource_managers/Connections.py
+# src/action_machine/resource_managers/connections_typed_dict.py
 """
 Базовый TypedDict для словаря connections, передаваемого в аспекты.
 
@@ -65,6 +61,3 @@ class Connections(TypedDict, total=False):
     """
 
     connection: BaseResourceManager
-
-
-################################################################################

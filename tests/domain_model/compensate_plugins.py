@@ -73,7 +73,6 @@ contains events from BOTH runs. Tests must account for duplication or call
 observer.reset() before run().
 """
 from action_machine.logging.scoped_logger import ScopedLogger
-from action_machine.plugins.decorators import on
 from action_machine.plugins.events import (
     AfterCompensateAspectEvent,
     BeforeCompensateAspectEvent,
@@ -81,6 +80,7 @@ from action_machine.plugins.events import (
     SagaRollbackCompletedEvent,
     SagaRollbackStartedEvent,
 )
+from action_machine.plugins.on_decorator import on
 from action_machine.plugins.plugin import Plugin
 
 

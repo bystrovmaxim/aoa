@@ -45,8 +45,8 @@ TestCoordinatorRepr
 
 import pytest
 
-from action_machine.aspects.summary_aspect import summary_aspect
-from action_machine.auth.check_roles import check_roles
+from action_machine.aspects.summary_aspect_decorator import summary_aspect
+from action_machine.auth.check_roles_decorator import check_roles
 from action_machine.auth.none_role import NoneRole
 from action_machine.core.base_action import BaseAction
 from action_machine.core.base_params import BaseParams

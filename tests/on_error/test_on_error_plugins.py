@@ -31,11 +31,11 @@ from action_machine.context.context import Context
 from action_machine.core.action_product_machine import ActionProductMachine
 from action_machine.core.core_action_machine import CoreActionMachine
 from action_machine.logging.log_coordinator import LogCoordinator
-from action_machine.plugins.decorators import on
 from action_machine.plugins.events import (
     BeforeOnErrorAspectEvent,
     UnhandledErrorEvent,
 )
+from action_machine.plugins.on_decorator import on
 from action_machine.plugins.plugin import Plugin
 from tests.domain_model import (
     ErrorHandledAction,

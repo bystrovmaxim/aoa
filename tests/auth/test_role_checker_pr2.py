@@ -5,11 +5,11 @@ from __future__ import annotations
 
 import pytest
 
-from action_machine.aspects.summary_aspect import summary_aspect
+from action_machine.aspects.summary_aspect_decorator import summary_aspect
 from action_machine.auth import check_roles
 from action_machine.auth.any_role import AnyRole
 from action_machine.auth.base_role import BaseRole
-from action_machine.auth.role_mode import RoleMode, role_mode
+from action_machine.auth.role_mode_decorator import RoleMode, role_mode
 from action_machine.context.context import Context
 from action_machine.context.user_info import UserInfo
 from action_machine.core.action_product_machine import ActionProductMachine

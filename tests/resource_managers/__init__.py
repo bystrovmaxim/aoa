@@ -41,5 +41,5 @@ Connections
     ├── __init__.py                             — этот файл
     ├── test_postgres_connection_manager.py     — open/begin/execute/commit/rollback, rollup
     ├── test_wrapper_connection_manager.py      — запрет транзакций, делегирование execute
-    └── test_connections.py                     — TypedDict Connections
+    └── test_connections_typed_dict.py          — TypedDict Connections
 """

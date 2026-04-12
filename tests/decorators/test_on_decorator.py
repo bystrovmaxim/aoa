@@ -30,12 +30,12 @@ Scenarios covered:
 """
 import pytest
 
-from action_machine.plugins.decorators import on
 from action_machine.plugins.events import (
     BeforeRegularAspectEvent,
     GlobalFinishEvent,
     GlobalStartEvent,
 )
+from action_machine.plugins.on_decorator import on
 from action_machine.plugins.subscription_info import SubscriptionInfo
 
 # ═════════════════════════════════════════════════════════════════════════════

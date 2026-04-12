@@ -79,7 +79,7 @@ from typing import Any, Protocol
 from action_machine.auth.any_role import AnyRole
 from action_machine.auth.base_role import BaseRole
 from action_machine.auth.none_role import NoneRole
-from action_machine.auth.role_mode import RoleMode
+from action_machine.auth.role_mode_decorator import RoleMode
 from action_machine.context.context import Context
 from action_machine.core.base_action import BaseAction
 from action_machine.core.base_params import BaseParams

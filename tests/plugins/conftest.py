@@ -104,11 +104,11 @@ from action_machine.context.context import Context
 from action_machine.context.user_info import UserInfo
 from action_machine.core.base_params import BaseParams
 from action_machine.core.base_result import BaseResult
-from action_machine.plugins.decorators import on
 from action_machine.plugins.events import (
     GlobalFinishEvent,
     GlobalStartEvent,
 )
+from action_machine.plugins.on_decorator import on
 from action_machine.plugins.plugin import Plugin
 from action_machine.plugins.plugin_run_context import PluginRunContext
 from action_machine.testing import StubTesterRole

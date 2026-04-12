@@ -26,7 +26,7 @@
   чувствительных данных в логах. Записывает _sensitive_config
   в getter свойства.
 
-Декоратор @check_roles покрыт в tests/auth/test_check_roles_decorator.py.
+Декоратор @check_roles покрыт в tests/auth/test_check_roles_class_roles.py.
 
 Каждый тестовый файл проверяет:
 1. Корректную запись метаданных при валидных аргументах.

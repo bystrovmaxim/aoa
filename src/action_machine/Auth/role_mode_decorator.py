@@ -1,4 +1,4 @@
-# src/action_machine/auth/role_mode.py
+# src/action_machine/auth/role_mode_decorator.py
 """
 Lifecycle mode for role marker classes and ``@role_mode`` decorator.
 

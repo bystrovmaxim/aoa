@@ -1,4 +1,4 @@
-# src/action_machine/resource_managers/connection.py
+# src/action_machine/resource_managers/connection_decorator.py
 """
 Декоратор @connection — объявление подключения к внешнему ресурсу.
 

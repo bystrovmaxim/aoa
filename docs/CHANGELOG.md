@@ -22,6 +22,23 @@ The coordinator class name **`GateCoordinator`** is unchanged.
   asyncpg). `WrapperConnectionManager.begin()` raises `TransactionProhibitedError`
   (same as `open`/`commit`/`rollback`). `PostgresConnectionManager` runs `BEGIN`.
 
+- **Resource managers: distinguish decorator vs TypedDict modules.** Renamed
+  ``resource_managers.connection`` → ``connection_decorator`` (``@connection``,
+  ``ConnectionInfo``) and ``resource_managers.connections`` →
+  ``connections_typed_dict`` (``Connections``). Update deep imports; the package
+  ``action_machine.resource_managers`` still re-exports ``connection``,
+  ``ConnectionInfo``, and now ``Connections`` in ``__all__``.
+
+- **Decorator modules: `*_decorator.py` filenames.** Renamed
+  ``aspects/regular_aspect.py`` → ``regular_aspect_decorator.py``,
+  ``aspects/summary_aspect.py`` → ``summary_aspect_decorator.py``,
+  ``auth/check_roles.py`` → ``check_roles_decorator.py``,
+  ``auth/role_mode.py`` → ``role_mode_decorator.py``,
+  ``dependencies/depends.py`` → ``depends_decorator.py``,
+  ``plugins/decorators.py`` → ``on_decorator.py``. Exported decorator callables
+  (``regular_aspect``, ``check_roles``, ``on``, …) are unchanged; update any
+  deep imports from old module paths.
+
 - **GateHost → Intent (public API and module layout).** Marker mixins and
   inspectors were renamed for consistent «grammar of intents» language:
   `*GateHost` → `*Intent`, `*GateHostInspector` → `*IntentInspector`,

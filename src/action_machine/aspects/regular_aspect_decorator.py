@@ -1,4 +1,4 @@
-# src/action_machine/aspects/regular_aspect.py
+# src/action_machine/aspects/regular_aspect_decorator.py
 """
 Decorator ``@regular_aspect`` declares a regular pipeline step.
 
