@@ -52,8 +52,10 @@ Core-тесты — полное покрытие ядра ActionMachine.
   domain в @meta при get() для действий с аспектами и ресурсов, доменные узлы.
 
 - Pydantic-интеграция — валидация описаний полей через
-  DescribedFieldsIntent, сбор snapshot описаний полей с constraints
-  и examples, JSON Schema.
+  DescribedFieldsIntent (``validate_described_schema`` /
+  ``validate_described_schemas_for_action``), снапшоты фасетов
+  ``described_fields`` на классах схем и ``action_schemas`` на действиях,
+  constraints и examples, JSON Schema.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ПРИНЦИПЫ

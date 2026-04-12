@@ -88,7 +88,8 @@ NODE AND KEY FORMAT
 
 Node key: ``f"{node_type}:{node_name}"``. One Python class may have several
 nodes (``meta``, ``role``, ``role_mode``, ``role_class``, ``aspect``,
-``compensator``, …) — see ``get_nodes_for_class``.
+``action_schemas``, ``described_fields`` on schema classes, ``compensator``, …)
+— see ``get_nodes_for_class``.
 
 ═══════════════════════════════════════════════════════════════════════════════
 EXAMPLE (EXPLICIT INSPECTOR REGISTRATION)
