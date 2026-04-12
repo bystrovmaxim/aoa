@@ -21,6 +21,9 @@ ERRORS / LIMITATIONS
 - **AttributeError** — setattr on frozen containers.
 
 Not a full hydration suite — see `tests/domain/test_hydration.py` for `build()`.
+
+**Many / ``entities_loaded``** — empty ``entities`` can mean *not loaded* or
+*loaded with zero rows*; ``is_loaded`` and iteration follow ``entities_loaded``.
 """
 
 import pytest
@@ -70,3 +73,42 @@ def test_association_many_iter_not_loaded() -> None:
     bag = AssociationMany(ids=("a", "b"))
     with pytest.raises(RelationNotLoadedError, match="Cannot access '__iter__'"):
         iter(bag)
+
+
+def test_many_is_loaded_false_when_ids_only() -> None:
+    bag = CompositeMany(ids=("a", "b"))
+    assert bag.is_loaded is False
+    assert bag.entities == ()
+
+
+def test_many_is_loaded_true_when_entities_present() -> None:
+    row = _Row()
+    bag = CompositeMany(ids=("x",), entities=(row,))
+    assert bag.is_loaded is True
+    assert list(bag) == [row]
+
+
+def test_many_loaded_empty_distinct_from_not_loaded() -> None:
+    """Explicit ``entities_loaded=True`` with empty ``entities`` — zero rows, not lazy."""
+    bag = AssociationMany(ids=(), entities=(), entities_loaded=True)
+    assert bag.is_loaded is True
+    assert list(bag) == []
+    with pytest.raises(IndexError):
+        _ = bag[0]
+
+
+def test_many_loaded_empty_slice() -> None:
+    bag = CompositeMany(ids=(), entities=(), entities_loaded=True)
+    assert bag[:] == ()
+
+
+def test_many_entities_loaded_false_with_nonempty_entities_raises() -> None:
+    with pytest.raises(ValueError, match="entities_loaded=False"):
+        CompositeMany(ids=("a",), entities=(_Row(),), entities_loaded=False)
+
+
+def test_many_explicit_entities_loaded_true_with_rows() -> None:
+    row = _Row()
+    bag = CompositeMany(ids=("a",), entities=(row,), entities_loaded=True)
+    assert bag.is_loaded is True
+    assert bag[0] is row

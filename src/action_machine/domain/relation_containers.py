@@ -56,9 +56,14 @@ ARCHITECTURE / DATA FLOW
 
 **Many** (`CompositeMany`, …)::
 
-    ids: tuple[Any, ...]     — always (possibly empty)
-    entities: tuple[T, ...]  — optional; may be empty when only ids loaded
-    __getitem__ / __iter__   — require non-empty `entities` or RelationNotLoadedError
+    ids: tuple[Any, ...]      — always (possibly empty)
+    entities: tuple[T, ...]   — hydrated rows (possibly empty)
+    entities_loaded: bool     — explicit load marker (``_entities_loaded``); when
+        ``False``, empty ``entities`` means *not loaded*; when ``True``, empty means
+        *loaded with zero rows*. Non-empty ``entities`` implies loaded unless
+        contradicted (see ``ValueError`` in constructor).
+    __getitem__ / __iter__    — ``RelationNotLoadedError`` if not loaded; if loaded,
+        empty ``entities`` yields empty iteration / normal ``IndexError`` on bad index
 
 ::
 
@@ -145,11 +150,18 @@ Many ids only (edge)::
     bag = CompositeMany(ids=("A", "B"))
     bag[0]     # RelationNotLoadedError
 
+Loaded but zero rows::
+
+    bag = CompositeMany(ids=(), entities=(), entities_loaded=True)
+    list(bag)  # []
+    bag.is_loaded  # True
+
 ═══════════════════════════════════════════════════════════════════════════════
 ERRORS / LIMITATIONS
 ═══════════════════════════════════════════════════════════════════════════════
 
-- `ValueError`: One container constructed with `id=None`.
+- `ValueError`: One container constructed with `id=None`; Many with
+  ``entities_loaded=False`` and a non-empty ``entities`` tuple.
 - `RelationNotLoadedError`: proxy/index/iter without `entity` / `entities`.
 - `AttributeError`: mutation attempted on a frozen container; or proxy target
   missing attribute when `entity` is loaded.
@@ -318,15 +330,17 @@ class BaseRelationMany[T]:
         indexing, slicing, and iteration over loaded rows.
 
     **Invariants**
-        Immutable instance. Indexing and iteration require a non-empty
-        ``entities`` tuple or they raise `RelationNotLoadedError`.
+        Immutable instance. Indexing and iteration require
+        ``entities_loaded`` (hydration completed). If not loaded, they raise
+        `RelationNotLoadedError`. If loaded with zero entities, iteration is
+        empty and out-of-range index raises `IndexError`.
 
     **Neighbors**
         Concrete classes set `relation_type`. Coordinator validates pairing with
         inverse side at build time.
     """
 
-    __slots__ = ("_entities", "_ids")
+    __slots__ = ("_entities", "_entities_loaded", "_ids")
 
     relation_type: ClassVar[RelationType]  # pylint: disable=declare-non-slot
 
@@ -335,14 +349,28 @@ class BaseRelationMany[T]:
         *,
         ids: tuple[Any, ...] = (),
         entities: tuple[T, ...] = (),
+        entities_loaded: bool | None = None,
     ) -> None:
         """
         Args:
             ids: Related identifiers (may be empty).
-            entities: Hydrated rows; may be empty when only ids are known.
+            entities: Hydrated rows (may be empty).
+            entities_loaded: If ``True``, ``entities`` is the result of a load (empty
+                means zero related rows). If ``False``, relation is not hydrated.
+                If ``None``, inferred as ``True`` iff ``entities`` is non-empty.
         """
+        if entities_loaded is False and len(entities) > 0:
+            raise ValueError(
+                "entities_loaded=False is incompatible with a non-empty entities tuple",
+            )
+        if entities_loaded is None:
+            loaded = len(entities) > 0
+        else:
+            loaded = entities_loaded
+
         object.__setattr__(self, "_ids", ids)
         object.__setattr__(self, "_entities", entities)
+        object.__setattr__(self, "_entities_loaded", loaded)
 
     @property
     def ids(self) -> tuple[Any, ...]:
@@ -356,8 +384,8 @@ class BaseRelationMany[T]:
 
     @property
     def is_loaded(self) -> bool:
-        """True when at least one entity tuple element is present."""
-        return len(self.entities) > 0
+        """True when the ``entities`` tuple reflects a completed load (may be empty)."""
+        return bool(object.__getattribute__(self, "_entities_loaded"))
 
     def __len__(self) -> int:
         """Number of ids (not necessarily loaded entities)."""
@@ -378,16 +406,16 @@ class BaseRelationMany[T]:
             One entity or a tuple slice.
 
         Raises:
-            RelationNotLoadedError: ``entities`` is empty.
-            IndexError: Index out of range.
+            RelationNotLoadedError: Relation not hydrated.
+            IndexError: Loaded but index out of range (including empty ``entities``).
         """
-        entities = self.entities
-        if not entities:
+        if not bool(object.__getattribute__(self, "_entities_loaded")):
             raise RelationNotLoadedError(
                 container_class_name=self.__class__.__name__,
                 attribute_name=f"[{index}]",
                 entity_id=self.ids,
             )
+        entities = self.entities
         result = entities[index]
         if isinstance(index, slice):
             return cast(tuple[T, ...], result)
@@ -398,16 +426,15 @@ class BaseRelationMany[T]:
         Yields hydrated entities in order.
 
         Raises:
-            RelationNotLoadedError: ``entities`` is empty.
+            RelationNotLoadedError: Relation not hydrated.
         """
-        entities = self.entities
-        if not entities:
+        if not bool(object.__getattribute__(self, "_entities_loaded")):
             raise RelationNotLoadedError(
                 container_class_name=self.__class__.__name__,
                 attribute_name="__iter__",
                 entity_id=self.ids,
             )
-        return iter(entities)
+        return iter(self.entities)
 
     def __setattr__(self, name: str, value: Any) -> None:
         raise AttributeError(
@@ -421,8 +448,9 @@ class BaseRelationMany[T]:
 
     def __repr__(self) -> str:
         count = len(self.ids)
-        loaded = len(self.entities)
-        return f"{self.__class__.__name__}(count={count}, loaded={loaded})"
+        n_ent = len(self.entities)
+        flag = "yes" if self.is_loaded else "no"
+        return f"{self.__class__.__name__}(count={count}, entities_loaded={flag}, n_entities={n_ent})"
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, BaseRelationMany):
