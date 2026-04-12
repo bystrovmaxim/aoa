@@ -119,6 +119,10 @@ ERRORS / LIMITATIONS
 - Role, connection, checker, and handler failures preserve existing exception types
   (e.g. ``AuthorizationError``, ``ConnectionValidationError``, ``ValidationFieldError``,
   ``OnErrorHandlerError``) from delegated components.
+- ``ActionResultTypeError``, ``MissingSummaryAspectError``, and
+  ``ActionResultDeclarationError`` from the summary stage still trigger saga rollback
+  when regular aspects appended frames; they are then re-raised (``@on_error`` is not
+  used — these are developer contract violations, not aspect business errors).
 - Constructor extension points are keyword-only after ``*``; omitted arguments keep
   default component wiring. Behavioral contract is pipeline order and event
   semantics, not stability of private helpers.
@@ -561,6 +565,32 @@ class ActionProductMachine(BaseActionMachine):
         )
         return cast("R", handled_result)
 
+    async def _rollback_saga_if_any(
+        self,
+        saga_stack: list[SagaFrame],
+        error: Exception,
+        *,
+        action: BaseAction[P, R],
+        params: P,
+        box: ToolsBox,
+        connections: dict[str, BaseResourceManager],
+        context: Context,
+        plugin_ctx: PluginRunContext,
+    ) -> None:
+        """Unwind saga frames when aborting after successful regular aspects (e.g. summary contract)."""
+        if not saga_stack:
+            return
+        await self._saga_coordinator.execute(
+            saga_stack=saga_stack,
+            error=error,
+            action=action,
+            params=params,
+            box=box,
+            connections=connections,
+            context=context,
+            plugin_ctx=plugin_ctx,
+        )
+
     async def _execute_aspects_with_error_handling(
         self,
         action: BaseAction[P, R],
@@ -662,7 +692,20 @@ class ActionProductMachine(BaseActionMachine):
             ActionResultTypeError,
             MissingSummaryAspectError,
             ActionResultDeclarationError,
-        ):
+        ) as contract_exc:
+            # Regular aspects may have run with side effects; unwind saga before surfacing
+            # a developer contract violation (wrong Result / missing summary). Do not run
+            # @on_error — the failure is not business logic in an aspect.
+            await self._rollback_saga_if_any(
+                saga_stack,
+                contract_exc,
+                action=action,
+                params=params,
+                box=box,
+                connections=connections,
+                context=context,
+                plugin_ctx=plugin_ctx,
+            )
             raise
         except Exception as aspect_error:
             return await self._finish_aspect_pipeline_error(

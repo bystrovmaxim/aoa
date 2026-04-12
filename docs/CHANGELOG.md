@@ -117,6 +117,15 @@ The coordinator class name **`GateCoordinator`** is unchanged.
   classes directly. `PluginRunContext` is always passed into each helper; it is not stored on
   `PluginEmitSupport` (per-run isolation, no reset between runs).
 
+### Fixed
+
+- **`ActionProductMachine` — saga rollback on summary contract failures.** If regular aspects have run and pushed `SagaFrame`s, then the pipeline fails with `ActionResultTypeError`, `MissingSummaryAspectError`, or `ActionResultDeclarationError` (wrong summary return type, missing `@summary_aspect` for a custom `Result`, or unresolvable `BaseAction[P, R]`), the machine now runs **`SagaCoordinator.execute`** (same unwind as other failures) **before** re-raising. Previously these exceptions bypassed compensation and could leave side effects unrolled. **`@on_error` is not invoked** for these cases — they are treated as developer contract violations, not recoverable business errors.
+
+### Added
+
+- **Adapter mapper runtime checks (`BaseRouteRecord`).** `ensure_machine_params` and `ensure_protocol_response` validate that `params_mapper` / `response_mapper` return instances of `params_type` and `effective_response_model`; FastAPI and MCP adapters call them at the protocol boundary (`TypeError` on mismatch). Tests: `test_base_route_record.py` (unit), `test_fastapi_mapper_guards.py`, MCP handler tests.
+- **Runtime action result typing.** Summary and `@on_error` return values are checked against the action’s declared `R` (`action_machine.core.action_result_binding`, exceptions `ActionResultTypeError`, `MissingSummaryAspectError`, `ActionResultDeclarationError`). Forward-ref `P`/`R` resolution is centralized in `action_machine.core.action_generic_params`.
+
 ## [0.9.0] – 2026-04-07
 
 ### Added
