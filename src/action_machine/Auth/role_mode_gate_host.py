@@ -1,91 +1,87 @@
-# src/action_machine/auth/role_gate_host.py
+# src/action_machine/auth/role_mode_gate_host.py
 """
-RoleGateHost — marker mixin for the @check_roles decorator.
+Marker mixin that authorizes ``@role_mode`` on role declaration classes.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Define the gate‑host marker that enables the ``@check_roles`` decorator.
-Classes that inherit ``RoleGateHost`` may declare role restrictions; the
-decorator validates this inheritance at application time.
-
-═══════════════════════════════════════════════════════════════════════════════
-ARCHITECTURE / DATA FLOW
-═══════════════════════════════════════════════════════════════════════════════
-
-::
-
-    class BaseAction(ABC, RoleGateHost, ...):
-        pass
-
-    @check_roles(AdminRole)
-    class AdminAction(BaseAction):
-        ...
-
-    # @check_roles checks:
-    #   issubclass(AdminAction, RoleGateHost) → True
-    #   writes cls._role_info = {"spec": AdminRole}
-
-    # RoleGateHostInspector reads _role_info → Snapshot → graph node "role"
-    # ActionProductMachine reads spec via GateCoordinator.get_snapshot(cls, "role")
+``RoleModeGateHost`` mirrors the relationship between ``RoleGateHost`` and
+``@check_roles``: only types that inherit this empty mixin may be decorated with
+``@role_mode``. This fails fast at import time and keeps graph inspectors aligned
+with a single discoverable MRO subtree.
 
 ═══════════════════════════════════════════════════════════════════════════════
 INVARIANTS
 ═══════════════════════════════════════════════════════════════════════════════
 
-- ``RoleGateHost`` is a pure marker; it contains no logic, fields, or methods.
-- Classes that declare ``@check_roles`` must inherit ``RoleGateHost``.
-- The decorator writes ``_role_info`` on the target class; the inspector reads
-  it for graph construction.
+- The mixin defines **no** fields or methods; it is a pure capability marker.
+- ``@role_mode`` raises ``TypeError`` if the target class does not inherit
+  ``RoleModeGateHost`` (directly or indirectly).
+
+═══════════════════════════════════════════════════════════════════════════════
+DATA FLOW
+═══════════════════════════════════════════════════════════════════════════════
+
+::
+
+    BaseRole(RoleModeGateHost, ABC)
+           │
+           ├── concrete role classes
+           │
+    @role_mode(...)  ──requires──▶  issubclass(cls, RoleModeGateHost)
 
 ═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
-    from action_machine.auth import RoleGateHost, check_roles
-
-    @check_roles(AdminRole)
-    class AdminAction(BaseAction[P, R]):   # BaseAction already inherits RoleGateHost
+    class OrderViewerRole(BaseRole):  # BaseRole extends RoleModeGateHost
         ...
 
-Edge case (raises TypeError):
-    @check_roles(EditorRole)
-    class NotAnAction:                     # does not inherit RoleGateHost
+    @role_mode(RoleMode.ALIVE)
+    class RegisteredRole(BaseRole):
         ...
+
+Edge case: applying ``@role_mode`` to a plain ``object`` subclass →
+``TypeError`` from the decorator.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ERRORS / LIMITATIONS
 ═══════════════════════════════════════════════════════════════════════════════
 
-- Applying ``@check_roles`` to a class missing ``RoleGateHost`` raises
-  ``TypeError`` at import time.
-- The marker itself performs no runtime validation; role enforcement is handled
-  by ``ActionProductMachine``.
+- The mixin does not participate in action authorization; use ``RoleGateHost``
+  on actions and ``BaseRole`` / ``RoleModeGateHost`` on role types.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN
 ═══════════════════════════════════════════════════════════════════════════════
-ROLE: Gate‑host marker for role declarations.
-CONTRACT: Subclass inclusion required for ``@check_roles``; provides ``_role_info`` slot.
-INVARIANTS: Pure marker; decorated classes must be subclasses.
-FLOW: decorator check → _role_info write → inspector read → runtime role check.
-FAILURES: TypeError on missing inheritance.
-EXTENSION POINTS: None (marker only).
+ROLE: Gate-host marker for role lifecycle decorator.
+CONTRACT: Empty mixin; enables ``@role_mode`` the way ``RoleGateHost`` enables
+    ``@check_roles``.
+INVARIANTS: No behavior; subclass check in ``role_mode`` decorator.
+FLOW: MRO marker → decorator guard → scratch on class.
+FAILURES: TypeError when decorator applied without mixin.
+EXTENSION POINTS: ``RoleModeGateHostInspector`` walks this mixin subtree.
 AI-CORE-END
 ═══════════════════════════════════════════════════════════════════════════════
 """
 
-from typing import Any, ClassVar
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, ClassVar
+
+if TYPE_CHECKING:
+    from action_machine.auth.role_mode import RoleMode
 
 
-class RoleGateHost:
+class RoleModeGateHost:
     """
-    Marker mixin that enables the ``@check_roles`` decorator.
+    Marker mixin: declares that a class may carry ``@role_mode`` metadata.
 
-    Classes lacking this mixin cannot be decorated with ``@check_roles``.
-    The decorator stores the role specification in the ``_role_info``
-    class variable.
+    ``BaseRole`` inherits this type; do not use ``RoleModeGateHost`` on actions.
     """
 
-    _role_info: ClassVar[dict[str, Any]]
+    __slots__ = ()
+
+    if TYPE_CHECKING:
+        _role_mode_info: ClassVar[dict[str, RoleMode]]

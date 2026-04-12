@@ -62,7 +62,7 @@ EXAMPLES
 ::
 
     @meta(description="Create a new order", domain=OrdersDomain)
-    @check_roles("manager")
+    @check_roles(ManagerRole)
     class CreateOrderAction(BaseAction[OrderParams, OrderResult]):
         ...
 
@@ -234,7 +234,7 @@ def meta(
 
     Пример:
         @meta(description="Создание нового заказа", domain=OrdersDomain)
-        @check_roles("manager")
+        @check_roles(ManagerRole)
         class CreateOrderAction(BaseAction[OrderParams, OrderResult]):
             ...
 

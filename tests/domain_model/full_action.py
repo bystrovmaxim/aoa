@@ -81,12 +81,13 @@ from action_machine.resource_managers.base_resource_manager import BaseResourceM
 from action_machine.resource_managers.connection import connection
 
 from .domains import OrdersDomain
+from .roles import ManagerRole
 from .services import NotificationService, PaymentService
 from .test_db_manager import TestDbManager
 
 
 @meta(description="Create order with payment and notification", domain=OrdersDomain)
-@check_roles("manager")
+@check_roles(ManagerRole)
 @depends(PaymentService, description="Payment processing service")
 @depends(NotificationService, description="Notification service")
 @connection(TestDbManager, key="db", description="Primary database")

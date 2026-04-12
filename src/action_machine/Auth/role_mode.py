@@ -1,91 +1,102 @@
-# src/action_machine/auth/role_gate_host.py
+# src/action_machine/auth/role_mode.py
 """
-RoleGateHost — marker mixin for the @check_roles decorator.
+Lifecycle mode for role marker classes.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Define the gate‑host marker that enables the ``@check_roles`` decorator.
-Classes that inherit ``RoleGateHost`` may declare role restrictions; the
-decorator validates this inheritance at application time.
-
-═══════════════════════════════════════════════════════════════════════════════
-ARCHITECTURE / DATA FLOW
-═══════════════════════════════════════════════════════════════════════════════
-
-::
-
-    class BaseAction(ABC, RoleGateHost, ...):
-        pass
-
-    @check_roles(AdminRole)
-    class AdminAction(BaseAction):
-        ...
-
-    # @check_roles checks:
-    #   issubclass(AdminAction, RoleGateHost) → True
-    #   writes cls._role_info = {"spec": AdminRole}
-
-    # RoleGateHostInspector reads _role_info → Snapshot → graph node "role"
-    # ActionProductMachine reads spec via GateCoordinator.get_snapshot(cls, "role")
+``RoleMode`` classifies how a ``BaseRole`` subclass participates in access
+checks and graph validation. Modes are assigned **only** via ``@role_mode``;
+they are never set as plain class attributes on the role body.
 
 ═══════════════════════════════════════════════════════════════════════════════
 INVARIANTS
 ═══════════════════════════════════════════════════════════════════════════════
 
-- ``RoleGateHost`` is a pure marker; it contains no logic, fields, or methods.
-- Classes that declare ``@check_roles`` must inherit ``RoleGateHost``.
-- The decorator writes ``_role_info`` on the target class; the inspector reads
-  it for graph construction.
+- Enum members are stable public API values.
+- Runtime and graph inspectors read the mode from ``cls._role_mode_info``
+  (written by ``@role_mode``), not from ad-hoc class attributes.
+
+═══════════════════════════════════════════════════════════════════════════════
+DATA FLOW
+═══════════════════════════════════════════════════════════════════════════════
+
+::
+
+    @role_mode(RoleMode.ALIVE)
+    class ExampleRole(BaseRole):
+        ...
+
+    import → role_mode decorator → cls._role_mode_info["mode"] == RoleMode.ALIVE
+                → RoleChecker (runtime) / GateCoordinator inspectors (PR-3)
 
 ═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
-    from action_machine.auth import RoleGateHost, check_roles
+Happy path: ``RoleMode.ALIVE`` on a concrete role class.
 
-    @check_roles(AdminRole)
-    class AdminAction(BaseAction[P, R]):   # BaseAction already inherits RoleGateHost
-        ...
-
-Edge case (raises TypeError):
-    @check_roles(EditorRole)
-    class NotAnAction:                     # does not inherit RoleGateHost
-        ...
+Edge case: ``RoleMode.UNUSED`` in ``@check_roles`` raises ``ValueError`` at import
+time; ``RoleClassInspector`` rejects ``UNUSED`` in ``includes`` / MRO at ``build()``.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ERRORS / LIMITATIONS
 ═══════════════════════════════════════════════════════════════════════════════
 
-- Applying ``@check_roles`` to a class missing ``RoleGateHost`` raises
-  ``TypeError`` at import time.
-- The marker itself performs no runtime validation; role enforcement is handled
-  by ``ActionProductMachine``.
+- ``RoleChecker`` and ``@check_roles`` enforce ``SILENCED``, ``DEPRECATED``, and
+  ``UNUSED`` at runtime / decoration time (see ``get_declared_role_mode``).
+  ``RoleClassInspector`` / ``RoleModeGateHostInspector`` add graph-level facets.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN
 ═══════════════════════════════════════════════════════════════════════════════
-ROLE: Gate‑host marker for role declarations.
-CONTRACT: Subclass inclusion required for ``@check_roles``; provides ``_role_info`` slot.
-INVARIANTS: Pure marker; decorated classes must be subclasses.
-FLOW: decorator check → _role_info write → inspector read → runtime role check.
-FAILURES: TypeError on missing inheritance.
-EXTENSION POINTS: None (marker only).
+ROLE: Role lifecycle enum (single source of mode values).
+CONTRACT: Members ALIVE, DEPRECATED, SILENCED, UNUSED as per product plan.
+INVARIANTS: Assigned only through ``@role_mode`` scratch on role classes.
+FLOW: Decorator writes mode → consumers read ``_role_mode_info``.
+FAILURES: N/A at enum level.
+EXTENSION POINTS: New modes require coordinated updates to checker + inspectors.
 AI-CORE-END
 ═══════════════════════════════════════════════════════════════════════════════
 """
 
-from typing import Any, ClassVar
+from __future__ import annotations
+
+from enum import Enum
+
+from action_machine.auth.base_role import BaseRole
 
 
-class RoleGateHost:
+class RoleMode(Enum):
+    """Lifecycle mode for a role class (set exclusively via ``@role_mode``)."""
+
+    ALIVE = "alive"
+    DEPRECATED = "deprecated"
+    SILENCED = "silenced"
+    UNUSED = "unused"
+
+
+def get_declared_role_mode(role: type[BaseRole]) -> RoleMode:
     """
-    Marker mixin that enables the ``@check_roles`` decorator.
+    Return the ``RoleMode`` stored by ``@role_mode`` on a ``BaseRole`` subclass.
 
-    Classes lacking this mixin cannot be decorated with ``@check_roles``.
-    The decorator stores the role specification in the ``_role_info``
-    class variable.
+    Raises:
+        TypeError: ``role`` is not a ``BaseRole`` subtype or lacks
+            ``_role_mode_info`` / a valid ``mode`` entry.
     """
-
-    _role_info: ClassVar[dict[str, Any]]
+    if not issubclass(role, BaseRole):
+        raise TypeError(
+            f"get_declared_role_mode expects a BaseRole subclass, got {role!r}."
+        )
+    info = getattr(role, "_role_mode_info", None)
+    if not isinstance(info, dict):
+        raise TypeError(
+            f"Role {role.__qualname__} has no _role_mode_info; apply @role_mode(...)."
+        )
+    raw = info.get("mode")
+    if not isinstance(raw, RoleMode):
+        raise TypeError(
+            f"Role {role.__qualname__} has invalid _role_mode_info['mode']: {raw!r}."
+        )
+    return raw

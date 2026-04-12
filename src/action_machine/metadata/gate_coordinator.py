@@ -68,7 +68,8 @@ The graph is either built completely and consistently, or not committed at all.
     PHASE 2 — VALIDATE
         Payload fields, uniqueness of ``node_type:node_name`` keys, referential
         integrity, acyclicity of **structural** edges; @depends cycles surface
-        as ``CyclicDependencyError``.
+        as ``CyclicDependencyError``. Role ``role_includes`` edges are structural
+        and participate in the same acyclicity pass.
 
     PHASE 3 — COMMIT
         Nodes and edges into ``rx.PyDiGraph``; ``_node_index`` /
@@ -87,19 +88,25 @@ NODE AND KEY FORMAT
 ═══════════════════════════════════════════════════════════════════════════════
 
 Node key: ``f"{node_type}:{node_name}"``. One Python class may have several
-nodes (``meta``, ``role``, ``aspect``, ``compensator``, …) — see
-``get_nodes_for_class``.
+nodes (``meta``, ``role``, ``role_mode``, ``role_class``, ``aspect``,
+``compensator``, …) — see ``get_nodes_for_class``.
 
 ═══════════════════════════════════════════════════════════════════════════════
 EXAMPLE (EXPLICIT INSPECTOR REGISTRATION)
 ═══════════════════════════════════════════════════════════════════════════════
 
     from action_machine.metadata.gate_coordinator import GateCoordinator
+    from action_machine.auth.role_class_inspector import RoleClassInspector
     from action_machine.auth.role_gate_host_inspector import RoleGateHostInspector
+    from action_machine.auth.role_mode_gate_host_inspector import (
+        RoleModeGateHostInspector,
+    )
 
     coordinator = (
         GateCoordinator()
         .register(RoleGateHostInspector)
+        .register(RoleModeGateHostInspector)
+        .register(RoleClassInspector)
         # ... other inspectors
         .build()
     )
@@ -157,8 +164,8 @@ class GateCoordinator:
         _facet_snapshots : dict[tuple[type, str], BaseFacetSnapshot]
             Typed facet snapshots keyed by ``(owner class, facet_key)`` where
             ``facet_key`` comes from ``facet_snapshot_storage_key()`` (e.g.
-            ``"role"``, ``"depends"``), filled when
-            ``inspector.facet_snapshot_for_class()`` is non-``None``.
+            ``"role"``, ``"role_mode"``, ``"role_class"``, ``"depends"``), filled
+            when ``inspector.facet_snapshot_for_class()`` is non-``None``.
     """
 
     def __init__(self) -> None:

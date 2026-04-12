@@ -13,9 +13,10 @@ from action_machine.core.meta_gate_host_inspector import MetaGateHostInspector
 from action_machine.core.meta_gate_hosts import ActionMetaGateHost
 from action_machine.domain.base_domain import BaseDomain
 from action_machine.metadata.base_gate_host_inspector import BaseGateHostInspector
+from tests.domain_model.roles import AdminRole
 
 
-@check_roles("admin")
+@check_roles(AdminRole)
 class _SnapProbeAction(BaseAction[BaseParams, BaseResult]):
     """Concrete action with @check_roles for snapshot tests."""
 
@@ -29,19 +30,19 @@ def test_role_facet_snapshot_round_trip_with_graph() -> None:
     assert snap is not None
     assert isinstance(snap, RoleGateHostInspector.Snapshot)
     assert snap.class_ref is _SnapProbeAction
-    assert snap.spec == "admin"
+    assert snap.spec is AdminRole
 
     payload = snap.to_facet_payload()
     assert payload.node_type == "role"
     assert payload.node_class is _SnapProbeAction
-    assert dict(payload.node_meta)["spec"] == "admin"
+    assert dict(payload.node_meta)["spec"] is AdminRole
 
     role_name = BaseGateHostInspector._make_node_name(_SnapProbeAction)
     role_node = coord.get_node("role", role_name)
     assert role_node is not None
     meta = role_node.get("meta")
     assert meta is not None
-    assert meta.get("spec") == "admin"
+    assert meta.get("spec") is AdminRole
 
 
 class _FacetOrdersDomain(BaseDomain):

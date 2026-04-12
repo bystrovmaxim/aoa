@@ -7,8 +7,10 @@
 работают с одним графом метаданных и одними настройками.
 
 NoAuthCoordinator явно декларирует, что этот пример не требует
-аутентификации. В production заменяется на AuthCoordinator
-с реальными CredentialExtractor, Authenticator и ContextAssembler.
+аутентификации. Для production скопируйте не вслепую: подключите свой
+AuthCoordinator с реальными CredentialExtractor, Authenticator и
+ContextAssembler. NoAuthCoordinator оставляйте только если API намеренно
+открытый.
 """
 
 from action_machine.auth.no_auth_coordinator import NoAuthCoordinator

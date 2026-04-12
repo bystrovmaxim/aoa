@@ -130,7 +130,8 @@ class EdgeInfo:
             ``"belongs_to"``, ``"requires_context"``, ``"has_checker"``,
             ``"subscribes"``, ``"has_error_handler"``, ``"has_compensator"``,
             ``"has_sensitive"``, ``"has_role"``, ``"has_field"``,
-            ``"has_relation"``, ``"has_lifecycle"``.
+            ``"has_relation"``, ``"has_lifecycle"``, ``"role_includes"``,
+            ``"requires_role"``.
 
         is_structural : bool
             True — structural edge; cycles forbidden.
@@ -167,6 +168,9 @@ class FacetPayload:
     A single class may emit several payloads from different inspectors. For
     example, ``CreateOrderAction`` may yield:
     - ``FacetPayload(node_type="role", ...)`` from ``RoleGateHostInspector``
+    - ``FacetPayload(node_type="role_mode", ...)`` from
+      ``RoleModeGateHostInspector`` (same role class as ``node_class``)
+    - ``FacetPayload(node_type="role_class", ...)`` from ``RoleClassInspector``
     - One merged ``FacetPayload(node_type="action", ...)`` with depends and/or
       connection edges (two inspectors → merged in ``GateCoordinator._phase1_collect``)
     - ``FacetPayload(node_type="aspect", ...)`` from ``AspectGateHostInspector``
@@ -177,11 +181,12 @@ class FacetPayload:
 
     Attributes:
         node_type : str
-            Facet type: ``"action"``, ``"role"``, ``"aspect"``, ``"checker"``,
-            ``"entity"``, ``"domain"``, ``"dependency"``, ``"connection"``,
-            ``"error_handler"``, ``"compensator"``, ``"subscription"``,
-            ``"sensitive"``, ``"context_field"``, ``"entity_field"``,
-            ``"entity_relation"``, ``"entity_lifecycle"``.
+            Facet type: ``"action"``, ``"role"``, ``"role_mode"``, ``"role_class"``,
+            ``"aspect"``, ``"checker"``, ``"entity"``, ``"domain"``,
+            ``"dependency"``, ``"connection"``, ``"error_handler"``,
+            ``"compensator"``, ``"subscription"``, ``"sensitive"``,
+            ``"context_field"``, ``"entity_field"``, ``"entity_relation"``,
+            ``"entity_lifecycle"``.
 
         node_name : str
             Name without the type prefix. Format ``"module.ClassName"`` or

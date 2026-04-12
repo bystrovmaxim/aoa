@@ -14,8 +14,8 @@ first gate. It reads the role spec from the coordinator facet and compares it to
 
 1. ROLE_NONE ("__NONE__") — доступ без аутентификации.
 2. ROLE_ANY ("__ANY__") — требуется хотя бы одна роль.
-3. Конкретная роль ("admin") — требуется именно эта роль.
-4. Список ролей (["admin", "manager"]) — требуется хотя бы одна из списка.
+3. Конкретная роль (тип ``BaseRole``) — требуется соответствующий токен у пользователя.
+4. Кортеж типов ролей — требуется хотя бы одна из перечисленных ролей (OR).
 
 Если действие не имеет @check_roles — TypeError (не AuthorizationError).
 
@@ -65,6 +65,7 @@ from action_machine.logging.log_coordinator import LogCoordinator
 from action_machine.testing import TestBench
 from tests.domain_model import AdminAction, FullAction, PingAction
 from tests.domain_model.domains import TestDomain
+from tests.domain_model.roles import EditorRole, ManagerRole
 
 # ═════════════════════════════════════════════════════════════════════════════
 # Вспомогательные действия для edge-case тестов
@@ -92,7 +93,7 @@ class _ActionRoleAnyAction(BaseAction[_MockParams, _MockResult]):
 
 
 @meta(description="Действие для менеджеров и редакторов", domain=TestDomain)
-@check_roles(["manager", "editor"])
+@check_roles([ManagerRole, EditorRole])
 class _ActionRoleListAction(BaseAction[_MockParams, _MockResult]):
     """Требует одну из ролей: manager или editor."""
 
@@ -212,7 +213,7 @@ class TestSingleRole:
 
     def test_matching_role_passes(self, machine, context_admin) -> None:
         """
-        Пользователь с ролью "admin" проходит проверку @check_roles("admin").
+        Пользователь с ролью "admin" проходит проверку @check_roles(AdminRole).
         """
         # Arrange — AdminAction с ролью "admin", контекст с admin в ролях
         action = AdminAction()
@@ -222,7 +223,7 @@ class TestSingleRole:
 
     def test_non_matching_role_rejected(self, machine, context_manager) -> None:
         """
-        Пользователь с ролью "manager" отклоняется для @check_roles("admin").
+        Пользователь с ролью "manager" отклоняется для @check_roles(AdminRole).
         """
         # Arrange — AdminAction с ролью "admin", контекст с ролью "manager"
         action = AdminAction()
@@ -233,7 +234,7 @@ class TestSingleRole:
 
     def test_no_roles_rejected(self, machine, context_no_roles) -> None:
         """
-        Пользователь без ролей отклоняется для @check_roles("admin").
+        Пользователь без ролей отклоняется для @check_roles(AdminRole).
         """
         # Arrange — AdminAction, анонимный контекст
         action = AdminAction()
@@ -253,7 +254,7 @@ class TestRoleList:
 
     def test_intersection_passes(self, machine, context_manager) -> None:
         """
-        Пользователь с ролью "manager" проходит @check_roles(["manager", "editor"]).
+        Пользователь с ролью "manager" проходит @check_roles([ManagerRole, EditorRole]).
         """
         # Arrange — _ActionRoleListAction с ["manager", "editor"], контекст с "manager"
         action = _ActionRoleListAction()
@@ -264,7 +265,7 @@ class TestRoleList:
     def test_no_intersection_rejected(self, machine, context_admin) -> None:
         """
         Пользователь с ролями ["admin", "user"] отклоняется
-        для @check_roles(["manager", "editor"]).
+        для @check_roles([ManagerRole, EditorRole]).
         """
         # Arrange — _ActionRoleListAction с ["manager", "editor"],
         # контекст с ["admin", "user"] — нет пересечения

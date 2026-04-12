@@ -71,6 +71,7 @@ from action_machine.plugins.plugin import Plugin
 from action_machine.resource_managers.base_resource_manager import BaseResourceManager
 from action_machine.resource_managers.connection import connection
 from tests.domain_model.domains import TestDomain
+from tests.domain_model.roles import AdminRole
 
 
 def _new_coord() -> GateCoordinator:
@@ -235,7 +236,7 @@ class _TestPlugin(Plugin):
 
 
 @meta("Действие с ролью", domain=TestDomain)
-@check_roles("admin")
+@check_roles(AdminRole)
 class _RoledGraphAction(BaseAction["_Params", "_Result"]):
     """Действие с конкретной ролью для тестов графа."""
     @summary_aspect("Итог")

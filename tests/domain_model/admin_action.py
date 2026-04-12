@@ -53,10 +53,11 @@ from action_machine.core.tools_box import ToolsBox
 from action_machine.resource_managers.base_resource_manager import BaseResourceManager
 
 from .domains import SystemDomain
+from .roles import AdminRole
 
 
 @meta(description="Administrative Action with restricted access", domain=SystemDomain)
-@check_roles("admin")
+@check_roles(AdminRole)
 class AdminAction(BaseAction["AdminAction.Params", "AdminAction.Result"]):
     """
     Admin-only Action.

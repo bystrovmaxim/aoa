@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 from action_machine.aspects.aspect_gate_host_inspector import AspectGateHostInspector
+from action_machine.auth.role_class_inspector import RoleClassInspector
 from action_machine.auth.role_gate_host_inspector import RoleGateHostInspector
+from action_machine.auth.role_mode_gate_host_inspector import RoleModeGateHostInspector
 from action_machine.checkers.checker_gate_host_inspector import CheckerGateHostInspector
 from action_machine.compensate.compensate_gate_host_inspector import (
     CompensateGateHostInspector,
@@ -42,6 +44,8 @@ class CoreActionMachine:
             GateCoordinator()
             .register(MetaGateHostInspector)
             .register(RoleGateHostInspector)
+            .register(RoleModeGateHostInspector)
+            .register(RoleClassInspector)
             .register(DependencyGateHostInspector)
             .register(ConnectionGateHostInspector)
             .register(DescribedFieldsGateHostInspector)
