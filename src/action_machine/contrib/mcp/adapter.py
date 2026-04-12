@@ -56,11 +56,11 @@ async handler-функцию, которая:
 5. Получает connections (через connections_factory или None).
 6. Создаёт экземпляр Action и вызывает machine.run().
 7. Если response_mapper указан — преобразует результат.
-8. Returns JSON-строку result.
+8. Возвращает ``CallToolResult``: успех — JSON в ``TextContent``, ``isError=False``;
+   ошибки — тот же формат текста с префиксом (PERMISSION_DENIED, …), ``isError=True``.
 
-При ошибке handler возвращает строку с описанием ошибки и пометкой
-типа ошибки (PERMISSION_DENIED, INVALID_PARAMS, INTERNAL_ERROR).
-MCP-хост доставляет это как TextContent с isError=True.
+При ошибке handler не бросает исключение наружу: возвращает ``CallToolResult``
+с ``isError=True``, чтобы клиент MCP различал сбой вызова tool.
 
 ═══════════════════════════════════════════════════════════════════════════════
 RESOURCE system://graph
@@ -96,14 +96,13 @@ Resource возвращает JSON с узлами и рёбрами графа 
 ОБРАБОТКА ОШИБОК
 ═══════════════════════════════════════════════════════════════════════════════
 
-Ошибки не подавляются — они преобразуются в текстовый ответ с пометкой:
+Ошибки преобразуются в ``CallToolResult`` с ``isError=True`` и текстом:
 
     AuthorizationError      → "PERMISSION_DENIED: ..."
     ValidationFieldError    → "INVALID_PARAMS: ..."
     Exception               → "INTERNAL_ERROR: ..."
 
-MCP-хост возвращает их как TextContent, что позволяет AI-агенту прочитать
-сообщение об ошибке и скорректировать следующий запрос.
+Текст остаётся читаемым для AI-агента; флаг ``isError`` — для клиента протокола.
 
 ═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES
@@ -138,6 +137,7 @@ from typing import Any, Self
 from mcp.server.fastmcp import FastMCP
 from mcp.server.fastmcp.tools.base import Tool
 from mcp.server.fastmcp.utilities.func_metadata import ArgModelBase, FuncMetadata
+from mcp.types import CallToolResult, TextContent
 from pydantic import BaseModel
 
 from action_machine.adapters.base_adapter import BaseAdapter
@@ -295,10 +295,9 @@ def _make_tool_handler(
 
     Handler принимает kwargs от MCP (аргументы tool call от агента),
     десериализует их в Pydantic-модель, выполняет действие через machine.run()
-    и возвращает JSON-строку result.
+    и возвращает ``CallToolResult`` с JSON-текстом при успехе.
 
-    При ошибке возвращает строку с описанием ошибки — MCP-хост доставляет
-    её как TextContent агенту.
+    При ошибке возвращает ``CallToolResult`` с ``isError=True`` и текстом ошибки.
 
     Args:
         record: конфигурация маршрута с action_class, моделями и мапперами.
@@ -309,31 +308,44 @@ def _make_tool_handler(
         gate_coordinator: координатор для метаданных tool (описание из facet).
 
     Returns:
-        Async-функцию для регистрации как MCP tool.
+        Async-функцию для регистрации как MCP tool (возвращает ``CallToolResult``).
     """
     req_model = record.effective_request_model
     has_params_mapper = record.params_mapper is not None
     has_response_mapper = record.response_mapper is not None
 
-    async def handler(**kwargs: Any) -> str:
+    async def handler(**kwargs: Any) -> CallToolResult:
         """
         Handler MCP tool call.
 
         Принимает kwargs от MCP, десериализует, выполняет действие,
-        возвращает JSON-строку result или строку ошибки.
+        возвращает ``CallToolResult`` (успех или ошибка по полю ``isError``).
         """
         try:
-            return await _execute_tool_call(
+            payload = await _execute_tool_call(
                 kwargs, req_model, record, machine,
                 auth_coordinator, connections_factory,
                 has_params_mapper, has_response_mapper,
             )
+            return CallToolResult(
+                content=[TextContent(type="text", text=payload)],
+                isError=False,
+            )
         except AuthorizationError as exc:
-            return f"PERMISSION_DENIED: {exc}"
+            return CallToolResult(
+                content=[TextContent(type="text", text=f"PERMISSION_DENIED: {exc}")],
+                isError=True,
+            )
         except ValidationFieldError as exc:
-            return f"INVALID_PARAMS: {exc}"
+            return CallToolResult(
+                content=[TextContent(type="text", text=f"INVALID_PARAMS: {exc}")],
+                isError=True,
+            )
         except Exception as exc:
-            return f"INTERNAL_ERROR: {exc}"
+            return CallToolResult(
+                content=[TextContent(type="text", text=f"INTERNAL_ERROR: {exc}")],
+                isError=True,
+            )
 
     handler.__name__ = record.tool_name.replace(".", "_").replace("-", "_")
     handler.__doc__ = record.description or _get_meta_description(
