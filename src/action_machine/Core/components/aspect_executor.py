@@ -79,6 +79,10 @@ from typing import Any, Protocol, cast
 from action_machine.aspects.aspect_intent_inspector import AspectIntentInspector
 from action_machine.checkers.checker_intent_inspector import CheckerIntentInspector
 from action_machine.context.context_view import ContextView
+from action_machine.core.action_result_binding import (
+    bind_pipeline_result_to_action,
+    synthetic_summary_result_when_missing_aspect,
+)
 from action_machine.core.base_action import BaseAction
 from action_machine.core.base_params import BaseParams
 from action_machine.core.base_result import BaseResult
@@ -239,12 +243,13 @@ class AspectExecutor:
         box: ToolsBox,
         connections: dict[str, BaseResourceManager],
         context: Any,
-    ) -> tuple[object, float]:
+    ) -> tuple[BaseResult, float]:
         """Execute summary aspect and return result with duration."""
+        action_cls = type(action)
         if summary_meta is None:
-            return BaseResult(), 0.0
+            return synthetic_summary_result_when_missing_aspect(action_cls), 0.0
         summary_start = time.time()
-        result = await self.call(
+        raw = await self.call(
             aspect_meta=summary_meta,
             action=action,
             params=params,
@@ -252,6 +257,11 @@ class AspectExecutor:
             box=box,
             connections=connections,
             context=context,
+        )
+        result = bind_pipeline_result_to_action(
+            action_cls,
+            raw,
+            source=f"summary aspect `{summary_meta.method_name}`",
         )
         return result, (time.time() - summary_start)
 

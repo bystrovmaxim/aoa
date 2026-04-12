@@ -160,6 +160,11 @@ from action_machine.core.components.role_checker import RoleChecker
 from action_machine.core.components.saga_coordinator import SagaCoordinator
 from action_machine.core.components.tools_box_factory import ToolsBoxFactory
 from action_machine.core.core_action_machine import CoreActionMachine
+from action_machine.core.exceptions import (
+    ActionResultDeclarationError,
+    ActionResultTypeError,
+    MissingSummaryAspectError,
+)
 from action_machine.core.saga_frame import SagaFrame
 from action_machine.core.tools_box import ToolsBox
 from action_machine.dependencies.dependency_factory import DependencyFactory
@@ -613,6 +618,12 @@ class ActionProductMachine(BaseActionMachine):
                     connections=connections,
                     context=context,
                 )
+            except (
+                ActionResultTypeError,
+                MissingSummaryAspectError,
+                ActionResultDeclarationError,
+            ):
+                raise
             except Exception as exc:
                 raise _AspectPipelineError(state_passed_into_summary) from exc
 
@@ -625,7 +636,7 @@ class ActionProductMachine(BaseActionMachine):
                     nest_level=box.nested_level,
                     aspect_name=summary_name,
                     state_snapshot=state_passed_into_summary.to_dict(),
-                    result=cast("BaseResult", result),
+                    result=result,
                     duration_ms=summary_duration * 1000,
                 )
             except Exception as exc:
@@ -647,6 +658,12 @@ class ActionProductMachine(BaseActionMachine):
                 runtime=runtime,
                 plugin_ctx=plugin_ctx,
             )
+        except (
+            ActionResultTypeError,
+            MissingSummaryAspectError,
+            ActionResultDeclarationError,
+        ):
+            raise
         except Exception as aspect_error:
             return await self._finish_aspect_pipeline_error(
                 aspect_error=aspect_error,
