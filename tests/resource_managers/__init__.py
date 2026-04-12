@@ -15,16 +15,16 @@
 КОМПОНЕНТЫ
 ═══════════════════════════════════════════════════════════════════════════════
 
-IConnectionManager
-    Интерфейс для всех менеджеров соединений с базами данных.
+SqlConnectionManager
+    Базовый класс для менеджеров SQL-соединений с транзакциями.
     Определяет контракт: open(), begin(), commit(), rollback(), execute().
 
 PostgresConnectionManager
-    Реальная реализация IConnectionManager для PostgreSQL на базе asyncpg.
+    Реальная реализация SqlConnectionManager для PostgreSQL на базе asyncpg.
     Поддерживает режим rollup: при rollup=True commit() выполняет ROLLBACK
     вместо COMMIT, что позволяет безопасно тестировать на production-базе.
 
-WrapperConnectionManager
+WrapperSqlConnectionManager
     Прокси-обёртка, запрещающая управление транзакциями на вложенных уровнях,
     но разрешающая выполнение запросов. Создаётся автоматически при передаче
     connections в дочерние действия через ToolsBox.run().
@@ -40,6 +40,7 @@ Connections
     tests/resource_managers/
     ├── __init__.py                             — этот файл
     ├── test_postgres_connection_manager.py     — open/begin/execute/commit/rollback, rollup
-    ├── test_wrapper_connection_manager.py      — запрет транзакций, делегирование execute
+    ├── test_sql_connection_manager.py          — SqlConnectionManager, rollup, abstract API
+    ├── test_wrapper_sql_connection_manager.py  — запрет транзакций, делегирование execute
     └── test_connections_typed_dict.py          — TypedDict Connections
 """

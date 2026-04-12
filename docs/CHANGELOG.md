@@ -16,10 +16,18 @@ The coordinator class name **`GateCoordinator`** is unchanged.
 
 ### BREAKING
 
-- **`IConnectionManager.begin()`.** Transactional connection managers must implement
+- **`IConnectionManager` → `SqlConnectionManager`.** The abstract transactional SQL
+  connection base class and module were renamed: ``iconnection_manager`` →
+  ``sql_connection_manager``. Update imports and type hints; there is no alias.
+
+- **`WrapperConnectionManager` → `WrapperSqlConnectionManager`.** The nested-run SQL
+  proxy class and module were renamed: ``wrapper_connection_manager`` →
+  ``wrapper_sql_connection_manager``. Update imports; there is no alias.
+
+- **`SqlConnectionManager.begin()`.** Transactional connection managers must implement
   `async def begin(self) -> None` (start one DB transaction after `open()`, before
   mutating `execute` calls so rollup and `commit`/`rollback` are meaningful with
-  asyncpg). `WrapperConnectionManager.begin()` raises `TransactionProhibitedError`
+  asyncpg). `WrapperSqlConnectionManager.begin()` raises `TransactionProhibitedError`
   (same as `open`/`commit`/`rollback`). `PostgresConnectionManager` runs `BEGIN`.
 
 - **Resource managers: distinguish decorator vs TypedDict modules.** Renamed
@@ -133,7 +141,7 @@ The coordinator class name **`GateCoordinator`** is unchanged.
 
 - **Naming rule for compensators.** Compensator method names must end with `_compensate` (enforced by `@compensate`, violation raises `ValueError`). The suffix ensures visual identification of compensators in action classes.
 
-- **`rollup=True` skips compensation.** When `box.rollup is True`, the compensation stack is not built and `_rollback_saga()` is never called. Transactional rollback in that mode is handled by `IConnectionManager` (which executes `rollback()` instead of `commit()`), while non‑transactional side effects (HTTP requests, email sending) are not compensated in rollup mode.
+- **`rollup=True` skips compensation.** When `box.rollup is True`, the compensation stack is not built and `_rollback_saga()` is never called. Transactional rollback in that mode is handled by `SqlConnectionManager` (which executes `rollback()` instead of `commit()`), while non‑transactional side effects (HTTP requests, email sending) are not compensated in rollup mode.
 
 ### Changed
 
@@ -203,9 +211,9 @@ The coordinator class name **`GateCoordinator`** is unchanged.
 
 - **Context stub helpers.** `UserInfoStub`, `RuntimeInfoStub`, `RequestInfoStub`, `ContextStub` provide reasonable defaults for testing, reducing boilerplate.
 
-- **`rollup` support in dependency resolution and connection managers.** The `rollup` flag now propagates through `ToolsBox.resolve()` and into connection managers. When `rollup=True`, any `IConnectionManager` will execute `rollback()` instead of `commit()`, enabling safe testing on production databases. Managers that do not support rollup raise `RollupNotSupportedError`.
+- **`rollup` support in dependency resolution and connection managers.** The `rollup` flag now propagates through `ToolsBox.resolve()` and into connection managers. When `rollup=True`, any `SqlConnectionManager` will execute `rollback()` instead of `commit()`, enabling safe testing on production databases. Managers that do not support rollup raise `RollupNotSupportedError`.
 
-- **`BaseResourceManager.check_rollup_support()`.** A new method that concrete managers can override to declare rollup support (default raises `RollupNotSupportedError`). `IConnectionManager` overrides it to return `True`.
+- **`BaseResourceManager.check_rollup_support()`.** A new method that concrete managers can override to declare rollup support (default raises `RollupNotSupportedError`). `SqlConnectionManager` overrides it to return `True`.
 
 - **Context field nodes in the coordinator graph.** `GateCoordinator` now creates nodes of type `context_field` for every unique dot‑path requested by `@context_requires`. Edges of type `requires_context` connect aspect nodes (or error handler nodes) to these fields. This closes the last gap in the system graph, allowing full introspection of context dependencies.
 
@@ -414,7 +422,7 @@ The coordinator class name **`GateCoordinator`** is unchanged.
 
 - **Declarative dependency injection (`@depends`).** Actions declare dependencies on external services via class-level decorators: `@depends(PaymentService)`. Dependencies are resolved at runtime through `DependencyFactory` — each `resolve()` call creates a new instance via the factory function or default constructor. Singleton pattern is supported through lambda closures: `@depends(Service, factory=lambda: shared_instance)`. A generic bound `DependencyIntent[T]` restricts which types are allowed as dependencies.
 
-- **Connection management (`@connection`).** Actions declare required resource managers (database connections, caches, queues) via `@connection(PostgresManager, key="db")`. The machine validates that passed connections exactly match declared keys — extra keys, missing keys, and non-`BaseResourceManager` values are rejected with descriptive errors. `WrapperConnectionManager` wraps connections passed to child actions, preventing nested transaction control (open/commit/rollback) while allowing query execution.
+- **Connection management (`@connection`).** Actions declare required resource managers (database connections, caches, queues) via `@connection(PostgresManager, key="db")`. The machine validates that passed connections exactly match declared keys — extra keys, missing keys, and non-`BaseResourceManager` values are rejected with descriptive errors. `WrapperSqlConnectionManager` wraps connections passed to child actions, preventing nested transaction control (open/commit/rollback) while allowing query execution.
 
 - **`ActionProductMachine` — production execution engine.** Fully async machine that orchestrates action execution: role checking via `@CheckRoles`, connection validation, dependency factory creation via `GateCoordinator`, sequential aspect execution with checker validation, plugin event emission, and nested action support. Stateless between requests — all per-request data flows through explicit parameters.
 

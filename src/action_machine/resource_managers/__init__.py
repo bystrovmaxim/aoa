@@ -7,9 +7,9 @@
 
 - BaseResourceManager — абстрактный базовый класс для всех менеджеров
   ресурсов. Определяет контракт get_wrapper_class().
-- IConnectionManager — интерфейс менеджера соединений с методами
+- SqlConnectionManager — базовый класс SQL-менеджера с методами
   open/begin/commit/rollback/execute.
-- WrapperConnectionManager — прокси-обёртка, запрещающая управление
+- WrapperSqlConnectionManager — прокси-обёртка, запрещающая управление
   транзакциями на вложенных уровнях, но разрешающая выполнение запросов.
 - ConnectionIntent — маркерный миксин, разрешающий применение @connection.
   Класс без этого миксина не может быть целью @connection.

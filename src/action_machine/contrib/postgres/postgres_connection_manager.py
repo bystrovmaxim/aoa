@@ -6,13 +6,13 @@
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-PostgresConnectionManager — конкретная реализация IConnectionManager для
+PostgresConnectionManager — конкретная реализация SqlConnectionManager для
 PostgreSQL на базе библиотеки asyncpg. Выполняет непосредственную работу
 с базой данных: открытие соединения, выполнение SQL-запросов, управление
 транзакциями.
 
 Проверки состояния соединения (открыто ли оно) выполняются в прокси-обёртке
-WrapperConnectionManager, а не здесь. PostgresConnectionManager отвечает
+WrapperSqlConnectionManager, а не здесь. PostgresConnectionManager отвечает
 только за прямое взаимодействие с asyncpg.
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -20,7 +20,7 @@ WrapperConnectionManager, а не здесь. PostgresConnectionManager отве
 ═══════════════════════════════════════════════════════════════════════════════
 
 PostgresConnectionManager полностью поддерживает режим rollup, унаследованный
-от IConnectionManager. Параметр rollup передаётся в конструктор и
+от SqlConnectionManager. Параметр rollup передаётся в конструктор и
 прокидывается в super().__init__(rollup=rollup).
 
 Транзакционный цикл (asyncpg без явного BEGIN фиксирует каждый оператор отдельно):
@@ -85,11 +85,13 @@ from typing import Any
 import asyncpg
 
 from action_machine.core.exceptions import HandleError
-from action_machine.resource_managers.iconnection_manager import IConnectionManager
-from action_machine.resource_managers.wrapper_connection_manager import WrapperConnectionManager
+from action_machine.resource_managers.sql_connection_manager import SqlConnectionManager
+from action_machine.resource_managers.wrapper_sql_connection_manager import (
+    WrapperSqlConnectionManager,
+)
 
 
-class PostgresConnectionManager(IConnectionManager):
+class PostgresConnectionManager(SqlConnectionManager):
     """
     Реальный менеджер соединения для PostgreSQL.
 
@@ -231,15 +233,15 @@ class PostgresConnectionManager(IConnectionManager):
         except Exception as e:
             raise HandleError(f"Ошибка выполнения SQL: {e}") from e
 
-    def get_wrapper_class(self) -> type[IConnectionManager] | None:
+    def get_wrapper_class(self) -> type[SqlConnectionManager] | None:
         """
         Returns класс прокси-обёртки для передачи в дочерние действия.
 
-        WrapperConnectionManager запрещает дочерним действиям управлять
+        WrapperSqlConnectionManager запрещает дочерним действиям управлять
         транзакциями (open/commit/rollback), но разрешает выполнять
         запросы (execute). Флаг rollup прокидывается через обёртку.
 
         Returns:
-            WrapperConnectionManager — класс прокси-обёртки.
+            WrapperSqlConnectionManager — класс прокси-обёртки.
         """
-        return WrapperConnectionManager
+        return WrapperSqlConnectionManager

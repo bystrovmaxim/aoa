@@ -10,7 +10,7 @@
 params, connections). Машина увеличивает nest_level, оборачивает connections
 через get_wrapper_class() и рекурсивно вызывает _run_internal().
 
-Connections оборачиваются в WrapperConnectionManager, который запрещает
+Connections оборачиваются в WrapperSqlConnectionManager, который запрещает
 дочернему действию управлять транзакциями (open/commit/rollback), но
 разрешает выполнять запросы (execute).
 
@@ -39,7 +39,7 @@ nest_level:
 Оборачивание connections:
     - ToolsBox._wrap_connections() оборачивает каждый менеджер.
     - get_wrapper_class() → None → менеджер передаётся как есть.
-    - get_wrapper_class() → WrapperConnectionManager → обёртка.
+    - get_wrapper_class() → WrapperSqlConnectionManager → обёртка.
 
 Изоляция контекста:
     - Дочернее действие получает тот же Context.
@@ -312,13 +312,15 @@ class TestConnectionWrapping:
 
     def test_wrap_connections_with_wrapper_class(self) -> None:
         """
-        Менеджер с get_wrapper_class() → оборачивается в WrapperConnectionManager.
+        Менеджер с get_wrapper_class() → оборачивается в WrapperSqlConnectionManager.
         """
-        from action_machine.resource_managers.iconnection_manager import IConnectionManager
-        from action_machine.resource_managers.wrapper_connection_manager import WrapperConnectionManager
+        from action_machine.resource_managers.sql_connection_manager import SqlConnectionManager
+        from action_machine.resource_managers.wrapper_sql_connection_manager import (
+            WrapperSqlConnectionManager,
+        )
 
-        mock_manager = MagicMock(spec=IConnectionManager)
-        mock_manager.get_wrapper_class.return_value = WrapperConnectionManager
+        mock_manager = MagicMock(spec=SqlConnectionManager)
+        mock_manager.get_wrapper_class.return_value = WrapperSqlConnectionManager
         mock_manager.rollup = False
 
         box = ToolsBox(
@@ -333,10 +335,10 @@ class TestConnectionWrapping:
         # Act — оборачивание connections
         wrapped = box._wrap_connections({"db": mock_manager})
 
-        # Assert — менеджер обёрнут в WrapperConnectionManager
+        # Assert — менеджер обёрнут в WrapperSqlConnectionManager
         assert wrapped is not None
         assert "db" in wrapped
-        assert isinstance(wrapped["db"], WrapperConnectionManager)
+        assert isinstance(wrapped["db"], WrapperSqlConnectionManager)
 
     def test_wrap_connections_without_wrapper_class(self) -> None:
         """

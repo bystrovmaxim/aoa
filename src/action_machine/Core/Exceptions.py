@@ -17,7 +17,7 @@ PURPOSE
 - ConnectionAlreadyOpenError — повторное открытие соединения.
 - ConnectionNotOpenError — операция без открытого соединения.
 - TransactionProhibitedError — попытка управления транзакцией на вложенном уровне
-  (WrapperConnectionManager).
+  (WrapperSqlConnectionManager).
 - ConnectionValidationError — несоответствие переданных connections объявленным
   через @connection (ActionProductMachine._check_connections).
 - RollupNotSupportedError — ресурсный менеджер или зависимость не поддерживает
@@ -109,7 +109,7 @@ class HandleError(Exception):
     Ошибка выполнения основной логики действия.
 
     Используется в ресурсных менеджерах (PostgresConnectionManager,
-    WrapperConnectionManager) для обёртки ошибок работы с внешними
+    WrapperSqlConnectionManager) для обёртки ошибок работы с внешними
     ресурсами (БД, кеш, очередь сообщений).
     """
 
@@ -153,7 +153,7 @@ class TransactionProhibitedError(TransactionError):
     """
     Попытка управления транзакцией на вложенном уровне.
 
-    Выбрасывается WrapperConnectionManager при попытке вызвать
+    Выбрасывается WrapperSqlConnectionManager при попытке вызвать
     open(), begin(), commit() или rollback() на обёрнутом соединении.
     Дочернее действие получает соединение через обёртку (прокси),
     которая запрещает управление жизненным циклом ресурса,

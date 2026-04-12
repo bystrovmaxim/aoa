@@ -6,7 +6,7 @@
 ═══════════════════════════════════════════════════════════════════════════════
 Проверяет, что при rollup=True компенсаторы работают так же, как при
 rollup=False. Значение rollup влияет ТОЛЬКО на ресурсные менеджеры
-(WrapperConnectionManager выполняет ROLLBACK вместо COMMIT).
+(WrapperSqlConnectionManager выполняет ROLLBACK вместо COMMIT).
 Компенсаторы — независимый механизм для отката нетранзакционных
 побочных эффектов (HTTP-запросы к внешним сервисам). Они вызываются
 при любом значении rollup.
@@ -86,7 +86,7 @@ class TestCompensatorsWorkWithRollup:
     и Saga-события эмитируются — так же, как при rollup=False.
 
     rollup=True влияет ТОЛЬКО на ресурсные менеджеры
-    (WrapperConnectionManager выполняет ROLLBACK вместо COMMIT).
+    (WrapperSqlConnectionManager выполняет ROLLBACK вместо COMMIT).
     Компенсаторы — независимый механизм отката нетранзакционных
     побочных эффектов (HTTP-запросы к внешним сервисам).
     """
@@ -104,7 +104,7 @@ class TestCompensatorsWorkWithRollup:
 
         rollup не влияет на компенсацию. Компенсаторы откатывают
         нетранзакционные побочные эффекты (HTTP-запросы), которые
-        не откатываются через WrapperConnectionManager.
+        не откатываются через WrapperSqlConnectionManager.
         """
         # ── Arrange ──
         params = CompensateTestParams(
