@@ -27,7 +27,7 @@ Production-машина всегда передаёт rollup=False в _run_inter
     - FullAction через sync run() → Result с txn_id, total, order_id.
 
 Проверка ролей через sync:
-    - ROLE_NONE — проходит без ролей.
+    - NoneRole — проходит без ролей.
     - Конкретная роль — AuthorizationError при несовпадении.
 
 Проверка connections через sync:
@@ -60,6 +60,7 @@ from tests.domain_model import (
     SimpleAction,
     TestDbManager,
 )
+from tests.domain_model.roles import AdminRole, ManagerRole
 
 # ═════════════════════════════════════════════════════════════════════════════
 # Фикстуры
@@ -82,13 +83,13 @@ def sync_machine() -> SyncActionProductMachine:
 @pytest.fixture()
 def context_manager() -> Context:
     """Контекст с ролью manager для FullAction."""
-    return Context(user=UserInfo(user_id="mgr_1", roles=["manager", "admin"]))
+    return Context(user=UserInfo(user_id="mgr_1", roles=(ManagerRole, AdminRole)))
 
 
 @pytest.fixture()
 def context_no_roles() -> Context:
     """Контекст без ролей — анонимный пользователь."""
-    return Context(user=UserInfo(user_id="guest", roles=[]))
+    return Context(user=UserInfo(user_id="guest", roles=()))
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -105,7 +106,7 @@ class TestSyncBasicExecution:
 
         SyncActionProductMachine.run() вызывает asyncio.run() внутри,
         который создаёт event loop и выполняет асинхронный конвейер.
-        PingAction имеет ROLE_NONE — проходит без ролей.
+        PingAction имеет NoneRole — проходит без ролей.
         """
         # Arrange — PingAction с пустыми параметрами
         action = PingAction()
@@ -183,11 +184,11 @@ class TestSyncRoles:
 
     def test_role_none_passes_without_roles(self, sync_machine, context_no_roles) -> None:
         """
-        PingAction (ROLE_NONE) проходит через sync-машину без ролей.
+        PingAction (NoneRole) проходит через sync-машину без ролей.
 
         Role gate uses the same ``RoleChecker`` pipeline as ``ActionProductMachine``.
         """
-        # Arrange — PingAction с ROLE_NONE, контекст без ролей
+        # Arrange — PingAction с NoneRole, контекст без ролей
         action = PingAction()
         params = PingAction.Params()
 

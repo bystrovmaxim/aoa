@@ -80,7 +80,7 @@ EXAMPLES
 Happy path — action and manager::
 
     @meta(description="Health ping", domain=InfraDomain)
-    @check_roles(ROLE_NONE)
+    @check_roles(NoneRole)
     class PingAction(BaseAction[BaseParams, BaseResult]):
         @summary_aspect("Pong")
         async def pong(self, params, state, box, connections):

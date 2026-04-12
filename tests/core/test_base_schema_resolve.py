@@ -52,6 +52,7 @@ from action_machine.context.runtime_info import RuntimeInfo
 from action_machine.context.user_info import UserInfo
 from action_machine.core.base_schema import BaseSchema
 from action_machine.core.base_state import BaseState
+from tests.domain_model.roles import AdminRole, AgentRole, UserRole
 
 # ═════════════════════════════════════════════════════════════════════════════
 # Вспомогательные классы
@@ -85,7 +86,7 @@ class TestTwoLevels:
         Оба объекта — BaseSchema, стратегия — __getitem__.
         """
         # Arrange
-        user = UserInfo(user_id="agent_007", roles=["agent"])
+        user = UserInfo(user_id="agent_007", roles=(AgentRole,))
         ctx = Context(user=user)
 
         # Act
@@ -96,17 +97,17 @@ class TestTwoLevels:
 
     def test_context_to_user_roles(self) -> None:
         """
-        resolve("user.roles") — доступ к полю-списку через вложенность.
+        resolve("user.roles") — доступ к кортежу типов ролей через вложенность.
         """
         # Arrange
-        user = UserInfo(user_id="42", roles=["admin", "user"])
+        user = UserInfo(user_id="42", roles=(AdminRole, UserRole))
         ctx = Context(user=user)
 
         # Act
         result = ctx.resolve("user.roles")
 
         # Assert
-        assert result == ["admin", "user"]
+        assert result == (AdminRole, UserRole)
 
     def test_context_to_request_field(self) -> None:
         """

@@ -35,7 +35,8 @@ state и сравнение результатов между машинами.
 
 Стабы:
 
-- **UserInfoStub** — стаб пользователя (user_id="test_user", roles=["tester"]).
+- **UserInfoStub** — стаб пользователя (по умолчанию user_id="test_user",
+  roles=(StubTesterRole,) из ``action_machine.testing.stubs``).
 - **RuntimeInfoStub** — стаб окружения (hostname="test-host").
 - **RequestInfoStub** — стаб запроса (trace_id="test-trace-000").
 - **ContextStub** — стаб полного контекста, объединяющий все три стаба.
@@ -55,12 +56,13 @@ state и сравнение результатов между машинами.
 ═══════════════════════════════════════════════════════════════════════════════
 
     from action_machine.testing import TestBench, MockAction
+    from action_machine.testing import StubTesterRole
 
     # Создаём bench с моками:
     bench = TestBench(mocks={PaymentService: mock_payment})
 
     # Fluent — каждый вызов создаёт новый объект:
-    admin_bench = bench.with_user(user_id="admin", roles=["admin"])
+    admin_bench = bench.with_user(user_id="admin", roles=(StubTesterRole,))
 
     # Полный прогон на async + sync машинах с проверкой совпадения:
     result = admin_bench.run(
@@ -90,13 +92,20 @@ from .bench import TestBench
 from .comparison import compare_results
 from .mock_action import MockAction
 from .state_validator import validate_state_for_aspect, validate_state_for_summary
-from .stubs import ContextStub, RequestInfoStub, RuntimeInfoStub, UserInfoStub
+from .stubs import (
+    ContextStub,
+    RequestInfoStub,
+    RuntimeInfoStub,
+    StubTesterRole,
+    UserInfoStub,
+)
 
 __all__ = [
     "ContextStub",
     "MockAction",
     "RequestInfoStub",
     "RuntimeInfoStub",
+    "StubTesterRole",
     "TestBench",
     "UserInfoStub",
     "compare_results",

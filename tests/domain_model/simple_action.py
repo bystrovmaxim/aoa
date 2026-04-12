@@ -10,7 +10,7 @@ One regular aspect and one summary aspect. The regular aspect validates the
 input name and writes validated_name to state. result_string ensures
 validated_name is a non-empty string.
 
-No dependencies or connections. ROLE_NONE. Belongs to OrdersDomain.
+No dependencies or connections. NoneRole. Belongs to OrdersDomain.
 
 ═══════════════════════════════════════════════════════════════════════════════
 USAGE IN TESTS
@@ -33,7 +33,7 @@ from pydantic import Field
 
 from action_machine.aspects.regular_aspect import regular_aspect
 from action_machine.aspects.summary_aspect import summary_aspect
-from action_machine.auth import ROLE_NONE, check_roles
+from action_machine.auth import NoneRole, check_roles
 from action_machine.checkers import result_string
 from action_machine.core.base_action import BaseAction
 from action_machine.core.base_params import BaseParams
@@ -47,7 +47,7 @@ from .domains import OrdersDomain
 
 
 @meta(description="Simple Action with a single aspect", domain=OrdersDomain)
-@check_roles(ROLE_NONE)
+@check_roles(NoneRole)
 class SimpleAction(BaseAction["SimpleAction.Params", "SimpleAction.Result"]):
     """
     Action with one regular aspect and one checker.

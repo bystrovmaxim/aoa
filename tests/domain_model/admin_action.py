@@ -1,12 +1,12 @@
 # tests/domain_model/admin_action.py
 """
-AdminAction — role-restricted Action ("admin").
+AdminAction — role-restricted Action (``@check_roles(AdminRole)``).
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Only users with role "admin" may run it. One regular aspect with checker
+Only users assigned ``AdminRole`` may run it. One regular aspect with checker
 and summary. No dependencies or connections. SystemDomain.
 
 execute_admin builds a string with prefix "admin_processed:" into state
@@ -16,11 +16,11 @@ as admin_note. Summary returns Result with success=True and target from params.
 USAGE IN TESTS
 ═══════════════════════════════════════════════════════════════════════════════
 
-- Role tests: "admin" passes; "user" or no roles → AuthorizationError.
-- check_roles with a concrete role (not ROLE_NONE / ROLE_ANY / role list).
+- Role tests: AdminRole passes; UserRole only or no roles → AuthorizationError.
+- ``@check_roles(AdminRole)`` — один конкретный тип роли.
 - run_aspect: execute_admin in isolation.
 
-    admin_bench = bench.with_user(user_id="admin_1", roles=["admin"])
+    admin_bench = bench.with_user(user_id="admin_1", roles=(AdminRole,))
     result = await admin_bench.run(
         AdminAction(),
         AdminAction.Params(target="user_456"),
@@ -29,7 +29,7 @@ USAGE IN TESTS
     assert result.success is True
     assert result.target == "user_456"
 
-    user_bench = bench.with_user(user_id="user_1", roles=["user"])
+    user_bench = bench.with_user(user_id="user_1", roles=(UserRole,))
     with pytest.raises(AuthorizationError):
         await user_bench.run(
             AdminAction(),

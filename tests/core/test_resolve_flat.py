@@ -47,6 +47,7 @@ from pydantic import Field
 from action_machine.context.user_info import UserInfo
 from action_machine.core.base_params import BaseParams
 from action_machine.core.base_state import BaseState
+from tests.domain_model.roles import AdminRole, AgentRole, ManagerRole, UserRole
 
 # ═════════════════════════════════════════════════════════════════════════════
 # Базовый доступ к плоским полям
@@ -65,7 +66,7 @@ class TestResolveFlatBasic:
         → getattr(self, "user_id").
         """
         # Arrange — UserInfo с user_id="agent_007"
-        user = UserInfo(user_id="agent_007", roles=["agent"])
+        user = UserInfo(user_id="agent_007", roles=(AgentRole,))
 
         # Act — resolve по одному сегменту, без вложенности
         result = user.resolve("user_id")
@@ -75,21 +76,21 @@ class TestResolveFlatBasic:
 
     def test_resolve_list_field(self) -> None:
         """
-        resolve("roles") возвращает список целиком.
+        resolve("roles") возвращает кортеж типов ролей целиком.
 
-        resolve не поддерживает индексацию списков (roles.0).
-        Для получения элемента нужно сначала получить список,
+        resolve не поддерживает индексацию по элементам tuple (roles.0).
+        Для получения элемента нужно сначала получить кортеж,
         потом обращаться к элементу в Python-коде.
         """
         # Arrange — UserInfo с двумя ролями
-        user = UserInfo(user_id="42", roles=["admin", "user"])
+        user = UserInfo(user_id="42", roles=(AdminRole, UserRole))
 
-        # Act — resolve возвращает весь список
+        # Act — resolve возвращает весь кортеж
         result = user.resolve("roles")
 
-        # Assert — список из двух элементов, тип сохранён
-        assert result == ["admin", "user"]
-        assert isinstance(result, list)
+        # Assert — кортеж из двух типов, тип сохранён
+        assert result == (AdminRole, UserRole)
+        assert isinstance(result, tuple)
 
     def test_resolve_existing_field_ignores_default(self) -> None:
         """
@@ -212,7 +213,7 @@ class TestResolveFlatDifferentObjects:
         # Arrange — UserInfo с обоими полями
         user = UserInfo(
             user_id="test_user",
-            roles=["admin", "manager"],
+            roles=(AdminRole, ManagerRole),
         )
 
         # Act — resolve каждого плоского поля
@@ -221,7 +222,7 @@ class TestResolveFlatDifferentObjects:
 
         # Assert — каждое поле возвращает своё значение с правильным типом
         assert user_id == "test_user"
-        assert roles == ["admin", "manager"]
+        assert roles == (AdminRole, ManagerRole)
 
     def test_resolve_empty_string_field(self) -> None:
         """

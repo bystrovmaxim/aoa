@@ -18,6 +18,7 @@
 
 from action_machine.testing import TestBench
 from tests.domain_model import PaymentService
+from tests.domain_model.roles import AdminRole
 
 
 class TestWithUser:
@@ -29,7 +30,7 @@ class TestWithUser:
         Это гарантирует, что оригинал не затронут.
         """
         # Arrange & Act
-        new = clean_bench.with_user(user_id="admin", roles=["admin"])
+        new = clean_bench.with_user(user_id="admin", roles=(AdminRole,))
 
         # Assert
         assert new is not clean_bench
@@ -40,7 +41,7 @@ class TestWithUser:
         user_id="test_user" из UserInfoStub.
         """
         # Arrange & Act
-        clean_bench.with_user(user_id="admin", roles=["admin"])
+        clean_bench.with_user(user_id="admin", roles=(AdminRole,))
 
         # Assert — оригинал не изменился
         assert clean_bench._build_context().user.user_id == "test_user"
@@ -50,11 +51,11 @@ class TestWithUser:
         Новый TestBench содержит переданного пользователя.
         """
         # Arrange & Act
-        new = clean_bench.with_user(user_id="admin", roles=["admin"])
+        new = clean_bench.with_user(user_id="admin", roles=(AdminRole,))
 
         # Assert
         assert new._build_context().user.user_id == "admin"
-        assert new._build_context().user.roles == ["admin"]
+        assert new._build_context().user.roles == (AdminRole,)
 
 
 class TestWithMocks:

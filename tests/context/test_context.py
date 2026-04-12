@@ -59,6 +59,7 @@ from action_machine.context.context import Context
 from action_machine.context.request_info import RequestInfo
 from action_machine.context.runtime_info import RuntimeInfo
 from action_machine.context.user_info import UserInfo
+from tests.domain_model.roles import AdminRole, ManagerRole, UserRole
 
 # ═════════════════════════════════════════════════════════════════════════════
 # Наследники Info-классов для тестов трёхуровневой навигации.
@@ -103,7 +104,7 @@ class TestContextCreation:
         пользователем, метаданными запроса и информацией об окружении.
         """
         # Arrange — все три компонента
-        user = UserInfo(user_id="agent_007", roles=["admin"])
+        user = UserInfo(user_id="agent_007", roles=(AdminRole,))
         request = RequestInfo(trace_id="trace-123", request_path="/api/v1/orders")
         runtime = RuntimeInfo(hostname="pod-xyz", service_name="order-service")
 
@@ -135,7 +136,7 @@ class TestContextCreation:
 
     def test_create_default_user_values(self) -> None:
         """
-        Context() создаёт UserInfo с дефолтами: user_id=None, roles=[].
+        Context() создаёт UserInfo с дефолтами: user_id=None, roles=().
         Это анонимный контекст, создаваемый NoAuthCoordinator.
         """
         # Arrange & Act
@@ -143,14 +144,14 @@ class TestContextCreation:
 
         # Assert — дефолтный UserInfo
         assert ctx.user.user_id is None
-        assert ctx.user.roles == []
+        assert ctx.user.roles == ()
 
     def test_create_with_user_only(self) -> None:
         """
         Context только с user — request и runtime создаются по умолчанию.
         """
         # Arrange
-        user = UserInfo(user_id="u1", roles=["manager"])
+        user = UserInfo(user_id="u1", roles=(ManagerRole,))
 
         # Act — только user
         ctx = Context(user=user)
@@ -296,16 +297,16 @@ class TestContextResolveTwoLevels:
 
     def test_resolve_user_roles(self) -> None:
         """
-        resolve("user.roles") → список ролей.
+        resolve("user.roles") → кортеж типов ролей.
         """
         # Arrange
-        ctx = Context(user=UserInfo(roles=["admin", "user"]))
+        ctx = Context(user=UserInfo(roles=(AdminRole, UserRole)))
 
         # Act
         result = ctx.resolve("user.roles")
 
         # Assert
-        assert result == ["admin", "user"]
+        assert result == (AdminRole, UserRole)
 
     def test_resolve_request_trace_id(self) -> None:
         """

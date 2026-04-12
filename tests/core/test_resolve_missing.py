@@ -51,6 +51,7 @@ from action_machine.context.context import Context
 from action_machine.context.request_info import RequestInfo
 from action_machine.context.runtime_info import RuntimeInfo
 from action_machine.context.user_info import UserInfo
+from tests.domain_model.roles import AdminRole, UserRole
 
 # ═════════════════════════════════════════════════════════════════════════════
 # Наследники Info-классов для тестов вложенной навигации
@@ -78,7 +79,7 @@ def _make_full_context(user_id: str = "agent_1") -> Context:
     """
     user = _ExtendedUserInfo(
         user_id=user_id,
-        roles=["user", "admin"],
+        roles=(UserRole, AdminRole),
         org="acme",
     )
     request = RequestInfo(

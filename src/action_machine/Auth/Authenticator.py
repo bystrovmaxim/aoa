@@ -30,11 +30,13 @@ INVARIANTS
 EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
+    from your_app.roles import ServiceApiRole  # подкласс BaseRole
+
     class ApiKeyAuthenticator(Authenticator):
         async def authenticate(self, credentials: dict) -> UserInfo | None:
             api_key = credentials.get("api_key")
             if api_key == "secret":
-                return UserInfo(user_id="api-user", roles=["service"])
+                return UserInfo(user_id="api-user", roles=(ServiceApiRole,))
             return None
 
 ═══════════════════════════════════════════════════════════════════════════════

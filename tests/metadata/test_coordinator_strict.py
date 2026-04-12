@@ -47,7 +47,7 @@ import pytest
 
 from action_machine.aspects.summary_aspect import summary_aspect
 from action_machine.auth.check_roles import check_roles
-from action_machine.auth.constants import ROLE_NONE
+from action_machine.auth.none_role import NoneRole
 from action_machine.core.base_action import BaseAction
 from action_machine.core.base_params import BaseParams
 from action_machine.core.base_result import BaseResult
@@ -93,7 +93,7 @@ class _PaymentsDomain(BaseDomain):
 
 
 @meta("Создание заказа", domain=_OrdersDomain)
-@check_roles(ROLE_NONE)
+@check_roles(NoneRole)
 class _OrderAction(BaseAction["_Params", "_Result"]):
 
     @summary_aspect("Итог")
@@ -105,7 +105,7 @@ class _OrderAction(BaseAction["_Params", "_Result"]):
 
 
 @meta("Получение заказа", domain=_OrdersDomain)
-@check_roles(ROLE_NONE)
+@check_roles(NoneRole)
 class _GetOrderAction(BaseAction["_Params", "_Result"]):
 
     @summary_aspect("Итог")
@@ -117,7 +117,7 @@ class _GetOrderAction(BaseAction["_Params", "_Result"]):
 
 
 @meta("Оплата", domain=_PaymentsDomain)
-@check_roles(ROLE_NONE)
+@check_roles(NoneRole)
 class _PaymentAction(BaseAction["_Params", "_Result"]):
 
     @summary_aspect("Итог")
@@ -129,7 +129,7 @@ class _PaymentAction(BaseAction["_Params", "_Result"]):
 
 
 @meta("Ping с доменом payments", domain=_PaymentsDomain)
-@check_roles(ROLE_NONE)
+@check_roles(NoneRole)
 class _NoDomainAction(BaseAction["_Params", "_Result"]):
 
     @summary_aspect("Итог")
@@ -156,7 +156,7 @@ class _NoDomainManager(BaseResourceManager):
 # ─── Действие без @meta и без аспектов ──────────────────────────────────
 
 
-@check_roles(ROLE_NONE)
+@check_roles(NoneRole)
 class _PlainAction(BaseAction["_Params", "_Result"]):
     pass
 
@@ -165,7 +165,7 @@ class _PlainAction(BaseAction["_Params", "_Result"]):
 
 
 @meta("Действие без аспектов", domain=_OrdersDomain)
-@check_roles(ROLE_NONE)
+@check_roles(NoneRole)
 class _NoAspectsAction(BaseAction["_Params", "_Result"]):
     pass
 

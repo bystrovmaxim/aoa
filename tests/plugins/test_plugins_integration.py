@@ -69,6 +69,7 @@ from tests.domain_model import (
     SimpleAction,
     TestDbManager,
 )
+from tests.domain_model.roles import ManagerRole
 
 # ═════════════════════════════════════════════════════════════════════════════
 # Плагины с внешним хранилищем для проверки из тестов
@@ -165,7 +166,7 @@ class TestPluginsIntegration:
     async def test_counter_plugin_receives_global_finish_from_ping(self):
         """
         ExternalCounterPlugin получает GlobalFinishEvent при прогоне PingAction
-        через TestBench. PingAction — только summary, ROLE_NONE.
+        через TestBench. PingAction — только summary, NoneRole.
 
         Хранилище содержит записи от обеих машин (async + sync),
         поэтому ожидаем минимум одну запись (TestBench сбрасывает
@@ -200,7 +201,7 @@ class TestPluginsIntegration:
     async def test_counter_plugin_receives_global_finish_from_simple(self):
         """
         ExternalCounterPlugin получает GlobalFinishEvent при прогоне SimpleAction.
-        SimpleAction имеет regular + summary, ROLE_NONE.
+        SimpleAction имеет regular + summary, NoneRole.
         """
         # Arrange — хранилище и плагин
         storage: list = []
@@ -344,7 +345,7 @@ class TestPluginsIntegration:
                 NotificationService: mock_notification,
             },
             plugins=[plugin],
-        ).with_user(user_id="mgr_1", roles=["manager"])
+        ).with_user(user_id="mgr_1", roles=(ManagerRole,))
 
         # Act — полный прогон FullAction с connections
         result = await bench.run(

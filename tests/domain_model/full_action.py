@@ -52,7 +52,7 @@ USAGE IN TESTS
 
     bench = TestBench(
         mocks={PaymentService: mock_payment, NotificationService: mock_notification},
-    ).with_user(user_id="mgr_1", roles=["manager"])
+    ).with_user(user_id="mgr_1", roles=(ManagerRole,))
 
     result = await bench.run(
         FullAction(),

@@ -41,7 +41,7 @@ def test_base_fields_shape() -> None:
         mode="test",
     )
     action = PingAction()
-    ctx = Context(user=UserInfo(user_id="u1", roles=[]))
+    ctx = Context(user=UserInfo(user_id="u1", roles=()))
     params = PingAction.Params()
 
     fields = emit.base_fields(action, ctx, params, nest_level=2)
@@ -92,7 +92,7 @@ async def test_emit_regular_aspect_helpers() -> None:
         mode="test",
     )
     action = PingAction()
-    ctx = Context(user=UserInfo(user_id="u1", roles=[]))
+    ctx = Context(user=UserInfo(user_id="u1", roles=()))
     params = PingAction.Params()
     plugin_ctx = _RecordingPluginCtx()
 
@@ -144,7 +144,7 @@ async def test_emit_summary_aspect_helpers() -> None:
         mode="prod",
     )
     action = PingAction()
-    ctx = Context(user=UserInfo(user_id="u2", roles=[]))
+    ctx = Context(user=UserInfo(user_id="u2", roles=()))
     params = PingAction.Params()
     plugin_ctx = _RecordingPluginCtx()
     result = PingAction.Result(message="pong")
@@ -189,7 +189,7 @@ async def test_emit_global_lifecycle_helpers() -> None:
         mode="test",
     )
     action = PingAction()
-    ctx = Context(user=UserInfo(user_id="g1", roles=[]))
+    ctx = Context(user=UserInfo(user_id="g1", roles=()))
     params = PingAction.Params()
     plugin_ctx = _RecordingPluginCtx()
     result = PingAction.Result(message="pong")

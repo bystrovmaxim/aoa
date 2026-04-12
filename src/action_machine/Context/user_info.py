@@ -7,7 +7,8 @@ PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 UserInfo — компонент contextа выполнения (Context), содержащий данные
-об аутентифицированном пользователе: идентификатор и список ролей.
+об аутентифицированном пользователе: идентификатор и кортеж ролей
+(подклассы ``BaseRole``).
 
 Используется машиной (ActionProductMachine) для проверки ролевых
 ограничений (@check_roles), аспектами — для аудита и логирования
@@ -41,9 +42,9 @@ tenant_id), создаётся наследник с явно объявленн
 ═══════════════════════════════════════════════════════════════════════════════
 
 UserInfo() без аргументов создаёт анонимного пользователя:
-user_id=None, roles=[]. Используется NoAuthCoordinator для открытых API.
+user_id=None, roles=(). Используется NoAuthCoordinator для открытых API.
 
-Действия с @check_roles(ROLE_NONE) пропускают анонимных пользователей.
+Действия с @check_roles(NoneRole) пропускают анонимных пользователей.
 Действия с конкретными ролями отклоняют их с AuthorizationError.
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -57,17 +58,16 @@ user_id=None, roles=[]. Используется NoAuthCoordinator для отк
     @context_requires(Ctx.User.user_id, Ctx.User.roles)
     async def audit_aspect(self, params, state, box, connections, ctx):
         user_id = ctx.get(Ctx.User.user_id)    # → "agent_123"
-        roles = ctx.get(Ctx.User.roles)          # → ["admin", "user"]
-        return {}
+        roles = ctx.get(Ctx.User.roles)        # → (AdminRole, UserRole)
 
 ═══════════════════════════════════════════════════════════════════════════════
 DICT-ПОДОБНЫЙ ДОСТУП (унаследован от BaseSchema)
 ═══════════════════════════════════════════════════════════════════════════════
 
-    user = UserInfo(user_id="agent_123", roles=["admin"])
+    user = UserInfo(user_id="agent_123", roles=(AdminRole,))
 
     user["user_id"]         # → "agent_123"
-    user["roles"]           # → ["admin"]
+    user["roles"]           # → (AdminRole,)
     "user_id" in user       # → True
     user.get("user_id")     # → "agent_123"
     list(user.keys())       # → ["user_id", "roles"]
@@ -76,13 +76,13 @@ DICT-ПОДОБНЫЙ ДОСТУП (унаследован от BaseSchema)
 EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
-    # Аутентифицированный пользователь:
-    user = UserInfo(user_id="john_doe", roles=["user", "manager"])
+    # Аутентифицированный пользователь (роли — классы BaseRole):
+    user = UserInfo(user_id="john_doe", roles=(UserRole, ManagerRole))
 
     # Анонимный пользователь:
     anon = UserInfo()
     anon.user_id    # → None
-    anon.roles      # → []
+    anon.roles      # → ()
 
     # Расширение через наследование:
     class TenantUserInfo(UserInfo):
@@ -91,14 +91,19 @@ EXAMPLES
 
     user = TenantUserInfo(
         user_id="john",
-        roles=["user"],
+        roles=(UserRole,),
         tenant_id="acme",
         department="engineering",
     )
 """
 
-from pydantic import ConfigDict
+from __future__ import annotations
 
+from typing import Any
+
+from pydantic import ConfigDict, Field, field_validator
+
+from action_machine.auth.base_role import BaseRole
 from action_machine.core.base_schema import BaseSchema
 
 
@@ -114,11 +119,30 @@ class UserInfo(BaseSchema):
     Атрибуты:
         user_id: уникальный идентификатор пользователя.
                  None для анонимного пользователя.
-        roles: список ролей пользователя (например, ["user", "admin"]).
-               Пустой список для анонимного пользователя.
+        roles: кортеж подклассов ``BaseRole``, назначенных пользователю.
+               Пустой кортеж для анонимного пользователя.
     """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     user_id: str | None = None
-    roles: list[str] = []
+    roles: tuple[type[BaseRole], ...] = Field(default_factory=tuple)
+
+    @field_validator("roles", mode="before")
+    @classmethod
+    def _coerce_roles(cls, v: Any) -> tuple[type[BaseRole], ...]:
+        if v is None:
+            return ()
+        if isinstance(v, list | tuple):
+            items = tuple(v)
+        else:
+            raise TypeError(
+                "UserInfo.roles must be a list or tuple of BaseRole subclasses, "
+                f"got {type(v).__name__}: {v!r}."
+            )
+        for i, x in enumerate(items):
+            if not isinstance(x, type) or not issubclass(x, BaseRole):
+                raise TypeError(
+                    f"UserInfo.roles[{i}] must be a BaseRole subclass, got {x!r}."
+                )
+        return items

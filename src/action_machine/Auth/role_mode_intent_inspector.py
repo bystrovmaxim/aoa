@@ -19,8 +19,8 @@ INVARIANTS
   ``@role_mode`` authorization).
 - ``BaseRole`` itself has no scratch and yields ``None`` from ``inspect()``.
 - ``node_type`` is ``role_mode`` (not ``role``). Snapshot storage key matches.
-- **Does not** validate unique ``name``, ``includes`` cycles, or
-  ``requires_role`` topology — that is ``RoleClassInspector``.
+- **Does not** validate unique ``name`` or ``requires_role`` topology — that is
+  ``RoleClassInspector``.
 
 ═══════════════════════════════════════════════════════════════════════════════
 DATA FLOW
@@ -78,7 +78,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from action_machine.auth.role_mode import RoleMode, get_declared_role_mode
+from action_machine.auth.role_mode import RoleMode
 from action_machine.auth.role_mode_intent import RoleModeIntent
 from action_machine.metadata.base_facet_snapshot import BaseFacetSnapshot
 from action_machine.metadata.base_intent_inspector import BaseIntentInspector
@@ -110,7 +110,7 @@ class RoleModeIntentInspector(BaseIntentInspector):
 
         @classmethod
         def from_target(cls, target_cls: type) -> RoleModeIntentInspector.Snapshot:
-            mode = get_declared_role_mode(target_cls)
+            mode = RoleMode.declared_for(target_cls)
             return cls(class_ref=target_cls, mode=mode)
 
     @classmethod

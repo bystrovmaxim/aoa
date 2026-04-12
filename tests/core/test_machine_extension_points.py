@@ -18,7 +18,7 @@ import pytest
 
 from action_machine.aspects.regular_aspect import regular_aspect
 from action_machine.aspects.summary_aspect import summary_aspect
-from action_machine.auth import ROLE_NONE, check_roles
+from action_machine.auth import NoneRole, check_roles
 from action_machine.compensate.compensate_decorator import compensate
 from action_machine.context.context import Context
 from action_machine.context.user_info import UserInfo
@@ -38,7 +38,7 @@ from tests.domain_model.domains import TestDomain
 
 @pytest.fixture()
 def context() -> Context:
-    return Context(user=UserInfo(user_id="u1", roles=[]))
+    return Context(user=UserInfo(user_id="u1", roles=()))
 
 
 @dataclass(frozen=True)
@@ -47,7 +47,7 @@ class _HandledResult(BaseResult):
 
 
 @meta(description="Action with regular + failing summary for saga override tests", domain=TestDomain)
-@check_roles(ROLE_NONE)
+@check_roles(NoneRole)
 class _FailingSagaAction(BaseAction[BaseParams, BaseResult]):
     @regular_aspect("touch")
     async def touch_aspect(self, params, state, box, connections):

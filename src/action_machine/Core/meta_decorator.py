@@ -68,7 +68,7 @@ EXAMPLES
         ...
 
     @meta(description="Ping dependency", domain=SystemDomain)
-    @check_roles(ROLE_NONE)
+    @check_roles(NoneRole)
     class PingAction(BaseAction[BaseParams, BaseResult]):
         ...
 

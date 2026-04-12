@@ -11,7 +11,7 @@ validated_name в state, чекер result_string проверяет его,
 summary-аспект формирует приветствие из state.
 
 SimpleAction не имеет зависимостей и connections, доступен всем
-(ROLE_NONE). Если этот тест красный — проблема в конвейере
+(NoneRole). Если этот тест красный — проблема в конвейере
 regular → state → summary или в чекерах.
 """
 

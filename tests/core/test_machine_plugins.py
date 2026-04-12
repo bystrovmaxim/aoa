@@ -77,6 +77,7 @@ from tests.domain_model import (
     SimpleAction,
     TestDbManager,
 )
+from tests.domain_model.roles import AdminRole, ManagerRole
 
 # ═════════════════════════════════════════════════════════════════════════════
 # Хелпер для извлечения типов событий из mock-вызовов
@@ -145,7 +146,7 @@ def machine_with_mock_plugins(log_coordinator, mock_plugin_ctx) -> ActionProduct
 @pytest.fixture()
 def context() -> Context:
     """Контекст с ролями для прохождения любых проверок ролей."""
-    return Context(user=UserInfo(user_id="tester", roles=["manager", "admin"]))
+    return Context(user=UserInfo(user_id="tester", roles=(ManagerRole, AdminRole)))
 
 
 # ═════════════════════════════════════════════════════════════════════════════

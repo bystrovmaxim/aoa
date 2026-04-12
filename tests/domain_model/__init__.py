@@ -14,8 +14,8 @@ broken edge-case Actions should stay local to the test module.
 ACTIONS
 ═══════════════════════════════════════════════════════════════════════════════
 
-PingAction              — summary only, ROLE_NONE.
-SimpleAction            — regular + summary, ROLE_NONE.
+PingAction              — summary only, NoneRole.
+SimpleAction            — regular + summary, NoneRole.
 FullAction              — two regular + summary, depends + connection("db"), role "manager".
 ChildAction             — nested call target for box.run().
 AdminAction             — admin-only Action.

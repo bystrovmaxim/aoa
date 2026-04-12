@@ -68,7 +68,7 @@ EXAMPLES
 Happy path::
 
     @meta(description="Ping", domain=SystemDomain)
-    @check_roles(ROLE_NONE)
+    @check_roles(NoneRole)
     class PingAction(BaseAction[BaseParams, BaseResult]):
         @summary_aspect("Pong")
         async def pong_summary(self, params, state, box, connections):

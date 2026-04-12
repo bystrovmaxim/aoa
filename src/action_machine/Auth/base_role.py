@@ -2,14 +2,17 @@
 """
 Abstract base for typed **role marker** classes (frozen declaration, like domains).
 
+Иерархия слоёв (каждый класс — отдельный модуль в этом пакете) описана в
+``docs/architecture/role-hierarchy.md``.
+
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 ``BaseRole`` is the typed counterpart to string role names: each role is a
-**class** carrying stable ``name`` / ``description`` metadata and an optional
-``includes`` tuple for compositional privileges. The design mirrors
-``BaseDomain`` — immutable class-level declaration, no product instance state.
+**class** carrying stable ``name`` / ``description`` metadata. Implied privileges
+follow **Python subclassing** (MRO); ``RoleChecker`` uses ``issubclass`` for grants. The design mirrors ``BaseDomain`` — immutable class-level
+declaration, no product instance state.
 
 ═══════════════════════════════════════════════════════════════════════════════
 INVARIANTS
@@ -20,10 +23,8 @@ INVARIANTS
 - Concrete branches define non-empty ``str`` values for ``name`` and
   ``description`` (possibly inherited from an intermediate base below
   ``BaseRole`` in the MRO).
-- ``includes`` is a ``ClassVar`` **tuple** of ``BaseRole`` subclasses (possibly
-  empty). Each entry must be a ``type`` that is a subclass of ``BaseRole``.
 - Lifecycle mode is **not** set on the class body; use ``@role_mode`` (see
-  ``role_mode_decorator`` module).
+  ``role_mode`` module).
 
 ═══════════════════════════════════════════════════════════════════════════════
 DATA FLOW
@@ -34,26 +35,21 @@ DATA FLOW
     class OrderViewerRole(BaseRole):
         name = "order_viewer"
         description = "Read-only order visibility."
-        includes = ()
 
     @role_mode(RoleMode.ALIVE)
-    class OrderManagerRole(BaseRole):
+    class OrderManagerRole(OrderViewerRole):
         name = "order_manager"
         description = "Full order control."
-        includes = (OrderViewerRole,)
 
-    @check_roles(OrderManagerRole)   # action decorator (separate module)
-    class CancelOrderAction(...):
+    @check_roles(OrderViewerRole)   # action decorator (separate module)
+    class GetOrderAction(...):
         ...
 
 ═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
-Valid concrete role with ``includes = ()``.
-
-Edge case: ``includes = (NotARole,)`` where ``NotARole`` is not a ``BaseRole``
-subclass → ``TypeError`` at class definition time.
+Valid concrete role inheriting metadata or defining ``name`` / ``description``.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ERRORS / LIMITATIONS
@@ -61,22 +57,21 @@ ERRORS / LIMITATIONS
 
 - ``NamingSuffixError``, ``ValueError``, ``TypeError`` from ``__init_subclass__``
   mirror ``BaseDomain`` rules for metadata quality.
-- Global uniqueness of ``name``, acyclic ``includes``, and related topology
-  rules are validated at ``GateCoordinator.build()`` (``RoleClassInspector``),
-  not in this module.
+- Global uniqueness of ``name`` and related topology rules are validated at
+  ``GateCoordinator.build()`` (``RoleClassInspector``), not in this module.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN
 ═══════════════════════════════════════════════════════════════════════════════
 ROLE: Abstract role marker (parallel to ``BaseDomain`` for domains).
-CONTRACT: ClassVar ``name``, ``description``, ``includes`` tuple; ``*Role`` suffix.
+CONTRACT: ClassVar ``name``, ``description``; ``*Role`` suffix; MRO = privilege shape.
 INVARIANTS: Validation only in ``__init_subclass__``; graph does not re-validate
-    string emptiness (topology via ``RoleClassInspector``).
+  string emptiness (topology via ``RoleClassInspector``).
 FLOW: Import defines role type → ``@role_mode`` adds scratch → actions reference
-    role types in ``@check_roles``.
+  role types in ``@check_roles``.
 FAILURES: NamingSuffixError, ValueError, TypeError on bad subclass bodies.
-EXTENSION POINTS: Runtime string tokens resolved via ``StringRoleRegistry`` when
-    no declared role ``name`` matches.
+EXTENSION POINTS: Applications map external role tokens to concrete subclasses
+  before constructing ``UserInfo``.
 AI-CORE-END
 ═══════════════════════════════════════════════════════════════════════════════
 """
@@ -97,17 +92,16 @@ class BaseRole(RoleModeIntent, ABC):
     Abstract base for role marker classes (type-as-capability, like ``BaseDomain``).
 
     **Contract**
-        Supply ``name``, ``description``, and ``includes`` as class attributes.
+        Supply ``name`` and ``description`` as class attributes.
         Subclass names end with ``Role``. Use ``@role_mode`` for lifecycle mode.
+        Use **inheritance** so that broader roles imply narrower ones in ``@check_roles``.
 
     **Neighbors**
-        Referenced from ``@check_roles`` on actions; token resolution uses
-        ``StringRoleRegistry`` only in ``resolve_role_name_to_type``.
+        Referenced from ``@check_roles`` on actions and stored on ``UserInfo.roles``.
     """
 
     name: ClassVar[str]
     description: ClassVar[str]
-    includes: ClassVar[tuple[type[BaseRole], ...]] = ()
 
     def __init_subclass__(cls, **kwargs: Any) -> None:
         super().__init_subclass__(**kwargs)
@@ -121,7 +115,6 @@ class BaseRole(RoleModeIntent, ABC):
 
         _validate_role_class_attr(cls, "name")
         _validate_role_class_attr(cls, "description")
-        _validate_includes(cls)
 
 
 def _validate_role_class_attr(cls: type, attr_name: str) -> None:
@@ -151,22 +144,3 @@ def _validate_role_class_attr(cls: type, attr_name: str) -> None:
             f"Class attribute '{attr_name}' on '{cls.__name__}' cannot be empty "
             f"or whitespace-only."
         )
-
-
-def _validate_includes(cls: type) -> None:
-    """Ensure ``includes`` override is a tuple of ``BaseRole`` subclasses."""
-    if "includes" not in cls.__dict__:
-        return
-
-    raw = cls.__dict__["includes"]
-    if not isinstance(raw, tuple):
-        raise TypeError(
-            f"Class '{cls.__name__}': 'includes' must be a tuple of role types, "
-            f"got {type(raw).__name__}."
-        )
-    for i, item in enumerate(raw):
-        if not isinstance(item, type) or not issubclass(item, BaseRole):
-            raise TypeError(
-                f"Class '{cls.__name__}': includes[{i}] must be a BaseRole "
-                f"subclass, got {item!r}."
-            )

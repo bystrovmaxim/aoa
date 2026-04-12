@@ -42,7 +42,7 @@ from pydantic import Field
 
 from action_machine.aspects.regular_aspect import regular_aspect
 from action_machine.aspects.summary_aspect import summary_aspect
-from action_machine.auth import ROLE_NONE, check_roles
+from action_machine.auth import NoneRole, check_roles
 from action_machine.checkers import result_string
 from action_machine.core.base_action import BaseAction
 from action_machine.core.base_params import BaseParams
@@ -96,7 +96,7 @@ class ErrorTestResult(BaseResult):
 
 
 @meta(description="Action with a single ValueError handler", domain=OrdersDomain)
-@check_roles(ROLE_NONE)
+@check_roles(NoneRole)
 class ErrorHandledAction(BaseAction[ErrorTestParams, ErrorTestResult]):
     """
     Action with one @on_error handler for ValueError.
@@ -150,7 +150,7 @@ class ErrorHandledAction(BaseAction[ErrorTestParams, ErrorTestResult]):
 
 
 @meta(description="Action with multiple error handlers", domain=OrdersDomain)
-@check_roles(ROLE_NONE)
+@check_roles(NoneRole)
 class MultiErrorAction(BaseAction[ErrorTestParams, ErrorTestResult]):
     """
     Action with three @on_error handlers from specific to general.
@@ -234,7 +234,7 @@ class MultiErrorAction(BaseAction[ErrorTestParams, ErrorTestResult]):
 
 
 @meta(description="Action without error handlers", domain=OrdersDomain)
-@check_roles(ROLE_NONE)
+@check_roles(NoneRole)
 class NoErrorHandlerAction(BaseAction[ErrorTestParams, ErrorTestResult]):
     """
     Action without @on_error — aspect errors propagate to the caller.
@@ -274,7 +274,7 @@ class NoErrorHandlerAction(BaseAction[ErrorTestParams, ErrorTestResult]):
 
 
 @meta(description="Action whose error handler raises", domain=OrdersDomain)
-@check_roles(ROLE_NONE)
+@check_roles(NoneRole)
 class HandlerRaisesAction(BaseAction[ErrorTestParams, ErrorTestResult]):
     """
     Action whose @on_error handler raises.

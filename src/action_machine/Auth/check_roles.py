@@ -9,10 +9,9 @@ PURPOSE
 Declare which **role types** are required to execute an action. The decorator
 writes a normalized specification to ``cls._role_info["spec"]``, consumed by
 ``RoleIntentInspector`` and ``ActionProductMachine`` / ``RoleChecker``. The
-spec must be ``ROLE_NONE``, ``ROLE_ANY``, a ``BaseRole`` subclass, or a
-non-empty list of ``BaseRole`` subclasses (OR semantics). User tokens in
-``Context.user.roles`` remain strings and are resolved to types separately
-(``resolve_role_name_to_type``).
+spec must be ``NoneRole``, ``AnyRole``, a ``BaseRole`` subclass, or a
+non-empty list of ``BaseRole`` subclasses (OR semantics). ``Context.user.roles``
+holds the same ``BaseRole`` subclasses assigned to the user.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
@@ -23,7 +22,7 @@ ARCHITECTURE / DATA FLOW
     @check_roles(AdminRole)
           │
           ▼
-    normalize → type[BaseRole] | tuple[type[BaseRole], ...] | ROLE_NONE | ROLE_ANY
+    normalize → type[BaseRole] | tuple[type[BaseRole], ...] | NoneRole | AnyRole
           │
           ▼
     cls._role_info = {"spec": …}
@@ -44,25 +43,23 @@ INVARIANTS
 ═══════════════════════════════════════════════════════════════════════════════
 
 - Applies only to classes inheriting ``RoleIntent``.
-- ``spec`` may be: ``ROLE_NONE``, ``ROLE_ANY``, a ``BaseRole`` subclass, or a
+- ``spec`` may be: ``NoneRole``, ``AnyRole``, a ``BaseRole`` subclass, or a
   non-empty ``list`` of ``BaseRole`` subclasses (homogeneous types only).
-- Stored ``spec`` is always ``ROLE_NONE``, ``ROLE_ANY``, exactly one
+- Stored ``spec`` is always ``NoneRole``, ``AnyRole``, exactly one
   ``BaseRole`` subtype, or a **tuple** of ``BaseRole`` subtypes (OR semantics).
 
 ═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
-    from action_machine.auth import check_roles, ROLE_NONE, ROLE_ANY
+    from action_machine.auth import AnyRole, NoneRole, check_roles
     from action_machine.auth.base_role import BaseRole
-    from action_machine.auth.role_mode import RoleMode
-    from action_machine.auth.role_mode_decorator import role_mode
+    from action_machine.auth.role_mode import RoleMode, role_mode
 
     @role_mode(RoleMode.ALIVE)
     class AdminRole(BaseRole):
         name = "admin"
         description = "Administrator."
-        includes = ()
 
     @check_roles(AdminRole)
     class DeleteUserAction(BaseAction[...]):
@@ -72,7 +69,7 @@ EXAMPLES
     class PublishAction(BaseAction[...]):
         ...
 
-    @check_roles(ROLE_NONE)
+    @check_roles(NoneRole)
     class PingAction(BaseAction[...]):
         ...
 
@@ -94,7 +91,7 @@ AI-CORE-BEGIN
 ═══════════════════════════════════════════════════════════════════════════════
 ROLE: Action role-requirement declaration module.
 CONTRACT: ``@check_roles(spec)`` writes normalized ``_role_info`` for facet ``role``.
-INVARIANTS: Target inherits RoleIntent; stored spec uses types + constants.
+INVARIANTS: Target inherits RoleIntent; stored spec uses types + engine sentinels.
 FLOW: decorator → normalize → _role_info → inspector.
 FAILURES: TypeError / ValueError; ``DeprecationWarning`` for deprecated roles.
 EXTENSION POINTS: N/A.
@@ -107,20 +104,21 @@ from __future__ import annotations
 import warnings
 from typing import Any
 
+from action_machine.auth.any_role import AnyRole
 from action_machine.auth.base_role import BaseRole
-from action_machine.auth.constants import ROLE_ANY, ROLE_NONE
+from action_machine.auth.none_role import NoneRole
 from action_machine.auth.role_intent import RoleIntent
-from action_machine.auth.role_mode import RoleMode, get_declared_role_mode
+from action_machine.auth.role_mode import RoleMode
 
 
 def _normalize_check_roles_spec(spec: Any) -> Any:
-    if spec is ROLE_NONE or spec is ROLE_ANY:
+    if spec is NoneRole or spec is AnyRole:
         return spec
 
     if isinstance(spec, str):
         raise TypeError(
             "@check_roles does not accept role name strings; pass a BaseRole "
-            f"subclass, not {spec!r}. Use ROLE_NONE or ROLE_ANY for sentinel modes."
+            f"subclass, not {spec!r}. Use NoneRole or AnyRole for sentinel modes."
         )
 
     if isinstance(spec, type):
@@ -134,7 +132,7 @@ def _normalize_check_roles_spec(spec: Any) -> Any:
         if len(spec) == 0:
             raise ValueError(
                 "@check_roles: an empty role list was provided. "
-                "Specify at least one role or use ROLE_NONE."
+                "Specify at least one role or use NoneRole."
             )
         if any(isinstance(x, str) for x in spec):
             raise TypeError(
@@ -155,20 +153,20 @@ def _normalize_check_roles_spec(spec: Any) -> Any:
         return tuple(spec)
 
     raise TypeError(
-        f"@check_roles expects ROLE_NONE, ROLE_ANY, a BaseRole type, or a non-empty "
+        f"@check_roles expects NoneRole, AnyRole, a BaseRole type, or a non-empty "
         f"list of BaseRole types; got {type(spec).__name__}: {spec!r}."
     )
 
 
 def _validate_required_role_modes(normalized: Any) -> None:
     """Reject ``UNUSED``; warn on ``DEPRECATED`` (``RoleChecker`` enforces ``SILENCED``)."""
-    if normalized in (ROLE_NONE, ROLE_ANY):
+    if normalized in (NoneRole, AnyRole):
         return
     reqs: tuple[type[BaseRole], ...] = (
         (normalized,) if isinstance(normalized, type) else normalized
     )
     for r in reqs:
-        mode = get_declared_role_mode(r)
+        mode = RoleMode.declared_for(r)
         if mode is RoleMode.UNUSED:
             raise ValueError(
                 f"@check_roles cannot require role {r.__qualname__!r}: "

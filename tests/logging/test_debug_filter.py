@@ -52,6 +52,7 @@ from action_machine.logging.expression_evaluator import ExpressionEvaluator, _in
 from action_machine.logging.log_scope import LogScope
 from action_machine.logging.sensitive_decorator import sensitive
 from action_machine.logging.variable_substitutor import VariableSubstitutor
+from tests.domain_model.roles import UserRole
 
 # ======================================================================
 # Вспомогательные классы
@@ -257,7 +258,7 @@ class TestDebugNamespaces:
     ) -> None:
         """{%context.user|debug} — интроспекция UserInfo из контекста."""
         # Arrange — контекст с пользователем и extra-данными
-        user = UserInfo(user_id="test_user", roles=["user"])
+        user = UserInfo(user_id="test_user", roles=(UserRole,))
         ctx = Context(user=user)
 
         # Act
@@ -270,7 +271,8 @@ class TestDebugNamespaces:
         assert "UserInfo:" in result
         assert "UserInfo:" in result
         assert "user_id: str = 'test_user'" in result
-        assert "roles: list = ['user']" in result
+        assert "roles: tuple" in result
+        assert "UserRole" in result
 
     def test_debug_on_state(
         self, substitutor: VariableSubstitutor,

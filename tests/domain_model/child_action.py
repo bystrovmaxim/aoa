@@ -7,7 +7,7 @@ PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 Designed to be invoked from another Action via box.run(). One regular aspect
-and summary. No dependencies or connections. ROLE_NONE. SystemDomain.
+and summary. No dependencies or connections. NoneRole. SystemDomain.
 
 process_aspect takes a string from params and returns it with prefix
 "processed:". Summary builds Result from state.
@@ -41,7 +41,7 @@ from pydantic import Field
 
 from action_machine.aspects.regular_aspect import regular_aspect
 from action_machine.aspects.summary_aspect import summary_aspect
-from action_machine.auth import ROLE_NONE, check_roles
+from action_machine.auth import NoneRole, check_roles
 from action_machine.checkers import result_string
 from action_machine.core.base_action import BaseAction
 from action_machine.core.base_params import BaseParams
@@ -55,7 +55,7 @@ from .domains import SystemDomain
 
 
 @meta(description="Child Action for nested runs", domain=SystemDomain)
-@check_roles(ROLE_NONE)
+@check_roles(NoneRole)
 class ChildAction(BaseAction["ChildAction.Params", "ChildAction.Result"]):
     """
     Action for nested invocation via box.run().

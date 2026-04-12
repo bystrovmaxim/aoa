@@ -111,6 +111,7 @@ from action_machine.plugins.events import (
 )
 from action_machine.plugins.plugin import Plugin
 from action_machine.plugins.plugin_run_context import PluginRunContext
+from action_machine.testing import StubTesterRole
 from tests.domain_model import PingAction
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -126,7 +127,7 @@ class CustomPluginError(Exception):
 # Тестовый контекст и параметры для хелперов
 # ═════════════════════════════════════════════════════════════════════════════
 
-_TEST_CONTEXT = Context(user=UserInfo(user_id="test_user", roles=["tester"]))
+_TEST_CONTEXT = Context(user=UserInfo(user_id="test_user", roles=(StubTesterRole,)))
 _TEST_PARAMS = BaseParams()
 _TEST_ACTION_CLASS = PingAction
 _TEST_ACTION_NAME = "tests.domain.ping_action.PingAction"

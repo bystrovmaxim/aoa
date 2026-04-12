@@ -419,8 +419,8 @@ class BaseIntentInspector(ABC):
 
         Example::
 
-            cls._make_meta(spec="admin", description="Administrator")
-            → (("spec", "admin"), ("description", "Administrator"))
+            cls._make_meta(spec=AdminRole, description="Administrator")
+            → (("spec", AdminRole), ("description", "Administrator"))
         """
         return tuple(kwargs.items())
 

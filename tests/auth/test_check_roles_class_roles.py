@@ -1,6 +1,6 @@
 # tests/auth/test_check_roles_class_roles.py
 """
-PR-1 golden tests: ``BaseRole``, ``@role_mode``, ``StringRoleRegistry``, ``@check_roles``.
+PR-1 golden tests: ``BaseRole``, ``@role_mode``, ``@check_roles``.
 
 Covers import-time validation, decorator guards, and normalization of typed
 role specs for the coordinator snapshot.
@@ -14,9 +14,8 @@ from action_machine.aspects.summary_aspect import summary_aspect
 from action_machine.auth.base_role import BaseRole
 from action_machine.auth.check_roles import check_roles
 from action_machine.auth.role_intent import RoleIntent
-from action_machine.auth.role_mode import RoleMode
-from action_machine.auth.role_mode_decorator import role_mode
-from action_machine.auth.string_role_registry import StringRoleRegistry
+from action_machine.auth.role_mode import RoleMode, role_mode
+from action_machine.context.user_info import UserInfo
 from action_machine.core.base_action import BaseAction
 from action_machine.core.base_params import BaseParams
 from action_machine.core.base_result import BaseResult
@@ -41,41 +40,28 @@ class TestBaseRoleValidation:
             class Bad(BaseRole):  # type: ignore[misc]
                 name = "x"
                 description = "y"
-                includes = ()
-
-    def test_includes_must_be_role_types(self) -> None:
-        with pytest.raises(TypeError, match="includes"):
-
-            @role_mode(RoleMode.ALIVE)
-            class BadIncludesRole(BaseRole):
-                name = "bad"
-                description = "bad"
-                includes = (object,)  # type: ignore[assignment]
 
 
 @role_mode(RoleMode.ALIVE)
 class _ViewerRole(BaseRole):
     name = "viewer"
     description = "View access."
-    includes = ()
 
 
 @role_mode(RoleMode.ALIVE)
-class _EditorRole(BaseRole):
+class _EditorRole(_ViewerRole):
     name = "hand_editor"
     description = "Edit access."
-    includes = (_ViewerRole,)
 
 
-class TestStringRoleRegistry:
-    def test_resolve_is_cached_and_lowercase(self) -> None:
-        # Key must not collide with declared domain roles (admin/manager/editor).
-        a1 = StringRoleRegistry.resolve("SynthProbe")
-        a2 = StringRoleRegistry.resolve("synthprobe")
-        assert a1 is a2
-        assert a1.name == "synthprobe"
-        assert issubclass(a1, BaseRole)
-        assert a1._role_mode_info["mode"] is RoleMode.ALIVE
+class TestUserInfoRoles:
+    def test_roles_must_be_base_role_types(self) -> None:
+        with pytest.raises(TypeError, match=r"UserInfo\.roles\[0\]"):
+            UserInfo(user_id="u1", roles=["admin"])  # type: ignore[arg-type]
+
+    def test_roles_accepts_list_of_role_classes(self) -> None:
+        u = UserInfo(user_id="u1", roles=[_ViewerRole])
+        assert u.roles == (_ViewerRole,)
 
 
 class TestCheckRolesNormalization:

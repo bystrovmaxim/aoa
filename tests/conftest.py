@@ -62,8 +62,8 @@ clean_bench        — TestBench без моков, с подавленным л
 bench              — TestBench с моками PaymentService и NotificationService.
 compensate_bench   — TestBench с моками PaymentService и InventoryService,
                      для тестов компенсации.
-manager_bench      — bench с ролью "manager" (для FullAction).
-admin_bench        — bench с ролью "admin" (для AdminAction).
+manager_bench      — bench с ManagerRole (для FullAction).
+admin_bench        — bench с AdminRole (для AdminAction).
 """
 
 from unittest.mock import AsyncMock
@@ -75,6 +75,7 @@ from action_machine.metadata.gate_coordinator import GateCoordinator
 from action_machine.testing import TestBench
 
 from .domain_model import InventoryService, NotificationService, PaymentService, TestDbManager
+from .domain_model.roles import AdminRole, ManagerRole
 
 
 @pytest.fixture
@@ -161,7 +162,7 @@ def bench(
     """
     TestBench с моками PaymentService и NotificationService.
 
-    Дефолтный пользователь — user_id="test_user", roles=["tester"].
+    Дефолтный пользователь — user_id="test_user", roles=(StubTesterRole,).
     Для действий с конкретными ролями используйте manager_bench
     или admin_bench.
     """
@@ -188,8 +189,8 @@ def compensate_bench(
     используемых в CompensatedOrderAction, CompensateErrorAction,
     CompensateAndOnErrorAction и CompensateWithContextAction.
 
-    Дефолтный пользователь — user_id="test_user", roles=["tester"].
-    Все компенсируемые Action используют ROLE_NONE, поэтому
+    Дефолтный пользователь — user_id="test_user", roles=(StubTesterRole,).
+    Все компенсируемые Action используют NoneRole, поэтому
     дефолтный пользователь подходит.
     """
     return TestBench(
@@ -205,20 +206,20 @@ def compensate_bench(
 @pytest.fixture
 def manager_bench(bench: TestBench) -> TestBench:
     """
-    TestBench с ролью "manager" — для тестирования FullAction.
+    TestBench с ManagerRole — для тестирования FullAction.
 
-    FullAction требует роль manager (тип ManagerRole). Этот bench
-    создаёт пользователя с ролью "manager".
+    FullAction требует ManagerRole. Этот bench
+    создаёт пользователя с ManagerRole.
     """
-    return bench.with_user(user_id="mgr_1", roles=["manager"])
+    return bench.with_user(user_id="mgr_1", roles=(ManagerRole,))
 
 
 @pytest.fixture
 def admin_bench(bench: TestBench) -> TestBench:
     """
-    TestBench с ролью "admin" — для тестирования AdminAction.
+    TestBench с AdminRole — для тестирования AdminAction.
 
-    AdminAction требует роль admin (тип AdminRole). Этот bench
-    создаёт пользователя с ролью "admin".
+    AdminAction требует AdminRole. Этот bench
+    создаёт пользователя с AdminRole.
     """
-    return bench.with_user(user_id="admin_1", roles=["admin"])
+    return bench.with_user(user_id="admin_1", roles=(AdminRole,))

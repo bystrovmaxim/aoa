@@ -18,7 +18,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from action_machine.testing import TestBench
+from action_machine.testing import StubTesterRole, TestBench
 from tests.domain_model.compensate_actions import (
     CompensateAndOnErrorAction,
     CompensatedOrderAction,
@@ -183,7 +183,7 @@ class TestFullSagaE2E:
             mocks={PaymentService: mock_payment},
             plugins=[saga_observer],
             log_coordinator=AsyncMock(),
-        ).with_user(user_id="ctx_user_42", roles=["tester"])
+        ).with_user(user_id="ctx_user_42", roles=(StubTesterRole,))
 
         params = CompensateTestParams(
             user_id="ctx_user_42",

@@ -34,9 +34,9 @@ ARCHITECTURE / DATA FLOW
               ▲                      │
               │               @role_mode(RoleMode.…)
               │                      │
-        @role_mode                 includes tuple (composition)
+        @role_mode                 subclassing (MRO) for implied roles
               │
-        StringRoleRegistry.resolve("token")   ← runtime: map user role string → type
+        ContextAssembler maps external credentials → UserInfo(roles=(…BaseRole types))
 
         Action classes (RoleIntent) + @check_roles(AdminRole | [RoleA, RoleB] | …)
               │
@@ -44,7 +44,7 @@ ARCHITECTURE / DATA FLOW
               │
               ├── RoleModeIntentInspector → facet ``role_mode`` (lifecycle)
               │
-              └── RoleClassInspector → facet ``role_class`` (includes + requires_role)
+              └── RoleClassInspector → facet ``role_class`` (requires_role)
               │
               ▼
         GateCoordinator.build() → RoleChecker at run time
@@ -54,9 +54,8 @@ INVARIANTS
 ═══════════════════════════════════════════════════════════════════════════════
 
 - ``@check_roles`` requires the target class to inherit ``RoleIntent``.
-- Stored role specs use ``BaseRole`` types only; ``ROLE_NONE`` / ``ROLE_ANY`` are
-  sentinel objects. ``StringRoleRegistry`` is for resolving user token strings
-  at runtime, not for ``@check_roles`` arguments.
+- Stored role specs use ``BaseRole`` types and engine sentinels ``NoneRole`` /
+  ``AnyRole``. ``UserInfo.roles`` holds assignable role types only (not sentinels).
 - ``@role_mode`` applies only to ``RoleModeIntent`` subclasses (typically
   ``BaseRole``).
 - ``AuthCoordinator`` requires non-null extractor, authenticator, and assembler.
@@ -67,25 +66,24 @@ EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
     from action_machine.auth import (
+        AnyRole,
         BaseRole,
+        NoneRole,
         RoleMode,
         check_roles,
         role_mode,
-        ROLE_NONE,
-        ROLE_ANY,
     )
 
     @role_mode(RoleMode.ALIVE)
     class AdminRole(BaseRole):
         name = "admin"
         description = "Administrator access."
-        includes = ()
 
     @check_roles(AdminRole)
     class AdminAction(BaseAction[...]):
         ...
 
-    @check_roles(ROLE_NONE)
+    @check_roles(NoneRole)
     class PingAction(BaseAction[...]):
         ...
 
@@ -98,7 +96,7 @@ ERRORS / LIMITATIONS
 
 - ``TypeError`` if ``@check_roles`` or ``@role_mode`` is misapplied.
 - ``AuthorizationError`` at runtime when role requirements are not met.
-- ``NoAuthCoordinator`` provides no user identity; only works with ``ROLE_NONE``
+- ``NoAuthCoordinator`` provides no user identity; only works with ``NoneRole``
   actions unless you supply roles manually in tests.
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -106,7 +104,7 @@ AI-CORE-BEGIN
 ═══════════════════════════════════════════════════════════════════════════════
 ROLE: Authentication package API surface.
 CONTRACT: Export coordinators, role markers, decorators, and protocol bases.
-INVARIANTS: Typed role specs; explicit opt-out via ROLE_NONE / NoAuthCoordinator.
+INVARIANTS: Typed role specs; explicit opt-out via NoneRole / NoAuthCoordinator.
 FLOW: request → AuthCoordinator → Context → RoleChecker vs @check_roles spec.
 FAILURES: AuthorizationError; TypeError for decorator misuse.
 EXTENSION POINTS: Custom CredentialExtractor / Authenticator / ContextAssembler.
@@ -114,34 +112,33 @@ AI-CORE-END
 ═══════════════════════════════════════════════════════════════════════════════
 """
 
-from .auth_coordinator import AuthCoordinator
+from .any_role import AnyRole
+from .auth_coordinator import (
+    AuthCoordinator,
+    ContextAssembler,
+    CredentialExtractor,
+    NoAuthCoordinator,
+)
 from .authenticator import Authenticator
 from .base_role import BaseRole
 from .check_roles import check_roles
-from .constants import ROLE_ANY, ROLE_NONE
-from .context_assembler import ContextAssembler
-from .credential_extractor import CredentialExtractor
-from .no_auth_coordinator import NoAuthCoordinator
+from .none_role import NoneRole
 from .role_intent import RoleIntent
-from .role_mode import RoleMode, get_declared_role_mode
-from .role_mode_decorator import role_mode
+from .role_mode import RoleMode, role_mode
 from .role_mode_intent import RoleModeIntent
-from .string_role_registry import StringRoleRegistry
 
 __all__ = [
-    "ROLE_ANY",
-    "ROLE_NONE",
+    "AnyRole",
     "AuthCoordinator",
     "Authenticator",
     "BaseRole",
     "ContextAssembler",
     "CredentialExtractor",
     "NoAuthCoordinator",
+    "NoneRole",
     "RoleIntent",
     "RoleMode",
     "RoleModeIntent",
-    "StringRoleRegistry",
     "check_roles",
-    "get_declared_role_mode",
     "role_mode",
 ]

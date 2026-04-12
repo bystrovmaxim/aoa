@@ -1,27 +1,53 @@
 # tests/domain_model/roles.py
-"""Shared ``BaseRole`` markers for the test domain (tokens: admin, manager, editor)."""
+"""Shared ``ApplicationRole`` markers for the test domain."""
 
-from action_machine.auth.base_role import BaseRole
-from action_machine.auth.role_mode import RoleMode
-from action_machine.auth.role_mode_decorator import role_mode
+from action_machine.auth.application_role import ApplicationRole
+from action_machine.auth.role_mode import RoleMode, role_mode
 
 
 @role_mode(RoleMode.ALIVE)
-class AdminRole(BaseRole):
+class AdminRole(ApplicationRole):
     name = "admin"
     description = "Administrator."
-    includes = ()
 
 
 @role_mode(RoleMode.ALIVE)
-class ManagerRole(BaseRole):
+class ManagerRole(ApplicationRole):
     name = "manager"
     description = "Manager."
-    includes = ()
 
 
 @role_mode(RoleMode.ALIVE)
-class EditorRole(BaseRole):
+class EditorRole(ApplicationRole):
     name = "editor"
     description = "Editor."
-    includes = ()
+
+
+@role_mode(RoleMode.ALIVE)
+class UserRole(ApplicationRole):
+    name = "user"
+    description = "Standard user."
+
+
+@role_mode(RoleMode.ALIVE)
+class SpyRole(ApplicationRole):
+    name = "spy"
+    description = "Spy (test)."
+
+
+@role_mode(RoleMode.ALIVE)
+class AgentRole(ApplicationRole):
+    name = "agent"
+    description = "Agent (test)."
+
+
+@role_mode(RoleMode.ALIVE)
+class ServiceRole(ApplicationRole):
+    name = "service"
+    description = "Service principal (test)."
+
+
+@role_mode(RoleMode.ALIVE)
+class GuestRole(ApplicationRole):
+    name = "guest"
+    description = "Guest (test)."
