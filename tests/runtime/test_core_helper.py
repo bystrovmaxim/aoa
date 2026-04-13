@@ -1,4 +1,4 @@
-# tests/core/test_core_helper.py
+# tests/runtime/test_core_helper.py
 """
 Tests for CoreHelper — utility class with async thread execution.
 

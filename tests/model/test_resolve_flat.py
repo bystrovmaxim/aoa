@@ -1,4 +1,4 @@
-# tests/core/test_resolve_flat.py
+# tests/model/test_resolve_flat.py
 """
 Тесты BaseSchema.resolve() для плоских полей (без вложенности).
 

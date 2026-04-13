@@ -1,4 +1,4 @@
-# tests/core/test_machine_connections.py
+# tests/runtime/test_machine_connections.py
 """
 Тесты валидации connections в ActionProductMachine.
 

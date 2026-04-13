@@ -1,4 +1,4 @@
-# tests/core/test_resolve_types.py
+# tests/model/test_resolve_types.py
 """
 Тесты BaseSchema.resolve() для разных типов данных.
 

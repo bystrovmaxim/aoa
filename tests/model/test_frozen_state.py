@@ -1,4 +1,4 @@
-# tests/core/test_frozen_state.py
+# tests/model/test_frozen_state.py
 """
 Тесты frozen-семантики BaseState.
 

@@ -1,4 +1,4 @@
-# tests/core/test_frozen_result.py
+# tests/model/test_frozen_result.py
 """
 Тесты frozen-семантики BaseResult.
 

@@ -1,4 +1,4 @@
-# tests/core/test_toolsbox_context_privacy.py
+# tests/runtime/test_toolsbox_context_privacy.py
 """
 Тесты приватности контекста в ToolsBox.
 
