@@ -5,6 +5,9 @@ from __future__ import annotations
 
 from unittest.mock import AsyncMock, MagicMock
 
+import pytest
+
+from action_machine.intents.logging.channel import Channel
 from action_machine.runtime.tools_box import ToolsBox
 
 
@@ -101,3 +104,26 @@ class TestToolsBoxProperties:
         )
 
         assert not hasattr(box, "context")
+
+
+class TestToolsBoxLoggingDelegates:
+    """info / warning / critical forward to the embedded ScopedLogger."""
+
+    @pytest.mark.asyncio
+    async def test_info_warning_critical_delegate_to_log(self) -> None:
+        mock_log = AsyncMock()
+        box = ToolsBox(
+            run_child=AsyncMock(),
+            factory=MagicMock(),
+            resources=None,
+            log=mock_log,
+            nested_level=1,
+            rollup=False,
+        )
+        ch = Channel.business
+        await box.info(ch, "i", extra=1)
+        await box.warning(ch, "w")
+        await box.critical(ch, "c", key="v")
+        mock_log.info.assert_awaited_once_with(ch, "i", extra=1)
+        mock_log.warning.assert_awaited_once_with(ch, "w")
+        mock_log.critical.assert_awaited_once_with(ch, "c", key="v")
