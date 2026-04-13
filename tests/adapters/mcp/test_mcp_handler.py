@@ -7,13 +7,15 @@ PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 Exercise ``_make_tool_handler``, ``_execute_tool_call``, ``_serialize_result``,
-``_build_graph_json``, and error formatting: successful ``CallToolResult`` with
-JSON envelope text (``ok``/``code``/``data``), ``isError`` paths (permissions,
-validation, internal), Pydantic input edge cases (missing field, wrong type,
-constraints), empty vs non-empty ``details`` on ``ValidationFieldError``, mapper
-transforms, guard failures for bad mapper outputs (generic ``INTERNAL_ERROR``
-body without leaking guard text), ``__name__`` derivation from ``tool_name``, and
-graph JSON topology (nodes, edges, hydrated meta).
+``_validate_tool_request_kwargs``, ``_build_graph_json``, and error formatting:
+successful ``CallToolResult`` with JSON envelope text (``ok``/``code``/``data``),
+``isError`` paths (permissions, validation, internal), Pydantic input edge cases
+(missing field, wrong type, constraints, ``field_validator``), direct unit tests
+for ``_validate_tool_request_kwargs`` without ``machine.run``, empty vs
+non-empty ``details`` on ``ValidationFieldError``, mapper transforms, guard
+failures for bad mapper outputs (generic ``INTERNAL_ERROR`` body without leaking
+guard text), ``__name__`` derivation from ``tool_name``, and graph JSON topology
+(nodes, edges, hydrated meta).
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
@@ -23,6 +25,8 @@ ARCHITECTURE / DATA FLOW
               |
               v
     _make_tool_handler -> _execute_tool_call -> machine.run
+              |              ^
+              |              +-- _validate_tool_request_kwargs (Pydantic -> ValidationFieldError)
               |
               +--> _serialize_result -> envelope JSON in CallToolResult text
               |
@@ -36,7 +40,9 @@ INVARIANTS
 ═══════════════════════════════════════════════════════════════════════════════
 
 - Error envelope ``code`` values (e.g. PERMISSION_DENIED) must stay aligned with adapter code.
-- Pydantic edge cases (missing field, wrong type, constraints) map to INVALID_PARAMS with ``details.errors``.
+- Pydantic edge cases (missing field, wrong type, constraints, custom validators)
+  map to INVALID_PARAMS with ``details.errors``; ``_validate_tool_request_kwargs``
+  is covered by direct unit tests.
 - Graph JSON must include string-typed edge ``type`` and ``source_key``/``target_key``.
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -59,7 +65,7 @@ ERRORS / LIMITATIONS
 AI-CORE-BEGIN
 ═══════════════════════════════════════════════════════════════════════════════
 ROLE: MCP handler and graph JSON regression tests.
-CONTRACT: CallToolResult + JSON envelope; exception codes; payload vs envelope layering.
+CONTRACT: CallToolResult + JSON envelope; direct validation/execute-tool-call units; graph JSON.
 INVARIANTS: Mocks for machine/auth; scenario actions + ``AdminRole`` where needed.
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-END
@@ -72,12 +78,14 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from mcp.types import CallToolResult
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 from action_machine.integrations.mcp.adapter import (
     _build_graph_json,
+    _execute_tool_call,
     _make_tool_handler,
     _serialize_result,
+    _validate_tool_request_kwargs,
 )
 from action_machine.integrations.mcp.route_record import McpRouteRecord
 from action_machine.intents.context.user_info import UserInfo
@@ -114,6 +122,19 @@ class _PlainResult:
     """Non-pydantic result for fallback serialization."""
     def __init__(self, value: str) -> None:
         self.value = value
+
+
+class _ProbeMcpRequest(BaseModel):
+    """Request model with ``field_validator`` for Pydantic mapping tests."""
+
+    x: int
+
+    @field_validator("x")
+    @classmethod
+    def _x_non_negative(cls, v: int) -> int:
+        if v < 0:
+            raise ValueError("must be non-negative")
+        return v
 
 
 class _AltResponse(BaseModel):
@@ -156,6 +177,69 @@ def _make_auth(context=None) -> AsyncMock:
     auth = AsyncMock()
     auth.process.return_value = context
     return auth
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# _validate_tool_request_kwargs
+# ═════════════════════════════════════════════════════════════════════════════
+
+
+class TestValidateToolRequestKwargs:
+    """
+    Direct unit tests for MCP request parsing (no ``CallToolResult``, no ``machine.run``).
+    """
+
+    def test_valid_kwargs_returns_validated_model(self) -> None:
+        """Successful validation returns the Pydantic model instance."""
+        body = _validate_tool_request_kwargs({"name": "Ada"}, SimpleAction.Params)
+        assert body.name == "Ada"
+
+    def test_missing_required_field_raises_validation_field_error(self) -> None:
+        """Omitted required fields become ``ValidationFieldError`` with Pydantic errors."""
+        with pytest.raises(ValidationFieldError) as ctx:
+            _validate_tool_request_kwargs({}, SimpleAction.Params)
+        assert ctx.value.message == "Tool input validation failed"
+        errs = ctx.value.details["errors"]
+        assert isinstance(errs, list)
+        assert errs
+        assert ctx.value.__cause__ is not None
+
+    def test_field_validator_failure_maps_like_other_pydantic_errors(self) -> None:
+        """``field_validator`` / ``ValueError`` paths populate ``details.errors``."""
+        with pytest.raises(ValidationFieldError) as ctx:
+            _validate_tool_request_kwargs({"x": -1}, _ProbeMcpRequest)
+        assert ctx.value.message == "Tool input validation failed"
+        errs = ctx.value.details["errors"]
+        assert any(e.get("type") == "value_error" for e in errs)
+        assert any("x" in str(e.get("loc", ())) for e in errs)
+        assert ctx.value.__cause__ is not None
+
+
+class TestExecuteToolCallDirect:
+    """``_execute_tool_call`` behavior without ``CallToolResult`` / envelope layer."""
+
+    @pytest.mark.asyncio
+    async def test_invalid_kwargs_skips_run_and_auth(self) -> None:
+        """Bad kwargs fail inside ``_validate_tool_request_kwargs`` before I/O."""
+        machine = _make_machine()
+        machine.run = AsyncMock()
+        auth = _make_auth()
+        record = _make_record(action_class=SimpleAction, tool_name="unit.simple")
+
+        with pytest.raises(ValidationFieldError):
+            await _execute_tool_call(
+                {},
+                SimpleAction.Params,
+                record,
+                machine,
+                auth,
+                None,
+                False,
+                False,
+            )
+
+        machine.run.assert_not_called()
+        auth.process.assert_not_called()
 
 
 # ═════════════════════════════════════════════════════════════════════════════

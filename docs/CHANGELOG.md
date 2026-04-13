@@ -23,6 +23,7 @@ The coordinator class name `**GateCoordinator`** is unchanged.
 ### Changed
 
 - **`ValidationFieldError`.** Optional keyword-only `details` (`dict`) for structured context; existing `ValidationFieldError(message)` and `ValidationFieldError(message, field)` calls behave as before. `str(exc)` remains the human `message` only.
+- **MCP adapter.** Pydantic tool-arg validation lives in `_validate_tool_request_kwargs`, called from `_execute_tool_call`, so mapping to `ValidationFieldError` is defined in one place and covered by direct unit tests.
 
 ### Fixed
 
@@ -31,6 +32,7 @@ The coordinator class name `**GateCoordinator`** is unchanged.
 ### Tests
 
 - **`test_mcp_handler`.** Envelope assertions, Pydantic edge cases, `details` propagation, and internal-error privacy expectations.
+- **`_validate_tool_request_kwargs`.** Direct unit tests (including `field_validator` failures) plus `_execute_tool_call` short-circuit before `machine.run` / auth.
 
 ## [0.10.0] – 2026-04-12
 
