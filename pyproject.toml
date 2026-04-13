@@ -91,6 +91,7 @@ addopts = [
 markers = [
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
     "integration: marks integration tests requiring external services",
+    "benchmark: performance or load regression anchors (optional selective runs)",
 ]
 
 # ============================================================================
