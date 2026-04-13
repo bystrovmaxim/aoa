@@ -134,6 +134,24 @@ itself. Concrete inspectors override it to traverse ``_target_intent`` instead::
 The coordinator calls ``_subclasses_recursive()`` for each registered inspector.
 
 ═══════════════════════════════════════════════════════════════════════════════
+RUNTIME PARITY (TESTS == APPLICATION)
+═══════════════════════════════════════════════════════════════════════════════
+
+ActionMachine intentionally uses the same subclass discovery path in tests and
+in production: ``__subclasses__()`` recursion over marker mixins.
+
+This means there is no dedicated "test-only discovery sandbox". Any class that
+is imported and registered in the current Python process can be discovered by
+inspectors, including module-level test classes.
+
+This is a deliberate design trade-off for parity: tests exercise the same
+registration/discovery semantics as real application code, rather than a mocked
+or synthetic discovery layer.
+
+Practical implication: when tests define long-lived module-level classes, later
+tests in the same process can observe them via subclass traversal.
+
+═══════════════════════════════════════════════════════════════════════════════
 EXAMPLE — INSPECTOR WITHOUT EDGES
 ═══════════════════════════════════════════════════════════════════════════════
 

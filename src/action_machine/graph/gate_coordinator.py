@@ -58,6 +58,12 @@ EXPLICIT ``build()``
 If the inspector list is empty at ``build()``, validation still runs with no
 payloads (caller's responsibility to register a useful set).
 
+Discovery source parity:
+    ``build()`` consumes candidates from inspectors, and inspectors discover
+    candidates from marker ``__subclasses__()`` trees. Tests and production use
+    the same mechanism by design (no test-only isolation layer inside the
+    coordinator).
+
 ═══════════════════════════════════════════════════════════════════════════════
 TRANSACTIONAL ``build()`` — THREE PHASES
 ═══════════════════════════════════════════════════════════════════════════════
