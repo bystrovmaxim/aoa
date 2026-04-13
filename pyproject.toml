@@ -224,6 +224,8 @@ good-names = ["i", "e", "f", "k", "v", "p", "R", "P", "T"]
 [tool.pylint.typecheck]
 # rustworkx — C-расширение, pylint не видит членов модуля (в т.ч. при `import … as rx`)
 generated-members = ["rustworkx.*", "rx.*"]
+# asyncpg — optional extra `[postgres]`; без установки pylint даёт E0401 import-error
+ignored-modules = ["asyncpg"]
 
 # ============================================================================
 # RUFF
