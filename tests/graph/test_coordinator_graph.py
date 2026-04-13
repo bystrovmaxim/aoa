@@ -419,7 +419,7 @@ class TestCompensatorNodes:
 
     Добавлено как часть реализации механизма компенсации (Saga).
     Детальные тесты графа компенсаторов (метаданные узлов, requires_context,
-    dependency tree) покрыты в tests/compensate/test_compensate_graph.py.
+    dependency tree) покрыты в tests/intents/compensate/test_compensate_graph.py.
     Здесь — минимальная проверка интеграции в общий граф координатора.
     """
 
