@@ -44,3 +44,38 @@ def test_validate_subscriptions_skips_non_subscription_entries() -> None:
             del event
 
     validate_subscriptions(_Plugin, [SimpleNamespace()])
+
+
+def test_validate_subscriptions_skips_when_method_missing() -> None:
+    class _Plugin(OnIntent):
+        pass
+
+    sub = SubscriptionInfo(event_class=GlobalStartEvent, method_name="missing_hook")
+    validate_subscriptions(_Plugin, [sub])
+
+
+def test_validate_subscriptions_skips_when_too_few_parameters() -> None:
+    class _Plugin(OnIntent):
+        async def hook(self) -> None:
+            pass
+
+    sub = SubscriptionInfo(event_class=GlobalStartEvent, method_name="hook")
+    validate_subscriptions(_Plugin, [sub])
+
+
+def test_validate_subscriptions_skips_when_event_param_unannotated() -> None:
+    class _Plugin(OnIntent):
+        async def hook(self, _state, event, _log) -> None:
+            del event
+
+    sub = SubscriptionInfo(event_class=GlobalStartEvent, method_name="hook")
+    validate_subscriptions(_Plugin, [sub])
+
+
+def test_validate_subscriptions_skips_when_annotation_not_plugin_event() -> None:
+    class _Plugin(OnIntent):
+        async def hook(self, _state, event: str, _log) -> None:
+            del event
+
+    sub = SubscriptionInfo(event_class=GlobalStartEvent, method_name="hook")
+    validate_subscriptions(_Plugin, [sub])

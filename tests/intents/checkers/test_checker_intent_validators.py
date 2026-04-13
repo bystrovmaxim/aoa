@@ -50,3 +50,24 @@ def test_validate_checkers_belong_to_aspects_rejects_orphan_checker() -> None:
 
     with pytest.raises(ValueError, match="not_an_aspect"):
         validate_checkers_belong_to_aspects(_Host, [checker], aspects)
+
+
+def test_validate_checkers_belong_to_aspects_passes_when_bound_to_aspect() -> None:
+    class _Host:
+        __name__ = "Host"
+
+    aspects = [
+        SimpleNamespace(method_name="pay_aspect"),
+        SimpleNamespace(method_name="other_aspect"),
+    ]
+    class _StrChk:
+        pass
+
+    checkers = [
+        SimpleNamespace(
+            field_name="id",
+            checker_class=_StrChk,
+            method_name="pay_aspect",
+        ),
+    ]
+    validate_checkers_belong_to_aspects(_Host, checkers, aspects)

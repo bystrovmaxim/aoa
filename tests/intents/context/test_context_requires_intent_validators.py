@@ -9,6 +9,7 @@ import pytest
 
 from action_machine.intents.context.context_requires_intent import (
     ContextRequiresIntent,
+    _has_any_context_keys,
     require_context_requires_intent_marker,
 )
 
@@ -53,3 +54,31 @@ def test_require_context_requires_noop_when_mixin_present() -> None:
 
     aspect = SimpleNamespace(method_name="a", context_keys=frozenset({"k"}))
     require_context_requires_intent_marker(Host, [aspect], [], [])
+
+
+def test_has_any_context_keys_false_when_all_empty() -> None:
+    assert not _has_any_context_keys(
+        [SimpleNamespace(context_keys=frozenset())],
+        [SimpleNamespace(context_keys=frozenset())],
+        [SimpleNamespace(context_keys=frozenset())],
+    )
+
+
+def test_has_any_context_keys_true_from_first_aspect() -> None:
+    aspects = [
+        SimpleNamespace(context_keys=frozenset()),
+        SimpleNamespace(context_keys=frozenset({"a"})),
+    ]
+    assert _has_any_context_keys(aspects, [], [])
+
+
+def test_has_any_context_keys_true_from_handler_after_empty_aspects() -> None:
+    assert _has_any_context_keys(
+        [SimpleNamespace(context_keys=frozenset())],
+        [SimpleNamespace(context_keys=frozenset({"h"}))],
+        [],
+    )
+
+
+def test_has_any_context_keys_true_from_compensator_after_empty_lists() -> None:
+    assert _has_any_context_keys([], [], [SimpleNamespace(context_keys=frozenset({"c"}))])
