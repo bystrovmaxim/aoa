@@ -1,14 +1,24 @@
-# Shared steps for PR merge gate and post-merge push. Invoked only via workflow_call.
-name: CI checks (internal)
+name: CI
 
 on:
-  workflow_call:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   checks:
+    name: CI / checks          # ← это имя будет видно в статусе
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6.0.2
@@ -29,7 +39,7 @@ jobs:
       - name: Lint (ruff)
         run: uv run task lint
 
-      - name: Typecheck (mypy full src/)
+      - name: Typecheck (mypy)
         run: uv run task typecheck
 
       - name: Pylint
@@ -44,8 +54,8 @@ jobs:
       - name: Pytest
         run: uv run task test
 
-      - name: Radon cyclomatic complexity
+      - name: Radon CC
         run: uv run task cc
 
-      - name: Radon maintainability index
+      - name: Radon MI
         run: uv run task mi
