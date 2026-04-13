@@ -72,13 +72,41 @@ For each registered ``McpRouteRecord``, the adapter builds an async handler that
 5. Resolves connections via ``connections_factory`` (or ``None``).
 6. Creates action instance and calls ``machine.run()``.
 7. Applies ``response_mapper`` when configured.
-8. Returns ``CallToolResult``: success -> JSON ``TextContent`` envelope
+8. Builds success ``data`` via ``_serialize_result`` (``model_dump(mode="json")`` for
+   Pydantic models); only ``_envelope_ok`` runs the outer ``json.dumps``.
+9. Returns ``CallToolResult``: success -> JSON ``TextContent`` envelope
    ``{"ok":true,"code":"OK","data":...}`` with ``isError=False``; failures ->
    JSON envelope ``{"ok":false,"code":...,"message":...,"details":{}}`` with
-   ``isError=True``.
+   ``isError=True`` (tool-input Pydantic issues use ``details.errors``).
 
 On failures, the handler returns ``CallToolResult(isError=True)`` instead of
 raising, so MCP clients can distinguish tool-call errors at protocol level.
+
+═══════════════════════════════════════════════════════════════════════════════
+TESTING NOTE (MCP tools)
+═══════════════════════════════════════════════════════════════════════════════
+
+Handler tests should use a real ``ActionProductMachine`` (and real coordinator
+metadata) so schemas, ``gate_coordinator``, and handler code match production.
+
+To control results or speed, stub ``machine.run`` only — not the whole stack.
+
+::
+
+    MCP kwargs
+         |
+         v
+    validate / map params  --->  auth_coordinator  --->  machine.run  ~~~~ stub
+         ^______________________ production ________________________^
+                                                                    ~~~~
+                                                         optional AsyncMock
+
+    serialize / envelope  <---  (after run)
+         ^
+         production
+
+See ``BaseAdapter`` module docstring (ADAPTER TESTING CONTRACT) for the full
+adapter-level picture.
 
 ═══════════════════════════════════════════════════════════════════════════════
 RESOURCE system://graph
@@ -197,8 +225,10 @@ def _envelope_ok(data: Any) -> str:
     """
     Serialize MCP tool success body as a single JSON object.
 
-    Shape: ``ok`` (true), ``code`` (``OK``), ``data`` (arbitrary JSON-compatible
-    value; non-encodable values use ``default=str``).
+    Shape: ``ok`` (true), ``code`` (``OK``), ``data`` (payload from
+    ``_serialize_result``, expected JSON-compatible when models use
+    ``model_dump(mode="json")``). ``default=str`` remains a fallback for odd
+    nested values.
     """
     return json.dumps(
         {"ok": True, "code": "OK", "data": data},
@@ -562,6 +592,14 @@ def _serialize_result(
 
     Returns:
         Object suitable for embedding in the success envelope ``data`` field.
+        For ``BaseModel`` results (and mapped responses), uses
+        ``model_dump(mode="json")`` so nested dates, enums, and similar types
+        become JSON-native values before ``_envelope_ok`` calls ``json.dumps``.
+
+    Note:
+        Non-model ``result`` values pass through unchanged; the caller must
+        ensure they are JSON-serializable or rely on ``_envelope_ok``'s
+        ``default=str``.
     """
     if has_response_mapper:
         mapped = record.response_mapper(result)  # type: ignore[misc]

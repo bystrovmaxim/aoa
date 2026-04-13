@@ -55,6 +55,39 @@ INVARIANTS
 - The fluent API returns ``self``, enabling method chaining.
 
 ═══════════════════════════════════════════════════════════════════════════════
+ADAPTER TESTING CONTRACT
+═══════════════════════════════════════════════════════════════════════════════
+
+Integration-style adapter tests use production types: a real
+``ActionProductMachine`` and its ``GateCoordinator``. The adapter, route records,
+validation, and transport mapping run as shipped.
+
+When a test must fix outcomes or skip the full action pipeline, only
+``machine.run(...)`` is stubbed (e.g. ``AsyncMock``). That is a seam on the
+execution boundary, not a hand-written fake machine or duplicate adapter logic.
+
+::
+
+    Agent / protocol host
+             |
+             v
+    +-----------------------------+
+    | Adapter (production)        |
+    | GateCoordinator (real)      |
+    | ActionProductMachine (real) |
+    +-----------------------------+
+             |
+             |  machine.run(context, action, params, connections)
+             v
+    +-----------------------------+
+    | Action pipeline             |  <- optional test seam (stub ``run`` only)
+    | (aspects, checkers, ...)    |
+    +-----------------------------+
+
+Prefer the real machine class plus a ``run`` stub for handler-level scenarios;
+replace ``ActionProductMachine`` only when testing constructor wiring itself.
+
+═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
