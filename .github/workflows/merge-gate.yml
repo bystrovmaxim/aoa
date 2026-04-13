@@ -1,22 +1,29 @@
-# PR-only; one job → branch protection needs exactly: Merge gate / merge-gate (pull_request)
-# Remove any stale required check "CI / checks (pull_request)" from branch protection.
+# Branch protection: require exactly one check (after a green run on a PR):
+#   AOA merge gate / blocking-checks (pull_request)
+#
+# Do NOT use cancel-in-progress: true here — cancelling a run leaves a "Required /
+# Expected" ghost check with the same display name while a new run starts (GitHub UI bug).
 
-name: Merge gate
+name: AOA merge gate
 
 on:
   pull_request:
     branches: [main]
 
+# Same PR: only one run at a time, but let the previous run finish (no cancel).
 concurrency:
-  group: merge-gate-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
+  group: merge-gate-pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
-  merge-gate:
-    name: merge-gate
+  blocking-checks:
+    name: blocking-checks
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6.0.2
