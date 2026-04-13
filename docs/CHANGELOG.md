@@ -5,6 +5,8 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+**Conventions.** Release headings use `## [version] – YYYY-MM-DD` (en dash). Use `### Breaking changes`, `### Added`, `### Changed`, `### Fixed`, `### Removed`, and `### Documentation` as needed. Each bullet starts with a **bold title** followed by a period and the body.
+
 ## Terminology
 
 Older entries below may use the legacy names **GateHost** / `*GateHostInspector` /
@@ -14,45 +16,17 @@ The coordinator class name **`GateCoordinator`** is unchanged.
 
 ## Unreleased
 
-### BREAKING
+*No changes listed yet.*
 
-- **`IConnectionManager` → `SqlConnectionManager`.** The abstract transactional SQL
-  connection base class and module were renamed: ``iconnection_manager`` →
-  ``sql_connection_manager``. Update imports and type hints; there is no alias.
+## [0.10.0] – 2026-04-12
 
-- **`WrapperConnectionManager` → `WrapperSqlConnectionManager`.** The nested-run SQL
-  proxy class and module were renamed: ``wrapper_connection_manager`` →
-  ``wrapper_sql_connection_manager``. Update imports; there is no alias.
+### Breaking changes
 
-- **`SqlConnectionManager.begin()`.** Transactional connection managers must implement
-  `async def begin(self) -> None` (start one DB transaction after `open()`, before
-  mutating `execute` calls so rollup and `commit`/`rollback` are meaningful with
-  asyncpg). `WrapperSqlConnectionManager.begin()` raises `TransactionProhibitedError`
-  (same as `open`/`commit`/`rollback`). `PostgresConnectionManager` runs `BEGIN`.
-
-- **Resource managers: distinguish decorator vs TypedDict modules.** Renamed
-  ``resource_managers.connection`` → ``connection_decorator`` (``@connection``,
-  ``ConnectionInfo``) and ``resource_managers.connections`` →
-  ``connections_typed_dict`` (``Connections``). Update deep imports; the package
-  ``action_machine.resource_managers`` still re-exports ``connection``,
-  ``ConnectionInfo``, and now ``Connections`` in ``__all__``.
-
-- **Decorator modules: `*_decorator.py` filenames.** Renamed
-  ``aspects/regular_aspect.py`` → ``regular_aspect_decorator.py``,
-  ``aspects/summary_aspect.py`` → ``summary_aspect_decorator.py``,
-  ``auth/check_roles.py`` → ``check_roles_decorator.py``,
-  ``auth/role_mode.py`` → ``role_mode_decorator.py``,
-  ``dependencies/depends.py`` → ``depends_decorator.py``,
-  ``plugins/decorators.py`` → ``on_decorator.py``. Exported decorator callables
-  (``regular_aspect``, ``check_roles``, ``on``, …) are unchanged; update any
-  deep imports from old module paths.
-
-- **GateHost → Intent (public API and module layout).** Marker mixins and
-  inspectors were renamed for consistent «grammar of intents» language:
-  `*GateHost` → `*Intent`, `*GateHostInspector` → `*IntentInspector`,
-  `BaseGateHostInspector` → `BaseIntentInspector`. Files follow
-  `*_intent.py` / `*_intent_inspector.py`. Imports and MRO references must be
-  updated; there are no compatibility aliases in this release line.
+- **`SqlConnectionManager` renames.** `IConnectionManager` → `SqlConnectionManager` (`sql_connection_manager`); `WrapperConnectionManager` → `WrapperSqlConnectionManager` (`wrapper_sql_connection_manager`). No compatibility aliases.
+- **Transactional `begin()`.** SQL connection managers implement `async def begin() -> None` after `open()`; `WrapperSqlConnectionManager.begin()` raises `TransactionProhibitedError` (same as `open`/`commit`/`rollback`). `PostgresConnectionManager` runs `BEGIN`.
+- **Resource manager modules.** `resource_managers.connection` → `connection_decorator`; `resource_managers.connections` → `connections_typed_dict`. `action_machine.resource_managers` still re-exports `connection`, `ConnectionInfo`, `Connections`.
+- **Decorator modules (`*_decorator.py`).** e.g. `regular_aspect_decorator`, `check_roles_decorator`, `depends_decorator`, `on_decorator`; public decorator callables unchanged.
+- **GateHost → Intent.** `*GateHost` → `*Intent`, `*GateHostInspector` → `*IntentInspector`, `BaseGateHostInspector` → `BaseIntentInspector`; files `*_intent.py` / `*_intent_inspector.py`.
 
 | Legacy (removed) | Replacement |
 |------------------|-------------|
@@ -72,73 +46,38 @@ The coordinator class name **`GateCoordinator`** is unchanged.
 | `RoleModeGateHost` | `RoleModeIntent` |
 | `BaseGateHostInspector` | `BaseIntentInspector` |
 | `RoleGateHostInspector` | `RoleIntentInspector` |
-| (same pattern) | `*IntentInspector` for each facet |
+| (same pattern) | `*IntentInspector` per facet |
 | `SensitiveGateHostInspector` | `SensitiveIntentInspector` |
 
-### Compatibility (PR-3)
-
-- **No deprecation aliases** (e.g. `RoleGateHost = RoleIntent`) and no
-  `action_machine.compat` shim are provided. The API surface uses **Intent**
-  names only; this keeps imports and documentation unambiguous while the
-  project is pre-`1.0.0`. If temporary aliases are ever needed for a major
-  migration, they would be introduced in a dedicated release with explicit
-  removal timeline and `DeprecationWarning` on each alias.
-
-### Documentation (PR-3)
-
-- **Glossary** — end of `README.md` and `README-2.md`: Intent, IntentInspector,
-  `GateCoordinator`, decorator, scratch, and distinction from «business intent»
-  in prose.
-- **Repository verification (2026-04-12):** `GateHost`, `gate_host`, and
-  `*gate_host*` filenames — **no matches** in `src/**/*.py` and `tests/**/*.py`;
-  no `*gate_host*` files under `src/` or `tests/`. Historical names remain only
-  in this changelog (Terminology + migration table + older release bullets where
-  not yet rewritten).
-
-### Changed (facet graph — described fields)
-
-- **`DescribedFieldsIntentInspector` now follows `DescribedFieldsIntent`.** It walks schema classes (``BaseParams`` / ``BaseResult`` / ``BaseEntity`` subtrees), not ``BaseAction``. Graph nodes ``described_fields:<module.Schema>`` carry per-model field metadata; ``node_meta`` uses key ``schema_fields`` (not ``params_fields`` / ``result_fields``).
-- **`ActionTypedSchemasInspector` (new).** Registered after ``DescribedFieldsIntentInspector``. For each action class it resolves ``BaseAction[P, R]`` via ``extract_action_params_result_types`` and emits an ``action_schemas`` node with informational edges ``uses_params`` / ``uses_result`` to the corresponding ``described_fields`` targets. Facet snapshot key: ``"action_schemas"``.
-- **`extract_action_params_result_types`** lives in ``action_machine.core.action_generic_params`` (single place for generic extraction).
-- **Validation API:** removed ``validate_described_fields(action_cls, params_fields, result_fields)``. Use ``validate_described_schema(model_cls | None)`` for one schema, or ``validate_described_schemas_for_action(action_cls)`` to validate both ``P`` and ``R`` after resolving them from the action class.
-
-### BREAKING (GateCoordinator rustworkx nodes)
-
-- **`GateCoordinator.get_graph()` node dicts** store only ``node_type``, ``name``, and ``class_ref``. Facet wire ``meta`` is not duplicated on the graph node. Use ``hydrate_graph_node(dict(graph[idx]))`` or ``get_node`` / ``get_nodes_by_type`` / ``get_nodes_for_class``.
-
-### Added (GateCoordinator hydration)
-
-- **`GateCoordinator.hydrate_graph_node`** rebuilds ``meta`` from facet snapshots. Phase 1 registers each graph key’s snapshot storage key from ``facet_snapshot_storage_key()``; two different keys on the same merged structural ``action`` node (``depends`` + ``connections``) yield empty hydrated ``meta``. Unregistered stub nodes fall back to ``get_snapshot(cls, node_type)`` (except ``action``).
-- **MCP system graph JSON:** edges include ``source_key`` and ``target_key`` (``node_type:name``); ``type`` is the string ``edge_type`` from edge payloads.
-- **Tests:** ``tests/metadata/test_graph_skeleton_and_hydrate.py``, ``tests/metadata/test_graph_execution_adapters.py``; MCP graph JSON coverage in ``tests/adapters/mcp/test_mcp_handler.py``.
-
-### Changed (docs — coordinator graph)
-
-- **README / README-2 glossary:** clarify skeleton graph nodes, snapshots, and hydration.
-
-### BREAKING (facet snapshots)
-
-- **``get_snapshot(SomeAction, "described_fields")`` is removed.** Described-field snapshots are stored per schema class: ``get_snapshot(OrderParams, "described_fields")``, ``get_snapshot(OrderResult, "described_fields")``. Use ``get_snapshot(SomeAction, "action_schemas")`` for the action’s resolved ``P``/``R`` types and graph linkage.
-
-### Changed
-
-- **Machine-owned plugin lifecycle events** — all six types (`GlobalStartEvent`,
-  `GlobalFinishEvent`, `BeforeRegularAspectEvent`, `AfterRegularAspectEvent`,
-  `BeforeSummaryAspectEvent`, `AfterSummaryAspectEvent`) are emitted through async helpers on
-  `PluginEmitSupport` (`emit_global_start`, `emit_global_finish`, `emit_before_regular_aspect`,
-  `emit_after_regular_aspect`, `emit_before_summary_aspect`, `emit_after_summary_aspect`).
-  `ActionProductMachine` no longer calls `plugin_ctx.emit_event` or constructs those event
-  classes directly. `PluginRunContext` is always passed into each helper; it is not stored on
-  `PluginEmitSupport` (per-run isolation, no reset between runs).
-
-### Fixed
-
-- **`ActionProductMachine` — saga rollback on summary contract failures.** If regular aspects have run and pushed `SagaFrame`s, then the pipeline fails with `ActionResultTypeError`, `MissingSummaryAspectError`, or `ActionResultDeclarationError` (wrong summary return type, missing `@summary_aspect` for a custom `Result`, or unresolvable `BaseAction[P, R]`), the machine now runs **`SagaCoordinator.execute`** (same unwind as other failures) **before** re-raising. Previously these exceptions bypassed compensation and could leave side effects unrolled. **`@on_error` is not invoked** for these cases — they are treated as developer contract violations, not recoverable business errors.
+- **Described-field snapshots per schema.** `get_snapshot(SomeAction, "described_fields")` is removed. Use `get_snapshot(OrderParams, "described_fields")` and `get_snapshot(OrderResult, "described_fields")`; for the action’s `P`/`R` linkage use `get_snapshot(SomeAction, "action_schemas")`.
+- **`GateCoordinator.get_graph()` payloads.** Raw `rx.PyDiGraph` nodes store only `node_type`, `name`, and `class_ref`. Facet `meta` is not on the node; use `hydrate_graph_node(dict(graph[idx]))` or `get_node` / `get_nodes_by_type` / `get_nodes_for_class`.
 
 ### Added
 
-- **Adapter mapper runtime checks (`BaseRouteRecord`).** `ensure_machine_params` and `ensure_protocol_response` validate that `params_mapper` / `response_mapper` return instances of `params_type` and `effective_response_model`; FastAPI and MCP adapters call them at the protocol boundary (`TypeError` on mismatch). Tests: `test_base_route_record.py` (unit), `test_fastapi_mapper_guards.py`, MCP handler tests.
-- **Runtime action result typing.** Summary and `@on_error` return values are checked against the action’s declared `R` (`action_machine.core.action_result_binding`, exceptions `ActionResultTypeError`, `MissingSummaryAspectError`, `ActionResultDeclarationError`). Forward-ref `P`/`R` resolution is centralized in `action_machine.core.action_generic_params`.
+- **`GateCoordinator.hydrate_graph_node`.** Rebuilds `meta` from facet snapshots. Phase 1 records `graph_key → facet_snapshot_storage_key`; merged structural `action` with both `depends` and `connections` maps to ambiguous hydration (empty `meta`). Stubs without registration fall back to `get_snapshot(cls, node_type)` except for `action`.
+- **`ActionTypedSchemasInspector`.** After `DescribedFieldsIntentInspector`; `action_schemas` nodes and `uses_params` / `uses_result` edges to `described_fields`; snapshot key `"action_schemas"`.
+- **MCP `system://graph` JSON.** Edges include `source_key` and `target_key` (`node_type:name`); `type` is the string `edge_type` from edge payloads.
+- **Adapter mapper guards (`BaseRouteRecord`).** `ensure_machine_params` / `ensure_protocol_response` at FastAPI and MCP boundaries (`TypeError` on mismatch).
+- **Runtime action result typing.** Summary and `@on_error` returns checked against declared `R` (`action_result_binding`); `P`/`R` resolution in `action_generic_params`.
+- **Tests.** `test_graph_skeleton_and_hydrate.py`, `test_graph_execution_adapters.py`; MCP graph JSON tests in `test_mcp_handler.py`.
+
+### Changed
+
+- **`DescribedFieldsIntentInspector`.** Follows `DescribedFieldsIntent`; walks `BaseParams` / `BaseResult` / `BaseEntity`; graph `node_meta` key `schema_fields`.
+- **`extract_action_params_result_types`.** Single location: `action_machine.core.action_generic_params`.
+- **Described-fields validation API.** Removed `validate_described_fields(action_cls, ...)`. Use `validate_described_schema` / `validate_described_schemas_for_action`.
+- **Plugin lifecycle events.** The six machine event types are emitted only via `PluginEmitSupport` async helpers; `ActionProductMachine` does not call `plugin_ctx.emit_event` or build those event classes. `PluginRunContext` is passed into each helper and is not stored on `PluginEmitSupport`.
+- **README / README-2 glossary.** Intent, coordinator graph skeleton vs snapshots, hydration.
+
+### Fixed
+
+- **Saga rollback on summary contract failures.** If regular aspects ran and pushed `SagaFrame`s and the pipeline then fails with `ActionResultTypeError`, `MissingSummaryAspectError`, or `ActionResultDeclarationError`, `SagaCoordinator.execute` runs before re-raising. `@on_error` is not used for these contract violations.
+
+### Documentation
+
+- **Glossary** at the end of `README.md` and `README-2.md` (Intent, `IntentInspector`, `GateCoordinator`, decorator, scratch).
+- **Repository check (2026-04-12):** no `GateHost` / `gate_host` / `*gate_host*` symbols or filenames under `src/**/*.py` and `tests/**/*.py`; historical names remain in this changelog only where noted.
+- **No deprecation aliases.** No `RoleGateHost = RoleIntent` shims and no `action_machine.compat` package; the public API uses Intent names only while the project is pre-`1.0.0`. Any future temporary aliases would ship in a dedicated release with an explicit removal timeline and `DeprecationWarning` on each alias.
 
 ## [0.9.0] – 2026-04-07
 
