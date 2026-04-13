@@ -1,4 +1,4 @@
-# tests/domain_model/roles.py
+# tests/scenarios/domain_model/roles.py
 """Shared ``ApplicationRole`` markers for the test domain."""
 
 from action_machine.intents.auth.application_role import ApplicationRole

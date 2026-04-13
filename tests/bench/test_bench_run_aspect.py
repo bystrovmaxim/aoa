@@ -25,7 +25,7 @@ import pytest
 
 from action_machine.testing import TestBench
 from action_machine.testing.state_validator import StateValidationError
-from tests.domain_model import FullAction
+from tests.scenarios.domain_model import FullAction
 
 
 class TestFirstAspect:

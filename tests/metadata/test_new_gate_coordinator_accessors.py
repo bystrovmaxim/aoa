@@ -14,8 +14,8 @@ from action_machine.graph.inspectors.entity_intent_inspector import EntityIntent
 from action_machine.graph.inspectors.on_error_intent_inspector import OnErrorIntentInspector
 from action_machine.graph.payload import EdgeInfo, FacetPayload
 from action_machine.runtime.machines.core_action_machine import CoreActionMachine
-from tests.domain_model import FullAction
-from tests.domain_model.services import NotificationService, PaymentService
+from tests.scenarios.domain_model import FullAction
+from tests.scenarios.domain_model.services import NotificationService, PaymentService
 
 
 class _DemoEntity:

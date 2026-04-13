@@ -19,7 +19,7 @@ from action_machine.model.base_params import BaseParams
 from action_machine.model.base_result import BaseResult
 from action_machine.model.exceptions import AuthorizationError
 from action_machine.runtime.machines.action_product_machine import ActionProductMachine
-from tests.domain_model.domains import TestDomain
+from tests.scenarios.domain_model.domains import TestDomain
 
 
 @role_mode(RoleMode.ALIVE)

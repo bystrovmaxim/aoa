@@ -39,7 +39,7 @@ from action_machine.adapters.base_route_record import (
 )
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_result import BaseResult
-from tests.domain_model import FullAction, PingAction, SimpleAction
+from tests.scenarios.domain_model import FullAction, PingAction, SimpleAction
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Minimal concrete subclass — needed because BaseRouteRecord cannot be

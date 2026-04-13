@@ -1,4 +1,4 @@
-# tests/domain_model/admin_action.py
+# tests/scenarios/domain_model/admin_action.py
 """
 AdminAction — role-restricted Action (``@check_roles(AdminRole)``).
 

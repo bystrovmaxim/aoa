@@ -1,4 +1,4 @@
-# tests/domain_model/__init__.py
+# tests/scenarios/domain_model/__init__.py
 """
 Shared test domain model for ActionMachine.
 

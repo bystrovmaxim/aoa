@@ -44,7 +44,7 @@ from action_machine.integrations.mcp.route_record import McpRouteRecord
 from action_machine.model.exceptions import AuthorizationError, ValidationFieldError
 from action_machine.runtime.machines.action_product_machine import ActionProductMachine
 from action_machine.runtime.machines.core_action_machine import CoreActionMachine
-from tests.domain_model import PingAction, SimpleAction
+from tests.scenarios.domain_model import PingAction, SimpleAction
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Helpers
@@ -446,7 +446,7 @@ class TestBuildGraphJson:
         )
         assert ping_meta is not None
         assert ping_meta.get("description") == "Service health check"
-        assert ping_meta.get("domain") == "tests.domain_model.domains.SystemDomain"
+        assert ping_meta.get("domain") == "tests.scenarios.domain_model.domains.SystemDomain"
 
     def test_edges_include_source_and_target_keys_and_string_type(self) -> None:
         """Рёбра: явные ``source_key`` / ``target_key`` и строковый ``type`` (не str(dict))."""

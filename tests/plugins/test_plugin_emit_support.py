@@ -19,7 +19,7 @@ from action_machine.intents.plugins.events import (
     GlobalStartEvent,
 )
 from action_machine.intents.plugins.plugin_emit_support import PluginEmitSupport
-from tests.domain_model import PingAction
+from tests.scenarios.domain_model import PingAction
 
 
 class _RecordingPluginCtx:

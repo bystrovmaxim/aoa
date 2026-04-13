@@ -1,4 +1,4 @@
-# tests/domain_model/entities.py
+# tests/scenarios/domain_model/entities.py
 """
 Test entities for the domain model.
 

@@ -1,4 +1,4 @@
-# tests/domain_model/test_db_manager.py
+# tests/scenarios/domain_model/test_db_manager.py
 """
 Minimal database resource manager for tests.
 

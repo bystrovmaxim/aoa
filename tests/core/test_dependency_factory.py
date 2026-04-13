@@ -62,8 +62,8 @@ from action_machine.intents.meta.meta_decorator import meta
 from action_machine.model.exceptions import RollupNotSupportedError
 from action_machine.resources.base_resource_manager import BaseResourceManager
 from action_machine.runtime.machines.core_action_machine import CoreActionMachine
-from tests.domain_model import FullAction, NotificationService, PaymentService, PingAction
-from tests.domain_model.domains import TestDomain
+from tests.scenarios.domain_model import FullAction, NotificationService, PaymentService, PingAction
+from tests.scenarios.domain_model.domains import TestDomain
 
 # ═════════════════════════════════════════════════════════════════════════════
 # Вспомогательные классы для тестов

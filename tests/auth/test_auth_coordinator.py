@@ -56,7 +56,7 @@ from action_machine.intents.auth.auth_coordinator import (
 from action_machine.intents.auth.authenticator import Authenticator
 from action_machine.intents.context.context import Context
 from action_machine.intents.context.user_info import UserInfo
-from tests.domain_model.roles import AdminRole, SpyRole
+from tests.scenarios.domain_model.roles import AdminRole, SpyRole
 
 # ═════════════════════════════════════════════════════════════════════════════
 # Мок-реализации компонентов аутентификации

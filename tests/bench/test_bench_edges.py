@@ -45,9 +45,9 @@ from action_machine.testing.bench import (
     _reset_all_mocks,
 )
 from action_machine.testing.mock_action import MockAction
-from tests.domain_model import PingAction
-from tests.domain_model.roles import AdminRole
-from tests.domain_model.services import PaymentService
+from tests.scenarios.domain_model import PingAction
+from tests.scenarios.domain_model.roles import AdminRole
+from tests.scenarios.domain_model.services import PaymentService
 
 # ═════════════════════════════════════════════════════════════════════════════
 # _prepare_mock — rule priority

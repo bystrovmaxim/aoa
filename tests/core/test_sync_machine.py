@@ -52,7 +52,7 @@ from action_machine.intents.logging.log_coordinator import LogCoordinator
 from action_machine.model.exceptions import AuthorizationError, ConnectionValidationError
 from action_machine.runtime.machines.action_product_machine import ActionProductMachine
 from action_machine.runtime.machines.sync_action_product_machine import SyncActionProductMachine
-from tests.domain_model import (
+from tests.scenarios.domain_model import (
     FullAction,
     NotificationService,
     PaymentService,
@@ -60,7 +60,7 @@ from tests.domain_model import (
     SimpleAction,
     TestDbManager,
 )
-from tests.domain_model.roles import AdminRole, ManagerRole
+from tests.scenarios.domain_model.roles import AdminRole, ManagerRole
 
 # ═════════════════════════════════════════════════════════════════════════════
 # Фикстуры

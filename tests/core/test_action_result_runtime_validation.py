@@ -32,7 +32,7 @@ from action_machine.runtime.binding.action_result_binding import (
 from action_machine.runtime.machines.action_product_machine import ActionProductMachine
 from action_machine.runtime.tools_box import ToolsBox
 from action_machine.testing import TestBench
-from tests.domain_model.domains import TestDomain
+from tests.scenarios.domain_model.domains import TestDomain
 
 
 class _P(BaseParams):

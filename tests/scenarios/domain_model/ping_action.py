@@ -1,4 +1,4 @@
-# tests/domain_model/ping_action.py
+# tests/scenarios/domain_model/ping_action.py
 """
 PingAction — minimal Action for smoke tests.
 

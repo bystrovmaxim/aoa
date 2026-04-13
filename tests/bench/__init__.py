@@ -16,7 +16,7 @@ INVARIANTS
 ═══════════════════════════════════════════════════════════════════════════════
 
 - Bench instances are not mutated by ``with_*`` methods; they return new benches.
-- Shared actions live under ``tests/domain_model/`` (see layout below).
+- Shared actions live under ``tests/scenarios/domain_model/`` (see layout below).
 
 ═══════════════════════════════════════════════════════════════════════════════
 DATA FLOW
@@ -49,7 +49,7 @@ LAYOUT
 - ``test_stubs.py`` — context stubs (e.g. ``UserInfoStub``).
 - ``test_bench_edges.py`` — edge cases for bench helpers.
 
-**Domain actions** (``tests/domain_model/``): ``PingAction``, ``SimpleAction``,
+**Domain actions** (``tests/scenarios/domain_model/``): ``PingAction``, ``SimpleAction``,
 ``FullAction``, ``ChildAction``, ``AdminAction``. Shared fixtures
 (``bench``, ``clean_bench``, ``manager_bench``, mocks) live in ``tests/conftest.py``.
 

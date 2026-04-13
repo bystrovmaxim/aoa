@@ -114,7 +114,7 @@ class SagaCompletedRecorderPlugin(Plugin):
 
 def _make_base_event_kwargs() -> dict:
     """Формирует общие kwargs для создания Saga-событий."""
-    from tests.domain_model import PingAction
+    from tests.scenarios.domain_model import PingAction
     return {
         "action_class": PingAction,
         "action_name": "tests.domain.ping_action.PingAction",

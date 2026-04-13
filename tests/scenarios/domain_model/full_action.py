@@ -1,4 +1,4 @@
-# tests/domain_model/full_action.py
+# tests/scenarios/domain_model/full_action.py
 """
 FullAction — full-featured Action with dependencies and connections.
 

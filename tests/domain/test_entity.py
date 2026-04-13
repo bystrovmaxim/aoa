@@ -34,7 +34,7 @@ from pydantic import ValidationError
 from action_machine.domain import BaseEntity, entity
 from action_machine.domain.entity_decorator import EntityDecoratorError
 from action_machine.model.exceptions import NamingSuffixError
-from tests.domain_model.entities import SampleEntity, TestDomain
+from tests.scenarios.domain_model.entities import SampleEntity, TestDomain
 
 
 class TestEntityDecorator:

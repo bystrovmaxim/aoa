@@ -52,7 +52,7 @@ from action_machine.intents.context.runtime_info import RuntimeInfo
 from action_machine.intents.context.user_info import UserInfo
 from action_machine.model.base_schema import BaseSchema
 from action_machine.model.base_state import BaseState
-from tests.domain_model.roles import AdminRole, AgentRole, UserRole
+from tests.scenarios.domain_model.roles import AdminRole, AgentRole, UserRole
 
 # ═════════════════════════════════════════════════════════════════════════════
 # Вспомогательные классы

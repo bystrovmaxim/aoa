@@ -16,7 +16,7 @@ from pydantic import BaseModel, Field
 
 from action_machine.integrations.fastapi.adapter import FastApiAdapter
 from action_machine.runtime.machines.action_product_machine import ActionProductMachine
-from tests.domain_model import PingAction, SimpleAction
+from tests.scenarios.domain_model import PingAction, SimpleAction
 
 
 @pytest.fixture()

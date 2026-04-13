@@ -61,7 +61,7 @@ from action_machine.intents.plugins.on_decorator import on
 from action_machine.intents.plugins.plugin import Plugin
 from action_machine.runtime.machines.core_action_machine import CoreActionMachine
 from action_machine.testing import TestBench
-from tests.domain_model import (
+from tests.scenarios.domain_model import (
     FullAction,
     NotificationService,
     PaymentService,
@@ -69,7 +69,7 @@ from tests.domain_model import (
     SimpleAction,
     TestDbManager,
 )
-from tests.domain_model.roles import ManagerRole
+from tests.scenarios.domain_model.roles import ManagerRole
 
 # ═════════════════════════════════════════════════════════════════════════════
 # Плагины с внешним хранилищем для проверки из тестов

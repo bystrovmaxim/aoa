@@ -17,8 +17,8 @@
 """
 
 from action_machine.testing import TestBench
-from tests.domain_model import PaymentService
-from tests.domain_model.roles import AdminRole
+from tests.scenarios.domain_model import PaymentService
+from tests.scenarios.domain_model.roles import AdminRole
 
 
 class TestWithUser:

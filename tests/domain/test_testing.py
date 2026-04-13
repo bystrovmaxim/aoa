@@ -19,7 +19,7 @@ replace real fixtures or exhaustive field generation for every entity shape.
 from __future__ import annotations
 
 from action_machine.domain.testing import make
-from tests.domain_model.entities import SampleEntity
+from tests.scenarios.domain_model.entities import SampleEntity
 
 
 def test_make_generates_primitive_defaults() -> None:

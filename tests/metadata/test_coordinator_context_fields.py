@@ -69,7 +69,7 @@ from action_machine.model.base_state import BaseState
 from action_machine.resources.base_resource_manager import BaseResourceManager
 from action_machine.runtime.machines.core_action_machine import CoreActionMachine
 from action_machine.runtime.tools_box import ToolsBox
-from tests.domain_model.domains import SystemDomain
+from tests.scenarios.domain_model.domains import SystemDomain
 
 
 def _regular_aspects(coordinator: GateCoordinator, cls: type):
@@ -104,7 +104,7 @@ class _CtxTestResult(BaseResult):
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Тестовые Action (узкие edge-case, не выносятся в domain_model)
+# Тестовые Action (узкие edge-case, не выносятся в scenarios.domain_model)
 # ═════════════════════════════════════════════════════════════════════════════
 
 

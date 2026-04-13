@@ -22,7 +22,7 @@ from action_machine.intents.logging.log_coordinator import LogCoordinator
 from action_machine.model.exceptions import OnErrorHandlerError
 from action_machine.runtime.machines.core_action_machine import CoreActionMachine
 from action_machine.testing import TestBench
-from tests.domain_model import (
+from tests.scenarios.domain_model import (
     ErrorHandledAction,
     ErrorTestParams,
     HandlerRaisesAction,
@@ -174,8 +174,8 @@ class TestOnErrorTypeMismatch:
         from action_machine.intents.meta.meta_decorator import meta
         from action_machine.intents.on_error import on_error
         from action_machine.model.base_action import BaseAction
-        from tests.domain_model import OrdersDomain
-        from tests.domain_model.error_actions import ErrorTestParams, ErrorTestResult
+        from tests.scenarios.domain_model import OrdersDomain
+        from tests.scenarios.domain_model.error_actions import ErrorTestParams, ErrorTestResult
 
         @meta(description="Throws TypeError, catches ValueError", domain=OrdersDomain)
         @check_roles(NoneRole)
@@ -244,8 +244,8 @@ class TestOnErrorNotInherited:
         from action_machine.intents.checkers import result_string
         from action_machine.intents.meta.meta_decorator import meta
         from action_machine.model.base_action import BaseAction
-        from tests.domain_model import OrdersDomain
-        from tests.domain_model.error_actions import ErrorTestParams, ErrorTestResult
+        from tests.scenarios.domain_model import OrdersDomain
+        from tests.scenarios.domain_model.error_actions import ErrorTestParams, ErrorTestResult
 
         @meta(description="Child without own handlers", domain=OrdersDomain)
         @check_roles(NoneRole)

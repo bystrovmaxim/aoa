@@ -13,7 +13,7 @@ from action_machine.model.base_action import BaseAction
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_result import BaseResult
 from action_machine.runtime.machines.core_action_machine import CoreActionMachine
-from tests.domain_model.roles import AdminRole
+from tests.scenarios.domain_model.roles import AdminRole
 
 
 @check_roles(AdminRole)

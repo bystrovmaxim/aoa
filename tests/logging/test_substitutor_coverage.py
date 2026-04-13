@@ -44,7 +44,7 @@ from action_machine.model.base_params import BaseParams
 from action_machine.model.base_state import BaseState
 from action_machine.model.exceptions import LogTemplateError
 from action_machine.testing.stubs import ContextStub
-from tests.domain_model import SimpleAction
+from tests.scenarios.domain_model import SimpleAction
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Общие фикстуры
