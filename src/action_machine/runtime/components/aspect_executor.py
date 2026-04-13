@@ -24,9 +24,10 @@ ARCHITECTURE / DATA FLOW
         │
         ├── execute_regular(...)
         │       ├── call(...)
-        │       ├── checker application
+        │       ├── checker application (on failure: saga frame with
+        │       │       state_after=None, then raise)
         │       ├── state merge
-        │       └── optional saga frame append
+        │       └── optional saga frame append (state_after=merged)
         │
         └── execute_summary(...)
                 └── call(...)
@@ -37,8 +38,15 @@ INVARIANTS
 
 - ``call(...)`` owns ContextView injection, per-aspect ``ScopedLogger`` with
   ``domain=resolve_domain(type(action))`` (and context for templates), and builds
-  a ``ToolsBox`` that does not carry ``Context`` on the instance.
+  a ``ToolsBox`` that does not carry ``Context`` on the instance. Each call
+  constructs a fresh ``ScopedLogger`` and ``LogScope`` so ``box`` always matches
+  the current aspect coordinates even if the aspect never logs; allocation
+  throughput is regression-tested in ``tests/bench/test_scoped_logger_hot_path_bench.py``
+  (framed report via ``tests.bench.bench_report``).
 - Regular aspect execution validates checker contracts before state merge.
+  If validation fails after ``call()`` returns, a saga frame is still appended
+  (when the action builds a saga stack) with ``state_after=None`` so the
+  compensator for that aspect runs on unwind.
 - State merge remains immutable (``BaseState`` new instance per step).
 - No ``_MachineLike`` protocol on aspect entry points.
 
@@ -66,7 +74,8 @@ AI-CORE-BEGIN
 ROLE: Aspect execution component.
 CONTRACT: execute_regular/execute_summary orchestrate aspect invocation contracts.
 INVARIANTS: checker validation and immutable state merge for regular aspects.
-FLOW: call aspect -> validate result -> merge state -> optional saga frame.
+FLOW: call aspect -> validate result -> merge state -> saga frame; on
+  validation failure after call, frame with state_after=None then raise.
 FAILURES: TypeError/ValidationFieldError for invalid regular aspect payload.
 EXTENSION POINTS: custom execution policy can replace this component.
 AI-CORE-END
@@ -204,21 +213,40 @@ class AspectExecutor:
             )
 
         checkers = runtime.checkers_by_aspect.get(aspect_meta.method_name, ())
-        if not checkers and new_state_dict:
-            raise ValidationFieldError(
-                f"Aspect {aspect_meta.method_name} has no checkers, "
-                f"but returned non-empty state: {new_state_dict}. "
-                f"Either add checkers for all fields, or return an empty dict."
-            )
-        if checkers:
-            allowed_fields = {c.field_name for c in checkers}
-            extra_fields = set(new_state_dict.keys()) - allowed_fields
-            if extra_fields:
-                raise ValidationFieldError(
-                    f"Aspect {aspect_meta.method_name} returned extra fields: "
-                    f"{extra_fields}. Allowed only: {allowed_fields}"
+
+        def _append_checker_rejected_frame() -> None:
+            if not runtime.has_compensators:
+                return
+            saga_stack.append(
+                SagaFrame(
+                    compensator=runtime.compensators_by_aspect.get(
+                        aspect_meta.method_name,
+                    ),
+                    aspect_name=aspect_meta.method_name,
+                    state_before=state_before,
+                    state_after=None,
                 )
-            self._apply_checkers(checkers, new_state_dict)
+            )
+
+        try:
+            if not checkers and new_state_dict:
+                raise ValidationFieldError(
+                    f"Aspect {aspect_meta.method_name} has no checkers, "
+                    f"but returned non-empty state: {new_state_dict}. "
+                    f"Either add checkers for all fields, or return an empty dict."
+                )
+            if checkers:
+                allowed_fields = {c.field_name for c in checkers}
+                extra_fields = set(new_state_dict.keys()) - allowed_fields
+                if extra_fields:
+                    raise ValidationFieldError(
+                        f"Aspect {aspect_meta.method_name} returned extra fields: "
+                        f"{extra_fields}. Allowed only: {allowed_fields}"
+                    )
+                self._apply_checkers(checkers, new_state_dict)
+        except ValidationFieldError:
+            _append_checker_rejected_frame()
+            raise
 
         merged_state = BaseState(**{**state.to_dict(), **new_state_dict})
         if runtime.has_compensators:

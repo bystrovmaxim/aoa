@@ -605,8 +605,9 @@ class ActionProductMachine(BaseActionMachine):
     ) -> R:
         """Aspect pipeline: regular + summary; on error, saga then ``@on_error``.
 
-        ``saga_stack`` is created before ``try`` so ``except`` sees frames from aspects
-        that completed before the failure.
+        ``saga_stack`` is created before ``try`` so ``except`` sees frames for aspects
+        whose ``call()`` finished before the failure (including checker rejection
+        after ``call()`` returned).
 
         ``@on_error`` receives the ``BaseState`` that was passed into the failing
         regular or summary step (``execute_regular`` / ``execute_summary`` input), or

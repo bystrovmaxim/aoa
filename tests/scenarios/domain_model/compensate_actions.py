@@ -22,6 +22,8 @@ SCENARIOS
 - `SecondRegularFailsOnErrorAction` — second regular fails; state only from the first step.
 - `SummaryFailsOnErrorStateAction` — summary fails after regular; `@on_error` sees state.
 - `CompensateWithContextAction` — `@context_requires` in compensator.
+- `CheckerRejectionSagaAction` — second regular aspect fails checkers after
+  `call()`; both compensators run (second first, `state_after=None` on second).
 
 ═══════════════════════════════════════════════════════════════════════════════
 LIMITATIONS
@@ -52,7 +54,7 @@ from action_machine.resources.base_resource_manager import BaseResourceManager
 from action_machine.runtime.tools_box import ToolsBox
 
 from .domains import OrdersDomain
-from .services import InventoryService, PaymentService
+from .services import InventoryService, PaymentService, SagaCompensateTraceService
 
 # ═════════════════════════════════════════════════════════════════════════════
 # Shared Params / Result for compensating Actions
@@ -799,6 +801,92 @@ class SummaryFailsOnErrorStateAction(
                 f"err={error!s}"
             ),
         )
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# CheckerRejectionSagaAction — checker failure still registers saga frame
+# ═════════════════════════════════════════════════════════════════════════════
+
+
+@meta(
+    description="Two aspects: first succeeds; second fails result checkers",
+    domain=OrdersDomain,
+)
+@check_roles(NoneRole)
+@depends(PaymentService, description="Payment processing service")
+@depends(SagaCompensateTraceService, description="Test trace for second compensator")
+class CheckerRejectionSagaAction(
+    BaseAction[CompensateTestParams, CompensateTestResult],
+):
+    """
+    First aspect charges payment; second returns a dict that fails ``min_length``.
+
+    Used to assert that a ``SagaFrame`` with ``state_after=None`` is pushed for
+    the second aspect and its compensator runs before the first aspect's
+    compensator.
+    """
+
+    @regular_aspect("First step — charge")
+    @result_string("txn_id", required=True, min_length=1)
+    async def first_aspect(
+        self,
+        params: CompensateTestParams,
+        state: BaseState,
+        box: ToolsBox,
+        connections: dict[str, BaseResourceManager],
+    ) -> dict[str, Any]:
+        payment = box.resolve(PaymentService)
+        txn_id = await payment.charge(params.amount, "RUB")
+        return {"txn_id": txn_id}
+
+    @compensate("first_aspect", "Rollback first — refund")
+    async def rollback_first_aspect_compensate(
+        self,
+        params: CompensateTestParams,
+        state_before: BaseState,
+        state_after: BaseState | None,
+        box: ToolsBox,
+        connections: dict[str, BaseResourceManager],
+        error: Exception,
+    ) -> None:
+        if state_after is None:
+            return
+        payment = box.resolve(PaymentService)
+        await payment.refund(state_after["txn_id"])
+
+    @regular_aspect("Second step — invalid token length")
+    @result_string("token", required=True, min_length=5)
+    async def second_aspect(
+        self,
+        params: CompensateTestParams,
+        state: BaseState,
+        box: ToolsBox,
+        connections: dict[str, BaseResourceManager],
+    ) -> dict[str, Any]:
+        return {"token": "bad"}
+
+    @compensate("second_aspect", "Rollback second — trace only")
+    async def rollback_second_aspect_compensate(
+        self,
+        params: CompensateTestParams,
+        state_before: BaseState,
+        state_after: BaseState | None,
+        box: ToolsBox,
+        connections: dict[str, BaseResourceManager],
+        error: Exception,
+    ) -> None:
+        trace = box.resolve(SagaCompensateTraceService)
+        await trace.record_second_rollback(state_after_none=(state_after is None))
+
+    @summary_aspect("Unreachable summary")
+    async def build_result_summary(
+        self,
+        params: CompensateTestParams,
+        state: BaseState,
+        box: ToolsBox,
+        connections: dict[str, BaseResourceManager],
+    ) -> CompensateTestResult:
+        return CompensateTestResult(status="ok")
 
 
 # ═════════════════════════════════════════════════════════════════════════════
