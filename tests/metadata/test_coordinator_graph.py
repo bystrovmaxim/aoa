@@ -29,8 +29,9 @@ TestCoordinatorBasic — базовое API координатора.
 ФАСЕТНЫЙ ГРАФ И ФИЛЬТРАЦИЯ В ТЕСТАХ
 ═══════════════════════════════════════════════════════════════════════════════
 
-Граф строится из ``FacetPayload`` инспекторов: тип узла + имя + ``class_ref`` +
-``meta``. Узел ``action`` (структурный) появляется только у классов с
+Граф строится из ``FacetPayload`` инспекторов: в ``rustworkx`` — тип узла, имя,
+``class_ref``; тело фасета в снимках, ``get_node`` / ``hydrate_graph_node``
+подмешивают ``meta``. Узел ``action`` (структурный) появляется только у классов с
 ``@depends`` и/или ``@connection`` (два инспектора, узел ``action`` сливается
 в координаторе), иначе
 остаются ``meta``, ``role``, ``aspect``, ``compensator`` и т.д. Подписки плагина
@@ -100,10 +101,11 @@ def _dependency_tree(coord: GateCoordinator, key: str | type) -> dict[str, Any]:
 
     def build(idx: int, visited: set[int]) -> dict[str, Any]:
         payload = g[idx]
+        hp = coord.hydrate_graph_node(dict(payload))
         node_result: dict[str, Any] = {
-            "node_type": payload["node_type"],
-            "name": payload["name"],
-            "meta": dict(payload.get("meta", {})),
+            "node_type": hp["node_type"],
+            "name": hp["name"],
+            "meta": dict(hp.get("meta", {})),
             "children": [],
         }
         if idx in visited:
@@ -447,7 +449,7 @@ class TestCompensatorNodes:
             n for n in nodes if n["class_ref"] is _ActionWithCompensatorGraphAction
         )
         entry_meta = dict(node["meta"]).get("compensators", ())
-        assert any(e[0] == "rollback_step_compensate" for e in entry_meta)
+        assert any(dict(e)["method_name"] == "rollback_step_compensate" for e in entry_meta)
 
 
 # ═════════════════════════════════════════════════════════════════════════════

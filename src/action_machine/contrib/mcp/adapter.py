@@ -231,9 +231,10 @@ def _build_graph_json(coordinator: GateCoordinator) -> str:
 
     for idx in graph.node_indices():
         payload = graph[idx]
-        node_type = payload.get("node_type", "unknown")
-        name = payload.get("name", "")
-        meta = payload.get("meta", {})
+        hydrated = coordinator.hydrate_graph_node(dict(payload))
+        node_type = hydrated.get("node_type", "unknown")
+        name = hydrated.get("name", "")
+        meta = hydrated.get("meta", {})
 
         node: dict[str, Any] = {
             "id": name,
@@ -266,11 +267,23 @@ def _build_graph_json(coordinator: GateCoordinator) -> str:
         source_payload = graph[source]
         target_payload = graph[target]
 
-        edge_type = edge_data if isinstance(edge_data, str) else str(edge_data)
+        if isinstance(edge_data, dict):
+            edge_type = edge_data.get("edge_type", "")
+        elif isinstance(edge_data, str):
+            edge_type = edge_data
+        else:
+            edge_type = str(edge_data)
+
+        nt_s = source_payload.get("node_type", "")
+        nm_s = source_payload.get("name", "")
+        nt_t = target_payload.get("node_type", "")
+        nm_t = target_payload.get("name", "")
 
         edges.append({
-            "from": source_payload.get("name", ""),
-            "to": target_payload.get("name", ""),
+            "from": nm_s,
+            "to": nm_t,
+            "source_key": f"{nt_s}:{nm_s}",
+            "target_key": f"{nt_t}:{nm_t}",
             "type": edge_type,
         })
 

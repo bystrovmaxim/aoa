@@ -13,7 +13,7 @@ build-backend = "hatchling.build"
 # ============================================================================
 [project]
 name = "action-machine"
-version = "0.1.0"
+version = "0.10.0"
 description = "Intent-first business logic framework with metadata-driven actions, role-based access control, and adapter layer for FastAPI/MCP."
 readme = "README.md"
 license = { text = "MIT" }

@@ -579,7 +579,8 @@ pip install action-machine
 |--------|--------|
 | **Intent** | Маркерный миксин в MRO класса: тип **заявляет** участие в фрагменте грамматики (`RoleIntent` → `@check_roles`, `DependencyIntent` → `@depends`, …). Фреймворк проверяет согласованность деклараций при **`GateCoordinator.build()`**. |
 | **IntentInspector** | Подкласс `BaseIntentInspector`, регистрируемый в координаторе; обходит носителей соответствующего Intent и строит узлы и рёбра графа метаданных. |
-| **GateCoordinator** | Компонент, который после `register(...).build()` фиксирует граф фасетов и типизированные снимки; имя класса сохранено намеренно (не «IntentCoordinator»). |
+| **GateCoordinator** | После `register(...).build()` фиксирует граф фасетов (`rustworkx`: на узле только `node_type`, `name`, `class_ref`) и карту типизированных **снимков** (`get_snapshot(cls, facet_key)`). Тело фасета в снимках; `get_node` / `hydrate_graph_node` подмешивают `meta`. Сырой `get_graph()` — низкоуровневый обход без `meta`. |
+| **Ключ снимка / гидратация** | Координатор при `build()` связывает узел графа (`node_type:name`) с ключом `facet_snapshot_storage_key()` инспектора; при конфликте (слитый `action`: `depends` и `connections`) единого `meta` на узле нет. Заглушки без снимка — fallback на `get_snapshot(cls, node_type)` (кроме `action`). |
 | **Декоратор** | Конструкция уровня класса или метода, которая при импорте записывает **scratch** и проверяет `issubclass(..., нужный Intent)`. |
 | **Scratch** | Атрибуты на классе или методе (`_meta_info`, `_role_info`, `_new_aspect_meta`, …), которые заполняет декоратор и которые читает инспектор при сборке графа. |
 

@@ -10,8 +10,9 @@
 фасетов: **один** узел ``compensator`` на класс ``BaseAction``, независимо от
 числа методов отката. Имя узла — ``module.QualName`` **класса действия**, а не
 имени метода; детализация по каждому компенсатору — в ``meta.compensators`` как
-кортеж записей ``(method_name, target_aspect_name, description, callable,
-context_keys_frozenset)``.
+кортеж записей — каждая запись ``tuple[tuple[str, Any], ...]`` (пары ключ/значение,
+как ``_make_meta``): ``method_name``, ``target_aspect_name``, ``description``,
+``method_ref``, ``context_keys``.
 
 ═══════════════════════════════════════════════════════════════════════════════
 АРХИТЕКТУРНОЕ РЕШЕНИЕ (почему нет has_compensator в дереве)
@@ -22,7 +23,7 @@ context_keys_frozenset)``.
 рёбрами к ``context_field``. В фасетной сборке **рёбра из payload компенсатора
 пусты** (``edges=()``): связь «этот класс содержит компенсаторы» выражается
 фактом наличия узла с тем же ``class_ref``, а ``@context_requires`` на методе
-отката отражается **внутри** пятого элемента кортежа, без отдельного подграфа
+отката отражается **внутри** поля ``context_keys`` записи, без отдельного подграфа
 контекста. Это упрощает коммит графа и устраняет дублирование с runtime metadata,
 где те же данные уже есть для машины саги.
 
@@ -158,9 +159,9 @@ class TestCompensatorGraphNodes:
         assert node["node_type"] == "compensator"
         assert ActionWithCompensatorAction.__qualname__ in node["name"]
         compensators = dict(node["meta"])["compensators"]
-        row = next(c for c in compensators if c[0] == "rollback_compensate")
-        assert row[1] == "target_aspect"
-        assert row[2] == "Тестовый компенсатор"
+        row = dict(next(c for c in compensators if dict(c)["method_name"] == "rollback_compensate"))
+        assert row["target_aspect_name"] == "target_aspect"
+        assert row["description"] == "Тестовый компенсатор"
 
     def test_get_nodes_by_type_returns_all_compensators(self) -> None:
         """
@@ -179,16 +180,16 @@ class TestCompensatorGraphNodes:
 
     def test_compensator_node_metadata(self) -> None:
         """
-        meta.compensators хранит (method, target_aspect, description, func, context_keys).
+        meta.compensators хранит записи с ключами method_name, target_aspect_name, …
         """
         coordinator = _coordinator()
 
         nodes = _compensator_nodes_for(coordinator, ActionWithCompensatorAction)
         meta = dict(nodes[0]["meta"])
         rows = meta["compensators"]
-        row = next(r for r in rows if r[0] == "rollback_compensate")
-        assert row[1] == "target_aspect"
-        assert row[2] == "Тестовый компенсатор"
+        row = dict(next(r for r in rows if dict(r)["method_name"] == "rollback_compensate"))
+        assert row["target_aspect_name"] == "target_aspect"
+        assert row["description"] == "Тестовый компенсатор"
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -218,26 +219,28 @@ class TestCompensatorGraphEdges:
 
     def test_requires_context_edge_for_compensator(self) -> None:
         """
-        Ключи @context_requires попадают в meta.compensators (пятый элемент кортежа).
+        Ключи @context_requires попадают в meta.compensators (поле context_keys).
         """
         coordinator = _coordinator()
 
         comp_nodes = _compensator_nodes_for(coordinator, ActionWithContextCompensatorAction)
         assert len(comp_nodes) == 1
         rows: tuple = dict(comp_nodes[0]["meta"])["compensators"]
-        row = next(r for r in rows if r[0] == "rollback_with_context_compensate")
-        assert Ctx.User.user_id in row[4]
+        row = dict(next(r for r in rows if dict(r)["method_name"] == "rollback_with_context_compensate"))
+        assert Ctx.User.user_id in row["context_keys"]
 
     def test_compensator_without_context_no_requires_context_edge(self) -> None:
         """У компенсатора без @context_requires пустой frozenset контекста."""
         coordinator = _coordinator()
 
         comp_nodes = _compensator_nodes_for(coordinator, ActionWithCompensatorAction)
-        row = next(
-            r for r in dict(comp_nodes[0]["meta"])["compensators"]
-            if r[0] == "rollback_compensate"
+        row = dict(
+            next(
+                r for r in dict(comp_nodes[0]["meta"])["compensators"]
+                if dict(r)["method_name"] == "rollback_compensate"
+            ),
         )
-        assert row[4] == frozenset()
+        assert row["context_keys"] == frozenset()
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -267,8 +270,10 @@ class TestCompensatorInDependencyTree:
         coordinator = _coordinator()
 
         node = _compensator_nodes_for(coordinator, ActionWithContextCompensatorAction)[0]
-        row = next(
-            r for r in dict(node["meta"])["compensators"]
-            if r[0] == "rollback_with_context_compensate"
+        row = dict(
+            next(
+                r for r in dict(node["meta"])["compensators"]
+                if dict(r)["method_name"] == "rollback_with_context_compensate"
+            ),
         )
-        assert Ctx.User.user_id in row[4]
+        assert Ctx.User.user_id in row["context_keys"]

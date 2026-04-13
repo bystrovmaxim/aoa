@@ -102,6 +102,20 @@ The coordinator class name **`GateCoordinator`** is unchanged.
 - **`extract_action_params_result_types`** lives in ``action_machine.core.action_generic_params`` (single place for generic extraction).
 - **Validation API:** removed ``validate_described_fields(action_cls, params_fields, result_fields)``. Use ``validate_described_schema(model_cls | None)`` for one schema, or ``validate_described_schemas_for_action(action_cls)`` to validate both ``P`` and ``R`` after resolving them from the action class.
 
+### BREAKING (GateCoordinator rustworkx nodes)
+
+- **`GateCoordinator.get_graph()` node dicts** store only ``node_type``, ``name``, and ``class_ref``. Facet wire ``meta`` is not duplicated on the graph node. Use ``hydrate_graph_node(dict(graph[idx]))`` or ``get_node`` / ``get_nodes_by_type`` / ``get_nodes_for_class``.
+
+### Added (GateCoordinator hydration)
+
+- **`GateCoordinator.hydrate_graph_node`** rebuilds ``meta`` from facet snapshots. Phase 1 registers each graph key’s snapshot storage key from ``facet_snapshot_storage_key()``; two different keys on the same merged structural ``action`` node (``depends`` + ``connections``) yield empty hydrated ``meta``. Unregistered stub nodes fall back to ``get_snapshot(cls, node_type)`` (except ``action``).
+- **MCP system graph JSON:** edges include ``source_key`` and ``target_key`` (``node_type:name``); ``type`` is the string ``edge_type`` from edge payloads.
+- **Tests:** ``tests/metadata/test_graph_skeleton_and_hydrate.py``, ``tests/metadata/test_graph_execution_adapters.py``; MCP graph JSON coverage in ``tests/adapters/mcp/test_mcp_handler.py``.
+
+### Changed (docs — coordinator graph)
+
+- **README / README-2 glossary:** clarify skeleton graph nodes, snapshots, and hydration.
+
 ### BREAKING (facet snapshots)
 
 - **``get_snapshot(SomeAction, "described_fields")`` is removed.** Described-field snapshots are stored per schema class: ``get_snapshot(OrderParams, "described_fields")``, ``get_snapshot(OrderResult, "described_fields")``. Use ``get_snapshot(SomeAction, "action_schemas")`` for the action’s resolved ``P``/``R`` types and graph linkage.

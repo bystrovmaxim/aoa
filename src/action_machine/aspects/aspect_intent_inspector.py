@@ -144,12 +144,12 @@ class AspectIntentInspector(BaseIntentInspector):
         def to_facet_payload(self) -> FacetPayload:
             """Project snapshot into a coordinator ``FacetPayload`` node."""
             entries = tuple(
-                (
-                    a.aspect_type,
-                    a.method_name,
-                    a.description,
-                    a.method_ref,
-                    a.context_keys,
+                AspectIntentInspector._make_meta(
+                    aspect_type=a.aspect_type,
+                    method_name=a.method_name,
+                    description=a.description,
+                    method_ref=a.method_ref,
+                    context_keys=a.context_keys,
                 )
                 for a in self.aspects
             )

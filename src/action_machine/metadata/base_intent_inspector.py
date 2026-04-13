@@ -421,6 +421,10 @@ class BaseIntentInspector(ABC):
 
             cls._make_meta(spec=AdminRole, description="Administrator")
             → (("spec", AdminRole), ("description", "Administrator"))
+
+        The same shape can be reused for **each row** inside a larger metadata
+        value (tuple of rows): every row is ``tuple[tuple[str, Any], ...]``,
+        hashable and readable via ``dict(row)``.
         """
         return tuple(kwargs.items())
 

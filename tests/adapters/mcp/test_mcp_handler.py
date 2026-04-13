@@ -20,7 +20,8 @@ Scenarios covered:
     - _serialize_result with response_mapper applies the mapper.
     - _serialize_result with non-pydantic object uses default serializer.
     - _class_name_to_snake_case edge cases.
-    - _build_graph_json returns valid JSON with nodes and edges.
+    - _build_graph_json returns valid JSON with nodes and edges; hydrated meta
+      (description/domain); edges with source_key/target_key and string type.
     - Handler with params_mapper transforms input before execution.
     - Handler with response_mapper transforms output after execution.
     - Bad params_mapper / response_mapper types → INTERNAL_ERROR with guard message.
@@ -429,3 +430,36 @@ class TestBuildGraphJson:
         node_ids = [n.get("id", "") for n in parsed["nodes"]]
         has_ping = any("Ping" in nid for nid in node_ids)
         assert has_ping, f"No PingAction node found in: {node_ids}"
+
+    def test_meta_node_has_description_and_domain_from_snapshots(self) -> None:
+        """После скелетных узлов MCP JSON тянет описание/домен из гидратации."""
+        coordinator = CoreActionMachine.create_coordinator()
+        machine = ActionProductMachine(mode="test", coordinator=coordinator)
+
+        json_str = _build_graph_json(machine.gate_coordinator)
+        parsed = json.loads(json_str)
+
+        meta_nodes = [n for n in parsed["nodes"] if n.get("type") == "meta"]
+        ping_meta = next(
+            (n for n in meta_nodes if "PingAction" in n.get("id", "")),
+            None,
+        )
+        assert ping_meta is not None
+        assert ping_meta.get("description") == "Service health check"
+        assert ping_meta.get("domain") == "tests.domain_model.domains.SystemDomain"
+
+    def test_edges_include_source_and_target_keys_and_string_type(self) -> None:
+        """Рёбра: явные ``source_key`` / ``target_key`` и строковый ``type`` (не str(dict))."""
+        coordinator = CoreActionMachine.create_coordinator()
+        machine = ActionProductMachine(mode="test", coordinator=coordinator)
+
+        json_str = _build_graph_json(machine.gate_coordinator)
+        parsed = json.loads(json_str)
+
+        assert parsed["edges"]
+        for e in parsed["edges"]:
+            assert "source_key" in e and "target_key" in e
+            assert e["source_key"].count(":") >= 1
+            assert e["target_key"].count(":") >= 1
+            assert isinstance(e.get("type"), str)
+            assert not e["type"].startswith("{")

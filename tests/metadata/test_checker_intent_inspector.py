@@ -31,9 +31,9 @@ def test_checker_inspector_builds_payload_with_checker_entries() -> None:
     checkers = data["checkers"]
     assert len(checkers) == 1
 
-    method_name, checker_class, field_name, required, extra = checkers[0]
-    assert method_name == "validate_name_aspect"
-    assert checker_class is not None
-    assert field_name == "name"
-    assert required is True
-    assert ("min_length", 2) in extra
+    row = dict(checkers[0])
+    assert row["method_name"] == "validate_name_aspect"
+    assert row["checker_class"] is not None
+    assert row["field_name"] == "name"
+    assert row["required"] is True
+    assert ("min_length", 2) in row["extra_params"]

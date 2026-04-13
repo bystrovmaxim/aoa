@@ -136,12 +136,12 @@ class CompensateIntentInspector(BaseIntentInspector):
         def to_facet_payload(self) -> FacetPayload:
             """Project snapshot into coordinator ``FacetPayload``."""
             entries = tuple(
-                (
-                    c.method_name,
-                    c.target_aspect_name,
-                    c.description,
-                    c.method_ref,
-                    c.context_keys,
+                CompensateIntentInspector._make_meta(
+                    method_name=c.method_name,
+                    target_aspect_name=c.target_aspect_name,
+                    description=c.description,
+                    method_ref=c.method_ref,
+                    context_keys=c.context_keys,
                 )
                 for c in self.compensators
             )

@@ -14,14 +14,26 @@ Registry for **static** metadata: registered **inspectors** (subclasses of
 After a successful ``register(...).build()``:
 
 1. **Facet graph** (``rx.PyDiGraph``) — committed nodes and edges from payloads.
-   Used for traversal, MCP ``system://graph``, and structural cycle checks.
+   Each node stores only ``node_type``, ``name``, and ``class_ref`` (topology).
+   Facet body is **not** duplicated on the node; use ``hydrate_graph_node()`` on
+   raw graph dicts or the read APIs below, which attach ``meta`` from snapshots.
 
 2. **Facet snapshot map** (``_facet_snapshots``) — optional typed views keyed by
    ``(owner class, facet storage key)``. Read via ``get_snapshot(cls, facet_key)``.
 
 **Public API (domain-agnostic):** ``register``, ``build``, ``is_built``,
 ``build_status``, ``graph_node_count``, ``graph_edge_count``, ``get_graph``,
-``get_node``, ``get_nodes_by_type``, ``get_nodes_for_class``, ``get_snapshot``.
+``hydrate_graph_node``, ``get_node``, ``get_nodes_by_type``,
+``get_nodes_for_class``, ``get_snapshot``.
+
+**Raw graph vs hydrated reads:** ``get_graph()`` returns an ``rx.PyDiGraph``
+copy whose node payloads are **skeleton** records only (no ``meta``). Prefer
+``get_node`` / ``get_nodes_by_type`` / ``get_nodes_for_class`` for facet ``meta``,
+or call ``hydrate_graph_node(dict(graph[idx]))``. Snapshot storage keys for
+hydration are recorded during phase 1 from each inspector's
+``facet_snapshot_storage_key()``; if two keys target the same graph node (merged
+``action``), ``meta`` stays empty. Nodes without a registration (stubs) fall
+back to ``get_snapshot(cls, node_type)`` unless ``node_type`` is ``action``.
 
 Dependency ``DependencyFactory`` instances may be cached on this object under
 ``dependency_factory.DEPENDENCY_FACTORY_CACHE_KEY``; clearing that cache does
@@ -71,9 +83,9 @@ The graph is either built completely and consistently, or not committed at all.
         as ``CyclicDependencyError``.
 
     PHASE 3 — COMMIT
-        Nodes and edges into ``rx.PyDiGraph``; ``_node_index`` /
-        ``_class_index`` populated; ``_built = True``. The graph is read-only
-        afterward.
+        Nodes and edges into ``rx.PyDiGraph`` (node payload: ``node_type``,
+        ``name``, ``class_ref`` only); ``_node_index`` / ``_class_index``
+        populated; ``_built = True``. The graph is read-only afterward.
 
 ═══════════════════════════════════════════════════════════════════════════════
 WHERE VALIDATION LIVES
@@ -117,6 +129,7 @@ pre-registered and built coordinator.
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from typing import Any, Literal
 
 import rustworkx as rx
@@ -131,6 +144,13 @@ from action_machine.metadata.exceptions import (
     PayloadValidationError,
 )
 from action_machine.metadata.payload import FacetPayload
+
+
+class _AmbiguousHydrationKey:
+    """More than one snapshot storage key targets the same graph node key."""
+
+
+_AMBIGUOUS_HYDRATION_KEY = _AmbiguousHydrationKey()
 
 
 class GateCoordinator:
@@ -148,8 +168,9 @@ class GateCoordinator:
             Set of registered inspectors (duplicate registration guard).
 
         _graph : rx.PyDiGraph
-            Directed system graph. Filled at commit (phase 3). Read-only after
-            ``build()``.
+            Directed system graph. Filled at commit (phase 3). Node payloads are
+            skeleton dicts (``node_type``, ``name``, ``class_ref``); facet
+            ``meta`` lives in ``_facet_snapshots``. Read-only after ``build()``.
 
         _node_index : dict[str, int]
             Node key → graph index. Populated at commit.
@@ -166,6 +187,11 @@ class GateCoordinator:
             ``facet_key`` comes from ``facet_snapshot_storage_key()`` (e.g.
             ``"role"``, ``"role_mode"``, ``"role_class"``, ``"depends"``), filled
             when ``inspector.facet_snapshot_for_class()`` is non-``None``.
+
+        _hydration_snapshot_key_by_graph_key : dict[str, str | _AmbiguousHydrationKey]
+            Graph key ``node_type:node_name`` → snapshot storage key used to
+            rebuild ``meta``, or ``_AMBIGUOUS_HYDRATION_KEY`` when several keys
+            conflict. Filled during phase 1; cleared at each ``build()`` start.
     """
 
     def __init__(self) -> None:
@@ -177,6 +203,9 @@ class GateCoordinator:
         self._class_index: dict[type, list[str]] = {}
         self._built: bool = False
         self._facet_snapshots: dict[tuple[type, str], BaseFacetSnapshot] = {}
+        self._hydration_snapshot_key_by_graph_key: dict[
+            str, str | _AmbiguousHydrationKey,
+        ] = {}
 
     def _require_built(self) -> None:
         """Fail-fast guard: coordinator must be explicitly built before reads."""
@@ -259,6 +288,7 @@ class GateCoordinator:
             )
 
         self._facet_snapshots.clear()
+        self._hydration_snapshot_key_by_graph_key.clear()
         all_payloads, payload_sources = self._phase1_collect()
         all_payloads = self._materialize_edge_targets(all_payloads, payload_sources)
         self._phase2_check_payloads(all_payloads)
@@ -311,6 +341,8 @@ class GateCoordinator:
                 if snap is not None:
                     sk = inspector_cls.facet_snapshot_storage_key(target_cls, payload)
                     self._facet_snapshots[(target_cls, sk)] = snap
+                    gk_snap = self._make_key(payload.node_type, payload.node_name)
+                    self._register_hydration_snapshot_key(gk_snap, sk)
 
                 key = self._make_key(payload.node_type, payload.node_name)
 
@@ -543,7 +575,6 @@ class GateCoordinator:
                 "node_type": p.node_type,
                 "name": p.node_name,
                 "class_ref": p.node_class,
-                "meta": dict(p.node_meta),
             })
             self._node_index[key] = idx
 
@@ -595,6 +626,68 @@ class GateCoordinator:
             node_meta=first.node_meta,
             edges=first.edges + second.edges,
         )
+
+    def _register_hydration_snapshot_key(
+        self,
+        graph_key: str,
+        storage_key: str,
+    ) -> None:
+        """
+        Record which snapshot storage key hydrates a graph node.
+
+        Same graph node receiving two different keys (e.g. merged ``action`` from
+        ``depends`` and ``connections``) marks the entry ambiguous.
+        """
+        d = self._hydration_snapshot_key_by_graph_key
+        if graph_key not in d:
+            d[graph_key] = storage_key
+            return
+        current = d[graph_key]
+        if current is _AMBIGUOUS_HYDRATION_KEY:
+            return
+        if current == storage_key:
+            return
+        d[graph_key] = _AMBIGUOUS_HYDRATION_KEY
+
+    def hydrate_graph_node(self, node: Mapping[str, Any]) -> dict[str, Any]:
+        """
+        Return a node dict with ``meta`` filled from facet snapshots.
+
+        ``get_graph()`` returns a copy whose payloads omit ``meta``; this method
+        resolves the snapshot storage key from phase-1 registration (or falls
+        back to ``node_type`` for nodes that never registered a snapshot, except
+        ``action``) and fills ``meta`` via ``to_facet_payload().node_meta``.
+
+        Args:
+            node: Raw payload from ``rx.PyDiGraph`` (or compatible mapping).
+
+        Returns:
+            Shallow copy of ``node`` plus ``meta`` (possibly empty).
+        """
+        self._require_built()
+        raw = dict(node)
+        nt = raw.get("node_type", "")
+        nm = raw.get("name", "")
+        cr = raw.get("class_ref")
+        gk = self._make_key(nt, nm)
+        meta: dict[str, Any] = {}
+
+        mapped = self._hydration_snapshot_key_by_graph_key.get(gk)
+        if mapped is _AMBIGUOUS_HYDRATION_KEY:
+            sk: str | None = None
+        elif isinstance(mapped, str):
+            sk = mapped
+        elif nt == "action":
+            sk = None
+        else:
+            sk = nt
+
+        if sk is not None and isinstance(cr, type):
+            snap = self.get_snapshot(cr, sk)
+            if snap is not None:
+                meta = dict(snap.to_facet_payload().node_meta)
+        raw["meta"] = meta
+        return raw
 
     @staticmethod
     def _make_key(node_type: str, name: str) -> str:
@@ -664,7 +757,7 @@ class GateCoordinator:
         idx = self._node_index.get(key)
         if idx is None:
             return None
-        return dict(self._graph[idx])
+        return self.hydrate_graph_node(self._graph[idx])
 
     def get_nodes_by_type(self, node_type: str) -> list[dict[str, Any]]:
         """
@@ -678,7 +771,7 @@ class GateCoordinator:
         """
         self._require_built()
         return [
-            dict(self._graph[idx])
+            self.hydrate_graph_node(self._graph[idx])
             for idx in self._graph.node_indices()
             if self._graph[idx].get("node_type") == node_type
         ]
@@ -702,14 +795,19 @@ class GateCoordinator:
         for key in keys:
             idx = self._node_index.get(key)
             if idx is not None:
-                result.append(dict(self._graph[idx]))
+                result.append(self.hydrate_graph_node(self._graph[idx]))
         return result
 
     def get_graph(self) -> rx.PyDiGraph:
         """
-        Return a copy of the graph.
+        Return a **low-level** copy of the graph (topology + skeleton nodes).
 
         Copying prevents external code from mutating the coordinator's graph.
+        Node payloads are **skeleton** records (``node_type``, ``name``,
+        ``class_ref``) with **no** ``meta``. For the same topology with facet
+        wire data, use :meth:`get_node`, :meth:`get_nodes_by_type`,
+        :meth:`get_nodes_for_class`, or :meth:`hydrate_graph_node` on each raw
+        payload.
 
         Returns:
             ``rx.PyDiGraph`` clone.
