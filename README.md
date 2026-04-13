@@ -599,7 +599,7 @@ pip install action-machine
 | Место | Назначение |
 |--------|------------|
 | `tests/bench/` | Сквозной контур **`TestBench`**: одна и та же операция на async/sync машинах, сравнение результатов. Общие действия — в `tests/scenarios/domain_model/`, фикстуры — в `tests/conftest.py`. |
-| `tests/<слой>/test_*_performance.py` | Узкий SUT (один модуль), например `tests/model/test_navigation_performance.py` — пороги по `time.perf_counter()` с запасом к медиане локально (в CI допускается ×2 к локальному порогу или отдельный job). |
+| `tests/<слой>/test_*_performance.py` | Узкий SUT (один модуль): `tests/model/test_navigation_performance.py` (`resolve` / `substitute`), `tests/graph/test_gate_coordinator_performance.py` (холодный `GateCoordinator.register().build()`). Пороги по `time.perf_counter()` с запасом к медиане локально (в CI — ×2 или отдельный job). |
 | `tests/scenarios/**/test_bench_*.py` | Сценарии уровня рантайма/графа, где нужен полный координатор; не плодить третье место — либо сюда, либо в `tests/bench/`, по смыслу. |
 
 **Как запускать:**
@@ -611,6 +611,9 @@ uv run pytest tests/
 # только пакет TestBench
 uv run pytest tests/bench/
 
+# только тесты с маркером benchmark (навигация по state, сборка графа, …)
+uv run pytest tests/ -m benchmark
+
 # когда появятся тесты с маркером slow — быстрый цикл без них
 uv run pytest tests/ -m "not slow"
 ```
@@ -620,9 +623,9 @@ uv run pytest tests/ -m "not slow"
 - **`slow`** — долгие или чувствительные к окружению прогоны; в дневном цикле
   можно снимать через `-m "not slow"`. Новые тяжёлые тесты помечайте им.
 - **`integration`** — внешние сервисы; по необходимости отдельный job.
-- **`benchmark`** — явная метка регрессионных порогов по времени/объёму
-  (резерв под выборочный запуск; при добавлении тестов с этим маркером
-  согласуйте политику CI).
+- **`benchmark`** — регрессионные пороги по времени/объёму; выборочный запуск:
+  `pytest -m benchmark` (см. `tests/model/test_navigation_performance.py`,
+  `tests/graph/test_gate_coordinator_performance.py`).
 
 Пороги в миллисекундах в репозитории **не должны быть хрупкими**: закладывайте
 запас относительно медианы на типовой машине разработчика; для ночных прогонов
