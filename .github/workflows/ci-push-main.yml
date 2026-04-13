@@ -1,0 +1,18 @@
+# Same checks after merge / direct push to main. Do not add this to branch protection
+# (optional signal only); merge is gated by merge-gate.yml on pull_request.
+
+name: CI main branch
+
+on:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-push-main-${{ github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: checks
+    uses: ./.github/workflows/ci-reusable.yml
+    secrets: inherit

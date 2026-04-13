@@ -1,0 +1,19 @@
+# Required for merging PRs into main. Branch protection: require
+#   Merge gate / merge-gate (pull_request)
+# (exact string from the PR “Checks” tab after this workflow runs once).
+
+name: Merge gate
+
+on:
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: merge-gate-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  merge-gate:
+    name: merge-gate
+    uses: ./.github/workflows/ci-reusable.yml
+    secrets: inherit
