@@ -41,6 +41,29 @@ class TestBaseRoleValidation:
                 name = "x"
                 description = "y"
 
+    def test_child_may_inherit_name_from_intermediate_role(self) -> None:
+        class MiddleRole(BaseRole):
+            name = "mid"
+            description = "mid"
+
+        class LeafRole(MiddleRole):
+            description = "leaf"
+
+        assert LeafRole.name == "mid"
+        assert LeafRole.description == "leaf"
+
+    def test_name_must_be_str(self) -> None:
+        with pytest.raises(TypeError, match="name"):
+            class BadRole(BaseRole):  # type: ignore[misc]
+                name = 1  # type: ignore[misc]
+                description = "d"
+
+    def test_name_cannot_be_whitespace_only(self) -> None:
+        with pytest.raises(ValueError, match="empty"):
+            class BadRole(BaseRole):  # type: ignore[misc]
+                name = "   "
+                description = "d"
+
 
 @role_mode(RoleMode.ALIVE)
 class _ViewerRole(BaseRole):
