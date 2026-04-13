@@ -46,16 +46,19 @@ EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
 Happy path:
-- ``create(...)`` returns a fully configured ``ToolsBox`` for one run scope.
+    ``create(...)`` returns a fully configured ``ToolsBox`` for one execution
+    scope with logger, dependencies, and resources wired.
 
 Edge case:
-- Nested ``run_child`` callback receives same ``rollup`` value as parent run.
+    Nested ``run_child`` callback receives the same ``rollup`` value as parent
+    run scope, preserving rollback semantics.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ERRORS / LIMITATIONS
 ═══════════════════════════════════════════════════════════════════════════════
 
-Propagates dependency resolution errors from ``dependency_factory_for``.
+Propagates dependency resolution errors from
+``factory_resolver.dependency_factory_for``.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN

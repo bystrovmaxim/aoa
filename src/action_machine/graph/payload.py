@@ -103,6 +103,32 @@ LIFECYCLE EXAMPLE
     #    ``hydrate_graph_node`` attach ``meta`` from the matching snapshot.
 
     # 5. Payload objects are discarded. The graph is the source of truth.
+
+═══════════════════════════════════════════════════════════════════════════════
+INVARIANTS
+═══════════════════════════════════════════════════════════════════════════════
+
+- ``EdgeInfo`` and ``FacetPayload`` are frozen transport objects.
+- ``node_meta`` / ``edge_meta`` use tuple-of-tuples for immutable/hashable transport shape.
+- Payload validation and graph integrity are enforced by coordinator build phases.
+
+═══════════════════════════════════════════════════════════════════════════════
+ERRORS / LIMITATIONS
+═══════════════════════════════════════════════════════════════════════════════
+
+- This module defines data contracts only; it does not validate graph integrity directly.
+- Metadata values may contain runtime classes/callables and are not guaranteed to be JSON-serializable as-is.
+
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE-BEGIN
+═══════════════════════════════════════════════════════════════════════════════
+ROLE: Transport contract between inspectors and coordinator.
+CONTRACT: Carry immutable node/edge payloads through collect/validate/commit build phases.
+INVARIANTS: Frozen dataclasses, deterministic key shape, structural-edge flag for acyclicity policy.
+FLOW: inspector emits payload -> coordinator validates -> coordinator commits skeleton graph + cached snapshots.
+FAILURES: Invalid payload shape/integrity errors are raised by coordinator validators.
+EXTENSION POINTS: New facet/edge kinds can be added by extending node_type/edge_type conventions.
+AI-CORE-END
 """
 
 from __future__ import annotations
@@ -149,6 +175,12 @@ class EdgeInfo:
             When the target is a concrete class (dependency or connection
             manager), the coordinator may synthesize a facet node if no
             inspector emitted one. ``None`` for name-only targets.
+
+    AI-CORE-BEGIN
+    ROLE: Immutable edge transport row.
+    CONTRACT: Describe one outgoing graph edge with target identity and structural semantics.
+    INVARIANTS: Structural flag drives cycle checks; metadata remains tuple-encoded until commit.
+    AI-CORE-END
     """
 
     target_node_type: str
@@ -214,6 +246,12 @@ class FacetPayload:
         edges : tuple[EdgeInfo, ...]
             Outgoing edges. Facets without graph edges (e.g. bare role nodes) use
             an empty tuple. Defaults to empty tuple.
+
+    AI-CORE-BEGIN
+    ROLE: Immutable node+edges transport envelope.
+    CONTRACT: Represent one facet node emitted by an inspector for coordinator build phases.
+    INVARIANTS: Node identity is ``node_type`` + ``node_name``; edges are attached as immutable tuples.
+    AI-CORE-END
     """
 
     node_type: str

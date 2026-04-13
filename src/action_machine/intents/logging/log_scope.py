@@ -20,7 +20,7 @@ INVARIANTS
 - Key order is fixed at construction and drives ``as_dotpath()``.
 
 ═══════════════════════════════════════════════════════════════════════════════
-DATA FLOW
+ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
 Aspect logging (``ToolsBox`` / ``info`` / ``warning`` / ``critical``):
@@ -89,6 +89,12 @@ class LogScope:
 
     - ``_key_order`` — insertion order for ``as_dotpath`` and ``keys()``.
     - ``_cached_path`` — memoized ``as_dotpath`` result.
+
+    AI-CORE-BEGIN
+    ROLE: Runtime scope carrier for ``{%scope.*}`` template namespace.
+    CONTRACT: Preserve insertion order and expose dict-like read API.
+    INVARIANTS: Dynamic attributes are constructor-defined; dotpath is cached.
+    AI-CORE-END
     """
 
     _key_order: list[str]

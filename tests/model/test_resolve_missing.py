@@ -1,46 +1,45 @@
 # tests/model/test_resolve_missing.py
 """
-Тесты BaseSchema.resolve() для отсутствующих ключей и путей.
+Tests for BaseSchema.resolve() on missing keys and paths.
 
 ═══════════════════════════════════════════════════════════════════════════════
-НАЗНАЧЕНИЕ
+PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-resolve() никогда не бросает исключений при отсутствии ключа. Вместо
-этого возвращает default (по умолчанию None). Это ключевое свойство:
-шаблоны логирования ({%state.missing_field}) не должны ронять конвейер.
+resolve() never raises on missing keys. It returns default (None by default).
+Logging templates ({%state.missing_field}) must not break the pipeline.
 
-Механизм работы: на каждом шаге resolve проверяет тип текущего объекта:
+At each step resolve checks the current object type:
 - BaseSchema → __getitem__, KeyError → return default.
-- dict → проверка ключа, отсутствие → return default.
-- любой объект → getattr, None → return default.
+- dict → key check, missing → return default.
+- other object → getattr, missing → return default.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ПОКРЫВАЕМЫЕ СЦЕНАРИИ
+COVERED SCENARIOS
 ═══════════════════════════════════════════════════════════════════════════════
 
-Отсутствие плоского поля:
-    - resolve("missing") → None (default по умолчанию).
+Missing flat field:
+    - resolve("missing") → None (default).
     - resolve("missing", default="X") → "X".
-    - Не бросает KeyError или AttributeError.
+    - No KeyError or AttributeError.
 
-Отсутствие вложенного поля:
+Missing nested field:
     - resolve("user.nonexistent.deep") → default.
-    - resolve("settings.missing.nested") → default (через наследника).
+    - resolve("settings.missing.nested") → default (via subclass).
 
-Отсутствие промежуточного ключа:
+Missing intermediate key:
     - resolve("user.missing.key.deep") → default.
     - resolve("settings.existing.missing.deep") → default.
-    - resolve("missing.segment.deep") → default (первый сегмент).
+    - resolve("missing.segment.deep") → default (first segment).
 
-Разные типы default:
-    - Строка, число, список, словарь, bool, None.
+Various default types:
+    - str, int, list, dict, bool, None.
 
-None как значение vs отсутствие:
-    - Поле существует и равно None → resolve возвращает None, не default.
-    - Поле отсутствует → resolve возвращает default.
-    - Ключ в dict существует и равен None → None, не default.
-    - Ключ в dict отсутствует → default.
+None as value vs missing:
+    - Field exists and is None → None, not default.
+    - Field missing → default.
+    - Dict key exists with None → None, not default.
+    - Dict key missing → default.
 """
 
 from typing import Any
@@ -54,28 +53,27 @@ from action_machine.intents.context.user_info import UserInfo
 from tests.scenarios.domain_model.roles import AdminRole, UserRole
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Наследники Info-классов для тестов вложенной навигации
+# Info subclasses for nested navigation tests
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class _ExtendedUserInfo(UserInfo):
-    """Наследник UserInfo с дополнительными полями для тестов."""
+    """UserInfo subclass with extra fields for tests."""
     model_config = ConfigDict(frozen=True)
     org: str | None = None
     settings: dict[str, Any] = {}
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Вспомогательная функция
+# Helper
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 def _make_full_context(user_id: str = "agent_1") -> Context:
     """
-    Создаёт Context со всеми компонентами для тестов вложенных путей.
+    Context with all components for nested path tests.
 
-    Использует _ExtendedUserInfo с полем org для тестирования
-    трёхуровневой навигации.
+    Uses _ExtendedUserInfo with org for three-level navigation.
     """
     user = _ExtendedUserInfo(
         user_id=user_id,
@@ -95,18 +93,18 @@ def _make_full_context(user_id: str = "agent_1") -> Context:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Отсутствие плоского поля
+# Missing flat field
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestMissingFlat:
-    """Отсутствие плоского поля — resolve возвращает default."""
+    """Missing flat field — resolve returns default."""
 
     def test_missing_returns_none_by_default(self) -> None:
         """
-        resolve("nonexistent") без default — возвращает None.
+        resolve("nonexistent") without default returns None.
         """
-        # Arrange — UserInfo без поля "nonexistent"
+        # Arrange
         user = UserInfo(user_id="42")
 
         # Act
@@ -117,7 +115,7 @@ class TestMissingFlat:
 
     def test_missing_returns_explicit_default(self) -> None:
         """
-        resolve("missing", default="<none>") — возвращает указанный default.
+        resolve("missing", default="<none>") returns that default.
         """
         # Arrange
         user = UserInfo(user_id="42")
@@ -130,36 +128,35 @@ class TestMissingFlat:
 
     def test_missing_does_not_raise(self) -> None:
         """
-        resolve() никогда не бросает KeyError или AttributeError.
-        Критически важно для шаблонов логирования.
+        resolve never raises KeyError or AttributeError.
+        Critical for logging templates.
         """
         # Arrange
         user = UserInfo(user_id="42")
 
-        # Act — resolve по несуществующему пути, включая вложенный
+        # Act
         result_flat = user.resolve("missing")
         result_nested = user.resolve("missing.key")
 
-        # Assert — оба вызова вернули None без исключений
+        # Assert
         assert result_flat is None
         assert result_nested is None
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Отсутствие вложенного поля
+# Missing nested field
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestMissingNested:
-    """Отсутствие поля на вложенном уровне — resolve возвращает default."""
+    """Missing field at nested level — resolve returns default."""
 
     def test_missing_in_schema(self) -> None:
         """
-        resolve("user.nonexistent.deep") — промежуточный атрибут
-        "nonexistent" не существует в UserInfo.
+        resolve("user.nonexistent.deep") — "nonexistent" missing on UserInfo.
 
-        Первый шаг: Context → UserInfo (OK).
-        Второй шаг: UserInfo → "nonexistent" → KeyError → default.
+        Step 1: Context → UserInfo (OK).
+        Step 2: UserInfo → "nonexistent" → KeyError → default.
         """
         # Arrange
         ctx = _make_full_context()
@@ -172,14 +169,13 @@ class TestMissingNested:
 
     def test_missing_in_dict(self) -> None:
         """
-        resolve("user.settings.missing.deep") — промежуточный ключ "missing"
-        не существует в словаре settings.
+        resolve("user.settings.missing.deep") — "missing" not in settings dict.
 
-        Первый шаг: Context → _ExtendedUserInfo (OK).
-        Второй шаг: _ExtendedUserInfo → settings (dict, OK).
-        Третий шаг: dict → "missing" → не найден → default.
+        Step 1: Context → _ExtendedUserInfo (OK).
+        Step 2: settings dict (OK).
+        Step 3: dict → "missing" → not found → default.
         """
-        # Arrange — наследник UserInfo с dict-полем settings
+        # Arrange
         user = _ExtendedUserInfo(settings={"existing": "value"})
 
         # Act
@@ -190,7 +186,7 @@ class TestMissingNested:
 
     def test_missing_with_default_none(self) -> None:
         """
-        resolve("user.nonexistent.deep", default=None) — явный None как default.
+        resolve("user.nonexistent.deep", default=None) — explicit None default.
         """
         # Arrange
         ctx = _make_full_context()
@@ -203,17 +199,17 @@ class TestMissingNested:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Отсутствие промежуточного ключа в цепочке
+# Missing intermediate key in chain
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestMissingIntermediate:
-    """Отсутствие промежуточного ключа в длинной цепочке."""
+    """Missing intermediate key in a long path."""
 
     def test_missing_intermediate_in_schema(self) -> None:
         """
-        resolve("user.missing.key.deep") — "missing" не существует
-        в UserInfo. Цепочка прерывается на втором сегменте.
+        resolve("user.missing.key.deep") — "missing" not on UserInfo.
+        Chain stops at second segment.
         """
         # Arrange
         ctx = _make_full_context()
@@ -226,8 +222,8 @@ class TestMissingIntermediate:
 
     def test_missing_intermediate_in_dict(self) -> None:
         """
-        resolve("settings.existing.missing.deep") — "existing" найден,
-        но "missing" в его значении отсутствует.
+        resolve("settings.existing.missing.deep") — "existing" found,
+        "missing" not under it.
         """
         # Arrange
         user = _ExtendedUserInfo(settings={"existing": {"key": "value"}})
@@ -240,7 +236,7 @@ class TestMissingIntermediate:
 
     def test_missing_first_segment(self) -> None:
         """
-        resolve("missing.segment.deep") — первый же сегмент не найден.
+        resolve("missing.segment.deep") — first segment missing.
         """
         # Arrange
         user = UserInfo(user_id="42")
@@ -253,64 +249,64 @@ class TestMissingIntermediate:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Разные типы default
+# Various default types
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestDefaultTypes:
-    """resolve возвращает default любого типа при отсутствии пути."""
+    """resolve returns default of any type when path missing."""
 
     def test_default_string(self) -> None:
-        """default — строка."""
+        """default is str."""
         user = UserInfo(user_id="42")
         result = user.resolve("missing", default="default string")
         assert result == "default string"
 
     def test_default_int(self) -> None:
-        """default — целое число."""
+        """default is int."""
         user = UserInfo(user_id="42")
         result = user.resolve("missing", default=42)
         assert result == 42
 
     def test_default_list(self) -> None:
-        """default — список."""
+        """default is list."""
         user = UserInfo(user_id="42")
         result = user.resolve("missing", default=[1, 2, 3])
         assert result == [1, 2, 3]
 
     def test_default_dict(self) -> None:
-        """default — словарь."""
+        """default is dict."""
         user = UserInfo(user_id="42")
         result = user.resolve("missing", default={"key": "value"})
         assert result == {"key": "value"}
 
     def test_default_bool_true(self) -> None:
-        """default — True."""
+        """default is True."""
         user = UserInfo(user_id="42")
         result = user.resolve("missing_true", default=True)
         assert result is True
 
     def test_default_bool_false(self) -> None:
-        """default — False."""
+        """default is False."""
         user = UserInfo(user_id="42")
         result = user.resolve("missing_false", default=False)
         assert result is False
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# None как значение vs отсутствие поля
+# None as value vs missing field
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestNoneVsMissing:
     """
-    Различие между "поле существует со значением None" и "поле отсутствует".
+    “Field exists with None” vs “field missing”.
     """
 
     def test_existing_none_field_returns_none(self) -> None:
         """
-        Поле user_id=None — существует, значение None.
-        resolve возвращает None, а не default.
+        user_id=None — field exists.
+        resolve returns None, not default.
         """
         # Arrange
         user = UserInfo(user_id=None)
@@ -318,12 +314,12 @@ class TestNoneVsMissing:
         # Act
         result = user.resolve("user_id", default="fallback")
 
-        # Assert — None из поля, не "fallback"
+        # Assert
         assert result is None
 
     def test_missing_field_returns_default(self) -> None:
         """
-        Поле "nonexistent" не существует → resolve возвращает default.
+        "nonexistent" missing → default.
         """
         # Arrange
         user = UserInfo(user_id="42")
@@ -336,20 +332,20 @@ class TestNoneVsMissing:
 
     def test_none_in_dict_returns_none(self) -> None:
         """
-        Ключ в dict существует со значением None — resolve возвращает None.
+        Dict key exists with None — resolve returns None.
         """
-        # Arrange — наследник с dict-полем содержащим None
+        # Arrange
         user = _ExtendedUserInfo(settings={"key_with_none": None})
 
         # Act
         result = user.resolve("settings.key_with_none", default="fallback")
 
-        # Assert — None из словаря, не "fallback"
+        # Assert
         assert result is None
 
     def test_missing_key_in_dict_returns_default(self) -> None:
         """
-        Ключ в dict не существует — resolve возвращает default.
+        Dict key missing — default.
         """
         # Arrange
         user = _ExtendedUserInfo(settings={"existing": "value"})

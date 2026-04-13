@@ -1,11 +1,9 @@
 # tests/intents/logging/test_base_logger.py
-"""
-Тесты BaseLogger через RecordingLogger: подписки subscribe / match_filters.
+"""BaseLogger tests via RecordingLogger: subscribe/match_filters.
 
-Покрытие: без подписок принимается всё; по каналу, уровню, домену; И внутри
-подписки, ИЛИ между подписками; ошибки валидации subscribe; unsubscribe;
-цепочки вызовов.
-"""
+Coverage: Anything accepted without subscriptions; by channel, level, domain; And inside
+subscriptions, OR between subscriptions; subscribe validation errors; unsubscribe;
+call chains."""
 
 from typing import Any
 
@@ -23,7 +21,7 @@ from tests.scenarios.domain_model.domains import OrdersDomain, SystemDomain
 
 
 def _v(**extra: Any) -> dict[str, Any]:
-    """Минимальный var как после LogCoordinator (для handle / match_filters)."""
+    """Minimum var as after LogCoordinator (for handle/match_filters)."""
     li = extra.pop("level", Level.info)
     cd = extra.pop("channels", Channel.debug)
     return {
@@ -36,7 +34,7 @@ def _v(**extra: Any) -> dict[str, Any]:
 
 
 class RecordingLogger(BaseLogger):
-    """Шпион: пишет в records всё, что дошло до write."""
+    """Spy: writes to records everything that reaches write."""
 
     def __init__(self) -> None:
         super().__init__()
@@ -66,7 +64,7 @@ class RecordingLogger(BaseLogger):
 
 
 class OrdersSubdomainDomain(OrdersDomain):
-    """Подкласс домена для проверки issubclass в подписке."""
+    """The domain subclass to check issubclass in the subscription."""
 
     name = "orders_sub"
     description = "Child orders domain for subscription tests"
@@ -98,7 +96,7 @@ def detailed_scope() -> LogScope:
 
 
 class TestWithoutSubscriptions:
-    """Без подписок — все сообщения принимаются."""
+    """No subscriptions - all messages are accepted."""
 
     @pytest.mark.anyio
     async def test_passes_all_messages(
@@ -579,4 +577,5 @@ class TestEdgeCases:
         )
 
         assert len(logger.records) == 1
+        assert logger.records[0]["var"] == var
         assert logger.records[0]["var"] == var

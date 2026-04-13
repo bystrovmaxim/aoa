@@ -27,6 +27,27 @@ INVARIANTS
   ``DEFAULT_LEVEL_FG_PREFIX``).
 
 ═══════════════════════════════════════════════════════════════════════════════
+ARCHITECTURE / DATA FLOW
+═══════════════════════════════════════════════════════════════════════════════
+
+    LogCoordinator.emit(...)
+            |
+            v
+    BaseLogger.handle(...)
+            |
+            v
+    ConsoleLogger.write(...)
+            |
+            +--> _format_line(message, indent)
+            |
+            +--> colors disabled: strip_ansi_codes -> print
+            |
+            +--> colors enabled:
+                    level payload lookup
+                    -> _wrap_line_with_level_base(...)
+                    -> print
+
+═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -85,7 +106,15 @@ DEFAULT_LEVEL_FG_PREFIX: dict[Level, str] = {
 
 
 class ConsoleLogger(BaseLogger):
-    """Stdout backend: indentation, optional ANSI, inherited subscription API."""
+    """
+    Stdout backend with indentation and optional level-based ANSI coloring.
+
+    AI-CORE-BEGIN
+    ROLE: Default interactive sink implementation for logging subsystem.
+    CONTRACT: Emit one line per accepted message via ``print``.
+    INVARIANTS: Reuses BaseLogger filtering pipeline and subscription rules.
+    AI-CORE-END
+    """
 
     def __init__(
         self,

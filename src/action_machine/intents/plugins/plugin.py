@@ -1,86 +1,72 @@
 # src/action_machine/intents/plugins/plugin.py
 """
-Plugin — абстрактный базовый класс для всех плагинов ActionMachine.
+Plugin — abstract base class for all ActionMachine plugins.
 
 ═══════════════════════════════════════════════════════════════════════════════
-НАЗНАЧЕНИЕ
+PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Plugin — абстрактный базовый класс, от которого наследуются все плагины
-системы. Плагины расширяют поведение машины без изменения ядра: подсчёт
-вызовов, сбор метрик, аудит, логирование побочных эффектов и т.д.
+Plugin is the base class for all plugin implementations. Plugins extend machine
+behavior without changing core runtime logic (metrics, audit, observability,
+side-effect logging, and similar concerns).
 
-Каждый плагин определяет обработчики событий с помощью декоратора @on.
-Обработчики реагируют на события жизненного цикла действия, представленные
-типизированными классами из иерархии BasePluginEvent: GlobalStartEvent,
-GlobalFinishEvent, BeforeRegularAspectEvent, AfterRegularAspectEvent и т.д.
+Each plugin defines event handlers via ``@on`` and reacts to typed lifecycle
+events from ``BasePluginEvent`` hierarchy.
 
 ═══════════════════════════════════════════════════════════════════════════════
-СОСТОЯНИЕ ПЛАГИНА
+PLUGIN STATE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Плагины НЕ хранят per-request состояние в атрибутах экземпляра.
-Состояние per-request управляется машиной через PluginRunContext:
+Plugins do NOT keep per-request state in instance attributes.
+Per-request state is managed by ``PluginRunContext``:
 
-1. В начале каждого run() машина вызывает get_initial_state() для
-   каждого плагина и сохраняет результат в PluginRunContext.
-2. При каждом событии обработчик получает текущее состояние через
-   параметр state и возвращает обновлённое.
-3. По завершении run() контекст уничтожается вместе с состояниями.
+1. At run start machine calls ``get_initial_state()`` for each plugin.
+2. Each handler receives current state and returns updated state.
+3. At run end context and states are discarded.
 
-Если плагину нужно накапливать данные между запросами (метрики, счётчики),
-он использует внешнее хранилище, переданное через конструктор плагина.
+If plugin needs cross-request accumulation, it should use external storage
+injected into plugin constructor.
 
 ═══════════════════════════════════════════════════════════════════════════════
-СИГНАТУРА ОБРАБОТЧИКОВ
+HANDLER SIGNATURE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Все обработчики плагинов обязаны иметь сигнатуру с 4 параметрами:
+All plugin handlers must follow 4-parameter signature:
 
     async def handler(self, state, event: EventClass, log) -> state
 
-    - self   — экземпляр плагина.
-    - state  — текущее per-request состояние плагина.
-    - event  — объект события из иерархии BasePluginEvent.
-               Аннотация типа может быть конкретным классом
-               (GlobalFinishEvent), групповым (AspectEvent) или
-               базовым (BasePluginEvent). MetadataBuilder проверяет
-               совместимость: event_class из @on должен быть подклассом
-               аннотации event.
-    - log    — ScopedLogger, привязанный к scope плагина.
+    - self: plugin instance
+    - state: current per-request plugin state
+    - event: BasePluginEvent-derived object
+    - log: scoped logger bound to plugin scope
 
-Обработчик обязан вернуть обновлённое состояние.
+Handler must return updated state.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ПОДПИСКА ЧЕРЕЗ ИЕРАРХИЮ СОБЫТИЙ
+SUBSCRIPTION VIA EVENT HIERARCHY
 ═══════════════════════════════════════════════════════════════════════════════
 
-Декоратор @on принимает класс события как первый аргумент. Подписка
-срабатывает для указанного класса и всех его наследников через
-isinstance-проверку:
+``@on`` takes event class as first argument. Subscription matches that class
+and all subclasses via ``isinstance``:
 
-    @on(BasePluginEvent)              — все события системы
-    @on(GlobalLifecycleEvent)         — global_start + global_finish
-    @on(GlobalFinishEvent)            — только global_finish
-    @on(AspectEvent)                  — все before/after всех аспектов
-    @on(AfterRegularAspectEvent)      — только after regular-аспектов
+    @on(BasePluginEvent)              - all events
+    @on(GlobalLifecycleEvent)         - global_start + global_finish
+    @on(GlobalFinishEvent)            - only global_finish
+    @on(AspectEvent)                  - all aspect before/after events
+    @on(AfterRegularAspectEvent)      - only after regular aspects
 
-Дополнительные фильтры (action_class, action_name_pattern,
-aspect_name_pattern, nest_level, domain, predicate) сужают выборку
-с AND-логикой внутри одного @on.
+Additional filters narrow matches with AND logic inside one subscription.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ПОИСК ОБРАБОТЧИКОВ
+HANDLER DISCOVERY
 ═══════════════════════════════════════════════════════════════════════════════
 
-Метод get_handlers() сканирует MRO класса плагина, находит методы
-с атрибутом _on_subscriptions и возвращает список подписок
-(SubscriptionInfo) с привязанными методами. PluginRunContext вызывает
-get_handlers() при каждом emit_event() и проверяет каждую подписку
-через цепочку фильтров SubscriptionInfo.
+``get_handlers()`` scans plugin class MRO, finds methods with
+``_on_subscriptions``, and returns matching ``SubscriptionInfo`` records with
+handler callables. ``PluginRunContext`` calls it on each ``emit_event()``.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ПРИМЕР ПЛАГИНА
+EXAMPLE PLUGIN
 ═══════════════════════════════════════════════════════════════════════════════
 
     from action_machine.intents.logging.channel import Channel
@@ -105,7 +91,7 @@ get_handlers() при каждом emit_event() и проверяет кажду
         async def on_validation_done(self, state, event: AfterRegularAspectEvent, log):
             await log.info(
                 Channel.debug,
-                "Валидация завершена: {%var.name}",
+                "Validation completed: {%var.name}",
                 name=event.aspect_name,
             )
             return state
@@ -129,65 +115,24 @@ from action_machine.intents.plugins.subscription_info import SubscriptionInfo
 
 class Plugin(OnIntent, ABC):
     """
-    Абстрактный базовый класс для всех плагинов ActionMachine.
+    Abstract base class for all ActionMachine plugins.
 
-    Каждый плагин реализует:
-    - get_initial_state() — возвращает начальное per-request состояние.
-    - Один или несколько @on-обработчиков событий с сигнатурой
-      (self, state, event: EventClass, log).
-
-    Метод get_handlers() возвращает все подписки плагина, подходящие
-    для указанного события. PluginRunContext использует этот метод
-    для маршрутизации событий.
-
-    Плагин не хранит per-request состояния — оно управляется
-    PluginRunContext. Атрибуты экземпляра используются только
-    для конфигурации (внешнее хранилище, параметры и т.д.).
+    AI-CORE-BEGIN
+    ROLE: Plugin contract for per-run state initialization and handler discovery.
+    CONTRACT: Implement get_initial_state and declare handlers via @on.
+    INVARIANTS: Per-request state is externalized into PluginRunContext.
+    AI-CORE-END
     """
 
     @abstractmethod
     async def get_initial_state(self) -> object:
-        """
-        Возвращает начальное состояние плагина для одного вызова run().
-
-        Вызывается машиной (через PluginCoordinator.create_run_context())
-        перед первым событием каждого run(). Возвращённый объект
-        передаётся в обработчики через параметр state.
-
-        Тип состояния определяется плагином: dict, dataclass, любой объект.
-        Единственное требование — обработчик должен вернуть обновлённое
-        состояние того же типа.
-
-        Возвращает:
-            Начальное per-request состояние.
-        """
+        """Return initial plugin state for one run invocation."""
 
     def get_handlers(
         self,
         event: BasePluginEvent,
     ) -> list[tuple[Callable[..., Any], SubscriptionInfo]]:
-        """
-        Возвращает список обработчиков, чьи подписки совпали с событием.
-
-        Сканирует MRO класса плагина, находит методы с атрибутом
-        _on_subscriptions. Для каждой подписки (SubscriptionInfo) проверяет
-        совпадение event_class через isinstance. Остальные фильтры
-        (action_class, action_name_pattern и т.д.) проверяются вызывающим
-        кодом (PluginRunContext) через методы SubscriptionInfo.
-
-        Здесь выполняется ТОЛЬКО проверка event_class — самая дешёвая,
-        отсекающая ~90% подписок. Это разделение ответственности:
-        Plugin.get_handlers() находит кандидатов по типу события,
-        PluginRunContext проверяет остальные фильтры.
-
-        Аргументы:
-            event: объект события из иерархии BasePluginEvent.
-
-        Возвращает:
-            Список кортежей (handler, subscription):
-            - handler: unbound-метод (требует передачи self при вызове).
-            - subscription: SubscriptionInfo с полной конфигурацией фильтров.
-        """
+        """Return handlers whose event_class prefilter matches incoming event."""
         handlers: list[tuple[Callable[..., Any], SubscriptionInfo]] = []
 
         for klass in type(self).__mro__:
@@ -203,7 +148,7 @@ class Plugin(OnIntent, ABC):
                     if not isinstance(sub, SubscriptionInfo):
                         continue
 
-                    # Шаг 1: проверка event_class через isinstance
+                    # Step 1: event_class prefilter via isinstance.
                     if not sub.matches_event_class(event):
                         continue
 

@@ -1,49 +1,47 @@
 # tests/intents/auth/test_auth_coordinator.py
-"""
-Тесты AuthCoordinator и NoAuthCoordinator — координаторы аутентификации.
+"""The AuthCoordinator and NoAuthCoordinator tests are authentication coordinators.
 
-═══════════════════════════════════════════════════════════════════════════════
-НАЗНАЧЕНИЕ
-═══════════════════════════════════════════════════════════════════════════════
+═══════════════════ ════════════════════ ════════════════════ ════════════════════
+PURPOSE
+═══════════════════ ════════════════════ ════════════════════ ════════════════════
 
-AuthCoordinator — координатор полного цикла аутентификации. Объединяет
-три компонента в последовательную цепочку:
+AuthCoordinator - coordinator of the full authentication cycle. Unites
+three components in a daisy chain:
 
     CredentialExtractor.extract(request) → credentials
     Authenticator.authenticate(credentials) → UserInfo
     ContextAssembler.assemble(request) → RequestInfo metadata
 
-Результат — Context с аутентифицированным пользователем и метаданными
-запроса. Если любой шаг возвращает None/пустой результат — весь процесс
-возвращает None (аутентификация не пройдена).
+Result - Context with authenticated user and metadata
+request. If any step returns None/empty result - the entire process
+returns None (authentication failed).
 
-NoAuthCoordinator — провайдер для открытых API. Всегда возвращает
-анонимный Context без пользователя и ролей. Реализует тот же интерфейс
-(async process(request_data) → Context), что и AuthCoordinator.
+NoAuthCoordinator is a provider for open APIs. Always returns
+anonymous Context without user and roles. Implements the same interface
+(async process(request_data) → Context) same as AuthCoordinator.
 
-Оба координатора передаются в BaseAdapter как обязательный параметр
-auth_coordinator. Разработчик не может «забыть» подключить аутентификацию —
-для открытых API используется NoAuthCoordinator как явная декларация.
+Both coordinators are passed to BaseAdapter as a required parameter
+auth_coordinator. The developer cannot “forget” to enable authentication -
+for public APIs, NoAuthCoordinator is used as an explicit declaration.
 
-═══════════════════════════════════════════════════════════════════════════════
-ПОКРЫВАЕМЫЕ СЦЕНАРИИ
-═══════════════════════════════════════════════════════════════════════════════
+═══════════════════ ════════════════════ ════════════════════ ════════════════════
+SCENARIOS COVERED
+═══════════════════ ════════════════════ ════════════════════ ════════════════════
 
-AuthCoordinator — успешная аутентификация:
-    - Все три компонента возвращают данные → Context с UserInfo и RequestInfo.
+AuthCoordinator - successful authentication:
+    - All three components return data → Context with UserInfo and RequestInfo.
 
-AuthCoordinator — неуспешная аутентификация:
-    - Extractor возвращает пустой dict → None (нет credentials).
-    - Authenticator возвращает None → None (credentials невалидны).
+AuthCoordinator - unsuccessful authentication:
+    - Extractor returns empty dict → None (no credentials).
+    - Authenticator returns None → None (credentials are invalid).
 
 NoAuthCoordinator:
-    - Всегда возвращает Context (не None).
+    - Always returns Context (not None).
     - UserInfo: user_id=None, roles=().
-    - Игнорирует request_data.
+    - Ignores request_data.
 
-Интерфейсная совместимость:
-    - Оба координатора имеют async process(request_data) → Context|None.
-"""
+Interface Compatibility:
+    - Both coordinators have async process(request_data) → Context|None."""
 
 import pytest
 
@@ -59,18 +57,16 @@ from action_machine.intents.context.user_info import UserInfo
 from tests.scenarios.domain_model.roles import AdminRole, SpyRole
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Мок-реализации компонентов аутентификации
+#Mock implementations of authentication components
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class _MockExtractor(CredentialExtractor):
-    """
-    Мок-экстрактор, возвращающий заданные credentials.
+    """A mock extractor that returns the given credentials.
 
-    Если credentials_to_return — пустой dict, имитирует ситуацию
-    «учётные данные не найдены в запросе» (например, нет заголовка
-    Authorization).
-    """
+    If credentials_to_return is an empty dict, simulates the situation
+    "credentials not found in request" (for example, no header
+    Authorization)."""
 
     def __init__(self, credentials_to_return: dict | None = None):
         self._credentials = credentials_to_return if credentials_to_return is not None else {}
@@ -80,12 +76,10 @@ class _MockExtractor(CredentialExtractor):
 
 
 class _MockAuthenticator(Authenticator):
-    """
-    Мок-аутентификатор, возвращающий заданный UserInfo.
+    """Mock authenticator that returns the given UserInfo.
 
-    Если user_to_return=None, имитирует невалидные credentials
-    (например, просроченный токен).
-    """
+    If user_to_return=None, simulates invalid credentials
+    (for example, an expired token)."""
 
     def __init__(self, user_to_return: UserInfo | None = None):
         self._user = user_to_return
@@ -95,12 +89,10 @@ class _MockAuthenticator(Authenticator):
 
 
 class _MockAssembler(ContextAssembler):
-    """
-    Мок-сборщик метаданных запроса.
+    """Mock request metadata collector.
 
-    Возвращает фиксированный словарь с trace_id, request_path
-    и другими полями для создания RequestInfo.
-    """
+    Returns a fixed dictionary with trace_id, request_path
+    and other fields to create RequestInfo."""
 
     def __init__(self, metadata_to_return: dict | None = None):
         self._metadata = metadata_to_return or {
@@ -113,25 +105,23 @@ class _MockAssembler(ContextAssembler):
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# AuthCoordinator — успешная аутентификация
+#AuthCoordinator - successful authentication
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestAuthCoordinatorSuccess:
-    """Полный цикл аутентификации — все компоненты возвращают данные."""
+    """Full authentication cycle - all components return data."""
 
     @pytest.mark.asyncio
     async def test_full_cycle_returns_context(self) -> None:
-        """
-        Все три компонента возвращают данные → Context с UserInfo и RequestInfo.
+        """All three components return data → Context with UserInfo and RequestInfo.
 
-        Цепочка:
+        Chain:
         1. Extractor.extract() → {"api_key": "secret-123"}
         2. Authenticator.authenticate(credentials) → UserInfo(user_id="u1", roles=(AdminRole,))
         3. Assembler.assemble() → {"trace_id": "t1", "request_path": "/api"}
-        4. Результат → Context(user=UserInfo, request=RequestInfo)
-        """
-        # Arrange — три компонента с валидными данными
+        4. Result → Context(user=UserInfo, request=RequestInfo)"""
+        #Arrange - three components with valid data
         extractor = _MockExtractor({"api_key": "secret-123"})
         authenticator = _MockAuthenticator(
             UserInfo(user_id="u1", roles=(AdminRole,)),
@@ -147,10 +137,10 @@ class TestAuthCoordinatorSuccess:
             assembler=assembler,
         )
 
-        # Act — полный цикл аутентификации
+        #Act - full authentication cycle
         result = await coordinator.process({"raw_request": "data"})
 
-        # Assert — Context содержит аутентифицированного пользователя
+        #Assert - Context contains the authenticated user
         assert result is not None
         assert isinstance(result, Context)
         assert result.user.user_id == "u1"
@@ -160,11 +150,9 @@ class TestAuthCoordinatorSuccess:
 
     @pytest.mark.asyncio
     async def test_user_info_preserved_in_context(self) -> None:
-        """
-        UserInfo из Authenticator передаётся в Context без изменений.
-        Все поля UserInfo (user_id, roles) доступны через context.user.
-        """
-        # Arrange — UserInfo с user_id и roles
+        """UserInfo from Authenticator is passed to Context unchanged.
+        All UserInfo fields (user_id, roles) are accessible through context.user."""
+        #Arrange - UserInfo with user_id and roles
         user = UserInfo(user_id="agent_007", roles=(SpyRole,))
         extractor = _MockExtractor({"token": "valid"})
         authenticator = _MockAuthenticator(user)
@@ -178,30 +166,28 @@ class TestAuthCoordinatorSuccess:
         # Act
         result = await coordinator.process(None)
 
-        # Assert — UserInfo полностью сохранён
+        #Assert - UserInfo is completely saved
         assert result is not None
         assert result.user.user_id == "agent_007"
         assert result.user.roles == (SpyRole,)
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# AuthCoordinator — неуспешная аутентификация
+#AuthCoordinator - failed authentication
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestAuthCoordinatorFailure:
-    """Аутентификация прервана на одном из шагов → None."""
+    """Authentication was interrupted at one of the steps → None."""
 
     @pytest.mark.asyncio
     async def test_empty_credentials_returns_none(self) -> None:
-        """
-        Extractor возвращает пустой dict → process() возвращает None.
+        """Extractor returns an empty dict → process() returns None.
 
-        Пустые credentials означают, что запрос не содержит данных
-        аутентификации (нет заголовка Authorization, нет cookie и т.д.).
-        Authenticator не вызывается.
-        """
-        # Arrange — extractor возвращает пустой dict
+        Empty credentials mean the request contains no data
+        authentication (no Authorization header, no cookie, etc.).
+        Authenticator is not called."""
+        #Arrange - extractor returns empty dict
         extractor = _MockExtractor({})
         authenticator = _MockAuthenticator(UserInfo(user_id="should_not_reach"))
         assembler = _MockAssembler()
@@ -212,21 +198,19 @@ class TestAuthCoordinatorFailure:
             assembler=assembler,
         )
 
-        # Act — процесс прерывается на первом шаге
+        #Act - the process is interrupted at the first step
         result = await coordinator.process(None)
 
-        # Assert — None, аутентификация не пройдена
+        #Assert - None, authentication failed
         assert result is None
 
     @pytest.mark.asyncio
     async def test_authenticator_returns_none(self) -> None:
-        """
-        Authenticator возвращает None → process() возвращает None.
+        """Authenticator returns None → process() returns None.
 
-        Credentials переданы, но невалидны (просроченный токен,
-        неверный пароль, заблокированный аккаунт). Assembler не вызывается.
-        """
-        # Arrange — extractor возвращает credentials, authenticator → None
+        Credentials have been transferred, but are invalid (expired token,
+        incorrect password, blocked account). Assembler is not called."""
+        #Arrange — extractor returns credentials, authenticator → None
         extractor = _MockExtractor({"token": "expired-token"})
         authenticator = _MockAuthenticator(None)
         assembler = _MockAssembler()
@@ -237,10 +221,10 @@ class TestAuthCoordinatorFailure:
             assembler=assembler,
         )
 
-        # Act — процесс прерывается на втором шаге
+        #Act - the process is interrupted at the second step
         result = await coordinator.process(None)
 
-        # Assert — None, credentials невалидны
+        #Assert — None, credentials are invalid
         assert result is None
 
 
@@ -250,96 +234,86 @@ class TestAuthCoordinatorFailure:
 
 
 class TestNoAuthCoordinator:
-    """NoAuthCoordinator — анонимный контекст для открытых API."""
+    """NoAuthCoordinator - An anonymous context for public APIs."""
 
     @pytest.mark.asyncio
     async def test_returns_context_not_none(self) -> None:
-        """
-        NoAuthCoordinator.process() всегда возвращает Context (не None).
+        """NoAuthCoordinator.process() always returns Context (not None).
 
-        В отличие от AuthCoordinator, который может вернуть None
-        при неуспешной аутентификации, NoAuthCoordinator гарантирует
-        Context для каждого запроса.
-        """
+        Unlike AuthCoordinator which can return None
+        if authentication fails, NoAuthCoordinator guarantees
+        Context for each request."""
         # Arrange
         coordinator = NoAuthCoordinator()
 
         # Act
         result = await coordinator.process({"any": "data"})
 
-        # Assert — всегда Context, не None
+        #Assert - always Context, not None
         assert result is not None
         assert isinstance(result, Context)
 
     @pytest.mark.asyncio
     async def test_anonymous_user(self) -> None:
-        """
-        NoAuthCoordinator создаёт анонимного пользователя.
+        """NoAuthCoordinator creates an anonymous user.
 
-        UserInfo: user_id=None, roles=(). Действия с @check_roles(NoneRole)
-        проходят проверку, действия с конкретными ролями — отклоняются.
-        """
+        UserInfo: user_id=None, roles=(). Actions with @check_roles(NoneRole)
+        are checked, actions with specific roles are rejected."""
         # Arrange
         coordinator = NoAuthCoordinator()
 
         # Act
         result = await coordinator.process(None)
 
-        # Assert — анонимный пользователь
+        #Assert - anonymous user
         assert result.user.user_id is None
         assert result.user.roles == ()
 
     @pytest.mark.asyncio
     async def test_ignores_request_data(self) -> None:
-        """
-        NoAuthCoordinator игнорирует request_data.
+        """NoAuthCoordinator ignores request_data.
 
-        Вызов process() с любым аргументом (None, dict, строка)
-        возвращает одинаковый анонимный Context.
-        """
+        Call process() with any argument (None, dict, string)
+        returns the same anonymous Context."""
         # Arrange
         coordinator = NoAuthCoordinator()
 
-        # Act — разные типы request_data
+        #Act - different types of request_data
         result_none = await coordinator.process(None)
         result_dict = await coordinator.process({"key": "value"})
         result_str = await coordinator.process("raw_request")
 
-        # Assert — все три возвращают анонимный Context
+        #Assert - all three return an anonymous Context
         assert result_none.user.user_id is None
         assert result_dict.user.user_id is None
         assert result_str.user.user_id is None
 
     @pytest.mark.asyncio
     async def test_each_call_returns_new_context(self) -> None:
-        """
-        Каждый вызов process() возвращает новый экземпляр Context.
+        """Each call to process() returns a new Context instance.
 
-        Контексты не разделяются между запросами — полная изоляция.
-        """
+        Contexts are not shared between requests - complete isolation."""
         # Arrange
         coordinator = NoAuthCoordinator()
 
-        # Act — два вызова
+        #Act - two calls
         ctx1 = await coordinator.process(None)
         ctx2 = await coordinator.process(None)
 
-        # Assert — два разных объекта
+        #Assert - two different objects
         assert ctx1 is not ctx2
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Интерфейсная совместимость
+#Interface compatibility
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestInterfaceCompatibility:
-    """Оба координатора имеют одинаковый интерфейс process()."""
+    """Both coordinators have the same process() interface."""
 
     def test_auth_coordinator_has_process(self) -> None:
-        """
-        AuthCoordinator имеет асинхронный метод process().
-        """
+        """AuthCoordinator has an asynchronous process() method."""
         # Arrange
         coordinator = AuthCoordinator(
             extractor=_MockExtractor(),
@@ -347,29 +321,25 @@ class TestInterfaceCompatibility:
             assembler=_MockAssembler(),
         )
 
-        # Act & Assert — метод существует
+        #Act & Assert - the method exists
         assert hasattr(coordinator, "process")
         assert callable(coordinator.process)
 
     def test_no_auth_coordinator_has_process(self) -> None:
-        """
-        NoAuthCoordinator имеет асинхронный метод process().
-        """
+        """NoAuthCoordinator has an asynchronous process() method."""
         # Arrange
         coordinator = NoAuthCoordinator()
 
-        # Act & Assert — метод существует
+        #Act & Assert - the method exists
         assert hasattr(coordinator, "process")
         assert callable(coordinator.process)
 
     @pytest.mark.asyncio
     async def test_both_accept_any_request_data(self) -> None:
-        """
-        Оба координатора принимают произвольный request_data.
+        """Both coordinators accept arbitrary request_data.
 
-        process() принимает Any — тип зависит от протокола:
-        FastAPI Request, MCP tool call dict, None и т.д.
-        """
+        process() accepts Any - the type depends on the protocol:
+        FastAPI Request, MCP tool call dict, None, etc."""
         # Arrange
         auth = AuthCoordinator(
             extractor=_MockExtractor({"key": "val"}),
@@ -378,10 +348,11 @@ class TestInterfaceCompatibility:
         )
         no_auth = NoAuthCoordinator()
 
-        # Act — оба принимают None
+        #Act - both accept None
         auth_result = await auth.process(None)
         no_auth_result = await no_auth.process(None)
 
-        # Assert — оба вернули результат
+        #Assert - both returned a result
         assert auth_result is not None
+        assert no_auth_result is not None
         assert no_auth_result is not None

@@ -1,14 +1,12 @@
 # tests/intents/logging/test_scoped_logger.py
-"""
-Тесты ScopedLogger — логгера, привязанного к scope текущего аспекта или плагина.
+"""Tests ScopedLogger - a logger tied to the scope of the current aspect or plugin.
 
-Покрываемые сценарии:
-- info/warning/critical добавляют LogLevelPayload / LogChannelPayload, domain, domain_name в var.
-- Первый аргумент — Channel.
-- Зарезервированные ключи в kwargs → ValueError.
-- LogScope для аспектов и плагинов.
-- Один emit на вызов.
-"""
+Covered Scenarios:
+- info/warning/critical add LogLevelPayload / LogChannelPayload, domain, domain_name to var.
+- The first argument is Channel.
+- Reserved keys in kwargs → ValueError.
+- LogScope for aspects and plugins.
+- One emit per call."""
 
 from unittest.mock import AsyncMock
 
@@ -315,4 +313,5 @@ class TestWithStateAndParams:
         await logger.info(Channel.business, "msg")
 
         scope = mock_coordinator.emit.call_args.kwargs["scope"]
+        assert scope["nest_level"] == 0
         assert scope["nest_level"] == 0

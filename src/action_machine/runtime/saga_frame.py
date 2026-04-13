@@ -1,35 +1,77 @@
 # src/action_machine/runtime/saga_frame.py
 """
-Фрейм стека компенсации (Saga).
+Saga compensation stack frame.
 
-Каждый успешно выполненный regular-аспект порождает один SagaFrame.
-Фреймы накапливаются в локальном стеке внутри _execute_regular_aspects().
-При возникновении ошибки в любом аспекте стек разматывается в обратном
-порядке methodом _rollback_saga().
+═══════════════════════════════════════════════════════════════════════════════
+PURPOSE
+═══════════════════════════════════════════════════════════════════════════════
 
-Архитектура:
-    Фрейм хранит только данные, УНИКАЛЬНЫЕ для конкретного аспекта:
-    - state_before: state до выполнения аспекта
-    - state_after: state после выполнения аспекта (None если checker отклонил)
-    - compensator: метаданные compensatorа (None если не определён)
-    - aspect_name: имя аспекта для диагностики и событий плагинов
+Each successfully executed regular aspect contributes one ``SagaFrame``.
+Frames are collected in a per-run local stack and unwound in reverse order
+during rollback when pipeline execution fails.
 
-    Данные, ОБЩИЕ для всего конвейера одного _run_internal (params,
-    connections, context, box), НЕ дублируются в каждом фрейме —
-    они передаются в _rollback_saga() как аргументы.
+═══════════════════════════════════════════════════════════════════════════════
+ARCHITECTURE / DATA FLOW
+═══════════════════════════════════════════════════════════════════════════════
 
-Изоляция стеков:
-    Каждый вызов _run_internal создаёт СВОЙ локальный стек.
-    Глобального стека нет. При вложенных вызовах (box.run(ChildAction))
-    дочерний Action имеет собственный стек, который разматывается
-    независимо от родительского. Это гарантирует корректное поведение
-    при перехвате исключений дочернего Action через try/except
-    в аспекте родителя.
+    regular aspect succeeds
+         |
+         v
+    create SagaFrame(state_before, state_after, compensator, aspect_name)
+         |
+         v
+    append to local saga stack (for current _run_internal call)
+         |
+         v
+    failure path -> reverse stack unwind in SagaCoordinator
 
-Связь с CompensatorMeta:
-    Поле compensator ссылается на snapshot-метаданные compensatorа.
-    Если для аспекта не определён compensator, поле равно None —
-    такой фрейм пропускается при размотке (счётчик skipped).
+Frame stores only aspect-unique rollback data:
+- ``state_before``: state before aspect call
+- ``state_after``: state after aspect call (or ``None`` when rejected)
+- ``compensator``: compensator metadata (or ``None``)
+- ``aspect_name``: aspect identifier for diagnostics/events
+
+Pipeline-common values (params, connections, context, box) are passed to
+rollback executor as separate arguments and are not duplicated in each frame.
+
+═══════════════════════════════════════════════════════════════════════════════
+INVARIANTS
+═══════════════════════════════════════════════════════════════════════════════
+
+- Every ``_run_internal`` call owns its own independent local stack.
+- Nested child actions maintain isolated stacks.
+- Frames with ``compensator=None`` are skipped during unwind.
+
+═══════════════════════════════════════════════════════════════════════════════
+EXAMPLES
+═══════════════════════════════════════════════════════════════════════════════
+
+Happy path:
+    Aspect succeeds and checker passes -> frame keeps both ``state_before`` and
+    ``state_after`` for potential rollback.
+
+Edge case:
+    Aspect succeeds but checker rejects output -> ``state_after`` may be ``None``
+    while compensator can still be useful for side-effect rollback.
+
+═══════════════════════════════════════════════════════════════════════════════
+ERRORS / LIMITATIONS
+═══════════════════════════════════════════════════════════════════════════════
+
+- ``SagaFrame`` is data-only; rollback policy/execution lives in coordinator.
+- Correctness depends on accurate frame creation timing in pipeline executor.
+- ``state_before/state_after`` are typed as ``object`` to avoid runtime coupling.
+
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE-BEGIN
+═══════════════════════════════════════════════════════════════════════════════
+ROLE: Immutable rollback metadata unit for one regular aspect step.
+CONTRACT: Capture compensator binding and pre/post state snapshots per aspect.
+INVARIANTS: Local per-run stack ownership and reverse-order unwind semantics.
+FLOW: aspect success -> frame append -> failure path -> coordinator unwind.
+FAILURES: Missing compensator marks frame as skipped, not failed.
+EXTENSION POINTS: Extend metadata fields cautiously without duplicating globals.
+AI-CORE-END
 """
 
 from __future__ import annotations
@@ -46,48 +88,12 @@ if TYPE_CHECKING:
 @dataclass(frozen=True)
 class SagaFrame:
     """
-    Один фрейм стека компенсации.
+    One immutable compensation-stack frame.
 
-    Создаётся после успешного выполнения regular-аспекта
-    (аспект вернул dict, независимо от result checkerа).
-
-    Когда фрейм создаётся:
-        - Аспект вернул dict, checkerы пройдены → state_after = новый state.
-        - Аспект вернул dict, checker отклонил → state_after = None.
-          Побочный эффект МОГ произойти (например, HTTP-запрос к платёжному
-          шлюзу уже отправлен), поэтому фрейм создаётся для возможной
-          компенсации.
-
-    Когда фрейм НЕ создаётся:
-        - Аспект бросил исключение до возврата dict.
-          Побочный эффект не гарантирован, компенсировать нечего.
-
-    Атрибуты:
-        compensator:
-            Метаданные compensatorа для этого аспекта.
-            None — если для аспекта не определён декоратор @compensate.
-            Фреймы без compensatorа пропускаются при размотке.
-
-        aspect_name:
-            Строковое имя methodа-аспекта (например, "process_payment_aspect").
-            Используется для диагностики, логирования и событий плагинов
-            (SagaRollbackStartedEvent.aspect_names, CompensateFailedEvent.failed_for_aspect).
-
-        state_before:
-            Состояние конвейера ДО выполнения этого аспекта.
-            Frozen-экземпляр BaseState. Компенсатор использует его
-            для восстановления предыдущего значения.
-
-        state_after:
-            Состояние конвейера ПОСЛЕ выполнения этого аспекта.
-            Frozen-экземпляр BaseState или None.
-            None означает: аспект выполнился, но checker отклонил результат —
-            state не обновился, однако побочный эффект мог произойти.
-            Компенсатор использует state_after для извлечения данных,
-            необходимых для отката (txn_id, record_id и т.д.).
+    Captures per-aspect rollback metadata needed by saga coordinator.
     """
 
     compensator: CompensateIntentInspector.Snapshot.Compensator | None
     aspect_name: str
-    state_before: object  # BaseState — frozen-экземпляр
-    state_after: object | None  # BaseState | None — frozen-экземпляр или None
+    state_before: object  # BaseState frozen instance
+    state_after: object | None  # BaseState | None frozen instance

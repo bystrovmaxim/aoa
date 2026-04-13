@@ -17,26 +17,30 @@ holds the same ``BaseRole`` subclasses assigned to the user.
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-::
-
     @check_roles(AdminRole)
-          │
-          ▼
-    normalize → type[BaseRole] | tuple[type[BaseRole], ...] | NoneRole | AnyRole
-          │
-          ▼
-    cls._role_info = {"spec": …}
-          │
-          ├── validate modes (UNUSED → error, DEPRECATED → warn)
-          │
-          ▼
-    RoleIntentInspector → Snapshot + graph node ``role``
-          │
-          ▼
-    GateCoordinator.get_snapshot(cls, "role")
-          │
-          ▼
-    RoleChecker.check(action, context, runtime)
+            |
+            v
+    normalize spec to role-type contract
+            |
+            v
+    cls._role_info = {"spec": ...}
+            |
+            +--> mode validation (UNUSED error, DEPRECATED warning)
+            |
+            v
+    RoleIntentInspector -> role facet snapshot
+            |
+            v
+    RoleChecker at runtime
+
+═══════════════════════════════════════════════════════════════════════════════
+COMPONENTS
+═══════════════════════════════════════════════════════════════════════════════
+
+- ``check_roles``: public class decorator for action role requirements.
+- ``_normalize_check_roles_spec``: accepted-shape validator + canonicalizer.
+- ``_validate_required_role_modes``: compile-time mode checks for declared roles.
+- Target invariants: ensure class target and ``RoleIntent`` inheritance.
 
 ═══════════════════════════════════════════════════════════════════════════════
 INVARIANTS

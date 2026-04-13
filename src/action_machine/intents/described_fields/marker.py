@@ -1,9 +1,72 @@
 # src/action_machine/intents/described_fields/marker.py
 """
-Marker mixin ``DescribedFieldsIntent`` and validation helpers (no graph imports).
+Described-fields marker mixin and validation helpers.
 
-Inspector lives in ``action_machine.graph.inspectors.described_fields_intent_inspector``
-to avoid import cycles between ``intents`` and ``graph``.
+═══════════════════════════════════════════════════════════════════════════════
+PURPOSE
+═══════════════════════════════════════════════════════════════════════════════
+
+This module defines the ``DescribedFieldsIntent`` marker and lightweight
+validators that enforce ``Field(description="...")`` contracts on schema
+classes used by actions.
+
+Inspector orchestration remains in
+``action_machine.graph.inspectors.described_fields_intent_inspector`` to avoid
+import cycles between ``intents`` and ``graph`` layers.
+
+═══════════════════════════════════════════════════════════════════════════════
+INVARIANTS
+═══════════════════════════════════════════════════════════════════════════════
+
+- Validation is opt-in via ``DescribedFieldsIntent`` inheritance.
+- Only ``BaseModel`` subclasses with declared fields are validated.
+- Validation functions are read-only and never mutate input classes.
+
+═══════════════════════════════════════════════════════════════════════════════
+ARCHITECTURE / DATA FLOW
+═══════════════════════════════════════════════════════════════════════════════
+
+    Action schemas (Params/Result)
+               |
+               v
+    DescribedFieldsIntent marker
+               |
+               +--> validate_described_schema(model_cls)
+               |        |
+               |        +--> _field_names_missing_description(...)
+               |
+               +--> validate_described_schemas_for_action(action_cls)
+                        |
+                        +--> extract_action_params_result_types(action_cls)
+
+═══════════════════════════════════════════════════════════════════════════════
+EXAMPLES
+═══════════════════════════════════════════════════════════════════════════════
+
+    class Params(BaseParams, DescribedFieldsIntent):
+        name: str = Field(description="Name")
+
+    validate_described_schema(Params)
+
+    # Edge case: field without description -> TypeError.
+
+═══════════════════════════════════════════════════════════════════════════════
+ERRORS / LIMITATIONS
+═══════════════════════════════════════════════════════════════════════════════
+
+- Raises ``TypeError`` when any validated field has missing/empty description.
+- Non-marker classes and non-``BaseModel`` types are skipped by design.
+
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE-BEGIN
+═══════════════════════════════════════════════════════════════════════════════
+ROLE: Enforce schema-field description contracts for marked models.
+CONTRACT: Validate marker-bearing schemas and action-linked Params/Result.
+INVARIANTS: Validation-only logic; no cross-layer graph imports.
+FLOW: model/action type input -> description checks -> fail-fast TypeError.
+FAILURES: Missing field descriptions trigger validation exceptions.
+EXTENSION POINTS: Add extra schema-level validators in this marker module.
+AI-CORE-END
 """
 
 from __future__ import annotations
@@ -15,16 +78,20 @@ from action_machine.runtime.binding.action_generic_params import extract_action_
 
 class DescribedFieldsIntent:
     """
-    Marker mixin: pydantic fields must use ``Field(description="...")``.
+    Marker mixin requiring described Pydantic fields.
 
-    See ``DescribedFieldsIntentInspector`` docstring for full design notes.
+    AI-CORE-BEGIN
+    ROLE: Opt-in marker for described-field validation policy.
+    CONTRACT: Classes inheriting this marker must provide field descriptions.
+    INVARIANTS: Enforcement is performed by dedicated validation helpers.
+    AI-CORE-END
     """
 
     pass
 
 
 def _field_names_missing_description(model_cls: type[BaseModel]) -> list[str]:
-    """Return names of model fields with missing or empty ``Field(description=...)``."""
+    """Return field names with missing or empty ``Field(description=...)``."""
     missing: list[str] = []
     for field_name, field_info in model_cls.model_fields.items():
         description = field_info.description
@@ -35,13 +102,13 @@ def _field_names_missing_description(model_cls: type[BaseModel]) -> list[str]:
 
 def validate_described_schema(model_cls: type | None) -> None:
     """
-    Enforce ``DescribedFieldsIntent`` for one Pydantic model class.
+    Validate one schema class against described-fields contract.
 
     No-op when ``model_cls`` is ``None``, is not a ``DescribedFieldsIntent`` subtype,
     is not a ``BaseModel`` subclass, or declares no fields (empty schema shells).
 
     Raises:
-        TypeError: A declared field lacks a non-empty ``description``.
+        TypeError: Any declared field lacks a non-empty ``description``.
     """
     if model_cls is None:
         return
@@ -57,8 +124,8 @@ def validate_described_schema(model_cls: type | None) -> None:
     if missing:
         fields_str = ", ".join(f"'{f}'" for f in missing)
         raise TypeError(
-            f"Поля {fields_str} в {model_cls.__name__} не имеют описания. "
-            f'Используйте Field(description="...") для каждого поля.'
+            f"Fields {fields_str} in {model_cls.__name__} do not have descriptions. "
+            f'Use Field(description="...") for each field.'
         )
 
 

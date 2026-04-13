@@ -1,76 +1,76 @@
 # src/action_machine/intents/compensate/compensate_decorator.py
 """
-Модуль: compensate_decorator — декоратор @compensate для объявления compensatorов.
+Compensate decorator module for declaring saga compensators.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Декоратор @compensate(target_aspect_name, description) помечает async-method
-Action-класса как compensator для указанного regular-аспекта. При ошибке
-в конвейере аспектов compensatorы уже выполненных аспектов вызываются
-в обратном порядке (паттерн Saga).
+Decorator ``@compensate(target_aspect_name, description)`` marks an async
+action method as compensator for a target regular aspect. On pipeline failure,
+compensators for already executed aspects are invoked in reverse order
+(Saga rollback pattern).
 
-Декоратор выполняет валидации при определении класса (import-time) и
-записывает на method атрибут _compensate_meta, который позже собирается
-коллектором MetadataBuilder.
-
-═══════════════════════════════════════════════════════════════════════════════
-ARCHITECTURE
-═══════════════════════════════════════════════════════════════════════════════
-
-Привязка compensatorа к аспекту выполняется по СТРОКОВОМУ ИМЕНИ methodа-аспекта
-(target_aspect_name), а не по ссылке на объект. Это устраняет зависимость
-от порядка определения methodов в классе. Паттерн аналогичен привязке checkerов
-к аспектам по method_name.
-
-Validation привязки (существует ли аспект с таким именем, является ли он
-regular) выполняется НЕ в декораторе, а в MetadataBuilder.build() —
-на этапе декорирования класс ещё не полностью определён, и другие methodы
-могут быть не объявлены.
-
-Декоратор выполняет только те валидации, которые возможны на этапе
-определения methodа:
-    - target_aspect_name — непустая строка
-    - description — непустая строка
-    - method — async def
-    - имя methodа заканчивается на "_compensate"
-    - количество parameters: 7 без @context_requires, 8 с @context_requires
+The decorator validates declarations at class-definition time and writes
+``_compensate_meta`` on the method for later inspector/builder collection.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ЗАПИСЫВАЕМЫЙ АТРИБУТ
+ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-Декоратор записывает на функцию атрибут:
+    @compensate(...)
+          |
+          v
+    method._compensate_meta declaration
+          |
+          v
+    CompensateIntentInspector / builder collection
+          |
+          v
+    compensator facet snapshot
+          |
+          v
+    runtime rollback invocation in reverse order
+
+Binding uses target aspect *method name string* (``target_aspect_name``), not
+direct callable references. This removes method-order coupling in class body.
+Aspect existence/type validation is deferred to build stage when class surface
+is fully assembled.
+
+═══════════════════════════════════════════════════════════════════════════════
+WRITTEN ATTRIBUTE
+═══════════════════════════════════════════════════════════════════════════════
+
+Decorator writes attribute on function:
 
     func._compensate_meta = {
         "target_aspect_name": target_aspect_name,
         "description": description,
     }
 
-Этот атрибут читается локальным сборщиком compensatorов
-(``CompensateIntentInspector._collect_compensators`` / builder helper),
-который обходит ``vars(cls)`` и создаёт snapshot-элементы compensatorов.
+This attribute is read by compensator collectors
+(``CompensateIntentInspector._collect_compensators`` / builder helper) scanning
+``vars(cls)`` to create compensator snapshot entries.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ВЗАИМОДЕЙСТВИЕ С @context_requires
+INTERACTION WITH @context_requires
 ═══════════════════════════════════════════════════════════════════════════════
 
-Компенсатор может использовать @context_requires. Порядок декораторов:
+Compensator may use ``@context_requires``. Decorator order:
 
     @context_requires("user.role", "tenant.id")
-    @compensate("process_payment_aspect", "Rollback платежа")
+    @compensate("process_payment_aspect", "Rollback payment")
     async def rollback_payment_compensate(self, params, state_before,
                                            state_after, box, connections,
                                            error, ctx):
         ...
 
-@context_requires записывает _required_context_keys на функцию.
-@compensate проверяет наличие этого атрибута и корректирует ожидаемое
-количество parameters: 7 без ctx, 8 с ctx.
+``@context_requires`` writes ``_required_context_keys`` onto function.
+``@compensate`` checks this attribute and adjusts expected parameter count:
+7 without ``ctx``, 8 with ``ctx``.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ПРИМЕР ИСПОЛЬЗОВАНИЯ
+EXAMPLE
 ═══════════════════════════════════════════════════════════════════════════════
 
     from action_machine.intents.compensate import compensate
@@ -81,18 +81,36 @@ regular) выполняется НЕ в декораторе, а в MetadataBuil
         async def process_payment_aspect(self, params, state, box, connections):
             ...
 
-        @compensate("process_payment_aspect", "Rollback платежа")
+        @compensate("process_payment_aspect", "Rollback payment")
         async def rollback_payment_compensate(self, params, state_before,
                                                state_after, box, connections,
                                                error):
             ...
 
 
+═══════════════════════════════════════════════════════════════════════════════
+INVARIANTS
+═══════════════════════════════════════════════════════════════════════════════
+
+- ``target_aspect_name`` must be a non-empty string.
+- ``description`` must be a non-empty string.
+- Target method must be ``async def``.
+- Method name must end with ``"_compensate"``.
+- Parameter arity must be 7 (without context) or 8 (with context).
+
+═══════════════════════════════════════════════════════════════════════════════
+ERRORS / LIMITATIONS
+═══════════════════════════════════════════════════════════════════════════════
+
+- Raises ``TypeError``/``ValueError`` for declaration-time contract violations.
+- Does not validate target aspect existence/type at decoration time.
+- Runtime rollback semantics are implemented outside this module.
+
 AI-CORE-BEGIN
-ROLE: module compensate_decorator
-CONTRACT: Keep runtime behavior unchanged; decorators/inspectors expose metadata consumed by coordinator/machine.
-INVARIANTS: Validate declarations early and provide deterministic metadata shape.
-FLOW: declarations -> inspector snapshot -> coordinator cache -> runtime usage.
+ROLE: Public compensator declaration decorator module.
+CONTRACT: Validate compensator signatures and emit deterministic metadata.
+INVARIANTS: strict naming/arity/async declaration guards.
+FLOW: decorator call -> metadata write -> inspector snapshot -> runtime rollback.
 AI-CORE-END
 """
 
@@ -104,46 +122,39 @@ from collections.abc import Callable
 from typing import Any
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Константы
+# Constants
 # ─────────────────────────────────────────────────────────────────────────────
 
 _COMPENSATE_SUFFIX = "_compensate"
 """
-Обязательный суффикс имени methodа-compensatorа.
-Обеспечивает визуальную идентификацию compensatorов в коде класса
-и предотвращает случайное декорирование обычного methodа.
+Required suffix for compensator method names.
 """
 
 _EXPECTED_PARAMS_WITHOUT_CTX = 7
 """
-Ожидаемое количество parameters compensatorа без @context_requires:
-self, params, state_before, state_after, box, connections, error.
+Expected compensator parameter count without @context_requires.
 """
 
 _EXPECTED_PARAMS_WITH_CTX = 8
 """
-Ожидаемое количество parameters compensatorа с @context_requires:
-self, params, state_before, state_after, box, connections, error, ctx.
+Expected compensator parameter count with @context_requires.
 """
 
 _COMPENSATE_META_ATTR = "_compensate_meta"
 """
-Имя атрибута, записываемого на method декоратором @compensate.
-Читается локальным сборщиком compensatorов в inspector/builder.
+Attribute name written by @compensate decorator.
 """
 
 _CONTEXT_REQUIRES_ATTR = "_required_context_keys"
 """
-Имя атрибута, записываемого декоратором @context_requires.
-Используется для определения наличия контекстных зависимостей
-и корректировки ожидаемого количества parameters.
+Attribute name written by @context_requires decorator.
 """
 
 
 def _target_aspect_type_invariant(target_aspect_name: Any) -> None:
     if not isinstance(target_aspect_name, str):
         raise TypeError(
-            f"@compensate: target_aspect_name должен быть строкой, "
+            f"@compensate: target_aspect_name must be a string, "
             f"got {type(target_aspect_name).__name__}"
         )
 
@@ -151,14 +162,14 @@ def _target_aspect_type_invariant(target_aspect_name: Any) -> None:
 def _target_aspect_non_empty_invariant(target_aspect_name: str) -> None:
     if not target_aspect_name.strip():
         raise ValueError(
-            "@compensate: target_aspect_name не может быть пустой строкой"
+            "@compensate: target_aspect_name cannot be empty"
         )
 
 
 def _description_type_invariant(description: Any) -> None:
     if not isinstance(description, str):
         raise TypeError(
-            f"@compensate: description должен быть строкой, "
+            f"@compensate: description must be a string, "
             f"got {type(description).__name__}"
         )
 
@@ -166,26 +177,22 @@ def _description_type_invariant(description: Any) -> None:
 def _description_non_empty_invariant(description: str) -> None:
     if not description.strip():
         raise ValueError(
-            "@compensate: description не может быть пустой строкой"
+            "@compensate: description cannot be empty"
         )
 
 
 def _method_suffix_invariant(method_name: str) -> None:
     if not method_name.endswith(_COMPENSATE_SUFFIX):
         raise ValueError(
-            f"@compensate: имя methodа '{method_name}' должно "
-            f"заканчиваться на '{_COMPENSATE_SUFFIX}'. "
-            f"Это обеспечивает визуальную идентификацию compensatorов "
-            f"в коде класса."
+            f"@compensate: method name '{method_name}' must end with "
+            f"'{_COMPENSATE_SUFFIX}'."
         )
 
 
 def _method_async_invariant(func: Callable[..., Any], method_name: str) -> None:
     if not asyncio.iscoroutinefunction(func):
         raise TypeError(
-            f"@compensate: method '{method_name}' должен быть "
-            f"корутиной (async def). Компенсаторы выполняют "
-            f"асинхронные операции отката (HTTP-запросы, запросы к БД)."
+            f"@compensate: method '{method_name}' must be async (async def)."
         )
 
 
@@ -210,15 +217,15 @@ def _method_params_count_invariant(func: Callable[..., Any], method_name: str) -
             )
 
         raise TypeError(
-            f"@compensate: метод '{method_name}' должен иметь "
-            f"{expected_params} параметров ({params_desc}), "
-            f"но имеет {actual_params}. "
-            f"{'Обнаружен @context_requires — добавлен параметр ctx.' if has_context else ''}"
+            f"@compensate: method '{method_name}' must accept "
+            f"{expected_params} parameters ({params_desc}), "
+            f"got {actual_params}. "
+            f"{'Detected @context_requires, so ctx parameter is required.' if has_context else ''}"
         )
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Декоратор @compensate
+# Decorator @compensate
 # ─────────────────────────────────────────────────────────────────────────────
 
 
@@ -227,49 +234,41 @@ def compensate(
     description: str,
 ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
     """
-    Декоратор для объявления methodа-compensatorа regular-аспекта.
-
-    Помечает async-method Action-класса как compensator для указанного
-    regular-аспекта. При ошибке в конвейере аспектов все compensatorы
-    уже выполненных аспектов вызываются в обратном порядке.
+    Declare a compensator method for a target regular aspect.
 
     Args:
         target_aspect_name:
-            Строковое имя methodа regular-аспекта, к которому привязан
-            compensator (например, "process_payment_aspect").
-            Непустая строка. Validation существования аспекта и его типа
-            выполняется в MetadataBuilder.build(), а не здесь.
+            Name of target regular-aspect method (for example,
+            ``"process_payment_aspect"``). Must be non-empty. Existence/type
+            validation is performed at build stage, not here.
 
         description:
-            Человекочитаемое описание действия compensatorа
-            (например, "Rollback платежа", "Удаление созданной записи").
-            Непустая строка. Используется в событиях плагинов,
-            логировании и графе зависимостей.
+            Human-readable compensator description used in plugin events,
+            logging, and graph metadata.
 
     Returns:
-        Декоратор, который записывает _compensate_meta на method
-        и возвращает его без изменений.
+        Decorator that writes ``_compensate_meta`` on method and returns it.
 
     Raises:
         TypeError:
-            - target_aspect_name не является строкой.
-            - description не является строкой.
-            - Метод не является корутиной (async def).
-            - Неверное количество parameters.
+            - target_aspect_name is not a string.
+            - description is not a string.
+            - method is not async.
+            - invalid parameter arity.
         ValueError:
-            - target_aspect_name — пустая строка.
-            - description — пустая строка.
-            - Имя methodа не заканчивается на "_compensate".
+            - target_aspect_name is empty.
+            - description is empty.
+            - method name does not end with ``"_compensate"``.
 
-    Пример:
-        @compensate("process_payment_aspect", "Rollback платежа")
+    Example:
+        @compensate("process_payment_aspect", "Rollback payment")
         async def rollback_payment_compensate(self, params, state_before,
                                                state_after, box,
                                                connections, error):
             ...
     """
 
-    # ── Validation аргументов декоратора ────────────────────────────────────
+    # ── Decorator argument validation ────────────────────────────────────────
 
     _target_aspect_type_invariant(target_aspect_name)
     _target_aspect_non_empty_invariant(target_aspect_name)
@@ -278,29 +277,24 @@ def compensate(
 
     def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
         """
-        Внутренний декоратор: валидирует method и записывает _compensate_meta.
+        Validate decorated method and write ``_compensate_meta``.
         """
 
         method_name = func.__name__
 
-        # ── Validation суффикса имени ──────────────────────────────────────
+        # ── Method suffix validation ───────────────────────────────────────
 
         _method_suffix_invariant(method_name)
 
-        # ── Validation async def ───────────────────────────────────────────
+        # ── Async declaration validation ───────────────────────────────────
 
         _method_async_invariant(func, method_name)
 
-        # ── Validation количества parameters ───────────────────────────────
-        #
-        # Определяем, использует ли method @context_requires.
-        # @context_requires записывает _required_context_keys ДО вызова
-        # @compensate (порядок декораторов: @context_requires снаружи,
-        # @compensate внутри).
+        # ── Parameter arity validation ─────────────────────────────────────
 
         _method_params_count_invariant(func, method_name)
 
-        # ── Запись метаданных на method ────────────────────────────────────
+        # ── Write method metadata ──────────────────────────────────────────
 
         setattr(func, _COMPENSATE_META_ATTR, {
             "target_aspect_name": target_aspect_name.strip(),

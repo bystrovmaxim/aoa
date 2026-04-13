@@ -1,47 +1,84 @@
 # src/action_machine/resources/connections_typed_dict.py
 """
-Базовый TypedDict для словаря connections, передаваемого в аспекты.
+Base TypedDict contract for ``connections`` mapping passed into aspects.
 
-В 99% случаев действию нужно одно соединение, поэтому базовый TypedDict
-содержит единственный стандартный ключ 'connection'. Если действию требуется
-больше соединений, разработчик создаёт наследника с дополнительными ключами.
+═══════════════════════════════════════════════════════════════════════════════
+PURPOSE
+═══════════════════════════════════════════════════════════════════════════════
 
-TypedDict используется с total=False, потому что:
-- не все действия используют все ключи;
-- набор ключей определяется декораторами @connection на уровне класса действия;
-- машина гарантирует точное соответствие переданных ключей объявленным.
+``Connections`` defines a minimal static typing contract for resource managers
+in action aspect signatures. The default key ``"connection"`` covers the most
+common single-resource case; multi-resource actions can extend this TypedDict.
 
-TypedDict — это статический контракт для IDE и mypy.
-В runtime connections остаётся обычным dict, и ActionMachine
-проверяет его содержимое через _check_connections() динамически.
+═══════════════════════════════════════════════════════════════════════════════
+INVARIANTS
+═══════════════════════════════════════════════════════════════════════════════
 
-Пример использования (простой случай — 99%):
+- TypedDict is static typing metadata for IDE/mypy; runtime payload is plain dict.
+- ``total=False`` allows action-specific optional keys in extended contracts.
+- Runtime key/type correctness is validated separately by machine checks.
 
-    @connection("connection", PostgresConnectionManager, description="Основная БД")
-    @check_roles(AnyRole)
+═══════════════════════════════════════════════════════════════════════════════
+ARCHITECTURE / DATA FLOW
+═══════════════════════════════════════════════════════════════════════════════
+
+    @connection declarations on action class
+                 |
+                 v
+    Runtime builds validated connections payload (dict)
+                 |
+                 +--> Aspect signature typing: Connections / subclass
+                 |
+                 v
+    Aspect reads managers by keys (e.g. connections["connection"])
+
+═══════════════════════════════════════════════════════════════════════════════
+EXAMPLES
+═══════════════════════════════════════════════════════════════════════════════
+
+Simple case:
+
+    @connection(PostgresConnectionManager, key="connection", description="Primary DB")
     class MyAction(BaseAction[...]):
-
-        @aspect("Загрузка")
-        async def load(self, params, state, deps, connections: Connections) -> ...:
+        @regular_aspect("Load")
+        async def load(self, params, state, box, connections: Connections) -> ...:
             conn = connections["connection"]
             ...
 
-Пример использования (сложный случай — наследование):
+Extended case:
 
     class MyConnections(Connections, total=False):
         cache: BaseResourceManager
         analytics_db: BaseResourceManager
 
-    @connection(PostgresConnectionManager, key="connection", description="Основная БД")
-    @connection(RedisConnectionManager, key="cache", description="Кеш")
-    @connection(PostgresConnectionManager, key="analytics_db", description="Аналитика")
+    @connection(PostgresConnectionManager, key="connection", description="Primary DB")
+    @connection(RedisConnectionManager, key="cache", description="Cache")
+    @connection(PostgresConnectionManager, key="analytics_db", description="Analytics DB")
     class ComplexAction(BaseAction[...]):
-
-        @regular_aspect("Загрузка")
-        async def load(self, params, state, box, connections) -> ...:
+        @regular_aspect("Load")
+        async def load(self, params, state, box, connections: MyConnections) -> ...:
             db = connections["connection"]
             cache = connections["cache"]
             ...
+
+═══════════════════════════════════════════════════════════════════════════════
+ERRORS / LIMITATIONS
+═══════════════════════════════════════════════════════════════════════════════
+
+- TypedDict alone does not enforce runtime resource presence.
+- Key names must still match ``@connection`` declarations on action classes.
+- Keep extensions action-specific to avoid global "god" contracts.
+
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE-BEGIN
+═══════════════════════════════════════════════════════════════════════════════
+ROLE: Static type contract for action resource connection payloads.
+CONTRACT: Provide default key and extensible TypedDict inheritance path.
+INVARIANTS: Runtime object is dict; static typing augments editor/type checks.
+FLOW: class declarations -> runtime validation -> typed access in aspects.
+FAILURES: Mismatched keys fail at runtime validation, not TypedDict definition.
+EXTENSION POINTS: Create per-action TypedDict subclasses with additional keys.
+AI-CORE-END
 """
 
 from typing import TypedDict
@@ -51,13 +88,9 @@ from action_machine.resources.base_resource_manager import BaseResourceManager
 
 class Connections(TypedDict, total=False):
     """
-    Базовый TypedDict для connections.
+    Base TypedDict for action ``connections`` mapping.
 
-    Содержит один стандартный ключ 'connection', покрывающий 99% случаев.
-    Для дополнительных соединений создавайте наследника с total=False.
-
-    Ключи:
-        connection: основной ресурсный менеджер (соединение с БД, кеш и т.д.)
+    Includes standard ``connection`` key for common single-resource scenarios.
     """
 
     connection: BaseResourceManager

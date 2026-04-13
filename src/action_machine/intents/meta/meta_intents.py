@@ -132,6 +132,12 @@ class ActionMetaIntent:
     ``BaseAction`` includes this mixin. Subclasses must follow ``@meta`` rules
     enforced by the decorator and ``validate_meta_required``. ``@meta`` sets
     ``_meta_info`` with ``description`` and ``domain``.
+
+    AI-CORE-BEGIN
+    ROLE: Marker contract for action classes requiring meta declarations.
+    CONTRACT: Action hierarchy carries this marker for @meta enforcement.
+    INVARIANTS: Mixin is logic-free and stores no runtime behavior.
+    AI-CORE-END
     """
 
     _meta_info: ClassVar[dict[str, Any]]
@@ -143,6 +149,12 @@ class ResourceMetaIntent:
 
     ``BaseResourceManager`` includes this mixin. Every concrete manager must
     apply ``@meta`` so ``_meta_info`` exists before metadata build.
+
+    AI-CORE-BEGIN
+    ROLE: Marker contract for resource managers requiring @meta.
+    CONTRACT: Resource manager hierarchy must provide _meta_info via decorator.
+    INVARIANTS: Mixin is logic-free and used only by validators/inspectors.
+    AI-CORE-END
     """
 
     _meta_info: ClassVar[dict[str, Any]]

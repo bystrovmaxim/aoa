@@ -212,7 +212,7 @@ class TestFilterValidation:
 
     def test_negative_nest_level_raises(self) -> None:
         """Negative nest_level raises ValueError."""
-        with pytest.raises(ValueError, match="отрицательн"):
+        with pytest.raises(ValueError, match="negative"):
             @on(GlobalFinishEvent, nest_level=-1)
             async def on_handler(self, state, event, log):
                 return state
@@ -258,7 +258,7 @@ class TestTargetValidation:
 
     def test_non_callable_raises_type_error(self) -> None:
         """Applying @on to a non-callable raises TypeError."""
-        with pytest.raises(TypeError, match="методам"):
+        with pytest.raises(TypeError, match="methods"):
             on(GlobalFinishEvent)("not_a_function")
 
     def test_sync_method_raises_type_error(self) -> None:
@@ -359,4 +359,5 @@ class TestSubscriptionInfoFrozen:
             method_name="on_handler",
         )
         with pytest.raises(AttributeError):
+            info.method_name = "on_other"  # type: ignore[misc]
             info.method_name = "on_other"  # type: ignore[misc]

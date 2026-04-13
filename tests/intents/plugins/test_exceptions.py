@@ -1,39 +1,37 @@
 # tests/intents/plugins/test_exceptions.py
-"""
-Тесты обработки исключений в обработчиках плагинов.
+"""Tests for exception handling in plugin handlers.
 
-═══════════════════════════════════════════════════════════════════════════════
-НАЗНАЧЕНИЕ
-═══════════════════════════════════════════════════════════════════════════════
+═══════════════════ ════════════════════ ════════════════════ ════════════════════
+PURPOSE
+═══════════════════ ════════════════════ ════════════════════ ════════════════════
 
-Проверяет поведение PluginRunContext при ошибках в обработчиках плагинов.
-Декоратор @on принимает параметр ignore_exceptions, который определяет
-стратегию обработки ошибок:
+Tests the behavior of the PluginRunContext in case of errors in plugin handlers.
+The @on decorator takes an ignore_exceptions parameter, which specifies
+error handling strategy:
 
-- ignore_exceptions=True: ошибка обработчика подавляется; при переданном
-  log_coordinator пишется CRITICAL в Channel.error. Состояние плагина
-  НЕ обновляется возвращённым значением (return не выполняется), но
-  in-place мутации dict, произведённые до raise, остаются видны, так как
-  dict — мутабельный объект и передаётся по ссылке.
+- ignore_exceptions=True: handler error is suppressed; when transmitted
+  log_coordinator is written CRITICAL in Channel.error. Plugin status
+  NOT updated with the return value (return is not executed), but
+  in-place mutations of dict made before raise remain visible because
+  dict is a mutable object and is passed by reference.
 
-- ignore_exceptions=False: ошибка обработчика пробрасывается наружу
-  через emit_event(). Это прерывает выполнение действия и позволяет
-  машине обработать ошибку на верхнем уровне.
+- ignore_exceptions=False: the handler error is thrown out
+  via emit_event(). This interrupts the action and allows
+  machine to process the error at the top level.
 
-═══════════════════════════════════════════════════════════════════════════════
-ПОКРЫВАЕМЫЕ СЦЕНАРИИ
-═══════════════════════════════════════════════════════════════════════════════
+═══════════════════ ════════════════════ ════════════════════ ════════════════════
+SCENARIOS COVERED
+═══════════════════ ════════════════════ ════════════════════ ════════════════════
 
 ignore_exceptions=True:
-- Ошибка подавляется, emit_event() не выбрасывает исключение.
-- При log_coordinator — одна запись critical + Channel.error на подавленный сбой.
-- In-place мутация state до raise видна (before_error=True).
-- Код после raise не выполняется (after_error остаётся False).
+- The error is suppressed, emit_event() does not throw an exception.
+- With log_coordinator - one critical + Channel.error entry per suppressed failure.
+- In-place mutation of state before raise is visible (before_error=True).
+- The code after raise is not executed (after_error remains False).
 
 ignore_exceptions=False:
-- RuntimeError пробрасывается из emit_event() с правильным сообщением.
-- Кастомное исключение CustomPluginException пробрасывается с сохранением типа.
-"""
+- RuntimeError is thrown from emit_event() with the correct message.
+- Custom exception CustomPluginException is thrown while preserving the type."""
 
 import pytest
 
@@ -60,62 +58,56 @@ from .conftest import (
 
 
 class TestIgnoreExceptionsTrue:
-    """Тесты поведения при ignore_exceptions=True — ошибки подавляются."""
+    """Behavior tests for ignore_exceptions=True - errors are suppressed."""
 
     @pytest.mark.anyio
     async def test_error_suppressed_no_exception(self):
-        """
-        IgnoredErrorPlugin выбрасывает RuntimeError с ignore_exceptions=True.
-        emit_event() завершается без исключения — ошибка подавлена.
-        """
-        # Arrange — плагин с падающим обработчиком (ignore=True)
+        """IgnoredErrorPlugin throws RuntimeError with ignore_exceptions=True.
+        emit_event() completes without throwing an exception - the error is suppressed."""
+        #Arrange - plugin with a crash handler (ignore=True)
         plugin = IgnoredErrorPlugin()
         coordinator = PluginCoordinator(plugins=[plugin])
         plugin_ctx = await coordinator.create_run_context()
 
-        # Act + Assert — не должно быть исключения
+        #Act + Assert - there should be no exception
         await emit_global_finish(plugin_ctx)
 
     @pytest.mark.anyio
     async def test_in_place_mutation_before_raise_visible(self):
-        """
-        IgnoredErrorPlugin мутирует state["before_error"]=True до raise.
-        Поскольку state — dict (мутабельный объект, передаётся по ссылке),
-        in-place мутация остаётся видна даже при подавленной ошибке.
-        """
-        # Arrange — плагин, мутирующий state до raise
+        """IgnoredErrorPlugin mutates state["before_error"]=True to raise.
+        Since state is a dict (mutable object, passed by reference),
+        An in-place mutation remains visible even when the error is suppressed."""
+        #Arrange is a plugin that mutates state to raise
         plugin = IgnoredErrorPlugin()
         coordinator = PluginCoordinator(plugins=[plugin])
         plugin_ctx = await coordinator.create_run_context()
 
-        # Act — событие обрабатывается, ошибка подавляется
+        #Act - the event is processed, the error is suppressed
         await emit_global_finish(plugin_ctx)
 
-        # Assert — мутация до raise видна
+        #Assert - mutation to raise is visible
         state = plugin_ctx.get_plugin_state(plugin)
         assert state["before_error"] is True
 
     @pytest.mark.anyio
     async def test_code_after_raise_not_executed(self):
-        """
-        IgnoredErrorPlugin: код после raise не выполняется.
-        state["after_error"] остаётся False (начальное значение).
-        """
-        # Arrange — плагин с кодом после raise (который не выполнится)
+        """IgnoredErrorPlugin: the code after raise is not executed.
+        state["after_error"] remains False (initial value)."""
+        #Arrange - plugin with code after raise (which will not be executed)
         plugin = IgnoredErrorPlugin()
         coordinator = PluginCoordinator(plugins=[plugin])
         plugin_ctx = await coordinator.create_run_context()
 
-        # Act — событие обрабатывается
+        #Act - the event is being processed
         await emit_global_finish(plugin_ctx)
 
-        # Assert — код после raise не выполнился
+        #Assert - the code after raise was not executed
         state = plugin_ctx.get_plugin_state(plugin)
         assert state["after_error"] is False
 
     @pytest.mark.anyio
     async def test_suppressed_error_emits_critical_on_error_channel_parallel(self) -> None:
-        """Все ignore=True → gather; сбой даёт CRITICAL с маской Channel.error."""
+        """All ignore=True → gather; CRITICAL with the Channel.error mask fails."""
         plugin = IgnoredErrorPlugin()
         coordinator = PluginCoordinator(plugins=[plugin])
         plugin_ctx = await coordinator.create_run_context()
@@ -148,7 +140,7 @@ class TestIgnoreExceptionsTrue:
 
     @pytest.mark.anyio
     async def test_suppressed_error_emits_critical_sequential_path(self) -> None:
-        """Смесь ignore True/False → последовательно; подавленный сбой логируется."""
+        """Mix ignore True/False → sequentially; a suppressed failure is logged."""
         plugin = IgnoredErrorPlugin()
         counter = CounterPlugin()
         coordinator = PluginCoordinator(plugins=[plugin, counter])
@@ -178,35 +170,32 @@ class TestIgnoreExceptionsTrue:
 
 
 class TestIgnoreExceptionsFalse:
-    """Тесты поведения при ignore_exceptions=False — ошибки пробрасываются."""
+    """Tests of behavior when ignore_exceptions=False - errors are thrown."""
 
     @pytest.mark.anyio
     async def test_runtime_error_propagates(self):
-        """
-        PropagatedErrorPlugin выбрасывает RuntimeError с ignore_exceptions=False.
-        Ошибка пробрасывается из emit_event() с правильным сообщением.
-        """
-        # Arrange — плагин с критическим обработчиком
+        """PropagatedErrorPlugin throws RuntimeError with ignore_exceptions=False.
+        The error is thrown from emit_event() with the correct message."""
+        #Arrange - a plugin with a critical handler
         plugin = PropagatedErrorPlugin()
         coordinator = PluginCoordinator(plugins=[plugin])
         plugin_ctx = await coordinator.create_run_context()
 
-        # Act + Assert — RuntimeError пробрасывается
+        #Act + Assert - RuntimeError is thrown
         with pytest.raises(RuntimeError, match="Strict error must propagate"):
             await emit_global_finish(plugin_ctx)
 
     @pytest.mark.anyio
     async def test_custom_exception_preserves_type(self):
-        """
-        CustomExceptionPlugin выбрасывает CustomPluginException.
-        Тип кастомного исключения сохраняется при пробросе —
-        вызывающий код может поймать конкретный тип.
-        """
-        # Arrange — плагин с кастомным исключением
+        """CustomExceptionPlugin throws CustomPluginException.
+        The type of custom exception is saved when forwarding -
+        the calling code can catch a specific type."""
+        #Arrange - plugin with custom exclusion
         plugin = CustomExceptionPlugin()
         coordinator = PluginCoordinator(plugins=[plugin])
         plugin_ctx = await coordinator.create_run_context()
 
-        # Act + Assert — CustomPluginException пробрасывается с сообщением
+        #Act + Assert - CustomPluginException is thrown with a message
         with pytest.raises(CustomPluginError, match="Custom plugin error"):
+            await emit_global_finish(plugin_ctx)
             await emit_global_finish(plugin_ctx)

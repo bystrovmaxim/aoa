@@ -1,20 +1,63 @@
 # tests/bench/test_bench_run.py
 """
-Тесты TestBench.run() — полный прогон действия на async и sync машинах.
+Tests for ``TestBench.run()`` — full action execution on async and sync machines.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ПОКРЫВАЕМЫЕ СЦЕНАРИИ
+PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-- Действие без зависимостей (PingAction) выполняется и возвращает результат.
-- Действие с зависимостями (FullAction) получает моки через box.resolve().
-- MockAction выполняется напрямую, минуя конвейер.
-- Ролевая проверка использует пользователя из TestBench.
-- with_user(admin) даёт доступ к AdminAction.
-- rollup — обязательный параметр без дефолта.
+Exercise end-to-end bench runs: dependency-free actions, actions with mocked
+dependencies, direct ``MockAction`` bypass, role checks tied to bench user
+context, and the requirement to pass ``rollup`` explicitly.
 
-Все core-типы (Params, Result, State) — неизменяемы. Результаты сравниваются
-через model_dump() или прямое сравнение полей.
+═══════════════════════════════════════════════════════════════════════════════
+ARCHITECTURE / DATA FLOW
+═══════════════════════════════════════════════════════════════════════════════
+
+    clean_bench / manager_bench / admin_bench
+              |
+              v
+    run(action, params, rollup=..., connections=...)
+              |
+              ├── async machine  ----\
+              └── sync machine   ----+--> compare_results -> single awaited result
+
+``Params``, ``Result``, and merged state are immutable; assertions use field
+equality or ``model_dump()`` where needed.
+
+═══════════════════════════════════════════════════════════════════════════════
+INVARIANTS
+═══════════════════════════════════════════════════════════════════════════════
+
+- ``MockAction`` must bypass the normal machine pipeline when passed to ``run``.
+- Default stub user lacks ``AdminRole``; ``admin_bench`` supplies it.
+- ``rollup`` has no default — callers must choose comparison mode explicitly.
+
+═══════════════════════════════════════════════════════════════════════════════
+EXAMPLES
+═══════════════════════════════════════════════════════════════════════════════
+
+    uv run pytest tests/bench/test_bench_run.py -q
+
+Happy path: ``PingAction`` -> ``message == "pong"``.
+
+Edge case: omitting ``rollup`` raises ``TypeError`` (guards accidental misuse).
+
+═══════════════════════════════════════════════════════════════════════════════
+ERRORS / LIMITATIONS
+═══════════════════════════════════════════════════════════════════════════════
+
+- ``manager_bench`` expects notification + payment mocks from shared fixtures.
+
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE-BEGIN
+═══════════════════════════════════════════════════════════════════════════════
+ROLE: Integration tests for the primary ``TestBench.run`` entrypoint.
+CONTRACT: Dual-machine agreement; auth uses bench context; ``rollup`` required.
+INVARIANTS: Scenario actions ``PingAction``, ``FullAction``, ``AdminAction``.
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE-END
+═══════════════════════════════════════════════════════════════════════════════
 """
 
 from unittest.mock import AsyncMock
@@ -31,14 +74,11 @@ from tests.scenarios.domain_model import (
 
 
 class TestSimpleAction:
-    """Прогон действий без зависимостей."""
+    """Runs for actions without external dependencies."""
 
     @pytest.mark.anyio
     async def test_ping_returns_pong(self, clean_bench: TestBench) -> None:
-        """
-        PingAction не имеет зависимостей и regular-аспектов.
-        TestBench выполняет summary и возвращает PingResult.
-        """
+        """``PingAction`` has no dependencies or regular aspects."""
         action = PingAction()
         params = PingAction.Params()
 
@@ -49,17 +89,13 @@ class TestSimpleAction:
 
 
 class TestActionWithDependencies:
-    """Прогон действий с моками зависимостей."""
+    """Runs where aspects resolve mocked domain services."""
 
     @pytest.mark.anyio
     async def test_full_action_uses_mocks(
         self, manager_bench: TestBench, mock_db: AsyncMock,
     ) -> None:
-        """
-        FullAction получает моки PaymentService и NotificationService
-        через box.resolve(). Результат формируется из state,
-        накопленного regular-аспектами.
-        """
+        """``FullAction`` uses ``box.resolve()`` mocks and aspect state."""
         action = FullAction()
         params = FullAction.Params(user_id="u1", amount=500.0)
 
@@ -67,7 +103,6 @@ class TestActionWithDependencies:
             action, params, rollup=False, connections={"db": mock_db},
         )
 
-        # Проверка полей результата (frozen)
         assert result.order_id == "ORD-u1"
         assert result.status == "created"
         assert result.total == 500.0
@@ -75,15 +110,11 @@ class TestActionWithDependencies:
 
 
 class TestMockAction:
-    """MockAction выполняется напрямую, минуя конвейер."""
+    """``MockAction`` shortcuts the pipeline."""
 
     @pytest.mark.anyio
     async def test_bypasses_pipeline(self, clean_bench: TestBench) -> None:
-        """
-        MockAction не имеет @meta и @check_roles. Если TestBench
-        прогонит его через конвейер — TypeError от проверки ролей.
-        Прямой вызов через .run() обходит конвейер.
-        """
+        """``MockAction`` lacks ``@meta`` / ``@check_roles`` — pipeline would fail."""
         expected = PingAction.Result(message="direct")
         mock = MockAction(result=expected)
 
@@ -94,16 +125,13 @@ class TestMockAction:
 
 
 class TestRoleCheck:
-    """Ролевая проверка использует пользователя из TestBench."""
+    """Role enforcement reads the user from the bench-derived context."""
 
     @pytest.mark.anyio
     async def test_default_user_rejected_by_admin_action(
         self, clean_bench: TestBench,
     ) -> None:
-        """
-        Дефолтный пользователь — StubTesterRole. AdminAction
-        требует AdminRole. Проверка ролей отклоняет.
-        """
+        """Default ``StubTesterRole`` cannot run ``AdminAction``."""
         action = AdminAction()
         params = AdminAction.Params(target="user_456")
 
@@ -114,10 +142,7 @@ class TestRoleCheck:
     async def test_with_user_grants_admin_access(
         self, admin_bench: TestBench,
     ) -> None:
-        """
-        admin_bench создаёт пользователя с AdminRole.
-        AdminAction проходит проверку ролей.
-        """
+        """``admin_bench`` supplies ``AdminRole`` so the action succeeds."""
         action = AdminAction()
         params = AdminAction.Params(target="user_456")
 
@@ -128,16 +153,13 @@ class TestRoleCheck:
 
 
 class TestRollupRequired:
-    """rollup — обязательный параметр без значения по умолчанию."""
+    """``rollup`` must be passed explicitly."""
 
     @pytest.mark.anyio
     async def test_missing_rollup_raises_type_error(
         self, clean_bench: TestBench,
     ) -> None:
-        """
-        Если дефолт появится — тестировщик может случайно пропустить
-        rollup и не заметить, что тестирует в неправильном режиме.
-        """
+        """A default ``rollup`` would hide which comparison mode a test uses."""
         action = PingAction()
         params = PingAction.Params()
 

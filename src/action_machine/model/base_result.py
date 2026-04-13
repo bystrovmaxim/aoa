@@ -1,26 +1,26 @@
 # src/action_machine/model/base_result.py
 """
-BaseResult — frozen-результат выполнения действия.
+Immutable action result model.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-BaseResult — базовый контракт выходных данных ActionMachine.
-Экземпляр создаётся summary-аспектом (или обработчиком @on_error)
-и возвращается вызывающему коду как финальный результат действия.
+``BaseResult`` is the base output contract in ActionMachine.
+An instance is produced by a summary aspect (or ``@on_error`` handler)
+and returned to the caller as the final action outcome.
 
 ═══════════════════════════════════════════════════════════════════════════════
 INVARIANTS
 ═══════════════════════════════════════════════════════════════════════════════
 
-- frozen=True: запись в поля после создания запрещена.
-- extra="forbid": результат содержит только явно объявленные поля.
+- ``frozen=True``: field writes after construction are forbidden.
+- ``extra="forbid"``: result contains only explicitly declared fields.
 
     result = OrderResult(order_id="ORD-1", status="created", total=1500.0)
-    result.status = "paid"        # → ValidationError
+    result.status = "paid"        # -> ValidationError
 
-Единственный способ «изменить» результат — создать новый экземпляр:
+The only way to "change" a result is to create a new instance:
 
     updated = result.model_copy(update={"status": "paid"})
 
@@ -28,9 +28,9 @@ INVARIANTS
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-Summary-аспект создаёт обычный `BaseResult`-наследник:
+A summary aspect creates a regular ``BaseResult`` subclass:
 
-    @summary_aspect("Формирование result")
+    @summary_aspect("Build result")
     async def build_result_summary(self, params, state, box, connections):
         return OrderResult(
             order_id=f"ORD_{params.user_id}",
@@ -38,60 +38,80 @@ Summary-аспект создаёт обычный `BaseResult`-наследни
             total=state["total"],
         )
 
-@on_error может вернуть альтернативный Result:
+``@on_error`` may return an alternative result:
 
-    @on_error(ValueError, description="Ошибка валидации")
+    @on_error(ValueError, description="Validation error")
     async def validation_on_error(self, params, state, box, connections, error):
         return OrderResult(order_id="ERR", status="validation_error", total=0)
 
-Плагины читают Result через event.result, но не могут его изменить.
-Адаптеры (FastAPI, MCP) сериализуют через model_dump().
+Plugins read result via ``event.result`` but cannot mutate it.
+Adapters (FastAPI, MCP) serialize it through ``model_dump()``.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ОТЛИЧИЕ ОТ BaseParams И BaseState
+DIFFERENCE FROM BaseParams AND BaseState
 ═══════════════════════════════════════════════════════════════════════════════
 
-    BaseParams  — frozen, extra="forbid". Входные параметры.
-    BaseState   — frozen, extra="allow".  Промежуточное state конвейера.
-    BaseResult  — frozen, extra="forbid". Результат действия.
+    BaseParams  - frozen, extra="forbid". Input parameters.
+    BaseState   - frozen, extra="allow".  Intermediate pipeline state.
+    BaseResult  - frozen, extra="forbid". Final action result.
 
-Params приходит снаружи и не меняется. State живёт внутри конвейера.
-Result формируется summary-аспектом и возвращается вызывающему коду.
+Params comes from outside and stays immutable. State lives inside pipeline flow.
+Result is built by the summary aspect and returned to calling code.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ПРИМЕР
+EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
     from pydantic import Field
     from action_machine.model.base_result import BaseResult
 
     class OrderResult(BaseResult):
-        order_id: str = Field(description="ID созданного заказа")
-        status: str = Field(description="Статус заказа", examples=["created"])
-        total: float = Field(description="Итоговая сумма", ge=0)
+        order_id: str = Field(description="Created order identifier")
+        status: str = Field(description="Order status", examples=["created"])
+        total: float = Field(description="Final amount", ge=0)
 
     result = OrderResult(order_id="ORD-123", status="created", total=1500.0)
 
-    # Чтение — dict-стиль (унаследовано от BaseSchema):
-    result["status"]            # → "created"
-    result.resolve("total")     # → 1500.0
-    result.keys()               # → ["order_id", "status", "total"]
+    # Reads via dict-like API (inherited from BaseSchema):
+    result["status"]            # -> "created"
+    result.resolve("total")     # -> 1500.0
+    result.keys()               # -> ["order_id", "status", "total"]
 
-    # Сериализация:
-    result.model_dump()         # → {"order_id": "ORD-123", "status": "created", "total": 1500.0}
+    # Serialization:
+    result.model_dump()         # -> {"order_id": "ORD-123", "status": "created", "total": 1500.0}
 
-    # Запись запрещена (frozen):
-    result.status = "paid"      # → ValidationError
+    # Writes are forbidden (frozen):
+    result.status = "paid"      # -> ValidationError
 
-    # Лишние поля запрещены (forbid):
-    OrderResult(order_id="x", status="y", total=0, unknown="z")  # → ValidationError
+    # Unknown fields are forbidden (extra="forbid"):
+    OrderResult(order_id="x", status="y", total=0, unknown="z")  # -> ValidationError
 
-    # «Изменение» — создание нового экземпляра:
+    # "Change" by creating a new instance:
     updated = result.model_copy(update={"status": "paid"})
 
-    # JSON Schema для FastAPI и MCP:
+    # JSON Schema for FastAPI and MCP:
     OrderResult.model_json_schema()
-    # {"properties": {"order_id": {"description": "ID созданного заказа", ...}, ...}}
+    # {"properties": {"order_id": {"description": "Created order identifier", ...}, ...}}
+
+═══════════════════════════════════════════════════════════════════════════════
+ERRORS / LIMITATIONS
+═══════════════════════════════════════════════════════════════════════════════
+
+- Mutating fields after construction is rejected by frozen model config.
+- Unknown fields are rejected due to ``extra="forbid"``.
+- This class defines framework-level output contract only; domain semantics
+  belong to concrete result subclasses.
+
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE-BEGIN
+═══════════════════════════════════════════════════════════════════════════════
+ROLE: Immutable final output contract for action execution.
+CONTRACT: Result models are typed, frozen, and strictly shaped.
+INVARIANTS: frozen=True; extra="forbid"; field descriptions are expected.
+FLOW: summary/on_error creates result -> runtime emits -> adapters serialize.
+FAILURES: ValidationError on invalid input, unknown fields, or mutation attempt.
+EXTENSION POINTS: Extend through dedicated result subclasses per action.
+AI-CORE-END
 """
 
 from pydantic import ConfigDict
@@ -102,18 +122,11 @@ from action_machine.model.base_schema import BaseSchema
 
 class BaseResult(BaseSchema, DescribedFieldsIntent):
     """
-    Базовый frozen-результат действия.
+    Frozen base class for final action result payloads.
 
-    Наследники объявляют итоговые поля и их описания через Field(..., description=...).
-    Запись после создания запрещена (frozen=True), лишние поля не допускаются
-    (extra="forbid"), описания полей контролирует DescribedFieldsIntent.
-
-    Конкретный Result создаётся наследованием:
-
-        class OrderResult(BaseResult):
-            order_id: str = Field(description="ID заказа")
-            total: float = Field(description="Итого", ge=0)
-            status: str = Field(description="Статус", examples=["created"])
+    Subclasses define concrete output fields with ``Field(..., description=...)``.
+    Inherits dict-like and dot-path access from ``BaseSchema`` and described
+    field validation contract from ``DescribedFieldsIntent``.
     """
 
     model_config = ConfigDict(frozen=True, extra="forbid")

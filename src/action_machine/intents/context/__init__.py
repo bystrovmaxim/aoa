@@ -1,58 +1,55 @@
 # src/action_machine/intents/context/__init__.py
 """
-Пакет contextа выполнения ActionMachine.
+ActionMachine execution context package.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Содержит все компоненты системы contextа выполнения действий:
+Contains the full action-execution context system:
 
-- **Context** — context выполнения действия. Содержит информацию
-  о пользователе (UserInfo), запросе (RequestInfo) и среде выполнения
-  (RuntimeInfo). Передаётся в машину при вызове run() и используется
-  для проверки ролей и логирования.
+- **Context** — action execution context. Holds user info (``UserInfo``),
+  request info (``RequestInfo``), and runtime info (``RuntimeInfo``).
+  Passed to runtime ``run()`` and used for role checks and logging.
 
-- **UserInfo** — информация о пользователе (user_id, roles).
+- **UserInfo** — authenticated user metadata (``user_id``, ``roles``).
 
-- **RequestInfo** — метаданные входящего запроса (trace_id, client_ip,
-  request_path, protocol и др.).
+- **RequestInfo** — inbound request metadata (trace_id, client_ip,
+  request_path, protocol, etc.).
 
-- **RuntimeInfo** — информация о среде выполнения (hostname, service_name,
-  service_version и др.).
+- **RuntimeInfo** — runtime environment metadata (hostname, service_name,
+  service_version, etc.).
 
-- **Ctx** — вложенная структура констант dot-path для декоратора
-  @context_requires. Каждая константа строго соответствует реальному
-  полю: Ctx.User.user_id == "user.user_id",
-  Ctx.Request.trace_id == "request.trace_id" и т.д. IDE автодополняет,
-  mypy проверяет статически.
+- **Ctx** — nested dot-path constants used by ``@context_requires``.
+  Every constant maps to a real field:
+  ``Ctx.User.user_id == "user.user_id"``,
+  ``Ctx.Request.trace_id == "request.trace_id"``, etc.
 
-- **ContextView** — frozen-объект с контролируемым доступом к полям
-  contextа. Создаётся машиной для аспектов с @context_requires.
-  Единственный публичный method get(key) проверяет, что ключ входит в
-  подмножество, заданное @context_requires, и делегирует в context.resolve(key).
-  Обращение к незапрошенному полю — ContextAccessError.
+- **ContextView** — frozen object with restricted access to context fields.
+  Created by runtime for aspects using ``@context_requires``.
+  Public method ``get(key)`` ensures the key is allowed by declaration and
+  delegates to ``context.resolve(key)``. Accessing undeclared keys raises
+  ``ContextAccessError``.
 
-- **context_requires** — декоратор уровня methodа. Декларирует поля
-  contextа, необходимые аспекту или обработчику ошибок. Записывает
-  frozenset ключей в func._required_context_keys. Наличие декоратора
-  меняет ожидаемую сигнатуру: аспект получает дополнительный параметр
-  ctx: ContextView.
+- **context_requires** — method-level decorator declaring context fields
+  required by an aspect or error handler. Writes frozenset of keys to
+  ``func._required_context_keys``. Presence of this decorator extends expected
+  method signature with ``ctx: ContextView`` parameter.
 
-- **ContextRequiresIntent** — marker mixin, обозначающий поддержку
-  @context_requires. Наследуется BaseAction.
+- **ContextRequiresIntent** — marker mixin declaring support for
+  ``@context_requires``. Inherited by ``BaseAction``.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-Все компоненты contextа наследуют BaseSchema, что обеспечивает:
-- Dict-подобный доступ к полям (obj["key"], obj.keys(), ...).
-- Dot-path навигацию (context.resolve("user.user_id")).
-- Иммутабельность (frozen=True на всех компонентах).
-- Запрет произвольных полей (extra="forbid"). Расширение — только
-  через наследование с явно объявленными полями.
-- Сериализацию через model_dump() для логов и адаптеров.
+All context components inherit ``BaseSchema``, which provides:
+- Dict-like field access (``obj["key"]``, ``obj.keys()``, ...).
+- Dot-path navigation (``context.resolve("user.user_id")``).
+- Immutability (``frozen=True`` on all components).
+- Forbidden extra fields (``extra="forbid"``); extension is explicit via
+  inheritance with declared fields.
+- Serialization via ``model_dump()`` for logs/adapters.
 
     BaseSchema(BaseModel)
         ├── UserInfo       — frozen, forbid
@@ -64,45 +61,45 @@ ARCHITECTURE / DATA FLOW
                 └── runtime: RuntimeInfo
 
 ═══════════════════════════════════════════════════════════════════════════════
-УПРАВЛЯЕМЫЙ ДОСТУП К КОНТЕКСТУ
+CONTROLLED CONTEXT ACCESS
 ═══════════════════════════════════════════════════════════════════════════════
 
-Экземпляр ToolsBox не содержит Context; аспект не может достать context через
-box. Единственный легальный способ получить данные contextа в аспекте —
-через ctx: ContextView, предоставляемый машиной при наличии @context_requires.
+``ToolsBox`` does not expose ``Context``; aspects cannot access context through
+box. The only supported way is ``ctx: ContextView`` provided by runtime when
+``@context_requires`` is declared.
 
-Без @context_requires аспект не имеет доступа к contextу вообще.
-Большинство аспектов (валидация суммы, обработка платежа) не нуждаются
-в contextе — они работают только с params, state, box и connections.
+Without ``@context_requires``, aspects have no context access.
+Most aspects (amount validation, payment handling) do not need context and
+work only with params, state, box, and connections.
 
-Поток данных:
-    1. Аспект декларирует: @context_requires(Ctx.User.user_id)
-    2. Инспектор аспектов собирает: aspect_snapshot.context_keys = frozenset({"user.user_id"})
-    3. Машина при вызове: создаёт ContextView(context, context_keys)
-    4. Аспект получает: ctx.get(Ctx.User.user_id) → значение
-    5. Обращение к незапрошенному: ctx.get(Ctx.User.roles) → ContextAccessError
-
-═══════════════════════════════════════════════════════════════════════════════
-ПЕРЕМЕННАЯ СИГНАТУРА АСПЕКТОВ
-═══════════════════════════════════════════════════════════════════════════════
-
-Наличие @context_requires меняет ожидаемую сигнатуру methodа:
-
-    Аспекты (@regular_aspect, @summary_aspect):
-        Без @context_requires → (self, params, state, box, connections)     — 5 parameters
-        С @context_requires   → (self, params, state, box, connections, ctx) — 6 parameters
-
-    Обработчики ошибок (@on_error):
-        Без @context_requires → (self, params, state, box, connections, error)      — 6 parameters
-        С @context_requires   → (self, params, state, box, connections, error, ctx) — 7 parameters
+Flow:
+    1. Aspect declares: ``@context_requires(Ctx.User.user_id)``.
+    2. Inspector stores: ``aspect_snapshot.context_keys = frozenset({"user.user_id"})``.
+    3. Runtime creates: ``ContextView(context, context_keys)``.
+    4. Aspect reads: ``ctx.get(Ctx.User.user_id)``.
+    5. Undeclared key access: ``ctx.get(Ctx.User.roles)`` -> ``ContextAccessError``.
 
 ═══════════════════════════════════════════════════════════════════════════════
-РАСШИРЕНИЕ КОМПОНЕНТОВ КОНТЕКСТА
+VARIABLE ASPECT SIGNATURES
 ═══════════════════════════════════════════════════════════════════════════════
 
-UserInfo, RequestInfo, RuntimeInfo расширяются через наследование
-с явно объявленными полями. Константы Ctx покрывают стандартные поля.
-Для кастомных полей — строки напрямую:
+Presence of ``@context_requires`` changes expected method signature:
+
+    Aspects (``@regular_aspect``, ``@summary_aspect``):
+        Without ``@context_requires`` -> (self, params, state, box, connections)     — 5 parameters
+        With ``@context_requires``    -> (self, params, state, box, connections, ctx) — 6 parameters
+
+    Error handlers (``@on_error``):
+        Without ``@context_requires`` -> (self, params, state, box, connections, error)      — 6 parameters
+        With ``@context_requires``    -> (self, params, state, box, connections, error, ctx) — 7 parameters
+
+═══════════════════════════════════════════════════════════════════════════════
+EXTENDING CONTEXT COMPONENTS
+═══════════════════════════════════════════════════════════════════════════════
+
+``UserInfo``, ``RequestInfo``, and ``RuntimeInfo`` are extended via inheritance
+with explicitly declared fields. ``Ctx`` constants cover standard fields.
+For custom fields, use raw strings:
 
     @context_requires(Ctx.User.user_id, "user.billing_plan")
 
@@ -112,17 +109,37 @@ EXAMPLES
 
     from action_machine.intents.context import Ctx, context_requires, ContextView
 
-    @regular_aspect("Аудит")
+    @regular_aspect("Audit")
     @context_requires(Ctx.User.user_id, Ctx.Request.client_ip)
     async def audit_aspect(self, params, state, box, connections, ctx):
         user = ctx.get(Ctx.User.user_id)
         ip = ctx.get(Ctx.Request.client_ip)
         return {"audited_by": user}
 
-    # Аспект без contextа — стандартная signature:
-    @regular_aspect("Расчёт")
+    # Aspect without context — standard signature:
+    @regular_aspect("Calculate")
     async def calculate_aspect(self, params, state, box, connections):
         return {"total": params.amount * 1.2}
+
+═══════════════════════════════════════════════════════════════════════════════
+ERRORS / LIMITATIONS
+═══════════════════════════════════════════════════════════════════════════════
+
+- Accessing undeclared context keys through ``ContextView`` raises
+  ``ContextAccessError``.
+- Signature mismatch between context declaration and method parameters is
+  validated by decorator/inspector contracts.
+
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE-BEGIN
+═══════════════════════════════════════════════════════════════════════════════
+ROLE: Public context package API surface.
+CONTRACT: Export immutable context models, context access controls, and declaration decorators.
+INVARIANTS: Controlled access via ContextView and explicit context_requires declarations.
+FLOW: auth/context assembly -> facet declarations -> runtime ContextView access.
+FAILURES: ContextAccessError for undeclared key access.
+EXTENSION POINTS: Schema inheritance and custom dot-path keys.
+AI-CORE-END
 """
 
 from action_machine.intents.context.context import Context

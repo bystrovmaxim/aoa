@@ -1,44 +1,65 @@
 # src/examples/fastapi_mcp_services/actions/create_order.py
 """
-CreateOrderAction — действие создания заказа.
+CreateOrderAction for order creation.
 
 ═══════════════════════════════════════════════════════════════════════════════
-НАЗНАЧЕНИЕ
+PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Демонстрирует создание действия с валидацией входных параметров через
-Pydantic Field constraints. Constraints автоматически попадают в OpenAPI
-schema и проверяются FastAPI при десериализации запроса.
+Demonstrates an action with request validation via Pydantic ``Field``
+constraints. Constraints are propagated into OpenAPI schema and enforced by
+FastAPI during request deserialization.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ЭНДПОИНТ
+ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
     POST /api/v1/orders
-    Body: {"user_id": "user_123", "amount": 1500.0, "currency": "RUB"}
-    Response: {"order_id": "ORD-user_123-001", "status": "created", "total": 1500.0}
+      |
+      v
+  Params validation (Pydantic/FastAPI)
+      |
+      v
+  validate_aspect -> {"validated_user": user_id}
+      |
+      v
+  build_result_summary -> Result(order_id, status, total)
 
 ═══════════════════════════════════════════════════════════════════════════════
-ВАЛИДАЦИЯ
+INVARIANTS
 ═══════════════════════════════════════════════════════════════════════════════
 
-- user_id: строка, минимум 1 символ.
-- amount: float, строго больше 0 (gt=0).
-- currency: строка из 3 заглавных латинских букв (pattern=^[A-Z]{3}$).
-
-При нарушении constraints FastAPI автоматически возвращает 422
-с описанием ошибки валидации.
+- ``user_id`` is a non-empty string.
+- ``amount`` is a float strictly greater than zero (``gt=0``).
+- ``currency`` matches ISO-like uppercase code pattern ``^[A-Z]{3}$``.
+- ``validated_user`` must be produced by regular aspect before summary phase.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ПАТТЕРН ВЛОЖЕННЫХ МОДЕЛЕЙ
+EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
-Params и Result определяются как вложенные классы внутри Action.
-Описание действия берётся из ``@meta(description=...)``, описания
-аспектов — из ``@regular_aspect("...")`` и ``@summary_aspect("...")``.
+    Request body:
+    {"user_id": "user_123", "amount": 1500.0, "currency": "RUB"}
 
-Действие содержит один regular-аспект (валидация) с чекером
-``@result_string`` и один summary-аспект (формирование результата).
+    Response body:
+    {"order_id": "ORD-user_123-001", "status": "created", "total": 1500.0}
+
+═══════════════════════════════════════════════════════════════════════════════
+ERRORS / LIMITATIONS
+═══════════════════════════════════════════════════════════════════════════════
+
+- FastAPI returns 422 for payloads violating field constraints.
+- Example action is intentionally simple and uses static order-id suffix.
+
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE-BEGIN
+═══════════════════════════════════════════════════════════════════════════════
+ROLE: Example shared action for HTTP and MCP transports.
+CONTRACT: Validate input early and build deterministic result payload.
+INVARIANTS: Summary consumes state produced by regular aspect.
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE-END
+═══════════════════════════════════════════════════════════════════════════════
 """
 
 from typing import Any
@@ -61,52 +82,48 @@ from action_machine.runtime.tools_box import ToolsBox
 from ..domains import OrdersDomain
 
 
-@meta(description="Создание нового заказа", domain=OrdersDomain)
+@meta(description="Create new order", domain=OrdersDomain)
 @check_roles(NoneRole)
 class CreateOrderAction(BaseAction["CreateOrderAction.Params", "CreateOrderAction.Result"]):
 
     class Params(BaseParams):
         """
-        Параметры создания заказа.
-
-        Каждое поле описано через Field(description=...) — описания попадают
-        в OpenAPI schema автоматически. Constraints (gt, min_length, pattern)
-        проверяются Pydantic при десериализации и отображаются в Swagger UI.
+        Order creation input parameters.
         """
         user_id: str = Field(
-            description="Идентификатор пользователя, создающего заказ",
+            description="Identifier of the user creating the order",
             min_length=1,
             examples=["user_123"],
         )
         amount: float = Field(
-            description="Сумма заказа в указанной валюте. Должна быть положительной",
+            description="Order amount in selected currency. Must be positive",
             gt=0,
             examples=[1500.0, 99.99],
         )
         currency: str = Field(
             default="RUB",
-            description="Код валюты в формате ISO 4217 (3 заглавные буквы)",
+            description="Currency code in ISO 4217 format (3 uppercase letters)",
             pattern=r"^[A-Z]{3}$",
             examples=["RUB", "USD", "EUR"],
         )
 
     class Result(BaseResult):
-        """Результат создания заказа."""
+        """Order creation result payload."""
         order_id: str = Field(
-            description="Уникальный идентификатор созданного заказа",
+            description="Unique identifier of created order",
             examples=["ORD-user_123-001"],
         )
         status: str = Field(
-            description="Статус заказа после создания",
+            description="Order status after creation",
             examples=["created"],
         )
         total: float = Field(
-            description="Итоговая сумма заказа",
+            description="Final order total",
             ge=0,
             examples=[1500.0],
         )
 
-    @regular_aspect("Валидация данных заказа")
+    @regular_aspect("Validate order data")
     @result_string("validated_user", required=True)
     async def validate_aspect(
         self,
@@ -116,21 +133,17 @@ class CreateOrderAction(BaseAction["CreateOrderAction.Params", "CreateOrderActio
         connections: dict[str, BaseResourceManager],
     ) -> dict[str, Any]:
         """
-        Валидирует входные данные и записывает идентификатор пользователя в state.
-
-        Логирует параметры заказа через шаблонную подстановку переменных.
-        Возвращает словарь с ключом validated_user, который проверяется
-        чекером @result_string.
+        Validate input and write user id into state.
         """
         await box.info(
             Channel.business,
-            "Валидация заказа: пользователь={%var.user_id}, сумма={%var.amount}",
+            "Order validation: user={%var.user_id}, amount={%var.amount}",
             user_id=params.user_id,
             amount=params.amount,
         )
         return {"validated_user": params.user_id}
 
-    @summary_aspect("Формирование результата создания заказа")
+    @summary_aspect("Build order creation result")
     async def build_result_summary(
         self,
         params: "CreateOrderAction.Params",
@@ -139,10 +152,7 @@ class CreateOrderAction(BaseAction["CreateOrderAction.Params", "CreateOrderActio
         connections: dict[str, BaseResourceManager],
     ) -> "CreateOrderAction.Result":
         """
-        Формирует итоговый результат из параметров и состояния конвейера.
-
-        Использует validated_user из state (записан аспектом validate)
-        для формирования order_id.
+        Build final result from params and pipeline state.
         """
         return CreateOrderAction.Result(
             order_id=f"ORD-{state['validated_user']}-001",

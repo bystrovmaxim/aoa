@@ -1,85 +1,92 @@
 # src/action_machine/model/base_params.py
 """
-BaseParams — иммутабельные параметры действия.
+Immutable action input parameters.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-BaseParams — базовый класс для всех parameters действий в системе
-ActionMachine. Определяет структуру входных данных, которые передаются
-в конвейер аспектов при выполнении действия (Action).
-
-Параметры задаются один раз при создании и не могут быть изменены
-в процессе обработки — это гарантируется настройкой frozen=True.
-Произвольные поля запрещены (extra="forbid") — только явно объявленные
-в классе-наследнике.
+``BaseParams`` is the base class for action input payloads in ActionMachine.
+It defines the typed structure of data passed into the action/aspect pipeline.
+Instances are immutable (``frozen=True``), and unknown fields are rejected
+(``extra="forbid"``).
 
 ═══════════════════════════════════════════════════════════════════════════════
-ИЕРАРХИЯ
+INHERITANCE
 ═══════════════════════════════════════════════════════════════════════════════
 
     BaseSchema(BaseModel)
         └── BaseParams (frozen=True, extra="forbid")
 
 ═══════════════════════════════════════════════════════════════════════════════
-ИММУТАБЕЛЬНОСТЬ
+IMMUTABILITY
 ═══════════════════════════════════════════════════════════════════════════════
 
-Иммутабельность parameters — архитектурное решение, обеспечивающее:
+Immutable parameters are an architectural choice that provides:
 
-- Предсказуемость: аспекты не могут случайно изменить входные данные.
-- Безопасность: один и тот же объект Params безопасно передаётся
-  во все аспекты, плагины и обработчики ошибок.
-- Отладку: параметры на любом этапе конвейера всегда совпадают
-  с тем, что было передано на входе.
+- Predictability: aspects cannot accidentally mutate input.
+- Safety: one Params instance can be safely shared across aspects, plugins,
+  and error handlers.
+- Debuggability: values remain equal to the original request payload.
 
 ═══════════════════════════════════════════════════════════════════════════════
-СТРОГАЯ СТРУКТУРА (extra="forbid")
+STRICT SHAPE (extra="forbid")
 ═══════════════════════════════════════════════════════════════════════════════
 
-Параметры содержат ровно те поля, которые объявлены в конкретном
-наследнике. Передача неизвестного поля при создании вызывает
-ValidationError. Это защита от опечаток и случайных данных.
+Params contain only explicitly declared fields. Passing unknown fields raises
+``ValidationError`` and protects against typos or accidental payload noise.
 
-Если нужны дополнительные поля — создаётся наследник с явным
-объявлением:
+If additional fields are needed, define them explicitly in a subclass:
 
     class ExtendedOrderParams(OrderParams):
-        priority: int = Field(description="Приоритет заказа")
+        priority: int = Field(description="Order priority")
 
 ═══════════════════════════════════════════════════════════════════════════════
-ОПИСАНИЕ ПОЛЕЙ
+FIELD DESCRIPTIONS
 ═══════════════════════════════════════════════════════════════════════════════
 
-Каждое поле описывается через pydantic Field(description="...").
-Описание обязательно — при сборке метаданных вызывайте
-``validate_described_schema`` / ``validate_described_schemas_for_action``
-(см. ``described_fields_intent``). Описания используются для генерации
-OpenAPI-документации (FastAPI), JSON Schema (MCP) и интроспекции.
+Each field should use ``Field(description="...")``. Description completeness is
+validated by ``validate_described_schema`` /
+``validate_described_schemas_for_action`` (see described-fields intent).
+Descriptions are used for OpenAPI (FastAPI), JSON Schema (MCP), and introspection.
 
 ═══════════════════════════════════════════════════════════════════════════════
-PYDANTIC ВОЗМОЖНОСТИ
+PYDANTIC CAPABILITIES
 ═══════════════════════════════════════════════════════════════════════════════
 
-Наследование от pydantic BaseModel (через BaseSchema) даёт:
+Inheritance from Pydantic ``BaseModel`` (via ``BaseSchema``) provides:
 
-- Validation типов при создании экземпляра.
-- Ограничения через Field(gt=0, min_length=3, pattern=...).
-- Примеры через Field(examples=["user_123"]).
-- JSON Schema через model_json_schema() — для OpenAPI и MCP.
-- Сериализация через model_dump() — для адаптеров и логов.
+- Type validation at construction time.
+- Constraints via ``Field(gt=0, min_length=3, pattern=...)``.
+- Schema examples via ``Field(examples=[...])``.
+- JSON Schema via ``model_json_schema()`` for OpenAPI and MCP.
+- Serialization via ``model_dump()`` for adapters and logging.
 
 ═══════════════════════════════════════════════════════════════════════════════
-DICT-ПОДОБНЫЙ ДОСТУП (унаследован от BaseSchema)
+DICT-LIKE ACCESS (inherited from BaseSchema)
 ═══════════════════════════════════════════════════════════════════════════════
 
-    params["user_id"]                    # → "user_123"
-    "amount" in params                   # → True
-    params.get("currency", "RUB")        # → "RUB"
-    list(params.keys())                  # → ["user_id", "amount", "currency"]
-    params.resolve("address.city")       # → "Moscow"
-    params.model_dump()                  # → {"user_id": "user_123", ...}
+    params["user_id"]                    # -> "user_123"
+    "amount" in params                   # -> True
+    params.get("currency", "USD")        # -> "USD"
+    list(params.keys())                  # -> ["user_id", "amount", "currency"]
+    params.resolve("address.city")       # -> "Moscow"
+    params.model_dump()                  # -> {"user_id": "user_123", ...}
+
+═══════════════════════════════════════════════════════════════════════════════
+ARCHITECTURE / DATA FLOW
+═══════════════════════════════════════════════════════════════════════════════
+
+    Request payload
+         |
+         v
+    BaseParams subclass (Pydantic validation, frozen/forbid)
+         |
+         +--> Action/aspect pipeline reads immutable values
+         +--> Introspection/OpenAPI/MCP reads field descriptions
+         |
+         v
+    model_dump()/model_json_schema() for adapters and tooling
 
 ═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES
@@ -89,25 +96,45 @@ EXAMPLES
     from action_machine.model.base_params import BaseParams
 
     class OrderParams(BaseParams):
-        user_id: str = Field(description="ID пользователя", examples=["user_123"])
-        amount: float = Field(description="Сумма заказа в рублях", gt=0)
-        currency: str = Field(default="RUB", description="Код валюты ISO 4217")
+        user_id: str = Field(description="User identifier", examples=["user_123"])
+        amount: float = Field(description="Order amount", gt=0)
+        currency: str = Field(default="USD", description="ISO 4217 currency code")
 
     params = OrderParams(user_id="user_123", amount=1500.0)
 
-    params["user_id"]           # → "user_123"
-    params.resolve("currency")  # → "RUB"
-    params.keys()               # → ["user_id", "amount", "currency"]
+    params["user_id"]           # -> "user_123"
+    params.resolve("currency")  # -> "USD"
+    params.keys()               # -> ["user_id", "amount", "currency"]
 
-    # Запись запрещена (frozen):
-    params.amount = 0           # → ValidationError
+    # Writes are forbidden (frozen):
+    params.amount = 0           # -> ValidationError
 
-    # Лишние поля запрещены (forbid):
-    OrderParams(user_id="x", amount=1, unknown="y")  # → ValidationError
+    # Unknown fields are forbidden (extra="forbid"):
+    OrderParams(user_id="x", amount=1, unknown="y")  # -> ValidationError
 
-    # JSON Schema для FastAPI и MCP:
+    # JSON Schema for FastAPI and MCP:
     OrderParams.model_json_schema()
-    # {"properties": {"user_id": {"description": "ID пользователя", ...}, ...}}
+    # {"properties": {"user_id": {"description": "User identifier", ...}, ...}}
+
+═══════════════════════════════════════════════════════════════════════════════
+ERRORS / LIMITATIONS
+═══════════════════════════════════════════════════════════════════════════════
+
+- Field assignment after construction is rejected by frozen model config.
+- Unknown fields are rejected because ``extra="forbid"``.
+- This base class defines generic constraints; domain-specific rules belong in
+  concrete subclasses.
+
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE-BEGIN
+═══════════════════════════════════════════════════════════════════════════════
+ROLE: Immutable input contract for action execution.
+CONTRACT: Subclasses declare typed fields; runtime treats params as read-only.
+INVARIANTS: frozen=True; extra="forbid"; schema descriptions expected.
+FLOW: validate payload -> pass through pipeline -> serialize/introspect.
+FAILURES: ValidationError on unknown/invalid fields or forbidden assignment.
+EXTENSION POINTS: Extend via subclasses with explicit typed field definitions.
+AI-CORE-END
 """
 
 from pydantic import ConfigDict
@@ -118,20 +145,10 @@ from action_machine.model.base_schema import BaseSchema
 
 class BaseParams(BaseSchema, DescribedFieldsIntent):
     """
-    Иммутабельные параметры действия (frozen, forbid).
+    Immutable action parameters (frozen + forbid).
 
-    Наследует dict-подобный доступ и dot-path навигацию от BaseSchema.
-    Наследует контроль обязательности описаний полей от DescribedFieldsIntent.
-
-    Запись в поля запрещена на уровне pydantic (frozen=True).
-    Произвольные поля запрещены (extra="forbid").
-
-    Конкретные параметры создаются наследованием:
-
-        class CreateUserParams(BaseParams):
-            username: str = Field(description="Имя пользователя", min_length=3)
-            email: str = Field(description="Email адрес")
-            role: str = Field(default="user", description="Роль пользователя")
+    Inherits dict-like and dot-path access from ``BaseSchema`` plus described
+    field validation contract from ``DescribedFieldsIntent``.
     """
 
     model_config = ConfigDict(frozen=True, extra="forbid")

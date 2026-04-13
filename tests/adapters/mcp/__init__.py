@@ -1,20 +1,53 @@
 # tests/adapters/mcp/__init__.py
 """
-Tests for the MCP adapter layer.
+Tests for the MCP integration layer.
 
-Covers McpAdapter (tool registration, build, fluent chain, register_all,
-system://graph resource, error handling) and McpRouteRecord (MCP-specific
-validation, field defaults).
+═══════════════════════════════════════════════════════════════════════════════
+PURPOSE
+═══════════════════════════════════════════════════════════════════════════════
 
-Test modules:
-    test_mcp_adapter.py       — Adapter construction, tool() registration,
-                                build() producing an MCP server, fluent
-                                chaining, register_all() auto-registration,
-                                snake_case tool naming, error string formats.
-    test_mcp_route_record.py  — MCP-specific validation (tool_name non-empty),
-                                field defaults, inherited BaseRouteRecord
-                                invariants.
-    test_mcp_schema.py        — inputSchema generation from Params models
-                                via model_json_schema(), field descriptions,
-                                constraints, required fields.
+Exercise ``McpAdapter`` (tool registration, ``build()``, fluent chain,
+``register_all()``, ``system://graph`` resource, error surfaces) and
+``McpRouteRecord`` (tool name validation, defaults, type extraction).
+
+═══════════════════════════════════════════════════════════════════════════════
+ARCHITECTURE / DATA FLOW
+═══════════════════════════════════════════════════════════════════════════════
+
+    MCP client / handler tests
+              |
+              v
+         McpAdapter.build()
+              |
+              v
+    machine.run + coordinator graph (schema / graph JSON)
+
+═══════════════════════════════════════════════════════════════════════════════
+INVARIANTS
+═══════════════════════════════════════════════════════════════════════════════
+
+- Tool names must stay non-empty and normalized per ``McpRouteRecord`` rules.
+- Graph JSON tests assert stable keys (``nodes``, ``edges``, ``source_key``, …).
+
+═══════════════════════════════════════════════════════════════════════════════
+EXAMPLES
+═══════════════════════════════════════════════════════════════════════════════
+
+    uv run pytest tests/adapters/mcp/ -q
+
+═══════════════════════════════════════════════════════════════════════════════
+ERRORS / LIMITATIONS
+═══════════════════════════════════════════════════════════════════════════════
+
+- Handler tests rely on MCP SDK types; version bumps may require fixture tweaks.
+
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE-BEGIN
+═══════════════════════════════════════════════════════════════════════════════
+ROLE: MCP adapter test subpackage.
+CONTRACT: Tools, records, schemas, and graph resource behavior.
+INVARIANTS: Shared scenario actions; mocks for protocol surfaces.
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE-END
+═══════════════════════════════════════════════════════════════════════════════
 """

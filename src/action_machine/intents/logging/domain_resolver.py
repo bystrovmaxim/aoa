@@ -19,12 +19,26 @@ INVARIANTS
 - If ``@meta`` exists and ``domain`` is present but invalid → ``TypeError``.
 
 ═══════════════════════════════════════════════════════════════════════════════
-DATA FLOW
+ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-``action_cls._meta_info["domain"]`` → validated subclass of ``BaseDomain`` →
-stored on ``ScopedLogger`` → copied into ``var["domain"]`` and
-``var["domain_name"]`` on each emit.
+    action class
+        |
+        v
+    @meta(..., domain=DomainCls)
+        |
+        v
+    resolve_domain(action_cls)
+        |
+        +--> DomainCls (validated BaseDomain subclass)
+        |         |
+        |         v
+        |   ScopedLogger(domain=DomainCls)
+        |         |
+        |         v
+        |   var["domain"] + var["domain_name"]
+        |
+        +--> None (no @meta/domain)
 
 ═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES
@@ -57,7 +71,7 @@ from action_machine.domain.base_domain import BaseDomain
 
 def resolve_domain(action_cls: type) -> type[BaseDomain] | None:
     """
-    Read domain from ``@meta`` on the action class.
+    Resolve and validate ``domain`` from action ``@meta``.
 
     Returns the domain class or ``None`` if ``@meta`` is missing or domain
     absent. If ``@meta`` exists but domain is invalid, raises ``TypeError``.
@@ -77,7 +91,7 @@ def resolve_domain(action_cls: type) -> type[BaseDomain] | None:
 
 
 def domain_label(domain: type[BaseDomain] | None) -> str | None:
-    """``OrdersDomain`` → ``orders``; ``None`` → ``None``; else ``__name__``."""
+    """Return display label for domain class; ``None`` stays ``None``."""
     if domain is None:
         return None
     return getattr(domain, "name", domain.__name__)

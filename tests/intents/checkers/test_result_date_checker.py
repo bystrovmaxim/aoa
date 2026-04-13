@@ -1,43 +1,42 @@
 # tests/intents/checkers/test_result_date_checker.py
 """
-Тесты ResultDateChecker — чекер полей с датой в результате аспекта.
+Tests for ResultDateChecker — validates date fields in aspect result dictionaries.
 
 ═══════════════════════════════════════════════════════════════════════════════
-НАЗНАЧЕНИЕ
+PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Проверяет, что ResultDateChecker корректно валидирует поля с датами
-в словаре результата аспекта. Принимает объекты datetime и строки,
-разбираемые по указанному формату (date_format). Поддерживает
-проверку диапазона (min_date, max_date).
+Ensures ResultDateChecker correctly validates date fields in the aspect result
+dict. Accepts datetime objects and strings parsed with the given date_format.
+Supports range checks (min_date, max_date).
 
 ═══════════════════════════════════════════════════════════════════════════════
-СЦЕНАРИИ
+SCENARIOS
 ═══════════════════════════════════════════════════════════════════════════════
 
 TestValidValues
-    - datetime-объект принимается без формата.
-    - Строка, соответствующая date_format, принимается.
-    - Дата на границе min_date / max_date принимается (включительно).
-    - Дата внутри диапазона принимается.
+    - datetime object accepted without format.
+    - String matching date_format accepted.
+    - Date on min_date / max_date boundary accepted (inclusive).
+    - Date inside range accepted.
 
 TestInvalidValues
-    - Целое число, список, словарь, bool — не datetime и не строка, ошибка.
-    - Строка без указанного date_format — ошибка (формат обязателен).
-    - Строка, не соответствующая формату — ошибка.
-    - Дата меньше min_date — ошибка.
-    - Дата больше max_date — ошибка.
+    - int, list, dict, bool — not datetime and not string → error.
+    - String without date_format → error (format required).
+    - String not matching format → error.
+    - Date before min_date → error.
+    - Date after max_date → error.
 
 TestRequired
-    - required=True: отсутствующее или None поле — ошибка.
-    - required=False: отсутствующее или None поле допускается.
-    - required=False: присутствующее невалидное значение — ошибка.
+    - required=True: missing or None field → error.
+    - required=False: missing or None field allowed.
+    - required=False: present invalid value → error.
 
 TestDecorator
-    - result_date записывает _checker_meta с корректными параметрами.
-    - Параметры date_format, min_date, max_date попадают в extra_params.
-    - Декоратор возвращает оригинальную функцию.
-    - Несколько декораторов накапливаются.
+    - result_date records _checker_meta with correct parameters.
+    - date_format, min_date, max_date end up in extra_params.
+    - Decorator returns the original function.
+    - Multiple decorators accumulate.
 """
 
 from datetime import UTC, datetime
@@ -48,33 +47,33 @@ from action_machine.intents.checkers.result_date_checker import ResultDateChecke
 from action_machine.model.exceptions import ValidationFieldError
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Валидные значения
+# Valid values
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestValidValues:
-    """Проверяет, что корректные даты принимаются без ошибок."""
+    """Correct dates are accepted without error."""
 
     def test_datetime_object_accepted(self):
-        """Объект datetime принимается без указания формата."""
+        """datetime object accepted without date_format."""
         # Arrange
         checker = ResultDateChecker("created_at", required=True)
         dt = datetime(2024, 6, 15, 12, 30, 0)
 
-        # Act & Assert — исключения нет
+        # Act & Assert — no exception
         checker.check({"created_at": dt})
 
     def test_datetime_with_timezone_accepted(self):
-        """Объект datetime с timezone принимается."""
+        """datetime with timezone accepted."""
         # Arrange
         checker = ResultDateChecker("created_at", required=True)
         dt = datetime(2024, 6, 15, 12, 30, 0, tzinfo=UTC)
 
-        # Act & Assert — исключения нет
+        # Act & Assert — no exception
         checker.check({"created_at": dt})
 
     def test_string_with_format_accepted(self):
-        """Строка, соответствующая date_format, принимается."""
+        """String matching date_format accepted."""
         # Arrange
         checker = ResultDateChecker(
             "created_at",
@@ -82,11 +81,11 @@ class TestValidValues:
             date_format="%Y-%m-%d",
         )
 
-        # Act & Assert — исключения нет
+        # Act & Assert — no exception
         checker.check({"created_at": "2024-01-15"})
 
     def test_string_with_datetime_format_accepted(self):
-        """Строка с форматом даты-времени принимается."""
+        """String with datetime format accepted."""
         # Arrange
         checker = ResultDateChecker(
             "timestamp",
@@ -94,11 +93,11 @@ class TestValidValues:
             date_format="%Y-%m-%d %H:%M:%S",
         )
 
-        # Act & Assert — исключения нет
+        # Act & Assert — no exception
         checker.check({"timestamp": "2024-06-15 14:30:00"})
 
     def test_date_at_min_boundary_accepted(self):
-        """Дата, равная min_date, принимается (включительно)."""
+        """Date equal to min_date accepted (inclusive)."""
         # Arrange
         min_dt = datetime(2024, 1, 1)
         checker = ResultDateChecker(
@@ -107,11 +106,11 @@ class TestValidValues:
             min_date=min_dt,
         )
 
-        # Act & Assert — исключения нет
+        # Act & Assert — no exception
         checker.check({"event_date": min_dt})
 
     def test_date_at_max_boundary_accepted(self):
-        """Дата, равная max_date, принимается (включительно)."""
+        """Date equal to max_date accepted (inclusive)."""
         # Arrange
         max_dt = datetime(2024, 12, 31)
         checker = ResultDateChecker(
@@ -120,11 +119,11 @@ class TestValidValues:
             max_date=max_dt,
         )
 
-        # Act & Assert — исключения нет
+        # Act & Assert — no exception
         checker.check({"event_date": max_dt})
 
     def test_date_within_range_accepted(self):
-        """Дата внутри диапазона min_date..max_date принимается."""
+        """Date inside min_date..max_date accepted."""
         # Arrange
         checker = ResultDateChecker(
             "event_date",
@@ -134,11 +133,11 @@ class TestValidValues:
         )
         value = datetime(2024, 6, 15)
 
-        # Act & Assert — исключения нет
+        # Act & Assert — no exception
         checker.check({"event_date": value})
 
     def test_string_date_within_range_accepted(self):
-        """Строковая дата внутри диапазона принимается после парсинга."""
+        """String date inside range accepted after parsing."""
         # Arrange
         checker = ResultDateChecker(
             "event_date",
@@ -148,20 +147,20 @@ class TestValidValues:
             max_date=datetime(2024, 12, 31),
         )
 
-        # Act & Assert — исключения нет
+        # Act & Assert — no exception
         checker.check({"event_date": "2024-06-15"})
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Невалидные значения
+# Invalid values
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestInvalidValues:
-    """Проверяет отклонение невалидных значений с выбросом ValidationFieldError."""
+    """Invalid values raise ValidationFieldError."""
 
     def test_int_rejected(self):
-        """Целое число — не datetime и не строка."""
+        """int is neither datetime nor string."""
         # Arrange
         checker = ResultDateChecker("created_at", required=True)
 
@@ -170,7 +169,7 @@ class TestInvalidValues:
             checker.check({"created_at": 20240115})
 
     def test_bool_rejected(self):
-        """Bool — не datetime и не строка."""
+        """bool is neither datetime nor string."""
         # Arrange
         checker = ResultDateChecker("created_at", required=True)
 
@@ -179,7 +178,7 @@ class TestInvalidValues:
             checker.check({"created_at": True})
 
     def test_list_rejected(self):
-        """Список — не datetime и не строка."""
+        """list is neither datetime nor string."""
         # Arrange
         checker = ResultDateChecker("created_at", required=True)
 
@@ -188,7 +187,7 @@ class TestInvalidValues:
             checker.check({"created_at": [2024, 1, 15]})
 
     def test_dict_rejected(self):
-        """Словарь — не datetime и не строка."""
+        """dict is neither datetime nor string."""
         # Arrange
         checker = ResultDateChecker("created_at", required=True)
 
@@ -197,16 +196,16 @@ class TestInvalidValues:
             checker.check({"created_at": {"year": 2024}})
 
     def test_string_without_format_raises(self):
-        """Строка при отсутствии date_format вызывает ошибку."""
-        # Arrange — date_format не задан
+        """String without date_format raises."""
+        # Arrange — date_format not set
         checker = ResultDateChecker("created_at", required=True)
 
         # Act & Assert
-        with pytest.raises(ValidationFieldError, match="формат"):
+        with pytest.raises(ValidationFieldError, match="date_format"):
             checker.check({"created_at": "2024-01-15"})
 
     def test_string_wrong_format_raises(self):
-        """Строка, не соответствующая date_format, вызывает ошибку."""
+        """String not matching date_format raises."""
         # Arrange
         checker = ResultDateChecker(
             "created_at",
@@ -215,11 +214,11 @@ class TestInvalidValues:
         )
 
         # Act & Assert
-        with pytest.raises(ValidationFieldError, match="формату"):
+        with pytest.raises(ValidationFieldError, match="date format"):
             checker.check({"created_at": "15/01/2024"})
 
     def test_date_below_min_raises(self):
-        """Дата раньше min_date вызывает ошибку."""
+        """Date before min_date raises."""
         # Arrange
         checker = ResultDateChecker(
             "event_date",
@@ -228,11 +227,11 @@ class TestInvalidValues:
         )
 
         # Act & Assert
-        with pytest.raises(ValidationFieldError, match="не меньше"):
+        with pytest.raises(ValidationFieldError, match="greater than or equal"):
             checker.check({"event_date": datetime(2024, 5, 31)})
 
     def test_date_above_max_raises(self):
-        """Дата позже max_date вызывает ошибку."""
+        """Date after max_date raises."""
         # Arrange
         checker = ResultDateChecker(
             "event_date",
@@ -241,11 +240,11 @@ class TestInvalidValues:
         )
 
         # Act & Assert
-        with pytest.raises(ValidationFieldError, match="не больше"):
+        with pytest.raises(ValidationFieldError, match="less than or equal"):
             checker.check({"event_date": datetime(2025, 1, 1)})
 
     def test_string_date_below_min_raises(self):
-        """Строковая дата раньше min_date вызывает ошибку после парсинга."""
+        """String date before min_date raises after parsing."""
         # Arrange
         checker = ResultDateChecker(
             "event_date",
@@ -255,11 +254,11 @@ class TestInvalidValues:
         )
 
         # Act & Assert
-        with pytest.raises(ValidationFieldError, match="не меньше"):
+        with pytest.raises(ValidationFieldError, match="greater than or equal"):
             checker.check({"event_date": "2024-05-01"})
 
     def test_string_date_above_max_raises(self):
-        """Строковая дата позже max_date вызывает ошибку после парсинга."""
+        """String date after max_date raises after parsing."""
         # Arrange
         checker = ResultDateChecker(
             "event_date",
@@ -269,11 +268,11 @@ class TestInvalidValues:
         )
 
         # Act & Assert
-        with pytest.raises(ValidationFieldError, match="не больше"):
+        with pytest.raises(ValidationFieldError, match="less than or equal"):
             checker.check({"event_date": "2025-01-01"})
 
     def test_error_message_contains_field_name(self):
-        """Сообщение об ошибке содержит имя поля."""
+        """Error message includes field name."""
         # Arrange
         checker = ResultDateChecker("delivery_date", required=True)
 
@@ -282,7 +281,7 @@ class TestInvalidValues:
             checker.check({"delivery_date": 12345})
 
     def test_error_message_contains_actual_type(self):
-        """Сообщение об ошибке содержит фактический тип значения."""
+        """Error message includes actual value type."""
         # Arrange
         checker = ResultDateChecker("delivery_date", required=True)
 
@@ -292,15 +291,15 @@ class TestInvalidValues:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Обязательность поля (required)
+# Required field
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestRequired:
-    """Проверяет поведение флага required для обязательных и опциональных полей."""
+    """Behavior of required for mandatory vs optional fields."""
 
     def test_required_missing_field_raises(self):
-        """Отсутствующее обязательное поле вызывает ошибку."""
+        """Missing required field raises."""
         # Arrange
         checker = ResultDateChecker("created_at", required=True)
 
@@ -309,7 +308,7 @@ class TestRequired:
             checker.check({})
 
     def test_required_none_raises(self):
-        """None в обязательном поле вызывает ошибку."""
+        """None in required field raises."""
         # Arrange
         checker = ResultDateChecker("created_at", required=True)
 
@@ -318,23 +317,23 @@ class TestRequired:
             checker.check({"created_at": None})
 
     def test_optional_missing_field_passes(self):
-        """Отсутствующее опциональное поле допускается."""
+        """Missing optional field allowed."""
         # Arrange
         checker = ResultDateChecker("created_at", required=False)
 
-        # Act & Assert — исключения нет
+        # Act & Assert — no exception
         checker.check({})
 
     def test_optional_none_passes(self):
-        """None в опциональном поле допускается."""
+        """None in optional field allowed."""
         # Arrange
         checker = ResultDateChecker("created_at", required=False)
 
-        # Act & Assert — исключения нет
+        # Act & Assert — no exception
         checker.check({"created_at": None})
 
     def test_optional_invalid_type_still_raises(self):
-        """Даже в опциональном поле невалидный тип вызывает ошибку."""
+        """Invalid type still raises even when field is optional."""
         # Arrange
         checker = ResultDateChecker("created_at", required=False)
 
@@ -344,15 +343,15 @@ class TestRequired:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Дополнительные параметры (_get_extra_params)
+# _get_extra_params
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestExtraParams:
-    """Проверяет, что _get_extra_params возвращает корректные параметры."""
+    """_get_extra_params returns correct parameters."""
 
     def test_extra_params_all_none_by_default(self):
-        """Без дополнительных параметров все значения None."""
+        """Without extra args all values are None."""
         # Arrange
         checker = ResultDateChecker("created_at")
 
@@ -365,7 +364,7 @@ class TestExtraParams:
         assert params["max_date"] is None
 
     def test_extra_params_with_format(self):
-        """date_format сохраняется в extra_params."""
+        """date_format stored in extra_params."""
         # Arrange
         checker = ResultDateChecker("created_at", date_format="%Y-%m-%d")
 
@@ -376,7 +375,7 @@ class TestExtraParams:
         assert params["date_format"] == "%Y-%m-%d"
 
     def test_extra_params_with_range(self):
-        """min_date и max_date сохраняются в extra_params."""
+        """min_date and max_date stored in extra_params."""
         # Arrange
         min_dt = datetime(2024, 1, 1)
         max_dt = datetime(2024, 12, 31)
@@ -395,15 +394,15 @@ class TestExtraParams:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Декоратор result_date
+# result_date decorator
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestDecorator:
-    """Проверяет, что декоратор result_date записывает метаданные в функцию."""
+    """result_date decorator records metadata on the function."""
 
     def test_checker_meta_attached(self):
-        """Декоратор создаёт атрибут _checker_meta."""
+        """Decorator creates _checker_meta attribute."""
         # Arrange & Act
         @result_date("created_at", date_format="%Y-%m-%d")
         async def aspect(self, params, state, box, connections):
@@ -414,7 +413,7 @@ class TestDecorator:
         assert len(aspect._checker_meta) == 1
 
     def test_checker_class_is_result_date_checker(self):
-        """Метаданные содержат правильный класс чекера."""
+        """Metadata contains correct checker class."""
         # Arrange & Act
         @result_date("created_at")
         async def aspect(self, params, state, box, connections):
@@ -425,7 +424,7 @@ class TestDecorator:
         assert meta["checker_class"] is ResultDateChecker
 
     def test_field_name_recorded(self):
-        """Имя поля сохраняется в метаданных."""
+        """Field name stored in metadata."""
         # Arrange & Act
         @result_date("delivery_date")
         async def aspect(self, params, state, box, connections):
@@ -436,7 +435,7 @@ class TestDecorator:
         assert meta["field_name"] == "delivery_date"
 
     def test_required_default_true(self):
-        """По умолчанию required=True."""
+        """Default required=True."""
         # Arrange & Act
         @result_date("created_at")
         async def aspect(self, params, state, box, connections):
@@ -447,7 +446,7 @@ class TestDecorator:
         assert meta["required"] is True
 
     def test_required_false_recorded(self):
-        """Явное required=False сохраняется."""
+        """Explicit required=False stored."""
         # Arrange & Act
         @result_date("created_at", required=False)
         async def aspect(self, params, state, box, connections):
@@ -458,7 +457,7 @@ class TestDecorator:
         assert meta["required"] is False
 
     def test_extra_params_in_meta(self):
-        """date_format, min_date, max_date доступны через экземпляр чекера."""
+        """date_format, min_date, max_date available via checker instance."""
         # Arrange
         min_dt = datetime(2024, 1, 1)
         max_dt = datetime(2024, 12, 31)
@@ -473,11 +472,11 @@ class TestDecorator:
         async def aspect(self, params, state, box, connections):
             return {"event_date": "2024-06-15"}
 
-        # Assert — проверяем, что метаданные записаны и чекер работает корректно
+        # Assert — metadata recorded and checker behaves correctly
         meta = aspect._checker_meta[0]
         assert meta["checker_class"] is ResultDateChecker
         assert meta["field_name"] == "event_date"
-        # Дополнительные параметры проверяем через сам чекер
+        # Extra params via checker instance
         checker = ResultDateChecker(
             "event_date",
             date_format="%Y-%m-%d",
@@ -490,7 +489,7 @@ class TestDecorator:
         assert extra["max_date"] == max_dt
 
     def test_decorator_returns_original_function(self):
-        """Декоратор возвращает оригинальную функцию без изменений."""
+        """Decorator returns the original function unchanged."""
         # Arrange
         async def original(self, params, state, box, connections):
             return {"created_at": datetime(2024, 1, 15)}
@@ -502,7 +501,7 @@ class TestDecorator:
         assert decorated is original
 
     def test_multiple_decorators_accumulate(self):
-        """Несколько декораторов на одном методе создают список метаданных."""
+        """Multiple decorators on one method build a metadata list."""
         # Arrange & Act
         @result_date("created_at", date_format="%Y-%m-%d")
         @result_date("updated_at", date_format="%Y-%m-%d %H:%M:%S")

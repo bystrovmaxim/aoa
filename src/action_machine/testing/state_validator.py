@@ -1,71 +1,81 @@
 # src/action_machine/testing/state_validator.py
 """
-Валидация state по чекерам предшествующих аспектов.
+State validation using aspect checkers.
 
 ═══════════════════════════════════════════════════════════════════════════════
-НАЗНАЧЕНИЕ
+PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-При тестировании отдельного аспекта (run_aspect) или summary-аспекта
-(run_summary) тестировщик передаёт state вручную. Этот state должен
-содержать все обязательные поля, которые предшествующие аспекты
-записали бы при полном прогоне конвейера.
+When testing a single aspect (``run_aspect``) or summary aspect
+(``run_summary``), state is provided manually by test code. This state must
+contain required fields that preceding regular aspects would produce in a full
+pipeline run.
 
-Модуль проверяет корректность переданного state ПЕРЕД выполнением
-аспекта, обнаруживая ошибки тестировщика на раннем этапе с информативными
-сообщениями.
-
-═══════════════════════════════════════════════════════════════════════════════
-АЛГОРИТМ validate_state_for_aspect
-═══════════════════════════════════════════════════════════════════════════════
-
-1. Находит целевой аспект по имени в переданном кортеже аспектов.
-2. Собирает все regular-аспекты, объявленные ДО целевого.
-3. Для каждого предшествующего аспекта получает чекеры через
-   колбэк ``method_name -> чекеры`` (например из ``get_snapshot(cls, \"checker\")``).
-4. Для каждого чекера с required=True проверяет наличие поля в state.
-5. Если поле присутствует — создаёт экземпляр чекера и вызывает
-   checker.check(state) для проверки типа и constraints.
-6. При ошибке: информативное сообщение с указанием аспекта-источника,
-   имени поля, типа чекера и причины ошибки.
+This module validates state BEFORE aspect execution, surfacing test setup
+errors early with informative diagnostics.
 
 ═══════════════════════════════════════════════════════════════════════════════
-АЛГОРИТМ validate_state_for_summary
+ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-1. Собирает ВСЕ regular-аспекты из переданного кортежа аспектов.
-2. Для каждого regular-аспекта получает чекеры.
-3. Проверяет наличие обязательных полей и применяет чекеры.
-4. Логика проверки идентична validate_state_for_aspect, но охватывает
-   все regular-аспекты, а не только предшествующие.
+[aspects metadata + checker callback]
+                |
+                v
+   validate_state_for_aspect / validate_state_for_summary
+                |
+                v
+   select relevant regular aspects (preceding or all)
+                |
+                v
+   required field presence check in state
+                |
+                v
+      checker_class(...).check(state)
+                |
+                v
+     StateValidationError on first mismatch
 
 ═══════════════════════════════════════════════════════════════════════════════
-ПРИМЕР ИСПОЛЬЗОВАНИЯ
+INVARIANTS:
+- Validation order follows declared regular-aspect order.
+- Missing required fields fail before type/constraint checks.
+- Error payload carries ``field`` and ``source_aspect`` when available.
+
+═══════════════════════════════════════════════════════════════════════════════
+EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
     from action_machine.testing import validate_state_for_aspect
 
-    # Проверка state перед вторым аспектом (aspects из get_snapshot(cls, "aspect")):
+    # Validate state before second aspect
     validate_state_for_aspect(aspects, get_checkers_for_aspect, "process_payment", state)
-    # Если поле 'validated_user' отсутствует:
-    # StateValidationError: "Аспект 'process_payment' ожидает поле
-    #   'validated_user' (ResultStringChecker, required) от аспекта
-    #   'validate', но оно отсутствует в state"
+    # If required field 'validated_user' is missing:
+    # StateValidationError: "Aspect 'process_payment' expects field
+    #   'validated_user' (ResultStringChecker, required) from aspect
+    #   'validate', but it is missing in state."
 
-    # Проверка state перед summary:
+    # Validate state before summary
     validate_state_for_summary(aspects, get_checkers_for_aspect, state)
-    # Если поле 'txn_id' имеет неверный тип:
-    # StateValidationError: "Summary ожидает поле 'txn_id'
-    #   (ResultStringChecker, required) от аспекта 'process_payment':
-    #   Параметр 'txn_id' должен быть строкой, получен int"
+    # If field 'txn_id' has wrong type:
+    # StateValidationError: "Summary expects field 'txn_id'
+    #   (ResultStringChecker, required) from aspect 'process_payment':
+    #   Parameter 'txn_id' must be a string, got int"
 
 ═══════════════════════════════════════════════════════════════════════════════
-ОШИБКИ
+ERRORS / LIMITATIONS
 ═══════════════════════════════════════════════════════════════════════════════
 
-    StateValidationError — обязательное поле отсутствует в state;
-                           значение поля не проходит проверку чекером;
-                           целевой аспект не найден в метаданных.
+``StateValidationError`` is raised when:
+- required field is missing in state,
+- field value fails checker validation,
+- target aspect is missing in aspect metadata.
+
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE
+═══════════════════════════════════════════════════════════════════════════════
+
+Use this validator to make isolated aspect/summary tests deterministic and
+behaviorally aligned with full pipeline requirements.
 """
 
 from __future__ import annotations
@@ -76,18 +86,7 @@ from typing import Any
 
 class StateValidationError(Exception):
     """
-    Ошибка валидации state перед выполнением аспекта.
-
-    Выбрасывается когда переданный вручную state не содержит
-    обязательных полей или значения полей не проходят проверку
-    чекерами предшествующих аспектов.
-
-    Атрибуты:
-        field : str | None
-            Имя поля, вызвавшего ошибку. None если ошибка не привязана
-            к конкретному полю (например, аспект не найден).
-        source_aspect : str | None
-            Имя аспекта, который должен был записать это поле.
+    Validation error for state passed into isolated aspect execution.
     """
 
     def __init__(
@@ -103,17 +102,7 @@ class StateValidationError(Exception):
 
 def _find_aspect_index(aspects: Sequence[Any], aspect_name: str) -> int:
     """
-    Находит индекс аспекта по имени в кортеже аспектов.
-
-    Аргументы:
-        aspects: аспекты класса (порядок объявления).
-        aspect_name: имя метода-аспекта.
-
-    Возвращает:
-        int — индекс в ``aspects``.
-
-    Исключения:
-        StateValidationError: если аспект не найден.
+    Find aspect index by method name in declared aspect list.
     """
     for i, aspect in enumerate(aspects):
         if aspect.method_name == aspect_name:
@@ -121,8 +110,8 @@ def _find_aspect_index(aspects: Sequence[Any], aspect_name: str) -> int:
 
     available = [a.method_name for a in aspects]
     raise StateValidationError(
-        f"Аспект '{aspect_name}' не найден в метаданных. "
-        f"Доступные аспекты: {available}."
+        f"Aspect '{aspect_name}' was not found in metadata. "
+        f"Available aspects: {available}."
     )
 
 
@@ -132,16 +121,7 @@ def _get_preceding_regular_checkers(
     up_to_index: int,
 ) -> list[tuple[str, Any]]:
     """
-    Собирает чекеры всех regular-аспектов до указанного индекса (не включая).
-
-    Аргументы:
-        aspects: аспекты класса.
-        get_checkers_for_aspect: ``method_name -> tuple[checker, ...]``.
-        up_to_index: индекс целевого аспекта (не включается).
-
-    Возвращает:
-        Список кортежей ``(aspect_name, checker_meta)`` для всех regular-аспектов
-        с индексом < up_to_index.
+    Collect checkers for regular aspects before ``up_to_index`` (exclusive).
     """
     result: list[tuple[str, Any]] = []
 
@@ -161,14 +141,7 @@ def _get_all_regular_checkers(
     get_checkers_for_aspect: Callable[[str], tuple[Any, ...]],
 ) -> list[tuple[str, Any]]:
     """
-    Собирает чекеры ВСЕХ regular-аспектов действия.
-
-    Аргументы:
-        aspects: аспекты класса.
-        get_checkers_for_aspect: ``method_name -> tuple[checker, ...]``.
-
-    Возвращает:
-        Список кортежей ``(aspect_name, checker_meta)``.
+    Collect checkers for all regular aspects.
     """
     result: list[tuple[str, Any]] = []
 
@@ -189,40 +162,27 @@ def _validate_checker_against_state(
     state: dict[str, Any],
 ) -> None:
     """
-    Проверяет одно поле в state по чекеру.
-
-    Если поле обязательное и отсутствует — StateValidationError.
-    Если поле присутствует — создаёт экземпляр чекера и вызывает check().
-    Ошибка чекера оборачивается в StateValidationError с контекстом.
-
-    Аргументы:
-        checker_meta: метаданные чекера.
-        source_aspect: имя аспекта, который должен был записать поле.
-        target_context: описание контекста ("Аспект 'X'" или "Summary").
-        state: словарь state для проверки.
-
-    Исключения:
-        StateValidationError: при ошибке валидации.
+    Validate one state field against one checker metadata record.
     """
     field_name = checker_meta.field_name
     checker_class_name = checker_meta.checker_class.__name__
     required_label = "required" if checker_meta.required else "optional"
 
-    # Проверка наличия обязательного поля
+    # Validate required field presence.
     if checker_meta.required and field_name not in state:
         raise StateValidationError(
-            f"{target_context} ожидает поле '{field_name}' "
-            f"({checker_class_name}, {required_label}) от аспекта "
-            f"'{source_aspect}', но оно отсутствует в state.",
+            f"{target_context} expects field '{field_name}' "
+            f"({checker_class_name}, {required_label}) from aspect "
+            f"'{source_aspect}', but it is missing in state.",
             field=field_name,
             source_aspect=source_aspect,
         )
 
-    # Если поле отсутствует и необязательно — пропускаем
+    # Skip absent optional field.
     if field_name not in state:
         return
 
-    # Проверка значения через экземпляр чекера
+    # Validate value with checker instance.
     try:
         checker_instance = checker_meta.checker_class(
             checker_meta.field_name,
@@ -232,8 +192,8 @@ def _validate_checker_against_state(
         checker_instance.check(state)
     except Exception as exc:
         raise StateValidationError(
-            f"{target_context} ожидает поле '{field_name}' "
-            f"({checker_class_name}, {required_label}) от аспекта "
+            f"{target_context} expects field '{field_name}' "
+            f"({checker_class_name}, {required_label}) from aspect "
             f"'{source_aspect}': {exc}",
             field=field_name,
             source_aspect=source_aspect,
@@ -247,38 +207,13 @@ def validate_state_for_aspect(
     state: dict[str, Any],
 ) -> None:
     """
-    Проверяет корректность state перед выполнением конкретного аспекта.
-
-    Находит целевой аспект, собирает чекеры всех предшествующих
-    regular-аспектов и проверяет наличие и корректность обязательных
-    полей в state.
-
-    Если целевой аспект — первый в конвейере, предшествующих аспектов
-    нет, и state не проверяется (любой state допустим).
-
-    Аргументы:
-        aspects: кортеж аспектов (например поле ``aspects`` снимка ``get_snapshot(cls, \"aspect\")``).
-        get_checkers_for_aspect: колбэк ``method_name -> чекеры`` (например по снимку ``checker``).
-        aspect_name: имя метода целевого аспекта.
-        state: словарь state, переданный тестировщиком.
-
-    Исключения:
-        StateValidationError: если аспект не найден; обязательное поле
-            отсутствует; значение поля не проходит проверку чекером.
-
-    Пример:
-        asp = coordinator.get_snapshot(CreateOrderAction, "aspect")
-        aspects = getattr(asp, "aspects", ()) if asp is not None else ()
-        ch_snap = coordinator.get_snapshot(CreateOrderAction, "checker")
-        rows = getattr(ch_snap, "checkers", ()) if ch_snap is not None else ()
-        chk = lambda n: tuple(c for c in rows if c.method_name == n)
-        validate_state_for_aspect(aspects, chk, "process_payment", {"validated_user": "u1"})
+    Validate state before running a specific aspect.
     """
     target_index = _find_aspect_index(aspects, aspect_name)
     preceding_checkers = _get_preceding_regular_checkers(
         aspects, get_checkers_for_aspect, target_index,
     )
-    target_context = f"Аспект '{aspect_name}'"
+    target_context = f"Aspect '{aspect_name}'"
 
     for source_aspect, checker_meta in preceding_checkers:
         _validate_checker_against_state(
@@ -292,27 +227,7 @@ def validate_state_for_summary(
     state: dict[str, Any],
 ) -> None:
     """
-    Проверяет корректность state перед выполнением summary-аспекта.
-
-    Собирает чекеры ВСЕХ regular-аспектов и проверяет наличие
-    и корректность обязательных полей в state.
-
-    Аргументы:
-        aspects: кортеж аспектов (поле ``aspects`` снимка ``get_snapshot(cls, \"aspect\")``).
-        get_checkers_for_aspect: колбэк ``method_name -> чекеры``.
-        state: словарь state, переданный тестировщиком.
-
-    Исключения:
-        StateValidationError: если обязательное поле отсутствует;
-            значение поля не проходит проверку чекером.
-
-    Пример:
-        asp = coordinator.get_snapshot(CreateOrderAction, "aspect")
-        aspects = getattr(asp, "aspects", ()) if asp is not None else ()
-        ch_snap = coordinator.get_snapshot(CreateOrderAction, "checker")
-        rows = getattr(ch_snap, "checkers", ()) if ch_snap is not None else ()
-        chk = lambda n: tuple(c for c in rows if c.method_name == n)
-        validate_state_for_summary(aspects, chk, {"validated_user": "u1", "txn_id": "TXN-1"})
+    Validate state before running summary aspect.
     """
     all_checkers = _get_all_regular_checkers(aspects, get_checkers_for_aspect)
 

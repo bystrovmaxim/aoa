@@ -36,15 +36,6 @@ SCOPE (IN / OUT)
     entity uses.
 
 ═══════════════════════════════════════════════════════════════════════════════
-TERMINOLOGY (USE CONSISTENTLY)
-═══════════════════════════════════════════════════════════════════════════════
-
-**Intent / decorator / scratch / inspector / GateCoordinator** — containers
-appear on entity fields declared with `Rel` / `Inverse`; **inspectors** read
-annotations and scratch during ``GateCoordinator.build()`` to validate
-relation graphs and ownership rules.
-
-═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -168,6 +159,17 @@ ERRORS / LIMITATIONS
 - Message text for `RelationNotLoadedError` is centralized in
   `action_machine.domain.exceptions` — keep docs aligned there, not duplicated
   verbatim here.
+
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE-BEGIN
+═══════════════════════════════════════════════════════════════════════════════
+ROLE: Runtime relation container primitives for domain entity fields.
+CONTRACT: Keep relation identity always available (id/ids) and enforce explicit hydration for object access.
+INVARIANTS: Containers are frozen; unloaded relation object access fails fast via RelationNotLoadedError.
+FLOW: adapter/repository builds container -> domain code reads id(s) or hydrated entity payload -> coordinator uses annotations for topology semantics.
+FAILURES: ValueError on invalid constructor combinations, RelationNotLoadedError on unloaded access, AttributeError on mutation.
+EXTENSION POINTS: New relation flavors can subclass BaseRelationOne/BaseRelationMany with custom relation_type semantics.
+AI-CORE-END
 """
 
 from __future__ import annotations
@@ -231,6 +233,12 @@ class BaseRelationOne[T]:
             Hydrated row or ``None`` when only the id was loaded.
         ``relation_type``
             Set on concrete subclasses for coordinator / diagram metadata.
+
+    AI-CORE-BEGIN
+    ROLE: Base immutable to-one relation wrapper.
+    CONTRACT: Always store id; optionally hold hydrated entity and proxy attributes to it.
+    INVARIANTS: id is mandatory; missing hydrated entity triggers RelationNotLoadedError for proxied access.
+    AI-CORE-END
     """
 
     __slots__ = ("_entity", "_id")
@@ -338,6 +346,12 @@ class BaseRelationMany[T]:
     **Neighbors**
         Concrete classes set `relation_type`. Coordinator validates pairing with
         inverse side at build time.
+
+    AI-CORE-BEGIN
+    ROLE: Base immutable to-many relation wrapper.
+    CONTRACT: Track ids plus optional hydrated entities with explicit loaded-state semantics.
+    INVARIANTS: Index/iteration require loaded entities; unloaded access fails fast.
+    AI-CORE-END
     """
 
     __slots__ = ("_entities", "_entities_loaded", "_ids")

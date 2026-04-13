@@ -1,5 +1,71 @@
 # src/action_machine/runtime/binding/action_result_binding.py
-"""Runtime binding of pipeline return values to the action's declared ``BaseAction[P, R]`` result type."""
+"""
+Runtime binding of pipeline outputs to declared ``BaseAction[P, R]`` result type.
+
+═══════════════════════════════════════════════════════════════════════════════
+PURPOSE
+═══════════════════════════════════════════════════════════════════════════════
+
+This module enforces result-type contracts at runtime. It resolves declared
+``R`` from ``BaseAction[P, R]``, synthesizes fallback result when allowed, and
+validates actual pipeline output objects before returning them to callers.
+
+═══════════════════════════════════════════════════════════════════════════════
+INVARIANTS
+═══════════════════════════════════════════════════════════════════════════════
+
+- Declared ``R`` must be resolvable from action generic declaration.
+- Declared ``R`` must be a ``BaseResult`` subclass.
+- Runtime result object must be an instance of declared ``R``.
+- Synthetic empty result is allowed only for exact ``BaseResult`` declaration.
+
+═══════════════════════════════════════════════════════════════════════════════
+ARCHITECTURE / DATA FLOW
+═══════════════════════════════════════════════════════════════════════════════
+
+    Action class BaseAction[P, R]
+              |
+              v
+    resolve declared R (generic extraction)
+              |
+              +--> no summary path: maybe synthesize BaseResult()
+              |
+              v
+    validate runtime result object type
+              |
+              v
+    return BaseResult-compatible value or raise typed binding error
+
+═══════════════════════════════════════════════════════════════════════════════
+EXAMPLES
+═══════════════════════════════════════════════════════════════════════════════
+
+Happy path:
+    Summary returns declared ``OrderResult`` and binding passes value through.
+
+Edge case:
+    Action declares custom ``Result`` but no summary aspect; runtime raises
+    ``MissingSummaryAspectError`` instead of producing ambiguous fallback value.
+
+═══════════════════════════════════════════════════════════════════════════════
+ERRORS / LIMITATIONS
+═══════════════════════════════════════════════════════════════════════════════
+
+- Uses runtime ``isinstance`` checks; structural compatibility is not enough.
+- Forward-ref/generic resolution quality depends on binding resolver.
+- Error messages are developer-facing and intended for fail-fast diagnostics.
+
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE-BEGIN
+═══════════════════════════════════════════════════════════════════════════════
+ROLE: Runtime enforcer of action result generic contract.
+CONTRACT: Resolve R, synthesize only safe fallback, and validate output type.
+INVARIANTS: R must be BaseResult subtype; output must match declared class.
+FLOW: resolve declaration -> choose summary/synthetic path -> bind/validate.
+FAILURES: Declaration mismatch or runtime type mismatch raises typed exceptions.
+EXTENSION POINTS: Add alternative binding sources while preserving same contract.
+AI-CORE-END
+"""
 
 from __future__ import annotations
 

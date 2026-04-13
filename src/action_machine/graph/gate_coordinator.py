@@ -131,6 +131,25 @@ EXAMPLE (EXPLICIT INSPECTOR REGISTRATION)
 
 In a typical app, use ``CoreActionMachine.create_coordinator()`` to obtain a
 pre-registered and built coordinator.
+
+═══════════════════════════════════════════════════════════════════════════════
+ERRORS / LIMITATIONS
+═══════════════════════════════════════════════════════════════════════════════
+
+- Build failures are surfaced as typed exceptions (payload, duplicate, graph shape, cycles).
+- Graph payloads stored in ``rx.PyDiGraph`` are skeletal by design; rich facet metadata is reconstructed from snapshots.
+- Coordinator build is single-shot and immutable after commit.
+
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE-BEGIN
+═══════════════════════════════════════════════════════════════════════════════
+ROLE: Transactional coordinator for facet graph assembly and typed snapshot cache.
+CONTRACT: Register inspectors, execute explicit one-time build, and provide safe read APIs over committed metadata.
+INVARIANTS: Build is atomic and immutable after commit; payload validation and graph integrity checks run before commit.
+FLOW: register inspectors -> phase 1 collect/materialize -> phase 2 validate -> phase 3 commit -> read/hydrate APIs.
+FAILURES: Raises typed graph/build exceptions and lifecycle guards for invalid state transitions.
+EXTENSION POINTS: New inspectors can plug into build phases without changing coordinator public read contract.
+AI-CORE-END
 """
 
 from __future__ import annotations
@@ -165,6 +184,12 @@ class GateCoordinator:
 
     See the module docstring for ``build()`` phases and the public read API.
     Safe to share across the execution engine and adapters after ``build()``.
+
+    AI-CORE-BEGIN
+    ROLE: Runtime-safe metadata graph coordinator.
+    CONTRACT: Own inspector registry, transactional build, snapshot cache, and hydrated read surface.
+    INVARIANTS: No registration/build mutations after commit; all read APIs require built state.
+    AI-CORE-END
 
     Attributes:
         _inspectors : list[type[BaseIntentInspector]]

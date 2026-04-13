@@ -7,6 +7,59 @@ If the same action also declares ``@depends``, ``DependencyIntentInspector``
 emits a payload with the same graph key; ``GateCoordinator`` merges them.
 
 Typed data: ``Snapshot`` under cache key ``\"connections\"``.
+
+═══════════════════════════════════════════════════════════════════════════════
+PURPOSE
+═══════════════════════════════════════════════════════════════════════════════
+
+Translate ``@connection`` declarations into structural graph edges from action
+nodes to connection target nodes.
+
+═══════════════════════════════════════════════════════════════════════════════
+ARCHITECTURE / DATA FLOW
+═══════════════════════════════════════════════════════════════════════════════
+
+::
+
+    action class with _connection_info
+            │
+            ▼
+    inspect(target_cls)
+            │
+            ▼
+    Snapshot.from_target(...)
+            │
+            ▼
+    to_facet_payload()
+            │
+            └─ action node + structural "connection" edges
+
+═══════════════════════════════════════════════════════════════════════════════
+INVARIANTS
+═══════════════════════════════════════════════════════════════════════════════
+
+- Only classes with non-empty ``_connection_info`` emit payloads.
+- Snapshot storage key is fixed: ``connections``.
+- Emitted edges are structural and carry ``key`` / ``description`` metadata.
+- Node key intentionally collides with depends-inspector action node and is merged by coordinator.
+
+═══════════════════════════════════════════════════════════════════════════════
+ERRORS / LIMITATIONS
+═══════════════════════════════════════════════════════════════════════════════
+
+- Assumes ``@connection`` decorator already validated declarations.
+- This inspector does not execute connection factories or runtime I/O.
+
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE-BEGIN
+═══════════════════════════════════════════════════════════════════════════════
+ROLE: Structural connection-edge inspector for action graph topology.
+CONTRACT: Read ``_connection_info`` and emit structural ``connection`` edges from ``action`` nodes.
+INVARIANTS: Facet cache key is ``connections``; payloads are skipped when declarations are absent.
+FLOW: class discovery -> scratch read -> typed snapshot -> payload for coordinator merge/commit.
+FAILURES: Missing declarations result in ``None`` payload (skip), not an error.
+EXTENSION POINTS: Edge metadata shape can be extended through ``ConnectionInfo``.
+AI-CORE-END
 """
 
 from __future__ import annotations
@@ -21,7 +74,15 @@ from action_machine.resources.connection_intent import ConnectionIntent
 
 
 class ConnectionIntentInspector(BaseIntentInspector):
-    """Inspector for ``ConnectionIntent`` / ``_connection_info`` → structural ``connection`` edges."""
+    """
+    Inspector for ``ConnectionIntent`` declarations.
+
+    AI-CORE-BEGIN
+    ROLE: Concrete connection inspector.
+    CONTRACT: Emit action payloads with structural connection edges from ``_connection_info``.
+    INVARIANTS: Uses ``ConnectionIntent`` marker traversal and ``connections`` snapshot key.
+    AI-CORE-END
+    """
 
     _target_intent: type = ConnectionIntent
 

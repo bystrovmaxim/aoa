@@ -1,27 +1,25 @@
 # tests/intents/compensate/test_saga_errors.py
-"""
-Тесты молчаливого подавления ошибок компенсаторов.
-═══════════════════════════════════════════════════════════════════════════════
-НАЗНАЧЕНИЕ
-═══════════════════════════════════════════════════════════════════════════════
-Проверяет, что ошибки компенсаторов:
-- Не прерывают размотку стека — все последующие компенсаторы вызываются.
-- Не пробрасываются наружу — @on_error получает ОРИГИНАЛЬНУЮ ошибку аспекта.
-- Не подменяют исходную ошибку — вызывающий код видит ValueError аспекта,
-  а не RuntimeError компенсатора.
+"""Tests of silent error suppression of compensators.
+═══════════════════ ════════════════════ ════════════════════ ════════════════════
+PURPOSE
+═══════════════════ ════════════════════ ════════════════════ ════════════════════
+Checks that compensator errors:
+- Do not interrupt stack unwinding - all subsequent compensators are called.
+- Do not forward outside - @on_error receives the ORIGINAL aspect error.
+- Do not replace the original error - the calling code sees the ValueError of the aspect,
+  rather than a RuntimeError compensator.
 
-Архитектурное решение: ошибки компенсаторов полностью подавляются внутри
-_rollback_saga(). Вместо проброса используется типизированное событие
-CompensateFailedEvent, на которое плагин мониторинга может подписаться.
-═══════════════════════════════════════════════════════════════════════════════
-СТРУКТУРА
-═══════════════════════════════════════════════════════════════════════════════
-TestCompensatorErrorSuppressed     — ошибка компенсатора подавляется
-TestAllCompensatorsCalled          — все компенсаторы получают шанс выполниться
-TestOnErrorReceivesOriginalError   — @on_error получает оригинальную ошибку
-TestOnErrorReceivesStateAfterRegularPipeline — после regular в state для @on_error
-TestOnErrorPipelineStateAtFailureSite — пустой state / только первый аспект / summary
-"""
+Architectural solution: compensator errors are completely suppressed internally
+_rollback_saga(). Instead of forwarding, a typed event is used
+CompensateFailedEvent that the monitoring plugin can subscribe to.
+═══════════════════ ════════════════════ ════════════════════ ════════════════════
+STRUCTURE
+═══════════════════ ════════════════════ ════════════════════ ════════════════════
+TestCompensatorErrorSuppressed - compensator error is suppressed
+TestAllCompensatorsCalled - all compensators get a chance to be executed
+TestOnErrorReceivesOriginalError — @on_error receives the original error
+TestOnErrorReceivesStateAfterRegularPipeline - after regular in state for @on_error
+TestOnErrorPipelineStateAtFailureSite - empty state / first aspect only / summary"""
 from __future__ import annotations
 
 import pytest
@@ -42,29 +40,25 @@ from tests.scenarios.domain_model.services import InventoryService, PaymentServi
 
 
 class TestCompensatorErrorSuppressed:
-    """
-    Проверяет, что ошибка компенсатора подавляется и не прерывает размотку.
+    """Checks that the compensator error is suppressed and does not interrupt unwinding.
 
-    CompensateErrorAction имеет два компенсатора:
-    - rollback_charge_compensate — БРОСАЕТ RuntimeError.
-    - rollback_reserve_compensate — работает нормально.
+    CompensateErrorAction has two compensators:
+    - rollback_charge_compensate - THROWS a RuntimeError.
+    - rollback_reserve_compensate - works fine.
 
-    При ошибке в fail_aspect (ValueError) размотка идёт в обратном порядке:
-    1. rollback_reserve_compensate → успех.
-    2. rollback_charge_compensate → RuntimeError → ПОДАВЛЕНО.
+    If there is an error in fail_aspect (ValueError), unwinding proceeds in the reverse order:
+    1. rollback_reserve_compensate → success.
+    2. rollback_charge_compensate → RuntimeError → SUPPRESSED.
 
-    Наружу пробрасывается ИСХОДНАЯ ValueError аспекта, а не RuntimeError
-    компенсатора.
-    """
+    The ORIGINAL ValueError of the aspect is thrown outside, not the RuntimeError
+    compensator."""
 
     @pytest.mark.anyio
     async def test_compensator_error_suppressed_original_error_propagated(
         self, compensate_bench,
     ) -> None:
-        """
-        Ошибка компенсатора подавляется — наружу пробрасывается исходная
-        ValueError аспекта, а не RuntimeError компенсатора.
-        """
+        """The compensator error is suppressed - the original
+        ValueError of the aspect, not the RuntimeError of the compensator."""
         # ── Arrange ──
         params = CompensateTestParams(
             user_id="user_err",
@@ -88,27 +82,23 @@ class TestCompensatorErrorSuppressed:
 
 
 class TestAllCompensatorsCalled:
-    """
-    Проверяет, что если первый компенсатор (в порядке размотки) упал,
-    второй всё равно вызывается.
+    """Checks that if the first compensator (in the unwinding order) has fallen,
+    the second one is still called.
 
-    Порядок размотки для CompensateErrorAction:
-    1. rollback_reserve_compensate (последний успешный → первый в размотке).
-    2. rollback_charge_compensate (первый успешный → второй в размотке).
+    Unwinding order for CompensateErrorAction:
+    1. rollback_reserve_compensate (last successful → first in unrolling).
+    2. rollback_charge_compensate (first successful → second in unwinding).
 
-    rollback_charge_compensate бросает RuntimeError, но rollback_reserve_compensate
-    уже вызван до него. Проверяем, что ОБА получили шанс выполниться.
-    """
+    rollback_charge_compensate throws RuntimeError, but rollback_reserve_compensate
+    already called before it. We check that BOTH have a chance to be executed."""
 
     @pytest.mark.anyio
     async def test_all_compensators_called_despite_error(
         self, compensate_bench,
     ) -> None:
-        """
-        Оба компенсатора вызываются: unreserve() успешно, затем
-        rollback_charge_compensate бросает RuntimeError — но unreserve()
-        уже вызван, и размотка завершается.
-        """
+        """Both compensators are called: unreserve() successfully, then
+        rollback_charge_compensate throws RuntimeError - but unreserve()
+        has already been called and the unwinding is completed."""
         # ── Arrange ──
         mock_inventory = compensate_bench.mocks[InventoryService]
 
@@ -128,10 +118,10 @@ class TestAllCompensatorsCalled:
             )
 
         # ── Assert ──
-        # unreserve() вызван — компенсатор reserve_aspect выполнился
-        # несмотря на то, что компенсатор charge_aspect бросил RuntimeError.
-        # Используем call_count вместо assert_awaited, потому что
-        # TestBench.run() прогоняет две машины с _reset_all_mocks() между ними.
+        #unreserve() is called - the reserve_aspect compensator is executed
+        #despite the fact that the charge_aspect compensator threw a RuntimeError.
+        #We use call_count instead of assert_awaited because
+        #TestBench.run() runs two machines with _reset_all_mocks() in between.
         assert mock_inventory.unreserve.call_count == 1
         assert mock_inventory.unreserve.call_args[0][0] == "RES-TEST-001"
 
@@ -142,32 +132,28 @@ class TestAllCompensatorsCalled:
 
 
 class TestOnErrorReceivesOriginalError:
-    """
-    Проверяет, что @on_error получает ОРИГИНАЛЬНУЮ ошибку аспекта,
-    а не ошибку компенсатора.
+    """Checks that @on_error receives the ORIGINAL aspect error,
+    and not a compensator error.
 
-    CompensateAndOnErrorAction имеет:
-    - Два компенсатора (оба работают нормально).
+    CompensateAndOnErrorAction has:
+    - Two compensators (both work fine).
     - @on_error(ValueError) → Result(status="handled_after_compensate").
 
-    Порядок обработки:
-    1. fail_aspect бросает ValueError.
-    2. _rollback_saga(): rollback_reserve → rollback_charge (оба успешно).
+    Processing order:
+    1. fail_aspect throws ValueError.
+    2. _rollback_saga(): rollback_reserve → rollback_charge (both successful).
     3. _handle_aspect_error(): @on_error(ValueError) → Result.
 
     @on_error receives ValueError with message "Finalize error for ...",
-    а не какую-либо ошибку компенсатора.
-    """
+    and not any compensator error."""
 
     @pytest.mark.anyio
     async def test_on_error_receives_original_error_after_compensate(
         self, compensate_bench,
     ) -> None:
-        """
-        @on_error получает оригинальную ValueError аспекта.
-        Результат содержит status="handled_after_compensate" и detail
-        с текстом исходной ошибки.
-        """
+        """@on_error gets the original ValueError of the aspect.
+        The result contains status="handled_after_compensate" and detail
+        with the text of the original error."""
         # ── Arrange ──
         params = CompensateTestParams(
             user_id="user_original",
@@ -194,11 +180,9 @@ class TestOnErrorReceivesOriginalError:
     async def test_compensators_called_before_on_error(
         self, compensate_bench,
     ) -> None:
-        """
-        Компенсаторы вызываются ДО @on_error — проверка через моки.
-        После run() оба мока (refund, unreserve) должны быть вызваны,
-        а результат — сформирован @on_error.
-        """
+        """Compensators are called BEFORE @on_error - check via mocks.
+        After run() both mocks (refund, unreserve) must be called,
+        and the result is formed by @on_error."""
         # ── Arrange ──
         mock_payment = compensate_bench.mocks[PaymentService]
         mock_inventory = compensate_bench.mocks[InventoryService]
@@ -218,13 +202,13 @@ class TestOnErrorReceivesOriginalError:
         )
 
         # ── Assert ──
-        # Компенсаторы были вызваны (размотка произошла).
-        # Используем call_count вместо assert_awaited, потому что
-        # TestBench.run() прогоняет sync-машину последней, и asyncio.run()
-        # может регистрировать await-вызовы иначе.
+        #The compensators have been called (unwinding has occurred).
+        #We use call_count instead of assert_awaited because
+        #TestBench.run() runs the sync machine last, and asyncio.run()
+        #may register await calls differently.
         assert mock_payment.refund.call_count == 1
         assert mock_inventory.unreserve.call_count == 1
-        # @on_error тоже отработал
+        #@on_error worked too
         assert result.status == "handled_after_compensate"
         assert "TXN-TEST-001" in result.detail
 
@@ -274,13 +258,11 @@ class TestOnErrorReceivesStateAfterRegularPipeline:
 
 
 class TestOnErrorPipelineStateAtFailureSite:
-    """
-    ``@on_error`` получает ровно тот ``BaseState``, что был **входом** в упавший шаг:
+    """``@on_error`` gets exactly the ``BaseState`` that was the **input** to the failed step:
 
-    - первый regular упал → пустой state;
-    - второй regular упал → state после первого аспекта (без полей следующих);
-    - summary упал → state после всего regular (см. ``SummaryFailsOnErrorStateAction``).
-    """
+    - the first regular fell → empty state;
+    - the second regular fell → state after the first aspect (without the following fields);
+    - summary fell → state after all regular (see ``SummaryFailsOnErrorStateAction``)."""
 
     @pytest.mark.anyio
     async def test_first_regular_failure_empty_state_for_on_error(
@@ -324,4 +306,5 @@ class TestOnErrorPipelineStateAtFailureSite:
         assert "second_regular_failed" in result.detail
         assert "TXN-TEST-001" in result.detail
         assert "res=None" in result.detail
+        assert mock_payment.refund.call_count == 1
         assert mock_payment.refund.call_count == 1

@@ -1,140 +1,136 @@
 # src/action_machine/intents/on_error/on_error_decorator.py
 """
-Декоратор @on_error — объявление обработчика ошибок аспектов действия.
+``@on_error`` decorator for action aspect error handlers.
 
 ═══════════════════════════════════════════════════════════════════════════════
-НАЗНАЧЕНИЕ
+PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Декоратор @on_error — часть грамматики намерений ActionMachine. Он объявляет,
-что метод действия является обработчиком неперехваченных исключений,
-возникающих в regular- или summary-аспектах. Когда аспект бросает
-исключение, машина (ActionProductMachine) ищет подходящий обработчик
-@on_error по типу исключения (isinstance) и вызывает его.
+``@on_error`` is part of ActionMachine intent grammar. It declares that a
+method handles uncaught exceptions raised by regular/summary aspects. When an
+aspect fails, ``ActionProductMachine`` finds the first matching handler by
+exception type (``isinstance``) and invokes it.
 
-Обработчик может вернуть Result — тогда ошибка считается обработанной,
-и Result подменяет результат действия. Если обработчик сам бросает
-исключение — оно оборачивается в OnErrorHandlerError.
+Handler may return ``Result`` to mark error as handled and substitute action
+output. If handler raises, runtime wraps it into ``OnErrorHandlerError``.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ПАРАМЕТРЫ
+PARAMETERS
 ═══════════════════════════════════════════════════════════════════════════════
 
     exception_types : type[Exception] | tuple[type[Exception], ...]
-        Один тип исключения или кортеж типов, которые перехватывает
-        этот обработчик. Каждый элемент должен быть подклассом Exception.
+        One exception type or tuple of types this handler catches.
+        Each element must be an ``Exception`` subclass.
 
     description : str
-        Обязательное текстовое описание обработчика. Непустая строка.
-        Используется в логах, интроспекции и графе координатора.
+        Required handler description. Must be non-empty string.
+        Used in logs, introspection, and coordinator graph.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ПЕРЕМЕННАЯ СИГНАТУРА
+VARIABLE SIGNATURE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Количество параметров зависит от наличия декоратора @context_requires
-на методе. @context_requires применяется ближе к функции (снизу),
-поэтому при проверке сигнатуры в @on_error атрибут
-_required_context_keys уже записан.
+Parameter count depends on ``@context_requires`` on the same method.
+``@context_requires`` is applied closer to function body, so
+``_required_context_keys`` is already present when ``@on_error`` validates.
 
-    Без @context_requires:
-        6 параметров: self, params, state, box, connections, error
+    Without ``@context_requires``:
+        6 params: self, params, state, box, connections, error
 
-    С @context_requires:
-        7 параметров: self, params, state, box, connections, error, ctx
+    With ``@context_requires``:
+        7 params: self, params, state, box, connections, error, ctx
 
-Обработчик имеет собственный @context_requires, независимый от аспекта,
-который упал. Если обработчику нужен контекст — он декларирует свои ключи,
-и машина создаёт отдельный ContextView.
+Handler has its own ``@context_requires`` independent of failed aspect.
+If handler needs context, it declares its own keys and receives dedicated
+``ContextView``.
 
-Примеры:
+Examples:
 
-    # Без контекста — 6 параметров:
-    @on_error(ValueError, description="Ошибка валидации")
+    # Without context: 6 parameters
+    @on_error(ValueError, description="Validation error")
     async def handle_validation_on_error(self, params, state, box, connections, error):
         return MyResult(status="validation_error")
 
-    # С контекстом — 7 параметров:
-    @on_error(ValueError, description="Ошибка валидации с аудитом")
+    # With context: 7 parameters
+    @on_error(ValueError, description="Validation error with audit")
     @context_requires(Ctx.User.user_id)
     async def handle_validation_on_error(self, params, state, box, connections, error, ctx):
         user_id = ctx.get(Ctx.User.user_id)
         return MyResult(status="validation_error", user_id=user_id)
 
 ═══════════════════════════════════════════════════════════════════════════════
-ОГРАНИЧЕНИЯ (ИНВАРИАНТЫ)
+INVARIANTS
 ═══════════════════════════════════════════════════════════════════════════════
 
-- Применяется только к методам (callable), не к классам или свойствам.
-- Метод должен быть асинхронным (async def).
-- Сигнатура: 6 параметров без @context_requires,
-  7 параметров с @context_requires.
-- Имя метода обязано заканчиваться на "_on_error".
-- description — обязательная непустая строка.
-- exception_types — один тип Exception или кортеж типов Exception.
-- Каждый элемент exception_types — подкласс Exception.
-- Обработчики НЕ наследуются от родительского Action.
-- Валидация перекрытия типов (нижестоящий не может ловить типы,
-  совпадающие или дочерние к вышестоящему) выполняется в MetadataBuilder.
+- Applies only to methods (callables), not classes/properties.
+- Method must be async (``async def``).
+- Signature: 6 params without ``@context_requires``, 7 with it.
+- Method name must end with ``"_on_error"``.
+- ``description`` is required and non-empty.
+- ``exception_types`` is one Exception type or tuple of Exception types.
+- Each element in ``exception_types`` must be an Exception subclass.
+- Handlers are NOT inherited from parent Action classes.
+- Type-overlap validation (later handler cannot catch same/narrower type) is
+  enforced in metadata builder.
 
 ═══════════════════════════════════════════════════════════════════════════════
-АРХИТЕКТУРА ИНТЕГРАЦИИ
+ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-    @on_error(ValueError, description="Обработка ошибки валидации")
+    @on_error(ValueError, description="Handle validation error")
         │
-        ▼  Декоратор записывает в method._on_error_meta
+        ▼  Decorator writes method._on_error_meta
     {"exception_types": (ValueError,), "description": "..."}
         │
         ▼  OnErrorIntentInspector._collect_error_handlers(cls)
     ErrorHandler(..., context_keys=frozenset(...))
         │
         ▼  on_error_intent.validate_error_handlers(cls, error_handlers)
-    Проверяет перекрытие типов.
+    Validates type overlaps.
         │
         ▼  ActionProductMachine._handle_aspect_error(...)
-    Если context_keys непустой — создаёт ContextView, передаёт как ctx.
-    Аспект бросает ValueError → машина ищет обработчик → вызывает → Result.
+    If context_keys non-empty -> creates ContextView and passes as ctx.
+    Aspect raises ValueError -> runtime matches handler -> calls -> Result.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ПОРЯДОК ОБРАБОТЧИКОВ И ПЕРЕКРЫТИЕ ТИПОВ
+HANDLER ORDER AND TYPE OVERLAP
 ═══════════════════════════════════════════════════════════════════════════════
 
-Обработчики проверяются сверху вниз в порядке объявления в классе.
-Первый подходящий (isinstance(error, exception_types)) вызывается.
+Handlers are checked top-down in class declaration order.
+First match (``isinstance(error, exception_types)``) is invoked.
 
-Допустимо: сначала более специфичный, потом более общий:
-    @on_error(ValueError, ...)      ← специфичный
-    @on_error(Exception, ...)       ← общий fallback
+Valid: specific first, broad fallback second:
+    @on_error(ValueError, ...)      <- specific
+    @on_error(Exception, ...)       <- fallback
 
-Недопустимо: сначала общий, потом специфичный:
-    @on_error(Exception, ...)       ← общий перехватит всё
-    @on_error(ValueError, ...)      ← мёртвый код → TypeError при сборке
+Invalid: broad first, specific second:
+    @on_error(Exception, ...)       <- catches everything
+    @on_error(ValueError, ...)      <- dead code -> TypeError at metadata build
 
 ═══════════════════════════════════════════════════════════════════════════════
-ПРИМЕР ИСПОЛЬЗОВАНИЯ
+EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
-    @meta(description="Создание заказа", domain=OrdersDomain)
+    @meta(description="Create order", domain=OrdersDomain)
     @check_roles(NoneRole)
     class CreateOrderAction(BaseAction[OrderParams, OrderResult]):
 
-        @regular_aspect("Валидация данных")
+        @regular_aspect("Data validation")
         async def validate_aspect(self, params, state, box, connections):
             if not params.user_id:
-                raise ValueError("user_id обязателен")
+                raise ValueError("user_id is required")
             return {"validated_user": params.user_id}
 
-        @summary_aspect("Формирование результата")
+        @summary_aspect("Build result")
         async def build_result_summary(self, params, state, box, connections):
             return OrderResult(order_id="ORD-1", status="created", total=params.amount)
 
-        @on_error(ValueError, description="Ошибка валидации")
+        @on_error(ValueError, description="Validation error")
         async def handle_validation_on_error(self, params, state, box, connections, error):
             return OrderResult(order_id="ERR", status="validation_error", total=0)
 
-        # С контекстом:
-        @on_error((ConnectionError, TimeoutError), description="Сетевая ошибка")
+        # With context:
+        @on_error((ConnectionError, TimeoutError), description="Network error")
         @context_requires(Ctx.User.user_id, Ctx.Request.trace_id)
         async def handle_network_on_error(self, params, state, box, connections, error, ctx):
             user_id = ctx.get(Ctx.User.user_id)
@@ -142,14 +138,24 @@ _required_context_keys уже записан.
             return OrderResult(order_id="ERR", status="network_error", total=0)
 
 ═══════════════════════════════════════════════════════════════════════════════
-ОШИБКИ
+ERRORS / LIMITATIONS
 ═══════════════════════════════════════════════════════════════════════════════
 
-    TypeError — метод не callable; не асинхронный; неверное число параметров;
-               exception_types не тип и не кортеж типов; элемент не подкласс
-               Exception; description не строка.
-    ValueError — description пустая строка.
-    NamingSuffixError — имя метода не заканчивается на "_on_error".
+    TypeError: non-callable target, non-async method, wrong parameter count,
+        invalid exception_types, non-Exception element, non-string description.
+    ValueError: empty/blank description.
+    NamingSuffixError: method name does not end with ``"_on_error"``.
+
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE-BEGIN
+═══════════════════════════════════════════════════════════════════════════════
+ROLE: Method decorator that declares aspect-error handlers.
+CONTRACT: Validate handler contract and attach ``_on_error_meta`` metadata.
+INVARIANTS: Async method + required suffix + exact parameter contract.
+FLOW: decorator validation -> metadata write -> inspector/runtime consumption.
+FAILURES: TypeError/ValueError/NamingSuffixError at declaration time.
+EXTENSION POINTS: Additional metadata fields via decorator+inspector updates.
+AI-CORE-END
 """
 
 from __future__ import annotations
@@ -161,74 +167,59 @@ from typing import Any
 
 from action_machine.model.exceptions import NamingSuffixError
 
-# Количество параметров без @context_requires: self, params, state, box, connections, error
+# Parameter count without @context_requires.
 _BASE_PARAM_COUNT = 6
 
-# Количество параметров с @context_requires: self, params, state, box, connections, error, ctx
+# Parameter count with @context_requires.
 _CTX_PARAM_COUNT = 7
 
-# Имена параметров для сообщений об ошибках
+# Parameter names for error messages.
 _BASE_PARAM_NAMES = "self, params, state, box, connections, error"
 _CTX_PARAM_NAMES = "self, params, state, box, connections, error, ctx"
 
-# Обязательный суффикс имени метода
+# Required method name suffix.
 _REQUIRED_SUFFIX = "_on_error"
 
 
-# ═════════════════════════════════════════════════════════════════════════════
-# Валидация аргументов декоратора
-# ═════════════════════════════════════════════════════════════════════════════
+# ============================================================================
+# Decorator argument validation
+# ============================================================================
 
 
 def _normalize_exception_types(
     exception_types: type[Exception] | tuple[type[Exception], ...],
 ) -> tuple[type[Exception], ...]:
-    """
-    Нормализует аргумент exception_types в кортеж типов.
-
-    Принимает один тип или кортеж типов. Проверяет, что каждый
-    элемент является подклассом Exception.
-
-    Аргументы:
-        exception_types: один тип Exception или кортеж типов.
-
-    Возвращает:
-        tuple[type[Exception], ...] — нормализованный кортеж.
-
-    Исключения:
-        TypeError: если аргумент не тип и не кортеж типов;
-                  если элемент не подкласс Exception.
-    """
+    """Normalize exception_types argument to tuple of Exception subclasses."""
     if isinstance(exception_types, type):
         if not issubclass(exception_types, Exception):
             raise TypeError(
-                f"@on_error: тип {exception_types.__name__} не является "
-                f"подклассом Exception."
+                f"@on_error: type {exception_types.__name__} is not an "
+                f"Exception subclass."
             )
         return (exception_types,)
 
     if isinstance(exception_types, tuple):
         if len(exception_types) == 0:
             raise TypeError(
-                "@on_error: передан пустой кортеж типов исключений. "
-                "Укажите хотя бы один тип."
+                "@on_error: empty exception type tuple provided. "
+                "Specify at least one type."
             )
         for i, exc_type in enumerate(exception_types):
             if not isinstance(exc_type, type):
                 raise TypeError(
-                    f"@on_error: элемент кортежа [{i}] не является типом, "
-                    f"получен {type(exc_type).__name__}: {exc_type!r}."
+                    f"@on_error: tuple element [{i}] is not a type, "
+                    f"got {type(exc_type).__name__}: {exc_type!r}."
                 )
             if not issubclass(exc_type, Exception):
                 raise TypeError(
-                    f"@on_error: элемент кортежа [{i}] ({exc_type.__name__}) "
-                    f"не является подклассом Exception."
+                    f"@on_error: tuple element [{i}] ({exc_type.__name__}) "
+                    f"is not an Exception subclass."
                 )
         return exception_types
 
     raise TypeError(
-        f"@on_error: первый аргумент должен быть типом Exception "
-        f"или кортежем типов Exception, получен "
+        f"@on_error: first argument must be an Exception type "
+        f"or a tuple of Exception types, got "
         f"{type(exception_types).__name__}: {exception_types!r}."
     )
 
@@ -240,25 +231,16 @@ def _exception_types_invariant(
 
 
 def _validate_description(description: Any) -> None:
-    """
-    Проверяет, что description — непустая строка.
-
-    Аргументы:
-        description: значение параметра description.
-
-    Исключения:
-        TypeError: если description не строка.
-        ValueError: если description пустая строка или строка из пробелов.
-    """
+    """Validate that description is a non-empty string."""
     if not isinstance(description, str):
         raise TypeError(
-            f"@on_error: параметр description должен быть строкой, "
-            f"получен {type(description).__name__}: {description!r}."
+            f"@on_error: parameter description must be a string, "
+            f"got {type(description).__name__}: {description!r}."
         )
     if not description.strip():
         raise ValueError(
-            "@on_error: description не может быть пустой строкой. "
-            "Укажите описание обработчика ошибки."
+            "@on_error: description cannot be empty. "
+            "Provide a handler description."
         )
 
 
@@ -267,38 +249,23 @@ def _description_invariant(description: Any) -> None:
 
 
 def _validate_method(func: Any, description: str) -> None:
-    """
-    Проверяет, что декорируемый объект — асинхронный метод
-    с правильной сигнатурой и суффиксом имени.
-
-    Количество параметров проверяется с учётом наличия @context_requires:
-    если функция имеет атрибут _required_context_keys — ожидается 7
-    параметров (с ctx), иначе 6 (без ctx).
-
-    Аргументы:
-        func: декорируемый объект.
-        description: описание из декоратора (для сообщений об ошибках).
-
-    Исключения:
-        TypeError: если func не callable; не async; неверное число параметров.
-        NamingSuffixError: если имя метода не заканчивается на "_on_error".
-    """
-    # Проверка: цель — вызываемый объект
+    """Validate handler target: callable, async, signature, and name suffix."""
+    # Target must be callable.
     if not callable(func):
         raise TypeError(
-            f"@on_error можно применять только к методам. "
-            f"Получен объект типа {type(func).__name__}: {func!r}."
+            f"@on_error can only be applied to methods/callables. "
+            f"Got object of type {type(func).__name__}: {func!r}."
         )
 
-    # Проверка: метод асинхронный
+    # Handler must be async.
     if not asyncio.iscoroutinefunction(func):
         raise TypeError(
-            f"@on_error(\"{description}\"): метод {func.__name__} "
-            f"должен быть асинхронным (async def). "
-            f"Синхронные обработчики не поддерживаются."
+            f"@on_error(\"{description}\"): method {func.__name__} "
+            f"must be async (async def). "
+            f"Synchronous handlers are not supported."
         )
 
-    # Проверка: число параметров (с учётом @context_requires)
+    # Parameter count check (with @context_requires awareness).
     has_context = hasattr(func, "_required_context_keys")
     expected_count = _CTX_PARAM_COUNT if has_context else _BASE_PARAM_COUNT
     expected_names = _CTX_PARAM_NAMES if has_context else _BASE_PARAM_NAMES
@@ -307,18 +274,18 @@ def _validate_method(func: Any, description: str) -> None:
     param_count = len(sig.parameters)
     if param_count != expected_count:
         raise TypeError(
-            f"@on_error(\"{description}\"): метод {func.__name__} "
-            f"должен принимать {expected_count} параметров "
-            f"({expected_names}), получено {param_count}."
+            f"@on_error(\"{description}\"): method {func.__name__} "
+            f"must accept {expected_count} parameters "
+            f"({expected_names}), got {param_count}."
         )
 
-    # Проверка: суффикс имени метода
+    # Required method name suffix.
     if not func.__name__.endswith(_REQUIRED_SUFFIX):
         raise NamingSuffixError(
-            f"@on_error(\"{description}\"): метод '{func.__name__}' "
-            f"должен заканчиваться на '{_REQUIRED_SUFFIX}'. "
-            f"Переименуйте в '{func.__name__}{_REQUIRED_SUFFIX}' "
-            f"или аналогичное имя с суффиксом '{_REQUIRED_SUFFIX}'."
+            f"@on_error(\"{description}\"): method '{func.__name__}' "
+            f"must end with '{_REQUIRED_SUFFIX}'. "
+            f"Rename to '{func.__name__}{_REQUIRED_SUFFIX}' "
+            f"or any name with suffix '{_REQUIRED_SUFFIX}'."
         )
 
 
@@ -326,9 +293,9 @@ def _method_contract_invariant(func: Any, description: str) -> None:
     _validate_method(func, description)
 
 
-# ═════════════════════════════════════════════════════════════════════════════
-# Основной декоратор
-# ═════════════════════════════════════════════════════════════════════════════
+# ============================================================================
+# Main decorator
+# ============================================================================
 
 
 def on_error(
@@ -337,51 +304,16 @@ def on_error(
     description: str,
 ) -> Callable[[Any], Any]:
     """
-    Декоратор уровня метода. Объявляет обработчик ошибок аспектов действия.
+    Method-level decorator declaring aspect error handler contract.
 
-    Записывает метаданные в атрибут method._on_error_meta. MetadataBuilder
-    собирает эти метаданные в snapshot ``error_handler`` (ErrorHandler).
-
-    Количество параметров проверяется с учётом наличия @context_requires:
-    если функция имеет атрибут _required_context_keys — ожидается 7
-    параметров (с ctx), иначе 6 (без ctx).
-
-    Аргументы:
-        exception_types: один тип Exception или кортеж типов, которые
-                         перехватывает этот обработчик. Каждый элемент
-                         должен быть подклассом Exception.
-        description: обязательное текстовое описание обработчика.
-                     Непустая строка. Используется в логах и интроспекции.
-
-    Возвращает:
-        Декоратор, который прикрепляет _on_error_meta к методу
-        и возвращает метод без изменений.
-
-    Исключения:
-        TypeError:
-            - exception_types не тип и не кортеж типов.
-            - Элемент кортежа не подкласс Exception.
-            - description не строка.
-            - Метод не callable.
-            - Метод не асинхронный.
-            - Неверное число параметров (6 без @context_requires,
-              7 с @context_requires).
-        ValueError:
-            - description пустая строка.
-        NamingSuffixError:
-            - Имя метода не заканчивается на "_on_error".
+    Writes metadata to ``method._on_error_meta`` for inspector/runtime use.
     """
-    # Валидация аргументов декоратора (до применения к методу)
+    # Validate decorator arguments before method application.
     normalized_types = _exception_types_invariant(exception_types)
     _description_invariant(description)
 
     def decorator(func: Any) -> Any:
-        """
-        Внутренний декоратор, применяемый к методу.
-
-        Проверяет callable, async, количество параметров, суффикс.
-        Затем записывает _on_error_meta в func.
-        """
+        """Inner decorator applied to handler method."""
         _method_contract_invariant(func, description)
 
         func._on_error_meta = {

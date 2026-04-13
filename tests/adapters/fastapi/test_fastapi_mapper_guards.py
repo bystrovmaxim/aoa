@@ -1,9 +1,56 @@
 # tests/adapters/fastapi/test_fastapi_mapper_guards.py
 """
-Integration tests: FastAPI adapter rejects mapper outputs that are not the declared types.
+FastAPI integration: mapper output type guards at the HTTP boundary.
 
-``ensure_machine_params`` / ``ensure_protocol_response`` in base_route_record must surface
-before or after ``machine.run`` so failures stay at the HTTP boundary (500 via middleware).
+═══════════════════════════════════════════════════════════════════════════════
+PURPOSE
+═══════════════════════════════════════════════════════════════════════════════
+
+Ensure wrong ``params_mapper`` / ``response_mapper`` return types trigger
+``TypeError`` and, where applicable, skip ``machine.run`` — surfacing failures
+through the FastAPI stack (e.g. 500) instead of corrupting the action pipeline.
+
+═══════════════════════════════════════════════════════════════════════════════
+ARCHITECTURE / DATA FLOW
+═══════════════════════════════════════════════════════════════════════════════
+
+    TestClient HTTP call
+              |
+              v
+    FastApiAdapter endpoint -> ensure_machine_params / ensure_protocol_response
+              |
+              +--> mismatch -> TypeError (``machine.run`` not called or error path)
+              |
+              v
+    HTTP response (error status)
+
+═══════════════════════════════════════════════════════════════════════════════
+INVARIANTS
+═══════════════════════════════════════════════════════════════════════════════
+
+- ``ActionProductMachine.run`` is mocked to detect accidental invocations.
+
+═══════════════════════════════════════════════════════════════════════════════
+EXAMPLES
+═══════════════════════════════════════════════════════════════════════════════
+
+    uv run pytest tests/adapters/fastapi/test_fastapi_mapper_guards.py -q
+
+═══════════════════════════════════════════════════════════════════════════════
+ERRORS / LIMITATIONS
+═══════════════════════════════════════════════════════════════════════════════
+
+- Relies on FastAPI/Starlette error handling for unhandled exceptions in routes.
+
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE-BEGIN
+═══════════════════════════════════════════════════════════════════════════════
+ROLE: End-to-end guard tests for mapper outputs via FastAPI.
+CONTRACT: Wrong mapped types do not produce successful action execution.
+INVARIANTS: AsyncMock auth; mocked ``machine.run`` where asserted.
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE-END
+═══════════════════════════════════════════════════════════════════════════════
 """
 
 from __future__ import annotations

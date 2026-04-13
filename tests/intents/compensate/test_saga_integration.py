@@ -1,17 +1,15 @@
 # tests/intents/compensate/test_saga_integration.py
-"""
-Полные E2E-сценарии механизма компенсации (Saga).
-═══════════════════════════════════════════════════════════════════════════════
-НАЗНАЧЕНИЕ
-═══════════════════════════════════════════════════════════════════════════════
-Проверяет полный конвейер от начала до конца: несколько аспектов +
-компенсаторы + @on_error, включая проверку результата, вызовов моков
-и событий плагинов в одном прогоне.
-═══════════════════════════════════════════════════════════════════════════════
-СТРУКТУРА
-═══════════════════════════════════════════════════════════════════════════════
-TestFullSagaE2E — полные интеграционные сценарии
-"""
+"""Complete E2E compensation mechanism scenarios (Saga).
+═══════════════════ ════════════════════ ════════════════════ ════════════════════
+PURPOSE
+═══════════════════ ════════════════════ ════════════════════ ════════════════════
+Tests the complete pipeline from start to finish: several aspects +
+compensators + @on_error, including checking the result of mock calls
+and plugin events in one run.
+═══════════════════ ════════════════════ ════════════════════ ════════════════════
+STRUCTURE
+═══════════════════ ════════════════════ ════════════════════ ════════════════════
+TestFullSagaE2E - complete integration scripts"""
 from __future__ import annotations
 
 from unittest.mock import AsyncMock
@@ -29,13 +27,13 @@ from tests.scenarios.domain_model.compensate_plugins import SagaObserverPlugin
 from tests.scenarios.domain_model.services import InventoryService, PaymentService
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Фикстуры
+#Fittings
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 @pytest.fixture
 def saga_observer() -> SagaObserverPlugin:
-    """Экземпляр SagaObserverPlugin — сбрасывается перед каждым тестом."""
+    """SagaObserverPlugin instance - reset before each test."""
     observer = SagaObserverPlugin()
     observer.reset()
     return observer
@@ -47,7 +45,7 @@ def e2e_bench(
     mock_inventory: AsyncMock,
     saga_observer: SagaObserverPlugin,
 ) -> TestBench:
-    """TestBench с моками и SagaObserverPlugin — для E2E-сценариев."""
+    """TestBench with mocks and SagaObserverPlugin - for E2E scenarios."""
     return TestBench(
         mocks={
             PaymentService: mock_payment,
@@ -59,11 +57,9 @@ def e2e_bench(
 
 
 def get_last_run_events(observer: SagaObserverPlugin) -> list[dict]:
-    """
-    Возвращает события от последнего прогона машины.
-    TestBench.run() прогоняет две машины — collected_events содержит
-    события от обоих. Берём от последнего SagaRollbackStartedEvent.
-    """
+    """Returns events from the last run of the machine.
+    TestBench.run() runs two cars - collected_events contains
+    events from both. We take from the last SagaRollbackStartedEvent."""
     events = observer.collected_events
     last_start = -1
     for i, e in enumerate(events):
@@ -80,7 +76,7 @@ def get_last_run_events(observer: SagaObserverPlugin) -> list[dict]:
 
 
 class TestFullSagaE2E:
-    """Полные E2E-сценарии: аспекты → ошибка → размотка → результат."""
+    """Complete E2E scenarios: aspects → error → unwinding → result."""
 
     @pytest.mark.anyio
     async def test_full_pipeline_with_compensators_and_on_error(
@@ -90,10 +86,8 @@ class TestFullSagaE2E:
         mock_payment: AsyncMock,
         mock_inventory: AsyncMock,
     ) -> None:
-        """
-        Полный конвейер: 3 аспекта, 2 компенсатора, ошибка в 3-м,
-        размотка 2 фреймов, @on_error формирует результат.
-        """
+        """Full pipeline: 3 aspects, 2 compensators, error in 3rd,
+        unwinding 2 frames, @on_error generates the result."""
         # ── Arrange ──
         params = CompensateTestParams(
             user_id="user_e2e",
@@ -109,15 +103,15 @@ class TestFullSagaE2E:
             rollup=False,
         )
 
-        # ── Assert: результат ──
+        #── Assert: result ──
         assert result.status == "handled_after_compensate"
         assert "Finalize error for user_e2e" in result.detail
 
-        # ── Assert: компенсаторы вызваны ──
+        #── Assert: compensators are called ──
         assert mock_payment.refund.call_count >= 1
         assert mock_inventory.unreserve.call_count >= 1
 
-        # ── Assert: события ──
+        #── Assert: events ──
         events = get_last_run_events(saga_observer)
         event_types = [e["event_type"] for e in events]
 
@@ -138,9 +132,7 @@ class TestFullSagaE2E:
         mock_payment: AsyncMock,
         mock_inventory: AsyncMock,
     ) -> None:
-        """
-        Полный конвейер без @on_error: ошибка пробрасывается после размотки.
-        """
+        """Full pipeline without @on_error: the error is thrown after unwinding."""
         # ── Arrange ──
         params = CompensateTestParams(
             user_id="user_no_handler",
@@ -149,7 +141,7 @@ class TestFullSagaE2E:
             should_fail=True,
         )
 
-        # ── Act & Assert: ошибка пробрасывается ──
+        #── Act & Assert: error is thrown ──
         with pytest.raises(ValueError, match="Finalize error for user_no_handler"):
             await e2e_bench.run(
                 CompensatedOrderAction(),
@@ -157,11 +149,11 @@ class TestFullSagaE2E:
                 rollup=False,
             )
 
-        # ── Assert: компенсаторы вызваны ──
+        #── Assert: compensators are called ──
         assert mock_payment.refund.call_count >= 1
         assert mock_inventory.unreserve.call_count >= 1
 
-        # ── Assert: события ──
+        #── Assert: events ──
         events = get_last_run_events(saga_observer)
         completed = next(
             e for e in events if e["event_type"] == "SagaRollbackCompletedEvent"
@@ -175,9 +167,7 @@ class TestFullSagaE2E:
         mock_payment: AsyncMock,
         saga_observer: SagaObserverPlugin,
     ) -> None:
-        """
-        Компенсатор с @context_requires получает ContextView с user_id.
-        """
+        """The compensator with @context_requires gets the ContextView with user_id."""
         # ── Arrange ──
         bench = TestBench(
             mocks={PaymentService: mock_payment},
@@ -200,10 +190,10 @@ class TestFullSagaE2E:
                 rollup=False,
             )
 
-        # ── Assert: компенсатор с контекстом вызван ──
+        #── Assert: compensator with context is called ──
         assert mock_payment.refund.call_count >= 1
 
-        # ── Assert: события ──
+        #── Assert: events ──
         events = get_last_run_events(saga_observer)
         completed = next(
             e for e in events if e["event_type"] == "SagaRollbackCompletedEvent"
@@ -219,10 +209,8 @@ class TestFullSagaE2E:
         mock_payment: AsyncMock,
         mock_inventory: AsyncMock,
     ) -> None:
-        """
-        При успешном выполнении компенсаторы не вызываются
-        и Saga-события не эмитируются.
-        """
+        """If successful, compensators are not called
+        and Saga events are not issued."""
         # ── Arrange ──
         params = CompensateTestParams(
             user_id="user_success",
@@ -238,13 +226,14 @@ class TestFullSagaE2E:
             rollup=False,
         )
 
-        # ── Assert: результат успешный ──
+        #── Assert: the result is successful ──
         assert result.status == "ok"
         assert "TXN-TEST-001" in result.detail
 
-        # ── Assert: компенсаторы НЕ вызваны ──
+        #── Assert: compensators are NOT called ──
         assert mock_payment.refund.call_count == 0
         assert mock_inventory.unreserve.call_count == 0
 
-        # ── Assert: Saga-события НЕ эмитированы ──
+        #── Assert: Saga events are NOT issued ──
+        assert len(saga_observer.collected_events) == 0
         assert len(saga_observer.collected_events) == 0

@@ -8,6 +8,59 @@ emits a second payload with the same graph key; ``GateCoordinator`` merges
 those into a single node (concatenated edges).
 
 Typed data: ``Snapshot`` under cache key ``\"depends\"`` (not ``\"action\"``).
+
+═══════════════════════════════════════════════════════════════════════════════
+PURPOSE
+═══════════════════════════════════════════════════════════════════════════════
+
+Translate ``@depends`` declarations into structural graph edges from action
+nodes to dependency target nodes.
+
+═══════════════════════════════════════════════════════════════════════════════
+ARCHITECTURE / DATA FLOW
+═══════════════════════════════════════════════════════════════════════════════
+
+::
+
+    action class with _depends_info
+            │
+            ▼
+    inspect(target_cls)
+            │
+            ▼
+    Snapshot.from_target(...)
+            │
+            ▼
+    to_facet_payload()
+            │
+            └─ action node + structural "depends" edges
+
+═══════════════════════════════════════════════════════════════════════════════
+INVARIANTS
+═══════════════════════════════════════════════════════════════════════════════
+
+- Only classes with non-empty ``_depends_info`` emit payloads.
+- Snapshot storage key is fixed: ``depends``.
+- Emitted edges are structural with edge type ``depends``.
+- Action node key may collide with connection inspector payload and is merged by coordinator.
+
+═══════════════════════════════════════════════════════════════════════════════
+ERRORS / LIMITATIONS
+═══════════════════════════════════════════════════════════════════════════════
+
+- Assumes ``@depends`` declarations were validated by decorator-level rules.
+- This inspector does not instantiate dependencies or execute factories.
+
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE-BEGIN
+═══════════════════════════════════════════════════════════════════════════════
+ROLE: Structural dependency-edge inspector for action topology.
+CONTRACT: Read ``_depends_info`` and emit ``depends`` edges from ``action`` nodes.
+INVARIANTS: Snapshot key is ``depends``; classes without declarations are skipped.
+FLOW: marker subclass discovery -> scratch read -> typed snapshot -> payload for coordinator merge/commit.
+FAILURES: Missing declarations return ``None`` payload (skip), not an error.
+EXTENSION POINTS: Edge enrichment can be introduced by extending ``DependencyInfo`` handling.
+AI-CORE-END
 """
 
 from __future__ import annotations
@@ -22,7 +75,15 @@ from action_machine.graph.payload import FacetPayload
 
 
 class DependencyIntentInspector(BaseIntentInspector):
-    """Inspector for ``DependencyIntent`` / ``_depends_info`` → structural ``depends`` edges."""
+    """
+    Inspector for ``DependencyIntent`` declarations.
+
+    AI-CORE-BEGIN
+    ROLE: Concrete dependency inspector.
+    CONTRACT: Emit action payloads with structural depends edges from ``_depends_info``.
+    INVARIANTS: Uses ``DependencyIntent`` marker traversal and ``depends`` snapshot key.
+    AI-CORE-END
+    """
 
     _target_intent: type = DependencyIntent
 

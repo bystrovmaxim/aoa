@@ -1,73 +1,58 @@
 # src/action_machine/graph/inspectors/meta_intent_inspector.py
 """
-Модуль: MetaIntentInspector — инспектор графа для деклараций @meta.
+MetaIntentInspector — graph inspector for ``@meta`` declarations.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Обходит классы под двумя маркерными миксинами — ``ActionMetaIntent`` и
-``ResourceMetaIntent`` — без дубликатов в списке кандидатов. Для класса с
-записанным декоратором @meta в ``_meta_info`` строит узел типа ``meta`` в
-графе ``GateCoordinator`` и опциональное информационное ребро ``belongs_to``
-к узлу домена, если ``domain`` — класс (тип ``BaseDomain``).
+Traverses classes under two marker mixins (``ActionMetaIntent`` and
+``ResourceMetaIntent``) without duplicate candidates. For each class with
+``@meta`` scratch in ``_meta_info``, emits a ``meta`` node and an optional
+informational ``belongs_to`` edge to a domain node when ``domain`` is a class.
 
 ═══════════════════════════════════════════════════════════════════════════════
-МАРКЕР И ИНСПЕКТОР
+ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-    ActionMetaIntent / ResourceMetaIntent
-        В MRO действий и ресурсных менеджеров; дают возможность применить
-        @meta. Не содержат логики обхода графа.
-
-    MetaIntentInspector (этот модуль)
-        Наследует ``BaseIntentInspector``. Поле ``_target_intents`` задаёт
-        два маркера; ``_subclasses_recursive`` объединяет подклассы и снимает
-        дубликаты через ``seen``.
-
-═══════════════════════════════════════════════════════════════════════════════
-ДАННЫЕ НА КЛАССЕ
-═══════════════════════════════════════════════════════════════════════════════
-
-@meta записывает словарь ``cls._meta_info`` (как минимум ``description``;
-опционально ``domain`` — класс домена).
+    ActionMetaIntent / ResourceMetaIntent subclasses
+                   │
+                   ▼
+            MetaIntentInspector.inspect()
+                   │
+                   ├─ no _meta_info -> None
+                   └─ Snapshot.from_target(...)
+                            │
+                            ▼
+                     FacetPayload(node_type="meta")
+                            └─ optional belongs_to -> domain
 
 ═══════════════════════════════════════════════════════════════════════════════
-УЗЕЛ ГРАФА И РЁБРА
+INVARIANTS
 ═══════════════════════════════════════════════════════════════════════════════
 
-    node_type : ``meta``
-    node_name : полное имя класса (``module.QualName``)
-    node_meta : ``description``, ``domain`` (как в ``_meta_info``)
-    edges     : пусто или одно ребро ``belongs_to`` → узел ``domain``, если
-                ``domain`` не ``None`` и является ``type``
-
-Ключ узла в координаторе: ``"meta:"`` + ``node_name``.
+- Candidate traversal deduplicates classes from both marker trees.
+- Payload is emitted only when ``_meta_info`` exists.
+- Domain edge is emitted only when ``domain`` is a class object.
+- Snapshot projection is the single source for payload construction.
 
 ═══════════════════════════════════════════════════════════════════════════════
-СНИМОК (Snapshot)
+ERRORS / LIMITATIONS
 ═══════════════════════════════════════════════════════════════════════════════
 
-Вложенный класс ``MetaIntentInspector.Snapshot`` наследует
-``BaseFacetSnapshot``: типизированное представление фасета; method
-``to_facet_payload()`` — единственная проекция в ``FacetPayload`` для графа.
-Координатор кеширует снимок при ``build()`` (фаза 1), если реализован
-``facet_snapshot_for_class``.
+- ``@meta`` argument validation is owned by decorator layer.
+- Graph-wide integrity validation is owned by ``GateCoordinator`` build phases.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ПОТОК inspect()
+AI-CORE-BEGIN
 ═══════════════════════════════════════════════════════════════════════════════
-
-1. Проверка ``_has_meta_info_invariant`` (есть ``_meta_info``).
-2. При отсутствии → ``None``.
-3. Иначе ``_build_payload`` → ``Snapshot.from_target`` → ``to_facet_payload``.
-
-═══════════════════════════════════════════════════════════════════════════════
-ВАЛИДАЦИЯ
-═══════════════════════════════════════════════════════════════════════════════
-
-Args @meta проверяются декоратором при импорте. Глобальные инварианты
-графа — в ``GateCoordinator.build()`` (фазы 2–3).
+ROLE: Meta facet inspector for action/resource classes.
+CONTRACT: Read ``_meta_info`` and emit ``meta`` node payloads with optional domain linkage.
+INVARIANTS: Dual-marker traversal with deduplication; no payload without decorator scratch.
+FLOW: marker subclass discovery -> scratch check -> typed snapshot -> facet payload.
+FAILURES: Missing scratch returns ``None`` payload (skip), invalid scratch shape raises ``TypeError``.
+EXTENSION POINTS: Marker sources can be extended via ``_target_intents``.
+AI-CORE-END
 """
 
 from __future__ import annotations
@@ -83,31 +68,23 @@ from action_machine.intents.meta.meta_intents import ActionMetaIntent, ResourceM
 
 class MetaIntentInspector(BaseIntentInspector):
     """
-    Инспектор: декларации @meta → узел ``meta`` и опциональное ребро к домену.
+    Inspector: ``@meta`` declarations -> ``meta`` node + optional domain edge.
 
-    Атрибуты класса:
-        _target_intents : tuple[type, ...]
-            ``ActionMetaIntent``, ``ResourceMetaIntent`` — источники обхода.
+    AI-CORE-BEGIN
+    ROLE: Concrete meta inspector over action/resource marker trees.
+    CONTRACT: Emit ``meta`` payloads when ``_meta_info`` exists.
+    INVARIANTS: Traversal sources are ``ActionMetaIntent`` and ``ResourceMetaIntent``.
+    AI-CORE-END
     """
 
     _target_intents: tuple[type, ...] = (ActionMetaIntent, ResourceMetaIntent)
 
-    # ═══════════════════════════════════════════════════════════════════
-    # Снимок фасета (вложенный класс)
-    # ═══════════════════════════════════════════════════════════════════
-
     @dataclass(frozen=True)
     class Snapshot(BaseFacetSnapshot):
         """
-        Типизированный фасет ``meta``: поля из ``_meta_info``.
+        Typed ``meta`` facet snapshot from ``_meta_info``.
 
-        Поля:
-            class_ref   : класс-владелец (действие или менеджер).
-            description : описание из @meta (или ``None``).
-            domain      : класс домена или ``None``.
-
-        ``to_facet_payload()`` добавляет ребро ``belongs_to``, только если
-        ``domain`` не ``None`` и является ``type``.
+        ``to_facet_payload()`` adds ``belongs_to`` only when ``domain`` is a type.
         """
 
         class_ref: type
@@ -115,12 +92,7 @@ class MetaIntentInspector(BaseIntentInspector):
         domain: Any
 
         def to_facet_payload(self) -> FacetPayload:
-            """
-            Собирает ``FacetPayload`` узла ``meta`` и рёбра к домену.
-
-            Returns:
-                Готовый пейлоад для фазы commit координатора.
-            """
+            """Build ``FacetPayload`` for ``meta`` node and optional domain edge."""
             edges: tuple[Any, ...] = ()
             if self.domain is not None and isinstance(self.domain, type):
                 edges = (
@@ -144,15 +116,7 @@ class MetaIntentInspector(BaseIntentInspector):
 
         @classmethod
         def from_target(cls, target_cls: type) -> MetaIntentInspector.Snapshot:
-            """
-            Строит снимок из ``target_cls._meta_info``.
-
-            Args:
-                target_cls: класс с уже записанным ``_meta_info``.
-
-            Returns:
-                Экземпляр ``Snapshot``.
-            """
+            """Build snapshot from ``target_cls._meta_info``."""
             meta_info = getattr(target_cls, "_meta_info", None)
             if not isinstance(meta_info, dict):
                 raise TypeError(
@@ -164,18 +128,9 @@ class MetaIntentInspector(BaseIntentInspector):
                 domain=meta_info.get("domain"),
             )
 
-    # ═══════════════════════════════════════════════════════════════════
-    # Обход подклассов (два маркера, без дубликатов)
-    # ═══════════════════════════════════════════════════════════════════
-
     @classmethod
     def _subclasses_recursive(cls) -> list[type]:
-        """
-        Объединяет подклассы всех маркеров из ``_target_intents`` без повторов.
-
-        Returns:
-            Список классов в порядке обхода; каждый класс не более одного раза.
-        """
+        """Union marker-subclass traversals from all targets without duplicates."""
         result: list[type] = []
         seen: set[type] = set()
         for mixin in cls._target_intents:
@@ -186,69 +141,34 @@ class MetaIntentInspector(BaseIntentInspector):
                 result.append(sub)
         return result
 
-    # ═══════════════════════════════════════════════════════════════════
-    # Инварианты
-    # ═══════════════════════════════════════════════════════════════════
-
     @classmethod
     def _has_meta_info_invariant(cls, target_cls: type) -> bool:
-        """True, если на классе задан ``_meta_info`` (после @meta)."""
+        """True when ``_meta_info`` is present on the class."""
         return getattr(target_cls, "_meta_info", None) is not None
 
     @classmethod
     def _has_domain_invariant(cls, target_cls: type) -> bool:
-        """
-        True, если в ``_meta_info`` присутствует ключ ``domain`` со значением
-        не ``None`` (тип значения здесь не проверяется).
-        """
+        """True when ``_meta_info.domain`` exists and is not ``None``."""
         meta_info = getattr(target_cls, "_meta_info", None)
         if not isinstance(meta_info, dict):
             return False
         return meta_info.get("domain") is not None
 
-    # ═══════════════════════════════════════════════════════════════════
-    # Контракт BaseIntentInspector
-    # ═══════════════════════════════════════════════════════════════════
-
     @classmethod
     def inspect(cls, target_cls: type) -> FacetPayload | None:
-        """
-        Если у класса есть @meta, возвращает пейлоад узла ``meta``; иначе ``None``.
-
-        Args:
-            target_cls: кандидат из обхода маркеров.
-
-        Returns:
-            ``FacetPayload`` или ``None``.
-        """
+        """Return ``meta`` payload when declaration exists; otherwise ``None``."""
         if not cls._has_meta_info_invariant(target_cls):
             return None
         return cls._build_payload(target_cls)
 
     @classmethod
     def facet_snapshot_for_class(cls, target_cls: type) -> MetaIntentInspector.Snapshot | None:
-        """
-        Returns снимок для кеша координатора или ``None``, если @meta нет.
-
-        Args:
-            target_cls: класс с возможным ``_meta_info``.
-
-        Returns:
-            ``Snapshot`` либо ``None``.
-        """
+        """Return typed snapshot for coordinator cache, or ``None`` when absent."""
         if not cls._has_meta_info_invariant(target_cls):
             return None
         return cls.Snapshot.from_target(target_cls)
 
     @classmethod
     def _build_payload(cls, target_cls: type) -> FacetPayload:
-        """
-        Строит пейлоад только через ``Snapshot`` (согласованность с графом).
-
-        Args:
-            target_cls: класс с ``_meta_info`` (вызывать после ``inspect``).
-
-        Returns:
-            ``FacetPayload`` узла ``meta``.
-        """
+        """Build payload through ``Snapshot`` projection for consistency."""
         return cls.Snapshot.from_target(target_cls).to_facet_payload()

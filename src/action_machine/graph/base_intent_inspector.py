@@ -152,6 +152,17 @@ Practical implication: when tests define long-lived module-level classes, later
 tests in the same process can observe them via subclass traversal.
 
 ═══════════════════════════════════════════════════════════════════════════════
+ERRORS / LIMITATIONS
+═══════════════════════════════════════════════════════════════════════════════
+
+- This base class does not perform payload semantic validation; decorators and
+  coordinator build phases own that responsibility.
+- Subclass discovery relies on Python runtime class registry
+  (``__subclasses__()``), so process-level import history affects candidate sets.
+- Inspectors that skip ``facet_snapshot_for_class`` do not participate in typed
+  snapshot cache.
+
+═══════════════════════════════════════════════════════════════════════════════
 EXAMPLE — INSPECTOR WITHOUT EDGES
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -251,6 +262,12 @@ class BaseIntentInspector(ABC):
     ``GateCoordinator.build()`` does:
     1. ``inspector._subclasses_recursive()`` — marker subclass list.
     2. ``inspector.inspect(target_cls)`` — per-class inspection.
+
+    AI-CORE-BEGIN
+    ROLE: Abstract contract for all graph intent inspectors.
+    CONTRACT: Provide class traversal + payload projection hooks with shared helper primitives.
+    INVARIANTS: Stateless classmethod design; concrete subclasses implement ``inspect`` and ``_build_payload``.
+    AI-CORE-END
     """
 
     # ═══════════════════════════════════════════════════════════════════

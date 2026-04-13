@@ -1,40 +1,37 @@
 # src/action_machine/intents/plugins/on_intent.py
 """
-Модуль: OnIntent — маркерный миксин для декоратора @on.
+OnIntent marker mixin and subscription annotation validators.
 
 ═══════════════════════════════════════════════════════════════════════════════
-НАЗНАЧЕНИЕ
+PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-OnIntent — миксин-маркер, который обозначает, что класс поддерживает
-декоратор @on для подписки методов на типизированные события ActionMachine.
-Используется в классе Plugin и его наследниках.
+``OnIntent`` is a marker mixin indicating class support for ``@on`` event
+subscriptions. It is used by ``Plugin`` and its subclasses.
 
-Наличие OnIntent в MRO класса документирует контракт:
-«этот класс может содержать методы-обработчики событий (@on)».
+Presence of ``OnIntent`` in class MRO documents contract:
+"this class may define @on event handler methods".
 
-MetadataBuilder при сборке метаданных проверяет: если класс содержит
-методы с _on_subscriptions (подписки через @on), класс обязан
-наследовать OnIntent. Без него — TypeError.
+During metadata build, if class has methods with ``_on_subscriptions``, class
+must inherit ``OnIntent``; otherwise validation raises ``TypeError``.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ТИПОБЕЗОПАСНАЯ ПОДПИСКА
+TYPE-SAFE SUBSCRIPTION
 ═══════════════════════════════════════════════════════════════════════════════
 
-Декоратор @on принимает класс события из иерархии BasePluginEvent как
-первый аргумент. Подписка срабатывает для указанного класса и всех
-его наследников через isinstance-проверку в PluginRunContext.
+``@on`` takes an event class from ``BasePluginEvent`` hierarchy as first
+argument. Subscription matches the declared class and subclasses via
+``isinstance`` in ``PluginRunContext``.
 
-Дополнительные фильтры (action_class, action_name_pattern,
-aspect_name_pattern, nest_level, domain, predicate) сужают выборку
-с AND-логикой внутри одного @on. OR-логика реализуется между
-несколькими @on на одном методе.
+Additional filters (action_class, action_name_pattern, aspect_name_pattern,
+nest_level, domain, predicate) apply AND-logic inside one subscription.
+OR-logic is achieved by multiple ``@on`` decorators on one method.
 
 ═══════════════════════════════════════════════════════════════════════════════
-АРХИТЕКТУРА
+ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-    class Plugin(OnIntent):           ← намерение: грамматика @on на методах
+    class Plugin(OnIntent):           <- intent: @on grammar on methods
         async def get_initial_state(self) -> Any:
             ...
 
@@ -48,39 +45,39 @@ aspect_name_pattern, nest_level, domain, predicate) сужают выборку
             state[event.action_name] = state.get(event.action_name, 0) + 1
             return state
 
-    # Декоратор @on записывает в метод:
+    # @on decorator writes into method:
     #   method._on_subscriptions = [SubscriptionInfo(
     #       event_class=GlobalFinishEvent,
     #       method_name="on_count_call",
     #       ignore_exceptions=False,
     #   )]
 
-    # MetadataBuilder / SubscriptionIntentInspector собирают subscriptions (валидация);
-    #   снимок подписок — GateCoordinator.get_subscriptions().
+    # MetadataBuilder / SubscriptionIntentInspector collect subscriptions;
+    # subscriptions snapshot -> GateCoordinator.get_subscriptions().
 
-    # MetadataBuilder → require_*_intent_marker + validate_subscriptions
-    #   Проверяет: есть подписки → issubclass(cls, OnIntent) → OK.
+    # MetadataBuilder -> require_*_intent_marker + validate_subscriptions
+    # checks: has subscriptions -> issubclass(cls, OnIntent).
 
     # PluginRunContext.emit_event(event):
-    #   plugin.get_handlers(event) → находит обработчики по isinstance
-    #   _matches_all_filters(event, sub) → проверяет шаги 2–7
-    #   handler(plugin, state, event, log) → вызов
+    #   plugin.get_handlers(event) -> candidate handlers by isinstance
+    #   _matches_all_filters(event, sub) -> filter checks
+    #   handler(plugin, state, event, log) -> call
 
 ═══════════════════════════════════════════════════════════════════════════════
-ЕДИНООБРАЗИЕ С ДРУГИМИ НАМЕРЕНИЯМИ (INTENT)
+INTENT CONSISTENCY
 ═══════════════════════════════════════════════════════════════════════════════
 
-Все Intent-маркеры ActionMachine следуют одному паттерну: пустой класс
-без логики, служащий проверкой issubclass() для декораторов и сборки
-графа. OnIntent находится в одном ряду с RoleIntent, AspectIntent,
-CheckerIntent, ActionMetaIntent, ConnectionIntent, OnErrorIntent,
-ContextRequiresIntent и DescribedFieldsIntent.
+All ActionMachine intent markers follow the same pattern: empty logic-free
+classes used by ``issubclass`` checks in decorators and graph build. ``OnIntent``
+aligns with other markers such as ``RoleIntent``, ``AspectIntent``,
+``CheckerIntent``, ``ActionMetaIntent``, ``ConnectionIntent``, ``OnErrorIntent``,
+``ContextRequiresIntent``, and ``DescribedFieldsIntent``.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ПРИМЕР ИСПОЛЬЗОВАНИЯ
+EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
-    # Plugin уже наследует OnIntent — любой плагин поддерживает @on:
+    # Plugin already inherits OnIntent, so any plugin supports @on:
     from action_machine.intents.logging.channel import Channel
 
     class MetricsPlugin(Plugin):
@@ -101,7 +98,7 @@ ContextRequiresIntent и DescribedFieldsIntent.
         async def on_validation_done(self, state, event: AfterRegularAspectEvent, log):
             await log.info(
                 Channel.debug,
-                "Валидация завершена: {%var.name}",
+                "Validation finished: {%var.name}",
                 name=event.aspect_name,
             )
             return state
@@ -118,52 +115,32 @@ from action_machine.intents.plugins.subscription_info import SubscriptionInfo
 
 class OnIntent:
     """
-    Маркерный миксин, обозначающий поддержку декоратора @on.
+    Marker mixin denoting support for ``@on`` decorator.
 
-    Класс, наследующий OnIntent, может содержать методы, декорированные
-    @on для подписки на типизированные события ActionMachine из иерархии
-    BasePluginEvent (GlobalStartEvent, GlobalFinishEvent,
-    AfterRegularAspectEvent, UnhandledErrorEvent и т.д.).
+    Classes inheriting ``OnIntent`` may declare ``@on`` methods subscribed to
+    typed ActionMachine plugin events.
 
-    MetadataBuilder валидирует подписки из method._on_subscriptions;
-    снимок — ``GateCoordinator.get_subscriptions()``. PluginRunContext
-    маршрутизирует события через цепочку фильтров.
-
-    Миксин не содержит логики, полей или методов. Его функция —
-    документировать контракт и оставаться согласованным с остальными
-    Intent-маркерами пакета.
-
-    Атрибуты уровня класса (создаются динамически декоратором на методах):
-        method._on_subscriptions : list[SubscriptionInfo]
-            Список объектов SubscriptionInfo, записываемый декоратором @on
-            в метод. Каждый объект содержит:
-            - event_class: type[BasePluginEvent] — тип события
-            - action_class: tuple[type, ...] | None — фильтр по типу действия
-            - action_name_pattern: str | None — regex по имени действия
-            - aspect_name_pattern: str | None — regex по имени аспекта
-            - nest_level: tuple[int, ...] | None — фильтр по вложенности
-            - domain: type | None — фильтр по домену
-            - predicate: Callable | None — произвольный фильтр
-            - ignore_exceptions: bool — подавление ошибок обработчика
-            - method_name: str — имя метода-обработчика
-            Читается collect_subscriptions при сборке (валидация).
+    AI-CORE-BEGIN
+    ROLE: Marker contract for plugin event subscriptions.
+    CONTRACT: Classes with @on subscriptions must carry this marker.
+    INVARIANTS: Logic-free mixin used by metadata validators.
+    AI-CORE-END
     """
 
     pass
 
 
 def require_on_intent_marker(cls: type, subscriptions: list[Any]) -> None:
-    """Есть подписки @on → класс должен наследовать OnIntent."""
+    """If class declares @on subscriptions, it must inherit OnIntent."""
     if subscriptions and not issubclass(cls, OnIntent):
         event_classes = ", ".join(
             s.event_class.__name__ if isinstance(s, SubscriptionInfo) else str(s)
             for s in subscriptions
         )
         raise TypeError(
-            f"Класс {cls.__name__} содержит подписки на события ({event_classes}), "
-            f"но не наследует OnIntent. Декоратор @on относится к грамматике "
-            f"подписок только при намерении OnIntent в MRO. Используйте Plugin "
-            f"или добавьте OnIntent в цепочку наследования."
+            f"Class {cls.__name__} declares event subscriptions ({event_classes}) "
+            f"but does not inherit OnIntent. @on subscription grammar requires "
+            f"OnIntent in MRO. Use Plugin or add OnIntent to inheritance chain."
         )
 
 
@@ -202,7 +179,7 @@ def validate_subscriptions(
     cls: type,
     subscriptions: list[SubscriptionInfo],
 ) -> None:
-    """Совместимость event_class из @on с аннотацией параметра event."""
+    """Validate compatibility of @on event_class with handler event annotation."""
     for sub in subscriptions:
         if not isinstance(sub, SubscriptionInfo):
             continue
@@ -213,12 +190,12 @@ def validate_subscriptions(
 
         if not issubclass(sub.event_class, annotation):
             raise TypeError(
-                f"Класс {cls.__name__}: метод '{sub.method_name}' подписан "
-                f"на {sub.event_class.__name__} через @on, но параметр event "
-                f"аннотирован как {annotation.__name__}. Тип "
-                f"{sub.event_class.__name__} не является подклассом "
-                f"{annotation.__name__}, поэтому обработчик может получить "
-                f"событие без ожидаемых полей. Измените аннотацию на "
-                f"{sub.event_class.__name__} или более общий тип "
-                f"(например, BasePluginEvent)."
+                f"Class {cls.__name__}: method '{sub.method_name}' is subscribed "
+                f"to {sub.event_class.__name__} via @on, but event parameter "
+                f"is annotated as {annotation.__name__}. "
+                f"{sub.event_class.__name__} is not a subclass of "
+                f"{annotation.__name__}, so handler may receive event without "
+                f"expected fields. Change annotation to "
+                f"{sub.event_class.__name__} or a more general type "
+                f"(for example, BasePluginEvent)."
             )

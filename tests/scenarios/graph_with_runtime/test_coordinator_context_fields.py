@@ -1,54 +1,54 @@
 # tests/scenarios/graph_with_runtime/test_coordinator_context_fields.py
 """
-Метаданные @context_requires: runtime metadata cache и фасетный граф.
+@context_requires metadata: runtime metadata cache and facet graph.
 
 ═══════════════════════════════════════════════════════════════════════════════
-НАЗНАЧЕНИЕ
+PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Проверяет, что ключи контекста, объявленные через ``@context_requires``, попадают
-в снимки facet’ов так, как их видит рантайм: на regular-аспектах и на
-обработчиках ``@on_error``. Координатор после ``build()`` отдаёт их через
-``get_snapshot(cls, \"aspect\")`` / ``get_snapshot(cls, \"error_handler\")`` и т.д.
+Ensures context keys declared via ``@context_requires`` land in facet snapshots
+the way the runtime sees them: on regular aspects and on ``@on_error`` handlers.
+After ``build()``, the coordinator exposes them through
+``get_snapshot(cls, "aspect")`` / ``get_snapshot(cls, "error_handler")``, etc.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ЭВОЛЮЦИЯ МОДЕЛИ (почему тесты больше не про «узлы context_field»)
+MODEL EVOLUTION (why tests are no longer about “context_field nodes”)
 ═══════════════════════════════════════════════════════════════════════════════
 
-В ранней модели координатора **отдельные узлы** ``context_field`` и **рёбра**
-``requires_context`` визуализировали запрос контекста на графе: два аспекта с
-одним и тем же ключом ссылались на один узел поля, reuse был явен на диаграмме.
+In an early coordinator model, **separate** ``context_field`` **nodes** and
+``requires_context`` **edges** visualized context needs on the graph: two aspects
+with the same key pointed at one field node, and reuse was obvious on the diagram.
 
-После перехода на **транзакционное построение графа из FacetPayload** визуальная
-детализация «каждое поле контекста = узел» **не дублируется** в том же виде:
-контекст остаётся **семантикой шага** — кортеж строковых ключей на ``AspectMeta``,
-``OnErrorMeta`` и т.д., а граф описывает фасеты (role, meta, aspect, …) и
-структурные рёбра (depends, connection, belongs_to, …). Это сознательный обмен:
-меньше шума в PyDiGraph, богаче исполняемая snapshot-модель.
+After moving to **transactional graph build from FacetPayload**, the visual
+“each context field = node” detail **is not duplicated** the same way: context
+remains **step semantics** — a tuple of string keys on ``AspectMeta``,
+``OnErrorMeta``, etc. — while the graph describes facets (role, meta, aspect, …)
+and structural edges (depends, connection, belongs_to, …). That is a deliberate
+trade-off: less noise in PyDiGraph, richer executable snapshot model.
 
-Данный файл **не отменяет** инвариант reuse: два аспекта с ``user.user_id`` по-прежнему
-должны отдавать один и тот же ключ в своих ``context_keys``; мы проверяем
-согласованность **на уровне метаданных**, а не подсчётом узлов графа.
-
-═══════════════════════════════════════════════════════════════════════════════
-СБРОС КЕША DEPENDENCY FACTORY
-═══════════════════════════════════════════════════════════════════════════════
-
-``clear_dependency_factory_cache(coordinator)`` очищает только кеш фабрик
-зависимостей на объекте координатора; построенный фасетный граф и снимки
-facet’ов не пересобираются — контекстные ключи на аспектах остаются читаемыми.
+This file **does not** drop the reuse invariant: two aspects with ``user.user_id``
+must still expose the same key in their ``context_keys``; we assert consistency
+at the **metadata** level, not by counting graph nodes.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ТЕСТОВЫЕ ACTION
+DEPENDENCY FACTORY CACHE CLEAR
 ═══════════════════════════════════════════════════════════════════════════════
 
-Классы объявляются **внутри модуля теста** (не в tests/domain/), чтобы не
-загрязнять доменные фикстуры и держать сценарии узкими:
+``clear_dependency_factory_cache(coordinator)`` clears only the dependency-factory
+cache on the coordinator; the built facet graph and facet snapshots are not
+rebuilt — context keys on aspects remain readable.
 
-- один аспект с двумя ключами контекста;
-- два аспекта, пересекающиеся по ``user.user_id``;
-- ``@on_error`` с собственным набором ключей;
-- аспекты без ``@context_requires`` (пустой ``context_keys``).
+═══════════════════════════════════════════════════════════════════════════════
+TEST ACTIONS
+═══════════════════════════════════════════════════════════════════════════════
+
+Classes are declared **inside this test module** (not under scenarios/domain_model/)
+to avoid polluting domain fixtures and keep scenarios narrow:
+
+- one aspect with two context keys;
+- two aspects sharing ``user.user_id``;
+- ``@on_error`` with its own key set;
+- aspects without ``@context_requires`` (empty ``context_keys``).
 """
 
 from pydantic import Field
@@ -87,33 +87,33 @@ def _error_handlers(coordinator: GateCoordinator, cls: type):
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Вспомогательные тестовые компоненты
+# Test helpers
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class _CtxTestParams(BaseParams):
-    """Параметры для минимальных Action в сценариях context_requires."""
+    """Params for minimal actions in context_requires scenarios."""
 
-    value: str = Field(description="Тестовое значение")
+    value: str = Field(description="Test value")
 
 
 class _CtxTestResult(BaseResult):
-    """Результат для минимальных Action в сценариях context_requires."""
+    """Result for minimal actions in context_requires scenarios."""
 
-    status: str = Field(description="Статус")
+    status: str = Field(description="Status")
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Тестовые Action (узкие edge-case, не выносятся в scenarios.domain_model)
+# Test actions (narrow edge cases, not exported to scenarios.domain_model)
 # ═════════════════════════════════════════════════════════════════════════════
 
 
-@meta(description="Action с одним аспектом и context_requires", domain=SystemDomain)
+@meta(description="Action with one aspect and context_requires", domain=SystemDomain)
 @check_roles(NoneRole)
 class _SingleContextAction(BaseAction[_CtxTestParams, _CtxTestResult]):
-    """Один regular-аспект запрашивает ``user.user_id`` и ``request.trace_id``."""
+    """One regular aspect requests ``user.user_id`` and ``request.trace_id``."""
 
-    @regular_aspect("Аудит")
+    @regular_aspect("Audit")
     @context_requires(Ctx.User.user_id, Ctx.Request.trace_id)
     async def audit_aspect(
         self, params: _CtxTestParams, state: BaseState,
@@ -122,7 +122,7 @@ class _SingleContextAction(BaseAction[_CtxTestParams, _CtxTestResult]):
     ) -> dict:
         return {}
 
-    @summary_aspect("Результат")
+    @summary_aspect("Result")
     async def result_summary(
         self, params: _CtxTestParams, state: BaseState,
         box: ToolsBox, connections: dict[str, BaseResourceManager],
@@ -130,12 +130,12 @@ class _SingleContextAction(BaseAction[_CtxTestParams, _CtxTestResult]):
         return _CtxTestResult(status="ok")
 
 
-@meta(description="Action с двумя аспектами, запрашивающими одно поле", domain=SystemDomain)
+@meta(description="Action with two aspects requesting the same field", domain=SystemDomain)
 @check_roles(NoneRole)
 class _SharedContextFieldAction(BaseAction[_CtxTestParams, _CtxTestResult]):
-    """Два аспекта делят ``user.user_id``; второй добавляет ``user.roles``."""
+    """Two aspects share ``user.user_id``; the second adds ``user.roles``."""
 
-    @regular_aspect("Первый аспект")
+    @regular_aspect("First aspect")
     @context_requires(Ctx.User.user_id)
     async def first_aspect(
         self, params: _CtxTestParams, state: BaseState,
@@ -144,7 +144,7 @@ class _SharedContextFieldAction(BaseAction[_CtxTestParams, _CtxTestResult]):
     ) -> dict:
         return {}
 
-    @regular_aspect("Второй аспект")
+    @regular_aspect("Second aspect")
     @context_requires(Ctx.User.user_id, Ctx.User.roles)
     async def second_aspect(
         self, params: _CtxTestParams, state: BaseState,
@@ -153,7 +153,7 @@ class _SharedContextFieldAction(BaseAction[_CtxTestParams, _CtxTestResult]):
     ) -> dict:
         return {}
 
-    @summary_aspect("Результат")
+    @summary_aspect("Result")
     async def result_summary(
         self, params: _CtxTestParams, state: BaseState,
         box: ToolsBox, connections: dict[str, BaseResourceManager],
@@ -161,26 +161,26 @@ class _SharedContextFieldAction(BaseAction[_CtxTestParams, _CtxTestResult]):
         return _CtxTestResult(status="ok")
 
 
-@meta(description="Action с on_error и context_requires", domain=SystemDomain)
+@meta(description="Action with on_error and context_requires", domain=SystemDomain)
 @check_roles(NoneRole)
 class _ErrorHandlerContextAction(BaseAction[_CtxTestParams, _CtxTestResult]):
-    """Обработчик ``ValueError`` требует ``user.user_id`` и ``request.client_ip``."""
+    """``ValueError`` handler requires ``user.user_id`` and ``request.client_ip``."""
 
-    @regular_aspect("Операция")
+    @regular_aspect("Operation")
     async def operation_aspect(
         self, params: _CtxTestParams, state: BaseState,
         box: ToolsBox, connections: dict[str, BaseResourceManager],
     ) -> dict:
         return {}
 
-    @summary_aspect("Результат")
+    @summary_aspect("Result")
     async def result_summary(
         self, params: _CtxTestParams, state: BaseState,
         box: ToolsBox, connections: dict[str, BaseResourceManager],
     ) -> _CtxTestResult:
         return _CtxTestResult(status="ok")
 
-    @on_error(ValueError, description="Обработка с контекстом")
+    @on_error(ValueError, description="Handling with context")
     @context_requires(Ctx.User.user_id, Ctx.Request.client_ip)
     async def handle_value_on_error(
         self, params: _CtxTestParams, state: BaseState,
@@ -190,19 +190,19 @@ class _ErrorHandlerContextAction(BaseAction[_CtxTestParams, _CtxTestResult]):
         return _CtxTestResult(status="error_handled")
 
 
-@meta(description="Action без context_requires", domain=SystemDomain)
+@meta(description="Action without context_requires", domain=SystemDomain)
 @check_roles(NoneRole)
 class _NoContextAction(BaseAction[_CtxTestParams, _CtxTestResult]):
-    """Ни один метод не помечен ``@context_requires`` — ожидаем пустые ``context_keys``."""
+    """No method uses ``@context_requires`` — expect empty ``context_keys``."""
 
-    @regular_aspect("Простой аспект")
+    @regular_aspect("Simple aspect")
     async def simple_aspect(
         self, params: _CtxTestParams, state: BaseState,
         box: ToolsBox, connections: dict[str, BaseResourceManager],
     ) -> dict:
         return {}
 
-    @summary_aspect("Результат")
+    @summary_aspect("Result")
     async def result_summary(
         self, params: _CtxTestParams, state: BaseState,
         box: ToolsBox, connections: dict[str, BaseResourceManager],
@@ -211,12 +211,12 @@ class _NoContextAction(BaseAction[_CtxTestParams, _CtxTestResult]):
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Сборка runtime metadata и ключи контекста
+# Runtime metadata and context keys
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestContextKeysViaMetadata:
-    """Проверки ``context_keys`` на аспектах и обработчиках через facet-снимки."""
+    """``context_keys`` on aspects and handlers via facet snapshots."""
 
     def test_aspect_context_keys(self) -> None:
         coordinator = CoreActionMachine.create_coordinator()
@@ -228,7 +228,7 @@ class TestContextKeysViaMetadata:
         assert "request.trace_id" in audit.context_keys
 
     def test_shared_user_id_across_aspects(self) -> None:
-        """Оба аспекта видят ``user.user_id``; расширение ключей только у второго."""
+        """Both aspects see ``user.user_id``; only the second adds ``user.roles``."""
 
         coordinator = CoreActionMachine.create_coordinator()
         first = next(
@@ -245,7 +245,7 @@ class TestContextKeysViaMetadata:
         assert "user.roles" not in first.context_keys
 
     def test_no_context_keys_when_undeclrared(self) -> None:
-        """Без декоратора — пустой набор ключей на regular-аспекте."""
+        """Without the decorator — empty key set on the regular aspect."""
 
         coordinator = CoreActionMachine.create_coordinator()
         simple = next(
@@ -255,7 +255,7 @@ class TestContextKeysViaMetadata:
         assert len(simple.context_keys) == 0
 
     def test_error_handler_context_keys(self) -> None:
-        """``OnErrorMeta`` получает те же строковые пути, что декларировал обработчик."""
+        """``OnErrorMeta`` gets the same string paths the handler declared."""
 
         coordinator = CoreActionMachine.create_coordinator()
         handler = next(
@@ -267,10 +267,10 @@ class TestContextKeysViaMetadata:
 
 
 class TestContextMetadataAfterFactoryCacheClear:
-    """Стабильность ``context_keys`` после сброса кеша dependency factory."""
+    """``context_keys`` stability after dependency-factory cache clear."""
 
     def test_reread_context_keys_stable(self) -> None:
-        """Повторное чтение из built coordinator стабильно возвращает те же ``context_keys``."""
+        """Re-reading from a built coordinator returns the same ``context_keys``."""
         coordinator = CoreActionMachine.create_coordinator()
         audit = next(
             a for a in _regular_aspects(coordinator,_SingleContextAction)
@@ -280,7 +280,7 @@ class TestContextMetadataAfterFactoryCacheClear:
 
     def test_factory_cache_clear_preserves_context_keys(self) -> None:
         """
-        Сброс кеша фабрик не ломает чтение контекстных ключей из facet-снимков.
+        Clearing factory cache does not break reading context keys from facet snapshots.
         """
         coordinator = CoreActionMachine.create_coordinator()
         clear_dependency_factory_cache(coordinator)

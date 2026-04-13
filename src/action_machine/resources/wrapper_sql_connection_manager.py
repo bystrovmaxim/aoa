@@ -1,30 +1,29 @@
 # src/action_machine/resources/wrapper_sql_connection_manager.py
 """
-Прокси-обёртка, запрещающая управление транзакциями на вложенных уровнях.
+Proxy wrapper that forbids transaction control in nested scopes.
 
 ═══════════════════════════════════════════════════════════════════════════════
-НАЗНАЧЕНИЕ
+PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-WrapperSqlConnectionManager — прокси-обёртка вокруг реального SqlConnectionManager.
-Создаётся автоматически при передаче connections в дочерние действия через
-ToolsBox.run(). Обёртка запрещает дочернему действию управлять жизненным
-циклом ресурса (open, begin, commit, rollback), но разрешает выполнять запросы
-(execute).
+``WrapperSqlConnectionManager`` wraps a real ``SqlConnectionManager``.
+It is created automatically when connections are propagated to child actions
+via ``ToolsBox.run()``. The wrapper forbids lifecycle operations
+(``open``, ``begin``, ``commit``, ``rollback``) for nested actions, but allows
+query execution via ``execute``.
 
-Это гарантирует, что только корневое действие (владелец ресурса) управляет
-транзакцией. Дочерние действия работают внутри той же транзакции, но не
-могут случайно зафиксировать или откатить её.
+This guarantees transaction ownership remains at root action level. Child
+actions operate inside the same transaction without the ability to commit or
+rollback it directly.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ПРОКИДЫВАНИЕ ROLLUP
+ROLLUP PROPAGATION
 ═══════════════════════════════════════════════════════════════════════════════
 
-WrapperSqlConnectionManager сохраняет флаг rollup из оригинального менеджера.
-Это обеспечивает сквозную передачу режима rollup через всю цепочку
-вложенных действий:
+``WrapperSqlConnectionManager`` preserves rollup flag from original manager.
+This provides end-to-end rollup mode propagation across nested action chains:
 
-    Корневое действие (rollup=True)
+    Root action (rollup=True)
         │
         ├── connections["db"] = PostgresConnectionManager(rollup=True)
         │
@@ -38,53 +37,63 @@ WrapperSqlConnectionManager сохраняет флаг rollup из оригин
                                 └── connections["db"] = WrapperSqlConnectionManager(wrapper)
                                         _rollup = wrapper._rollup (True)
 
-На каждом уровне вложенности обёртка наследует rollup от предыдущего
-уровня. Если корневой менеджер создан с rollup=True, все обёртки
-на всех уровнях вложенности также будут иметь rollup=True.
+At each nesting level, wrapper inherits rollup from previous level. If the
+root manager was created with ``rollup=True``, all wrappers also expose
+``rollup=True``.
 
 ═══════════════════════════════════════════════════════════════════════════════
-АРХИТЕКТУРА
+ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
     SqlConnectionManager (ABC)
         │
-        ├── PostgresConnectionManager       ← реальный менеджер
-        │       open()   → подключение к БД
-        │       begin()  → BEGIN
-        │       commit() → COMMIT (или ROLLBACK при rollup)
-        │       execute()→ SQL-запрос
+        ├── PostgresConnectionManager       <- real manager
+        │       open()   -> DB connection
+        │       begin()  -> BEGIN
+        │       commit() -> COMMIT (or ROLLBACK in rollup)
+        │       execute()-> SQL query
         │
-        └── WrapperSqlConnectionManager        ← прокси
-                open/begin/commit/rollback → TransactionProhibitedError
-                execute()→ делегирует в реальный менеджер
-                _rollup  → наследуется от оригинала
+        └── WrapperSqlConnectionManager     <- proxy
+                open/begin/commit/rollback -> TransactionProhibitedError
+                execute() -> delegates to real manager
+                _rollup   -> inherited from original
 
 ═══════════════════════════════════════════════════════════════════════════════
-ПРИМЕР ИСПОЛЬЗОВАНИЯ
+EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
-    # Корневое действие создаёт реальный менеджер:
+    # Root action creates real manager:
     db = PostgresConnectionManager(params, rollup=True)
     await db.open()
     await db.begin()
 
-    # ToolsBox.run() оборачивает менеджер для дочернего действия:
+    # ToolsBox.run() wraps manager for child action:
     wrapper = WrapperSqlConnectionManager(db)
-    wrapper.rollup   # → True (унаследовано)
+    wrapper.rollup   # -> True (inherited)
 
-    # Дочернее действие использует обёртку:
-    await wrapper.execute("SELECT ...")  # → OK, делегируется в db
-    await wrapper.commit()               # → TransactionProhibitedError
-    await wrapper.open()                 # → TransactionProhibitedError
-    await wrapper.begin()                # → TransactionProhibitedError
+    # Child action uses wrapper:
+    await wrapper.execute("SELECT ...")  # -> OK, delegated to db
+    await wrapper.commit()               # -> TransactionProhibitedError
+    await wrapper.open()                 # -> TransactionProhibitedError
+    await wrapper.begin()                # -> TransactionProhibitedError
 
 ═══════════════════════════════════════════════════════════════════════════════
-ОШИБКИ
+ERRORS / LIMITATIONS
 ═══════════════════════════════════════════════════════════════════════════════
 
-    TransactionProhibitedError — при попытке вызвать open(), begin(),
-        commit() или rollback() на обёртке.
-    HandleError — при ошибке выполнения SQL-запроса через execute().
+    TransactionProhibitedError - raised on ``open/begin/commit/rollback`` calls.
+    HandleError - raised when delegated SQL execution fails.
+
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE-BEGIN
+═══════════════════════════════════════════════════════════════════════════════
+ROLE: Protective SQL manager proxy for nested action execution.
+CONTRACT: Block transaction lifecycle control; allow only execute delegation.
+INVARIANTS: Original manager preserved; rollup flag propagated to each wrapper.
+FLOW: root manager -> wrapper for child -> optional re-wrap deeper levels.
+FAILURES: Forbidden lifecycle methods raise TransactionProhibitedError.
+EXTENSION POINTS: Keep policy strict; add behavior only through real managers.
+AI-CORE-END
 """
 
 from typing import Any
@@ -95,119 +104,52 @@ from action_machine.resources.sql_connection_manager import SqlConnectionManager
 
 class WrapperSqlConnectionManager(SqlConnectionManager):
     """
-    Прокси-обёртка для менеджера соединений, запрещающая управление транзакциями
-    на вложенных уровнях, но разрешающая выполнение запросов.
+    SQL manager proxy for nested actions.
 
-    Создаётся автоматически при передаче connections в дочерние действия
-    через ToolsBox._wrap_connections(). Флаг rollup наследуется от
-    оригинального менеджера.
-
-    Атрибуты:
-        _connection_manager : SqlConnectionManager
-            Реальный менеджер соединения (или другая обёртка верхнего уровня).
+    Forbids transaction lifecycle operations and delegates query execution to
+    the original manager while preserving rollup mode.
     """
 
     def __init__(self, connection_manager: SqlConnectionManager) -> None:
-        """
-        Инициализирует прокси-обёртку.
-
-        Наследует флаг rollup из оригинального менеджера через
-        super().__init__(rollup=connection_manager.rollup). Это обеспечивает
-        сквозную передачу режима rollup через все уровни вложенности.
-
-        Аргументы:
-            connection_manager: реальный менеджер соединения (созданный
-                выше по иерархии вложенности). Может быть как реальным
-                менеджером (PostgresConnectionManager), так и другой
-                обёрткой (WrapperSqlConnectionManager) при глубокой вложенности.
-        """
+        """Initialize proxy and inherit rollup flag from original manager."""
         super().__init__(rollup=connection_manager.rollup)
         self._connection_manager = connection_manager
 
     async def open(self) -> None:
-        """
-        Запрещает открытие соединения из дочернего действия.
-
-        Исключения:
-            TransactionProhibitedError: всегда.
-        """
+        """Forbid opening connection from nested action scope."""
         raise TransactionProhibitedError(
-            "Открытие соединения разрешено только в том действии, где ресурс был создан. "
-            "Текущее действие получило ресурс через прокси, поэтому open недоступен."
+            "Opening connection is allowed only in the action that created the resource. "
+            "Current action received a proxy connection, so open is unavailable."
         )
 
     async def begin(self) -> None:
-        """
-        Запрещает начало транзакции из дочернего действия.
-
-        Исключения:
-            TransactionProhibitedError: всегда.
-        """
+        """Forbid starting transaction from nested action scope."""
         raise TransactionProhibitedError(
-            "Управление транзакцией разрешено только владельцу соединения. "
-            "Текущее действие получило ресурс через прокси, поэтому begin недоступен."
+            "Transaction control is allowed only for connection owner action. "
+            "Current action received a proxy connection, so begin is unavailable."
         )
 
     async def commit(self) -> None:
-        """
-        Запрещает фиксацию транзакции из дочернего действия.
-
-        Не вызывает super().commit() — обёртка полностью запрещает
-        управление транзакциями, включая rollup-перехват.
-
-        Исключения:
-            TransactionProhibitedError: всегда.
-        """
+        """Forbid commit from nested action scope."""
         raise TransactionProhibitedError(
-            "Фиксация транзакции разрешена только в том действии, где ресурс был создан. "
-            "Текущее действие получило ресурс через прокси, поэтому commit недоступен."
+            "Transaction commit is allowed only in the action that created the resource. "
+            "Current action received a proxy connection, so commit is unavailable."
         )
 
     async def rollback(self) -> None:
-        """
-        Запрещает откат транзакции из дочернего действия.
-
-        Исключения:
-            TransactionProhibitedError: всегда.
-        """
+        """Forbid rollback from nested action scope."""
         raise TransactionProhibitedError(
-            "Откат транзакции разрешён только в том действии, где ресурс был создан. "
-            "Текущее действие получило ресурс через прокси, поэтому rollback недоступен."
+            "Transaction rollback is allowed only in the action that created the resource. "
+            "Current action received a proxy connection, so rollback is unavailable."
         )
 
     async def execute(self, query: str, params: tuple[Any, ...] | None = None) -> Any:
-        """
-        Выполняет запрос, делегируя в реальный менеджер.
-
-        Единственная разрешённая операция для дочерних действий. Запрос
-        выполняется в контексте транзакции, открытой корневым действием.
-
-        Аргументы:
-            query: строка SQL-запроса.
-            params: параметры запроса (опционально).
-
-        Возвращает:
-            Результат выполнения запроса от реального менеджера.
-
-        Исключения:
-            HandleError: при ошибке выполнения SQL-запроса.
-        """
+        """Execute query by delegating to underlying manager."""
         try:
             return await self._connection_manager.execute(query, params)
         except Exception as e:
-            raise HandleError(f"Ошибка выполнения SQL: {e}") from e
+            raise HandleError(f"SQL execution error: {e}") from e
 
     def get_wrapper_class(self) -> type["SqlConnectionManager"] | None:
-        """
-        Возвращает класс обёртки для дальнейшей вложенности.
-
-        При передаче уже обёрнутого менеджера в ещё более глубокий
-        уровень вложенности, создаётся новый WrapperSqlConnectionManager,
-        оборачивающий текущую обёртку. Флаг rollup прокидывается
-        через всю цепочку.
-
-        Возвращает:
-            WrapperSqlConnectionManager — класс для создания следующего
-            уровня обёртки.
-        """
+        """Return wrapper class for further nesting levels."""
         return WrapperSqlConnectionManager

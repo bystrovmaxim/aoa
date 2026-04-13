@@ -1,101 +1,99 @@
 # tests/intents/plugins/conftest.py
-"""
-Тестовые плагины и фикстуры для пакета tests/intents/plugins/.
-═══════════════════════════════════════════════════════════════════════════════
-НАЗНАЧЕНИЕ
-═══════════════════════════════════════════════════════════════════════════════
-Содержит тестовые плагины, хелперы эмиссии событий и фикстуры,
-используемые всеми тестовыми модулями в tests/intents/plugins/.
+"""Test plugins and fixtures for the tests/intents/plugins/ package.
+═══════════════════ ════════════════════ ════════════════════ ════════════════════
+PURPOSE
+═══════════════════ ════════════════════ ════════════════════ ════════════════════
+Contains test plugins, event emission helpers and fixtures,
+used by all test modules in tests/intents/plugins/.
 
-Все плагины используют типизированную подписку через классы событий
-из иерархии BasePluginEvent [1]:
-    @on(GlobalFinishEvent)            — вместо @on("global_finish", ".*")
-    @on(GlobalStartEvent)             — вместо @on("global_start", ".*")
-    @on(BeforeRegularAspectEvent)     — вместо @on("before:aspect_name", ".*")
-    @on(AfterRegularAspectEvent)      — вместо @on("after:aspect_name", ".*")
-    @on(UnhandledErrorEvent)          — вместо @on("on_error", ".*")
+All plugins use typed subscription via event classes
+from the BasePluginEvent hierarchy [1]:
+    @on(GlobalFinishEvent) - instead of @on("global_finish", ".*")
+    @on(GlobalStartEvent) - instead of @on("global_start", ".*")
+    @on(BeforeRegularAspectEvent) - instead of @on("before:aspect_name", ".*")
+    @on(AfterRegularAspectEvent) - instead of @on("after:aspect_name", ".*")
+    @on(UnhandledErrorEvent) - instead of @on("on_error", ".*")
 
-Обработчики получают конкретные типизированные объекты событий
-вместо единого PluginEvent с Optional-полями.
-═══════════════════════════════════════════════════════════════════════════════
-ХЕЛПЕР emit_global_finish()
-═══════════════════════════════════════════════════════════════════════════════
-Создаёт объект GlobalFinishEvent с тестовыми значениями полей и передаёт
-в plugin_ctx.emit_event(). Используется в test_emit.py, test_handlers.py,
-test_exceptions.py, test_concurrency.py для эмуляции события завершения
-действия без запуска полного конвейера машины.
+Handlers receive specific typed event objects
+instead of a single PluginEvent with Optional fields.
+═══════════════════ ════════════════════ ════════════════════ ════════════════════
+HELPER emit_global_finish()
+═══════════════════ ════════════════════ ════════════════════ ════════════════════
+Creates a GlobalFinishEvent object with test field values and passes
+in plugin_ctx.emit_event(). Used in test_emit.py, test_handlers.py,
+test_exceptions.py, test_concurrency.py to emulate termination event
+actions without running the full machine conveyor.
 
-Аналогичные хелперы emit_global_start(), emit_before_regular(),
-emit_after_regular() создают другие типы событий для тестов фильтрации.
-═══════════════════════════════════════════════════════════════════════════════
-ТЕСТОВЫЕ ПЛАГИНЫ
-═══════════════════════════════════════════════════════════════════════════════
+Similar helpers emit_global_start(), emit_before_regular(),
+emit_after_regular() generates other event types for filtering tests.
+═══════════════════ ════════════════════ ════════════════════ ════════════════════
+TEST PLUGINS
+═══════════════════ ════════════════════ ════════════════════ ════════════════════
 
 CounterPlugin
-    Минимальный плагин-счётчик. Один обработчик GlobalFinishEvent для
-    всех действий. Инкрементирует state["count"]. ignore_exceptions=False.
+    Minimal counter plugin. One GlobalFinishEvent handler for
+    all actions. Increments state["count"]. ignore_exceptions=False.
 
 DualHandlerPlugin
-    Плагин с двумя обработчиками на одно событие (GlobalFinishEvent).
-    on_handler_a инкрементирует state["a"] на 1.
-    on_handler_b инкрементирует state["b"] на 10.
-    Оба ignore_exceptions=False — последовательное выполнение.
+    Plugin with two handlers for one event (GlobalFinishEvent).
+    on_handler_a increments state["a"] by 1.
+    on_handler_b increments state["b"] by 10.
+    Both ignore_exceptions=False are sequential execution.
 
 CustomInitPlugin
-    Плагин с параметризованным начальным состоянием.
-    Принимает initial_value в конструкторе.
+    Plugin with a parameterized initial state.
+    Accepts an initial_value in the constructor.
 
 RecordingPlugin
-    Плагин-записыватель. Записывает тип события и action_name
-    в state["events"] при каждом GlobalFinishEvent.
+    Recorder plugin. Records event type and action_name
+    in state["events"] for each GlobalFinishEvent.
 
 SelectivePlugin
-    Плагин с фильтром action_name_pattern. Реагирует только на действия,
-    содержащие "Order" в имени.
+    Plugin with action_name_pattern filter. Reacts only to actions
+    containing "Order" in the name.
 
 AlphaPlugin
-    Плагин с обработчиком GlobalFinishEvent — реагирует на все действия.
+    Plugin with GlobalFinishEvent handler - reacts to all actions.
 
 BetaPlugin
-    Плагин с обработчиком GlobalFinishEvent с action_name_pattern=".*Order.*".
-    Реагирует только на действия с "Order" в имени.
+    Plugin with GlobalFinishEvent handler with action_name_pattern=".*Order.*".
+    Reacts only to actions with "Order" in the name.
 
 GammaPlugin
-    Плагин с обработчиком GlobalStartEvent (не GlobalFinishEvent).
-    Используется для проверки, что поиск по GlobalFinishEvent не возвращает
-    обработчики, подписанные на GlobalStartEvent.
+    Plugin with GlobalStartEvent handler (not GlobalFinishEvent).
+    Used to check that searching for GlobalFinishEvent does not return
+    handlers subscribed to GlobalStartEvent.
 
 MultiEventPlugin
-    Плагин с тремя обработчиками на разные события и фильтры.
+    Plugin with three handlers for different events and filters.
     on_start: GlobalStartEvent.
     on_finish: GlobalFinishEvent.
-    on_order_finish: GlobalFinishEvent с action_name_pattern=".*Order.*".
+    on_order_finish: GlobalFinishEvent with action_name_pattern=".*Order.*".
 
 IgnoredErrorPlugin
-    Плагин с ignore_exceptions=True, который мутирует state перед raise.
-    Проверяет видимость in-place мутации при подавленной ошибке.
+    Plugin with ignore_exceptions=True, which mutates state before raise.
+    Checks the visibility of an in-place mutation when a bug is suppressed.
 
 PropagatedErrorPlugin
-    Плагин с ignore_exceptions=False, выбрасывающий RuntimeError.
-    Ошибка пробрасывается наружу через emit_event().
+    Plugin with ignore_exceptions=False, throwing RuntimeError.
+    The error is propagated through emit_event().
 
 CustomExceptionPlugin
-    Плагин с ignore_exceptions=False, выбрасывающий CustomPluginError.
-    Проверяет, что тип кастомного исключения сохраняется при пробросе.
+    Plugin with ignore_exceptions=False, throwing CustomPluginError.
+    Checks that the custom exception type is preserved during forwarding.
 
 SuccessAfterFailPlugin
-    Плагин с успешным обработчиком. ignore_exceptions=False.
-    Используется для проверки, что исключение критического плагина
-    прерывает выполнение.
+    Plugin with success handler. ignore_exceptions=False.
+    Used to check that the exception is a critical plugin
+    interrupts execution.
 
 SlowParallelPlugin
-    Плагин с задержкой 0.1с. ignore_exceptions=True.
-    Используется для проверки параллельного выполнения.
+    Plugin with 0.1s delay. ignore_exceptions=True.
+    Used to check parallel execution.
 
 SlowSequentialPlugin
-    Плагин с задержкой 0.1с. ignore_exceptions=False.
-    Используется для проверки последовательного выполнения.
-"""
+    Plugin with 0.1s delay. ignore_exceptions=False.
+    Used to check sequential execution."""
 from __future__ import annotations
 
 import asyncio
@@ -115,16 +113,16 @@ from action_machine.testing import StubTesterRole
 from tests.scenarios.domain_model import PingAction
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Кастомное исключение для тестов
+#Custom exception for tests
 # ═════════════════════════════════════════════════════════════════════════════
 
 class CustomPluginError(Exception):
-    """Кастомное исключение для тестов пробрасывания ошибок плагинов."""
+    """Custom exception for plugin error throwing tests."""
     pass
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Тестовый контекст и параметры для хелперов
+#Test context and parameters for helpers
 # ═════════════════════════════════════════════════════════════════════════════
 
 _TEST_CONTEXT = Context(user=UserInfo(user_id="test_user", roles=(StubTesterRole,)))
@@ -134,7 +132,7 @@ _TEST_ACTION_NAME = "tests.domain.ping_action.PingAction"
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Хелперы эмиссии событий
+#Event Emission Helpers
 # ═════════════════════════════════════════════════════════════════════════════
 
 async def emit_global_finish(
@@ -148,23 +146,21 @@ async def emit_global_finish(
     duration_ms: float = 0.0,
     nest_level: int = 1,
 ) -> None:
-    """
-    Создаёт GlobalFinishEvent с тестовыми значениями и эмитирует через plugin_ctx.
+    """Creates a GlobalFinishEvent with test values ​​and emits via plugin_ctx.
 
-    Используется в test_emit.py, test_handlers.py, test_exceptions.py,
-    test_concurrency.py для эмуляции события завершения действия без
-    запуска полного конвейера машины.
+    Used in test_emit.py, test_handlers.py, test_exceptions.py,
+    test_concurrency.py to emulate an action completion event without
+    launching a full machine conveyor.
 
-    Аргументы:
-        plugin_ctx: контекст плагинов для эмиссии.
-        action_name: полное строковое имя действия.
-        action_class: тип действия.
-        context: контекст выполнения (по умолчанию тестовый).
-        params: входные параметры (по умолчанию пустые).
-        result: результат действия (по умолчанию пустой).
-        duration_ms: длительность в миллисекундах.
-        nest_level: уровень вложенности.
-    """
+    Arguments:
+        plugin_ctx: plugin context for emission.
+        action_name: The fully qualified string name of the action.
+        action_class: action type.
+        context: execution context (default test).
+        params: input parameters (empty by default).
+        result: the result of the action (empty by default).
+        duration_ms: Duration in milliseconds.
+        nest_level: nesting level."""
     event = GlobalFinishEvent(
         action_class=action_class,
         action_name=action_name,
@@ -186,17 +182,15 @@ async def emit_global_start(
     params: BaseParams | None = None,
     nest_level: int = 1,
 ) -> None:
-    """
-    Создаёт GlobalStartEvent с тестовыми значениями и эмитирует через plugin_ctx.
+    """Creates a GlobalStartEvent with test values ​​and emits via plugin_ctx.
 
-    Аргументы:
-        plugin_ctx: контекст плагинов для эмиссии.
-        action_name: полное строковое имя действия.
-        action_class: тип действия.
-        context: контекст выполнения (по умолчанию тестовый).
-        params: входные параметры (по умолчанию пустые).
-        nest_level: уровень вложенности.
-    """
+    Arguments:
+        plugin_ctx: plugin context for emission.
+        action_name: The fully qualified string name of the action.
+        action_class: action type.
+        context: execution context (default test).
+        params: input parameters (empty by default).
+        nest_level: nesting level."""
     event = GlobalStartEvent(
         action_class=action_class,
         action_name=action_name,
@@ -217,21 +211,19 @@ def make_global_finish_event(
     duration_ms: float = 0.0,
     nest_level: int = 1,
 ) -> GlobalFinishEvent:
-    """
-    Создаёт GlobalFinishEvent без эмиссии — для тестов get_handlers().
+    """Creates a GlobalFinishEvent without emission - for get_handlers() tests.
 
-    Аргументы:
-        action_name: полное строковое имя действия.
-        action_class: тип действия.
-        context: контекст выполнения.
-        params: входные параметры.
-        result: результат действия.
-        duration_ms: длительность в миллисекундах.
-        nest_level: уровень вложенности.
+    Arguments:
+        action_name: The fully qualified string name of the action.
+        action_class: action type.
+        context: execution context.
+        params: input parameters.
+        result: the result of the action.
+        duration_ms: Duration in milliseconds.
+        nest_level: nesting level.
 
-    Возвращает:
-        GlobalFinishEvent с заполненными полями.
-    """
+    Returns:
+        GlobalFinishEvent with fields filled in."""
     return GlobalFinishEvent(
         action_class=action_class,
         action_name=action_name,
@@ -251,12 +243,10 @@ def make_global_start_event(
     params: BaseParams | None = None,
     nest_level: int = 1,
 ) -> GlobalStartEvent:
-    """
-    Создаёт GlobalStartEvent без эмиссии — для тестов get_handlers().
+    """Creates a GlobalStartEvent without emission - for get_handlers() tests.
 
-    Возвращает:
-        GlobalStartEvent с заполненными полями.
-    """
+    Returns:
+        GlobalStartEvent with fields filled in."""
     return GlobalStartEvent(
         action_class=action_class,
         action_name=action_name,
@@ -267,17 +257,15 @@ def make_global_start_event(
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Плагины для test_handlers.py
+#Plugins for test_handlers.py
 # ═════════════════════════════════════════════════════════════════════════════
 
 class CounterPlugin(Plugin):
-    """
-    Минимальный плагин-счётчик.
+    """Minimal counter plugin.
 
-    Один обработчик GlobalFinishEvent для всех действий. Инкрементирует
-    state["count"] при каждом вызове. ignore_exceptions=False —
-    критический обработчик, ошибка пробрасывается.
-    """
+    One GlobalFinishEvent handler for all actions. Increments
+    state["count"] on every call. ignore_exceptions=False —
+    critical handler, an error is thrown."""
 
     async def get_initial_state(self) -> dict:
         return {"count": 0}
@@ -289,13 +277,11 @@ class CounterPlugin(Plugin):
 
 
 class DualHandlerPlugin(Plugin):
-    """
-    Плагин с двумя обработчиками на одно событие (GlobalFinishEvent).
+    """Plugin with two handlers for one event (GlobalFinishEvent).
 
-    on_handler_a инкрементирует state["a"] на 1.
-    on_handler_b инкрементирует state["b"] на 10.
-    Оба ignore_exceptions=False — последовательное выполнение.
-    """
+    on_handler_a increments state["a"] by 1.
+    on_handler_b increments state["b"] by 10.
+    Both ignore_exceptions=False are sequential execution."""
 
     async def get_initial_state(self) -> dict:
         return {"a": 0, "b": 0}
@@ -312,12 +298,10 @@ class DualHandlerPlugin(Plugin):
 
 
 class CustomInitPlugin(Plugin):
-    """
-    Плагин с параметризованным начальным состоянием.
+    """Plugin with a parameterized initial state.
 
-    Принимает initial_value в конструкторе. get_initial_state() возвращает
-    {"value": initial_value}. Обработчик on_increment добавляет 1 к value.
-    """
+    Accepts an initial_value in the constructor. get_initial_state() returns
+    {"value": initial_value}. The on_increment handler adds 1 to value."""
 
     def __init__(self, initial_value: int = 100):
         self._initial_value = initial_value
@@ -332,17 +316,15 @@ class CustomInitPlugin(Plugin):
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Плагины для test_emit.py
+#Plugins for test_emit.py
 # ═════════════════════════════════════════════════════════════════════════════
 
 class RecordingPlugin(Plugin):
-    """
-    Плагин-записыватель.
+    """Recorder plugin.
 
-    Записывает тип события и action_name в state["events"]
-    при каждом GlobalFinishEvent. Используется для проверки,
-    что emit_event доставляет события и поля корректны.
-    """
+    Writes the event type and action_name to state["events"]
+    at each GlobalFinishEvent. Used to check
+    that emit_event delivers events and the fields are correct."""
 
     async def get_initial_state(self) -> dict:
         return {"events": []}
@@ -359,12 +341,10 @@ class RecordingPlugin(Plugin):
 
 
 class SelectivePlugin(Plugin):
-    """
-    Плагин с фильтром action_name_pattern.
+    """Plugin with action_name_pattern filter.
 
-    Реагирует только на действия, содержащие "Order" в полном имени.
-    Используется для проверки, что action_name_pattern фильтрует события.
-    """
+    Only responds to actions containing "Order" in the full name.
+    Used to check that action_name_pattern is filtering events."""
 
     async def get_initial_state(self) -> dict:
         return {"order_events": []}
@@ -376,13 +356,11 @@ class SelectivePlugin(Plugin):
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Плагины для test_find_plugin.py
+#Plugins for test_find_plugin.py
 # ═════════════════════════════════════════════════════════════════════════════
 
 class AlphaPlugin(Plugin):
-    """
-    Плагин с обработчиком GlobalFinishEvent — реагирует на все действия.
-    """
+    """Plugin with GlobalFinishEvent handler - reacts to all actions."""
 
     async def get_initial_state(self) -> dict:
         return {}
@@ -393,11 +371,9 @@ class AlphaPlugin(Plugin):
 
 
 class BetaPlugin(Plugin):
-    """
-    Плагин с обработчиком GlobalFinishEvent с action_name_pattern=".*Order.*".
+    """Plugin with GlobalFinishEvent handler with action_name_pattern=".*Order.*".
 
-    Реагирует только на действия, содержащие "Order" в полном имени класса.
-    """
+    Only responds to actions containing "Order" in the fully qualified class name."""
 
     async def get_initial_state(self) -> dict:
         return {}
@@ -408,12 +384,10 @@ class BetaPlugin(Plugin):
 
 
 class GammaPlugin(Plugin):
-    """
-    Плагин с обработчиком GlobalStartEvent (не GlobalFinishEvent).
+    """Plugin with GlobalStartEvent handler (not GlobalFinishEvent).
 
-    Используется для проверки, что поиск по GlobalFinishEvent не возвращает
-    обработчики, подписанные на GlobalStartEvent.
-    """
+    Used to check that searching for GlobalFinishEvent does not return
+    handlers subscribed to GlobalStartEvent."""
 
     async def get_initial_state(self) -> dict:
         return {}
@@ -424,17 +398,15 @@ class GammaPlugin(Plugin):
 
 
 class MultiEventPlugin(Plugin):
-    """
-    Плагин с тремя обработчиками на разные события и фильтры.
+    """Plugin with three handlers for different events and filters.
 
-    on_start: GlobalStartEvent для всех действий.
-    on_finish: GlobalFinishEvent для всех действий.
-    on_order_finish: GlobalFinishEvent для действий с "Order" в имени.
+    on_start: GlobalStartEvent for all actions.
+    on_finish: GlobalFinishEvent for all actions.
+    on_order_finish: GlobalFinishEvent for actions with "Order" in the name.
 
-    Для GlobalFinishEvent + "*OrderAction" должны найтись два обработчика
-    (on_finish и on_order_finish). Для GlobalFinishEvent + "PingAction" —
-    один (on_finish). Для GlobalStartEvent + любое действие — один (on_start).
-    """
+    For GlobalFinishEvent + "*OrderAction" there must be two handlers
+    (on_finish and on_order_finish). For GlobalFinishEvent + "PingAction" -
+    one(on_finish). For GlobalStartEvent + any action is one (on_start)."""
 
     async def get_initial_state(self) -> dict:
         return {}
@@ -453,17 +425,15 @@ class MultiEventPlugin(Plugin):
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Плагины для test_exceptions.py
+#Plugins for test_exceptions.py
 # ═════════════════════════════════════════════════════════════════════════════
 
 class IgnoredErrorPlugin(Plugin):
-    """
-    Плагин с ignore_exceptions=True, который мутирует state перед raise.
+    """Plugin with ignore_exceptions=True, which mutates state before raise.
 
-    Мутирует state["before_error"]=True, затем бросает RuntimeError.
-    ignore_exceptions=True — ошибка подавляется, но in-place мутация
-    state видна (state — мутабельный dict, передаётся по ссылке).
-    """
+    Mutates state["before_error"]=True, then throws RuntimeError.
+    ignore_exceptions=True - the error is suppressed, but the mutation is in-place
+    state is visible (state is a mutable dict, passed by reference)."""
 
     async def get_initial_state(self) -> dict:
         return {"before_error": False, "after_error": False}
@@ -472,15 +442,13 @@ class IgnoredErrorPlugin(Plugin):
     async def on_error_handler(self, state: dict, event: GlobalFinishEvent, log) -> dict:
         state["before_error"] = True
         raise RuntimeError("Ignored error")
-        # state["after_error"] = True  # не выполнится
+        #state["after_error"] = True # will not execute
 
 
 class PropagatedErrorPlugin(Plugin):
-    """
-    Плагин с ignore_exceptions=False, выбрасывающий RuntimeError.
+    """Plugin with ignore_exceptions=False, throwing RuntimeError.
 
-    Ошибка пробрасывается наружу через emit_event().
-    """
+    The error is propagated through emit_event()."""
 
     async def get_initial_state(self) -> dict:
         return {"count": 0}
@@ -491,11 +459,9 @@ class PropagatedErrorPlugin(Plugin):
 
 
 class CustomExceptionPlugin(Plugin):
-    """
-    Плагин с ignore_exceptions=False, выбрасывающий CustomPluginError.
+    """Plugin with ignore_exceptions=False, throwing CustomPluginError.
 
-    Проверяет, что тип кастомного исключения сохраняется при пробросе.
-    """
+    Checks that the custom exception type is preserved during forwarding."""
 
     async def get_initial_state(self) -> dict:
         return {}
@@ -506,13 +472,11 @@ class CustomExceptionPlugin(Plugin):
 
 
 class SuccessAfterFailPlugin(Plugin):
-    """
-    Плагин с успешным обработчиком. ignore_exceptions=False.
+    """Plugin with success handler. ignore_exceptions=False.
 
-    Используется для проверки, что исключение критического плагина
-    прерывает выполнение (этот плагин не должен получить управление
-    если предыдущий критический плагин упал).
-    """
+    Used to check that the exception is a critical plugin
+    interrupts execution (this plugin should not get control
+    if the previous critical plugin has failed)."""
 
     async def get_initial_state(self) -> dict:
         return {"count": 0}
@@ -524,17 +488,15 @@ class SuccessAfterFailPlugin(Plugin):
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Плагины для test_concurrency.py
+#Plugins for test_concurrency.py
 # ═════════════════════════════════════════════════════════════════════════════
 
 class SlowParallelPlugin(Plugin):
-    """
-    Плагин с задержкой 0.1с. ignore_exceptions=True.
+    """Plugin with 0.1s delay. ignore_exceptions=True.
 
-    При наличии нескольких таких плагинов PluginRunContext выбирает
-    параллельную стратегию (asyncio.gather). Общее время ≈ 0.1с,
-    а не 0.1с × N.
-    """
+    If there are several such plugins, PluginRunContext selects
+    parallel strategy (asyncio.gather). Total time ≈ 0.1s,
+    and not 0.1s × N."""
 
     async def get_initial_state(self) -> dict:
         return {"executed": False}
@@ -547,12 +509,10 @@ class SlowParallelPlugin(Plugin):
 
 
 class SlowSequentialPlugin(Plugin):
-    """
-    Плагин с задержкой 0.1с. ignore_exceptions=False.
+    """Plugin with 0.1s delay. ignore_exceptions=False.
 
-    При наличии хотя бы одного такого плагина PluginRunContext выбирает
-    последовательную стратегию. Общее время ≈ 0.1с × N.
-    """
+    If there is at least one such plugin, PluginRunContext selects
+    consistent strategy. Total time ≈ 0.1s × N."""
 
     async def get_initial_state(self) -> dict:
         return {"executed": False}
@@ -565,17 +525,15 @@ class SlowSequentialPlugin(Plugin):
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Плагины для test_concurrency.py (параметризованные задержки)
+#Plugins for test_concurrency.py (parameterized delays)
 # ═════════════════════════════════════════════════════════════════════════════
 
 class SlowPluginIgnore(Plugin):
-    """
-    Плагин с параметризованной задержкой. ignore_exceptions=True.
+    """Plugin with parameterized delay. ignore_exceptions=True.
 
-    При наличии нескольких таких плагинов PluginRunContext выбирает
-    параллельную стратегию (asyncio.gather). Общее время ≈ max(delay),
-    а не sum(delay).
-    """
+    If there are several such plugins, PluginRunContext selects
+    parallel strategy (asyncio.gather). Total time ≈ max(delay),
+    not sum(delay)."""
 
     def __init__(self, delay: float = 0.05):
         self._delay = delay
@@ -591,12 +549,10 @@ class SlowPluginIgnore(Plugin):
 
 
 class FastPluginIgnore(Plugin):
-    """
-    Плагин без задержки. ignore_exceptions=True.
+    """Plugin without delay. ignore_exceptions=True.
 
-    Используется вместе с SlowPluginIgnore для проверки, что быстрый
-    плагин завершается вместе с медленными при параллельном выполнении.
-    """
+    Used in conjunction with SlowPluginIgnore to check that the
+    The plugin terminates along with the slow ones when executed in parallel."""
 
     async def get_initial_state(self) -> dict:
         return {"calls": []}
@@ -608,12 +564,10 @@ class FastPluginIgnore(Plugin):
 
 
 class SlowPluginNoIgnore(Plugin):
-    """
-    Плагин с параметризованной задержкой. ignore_exceptions=False.
+    """Plugin with parameterized delay. ignore_exceptions=False.
 
-    Наличие хотя бы одного такого плагина переключает PluginRunContext
-    на последовательную стратегию. Общее время ≈ sum(delay).
-    """
+    The presence of at least one such plugin switches the PluginRunContext
+    to a consistent strategy. Total time ≈ sum(delay)."""
 
     def __init__(self, delay: float = 0.05):
         self._delay = delay
@@ -629,17 +583,16 @@ class SlowPluginNoIgnore(Plugin):
 
 
 class FailingPluginIgnore(Plugin):
-    """
-    Плагин, выбрасывающий RuntimeError. ignore_exceptions=True.
+    """Plugin that throws RuntimeError. ignore_exceptions=True.
 
-    Ошибка подавляется, остальные плагины продолжают работу.
-    Используется для проверки, что падающий плагин не прерывает
-    параллельное выполнение.
-    """
+    The error is suppressed and the remaining plugins continue to work.
+    Used to check that a crashed plugin does not interrupt
+    parallel execution."""
 
     async def get_initial_state(self) -> dict:
         return {"calls": []}
 
     @on(GlobalFinishEvent, ignore_exceptions=True)
     async def on_failing_handler(self, state: dict, event: GlobalFinishEvent, log) -> dict:
+        raise RuntimeError("Plugin intentionally failed")
         raise RuntimeError("Plugin intentionally failed")

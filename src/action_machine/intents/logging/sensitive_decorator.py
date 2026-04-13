@@ -35,7 +35,7 @@ INVARIANTS
 - Parameter types/ranges validated at decoration time.
 
 ═══════════════════════════════════════════════════════════════════════════════
-DATA FLOW
+ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
 ``@sensitive`` → ``fget._sensitive_config`` → inspector snapshot /
@@ -81,9 +81,9 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Any
 
-# ═════════════════════════════════════════════════════════════════════════════
-# Валидация параметров (вынесена для снижения цикломатической сложности)
-# ═════════════════════════════════════════════════════════════════════════════
+# ============================================================================
+# Parameter validation helpers (split to reduce cyclomatic complexity)
+# ============================================================================
 
 
 def _validate_sensitive_params(
@@ -93,66 +93,56 @@ def _validate_sensitive_params(
     max_percent: int,
 ) -> None:
     """
-    Проверяет корректность параметров декоратора @sensitive.
+    Validate ``@sensitive`` decorator parameters.
 
-    Вызывается один раз при создании декоратора (до применения к цели).
-    Выбрасывает TypeError или ValueError при нарушении контракта.
-
-    Аргументы:
-        enabled: включено ли маскирование.
-        max_chars: максимальное число видимых символов.
-        char: символ замены (одиночный).
-        max_percent: максимальный процент видимых символов (0..100).
-
-    Исключения:
-        TypeError: если тип параметра не соответствует ожидаемому.
-        ValueError: если значение параметра вне допустимого диапазона.
+    Called once at decorator creation time (before applying to target).
+    Raises ``TypeError`` or ``ValueError`` when contract is violated.
     """
     if not isinstance(enabled, bool):
         raise TypeError(
-            f"@sensitive: параметр enabled должен быть bool, "
-            f"получен {type(enabled).__name__}."
+            f"@sensitive: parameter enabled must be bool, "
+            f"got {type(enabled).__name__}."
         )
 
     if not isinstance(max_chars, int):
         raise TypeError(
-            f"@sensitive: параметр max_chars должен быть int, "
-            f"получен {type(max_chars).__name__}."
+            f"@sensitive: parameter max_chars must be int, "
+            f"got {type(max_chars).__name__}."
         )
 
     if max_chars < 0:
         raise ValueError(
-            f"@sensitive: max_chars не может быть отрицательным, получено {max_chars}."
+            f"@sensitive: max_chars cannot be negative, got {max_chars}."
         )
 
     if not isinstance(char, str):
         raise TypeError(
-            f"@sensitive: параметр char должен быть строкой, "
-            f"получен {type(char).__name__}."
+            f"@sensitive: parameter char must be a string, "
+            f"got {type(char).__name__}."
         )
 
     if len(char) != 1:
         raise ValueError(
-            f"@sensitive: char должен быть одним символом, "
-            f"получено {len(char)} символов: {char!r}."
+            f"@sensitive: char must be exactly one character, "
+            f"got {len(char)} characters: {char!r}."
         )
 
     if not isinstance(max_percent, int):
         raise TypeError(
-            f"@sensitive: параметр max_percent должен быть int, "
-            f"получен {type(max_percent).__name__}."
+            f"@sensitive: parameter max_percent must be int, "
+            f"got {type(max_percent).__name__}."
         )
 
     if not 0 <= max_percent <= 100:
         raise ValueError(
-            f"@sensitive: max_percent должен быть в диапазоне 0..100, "
-            f"получено {max_percent}."
+            f"@sensitive: max_percent must be in range 0..100, "
+            f"got {max_percent}."
         )
 
 
-# ═════════════════════════════════════════════════════════════════════════════
-# Основной декоратор
-# ═════════════════════════════════════════════════════════════════════════════
+# ============================================================================
+# Main decorator
+# ============================================================================
 
 
 def sensitive(
@@ -163,40 +153,12 @@ def sensitive(
     max_percent: int = 50,
 ) -> Callable[[Any], Any]:
     """
-    Декоратор уровня свойства. Помечает свойство как содержащее чувствительные данные.
+    Property-level decorator that marks values as sensitive for log masking.
 
-    Может применяться к property (в любом порядке с @property) или к callable
-    (функции, которая позже станет getter свойства).
-
-    Записывает конфигурацию маскирования в атрибут _sensitive_config целевой
-    функции. Инспектор ``sensitive`` строит снимок; ``get_sensitive_fields()``
-    отдаёт ``SensitiveFieldMeta``.
-
-    Аргументы:
-        enabled: включено ли маскирование. По умолчанию True.
-                 Если False, конфигурация записывается, но маскирование
-                 не применяется — значение выводится как есть.
-        max_chars: максимальное число видимых символов с начала строки.
-                   По умолчанию 3.
-        char: символ замены. Одиночный символ. По умолчанию '*'.
-        max_percent: максимальный процент видимых символов (0..100).
-                     По умолчанию 50.
-
-    Возвращает:
-        Декоратор, который прикрепляет _sensitive_config к функции или property.
-
-    Исключения:
-        TypeError: enabled не bool; max_chars не int; char не str;
-                  max_percent не int; цель не callable и не property.
-        ValueError: max_chars < 0; len(char) != 1; max_percent не в 0..100.
-
-    Пример:
-        @property
-        @sensitive(True, max_chars=3, char='*', max_percent=50)
-        def email(self) -> str:
-            return self._email
+    Can be applied to ``property`` (in either order with ``@property``) or to
+    callable getter functions that will later become properties.
     """
-    # ── Проверка аргументов (делегирована в отдельную функцию) ──
+    # Validate arguments (delegated helper for lower complexity).
     _validate_sensitive_params(enabled, max_chars, char, max_percent)
 
     config = {
@@ -208,35 +170,29 @@ def sensitive(
 
     def decorator(target: Any) -> Any:
         """
-        Внутренний декоратор, применяемый к цели (property или callable).
-
-        Поддерживает два варианта использования:
-        1. target — property: извлекает getter (fget), записывает конфиг,
-           возвращает новый property с тем же getter/setter/deleter/doc.
-        2. target — callable: записывает конфиг напрямую в функцию,
-           возвращает её без изменений.
+        Inner decorator applied to property or callable target.
         """
-        # ── Вариант 1: target — property (порядок @sensitive над @property) ──
+        # Case 1: target is property (@sensitive above @property).
         if isinstance(target, property):
             fget = target.fget
             if fget is None:
                 raise TypeError(
-                    "@sensitive: получен property без getter. "
-                    "Убедитесь, что @sensitive применён к property с getter."
+                    "@sensitive: received property without getter. "
+                    "Ensure @sensitive is applied to a property with getter."
                 )
             fget._sensitive_config = config  # type: ignore[attr-defined]
-            # Возвращаем новый property с тем же getter, setter, deleter и doc
+            # Return new property with same getter/setter/deleter/doc.
             return property(fget, target.fset, target.fdel, target.__doc__)
 
-        # ── Вариант 2: target — callable (порядок @property над @sensitive) ──
+        # Case 2: target is callable (@property above @sensitive).
         if callable(target):
             target._sensitive_config = config
             return target
 
-        # ── Ни то, ни другое ──
+        # Unsupported target type.
         raise TypeError(
-            f"@sensitive можно применять только к свойствам (property) или методам. "
-            f"Получен объект типа {type(target).__name__}: {target!r}."
+            f"@sensitive can only be applied to property objects or callables. "
+            f"Got object of type {type(target).__name__}: {target!r}."
         )
 
     return decorator

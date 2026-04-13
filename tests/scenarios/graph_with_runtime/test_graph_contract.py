@@ -1,12 +1,12 @@
 # tests/scenarios/graph_with_runtime/test_graph_contract.py
 """
-Контрактные тесты графа метаданных и внешнего JSON (MCP).
+Contract tests for the metadata graph and external JSON (MCP).
 
-Фиксируют публичные обещания API ``GateCoordinator`` и ``_build_graph_json``:
-если контракт меняется, тесты падают и требуют осознанного обновления.
+Lock in public API promises of ``GateCoordinator`` and ``_build_graph_json``:
+if the contract changes, tests fail and require a deliberate update.
 
-Не дублируют весь ``test_graph_skeleton_and_hydrate`` — дополняют его
-схемой полей и стабильным контрактом для потребителей (агенты, адаптеры).
+They do not duplicate all of ``test_graph_skeleton_and_hydrate`` — they add
+field schema and a stable contract for consumers (agents, adapters).
 """
 
 from __future__ import annotations
@@ -20,17 +20,17 @@ from action_machine.graph.gate_coordinator import GateCoordinator
 from action_machine.integrations.mcp.adapter import _build_graph_json
 from action_machine.runtime.machines.core_action_machine import CoreActionMachine
 
-# Регистрируем минимальное действие в дереве подклассов BaseAction до build().
+# Register a minimal action in the BaseAction subclass tree before build().
 from tests.scenarios.domain_model import PingAction
 
-# --- Контракт: сырой узел из ``get_graph()`` (без ``meta``) -----------------
+# --- Contract: raw node from ``get_graph()`` (no ``meta``) -----------------
 GRAPH_NODE_SKELETON_KEYS: Final[frozenset[str]] = frozenset({
     "node_type",
     "name",
     "class_ref",
 })
 
-# --- Контракт: гидратированный узел (API / hydrate_graph_node) -------------
+# --- Contract: hydrated node (API / hydrate_graph_node) -------------
 HYDRATED_NODE_REQUIRED_KEYS: Final[frozenset[str]] = frozenset({
     "node_type",
     "name",
@@ -38,10 +38,10 @@ HYDRATED_NODE_REQUIRED_KEYS: Final[frozenset[str]] = frozenset({
     "meta",
 })
 
-# --- Контракт: корень JSON графа MCP ---------------------------------------
+# --- Contract: MCP graph JSON root ---------------------------------------
 MCP_GRAPH_TOP_KEYS: Final[frozenset[str]] = frozenset({"nodes", "edges"})
 
-# --- Контракт: ребро в JSON MCP ----------------------------------------------
+# --- Contract: edge in MCP JSON ----------------------------------------------
 MCP_EDGE_KEYS: Final[frozenset[str]] = frozenset({
     "from",
     "to",
@@ -50,7 +50,7 @@ MCP_EDGE_KEYS: Final[frozenset[str]] = frozenset({
     "type",
 })
 
-# --- Контракт: минимальный узел в JSON MCP ---------------------------------
+# --- Contract: minimal node in MCP JSON ---------------------------------
 MCP_NODE_MIN_KEYS: Final[frozenset[str]] = frozenset({"id", "type"})
 
 
@@ -59,7 +59,7 @@ def _default_coordinator() -> GateCoordinator:
 
 
 def test_contract_raw_graph_nodes_are_skeleton_only() -> None:
-    """Каждый payload в ``get_graph()`` — ровно три ключа, без ``meta``."""
+    """Every payload in ``get_graph()`` has exactly three keys, no ``meta``."""
     coord = _default_coordinator()
     graph = coord.get_graph()
     for idx in graph.node_indices():
@@ -73,7 +73,7 @@ def test_contract_raw_graph_nodes_are_skeleton_only() -> None:
 
 
 def test_contract_hydrate_always_adds_meta_dict() -> None:
-    """``hydrate_graph_node`` всегда возвращает ``meta`` типа ``dict``."""
+    """``hydrate_graph_node`` always returns ``meta`` as a ``dict``."""
     coord = _default_coordinator()
     graph = coord.get_graph()
     for idx in graph.node_indices():
@@ -84,7 +84,7 @@ def test_contract_hydrate_always_adds_meta_dict() -> None:
 
 
 def test_contract_get_node_shape_matches_hydrate() -> None:
-    """``get_node`` отдаёт тот же набор полей, что и гидратация сырого узла."""
+    """``get_node`` returns the same field set as hydrating the raw node."""
     coord = _default_coordinator()
     nm = BaseIntentInspector._make_node_name(PingAction)
     node = coord.get_node("meta", nm)
@@ -99,7 +99,7 @@ def test_contract_get_node_shape_matches_hydrate() -> None:
 
 
 def test_contract_ping_action_meta_snapshot_present() -> None:
-    """Для эталонного ``PingAction`` снимок ``meta`` существует и не пустой."""
+    """For reference ``PingAction``, ``meta`` snapshot exists and is non-empty."""
     coord = _default_coordinator()
     snap = coord.get_snapshot(PingAction, "meta")
     assert snap is not None
@@ -109,7 +109,7 @@ def test_contract_ping_action_meta_snapshot_present() -> None:
 
 
 def test_contract_node_keys_follow_type_name_pattern() -> None:
-    """Ключ узла ``node_type:name`` совпадает с полями payload."""
+    """Node key ``node_type:name`` matches payload fields."""
     coord = _default_coordinator()
     graph = coord.get_graph()
     for idx in graph.node_indices():
@@ -120,7 +120,7 @@ def test_contract_node_keys_follow_type_name_pattern() -> None:
 
 
 def test_contract_mcp_graph_json_schema() -> None:
-    """JSON ``system://graph``: корень, узлы, рёбра — фиксированные ключи."""
+    """JSON ``system://graph``: root, nodes, edges use fixed keys."""
     coord = _default_coordinator()
     data = json.loads(_build_graph_json(coord))
     assert set(data.keys()) == MCP_GRAPH_TOP_KEYS
@@ -155,7 +155,7 @@ def test_contract_mcp_graph_json_schema() -> None:
 
 
 def test_contract_mcp_edge_keys_match_node_coordinates() -> None:
-    """``source_key`` / ``target_key`` совпадают с ``type:id`` узлов MCP JSON."""
+    """``source_key`` / ``target_key`` match ``type:id`` of MCP JSON nodes."""
     coord = _default_coordinator()
     data: dict[str, Any] = json.loads(_build_graph_json(coord))
     id_by_coord = {f"{n['type']}:{n['id']}": n for n in data["nodes"]}

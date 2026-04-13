@@ -18,6 +18,16 @@ The ``AuthCoordinator`` calls ``authenticate(credentials)`` after credential
 extraction. The authenticator returns a ``UserInfo`` on success, or ``None`` if
 the credentials are invalid.
 
+    request -> extractor -> credentials
+                             |
+                             v
+                     Authenticator.authenticate()
+                             |
+                +------------+------------+
+                |                         |
+                v                         v
+             UserInfo                    None
+
 ═══════════════════════════════════════════════════════════════════════════════
 INVARIANTS
 ═══════════════════════════════════════════════════════════════════════════════
@@ -30,7 +40,7 @@ INVARIANTS
 EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
-    from your_app.roles import ServiceApiRole  # подкласс BaseRole
+    from your_app.roles import ServiceApiRole  # BaseRole subclass
 
     class ApiKeyAuthenticator(Authenticator):
         async def authenticate(self, credentials: dict) -> UserInfo | None:
@@ -68,10 +78,13 @@ from action_machine.intents.context.user_info import UserInfo
 
 class Authenticator(ABC):
     """
-    Abstract base class for all authenticators.
+    Abstract contract for authentication backends.
 
-    Concrete implementations must override the asynchronous ``authenticate``
-    method.
+    AI-CORE-BEGIN
+    ROLE: Extension point for credential verification implementations.
+    CONTRACT: Implement async ``authenticate(credentials) -> UserInfo | None``.
+    INVARIANTS: Return ``None`` for invalid credentials instead of exceptions.
+    AI-CORE-END
     """
 
     @abstractmethod

@@ -1,72 +1,63 @@
 # src/action_machine/integrations/mcp/route_record.py
 """
-McpRouteRecord — frozen-датакласс маршрута для MCP-адаптера.
+McpRouteRecord — frozen route record for MCP adapter.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-McpRouteRecord — конкретный наследник BaseRouteRecord с MCP-специфичными
-полями. Хранит полную конфигурацию одного MCP tool: имя инструмента,
-описание, класс действия, модели маппинга. Используется McpAdapter
-при build() для генерации MCP tools на MCP-сервере.
+Concrete ``BaseRouteRecord`` subtype for MCP transport metadata.
+Stores one MCP tool contract used by ``McpAdapter.build()``.
 
 ═══════════════════════════════════════════════════════════════════════════════
-MCP-СПЕЦИФИЧНЫЕ ПОЛЯ
+INVARIANTS
 ═══════════════════════════════════════════════════════════════════════════════
 
-    tool_name : str
-        Имя MCP tool, видимое AI-агенту. Непустая строка.
-        Рекомендуемый формат: ``domain.action`` — например,
-        ``orders.create``, ``orders.get``, ``system.ping``.
-        Агент использует это имя для вызова инструмента.
-        По умолчанию пустая строка (валидация требует непустое значение).
-
-    description : str
-        Описание tool для AI-агента. Отображается в списке доступных
-        инструментов. Агент использует описание для принятия решения
-        о вызове tool. Если пустая строка — McpAdapter подставит
-        description из ``@meta`` действия.
-        По умолчанию пустая строка.
+- Inherits all ``BaseRouteRecord`` invariants:
+  - ``action_class`` must be a ``BaseAction`` subtype.
+  - ``params_type`` / ``result_type`` are extracted from ``BaseAction[P, R]``.
+  - ``params_mapper`` is required when request model differs from params type.
+  - ``response_mapper`` is required when response model differs from result type.
+- ``tool_name`` must be non-empty after ``strip()``.
 
 ═══════════════════════════════════════════════════════════════════════════════
-НАСЛЕДОВАНИЕ ОТ BaseRouteRecord
+ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-Наследует от BaseRouteRecord все общие поля: action_class, request_model,
-response_model, params_mapper, response_mapper. Наследует все инварианты:
-
-- action_class должен быть подклассом BaseAction.
-- params_type и result_type извлекаются автоматически из BaseAction[P, R].
-- Если request_model указан и отличается от params_type — params_mapper
-  обязателен.
-- Если response_model указан и отличается от result_type — response_mapper
-  обязателен.
-
-В ``__post_init__`` выполняются MCP-специфичные проверки:
-
-- tool_name непустой (после strip).
+    McpAdapter.tool(...)
+            |
+            v
+    McpRouteRecord(
+      action + mapping + tool metadata
+    )
+            |
+            v
+    McpAdapter.build() -> MCP Tool
 
 ═══════════════════════════════════════════════════════════════════════════════
-КОНВЕНЦИЯ ИМЕНОВАНИЯ МАППЕРОВ
+MCP-SPECIFIC FIELDS
 ═══════════════════════════════════════════════════════════════════════════════
 
-Каждый маппер назван по тому, что он ВОЗВРАЩАЕТ:
+- ``tool_name``: MCP tool identifier visible to agents. Recommended format:
+  ``domain.action`` (for example: ``orders.create``).
+- ``description``: human-readable tool description for agent tool selection.
+  If empty, adapter may fill it from action ``@meta``.
 
-    params_mapper   → возвращает params   (преобразует request → params)
-    response_mapper → возвращает response (преобразует result  → response)
+Mapper naming convention:
+    params_mapper   -> returns params   (request -> params)
+    response_mapper -> returns response (result  -> response)
 
 ═══════════════════════════════════════════════════════════════════════════════
-ПРИМЕР СОЗДАНИЯ
+EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
-    # Минимум:
+    # Minimal:
     record = McpRouteRecord(
         action_class=CreateOrderAction,
         tool_name="orders.create",
     )
 
-    # Полный набор:
+    # Full:
     record = McpRouteRecord(
         action_class=CreateOrderAction,
         request_model=CreateOrderRequest,
@@ -74,8 +65,25 @@ response_model, params_mapper, response_mapper. Наследует все инв
         params_mapper=map_request_to_params,
         response_mapper=map_result_to_response,
         tool_name="orders.create",
-        description="Создание нового заказа в системе",
+        description="Create a new order in the system",
     )
+
+    # Edge case: invalid empty name.
+    # McpRouteRecord(action_class=CreateOrderAction, tool_name="  ") -> ValueError
+
+═══════════════════════════════════════════════════════════════════════════════
+ERRORS / LIMITATIONS
+═══════════════════════════════════════════════════════════════════════════════
+
+- Raises ``ValueError`` when ``tool_name`` is empty or whitespace-only.
+- Propagates ``TypeError`` / ``ValueError`` from ``BaseRouteRecord`` if base
+  mapping and type extraction contracts are violated.
+
+AI-CORE-BEGIN
+ROLE: Immutable MCP route contract consumed by McpAdapter.
+CONTRACT: Binds one action mapping contract to one MCP tool descriptor.
+INVARIANTS: BaseRouteRecord invariants + non-empty tool_name.
+AI-CORE-END
 """
 
 from __future__ import annotations
@@ -88,27 +96,16 @@ from action_machine.adapters.base_route_record import BaseRouteRecord
 @dataclass(frozen=True)
 class McpRouteRecord(BaseRouteRecord):
     """
-    Frozen-датакласс маршрута для MCP-адаптера.
+    Immutable MCP route descriptor used by ``McpAdapter``.
 
-    Наследует BaseRouteRecord (action_class, request_model, response_model,
-    params_mapper, response_mapper) и добавляет MCP-специфичные поля.
-
-    Frozen — после создания ни одно поле изменить нельзя.
-
-    Validation в ``__post_init__``:
-    - Вызывает ``super().__post_init__()`` для проверки инвариантов
-      BaseRouteRecord (action_class, маппинг, извлечение P и R).
-    - Checks tool_name: непустой после strip.
-
-    Атрибуты (MCP-специфичные поля):
-        tool_name : str
-            Имя MCP tool. Непустая строка. По умолчанию "".
-
-        description : str
-            Описание tool для AI-агента. По умолчанию "".
+    AI-CORE-BEGIN
+    ROLE: Carries validated tool metadata and mapping contracts.
+    CONTRACT: Extends BaseRouteRecord with MCP-specific fields.
+    INVARIANTS: Frozen instance and non-empty tool_name.
+    AI-CORE-END
     """
 
-    # ── MCP-специфичные поля ───────────────────────────────────────────
+    # ── MCP-specific fields ─────────────────────────────────────────────
 
     tool_name: str = ""
     description: str = ""
@@ -117,28 +114,22 @@ class McpRouteRecord(BaseRouteRecord):
 
     def __post_init__(self) -> None:
         """
-        Checks MCP-специфичные инварианты после создания экземпляра.
+        Validate MCP-specific invariants after construction.
 
-        Порядок:
-
-        1. Вызов ``super().__post_init__()`` — проверка инвариантов
-           BaseRouteRecord (action_class, маппинг, извлечение P и R,
-           запрет прямого создания BaseRouteRecord).
-
-        2. Проверка tool_name: непустой после strip().
+        Order:
+        1. Call ``super().__post_init__()`` for BaseRouteRecord invariants.
+        2. Validate non-empty ``tool_name`` after ``strip()``.
 
         Raises:
-            TypeError: от BaseRouteRecord (action_class не BaseAction,
-                       не удалось извлечь P и R).
-            ValueError: от BaseRouteRecord (маппер отсутствует при
-                        различающихся типах); tool_name пустой.
+            TypeError: propagated from BaseRouteRecord.
+            ValueError: propagated from BaseRouteRecord or empty ``tool_name``.
         """
-        # ── 1. Инварианты BaseRouteRecord ──
+        # ── 1. BaseRouteRecord invariants ──
         super().__post_init__()
 
-        # ── 2. Проверка tool_name ──
+        # ── 2. tool_name validation ──
         if not self.tool_name or not self.tool_name.strip():
             raise ValueError(
-                "tool_name не может быть пустой строкой. "
-                "Укажите имя инструмента, например 'orders.create'."
+                "tool_name cannot be empty. "
+                "Provide a tool identifier, for example 'orders.create'."
             )

@@ -1,38 +1,38 @@
 # tests/intents/checkers/test_result_bool_checker.py
 """
-Тесты ResultBoolChecker — чекер булевых полей результата аспекта.
+Tests for ResultBoolChecker — validates boolean fields in aspect results.
 
 ═══════════════════════════════════════════════════════════════════════════════
-НАЗНАЧЕНИЕ
+PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Проверяет, что ResultBoolChecker корректно валидирует булевые значения
-в словаре результата аспекта. Принимает только True и False —
-числа (0, 1), строки ("true", "false") и другие типы отклоняются.
+Ensures ResultBoolChecker correctly validates boolean values in the aspect
+result dict. Only True and False are accepted — numbers (0, 1), strings
+("true", "false"), and other types are rejected.
 
 ═══════════════════════════════════════════════════════════════════════════════
-СЦЕНАРИИ
+SCENARIOS
 ═══════════════════════════════════════════════════════════════════════════════
 
 TestValidValues
-    - True и False принимаются без ошибок.
+    - True and False accepted without error.
 
 TestInvalidValues
-    - Целые числа (0, 1) — не bool, ошибка.
-    - Строки ("true", "false") — не bool, ошибка.
-    - None при required=True — ошибка (поле обязательно).
-    - Список, словарь — не bool, ошибка.
+    - ints (0, 1) — not bool → error.
+    - strings ("true", "false") — not bool → error.
+    - None with required=True → error.
+    - list, dict — not bool → error.
 
 TestRequired
-    - required=True: отсутствующее или None поле вызывает ошибку.
-    - required=False: отсутствующее или None поле допускается.
-    - required=False: присутствующее не-bool поле всё равно вызывает ошибку.
+    - required=True: missing or None field → error.
+    - required=False: missing or None field allowed.
+    - required=False: present non-bool still → error.
 
 TestDecorator
-    - result_bool записывает _checker_meta в функцию.
-    - Параметры checker_class, field_name, required сохраняются корректно.
-    - Декоратор возвращает оригинальную функцию без изменений.
-    - Несколько декораторов на одном методе — список растёт.
+    - result_bool records _checker_meta on the function.
+    - checker_class, field_name, required stored correctly.
+    - Decorator returns the original function unchanged.
+    - Multiple decorators on one method grow the list.
 """
 
 import pytest
@@ -41,40 +41,40 @@ from action_machine.intents.checkers.result_bool_checker import ResultBoolChecke
 from action_machine.model.exceptions import ValidationFieldError
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Валидные значения
+# Valid values
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestValidValues:
-    """Проверяет, что True и False принимаются без ошибок."""
+    """True and False are accepted without error."""
 
     def test_true_accepted(self):
-        """True — валидное булево значение."""
+        """True is a valid boolean."""
         # Arrange
         checker = ResultBoolChecker("is_active", required=True)
 
-        # Act & Assert — исключения нет
+        # Act & Assert — no exception
         checker.check({"is_active": True})
 
     def test_false_accepted(self):
-        """False — валидное булево значение."""
+        """False is a valid boolean."""
         # Arrange
         checker = ResultBoolChecker("is_deleted", required=True)
 
-        # Act & Assert — исключения нет
+        # Act & Assert — no exception
         checker.check({"is_deleted": False})
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Невалидные значения
+# Invalid values
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestInvalidValues:
-    """Проверяет отклонение не-bool типов с выбросом ValidationFieldError."""
+    """Non-bool types raise ValidationFieldError."""
 
     def test_int_zero_rejected(self):
-        """Целое число 0 — не bool, хотя falsy."""
+        """int 0 is not bool despite being falsy."""
         # Arrange
         checker = ResultBoolChecker("flag", required=True)
 
@@ -83,7 +83,7 @@ class TestInvalidValues:
             checker.check({"flag": 0})
 
     def test_int_one_rejected(self):
-        """Целое число 1 — не bool, хотя truthy."""
+        """int 1 is not bool despite being truthy."""
         # Arrange
         checker = ResultBoolChecker("flag", required=True)
 
@@ -92,7 +92,7 @@ class TestInvalidValues:
             checker.check({"flag": 1})
 
     def test_string_true_rejected(self):
-        """Строка 'true' — не bool."""
+        """String 'true' is not bool."""
         # Arrange
         checker = ResultBoolChecker("flag", required=True)
 
@@ -101,7 +101,7 @@ class TestInvalidValues:
             checker.check({"flag": "true"})
 
     def test_string_false_rejected(self):
-        """Строка 'false' — не bool."""
+        """String 'false' is not bool."""
         # Arrange
         checker = ResultBoolChecker("flag", required=True)
 
@@ -110,7 +110,7 @@ class TestInvalidValues:
             checker.check({"flag": "false"})
 
     def test_list_rejected(self):
-        """Список — не bool."""
+        """List is not bool."""
         # Arrange
         checker = ResultBoolChecker("flag", required=True)
 
@@ -119,7 +119,7 @@ class TestInvalidValues:
             checker.check({"flag": [True]})
 
     def test_dict_rejected(self):
-        """Словарь — не bool."""
+        """Dict is not bool."""
         # Arrange
         checker = ResultBoolChecker("flag", required=True)
 
@@ -128,7 +128,7 @@ class TestInvalidValues:
             checker.check({"flag": {"value": True}})
 
     def test_none_rejected_when_required(self):
-        """None при required=True вызывает ошибку."""
+        """None with required=True raises."""
         # Arrange
         checker = ResultBoolChecker("flag", required=True)
 
@@ -137,7 +137,7 @@ class TestInvalidValues:
             checker.check({"flag": None})
 
     def test_error_message_contains_field_name(self):
-        """Сообщение об ошибке содержит имя поля."""
+        """Error message includes field name."""
         # Arrange
         checker = ResultBoolChecker("is_valid", required=True)
 
@@ -146,7 +146,7 @@ class TestInvalidValues:
             checker.check({"is_valid": "yes"})
 
     def test_error_message_contains_actual_type(self):
-        """Сообщение об ошибке содержит фактический тип значения."""
+        """Error message includes actual value type."""
         # Arrange
         checker = ResultBoolChecker("is_valid", required=True)
 
@@ -156,15 +156,15 @@ class TestInvalidValues:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Обязательность поля (required)
+# Required field
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestRequired:
-    """Проверяет поведение флага required для обязательных и опциональных полей."""
+    """Behavior of required for mandatory vs optional fields."""
 
     def test_required_missing_field_raises(self):
-        """Отсутствующее обязательное поле вызывает ошибку."""
+        """Missing required field raises."""
         # Arrange
         checker = ResultBoolChecker("flag", required=True)
 
@@ -173,7 +173,7 @@ class TestRequired:
             checker.check({})
 
     def test_required_none_raises(self):
-        """None в обязательном поле вызывает ошибку."""
+        """None in required field raises."""
         # Arrange
         checker = ResultBoolChecker("flag", required=True)
 
@@ -182,23 +182,23 @@ class TestRequired:
             checker.check({"flag": None})
 
     def test_optional_missing_field_passes(self):
-        """Отсутствующее опциональное поле допускается."""
+        """Missing optional field allowed."""
         # Arrange
         checker = ResultBoolChecker("flag", required=False)
 
-        # Act & Assert — исключения нет
+        # Act & Assert — no exception
         checker.check({})
 
     def test_optional_none_passes(self):
-        """None в опциональном поле допускается."""
+        """None in optional field allowed."""
         # Arrange
         checker = ResultBoolChecker("flag", required=False)
 
-        # Act & Assert — исключения нет
+        # Act & Assert — no exception
         checker.check({"flag": None})
 
     def test_optional_invalid_type_still_raises(self):
-        """Даже в опциональном поле не-bool значение вызывает ошибку."""
+        """Non-bool value still raises when field is optional but present."""
         # Arrange
         checker = ResultBoolChecker("flag", required=False)
 
@@ -208,15 +208,15 @@ class TestRequired:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Декоратор result_bool
+# result_bool decorator
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestDecorator:
-    """Проверяет, что декоратор result_bool записывает метаданные в функцию."""
+    """result_bool decorator records metadata on the function."""
 
     def test_checker_meta_attached(self):
-        """Декоратор создаёт атрибут _checker_meta."""
+        """Decorator creates _checker_meta attribute."""
         # Arrange & Act
         @result_bool("is_active")
         async def aspect(self, params, state, box, connections):
@@ -227,7 +227,7 @@ class TestDecorator:
         assert len(aspect._checker_meta) == 1
 
     def test_checker_class_is_result_bool_checker(self):
-        """Метаданные содержат правильный класс чекера."""
+        """Metadata contains correct checker class."""
         # Arrange & Act
         @result_bool("is_active")
         async def aspect(self, params, state, box, connections):
@@ -238,7 +238,7 @@ class TestDecorator:
         assert meta["checker_class"] is ResultBoolChecker
 
     def test_field_name_recorded(self):
-        """Имя поля сохраняется в метаданных."""
+        """Field name stored in metadata."""
         # Arrange & Act
         @result_bool("is_deleted")
         async def aspect(self, params, state, box, connections):
@@ -249,7 +249,7 @@ class TestDecorator:
         assert meta["field_name"] == "is_deleted"
 
     def test_required_default_true(self):
-        """По умолчанию required=True."""
+        """Default required=True."""
         # Arrange & Act
         @result_bool("flag")
         async def aspect(self, params, state, box, connections):
@@ -260,7 +260,7 @@ class TestDecorator:
         assert meta["required"] is True
 
     def test_required_false_recorded(self):
-        """Явное required=False сохраняется."""
+        """Explicit required=False stored."""
         # Arrange & Act
         @result_bool("flag", required=False)
         async def aspect(self, params, state, box, connections):
@@ -271,7 +271,7 @@ class TestDecorator:
         assert meta["required"] is False
 
     def test_decorator_returns_original_function(self):
-        """Декоратор возвращает оригинальную функцию без изменений."""
+        """Decorator returns the original function unchanged."""
         # Arrange
         async def original(self, params, state, box, connections):
             return {"flag": True}
@@ -283,7 +283,7 @@ class TestDecorator:
         assert decorated is original
 
     def test_multiple_decorators_accumulate(self):
-        """Несколько декораторов на одном методе создают список метаданных."""
+        """Multiple decorators on one method build a metadata list."""
         # Arrange & Act
         @result_bool("is_active")
         @result_bool("is_verified")

@@ -1,37 +1,74 @@
 # src/action_machine/resources/__init__.py
 """
-Пакет управления ресурсными соединениями ActionMachine.
+ActionMachine resource connection package.
 
-Содержит базовые абстракции и декораторы для работы с внешними ресурсами
-(базы данных, кеши, очереди сообщений и т.д.):
+═══════════════════════════════════════════════════════════════════════════════
+PURPOSE
+═══════════════════════════════════════════════════════════════════════════════
 
-- BaseResourceManager — абстрактный базовый класс для всех менеджеров
-  ресурсов. Определяет контракт get_wrapper_class().
-- SqlConnectionManager — базовый класс SQL-менеджера с методами
-  open/begin/commit/rollback/execute.
-- WrapperSqlConnectionManager — прокси-обёртка, запрещающая управление
-  транзакциями на вложенных уровнях, но разрешающая выполнение запросов.
-- ConnectionIntent — маркерный миксин, разрешающий применение @connection.
-  Класс без этого миксина не может быть целью @connection.
-- ConnectionInfo — frozen-датакласс, описывающий одно соединение
-  (класс менеджера, ключ, описание).
-- connection — декоратор для объявления соединений на классе действия.
-- Connections — базовый TypedDict для словаря connections (модуль ``connections_typed_dict``).
+This package defines public resource-connection contracts used by actions:
+base manager abstraction, ``@connection`` declaration API, marker intent, and
+typed ``connections`` payload interface.
 
-Конкретные реализации менеджеров (PostgreSQL, Redis и др.) находятся
-в пакете action_machine.integrations и устанавливаются отдельно:
+═══════════════════════════════════════════════════════════════════════════════
+INVARIANTS
+═══════════════════════════════════════════════════════════════════════════════
 
-    pip install action-machine[postgres]
-    from action_machine.integrations.postgres import PostgresConnectionManager
+- ``@connection`` can target only classes that carry ``ConnectionIntent``.
+- Connection declarations are represented as immutable ``ConnectionInfo`` records.
+- Runtime connection payload must match declared keys and manager types.
 
-Типичный поток:
-    1. @connection(PostgresManager, key="db") записывает ConnectionInfo
-       в cls._connection_info.
-    2. ``ConnectionIntentInspector`` при ``GateCoordinator.build()`` читает
-       ``_connection_info`` и формирует facet-снимок / узел графа.
-    3. ActionProductMachine._check_connections() сравнивает ключи из facet-снимка
-       ``connections`` с аргументом ``connections``.
-    4. Аспекты получают connections["db"] — экземпляр менеджера ресурсов.
+═══════════════════════════════════════════════════════════════════════════════
+ARCHITECTURE / DATA FLOW
+═══════════════════════════════════════════════════════════════════════════════
+
+    Action class + @connection(...)
+              |
+              v
+    class-level _connection_info scratch
+              |
+              v
+    ConnectionIntentInspector at GateCoordinator.build()
+              |
+              v
+    Facet snapshot / graph metadata
+              |
+              v
+    ActionProductMachine._check_connections()
+              |
+              v
+    Aspect methods receive connections["key"] manager instances
+
+═══════════════════════════════════════════════════════════════════════════════
+EXAMPLES
+═══════════════════════════════════════════════════════════════════════════════
+
+Happy path:
+    ``@connection(PostgresConnectionManager, key="db")`` declares one resource
+    key, runtime validates provided payload, and aspects read ``connections["db"]``.
+
+Edge case:
+    Missing/extra connection keys or invalid manager instance type raises
+    connection validation errors before action pipeline proceeds.
+
+═══════════════════════════════════════════════════════════════════════════════
+ERRORS / LIMITATIONS
+═══════════════════════════════════════════════════════════════════════════════
+
+- Concrete integrations (Postgres, Redis, etc.) live in optional integration packages.
+- Nested transaction restrictions are enforced by wrapper managers.
+- This module exports contracts; it does not implement concrete managers.
+
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE-BEGIN
+═══════════════════════════════════════════════════════════════════════════════
+ROLE: Public API surface for resource connection declarations and contracts.
+CONTRACT: Actions declare resources via @connection and receive typed payload.
+INVARIANTS: ConnectionIntent marker required; ConnectionInfo remains immutable.
+FLOW: decorator -> inspector snapshot -> runtime payload validation -> usage.
+FAILURES: Payload/declaration mismatch surfaces as validation or transaction errors.
+EXTENSION POINTS: Add new manager implementations in integrations packages.
+AI-CORE-END
 """
 
 from action_machine.resources.base_resource_manager import BaseResourceManager

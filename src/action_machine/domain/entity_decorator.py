@@ -6,8 +6,8 @@ The ``@entity`` decorator — declare a class as a domain entity.
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-``@entity`` is the single entry point for declaring an **entity** in the
-ActionMachine domain model. It does three things:
+``@entity`` is the declaration entry point for entities in the domain model.
+It performs three responsibilities:
 
 1. **Intent check** — the target class must inherit ``EntityIntent``
    (``BaseEntity`` does this for you). Otherwise → ``EntityDecoratorError``.
@@ -61,7 +61,7 @@ INVARIANTS
 - Decorator order relative to other class decorators is otherwise unconstrained.
 
 ═══════════════════════════════════════════════════════════════════════════════
-INTEGRATION (SCRATCH → COORDINATOR)
+ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
     @entity(description="Customer order", domain=ShopDomain)
@@ -95,11 +95,25 @@ EXAMPLE
         status: str = Field(description="Workflow status")
 
 ═══════════════════════════════════════════════════════════════════════════════
-ERRORS
+ERRORS / LIMITATIONS
 ═══════════════════════════════════════════════════════════════════════════════
 
     EntityDecoratorError — wrong target type, missing ``EntityIntent``, bad
                            ``description`` / ``domain``.
+
+The decorator validates declaration metadata only. Graph-level consistency is
+validated later during coordinator ``build()`` by inspectors.
+
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE-BEGIN
+═══════════════════════════════════════════════════════════════════════════════
+ROLE: Domain entity declaration decorator.
+CONTRACT: Validate declaration metadata and write ``_entity_info`` scratch on class.
+INVARIANTS: Target must satisfy ``EntityIntent`` contract; metadata is import-time validated.
+FLOW: decorator args validation -> class target validation -> scratch write -> inspector consumption at build.
+FAILURES: ``EntityDecoratorError`` for invalid arguments or invalid target classes.
+EXTENSION POINTS: Applications specialize domain modeling by combining ``@entity`` with custom BaseDomain hierarchies.
+AI-CORE-END
 """
 
 from __future__ import annotations
@@ -146,6 +160,14 @@ def entity(
         @entity(description="Customer order", domain=ShopDomain)
         class OrderEntity(BaseEntity):
             id: str = Field(description="Order id")
+
+    AI-CORE-BEGIN
+    PURPOSE: Import-time declaration point for entity metadata.
+    INPUT/OUTPUT: Accepts validated ``description``/``domain`` and returns a class decorator.
+    SIDE EFFECTS: Writes ``cls._entity_info`` used later by ``EntityIntentInspector``.
+    FAILURES: Raises ``EntityDecoratorError`` via target/argument validators.
+    ORDER: Runs at class definition time before coordinator graph build.
+    AI-CORE-END
     """
     validate_entity_description(description)
     validate_entity_domain(domain)

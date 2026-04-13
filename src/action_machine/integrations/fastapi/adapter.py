@@ -1,33 +1,33 @@
 # src/action_machine/integrations/fastapi/adapter.py
 """
-FastApiAdapter — HTTP-адаптер для ActionMachine на базе FastAPI.
+FastApiAdapter — HTTP adapter for ActionMachine using FastAPI.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-FastApiAdapter превращает Action в HTTP-эндпоинты FastAPI. Один вызов
-протокольного methodа (post, get, put, delete, patch) = один эндпоинт.
-Все протокольные methodы возвращают self для поддержки fluent chain:
+FastApiAdapter converts Actions into FastAPI HTTP endpoints. One call to a
+protocol method (post/get/put/delete/patch) registers one endpoint.
+All protocol methods return ``self`` for fluent chaining:
 
     app = adapter \\
         .get("/api/v1/ping", PingAction, tags=["system"]) \\
         .post("/api/v1/orders", CreateOrderAction, tags=["orders"]) \\
         .build()
 
-OpenAPI-документация генерируется автоматически из метаданных, которые
-уже есть в коде: описания полей из ``Field(description=...)``, ограничения
-из ``Field(gt=0, min_length=3, pattern=...)``, summary из ``@meta``,
-теги из аргумента ``tags`` при регистрации.
+OpenAPI documentation is generated automatically from metadata already declared
+in code: field descriptions from ``Field(description=...)``, constraints from
+``Field(gt=0, min_length=3, pattern=...)``, summary from ``@meta``, and tags
+from route registration arguments.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ОБЯЗАТЕЛЬНАЯ АУТЕНТИФИКАЦИЯ
+REQUIRED AUTHENTICATION
 ═══════════════════════════════════════════════════════════════════════════════
 
-Параметр auth_coordinator обязателен (наследуется от BaseAdapter).
-Разработчик не может «забыть» подключить аутентификацию — это error
-компиляции (TypeError при auth_coordinator=None), а не молчаливый баг
-в production. Для открытых API используется NoAuthCoordinator:
+The ``auth_coordinator`` argument is required (inherited from ``BaseAdapter``).
+This prevents accidental auth omission: ``auth_coordinator=None`` fails fast
+with ``TypeError`` instead of becoming a silent production bug. For open APIs,
+use ``NoAuthCoordinator`` explicitly:
 
     from action_machine.intents.auth import NoAuthCoordinator
 
@@ -37,50 +37,48 @@ OpenAPI-документация генерируется автоматичес
     )
 
 ═══════════════════════════════════════════════════════════════════════════════
-КОНВЕНЦИЯ ИМЕНОВАНИЯ МАППЕРОВ
+MAPPER NAMING CONVENTION
 ═══════════════════════════════════════════════════════════════════════════════
 
-Каждый маппер назван по тому, что он ВОЗВРАЩАЕТ:
+Each mapper is named by what it RETURNS:
 
-    params_mapper   → возвращает params   (преобразует request → params)
-    response_mapper → возвращает response (преобразует result  → response)
-
-═══════════════════════════════════════════════════════════════════════════════
-СТРАТЕГИИ ГЕНЕРАЦИИ ENDPOINT
-═══════════════════════════════════════════════════════════════════════════════
-
-Адаптер использует три стратегии генерации endpoint в зависимости от
-HTTP-methodа и наличия полей у модели parameters:
-
-1. POST/PUT/PATCH с непустыми Params — параметры передаются в JSON body.
-   FastAPI автоматически валидирует body по Pydantic-модели.
-
-2. GET/DELETE с непустыми Params — параметры передаются как Query
-   параметры. Если URL содержит path-параметры (например, {order_id}),
-   FastAPI извлекает их из пути, остальные — из query string.
-
-3. Любой method с пустыми Params (без полей) — endpoint не принимает
-   body и query parameters. Пустой экземпляр Params создаётся внутри
-   handler.
+    params_mapper   -> returns params   (transforms request -> params)
+    response_mapper -> returns response (transforms result  -> response)
 
 ═══════════════════════════════════════════════════════════════════════════════
-ОБРАБОТКА ОШИБОК
+ENDPOINT GENERATION STRATEGIES
 ═══════════════════════════════════════════════════════════════════════════════
 
-Exception handlers регистрируются на уровне FastAPI-приложения:
+The adapter uses three endpoint generation strategies depending on HTTP method
+and whether the params model has fields:
 
-    AuthorizationError      → HTTP 403 {"detail": "..."}
-    ValidationFieldError    → HTTP 422 {"detail": "..."}
+1. POST/PUT/PATCH with non-empty Params -> parameters are passed in JSON body.
+   FastAPI validates the body using the Pydantic model.
 
-Необработанные исключения перехватываются через middleware, которое
-оборачивает каждый запрос в try/except и возвращает 500 при любой
-ошибке, не пойманной выше.
+2. GET/DELETE with non-empty Params -> parameters are passed via query/path.
+   If URL has path params (e.g. ``{order_id}``), FastAPI extracts those from
+   path and the rest from query string.
+
+3. Any method with empty Params (no fields) -> endpoint takes no body/query.
+   Empty Params instance is created inside the handler.
+
+═══════════════════════════════════════════════════════════════════════════════
+ERROR HANDLING
+═══════════════════════════════════════════════════════════════════════════════
+
+Exception handlers are registered at application level:
+
+    AuthorizationError   -> HTTP 403 {"detail": "..."}
+    ValidationFieldError -> HTTP 422 {"detail": "..."}
+
+Unhandled exceptions are caught by middleware wrapping each request in
+try/except and returning HTTP 500 for any error not handled above.
 
 ═══════════════════════════════════════════════════════════════════════════════
 HEALTH CHECK
 ═══════════════════════════════════════════════════════════════════════════════
 
-Эндпоинт ``GET /health`` добавляется автоматически при ``build()``.
+Endpoint ``GET /health`` is added automatically during ``build()``.
 Returns ``{"status": "ok"}``.
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -134,7 +132,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Вспомогательные функции модульного уровня
+# Module-level helper functions
 # ═════════════════════════════════════════════════════════════════════════════
 
 _PATH_PARAM_PATTERN: re.Pattern[str] = re.compile(r"\{(\w+)\}")
@@ -146,16 +144,16 @@ def _fastapi_route_label(record: FastApiRouteRecord) -> str:
 
 def _get_meta_description(action_class: type) -> str:
     """
-    Извлекает description из ``@meta`` действия.
+    Extract description from action ``@meta`` declaration.
 
-    Используется для автоматического заполнения summary эндпоинта,
-    если разработчик не указал его явно при регистрации маршрута.
+    Used to auto-fill endpoint summary when summary is not provided explicitly
+    during route registration.
 
     Args:
-        action_class: класс действия.
+        action_class: action class.
 
     Returns:
-        str — description из @meta или пустая строка.
+        Description string from ``@meta`` or empty string.
     """
     meta_info = getattr(action_class, "_meta_info", None)
     if meta_info and isinstance(meta_info, dict):
@@ -165,16 +163,16 @@ def _get_meta_description(action_class: type) -> str:
 
 def _get_model_fields(model: type) -> dict[str, Any]:
     """
-    Returns словарь полей Pydantic-модели.
+    Return Pydantic model fields as a dictionary.
 
-    Для Pydantic BaseModel использует model_fields.
-    Для других типов возвращает пустой словарь.
+    For Pydantic ``BaseModel`` uses ``model_fields``.
+    For other types returns an empty dict.
 
     Args:
-        model: класс модели (Pydantic BaseModel или другой тип).
+        model: model class (Pydantic ``BaseModel`` or another type).
 
     Returns:
-        dict — словарь {имя_поля: FieldInfo} или пустой словарь.
+        Dict of ``{field_name: FieldInfo}`` or empty dict.
     """
     if isinstance(model, type) and issubclass(model, BaseModel):
         return model.model_fields
@@ -183,35 +181,35 @@ def _get_model_fields(model: type) -> dict[str, Any]:
 
 def _extract_path_params(path: str) -> set[str]:
     """
-    Извлекает имена path-parameters из URL-шаблона.
+    Extract path-parameter names from URL template.
 
     Args:
-        path: URL-путь с параметрами вида {param_name}.
+        path: URL path with placeholders like ``{param_name}``.
 
     Returns:
-        set[str] — множество имён path-parameters.
+        Set of path-parameter names.
     """
     return set(_PATH_PARAM_PATTERN.findall(path))
 
 
 def _has_body_method(method: str) -> bool:
     """
-    Определяет, поддерживает ли HTTP-method тело запроса (body).
+    Return whether HTTP method supports request body.
 
-    POST, PUT, PATCH — поддерживают body.
-    GET, DELETE — не поддерживают body.
+    POST/PUT/PATCH support body.
+    GET/DELETE do not use body in this adapter.
 
     Args:
-        method: HTTP-method в верхнем регистре.
+        method: uppercase HTTP method.
 
     Returns:
-        True если method поддерживает body.
+        True if method supports body.
     """
     return method in ("POST", "PUT", "PATCH")
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Фабрики endpoint-функций
+# Endpoint function factories
 # ═════════════════════════════════════════════════════════════════════════════
 
 
@@ -222,21 +220,19 @@ def _make_endpoint_with_body(
     connections_factory: Callable[..., dict[str, BaseResourceManager]] | None,
 ) -> Callable[..., Any]:
     """
-    Создаёт endpoint для methodов с JSON body (POST, PUT, PATCH).
+    Create endpoint for methods with JSON body (POST, PUT, PATCH).
 
-    Параметр ``body`` аннотирован конкретным Pydantic-классом.
-    FastAPI автоматически валидирует тело запроса и генерирует
-    OpenAPI schema.
+    ``body`` parameter is annotated with concrete Pydantic model.
+    FastAPI validates request body and generates OpenAPI schema automatically.
 
     Args:
-        record: конфигурация маршрута.
-        machine: машина выполнения действий.
-        auth_coordinator: координатор аутентификации (AuthCoordinator
-                          или NoAuthCoordinator). Обязательный.
-        connections_factory: фабрика соединений (или None).
+        record: route configuration.
+        machine: action execution machine.
+        auth_coordinator: authentication coordinator (required).
+        connections_factory: connections factory, or ``None``.
 
     Returns:
-        Async-функцию для передачи в ``app.add_api_route()``.
+        Async endpoint function for ``app.add_api_route()``.
     """
     req_model = record.effective_request_model
     has_params_mapper = record.params_mapper is not None
@@ -293,21 +289,20 @@ def _make_endpoint_with_query(
     connections_factory: Callable[..., dict[str, BaseResourceManager]] | None,
 ) -> Callable[..., Any]:
     """
-    Создаёт endpoint для GET/DELETE с параметрами из query string и path.
+    Create endpoint for GET/DELETE with query/path parameters.
 
-    Каждое поле Pydantic-модели Params становится отдельным параметром
-    endpoint-функции. FastAPI определяет по аннотациям, какие параметры
-    извлекать из path (если имя совпадает с {param} в URL), а какие —
-    из query string.
+    Each Params model field becomes a function argument. FastAPI resolves which
+    parameters come from path and which from query string using annotations and
+    route path placeholders.
 
     Args:
-        record: конфигурация маршрута.
-        machine: машина выполнения действий.
-        auth_coordinator: координатор аутентификации. Обязательный.
-        connections_factory: фабрика соединений (или None).
+        record: route configuration.
+        machine: action execution machine.
+        auth_coordinator: authentication coordinator (required).
+        connections_factory: connections factory, or ``None``.
 
     Returns:
-        Async-функцию для передачи в ``app.add_api_route()``.
+        Async endpoint function for ``app.add_api_route()``.
     """
     req_model = record.effective_request_model
     has_params_mapper = record.params_mapper is not None
@@ -389,19 +384,19 @@ def _make_endpoint_no_params(
     connections_factory: Callable[..., dict[str, BaseResourceManager]] | None,
 ) -> Callable[..., Any]:
     """
-    Создаёт endpoint для действий с пустыми Params (без полей).
+    Create endpoint for actions with empty Params (no fields).
 
-    Endpoint не принимает body и query parameters. Пустой экземпляр
-    Params создаётся внутри handler.
+    Endpoint accepts no body/query parameters. Empty Params instance is created
+    inside handler.
 
     Args:
-        record: конфигурация маршрута.
-        machine: машина выполнения действий.
-        auth_coordinator: координатор аутентификации. Обязательный.
-        connections_factory: фабрика соединений (или None).
+        record: route configuration.
+        machine: action execution machine.
+        auth_coordinator: authentication coordinator (required).
+        connections_factory: connections factory, or ``None``.
 
     Returns:
-        Async-функцию для передачи в ``app.add_api_route()``.
+        Async endpoint function for ``app.add_api_route()``.
     """
     req_model = record.effective_request_model
     has_params_mapper = record.params_mapper is not None
@@ -454,23 +449,22 @@ def _make_endpoint(
     connections_factory: Callable[..., dict[str, BaseResourceManager]] | None,
 ) -> Callable[..., Any]:
     """
-    Фабрика endpoint-функций для FastAPI.
+    Endpoint factory for FastAPI.
 
-    Выбирает стратегию генерации endpoint на основе HTTP-methodа
-    и наличия полей у модели parameters:
+    Chooses generation strategy by HTTP method and Params model shape:
 
-    1. Пустая модель (нет полей) → endpoint без parameters.
-    2. POST/PUT/PATCH с полями → endpoint с JSON body.
-    3. GET/DELETE с полями → endpoint с query/path параметрами.
+    1. Empty model (no fields) -> endpoint without parameters.
+    2. POST/PUT/PATCH with fields -> endpoint with JSON body.
+    3. GET/DELETE with fields -> endpoint with query/path parameters.
 
     Args:
-        record: конфигурация маршрута.
-        machine: машина выполнения действий.
-        auth_coordinator: координатор аутентификации. Обязательный.
-        connections_factory: фабрика соединений (или None).
+        record: route configuration.
+        machine: action execution machine.
+        auth_coordinator: authentication coordinator (required).
+        connections_factory: connections factory, or ``None``.
 
     Returns:
-        Async-функцию, пригодную для передачи в ``app.add_api_route()``.
+        Async function suitable for ``app.add_api_route()``.
     """
     model_fields = _get_model_fields(record.effective_request_model)
 
@@ -490,10 +484,9 @@ def _make_endpoint(
 
 class _CatchAllErrorsMiddleware(BaseHTTPMiddleware):
     """
-    Middleware для перехвата необработанных исключений.
+    Middleware that catches unhandled exceptions.
 
-    Оборачивает каждый запрос в try/except и гарантирует возврат HTTP 500
-    при любой непойманной ошибке.
+    Wraps each request in try/except and guarantees HTTP 500 for uncaught errors.
     """
 
     async def dispatch(
@@ -510,31 +503,31 @@ class _CatchAllErrorsMiddleware(BaseHTTPMiddleware):
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Class адаптера
+# Adapter class
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
     """
-    HTTP-адаптер для ActionMachine на базе FastAPI.
+    FastAPI-based HTTP adapter for ActionMachine.
 
-    Наследует BaseAdapter[FastApiRouteRecord]. Предоставляет протокольные
-    methodы post(), get(), put(), delete(), patch() для регистрации
-    HTTP-эндпоинтов. Все протокольные methodы возвращают self для поддержки
-    fluent chain. Метод build() завершает цепочку и создаёт FastAPI-приложение.
+    Inherits ``BaseAdapter[FastApiRouteRecord]`` and exposes protocol methods
+    ``post/get/put/delete/patch`` for endpoint registration. All protocol
+    methods return ``self`` for fluent chaining. ``build()`` finalizes the
+    chain and creates FastAPI application.
 
-    Параметр auth_coordinator обязателен (наследуется от BaseAdapter).
-    Для открытых API используется NoAuthCoordinator().
+    ``auth_coordinator`` is required (inherited from ``BaseAdapter``). For open
+    APIs, use ``NoAuthCoordinator()`` explicitly.
 
-    Атрибуты:
+    Attributes:
         _title : str
-            Заголовок API для OpenAPI. Отображается в Swagger UI.
+            API title for OpenAPI/Swagger UI.
 
         _version : str
-            Версия API для OpenAPI.
+            API version for OpenAPI.
 
         _description : str
-            Описание API для OpenAPI. Поддерживает Markdown.
+            API description for OpenAPI (Markdown supported).
     """
 
     def __init__(
@@ -549,20 +542,19 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
         description: str = "",
     ) -> None:
         """
-        Инициализирует FastAPI-адаптер.
+        Initialize FastAPI adapter.
 
         Args:
-            machine: машина выполнения действий. Обязательный параметр.
-            auth_coordinator: координатор аутентификации. Обязательный параметр.
-                              Для открытых API используйте NoAuthCoordinator().
-                              None не допускается — TypeError.
-            connections_factory: фабрика соединений. Если None —
-                                 connections не передаются.
-            gate_coordinator: явный ``GateCoordinator``; по умолчанию
-                              ``machine.gate_coordinator``.
-            title: заголовок API для OpenAPI/Swagger UI.
-            version: версия API для OpenAPI.
-            description: описание API для OpenAPI. Поддерживает Markdown.
+            machine: action execution machine (required).
+            auth_coordinator: authentication coordinator (required).
+                For open APIs use ``NoAuthCoordinator()``. ``None`` is invalid.
+            connections_factory: connections factory; if ``None``, connections
+                are not passed.
+            gate_coordinator: explicit ``GateCoordinator``; defaults to
+                ``machine.gate_coordinator``.
+            title: API title for OpenAPI/Swagger UI.
+            version: API version for OpenAPI.
+            description: API description for OpenAPI (Markdown supported).
         """
         super().__init__(
             machine=machine,
@@ -575,26 +567,26 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
         self._description: str = description
 
     # ─────────────────────────────────────────────────────────────────────
-    # Свойства
+    # Properties
     # ─────────────────────────────────────────────────────────────────────
 
     @property
     def title(self) -> str:
-        """Заголовок API для OpenAPI."""
+        """API title for OpenAPI."""
         return self._title
 
     @property
     def version(self) -> str:
-        """Версия API для OpenAPI."""
+        """API version for OpenAPI."""
         return self._version
 
     @property
     def api_description(self) -> str:
-        """Описание API для OpenAPI."""
+        """API description for OpenAPI."""
         return self._description
 
     # ─────────────────────────────────────────────────────────────────────
-    # Внутренний method регистрации (fluent)
+    # Internal registration method (fluent)
     # ─────────────────────────────────────────────────────────────────────
 
     def _register(
@@ -613,10 +605,9 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
         deprecated: bool = False,
     ) -> Self:
         """
-        Создаёт FastApiRouteRecord, добавляет его в _routes и возвращает self.
+        Create ``FastApiRouteRecord``, append to ``_routes``, and return ``self``.
 
-        Если ``summary`` пуст — автоматически подставляется description
-        из ``@meta`` действия.
+        If ``summary`` is empty, fill it from action ``@meta`` description.
         """
         effective_summary = summary or _get_meta_description(action_class)
 
@@ -637,7 +628,7 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
         return self._add_route(record)
 
     # ─────────────────────────────────────────────────────────────────────
-    # Протокольные methodы (fluent — возвращают Self)
+    # Protocol methods (fluent — return Self)
     # ─────────────────────────────────────────────────────────────────────
 
     def post(
@@ -654,7 +645,7 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
         operation_id: str | None = None,
         deprecated: bool = False,
     ) -> Self:
-        """Регистрирует POST-эндпоинт. Returns self для fluent chain."""
+        """Register POST endpoint. Returns self for fluent chain."""
         return self._register(
             "POST", path, action_class, request_model, response_model,
             params_mapper, response_mapper, tags, summary, description,
@@ -675,7 +666,7 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
         operation_id: str | None = None,
         deprecated: bool = False,
     ) -> Self:
-        """Регистрирует GET-эндпоинт. Returns self для fluent chain."""
+        """Register GET endpoint. Returns self for fluent chain."""
         return self._register(
             "GET", path, action_class, request_model, response_model,
             params_mapper, response_mapper, tags, summary, description,
@@ -696,7 +687,7 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
         operation_id: str | None = None,
         deprecated: bool = False,
     ) -> Self:
-        """Регистрирует PUT-эндпоинт. Returns self для fluent chain."""
+        """Register PUT endpoint. Returns self for fluent chain."""
         return self._register(
             "PUT", path, action_class, request_model, response_model,
             params_mapper, response_mapper, tags, summary, description,
@@ -717,7 +708,7 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
         operation_id: str | None = None,
         deprecated: bool = False,
     ) -> Self:
-        """Регистрирует DELETE-эндпоинт. Returns self для fluent chain."""
+        """Register DELETE endpoint. Returns self for fluent chain."""
         return self._register(
             "DELETE", path, action_class, request_model, response_model,
             params_mapper, response_mapper, tags, summary, description,
@@ -738,7 +729,7 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
         operation_id: str | None = None,
         deprecated: bool = False,
     ) -> Self:
-        """Регистрирует PATCH-эндпоинт. Returns self для fluent chain."""
+        """Register PATCH endpoint. Returns self for fluent chain."""
         return self._register(
             "PATCH", path, action_class, request_model, response_model,
             params_mapper, response_mapper, tags, summary, description,
@@ -746,22 +737,22 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
         )
 
     # ─────────────────────────────────────────────────────────────────────
-    # Построение FastAPI-приложения
+    # FastAPI application build
     # ─────────────────────────────────────────────────────────────────────
 
     def build(self) -> FastAPI:
         """
-        Создаёт FastAPI-приложение из зарегистрированных маршрутов.
+        Create FastAPI application from registered routes.
 
-        Порядок инициализации:
-        1. Создание FastAPI-приложения с метаданными OpenAPI.
-        2. Добавление middleware для перехвата необработанных исключений.
-        3. Регистрация exception handlers.
-        4. Регистрация health check эндпоинта GET /health.
-        5. Генерация и регистрация endpoint для каждого маршрута.
+        Initialization order:
+        1. Create FastAPI app with OpenAPI metadata.
+        2. Add middleware for uncaught exception handling.
+        3. Register exception handlers.
+        4. Register health check endpoint ``GET /health``.
+        5. Generate/register endpoint for each route.
 
         Returns:
-            FastAPI — готовое приложение.
+            Ready-to-run FastAPI application.
         """
         app = FastAPI(
             title=self._title,
@@ -779,12 +770,12 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
         return app
 
     # ─────────────────────────────────────────────────────────────────────
-    # Генерация эндпоинтов
+    # Endpoint generation
     # ─────────────────────────────────────────────────────────────────────
 
     def _register_endpoint(self, app: FastAPI, record: FastApiRouteRecord) -> None:
         """
-        Генерирует и регистрирует один async endpoint из FastApiRouteRecord.
+        Generate and register one async endpoint from ``FastApiRouteRecord``.
         """
         endpoint = _make_endpoint(
             record=record,
@@ -812,10 +803,10 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
     @staticmethod
     def _register_exception_handlers(app: FastAPI) -> None:
         """
-        Регистрирует обработчики исключений ActionMachine на уровне приложения.
+        Register ActionMachine exception handlers at app level.
 
-            AuthorizationError   → HTTP 403 Forbidden
-            ValidationFieldError → HTTP 422 Unprocessable Entity
+            AuthorizationError   -> HTTP 403 Forbidden
+            ValidationFieldError -> HTTP 422 Unprocessable Entity
         """
 
         @app.exception_handler(AuthorizationError)
@@ -842,7 +833,7 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
 
     @staticmethod
     def _register_health_check(app: FastAPI) -> None:
-        """Добавляет ``GET /health → {"status": "ok"}``."""
+        """Add ``GET /health -> {"status": "ok"}`` endpoint."""
 
         @app.get("/health", tags=["system"])
         async def health_check() -> dict[str, str]:

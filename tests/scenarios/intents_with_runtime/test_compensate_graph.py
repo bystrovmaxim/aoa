@@ -1,57 +1,55 @@
 # tests/scenarios/intents_with_runtime/test_compensate_graph.py
-"""
-Интеграция компенсаторов (@compensate) с фасетным графом GateCoordinator.
+"""Integration of compensators (@compensate) with the GateCoordinator facet graph.
 
-═══════════════════════════════════════════════════════════════════════════════
-НАЗНАЧЕНИЕ
-═══════════════════════════════════════════════════════════════════════════════
+═══════════════════ ════════════════════ ════════════════════ ════════════════════
+PURPOSE
+═══════════════════ ════════════════════ ════════════════════ ════════════════════
 
-Проверяет, как ``CompensateIntentInspector`` вписывается в единую модель
-фасетов: **один** узел ``compensator`` на класс ``BaseAction``, независимо от
-числа методов отката. Имя узла — ``module.QualName`` **класса действия**, а не
-имени метода; детализация по каждому компенсатору — в ``meta.compensators`` как
-кортеж записей — каждая запись ``tuple[tuple[str, Any], ...]`` (пары ключ/значение,
-как ``_make_meta``): ``method_name``, ``target_aspect_name``, ``description``,
+Checks how ``CompensateIntentInspector`` fits into a single model
+facets: **one** ``compensator`` node per ``BaseAction`` class, regardless of
+number of rollback methods. The node name is ``module.QualName`` of the **action class**, not
+method name; details for each compensator - in ``meta.compensators`` as
+tuple of records - each record ``tuple[tuple[str, Any], ...]`` (key/value pairs,
+like ``_make_meta``): ``method_name``, ``target_aspect_name``, ``description``,
 ``method_ref``, ``context_keys``.
 
-═══════════════════════════════════════════════════════════════════════════════
-АРХИТЕКТУРНОЕ РЕШЕНИЕ (почему нет has_compensator в дереве)
-═══════════════════════════════════════════════════════════════════════════════
+═══════════════════ ════════════════════ ════════════════════ ════════════════════
+ARCHITECTURAL SOLUTION (why there is no has_compensator in the tree)
+═══════════════════ ════════════════════ ════════════════════ ════════════════════
 
-В старой визуализации координатора между узлом ``action`` и ``compensator``
-рисовалось ребро ``has_compensator``, а контекстные требования — отдельными
-рёбрами к ``context_field``. В фасетной сборке **рёбра из payload компенсатора
-пусты** (``edges=()``): связь «этот класс содержит компенсаторы» выражается
-фактом наличия узла с тем же ``class_ref``, а ``@context_requires`` на методе
-отката отражается **внутри** поля ``context_keys`` записи, без отдельного подграфа
-контекста. Это упрощает коммит графа и устраняет дублирование с runtime metadata,
-где те же данные уже есть для машины саги.
+In the old visualization of the coordinator between the ``action`` node and the ``compensator``
+the edge ``has_compensator`` was drawn, and the contextual requirements were drawn separately
+edges to ``context_field``. In a facet assembly **ribs from the payload compensator
+are empty** (``edges=()``): the "this class contains compensators" relationship is expressed
+the fact that there is a node with the same ``class_ref``, and ``@context_requires`` on the method
+rollback is reflected **inside** the ``context_keys`` field of the record, without a separate subgraph
+context. This simplifies committing the graph and eliminates duplication with runtime metadata.
+where the same data is already available for the saga machine.
 
-═══════════════════════════════════════════════════════════════════════════════
-СТРУКТУРНЫЙ УЗЕЛ action И ТЕСТЫ
-═══════════════════════════════════════════════════════════════════════════════
+═══════════════════ ════════════════════ ════════════════════ ════════════════════
+STRUCTURAL UNIT action AND TESTS
+═══════════════════ ════════════════════ ════════════════════ ════════════════════
 
-Инспекторы для ``@depends`` и ``@connection`` порождают один узел ``action``
-(после слияния в координаторе), но только при наличии этих деклараций.
-Тестовые действия в этом файле **без**
-зависимостей и соединений поэтому **не** создают structural ``action``; вместо
-«ребро action→compensator» проверяется согласованность ``meta`` и ``compensator``
-для одного ``class_ref``, а также набор типов фасетов через
+The inspectors for ``@depends`` and ``@connection`` spawn a single ``action`` node
+(after merging in the coordinator), but only if these declarations are present.
+Test actions in this file **without**
+dependencies and connections therefore **not** create structural ``action``; instead of
+"edge action→compensator" checks consistency between ``meta`` and ``compensator``
+for one ``class_ref``, as well as a set of facet types via
 ``get_nodes_for_class``.
 
-═══════════════════════════════════════════════════════════════════════════════
-СТРУКТУРА КЛАССОВ ТЕСТОВ
-═══════════════════════════════════════════════════════════════════════════════
+═══════════════════ ════════════════════ ════════════════════ ════════════════════
+STRUCTURE OF TEST CLASSES
+═══════════════════ ════════════════════ ════════════════════ ════════════════════
 
-TestCompensatorGraphNodes — корректность одного узла ``compensator`` и полей
-    ``meta.compensators``; фильтрация по ``class_ref`` (граф глобальный).
+TestCompensatorGraphNodes - correctness of one ``compensator`` node and fields
+    ``meta.compensators``; filtering by ``class_ref`` (global graph).
 
-TestCompensatorGraphEdges — согласованность facet ``meta`` и ``compensator``;
-    контекст на откате с ``@context_requires`` vs пустой frozenset.
+TestCompensatorGraphEdges - consistency between facet ``meta`` and ``compensator``;
+    context on rollback with ``@context_requires`` vs empty frozenset.
 
-TestCompensatorInDependencyTree — историческое имя класса; фактически проверка
-    множества ``node_type`` у ``get_nodes_for_class`` (facets класса).
-"""
+TestCompensatorInDependencyTree - historical class name; actually check
+    sets ``node_type`` in ``get_nodes_for_class`` (class facets)."""
 
 from __future__ import annotations
 
@@ -69,18 +67,16 @@ from action_machine.runtime.machines.core_action_machine import CoreActionMachin
 from tests.scenarios.domain_model.domains import TestDomain
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Вспомогательные функции и классы
+#Helper functions and classes
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 def _compensator_nodes_for(coordinator: GateCoordinator, action_cls: type) -> list[dict]:
-    """
-    Возвращает узлы ``compensator``, порождённые конкретным классом действия.
+    """Returns ``compensator`` nodes spawned by a particular action class.
 
-    Обязательно: глобальный ``get_nodes_by_type`` после ``build()`` включает
-    компенсаторы **других** тестовых модулей (например scenarios.domain_model), без
-    фильтра по ``class_ref`` неверны и счётчики, и выбор ``nodes[0]``.
-    """
+    Required: global ``get_nodes_by_type`` after ``build()`` includes
+    compensators for **other** test modules (for example scenarios.domain_model), without
+    filter by ``class_ref`` both counters and selection ``nodes[0]`` are incorrect."""
     return [
         n for n in coordinator.get_nodes_by_type("compensator")
         if n.get("class_ref") is action_cls
@@ -100,39 +96,39 @@ class EmptyResult(BaseResult):
     pass
 
 
-@meta(description="Тестовое действие с компенсатором", domain=TestDomain)
+@meta(description="Test action with compensator", domain=TestDomain)
 @check_roles(NoneRole)
 class ActionWithCompensatorAction(BaseAction[EmptyParams, EmptyResult]):
 
-    @regular_aspect("Аспект")
+    @regular_aspect("Aspect")
     async def target_aspect(self, params, state, box, connections):
         return {}
 
-    @compensate("target_aspect", "Тестовый компенсатор")
+    @compensate("target_aspect", "Test compensator")
     async def rollback_compensate(self, params, state_before, state_after,
                                   box, connections, error):
         pass
 
-    @summary_aspect("Саммари")
+    @summary_aspect("Summary")
     async def summary(self, params, state, box, connections):
         return EmptyResult()
 
 
-@meta(description="Тестовое действие с компенсатором и контекстом", domain=TestDomain)
+@meta(description="Test action with compensator and context", domain=TestDomain)
 @check_roles(NoneRole)
 class ActionWithContextCompensatorAction(BaseAction[EmptyParams, EmptyResult]):
 
-    @regular_aspect("Аспект")
+    @regular_aspect("Aspect")
     async def target_aspect(self, params, state, box, connections):
         return {}
 
-    @compensate("target_aspect", "Компенсатор с контекстом")
+    @compensate("target_aspect", "Compensator with context")
     @context_requires(Ctx.User.user_id)
     async def rollback_with_context_compensate(self, params, state_before, state_after,
                                                box, connections, error, ctx):
         pass
 
-    @summary_aspect("Саммари")
+    @summary_aspect("Summary")
     async def summary(self, params, state, box, connections):
         return EmptyResult()
 
@@ -143,13 +139,11 @@ class ActionWithContextCompensatorAction(BaseAction[EmptyParams, EmptyResult]):
 
 
 class TestCompensatorGraphNodes:
-    """Узел ``compensator`` и структура ``meta.compensators`` для одного Action-класса."""
+    """A ``compensator`` node and a ``meta.compensators`` structure for one Action class."""
 
     def test_compensator_node_created(self) -> None:
-        """
-        При регистрации действия с компенсатором появляется facet-узел 'compensator'
-        на этот класс с кортежом compensators в meta.
-        """
+        """When registering an action with a compensator, the 'compensator' facet node appears
+        to this class with a tuple of compensators in meta."""
         coordinator = _coordinator()
 
         nodes = _compensator_nodes_for(coordinator, ActionWithCompensatorAction)
@@ -161,12 +155,10 @@ class TestCompensatorGraphNodes:
         compensators = dict(node["meta"])["compensators"]
         row = dict(next(c for c in compensators if dict(c)["method_name"] == "rollback_compensate"))
         assert row["target_aspect_name"] == "target_aspect"
-        assert row["description"] == "Тестовый компенсатор"
+        assert row["description"] == "Test compensator"
 
     def test_get_nodes_by_type_returns_all_compensators(self) -> None:
-        """
-        Для каждого из двух действий — свой узел компенсатора (агрегат).
-        """
+        """For each of the two actions there is its own compensator unit (unit)."""
         coordinator = _coordinator()
 
         n1 = _compensator_nodes_for(coordinator, ActionWithCompensatorAction)
@@ -179,9 +171,7 @@ class TestCompensatorGraphNodes:
         assert any(ActionWithContextCompensatorAction.__qualname__ in n for n in names)
 
     def test_compensator_node_metadata(self) -> None:
-        """
-        meta.compensators хранит записи с ключами method_name, target_aspect_name, …
-        """
+        """meta.compensators stores entries with the keys method_name, target_aspect_name, ..."""
         coordinator = _coordinator()
 
         nodes = _compensator_nodes_for(coordinator, ActionWithCompensatorAction)
@@ -189,7 +179,7 @@ class TestCompensatorGraphNodes:
         rows = meta["compensators"]
         row = dict(next(r for r in rows if dict(r)["method_name"] == "rollback_compensate"))
         assert row["target_aspect_name"] == "target_aspect"
-        assert row["description"] == "Тестовый компенсатор"
+        assert row["description"] == "Test compensator"
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -198,15 +188,13 @@ class TestCompensatorGraphNodes:
 
 
 class TestCompensatorGraphEdges:
-    """
-    Согласованность фасетов ``meta`` и ``compensator`` для одного класса.
+    """Consistency of ``meta`` and ``compensator`` facets for the same class.
 
-    Structural ``action`` отсутствует у действий без ``@depends``/``@connection`` —
-    это ожидаемо и не является регрессией интеграции компенсаторов.
-    """
+    Structural ``action`` is missing for actions without ``@depends``/``@connection`` -
+    this is expected and is not a regression of compensator integration."""
 
     def test_has_compensator_edge_exists(self) -> None:
-        """Для действия есть facet meta и facet compensator (узел action только при depends/connection)."""
+        """For an action there is a facet meta and a facet compensator (action node only for depends/connection)."""
         coordinator = _coordinator()
 
         meta_nodes = [
@@ -218,9 +206,7 @@ class TestCompensatorGraphEdges:
         assert len(comp_nodes) == 1
 
     def test_requires_context_edge_for_compensator(self) -> None:
-        """
-        Ключи @context_requires попадают в meta.compensators (поле context_keys).
-        """
+        """@context_requires keys go into meta.compensators (context_keys field)."""
         coordinator = _coordinator()
 
         comp_nodes = _compensator_nodes_for(coordinator, ActionWithContextCompensatorAction)
@@ -230,7 +216,7 @@ class TestCompensatorGraphEdges:
         assert Ctx.User.user_id in row["context_keys"]
 
     def test_compensator_without_context_no_requires_context_edge(self) -> None:
-        """У компенсатора без @context_requires пустой frozenset контекста."""
+        """A compensator without @context_requires has an empty frozenset of context."""
         coordinator = _coordinator()
 
         comp_nodes = _compensator_nodes_for(coordinator, ActionWithCompensatorAction)
@@ -249,16 +235,14 @@ class TestCompensatorGraphEdges:
 
 
 class TestCompensatorInDependencyTree:
-    """
-    Фасеты, порождённые классом действия (``get_nodes_for_class``).
+    """Facets spawned by the action class (``get_nodes_for_class``).
 
-    Имя класса оставлено от старой формулировки «dependency tree»; проверка не
-    вызывает ``get_dependency_tree``, а фиксирует наличие ``compensator`` и
-    ``meta`` среди узлов с общим ``class_ref``.
-    """
+    The class name is left over from the old “dependency tree” formulation; no check
+    calls ``get_dependency_tree``, and records the presence of ``compensator`` and
+    ``meta`` among nodes with a common ``class_ref``."""
 
     def test_dependency_tree_includes_compensator(self) -> None:
-        """У зарегистрированного action есть facet compensator."""
+        """The registered action has a facet compensator."""
         coordinator = _coordinator()
 
         facets = {n["node_type"] for n in coordinator.get_nodes_for_class(ActionWithCompensatorAction)}
@@ -266,7 +250,7 @@ class TestCompensatorInDependencyTree:
         assert "meta" in facets
 
     def test_dependency_tree_depth_for_compensator_with_context(self) -> None:
-        """Компенсатор с контекстом хранит ключи в meta, без отдельных рёбер."""
+        """A compensator with context stores keys in meta, without separate edges."""
         coordinator = _coordinator()
 
         node = _compensator_nodes_for(coordinator, ActionWithContextCompensatorAction)[0]
@@ -276,4 +260,5 @@ class TestCompensatorInDependencyTree:
                 if dict(r)["method_name"] == "rollback_with_context_compensate"
             ),
         )
+        assert Ctx.User.user_id in row["context_keys"]
         assert Ctx.User.user_id in row["context_keys"]

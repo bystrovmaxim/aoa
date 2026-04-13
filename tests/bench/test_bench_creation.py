@@ -1,17 +1,60 @@
 # tests/bench/test_bench_creation.py
 """
-Тесты создания TestBench — хранение параметров и дефолты.
+Tests for constructing ``TestBench`` — stored parameters and defaults.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ПОКРЫВАЕМЫЕ СЦЕНАРИИ
+PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-- Создание без аргументов — рабочий объект с дефолтами.
-- coordinator — экземпляр GateCoordinator.
-- mocks — пустой словарь по умолчанию.
-- plugins — пустой список по умолчанию.
-- Мок сервиса (обычный объект) сохраняется как есть в _prepared_mocks.
-- AsyncMock сохраняется как есть (не оборачивается в MockAction).
+Assert default coordinator type, empty ``mocks`` / ``plugins``, and that
+``_prepare_mock`` rules apply at construction: plain service objects and
+``AsyncMock`` instances are stored as-is (not wrapped in ``MockAction``).
+
+═══════════════════════════════════════════════════════════════════════════════
+ARCHITECTURE / DATA FLOW
+═══════════════════════════════════════════════════════════════════════════════
+
+    TestBench(**kwargs)
+              |
+              v
+    GateCoordinator (default) + _prepare_all_mocks(mocks)
+              |
+              v
+    _prepared_mocks  ready for ``box.resolve()`` during runs
+
+═══════════════════════════════════════════════════════════════════════════════
+INVARIANTS
+═══════════════════════════════════════════════════════════════════════════════
+
+- Default bench is immediately usable for simple actions without extra mocks.
+- ``unittest.mock.Mock`` / ``AsyncMock`` must not be wrapped solely for being
+  callable.
+
+═══════════════════════════════════════════════════════════════════════════════
+EXAMPLES
+═══════════════════════════════════════════════════════════════════════════════
+
+    uv run pytest tests/bench/test_bench_creation.py -q
+
+Edge case: ``AsyncMock(spec=PaymentService)`` stays a raw mock in
+``_prepared_mocks``.
+
+═══════════════════════════════════════════════════════════════════════════════
+ERRORS / LIMITATIONS
+═══════════════════════════════════════════════════════════════════════════════
+
+- Inspects private ``_prepared_mocks`` to verify preparation without running the
+  full machine.
+
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE-BEGIN
+═══════════════════════════════════════════════════════════════════════════════
+ROLE: Construction and mock-preparation regression tests for ``TestBench``.
+CONTRACT: Defaults and passthrough rules for dependency mocks.
+INVARIANTS: ``PaymentService`` from scenario domain as a concrete stand-in.
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE-END
+═══════════════════════════════════════════════════════════════════════════════
 """
 
 from unittest.mock import AsyncMock
@@ -22,75 +65,42 @@ from tests.scenarios.domain_model import PaymentService
 
 
 class TestWithoutArguments:
-    """TestBench создаётся без аргументов с разумными дефолтами."""
+    """``TestBench()`` yields usable defaults."""
 
     def test_coordinator_is_gate_coordinator(self) -> None:
-        """
-        coordinator — экземпляр GateCoordinator, готовый к работе.
-        Позволяет регистрировать и собирать метаданные Action.
-        """
-        # Arrange & Act
+        """Default ``coordinator`` is a built ``GateCoordinator``."""
         b = TestBench()
 
-        # Assert
         assert isinstance(b.coordinator, GateCoordinator)
 
     def test_mocks_empty_by_default(self) -> None:
-        """
-        mocks — пустой словарь. Действия без зависимостей
-        работают без дополнительной настройки.
-        """
-        # Arrange & Act
+        """``mocks`` starts empty so dependency-free actions need no setup."""
         b = TestBench()
 
-        # Assert
         assert b.mocks == {}
 
     def test_plugins_empty_by_default(self) -> None:
-        """
-        plugins — пустой список. Плагины подключаются явно
-        при необходимости.
-        """
-        # Arrange & Act
+        """``plugins`` starts empty; callers attach plugins explicitly."""
         b = TestBench()
 
-        # Assert
         assert b.plugins == []
 
 
 class TestWithMocks:
-    """TestBench корректно сохраняет переданные моки."""
+    """User-supplied mocks are normalized once at construction."""
 
     def test_regular_object_stored_as_is(self) -> None:
-        """
-        Обычный объект (PaymentService) сохраняется как есть.
-
-        PaymentService — не Mock, не BaseAction, не BaseResult.
-        По правилам _prepare_mock: обычный объект → как есть (для box.resolve()).
-        Аспект вызывает payment.charge() напрямую.
-        """
-        # Arrange
+        """Plain ``PaymentService`` instance is stored unchanged for direct calls."""
         payment = PaymentService()
 
-        # Act
         b = TestBench(mocks={PaymentService: payment})
 
-        # Assert
         assert b._prepared_mocks[PaymentService] is payment
 
     def test_async_mock_stored_as_is(self) -> None:
-        """
-        AsyncMock(spec=PaymentService) сохраняется как есть.
-
-        AsyncMock является callable, но НЕ должен оборачиваться
-        в MockAction. Правило 3 (_prepare_mock) проверяет isinstance(Mock)
-        ПЕРЕД callable и возвращает мок как есть.
-        """
-        # Arrange
+        """``AsyncMock`` is recognized as ``Mock`` before callable wrapping."""
         mock = AsyncMock(spec=PaymentService)
 
-        # Act
         b = TestBench(mocks={PaymentService: mock})
 
-        # Assert — мок передан как есть, не обёрнут в MockAction
         assert b._prepared_mocks[PaymentService] is mock

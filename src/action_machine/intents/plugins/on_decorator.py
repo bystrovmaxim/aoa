@@ -1,109 +1,98 @@
 # src/action_machine/intents/plugins/on_decorator.py
 """
-Декоратор @on — подписка метода плагина на событие машины.
+``@on`` decorator for subscribing plugin methods to runtime events.
 
 ═══════════════════════════════════════════════════════════════════════════════
-НАЗНАЧЕНИЕ
+PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Декоратор @on — часть грамматики намерений ActionMachine для плагинов.
-Он объявляет, что метод плагина должен вызываться при наступлении
-определённого события. Машина (ActionProductMachine) создаёт конкретные
-объекты событий (GlobalStartEvent, AfterRegularAspectEvent и т.д.)
-в ключевых точках конвейера, а PluginRunContext доставляет их
-обработчикам, чьи подписки прошли цепочку фильтров.
+``@on`` is part of ActionMachine plugin intent grammar. It declares that a
+plugin method should run on selected event classes emitted by
+``ActionProductMachine`` and delivered through ``PluginRunContext`` after
+subscription filters pass.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ТИПОБЕЗОПАСНАЯ ПОДПИСКА ЧЕРЕЗ КЛАССЫ СОБЫТИЙ
+TYPE-SAFE SUBSCRIPTION VIA EVENT CLASSES
 ═══════════════════════════════════════════════════════════════════════════════
 
-Первый параметр event_class — тип события из иерархии BasePluginEvent.
-Подписка срабатывает для event_class и всех его наследников через
-isinstance-проверку в PluginRunContext:
+First parameter ``event_class`` must be from ``BasePluginEvent`` hierarchy.
+Subscription matches the class and its subclasses via ``isinstance``:
 
-    @on(BasePluginEvent)              — все события системы
-    @on(GlobalLifecycleEvent)         — global_start + global_finish
-    @on(GlobalFinishEvent)            — только global_finish
-    @on(AspectEvent)                  — все before/after всех типов аспектов
-    @on(RegularAspectEvent)           — before + after regular-аспектов
-    @on(AfterRegularAspectEvent)      — только after regular-аспектов
+    @on(BasePluginEvent)              - all events
+    @on(GlobalLifecycleEvent)         - global_start + global_finish
+    @on(GlobalFinishEvent)            - only global_finish
+    @on(AspectEvent)                  - all before/after aspect events
+    @on(RegularAspectEvent)           - before + after regular aspects
+    @on(AfterRegularAspectEvent)      - only after regular aspects
 
-Опечатка в имени класса → ImportError при импорте модуля, а не
-молчаливый баг в рантайме. IDE автодополняет имена классов.
+Typos in event class names fail fast at import time instead of creating silent
+runtime bugs.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ФИЛЬТРЫ — AND-ЛОГИКА ВНУТРИ ОДНОГО @on
+FILTERS: AND LOGIC INSIDE ONE @on
 ═══════════════════════════════════════════════════════════════════════════════
 
-Все фильтры в одном @on проверяются совместно (AND-логика): обработчик
-вызывается, только если ВСЕ указанные фильтры пройдены одновременно.
-Неуказанные фильтры (None) пропускаются.
+All filters in one decorator are AND-combined. Handler runs only when all
+specified filters pass. Unspecified filters (``None``) are skipped.
 
     @on(
         GlobalFinishEvent,
-        action_class=CreateOrderAction,     # И тип действия совпадает
-        nest_level=0,                       # И это корневой вызов
-        predicate=lambda e: e.duration_ms > 1000,  # И выполнение > 1с
+        action_class=CreateOrderAction,     # action class matches
+        nest_level=0,                       # root call only
+        predicate=lambda e: e.duration_ms > 1000,  # duration > 1s
     )
 
 ═══════════════════════════════════════════════════════════════════════════════
-OR-ЛОГИКА МЕЖДУ НЕСКОЛЬКИМИ @on НА ОДНОМ МЕТОДЕ
+OR LOGIC ACROSS MULTIPLE @on ON SAME METHOD
 ═══════════════════════════════════════════════════════════════════════════════
 
-Несколько @on на одном методе — OR-семантика: обработчик вызывается,
-если хотя бы одна подписка совпала:
+Multiple ``@on`` decorators on one method provide OR semantics:
 
-    @on(GlobalStartEvent)               # ИЛИ start
-    @on(GlobalFinishEvent)              # ИЛИ finish
+    @on(GlobalStartEvent)               # OR start
+    @on(GlobalFinishEvent)              # OR finish
     async def on_lifecycle(self, state, event: GlobalLifecycleEvent, log):
         ...
 
-Каждый @on создаёт отдельный SubscriptionInfo. PluginRunContext проверяет
-каждую подписку независимо.
+Each ``@on`` creates a separate ``SubscriptionInfo``.
 
 ═══════════════════════════════════════════════════════════════════════════════
-СИГНАТУРА ОБРАБОТЧИКА
+HANDLER SIGNATURE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Все обработчики обязаны иметь сигнатуру с 4 параметрами:
+All handlers must have this 4-parameter signature:
 
     async def handler(self, state, event: EventClass, log) -> state
 
-    - self   — экземпляр плагина.
-    - state  — текущее per-request состояние плагина (dict или другой объект).
-    - event  — объект события. Аннотация типа может быть конкретным классом
-               (GlobalFinishEvent), групповым (AspectEvent) или базовым
-               (BasePluginEvent). MetadataBuilder проверяет совместимость:
-               event_class из @on должен быть подклассом аннотации event.
-    - log    — ScopedLogger, привязанный к scope плагина.
+    - self: plugin instance
+    - state: current per-request plugin state
+    - event: event object; annotation may be concrete/group/root class
+    - log: scoped logger for plugin scope
 
-Обработчик обязан вернуть обновлённое состояние.
+Handler must return updated state.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ОГРАНИЧЕНИЯ (ИНВАРИАНТЫ)
+INVARIANTS
 ═══════════════════════════════════════════════════════════════════════════════
 
-- Применяется только к методам (callable), не к классам или свойствам.
-- Метод должен быть асинхронным (async def).
-- Сигнатура метода: ровно 4 параметра (self, state, event, log).
-- Имя метода обязано начинаться с "on_" (проверяется NamingPrefixError).
-- event_class — обязательный, подкласс BasePluginEvent.
-- action_class — None, type или tuple[type, ...].
-- action_name_pattern — None или строка (валидный regex).
-- aspect_name_pattern — None или строка (валидный regex). Применим
-  ТОЛЬКО к наследникам AspectEvent. Для не-аспектных event_class →
-  ValueError при создании SubscriptionInfo.
-- nest_level — None, int или tuple[int, ...].
-- domain — None или type (подкласс BaseDomain).
-- predicate — None или callable.
+- Applies only to methods/callables.
+- Method must be async.
+- Method signature must be exactly 4 parameters.
+- Method name must start with ``"on_"``.
+- ``event_class`` must be ``BasePluginEvent`` subclass.
+- ``action_class`` must be None/type/tuple[type].
+- Pattern fields must be None or valid regex strings.
+- ``aspect_name_pattern`` is only valid for ``AspectEvent`` subclasses.
+- ``nest_level`` must be None/int/tuple[int].
+- ``domain`` must be None or type.
+- ``predicate`` must be None or callable.
 
 ═══════════════════════════════════════════════════════════════════════════════
-АРХИТЕКТУРА ИНТЕГРАЦИИ
+ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
     @on(GlobalFinishEvent, action_class=OrderAction, nest_level=0)
         │
-        ▼  Декоратор создаёт SubscriptionInfo и добавляет в method._on_subscriptions
+        ▼  Decorator creates SubscriptionInfo and stores in method._on_subscriptions
     SubscriptionInfo(
         event_class=GlobalFinishEvent,
         action_class=(OrderAction,),
@@ -112,17 +101,17 @@ OR-ЛОГИКА МЕЖДУ НЕСКОЛЬКИМИ @on НА ОДНОМ МЕТОД
         ...
     )
         │
-        ▼  collect_subscriptions в MetadataBuilder (валидация)
-        ▼  GateCoordinator.get_subscriptions() — снимок
+        ▼  MetadataBuilder.collect_subscriptions (validation)
+        ▼  GateCoordinator.get_subscriptions() snapshot
         │
         ▼  MetadataBuilder → on_intent.validate_subscriptions(cls, ...)
-    Проверка совместимости event_class ↔ аннотация event параметра
+    Validate event_class <-> event annotation compatibility
         │
         ▼  PluginRunContext.emit_event(event)
-    Для каждой подписки: цепочка фильтров → вызов обработчика
+    Per subscription: filter chain -> handler call
 
 ═══════════════════════════════════════════════════════════════════════════════
-ПРИМЕР ИСПОЛЬЗОВАНИЯ
+EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
     from action_machine.intents.logging.channel import Channel
@@ -137,7 +126,7 @@ OR-ЛОГИКА МЕЖДУ НЕСКОЛЬКИМИ @on НА ОДНОМ МЕТОД
         async def get_initial_state(self) -> dict:
             return {"slow_count": 0, "errors": []}
 
-        # Конкретное событие, фильтр по длительности
+        # Concrete event with duration filter
         @on(
             GlobalFinishEvent,
             predicate=lambda e: e.duration_ms > 1000,
@@ -146,19 +135,19 @@ OR-ЛОГИКА МЕЖДУ НЕСКОЛЬКИМИ @on НА ОДНОМ МЕТОД
             state["slow_count"] += 1
             await log.warning(
                 Channel.business,
-                "Медленное действие: {%var.name} за {%var.ms}мс",
+                "Slow action: {%var.name} in {%var.ms}ms",
                 name=event.action_name,
                 ms=event.duration_ms,
             )
             return state
 
-        # Групповое событие — все аспекты
+        # Group event: all aspects
         @on(AspectEvent)
         async def on_any_aspect(self, state, event: AspectEvent, log):
-            await log.info(Channel.debug, "Аспект: {%var.name}", name=event.aspect_name)
+            await log.info(Channel.debug, "Aspect: {%var.name}", name=event.aspect_name)
             return state
 
-        # Фильтр по типу аспекта и имени
+        # Filter by aspect type and name
         @on(
             AfterRegularAspectEvent,
             aspect_name_pattern=r"validate_.*",
@@ -167,28 +156,27 @@ OR-ЛОГИКА МЕЖДУ НЕСКОЛЬКИМИ @on НА ОДНОМ МЕТОД
         async def on_validation_done(self, state, event: AfterRegularAspectEvent, log):
             return state
 
-        # Ошибки без обработчика
+        # Unhandled pipeline errors
         @on(UnhandledErrorEvent)
         async def on_unhandled(self, state, event: UnhandledErrorEvent, log):
             state["errors"].append(str(event.error))
             return state
 
-        # OR-семантика: два @on на одном методе
+        # OR semantics: two @on decorators on one method
         @on(GlobalFinishEvent, action_class=OrderAction)
         @on(GlobalFinishEvent, action_class=PaymentAction)
         async def on_business_finish(self, state, event: GlobalFinishEvent, log):
             return state
 
 ═══════════════════════════════════════════════════════════════════════════════
-ОШИБКИ
+ERRORS / LIMITATIONS
 ═══════════════════════════════════════════════════════════════════════════════
 
-    TypeError — event_class не подкласс BasePluginEvent; метод не callable;
-               метод не асинхронный; неверное число параметров (не 4);
-               action_class не type и не tuple[type]; domain не type.
-    ValueError — aspect_name_pattern для не-аспектного event_class;
-                невалидный regex; nest_level отрицательный.
-    NamingPrefixError — имя метода не начинается с "on_".
+    TypeError: invalid event_class/action_class/domain types, non-callable
+        target, non-async method, wrong parameter count.
+    ValueError: invalid regex, negative nest_level, or aspect_name_pattern used
+        with non-aspect events.
+    NamingPrefixError: method name does not start with ``"on_"``.
 """
 
 from __future__ import annotations
@@ -202,56 +190,36 @@ from action_machine.intents.plugins.events import BasePluginEvent
 from action_machine.intents.plugins.subscription_info import SubscriptionInfo
 from action_machine.model.exceptions import NamingPrefixError
 
-# Ожидаемое число параметров для @on: self, state, event, log
+# Expected @on handler parameter count: self, state, event, log.
 _EXPECTED_PARAM_COUNT = 4
 
-# Имена параметров для сообщения об ошибке
+# Parameter names for validation errors.
 _EXPECTED_PARAM_NAMES = "self, state, event, log"
 
-# Обязательная приставка имени метода
+# Required method name prefix.
 _REQUIRED_PREFIX = "on_"
 
 
-# ═════════════════════════════════════════════════════════════════════════════
-# Валидация аргументов декоратора
-# ═════════════════════════════════════════════════════════════════════════════
+# ============================================================================
+# Decorator argument validation
+# ============================================================================
 
 
 def _validate_event_class(event_class: Any) -> None:
-    """
-    Проверяет, что event_class — подкласс BasePluginEvent.
-
-    Аргументы:
-        event_class: значение первого аргумента @on.
-
-    Исключения:
-        TypeError: если event_class не type или не подкласс BasePluginEvent.
-    """
+    """Validate event_class as BasePluginEvent subclass."""
     if not isinstance(event_class, type) or not issubclass(
         event_class, BasePluginEvent
     ):
         raise TypeError(
-            f"@on: первый аргумент event_class должен быть подклассом "
-            f"BasePluginEvent, получен {event_class!r}. "
-            f"Пример: @on(GlobalFinishEvent)"
+            f"@on: first argument event_class must be a BasePluginEvent subclass, "
+            f"got {event_class!r}. Example: @on(GlobalFinishEvent)"
         )
 
 
 def _normalize_action_class(
     action_class: type | tuple[type, ...] | None,
 ) -> tuple[type, ...] | None:
-    """
-    Нормализует action_class в кортеж типов или None.
-
-    Аргументы:
-        action_class: один тип, кортеж типов или None.
-
-    Возвращает:
-        tuple[type, ...] или None.
-
-    Исключения:
-        TypeError: если action_class не type, не tuple[type] и не None.
-    """
+    """Normalize action_class to tuple[type, ...] or None."""
     if action_class is None:
         return None
 
@@ -262,61 +230,37 @@ def _normalize_action_class(
         for i, item in enumerate(action_class):
             if not isinstance(item, type):
                 raise TypeError(
-                    f"@on: элемент action_class[{i}] должен быть типом, "
-                    f"получен {type(item).__name__}: {item!r}."
+                    f"@on: action_class[{i}] must be a type, "
+                    f"got {type(item).__name__}: {item!r}."
                 )
         return action_class
 
     raise TypeError(
-        f"@on: action_class должен быть типом, кортежем типов или None, "
-        f"получен {type(action_class).__name__}: {action_class!r}."
+        f"@on: action_class must be a type, tuple of types, or None, "
+        f"got {type(action_class).__name__}: {action_class!r}."
     )
 
 
 def _validate_string_or_none(value: Any, param_name: str) -> None:
-    """
-    Проверяет, что значение — строка или None.
-
-    Аргументы:
-        value: проверяемое значение.
-        param_name: имя параметра для сообщения об ошибке.
-
-    Исключения:
-        TypeError: если value не str и не None.
-    """
+    """Validate value as string or None."""
     if value is not None and not isinstance(value, str):
         raise TypeError(
-            f"@on: {param_name} должен быть строкой или None, "
-            f"получен {type(value).__name__}: {value!r}."
+            f"@on: {param_name} must be a string or None, "
+            f"got {type(value).__name__}: {value!r}."
         )
 
 
 def _normalize_nest_level(
     nest_level: int | tuple[int, ...] | None,
 ) -> tuple[int, ...] | None:
-    """
-    Проверяет корректность nest_level.
-
-    Нормализует ``int`` в ``tuple[int]`` и проверяет неотрицательность.
-
-    Аргументы:
-        nest_level: значение параметра.
-
-    Возвращает:
-        Кортеж уровней вложенности либо ``None``.
-
-    Исключения:
-        TypeError: если nest_level не int, не tuple[int] и не None.
-        ValueError: если значение отрицательное.
-    """
+    """Validate and normalize nest_level into tuple[int, ...] or None."""
     if nest_level is None:
         return None
 
     if isinstance(nest_level, int):
         if nest_level < 0:
             raise ValueError(
-                f"@on: nest_level не может быть отрицательным, "
-                f"получено {nest_level}."
+                f"@on: nest_level cannot be negative, got {nest_level}."
             )
         return (nest_level,)
 
@@ -324,103 +268,74 @@ def _normalize_nest_level(
         for i, item in enumerate(nest_level):
             if not isinstance(item, int):
                 raise TypeError(
-                    f"@on: элемент nest_level[{i}] должен быть int, "
-                    f"получен {type(item).__name__}: {item!r}."
+                    f"@on: nest_level[{i}] must be int, "
+                    f"got {type(item).__name__}: {item!r}."
                 )
             if item < 0:
                 raise ValueError(
-                    f"@on: элемент nest_level[{i}] не может быть "
-                    f"отрицательным, получено {item}."
+                    f"@on: nest_level[{i}] cannot be negative, got {item}."
                 )
         return nest_level
 
     raise TypeError(
-        f"@on: nest_level должен быть int, tuple[int, ...] или None, "
-        f"получен {type(nest_level).__name__}: {nest_level!r}."
+        f"@on: nest_level must be int, tuple[int, ...], or None, "
+        f"got {type(nest_level).__name__}: {nest_level!r}."
     )
 
 
 def _validate_domain(domain: Any) -> None:
-    """
-    Проверяет, что domain — type или None.
-
-    Аргументы:
-        domain: значение параметра.
-
-    Исключения:
-        TypeError: если domain не type и не None.
-    """
+    """Validate domain as type or None."""
     if domain is not None and not isinstance(domain, type):
         raise TypeError(
-            f"@on: domain должен быть классом домена или None, "
-            f"получен {type(domain).__name__}: {domain!r}."
+            f"@on: domain must be a domain type or None, "
+            f"got {type(domain).__name__}: {domain!r}."
         )
 
 
 def _validate_predicate(predicate: Any) -> None:
-    """
-    Проверяет, что predicate — callable или None.
-
-    Аргументы:
-        predicate: значение параметра.
-
-    Исключения:
-        TypeError: если predicate не callable и не None.
-    """
+    """Validate predicate as callable or None."""
     if predicate is not None and not callable(predicate):
         raise TypeError(
-            f"@on: predicate должен быть callable или None, "
-            f"получен {type(predicate).__name__}: {predicate!r}."
+            f"@on: predicate must be callable or None, "
+            f"got {type(predicate).__name__}: {predicate!r}."
         )
 
 
 def _validate_method(func: Any, event_class_name: str) -> None:
-    """
-    Проверяет, что декорируемый объект — асинхронный метод с правильной
-    сигнатурой и приставкой имени.
-
-    Аргументы:
-        func: декорируемый объект.
-        event_class_name: имя event_class для сообщений об ошибках.
-
-    Исключения:
-        TypeError: если func не callable; не async; неверное число параметров.
-        NamingPrefixError: если имя метода не начинается с "on_".
-    """
+    """Validate decorated method contract: callable, async, signature, prefix."""
     if not callable(func):
         raise TypeError(
-            f"@on можно применять только к методам. "
-            f"Получен объект типа {type(func).__name__}: {func!r}."
+            f"@on can only be applied to methods/callables. "
+            f"Got object of type {type(func).__name__}: {func!r}."
         )
 
     if not asyncio.iscoroutinefunction(func):
         raise TypeError(
-            f"@on({event_class_name}): метод {func.__name__} "
-            f"должен быть асинхронным (async def). "
-            f"Синхронные обработчики не поддерживаются."
+            f"@on({event_class_name}): method {func.__name__} "
+            f"must be async (async def). Synchronous handlers are not supported."
         )
 
     sig = inspect.signature(func)
     param_count = len(sig.parameters)
     if param_count != _EXPECTED_PARAM_COUNT:
         raise TypeError(
-            f"@on({event_class_name}): метод {func.__name__} "
-            f"должен принимать {_EXPECTED_PARAM_COUNT} параметра "
-            f"({_EXPECTED_PARAM_NAMES}), получено {param_count}."
+            f"@on({event_class_name}): method {func.__name__} "
+            f"must accept {_EXPECTED_PARAM_COUNT} parameters "
+            f"({_EXPECTED_PARAM_NAMES}), got {param_count}."
         )
 
     if not func.__name__.startswith(_REQUIRED_PREFIX):
         raise NamingPrefixError(
-            f"@on({event_class_name}): метод '{func.__name__}' "
-            f"должен начинаться с '{_REQUIRED_PREFIX}'. "
-            f"Переименуйте в '{_REQUIRED_PREFIX}{func.__name__}' "
-            f"или аналогичное имя с приставкой '{_REQUIRED_PREFIX}'."
+            f"@on({event_class_name}): method '{func.__name__}' "
+            f"must start with '{_REQUIRED_PREFIX}'. Rename to "
+            f"'{_REQUIRED_PREFIX}{func.__name__}' or any name with prefix "
+            f"'{_REQUIRED_PREFIX}'."
         )
 
 
-# ═════════════════════════════════════════════════════════════════════════════
-# Основной декоратор
-# ═════════════════════════════════════════════════════════════════════════════
+# ============================================================================
+# Main decorator
+# ============================================================================
 
 
 def on(
@@ -435,56 +350,11 @@ def on(
     ignore_exceptions: bool = True,
 ) -> Callable[[Any], Any]:
     """
-    Декоратор уровня метода. Подписывает метод плагина на событие машины.
+    Method-level decorator subscribing a plugin handler to runtime events.
 
-    Создаёт SubscriptionInfo с указанными фильтрами и добавляет в
-    атрибут method._on_subscriptions. Один метод может иметь несколько
-    @on (несколько подписок с OR-семантикой между ними).
-
-    Все обработчики обязаны иметь сигнатуру:
-        async def handler(self, state, event: EventClass, log) -> state
-
-    Имя метода обязано начинаться с "on_".
-
-    Аргументы:
-        event_class: тип события из иерархии BasePluginEvent. Обязательный.
-            Подписка срабатывает для event_class и всех наследников.
-
-        action_class: фильтр по типу действия. None — без фильтрации.
-            Один тип или кортеж типов. isinstance-проверка покрывает
-            иерархию наследования.
-
-        action_name_pattern: regex по полному строковому имени действия.
-            None — без фильтрации. re.search (совпадение в любом месте).
-
-        aspect_name_pattern: regex по имени аспекта. None — без фильтрации.
-            Применим ТОЛЬКО к наследникам AspectEvent. Для не-аспектных
-            event_class — ValueError при создании SubscriptionInfo.
-
-        nest_level: фильтр по уровню вложенности. None — без фильтрации.
-            int — конкретный уровень. tuple[int, ...] — набор уровней.
-
-        domain: фильтр по бизнес-домену действия. None — без фильтрации.
-
-        predicate: произвольная функция фильтрации. None — без фильтрации.
-            Вызывается ПОСЛЕ проверки isinstance(event, event_class),
-            поэтому обращение к полям event_class безопасно.
-
-        ignore_exceptions: подавление ошибок обработчика. True по умолчанию.
-
-    Возвращает:
-        Декоратор, который добавляет SubscriptionInfo в method._on_subscriptions
-        и возвращает метод без изменений.
-
-    Исключения:
-        TypeError: event_class не подкласс BasePluginEvent; action_class
-            неверного типа; метод не callable; не async; неверное число
-            параметров; domain не type.
-        ValueError: aspect_name_pattern для не-аспектного event_class;
-            невалидный regex; nest_level отрицательный.
-        NamingPrefixError: имя метода не начинается с "on_".
+    Stores ``SubscriptionInfo`` in ``method._on_subscriptions``.
     """
-    # ── Валидация аргументов декоратора ──
+    # Validate decorator arguments.
     _validate_event_class(event_class)
     normalized_action_class = _normalize_action_class(action_class)
     _validate_string_or_none(action_name_pattern, "action_name_pattern")
@@ -494,16 +364,10 @@ def on(
     _validate_predicate(predicate)
 
     def decorator(func: Any) -> Any:
-        """
-        Внутренний декоратор, применяемый к методу плагина.
-
-        Проверяет callable, async, количество параметров, приставку имени.
-        Создаёт SubscriptionInfo и добавляет в func._on_subscriptions.
-        """
+        """Inner decorator applied to plugin method."""
         _validate_method(func, event_class.__name__)
 
-        # Создание SubscriptionInfo с валидацией в __post_init__
-        # (компиляция regex, проверка aspect_name_pattern для AspectEvent)
+        # Create SubscriptionInfo with __post_init__ validation.
         subscription = SubscriptionInfo(
             event_class=event_class,
             method_name=func.__name__,

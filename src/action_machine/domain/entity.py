@@ -1,11 +1,10 @@
 # src/action_machine/domain/entity.py
 """
-Abstract base for all domain **entities** in ActionMachine.
+Abstract base for all domain entities in ActionMachine.
 
-`BaseEntity` is the shared shape of in-memory business objects (orders, customers,
-products): typed fields, immutability, strict structure, optional partial loads
-from storage, and hooks into metadata via intent markers and the coordinator. It is
-**not** an API transport type; use Params/Result or explicit DTOs for wire formats.
+`BaseEntity` defines the in-memory domain object contract: typed fields,
+immutability, strict structure, and optional partial loads from storage. It is
+**not** a transport schema; use Params/Result or explicit DTOs for wire formats.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
@@ -32,23 +31,6 @@ SCOPE (IN / OUT)
     API schemas, OpenAPI, or RPC payloads — use separate DTOs when needed.
     Coordinator graph construction — lives in metadata inspectors and
     `GateCoordinator.build()`, not in this file.
-
-═══════════════════════════════════════════════════════════════════════════════
-TERMINOLOGY (USE CONSISTENTLY)
-═══════════════════════════════════════════════════════════════════════════════
-
-**Intent** — mixin declaring that a class participates in a slice of the
-framework grammar (here: `@entity`, described fields).
-
-**Decorator** — import-time marker (`@entity`) that writes **scratch** on the class.
-
-**Scratch** — class-level data produced by decorators (e.g. `_entity_info`).
-
-**Inspector** — code that reads model + scratch and feeds the coordinator graph
-(e.g. `EntityIntentInspector`); not defined here.
-
-**Gate coordinator** — builds and holds the global facet graph after `build()`;
-validates entities together with actions and other facets.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
@@ -157,6 +139,17 @@ ERRORS / LIMITATIONS
   for external APIs may still need DTOs and explicit handling of relations.
 
 ═══════════════════════════════════════════════════════════════════════════════
+AI-CORE-BEGIN
+═══════════════════════════════════════════════════════════════════════════════
+ROLE: Domain entity base contract.
+CONTRACT: Enforce immutable strict entities with optional partial construction semantics.
+INVARIANTS: ``*Entity`` naming, frozen models, forbid extra fields, and intent marker participation.
+FLOW: class declaration + decorator scratch -> inspector/coordinator validation -> runtime full/partial access semantics.
+FAILURES: NamingSuffixError at class definition; FieldNotLoadedError on missing fields in partial instances.
+EXTENSION POINTS: Applications define concrete entities via subclassing and optional ``@entity`` metadata.
+AI-CORE-END
+
+═══════════════════════════════════════════════════════════════════════════════
 LONGER ILLUSTRATION (DOMAIN + LIFECYCLE)
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -247,6 +240,12 @@ class BaseEntity(BaseSchema, ABC, EntityIntent, DescribedFieldsIntent):
 
         `_loaded_fields` (`frozenset[str]`, instance)
             Names supplied to `partial()`; empty for fully constructed instances.
+
+    AI-CORE-BEGIN
+    ROLE: Shared entity base with strict runtime access semantics.
+    CONTRACT: Provides immutable model behavior plus controlled partial-load mechanics.
+    INVARIANTS: Missing model fields on partial instances fail fast via ``FieldNotLoadedError``.
+    AI-CORE-END
     """
 
     model_config = ConfigDict(frozen=True, extra="forbid")

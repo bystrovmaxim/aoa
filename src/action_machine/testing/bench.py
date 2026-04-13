@@ -1,141 +1,136 @@
 # src/action_machine/testing/bench.py
 """
-TestBench — единая immutable точка входа для тестирования действий ActionMachine.
+TestBench - unified immutable entry point for testing ActionMachine actions.
 
 ═══════════════════════════════════════════════════════════════════════════════
-НАЗНАЧЕНИЕ
+PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-TestBench — центральный объект тестовой инфраструктуры. Создаёт внутри
-себя коллекцию машин (async + sync), прогоняет действие на каждой
-и сравнивает результаты. Если результаты расходятся — ResultMismatchError.
+TestBench is the central object of testing infrastructure. It creates a
+collection of machines (async + sync), executes action on each, and compares
+results. If results differ, ``ResultMismatchError`` is raised.
 
-TestBench immutable: каждый fluent-вызов (.with_user, .with_mocks и т.д.)
-возвращает НОВЫЙ экземпляр TestBench с изменённым полем. Оригинал
-не мутируется. Это делает TestBench безопасным для параллельного
-использования и предсказуемым в тестах.
+TestBench is immutable: each fluent call (``.with_user``, ``.with_mocks``, etc.)
+returns a NEW ``TestBench`` instance with updated field values. Original object
+is never mutated, making it safe for parallel usage and predictable in tests.
 
 ═══════════════════════════════════════════════════════════════════════════════
 LOGGING (SCOPEDLOGGER)
 ═══════════════════════════════════════════════════════════════════════════════
 
-Когда TestBench создаёт ``ScopedLogger`` для ``run_aspect`` / ``run_summary`` /
-компенсаторов, передаётся ``domain=resolve_domain(action_cls)`` — как в
-боевом ``ToolsBoxFactory``, чтобы ``var`` и подписки логгеров вели себя так же.
+When TestBench creates ``ScopedLogger`` for ``run_aspect`` / ``run_summary`` /
+compensators, it passes ``domain=resolve_domain(action_cls)`` exactly like
+production ``ToolsBoxFactory``, so ``var`` payloads and subscriptions behave
+the same way.
 
 ═══════════════════════════════════════════════════════════════════════════════
-КОЛЛЕКЦИЯ МАШИН
+MACHINE COLLECTION
 ═══════════════════════════════════════════════════════════════════════════════
 
-По умолчанию TestBench создаёт две машины:
-- ActionProductMachine (async) — с моками через resources.
-- SyncActionProductMachine (sync) — с моками через resources.
+By default TestBench creates two machines:
+- ``ActionProductMachine`` (async) with mocks via ``resources``.
+- ``SyncActionProductMachine`` (sync) with mocks via ``resources``.
 
-Обе машины получают одинаковый coordinator, plugins и log_coordinator.
-Терминальные методы (run, run_aspect, run_summary) прогоняют действие
-на КАЖДОЙ машине и сравнивают результаты через compare_results().
-
-═══════════════════════════════════════════════════════════════════════════════
-СБРОС МОКОВ МЕЖДУ ПРОГОНАМИ
-═══════════════════════════════════════════════════════════════════════════════
-
-Метод run() выполняет действие на двух машинах последовательно. Между
-прогонами async и sync машин все Mock-объекты (unittest.mock.Mock,
-MagicMock, AsyncMock) сбрасываются через reset_mock(). Это гарантирует,
-что:
-- Каждая машина работает с чистыми моками.
-- Тесты могут использовать assert_called_once_with() без учёта
-  второго прогона.
-- call_count отражает вызовы только от последней (sync) машины.
-
-После обоих прогонов моки НЕ сбрасываются повторно — тест видит
-состояние моков после sync-прогона.
+Both machines receive same coordinator, plugins, and log_coordinator.
+Terminal methods (``run``, ``run_aspect``, ``run_summary``) execute action on
+EACH machine and compare results through ``compare_results()``.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ПОДГОТОВКА МОКОВ
+MOCK RESET BETWEEN RUNS
 ═══════════════════════════════════════════════════════════════════════════════
 
-TestBench подготавливает моки через _prepare_mock() по следующим правилам
-(порядок проверок важен):
+Method ``run()`` executes action on two machines sequentially. Between async
+and sync runs, all ``Mock`` objects (``unittest.mock.Mock``, ``MagicMock``,
+``AsyncMock``) are reset via ``reset_mock()``. This guarantees:
+- Each machine runs with clean mocks.
+- Tests can use ``assert_called_once_with()`` without double-run noise.
+- ``call_count`` reflects only calls from the final (sync) run.
 
-1. MockAction         → как есть (мок-действие для подстановки).
-2. BaseAction         → как есть (реальное действие).
-3. unittest.mock.Mock → как есть (мок-объект для box.resolve()).
-   Включает Mock, MagicMock, AsyncMock и все их подклассы.
-   Это ключевое правило: AsyncMock(spec=PaymentService) передаётся
-   в resources напрямую, чтобы box.resolve(PaymentService) вернул мок.
-4. BaseResult         → оборачивается в MockAction(result=value).
-5. callable           → оборачивается в MockAction(side_effect=value).
-6. любой другой       → как есть (для box.resolve()).
-
-Правило 3 стоит ПЕРЕД правилом 5, потому что AsyncMock является callable,
-но не должен оборачиваться в MockAction — он предназначен для resolve().
+Mocks are NOT reset again after both runs; test sees mock state after sync run.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ПРОКИДЫВАНИЕ ROLLUP
+MOCK PREPARATION
 ═══════════════════════════════════════════════════════════════════════════════
 
-Терминальные методы (run, run_aspect, run_summary) принимают обязательный
-параметр rollup: bool без значения по умолчанию. Тестировщик явно
-выбирает режим.
+TestBench prepares mocks through ``_prepare_mock()`` using these rules
+(check order matters):
 
-Rollup прокидывается в machine._run_internal(rollup=rollup), откуда
-попадает в ToolsBox(rollup=rollup). ToolsBox использует rollup при:
-- resolve() → factory.resolve(cls, rollup=rollup).
-- run() → замыкание run_child передаёт rollup рекурсивно.
+1. ``MockAction`` -> as is (mock action replacement).
+2. ``BaseAction`` -> as is (real action instance).
+3. ``unittest.mock.Mock`` -> as is (mock object for ``box.resolve()``).
+   Includes ``Mock``, ``MagicMock``, ``AsyncMock`` and subclasses.
+   Critical rule: ``AsyncMock(spec=PaymentService)`` is passed directly into
+   ``resources`` so ``box.resolve(PaymentService)`` returns the mock.
+4. ``BaseResult`` -> wrapped in ``MockAction(result=value)``.
+5. ``callable`` -> wrapped in ``MockAction(side_effect=value)``.
+6. anything else -> as is (for ``box.resolve()``).
+
+Rule 3 is BEFORE rule 5 because ``AsyncMock`` is callable but should not be
+wrapped into ``MockAction``; it is intended for ``resolve()``.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ТЕСТИРОВАНИЕ КОМПЕНСАТОРОВ
+ROLLUP PROPAGATION
 ═══════════════════════════════════════════════════════════════════════════════
 
-Метод run_compensator() предоставляет изолированный запуск одного
-компенсатора для unit-тестирования. Аналог run_aspect() для аспектов.
+Terminal methods (``run``, ``run_aspect``, ``run_summary``) accept mandatory
+``rollup: bool`` without a default value. Test author explicitly chooses mode.
 
-Без run_compensator() тестирование компенсатора требует:
-1. Собрать Action с несколькими аспектами.
-2. Замокать один из них так, чтобы он упал.
-3. Дождаться размотки стека.
-4. Проверить побочный эффект компенсатора.
-Это интеграционный тест.
+Rollup is forwarded into ``machine._run_internal(rollup=rollup)``, then into
+``ToolsBox(rollup=rollup)``. ToolsBox uses rollup in:
+- ``resolve()`` -> ``factory.resolve(cls, rollup=rollup)``
+- ``run()`` -> ``run_child`` closure forwards rollup recursively.
 
-С run_compensator() можно тестировать компенсатор КАК UNIT:
-передать params, state_before, state_after, error напрямую
-и проверить побочные эффекты.
+═══════════════════════════════════════════════════════════════════════════════
+COMPENSATOR TESTING
+═══════════════════════════════════════════════════════════════════════════════
 
-КЛЮЧЕВОЕ ОТЛИЧИЕ ОТ PRODUCTION:
-run_compensator() НЕ ПОДАВЛЯЕТ исключения.
-В production _rollback_saga() подавляет ошибки компенсаторов.
-В тестах ошибки ПРОБРАСЫВАЮТСЯ — это позволяет тестировать:
-- Что компенсатор НЕ падает при нормальных условиях.
-- Что компенсатор корректно обрабатывает ошибки внутренне.
-- Что компенсатор ПАДАЕТ при определённых условиях (граничные случаи).
+Method ``run_compensator()`` provides isolated execution of one compensator for
+unit testing. It is a compensator analogue of ``run_aspect()``.
 
-Симметрия API:
+Without ``run_compensator()``, compensator testing requires:
+1. Build action with several aspects.
+2. Mock one aspect to fail.
+3. Wait for stack unwind.
+4. Verify compensator side effects.
+That is an integration test.
 
-    | Свойство             | run_aspect()     | run_compensator()        |
+With ``run_compensator()`` you can test compensator AS A UNIT: pass ``params``,
+``state_before``, ``state_after``, ``error`` directly and assert side effects.
+
+KEY DIFFERENCE FROM PRODUCTION:
+``run_compensator()`` DOES NOT suppress exceptions.
+In production, ``_rollback_saga()`` suppresses compensator errors.
+In tests, errors are propagated, allowing validation that:
+- compensator does NOT fail under normal conditions,
+- compensator handles internal failures correctly,
+- compensator DOES fail in specific edge cases.
+
+API symmetry:
+
+    | Property             | run_aspect()     | run_compensator()        |
     |----------------------|------------------|--------------------------|
-    | Целевой метод        | @regular_aspect  | @compensate              |
-    | Поиск метода         | По имени         | По имени                 |
-    | Валидация атрибута   | _aspect_meta     | _compensate_meta         |
-    | Возвращаемое значение| dict             | None (побочные эффекты)  |
-    | Ошибки               | Пробрасываются   | Пробрасываются           |
-    | @context_requires    | Поддерживается   | Поддерживается           |
+    | Target method        | @regular_aspect  | @compensate              |
+    | Method lookup        | by name          | by name                  |
+    | Marker validation    | _aspect_meta     | _compensate_meta         |
+    | Return value         | dict             | None (side effects)      |
+    | Errors               | propagated       | propagated               |
+    | @context_requires    | supported        | supported                |
 
 ═══════════════════════════════════════════════════════════════════════════════
 FLUENT API (IMMUTABLE)
 ═══════════════════════════════════════════════════════════════════════════════
 
-Каждый fluent-метод возвращает НОВЫЙ экземпляр TestBench:
+Each fluent method returns a NEW ``TestBench`` instance:
 
     from action_machine.testing import StubTesterRole
 
     bench = TestBench(mocks={PaymentService: mock})
     admin_bench = bench.with_user(user_id="admin", roles=(StubTesterRole,))
-    # bench и admin_bench — два разных объекта.
-    # bench не изменился после вызова with_user.
+    # bench and admin_bench are different objects.
+    # bench is unchanged after with_user call.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ПРИМЕР ИСПОЛЬЗОВАНИЯ
+EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
     from unittest.mock import AsyncMock
@@ -155,13 +150,13 @@ FLUENT API (IMMUTABLE)
         rollup=False,
     )
 
-    # assert_called_once_with работает корректно —
-    # моки сброшены между async и sync прогонами,
-    # тест видит состояние только от sync-прогона.
+    # assert_called_once_with works correctly:
+    # mocks are reset between async and sync runs,
+    # test sees state only from sync run.
     mock_payment.charge.assert_called_once_with(100.0, "RUB")
 
 ═══════════════════════════════════════════════════════════════════════════════
-ПРИМЕР ТЕСТИРОВАНИЯ КОМПЕНСАТОРА
+COMPENSATOR TESTING EXAMPLE
 ═══════════════════════════════════════════════════════════════════════════════
 
     async def test_payment_compensator_calls_refund():
@@ -174,7 +169,7 @@ FLUENT API (IMMUTABLE)
             params=CreateOrderParams(user_id="u1", items=[...]),
             state_before=CreateOrderState(),
             state_after=CreateOrderState(txn_id="txn_123", amount=100),
-            error=InsufficientStockError("Товар закончился"),
+            error=InsufficientStockError("Out of stock"),
         )
 
         mock_payment.refund.assert_called_once_with("txn_123")
@@ -184,7 +179,7 @@ FLUENT API (IMMUTABLE)
         mock_payment.refund.side_effect = PaymentServiceUnavailable()
         bench = TestBench(mocks={PaymentService: mock_payment})
 
-        # Компенсатор обрабатывает ошибку внутренне — не падает
+        # Compensator handles internal error and does not raise
         await bench.run_compensator(
             action=CreateOrderAction(),
             compensator_name="rollback_payment_compensate",
@@ -227,26 +222,24 @@ R = TypeVar("R", bound=BaseResult)
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Константы
+# Constants
 # ═════════════════════════════════════════════════════════════════════════════
 
 _COMPENSATE_META_ATTR = "_compensate_meta"
 """
-Имя атрибута, записываемого декоратором @compensate на метод.
-Используется в run_compensator() для проверки, что указанный метод
-действительно является компенсатором.
+Attribute name written by ``@compensate`` decorator on method.
+Used by ``run_compensator()`` to verify the method is a compensator.
 """
 
 _CONTEXT_REQUIRES_ATTR = "_required_context_keys"
 """
-Имя атрибута, записываемого декоратором @context_requires на метод.
-Используется в run_compensator() для определения необходимости
-создания ContextView.
+Attribute name written by ``@context_requires`` decorator on method.
+Used by ``run_compensator()`` to decide whether ``ContextView`` is required.
 """
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Вспомогательные функции модульного уровня
+# Module-level helper functions
 # ═════════════════════════════════════════════════════════════════════════════
 
 
@@ -273,26 +266,10 @@ def _checkers_for_aspect_name(
 
 def _prepare_mock(value: Any) -> Any:
     """
-    Преобразует mock-значение в объект, пригодный для использования в resources.
+    Convert mock value into a resource-ready object.
 
-    Порядок проверок важен — Mock проверяется ДО callable, потому что
-    AsyncMock/MagicMock являются callable, но должны передаваться
-    в resources как есть (для box.resolve()), а не оборачиваться
-    в MockAction.
-
-    Правила преобразования (в порядке приоритета):
-    1. MockAction   → как есть (мок-действие).
-    2. BaseAction   → как есть (реальное действие).
-    3. Mock         → как есть (unittest.mock: Mock, MagicMock, AsyncMock).
-    4. BaseResult   → MockAction(result=value).
-    5. callable     → MockAction(side_effect=value).
-    6. любой другой → как есть (для box.resolve()).
-
-    Аргументы:
-        value: mock-значение из словаря mocks.
-
-    Возвращает:
-        Подготовленный объект для словаря resources.
+    Order is important: ``Mock`` is checked BEFORE ``callable`` because
+    AsyncMock/MagicMock are callable but must pass as direct resources.
     """
     if isinstance(value, MockAction):
         return value
@@ -309,32 +286,14 @@ def _prepare_mock(value: Any) -> Any:
 
 def _prepare_all_mocks(mocks: dict[type, Any]) -> dict[type, Any]:
     """
-    Подготавливает все моки из словаря через _prepare_mock().
-
-    Аргументы:
-        mocks: исходный словарь {класс_зависимости: mock_значение}.
-
-    Возвращает:
-        Новый словарь с подготовленными значениями.
+    Prepare all mocks from mapping through ``_prepare_mock``.
     """
     return {cls: _prepare_mock(val) for cls, val in mocks.items()}
 
 
 def _reset_all_mocks(mocks: dict[type, Any]) -> None:
     """
-    Сбрасывает состояние всех Mock-объектов в словаре моков.
-
-    Вызывается между прогонами async и sync машин в TestBench.run(),
-    чтобы каждая машина работала с чистыми моками. Без сброса
-    assert_called_once_with() падает, потому что мок помнит вызовы
-    от предыдущей машины.
-
-    Сбрасывает только объекты, являющиеся экземплярами unittest.mock.Mock
-    (включая MagicMock, AsyncMock). Остальные объекты в словаре
-    (MockAction, реальные Action, любые другие) — не затрагиваются.
-
-    Аргументы:
-        mocks: исходный словарь моков {класс: mock_значение}.
+    Reset state of all ``Mock`` objects in mapping.
     """
     for value in mocks.values():
         if isinstance(value, Mock):
@@ -342,38 +301,16 @@ def _reset_all_mocks(mocks: dict[type, Any]) -> None:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Класс TestBench
+# TestBench class
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestBench:
     """
-    Единая immutable точка входа для тестирования действий ActionMachine.
-
-    Каждый fluent-вызов возвращает НОВЫЙ экземпляр — оригинал не мутируется.
-    Терминальные методы прогоняют действие на коллекции машин (async + sync)
-    и сравнивают результаты. Rollup прокидывается через _run_internal
-    в ToolsBox и далее в resolve() и run().
-
-    Между прогонами async и sync машин все Mock-объекты сбрасываются
-    через _reset_all_mocks(), чтобы тесты могли корректно использовать
-    assert_called_once_with() и проверять call_count.
-
-    Метод run_compensator() позволяет изолированно тестировать
-    компенсаторы (@compensate) без запуска полного конвейера.
-
-    Атрибуты:
-        _coordinator : GateCoordinator — координатор метаданных и фабрик.
-        _mocks : dict[type, Any] — исходный словарь моков (до подготовки).
-        _prepared_mocks : dict[type, Any] — подготовленные моки (после _prepare_mock).
-        _plugins : list[Plugin] — список плагинов для машин.
-        _log_coordinator : LogCoordinator | None — координатор логирования.
-        _user : UserInfo — информация о пользователе для контекста.
-        _runtime : RuntimeInfo — информация об окружении для контекста.
-        _request : RequestInfo — информация о запросе для контекста.
+    Unified immutable entry point for ActionMachine action testing.
     """
 
-    __test__ = False  # pytest: это не тестовый класс
+    __test__ = False  # pytest: this is not a test class
 
     def __init__(
         self,
@@ -386,17 +323,7 @@ class TestBench:
         request: Any | None = None,
     ) -> None:
         """
-        Инициализирует TestBench.
-
-        Аргументы:
-            coordinator: координатор метаданных. По умолчанию новый GateCoordinator().
-            mocks: словарь моков {класс: mock_значение}. По умолчанию пустой.
-            plugins: список плагинов. По умолчанию пустой.
-            log_coordinator: координатор логирования. По умолчанию None
-                             (машины создают дефолтный с ConsoleLogger).
-            user: информация о пользователе. По умолчанию UserInfoStub().
-            runtime: информация об окружении. По умолчанию RuntimeInfoStub().
-            request: информация о запросе. По умолчанию RequestInfoStub().
+        Initialize TestBench.
         """
         self._coordinator = coordinator or GateCoordinator()
         self._mocks = dict(mocks) if mocks else {}
@@ -408,30 +335,30 @@ class TestBench:
         self._request = request if request is not None else RequestInfoStub()
 
     # ─────────────────────────────────────────────────────────────────────
-    # Свойства (только чтение)
+    # Read-only properties
     # ─────────────────────────────────────────────────────────────────────
 
     @property
     def coordinator(self) -> GateCoordinator:
-        """Координатор метаданных и фабрик."""
+        """Metadata/factory coordinator."""
         return self._coordinator
 
     @property
     def mocks(self) -> dict[type, Any]:
-        """Исходный словарь моков."""
+        """Original mocks mapping."""
         return dict(self._mocks)
 
     @property
     def plugins(self) -> list[Plugin]:
-        """Список плагинов."""
+        """Plugin list."""
         return list(self._plugins)
 
     # ─────────────────────────────────────────────────────────────────────
-    # Внутренние методы: создание машин и контекста
+    # Internal helpers: machine/context construction
     # ─────────────────────────────────────────────────────────────────────
 
     def _build_context(self) -> Context:
-        """Создаёт Context из текущих user, request, runtime."""
+        """Build Context from current user/request/runtime."""
         return Context(
             user=self._user,
             request=self._request,
@@ -439,7 +366,7 @@ class TestBench:
         )
 
     def _build_async_machine(self) -> ActionProductMachine:
-        """Создаёт асинхронную production-машину с текущими настройками."""
+        """Build async production machine with current settings."""
         kwargs: dict[str, Any] = {
             "mode": "test",
             "plugins": self._plugins,
@@ -449,7 +376,7 @@ class TestBench:
         return ActionProductMachine(**kwargs)
 
     def _build_sync_machine(self) -> SyncActionProductMachine:
-        """Создаёт синхронную production-машину с текущими настройками."""
+        """Build sync production machine with current settings."""
         kwargs: dict[str, Any] = {
             "mode": "test",
             "plugins": self._plugins,
@@ -459,11 +386,11 @@ class TestBench:
         return SyncActionProductMachine(**kwargs)
 
     # ─────────────────────────────────────────────────────────────────────
-    # Fluent API (каждый метод возвращает НОВЫЙ TestBench)
+    # Fluent API (each method returns NEW TestBench)
     # ─────────────────────────────────────────────────────────────────────
 
     def _clone(self, **overrides: Any) -> TestBench:
-        """Создаёт копию TestBench с переопределёнными полями."""
+        """Create TestBench copy with overridden fields."""
         return TestBench(
             coordinator=overrides.get("coordinator", self._coordinator),
             mocks=overrides.get("mocks", self._mocks),
@@ -480,7 +407,7 @@ class TestBench:
         roles: tuple[type[BaseRole], ...] | list[type[BaseRole]] | None = None,
         **kwargs: Any,
     ) -> TestBench:
-        """Возвращает новый TestBench с изменённым пользователем."""
+        """Return new TestBench with modified user."""
         return self._clone(user=UserInfoStub(user_id=user_id, roles=roles, **kwargs))
 
     def with_runtime(
@@ -490,7 +417,7 @@ class TestBench:
         service_version: str = "0.0.1",
         **kwargs: Any,
     ) -> TestBench:
-        """Возвращает новый TestBench с изменённым окружением."""
+        """Return new TestBench with modified runtime info."""
         return self._clone(
             runtime=RuntimeInfoStub(
                 hostname=hostname,
@@ -508,7 +435,7 @@ class TestBench:
         request_method: str = "TEST",
         **kwargs: Any,
     ) -> TestBench:
-        """Возвращает новый TestBench с изменённой информацией о запросе."""
+        """Return new TestBench with modified request info."""
         return self._clone(
             request=RequestInfoStub(
                 trace_id=trace_id,
@@ -520,11 +447,11 @@ class TestBench:
         )
 
     def with_mocks(self, mocks: dict[type, Any]) -> TestBench:
-        """Возвращает новый TestBench с изменёнными моками (замена, не мерж)."""
+        """Return new TestBench with replaced mocks (not merge)."""
         return self._clone(mocks=mocks)
 
     # ─────────────────────────────────────────────────────────────────────
-    # Терминальные методы
+    # Terminal methods
     # ─────────────────────────────────────────────────────────────────────
 
     async def run(
@@ -535,33 +462,16 @@ class TestBench:
         connections: dict[str, BaseResourceManager] | None = None,
     ) -> R:
         """
-        Полный прогон действия на async и sync машинах со сравнением результатов.
+        Full action run on async and sync machines with result comparison.
 
-        Для MockAction — прямой вызов без конвейера.
-
-        Между прогонами async и sync машин сбрасывает состояние всех
-        Mock-объектов через _reset_all_mocks(). Это гарантирует, что
-        каждая машина работает с чистыми моками, и тесты могут использовать
-        assert_called_once_with() без учёта двойного прогона.
-
-        После обоих прогонов моки НЕ сбрасываются — тест видит состояние
-        моков после sync-прогона (последнего).
-
-        Аргументы:
-            action: экземпляр действия.
-            params: входные параметры.
-            rollup: режим автоотката транзакций (обязательный).
-            connections: словарь менеджеров ресурсов (или None).
-
-        Возвращает:
-            R — результат выполнения действия (от async-машины).
+        For ``MockAction`` performs direct call without pipeline.
         """
         if isinstance(action, MockAction):
             return cast("R", action.run(params))
 
         context = self._build_context()
 
-        # ── Прогон 1: async-машина ──
+        # Run 1: async machine
         async_machine = self._build_async_machine()
         async_result = await async_machine._run_internal(
             context=context,
@@ -573,12 +483,10 @@ class TestBench:
             rollup=rollup,
         )
 
-        # ── Сброс моков между прогонами ──
-        # Без сброса sync-машина увидит вызовы от async-машины,
-        # и assert_called_once_with() в тестах будет падать.
+        # Reset mocks between runs
         _reset_all_mocks(self._mocks)
 
-        # ── Прогон 2: sync-машина ──
+        # Run 2: sync machine
         sync_machine = self._build_sync_machine()
         sync_result = await sync_machine._run_internal(
             context=context,
@@ -607,18 +515,7 @@ class TestBench:
         connections: dict[str, BaseResourceManager] | None = None,
     ) -> dict[str, Any]:
         """
-        Выполняет один regular-аспект с валидацией state.
-
-        Аргументы:
-            action: экземпляр действия.
-            aspect_name: имя метода-аспекта.
-            params: входные параметры.
-            state: словарь state (валидируется по чекерам предшествующих аспектов).
-            rollup: режим автоотката (обязательный).
-            connections: словарь менеджеров ресурсов (или None).
-
-        Возвращает:
-            dict[str, Any] — результат regular-аспекта.
+        Execute one regular aspect with state validation.
         """
         context = self._build_context()
         action_cls = action.__class__
@@ -640,8 +537,8 @@ class TestBench:
         if target_aspect is None:
             available = [a.method_name for a in aspects]
             raise ValueError(
-                f"Аспект '{aspect_name}' не найден в {action.__class__.__name__}. "
-                f"Доступные: {available}."
+                f"Aspect '{aspect_name}' not found in {action.__class__.__name__}. "
+                f"Available: {available}."
             )
 
         async_machine = self._build_async_machine()
@@ -686,17 +583,7 @@ class TestBench:
         connections: dict[str, BaseResourceManager] | None = None,
     ) -> BaseResult:
         """
-        Выполняет только summary-аспект с валидацией полноты state.
-
-        Аргументы:
-            action: экземпляр действия.
-            params: входные параметры.
-            state: словарь state (валидируется по чекерам всех regular-аспектов).
-            rollup: режим автоотката (обязательный).
-            connections: словарь менеджеров ресурсов (или None).
-
-        Возвращает:
-            BaseResult — результат summary-аспекта.
+        Execute summary aspect only with full state validation.
         """
         context = self._build_context()
         action_cls = action.__class__
@@ -713,7 +600,7 @@ class TestBench:
         summary_meta = summaries[0] if summaries else None
         if summary_meta is None:
             raise ValueError(
-                f"Действие {action.__class__.__name__} не содержит summary-аспект."
+                f"Action {action.__class__.__name__} has no summary aspect."
             )
 
         async_machine = self._build_async_machine()
@@ -762,82 +649,31 @@ class TestBench:
         context: dict[str, Any] | None = None,
     ) -> None:
         """
-        Изолированный запуск компенсатора для unit-тестирования.
+        Isolated compensator execution for unit testing.
 
-        Аналог run_aspect() для аспектов. Позволяет тестировать компенсатор
-        КАК UNIT: передать params, state_before, state_after, error напрямую
-        и проверить побочные эффекты (вызовы моков, логирование).
-
-        Компенсатор не возвращает значение — тестирование строится
-        на проверке побочных эффектов:
-            mock_payment.refund.assert_called_once_with("txn_123")
-
-        КЛЮЧЕВОЕ ОТЛИЧИЕ ОТ PRODUCTION:
-        В production _rollback_saga() подавляет ошибки компенсаторов.
-        В тестах ошибки ПРОБРАСЫВАЮТСЯ — это позволяет тестировать:
-        - Что компенсатор НЕ падает при нормальных условиях.
-        - Что компенсатор корректно обрабатывает ошибки внутренне.
-        - Что компенсатор ПАДАЕТ при определённых условиях (граничные случаи).
-
-        Аргументы:
-            action: экземпляр действия, содержащего компенсатор.
-
-            compensator_name: строковое имя метода-компенсатора
-                (например, "rollback_payment_compensate").
-
-            params: входные параметры действия (frozen BaseParams).
-
-            state_before: состояние конвейера ДО выполнения целевого аспекта.
-                Frozen BaseState. Компенсатор использует его для
-                восстановления предыдущего значения.
-
-            state_after: состояние конвейера ПОСЛЕ выполнения целевого аспекта.
-                Frozen BaseState или None. None означает: чекер отклонил
-                результат, но побочный эффект мог произойти. Компенсатор
-                использует state_after для извлечения данных отката (txn_id).
-
-            error: исключение, вызвавшее размотку стека. Компенсатор
-                может адаптировать стратегию отката в зависимости от типа.
-
-            connections: словарь ресурсных менеджеров (или None → пустой dict).
-
-            context: словарь контекстных данных для ContextView,
-                если компенсатор использует @context_requires.
-                None если компенсатор не требует контекст.
-
-        Возвращает:
-            None. Компенсатор не возвращает значение.
-            Тестирование строится на проверке побочных эффектов.
-
-        Исключения:
-            ValueError:
-                - Метод не найден в классе Action.
-                - Метод не является компенсатором (нет @compensate).
-                - Компенсатор требует @context_requires, но context
-                  не передан.
-            Любое исключение компенсатора: НЕ подавляется
-                (в отличие от production-режима).
+        Unlike production rollback, compensator exceptions are propagated.
         """
         action_class = action.__class__
         action_class_name = action_class.__name__
 
-        # ── 1. Найти метод в классе ──────────────────────────────────
+        # 1. Locate method on class
         method = getattr(action_class, compensator_name, None)
         if method is None:
             raise ValueError(
-                f"Метод '{compensator_name}' не найден в {action_class_name}. "
-                f"Проверьте имя метода."
+                f"Method '{compensator_name}' not found in {action_class_name}. "
+                f"Check method name."
             )
 
-        # ── 2. Проверить, что это компенсатор ────────────────────────
+        # 2. Ensure this is a compensator
         if not hasattr(method, _COMPENSATE_META_ATTR):
             raise ValueError(
-                f"Метод '{compensator_name}' в {action_class_name} не является "
-                f"компенсатором (отсутствует декоратор @compensate). "
-                f"Убедитесь, что метод помечен @compensate(target_aspect_name, description)."
+                f"Method '{compensator_name}' in {action_class_name} is not a "
+                f"compensator (missing @compensate decorator). "
+                f"Ensure the method is marked with "
+                f"@compensate(target_aspect_name, description)."
             )
 
-        # ── 3. Подготовить окружение ─────────────────────────────────
+        # 3. Prepare environment
         ctx = self._build_context()
 
         async_machine = self._build_async_machine()
@@ -867,17 +703,17 @@ class TestBench:
 
         conns = connections or {}
 
-        # ── 4. Обработка @context_requires ───────────────────────────
+        # 4. Handle @context_requires
         context_keys = getattr(method, _CONTEXT_REQUIRES_ATTR, None)
 
         if context_keys:
             if context is None:
                 keys_str = ", ".join(sorted(context_keys))
                 raise ValueError(
-                    f"Компенсатор '{compensator_name}' в {action_class_name} "
-                    f"использует @context_requires (ключи: {keys_str}), "
-                    f"но параметр context не передан. Передайте dict "
-                    f"с необходимыми ключами контекста."
+                    f"Compensator '{compensator_name}' in {action_class_name} "
+                    f"uses @context_requires (keys: {keys_str}), "
+                    f"but context argument is missing. Pass dict with required "
+                    f"context keys."
                 )
             ctx_view = ContextView(ctx, frozenset(context_keys))
             await method(
@@ -891,7 +727,7 @@ class TestBench:
             )
 
     # ─────────────────────────────────────────────────────────────────────
-    # Вспомогательные методы
+    # Helper methods
     # ─────────────────────────────────────────────────────────────────────
 
     def _make_run_child(
@@ -901,10 +737,10 @@ class TestBench:
         rollup: bool,
     ) -> Any:
         """
-        Создаёт замыкание run_child для ToolsBox.
+        Create ``run_child`` closure for ToolsBox.
 
-        Замыкание делегирует вызов дочерних действий в _run_internal
-        машины с текущими моками и rollup.
+        Closure delegates child-action execution into machine ``_run_internal``
+        with current mocks and rollup.
         """
         prepared = self._prepared_mocks
 

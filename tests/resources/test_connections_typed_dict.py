@@ -1,26 +1,25 @@
 # tests/resources/test_connections_typed_dict.py
 """
-Тесты Connections — базового TypedDict для словаря connections.
+Tests for Connections — base TypedDict for the connections dict.
 
 ═══════════════════════════════════════════════════════════════════════════════
-НАЗНАЧЕНИЕ
+PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Connections — базовый TypedDict, определяющий структуру словаря, передаваемого
-в аспекты через параметр connections. Содержит единственный стандартный ключ
-'connection' (покрывает 99% случаев использования). Для сложных случаев
-разработчик может создать наследника с дополнительными ключами.
+Connections is the base TypedDict describing the dict passed into aspects as
+connections. It defines the standard key 'connection' (covers most cases). For
+complex setups, developers can subclass with extra keys.
 
-TypedDict — это статический контракт для IDE и mypy. В runtime connections
-остаётся обычным dict, и ActionMachine проверяет его содержимое динамически.
+TypedDict is a static contract for the IDE and mypy. At runtime connections is a
+plain dict; ActionMachine still validates contents dynamically.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ПОКРЫВАЕМЫЕ СЦЕНАРИИ
+SCENARIOS COVERED
 ═══════════════════════════════════════════════════════════════════════════════
 
-- Создание словаря с ключом 'connection' проходит проверку типов.
-- Создание словаря с другими ключами также допустимо (total=False).
-- Значение по ключу — экземпляр BaseResourceManager.
+- Building a dict with key 'connection' satisfies the type contract.
+- Dicts with other keys are also allowed (total=False).
+- Values are BaseResourceManager instances.
 """
 
 from action_machine.resources.base_resource_manager import BaseResourceManager
@@ -28,21 +27,20 @@ from action_machine.resources.connections_typed_dict import Connections
 
 
 class DummyResourceManager(BaseResourceManager):
-    """Заглушка менеджера ресурсов для тестов."""
+    """Stub resource manager for tests."""
     def get_wrapper_class(self):
         return None
 
 
 def test_connections_typeddict() -> None:
     """
-    Connections — TypedDict, принимающий ключ 'connection'
-    со значением BaseResourceManager.
+    Connections TypedDict accepts key 'connection' with a BaseResourceManager value.
     """
-    # Arrange — экземпляр заглушки
+    # Arrange — stub instance
     res = DummyResourceManager()
 
-    # Act — создание словаря, соответствующего Connections
+    # Act — dict matching Connections
     conn: Connections = {"connection": res}
 
-    # Assert — доступ по ключу работает
+    # Assert — key access works
     assert conn["connection"] is res

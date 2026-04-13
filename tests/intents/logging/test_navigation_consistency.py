@@ -1,49 +1,47 @@
 # tests/integration/test_navigation_consistency.py
-"""
-Интеграционный тест: консистентность навигации между BaseSchema.resolve()
-и VariableSubstitutor.
+"""Integration test: navigation consistency between BaseSchema.resolve()
+and VariableSubstitutor.
 
-═══════════════════════════════════════════════════════════════════════════════
-НАЗНАЧЕНИЕ
-═══════════════════════════════════════════════════════════════════════════════
+═══════════════════ ════════════════════ ════════════════════ ════════════════════
+PURPOSE
+═══════════════════ ════════════════════ ════════════════════ ════════════════════
 
-Проверяет, что BaseSchema.resolve() и VariableSubstitutor дают
-одинаковые результаты для одного и того же пути на одном и том же объекте.
+Checks what BaseSchema.resolve() and VariableSubstitutor give
+same results for the same path on the same object.
 
-Оба компонента делегируют навигацию единому DotPathNavigator [1].
-Этот тест гарантирует, что рассинхронизация между ними невозможна
-при будущих изменениях — именно такая рассинхронизация привела
-к ошибке #1, когда resolve() использовал None как маркер отсутствия [2],
-а VariableSubstitutor — _SENTINEL [4].
+Both components delegate navigation to a single DotPathNavigator [1].
+This test ensures that desync between them is not possible
+with future changes - it was precisely this desynchronization that led
+to error #1 when resolve() used None as an absence marker [2],
+and VariableSubstitutor is _SENTINEL [4].
 
-═══════════════════════════════════════════════════════════════════════════════
-ПОКРЫВАЕМЫЕ СЦЕНАРИИ
-═══════════════════════════════════════════════════════════════════════════════
+═══════════════════ ════════════════════ ════════════════════ ════════════════════
+SCENARIOS COVERED
+═══════════════════ ════════════════════ ════════════════════ ════════════════════
 
-Строковое значение:
+String value:
     resolve("user.user_id") == "test_user"
-    substitute("{%context.user.user_id}") содержит "test_user"
+    substitute("{%context.user.user_id}") contains "test_user"
 
-Числовое значение:
+Numeric value:
     resolve("nested.count") == 42
-    substitute("{%state.nested.count}") содержит "42"
+    substitute("{%state.nested.count}") contains "42"
 
-None-значение (поле существует):
+None value (field exists):
     resolve("optional_field") is None
-    substitute("{%state.optional_field}") содержит "None" (не падает)
+    substitute("{%state.optional_field}") contains "None" (does not fall)
 
-Отсутствующий путь:
-    resolve("missing") возвращает default
+Missing path:
+    resolve("missing") returns default
     substitute("{%context.missing}") → LogTemplateError
 
-Вложенный dict:
+Nested dict:
     resolve("data.key") == "value"
-    substitute("{%var.data.key}") содержит "value"
+    substitute("{%var.data.key}") contains "value"
 
-Falsy-значения (0, False, ""):
-    resolve возвращает falsy-значение, не default
-    substitute содержит строковое представление falsy-значения
-"""
+Falsy values (0, False, ""):
+    resolve returns a false value, not default
+    substitute contains a string representation of the falsy value"""
 
 from typing import Any
 
@@ -60,83 +58,83 @@ from action_machine.model.exceptions import LogTemplateError
 from action_machine.testing.stubs import ContextStub
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Вспомогательные модели
+#Auxiliary models
 # ─────────────────────────────────────────────────────────────────────────────
 
 class _NullableSchema(BaseSchema):
-    """Схема с nullable-полями для тестирования None-значений."""
+    """A scheme with nullable fields for testing None values."""
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
-    name: str = Field(description="Имя")
-    optional_field: str | None = Field(default=None, description="Опциональное поле")
+    name: str = Field(description="Name")
+    optional_field: str | None = Field(default=None, description="Optional field")
 
 
 class _FalsySchema(BaseSchema):
-    """Схема с falsy-значениями для тестирования 0, False, ''."""
+    """Scheme with falsy values ​​for testing 0, False, ''."""
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
-    zero_int: int = Field(description="Ноль")
-    zero_float: float = Field(description="Ноль дробный")
-    false_bool: bool = Field(description="Ложь")
-    empty_str: str = Field(description="Пустая строка")
+    zero_int: int = Field(description="Zero")
+    zero_float: float = Field(description="Fractional zero")
+    false_bool: bool = Field(description="Lie")
+    empty_str: str = Field(description="Empty string")
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Общие фикстуры
+#General fittings
 # ─────────────────────────────────────────────────────────────────────────────
 
 @pytest.fixture()
 def sub() -> VariableSubstitutor:
-    """Свежий экземпляр VariableSubstitutor."""
+    """A fresh instance of VariableSubstitutor."""
     return VariableSubstitutor()
 
 
 @pytest.fixture()
 def scope() -> LogScope:
-    """Минимальный LogScope."""
+    """Minimum LogScope."""
     return LogScope(machine="M", mode="test", action="A", aspect="a", nest_level=0)
 
 
 @pytest.fixture()
 def state() -> BaseState:
-    """Пустой BaseState."""
+    """Empty BaseState."""
     return BaseState()
 
 
 @pytest.fixture()
 def params() -> BaseParams:
-    """Пустой BaseParams."""
+    """Empty BaseParams."""
     return BaseParams()
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Строковые значения — resolve и substitutor дают одинаковый результат
+#String values ​​- resolve and substitutor give the same result
 # ═════════════════════════════════════════════════════════════════════════════
 
 class TestStringValueConsistency:
-    """Строковое значение: resolve() и substitutor согласованы."""
+    """String value: resolve() and substitutor are consistent."""
 
     def test_context_user_id(self, sub, scope, state, params) -> None:
-        """resolve("user.user_id") и {%context.user.user_id} — один результат."""
+        """resolve("user.user_id") and {%context.user.user_id} - one result."""
         # Arrange
         ctx = ContextStub()
 
-        # Act — через resolve
+        #Act - via resolve
         result_resolve = ctx.resolve("user.user_id")
 
-        # Act — через substitutor
+        #Act - via substitutor
         result_sub = sub.substitute(
             "{%context.user.user_id}", {}, scope, ctx, state, params
         )
 
-        # Assert — оба возвращают одно и то же значение
+        #Assert - both return the same value
         assert result_resolve == "test_user"
         assert result_resolve in result_sub
 
     def test_nested_schema_field(self, sub, scope, state, params) -> None:
-        """Вложенное поле через BaseSchema — согласованность."""
+        """Nested field via BaseSchema - consistency."""
         # Arrange
         ctx = ContextStub()
 
@@ -152,14 +150,14 @@ class TestStringValueConsistency:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Числовые значения
+#Numeric values
 # ═════════════════════════════════════════════════════════════════════════════
 
 class TestNumericValueConsistency:
-    """Числовое значение: resolve() и substitutor согласованы."""
+    """Numeric value: resolve() and substitutor are consistent."""
 
     def test_state_numeric_field(self, sub, scope, ctx_stub, params) -> None:
-        """Числовое поле в state — одинаковый результат."""
+        """A numeric field in state gives the same result."""
         # Arrange
         st = BaseState(count=42)
 
@@ -177,27 +175,27 @@ class TestNumericValueConsistency:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# None-значения — ключевой сценарий (ошибка #1)
+#None values ​​are a key scenario (error #1)
 # ═════════════════════════════════════════════════════════════════════════════
 
 class TestNoneValueConsistency:
-    """None как значение поля: resolve() и substitutor согласованы [7]."""
+    """None as field value: resolve() and substitutor are consistent [7]."""
 
     def test_none_field_resolve_returns_none(self) -> None:
-        """resolve() для поля с None возвращает None, а не default."""
+        """resolve() for a field with None returns None, not default."""
         # Arrange
         schema = _NullableSchema(name="Alice", optional_field=None)
 
         # Act
         result = schema.resolve("optional_field", default="fallback")
 
-        # Assert — None это валидное значение, не отсутствие
+        #Assert - None is a valid value, not absence
         assert result is None
 
     def test_none_field_substitutor_returns_none_string(
         self, sub, scope, state, params
     ) -> None:
-        """substitutor для поля с None выводит 'None', не падает."""
+        """substitutor for a field with None outputs 'None', does not crash."""
         # Arrange
         st = BaseState(optional_field=None)
 
@@ -206,13 +204,13 @@ class TestNoneValueConsistency:
             "{%state.optional_field}", {}, scope, ContextStub(), st, params
         )
 
-        # Assert — substitutor преобразует None в строку "None"
+        #Assert - substitutor converts None to the string "None"
         assert "None" in result
 
     def test_none_consistency_between_resolve_and_substitutor(
         self, sub, scope, params
     ) -> None:
-        """resolve() возвращает None, substitutor выводит str(None) — согласовано."""
+        """resolve() returns None, substitutor outputs str(None) - agreed."""
         # Arrange
         st = BaseState(value=None)
 
@@ -228,14 +226,14 @@ class TestNoneValueConsistency:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Отсутствующий путь — resolve возвращает default, substitutor бросает ошибку
+#Missing path - resolve returns default, substitutor throws an error
 # ═════════════════════════════════════════════════════════════════════════════
 
 class TestMissingPathBehavior:
-    """Отсутствующий путь: разное поведение — и это корректно."""
+    """Missing path: different behavior - and this is correct."""
 
     def test_resolve_returns_default_for_missing(self) -> None:
-        """resolve() для несуществующего пути возвращает default [7]."""
+        """resolve() for a non-existent path returns default [7]."""
         # Arrange
         ctx = ContextStub()
 
@@ -246,11 +244,11 @@ class TestMissingPathBehavior:
         assert result == "MISSING"
 
     def test_substitutor_raises_for_missing(self, sub, scope, state, params) -> None:
-        """substitutor для несуществующего пути бросает LogTemplateError [4]."""
+        """substitutor for a non-existent path throws LogTemplateError [4]."""
         # Arrange
         ctx = ContextStub()
 
-        # Act & Assert — строгая политика ошибок
+        #Act & Assert - strict error policy
         with pytest.raises(LogTemplateError, match="not found"):
             sub.substitute(
                 "{%context.user.nonexistent}", {}, scope, ctx, state, params
@@ -258,18 +256,18 @@ class TestMissingPathBehavior:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Вложенные dict — навигация через DotPathNavigator
+#Nested dict - navigation via DotPathNavigator
 # ═════════════════════════════════════════════════════════════════════════════
 
 class TestNestedDictConsistency:
-    """Вложенный dict: resolve() и substitutor через один навигатор."""
+    """Nested dict: resolve() and substitutor through one navigator."""
 
     def test_var_nested_dict(self, sub, scope, state, params) -> None:
-        """Трёхуровневый dict — оба пути дают одинаковый результат."""
+        """Three-level dict - both ways give the same result."""
         # Arrange
         data: dict[str, Any] = {"a": {"b": {"c": "deep"}}}
 
-        # Act — через substitutor (var namespace — dict)
+        #Act - via substitutor (var namespace - dict)
         result_sub = sub.substitute(
             "{%var.a.b.c}", data, scope, ContextStub(), state, params
         )
@@ -278,7 +276,7 @@ class TestNestedDictConsistency:
         assert "deep" in result_sub
 
     def test_state_with_nested_dict(self, sub, scope, params) -> None:
-        """BaseState с вложенным dict — resolve и substitutor согласованы."""
+        """BaseState with nested dict - resolve and substitutor are consistent."""
         # Arrange
         st = BaseState(nested={"key": "value"})
 
@@ -294,14 +292,14 @@ class TestNestedDictConsistency:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Falsy-значения — 0, False, "" не подменяются на default
+#Falsy values ​​- 0, False, "" are not replaced by default
 # ═════════════════════════════════════════════════════════════════════════════
 
 class TestFalsyValueConsistency:
-    """Falsy-значения: resolve() и substitutor не путают с отсутствием [8]."""
+    """Falsy values: resolve() and substitutor are not confused with absence [8]."""
 
     def test_zero_int(self, sub, scope, params) -> None:
-        """Значение 0 — валидное, не отсутствие."""
+        """A value of 0 is valid, not absent."""
         # Arrange
         st = BaseState(count=0)
 
@@ -316,7 +314,7 @@ class TestFalsyValueConsistency:
         assert "0" in result_sub
 
     def test_false_bool(self, sub, scope, params) -> None:
-        """Значение False — валидное, не отсутствие."""
+        """The value False is valid, not absent."""
         # Arrange
         st = BaseState(flag=False)
 
@@ -331,7 +329,7 @@ class TestFalsyValueConsistency:
         assert "False" in result_sub
 
     def test_empty_string(self, sub, scope, params) -> None:
-        """Значение '' — валидное, не отсутствие."""
+        """The value '' is valid, not absent."""
         # Arrange
         st = BaseState(label="")
 
@@ -347,14 +345,14 @@ class TestFalsyValueConsistency:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# LogScope — навигация через duck-typed __getitem__
+#LogScope - navigation via duck-typed __getitem__
 # ═════════════════════════════════════════════════════════════════════════════
 
 class TestLogScopeConsistency:
-    """LogScope: substitutor корректно навигирует через __getitem__ [3]."""
+    """LogScope: substitutor navigates correctly via __getitem__ [3]."""
 
     def test_scope_field_via_substitutor(self, sub, state, params) -> None:
-        """Поле scope доступно через {%scope.action}."""
+        """The scope field is accessible via {%scope.action}."""
         # Arrange
         sc = LogScope(
             machine="TestMachine", mode="test",
@@ -370,9 +368,10 @@ class TestLogScopeConsistency:
         assert "MyAction" in result
 
     def test_scope_field_via_getitem(self) -> None:
-        """LogScope["action"] возвращает то же значение."""
+        """LogScope["action"] returns the same value."""
         # Arrange
         sc = LogScope(action="MyAction")
 
         # Act & Assert
+        assert sc["action"] == "MyAction"
         assert sc["action"] == "MyAction"

@@ -1,55 +1,55 @@
 # src/action_machine/runtime/machines/sync_action_product_machine.py
 """
-SyncActionProductMachine — синхронная production-реализация машины действий.
+Sync production runtime machine for action execution.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-SyncActionProductMachine — синхронный аналог ActionProductMachine. Метод
-run() является обычным (не async) methodом, который создаёт event loop
-через asyncio.run() и выполняет асинхронный конвейер внутри него.
+``SyncActionProductMachine`` is the synchronous counterpart of
+``ActionProductMachine``. Its ``run()`` method is a normal (non-async) method
+that creates an event loop via ``asyncio.run()`` and executes the async
+pipeline inside it.
 
-Предназначен для использования в синхронных окружениях:
-- Скрипты командной строки (CLI).
-- Celery-задачи (если не используется async worker).
-- Django views без async-поддержки.
-- Любой код, где нет активного event loop.
+Typical use cases:
+- CLI scripts.
+- Celery tasks without async worker mode.
+- Synchronous web handlers (for example, non-async Django views).
+- Any code path without an active event loop.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ОТЛИЧИЕ ОТ ActionProductMachine
+DIFFERENCE FROM ActionProductMachine
 ═══════════════════════════════════════════════════════════════════════════════
 
     ActionProductMachine:
-        async def run(...) → R              ← требует await
-        Использование: await machine.run(ctx, action, params)
+        async def run(...) -> R              <- requires await
+        Usage: await machine.run(ctx, action, params)
 
     SyncActionProductMachine:
-        def run(...) → R                    ← обычный вызов
-        Использование: result = machine.run(ctx, action, params)
+        def run(...) -> R                    <- regular call
+        Usage: result = machine.run(ctx, action, params)
 
-Внутренняя реализация (_run_internal) полностью наследуется от
-ActionProductMachine без изменений. SyncActionProductMachine только
-переопределяет точку входа run(), оборачивая асинхронный _run_internal()
-в asyncio.run().
+Internal implementation (``_run_internal``) is inherited from
+``ActionProductMachine`` unchanged. ``SyncActionProductMachine`` only overrides
+the public entry point ``run()``, wrapping async execution with ``asyncio.run()``.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ROLLUP
 ═══════════════════════════════════════════════════════════════════════════════
 
-Production-машина всегда передаёт rollup=False в _run_internal().
-Параметр rollup не входит в публичный API production-машин.
+Production machine always passes ``rollup=False`` into ``_run_internal()``.
+Rollup is not part of the public production machine API.
 
-Rollup доступен только через TestBench, который вызывает _run_internal()
-напрямую с rollup из терминальных methodов (run, run_aspect, run_summary).
+Rollup is available only through TestBench, which calls ``_run_internal()``
+directly with rollup-enabled terminal methods.
 
 ═══════════════════════════════════════════════════════════════════════════════
 LIMITATIONS
 ═══════════════════════════════════════════════════════════════════════════════
 
-Нельзя вызывать run() внутри уже работающего event loop. Если попытаться
-вызвать из async-contextа (например, из FastAPI endpoint), asyncio.run()
-выбросит RuntimeError. В таком случае используйте ActionProductMachine.
+Do not call ``run()`` inside an already running event loop. In async contexts
+(for example, FastAPI endpoint handlers), ``asyncio.run()`` raises
+``RuntimeError``. Use ``ActionProductMachine`` there.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
@@ -59,12 +59,11 @@ ARCHITECTURE / DATA FLOW
         │
         ├── ActionProductMachine          (async, production)
         │
-        └── SyncActionProductMachine      (sync, production)  ← этот класс
+        └── SyncActionProductMachine      (sync, production)  <- this class
 
-SyncActionProductMachine наследует ActionProductMachine, получая всю
-логику конвейера, проверки ролей, валидации соединений, checkerов,
-плагинов и прокидывания rollup. Переопределяется только публичный
-method run().
+``SyncActionProductMachine`` inherits ``ActionProductMachine`` and reuses the
+entire pipeline logic (roles, connections, checkers, plugins, rollup
+propagation internals). Only public ``run()`` is overridden.
 
 ═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES
@@ -74,16 +73,35 @@ EXAMPLES
 
     machine = SyncActionProductMachine(mode="production")
 
-    # Синхронный вызов — без await:
+    # Synchronous call - no await:
     result = machine.run(context, action, params)
 
-    # В CLI-скрипте:
+    # In a CLI script:
     if __name__ == "__main__":
         ctx = Context()
         action = PingAction()
         params = PingAction.Params()
         result = machine.run(ctx, action, params)
         print(result.message)
+
+═══════════════════════════════════════════════════════════════════════════════
+ERRORS / LIMITATIONS
+═══════════════════════════════════════════════════════════════════════════════
+
+- ``run()`` cannot be used from an active async event loop.
+- Public API intentionally fixes ``rollup=False`` for production safety.
+- All runtime contract failures propagate from inherited async pipeline.
+
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE-BEGIN
+═══════════════════════════════════════════════════════════════════════════════
+ROLE: Synchronous adapter over ActionProductMachine async pipeline.
+CONTRACT: run(...) synchronously executes _run_internal via asyncio.run.
+INVARIANTS: Inherited orchestration semantics; public rollup is always false.
+FLOW: sync run call -> asyncio.run -> inherited async pipeline execution.
+FAILURES: RuntimeError in active loop; pipeline errors propagate unchanged.
+EXTENSION POINTS: Use async ActionProductMachine for event-loop-native contexts.
+AI-CORE-END
 """
 
 import asyncio
@@ -102,23 +120,10 @@ R = TypeVar("R", bound=BaseResult)
 
 class SyncActionProductMachine(ActionProductMachine):
     """
-    Синхронная production-реализация машины действий.
+    Synchronous production runtime machine.
 
-    Наследует всю логику ActionProductMachine (конвейер аспектов,
-    проверка ролей, валидация соединений, checkerы, плагины, прокидывание
-    rollup). Переопределяет только публичный method run(), делая его
-    синхронным.
-
-    Внутри run() вызывается asyncio.run(), который создаёт новый
-    event loop и выполняет асинхронный _run_internal().
-
-    Всегда передаёт rollup=False — production-машина не поддерживает
-    rollup через публичный API.
-
-    Атрибуты наследуются от ActionProductMachine:
-        _mode : str — режим выполнения.
-        _plugin_coordinator : PluginCoordinator — координатор плагинов.
-        _log_coordinator : LogCoordinator — координатор логирования.
+    Reuses full async pipeline from ``ActionProductMachine`` and exposes a sync
+    ``run()`` entry point via ``asyncio.run()``.
     """
 
     def run(  # type: ignore[override]  # pylint: disable=invalid-overridden-method
@@ -129,28 +134,9 @@ class SyncActionProductMachine(ActionProductMachine):
         connections: dict[str, BaseResourceManager] | None = None,
     ) -> R:
         """
-        Синхронно выполняет действие.
+        Execute action synchronously via ``asyncio.run`` wrapper.
 
-        Создаёт новый event loop через asyncio.run() и выполняет
-        асинхронный _run_internal() внутри него. Production-машина
-        всегда передаёт rollup=False.
-
-        Args:
-            context: context выполнения (пользователь, запрос, окружение).
-            action: экземпляр действия для выполнения.
-            params: входные параметры действия.
-            connections: словарь ресурсных менеджеров (или None).
-
-        Returns:
-            R — результат выполнения действия.
-
-        Raises:
-            RuntimeError: если вызван внутри уже работающего event loop.
-                          В async-contextе используйте ActionProductMachine.
-            AuthorizationError: при несоответствии ролей.
-            ConnectionValidationError: при несоответствии соединений.
-            ValidationFieldError: при ошибке валидации checkerом.
-            TypeError: при отсутствии @check_roles или ошибке типов.
+        Always delegates to ``_run_internal(..., rollup=False, nested_level=0)``.
         """
         return asyncio.run(
             self._run_internal(

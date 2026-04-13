@@ -1,27 +1,25 @@
 # src/action_machine/model/base_schema.py
 """
-BaseSchema — единая базовая схема данных фреймворка ActionMachine.
+BaseSchema - unified base data schema for ActionMachine.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-BaseSchema — корневой класс для всех структур данных фреймворка. Наследует
-pydantic.BaseModel и добавляет два интерфейса поверх стандартных полей:
+``BaseSchema`` is the root class for framework data structures. It inherits
+from ``pydantic.BaseModel`` and adds two interfaces beyond regular fields:
 
-1. Dict-подобный доступ к полям: obj["key"], "key" in obj, obj.get("key"),
-   obj.keys(), obj.values(), obj.items().
+1. Dict-like field access: ``obj["key"]``, ``"key" in obj``, ``obj.get("key")``,
+   ``obj.keys()``, ``obj.values()``, ``obj.items()``.
 
-2. Dot-path навигация по вложенным объектам: obj.resolve("user.user_id")
-   обходит цепочку вложенных BaseSchema/dict/объектов и возвращает
-   значение на конце пути.
+2. Dot-path navigation for nested objects: ``obj.resolve("user.user_id")``
+   traverses nested BaseSchema/dict/object chains and returns terminal value.
 
-Все структуры данных, передаваемые между компонентами системы (параметры,
-state, результат, context, информация о пользователе, запросе и среде
-выполнения), наследуют от BaseSchema [2].
+All data structures passed between framework components (params, state, result,
+context, user/request/runtime information) inherit from ``BaseSchema``.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ИЕРАРХИЯ НАСЛЕДОВАНИЯ
+INHERITANCE HIERARCHY
 ═══════════════════════════════════════════════════════════════════════════════
 
     BaseSchema(BaseModel)
@@ -34,64 +32,79 @@ state, результат, context, информация о пользовате
         └── Context                 — frozen=True, extra="forbid"
 
 ═══════════════════════════════════════════════════════════════════════════════
-ПРИНЦИПЫ
+INVARIANTS
 ═══════════════════════════════════════════════════════════════════════════════
 
-1. ВСЁ FROZEN. Каждый наследник неизменяем после создания. Единственный
-   способ «изменить» — создать новый экземпляр [2].
+1. Everything is frozen. Concrete schema instances are immutable; updates are
+   performed via creating new instances.
 
-2. ВСЁ FORBID (кроме BaseState). Произвольные поля запрещены. Расширение
-   структуры — только через наследование с явно объявленными полями.
-   BaseState использует extra="allow" для динамических полей конвейера [2].
+2. Everything is forbid (except ``BaseState``). Unknown fields are rejected.
+   Structural extension goes through explicit inheritance; ``BaseState`` uses
+   ``extra="allow"`` for dynamic pipeline fields.
 
-3. ЕДИНЫЙ ИНТЕРФЕЙС. Dict-подобный доступ и dot-path навигация доступны
-   на любой схеме. Один базовый класс вместо отдельных Protocol и Mixin [2].
+3. Unified interface. Dict-like access and dot-path navigation are available on
+   every schema through one base class.
 
-4. PYDANTIC-НАТИВНОСТЬ. Validation типов при создании, JSON Schema через
-   model_json_schema(), сериализация через model_dump(), совместимость
-   с FastAPI — из коробки [2].
+4. Pydantic-native behavior. Type validation at creation, JSON Schema via
+   ``model_json_schema()``, serialization via ``model_dump()``, and FastAPI
+   compatibility are available out of the box.
 
 ═══════════════════════════════════════════════════════════════════════════════
-DICT-ПОДОБНЫЙ ИНТЕРФЕЙС
+DICT-LIKE INTERFACE
 ═══════════════════════════════════════════════════════════════════════════════
 
     schema = MySchema(name="test", value=42)
 
-    schema["name"]              → "test"           __getitem__
-    "name" in schema            → True              __contains__
-    schema.get("missing", 0)    → 0                 get
-    list(schema.keys())         → ["name", "value"] keys
-    list(schema.values())       → ["test", 42]      values
-    list(schema.items())        → [("name", "test"), ("value", 42)]  items
+    schema["name"]              -> "test"           __getitem__
+    "name" in schema            -> True             __contains__
+    schema.get("missing", 0)    -> 0                get
+    list(schema.keys())         -> ["name", "value"] keys
+    list(schema.values())       -> ["test", 42]     values
+    list(schema.items())        -> [("name", "test"), ("value", 42)] items
 
-Для наследников с extra="allow" (BaseState) methodы keys/values/items
-возвращают как объявленные, так и динамические extra-поля [2].
-
-═══════════════════════════════════════════════════════════════════════════════
-DOT-PATH НАВИГАЦИЯ
-═══════════════════════════════════════════════════════════════════════════════
-
-    context.resolve("user.user_id")      → context.user.user_id
-    params.resolve("address.city")       → params.address.city
-    state.resolve("payment.txn_id")      → state.payment.txn_id
-
-Навигация делегируется единому DotPathNavigator из модуля core.navigation.
-На каждом шаге навигатор выбирает стратегию по типу текущего объекта:
-
-    - BaseSchema → __getitem__
-    - LogScope   → __getitem__
-    - dict       → прямой доступ по ключу
-    - любой объект → getattr
-
-Если на любом шаге значение не найдено — возвращается default (None).
+For ``extra="allow"`` descendants (``BaseState``), ``keys/values/items``
+include both declared and dynamic extra fields.
 
 ═══════════════════════════════════════════════════════════════════════════════
-USAGE В TYPE-HINTS
+DOT-PATH NAVIGATION
 ═══════════════════════════════════════════════════════════════════════════════
 
-    def process(data: BaseSchema) -> None: ...       # любая схема
-    def read_only(data: BaseParams) -> None: ...     # иммутабельные параметры
-    def with_state(data: BaseState) -> None: ...     # state конвейера
+    context.resolve("user.user_id")      -> context.user.user_id
+    params.resolve("address.city")       -> params.address.city
+    state.resolve("payment.txn_id")      -> state.payment.txn_id
+
+Navigation is delegated to shared ``DotPathNavigator``. At each step, it picks
+the strategy based on current object type:
+
+    - ``BaseSchema`` -> ``__getitem__``
+    - ``LogScope`` -> ``__getitem__``
+    - ``dict`` -> direct key access
+    - any object -> ``getattr``
+
+If value is missing at any step, ``default`` is returned.
+
+═══════════════════════════════════════════════════════════════════════════════
+USAGE IN TYPE HINTS
+═══════════════════════════════════════════════════════════════════════════════
+
+    def process(data: BaseSchema) -> None: ...       # any schema
+    def read_only(data: BaseParams) -> None: ...     # immutable params
+    def with_state(data: BaseState) -> None: ...     # pipeline state
+
+═══════════════════════════════════════════════════════════════════════════════
+ARCHITECTURE / DATA FLOW
+═══════════════════════════════════════════════════════════════════════════════
+
+    Input payload
+         |
+         v
+    Pydantic model construction (BaseSchema descendant)
+         |
+         +--> Dict-like reads (__getitem__/get/keys/items)
+         +--> Dot-path reads (resolve -> DotPathNavigator)
+         |
+         v
+    model_dump()/model_json_schema() for runtime adapters and tooling
 
 ═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES
@@ -101,22 +114,41 @@ EXAMPLES
     from action_machine.model.base_schema import BaseSchema
 
     class Address(BaseSchema):
-        city: str = Field(description="Город")
-        zip_code: str = Field(description="Индекс")
+        city: str = Field(description="City")
+        zip_code: str = Field(description="ZIP code")
 
     class OrderParams(BaseSchema):
-        user_id: str = Field(description="ID пользователя")
-        address: Address = Field(description="Адрес доставки")
+        user_id: str = Field(description="User identifier")
+        address: Address = Field(description="Shipping address")
 
     params = OrderParams(
         user_id="user_123",
         address=Address(city="Moscow", zip_code="101000"),
     )
 
-    params["user_id"]                    # → "user_123"
-    params.resolve("address.city")       # → "Moscow"
-    list(params.keys())                  # → ["user_id", "address"]
-    params.model_dump()                  # → {"user_id": "user_123", "address": {...}}
+    params["user_id"]                    # -> "user_123"
+    params.resolve("address.city")       # -> "Moscow"
+    list(params.keys())                  # -> ["user_id", "address"]
+    params.model_dump()                  # -> {"user_id": "user_123", "address": {...}}
+
+═══════════════════════════════════════════════════════════════════════════════
+ERRORS / LIMITATIONS
+═══════════════════════════════════════════════════════════════════════════════
+
+- ``resolve()`` returns ``default`` for missing path segments instead of raising.
+- Exact mutability/extra policy is defined by descendants via ``model_config``.
+- Dot-path traversal behavior depends on ``DotPathNavigator`` strategy ordering.
+
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE-BEGIN
+═══════════════════════════════════════════════════════════════════════════════
+ROLE: Universal schema contract used across ActionMachine boundaries.
+CONTRACT: Provide dict-like access and stable dot-path navigation.
+INVARIANTS: Pydantic model semantics + unified read/navigation interface.
+FLOW: typed model construction -> optional key/path reads -> serialization/schema.
+FAILURES: Missing path values degrade to default via sentinel-based resolution.
+EXTENSION POINTS: Descendants tune frozen/extra policy and declare typed fields.
+AI-CORE-END
 """
 
 from __future__ import annotations
@@ -128,12 +160,10 @@ from action_machine.runtime.navigation import _SENTINEL, DotPathNavigator
 
 class BaseSchema(BaseModel):
     """
-    Базовая pydantic-схема с dict-подобным доступом к полям
-    и dot-path навигацией по вложенным объектам.
+    Base Pydantic schema with dict-like reads and dot-path navigation.
 
-    Все структуры данных фреймворка наследуют этот класс.
-    Наследники определяют политику мутабельности (frozen)
-    и допустимости произвольных полей (extra) через model_config.
+    Framework data structures inherit this class and configure mutability
+    (frozen) and extra-field policy through descendant ``model_config``.
     """
 
     model_config = ConfigDict(
@@ -141,22 +171,13 @@ class BaseSchema(BaseModel):
         arbitrary_types_allowed=True,
     )
 
-    # ─── dict-подобное чтение ─────────────────────────────────────────
+    # Dict-like read helpers
 
     def __getitem__(self, key: str) -> object:
         """
-        Доступ к полю по ключу: schema["field_name"].
+        Access field value by key: ``schema["field_name"]``.
 
-        Работает для объявленных полей и для extra-полей (если extra="allow").
-
-        Args:
-            key: имя поля.
-
-        Returns:
-            Значение поля.
-
-        Raises:
-            KeyError: если поле с таким именем не существует.
+        Works for declared fields and extra fields (if ``extra="allow"``).
         """
         try:
             return getattr(self, key)
@@ -165,16 +186,10 @@ class BaseSchema(BaseModel):
 
     def __contains__(self, key: str) -> bool:
         """
-        Проверка наличия поля: "field_name" in schema.
+        Check field presence: ``"field_name" in schema``.
 
-        Checks как объявленные поля (model_fields), так и
-        динамические extra-поля (__pydantic_extra__).
-
-        Args:
-            key: имя поля.
-
-        Returns:
-            True если поле существует.
+        Covers both declared fields (``model_fields``) and dynamic extra fields
+        (``__pydantic_extra__``).
         """
         if key in self.__class__.model_fields:
             return True
@@ -185,28 +200,15 @@ class BaseSchema(BaseModel):
 
     def get(self, key: str, default: object = None) -> object:
         """
-        Получение значения поля с fallback на default.
-
-        Аналог dict.get(key, default).
-
-        Args:
-            key: имя поля.
-            default: значение, возвращаемое при отсутствии поля.
-
-        Returns:
-            Значение поля или default.
+        Return field value with ``default`` fallback (``dict.get`` semantics).
         """
         return getattr(self, key, default)
 
     def keys(self) -> list[str]:
         """
-        Список имён всех полей.
+        Return names of all fields.
 
-        Включает объявленные поля (model_fields) и динамические
-        extra-поля (для наследников с extra="allow").
-
-        Returns:
-            list[str] — имена полей.
+        Includes declared model fields and dynamic extra fields.
         """
         names = list(self.__class__.model_fields.keys())
         extra = self.__pydantic_extra__
@@ -215,58 +217,21 @@ class BaseSchema(BaseModel):
         return names
 
     def values(self) -> list[object]:
-        """
-        Список значений всех полей.
-
-        Порядок соответствует порядку keys().
-
-        Returns:
-            list[object] — значения полей.
-        """
+        """Return all field values in ``keys()`` order."""
         return [getattr(self, k) for k in self.keys()]
 
     def items(self) -> list[tuple[str, object]]:
-        """
-        Список пар (имя, значение) для всех полей.
-
-        Порядок соответствует порядку keys().
-
-        Returns:
-            list[tuple[str, object]] — пары (ключ, значение).
-        """
+        """Return ``(name, value)`` pairs in ``keys()`` order."""
         return [(k, getattr(self, k)) for k in self.keys()]
 
-    # ─── dot-path навигация ───────────────────────────────────────────
+    # Dot-path navigation
 
     def resolve(self, dotpath: str, default: object = None) -> object:
         """
-        Разрешает dot-path строку, обходя вложенные объекты по цепочке.
+        Resolve a dot-path by traversing nested values.
 
-        Делегирует навигацию единому DotPathNavigator, который на каждом
-        шаге выбирает стратегию по типу текущего объекта:
-            - BaseSchema → __getitem__ (dict-подобный доступ).
-            - LogScope   → __getitem__ (dict-подобный доступ scope).
-            - dict       → прямой доступ по ключу.
-            - любой объект → getattr.
-
-        Если на любом шаге цепочки значение не найдено, возвращает
-        default без выброса исключения. Поля со значением None
-        возвращаются корректно — default используется только при
-        отсутствии атрибута.
-
-        Args:
-            dotpath: строка вида "user.user_id" или "address.city".
-            default: значение, возвращаемое если путь не удалось
-                     разрешить. По умолчанию None.
-
-        Returns:
-            Найденное значение или default.
-
-        Примеры:
-            context.resolve("user.user_id")     → "agent_123"
-            context.resolve("user.missing")     → None
-            context.resolve("user.missing", "") → ""
-            context.resolve("user.field_none")  → None  (поле существует)
+        Delegates traversal to ``DotPathNavigator``. Missing path segments return
+        ``default`` without raising; explicit ``None`` values are preserved.
         """
         result = DotPathNavigator.navigate(self, dotpath)
         if result is _SENTINEL:

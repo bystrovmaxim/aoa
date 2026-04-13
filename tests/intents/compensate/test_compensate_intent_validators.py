@@ -57,7 +57,7 @@ def test_validate_compensators_rejects_duplicate_target() -> None:
     aspects = [SimpleNamespace(method_name="reg", aspect_type="regular")]
     c1 = SimpleNamespace(method_name="c1", target_aspect_name="reg")
     c2 = SimpleNamespace(method_name="c2", target_aspect_name="reg")
-    with pytest.raises(ValueError, match="два"):
+    with pytest.raises(ValueError, match="two compensators"):
         validate_compensators(Host, [c1, c2], aspects)
 
 

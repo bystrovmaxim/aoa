@@ -1,23 +1,60 @@
 # tests/adapters/mcp/test_mcp_adapter.py
 """
-Tests for McpAdapter — MCP adapter that turns Actions into MCP tools.
+Tests for ``McpAdapter`` — MCP tool registration and server ``build()``.
 
-McpAdapter inherits BaseAdapter[McpRouteRecord] and provides the protocol
-method tool() for registering MCP tools. build() creates an MCP server.
-register_all() auto-registers all Actions from the coordinator. All protocol
-methods return self for fluent chaining.
+═══════════════════════════════════════════════════════════════════════════════
+PURPOSE
+═══════════════════════════════════════════════════════════════════════════════
 
-Scenarios covered:
-    - Constructor stores server_name and server_version.
-    - tool() registers a route with correct tool_name and action_class.
-    - tool() with custom description stores it on the record.
-    - Auto-description from @meta when description is empty.
-    - Fluent chaining across multiple tool() calls.
-    - build() returns an MCP server instance.
-    - register_all() registers all actions from the coordinator.
-    - _class_name_to_snake_case converts CamelCase correctly.
-    - Routes list reflects all registered tools.
-    - Mapper fields passed through to route record.
+Cover ``tool()`` registration (name, description, ``@meta`` auto-description),
+fluent chaining, ``build()`` returning an MCP server, ``register_all()`` driven
+by the coordinator graph, ``_class_name_to_snake_case``, and mapper fields on
+``McpRouteRecord``.
+
+═══════════════════════════════════════════════════════════════════════════════
+ARCHITECTURE / DATA FLOW
+═══════════════════════════════════════════════════════════════════════════════
+
+    CoreActionMachine.create_coordinator() + ActionProductMachine
+              |
+              v
+    McpAdapter(BaseAdapter[McpRouteRecord])
+              |
+              +--> tool(...) / register_all() -> ``_routes``
+              |
+              v
+    build() -> FastMCP (or SDK server) instance
+
+═══════════════════════════════════════════════════════════════════════════════
+INVARIANTS
+═══════════════════════════════════════════════════════════════════════════════
+
+- Tests use a real built coordinator when ``register_all`` must discover actions.
+- ``auth_coordinator`` is always an ``AsyncMock`` with ``process`` stubbed.
+
+═══════════════════════════════════════════════════════════════════════════════
+EXAMPLES
+═══════════════════════════════════════════════════════════════════════════════
+
+    uv run pytest tests/adapters/mcp/test_mcp_adapter.py -q
+
+Edge case: empty explicit description falls back to ``@meta`` text when present.
+
+═══════════════════════════════════════════════════════════════════════════════
+ERRORS / LIMITATIONS
+═══════════════════════════════════════════════════════════════════════════════
+
+- MCP SDK types (e.g. ``FastMCP``) couple tests to the installed ``mcp`` version.
+
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE-BEGIN
+═══════════════════════════════════════════════════════════════════════════════
+ROLE: MCP adapter registration and server construction tests.
+CONTRACT: Fluent API; coordinator-driven bulk registration; snake_case naming.
+INVARIANTS: Scenario actions; optional ``FullAction`` for multi-tool cases.
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE-END
+═══════════════════════════════════════════════════════════════════════════════
 """
 
 from unittest.mock import AsyncMock

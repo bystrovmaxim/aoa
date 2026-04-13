@@ -1,32 +1,27 @@
 # tests/intents/context/__init__.py
 """
-Тесты компонентов контекста выполнения ActionMachine.
+Tests for ActionMachine execution context components.
 
 ═══════════════════════════════════════════════════════════════════════════════
-НАЗНАЧЕНИЕ
+PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Покрывает все компоненты контекста, передаваемого в машину при выполнении
-действия:
+Covers all context pieces passed into the machine when an action runs:
 
-- UserInfo — информация о пользователе (user_id, roles).
-  Наследник BaseSchema (frozen, forbid) [1]. Используется для проверки
-  ролей в ActionProductMachine._check_action_roles().
+- UserInfo — user identity (user_id, roles).
+  Subclass of BaseSchema (frozen, forbid) [1]. Used for role checks in
+  ActionProductMachine._check_action_roles().
 
-- RequestInfo — метаданные входящего запроса (trace_id, request_path,
-  client_ip и др.). Наследник BaseSchema (frozen, forbid).
-  Заполняется адаптером или AuthCoordinator при обработке запроса.
+- RequestInfo — incoming request metadata (trace_id, request_path, client_ip, etc.).
+  Subclass of BaseSchema (frozen, forbid). Filled by the adapter or AuthCoordinator.
 
-- RuntimeInfo — информация об окружении выполнения (hostname,
-  service_name, service_version). Наследник BaseSchema (frozen, forbid).
-  Заполняется один раз при старте приложения.
+- RuntimeInfo — execution environment (hostname, service_name, service_version).
+  Subclass of BaseSchema (frozen, forbid). Typically set once at app startup.
 
-- Context — корневой объект контекста, объединяющий UserInfo,
-  RequestInfo и RuntimeInfo. Наследник BaseSchema (frozen, forbid),
-  поддерживает resolve по вложенным компонентам:
+- Context — root object combining UserInfo, RequestInfo, and RuntimeInfo.
+  Subclass of BaseSchema (frozen, forbid), supports resolve across nested components:
   context.resolve("user.roles"), context.resolve("request.trace_id") [2].
 
-Все компоненты наследуют BaseSchema [2], что обеспечивает dict-подобный
-доступ (keys, values, items, __getitem__, __contains__, get) и навигацию
-по вложенным объектам через resolve().
+All components inherit BaseSchema [2], enabling dict-like access
+(keys, values, items, __getitem__, __contains__, get) and resolve() navigation.
 """

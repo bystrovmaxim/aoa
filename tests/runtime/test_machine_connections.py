@@ -1,46 +1,44 @@
 # tests/runtime/test_machine_connections.py
-"""
-Тесты валидации connections в ActionProductMachine.
+"""Connections validation tests in ActionProductMachine.
 
-═══════════════════════════════════════════════════════════════════════════════
-НАЗНАЧЕНИЕ
-═══════════════════════════════════════════════════════════════════════════════
+═══════════════════ ════════════════════ ════════════════════ ════════════════════
+PURPOSE
+═══════════════════ ════════════════════ ════════════════════ ════════════════════
 
 ``ConnectionValidator.validate()`` (invoked from ``ActionProductMachine._run_internal``)
 is the connections gate: declared keys vs passed ``connections`` and
 ``BaseResourceManager`` value types.
 
-Двухуровневая валидация:
+Two-level validation:
 
-1. Проверка ключей — объявленные ключи должны точно совпадать
-   с фактическими.
+1. Key verification - declared keys must match exactly
+   with actual ones.
 
-2. Проверка типов — каждое значение должно быть экземпляром
+2. Type checking - every value must be an instance
    BaseResourceManager.
 
-═══════════════════════════════════════════════════════════════════════════════
-ПОКРЫВАЕМЫЕ СЦЕНАРИИ
-═══════════════════════════════════════════════════════════════════════════════
+═══════════════════ ════════════════════ ════════════════════ ════════════════════
+SCENARIOS COVERED
+═══════════════════ ════════════════════ ════════════════════ ════════════════════
 
-Действие без @connection:
-    - Без connections (None) → пустой dict.
-    - С connections → ConnectionValidationError.
+Action without @connection:
+    - Without connections (None) → empty dict.
+    - With connections → ConnectionValidationError.
 
-Действие с одним @connection:
-    - Корректный connections с совпадающим ключом → OK.
-    - Без connections → ConnectionValidationError.
-    - Лишний ключ → ConnectionValidationError.
-    - Значение не BaseResourceManager → ConnectionValidationError.
+Action with one @connection:
+    - Correct connections with matching key → OK.
+    - Without connections → ConnectionValidationError.
+    - Extra key → ConnectionValidationError.
+    - The value is not BaseResourceManager -> ConnectionValidationError.
 
-Действие с двумя @connection:
-    - Оба ключа переданы → OK.
-    - Один ключ отсутствует → ConnectionValidationError.
+Action with two @connections:
+    - Both keys have been transferred → OK.
+    - One key is missing → ConnectionValidationError.
 
-Интеграция через run():
-    - FullAction с корректными connections → результат.
-    - FullAction без connections → ConnectionValidationError.
-    - FullAction с лишним ключом → ConnectionValidationError.
-"""
+Integration via run():
+    - FullAction with correct connections → result.
+    - FullAction without connections → ConnectionValidationError.
+    - FullAction with an extra key → ConnectionValidationError."""
 
 from unittest.mock import AsyncMock
 
@@ -74,24 +72,24 @@ def _validate_connections(
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Вспомогательные действия для edge-case тестов
+#Helper steps for edge-case tests
 # ═════════════════════════════════════════════════════════════════════════════
 
 
-@meta(description="Заглушка ресурсного менеджера для тестов connections", domain=TestDomain)
+@meta(description="Resource manager stub for connections tests", domain=TestDomain)
 class _MockResourceManager(BaseResourceManager):
-    """Минимальная реализация BaseResourceManager для тестов."""
+    """Minimal implementation of BaseResourceManager for tests."""
 
     def get_wrapper_class(self):
         return None
 
 
-@meta(description="Действие с двумя connections", domain=TestDomain)
+@meta(description="Action with two connections", domain=TestDomain)
 @check_roles(NoneRole)
-@connection(_MockResourceManager, key="db", description="База данных")
-@connection(_MockResourceManager, key="cache", description="Кеш")
+@connection(_MockResourceManager, key="db", description="Database")
+@connection(_MockResourceManager, key="cache", description="Cash")
 class _ActionTwoConnectionsAction(BaseAction[BaseParams, BaseResult]):
-    """Объявляет два подключения: db и cache."""
+    """Declares two connections: db and cache."""
 
     @summary_aspect("test")
     async def build_summary(self, params, state, box, connections):
@@ -99,13 +97,13 @@ class _ActionTwoConnectionsAction(BaseAction[BaseParams, BaseResult]):
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Фикстуры
+#Fittings
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 @pytest.fixture()
 def machine() -> ActionProductMachine:
-    """ActionProductMachine с тихим логгером для unit-тестов."""
+    """ActionProductMachine with a silent logger for unit tests."""
     return ActionProductMachine(
         mode="test",
         log_coordinator=LogCoordinator(loggers=[]),
@@ -114,69 +112,65 @@ def machine() -> ActionProductMachine:
 
 @pytest.fixture()
 def context() -> Context:
-    """Контекст с ролями для прохождения проверки ролей."""
+    """Context with roles to pass the role check."""
     return Context(user=UserInfo(user_id="mgr_1", roles=(ManagerRole, AdminRole)))
 
 
 @pytest.fixture()
 def mock_resource() -> _MockResourceManager:
-    """Экземпляр _MockResourceManager для передачи в connections."""
+    """An instance of _MockResourceManager to pass to connections."""
     return _MockResourceManager()
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Действие без @connection
+#Action without @connection
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestNoConnectionDeclaration:
-    """Действие без @connection — connections не ожидаются."""
+    """Action without @connection - connections are not expected."""
 
     def test_no_connections_returns_empty_dict(self, machine, context) -> None:
-        """
-        Действие без @connection + connections=None → пустой dict.
-        """
-        # Arrange — PingAction без @connection
+        """Action without @connection + connections=None → empty dict."""
+        #Arrange - PingAction without @connection
         action = PingAction()
-        # Act — проверка с connections=None
+        #Act - check with connections=None
         result = _validate_connections(machine, action, None)
 
-        # Assert — пустой dict, не None
+        #Assert - empty dict, not None
         assert result == {}
 
     def test_connections_provided_raises(self, machine, context, mock_resource) -> None:
-        """
-        Действие без @connection + connections={"db": ...} → ConnectionValidationError.
-        """
-        # Arrange — PingAction без @connection, но с переданным connections
+        """Action without @connection + connections={"db": ...} → ConnectionValidationError."""
+        #Arrange — PingAction without @connection, but with passed connections
         action = PingAction()
         connections = {"db": mock_resource}
 
-        # Act & Assert — ConnectionValidationError с указанием ключей
+        #Act & Assert - ConnectionValidationError specifying keys
         with pytest.raises(ConnectionValidationError, match="does not declare any @connection"):
             _validate_connections(machine, action, connections)
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Действие с одним @connection
+#Action with one @connection
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestSingleConnection:
-    """Действие с одним @connection("db") — FullAction."""
+    """Action with one @connection("db") - FullAction."""
 
     def test_correct_key_passes(self, machine, context) -> None:
         """
         FullAction + connections={"db": MockResourceManager} → OK.
         """
-        # Arrange — FullAction с @connection(key="db")
+        #Arrange - FullAction with @connection(key="db")
         action = FullAction()
         mock_db = AsyncMock(spec=TestDbManager)
 
-        # Act — проверка connections
+        #Act - check connections
         result = _validate_connections(machine, action, {"db": mock_db})
 
-        # Assert — connections прошёл проверку, возвращён как есть
+        #Assert - connections passed the test, returned as is
         assert "db" in result
 
     def test_no_connections_raises(self, machine, context) -> None:
@@ -193,7 +187,7 @@ class TestSingleConnection:
         """
         FullAction + connections={"db": ..., "extra": ...} → ConnectionValidationError.
         """
-        # Arrange — FullAction с лишним ключом "extra"
+        #Arrange — FullAction with extra key "extra"
         action = FullAction()
         mock_db = AsyncMock(spec=TestDbManager)
         connections = {"db": mock_db, "extra": mock_resource}
@@ -203,14 +197,12 @@ class TestSingleConnection:
             _validate_connections(machine, action, connections)
 
     def test_value_not_resource_manager_raises(self, machine, context) -> None:
-        """
-        connections={"db": "строка"} → ConnectionValidationError.
-        """
-        # Arrange — строка вместо менеджера
+        """connections={"db": "string"} → ConnectionValidationError."""
+        #Arrange - string instead of manager
         action = FullAction()
-        connections = {"db": "это строка, а не менеджер"}
+        connections = {"db": "it's a string, not a manager"}
 
-        # Act & Assert — проверка типа значения
+        #Act & Assert - checking value type
         with pytest.raises(ConnectionValidationError, match="must be an instance of BaseResourceManager"):
             _validate_connections(machine, action, connections)
 
@@ -218,7 +210,7 @@ class TestSingleConnection:
         """
         connections={"db": None} → ConnectionValidationError.
         """
-        # Arrange — None вместо менеджера
+        #Arrange - None instead of manager
         action = FullAction()
         connections = {"db": None}
 
@@ -230,7 +222,7 @@ class TestSingleConnection:
         """
         connections={"db": 42} → ConnectionValidationError.
         """
-        # Arrange — число вместо менеджера
+        #Arrange - number instead of manager
         action = FullAction()
         connections = {"db": 42}
 
@@ -240,37 +232,35 @@ class TestSingleConnection:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Действие с двумя @connection
+#Action with two @connections
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestTwoConnections:
-    """Действие с двумя @connection("db", "cache")."""
+    """Action with two @connection("db", "cache")."""
 
     def test_both_keys_present_passes(self, machine, context, mock_resource) -> None:
         """
         _ActionTwoConnectionsAction + connections={"db": ..., "cache": ...} → OK.
         """
-        # Arrange — действие с двумя @connection, оба ключа переданы
+        #Arrange - action with two @connections, both keys are transferred
         action = _ActionTwoConnectionsAction()
         connections = {
             "db": _MockResourceManager(),
             "cache": _MockResourceManager(),
         }
 
-        # Act — проверка проходит
+        #Act—check passes
         result = _validate_connections(machine, action, connections)
 
-        # Assert — оба ключа в результате
+        #Assert - both keys as a result
         assert "db" in result
         assert "cache" in result
 
     def test_missing_key_raises(self, machine, context, mock_resource) -> None:
-        """
-        _ActionTwoConnectionsAction + connections={"db": ...} (без cache) →
-        ConnectionValidationError.
-        """
-        # Arrange — только один ключ из двух объявленных
+        """_ActionTwoConnectionsAction + connections={"db": ...} (without cache) →
+        ConnectionValidationError."""
+        #Arrange - only one key out of two declared
         action = _ActionTwoConnectionsAction()
         connections = {"db": mock_resource}
 
@@ -280,19 +270,17 @@ class TestTwoConnections:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Интеграция через run()
+#Integration via run()
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestConnectionsViaRun:
-    """Проверка connections через полный конвейер run()."""
+    """Checking connections through the full run() pipeline."""
 
     @pytest.mark.asyncio
     async def test_full_action_with_valid_connections(self, machine, context) -> None:
-        """
-        FullAction через run() с корректными connections → результат.
-        """
-        # Arrange — FullAction с моками зависимостей и connections
+        """FullAction via run() with correct connections → result."""
+        #Arrange - FullAction with dependency and connection mocks
         mock_payment = AsyncMock(spec=PaymentService)
         mock_payment.charge.return_value = "TXN-RUN"
         mock_notification = AsyncMock(spec=NotificationService)
@@ -301,7 +289,7 @@ class TestConnectionsViaRun:
         action = FullAction()
         params = FullAction.Params(user_id="u1", amount=100.0)
 
-        # Act — run() с resources (моки) и connections
+        #Act - run() with resources (mocks) and connections
         result = await machine._run_internal(
             context=context,
             action=action,
@@ -312,30 +300,26 @@ class TestConnectionsViaRun:
             rollup=False,
         )
 
-        # Assert — конвейер завершился, результат содержит данные
+        #Assert - the pipeline has completed, the result contains data
         assert result.order_id == "ORD-u1"
         assert result.txn_id == "TXN-RUN"
         assert result.status == "created"
 
     @pytest.mark.asyncio
     async def test_full_action_without_connections_raises(self, machine, context) -> None:
-        """
-        FullAction через run() без connections → ConnectionValidationError.
-        """
-        # Arrange — FullAction без connections
+        """FullAction via run() without connections → ConnectionValidationError."""
+        #Arrange - FullAction without connections
         action = FullAction()
         params = FullAction.Params(user_id="u1", amount=100.0)
 
-        # Act & Assert — ConnectionValidationError до запуска конвейера
+        #Act & Assert - ConnectionValidationError before pipeline starts
         with pytest.raises(ConnectionValidationError):
             await machine.run(context, action, params, connections=None)
 
     @pytest.mark.asyncio
     async def test_full_action_with_extra_key_raises(self, machine, context) -> None:
-        """
-        FullAction через run() с лишним ключом → ConnectionValidationError.
-        """
-        # Arrange — FullAction с лишним ключом "extra"
+        """FullAction via run() with an extra key → ConnectionValidationError."""
+        #Arrange — FullAction with extra key "extra"
         mock_db = AsyncMock(spec=TestDbManager)
         extra_resource = _MockResourceManager()
 
@@ -343,21 +327,20 @@ class TestConnectionsViaRun:
         params = FullAction.Params(user_id="u1", amount=100.0)
         connections = {"db": mock_db, "extra": extra_resource}
 
-        # Act & Assert — ConnectionValidationError с указанием лишнего ключа
+        #Act & Assert - ConnectionValidationError indicating an extra key
         with pytest.raises(ConnectionValidationError, match="extra"):
             await machine.run(context, action, params, connections=connections)
 
     @pytest.mark.asyncio
     async def test_ping_action_without_connections_ok(self, machine, context) -> None:
-        """
-        PingAction через run() без connections → OK.
-        """
-        # Arrange — PingAction без @connection
+        """PingAction via run() without connections → OK."""
+        #Arrange - PingAction without @connection
         action = PingAction()
         params = PingAction.Params()
 
-        # Act — run() без connections
+        #Act - run() without connections
         result = await machine.run(context, action, params)
 
-        # Assert — конвейер завершился успешно
+        #Assert - the pipeline completed successfully
+        assert result.message == "pong"
         assert result.message == "pong"

@@ -1,38 +1,38 @@
 # tests/intents/context/test_runtime_info.py
 """
-Тесты RuntimeInfo — информация об окружении выполнения.
+Tests for RuntimeInfo — execution environment metadata.
 
 ═══════════════════════════════════════════════════════════════════════════════
-НАЗНАЧЕНИЕ
+PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-RuntimeInfo — frozen pydantic-модель (наследник BaseSchema), хранящая
-информацию об окружении: имя хоста, название и версия сервиса,
-идентификатор контейнера, имя пода Kubernetes.
+RuntimeInfo is a frozen pydantic model (subclass of BaseSchema) holding
+environment data: hostname, service name and version, container id, Kubernetes
+pod name.
 
-RuntimeInfo заполняется один раз при старте приложения и копируется
-в каждый Context. Произвольные поля запрещены (extra="forbid").
-Расширение — только через наследование с явно объявленными полями.
+RuntimeInfo is filled once at app startup and copied into each Context.
+Arbitrary fields are forbidden (extra="forbid"). Extend only via subclasses
+with explicitly declared fields.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ПОКРЫВАЕМЫЕ СЦЕНАРИИ
+COVERED SCENARIOS
 ═══════════════════════════════════════════════════════════════════════════════
 
-Создание:
-    - С полным набором полей — production-сервер.
-    - Без аргументов — все поля None.
-    - С частичными данными — только hostname.
+Construction:
+    - Full field set — production server.
+    - No arguments — all fields None.
+    - Partial data — hostname only.
 
-BaseSchema — dict-подобный доступ:
+BaseSchema — dict-like access:
     - __getitem__, __contains__, get, keys.
 
 BaseSchema — resolve:
-    - Плоские поля: resolve("hostname"), resolve("service_version").
-    - Отсутствующие пути: resolve("missing") → default.
+    - Flat fields: resolve("hostname"), resolve("service_version").
+    - Missing paths: resolve("missing") → default.
 
-Расширение через наследование:
-    - Наследник с полями region, cluster.
-    - resolve через наследника.
+Extension via inheritance:
+    - Subclass with region, cluster.
+    - resolve on subclass.
 """
 
 
@@ -41,33 +41,32 @@ from pydantic import ConfigDict
 from action_machine.intents.context.runtime_info import RuntimeInfo
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Наследник RuntimeInfo для тестов расширения
+# RuntimeInfo subclass for extension tests
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class _CloudRuntimeInfo(RuntimeInfo):
-    """Наследник RuntimeInfo с полями для cloud-окружения."""
+    """RuntimeInfo subclass with cloud environment fields."""
     model_config = ConfigDict(frozen=True)
     region: str | None = None
     cluster: str | None = None
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Создание и инициализация
+# Construction and initialization
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestRuntimeInfoCreation:
-    """Создание RuntimeInfo с разными наборами параметров."""
+    """Creating RuntimeInfo with different argument sets."""
 
     def test_create_full_production(self) -> None:
         """
-        RuntimeInfo с полным набором полей — production Kubernetes pod.
+        RuntimeInfo with all fields — production Kubernetes pod.
 
-        Расширение для cloud-специфичных полей (region, cluster) —
-        через наследника _CloudRuntimeInfo.
+        Cloud-specific fields (region, cluster) via _CloudRuntimeInfo subclass.
         """
-        # Arrange & Act — наследник с cloud-полями
+        # Arrange & Act — subclass with cloud fields
         runtime = _CloudRuntimeInfo(
             hostname="pod-orders-7b4f9c-xyz",
             service_name="order-service",
@@ -78,7 +77,7 @@ class TestRuntimeInfoCreation:
             cluster="prod-main",
         )
 
-        # Assert — все поля установлены
+        # Assert — all fields set
         assert runtime.hostname == "pod-orders-7b4f9c-xyz"
         assert runtime.service_name == "order-service"
         assert runtime.service_version == "2.3.1"
@@ -89,12 +88,12 @@ class TestRuntimeInfoCreation:
 
     def test_create_default(self) -> None:
         """
-        RuntimeInfo без аргументов — все поля None.
+        RuntimeInfo with no arguments — all fields None.
         """
-        # Arrange & Act — без аргументов
+        # Arrange & Act — no arguments
         runtime = RuntimeInfo()
 
-        # Assert — все поля по умолчанию
+        # Assert — default fields
         assert runtime.hostname is None
         assert runtime.service_name is None
         assert runtime.service_version is None
@@ -103,27 +102,27 @@ class TestRuntimeInfoCreation:
 
     def test_create_partial(self) -> None:
         """
-        RuntimeInfo с минимальными данными — только hostname.
+        RuntimeInfo with minimal data — hostname only.
         """
-        # Arrange & Act — только hostname
+        # Arrange & Act — hostname only
         runtime = RuntimeInfo(hostname="dev-laptop")
 
-        # Assert — hostname установлен, остальное None
+        # Assert — hostname set, rest None
         assert runtime.hostname == "dev-laptop"
         assert runtime.service_name is None
         assert runtime.service_version is None
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# BaseSchema — dict-подобный доступ
+# BaseSchema — dict-like access
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestRuntimeInfoDictAccess:
-    """Dict-подобный доступ к полям RuntimeInfo через BaseSchema."""
+    """Dict-like access to RuntimeInfo fields via BaseSchema."""
 
     def test_getitem(self) -> None:
-        """runtime["hostname"] → значение поля."""
+        """runtime["hostname"] → field value."""
         # Arrange
         runtime = RuntimeInfo(hostname="prod-01")
 
@@ -132,12 +131,12 @@ class TestRuntimeInfoDictAccess:
 
     def test_contains(self) -> None:
         """
-        "hostname" in runtime → True для объявленных pydantic-полей.
+        "hostname" in runtime → True for declared pydantic fields.
         """
         # Arrange
         runtime = RuntimeInfo()
 
-        # Act & Assert — объявленные поля присутствуют
+        # Act & Assert — declared fields present
         assert "hostname" in runtime
         assert "service_name" in runtime
         assert "nonexistent" not in runtime
@@ -153,8 +152,8 @@ class TestRuntimeInfoDictAccess:
 
     def test_keys(self) -> None:
         """
-        keys() возвращает объявленные pydantic-поля.
-        RuntimeInfo имеет 5 полей: hostname, service_name,
+        keys() returns declared pydantic fields.
+        RuntimeInfo has 5 fields: hostname, service_name,
         service_version, container_id, pod_name.
         """
         # Arrange
@@ -163,7 +162,7 @@ class TestRuntimeInfoDictAccess:
         # Act
         keys = runtime.keys()
 
-        # Assert — все объявленные поля присутствуют
+        # Assert — all declared fields present
         assert "hostname" in keys
         assert "service_name" in keys
         assert "service_version" in keys
@@ -177,10 +176,10 @@ class TestRuntimeInfoDictAccess:
 
 
 class TestRuntimeInfoResolve:
-    """Навигация по полям RuntimeInfo через resolve()."""
+    """Field navigation on RuntimeInfo via resolve()."""
 
     def test_resolve_flat_field(self) -> None:
-        """resolve("hostname") — прямой доступ к плоскому полю."""
+        """resolve("hostname") — direct access to flat field."""
         # Arrange
         runtime = RuntimeInfo(hostname="pod-xyz-42")
 
@@ -191,7 +190,7 @@ class TestRuntimeInfoResolve:
         assert result == "pod-xyz-42"
 
     def test_resolve_service_version(self) -> None:
-        """resolve("service_version") — доступ к версии сервиса."""
+        """resolve("service_version") — service version field."""
         # Arrange
         runtime = RuntimeInfo(service_version="1.2.3")
 
@@ -203,23 +202,23 @@ class TestRuntimeInfoResolve:
 
     def test_resolve_none_field(self) -> None:
         """
-        resolve("container_id") когда container_id=None → None.
-        None — валидное значение поля.
+        resolve("container_id") when container_id=None → None.
+        None is a valid field value.
         """
-        # Arrange — container_id не задан
+        # Arrange — container_id unset
         runtime = RuntimeInfo()
 
         # Act
         result = runtime.resolve("container_id")
 
-        # Assert — None из поля
+        # Assert — None from field
         assert result is None
 
     def test_resolve_extended_field(self) -> None:
         """
-        resolve("region") на наследнике — навигация к полю наследника.
+        resolve("region") on subclass — navigate to subclass field.
         """
-        # Arrange — наследник с полем region
+        # Arrange — subclass with region
         runtime = _CloudRuntimeInfo(region="eu-west-1")
 
         # Act
@@ -242,7 +241,7 @@ class TestRuntimeInfoResolve:
     def test_resolve_missing_nested_returns_default(self) -> None:
         """
         resolve("nonexistent.deep", default="none") → "none".
-        Первый сегмент не найден — цепочка прерывается.
+        First segment missing — chain stops.
         """
         # Arrange
         runtime = RuntimeInfo()

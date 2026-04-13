@@ -1,80 +1,87 @@
 # src/action_machine/resources/connection_decorator.py
 """
-Декоратор @connection — объявление подключения к внешнему ресурсу.
+``@connection`` decorator for declaring external resource bindings.
 
 ═══════════════════════════════════════════════════════════════════════════════
-НАЗНАЧЕНИЕ
+PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Декоратор @connection — часть грамматики намерений ActionMachine. Он объявляет,
-что действие использует внешний ресурс (база данных, очередь сообщений,
-HTTP-клиент и т.д.), управляемый через ResourceManager. Машина
-(ActionProductMachine) при запуске действия проверяет соответствие
-объявленных и фактически переданных соединений, затем передаёт их
-в аспекты через параметр connections.
+``@connection`` is part of the ActionMachine intent grammar. It declares that
+an action uses an external resource (database, message queue, HTTP client, and
+so on) managed by a ``ResourceManager``. At runtime, the machine validates
+declared vs provided connections and passes them to aspects.
 
-Каждое соединение идентифицируется строковым ключом (key), по которому
-аспект обращается к нему: connections["db"], connections["redis"].
+Each connection is identified by a string key used in aspects:
+``connections["db"]``, ``connections["redis"]``.
 
 ═══════════════════════════════════════════════════════════════════════════════
-АРХИТЕКТУРА ИНТЕГРАЦИИ
+ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-    @connection(PostgresManager, key="db", description="Основная БД")
+    @connection(PostgresManager, key="db", description="Primary DB")
         │
-        ▼  Декоратор записывает в cls._connection_info
-    ConnectionInfo(cls=PostgresManager, key="db", description="Основная БД")
+        ▼  Decorator writes to cls._connection_info
+    ConnectionInfo(cls=PostgresManager, key="db", description="Primary DB")
         │
         ▼  ConnectionIntentInspector reads _connection_info
     get_connections(cls) → (ConnectionInfo(...), ...)
         │
         ▼  ActionProductMachine._check_connections(action, connections, metadata)
-    Сравнивает объявленные ключи (facet snapshot ``connections``) с фактическими
+    Compares declared keys (facet snapshot ``connections``) with provided runtime keys
         │
-        ▼  Аспекты получают connections["db"] — экземпляр PostgresManager
+        ▼  Aspects receive connections["db"] (PostgresManager instance)
 
 ═══════════════════════════════════════════════════════════════════════════════
-ОГРАНИЧЕНИЯ (ИНВАРИАНТЫ)
+INVARIANTS
 ═══════════════════════════════════════════════════════════════════════════════
 
-- Применяется только к классам, не к функциям, методам или свойствам.
-- Класс должен наследовать ConnectionIntent — миксин, разрешающий @connection.
-- klass должен быть подклассом BaseResourceManager.
-- key должен быть непустой строкой.
-- description должен быть строкой.
-- Дублирование ключей в одном классе запрещено.
+- Applies only to classes (not functions, methods, or properties).
+- Target class must inherit ``ConnectionIntent``.
+- ``klass`` must be a ``BaseResourceManager`` subclass.
+- ``key`` must be a non-empty string.
+- ``description`` must be a string.
+- Duplicate keys in one class are forbidden.
 
 ═══════════════════════════════════════════════════════════════════════════════
-НАСЛЕДОВАНИЕ
+INHERITANCE
 ═══════════════════════════════════════════════════════════════════════════════
 
-При первом применении @connection к подклассу декоратор копирует
-родительский список _connection_info в собственный __dict__. Дочерний
-класс наследует соединения родителя, но добавление новых не мутирует
-родительский список.
+On first ``@connection`` use for a subclass, decorator copies inherited
+``_connection_info`` into subclass ``__dict__``. Child class inherits parent
+connections, while new registrations do not mutate parent list.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ПРИМЕР ИСПОЛЬЗОВАНИЯ
+EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
-    @connection(PostgresManager, key="db", description="Основная БД")
-    @connection(RedisManager, key="cache", description="Кэш")
+    @connection(PostgresManager, key="db", description="Primary DB")
+    @connection(RedisManager, key="cache", description="Cache")
     class CreateOrderAction(BaseAction[OrderParams, OrderResult]):
 
-        @regular_aspect("Загрузка данных")
+        @regular_aspect("Load data")
         async def load_data(self, params, state, box, connections):
             db = connections["db"]
             result = await db.execute("SELECT ...")
             return {"data": result}
 
 ═══════════════════════════════════════════════════════════════════════════════
-ОШИБКИ
+ERRORS / LIMITATIONS
 ═══════════════════════════════════════════════════════════════════════════════
 
-    TypeError — klass не подкласс BaseResourceManager; декоратор применён
-               не к классу; класс не наследует ConnectionIntent;
-               key не строка; description не строка.
-    ValueError — key пустая строка; дублирование ключа.
+    TypeError - invalid manager class, invalid target class, invalid ``key`` type,
+                invalid ``description`` type, or missing ``ConnectionIntent``.
+    ValueError - empty ``key`` or duplicate connection key.
+
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE-BEGIN
+═══════════════════════════════════════════════════════════════════════════════
+ROLE: Declarative class decorator for resource connection contracts.
+CONTRACT: Store immutable ConnectionInfo records in class-level scratch list.
+INVARIANTS: Manager subclass + ConnectionIntent + unique non-empty key required.
+FLOW: decorator args validation -> class validation -> metadata registration.
+FAILURES: TypeError/ValueError on invalid declaration shape or duplicates.
+EXTENSION POINTS: New manager types only need BaseResourceManager compliance.
+AI-CORE-END
 """
 
 from __future__ import annotations
@@ -87,7 +94,7 @@ from action_machine.resources.base_resource_manager import BaseResourceManager
 from action_machine.resources.connection_intent import ConnectionIntent
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Датакласс для хранения информации о соединении
+# Dataclass carrying one connection declaration
 # ═════════════════════════════════════════════════════════════════════════════
 
 
@@ -112,153 +119,88 @@ class ConnectionInfo:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Валидация аргументов декоратора (вынесена для снижения сложности C901)
+# Decorator argument validation (split out to keep complexity low)
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 def _validate_connection_args(klass: Any, key: str, description: str) -> None:
     """
-    Проверяет корректность аргументов декоратора @connection.
-
-    Вызывается один раз при создании декоратора (до применения к классу).
-    Выбрасывает TypeError или ValueError при нарушении контракта.
-
-    Проверки:
-    1. klass — класс (type), не экземпляр и не строка.
-    2. klass — подкласс BaseResourceManager.
-    3. key — строка (str).
-    4. key — непустая строка (после strip).
-    5. description — строка (str).
-
-    Аргументы:
-        klass: класс менеджера ресурсов.
-        key: строковый ключ соединения.
-        description: описание соединения.
-
-    Исключения:
-        TypeError: если тип аргумента не соответствует ожидаемому.
-        ValueError: если key — пустая строка.
+    Validate ``@connection`` decorator arguments.
     """
     if not isinstance(klass, type):
         raise TypeError(
-            f"@connection ожидает класс, получен {type(klass).__name__}: {klass!r}. "
-            f"Передайте класс менеджера ресурсов."
+            f"@connection expects a class, got {type(klass).__name__}: {klass!r}. "
+            f"Pass a resource manager class."
         )
 
     if not issubclass(klass, BaseResourceManager):
         raise TypeError(
-            f"@connection: класс {klass.__name__} не является подклассом "
-            f"BaseResourceManager. Менеджер ресурсов должен наследовать "
-            f"BaseResourceManager."
+            f"@connection: class {klass.__name__} is not a BaseResourceManager "
+            f"subclass. Resource manager must inherit BaseResourceManager."
         )
 
     if not isinstance(key, str):
         raise TypeError(
-            f"@connection: параметр key должен быть строкой, "
-            f"получен {type(key).__name__}: {key!r}."
+            f"@connection: key must be a string, "
+            f"got {type(key).__name__}: {key!r}."
         )
 
     if not key.strip():
         raise ValueError(
-            "@connection: key не может быть пустой строкой. "
-            "Укажите ключ для идентификации соединения, например 'db'."
+            "@connection: key cannot be empty. "
+            "Provide a key identifier, for example 'db'."
         )
 
     if not isinstance(description, str):
         raise TypeError(
-            f"@connection: параметр description должен быть строкой, "
-            f"получен {type(description).__name__}."
+            f"@connection: description must be a string, "
+            f"got {type(description).__name__}."
         )
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Основной декоратор
+# Main decorator
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 def connection(klass: Any, *, key: str, description: str = "") -> Callable[[type], type]:
     """
-    Декоратор уровня класса. Объявляет подключение к внешнему ресурсу.
-
-    Записывает ConnectionInfo в атрибут cls._connection_info целевого класса.
-    При первом применении к подклассу копирует родительский список,
-    чтобы не мутировать его.
-
-    Аргументы:
-        klass: класс менеджера ресурсов. Должен быть подклассом BaseResourceManager.
-               Примеры: PostgresConnectionManager, RedisManager.
-        key: строковый ключ для идентификации соединения. Непустая строка.
-             Используется в аспектах: connections["db"], connections["cache"].
-        description: описание подключения для документации и интроспекции.
-                     По умолчанию пустая строка.
-
-    Возвращает:
-        Декоратор, который добавляет ConnectionInfo в cls._connection_info
-        и возвращает класс без изменений.
-
-    Исключения:
-        TypeError:
-            - klass не является классом (type).
-            - klass не подкласс BaseResourceManager.
-            - key не строка.
-            - description не строка.
-            - Декоратор применён не к классу.
-            - Класс не наследует ConnectionIntent.
-        ValueError:
-            - key пустая строка.
-            - Ключ key уже объявлен для этого класса.
-
-    Пример:
-        @connection(PostgresManager, key="db", description="Основная БД")
-        @connection(RedisManager, key="cache", description="Кэш")
-        class MyAction(BaseAction[MyParams, MyResult]):
-            ...
+    Class-level decorator declaring an external resource connection.
     """
-    # ── Проверка аргументов (делегирована в отдельную функцию) ──
+    # Argument validation (delegated to helper)
     _validate_connection_args(klass, key, description)
 
     def decorator(cls: Any) -> Any:
         """
-        Внутренний декоратор, применяемый к целевому классу.
-
-        Проверяет:
-        1. cls — класс (type), не функция/метод/свойство.
-        2. cls наследует ConnectionIntent.
-        3. Ключ key не дублируется в _connection_info.
-
-        Затем добавляет ConnectionInfo в cls._connection_info.
+        Internal decorator applied to the target class.
         """
-        # ── Проверка цели декоратора ──
-
-        # Цель — класс
+        # Target must be a class
         if not isinstance(cls, type):
             raise TypeError(
-                f"@connection можно применять только к классу. "
-                f"Получен объект типа {type(cls).__name__}: {cls!r}."
+                f"@connection can only be applied to classes. "
+                f"Got object of type {type(cls).__name__}: {cls!r}."
             )
 
-        # Класс наследует ConnectionIntent
+        # Class must inherit ConnectionIntent
         if not issubclass(cls, ConnectionIntent):
             raise TypeError(
-                f"@connection(key=\"{key}\") применён к классу {cls.__name__}, "
-                f"который не наследует ConnectionIntent. "
-                f"Добавьте ConnectionIntent в цепочку наследования."
+                f"@connection(key=\"{key}\") was applied to class {cls.__name__}, "
+                f"which does not inherit ConnectionIntent. "
+                f"Add ConnectionIntent to the inheritance chain."
             )
 
-        # ── Создание собственного списка соединений ──
-        # При первом применении @connection к подклассу копируем родительский
-        # список, чтобы дочерний класс не мутировал список родителя.
+        # Ensure subclass-local declaration list on first use
         if '_connection_info' not in cls.__dict__:
             cls._connection_info = list(getattr(cls, '_connection_info', []))
 
-        # ── Проверка дубликатов ключей ──
+        # Duplicate key check
         if any(info.key == key for info in cls._connection_info):
             raise ValueError(
-                f"@connection(key=\"{key}\"): ключ \"{key}\" уже объявлен "
-                f"для класса {cls.__name__}. Каждый ключ должен быть уникальным."
+                f"@connection(key=\"{key}\"): key \"{key}\" is already declared "
+                f"for class {cls.__name__}. Each key must be unique."
             )
 
-        # ── Регистрация соединения ──
+        # Register connection declaration
         cls._connection_info.append(
             ConnectionInfo(cls=klass, key=key, description=description)
         )

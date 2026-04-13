@@ -1,180 +1,133 @@
 # src/action_machine/intents/plugins/plugin_run_context.py
 """
-PluginRunContext — изолированный контекст плагинов для одного вызова run().
+PluginRunContext — isolated plugin context for one run invocation.
 
 ═══════════════════════════════════════════════════════════════════════════════
-НАЗНАЧЕНИЕ
+PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-PluginRunContext инкапсулирует всё мутабельное состояние плагинов,
-необходимое для одного вызова ActionProductMachine.run(). Каждый вызов
-run() создаёт свой экземпляр PluginRunContext, который живёт ровно
-столько, сколько длится выполнение действия, и уничтожается по завершении.
+PluginRunContext encapsulates all mutable plugin state needed for one
+``ActionProductMachine.run()`` call. Each run creates its own context that
+exists only for that run lifecycle and is then discarded.
 
-Это гарантирует полную изоляцию между запросами: состояния плагинов
-одного run() не влияют на другой run(), даже при параллельном выполнении
-в рамках одного event loop (asyncio.gather нескольких run()).
+This guarantees per-request isolation: plugin states from one run never affect
+another run, including concurrent execution in the same event loop.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ТИПОБЕЗОПАСНАЯ ДОСТАВКА СОБЫТИЙ
+TYPE-SAFE EVENT DELIVERY
 ═══════════════════════════════════════════════════════════════════════════════
 
-Метод emit_event() принимает один аргумент — объект события из иерархии
-BasePluginEvent. Машина (ActionProductMachine) создаёт конкретные объекты
-событий (GlobalStartEvent, AfterRegularAspectEvent и т.д.) в ключевых
-точках конвейера и передаёт их в emit_event(). Контекст находит
-подходящие обработчики и доставляет им событие.
-
-Каждый класс события содержит РОВНО те поля, которые имеют смысл для
-данного типа. GlobalStartEvent не имеет result (результат ещё не известен),
-AfterRegularAspectEvent содержит aspect_result и duration_ms. Это устраняет
-проблему единого PluginEvent с Optional-полями, где большинство полей
-равны None для конкретного события.
+``emit_event()`` takes one event object from ``BasePluginEvent`` hierarchy.
+Machine emits concrete event objects at pipeline checkpoints and passes them
+into this method, where matching handlers are resolved and invoked.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ЦЕПОЧКА ФИЛЬТРОВ ПРИ ЭМИССИИ СОБЫТИЯ
+FILTER CHAIN DURING EVENT EMISSION
 ═══════════════════════════════════════════════════════════════════════════════
 
-Когда emit_event() получает событие, он обходит все подписки всех плагинов
-и для каждой подписки проверяет, нужно ли вызывать обработчик. Фильтры
-проверяются последовательно, от самого дешёвого к самому дорогому.
-Ранний выход на первом несовпадении — дорогие проверки не выполняются,
-если дешёвая уже отсекла подписку.
+When ``emit_event()`` receives event, it traverses subscriptions across all
+plugins. Filters are checked from cheapest to most expensive with early exit.
 
-    Событие приходит в emit_event()
+    Event enters emit_event()
              │
              ▼
-    Шаг 1: isinstance(event, sub.event_class)?
-             │  Дешёвая проверка — одна инструкция isinstance.
-             │  Отсекает ~90% подписок сразу, потому что большинство
-             │  плагинов подписаны на конкретные типы событий.
-             │  НЕТ → пропускаем обработчик
+    Step 1: isinstance(event, sub.event_class)?
+             │  Cheap type check.
+             │  NO -> skip handler
              │
              ▼
-    Шаг 2: action_class указан? → isinstance(action, sub.action_class)?
-             │  Дешёвая проверка — isinstance.
-             │  Отсекает подписки, ограниченные конкретными действиями.
-             │  НЕТ → пропускаем
+    Step 2: action_class filter -> isinstance(action, sub.action_class)?
+             │  NO -> skip
              │
              ▼
-    Шаг 3: action_name_pattern указан? → re.search(pattern, event.action_name)?
-             │  Дороже — выполнение предкомпилированного regex.
-             │  Фильтрация по модулю или паттерну имени.
-             │  НЕТ → пропускаем
+    Step 3: action_name_pattern -> re.search(...)
+             │  NO -> skip
              │
              ▼
-    Шаг 4: aspect_name_pattern указан? → re.search(pattern, event.aspect_name)?
-             │  Применяется только к AspectEvent и наследникам.
-             │  Для не-аспектных событий пропускается.
-             │  НЕТ → пропускаем
+    Step 4: aspect_name_pattern -> re.search(...)
+             │  Only for AspectEvent subclasses.
+             │  NO -> skip
              │
              ▼
-    Шаг 5: nest_level указан? → event.nest_level in sub.nest_level?
-             │  Дешёвая проверка — сравнение int или in tuple.
-             │  НЕТ → пропускаем
+    Step 5: nest_level filter
+             │  NO -> skip
              │
              ▼
-    Шаг 6: domain указан? → проверка через координатор метаданных
-             │  Дороже — ``coordinator.get_snapshot(event.action_class, \"meta\")``.
-             │  НЕТ → пропускаем
+    Step 6: domain filter via metadata coordinator snapshot
+             │  NO -> skip
              │
              ▼
-    Шаг 7: predicate указан? → predicate(event)?
-             │  Самая дорогая — произвольная пользовательская функция.
-             │  К моменту вызова гарантировано: isinstance(event, event_class).
-             │  Обращение к специфичным полям event_class безопасно.
-             │  НЕТ → пропускаем
+    Step 7: predicate(event)?
+             │  Most expensive user-defined check.
+             │  NO -> skip
              │
              ▼
-    ВСЕ ФИЛЬТРЫ ПРОШЛИ → вызываем обработчик
+    ALL FILTERS PASSED -> call handler
 
-Шаг 1 (isinstance по event_class) выполняется в Plugin.get_handlers(),
-шаги 2–7 выполняются в PluginRunContext._matches_all_filters().
+Step 1 happens in ``Plugin.get_handlers()``, steps 2-7 in
+``PluginRunContext._matches_all_filters()``.
 
 ═══════════════════════════════════════════════════════════════════════════════
-AND-ЛОГИКА ФИЛЬТРОВ ВНУТРИ ОДНОГО @on
+AND LOGIC INSIDE ONE @on
 ═══════════════════════════════════════════════════════════════════════════════
 
-Все фильтры в одном @on (одном SubscriptionInfo) проверяются совместно
-с AND-логикой: обработчик вызывается, только если ВСЕ указанные фильтры
-пройдены одновременно. Неуказанные фильтры (None) пропускаются.
-
-Каждый фильтр СУЖАЕТ выборку. Разработчик говорит: «вызови меня для
-GlobalFinishEvent И только для OrderAction И только на корневом уровне».
-С OR-логикой nest_level=0 вызвал бы обработчик для ВСЕХ корневых
-вызовов любых действий — не то, что нужно.
-
-OR-логика реализуется МЕЖДУ несколькими @on на одном методе: метод
-вызывается, если хотя бы одна подписка совпала. Каждый @on создаёт
-отдельный SubscriptionInfo.
+All filters in one subscription are AND-combined. Unspecified filters are
+skipped. OR-logic is achieved by declaring multiple ``@on`` subscriptions on
+the same method.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ФИЛЬТРАЦИЯ ПО ДОМЕНУ
+DOMAIN FILTERING
 ═══════════════════════════════════════════════════════════════════════════════
 
-Фильтр domain проверяется через GateCoordinator: для action_class
-события запрашиваются метаданные, и из них извлекается domain.
-GateCoordinator передаётся в PluginRunContext при создании. Это самый
-дорогой фильтр после predicate, потому что требует обращения к кешу
-координатора. Поэтому domain проверяется на шаге 6, после всех
-дешёвых проверок.
+Domain filter uses GateCoordinator snapshot lookup for event action class and
+is evaluated late (step 6) after cheap checks.
 
 ═══════════════════════════════════════════════════════════════════════════════
-PREDICATE И ТИПИЗАЦИЯ EVENT
+PREDICATE AND EVENT TYPING
 ═══════════════════════════════════════════════════════════════════════════════
 
-Параметр predicate — произвольная функция фильтрации. Формальная
-аннотация — Callable[[BasePluginEvent], bool]. Фактический тип event
-в рантайме ГАРАНТИРОВАННО соответствует event_class из того же
-декоратора, потому что predicate вызывается ПОСЛЕ проверки
-isinstance(event, sub.event_class) на шаге 1. Поэтому обращение
-к специфичным полям event_class в лямбде безопасно:
+``predicate`` is user-defined filter callable. Runtime event type is guaranteed
+to conform to subscribed ``event_class`` because predicate runs only after step 1
+``isinstance`` check.
 
     @on(GlobalFinishEvent, predicate=lambda e: e.duration_ms > 1000)
-    # e — GlobalFinishEvent в рантайме, доступ к duration_ms безопасен
+    # e is GlobalFinishEvent at runtime, duration_ms access is safe
 
 ═══════════════════════════════════════════════════════════════════════════════
-СТРАТЕГИЯ ВЫПОЛНЕНИЯ ОБРАБОТЧИКОВ
+HANDLER EXECUTION STRATEGY
 ═══════════════════════════════════════════════════════════════════════════════
 
-После прохождения фильтров собранные обработчики выполняются по одной
-из двух стратегий, выбираемой автоматически на основе флагов
-ignore_exceptions:
+After filtering, matched handlers are executed using one of two strategies
+chosen by ``ignore_exceptions`` flags:
 
-1. ВСЕ обработчики имеют ignore_exceptions=True:
-   Запуск параллельно через asyncio.gather(return_exceptions=True).
-   Общее время ≈ время самого медленного обработчика. Падающие
-   обработчики не прерывают остальных — их исключения подавляются; при
-   переданном log_coordinator для каждого сбоя пишется CRITICAL в Channel.error.
+1. All handlers have ``ignore_exceptions=True``:
+   Run in parallel via ``asyncio.gather(return_exceptions=True)``. Failures are
+   suppressed and optionally logged.
 
-2. ХОТЯ БЫ ОДИН обработчик имеет ignore_exceptions=False:
-   Запуск последовательно. Общее время ≈ сумма всех задержек.
-   При ошибке критического обработчика (ignore_exceptions=False)
-   исключение пробрасывается наружу и прерывает выполнение.
+2. At least one handler has ``ignore_exceptions=False``:
+   Run sequentially. Failure in critical handler is re-raised and stops chain.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ЛОГГЕР ДЛЯ ОБРАБОТЧИКОВ
+HANDLER LOGGER
 ═══════════════════════════════════════════════════════════════════════════════
 
-Все обработчики плагинов получают ScopedLogger как параметр log.
-PluginRunContext создаёт ScopedLogger для каждого вызова обработчика
-со scope: machine, mode, plugin, action, event, nest_level и с
-``domain=resolve_domain(event.action_class)`` (см. ``_create_plugin_logger``).
+Every plugin handler receives ``ScopedLogger`` as ``log`` parameter.
+Context builds logger per call with scope fields and
+``domain=resolve_domain(event.action_class)``.
 
-Поля scope доступны в шаблонах логирования через {%scope.*}:
+Scope fields are available in templates via ``{%scope.*}``:
     from action_machine.intents.logging.channel import Channel
 
     await log.info(
         Channel.debug,
-        "[{%scope.plugin}] Действие {%scope.action} завершено",
+        "[{%scope.plugin}] Action {%scope.action} completed",
     )
 
-Для создания ScopedLogger требуются log_coordinator, machine_name и mode,
-которые передаются в emit_event() из машины через именованные аргументы;
-домен задаётся из класса действия события, как указано выше.
+Creating scoped logger requires ``log_coordinator``, ``machine_name``, and
+``mode`` passed from machine into ``emit_event()``.
 
 ═══════════════════════════════════════════════════════════════════════════════
-АРХИТЕКТУРА
+ARCHITECTURE
 ═══════════════════════════════════════════════════════════════════════════════
 
     ActionProductMachine._run_internal(...)
@@ -184,27 +137,27 @@ PluginRunContext создаёт ScopedLogger для каждого вызова 
         ▼
     PluginRunContext.emit_event(event, ...)
         │
-        │  Для каждого плагина:
-        │    handlers = plugin.get_handlers(event)  ← Шаг 1: event_class
-        │    Для каждого (handler, sub):
-        │      _matches_all_filters(event, sub)     ← Шаги 2–7
-        │      → собираем прошедших в список
+        │  For each plugin:
+        │    handlers = plugin.get_handlers(event)  <- Step 1: event_class
+        │    For each (handler, sub):
+        │      _matches_all_filters(event, sub)     <- Steps 2-7
+        │      -> collect matched
         │
-        │  Выбираем стратегию выполнения:
-        │    все ignore=True → параллельно (asyncio.gather)
-        │    иначе → последовательно
+        │  Choose execution strategy:
+        │    all ignore=True -> parallel
+        │    otherwise -> sequential
         │
-        │  Для каждого прошедшего обработчика:
-        │    создаём ScopedLogger с scope плагина
+        │  For each matched handler:
+        │    create ScopedLogger
         │    state = await handler(plugin, state, event, log)
-        │    обновляем _plugin_states[id(plugin)]
+        │    update _plugin_states[id(plugin)]
         ▼
 
 ═══════════════════════════════════════════════════════════════════════════════
-ПРИМЕР ИСПОЛЬЗОВАНИЯ
+EXAMPLE USAGE
 ═══════════════════════════════════════════════════════════════════════════════
 
-    # В ActionProductMachine:
+    # In ActionProductMachine:
     event = GlobalFinishEvent(
         action_class=type(action),
         action_name=action.get_full_class_name(),
@@ -242,21 +195,17 @@ from action_machine.model.base_state import BaseState
 
 class PluginRunContext:
     """
-    Изолированный контекст плагинов для одного вызова run().
+    Isolated plugin context for one run invocation.
 
-    Создаётся методом PluginCoordinator.create_run_context() в начале
-    каждого _run_internal(). Хранит состояния всех плагинов и предоставляет
-    метод emit_event() для доставки типизированных событий обработчикам
-    через цепочку фильтров.
+    Created by ``PluginCoordinator.create_run_context()`` and used to route
+    typed events through subscription filters while maintaining per-run plugin
+    states.
 
-    Атрибуты:
-        _plugins : list[Plugin]
-            Список экземпляров плагинов (ссылка на список из координатора).
-
-        _plugin_states : dict[int, Any]
-            Состояния плагинов для текущего запроса. Ключ — id(plugin),
-            значение — текущее состояние (обновляется после каждого
-            вызова обработчика).
+    AI-CORE-BEGIN
+    ROLE: Runtime dispatcher and state holder for plugin handlers.
+    CONTRACT: Filter subscriptions and execute matched handlers per strategy.
+    INVARIANTS: State is isolated per run and keyed by plugin instance id.
+    AI-CORE-END
     """
 
     def __init__(
@@ -264,19 +213,12 @@ class PluginRunContext:
         plugins: list[Plugin],
         initial_states: dict[int, Any],
     ) -> None:
-        """
-        Инициализирует контекст плагинов.
-
-        Аргументы:
-            plugins: список экземпляров плагинов.
-            initial_states: начальные состояния плагинов.
-                Ключ — id(plugin), значение — результат get_initial_state().
-        """
+        """Initialize run context with plugin list and initial states."""
         self._plugins: list[Plugin] = plugins
         self._plugin_states: dict[int, Any] = dict(initial_states)
 
     # ─────────────────────────────────────────────────────────────────────
-    # Фильтрация подписок (шаги 2–7 цепочки)
+    # Subscription filtering (steps 2-7)
     # ─────────────────────────────────────────────────────────────────────
 
     @staticmethod
@@ -285,51 +227,28 @@ class PluginRunContext:
         sub: SubscriptionInfo,
         coordinator: Any | None = None,
     ) -> bool:
-        """
-        Проверяет фильтры подписки (шаги 2–7 цепочки).
-
-        Шаг 1 (isinstance по event_class) уже выполнен в
-        Plugin.get_handlers(). Здесь проверяются остальные фильтры
-        в порядке от дешёвых к дорогим с ранним выходом.
-
-        Порядок проверки:
-            Шаг 2: action_class → isinstance
-            Шаг 3: action_name_pattern → предкомпилированный regex
-            Шаг 4: aspect_name_pattern → предкомпилированный regex
-            Шаг 5: nest_level → in tuple
-            Шаг 6: domain → обращение к GateCoordinator
-            Шаг 7: predicate → вызов пользовательской функции
-
-        Аргументы:
-            event: объект события.
-            sub: подписка (SubscriptionInfo) для проверки.
-            coordinator: GateCoordinator для проверки domain (или None).
-
-        Возвращает:
-            True если все указанные фильтры прошли.
-        """
-        # ── Шаг 2: action_class ──
+        """Check remaining subscription filters after event_class prefilter."""
+        # Step 2: action_class
         if sub.action_class is not None:
             if not isinstance(event.action_class, type):
                 return False
-            # Проверяем, что action_class события является подклассом
-            # одного из классов в фильтре (или совпадает).
+            # Event action class must match configured class tuple.
             if not issubclass(event.action_class, sub.action_class):
                 return False
 
-        # ── Шаг 3: action_name_pattern ──
+        # Step 3: action_name_pattern
         if not sub.matches_action_name(event.action_name):
             return False
 
-        # ── Шаг 4: aspect_name_pattern ──
+        # Step 4: aspect_name_pattern
         if not sub.matches_aspect_name(event):
             return False
 
-        # ── Шаг 5: nest_level ──
+        # Step 5: nest_level
         if not sub.matches_nest_level(event.nest_level):
             return False
 
-        # ── Шаг 6: domain ──
+        # Step 6: domain
         if sub.domain is not None and coordinator is not None:
             try:
                 m = coordinator.get_snapshot(event.action_class, "meta")
@@ -339,14 +258,14 @@ class PluginRunContext:
             except Exception:
                 return False
 
-        # ── Шаг 7: predicate ──
+        # Step 7: predicate
         if not sub.matches_predicate(event):
             return False
 
         return True
 
     # ─────────────────────────────────────────────────────────────────────
-    # Сбор подходящих обработчиков
+    # Collect matched handlers
     # ─────────────────────────────────────────────────────────────────────
 
     def _collect_matched_handlers(
@@ -354,20 +273,7 @@ class PluginRunContext:
         event: BasePluginEvent,
         coordinator: Any | None = None,
     ) -> list[tuple[Plugin, Callable[..., Any], SubscriptionInfo]]:
-        """
-        Собирает все обработчики, прошедшие полную цепочку фильтров.
-
-        Для каждого плагина вызывает plugin.get_handlers(event) (шаг 1),
-        затем для каждого кандидата проверяет шаги 2–7 через
-        _matches_all_filters().
-
-        Аргументы:
-            event: объект события.
-            coordinator: GateCoordinator для фильтра domain (или None).
-
-        Возвращает:
-            Список кортежей (plugin, handler, subscription).
-        """
+        """Collect all handlers that pass full filter chain."""
         matched: list[tuple[Plugin, Callable[..., Any], SubscriptionInfo]] = []
 
         for plugin in self._plugins:
@@ -380,7 +286,7 @@ class PluginRunContext:
         return matched
 
     # ─────────────────────────────────────────────────────────────────────
-    # Создание ScopedLogger для обработчика плагина
+    # Create ScopedLogger for plugin handler
     # ─────────────────────────────────────────────────────────────────────
 
     @staticmethod
@@ -391,23 +297,7 @@ class PluginRunContext:
         plugin: Plugin,
         event: BasePluginEvent,
     ) -> ScopedLogger | None:
-        """
-        Создаёт ScopedLogger для обработчика плагина.
-
-        ``domain=resolve_domain(event.action_class)``. Scope содержит поля:
-        machine, mode, plugin, action, event (имя типа события), nest_level.
-        Все поля доступны в шаблонах через {%scope.*}.
-
-        Аргументы:
-            log_coordinator: координатор логирования (или None).
-            machine_name: имя класса машины.
-            mode: режим выполнения.
-            plugin: экземпляр плагина.
-            event: объект события.
-
-        Возвращает:
-            ScopedLogger или None если log_coordinator не указан.
-        """
+        """Create per-handler ScopedLogger or return None if logging disabled."""
         if log_coordinator is None:
             return None
 
@@ -444,7 +334,7 @@ class PluginRunContext:
         )
 
     # ─────────────────────────────────────────────────────────────────────
-    # Выполнение одного обработчика
+    # Execute one handler
     # ─────────────────────────────────────────────────────────────────────
 
     async def _run_single_handler(
@@ -454,18 +344,7 @@ class PluginRunContext:
         event: BasePluginEvent,
         log: ScopedLogger | None,
     ) -> None:
-        """
-        Вызывает один обработчик плагина и обновляет per-request состояние.
-
-        Получает текущее состояние из _plugin_states, вызывает обработчик,
-        записывает обновлённое состояние обратно.
-
-        Аргументы:
-            plugin: экземпляр плагина.
-            handler: unbound-метод обработчика.
-            event: объект события.
-            log: ScopedLogger для обработчика (или None).
-        """
+        """Run one plugin handler and persist updated per-run state."""
         plugin_id = id(plugin)
         state = self._plugin_states.get(plugin_id)
 
@@ -474,7 +353,7 @@ class PluginRunContext:
         self._plugin_states[plugin_id] = new_state
 
     # ─────────────────────────────────────────────────────────────────────
-    # Стратегии выполнения: параллельная и последовательная
+    # Execution strategies: parallel vs sequential
     # ─────────────────────────────────────────────────────────────────────
 
     async def _run_parallel(
@@ -485,21 +364,7 @@ class PluginRunContext:
         machine_name: str,
         mode: str,
     ) -> None:
-        """
-        Параллельное выполнение обработчиков через asyncio.gather.
-
-        Используется когда ВСЕ обработчики имеют ignore_exceptions=True.
-        Общее время ≈ время самого медленного обработчика. Исключения
-        подавляются (return_exceptions=True); при непустом log_coordinator
-        для каждого сбоя пишется CRITICAL в Channel.error.
-
-        Аргументы:
-            matched: список (plugin, handler, subscription).
-            event: объект события.
-            log_coordinator: координатор логирования.
-            machine_name: имя класса машины.
-            mode: режим выполнения.
-        """
+        """Run handlers in parallel when all ignore exceptions."""
         tasks = []
         for plugin, handler, _sub in matched:
             log = self._create_plugin_logger(
@@ -528,22 +393,7 @@ class PluginRunContext:
         machine_name: str,
         mode: str,
     ) -> None:
-        """
-        Последовательное выполнение обработчиков.
-
-        Используется когда ХОТЯ БЫ ОДИН обработчик имеет
-        ignore_exceptions=False. При ошибке критического обработчика
-        исключение пробрасывается наружу. Ошибки обработчиков
-        с ignore_exceptions=True подавляются; при непустом log_coordinator
-        для такого сбоя пишется CRITICAL в Channel.error.
-
-        Аргументы:
-            matched: список (plugin, handler, subscription).
-            event: объект события.
-            log_coordinator: координатор логирования.
-            machine_name: имя класса машины.
-            mode: режим выполнения.
-        """
+        """Run handlers sequentially when any subscription is critical."""
         for plugin, handler, sub in matched:
             log = self._create_plugin_logger(
                 log_coordinator, machine_name, mode, plugin, event,
@@ -558,7 +408,7 @@ class PluginRunContext:
                 )
 
     # ─────────────────────────────────────────────────────────────────────
-    # Основной метод: emit_event
+    # Main method: emit_event
     # ─────────────────────────────────────────────────────────────────────
 
     async def emit_event(
@@ -570,55 +420,14 @@ class PluginRunContext:
         mode: str = "",
         coordinator: Any | None = None,
     ) -> None:
-        """
-        Доставляет типизированное событие всем подходящим обработчикам.
-
-        Принимает объект события из иерархии BasePluginEvent. Находит
-        все обработчики, прошедшие полную цепочку фильтров (7 шагов),
-        выбирает стратегию выполнения (параллельная или последовательная)
-        и запускает обработчики.
-
-        Цепочка фильтров:
-            Шаг 1: event_class (isinstance) — в Plugin.get_handlers()
-            Шаг 2: action_class (isinstance)
-            Шаг 3: action_name_pattern (regex)
-            Шаг 4: aspect_name_pattern (regex, только AspectEvent)
-            Шаг 5: nest_level (in tuple)
-            Шаг 6: domain (через GateCoordinator)
-            Шаг 7: predicate (пользовательская функция)
-
-        Стратегия выполнения:
-            Все ignore_exceptions=True → параллельно (asyncio.gather).
-            Хотя бы один ignore_exceptions=False → последовательно.
-
-        Аргументы:
-            event: объект события из иерархии BasePluginEvent.
-                Машина создаёт конкретные события (GlobalStartEvent,
-                AfterRegularAspectEvent и т.д.) и передаёт сюда.
-
-            log_coordinator: координатор логирования для создания
-                ScopedLogger обработчикам. None — логирование недоступно.
-
-            machine_name: имя класса машины (для scope логгера).
-                Пример: "ActionProductMachine".
-
-            mode: режим выполнения (для scope логгера).
-                Пример: "production", "test".
-
-            coordinator: GateCoordinator для проверки фильтра domain.
-                None — фильтр domain пропускается.
-
-        Исключения:
-            Любое исключение из обработчика с ignore_exceptions=False
-            пробрасывается наружу.
-        """
-        # ── Сбор обработчиков, прошедших все фильтры ──
+        """Deliver typed event to all handlers that pass filter chain."""
+        # Collect handlers that passed all filters.
         matched = self._collect_matched_handlers(event, coordinator)
 
         if not matched:
             return
 
-        # ── Выбор стратегии выполнения ──
+        # Choose execution strategy.
         all_ignore = all(sub.ignore_exceptions for _, _, sub in matched)
 
         if all_ignore:
@@ -631,24 +440,9 @@ class PluginRunContext:
             )
 
     # ─────────────────────────────────────────────────────────────────────
-    # Доступ к состоянию плагина (для тестов и интроспекции)
+    # Access plugin state (tests/introspection)
     # ─────────────────────────────────────────────────────────────────────
 
     def get_plugin_state(self, plugin: Plugin) -> Any:
-        """
-        Возвращает текущее per-request состояние плагина.
-
-        Используется в тестах для проверки, что обработчик корректно
-        обновил состояние. В production-коде не вызывается — состояние
-        инкапсулировано внутри контекста.
-
-        Аргументы:
-            plugin: экземпляр плагина.
-
-        Возвращает:
-            Текущее состояние плагина.
-
-        Исключения:
-            KeyError: если плагин не зарегистрирован в контексте.
-        """
+        """Return current per-run plugin state (primarily for tests)."""
         return self._plugin_states[id(plugin)]

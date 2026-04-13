@@ -23,7 +23,7 @@ INVARIANTS
   ``RoleClassInspector``.
 
 ═══════════════════════════════════════════════════════════════════════════════
-DATA FLOW
+ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
 ::
@@ -88,6 +88,12 @@ from action_machine.intents.auth.role_mode_intent import RoleModeIntent
 class RoleModeIntentInspector(BaseIntentInspector):
     """
     Builds ``role_mode`` facet nodes from ``@role_mode`` scratch on role types.
+
+    AI-CORE-BEGIN
+    ROLE: Concrete inspector for role lifecycle classification metadata.
+    CONTRACT: Emit ``role_mode`` payloads from ``_role_mode_info`` declarations.
+    INVARIANTS: Traversal source is ``RoleModeIntent``; payloads contain no edges.
+    AI-CORE-END
     """
 
     _target_intent: type = RoleModeIntent

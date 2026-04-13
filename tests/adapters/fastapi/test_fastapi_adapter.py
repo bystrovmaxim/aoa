@@ -1,24 +1,60 @@
 # tests/adapters/fastapi/test_fastapi_adapter.py
 """
-Tests for FastApiAdapter — HTTP adapter that turns Actions into FastAPI endpoints.
+Tests for ``FastApiAdapter`` — HTTP binding for ``ActionProductMachine``.
 
-FastApiAdapter inherits BaseAdapter[FastApiRouteRecord] and provides protocol
-methods post/get/put/delete/patch that register routes. build() creates a
-FastAPI application with health check, exception handlers, and generated
-endpoints. All protocol methods return self for fluent chaining.
+═══════════════════════════════════════════════════════════════════════════════
+PURPOSE
+═══════════════════════════════════════════════════════════════════════════════
 
-Scenarios covered:
-    - Constructor stores title, version, description.
-    - post() registers a route with method=POST.
-    - get() registers a route with method=GET.
-    - put/delete/patch register routes with correct methods.
-    - Fluent chaining across multiple protocol methods.
-    - build() returns a FastAPI instance.
-    - Health check GET /health is registered automatically.
-    - Exception handlers for AuthorizationError (403) and ValidationFieldError (422).
-    - Auto-summary from @meta when summary not provided.
-    - Custom tags, summary, description passed to route record.
-    - Routes list reflects all registered routes.
+Verify registration (``post``/``get``/``put``/``delete``/``patch``), fluent
+return of ``self``, ``build()`` producing a ``FastAPI`` app with ``/health`` and
+exception handlers, OpenAPI metadata (title/version), and ``FastApiRouteRecord``
+fields (tags, summary from ``@meta``, custom descriptions).
+
+═══════════════════════════════════════════════════════════════════════════════
+ARCHITECTURE / DATA FLOW
+═══════════════════════════════════════════════════════════════════════════════
+
+    TestClient / direct adapter inspection
+              |
+              v
+    FastApiAdapter(BaseAdapter[FastApiRouteRecord])
+              |
+              +--> register HTTP method + path + action -> ``_routes``
+              |
+              v
+    build() -> FastAPI app (+ auto /health, error handlers)
+
+═══════════════════════════════════════════════════════════════════════════════
+INVARIANTS
+═══════════════════════════════════════════════════════════════════════════════
+
+- ``auth_coordinator`` is always provided in tests (``AsyncMock``).
+- Each protocol method appends a ``FastApiRouteRecord`` and returns ``self``.
+
+═══════════════════════════════════════════════════════════════════════════════
+EXAMPLES
+═══════════════════════════════════════════════════════════════════════════════
+
+    uv run pytest tests/adapters/fastapi/test_fastapi_adapter.py -q
+
+Edge case: auto-summary from ``@meta`` when explicit summary is omitted.
+
+═══════════════════════════════════════════════════════════════════════════════
+ERRORS / LIMITATIONS
+═══════════════════════════════════════════════════════════════════════════════
+
+- Does not load real ASGI servers; ``TestClient`` exercises the built app only.
+
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE-BEGIN
+═══════════════════════════════════════════════════════════════════════════════
+ROLE: FastAPI adapter registration and ``build()`` smoke tests.
+CONTRACT: Fluent API; route list matches registrations; health + handlers present.
+INVARIANTS: Scenario actions from ``tests.scenarios.domain_model``.
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE-END
+═══════════════════════════════════════════════════════════════════════════════
 """
 
 from unittest.mock import AsyncMock

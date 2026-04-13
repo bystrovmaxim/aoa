@@ -1,48 +1,46 @@
 # tests/model/test_base_schema_resolve.py
-"""
-Тесты BaseSchema.resolve() для dot-path навигации по вложенным объектам.
+"""BaseSchema.resolve() tests for dot-path navigation on nested objects.
 
-═══════════════════════════════════════════════════════════════════════════════
-НАЗНАЧЕНИЕ
-═══════════════════════════════════════════════════════════════════════════════
+═══════════════════ ════════════════════ ════════════════════ ════════════════════
+PURPOSE
+═══════════════════ ════════════════════ ════════════════════ ════════════════════
 
-BaseSchema.resolve("user.extra.org") обходит цепочку вложенных объектов,
-выполняя один шаг навигации на каждом сегменте пути. На каждом шаге
-выбирается стратегия навигации в зависимости от типа текущего объекта:
+BaseSchema.resolve("user.extra.org") traverses the chain of nested objects,
+performing one navigation step on each path segment. Every step of the way
+a navigation strategy is selected depending on the type of the current object:
 
-1. BaseSchema → __getitem__ (dict-подобный доступ через pydantic-поля).
-2. dict → прямой доступ по ключу.
-3. Любой другой объект → getattr.
+1. BaseSchema → __getitem__ (dict-like access via pydantic fields).
+2. dict → direct access by key.
+3. Any other object → getattr.
 
-Цепочка может содержать объекты разных типов: Context (BaseSchema) →
-UserInfo (BaseSchema) → значение.
+A chain can contain objects of different types: Context (BaseSchema) →
+UserInfo(BaseSchema) -> value.
 
-═══════════════════════════════════════════════════════════════════════════════
-ПОКРЫВАЕМЫЕ СЦЕНАРИИ
-═══════════════════════════════════════════════════════════════════════════════
+═══════════════════ ════════════════════ ════════════════════ ════════════════════
+SCENARIOS COVERED
+═══════════════════ ════════════════════ ════════════════════ ════════════════════
 
-Два уровня вложенности:
-    - Context → UserInfo → user_id (BaseSchema → BaseSchema → значение).
-    - Context → RequestInfo → trace_id (BaseSchema → BaseSchema → значение).
+Two levels of nesting:
+    - Context → UserInfo → user_id (BaseSchema → BaseSchema → value).
+    - Context → RequestInfo → trace_id (BaseSchema → BaseSchema → value).
 
-Три и более уровня:
-    - Глубокая цепочка BaseSchema-объектов (3+ уровней).
-    - BaseSchema → BaseSchema → BaseSchema → значение.
+Three or more levels:
+    - Deep chain of BaseSchema objects (3+ levels).
+    - BaseSchema → BaseSchema → BaseSchema → value.
 
-Смешанные типы в цепочке:
-    - BaseSchema → dict → dict → значение (через BaseState extra-поля).
-    - BaseSchema → BaseSchema → dict → значение.
+Mixed types in a chain:
+    - BaseSchema → dict → dict → value (via BaseState extra fields).
+    - BaseSchema → BaseSchema → dict → value.
 
-Навигация по словарям (через BaseState extra="allow"):
-    - Простой доступ к значению в extra-dict.
-    - Вложенные словари (dict → dict → dict).
-    - Получение целого dict как значения.
-    - Получение списка из словаря.
+Navigation through dictionaries (via BaseState extra="allow"):
+    - Easy access to value in extra-dict.
+    - Nested dictionaries (dict → dict → dict).
+    - Getting the whole dict as a value.
+    - Getting a list from a dictionary.
 
-Default при отсутствии промежуточного ключа:
-    - Промежуточный BaseSchema не содержит поля → default.
-    - Промежуточный dict не содержит ключа → default.
-"""
+Default if there is no intermediate key:
+    - Intermediate BaseSchema does not contain fields → default.
+    - The intermediate dict does not contain the key → default."""
 
 from pydantic import ConfigDict
 
@@ -55,36 +53,32 @@ from action_machine.model.base_state import BaseState
 from tests.scenarios.domain_model.roles import AdminRole, AgentRole, UserRole
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Вспомогательные классы
+#Helper classes
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class NestedSchema(BaseSchema):
-    """
-    Вспомогательная схема для создания произвольных цепочек вложенных
-    BaseSchema-объектов. Используется для тестирования глубокой навигации.
-    extra="allow" позволяет передавать произвольные поля через kwargs.
-    """
+    """An auxiliary scheme for creating arbitrary nested chains
+    BaseSchema objects. Used for testing deep navigation.
+    extra="allow" allows you to pass custom fields via kwargs."""
 
     model_config = ConfigDict(frozen=True, extra="allow")
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Два уровня вложенности
+#Two levels of nesting
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestTwoLevels:
-    """resolve через два уровня: объект → вложенный объект → значение."""
+    """resolve through two levels: object → nested object → value."""
 
     def test_context_to_user_field(self) -> None:
-        """
-        resolve("user.user_id") — Context → UserInfo → user_id.
+        """resolve("user.user_id") - Context → UserInfo → user_id.
 
-        Первый шаг: Context.__getitem__("user") → UserInfo.
-        Второй шаг: UserInfo.__getitem__("user_id") → "agent_007".
-        Оба объекта — BaseSchema, стратегия — __getitem__.
-        """
+        First step: Context.__getitem__("user") → UserInfo.
+        Second step: UserInfo.__getitem__("user_id") → "agent_007".
+        Both objects are BaseSchema, the strategy is __getitem__."""
         # Arrange
         user = UserInfo(user_id="agent_007", roles=(AgentRole,))
         ctx = Context(user=user)
@@ -96,9 +90,7 @@ class TestTwoLevels:
         assert result == "agent_007"
 
     def test_context_to_user_roles(self) -> None:
-        """
-        resolve("user.roles") — доступ к кортежу типов ролей через вложенность.
-        """
+        """resolve("user.roles") - access to a tuple of role types through nesting."""
         # Arrange
         user = UserInfo(user_id="42", roles=(AdminRole, UserRole))
         ctx = Context(user=user)
@@ -139,19 +131,17 @@ class TestTwoLevels:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Три и более уровня вложенности
+#Three or more levels of nesting
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestThreeOrMoreLevels:
-    """resolve через три и более уровней вложенности."""
+    """resolve through three or more nesting levels."""
 
     def test_deep_schema_chain(self) -> None:
-        """
-        resolve("level1.level2.level3.value") — цепочка из трёх
-        вложенных BaseSchema-объектов до конечного значения.
-        """
-        # Arrange — три уровня вложенных NestedSchema
+        """resolve("level1.level2.level3.value") - a chain of three
+        nested BaseSchema objects to the final value."""
+        #Arrange - three levels of nested NestedSchema
         level3 = NestedSchema(value="deep")
         level2 = NestedSchema(level3=level3)
         level1 = NestedSchema(level2=level2)
@@ -164,13 +154,11 @@ class TestThreeOrMoreLevels:
         assert result == "deep"
 
     def test_deep_dict_nesting_via_state(self) -> None:
-        """
-        resolve("level1.level2.value") — BaseState → dict → dict → значение.
+        """resolve("level1.level2.value") — BaseState → dict → dict → value.
 
-        BaseState с extra="allow" хранит произвольные значения,
-        включая вложенные словари.
-        """
-        # Arrange — BaseState с глубоко вложенными словарями
+        BaseState with extra="allow" stores arbitrary values,
+        including nested dictionaries."""
+        #Arrange - BaseState with deeply nested dictionaries
         state = BaseState(level1={"level2": {"value": "deep"}})
 
         # Act
@@ -180,9 +168,7 @@ class TestThreeOrMoreLevels:
         assert result == "deep"
 
     def test_four_level_dict_chain(self) -> None:
-        """
-        resolve("a.b.c.d") — четыре уровня через dict-ы в BaseState.
-        """
+        """resolve("a.b.c.d") - four levels through dicts in BaseState."""
         # Arrange
         state = BaseState(a={"b": {"c": {"d": "found"}}})
 
@@ -194,17 +180,15 @@ class TestThreeOrMoreLevels:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Навигация по словарям
+#Navigation through dictionaries
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestDictNavigation:
-    """resolve через словари (dict) внутри BaseSchema-объектов."""
+    """resolve via dictionaries (dicts) inside BaseSchema objects."""
 
     def test_state_dict_simple_key(self) -> None:
-        """
-        resolve("data.key") — BaseState → dict → значение.
-        """
+        """resolve("data.key") - BaseState → dict → value."""
         # Arrange
         state = BaseState(data={"key": "value"})
 
@@ -215,9 +199,7 @@ class TestDictNavigation:
         assert result == "value"
 
     def test_state_dict_nested_dicts(self) -> None:
-        """
-        resolve("data.nested.key") — dict → dict → значение.
-        """
+        """resolve("data.nested.key") - dict → dict → value."""
         # Arrange
         state = BaseState(data={"nested": {"key": "value"}})
 
@@ -228,10 +210,8 @@ class TestDictNavigation:
         assert result == "value"
 
     def test_state_dict_multiple_keys(self) -> None:
-        """
-        Несколько независимых ключей в одном словаре — каждый
-        доступен через отдельный resolve.
-        """
+        """Several independent keys in one dictionary - each
+        available via separate resolve."""
         # Arrange
         state = BaseState(data={"a": 1, "b": 2, "c": 3})
 
@@ -241,9 +221,7 @@ class TestDictNavigation:
         assert state.resolve("data.c") == 3
 
     def test_state_dict_returns_list(self) -> None:
-        """
-        resolve возвращает список из словаря как единое значение.
-        """
+        """resolve returns the list from the dictionary as a single value."""
         # Arrange
         state = BaseState(data={"items": [1, 2, 3, 4]})
 
@@ -255,10 +233,8 @@ class TestDictNavigation:
         assert isinstance(result, list)
 
     def test_state_dict_returns_whole_dict(self) -> None:
-        """
-        resolve возвращает вложенный словарь целиком если путь
-        заканчивается на ключе, чьё значение — dict.
-        """
+        """resolve returns the entire nested dictionary if path
+        ends with a key whose value is dict."""
         # Arrange
         state = BaseState(data={"config": {"theme": "dark", "lang": "ru"}})
 
@@ -270,23 +246,19 @@ class TestDictNavigation:
         assert isinstance(result, dict)
 
     def test_state_dict_with_none_value(self) -> None:
-        """
-        Значение None в словаре — это валидное значение, не отсутствие.
-        resolve возвращает None, а не default.
-        """
+        """The None value in the dictionary is a valid value, not an absence.
+        resolve returns None, not default."""
         # Arrange
         state = BaseState(data={"key": None})
 
         # Act
         result = state.resolve("data.key")
 
-        # Assert — None из словаря, не default
+        #Assert — None from the dictionary, not default
         assert result is None
 
     def test_state_empty_dict_returns_default(self) -> None:
-        """
-        resolve на пустом словаре по несуществующему ключу → default.
-        """
+        """resolve on an empty dictionary using a non-existent key → default."""
         # Arrange
         state = BaseState(data={})
 
@@ -298,19 +270,17 @@ class TestDictNavigation:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Смешанные типы в цепочке
+#Mixed types in a chain
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestMixedTypes:
-    """resolve через смешанные типы: BaseSchema, dict, обычные объекты."""
+    """resolve through mixed types: BaseSchema, dict, regular objects."""
 
     def test_schema_then_dict_then_dict(self) -> None:
-        """
-        BaseState → dict (settings) → dict (notifications) → значение.
+        """BaseState → dict (settings) → dict (notifications) → value.
 
-        Стратегия навигации меняется: BaseSchema → dict → dict → значение.
-        """
+        The navigation strategy changes: BaseSchema → dict → dict → value."""
         # Arrange
         state = BaseState(
             settings={"theme": "dark", "notifications": {"email": True}},
@@ -321,9 +291,7 @@ class TestMixedTypes:
         assert state.resolve("settings.notifications.email") is True
 
     def test_context_schema_schema_value(self) -> None:
-        """
-        Context → UserInfo → user_id — чистая цепочка BaseSchema.
-        """
+        """Context → UserInfo → user_id is a pure BaseSchema chain."""
         # Arrange
         ctx = Context(
             user=UserInfo(user_id="42"),
@@ -335,37 +303,31 @@ class TestMixedTypes:
         assert ctx.resolve("request.trace_id") == "abc"
 
     def test_default_on_missing_intermediate_field(self) -> None:
-        """
-        Если промежуточное поле не найдено — resolve возвращает default,
-        не бросая исключение. __getitem__ бросает KeyError, resolve
-        ловит его и возвращает default.
-        """
+        """If the intermediate field is not found, resolve returns default,
+        without throwing an exception. __getitem__ throws KeyError, resolve
+        catches it and returns default."""
         # Arrange
         ctx = Context(user=UserInfo(user_id="42"))
 
-        # Act — "nonexistent" нет среди полей UserInfo
+        #Act - "nonexistent" is not among the UserInfo fields
         result = ctx.resolve("user.nonexistent.deep", default="N/A")
 
         # Assert
         assert result == "N/A"
 
     def test_default_on_missing_dict_key(self) -> None:
-        """
-        Промежуточный ключ не найден в словаре → default.
-        """
+        """Intermediate key not found in dictionary → default."""
         # Arrange
         state = BaseState(data={"existing": "value"})
 
-        # Act — ключ "missing" не существует в dict
+        #Act - key "missing" does not exist in dict
         result = state.resolve("data.missing.deep", default="not found")
 
         # Assert
         assert result == "not found"
 
     def test_default_on_completely_missing_path(self) -> None:
-        """
-        Первый сегмент пути не найден → default.
-        """
+        """The first segment of the path was not found → default."""
         # Arrange
         state = BaseState(total=100)
 
@@ -376,9 +338,7 @@ class TestMixedTypes:
         assert result == "gone"
 
     def test_single_segment_resolve(self) -> None:
-        """
-        resolve с одним сегментом — эквивалент __getitem__.
-        """
+        """resolve with one segment is equivalent to __getitem__."""
         # Arrange
         state = BaseState(total=100)
 
@@ -389,9 +349,7 @@ class TestMixedTypes:
         assert result == 100
 
     def test_single_segment_missing_returns_default(self) -> None:
-        """
-        resolve с одним несуществующим сегментом → default.
-        """
+        """resolve with one non-existent segment → default."""
         # Arrange
         state = BaseState(total=100)
 
@@ -399,4 +357,5 @@ class TestMixedTypes:
         result = state.resolve("missing", default=0)
 
         # Assert
+        assert result == 0
         assert result == 0

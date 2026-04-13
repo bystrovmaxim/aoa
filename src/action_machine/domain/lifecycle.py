@@ -34,15 +34,6 @@ SCOPE (IN / OUT)
     Automatic persistence when transitioning — callers use `model_copy` on the entity.
 
 ═══════════════════════════════════════════════════════════════════════════════
-TERMINOLOGY (USE CONSISTENTLY)
-═══════════════════════════════════════════════════════════════════════════════
-
-**Intent / decorator / scratch / inspector / GateCoordinator** — same as
-elsewhere in ActionMachine: entity fields typed as a `Lifecycle` subclass are
-discovered at build time; **inspectors** read `_template` **scratch** and attach
-facets to the **GateCoordinator** graph.
-
-═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -143,6 +134,17 @@ ERRORS / LIMITATIONS
 - `RuntimeError`: incomplete previous state when calling `.state()`; or reading
   `current_state` on a bare template instance.
 - This module does **not** perform I/O or async workflows.
+
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE-BEGIN
+═══════════════════════════════════════════════════════════════════════════════
+ROLE: Domain lifecycle DSL and runtime state wrapper.
+CONTRACT: Build immutable lifecycle templates fluently and expose safe runtime transition API.
+INVARIANTS: Final states have no outgoing edges; runtime instances must use declared state keys.
+FLOW: fluent template declaration -> optional coordinator validation -> runtime instance transition checks.
+FAILURES: InvalidStateError/InvalidTransitionError plus builder-time TypeError/ValueError/RuntimeError.
+EXTENSION POINTS: Applications define specialized subclasses with ``_template``.
+AI-CORE-END
 """
 
 from __future__ import annotations
@@ -423,6 +425,12 @@ class Lifecycle:
         _states: Map of state key → ``StateInfo`` (template graph).
         _current_state: Current key for an instance; ``None`` on a bare template.
         _current_builder: Open ``_StateBuilder`` while a state is unfinished.
+
+    AI-CORE-BEGIN
+    ROLE: Unified template/instance lifecycle object.
+    CONTRACT: Template mode defines graph; instance mode enforces legal transitions.
+    INVARIANTS: ``transition()`` returns a new object and never mutates current instance.
+    AI-CORE-END
     """
 
     _template: Lifecycle | None = None

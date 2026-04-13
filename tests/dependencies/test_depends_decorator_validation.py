@@ -12,7 +12,7 @@ class _Svc:
 
 
 def test_depends_rejects_non_class_service() -> None:
-    with pytest.raises(TypeError, match="ожидает класс"):
+    with pytest.raises(TypeError, match="expects a class"):
         depends("not-a-class", description="d")  # type: ignore[arg-type]
 
 
@@ -23,7 +23,7 @@ def test_depends_rejects_non_str_description() -> None:
 
 def test_depends_inner_rejects_non_class_target() -> None:
     dec = depends(_Svc, description="d")
-    with pytest.raises(TypeError, match="только к классу"):
+    with pytest.raises(TypeError, match="only be applied to a class"):
         dec(42)  # type: ignore[arg-type]
 
 
@@ -47,12 +47,12 @@ def test_depends_rejects_service_outside_bound() -> None:
         pass
 
     dec = depends(Other, description="x")
-    with pytest.raises(TypeError, match="не является подклассом"):
+    with pytest.raises(TypeError, match="is not a subclass of"):
         dec(_Host)
 
 
 def test_depends_rejects_duplicate_registration() -> None:
-    with pytest.raises(ValueError, match="уже объявлен"):
+    with pytest.raises(ValueError, match="already declared"):
 
         @depends(_Svc, description="a")
         @depends(_Svc, description="b")

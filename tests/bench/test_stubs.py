@@ -1,19 +1,57 @@
 # tests/bench/test_stubs.py
 """
-Tests for context stubs: UserInfoStub, RuntimeInfoStub, RequestInfoStub, ContextStub.
+Tests for context stubs: ``UserInfoStub``, ``RuntimeInfoStub``, ``RequestInfoStub``, ``ContextStub``.
 
-Stubs provide sensible defaults for all context components so that tests can
-create a valid Context in one line. Every stub returns a real domain object
-(UserInfo, RuntimeInfo, RequestInfo, Context) — not a mock or subclass —
-so isinstance checks pass throughout the system.
+═══════════════════════════════════════════════════════════════════════════════
+PURPOSE
+═══════════════════════════════════════════════════════════════════════════════
 
-Scenarios covered:
-    - Each stub returns the correct real type.
-    - Default values match documented defaults.
-    - Every field can be overridden via keyword arguments.
-    - ContextStub composes three sub-stubs with independent overrides.
-    - ContextStub with no arguments produces fully valid defaults.
-    - Extra kwargs are forwarded where the underlying model supports them.
+Ensure stubs materialize real ``UserInfo``, ``RuntimeInfo``, ``RequestInfo``, and
+``Context`` instances (not mocks) with documented defaults, per-field
+overrides, and independent composition via ``ContextStub``.
+
+═══════════════════════════════════════════════════════════════════════════════
+ARCHITECTURE / DATA FLOW
+═══════════════════════════════════════════════════════════════════════════════
+
+    Stub factories (kwargs optional)
+              |
+              v
+    Domain context models  ->  isinstance(...) holds in production code paths
+
+    ContextStub(user=..., request=..., runtime=...) composes the three slices
+
+═══════════════════════════════════════════════════════════════════════════════
+INVARIANTS
+═══════════════════════════════════════════════════════════════════════════════
+
+- Default roles include ``StubTesterRole`` unless overridden.
+- Overrides on one stub component must not leak into unstated components.
+
+═══════════════════════════════════════════════════════════════════════════════
+EXAMPLES
+═══════════════════════════════════════════════════════════════════════════════
+
+    uv run pytest tests/bench/test_stubs.py -q
+
+Edge case: ``UserInfoStub(roles=())`` yields an empty role tuple.
+
+═══════════════════════════════════════════════════════════════════════════════
+ERRORS / LIMITATIONS
+═══════════════════════════════════════════════════════════════════════════════
+
+- Default string constants mirror stub implementation; update both if defaults
+  change.
+
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE-BEGIN
+═══════════════════════════════════════════════════════════════════════════════
+ROLE: Tests for test-time context stub builders.
+CONTRACT: Real domain types; composable defaults for bench/context tests.
+INVARIANTS: Uses ``AdminRole`` / ``ManagerRole`` only for override scenarios.
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE-END
+═══════════════════════════════════════════════════════════════════════════════
 """
 
 

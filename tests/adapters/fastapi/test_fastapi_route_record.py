@@ -1,24 +1,57 @@
 # tests/adapters/fastapi/test_fastapi_route_record.py
 """
-Tests for FastApiRouteRecord — frozen dataclass with HTTP-specific fields.
+Tests for ``FastApiRouteRecord`` — HTTP fields on top of ``BaseRouteRecord``.
 
-FastApiRouteRecord extends BaseRouteRecord with method, path, tags, summary,
-description, operation_id, deprecated. It validates that method is from the
-allowed set {GET, POST, PUT, DELETE, PATCH}, normalizes it to uppercase,
-and checks that path is non-empty and starts with '/'.
+═══════════════════════════════════════════════════════════════════════════════
+PURPOSE
+═══════════════════════════════════════════════════════════════════════════════
 
-Scenarios covered:
-    - Default field values (method="POST", path="/", tags=(), etc.).
-    - Method normalization: lowercase → uppercase.
-    - All five allowed methods accepted.
-    - Invalid method raises ValueError.
-    - Empty path raises ValueError.
-    - Path not starting with '/' raises ValueError.
-    - Whitespace-only path raises ValueError.
-    - Tags stored as tuple.
-    - Optional fields (summary, description, operation_id, deprecated) stored correctly.
-    - Frozen immutability — fields cannot be modified after creation.
-    - Inherited BaseRouteRecord invariants still enforced (action_class, mappers).
+Validate method/path rules, defaults, normalization (e.g. lowercase method),
+optional OpenAPI-oriented fields, tuple tags, frozen immutability, and inherited
+``BaseRouteRecord`` constraints (``action_class``, mappers).
+
+═══════════════════════════════════════════════════════════════════════════════
+ARCHITECTURE / DATA FLOW
+═══════════════════════════════════════════════════════════════════════════════
+
+    PingAction / SimpleAction (scenario)
+              |
+              v
+    FastApiRouteRecord(action_class, method, path, tags, ...)
+              |
+              v
+    Frozen record -> validation at construction (no I/O)
+
+═══════════════════════════════════════════════════════════════════════════════
+INVARIANTS
+═══════════════════════════════════════════════════════════════════════════════
+
+- HTTP method must be one of GET, POST, PUT, DELETE, PATCH (case-normalized).
+- Path must be non-empty, non-whitespace, and start with ``/``.
+
+═══════════════════════════════════════════════════════════════════════════════
+EXAMPLES
+═══════════════════════════════════════════════════════════════════════════════
+
+    uv run pytest tests/adapters/fastapi/test_fastapi_route_record.py -q
+
+Edge case: whitespace-only path must raise ``ValueError``.
+
+═══════════════════════════════════════════════════════════════════════════════
+ERRORS / LIMITATIONS
+═══════════════════════════════════════════════════════════════════════════════
+
+- Tests assert exact exception types and messages from ``FastApiRouteRecord``.
+
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE-BEGIN
+═══════════════════════════════════════════════════════════════════════════════
+ROLE: HTTP route record validation tests.
+CONTRACT: Method/path invariants; defaults; immutability; base-record inheritance.
+INVARIANTS: Scenario actions only for valid ``action_class`` cases.
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE-END
+═══════════════════════════════════════════════════════════════════════════════
 """
 
 import pytest

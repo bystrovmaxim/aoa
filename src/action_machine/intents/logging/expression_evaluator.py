@@ -1,83 +1,100 @@
 # src/action_machine/intents/logging/expression_evaluator.py
 """
-Вычислитель выражений для шаблонов логирования ActionMachine.
+Expression evaluator for ActionMachine logging templates.
 
 ═══════════════════════════════════════════════════════════════════════════════
-НАЗНАЧЕНИЕ
+PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Использует библиотеку simpleeval для безопасного вычисления выражений
-внутри конструкции {iif(condition; true_value; false_value)}.
+Uses ``simpleeval`` to safely evaluate expressions inside
+``{iif(condition; true_value; false_value)}``.
 
-simpleeval не поддерживает import, exec, eval, __builtins__ и любой доступ
-к файловой системе или сети. Это гарантирует, что шаблон логгера не может
-выполнить произвольный код.
-
-═══════════════════════════════════════════════════════════════════════════════
-ВОЗМОЖНОСТИ ВЫЧИСЛИТЕЛЯ
-═══════════════════════════════════════════════════════════════════════════════
-
-- Операторы сравнения: ==, !=, >, <, >=, <=
-- Логические операторы: and, or, not
-- Арифметика: +, -, *, /
-- Встроенные функции: len, upper, lower, format_number, str, int, float, abs
-- Цветовые функции: red, green, yellow, blue, magenta, cyan, white, grey
-- Функция debug(obj): возвращает форматированную строку с публичными
-  полями/свойствами объекта (интроспекция для шаблонов логирования).
-  Показывает только непосредственные поля объекта (max_depth=1),
-  чтобы не засорять логи. Для глубокой интроспекции вызывайте debug
-  на вложенном атрибуте напрямую.
-- Функция exists(name): возвращает True если переменная с указанным
-  именем существует в текущем контексте вычисления, False иначе.
-
-Цветовые функции возвращают строку, обёрнутую в маркер вида
-`__COLOR(red)text__COLOR_END__`, который позже заменяется на реальные
-ANSI-коды в VariableSubstitutor._apply_color_filters().
+``simpleeval`` does not allow ``import``, ``exec``, ``eval``, ``__builtins__``,
+or filesystem/network access. This keeps logging templates from executing
+arbitrary code.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ИНТРОСПЕКЦИЯ ОБЪЕКТОВ (debug)
+INVARIANTS
 ═══════════════════════════════════════════════════════════════════════════════
 
-Функция debug() и фильтр |debug используют _inspect_object() для
-форматированного вывода публичных полей объекта.
-
-Ключевые особенности:
-- max_depth=1 по умолчанию: вложенные объекты не раскрываются,
-  показываются как repr(value).
-- Циклические ссылки обнаруживаются через множество visited (id объектов)
-  и помечаются как <cycle detected>. Проверка циклов выполняется
-  ДО проверки max_depth, чтобы обнаружить цикл даже на первом уровне.
-- Свойства с @sensitive маскируются по конфигурации декоратора.
-- Pydantic class-level атрибуты (model_fields, model_config и т.д.)
-  фильтруются через множество _PYDANTIC_CLASS_ATTRS для совместимости
-  с Pydantic V2.11+ (избежание DeprecationWarning).
+- Errors are fail-fast and become ``LogTemplateError``.
+- Template-level nested ``{iif(...{iif(...)}...)}`` is intentionally unsupported.
+- ``debug()`` introspection defaults to ``max_depth=1`` to limit log volume.
+- Sensitive properties are masked only when marked with ``@sensitive``.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ОГОВОРКИ (КОНФИДЕНЦИАЛЬНОСТЬ И ОБЪЁМ ЛОГОВ)
+ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-- Секретные поля нужно помечать ``@sensitive``; без декоратора маскирование
-  к ним не применяется.
-- ``debug()`` и фильтр ``|debug`` печатают поля верхнего уровня переданного
-  объекта. Если в шаблон попадает «тяжёлый» объект из контекста, в лог может
-  уйти много данных или громоздкие ``repr`` — ограничивайте, что передаёте
-  в шаблон, и по-прежнему используйте ``@sensitive`` на чувствительных свойствах.
+    template string
+         |
+         v
+    process_template(...)
+         |
+         +--> detect {iif(...)} with _IIF_PATTERN
+         |         |
+         |         v
+         |   evaluate_iif(...)
+         |      -> _IifArgSplitter
+         |      -> evaluate(...) via simpleeval
+         |
+         v
+    rendered string (+ color markers)
+         |
+         v
+    VariableSubstitutor color expansion / final log output
 
 ═══════════════════════════════════════════════════════════════════════════════
-ПОЛИТИКА ОШИБОК
+FEATURES
 ═══════════════════════════════════════════════════════════════════════════════
 
-Ошибки не подавляются. Если выражение невалидно — LogTemplateError.
-Ошибка в шаблоне лога — баг разработчика, обнаруживаемый немедленно
-при первом запуске.
+- Comparison operators: ``==``, ``!=``, ``>``, ``<``, ``>=``, ``<=``
+- Logical operators: ``and``, ``or``, ``not``
+- Arithmetic: ``+``, ``-``, ``*``, ``/``
+- Safe helpers: ``len``, ``upper``, ``lower``, ``format_number``, ``str``,
+  ``int``, ``float``, ``abs``
+- Color helpers: ``red``, ``green``, ``yellow``, ``blue``, ``magenta``,
+  ``cyan``, ``white``, ``grey``
+- ``debug(obj)``: formatted public field/property snapshot
+- ``exists(name)``: checks whether a name exists in current evaluation context
 
-Разбор аргументов iif выполняется классом _IifArgSplitter,
-корректно обрабатывающим вложенные скобки и строковые литералы.
+Color helpers return marker-wrapped text like
+``__COLOR(red)text__COLOR_END__``; markers are converted to real ANSI codes
+later by ``VariableSubstitutor._apply_color_filters()``.
 
-Ограничение grammar-by-design: вложенные шаблонные конструкции
-``{iif(...{iif(...)}...)}`` не поддерживаются в process_template().
-Поддерживается только один уровень шаблонного ``{iif(...)}``; если
-нужна вложенная логика, выносите её в отдельные поля/выражения.
+═══════════════════════════════════════════════════════════════════════════════
+OBJECT INTROSPECTION (debug)
+═══════════════════════════════════════════════════════════════════════════════
+
+``debug()`` and ``|debug`` rely on ``_inspect_object()``.
+Key behavior:
+- default ``max_depth=1`` (top-level fields only)
+- cycle detection via ``visited`` object ids (marked as ``<cycle detected>``)
+- ``@sensitive`` masking for decorated properties
+- pydantic class-level attributes are filtered through
+  ``_PYDANTIC_CLASS_ATTRS`` for Pydantic v2.11+ compatibility
+
+═══════════════════════════════════════════════════════════════════════════════
+ERRORS / LIMITATIONS
+═══════════════════════════════════════════════════════════════════════════════
+
+Errors are not swallowed. Invalid expressions raise ``LogTemplateError`` and
+are treated as developer mistakes detected early.
+
+- ``_IifArgSplitter`` handles nested parentheses and string literals.
+- Grammar-by-design limit: nested template-level ``{iif(...{iif(...)}...)}``
+  is not supported by ``process_template()``.
+
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE-BEGIN
+═══════════════════════════════════════════════════════════════════════════════
+ROLE: Safe expression runtime for logging template evaluation.
+CONTRACT: Evaluate ``iif`` and scalar expressions over provided names/functions.
+INVARIANTS: Restricted function set; no arbitrary code execution primitives.
+FLOW: parse template -> split iif args -> evaluate -> render string fragments.
+FAILURES: Invalid syntax/names/functions raise LogTemplateError immediately.
+EXTENSION POINTS: Add safe helpers in ``_BASE_SAFE_FUNCTIONS``.
+AI-CORE-END
 """
 
 import re
@@ -89,12 +106,12 @@ from simpleeval import EvalWithCompoundTypes, NameNotDefined
 from action_machine.intents.logging.masking import mask_value
 from action_machine.model.exceptions import LogTemplateError
 
-# Регулярное выражение для поиска {iif(...)} в шаблоне.
-# Важно: паттерн намеренно НЕ поддерживает вложенные template-level iif.
+# Regex for finding {iif(...)} in templates.
+# Important: intentionally does NOT support nested template-level iif.
 _IIF_PATTERN: re.Pattern[str] = re.compile(r"\{iif\((.+?)\)\}")
 
-# Атрибуты уровня класса pydantic BaseModel, к которым нельзя обращаться
-# через экземпляр (DeprecationWarning в Pydantic V2.11+).
+# pydantic BaseModel class-level attributes that should not be accessed
+# through instances (DeprecationWarning in Pydantic v2.11+).
 _PYDANTIC_CLASS_ATTRS: frozenset[str] = frozenset({
     "model_fields",
     "model_computed_fields",
@@ -116,28 +133,21 @@ _PYDANTIC_CLASS_ATTRS: frozenset[str] = frozenset({
 
 
 def _color_marker(color: str, text: Any) -> str:
-    """Возвращает строку, обёрнутую в цветовой маркер."""
+    """Return text wrapped in a color marker token."""
     return f"__COLOR({color}){text}__COLOR_END__"
 
 
 # ----------------------------------------------------------------------
-# Вспомогательные функции интроспекции для debug()
+# Introspection helpers for debug()
 # ----------------------------------------------------------------------
 
 
 def _is_pydantic_class_attr(obj: Any, name: str) -> bool:
     """
-    Проверяет, является ли имя pydantic-специфичным class-level атрибутом.
+    Check whether a name is a pydantic class-level attribute.
 
-    Обращение к таким атрибутам через экземпляр вызывает
-    DeprecationWarning в Pydantic V2.11+.
-
-    Аргументы:
-        obj: объект для проверки.
-        name: имя атрибута.
-
-    Возвращает:
-        True если атрибут является pydantic class-level атрибутом.
+    Accessing these via an instance causes deprecation warnings in
+    Pydantic v2.11+.
     """
     if isinstance(obj, BaseModel) and name in _PYDANTIC_CLASS_ATTRS:
         return True
@@ -146,19 +156,7 @@ def _is_pydantic_class_attr(obj: Any, name: str) -> bool:
 
 def _is_public_data_attribute(obj: Any, name: str) -> bool:
     """
-    Определяет, является ли имя публичным атрибутом данных.
-
-    Исключает:
-    - Имена, начинающиеся с подчёркивания.
-    - Методы (callable).
-    - Pydantic class-level атрибуты.
-
-    Аргументы:
-        obj: объект для проверки.
-        name: имя атрибута.
-
-    Возвращает:
-        True если это публичный атрибут данных.
+    Return True when name points to a public non-callable data attribute.
     """
     if name.startswith('_'):
         return False
@@ -175,17 +173,7 @@ def _is_public_data_attribute(obj: Any, name: str) -> bool:
 
 def _is_public_property(obj: Any, name: str) -> bool:
     """
-    Проверяет, является ли имя публичным свойством (property).
-
-    Исключает имена, начинающиеся с подчёркивания, и pydantic
-    class-level атрибуты.
-
-    Аргументы:
-        obj: объект для проверки.
-        name: имя атрибута.
-
-    Возвращает:
-        True если это публичное свойство.
+    Return True when name resolves to a public property descriptor.
     """
     if name.startswith('_'):
         return False
@@ -201,14 +189,7 @@ def _is_public_property(obj: Any, name: str) -> bool:
 
 def _get_sensitive_config(obj: Any, name: str) -> dict[str, Any] | None:
     """
-    Возвращает конфигурацию @sensitive, если свойство имеет этот декоратор.
-
-    Аргументы:
-        obj: объект, содержащий свойство.
-        name: имя свойства.
-
-    Возвращает:
-        dict с конфигурацией маскирования или None.
+    Return @sensitive config if property getter is decorated.
     """
     for base in type(obj).__mro__:
         if name in base.__dict__:
@@ -219,15 +200,7 @@ def _get_sensitive_config(obj: Any, name: str) -> dict[str, Any] | None:
 
 
 def _format_value(value: Any) -> str:
-    """
-    Возвращает безопасное строковое представление значения.
-
-    Аргументы:
-        value: значение для форматирования.
-
-    Возвращает:
-        Строковое представление через repr.
-    """
+    """Return safe string representation using repr fallback."""
     try:
         return repr(value)
     except Exception:
@@ -235,7 +208,7 @@ def _format_value(value: Any) -> str:
 
 
 def _inspect_collection(obj: Any, indent_str: str, type_name: str) -> str:
-    """Интроспекция списка, кортежа или множества."""
+    """Inspect list/tuple/set with compact preview."""
     if len(obj) == 0:
         return f"{indent_str}{type_name}[]"
     preview = _format_value(list(obj)[:3])
@@ -245,7 +218,7 @@ def _inspect_collection(obj: Any, indent_str: str, type_name: str) -> str:
 
 
 def _inspect_dict(obj: dict[str, Any], indent_str: str, type_name: str) -> str:
-    """Интроспекция словаря."""
+    """Inspect dict with bounded key/value preview."""
     if len(obj) == 0:
         return f"{indent_str}{type_name}{{}}"
     lines = [f"{indent_str}{type_name}:"]
@@ -257,17 +230,7 @@ def _inspect_dict(obj: dict[str, Any], indent_str: str, type_name: str) -> str:
 
 
 def _is_custom_object(value: Any) -> bool:
-    """
-    Определяет, является ли значение пользовательским объектом
-    (не встроенным примитивом и не коллекцией).
-
-    Аргументы:
-        value: значение для проверки.
-
-    Возвращает:
-        True если объект не является str, int, float, bool, None,
-        list, tuple, dict или set.
-    """
+    """Return True for non-primitive, non-collection objects."""
     return isinstance(value, object) and not isinstance(
         value, (str, int, float, bool, type(None), list, tuple, dict, set)
     )
@@ -278,27 +241,12 @@ def _format_field_line(
     visited: set[int], max_depth: int, indent: int,
 ) -> str:
     """
-    Форматирует одну строку поля для вывода debug.
+    Format one field line for debug output.
 
-    Проверка циклических ссылок выполняется ПЕРЕД проверкой max_depth.
-    Это гарантирует обнаружение циклов даже при max_depth=1, когда
-    рекурсия в глубину не происходит. Без этой проверки циклические
-    ссылки на первом уровне отображались бы как repr(value) вместо
-    <cycle detected>.
-
-    Аргументы:
-        obj: родительский объект (для проверки @sensitive).
-        name: имя поля.
-        value: значение поля.
-        indent_str: текущий отступ.
-        visited: множество id уже обработанных объектов.
-        max_depth: оставшаяся глубина рекурсии.
-        indent: числовой уровень отступа.
-
-    Возвращает:
-        Одну или несколько строк для вывода.
+    Cycle detection runs before max-depth checks, so direct cycles are visible
+    even with ``max_depth=1``.
     """
-    # Проверка циклов ДО проверки max_depth — ключевой инвариант.
+    # Cycle check before max_depth is a key invariant.
     if _is_custom_object(value) and id(value) in visited:
         return f"{indent_str}  {name}: <cycle detected>"
 
@@ -332,7 +280,7 @@ def _inspect_custom(
     obj: Any, indent_str: str, type_name: str,
     visited: set[int], max_depth: int, indent: int,
 ) -> str:
-    """Интроспекция пользовательского объекта (не встроенной коллекции)."""
+    """Inspect a custom object (non-builtin collection)."""
     data_attrs = {}
     for name in dir(obj):
         if _is_public_data_attribute(obj, name):
@@ -349,15 +297,14 @@ def _inspect_custom(
             except Exception:
                 continue
 
-    # --- Добавлено: извлечение extra-полей из Pydantic моделей с extra="allow" ---
+    # Extract extra fields from Pydantic models with extra="allow".
     if hasattr(obj, "__pydantic_extra__") and isinstance(obj.__pydantic_extra__, dict):
         for key, value in obj.__pydantic_extra__.items():
             if key.startswith('_'):
                 continue
             if key in data_attrs or key in props:
-                continue   # регулярный атрибут имеет приоритет
+                continue  # regular attribute has priority
             data_attrs[key] = value
-    # -------------------------------------------------------------------------
 
     all_fields = {**data_attrs, **props}
 
@@ -377,25 +324,7 @@ def _inspect_object(
     obj: Any, indent: int = 0,
     visited: set[int] | None = None, max_depth: int = 1,
 ) -> str:
-    """
-    Рекурсивно строит строковое представление публичных полей объекта.
-
-    Добавляет id текущего объекта в visited ДО обхода полей. Это
-    гарантирует, что если поле ссылается обратно на текущий объект
-    (или на любой объект выше по цепочке), _format_field_line обнаружит
-    цикл через проверку id(value) in visited.
-
-    Аргументы:
-        obj: объект для интроспекции.
-        indent: текущий уровень отступа (количество пробелов).
-        visited: множество id уже обработанных объектов (защита от циклов).
-        max_depth: максимальная глубина рекурсии. По умолчанию 1 (только
-                   непосредственные поля). При max_depth > 1 вложенные
-                   объекты раскрываются рекурсивно.
-
-    Возвращает:
-        Форматированная многострочная строка.
-    """
+    """Recursively build a formatted view of public object fields."""
     if visited is None:
         visited = set()
 
@@ -407,43 +336,27 @@ def _inspect_object(
     indent_str = " " * indent
     type_name = type(obj).__name__
 
-    # Базовые типы
+    # Primitive types
     if isinstance(obj, (str, int, float, bool, type(None))):
         return f"{indent_str}{type_name} = {_format_value(obj)}"
 
-    # Коллекции
+    # Collections
     if isinstance(obj, (list, tuple, set)):
         return _inspect_collection(obj, indent_str, type_name)
     if isinstance(obj, dict):
         return _inspect_dict(obj, indent_str, type_name)
 
-    # Пользовательские объекты
+    # Custom objects
     return _inspect_custom(obj, indent_str, type_name, visited, max_depth, indent)
 
 
 def debug_value(obj: Any) -> str:
-    """
-    Возвращает форматированное строковое представление объекта для debug-вывода.
-
-    Обёртка над _inspect_object с max_depth=1. Предназначена для
-    использования как фильтр в шаблонах: {%var.user|debug}
-    или как функция внутри iif: debug(var.user).
-
-    Вывод показывает только непосредственные поля (без рекурсии),
-    чтобы не засорять логи. Для интроспекции вложенных объектов
-    вызывайте debug на вложенном атрибуте напрямую.
-
-    Аргументы:
-        obj: объект для интроспекции.
-
-    Возвращает:
-        Форматированная строка с полями объекта.
-    """
+    """Return one-level formatted object snapshot for debug output."""
     return _inspect_object(obj, max_depth=1)
 
 
 # ----------------------------------------------------------------------
-# Безопасные функции для вычислителя выражений (базовый набор, без exists)
+# Safe functions for expression evaluator (base set, without exists).
 # ----------------------------------------------------------------------
 
 _BASE_SAFE_FUNCTIONS: dict[str, Any] = {
@@ -469,28 +382,14 @@ _BASE_SAFE_FUNCTIONS: dict[str, Any] = {
 
 class _IifArgSplitter:
     """
-    Разбивает аргументы iif по ';' с учётом вложенных скобок
-    и строковых литералов.
+    Split iif arguments by ';' while respecting parentheses and string literals.
 
-    Простой split(';') не работает, потому что могут быть вложенные iif
-    или строки, содержащие ';'.
-
-    Принцип работы:
-    1. Итерация по символам входной строки.
-    2. Если внутри строкового литерала — накапливаем символы до закрывающей кавычки.
-    3. Если встречена открывающая кавычка — входим в режим строкового литерала.
-    4. Иначе обрабатываем структурные символы: скобки меняют глубину,
-       ';' на глубине 0 разделяет аргументы.
+    A plain ``split(';')`` is insufficient because nested expressions and
+    quoted strings may contain ';'.
     """
 
     def __init__(self, raw: str) -> None:
-        """
-        Инициализирует разборщик.
-
-        Аргументы:
-            raw: строка аргументов без внешних скобок.
-                 Пример: "amount > 1000; 'HIGH'; 'LOW'".
-        """
+        """Initialize splitter with raw argument string."""
         self._raw = raw
         self._parts: list[str] = []
         self._current: list[str] = []
@@ -499,18 +398,7 @@ class _IifArgSplitter:
         self._string_char: str = ""
 
     def _handle_string_char(self, char: str) -> bool:
-        """
-        Обрабатывает символ внутри строкового литерала.
-
-        Внутри строки все символы накапливаются без интерпретации.
-        Единственный особый символ — закрывающая кавычка.
-
-        Аргументы:
-            char: текущий символ.
-
-        Возвращает:
-            True если символ обработан (мы внутри строки).
-        """
+        """Handle a char when parser is currently inside a string literal."""
         if not self._in_string:
             return False
         self._current.append(char)
@@ -519,15 +407,7 @@ class _IifArgSplitter:
         return True
 
     def _handle_quote(self, char: str) -> bool:
-        """
-        Обрабатывает открывающую кавычку (одинарную или двойную).
-
-        Аргументы:
-            char: текущий символ.
-
-        Возвращает:
-            True если символ — кавычка и обработан.
-        """
+        """Handle opening single/double quote when not inside string."""
         if char not in ("'", '"'):
             return False
         self._in_string = True
@@ -536,14 +416,7 @@ class _IifArgSplitter:
         return True
 
     def _handle_structural_char(self, char: str) -> None:
-        """
-        Обрабатывает структурные символы: скобки и разделитель ';'.
-
-        '(' увеличивает глубину вложенности.
-        ')' уменьшает глубину вложенности.
-        ';' на глубине 0 завершает текущий аргумент и начинает новый.
-        На ненулевой глубине ';' является частью вложенного выражения.
-        """
+        """Handle structural chars: parentheses and top-level ';' delimiter."""
         if char == "(":
             self._depth += 1
             self._current.append(char)
@@ -557,12 +430,7 @@ class _IifArgSplitter:
             self._current.append(char)
 
     def split(self) -> list[str]:
-        """
-        Разбивает строку аргументов и возвращает список частей.
-
-        Возвращает:
-            Список строк — аргументы iif (в идеале 3 для корректного iif).
-        """
+        """Split raw iif args and return parts list."""
         for char in self._raw:
             if self._handle_string_char(char):
                 continue
@@ -578,39 +446,16 @@ class _IifArgSplitter:
 
 class ExpressionEvaluator:
     """
-    Безопасный вычислитель выражений для шаблонов логирования.
+    Safe expression evaluator for logging templates.
 
-    Оборачивает simpleeval, предоставляя:
-    - Набор безопасных функций (len, upper, lower, format_number,
-      цветовые функции, debug, exists).
-    - Защиту от выполнения произвольного кода.
-    - Метод evaluate для одиночных выражений.
-    - Метод evaluate_iif для конструкций iif.
-    - Метод process_template для обработки всех {iif(...)} в шаблоне.
-
-    Ошибки НЕ подавляются. Невалидное выражение → LogTemplateError.
-
-    Секреты в логах: помечайте поля ``@sensitive``; ``debug()`` может вывести
-    много данных, если в выражение передан крупный объект из контекста.
+    Provides safe helpers, iif evaluation, and template-level iif replacement.
+    Invalid expressions raise ``LogTemplateError`` immediately.
     """
 
     def evaluate(self, expression: str, names: dict[str, Any]) -> Any:
-        """
-        Вычисляет одиночное выражение в контексте переменных.
-
-        Аргументы:
-            expression: строка выражения в стиле Python.
-            names: словарь переменных, доступных в выражении.
-
-        Возвращает:
-            Результат вычисления (любой тип).
-
-        Исключения:
-            LogTemplateError: если выражение невалидно или содержит
-                неопределённые переменные.
-        """
+        """Evaluate one expression against the provided names context."""
         def exists(name: str) -> bool:
-            """Проверяет наличие переменной в текущем контексте."""
+            """Check whether variable name exists in current context."""
             return name in names
 
         functions = dict(_BASE_SAFE_FUNCTIONS)
@@ -636,28 +481,7 @@ class ExpressionEvaluator:
         raw_args: str,
         names: dict[str, Any],
     ) -> str:
-        """
-        Вычисляет конструкцию iif(condition; true_branch; false_branch).
-
-        Разбивает строку аргументов по ';', вычисляет условие
-        и возвращает выбранную ветку как строку.
-
-        Важно: template-level вложенные ``{iif(...)}`` не поддерживаются.
-        Разрешён только один внешний ``{iif(...)}`` в process_template().
-        Рекурсивная обработка ниже применяется к строке выбранной ветки,
-        если она имеет форму ``iif(...)`` без внешних фигурных скобок.
-
-        Аргументы:
-            raw_args: строка вида "condition; true_value; false_value".
-            names: словарь переменных для подстановки.
-
-        Возвращает:
-            Строковый результат выбранной ветки.
-
-        Исключения:
-            LogTemplateError: если число аргументов iif не равно 3,
-                ошибка вычисления условия или ветки.
-        """
+        """Evaluate ``iif(condition; true_branch; false_branch)`` expression."""
         processed_args = self.process_template(raw_args, names)
         parts = self._split_iif_args(processed_args)
 
@@ -687,25 +511,7 @@ class ExpressionEvaluator:
         template: str,
         names: dict[str, Any],
     ) -> str:
-        """
-        Обрабатывает все вхождения {iif(...)} в строке шаблона.
-
-        Находит каждое ``{iif(...)}``, вычисляет через evaluate_iif
-        и подставляет результат.
-
-        Ограничение: вложенные template-level конструкции вида
-        ``{iif(...{iif(...)}...)}`` не входят в grammar этого метода.
-
-        Аргументы:
-            template: строка шаблона с конструкциями {iif(...)}.
-            names: словарь переменных для подстановки.
-
-        Возвращает:
-            Строка со всеми iif, заменёнными на вычисленные результаты.
-
-        Исключения:
-            LogTemplateError: если любое iif-выражение невалидно.
-        """
+        """Replace all ``{iif(...)} `` occurrences in template string."""
         def replacer(match: re.Match[str]) -> str:
             raw_args = match.group(1)
             return self.evaluate_iif(raw_args, names)
@@ -713,13 +519,5 @@ class ExpressionEvaluator:
         return _IIF_PATTERN.sub(replacer, template)
 
     def _split_iif_args(self, raw: str) -> list[str]:
-        """
-        Разбивает аргументы iif через _IifArgSplitter.
-
-        Аргументы:
-            raw: строка аргументов без внешних скобок iif.
-
-        Возвращает:
-            Список частей (в идеале 3 для корректного iif).
-        """
+        """Split iif argument string via ``_IifArgSplitter``."""
         return _IifArgSplitter(raw).split()

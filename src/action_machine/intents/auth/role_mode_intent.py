@@ -20,16 +20,30 @@ INVARIANTS
   ``RoleModeIntent`` (directly or indirectly).
 
 ═══════════════════════════════════════════════════════════════════════════════
-DATA FLOW
+ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-::
+    BaseRole (..., RoleModeIntent, ...)
+              |
+              v
+    concrete role subclasses
+              |
+              v
+    @role_mode(...) decorator
+              |
+              v
+    issubclass(target, RoleModeIntent) guard
+              |
+              v
+    _role_mode_info metadata on class
 
-    BaseRole(RoleModeIntent, ABC)
-           │
-           ├── concrete role classes
-           │
-    @role_mode(...)  ──requires──▶  issubclass(cls, RoleModeIntent)
+═══════════════════════════════════════════════════════════════════════════════
+COMPONENTS
+═══════════════════════════════════════════════════════════════════════════════
+
+- ``RoleModeIntent``: pure marker mixin for role lifecycle declarations.
+- ``role_mode`` decorator (neighbor module): requires this marker in MRO.
+- ``_role_mode_info``: class-level metadata slot populated by decorator.
 
 ═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES
@@ -78,7 +92,11 @@ class RoleModeIntent:
     """
     Marker mixin: declares that a class may carry ``@role_mode`` metadata.
 
-    ``BaseRole`` inherits this type; do not use ``RoleModeIntent`` on actions.
+    AI-CORE-BEGIN
+    ROLE: Lifecycle-intent marker for role classes.
+    CONTRACT: Enables ``@role_mode`` decorator eligibility through MRO.
+    INVARIANTS: No behavior/state beyond metadata contract slot.
+    AI-CORE-END
     """
 
     __slots__ = ()

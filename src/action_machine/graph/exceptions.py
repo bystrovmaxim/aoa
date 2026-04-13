@@ -15,6 +15,20 @@ Keeping them in a dedicated module allows:
 3. Tests to assert with ``pytest.raises`` on concrete classes.
 
 ═══════════════════════════════════════════════════════════════════════════════
+ARCHITECTURE / DATA FLOW
+═══════════════════════════════════════════════════════════════════════════════
+
+::
+
+    inspectors collect payloads
+            │
+            ├─ duplicate key conflict ---------> DuplicateNodeError
+            │
+            └─ phase-2 validation
+                 ├─ invalid payload shape -----> PayloadValidationError
+                 └─ broken graph integrity ----> InvalidGraphError
+
+═══════════════════════════════════════════════════════════════════════════════
 ERROR-HANDLING PHILOSOPHY
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -43,6 +57,32 @@ PayloadValidationError
     A ``FacetPayload`` field failed validation during phase 2:
     - empty ``node_type`` / ``node_name``, or
     - ``node_class`` is not a ``type``.
+
+═══════════════════════════════════════════════════════════════════════════════
+INVARIANTS
+═══════════════════════════════════════════════════════════════════════════════
+
+- These exceptions represent developer/configuration faults, not end-user input errors.
+- Exception names map directly to coordinator build phases and failure classes.
+- Messages are designed for startup diagnostics and test assertions.
+
+═══════════════════════════════════════════════════════════════════════════════
+ERRORS / LIMITATIONS
+═══════════════════════════════════════════════════════════════════════════════
+
+- This module defines error types only and performs no validation by itself.
+- Higher-level wrappers may re-map some failures (for example, cycle errors).
+
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE-BEGIN
+═══════════════════════════════════════════════════════════════════════════════
+ROLE: Graph-build exception taxonomy.
+CONTRACT: Provide explicit failure classes for duplicate keys, payload shape errors, and graph integrity violations.
+INVARIANTS: Exceptions correspond to deterministic coordinator build checks and preserve rich diagnostics.
+FLOW: build phase detects violation -> raises typed exception -> caller fails fast with actionable message.
+FAILURES: DuplicateNodeError / PayloadValidationError / InvalidGraphError.
+EXTENSION POINTS: New coordinator validation stages can introduce dedicated exception subclasses here.
+AI-CORE-END
 """
 
 from __future__ import annotations
@@ -70,6 +110,12 @@ class DuplicateNodeError(ValueError):
             Inspector that registered the node first.
         second_inspector : str
             Inspector that detected the conflict.
+
+    AI-CORE-BEGIN
+    ROLE: Duplicate graph-key conflict signal.
+    CONTRACT: Carry both inspector names and the conflicting key for deterministic debugging.
+    INVARIANTS: Raised only when collision cannot be merged by coordinator rules.
+    AI-CORE-END
     """
 
     def __init__(

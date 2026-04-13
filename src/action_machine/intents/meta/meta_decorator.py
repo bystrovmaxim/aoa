@@ -33,7 +33,7 @@ PARAMETERS
     subclass. Omitted, ``None``, or wrong type → ``TypeError``.
 
 ═══════════════════════════════════════════════════════════════════════════════
-LIMITATIONS (INVARIANTS)
+INVARIANTS
 ═══════════════════════════════════════════════════════════════════════════════
 
 - Classes only (not functions, methods, or properties).
@@ -77,7 +77,7 @@ EXAMPLES
         ...
 
 ═══════════════════════════════════════════════════════════════════════════════
-ERRORS
+ERRORS / LIMITATIONS
 ═══════════════════════════════════════════════════════════════════════════════
 
 ``TypeError`` — not a class; missing meta intent in MRO; ``description`` not
@@ -171,6 +171,12 @@ def meta(
 
     ``MetaIntentInspector`` and ``GateCoordinator.get_snapshot(cls, \"meta\")``
     consume the same scratch written here.
+
+    AI-CORE-BEGIN
+    ROLE: Write class-level metadata consumed by graph/runtime inspectors.
+    CONTRACT: Validate arguments and attach ``_meta_info`` to target class.
+    INVARIANTS: Applies only to classes declaring meta intent markers.
+    AI-CORE-END
     """
     _validate_meta_description(description)
     _validate_meta_domain(domain)

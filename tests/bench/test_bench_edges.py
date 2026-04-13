@@ -1,35 +1,63 @@
 # tests/bench/test_bench_edges.py
 """
-Additional edge-case tests for TestBench internals.
+Edge-case tests for ``TestBench`` helpers and mock preparation.
 
-These tests target specific uncovered lines in:
-- testing/bench.py (lines 174, 176, 180, 182, 216, 321, 332, 504, 510-511,
-  577, 637-640): _prepare_mock rules, _reset_all_mocks, MockAction bypass
-  in run(), run_child closure, with_mocks replacement.
+═══════════════════════════════════════════════════════════════════════════════
+PURPOSE
+═══════════════════════════════════════════════════════════════════════════════
 
-Scenarios covered:
-    TestBench._prepare_mock:
-        - MockAction passed through unchanged.
-        - BaseAction subclass passed through unchanged.
-        - unittest.mock.Mock passed through unchanged (not wrapped in MockAction).
-        - AsyncMock passed through unchanged (not wrapped despite being callable).
-        - BaseResult wrapped in MockAction(result=value).
-        - Plain callable wrapped in MockAction(side_effect=value).
-        - Other objects passed through unchanged.
+Lock down ``_prepare_mock`` / ``_prepare_all_mocks`` priority rules,
+``_reset_all_mocks`` behavior, ``with_mocks`` replacement semantics,
+``MockAction`` short-circuit in ``run``, optional ``log_coordinator`` wiring,
+and ``_build_context`` / ``_build_sync_machine`` construction.
 
-    TestBench._reset_all_mocks:
-        - Mock objects are reset between machine runs.
-        - Non-Mock objects in mocks dict are not affected.
+═══════════════════════════════════════════════════════════════════════════════
+ARCHITECTURE / DATA FLOW
+═══════════════════════════════════════════════════════════════════════════════
 
-    TestBench.with_mocks:
-        - Replaces (not merges) the mocks dict.
+    Raw mock dict
+              |
+              v
+    _prepare_mock(entry)  --priority-->  passthrough | MockAction wrap
+              |
+              v
+    _reset_all_mocks  ->  mock.reset_mock() only for mock types
 
-    TestBench.run with MockAction:
-        - MockAction is called directly, bypassing the machine pipeline.
+    TestBench.with_mocks  ->  replaces entire prepared map (not merge)
 
-    TestBench context building:
-        - Default context has expected stub values.
-        - with_user, with_request, with_runtime change only their component.
+    _build_context  ->  UserInfo / RequestInfo / RuntimeInfo stubs
+
+═══════════════════════════════════════════════════════════════════════════════
+INVARIANTS
+═══════════════════════════════════════════════════════════════════════════════
+
+- ``Mock`` / ``AsyncMock`` must pass through before generic callable wrapping.
+- Context fluent overrides affect only their slice (user vs request vs runtime).
+
+═══════════════════════════════════════════════════════════════════════════════
+EXAMPLES
+═══════════════════════════════════════════════════════════════════════════════
+
+    uv run pytest tests/bench/test_bench_edges.py -q
+
+Edge case: plain ``dict`` in mocks survives ``_reset_all_mocks`` untouched.
+
+═══════════════════════════════════════════════════════════════════════════════
+ERRORS / LIMITATIONS
+═══════════════════════════════════════════════════════════════════════════════
+
+- Line references into ``testing/bench.py`` drift across refactors; behavior is
+  authoritative.
+
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE-BEGIN
+═══════════════════════════════════════════════════════════════════════════════
+ROLE: Low-level bench and mock-prep regression tests.
+CONTRACT: Rule ordering for ``_prepare_mock``; reset and context boundaries.
+INVARIANTS: Imports private helpers from ``action_machine.testing.bench``.
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE-END
+═══════════════════════════════════════════════════════════════════════════════
 """
 
 from unittest.mock import AsyncMock, MagicMock, Mock
@@ -174,8 +202,6 @@ class TestResetAllMocks:
             str: "plain_value",
             int: 42,
         })
-
-        assert mock.some_method.call_count == 0
 
         assert mock.some_method.call_count == 0
 

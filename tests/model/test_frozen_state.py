@@ -1,22 +1,22 @@
 # tests/model/test_frozen_state.py
 """
-Тесты frozen-семантики BaseState.
+Tests for frozen semantics of BaseState.
 
 ═══════════════════════════════════════════════════════════════════════════════
-НАЗНАЧЕНИЕ
+PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Проверяет, что BaseState полностью неизменяем после создания:
-запись атрибутов, удаление атрибутов — всё запрещено. Единственный
-способ «изменить» состояние — создать новый экземпляр.
+Ensures BaseState is fully immutable after creation: attribute assignment and
+deletion are forbidden. The only way to “change” state is to create a new
+instance.
 
-BaseState — pydantic-модель с frozen=True и extra="allow". Создаётся
-через kwargs: BaseState(total=100, user="agent"). Динамические поля
-допускаются при создании (extra="allow"), но после создания запись
-запрещена (frozen=True).
+BaseState is a pydantic model with frozen=True and extra="allow". Built via
+kwargs: BaseState(total=100, user="agent"). Dynamic fields are allowed at
+construction (extra="allow") but writes after creation are forbidden
+(frozen=True).
 
-Также проверяет корректность чтения: dict-подобный доступ, resolve,
-keys, values, items, to_dict, repr.
+Also verifies reads: dict-like access, resolve, keys, values, items, to_dict,
+repr.
 """
 
 import pytest
@@ -25,37 +25,37 @@ from pydantic import ValidationError
 from action_machine.model.base_state import BaseState
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Создание и чтение
+# Creation and reads
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestBaseStateCreation:
-    """Тесты создания и чтения данных из BaseState."""
+    """Creation and reads from BaseState."""
 
     def test_create_empty(self) -> None:
-        """Пустой BaseState создаётся без ошибок и не содержит полей."""
+        """Empty BaseState creates without error and has no fields."""
         # Arrange & Act
         state = BaseState()
 
-        # Assert — пустое состояние
+        # Assert — empty state
         assert state.to_dict() == {}
         assert state.keys() == []
 
     def test_create_with_data(self) -> None:
-        """BaseState принимает kwargs и делает каждый ключ полем."""
+        """BaseState accepts kwargs; each key becomes a field."""
         # Arrange
         data = {"total": 1500, "user": "agent", "active": True}
 
         # Act
         state = BaseState(**data)
 
-        # Assert — все данные доступны через dict-интерфейс
+        # Assert — all data reachable via dict interface
         assert state["total"] == 1500
         assert state["user"] == "agent"
         assert state["active"] is True
 
     def test_getitem_access(self) -> None:
-        """Dict-подобный доступ через квадратные скобки."""
+        """Dict-like access via brackets."""
         # Arrange
         state = BaseState(amount=42.5)
 
@@ -63,16 +63,16 @@ class TestBaseStateCreation:
         assert state["amount"] == 42.5
 
     def test_getitem_missing_key_raises(self) -> None:
-        """Обращение к несуществующему ключу бросает KeyError."""
+        """Missing key raises KeyError."""
         # Arrange
         state = BaseState(exists=True)
 
-        # Act & Assert — ключ не существует
+        # Act & Assert — key missing
         with pytest.raises(KeyError):
             _ = state["missing"]
 
     def test_get_with_default(self) -> None:
-        """Метод get() возвращает default для отсутствующего ключа."""
+        """get() returns default for missing key."""
         # Arrange
         state = BaseState(key="value")
 
@@ -82,7 +82,7 @@ class TestBaseStateCreation:
         assert state.get("missing", "fallback") == "fallback"
 
     def test_contains(self) -> None:
-        """Оператор in проверяет наличие ключа."""
+        """``in`` checks key presence."""
         # Arrange
         state = BaseState(present=1)
 
@@ -91,7 +91,7 @@ class TestBaseStateCreation:
         assert "absent" not in state
 
     def test_keys_values_items(self) -> None:
-        """Методы keys, values, items возвращают корректные данные."""
+        """keys, values, items return correct data."""
         # Arrange
         state = BaseState(a=1, b=2)
 
@@ -106,19 +106,19 @@ class TestBaseStateCreation:
         assert set(items) == {("a", 1), ("b", 2)}
 
     def test_to_dict(self) -> None:
-        """to_dict() возвращает словарь всех полей."""
+        """to_dict() returns a dict of all fields."""
         # Arrange
         state = BaseState(x=10, y=20)
 
         # Act
         result = state.to_dict()
 
-        # Assert — обычный dict
+        # Assert — plain dict
         assert result == {"x": 10, "y": 20}
         assert isinstance(result, dict)
 
     def test_to_dict_matches_model_dump(self) -> None:
-        """to_dict() эквивалентен model_dump()."""
+        """to_dict() matches model_dump()."""
         # Arrange
         state = BaseState(a=1, b="two")
 
@@ -126,7 +126,7 @@ class TestBaseStateCreation:
         assert state.to_dict() == state.model_dump()
 
     def test_resolve(self) -> None:
-        """resolve() работает для плоских ключей."""
+        """resolve() works for flat keys."""
         # Arrange
         state = BaseState(total=500)
 
@@ -134,12 +134,12 @@ class TestBaseStateCreation:
         assert state.resolve("total") == 500
         assert state.resolve("missing") is None
 
-        # Для проверки default используем отдельный экземпляр
+        # Separate instance for default check
         fresh_state = BaseState(total=500)
         assert fresh_state.resolve("missing", default="default") == "default"
 
     def test_repr(self) -> None:
-        """repr() показывает содержимое в формате BaseState(key=value)."""
+        """repr() shows content as BaseState(key=value)."""
         # Arrange
         state = BaseState(count=3)
 
@@ -152,15 +152,15 @@ class TestBaseStateCreation:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Frozen-семантика: запись запрещена
+# Frozen semantics: writes forbidden
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestBaseStateFrozen:
-    """Тесты неизменяемости BaseState после создания."""
+    """Immutability of BaseState after creation."""
 
     def test_setattr_raises(self) -> None:
-        """Запись через атрибут запрещена."""
+        """Attribute assignment forbidden."""
         # Arrange
         state = BaseState(value=1)
 
@@ -169,7 +169,7 @@ class TestBaseStateFrozen:
             state.value = 2
 
     def test_setattr_new_key_raises(self) -> None:
-        """Добавление нового атрибута запрещено."""
+        """New attribute forbidden."""
         # Arrange
         state = BaseState()
 
@@ -178,7 +178,7 @@ class TestBaseStateFrozen:
             state.new_key = "value"
 
     def test_delattr_raises(self) -> None:
-        """Удаление атрибута запрещено."""
+        """Attribute deletion forbidden."""
         # Arrange
         state = BaseState(to_delete="value")
 
@@ -187,7 +187,7 @@ class TestBaseStateFrozen:
             del state.to_delete
 
     def test_no_setitem(self) -> None:
-        """Dict-подобная запись через [] запрещена (нет __setitem__)."""
+        """Dict-like write via [] forbidden (no __setitem__)."""
         # Arrange
         state = BaseState(key="old")
 
@@ -196,7 +196,7 @@ class TestBaseStateFrozen:
             state["key"] = "new"
 
     def test_no_delitem(self) -> None:
-        """Dict-подобное удаление через del [] запрещено."""
+        """Dict-like del via [] forbidden."""
         # Arrange
         state = BaseState(key="value")
 
@@ -205,7 +205,7 @@ class TestBaseStateFrozen:
             del state["key"]
 
     def test_no_write_method(self) -> None:
-        """Метод write() не существует."""
+        """write() does not exist."""
         # Arrange
         state = BaseState()
 
@@ -213,7 +213,7 @@ class TestBaseStateFrozen:
         assert not hasattr(state, "write")
 
     def test_no_update_method(self) -> None:
-        """Метод update() не существует."""
+        """update() does not exist."""
         # Arrange
         state = BaseState()
 
@@ -222,32 +222,32 @@ class TestBaseStateFrozen:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Паттерн «изменения» — создание нового экземпляра
+# Update pattern — new instance
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestBaseStateImmutableUpdate:
-    """Тесты паттерна обновления через создание нового экземпляра."""
+    """Updates by constructing a new instance."""
 
     def test_merge_creates_new_state(self) -> None:
-        """Мерж двух состояний создаёт новый объект, не мутируя старый."""
+        """Merging two states yields a new object; old unchanged."""
         # Arrange
         old_state = BaseState(total=100)
         new_data = {"discount": 10}
 
-        # Act — паттерн, используемый машиной на каждом шаге конвейера
+        # Act — pattern used by the machine each pipeline step
         new_state = BaseState(**{**old_state.to_dict(), **new_data})
 
-        # Assert — новый state содержит оба поля
+        # Assert — new state has both fields
         assert new_state["total"] == 100
         assert new_state["discount"] == 10
 
-        # Assert — старый state не изменился
+        # Assert — old state unchanged
         assert old_state.to_dict() == {"total": 100}
         assert "discount" not in old_state
 
     def test_override_creates_new_state(self) -> None:
-        """Перезапись поля создаёт новый объект с обновлённым значением."""
+        """Overwriting a field yields a new object with updated value."""
         # Arrange
         original = BaseState(status="pending")
 
@@ -259,12 +259,12 @@ class TestBaseStateImmutableUpdate:
         assert original["status"] == "pending"
 
     def test_original_and_copy_are_independent(self) -> None:
-        """Два BaseState из одних данных — полностью независимые объекты."""
+        """Two BaseState instances from same data are independent objects."""
         # Arrange
         data = {"count": 0}
         state_a = BaseState(**data)
         state_b = BaseState(**data)
 
-        # Act & Assert — объекты разные, данные одинаковые
+        # Act & Assert — different objects, same data
         assert state_a is not state_b
         assert state_a.to_dict() == state_b.to_dict()

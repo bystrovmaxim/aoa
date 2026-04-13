@@ -95,44 +95,44 @@ class TestOnErrorExceptionTypeErrors:
 
         # Act — call the decorator with incorrect first argument
         # Assert — expect error about invalid exception type
-        with pytest.raises(TypeError, match="должен быть типом Exception"):
-            on_error("ValueError", description="Тест")  # type: ignore[arg-type]
+        with pytest.raises(TypeError, match="must be an Exception type"):
+            on_error("ValueError", description="Test")  # type: ignore[arg-type]
 
     def test_not_exception_subclass(self) -> None:
         """Type not inheriting from Exception → TypeError."""
 
         # Act — pass a class that does not inherit from Exception
         # Assert — expect error about incompatibility with Exception
-        with pytest.raises(TypeError, match="не является подклассом Exception"):
-            on_error(int, description="Тест")  # type: ignore[arg-type]
+        with pytest.raises(TypeError, match="not an Exception subclass"):
+            on_error(int, description="Test")  # type: ignore[arg-type]
 
     def test_empty_tuple(self) -> None:
         """Empty tuple of types → TypeError."""
 
         # Act & Assert
-        with pytest.raises(TypeError, match="пустой кортеж"):
-            on_error((), description="Тест")
+        with pytest.raises(TypeError, match="empty exception type tuple"):
+            on_error((), description="Test")
 
     def test_tuple_with_non_type(self) -> None:
         """Tuple with non-type inside → TypeError."""
 
         # Act & Assert
-        with pytest.raises(TypeError, match="не является типом"):
-            on_error((ValueError, "not_a_type"), description="Тест")  # type: ignore[arg-type]
+        with pytest.raises(TypeError, match="is not a type"):
+            on_error((ValueError, "not_a_type"), description="Test")  # type: ignore[arg-type]
 
     def test_tuple_with_non_exception(self) -> None:
         """Tuple with type not inheriting from Exception → TypeError."""
 
         # Act & Assert
-        with pytest.raises(TypeError, match="не является подклассом Exception"):
-            on_error((ValueError, int), description="Тест")  # type: ignore[arg-type]
+        with pytest.raises(TypeError, match="not an Exception subclass"):
+            on_error((ValueError, int), description="Test")  # type: ignore[arg-type]
 
     def test_integer_instead_of_type(self) -> None:
         """Number instead of type → TypeError."""
 
         # Act & Assert
-        with pytest.raises(TypeError, match="должен быть типом Exception"):
-            on_error(42, description="Тест")  # type: ignore[arg-type]
+        with pytest.raises(TypeError, match="must be an Exception type"):
+            on_error(42, description="Test")  # type: ignore[arg-type]
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -147,21 +147,21 @@ class TestOnErrorDescriptionErrors:
         """Number instead of string for description → TypeError."""
 
         # Act & Assert
-        with pytest.raises(TypeError, match="description должен быть строкой"):
+        with pytest.raises(TypeError, match="description must be a string"):
             on_error(ValueError, description=42)  # type: ignore[arg-type]
 
     def test_description_empty(self) -> None:
         """Empty string for description → ValueError."""
 
         # Act & Assert
-        with pytest.raises(ValueError, match="не может быть пустой"):
+        with pytest.raises(ValueError, match="description cannot be empty"):
             on_error(ValueError, description="")
 
     def test_description_whitespace_only(self) -> None:
         """String of whitespace only in description → ValueError."""
 
         # Act & Assert
-        with pytest.raises(ValueError, match="не может быть пустой"):
+        with pytest.raises(ValueError, match="description cannot be empty"):
             on_error(ValueError, description="   ")
 
 
@@ -177,8 +177,8 @@ class TestOnErrorMethodErrors:
         """Application to non-callable → TypeError."""
 
         # Act & Assert
-        with pytest.raises(TypeError, match="только к методам"):
-            on_error(ValueError, description="Тест")(42)
+        with pytest.raises(TypeError, match="only be applied to methods/callables"):
+            on_error(ValueError, description="Test")(42)
 
     def test_sync_method(self) -> None:
         """Synchronous method → TypeError."""
@@ -188,8 +188,8 @@ class TestOnErrorMethodErrors:
             pass
 
         # Act & Assert
-        with pytest.raises(TypeError, match="асинхронным"):
-            on_error(ValueError, description="Тест")(sync_on_error)
+        with pytest.raises(TypeError, match="must be async"):
+            on_error(ValueError, description="Test")(sync_on_error)
 
     def test_wrong_param_count_too_few(self) -> None:
         """Fewer than 6 parameters → TypeError."""
@@ -199,8 +199,8 @@ class TestOnErrorMethodErrors:
             pass
 
         # Act & Assert
-        with pytest.raises(TypeError, match="6 параметров"):
-            on_error(ValueError, description="Тест")(short_on_error)
+        with pytest.raises(TypeError, match="must accept 6 parameters"):
+            on_error(ValueError, description="Test")(short_on_error)
 
     def test_wrong_param_count_too_many(self) -> None:
         """More than 6 parameters → TypeError."""
@@ -210,8 +210,8 @@ class TestOnErrorMethodErrors:
             pass
 
         # Act & Assert
-        with pytest.raises(TypeError, match="6 параметров"):
-            on_error(ValueError, description="Тест")(long_on_error)
+        with pytest.raises(TypeError, match="must accept 6 parameters"):
+            on_error(ValueError, description="Test")(long_on_error)
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -231,7 +231,7 @@ class TestOnErrorNamingSuffix:
 
         # Act & Assert
         with pytest.raises(NamingSuffixError, match="_on_error"):
-            on_error(ValueError, description="Тест")(handle_validation)
+            on_error(ValueError, description="Test")(handle_validation)
 
     def test_wrong_suffix(self) -> None:
         """Name with wrong suffix → NamingSuffixError."""
@@ -242,7 +242,7 @@ class TestOnErrorNamingSuffix:
 
         # Act & Assert
         with pytest.raises(NamingSuffixError, match="_on_error"):
-            on_error(ValueError, description="Тест")(handle_validation_handler)
+            on_error(ValueError, description="Test")(handle_validation_handler)
 
     def test_correct_suffix_passes(self) -> None:
         """Name with correct suffix → decorator applies without errors."""

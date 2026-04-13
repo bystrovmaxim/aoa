@@ -1,23 +1,21 @@
 # tests/scenarios/intents_with_runtime/test_saga_nested.py
-"""
-Тесты вложенных вызовов и изоляции стеков компенсации.
-═══════════════════════════════════════════════════════════════════════════════
-НАЗНАЧЕНИЕ
-═══════════════════════════════════════════════════════════════════════════════
-Проверяет архитектурное решение о локальных стеках вложенных вызовов:
+"""Tests of nested calls and isolation of compensation stacks.
+═══════════════════ ════════════════════ ════════════════════ ════════════════════
+PURPOSE
+═══════════════════ ════════════════════ ════════════════════ ════════════════════
+Checks the architectural decision about local nested call stacks:
 
-- Каждый _run_internal создаёт СВОЙ локальный стек. Глобального стека нет.
-- Дочерний Action (через box.run) разматывает СВОЙ стек и пробрасывает
-  исключение.
-- Если родительский аспект перехватывает ошибку дочернего через try/except,
-  для родителя аспект ЗАВЕРШИЛСЯ УСПЕШНО — он добавляется в стек родителя.
-- При последующей ошибке в родительском конвейере компенсатор этого
-  аспекта будет вызван.
-═══════════════════════════════════════════════════════════════════════════════
-СТРУКТУРА
-═══════════════════════════════════════════════════════════════════════════════
-TestNestedStacks — изоляция стеков, взаимодействие с try/except
-"""
+- Each _run_internal creates its own local stack. There is no global stack.
+- The child Action (via box.run) unwinds ITS stack and forwards
+  exception.
+- If the parent aspect catches the child's error via try/except,
+  for the parent, the aspect COMPLETED SUCCESSFULly - it is added to the parent's stack.
+- If there is a subsequent error in the parent pipeline, the compensator for this
+  aspect will be called.
+═══════════════════ ════════════════════ ════════════════════ ════════════════════
+STRUCTURE
+═══════════════════ ════════════════════ ════════════════════ ════════════════════
+TestNestedStacks - stack isolation, interaction with try/except"""
 from __future__ import annotations
 
 from typing import Any
@@ -44,36 +42,36 @@ from tests.scenarios.domain_model.domains import TestDomain
 from tests.scenarios.domain_model.services import InventoryService, PaymentService
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Вспомогательные Action для тестов вложенности
+#Auxiliary Actions for nesting tests
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class NestedParams(BaseParams):
-    """Параметры для тестов вложенности."""
+    """Options for nesting tests."""
     should_child_fail: bool = Field(
         default=False,
-        description="Если True — дочернее действие бросит исключение",
+        description="If True, the child action will throw an exception",
     )
     should_parent_fail: bool = Field(
         default=False,
-        description="Если True — родительское действие бросит исключение",
+        description="If True, the parent action will throw an exception",
     )
 
 
 class NestedResult(BaseResult):
-    """Результат для тестов вложенности."""
+    """Result for nesting tests."""
     status: str = Field(
         default="ok",
-        description="Статус выполнения",
+        description="Execution Status",
     )
 
 
-@meta(description="Дочернее действие, которое может упасть", domain=TestDomain)
+@meta(description="Child activity that can fall", domain=TestDomain)
 @check_roles(NoneRole)
-@depends(InventoryService, description="Сервис запасов")
+@depends(InventoryService, description="Inventory service")
 class FailableChildAction(BaseAction[NestedParams, NestedResult]):
 
-    @regular_aspect("Резервирование в дочернем")
+    @regular_aspect("Reservation in child")
     @result_string("child_reservation_id", required=True)
     async def reserve_aspect(
         self, params, state, box, connections,
@@ -82,7 +80,7 @@ class FailableChildAction(BaseAction[NestedParams, NestedResult]):
         res_id = await inventory.reserve("CHILD-ITEM", 1)
         return {"child_reservation_id": res_id}
 
-    @compensate("reserve_aspect", "Откат резервирования в дочернем")
+    @compensate("reserve_aspect", "Rolling back a reservation in a child")
     async def rollback_reserve_compensate(
         self, params, state_before, state_after, box, connections, error,
     ) -> None:
@@ -91,37 +89,35 @@ class FailableChildAction(BaseAction[NestedParams, NestedResult]):
         inventory = box.resolve(InventoryService)
         await inventory.unreserve(state_after.child_reservation_id)
 
-    @regular_aspect("Финализация дочернего")
+    @regular_aspect("Finalization of child")
     @result_string("child_final", required=True)
     async def finalize_child_aspect(
         self, params, state, box, connections,
     ) -> dict[str, Any]:
         if params.should_child_fail:
-            raise ValueError("Дочерняя ошибка финализации")
+            raise ValueError("Child finalization error")
         return {"child_final": "done"}
 
-    @summary_aspect("Формирование результата дочернего")
+    @summary_aspect("Formation of the result of the child")
     async def build_result_summary(
         self, params, state, box, connections,
     ) -> NestedResult:
         return NestedResult(status="child_ok")
 
 
-@meta(description="Родительское действие, вызывающее дочернее через box.run", domain=TestDomain)
+@meta(description="Parent action calling child via box.run", domain=TestDomain)
 @check_roles(NoneRole)
-@depends(PaymentService, description="Сервис платежей")
-@depends(InventoryService, description="Сервис запасов")
+@depends(PaymentService, description="Payment service")
+@depends(InventoryService, description="Inventory service")
 class ParentWithNestedCallAction(BaseAction[NestedParams, NestedResult]):
-    """
-    Родительское действие с тремя regular-аспектами:
-    1. charge_aspect — списание средств (с компенсатором).
-    2. call_child_aspect — вызывает FailableChildAction через box.run(),
-       оборачивает в try/except. Имеет компенсатор.
-    3. finalize_aspect — при should_parent_fail=True бросает ValueError.
-       Без компенсатора.
-    """
+    """A parent action with three regular aspects:
+    1. charge_aspect — debiting funds (with compensator).
+    2. call_child_aspect - calls FailableChildAction via box.run(),
+       wraps in try/except. Has a compensator.
+    3. finalize_aspect - when should_parent_fail=True throws a ValueError.
+       Without compensator."""
 
-    @regular_aspect("Списание средств в родительском")
+    @regular_aspect("Write-off of funds in the parent")
     @result_string("parent_txn_id", required=True)
     async def charge_aspect(
         self,
@@ -134,7 +130,7 @@ class ParentWithNestedCallAction(BaseAction[NestedParams, NestedResult]):
         txn_id = await payment.charge(100.0, "RUB")
         return {"parent_txn_id": txn_id}
 
-    @compensate("charge_aspect", "Откат платежа в родительском")
+    @compensate("charge_aspect", "Rollback payment in parent")
     async def rollback_charge_compensate(
         self,
         params: NestedParams,
@@ -149,7 +145,7 @@ class ParentWithNestedCallAction(BaseAction[NestedParams, NestedResult]):
         payment = box.resolve(PaymentService)
         await payment.refund(state_after.parent_txn_id)
 
-    @regular_aspect("Вызов дочернего действия")
+    @regular_aspect("Calling a Child Action")
     @result_string("child_status", required=True)
     async def call_child_aspect(
         self,
@@ -158,11 +154,9 @@ class ParentWithNestedCallAction(BaseAction[NestedParams, NestedResult]):
         box: ToolsBox,
         connections: dict[str, BaseResourceManager],
     ) -> dict[str, Any]:
-        """
-        Вызывает FailableChildAction через box.run().
-        Оборачивает в try/except: если дочернее упало — возвращает
-        fallback-значение. Для родителя аспект завершился УСПЕШНО.
-        """
+        """Calls FailableChildAction via box.run().
+        Wraps in try/except: if the child fails, returns
+        fallback value. For the parent, the aspect ended SUCCESSFULLY."""
         try:
             child_result = await box.run_child(
                 FailableChildAction(),
@@ -172,7 +166,7 @@ class ParentWithNestedCallAction(BaseAction[NestedParams, NestedResult]):
         except ValueError:
             return {"child_status": "child_failed_handled"}
 
-    @compensate("call_child_aspect", "Откат вызова дочернего")
+    @compensate("call_child_aspect", "Rolling back a child call")
     async def rollback_call_child_compensate(
         self,
         params: NestedParams,
@@ -182,14 +176,12 @@ class ParentWithNestedCallAction(BaseAction[NestedParams, NestedResult]):
         connections: dict[str, BaseResourceManager],
         error: Exception,
     ) -> None:
-        """
-        Компенсатор для call_child_aspect.
-        Используем unreserve как маркер вызова компенсатора.
-        """
+        """Compensator for call_child_aspect.
+        We use unreserve as a marker for calling the compensator."""
         inventory = box.resolve(InventoryService)
         await inventory.unreserve("PARENT-CHILD-ROLLBACK")
 
-    @regular_aspect("Финализация в родительском")
+    @regular_aspect("Finalization in parent")
     @result_string("parent_order_id", required=True)
     async def finalize_aspect(
         self,
@@ -199,10 +191,10 @@ class ParentWithNestedCallAction(BaseAction[NestedParams, NestedResult]):
         connections: dict[str, BaseResourceManager],
     ) -> dict[str, Any]:
         if params.should_parent_fail:
-            raise ValueError("Ошибка финализации родительского")
+            raise ValueError("Error finalizing parent")
         return {"parent_order_id": "PARENT-ORD-001"}
 
-    @summary_aspect("Формирование результата родительского")
+    @summary_aspect("Formation of the result of the parent")
     async def build_result_summary(
         self,
         params: NestedParams,
@@ -219,12 +211,10 @@ class ParentWithNestedCallAction(BaseAction[NestedParams, NestedResult]):
 
 
 class TestNestedStacks:
-    """
-    Проверяет изоляцию стеков компенсации при вложенных вызовах.
+    """Checks the isolation of compensation stacks for nested calls.
 
-    Каждый _run_internal создаёт свой стек. Дочерний разматывает свой,
-    родительский — свой. Стеки не пересекаются.
-    """
+    Each _run_internal creates its own stack. The child unwinds his own,
+    parent - yours. Stacks do not intersect."""
 
     @pytest.mark.anyio
     async def test_child_stack_isolated_from_parent(
@@ -232,11 +222,9 @@ class TestNestedStacks:
         mock_payment: AsyncMock,
         mock_inventory: AsyncMock,
     ) -> None:
-        """
-        Дочерний Action разматывает СВОЙ стек при ошибке.
-        Родитель перехватывает ошибку через try/except — для родителя
-        аспект завершился успешно. Стек родителя не затронут.
-        """
+        """The child Action unwinds ITS stack upon error.
+        The parent catches the error via try/except - for the parent
+        aspect completed successfully. The parent's stack is not affected."""
         # ── Arrange ──
         bench = TestBench(
             mocks={
@@ -261,9 +249,9 @@ class TestNestedStacks:
         # ── Assert ──
         assert result.status == "parent_ok"
 
-        # Дочерний компенсатор вызвал unreserve (дочерний стек размотан).
-        # Родительский компенсатор НЕ вызван (родитель не упал).
-        # Используем call_count — TestBench.run() прогоняет две машины.
+        #The child compensator called unreserve (the child stack is unwinded).
+        #The parent compensator is NOT called (the parent did not fall).
+        #We use call_count - TestBench.run() runs two cars.
         assert mock_inventory.unreserve.call_count >= 1
         assert mock_payment.refund.call_count == 0
 
@@ -273,11 +261,9 @@ class TestNestedStacks:
         mock_payment: AsyncMock,
         mock_inventory: AsyncMock,
     ) -> None:
-        """
-        Если дочернее действие упало и родитель перехватил, а затем
-        РОДИТЕЛЬ упал — компенсаторы родителя вызываются для всех
-        успешных аспектов, включая тот, что перехватил ошибку дочернего.
-        """
+        """If the child action fell and the parent took over, then
+        PARENT fell - parent compensators are called for everyone
+        successful aspects, including the one that caught the child's error."""
         # ── Arrange ──
         bench = TestBench(
             mocks={
@@ -293,7 +279,7 @@ class TestNestedStacks:
         )
 
         # ── Act ──
-        with pytest.raises(ValueError, match="Ошибка финализации родительского"):
+        with pytest.raises(ValueError, match="Error finalizing parent"):
             await bench.run(
                 ParentWithNestedCallAction(),
                 params,
@@ -301,12 +287,13 @@ class TestNestedStacks:
             )
 
         # ── Assert ──
-        # unreserve вызван минимум дважды (от каждого прогона машины):
-        # 1. Дочерний: unreserve("RES-TEST-001") — размотка дочернего стека.
-        # 2. Родительский: unreserve("PARENT-CHILD-ROLLBACK") — размотка родительского.
-        # При двух прогонах — удвоение.
+        #unreserve is called at least twice (from each machine run):
+        #1. Child: unreserve("RES-TEST-001") - unwinding the child stack.
+        #2. Parent: unreserve("PARENT-CHILD-ROLLBACK") - unwinding the parent.
+        #With two runs - doubling.
         unreserve_args = [c[0][0] for c in mock_inventory.unreserve.call_args_list]
         assert "PARENT-CHILD-ROLLBACK" in unreserve_args
 
-        # refund вызван — родительский компенсатор charge_aspect
+        #refund called - parent compensator charge_aspect
+        assert mock_payment.refund.call_count >= 1
         assert mock_payment.refund.call_count >= 1

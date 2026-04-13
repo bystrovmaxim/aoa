@@ -19,6 +19,26 @@ INVARIANTS
 - Values are validated at emit and when building subscriptions.
 
 ═══════════════════════════════════════════════════════════════════════════════
+ARCHITECTURE / DATA FLOW
+═══════════════════════════════════════════════════════════════════════════════
+
+    caller (Channel.* mask)
+            |
+            v
+    validate_channels(mask)
+            |
+            +--> fail-fast on zero / unknown bits
+            |
+            v
+    coordinator payload + logger subscriptions
+            |
+            v
+    subscription matching via bit intersection (&)
+            |
+            v
+    channel_mask_label(mask) for human-readable rendering
+
+═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -47,7 +67,15 @@ from enum import IntFlag
 
 
 class Channel(IntFlag):
-    """Semantic log channel bitmask (debug, business, security, compliance, error)."""
+    """
+    Semantic log channel bitmask (debug, business, security, compliance, error).
+
+    AI-CORE-BEGIN
+    ROLE: Topic classifier for log routing/filtering.
+    CONTRACT: Compose topics with bitwise OR and test via bitwise AND.
+    INVARIANTS: Only declared enum bits are legal for validated masks.
+    AI-CORE-END
+    """
 
     debug = 1
     business = 2

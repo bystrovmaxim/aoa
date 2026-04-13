@@ -27,7 +27,7 @@ INVARIANTS
   not regex ``filters=``. No subscriptions means accept all messages.
 
 ═══════════════════════════════════════════════════════════════════════════════
-DATA FLOW
+ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
 ::
@@ -135,7 +135,7 @@ CHANNEL × LEVEL MATRIX (REFERENCE)
 +------------+------------+----------------------------------------+----------------------------------------+
 | DEBUG      | WARNING    | Suspicious slowness, suboptimal query  | Log file + team alert                  |
 +------------+------------+----------------------------------------+----------------------------------------+
-| DEBUG      | CRITICAL   | Broken invariant / bad internal state| Log + alerts in test envs              |
+| DEBUG      | CRITICAL   | Broken invariant / bad internal state | Log + alerts in test envs             |
 +------------+------------+----------------------------------------+----------------------------------------+
 | BUSINESS   | INFO       | Business events (order created, paid)  | Queues → analytics                     |
 +------------+------------+----------------------------------------+----------------------------------------+

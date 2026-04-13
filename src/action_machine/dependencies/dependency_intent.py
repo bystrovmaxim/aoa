@@ -1,65 +1,92 @@
 # src/action_machine/dependencies/dependency_intent.py
 """
-Модуль: DependencyIntent — маркерный миксин для декоратора @depends.
+DependencyIntent — marker generic mixin for ``@depends``.
 
 ═══════════════════════════════════════════════════════════════════════════════
-НАЗНАЧЕНИЕ
+PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-DependencyIntent[T] — generic-миксин, который выполняет ДВЕ функции:
+``DependencyIntent[T]`` is a generic mixin with two responsibilities:
 
-1. МАРКЕР: декоратор @depends при применении проверяет, что целевой класс
-   наследует DependencyIntent. Если нет — TypeError. Это гарантирует,
-   что @depends нельзя повесить на произвольный класс.
+1. **Marker**: the ``@depends`` decorator checks that the target class inherits
+   from ``DependencyIntent``. If not, a ``TypeError`` is raised. This prevents
+   ``@depends`` from being applied to arbitrary classes.
 
-2. ОГРАНИЧИТЕЛЬ ТИПА (bound): параметр T определяет, какие классы
-   допускаются в качестве зависимостей. Например:
-   - DependencyIntent[object]              → любой класс
-   - DependencyIntent[BaseResourceManager] → только ресурс-менеджеры
+2. **Type bound**: generic parameter ``T`` restricts which classes are
+   allowed as dependencies. For example:
+   - ``DependencyIntent[object]`` — any class.
+   - ``DependencyIntent[BaseResourceManager]`` — only resource managers.
 
 ═══════════════════════════════════════════════════════════════════════════════
-АРХИТЕКТУРА
+ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-    class BaseAction[P, R](
-        ABC,
-        RoleIntent,
-        DependencyIntent[object],     ← bound = object (любой класс)
-        CheckerIntent,
-        AspectIntent,
-        ConnectionIntent,
-    ): ...
+::
 
     @depends(PaymentService, description="...")
-    class CreateOrderAction(BaseAction[OrderParams, OrderResult]):
-        ...
-
-    # Декоратор @depends проверяет:
-    #   1. issubclass(cls, DependencyIntent) → OK
-    #   2. issubclass(PaymentService, cls._depends_bound) → OK (bound=object)
-    #   3. Дубликатов нет → OK
-    #   4. Добавляет DependencyInfo в cls._depends_info
-
-    # MetadataBuilder.build(CreateOrderAction) читает:
-    #   cls._depends_info   → [DependencyInfo(PaymentService, "...")]
-    #   cls._depends_bound  → object
+         │
+         │  checks:
+         ├── issubclass(cls, DependencyIntent) → OK
+         ├── issubclass(PaymentService, cls._depends_bound) → OK
+         └── no duplicates → OK
+         │
+         ▼  writes scratch
+    cls._depends_info = [DependencyInfo(PaymentService, ...)]
+         │
+         ▼  DependencyIntentInspector reads _depends_info
+    coordinator snapshot → tuple[DependencyInfo, ...]
+         │
+         ▼  cached_dependency_factory(coordinator, cls)
+    DependencyFactory built from snapshot
 
 ═══════════════════════════════════════════════════════════════════════════════
-ПРИМЕР ИСПОЛЬЗОВАНИЯ
+INVARIANTS
 ═══════════════════════════════════════════════════════════════════════════════
 
-    # Разрешить любые зависимости:
+- ``@depends`` can only be applied to classes that inherit ``DependencyIntent``.
+- Bound type ``T`` is extracted from the generic parameter at class creation
+  and stored in ``cls._depends_bound``.
+- The decorator validates that each declared dependency is a subclass of this bound.
+- ``_depends_info`` is a list of ``DependencyInfo`` instances; duplicates are
+  forbidden.
+
+═══════════════════════════════════════════════════════════════════════════════
+EXAMPLES
+═══════════════════════════════════════════════════════════════════════════════
+
+    # Allow any dependency
     class MyAction(DependencyIntent[object]):
         pass
 
-    # Ограничить зависимости только ресурс-менеджерами:
+    # Restrict dependencies to resource managers only
     class ResourcePool(DependencyIntent[BaseResourceManager]):
         pass
 
     @depends(PostgresManager)   # OK — PostgresManager < BaseResourceManager
-    @depends(PaymentService)    # TypeError — PaymentService не < BaseResourceManager
+    @depends(PaymentService)    # TypeError — PaymentService is not a BaseResourceManager
     class MyPool(ResourcePool):
         ...
+
+═══════════════════════════════════════════════════════════════════════════════
+ERRORS / LIMITATIONS
+═══════════════════════════════════════════════════════════════════════════════
+
+- ``TypeError`` if ``@depends`` is applied to a class without ``DependencyIntent``
+  or if a dependency does not satisfy the bound.
+- The bound extraction relies on ``__orig_bases__`` and may fail for complex
+  generic aliases; in such cases it falls back to ``object``.
+
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE-BEGIN
+═══════════════════════════════════════════════════════════════════════════════
+ROLE: Intent marker for dependency declarations.
+CONTRACT: Subclass required for ``@depends``; provides bound type for validation.
+INVARIANTS: Pure marker; bound stored in ``_depends_bound``.
+FLOW: decorator checks marker and bound → writes scratch → inspector consumes.
+FAILURES: TypeError on missing marker or bound violation.
+EXTENSION POINTS: Bound can be customized via generic parameter.
+AI-CORE-END
+═══════════════════════════════════════════════════════════════════════════════
 """
 
 from __future__ import annotations
@@ -69,64 +96,53 @@ from typing import Any, ClassVar, get_args, get_origin
 
 class DependencyIntent[T]:
     """
-    Маркерный generic-миксин, разрешающий использование декоратора @depends.
+    Marker generic mixin that enables ``@depends`` usage.
 
-    Класс, НЕ наследующий DependencyIntent, не может быть целью @depends —
-    декоратор выбросит TypeError при попытке применения.
+    Classes that do not inherit from ``DependencyIntent`` cannot be decorated
+    with ``@depends`` — a ``TypeError`` is raised.
 
-    Generic-параметр T определяет bound — базовый тип, которому должны
-    соответствовать все зависимости, объявленные через @depends.
-    Декоратор проверяет issubclass(klass, bound) при каждом вызове.
+    Generic parameter ``T`` defines the upper bound for allowed dependency
+    types. The decorator verifies that each declared dependency is a subclass
+    of this bound.
 
-    Атрибуты уровня класса (создаются динамически):
+    Class attributes (created dynamically):
         _depends_info : list[DependencyInfo]
-            Временный список, заполняемый декоратором @depends.
-            Читается MetadataBuilder при сборке runtime metadata.
-
+            Temporary list populated by ``@depends``; read by the inspector.
         _depends_bound : type
-            Тип-ограничитель, извлечённый из generic-параметра T.
-            Устанавливается в __init_subclass__. По умолчанию object.
+            The bound type extracted from the generic parameter.
+
+    AI-CORE-BEGIN
+    ROLE: Dependency declaration marker with bound metadata.
+    CONTRACT: Enables ``@depends`` only for subclasses and exposes bound via ``_depends_bound``.
+    INVARIANTS: Marker is runtime-light; bound is computed at class creation.
+    AI-CORE-END
     """
 
-    # Аннотации для mypy, чтобы линтер знал о существовании динамических атрибутов
     _depends_info: ClassVar[list[Any]]
     _depends_bound: ClassVar[type]
 
     def __init_subclass__(cls, **kwargs: Any) -> None:
         """
-        Вызывается Python при создании подкласса DependencyIntent.
+        Extract the bound type from the generic parameter and store it.
 
-        Извлекает bound-тип из generic-параметра и сохраняет
-        в cls._depends_bound.
+        Called by Python when a subclass of ``DependencyIntent`` is created.
         """
         super().__init_subclass__(**kwargs)
         cls._depends_bound = _extract_bound(cls)
 
     @classmethod
     def get_depends_bound(cls) -> type:
-        """
-        Возвращает тип-ограничитель (bound) для зависимостей этого класса.
-
-        Возвращает:
-            type — bound-тип. По умолчанию object.
-        """
+        """Return the bound type for dependencies of this class (default: ``object``)."""
         return getattr(cls, "_depends_bound", object)
 
 
 def _extract_bound(cls: type) -> type:
     """
-    Извлекает тип-ограничитель T из DependencyIntent[T] в базовых классах.
+    Extract the bound type ``T`` from ``DependencyIntent[T]`` in base classes.
 
-    Обходит cls.__orig_bases__ и ищет запись вида DependencyIntent[X].
-    Если X — конкретный тип (не TypeVar) — возвращает его.
-    Если X — TypeVar или не найден — пытается унаследовать от родителя.
-    Если ничего не нашлось — возвращает object.
-
-    Аргументы:
-        cls: класс, для которого извлекается bound.
-
-    Возвращает:
-        type — bound-тип. По умолчанию object.
+    Walks ``cls.__orig_bases__`` looking for ``DependencyIntent[X]``. If ``X`` is
+    a concrete type, returns it. Otherwise falls back to the parent's bound or
+    ``object``.
     """
     for base in getattr(cls, "__orig_bases__", ()):
         origin = get_origin(base)
@@ -139,6 +155,5 @@ def _extract_bound(cls: type) -> type:
         bound = getattr(parent, "_depends_bound", None)
         if bound is not None:
             return bound  # type: ignore[no-any-return]
-
 
     return object

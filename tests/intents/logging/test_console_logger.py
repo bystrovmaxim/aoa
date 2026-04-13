@@ -1,29 +1,27 @@
 # tests/intents/logging/test_console_logger.py
-"""
-Тесты ConsoleLogger — вывода сообщений в консоль.
+"""ConsoleLogger tests - outputting messages to the console.
 
-═══════════════════════════════════════════════════════════════════════════════
-НАЗНАЧЕНИЕ
-═══════════════════════════════════════════════════════════════════════════════
+═══════════════════ ════════════════════ ════════════════════ ════════════════════
+PURPOSE
+═══════════════════ ════════════════════ ════════════════════ ════════════════════
 
-ConsoleLogger — конкретный логгер, выводящий сообщения в stdout через print.
-Поддерживает отступы на основе уровня вложенности (indent) и опциональное
-сохранение ANSI-цветов.
+ConsoleLogger is a specific logger that outputs messages to stdout via print.
+Supports indentation based on nesting level (indent) and optional
+saving ANSI colors.
 
-При ``use_colors=True`` и сообщении без ANSI логгер оборачивает строку в
-truecolor по ``var["level"].mask``; явные escape в тексте отключают эту обёртку.
+With ``use_colors=True`` and a non-ANSI message, the logger wraps the string in
+truecolor by ``var["level"].mask``; explicit escapes in the text disable this wrapper.
 
-═══════════════════════════════════════════════════════════════════════════════
-ПОКРЫВАЕМЫЕ СЦЕНАРИИ
-═══════════════════════════════════════════════════════════════════════════════
+═══════════════════ ════════════════════ ════════════════════ ════════════════════
+SCENARIOS COVERED
+═══════════════════ ════════════════════ ════════════════════ ════════════════════
 
-- write выводит сообщение через print.
-- Поддержка отступов (indent) — сообщение сдвигается вправо.
-- Настройка use_indent — включение/отключение отступов.
-- Настройка indent_size — количество пробелов на один уровень.
-- Поддержка цветов (use_colors) — сохранение/удаление ANSI и авто-truecolor по уровню.
-- Пустые scope и сообщения обрабатываются корректно.
-"""
+- write displays a message via print.
+- Indent support (indent) - the message is shifted to the right.
+- Setting use_indent - enable/disable indentation.
+- Setting indent_size - the number of spaces per level.
+- Support for colors (use_colors) - saving/removing ANSI and auto-truecolor by level.
+- Empty scope and messages are processed correctly."""
 
 import pytest
 
@@ -56,35 +54,35 @@ def _write_var(
 
 @pytest.fixture
 def empty_context() -> Context:
-    """Пустой контекст для тестов."""
+    """Empty context for tests."""
     return Context()
 
 
 @pytest.fixture
 def empty_state() -> BaseState:
-    """Пустое состояние."""
+    """Empty state."""
     return BaseState()
 
 
 @pytest.fixture
 def empty_params() -> BaseParams:
-    """Пустые параметры."""
+    """Empty parameters."""
     return BaseParams()
 
 
 @pytest.fixture
 def simple_scope() -> LogScope:
-    """LogScope с action для базового вывода."""
+    """LogScope with action for basic output."""
     return LogScope(action="TestAction")
 
 
 # ======================================================================
-# ТЕСТЫ: Базовый вывод
+#TESTS: Basic output
 # ======================================================================
 
 
 class TestBasicOutput:
-    """ConsoleLogger выводит сообщения через print."""
+    """ConsoleLogger outputs messages via print."""
 
     @pytest.mark.anyio
     async def test_writes_to_stdout(
@@ -95,10 +93,8 @@ class TestBasicOutput:
         empty_state: BaseState,
         empty_params: BaseParams,
     ) -> None:
-        """
-        write вызывает print, выводя сообщение в stdout.
-        """
-        # Arrange — логгер без цветов для простоты
+        """write calls print, printing a message to stdout."""
+        #Arrange - logger without colors for simplicity
         logger = ConsoleLogger(use_colors=False)
 
         # Act
@@ -112,7 +108,7 @@ class TestBasicOutput:
             indent=0,
         )
 
-        # Assert — сообщение появилось в stdout, заканчивается переводом строки
+        #Assert - the message appeared in stdout, ends with a line feed
         captured = capsys.readouterr()
         assert "Hello world" in captured.out
         assert captured.out.endswith("\n")
@@ -126,9 +122,7 @@ class TestBasicOutput:
         empty_state: BaseState,
         empty_params: BaseParams,
     ) -> None:
-        """
-        Последовательные write выводят несколько строк.
-        """
+        """Consecutive write outputs multiple lines."""
         # Arrange
         logger = ConsoleLogger(use_colors=False)
 
@@ -143,7 +137,7 @@ class TestBasicOutput:
             simple_scope, "third", {}, empty_context, empty_state, empty_params, 2,
         )
 
-        # Assert — три строки, отступы различаются
+        #Assert - three lines, indentations vary
         captured = capsys.readouterr()
         lines = captured.out.strip().split("\n")
         assert len(lines) == 3
@@ -153,12 +147,12 @@ class TestBasicOutput:
 
 
 # ======================================================================
-# ТЕСТЫ: Отступы
+#TESTS: Indentation
 # ======================================================================
 
 
 class TestIndentation:
-    """ConsoleLogger добавляет отступы на основе indent."""
+    """ConsoleLogger adds indentation based on indent."""
 
     @pytest.mark.anyio
     async def test_indent_adds_spaces(
@@ -169,20 +163,18 @@ class TestIndentation:
         empty_state: BaseState,
         empty_params: BaseParams,
     ) -> None:
-        """
-        При use_indent=True и indent=3 сообщение начинается с indent * indent_size пробелов.
-        По умолчанию indent_size=2, поэтому отступ = 6 пробелов.
-        """
+        """With use_indent=True and indent=3, the message begins with indent * indent_size spaces.
+        By default indent_size=2, so indent = 6 spaces."""
         # Arrange
         logger = ConsoleLogger(use_colors=False, use_indent=True, indent_size=2)
 
-        # Act — indent=3 → 3*2 = 6 пробелов
+        #Act - indent=3 → 3*2 = 6 spaces
         await logger.write(
             simple_scope, "Indented", {},
             empty_context, empty_state, empty_params, indent=3,
         )
 
-        # Assert — строка начинается с 6 пробелов
+        #Assert - line starts with 6 spaces
         captured = capsys.readouterr()
         assert captured.out.startswith("      ")
         assert "Indented" in captured.out
@@ -196,19 +188,17 @@ class TestIndentation:
         empty_state: BaseState,
         empty_params: BaseParams,
     ) -> None:
-        """
-        При use_indent=False сообщение выводится без отступов, независимо от indent.
-        """
+        """When use_indent=False, the message is displayed without indentation, regardless of indent."""
         # Arrange
         logger = ConsoleLogger(use_colors=False, use_indent=False)
 
-        # Act — indent=5, но отступы выключены
+        #Act — indent=5, but indents are disabled
         await logger.write(
             simple_scope, "No indent", {},
             empty_context, empty_state, empty_params, indent=5,
         )
 
-        # Assert — строка не начинается с пробелов
+        #Assert - the line does not start with spaces
         captured = capsys.readouterr()
         assert captured.out.startswith("No indent")
 
@@ -221,14 +211,12 @@ class TestIndentation:
         empty_state: BaseState,
         empty_params: BaseParams,
     ) -> None:
-        """
-        indent_size задаёт количество пробелов на один уровень.
-        indent=2, indent_size=4 → 8 пробелов.
-        """
+        """indent_size specifies the number of spaces per level.
+        indent=2, indent_size=4 → 8 spaces."""
         # Arrange
         logger = ConsoleLogger(use_colors=False, use_indent=True, indent_size=4)
 
-        # Act — indent=2 → 2*4 = 8 пробелов
+        #Act - indent=2 → 2*4 = 8 spaces
         await logger.write(
             simple_scope, "Deep indent", {},
             empty_context, empty_state, empty_params, indent=2,
@@ -241,18 +229,16 @@ class TestIndentation:
 
 
 # ======================================================================
-# ТЕСТЫ: Цвета
+#TESTS: Colors
 # ======================================================================
 
 
 class TestColors:
-    """
-    ConsoleLogger сохраняет или удаляет ANSI-коды в зависимости от use_colors.
+    """ConsoleLogger saves or removes ANSI codes depending on use_colors.
 
-    С ``LogLevelPayload`` в ``var["level"]`` вся строка получает базовый truecolor
-    уровня; явные escape
-    в шаблоне сохраняются, после ``\\033[0m`` снова подставляется базовый цвет.
-    """
+    With ``LogLevelPayload`` in ``var["level"]`` the whole line gets the base truecolor
+    level; explicit escapes
+    in the template are saved, after ``\\033[0m`` the base color is again substituted."""
 
     @pytest.mark.anyio
     async def test_preserves_ansi_codes_when_use_colors_true(
@@ -263,9 +249,7 @@ class TestColors:
         empty_state: BaseState,
         empty_params: BaseParams,
     ) -> None:
-        """
-        use_colors=True → ANSI-коды сохраняются в выводе.
-        """
+        """use_colors=True → ANSI codes are preserved in the output."""
         # Arrange
         logger = ConsoleLogger(use_colors=True)
         colored_message = "\033[31mred text\033[0m"
@@ -276,7 +260,7 @@ class TestColors:
             empty_context, empty_state, empty_params, indent=0,
         )
 
-        # Assert — без level в var базовая раскраска не включается
+        #Assert - without level in var the basic coloring is not enabled
         captured = capsys.readouterr()
         assert "\033[31m" in captured.out
         assert "red text" in captured.out
@@ -292,9 +276,7 @@ class TestColors:
         empty_state: BaseState,
         empty_params: BaseParams,
     ) -> None:
-        """
-        use_colors=False → ANSI-коды удаляются перед выводом.
-        """
+        """use_colors=False → ANSI codes are removed before output."""
         # Arrange
         logger = ConsoleLogger(use_colors=False)
         colored_message = "\033[31mred text\033[0m"
@@ -305,7 +287,7 @@ class TestColors:
             empty_context, empty_state, empty_params, indent=0,
         )
 
-        # Assert — ANSI-коды отсутствуют, текст остался
+        #Assert - there are no ANSI codes, the text remains
         captured = capsys.readouterr()
         assert "\033[31m" not in captured.out
         assert "red text" in captured.out
@@ -319,10 +301,8 @@ class TestColors:
         empty_state: BaseState,
         empty_params: BaseParams,
     ) -> None:
-        """
-        Свойство supports_colors отражает значение use_colors.
-        LogCoordinator использует это свойство, чтобы решить, вызывать ли strip_ansi_codes.
-        """
+        """The supports_colors property reflects the use_colors value.
+        LogCoordinator uses this property to decide whether to call strip_ansi_codes."""
         # Arrange & Act
         logger_true = ConsoleLogger(use_colors=True)
         logger_false = ConsoleLogger(use_colors=False)
@@ -342,7 +322,7 @@ class TestColors:
         empty_params: BaseParams,
         level: Level,
     ) -> None:
-        """Текст без ANSI получает обёртку truecolor по уровню."""
+        """Non-ANSI text gets a truecolor wrapper by level."""
         logger = ConsoleLogger(use_colors=True)
         var = _write_var(level)
         await logger.write(
@@ -363,7 +343,7 @@ class TestColors:
         empty_state: BaseState,
         empty_params: BaseParams,
     ) -> None:
-        """level_fg_prefixes переопределяет дефолтные префиксы (merge)."""
+        """level_fg_prefixes overrides default prefixes (merge)."""
         logger = ConsoleLogger(
             use_colors=True,
             level_fg_prefixes={Level.info: "\033[32m"},
@@ -385,7 +365,7 @@ class TestColors:
         empty_state: BaseState,
         empty_params: BaseParams,
     ) -> None:
-        """Отступ входит в обёртку: строка начинается с escape, не с пробелов."""
+        """The indentation is included in the wrapper: the line starts with escape, not with spaces."""
         logger = ConsoleLogger(use_colors=True, indent_size=2)
         var = _write_var(Level.warning)
         await logger.write(
@@ -404,7 +384,7 @@ class TestColors:
         empty_state: BaseState,
         empty_params: BaseParams,
     ) -> None:
-        """После явного span и \\033[0m хвост снова в базовом цвете уровня."""
+        """After an explicit span and \\033[0m the tail is back in the level's base color."""
         logger = ConsoleLogger(use_colors=True)
         base = DEFAULT_LEVEL_FG_PREFIX[Level.info]
         var = _write_var(Level.info)
@@ -415,18 +395,18 @@ class TestColors:
         out = capsys.readouterr().out
         assert out.startswith(base)
         assert "\033[31mRED\033[0m" in out
-        # сразу после сброса явного красного снова базовый truecolor
+        #immediately after resetting the explicit red again the base truecolor
         assert f"\033[0m{base} after" in out
         assert out.endswith("\033[0m\n")
 
 
 # ======================================================================
-# ТЕСТЫ: Граничные случаи
+#TESTS: Boundary Cases
 # ======================================================================
 
 
 class TestEdgeCases:
-    """Обработка пустых значений и отсутствия scope."""
+    """Handling empty values ​​and lack of scope."""
 
     @pytest.mark.anyio
     async def test_empty_message(
@@ -437,9 +417,7 @@ class TestEdgeCases:
         empty_state: BaseState,
         empty_params: BaseParams,
     ) -> None:
-        """
-        Пустое сообщение выводится как пустая строка (с отступом).
-        """
+        """An empty message is displayed as an empty line (indented)."""
         # Arrange
         logger = ConsoleLogger(use_colors=False)
 
@@ -449,7 +427,7 @@ class TestEdgeCases:
             empty_context, empty_state, empty_params, indent=0,
         )
 
-        # Assert — пустая строка с переводом
+        #Assert - empty string with translation
         captured = capsys.readouterr()
         assert captured.out == "\n"
 
@@ -461,9 +439,7 @@ class TestEdgeCases:
         empty_state: BaseState,
         empty_params: BaseParams,
     ) -> None:
-        """
-        LogScope может быть пустым — это не влияет на вывод.
-        """
+        """LogScope can be empty - this does not affect the output."""
         # Arrange
         logger = ConsoleLogger(use_colors=False)
         empty_scope = LogScope()
@@ -474,7 +450,7 @@ class TestEdgeCases:
             empty_context, empty_state, empty_params, indent=0,
         )
 
-        # Assert — сообщение выведено без скобок, как есть
+        #Assert - the message is displayed without parentheses, as is
         captured = capsys.readouterr()
         assert "No scope" in captured.out
         assert "[" not in captured.out
@@ -488,10 +464,8 @@ class TestEdgeCases:
         empty_state: BaseState,
         empty_params: BaseParams,
     ) -> None:
-        """
-        Специальные символы (табуляция, перенос строки, обратный слэш)
-        выводятся как есть.
-        """
+        """Special characters (tab, line break, backslash)
+        are displayed as is."""
         # Arrange
         logger = ConsoleLogger(use_colors=False)
         message = "Special: \n\t\r\\"
@@ -502,8 +476,9 @@ class TestEdgeCases:
             empty_context, empty_state, empty_params, indent=0,
         )
 
-        # Assert — специальные символы присутствуют
+        #Assert - special characters are present
         captured = capsys.readouterr()
         assert "Special:" in captured.out
         assert "\n" in captured.out
+        assert "\t" in captured.out
         assert "\t" in captured.out

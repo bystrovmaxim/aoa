@@ -1,77 +1,93 @@
 # src/action_machine/testing/__init__.py
 """
-Пакет тестовой инфраструктуры ActionMachine.
+ActionMachine testing infrastructure package.
 
 ═══════════════════════════════════════════════════════════════════════════════
-НАЗНАЧЕНИЕ
+PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Содержит всё необходимое для тестирования действий ActionMachine:
-TestBench как единую точку входа, моки, стабы контекста, валидацию
-state и сравнение результатов между машинами.
+Contains core testing utilities for ActionMachine actions: ``TestBench`` as
+single entry point, test doubles, context stubs, state validation helpers, and
+cross-machine result comparison.
 
 ═══════════════════════════════════════════════════════════════════════════════
-КОМПОНЕНТЫ
+COMPONENTS
 ═══════════════════════════════════════════════════════════════════════════════
 
-Единая точка входа:
+Single entry point:
 
-- **TestBench** — immutable fluent-объект для тестирования. Внутри
-  создаёт async и sync production-машины с моками, прогоняет действие
-  на обеих и сравнивает результаты. Каждый fluent-вызов (.with_user,
-  .with_mocks и т.д.) возвращает НОВЫЙ экземпляр TestBench — оригинал
-  не мутируется, безопасно для параллельного использования.
+- **TestBench** - immutable fluent test harness. Internally creates async and
+  sync production machines with mocks, executes actions on both, and compares
+  results. Each fluent call (``.with_user``, ``.with_mocks``, etc.) returns a
+  NEW ``TestBench`` instance, leaving original untouched and safe for parallel use.
 
-  Терминальные методы (обязательный rollup: bool без дефолта):
-  - run(action, params, rollup) — полный прогон на всех машинах.
-  - run_aspect(action, aspect_name, params, state, rollup) — один аспект.
-  - run_summary(action, params, state, rollup) — только summary.
+  Terminal methods (mandatory ``rollup: bool``, no default):
+  - ``run(action, params, rollup)`` - full execution on all machines.
+  - ``run_aspect(action, aspect_name, params, state, rollup)`` - single aspect.
+  - ``run_summary(action, params, state, rollup)`` - summary only.
 
-Моки:
+Mocks:
 
-- **MockAction** — мок-действие для подстановки в тестах. Поддерживает
-  фиксированный результат (result) и вычисляемый через side_effect.
-  Отслеживает call_count и last_params.
+- **MockAction** - action test double. Supports fixed ``result`` and dynamic
+  ``side_effect`` responses. Tracks ``call_count`` and ``last_params``.
 
-Стабы:
+Stubs:
 
-- **UserInfoStub** — стаб пользователя (по умолчанию user_id="test_user",
-  roles=(StubTesterRole,) из ``action_machine.testing.stubs``).
-- **RuntimeInfoStub** — стаб окружения (hostname="test-host").
-- **RequestInfoStub** — стаб запроса (trace_id="test-trace-000").
-- **ContextStub** — стаб полного контекста, объединяющий все три стаба.
+- **UserInfoStub** - user stub (defaults: ``user_id="test_user"``,
+  ``roles=(StubTesterRole,)`` from ``action_machine.testing.stubs``).
+- **RuntimeInfoStub** - runtime environment stub (``hostname="test-host"``).
+- **RequestInfoStub** - request stub (``trace_id="test-trace-000"``).
+- **ContextStub** - full context stub composing all three stubs.
 
-Валидация:
+Validation:
 
-- **validate_state_for_aspect** / **validate_state_for_summary** —
-  принимают кортеж аспектов и колбэк чекеров (как у ``GateCoordinator``).
+- **validate_state_for_aspect** / **validate_state_for_summary** -
+  accept aspect tuple and checker callback (same shape as ``GateCoordinator``).
 
-Сравнение:
+Comparison:
 
-- **compare_results** — сравнивает результаты двух машин с информативным
-  сообщением при расхождении.
+- **compare_results** - compares results from two machines with detailed
+  mismatch output.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ПРИМЕР ИСПОЛЬЗОВАНИЯ
+ARCHITECTURE / DATA FLOW
+═══════════════════════════════════════════════════════════════════════════════
+
+    Test case setup
+         |
+         v
+    TestBench + stubs + mocks configuration
+         |
+         v
+    Run action on async and sync machines
+         |
+         +--> optional aspect/summary-only execution
+         +--> state validation helpers
+         |
+         v
+    compare_results / assertions in test
+
+═══════════════════════════════════════════════════════════════════════════════
+EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
     from action_machine.testing import TestBench, MockAction
     from action_machine.testing import StubTesterRole
 
-    # Создаём bench с моками:
+    # Create bench with mocks:
     bench = TestBench(mocks={PaymentService: mock_payment})
 
-    # Fluent — каждый вызов создаёт новый объект:
+    # Fluent calls always create new immutable bench:
     admin_bench = bench.with_user(user_id="admin", roles=(StubTesterRole,))
 
-    # Полный прогон на async + sync машинах с проверкой совпадения:
+    # Full run on async + sync machines with comparison:
     result = admin_bench.run(
         CreateOrderAction(),
         OrderParams(user_id="u1", amount=100.0),
         rollup=False,
     )
 
-    # Тест одного аспекта с валидацией state:
+    # Single-aspect test with state validation:
     result = bench.run_aspect(
         CreateOrderAction(), "process_payment",
         OrderParams(user_id="u1", amount=100.0),
@@ -79,13 +95,32 @@ state и сравнение результатов между машинами.
         rollup=False,
     )
 
-    # Тест summary с валидацией полноты state:
+    # Summary-only test with state completeness validation:
     result = bench.run_summary(
         CreateOrderAction(),
         OrderParams(user_id="u1", amount=100.0),
         state={"validated_user": "u1", "txn_id": "TXN-1"},
         rollup=False,
     )
+
+═══════════════════════════════════════════════════════════════════════════════
+ERRORS / LIMITATIONS
+═══════════════════════════════════════════════════════════════════════════════
+
+- ``TestBench`` terminal methods require explicit ``rollup`` argument.
+- Testing package focuses on harness/test doubles; production logic remains in runtime.
+- Result mismatch diagnostics come from comparison helpers and runtime exceptions.
+
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE-BEGIN
+═══════════════════════════════════════════════════════════════════════════════
+ROLE: Public testing toolbox for ActionMachine validation scenarios.
+CONTRACT: Expose immutable bench, stubs, mocks, validators, and comparators.
+INVARIANTS: Fluent bench methods return new instances; no hidden shared mutation.
+FLOW: configure bench -> execute (full/aspect/summary) -> validate/compare.
+FAILURES: Runtime contract errors surface unchanged through test harness.
+EXTENSION POINTS: Add focused testing helpers without expanding into god-module.
+AI-CORE-END
 """
 
 from action_machine.testing.bench import TestBench

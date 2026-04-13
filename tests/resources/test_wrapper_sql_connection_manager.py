@@ -1,49 +1,49 @@
 # tests/resources/test_wrapper_sql_connection_manager.py
 """
-Тесты WrapperSqlConnectionManager — прокси-обёртки, запрещающей управление
-транзакциями на вложенных уровнях.
+Tests for WrapperSqlConnectionManager — a proxy wrapper that forbids transaction
+management at nested levels.
 
 ═══════════════════════════════════════════════════════════════════════════════
-НАЗНАЧЕНИЕ
+PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-WrapperSqlConnectionManager — прокси-обёртка вокруг реального SqlConnectionManager.
-Создаётся автоматически при передаче connections в дочерние действия через
-ToolsBox.run(). Обёртка запрещает дочернему действию управлять жизненным
-циклом ресурса (open, begin, commit, rollback), но разрешает выполнять запросы
-(execute). Флаг rollup наследуется от оригинального менеджера.
+WrapperSqlConnectionManager is a proxy around a real SqlConnectionManager.
+It is created automatically when connections are passed to child actions via
+ToolsBox.run(). The wrapper forbids the child action from managing the resource
+lifecycle (open, begin, commit, rollback) but allows executing queries (execute).
+The rollup flag is inherited from the original manager.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ПОКРЫВАЕМЫЕ СЦЕНАРИИ
+SCENARIOS COVERED
 ═══════════════════════════════════════════════════════════════════════════════
 
-Конструктор:
-    - Хранит ссылку на оригинальный менеджер.
-    - Наследует rollup от оригинального менеджера.
+Constructor:
+    - Holds a reference to the original manager.
+    - Inherits rollup from the original manager.
 
-Запрет транзакций:
+Transaction prohibition:
     - open() → TransactionProhibitedError.
     - begin() → TransactionProhibitedError.
     - commit() → TransactionProhibitedError.
     - rollback() → TransactionProhibitedError.
 
-Делегирование execute:
-    - execute() делегирует в оригинальный менеджер.
-    - execute() с параметрами — параметры пробрасываются.
-    - execute() при ошибке оригинала — оборачивает в HandleError.
+Execute delegation:
+    - execute() delegates to the original manager.
+    - execute() with parameters — parameters are forwarded.
+    - execute() on original error — wraps in HandleError.
 
 get_wrapper_class:
-    - Возвращает WrapperSqlConnectionManager (для повторной обёртки).
-    - Синхронный метод.
+    - Returns WrapperSqlConnectionManager (for re-wrapping).
+    - Synchronous method.
 
-Двойная обёртка (вложенность):
-    - WrapperSqlConnectionManager оборачивается повторно через get_wrapper_class.
-    - Двойная обёртка запрещает транзакции.
-    - Двойная обёртка делегирует execute до оригинала.
+Double wrapping (nesting):
+    - WrapperSqlConnectionManager is wrapped again via get_wrapper_class.
+    - Double wrap forbids transactions.
+    - Double wrap delegates execute to the original.
 
-Интеграция с ToolsBox._wrap_connections:
-    - _wrap_connections корректно оборачивает менеджер.
-    - Повторный _wrap_connections на обёрнутом менеджере работает.
+Integration with ToolsBox._wrap_connections:
+    - _wrap_connections wraps the manager correctly.
+    - Repeated _wrap_connections on an already wrapped manager works.
 """
 
 from __future__ import annotations
@@ -60,13 +60,13 @@ from action_machine.resources.wrapper_sql_connection_manager import (
 )
 
 # ======================================================================
-# Mock-менеджер соединений для тестов
+# Mock connection manager for tests
 # ======================================================================
 
 class MockConnectionManager(SqlConnectionManager):
     """
-    Мок-реализация SqlConnectionManager для тестирования WrapperSqlConnectionManager.
-    Все методы — AsyncMock для проверки вызовов.
+    Mock SqlConnectionManager for testing WrapperSqlConnectionManager.
+    All methods are AsyncMock for call verification.
     """
 
     def __init__(self) -> None:
@@ -77,7 +77,7 @@ class MockConnectionManager(SqlConnectionManager):
         self.execute = AsyncMock(return_value="query_result")
 
     async def open(self) -> None:
-        pass  # переопределяется AsyncMock в __init__
+        pass  # overridden by AsyncMock in __init__
 
     async def begin(self) -> None:
         pass
@@ -96,126 +96,126 @@ class MockConnectionManager(SqlConnectionManager):
 
 
 # ======================================================================
-# Фикстуры
+# Fixtures
 # ======================================================================
 
 @pytest.fixture
 def mock_manager() -> MockConnectionManager:
-    """Мок-менеджер соединений."""
+    """Mock connection manager."""
     return MockConnectionManager()
 
 
 @pytest.fixture
 def wrapper(mock_manager: MockConnectionManager) -> WrapperSqlConnectionManager:
-    """WrapperSqlConnectionManager, оборачивающий мок-менеджер."""
+    """WrapperSqlConnectionManager wrapping the mock manager."""
     return WrapperSqlConnectionManager(mock_manager)
 
 
 @pytest.fixture
 def double_wrapper(wrapper: WrapperSqlConnectionManager) -> WrapperSqlConnectionManager:
-    """Двойная обёртка — WrapperSqlConnectionManager вокруг WrapperSqlConnectionManager."""
+    """Double wrap — WrapperSqlConnectionManager around WrapperSqlConnectionManager."""
     return WrapperSqlConnectionManager(wrapper)
 
 
 # ======================================================================
-# ТЕСТЫ: Конструктор
+# TESTS: Constructor
 # ======================================================================
 
 class TestConstructor:
-    """WrapperSqlConnectionManager успешно создаётся."""
+    """WrapperSqlConnectionManager is constructed successfully."""
 
     def test_creates_successfully(self, mock_manager: MockConnectionManager) -> None:
-        """Экземпляр создаётся без ошибок."""
+        """Instance is created without error."""
         w = WrapperSqlConnectionManager(mock_manager)
         assert w is not None
 
     def test_stores_original_manager(self, wrapper: WrapperSqlConnectionManager, mock_manager: MockConnectionManager) -> None:
-        """Хранит ссылку на оригинальный менеджер."""
+        """Stores a reference to the original manager."""
         assert wrapper._connection_manager is mock_manager
 
     def test_inherits_rollup_from_original(self, mock_manager: MockConnectionManager) -> None:
-        """rollup наследуется от оригинального менеджера."""
+        """rollup is inherited from the original manager."""
         mock_manager._rollup = True
         wrapper = WrapperSqlConnectionManager(mock_manager)
         assert wrapper.rollup is True
 
     def test_is_instance_of_sql_connection_manager(self, wrapper: WrapperSqlConnectionManager) -> None:
-        """Является экземпляром SqlConnectionManager."""
+        """Is an instance of SqlConnectionManager."""
         assert isinstance(wrapper, SqlConnectionManager)
 
 
 # ======================================================================
-# ТЕСТЫ: Запрет транзакций
+# TESTS: Transaction prohibition
 # ======================================================================
 
 class TestTransactionProhibited:
-    """Обёртка запрещает управление транзакциями."""
+    """The wrapper forbids transaction management."""
 
     @pytest.mark.anyio
     async def test_open_raises_prohibited(self, wrapper: WrapperSqlConnectionManager) -> None:
-        """open() бросает TransactionProhibitedError."""
-        with pytest.raises(TransactionProhibitedError, match="open недоступен"):
+        """open() raises TransactionProhibitedError."""
+        with pytest.raises(TransactionProhibitedError, match="open is unavailable"):
             await wrapper.open()
 
     @pytest.mark.anyio
     async def test_commit_raises_prohibited(self, wrapper: WrapperSqlConnectionManager) -> None:
-        """commit() бросает TransactionProhibitedError."""
-        with pytest.raises(TransactionProhibitedError, match="commit недоступен"):
+        """commit() raises TransactionProhibitedError."""
+        with pytest.raises(TransactionProhibitedError, match="commit is unavailable"):
             await wrapper.commit()
 
     @pytest.mark.anyio
     async def test_rollback_raises_prohibited(self, wrapper: WrapperSqlConnectionManager) -> None:
-        """rollback() бросает TransactionProhibitedError."""
-        with pytest.raises(TransactionProhibitedError, match="rollback недоступен"):
+        """rollback() raises TransactionProhibitedError."""
+        with pytest.raises(TransactionProhibitedError, match="rollback is unavailable"):
             await wrapper.rollback()
 
     @pytest.mark.anyio
     async def test_begin_raises_prohibited(self, wrapper: WrapperSqlConnectionManager) -> None:
-        """begin() бросает TransactionProhibitedError."""
-        with pytest.raises(TransactionProhibitedError, match="begin недоступен"):
+        """begin() raises TransactionProhibitedError."""
+        with pytest.raises(TransactionProhibitedError, match="begin is unavailable"):
             await wrapper.begin()
 
     @pytest.mark.anyio
     async def test_open_does_not_call_original(self, wrapper: WrapperSqlConnectionManager, mock_manager: MockConnectionManager) -> None:
-        """open() не вызывает оригинальный менеджер."""
+        """open() does not call the original manager."""
         with pytest.raises(TransactionProhibitedError):
             await wrapper.open()
         mock_manager.open.assert_not_called()
 
     @pytest.mark.anyio
     async def test_commit_does_not_call_original(self, wrapper: WrapperSqlConnectionManager, mock_manager: MockConnectionManager) -> None:
-        """commit() не вызывает оригинальный менеджер."""
+        """commit() does not call the original manager."""
         with pytest.raises(TransactionProhibitedError):
             await wrapper.commit()
         mock_manager.commit.assert_not_called()
 
     @pytest.mark.anyio
     async def test_rollback_does_not_call_original(self, wrapper: WrapperSqlConnectionManager, mock_manager: MockConnectionManager) -> None:
-        """rollback() не вызывает оригинальный менеджер."""
+        """rollback() does not call the original manager."""
         with pytest.raises(TransactionProhibitedError):
             await wrapper.rollback()
         mock_manager.rollback.assert_not_called()
 
     @pytest.mark.anyio
     async def test_begin_does_not_call_original(self, wrapper: WrapperSqlConnectionManager, mock_manager: MockConnectionManager) -> None:
-        """begin() не вызывает оригинальный менеджер."""
+        """begin() does not call the original manager."""
         with pytest.raises(TransactionProhibitedError):
             await wrapper.begin()
         mock_manager.begin.assert_not_called()
 
 
 # ======================================================================
-# ТЕСТЫ: Делегирование execute
+# TESTS: Execute delegation
 # ======================================================================
 
 class TestExecuteDelegation:
-    """execute() делегирует в оригинальный менеджер."""
+    """execute() delegates to the original manager."""
 
     @pytest.mark.anyio
     async def test_execute_delegates_to_original(
         self, wrapper: WrapperSqlConnectionManager, mock_manager: MockConnectionManager,
     ) -> None:
-        """execute() вызывает execute оригинального менеджера."""
+        """execute() calls the original manager's execute."""
         result = await wrapper.execute("SELECT 1")
         mock_manager.execute.assert_called_once_with("SELECT 1", None)
         assert result == "query_result"
@@ -224,7 +224,7 @@ class TestExecuteDelegation:
     async def test_execute_passes_params(
         self, wrapper: WrapperSqlConnectionManager, mock_manager: MockConnectionManager,
     ) -> None:
-        """execute() пробрасывает параметры."""
+        """execute() forwards parameters."""
         await wrapper.execute("SELECT * FROM users WHERE id = $1", (42,))
         mock_manager.execute.assert_called_once_with(
             "SELECT * FROM users WHERE id = $1", (42,)
@@ -234,17 +234,17 @@ class TestExecuteDelegation:
     async def test_execute_wraps_error_in_handle_error(
         self, wrapper: WrapperSqlConnectionManager, mock_manager: MockConnectionManager,
     ) -> None:
-        """execute() оборачивает ошибку оригинала в HandleError."""
+        """execute() wraps the original error in HandleError."""
         mock_manager.execute.side_effect = RuntimeError("connection lost")
 
-        with pytest.raises(HandleError, match="Ошибка выполнения SQL"):
+        with pytest.raises(HandleError, match="SQL execution error"):
             await wrapper.execute("SELECT 1")
 
     @pytest.mark.anyio
     async def test_execute_preserves_original_error_as_cause(
         self, wrapper: WrapperSqlConnectionManager, mock_manager: MockConnectionManager,
     ) -> None:
-        """HandleError содержит оригинальную ошибку в __cause__."""
+        """HandleError keeps the original error in __cause__."""
         original_error = RuntimeError("timeout")
         mock_manager.execute.side_effect = original_error
 
@@ -255,67 +255,67 @@ class TestExecuteDelegation:
 
 
 # ======================================================================
-# ТЕСТЫ: get_wrapper_class
+# TESTS: get_wrapper_class
 # ======================================================================
 
 class TestGetWrapperClass:
-    """get_wrapper_class() возвращает WrapperSqlConnectionManager."""
+    """get_wrapper_class() returns WrapperSqlConnectionManager."""
 
     def test_returns_wrapper_class(self, wrapper: WrapperSqlConnectionManager) -> None:
-        """Возвращает WrapperSqlConnectionManager для повторной обёртки."""
+        """Returns WrapperSqlConnectionManager for re-wrapping."""
         result = wrapper.get_wrapper_class()
         assert result is WrapperSqlConnectionManager
 
     def test_is_synchronous(self, wrapper: WrapperSqlConnectionManager) -> None:
-        """Метод синхронный — возвращает класс, не корутину."""
+        """Method is synchronous — returns a class, not a coroutine."""
         result = wrapper.get_wrapper_class()
         assert isinstance(result, type)
 
     def test_returned_class_is_subclass_of_sql_connection_manager(self, wrapper: WrapperSqlConnectionManager) -> None:
-        """Возвращённый класс — подкласс SqlConnectionManager."""
+        """Returned class is a subclass of SqlConnectionManager."""
         result = wrapper.get_wrapper_class()
         assert issubclass(result, SqlConnectionManager)
 
 
 # ======================================================================
-# ТЕСТЫ: Двойная обёртка (вложенность уровня 2+)
+# TESTS: Double wrapping (nesting level 2+)
 # ======================================================================
 
 class TestDoubleWrapping:
-    """WrapperSqlConnectionManager корректно оборачивается повторно."""
+    """WrapperSqlConnectionManager can be wrapped again correctly."""
 
     def test_double_wrapper_creates_successfully(self, wrapper: WrapperSqlConnectionManager) -> None:
-        """Двойная обёртка создаётся без ошибок."""
+        """Double wrap is created without error."""
         double = WrapperSqlConnectionManager(wrapper)
         assert double is not None
 
     def test_double_wrapper_stores_inner_wrapper(
         self, double_wrapper: WrapperSqlConnectionManager, wrapper: WrapperSqlConnectionManager,
     ) -> None:
-        """Двойная обёртка хранит ссылку на внутреннюю обёртку."""
+        """Double wrap holds a reference to the inner wrapper."""
         assert double_wrapper._connection_manager is wrapper
 
     @pytest.mark.anyio
     async def test_double_wrapper_prohibits_open(self, double_wrapper: WrapperSqlConnectionManager) -> None:
-        """Двойная обёртка запрещает open()."""
+        """Double wrap forbids open()."""
         with pytest.raises(TransactionProhibitedError):
             await double_wrapper.open()
 
     @pytest.mark.anyio
     async def test_double_wrapper_prohibits_commit(self, double_wrapper: WrapperSqlConnectionManager) -> None:
-        """Двойная обёртка запрещает commit()."""
+        """Double wrap forbids commit()."""
         with pytest.raises(TransactionProhibitedError):
             await double_wrapper.commit()
 
     @pytest.mark.anyio
     async def test_double_wrapper_prohibits_rollback(self, double_wrapper: WrapperSqlConnectionManager) -> None:
-        """Двойная обёртка запрещает rollback()."""
+        """Double wrap forbids rollback()."""
         with pytest.raises(TransactionProhibitedError):
             await double_wrapper.rollback()
 
     @pytest.mark.anyio
     async def test_double_wrapper_prohibits_begin(self, double_wrapper: WrapperSqlConnectionManager) -> None:
-        """Двойная обёртка запрещает begin()."""
+        """Double wrap forbids begin()."""
         with pytest.raises(TransactionProhibitedError):
             await double_wrapper.begin()
 
@@ -323,7 +323,7 @@ class TestDoubleWrapping:
     async def test_double_wrapper_delegates_execute_to_original(
         self, double_wrapper: WrapperSqlConnectionManager, mock_manager: MockConnectionManager,
     ) -> None:
-        """execute() через двойную обёртку доходит до оригинального менеджера."""
+        """execute() through double wrap reaches the original manager."""
         result = await double_wrapper.execute("SELECT 1")
         mock_manager.execute.assert_called_once_with("SELECT 1", None)
         assert result == "query_result"
@@ -332,7 +332,7 @@ class TestDoubleWrapping:
     async def test_triple_wrapper_works(
         self, double_wrapper: WrapperSqlConnectionManager, mock_manager: MockConnectionManager,
     ) -> None:
-        """Тройная обёртка тоже работает — execute доходит до оригинала."""
+        """Triple wrap also works — execute reaches the original."""
         triple = WrapperSqlConnectionManager(double_wrapper)
         result = await triple.execute("SELECT 42")
         mock_manager.execute.assert_called_once_with("SELECT 42", None)
@@ -340,18 +340,18 @@ class TestDoubleWrapping:
 
 
 # ======================================================================
-# ТЕСТЫ: Интеграция с _wrap_connections
+# TESTS: Integration with _wrap_connections
 # ======================================================================
 
 class TestWrapConnectionsIntegration:
     """
-    Имитация логики ToolsBox._wrap_connections() — проверка что
-    WrapperSqlConnectionManager корректно работает в реальном сценарии обёртки.
+    Mimics ToolsBox._wrap_connections() logic — verifies
+    WrapperSqlConnectionManager behaves in a realistic wrapping scenario.
     """
 
     @staticmethod
     def _wrap_connections(connections: dict | None) -> dict | None:
-        """Копия логики ToolsBox._wrap_connections для изолированного теста."""
+        """Copy of ToolsBox._wrap_connections logic for an isolated test."""
         if connections is None:
             return None
         wrapped = {}
@@ -364,7 +364,7 @@ class TestWrapConnectionsIntegration:
         return wrapped
 
     def test_wraps_mock_manager(self, mock_manager: MockConnectionManager) -> None:
-        """Оборачивает MockConnectionManager в WrapperSqlConnectionManager."""
+        """Wraps MockConnectionManager in WrapperSqlConnectionManager."""
         connections = {"db": mock_manager}
         wrapped = self._wrap_connections(connections)
 
@@ -373,7 +373,7 @@ class TestWrapConnectionsIntegration:
         assert wrapped["db"]._connection_manager is mock_manager
 
     def test_wraps_wrapper_again(self, wrapper: WrapperSqlConnectionManager) -> None:
-        """Повторная обёртка WrapperSqlConnectionManager работает."""
+        """Re-wrapping WrapperSqlConnectionManager works."""
         connections = {"db": wrapper}
         wrapped = self._wrap_connections(connections)
 
@@ -382,7 +382,7 @@ class TestWrapConnectionsIntegration:
 
     @pytest.mark.anyio
     async def test_wrapped_execute_works(self, mock_manager: MockConnectionManager) -> None:
-        """execute() через обёрнутый менеджер работает."""
+        """execute() through the wrapped manager works."""
         connections = {"db": mock_manager}
         wrapped = self._wrap_connections(connections)
 
@@ -394,7 +394,7 @@ class TestWrapConnectionsIntegration:
 
     @pytest.mark.anyio
     async def test_wrapped_prohibits_transactions(self, mock_manager: MockConnectionManager) -> None:
-        """Обёрнутый менеджер запрещает транзакции."""
+        """Wrapped manager forbids transactions."""
         connections = {"db": mock_manager}
         wrapped = self._wrap_connections(connections)
 
@@ -412,10 +412,10 @@ class TestWrapConnectionsIntegration:
 
     @pytest.mark.anyio
     async def test_double_wrap_execute_reaches_original(self, mock_manager: MockConnectionManager) -> None:
-        """Двойная обёртка через _wrap_connections — execute доходит до оригинала."""
-        # Первая обёртка (parent → child)
+        """Double wrap via _wrap_connections — execute reaches the original."""
+        # First wrap (parent → child)
         wrapped_1 = self._wrap_connections({"db": mock_manager})
-        # Вторая обёртка (child → grandchild)
+        # Second wrap (child → grandchild)
         wrapped_2 = self._wrap_connections({"db": wrapped_1["db"]})
 
         result = await wrapped_2["db"].execute("SELECT 1")
@@ -427,6 +427,6 @@ class TestWrapConnectionsIntegration:
         assert self._wrap_connections(None) is None
 
     def test_empty_connections_returns_empty(self) -> None:
-        """Пустой dict → пустой dict."""
+        """Empty dict → empty dict."""
         result = self._wrap_connections({})
         assert result == {}

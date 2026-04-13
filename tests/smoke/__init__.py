@@ -1,24 +1,23 @@
 # tests/smoke/__init__.py
 """
-Smoke-тесты — проверка базовой инфраструктуры ActionMachine.
+Smoke tests — basic ActionMachine infrastructure checks.
 
 ═══════════════════════════════════════════════════════════════════════════════
-НАЗНАЧЕНИЕ
+PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Минимальный набор тестов, подтверждающий работоспособность ключевых
-компонентов: координатор собирает метаданные, машина выполняет конвейер,
-TestBench прогоняет действия на async и sync машинах.
+Minimal tests confirming key components work: the coordinator collects metadata,
+the machine runs the pipeline, and TestBench runs actions on async and sync machines.
 
-Если smoke-тесты зелёные — инфраструктура работает, можно запускать
-остальные тесты. Если хотя бы один красный — фундаментальная проблема.
+If smoke tests pass, the infrastructure is sound and the rest of the suite can run.
+If any fail, there is a fundamental problem.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ФАЙЛЫ
+FILES
 ═══════════════════════════════════════════════════════════════════════════════
 
-- test_ping.py        — PingAction (минимальное действие, только summary).
-- test_simple.py      — SimpleAction (regular + summary с чекером).
-- test_full.py        — FullAction (depends + connection + роль "manager").
-- test_coordinator.py — GateCoordinator собирает метаданные всех Action.
+- test_ping.py        — PingAction (minimal action, summary only).
+- test_simple.py      — SimpleAction (regular + summary with checker).
+- test_full.py        — FullAction (depends + connection + "manager" role).
+- test_coordinator.py — GateCoordinator collects metadata for all Actions.
 """

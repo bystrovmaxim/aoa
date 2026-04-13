@@ -1,32 +1,50 @@
 # src/action_machine/intents/checkers/result_float_checker.py
 """
-Чекер для числовых полей (int/float) результата аспекта и функция-декоратор result_float.
+Numeric result-field checker (int/float) and ``result_float`` decorator.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Модуль содержит два компонента:
+The module exposes two components:
 
-1. **ResultFloatChecker** — класс checkerа. Checks, что поле результата
-   является числом (int или float) и лежит в заданном диапазоне.
-   Создаётся машиной из checker snapshot entry при выполнении аспекта.
+1. **ResultFloatChecker**: validates that a result field is numeric
+   (``int`` or ``float``) and inside optional inclusive range bounds.
+   Runtime creates checker instances from snapshot metadata.
 
-2. **result_float** — функция-декоратор. Применяется к methodу-аспекту
-   и записывает метаданные checkerа в атрибут ``_checker_meta`` methodа.
-   MetadataBuilder собирает эти метаданные в checker snapshot (GateCoordinator.get_checkers).
+2. **result_float**: decorator for aspect methods that appends checker metadata
+   to method attribute ``_checker_meta``. Inspector/builder flow collects this
+   metadata into checker snapshots used by runtime.
 
 ═══════════════════════════════════════════════════════════════════════════════
-USAGE КАК ДЕКОРАТОР
+ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-    @regular_aspect("Расчёт")
+    @result_float(...)
+          |
+          v
+    method._checker_meta append
+          |
+          v
+    CheckerIntentInspector snapshot
+          |
+          v
+    runtime creates ResultFloatChecker
+          |
+          v
+    checker.check(result_dict)
+
+═══════════════════════════════════════════════════════════════════════════════
+USAGE AS DECORATOR
+═══════════════════════════════════════════════════════════════════════════════
+
+    @regular_aspect("Calculate")
     @result_float("total", required=True, min_value=0.0)
     async def calculate(self, params, state, box, connections):
         return {"total": 1500.0}
 
 ═══════════════════════════════════════════════════════════════════════════════
-USAGE МАШИНОЙ
+USAGE BY RUNTIME
 ═══════════════════════════════════════════════════════════════════════════════
 
     checker = ResultFloatChecker("total", min_value=0.0)
@@ -36,23 +54,32 @@ USAGE МАШИНОЙ
 PARAMETERS
 ═══════════════════════════════════════════════════════════════════════════════
 
-    field_name : str — имя поля в словаре результата аспекта.
-    required : bool — required ли поле. По умолчанию True.
-    min_value : float | None — минимально допустимое значение (включительно).
-    max_value : float | None — максимально допустимое значение (включительно).
+    field_name : str — field name in aspect result dictionary.
+    required : bool — whether field is required. Default ``True``.
+    min_value : float | None — minimum allowed value (inclusive).
+    max_value : float | None — maximum allowed value (inclusive).
 
 ═══════════════════════════════════════════════════════════════════════════════
-ERRORS
+INVARIANTS
 ═══════════════════════════════════════════════════════════════════════════════
 
-    ValidationFieldError — значение не int и не float; значение вне диапазона.
+- Accepts ``int`` and ``float`` values.
+- Applies inclusive bound checks when ``min_value`` / ``max_value`` are set.
+- Reuses required/non-null handling from ``ResultFieldChecker``.
+
+═══════════════════════════════════════════════════════════════════════════════
+ERRORS / LIMITATIONS
+═══════════════════════════════════════════════════════════════════════════════
+
+- Raises ``ValidationFieldError`` when value is non-numeric or outside range.
+- Python treats ``bool`` as ``int``; therefore ``True``/``False`` pass type check.
 
 
 AI-CORE-BEGIN
-ROLE: module result_float_checker
-CONTRACT: Keep runtime behavior unchanged; decorators/inspectors expose metadata consumed by coordinator/machine.
-INVARIANTS: Validate declarations early and provide deterministic metadata shape.
-FLOW: declarations -> inspector snapshot -> coordinator cache -> runtime usage.
+ROLE: Numeric checker module for aspect result fields.
+CONTRACT: Validate numeric values and expose metadata via ``result_float`` decorator.
+INVARIANTS: Deterministic metadata shape and inclusive bound enforcement.
+FLOW: decorator metadata -> checker snapshot -> runtime checker execution.
 AI-CORE-END
 """
 
@@ -65,13 +92,7 @@ from action_machine.model.exceptions import ValidationFieldError
 
 class ResultFloatChecker(ResultFieldChecker):
     """
-    Checks, что значение является числом (int или float) и лежит в заданном диапазоне.
-
-    Создаётся машиной из checker snapshot entry при выполнении аспекта.
-
-    Атрибуты:
-        min_value : float | None — минимально допустимое значение (включительно).
-        max_value : float | None — максимально допустимое значение (включительно).
+    Checker for numeric values (int/float) with optional range constraints.
     """
 
     def __init__(
@@ -82,13 +103,13 @@ class ResultFloatChecker(ResultFieldChecker):
         max_value: float | None = None,
     ):
         """
-        Инициализирует checker.
+        Initialize numeric checker.
 
         Args:
-            field_name: имя поля в словаре результата аспекта.
-            required: required ли поле. По умолчанию True.
-            min_value: минимально допустимое значение (включительно).
-            max_value: максимально допустимое значение (включительно).
+            field_name: field name in aspect result dictionary.
+            required: whether field is required.
+            min_value: minimum allowed value (inclusive).
+            max_value: maximum allowed value (inclusive).
         """
         super().__init__(field_name, required)
         self.min_value = min_value
@@ -96,14 +117,10 @@ class ResultFloatChecker(ResultFieldChecker):
 
     def _get_extra_params(self) -> dict[str, Any]:
         """
-        Returns дополнительные параметры числового checkerа.
-
-        Эти параметры сохраняются в snapshot-метаданных checkerа при сборке
-        метаданных и передаются в конструктор при создании экземпляра
-        машиной в ActionProductMachine._apply_checkers().
+        Return checker constructor params for snapshot serialization.
 
         Returns:
-            dict с ключами min_value, max_value.
+            Dict with ``min_value`` and ``max_value``.
         """
         return {
             "min_value": self.min_value,
@@ -112,51 +129,51 @@ class ResultFloatChecker(ResultFieldChecker):
 
     def _validate_number(self, value: Any) -> float:
         """
-        Checks, что значение является числом (int или float), и возвращает его.
+        Validate numeric type and return value.
 
         Args:
-            value: значение для проверки.
+            value: value to validate.
 
         Returns:
-            value как число.
+            Numeric value.
 
         Raises:
-            ValidationFieldError: если value не int и не float.
+            ValidationFieldError: if value is not ``int`` or ``float``.
         """
         if not isinstance(value, (int, float)):
             raise ValidationFieldError(
-                f"Поле '{self.field_name}' должно быть числом, got {type(value).__name__}"
+                f"Field '{self.field_name}' must be numeric, got {type(value).__name__}"
             )
         return value
 
     def _check_range(self, value: float) -> None:
         """
-        Checks, что число находится в допустимом диапазоне.
+        Validate that number is within configured inclusive bounds.
 
         Args:
-            value: значение для проверки.
+            value: numeric value to validate.
 
         Raises:
-            ValidationFieldError: если число вне диапазона.
+            ValidationFieldError: if value is outside allowed range.
         """
         if self.min_value is not None and value < self.min_value:
             raise ValidationFieldError(
-                f"Поле '{self.field_name}' должно быть не меньше {self.min_value}"
+                f"Field '{self.field_name}' must be greater than or equal to {self.min_value}"
             )
         if self.max_value is not None and value > self.max_value:
             raise ValidationFieldError(
-                f"Поле '{self.field_name}' должно быть не больше {self.max_value}"
+                f"Field '{self.field_name}' must be less than or equal to {self.max_value}"
             )
 
     def _check_type_and_constraints(self, value: Any) -> None:
         """
-        Checks тип (int или float) и применяет ограничения диапазона.
+        Validate numeric type and range constraints.
 
         Args:
-            value: значение для проверки (гарантированно не None).
+            value: value to validate (guaranteed non-None by base checker).
 
         Raises:
-            ValidationFieldError: при нарушении типа или диапазона.
+            ValidationFieldError: on type or range violation.
         """
         num_value = self._validate_number(value)
         self._check_range(num_value)
@@ -174,24 +191,23 @@ def result_float(
     max_value: float | None = None,
 ) -> Any:
     """
-    Декоратор methodа-аспекта. Объявляет числовое поле (int/float) в результате аспекта.
+    Decorator for aspect methods declaring a numeric result field.
 
-    Записывает метаданные checkerа в атрибут ``_checker_meta`` methodа.
-    MetadataBuilder собирает эти метаданные в checker snapshot (GateCoordinator.get_checkers).
-    Машина создаёт экземпляр ResultFloatChecker из checker snapshot entry
-    и вызывает checker.check(result_dict) при выполнении аспекта.
+    Writes checker metadata to method attribute ``_checker_meta``.
+    Inspector/builder flow collects metadata into checker snapshots, then
+    runtime creates ``ResultFloatChecker`` and calls ``checker.check(result_dict)``.
 
     Args:
-        field_name: имя поля в словаре результата аспекта.
-        required: required ли поле. По умолчанию True.
-        min_value: минимально допустимое значение (включительно).
-        max_value: максимально допустимое значение (включительно).
+        field_name: field name in aspect result dictionary.
+        required: whether field is required.
+        min_value: minimum allowed value (inclusive).
+        max_value: maximum allowed value (inclusive).
 
     Returns:
-        Декоратор, записывающий _checker_meta в method.
+        Decorator function that appends checker metadata to method.
 
-    Пример:
-        @regular_aspect("Расчёт")
+    Example:
+        @regular_aspect("Calculate")
         @result_float("total", required=True, min_value=0.0)
         async def calculate(self, params, state, box, connections):
             return {"total": 1500.0}

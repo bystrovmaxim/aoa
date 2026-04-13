@@ -1,22 +1,64 @@
 # tests/bench/test_state_validator.py
 """
-Tests for validate_state_for_aspect and validate_state_for_summary.
+Tests for ``validate_state_for_aspect`` and ``validate_state_for_summary``.
 
-These functions check that a manually-provided state dict contains all required
-fields (with correct types) before executing a single aspect or summary via
-TestBench.run_aspect / run_summary. Validation uses checker metadata from
-the GateCoordinator to detect missing or invalid fields early.
+═══════════════════════════════════════════════════════════════════════════════
+PURPOSE
+═══════════════════════════════════════════════════════════════════════════════
 
-Scenarios covered:
-    - Valid state for the second aspect passes without error.
-    - Missing required field raises StateValidationError with field name.
-    - Wrong field type raises StateValidationError with checker description.
-    - First aspect has no preceding checkers — any state is valid.
-    - Non-existent aspect name raises StateValidationError.
-    - validate_state_for_summary checks fields from ALL regular aspects.
-    - Summary with complete valid state passes without error.
-    - Summary with missing field raises StateValidationError.
-    - Optional (required=False) fields do not cause errors when absent.
+Assert manual ``state`` dicts satisfy checker metadata from ``GateCoordinator``
+before ``TestBench.run_aspect`` / ``run_summary`` would execute: per-aspect
+predecessor rules, full rollup for summary, unknown aspect names, and
+``StateValidationError`` attributes.
+
+═══════════════════════════════════════════════════════════════════════════════
+ARCHITECTURE / DATA FLOW
+═══════════════════════════════════════════════════════════════════════════════
+
+    CoreActionMachine.create_coordinator()  ->  fixture ``coordinator``
+              |
+              v
+    aspect + checker snapshots (via get_snapshot)
+              |
+              v
+    validate_state_for_aspect | validate_state_for_summary
+              |
+              v
+    StateValidationError on missing / wrong-type fields
+
+═══════════════════════════════════════════════════════════════════════════════
+INVARIANTS
+═══════════════════════════════════════════════════════════════════════════════
+
+- Summary validation unions requirements from **all** regular aspects on the action.
+- First aspect in order has no preceding checkers -> empty state may pass.
+
+═══════════════════════════════════════════════════════════════════════════════
+EXAMPLES
+═══════════════════════════════════════════════════════════════════════════════
+
+    uv run pytest tests/bench/test_state_validator.py -q
+
+Happy path: ``FullAction`` summary with ``txn_id`` + ``total`` present.
+
+Edge case: ``PingAction`` summary with empty state (no regular aspects).
+
+═══════════════════════════════════════════════════════════════════════════════
+ERRORS / LIMITATIONS
+═══════════════════════════════════════════════════════════════════════════════
+
+- Helper lambdas filter checker rows by ``method_name``; must stay aligned with
+  coordinator snapshots.
+
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE-BEGIN
+═══════════════════════════════════════════════════════════════════════════════
+ROLE: State validation helper tests ahead of bench scoped runs.
+CONTRACT: Structured errors with ``field`` and ``source_aspect`` when applicable.
+INVARIANTS: ``FullAction``, ``PingAction``, ``SimpleAction`` from scenarios.
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE-END
+═══════════════════════════════════════════════════════════════════════════════
 """
 
 import pytest
@@ -101,7 +143,7 @@ class TestValidateForAspect:
         aspects = _coord_aspects(coordinator, FullAction)
         chk = _coord_checkers_for_aspect(coordinator, FullAction)
 
-        with pytest.raises(StateValidationError, match="не найден"):
+        with pytest.raises(StateValidationError, match="was not found"):
             validate_state_for_aspect(aspects, chk, "nonexistent_aspect", {})
 
     def test_single_aspect_action(self, coordinator: GateCoordinator) -> None:

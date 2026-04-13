@@ -1,20 +1,57 @@
 # tests/bench/test_comparison.py
 """
-Tests for the compare_results function and ResultMismatchError.
+Tests for ``compare_results`` and ``ResultMismatchError``.
 
-compare_results compares results from two machines (async and sync) and raises
-ResultMismatchError when values diverge. The function supports three comparison
-strategies: pydantic BaseModel (field-by-field via model_dump), type mismatch
-(different types), and fallback equality (plain == for non-pydantic objects).
+═══════════════════════════════════════════════════════════════════════════════
+PURPOSE
+═══════════════════════════════════════════════════════════════════════════════
 
-Scenarios covered:
-    - Identical pydantic results pass without error.
-    - Diverging pydantic field values raise ResultMismatchError with per-field details.
-    - Different result types raise ResultMismatchError mentioning both type names.
-    - Identical non-pydantic objects (plain dicts, strings) pass without error.
-    - Diverging non-pydantic objects raise ResultMismatchError with repr of both.
-    - ResultMismatchError attributes (left_name, right_name, differences) are populated.
-    - Missing field in one result is reported as "<отсутствует>".
+Verify cross-machine result comparison: pydantic models compared field-wise via
+``model_dump``, type mismatches surfaced before field diff, plain ``==`` fallback
+for non-models, and structured error payloads (names, ``differences``).
+
+═══════════════════════════════════════════════════════════════════════════════
+ARCHITECTURE / DATA FLOW
+═══════════════════════════════════════════════════════════════════════════════
+
+    left_result, right_result  +  machine labels
+              |
+              v
+    compare_results(left, left_name, right, right_name)
+              |
+              +--> same type + BaseModel  ->  per-field diff
+              +--> type clash            ->  ResultMismatchError (no diffs)
+              +--> other                 ->  equality / repr-based mismatch
+
+═══════════════════════════════════════════════════════════════════════════════
+INVARIANTS
+═══════════════════════════════════════════════════════════════════════════════
+
+- ``ResultMismatchError`` subclasses ``AssertionError`` for pytest ergonomics.
+
+═══════════════════════════════════════════════════════════════════════════════
+EXAMPLES
+═══════════════════════════════════════════════════════════════════════════════
+
+    uv run pytest tests/bench/test_comparison.py -q
+
+Edge case: pydantic vs plain dict -> treated as type mismatch.
+
+═══════════════════════════════════════════════════════════════════════════════
+ERRORS / LIMITATIONS
+═══════════════════════════════════════════════════════════════════════════════
+
+- Local ``_OrderResult`` / ``_PingResult`` models exist only for these tests.
+
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE-BEGIN
+═══════════════════════════════════════════════════════════════════════════════
+ROLE: Unit tests for bench result comparison utilities.
+CONTRACT: Silent match or ``ResultMismatchError`` with diagnostic detail.
+INVARIANTS: Minimal pydantic models defined inside this module.
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE-END
+═══════════════════════════════════════════════════════════════════════════════
 """
 
 import pytest
@@ -118,7 +155,7 @@ class TestTypeMismatch:
         left = _OrderResult(order_id="ORD-1", total=100.0)
         right = _PingResult(message="pong")
 
-        with pytest.raises(ResultMismatchError, match="Типы результатов различаются"):
+        with pytest.raises(ResultMismatchError, match="Result types differ"):
             compare_results(left, "Async", right, "Sync")
 
     def test_pydantic_vs_plain(self) -> None:
@@ -126,7 +163,7 @@ class TestTypeMismatch:
         left = _OrderResult(order_id="ORD-1", total=100.0)
         right = {"order_id": "ORD-1", "total": 100.0}
 
-        with pytest.raises(ResultMismatchError, match="Типы результатов различаются"):
+        with pytest.raises(ResultMismatchError, match="Result types differ"):
             compare_results(left, "Async", right, "Sync")
 
 
@@ -140,7 +177,7 @@ class TestDivergingPlain:
 
     def test_different_dicts(self) -> None:
         """Two non-equal dicts raise ResultMismatchError with repr of both."""
-        with pytest.raises(ResultMismatchError, match="расходятся"):
+        with pytest.raises(ResultMismatchError, match="diverged"):
             compare_results({"a": 1}, "Left", {"a": 2}, "Right")
 
     def test_different_strings(self) -> None:

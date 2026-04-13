@@ -1,33 +1,58 @@
 # src/examples/fastapi_mcp_services/app_mcp_service.py
 """
-MCP Service based on ActionMachine.
+MCP server exposing the same ActionMachine actions as the FastAPI example.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Demonstrates creating an MCP server from the same Actions used in the
-FastAPI service. AI agents (Claude, ChatGPT, Cursor) see each Action
-as a tool with full semantics: description from @meta, parameters
-from Pydantic Field(description=..., examples=...), constraints.
+Builds an MCP server via ``McpAdapter`` so AI clients (e.g. Claude, ChatGPT,
+Cursor) call the same ``PingAction``, ``CreateOrderAction``, and ``GetOrderAction``
+as HTTP users. Tool metadata comes from ``@meta`` and Pydantic
+``Field(description=..., examples=...)`` — no duplicate tool specs.
 
 ═══════════════════════════════════════════════════════════════════════════════
-LAUNCH
+ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
+
+    MCP client (stdio or streamable-http)
+              |
+              v
+         McpAdapter
+              |
+              v
+    machine.run(...)  <- ActionProductMachine from infrastructure
+              |
+              v
+    PingAction | CreateOrderAction | GetOrderAction
+
+    auth_coordinator  <- infrastructure.auth (NoAuthCoordinator in this sample)
+
+═══════════════════════════════════════════════════════════════════════════════
+INVARIANTS
+═══════════════════════════════════════════════════════════════════════════════
+
+- Tools must map to action classes from ``actions``, not duplicate handlers.
+- ``auth_coordinator`` is required for all adapters; this example uses
+  ``NoAuthCoordinator`` as an explicit no-auth setup (replace in production).
+- Extra dependency: ``action-machine[mcp]``.
+- ``main()`` defaults transport to ``stdio``; ``--transport <name>`` overrides.
+
+═══════════════════════════════════════════════════════════════════════════════
+EXAMPLES
+═══════════════════════════════════════════════════════════════════════════════
+
+Install and run::
 
     pip install action-machine[mcp]
 
     # stdio (Claude Desktop, Claude Code):
     python -m examples.fastapi_mcp_services.app_mcp_service
 
-    # streamable-http (MCP Inspector):
+    # streamable-http (e.g. MCP Inspector):
     python -m examples.fastapi_mcp_services.app_mcp_service --transport streamable-http
 
-═══════════════════════════════════════════════════════════════════════════════
-CLAUDE DESKTOP
-═══════════════════════════════════════════════════════════════════════════════
-
-In the claude_desktop_config.json file:
+Claude Desktop ``claude_desktop_config.json``::
 
     {
       "mcpServers": {
@@ -38,13 +63,25 @@ In the claude_desktop_config.json file:
       }
     }
 
+Edge case: invalid or missing value after ``--transport`` leaves transport as
+``stdio`` (see ``main()`` parsing).
+
 ═══════════════════════════════════════════════════════════════════════════════
-AUTHENTICATION
+ERRORS / LIMITATIONS
 ═══════════════════════════════════════════════════════════════════════════════
 
-auth_coordinator is required for all adapters. This example uses
-NoAuthCoordinator — explicit declaration of no authentication. In production
-it is replaced with AuthCoordinator with real components.
+- Example-only; not a hardened production MCP deployment.
+- Transport parsing is minimal CLI glue, not a full argument parser.
+
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE-BEGIN
+═══════════════════════════════════════════════════════════════════════════════
+ROLE: MCP entrypoint for dual-transport example; thin adapter over shared machine.
+CONTRACT: Export built ``server``; ``main()`` runs with configurable transport.
+INVARIANTS: No business logic — registration and startup only.
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE-END
+═══════════════════════════════════════════════════════════════════════════════
 """
 
 import sys
@@ -69,7 +106,7 @@ server = (
 
 
 def main() -> None:
-    """Starts the MCP server. --transport selects the transport."""
+    """Run the MCP server; use ``--transport <name>`` to override default stdio."""
     transport = "stdio"
     if "--transport" in sys.argv:
         idx = sys.argv.index("--transport")

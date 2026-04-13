@@ -31,14 +31,6 @@ SCOPE (IN / OUT)
     Loading related rows from storage.
 
 ═══════════════════════════════════════════════════════════════════════════════
-TERMINOLOGY (USE CONSISTENTLY)
-═══════════════════════════════════════════════════════════════════════════════
-
-**Intent / decorator / scratch / inspector / GateCoordinator** — entity
-relation metadata becomes facet payloads when **inspectors** read annotations
-and defaults; the **GateCoordinator** graph stores validated edges.
-
-═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -131,6 +123,17 @@ ERRORS / LIMITATIONS
 - ``AttributeError``: mutation of frozen marker instances.
 - Missing ``Inverse``/``NoInverse`` or ``Rel`` on a relation field — reported
   during coordinator **build**, not here.
+
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE-BEGIN
+═══════════════════════════════════════════════════════════════════════════════
+ROLE: Relation marker primitives for Annotated entity fields.
+CONTRACT: Encode inverse linkage intent and mandatory per-edge description metadata.
+INVARIANTS: Marker objects are frozen and validate constructor inputs eagerly.
+FLOW: field annotation/default -> marker parsing by inspector -> coordinator relation edge validation.
+FAILURES: TypeError/ValueError for invalid marker inputs; build-time errors for missing/invalid marker combinations.
+EXTENSION POINTS: Custom marker-style metadata objects can follow the same immutable pattern.
+AI-CORE-END
 """
 
 from __future__ import annotations
@@ -159,6 +162,12 @@ class Inverse:
             Related entity **type** (subclass of ``BaseEntity`` in practice).
         ``field_name``
             Attribute name on ``target_entity`` that points back (or across).
+
+    AI-CORE-BEGIN
+    ROLE: Explicit inverse relation pointer.
+    CONTRACT: Bind current relation field to a concrete target entity field.
+    INVARIANTS: target entity must be a type; field name must be non-empty string.
+    AI-CORE-END
     """
 
     __slots__ = ("_field_name", "_target_entity")
@@ -245,6 +254,12 @@ class NoInverse:
 
     **Neighbors**
         Combined with a relation container and ``Rel(description=...)``.
+
+    AI-CORE-BEGIN
+    ROLE: Explicit marker for one-way relation edges.
+    CONTRACT: Signals intentional absence of reverse field mapping.
+    INVARIANTS: Stateless frozen marker object.
+    AI-CORE-END
     """
 
     __slots__ = ()
@@ -286,6 +301,12 @@ class Rel:
     **Attributes**
         ``description``
             Human-readable text for **this** direction of the edge.
+
+    AI-CORE-BEGIN
+    ROLE: Mandatory relation description carrier.
+    CONTRACT: Provide non-empty documentation text for one direction of an entity relation edge.
+    INVARIANTS: Description is validated and immutable after construction.
+    AI-CORE-END
     """
 
     __slots__ = ("_description",)

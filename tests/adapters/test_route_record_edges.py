@@ -1,41 +1,74 @@
 # tests/adapters/test_route_record_edges.py
 """
-Дополнительные тесты извлечения типов из BaseAction[P, R].
+Extra coverage for type extraction on ``BaseAction[P, R]`` route records.
 
 ═══════════════════════════════════════════════════════════════════════════════
-НАЗНАЧЕНИЕ
+PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Закрывает непокрытые строки в base_route_record.py:
+Exercises edge branches in ``base_route_record.py``:
 
-- _resolve_forward_ref: ветка неудачного резолва (строки 205-208).
-- _resolve_generic_arg: ветка с аргументом-строкой (строки 228, 233-236).
-- effective_request_model / effective_response_model с явным override,
-  отличающимся от извлечённого типа (строки 273, 275, 278).
+- ``_resolve_forward_ref``: failed resolution paths.
+- ``_resolve_generic_arg``: string arguments and unknown argument kinds.
+- ``effective_request_model`` / ``effective_response_model`` when an explicit
+  override differs from the extracted generic args (with mappers present).
 
-Все хелперы, которые представляют заведомо нерабочие или нестандартные
-Action, создаются внутри теста — они не могут быть частью рабочей
-доменной модели.
+Broken or non-standard ``Action`` stand-ins are defined **inside this module**
+only — they are not part of the shared scenario domain.
 
 ═══════════════════════════════════════════════════════════════════════════════
-СЦЕНАРИИ
+ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-_resolve_forward_ref:
-    - ForwardRef, указывающий на несуществующий класс, возвращает None.
-    - ForwardRef, указывающий на не-тип, возвращает None.
+    tests (this module)
+              |
+              v
+    base_route_record._resolve_forward_ref / _resolve_generic_arg
+    (called directly — not via public adapter APIs)
+              |
+              v
+    PingAction (scenario anchor)  +  local _TestRecord
+              |
+              +--> failed ref / odd arg  ->  None
+              |
+              +--> _TestRecord + mappers  ->  effective_*_model overrides
 
-_resolve_generic_arg:
-    - Строковый аргумент оборачивается в ForwardRef и резолвится.
-    - Строковый аргумент с несуществующим именем возвращает None.
-    - Аргумент неизвестного типа (не type, не ForwardRef, не str)
-      возвращает None.
+═══════════════════════════════════════════════════════════════════════════════
+INVARIANTS
+═══════════════════════════════════════════════════════════════════════════════
 
-effective models:
-    - effective_request_model возвращает request_model, когда тот
-      отличается от params_type (с маппером).
-    - effective_response_model возвращает response_model, когда тот
-      отличается от result_type (с маппером).
+- ``action_class`` must be a concrete ``BaseAction`` subclass before type
+  extraction helpers run in production; tests call private helpers directly
+  with controlled inputs.
+
+═══════════════════════════════════════════════════════════════════════════════
+EXAMPLES
+═══════════════════════════════════════════════════════════════════════════════
+
+    uv run pytest tests/adapters/test_route_record_edges.py -q
+
+Happy path: ``_resolve_generic_arg("PingAction.Result", PingAction)`` resolves
+to ``PingAction.Result``.
+
+Edge case: ``ForwardRef("__name__")`` against ``PingAction`` resolves to a
+non-type → ``_resolve_forward_ref`` returns ``None``.
+
+═══════════════════════════════════════════════════════════════════════════════
+ERRORS / LIMITATIONS
+═══════════════════════════════════════════════════════════════════════════════
+
+- Private function names (``_resolve_*``) are implementation details; imports
+  may need updates if the module is refactored.
+
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE-BEGIN
+═══════════════════════════════════════════════════════════════════════════════
+ROLE: Route-record type resolution edge tests.
+CONTRACT: None/identity outcomes for forward refs and generic args; effective models.
+INVARIANTS: Local record subclass; scenario ``PingAction`` as anchor class.
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE-END
+═══════════════════════════════════════════════════════════════════════════════
 """
 
 from dataclasses import dataclass
@@ -52,70 +85,67 @@ from action_machine.model.base_params import BaseParams
 from tests.scenarios.domain_model import PingAction
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Хелперы — заведомо нестандартные модели, не часть рабочей доменной модели.
+# Helpers — non-standard models, not part of the production domain.
 # ─────────────────────────────────────────────────────────────────────────────
 
 
 @dataclass(frozen=True)
 class _TestRecord(BaseRouteRecord):
-    """Конкретный наследник для тестирования BaseRouteRecord."""
+    """Concrete ``BaseRouteRecord`` for tests."""
     pass
 
 
 class _AltRequest(BaseModel):
-    """Альтернативная модель запроса, отличающаяся от любого Params."""
+    """Request model distinct from any ``Params`` on the action."""
     query: str = "test"
 
 
 class _AltResponse(BaseModel):
-    """Альтернативная модель ответа, отличающаяся от любого Result."""
+    """Response model distinct from any ``Result`` on the action."""
     data: str = "ok"
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# _resolve_forward_ref — ветка неудачного резолва
+# _resolve_forward_ref — failed resolution
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestResolveForwardRef:
-    """Покрывает fallback-ветки _resolve_forward_ref."""
+    """Fallback branches for ``_resolve_forward_ref``."""
 
     def test_nonexistent_class_returns_none(self) -> None:
-        """ForwardRef с именем несуществующего класса возвращает None."""
-        # Arrange — ForwardRef указывает на класс, которого нет ни в модуле,
-        # ни в localns
+        """A forward ref to a missing class name resolves to ``None``."""
+        # Arrange
         ref = ForwardRef("CompletelyNonexistentClassName12345")
 
         # Act
         result = _resolve_forward_ref(ref, PingAction)
 
-        # Assert — резолв не удался, возвращается None
+        # Assert
         assert result is None
 
     def test_non_type_ref_returns_none(self) -> None:
-        """ForwardRef, резолвящийся в не-тип (например, строку), возвращает None."""
-        # Arrange — ForwardRef указывает на имя, которое в globalns является
-        # строкой, а не типом. __name__ — строка 'PingAction' в модуле.
+        """Forward ref that resolves to a non-type object (here: module ``__name__`` str) → ``None``."""
+        # Arrange — ``__name__`` on the action's module is a ``str``, not a ``type``
         ref = ForwardRef("__name__")
 
         # Act
         result = _resolve_forward_ref(ref, PingAction)
 
-        # Assert — __name__ это строка, не type → None
+        # Assert
         assert result is None
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# _resolve_generic_arg — все ветки
+# _resolve_generic_arg — all branches
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestResolveGenericArg:
-    """Покрывает все три ветки _resolve_generic_arg."""
+    """All branches of ``_resolve_generic_arg``."""
 
     def test_type_passthrough(self) -> None:
-        """Конкретный тип возвращается без изменений."""
-        # Arrange — аргумент уже является type
+        """A concrete ``type`` is returned unchanged."""
         # Act
         result = _resolve_generic_arg(BaseParams, PingAction)
 
@@ -123,8 +153,8 @@ class TestResolveGenericArg:
         assert result is BaseParams
 
     def test_forward_ref_resolved(self) -> None:
-        """ForwardRef резолвится в конкретный тип через контекст action_class."""
-        # Arrange — ForwardRef на вложенный класс
+        """``ForwardRef`` resolves against the action class context."""
+        # Arrange
         ref = ForwardRef("PingAction.Params")
 
         # Act
@@ -134,8 +164,7 @@ class TestResolveGenericArg:
         assert result is PingAction.Params
 
     def test_string_resolved(self) -> None:
-        """Строковый аргумент оборачивается в ForwardRef и резолвится."""
-        # Arrange — строка вместо ForwardRef
+        """String arguments are wrapped as ``ForwardRef`` and resolved."""
         # Act
         result = _resolve_generic_arg("PingAction.Result", PingAction)
 
@@ -143,8 +172,7 @@ class TestResolveGenericArg:
         assert result is PingAction.Result
 
     def test_string_nonexistent_returns_none(self) -> None:
-        """Строка с несуществующим именем возвращает None."""
-        # Arrange
+        """An unknown string name resolves to ``None``."""
         # Act
         result = _resolve_generic_arg("NoSuchClass999", PingAction)
 
@@ -152,8 +180,8 @@ class TestResolveGenericArg:
         assert result is None
 
     def test_unknown_type_returns_none(self) -> None:
-        """Аргумент неизвестного типа (не type, не ForwardRef, не str) → None."""
-        # Arrange — передаём число
+        """Non-type, non-ForwardRef, non-str arguments → ``None``."""
+        # Arrange — integer argument
         # Act
         result = _resolve_generic_arg(42, PingAction)
 
@@ -162,16 +190,16 @@ class TestResolveGenericArg:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# effective_request_model / effective_response_model с override
+# effective_request_model / effective_response_model with overrides
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestEffectiveModelOverrides:
-    """Покрывает ветки effective_*_model, когда указан отличающийся тип с маппером."""
+    """``effective_*_model`` when override types differ (with mappers)."""
 
     def test_effective_request_with_different_model(self) -> None:
-        """request_model отличается от params_type — effective возвращает request_model."""
-        # Arrange — _AltRequest != PingAction.Params, маппер предоставлен
+        """``request_model`` wins over extracted ``params_type`` when mappers exist."""
+        # Arrange — _AltRequest != PingAction.Params
         record = _TestRecord(
             action_class=PingAction,
             request_model=_AltRequest,
@@ -185,8 +213,8 @@ class TestEffectiveModelOverrides:
         assert result is _AltRequest
 
     def test_effective_response_with_different_model(self) -> None:
-        """response_model отличается от result_type — effective возвращает response_model."""
-        # Arrange — _AltResponse != PingAction.Result, маппер предоставлен
+        """``response_model`` wins over extracted ``result_type`` when mappers exist."""
+        # Arrange — _AltResponse != PingAction.Result
         record = _TestRecord(
             action_class=PingAction,
             response_model=_AltResponse,

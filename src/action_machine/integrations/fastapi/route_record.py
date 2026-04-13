@@ -1,94 +1,70 @@
 # src/action_machine/integrations/fastapi/route_record.py
 """
-FastApiRouteRecord — frozen-датакласс маршрута для FastAPI-адаптера.
+FastApiRouteRecord — frozen route record for FastAPI adapter.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-FastApiRouteRecord — конкретный наследник BaseRouteRecord с HTTP-специфичными
-полями. Хранит полную конфигурацию одного HTTP-эндпоинта: method, путь, теги,
-описание, operation_id, deprecated. Используется FastApiAdapter при build()
-для генерации FastAPI-маршрутов.
+Concrete ``BaseRouteRecord`` subtype for HTTP transport metadata.
+It stores one endpoint contract consumed by ``FastApiAdapter.build()``.
 
 ═══════════════════════════════════════════════════════════════════════════════
-HTTP-СПЕЦИФИЧНЫЕ ПОЛЯ
+INVARIANTS
 ═══════════════════════════════════════════════════════════════════════════════
 
-    method : str
-        HTTP-method: GET, POST, PUT, DELETE, PATCH. Приводится к верхнему
-        регистру при валидации. Допустимые значения определены в множестве
-        ``_ALLOWED_METHODS``. По умолчанию "POST".
-
-    path : str
-        URL-путь эндпоинта. Непустая строка, начинающаяся с ``/``.
-        Поддерживает path-параметры FastAPI: ``/orders/{order_id}``.
-        По умолчанию "/".
-
-    tags : tuple[str, ...]
-        Теги для группировки в OpenAPI/Swagger UI. Каждый тег
-        отображается как отдельная секция в документации.
-        По умолчанию пустой кортеж.
-
-    summary : str
-        Краткое описание эндпоинта для OpenAPI. Отображается рядом
-        с путём в Swagger UI. Если пустая строка — FastApiAdapter
-        подставит description из ``@meta`` действия.
-        По умолчанию пустая строка.
-
-    description : str
-        Развёрнутое описание эндпоинта для OpenAPI. Отображается
-        при раскрытии эндпоинта в Swagger UI. Поддерживает Markdown.
-        По умолчанию пустая строка.
-
-    operation_id : str | None
-        Уникальный идентификатор операции в OpenAPI. Если None —
-        FastAPI генерирует автоматически из имени функции.
-        По умолчанию None.
-
-    deprecated : bool
-        Флаг устаревшего эндпоинта. В Swagger UI отображается
-        зачёркнутым. По умолчанию False.
+- Inherits all ``BaseRouteRecord`` invariants:
+  - ``action_class`` must be a ``BaseAction`` subtype.
+  - ``params_type`` / ``result_type`` are extracted from ``BaseAction[P, R]``.
+  - ``params_mapper`` is required when request model differs from params type.
+  - ``response_mapper`` is required when response model differs from result type.
+- ``method`` is normalized to uppercase and must be in
+  ``{GET, POST, PUT, DELETE, PATCH}``.
+- ``path`` must be non-empty and start with ``/``.
 
 ═══════════════════════════════════════════════════════════════════════════════
-НАСЛЕДОВАНИЕ ОТ BaseRouteRecord
+ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-Наследует от BaseRouteRecord все общие поля: action_class, request_model,
-response_model, params_mapper, response_mapper. Наследует все инварианты:
-
-- action_class должен быть подклассом BaseAction.
-- params_type и result_type извлекаются автоматически из BaseAction[P, R].
-- Если request_model указан и отличается от params_type — params_mapper
-  обязателен.
-- Если response_model указан и отличается от result_type — response_mapper
-  обязателен.
-
-В ``__post_init__`` выполняются HTTP-специфичные проверки:
-
-- method из допустимого набора {GET, POST, PUT, DELETE, PATCH}.
-- path непустой и начинается с ``/``.
-
-═══════════════════════════════════════════════════════════════════════════════
-КОНВЕНЦИЯ ИМЕНОВАНИЯ МАППЕРОВ
-═══════════════════════════════════════════════════════════════════════════════
-
-Каждый маппер назван по тому, что он ВОЗВРАЩАЕТ:
-
-    params_mapper   → возвращает params   (преобразует request → params)
-    response_mapper → возвращает response (преобразует result  → response)
+    Protocol registration
+            |
+            v
+    FastApiAdapter.post/get/...(...)
+            |
+            v
+    FastApiRouteRecord(
+        action_class + mappers + HTTP metadata
+    )
+            |
+            v
+    FastApiAdapter.build()
+            |
+            v
+    FastAPI route + OpenAPI operation
 
 ═══════════════════════════════════════════════════════════════════════════════
-ПРИМЕР СОЗДАНИЯ
+HTTP-SPECIFIC FIELDS
 ═══════════════════════════════════════════════════════════════════════════════
 
-    # Минимум:
+- ``method``: HTTP method, default ``"POST"``.
+- ``path``: endpoint URL path, default ``"/"``.
+- ``tags``: OpenAPI tags, default ``()``.
+- ``summary``: short OpenAPI summary, default ``""``.
+- ``description``: detailed OpenAPI description, default ``""``.
+- ``operation_id``: optional operation identifier, default ``None``.
+- ``deprecated``: deprecation flag, default ``False``.
+
+═══════════════════════════════════════════════════════════════════════════════
+EXAMPLES
+═══════════════════════════════════════════════════════════════════════════════
+
+    # Minimal:
     record = FastApiRouteRecord(
         action_class=CreateOrderAction,
         path="/api/v1/orders",
     )
 
-    # Полный набор:
+    # Full:
     record = FastApiRouteRecord(
         action_class=CreateOrderAction,
         request_model=CreateOrderRequest,
@@ -98,11 +74,34 @@ response_model, params_mapper, response_mapper. Наследует все инв
         method="POST",
         path="/api/v1/orders",
         tags=("orders", "create"),
-        summary="Создание заказа",
-        description="Создаёт новый заказ в системе.",
+        summary="Create order",
+        description="Create a new order in the system.",
         operation_id="create_order",
         deprecated=False,
     )
+
+    # Edge case: lowercase method is normalized.
+    record = FastApiRouteRecord(
+        action_class=CreateOrderAction,
+        method="post",
+        path="/api/v1/orders",
+    )
+    assert record.method == "POST"
+
+═══════════════════════════════════════════════════════════════════════════════
+ERRORS / LIMITATIONS
+═══════════════════════════════════════════════════════════════════════════════
+
+- Raises ``ValueError`` for unsupported HTTP methods and invalid paths.
+- Raises ``TypeError`` / ``ValueError`` propagated from ``BaseRouteRecord``
+  when generic contracts or mapper requirements are violated.
+- This object defines metadata only; it does not execute actions itself.
+
+AI-CORE-BEGIN
+ROLE: Immutable transport contract for one FastAPI endpoint.
+CONTRACT: Merges BaseRouteRecord generic mapping invariants with HTTP metadata.
+INVARIANTS: method uppercase+allowed; path non-empty and slash-prefixed.
+AI-CORE-END
 """
 
 from __future__ import annotations
@@ -111,7 +110,7 @@ from dataclasses import dataclass
 
 from action_machine.adapters.base_route_record import BaseRouteRecord
 
-# Допустимые HTTP-methodы.
+# Allowed HTTP methods.
 _ALLOWED_METHODS: frozenset[str] = frozenset({
     "GET",
     "POST",
@@ -124,43 +123,16 @@ _ALLOWED_METHODS: frozenset[str] = frozenset({
 @dataclass(frozen=True)
 class FastApiRouteRecord(BaseRouteRecord):
     """
-    Frozen-датакласс маршрута для FastAPI-адаптера.
+    Immutable HTTP route descriptor used by ``FastApiAdapter``.
 
-    Наследует BaseRouteRecord (action_class, request_model, response_model,
-    params_mapper, response_mapper) и добавляет HTTP-специфичные поля.
-
-    Frozen — после создания ни одно поле изменить нельзя.
-
-    Validation в ``__post_init__``:
-    - Вызывает ``super().__post_init__()`` для проверки инвариантов
-      BaseRouteRecord (action_class, маппинг, извлечение P и R).
-    - Checks method из допустимого набора.
-    - Checks path непустой и начинается с ``/``.
-
-    Атрибуты (HTTP-специфичные поля):
-        method : str
-            HTTP-method. По умолчанию "POST".
-
-        path : str
-            URL-путь эндпоинта. По умолчанию "/".
-
-        tags : tuple[str, ...]
-            Теги для OpenAPI. По умолчанию ().
-
-        summary : str
-            Краткое описание для OpenAPI. По умолчанию "".
-
-        description : str
-            Развёрнутое описание для OpenAPI. По умолчанию "".
-
-        operation_id : str | None
-            Уникальный ID операции в OpenAPI. По умолчанию None.
-
-        deprecated : bool
-            Флаг устаревшего эндпоинта. По умолчанию False.
+    AI-CORE-BEGIN
+    ROLE: Binds one action contract to one HTTP/OpenAPI endpoint declaration.
+    CONTRACT: Extends BaseRouteRecord with method/path/tags/docs metadata.
+    INVARIANTS: Frozen instance, validated method, validated path.
+    AI-CORE-END
     """
 
-    # ── HTTP-специфичные поля ──────────────────────────────────────────
+    # ── HTTP-specific fields ───────────────────────────────────────────
 
     method: str = "POST"
     path: str = "/"
@@ -174,54 +146,50 @@ class FastApiRouteRecord(BaseRouteRecord):
 
     def __post_init__(self) -> None:
         """
-        Checks HTTP-специфичные инварианты после создания экземпляра.
+        Validate HTTP-specific invariants after instance construction.
 
-        Порядок:
+        Order:
 
-        1. Вызов ``super().__post_init__()`` — проверка инвариантов
-           BaseRouteRecord (action_class, маппинг, извлечение P и R,
-           запрет прямого создания BaseRouteRecord).
+        1. Call ``super().__post_init__()`` to validate BaseRouteRecord
+           invariants (action class, mapper contracts, generic extraction).
 
-        2. Нормализация method: приведение к верхнему регистру.
-           Frozen dataclass не позволяет ``self.method = ...``,
-           поэтому используется ``object.__setattr__``.
+        2. Normalize method to uppercase.
+           Because this is a frozen dataclass, ``object.__setattr__`` is used.
 
-        3. Проверка method из допустимого набора.
+        3. Validate method against allowed set.
 
-        4. Проверка path: непустой и начинается с ``/``.
+        4. Validate non-empty path starting with ``/``.
 
         Raises:
-            TypeError: от BaseRouteRecord (action_class не BaseAction,
-                       не удалось извлечь P и R).
-            ValueError: от BaseRouteRecord (маппер отсутствует при
-                        различающихся типах); method недопустимый;
-                        path пустой или не начинается с ``/``.
+            TypeError: from BaseRouteRecord when base invariants fail.
+            ValueError: from BaseRouteRecord mapper invariants, unsupported
+                method, empty path, or missing leading slash.
         """
-        # ── 1. Инварианты BaseRouteRecord ──
+        # ── 1. BaseRouteRecord invariants ──
         super().__post_init__()
 
-        # ── 2. Нормализация method ──
+        # ── 2. Method normalization ──
         normalized_method = self.method.upper()
         object.__setattr__(self, "method", normalized_method)
 
-        # ── 3. Проверка method ──
+        # ── 3. Method validation ──
         if normalized_method not in _ALLOWED_METHODS:
             allowed = ", ".join(sorted(_ALLOWED_METHODS))
             raise ValueError(
-                f"method должен быть одним из: {allowed}. "
-                f"Получен: '{self.method}'."
+                f"method must be one of: {allowed}. "
+                f"Got: '{self.method}'."
             )
 
-        # ── 4. Проверка path ──
+        # ── 4. Path validation ──
         if not self.path or not self.path.strip():
             raise ValueError(
-                "path не может быть пустой строкой. "
-                "Укажите путь эндпоинта, например '/api/v1/orders'."
+                "path cannot be empty. "
+                "Provide an endpoint path, for example '/api/v1/orders'."
             )
 
         if not self.path.startswith("/"):
             raise ValueError(
-                f"path должен начинаться с '/'. "
-                f"Получен: '{self.path}'. "
-                f"Укажите путь, например '/{self.path}'."
+                f"path must start with '/'. "
+                f"Got: '{self.path}'. "
+                f"Use a path like '/{self.path}'."
             )

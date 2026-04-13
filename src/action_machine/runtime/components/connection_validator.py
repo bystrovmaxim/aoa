@@ -30,17 +30,18 @@ INVARIANTS
 
 - Validation must preserve existing connection error semantics.
 - Returned dictionary is always non-None.
+- Validation covers declared keys and runtime value types only.
 
 ═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
 Happy path:
-- `validate(...)` returns normalized declared connections dictionary.
+    ``validate(...)`` returns normalized declared connections dictionary.
 
 Edge case:
-- Validation raises `ConnectionValidationError` on missing or extra
-  connection keys.
+    Validation raises ``ConnectionValidationError`` on missing, extra, or
+    invalid-typed connection entries.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ERRORS / LIMITATIONS
@@ -48,6 +49,7 @@ ERRORS / LIMITATIONS
 
 - This component intentionally does not inspect dependency declarations.
 - Contract is limited to `@connection` metadata validation only.
+- Orchestration timing/order remains owned by machine coordinator.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN

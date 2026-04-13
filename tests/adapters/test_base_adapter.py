@@ -1,21 +1,66 @@
 # tests/adapters/test_base_adapter.py
 """
-Tests for BaseAdapter — the abstract base class for all protocol adapters.
+Unit tests for ``BaseAdapter`` — the abstract base for protocol adapters.
 
-BaseAdapter[R] stores the machine, auth_coordinator, connections_factory,
-and a list of route records. It enforces mandatory auth_coordinator (no None
-allowed) and validates that machine is an ActionProductMachine instance.
-The _add_route method provides a fluent API by returning self.
+═══════════════════════════════════════════════════════════════════════════════
+PURPOSE
+═══════════════════════════════════════════════════════════════════════════════
 
-Scenarios covered:
-    - Constructor rejects None auth_coordinator with TypeError.
-    - Constructor rejects non-ActionProductMachine machine with TypeError.
-    - Constructor accepts valid machine + auth_coordinator.
-    - Properties expose machine, auth_coordinator, connections_factory, routes.
-    - _add_route appends a record and returns self (fluent).
-    - routes starts empty.
-    - connections_factory defaults to None.
-    - build() is abstract — cannot be called on BaseAdapter directly.
+Assert constructor validation (machine type, mandatory ``auth_coordinator``),
+property surfaces (including optional ``gate_coordinator`` override and
+``connections_factory``), fluent ``_add_route``, and that the abstract class
+cannot be instantiated without a concrete ``build()``.
+
+═══════════════════════════════════════════════════════════════════════════════
+ARCHITECTURE / DATA FLOW
+═══════════════════════════════════════════════════════════════════════════════
+
+    pytest
+      |
+      v
+    _TestAdapter (concrete ``build()`` no-op)
+      |
+      v
+    BaseAdapter[R]  --stores-->  machine, auth_coordinator,
+                                 gate_coordinator (default / override),
+                                 connections_factory, _routes
+      |
+      v
+    _add_route(record)  ->  append + return self (fluent)
+
+═══════════════════════════════════════════════════════════════════════════════
+INVARIANTS
+═══════════════════════════════════════════════════════════════════════════════
+
+- ``machine`` must be a real ``ActionProductMachine`` instance (mocks are rejected).
+- ``auth_coordinator`` must not be ``None``.
+- ``routes`` mirrors registration order; initial list is empty.
+
+═══════════════════════════════════════════════════════════════════════════════
+EXAMPLES
+═══════════════════════════════════════════════════════════════════════════════
+
+    uv run pytest tests/adapters/test_base_adapter.py -q
+
+Edge case: explicit ``gate_coordinator`` replaces ``machine.gate_coordinator`` on
+the adapter without mutating the machine.
+
+═══════════════════════════════════════════════════════════════════════════════
+ERRORS / LIMITATIONS
+═══════════════════════════════════════════════════════════════════════════════
+
+- Assertions match substring patterns in ``TypeError`` messages from
+  ``BaseAdapter.__init__``; message tweaks in production require test updates.
+
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE-BEGIN
+═══════════════════════════════════════════════════════════════════════════════
+ROLE: Regression tests for adapter base state and validation.
+CONTRACT: TypeError on bad ctor args; fluent route list; abstract class guard.
+INVARIANTS: ``_TestAdapter`` is the only concrete subclass used here.
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE-END
+═══════════════════════════════════════════════════════════════════════════════
 """
 
 from unittest.mock import AsyncMock, MagicMock
@@ -28,16 +73,16 @@ from action_machine.graph.gate_coordinator import GateCoordinator
 from action_machine.runtime.machines.action_product_machine import ActionProductMachine
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Concrete subclass for testing — BaseAdapter is abstract and cannot be
-# instantiated directly. This minimal subclass implements build() as a no-op.
+# Concrete subclass — ``BaseAdapter`` is abstract and cannot be instantiated
+# directly. This minimal subclass implements ``build()`` as a no-op.
 # ─────────────────────────────────────────────────────────────────────────────
 
 
 class _TestAdapter(BaseAdapter[BaseRouteRecord]):
-    """Minimal concrete adapter for testing BaseAdapter behavior."""
+    """Minimal concrete adapter used only to exercise ``BaseAdapter`` behavior."""
 
     def build(self):
-        """No-op build — returns None. Only needed to satisfy the abstract contract."""
+        """No-op ``build`` — satisfies the abstract contract for tests."""
         return None
 
 
@@ -47,15 +92,32 @@ class _TestAdapter(BaseAdapter[BaseRouteRecord]):
 
 
 def _make_machine() -> ActionProductMachine:
-    """Create a minimal ActionProductMachine for adapter tests."""
+    """Return a minimal ``ActionProductMachine`` in ``test`` mode."""
     return ActionProductMachine(mode="test")
 
 
 def _make_auth() -> AsyncMock:
-    """Create a mock auth_coordinator with a process method."""
+    """Return a mock ``auth_coordinator`` with ``process`` stubbed."""
     auth = AsyncMock()
     auth.process.return_value = None
     return auth
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# Abstract class guard
+# ═════════════════════════════════════════════════════════════════════════════
+
+
+class TestAbstractBaseAdapter:
+    """``BaseAdapter`` stays abstract until ``build()`` is implemented."""
+
+    def test_cannot_instantiate_without_concrete_build(self) -> None:
+        """Direct ``BaseAdapter`` construction raises (abstract ``build()``)."""
+        with pytest.raises(TypeError, match="abstract"):
+            BaseAdapter(
+                machine=_make_machine(),
+                auth_coordinator=_make_auth(),
+            )
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -64,27 +126,27 @@ def _make_auth() -> AsyncMock:
 
 
 class TestConstructorValidation:
-    """Verify that BaseAdapter enforces mandatory parameters at construction time."""
+    """Constructor rejects invalid ``machine`` and missing ``auth_coordinator``."""
 
     def test_rejects_none_auth_coordinator(self) -> None:
-        """Passing auth_coordinator=None raises TypeError with guidance message."""
+        """``auth_coordinator=None`` raises ``TypeError`` mentioning auth."""
         machine = _make_machine()
 
         with pytest.raises(TypeError, match="auth_coordinator"):
             _TestAdapter(machine=machine, auth_coordinator=None)
 
     def test_rejects_non_machine(self) -> None:
-        """Passing a non-ActionProductMachine object as machine raises TypeError."""
+        """A non-``ActionProductMachine`` ``machine`` raises ``TypeError``."""
         with pytest.raises(TypeError, match="ActionProductMachine"):
             _TestAdapter(machine="not_a_machine", auth_coordinator=_make_auth())
 
     def test_rejects_mock_as_machine(self) -> None:
-        """Even a MagicMock is rejected — must be a real ActionProductMachine."""
+        """``MagicMock`` is not accepted as ``machine`` — type must be concrete."""
         with pytest.raises(TypeError, match="ActionProductMachine"):
             _TestAdapter(machine=MagicMock(), auth_coordinator=_make_auth())
 
     def test_accepts_valid_arguments(self) -> None:
-        """Valid machine + auth_coordinator creates the adapter without error."""
+        """Valid ``machine`` + ``auth_coordinator`` constructs without error."""
         machine = _make_machine()
         auth = _make_auth()
 
@@ -100,27 +162,27 @@ class TestConstructorValidation:
 
 
 class TestProperties:
-    """Verify read-only properties expose internal state correctly."""
+    """Read-only properties mirror constructor inputs and defaults."""
 
     def test_machine_property(self) -> None:
-        """machine property returns the ActionProductMachine passed to constructor."""
+        """``machine`` returns the instance passed into the constructor."""
         machine = _make_machine()
         adapter = _TestAdapter(machine=machine, auth_coordinator=_make_auth())
         assert adapter.machine is machine
 
     def test_auth_coordinator_property(self) -> None:
-        """auth_coordinator property returns the coordinator passed to constructor."""
+        """``auth_coordinator`` returns the object passed into the constructor."""
         auth = _make_auth()
         adapter = _TestAdapter(machine=_make_machine(), auth_coordinator=auth)
         assert adapter.auth_coordinator is auth
 
     def test_connections_factory_defaults_to_none(self) -> None:
-        """When not provided, connections_factory is None."""
+        """Omitted ``connections_factory`` is ``None``."""
         adapter = _TestAdapter(machine=_make_machine(), auth_coordinator=_make_auth())
         assert adapter.connections_factory is None
 
     def test_connections_factory_stored(self) -> None:
-        """Explicitly passed connections_factory is stored and returned."""
+        """Explicit ``connections_factory`` is stored and exposed."""
         factory = MagicMock()
         adapter = _TestAdapter(
             machine=_make_machine(),
@@ -130,13 +192,13 @@ class TestProperties:
         assert adapter.connections_factory is factory
 
     def test_gate_coordinator_defaults_to_machine(self) -> None:
-        """When omitted, gate_coordinator matches machine.gate_coordinator."""
+        """Omitted ``gate_coordinator`` falls back to ``machine.gate_coordinator``."""
         machine = _make_machine()
         adapter = _TestAdapter(machine=machine, auth_coordinator=_make_auth())
         assert adapter.gate_coordinator is machine.gate_coordinator
 
     def test_gate_coordinator_explicit_override(self) -> None:
-        """Optional gate_coordinator replaces the machine's coordinator reference."""
+        """Explicit ``gate_coordinator`` overrides the machine’s coordinator."""
         machine = _make_machine()
         alt = MagicMock(spec=GateCoordinator)
         adapter = _TestAdapter(
@@ -147,21 +209,21 @@ class TestProperties:
         assert adapter.gate_coordinator is alt
 
     def test_routes_starts_empty(self) -> None:
-        """routes list is empty immediately after construction."""
+        """``routes`` is empty immediately after construction."""
         adapter = _TestAdapter(machine=_make_machine(), auth_coordinator=_make_auth())
         assert adapter.routes == []
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Fluent _add_route
+# Fluent ``_add_route``
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestAddRoute:
-    """Verify _add_route appends records and supports fluent chaining."""
+    """``_add_route`` appends records and returns ``self`` for chaining."""
 
     def test_returns_self(self) -> None:
-        """_add_route returns the same adapter instance for fluent chaining."""
+        """``_add_route`` returns the same adapter instance."""
         adapter = _TestAdapter(machine=_make_machine(), auth_coordinator=_make_auth())
         sentinel = MagicMock()
 
@@ -170,7 +232,7 @@ class TestAddRoute:
         assert result is adapter
 
     def test_appends_record(self) -> None:
-        """Each _add_route call appends the record to routes."""
+        """Each ``_add_route`` call appends to ``routes`` in order."""
         adapter = _TestAdapter(machine=_make_machine(), auth_coordinator=_make_auth())
         r1 = MagicMock()
         r2 = MagicMock()
@@ -183,7 +245,7 @@ class TestAddRoute:
         assert adapter.routes[1] is r2
 
     def test_fluent_chain(self) -> None:
-        """Multiple _add_route calls can be chained."""
+        """Multiple ``_add_route`` calls chain fluently."""
         adapter = _TestAdapter(machine=_make_machine(), auth_coordinator=_make_auth())
         r1 = MagicMock()
         r2 = MagicMock()

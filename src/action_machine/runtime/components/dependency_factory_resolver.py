@@ -38,11 +38,13 @@ ARCHITECTURE / DATA FLOW
 EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
-Happy path: the production machine passes ``self`` into ``create``; it exposes
-``dependency_factory_for`` publicly.
+Happy path:
+    Production machine passes ``self`` into factory ``create(...)`` and exposes
+    public ``dependency_factory_for``.
 
-Edge case: tests pass a small stub object or ``MagicMock(spec_set=...)`` that
-only implements ``dependency_factory_for``.
+Edge case:
+    Tests pass a stub object or ``MagicMock(spec_set=...)`` implementing only
+    ``dependency_factory_for``.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ERRORS / LIMITATIONS

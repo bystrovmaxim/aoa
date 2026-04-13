@@ -2,7 +2,8 @@
 """
 Abstract base for typed **role marker** classes (frozen declaration, like domains).
 
-Иерархия слоёв (каждый класс — отдельный модуль в этом пакете) описана в
+Module layout and the full **SystemRole** vs **ApplicationRole** split are
+summarized in the package ``__init__`` (**ROLE TYPE HIERARCHY**) and expanded in
 ``docs/architecture/role-hierarchy.md``.
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -27,7 +28,7 @@ INVARIANTS
   ``role_mode`` module).
 
 ═══════════════════════════════════════════════════════════════════════════════
-DATA FLOW
+ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
 ::

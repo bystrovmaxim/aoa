@@ -1,46 +1,44 @@
 # tests/runtime/test_sync_machine.py
-"""
-Тесты SyncActionProductMachine — синхронная обёртка над ActionProductMachine.
+"""Tests SyncActionProductMachine - synchronous wrapper for ActionProductMachine.
 
-═══════════════════════════════════════════════════════════════════════════════
-НАЗНАЧЕНИЕ
-═══════════════════════════════════════════════════════════════════════════════
+═══════════════════ ════════════════════ ════════════════════ ════════════════════
+PURPOSE
+═══════════════════ ════════════════════ ════════════════════ ════════════════════
 
-SyncActionProductMachine — синхронный аналог ActionProductMachine. Метод
-run() является обычным (не async) методом, который вызывает asyncio.run()
-внутри для выполнения асинхронного конвейера. Предназначен для синхронных
-окружений: CLI-скрипты, Celery, Django без async.
+SyncActionProductMachine is a synchronous analogue of ActionProductMachine. Method
+run() is a regular (non-async) method that calls asyncio.run()
+internally to execute an asynchronous pipeline. Designed for synchronous
+environments: CLI scripts, Celery, Django without async.
 
-SyncActionProductMachine наследует ActionProductMachine и переопределяет
-только публичный метод run(). Вся логика конвейера (проверка ролей,
-валидация connections, чекеры, аспекты, плагины) наследуется без изменений.
+SyncActionProductMachine inherits ActionProductMachine and overrides
+only public method run(). All pipeline logic (role checking,
+validation connections, checkers, aspects, plugins) are inherited without changes.
 
-Production-машина всегда передаёт rollup=False в _run_internal().
+The production machine always passes rollup=False to _run_internal().
 
-═══════════════════════════════════════════════════════════════════════════════
-ПОКРЫВАЕМЫЕ СЦЕНАРИИ
-═══════════════════════════════════════════════════════════════════════════════
+═══════════════════ ════════════════════ ════════════════════ ════════════════════
+SCENARIOS COVERED
+═══════════════════ ════════════════════ ════════════════════ ════════════════════
 
-Базовое выполнение:
-    - PingAction через sync run() → результат "pong".
-    - SimpleAction через sync run() → greeting.
-    - FullAction через sync run() → Result с txn_id, total, order_id.
+Basic execution:
+    - PingAction via sync run() → result "pong".
+    - SimpleAction via sync run() → greeting.
+    - FullAction via sync run() → Result with txn_id, total, order_id.
 
-Проверка ролей через sync:
-    - NoneRole — проходит без ролей.
-    - Конкретная роль — AuthorizationError при несовпадении.
+Checking roles via sync:
+    - NoneRole - passes without roles.
+    - Specific role - AuthorizationError if there is a mismatch.
 
-Проверка connections через sync:
-    - FullAction без connections → ConnectionValidationError.
-    - FullAction с корректными connections → OK.
+Checking connections via sync:
+    - FullAction without connections → ConnectionValidationError.
+    - FullAction with correct connections → OK.
 
-Проверка чекеров через sync:
-    - Корректные данные → конвейер проходит.
+Checking checkers via sync:
+    - Correct data → conveyor passes.
 
-Наследование от ActionProductMachine:
+Inheritance from ActionProductMachine:
     - isinstance(sync_machine, ActionProductMachine) → True.
-    - _run_internal() доступен и работает.
-"""
+    - _run_internal() is available and working."""
 
 from unittest.mock import AsyncMock
 
@@ -63,17 +61,15 @@ from tests.scenarios.domain_model import (
 from tests.scenarios.domain_model.roles import AdminRole, ManagerRole
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Фикстуры
+#Fittings
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 @pytest.fixture()
 def sync_machine() -> SyncActionProductMachine:
-    """
-    SyncActionProductMachine с тихим логгером для unit-тестов.
+    """SyncActionProductMachine with a silent logger for unit tests.
 
-    LogCoordinator без логгеров подавляет вывод в stdout.
-    """
+    LogCoordinator without loggers suppresses output to stdout."""
     return SyncActionProductMachine(
         mode="test",
         log_coordinator=LogCoordinator(loggers=[]),
@@ -82,68 +78,62 @@ def sync_machine() -> SyncActionProductMachine:
 
 @pytest.fixture()
 def context_manager() -> Context:
-    """Контекст с ролью manager для FullAction."""
+    """Context with the manager role for FullAction."""
     return Context(user=UserInfo(user_id="mgr_1", roles=(ManagerRole, AdminRole)))
 
 
 @pytest.fixture()
 def context_no_roles() -> Context:
-    """Контекст без ролей — анонимный пользователь."""
+    """A context without roles is an anonymous user."""
     return Context(user=UserInfo(user_id="guest", roles=()))
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Базовое выполнение через sync run()
+#Basic execution via sync run()
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestSyncBasicExecution:
-    """Базовое выполнение действий через синхронный run()."""
+    """Basic execution of actions via synchronous run()."""
 
     def test_ping_action_returns_pong(self, sync_machine, context_no_roles) -> None:
-        """
-        PingAction через sync run() → результат с message="pong".
+        """PingAction via sync run() → result with message="pong".
 
-        SyncActionProductMachine.run() вызывает asyncio.run() внутри,
-        который создаёт event loop и выполняет асинхронный конвейер.
-        PingAction имеет NoneRole — проходит без ролей.
-        """
-        # Arrange — PingAction с пустыми параметрами
+        SyncActionProductMachine.run() calls asyncio.run() internally,
+        which creates an event loop and executes an asynchronous pipeline.
+        PingAction has NoneRole—passes without roles."""
+        #Arrange - PingAction with empty parameters
         action = PingAction()
         params = PingAction.Params()
 
-        # Act — синхронный вызов без await
+        #Act - synchronous call without await
         result = sync_machine.run(context_no_roles, action, params)
 
-        # Assert — конвейер завершился, результат содержит "pong"
+        #Assert - the pipeline has completed, the result contains "pong"
         assert result.message == "pong"
 
     def test_simple_action_returns_greeting(self, sync_machine, context_manager) -> None:
-        """
-        SimpleAction через sync run() → greeting "Hello, Alice!".
+        """SimpleAction via sync run() → greeting "Hello, Alice!".
 
-        SimpleAction содержит один regular-аспект (validate_name)
-        с чекером result_string и один summary-аспект.
-        """
-        # Arrange — SimpleAction с именем "Alice"
+        SimpleAction contains one regular aspect (validate_name)
+        with a result_string checker and one summary aspect."""
+        #Arrange - SimpleAction named "Alice"
         action = SimpleAction()
         params = SimpleAction.Params(name="Alice")
 
-        # Act — синхронный вызов
+        #Act - synchronous call
         result = sync_machine.run(context_manager, action, params)
 
-        # Assert — greeting сформирован из validated_name
+        #Assert - greeting is formed from validated_name
         assert result.greeting == "Hello, Alice!"
 
     def test_full_action_via_run_internal(self, sync_machine, context_manager) -> None:
-        """
-        FullAction через _run_internal() с моками зависимостей и connections.
+        """FullAction via _run_internal() with mocks of dependencies and connections.
 
-        SyncActionProductMachine наследует _run_internal() от
-        ActionProductMachine. Метод асинхронный, вызывается напрямую
-        через asyncio.run() в этом тесте (pytest-asyncio).
-        """
-        # Arrange — моки зависимостей и connections
+        SyncActionProductMachine inherits _run_internal() from
+        ActionProductMachine. The method is asynchronous, called directly
+        via asyncio.run() in this test (pytest-asyncio)."""
+        #Arrange - mock dependencies and connections
         mock_payment = AsyncMock(spec=PaymentService)
         mock_payment.charge.return_value = "TXN-SYNC"
         mock_notification = AsyncMock(spec=NotificationService)
@@ -152,7 +142,7 @@ class TestSyncBasicExecution:
         action = FullAction()
         params = FullAction.Params(user_id="u1", amount=250.0)
 
-        # Act — синхронный вызов через asyncio.run обёрнутый в _run_internal
+        #Act - synchronous call via asyncio.run wrapped in _run_internal
         import asyncio
 
         result = asyncio.run(
@@ -167,7 +157,7 @@ class TestSyncBasicExecution:
             )
         )
 
-        # Assert — конвейер завершился с данными из моков
+        #Assert - the pipeline has completed with data from the mocks
         assert result.order_id == "ORD-u1"
         assert result.txn_id == "TXN-SYNC"
         assert result.total == 250.0
@@ -175,37 +165,33 @@ class TestSyncBasicExecution:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Проверка ролей через sync
+#Checking roles via sync
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestSyncRoles:
-    """Проверка ролей работает идентично async-машине."""
+    """Role checking works identically to the async machine."""
 
     def test_role_none_passes_without_roles(self, sync_machine, context_no_roles) -> None:
-        """
-        PingAction (NoneRole) проходит через sync-машину без ролей.
+        """PingAction (NoneRole) goes through the sync machine without roles.
 
-        Role gate uses the same ``RoleChecker`` pipeline as ``ActionProductMachine``.
-        """
-        # Arrange — PingAction с NoneRole, контекст без ролей
+        Role gate uses the same ``RoleChecker`` pipeline as ``ActionProductMachine``."""
+        #Arrange - PingAction with NoneRole, context without roles
         action = PingAction()
         params = PingAction.Params()
 
-        # Act — синхронный вызов
+        #Act - synchronous call
         result = sync_machine.run(context_no_roles, action, params)
 
-        # Assert — конвейер завершился
+        #Assert - the pipeline has ended
         assert result.message == "pong"
 
     def test_wrong_role_raises_authorization_error(self, sync_machine, context_no_roles) -> None:
-        """
-        FullAction (роль "manager") через sync-машину без ролей →
+        """FullAction (role "manager") via sync machine without roles →
         AuthorizationError.
 
-        Role check runs before the aspect pipeline, same as the async machine.
-        """
-        # Arrange — FullAction требует "manager", контекст без ролей
+        Role check runs before the aspect pipeline, same as the async machine."""
+        #Arrange - FullAction requires "manager", context without roles
         action = FullAction()
         params = FullAction.Params(user_id="u1", amount=100.0)
 
@@ -215,21 +201,19 @@ class TestSyncRoles:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Проверка connections через sync
+#Checking connections via sync
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestSyncConnections:
-    """Валидация connections работает идентично async-машине."""
+    """Validation of connections works identically to the async machine."""
 
     def test_missing_connections_raises(self, sync_machine, context_manager) -> None:
-        """
-        FullAction через sync-машину без connections → ConnectionValidationError.
+        """FullAction through a sync machine without connections → ConnectionValidationError.
 
-        FullAction объявляет @connection(TestDbManager, key="db").
-        Без connections машина бросает ConnectionValidationError.
-        """
-        # Arrange — FullAction без connections
+        FullAction declares @connection(TestDbManager, key="db").
+        Without connections, the machine throws ConnectionValidationError."""
+        #Arrange - FullAction without connections
         action = FullAction()
         params = FullAction.Params(user_id="u1", amount=100.0)
 
@@ -238,79 +222,70 @@ class TestSyncConnections:
             sync_machine.run(context_manager, action, params, connections=None)
 
     def test_ping_without_connections_ok(self, sync_machine, context_no_roles) -> None:
-        """
-        PingAction через sync-машину без connections → OK.
+        """PingAction through a sync machine without connections → OK.
 
-        PingAction не объявляет @connection, connections=None допустим.
-        """
-        # Arrange — PingAction без @connection
+        PingAction does not declare @connection, connections=None is acceptable."""
+        #Arrange - PingAction without @connection
         action = PingAction()
         params = PingAction.Params()
 
-        # Act — sync run без connections
+        #Act - sync run without connections
         result = sync_machine.run(context_no_roles, action, params)
 
-        # Assert — конвейер завершился
+        #Assert - the pipeline has ended
         assert result.message == "pong"
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Наследование от ActionProductMachine
+#Inheritance from ActionProductMachine
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestInheritance:
-    """SyncActionProductMachine наследует ActionProductMachine."""
+    """SyncActionProductMachine inherits ActionProductMachine."""
 
     def test_isinstance_action_product_machine(self, sync_machine) -> None:
-        """
-        SyncActionProductMachine является подклассом ActionProductMachine.
+        """SyncActionProductMachine is a subclass of ActionProductMachine.
 
-        Это гарантирует, что sync-машина наследует всю логику конвейера:
-        проверку ролей, валидацию connections, чекеры, аспекты, плагины.
-        """
-        # Arrange & Act — проверка через isinstance
+        This ensures that the sync machine inherits all pipeline logic:
+        role checking, connections validation, checkers, aspects, plugins."""
+        #Arrange & Act - check via isinstance
 
-        # Assert — sync-машина является ActionProductMachine
+        #Assert - the sync machine is an ActionProductMachine
         assert isinstance(sync_machine, ActionProductMachine)
         assert isinstance(sync_machine, SyncActionProductMachine)
 
     def test_has_run_internal(self, sync_machine) -> None:
-        """
-        _run_internal() доступен на sync-машине.
+        """_run_internal() is available on the sync machine.
 
-        Метод наследуется от ActionProductMachine и используется
-        внутри run() через asyncio.run().
-        """
-        # Arrange & Act — проверка наличия метода
+        The method is inherited from ActionProductMachine and used
+        inside run() via asyncio.run()."""
+        #Arrange & Act - checking for method availability
 
-        # Assert — метод существует и является callable
+        #Assert - the method exists and is callable
         assert hasattr(sync_machine, "_run_internal")
         assert callable(sync_machine._run_internal)
 
     def test_mode_attribute(self, sync_machine) -> None:
-        """
-        Атрибут _mode устанавливается в конструкторе и наследуется.
-        """
-        # Arrange — машина создана с mode="test" в фикстуре
+        """The _mode attribute is set in the constructor and is inherited."""
+        #Arrange - the machine was created with mode="test" in the fixture
 
-        # Act & Assert — mode доступен
+        #Act & Assert - mode available
         assert sync_machine._mode == "test"
 
     def test_rollup_always_false_in_public_run(self, sync_machine, context_no_roles) -> None:
-        """
-        Production sync-машина всегда передаёт rollup=False.
+        """The production sync machine always passes rollup=False.
 
-        Метод run() не принимает параметр rollup — он зафиксирован
-        как False внутри реализации. Rollup доступен только через
-        TestBench.
-        """
-        # Arrange — PingAction через public run()
+        The run() method does not accept the rollup parameter - it is fixed
+        as False within the implementation. Rollup is only available via
+        TestBench."""
+        #Arrange - PingAction via public run()
         action = PingAction()
         params = PingAction.Params()
 
-        # Act — run() не принимает rollup (в отличие от TestBench.run)
+        #Act - run() does not accept rollup (unlike TestBench.run)
         result = sync_machine.run(context_no_roles, action, params)
 
-        # Assert — конвейер завершился (rollup=False внутри)
+        #Assert - the pipeline has ended (rollup=False inside)
+        assert result.message == "pong"
         assert result.message == "pong"

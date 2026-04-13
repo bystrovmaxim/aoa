@@ -1,5 +1,72 @@
 # src/action_machine/runtime/binding/action_generic_params.py
-"""Resolve Params/Result types from ``BaseAction[P, R]`` subclasses (single place for generic extraction)."""
+"""
+Resolve ``Params``/``Result`` runtime types from ``BaseAction[P, R]`` declarations.
+
+═══════════════════════════════════════════════════════════════════════════════
+PURPOSE
+═══════════════════════════════════════════════════════════════════════════════
+
+This module centralizes generic type extraction for runtime binding.
+Given an action class, it resolves declared ``P`` and ``R`` from
+``BaseAction[P, R]`` including nested inheritance and forward references.
+
+═══════════════════════════════════════════════════════════════════════════════
+INVARIANTS
+═══════════════════════════════════════════════════════════════════════════════
+
+- Resolution scans ``__mro__`` and ``__orig_bases__`` in deterministic order.
+- Only fully resolved runtime ``type`` objects are returned.
+- If no valid parameterized ``BaseAction[P, R]`` is found, returns ``(None, None)``.
+
+═══════════════════════════════════════════════════════════════════════════════
+ARCHITECTURE / DATA FLOW
+═══════════════════════════════════════════════════════════════════════════════
+
+    action class
+        |
+        v
+    walk MRO -> inspect __orig_bases__
+        |
+        v
+    find BaseAction[P, R] generic origin
+        |
+        v
+    resolve args (type / ForwardRef / string)
+        |
+        v
+    return (P_type, R_type) or (None, None)
+
+═══════════════════════════════════════════════════════════════════════════════
+EXAMPLES
+═══════════════════════════════════════════════════════════════════════════════
+
+Happy path:
+    ``class A(BaseAction[MyParams, MyResult])`` resolves directly to
+    ``(MyParams, MyResult)``.
+
+Edge case:
+    Forward references like ``BaseAction["Params", "Result"]`` are resolved
+    through module/global namespace; unresolved refs yield ``None``.
+
+═══════════════════════════════════════════════════════════════════════════════
+ERRORS / LIMITATIONS
+═══════════════════════════════════════════════════════════════════════════════
+
+- Forward-ref resolution relies on module symbols being available at runtime.
+- Non-type generic arguments are ignored as unresolved.
+- Private typing internals may vary by Python version; fallback paths are used.
+
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE-BEGIN
+═══════════════════════════════════════════════════════════════════════════════
+ROLE: Runtime generic resolver for BaseAction parameter/result contracts.
+CONTRACT: Return concrete P/R types when resolvable; otherwise return None tuple.
+INVARIANTS: MRO search + generic origin check + type-only outputs.
+FLOW: locate BaseAction generic -> resolve refs -> return pair to runtime validators.
+FAILURES: Unresolvable refs or malformed generics degrade to (None, None).
+EXTENSION POINTS: Add richer ref-resolution strategies for advanced typing cases.
+AI-CORE-END
+"""
 
 from __future__ import annotations
 

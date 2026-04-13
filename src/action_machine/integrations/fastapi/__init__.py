@@ -1,37 +1,60 @@
 # src/action_machine/integrations/fastapi/__init__.py
 """
-FastAPI-адаптер для ActionMachine.
+FastAPI integration package for ActionMachine.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Превращает Action в HTTP-эндпоинты FastAPI. Разработчик пишет
-``adapter.post("/orders", CreateOrderAction)`` — адаптер генерирует
-async handler, подключает валидацию, обработку ошибок и OpenAPI-документацию.
-
-Description полей, constraints, examples — всё из Pydantic-моделей
-Params/Result и декоратора ``@meta``.
+Expose the FastAPI adapter surface that converts ActionMachine actions into
+HTTP endpoints with request/response validation, error mapping, and OpenAPI
+documentation.
 
 ═══════════════════════════════════════════════════════════════════════════════
-УСТАНОВКА
+ARCHITECTURE / DATA FLOW
+═══════════════════════════════════════════════════════════════════════════════
+
+::
+
+    Action registration
+      adapter.post/get/put/delete/patch(...)
+                │
+                ▼
+      FastApiRouteRecord (typed route contract)
+                │
+                ▼
+      FastApiAdapter.build()
+        ├─ generated FastAPI handlers
+        ├─ protocol error mapping
+        ├─ OpenAPI metadata wiring
+        └─ automatic /health endpoint
+
+═══════════════════════════════════════════════════════════════════════════════
+INVARIANTS
+═══════════════════════════════════════════════════════════════════════════════
+
+- ``FastApiAdapter`` is the protocol-specific adapter over
+  ``BaseAdapter[FastApiRouteRecord]``.
+- ``build()`` materializes a FastAPI application from registered routes.
+- If ``request_model`` differs from action ``Params``, ``params_mapper`` is required.
+- If ``response_model`` differs from action ``Result``, ``response_mapper`` is required.
+
+═══════════════════════════════════════════════════════════════════════════════
+INSTALLATION
 ═══════════════════════════════════════════════════════════════════════════════
 
     pip install action-machine[fastapi]
 
 ═══════════════════════════════════════════════════════════════════════════════
-КОМПОНЕНТЫ
+COMPONENTS
 ═══════════════════════════════════════════════════════════════════════════════
 
-- FastApiAdapter — конкретный адаптер, наследующий BaseAdapter[FastApiRouteRecord].
-  Предоставляет протокольные methodы post(), get(), put(), delete(), patch().
-  Метод build() создаёт FastAPI-приложение из зарегистрированных маршрутов.
-
-- FastApiRouteRecord — frozen-датакласс маршрута с HTTP-специфичными полями:
+- ``FastApiAdapter`` — concrete adapter exposing ``post/get/put/delete/patch``.
+- ``FastApiRouteRecord`` — frozen route record with HTTP-specific metadata:
   method, path, tags, summary, description, operation_id, deprecated.
 
 ═══════════════════════════════════════════════════════════════════════════════
-БЫСТРЫЙ СТАРТ
+QUICK START
 ═══════════════════════════════════════════════════════════════════════════════
 
     from action_machine.runtime.machines.action_product_machine import ActionProductMachine
@@ -47,65 +70,82 @@ Params/Result и декоратора ``@meta``.
         version="0.1.0",
     )
 
-    # Минимум — request_model совпадает с params_type:
+    # Minimal route: request_model == params_type
     adapter.post("/api/v1/orders", CreateOrderAction, tags=["orders"])
 
-    # request_model отличается — нужен params_mapper:
+    # request_model differs -> params_mapper required
     adapter.get("/api/v1/orders", ListOrdersAction,
                 request_model=ListOrdersRequest,
                 params_mapper=map_list_request,
                 tags=["orders"])
 
-    # Без аутентификации:
+    # Explicit open route policy (depends on selected auth coordinator)
     adapter.get("/api/v1/ping", PingAction, tags=["system"])
 
     app = adapter.build()
 
-    # Запуск:
+    # Run:
     # uvicorn myapp:app --reload
 
 ═══════════════════════════════════════════════════════════════════════════════
-АВТОМАТИЧЕСКАЯ ГЕНЕРАЦИЯ OPENAPI
+OPENAPI GENERATION
 ═══════════════════════════════════════════════════════════════════════════════
 
-OpenAPI schema генерируется из метаданных, которые уже есть в коде:
+OpenAPI schema is generated from metadata already declared in code:
 
-- Описания полей → из ``Field(description="...")`` в Params и Result.
-- Ограничения → из ``Field(gt=0, min_length=3, pattern=...)`` в Params.
-- Примеры → из ``Field(examples=["..."])`` в Params и Result.
-- Summary эндпоинта → из ``@meta(description="...")`` действия.
-- Tags → из аргумента ``tags=[...]`` при регистрации маршрута.
+- Field descriptions -> ``Field(description="...")`` in Params/Result.
+- Constraints -> ``Field(gt=0, min_length=3, pattern=...)`` in Params.
+- Examples -> ``Field(examples=[...])`` in Params/Result.
+- Endpoint summary -> action ``@meta(description="...")``.
+- Tags -> ``tags=[...]`` during route registration.
 
-Swagger UI доступен на ``http://host:port/docs``.
-ReDoc доступен на ``http://host:port/redoc``.
+Swagger UI: ``http://host:port/docs``.
+ReDoc: ``http://host:port/redoc``.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ОБРАБОТКА ОШИБОК
+ERROR MAPPING
 ═══════════════════════════════════════════════════════════════════════════════
 
-Адаптер регистрирует exception handlers на уровне FastAPI-приложения:
+The adapter installs FastAPI exception handlers:
 
-    AuthorizationError      → HTTP 403 Forbidden
-    ValidationFieldError    → HTTP 422 Unprocessable Entity
-    Exception (любое)       → HTTP 500 Internal Server Error
+    AuthorizationError   -> HTTP 403 Forbidden
+    ValidationFieldError -> HTTP 422 Unprocessable Entity
+    Exception            -> HTTP 500 Internal Server Error
 
-Каждый ответ содержит JSON body ``{"detail": "сообщение ошибки"}``.
+Each response uses JSON body ``{"detail": "<error message>"}``.
 
 ═══════════════════════════════════════════════════════════════════════════════
 HEALTH CHECK
 ═══════════════════════════════════════════════════════════════════════════════
 
-Эндпоинт ``GET /health`` добавляется автоматически при ``build()``.
-Returns ``{"status": "ok"}``. Используется для liveness probe
-в Kubernetes, мониторинга и health check балансировщиков нагрузки.
+Endpoint ``GET /health`` is added automatically at ``build()``.
+Returns ``{"status": "ok"}`` for liveness probes, monitoring, and load-balancer checks.
+
+═══════════════════════════════════════════════════════════════════════════════
+ERRORS / LIMITATIONS
+═══════════════════════════════════════════════════════════════════════════════
+
+- Requires optional FastAPI dependency group.
+- Protocol-specific behavior belongs to adapter internals; this package root exports public integration contracts.
+
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE-BEGIN
+═══════════════════════════════════════════════════════════════════════════════
+ROLE: Public FastAPI integration namespace for ActionMachine.
+CONTRACT: Export FastApiAdapter/FastApiRouteRecord and provide dependency guard for optional installation.
+INVARIANTS: FastAPI app is built from typed route records and adapter-managed protocol handlers.
+FLOW: register actions -> build FastAPI app -> serve validated endpoints + docs + health route.
+FAILURES: Missing optional dependency raises ImportError with installation guidance.
+EXTENSION POINTS: Route configuration and mapping hooks are provided via FastApiAdapter API.
+AI-CORE-END
 """
 
 try:
     import fastapi  # noqa: F401
 except ImportError:
     raise ImportError(
-        "Для использования action_machine.integrations.fastapi "
-        "установите зависимость: pip install action-machine[fastapi]"
+        "To use action_machine.integrations.fastapi, install the optional dependency: "
+        "pip install action-machine[fastapi]"
     ) from None
 
 from action_machine.integrations.fastapi.adapter import FastApiAdapter

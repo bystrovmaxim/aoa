@@ -1,30 +1,28 @@
 # tests/intents/context/test_context_requires_integration.py
-"""
-Интеграционные тесты @context_requires — полный прогон Action через
-TestBench с проверкой передачи ContextView в аспекты и обработчики ошибок.
+"""Integration tests @context_requires - full run of Action through
+TestBench with testing of ContextView passing to aspects and error handlers.
 
-═══════════════════════════════════════════════════════════════════════════════
-НАЗНАЧЕНИЕ
-═══════════════════════════════════════════════════════════════════════════════
+═══════════════════ ════════════════════ ════════════════════ ════════════════════
+PURPOSE
+═══════════════════ ════════════════════ ════════════════════ ════════════════════
 
-Проверяет, что аспекты и обработчики ошибок получают ContextView только с
-полями контекста, явно запрошенными @context_requires на методе.
+Checks that aspects and error handlers only receive ContextView with
+context fields explicitly requested by @context_requires on the method.
 
-Все core-типы (Params, Result, State) — frozen. Результаты создаются через
-конструктор, а не через мутацию после создания.
+All core types (Params, Result, State) are frozen. Results are generated via
+constructor, and not through mutation after creation.
 
-═══════════════════════════════════════════════════════════════════════════════
-ПРОВЕРЯЕМЫЕ СЦЕНАРИИ
-═══════════════════════════════════════════════════════════════════════════════
+═══════════════════ ════════════════════ ════════════════════ ════════════════════
+TESTABLE SCENARIOS
+═══════════════════ ════════════════════ ════════════════════ ════════════════════
 
-- Аспект с @context_requires получает ContextView и читает user_id.
-- Аспект без @context_requires работает со стандартной сигнатурой (5 параметров).
-- Обращение к незапрошенному полю контекста → ContextAccessError.
-- Обработчик ошибок с @context_requires получает свой ContextView.
-- Обработчик ошибок без @context_requires работает со стандартной сигнатурой.
-- Summary-аспект с @context_requires получает ContextView.
-- ToolsBox не предоставляет публичного доступа к контексту.
-"""
+- The aspect with @context_requires gets the ContextView and reads the user_id.
+- An aspect without @context_requires works with a standard signature (5 parameters).
+- Access to an unsolicited context field → ContextAccessError.
+- The error handler with @context_requires gets its ContextView.
+- Error handler without @context_requires works with standard signature.
+- Summary aspect with @context_requires gets ContextView.
+- ToolsBox does not provide public access to the context."""
 
 import pytest
 from pydantic import Field
@@ -46,294 +44,267 @@ from tests.scenarios.domain_model.domains import TestDomain
 from tests.scenarios.domain_model.roles import AdminRole
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Тестовые модели Params и Result (frozen, как требуется)
+#Test Models Params and Result (frozen as required)
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class _IntegrationParams(BaseParams):
-    """Параметры для интеграционных тестов context_requires."""
-    name: str = Field(description="Имя для тестирования")
+    """Parameters for integration tests context_requires."""
+    name: str = Field(description="Name to test")
 
 
 class _IntegrationResult(BaseResult):
-    """Результат для интеграционных тестов context_requires — frozen."""
-    message: str = Field(description="Сообщение результата")
+    """The result for integration tests context_requires is frozen."""
+    message: str = Field(description="Result message")
 
 
 class _BoxCheckResult(BaseResult):
-    """Результат для проверки отсутствия box.context."""
-    has_context: bool = Field(description="Есть ли у ToolsBox свойство context")
+    """Result for checking if box.context is missing."""
+    has_context: bool = Field(description="Does ToolsBox have a context property")
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Тестовые Action
+#Test Action
 # ═════════════════════════════════════════════════════════════════════════════
 
 
-@meta(description="Action с аспектом, читающим user_id из контекста", domain=TestDomain)
+@meta(description="Action with aspect reading user_id from context", domain=TestDomain)
 @check_roles(NoneRole)
 class _CtxReadAction(BaseAction[_IntegrationParams, _IntegrationResult]):
-    """
-    Аспект с @context_requires читает user_id и записывает в результат.
-    Результат создаётся через конструктор (frozen).
-    """
+    """The aspect with @context_requires reads the user_id and writes it to the result.
+    The result is created through the constructor (frozen)."""
 
-    @regular_aspect("Чтение контекста")
+    @regular_aspect("Reading the context")
     @result_string("ctx_user_id", required=True)
     @context_requires(Ctx.User.user_id)
     async def read_ctx_aspect(self, params, state, box, connections, ctx):
         user_id = ctx.get(Ctx.User.user_id)
         return {"ctx_user_id": str(user_id)}
 
-    @summary_aspect("Формирование результата")
+    @summary_aspect("Formation of the result")
     async def build_summary(self, params, state, box, connections):
-        # Создаём frozen-результат через конструктор
+        #Create a frozen result using the constructor
         return _IntegrationResult(message=f"user={state['ctx_user_id']}")
 
 
-@meta(description="Action без @context_requires — стандартная сигнатура", domain=TestDomain)
+@meta(description="Action without @context_requires - standard signature", domain=TestDomain)
 @check_roles(NoneRole)
 class _NoCtxAction(BaseAction[_IntegrationParams, _IntegrationResult]):
-    """
-    Аспект без @context_requires работает с 5 параметрами как раньше.
-    Результат создаётся через конструктор.
-    """
+    """An aspect without @context_requires works with 5 parameters as before.
+    The result is created through the constructor."""
 
-    @summary_aspect("Простой результат")
+    @summary_aspect("Simple result")
     async def build_summary(self, params, state, box, connections):
         return _IntegrationResult(message=f"hello {params.name}")
 
 
-@meta(description="Action с аспектом, обращающимся к незапрошенному полю", domain=TestDomain)
+@meta(description="Action with an aspect accessing an unsolicited field", domain=TestDomain)
 @check_roles(NoneRole)
 class _CtxAccessViolationAction(BaseAction[_IntegrationParams, _IntegrationResult]):
-    """
-    Аспект запрашивает user.user_id, но обращается к user.roles — ContextAccessError.
-    """
+    """The aspect requests user.user_id but accesses user.roles - ContextAccessError."""
 
-    @regular_aspect("Нарушение доступа")
+    @regular_aspect("Access Violation")
     @context_requires(Ctx.User.user_id)
     async def violate_aspect(self, params, state, box, connections, ctx):
-        # Обращение к незапрошенному полю — должно бросить ContextAccessError
+        #Accessing an unsolicited field should throw a ContextAccessError
         ctx.get(Ctx.User.roles)
         return {}
 
-    @summary_aspect("Итог")
+    @summary_aspect("Bottom line")
     async def build_summary(self, params, state, box, connections):
         return _IntegrationResult(message="should not reach")
 
 
-@meta(description="Action с обработчиком ошибок, читающим контекст", domain=TestDomain)
+@meta(description="Action with error handler reading context", domain=TestDomain)
 @check_roles(NoneRole)
 class _OnErrorCtxAction(BaseAction[_IntegrationParams, _IntegrationResult]):
-    """
-    Аспект бросает ValueError, обработчик с @context_requires читает user_id.
-    """
+    """The aspect throws ValueError, the handler with @context_requires reads user_id."""
 
-    @regular_aspect("Бросает ошибку")
+    @regular_aspect("Throws an error")
     async def failing_aspect(self, params, state, box, connections):
         raise ValueError("test error")
 
-    @summary_aspect("Итог")
+    @summary_aspect("Bottom line")
     async def build_summary(self, params, state, box, connections):
         return _IntegrationResult(message="should not reach")
 
-    @on_error(ValueError, description="Обработка с контекстом")
+    @on_error(ValueError, description="Processing with context")
     @context_requires(Ctx.User.user_id)
     async def handle_on_error(self, params, state, box, connections, error, ctx):
         user_id = ctx.get(Ctx.User.user_id)
         return _IntegrationResult(message=f"error handled by {user_id}")
 
 
-@meta(description="Action с обработчиком ошибок без @context_requires", domain=TestDomain)
+@meta(description="Action with error handler without @context_requires", domain=TestDomain)
 @check_roles(NoneRole)
 class _OnErrorNoCtxAction(BaseAction[_IntegrationParams, _IntegrationResult]):
-    """
-    Аспект бросает ValueError, обработчик без @context_requires — 6 параметров.
-    """
+    """Aspect throws ValueError, handler without @context_requires - 6 parameters."""
 
-    @regular_aspect("Бросает ошибку")
+    @regular_aspect("Throws an error")
     async def failing_aspect(self, params, state, box, connections):
         raise ValueError("test error")
 
-    @summary_aspect("Итог")
+    @summary_aspect("Bottom line")
     async def build_summary(self, params, state, box, connections):
         return _IntegrationResult(message="should not reach")
 
-    @on_error(ValueError, description="Обработка без контекста")
+    @on_error(ValueError, description="Processing without context")
     async def handle_on_error(self, params, state, box, connections, error):
         return _IntegrationResult(message=f"error: {error}")
 
 
-@meta(description="Action с summary, читающим контекст", domain=TestDomain)
+@meta(description="Action with summary reading context", domain=TestDomain)
 @check_roles(NoneRole)
 class _SummaryCtxAction(BaseAction[_IntegrationParams, _IntegrationResult]):
-    """
-    Summary-аспект с @context_requires читает hostname.
-    """
+    """The summary aspect with @context_requires reads hostname."""
 
-    @summary_aspect("Результат с контекстом")
+    @summary_aspect("Result with context")
     @context_requires(Ctx.Runtime.hostname)
     async def build_summary(self, params, state, box, connections, ctx):
         hostname = ctx.get(Ctx.Runtime.hostname)
         return _IntegrationResult(message=f"host={hostname}")
 
 
-@meta(description="Проверка отсутствия box.context", domain=TestDomain)
+@meta(description="Checking for missing box.context", domain=TestDomain)
 @check_roles(NoneRole)
 class _BoxCheckAction(BaseAction[BaseParams, _BoxCheckResult]):
-    """
-    Проверяет, что у ToolsBox нет публичного свойства context.
-    """
+    """Checks that ToolsBox does not have a public context property."""
 
-    @summary_aspect("Проверка")
+    @summary_aspect("Examination")
     async def check_summary(self, params, state, box, connections):
-        # box.context не должен существовать как публичный атрибут
+        #box.context should not exist as a public attribute
         has_context = hasattr(box, "context")
         return _BoxCheckResult(has_context=has_context)
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Тесты
+#Tests
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestAspectWithContextRequires:
-    """Аспект с @context_requires получает ContextView и читает данные."""
+    """The aspect with @context_requires gets the ContextView and reads the data."""
 
     @pytest.mark.asyncio
     async def test_reads_user_id_from_context(self) -> None:
-        """
-        Аспект с @context_requires(Ctx.User.user_id) получает ContextView
-        и читает user_id из контекста. Результат содержит прочитанное значение.
-        """
-        # Arrange — bench с пользователем test_agent
+        """Aspect with @context_requires(Ctx.User.user_id) gets a ContextView
+        and reads the user_id from the context. The result contains the value read."""
+        #Arrange - bench with user test_agent
         bench = TestBench().with_user(user_id="test_agent")
         params = _IntegrationParams(name="test")
 
-        # Act — полный прогон Action, аспект читает user_id через ctx
+        #Act - full run of Action, aspect reads user_id via ctx
         result = await bench.run(_CtxReadAction(), params, rollup=False)
 
-        # Assert — user_id из контекста попал в результат
+        #Assert - user_id from the context is included in the result
         assert result.message == "user=test_agent"
 
 
 class TestAspectWithoutContextRequires:
-    """Аспект без @context_requires работает со стандартной сигнатурой."""
+    """An aspect without @context_requires works with the standard signature."""
 
     @pytest.mark.asyncio
     async def test_standard_five_params(self) -> None:
-        """
-        Action без @context_requires — аспект вызывается с 5 параметрами,
-        результат формируется из params, без доступа к контексту.
-        """
-        # Arrange — обычный bench
+        """Action without @context_requires - the aspect is called with 5 parameters,
+        the result is generated from params, without access to the context."""
+        #Arrange - regular bench
         bench = TestBench()
         params = _IntegrationParams(name="world")
 
-        # Act — Action без @context_requires
+        #Act - Action without @context_requires
         result = await bench.run(_NoCtxAction(), params, rollup=False)
 
-        # Assert — аспект отработал с 5 параметрами
+        #Assert - aspect worked with 5 parameters
         assert result.message == "hello world"
 
 
 class TestContextAccessViolation:
-    """Обращение к незапрошенному полю пробрасывает ContextAccessError."""
+    """Accessing an unqueried field throws a ContextAccessError."""
 
     @pytest.mark.asyncio
     async def test_access_to_unregistered_key_raises(self) -> None:
-        """
-        Аспект запрашивает user.user_id, но обращается к user.roles.
-        ContextView выбрасывает ContextAccessError с указанием ключа.
-        """
-        # Arrange — bench с пользователем u1, roles=(AdminRole,)
+        """The aspect requests user.user_id but accesses user.roles.
+        ContextView throws ContextAccessError with the key specified."""
+        #Arrange — bench with user u1, roles=(AdminRole,)
         bench = TestBench().with_user(user_id="u1", roles=(AdminRole,))
         params = _IntegrationParams(name="test")
 
-        # Act / Assert — ContextAccessError пробрасывается наружу
+        #Act / Assert - ContextAccessError is thrown outside
         with pytest.raises(ContextAccessError) as exc_info:
             await bench.run(_CtxAccessViolationAction(), params, rollup=False)
 
-        # Assert — ошибка указывает на запрошенный ключ
+        #Assert - the error indicates the requested key
         assert exc_info.value.key == "user.roles"
 
 
 class TestOnErrorWithContextRequires:
-    """Обработчик ошибок с @context_requires получает свой ContextView."""
+    """The error handler with @context_requires gets its ContextView."""
 
     @pytest.mark.asyncio
     async def test_error_handler_reads_context(self) -> None:
-        """
-        Обработчик ошибок с @context_requires(Ctx.User.user_id) получает
-        отдельный ContextView (не зависящий от аспекта, который упал).
-        """
-        # Arrange — bench с пользователем error_handler_user
+        """Error handler with @context_requires(Ctx.User.user_id) gets
+        separate ContextView (independent of the aspect that crashed)."""
+        #Arrange - bench with user error_handler_user
         bench = TestBench().with_user(user_id="error_handler_user")
         params = _IntegrationParams(name="test")
 
-        # Act — аспект бросает ValueError, обработчик читает user_id через ctx
+        #Act - aspect throws ValueError, handler reads user_id via ctx
         result = await bench.run(_OnErrorCtxAction(), params, rollup=False)
 
-        # Assert — обработчик прочитал user_id из контекста
+        #Assert - the handler read the user_id from the context
         assert result.message == "error handled by error_handler_user"
 
 
 class TestOnErrorWithoutContextRequires:
-    """Обработчик ошибок без @context_requires — стандартная сигнатура."""
+    """An error handler without @context_requires is a standard signature."""
 
     @pytest.mark.asyncio
     async def test_error_handler_standard_six_params(self) -> None:
-        """
-        Обработчик ошибок без @context_requires вызывается с 6 параметрами,
-        без доступа к контексту.
-        """
+        """An error handler without @context_requires is called with 6 parameters,
+        without access to context."""
         # Arrange
         bench = TestBench()
         params = _IntegrationParams(name="test")
 
-        # Act — обработчик без контекста, 6 параметров
+        #Act - handler without context, 6 parameters
         result = await bench.run(_OnErrorNoCtxAction(), params, rollup=False)
 
-        # Assert — обработчик отработал
+        #Assert - the handler has completed
         assert result.message == "error: test error"
 
 
 class TestSummaryWithContextRequires:
-    """Summary-аспект с @context_requires получает ContextView."""
+    """A summary aspect with @context_requires gets a ContextView."""
 
     @pytest.mark.asyncio
     async def test_summary_reads_hostname(self) -> None:
-        """
-        Summary-аспект с @context_requires(Ctx.Runtime.hostname) получает
-        ContextView и читает hostname из контекста.
-        """
-        # Arrange — bench с runtime hostname
+        """Summary aspect with @context_requires(Ctx.Runtime.hostname) gets
+        ContextView and reads the hostname from the context."""
+        #Arrange - bench with runtime hostname
         bench = TestBench().with_runtime(hostname="prod-01")
         params = _IntegrationParams(name="test")
 
-        # Act — summary читает hostname через ctx
+        #Act - summary reads hostname via ctx
         result = await bench.run(_SummaryCtxAction(), params, rollup=False)
 
-        # Assert — hostname из контекста попал в результат
+        #Assert - hostname from the context is included in the result
         assert result.message == "host=prod-01"
 
 
 class TestBoxContextNotAccessible:
-    """ToolsBox не предоставляет публичного доступа к контексту."""
+    """ToolsBox does not provide public access to the context."""
 
     @pytest.mark.asyncio
     async def test_box_has_no_context_property(self) -> None:
-        """
-        У ToolsBox нет публичного свойства context и нет метода get_context().
-        Единственный легальный способ получить данные контекста в аспекте —
-        через ContextView при наличии @context_requires.
-        """
+        """ToolsBox does not have a public context property and does not have a get_context() method.
+        The only legal way to get context data in an aspect is
+        via ContextView if @context_requires is present."""
         bench = TestBench()
         params = BaseParams()
 
-        # Act — Action проверяет наличие box.context
+        #Act - Action checks for the presence of box.context
         result = await bench.run(_BoxCheckAction(), params, rollup=False)
 
-        # Assert — box.context недоступен
+        #Assert - box.context is not available
+        assert result.has_context is False
         assert result.has_context is False
