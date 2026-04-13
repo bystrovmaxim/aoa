@@ -1,4 +1,4 @@
-# tests/metadata/test_sensitive_intent_inspector.py
+# tests/graph/test_sensitive_intent_inspector.py
 """Unit tests for SensitiveIntentInspector."""
 
 from __future__ import annotations

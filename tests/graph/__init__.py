@@ -1,6 +1,6 @@
-# tests/metadata/__init__.py
+# tests/graph/__init__.py
 """
-Tests for ActionMachine metadata: decorators, inspectors, and ``GateCoordinator``.
+Tests for ``action_machine.graph``: ``GateCoordinator``, intent inspectors, and facet snapshots.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
@@ -40,7 +40,7 @@ DATA FLOW
 LAYOUT
 ═══════════════════════════════════════════════════════════════════════════════
 
-    tests/metadata/
+    tests/graph/
     ├── __init__.py                     — this file
     ├── test_new_gate_coordinator_*.py  — graph build and facet accessors
     ├── test_*_intent_inspector.py   — individual facet inspectors
@@ -63,13 +63,13 @@ documented exception type.
 ERRORS / LIMITATIONS
 ═══════════════════════════════════════════════════════════════════════════════
 
-Tests focus on metadata assembly, not full HTTP or DB adapters. Heavy integration
+Tests focus on graph build and facet snapshots, not full HTTP or DB adapters. Heavy integration
 smoke lives under ``tests/smoke/``.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN
 ═══════════════════════════════════════════════════════════════════════════════
-ROLE: Test package init for metadata / coordinator coverage.
+ROLE: Test package init for graph / coordinator coverage.
 CONTRACT: Describes scope; no runtime exports.
 INVARIANTS: Coordinator snapshot model; no BaseAction scratch_* API.
 FLOW: fixtures → coordinator build → assertions on graph and snapshots.

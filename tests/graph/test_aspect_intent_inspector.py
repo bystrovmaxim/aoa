@@ -1,4 +1,4 @@
-# tests/metadata/test_aspect_intent_inspector.py
+# tests/graph/test_aspect_intent_inspector.py
 """Unit tests for AspectIntentInspector."""
 
 from __future__ import annotations

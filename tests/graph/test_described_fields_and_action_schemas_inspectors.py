@@ -1,4 +1,4 @@
-# tests/metadata/test_described_fields_and_action_schemas_inspectors.py
+# tests/graph/test_described_fields_and_action_schemas_inspectors.py
 """DescribedFieldsIntentInspector vs ActionTypedSchemasInspector split."""
 
 from __future__ import annotations

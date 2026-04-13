@@ -1,4 +1,4 @@
-# tests/metadata/test_subscription_intent_inspector.py
+# tests/graph/test_subscription_intent_inspector.py
 """Unit tests for SubscriptionIntentInspector."""
 
 from __future__ import annotations

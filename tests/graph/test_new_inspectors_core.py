@@ -1,4 +1,4 @@
-# tests/metadata/test_new_inspectors_core.py
+# tests/graph/test_new_inspectors_core.py
 """
 Unit tests for newly introduced graph inspectors in metadata migration.
 
