@@ -27,9 +27,9 @@ This package exports the protocol-agnostic core:
 - ``extract_action_types`` to derive params/result types from action generics.
 
 Concrete adapters overview:
-- ``contrib.fastapi.FastApiAdapter`` registers HTTP routes (``post/get/...``),
+- ``integrations.fastapi.FastApiAdapter`` registers HTTP routes (``post/get/...``),
   builds FastAPI app, and maps machine/domain errors to HTTP responses.
-- ``contrib.mcp.McpAdapter`` registers MCP tools (``tool``), builds MCP server,
+- ``integrations.mcp.McpAdapter`` registers MCP tools (``tool``), builds MCP server,
   and maps machine/domain errors to MCP-compatible error semantics.
 
 Architecture sketch:
@@ -87,7 +87,7 @@ ERRORS / LIMITATIONS
 ═══════════════════════════════════════════════════════════════════════════════
 
 Protocol-specific error mapping is implemented by concrete adapters
-(``contrib.fastapi``, ``contrib.mcp``). This package only exports shared base
+(``integrations.fastapi``, ``integrations.mcp``). This package only exports shared base
 contracts and type-extraction helpers.
 
 Typical mapping examples (implemented in concrete adapters):
@@ -113,8 +113,8 @@ AI-CORE-END
 ═══════════════════════════════════════════════════════════════════════════════
 """
 
-from .base_adapter import BaseAdapter
-from .base_route_record import BaseRouteRecord, extract_action_types
+from action_machine.adapters.base_adapter import BaseAdapter
+from action_machine.adapters.base_route_record import BaseRouteRecord, extract_action_types
 
 __all__ = [
     "BaseAdapter",

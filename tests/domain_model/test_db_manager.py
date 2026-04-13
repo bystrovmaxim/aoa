@@ -26,8 +26,8 @@ USAGE
     result = await bench.run(action, params, rollup=False, connections={"db": mock_db})
 """
 
-from action_machine.core.meta_decorator import meta
-from action_machine.resource_managers.base_resource_manager import BaseResourceManager
+from action_machine.intents.meta.meta_decorator import meta
+from action_machine.resources.base_resource_manager import BaseResourceManager
 
 from .domains import TestDomain
 

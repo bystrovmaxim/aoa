@@ -1,6 +1,6 @@
 # tests/auth/test_check_roles_class_roles.py
 """
-PR-1 golden tests: ``BaseRole``, ``@role_mode``, ``@check_roles``.
+Golden tests for ``BaseRole``, ``@role_mode``, and ``@check_roles``.
 
 Covers import-time validation, decorator guards, and normalization of typed
 role specs for the coordinator snapshot.
@@ -10,17 +10,17 @@ from __future__ import annotations
 
 import pytest
 
-from action_machine.aspects.summary_aspect_decorator import summary_aspect
-from action_machine.auth.base_role import BaseRole
-from action_machine.auth.check_roles_decorator import check_roles
-from action_machine.auth.role_intent import RoleIntent
-from action_machine.auth.role_mode_decorator import RoleMode, role_mode
-from action_machine.context.user_info import UserInfo
-from action_machine.core.base_action import BaseAction
-from action_machine.core.base_params import BaseParams
-from action_machine.core.base_result import BaseResult
-from action_machine.core.exceptions import NamingSuffixError
-from action_machine.core.meta_decorator import meta
+from action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
+from action_machine.intents.auth.base_role import BaseRole
+from action_machine.intents.auth.check_roles_decorator import check_roles
+from action_machine.intents.auth.role_intent import RoleIntent
+from action_machine.intents.auth.role_mode_decorator import RoleMode, role_mode
+from action_machine.intents.context.user_info import UserInfo
+from action_machine.intents.meta.meta_decorator import meta
+from action_machine.model.base_action import BaseAction
+from action_machine.model.base_params import BaseParams
+from action_machine.model.base_result import BaseResult
+from action_machine.model.exceptions import NamingSuffixError
 from tests.domain_model.domains import TestDomain
 
 

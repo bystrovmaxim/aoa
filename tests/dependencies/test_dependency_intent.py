@@ -44,7 +44,7 @@ from action_machine.dependencies.dependency_intent import (
     DependencyIntent,
     _extract_bound,
 )
-from action_machine.resource_managers.base_resource_manager import BaseResourceManager
+from action_machine.resources.base_resource_manager import BaseResourceManager
 from tests.domain_model import FullAction, PingAction
 
 # ─────────────────────────────────────────────────────────────────────────────

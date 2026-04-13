@@ -48,7 +48,7 @@ from action_machine.adapters.base_route_record import (
     _resolve_forward_ref,
     _resolve_generic_arg,
 )
-from action_machine.core.base_params import BaseParams
+from action_machine.model.base_params import BaseParams
 from tests.domain_model import PingAction
 
 # ─────────────────────────────────────────────────────────────────────────────

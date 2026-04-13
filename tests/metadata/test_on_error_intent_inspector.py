@@ -3,11 +3,11 @@
 
 from __future__ import annotations
 
-from action_machine.context.context_requires_decorator import context_requires
-from action_machine.context.ctx_constants import Ctx
-from action_machine.on_error.on_error_decorator import on_error
-from action_machine.on_error.on_error_intent import OnErrorIntent
-from action_machine.on_error.on_error_intent_inspector import OnErrorIntentInspector
+from action_machine.graph.inspectors.on_error_intent_inspector import OnErrorIntentInspector
+from action_machine.intents.context.context_requires_decorator import context_requires
+from action_machine.intents.context.ctx_constants import Ctx
+from action_machine.intents.on_error.on_error_decorator import on_error
+from action_machine.intents.on_error.on_error_intent import OnErrorIntent
 
 
 class _NoOnErrorAction(OnErrorIntent):

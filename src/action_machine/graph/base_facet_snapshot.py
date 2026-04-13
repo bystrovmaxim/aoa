@@ -1,0 +1,39 @@
+# src/action_machine/graph/base_facet_snapshot.py
+"""
+BaseFacetSnapshot — typed facet view built by an intent inspector.
+
+═══════════════════════════════════════════════════════════════════════════════
+PURPOSE
+═══════════════════════════════════════════════════════════════════════════════
+
+Each inspector may declare a **nested Snapshot** dataclass (or similar) next to
+the facet: rich fields + callables stay here; ``to_facet_payload()`` produces the
+serialisable :class:`FacetPayload` used for validation; the coordinator keeps
+typed snapshots separately and commits only ``node_type`` / ``name`` /
+``class_ref`` on graph nodes.
+
+``GateCoordinator`` caches snapshots during ``build()`` (phase 1) when
+``BaseIntentInspector.facet_snapshot_for_class()`` returns non-``None``.
+
+Inspectors that do not participate yet leave the default hook returning ``None``.
+"""
+
+from __future__ import annotations
+
+from abc import ABC, abstractmethod
+
+from action_machine.graph.payload import FacetPayload
+
+
+class BaseFacetSnapshot(ABC):
+    """
+    Abstract facet snapshot: single source for graph payload projection.
+
+    Concrete snapshots usually live as nested classes on their inspector, e.g.
+    ``RoleIntentInspector.Snapshot``.
+    """
+
+    @abstractmethod
+    def to_facet_payload(self) -> FacetPayload:
+        """Serialise this snapshot into a coordinator ``FacetPayload``."""
+        raise NotImplementedError

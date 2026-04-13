@@ -6,8 +6,8 @@
 
 import pytest
 
-from action_machine.context.context_requires_decorator import context_requires
-from action_machine.context.ctx_constants import Ctx
+from action_machine.intents.context.context_requires_decorator import context_requires
+from action_machine.intents.context.ctx_constants import Ctx
 
 
 class TestSingleKey:

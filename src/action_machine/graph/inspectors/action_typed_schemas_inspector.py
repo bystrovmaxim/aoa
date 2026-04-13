@@ -1,0 +1,100 @@
+# src/action_machine/graph/inspectors/action_typed_schemas_inspector.py
+"""
+Inspector: bind each action class to its ``BaseAction[P, R]`` schema types in the facet graph.
+
+Walks ``BaseAction`` subclasses, resolves ``P`` and ``R`` via
+:func:`extract_action_params_result_types`, and emits an ``action_schemas`` node with
+informational edges to ``described_fields`` nodes for those types.
+
+Described field metadata for ``P``/``R`` themselves is owned by
+:class:`DescribedFieldsIntentInspector` (intent ``DescribedFieldsIntent``).
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+
+from action_machine.graph.base_facet_snapshot import BaseFacetSnapshot
+from action_machine.graph.base_intent_inspector import BaseIntentInspector
+from action_machine.graph.payload import EdgeInfo, FacetPayload
+from action_machine.model.base_action import BaseAction
+from action_machine.runtime.binding.action_generic_params import extract_action_params_result_types
+
+
+class ActionTypedSchemasInspector(BaseIntentInspector):
+    """Links each action to its Params/Result types (edges → ``described_fields`` nodes)."""
+
+    _target_intent: type = BaseAction
+
+    @dataclass(frozen=True)
+    class Snapshot(BaseFacetSnapshot):
+        """Typed view: which schema classes an action uses."""
+
+        class_ref: type
+        params_type: type | None
+        result_type: type | None
+
+        def to_facet_payload(self) -> FacetPayload:
+            edges: list[EdgeInfo] = []
+            if self.params_type is not None:
+                edges.append(
+                    ActionTypedSchemasInspector._make_edge(
+                        target_node_type="described_fields",
+                        target_cls=self.params_type,
+                        edge_type="uses_params",
+                        is_structural=False,
+                    )
+                )
+            if self.result_type is not None:
+                edges.append(
+                    ActionTypedSchemasInspector._make_edge(
+                        target_node_type="described_fields",
+                        target_cls=self.result_type,
+                        edge_type="uses_result",
+                        is_structural=False,
+                    )
+                )
+            return FacetPayload(
+                node_type="action_schemas",
+                node_name=ActionTypedSchemasInspector._make_node_name(self.class_ref),
+                node_class=self.class_ref,
+                node_meta=ActionTypedSchemasInspector._make_meta(
+                    params_type=self.params_type,
+                    result_type=self.result_type,
+                ),
+                edges=tuple(edges),
+            )
+
+    @classmethod
+    def _subclasses_recursive(cls) -> list[type]:
+        return cls._collect_subclasses(cls._target_intent)
+
+    @classmethod
+    def inspect(cls, target_cls: type) -> FacetPayload | None:
+        p_type, r_type = extract_action_params_result_types(target_cls)
+        if p_type is None and r_type is None:
+            return None
+        return cls._build_payload(target_cls)
+
+    @classmethod
+    def facet_snapshot_for_class(cls, target_cls: type) -> Snapshot | None:
+        p_type, r_type = extract_action_params_result_types(target_cls)
+        if p_type is None and r_type is None:
+            return None
+        return cls.Snapshot(
+            class_ref=target_cls,
+            params_type=p_type,
+            result_type=r_type,
+        )
+
+    @classmethod
+    def facet_snapshot_storage_key(
+        cls, _target_cls: type, _payload: FacetPayload,
+    ) -> str:
+        return "action_schemas"
+
+    @classmethod
+    def _build_payload(cls, target_cls: type) -> FacetPayload:
+        snap = cls.facet_snapshot_for_class(target_cls)
+        assert snap is not None
+        return snap.to_facet_payload()

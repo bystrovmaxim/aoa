@@ -27,17 +27,17 @@ truecolor по ``var["level"].mask``; явные escape в тексте откл
 
 import pytest
 
-from action_machine.context.context import Context
-from action_machine.core.base_params import BaseParams
-from action_machine.core.base_state import BaseState
-from action_machine.logging.channel import Channel, channel_mask_label
-from action_machine.logging.console_logger import (
+from action_machine.intents.context.context import Context
+from action_machine.intents.logging.channel import Channel, channel_mask_label
+from action_machine.intents.logging.console_logger import (
     DEFAULT_LEVEL_FG_PREFIX,
     ConsoleLogger,
 )
-from action_machine.logging.level import Level, level_label
-from action_machine.logging.log_scope import LogScope
-from action_machine.logging.log_var_payloads import LogChannelPayload, LogLevelPayload
+from action_machine.intents.logging.level import Level, level_label
+from action_machine.intents.logging.log_scope import LogScope
+from action_machine.intents.logging.log_var_payloads import LogChannelPayload, LogLevelPayload
+from action_machine.model.base_params import BaseParams
+from action_machine.model.base_state import BaseState
 
 
 def _write_var(

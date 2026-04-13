@@ -25,10 +25,10 @@ from unittest.mock import AsyncMock
 import pytest
 from mcp.server.fastmcp import FastMCP
 
-from action_machine.contrib.mcp.adapter import McpAdapter, _class_name_to_snake_case
-from action_machine.contrib.mcp.route_record import McpRouteRecord
-from action_machine.core.action_product_machine import ActionProductMachine
-from action_machine.core.core_action_machine import CoreActionMachine
+from action_machine.integrations.mcp.adapter import McpAdapter, _class_name_to_snake_case
+from action_machine.integrations.mcp.route_record import McpRouteRecord
+from action_machine.runtime.machines.action_product_machine import ActionProductMachine
+from action_machine.runtime.machines.core_action_machine import CoreActionMachine
 from tests.domain_model import FullAction, PingAction, SimpleAction
 
 # ─────────────────────────────────────────────────────────────────────────────

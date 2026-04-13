@@ -44,9 +44,9 @@ Pydantic-совместимость:
 import pytest
 from pydantic import ConfigDict, Field, ValidationError
 
-from action_machine.core.base_result import BaseResult
-from action_machine.core.base_schema import BaseSchema
-from action_machine.core.base_state import BaseState
+from action_machine.model.base_result import BaseResult
+from action_machine.model.base_schema import BaseSchema
+from action_machine.model.base_state import BaseState
 
 # ═════════════════════════════════════════════════════════════════════════════
 # Вспомогательные классы для тестов

@@ -54,11 +54,10 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from action_machine.context.context import Context
-from action_machine.context.user_info import UserInfo
-from action_machine.core.action_product_machine import ActionProductMachine
-from action_machine.logging.log_coordinator import LogCoordinator
-from action_machine.plugins.events import (
+from action_machine.intents.context.context import Context
+from action_machine.intents.context.user_info import UserInfo
+from action_machine.intents.logging.log_coordinator import LogCoordinator
+from action_machine.intents.plugins.events import (
     AfterRegularAspectEvent,
     AfterSummaryAspectEvent,
     BasePluginEvent,
@@ -67,8 +66,9 @@ from action_machine.plugins.events import (
     GlobalFinishEvent,
     GlobalStartEvent,
 )
-from action_machine.plugins.plugin_coordinator import PluginCoordinator
-from action_machine.plugins.plugin_run_context import PluginRunContext
+from action_machine.intents.plugins.plugin_coordinator import PluginCoordinator
+from action_machine.intents.plugins.plugin_run_context import PluginRunContext
+from action_machine.runtime.machines.action_product_machine import ActionProductMachine
 from tests.domain_model import (
     FullAction,
     NotificationService,

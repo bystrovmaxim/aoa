@@ -30,7 +30,7 @@ from __future__ import annotations
 
 import pytest
 
-from action_machine.core.base_schema import BaseSchema
+from action_machine.model.base_schema import BaseSchema
 
 
 class _Child(BaseSchema):

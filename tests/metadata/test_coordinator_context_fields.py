@@ -53,22 +53,22 @@ facet’ов не пересобираются — контекстные клю
 
 from pydantic import Field
 
-from action_machine.aspects.regular_aspect_decorator import regular_aspect
-from action_machine.aspects.summary_aspect_decorator import summary_aspect
-from action_machine.auth import NoneRole, check_roles
-from action_machine.context.context_requires_decorator import context_requires
-from action_machine.context.ctx_constants import Ctx
-from action_machine.core.base_action import BaseAction
-from action_machine.core.base_params import BaseParams
-from action_machine.core.base_result import BaseResult
-from action_machine.core.base_state import BaseState
-from action_machine.core.core_action_machine import CoreActionMachine
-from action_machine.core.meta_decorator import meta
-from action_machine.core.tools_box import ToolsBox
 from action_machine.dependencies.dependency_factory import clear_dependency_factory_cache
-from action_machine.metadata.gate_coordinator import GateCoordinator
-from action_machine.on_error.on_error_decorator import on_error
-from action_machine.resource_managers.base_resource_manager import BaseResourceManager
+from action_machine.graph.gate_coordinator import GateCoordinator
+from action_machine.intents.aspects.regular_aspect_decorator import regular_aspect
+from action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
+from action_machine.intents.auth import NoneRole, check_roles
+from action_machine.intents.context.context_requires_decorator import context_requires
+from action_machine.intents.context.ctx_constants import Ctx
+from action_machine.intents.meta.meta_decorator import meta
+from action_machine.intents.on_error.on_error_decorator import on_error
+from action_machine.model.base_action import BaseAction
+from action_machine.model.base_params import BaseParams
+from action_machine.model.base_result import BaseResult
+from action_machine.model.base_state import BaseState
+from action_machine.resources.base_resource_manager import BaseResourceManager
+from action_machine.runtime.machines.core_action_machine import CoreActionMachine
+from action_machine.runtime.tools_box import ToolsBox
 from tests.domain_model.domains import SystemDomain
 
 

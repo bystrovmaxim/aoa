@@ -38,7 +38,7 @@ BaseSchema — resolve:
 
 from pydantic import ConfigDict
 
-from action_machine.context.runtime_info import RuntimeInfo
+from action_machine.intents.context.runtime_info import RuntimeInfo
 
 # ═════════════════════════════════════════════════════════════════════════════
 # Наследник RuntimeInfo для тестов расширения

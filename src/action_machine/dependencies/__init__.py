@@ -44,14 +44,14 @@
     4. ToolsBox.resolve(PaymentService) делегирует в фабрику.
 """
 
-from .dependency_factory import (
+from action_machine.dependencies.dependency_factory import (
     DependencyFactory,
     DependencyInfo,
     cached_dependency_factory,
     clear_dependency_factory_cache,
 )
-from .dependency_intent import DependencyIntent
-from .depends_decorator import depends
+from action_machine.dependencies.dependency_intent import DependencyIntent
+from action_machine.dependencies.depends_decorator import depends
 
 __all__ = [
     "DependencyFactory",

@@ -40,17 +40,17 @@ USAGE IN TESTS
 
 from pydantic import Field
 
-from action_machine.aspects.regular_aspect_decorator import regular_aspect
-from action_machine.aspects.summary_aspect_decorator import summary_aspect
-from action_machine.auth import check_roles
-from action_machine.checkers import result_string
-from action_machine.core.base_action import BaseAction
-from action_machine.core.base_params import BaseParams
-from action_machine.core.base_result import BaseResult
-from action_machine.core.base_state import BaseState
-from action_machine.core.meta_decorator import meta
-from action_machine.core.tools_box import ToolsBox
-from action_machine.resource_managers.base_resource_manager import BaseResourceManager
+from action_machine.intents.aspects.regular_aspect_decorator import regular_aspect
+from action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
+from action_machine.intents.auth import check_roles
+from action_machine.intents.checkers import result_string
+from action_machine.intents.meta.meta_decorator import meta
+from action_machine.model.base_action import BaseAction
+from action_machine.model.base_params import BaseParams
+from action_machine.model.base_result import BaseResult
+from action_machine.model.base_state import BaseState
+from action_machine.resources.base_resource_manager import BaseResourceManager
+from action_machine.runtime.tools_box import ToolsBox
 
 from .domains import SystemDomain
 from .roles import AdminRole

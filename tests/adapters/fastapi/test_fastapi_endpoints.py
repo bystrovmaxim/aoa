@@ -44,10 +44,10 @@ from unittest.mock import AsyncMock, MagicMock
 
 from fastapi.testclient import TestClient
 
-from action_machine.contrib.fastapi.adapter import FastApiAdapter
-from action_machine.core.action_product_machine import ActionProductMachine
-from action_machine.core.exceptions import AuthorizationError, ValidationFieldError
-from action_machine.metadata.gate_coordinator import GateCoordinator
+from action_machine.graph.gate_coordinator import GateCoordinator
+from action_machine.integrations.fastapi.adapter import FastApiAdapter
+from action_machine.model.exceptions import AuthorizationError, ValidationFieldError
+from action_machine.runtime.machines.action_product_machine import ActionProductMachine
 from tests.domain_model import PingAction, SimpleAction
 
 # ─────────────────────────────────────────────────────────────────────────────

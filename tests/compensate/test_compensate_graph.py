@@ -55,17 +55,17 @@ TestCompensatorInDependencyTree — историческое имя класса
 
 from __future__ import annotations
 
-from action_machine.aspects.regular_aspect_decorator import regular_aspect
-from action_machine.aspects.summary_aspect_decorator import summary_aspect
-from action_machine.auth import NoneRole, check_roles
-from action_machine.compensate import compensate
-from action_machine.context import Ctx, context_requires
-from action_machine.core.base_action import BaseAction
-from action_machine.core.base_params import BaseParams
-from action_machine.core.base_result import BaseResult
-from action_machine.core.core_action_machine import CoreActionMachine
-from action_machine.core.meta_decorator import meta
-from action_machine.metadata.gate_coordinator import GateCoordinator
+from action_machine.graph.gate_coordinator import GateCoordinator
+from action_machine.intents.aspects.regular_aspect_decorator import regular_aspect
+from action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
+from action_machine.intents.auth import NoneRole, check_roles
+from action_machine.intents.compensate import compensate
+from action_machine.intents.context import Ctx, context_requires
+from action_machine.intents.meta.meta_decorator import meta
+from action_machine.model.base_action import BaseAction
+from action_machine.model.base_params import BaseParams
+from action_machine.model.base_result import BaseResult
+from action_machine.runtime.machines.core_action_machine import CoreActionMachine
 from tests.domain_model.domains import TestDomain
 
 # ═════════════════════════════════════════════════════════════════════════════

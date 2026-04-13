@@ -3,9 +3,9 @@
 
 from __future__ import annotations
 
-from action_machine.checkers.checker_intent import CheckerIntent
-from action_machine.checkers.checker_intent_inspector import CheckerIntentInspector
-from action_machine.checkers.result_string_checker import result_string
+from action_machine.graph.inspectors.checker_intent_inspector import CheckerIntentInspector
+from action_machine.intents.checkers.checker_intent import CheckerIntent
+from action_machine.intents.checkers.result_string_checker import result_string
 
 
 class _NoCheckerAction(CheckerIntent):

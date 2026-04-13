@@ -23,8 +23,8 @@ from __future__ import annotations
 
 from typing import Any, cast
 
-from .entity import BaseEntity
-from .lifecycle import Lifecycle
+from action_machine.domain.entity import BaseEntity
+from action_machine.domain.lifecycle import Lifecycle
 
 
 def make[T](entity_cls: type[T], **overrides: Any) -> T:

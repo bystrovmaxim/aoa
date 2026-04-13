@@ -51,8 +51,8 @@ process_template() — замена всех {iif(...)} в строке:
 
 import pytest
 
-from action_machine.core.exceptions import LogTemplateError
-from action_machine.logging.expression_evaluator import ExpressionEvaluator, _IifArgSplitter
+from action_machine.intents.logging.expression_evaluator import ExpressionEvaluator, _IifArgSplitter
+from action_machine.model.exceptions import LogTemplateError
 
 
 @pytest.fixture

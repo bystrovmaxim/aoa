@@ -49,7 +49,7 @@ it is replaced with AuthCoordinator with real components.
 
 import sys
 
-from action_machine.contrib.mcp import McpAdapter
+from action_machine.integrations.mcp import McpAdapter
 
 from .actions import CreateOrderAction, GetOrderAction, PingAction
 from .infrastructure import auth, machine

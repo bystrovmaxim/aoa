@@ -53,15 +53,15 @@ resolve() с rollup:
 
 import pytest
 
-from action_machine.core.core_action_machine import CoreActionMachine
-from action_machine.core.exceptions import RollupNotSupportedError
-from action_machine.core.meta_decorator import meta
 from action_machine.dependencies.dependency_factory import (
     DependencyFactory,
     DependencyInfo,
     cached_dependency_factory,
 )
-from action_machine.resource_managers.base_resource_manager import BaseResourceManager
+from action_machine.intents.meta.meta_decorator import meta
+from action_machine.model.exceptions import RollupNotSupportedError
+from action_machine.resources.base_resource_manager import BaseResourceManager
+from action_machine.runtime.machines.core_action_machine import CoreActionMachine
 from tests.domain_model import FullAction, NotificationService, PaymentService, PingAction
 from tests.domain_model.domains import TestDomain
 

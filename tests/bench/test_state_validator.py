@@ -21,8 +21,8 @@ Scenarios covered:
 
 import pytest
 
-from action_machine.core.core_action_machine import CoreActionMachine
-from action_machine.metadata.gate_coordinator import GateCoordinator
+from action_machine.graph.gate_coordinator import GateCoordinator
+from action_machine.runtime.machines.core_action_machine import CoreActionMachine
 from action_machine.testing.state_validator import (
     StateValidationError,
     validate_state_for_aspect,

@@ -45,32 +45,32 @@ from typing import Any
 
 import pytest
 
-from action_machine.aspects.regular_aspect_decorator import regular_aspect
-from action_machine.aspects.summary_aspect_decorator import summary_aspect
-from action_machine.auth.check_roles_decorator import check_roles
-from action_machine.auth.none_role import NoneRole
-from action_machine.checkers.result_string_checker import result_string
-from action_machine.compensate import compensate
-from action_machine.core.base_action import BaseAction
-from action_machine.core.base_params import BaseParams
-from action_machine.core.base_result import BaseResult
-from action_machine.core.base_schema import BaseSchema
-from action_machine.core.core_action_machine import CoreActionMachine
-from action_machine.core.meta_decorator import meta
-from action_machine.core.meta_intent_inspector import MetaIntentInspector
 from action_machine.dependencies.dependency_factory import (
     cached_dependency_factory,
     clear_dependency_factory_cache,
 )
 from action_machine.dependencies.depends_decorator import depends
-from action_machine.logging.sensitive_decorator import sensitive
-from action_machine.metadata.base_intent_inspector import BaseIntentInspector
-from action_machine.metadata.gate_coordinator import GateCoordinator
-from action_machine.plugins.events import GlobalStartEvent
-from action_machine.plugins.on_decorator import on
-from action_machine.plugins.plugin import Plugin
-from action_machine.resource_managers.base_resource_manager import BaseResourceManager
-from action_machine.resource_managers.connection_decorator import connection
+from action_machine.graph.base_intent_inspector import BaseIntentInspector
+from action_machine.graph.gate_coordinator import GateCoordinator
+from action_machine.graph.inspectors.meta_intent_inspector import MetaIntentInspector
+from action_machine.intents.aspects.regular_aspect_decorator import regular_aspect
+from action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
+from action_machine.intents.auth.check_roles_decorator import check_roles
+from action_machine.intents.auth.none_role import NoneRole
+from action_machine.intents.checkers.result_string_checker import result_string
+from action_machine.intents.compensate import compensate
+from action_machine.intents.logging.sensitive_decorator import sensitive
+from action_machine.intents.meta.meta_decorator import meta
+from action_machine.intents.plugins.events import GlobalStartEvent
+from action_machine.intents.plugins.on_decorator import on
+from action_machine.intents.plugins.plugin import Plugin
+from action_machine.model.base_action import BaseAction
+from action_machine.model.base_params import BaseParams
+from action_machine.model.base_result import BaseResult
+from action_machine.model.base_schema import BaseSchema
+from action_machine.resources.base_resource_manager import BaseResourceManager
+from action_machine.resources.connection_decorator import connection
+from action_machine.runtime.machines.core_action_machine import CoreActionMachine
 from tests.domain_model.domains import TestDomain
 from tests.domain_model.roles import AdminRole
 

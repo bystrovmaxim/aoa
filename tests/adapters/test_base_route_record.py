@@ -37,8 +37,8 @@ from action_machine.adapters.base_route_record import (
     ensure_protocol_response,
     extract_action_types,
 )
-from action_machine.core.base_params import BaseParams
-from action_machine.core.base_result import BaseResult
+from action_machine.model.base_params import BaseParams
+from action_machine.model.base_result import BaseResult
 from tests.domain_model import FullAction, PingAction, SimpleAction
 
 # ─────────────────────────────────────────────────────────────────────────────

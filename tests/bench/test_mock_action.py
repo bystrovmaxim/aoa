@@ -16,7 +16,7 @@
 
 import pytest
 
-from action_machine.core.base_params import BaseParams
+from action_machine.model.base_params import BaseParams
 from action_machine.testing import MockAction
 from tests.domain_model import PingAction
 

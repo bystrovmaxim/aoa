@@ -20,22 +20,22 @@ from __future__ import annotations
 
 import pytest
 
-from action_machine.core.meta_decorator import meta
-from action_machine.core.meta_intent_inspector import MetaIntentInspector
-from action_machine.core.meta_intents import ActionMetaIntent
 from action_machine.dependencies.dependency_intent import DependencyIntent
-from action_machine.dependencies.dependency_intent_inspector import (
-    DependencyIntentInspector,
-)
 from action_machine.dependencies.depends_decorator import depends
 from action_machine.domain.base_domain import BaseDomain
-from action_machine.metadata.gate_coordinator import GateCoordinator
-from action_machine.resource_managers.base_resource_manager import BaseResourceManager
-from action_machine.resource_managers.connection_decorator import connection
-from action_machine.resource_managers.connection_intent import ConnectionIntent
-from action_machine.resource_managers.connection_intent_inspector import (
+from action_machine.graph.gate_coordinator import GateCoordinator
+from action_machine.graph.inspectors.connection_intent_inspector import (
     ConnectionIntentInspector,
 )
+from action_machine.graph.inspectors.dependency_intent_inspector import (
+    DependencyIntentInspector,
+)
+from action_machine.graph.inspectors.meta_intent_inspector import MetaIntentInspector
+from action_machine.intents.meta.meta_decorator import meta
+from action_machine.intents.meta.meta_intents import ActionMetaIntent
+from action_machine.resources.base_resource_manager import BaseResourceManager
+from action_machine.resources.connection_decorator import connection
+from action_machine.resources.connection_intent import ConnectionIntent
 
 
 class _OrdersDomain(BaseDomain):

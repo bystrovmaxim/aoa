@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from action_machine.metadata.base_intent_inspector import BaseIntentInspector
+from action_machine.graph.base_intent_inspector import BaseIntentInspector
 
 
 class _M:

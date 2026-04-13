@@ -36,8 +36,8 @@ from unittest.mock import AsyncMock, MagicMock, Mock
 
 import pytest
 
-from action_machine.core.base_params import BaseParams
-from action_machine.core.base_result import BaseResult
+from action_machine.model.base_params import BaseParams
+from action_machine.model.base_result import BaseResult
 from action_machine.testing.bench import (
     TestBench,
     _prepare_all_mocks,
@@ -252,7 +252,7 @@ class TestBenchLogCoordinator:
 
     def test_custom_log_coordinator(self) -> None:
         """Custom log_coordinator is passed to the machine."""
-        from action_machine.logging.log_coordinator import LogCoordinator
+        from action_machine.intents.logging.log_coordinator import LogCoordinator
         log_coord = LogCoordinator()
 
         bench = TestBench(log_coordinator=log_coord)
@@ -313,7 +313,7 @@ class TestBuildSyncMachine:
 
     def test_builds_sync_machine(self) -> None:
         """_build_sync_machine returns a SyncActionProductMachine."""
-        from action_machine.core.sync_action_product_machine import SyncActionProductMachine
+        from action_machine.runtime.machines.sync_action_product_machine import SyncActionProductMachine
 
         bench = TestBench()
         machine = bench._build_sync_machine()
@@ -322,7 +322,7 @@ class TestBuildSyncMachine:
 
     def test_sync_machine_with_log_coordinator(self) -> None:
         """Sync machine receives the log_coordinator if provided."""
-        from action_machine.logging.log_coordinator import LogCoordinator
+        from action_machine.intents.logging.log_coordinator import LogCoordinator
 
         log_coord = LogCoordinator()
         bench = TestBench(log_coordinator=log_coord)

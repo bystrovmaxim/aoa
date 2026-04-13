@@ -45,11 +45,11 @@ TestDecorator
 
 import pytest
 
-from action_machine.checkers.result_instance_checker import (
+from action_machine.intents.checkers.result_instance_checker import (
     ResultInstanceChecker,
     result_instance,
 )
-from action_machine.core.exceptions import ValidationFieldError
+from action_machine.model.exceptions import ValidationFieldError
 
 # ═════════════════════════════════════════════════════════════════════════════
 # Вспомогательные классы для тестов

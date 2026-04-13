@@ -1,6 +1,6 @@
 # Иерархия ролей
 
-Каждый уровень — **отдельный модуль** в `src/action_machine/auth/`:
+Каждый уровень — **отдельный модуль** в `src/action_machine/intents/auth/`:
 
 ```
 BaseRole (ABC)              → base_role.py

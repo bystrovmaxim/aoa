@@ -44,8 +44,8 @@ from datetime import UTC, datetime
 
 import pytest
 
-from action_machine.checkers.result_date_checker import ResultDateChecker, result_date
-from action_machine.core.exceptions import ValidationFieldError
+from action_machine.intents.checkers.result_date_checker import ResultDateChecker, result_date
+from action_machine.model.exceptions import ValidationFieldError
 
 # ═════════════════════════════════════════════════════════════════════════════
 # Валидные значения

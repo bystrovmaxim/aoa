@@ -49,7 +49,7 @@ import asyncio
 
 import pytest
 
-from action_machine.plugins.plugin_coordinator import PluginCoordinator
+from action_machine.intents.plugins.plugin_coordinator import PluginCoordinator
 
 from .conftest import (
     FailingPluginIgnore,

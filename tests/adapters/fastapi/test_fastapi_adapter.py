@@ -26,9 +26,9 @@ from unittest.mock import AsyncMock
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from action_machine.contrib.fastapi.adapter import FastApiAdapter
-from action_machine.contrib.fastapi.route_record import FastApiRouteRecord
-from action_machine.core.action_product_machine import ActionProductMachine
+from action_machine.integrations.fastapi.adapter import FastApiAdapter
+from action_machine.integrations.fastapi.route_record import FastApiRouteRecord
+from action_machine.runtime.machines.action_product_machine import ActionProductMachine
 from tests.domain_model import PingAction, SimpleAction
 
 # ─────────────────────────────────────────────────────────────────────────────

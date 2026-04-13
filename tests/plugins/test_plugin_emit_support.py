@@ -7,10 +7,10 @@ from typing import Any
 
 import pytest
 
-from action_machine.context.context import Context
-from action_machine.context.user_info import UserInfo
-from action_machine.logging.log_coordinator import LogCoordinator
-from action_machine.plugins.events import (
+from action_machine.intents.context.context import Context
+from action_machine.intents.context.user_info import UserInfo
+from action_machine.intents.logging.log_coordinator import LogCoordinator
+from action_machine.intents.plugins.events import (
     AfterRegularAspectEvent,
     AfterSummaryAspectEvent,
     BeforeRegularAspectEvent,
@@ -18,7 +18,7 @@ from action_machine.plugins.events import (
     GlobalFinishEvent,
     GlobalStartEvent,
 )
-from action_machine.plugins.plugin_emit_support import PluginEmitSupport
+from action_machine.intents.plugins.plugin_emit_support import PluginEmitSupport
 from tests.domain_model import PingAction
 
 

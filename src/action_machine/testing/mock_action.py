@@ -75,13 +75,13 @@ MockAction имеет суффикс "Action" — инвариант имено�
 
 from collections.abc import Callable
 
-from action_machine.aspects.summary_aspect_decorator import summary_aspect
-from action_machine.core.base_action import BaseAction
-from action_machine.core.base_params import BaseParams
-from action_machine.core.base_result import BaseResult
-from action_machine.core.base_state import BaseState
-from action_machine.core.tools_box import ToolsBox
-from action_machine.resource_managers.base_resource_manager import BaseResourceManager
+from action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
+from action_machine.model.base_action import BaseAction
+from action_machine.model.base_params import BaseParams
+from action_machine.model.base_result import BaseResult
+from action_machine.model.base_state import BaseState
+from action_machine.resources.base_resource_manager import BaseResourceManager
+from action_machine.runtime.tools_box import ToolsBox
 
 
 class MockAction(BaseAction[BaseParams, BaseResult]):  # pylint: disable=too-many-ancestors

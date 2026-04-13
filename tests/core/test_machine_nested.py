@@ -54,22 +54,22 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from pydantic import Field
 
-from action_machine.aspects.regular_aspect_decorator import regular_aspect
-from action_machine.aspects.summary_aspect_decorator import summary_aspect
-from action_machine.auth import NoneRole, check_roles
-from action_machine.checkers import result_string
-from action_machine.context.context import Context
-from action_machine.context.user_info import UserInfo
-from action_machine.core.action_product_machine import ActionProductMachine
-from action_machine.core.base_action import BaseAction
-from action_machine.core.base_params import BaseParams
-from action_machine.core.base_result import BaseResult
-from action_machine.core.meta_decorator import meta
-from action_machine.core.tools_box import ToolsBox
-from action_machine.logging.log_coordinator import LogCoordinator
-from action_machine.plugins.plugin_coordinator import PluginCoordinator
-from action_machine.plugins.plugin_run_context import PluginRunContext
-from action_machine.resource_managers.base_resource_manager import BaseResourceManager
+from action_machine.intents.aspects.regular_aspect_decorator import regular_aspect
+from action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
+from action_machine.intents.auth import NoneRole, check_roles
+from action_machine.intents.checkers import result_string
+from action_machine.intents.context.context import Context
+from action_machine.intents.context.user_info import UserInfo
+from action_machine.intents.logging.log_coordinator import LogCoordinator
+from action_machine.intents.meta.meta_decorator import meta
+from action_machine.intents.plugins.plugin_coordinator import PluginCoordinator
+from action_machine.intents.plugins.plugin_run_context import PluginRunContext
+from action_machine.model.base_action import BaseAction
+from action_machine.model.base_params import BaseParams
+from action_machine.model.base_result import BaseResult
+from action_machine.resources.base_resource_manager import BaseResourceManager
+from action_machine.runtime.machines.action_product_machine import ActionProductMachine
+from action_machine.runtime.tools_box import ToolsBox
 from tests.domain_model import PingAction
 from tests.domain_model.domains import TestDomain
 from tests.domain_model.roles import AdminRole, ManagerRole
@@ -314,8 +314,8 @@ class TestConnectionWrapping:
         """
         Менеджер с get_wrapper_class() → оборачивается в WrapperSqlConnectionManager.
         """
-        from action_machine.resource_managers.sql_connection_manager import SqlConnectionManager
-        from action_machine.resource_managers.wrapper_sql_connection_manager import (
+        from action_machine.resources.sql_connection_manager import SqlConnectionManager
+        from action_machine.resources.wrapper_sql_connection_manager import (
             WrapperSqlConnectionManager,
         )
 

@@ -38,8 +38,8 @@ Required / Optional:
 
 import pytest
 
-from action_machine.checkers.result_int_checker import ResultIntChecker, result_int
-from action_machine.core.exceptions import ValidationFieldError
+from action_machine.intents.checkers.result_int_checker import ResultIntChecker, result_int
+from action_machine.model.exceptions import ValidationFieldError
 
 # ═════════════════════════════════════════════════════════════════════════════
 # Валидные значения

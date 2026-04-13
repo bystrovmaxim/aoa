@@ -72,7 +72,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Any, cast
 
-from .entity import BaseEntity
+from action_machine.domain.entity import BaseEntity
 
 
 class EntityProxy[T]:

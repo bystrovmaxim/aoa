@@ -8,7 +8,7 @@ from pydantic import Field
 from action_machine.domain import BaseEntity, entity
 from action_machine.domain.base_domain import BaseDomain
 from action_machine.domain.entity_intent import EntityIntent
-from action_machine.domain.entity_intent_inspector import EntityIntentInspector
+from action_machine.graph.inspectors.entity_intent_inspector import EntityIntentInspector
 
 
 class _TestDomain(BaseDomain):
