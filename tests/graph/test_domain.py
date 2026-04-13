@@ -169,6 +169,19 @@ class TestInheritance:
         assert ChildDomain.version == 1
         assert ChildDomain.name == "child"
 
+    def test_child_may_inherit_name_from_intermediate_base(self):
+        """``_validate_class_attr`` returns when attr lives on a non-BaseDomain base."""
+
+        class MiddleDomain(BaseDomain):
+            name = "mid"
+            description = "mid desc"
+
+        class LeafDomain(MiddleDomain):
+            description = "leaf only redefines description"
+
+        assert LeafDomain.name == "mid"
+        assert LeafDomain.description == "leaf only redefines description"
+
 
 # ═════════════════════════════════════════════════════════════════════════════
 # Missing name
