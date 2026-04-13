@@ -1,0 +1,36 @@
+name: PR Title Check
+
+on:
+  pull_request:
+    branches:
+      - main
+    types:
+      - opened
+      - edited
+      - synchronize
+      - reopened
+
+jobs:
+  check-title:
+    name: Validate PR Title
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check PR title is not empty
+        run: |
+          TITLE="${{ github.event.pull_request.title }}"
+          echo "📋 Заголовок PR: $TITLE"
+          if [ -z "$TITLE" ]; then
+            echo "❌ Заголовок PR не может быть пустым"
+            exit 1
+          fi
+          echo "✅ Заголовок PR корректен"
+
+      - name: Check PR has description
+        run: |
+          BODY="${{ github.event.pull_request.body }}"
+          if [ -z "$BODY" ]; then
+            echo "⚠️  Описание PR пустое — рекомендуется добавить описание изменений"
+          else
+            echo "✅ Описание PR присутствует"
+          fi
