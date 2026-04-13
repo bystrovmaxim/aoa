@@ -1,4 +1,4 @@
-# tests/core/test_machine_roles.py
+# tests/runtime/test_machine_roles.py
 """
 Тесты проверки ролей в ActionProductMachine.
 

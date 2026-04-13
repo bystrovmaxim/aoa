@@ -1,4 +1,4 @@
-# tests/core/test_machine_nested.py
+# tests/runtime/test_machine_nested.py
 """
 Тесты вложенных вызовов действий через ToolsBox.run() в ActionProductMachine.
 

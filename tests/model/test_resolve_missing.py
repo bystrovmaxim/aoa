@@ -1,4 +1,4 @@
-# tests/core/test_resolve_missing.py
+# tests/model/test_resolve_missing.py
 """
 Тесты BaseSchema.resolve() для отсутствующих ключей и путей.
 

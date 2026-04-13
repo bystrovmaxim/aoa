@@ -1,4 +1,4 @@
-# tests/core/test_navigation_performance.py
+# tests/model/test_navigation_performance.py
 
 import time
 

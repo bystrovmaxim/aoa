@@ -29,7 +29,7 @@ PRINCIPLES
    machines and compares results.
 
 4. TESTS IN SUBFOLDERS. Test files never lie in the tests/ root.
-   Each group — in its own subfolder by topic: smoke/, core/, roles/, etc.
+   Each group — in its own subfolder by topic: smoke/, model/, runtime/, graph/, etc.
 
 5. COMPACTNESS. Each file tests one aspect of the system
    and contains 100-250 lines.

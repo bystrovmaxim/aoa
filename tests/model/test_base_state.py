@@ -1,4 +1,4 @@
-# tests/core/test_base_state.py
+# tests/model/test_base_state.py
 """
 Тесты BaseState — frozen-состояние конвейера аспектов.
 

@@ -1,4 +1,4 @@
-# tests/core/test_base_schema_resolve.py
+# tests/model/test_base_schema_resolve.py
 """
 Тесты BaseSchema.resolve() для dot-path навигации по вложенным объектам.
 

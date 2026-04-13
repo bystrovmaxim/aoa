@@ -1,4 +1,4 @@
-# tests/core/test_action_machine_contract_freeze.py
+# tests/runtime/test_action_machine_contract_freeze.py
 """
 Golden contract freeze tests for ActionProductMachine execution flow.
 

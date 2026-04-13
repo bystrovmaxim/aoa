@@ -1,4 +1,4 @@
-# tests/core/test_dependency_factory_resolver.py
+# tests/runtime/test_dependency_factory_resolver.py
 """Tests for ``DependencyFactoryResolver`` wiring and ``ToolsBoxFactory.create``."""
 
 from unittest.mock import AsyncMock, MagicMock

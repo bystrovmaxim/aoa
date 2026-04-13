@@ -1,4 +1,4 @@
-# tests/core/test_machine_plugins.py
+# tests/runtime/test_machine_plugins.py
 """
 Тесты событий плагинов в ActionProductMachine.
 ═══════════════════════════════════════════════════════════════════════════════

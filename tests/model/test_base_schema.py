@@ -1,4 +1,4 @@
-# tests/core/test_base_schema.py
+# tests/model/test_base_schema.py
 """
 Тесты BaseSchema — базовая pydantic-схема с dict-подобным доступом к полям.
 

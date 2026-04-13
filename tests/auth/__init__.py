@@ -30,6 +30,6 @@
 - NoAuthCoordinator — провайдер для открытых API. Всегда возвращает
   анонимный Context с UserInfo(user_id=None, roles=()).
 
-Проверка ролей в рантайме покрыта в tests/core/test_machine_roles.py. Здесь
+Проверка ролей в рантайме покрыта в tests/runtime/test_machine_roles.py. Здесь
 в основном @check_roles, координаторы и смежная логика.
 """

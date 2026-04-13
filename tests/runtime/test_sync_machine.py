@@ -1,4 +1,4 @@
-# tests/core/test_sync_machine.py
+# tests/runtime/test_sync_machine.py
 """
 Тесты SyncActionProductMachine — синхронная обёртка над ActionProductMachine.
 
