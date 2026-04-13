@@ -26,7 +26,8 @@ INVARIANTS
 Each ``tool()`` call creates one ``McpRouteRecord`` entry.
 ``build()`` always registers resource ``system://graph``.
 Tool I/O contracts are validated via ``ensure_machine_params`` and
-``ensure_protocol_response``.
+``ensure_protocol_response``. Tool call results are always one JSON object per
+``TextContent`` (success or error envelope); see ERROR HANDLING.
 
 For open APIs, use ``NoAuthCoordinator`` explicitly:
 
@@ -63,14 +64,17 @@ TOOL HANDLER GENERATION STRATEGY
 For each registered ``McpRouteRecord``, the adapter builds an async handler that:
 
 1. Receives tool call args as kwargs from MCP host.
-2. Deserializes them via ``effective_request_model.model_validate()``.
+2. Deserializes them via ``effective_request_model.model_validate()``; Pydantic
+   failures become ``ValidationFieldError`` with ``details["errors"]``.
 3. Applies ``params_mapper`` when configured.
 4. Builds ``Context`` via ``auth_coordinator``.
 5. Resolves connections via ``connections_factory`` (or ``None``).
 6. Creates action instance and calls ``machine.run()``.
 7. Applies ``response_mapper`` when configured.
-8. Returns ``CallToolResult``: success -> JSON ``TextContent`` with
-   ``isError=False``; failures -> prefixed error text with ``isError=True``.
+8. Returns ``CallToolResult``: success -> JSON ``TextContent`` envelope
+   ``{"ok":true,"code":"OK","data":...}`` with ``isError=False``; failures ->
+   JSON envelope ``{"ok":false,"code":...,"message":...,"details":{}}`` with
+   ``isError=True``.
 
 On failures, the handler returns ``CallToolResult(isError=True)`` instead of
 raising, so MCP clients can distinguish tool-call errors at protocol level.
@@ -109,13 +113,17 @@ discovered via ``get_nodes_by_type("aspect")``; descriptions are read from
 ERROR HANDLING
 ═══════════════════════════════════════════════════════════════════════════════
 
-Exceptions are converted to ``CallToolResult`` with ``isError=True``:
+Exceptions are converted to JSON error envelopes with ``isError=True``:
 
-    AuthorizationError      → "PERMISSION_DENIED: ..."
-    ValidationFieldError    → "INVALID_PARAMS: ..."
-    Exception               → "INTERNAL_ERROR: ..."
+    AuthorizationError      → ``{"ok":false,"code":"PERMISSION_DENIED","message":...,"details":{}}``
+    ValidationFieldError    → ``code`` ``INVALID_PARAMS``, ``message`` from ``exc.message``,
+                              ``details`` from ``exc.details`` (tool input: ``errors`` from Pydantic)
+    Exception               → ``code`` ``INTERNAL_ERROR``, fixed ``message`` ``"Unexpected failure"``;
+                              original exception is logged with ``logger.exception`` (not echoed to client)
 
-Text remains human/agent readable; ``isError`` is for protocol clients.
+Success: ``{"ok":true,"code":"OK","data":<payload>}`` where ``<payload>`` is the
+JSON-serializable object produced by ``_serialize_result`` (one outer
+``json.dumps`` in ``_envelope_ok``). ``isError`` is for MCP protocol clients only.
 
 ═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES
@@ -141,8 +149,9 @@ EXAMPLES
 
 AI-CORE-BEGIN
 ROLE: Transport adapter that exposes ActionMachine through MCP tools/resources.
-CONTRACT: kwargs -> validated params -> machine.run() -> JSON text payload.
-INVARIANTS: required auth coordinator; protocol-level CallToolResult errors.
+CONTRACT: kwargs -> validated params -> machine.run() -> JSON envelope text payload.
+INVARIANTS: required auth coordinator; uniform JSON text envelopes; typed errors;
+    internal failures do not leak exception strings to clients.
 AI-CORE-END
 """
 
@@ -151,11 +160,13 @@ AI-CORE-END
 from __future__ import annotations
 
 import json
+import logging
 import re
 from collections.abc import Callable
 from typing import Any, Self
 
 from pydantic import BaseModel
+from pydantic import ValidationError as PydanticValidationError
 
 from action_machine.adapters.base_adapter import BaseAdapter
 from action_machine.adapters.base_route_record import (
@@ -174,9 +185,44 @@ from mcp.server.fastmcp.tools.base import Tool
 from mcp.server.fastmcp.utilities.func_metadata import ArgModelBase, FuncMetadata
 from mcp.types import CallToolResult, TextContent
 
+logger = logging.getLogger(__name__)
+
 # ═════════════════════════════════════════════════════════════════════════════
 # Module-level helper functions
 # ═════════════════════════════════════════════════════════════════════════════
+
+
+def _envelope_ok(data: Any) -> str:
+    """
+    Serialize MCP tool success body as a single JSON object.
+
+    Shape: ``ok`` (true), ``code`` (``OK``), ``data`` (arbitrary JSON-compatible
+    value; non-encodable values use ``default=str``).
+    """
+    return json.dumps(
+        {"ok": True, "code": "OK", "data": data},
+        ensure_ascii=False,
+        default=str,
+    )
+
+
+def _envelope_error(
+    code: str,
+    message: str,
+    details: dict[str, Any] | None = None,
+) -> str:
+    """
+    Serialize MCP tool error body as a single JSON object.
+
+    Shape: ``ok`` (false), ``code`` (machine-readable), ``message`` (human text),
+    ``details`` (object, often empty). Uses ``default=str`` for odd values in
+    ``details``.
+    """
+    return json.dumps(
+        {"ok": False, "code": code, "message": message, "details": details or {}},
+        ensure_ascii=False,
+        default=str,
+    )
 
 
 def _get_meta_description(
@@ -329,8 +375,9 @@ def _make_tool_handler(
     Create async handler for one MCP tool.
 
     Handler accepts kwargs from MCP host, deserializes into request model,
-    executes action via ``machine.run()``, and returns ``CallToolResult``.
-    On failure, returns ``CallToolResult(isError=True)`` with error text.
+    executes action via ``machine.run()``, and returns ``CallToolResult`` whose
+    ``TextContent`` is always one JSON object (success or error envelope). On
+    failure, returns ``CallToolResult(isError=True)`` with ``_envelope_error`` JSON.
 
     Args:
         record: route configuration with action class and mappers.
@@ -349,6 +396,10 @@ def _make_tool_handler(
     async def handler(**kwargs: Any) -> CallToolResult:
         """
         Execute one MCP tool call and return protocol-level result.
+
+        Returns:
+            ``CallToolResult`` with JSON envelope text and ``isError`` set from
+            outcome (see module ERROR HANDLING).
         """
         try:
             payload = await _execute_tool_call(
@@ -357,22 +408,39 @@ def _make_tool_handler(
                 has_params_mapper, has_response_mapper,
             )
             return CallToolResult(
-                content=[TextContent(type="text", text=payload)],
+                content=[TextContent(type="text", text=_envelope_ok(payload))],
                 isError=False,
             )
         except AuthorizationError as exc:
             return CallToolResult(
-                content=[TextContent(type="text", text=f"PERMISSION_DENIED: {exc}")],
+                content=[TextContent(
+                    type="text",
+                    text=_envelope_error("PERMISSION_DENIED", str(exc)),
+                )],
                 isError=True,
             )
         except ValidationFieldError as exc:
             return CallToolResult(
-                content=[TextContent(type="text", text=f"INVALID_PARAMS: {exc}")],
+                content=[TextContent(
+                    type="text",
+                    text=_envelope_error(
+                        "INVALID_PARAMS",
+                        exc.message,
+                        exc.details,
+                    ),
+                )],
                 isError=True,
             )
-        except Exception as exc:
+        except Exception:
+            logger.exception("MCP tool call failed: %s", record.tool_name)
             return CallToolResult(
-                content=[TextContent(type="text", text=f"INTERNAL_ERROR: {exc}")],
+                content=[TextContent(
+                    type="text",
+                    text=_envelope_error(
+                        "INTERNAL_ERROR",
+                        "Unexpected failure",
+                    ),
+                )],
                 isError=True,
             )
 
@@ -394,9 +462,12 @@ async def _execute_tool_call(
     connections_factory: Callable[..., dict[str, BaseResourceManager]] | None,
     has_params_mapper: bool,
     has_response_mapper: bool,
-) -> str:
+) -> Any:
     """
     Execute one MCP tool call: deserialize, map, run, serialize.
+
+    ``model_validate`` raises are turned into ``ValidationFieldError`` so the
+    handler maps them to ``INVALID_PARAMS`` instead of ``INTERNAL_ERROR``.
 
     Args:
         kwargs: tool call arguments from agent.
@@ -409,9 +480,23 @@ async def _execute_tool_call(
         has_response_mapper: whether response mapper is configured.
 
     Returns:
-        JSON string with action execution result.
+        Serializable payload for the success envelope ``data`` field (not yet
+        wrapped in ``_envelope_ok``; the handler applies the envelope).
+
+    Raises:
+        ValidationFieldError: when ``model_validate`` fails for tool kwargs
+            (includes wrapped Pydantic validation errors).
+
+    Other exceptions from ``machine.run`` (for example ``AuthorizationError``)
+    propagate to the tool handler, which maps them to envelopes.
     """
-    body = req_model.model_validate(kwargs)  # type: ignore[attr-defined]
+    try:
+        body = req_model.model_validate(kwargs)  # type: ignore[attr-defined]
+    except PydanticValidationError as exc:
+        raise ValidationFieldError(
+            "Tool input validation failed",
+            details={"errors": exc.errors()},
+        ) from exc
 
     params = record.params_mapper(body) if has_params_mapper else body  # type: ignore[misc]
 
@@ -438,11 +523,12 @@ def _serialize_result(
     result: Any,
     record: McpRouteRecord,
     has_response_mapper: bool,
-) -> str:
+) -> Any:
     """
-    Serialize action result into JSON string.
+    Build a JSON-serializable payload from the action result.
 
-    Applies ``response_mapper`` before serialization when configured.
+    Applies ``response_mapper`` before conversion when configured. The MCP
+    handler wraps the return value in ``_envelope_ok`` (single ``json.dumps``).
 
     Args:
         result: action result object.
@@ -450,7 +536,7 @@ def _serialize_result(
         has_response_mapper: whether response mapper is configured.
 
     Returns:
-        JSON string.
+        Object suitable for embedding in the success envelope ``data`` field.
     """
     if has_response_mapper:
         mapped = record.response_mapper(result)  # type: ignore[misc]
@@ -460,11 +546,8 @@ def _serialize_result(
             adapter="MCP",
             route_label=record.tool_name,
         )
-        obj = mapped.model_dump(mode="json") if hasattr(mapped, "model_dump") else mapped
-    else:
-        obj = result.model_dump(mode="json") if hasattr(result, "model_dump") else result
-
-    return json.dumps(obj, ensure_ascii=False)
+        return mapped.model_dump(mode="json") if hasattr(mapped, "model_dump") else mapped
+    return result.model_dump(mode="json") if hasattr(result, "model_dump") else result
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -476,10 +559,13 @@ class McpAdapter(BaseAdapter[McpRouteRecord]):
     """
     MCP adapter for ActionMachine.
 
+    Built tools return JSON envelope strings in ``CallToolResult`` text (see
+    module docstring ERROR HANDLING).
+
     AI-CORE-BEGIN
     ROLE: Exposes ActionMachine actions as MCP tools/resources.
     CONTRACT: BaseAdapter[McpRouteRecord] with tool(), register_all(), build().
-    INVARIANTS: auth coordinator required; graph resource registered on build.
+    INVARIANTS: auth coordinator required; graph resource on build; tool text is JSON envelope.
     AI-CORE-END
     """
 

@@ -7,9 +7,12 @@ PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 Exercise ``_make_tool_handler``, ``_execute_tool_call``, ``_serialize_result``,
-``_build_graph_json``, and error formatting: successful ``CallToolResult`` JSON,
-``isError`` paths (permissions, validation, internal), mapper transforms, guard
-failures for bad mapper outputs, ``__name__`` derivation from ``tool_name``, and
+``_build_graph_json``, and error formatting: successful ``CallToolResult`` with
+JSON envelope text (``ok``/``code``/``data``), ``isError`` paths (permissions,
+validation, internal), Pydantic input edge cases (missing field, wrong type,
+constraints), empty vs non-empty ``details`` on ``ValidationFieldError``, mapper
+transforms, guard failures for bad mapper outputs (generic ``INTERNAL_ERROR``
+body without leaking guard text), ``__name__`` derivation from ``tool_name``, and
 graph JSON topology (nodes, edges, hydrated meta).
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -21,10 +24,10 @@ ARCHITECTURE / DATA FLOW
               v
     _make_tool_handler -> _execute_tool_call -> machine.run
               |
-              +--> _serialize_result -> CallToolResult (text JSON)
+              +--> _serialize_result -> envelope JSON in CallToolResult text
               |
               v
-    Exceptions -> CallToolResult(isError=True) with stable prefixes
+    Exceptions -> CallToolResult(isError=True) with stable JSON ``code`` values
 
     _build_graph_json(coordinator) -> JSON string for ``system://graph``-style use
 
@@ -32,7 +35,8 @@ ARCHITECTURE / DATA FLOW
 INVARIANTS
 ═══════════════════════════════════════════════════════════════════════════════
 
-- Error text prefixes (e.g. PERMISSION_DENIED) must stay aligned with adapter code.
+- Error envelope ``code`` values (e.g. PERMISSION_DENIED) must stay aligned with adapter code.
+- Pydantic edge cases (missing field, wrong type, constraints) map to INVALID_PARAMS with ``details.errors``.
 - Graph JSON must include string-typed edge ``type`` and ``source_key``/``target_key``.
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -41,8 +45,8 @@ EXAMPLES
 
     uv run pytest tests/adapters/mcp/test_mcp_handler.py -q
 
-Edge case: wrong ``params_mapper`` return type surfaces as internal error with
-guard message substring.
+Edge case: wrong ``params_mapper`` return type yields ``INTERNAL_ERROR`` with a
+generic client message; the underlying guard reason appears only in server logs.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ERRORS / LIMITATIONS
@@ -55,7 +59,7 @@ ERRORS / LIMITATIONS
 AI-CORE-BEGIN
 ═══════════════════════════════════════════════════════════════════════════════
 ROLE: MCP handler and graph JSON regression tests.
-CONTRACT: CallToolResult shape; exception mapping; serialization and graph keys.
+CONTRACT: CallToolResult + JSON envelope; exception codes; payload vs envelope layering.
 INVARIANTS: Mocks for machine/auth; scenario actions + ``AdminRole`` where needed.
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-END
@@ -63,6 +67,7 @@ AI-CORE-END
 """
 
 import json
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -92,6 +97,11 @@ def _tool_result_text(result: CallToolResult) -> str:
     assert isinstance(result, CallToolResult)
     assert result.content
     return result.content[0].text
+
+
+def _tool_result_envelope(result: CallToolResult) -> dict[str, Any]:
+    """Parse handler TextContent as JSON envelope dict."""
+    return json.loads(_tool_result_text(result))
 
 
 class _MockResult(BaseModel):
@@ -154,42 +164,39 @@ def _make_auth(context=None) -> AsyncMock:
 
 
 class TestSerializeResult:
-    """Verify result serialization to JSON string."""
+    """Verify result serialization to a JSON-ready payload (envelope ``data``)."""
 
     def test_pydantic_model(self) -> None:
-        """Pydantic BaseModel is serialized via model_dump → json.dumps."""
+        """Pydantic BaseModel is converted via model_dump(mode='json')."""
         result = _MockResult(message="hello", count=5)
         record = _make_record()
 
-        json_str = _serialize_result(result, record, has_response_mapper=False)
-        parsed = json.loads(json_str)
+        payload = _serialize_result(result, record, has_response_mapper=False)
 
-        assert parsed["message"] == "hello"
-        assert parsed["count"] == 5
+        assert payload["message"] == "hello"
+        assert payload["count"] == 5
 
     def test_with_response_mapper(self) -> None:
-        """Response mapper is applied before serialization."""
+        """Response mapper is applied before payload build."""
         result = _MockResult(message="original")
         record = _make_record(
             response_model=_AltResponse,
             response_mapper=lambda r: _AltResponse(data=r.message),
         )
 
-        json_str = _serialize_result(result, record, has_response_mapper=True)
-        parsed = json.loads(json_str)
+        payload = _serialize_result(result, record, has_response_mapper=True)
 
-        assert parsed["data"] == "original"
+        assert payload["data"] == "original"
 
     def test_non_pydantic_result(self) -> None:
-        """Non-pydantic objects use default str serializer via json.dumps."""
+        """Plain dicts pass through for the outer envelope json.dumps."""
         result = {"key": "value", "num": 42}
         record = _make_record()
 
-        json_str = _serialize_result(result, record, has_response_mapper=False)
-        parsed = json.loads(json_str)
+        payload = _serialize_result(result, record, has_response_mapper=False)
 
-        assert parsed["key"] == "value"
-        assert parsed["num"] == 42
+        assert payload["key"] == "value"
+        assert payload["num"] == 42
 
     def test_user_info_roles_are_json_safe_without_mapper(self) -> None:
         """UserInfo.roles serializes to role names (no class objects in JSON)."""
@@ -198,11 +205,10 @@ class TestSerializeResult:
         )
         record = _make_record()
 
-        json_str = _serialize_result(result, record, has_response_mapper=False)
-        parsed = json.loads(json_str)
+        payload = _serialize_result(result, record, has_response_mapper=False)
 
-        assert parsed["user"]["user_id"] == "u1"
-        assert parsed["user"]["roles"] == [AdminRole.name]
+        assert payload["user"]["user_id"] == "u1"
+        assert payload["user"]["roles"] == [AdminRole.name]
 
     def test_user_info_roles_are_json_safe_with_mapper(self) -> None:
         """Mapped pydantic response with UserInfo also remains JSON-safe."""
@@ -214,11 +220,10 @@ class TestSerializeResult:
             ),
         )
 
-        json_str = _serialize_result(result, record, has_response_mapper=True)
-        parsed = json.loads(json_str)
+        payload = _serialize_result(result, record, has_response_mapper=True)
 
-        assert parsed["user"]["user_id"] == "u2"
-        assert parsed["user"]["roles"] == [AdminRole.name]
+        assert payload["user"]["user_id"] == "u2"
+        assert payload["user"]["roles"] == [AdminRole.name]
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -231,7 +236,7 @@ class TestHandlerSuccess:
 
     @pytest.mark.asyncio
     async def test_returns_json_string(self) -> None:
-        """Handler returns CallToolResult with JSON text and isError=False."""
+        """Handler returns success envelope with data and isError=False."""
         machine = _make_machine()
         auth = _make_auth()
         record = _make_record(action_class=PingAction, tool_name="system.ping")
@@ -247,8 +252,10 @@ class TestHandlerSuccess:
 
         assert isinstance(result, CallToolResult)
         assert result.isError is False
-        parsed = json.loads(_tool_result_text(result))
-        assert parsed["message"] == "pong"
+        env = _tool_result_envelope(result)
+        assert env["ok"] is True
+        assert env["code"] == "OK"
+        assert env["data"]["message"] == "pong"
 
     @pytest.mark.asyncio
     async def test_handler_name_from_tool_name(self) -> None:
@@ -285,7 +292,7 @@ class TestHandlerErrors:
 
     @pytest.mark.asyncio
     async def test_authorization_error(self) -> None:
-        """AuthorizationError → isError=True, PERMISSION_DENIED text."""
+        """AuthorizationError → isError=True, PERMISSION_DENIED envelope."""
         machine = _make_machine()
         machine.run = AsyncMock(side_effect=AuthorizationError("no access"))
         record = _make_record()
@@ -297,13 +304,15 @@ class TestHandlerErrors:
 
         assert isinstance(result, CallToolResult)
         assert result.isError is True
-        text = _tool_result_text(result)
-        assert "PERMISSION_DENIED" in text
-        assert "no access" in text
+        env = _tool_result_envelope(result)
+        assert env["ok"] is False
+        assert env["code"] == "PERMISSION_DENIED"
+        assert "no access" in env["message"]
+        assert env["details"] == {}
 
     @pytest.mark.asyncio
     async def test_validation_error(self) -> None:
-        """ValidationFieldError → isError=True, INVALID_PARAMS text."""
+        """ValidationFieldError → isError=True, INVALID_PARAMS envelope."""
         machine = _make_machine()
         machine.run = AsyncMock(
             side_effect=ValidationFieldError("bad field", "name"),
@@ -316,11 +325,14 @@ class TestHandlerErrors:
         result = await handler()
 
         assert result.isError is True
-        assert "INVALID_PARAMS" in _tool_result_text(result)
+        env = _tool_result_envelope(result)
+        assert env["code"] == "INVALID_PARAMS"
+        assert env["message"] == "bad field"
+        assert env["details"] == {}
 
     @pytest.mark.asyncio
     async def test_unexpected_error(self) -> None:
-        """Unexpected exceptions → isError=True, INTERNAL_ERROR text."""
+        """Unexpected exceptions → isError=True, generic INTERNAL_ERROR envelope."""
         machine = _make_machine()
         machine.run = AsyncMock(side_effect=RuntimeError("boom"))
         record = _make_record()
@@ -331,9 +343,94 @@ class TestHandlerErrors:
         result = await handler()
 
         assert result.isError is True
-        text = _tool_result_text(result)
-        assert "INTERNAL_ERROR" in text
-        assert "boom" in text
+        env = _tool_result_envelope(result)
+        assert env["code"] == "INTERNAL_ERROR"
+        assert env["message"] == "Unexpected failure"
+        assert "boom" not in json.dumps(env)
+
+    @pytest.mark.asyncio
+    async def test_pydantic_input_validation_error(self) -> None:
+        """Missing required tool args → INVALID_PARAMS with Pydantic error list."""
+        machine = _make_machine()
+        machine.run = AsyncMock()
+        record = _make_record(action_class=SimpleAction, tool_name="simple.run")
+
+        handler = _make_tool_handler(
+            record, machine, _make_auth(), None, machine.gate_coordinator,
+        )
+        result = await handler()
+
+        assert result.isError is True
+        env = _tool_result_envelope(result)
+        assert env["code"] == "INVALID_PARAMS"
+        assert env["message"] == "Tool input validation failed"
+        errors = env.get("details", {}).get("errors", [])
+        assert isinstance(errors, list)
+        assert errors
+        assert any("name" in str(e.get("loc", ())) for e in errors)
+        machine.run.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_pydantic_tool_input_wrong_type(self) -> None:
+        """Wrong JSON type for ``str`` field → INVALID_PARAMS (not only missing fields)."""
+        machine = _make_machine()
+        machine.run = AsyncMock()
+        record = _make_record(action_class=SimpleAction, tool_name="simple.run")
+
+        handler = _make_tool_handler(
+            record, machine, _make_auth(), None, machine.gate_coordinator,
+        )
+        result = await handler(name=[])
+
+        assert result.isError is True
+        env = _tool_result_envelope(result)
+        assert env["code"] == "INVALID_PARAMS"
+        errors = env["details"]["errors"]
+        assert any(e.get("type") == "string_type" for e in errors)
+        assert any("name" in str(e.get("loc", ())) for e in errors)
+        machine.run.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_pydantic_tool_input_min_length_violation(self) -> None:
+        """Constraint violation (``min_length``) → INVALID_PARAMS with constraint error type."""
+        machine = _make_machine()
+        machine.run = AsyncMock()
+        record = _make_record(action_class=SimpleAction, tool_name="simple.run")
+
+        handler = _make_tool_handler(
+            record, machine, _make_auth(), None, machine.gate_coordinator,
+        )
+        result = await handler(name="")
+
+        assert result.isError is True
+        env = _tool_result_envelope(result)
+        assert env["code"] == "INVALID_PARAMS"
+        errors = env["details"]["errors"]
+        assert any(e.get("type") == "string_too_short" for e in errors)
+        machine.run.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_validation_field_error_with_explicit_details_in_envelope(self) -> None:
+        """Domain ValidationFieldError with ``details`` → same keys appear under envelope ``details``."""
+        machine = _make_machine()
+        machine.run = AsyncMock(
+            side_effect=ValidationFieldError(
+                "shape mismatch",
+                details={"hint": "fixme", "path": ("a", "b")},
+            ),
+        )
+        record = _make_record()
+
+        handler = _make_tool_handler(
+            record, machine, _make_auth(), None, machine.gate_coordinator,
+        )
+        result = await handler()
+
+        env = _tool_result_envelope(result)
+        assert env["code"] == "INVALID_PARAMS"
+        assert env["message"] == "shape mismatch"
+        assert env["details"]["hint"] == "fixme"
+        assert env["details"]["path"] == ["a", "b"]
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -389,8 +486,8 @@ class TestHandlerWithMappers:
         result = await handler()
 
         assert result.isError is False
-        parsed = json.loads(_tool_result_text(result))
-        assert parsed["data"] == "pong"
+        env = _tool_result_envelope(result)
+        assert env["data"]["data"] == "pong"
 
     @pytest.mark.asyncio
     async def test_bad_params_mapper_surfaces_as_internal_error(self) -> None:
@@ -409,8 +506,10 @@ class TestHandlerWithMappers:
         result = await handler(name="Alice")
 
         assert result.isError is True
-        assert "INTERNAL_ERROR" in _tool_result_text(result)
-        assert "params must be an instance" in _tool_result_text(result)
+        env = _tool_result_envelope(result)
+        assert env["code"] == "INTERNAL_ERROR"
+        assert env["message"] == "Unexpected failure"
+        assert "params must be an instance" not in json.dumps(env)
         machine.run.assert_not_called()
 
     @pytest.mark.asyncio
@@ -433,9 +532,10 @@ class TestHandlerWithMappers:
         result = await handler(name="Bob")
 
         assert result.isError is True
-        text = _tool_result_text(result)
-        assert "INTERNAL_ERROR" in text
-        assert "response_mapper must return" in text
+        env = _tool_result_envelope(result)
+        assert env["code"] == "INTERNAL_ERROR"
+        assert env["message"] == "Unexpected failure"
+        assert "response_mapper must return" not in json.dumps(env)
         machine.run.assert_called_once()
 
 

@@ -14,6 +14,24 @@ Older entries below may use the legacy names **GateHost** / `*GateHostInspector`
 **IntentInspector** classes (e.g. `RoleIntent`, `AspectIntent`, `BaseIntentInspector`).
 The coordinator class name `**GateCoordinator`** is unchanged.
 
+## [Unreleased]
+
+### Breaking changes
+
+- **MCP tool `TextContent` bodies.** Responses are JSON objects with a uniform envelope: success uses `ok`, `code`, and `data`; errors use `ok`, `code`, `message`, and `details`. Plain action JSON and legacy prefixed strings (`PERMISSION_DENIED: …`, `INVALID_PARAMS: …`, `INTERNAL_ERROR: …`) are removed. Clients must parse the envelope. Unexpected failures return `message: "Unexpected failure"` without echoing exception text; operators use server logs.
+
+### Changed
+
+- **`ValidationFieldError`.** Optional keyword-only `details` (`dict`) for structured context; existing `ValidationFieldError(message)` and `ValidationFieldError(message, field)` calls behave as before. `str(exc)` remains the human `message` only.
+
+### Fixed
+
+- **MCP tool kwargs validation.** Pydantic `model_validate` failures are surfaced as `ValidationFieldError` with `details.errors` and map to `INVALID_PARAMS`, not `INTERNAL_ERROR`.
+
+### Tests
+
+- **`test_mcp_handler`.** Envelope assertions, Pydantic edge cases, `details` propagation, and internal-error privacy expectations.
+
 ## [0.10.0] – 2026-04-12
 
 ### Breaking changes
