@@ -19,13 +19,13 @@
 
 ```bash
 # Для HTTP-сервиса:
-pip install action-machine[fastapi]
+pip install aoa-run[fastapi]
 
 # Для MCP-сервера:
-pip install action-machine[mcp]
+pip install aoa-run[mcp]
 
 # Оба сразу:
-pip install action-machine[fastapi,mcp]
+pip install aoa-run[fastapi,mcp]
 ```
 
 ## Запуск FastAPI (HTTP)

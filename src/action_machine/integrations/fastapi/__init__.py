@@ -43,7 +43,7 @@ INVARIANTS
 INSTALLATION
 ═══════════════════════════════════════════════════════════════════════════════
 
-    pip install action-machine[fastapi]
+    pip install aoa-run[fastapi]
 
 ═══════════════════════════════════════════════════════════════════════════════
 COMPONENTS
@@ -145,7 +145,7 @@ try:
 except ImportError:
     raise ImportError(
         "To use action_machine.integrations.fastapi, install the optional dependency: "
-        "pip install action-machine[fastapi]"
+        "pip install aoa-run[fastapi]"
     ) from None
 
 from action_machine.integrations.fastapi.adapter import FastApiAdapter

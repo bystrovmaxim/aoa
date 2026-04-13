@@ -49,7 +49,7 @@ ARCHITECTURE / DATA FLOW
 INSTALLATION
 ═══════════════════════════════════════════════════════════════════════════════
 
-    pip install action-machine[mcp]
+    pip install aoa-run[mcp]
 
 ═══════════════════════════════════════════════════════════════════════════════
 COMPONENTS
@@ -114,7 +114,7 @@ try:
 except ImportError:
     raise ImportError(
         "To use action_machine.integrations.mcp, "
-        "install the extra dependency: pip install action-machine[mcp]"
+        "install the extra dependency: pip install aoa-run[mcp]"
     ) from None
 
 from action_machine.integrations.mcp.adapter import McpAdapter

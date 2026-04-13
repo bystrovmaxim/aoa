@@ -14,7 +14,7 @@ Older entries below may use the legacy names **GateHost** / `*GateHostInspector`
 **IntentInspector** classes (e.g. `RoleIntent`, `AspectIntent`, `BaseIntentInspector`).
 The coordinator class name `**GateCoordinator`** is unchanged.
 
-## [Unreleased]
+## [1.0.0] – 2026-04-12
 
 ### Breaking changes
 
@@ -37,7 +37,7 @@ The coordinator class name `**GateCoordinator`** is unchanged.
 - **`test_scoped_logger_hot_path_bench`.** Wall-clock budgets for bulk ``ScopedLogger`` / ``LogScope`` construction (aspect-path parity).
 - **`test_saga_checker_rejection_compensate_order`.** Two aspects: first commits; second fails checkers — both compensators run (second first, with `state_after=None`).
 
-## [0.10.0] – 2026-04-12
+## [0.9.0] – 2026-04-12
 
 ### Breaking changes
 
@@ -104,7 +104,7 @@ The coordinator class name `**GateCoordinator`** is unchanged.
 - **Repository check (2026-04-12):** no `GateHost` / `gate_host` / `*gate_host*` symbols or filenames under `src/**/*.py` and `tests/**/*.py`; historical names remain in this changelog only where noted.
 - **No deprecation aliases.** No `RoleGateHost = RoleIntent` shims and no `action_machine.compat` package; the public API uses Intent names only while the project is pre-`1.0.0`. Any future temporary aliases would ship in a dedicated release with an explicit removal timeline and `DeprecationWarning` on each alias.
 
-## [0.9.0] – 2026-04-07
+## [0.8.0] – 2026-04-07
 
 ### Added
 
@@ -142,7 +142,7 @@ The coordinator class name `**GateCoordinator`** is unchanged.
 
 - **Compensator errors never expose internal state to `@on_error` handlers.** The original business exception is preserved; compensator failures are isolated to monitoring events, preventing information leakage or unexpected error masking.
 
-## [0.8.0] – 2026-04-07
+## [0.7.0] – 2026-04-07
 
 ### Added
 
@@ -216,7 +216,7 @@ The coordinator class name `**GateCoordinator`** is unchanged.
 
 - **Access to private attributes in log templates is now blocked for any path segment, not only the last one.** This prevents bypassing the underscore rule via intermediate segments (`{%context._internal.public_key}`).
 
-## [0.7.0] – 2026-03-31
+## [0.5.5] – 2026-03-31
 
 ### Added
 
@@ -237,7 +237,7 @@ The coordinator class name `**GateCoordinator`** is unchanged.
 - **Fluent chain API for adapters.** All protocol methods (`post`, `get`, `put`, `delete`, `patch`, `tool`) return `self`, enabling chained registration: `app = adapter.post("/a", A).get("/b", B).build()`. The `_add_route()` method in `BaseAdapter` returns `Self` to support this pattern.
 - **Unified example service (`fastapi_mcp_services`).** A single example package demonstrates the same three Actions (PingAction, CreateOrderAction, GetOrderAction) served simultaneously via FastAPI HTTP endpoints and MCP tools. Shared infrastructure (GateCoordinator, ActionProductMachine, NoAuthCoordinator) is defined once in `infrastructure.py`. Actions use nested Params/Result classes with forward references. Domains (OrdersDomain, SystemDomain) group actions by business area.
 
-## [0.6.0] – 2026-03-28
+## [0.4.5] – 2026-03-28
 
 ### Added
 
@@ -245,7 +245,7 @@ The coordinator class name `**GateCoordinator`** is unchanged.
 - **Idempotent metadata building.** `MetadataBuilder.build()` no longer auto-cleans temporary attributes from classes. Classes defined at module level are shared across tests and multiple `GateCoordinator` instances, so auto-cleaning caused data loss on subsequent builds. The builder is now fully idempotent — repeated calls on the same class return equivalent `ClassMetadata` objects. Explicit cleanup remains available via `cleanup_temporary_attributes()` for special scenarios.
 - **Comprehensive `_extract_bound` test coverage.** Added exhaustive tests for `DependencyIntent` generic bound type extraction across all inheritance scenarios: explicit bound specification, missing bound fallback to `object`, three-level and four-level inheritance chains, multiple inheritance with mixins, `TypeVar` fallback, bound override in child classes, and diamond inheritance patterns.
 
-## [0.5.0] – 2026-03-21
+## [0.4.0] – 2026-03-21
 
 ### Added
 
@@ -255,7 +255,7 @@ The coordinator class name `**GateCoordinator`** is unchanged.
 - `**ActionTestMachine` external resource injection.** The test machine now accepts prepared mocks as `resources` in `_run_internal`, making them available throughout the execution pipeline including child actions. When `ToolsBox.resolve()` is called, it checks `resources` first (returning the mock) before falling back to the dependency factory.
 - `**RuntimeInfo` (renamed from `EnvironmentInfo`).** The context component storing runtime information (hostname, service name, version, container ID) is now named `RuntimeInfo` to better reflect its purpose. The context attribute is `context.runtime` instead of the previous `context.environment`.
 
-## [0.4.] – 2026-03-19
+## [0.3.5] – 2026-03-19
 
 ### Added
 
