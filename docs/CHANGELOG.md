@@ -34,6 +34,10 @@ The coordinator class name `**GateCoordinator`** is unchanged.
 - **`test_mcp_handler`.** Envelope assertions, Pydantic edge cases, `details` propagation, and internal-error privacy expectations.
 - **`_validate_tool_request_kwargs`.** Direct unit tests (including `field_validator` failures) plus `_execute_tool_call` short-circuit before `machine.run` / auth.
 
+### Documentation
+
+- **Saga / `@compensate`.** Clarify in code docstrings: when checker rejects, `state_after` may be `None` while external side effects can still have occurred; compensators only see captured pipeline data. External consistency (idempotency, two-phase flows, reconciliation) remains application responsibility — not inferred by the machine.
+
 ## [0.10.0] – 2026-04-12
 
 ### Breaking changes

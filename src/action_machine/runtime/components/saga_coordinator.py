@@ -58,6 +58,11 @@ ERRORS / LIMITATIONS
 This component coordinates rollback only. It does not execute regular aspects
 or ``@on_error`` handlers directly.
 
+Compensators receive each frame’s ``state_before`` / ``state_after`` (possibly
+``None``) plus shared params/box/connections; they do not receive automatic
+correlation data for external IO that never reached state. See
+``action_machine.intents.compensate`` package documentation.
+
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN
 ═══════════════════════════════════════════════════════════════════════════════

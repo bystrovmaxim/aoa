@@ -51,8 +51,10 @@ Happy path:
     ``state_after`` for potential rollback.
 
 Edge case:
-    Aspect succeeds but checker rejects output -> ``state_after`` may be ``None``
-    while compensator can still be useful for side-effect rollback.
+    Aspect succeeds but checker rejects output -> ``state_after`` may be ``None``.
+    Compensators then lack post-aspect state keys (e.g. external ids never
+    written into state). See ``compensate`` package ERRORS / LIMITATIONS for
+    application-level external-consistency patterns.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ERRORS / LIMITATIONS
@@ -61,6 +63,9 @@ ERRORS / LIMITATIONS
 - ``SagaFrame`` is data-only; rollback policy/execution lives in coordinator.
 - Correctness depends on accurate frame creation timing in pipeline executor.
 - ``state_before/state_after`` are typed as ``object`` to avoid runtime coupling.
+- ``state_after is None`` does not imply “no external side effects”; it means the
+  pipeline did not adopt checker-passed state. External systems are not tracked
+  by the frame beyond what the app put in ``state_before`` / ``params`` / logs.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN
