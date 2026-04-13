@@ -461,7 +461,7 @@ def _make_tool_handler(
                 )],
                 isError=True,
             )
-        except Exception:
+        except Exception:  # no `as exc`: response text is fixed; traceback is in logs
             logger.exception("MCP tool call failed: %s", record.tool_name)
             return CallToolResult(
                 content=[TextContent(
