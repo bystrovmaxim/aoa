@@ -6,13 +6,36 @@ from __future__ import annotations
 import pytest
 
 from action_machine.domain.exceptions import FieldNotLoadedError
-from tests.scenarios.domain_model.entities import SampleEntity
+from tests.scenarios.domain_model.entities import LifecycleEntity, SampleEntity
 
 
 def test_partial_access_to_unloaded_model_field_raises_field_not_loaded() -> None:
     entity = SampleEntity.partial(id="only-id")
     with pytest.raises(FieldNotLoadedError, match="name"):
         _ = entity.name
+
+
+def test_field_not_loaded_error_exposes_contract_attributes() -> None:
+    """Regression: exception carries field_name, class name, and loaded subset."""
+    entity = SampleEntity.partial(id="only-id")
+    with pytest.raises(FieldNotLoadedError) as exc_info:
+        _ = entity.value
+
+    err = exc_info.value
+    assert err.field_name == "value"
+    assert err.entity_class_name == "SampleEntity"
+    assert err.loaded_fields == frozenset({"id"})
+
+
+def test_lifecycle_entity_partial_missing_field_raises_field_not_loaded() -> None:
+    """Regression: union-typed model field uses the same partial access path."""
+    entity = LifecycleEntity.partial(id="e1")
+    with pytest.raises(FieldNotLoadedError, match="lifecycle") as exc_info:
+        _ = entity.lifecycle
+
+    assert exc_info.value.field_name == "lifecycle"
+    assert exc_info.value.entity_class_name == "LifecycleEntity"
+    assert exc_info.value.loaded_fields == frozenset({"id"})
 
 
 def test_partial_access_to_unknown_attribute_raises_attribute_error() -> None:
