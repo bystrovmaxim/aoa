@@ -3,6 +3,8 @@
 
 from __future__ import annotations
 
+from collections import UserDict
+
 from action_machine.graph.base_intent_inspector import BaseIntentInspector
 from action_machine.graph.graph_execution_adapters import (
     FacetMetaRow,
@@ -132,3 +134,39 @@ def test_checker_row_accepts_extra_params_as_dict() -> None:
     )
     ch = checker_row_to_checker(row)
     assert ch.extra_params == {"x": 1}
+
+
+def test_checker_row_extra_params_via_non_dict_mapping() -> None:
+    row = (
+        ("method_name", "m"),
+        ("checker_class", str),
+        ("field_name", "f"),
+        ("required", True),
+        ("extra_params", UserDict({"k": 1})),
+    )
+    ch = checker_row_to_checker(row)
+    assert ch.extra_params == {"k": 1}
+
+
+def test_compensator_row_coerces_list_context_keys() -> None:
+    row = (
+        ("method_name", "comp1"),
+        ("target_aspect_name", "reg"),
+        ("description", "d"),
+        ("method_ref", None),
+        ("context_keys", ["a", "b"]),
+    )
+    c = compensator_row_to_compensator(row)
+    assert c.context_keys == frozenset({"a", "b"})
+
+
+def test_on_error_row_coerces_tuple_context_keys() -> None:
+    row = (
+        ("method_name", "eh"),
+        ("exception_types", (ValueError,)),
+        ("description", "d"),
+        ("method_ref", None),
+        ("context_keys", ("k",)),
+    )
+    h = on_error_row_to_error_handler(row)
+    assert h.context_keys == frozenset({"k"})

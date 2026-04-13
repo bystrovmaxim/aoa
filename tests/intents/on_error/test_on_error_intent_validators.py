@@ -28,6 +28,13 @@ def _handler(name: str, *exc_types: type[Exception]) -> _ErrorHandlerSnap:
     return _ErrorHandlerSnap(method_name=name, exception_types=exc_types)
 
 
+def test_require_on_error_intent_marker_noop_for_empty_handlers() -> None:
+    class Plain:
+        pass
+
+    require_on_error_intent_marker(Plain, [])  # type: ignore[arg-type]
+
+
 def test_require_on_error_intent_marker_raises_without_mixin() -> None:
     class Plain:
         pass
@@ -42,6 +49,17 @@ def test_validate_error_handlers_noop_for_single_handler() -> None:
         __name__ = "Host"
 
     validate_error_handlers(Host, [_handler("h", ValueError)])  # type: ignore[arg-type]
+
+
+def test_validate_error_handlers_allows_disjoint_exception_types() -> None:
+    class Host:
+        __name__ = "Host"
+
+    handlers = [
+        _handler("first", ValueError),
+        _handler("second", KeyError),
+    ]
+    validate_error_handlers(Host, handlers)  # type: ignore[arg-type]
 
 
 def test_validate_error_handlers_detects_unreachable_subclass() -> None:
