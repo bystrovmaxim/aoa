@@ -126,6 +126,18 @@ class TestUserInfoCreation:
         assert user.user_id is None
         assert user.roles == (GuestRole,)
 
+    def test_roles_none_coerces_to_empty_tuple(self) -> None:
+        user = UserInfo(user_id="u1", roles=None)
+        assert user.roles == ()
+
+    def test_roles_non_sequence_raises_type_error(self) -> None:
+        with pytest.raises(TypeError, match="list or tuple"):
+            UserInfo(roles=object())  # type: ignore[arg-type, call-overload]
+
+    def test_roles_item_not_role_subclass_raises(self) -> None:
+        with pytest.raises(TypeError, match=r"UserInfo\.roles\[0\]"):
+            UserInfo(roles=(42,))  # type: ignore[arg-type, call-overload]
+
     def test_extended_user_info_with_extra_fields(self) -> None:
         """
         Расширение UserInfo через наследование с явно объявленными полями.
