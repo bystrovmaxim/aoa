@@ -1,24 +1,11 @@
-# Mirrors local checks from run_checks_with_log.sh (without ruff --fix: CI must not mutate the tree).
-#
-# Local script order:
-#   ruff check --fix .  → skipped here; use `uv run task lint` only
-#   task lint | typecheck | pylint | dead | test-layer-imports | test | cc | mi
-
-name: CI
-
-# GitHub is moving Actions off Node 20; opt in so checkout/setup actions stay supported.
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+# Shared steps for PR merge gate and post-merge push. Invoked only via workflow_call.
+name: CI checks (internal)
 
 on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
+  workflow_call:
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   checks:
@@ -36,7 +23,6 @@ jobs:
         with:
           version: "latest"
 
-      # dev: linters/pytest; fastapi+mcp: mypy; postgres: pylint import graph для integrations/postgres
       - name: Sync dependencies
         run: uv sync --extra dev --extra fastapi --extra mcp --extra postgres
 
