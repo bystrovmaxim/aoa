@@ -231,7 +231,7 @@ generated-members = ["rustworkx.*", "rx.*"]
 target-version = "py312"
 line-length = 120
 # `src`: библиотека (`action_machine`) и примеры (`examples`); плюс тесты.
-src = ["src", "tests"]
+src = ["src", "tests", "scripts"]
 
 [tool.ruff.lint]
 select = [
@@ -303,11 +303,12 @@ exclude = ["tests/"]
 test = "pytest tests/ -v"
 cov = "pytest tests/ --cov=src/action_machine --cov-report=term-missing"
 # Линт по `src/` (библиотека и примеры) и `tests/`.
-lint = "ruff check src/ tests/"
+lint = "ruff check src/ tests/ scripts/"
 fmt = "black src/ tests/ && isort src/ tests/"
 # Строгая проверка пакета; полное дерево `src/` — `task typecheck`.
 types = "mypy src/action_machine"
-check = "task lint && task types && task test"
+test-layer-imports = "python scripts/check_test_layer_imports.py"
+check = "task lint && task types && task test-layer-imports && task test"
 dead = "vulture src/action_machine"
 typecheck = "mypy src/"
 pylint = "pylint src/"
