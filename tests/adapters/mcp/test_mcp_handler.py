@@ -14,7 +14,9 @@ successful ``CallToolResult`` with JSON envelope text (``ok``/``code``/``data``)
 for ``_validate_tool_request_kwargs`` without ``machine.run``, empty vs
 non-empty ``details`` on ``ValidationFieldError``, mapper transforms, guard
 failures for bad mapper outputs (generic ``INTERNAL_ERROR`` body without leaking
-guard text), ``__name__`` derivation from ``tool_name``, and graph JSON topology
+guard text), ``__name__`` derivation from ``tool_name``, success ``data`` JSON
+round-trip without ``default=str``, ``INVALID_PARAMS`` items with ``type``/``loc``,
+``model_dump(mode="json")`` for datetimes in results, and graph JSON topology
 (nodes, edges, hydrated meta).
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -41,9 +43,35 @@ INVARIANTS
 
 - Error envelope ``code`` values (e.g. PERMISSION_DENIED) must stay aligned with adapter code.
 - Pydantic edge cases (missing field, wrong type, constraints, custom validators)
-  map to INVALID_PARAMS with ``details.errors``; ``_validate_tool_request_kwargs``
-  is covered by direct unit tests.
+  map to INVALID_PARAMS with ``details.errors`` (each item exposes ``type`` and
+  ``loc``); ``_validate_tool_request_kwargs`` is covered by direct unit tests.
+- Success envelope ``data`` must ``json.dumps`` without custom ``default`` when
+  built from Pydantic results using ``mode="json"``.
 - Graph JSON must include string-typed edge ``type`` and ``source_key``/``target_key``.
+
+═══════════════════════════════════════════════════════════════════════════════
+TESTING CONTRACT
+═══════════════════════════════════════════════════════════════════════════════
+
+These tests exercise production adapter helpers and a real
+``ActionProductMachine`` for coordinator-backed metadata. ``machine.run`` is
+often replaced with ``AsyncMock`` to pin return values or errors without running
+the full action pipeline; kwargs validation, guards, and envelope code stay
+production paths.
+
+::
+
+    handler / _execute_tool_call / _serialize_result / envelopes   [production]
+                            |
+                            v
+                      machine.run                    [AsyncMock when needed]
+                            |
+                            v
+                      full action pipeline          [skipped when stubbed]
+
+Tagline: production types and production paths; stub the ``run`` seam, not the
+stack. See ``BaseAdapter`` (ADAPTER TESTING CONTRACT) and ``mcp.adapter``
+(TESTING NOTE).
 
 ═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES
@@ -66,19 +94,20 @@ AI-CORE-BEGIN
 ═══════════════════════════════════════════════════════════════════════════════
 ROLE: MCP handler and graph JSON regression tests.
 CONTRACT: CallToolResult + JSON envelope; direct validation/execute-tool-call units; graph JSON.
-INVARIANTS: Mocks for machine/auth; scenario actions + ``AdminRole`` where needed.
+INVARIANTS: Real machine + coordinator; ``machine.run`` stubbed where noted; scenario actions + ``AdminRole``.
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-END
 ═══════════════════════════════════════════════════════════════════════════════
 """
 
 import json
+from datetime import UTC, datetime
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from mcp.types import CallToolResult
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, Field, field_validator
 
 from action_machine.integrations.mcp.adapter import (
     _build_graph_json,
@@ -116,6 +145,13 @@ class _MockResult(BaseModel):
     """Simple pydantic result for serialization tests."""
     message: str = "ok"
     count: int = 1
+
+
+class _ResultWithWhen(BaseModel):
+    """Result carrying a datetime to exercise ``model_dump(mode='json')``."""
+
+    message: str
+    when: datetime = Field(description="Timestamp")
 
 
 class _PlainResult:
@@ -309,6 +345,18 @@ class TestSerializeResult:
         assert payload["user"]["user_id"] == "u2"
         assert payload["user"]["roles"] == [AdminRole.name]
 
+    def test_datetime_field_is_json_native_in_payload(self) -> None:
+        """``model_dump(mode='json')`` emits ISO strings so ``data`` needs no ``default=str``."""
+        when = datetime(2024, 6, 1, 12, 0, 0, tzinfo=UTC)
+        result = _ResultWithWhen(message="hi", when=when)
+        record = _make_record()
+
+        payload = _serialize_result(result, record, has_response_mapper=False)
+
+        assert isinstance(payload["when"], str)
+        assert "2024-06-01T12:00:00" in payload["when"]
+        json.dumps(payload)
+
 
 # ═════════════════════════════════════════════════════════════════════════════
 # _make_tool_handler — successful execution
@@ -340,6 +388,22 @@ class TestHandlerSuccess:
         assert env["ok"] is True
         assert env["code"] == "OK"
         assert env["data"]["message"] == "pong"
+
+    @pytest.mark.asyncio
+    async def test_success_envelope_data_json_dumps_without_default(self) -> None:
+        """Parsed ``data`` stays JSON-serializable without ``json.dumps(..., default=…)``."""
+        machine = _make_machine()
+        auth = _make_auth()
+        record = _make_record(action_class=PingAction, tool_name="system.ping")
+        machine.run = AsyncMock(return_value=PingAction.Result(message="pong"))
+
+        handler = _make_tool_handler(
+            record, machine, auth, None, machine.gate_coordinator,
+        )
+        result = await handler()
+        env = _tool_result_envelope(result)
+
+        json.dumps(env["data"])
 
     @pytest.mark.asyncio
     async def test_handler_name_from_tool_name(self) -> None:
@@ -451,6 +515,9 @@ class TestHandlerErrors:
         errors = env.get("details", {}).get("errors", [])
         assert isinstance(errors, list)
         assert errors
+        for item in errors:
+            assert "type" in item
+            assert "loc" in item
         assert any("name" in str(e.get("loc", ())) for e in errors)
         machine.run.assert_not_called()
 

@@ -75,6 +75,33 @@ Unhandled exceptions are caught by middleware wrapping each request in
 try/except and returning HTTP 500 for any error not handled above.
 
 ═══════════════════════════════════════════════════════════════════════════════
+TESTING NOTE (HTTP routes)
+═══════════════════════════════════════════════════════════════════════════════
+
+Route and handler tests should use a real ``ActionProductMachine`` (and real
+coordinator metadata) so OpenAPI-related wiring and ``gate_coordinator`` match
+production.
+
+To control results or speed, stub ``machine.run`` only — not the whole stack.
+
+::
+
+    Request body / query / path
+              |
+              v
+    FastAPI validation / mappers  --->  auth_coordinator  --->  machine.run  ~~~~ stub
+         ^___________________________ production ___________________________^
+                                                                           ~~~~
+                                                                optional AsyncMock
+
+    response mapping / JSON response  <---  (after run)
+         ^
+         production
+
+See ``BaseAdapter`` module docstring (ADAPTER TESTING CONTRACT) for the full
+adapter-level picture.
+
+═══════════════════════════════════════════════════════════════════════════════
 HEALTH CHECK
 ═══════════════════════════════════════════════════════════════════════════════
 
