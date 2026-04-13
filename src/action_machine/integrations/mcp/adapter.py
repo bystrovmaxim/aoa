@@ -64,8 +64,9 @@ TOOL HANDLER GENERATION STRATEGY
 For each registered ``McpRouteRecord``, the adapter builds an async handler that:
 
 1. Receives tool call args as kwargs from MCP host.
-2. Deserializes them via ``effective_request_model.model_validate()``; Pydantic
-   failures become ``ValidationFieldError`` with ``details["errors"]``.
+2. Deserializes them via ``_validate_tool_request_kwargs`` (wraps
+   ``model_validate``); Pydantic failures become ``ValidationFieldError`` with
+   ``details["errors"]``.
 3. Applies ``params_mapper`` when configured.
 4. Builds ``Context`` via ``auth_coordinator``.
 5. Resolves connections via ``connections_factory`` (or ``None``).
@@ -223,6 +224,35 @@ def _envelope_error(
         ensure_ascii=False,
         default=str,
     )
+
+
+def _validate_tool_request_kwargs(kwargs: dict[str, Any], req_model: type) -> Any:
+    """
+    Validate MCP tool kwargs against the effective request model.
+
+    Centralizes Pydantic ``model_validate`` and maps failures to
+    ``ValidationFieldError`` so ``_execute_tool_call`` and tests can share one
+    contract without going through the full tool handler.
+
+    Args:
+        kwargs: arguments from the MCP host.
+        req_model: Pydantic model type (typically ``effective_request_model``).
+
+    Returns:
+        Validated model instance.
+
+    Raises:
+        ValidationFieldError: always with message ``Tool input validation failed``
+            and ``details`` containing Pydantic ``errors()`` (any validation path:
+            types, constraints, ``field_validator``, etc.).
+    """
+    try:
+        return req_model.model_validate(kwargs)  # type: ignore[attr-defined]
+    except PydanticValidationError as exc:
+        raise ValidationFieldError(
+            "Tool input validation failed",
+            details={"errors": exc.errors()},
+        ) from exc
 
 
 def _get_meta_description(
@@ -466,8 +496,9 @@ async def _execute_tool_call(
     """
     Execute one MCP tool call: deserialize, map, run, serialize.
 
-    ``model_validate`` raises are turned into ``ValidationFieldError`` so the
-    handler maps them to ``INVALID_PARAMS`` instead of ``INTERNAL_ERROR``.
+    Request parsing uses ``_validate_tool_request_kwargs`` so Pydantic failures
+    become ``ValidationFieldError`` and the handler maps them to
+    ``INVALID_PARAMS`` instead of ``INTERNAL_ERROR``.
 
     Args:
         kwargs: tool call arguments from agent.
@@ -484,19 +515,13 @@ async def _execute_tool_call(
         wrapped in ``_envelope_ok``; the handler applies the envelope).
 
     Raises:
-        ValidationFieldError: when ``model_validate`` fails for tool kwargs
-            (includes wrapped Pydantic validation errors).
+        ValidationFieldError: when tool kwargs fail Pydantic validation (via
+            ``_validate_tool_request_kwargs``).
 
     Other exceptions from ``machine.run`` (for example ``AuthorizationError``)
     propagate to the tool handler, which maps them to envelopes.
     """
-    try:
-        body = req_model.model_validate(kwargs)  # type: ignore[attr-defined]
-    except PydanticValidationError as exc:
-        raise ValidationFieldError(
-            "Tool input validation failed",
-            details={"errors": exc.errors()},
-        ) from exc
+    body = _validate_tool_request_kwargs(kwargs, req_model)
 
     params = record.params_mapper(body) if has_params_mapper else body  # type: ignore[misc]
 
