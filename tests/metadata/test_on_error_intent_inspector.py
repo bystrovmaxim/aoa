@@ -38,12 +38,13 @@ def test_on_error_inspector_builds_payload_with_handlers() -> None:
     handlers = data["error_handlers"]
     assert len(handlers) == 2
 
-    names = {entry[0] for entry in handlers}
+    names = {dict(entry)["method_name"] for entry in handlers}
     assert "value_on_error" in names
     assert "typed_on_error" in names
 
-    typed = next(entry for entry in handlers if entry[0] == "typed_on_error")
-    assert TypeError in typed[1]
-    assert RuntimeError in typed[1]
-    assert typed[2] == "With context"
-    assert "user.user_id" in typed[4]
+    typed = next(e for e in handlers if dict(e)["method_name"] == "typed_on_error")
+    td = dict(typed)
+    assert TypeError in td["exception_types"]
+    assert RuntimeError in td["exception_types"]
+    assert td["description"] == "With context"
+    assert "user.user_id" in td["context_keys"]

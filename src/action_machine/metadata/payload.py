@@ -14,8 +14,9 @@ The module defines two frozen dataclasses — the contract between
 
 Both are transport-only: an inspector builds them in ``_build_payload()`` /
 ``inspect()``, the coordinator consumes them in phase 1 of ``build()``, and
-they are discarded after commit. Values land in the graph as ordinary dicts;
-tuple → dict conversion happens once at commit time.
+they are discarded after commit. Node skeletons land in ``rx.PyDiGraph``;
+tuple → dict conversion for facet ``meta`` is applied when projecting from
+typed snapshots (see ``GateCoordinator.hydrate_graph_node``).
 
 ═══════════════════════════════════════════════════════════════════════════════
 IMMUTABILITY
@@ -92,13 +93,14 @@ LIFECYCLE EXAMPLE
     #    - edge targets exist
     #    - structural edges acyclic
 
-    # 4. Coordinator commits in phase 3:
+    # 4. Coordinator commits in phase 3 (rustworkx payload is skeleton only):
     #    graph.add_node({
     #        "node_type": "role",
     #        "name": "module.CreateOrderAction",
     #        "class_ref": CreateOrderAction,
-    #        "meta": {"spec": AdminRole},
     #    })
+    #    Facet body is in ``GateCoordinator`` facet snapshots; ``get_node`` /
+    #    ``hydrate_graph_node`` attach ``meta`` from the matching snapshot.
 
     # 5. Payload objects are discarded. The graph is the source of truth.
 """
@@ -203,7 +205,9 @@ class FacetPayload:
             Node-specific metadata as ``(key, value)`` pairs; becomes a dict at
             commit. Examples:
             - Role: ``(("spec", AdminRole),)`` (``AdminRole`` — подкласс ``BaseRole``)
-            - Aspect: ``(("aspect_type", "regular"), ("method_name", "validate"), ...)``
+            - Repeated rows: e.g. ``("items", (row, ...))`` where each ``row`` is
+              ``tuple[tuple[str, Any], ...]`` (same shape as ``_make_meta``), so
+              consumers use keys instead of positional unpacking.
             - Entity: ``(("description", "Order"), ("domain", "shop"), ...)``
             Defaults to empty tuple.
 

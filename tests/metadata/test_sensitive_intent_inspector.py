@@ -37,7 +37,8 @@ def test_sensitive_inspector_builds_payload_with_inherited_fields() -> None:
     data = dict(payload.node_meta)
     fields = data["sensitive_fields"]
     assert len(fields) == 1
-    name, config = fields[0]
-    assert name == "secret"
+    fd = dict(fields[0])
+    assert fd["property_name"] == "secret"
+    config = fd["config"]
     assert ("enabled", True) in config
     assert ("max_chars", 2) in config

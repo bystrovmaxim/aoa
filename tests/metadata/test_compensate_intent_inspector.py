@@ -44,11 +44,15 @@ def test_compensate_inspector_builds_payload_with_compensator_entries() -> None:
     compensators = data["compensators"]
     assert len(compensators) == 2
 
-    names = {entry[0] for entry in compensators}
+    names = {dict(entry)["method_name"] for entry in compensators}
     assert "rollback_pay_compensate" in names
     assert "rollback_reserve_compensate" in names
 
-    reserve = next(entry for entry in compensators if entry[0] == "rollback_reserve_compensate")
-    assert reserve[1] == "reserve_aspect"
-    assert reserve[2] == "Rollback reservation"
-    assert "user.user_id" in reserve[4]
+    reserve = next(
+        e for e in compensators
+        if dict(e)["method_name"] == "rollback_reserve_compensate"
+    )
+    rd = dict(reserve)
+    assert rd["target_aspect_name"] == "reserve_aspect"
+    assert rd["description"] == "Rollback reservation"
+    assert "user.user_id" in rd["context_keys"]

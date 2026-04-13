@@ -143,12 +143,12 @@ class OnErrorIntentInspector(BaseIntentInspector):
         def to_facet_payload(self) -> FacetPayload:
             """Project snapshot into coordinator ``FacetPayload``."""
             entries = tuple(
-                (
-                    h.method_name,
-                    h.exception_types,
-                    h.description,
-                    h.method_ref,
-                    h.context_keys,
+                OnErrorIntentInspector._make_meta(
+                    method_name=h.method_name,
+                    exception_types=h.exception_types,
+                    description=h.description,
+                    method_ref=h.method_ref,
+                    context_keys=h.context_keys,
                 )
                 for h in self.error_handlers
             )

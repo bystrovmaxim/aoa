@@ -144,12 +144,12 @@ class CheckerIntentInspector(BaseIntentInspector):
         def to_facet_payload(self) -> FacetPayload:
             """Project snapshot into coordinator ``FacetPayload``."""
             entries = tuple(
-                (
-                    c.method_name,
-                    c.checker_class,
-                    c.field_name,
-                    c.required,
-                    tuple((k, v) for k, v in c.extra_params.items()),
+                CheckerIntentInspector._make_meta(
+                    method_name=c.method_name,
+                    checker_class=c.checker_class,
+                    field_name=c.field_name,
+                    required=c.required,
+                    extra_params=tuple(c.extra_params.items()),
                 )
                 for c in self.checkers
             )

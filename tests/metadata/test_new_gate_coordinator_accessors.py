@@ -9,6 +9,7 @@ from action_machine.compensate.compensate_intent_inspector import (
     CompensateIntentInspector,
 )
 from action_machine.core.core_action_machine import CoreActionMachine
+from action_machine.domain.entity_intent_inspector import EntityIntentInspector
 from action_machine.metadata.base_intent_inspector import BaseIntentInspector
 from action_machine.metadata.gate_coordinator import GateCoordinator
 from action_machine.metadata.payload import EdgeInfo, FacetPayload
@@ -47,8 +48,20 @@ def test_new_coordinator_runtime_accessors() -> None:
                     (
                         "aspects",
                         (
-                            ("regular", "do_aspect", "Do step", do_aspect_ref, frozenset()),
-                            ("summary", "result_summary", "Make result", summary_ref, frozenset()),
+                            BaseIntentInspector._make_meta(
+                                aspect_type="regular",
+                                method_name="do_aspect",
+                                description="Do step",
+                                method_ref=do_aspect_ref,
+                                context_keys=frozenset(),
+                            ),
+                            BaseIntentInspector._make_meta(
+                                aspect_type="summary",
+                                method_name="result_summary",
+                                description="Make result",
+                                method_ref=summary_ref,
+                                context_keys=frozenset(),
+                            ),
                         ),
                     ),
                 ),
@@ -58,7 +71,18 @@ def test_new_coordinator_runtime_accessors() -> None:
                 node_name=action_name,
                 node_class=_DemoAction,
                 node_meta=(
-                    ("checkers", (("do_aspect", object, "value", True, ()),)),
+                    (
+                        "checkers",
+                        (
+                            BaseIntentInspector._make_meta(
+                                method_name="do_aspect",
+                                checker_class=object,
+                                field_name="value",
+                                required=True,
+                                extra_params=(),
+                            ),
+                        ),
+                    ),
                 ),
             ),
             FacetPayload(
@@ -68,7 +92,15 @@ def test_new_coordinator_runtime_accessors() -> None:
                 node_meta=(
                     (
                         "error_handlers",
-                        (("handle_value_on_error", (ValueError,), "Handle value error", object(), frozenset()),),
+                        (
+                            BaseIntentInspector._make_meta(
+                                method_name="handle_value_on_error",
+                                exception_types=(ValueError,),
+                                description="Handle value error",
+                                method_ref=object(),
+                                context_keys=frozenset(),
+                            ),
+                        ),
                     ),
                 ),
             ),
@@ -77,7 +109,18 @@ def test_new_coordinator_runtime_accessors() -> None:
                 node_name=action_name,
                 node_class=_DemoAction,
                 node_meta=(
-                    ("compensators", (("rollback_do_compensate", "do_aspect", "Rollback step", object(), frozenset()),)),
+                    (
+                        "compensators",
+                        (
+                            BaseIntentInspector._make_meta(
+                                method_name="rollback_do_compensate",
+                                target_aspect_name="do_aspect",
+                                description="Rollback step",
+                                method_ref=object(),
+                                context_keys=frozenset(),
+                            ),
+                        ),
+                    ),
                 ),
             ),
             FacetPayload(
@@ -103,6 +146,17 @@ def test_new_coordinator_runtime_accessors() -> None:
     )
     # Keep manually seeded graph/snapshots intact: skip lazy auto-build path.
     coordinator._built = True  # pylint: disable=protected-access
+    coordinator._facet_snapshots[(_DemoEntity, "entity")] = (  # pylint: disable=protected-access
+        EntityIntentInspector.Snapshot(
+            class_ref=_DemoEntity,
+            entity_info=EntityIntentInspector.Snapshot.EntityInfo(
+                description="Demo entity",
+            ),
+            entity_fields=(),
+            entity_relations=(),
+            entity_lifecycles=(),
+        )
+    )
     coordinator._facet_snapshots[(_DemoAction, "aspect")] = (  # pylint: disable=protected-access
         AspectIntentInspector.Snapshot(
             class_ref=_DemoAction,

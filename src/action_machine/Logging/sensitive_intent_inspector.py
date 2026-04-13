@@ -76,8 +76,10 @@ class SensitiveIntentInspector(BaseIntentInspector):
         return result
 
     @classmethod
-    def _collect_sensitive_entries(cls, target_cls: type) -> tuple[tuple[Any, ...], ...]:
-        entries: list[tuple[Any, ...]] = []
+    def _collect_sensitive_entries(
+        cls, target_cls: type,
+    ) -> tuple[tuple[tuple[str, Any], ...], ...]:
+        entries: list[tuple[tuple[str, Any], ...]] = []
         seen_names: set[str] = set()
         for klass in target_cls.__mro__:
             if klass is object:
@@ -95,7 +97,12 @@ class SensitiveIntentInspector(BaseIntentInspector):
                 config = getattr(getter, "_sensitive_config", None)
                 if config is None:
                     continue
-                entries.append((attr_name, tuple(dict(config).items())))
+                entries.append(
+                    cls._make_meta(
+                        property_name=attr_name,
+                        config=tuple(dict(config).items()),
+                    ),
+                )
                 seen_names.add(attr_name)
         return tuple(entries)
 
@@ -145,7 +152,11 @@ class SensitiveIntentInspector(BaseIntentInspector):
 
         def to_facet_payload(self) -> FacetPayload:
             entries = tuple(
-                (f.property_name, tuple(f.config.items())) for f in self.fields
+                SensitiveIntentInspector._make_meta(
+                    property_name=f.property_name,
+                    config=tuple(f.config.items()),
+                )
+                for f in self.fields
             )
             return FacetPayload(
                 node_type="sensitive",

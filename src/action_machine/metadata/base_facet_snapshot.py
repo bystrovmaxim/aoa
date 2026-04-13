@@ -8,7 +8,9 @@ PURPOSE
 
 Each inspector may declare a **nested Snapshot** dataclass (or similar) next to
 the facet: rich fields + callables stay here; ``to_facet_payload()`` produces the
-serialisable :class:`FacetPayload` stored in the graph.
+serialisable :class:`FacetPayload` used for validation; the coordinator keeps
+typed snapshots separately and commits only ``node_type`` / ``name`` /
+``class_ref`` on graph nodes.
 
 ``GateCoordinator`` caches snapshots during ``build()`` (phase 1) when
 ``BaseIntentInspector.facet_snapshot_for_class()`` returns non-``None``.

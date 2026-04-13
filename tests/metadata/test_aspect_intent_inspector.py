@@ -38,10 +38,11 @@ def test_aspect_inspector_builds_payload_with_aspect_entries() -> None:
     aspects = data["aspects"]
     assert len(aspects) == 2
 
-    names = {entry[1] for entry in aspects}
+    names = {dict(entry)["method_name"] for entry in aspects}
     assert "run_step_aspect" in names
     assert "build_result_summary" in names
 
-    summary = next(entry for entry in aspects if entry[1] == "build_result_summary")
-    assert summary[0] == "summary"
-    assert "user.user_id" in summary[4]
+    summary = next(e for e in aspects if dict(e)["method_name"] == "build_result_summary")
+    sd = dict(summary)
+    assert sd["aspect_type"] == "summary"
+    assert "user.user_id" in sd["context_keys"]

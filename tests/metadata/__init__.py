@@ -45,6 +45,7 @@ LAYOUT
     ├── test_new_gate_coordinator_*.py  — graph build and facet accessors
     ├── test_*_intent_inspector.py   — individual facet inspectors
     ├── test_coordinator_graph.py       — graph API, nodes, edges, cycles
+    ├── test_graph_skeleton_and_hydrate.py — skeleton/hydrate; stubs; action keys
     ├── test_coordinator_strict.py      — domain invariant and graph consistency
     └── test_domain.py                  — BaseDomain: name validation, inheritance
 
