@@ -37,7 +37,7 @@ ARCHITECTURE / DATA FLOW
 INSTALLATION
 ═══════════════════════════════════════════════════════════════════════════════
 
-    pip install action-machine[postgres]
+    pip install aoa-run[postgres]
 
 ═══════════════════════════════════════════════════════════════════════════════
 COMPONENTS
@@ -70,7 +70,7 @@ try:
 except ImportError:
     raise ImportError(
         "To use action_machine.integrations.postgres, install the optional dependency: "
-        "pip install action-machine[postgres]"
+        "pip install aoa-run[postgres]"
     ) from None
 
 from action_machine.integrations.postgres.postgres_connection_manager import PostgresConnectionManager

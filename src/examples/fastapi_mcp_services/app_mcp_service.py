@@ -35,7 +35,7 @@ INVARIANTS
 - Tools must map to action classes from ``actions``, not duplicate handlers.
 - ``auth_coordinator`` is required for all adapters; this example uses
   ``NoAuthCoordinator`` as an explicit no-auth setup (replace in production).
-- Extra dependency: ``action-machine[mcp]``.
+- Extra dependency: ``aoa-run[mcp]``.
 - ``main()`` defaults transport to ``stdio``; ``--transport <name>`` overrides.
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -44,7 +44,7 @@ EXAMPLES
 
 Install and run::
 
-    pip install action-machine[mcp]
+    pip install aoa-run[mcp]
 
     # stdio (Claude Desktop, Claude Code):
     python -m examples.fastapi_mcp_services.app_mcp_service

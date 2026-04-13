@@ -63,7 +63,7 @@ INVARIANTS
 
 - Action definitions must not import or depend on FastAPI/MCP entrypoints.
 - Shared ``machine`` and ``auth`` live in ``infrastructure.py``, not in adapters.
-- Optional extras: ``action-machine[fastapi]`` / ``action-machine[mcp]`` for each transport.
+- Optional extras: ``aoa-run[fastapi]`` / ``aoa-run[mcp]`` for each transport.
 
 ═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES
@@ -71,7 +71,7 @@ EXAMPLES
 
 FastAPI::
 
-    pip install action-machine[fastapi]
+    pip install aoa-run[fastapi]
     uvicorn examples.fastapi_mcp_services.app_fastapi_service:app --reload
 
     Swagger UI: http://localhost:8000/docs
@@ -80,7 +80,7 @@ FastAPI::
 
 MCP::
 
-    pip install action-machine[mcp]
+    pip install aoa-run[mcp]
     python -m examples.fastapi_mcp_services.app_mcp_service
     python -m examples.fastapi_mcp_services.app_mcp_service --transport streamable-http
 

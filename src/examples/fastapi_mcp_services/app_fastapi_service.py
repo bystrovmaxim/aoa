@@ -39,7 +39,7 @@ INVARIANTS
 
 - Routes must reference action classes from ``actions``, not duplicate handlers.
 - ``app`` is the ASGI callable expected by ``uvicorn ...:app``.
-- Extra dependency: ``action-machine[fastapi]`` (see package README).
+- Extra dependency: ``aoa-run[fastapi]`` (see package README).
 
 ═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES
@@ -52,7 +52,7 @@ EXAMPLES
     Health:     http://localhost:8000/health  (registered by FastApiAdapter.build)
 
     Edge case: wrong optional extras — import or startup may fail; install
-    ``action-machine[fastapi]``.
+    ``aoa-run[fastapi]``.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ERRORS / LIMITATIONS

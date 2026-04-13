@@ -12,9 +12,9 @@ build-backend = "hatchling.build"
 # МЕТАДАННЫЕ
 # ============================================================================
 [project]
-name = "action-machine"
-version = "0.10.0"
-description = "Intent-first business logic framework with metadata-driven actions, role-based access control, and adapter layer for FastAPI/MCP."
+name = "aoa-run"
+version = "1.0.0"
+description = "aoa-run — intent-first business logic framework with metadata-driven actions, role-based access control, and adapter layer for FastAPI/MCP."
 readme = "README.md"
 license = { text = "MIT" }
 requires-python = ">=3.12"
@@ -54,7 +54,7 @@ dev = [
     "httpx>=0.27,<1.0",
 ]
 all = [
-    "action-machine[fastapi,mcp,postgres,dev]",
+    "aoa-run[fastapi,mcp,postgres,dev]",
 ]
 
 [project.urls]
@@ -65,7 +65,7 @@ Repository = "https://github.com/action-machine/action-machine"
 # ============================================================================
 # HATCHLING — СБОРКА
 # ============================================================================
-# Один wheel `action-machine`: пакет живёт в `src/action_machine/`.
+# Дистрибутив PyPI `aoa-run` (в имени wheel/sdist: `aoa_run-…`); код — `src/action_machine/`.
 # Несколько pip-дистрибутивов с общим неймспейсом `action_machine.*` не используются.
 [tool.hatch.build.targets.wheel]
 packages = ["src/action_machine"]
@@ -315,3 +315,9 @@ typecheck = "mypy src/"
 pylint = "pylint src/"
 cc = "radon cc src/ -a -nb"
 mi = "radon mi src/ -nb"
+
+[dependency-groups]
+dev = [
+    "build>=1.4.3",
+    "twine>=6.2.0",
+]
