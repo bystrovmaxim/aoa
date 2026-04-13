@@ -3,26 +3,29 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
+
 import pytest
 
-from action_machine.graph.inspectors.on_error_intent_inspector import OnErrorIntentInspector
 from action_machine.intents.on_error.on_error_intent import (
     require_on_error_intent_marker,
     validate_error_handlers,
 )
 
 
-def _handler(
-    name: str,
-    *exc_types: type[Exception],
-) -> OnErrorIntentInspector.Snapshot.ErrorHandler:
-    return OnErrorIntentInspector.Snapshot.ErrorHandler(
-        method_name=name,
-        exception_types=exc_types,
-        description="d",
-        method_ref=None,
-        context_keys=frozenset(),
-    )
+@dataclass(frozen=True)
+class _ErrorHandlerSnap:
+    """Same fields as OnErrorIntentInspector.Snapshot.ErrorHandler (duck-typed for tests)."""
+
+    method_name: str
+    exception_types: tuple[type[Exception], ...]
+    description: str = "d"
+    method_ref: object = None
+    context_keys: frozenset[str] = frozenset()
+
+
+def _handler(name: str, *exc_types: type[Exception]) -> _ErrorHandlerSnap:
+    return _ErrorHandlerSnap(method_name=name, exception_types=exc_types)
 
 
 def test_require_on_error_intent_marker_raises_without_mixin() -> None:
@@ -31,14 +34,14 @@ def test_require_on_error_intent_marker_raises_without_mixin() -> None:
 
     handlers = [_handler("h1", ValueError)]
     with pytest.raises(TypeError, match="OnErrorIntent"):
-        require_on_error_intent_marker(Plain, handlers)
+        require_on_error_intent_marker(Plain, handlers)  # type: ignore[arg-type]
 
 
 def test_validate_error_handlers_noop_for_single_handler() -> None:
     class Host:
         __name__ = "Host"
 
-    validate_error_handlers(Host, [_handler("h", ValueError)])
+    validate_error_handlers(Host, [_handler("h", ValueError)])  # type: ignore[arg-type]
 
 
 def test_validate_error_handlers_detects_unreachable_subclass() -> None:
@@ -50,4 +53,4 @@ def test_validate_error_handlers_detects_unreachable_subclass() -> None:
         _handler("narrow", ValueError),
     ]
     with pytest.raises(TypeError, match="narrow"):
-        validate_error_handlers(Host, handlers)
+        validate_error_handlers(Host, handlers)  # type: ignore[arg-type]
