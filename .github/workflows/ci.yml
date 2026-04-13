@@ -14,19 +14,16 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Check for uncommitted changes
-        run: |
-          if [ -n "$(git status --porcelain)" ]; then
-            echo "❌ Uncommitted changes found"
-            git status -s
-            exit 1
-          fi
-          echo "✅ All changes are committed"
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
 
-      - name: Show last commit
-        run: |
-          echo "📌 Last commit:"
-          git log -1 --oneline
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Install dependencies
+        run: uv sync --extra all
 
       - name: Check branch name
         run: |
@@ -37,3 +34,30 @@ jobs:
             exit 1
           fi
           echo "✅ Branch name is valid"
+
+      - name: Ruff autofix
+        run: uv run ruff check --fix .
+
+      - name: Lint (ruff)
+        run: uv run task lint
+
+      - name: Type check (mypy)
+        run: uv run task typecheck
+
+      - name: Pylint
+        run: uv run task pylint
+
+      - name: Dead code (vulture)
+        run: uv run task dead
+
+      - name: Import boundaries
+        run: uv run task test-layer-imports
+
+      - name: Tests (pytest)
+        run: uv run task test
+
+      - name: Cyclomatic complexity (radon cc)
+        run: uv run task cc
+
+      - name: Maintainability index (radon mi)
+        run: uv run task mi
