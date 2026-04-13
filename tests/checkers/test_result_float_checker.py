@@ -36,8 +36,8 @@ Required / Optional:
 
 import pytest
 
-from action_machine.checkers.result_float_checker import ResultFloatChecker, result_float
-from action_machine.core.exceptions import ValidationFieldError
+from action_machine.intents.checkers.result_float_checker import ResultFloatChecker, result_float
+from action_machine.model.exceptions import ValidationFieldError
 
 # ═════════════════════════════════════════════════════════════════════════════
 # Валидные значения
@@ -275,7 +275,7 @@ class TestDecorator:
         Один аспект может проверять поля разных типов.
         """
         # Arrange & Act
-        from action_machine.checkers.result_string_checker import result_string
+        from action_machine.intents.checkers.result_string_checker import result_string
 
         @result_string("txn_id", required=True)
         @result_float("amount", required=True, min_value=0.0)

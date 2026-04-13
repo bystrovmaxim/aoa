@@ -65,8 +65,15 @@ Repository = "https://github.com/action-machine/action-machine"
 # ============================================================================
 # HATCHLING — СБОРКА
 # ============================================================================
+# Один wheel `action-machine`: пакет живёт в `src/action_machine/`.
+# Несколько pip-дистрибутивов с общим неймспейсом `action_machine.*` не используются.
 [tool.hatch.build.targets.wheel]
 packages = ["src/action_machine"]
+
+# В sdist кладём тесты и примеры — удобно для проверки из исходников (sdist, --no-binary).
+[tool.hatch.build.targets.sdist.force-include]
+"tests" = "tests"
+"src/examples" = "src/examples"
 
 # ============================================================================
 # PYTEST
@@ -74,6 +81,7 @@ packages = ["src/action_machine"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
+# `src` — импорт `action_machine.*`; `.` — корень репо при необходимости conftest/fixtures.
 pythonpath = ["src", "."]
 addopts = [
     "-ra",
@@ -222,6 +230,7 @@ generated-members = ["rustworkx.*", "rx.*"]
 [tool.ruff]
 target-version = "py312"
 line-length = 120
+# `src`: библиотека (`action_machine`) и примеры (`examples`); плюс тесты.
 src = ["src", "tests"]
 
 [tool.ruff.lint]
@@ -255,7 +264,9 @@ ignore = [
 
 [tool.ruff.lint.per-file-ignores]
 "src/action_machine/testing/stubs.py" = ["N802"]
-"src/action_machine/checkers/__init__.py" = ["RUF022"]
+"src/action_machine/intents/checkers/__init__.py" = ["RUF022"]
+# Ленивый импорт ``CoreActionMachine`` внутри ``__getattr__`` — не поднимать наверх.
+"src/action_machine/runtime/__init__.py" = ["I001"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["action_machine"]
@@ -274,6 +285,7 @@ target-version = ["py312"]
 profile = "black"
 line_length = 120
 known_first_party = ["action_machine"]
+# Единый корень `src`: библиотека и примеры переживают git mv без смены этого списка.
 src_paths = ["src", "tests"]
 
 # ============================================================================
@@ -290,8 +302,10 @@ exclude = ["tests/"]
 [tool.taskipy.tasks]
 test = "pytest tests/ -v"
 cov = "pytest tests/ --cov=src/action_machine --cov-report=term-missing"
+# Линт по `src/` (библиотека и примеры) и `tests/`.
 lint = "ruff check src/ tests/"
 fmt = "black src/ tests/ && isort src/ tests/"
+# Строгая проверка пакета; полное дерево `src/` — `task typecheck`.
 types = "mypy src/action_machine"
 check = "task lint && task types && task test"
 dead = "vulture src/action_machine"

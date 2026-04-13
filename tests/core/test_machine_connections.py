@@ -46,19 +46,19 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from action_machine.aspects.summary_aspect_decorator import summary_aspect
-from action_machine.auth import NoneRole, check_roles
-from action_machine.context.context import Context
-from action_machine.context.user_info import UserInfo
-from action_machine.core.action_product_machine import ActionProductMachine
-from action_machine.core.base_action import BaseAction
-from action_machine.core.base_params import BaseParams
-from action_machine.core.base_result import BaseResult
-from action_machine.core.exceptions import ConnectionValidationError
-from action_machine.core.meta_decorator import meta
-from action_machine.logging.log_coordinator import LogCoordinator
-from action_machine.resource_managers.base_resource_manager import BaseResourceManager
-from action_machine.resource_managers.connection_decorator import connection
+from action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
+from action_machine.intents.auth import NoneRole, check_roles
+from action_machine.intents.context.context import Context
+from action_machine.intents.context.user_info import UserInfo
+from action_machine.intents.logging.log_coordinator import LogCoordinator
+from action_machine.intents.meta.meta_decorator import meta
+from action_machine.model.base_action import BaseAction
+from action_machine.model.base_params import BaseParams
+from action_machine.model.base_result import BaseResult
+from action_machine.model.exceptions import ConnectionValidationError
+from action_machine.resources.base_resource_manager import BaseResourceManager
+from action_machine.resources.connection_decorator import connection
+from action_machine.runtime.machines.action_product_machine import ActionProductMachine
 from tests.domain_model import FullAction, NotificationService, PaymentService, PingAction, TestDbManager
 from tests.domain_model.domains import TestDomain
 from tests.domain_model.roles import AdminRole, ManagerRole

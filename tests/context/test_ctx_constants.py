@@ -48,7 +48,7 @@ Ctx.Runtime:
     - Константы совместимы с frozenset и строковыми путями.
 """
 
-from action_machine.context.ctx_constants import Ctx
+from action_machine.intents.context.ctx_constants import Ctx
 
 # ═════════════════════════════════════════════════════════════════════════════
 # Ctx.User — поля UserInfo

@@ -6,22 +6,22 @@ from __future__ import annotations
 import pytest
 from pydantic import Field
 
-from action_machine.auth import check_roles
-from action_machine.auth.none_role import NoneRole
-from action_machine.core.action_typed_schemas_inspector import (
+from action_machine.domain.base_domain import BaseDomain
+from action_machine.graph.inspectors.action_typed_schemas_inspector import (
     ActionTypedSchemasInspector,
 )
-from action_machine.core.base_action import BaseAction
-from action_machine.core.base_params import BaseParams
-from action_machine.core.base_result import BaseResult
-from action_machine.core.described_fields_intent import (
+from action_machine.graph.inspectors.described_fields_intent_inspector import DescribedFieldsIntentInspector
+from action_machine.intents.auth import check_roles
+from action_machine.intents.auth.none_role import NoneRole
+from action_machine.intents.described_fields import (
     DescribedFieldsIntent,
-    DescribedFieldsIntentInspector,
     validate_described_schema,
     validate_described_schemas_for_action,
 )
-from action_machine.core.meta_decorator import meta
-from action_machine.domain.base_domain import BaseDomain
+from action_machine.intents.meta.meta_decorator import meta
+from action_machine.model.base_action import BaseAction
+from action_machine.model.base_params import BaseParams
+from action_machine.model.base_result import BaseResult
 
 
 class _ProbeParams(BaseParams):

@@ -4,15 +4,15 @@ from __future__ import annotations
 
 import pytest
 
-from action_machine.core.core_action_machine import CoreActionMachine
-from action_machine.metadata.base_intent_inspector import BaseIntentInspector
-from action_machine.metadata.exceptions import (
+from action_machine.graph.base_intent_inspector import BaseIntentInspector
+from action_machine.graph.exceptions import (
     DuplicateNodeError,
     InvalidGraphError,
     PayloadValidationError,
 )
-from action_machine.metadata.gate_coordinator import GateCoordinator
-from action_machine.metadata.payload import EdgeInfo, FacetPayload
+from action_machine.graph.gate_coordinator import GateCoordinator
+from action_machine.graph.payload import EdgeInfo, FacetPayload
+from action_machine.runtime.machines.core_action_machine import CoreActionMachine
 
 
 class _A:

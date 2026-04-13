@@ -13,9 +13,9 @@ ContextAssembler. NoAuthCoordinator оставляйте только если A
 открытый.
 """
 
-from action_machine.auth import NoAuthCoordinator
-from action_machine.core.action_product_machine import ActionProductMachine
-from action_machine.metadata.gate_coordinator import GateCoordinator
+from action_machine.graph.gate_coordinator import GateCoordinator
+from action_machine.intents.auth import NoAuthCoordinator
+from action_machine.runtime.machines.action_product_machine import ActionProductMachine
 
 coordinator = GateCoordinator()
 machine = ActionProductMachine(mode="production")

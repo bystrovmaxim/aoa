@@ -16,7 +16,7 @@
 
 from unittest.mock import AsyncMock
 
-from action_machine.metadata.gate_coordinator import GateCoordinator
+from action_machine.graph.gate_coordinator import GateCoordinator
 from action_machine.testing import TestBench
 from tests.domain_model import PaymentService
 

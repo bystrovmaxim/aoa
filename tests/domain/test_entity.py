@@ -31,9 +31,9 @@ Coordinator graph/metadata assembly is covered in metadata tests.
 import pytest
 from pydantic import ValidationError
 
-from action_machine.core.exceptions import NamingSuffixError
 from action_machine.domain import BaseEntity, entity
 from action_machine.domain.entity_decorator import EntityDecoratorError
+from action_machine.model.exceptions import NamingSuffixError
 from tests.domain_model.entities import SampleEntity, TestDomain
 
 

@@ -7,10 +7,10 @@ from __future__ import annotations
 
 import pytest
 
-import action_machine.metadata.gate_coordinator as gc_module
-from action_machine.core.core_action_machine import CoreActionMachine
-from action_machine.metadata.base_intent_inspector import BaseIntentInspector
-from action_machine.metadata.gate_coordinator import GateCoordinator
+import action_machine.graph.gate_coordinator as gc_module
+from action_machine.graph.base_intent_inspector import BaseIntentInspector
+from action_machine.graph.gate_coordinator import GateCoordinator
+from action_machine.runtime.machines.core_action_machine import CoreActionMachine
 from tests.domain_model import CompensatedOrderAction, FullAction, TestDbManager
 from tests.domain_model.domains import OrdersDomain
 from tests.domain_model.services import PaymentService

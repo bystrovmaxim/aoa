@@ -1,9 +1,9 @@
 # tests/auth/test_role_graph_inspectors.py
-"""Smoke tests for PR-3 role topology facets on the built coordinator graph."""
+"""Smoke tests for role topology facets on the built coordinator graph."""
 
 from __future__ import annotations
 
-from action_machine.core.core_action_machine import CoreActionMachine
+from action_machine.runtime.machines.core_action_machine import CoreActionMachine
 
 
 def test_default_coordinator_emits_role_mode_and_role_class_nodes() -> None:
@@ -15,7 +15,7 @@ def test_default_coordinator_emits_role_mode_and_role_class_nodes() -> None:
 
 
 def test_order_roles_present_and_requires_role_edges_exist() -> None:
-    """PR-2 fixtures (Order*Role) load MRO chain; graph has role_class + requires_role."""
+    """Order*Role fixtures load MRO chain; graph has role_class + requires_role."""
     import tests.auth.test_role_checker_pr2 as _pr2  # noqa: F401
 
     coord = CoreActionMachine.create_coordinator()

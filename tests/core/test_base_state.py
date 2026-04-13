@@ -45,7 +45,7 @@ BaseState наследует BaseSchema (dict-подобное чтение, res
 import pytest
 from pydantic import ValidationError
 
-from action_machine.core.base_state import BaseState
+from action_machine.model.base_state import BaseState
 
 # ═════════════════════════════════════════════════════════════════════════════
 # Создание и инициализация

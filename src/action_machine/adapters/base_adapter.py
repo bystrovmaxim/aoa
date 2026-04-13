@@ -96,11 +96,10 @@ from abc import ABC, abstractmethod
 from collections.abc import Callable
 from typing import Any, Self
 
-from action_machine.core.action_product_machine import ActionProductMachine
-from action_machine.metadata.gate_coordinator import GateCoordinator
-from action_machine.resource_managers.base_resource_manager import BaseResourceManager
-
-from .base_route_record import BaseRouteRecord
+from action_machine.adapters.base_route_record import BaseRouteRecord
+from action_machine.graph.gate_coordinator import GateCoordinator
+from action_machine.resources.base_resource_manager import BaseResourceManager
+from action_machine.runtime.machines.action_product_machine import ActionProductMachine
 
 
 class BaseAdapter[R: BaseRouteRecord](ABC):

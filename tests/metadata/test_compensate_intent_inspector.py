@@ -3,13 +3,13 @@
 
 from __future__ import annotations
 
-from action_machine.aspects.aspect_intent import AspectIntent
-from action_machine.compensate.compensate_decorator import compensate
-from action_machine.compensate.compensate_intent_inspector import (
+from action_machine.graph.inspectors.compensate_intent_inspector import (
     CompensateIntentInspector,
 )
-from action_machine.context.context_requires_decorator import context_requires
-from action_machine.context.ctx_constants import Ctx
+from action_machine.intents.aspects.aspect_intent import AspectIntent
+from action_machine.intents.compensate.compensate_decorator import compensate
+from action_machine.intents.context.context_requires_decorator import context_requires
+from action_machine.intents.context.ctx_constants import Ctx
 
 
 class _NoCompensateAction(AspectIntent):

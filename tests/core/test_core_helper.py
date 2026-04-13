@@ -20,7 +20,7 @@ import time
 
 import pytest
 
-from action_machine.core.core_helper import CoreHelper
+from action_machine.runtime.core_helper import CoreHelper
 
 # ═════════════════════════════════════════════════════════════════════════════
 # Basic execution

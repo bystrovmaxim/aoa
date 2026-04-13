@@ -3,30 +3,30 @@
 
 from __future__ import annotations
 
-from action_machine.aspects.aspect_intent import AspectIntent
-from action_machine.aspects.aspect_intent_inspector import AspectIntentInspector
-from action_machine.aspects.regular_aspect_decorator import regular_aspect
-from action_machine.aspects.summary_aspect_decorator import summary_aspect
-from action_machine.checkers.checker_intent import CheckerIntent
-from action_machine.checkers.checker_intent_inspector import CheckerIntentInspector
-from action_machine.checkers.result_string_checker import result_string
-from action_machine.compensate.compensate_decorator import compensate
-from action_machine.compensate.compensate_intent_inspector import (
-    CompensateIntentInspector,
-)
-from action_machine.context.context_requires_decorator import context_requires
-from action_machine.context.ctx_constants import Ctx
-from action_machine.metadata.base_intent_inspector import BaseIntentInspector
-from action_machine.metadata.graph_execution_adapters import (
+from action_machine.graph.base_intent_inspector import BaseIntentInspector
+from action_machine.graph.graph_execution_adapters import (
     FacetMetaRow,
     aspect_row_to_aspect,
     checker_row_to_checker,
     compensator_row_to_compensator,
     on_error_row_to_error_handler,
 )
-from action_machine.on_error.on_error_decorator import on_error
-from action_machine.on_error.on_error_intent import OnErrorIntent
-from action_machine.on_error.on_error_intent_inspector import OnErrorIntentInspector
+from action_machine.graph.inspectors.aspect_intent_inspector import AspectIntentInspector
+from action_machine.graph.inspectors.checker_intent_inspector import CheckerIntentInspector
+from action_machine.graph.inspectors.compensate_intent_inspector import (
+    CompensateIntentInspector,
+)
+from action_machine.graph.inspectors.on_error_intent_inspector import OnErrorIntentInspector
+from action_machine.intents.aspects.aspect_intent import AspectIntent
+from action_machine.intents.aspects.regular_aspect_decorator import regular_aspect
+from action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
+from action_machine.intents.checkers.checker_intent import CheckerIntent
+from action_machine.intents.checkers.result_string_checker import result_string
+from action_machine.intents.compensate.compensate_decorator import compensate
+from action_machine.intents.context.context_requires_decorator import context_requires
+from action_machine.intents.context.ctx_constants import Ctx
+from action_machine.intents.on_error.on_error_decorator import on_error
+from action_machine.intents.on_error.on_error_intent import OnErrorIntent
 
 
 class _RoundtripAspectAction(AspectIntent):

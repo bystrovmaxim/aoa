@@ -200,28 +200,27 @@ from __future__ import annotations
 from typing import Any, TypeVar, cast
 from unittest.mock import Mock
 
-from action_machine.auth.base_role import BaseRole
-from action_machine.context.context import Context
-from action_machine.context.context_view import ContextView
-from action_machine.core.action_product_machine import ActionProductMachine
-from action_machine.core.base_action import BaseAction
-from action_machine.core.base_params import BaseParams
-from action_machine.core.base_result import BaseResult
-from action_machine.core.base_state import BaseState
-from action_machine.core.sync_action_product_machine import SyncActionProductMachine
-from action_machine.core.tools_box import ToolsBox
 from action_machine.dependencies.dependency_factory import cached_dependency_factory
-from action_machine.logging.domain_resolver import resolve_domain
-from action_machine.logging.log_coordinator import LogCoordinator
-from action_machine.logging.scoped_logger import ScopedLogger
-from action_machine.metadata.gate_coordinator import GateCoordinator
-from action_machine.plugins.plugin import Plugin
-from action_machine.resource_managers.base_resource_manager import BaseResourceManager
-
-from .comparison import compare_results
-from .mock_action import MockAction
-from .state_validator import validate_state_for_aspect, validate_state_for_summary
-from .stubs import RequestInfoStub, RuntimeInfoStub, UserInfoStub
+from action_machine.graph.gate_coordinator import GateCoordinator
+from action_machine.intents.auth.base_role import BaseRole
+from action_machine.intents.context.context import Context
+from action_machine.intents.context.context_view import ContextView
+from action_machine.intents.logging.domain_resolver import resolve_domain
+from action_machine.intents.logging.log_coordinator import LogCoordinator
+from action_machine.intents.logging.scoped_logger import ScopedLogger
+from action_machine.intents.plugins.plugin import Plugin
+from action_machine.model.base_action import BaseAction
+from action_machine.model.base_params import BaseParams
+from action_machine.model.base_result import BaseResult
+from action_machine.model.base_state import BaseState
+from action_machine.resources.base_resource_manager import BaseResourceManager
+from action_machine.runtime.machines.action_product_machine import ActionProductMachine
+from action_machine.runtime.machines.sync_action_product_machine import SyncActionProductMachine
+from action_machine.runtime.tools_box import ToolsBox
+from action_machine.testing.comparison import compare_results
+from action_machine.testing.mock_action import MockAction
+from action_machine.testing.state_validator import validate_state_for_aspect, validate_state_for_summary
+from action_machine.testing.stubs import RequestInfoStub, RuntimeInfoStub, UserInfoStub
 
 P = TypeVar("P", bound=BaseParams)
 R = TypeVar("R", bound=BaseResult)

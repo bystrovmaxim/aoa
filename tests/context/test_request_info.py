@@ -38,7 +38,7 @@ from datetime import UTC, datetime
 
 from pydantic import ConfigDict
 
-from action_machine.context.request_info import RequestInfo
+from action_machine.intents.context.request_info import RequestInfo
 
 # ═════════════════════════════════════════════════════════════════════════════
 # Наследник RequestInfo для тестов расширения

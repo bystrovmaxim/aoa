@@ -37,12 +37,12 @@ ignore_exceptions=False:
 
 import pytest
 
-from action_machine.core.base_result import BaseResult
-from action_machine.logging.channel import Channel
-from action_machine.logging.level import Level
-from action_machine.logging.log_coordinator import LogCoordinator
-from action_machine.plugins.events import GlobalFinishEvent
-from action_machine.plugins.plugin_coordinator import PluginCoordinator
+from action_machine.intents.logging.channel import Channel
+from action_machine.intents.logging.level import Level
+from action_machine.intents.logging.log_coordinator import LogCoordinator
+from action_machine.intents.plugins.events import GlobalFinishEvent
+from action_machine.intents.plugins.plugin_coordinator import PluginCoordinator
+from action_machine.model.base_result import BaseResult
 from tests.logging.test_log_coordinator import RecordingLogger
 
 from .conftest import (

@@ -88,11 +88,11 @@ state и сравнение результатов между машинами.
     )
 """
 
-from .bench import TestBench
-from .comparison import compare_results
-from .mock_action import MockAction
-from .state_validator import validate_state_for_aspect, validate_state_for_summary
-from .stubs import (
+from action_machine.testing.bench import TestBench
+from action_machine.testing.comparison import compare_results
+from action_machine.testing.mock_action import MockAction
+from action_machine.testing.state_validator import validate_state_for_aspect, validate_state_for_summary
+from action_machine.testing.stubs import (
     ContextStub,
     RequestInfoStub,
     RuntimeInfoStub,

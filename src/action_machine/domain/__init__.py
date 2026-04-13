@@ -61,7 +61,7 @@ COORDINATOR
 ═══════════════════════════════════════════════════════════════════════════════
 
 The shared entry point for the **built** metadata graph is `GateCoordinator`
-(`action_machine.metadata.gate_coordinator`). Entity facets are not a separate
+(`action_machine.graph.gate_coordinator`). Entity facets are not a separate
 “mini coordinator”: they are **nodes and payloads in the same graph** as Actions,
 plugins, resource managers, etc., once the appropriate inspectors are
 registered and `build()` has completed.
@@ -103,7 +103,7 @@ USAGE SKETCH
 
     from pydantic import Field
 
-    from action_machine.core.core_action_machine import CoreActionMachine
+    from action_machine.runtime.machines.core_action_machine import CoreActionMachine
     from action_machine.domain import (
         BaseDomain,
         BaseEntity,
@@ -138,19 +138,19 @@ USAGE SKETCH
     order = build({"id": "123", "amount": 100.0}, OrderEntity)
 """
 
-from .base_domain import BaseDomain
-from .entity import BaseEntity
-from .entity_decorator import entity
-from .entity_intent import EntityIntent
-from .exceptions import (
+from action_machine.domain.base_domain import BaseDomain
+from action_machine.domain.entity import BaseEntity
+from action_machine.domain.entity_decorator import entity
+from action_machine.domain.entity_intent import EntityIntent
+from action_machine.domain.exceptions import (
     EntityDecoratorError,
     FieldNotLoadedError,
     LifecycleValidationError,
     RelationNotLoadedError,
 )
-from .hydration import build
-from .lifecycle import Lifecycle, StateInfo, StateType
-from .relation_containers import (
+from action_machine.domain.hydration import build
+from action_machine.domain.lifecycle import Lifecycle, StateInfo, StateType
+from action_machine.domain.relation_containers import (
     AggregateMany,
     AggregateOne,
     AssociationMany,
@@ -161,8 +161,8 @@ from .relation_containers import (
     CompositeOne,
     RelationType,
 )
-from .relation_markers import Inverse, NoInverse, Rel
-from .testing import make
+from action_machine.domain.relation_markers import Inverse, NoInverse, Rel
+from action_machine.domain.testing import make
 
 __all__ = [
     "AggregateMany",

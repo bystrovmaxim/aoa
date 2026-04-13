@@ -18,9 +18,9 @@ All tests use Actions from tests/domain/error_actions.py.
 """
 import pytest
 
-from action_machine.core.core_action_machine import CoreActionMachine
-from action_machine.core.exceptions import OnErrorHandlerError
-from action_machine.logging.log_coordinator import LogCoordinator
+from action_machine.intents.logging.log_coordinator import LogCoordinator
+from action_machine.model.exceptions import OnErrorHandlerError
+from action_machine.runtime.machines.core_action_machine import CoreActionMachine
 from action_machine.testing import TestBench
 from tests.domain_model import (
     ErrorHandledAction,
@@ -167,13 +167,13 @@ class TestOnErrorTypeMismatch:
         # but handler catches only ValueError.
         # ErrorHandledAction catches ValueError. Override aspect via
         # inheritance (edge-case test — class created inside test).
-        from action_machine.aspects.regular_aspect_decorator import regular_aspect
-        from action_machine.aspects.summary_aspect_decorator import summary_aspect
-        from action_machine.auth import NoneRole, check_roles
-        from action_machine.checkers import result_string
-        from action_machine.core.base_action import BaseAction
-        from action_machine.core.meta_decorator import meta
-        from action_machine.on_error import on_error
+        from action_machine.intents.aspects.regular_aspect_decorator import regular_aspect
+        from action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
+        from action_machine.intents.auth import NoneRole, check_roles
+        from action_machine.intents.checkers import result_string
+        from action_machine.intents.meta.meta_decorator import meta
+        from action_machine.intents.on_error import on_error
+        from action_machine.model.base_action import BaseAction
         from tests.domain_model import OrdersDomain
         from tests.domain_model.error_actions import ErrorTestParams, ErrorTestResult
 
@@ -238,12 +238,12 @@ class TestOnErrorNotInherited:
         # Arrange — create child class of ErrorHandledAction without its own handlers.
         # Parent ErrorHandledAction has @on_error(ValueError),
         # but child should not inherit it.
-        from action_machine.aspects.regular_aspect_decorator import regular_aspect
-        from action_machine.aspects.summary_aspect_decorator import summary_aspect
-        from action_machine.auth import NoneRole, check_roles
-        from action_machine.checkers import result_string
-        from action_machine.core.base_action import BaseAction
-        from action_machine.core.meta_decorator import meta
+        from action_machine.intents.aspects.regular_aspect_decorator import regular_aspect
+        from action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
+        from action_machine.intents.auth import NoneRole, check_roles
+        from action_machine.intents.checkers import result_string
+        from action_machine.intents.meta.meta_decorator import meta
+        from action_machine.model.base_action import BaseAction
         from tests.domain_model import OrdersDomain
         from tests.domain_model.error_actions import ErrorTestParams, ErrorTestResult
 

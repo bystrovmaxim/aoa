@@ -93,8 +93,8 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any
 
-from action_machine.core import action_generic_params as _action_generic_params
-from action_machine.core.base_action import BaseAction
+from action_machine.model.base_action import BaseAction
+from action_machine.runtime.binding import action_generic_params as _action_generic_params
 
 extract_action_params_result_types = _action_generic_params.extract_action_params_result_types
 # Re-exported for adapter edge tests (forward-ref resolution helpers).

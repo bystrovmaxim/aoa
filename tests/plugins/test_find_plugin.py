@@ -35,7 +35,7 @@ nest_level, domain, predicate) выполняются в PluginRunContext [1].
   правильное количество для каждого типа события.
 - Координатор без плагинов корректно работает.
 """
-from action_machine.plugins.plugin_coordinator import PluginCoordinator
+from action_machine.intents.plugins.plugin_coordinator import PluginCoordinator
 
 from .conftest import (
     AlphaPlugin,
@@ -219,8 +219,8 @@ class TestPluginGetHandlers:
         _handler_func, sub = handlers[0]
 
         # Assert — SubscriptionInfo содержит корректные данные
-        from action_machine.plugins.events import GlobalFinishEvent
-        from action_machine.plugins.subscription_info import SubscriptionInfo
+        from action_machine.intents.plugins.events import GlobalFinishEvent
+        from action_machine.intents.plugins.subscription_info import SubscriptionInfo
 
         assert isinstance(sub, SubscriptionInfo)
         assert sub.event_class is GlobalFinishEvent

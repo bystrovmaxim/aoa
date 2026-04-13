@@ -26,7 +26,7 @@ Scenarios covered:
 import pytest
 
 from action_machine.dependencies.dependency_factory import DependencyFactory, DependencyInfo
-from action_machine.resource_managers.base_resource_manager import BaseResourceManager
+from action_machine.resources.base_resource_manager import BaseResourceManager
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Helper classes — intentionally simple, defined here for isolation.
@@ -62,7 +62,7 @@ class _UnsupportedManager(BaseResourceManager):
         return None
 
     def check_rollup_support(self) -> bool:
-        from action_machine.core.exceptions import HandleError
+        from action_machine.model.exceptions import HandleError
         raise HandleError("Rollup not supported")
 
 

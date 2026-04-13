@@ -70,8 +70,8 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from action_machine.core.core_action_machine import CoreActionMachine
-from action_machine.metadata.gate_coordinator import GateCoordinator
+from action_machine.graph.gate_coordinator import GateCoordinator
+from action_machine.runtime.machines.core_action_machine import CoreActionMachine
 from action_machine.testing import TestBench
 
 from .domain_model import InventoryService, NotificationService, PaymentService, TestDbManager

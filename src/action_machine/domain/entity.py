@@ -205,11 +205,11 @@ from typing import Any, ClassVar, Self
 
 from pydantic import ConfigDict
 
-from action_machine.core.base_schema import BaseSchema
-from action_machine.core.described_fields_intent import DescribedFieldsIntent
-from action_machine.core.exceptions import NamingSuffixError
 from action_machine.domain.entity_intent import EntityIntent
 from action_machine.domain.exceptions import FieldNotLoadedError
+from action_machine.intents.described_fields.marker import DescribedFieldsIntent
+from action_machine.model.base_schema import BaseSchema
+from action_machine.model.exceptions import NamingSuffixError
 
 # Suffix required for every class that inherits BaseEntity (directly or indirectly).
 _REQUIRED_SUFFIX = "Entity"

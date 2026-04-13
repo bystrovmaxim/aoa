@@ -21,7 +21,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from action_machine.core.exceptions import AuthorizationError
+from action_machine.model.exceptions import AuthorizationError
 from action_machine.testing import MockAction, TestBench
 from tests.domain_model import (
     AdminAction,

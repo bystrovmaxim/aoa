@@ -15,10 +15,10 @@ import json
 import re
 from typing import Any, Final
 
-from action_machine.contrib.mcp.adapter import _build_graph_json
-from action_machine.core.core_action_machine import CoreActionMachine
-from action_machine.metadata.base_intent_inspector import BaseIntentInspector
-from action_machine.metadata.gate_coordinator import GateCoordinator
+from action_machine.graph.base_intent_inspector import BaseIntentInspector
+from action_machine.graph.gate_coordinator import GateCoordinator
+from action_machine.integrations.mcp.adapter import _build_graph_json
+from action_machine.runtime.machines.core_action_machine import CoreActionMachine
 
 # Регистрируем минимальное действие в дереве подклассов BaseAction до build().
 from tests.domain_model import PingAction

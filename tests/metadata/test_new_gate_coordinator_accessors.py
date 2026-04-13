@@ -3,17 +3,17 @@
 
 from __future__ import annotations
 
-from action_machine.aspects.aspect_intent_inspector import AspectIntentInspector
-from action_machine.checkers.checker_intent_inspector import CheckerIntentInspector
-from action_machine.compensate.compensate_intent_inspector import (
+from action_machine.graph.base_intent_inspector import BaseIntentInspector
+from action_machine.graph.gate_coordinator import GateCoordinator
+from action_machine.graph.inspectors.aspect_intent_inspector import AspectIntentInspector
+from action_machine.graph.inspectors.checker_intent_inspector import CheckerIntentInspector
+from action_machine.graph.inspectors.compensate_intent_inspector import (
     CompensateIntentInspector,
 )
-from action_machine.core.core_action_machine import CoreActionMachine
-from action_machine.domain.entity_intent_inspector import EntityIntentInspector
-from action_machine.metadata.base_intent_inspector import BaseIntentInspector
-from action_machine.metadata.gate_coordinator import GateCoordinator
-from action_machine.metadata.payload import EdgeInfo, FacetPayload
-from action_machine.on_error.on_error_intent_inspector import OnErrorIntentInspector
+from action_machine.graph.inspectors.entity_intent_inspector import EntityIntentInspector
+from action_machine.graph.inspectors.on_error_intent_inspector import OnErrorIntentInspector
+from action_machine.graph.payload import EdgeInfo, FacetPayload
+from action_machine.runtime.machines.core_action_machine import CoreActionMachine
 from tests.domain_model import FullAction
 from tests.domain_model.services import NotificationService, PaymentService
 

@@ -2,17 +2,17 @@
 
 from __future__ import annotations
 
-from action_machine.auth.check_roles_decorator import check_roles
-from action_machine.auth.role_intent_inspector import RoleIntentInspector
-from action_machine.core.base_action import BaseAction
-from action_machine.core.base_params import BaseParams
-from action_machine.core.base_result import BaseResult
-from action_machine.core.core_action_machine import CoreActionMachine
-from action_machine.core.meta_decorator import meta
-from action_machine.core.meta_intent_inspector import MetaIntentInspector
-from action_machine.core.meta_intents import ActionMetaIntent
 from action_machine.domain.base_domain import BaseDomain
-from action_machine.metadata.base_intent_inspector import BaseIntentInspector
+from action_machine.graph.base_intent_inspector import BaseIntentInspector
+from action_machine.graph.inspectors.meta_intent_inspector import MetaIntentInspector
+from action_machine.graph.inspectors.role_intent_inspector import RoleIntentInspector
+from action_machine.intents.auth.check_roles_decorator import check_roles
+from action_machine.intents.meta.meta_decorator import meta
+from action_machine.intents.meta.meta_intents import ActionMetaIntent
+from action_machine.model.base_action import BaseAction
+from action_machine.model.base_params import BaseParams
+from action_machine.model.base_result import BaseResult
+from action_machine.runtime.machines.core_action_machine import CoreActionMachine
 from tests.domain_model.roles import AdminRole
 
 

@@ -72,16 +72,16 @@ _reset_all_mocks() between them. Plugins are not reset — collected_events
 contains events from BOTH runs. Tests must account for duplication or call
 observer.reset() before run().
 """
-from action_machine.logging.scoped_logger import ScopedLogger
-from action_machine.plugins.events import (
+from action_machine.intents.logging.scoped_logger import ScopedLogger
+from action_machine.intents.plugins.events import (
     AfterCompensateAspectEvent,
     BeforeCompensateAspectEvent,
     CompensateFailedEvent,
     SagaRollbackCompletedEvent,
     SagaRollbackStartedEvent,
 )
-from action_machine.plugins.on_decorator import on
-from action_machine.plugins.plugin import Plugin
+from action_machine.intents.plugins.on_decorator import on
+from action_machine.intents.plugins.plugin import Plugin
 
 
 class SagaObserverPlugin(Plugin):

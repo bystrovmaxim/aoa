@@ -37,8 +37,8 @@ TestDecorator
 
 import pytest
 
-from action_machine.checkers.result_bool_checker import ResultBoolChecker, result_bool
-from action_machine.core.exceptions import ValidationFieldError
+from action_machine.intents.checkers.result_bool_checker import ResultBoolChecker, result_bool
+from action_machine.model.exceptions import ValidationFieldError
 
 # ═════════════════════════════════════════════════════════════════════════════
 # Валидные значения

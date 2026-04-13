@@ -3,9 +3,9 @@
 
 from __future__ import annotations
 
-from action_machine.core.base_schema import BaseSchema
-from action_machine.logging import sensitive
-from action_machine.logging.sensitive_intent_inspector import SensitiveIntentInspector
+from action_machine.graph.inspectors.sensitive_intent_inspector import SensitiveIntentInspector
+from action_machine.intents.logging import sensitive
+from action_machine.model.base_schema import BaseSchema
 
 
 class _NoSensitiveSchema(BaseSchema):

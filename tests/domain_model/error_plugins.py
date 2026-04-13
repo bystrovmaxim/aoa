@@ -45,13 +45,13 @@ USAGE IN TESTS
     )
     result = await bench.run(ErrorHandledAction(), params, rollup=False)
 """
-from action_machine.logging.scoped_logger import ScopedLogger
-from action_machine.plugins.events import (
+from action_machine.intents.logging.scoped_logger import ScopedLogger
+from action_machine.intents.plugins.events import (
     BeforeOnErrorAspectEvent,
     UnhandledErrorEvent,
 )
-from action_machine.plugins.on_decorator import on
-from action_machine.plugins.plugin import Plugin
+from action_machine.intents.plugins.on_decorator import on
+from action_machine.intents.plugins.plugin import Plugin
 
 
 class ErrorObserverPlugin(Plugin):

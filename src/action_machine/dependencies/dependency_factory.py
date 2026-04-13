@@ -102,10 +102,10 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
-from action_machine.resource_managers.base_resource_manager import BaseResourceManager
+from action_machine.resources.base_resource_manager import BaseResourceManager
 
 if TYPE_CHECKING:
-    from action_machine.metadata.gate_coordinator import GateCoordinator
+    from action_machine.graph.gate_coordinator import GateCoordinator
 
 
 @dataclass(frozen=True)

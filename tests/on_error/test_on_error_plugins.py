@@ -27,16 +27,16 @@ and Actions from tests/domain/error_actions.py.
 """
 import pytest
 
-from action_machine.context.context import Context
-from action_machine.core.action_product_machine import ActionProductMachine
-from action_machine.core.core_action_machine import CoreActionMachine
-from action_machine.logging.log_coordinator import LogCoordinator
-from action_machine.plugins.events import (
+from action_machine.intents.context.context import Context
+from action_machine.intents.logging.log_coordinator import LogCoordinator
+from action_machine.intents.plugins.events import (
     BeforeOnErrorAspectEvent,
     UnhandledErrorEvent,
 )
-from action_machine.plugins.on_decorator import on
-from action_machine.plugins.plugin import Plugin
+from action_machine.intents.plugins.on_decorator import on
+from action_machine.intents.plugins.plugin import Plugin
+from action_machine.runtime.machines.action_product_machine import ActionProductMachine
+from action_machine.runtime.machines.core_action_machine import CoreActionMachine
 from tests.domain_model import (
     ErrorHandledAction,
     ErrorTestParams,

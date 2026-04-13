@@ -10,7 +10,7 @@ Documentation:
     ReDoc:      http://localhost:8000/redoc
 """
 
-from action_machine.contrib.fastapi import FastApiAdapter
+from action_machine.integrations.fastapi import FastApiAdapter
 
 from .actions import CreateOrderAction, GetOrderAction, PingAction
 from .infrastructure import auth, machine

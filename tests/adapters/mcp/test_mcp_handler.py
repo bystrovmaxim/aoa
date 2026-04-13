@@ -11,7 +11,7 @@ runs the action through the machine, serializes the result to JSON inside
 
 This file tests the handler internals: _make_tool_handler, _execute_tool_call,
 _serialize_result, _build_graph_json, and error formatting — covering the
-uncovered lines in contrib/mcp/adapter.py (lines 169, 208-256, 381-387, 634).
+uncovered lines in integrations/mcp/adapter.py (lines 169, 208-256, 381-387, 634).
 
 Scenarios covered:
     - Handler returns CallToolResult with JSON text and isError=False on success.
@@ -35,15 +35,15 @@ import pytest
 from mcp.types import CallToolResult
 from pydantic import BaseModel
 
-from action_machine.contrib.mcp.adapter import (
+from action_machine.integrations.mcp.adapter import (
     _build_graph_json,
     _make_tool_handler,
     _serialize_result,
 )
-from action_machine.contrib.mcp.route_record import McpRouteRecord
-from action_machine.core.action_product_machine import ActionProductMachine
-from action_machine.core.core_action_machine import CoreActionMachine
-from action_machine.core.exceptions import AuthorizationError, ValidationFieldError
+from action_machine.integrations.mcp.route_record import McpRouteRecord
+from action_machine.model.exceptions import AuthorizationError, ValidationFieldError
+from action_machine.runtime.machines.action_product_machine import ActionProductMachine
+from action_machine.runtime.machines.core_action_machine import CoreActionMachine
 from tests.domain_model import PingAction, SimpleAction
 
 # ─────────────────────────────────────────────────────────────────────────────

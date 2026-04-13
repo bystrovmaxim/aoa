@@ -23,7 +23,7 @@ Scenarios covered:
 import pytest
 from pydantic import BaseModel
 
-from action_machine.contrib.mcp.route_record import McpRouteRecord
+from action_machine.integrations.mcp.route_record import McpRouteRecord
 from tests.domain_model import FullAction, PingAction, SimpleAction
 
 # ─────────────────────────────────────────────────────────────────────────────

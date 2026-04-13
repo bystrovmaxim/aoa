@@ -33,7 +33,7 @@
 
 import pytest
 
-from action_machine.core.exceptions import NamingPrefixError, NamingSuffixError
+from action_machine.model.exceptions import NamingPrefixError, NamingSuffixError
 
 # ═════════════════════════════════════════════════════════════════════════════
 # Суффикс "Action" для BaseAction
@@ -47,9 +47,9 @@ class TestActionSuffix:
         """Имя 'MyTaskAction' → определение класса проходит без ошибок."""
 
         # Arrange & Act — определяем класс с правильным суффиксом
-        from action_machine.core.base_action import BaseAction
-        from action_machine.core.base_params import BaseParams
-        from action_machine.core.base_result import BaseResult
+        from action_machine.model.base_action import BaseAction
+        from action_machine.model.base_params import BaseParams
+        from action_machine.model.base_result import BaseResult
 
         class MyTaskAction(BaseAction[BaseParams, BaseResult]):
             pass
@@ -61,9 +61,9 @@ class TestActionSuffix:
         """Имя 'MyTask' без суффикса 'Action' → NamingSuffixError."""
 
         # Arrange & Act & Assert — определение класса выбрасывает ошибку
-        from action_machine.core.base_action import BaseAction
-        from action_machine.core.base_params import BaseParams
-        from action_machine.core.base_result import BaseResult
+        from action_machine.model.base_action import BaseAction
+        from action_machine.model.base_params import BaseParams
+        from action_machine.model.base_result import BaseResult
 
         with pytest.raises(NamingSuffixError, match="Action"):
             class MyTask(BaseAction[BaseParams, BaseResult]):
@@ -72,9 +72,9 @@ class TestActionSuffix:
     def test_wrong_suffix_raises(self) -> None:
         """Имя 'MyTaskHandler' → NamingSuffixError (суффикс не 'Action')."""
 
-        from action_machine.core.base_action import BaseAction
-        from action_machine.core.base_params import BaseParams
-        from action_machine.core.base_result import BaseResult
+        from action_machine.model.base_action import BaseAction
+        from action_machine.model.base_params import BaseParams
+        from action_machine.model.base_result import BaseResult
 
         with pytest.raises(NamingSuffixError, match="Action"):
             class MyTaskHandler(BaseAction[BaseParams, BaseResult]):
@@ -83,9 +83,9 @@ class TestActionSuffix:
     def test_indirect_subclass_checked(self) -> None:
         """Косвенный наследник BaseAction без суффикса → NamingSuffixError."""
 
-        from action_machine.core.base_action import BaseAction
-        from action_machine.core.base_params import BaseParams
-        from action_machine.core.base_result import BaseResult
+        from action_machine.model.base_action import BaseAction
+        from action_machine.model.base_params import BaseParams
+        from action_machine.model.base_result import BaseResult
 
         # Промежуточный класс с правильным суффиксом
         class BaseTaskAction(BaseAction[BaseParams, BaseResult]):
@@ -161,7 +161,7 @@ class TestCheckerSuffix:
     def test_correct_suffix_passes(self) -> None:
         """Имя 'ResultEmailChecker' → определение проходит."""
 
-        from action_machine.checkers.result_field_checker import ResultFieldChecker
+        from action_machine.intents.checkers.result_field_checker import ResultFieldChecker
 
         class ResultEmailChecker(ResultFieldChecker):
             def _check_type_and_constraints(self, value):
@@ -172,7 +172,7 @@ class TestCheckerSuffix:
     def test_missing_suffix_raises(self) -> None:
         """Имя 'EmailValidator' без суффикса 'Checker' → NamingSuffixError."""
 
-        from action_machine.checkers.result_field_checker import ResultFieldChecker
+        from action_machine.intents.checkers.result_field_checker import ResultFieldChecker
 
         with pytest.raises(NamingSuffixError, match="Checker"):
             class EmailValidator(ResultFieldChecker):
@@ -182,7 +182,7 @@ class TestCheckerSuffix:
     def test_existing_checkers_have_suffix(self) -> None:
         """Все встроенные чекеры имеют суффикс 'Checker'."""
 
-        from action_machine.checkers import (
+        from action_machine.intents.checkers import (
             ResultBoolChecker,
             ResultDateChecker,
             ResultFloatChecker,
@@ -211,7 +211,7 @@ class TestRegularAspectSuffix:
     def test_correct_suffix_passes(self) -> None:
         """Имя 'validate_data_aspect' → декоратор применяется без ошибок."""
 
-        from action_machine.aspects.regular_aspect_decorator import regular_aspect
+        from action_machine.intents.aspects.regular_aspect_decorator import regular_aspect
 
         @regular_aspect("Валидация данных")
         async def validate_data_aspect(self, params, state, box, connections):
@@ -222,7 +222,7 @@ class TestRegularAspectSuffix:
     def test_missing_suffix_raises(self) -> None:
         """Имя 'validate_data' без '_aspect' → NamingSuffixError."""
 
-        from action_machine.aspects.regular_aspect_decorator import regular_aspect
+        from action_machine.intents.aspects.regular_aspect_decorator import regular_aspect
 
         with pytest.raises(NamingSuffixError, match="_aspect"):
             @regular_aspect("Валидация данных")
@@ -232,7 +232,7 @@ class TestRegularAspectSuffix:
     def test_wrong_suffix_raises(self) -> None:
         """Имя 'validate_data_step' → NamingSuffixError."""
 
-        from action_machine.aspects.regular_aspect_decorator import regular_aspect
+        from action_machine.intents.aspects.regular_aspect_decorator import regular_aspect
 
         with pytest.raises(NamingSuffixError, match="_aspect"):
             @regular_aspect("Валидация данных")
@@ -251,7 +251,7 @@ class TestSummaryAspectSuffix:
     def test_correct_suffix_passes(self) -> None:
         """Имя 'build_result_summary' → декоратор применяется без ошибок."""
 
-        from action_machine.aspects.summary_aspect_decorator import summary_aspect
+        from action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
 
         @summary_aspect("Формирование результата")
         async def build_result_summary(self, params, state, box, connections):
@@ -262,7 +262,7 @@ class TestSummaryAspectSuffix:
     def test_missing_suffix_raises(self) -> None:
         """Имя 'build_result' без '_summary' → NamingSuffixError."""
 
-        from action_machine.aspects.summary_aspect_decorator import summary_aspect
+        from action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
 
         with pytest.raises(NamingSuffixError, match="_summary"):
             @summary_aspect("Формирование результата")
@@ -281,7 +281,7 @@ class TestOnErrorSuffix:
     def test_correct_suffix_passes(self) -> None:
         """Имя 'handle_validation_on_error' → декоратор применяется."""
 
-        from action_machine.on_error import on_error
+        from action_machine.intents.on_error import on_error
 
         @on_error(ValueError, description="Ошибка валидации")
         async def handle_validation_on_error(self, params, state, box, connections, error):
@@ -292,7 +292,7 @@ class TestOnErrorSuffix:
     def test_missing_suffix_raises(self) -> None:
         """Имя 'handle_validation' без '_on_error' → NamingSuffixError."""
 
-        from action_machine.on_error import on_error
+        from action_machine.intents.on_error import on_error
 
         with pytest.raises(NamingSuffixError, match="_on_error"):
             @on_error(ValueError, description="Ошибка валидации")
@@ -309,8 +309,8 @@ class TestPluginOnPrefix:
 
     def test_correct_prefix_passes(self) -> None:
         """Имя 'on_track_finish' → декоратор применяется."""
-        from action_machine.plugins.events import GlobalFinishEvent
-        from action_machine.plugins.on_decorator import on
+        from action_machine.intents.plugins.events import GlobalFinishEvent
+        from action_machine.intents.plugins.on_decorator import on
 
         @on(GlobalFinishEvent)
         async def on_track_finish(self, state, event, log):
@@ -320,8 +320,8 @@ class TestPluginOnPrefix:
 
     def test_missing_prefix_raises(self) -> None:
         """Имя 'track_finish' без 'on_' → NamingPrefixError."""
-        from action_machine.plugins.events import GlobalFinishEvent
-        from action_machine.plugins.on_decorator import on
+        from action_machine.intents.plugins.events import GlobalFinishEvent
+        from action_machine.intents.plugins.on_decorator import on
 
         with pytest.raises(NamingPrefixError, match="on_"):
             @on(GlobalFinishEvent)
@@ -330,8 +330,8 @@ class TestPluginOnPrefix:
 
     def test_wrong_prefix_raises(self) -> None:
         """Имя 'handle_track_finish' → NamingPrefixError (не начинается с 'on_')."""
-        from action_machine.plugins.events import GlobalFinishEvent
-        from action_machine.plugins.on_decorator import on
+        from action_machine.intents.plugins.events import GlobalFinishEvent
+        from action_machine.intents.plugins.on_decorator import on
 
         with pytest.raises(NamingPrefixError, match="on_"):
             @on(GlobalFinishEvent)
@@ -350,7 +350,7 @@ class TestDescriptionRequired:
     def test_regular_aspect_empty_description_raises(self) -> None:
         """@regular_aspect("") → ValueError."""
 
-        from action_machine.aspects.regular_aspect_decorator import regular_aspect
+        from action_machine.intents.aspects.regular_aspect_decorator import regular_aspect
 
         with pytest.raises(
             ValueError,
@@ -363,7 +363,7 @@ class TestDescriptionRequired:
     def test_summary_aspect_empty_description_raises(self) -> None:
         """@summary_aspect("") → ValueError."""
 
-        from action_machine.aspects.summary_aspect_decorator import summary_aspect
+        from action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
 
         with pytest.raises(
             ValueError,
@@ -376,7 +376,7 @@ class TestDescriptionRequired:
     def test_on_error_empty_description_raises(self) -> None:
         """@on_error(ValueError, description="") → ValueError."""
 
-        from action_machine.on_error import on_error
+        from action_machine.intents.on_error import on_error
 
         with pytest.raises(ValueError, match="не может быть пустой"):
             on_error(ValueError, description="")
@@ -384,7 +384,7 @@ class TestDescriptionRequired:
     def test_regular_aspect_whitespace_description_raises(self) -> None:
         """@regular_aspect("   ") → ValueError."""
 
-        from action_machine.aspects.regular_aspect_decorator import regular_aspect
+        from action_machine.intents.aspects.regular_aspect_decorator import regular_aspect
 
         with pytest.raises(
             ValueError,
