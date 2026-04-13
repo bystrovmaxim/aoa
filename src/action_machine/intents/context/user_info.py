@@ -101,7 +101,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from pydantic import ConfigDict, Field, field_validator
+from pydantic import ConfigDict, Field, field_serializer, field_validator
 
 from action_machine.intents.auth.base_role import BaseRole
 from action_machine.model.base_schema import BaseSchema
@@ -146,3 +146,13 @@ class UserInfo(BaseSchema):
                     f"UserInfo.roles[{i}] must be a BaseRole subclass, got {x!r}."
                 )
         return items
+
+    @field_serializer("roles", when_used="json")
+    def _serialize_roles(self, roles: tuple[type[BaseRole], ...]) -> list[str]:
+        """
+        Serialize role classes into stable wire-safe role names for JSON mode.
+
+        Runtime auth keeps ``roles`` as classes for ``issubclass`` checks; only
+        JSON projections convert them to strings.
+        """
+        return [role.name for role in roles]
