@@ -10,6 +10,7 @@ import pytest
 from action_machine.graph.base_intent_inspector import BaseIntentInspector
 from action_machine.graph.gate_coordinator import GateCoordinator
 from action_machine.graph.payload import FacetPayload
+from tests.bench.bench_report import emit_benchmark_report, rows_throughput_budget
 
 pytestmark = pytest.mark.benchmark
 
@@ -36,15 +37,32 @@ class _PerfInspector(BaseIntentInspector):
         raise NotImplementedError
 
 
-def test_many_cold_gate_coordinator_builds_under_budget() -> None:
+_BUILD_CYCLES = 300
+_WALL_BUDGET_SEC = 3.0
+
+
+def test_many_cold_gate_coordinator_builds_under_budget(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
     """Fresh ``register().build()`` per iteration; loose limit for varied runners."""
-    n = 300
     start = time.perf_counter()
-    for _ in range(n):
+    for _ in range(_BUILD_CYCLES):
         GateCoordinator().register(_PerfInspector).build()
     elapsed = time.perf_counter() - start
 
-    assert elapsed < 3.0, (
-        f"{n} cold GateCoordinator register+build cycles took {elapsed:.3f}s "
-        f"(limit 3.0s)"
+    emit_benchmark_report(
+        capsys,
+        "GateCoordinator cold register + build (per cycle)",
+        rows_throughput_budget(
+            iterations=_BUILD_CYCLES,
+            elapsed_sec=elapsed,
+            budget_sec=_WALL_BUDGET_SEC,
+            quantity_label="cycles (register+build)",
+            throughput_label="cycles/s",
+        ),
+    )
+
+    assert elapsed < _WALL_BUDGET_SEC, (
+        f"{_BUILD_CYCLES} cold GateCoordinator register+build cycles took {elapsed:.3f}s "
+        f"(limit {_WALL_BUDGET_SEC}s)"
     )
