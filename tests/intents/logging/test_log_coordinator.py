@@ -50,10 +50,6 @@ iif-конструкции:
     - Невалидный iif → LogTemplateError.
     - Имя с подчёркиванием → LogTemplateError.
 
-Изоляция логгеров:
-    - Исключение в ``handle`` одного ``BaseLogger`` не прерывает ``emit`` и не
-      лишает остальных логгеров вызова; сбой пишется в stdlib ``logging``
-      (см. README и ``log_coordinator``).
 """
 
 import logging
