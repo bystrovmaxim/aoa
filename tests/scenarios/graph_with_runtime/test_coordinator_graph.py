@@ -1,4 +1,4 @@
-# tests/graph/test_coordinator_graph.py
+# tests/scenarios/graph_with_runtime/test_coordinator_graph.py
 """
 Тесты GateCoordinator — граф зависимостей, узлы, рёбра, циклы, публичное API.
 ═══════════════════════════════════════════════════════════════════════════════
@@ -419,7 +419,7 @@ class TestCompensatorNodes:
 
     Добавлено как часть реализации механизма компенсации (Saga).
     Детальные тесты графа компенсаторов (метаданные узлов, requires_context,
-    dependency tree) покрыты в tests/intents/compensate/test_compensate_graph.py.
+    dependency tree) покрыты в tests/scenarios/intents_with_runtime/test_compensate_graph.py.
     Здесь — минимальная проверка интеграции в общий граф координатора.
     """
 

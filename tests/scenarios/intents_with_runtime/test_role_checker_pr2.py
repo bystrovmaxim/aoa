@@ -1,4 +1,4 @@
-# tests/intents/auth/test_role_checker_pr2.py
+# tests/scenarios/intents_with_runtime/test_role_checker_pr2.py
 """``RoleChecker`` modes, MRO expansion, and ``@check_roles`` mode validation."""
 
 from __future__ import annotations

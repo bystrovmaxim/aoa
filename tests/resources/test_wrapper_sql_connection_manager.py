@@ -53,19 +53,16 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from action_machine.intents.meta.meta_decorator import meta
 from action_machine.model.exceptions import HandleError, TransactionProhibitedError
 from action_machine.resources.sql_connection_manager import SqlConnectionManager
 from action_machine.resources.wrapper_sql_connection_manager import (
     WrapperSqlConnectionManager,
 )
-from tests.scenarios.domain_model.domains import TestDomain
 
 # ======================================================================
 # Mock-менеджер соединений для тестов
 # ======================================================================
 
-@meta(description="Мок-менеджер соединений для тестов", domain=TestDomain)
 class MockConnectionManager(SqlConnectionManager):
     """
     Мок-реализация SqlConnectionManager для тестирования WrapperSqlConnectionManager.

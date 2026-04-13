@@ -1,4 +1,4 @@
-# tests/intents/on_error/test_on_error_execution.py
+# tests/scenarios/intents_with_runtime/test_on_error_execution.py
 """
 Tests for executing @on_error handlers in ActionProductMachine.
 ═══════════════════════════════════════════════════════════════════════════════

@@ -1,4 +1,4 @@
-# tests/intents/compensate/test_bench_run_compensator.py
+# tests/scenarios/intents_with_runtime/test_bench_run_compensator.py
 """
 Тесты метода TestBench.run_compensator() — изолированный запуск компенсаторов.
 ═══════════════════════════════════════════════════════════════════════════════

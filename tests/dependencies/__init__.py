@@ -39,8 +39,7 @@
                                   get_depends_bound(), интеграция
                                   с BaseAction (PingAction, FullAction).
 
-- test_dependency_factory_core_machine.py — фабрика с CoreActionMachine,
-                                  rollup, доменная интеграция.
+- Сценарий с ``CoreActionMachine``: ``tests/scenarios/dependencies/test_dependency_factory_core_machine.py``.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ДОМЕННАЯ МОДЕЛЬ

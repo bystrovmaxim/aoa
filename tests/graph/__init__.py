@@ -33,7 +33,8 @@ DATA FLOW
     GateCoordinator.register(...).build()
               │
               ├────► test_*_intent_inspector.py   (per-facet collection)
-              ├────► test_coordinator_*.py         (graph, snapshots, strict rules)
+              ├────► tests/scenarios/graph_with_runtime/test_coordinator_*.py
+              │      (graph + runtime / integrations — cross-layer)
               └────► test_domain.py                (BaseDomain naming rules)
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -42,12 +43,15 @@ LAYOUT
 
     tests/graph/
     ├── __init__.py                     — this file
-    ├── test_new_gate_coordinator_*.py  — graph build and facet accessors
-    ├── test_*_intent_inspector.py   — individual facet inspectors
-    ├── test_coordinator_graph.py       — graph API, nodes, edges, cycles
-    ├── test_graph_skeleton_and_hydrate.py — skeleton/hydrate; stubs; action keys
-    ├── test_coordinator_strict.py      — domain invariant and graph consistency
+    ├── test_*_intent_inspector.py      — individual facet inspectors
     └── test_domain.py                  — BaseDomain: name validation, inheritance
+
+    tests/scenarios/graph_with_runtime/
+    ├── test_new_gate_coordinator_*.py  — graph build with runtime machine
+    ├── test_coordinator_graph.py       — graph API, nodes, edges, cycles
+    ├── test_graph_skeleton_and_hydrate.py
+    ├── test_coordinator_strict.py
+    └── …                               — other coordinator + runtime cases
 
 ═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES

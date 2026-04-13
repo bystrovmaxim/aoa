@@ -1,4 +1,4 @@
-# tests/intents/plugins/test_plugins_integration.py
+# tests/scenarios/intents_with_runtime/test_plugins_integration.py
 """
 Интеграционные тесты плагинов с полным конвейером ActionMachine.
 ═══════════════════════════════════════════════════════════════════════════════

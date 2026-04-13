@@ -1,4 +1,4 @@
-# tests/intents/compensate/test_saga_nested.py
+# tests/scenarios/intents_with_runtime/test_saga_nested.py
 """
 Тесты вложенных вызовов и изоляции стеков компенсации.
 ═══════════════════════════════════════════════════════════════════════════════
