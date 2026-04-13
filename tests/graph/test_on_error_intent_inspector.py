@@ -1,4 +1,4 @@
-# tests/metadata/test_on_error_intent_inspector.py
+# tests/graph/test_on_error_intent_inspector.py
 """Unit tests for OnErrorIntentInspector."""
 
 from __future__ import annotations

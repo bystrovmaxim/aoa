@@ -1,4 +1,4 @@
-# tests/metadata/test_coordinator_context_fields.py
+# tests/graph/test_coordinator_context_fields.py
 """
 Метаданные @context_requires: runtime metadata cache и фасетный граф.
 

@@ -1,4 +1,4 @@
-# tests/metadata/test_compensate_intent_inspector.py
+# tests/graph/test_compensate_intent_inspector.py
 """Unit tests for CompensateIntentInspector."""
 
 from __future__ import annotations

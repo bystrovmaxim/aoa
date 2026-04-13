@@ -1,4 +1,4 @@
-# tests/metadata/test_graph_execution_adapters.py
+# tests/graph/test_graph_execution_adapters.py
 """Tests for ``graph_execution_adapters``: facet meta rows → snapshot types."""
 
 from __future__ import annotations

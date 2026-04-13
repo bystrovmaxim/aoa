@@ -1,4 +1,4 @@
-# tests/metadata/test_coordinator_graph.py
+# tests/graph/test_coordinator_graph.py
 """
 Тесты GateCoordinator — граф зависимостей, узлы, рёбра, циклы, публичное API.
 ═══════════════════════════════════════════════════════════════════════════════

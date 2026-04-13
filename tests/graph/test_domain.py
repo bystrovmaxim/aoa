@@ -1,4 +1,4 @@
-# tests/metadata/test_domain.py
+# tests/graph/test_domain.py
 """
 Tests for `BaseDomain` — abstract base for domain marker classes.
 

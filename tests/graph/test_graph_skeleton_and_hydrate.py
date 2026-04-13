@@ -1,4 +1,4 @@
-# tests/metadata/test_graph_skeleton_and_hydrate.py
+# tests/graph/test_graph_skeleton_and_hydrate.py
 """
 Тесты: узлы ``rx.PyDiGraph`` — только скелет; ``meta`` через снимки и ``hydrate_graph_node``.
 """
