@@ -36,9 +36,9 @@ jobs:
         with:
           version: "latest"
 
-      # dev: linters/pytest; fastapi+mcp: mypy over src/ includes integration adapters
+      # dev: linters/pytest; fastapi+mcp: mypy; postgres: pylint import graph для integrations/postgres
       - name: Sync dependencies
-        run: uv sync --extra dev --extra fastapi --extra mcp
+        run: uv sync --extra dev --extra fastapi --extra mcp --extra postgres
 
       - name: Lint (ruff)
         run: uv run task lint
