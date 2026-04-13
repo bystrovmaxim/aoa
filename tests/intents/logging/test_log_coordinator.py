@@ -49,8 +49,14 @@ iif-конструкции:
     - Неизвестный namespace → LogTemplateError.
     - Невалидный iif → LogTemplateError.
     - Имя с подчёркиванием → LogTemplateError.
+
+Изоляция логгеров:
+    - Исключение в ``handle`` одного ``BaseLogger`` не прерывает ``emit`` и не
+      лишает остальных логгеров вызова; сбой пишется в stdlib ``logging``
+      (см. README и ``log_coordinator``).
 """
 
+import logging
 from typing import Any
 
 import pytest
@@ -106,6 +112,27 @@ class RecordingLogger(BaseLogger):
             "params": params,
             "indent": indent,
         })
+
+
+class FailingLogger(BaseLogger):
+    """Падает в ``write`` — для проверки изоляции при fan-out."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.write_calls = 0
+
+    async def write(
+        self,
+        scope: LogScope,
+        message: str,
+        var: dict[str, Any],
+        ctx: Context,
+        state: BaseState,
+        params: BaseParams,
+        indent: int,
+    ) -> None:
+        self.write_calls += 1
+        raise RuntimeError("intentional sink failure")
 
 
 @pytest.fixture
@@ -515,6 +542,96 @@ class TestBroadcast:
             state=empty_state,
             params=empty_params,
             indent=0,
+        )
+
+
+# ======================================================================
+# ТЕСТЫ: изоляция ошибок в handle (B-2 / best-effort logging)
+# ======================================================================
+
+
+_COORDINATOR_FAILURE_LOGGER = "action_machine.intents.logging.log_coordinator"
+
+
+class TestLoggerHandleFailureIsolation:
+    """Сбой одного BaseLogger не рвёт emit и не блокирует остальные синги."""
+
+    @pytest.mark.anyio
+    async def test_second_logger_receives_message_when_first_raises(
+        self,
+        simple_scope: LogScope,
+        empty_context: Context,
+        empty_state: BaseState,
+        empty_params: BaseParams,
+    ) -> None:
+        failing = FailingLogger()
+        recording = RecordingLogger()
+        coordinator = LogCoordinator(loggers=[failing, recording])
+
+        await coordinator.emit(
+            message="Fan-out",
+            var=_valid_emit_var(),
+            scope=simple_scope,
+            ctx=empty_context,
+            state=empty_state,
+            params=empty_params,
+            indent=0,
+        )
+
+        assert failing.write_calls == 1
+        assert len(recording.records) == 1
+        assert recording.records[0]["message"] == "Fan-out"
+
+    @pytest.mark.anyio
+    async def test_emit_completes_when_all_loggers_fail(
+        self,
+        simple_scope: LogScope,
+        empty_context: Context,
+        empty_state: BaseState,
+        empty_params: BaseParams,
+    ) -> None:
+        a = FailingLogger()
+        b = FailingLogger()
+        coordinator = LogCoordinator(loggers=[a, b])
+
+        await coordinator.emit(
+            message="All bad",
+            var=_valid_emit_var(),
+            scope=simple_scope,
+            ctx=empty_context,
+            state=empty_state,
+            params=empty_params,
+            indent=0,
+        )
+
+        assert a.write_calls == 1
+        assert b.write_calls == 1
+
+    @pytest.mark.anyio
+    async def test_failed_logger_emits_stdlib_error_record(
+        self,
+        caplog: pytest.LogCaptureFixture,
+        simple_scope: LogScope,
+        empty_context: Context,
+        empty_state: BaseState,
+        empty_params: BaseParams,
+    ) -> None:
+        """Нет второго LogCoordinator — сбой сингa уходит в stdlib logging."""
+        coordinator = LogCoordinator(loggers=[FailingLogger()])
+        with caplog.at_level(logging.ERROR, logger=_COORDINATOR_FAILURE_LOGGER):
+            await coordinator.emit(
+                message="Sink down",
+                var=_valid_emit_var(),
+                scope=simple_scope,
+                ctx=empty_context,
+                state=empty_state,
+                params=empty_params,
+                indent=0,
+            )
+
+        assert any(
+            "LogCoordinator" in r.getMessage() and "raised during emit" in r.getMessage()
+            for r in caplog.records
         )
 
 
