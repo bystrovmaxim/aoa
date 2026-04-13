@@ -83,7 +83,7 @@ def _all_base_role_types() -> tuple[type[BaseRole], ...]:
     return tuple(
         c
         for c in BaseIntentInspector._collect_subclasses(BaseRole)
-        if c is not BaseRole
+        if c is not BaseRole and "<locals>" not in c.__qualname__
     )
 
 
@@ -170,6 +170,9 @@ class RoleClassInspector(BaseIntentInspector):
             return None
         if not issubclass(target_cls, BaseRole):
             return None
+        # Function-scoped subclasses (e.g. negative tests) must not pollute the graph.
+        if "<locals>" in target_cls.__qualname__:
+            return None
         role_cls: type[BaseRole] = target_cls
         if not isinstance(getattr(role_cls, "_role_mode_info", None), dict):
             raise InvalidGraphError(
@@ -186,6 +189,8 @@ class RoleClassInspector(BaseIntentInspector):
         if target_cls is BaseRole:
             return None
         if not issubclass(target_cls, BaseRole):
+            return None
+        if "<locals>" in target_cls.__qualname__:
             return None
         role_cls: type[BaseRole] = target_cls
         if not isinstance(getattr(role_cls, "_role_mode_info", None), dict):

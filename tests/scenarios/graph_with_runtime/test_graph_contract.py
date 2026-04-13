@@ -1,4 +1,4 @@
-# tests/graph/test_graph_contract.py
+# tests/scenarios/graph_with_runtime/test_graph_contract.py
 """
 Контрактные тесты графа метаданных и внешнего JSON (MCP).
 

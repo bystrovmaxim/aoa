@@ -1,4 +1,4 @@
-# tests/intents/on_error/test_on_error_plugins.py
+# tests/scenarios/intents_with_runtime/test_on_error_plugins.py
 """
 Tests for error events in the plugin system.
 ═══════════════════════════════════════════════════════════════════════════════

@@ -1,4 +1,4 @@
-# tests/graph/test_new_gate_coordinator_accessors.py
+# tests/scenarios/graph_with_runtime/test_new_gate_coordinator_accessors.py
 """Tests for runtime accessors in new metadata GateCoordinator."""
 
 from __future__ import annotations

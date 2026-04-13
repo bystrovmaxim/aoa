@@ -1,4 +1,4 @@
-# tests/intents/compensate/test_compensate_graph.py
+# tests/scenarios/intents_with_runtime/test_compensate_graph.py
 """
 Интеграция компенсаторов (@compensate) с фасетным графом GateCoordinator.
 

@@ -1,4 +1,4 @@
-# tests/dependencies/test_dependency_factory_core_machine.py
+# tests/scenarios/dependencies/test_dependency_factory_core_machine.py
 """
 Тесты DependencyFactory — stateless-фабрика зависимостей.
 

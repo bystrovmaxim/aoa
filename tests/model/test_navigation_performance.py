@@ -2,11 +2,11 @@
 
 import time
 
+from action_machine.intents.context.context import Context
 from action_machine.intents.logging.log_scope import LogScope
 from action_machine.intents.logging.variable_substitutor import VariableSubstitutor
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_state import BaseState
-from action_machine.testing.stubs import ContextStub
 
 
 class TestNavigationPerformance:
@@ -27,7 +27,7 @@ class TestNavigationPerformance:
         """1 000 вызовов substitute() укладываются в 500мс."""
         sub = VariableSubstitutor()
         scope = LogScope(machine="M", mode="t", action="A", aspect="a", nest_level=0)
-        ctx = ContextStub()
+        ctx = Context()
         st = BaseState(count=42)
         params = BaseParams()
         template = "User: {%context.user.user_id}, Count: {%state.count}"
