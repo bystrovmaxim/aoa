@@ -28,15 +28,14 @@ The coordinator class name `**GateCoordinator`** is unchanged.
 ### Fixed
 
 - **MCP tool kwargs validation.** Pydantic `model_validate` failures are surfaced as `ValidationFieldError` with `details.errors` and map to `INVALID_PARAMS`, not `INTERNAL_ERROR`.
+- **Saga frame when result validation fails.** If a regular aspect `call()` returns but checkers (or declared-field rules) reject the dict, `AspectExecutor` still appends a `SagaFrame` with `state_after=None` when the action has compensators, so rollback invokes that aspect’s compensator (then earlier frames) before surfacing the validation error.
 
 ### Tests
 
 - **`test_mcp_handler`.** Envelope assertions, Pydantic edge cases, `details` propagation, and internal-error privacy expectations.
 - **`_validate_tool_request_kwargs`.** Direct unit tests (including `field_validator` failures) plus `_execute_tool_call` short-circuit before `machine.run` / auth.
-
-### Documentation
-
-- **Saga / `@compensate`.** Clarify in code docstrings: when checker rejects, `state_after` may be `None` while external side effects can still have occurred; compensators only see captured pipeline data. External consistency (idempotency, two-phase flows, reconciliation) remains application responsibility — not inferred by the machine.
+- **`test_scoped_logger_hot_path_bench`.** Wall-clock budgets for bulk ``ScopedLogger`` / ``LogScope`` construction (aspect-path parity).
+- **`test_saga_checker_rejection_compensate_order`.** Two aspects: first commits; second fails checkers — both compensators run (second first, with `state_after=None`).
 
 ## [0.10.0] – 2026-04-12
 

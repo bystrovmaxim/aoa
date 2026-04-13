@@ -63,13 +63,11 @@ With ``@context_requires`` (8 parameters):
 Parameters:
     params       — action input params (frozen BaseParams).
     state_before — state before aspect execution (frozen BaseState).
-    state_after  — state after aspect execution (frozen BaseState or ``None``).
-                   ``None`` means checker rejected output while an **external**
-                   side effect may already have happened. The machine does not
-                   record identifiers produced only outside ``state`` (e.g. a
-                   payment ``txn_id`` never merged into state). Compensators must
-                   cope with ``None`` or the app must design idempotent / two-phase
-                   / reconciliation flows (see package ERRORS / LIMITATIONS).
+    state_after  — merged pipeline state after the aspect (frozen ``BaseState``)
+                   when validation passed, or ``None`` when validation failed
+                   after ``call()`` returned. A frame is still pushed and the
+                   compensator runs on unwind with ``None``; values the aspect
+                   tried to publish never reached merged state.
     box          — ToolsBox (same instance used by aspects).
     connections  — resource-manager dictionary.
     error        — exception that triggered rollback.
@@ -114,12 +112,6 @@ ERRORS / LIMITATIONS
   and intent validators.
 - Runtime rollback swallows compensator failures by design.
 - Compensator graph metadata is built once; runtime rollback uses cached frames.
-- **External consistency:** when ``state_after`` is ``None`` (checker rejected),
-  rollback still runs, but compensators only see what the pipeline captured in
-  ``params``, ``state_before``, connections, and logs — not automatic knowledge
-  of irreversible IO. Distributed sagas still require application-level
-  idempotency keys, two-phase commit patterns where needed, or manual
-  reconciliation; ActionMachine does not infer external transaction ids.
 
 AI-CORE-BEGIN
 ROLE: Public package facade for saga compensation.
@@ -127,7 +119,7 @@ CONTRACT: Export ``compensate`` decorator and ``CompensateIntent`` marker.
 INVARIANTS: Build-time metadata validation and reverse-order rollback semantics.
 FLOW: declaration -> compensator facet snapshot -> runtime rollback execution.
 FAILURES: declaration errors; runtime compensator errors swallowed; ``state_after``
-  ``None`` limits compensator data for external side effects — see LIMITATIONS.
+  ``None`` after failed result validation.
 EXTENSION POINTS: custom compensator methods and context-aware signatures.
 AI-CORE-END
 """

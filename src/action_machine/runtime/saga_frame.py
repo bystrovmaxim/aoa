@@ -6,18 +6,25 @@ Saga compensation stack frame.
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Each successfully executed regular aspect contributes one ``SagaFrame``.
-Frames are collected in a per-run local stack and unwound in reverse order
-during rollback when pipeline execution fails.
+Each regular aspect whose ``call()`` finished contributes one ``SagaFrame``
+once result validation has run: on success the frame holds merged
+``state_after``; on validation failure after ``call()`` the frame has
+``state_after=None``. Frames are unwound in reverse order when the pipeline
+fails.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-    regular aspect succeeds
+    regular aspect call() returned dict
          |
          v
-    create SagaFrame(state_before, state_after, compensator, aspect_name)
+    validate result (checkers / declared fields)
+         |
+         +-- fail -> SagaFrame(..., state_after=None) -> raise
+         |
+         v
+    merge state -> SagaFrame(..., state_after=merged)
          |
          v
     append to local saga stack (for current _run_internal call)
@@ -51,17 +58,15 @@ Happy path:
     ``state_after`` for potential rollback.
 
 Edge case:
-    Aspect succeeds but checker rejects output -> ``state_after`` may be ``None``.
-    Compensators then lack post-aspect state keys (e.g. external ids never
-    written into state). See ``compensate`` package ERRORS / LIMITATIONS for
-    application-level external-consistency patterns.
+    Aspect ``call()`` returned but checker rejects output -> frame has
+    ``state_after=None``; compensator still runs on unwind before earlier frames.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ERRORS / LIMITATIONS
 ═══════════════════════════════════════════════════════════════════════════════
 
 - ``SagaFrame`` is data-only; rollback policy/execution lives in coordinator.
-- Correctness depends on accurate frame creation timing in pipeline executor.
+- Frame creation timing is owned by ``AspectExecutor.execute_regular``.
 - ``state_before/state_after`` are typed as ``object`` to avoid runtime coupling.
 - ``state_after is None`` does not imply “no external side effects”; it means the
   pipeline did not adopt checker-passed state. External systems are not tracked
@@ -73,7 +78,7 @@ AI-CORE-BEGIN
 ROLE: Immutable rollback metadata unit for one regular aspect step.
 CONTRACT: Capture compensator binding and pre/post state snapshots per aspect.
 INVARIANTS: Local per-run stack ownership and reverse-order unwind semantics.
-FLOW: aspect success -> frame append -> failure path -> coordinator unwind.
+FLOW: call -> validate -> frame append -> failure path -> coordinator unwind.
 FAILURES: Missing compensator marks frame as skipped, not failed.
 EXTENSION POINTS: Extend metadata fields cautiously without duplicating globals.
 AI-CORE-END

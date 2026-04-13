@@ -17,7 +17,8 @@ INTERFACES
 ═══════════════════════════════════════════════════════════════════════════════
 
 `PaymentService` (`charge`, `refund`), `NotificationService` (`send`),
-`InventoryService` (`reserve`, `unreserve`).
+`InventoryService` (`reserve`, `unreserve`), `SagaCompensateTraceService`
+(test-only hook for asserting compensator calls).
 
 ═══════════════════════════════════════════════════════════════════════════════
 EXAMPLE
@@ -151,3 +152,17 @@ class InventoryService:
             True if unreserve succeeded.
         """
         raise NotImplementedError("InventoryService.unreserve() is not implemented")
+
+
+class SagaCompensateTraceService:
+    """
+    Test helper: compensators call this so tests assert rollback order and args.
+
+    Not used in production actions; only in saga contract tests.
+    """
+
+    async def record_second_rollback(self, *, state_after_none: bool) -> None:
+        """Record that the second aspect's compensator ran."""
+        raise NotImplementedError(
+            "SagaCompensateTraceService.record_second_rollback() is not implemented",
+        )
