@@ -381,3 +381,22 @@ class TestUserInfoResolve:
 
         # Assert — None из поля, не "fallback"
         assert result is None
+
+
+class TestUserInfoSerialization:
+    """JSON-проекции UserInfo сериализуют роли как строковые role names."""
+
+    def test_model_dump_json_mode_serializes_roles_as_names(self) -> None:
+        user = UserInfo(user_id="u1", roles=(AdminRole, UserRole))
+
+        dumped = user.model_dump(mode="json")
+
+        assert dumped["user_id"] == "u1"
+        assert dumped["roles"] == [AdminRole.name, UserRole.name]
+
+    def test_model_dump_json_string_serializes_roles_as_names(self) -> None:
+        user = UserInfo(user_id="u1", roles=(ManagerRole,))
+
+        dumped_json = user.model_dump_json()
+
+        assert '"roles":["manager"]' in dumped_json

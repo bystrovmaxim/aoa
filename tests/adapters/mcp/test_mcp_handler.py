@@ -41,10 +41,12 @@ from action_machine.integrations.mcp.adapter import (
     _serialize_result,
 )
 from action_machine.integrations.mcp.route_record import McpRouteRecord
+from action_machine.intents.context.user_info import UserInfo
 from action_machine.model.exceptions import AuthorizationError, ValidationFieldError
 from action_machine.runtime.machines.action_product_machine import ActionProductMachine
 from action_machine.runtime.machines.core_action_machine import CoreActionMachine
 from tests.scenarios.domain_model import PingAction, SimpleAction
+from tests.scenarios.domain_model.roles import AdminRole
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Helpers
@@ -73,6 +75,12 @@ class _PlainResult:
 class _AltResponse(BaseModel):
     """Alternative response model for mapper tests."""
     data: str = "mapped"
+
+
+class _UserEnvelope(BaseModel):
+    """Envelope with UserInfo payload for JSON serialization tests."""
+
+    user: UserInfo
 
 
 def _make_record(
@@ -148,6 +156,35 @@ class TestSerializeResult:
 
         assert parsed["key"] == "value"
         assert parsed["num"] == 42
+
+    def test_user_info_roles_are_json_safe_without_mapper(self) -> None:
+        """UserInfo.roles serializes to role names (no class objects in JSON)."""
+        result = _UserEnvelope(
+            user=UserInfo(user_id="u1", roles=(AdminRole,)),
+        )
+        record = _make_record()
+
+        json_str = _serialize_result(result, record, has_response_mapper=False)
+        parsed = json.loads(json_str)
+
+        assert parsed["user"]["user_id"] == "u1"
+        assert parsed["user"]["roles"] == [AdminRole.name]
+
+    def test_user_info_roles_are_json_safe_with_mapper(self) -> None:
+        """Mapped pydantic response with UserInfo also remains JSON-safe."""
+        result = _MockResult(message="ok")
+        record = _make_record(
+            response_model=_UserEnvelope,
+            response_mapper=lambda _r: _UserEnvelope(
+                user=UserInfo(user_id="u2", roles=(AdminRole,)),
+            ),
+        )
+
+        json_str = _serialize_result(result, record, has_response_mapper=True)
+        parsed = json.loads(json_str)
+
+        assert parsed["user"]["user_id"] == "u2"
+        assert parsed["user"]["roles"] == [AdminRole.name]
 
 
 # ═════════════════════════════════════════════════════════════════════════════

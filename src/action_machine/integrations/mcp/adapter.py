@@ -450,11 +450,11 @@ def _serialize_result(
             adapter="MCP",
             route_label=record.tool_name,
         )
-        obj = mapped.model_dump() if hasattr(mapped, "model_dump") else mapped
+        obj = mapped.model_dump(mode="json") if hasattr(mapped, "model_dump") else mapped
     else:
-        obj = result.model_dump() if hasattr(result, "model_dump") else result
+        obj = result.model_dump(mode="json") if hasattr(result, "model_dump") else result
 
-    return json.dumps(obj, ensure_ascii=False, default=str)
+    return json.dumps(obj, ensure_ascii=False)
 
 
 # ═════════════════════════════════════════════════════════════════════════════
