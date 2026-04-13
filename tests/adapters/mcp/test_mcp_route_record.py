@@ -1,23 +1,57 @@
 # tests/adapters/mcp/test_mcp_route_record.py
 """
-Tests for McpRouteRecord — frozen dataclass with MCP-specific fields.
+Tests for ``McpRouteRecord`` — MCP tool metadata on ``BaseRouteRecord``.
 
-McpRouteRecord extends BaseRouteRecord with tool_name and description.
-It validates that tool_name is non-empty after strip(). All BaseRouteRecord
-invariants (action_class validation, type extraction, mapper requirements)
-are inherited and enforced.
+═══════════════════════════════════════════════════════════════════════════════
+PURPOSE
+═══════════════════════════════════════════════════════════════════════════════
 
-Scenarios covered:
-    - Default field values (tool_name="", description="").
-    - Valid tool_name accepted.
-    - Empty tool_name raises ValueError.
-    - Whitespace-only tool_name raises ValueError.
-    - Description stored correctly.
-    - Dot-separated tool names accepted (e.g. "orders.create").
-    - Frozen immutability — fields cannot be modified after creation.
-    - Inherited BaseRouteRecord invariants still enforced.
-    - params_type and result_type extracted correctly.
-    - Mapper invariants enforced for different request/response models.
+Validate ``tool_name`` (non-empty after strip, dotted names allowed),
+``description``, defaults, immutability, inherited type extraction, and mapper
+invariants with local ``_AltRequest`` / ``_AltResponse`` helpers.
+
+═══════════════════════════════════════════════════════════════════════════════
+ARCHITECTURE / DATA FLOW
+═══════════════════════════════════════════════════════════════════════════════
+
+    Scenario action class
+              |
+              v
+    McpRouteRecord(tool_name, description, action_class, ...)
+              |
+              v
+    Construction-time validation only (no MCP wire protocol)
+
+═══════════════════════════════════════════════════════════════════════════════
+INVARIANTS
+═══════════════════════════════════════════════════════════════════════════════
+
+- ``tool_name`` must contain at least one non-space character after stripping.
+- ``BaseRouteRecord`` rules for ``action_class`` and mappers still apply.
+
+═══════════════════════════════════════════════════════════════════════════════
+EXAMPLES
+═══════════════════════════════════════════════════════════════════════════════
+
+    uv run pytest tests/adapters/mcp/test_mcp_route_record.py -q
+
+Edge case: ``orders.create``-style dotted tool names are accepted.
+
+═══════════════════════════════════════════════════════════════════════════════
+ERRORS / LIMITATIONS
+═══════════════════════════════════════════════════════════════════════════════
+
+- Assertion messages mirror ``McpRouteRecord`` validation strings.
+
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE-BEGIN
+═══════════════════════════════════════════════════════════════════════════════
+ROLE: MCP route record field and invariant tests.
+CONTRACT: Tool naming; frozen record; mapper pairing with alt models.
+INVARIANTS: Local Pydantic helpers only for mapper divergence cases.
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE-END
+═══════════════════════════════════════════════════════════════════════════════
 """
 
 import pytest

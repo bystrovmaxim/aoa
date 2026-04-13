@@ -2,6 +2,10 @@
 """
 Abstract base class for all loggers in the AOA logging system.
 
+═══════════════════════════════════════════════════════════════════════════════
+PURPOSE
+═══════════════════════════════════════════════════════════════════════════════
+
 BaseLogger defines a two-phase protocol for message processing:
 1. Filtering — ``match_filters`` decides whether this logger should handle
    the message, using optional ``LogSubscription`` rules added via
@@ -21,6 +25,53 @@ All methods are asynchronous so loggers may perform I/O without blocking
 the event loop.
 
 ``supports_colors`` and ``strip_ansi_codes`` — see subclass docs.
+
+═══════════════════════════════════════════════════════════════════════════════
+INVARIANTS
+═══════════════════════════════════════════════════════════════════════════════
+
+- OR across subscriptions; AND inside one ``LogSubscription`` rule.
+- ``handle`` never calls ``write`` when filters do not match.
+- ``subscribe`` keys are unique per logger instance.
+- ``var`` payload is expected to be coordinator-validated before dispatch.
+
+═══════════════════════════════════════════════════════════════════════════════
+ARCHITECTURE / DATA FLOW
+═══════════════════════════════════════════════════════════════════════════════
+
+    LogCoordinator.emit(...)
+            |
+            v
+      BaseLogger.handle(...)
+            |
+            v
+      match_filters(...)
+       |           |
+       | True      | False
+       v           v
+    write(...)   skip
+
+    Subscriptions:
+      - no rules -> accept all
+      - any matching rule -> accept (OR)
+      - one rule: channels AND levels AND domains
+
+═══════════════════════════════════════════════════════════════════════════════
+EXAMPLES
+═══════════════════════════════════════════════════════════════════════════════
+
+    logger.subscribe("prod-errors", channels=Channel.error, levels=Level.critical)
+    await logger.handle(scope, msg, var, ctx, state, params, indent=0)
+
+    # Edge case: duplicate key -> ValueError in subscribe(...)
+
+═══════════════════════════════════════════════════════════════════════════════
+ERRORS / LIMITATIONS
+═══════════════════════════════════════════════════════════════════════════════
+
+- ``subscribe`` raises ``ValueError`` for duplicate keys.
+- ``unsubscribe`` raises ``KeyError`` for missing keys.
+- ``write`` failures are intentionally propagated to caller.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN
@@ -57,9 +108,13 @@ _ANSI_ESCAPE = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
 
 class BaseLogger(ABC):
     """
-    Abstract base logger: optional subscriptions, then ``write``.
+    Abstract logger contract with subscription filtering and async output hook.
 
-    Subclasses implement ``write`` only; ``handle`` runs matching and dispatch.
+    AI-CORE-BEGIN
+    ROLE: Logging sink base class used by coordinator fan-out.
+    CONTRACT: Provide ``write``; reuse built-in subscribe/match/handle pipeline.
+    INVARIANTS: Filtering semantics are stable and deterministic per call.
+    AI-CORE-END
     """
 
     def __init__(self) -> None:

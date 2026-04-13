@@ -15,21 +15,19 @@ and ``GateCoordinator`` validate completeness during ``build()``.
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-::
-
-    class BaseAction(ABC, RoleIntent, ...):
-        pass
-
-    @check_roles(AdminRole)
-    class AdminAction(BaseAction):
-        ...
-
-    # @check_roles checks:
-    #   issubclass(AdminAction, RoleIntent) → True
-    #   writes cls._role_info = {"spec": AdminRole}
-
-    # RoleIntentInspector reads _role_info → Snapshot → graph node "role"
-    # ActionProductMachine reads spec via GateCoordinator.get_snapshot(cls, "role")
+    BaseAction (..., RoleIntent, ...)
+             |
+             v
+    @check_roles(...)
+             |
+             v
+    cls._role_info = {"spec": ...}
+             |
+             v
+    RoleIntentInspector facet snapshot
+             |
+             v
+    RoleChecker runtime authorization
 
 ═══════════════════════════════════════════════════════════════════════════════
 INVARIANTS
@@ -39,6 +37,13 @@ INVARIANTS
 - Classes that declare ``@check_roles`` must inherit ``RoleIntent``.
 - The decorator writes ``_role_info`` on the target class; the inspector reads
   it for graph construction.
+
+═══════════════════════════════════════════════════════════════════════════════
+COMPONENTS
+═══════════════════════════════════════════════════════════════════════════════
+
+- ``RoleIntent``: marker mixin for role-grammar participation.
+- ``_role_info``: class-level storage populated by ``@check_roles``.
 
 ═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES
@@ -84,11 +89,13 @@ from typing import Any, ClassVar
 
 class RoleIntent:
     """
-    Intent marker: the class participates in the **role** grammar (``@check_roles`` only).
+    Marker mixin declaring participation in ``@check_roles`` role grammar.
 
-    Without this mixin, ``@check_roles`` raises ``TypeError``. The decorator
-    stores the role specification in ``_role_info``. This is unrelated to
-    ``CheckerIntent`` / result or field checkers on aspect methods.
+    AI-CORE-BEGIN
+    ROLE: Role declaration marker for action classes.
+    CONTRACT: Required base for classes decorated with ``@check_roles``.
+    INVARIANTS: No behavior; only class-level ``_role_info`` contract.
+    AI-CORE-END
     """
 
     _role_info: ClassVar[dict[str, Any]]

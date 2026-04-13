@@ -1,50 +1,57 @@
 # src/action_machine/intents/context/request_info.py
 """
-RequestInfo — метаданные входящего запроса.
+RequestInfo — inbound request metadata container.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-RequestInfo — компонент contextа выполнения (Context), содержащий
-информацию о входящем запросе: трассировку, путь, method, IP клиента,
-протокол и другие метаданные, специфичные для протокола вызова
-(HTTP, MCP и т.д.).
+``RequestInfo`` is a ``Context`` component containing inbound request metadata:
+trace identifiers, path, method, client IP, protocol, and transport-specific
+details (HTTP, MCP, etc.).
 
-Заполняется на входе в систему (в ContextAssembler) и передаётся
-в contextе для логирования, трассировки, анализа производительности
-и аудита.
+It is populated at ingress (typically by ``ContextAssembler``) and propagated
+through runtime for logging, tracing, performance analysis, and audit use cases.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ИЕРАРХИЯ
+ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-    BaseSchema(BaseModel)
-        └── RequestInfo (frozen=True, extra="forbid")
+    transport request
+          |
+          v
+    ContextAssembler -> RequestInfo(...)
+          |
+          v
+    Context(request=RequestInfo)
+          |
+          +--> logging / tracing
+          +--> ContextView for @context_requires access
+
+    Schema hierarchy:
+        BaseSchema(BaseModel)
+            └── RequestInfo (frozen=True, extra="forbid")
 
 ═══════════════════════════════════════════════════════════════════════════════
-FROZEN И FORBID
+INVARIANTS
 ═══════════════════════════════════════════════════════════════════════════════
 
-RequestInfo неизменяем после создания. Метаданные запроса фиксируются
-один раз при входе и не меняются в ходе выполнения конвейера.
-
-Произвольные поля запрещены (extra="forbid"). Если конкретному проекту
-нужны дополнительные метаданные запроса (correlation_id, ab_variant,
-feature_flags), создаётся наследник с явно объявленными полями:
+- Immutable after construction.
+- Extra fields are forbidden (``extra="forbid"``).
+- Extension is explicit via inheritance with declared fields:
 
     class ExtendedRequestInfo(RequestInfo):
         correlation_id: str | None = None
         ab_variant: str | None = None
 
 ═══════════════════════════════════════════════════════════════════════════════
-ДОСТУП В АСПЕКТАХ
+ASPECT ACCESS MODEL
 ═══════════════════════════════════════════════════════════════════════════════
 
-Прямой доступ к RequestInfo из аспекта невозможен. Единственный путь —
-через @context_requires и ContextView:
+Direct RequestInfo access from aspects is not provided. Supported path is
+``@context_requires`` + ``ContextView``:
 
-    @regular_aspect("Логирование запроса")
+    @regular_aspect("Request logging")
     @context_requires(Ctx.Request.trace_id, Ctx.Request.client_ip)
     async def log_request_aspect(self, params, state, box, connections, ctx):
         trace = ctx.get(Ctx.Request.trace_id)     # → "abc-123"
@@ -52,7 +59,7 @@ feature_flags), создаётся наследник с явно объявле
         return {}
 
 ═══════════════════════════════════════════════════════════════════════════════
-DICT-ПОДОБНЫЙ ДОСТУП (унаследован от BaseSchema)
+DICT-LIKE ACCESS (inherited from BaseSchema)
 ═══════════════════════════════════════════════════════════════════════════════
 
     req = RequestInfo(trace_id="abc-123", client_ip="192.168.1.1")
@@ -80,7 +87,7 @@ EXAMPLES
     req.resolve("request_method")    # → "POST"
     req.model_dump()                 # → {"trace_id": "abc-123", ...}
 
-    # Расширение через наследование:
+    # Extension via inheritance:
     class TracedRequestInfo(RequestInfo):
         correlation_id: str | None = None
         ab_variant: str | None = None
@@ -90,6 +97,25 @@ EXAMPLES
         correlation_id="corr-456",
         ab_variant="control",
     )
+
+═══════════════════════════════════════════════════════════════════════════════
+ERRORS / LIMITATIONS
+═══════════════════════════════════════════════════════════════════════════════
+
+- This model does not validate protocol semantics (for example, method/path
+  combinations); it stores metadata as provided.
+- Access restrictions for aspects are enforced by ``ContextView``, not here.
+
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE-BEGIN
+═══════════════════════════════════════════════════════════════════════════════
+ROLE: Immutable request-metadata schema inside execution context.
+CONTRACT: Carry transport request metadata with strict schema boundaries.
+INVARIANTS: Frozen object, forbid extra fields, optional typed attributes.
+FLOW: ingress assembly -> context propagation -> logging/tracing/context view reads.
+FAILURES: Validation errors occur only for schema/type violations.
+EXTENSION POINTS: Inherit RequestInfo for project-specific request attributes.
+AI-CORE-END
 """
 
 from datetime import datetime
@@ -101,23 +127,13 @@ from action_machine.model.base_schema import BaseSchema
 
 class RequestInfo(BaseSchema):
     """
-    Метаданные входящего запроса.
+    Immutable schema with request metadata fields.
 
-    Frozen после создания. Произвольные поля запрещены.
-    Расширение — только через наследование с явными полями.
-
-    Наследует dict-подобный доступ и dot-path навигацию от BaseSchema.
-
-    Атрибуты:
-        trace_id: уникальный ID запроса для сквозной трассировки
-                  (например, для OpenTelemetry).
-        request_timestamp: время gotия запроса (в UTC).
-        request_path: путь эндпоинта (для HTTP) или имя инструмента (для MCP).
-        request_method: HTTP-method (GET, POST, ...) или "tool_call" для MCP.
-        full_url: полный URL запроса (только для HTTP).
-        client_ip: IP-адрес клиента (если доступен).
-        protocol: протокол вызова ("http", "https", "mcp").
-        user_agent: заголовок User-Agent (для HTTP).
+    AI-CORE-BEGIN
+    ROLE: Request metadata node in Context.
+    CONTRACT: Expose typed optional fields for transport-level request details.
+    INVARIANTS: Frozen instance with forbid-extra schema policy.
+    AI-CORE-END
     """
 
     model_config = ConfigDict(frozen=True, extra="forbid")

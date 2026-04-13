@@ -1,37 +1,37 @@
 # tests/intents/context/test_request_info.py
 """
-Тесты RequestInfo — метаданные входящего запроса.
+Tests for RequestInfo — incoming request metadata.
 
 ═══════════════════════════════════════════════════════════════════════════════
-НАЗНАЧЕНИЕ
+PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-RequestInfo — frozen pydantic-модель (наследник BaseSchema), хранящая
-метаданные входящего запроса: trace_id для сквозной трассировки, путь
-эндпоинта, HTTP-метод, IP клиента, протокол, User-Agent.
+RequestInfo is a frozen pydantic model (subclass of BaseSchema) holding
+incoming request metadata: trace_id for distributed tracing, endpoint path,
+HTTP method, client IP, protocol, User-Agent.
 
-Произвольные поля запрещены (extra="forbid"). Расширение — только через
-наследование с явно объявленными полями.
+Arbitrary fields are forbidden (extra="forbid"). Extend only via subclasses
+with explicitly declared fields.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ПОКРЫВАЕМЫЕ СЦЕНАРИИ
+COVERED SCENARIOS
 ═══════════════════════════════════════════════════════════════════════════════
 
-Создание:
-    - С полным набором полей — реальный HTTP-запрос.
-    - Без аргументов — все поля None.
-    - С частичными данными — только trace_id и path.
+Construction:
+    - Full field set — real HTTP request.
+    - No arguments — all fields None.
+    - Partial data — trace_id and path only.
 
-BaseSchema — dict-подобный доступ:
+BaseSchema — dict-like access:
     - __getitem__, __contains__, get, keys.
 
 BaseSchema — resolve:
-    - Плоские поля: resolve("trace_id"), resolve("client_ip").
-    - Отсутствующие пути: resolve("missing") → default.
+    - Flat fields: resolve("trace_id"), resolve("client_ip").
+    - Missing paths: resolve("missing") → default.
 
-Расширение через наследование:
-    - Наследник с полями correlation_id, ab_variant, tags.
-    - resolve через наследника.
+Extension via inheritance:
+    - Subclass with correlation_id, ab_variant, tags.
+    - resolve on subclass.
 """
 
 from datetime import UTC, datetime
@@ -41,33 +41,32 @@ from pydantic import ConfigDict
 from action_machine.intents.context.request_info import RequestInfo
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Наследник RequestInfo для тестов расширения
+# RequestInfo subclass for extension tests
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class _ExtendedRequestInfo(RequestInfo):
-    """Наследник RequestInfo с дополнительными полями для тестов."""
+    """RequestInfo subclass with extra fields for tests."""
     model_config = ConfigDict(frozen=True)
     correlation_id: str | None = None
     tags: dict[str, str] = {}
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Создание и инициализация
+# Construction and initialization
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestRequestInfoCreation:
-    """Создание RequestInfo с разными наборами параметров."""
+    """Creating RequestInfo with different argument sets."""
 
     def test_create_full_http_request(self) -> None:
         """
-        RequestInfo с полным набором стандартных полей — реальный HTTP POST.
+        RequestInfo with all standard fields — real HTTP POST.
 
-        Расширение для протокольно-специфичных полей (correlation_id, tags) —
-        через наследника _ExtendedRequestInfo.
+        Protocol-specific fields (correlation_id, tags) via _ExtendedRequestInfo.
         """
-        # Arrange & Act — полный набор стандартных HTTP-данных
+        # Arrange & Act — full standard HTTP data
         now = datetime.now(UTC)
         request = RequestInfo(
             trace_id="trace-abc-123",
@@ -80,7 +79,7 @@ class TestRequestInfoCreation:
             user_agent="Mozilla/5.0",
         )
 
-        # Assert — все стандартные поля установлены
+        # Assert — all standard fields set
         assert request.trace_id == "trace-abc-123"
         assert request.request_timestamp is now
         assert request.request_path == "/api/v1/orders"
@@ -92,9 +91,9 @@ class TestRequestInfoCreation:
 
     def test_create_extended_http_request(self) -> None:
         """
-        _ExtendedRequestInfo с дополнительными полями — correlation_id, tags.
+        _ExtendedRequestInfo with extra fields — correlation_id, tags.
         """
-        # Arrange & Act — наследник с дополнительными полями
+        # Arrange & Act — subclass with extra fields
         request = _ExtendedRequestInfo(
             trace_id="trace-abc-123",
             request_path="/api/v1/orders",
@@ -102,19 +101,19 @@ class TestRequestInfoCreation:
             tags={"ab_test": "variant_b"},
         )
 
-        # Assert — стандартные и дополнительные поля
+        # Assert — standard and extra fields
         assert request.trace_id == "trace-abc-123"
         assert request.correlation_id == "corr-xyz"
         assert request.tags == {"ab_test": "variant_b"}
 
     def test_create_default(self) -> None:
         """
-        RequestInfo без аргументов — все поля None.
+        RequestInfo with no arguments — all fields None.
         """
-        # Arrange & Act — без аргументов
+        # Arrange & Act — no arguments
         request = RequestInfo()
 
-        # Assert — все поля по умолчанию
+        # Assert — default fields
         assert request.trace_id is None
         assert request.request_timestamp is None
         assert request.request_path is None
@@ -126,16 +125,16 @@ class TestRequestInfoCreation:
 
     def test_create_partial(self) -> None:
         """
-        RequestInfo с частичными данными — только trace_id и path.
+        RequestInfo with partial data — trace_id and path only.
         """
-        # Arrange & Act — минимальные данные MCP-запроса
+        # Arrange & Act — minimal MCP-style request data
         request = RequestInfo(
             trace_id="mcp-trace-001",
             request_path="orders.create",
             protocol="mcp",
         )
 
-        # Assert — заданные поля установлены, остальные None
+        # Assert — set fields present, rest None
         assert request.trace_id == "mcp-trace-001"
         assert request.request_path == "orders.create"
         assert request.protocol == "mcp"
@@ -144,15 +143,15 @@ class TestRequestInfoCreation:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# BaseSchema — dict-подобный доступ
+# BaseSchema — dict-like access
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestRequestInfoDictAccess:
-    """Dict-подобный доступ к полям RequestInfo через BaseSchema."""
+    """Dict-like access to RequestInfo fields via BaseSchema."""
 
     def test_getitem(self) -> None:
-        """request["trace_id"] → значение поля."""
+        """request["trace_id"] → field value."""
         # Arrange
         request = RequestInfo(trace_id="trace-001")
 
@@ -161,12 +160,12 @@ class TestRequestInfoDictAccess:
 
     def test_contains(self) -> None:
         """
-        "trace_id" in request → True для объявленных pydantic-полей.
+        "trace_id" in request → True for declared pydantic fields.
         """
         # Arrange
         request = RequestInfo()
 
-        # Act & Assert — объявленные поля присутствуют
+        # Act & Assert — declared fields present
         assert "trace_id" in request
         assert "request_path" in request
         assert "nonexistent" not in request
@@ -182,8 +181,8 @@ class TestRequestInfoDictAccess:
 
     def test_keys_contains_all_fields(self) -> None:
         """
-        keys() возвращает объявленные pydantic-поля.
-        RequestInfo имеет 8 полей: trace_id, request_timestamp,
+        keys() returns declared pydantic fields.
+        RequestInfo has 8 fields: trace_id, request_timestamp,
         request_path, request_method, full_url, client_ip, protocol,
         user_agent.
         """
@@ -193,7 +192,7 @@ class TestRequestInfoDictAccess:
         # Act
         keys = request.keys()
 
-        # Assert — ключевые поля присутствуют
+        # Assert — key fields present
         assert "trace_id" in keys
         assert "request_path" in keys
         assert "client_ip" in keys
@@ -206,10 +205,10 @@ class TestRequestInfoDictAccess:
 
 
 class TestRequestInfoResolve:
-    """Навигация по полям RequestInfo через resolve()."""
+    """Field navigation on RequestInfo via resolve()."""
 
     def test_resolve_flat_field(self) -> None:
-        """resolve("trace_id") — прямой доступ к плоскому полю."""
+        """resolve("trace_id") — direct access to flat field."""
         # Arrange
         request = RequestInfo(trace_id="trace-abc-123")
 
@@ -220,21 +219,21 @@ class TestRequestInfoResolve:
         assert result == "trace-abc-123"
 
     def test_resolve_none_field(self) -> None:
-        """resolve("client_ip") когда client_ip=None → None."""
-        # Arrange — client_ip не задан, по умолчанию None
+        """resolve("client_ip") when client_ip=None → None."""
+        # Arrange — client_ip defaults to None
         request = RequestInfo()
 
         # Act
         result = request.resolve("client_ip")
 
-        # Assert — None из поля
+        # Assert — None from field
         assert result is None
 
     def test_resolve_extended_nested(self) -> None:
         """
-        resolve("correlation_id") на наследнике — навигация к полю наследника.
+        resolve("correlation_id") on subclass — navigate to subclass field.
         """
-        # Arrange — наследник с полем correlation_id
+        # Arrange — subclass with correlation_id
         request = _ExtendedRequestInfo(correlation_id="corr-xyz")
 
         # Act
@@ -245,15 +244,15 @@ class TestRequestInfoResolve:
 
     def test_resolve_extended_tags(self) -> None:
         """
-        resolve("tags") на наследнике → весь словарь тегов.
+        resolve("tags") on subclass → full tags dict.
         """
-        # Arrange — наследник с dict-полем tags
+        # Arrange — subclass with tags dict
         request = _ExtendedRequestInfo(tags={"ab_test": "control", "feature": "new_ui"})
 
         # Act
         result = request.resolve("tags")
 
-        # Assert — словарь целиком
+        # Assert — full dict
         assert result == {"ab_test": "control", "feature": "new_ui"}
 
     def test_resolve_missing_returns_default(self) -> None:
@@ -269,8 +268,8 @@ class TestRequestInfoResolve:
 
     def test_resolve_timestamp(self) -> None:
         """
-        resolve("request_timestamp") → объект datetime.
-        resolve возвращает значение любого типа без преобразования.
+        resolve("request_timestamp") → datetime object.
+        resolve returns the value as-is without conversion.
         """
         # Arrange
         now = datetime.now(UTC)
@@ -279,5 +278,5 @@ class TestRequestInfoResolve:
         # Act
         result = request.resolve("request_timestamp")
 
-        # Assert — тот же объект datetime
+        # Assert — same datetime object
         assert result is now

@@ -1,32 +1,50 @@
 # src/action_machine/intents/checkers/result_instance_checker.py
 """
-Чекер для проверки принадлежности значения указанному классу и функция-декоратор result_instance.
+Instance-type result checker and ``result_instance`` decorator.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Модуль содержит два компонента:
+The module provides two components:
 
-1. **ResultInstanceChecker** — класс checkerа. Checks, что поле результата
-   является экземпляром указанного класса (или одного из классов, если
-   передан кортеж). Создаётся машиной из checker snapshot entry при выполнении аспекта.
+1. **ResultInstanceChecker**: validates that a result field is an instance
+   of one expected class (or one class from an expected tuple). Runtime creates
+   checker instances from checker snapshot entries.
 
-2. **result_instance** — функция-декоратор. Применяется к methodу-аспекту
-   и записывает метаданные checkerа в атрибут ``_checker_meta`` methodа.
-   MetadataBuilder собирает эти метаданные в checker snapshot (GateCoordinator.get_checkers).
+2. **result_instance**: decorator for aspect methods that appends checker
+   metadata to method attribute ``_checker_meta``. Inspector/builder flow
+   collects metadata into checker snapshots consumed by runtime.
 
 ═══════════════════════════════════════════════════════════════════════════════
-USAGE КАК ДЕКОРАТОР
+ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-    @regular_aspect("Получение пользователя")
+    @result_instance(...)
+            |
+            v
+    method._checker_meta append
+            |
+            v
+    CheckerIntentInspector snapshot
+            |
+            v
+    runtime creates ResultInstanceChecker
+            |
+            v
+    checker.check(result_dict)
+
+═══════════════════════════════════════════════════════════════════════════════
+USAGE AS DECORATOR
+═══════════════════════════════════════════════════════════════════════════════
+
+    @regular_aspect("Get user")
     @result_instance("user", User, required=True)
     async def get_user(self, params, state, box, connections):
         return {"user": User(id=1, name="John")}
 
 ═══════════════════════════════════════════════════════════════════════════════
-USAGE МАШИНОЙ
+USAGE BY RUNTIME
 ═══════════════════════════════════════════════════════════════════════════════
 
     checker = ResultInstanceChecker("user", User)
@@ -36,23 +54,31 @@ USAGE МАШИНОЙ
 PARAMETERS
 ═══════════════════════════════════════════════════════════════════════════════
 
-    field_name : str — имя поля в словаре результата аспекта.
-    expected_class : type | tuple[type, ...] — класс (или кортеж классов),
-                     которым должно соответствовать значение.
-    required : bool — required ли поле. По умолчанию True.
+    field_name : str — field name in aspect result dictionary.
+    expected_class : type | tuple[type, ...] — expected class (or class tuple).
+    required : bool — whether field is required. Default ``True``.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ERRORS
+INVARIANTS
 ═══════════════════════════════════════════════════════════════════════════════
 
-    ValidationFieldError — значение не является экземпляром ожидаемого класса.
+- Uses ``isinstance`` semantics (supports inheritance).
+- Supports one expected class or a tuple of accepted classes.
+- Reuses required/non-null policy from ``ResultFieldChecker``.
+
+═══════════════════════════════════════════════════════════════════════════════
+ERRORS / LIMITATIONS
+═══════════════════════════════════════════════════════════════════════════════
+
+- Raises ``ValidationFieldError`` when value is not instance of expected class.
+- Error message includes field name and actual type for diagnostics.
 
 
 AI-CORE-BEGIN
-ROLE: module result_instance_checker
-CONTRACT: Keep runtime behavior unchanged; decorators/inspectors expose metadata consumed by coordinator/machine.
-INVARIANTS: Validate declarations early and provide deterministic metadata shape.
-FLOW: declarations -> inspector snapshot -> coordinator cache -> runtime usage.
+ROLE: Instance-type checker module for aspect result fields.
+CONTRACT: Validate instance membership and expose metadata via ``result_instance``.
+INVARIANTS: Deterministic metadata shape and ``isinstance``-based checks.
+FLOW: decorator metadata -> checker snapshot -> runtime checker execution.
 AI-CORE-END
 """
 
@@ -65,13 +91,7 @@ from action_machine.model.exceptions import ValidationFieldError
 
 class ResultInstanceChecker(ResultFieldChecker):
     """
-    Checks, что значение является экземпляром указанного класса
-    (или одного из классов, если передан кортеж).
-
-    Создаётся машиной из checker snapshot entry при выполнении аспекта.
-
-    Атрибуты:
-        expected_class : type | tuple[type, ...] — ожидаемый класс или кортеж классов.
+    Checker validating instance membership against expected class spec.
     """
 
     def __init__(
@@ -81,27 +101,22 @@ class ResultInstanceChecker(ResultFieldChecker):
         required: bool = True,
     ) -> None:
         """
-        Инициализирует checker.
+        Initialize instance checker.
 
         Args:
-            field_name: имя поля в словаре результата аспекта.
-            expected_class: класс (или кортеж классов), которым должно
-                           соответствовать значение.
-            required: является ли поле обязательным. По умолчанию True.
+            field_name: field name in aspect result dictionary.
+            expected_class: expected class or tuple of classes.
+            required: whether field is required.
         """
         super().__init__(field_name, required)
         self.expected_class = expected_class
 
     def _get_extra_params(self) -> dict[str, Any]:
         """
-        Returns дополнительные параметры checkerа экземпляров.
-
-        Эти параметры сохраняются в snapshot-метаданных checkerа при сборке
-        метаданных и передаются в конструктор при создании экземпляра
-        машиной в ActionProductMachine._apply_checkers().
+        Return constructor params for snapshot serialization.
 
         Returns:
-            dict с ключом expected_class.
+            Dictionary with ``expected_class`` key.
         """
         return {
             "expected_class": self.expected_class,
@@ -109,24 +124,23 @@ class ResultInstanceChecker(ResultFieldChecker):
 
     def _check_type_and_constraints(self, value: Any) -> None:
         """
-        Checks, что value является экземпляром ожидаемого класса
-        (или одного из классов в кортеже).
+        Validate that ``value`` is instance of expected class spec.
 
         Args:
-            value: значение для проверки (гарантированно не None).
+            value: value to validate (guaranteed non-None by base checker).
 
         Raises:
-            ValidationFieldError: если value не является экземпляром ожидаемого класса.
+            ValidationFieldError: if value is not instance of expected class.
         """
         if not isinstance(value, self.expected_class):
             if isinstance(self.expected_class, tuple):
                 names = ", ".join(cls.__name__ for cls in self.expected_class)
                 raise ValidationFieldError(
-                    f"Поле '{self.field_name}' должно быть экземпляром одного из классов: {names}, "
+                    f"Field '{self.field_name}' must be an instance of one of: {names}, "
                     f"got {type(value).__name__}"
                 )
             raise ValidationFieldError(
-                f"Поле '{self.field_name}' должно быть экземпляром класса {self.expected_class.__name__}, "
+                f"Field '{self.field_name}' must be an instance of class {self.expected_class.__name__}, "
                 f"got {type(value).__name__}"
             )
 
@@ -142,30 +156,28 @@ def result_instance(
     required: bool = True,
 ) -> Any:
     """
-    Декоратор methodа-аспекта. Объявляет поле-экземпляр класса в результате аспекта.
+    Decorator for aspect methods declaring class-instance result field.
 
-    Записывает метаданные checkerа в атрибут ``_checker_meta`` methodа.
-    MetadataBuilder собирает эти метаданные в checker snapshot (GateCoordinator.get_checkers).
-    Машина создаёт экземпляр ResultInstanceChecker из checker snapshot entry
-    и вызывает checker.check(result_dict) при выполнении аспекта.
+    Writes checker metadata to method attribute ``_checker_meta``.
+    Inspector/builder flow collects metadata into checker snapshots, then
+    runtime creates ``ResultInstanceChecker`` and calls ``checker.check(result_dict)``.
 
     Args:
-        field_name: имя поля в словаре результата аспекта.
-        expected_class: класс (или кортеж классов), которым должно
-                       соответствовать значение.
-        required: required ли поле. По умолчанию True.
+        field_name: field name in aspect result dictionary.
+        expected_class: expected class or tuple of classes.
+        required: whether field is required.
 
     Returns:
-        Декоратор, записывающий _checker_meta в method.
+        Decorator function that appends checker metadata to method.
 
-    Пример:
-        @regular_aspect("Получение пользователя")
+    Example:
+        @regular_aspect("Get user")
         @result_instance("user", User, required=True)
         async def get_user(self, params, state, box, connections):
             return {"user": User(id=1, name="John")}
 
-        # Несколько допустимых классов:
-        @regular_aspect("Получение данных")
+        # Multiple accepted classes:
+        @regular_aspect("Get data")
         @result_instance("data", (dict, list), required=True)
         async def get_data(self, params, state, box, connections):
             return {"data": {"key": "value"}}

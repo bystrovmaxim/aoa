@@ -1,6 +1,6 @@
 # tests/scenarios/graph_with_runtime/test_graph_skeleton_and_hydrate.py
 """
-Тесты: узлы ``rx.PyDiGraph`` — только скелет; ``meta`` через снимки и ``hydrate_graph_node``.
+Tests: ``rx.PyDiGraph`` nodes are skeleton-only; ``meta`` comes from snapshots and ``hydrate_graph_node``.
 """
 
 from __future__ import annotations
@@ -17,7 +17,7 @@ from tests.scenarios.domain_model.services import PaymentService
 
 
 def test_get_graph_node_payloads_are_skeleton_only() -> None:
-    """В копии графа у каждого узла ровно три ключа, без ``meta``."""
+    """Each node payload in the graph copy has exactly three keys, no ``meta``."""
     coord = CoreActionMachine.create_coordinator()
     g = coord.get_graph()
     for idx in g.node_indices():
@@ -27,7 +27,7 @@ def test_get_graph_node_payloads_are_skeleton_only() -> None:
 
 
 def test_hydrate_graph_node_restores_meta_from_snapshot() -> None:
-    """``hydrate_graph_node`` проецирует тот же ``meta``, что и у ``get_node``."""
+    """``hydrate_graph_node`` projects the same ``meta`` as ``get_node``."""
     coord = CoreActionMachine.create_coordinator()
     nm = BaseIntentInspector._make_node_name(FullAction)
     g = coord.get_graph()
@@ -45,7 +45,7 @@ def test_hydrate_graph_node_restores_meta_from_snapshot() -> None:
 
 
 def test_hydrated_action_node_has_empty_meta() -> None:
-    """Узел ``action`` не имеет единого снимка с телом; ``meta`` после гидрации пустой."""
+    """``action`` node has no single body snapshot; ``meta`` after hydration is empty."""
     coord = CoreActionMachine.create_coordinator()
     g = coord.get_graph()
     action_indices = [
@@ -59,7 +59,7 @@ def test_hydrated_action_node_has_empty_meta() -> None:
 
 
 def test_hydrate_graph_node_requires_build() -> None:
-    """До ``build()`` гидратация запрещена."""
+    """Hydration is forbidden before ``build()``."""
     c = GateCoordinator()
     with pytest.raises(RuntimeError, match="not built"):
         c.hydrate_graph_node({
@@ -70,7 +70,7 @@ def test_hydrate_graph_node_requires_build() -> None:
 
 
 def test_get_nodes_by_type_includes_hydrated_meta() -> None:
-    """``get_nodes_by_type`` возвращает записи с непустым ``meta``, когда есть снимок."""
+    """``get_nodes_by_type`` returns records with non-empty ``meta`` when a snapshot exists."""
     coord = CoreActionMachine.create_coordinator()
     nm = BaseIntentInspector._make_node_name(FullAction)
     meta_nodes = [n for n in coord.get_nodes_by_type("meta") if n["name"] == nm]
@@ -79,7 +79,7 @@ def test_get_nodes_by_type_includes_hydrated_meta() -> None:
 
 
 def test_stub_dependency_node_hydrates_to_empty_meta() -> None:
-    """Узлы-заглушки (``dependency``) без снимка дают пустой ``meta``."""
+    """Stub ``dependency`` nodes (no snapshot) yield empty ``meta``."""
     coord = CoreActionMachine.create_coordinator()
     dep_nodes = [
         n
@@ -99,7 +99,7 @@ def test_stub_dependency_node_hydrates_to_empty_meta() -> None:
 
 
 def test_hydration_mapping_from_build_records_meta_snapshot_key() -> None:
-    """Phase 1 записывает ключ снимка для гидратации (не статический словарь)."""
+    """Phase 1 records snapshot key for hydration (not a static dict)."""
     coord = CoreActionMachine.create_coordinator()
     nm = BaseIntentInspector._make_node_name(FullAction)
     gk_meta = f"meta:{nm}"
@@ -108,7 +108,7 @@ def test_hydration_mapping_from_build_records_meta_snapshot_key() -> None:
 
 
 def test_merged_action_node_marks_hydration_ambiguous() -> None:
-    """Слитый structural ``action`` с @depends и @connection даёт конфликт ключей снимка."""
+    """Merged structural ``action`` with @depends and @connection yields ambiguous snapshot keys."""
     coord = CoreActionMachine.create_coordinator()
     nm = BaseIntentInspector._make_node_name(FullAction)
     gk_action = f"action:{nm}"
@@ -117,7 +117,7 @@ def test_merged_action_node_marks_hydration_ambiguous() -> None:
 
 
 def test_stub_connection_node_hydrates_to_empty_meta() -> None:
-    """Заглушка ``connection`` (менеджер из @connection) без снимка — пустой ``meta``."""
+    """Stub ``connection`` (manager from @connection) without snapshot — empty ``meta``."""
     coord = CoreActionMachine.create_coordinator()
     conn_nodes = [
         n
@@ -137,7 +137,7 @@ def test_stub_connection_node_hydrates_to_empty_meta() -> None:
 
 
 def test_stub_domain_node_hydrates_to_empty_meta() -> None:
-    """Узел ``domain`` (класс домена) без facet-снимка — пустой ``meta``."""
+    """``domain`` node (domain class) without facet snapshot — empty ``meta``."""
     coord = CoreActionMachine.create_coordinator()
     dom_nodes = [
         n
@@ -158,9 +158,9 @@ def test_stub_domain_node_hydrates_to_empty_meta() -> None:
 
 def test_action_depends_only_has_single_hydration_key_not_ambiguous() -> None:
     """
-    Только @depends (без @connection): один ключ снимка ``depends``, не ambiguous.
+    @depends only (no @connection): single snapshot key ``depends``, not ambiguous.
 
-    Тело ``meta`` на structural ``action`` по-прежнему пустое (payload без node_meta).
+    ``meta`` body on structural ``action`` stays empty (payload without node_meta).
     """
     coord = CoreActionMachine.create_coordinator()
     nm = BaseIntentInspector._make_node_name(CompensatedOrderAction)

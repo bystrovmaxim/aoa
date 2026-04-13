@@ -1,74 +1,78 @@
 # src/action_machine/intents/compensate/__init__.py
 """
-Пакет: compensate — механизм компенсации (Saga) для ActionMachine.
+Compensate package — Saga rollback mechanism for ActionMachine.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Пакет предоставляет декоратор @compensate для объявления methodов-compensatorов
-в Action-классах. Компенсатор — это method, который откатывает побочные эффекты
-одного regular-аспекта при возникновении ошибки в конвейере (паттерн Saga).
+Expose ``@compensate`` for declaring compensator methods in action classes.
+Compensators roll back side effects of regular aspects when pipeline execution
+fails, implementing Saga-style rollback semantics.
 
-В распределённых системах и длительных бизнес-процессах невозможно использовать
-двухфазный коммит. Вместо этого каждая операция имеет компенсирующую операцию,
-которая отменяет её эффекты. При сбое на любом шаге выполняются компенсации
-уже выполненных операций в обратном порядке.
-
-═══════════════════════════════════════════════════════════════════════════════
-ARCHITECTURE
-═══════════════════════════════════════════════════════════════════════════════
-
-- Декоратор ``@compensate`` пишет ``_compensate_meta`` на method.
-- ``CompensateIntentInspector`` при ``GateCoordinator.build()`` формирует
-  facet ``compensator``; снимок читают как ``get_snapshot(cls, \"compensator\")``.
-- ``ActionProductMachine._rollback_saga()`` unwinds the ``SagaFrame`` stack and
-  invokes compensator callables; frames are populated from coordinator **compensator**
-  facet snapshots at run setup — rollback does not re-query the graph.
-
-``CompensateIntentInspector._collect_compensators`` reads declaring-class members
-and builds the typed compensator facet; ``compensate_intent`` validates
-invariants at graph build time. The machine drives rollback using metadata
-cached from those snapshots when the run started.
+In distributed/long-running workflows where two-phase commit is impractical,
+each operation provides a compensating operation. On failure, previously
+executed operations are compensated in reverse order.
 
 ═══════════════════════════════════════════════════════════════════════════════
-КЛЮЧЕВЫЕ ПРАВИЛА
+ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-1. Компенсаторы определяются только для regular-аспектов (не для summary).
-2. Для одного аспекта — не более одного compensatorа.
-3. Компенсаторы НЕ наследуются — собираются только из vars(cls).
-4. Ошибки compensatorов молчаливые — не прерывают размотку стека.
-5. При rollup=True compensatorы не вызываются.
-6. Имя methodа-compensatorа заканчивается на "_compensate".
-7. Компенсатор — async def.
-8. Возвращаемое значение compensatorа игнорируется.
+    @compensate(...) on action method
+                |
+                v
+    method._compensate_meta declaration
+                |
+                v
+    CompensateIntentInspector at build()
+                |
+                v
+    compensator facet snapshot
+                |
+                v
+    runtime SagaFrame stack
+                |
+                v
+    ActionProductMachine._rollback_saga() invokes compensators in reverse order
 
 ═══════════════════════════════════════════════════════════════════════════════
-СИГНАТУРА КОМПЕНСАТОРА
+INVARIANTS
 ═══════════════════════════════════════════════════════════════════════════════
 
-Без @context_requires (7 parameters):
+- Compensators are declared only for regular aspects (not summary aspects).
+- At most one compensator may target one aspect.
+- Compensators are not inherited; collection uses ``vars(cls)``.
+- Compensator errors are swallowed and must not interrupt rollback unwinding.
+- When ``rollup=True``, compensators are not executed.
+- Compensator method names end with ``"_compensate"``.
+- Compensators must be ``async def``.
+- Compensator return values are ignored.
+
+═══════════════════════════════════════════════════════════════════════════════
+COMPENSATOR SIGNATURE
+═══════════════════════════════════════════════════════════════════════════════
+
+Without ``@context_requires`` (7 parameters):
     async def name_compensate(self, params, state_before, state_after,
                               box, connections, error)
 
-С @context_requires (8 parameters):
+With ``@context_requires`` (8 parameters):
     async def name_compensate(self, params, state_before, state_after,
                               box, connections, error, ctx)
 
-Параметры:
-    params       — входные параметры действия (frozen BaseParams).
-    state_before — состояние ДО выполнения аспекта (frozen BaseState).
-    state_after  — состояние ПОСЛЕ аспекта (frozen BaseState или None).
-                   None означает: checker отклонил результат, но побочный
-                   эффект мог произойти.
-    box          — ToolsBox (тот же экземпляр, что у аспектов).
-    connections  — словарь ресурсных менеджеров.
-    error        — исключение, вызвавшее размотку стека.
-    ctx          — ContextView (только при @context_requires).
+Parameters:
+    params       — action input params (frozen BaseParams).
+    state_before — state before aspect execution (frozen BaseState).
+    state_after  — state after aspect execution (frozen BaseState or ``None``).
+                   ``None`` means checker rejected output while side effect may
+                   already have happened.
+    box          — ToolsBox (same instance used by aspects).
+    connections  — resource-manager dictionary.
+    error        — exception that triggered rollback.
+    ctx          — ContextView (only with ``@context_requires``).
 
 ═══════════════════════════════════════════════════════════════════════════════
-ПРИМЕР ИСПОЛЬЗОВАНИЯ
+EXAMPLE
 ═══════════════════════════════════════════════════════════════════════════════
 
     from action_machine.intents.compensate import compensate
@@ -82,28 +86,38 @@ cached from those snapshots when the run started.
             txn_id = await payment.charge(params.user_id, state.amount)
             return {"txn_id": txn_id}
 
-        @compensate("process_payment_aspect", "Rollback платежа")
+        @compensate("process_payment_aspect", "Rollback payment")
         async def rollback_payment_compensate(self, params, state_before,
                                                state_after, box, connections, error):
             if state_after is None:
-                return  # checker отклонил — txn_id неизвестен
+                return  # checker rejected output; txn_id is unknown
             try:
                 payment = box.resolve(PaymentService)
                 await payment.refund(state_after.txn_id)
             except Exception as e:
                 await box.critical(
                     Channel.error,
-                    "Не удалось откатить платёж {%var.txn}: {%var.err}",
+                    "Failed to roll back payment {%var.txn}: {%var.err}",
                     txn=state_after.txn_id,
                     err=str(e),
                 )
 
+═══════════════════════════════════════════════════════════════════════════════
+ERRORS / LIMITATIONS
+═══════════════════════════════════════════════════════════════════════════════
+
+- Declaration-time violations raise ``TypeError``/``ValueError`` from decorator
+  and intent validators.
+- Runtime rollback swallows compensator failures by design.
+- Compensator graph metadata is built once; runtime rollback uses cached frames.
 
 AI-CORE-BEGIN
-ROLE: module __init__
-CONTRACT: Keep runtime behavior unchanged; decorators/inspectors expose metadata consumed by coordinator/machine.
-INVARIANTS: Validate declarations early and provide deterministic metadata shape.
-FLOW: declarations -> inspector snapshot -> coordinator cache -> runtime usage.
+ROLE: Public package facade for saga compensation.
+CONTRACT: Export ``compensate`` decorator and ``CompensateIntent`` marker.
+INVARIANTS: Build-time metadata validation and reverse-order rollback semantics.
+FLOW: declaration -> compensator facet snapshot -> runtime rollback execution.
+FAILURES: declaration errors, while runtime compensator errors are swallowed.
+EXTENSION POINTS: custom compensator methods and context-aware signatures.
 AI-CORE-END
 """
 

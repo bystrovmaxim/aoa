@@ -14,10 +14,10 @@ pytestmark = pytest.mark.benchmark
 
 
 class TestNavigationPerformance:
-    """Бенчмарки навигации — доказательство что кеш не нужен."""
+    """Navigation benchmarks — evidence that caching is unnecessary."""
 
     def test_resolve_10k_calls_under_100ms(self) -> None:
-        """10 000 вызовов resolve() укладываются в 100мс."""
+        """10,000 resolve() calls complete within 100 ms."""
         st = BaseState(nested={"deep": {"value": 42}})
 
         start = time.perf_counter()
@@ -25,10 +25,10 @@ class TestNavigationPerformance:
             st.resolve("nested.deep.value")
         elapsed = time.perf_counter() - start
 
-        assert elapsed < 0.1, f"10k resolve() заняли {elapsed:.3f}с (лимит 0.1с)"
+        assert elapsed < 0.1, f"10k resolve() took {elapsed:.3f}s (limit 0.1s)"
 
     def test_substitute_1k_calls_under_500ms(self) -> None:
-        """1 000 вызовов substitute() укладываются в 500мс."""
+        """1,000 substitute() calls complete within 500 ms."""
         sub = VariableSubstitutor()
         scope = LogScope(machine="M", mode="t", action="A", aspect="a", nest_level=0)
         ctx = Context()
@@ -41,10 +41,10 @@ class TestNavigationPerformance:
             sub.substitute(template, {}, scope, ctx, st, params)
         elapsed = time.perf_counter() - start
 
-        assert elapsed < 0.5, f"1k substitute() заняли {elapsed:.3f}с (лимит 0.5с)"
+        assert elapsed < 0.5, f"1k substitute() took {elapsed:.3f}s (limit 0.5s)"
 
     def test_resolve_falsy_values_same_speed_as_regular(self) -> None:
-        """Falsy-значения (0, False, None) не замедляют навигацию."""
+        """Falsy values (0, False, None) do not slow navigation."""
         st_regular = BaseState(value="hello")
         st_falsy = BaseState(value=0)
 
@@ -58,5 +58,5 @@ class TestNavigationPerformance:
             st_falsy.resolve("value")
         time_falsy = time.perf_counter() - start
 
-        # Falsy не должно быть медленнее более чем в 2 раза
+        # Falsy path should not be more than 2x slower
         assert time_falsy < time_regular * 2

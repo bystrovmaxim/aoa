@@ -1,18 +1,16 @@
 # tests/smoke/test_simple.py
 """
-Smoke-тест SimpleAction — действие с одним regular-аспектом и чекером.
+Smoke test for SimpleAction — one regular aspect and a checker.
 
 ═══════════════════════════════════════════════════════════════════════════════
-НАЗНАЧЕНИЕ
+PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Проверяет конвейер из двух аспектов: regular-аспект записывает
-validated_name в state, чекер result_string проверяет его,
-summary-аспект формирует приветствие из state.
+Exercises a two-aspect pipeline: the regular aspect writes validated_name to state,
+result_string checker validates it, the summary aspect builds a greeting from state.
 
-SimpleAction не имеет зависимостей и connections, доступен всем
-(NoneRole). Если этот тест красный — проблема в конвейере
-regular → state → summary или в чекерах.
+SimpleAction has no dependencies or connections; it is open to all (NoneRole).
+If this test fails, the regular → state → summary pipeline or checkers are broken.
 """
 
 import pytest
@@ -24,11 +22,11 @@ from tests.scenarios.domain_model import SimpleAction
 @pytest.mark.asyncio
 async def test_simple_action_greeting(bench: TestBench) -> None:
     """
-    SimpleAction формирует приветствие 'Hello, Alice!' из имени 'Alice'.
+    SimpleAction builds greeting 'Hello, Alice!' from name 'Alice'.
 
-    Проверяет полный конвейер:
+    Full pipeline:
     1. validate_name (regular) → state["validated_name"] = "Alice"
-    2. Чекер result_string проверяет validated_name (непустая строка).
+    2. result_string checker validates validated_name (non-empty string).
     3. build_greeting (summary) → Result(greeting="Hello, Alice!")
     """
     # Arrange
@@ -45,10 +43,9 @@ async def test_simple_action_greeting(bench: TestBench) -> None:
 @pytest.mark.asyncio
 async def test_simple_action_strips_whitespace(bench: TestBench) -> None:
     """
-    SimpleAction убирает пробелы по краям имени.
+    SimpleAction strips leading/trailing whitespace from the name.
 
-    Аспект validate_name вызывает params.name.strip(), поэтому
-    имя с пробелами '  Bob  ' превращается в 'Bob'.
+    validate_name calls params.name.strip(), so '  Bob  ' becomes 'Bob'.
     """
     # Arrange
     action = SimpleAction()
@@ -64,9 +61,9 @@ async def test_simple_action_strips_whitespace(bench: TestBench) -> None:
 @pytest.mark.asyncio
 async def test_simple_action_result_type(bench: TestBench) -> None:
     """
-    SimpleAction возвращает экземпляр SimpleAction.Result.
+    SimpleAction returns an instance of SimpleAction.Result.
 
-    Проверяет, что результат — конкретный тип Result, а не BaseResult.
+    Ensures the result is the concrete Result type, not BaseResult.
     """
     # Arrange
     action = SimpleAction()

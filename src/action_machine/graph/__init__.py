@@ -6,17 +6,52 @@ ActionMachine **graph** subpackage (facet snapshots, coordinator, inspectors).
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-1. **Facet snapshots** — typed immutable snapshots per inspector.
-   Roles, @meta, aspects/checkers, subscriptions, sensitive fields,
-   error handlers and compensators live on facet snapshots
-   (``get_role`` / ``get_meta``).
+Provide the shared graph-modeling surface for ActionMachine metadata:
+typed facet snapshots and transactional graph assembly via ``GateCoordinator``.
 
-2. **GateCoordinator** — registry of ``BaseIntentInspector`` classes plus a
-   transactional **facet graph** (``rx.PyDiGraph``): ``FacetPayload`` nodes,
-   edges, key-uniqueness rules, structural acyclicity, and stub materialization
-   for edge targets (including domain classes).
+═══════════════════════════════════════════════════════════════════════════════
+ARCHITECTURE / DATA FLOW
+═══════════════════════════════════════════════════════════════════════════════
 
-Public imports: ``BaseFacetSnapshot``, ``GateCoordinator``.
+::
+
+    decorators write class/method scratch
+              │
+              ▼
+    inspectors read declarations -> FacetPayload + optional Snapshot
+              │
+              ▼
+    GateCoordinator.build()
+      (collect -> validate -> commit)
+              │
+              ▼
+    graph topology + typed snapshot cache
+
+═══════════════════════════════════════════════════════════════════════════════
+INVARIANTS
+═══════════════════════════════════════════════════════════════════════════════
+
+- ``GateCoordinator`` is the single graph assembly and validation entry point.
+- Snapshot storage keys are inspector-defined but coordinator-managed.
+- Read APIs require an explicitly built coordinator instance.
+
+═══════════════════════════════════════════════════════════════════════════════
+ERRORS / LIMITATIONS
+═══════════════════════════════════════════════════════════════════════════════
+
+- This package root exports contracts; concrete behavior lives in submodules.
+- Graph integrity failures surface during coordinator build phases.
+
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE-BEGIN
+═══════════════════════════════════════════════════════════════════════════════
+ROLE: Public namespace for graph core contracts.
+CONTRACT: Export ``BaseFacetSnapshot`` and ``GateCoordinator`` as graph-layer API.
+INVARIANTS: Inspectors populate payloads/snapshots; coordinator owns transactional build semantics.
+FLOW: declaration scratch -> inspector extraction -> coordinator validation/commit -> graph read APIs.
+FAILURES: Build/read lifecycle errors and graph validation exceptions are raised by coordinator internals.
+EXTENSION POINTS: Add inspector modules and snapshot types without changing package root API.
+AI-CORE-END
 """
 
 from __future__ import annotations

@@ -3,6 +3,58 @@
 DescribedFieldsIntentInspector — graph inspector for ``DescribedFieldsIntent``.
 
 The marker mixin lives in :mod:`action_machine.intents.described_fields.marker`.
+
+═══════════════════════════════════════════════════════════════════════════════
+PURPOSE
+═══════════════════════════════════════════════════════════════════════════════
+
+Extract Pydantic field documentation metadata (description, examples,
+constraints, required/default) and publish it as a dedicated
+``described_fields`` facet node.
+
+═══════════════════════════════════════════════════════════════════════════════
+ARCHITECTURE / DATA FLOW
+═══════════════════════════════════════════════════════════════════════════════
+
+::
+
+    DescribedFieldsIntent subclass
+            │
+            ▼
+    _collect_pydantic_fields(model_cls)
+            │
+            ▼
+    Snapshot(fields=...)
+            │
+            ▼
+    FacetPayload(node_type="described_fields", node_meta=schema_fields)
+
+═══════════════════════════════════════════════════════════════════════════════
+INVARIANTS
+═══════════════════════════════════════════════════════════════════════════════
+
+- Emits payloads only for classes that are valid Pydantic models with fields.
+- Snapshot storage key is fixed: ``described_fields``.
+- No graph edges are produced by this inspector.
+- Field constraints are aggregated from direct ``FieldInfo`` attrs and metadata entries.
+
+═══════════════════════════════════════════════════════════════════════════════
+ERRORS / LIMITATIONS
+═══════════════════════════════════════════════════════════════════════════════
+
+- Non-Pydantic classes or models without fields are skipped.
+- Type string rendering is best-effort and may be simplified for complex annotations.
+
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE-BEGIN
+═══════════════════════════════════════════════════════════════════════════════
+ROLE: Described-fields metadata inspector.
+CONTRACT: Convert model field documentation metadata into ``described_fields`` facet payloads.
+INVARIANTS: Storage key is ``described_fields``; classes without documentable fields are skipped.
+FLOW: class discovery -> pydantic field extraction -> typed snapshot -> payload emission.
+FAILURES: Absence of fields returns ``None`` payload (skip), not an error.
+EXTENSION POINTS: Constraint extraction can be expanded via ``_CONSTRAINT_ATTRS``.
+AI-CORE-END
 """
 
 from __future__ import annotations
@@ -21,7 +73,15 @@ from action_machine.intents.described_fields.marker import DescribedFieldsIntent
 
 
 class DescribedFieldsIntentInspector(BaseIntentInspector):
-    """Inspector: pydantic field docs for each class that carries ``DescribedFieldsIntent``."""
+    """
+    Inspector for Pydantic field documentation metadata.
+
+    AI-CORE-BEGIN
+    ROLE: Concrete described-fields inspector.
+    CONTRACT: Emit ``described_fields`` payloads from Pydantic model field metadata.
+    INVARIANTS: Marker traversal via ``DescribedFieldsIntent`` and stable storage key.
+    AI-CORE-END
+    """
 
     _target_intent: type = DescribedFieldsIntent
 

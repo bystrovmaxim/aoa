@@ -1,48 +1,31 @@
 # src/action_machine/domain/entity_intent.py
 """
-EntityIntent — marker mixin and invariants for the ``@entity`` decorator.
+EntityIntent — marker mixin and invariant validators for ``@entity``.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-``EntityIntent`` is a **marker mixin** that **declares** participation in the
+``EntityIntent`` is a marker mixin that declares participation in the
 ``@entity`` grammar. The decorator checks:
 
     if not issubclass(cls, EntityIntent):
         raise EntityDecoratorError(...)
 
-Without ``EntityIntent`` in the MRO, ``@entity`` raises ``EntityDecoratorError``.
-That prevents accidentally tagging arbitrary classes as domain entities.
+Without ``EntityIntent`` in the MRO, ``@entity`` raises
+``EntityDecoratorError``. This prevents accidentally tagging arbitrary classes
+as entities.
 
 ``BaseEntity`` already inherits ``EntityIntent``, so normal entities need no
 extra mixin. If someone applies ``@entity`` to a “bare” class, they get an
 explicit, early error.
 
-All **argument** and **target** checks for ``@entity`` live in this module
+All argument and target checks for ``@entity`` live in this module
 (``validate_entity_*``). The ``entity`` decorator only calls them and then
 writes ``_entity_info`` (scratch).
 
 ═══════════════════════════════════════════════════════════════════════════════
-INTENT GRAMMAR (AOA)
-═══════════════════════════════════════════════════════════════════════════════
-
-**Intent** mixins are a cross-cutting pattern: each **class-level** decorator
-expects a matching **marker mixin** in the MRO so the type explicitly opts into
-a grammar fragment; ``GateCoordinator.build()`` validates declarations globally.
-
-    ActionMetaIntent       → ``@meta`` on actions
-    ResourceMetaIntent   → ``@meta`` on resource managers
-    RoleIntent             → ``@check_roles``
-    DependencyIntent       → ``@depends``
-    ConnectionIntent       → ``@connection``
-    EntityIntent           → ``@entity``
-
-Mixins carry **no behavior** — they exist so ``issubclass`` expresses **declared
-intent** and decorators can fail fast when the contract is missing.
-
-═══════════════════════════════════════════════════════════════════════════════
-ARCHITECTURE (SCRATCH → INSPECTOR → COORDINATOR)
+ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
     class BaseEntity(..., EntityIntent, DescribedFieldsIntent):
@@ -60,12 +43,15 @@ ARCHITECTURE (SCRATCH → INSPECTOR → COORDINATOR)
     #   reads _entity_info + model_fields → FacetPayload + typed snapshot
 
 ═══════════════════════════════════════════════════════════════════════════════
-CLASS-LEVEL SCRATCH
+INVARIANTS
 ═══════════════════════════════════════════════════════════════════════════════
 
-``@entity`` writes ``_entity_info`` on the class — a dict with ``"description"``
-and ``"domain"``. ``EntityIntentInspector`` and graph tooling read it when the
-coordinator is built.
+- ``@entity`` applies only to classes with ``EntityIntent`` in MRO.
+- ``description`` must be a non-empty string.
+- ``domain`` must be ``None`` or a ``BaseDomain`` subclass.
+- ``@entity`` writes ``_entity_info`` scratch consumed later by inspectors.
+
+Class-level scratch shape:
 
     _entity_info : dict[str, Any]
         {"description": str, "domain": type[BaseDomain] | None}
@@ -74,7 +60,7 @@ The attribute is created by the decorator, not declared on ``EntityIntent``.
 A ``ClassVar`` annotation is provided for type checkers.
 
 ═══════════════════════════════════════════════════════════════════════════════
-USAGE
+EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
     # BaseEntity already includes EntityIntent:
@@ -83,7 +69,25 @@ USAGE
         id: str = Field(description="Customer id")
         name: str = Field(description="Display name")
 
-    # @entity on a class without EntityIntent → EntityDecoratorError
+    # @entity on a class without EntityIntent -> EntityDecoratorError
+
+═══════════════════════════════════════════════════════════════════════════════
+ERRORS / LIMITATIONS
+═══════════════════════════════════════════════════════════════════════════════
+
+- Raises ``EntityDecoratorError`` for invalid decorator arguments or target type.
+- This module validates declaration-level contracts only; graph-level checks run during coordinator build.
+
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE-BEGIN
+═══════════════════════════════════════════════════════════════════════════════
+ROLE: Marker and validator layer for entity declaration grammar.
+CONTRACT: ``EntityIntent`` marks eligible classes; ``validate_entity_*`` enforces decorator invariants.
+INVARIANTS: No runtime behavior, only declaration guards and scratch-shape assumptions.
+FLOW: decorator -> validators -> ``_entity_info`` write -> inspector consumption at build.
+FAILURES: ``EntityDecoratorError`` on invalid arguments, domain type, or missing marker inheritance.
+EXTENSION POINTS: projects can reuse validators in custom entity decorators.
+AI-CORE-END
 """
 
 from __future__ import annotations
@@ -108,6 +112,12 @@ class EntityIntent:
     Class attributes (written by ``@entity``):
         _entity_info : dict[str, Any]
             ``{"description": str, "domain": type[BaseDomain] | None}``.
+
+    AI-CORE-BEGIN
+    ROLE: Marker mixin declaring eligibility for ``@entity``.
+    CONTRACT: Presence in MRO is required by decorator target validation.
+    INVARIANTS: Holds no methods or instance state; only class-level marker semantics.
+    AI-CORE-END
     """
 
     _entity_info: ClassVar[dict[str, Any]]

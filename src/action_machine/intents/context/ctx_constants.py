@@ -1,47 +1,44 @@
 # src/action_machine/intents/context/ctx_constants.py
 """
-Константы путей contextа для декоратора @context_requires.
+Context path constants for ``@context_requires`` decorator.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Модуль содержит вложенную структуру констант Ctx, описывающую все
-стандартные поля contextа выполнения (Context). Каждая константа —
-строка dot-path, которая передаётся в @context_requires и используется
-для доступа через ContextView.get().
+The module provides nested ``Ctx`` constants describing all standard execution
+context fields (``Context``). Every constant is a dot-path string used by
+``@context_requires`` and consumed through ``ContextView.get()``.
 
-Константы строго соответствуют реальным полям классов UserInfo,
-RequestInfo и RuntimeInfo. Никаких выдуманных путей — только то,
-что реально существует в коде.
+Constants are aligned with real fields from ``UserInfo``, ``RequestInfo``,
+and ``RuntimeInfo``.
 
 ═══════════════════════════════════════════════════════════════════════════════
-СТРУКТУРА
+ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-    Ctx.User      → поля UserInfo (user_id, roles)
-    Ctx.Request   → поля RequestInfo (trace_id, request_timestamp, request_path,
+    Ctx.User      -> UserInfo fields (user_id, roles)
+    Ctx.Request   -> RequestInfo fields (trace_id, request_timestamp, request_path,
                     request_method, full_url, client_ip, protocol, user_agent)
-    Ctx.Runtime   → поля RuntimeInfo (hostname, service_name, service_version,
+    Ctx.Runtime   -> RuntimeInfo fields (hostname, service_name, service_version,
                     container_id, pod_name)
 
-Каждая константа — строка вида "компонент.поле", например:
+Every constant is a ``"component.field"`` string, for example:
     Ctx.User.user_id    == "user.user_id"
     Ctx.Request.trace_id == "request.trace_id"
     Ctx.Runtime.hostname == "runtime.hostname"
 
-Путь соответствует навигации через Context.resolve():
+The path matches ``Context.resolve()`` navigation:
     context.resolve("user.user_id")      → context.user.user_id
     context.resolve("request.trace_id")  → context.request.trace_id
 
 ═══════════════════════════════════════════════════════════════════════════════
-РАСШИРЕНИЕ КОМПОНЕНТОВ КОНТЕКСТА
+EXTENDING CONTEXT COMPONENTS
 ═══════════════════════════════════════════════════════════════════════════════
 
-UserInfo, RequestInfo и RuntimeInfo расширяются через наследование
-с явно объявленными полями. Константы Ctx покрывают стандартные поля
-с автодополнением IDE. Для кастомных полей наследников используются
-строковые пути напрямую:
+``UserInfo``, ``RequestInfo``, and ``RuntimeInfo`` can be extended by
+inheritance with explicit fields. ``Ctx`` constants cover standard fields with
+IDE autocomplete. For custom inherited fields, use raw string paths:
 
     class BillingUserInfo(UserInfo):
         billing_plan: str = "free"
@@ -57,111 +54,125 @@ EXAMPLES
 
     from action_machine.intents.context import Ctx, context_requires
 
-    @regular_aspect("Проверка прав")
+    @regular_aspect("Permission check")
     @context_requires(Ctx.User.user_id, Ctx.User.roles)
     async def check_permissions_aspect(self, params, state, box, connections, ctx):
         user_id = ctx.get(Ctx.User.user_id)
         roles = ctx.get(Ctx.User.roles)
         ...
 
-    # Смесь констант и строковых путей для кастомных полей:
-    @regular_aspect("Биллинг")
+    # Mix of constants and string paths for custom fields:
+    @regular_aspect("Billing")
     @context_requires(Ctx.User.user_id, "user.billing_plan")
     async def billing_aspect(self, params, state, box, connections, ctx):
         plan = ctx.get("user.billing_plan")
         ...
+
+═══════════════════════════════════════════════════════════════════════════════
+INVARIANTS
+═══════════════════════════════════════════════════════════════════════════════
+
+- All exported constants are ``str`` dot-path values.
+- Constants should map to standard context schema fields.
+- ``Ctx`` serves declaration ergonomics only; runtime value access is validated
+  by ``ContextView``.
+
+═══════════════════════════════════════════════════════════════════════════════
+ERRORS / LIMITATIONS
+═══════════════════════════════════════════════════════════════════════════════
+
+- Custom inherited context fields are not automatically represented in ``Ctx``.
+- For custom fields, raw string paths must be declared explicitly.
+
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE-BEGIN
+═══════════════════════════════════════════════════════════════════════════════
+ROLE: Typed constant namespace for context field declarations.
+CONTRACT: Provide stable dot-path literals for @context_requires usage.
+INVARIANTS: String-only constants grouped by User/Request/Runtime components.
+FLOW: Ctx constant -> @context_requires -> ContextView.get() -> Context.resolve().
+FAILURES: Unknown/custom fields require explicit string paths.
+EXTENSION POINTS: Add new constants when standard context schema expands.
+AI-CORE-END
 """
 
 
 class _UserFields:
     """
-    Константы путей для полей UserInfo внутри Context.
-
-    Каждый атрибут — строка dot-path вида "user.<имя_поля>",
-    соответствующая реальному полю класса UserInfo.
+    Dot-path constants for ``UserInfo`` fields inside ``Context``.
     """
 
     user_id: str = "user.user_id"
-    """ID пользователя. Тип в UserInfo: str | None."""
+    """User identifier. ``UserInfo`` type: ``str | None``."""
 
     roles: str = "user.roles"
-    """Список ролей пользователя. Тип в UserInfo: list[str]."""
+    """Assigned role classes. ``UserInfo`` type: role tuple."""
 
 
 class _RequestFields:
     """
-    Константы путей для полей RequestInfo внутри Context.
-
-    Каждый атрибут — строка dot-path вида "request.<имя_поля>",
-    соответствующая реальному полю класса RequestInfo.
+    Dot-path constants for ``RequestInfo`` fields inside ``Context``.
     """
 
     trace_id: str = "request.trace_id"
-    """Уникальный ID запроса для трассировки. Тип в RequestInfo: str | None."""
+    """Request trace identifier. ``RequestInfo`` type: ``str | None``."""
 
     request_timestamp: str = "request.request_timestamp"
-    """Время gotия запроса. Тип в RequestInfo: datetime | None."""
+    """Request timestamp. ``RequestInfo`` type: ``datetime | None``."""
 
     request_path: str = "request.request_path"
-    """Путь эндпоинта или имя инструмента. Тип в RequestInfo: str | None."""
+    """Endpoint path or tool name. ``RequestInfo`` type: ``str | None``."""
 
     request_method: str = "request.request_method"
-    """HTTP-method или "tool_call". Тип в RequestInfo: str | None."""
+    """HTTP method or ``"tool_call"``. ``RequestInfo`` type: ``str | None``."""
 
     full_url: str = "request.full_url"
-    """Полный URL запроса. Тип в RequestInfo: str | None."""
+    """Full request URL. ``RequestInfo`` type: ``str | None``."""
 
     client_ip: str = "request.client_ip"
-    """IP-адрес клиента. Тип в RequestInfo: str | None."""
+    """Client IP address. ``RequestInfo`` type: ``str | None``."""
 
     protocol: str = "request.protocol"
-    """Протокол вызова ("http", "https", "mcp"). Тип в RequestInfo: str | None."""
+    """Transport protocol (``"http"``, ``"https"``, ``"mcp"``)."""
 
     user_agent: str = "request.user_agent"
-    """Заголовок User-Agent. Тип в RequestInfo: str | None."""
+    """User-Agent header. ``RequestInfo`` type: ``str | None``."""
 
 
 class _RuntimeFields:
     """
-    Константы путей для полей RuntimeInfo внутри Context.
-
-    Каждый атрибут — строка dot-path вида "runtime.<имя_поля>",
-    соответствующая реальному полю класса RuntimeInfo.
+    Dot-path constants for ``RuntimeInfo`` fields inside ``Context``.
     """
 
     hostname: str = "runtime.hostname"
-    """Имя хоста или контейнера. Тип в RuntimeInfo: str | None."""
+    """Host or container name. ``RuntimeInfo`` type: ``str | None``."""
 
     service_name: str = "runtime.service_name"
-    """Название сервиса. Тип в RuntimeInfo: str | None."""
+    """Service name. ``RuntimeInfo`` type: ``str | None``."""
 
     service_version: str = "runtime.service_version"
-    """Версия сервиса. Тип в RuntimeInfo: str | None."""
+    """Service version. ``RuntimeInfo`` type: ``str | None``."""
 
     container_id: str = "runtime.container_id"
-    """ID Docker-контейнера. Тип в RuntimeInfo: str | None."""
+    """Docker container ID. ``RuntimeInfo`` type: ``str | None``."""
 
     pod_name: str = "runtime.pod_name"
-    """Имя пода Kubernetes. Тип в RuntimeInfo: str | None."""
+    """Kubernetes pod name. ``RuntimeInfo`` type: ``str | None``."""
 
 
 class Ctx:
     """
-    Вложенная структура констант для декларации доступа к полям contextа.
+    Nested constant namespace for declaring context field access.
 
-    Используется в декораторе @context_requires для указания,
-    какие поля contextа нужны аспекту или обработчику ошибок.
+    Three groups correspond to Context components:
+        Ctx.User    -> UserInfo
+        Ctx.Request -> RequestInfo
+        Ctx.Runtime -> RuntimeInfo
 
-    Три группы полей соответствуют трём компонентам Context:
-        Ctx.User    → UserInfo    (пользователь)
-        Ctx.Request → RequestInfo (входящий запрос)
-        Ctx.Runtime → RuntimeInfo (среда выполнения)
+    Each constant is a string dot-path. IDE autocomplete and static typing
+    reduce typo risk in declarations.
 
-    Каждая константа — строка dot-path. IDE автодополняет имена,
-    mypy проверяет типы (все — str), опечатка в имени поля
-    обнаруживается статически.
-
-    Пример:
+    Example:
         @context_requires(Ctx.User.user_id, Ctx.Request.trace_id)
         async def my_aspect(self, params, state, box, connections, ctx):
             user_id = ctx.get(Ctx.User.user_id)
@@ -169,10 +180,10 @@ class Ctx:
     """
 
     User = _UserFields
-    """Поля компонента UserInfo contextа."""
+    """UserInfo field paths."""
 
     Request = _RequestFields
-    """Поля компонента RequestInfo contextа."""
+    """RequestInfo field paths."""
 
     Runtime = _RuntimeFields
-    """Поля компонента RuntimeInfo contextа."""
+    """RuntimeInfo field paths."""

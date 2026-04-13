@@ -103,12 +103,14 @@ instead of private ``_coordinator``.
 EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
-Happy path: ``await machine.run(ctx, action, params, connections)`` completes
-after all regular aspects, summary, and ``GlobalFinishEvent``.
+Happy path:
+    ``await machine.run(ctx, action, params, connections)`` completes after
+    regular aspects, summary, and ``GlobalFinishEvent`` emission.
 
-Edge case: an aspect raises after earlier aspects ran — ``SagaCoordinator``
-unwinds frames in reverse order, then ``ErrorHandlerExecutor`` runs a matching
-``@on_error`` handler or re-raises after ``UnhandledErrorEvent``.
+Edge case:
+    If an aspect raises after earlier aspects ran, ``SagaCoordinator`` unwinds
+    frames in reverse order, then ``ErrorHandlerExecutor`` runs a matching
+    ``@on_error`` handler or re-raises after ``UnhandledErrorEvent``.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ERRORS / LIMITATIONS
@@ -123,9 +125,9 @@ ERRORS / LIMITATIONS
   ``ActionResultDeclarationError`` from the summary stage still trigger saga rollback
   when regular aspects appended frames; they are then re-raised (``@on_error`` is not
   used — these are developer contract violations, not aspect business errors).
-- Constructor extension points are keyword-only after ``*``; omitted arguments keep
-  default component wiring. Behavioral contract is pipeline order and event
-  semantics, not stability of private helpers.
+- Constructor extension points are keyword-only after ``*``; omitted arguments
+  keep default component wiring. Behavioral contract is pipeline order and event
+  semantics, not stability of private helper methods.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN

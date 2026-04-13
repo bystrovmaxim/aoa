@@ -1,35 +1,33 @@
 # tests/intents/auth/__init__.py
 """
-Тесты системы аутентификации и авторизации ActionMachine.
+Tests for ActionMachine authentication and authorization.
 
 ═══════════════════════════════════════════════════════════════════════════════
-НАЗНАЧЕНИЕ
+PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Покрывает все компоненты аутентификации:
+Covers authentication components:
 
-- check_roles — декоратор уровня класса для объявления ролевых ограничений.
-  Записывает спецификацию в cls._role_info. Цель должна наследовать RoleIntent.
-  Допустимые формы spec: NoneRole, AnyRole, один подкласс BaseRole, непустой
-  список подклассов BaseRole (нормализуется в кортеж). Строки и «роли по имени»
-  в @check_roles не передаются — только типы BaseRole и два запечатанных
-  сентинела движка (подклассы SystemRole).
+- check_roles — class-level decorator for role constraints. Writes spec to cls._role_info.
+  Target must inherit RoleIntent. Valid spec forms: NoneRole, AnyRole, a single BaseRole
+  subclass, or a non-empty list of BaseRole subclasses (normalized to a tuple). Strings
+  and “roles by name” are not used in @check_roles — only BaseRole types and two engine
+  sentinels (SystemRole subclasses).
 
-- NoneRole — запечатанный класс-сентинел (не для UserInfo.roles). Передают
-  только в @check_roles(NoneRole). Смысл: действие доступно без проверки ролей;
-  RoleChecker пропускает всех, в том числе анонимных (пустой UserInfo.roles).
-  Без явного @check_roles на классе действия машина не догадывается об этом.
+- NoneRole — sealed sentinel class (not for UserInfo.roles). Used only as @check_roles(NoneRole).
+  Meaning: action is open without role checks; RoleChecker allows everyone, including
+  anonymous (empty UserInfo.roles). Without explicit @check_roles the machine does not
+  assume this.
 
-- AnyRole — запечатанный класс-сентинел: нужна аутентификация в смысле
-  «у пользователя есть хотя бы одна неслужебная роль» (тип BaseRole в
-  UserInfo.roles), конкретная роль не важна.
+- AnyRole — sealed sentinel: user must be authenticated in the sense of having at least
+  one non-system role (a BaseRole type in UserInfo.roles); the specific role does not matter.
 
-- AuthCoordinator — координатор процесса аутентификации. Объединяет
-  три компонента: CredentialExtractor → Authenticator → ContextAssembler.
+- AuthCoordinator — authentication pipeline. Combines CredentialExtractor → Authenticator
+  → ContextAssembler.
 
-- NoAuthCoordinator — провайдер для открытых API. Всегда возвращает
-  анонимный Context с UserInfo(user_id=None, roles=()).
+- NoAuthCoordinator — provider for public APIs. Always returns anonymous Context with
+  UserInfo(user_id=None, roles=()).
 
-Проверка ролей в рантайме покрыта в tests/runtime/test_machine_roles.py. Здесь
-в основном @check_roles, координаторы и смежная логика.
+Runtime role checks are in tests/runtime/test_machine_roles.py. This package focuses on
+@check_roles, coordinators, and related logic.
 """

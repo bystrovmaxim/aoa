@@ -1,39 +1,37 @@
 # tests/intents/compensate/test_saga_events.py
-"""
-Тесты типизированных событий плагинов при размотке стека компенсации.
-═══════════════════════════════════════════════════════════════════════════════
-НАЗНАЧЕНИЕ
-═══════════════════════════════════════════════════════════════════════════════
-Проверяет, что ActionProductMachine эмитирует корректные типизированные
-события при размотке стека компенсации через _rollback_saga():
+"""Tests of typed plugin events when unwinding the compensation stack.
+═══════════════════ ════════════════════ ════════════════════ ════════════════════
+PURPOSE
+═══════════════════ ════════════════════ ════════════════════ ════════════════════
+Verifies that the ActionProductMachine emits the correct typed
+events when unwinding the compensation stack via _rollback_saga():
 
-Уровень ВСЕЙ РАЗМОТКИ (saga-level):
-- SagaRollbackStartedEvent — начало размотки с метаданными стека.
-- SagaRollbackCompletedEvent — конец размотки с итогами (succeeded,
+Level of the WHOLE UNWINDING (saga-level):
+- SagaRollbackStartedEvent - start of unwinding with stack metadata.
+- SagaRollbackCompletedEvent - end of unwinding with results (succeeded,
   failed, skipped, duration_ms).
 
-Уровень ОДНОГО КОМПЕНСАТОРА (compensator-level):
-- BeforeCompensateAspectEvent — перед вызовом каждого компенсатора.
-- AfterCompensateAspectEvent — после успешного компенсатора.
-- CompensateFailedEvent — при сбое компенсатора.
+Level of ONE COMPENSATOR (compensator-level):
+- BeforeCompensateAspectEvent - before calling each compensator.
+- AfterCompensateAspectEvent - after a successful compensator.
+- CompensateFailedEvent - when the compensator fails.
 
-События проверяются через SagaObserverPlugin, который дублирует
-каждое событие в self.collected_events — атрибут экземпляра,
-доступный тестам напрямую. TestBench не экспонирует
-PluginRunContext.get_plugin_state(), поэтому per-request state
-недоступен снаружи.
+Events are checked through SagaObserverPlugin, which duplicates
+each event in self.collected_events is an instance attribute,
+directly accessible to tests. TestBench does not expose
+PluginRunContext.get_plugin_state(), so per-request state
+not accessible from outside.
 
-TestBench.run() прогоняет ДВЕ машины (async и sync). Плагины
-НЕ сбрасываются между прогонами — collected_events содержит события
-от ОБОИХ прогонов. Тесты учитывают удвоение через фильтрацию
-второй половины или проверку >= N.
-═══════════════════════════════════════════════════════════════════════════════
-СТРУКТУРА
-═══════════════════════════════════════════════════════════════════════════════
-TestSagaRollbackEvents        — saga-level события (Started, Completed)
-TestCompensateAspectEvents    — compensator-level события (Before, After)
-TestCompensateFailedEvent     — событие сбоя компенсатора
-"""
+TestBench.run() runs TWO machines (async and sync). Plugins
+NOT reset between runs - collected_events contains events
+from BOTH runs. Tests take into account doubling through filtering
+second half or check >= N.
+═══════════════════ ════════════════════ ════════════════════ ════════════════════
+STRUCTURE
+═══════════════════ ════════════════════ ════════════════════ ════════════════════
+TestSagaRollbackEvents — saga-level events (Started, Completed)
+TestCompensateAspectEvents — compensator-level events (Before, After)
+TestCompensateFailedEvent - compensator failure event"""
 from __future__ import annotations
 
 from unittest.mock import AsyncMock
@@ -51,13 +49,13 @@ from tests.scenarios.domain_model.compensate_plugins import SagaObserverPlugin
 from tests.scenarios.domain_model.services import InventoryService, PaymentService
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Фикстура: TestBench с SagaObserverPlugin
+#Fixture: TestBench with SagaObserverPlugin
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 @pytest.fixture
 def saga_observer() -> SagaObserverPlugin:
-    """Экземпляр SagaObserverPlugin — сбрасывается перед каждым тестом."""
+    """SagaObserverPlugin instance - reset before each test."""
     observer = SagaObserverPlugin()
     observer.reset()
     return observer
@@ -69,11 +67,9 @@ def observed_bench(
     mock_inventory: AsyncMock,
     saga_observer: SagaObserverPlugin,
 ) -> TestBench:
-    """
-    TestBench с SagaObserverPlugin — для проверки эмитированных событий.
-    Содержит моки PaymentService и InventoryService, необходимые для
-    CompensatedOrderAction, CompensateErrorAction, PartialCompensateAction.
-    """
+    """TestBench with SagaObserverPlugin - for checking emitted events.
+    Contains mocks of PaymentService and InventoryService required for
+    CompensatedOrderAction, CompensateErrorAction, PartialCompensateAction."""
     return TestBench(
         mocks={
             PaymentService: mock_payment,
@@ -85,54 +81,48 @@ def observed_bench(
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Вспомогательная функция для получения событий от одного прогона
+#Helper function for receiving events from one run
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 def get_last_run_events(observer: SagaObserverPlugin) -> list[dict]:
-    """
-    Возвращает события от ПОСЛЕДНЕГО прогона машины.
+    """Returns events from the LAST machine run.
 
-    TestBench.run() прогоняет две машины (async и sync). Оба прогона
-    эмитируют события в collected_events. Каждый прогон начинается
-    с SagaRollbackStartedEvent и заканчивается SagaRollbackCompletedEvent.
+    TestBench.run() runs two machines (async and sync). Both runs
+    emit events in collected_events. Every run starts
+    with SagaRollbackStartedEvent and ends with SagaRollbackCompletedEvent.
 
-    Возвращаем события от ВТОРОГО прогона (sync) — это последний набор,
-    который видят моки после _reset_all_mocks().
-    """
+    We return events from the SECOND run (sync) - this is the last set,
+    which mocks see after _reset_all_mocks()."""
     events = observer.collected_events
-    # Найти индекс последнего SagaRollbackStartedEvent
+    #Find the index of the last SagaRollbackStartedEvent
     last_start = -1
     for i, e in enumerate(events):
         if e["event_type"] == "SagaRollbackStartedEvent":
             last_start = i
     if last_start == -1:
-        return events  # fallback — вернуть всё
+        return events  #fallback - return everything
     return events[last_start:]
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# TestSagaRollbackEvents — saga-level события
+#TestSagaRollbackEvents — saga-level events
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestSagaRollbackEvents:
-    """
-    Проверяет SagaRollbackStartedEvent и SagaRollbackCompletedEvent.
+    """Checks SagaRollbackStartedEvent and SagaRollbackCompletedEvent.
 
-    Эти события эмитируются ОДИН РАЗ за размотку: Started — перед
-    обходом стека, Completed — после обхода всех фреймов. Позволяют
-    плагину мониторинга зафиксировать границы размотки и итоги.
-    """
+    These events are emitted ONCE per unwinding: Started - before
+    by traversing the stack, Completed - after traversing all frames. Allow
+    monitoring plugin to record the unwinding boundaries and results."""
 
     @pytest.mark.anyio
     async def test_saga_rollback_started_event_fields(
         self, observed_bench: TestBench, saga_observer: SagaObserverPlugin,
     ) -> None:
-        """
-        SagaRollbackStartedEvent содержит stack_depth, compensator_count,
-        aspect_names и информацию об ошибке.
-        """
+        """SagaRollbackStartedEvent contains stack_depth, compensator_count,
+        aspect_names and error information."""
         # ── Arrange ──
         params = CompensateTestParams(
             user_id="user_started",
@@ -164,10 +154,8 @@ class TestSagaRollbackEvents:
     async def test_saga_rollback_completed_event_fields(
         self, observed_bench: TestBench, saga_observer: SagaObserverPlugin,
     ) -> None:
-        """
-        SagaRollbackCompletedEvent содержит succeeded, failed, skipped,
-        duration_ms и failed_aspects.
-        """
+        """SagaRollbackCompletedEvent contains succeeded, failed, skipped,
+        duration_ms and failed_aspects."""
         # ── Arrange ──
         params = CompensateTestParams(
             user_id="user_completed",
@@ -200,9 +188,7 @@ class TestSagaRollbackEvents:
     async def test_event_order_started_then_compensators_then_completed(
         self, observed_bench: TestBench, saga_observer: SagaObserverPlugin,
     ) -> None:
-        """
-        Порядок событий: Started → (Before → After)* → Completed.
-        """
+        """Order of events: Started → (Before → After)* → Completed."""
         # ── Arrange ──
         params = CompensateTestParams(
             user_id="user_order",
@@ -227,7 +213,7 @@ class TestSagaRollbackEvents:
         assert event_types[-1] == "SagaRollbackCompletedEvent"
 
         middle = event_types[1:-1]
-        assert len(middle) == 4  # 2 компенсатора × (Before + After)
+        assert len(middle) == 4  #2 compensators × (Before + After)
         assert middle[0] == "BeforeCompensateAspectEvent"
         assert middle[1] == "AfterCompensateAspectEvent"
         assert middle[2] == "BeforeCompensateAspectEvent"
@@ -237,10 +223,8 @@ class TestSagaRollbackEvents:
     async def test_completed_event_with_skipped_frames(
         self, observed_bench: TestBench, saga_observer: SagaObserverPlugin,
     ) -> None:
-        """
-        PartialCompensateAction: компенсатор только у первого аспекта.
-        Второй аспект (log_aspect) не имеет компенсатора → skipped=1.
-        """
+        """PartialCompensateAction: compensator only for the first aspect.
+        The second aspect (log_aspect) does not have a compensator → skipped=1."""
         # ── Arrange ──
         params = CompensateTestParams(
             user_id="user_skip",
@@ -268,26 +252,22 @@ class TestSagaRollbackEvents:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# TestCompensateAspectEvents — compensator-level события
+#TestCompensateAspectEvents — compensator-level events
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestCompensateAspectEvents:
-    """
-    Проверяет BeforeCompensateAspectEvent и AfterCompensateAspectEvent.
+    """Checks BeforeCompensateAspectEvent and AfterCompensateAspectEvent.
 
-    Эти события эмитируются для КАЖДОГО фрейма с компенсатором.
-    Before — перед вызовом, After — после успешного завершения.
-    Фреймы без компенсатора пропускаются (ни Before, ни After).
-    """
+    These events are emitted for EVERY frame with a compensator.
+    Before - before the call, After - after successful completion.
+    Frames without a compensator are skipped (neither Before nor After)."""
 
     @pytest.mark.anyio
     async def test_before_compensate_event_contains_compensator_name(
         self, observed_bench: TestBench, saga_observer: SagaObserverPlugin,
     ) -> None:
-        """
-        BeforeCompensateAspectEvent содержит compensator_name и aspect_name.
-        """
+        """BeforeCompensateAspectEvent contains compensator_name and aspect_name."""
         # ── Arrange ──
         params = CompensateTestParams(
             user_id="user_before",
@@ -309,7 +289,7 @@ class TestCompensateAspectEvents:
         before_events = [e for e in events if e["event_type"] == "BeforeCompensateAspectEvent"]
         assert len(before_events) == 2
 
-        # Обратный порядок: сначала reserve, потом charge
+        #Reverse order: first reserve, then charge
         assert before_events[0]["aspect_name"] == "reserve_aspect"
         assert before_events[0]["compensator_name"] == "rollback_reserve_compensate"
         assert before_events[1]["aspect_name"] == "charge_aspect"
@@ -319,9 +299,7 @@ class TestCompensateAspectEvents:
     async def test_after_compensate_event_contains_duration(
         self, observed_bench: TestBench, saga_observer: SagaObserverPlugin,
     ) -> None:
-        """
-        AfterCompensateAspectEvent содержит duration_ms >= 0 и compensator_name.
-        """
+        """AfterCompensateAspectEvent contains duration_ms >= 0 and compensator_name."""
         # ── Arrange ──
         params = CompensateTestParams(
             user_id="user_after",
@@ -350,30 +328,26 @@ class TestCompensateAspectEvents:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# TestCompensateFailedEvent — событие сбоя компенсатора
+#TestCompensateFailedEvent - compensator failure event
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestCompensateFailedEvent:
-    """
-    Проверяет CompensateFailedEvent — событие, эмитируемое при сбое
-    компенсатора.
+    """Checks CompensateFailedEvent - event emitted on failure
+    compensator.
 
-    CompensateErrorAction: rollback_charge_compensate бросает RuntimeError.
-    Машина подавляет ошибку, но эмитирует CompensateFailedEvent с двумя
-    ошибками: original_error (ValueError аспекта) и compensator_error
-    (RuntimeError компенсатора).
-    """
+    CompensateErrorAction: rollback_charge_compensate throws RuntimeError.
+    The machine suppresses the error, but emits a CompensateFailedEvent with two
+    errors: original_error (aspect ValueError) and compensator_error
+    (RuntimeError compensator)."""
 
     @pytest.mark.anyio
     async def test_compensate_failed_event_contains_both_errors(
         self, observed_bench: TestBench, saga_observer: SagaObserverPlugin,
     ) -> None:
-        """
-        CompensateFailedEvent содержит original_error (ошибка аспекта),
-        compensator_error (ошибка компенсатора), compensator_name
-        и failed_for_aspect.
-        """
+        """CompensateFailedEvent contains original_error (aspect error),
+        compensator_error (compensator error), compensator_name
+        and failed_for_aspect."""
         # ── Arrange ──
         params = CompensateTestParams(
             user_id="user_failed",
@@ -406,10 +380,8 @@ class TestCompensateFailedEvent:
     async def test_completed_event_reflects_failure(
         self, observed_bench: TestBench, saga_observer: SagaObserverPlugin,
     ) -> None:
-        """
-        SagaRollbackCompletedEvent после сбоя компенсатора:
-        failed=1, succeeded=1, failed_aspects содержит имя аспекта.
-        """
+        """SagaRollbackCompletedEvent after compensator failure:
+        failed=1, succeeded=1, failed_aspects contains the aspect name."""
         # ── Arrange ──
         params = CompensateTestParams(
             user_id="user_refl",
@@ -433,4 +405,5 @@ class TestCompensateFailedEvent:
         assert completed["succeeded"] == 1
         assert completed["failed"] == 1
         assert completed["skipped"] == 0
+        assert "charge_aspect" in completed["failed_aspects"]
         assert "charge_aspect" in completed["failed_aspects"]

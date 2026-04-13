@@ -1,105 +1,101 @@
 # tests/intents/context/test_ctx_constants.py
 """
-Тесты констант Ctx — проверка соответствия строковых путей
-реальным полям UserInfo, RequestInfo, RuntimeInfo.
+Tests for Ctx constants — string paths match UserInfo, RequestInfo, RuntimeInfo fields.
 
 ═══════════════════════════════════════════════════════════════════════════════
-НАЗНАЧЕНИЕ
+PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Константы Ctx — строки dot-path, соответствующие реальным полям
-компонентов контекста. Используются в декораторе @context_requires
-для декларации доступа к полям контекста из аспектов и обработчиков
-ошибок.
+Ctx constants are dot-path strings matching real fields on context components.
+They are used with @context_requires to declare context field access from
+aspects and error handlers.
 
-Каждая константа строго соответствует реальному полю класса:
+Each constant maps to a real class field:
     Ctx.User.user_id    == "user.user_id"     → UserInfo.user_id
     Ctx.Request.trace_id == "request.trace_id" → RequestInfo.trace_id
     Ctx.Runtime.hostname == "runtime.hostname" → RuntimeInfo.hostname
 
-UserInfo, RequestInfo, RuntimeInfo не имеют полей extra и tags
-(extra="forbid"). Расширение — только через наследование с явно
-объявленными полями. Для кастомных полей наследников используются
-строковые пути напрямую:
+UserInfo, RequestInfo, RuntimeInfo have no extra/tags (extra="forbid").
+Extend only via subclasses with explicit fields. For subclass fields use
+string paths directly:
 
     @context_requires(Ctx.User.user_id, "user.billing_plan")
 
 ═══════════════════════════════════════════════════════════════════════════════
-ПОКРЫВАЕМЫЕ СЦЕНАРИИ
+COVERED SCENARIOS
 ═══════════════════════════════════════════════════════════════════════════════
 
 Ctx.User:
-    - user_id, roles — соответствие реальным полям UserInfo.
-    - Все константы — строки с префиксом "user.".
+    - user_id, roles — match UserInfo fields.
+    - All constants are strings with "user." prefix.
 
 Ctx.Request:
     - trace_id, request_timestamp, request_path, request_method,
-      full_url, client_ip, protocol, user_agent — соответствие
-      реальным полям RequestInfo.
-    - Все константы — строки с префиксом "request.".
+      full_url, client_ip, protocol, user_agent — match RequestInfo.
+    - All constants use "request." prefix.
 
 Ctx.Runtime:
     - hostname, service_name, service_version, container_id, pod_name —
-      соответствие реальным полям RuntimeInfo.
-    - Все константы — строки с префиксом "runtime.".
+      match RuntimeInfo.
+    - All constants use "runtime." prefix.
 
-Структура Ctx:
-    - Три группы: User, Request, Runtime.
-    - Константы совместимы с frozenset и строковыми путями.
+Ctx structure:
+    - Three groups: User, Request, Runtime.
+    - Constants work with frozenset and string paths.
 """
 
 from action_machine.intents.context.ctx_constants import Ctx
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Ctx.User — поля UserInfo
+# Ctx.User — UserInfo fields
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestUserFields:
-    """Константы Ctx.User соответствуют полям UserInfo."""
+    """Ctx.User constants match UserInfo fields."""
 
     def test_user_id_path(self) -> None:
         """Ctx.User.user_id → "user.user_id" (UserInfo.user_id)."""
-        # Arrange — константа Ctx.User.user_id
-        # Act / Assert — значение совпадает с dot-path навигации Context
+        # Arrange — Ctx.User.user_id
+        # Act / Assert — matches Context dot-path navigation
         assert Ctx.User.user_id == "user.user_id"
 
     def test_roles_path(self) -> None:
         """Ctx.User.roles → "user.roles" (UserInfo.roles)."""
-        # Arrange — константа Ctx.User.roles
-        # Act / Assert — значение совпадает с dot-path навигации Context
+        # Arrange — Ctx.User.roles
+        # Act / Assert — matches Context dot-path navigation
         assert Ctx.User.roles == "user.roles"
 
     def test_all_are_strings(self) -> None:
-        """Все константы Ctx.User имеют тип str."""
-        # Arrange — все константы Ctx.User
+        """All Ctx.User constants are str."""
+        # Arrange — all Ctx.User constants
         fields = [Ctx.User.user_id, Ctx.User.roles]
 
-        # Act / Assert — каждая константа имеет тип str
+        # Act / Assert — each is str
         for field in fields:
             assert isinstance(field, str)
 
     def test_all_start_with_user_prefix(self) -> None:
-        """Все константы Ctx.User начинаются с "user."."""
-        # Arrange — все константы Ctx.User
+        """All Ctx.User constants start with "user."."""
+        # Arrange
         fields = [Ctx.User.user_id, Ctx.User.roles]
 
-        # Act / Assert — каждая константа начинается с "user."
+        # Act / Assert
         for field in fields:
             assert field.startswith("user.")
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Ctx.Request — поля RequestInfo
+# Ctx.Request — RequestInfo fields
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestRequestFields:
-    """Константы Ctx.Request соответствуют полям RequestInfo."""
+    """Ctx.Request constants match RequestInfo fields."""
 
     def test_trace_id_path(self) -> None:
         """Ctx.Request.trace_id → "request.trace_id"."""
-        # Arrange / Act / Assert — соответствие реальному полю RequestInfo
+        # Arrange / Act / Assert — matches RequestInfo field
         assert Ctx.Request.trace_id == "request.trace_id"
 
     def test_request_timestamp_path(self) -> None:
@@ -138,8 +134,8 @@ class TestRequestFields:
         assert Ctx.Request.user_agent == "request.user_agent"
 
     def test_all_are_strings(self) -> None:
-        """Все константы Ctx.Request имеют тип str."""
-        # Arrange — все константы Ctx.Request
+        """All Ctx.Request constants are str."""
+        # Arrange
         fields = [
             Ctx.Request.trace_id, Ctx.Request.request_timestamp,
             Ctx.Request.request_path, Ctx.Request.request_method,
@@ -147,13 +143,13 @@ class TestRequestFields:
             Ctx.Request.protocol, Ctx.Request.user_agent,
         ]
 
-        # Act / Assert — каждая константа имеет тип str
+        # Act / Assert
         for field in fields:
             assert isinstance(field, str)
 
     def test_all_start_with_request_prefix(self) -> None:
-        """Все константы Ctx.Request начинаются с "request."."""
-        # Arrange — все константы Ctx.Request
+        """All Ctx.Request constants start with "request."."""
+        # Arrange
         fields = [
             Ctx.Request.trace_id, Ctx.Request.request_timestamp,
             Ctx.Request.request_path, Ctx.Request.request_method,
@@ -161,22 +157,22 @@ class TestRequestFields:
             Ctx.Request.protocol, Ctx.Request.user_agent,
         ]
 
-        # Act / Assert — каждая константа начинается с "request."
+        # Act / Assert
         for field in fields:
             assert field.startswith("request.")
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Ctx.Runtime — поля RuntimeInfo
+# Ctx.Runtime — RuntimeInfo fields
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestRuntimeFields:
-    """Константы Ctx.Runtime соответствуют полям RuntimeInfo."""
+    """Ctx.Runtime constants match RuntimeInfo fields."""
 
     def test_hostname_path(self) -> None:
         """Ctx.Runtime.hostname → "runtime.hostname"."""
-        # Arrange / Act / Assert — соответствие реальному полю RuntimeInfo
+        # Arrange / Act / Assert — matches RuntimeInfo field
         assert Ctx.Runtime.hostname == "runtime.hostname"
 
     def test_service_name_path(self) -> None:
@@ -200,66 +196,66 @@ class TestRuntimeFields:
         assert Ctx.Runtime.pod_name == "runtime.pod_name"
 
     def test_all_are_strings(self) -> None:
-        """Все константы Ctx.Runtime имеют тип str."""
-        # Arrange — все константы Ctx.Runtime
+        """All Ctx.Runtime constants are str."""
+        # Arrange
         fields = [
             Ctx.Runtime.hostname, Ctx.Runtime.service_name,
             Ctx.Runtime.service_version, Ctx.Runtime.container_id,
             Ctx.Runtime.pod_name,
         ]
 
-        # Act / Assert — каждая константа имеет тип str
+        # Act / Assert
         for field in fields:
             assert isinstance(field, str)
 
     def test_all_start_with_runtime_prefix(self) -> None:
-        """Все константы Ctx.Runtime начинаются с "runtime."."""
-        # Arrange — все константы Ctx.Runtime
+        """All Ctx.Runtime constants start with "runtime."."""
+        # Arrange
         fields = [
             Ctx.Runtime.hostname, Ctx.Runtime.service_name,
             Ctx.Runtime.service_version, Ctx.Runtime.container_id,
             Ctx.Runtime.pod_name,
         ]
 
-        # Act / Assert — каждая константа начинается с "runtime."
+        # Act / Assert
         for field in fields:
             assert field.startswith("runtime.")
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Верхнеуровневая структура Ctx
+# Top-level Ctx structure
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestCtxStructure:
-    """Верхнеуровневая структура Ctx содержит три группы полей."""
+    """Top-level Ctx exposes three field groups."""
 
     def test_user_group_exists(self) -> None:
-        """Ctx.User доступен как атрибут."""
-        # Arrange / Act / Assert — Ctx.User доступен как атрибут
+        """Ctx.User is available as an attribute."""
+        # Arrange / Act / Assert
         assert hasattr(Ctx, "User")
 
     def test_request_group_exists(self) -> None:
-        """Ctx.Request доступен как атрибут."""
-        # Arrange / Act / Assert — Ctx.Request доступен как атрибут
+        """Ctx.Request is available as an attribute."""
+        # Arrange / Act / Assert
         assert hasattr(Ctx, "Request")
 
     def test_runtime_group_exists(self) -> None:
-        """Ctx.Runtime доступен как атрибут."""
-        # Arrange / Act / Assert — Ctx.Runtime доступен как атрибут
+        """Ctx.Runtime is available as an attribute."""
+        # Arrange / Act / Assert
         assert hasattr(Ctx, "Runtime")
 
     def test_constants_usable_as_plain_strings(self) -> None:
         """
-        Константы Ctx совместимы со строковыми путями в frozenset.
+        Ctx constants work alongside plain string paths in frozensets.
 
-        Можно смешивать константы и строки для кастомных полей
-        наследников: @context_requires(Ctx.User.user_id, "user.billing_plan").
+        Mix constants and strings for subclass fields:
+        @context_requires(Ctx.User.user_id, "user.billing_plan").
         """
-        # Arrange — константа Ctx смешивается со строковым путём
+        # Arrange — Ctx constant mixed with string path
         keys = [Ctx.User.user_id, "user.billing_plan"]
 
-        # Act / Assert — оба элемента — строки, пригодные для frozenset
+        # Act / Assert — both are str, suitable for frozenset
         result = frozenset(keys)
         assert len(result) == 2
         assert "user.user_id" in result

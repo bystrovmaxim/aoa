@@ -1,32 +1,34 @@
 # src/action_machine/integrations/mcp/adapter.py
 """
-McpAdapter — MCP-адаптер для ActionMachine.
+McpAdapter — MCP adapter for ActionMachine.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-McpAdapter превращает Action в MCP tools для AI-агентов. Один вызов
-протокольного methodа tool() = один MCP tool. Все протокольные methodы
-возвращают self для поддержки fluent chain:
+McpAdapter maps actions to MCP tools for AI agents. One protocol ``tool()``
+call registers one MCP tool. Protocol methods return ``self`` for fluent chains:
 
     server = adapter \\
         .tool("system.ping", PingAction) \\
         .tool("orders.create", CreateOrderAction) \\
         .build()
 
-inputSchema генерируется автоматически из Pydantic-модели Params через
-model_json_schema(). Описания полей из Field(description=...),
-constraints из Field(gt=0, min_length=3), examples — всё попадает
-в inputSchema без дублирования.
+``inputSchema`` is generated from the Pydantic Params model via
+``model_json_schema()``. Field descriptions, constraints, and examples from
+``Field(...)`` propagate to MCP schema without duplicate declarations.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ОБЯЗАТЕЛЬНАЯ АУТЕНТИФИКАЦИЯ
+INVARIANTS
 ═══════════════════════════════════════════════════════════════════════════════
 
-Параметр auth_coordinator обязателен (наследуется от BaseAdapter).
-Для открытых API используется NoAuthCoordinator — явная декларация
-отсутствия аутентификации:
+``auth_coordinator`` is mandatory (enforced by ``BaseAdapter`` contract).
+Each ``tool()`` call creates one ``McpRouteRecord`` entry.
+``build()`` always registers resource ``system://graph``.
+Tool I/O contracts are validated via ``ensure_machine_params`` and
+``ensure_protocol_response``.
+
+For open APIs, use ``NoAuthCoordinator`` explicitly:
 
     adapter = McpAdapter(
         machine=machine,
@@ -34,40 +36,51 @@ constraints из Field(gt=0, min_length=3), examples — всё попадает
     )
 
 ═══════════════════════════════════════════════════════════════════════════════
-КОНВЕНЦИЯ ИМЕНОВАНИЯ МАППЕРОВ
+ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-Каждый маппер назван по тому, что он ВОЗВРАЩАЕТ:
+    tool(...) registration
+            |
+            v
+    McpRouteRecord list
+            |
+            v
+    build()
+      |               \
+      v                v
+  MCP Tool(s)     system://graph
+      |                |
+      +-------> machine.run() <------+
 
-    params_mapper   → возвращает params   (преобразует request → params)
-    response_mapper → возвращает response (преобразует result  → response)
+Mapper naming convention:
+    params_mapper   -> returns params   (request -> params)
+    response_mapper -> returns response (result  -> response)
 
 ═══════════════════════════════════════════════════════════════════════════════
-СТРАТЕГИЯ ГЕНЕРАЦИИ TOOL HANDLER
+TOOL HANDLER GENERATION STRATEGY
 ═══════════════════════════════════════════════════════════════════════════════
 
-Для каждого зарегистрированного McpRouteRecord адаптер создаёт
-async handler-функцию, которая:
+For each registered ``McpRouteRecord``, the adapter builds an async handler that:
 
-1. Получает аргументы tool call как kwargs от MCP-хоста.
-2. Десериализует их в effective_request_model через model_validate().
-3. Если params_mapper указан — преобразует в params_type.
-4. Создаёт Context (через auth_coordinator).
-5. Получает connections (через connections_factory или None).
-6. Создаёт экземпляр Action и вызывает machine.run().
-7. Если response_mapper указан — преобразует результат.
-8. Возвращает ``CallToolResult``: успех — JSON в ``TextContent``, ``isError=False``;
-   ошибки — тот же формат текста с префиксом (PERMISSION_DENIED, …), ``isError=True``.
+1. Receives tool call args as kwargs from MCP host.
+2. Deserializes them via ``effective_request_model.model_validate()``.
+3. Applies ``params_mapper`` when configured.
+4. Builds ``Context`` via ``auth_coordinator``.
+5. Resolves connections via ``connections_factory`` (or ``None``).
+6. Creates action instance and calls ``machine.run()``.
+7. Applies ``response_mapper`` when configured.
+8. Returns ``CallToolResult``: success -> JSON ``TextContent`` with
+   ``isError=False``; failures -> prefixed error text with ``isError=True``.
 
-При ошибке handler не бросает исключение наружу: возвращает ``CallToolResult``
-с ``isError=True``, чтобы клиент MCP различал сбой вызова tool.
+On failures, the handler returns ``CallToolResult(isError=True)`` instead of
+raising, so MCP clients can distinguish tool-call errors at protocol level.
 
 ═══════════════════════════════════════════════════════════════════════════════
 RESOURCE system://graph
 ═══════════════════════════════════════════════════════════════════════════════
 
-При build() адаптер регистрирует MCP resource ``system://graph``.
-Resource возвращает JSON с узлами и рёбрами графа координатора:
+During ``build()``, the adapter registers MCP resource ``system://graph``.
+The resource returns coordinator graph JSON with nodes and edges:
 
     {
       "nodes": [
@@ -79,30 +92,30 @@ Resource возвращает JSON с узлами и рёбрами графа 
       ]
     }
 
-Это позволяет AI-агенту исследовать архитектуру системы: какие действия
-существуют, к каким доменам принадлежат, от чего зависят.
+This lets AI agents inspect runtime architecture: available actions, domains,
+and dependency relations.
 
 ═══════════════════════════════════════════════════════════════════════════════
-МЕТОД register_all()
+REGISTER_ALL METHOD
 ═══════════════════════════════════════════════════════════════════════════════
 
-Автоматически регистрирует все Action из координатора машины как MCP tools.
-        Имя tool формируется из имени класса в snake_case с удалением суффикса
-"Action" (например, CreateOrderAction → create_order). Classы действий
-находятся через ``get_nodes_by_type("aspect")``; description — из
-``get_snapshot(cls, "meta")`` (fallback: scratch ``_meta_info``).
+Automatically registers all coordinator actions as MCP tools.
+Tool names are derived from class names in snake_case without ``Action`` suffix
+(for example, ``CreateOrderAction -> create_order``). Action classes are
+discovered via ``get_nodes_by_type("aspect")``; descriptions are read from
+``get_snapshot(cls, "meta")`` with fallback to scratch ``_meta_info``.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ОБРАБОТКА ОШИБОК
+ERROR HANDLING
 ═══════════════════════════════════════════════════════════════════════════════
 
-Ошибки преобразуются в ``CallToolResult`` с ``isError=True`` и текстом:
+Exceptions are converted to ``CallToolResult`` with ``isError=True``:
 
     AuthorizationError      → "PERMISSION_DENIED: ..."
     ValidationFieldError    → "INVALID_PARAMS: ..."
     Exception               → "INTERNAL_ERROR: ..."
 
-Текст остаётся читаемым для AI-агента; флаг ``isError`` — для клиента протокола.
+Text remains human/agent readable; ``isError`` is for protocol clients.
 
 ═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES
@@ -125,6 +138,12 @@ EXAMPLES
         .build()
 
     server.run(transport="stdio")
+
+AI-CORE-BEGIN
+ROLE: Transport adapter that exposes ActionMachine through MCP tools/resources.
+CONTRACT: kwargs -> validated params -> machine.run() -> JSON text payload.
+INVARIANTS: required auth coordinator; protocol-level CallToolResult errors.
+AI-CORE-END
 """
 
 # Ruff/isort lists first-party ``action_machine`` before MCP SDK imports (known-first-party).
@@ -156,7 +175,7 @@ from mcp.server.fastmcp.utilities.func_metadata import ArgModelBase, FuncMetadat
 from mcp.types import CallToolResult, TextContent
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Вспомогательные функции модульного уровня
+# Module-level helper functions
 # ═════════════════════════════════════════════════════════════════════════════
 
 
@@ -166,18 +185,18 @@ def _get_meta_description(
     coordinator: GateCoordinator | None = None,
 ) -> str:
     """
-    Извлекает description для MCP tool из метаданных действия.
+    Extract MCP tool description from action metadata.
 
-    Предпочитает снимок facet ``meta`` построенного координатора
-    (``get_snapshot(action_class, "meta")``); если снимка нет —
-    читает scratch ``_meta_info`` с класса (как у runtime).
+    Prefers coordinator ``meta`` facet snapshot
+    (``get_snapshot(action_class, "meta")``); falls back to class scratch
+    ``_meta_info`` if snapshot is unavailable.
 
     Args:
-        action_class: класс действия.
-        coordinator: координатор машины (если есть и построен).
+        action_class: action class.
+        coordinator: optional built coordinator.
 
     Returns:
-        str — description или пустая строка.
+        Description string or empty string.
     """
     if coordinator is not None and coordinator.is_built:
         meta_snap = coordinator.get_snapshot(action_class, "meta")
@@ -191,18 +210,16 @@ def _get_meta_description(
 
 def _class_name_to_snake_case(name: str) -> str:
     """
-    Преобразует CamelCase имя класса в snake_case.
+    Convert a CamelCase class name to snake_case.
 
-    Удаляет суффикс "Action" перед преобразованием.
-    Например: CreateOrderAction → create_order,
-              GetOrderAction → get_order,
-              PingAction → ping.
+    Removes ``Action`` suffix before conversion.
+    Example: ``CreateOrderAction -> create_order``.
 
     Args:
-        name: имя класса в CamelCase.
+        name: class name in CamelCase.
 
     Returns:
-        str — имя в snake_case без суффикса "Action".
+        Name in snake_case without ``Action`` suffix.
     """
     if name.endswith("Action") and len(name) > len("Action"):
         name = name[: -len("Action")]
@@ -214,16 +231,16 @@ def _class_name_to_snake_case(name: str) -> str:
 
 def _build_graph_json(coordinator: GateCoordinator) -> str:
     """
-    Строит JSON-представление графа системы из координатора.
+    Build JSON representation of system graph from coordinator.
 
-    Извлекает все узлы и рёбра из rx.PyDiGraph координатора и формирует
-    компактное JSON-представление с массивами nodes и edges.
+    Extracts nodes and edges from coordinator graph and returns compact JSON
+    with ``nodes`` and ``edges`` arrays.
 
     Args:
-        coordinator: построенный ``GateCoordinator`` с графом.
+        coordinator: built ``GateCoordinator``.
 
     Returns:
-        str — JSON-строка с графом системы.
+        JSON string with graph structure.
     """
     graph = coordinator.get_graph()
 
@@ -246,10 +263,10 @@ def _build_graph_json(coordinator: GateCoordinator) -> str:
         if description:
             node["description"] = description
 
-        # В payload узла ``meta`` поле ``domain`` — это обычно *класс* BaseDomain.
-        # ``json.dumps`` не сериализует ``type`` (error «ABCMeta is not JSON serializable»).
-        # Для MCP resource отдаём стабильную строку ``module.QualName``; для нестандартных
-        # значений — ``str(domain)``, чтобы агент всё равно получил читаемый текст.
+        # In node payload ``meta``, ``domain`` is usually a BaseDomain class.
+        # ``json.dumps`` cannot serialize ``type`` values directly.
+        # For MCP resource we emit stable ``module.QualName``; for non-standard
+        # values we fallback to ``str(domain)`` so agents still receive text.
         domain = meta.get("domain")
         if domain:
             if isinstance(domain, type):
@@ -297,7 +314,7 @@ def _build_graph_json(coordinator: GateCoordinator) -> str:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Фабрика handler-функций для MCP tools
+# MCP tool handler factory
 # ═════════════════════════════════════════════════════════════════════════════
 
 
@@ -309,24 +326,21 @@ def _make_tool_handler(
     gate_coordinator: GateCoordinator,
 ) -> Callable[..., Any]:
     """
-    Создаёт async handler для одного MCP tool.
+    Create async handler for one MCP tool.
 
-    Handler принимает kwargs от MCP (аргументы tool call от агента),
-    десериализует их в Pydantic-модель, выполняет действие через machine.run()
-    и возвращает ``CallToolResult`` с JSON-текстом при успехе.
-
-    При ошибке возвращает ``CallToolResult`` с ``isError=True`` и текстом ошибки.
+    Handler accepts kwargs from MCP host, deserializes into request model,
+    executes action via ``machine.run()``, and returns ``CallToolResult``.
+    On failure, returns ``CallToolResult(isError=True)`` with error text.
 
     Args:
-        record: конфигурация маршрута с action_class, моделями и мапперами.
-        machine: машина выполнения действий.
-        auth_coordinator: координатор аутентификации (AuthCoordinator
-                          или NoAuthCoordinator).
-        connections_factory: фабрика соединений (или None).
-        gate_coordinator: координатор для метаданных tool (описание из facet).
+        record: route configuration with action class and mappers.
+        machine: action execution machine.
+        auth_coordinator: authentication coordinator.
+        connections_factory: optional connections factory.
+        gate_coordinator: coordinator used for tool metadata.
 
     Returns:
-        Async-функцию для регистрации как MCP tool (возвращает ``CallToolResult``).
+        Async function suitable for MCP tool registration.
     """
     req_model = record.effective_request_model
     has_params_mapper = record.params_mapper is not None
@@ -334,10 +348,7 @@ def _make_tool_handler(
 
     async def handler(**kwargs: Any) -> CallToolResult:
         """
-        Handler MCP tool call.
-
-        Принимает kwargs от MCP, десериализует, выполняет действие,
-        возвращает ``CallToolResult`` (успех или ошибка по полю ``isError``).
+        Execute one MCP tool call and return protocol-level result.
         """
         try:
             payload = await _execute_tool_call(
@@ -385,21 +396,20 @@ async def _execute_tool_call(
     has_response_mapper: bool,
 ) -> str:
     """
-    Выполняет один вызов MCP tool: десериализация, маппинг, выполнение,
-    сериализация result.
+    Execute one MCP tool call: deserialize, map, run, serialize.
 
     Args:
-        kwargs: аргументы tool call от агента.
-        req_model: Pydantic-модель для десериализации входных данных.
-        record: конфигурация маршрута.
-        machine: машина выполнения действий.
-        auth_coordinator: координатор аутентификации.
-        connections_factory: фабрика соединений (или None).
-        has_params_mapper: True если указан params_mapper.
-        has_response_mapper: True если указан response_mapper.
+        kwargs: tool call arguments from agent.
+        req_model: request model for input validation.
+        record: route configuration.
+        machine: action machine.
+        auth_coordinator: authentication coordinator.
+        connections_factory: optional connections factory.
+        has_params_mapper: whether params mapper is configured.
+        has_response_mapper: whether response mapper is configured.
 
     Returns:
-        JSON-строка с результатом выполнения действия.
+        JSON string with action execution result.
     """
     body = req_model.model_validate(kwargs)  # type: ignore[attr-defined]
 
@@ -430,17 +440,17 @@ def _serialize_result(
     has_response_mapper: bool,
 ) -> str:
     """
-    Сериализует результат действия в JSON-строку.
+    Serialize action result into JSON string.
 
-    Если указан response_mapper — применяет его перед сериализацией.
+    Applies ``response_mapper`` before serialization when configured.
 
     Args:
-        result: результат выполнения действия.
-        record: конфигурация маршрута (для доступа к response_mapper).
-        has_response_mapper: True если указан response_mapper.
+        result: action result object.
+        record: route configuration.
+        has_response_mapper: whether response mapper is configured.
 
     Returns:
-        JSON-строка с результатом.
+        JSON string.
     """
     if has_response_mapper:
         mapped = record.response_mapper(result)  # type: ignore[misc]
@@ -458,33 +468,19 @@ def _serialize_result(
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Class адаптера
+# Adapter class
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class McpAdapter(BaseAdapter[McpRouteRecord]):
     """
-    MCP-адаптер для ActionMachine.
+    MCP adapter for ActionMachine.
 
-    Наследует BaseAdapter[McpRouteRecord]. Предоставляет протокольный
-    method tool() для регистрации MCP tools. Метод build() завершает
-    fluent chain и создаёт MCP-сервер (хост).
-
-    Метод register_all() автоматически регистрирует все Action из
-    координатора машины, формируя имена tools в snake_case.
-
-    При build() дополнительно регистрируется MCP resource ``system://graph``,
-    возвращающий JSON с графом системы.
-
-    Параметр auth_coordinator обязателен (наследуется от BaseAdapter).
-    Для открытых API используется NoAuthCoordinator().
-
-    Атрибуты:
-        _server_name : str
-            Имя MCP-сервера. Отображается при подключении клиента.
-
-        _server_version : str
-            Версия MCP-сервера.
+    AI-CORE-BEGIN
+    ROLE: Exposes ActionMachine actions as MCP tools/resources.
+    CONTRACT: BaseAdapter[McpRouteRecord] with tool(), register_all(), build().
+    INVARIANTS: auth coordinator required; graph resource registered on build.
+    AI-CORE-END
     """
 
     def __init__(
@@ -498,23 +494,15 @@ class McpAdapter(BaseAdapter[McpRouteRecord]):
         server_version: str = "0.1.0",
     ) -> None:
         """
-        Инициализирует MCP-адаптер.
+        Initialize MCP adapter.
 
         Args:
-            machine: машина выполнения действий. Обязательный параметр.
-                     Должен быть экземпляром ActionProductMachine.
-            auth_coordinator: координатор аутентификации. Обязательный параметр.
-                              Для открытых API используйте NoAuthCoordinator().
-                              None не допускается — TypeError.
-            connections_factory: фабрика соединений. Если указана, вызывается
-                                 перед каждым machine.run(). Если None —
-                                 connections не передаются.
-            gate_coordinator: явный ``GateCoordinator`` для графа и снапшотов;
-                              по умолчанию ``machine.gate_coordinator``.
-            server_name: имя MCP-сервера. Отображается при подключении
-                         клиента (Claude Desktop, MCP Inspector и др.).
-                         По умолчанию "ActionMachine MCP".
-            server_version: версия MCP-сервера. По умолчанию "0.1.0".
+            machine: action execution machine.
+            auth_coordinator: authentication coordinator; required.
+            connections_factory: optional connection factory per call.
+            gate_coordinator: optional explicit coordinator.
+            server_name: MCP server display name.
+            server_version: MCP server version string.
         """
         super().__init__(
             machine=machine,
@@ -526,21 +514,21 @@ class McpAdapter(BaseAdapter[McpRouteRecord]):
         self._server_version: str = server_version
 
     # ─────────────────────────────────────────────────────────────────────
-    # Свойства
+    # Properties
     # ─────────────────────────────────────────────────────────────────────
 
     @property
     def server_name(self) -> str:
-        """Имя MCP-сервера."""
+        """MCP server name."""
         return self._server_name
 
     @property
     def server_version(self) -> str:
-        """Версия MCP-сервера."""
+        """MCP server version."""
         return self._server_version
 
     # ─────────────────────────────────────────────────────────────────────
-    # Протокольный method регистрации (fluent — возвращает Self)
+    # Protocol registration method (returns Self)
     # ─────────────────────────────────────────────────────────────────────
 
     def tool(
@@ -554,29 +542,22 @@ class McpAdapter(BaseAdapter[McpRouteRecord]):
         description: str = "",
     ) -> Self:
         """
-        Регистрирует MCP tool. Returns self для fluent chain.
+        Register one MCP tool and return ``self`` for fluent chaining.
 
-        Один вызов tool() = один MCP tool, видимый AI-агенту. inputSchema
-        генерируется автоматически из effective_request_model.model_json_schema().
-
-        Если description пуст — подставляется description из ``@meta`` действия.
+        ``inputSchema`` is derived from ``effective_request_model``.
+        If ``description`` is empty, action ``@meta`` description is used.
 
         Args:
-            name: имя MCP tool, видимое агенту. Непустая строка.
-                  Рекомендуемый формат: ``domain.action`` — например,
-                  ``orders.create``, ``system.ping``.
-            action_class: класс действия (наследник BaseAction[P, R]).
-            request_model: протокольная модель входящего запроса. Если None —
-                           используется params_type.
-            response_model: протокольная модель ответа. Если None —
-                            используется result_type.
-            params_mapper: функция преобразования request_model → params_type.
-            response_mapper: функция преобразования result_type → response_model.
-            description: описание tool для AI-агента. Пустая строка —
-                         адаптер подставит description из ``@meta`` действия.
+            name: MCP tool name visible to agents.
+            action_class: action class (``BaseAction[P, R]`` subtype).
+            request_model: optional protocol request model.
+            response_model: optional protocol response model.
+            params_mapper: optional request->params transformer.
+            response_mapper: optional result->response transformer.
+            description: optional tool description override.
 
         Returns:
-            Self — текущий экземпляр адаптера для fluent chain.
+            Current adapter instance.
         """
         effective_description = description or _get_meta_description(
             action_class,
@@ -595,23 +576,18 @@ class McpAdapter(BaseAdapter[McpRouteRecord]):
         return self._add_route(record)
 
     # ─────────────────────────────────────────────────────────────────────
-    # Автоматическая регистрация всех Action
+    # Automatic registration of all actions
     # ─────────────────────────────────────────────────────────────────────
 
     def register_all(self) -> Self:
         """
-        Автоматически регистрирует все Action из координатора как MCP tools.
+        Auto-register all coordinator actions as MCP tools.
 
-        Обходит узлы графа координатора с типом ``aspect``, для каждого
-        класса-действия с непустым снимком ``get_snapshot(cls, "aspect")``
-        создаёт MCP tool с:
-
-        - tool_name: snake_case от имени класса без суффикса "Action".
-        - description: из ``get_snapshot(cls, "meta")`` (иначе scratch ``_meta_info``).
-        - inputSchema: из model_json_schema() модели Params.
+        Iterates over ``aspect`` nodes and registers actions that have
+        non-empty aspect snapshots.
 
         Returns:
-            Self — текущий экземпляр адаптера для fluent chain.
+            Current adapter instance.
         """
         coordinator = self.gate_coordinator
 
@@ -643,20 +619,20 @@ class McpAdapter(BaseAdapter[McpRouteRecord]):
         return self
 
     # ─────────────────────────────────────────────────────────────────────
-    # Построение MCP-сервера
+    # MCP server build
     # ─────────────────────────────────────────────────────────────────────
 
     def build(self) -> FastMCP:
         """
-        Создаёт MCP-сервер из зарегистрированных маршрутов.
+        Build MCP server from registered routes.
 
-        Порядок инициализации:
-        1. Для каждого маршрута: сборка ``Tool`` (handler + inputSchema из Params).
-        2. Создание хоста MCP с именем и предсобранным списком tools.
-        3. Регистрация resource ``system://graph``.
+        Order:
+        1. Build ``Tool`` objects for routes.
+        2. Create MCP host with server name and tool list.
+        3. Register ``system://graph`` resource.
 
         Returns:
-            Готовый MCP-сервер с зарегистрированными tools и resource system://graph.
+            Ready MCP server with registered tools and graph resource.
         """
         tools = [self._make_mcp_tool(record) for record in self._routes]
         mcp = FastMCP(self._server_name, tools=tools)
@@ -666,19 +642,18 @@ class McpAdapter(BaseAdapter[McpRouteRecord]):
         return mcp
 
     # ─────────────────────────────────────────────────────────────────────
-    # Сборка MCP Tool (inputSchema + валидация аргументов)
+    # MCP tool build (inputSchema + arg validation)
     # ─────────────────────────────────────────────────────────────────────
 
     def _mcp_argument_model(self, record: McpRouteRecord) -> type[ArgModelBase]:
         """
-        Строит Pydantic-модель аргументов tool для MCP-хоста.
+        Build MCP host argument model for one tool.
 
-        Наследует ``effective_request_model`` и ``ArgModelBase``, чтобы
-        ``FuncMetadata.call_fn_with_arg_validation`` мог использовать
-        ``model_dump_one_level()`` как в типовом tool пакета ``mcp``.
+        Inherits from both ``effective_request_model`` and ``ArgModelBase`` so
+        MCP arg validation can use expected model APIs.
 
         Raises:
-            TypeError: если effective_request_model не подкласс BaseModel.
+            TypeError: if effective_request_model is not a BaseModel subclass.
         """
         req = record.effective_request_model
         if not isinstance(req, type) or not issubclass(req, BaseModel):
@@ -695,11 +670,11 @@ class McpAdapter(BaseAdapter[McpRouteRecord]):
 
     def _make_mcp_tool(self, record: McpRouteRecord) -> Tool:
         """
-        Создаёт ``Tool`` с корректным ``parameters`` (JSON Schema) для MCP.
+        Build ``Tool`` with explicit JSON Schema parameters for MCP.
 
-        Регистрация только по ``handler`` выводит схему из сигнатуры
-        функции; наш handler принимает только ``**kwargs``, поэтому схема
-        собирается явно из Pydantic-модели параметров действия.
+        Handler-only registration would infer schema from function signature;
+        because handler accepts ``**kwargs``, schema is generated explicitly
+        from action parameter model.
         """
         handler = _make_tool_handler(
             record=record,
@@ -730,29 +705,28 @@ class McpAdapter(BaseAdapter[McpRouteRecord]):
         )
 
     # ─────────────────────────────────────────────────────────────────────
-    # Регистрация resource system://graph
+    # Register system://graph resource
     # ─────────────────────────────────────────────────────────────────────
 
     def _register_graph_resource(self, mcp: FastMCP) -> None:
         """
-        Регистрирует MCP resource ``system://graph`` на MCP-сервере.
+        Register MCP resource ``system://graph`` on server.
 
-        AI-агент может запросить этот ресурс, чтобы увидеть структуру
-        системы: какие действия существуют, к каким доменам принадлежат,
-        от чего зависят.
+        Agents can request it to inspect runtime structure: actions, domains,
+        and dependency edges.
 
         Args:
-            mcp: MCP-хост, на котором регистрируется resource.
+            mcp: MCP host where resource is registered.
         """
         coordinator = self.gate_coordinator
 
         @mcp.resource("system://graph")
         def get_system_graph() -> str:
             """
-            Структура системы ActionMachine.
+            ActionMachine runtime graph structure.
 
-            Returns JSON с узлами (actions, domains, dependencies,
-            resource managers) и рёбрами (depends, belongs_to, connection)
-            графа координатора.
+            Returns JSON with coordinator graph nodes (actions, domains,
+            dependencies, resource managers) and edges
+            (depends, belongs_to, connection).
             """
             return _build_graph_json(coordinator)

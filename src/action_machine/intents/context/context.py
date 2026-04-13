@@ -1,72 +1,81 @@
 # src/action_machine/intents/context/context.py
 """
-Context — context выполнения действия.
+Context — root action execution context object.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Context — корневой объект contextа, объединяющий информацию о пользователе
-(UserInfo), входящем запросе (RequestInfo) и среде выполнения (RuntimeInfo).
+``Context`` aggregates user info (``UserInfo``), request metadata
+(``RequestInfo``), and runtime metadata (``RuntimeInfo``).
 
-Создаётся один раз на каждый запрос координатором аутентификации
-(AuthCoordinator или NoAuthCoordinator) и передаётся в машину при вызове
-run(). Используется для проверки ролей, логирования, трассировки и
-предоставления данных аспектам через ContextView.
-
-═══════════════════════════════════════════════════════════════════════════════
-ИЕРАРХИЯ
-═══════════════════════════════════════════════════════════════════════════════
-
-    BaseSchema(BaseModel)
-        └── Context (frozen=True, extra="forbid")
-                ├── user: UserInfo
-                ├── request: RequestInfo
-                └── runtime: RuntimeInfo
+It is created once per request by authentication coordinator
+(``AuthCoordinator`` or ``NoAuthCoordinator``) and passed to machine ``run()``.
+Used for role checks, logging, tracing, and controlled data exposure via
+``ContextView``.
 
 ═══════════════════════════════════════════════════════════════════════════════
-FROZEN И FORBID
+ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-Context неизменяем после создания. Контекст запроса фиксируется один раз
-при входе и не меняется в ходе выполнения конвейера. Все вложенные
-компоненты (UserInfo, RequestInfo, RuntimeInfo) тоже frozen.
+    Request enters adapter/auth pipeline
+                |
+                v
+    AuthCoordinator.process() -> Context(...)
+                |
+                v
+    ActionProductMachine.run(context, ...)
+                |
+                +--> RoleChecker (reads context.user.roles)
+                +--> logging/tracing (reads request/runtime metadata)
+                +--> ContextView for @context_requires methods
 
-Произвольные поля запрещены (extra="forbid"). Расширение — только через
-наследование с явными полями:
+    Schema hierarchy:
+        BaseSchema(BaseModel)
+            └── Context (frozen=True, extra="forbid")
+                    ├── user: UserInfo
+                    ├── request: RequestInfo
+                    └── runtime: RuntimeInfo
+
+═══════════════════════════════════════════════════════════════════════════════
+INVARIANTS
+═══════════════════════════════════════════════════════════════════════════════
+
+- Context is immutable after creation.
+- Nested components (``UserInfo``, ``RequestInfo``, ``RuntimeInfo``) are also frozen.
+- Extra fields are forbidden (``extra="forbid"``).
+- Extension is explicit via inheritance with declared fields:
 
     class TenantContext(Context):
         tenant_id: str = "default"
 
 ═══════════════════════════════════════════════════════════════════════════════
-ЗАМЕНА None НА ДЕФОЛТЫ
+NONE-TO-DEFAULT NORMALIZATION
 ═══════════════════════════════════════════════════════════════════════════════
 
-Явный None в любом компоненте заменяется дефолтным экземпляром через
-field_validator. Это гарантирует, что ctx.user, ctx.request, ctx.runtime
-никогда не равны None:
+Explicit ``None`` in any component is replaced with default instance via
+``field_validator``. This guarantees ``ctx.user``, ``ctx.request``, and
+``ctx.runtime`` are never ``None``:
 
     Context(user=None)  →  Context(user=UserInfo())
     Context()           →  Context(user=UserInfo(), request=RequestInfo(), runtime=RuntimeInfo())
 
-Это упрощает код в AuthCoordinator и NoAuthCoordinator: они могут
-передавать None для компонентов, которые не были заполнены, без риска
-ValidationError.
+This simplifies coordinator code: components may be passed as ``None`` without
+risk of validation errors.
 
 ═══════════════════════════════════════════════════════════════════════════════
-АНОНИМНЫЙ КОНТЕКСТ
+ANONYMOUS CONTEXT
 ═══════════════════════════════════════════════════════════════════════════════
 
-Context() без аргументов создаёт анонимный context: пустой UserInfo
-(user_id=None, roles=()), пустой RequestInfo и пустой RuntimeInfo.
-Используется NoAuthCoordinator для открытых API.
+``Context()`` without args creates anonymous context: empty ``UserInfo``
+(``user_id=None``, ``roles=()``), empty ``RequestInfo``, and empty
+``RuntimeInfo``. Used by ``NoAuthCoordinator`` for open APIs.
 
 ═══════════════════════════════════════════════════════════════════════════════
-DOT-PATH НАВИГАЦИЯ
+DOT-PATH NAVIGATION
 ═══════════════════════════════════════════════════════════════════════════════
 
-Context наследует resolve() от BaseSchema, что позволяет обходить
-вложенные компоненты через dot-path:
+Context inherits ``resolve()`` from ``BaseSchema``, enabling nested traversal:
 
     context.resolve("user.user_id")           → "agent_123"
     context.resolve("user.roles")             → (AdminRole, UserRole)
@@ -75,31 +84,29 @@ Context наследует resolve() от BaseSchema, что позволяет 
     context.resolve("runtime.hostname")       → "pod-xyz-123"
     context.resolve("runtime.service_version") → "1.2.3"
 
-Это используется ContextView для предоставления данных аспектам
-с @context_requires и VariableSubstitutor для шаблонов логирования
-({%context.user.user_id}).
+Used by ``ContextView`` for ``@context_requires`` access and by
+template/log substitution paths.
 
-В примерах ниже ``AdminRole`` и ``UserRole`` обозначают подклассы ``BaseRole``.
+In examples below, ``AdminRole`` and ``UserRole`` represent ``BaseRole`` subclasses.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ДОСТУП В АСПЕКТАХ
+ASPECT ACCESS MODEL
 ═══════════════════════════════════════════════════════════════════════════════
 
-Прямой доступ к Context из аспекта невозможен: экземпляр ToolsBox не хранит
-Context (ни публично, ни через name mangling). Единственный путь к данным
-контекста в аспекте — через @context_requires и ContextView:
+Direct Context access from aspect is not supported: ``ToolsBox`` does not store
+context. The supported path is ``@context_requires`` + ``ContextView``:
 
-    @regular_aspect("Аудит")
+    @regular_aspect("Audit")
     @context_requires(Ctx.User.user_id, Ctx.Request.client_ip)
     async def audit_aspect(self, params, state, box, connections, ctx):
         user_id = ctx.get(Ctx.User.user_id)     # → "agent_123"
         ip = ctx.get(Ctx.Request.client_ip)       # → "192.168.1.1"
         return {}
 
-ContextView делегирует в context.resolve(key) для gotия значений.
+``ContextView`` delegates to ``context.resolve(key)`` for value lookup.
 
 ═══════════════════════════════════════════════════════════════════════════════
-DICT-ПОДОБНЫЙ ДОСТУП (унаследован от BaseSchema)
+DICT-LIKE ACCESS (inherited from BaseSchema)
 ═══════════════════════════════════════════════════════════════════════════════
 
     ctx = Context(
@@ -122,7 +129,7 @@ EXAMPLES
     from action_machine.intents.context.request_info import RequestInfo
     from action_machine.intents.context.runtime_info import RuntimeInfo
 
-    # Полный context:
+    # Full context:
     ctx = Context(
         user=UserInfo(user_id="john_doe", roles=(UserRole, ManagerRole)),
         request=RequestInfo(
@@ -142,15 +149,34 @@ EXAMPLES
     ctx.resolve("request.trace_id")       # → "abc-123"
     ctx.resolve("runtime.service_name")   # → "orders-api"
 
-    # Анонимный context:
+    # Anonymous context:
     anon_ctx = Context()
     anon_ctx.resolve("user.user_id")      # → None
     anon_ctx.resolve("user.roles")        # → []
 
-    # None-компоненты заменяются дефолтами:
+    # None components are replaced with defaults:
     ctx = Context(user=None, runtime=None)
-    ctx.user.user_id                       # → None (UserInfo с дефолтами)
-    ctx.runtime.hostname                   # → None (RuntimeInfo с дефолтами)
+    ctx.user.user_id                       # -> None (defaulted UserInfo)
+    ctx.runtime.hostname                   # -> None (defaulted RuntimeInfo)
+
+═══════════════════════════════════════════════════════════════════════════════
+ERRORS / LIMITATIONS
+═══════════════════════════════════════════════════════════════════════════════
+
+- Context itself does not enforce per-method field allowlists; that is handled
+  by ``ContextView``.
+- Unknown dot-paths resolve to ``None`` by ``BaseSchema.resolve`` semantics.
+
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE-BEGIN
+═══════════════════════════════════════════════════════════════════════════════
+ROLE: Immutable root context model shared across runtime subsystems.
+CONTRACT: Carry user/request/runtime metadata with safe defaults and dot-path resolution.
+INVARIANTS: Frozen schema, forbid extra fields, never-None components after validation.
+FLOW: auth assembly -> machine run -> role checks/context view/logging consumers.
+FAILURES: Field-level access restrictions are delegated to ContextView layer.
+EXTENSION POINTS: Explicit schema inheritance for custom context fields.
+AI-CORE-END
 """
 
 from pydantic import ConfigDict, field_validator
@@ -163,24 +189,13 @@ from action_machine.model.base_schema import BaseSchema
 
 class Context(BaseSchema):
     """
-    Контекст выполнения действия.
+    Immutable root context model for one action execution.
 
-    Объединяет информацию о пользователе, запросе и среде выполнения.
-    Frozen после создания. Произвольные поля запрещены.
-
-    Наследует dict-подобный доступ и dot-path навигацию от BaseSchema.
-    Dot-path навигация позволяет обходить вложенные компоненты:
-    context.resolve("user.user_id") → context.user.user_id.
-
-    Явный None в любом компоненте заменяется дефолтным экземпляром
-    через field_validator. Это гарантирует, что ctx.user, ctx.request
-    и ctx.runtime никогда не равны None.
-
-    Атрибуты:
-        user: информация о пользователе. По умолчанию — анонимный
-              (user_id=None, roles=()).
-        request: метаданные входящего запроса. По умолчанию — пустой.
-        runtime: информация о среде выполнения. По умолчанию — пустой.
+    AI-CORE-BEGIN
+    ROLE: Runtime metadata container (user/request/runtime).
+    CONTRACT: Expose safe defaults and BaseSchema dot-path resolution.
+    INVARIANTS: Frozen object, forbid extra, None inputs normalized to defaults.
+    AI-CORE-END
     """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
@@ -192,17 +207,17 @@ class Context(BaseSchema):
     @field_validator("user", mode="before")
     @classmethod
     def _default_user(cls, v: object) -> object:
-        """None → UserInfo() с дефолтами."""
+        """Replace ``None`` with default ``UserInfo()``."""
         return v if v is not None else UserInfo()
 
     @field_validator("request", mode="before")
     @classmethod
     def _default_request(cls, v: object) -> object:
-        """None → RequestInfo() с дефолтами."""
+        """Replace ``None`` with default ``RequestInfo()``."""
         return v if v is not None else RequestInfo()
 
     @field_validator("runtime", mode="before")
     @classmethod
     def _default_runtime(cls, v: object) -> object:
-        """None → RuntimeInfo() с дефолтами."""
+        """Replace ``None`` with default ``RuntimeInfo()``."""
         return v if v is not None else RuntimeInfo()

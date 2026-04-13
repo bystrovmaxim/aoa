@@ -18,8 +18,8 @@ SCENARIOS
 - `PartialCompensateAction` — skipped frames without compensators.
 - `CompensateErrorAction` — compensator raises but rollback continues.
 - `CompensateAndOnErrorAction` — rollback before `@on_error`.
-- `FirstRegularFailsOnErrorAction` — падает первый regular; `@on_error` и пустой state.
-- `SecondRegularFailsOnErrorAction` — падает второй regular; state только от первого шага.
+- `FirstRegularFailsOnErrorAction` — first regular fails; `@on_error` and empty state.
+- `SecondRegularFailsOnErrorAction` — second regular fails; state only from the first step.
 - `SummaryFailsOnErrorStateAction` — summary fails after regular; `@on_error` sees state.
 - `CompensateWithContextAction` — `@context_requires` in compensator.
 

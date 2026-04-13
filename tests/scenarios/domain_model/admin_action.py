@@ -17,7 +17,7 @@ USAGE IN TESTS
 ═══════════════════════════════════════════════════════════════════════════════
 
 - Role tests: AdminRole passes; UserRole only or no roles → AuthorizationError.
-- ``@check_roles(AdminRole)`` — один конкретный тип роли.
+- ``@check_roles(AdminRole)`` — a single concrete role type.
 - run_aspect: execute_admin in isolation.
 
     admin_bench = bench.with_user(user_id="admin_1", roles=(AdminRole,))

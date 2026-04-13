@@ -1,73 +1,87 @@
 # src/action_machine/intents/checkers/result_field_checker.py
 """
-Базовый абстрактный checker для полей результата аспекта.
+Abstract base checker for aspect-result fields.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Определяет общий интерфейс для всех checkerов полей. Каждый конкретный
-checker (ResultStringChecker, ResultIntChecker и т.д.) наследует
-ResultFieldChecker и реализует method _check_type_and_constraints.
+Defines shared checker contract for all result-field validators. Each concrete
+checker (``ResultStringChecker``, ``ResultIntChecker``, etc.) inherits from
+``ResultFieldChecker`` and implements ``_check_type_and_constraints``.
 
-ResultFieldChecker используется машиной (ActionProductMachine._apply_checkers)
-для проверки словаря, возвращённого аспектом. Машина создаёт экземпляр
-checkerа из snapshot-метаданных checkerа и вызывает checker.check(result_dict).
+Runtime (``ActionProductMachine._apply_checkers``) instantiates checkers from
+snapshot metadata and calls ``checker.check(result_dict)``.
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANT ИМЕНОВАНИЯ
+NAMING INVARIANT
 ═══════════════════════════════════════════════════════════════════════════════
 
-Каждый класс, наследующий ResultFieldChecker (прямо или косвенно), обязан
-иметь суффикс "Checker" в имени. Check выполняется в __init_subclass__
-при определении класса. Нарушение → NamingSuffixError.
+Every class inheriting ``ResultFieldChecker`` (directly or indirectly) must
+end with ``"Checker"`` suffix. This invariant is enforced in
+``__init_subclass__`` at class definition time. Violations raise
+``NamingSuffixError``.
 
 Примеры:
-    class ResultStringChecker(ResultFieldChecker):  ← OK
-    class ResultIntChecker(ResultFieldChecker):     ← OK
-    class MyCustomChecker(ResultFieldChecker):      ← OK
-    class StringValidator(ResultFieldChecker):      ← NamingSuffixError
+    class ResultStringChecker(ResultFieldChecker):  # OK
+    class ResultIntChecker(ResultFieldChecker):     # OK
+    class MyCustomChecker(ResultFieldChecker):      # OK
+    class StringValidator(ResultFieldChecker):      # NamingSuffixError
 
 ═══════════════════════════════════════════════════════════════════════════════
-ИНТЕГРАЦИЯ С ДЕКОРАТОРАМИ
+ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-Функции-декораторы (result_string, result_int и т.д.) записывают метаданные
-checkerа в атрибут ``_checker_meta`` methodа-аспекта. MetadataBuilder собирает
-эти метаданные в checker snapshot (GateCoordinator.get_checkers).
+``result_*`` decorators write checker metadata to method attribute
+``_checker_meta``. Inspector/builder flow collects this metadata into checker
+snapshots.
 
-ActionProductMachine при выполнении regular-аспекта:
-1. Получает checkers = coordinator.get_checkers_for_aspect(cls, aspect_name).
-2. Если checkerов нет и аспект вернул непустой dict — ошибка.
-3. Если checkerы есть — проверяет, что результат содержит только
-   объявленные поля, и применяет каждый checker через check().
-
-═══════════════════════════════════════════════════════════════════════════════
-КОНСТРУКТОР
-═══════════════════════════════════════════════════════════════════════════════
-
-Конструктор принимает два параметра:
-    - field_name: str — имя поля в словаре результата.
-    - required: bool — required ли поле (по умолчанию True).
-
-Конкретные наследники могут добавлять дополнительные параметры
-(min_length, max_value и т.д.) через свои конструкторы.
+    @result_* decorators
+            |
+            v
+    method._checker_meta entries
+            |
+            v
+    CheckerIntentInspector snapshot
+            |
+            v
+    runtime checker instance creation
+            |
+            v
+    checker.check(result_dict)
 
 ═══════════════════════════════════════════════════════════════════════════════
-ПРИМЕР ИСПОЛЬЗОВАНИЯ
+INVARIANTS
 ═══════════════════════════════════════════════════════════════════════════════
 
-    # Машина создаёт экземпляр checkerа из snapshot-метаданных и вызывает check():
+- Constructor contract: ``field_name`` + ``required``.
+- Subclasses may add extra validation parameters via constructor.
+- ``check()`` enforces required/non-null policy before type constraints.
+- Subclasses must implement ``_check_type_and_constraints``.
+
+═══════════════════════════════════════════════════════════════════════════════
+EXAMPLE
+═══════════════════════════════════════════════════════════════════════════════
+
+    # Runtime creates checker from snapshot metadata and calls check():
     checker = ResultStringChecker("txn_id", required=True)
     checker.check({"txn_id": "abc"})  # OK
     checker.check({})                  # ValidationFieldError
 
+═══════════════════════════════════════════════════════════════════════════════
+ERRORS / LIMITATIONS
+═══════════════════════════════════════════════════════════════════════════════
+
+- ``NamingSuffixError`` for subclasses without ``Checker`` suffix.
+- ``ValidationFieldError`` when required field is missing/None or constraints fail.
+- This base class validates structure only; concrete semantics belong to subclasses.
+
 
 AI-CORE-BEGIN
-ROLE: module result_field_checker
-CONTRACT: Keep runtime behavior unchanged; decorators/inspectors expose metadata consumed by coordinator/machine.
-INVARIANTS: Validate declarations early and provide deterministic metadata shape.
-FLOW: declarations -> inspector snapshot -> coordinator cache -> runtime usage.
+ROLE: Base checker contract module.
+CONTRACT: Define shared required-field flow and extension hook for concrete checkers.
+INVARIANTS: Naming suffix enforcement and deterministic checker lifecycle.
+FLOW: metadata -> snapshot -> runtime instantiation -> check().
 AI-CORE-END
 """
 
@@ -76,97 +90,77 @@ from typing import Any
 
 from action_machine.model.exceptions import NamingSuffixError, ValidationFieldError
 
-# Суффикс, обязательный для всех классов, наследующих ResultFieldChecker.
+# Required suffix for all ResultFieldChecker subclasses.
 _REQUIRED_SUFFIX = "Checker"
 
 
 class ResultFieldChecker:
     """
-    Базовый checker для полей результата аспекта.
+    Base class for all aspect-result field checkers.
 
-    Используется машиной для валидации словаря, возвращённого аспектом.
-    Машина создаёт экземпляр из snapshot-метаданных и вызывает check(result_dict).
-
-    Наследники реализуют _check_type_and_constraints для проверки
-    конкретного типа (строка, число, дата и т.д.).
-
-    Каждый класс-наследник обязан иметь суффикс "Checker" в имени.
-    Checksся при определении класса через __init_subclass__.
-
-    Атрибуты:
-        field_name : str
-            Имя поля в словаре результата аспекта.
-        required : bool
-            Обязательно ли поле (True — отсутствие или None вызывает ошибку).
+    Subclasses implement concrete type/constraint checks while this class
+    handles required/non-null flow and naming policy.
     """
 
     def __init_subclass__(cls, **kwargs: Any) -> None:
         """
-        Вызывается Python при создании любого подкласса ResultFieldChecker.
-
-        Checks инвариант именования: имя класса обязано заканчиваться
-        на "Checker". Нарушение → NamingSuffixError.
+        Enforce ``Checker`` suffix for every subclass.
 
         Args:
-            **kwargs: аргументы, передаваемые в type.__init_subclass__.
+            **kwargs: forwarded to ``type.__init_subclass__``.
 
         Raises:
-            NamingSuffixError: если имя класса не заканчивается на "Checker".
+            NamingSuffixError: if class name lacks ``Checker`` suffix.
         """
         super().__init_subclass__(**kwargs)
 
         if not cls.__name__.endswith(_REQUIRED_SUFFIX):
             raise NamingSuffixError(
-                f"Class '{cls.__name__}' наследует ResultFieldChecker, "
-                f"но не имеет суффикса '{_REQUIRED_SUFFIX}'. "
-                f"Rename в '{cls.__name__}{_REQUIRED_SUFFIX}'."
+                f"Class '{cls.__name__}' inherits ResultFieldChecker but "
+                f"does not end with suffix '{_REQUIRED_SUFFIX}'. "
+                f"Rename it to '{cls.__name__}{_REQUIRED_SUFFIX}'."
             )
 
     def __init__(self, field_name: str, required: bool = True) -> None:
         """
-        Инициализирует checker.
+        Initialize checker base parameters.
 
         Args:
-            field_name: имя поля в словаре результата.
-            required: required ли поле. По умолчанию True.
+            field_name: field name in result dictionary.
+            required: whether field is required. Default ``True``.
         """
         self.field_name = field_name
         self.required = required
 
     def _get_extra_params(self) -> dict[str, Any]:
         """
-        Returns дополнительные параметры конкретного checkerа.
-
-        Переопределяется в наследниках для добавления специфичных parameters
-        (min_length, max_length, min_value, max_value, format и т.д.).
-
-        По умолчанию возвращает пустой словарь.
+        Return subclass-specific parameters for snapshot serialization.
 
         Returns:
-            dict с дополнительными параметрами checkerа.
+            Dictionary with extra checker params.
         """
         return {}
 
     def _check_required(self, result: dict[str, Any]) -> Any | None:
         """
-        Checks наличие и requiredсть поля в результате.
+        Validate required/non-null field presence.
 
         Args:
-            result: словарь результата аспекта.
+            result: aspect result dictionary.
 
         Returns:
-            Значение поля, если оно найдено и не None.
-            None, если поле неrequired и отсутствует.
+            Field value when present and non-None.
+            ``None`` when optional field is missing.
 
         Raises:
-            ValidationFieldError: если requiredе поле отсутствует или None.
+            ValidationFieldError: if required field is missing or ``None``.
         """
         value = result.get(self.field_name)
 
         if value is None:
             if self.required:
                 raise ValidationFieldError(
-                    f"Отсутствует обязательный параметр: '{self.field_name}'",
+                    f"Missing required parameter: '{self.field_name}'",
                     field=self.field_name,
                 )
             return None
@@ -175,16 +169,16 @@ class ResultFieldChecker:
 
     def check(self, result: dict[str, Any]) -> None:
         """
-        Полная проверка поля в результате аспекта.
+        Run full validation for one field in aspect result.
 
-        Сначала проверяет наличие и requiredсть через _check_required,
-        затем делегирует проверку типа и ограничений в _check_type_and_constraints.
+        Executes required/non-null validation first, then delegates type and
+        constraint checks to subclass hook.
 
         Args:
-            result: словарь результата аспекта.
+            result: aspect result dictionary.
 
         Raises:
-            ValidationFieldError: при любой ошибке валидации.
+            ValidationFieldError: on any validation failure.
         """
         value = self._check_required(result)
         if value is None:
@@ -194,14 +188,12 @@ class ResultFieldChecker:
     @abstractmethod
     def _check_type_and_constraints(self, value: Any) -> None:
         """
-        Checks тип и ограничения значения.
-
-        Реализуется в каждом конкретном checkerе.
+        Validate type and constraints for a non-None value.
 
         Args:
-            value: значение поля (гарантированно не None).
+            value: field value (guaranteed non-None).
 
         Raises:
-            ValidationFieldError: если значение не соответствует требованиям.
+            ValidationFieldError: if value violates checker rules.
         """
         pass

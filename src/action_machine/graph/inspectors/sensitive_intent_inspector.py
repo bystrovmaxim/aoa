@@ -24,7 +24,7 @@ INVARIANTS
 - Inspector does not execute user code beyond reading attributes on types.
 
 ═══════════════════════════════════════════════════════════════════════════════
-DATA FLOW
+ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
 ::
@@ -38,6 +38,17 @@ ERRORS / LIMITATIONS
 
 Validation of ``@sensitive`` arguments happens in the decorator at import time;
 this module only aggregates declared configs for the built graph.
+
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE-BEGIN
+═══════════════════════════════════════════════════════════════════════════════
+ROLE: Sensitive-field metadata inspector.
+CONTRACT: Aggregate ``_sensitive_config`` declarations into ``sensitive`` facet payloads and snapshots.
+INVARIANTS: Candidate set is deduplicated union of schema/action/resource subclasses; payloads contain no edges.
+FLOW: class traversal -> member scan -> sensitive config extraction -> snapshot -> payload.
+FAILURES: Missing declarations produce ``None`` payload (skip), not an error.
+EXTENSION POINTS: Additional marker roots can be added through ``_target_intents``.
+AI-CORE-END
 """
 
 from __future__ import annotations
@@ -57,8 +68,15 @@ class SensitiveIntentInspector(BaseIntentInspector):
     """
     Inspector that maps sensitive property configs into payload entries.
 
-    Обходит схемы (``BaseSchema``), действия (``BaseAction``) и
-    ``BaseResourceManager``: @sensitive на property, как в ``collect_sensitive_fields``.
+    Traverses schemas (``BaseSchema``), actions (``BaseAction``), and
+    resource managers (``BaseResourceManager``), collecting ``@sensitive``
+    declarations from properties/callables.
+
+    AI-CORE-BEGIN
+    ROLE: Concrete inspector for sensitive field masking metadata.
+    CONTRACT: Emit ``sensitive`` payloads and typed snapshots when declarations are present.
+    INVARIANTS: Uses union traversal roots and deduplicates classes by identity.
+    AI-CORE-END
     """
 
     _target_intents: tuple[type, ...] = (BaseSchema, BaseAction, BaseResourceManager)

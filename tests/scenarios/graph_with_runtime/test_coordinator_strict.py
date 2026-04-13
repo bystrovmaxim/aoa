@@ -1,46 +1,44 @@
-"""
-Тесты GateCoordinator — домены в графе, описания в узлах, repr.
+"""GateCoordinator tests - domains in a graph, descriptions in nodes, repr.
 
-═══════════════════════════════════════════════════════════════════════════════
-НАЗНАЧЕНИЕ
-═══════════════════════════════════════════════════════════════════════════════
+═══════════════════ ════════════════════ ════════════════════ ════════════════════
+PURPOSE
+═══════════════════ ════════════════════ ════════════════════ ════════════════════
 
-Параметр ``domain`` в ``@meta`` обязателен (keyword-only). Проверяются узлы
-``domain`` в facet-графе, описания в payload узлов и строковое представление
-координатора.
+The ``domain`` parameter in ``@meta`` is required (keyword-only). Nodes are checked
+``domain`` in the facet graph, descriptions in the payload of nodes and string representation
+coordinator
 
-═══════════════════════════════════════════════════════════════════════════════
-СЦЕНАРИИ
-═══════════════════════════════════════════════════════════════════════════════
+═══════════════════ ════════════════════ ════════════════════ ════════════════════
+SCENARIO
+═══════════════════ ════════════════════ ════════════════════ ════════════════════
 
 TestDomainInvariantActions
-    - Действие с domain — допустимо.
-    - Вызов ``meta(...)`` без ``domain=`` — TypeError.
-    - Действие без аспектов с domain — допустимо.
+    - Action with domain is acceptable.
+    - Calling ``meta(...)`` without ``domain=`` is a TypeError.
+    - An action without domain aspects is acceptable.
 
 TestDomainInvariantResources
-    - ResourceManager с domain — допустимо.
+    - ResourceManager with domain - acceptable.
 
 TestDomainEdgeCases
-    - Пустой класс (без @meta) — допустимо.
-    - Действие без @meta и без аспектов — допустимо.
+    - An empty class (without @meta) is acceptable.
+    - An action without @meta and without aspects is acceptable.
 
 TestDomainNodes
-    - Действие с domain создаёт stub-узел ``domain`` с ``class_ref`` на класс домена.
-    - Два действия с одним доменом — один такой узел на класс ``_OrdersDomain``.
-    - Разные домены — проверка по множеству ``class_ref`` в ``{_OrdersDomain, …}``.
-    - Действие без аспектов с domain: в meta facet указан класс домена.
-    - **Важно:** после ``build()`` в граф могут попасть чужие ``domain`` от других
-      классов экосистемы; тесты фильтруют узлы по ``class_ref is _OrdersDomain`` и т.п.
+    - The domain action creates a stub node ``domain`` with ``class_ref`` to the domain class.
+    - Two actions with one domain - one such node per class ``_OrdersDomain``.
+    - Different domains - checking against the ``class_ref`` set in ``{_OrdersDomain, ...}``.
+    - Action without aspects with domain: the domain class is specified in the meta facet.
+    - **Important:** after ``build()`` the graph may contain foreign ``domain`` from others
+      ecosystem classes; tests filter nodes by ``class_ref is _OrdersDomain`` etc.
 
 TestGraphDescriptions
-    - Описание действия доступно через узел ``meta``.
-    - Действие без аспектов с domain регистрируется без ошибок.
-    - Пустой класс — пустое description.
+    - Description of the action is available through the ``meta`` node.
+    - An action without domain aspects is registered without errors.
+    - Empty class - empty description.
 
 TestCoordinatorRepr
-    - repr содержит state и cached.
-"""
+    - repr contains state and cached."""
 
 
 import pytest
@@ -59,12 +57,12 @@ from action_machine.resources.base_resource_manager import BaseResourceManager
 from action_machine.runtime.machines.core_action_machine import CoreActionMachine
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Вспомогательные классы
+#Helper classes
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 def _node_key(node_type: str, cls: type, suffix: str = "") -> str:
-    """Формирует ключ узла графа: 'тип:модуль.ИмяКласса[.суффикс]'."""
+    """Generates the graph node key: 'type:module.ClassName[.suffix]'."""
     name = f"{cls.__module__}.{cls.__qualname__}"
     if suffix:
         name = f"{name}.{suffix}"
@@ -81,79 +79,79 @@ class _Result(BaseResult):
 
 class _OrdersDomain(BaseDomain):
     name = "orders"
-    description = "Домен заказов"
+    description = "Order domain"
 
 
 class _PaymentsDomain(BaseDomain):
     name = "payments"
-    description = "Домен платежей"
+    description = "Payment domain"
 
 
-# ─── Действие с доменом ──────────────────────────────────────────────────
+#─── Action with domain ───────────────────────── ─────────────────────────
 
 
-@meta("Создание заказа", domain=_OrdersDomain)
+@meta("Create an order", domain=_OrdersDomain)
 @check_roles(NoneRole)
 class _OrderAction(BaseAction["_Params", "_Result"]):
 
-    @summary_aspect("Итог")
+    @summary_aspect("Bottom line")
     async def finalize_summary(self, params, state, box, connections):
         return {"result": "ok"}
 
 
-# ─── Другое действие с тем же доменом ────────────────────────────────────
+#─── Another action with the same domain ────────────────────────────────────
 
 
-@meta("Получение заказа", domain=_OrdersDomain)
+@meta("Receiving an order", domain=_OrdersDomain)
 @check_roles(NoneRole)
 class _GetOrderAction(BaseAction["_Params", "_Result"]):
 
-    @summary_aspect("Итог")
+    @summary_aspect("Bottom line")
     async def finalize_summary(self, params, state, box, connections):
         return {"result": "ok"}
 
 
-# ─── Действие с другим доменом ───────────────────────────────────────────
+#─── Action with another domain ───────────────────── ──────────────────────
 
 
-@meta("Оплата", domain=_PaymentsDomain)
+@meta("Payment", domain=_PaymentsDomain)
 @check_roles(NoneRole)
 class _PaymentAction(BaseAction["_Params", "_Result"]):
 
-    @summary_aspect("Итог")
+    @summary_aspect("Bottom line")
     async def finalize_summary(self, params, state, box, connections):
         return {"result": "ok"}
 
 
-# ─── Действие с аспектами и доменом payments ─────────────────────────────
+#─── Action with aspects and domain payments ─────────────────────────────
 
 
-@meta("Ping с доменом payments", domain=_PaymentsDomain)
+@meta("Ping with payments domain", domain=_PaymentsDomain)
 @check_roles(NoneRole)
 class _NoDomainAction(BaseAction["_Params", "_Result"]):
 
-    @summary_aspect("Итог")
+    @summary_aspect("Bottom line")
     async def finalize_summary(self, params, state, box, connections):
         return {"result": "ok"}
 
 
-# ─── ResourceManager с доменом ───────────────────────────────────────────
+#─── ResourceManager with domain ───────────────────── ──────────────────────
 
 
-@meta("Менеджер заказов", domain=_OrdersDomain)
+@meta("Order Manager", domain=_OrdersDomain)
 class _OrderManager(BaseResourceManager):
     pass
 
 
-# ─── ResourceManager с доменом payments ─────────────────────────────────
+#─── ResourceManager with payments domain ─────────────────────────────────
 
 
-@meta("Менеджер с доменом payments", domain=_PaymentsDomain)
+@meta("Manager with domain payments", domain=_PaymentsDomain)
 class _NoDomainManager(BaseResourceManager):
     pass
 
 
-# ─── Действие без @meta и без аспектов ──────────────────────────────────
+#─── Action without @meta and without aspects ──────────────────────────────────
 
 
 @check_roles(NoneRole)
@@ -161,10 +159,10 @@ class _PlainAction(BaseAction["_Params", "_Result"]):
     pass
 
 
-# ─── Действие без аспектов, с @meta и доменом ────────────────────────────
+#─── Action without aspects, with @meta and domain ────────────────────────────
 
 
-@meta("Действие без аспектов", domain=_OrdersDomain)
+@meta("Action without aspects", domain=_OrdersDomain)
 @check_roles(NoneRole)
 class _NoAspectsAction(BaseAction["_Params", "_Result"]):
     pass
@@ -180,12 +178,12 @@ def _coord() -> GateCoordinator:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Инвариант domain — действия
+#Domain invariant - actions
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestDomainInvariantActions:
-    """Домен в @meta для действий с аспектами."""
+    """Domain in @meta for actions with aspects."""
 
     def test_action_with_domain_ok(self):
         coord = _coord()
@@ -207,16 +205,16 @@ class TestDomainInvariantActions:
 
     def test_meta_missing_domain_raises_typeerror(self):
         with pytest.raises(TypeError, match="domain"):
-            meta("Описание без домена")
+            meta("Description without domain")
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Инвариант domain — ресурсы
+#Domain invariant - resources
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestDomainInvariantResources:
-    """Домен в @meta для ResourceManager."""
+    """Domain in @meta for ResourceManager."""
 
     def test_resource_with_domain_ok(self):
         coord = _coord()
@@ -232,12 +230,12 @@ class TestDomainInvariantResources:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Граничные случаи
+#Boundary Cases
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestDomainEdgeCases:
-    """Классы без затронутых инвариантов."""
+    """Classes without affected invariants."""
 
     def test_plain_class_no_effect(self):
         coord = _coord()
@@ -249,12 +247,12 @@ class TestDomainEdgeCases:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Домены в графе
+#Domains in the graph
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestDomainNodes:
-    """Создание domain-узлов в графе."""
+    """Creating domain nodes in a graph."""
 
     def test_action_with_domain_creates_domain_node(self):
         coord = _coord()
@@ -307,12 +305,12 @@ class TestDomainNodes:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Описания в узлах графа
+#Descriptions in graph nodes
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestGraphDescriptions:
-    """Узлы графа содержат описания в payload."""
+    """The graph nodes contain descriptions in the payload."""
 
     def test_action_node_contains_description(self):
         coord = _coord()
@@ -330,7 +328,7 @@ class TestGraphDescriptions:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Строковое представление координатора
+#String representation of coordinator
 # ═════════════════════════════════════════════════════════════════════════════
 
 
@@ -348,4 +346,5 @@ class TestCoordinatorRepr:
         result = repr(coord)
         assert isinstance(result, str)
         assert "GateCoordinator(" in result
+        assert "state=built" in result
         assert "state=built" in result

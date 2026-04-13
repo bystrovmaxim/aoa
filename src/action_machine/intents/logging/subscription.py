@@ -18,6 +18,28 @@ INVARIANTS
 - Domain matching uses ``issubclass`` so subclasses match a listed domain.
 
 ═══════════════════════════════════════════════════════════════════════════════
+ARCHITECTURE / DATA FLOW
+═══════════════════════════════════════════════════════════════════════════════
+
+    BaseLogger.subscribe(...)
+            |
+            v
+    LogSubscription.__post_init__()
+            |
+            +--> validate channels / levels
+            +--> normalize domains (single/list/tuple -> tuple|None)
+            |
+            v
+    BaseLogger.match_filters(...)
+            |
+            v
+    subscription.matches(var)
+            |
+            +--> channel mask intersection
+            +--> level mask intersection
+            +--> optional domain issubclass check
+
+═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -112,6 +134,12 @@ class LogSubscription:
     domains: after construction, a tuple of domain classes or None (ignore domain).
         At init, pass ``_domains_raw``: one ``BaseDomain`` subclass, a non-empty
         list, a non-empty tuple, or None. Match uses issubclass — subclasses match.
+
+    AI-CORE-BEGIN
+    ROLE: Immutable per-rule predicate for logger-side filtering.
+    CONTRACT: Validate on construction, evaluate channel/level/domain on match.
+    INVARIANTS: Rule dimensions are AND-combined inside one subscription.
+    AI-CORE-END
     """
 
     key: str

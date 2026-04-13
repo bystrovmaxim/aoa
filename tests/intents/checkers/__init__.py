@@ -1,83 +1,76 @@
 # tests/intents/checkers/__init__.py
 """
-Пакет тестов чекеров результата аспектов ActionMachine.
+Tests for ActionMachine aspect result checkers.
 
 ═══════════════════════════════════════════════════════════════════════════════
-НАЗНАЧЕНИЕ
+PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Содержит тесты для всех шести типов чекеров результата. Каждый чекер
-проверяет одно поле в словаре, возвращаемом методом-аспектом. Машина
-создаёт экземпляры чекеров из CheckerMeta и вызывает checker.check(result_dict)
-после выполнения каждого аспекта.
+Covers all six result checker types. Each checker validates one field in the dict
+returned by an aspect method. The machine builds checker instances from CheckerMeta
+and calls checker.check(result_dict) after each aspect.
 
 ═══════════════════════════════════════════════════════════════════════════════
-КОМПОНЕНТЫ
+COMPONENTS
 ═══════════════════════════════════════════════════════════════════════════════
 
 ResultStringChecker / result_string
-    Проверяет, что поле — строка. Дополнительные параметры: not_empty,
-    min_length, max_length. Пустая строка при not_empty=True — ошибка.
+    Ensures the field is a string. Extra params: not_empty, min_length, max_length.
+    Empty string with not_empty=True is an error.
 
 ResultIntChecker / result_int
-    Проверяет, что поле — целое число (int, не bool). Дополнительные
-    параметры: min_value, max_value.
+    Ensures the field is an int (not bool). Extra params: min_value, max_value.
 
 ResultFloatChecker / result_float
-    Проверяет, что поле — число (int или float). Дополнительные
-    параметры: min_value, max_value. Bool формально проходит isinstance,
-    но это задокументированное поведение Python (bool — подкласс int).
+    Ensures the field is numeric (int or float). Extra params: min_value, max_value.
+    bool passes isinstance in Python by design (bool is a subclass of int).
 
 ResultBoolChecker / result_bool
-    Проверяет, что поле — булево (True/False). Числа (0, 1), строки
-    ("true", "false") и другие типы не принимаются — только точное
-    isinstance(value, bool).
+    Ensures the field is strictly bool. Numbers (0, 1), strings ("true", "false"),
+    and other types are rejected — only isinstance(value, bool).
 
 ResultDateChecker / result_date
-    Проверяет, что поле — объект datetime или строка, разбираемая
-    по указанному формату (date_format). Дополнительные параметры:
-    date_format, min_date, max_date.
+    Ensures the field is a datetime or a string parseable with date_format.
+    Extra params: date_format, min_date, max_date.
 
 ResultInstanceChecker / result_instance
-    Проверяет, что поле — экземпляр указанного класса (или одного
-    из классов в кортеже). Поддерживает наследование через isinstance.
-    Дополнительный параметр: expected_class.
+    Ensures the field is an instance of the given class (or tuple of classes).
+    Uses isinstance including subclasses. Extra param: expected_class.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ОБЩИЙ КОНТРАКТ ЧЕКЕРОВ
+SHARED CHECKER CONTRACT
 ═══════════════════════════════════════════════════════════════════════════════
 
-Все чекеры наследуют ResultFieldChecker и реализуют единый интерфейс:
+All checkers inherit ResultFieldChecker and share:
 
     checker = SomeChecker(field_name, required=True, **extra_params)
-    checker.check(result_dict)  # ValidationFieldError при нарушении
+    checker.check(result_dict)  # ValidationFieldError on violation
 
-Метод check() выполняет три шага:
-    1. Проверяет наличие поля в словаре (required).
-    2. Проверяет, что значение не None (required).
-    3. Вызывает _check_type_and_constraints(value) — специфичную
-       для каждого чекера проверку типа и ограничений.
-
-═══════════════════════════════════════════════════════════════════════════════
-ОБЩИЙ КОНТРАКТ ДЕКОРАТОРОВ
-═══════════════════════════════════════════════════════════════════════════════
-
-Каждый декоратор (result_string, result_int, ...) выполняет одну задачу:
-записывает словарь метаданных в атрибут _checker_meta метода-аспекта.
-MetadataBuilder собирает эти метаданные в checker snapshot (GateCoordinator.get_checkers).
-Декоратор не изменяет функцию — возвращает оригинал. Несколько
-декораторов на одном методе накапливают список _checker_meta.
+check() steps:
+    1. Field presence (required).
+    2. Value not None (required).
+    3. _check_type_and_constraints(value) — type-specific checks.
 
 ═══════════════════════════════════════════════════════════════════════════════
-СТРУКТУРА ТЕСТОВ
+SHARED DECORATOR CONTRACT
+═══════════════════════════════════════════════════════════════════════════════
+
+Each decorator (result_string, result_int, ...) records metadata in the aspect
+method's _checker_meta. MetadataBuilder aggregates into the checker snapshot
+(GateCoordinator.get_checkers). The decorator returns the original function unchanged;
+multiple decorators on one method accumulate a list of _checker_meta.
+
+═══════════════════════════════════════════════════════════════════════════════
+TEST LAYOUT
 ═══════════════════════════════════════════════════════════════════════════════
 
     tests/intents/checkers/
-    ├── __init__.py                      — этот файл
-    ├── test_result_string_checker.py    — строки, not_empty, min/max_length
-    ├── test_result_int_checker.py       — целые числа, min/max_value
-    ├── test_result_float_checker.py     — числа (int/float), min/max_value
-    ├── test_result_bool_checker.py      — булевы значения, строгий isinstance
-    ├── test_result_date_checker.py      — даты, date_format, min/max_date
-    └── test_result_instance_checker.py  — isinstance, одиночный/кортеж классов
+    ├── __init__.py                      — this file
+    ├── test_result_string_checker.py    — strings, not_empty, min/max_length
+    ├── test_result_int_checker.py       — integers, min/max_value
+    ├── test_result_float_checker.py     — numbers (int/float), min/max_value
+    ├── test_result_bool_checker.py      — bool, strict isinstance
+    ├── test_result_date_checker.py      — dates, date_format, min/max_date
+    ├── test_result_instance_checker.py  — isinstance, single/tuple of classes
+    └── test_checker_class_naming.py     — ResultFieldChecker class name suffix
 """

@@ -1,22 +1,57 @@
 # tests/adapters/mcp/test_mcp_schema.py
 """
-Tests for MCP inputSchema generation from Pydantic Params models.
+JSON Schema shape for MCP ``inputSchema`` (Pydantic ``Params`` models).
 
-When McpAdapter registers a tool, the inputSchema for that tool is derived
-from the effective_request_model (usually the action's Params class) via
-Pydantic's model_json_schema(). This schema drives how AI agents understand
-what parameters a tool accepts — field names, types, descriptions,
-constraints, required fields, defaults, and examples.
+═══════════════════════════════════════════════════════════════════════════════
+PURPOSE
+═══════════════════════════════════════════════════════════════════════════════
 
-Scenarios covered:
-    - Empty Params produces a schema with no required properties.
-    - Params with typed fields produces correct JSON Schema types.
-    - Field descriptions propagate to schema property descriptions.
-    - Field constraints (gt, min_length, pattern) appear in the schema.
-    - Required fields appear in the schema's "required" list.
-    - Optional fields with defaults are not in the "required" list.
-    - Nested Pydantic models produce $ref or nested object schemas.
-    - model_json_schema output matches expected structure for domain actions.
+Mirror what ``McpAdapter`` does internally: ``effective_request_model.model_json_schema()``
+must expose types, descriptions, constraints, required vs optional fields,
+nested objects, and examples in a form suitable for tool-calling clients.
+
+═══════════════════════════════════════════════════════════════════════════════
+ARCHITECTURE / DATA FLOW
+═══════════════════════════════════════════════════════════════════════════════
+
+    Domain action ``Params`` (Pydantic ``BaseModel``)
+              |
+              v
+    _get_schema(model)  ==  model.model_json_schema()
+              |
+              v
+    Assertions on JSON Schema fragments (types, required, $ref, ...)
+
+═══════════════════════════════════════════════════════════════════════════════
+INVARIANTS
+═══════════════════════════════════════════════════════════════════════════════
+
+- Uses the same Pydantic major version as the library under test.
+
+═══════════════════════════════════════════════════════════════════════════════
+EXAMPLES
+═══════════════════════════════════════════════════════════════════════════════
+
+    uv run pytest tests/adapters/mcp/test_mcp_schema.py -q
+
+Edge case: empty ``Params`` → object schema with no required properties.
+
+═══════════════════════════════════════════════════════════════════════════════
+ERRORS / LIMITATIONS
+═══════════════════════════════════════════════════════════════════════════════
+
+- Schema keys and ``$ref`` layout can shift with Pydantic upgrades; tests encode
+  current stable expectations.
+
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE-BEGIN
+═══════════════════════════════════════════════════════════════════════════════
+ROLE: Contract tests for tool input JSON Schema from Params models.
+CONTRACT: ``model_json_schema`` parity with MCP adapter expectations.
+INVARIANTS: Scenario models ``PingAction``, ``SimpleAction``, ``FullAction``.
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE-END
+═══════════════════════════════════════════════════════════════════════════════
 """
 
 from pydantic import BaseModel, Field

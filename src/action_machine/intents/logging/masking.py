@@ -2,8 +2,66 @@
 """
 Masking utilities for sensitive data in logs.
 
-Provides the core masking function used by both the debug inspector
-and the variable substitutor to hide sensitive information.
+═══════════════════════════════════════════════════════════════════════════════
+PURPOSE
+═══════════════════════════════════════════════════════════════════════════════
+
+Provides the core masking function used by both the debug inspector and the
+variable substitutor to hide sensitive values in rendered logs.
+
+═══════════════════════════════════════════════════════════════════════════════
+INVARIANTS
+═══════════════════════════════════════════════════════════════════════════════
+
+- Input is always converted to string before masking.
+- Visible prefix is bounded by both ``max_chars`` and ``max_percent``.
+- Mask suffix length is constant (5 characters).
+
+═══════════════════════════════════════════════════════════════════════════════
+ARCHITECTURE / DATA FLOW
+═══════════════════════════════════════════════════════════════════════════════
+
+    @sensitive metadata / debug inspection
+                   |
+                   v
+    mask_value(value, config)
+                   |
+                   +--> normalize config defaults
+                   +--> compute keep length
+                   +--> return visible prefix + mask suffix
+                   |
+                   v
+    substituted/debug output in final log line
+
+═══════════════════════════════════════════════════════════════════════════════
+EXAMPLES
+═══════════════════════════════════════════════════════════════════════════════
+
+    mask_value("4111111111111111", {"max_chars": 4, "char": "*", "max_percent": 50})
+    # -> "4111*****"
+
+    mask_value("abc", {"max_chars": 10, "max_percent": 100})
+    # -> "abc"  (no masking when keep >= length)
+
+═══════════════════════════════════════════════════════════════════════════════
+ERRORS / LIMITATIONS
+═══════════════════════════════════════════════════════════════════════════════
+
+- Config coercion is intentionally conservative: non-int/non-str values fall
+  back to defaults.
+- Function does not validate security policy completeness; caller decides when
+  masking is enabled.
+
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE-BEGIN
+═══════════════════════════════════════════════════════════════════════════════
+ROLE: Shared low-level masker for logging privacy controls.
+CONTRACT: Return deterministic partially-masked string based on config bounds.
+INVARIANTS: Prefix keep length is min(chars-bound, percent-bound, length).
+FLOW: raw value -> stringify -> compute keep -> append fixed mask suffix.
+FAILURES: No exceptions for malformed config types; defaults are applied.
+EXTENSION POINTS: Adjust masking strategy centrally without changing callers.
+AI-CORE-END
 """
 
 from typing import Any
@@ -11,22 +69,7 @@ from typing import Any
 
 def mask_value(value: Any, config: dict[str, Any]) -> str:
     """
-    Mask a value according to the provided configuration.
-
-    Args:
-        value: The raw value (converted to string).
-        config: Dictionary with keys:
-            - 'enabled' (bool, ignored here – checked by caller)
-            - 'max_chars' (int, default 3)
-            - 'char' (str, default '*')
-            - 'max_percent' (int, default 50)
-
-    Returns:
-        A masked string representation of the value.
-
-    The algorithm shows at most `max_chars` characters or `max_percent`
-    percent of the string length, whichever is smaller. The remainder
-    is replaced with 5 copies of the `char` character.
+    Mask value using ``max_chars``, ``char``, and ``max_percent`` constraints.
     """
     s = str(value)
 

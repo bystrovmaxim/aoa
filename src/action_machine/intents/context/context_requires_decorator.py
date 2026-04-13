@@ -1,101 +1,99 @@
 # src/action_machine/intents/context/context_requires_decorator.py
 """
-Decorator @context_requires — декларация доступа аспекта к полям contextа.
+Decorator ``@context_requires`` — declare aspect access to context fields.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Decorator @context_requires — часть грамматики намерений ActionMachine.
-Он объявляет, какие поля contextа (Context) нужны аспекту или обработчику
-ошибок. При вызове аспекта машина (ActionProductMachine) создаёт
-ContextView с указанными ключами и передаёт его как последний параметр ctx.
+``@context_requires`` is part of ActionMachine intent grammar.
+It declares which context fields (``Context``) are required by an aspect or
+error handler. At runtime, ``ActionProductMachine`` creates ``ContextView``
+with these keys and passes it as last parameter ``ctx``.
 
-Без @context_requires аспект не получает доступа к contextу вообще.
-Это реализация принципа минимальных привилегий: аспект видит ровно те
-данные, которые объявил как необходимые.
+Without ``@context_requires``, aspects do not get context access at all.
+This enforces least-privilege visibility: aspect sees only declared fields.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ПРИМЕНЕНИЕ
+USAGE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Decorator применяется к async-methodам, которые являются аспектами
-(@regular_aspect, @summary_aspect) или обработчиками ошибок (@on_error).
-Записывает frozenset ключей в атрибут func._required_context_keys.
+Decorator applies to async methods that are aspects
+(``@regular_aspect``, ``@summary_aspect``) or error handlers (``@on_error``).
+It writes a frozenset of keys to attribute ``func._required_context_keys``.
 
-@context_requires располагается ближе к функции (снизу), а декоратор
-аспекта — снаружи (сверху). Это гарантирует, что при проверке сигнатуры
-в @regular_aspect атрибут _required_context_keys уже записан:
+``@context_requires`` should be closer to function body, while aspect decorator
+wraps from outside. This guarantees ``_required_context_keys`` is already set
+when aspect decorator validates method signature:
 
-    @regular_aspect("Проверка прав")        # применяется последним
+    @regular_aspect("Permission check")      # applied last
     @result_string("status", required=True)  # checker
-    @context_requires(Ctx.User.user_id)      # применяется первым
+    @context_requires(Ctx.User.user_id)      # applied first
     async def check_aspect(self, params, state, box, connections, ctx):
         ...
 
 ═══════════════════════════════════════════════════════════════════════════════
-КЛЮЧИ — СТРОКИ DOT-PATH
+KEYS ARE DOT-PATH STRINGS
 ═══════════════════════════════════════════════════════════════════════════════
 
-Каждый ключ — строка вида "компонент.поле", соответствующая навигации
-через Context.resolve(). Для стандартных полей используются константы
-из Ctx (с автодополнением IDE), для кастомных — строки напрямую:
+Each key is a ``"component.field"`` dot-path string for ``Context.resolve()``.
+For standard fields, prefer ``Ctx`` constants (IDE autocomplete); for custom
+fields, use raw strings:
 
     @context_requires(Ctx.User.user_id, "user.extra.billing_plan")
 
-Decorator не валидирует существование ключей в Context, потому что
-Context может быть расширен наследниками. Validation доступа происходит
-в рантайме через ContextView.get().
+Decorator does not validate key existence in ``Context`` because context schema
+may be extended by inheritance. Access validation is performed at runtime by
+``ContextView.get()``.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ВЛИЯНИЕ НА СИГНАТУРУ
+SIGNATURE IMPACT
 ═══════════════════════════════════════════════════════════════════════════════
 
-Наличие @context_requires меняет ожидаемое количество parameters methodа:
+Presence of ``@context_requires`` changes expected method parameter count:
 
-    Аспекты (@regular_aspect, @summary_aspect):
-        Без @context_requires → 5 parameters: self, params, state, box, connections
-        С @context_requires   → 6 parameters: self, params, state, box, connections, ctx
+    Aspects (``@regular_aspect``, ``@summary_aspect``):
+        Without ``@context_requires`` -> 5 parameters: self, params, state, box, connections
+        With ``@context_requires``    -> 6 parameters: self, params, state, box, connections, ctx
 
-    Обработчики ошибок (@on_error):
-        Без @context_requires → 6 parameters: self, params, state, box, connections, error
-        С @context_requires   → 7 parameters: self, params, state, box, connections, error, ctx
+    Error handlers (``@on_error``):
+        Without ``@context_requires`` -> 6 parameters: self, params, state, box, connections, error
+        With ``@context_requires``    -> 7 parameters: self, params, state, box, connections, error, ctx
 
-Проверку количества parameters выполняют декораторы @regular_aspect,
-@summary_aspect и @on_error — они смотрят наличие _required_context_keys
-на функции и ожидают соответствующее число.
-
-═══════════════════════════════════════════════════════════════════════════════
-LIMITATIONS (INVARIANTS)
-═══════════════════════════════════════════════════════════════════════════════
-
-- Хотя бы один ключ обязателен (пустой @context_requires бессмыслен).
-- Каждый ключ — непустая строка.
-- Целевой объект — callable (async-method).
-- Decorator не проверяет количество parameters и не проверяет,
-  является ли method аспектом — это ответственность @regular_aspect
-  и других декораторов.
+Parameter-count validation is done by ``@regular_aspect``, ``@summary_aspect``,
+and ``@on_error`` decorators. They inspect ``_required_context_keys`` and
+expect corresponding arity.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ARCHITECTURE / DATA FLOW ИНТЕГРАЦИИ
+INVARIANTS
+═══════════════════════════════════════════════════════════════════════════════
+
+- At least one key is required (empty call is invalid).
+- Every key must be a non-empty string.
+- Target object must be callable (typically async method).
+- Decorator does not validate method arity or aspect role; this belongs to
+  ``@regular_aspect``, ``@summary_aspect``, and ``@on_error``.
+
+═══════════════════════════════════════════════════════════════════════════════
+ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
     @context_requires(Ctx.User.user_id, Ctx.Request.trace_id)
         │
-        ▼  Decorator записывает в func._required_context_keys
+        ▼  decorator writes to func._required_context_keys
     frozenset({"user.user_id", "request.trace_id"})
         │
-        ▼  @regular_aspect проверяет сигнатуру
-    Видит _required_context_keys → ожидает 6 parameters
+        ▼  @regular_aspect validates signature
+    sees _required_context_keys -> expects 6 parameters
         │
         ▼  AspectIntentInspector._collect_aspects(cls)
     aspect_snapshot.context_keys = frozenset({"user.user_id", "request.trace_id"})
         │
         ▼  ActionProductMachine._call_aspect(...)
-    context_keys непустой → создаёт ContextView → передаёт как ctx
+    non-empty context_keys -> create ContextView -> pass as ctx
         │
-        ▼  Аспект вызывает ctx.get(Ctx.User.user_id)
-    ContextView проверяет allowed_keys → возвращает значение
+        ▼  aspect calls ctx.get(Ctx.User.user_id)
+    ContextView validates allowed_keys -> returns value
 
 ═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES
@@ -103,34 +101,45 @@ EXAMPLES
 
     from action_machine.intents.context import Ctx, context_requires
 
-    # Стандартные поля через константы:
-    @regular_aspect("Проверка прав")
+    # Standard fields through constants:
+    @regular_aspect("Permission check")
     @context_requires(Ctx.User.user_id, Ctx.User.roles)
     async def check_permissions_aspect(self, params, state, box, connections, ctx):
         user_id = ctx.get(Ctx.User.user_id)
         roles = ctx.get(Ctx.User.roles)
         return {}
 
-    # Смесь констант и строковых путей:
-    @regular_aspect("Биллинг")
+    # Mix of constants and custom string paths:
+    @regular_aspect("Billing")
     @context_requires(Ctx.User.user_id, "user.extra.billing_plan")
     async def billing_aspect(self, params, state, box, connections, ctx):
         plan = ctx.get("user.extra.billing_plan")
         return {"plan": plan}
 
-    # На обработчике ошибок:
-    @on_error(ValueError, description="Ошибка валидации")
+    # On error handler:
+    @on_error(ValueError, description="Validation error")
     @context_requires(Ctx.User.user_id)
     async def handle_on_error(self, params, state, box, connections, error, ctx):
         user_id = ctx.get(Ctx.User.user_id)
         return ErrorResult(user_id=user_id, error=str(error))
 
 ═══════════════════════════════════════════════════════════════════════════════
-ERRORS
+ERRORS / LIMITATIONS
 ═══════════════════════════════════════════════════════════════════════════════
 
-    TypeError — ключ не строка; целевой объект не callable.
-    ValueError — ключей не передано (пустой вызов); ключ — пустая строка.
+    TypeError  — key is not string; target object is not callable.
+    ValueError — no keys provided (empty call); key is empty/whitespace.
+
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE-BEGIN
+═══════════════════════════════════════════════════════════════════════════════
+ROLE: Context-access declaration decorator module.
+CONTRACT: Attach deterministic required-context key set to decorated methods.
+INVARIANTS: Non-empty string keys and callable target validation.
+FLOW: declaration -> _required_context_keys -> signature validation -> ContextView runtime access.
+FAILURES: TypeError/ValueError for invalid declaration usage.
+EXTENSION POINTS: Custom context keys via dot-path strings.
+AI-CORE-END
 """
 
 from __future__ import annotations
@@ -141,66 +150,60 @@ from typing import Any
 
 def context_requires(*keys: str) -> Callable[[Any], Any]:
     """
-    Decorator уровня methodа. Декларирует поля contextа, необходимые
-    аспекту или обработчику ошибок.
+    Method-level decorator declaring context fields required by a callable.
 
-    Записывает frozenset ключей в атрибут func._required_context_keys.
-    Decoratorы @regular_aspect, @summary_aspect и @on_error при проверке
-    сигнатуры обнаруживают этот атрибут и ожидают дополнительный
-    параметр ctx.
+    Writes frozenset of keys to ``func._required_context_keys``.
+    ``@regular_aspect``, ``@summary_aspect``, and ``@on_error`` use this marker
+    during signature validation and require additional ``ctx`` parameter.
 
     Args:
-        *keys: один или несколько строковых ключей (dot-path).
-               Для стандартных полей рекомендуется использовать
-               константы Ctx (Ctx.User.user_id, Ctx.Request.trace_id).
-               Для кастомных полей — строки ("user.extra.billing_plan").
+        *keys: one or more string keys (dot-path).
+            For standard fields, prefer Ctx constants.
+            For custom fields, use raw strings
+            (for example ``"user.extra.billing_plan"``).
 
     Returns:
-        Decorator, который записывает _required_context_keys в функцию
-        и возвращает функцию без изменений.
+        Decorator that writes ``_required_context_keys`` and returns target unchanged.
 
     Raises:
         ValueError:
-            - Ключей не передано (пустой вызов @context_requires()).
-            - Ключ — пустая строка или строка из пробелов.
+            - no keys provided (empty ``@context_requires()`` call),
+            - key is empty or whitespace-only string.
         TypeError:
-            - Ключ не является строкой.
-            - Целевой объект не является callable.
+            - key is not string,
+            - target object is not callable.
     """
-    # ── Проверка: хотя бы один ключ ──
+    # ── Validate at least one key ──
     if not keys:
         raise ValueError(
-            "@context_requires: необходимо указать хотя бы один ключ. "
-            "Пример: @context_requires(Ctx.User.user_id)"
+            "@context_requires: at least one key is required. "
+            "Example: @context_requires(Ctx.User.user_id)"
         )
 
-    # ── Проверка каждого ключа ──
+    # ── Validate each key ──
     for i, key in enumerate(keys):
         if not isinstance(key, str):
             raise TypeError(
-                f"@context_requires: ключ [{i}] должен быть строкой, "
-                f"получен {type(key).__name__}: {key!r}."
+                f"@context_requires: key [{i}] must be a string, "
+                f"got {type(key).__name__}: {key!r}."
             )
         if not key.strip():
             raise ValueError(
-                f"@context_requires: ключ [{i}] не может быть пустой строкой. "
-                f"Укажите dot-path, например 'user.user_id'."
+                f"@context_requires: key [{i}] cannot be empty. "
+                f"Provide a dot-path such as 'user.user_id'."
             )
 
-    # ── Формирование frozenset ключей ──
+    # ── Build validated key set ──
     validated_keys: frozenset[str] = frozenset(keys)
 
     def decorator(func: Any) -> Any:
         """
-        Внутренний декоратор, применяемый к methodу.
-
-        Checks, что цель — callable. Записывает _required_context_keys
-        и возвращает функцию без изменений.
+        Inner decorator applied to target callable.
         """
         if not callable(func):
             raise TypeError(
-                f"@context_requires можно применять только к методам. "
-                f"Получен объект типа {type(func).__name__}: {func!r}."
+                f"@context_requires can only be applied to methods/callables. "
+                f"Got object of type {type(func).__name__}: {func!r}."
             )
 
         func._required_context_keys = validated_keys

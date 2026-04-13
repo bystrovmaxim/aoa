@@ -1,4 +1,4 @@
 # tests/runtime/__init__.py
 """
-Тесты рантайма: машины выполнения, ToolsBox, CoreHelper, компоненты сборки.
+Runtime tests: execution machines, ToolsBox, CoreHelper, assembly components.
 """

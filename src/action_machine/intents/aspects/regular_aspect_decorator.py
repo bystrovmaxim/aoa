@@ -21,6 +21,20 @@ If ``@context_requires`` is present, ``ContextView`` is passed as ``ctx``:
 - without context: ``(self, params, state, box, connections)``
 - with context: ``(self, params, state, box, connections, ctx)``
 
+    @regular_aspect(...)
+           |
+           v
+    declaration invariants
+           |
+           v
+    _new_aspect_meta on method
+           |
+           v
+    inspector snapshot
+           |
+           v
+    runtime state merge
+
 ═══════════════════════════════════════════════════════════════════════════════
 INVARIANTS
 ═══════════════════════════════════════════════════════════════════════════════
@@ -148,18 +162,6 @@ def _method_suffix_invariant(func: Any, description: str) -> None:
 def regular_aspect(description: str) -> Callable[[Any], Any]:
     """
     Mark an action method as a regular pipeline step.
-
-    ═══════════════════════════════════════════════════════════════════════════
-    AI-CORE-BEGIN
-    ═══════════════════════════════════════════════════════════════════════════
-    ROLE: Public decorator contract for regular pipeline steps.
-    CONTRACT: validate declaration and emit deterministic aspect metadata.
-    INVARIANTS: async callable + signature + suffix + non-empty description.
-    FLOW: decorator call -> invariant checks -> metadata attach -> inspector consumption.
-    FAILURES: declaration-time TypeError/ValueError/NamingSuffixError.
-    EXTENSION POINTS: context-aware variant via ``@context_requires``.
-    AI-CORE-END
-    ═══════════════════════════════════════════════════════════════════════════
     """
     _description_type_invariant(description)
     _description_non_empty_invariant(description)

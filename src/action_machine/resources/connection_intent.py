@@ -1,23 +1,22 @@
 # src/action_machine/resources/connection_intent.py
 """
-Модуль: ConnectionIntent — маркерный миксин для декоратора @connection.
+ConnectionIntent marker mixin for ``@connection`` decorator.
 
 ═══════════════════════════════════════════════════════════════════════════════
-НАЗНАЧЕНИЕ
+PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-ConnectionIntent — миксин-маркер, который разрешает применение декоратора
-@connection к классу. Декоратор при применении проверяет:
+``ConnectionIntent`` is a marker mixin that allows ``@connection`` usage on a
+class. During decorator application, runtime checks:
 
     if not issubclass(cls, ConnectionIntent):
-        raise TypeError("Класс должен наследовать ConnectionIntent")
+        raise TypeError("Class must inherit ConnectionIntent")
 
-Без наследования от ConnectionIntent декоратор @connection выбросит
-TypeError. Это защита от случайного объявления соединений на классах,
-которые не поддерживают работу с ресурс-менеджерами.
+Without ``ConnectionIntent`` inheritance, ``@connection`` raises ``TypeError``.
+This protects against accidental resource declarations on unsupported classes.
 
 ═══════════════════════════════════════════════════════════════════════════════
-АРХИТЕКТУРА
+ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
     class BaseAction[P, R](
@@ -26,43 +25,70 @@ TypeError. Это защита от случайного объявления с
         DependencyIntent[object],
         CheckerIntent,
         AspectIntent,
-        ConnectionIntent,             ← маркер: разрешает @connection
+        ConnectionIntent,             <- marker: enables @connection
     ): ...
 
-    @connection(PostgresManager, key="db", description="Основная БД")
-    @connection(RedisManager, key="cache", description="Кеш")
+    @connection(PostgresManager, key="db", description="Primary DB")
+    @connection(RedisManager, key="cache", description="Cache")
     class DataAction(BaseAction[P, R]):
         ...
 
-    # Декоратор @connection проверяет:
-    #   1. issubclass(DataAction, ConnectionIntent) → True → OK
-    #   2. issubclass(PostgresManager, BaseResourceManager) → True → OK
-    #   3. key="db" — непустая строка → OK
-    #   4. Дубликатов по ключу нет → OK
-    #   5. Записывает ConnectionInfo в cls._connection_info
+    # @connection validation:
+    #   1. issubclass(DataAction, ConnectionIntent) -> True -> OK
+    #   2. issubclass(PostgresManager, BaseResourceManager) -> True -> OK
+    #   3. key="db" is non-empty string -> OK
+    #   4. Key duplicates are absent -> OK
+    #   5. Writes ConnectionInfo into cls._connection_info
 
-    # ConnectionIntentInspector читает cls._connection_info при build().
+    # ConnectionIntentInspector reads cls._connection_info at build time.
 
-    # ActionProductMachine: ключи из facet-снимка connections (GateCoordinator).
+    # ActionProductMachine validates runtime keys against connections facet.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ПРИМЕР ИСПОЛЬЗОВАНИЯ
+EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
-    # BaseAction уже наследует ConnectionIntent — любой Action
-    # поддерживает @connection автоматически:
+    # BaseAction already inherits ConnectionIntent, so any Action supports
+    # @connection out of the box:
 
-    @connection(PostgresManager, key="db", description="Основная БД")
+    @connection(PostgresManager, key="db", description="Primary DB")
     class UserAction(BaseAction[UserParams, UserResult]):
-        @regular_aspect("Загрузка пользователя")
+        @regular_aspect("Load user")
         async def load_user(self, params, state, box, connections):
             db = connections["db"]
             user = await db.fetch_one(...)
             return {"user": user}
 
-        @summary_aspect("Результат")
+        @summary_aspect("Result")
         async def result(self, params, state, box, connections):
             return UserResult(user=state["user"])
+
+═══════════════════════════════════════════════════════════════════════════════
+INVARIANTS
+═══════════════════════════════════════════════════════════════════════════════
+
+- Marker-only mixin: no runtime behavior is implemented here.
+- ``issubclass(target, ConnectionIntent)`` is a hard precondition for ``@connection``.
+- Connection metadata is stored on class-level ``_connection_info``.
+
+═══════════════════════════════════════════════════════════════════════════════
+ERRORS / LIMITATIONS
+═══════════════════════════════════════════════════════════════════════════════
+
+- This mixin does not validate manager classes or keys directly.
+- Validation logic lives in ``connection_decorator`` and runtime inspectors.
+- Presence of the marker does not imply that any connection is declared.
+
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE-BEGIN
+═══════════════════════════════════════════════════════════════════════════════
+ROLE: Marker gate for class-level resource connection declarations.
+CONTRACT: Class must inherit ConnectionIntent to accept @connection decorator.
+INVARIANTS: No behavior; only marker identity and dynamic metadata annotation.
+FLOW: class marker -> decorator check -> _connection_info population -> inspection.
+FAILURES: Missing marker causes decorator-time TypeError.
+EXTENSION POINTS: Keep marker minimal; extend via decorators/inspectors, not mixin logic.
+AI-CORE-END
 """
 
 from typing import Any, ClassVar
@@ -70,20 +96,11 @@ from typing import Any, ClassVar
 
 class ConnectionIntent:
     """
-    Маркерный миксин, разрешающий использование декоратора @connection.
+    Marker mixin that enables ``@connection`` decorator usage.
 
-    Класс, НЕ наследующий ConnectionIntent, не может быть целью
-    @connection — декоратор выбросит TypeError при попытке применения.
-
-    Миксин не содержит логики, полей или методов. Его единственная функция —
-    служить проверочным маркером для issubclass().
-
-    Атрибуты уровня класса (создаются динамически декоратором):
-        _connection_info : list[ConnectionInfo]
-            Список объектов ConnectionInfo(cls, key, description),
-            записываемый декоратором @connection. Читается инспектором
-            соединений при ``GateCoordinator.build()``.
+    Classes that do not inherit ``ConnectionIntent`` are rejected by
+    ``@connection`` at declaration time.
     """
 
-    # Аннотация для mypy, чтобы он не ругался на динамический атрибут
+    # Typing hint for dynamically injected class-level metadata
     _connection_info: ClassVar[list[Any]]

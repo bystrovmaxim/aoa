@@ -1,19 +1,17 @@
 # tests/smoke/test_ping.py
 """
-Smoke-тест PingAction — минимальное действие.
+Smoke test for PingAction — minimal action.
 
 ═══════════════════════════════════════════════════════════════════════════════
-НАЗНАЧЕНИЕ
+PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Проверяет базовый конвейер ActionMachine на самом простом действии:
-координатор собирает метаданные, машина выполняет единственный
-summary-аспект, TestBench прогоняет на async и sync машинах
-и сравнивает результаты.
+Exercises the basic ActionMachine pipeline on the simplest action: the coordinator
+collects metadata, the machine runs a single summary aspect, TestBench runs on async
+and sync machines and compares results.
 
-PingAction не имеет параметров, зависимостей, connections и ролевых
-ограничений (NoneRole). Если этот тест красный — сломано что-то
-фундаментальное.
+PingAction has no params, dependencies, connections, or role constraints (NoneRole).
+If this test fails, something fundamental is broken.
 """
 
 import pytest
@@ -25,11 +23,10 @@ from tests.scenarios.domain_model import PingAction
 @pytest.mark.asyncio
 async def test_ping_returns_pong(bench: TestBench) -> None:
     """
-    PingAction возвращает Result с message='pong'.
+    PingAction returns Result with message='pong'.
 
-    Проверяет полный цикл: сборка метаданных → проверка ролей
-    (NoneRole) → выполнение summary-аспекта → формирование Result.
-    TestBench прогоняет на async и sync машинах и сравнивает.
+    Covers the full path: metadata → role check (NoneRole) → summary aspect → Result.
+    TestBench runs on async and sync machines and compares.
     """
     # Arrange
     action = PingAction()
@@ -45,10 +42,9 @@ async def test_ping_returns_pong(bench: TestBench) -> None:
 @pytest.mark.asyncio
 async def test_ping_result_type(bench: TestBench) -> None:
     """
-    PingAction возвращает экземпляр PingAction.Result.
+    PingAction returns an instance of PingAction.Result.
 
-    Проверяет, что результат — конкретный тип Result,
-    а не произвольный BaseResult или dict.
+    Ensures the result is the concrete Result type, not an arbitrary BaseResult or dict.
     """
     # Arrange
     action = PingAction()

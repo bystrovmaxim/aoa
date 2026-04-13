@@ -1,40 +1,38 @@
 # src/action_machine/runtime/base_action_machine.py
 """
-BaseActionMachine — абстрактный базовый класс для всех машин действий.
+Abstract base class for all ActionMachine runtime machines.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-BaseActionMachine определяет контракт для всех машин действий в системе.
-Машина — центральный исполнитель, который принимает действие (Action),
-входные параметры (Params), context (Context) и соединения (connections),
-а затем выполняет конвейер аспектов с проверкой ролей, валидацией
-и уведомлением плагинов.
+``BaseActionMachine`` defines the contract shared by all runtime machines.
+A machine is the central executor that accepts action instance, input params,
+execution context, and resource connections, then runs the action pipeline with
+role checks, validations, and plugin notifications.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ИЕРАРХИЯ МАШИН
+MACHINE HIERARCHY
 ═══════════════════════════════════════════════════════════════════════════════
 
-BaseActionMachine определяет два уровня API:
+``BaseActionMachine`` exposes two API layers:
 
-1. ПУБЛИЧНЫЙ: абстрактный method ``run()`` — точка входа для внешнего кода.
-   Конкретные реализации определяют, является ли run() асинхронным
-   (ActionProductMachine) или синхронным (SyncActionProductMachine).
+1. PUBLIC: abstract ``run()`` entry point for callers.
+   Concrete machines define whether it is async (``ActionProductMachine``)
+   or sync (``SyncActionProductMachine``).
 
-2. ВНУТРЕННИЙ: method ``_run_internal()`` — реализация конвейера с поддержкой
-   вложенности, ресурсов и параметра rollup. Вызывается из run()
-   и рекурсивно из ToolsBox.run() для дочерних действий.
+2. INTERNAL: ``_run_internal()`` pipeline implementation with support for
+   nesting, resources, and rollup flag. Called from ``run()`` and recursively
+   from ``ToolsBox.run()`` for child actions.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ПАРАМЕТР ROLLUP
+ROLLUP PARAMETER
 ═══════════════════════════════════════════════════════════════════════════════
 
-Параметр ``rollup: bool`` в ``_run_internal()`` управляет режимом
-агрегации результатов. Production-машины (ActionProductMachine,
-SyncActionProductMachine) всегда передают rollup=False. TestBench
-принимает rollup как required параметр без значения по умолчанию
-в терминальных methodах — тестировщик явно выбирает режим.
+``rollup: bool`` in ``_run_internal()`` controls transaction rollback mode.
+Production machines (``ActionProductMachine``, ``SyncActionProductMachine``)
+always pass ``rollup=False``. TestBench-style runners pass rollup explicitly
+through terminal methods so tester chooses mode intentionally.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
@@ -47,18 +45,47 @@ ARCHITECTURE / DATA FLOW
         └── SyncActionProductMachine      (sync, production)
 
 ═══════════════════════════════════════════════════════════════════════════════
-ПРИНЦИПЫ
+INVARIANTS
 ═══════════════════════════════════════════════════════════════════════════════
 
-1. STATELESS МЕЖДУ ЗАПРОСАМИ: машина не хранит мутабельного состояния
-   между вызовами run(). Каждый вызов полностью изолирован.
+1. STATELESS BETWEEN RUNS: machine keeps no mutable cross-request state.
+   Every run is isolated.
 
-2. НЕ ПОДАВЛЯЕТ ИСКЛЮЧЕНИЯ: ошибки пробрасываются наружу с информативными
-   сообщениями.
+2. NO SILENT SUPPRESSION: runtime errors are propagated to caller.
 
-3. КОНТРАКТ _run_internal(): все конкретные машины реализуют _run_internal()
-   с единой сигнатурой, включающей resources, connections, nested_level
-   и rollup.
+3. ``_run_internal`` CONTRACT: all concrete machines implement a consistent
+   signature including resources, connections, nested_level, and rollup.
+
+═══════════════════════════════════════════════════════════════════════════════
+EXAMPLES
+═══════════════════════════════════════════════════════════════════════════════
+
+Happy path:
+    Public ``run(...)`` delegates to machine-specific pipeline implementation
+    and returns typed ``BaseResult`` subclass ``R``.
+
+Edge case:
+    A concrete machine that does not implement ``_run_internal`` raises
+    ``NotImplementedError`` when execution reaches internal pipeline.
+
+═══════════════════════════════════════════════════════════════════════════════
+ERRORS / LIMITATIONS
+═══════════════════════════════════════════════════════════════════════════════
+
+- This class defines contracts only and does not perform execution itself.
+- Concrete machine behavior (async/sync orchestration) is implementation-specific.
+- Runtime validation/error semantics are delegated to concrete pipelines.
+
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE-BEGIN
+═══════════════════════════════════════════════════════════════════════════════
+ROLE: Shared abstract contract for runtime machine entry points.
+CONTRACT: Expose public run API and internal _run_internal pipeline hook.
+INVARIANTS: Stateless between runs; no silent error suppression.
+FLOW: caller invokes run -> concrete machine delegates to _run_internal.
+FAILURES: NotImplementedError until concrete runtime machine implements internals.
+EXTENSION POINTS: Async/sync implementations override run and _run_internal.
+AI-CORE-END
 """
 
 from abc import ABC, abstractmethod
@@ -76,20 +103,10 @@ R = TypeVar("R", bound=BaseResult)
 
 class BaseActionMachine(ABC):
     """
-    Абстрактный базовый класс для всех машин действий.
+    Abstract base class for all runtime machines.
 
-    Определяет контракт: публичный method run() (абстрактный)
-    и внутренний _run_internal(). Конкретные реализации наследуют
-    этот класс и определяют поведение run() (async или sync)
-    и полную логику _run_internal().
-
-    Машина не содержит мутабельного состояния между вызовами run().
-
-    Атрибуты определяются конкретными наследниками:
-        _mode : str — режим выполнения.
-        _coordinator : GateCoordinator — координатор метаданных.
-        _plugin_coordinator : PluginCoordinator — координатор плагинов.
-        _log_coordinator : LogCoordinator — координатор логирования.
+    Defines public ``run()`` contract and internal ``_run_internal()`` hook.
+    Concrete machines provide async/sync entry behavior and full pipeline logic.
     """
 
     @abstractmethod
@@ -101,24 +118,10 @@ class BaseActionMachine(ABC):
         connections: dict[str, BaseResourceManager] | None = None,
     ) -> R:
         """
-        Выполняет действие и возвращает результат.
+        Execute action and return typed result.
 
-        Это публичная точка входа. В асинхронных машинах (ActionProductMachine)
-        это coroutine, вызываемый через await. В синхронных машинах
-        (SyncActionProductMachine) это обычный method.
-
-        Args:
-            context: context выполнения (пользователь, запрос, окружение).
-                     Frozen BaseSchema-наследник.
-            action: экземпляр действия для выполнения.
-            params: входные параметры действия. Frozen BaseParams.
-            connections: словарь ресурсных менеджеров (соединений).
-                         Ключ — строковое имя (совпадает с key в @connection).
-                         Значение — экземпляр BaseResourceManager.
-                         None если действие не объявляет @connection.
-
-        Returns:
-            Результат выполнения действия (тип R, наследник BaseResult).
+        Public entry point. Async machines expose coroutine semantics; sync
+        machines provide regular call semantics.
         """
         pass
 
@@ -133,26 +136,8 @@ class BaseActionMachine(ABC):
         rollup: bool,
     ) -> R:
         """
-        Внутренний method выполнения с поддержкой вложенности и rollup.
+        Internal pipeline execution hook with nesting and rollup support.
 
-        Вызывается из run() (nested_level=0) и рекурсивно из ToolsBox.run()
-        для дочерних действий (nested_level > 0).
-
-        Args:
-            context: context выполнения.
-            action: экземпляр действия.
-            params: входные параметры.
-            resources: внешние ресурсы (моки в тестах, None в production).
-            connections: словарь менеджеров ресурсов.
-            nested_level: текущий уровень вложенности (0 — корневой).
-            rollup: режим агрегации результатов. Production-машины
-                    всегда передают False. Тестовые машины принимают
-                    значение от тестировщика.
-
-        Returns:
-            R — результат выполнения действия.
-
-        Raises:
-            NotImplementedError: если конкретная машина не переопределила method.
+        Called from ``run()`` at root level and recursively for child actions.
         """
         raise NotImplementedError

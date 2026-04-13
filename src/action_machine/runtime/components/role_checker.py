@@ -44,11 +44,13 @@ INVARIANTS
 EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
-Happy path: user holds ``OrderManagerRole``; ``@check_roles(OrderViewerRole)``
-passes when ``OrderManagerRole`` subclasses ``OrderViewerRole`` (MRO).
+Happy path:
+    User holds ``OrderManagerRole`` and ``@check_roles(OrderViewerRole)``
+    passes when ``OrderManagerRole`` subclasses ``OrderViewerRole``.
 
-Edge case: only ``RoleMode.SILENCED`` role types → ``AnyRole`` fails with
-``AuthorizationError``.
+Edge case:
+    If user has only ``RoleMode.SILENCED`` role types, ``AnyRole`` fails with
+    ``AuthorizationError``.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ERRORS / LIMITATIONS

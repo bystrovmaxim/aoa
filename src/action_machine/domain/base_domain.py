@@ -1,11 +1,10 @@
 # src/action_machine/domain/base_domain.py
 """
-Abstract base for all **domain markers** in ActionMachine.
+Abstract base for all domain marker types in ActionMachine.
 
 A domain is a typed class-level tag that groups actions, entities, and other
 facets under one business area. It carries no runtime behavior and no instance
-state—only validated ``ClassVar`` metadata consumed by coordinators and
-documentation exporters.
+state, only validated ``ClassVar`` metadata consumed by inspectors and tooling.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
@@ -31,16 +30,6 @@ SCOPE (IN / OUT)
     Registering domains in ``GateCoordinator``—that happens at **build** time
     via inspectors, not in this module.
 
-═══════════════════════════════════════════════════════════════════════════════
-TERMINOLOGY (USE CONSISTENTLY)
-═══════════════════════════════════════════════════════════════════════════════
-
-**Intent / decorator / scratch / inspector / GateCoordinator** — same
-meaning as in ``action_machine.domain`` and metadata packages: domains are
-**referenced** by type from decorators (e.g. ``@entity(..., domain=...)``); the
-coordinator graph is built elsewhere from those references.
-
-═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -81,7 +70,7 @@ descriptions matches the rest of ActionMachine: undocumented models are treated
 as incomplete specifications, not silent defaults.
 
 ═══════════════════════════════════════════════════════════════════════════════
-LIFECYCLE (IMPORT VS BUILD VS RUNTIME)
+LIFECYCLE (IMPORT VS BUILD)
 ═══════════════════════════════════════════════════════════════════════════════
 
 - **Import / class body**: ``__init_subclass__`` runs; suffix and attributes are
@@ -162,6 +151,17 @@ ERRORS / LIMITATIONS
 
 This module does **not** deduplicate ``name`` strings or enforce global registry
 uniqueness.
+
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE-BEGIN
+═══════════════════════════════════════════════════════════════════════════════
+ROLE: Domain marker base contract.
+CONTRACT: Subclasses define validated ``name`` and ``description`` class metadata.
+INVARIANTS: ``*Domain`` suffix and non-empty string metadata are enforced at class definition time.
+FLOW: subclass declaration -> ``__init_subclass__`` validation -> decorators reference domain type.
+FAILURES: NamingSuffixError / ValueError / TypeError on invalid subclass declarations.
+EXTENSION POINTS: Applications define custom domain hierarchies via subclassing.
+AI-CORE-END
 """
 from __future__ import annotations
 
@@ -197,6 +197,12 @@ class BaseDomain(ABC):
             Short stable identifier (e.g. ``"orders"``).
         ``description``
             Human-readable specification text for docs and diagrams.
+
+    AI-CORE-BEGIN
+    ROLE: Typed domain identity marker.
+    CONTRACT: Exposes validated class metadata used by decorators and inspectors.
+    INVARIANTS: No instances required; class definition enforces suffix and metadata quality.
+    AI-CORE-END
     """
 
     name: ClassVar[str]

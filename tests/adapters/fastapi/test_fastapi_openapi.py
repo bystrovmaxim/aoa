@@ -1,30 +1,63 @@
 # tests/adapters/fastapi/test_fastapi_openapi.py
 """
-Tests for OpenAPI schema generation from FastApiAdapter routes.
+OpenAPI document shape for apps built with ``FastApiAdapter``.
 
-When build() creates a FastAPI app, the app exposes an OpenAPI schema at
-/openapi.json. This schema is generated from the registered routes, including
-paths, methods, tags, summary, response models, and Pydantic field metadata
-(descriptions, constraints, examples).
+═══════════════════════════════════════════════════════════════════════════════
+PURPOSE
+═══════════════════════════════════════════════════════════════════════════════
 
-Scenarios covered:
-    - Registered POST route appears in schema under correct path and method.
-    - Registered GET route appears in schema under correct path and method.
-    - Tags from registration appear in the schema operation.
-    - Summary from registration appears in the schema operation.
-    - Health check endpoint appears in the schema.
-    - Response model fields appear in schema components.
-    - Multiple routes each have their own entry in the schema.
-    - Pydantic field descriptions propagate to schema properties.
-    - Schema title and version match adapter configuration.
-    - Deprecated flag appears in the schema operation.
+Assert ``/openapi.json`` reflects registered routes (paths, methods, tags,
+summaries, response models, Pydantic metadata), includes ``/health``, and
+carries adapter title/version and ``deprecated`` flags where set.
+
+═══════════════════════════════════════════════════════════════════════════════
+ARCHITECTURE / DATA FLOW
+═══════════════════════════════════════════════════════════════════════════════
+
+    FastApiAdapter.build()
+              |
+              v
+    TestClient -> GET /openapi.json
+              |
+              v
+    Parse JSON -> assert paths, components, operation metadata
+
+═══════════════════════════════════════════════════════════════════════════════
+INVARIANTS
+═══════════════════════════════════════════════════════════════════════════════
+
+- Uses ``TestClient`` only; no external HTTP server.
+
+═══════════════════════════════════════════════════════════════════════════════
+EXAMPLES
+═══════════════════════════════════════════════════════════════════════════════
+
+    uv run pytest tests/adapters/fastapi/test_fastapi_openapi.py -q
+
+Edge case: multiple routes each retain distinct path keys in the OpenAPI map.
+
+═══════════════════════════════════════════════════════════════════════════════
+ERRORS / LIMITATIONS
+═══════════════════════════════════════════════════════════════════════════════
+
+- OpenAPI structure follows FastAPI/Starlette defaults; framework upgrades may
+  require expectation tweaks.
+
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE-BEGIN
+═══════════════════════════════════════════════════════════════════════════════
+ROLE: OpenAPI integration tests for the FastAPI adapter package.
+CONTRACT: Schema matches registrations and adapter metadata.
+INVARIANTS: AsyncMock auth; ``ActionProductMachine`` in test mode.
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE-END
+═══════════════════════════════════════════════════════════════════════════════
 """
 
 from unittest.mock import AsyncMock
 
 from fastapi.testclient import TestClient
 
-from action_machine.graph.gate_coordinator import GateCoordinator
 from action_machine.integrations.fastapi.adapter import FastApiAdapter
 from action_machine.runtime.machines.action_product_machine import ActionProductMachine
 from tests.scenarios.domain_model import PingAction, SimpleAction
@@ -36,7 +69,6 @@ from tests.scenarios.domain_model import PingAction, SimpleAction
 
 def _build_app_with_routes(**adapter_kwargs) -> TestClient:
     """Build a FastAPI app with standard test routes and return a TestClient."""
-    GateCoordinator()
     machine = ActionProductMachine(mode="test")
     auth = AsyncMock()
     auth.process.return_value = None
@@ -213,7 +245,6 @@ class TestDeprecatedFlag:
 
     def test_deprecated_in_schema(self) -> None:
         """A route registered with deprecated=True shows deprecated in schema."""
-        GateCoordinator()
         machine = ActionProductMachine(mode="test")
         auth = AsyncMock()
         auth.process.return_value = None

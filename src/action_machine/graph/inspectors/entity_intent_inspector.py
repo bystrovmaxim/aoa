@@ -97,6 +97,17 @@ ERRORS / LIMITATIONS
   less precise in exotic typing setups.
 - Does not validate relation **rules** (inverse required, ownership matrix);
   that belongs to entity/relation validation during graph build.
+
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE-BEGIN
+═══════════════════════════════════════════════════════════════════════════════
+ROLE: Entity facet metadata inspector.
+CONTRACT: Convert decorated entity classes into typed snapshots and ``entity`` facet payloads.
+INVARIANTS: Payload emission requires ``_entity_info``; edges remain empty in this inspector.
+FLOW: entity scratch + pydantic fields -> collect_entity_* helpers -> snapshot -> payload for coordinator commit.
+FAILURES: Missing scratch produces skip; type-hint resolution fallback may reduce relation precision.
+EXTENSION POINTS: Tooling/tests can reuse module-level ``collect_entity_*`` helpers and snapshot aliases.
+AI-CORE-END
 """
 
 from __future__ import annotations
@@ -500,6 +511,12 @@ class EntityIntentInspector(BaseIntentInspector):
     When ``_entity_info`` is present, builds ``FacetPayload`` with ``node_type``
     ``entity`` and bundles field/relation/lifecycle tuples under ``node_meta``.
     Does not attach structural **edges** (``edges=()``).
+
+    AI-CORE-BEGIN
+    ROLE: Concrete ``EntityIntent`` inspector.
+    CONTRACT: Emit ``entity`` facet nodes from ``@entity`` scratch and model introspection.
+    INVARIANTS: Storage key is stable (``entity``); collection remains declaring-class metadata only.
+    AI-CORE-END
     """
 
     _target_intent: type = EntityIntent

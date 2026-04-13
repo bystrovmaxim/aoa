@@ -1,2 +1,2 @@
 # tests/intents/on_error/__init__.py
-"""Тесты механизма обработки ошибок аспектов (@on_error)."""
+"""Tests for aspect error handling (@on_error)."""

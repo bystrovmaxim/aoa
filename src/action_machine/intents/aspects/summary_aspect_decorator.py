@@ -21,6 +21,20 @@ If ``@context_requires`` is present, ``ContextView`` is passed as ``ctx``:
 - without context: ``(self, params, state, box, connections)``
 - with context: ``(self, params, state, box, connections, ctx)``
 
+    @summary_aspect(...)
+           |
+           v
+    declaration invariants
+           |
+           v
+    _new_aspect_meta on method
+           |
+           v
+    inspector snapshot
+           |
+           v
+    runtime final-step execution
+
 ═══════════════════════════════════════════════════════════════════════════════
 INVARIANTS
 ═══════════════════════════════════════════════════════════════════════════════
@@ -151,18 +165,6 @@ def _method_suffix_invariant(func: Any, description: str) -> None:
 def summary_aspect(description: str) -> Callable[[Any], Any]:
     """
     Mark an action method as the final pipeline step.
-
-    ═══════════════════════════════════════════════════════════════════════════
-    AI-CORE-BEGIN
-    ═══════════════════════════════════════════════════════════════════════════
-    ROLE: Public decorator contract for final pipeline steps.
-    CONTRACT: validate declaration and emit deterministic summary metadata.
-    INVARIANTS: async callable + signature + naming + non-empty description.
-    FLOW: decorator call -> invariant checks -> metadata attach -> inspector consumption.
-    FAILURES: declaration-time TypeError/ValueError/NamingSuffixError.
-    EXTENSION POINTS: context-aware final step via ``@context_requires``.
-    AI-CORE-END
-    ═══════════════════════════════════════════════════════════════════════════
     """
     _description_type_invariant(description)
     _description_non_empty_invariant(description)

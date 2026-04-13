@@ -1,117 +1,134 @@
 # src/action_machine/model/base_state.py
 """
-BaseState — frozen-state конвейера аспектов с динамическими полями.
+Frozen aspect-pipeline state with dynamic fields.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-BaseState — неизменяемый объект, хранящий накопленные данные между шагами
-конвейера аспектов. Каждый regular-аспект возвращает обычный dict с новыми
-полями, машина (ActionProductMachine) проверяет dict checkerами и создаёт
-НОВЫЙ BaseState, объединяя предыдущие данные с новыми. Аспект получает
-state только на чтение — мутация невозможна после создания.
+``BaseState`` is an immutable container for accumulated values between aspect
+pipeline steps. Each regular aspect returns a plain ``dict`` with new fields.
+The machine validates that dict with checkers and creates a NEW ``BaseState``
+by merging previous data with returned fields. Aspects receive state as
+read-only input; mutation is impossible after construction.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ИЕРАРХИЯ
+INHERITANCE
 ═══════════════════════════════════════════════════════════════════════════════
 
     BaseSchema(BaseModel)
         └── BaseState (frozen=True, extra="allow")
 
 ═══════════════════════════════════════════════════════════════════════════════
-FROZEN-СЕМАНТИКА
+FROZEN SEMANTICS
 ═══════════════════════════════════════════════════════════════════════════════
 
-BaseState полностью неизменяем после создания (frozen=True):
+``BaseState`` is fully immutable after creation (``frozen=True``):
 
     state = BaseState(total=1500, user="agent")
-    state.total = 0           # → ValidationError
-    state["total"] = 0        # → TypeError (нет __setitem__)
+    state.total = 0           # -> ValidationError
+    state["total"] = 0        # -> TypeError (no __setitem__)
 
-Единственный способ «изменить» state — создать новый экземпляр:
+The only way to "change" state is to create a new instance:
 
     new_state = BaseState(**{**old_state.to_dict(), "discount": 10})
 
-Это гарантирует, что аспект не может записать данные в state напрямую,
-обойдя checkerы. Машина контролирует каждое добавление поля через валидацию
-dict, возвращённого аспектом.
+This ensures aspects cannot write into state directly and bypass checkers.
+The machine controls every added field through validation of aspect output.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ДИНАМИЧЕСКИЕ ПОЛЯ (extra="allow")
+DYNAMIC FIELDS (extra="allow")
 ═══════════════════════════════════════════════════════════════════════════════
 
-В отличие от BaseParams и BaseResult, BaseState не имеет заранее
-объявленных полей. Поля определяются возвращаемыми dict аспектов
-и могут быть произвольными. Pydantic с extra="allow" принимает любые
-ключи при создании экземпляра через kwargs.
+Unlike ``BaseParams`` and ``BaseResult``, ``BaseState`` has no predefined field
+set. Fields are defined by dicts returned from aspects and may be dynamic.
+With ``extra="allow"``, Pydantic accepts arbitrary keys passed via kwargs.
 
 ═══════════════════════════════════════════════════════════════════════════════
-КОНВЕЙЕР АСПЕКТОВ — КАК STATE ИСПОЛЬЗУЕТСЯ МАШИНОЙ
+ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-    1. Машина создаёт пустой state: state = BaseState()
-    2. Для каждого regular-аспекта:
-       a. Вызывает аспект, передавая текущий frozen state.
-       b. Аспект работает с локальным dict, возвращает dict с новыми полями.
-       c. Машина проверяет dict checkerами.
-       d. Машина создаёт новый state: BaseState(**{**state.to_dict(), **new_dict})
-    3. Summary-аспект получает финальный frozen state и формирует Result.
+    1. Machine creates empty state: state = BaseState()
+    2. For each regular aspect:
+       a. Call aspect with current frozen state.
+       b. Aspect returns dict with new fields.
+       c. Machine validates returned dict with checkers.
+       d. Machine creates new state: BaseState(**{**state.to_dict(), **new_dict})
+    3. Summary aspect receives final frozen state and builds Result.
 
-На каждом шаге state — новый объект. Предыдущий state не модифицируется.
-
-═══════════════════════════════════════════════════════════════════════════════
-СЕРИАЛИЗАЦИЯ
-═══════════════════════════════════════════════════════════════════════════════
-
-Метод to_dict() возвращает словарь всех полей через model_dump().
-Используется машиной для мержа с результатом аспекта, для передачи
-в плагины (PluginEvent.state_aspect) и в логгеры.
+At each step, state is a new object. Previous state is never modified.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ОТЛИЧИЕ ОТ BaseParams И BaseResult
+SERIALIZATION
 ═══════════════════════════════════════════════════════════════════════════════
 
-    BaseParams  — frozen, extra="forbid". Входные параметры. Строгая структура.
-    BaseState   — frozen, extra="allow".  Промежуточное state. Динамические поля.
-    BaseResult  — frozen, extra="forbid". Результат действия. Строгая структура.
+``to_dict()`` returns all fields via ``model_dump()``.
+It is used by the machine for merge operations, and for passing state to
+plugins (``PluginEvent.state_aspect``) and loggers.
+
+═══════════════════════════════════════════════════════════════════════════════
+DIFFERENCE FROM BaseParams AND BaseResult
+═══════════════════════════════════════════════════════════════════════════════
+
+    BaseParams  - frozen, extra="forbid". Input parameters. Strict shape.
+    BaseState   - frozen, extra="allow".  Intermediate state. Dynamic fields.
+    BaseResult  - frozen, extra="forbid". Final result. Strict shape.
 
 ═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
-    # Создание с начальными данными (kwargs)
+    # Create with initial data (kwargs)
     state = BaseState(total=1500, user="agent")
 
-    # Чтение — dict-стиль (унаследовано от BaseSchema)
-    state["total"]            # → 1500
-    state.get("user")         # → "agent"
-    state.resolve("user")     # → "agent"
+    # Reads via dict-like API (inherited from BaseSchema)
+    state["total"]            # -> 1500
+    state.get("user")         # -> "agent"
+    state.resolve("user")     # -> "agent"
 
-    # Сериализация
-    state.to_dict()           # → {"total": 1500, "user": "agent"}
-    state.model_dump()        # → {"total": 1500, "user": "agent"}
+    # Serialization
+    state.to_dict()           # -> {"total": 1500, "user": "agent"}
+    state.model_dump()        # -> {"total": 1500, "user": "agent"}
 
-    # Запись запрещена (frozen)
-    state.total = 42          # → ValidationError
-    state["count"] = 42       # → TypeError
+    # Writes are forbidden (frozen)
+    state.total = 42          # -> ValidationError
+    state["count"] = 42       # -> TypeError
 
-    # «Изменение» — создание нового экземпляра
+    # "Change" by creating a new instance
     new_state = BaseState(**{**state.to_dict(), "count": 42})
-    new_state["count"]        # → 42
-    new_state["total"]        # → 1500 (унаследовано)
+    new_state["count"]        # -> 42
+    new_state["total"]        # -> 1500 (carried over)
 
-    # Пустое state
+    # Empty state
     empty = BaseState()
-    empty.to_dict()           # → {}
+    empty.to_dict()           # -> {}
 
-    # Использование в аспекте
-    @regular_aspect("Обработка платежа")
+    # Usage in an aspect
+    @regular_aspect("Process payment")
     async def process_payment_aspect(self, params, state, box, connections):
-        # state — frozen BaseState, только чтение
-        # Аспект работает с локальным dict и возвращает его
+        # state is frozen BaseState, read-only
+        # Aspect returns a local dict with new fields
         txn_id = await payment.charge(params.amount)
         return {"txn_id": txn_id, "charged": True}
+
+═══════════════════════════════════════════════════════════════════════════════
+ERRORS / LIMITATIONS
+═══════════════════════════════════════════════════════════════════════════════
+
+- Direct field mutation is blocked by frozen model config.
+- Dynamic fields are allowed, but correctness is enforced by pipeline checkers.
+- This class is a state container; merge/update orchestration belongs to runtime.
+
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE-BEGIN
+═══════════════════════════════════════════════════════════════════════════════
+ROLE: Immutable transport for intermediate aspect pipeline state.
+CONTRACT: Accept dynamic keys at creation, reject mutation afterwards.
+INVARIANTS: frozen=True; extra="allow"; machine creates new instance per step.
+FLOW: aspect returns dict -> machine validates -> new BaseState is built.
+FAILURES: Mutation attempts fail; invalid aspect outputs are rejected upstream.
+EXTENSION POINTS: Keep generic; domain-specific semantics live in aspect logic.
+AI-CORE-END
 """
 
 from pydantic import ConfigDict
@@ -121,50 +138,29 @@ from action_machine.model.base_schema import BaseSchema
 
 class BaseState(BaseSchema):
     """
-    Frozen-state конвейера аспектов с динамическими полями.
+    Frozen pipeline state with dynamic fields.
 
-    Создаётся машиной из dict, возвращённого аспектом, через kwargs.
-    После создания — полностью иммутабелен.
-
-    extra="allow" — принимает произвольные поля при создании.
-    frozen=True — запрещает любые мутации после создания.
-
-    Наследует dict-подобный доступ и dot-path навигацию от BaseSchema.
+    Created by the machine from dict payloads returned by aspects. Supports
+    arbitrary keys at creation (``extra="allow"``) and forbids any mutation
+    afterwards (``frozen=True``).
     """
 
     model_config = ConfigDict(frozen=True, extra="allow")
 
     def to_dict(self) -> dict[str, object]:
         """
-        Returns словарь всех полей состояния.
+        Return a dictionary view of all state fields.
 
-        Используется машиной для создания нового BaseState при мерже
-        с результатом аспекта, для передачи в плагины
-        (PluginEvent.state_aspect) и в логгеры.
-
-        Returns:
-            dict[str, object] — словарь {ключ: значение} всех полей.
-
-        Пример:
-            >>> state = BaseState(total=1500, user="agent")
-            >>> state.to_dict()
-            {"total": 1500, "user": "agent"}
+        Used by runtime to merge state with aspect output and to pass payloads
+        to plugins/loggers.
         """
         return self.model_dump()
 
     def __repr__(self) -> str:
         """
-        Человекочитаемое представление для отладки.
+        Return a human-readable debug representation.
 
-        Формат: BaseState(key1=value1, key2=value2, ...)
-
-        Returns:
-            str — строковое представление объекта.
-
-        Пример:
-            >>> state = BaseState(total=1500)
-            >>> repr(state)
-            "BaseState(total=1500)"
+        Format: ``BaseState(key1=value1, key2=value2, ...)``.
         """
         fields = self.to_dict()
         pairs = ", ".join(f"{k}={v!r}" for k, v in fields.items())

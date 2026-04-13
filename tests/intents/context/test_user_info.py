@@ -1,45 +1,44 @@
 # tests/intents/context/test_user_info.py
 """
-Тесты UserInfo — информация о пользователе в контексте выполнения.
+Tests for UserInfo — user identity in the execution context.
 
 ═══════════════════════════════════════════════════════════════════════════════
-НАЗНАЧЕНИЕ
+PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-UserInfo — frozen pydantic-модель (наследник BaseSchema), хранящая
-идентификатор пользователя и список ролей. Является частью Context
-и используется машиной для проверки ролей через
-ActionProductMachine._check_action_roles().
+UserInfo is a frozen pydantic model (subclass of BaseSchema) holding user id
+and role types. It is part of Context and used by the machine for role checks
+via ActionProductMachine._check_action_roles().
 
-UserInfo создаётся:
-- AuthCoordinator.process() — при аутентификации реального запроса.
-- NoAuthCoordinator.process() — анонимный пользователь (user_id=None, roles=()).
-- Напрямую в тестах — через конструктор UserInfo(...).
+UserInfo is created by:
+- AuthCoordinator.process() — authenticated real requests.
+- NoAuthCoordinator.process() — anonymous user (user_id=None, roles=()).
+- Directly in tests — UserInfo(...).
 
-Произвольные поля запрещены (extra="forbid"). Расширение — только через
-наследование с явно объявленными полями.
+Arbitrary fields are forbidden (extra="forbid"). Extend only via subclasses
+with explicitly declared fields.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ПОКРЫВАЕМЫЕ СЦЕНАРИИ
+COVERED SCENARIOS
 ═══════════════════════════════════════════════════════════════════════════════
 
-Создание:
-    - С полным набором полей (user_id, roles).
-    - С минимальными данными (только user_id).
-    - Без аргументов — user_id=None, roles=().
-    - С None в user_id — анонимный пользователь.
+Construction:
+    - Full field set (user_id, roles).
+    - Minimal data (user_id only).
+    - No arguments — user_id=None, roles=().
+    - user_id=None — anonymous user.
 
-BaseSchema — dict-подобный доступ:
+BaseSchema — dict-like access:
     - __getitem__, __contains__, get, keys, values, items.
-    - KeyError для несуществующих полей.
+    - KeyError for unknown fields.
 
 BaseSchema — resolve:
-    - Плоские поля: resolve("user_id"), resolve("roles").
-    - Отсутствующие пути: resolve("missing") → None.
+    - Flat fields: resolve("user_id"), resolve("roles").
+    - Missing paths: resolve("missing") → None.
 
-Расширение через наследование:
-    - Наследник с дополнительными полями (org, settings).
-    - resolve через наследника: resolve("org"), resolve("settings.theme").
+Extension via inheritance:
+    - Subclass with extra fields (org, settings).
+    - resolve on subclass: resolve("org"), resolve("settings.theme").
 """
 
 from typing import Any
@@ -51,12 +50,12 @@ from action_machine.intents.context.user_info import UserInfo
 from tests.scenarios.domain_model.roles import AdminRole, GuestRole, ManagerRole, UserRole
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Наследник UserInfo для тестов расширения
+# UserInfo subclass for extension tests
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class _ExtendedUserInfo(UserInfo):
-    """Наследник UserInfo с дополнительными полями для тестов."""
+    """UserInfo subclass with extra fields for tests."""
     model_config = ConfigDict(frozen=True)
     org: str | None = None
     department: str | None = None
@@ -64,65 +63,65 @@ class _ExtendedUserInfo(UserInfo):
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Создание и инициализация
+# Construction and initialization
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestUserInfoCreation:
-    """Создание UserInfo с разными наборами параметров."""
+    """Creating UserInfo with different argument sets."""
 
     def test_create_with_all_fields(self) -> None:
         """
-        UserInfo со всеми полями — типичный аутентифицированный пользователь.
+        UserInfo with all fields — typical authenticated user.
 
-        AuthCoordinator.process() создаёт UserInfo с данными из токена
-        или API-ключа: user_id и roles.
+        AuthCoordinator.process() builds UserInfo from token or API key data:
+        user_id and roles.
         """
-        # Arrange & Act — создание с полным набором полей
+        # Arrange & Act — full field set
         user = UserInfo(
             user_id="agent_007",
             roles=(AdminRole, ManagerRole),
         )
 
-        # Assert — все поля установлены
+        # Assert — all fields set
         assert user.user_id == "agent_007"
         assert user.roles == (AdminRole, ManagerRole)
 
     def test_create_with_user_id_only(self) -> None:
         """
-        UserInfo только с user_id — минимальный аутентифицированный пользователь.
-        roles получает значение по умолчанию: ().
+        UserInfo with user_id only — minimal authenticated user.
+        roles defaults to ().
         """
-        # Arrange & Act — только user_id
+        # Arrange & Act — user_id only
         user = UserInfo(user_id="u42")
 
-        # Assert — user_id установлен, roles по умолчанию
+        # Assert — user_id set, default roles
         assert user.user_id == "u42"
         assert user.roles == ()
 
     def test_create_default(self) -> None:
         """
-        UserInfo без аргументов — анонимный пользователь.
-        NoAuthCoordinator создаёт Context с UserInfo() — все поля
-        по умолчанию: user_id=None, roles=().
+        UserInfo with no arguments — anonymous user.
+        NoAuthCoordinator builds Context with UserInfo() — defaults
+        user_id=None, roles=().
         """
-        # Arrange & Act — создание без аргументов
+        # Arrange & Act — no arguments
         user = UserInfo()
 
-        # Assert — все поля по умолчанию
+        # Assert — default fields
         assert user.user_id is None
         assert user.roles == ()
 
     def test_create_with_none_user_id(self) -> None:
         """
-        user_id=None — явно анонимный пользователь.
-        Эквивалентно UserInfo() по умолчанию, но может быть задано явно
-        при создании контекста для гостевого доступа.
+        user_id=None — explicitly anonymous.
+        Same defaults as UserInfo(), but can be set explicitly when
+        building context for guest access.
         """
-        # Arrange & Act — явный None
+        # Arrange & Act — explicit None
         user = UserInfo(user_id=None, roles=(GuestRole,))
 
-        # Assert — user_id=None, но роль задана
+        # Assert — user_id=None but role set
         assert user.user_id is None
         assert user.roles == (GuestRole,)
 
@@ -140,12 +139,12 @@ class TestUserInfoCreation:
 
     def test_extended_user_info_with_extra_fields(self) -> None:
         """
-        Расширение UserInfo через наследование с явно объявленными полями.
+        Extend UserInfo via subclass with explicit fields.
 
-        UserInfo имеет extra="forbid" — произвольные поля запрещены.
-        Для дополнительных данных создаётся наследник.
+        UserInfo uses extra="forbid" — arbitrary fields are not allowed.
+        Use a subclass for extra data.
         """
-        # Arrange & Act — наследник с дополнительными полями
+        # Arrange & Act — subclass with extra fields
         user = _ExtendedUserInfo(
             user_id="agent_007",
             roles=(AdminRole, ManagerRole),
@@ -153,7 +152,7 @@ class TestUserInfoCreation:
             department="sales",
         )
 
-        # Assert — все поля установлены
+        # Assert — all fields set
         assert user.user_id == "agent_007"
         assert user.roles == (AdminRole, ManagerRole)
         assert user.org == "acme"
@@ -161,53 +160,53 @@ class TestUserInfoCreation:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# BaseSchema — dict-подобный доступ
+# BaseSchema — dict-like access
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestUserInfoDictAccess:
-    """Dict-подобный доступ к полям UserInfo через BaseSchema."""
+    """Dict-like access to UserInfo fields via BaseSchema."""
 
     def test_getitem(self) -> None:
         """
-        user["user_id"] — доступ к полю через квадратные скобки.
-        BaseSchema.__getitem__ делегирует в getattr(self, key).
+        user["user_id"] — bracket access to a field.
+        BaseSchema.__getitem__ delegates to getattr(self, key).
         """
-        # Arrange — UserInfo с user_id
+        # Arrange — UserInfo with user_id
         user = UserInfo(user_id="agent_007")
 
-        # Act & Assert — чтение через скобки
+        # Act & Assert — bracket read
         assert user["user_id"] == "agent_007"
 
     def test_getitem_missing_raises_key_error(self) -> None:
         """
         user["nonexistent"] → KeyError.
-        BaseSchema.__getitem__ ловит AttributeError и перебрасывает
-        как KeyError — поведение идентично dict.
+        BaseSchema.__getitem__ catches AttributeError and re-raises
+        as KeyError — same as dict.
         """
-        # Arrange — UserInfo без поля "nonexistent"
+        # Arrange — UserInfo without "nonexistent"
         user = UserInfo(user_id="u1")
 
-        # Act & Assert — KeyError для несуществующего ключа
+        # Act & Assert — KeyError for unknown key
         with pytest.raises(KeyError):
             _ = user["nonexistent"]
 
     def test_contains(self) -> None:
         """
         "user_id" in user → True; "missing" in user → False.
-        BaseSchema.__contains__ проверяет model_fields.
+        BaseSchema.__contains__ checks model_fields.
         """
         # Arrange
         user = UserInfo(user_id="u1", roles=(AdminRole,))
 
-        # Act & Assert — проверка наличия объявленных полей
+        # Act & Assert — declared fields
         assert "user_id" in user
         assert "roles" in user
         assert "nonexistent" not in user
 
     def test_get_existing(self) -> None:
         """
-        user.get("user_id") → значение поля.
+        user.get("user_id") → field value.
         """
         # Arrange
         user = UserInfo(user_id="u1")
@@ -222,12 +221,12 @@ class TestUserInfoDictAccess:
         # Arrange
         user = UserInfo(user_id="u1")
 
-        # Act & Assert — отсутствующий ключ с default
+        # Act & Assert — missing key with default
         assert user.get("nonexistent", "fallback") == "fallback"
 
     def test_get_missing_without_default(self) -> None:
         """
-        user.get("missing") → None (default по умолчанию).
+        user.get("missing") → None (default when omitted).
         """
         # Arrange
         user = UserInfo(user_id="u1")
@@ -237,8 +236,8 @@ class TestUserInfoDictAccess:
 
     def test_keys(self) -> None:
         """
-        keys() возвращает объявленные pydantic-поля.
-        UserInfo имеет два поля: user_id, roles.
+        keys() returns declared pydantic fields.
+        UserInfo has two fields: user_id, roles.
         """
         # Arrange
         user = UserInfo(user_id="u1", roles=(AdminRole,))
@@ -246,13 +245,13 @@ class TestUserInfoDictAccess:
         # Act
         keys = user.keys()
 
-        # Assert — два объявленных поля
+        # Assert — two declared fields
         assert "user_id" in keys
         assert "roles" in keys
 
     def test_values(self) -> None:
         """
-        values() возвращает значения объявленных полей.
+        values() returns values of declared fields.
         """
         # Arrange
         user = UserInfo(user_id="u1", roles=(AdminRole,))
@@ -260,13 +259,13 @@ class TestUserInfoDictAccess:
         # Act
         values = user.values()
 
-        # Assert — значения присутствуют
+        # Assert — values present
         assert "u1" in values
         assert (AdminRole,) in values
 
     def test_items(self) -> None:
         """
-        items() возвращает пары (ключ, значение) для объявленных полей.
+        items() returns (key, value) pairs for declared fields.
         """
         # Arrange
         user = UserInfo(user_id="u1")
@@ -274,7 +273,7 @@ class TestUserInfoDictAccess:
         # Act
         items = user.items()
 
-        # Assert — пара (user_id, "u1") присутствует
+        # Assert — ("user_id", "u1") present
         assert ("user_id", "u1") in items
 
 
@@ -284,11 +283,11 @@ class TestUserInfoDictAccess:
 
 
 class TestUserInfoResolve:
-    """Навигация по полям UserInfo через resolve()."""
+    """Field navigation on UserInfo via resolve()."""
 
     def test_resolve_flat_field(self) -> None:
         """
-        resolve("user_id") — прямой доступ к плоскому полю.
+        resolve("user_id") — direct access to a flat field.
         """
         # Arrange
         user = UserInfo(user_id="agent_007")
@@ -301,7 +300,7 @@ class TestUserInfoResolve:
 
     def test_resolve_roles(self) -> None:
         """
-        resolve("roles") — доступ к кортежу типов ролей.
+        resolve("roles") — access to the role types tuple.
         """
         # Arrange
         user = UserInfo(roles=(AdminRole, UserRole))
@@ -309,14 +308,14 @@ class TestUserInfoResolve:
         # Act
         result = user.resolve("roles")
 
-        # Assert — кортеж целиком
+        # Assert — full tuple
         assert result == (AdminRole, UserRole)
 
     def test_resolve_extended_field(self) -> None:
         """
-        resolve("org") на наследнике — навигация к полю наследника.
+        resolve("org") on subclass — navigate to subclass field.
         """
-        # Arrange — наследник с полем org
+        # Arrange — subclass with org
         user = _ExtendedUserInfo(org="acme")
 
         # Act
@@ -327,12 +326,12 @@ class TestUserInfoResolve:
 
     def test_resolve_extended_nested_dict(self) -> None:
         """
-        resolve("settings.theme") на наследнике — навигация через dict-поле.
+        resolve("settings.theme") on subclass — navigation through a dict field.
 
-        Два шага: _ExtendedUserInfo → settings (dict) → theme (str).
-        resolve переключается с BaseSchema.__getitem__ на dict-доступ.
+        Two steps: _ExtendedUserInfo → settings (dict) → theme (str).
+        resolve switches from BaseSchema.__getitem__ to dict access.
         """
-        # Arrange — наследник с dict-полем settings
+        # Arrange — subclass with settings dict
         user = _ExtendedUserInfo(settings={"theme": "dark", "lang": "ru"})
 
         # Act
@@ -343,8 +342,8 @@ class TestUserInfoResolve:
 
     def test_resolve_missing_returns_none(self) -> None:
         """
-        resolve("nonexistent") — отсутствующее поле → None.
-        resolve никогда не бросает исключение при отсутствии ключа.
+        resolve("nonexistent") — missing field → None.
+        resolve does not raise when a key is missing.
         """
         # Arrange
         user = UserInfo(user_id="u1")
@@ -352,7 +351,7 @@ class TestUserInfoResolve:
         # Act
         result = user.resolve("nonexistent")
 
-        # Assert — None как default по умолчанию
+        # Assert — None as default
         assert result is None
 
     def test_resolve_missing_with_default(self) -> None:
@@ -370,21 +369,21 @@ class TestUserInfoResolve:
 
     def test_resolve_none_user_id(self) -> None:
         """
-        resolve("user_id") когда user_id=None → возвращает None, не default.
-        None — валидное значение поля, не отсутствие.
+        resolve("user_id") when user_id=None → returns None, not default.
+        None is a valid field value, not “missing”.
         """
-        # Arrange — user_id явно None
+        # Arrange — explicit None user_id
         user = UserInfo(user_id=None)
 
         # Act
         result = user.resolve("user_id", default="fallback")
 
-        # Assert — None из поля, не "fallback"
+        # Assert — None from field, not "fallback"
         assert result is None
 
 
 class TestUserInfoSerialization:
-    """JSON-проекции UserInfo сериализуют роли как строковые role names."""
+    """JSON projection of UserInfo serializes roles as string role names."""
 
     def test_model_dump_json_mode_serializes_roles_as_names(self) -> None:
         user = UserInfo(user_id="u1", roles=(AdminRole, UserRole))

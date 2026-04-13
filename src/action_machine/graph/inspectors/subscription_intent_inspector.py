@@ -24,7 +24,7 @@ INVARIANTS
   inspector (aligned with ``subscription_info`` record shape).
 
 ═══════════════════════════════════════════════════════════════════════════════
-DATA FLOW
+ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
 ::
@@ -38,6 +38,17 @@ ERRORS / LIMITATIONS
 
 Cross-method validation (event type vs parameter annotation) lives in
 ``on_intent.validate_subscriptions``; this module focuses on graph emission.
+
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE-BEGIN
+═══════════════════════════════════════════════════════════════════════════════
+ROLE: Plugin subscription metadata inspector.
+CONTRACT: Aggregate ``_on_subscriptions`` declarations into ``subscription`` facet payloads/snapshots.
+INVARIANTS: Candidate roots are ``OnIntent`` subclasses; non-``SubscriptionInfo`` rows are ignored.
+FLOW: marker traversal -> declaring-member scan -> subscription row collection -> snapshot -> payload.
+FAILURES: Classes without subscriptions return ``None`` payload (skip).
+EXTENSION POINTS: Subscription row shape follows ``SubscriptionInfo`` and can evolve with plugin event routing contracts.
+AI-CORE-END
 """
 
 from __future__ import annotations
@@ -53,7 +64,15 @@ from action_machine.intents.plugins.subscription_info import SubscriptionInfo
 
 
 class SubscriptionIntentInspector(BaseIntentInspector):
-    """Inspector that maps `_on_subscriptions` into subscription payload entries."""
+    """
+    Inspector that maps ``_on_subscriptions`` into subscription payload entries.
+
+    AI-CORE-BEGIN
+    ROLE: Concrete plugin-subscription inspector.
+    CONTRACT: Emit ``subscription`` payloads for classes with ``@on`` declarations.
+    INVARIANTS: Traversal root is ``OnIntent``; payload edges remain empty.
+    AI-CORE-END
+    """
 
     _target_intent: type = OnIntent
 

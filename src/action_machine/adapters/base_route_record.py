@@ -1,29 +1,34 @@
 # src/action_machine/adapters/base_route_record.py
 """
-BaseRouteRecord — abstract frozen dataclass for adapter route configuration.
+BaseRouteRecord — abstract frozen route contract for adapters.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Define the shared contract for adapter route records. ``BaseRouteRecord`` holds
-configuration common to all protocols and enforces mapping invariants.
-Protocol-specific fields are added by concrete subclasses.
+Define the shared contract for adapter route records. ``BaseRouteRecord``
+stores protocol-agnostic mapping configuration, extracts action generic types,
+and enforces mapper invariants at construction time.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-1. Concrete adapter creates a subclass of ``BaseRouteRecord`` (e.g.,
-   ``FastApiRouteRecord``) with protocol-specific fields.
-2. During record creation, ``__post_init__`` automatically extracts
-   ``params_type`` and ``result_type`` from the action's generic parameters
-   via ``extract_action_types``.
-3. Mapping invariants are validated; if a mapper is required but missing,
-   ``ValueError`` is raised.
-4. The adapter uses ``effective_request_model`` / ``effective_response_model``
-   and associated mappers to translate between protocol payloads and action
-   types.
+Data flow sketch::
+
+    protocol registration
+            │
+            ▼
+    ConcreteRouteRecord(...)
+            │ __post_init__
+            ▼
+    extract_action_types(action_class)
+            │
+            ├─ cache params/result types
+            ├─ validate mapper requirements
+            ▼
+    adapter runtime uses:
+      effective_request_model / effective_response_model
 
 Inheritance sketch::
 
@@ -36,7 +41,7 @@ Inheritance sketch::
 INVARIANTS
 ═══════════════════════════════════════════════════════════════════════════════
 
-- ``BaseRouteRecord`` cannot be instantiated directly (only subclasses).
+- ``BaseRouteRecord`` cannot be instantiated directly (subclasses only).
 - ``action_class`` must be a subclass of ``BaseAction``.
 - ``params_type`` and ``result_type`` are extracted from action generics.
 - If ``request_model`` differs from ``params_type``, ``params_mapper`` is required.
@@ -71,8 +76,8 @@ ERRORS / LIMITATIONS
   failure.
 - ``ValueError`` when a required mapper is missing.
 - Forward references in action generics are resolved using the module where the
-  action class is defined (via ``ForwardRef._evaluate``; public
-  ``typing.evaluate_forward_ref`` when the minimum Python is 3.14+).
+  action class is defined (runtime binding helpers select the available typing
+  API for the current Python version).
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN
@@ -169,14 +174,21 @@ def ensure_protocol_response(
 @dataclass(frozen=True)
 class BaseRouteRecord:
     """
-    Abstract frozen dataclass for a single adapter route configuration.
+    Abstract frozen dataclass for one adapter route configuration.
 
-    Stores fields common to all protocols. Protocol-specific fields are added
-    by concrete subclasses. Direct instantiation is forbidden.
+    Stores fields common to all protocols. Concrete protocols extend this class
+    with transport-specific metadata (HTTP path/method, MCP tool name, etc.).
+    Direct instantiation is forbidden.
 
     Cached attributes:
         _cached_params_type: extracted P from BaseAction[P, R]
         _cached_result_type: extracted R from BaseAction[P, R]
+
+    AI-CORE-BEGIN
+    ROLE: Frozen per-route contract shared by adapter integrations.
+    CONTRACT: Derive action P/R types, cache them, and enforce mapper requirements.
+    INVARIANTS: mapper is mandatory when effective wire model differs from action type.
+    AI-CORE-END
     """
 
     action_class: type[BaseAction[Any, Any]]

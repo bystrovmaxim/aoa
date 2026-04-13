@@ -39,8 +39,8 @@ Target orchestration flow (final state after migration):
     │ SagaCoordinator        -> regular/summary flow + rollback + plugin/log events│
     └──────────────────────────────────────────────────────────────────────────────┘
 
-During migration (current scaffolding phase), components delegate to existing
-machine internals. The final state above will be reached incrementally.
+During migration (current scaffolding phase), components can delegate to
+existing machine internals. The final state above is reached incrementally.
 
 ═══════════════════════════════════════════════════════════════════════════════
 INVARIANTS
@@ -55,18 +55,19 @@ EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
 Happy path:
-- Components are wired in the machine constructor and used from `_run_internal`.
+    Components are wired in the machine constructor and invoked from
+    ``_run_internal`` in deterministic order.
 
 Edge case:
-- Custom `AspectExecutor` / `ToolsBoxFactory` must match current constructor and
-  method signatures (see each component module).
+    Custom ``AspectExecutor`` or ``ToolsBoxFactory`` replacements must preserve
+    current constructor and method signatures from their component modules.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ERRORS / LIMITATIONS
 ═══════════════════════════════════════════════════════════════════════════════
 
-Orchestration order and contracts live in `ActionProductMachine`; this package
-exports building blocks only.
+Orchestration order and core contracts live in ``ActionProductMachine``.
+This package exports component building blocks only.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN

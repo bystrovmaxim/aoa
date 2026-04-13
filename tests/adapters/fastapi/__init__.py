@@ -1,22 +1,55 @@
 # tests/adapters/fastapi/__init__.py
 """
-Tests for the FastAPI adapter layer.
+Tests for the FastAPI integration layer.
 
-Covers FastApiAdapter (registration, build, fluent chain, health check,
-exception handlers, OpenAPI metadata), FastApiRouteRecord (HTTP-specific
-validation, field defaults, method normalization), and OpenAPI schema
-generation from registered routes.
+═══════════════════════════════════════════════════════════════════════════════
+PURPOSE
+═══════════════════════════════════════════════════════════════════════════════
 
-Test modules:
-    test_fastapi_adapter.py       — Adapter construction, route registration via
-                                    post/get/put/delete/patch, build() producing
-                                    a FastAPI app, fluent chaining, health check
-                                    endpoint, exception handler registration.
-    test_fastapi_route_record.py  — HTTP-specific validation (method from allowed
-                                    set, path starts with '/'), field defaults,
-                                    method normalization to uppercase, inherited
-                                    BaseRouteRecord invariants.
-    test_fastapi_openapi.py       — OpenAPI schema includes registered routes with
-                                    correct paths, methods, tags, summary, response
-                                    models, and Pydantic field descriptions.
+Exercise ``FastApiAdapter`` (route registration, ``build()``, fluent chain, health
+check, exception handlers, OpenAPI metadata), ``FastApiRouteRecord`` (HTTP-specific
+validation and defaults), and OpenAPI output for registered routes.
+
+═══════════════════════════════════════════════════════════════════════════════
+ARCHITECTURE / DATA FLOW
+═══════════════════════════════════════════════════════════════════════════════
+
+    TestClient  ->  Starlette/FastAPI app  <-  FastApiAdapter.build()
+                           |
+                           v
+                    mocked or real machine.run
+                           |
+                           v
+                    domain actions (scenarios)
+
+═══════════════════════════════════════════════════════════════════════════════
+INVARIANTS
+═══════════════════════════════════════════════════════════════════════════════
+
+- Auth coordinator is always provided to ``FastApiAdapter`` (often ``AsyncMock``).
+- Endpoint strategy tests live in ``test_fastapi_endpoints.py`` separately from
+  adapter smoke tests.
+
+═══════════════════════════════════════════════════════════════════════════════
+EXAMPLES
+═══════════════════════════════════════════════════════════════════════════════
+
+    uv run pytest tests/adapters/fastapi/ -q
+
+═══════════════════════════════════════════════════════════════════════════════
+ERRORS / LIMITATIONS
+═══════════════════════════════════════════════════════════════════════════════
+
+- Some tests pin internal helper names (e.g. ``_make_endpoint_with_query``) as
+  documentation anchors; update comments if implementation moves.
+
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE-BEGIN
+═══════════════════════════════════════════════════════════════════════════════
+ROLE: FastAPI adapter test subpackage.
+CONTRACT: Cover registration, HTTP semantics, and OpenAPI surfaces.
+INVARIANTS: No duplicate domain actions — reuse ``tests.scenarios.domain_model``.
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE-END
+═══════════════════════════════════════════════════════════════════════════════
 """

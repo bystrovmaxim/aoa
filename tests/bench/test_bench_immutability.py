@@ -1,19 +1,63 @@
 # tests/bench/test_bench_immutability.py
 """
-Тесты иммутабельности TestBench — fluent-методы не мутируют оригинал.
+Tests that ``TestBench`` fluent helpers return new benches without mutating the original.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ПОКРЫВАЕМЫЕ СЦЕНАРИИ
+PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-- with_user() создаёт новый объект, оригинал сохраняет дефолтного пользователя.
-- with_mocks() создаёт новый объект, оригинал сохраняет пустые моки.
-- with_runtime() создаёт новый объект, оригинал сохраняет дефолтный hostname.
-- with_request() создаёт новый объект, оригинал сохраняет дефолтный trace_id.
-- Цепочка fluent-вызовов: каждый шаг независим от последующих.
+Verify ``with_user``, ``with_mocks``, ``with_runtime``, and ``with_request`` copy
+forward bench configuration so parallel or chained tests cannot accidentally
+share mutated context defaults.
 
-Иммутабельность критична для параллельных тестов: если with_user()
-мутирует оригинал, тесты с разными пользователями ломают друг друга.
+═══════════════════════════════════════════════════════════════════════════════
+ARCHITECTURE / DATA FLOW
+═══════════════════════════════════════════════════════════════════════════════
+
+    clean_bench (fixture)
+              |
+              +--> with_user(...)  ----->  new bench (user override)
+              |
+              +--> with_mocks(...) ----->  new bench (mocks override)
+              |
+              v
+    Original bench unchanged -> _build_context() still returns stub defaults
+
+Immutability matters for concurrent tests: a mutating ``with_user`` would make
+user-specific scenarios interfere with each other.
+
+═══════════════════════════════════════════════════════════════════════════════
+INVARIANTS
+═══════════════════════════════════════════════════════════════════════════════
+
+- Fluent methods return a distinct ``TestBench`` instance (not ``self``).
+- Intermediate benches in a chain must not pick up later overrides.
+
+═══════════════════════════════════════════════════════════════════════════════
+EXAMPLES
+═══════════════════════════════════════════════════════════════════════════════
+
+    uv run pytest tests/bench/test_bench_immutability.py -q
+
+Edge case: ``step1 = bench.with_user`` then ``step2 = step1.with_request`` —
+``step1`` keeps the default trace id.
+
+═══════════════════════════════════════════════════════════════════════════════
+ERRORS / LIMITATIONS
+═══════════════════════════════════════════════════════════════════════════════
+
+- Uses ``_build_context()`` to observe effective stub values (internal but stable
+  for tests).
+
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE-BEGIN
+═══════════════════════════════════════════════════════════════════════════════
+ROLE: Immutability contract tests for bench fluent configuration.
+CONTRACT: Each ``with_*`` returns a new bench; prior instances unchanged.
+INVARIANTS: ``clean_bench`` fixture; default stubs from testing stubs module.
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE-END
+═══════════════════════════════════════════════════════════════════════════════
 """
 
 from action_machine.testing import TestBench
@@ -22,113 +66,72 @@ from tests.scenarios.domain_model.roles import AdminRole
 
 
 class TestWithUser:
-    """with_user() не мутирует оригинальный TestBench."""
+    """``with_user`` does not mutate the source bench."""
 
     def test_returns_new_object(self, clean_bench: TestBench) -> None:
-        """
-        with_user() возвращает НОВЫЙ TestBench, а не self.
-        Это гарантирует, что оригинал не затронут.
-        """
-        # Arrange & Act
+        """Returns a new ``TestBench``, not the same object."""
         new = clean_bench.with_user(user_id="admin", roles=(AdminRole,))
 
-        # Assert
         assert new is not clean_bench
 
     def test_original_user_unchanged(self, clean_bench: TestBench) -> None:
-        """
-        После with_user() оригинал сохраняет дефолтного пользователя
-        user_id="test_user" из UserInfoStub.
-        """
-        # Arrange & Act
+        """Original bench still exposes default ``user_id="test_user"``."""
         clean_bench.with_user(user_id="admin", roles=(AdminRole,))
 
-        # Assert — оригинал не изменился
         assert clean_bench._build_context().user.user_id == "test_user"
 
     def test_new_bench_has_new_user(self, clean_bench: TestBench) -> None:
-        """
-        Новый TestBench содержит переданного пользователя.
-        """
-        # Arrange & Act
+        """Derived bench carries the overridden user and roles."""
         new = clean_bench.with_user(user_id="admin", roles=(AdminRole,))
 
-        # Assert
         assert new._build_context().user.user_id == "admin"
         assert new._build_context().user.roles == (AdminRole,)
 
 
 class TestWithMocks:
-    """with_mocks() не мутирует оригинальный TestBench."""
+    """``with_mocks`` does not mutate the source bench."""
 
     def test_original_mocks_unchanged(self, clean_bench: TestBench) -> None:
-        """
-        После with_mocks() оригинал сохраняет пустые моки.
-        """
-        # Arrange & Act
+        """Original bench keeps an empty ``mocks`` mapping."""
         clean_bench.with_mocks({PaymentService: PaymentService()})
 
-        # Assert
         assert clean_bench.mocks == {}
 
     def test_new_bench_has_new_mocks(self, clean_bench: TestBench) -> None:
-        """
-        Новый TestBench содержит переданные моки.
-        """
-        # Arrange & Act
+        """Derived bench stores the provided mocks."""
         new = clean_bench.with_mocks({PaymentService: PaymentService()})
 
-        # Assert
         assert PaymentService in new.mocks
 
 
 class TestWithRuntime:
-    """with_runtime() не мутирует оригинальный TestBench."""
+    """``with_runtime`` does not mutate the source bench."""
 
     def test_original_runtime_unchanged(self, clean_bench: TestBench) -> None:
-        """
-        После with_runtime() оригинал сохраняет hostname="test-host"
-        из RuntimeInfoStub.
-        """
-        # Arrange & Act
+        """Original bench keeps ``hostname="test-host"``."""
         clean_bench.with_runtime(hostname="prod-01")
 
-        # Assert
         assert clean_bench._build_context().runtime.hostname == "test-host"
 
 
 class TestWithRequest:
-    """with_request() не мутирует оригинальный TestBench."""
+    """``with_request`` does not mutate the source bench."""
 
     def test_original_request_unchanged(self, clean_bench: TestBench) -> None:
-        """
-        После with_request() оригинал сохраняет trace_id="test-trace-000"
-        из RequestInfoStub.
-        """
-        # Arrange & Act
+        """Original bench keeps ``trace_id="test-trace-000"``."""
         clean_bench.with_request(trace_id="custom")
 
-        # Assert
         assert clean_bench._build_context().request.trace_id == "test-trace-000"
 
 
 class TestChain:
-    """Цепочка fluent-вызовов: каждый шаг независим от последующих."""
+    """Chained fluent calls compose without retroactive mutation."""
 
     def test_intermediate_steps_independent(self, clean_bench: TestBench) -> None:
-        """
-        step1 = bench.with_user(...)
-        step2 = step1.with_request(...)
-
-        step1 НЕ должен получить request от step2.
-        step2 должен унаследовать user от step1.
-        """
-        # Arrange & Act
+        """Later ``with_request`` does not alter an earlier ``with_user`` bench."""
         step1 = clean_bench.with_user(user_id="step1")
         step2 = step1.with_request(trace_id="step2_trace")
 
-        # Assert — step1 сохранил дефолтный request
         assert step1._build_context().request.trace_id == "test-trace-000"
-        # Assert — step2 получил и user от step1, и свой request
         assert step2._build_context().request.trace_id == "step2_trace"
         assert step2._build_context().user.user_id == "step1"

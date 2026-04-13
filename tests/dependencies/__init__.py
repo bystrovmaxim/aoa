@@ -1,52 +1,49 @@
 # tests/dependencies/__init__.py
 """
-Тесты подсистемы внедрения зависимостей ActionMachine.
+Tests for the ActionMachine dependency-injection subsystem.
 
 ═══════════════════════════════════════════════════════════════════════════════
-НАЗНАЧЕНИЕ
+PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Покрывает два компонента подсистемы зависимостей:
+Covers two dependency components:
 
-1. DependencyFactory — stateless-фабрика для создания экземпляров
-   зависимостей, объявленных через декоратор @depends. Фабрика
-   поддерживает создание через конструктор по умолчанию и через
-   пользовательские factory-функции, проверку rollup-поддержки
-   для BaseResourceManager, и оба формата входных данных
-   (DependencyInfo и legacy dict).
+1. **DependencyFactory** — stateless factory for instances of classes declared
+   with ``@depends``. Supports default constructors and custom factory callables,
+   rollup checks for ``BaseResourceManager``, and both ``DependencyInfo`` and
+   legacy dict input shapes.
 
-2. DependencyIntent — маркерный generic-миксин, разрешающий
-   использование декоратора @depends. Параметр T определяет
-   bound — базовый тип, которому должны соответствовать все
-   зависимости. Функция _extract_bound извлекает bound из
-   generic-параметра DependencyIntent[T] в __init_subclass__.
+2. **DependencyIntent** — generic marker mixin enabling ``@depends``. Type
+   parameter ``T`` is the **bound**: every declared dependency must be a subclass
+   of that bound. ``_extract_bound`` reads ``T`` from ``DependencyIntent[T]`` in
+   ``__init_subclass__``.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ТЕСТОВЫЕ МОДУЛИ
+TEST MODULES
 ═══════════════════════════════════════════════════════════════════════════════
 
-- test_dependency_factory.py    — resolve() с конструктором и с factory,
-                                  передача *args/**kwargs, undeclared
-                                  dependency → ValueError, rollup-проверка
-                                  для BaseResourceManager, has(),
-                                  get_all_classes(), legacy dict формат,
-                                  DependencyInfo иммутабельность.
+- ``test_dependency_factory.py`` — ``resolve()`` with constructor and factory,
+  ``*args``/``**kwargs``, undeclared dependency -> ``ValueError``, rollup checks
+  for ``BaseResourceManager``, ``has()``, ``get_all_classes()``, legacy dict
+  format, ``DependencyInfo`` immutability.
 
-- test_dependency_intent.py  — _extract_bound для DependencyIntent[object],
-                                  DependencyIntent[конкретный_тип],
-                                  наследование bound от родителя,
-                                  класс без DependencyIntent → object,
-                                  get_depends_bound(), интеграция
-                                  с BaseAction (PingAction, FullAction).
+- ``test_dependency_intent.py`` — ``_extract_bound`` for ``DependencyIntent[object]``,
+  ``DependencyIntent[concrete_type]``, bound inheritance from parent, class
+  without ``DependencyIntent`` -> ``object``, ``get_depends_bound()``,
+  integration with ``BaseAction`` (``PingAction``, ``FullAction``).
 
-- Сценарий с ``CoreActionMachine``: ``tests/scenarios/dependencies/test_dependency_factory_core_machine.py``.
+- ``test_depends_decorator_validation.py`` — ``@depends`` argument and target validation.
+
+- Scenario with ``CoreActionMachine``:
+  ``tests/scenarios/dependencies/test_dependency_factory_core_machine.py``.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ДОМЕННАЯ МОДЕЛЬ
+DOMAIN MODEL
 ═══════════════════════════════════════════════════════════════════════════════
 
-Рабочие Action (PingAction, FullAction) импортируются из tests/domain/.
-Заведомо тестовые классы (_SimpleService, _FakeResourceManager,
-_AnyDepsHost, _ResourceOnlyHost) создаются внутри тестовых файлов,
-потому что они не являются частью рабочей доменной модели.
+Working actions (``PingAction``, ``FullAction``, …) are imported from
+``tests/scenarios/domain_model/``. Deliberately broken helper classes
+(``_SimpleService``, ``_FakeResourceManager``, ``_AnyDepsHost``,
+``_ResourceOnlyHost``, …) live inside individual test modules and are not part
+of the production domain.
 """

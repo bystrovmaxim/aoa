@@ -1,22 +1,71 @@
 # src/action_machine/runtime/__init__.py
-"""Runtime package: machines, binding helpers, and execution components.
+"""
+Runtime package public entry points.
 
-Canonical coordinator assembly lives in ``CoreActionMachine``:
-it creates ``GateCoordinator``, registers all default inspectors, and builds it.
-Production machines consume a built coordinator (fail-fast contract).
-``ActionProductMachine`` reads the aspect pipeline, connections, roles, and
-``depends`` list only from coordinator facet snapshots (no scratch-first path).
+═══════════════════════════════════════════════════════════════════════════════
+PURPOSE
+═══════════════════════════════════════════════════════════════════════════════
 
-``CoreActionMachine`` is exported lazily (``__getattr__``) so submodules such as
-``runtime.navigation`` can be imported without pulling in the graph stack while
-``model`` (and thus ``BaseSchema``) is still initializing.
+This package exposes runtime machine APIs, binding helpers, and execution
+components used to run ActionMachine actions in production.
 
+Canonical coordinator assembly lives in ``CoreActionMachine``: it creates a
+``GateCoordinator``, registers default inspectors, and builds the graph/facets.
+Production machines consume a built coordinator as a fail-fast contract.
 
+═══════════════════════════════════════════════════════════════════════════════
+INVARIANTS
+═══════════════════════════════════════════════════════════════════════════════
+
+- ``ActionProductMachine`` reads pipeline metadata from coordinator snapshots only.
+- ``CoreActionMachine`` is exported lazily through ``__getattr__``.
+- Public runtime interfaces remain stable while internal composition can evolve.
+
+═══════════════════════════════════════════════════════════════════════════════
+ARCHITECTURE / DATA FLOW
+═══════════════════════════════════════════════════════════════════════════════
+
+    Runtime package import
+           |
+           +--> lightweight modules (navigation, bindings, components)
+           |
+           +--> lazy CoreActionMachine access via __getattr__
+                         |
+                         v
+                create/build GateCoordinator
+                         |
+                         v
+                runtime machine execution pipeline
+
+═══════════════════════════════════════════════════════════════════════════════
+EXAMPLES
+═══════════════════════════════════════════════════════════════════════════════
+
+Happy path:
+    Runtime consumers import and use machine classes while coordinator assembly
+    is provided by ``CoreActionMachine`` when needed.
+
+Edge case:
+    Lazy export avoids graph-stack imports during early module initialization,
+    preventing circular/lifecycle issues around model bootstrap.
+
+═══════════════════════════════════════════════════════════════════════════════
+ERRORS / LIMITATIONS
+═══════════════════════════════════════════════════════════════════════════════
+
+- Accessing unknown attributes through package ``__getattr__`` raises ``AttributeError``.
+- This module does not implement runtime execution logic directly.
+- Coordinator validity/build errors are surfaced by machine/factory modules.
+
+═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN
-ROLE: module __init__
-CONTRACT: Keep runtime behavior unchanged; documentation defines key contracts and flow for humans and AI.
-INVARIANTS: Preserve declared interfaces and validation semantics.
-FLOW: declaration -> inspector/coordinator snapshot -> runtime consumption.
+═══════════════════════════════════════════════════════════════════════════════
+ROLE: Runtime package-level API and lazy export gateway.
+CONTRACT: Expose CoreActionMachine lazily; preserve runtime import safety.
+INVARIANTS: Snapshot-driven runtime semantics and fail-fast coordinator build.
+FLOW: package import -> lazy core access -> coordinator build -> machine run.
+FAILURES: Unknown attribute access errors and downstream coordinator/runtime errors.
+EXTENSION POINTS: Add exports without breaking lazy-import safety guarantees.
 AI-CORE-END
 """
 

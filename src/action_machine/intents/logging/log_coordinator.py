@@ -24,7 +24,7 @@ INVARIANTS
   the coordinator.
 
 ═══════════════════════════════════════════════════════════════════════════════
-DATA FLOW
+ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
 ``emit`` → validate ``var`` → ``VariableSubstitutor.substitute`` → concurrent
@@ -50,6 +50,22 @@ Substitution pattern ``{%namespace.dotpath}``:
 
 ``{iif(...)}`` works in the same template string; strings are quoted inside
 ``iif``, numbers/booleans are literals.
+
+Flow sketch::
+
+    ScopedLogger._emit(...)
+            |
+            v
+    LogCoordinator.emit(...)
+            |
+            +--> validate var payloads (level/channels/domain)
+            |
+            +--> VariableSubstitutor.substitute(...)
+            |
+            +--> asyncio.gather(logger.handle(...), return_exceptions=True)
+                    |
+                    +--> per-logger ANSI strip when supports_colors=False
+                    +--> isolated failures recorded via stdlib logging
 
 ═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES
@@ -137,6 +153,12 @@ class LogCoordinator:
 
     Registration: constructor ``loggers`` or ``add_logger``. Filtering is
     per-logger via ``subscribe`` inside ``match_filters``, not here.
+
+    AI-CORE-BEGIN
+    ROLE: Central logging bus and validation gate.
+    CONTRACT: Validate+substitute once, then fan-out to all registered loggers.
+    INVARIANTS: Sink failures are isolated and do not abort emit caller flow.
+    AI-CORE-END
     """
 
     def __init__(

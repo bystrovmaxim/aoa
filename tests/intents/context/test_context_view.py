@@ -1,48 +1,47 @@
 # tests/intents/context/test_context_view.py
 """
-Тесты ContextView — frozen-объект с контролируемым доступом к полям контекста.
+Tests for ContextView — frozen object with controlled access to context fields.
 
 ═══════════════════════════════════════════════════════════════════════════════
-НАЗНАЧЕНИЕ
+PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-ContextView — единственный легальный способ доступа к данным контекста
-из аспектов и обработчиков ошибок. Создаётся машиной для методов,
-декорированных @context_requires. Предоставляет метод get(key),
-который проверяет принадлежность ключа к множеству разрешённых
-и делегирует в context.resolve(key).
+ContextView is the supported way to read context data from aspects and error
+handlers. The machine builds it for methods decorated with @context_requires.
+It exposes get(key), which checks the key is in the allowed set and delegates
+to context.resolve(key).
 
-Обращение к незапрошенному полю → ContextAccessError.
+Access to a non-allowed key → ContextAccessError.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ПОКРЫВАЕМЫЕ СЦЕНАРИИ
+COVERED SCENARIOS
 ═══════════════════════════════════════════════════════════════════════════════
 
-Разрешённый доступ:
-    - Доступ к user.user_id, user.roles через Ctx-константы.
-    - Доступ к request.trace_id, runtime.hostname.
-    - Несколько разрешённых ключей одновременно.
+Allowed access:
+    - user.user_id, user.roles via Ctx constants.
+    - request.trace_id, runtime.hostname.
+    - Several allowed keys at once.
 
-Запрещённый доступ:
-    - Незарегистрированный ключ → ContextAccessError.
-    - Ключ из другого компонента → ContextAccessError.
-    - Пустое множество разрешённых ключей → всё запрещено.
+Denied access:
+    - Unregistered key → ContextAccessError.
+    - Key from another component → ContextAccessError.
+    - Empty allowed set → everything denied.
 
-Несуществующие поля:
-    - Разрешённый ключ, но значение None → возвращает None.
-    - Кастомный путь, поле не существует → возвращает None.
+Missing fields:
+    - Allowed key but value None → returns None.
+    - Custom path, field missing → returns None.
 
-Кастомные поля через наследников Info-классов:
-    - Наследник UserInfo с полем billing_plan.
-    - Наследник RequestInfo с полем ab_variant.
+Custom fields via Info subclasses:
+    - UserInfo subclass with billing_plan.
+    - RequestInfo subclass with ab_variant.
 
-Frozen-семантика:
-    - Запись атрибутов запрещена.
-    - Удаление атрибутов запрещено.
+Frozen semantics:
+    - Setting attributes forbidden.
+    - Deleting attributes forbidden.
 
-Интроспекция:
-    - allowed_keys возвращает frozenset.
-    - repr содержит имена ключей.
+Introspection:
+    - allowed_keys returns frozenset.
+    - repr includes key names.
 """
 
 
@@ -59,70 +58,69 @@ from action_machine.model.exceptions import ContextAccessError
 from tests.scenarios.domain_model.roles import AdminRole, ManagerRole, UserRole
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Наследники Info-классов для тестов кастомных полей.
+# Info subclasses for custom-field tests.
 #
-# UserInfo, RequestInfo, RuntimeInfo не имеют полей extra и tags
-# (extra="forbid"). Расширение — только через наследование с явно
-# объявленными полями.
+# UserInfo, RequestInfo, RuntimeInfo have no extra/tags (extra="forbid").
+# Extend only via subclasses with explicit fields.
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class _BillingUserInfo(UserInfo):
-    """Наследник UserInfo с полем billing_plan для тестов."""
+    """UserInfo subclass with billing_plan for tests."""
     model_config = ConfigDict(frozen=True)
     billing_plan: str | None = None
 
 
 class _TaggedRequestInfo(RequestInfo):
-    """Наследник RequestInfo с полем ab_variant для тестов."""
+    """RequestInfo subclass with ab_variant for tests."""
     model_config = ConfigDict(frozen=True)
     ab_variant: str | None = None
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Разрешённый доступ
+# Allowed access
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestAllowedAccess:
-    """Доступ к разрешённым ключам возвращает корректные значения."""
+    """Allowed keys return correct values."""
 
     def test_get_user_id(self) -> None:
         """
-        ContextView.get(Ctx.User.user_id) возвращает user_id из контекста.
+        ContextView.get(Ctx.User.user_id) returns user_id from context.
 
-        ContextView проверяет, что ключ "user.user_id" входит в множество
-        разрешённых, и делегирует в context.resolve("user.user_id").
+        ContextView checks "user.user_id" is allowed and delegates to
+        context.resolve("user.user_id").
         """
-        # Arrange — контекст с user_id, ContextView разрешает user.user_id
+        # Arrange — context with user_id, view allows user.user_id
         context = Context(user=UserInfo(user_id="agent_007"))
         view = ContextView(context, frozenset({Ctx.User.user_id}))
 
-        # Act — запрашиваем разрешённое поле
+        # Act — request allowed field
         result = view.get(Ctx.User.user_id)
 
-        # Assert — значение из контекста
+        # Assert — value from context
         assert result == "agent_007"
 
     def test_get_user_roles(self) -> None:
         """
-        ContextView.get(Ctx.User.roles) возвращает кортеж типов ролей.
+        ContextView.get(Ctx.User.roles) returns role types tuple.
         """
-        # Arrange — контекст с ролями, ContextView разрешает user.roles
+        # Arrange
         context = Context(user=UserInfo(roles=(AdminRole, UserRole)))
         view = ContextView(context, frozenset({Ctx.User.roles}))
 
-        # Act — запрашиваем разрешённое поле
+        # Act
         result = view.get(Ctx.User.roles)
 
-        # Assert — кортеж ролей из контекста
+        # Assert
         assert result == (AdminRole, UserRole)
 
     def test_get_request_trace_id(self) -> None:
         """
-        ContextView.get(Ctx.Request.trace_id) возвращает trace_id запроса.
+        ContextView.get(Ctx.Request.trace_id) returns trace_id.
         """
-        # Arrange — контекст с trace_id в запросе
+        # Arrange
         context = Context(request=RequestInfo(trace_id="trace-abc-123"))
         view = ContextView(context, frozenset({Ctx.Request.trace_id}))
 
@@ -134,9 +132,9 @@ class TestAllowedAccess:
 
     def test_get_runtime_hostname(self) -> None:
         """
-        ContextView.get(Ctx.Runtime.hostname) возвращает hostname окружения.
+        ContextView.get(Ctx.Runtime.hostname) returns hostname.
         """
-        # Arrange — контекст с hostname в runtime
+        # Arrange
         context = Context(runtime=RuntimeInfo(hostname="prod-server-01"))
         view = ContextView(context, frozenset({Ctx.Runtime.hostname}))
 
@@ -148,9 +146,9 @@ class TestAllowedAccess:
 
     def test_get_multiple_allowed_keys(self) -> None:
         """
-        ContextView с несколькими разрешёнными ключами — каждый доступен.
+        ContextView with several allowed keys — each is readable.
         """
-        # Arrange — ContextView разрешает несколько ключей
+        # Arrange
         context = Context(
             user=UserInfo(user_id="u1", roles=(ManagerRole,)),
             request=RequestInfo(client_ip="10.0.0.1"),
@@ -158,178 +156,171 @@ class TestAllowedAccess:
         allowed = frozenset({Ctx.User.user_id, Ctx.User.roles, Ctx.Request.client_ip})
         view = ContextView(context, allowed)
 
-        # Act — запрашиваем каждое разрешённое поле
+        # Act
         user_id = view.get(Ctx.User.user_id)
         roles = view.get(Ctx.User.roles)
         ip = view.get(Ctx.Request.client_ip)
 
-        # Assert — все значения корректны
+        # Assert
         assert user_id == "u1"
         assert roles == (ManagerRole,)
         assert ip == "10.0.0.1"
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Запрещённый доступ
+# Denied access
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestDeniedAccess:
-    """Доступ к незапрошенным ключам выбрасывает ContextAccessError."""
+    """Non-allowed keys raise ContextAccessError."""
 
     def test_access_denied_for_unregistered_key(self) -> None:
         """
-        Обращение к незарегистрированному ключу → ContextAccessError.
+        Unregistered key → ContextAccessError.
 
-        ContextView разрешает только user.user_id, но запрашивается
-        user.roles — ContextAccessError с указанием ключа.
+        View allows only user.user_id but user.roles is requested.
         """
-        # Arrange — ContextView разрешает только user.user_id
+        # Arrange — only user.user_id allowed
         context = Context(user=UserInfo(user_id="u1", roles=(AdminRole,)))
         view = ContextView(context, frozenset({Ctx.User.user_id}))
 
-        # Act / Assert — доступ к user.roles запрещён
+        # Act / Assert — user.roles denied
         with pytest.raises(ContextAccessError) as exc_info:
             view.get(Ctx.User.roles)
 
-        # Assert — информативное сообщение с указанием ключа
+        # Assert — message mentions key
         assert "user.roles" in str(exc_info.value)
 
     def test_access_denied_for_different_component(self) -> None:
         """
-        Запрос ключа из другого компонента → ContextAccessError.
+        Key from another component → ContextAccessError.
 
-        Разрешён только user.user_id, запрашивается request.trace_id.
+        Only user.user_id allowed; request.trace_id requested.
         """
-        # Arrange — разрешён только user.user_id, но запрашиваем request.trace_id
+        # Arrange
         context = Context(
             user=UserInfo(user_id="u1"),
             request=RequestInfo(trace_id="t1"),
         )
         view = ContextView(context, frozenset({Ctx.User.user_id}))
 
-        # Act / Assert — доступ к полю из другого компонента запрещён
+        # Act / Assert
         with pytest.raises(ContextAccessError):
             view.get(Ctx.Request.trace_id)
 
     def test_error_contains_key_and_allowed_keys(self) -> None:
         """
-        ContextAccessError содержит запрошенный ключ и множество разрешённых.
+        ContextAccessError includes requested key and allowed set.
         """
-        # Arrange — ContextView с двумя разрешёнными ключами
+        # Arrange
         context = Context()
         allowed = frozenset({Ctx.User.user_id, Ctx.Request.trace_id})
         view = ContextView(context, allowed)
 
-        # Act — запрашиваем незарегистрированный ключ
+        # Act
         with pytest.raises(ContextAccessError) as exc_info:
             view.get(Ctx.Runtime.hostname)
 
-        # Assert — ошибка содержит запрошенный ключ и список разрешённых
+        # Assert
         error = exc_info.value
         assert error.key == "runtime.hostname"
         assert error.allowed_keys == allowed
 
     def test_empty_allowed_keys_denies_everything(self) -> None:
         """
-        ContextView с пустым множеством разрешённых ключей — всё запрещено.
+        Empty allowed set — every key denied.
         """
-        # Arrange — ContextView с пустым множеством разрешённых ключей
+        # Arrange
         context = Context(user=UserInfo(user_id="u1"))
         view = ContextView(context, frozenset())
 
-        # Act / Assert — любой ключ запрещён
+        # Act / Assert
         with pytest.raises(ContextAccessError):
             view.get(Ctx.User.user_id)
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Разрешённый ключ, но поле не существует — возвращает None
+# Allowed key but missing field — returns None
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestNonexistentButAllowedKey:
-    """Разрешённый ключ, но поле не существует в контексте — возвращает None."""
+    """Allowed key but field absent in context — returns None."""
 
     def test_allowed_but_none_value(self) -> None:
         """
-        Разрешённый ключ user.user_id, значение None (по умолчанию).
+        Allowed user.user_id, value None by default.
 
-        Context() создаёт UserInfo с user_id=None. Ключ разрешён,
-        context.resolve("user.user_id") возвращает None.
+        Context() uses UserInfo with user_id=None. Key is allowed;
+        context.resolve("user.user_id") returns None.
         """
-        # Arrange — контекст с user_id=None (по умолчанию), ключ разрешён
+        # Arrange
         context = Context()
         view = ContextView(context, frozenset({Ctx.User.user_id}))
 
-        # Act — поле существует, но значение None
+        # Act
         result = view.get(Ctx.User.user_id)
 
-        # Assert — Context.resolve возвращает None для незаполненного поля
+        # Assert
         assert result is None
 
     def test_custom_path_not_in_context(self) -> None:
         """
-        Разрешённый кастомный путь, но поле не существует в контексте.
+        Allowed custom path but field missing.
 
-        UserInfo не имеет поля billing_plan (и не имеет extra).
-        context.resolve("user.billing_plan") возвращает None для
-        несуществующего пути.
+        UserInfo has no billing_plan (no extra).
+        context.resolve("user.billing_plan") returns None.
         """
-        # Arrange — кастомный путь разрешён, но данных нет
+        # Arrange
         context = Context(user=UserInfo())
         view = ContextView(context, frozenset({"user.billing_plan"}))
 
-        # Act — поле не существует в контексте
+        # Act
         result = view.get("user.billing_plan")
 
-        # Assert — resolve возвращает None для отсутствующего пути
+        # Assert
         assert result is None
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Кастомные поля через наследников Info-классов
+# Custom fields via Info subclasses
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestCustomExtraFields:
     """
-    Доступ к кастомным полям через наследников Info-классов.
+    Access custom fields via Info subclasses.
 
-    UserInfo, RequestInfo, RuntimeInfo не имеют полей extra и tags
-    (extra="forbid"). Расширение — только через наследование с явно
-    объявленными полями. ContextView.get() делегирует в
-    context.resolve(), который обходит цепочку BaseSchema-объектов
-    через __getitem__.
+    UserInfo, RequestInfo, RuntimeInfo have no extra/tags (extra="forbid").
+    Extend via subclasses with explicit fields. ContextView.get() delegates to
+    context.resolve(), which walks BaseSchema objects via __getitem__.
     """
 
     def test_user_extended_field(self) -> None:
         """
-        ContextView предоставляет доступ к полю наследника UserInfo.
+        ContextView reads UserInfo subclass field.
 
-        _BillingUserInfo наследует UserInfo и добавляет поле billing_plan.
-        context.resolve("user.billing_plan") обходит цепочку:
-        Context → _BillingUserInfo → billing_plan.
+        _BillingUserInfo adds billing_plan.
+        context.resolve("user.billing_plan"): Context → _BillingUserInfo → billing_plan.
         """
-        # Arrange — наследник UserInfo с полем billing_plan
+        # Arrange
         context = Context(user=_BillingUserInfo(billing_plan="premium"))
         view = ContextView(context, frozenset({"user.billing_plan"}))
 
-        # Act — запрашиваем кастомное поле через dot-path
+        # Act
         result = view.get("user.billing_plan")
 
-        # Assert — значение из поля наследника
+        # Assert
         assert result == "premium"
 
     def test_request_extended_field(self) -> None:
         """
-        ContextView предоставляет доступ к полю наследника RequestInfo.
+        ContextView reads RequestInfo subclass field.
 
-        _TaggedRequestInfo наследует RequestInfo и добавляет поле ab_variant.
-        context.resolve("request.ab_variant") обходит цепочку:
-        Context → _TaggedRequestInfo → ab_variant.
+        _TaggedRequestInfo adds ab_variant.
         """
-        # Arrange — наследник RequestInfo с полем ab_variant
+        # Arrange
         context = Context(request=_TaggedRequestInfo(ab_variant="control"))
         view = ContextView(context, frozenset({"request.ab_variant"}))
 
@@ -341,55 +332,55 @@ class TestCustomExtraFields:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Frozen-семантика
+# Frozen semantics
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestFrozen:
-    """ContextView полностью неизменяем — запись и удаление запрещены."""
+    """ContextView is immutable — no setattr/delattr."""
 
     def test_setattr_raises(self) -> None:
-        """Запись нового атрибута → AttributeError с пометкой frozen."""
-        # Arrange — создаём ContextView
+        """New attribute → AttributeError mentioning frozen."""
+        # Arrange
         context = Context()
         view = ContextView(context, frozenset({Ctx.User.user_id}))
 
-        # Act / Assert — запись атрибута запрещена
+        # Act / Assert
         with pytest.raises(AttributeError, match="frozen"):
             view.x = 42  # type: ignore[attr-defined]
 
     def test_delattr_raises(self) -> None:
-        """Удаление атрибута → AttributeError с пометкой frozen."""
-        # Arrange — создаём ContextView
+        """Deleting attribute → AttributeError mentioning frozen."""
+        # Arrange
         context = Context()
         view = ContextView(context, frozenset({Ctx.User.user_id}))
 
-        # Act / Assert — удаление атрибута запрещено
+        # Act / Assert
         with pytest.raises(AttributeError, match="frozen"):
             del view._context  # type: ignore[attr-defined]
 
     def test_overwrite_allowed_keys_raises(self) -> None:
-        """Перезапись _allowed_keys → AttributeError с пометкой frozen."""
-        # Arrange — создаём ContextView
+        """Overwriting _allowed_keys → AttributeError mentioning frozen."""
+        # Arrange
         context = Context()
         view = ContextView(context, frozenset({Ctx.User.user_id}))
 
-        # Act / Assert — перезапись _allowed_keys запрещена
+        # Act / Assert
         with pytest.raises(AttributeError, match="frozen"):
             view._allowed_keys = frozenset()  # type: ignore[misc]
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Интроспекция
+# Introspection
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestAllowedKeysProperty:
-    """Свойство allowed_keys доступно для интроспекции."""
+    """allowed_keys for introspection."""
 
     def test_returns_frozenset(self) -> None:
-        """allowed_keys возвращает тот же frozenset, что передан при создании."""
-        # Arrange — ContextView с двумя ключами
+        """allowed_keys returns the same frozenset passed at construction."""
+        # Arrange
         allowed = frozenset({Ctx.User.user_id, Ctx.Request.trace_id})
         context = Context()
         view = ContextView(context, allowed)
@@ -397,13 +388,13 @@ class TestAllowedKeysProperty:
         # Act
         result = view.allowed_keys
 
-        # Assert — возвращает тот же frozenset
+        # Assert
         assert result == allowed
         assert isinstance(result, frozenset)
 
     def test_empty_allowed_keys(self) -> None:
-        """Пустое множество разрешённых ключей — валидно."""
-        # Arrange — ContextView без разрешённых ключей
+        """Empty allowed set is valid."""
+        # Arrange
         context = Context()
         view = ContextView(context, frozenset())
 
@@ -412,35 +403,35 @@ class TestAllowedKeysProperty:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Строковое представление
+# String representation
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestRepr:
-    """Строковое представление для отладки."""
+    """repr for debugging."""
 
     def test_repr_contains_keys(self) -> None:
-        """repr содержит имя класса и имена разрешённых ключей."""
-        # Arrange — ContextView с ключами
+        """repr includes class name and allowed key names."""
+        # Arrange
         context = Context()
         view = ContextView(context, frozenset({Ctx.User.user_id, Ctx.User.roles}))
 
         # Act
         result = repr(view)
 
-        # Assert — repr содержит имена ключей
+        # Assert
         assert "ContextView" in result
         assert "user.user_id" in result
         assert "user.roles" in result
 
     def test_repr_empty_keys(self) -> None:
-        """repr для пустого множества ключей."""
-        # Arrange — ContextView без ключей
+        """repr with empty key set."""
+        # Arrange
         context = Context()
         view = ContextView(context, frozenset())
 
         # Act
         result = repr(view)
 
-        # Assert — repr для пустого множества
+        # Assert
         assert "ContextView" in result

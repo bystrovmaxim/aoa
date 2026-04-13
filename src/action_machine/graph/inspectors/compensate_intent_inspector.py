@@ -20,7 +20,7 @@ INVARIANTS
 - No edges from this inspector.
 
 ═══════════════════════════════════════════════════════════════════════════════
-DATA FLOW
+ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
 ::
@@ -45,8 +45,8 @@ Edge case: no compensators → ``inspect`` returns ``None``.
 ERRORS / LIMITATIONS
 ═══════════════════════════════════════════════════════════════════════════════
 
-Does not run compensation; only surfaces declaration metadata for the graph and
-runtime cache.
+Does not execute compensation handlers; it only surfaces declaration metadata
+for graph build and runtime cache lookup.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN

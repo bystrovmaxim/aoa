@@ -7,10 +7,10 @@ PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 Provide a dedicated component for aspect execution in machine orchestration.
-This Step 5 implementation owns regular/summary execution paths, including
-``context_requires``, checker validation, and state merge. Logging metadata
-(``LogCoordinator``, ``mode``, ``machine_class_name``) is injected at construction
-so aspect calls do not depend on a machine-shaped protocol.
+This component owns regular/summary execution paths, including
+``context_requires`` handling, checker validation, and immutable state merge.
+Logging metadata (``LogCoordinator``, ``mode``, ``machine_class_name``) is
+injected at construction so aspect calls stay decoupled from machine internals.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
@@ -47,16 +47,18 @@ EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
 Happy path:
-- ``execute_regular(...)`` returns merged ``BaseState`` and aspect payload dict.
+    ``execute_regular(...)`` returns merged ``BaseState`` and validated aspect
+    state patch dict.
 
 Edge case:
-- Regular aspect returning unknown fields raises ``ValidationFieldError``.
+    Regular aspect returning unknown fields raises ``ValidationFieldError``.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ERRORS / LIMITATIONS
 ═══════════════════════════════════════════════════════════════════════════════
 
-Summary execution remains thin and delegates invocation to ``call(...)``.
+Summary execution remains intentionally thin and delegates invocation to
+``call(...)`` plus result binding helpers.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN

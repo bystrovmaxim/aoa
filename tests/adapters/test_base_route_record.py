@@ -1,29 +1,67 @@
 # tests/adapters/test_base_route_record.py
 """
-Tests for BaseRouteRecord and extract_action_types.
+Unit tests for ``BaseRouteRecord`` and ``extract_action_types``.
 
-BaseRouteRecord is an abstract frozen dataclass that stores the configuration
-of one adapter route. It cannot be instantiated directly — only through concrete
-subclasses (FastApiRouteRecord, McpRouteRecord). It validates action_class,
-extracts generic parameters P and R from BaseAction[P, R], and enforces mapper
-invariants (params_mapper required when request_model differs from params_type).
+═══════════════════════════════════════════════════════════════════════════════
+PURPOSE
+═══════════════════════════════════════════════════════════════════════════════
 
-extract_action_types walks the MRO of an action class, finds BaseAction[P, R]
-in __orig_bases__, and resolves ForwardRef arguments when needed.
+Exercise the frozen route-record contract: ``action_class`` validation, generic
+``P``/``R`` extraction from ``BaseAction[P, R]`` (including ``ForwardRef`` paths),
+``effective_*_model`` fallbacks, mapper invariants, immutability, and the
+``ensure_machine_params`` / ``ensure_protocol_response`` guards used at adapter
+boundaries.
 
-Scenarios covered:
-    - Direct instantiation of BaseRouteRecord raises TypeError.
-    - Non-BaseAction action_class raises TypeError.
-    - Successful type extraction for concrete generics.
-    - Successful type extraction for ForwardRef (nested Params/Result).
-    - params_type and result_type properties return extracted types.
-    - effective_request_model falls back to params_type when request_model is None.
-    - effective_response_model falls back to result_type when response_model is None.
-    - Missing params_mapper with different request_model raises ValueError.
-    - Missing response_mapper with different response_model raises ValueError.
-    - Mapper present — no error even with different models.
-    - Same request_model as params_type — no mapper needed.
-    - ensure_machine_params / ensure_protocol_response raise TypeError on wrong types.
+═══════════════════════════════════════════════════════════════════════════════
+ARCHITECTURE / DATA FLOW
+═══════════════════════════════════════════════════════════════════════════════
+
+    Action class (scenario or local broken fixture)
+              |
+              v
+    _TestRouteRecord(BaseRouteRecord)  OR  extract_action_types(cls)
+              |
+              +--> params_type / result_type (from ``__orig_bases__``)
+              |
+              +--> effective_request_model / effective_response_model
+              |         (override vs extracted + mapper rules)
+              |
+              v
+    ensure_* (runtime)  — validate instances before/after ``machine.run``
+
+═══════════════════════════════════════════════════════════════════════════════
+INVARIANTS
+═══════════════════════════════════════════════════════════════════════════════
+
+- ``BaseRouteRecord`` cannot be instantiated directly; only concrete subclasses.
+- ``action_class`` must be a ``BaseAction`` subclass before type extraction.
+- Diverging ``request_model`` / ``response_model`` requires matching mappers.
+
+═══════════════════════════════════════════════════════════════════════════════
+EXAMPLES
+═══════════════════════════════════════════════════════════════════════════════
+
+    uv run pytest tests/adapters/test_base_route_record.py -q
+
+Edge case: local ``_NotAnAction`` and string ``action_class`` inputs must raise
+``TypeError`` without touching the shared domain package.
+
+═══════════════════════════════════════════════════════════════════════════════
+ERRORS / LIMITATIONS
+═══════════════════════════════════════════════════════════════════════════════
+
+- ``ValueError`` / ``TypeError`` assertions depend on message substrings from
+  production code; wording changes need synchronized test updates.
+
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE-BEGIN
+═══════════════════════════════════════════════════════════════════════════════
+ROLE: Core route-record and type-extraction regression tests.
+CONTRACT: Frozen record; mapper pairing; ``extract_action_types`` MRO walk.
+INVARIANTS: ``_TestRouteRecord`` is the minimal concrete record used here.
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE-END
+═══════════════════════════════════════════════════════════════════════════════
 """
 
 from dataclasses import dataclass
@@ -42,35 +80,34 @@ from action_machine.model.base_result import BaseResult
 from tests.scenarios.domain_model import FullAction, PingAction, SimpleAction
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Minimal concrete subclass — needed because BaseRouteRecord cannot be
-# instantiated directly. This subclass adds no extra fields.
+# Minimal concrete subclass — ``BaseRouteRecord`` cannot be instantiated
+# directly. This subclass adds no protocol-specific fields.
 # ─────────────────────────────────────────────────────────────────────────────
 
 
 @dataclass(frozen=True)
 class _TestRouteRecord(BaseRouteRecord):
-    """Concrete route record with no protocol-specific fields."""
+    """Concrete route record with no transport-specific fields."""
     pass
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Intentionally broken actions for edge-case tests.
-# These do NOT belong to the shared domain model.
+# Intentionally broken actions for edge-case tests (not in shared domain).
 # ─────────────────────────────────────────────────────────────────────────────
 
 
 class _NotAnAction:
-    """A plain class that is not a BaseAction subclass."""
+    """Plain class that is not a ``BaseAction`` subclass."""
     pass
 
 
 class _AltRequest(BaseModel):
-    """Alternative request model differing from any action's Params."""
+    """Alternative request model differing from the action's ``Params``."""
     query: str = "test"
 
 
 class _AltResponse(BaseModel):
-    """Alternative response model differing from any action's Result."""
+    """Alternative response model differing from the action's ``Result``."""
     data: str = "ok"
 
 
@@ -80,10 +117,10 @@ class _AltResponse(BaseModel):
 
 
 class TestDirectInstantiation:
-    """Verify that BaseRouteRecord itself cannot be created."""
+    """``BaseRouteRecord`` itself must not be constructible."""
 
     def test_raises_type_error(self) -> None:
-        """Attempting to create BaseRouteRecord directly raises TypeError."""
+        """Direct ``BaseRouteRecord(...)`` raises ``TypeError``."""
         with pytest.raises(TypeError, match="BaseRouteRecord"):
             BaseRouteRecord(action_class=PingAction)
 
@@ -94,52 +131,52 @@ class TestDirectInstantiation:
 
 
 class TestActionClassValidation:
-    """Verify action_class must be a BaseAction subclass."""
+    """``action_class`` must be a ``BaseAction`` subclass."""
 
     def test_non_action_raises_type_error(self) -> None:
-        """Passing a class that does not inherit BaseAction raises TypeError."""
+        """Non-``BaseAction`` class raises ``TypeError``."""
         with pytest.raises(TypeError, match="BaseAction"):
             _TestRouteRecord(action_class=_NotAnAction)
 
     def test_string_raises_type_error(self) -> None:
-        """Passing a string instead of a class raises TypeError."""
+        """A string is not a valid ``action_class``."""
         with pytest.raises(TypeError):
             _TestRouteRecord(action_class="PingAction")  # type: ignore[arg-type]
 
     def test_valid_action_accepted(self) -> None:
-        """A proper BaseAction subclass is accepted without error."""
+        """A proper ``BaseAction`` subclass is accepted."""
         record = _TestRouteRecord(action_class=PingAction)
         assert record.action_class is PingAction
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Type extraction (extract_action_types)
+# Type extraction (``extract_action_types``)
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestTypeExtraction:
-    """Verify that P and R are correctly extracted from BaseAction[P, R]."""
+    """``P`` and ``R`` resolved from ``BaseAction[P, R]`` (incl. ``ForwardRef``)."""
 
     def test_ping_action_types(self) -> None:
-        """PingAction uses ForwardRef — types are resolved to nested classes."""
+        """``PingAction`` nested ``Params``/``Result`` resolve correctly."""
         p_type, r_type = extract_action_types(PingAction)
         assert p_type is PingAction.Params
         assert r_type is PingAction.Result
 
     def test_full_action_types(self) -> None:
-        """FullAction uses ForwardRef — types are resolved to nested classes."""
+        """``FullAction`` nested types resolve correctly."""
         p_type, r_type = extract_action_types(FullAction)
         assert p_type is FullAction.Params
         assert r_type is FullAction.Result
 
     def test_simple_action_types(self) -> None:
-        """SimpleAction uses ForwardRef — types are resolved correctly."""
+        """``SimpleAction`` nested types resolve correctly."""
         p_type, r_type = extract_action_types(SimpleAction)
         assert p_type is SimpleAction.Params
         assert r_type is SimpleAction.Result
 
     def test_non_action_raises(self) -> None:
-        """Calling extract_action_types on a non-action raises TypeError."""
+        """``extract_action_types`` on a non-action raises ``TypeError``."""
         with pytest.raises(TypeError, match="generic"):
             extract_action_types(_NotAnAction)
 
@@ -150,41 +187,41 @@ class TestTypeExtraction:
 
 
 class TestComputedProperties:
-    """Verify params_type, result_type, effective_request/response_model."""
+    """``params_type``, ``result_type``, ``effective_*_model``."""
 
     def test_params_type(self) -> None:
-        """params_type returns the extracted P from BaseAction[P, R]."""
+        """``params_type`` is extracted ``P``."""
         record = _TestRouteRecord(action_class=PingAction)
         assert record.params_type is PingAction.Params
 
     def test_result_type(self) -> None:
-        """result_type returns the extracted R from BaseAction[P, R]."""
+        """``result_type`` is extracted ``R``."""
         record = _TestRouteRecord(action_class=PingAction)
         assert record.result_type is PingAction.Result
 
     def test_effective_request_model_defaults_to_params_type(self) -> None:
-        """When request_model is None, effective_request_model equals params_type."""
+        """``request_model is None`` → ``effective_request_model`` is ``params_type``."""
         record = _TestRouteRecord(action_class=PingAction)
         assert record.effective_request_model is PingAction.Params
 
     def test_effective_request_model_uses_override(self) -> None:
-        """When request_model is set, effective_request_model returns it."""
+        """Explicit ``request_model`` (same as ``params_type``) is reflected."""
         record = _TestRouteRecord(
             action_class=PingAction,
-            request_model=PingAction.Params,  # same type — no mapper needed
+            request_model=PingAction.Params,
         )
         assert record.effective_request_model is PingAction.Params
 
     def test_effective_response_model_defaults_to_result_type(self) -> None:
-        """When response_model is None, effective_response_model equals result_type."""
+        """``response_model is None`` → ``effective_response_model`` is ``result_type``."""
         record = _TestRouteRecord(action_class=PingAction)
         assert record.effective_response_model is PingAction.Result
 
     def test_effective_response_model_uses_override(self) -> None:
-        """When response_model is set, effective_response_model returns it."""
+        """Explicit ``response_model`` (same as ``result_type``) is reflected."""
         record = _TestRouteRecord(
             action_class=PingAction,
-            response_model=PingAction.Result,  # same type — no mapper needed
+            response_model=PingAction.Result,
         )
         assert record.effective_response_model is PingAction.Result
 
@@ -195,10 +232,10 @@ class TestComputedProperties:
 
 
 class TestMapperInvariants:
-    """Verify that mappers are required when models differ from action types."""
+    """Mappers required when protocol models differ from action types."""
 
     def test_different_request_model_without_mapper_raises(self) -> None:
-        """request_model != params_type and no params_mapper → ValueError."""
+        """``request_model != params_type`` without ``params_mapper`` → ``ValueError``."""
         with pytest.raises(ValueError, match="params_mapper"):
             _TestRouteRecord(
                 action_class=PingAction,
@@ -206,7 +243,7 @@ class TestMapperInvariants:
             )
 
     def test_different_response_model_without_mapper_raises(self) -> None:
-        """response_model != result_type and no response_mapper → ValueError."""
+        """``response_model != result_type`` without ``response_mapper`` → ``ValueError``."""
         with pytest.raises(ValueError, match="response_mapper"):
             _TestRouteRecord(
                 action_class=PingAction,
@@ -214,7 +251,7 @@ class TestMapperInvariants:
             )
 
     def test_different_request_model_with_mapper_accepted(self) -> None:
-        """Providing params_mapper resolves the invariant — no error."""
+        """``params_mapper`` satisfies the request-side invariant."""
         record = _TestRouteRecord(
             action_class=PingAction,
             request_model=_AltRequest,
@@ -223,7 +260,7 @@ class TestMapperInvariants:
         assert record.effective_request_model is _AltRequest
 
     def test_different_response_model_with_mapper_accepted(self) -> None:
-        """Providing response_mapper resolves the invariant — no error."""
+        """``response_mapper`` satisfies the response-side invariant."""
         record = _TestRouteRecord(
             action_class=PingAction,
             response_model=_AltResponse,
@@ -232,7 +269,7 @@ class TestMapperInvariants:
         assert record.effective_response_model is _AltResponse
 
     def test_same_request_model_needs_no_mapper(self) -> None:
-        """When request_model is the same type as params_type, no mapper is needed."""
+        """Same ``request_model`` as ``params_type`` needs no mapper."""
         record = _TestRouteRecord(
             action_class=PingAction,
             request_model=PingAction.Params,
@@ -240,7 +277,7 @@ class TestMapperInvariants:
         assert record.params_mapper is None
 
     def test_none_request_model_needs_no_mapper(self) -> None:
-        """When request_model is None (default), no mapper is needed."""
+        """Default ``request_model`` needs no mapper."""
         record = _TestRouteRecord(action_class=PingAction)
         assert record.params_mapper is None
 
@@ -251,10 +288,10 @@ class TestMapperInvariants:
 
 
 class TestFrozen:
-    """Verify that route records are truly frozen after creation."""
+    """Route records are immutable after creation."""
 
     def test_cannot_set_action_class(self) -> None:
-        """Attempting to modify a field on a frozen dataclass raises an error."""
+        """Assigning to a frozen field raises."""
         record = _TestRouteRecord(action_class=PingAction)
 
         with pytest.raises(AttributeError):
@@ -262,7 +299,7 @@ class TestFrozen:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Runtime mapper output guards (used by FastAPI / MCP adapters)
+# Runtime mapper output guards (FastAPI / MCP adapters)
 # ═════════════════════════════════════════════════════════════════════════════
 
 
@@ -275,7 +312,7 @@ class _NotParams:
 
 
 class TestMapperOutputGuards:
-    """ensure_* helpers reject wrong runtime types at the adapter boundary."""
+    """``ensure_*`` reject wrong runtime types at the adapter boundary."""
 
     def test_ensure_machine_params_ok(self) -> None:
         ensure_machine_params(_ProbeParams(), _ProbeParams, adapter="Test", route_label="x")

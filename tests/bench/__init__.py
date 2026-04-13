@@ -19,7 +19,7 @@ INVARIANTS
 - Shared actions live under ``tests/scenarios/domain_model/`` (see layout below).
 
 ═══════════════════════════════════════════════════════════════════════════════
-DATA FLOW
+ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
 ::

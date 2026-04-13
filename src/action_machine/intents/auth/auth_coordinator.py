@@ -14,29 +14,19 @@ metadata assembly, returning a fully populated ``Context`` on success.
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-::
-
     request_data
-          │
-          ▼
-    ┌─────────────────┐
-    │CredentialExtract│  → credentials (dict)
-    └────────┬────────┘
-             │
-             ▼
-    ┌─────────────────┐
-    │  Authenticator  │  → UserInfo | None
-    └────────┬────────┘
-             │
-             ▼
-    ┌─────────────────┐
-    │ContextAssembler │  → metadata dict
-    └────────┬────────┘
-             │
-             ▼
-    ┌─────────────────┐
-    │     Context     │  (user + request info)
-    └─────────────────┘
+         |
+         v
+    CredentialExtractor.extract()
+         |
+         v
+    Authenticator.authenticate()
+         |
+         v
+    ContextAssembler.assemble()
+         |
+         v
+    Context(user=..., request=RequestInfo(...))
 
 ═══════════════════════════════════════════════════════════════════════════════
 INVARIANTS
@@ -48,6 +38,16 @@ INVARIANTS
   ``None`` (no context).
 - The returned ``Context`` contains at least an anonymous ``UserInfo`` if
   authentication succeeded, and a ``RequestInfo`` built from assembler output.
+
+═══════════════════════════════════════════════════════════════════════════════
+COMPONENTS
+═══════════════════════════════════════════════════════════════════════════════
+
+- ``CredentialExtractor``: protocol-specific credential extraction.
+- ``Authenticator``: credential verification and user resolution.
+- ``ContextAssembler``: request metadata projection for ``RequestInfo``.
+- ``AuthCoordinator``: orchestration pipeline for authenticated context.
+- ``NoAuthCoordinator``: explicit open-access context provider.
 
 ═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES
@@ -95,7 +95,7 @@ from action_machine.intents.context.request_info import RequestInfo
 
 
 class CredentialExtractor(ABC):
-    """Extract credentials from a protocol-specific request; used by ``AuthCoordinator``."""
+    """Extract protocol credentials for authentication pipeline."""
 
     @abstractmethod
     async def extract(self, request_data: Any) -> dict[str, Any]:
@@ -104,7 +104,7 @@ class CredentialExtractor(ABC):
 
 
 class ContextAssembler(ABC):
-    """Build request metadata for ``RequestInfo``; used by ``AuthCoordinator``."""
+    """Assemble request metadata consumed by ``RequestInfo``."""
 
     @abstractmethod
     async def assemble(self, request_data: Any) -> dict[str, Any]:
@@ -114,10 +114,13 @@ class ContextAssembler(ABC):
 
 class AuthCoordinator:
     """
-    Coordinator that manages the creation of execution context.
+    Build authenticated execution context from request data.
 
-    Sequentially performs credential extraction, authentication, and request
-    metadata assembly.
+    AI-CORE-BEGIN
+    ROLE: Authentication orchestration coordinator.
+    CONTRACT: extract credentials -> authenticate user -> assemble request metadata.
+    INVARIANTS: returns Context on success or None when flow cannot continue.
+    AI-CORE-END
     """
 
     def __init__(
@@ -131,7 +134,7 @@ class AuthCoordinator:
         self.assembler = assembler
 
     async def process(self, request_data: Any) -> Context | None:
-        """Asynchronously perform the full authentication and context assembly flow."""
+        """Execute extract/auth/assemble flow and return ``Context`` or ``None``."""
         # Step 1: credential extraction
         credentials = await self.extractor.extract(request_data)
         if not credentials:
@@ -152,11 +155,10 @@ class AuthCoordinator:
 
 class NoAuthCoordinator:
     """
-    Explicit “no authentication” coordinator for open APIs.
+    Explicit open-access coordinator that bypasses authentication.
 
-    Implements the same async ``process(request_data) -> Context`` surface as
-    ``AuthCoordinator``, but always returns an anonymous ``Context`` (never
-    ``None``). ``request_data`` is ignored.
+    Keeps ``process(request_data)`` API compatibility with ``AuthCoordinator``
+    and always returns a fresh anonymous ``Context``.
     """
 
     async def process(self, request_data: Any) -> Context:

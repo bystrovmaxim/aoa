@@ -6,72 +6,96 @@ Raises ActionMachine.
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Модуль содержит все пользовательские исключения фреймворка ActionMachine.
-Каждое исключение соответствует определённому типу ошибки и используется
-конкретными компонентами системы:
+This module contains all framework-level custom exceptions for ActionMachine.
+Each exception maps to a specific failure category and is consumed by specific
+runtime components.
 
-- AuthorizationError — ошибки проверки ролей в ActionProductMachine.
-- ValidationFieldError — ошибки валидации полей checkerами (ResultStringChecker и др.).
-- HandleError — ошибки выполнения основной логики (PostgresConnectionManager и др.).
-- TransactionError — базовое исключение для ошибок транзакций и соединений.
-- ConnectionAlreadyOpenError — повторное открытие соединения.
-- ConnectionNotOpenError — операция без открытого соединения.
-- TransactionProhibitedError — попытка управления транзакцией на вложенном уровне
-  (WrapperSqlConnectionManager).
-- ConnectionValidationError — несоответствие переданных connections объявленным
-  через @connection (ActionProductMachine._check_connections).
-- RollupNotSupportedError — ресурсный менеджер или зависимость не поддерживает
-  режим rollup.
-- LogTemplateError — ошибки в шаблонах логирования (VariableSubstitutor,
-  ExpressionEvaluator).
-- CyclicDependencyError — обнаружена циклическая зависимость при построении
-  графа в GateCoordinator.
-- OnErrorHandlerError — error, возникшая внутри обработчика @on_error.
-  Оборачивает исходное исключение обработчика через __cause__, позволяя
-  отличить «error в бизнес-логике аспекта» от «error в обработчике ошибок».
-- ContextAccessError — попытка доступа к полю contextа, не указанному
-  в @context_requires. Выбрасывается ContextView при обращении к ключу,
-  отсутствующему в множестве разрешённых ключей аспекта.
-- NamingSuffixError — нарушение инварианта именования (суффикс Action, Domain,
-  _aspect, _summary, _on_error, Checker). Выбрасывается в __init_subclass__
-  гейтхостов или при валидации декораторов.
-- NamingPrefixError — нарушение инварианта именования (приставка on_).
-  Выбрасывается при валидации декоратора @on для methodов плагинов.
+- AuthorizationError - role verification failures in runtime authorization checks.
+- ValidationFieldError - result field validation failures from checkers/runtime.
+- HandleError - action/resource execution failures (for example DB/resource layer).
+- TransactionError - base category for transaction/connection lifecycle failures.
+- ConnectionAlreadyOpenError - duplicate connection-open attempt.
+- ConnectionNotOpenError - operation attempted without an open connection.
+- TransactionProhibitedError - prohibited transaction control in nested wrapper scope.
+- ConnectionValidationError - provided ``connections`` do not match ``@connection``.
+- RollupNotSupportedError - resource/dependency does not support rollup mode.
+- LogTemplateError - invalid logging template expression or variable usage.
+- CyclicDependencyError - dependency graph cycle detected during coordinator build.
+- OnErrorHandlerError - ``@on_error`` handler failed while processing aspect error.
+- ContextAccessError - undeclared context key access outside ``@context_requires``.
+- NamingSuffixError - naming invariant failure for required suffixes.
+- NamingPrefixError - naming invariant failure for required prefixes.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ФИЛОСОФИЯ ОБРАБОТКИ ОШИБОК
+ERROR HANDLING PHILOSOPHY
 ═══════════════════════════════════════════════════════════════════════════════
 
-ActionMachine не подавляет исключения. Все ошибки пробрасываются наружу
-с информативными сообщениями, указывающими на причину и context.
-Это позволяет обнаруживать проблемы немедленно при первом запуске,
-а не через месяц по непонятным строкам в логах.
+ActionMachine does not silently suppress framework errors. Failures are raised
+with explicit messages that describe cause and context. This enables fail-fast
+diagnostics at startup/runtime boundaries instead of delayed log-only discovery.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ИЕРАРХИЯ ТРАНЗАКЦИОННЫХ ИСКЛЮЧЕНИЙ
+TRANSACTION EXCEPTION HIERARCHY
 ═══════════════════════════════════════════════════════════════════════════════
 
-    TransactionError (базовое)
+    TransactionError (base)
         ├── ConnectionAlreadyOpenError
         ├── ConnectionNotOpenError
         ├── TransactionProhibitedError
         ├── ConnectionValidationError
         └── RollupNotSupportedError
+
+═══════════════════════════════════════════════════════════════════════════════
+ARCHITECTURE / DATA FLOW
+═══════════════════════════════════════════════════════════════════════════════
+
+    Runtime component raises low-level failure
+                     |
+                     v
+    ActionMachine custom exception (typed category)
+                     |
+                     v
+    Machine/adapter boundary decides propagation/wrapping
+                     |
+                     v
+    Caller/tests receive stable, typed error contract
+
+═══════════════════════════════════════════════════════════════════════════════
+EXAMPLES
+═══════════════════════════════════════════════════════════════════════════════
+
+Happy path:
+    Components raise domain-appropriate exception types, and tests assert by
+    class (and optionally message fragments) for deterministic behavior.
+
+Edge case:
+    ``@on_error`` handler itself fails; runtime wraps it in
+    ``OnErrorHandlerError`` while preserving original exception via ``__cause__``.
+
+═══════════════════════════════════════════════════════════════════════════════
+ERRORS / LIMITATIONS
+═══════════════════════════════════════════════════════════════════════════════
+
+- Message text may evolve; prefer asserting by exception type where possible.
+- Exceptions here encode framework contracts, not transport-specific details.
+- Wrapping behavior (for example, in ``OnErrorHandlerError``) is runtime-driven.
+
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE-BEGIN
+═══════════════════════════════════════════════════════════════════════════════
+ROLE: Central typed failure taxonomy for ActionMachine.
+CONTRACT: Raise explicit, category-specific exceptions across subsystems.
+INVARIANTS: Transaction errors inherit TransactionError; naming errors use TypeError.
+FLOW: subsystem failure -> typed exception -> runtime propagation/wrapping.
+FAILURES: Misconfiguration, validation, authorization, and orchestration faults.
+EXTENSION POINTS: Add new exception subclasses with narrow semantic scope.
+AI-CORE-END
 """
 
 
 class AuthorizationError(Exception):
     """
-    Ошибка авторизации (недостаточно прав).
-
-    Выбрасывается в ActionProductMachine._check_action_roles() при
-    несоответствии ролей пользователя требованиям действия, заданным
-    через декоратор @check_roles.
-
-    Сценарии:
-    - AnyRole, но у пользователя нет ни одной роли.
-    - Конкретный тип BaseRole среди требований, отсутствующий у пользователя.
-    - Кортеж типов ролей (OR): ни один тип не покрывается ролями пользователя.
+    Authorization failure (insufficient role permissions).
     """
 
     pass
@@ -118,38 +142,20 @@ class ActionResultDeclarationError(TypeError):
 
 class ValidationFieldError(Exception):
     """
-    Ошибка валидации поля result аспекта.
+    Validation error for aspect result fields.
 
-    Выбрасывается checkerами (ResultStringChecker, ResultIntChecker и др.)
-    при несоответствии значения поля заданным ограничениям. Также
-    выбрасывается ActionProductMachine при обнаружении лишних полей
-    в результате аспекта или при отсутствии checkerов для непустого result.
-
-    Атрибуты:
-        field : str | None
-            Имя поля, вызвавшего ошибку. None если error не привязана
-            к конкретному полю (например, лишние поля в результате).
+    Raised by result checkers and by runtime result-shape guards.
     """
 
     def __init__(self, message: str, field: str | None = None) -> None:
-        """
-        Инициализирует исключение.
-
-        Args:
-            message: сообщение об ошибке.
-            field: имя поля, вызвавшего ошибку (опционально).
-        """
+        """Initialize field validation error."""
         super().__init__(message)
         self.field: str | None = field
 
 
 class HandleError(Exception):
     """
-    Ошибка выполнения основной логики действия.
-
-    Используется в ресурсных менеджерах (PostgresConnectionManager,
-    WrapperSqlConnectionManager) для обёртки ошибок работы с внешними
-    ресурсами (БД, кеш, очередь сообщений).
+    Error while executing core action/resource logic.
     """
 
     pass
@@ -157,46 +163,27 @@ class HandleError(Exception):
 
 class TransactionError(Exception):
     """
-    Базовое исключение для ошибок, связанных с транзакциями и соединениями.
-
-    Является родительским для ConnectionAlreadyOpenError,
-    ConnectionNotOpenError, TransactionProhibitedError,
-    ConnectionValidationError и RollupNotSupportedError.
+    Base exception for transaction and connection lifecycle failures.
     """
 
     pass
 
 
 class ConnectionAlreadyOpenError(TransactionError):
-    """
-    Соединение уже открыто (попытка открыть повторно).
-
-    Выбрасывается при вызове open() на уже открытом соединении.
-    """
+    """Connection is already open (duplicate open attempt)."""
 
     pass
 
 
 class ConnectionNotOpenError(TransactionError):
-    """
-    Соединение не открыто (попытка выполнить операцию без открытого соединения).
-
-    Выбрасывается при вызове execute(), begin(), commit() или rollback()
-    на неоткрытом соединении.
-    """
+    """Connection is not open for requested operation."""
 
     pass
 
 
 class TransactionProhibitedError(TransactionError):
     """
-    Попытка управления транзакцией на вложенном уровне.
-
-    Выбрасывается WrapperSqlConnectionManager при попытке вызвать
-    open(), begin(), commit() или rollback() на обёрнутом соединении.
-    Дочернее действие получает соединение через обёртку (прокси),
-    которая запрещает управление жизненным циклом ресурса,
-    но разрешает выполнение запросов (execute).
+    Transaction control was attempted in a prohibited nested scope.
     """
 
     pass
@@ -204,14 +191,7 @@ class TransactionProhibitedError(TransactionError):
 
 class ConnectionValidationError(TransactionError):
     """
-    Несоответствие переданных connections объявленным через @connection.
-
-    Выбрасывается в ActionProductMachine._check_connections() при нарушении
-    одного из правил:
-    1. Если у действия нет @connection, но передали непустой connections.
-    2. Если у действия есть @connection, но connections не передан.
-    3. Если ключи в connections не совпадают с объявленными
-       (лишние или недостающие ключи).
+    Provided ``connections`` payload does not match ``@connection`` declaration.
     """
 
     pass
@@ -219,16 +199,7 @@ class ConnectionValidationError(TransactionError):
 
 class RollupNotSupportedError(TransactionError):
     """
-    Ресурсный менеджер или зависимость не поддерживает режим rollup.
-
-    Выбрасывается при попытке передать rollup=True классу, который
-    не реализовал поддержку автоматического отката транзакций.
-
-    Режим rollup позволяет безопасно тестировать на production-базе:
-    все операции записи выполняются внутри транзакции, но вместо
-    COMMIT выполняется ROLLBACK. Если ресурсный менеджер не поддерживает
-    этот механизм (например, Redis, HTTP-клиент), он должен выбросить
-    RollupNotSupportedError, чтобы тестировщик узнал об этом немедленно.
+    Rollup mode is requested for a manager that cannot provide it.
     """
 
     pass
@@ -236,20 +207,7 @@ class RollupNotSupportedError(TransactionError):
 
 class LogTemplateError(Exception):
     """
-    Ошибка в шаблоне логирования.
-
-    Выбрасывается при:
-    - Обращении к несуществующей переменной в шаблоне {%namespace.path}.
-    - Неизвестном namespace в шаблоне.
-    - Синтаксической ошибке в выражении {iif(...)}.
-    - Неверном количестве аргументов iif (ожидается 3, разделённых ';').
-    - Ошибке вычисления условия или ветки iif.
-    - Обращении к атрибуту, начинающемуся с подчёркивания.
-    - Неизвестном имени цвета в фильтре |color.
-
-    Ошибка в шаблоне лога — это баг разработчика, а не пользователя.
-    Она обнаруживается немедленно на первом же запуске, что согласуется
-    с философией ActionMachine: логеры и шаблоны падают громко.
+    Logging template syntax/semantic error.
     """
 
     pass
@@ -257,16 +215,7 @@ class LogTemplateError(Exception):
 
 class CyclicDependencyError(Exception):
     """
-    Обнаружена циклическая зависимость при построении графа.
-
-    Выбрасывается в GateCoordinator._add_edge_checked() при попытке
-    добавить ребро типа "depends" или "connection", которое создаёт
-    цикл в направленном графе зависимостей.
-
-    Проверка ацикличности выполняется через rustworkx.is_directed_acyclic_graph()
-    после каждого добавления ребра. Если граф стал циклическим, ребро
-    удаляется и выбрасывается это исключение с информативным сообщением,
-    указывающим на классы, образующие цикл.
+    Dependency graph became cyclic during edge insertion.
     """
 
     pass
@@ -274,26 +223,9 @@ class CyclicDependencyError(Exception):
 
 class OnErrorHandlerError(Exception):
     """
-    Ошибка, возникшая внутри обработчика @on_error.
+    Error raised inside an ``@on_error`` handler.
 
-    Выбрасывается когда method, декорированный @on_error, сам бросает
-    исключение при попытке обработать ошибку аспекта. Оборачивает
-    исходное исключение обработчика через __cause__ (цепочка raise ... from).
-
-    Это позволяет вызывающему коду отличить:
-    - Исходную ошибку аспекта (бизнес-логика).
-    - Ошибку в обработчике ошибок (баг в error handler).
-
-    ActionProductMachine при перехвате ошибки аспекта находит подходящий
-    @on_error-обработчик и вызывает его. Если обработчик возвращает Result —
-    error считается обработанной. Если обработчик сам бросает исключение —
-    оно оборачивается в OnErrorHandlerError и пробрасывается наружу.
-
-    Атрибуты:
-        handler_name : str
-            Имя methodа-обработчика, в котором произошла error.
-        original_error : Exception
-            Исходное исключение аспекта, которое обработчик пытался обработать.
+    Preserves handler name and original aspect error context.
     """
 
     def __init__(
@@ -302,14 +234,7 @@ class OnErrorHandlerError(Exception):
         handler_name: str,
         original_error: Exception,
     ) -> None:
-        """
-        Инициализирует исключение.
-
-        Args:
-            message: сообщение об ошибке с contextом.
-            handler_name: имя methodа @on_error, в котором произошла error.
-            original_error: исходное исключение аспекта, переданное в обработчик.
-        """
+        """Initialize wrapper for failed ``@on_error`` handler execution."""
         super().__init__(message)
         self.handler_name: str = handler_name
         self.original_error: Exception = original_error
@@ -317,64 +242,23 @@ class OnErrorHandlerError(Exception):
 
 class ContextAccessError(Exception):
     """
-    Попытка доступа к полю contextа, не указанному в @context_requires.
-
-    Выбрасывается ContextView при обращении к ключу, который не входит
-    в множество разрешённых ключей текущего аспекта или обработчика ошибок.
-
-    Механизм работы:
-    1. Аспект декларирует нужные поля через @context_requires(Ctx.User.user_id).
-    2. Машина создаёт ContextView с frozenset разрешённых ключей.
-    3. Аспект вызывает ctx.get("user.user_id") — ContextView проверяет,
-       что ключ входит в allowed_keys, и возвращает значение.
-    4. Аспект вызывает ctx.get("user.roles") — ключ не в allowed_keys,
-       выбрасывается ContextAccessError.
-
-    Ошибка доступа — это баг разработчика: аспект пытается прочитать
-    данные, которые не объявил как необходимые. Решение — добавить
-    недостающий ключ в @context_requires.
-
-    Атрибуты:
-        key : str
-            Ключ (dot-path), к которому был запрошен доступ.
-        allowed_keys : frozenset[str]
-            Множество ключей, разрешённых через @context_requires.
+    Access attempt to a context field not declared in ``@context_requires``.
     """
 
     def __init__(self, key: str, allowed_keys: frozenset[str]) -> None:
-        """
-        Инициализирует исключение.
-
-        Args:
-            key: ключ (dot-path), к которому был запрошен доступ.
-            allowed_keys: множество разрешённых ключей из @context_requires.
-        """
+        """Initialize context access violation details."""
         self.key: str = key
         self.allowed_keys: frozenset[str] = allowed_keys
         super().__init__(
-            f"Доступ к полю контекста '{key}' запрещён. "
-            f"Разрешённые поля: {sorted(allowed_keys)}. "
-            f"Добавьте '{key}' в @context_requires декоратор аспекта."
+            f"Access to context field '{key}' is forbidden. "
+            f"Allowed fields: {sorted(allowed_keys)}. "
+            f"Add '{key}' to the aspect's @context_requires decorator."
         )
 
 
 class NamingSuffixError(TypeError):
     """
-    Нарушение инварианта именования компонента ActionMachine (суффикс).
-
-    Выбрасывается при определении класса или methodа, имя которого
-    не соответствует обязательному суффиксу. Наследует TypeError,
-    потому что ошибки именования обнаруживаются на этапе определения
-    класса (в __init_subclass__ или при применении декоратора) и являются
-    errorми разработчика, а не пользовательских данных.
-
-    Обязательные суффиксы:
-    - Class Action (наследник BaseAction) → суффикс "Action".
-    - Class Domain (наследник BaseDomain) → суффикс "Domain".
-    - Метод с @regular_aspect → суффикс "_aspect".
-    - Метод с @summary_aspect → суффикс "_summary".
-    - Метод с @on_error → суффикс "_on_error".
-    - Class checkerа (наследник ResultFieldChecker) → суффикс "Checker".
+    ActionMachine naming invariant violation (required suffix).
     """
 
     pass
@@ -382,15 +266,7 @@ class NamingSuffixError(TypeError):
 
 class NamingPrefixError(TypeError):
     """
-    Нарушение инварианта именования компонента ActionMachine (приставка).
-
-    Выбрасывается при определении methodа, имя которого не соответствует
-    обязательной приставке. Наследует TypeError по той же причине, что
-    и NamingSuffixError — ошибки именования обнаруживаются на этапе
-    определения класса и являются errorми разработчика.
-
-    Обязательные приставки:
-    - Метод плагина с @on → приставка "on_".
+    ActionMachine naming invariant violation (required prefix).
     """
 
     pass

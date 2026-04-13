@@ -1,67 +1,68 @@
 # src/action_machine/integrations/postgres/postgres_connection_manager.py
 """
-Реальный менеджер соединения для PostgreSQL.
+Concrete PostgreSQL connection manager implementation.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-PostgresConnectionManager — конкретная реализация SqlConnectionManager для
-PostgreSQL на базе библиотеки asyncpg. Выполняет непосредственную работу
-с базой данных: открытие соединения, выполнение SQL-запросов, управление
-транзакциями.
+``PostgresConnectionManager`` is a ``SqlConnectionManager`` implementation
+backed by ``asyncpg``. It performs direct database operations: connect,
+transaction control, and SQL execution.
 
-Проверки состояния соединения (открыто ли оно) выполняются в прокси-обёртке
-WrapperSqlConnectionManager, а не здесь. PostgresConnectionManager отвечает
-только за прямое взаимодействие с asyncpg.
+Connection-state policy for child actions is enforced by
+``WrapperSqlConnectionManager``; this class handles low-level DB interaction.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ПОДДЕРЖКА ROLLUP
+INVARIANTS
 ═══════════════════════════════════════════════════════════════════════════════
 
-PostgresConnectionManager полностью поддерживает режим rollup, унаследованный
-от SqlConnectionManager. Параметр rollup передаётся в конструктор и
-прокидывается в super().__init__(rollup=rollup).
-
-Транзакционный цикл (asyncpg без явного BEGIN фиксирует каждый оператор отдельно):
-- open()    → asyncpg.connect()
-- begin()   → SQL ``BEGIN`` — дальнейшие execute в одной транзакции
-- execute() → реальное выполнение SQL
-- commit()  → ``COMMIT``, или при rollup=True — ROLLBACK вместо COMMIT
-- rollback()→ ``ROLLBACK``
-
-Механизм перехвата commit при rollup=True:
-    PostgresConnectionManager.commit() проверяет self.rollup ПЕРВЫМ.
-    Если rollup=True — вызывает self.rollback() и возвращает управление
-    через return, НЕ выполняя код реального COMMIT. Это гарантирует,
-    что при rollup=True команда COMMIT никогда не отправляется в БД.
-
-    Этот подход надёжнее делегирования в super().commit(), потому что
-    не зависит от того, как базовый класс обрабатывает возврат из
-    await super().commit(). Каждый конкретный менеджер самостоятельно
-    реализует перехват rollup в своём commit().
+- ``rollup`` mode is inherited from ``SqlConnectionManager``.
+- ``commit()`` checks ``self.rollup`` first; when true, it executes
+  ``rollback()`` and never sends SQL ``COMMIT``.
+- Transaction commands are explicit SQL statements:
+  ``BEGIN``, ``COMMIT``, ``ROLLBACK``.
+- Each operation requires an opened connection, otherwise ``HandleError``.
 
 ═══════════════════════════════════════════════════════════════════════════════
-УПРАВЛЕНИЕ ТРАНЗАКЦИЯМИ
+ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-asyncpg.Connection не предоставляет methodов commit()/rollback() напрямую —
-управление транзакциями через SQL: ``BEGIN``, ``COMMIT``, ``ROLLBACK``.
+    machine/action
+         |
+         v
+    PostgresConnectionManager
+      | open()    -> asyncpg.connect(...)
+      | begin()   -> "BEGIN"
+      | execute() -> SQL statement
+      | commit()  -> "COMMIT" or rollback when rollup=True
+      | rollback()-> "ROLLBACK"
+         |
+         v
+    PostgreSQL server
+
+═══════════════════════════════════════════════════════════════════════════════
+ROLLUP BEHAVIOR
+═══════════════════════════════════════════════════════════════════════════════
+
+With ``rollup=True``, ``commit()`` is intercepted before real commit:
+it calls ``rollback()`` and returns immediately. This guarantees that no
+``COMMIT`` command reaches the database during rollup runs.
 
 ═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
-    # Production — обычный режим:
+    # Production mode:
     db = PostgresConnectionManager(
         connection_params={"host": "localhost", "database": "orders"},
     )
     await db.open()
     await db.begin()
     await db.execute("INSERT INTO orders (id, amount) VALUES ($1, $2)", (1, 100.0))
-    await db.commit()  # → реальный COMMIT
+    await db.commit()  # real COMMIT
 
-    # Тестирование на production-базе — rollup:
+    # Safe testing against production-like DB with rollup:
     db = PostgresConnectionManager(
         connection_params={"host": "localhost", "database": "orders"},
         rollup=True,
@@ -69,15 +70,32 @@ EXAMPLES
     await db.open()
     await db.begin()
     await db.execute("INSERT INTO orders (id, amount) VALUES ($1, $2)", (1, 100.0))
-    await db.commit()  # → ROLLBACK (изменения не сохранены)
+    await db.commit()  # ROLLBACK (changes are not persisted)
 
-    # Передача в действие:
+    # Pass manager to action runtime:
     result = await machine.run(
         context=ctx,
         action=CreateOrderAction(),
         params=order_params,
         connections={"db": db},
     )
+
+═══════════════════════════════════════════════════════════════════════════════
+ERRORS / LIMITATIONS
+═══════════════════════════════════════════════════════════════════════════════
+
+- Raises ``HandleError`` for connection, transaction, and SQL failures.
+- Uses SQL transaction commands directly because asyncpg does not expose
+  ``commit()``/``rollback()`` methods on connection as adapter API.
+
+AI-CORE-BEGIN
+ROLE: Production PostgreSQL SQL connection manager.
+CONTRACT: Execute SQL and transaction lifecycle with optional rollup interception.
+INVARIANTS: open connection required; rollup commit always resolves to rollback.
+FLOW: open -> begin -> execute* -> commit/rollback.
+FAILURES: Any asyncpg failure is wrapped into HandleError.
+EXTENSION POINTS: Wrapper class for restricted child-action access.
+AI-CORE-END
 """
 
 from typing import Any
@@ -93,23 +111,13 @@ from action_machine.resources.wrapper_sql_connection_manager import (
 
 class PostgresConnectionManager(SqlConnectionManager):
     """
-    Реальный менеджер соединения для PostgreSQL.
+    Asyncpg-backed SQL connection manager for PostgreSQL.
 
-    Использует asyncpg для подключения к базе данных. Поддерживает
-    режим rollup: при rollup=True method commit() выполняет ROLLBACK
-    вместо COMMIT.
-
-    Перехват rollup реализован непосредственно в commit() этого класса:
-    проверка self.rollup выполняется первой, и при True вызывается
-    self.rollback() с немедленным return. Код реального COMMIT
-    выполняется только при rollup=False.
-
-    Атрибуты:
-        _connection_params : dict[str, Any]
-            Параметры подключения для asyncpg.connect()
-            (host, port, user, password, database и т.д.).
-        _conn : asyncpg.Connection | None
-            Активное соединение с PostgreSQL. None до вызова open().
+    AI-CORE-BEGIN
+    ROLE: Concrete SQL manager for Postgres runtime operations.
+    CONTRACT: Implements open/begin/execute/commit/rollback over asyncpg.
+    INVARIANTS: commit uses rollback when rollup=True.
+    AI-CORE-END
     """
 
     def __init__(
@@ -118,15 +126,11 @@ class PostgresConnectionManager(SqlConnectionManager):
         rollup: bool = False,
     ) -> None:
         """
-        Инициализирует менеджер соединения с PostgreSQL.
+        Initialize PostgreSQL connection manager.
 
         Args:
-            connection_params: словарь parameters для asyncpg.connect().
-                Обязательные ключи зависят от конфигурации PostgreSQL.
-                Типичные: host, port, user, password, database.
-            rollup: если True, commit() будет выполнять ROLLBACK вместо
-                    COMMIT. Используется для безопасного тестирования
-                    на production-базе. По умолчанию False.
+            connection_params: parameters passed to ``asyncpg.connect()``.
+            rollup: when True, ``commit()`` performs rollback instead.
         """
         super().__init__(rollup=rollup)
         self._connection_params = connection_params
@@ -134,114 +138,93 @@ class PostgresConnectionManager(SqlConnectionManager):
 
     async def open(self) -> None:
         """
-        Открывает соединение с PostgreSQL через asyncpg.connect().
+        Open PostgreSQL connection via ``asyncpg.connect()``.
 
         Raises:
-            HandleError: при ошибке подключения к PostgreSQL.
-                Оборачивает исходное исключение asyncpg с информативным
-                сообщением.
+            HandleError: if connection fails.
         """
         try:
             self._conn = await asyncpg.connect(**self._connection_params)
         except Exception as e:
-            raise HandleError(f"Ошибка подключения к PostgreSQL: {e}") from e
+            raise HandleError(f"PostgreSQL connection error: {e}") from e
 
     async def begin(self) -> None:
         """
-        Начинает транзакцию (SQL ``BEGIN``).
+        Begin transaction using SQL ``BEGIN``.
 
         Raises:
-            HandleError: если соединение не открыто или ``BEGIN`` не выполнен.
+            HandleError: if connection is closed or BEGIN fails.
         """
         if self._conn is None:
-            raise HandleError("Соединение не открыто")
+            raise HandleError("Connection is not open")
         try:
             await self._conn.execute("BEGIN")
         except Exception as e:
-            raise HandleError(f"Ошибка при begin: {e}") from e
+            raise HandleError(f"BEGIN failed: {e}") from e
 
     async def commit(self) -> None:
         """
-        Фиксирует транзакцию или откатывает при rollup=True.
-
-        При rollup=True вызывает self.rollback() и немедленно возвращает
-        управление. Команда COMMIT не отправляется в БД.
-
-        При rollup=False отправляет SQL-команду COMMIT через asyncpg.
-        asyncpg не имеет methodа connection.commit() — вместо этого
-        используется прямая SQL-команда.
+        Commit transaction or rollback when ``rollup=True``.
 
         Raises:
-            HandleError: при ошибке выполнения COMMIT или если
-                соединение не открыто.
+            HandleError: if connection is closed or COMMIT fails.
         """
-        # Перехват rollup: при True выполняем ROLLBACK вместо COMMIT
-        # и возвращаем управление, не доходя до кода реального COMMIT.
+        # Rollup interception: use rollback and skip real COMMIT.
         if self.rollup:
             await self.rollback()
             return
 
-        # rollup=False — выполняем реальный COMMIT
+        # rollup=False -> execute real COMMIT
         if self._conn is None:
-            raise HandleError("Соединение не открыто")
+            raise HandleError("Connection is not open")
         try:
             await self._conn.execute("COMMIT")
         except Exception as e:
-            raise HandleError(f"Ошибка при commit: {e}") from e
+            raise HandleError(f"COMMIT failed: {e}") from e
 
     async def rollback(self) -> None:
         """
-        Откатывает транзакцию.
-
-        asyncpg не имеет methodа connection.rollback() — вместо этого
-        отправляется SQL-команда ROLLBACK напрямую.
+        Roll back transaction with SQL ``ROLLBACK``.
 
         Raises:
-            HandleError: при ошибке выполнения ROLLBACK или если
-                соединение не открыто.
+            HandleError: if connection is closed or ROLLBACK fails.
         """
         if self._conn is None:
-            raise HandleError("Соединение не открыто")
+            raise HandleError("Connection is not open")
         try:
             await self._conn.execute("ROLLBACK")
         except Exception as e:
-            raise HandleError(f"Ошибка при rollback: {e}") from e
+            raise HandleError(f"ROLLBACK failed: {e}") from e
 
     async def execute(self, query: str, params: tuple[Any, ...] | None = None) -> Any:
         """
-        Выполняет SQL-запрос через asyncpg.
-
-        После ``begin()`` запросы выполняются в одной транзакции; при
-        rollup=True ``commit()`` откатывает её.
+        Execute SQL query via asyncpg.
 
         Args:
-            query: строка SQL-запроса.
-            params: параметры запроса (опционально). Передаются
-                    как позиционные аргументы в asyncpg.execute().
+            query: SQL statement string.
+            params: optional positional query params.
 
         Returns:
-            Результат выполнения запроса от asyncpg.
+            Raw asyncpg execution result.
 
         Raises:
-            HandleError: при ошибке выполнения SQL или если соединение
-                не открыто.
+            HandleError: if connection is closed or SQL execution fails.
         """
         if self._conn is None:
-            raise HandleError("Соединение не открыто")
+            raise HandleError("Connection is not open")
         try:
             return await self._conn.execute(query, *params if params else ())
         except Exception as e:
-            raise HandleError(f"Ошибка выполнения SQL: {e}") from e
+            raise HandleError(f"SQL execution failed: {e}") from e
 
     def get_wrapper_class(self) -> type[SqlConnectionManager] | None:
         """
-        Returns класс прокси-обёртки для передачи в дочерние действия.
+        Return wrapper class for child-action usage.
 
-        WrapperSqlConnectionManager запрещает дочерним действиям управлять
-        транзакциями (open/commit/rollback), но разрешает выполнять
-        запросы (execute). Флаг rollup прокидывается через обёртку.
+        ``WrapperSqlConnectionManager`` blocks transaction-control methods
+        in child actions and allows query execution.
 
         Returns:
-            WrapperSqlConnectionManager — класс прокси-обёртки.
+            WrapperSqlConnectionManager class.
         """
         return WrapperSqlConnectionManager

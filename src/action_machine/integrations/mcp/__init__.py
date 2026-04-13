@@ -1,56 +1,69 @@
 # src/action_machine/integrations/mcp/__init__.py
 """
-MCP-адаптер для ActionMachine.
+MCP integration package for ActionMachine.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Превращает Action в MCP tools для AI-агентов. Разработчик пишет
-``adapter.tool("orders.create", CreateOrderAction)`` — адаптер генерирует
-MCP tool с inputSchema из Pydantic-модели Params, description из @meta
-и handler, который транслирует вызов tool в machine.run().
+Transforms ActionMachine actions into MCP tools consumable by AI agents.
+When a developer registers ``adapter.tool("orders.create", CreateOrderAction)``,
+the adapter derives an MCP input schema from ``Params`` (Pydantic),
+description from action ``@meta``, and a handler that delegates to
+``machine.run()``.
 
-Агент (Claude, ChatGPT, Cursor и др.) видит каждое Action как tool
-с полной семантикой: что делает (description из @meta), какие параметры
-(из Field(description=..., examples=...)), какие constraints (gt, min_length,
-pattern). Агент вызывает tool — адаптер десериализует input, создаёт
-экземпляр Action, вызывает machine.run() и возвращает результат как
-TextContent с JSON.
-
-Дополнительно адаптер регистрирует MCP resource ``system://graph``,
-через который агент может запросить структуру всей системы: узлы
-(actions, domains, dependencies, resource managers), рёбра (depends,
-belongs_to, connection) и описания из @meta.
+The package also exposes the ``system://graph`` resource, allowing agents to
+inspect the action graph (nodes, edges, metadata) from the runtime coordinator.
 
 ═══════════════════════════════════════════════════════════════════════════════
-УСТАНОВКА
+INVARIANTS
+═══════════════════════════════════════════════════════════════════════════════
+
+- ``McpAdapter`` is the only public MCP adapter contract exported here.
+- ``McpRouteRecord`` carries MCP-specific route metadata (tool name, docs).
+- MCP extras are required at import time; absence fails fast with ImportError.
+- Runtime behavior is delegated to ``action_machine.integrations.mcp.adapter``.
+
+═══════════════════════════════════════════════════════════════════════════════
+ARCHITECTURE / DATA FLOW
+═══════════════════════════════════════════════════════════════════════════════
+
+    Action class + @meta + Params model
+                 |
+                 v
+         McpAdapter.tool(...)
+                 |
+                 v
+         McpRouteRecord list
+                 |
+                 v
+          McpAdapter.build()
+                 |
+      +----------+-----------+
+      |                      |
+      v                      v
+   MCP tools           MCP resource
+ (call -> machine.run)  system://graph
+
+═══════════════════════════════════════════════════════════════════════════════
+INSTALLATION
 ═══════════════════════════════════════════════════════════════════════════════
 
     pip install action-machine[mcp]
 
 ═══════════════════════════════════════════════════════════════════════════════
-КОМПОНЕНТЫ
+COMPONENTS
 ═══════════════════════════════════════════════════════════════════════════════
 
-- McpAdapter — конкретный адаптер, наследующий BaseAdapter[McpRouteRecord].
-  Предоставляет протокольный method tool() для регистрации MCP tools.
-  Метод build() создаёт MCP-сервер из зарегистрированных маршрутов.
-  Метод register_all() автоматически регистрирует все Action из координатора.
-
-- McpRouteRecord — frozen-датакласс маршрута с MCP-специфичными полями:
-  tool_name, description.
+- ``McpAdapter``: ``BaseAdapter[McpRouteRecord]`` specialization for MCP.
+  Exposes ``tool()``, ``build()``, and ``register_all()``.
+- ``McpRouteRecord``: immutable route declaration for MCP tool registration.
 
 ═══════════════════════════════════════════════════════════════════════════════
-БЫСТРЫЙ СТАРТ
+EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
-    from action_machine.runtime.machines.action_product_machine import ActionProductMachine
-    from action_machine.graph.gate_coordinator import GateCoordinator
     from action_machine.integrations.mcp import McpAdapter
-
-    coordinator = GateCoordinator()
-    machine = ActionProductMachine(mode="production")
 
     adapter = McpAdapter(
         machine=machine,
@@ -58,80 +71,50 @@ belongs_to, connection) и описания из @meta.
         server_version="0.1.0",
     )
 
-    # Ручная регистрация:
+    # Happy path: manual registration.
     adapter.tool("orders.create", CreateOrderAction)
     adapter.tool("orders.get", GetOrderAction)
-    adapter.tool("system.ping", PingAction)
-
-    # Или автоматическая регистрация всех Action из координатора:
-    # adapter.register_all()
-
     server = adapter.build()
     server.run(transport="stdio")
 
 ═══════════════════════════════════════════════════════════════════════════════
-АВТОМАТИЧЕСКАЯ ГЕНЕРАЦИЯ inputSchema
-═══════════════════════════════════════════════════════════════════════════════
-
-inputSchema генерируется из Pydantic-модели Params через
-model_json_schema(). Описания полей, constraints, examples —
-всё берётся из Field(description=..., gt=0, min_length=3, examples=[...]).
-
-Агент видит полностью типизированную схему входных parameters,
-включая обязательные поля, значения по умолчанию и ограничения.
+    # Edge case: auto-registration from coordinator graph.
+    adapter.register_all()
+    server = adapter.build()
 
 ═══════════════════════════════════════════════════════════════════════════════
-ОБРАБОТКА ОШИБОК
+AUTOMATIC INPUT SCHEMA GENERATION
 ═══════════════════════════════════════════════════════════════════════════════
 
-Адаптер транслирует исключения ActionMachine в MCP-ответы:
-
-    AuthorizationError      → isError=True, текст ошибки с пометкой PERMISSION_DENIED
-    ValidationFieldError    → isError=True, текст ошибки с пометкой INVALID_PARAMS
-    Exception (любое)       → isError=True, текст ошибки с пометкой INTERNAL_ERROR
+``inputSchema`` is derived from the action ``Params`` model using
+``model_json_schema()``. Field docs, constraints, and examples are propagated
+from Pydantic ``Field(...)`` metadata.
 
 ═══════════════════════════════════════════════════════════════════════════════
-RESOURCE system://graph
+ERRORS / LIMITATIONS
 ═══════════════════════════════════════════════════════════════════════════════
 
-При build() адаптер регистрирует MCP resource ``system://graph``.
-Агент может запросить этот ресурс, чтобы увидеть структуру системы:
+- ActionMachine exceptions are mapped to MCP error responses:
+  - ``AuthorizationError`` -> permission-denied style MCP error.
+  - ``ValidationFieldError`` -> invalid-params style MCP error.
+  - Other exceptions -> internal-error style MCP error.
+- JSON serialization constraints are handled by adapter-level mappers/encoders.
+- Importing this package without MCP extras raises ``ImportError`` immediately.
 
-    {
-      "nodes": [
-        {"id": "CreateOrderAction", "type": "action", "description": "...", "domain": "orders"},
-        {"id": "OrdersDomain", "type": "domain", "name": "orders"}
-      ],
-      "edges": [
-        {"from": "CreateOrderAction", "to": "OrdersDomain", "type": "belongs_to"}
-      ]
-    }
+AI-CORE-BEGIN
+ROLE: Public package facade for MCP transport integration.
+CONTRACT: Export stable MCP entry points and fail fast when MCP extras missing.
+INVARIANTS: Exposes only McpAdapter/McpRouteRecord and preserves adapter runtime.
+AI-CORE-END
 
-═══════════════════════════════════════════════════════════════════════════════
-ИНТЕГРАЦИЯ С CLAUDE DESKTOP
-═══════════════════════════════════════════════════════════════════════════════
-
-В файле claude_desktop_config.json:
-
-    {
-      "mcpServers": {
-        "orders": {
-          "command": "python",
-          "args": ["-m", "examples.mcp_service.server"]
-        }
-      }
-    }
-
-После перезапуска Claude Desktop агент увидит зарегистрированные tools
-и сможет вызывать их в диалоге.
 """
 
 try:
     from mcp.server.fastmcp import FastMCP  # noqa: F401
 except ImportError:
     raise ImportError(
-        "Для использования action_machine.integrations.mcp "
-        "установите зависимость: pip install action-machine[mcp]"
+        "To use action_machine.integrations.mcp, "
+        "install the extra dependency: pip install action-machine[mcp]"
     ) from None
 
 from action_machine.integrations.mcp.adapter import McpAdapter

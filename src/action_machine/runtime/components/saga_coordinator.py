@@ -44,17 +44,19 @@ EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
 Happy path:
-- `execute(...)` unwinds all compensators and emits completion summary.
+    ``execute(...)`` unwinds all compensators and emits rollback completion
+    summary with counters.
 
 Edge case:
-- One compensator fails, `CompensateFailedEvent` is emitted, loop continues.
+    One compensator fails, ``CompensateFailedEvent`` is emitted, and rollback
+    loop continues for remaining frames.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ERRORS / LIMITATIONS
 ═══════════════════════════════════════════════════════════════════════════════
 
-This component coordinates rollback only. It does not run regular aspects or
-`@on_error` handlers.
+This component coordinates rollback only. It does not execute regular aspects
+or ``@on_error`` handlers directly.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN

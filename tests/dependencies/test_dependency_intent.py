@@ -1,42 +1,41 @@
 # tests/dependencies/test_dependency_intent.py
 """
-Тесты DependencyIntent — маркерного миксина для декоратора @depends.
+Tests for ``DependencyIntent`` — marker mixin for ``@depends``.
 
 ═══════════════════════════════════════════════════════════════════════════════
-НАЗНАЧЕНИЕ
+PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-DependencyIntent[T] выполняет две функции:
+``DependencyIntent[T]`` does two jobs:
 
-1. Маркер: декоратор @depends проверяет, что целевой класс наследует
-   DependencyIntent. Без наследования — TypeError.
+1. **Marker:** ``@depends`` requires the target class to inherit ``DependencyIntent``.
+   Otherwise ``TypeError``.
 
-2. Ограничитель типа (bound): параметр T определяет, какие классы
-   допускаются в качестве зависимостей. Декоратор @depends проверяет
-   issubclass(klass, bound) при каждом вызове.
+2. **Bound:** type parameter ``T`` limits which dependency classes are allowed.
+   ``@depends`` checks ``issubclass(klass, bound)`` on every use.
 
-Bound извлекается из generic-параметра DependencyIntent[T] в
-__init_subclass__ через _extract_bound. Если T — конкретный тип,
-он используется. Если T — TypeVar или не найден, bound наследуется
-от родителя или возвращается object.
+The bound is taken from generic ``DependencyIntent[T]`` in ``__init_subclass__``
+via ``_extract_bound``. If ``T`` is a concrete type, it wins; if ``T`` is a
+``TypeVar`` or missing, the bound is inherited from the parent or falls back to
+``object``.
 
 ═══════════════════════════════════════════════════════════════════════════════
-СЦЕНАРИИ
+SCENARIOS
 ═══════════════════════════════════════════════════════════════════════════════
 
-_extract_bound:
-    - Класс с DependencyIntent[object] → bound = object.
-    - Класс с DependencyIntent[конкретный_тип] → bound = конкретный_тип.
-    - Класс-наследник без собственного generic → bound наследуется от родителя.
-    - Класс без __orig_bases__ и без родителя с bound → bound = object.
+``_extract_bound``:
+    - Class with ``DependencyIntent[object]`` -> bound = ``object``.
+    - Class with ``DependencyIntent[SomeType]`` -> bound = ``SomeType``.
+    - Subclass without its own generic -> bound inherited from parent.
+    - Class without ``__orig_bases__`` and no bound-bearing parent -> ``object``.
 
-get_depends_bound:
-    - Возвращает bound, установленный в __init_subclass__.
-    - На классе без _depends_bound возвращает object (fallback через getattr).
+``get_depends_bound``:
+    - Returns the bound set in ``__init_subclass__``.
+    - On a class without ``_depends_bound``, falls back to ``object`` (via ``getattr``).
 
-Интеграция с BaseAction:
-    - BaseAction наследует DependencyIntent[object], поэтому bound = object.
-    - Доменные Action наследуют bound от BaseAction.
+Integration with ``BaseAction``:
+    - ``BaseAction`` extends ``DependencyIntent[object]``, so bound = ``object``.
+    - Domain actions inherit that bound from ``BaseAction``.
 """
 
 
@@ -48,93 +47,72 @@ from action_machine.resources.base_resource_manager import BaseResourceManager
 from tests.scenarios.domain_model import FullAction, PingAction
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Хелперы — заведомо тестовые классы, не часть рабочей доменной модели.
-# Создаются внутри теста для проверки механизма извлечения bound.
+# Helpers — test-only classes, not part of the production domain.
+# Defined here to exercise bound extraction.
 # ─────────────────────────────────────────────────────────────────────────────
 
 
 class _AnyDepsHost(DependencyIntent[object]):
-    """Хост с bound=object — принимает любые зависимости."""
+    """Host with bound ``object`` — any dependency type allowed."""
     pass
 
 
 class _ResourceOnlyHost(DependencyIntent[BaseResourceManager]):
-    """Хост с bound=BaseResourceManager — только ресурсные менеджеры."""
+    """Host with bound ``BaseResourceManager`` — resource managers only."""
     pass
 
 
 class _ChildOfResourceHost(_ResourceOnlyHost):
-    """Наследник без собственного generic — bound наследуется от родителя."""
+    """Subclass without its own generic — bound inherited from parent."""
     pass
 
 
 class _GrandchildOfResourceHost(_ChildOfResourceHost):
-    """Внук — bound наследуется через цепочку MRO."""
+    """Grandchild — bound inherited through the MRO chain."""
     pass
 
 
 class _PlainClass:
-    """Обычный класс без DependencyIntent в предках."""
+    """Plain class with no ``DependencyIntent`` in the MRO."""
     pass
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# _extract_bound — извлечение bound из generic-параметра
+# _extract_bound — read bound from generic parameter
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestExtractBound:
-    """Покрывает все ветки _extract_bound."""
+    """Covers all branches of ``_extract_bound``."""
 
     def test_object_bound(self) -> None:
-        """DependencyIntent[object] → bound = object."""
-        # Arrange — _AnyDepsHost наследует DependencyIntent[object]
-
-        # Act
+        """``DependencyIntent[object]`` -> bound is ``object``."""
         bound = _extract_bound(_AnyDepsHost)
 
-        # Assert
         assert bound is object
 
     def test_specific_bound(self) -> None:
-        """DependencyIntent[BaseResourceManager] → bound = BaseResourceManager."""
-        # Arrange — _ResourceOnlyHost наследует DependencyIntent[BaseResourceManager]
-
-        # Act
+        """``DependencyIntent[BaseResourceManager]`` -> bound is ``BaseResourceManager``."""
         bound = _extract_bound(_ResourceOnlyHost)
 
-        # Assert
         assert bound is BaseResourceManager
 
     def test_inherited_bound(self) -> None:
-        """Наследник без своего generic → bound наследуется от родителя."""
-        # Arrange — _ChildOfResourceHost не указывает DependencyIntent[...]
-        # напрямую, но наследует _ResourceOnlyHost
-
-        # Act
+        """Subclass without its own generic inherits the parent's bound."""
         bound = _extract_bound(_ChildOfResourceHost)
 
-        # Assert — bound унаследован: BaseResourceManager
         assert bound is BaseResourceManager
 
     def test_grandchild_inherited_bound(self) -> None:
-        """Внук наследует bound через цепочку MRO."""
-        # Arrange — _GrandchildOfResourceHost → _ChildOfResourceHost → _ResourceOnlyHost
-
-        # Act
+        """Grandchild inherits bound through the MRO chain."""
         bound = _extract_bound(_GrandchildOfResourceHost)
 
-        # Assert
         assert bound is BaseResourceManager
 
     def test_plain_class_returns_object(self) -> None:
-        """Класс без DependencyIntent в предках → bound = object."""
-        # Arrange — _PlainClass не наследует DependencyIntent
-
-        # Act
+        """Class without ``DependencyIntent`` ancestors -> ``object``."""
         bound = _extract_bound(_PlainClass)
 
-        # Assert — fallback на object
         assert bound is object
 
 
@@ -144,75 +122,51 @@ class TestExtractBound:
 
 
 class TestGetDependsBound:
-    """Покрывает get_depends_bound classmethod."""
+    """Covers ``get_depends_bound``."""
 
     def test_returns_bound_for_host(self) -> None:
-        """get_depends_bound возвращает bound, установленный в __init_subclass__."""
-        # Arrange — _ResourceOnlyHost имеет _depends_bound = BaseResourceManager
-
-        # Act
+        """Returns the bound installed in ``__init_subclass__``."""
         bound = _ResourceOnlyHost.get_depends_bound()
 
-        # Assert
         assert bound is BaseResourceManager
 
     def test_returns_object_for_any_host(self) -> None:
-        """get_depends_bound для DependencyIntent[object] возвращает object."""
-        # Arrange
-
-        # Act
+        """``DependencyIntent[object]`` -> ``get_depends_bound()`` is ``object``."""
         bound = _AnyDepsHost.get_depends_bound()
 
-        # Assert
         assert bound is object
 
     def test_returns_object_for_class_without_attr(self) -> None:
-        """Класс без _depends_bound → getattr fallback → object."""
-        # Arrange — _PlainClass не имеет _depends_bound
-
-        # Act — вызываем через DependencyIntent.get_depends_bound на _PlainClass
-        # Нельзя вызвать classmethod на _PlainClass напрямую, но можно проверить
-        # через getattr напрямую
+        """Plain class: no ``_depends_bound`` — emulate fallback with ``getattr``."""
         bound = getattr(_PlainClass, "_depends_bound", object)
 
-        # Assert
         assert bound is object
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Интеграция с BaseAction
+# BaseAction integration
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestBaseActionIntegration:
-    """Покрывает наследование bound через BaseAction → доменные Action."""
+    """Bound inheritance from ``BaseAction`` to domain actions."""
 
     def test_ping_action_bound_is_object(self) -> None:
-        """PingAction наследует DependencyIntent[object] через BaseAction."""
-        # Arrange — PingAction → BaseAction → DependencyIntent[object]
-
-        # Act
+        """``PingAction`` gets ``DependencyIntent[object]`` through ``BaseAction``."""
         bound = PingAction.get_depends_bound()
 
-        # Assert — BaseAction объявлен как DependencyIntent[object]
         assert bound is object
 
     def test_full_action_bound_is_object(self) -> None:
-        """FullAction с @depends тоже имеет bound=object."""
-        # Arrange — FullAction наследует BaseAction
-
-        # Act
+        """``FullAction`` with ``@depends`` still has bound ``object``."""
         bound = FullAction.get_depends_bound()
 
-        # Assert
         assert bound is object
 
     def test_ping_action_is_dependency_intent(self) -> None:
-        """PingAction является подклассом DependencyIntent."""
-        # Arrange / Act / Assert
+        """``PingAction`` is a subclass of ``DependencyIntent``."""
         assert issubclass(PingAction, DependencyIntent)
 
     def test_plain_class_is_not_dependency_intent(self) -> None:
-        """Обычный класс не является подклассом DependencyIntent."""
-        # Arrange / Act / Assert
+        """A plain class is not a ``DependencyIntent`` subclass."""
         assert not issubclass(_PlainClass, DependencyIntent)

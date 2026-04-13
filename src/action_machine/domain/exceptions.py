@@ -12,6 +12,27 @@ core does not import domain exceptions, while domain code may still use
 core errors such as `NamingSuffixError` where naming invariants are shared.
 
 ═══════════════════════════════════════════════════════════════════════════════
+ARCHITECTURE / DATA FLOW
+═══════════════════════════════════════════════════════════════════════════════
+
+::
+
+    partial entity access      relation container access      @entity declaration      lifecycle validation
+            │                           │                             │                          │
+            ▼                           ▼                             ▼                          ▼
+    FieldNotLoadedError         RelationNotLoadedError        EntityDecoratorError      LifecycleValidationError
+            │                           │                             │                          │
+            └────────────── domain-layer fail-fast semantics (no hidden lazy I/O) ─────────────┘
+
+═══════════════════════════════════════════════════════════════════════════════
+INVARIANTS
+═══════════════════════════════════════════════════════════════════════════════
+
+- Field/relation load failures subclass ``AttributeError`` to preserve attribute-access semantics.
+- ``EntityDecoratorError`` subclasses ``TypeError`` because failures are declaration-time developer errors.
+- ``LifecycleValidationError`` carries explicit entity/field/details context for coordinator build diagnostics.
+
+═══════════════════════════════════════════════════════════════════════════════
 EXCEPTION TYPES
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -32,6 +53,25 @@ LifecycleValidationError
     A `Lifecycle` template attached to an entity fails one of the eight
     structural integrity rules when validated during `GateCoordinator.build()`
     (via `EntityIntentInspector` / entity lifecycle validation).
+
+═══════════════════════════════════════════════════════════════════════════════
+ERRORS / LIMITATIONS
+═══════════════════════════════════════════════════════════════════════════════
+
+- This module defines error types only; it does not perform validation by itself.
+- Error raising points live in entity models, relation containers, decorators, and inspectors.
+- Message text is intentionally explicit for debugging and test assertions.
+
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE-BEGIN
+═══════════════════════════════════════════════════════════════════════════════
+ROLE: Domain-specific exception taxonomy.
+CONTRACT: Provide precise failures for entity access, relation hydration, decorator contracts, and lifecycle integrity.
+INVARIANTS: Exception inheritance reflects failure semantics (attribute access vs declaration vs structural validation).
+FLOW: domain operation/declaration -> targeted exception with diagnostic context.
+FAILURES: Raised by domain entities/decorators/inspectors, not by this module directly.
+EXTENSION POINTS: Additional domain error classes can follow the same semantic layering.
+AI-CORE-END
 """
 
 from __future__ import annotations
@@ -61,6 +101,12 @@ class FieldNotLoadedError(AttributeError):
             Entity class name (for messages).
         loaded_fields:
             Frozen set of field names that *were* loaded.
+
+    AI-CORE-BEGIN
+    ROLE: Fail-fast signal for missing fields on partial entities.
+    CONTRACT: Raised only when model field exists but is absent from loaded subset.
+    INVARIANTS: Inherits ``AttributeError`` to align with Python attribute access behavior.
+    AI-CORE-END
     """
 
     def __init__(

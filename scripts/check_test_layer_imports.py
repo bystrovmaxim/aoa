@@ -39,7 +39,6 @@ SKIP_TOP_LEVEL = frozenset(
         "smoke",
         "bench",
         "architecture",
-        "naming",
         "adapters",
         "integrations",
         "testing",

@@ -1,17 +1,57 @@
 # tests/bench/test_mock_action.py
 """
-Тесты MockAction — мок-действие для подстановки в тестах.
+Tests for ``MockAction`` — lightweight stand-in actions for tests.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ПОКРЫВАЕМЫЕ СЦЕНАРИИ
+PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-- Фиксированный результат (result) — каждый вызов возвращает один объект.
-- Вычисляемый результат (side_effect) — функция вызывается с params.
-- side_effect имеет приоритет над result.
-- Счётчик вызовов (call_count) инкрементируется при каждом run().
-- Последние параметры (last_params) сохраняются для проверки.
-- Ошибка при отсутствии result и side_effect.
+Cover fixed ``result``, callable ``side_effect`` (with precedence over
+``result``), call tracking (``call_count``, ``last_params``), and the error when
+neither outcome source is configured.
+
+═══════════════════════════════════════════════════════════════════════════════
+ARCHITECTURE / DATA FLOW
+═══════════════════════════════════════════════════════════════════════════════
+
+    MockAction(result=...) or MockAction(side_effect=fn)
+              |
+              v
+    run(params)  ->  BaseResult (or raises if misconfigured)
+              |
+              v
+    Updates call_count / last_params
+
+═══════════════════════════════════════════════════════════════════════════════
+INVARIANTS
+═══════════════════════════════════════════════════════════════════════════════
+
+- ``side_effect`` wins when both ``result`` and ``side_effect`` are set.
+- Each ``run`` increments ``call_count`` exactly once.
+
+═══════════════════════════════════════════════════════════════════════════════
+EXAMPLES
+═══════════════════════════════════════════════════════════════════════════════
+
+    uv run pytest tests/bench/test_mock_action.py -q
+
+Edge case: ``MockAction()`` with no configuration raises ``ValueError``.
+
+═══════════════════════════════════════════════════════════════════════════════
+ERRORS / LIMITATIONS
+═══════════════════════════════════════════════════════════════════════════════
+
+- Synchronous ``run`` only; async bench paths wrap this separately.
+
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE-BEGIN
+═══════════════════════════════════════════════════════════════════════════════
+ROLE: Unit tests for the ``MockAction`` test double.
+CONTRACT: Deterministic return or delegated computation; call telemetry.
+INVARIANTS: Uses ``PingAction`` result/params types from scenarios.
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE-END
+═══════════════════════════════════════════════════════════════════════════════
 """
 
 import pytest
@@ -22,49 +62,34 @@ from tests.scenarios.domain_model import PingAction
 
 
 class TestFixedResult:
-    """MockAction с фиксированным результатом."""
+    """``MockAction`` with a fixed ``result`` object."""
 
     def test_returns_same_object(self) -> None:
-        """
-        Результат run() — тот же объект, что передан в конструктор.
-        Мок не копирует и не модифицирует результат.
-        """
-        # Arrange
+        """``run`` returns the exact ``result`` instance from the constructor."""
         expected = PingAction.Result(message="fixed")
         action = MockAction(result=expected)
 
-        # Act
         result = action.run(PingAction.Params())
 
-        # Assert — проверка по ссылке
         assert result is expected
 
     def test_stable_across_calls(self) -> None:
-        """
-        Повторный вызов возвращает тот же объект — результат стабилен.
-        """
-        # Arrange
+        """Repeated ``run`` calls reuse the same result object."""
         expected = PingAction.Result(message="stable")
         action = MockAction(result=expected)
 
-        # Act
         result1 = action.run(PingAction.Params())
         result2 = action.run(PingAction.Params())
 
-        # Assert
         assert result1 is expected
         assert result2 is expected
 
 
 class TestSideEffect:
-    """MockAction с вычисляемым результатом."""
+    """``MockAction`` with a ``side_effect`` callable."""
 
     def test_delegates_to_function(self) -> None:
-        """
-        Параметры run() передаются в side_effect. Результат run()
-        равен результату side_effect — мок как прозрачная обёртка.
-        """
-        # Arrange
+        """``side_effect`` receives params and its return value is propagated."""
         received = []
         from_side_effect = PingAction.Result(message="computed")
 
@@ -75,74 +100,52 @@ class TestSideEffect:
         action = MockAction(side_effect=effect)
         params = PingAction.Params()
 
-        # Act
         result = action.run(params)
 
-        # Assert
         assert received == [params]
         assert result is from_side_effect
 
     def test_priority_over_result(self) -> None:
-        """
-        Если заданы и result, и side_effect — side_effect имеет приоритет.
-        result игнорируется.
-        """
-        # Arrange
+        """When both are set, ``side_effect`` is used and ``result`` is ignored."""
         ignored = PingAction.Result(message="ignored")
         from_effect = PingAction.Result(message="from_effect")
         action = MockAction(result=ignored, side_effect=lambda p: from_effect)
 
-        # Act
         result = action.run(PingAction.Params())
 
-        # Assert
         assert result is from_effect
         assert result is not ignored
 
 
 class TestCallTracking:
-    """MockAction отслеживает историю вызовов."""
+    """``MockAction`` records invocation history."""
 
     def test_initial_state(self) -> None:
-        """
-        До первого вызова: call_count=0, last_params=None.
-        """
-        # Arrange & Act
+        """Before the first ``run``: ``call_count == 0``, ``last_params is None``."""
         action = MockAction(result=PingAction.Result(message="x"))
 
-        # Assert
         assert action.call_count == 0
         assert action.last_params is None
 
     def test_increments_on_each_call(self) -> None:
-        """
-        call_count увеличивается на 1 при каждом run().
-        last_params указывает на параметры последнего вызова.
-        """
-        # Arrange
+        """Each ``run`` bumps ``call_count`` and refreshes ``last_params``."""
         action = MockAction(result=PingAction.Result(message="x"))
         p1 = PingAction.Params()
         p2 = PingAction.Params()
 
-        # Act
         action.run(p1)
         action.run(p2)
 
-        # Assert
         assert action.call_count == 2
         assert action.last_params is p2
 
 
 class TestNoResultOrSideEffect:
-    """MockAction без result и side_effect — ошибка."""
+    """Misconfigured ``MockAction`` raises."""
 
     def test_raises_value_error(self) -> None:
-        """
-        Нечего возвращать — ValueError с понятным сообщением.
-        """
-        # Arrange
+        """Neither ``result`` nor ``side_effect`` -> ``ValueError``."""
         action = MockAction()
 
-        # Act & Assert
         with pytest.raises(ValueError, match="neither result nor side_effect"):
             action.run(PingAction.Params())

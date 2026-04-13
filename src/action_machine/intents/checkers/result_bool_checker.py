@@ -1,34 +1,51 @@
 # src/action_machine/intents/checkers/result_bool_checker.py
 """
-Чекер для булевых полей результата аспекта и функция-декоратор result_bool.
+Boolean result-field checker and ``result_bool`` decorator.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Модуль содержит два компонента:
+The module exposes two components:
 
-1. **ResultBoolChecker** — класс checkerа. Checks, что поле результата
-   является булевым значением (True/False). Числа (0, 1), строки
-   ("true", "false") и другие типы не принимаются — только точное
-   isinstance(value, bool). Создаётся машиной из checker snapshot entry
-   при выполнении аспекта.
+1. **ResultBoolChecker**: validates that a result field is strictly boolean
+   (``True``/``False``). Numeric values (``0``, ``1``), strings
+   (``"true"``, ``"false"``), and other types are rejected.
+   Instances are created by runtime from checker snapshot entries.
 
-2. **result_bool** — функция-декоратор. Применяется к methodу-аспекту
-   и записывает метаданные checkerа в атрибут ``_checker_meta`` methodа.
-   MetadataBuilder собирает эти метаданные в checker snapshot (GateCoordinator.get_checkers).
+2. **result_bool**: decorator for aspect methods that writes checker metadata
+   to method attribute ``_checker_meta``. Inspector/builder flow collects this
+   metadata into checker snapshots used at runtime.
 
 ═══════════════════════════════════════════════════════════════════════════════
-USAGE КАК ДЕКОРАТОР
+ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-    @regular_aspect("Check")
+    @result_bool("is_valid")
+            |
+            v
+    method._checker_meta append
+            |
+            v
+    CheckerIntentInspector snapshot
+            |
+            v
+    runtime creates ResultBoolChecker
+            |
+            v
+    checker.check(result_dict)
+
+═══════════════════════════════════════════════════════════════════════════════
+USAGE AS DECORATOR
+═══════════════════════════════════════════════════════════════════════════════
+
+    @regular_aspect("Validate")
     @result_bool("is_valid", required=True)
     async def validate(self, params, state, box, connections):
         return {"is_valid": True}
 
 ═══════════════════════════════════════════════════════════════════════════════
-USAGE МАШИНОЙ
+USAGE BY RUNTIME
 ═══════════════════════════════════════════════════════════════════════════════
 
     checker = ResultBoolChecker("is_valid")
@@ -38,24 +55,33 @@ USAGE МАШИНОЙ
 PARAMETERS
 ═══════════════════════════════════════════════════════════════════════════════
 
-    field_name : str — имя поля в словаре результата аспекта.
-    required : bool — required ли поле. По умолчанию True.
+    field_name : str — field name in aspect result dictionary.
+    required : bool — whether field is required. Default ``True``.
 
-Дополнительных parameters нет — наследует _get_extra_params от базового
-класса ResultFieldChecker, который возвращает пустой словарь.
+No additional parameters are defined; ``_get_extra_params`` from
+``ResultFieldChecker`` returns an empty dictionary.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ERRORS
+INVARIANTS
 ═══════════════════════════════════════════════════════════════════════════════
 
-    ValidationFieldError — значение не bool.
+- Accepts only ``bool`` values.
+- Reuses base required/None handling from ``ResultFieldChecker``.
+- Checker metadata shape is consistent with other ``result_*`` decorators.
+
+═══════════════════════════════════════════════════════════════════════════════
+ERRORS / LIMITATIONS
+═══════════════════════════════════════════════════════════════════════════════
+
+- Raises ``ValidationFieldError`` when value is not ``bool``.
+- Type check is strict: bool subclasses/compatible values are not coerced.
 
 
 AI-CORE-BEGIN
-ROLE: module result_bool_checker
-CONTRACT: Keep runtime behavior unchanged; decorators/inspectors expose metadata consumed by coordinator/machine.
-INVARIANTS: Validate declarations early and provide deterministic metadata shape.
-FLOW: declarations -> inspector snapshot -> coordinator cache -> runtime usage.
+ROLE: Boolean checker module for aspect result fields.
+CONTRACT: Validate strict bool values and expose metadata via ``result_bool`` decorator.
+INVARIANTS: Deterministic metadata shape and strict ``isinstance(value, bool)`` checks.
+FLOW: decorator metadata -> checker snapshot -> runtime checker execution.
 AI-CORE-END
 """
 
@@ -68,28 +94,20 @@ from action_machine.model.exceptions import ValidationFieldError
 
 class ResultBoolChecker(ResultFieldChecker):
     """
-    Checks, что значение является булевым (True/False).
+    Checker for strict boolean result values.
 
-    Числа (0, 1), строки ("true", "false") и другие типы не принимаются —
-    только точное isinstance(value, bool).
-
-    Создаётся машиной из checker snapshot entry при выполнении аспекта.
-    Дополнительных parameters нет, поэтому _get_extra_params не переопределяется
-    и возвращает пустой словарь из базового класса.
+    Accepts only ``True`` / ``False`` values; no coercion from other types.
     """
 
     def _check_type_and_constraints(self, value: Any) -> None:
         """
-        Checks, что value является булевым значением (True или False).
-
-        Числа (0, 1), строки ("true", "false") и другие типы не принимаются —
-        только точное isinstance(value, bool).
+        Validate that ``value`` is a strict boolean.
 
         Args:
-            value: значение для проверки (гарантированно не None).
+            value: value to validate (guaranteed non-None by base checker).
 
         Raises:
-            ValidationFieldError: если value не bool.
+            ValidationFieldError: if ``value`` is not ``bool``.
         """
         if not isinstance(value, bool):
             raise ValidationFieldError(

@@ -1,17 +1,17 @@
 # src/action_machine/adapters/__init__.py
 """
-ActionMachine adapter package exports.
+ActionMachine adapters package public exports.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Expose the shared adapter contract used to bridge external protocols to
+Expose protocol-agnostic adapter contracts used to bridge transport layers
+(HTTP, MCP, future integrations) to
 ``machine.run(context, action, params, connections)``.
 
-The package-level docstring is an operator-facing overview: what components are
-exported, how data flows through adapters, and which invariants govern
-route typing and mapper usage.
+This module is documentation-first and export-only: it defines no runtime
+behavior by itself, but centralizes the public API for adapter foundations.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
@@ -59,6 +59,8 @@ INVARIANTS
 - ``BaseRouteRecord`` remains abstract; concrete adapters provide protocol fields.
 - Mapper naming follows return value semantics:
   ``params_mapper`` returns params, ``response_mapper`` returns response.
+- Transport policies (auth failure semantics, status/error envelopes,
+  serialization shape) are defined by concrete adapters, not this package.
 
 ═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES
@@ -86,9 +88,9 @@ EXAMPLES
 ERRORS / LIMITATIONS
 ═══════════════════════════════════════════════════════════════════════════════
 
-Protocol-specific error mapping is implemented by concrete adapters
-(``integrations.fastapi``, ``integrations.mcp``). This package only exports shared base
-contracts and type-extraction helpers.
+Protocol-specific authentication and error mapping are implemented by concrete
+adapters (``integrations.fastapi``, ``integrations.mcp``). This package only
+exports shared base contracts and type-extraction helpers.
 
 Typical mapping examples (implemented in concrete adapters):
 - ``AuthorizationError`` -> HTTP 403 / MCP permission-denied equivalent.
@@ -103,12 +105,12 @@ Type extraction and mapping limitations:
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN
 ═══════════════════════════════════════════════════════════════════════════════
-ROLE: Adapters package API surface.
+ROLE: Public API surface for adapter foundations.
 CONTRACT: Export protocol-agnostic adapter abstractions and action-type extraction helper.
-INVARIANTS: generic action types are source of truth; mapping contracts are validated by route records.
-FLOW: protocol registration -> route records -> machine.run invocation -> protocol response mapping.
-FAILURES: adapter-specific failures and transport error mapping are outside this package.
-EXTENSION POINTS: implement new concrete adapters on top of BaseAdapter/BaseRouteRecord.
+INVARIANTS: action generic types are source of truth; route records validate mapping contracts.
+FLOW: protocol registration -> route record -> machine.run invocation -> protocol response mapping.
+FAILURES: transport-specific auth/error behavior is owned by concrete adapter integrations.
+EXTENSION POINTS: implement new concrete adapters on top of BaseAdapter and BaseRouteRecord.
 AI-CORE-END
 ═══════════════════════════════════════════════════════════════════════════════
 """

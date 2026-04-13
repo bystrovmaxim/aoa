@@ -1,20 +1,18 @@
 # src/action_machine/intents/checkers/checker_intent.py
 """
-Module: CheckerIntent — marker mixin for checker decorators.
+Checker intent marker and checker-attachment validators.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-CheckerIntent is a marker mixin that indicates the class supports checker
-decorators (for example, @result_string). Checkers are applied to aspect
-methods and validate the dict returned by those methods against declared fields.
-
-The presence of CheckerIntent in the class MRO documents the contract:
-"this class may contain methods with checkers."
+``CheckerIntent`` marks classes that may use checker decorators (for example,
+``@result_string``) on aspect methods. Validators in this module enforce:
+1) marker presence when checkers are declared, and
+2) checker-to-aspect binding correctness.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ARCHITECTURE
+ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
     class BaseAction[P, R](
@@ -34,23 +32,42 @@ ARCHITECTURE
             ...
             return {"txn_id": txn_id}
 
-    # @result_string writes to the method:
-    #   method._checker_meta = [{"checker_class": StringFieldChecker,
-    #                            "field_name": "txn_id", ...}]
+    @result_* decorators
+            |
+            v
+    method._checker_meta entries
+            |
+            v
+    CheckerIntentInspector collection
+            |
+            v
+    require_checker_intent_marker(...)
+    validate_checkers_belong_to_aspects(...)
+            |
+            v
+    checker facet snapshot -> runtime checker execution
 
-    # CheckerIntentInspector._collect_checkers(cls) scans class methods
-    # with _checker_meta, and collects them into checker snapshot (GateCoordinator.get_checkers).
+═══════════════════════════════════════════════════════════════════════════════
+INVARIANTS
+═══════════════════════════════════════════════════════════════════════════════
 
-    # When ActionProductMachine executes the aspect:
-    #   checkers = coordinator.get_checkers_for_aspect(Action, "process_payment")
-    #   → it applies each checker to the aspect result
+- If checkers are declared, target class must inherit ``CheckerIntent``.
+- Each checker must point to an existing aspect method.
+- ``CheckerIntent`` is a pure marker (no runtime behavior by itself).
 
+═══════════════════════════════════════════════════════════════════════════════
+ERRORS / LIMITATIONS
+═══════════════════════════════════════════════════════════════════════════════
+
+- ``TypeError`` when checkers are declared on classes without ``CheckerIntent``.
+- ``ValueError`` when a checker is attached to a non-aspect method.
+- This module validates structure only; value validation is handled by checker classes.
 
 AI-CORE-BEGIN
-ROLE: module checker_intent
-CONTRACT: Keep runtime behavior unchanged; decorators/inspectors expose metadata consumed by coordinator/machine.
-INVARIANTS: Validate declarations early and provide deterministic metadata shape.
-FLOW: declarations -> inspector snapshot -> coordinator cache -> runtime usage.
+ROLE: Checker declaration marker + validator module.
+CONTRACT: Enforce marker presence and checker-to-aspect binding integrity.
+INVARIANTS: Deterministic metadata shape for inspector/coordinator consumption.
+FLOW: decorator metadata -> validators -> snapshot -> runtime checker application.
 AI-CORE-END
 """
 
@@ -63,31 +80,24 @@ class CheckerIntent:
     """
     Marker mixin indicating support for checker decorators.
 
-    A class inheriting CheckerIntent may contain aspect methods with
-    checker decorators (@result_string, etc.). MetadataBuilder collects the
-    checkers into checker snapshot (GateCoordinator.get_checkers), and ActionProductMachine applies them
-    to aspect results.
-
-    The mixin contains no logic, fields, or methods. Its purpose is to
-    document the contract and provide consistency with other gate mixins.
+    Classes inheriting this mixin may declare checker decorators on aspect methods.
+    The mixin itself has no behavior; it is a marker contract for inspectors.
     """
 
-    # Аннотация для mypy (хотя checkerы теперь висят на methodах,
-    # мы оставляем атрибут для обратной совместимости проверок)
+    # Mypy annotation retained for compatibility checks.
     _field_checkers: ClassVar[list[Any]]
 
 
 def require_checker_intent_marker(cls: type, checkers: list[Any]) -> None:
-    """Есть checkerы → класс должен наследовать CheckerIntent."""
+    """Require ``CheckerIntent`` marker when checkers are declared."""
     if checkers and not issubclass(cls, CheckerIntent):
         checker_fields = ", ".join(c.field_name for c in checkers)
         raise TypeError(
-            f"Class {cls.__name__} содержит checkerы для полей ({checker_fields}), "
-            f"но не наследует CheckerIntent. Декораторы checkerов "
-            f"(@result_string, @result_int и др.) разрешены "
-            f"только на классах, наследующих CheckerIntent. "
-            f"Используйте BaseAction или добавьте CheckerIntent "
-            f"в цепочку наследования."
+            f"Class {cls.__name__} declares checkers for fields ({checker_fields}) "
+            f"but does not inherit CheckerIntent. Checker decorators "
+            f"(@result_string, @result_int, etc.) are allowed only on classes "
+            f"inheriting CheckerIntent. Use BaseAction or add CheckerIntent to "
+            f"the inheritance chain."
         )
 
 
@@ -96,14 +106,14 @@ def validate_checkers_belong_to_aspects(
     checkers: list[Any],
     aspects: list[Any],
 ) -> None:
-    """Каждый checker привязан к существующему аспекту."""
+    """Validate that each checker is attached to an existing aspect method."""
     aspect_names = {a.method_name for a in aspects}
     for checker in checkers:
         if checker.method_name not in aspect_names:
             raise ValueError(
                 f"Class {cls.__name__}: checker '{checker.checker_class.__name__}' "
-                f"для поля '{checker.field_name}' привязан к methodу "
-                f"'{checker.method_name}', который не является аспектом. "
-                f"Чекеры можно применять только к methodам с @regular_aspect "
-                f"или @summary_aspect."
+                f"for field '{checker.field_name}' is attached to method "
+                f"'{checker.method_name}', which is not an aspect method. "
+                f"Checkers may be applied only to methods decorated with "
+                f"@regular_aspect or @summary_aspect."
             )

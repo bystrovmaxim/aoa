@@ -22,7 +22,7 @@ INVARIANTS
 - No graph edges are emitted from this inspector.
 
 ═══════════════════════════════════════════════════════════════════════════════
-DATA FLOW
+ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
 ::
@@ -52,8 +52,8 @@ Edge case: no aspect metadata on the class → ``inspect`` returns ``None``.
 ERRORS / LIMITATIONS
 ═══════════════════════════════════════════════════════════════════════════════
 
-Assumes decorators already validated declarations. This module does not run
-aspects or enforce runtime semantics.
+Assumes decorators already validated declaration grammar. This module does not
+execute aspects or enforce runtime scheduling semantics.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN

@@ -6,42 +6,63 @@ Entity hydration utilities.
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-The module provides a build() function for assembling frozen entities
-from flat data dictionaries with typed mapping via lambda.
+This module provides ``build()`` for constructing validated entities from
+flat dictionaries, with an optional typed mapper for key translation.
+``EntityProxy`` enables IDE-safe field-name mapping without string literals.
 
-build() is the primary way to create entities from data obtained from
-storage (database, API, files). Mapping through EntityProxy provides
-autocomplete for fields in the IDE.
+═══════════════════════════════════════════════════════════════════════════════
+ARCHITECTURE / DATA FLOW
+═══════════════════════════════════════════════════════════════════════════════
+
+::
+
+    storage row / API payload (dict)
+                │
+                ├─ mapper is None ───────────────┐
+                │                                 ▼
+                └─ mapper(proxy, data) -> dict   entity_cls(**mapped_data)
+                          │                        │
+                          ▼                        ▼
+                    EntityProxy[T]            Pydantic validation
+                     e.id -> "id"                  │
+                          │                        ▼
+                          └──────────────>   validated entity instance
 
 ═══════════════════════════════════════════════════════════════════════════════
 ENTITYPROXY — TYPED FIELD ACCESS
 ═══════════════════════════════════════════════════════════════════════════════
 
-EntityProxy[T] is a proxy object that returns entity field names as strings.
-It's used inside the build() mapper for typed field access:
+``EntityProxy[T]`` returns field names as strings and is intended for mapper
+functions:
 
     build(row, OrderEntity, lambda e, r: {
         e.id: r["order_id"],        # e.id → "id"
         e.amount: r["total"],       # e.amount → "amount"
     })
 
-The IDE sees type T and suggests fields. Accessing a non-existent field
-raises AttributeError.
+The IDE sees type ``T`` and suggests real entity fields. Accessing a missing
+field raises ``AttributeError``.
 
 ═══════════════════════════════════════════════════════════════════════════════
 RELATIONS AND DEFAULT_FACTORY
 ═══════════════════════════════════════════════════════════════════════════════
 
-Relation fields (AggregateMany, AssociationOne, etc.) are declared with
-default_factory=list or default=None in Pydantic Field [5]. When creating
-an entity via build() without explicitly specifying a relation value, Pydantic
-uses default_factory and creates a plain list [], not a container instance
-(AggregateMany, etc.).
+Relation fields (``AggregateMany``, ``AssociationOne``, etc.) are often
+declared with ``default_factory=list`` or ``default=None``. When ``build()``
+does not provide a relation value, Pydantic applies that default and may
+produce plain runtime values (e.g. ``[]``), not relation container classes.
 
-This is expected behavior: relation containers are type annotations for
-coordinator metadata (ArchiMate, OCEL), not runtime wrappers [5].
-The coordinator reads the annotation via get_origin() and extracts
-ownership_type and cardinality.
+This is expected: relation containers are annotation-level semantics for
+inspector/coordinator metadata, not mandatory runtime wrappers.
+
+═══════════════════════════════════════════════════════════════════════════════
+INVARIANTS
+═══════════════════════════════════════════════════════════════════════════════
+
+- ``build()`` always returns ``entity_cls(...)`` and therefore applies normal
+  Pydantic validation.
+- ``EntityProxy`` only exposes declared model fields.
+- Mapper mode is explicit and opt-in; direct mode uses input keys as field names.
 
 ═══════════════════════════════════════════════════════════════════════════════
 USAGE EXAMPLE
@@ -65,6 +86,25 @@ Mapping via lambda (dictionary keys differ from fields):
     })
 
 Proxy e is typed — the IDE suggests OrderEntity fields.
+
+═══════════════════════════════════════════════════════════════════════════════
+ERRORS / LIMITATIONS
+═══════════════════════════════════════════════════════════════════════════════
+
+- ``AttributeError`` when mapper accesses a non-existent proxy field.
+- Validation errors are raised by Pydantic constructor when mapped data is invalid.
+- ``build()`` does not perform I/O and does not resolve lazy relations.
+
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE-BEGIN
+═══════════════════════════════════════════════════════════════════════════════
+ROLE: Typed hydration helper for domain entities.
+CONTRACT: Convert flat dictionaries into validated entities via direct or mapper-based field mapping.
+INVARIANTS: Mapping remains explicit; proxy only exposes declared fields; entity construction uses normal validation.
+FLOW: input dict -> optional typed mapper (EntityProxy) -> entity constructor -> validated instance.
+FAILURES: AttributeError for bad proxy fields; pydantic validation errors for invalid mapped payload.
+EXTENSION POINTS: Nested composition supported by calling ``build()`` recursively inside mapper lambdas.
+AI-CORE-END
 """
 
 from __future__ import annotations
@@ -90,6 +130,12 @@ class EntityProxy[T]:
         proxy.id      # → "id"
         proxy.amount  # → "amount"
         proxy.foo     # → AttributeError
+
+    AI-CORE-BEGIN
+    ROLE: Typed field-name provider for mapper functions.
+    CONTRACT: Return field name strings only for declared entity fields.
+    INVARIANTS: No value lookup, no mutation, no fallback for unknown fields.
+    AI-CORE-END
     """
 
     def __init__(self, cls: type[BaseEntity]) -> None:

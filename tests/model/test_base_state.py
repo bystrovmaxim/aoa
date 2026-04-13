@@ -1,45 +1,45 @@
 # tests/model/test_base_state.py
 """
-Тесты BaseState — frozen-состояние конвейера аспектов.
+Tests for BaseState — frozen aspect pipeline state.
 
 ═══════════════════════════════════════════════════════════════════════════════
-НАЗНАЧЕНИЕ
+PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-BaseState — frozen pydantic-модель (наследник BaseSchema) с extra="allow",
-хранящая накопленные данные между шагами конвейера аспектов. Каждый
-regular-аспект возвращает dict с новыми полями, машина проверяет их
-чекерами и создаёт НОВЫЙ BaseState через kwargs:
+BaseState is a frozen pydantic model (subclass of BaseSchema) with extra="allow"
+holding accumulated data between aspect pipeline steps. Each regular aspect
+returns a dict of new fields; the machine validates them with checkers and
+builds a NEW BaseState via kwargs:
 
     new_state = BaseState(**{**old_state.to_dict(), **aspect_result})
 
-Аспект получает state только на чтение — мутация невозможна после создания
+Aspects receive state read-only — mutation is impossible after creation
 (frozen=True).
 
-BaseState наследует BaseSchema (dict-подобное чтение, resolve по dot-path).
-Методы записи (__setitem__, __delitem__, write, update) отсутствуют.
+BaseState inherits BaseSchema (dict-like reads, resolve by dot-path).
+Write methods (__setitem__, __delitem__, write, update) are absent.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ПОКРЫВАЕМЫЕ СЦЕНАРИИ
+COVERED SCENARIOS
 ═══════════════════════════════════════════════════════════════════════════════
 
-Создание:
-    - Через kwargs — ключи становятся extra-полями.
-    - Пустое создание — начальное состояние перед первым аспектом.
+Construction:
+    - Via kwargs — keys become extra fields.
+    - Empty — initial state before the first aspect.
 
-Чтение (BaseSchema):
+Reads (BaseSchema):
     - __getitem__, __contains__, get, keys, values, items.
-    - resolve для плоских полей и с default для отсутствующих.
+    - resolve for flat fields and default for missing paths.
 
-Неизменяемость (frozen=True):
-    - setattr запрещён (frozen).
-    - __setitem__ отсутствует.
-    - __delitem__ отсутствует.
-    - write и update отсутствуют.
+Immutability (frozen=True):
+    - setattr forbidden (frozen).
+    - __setitem__ absent.
+    - __delitem__ absent.
+    - write and update absent.
 
-Сериализация:
-    - to_dict() / model_dump() возвращает все поля.
-    - repr() содержит имя класса и все поля.
+Serialization:
+    - to_dict() / model_dump() return all fields.
+    - repr() includes class name and fields.
 """
 
 import pytest
@@ -48,45 +48,44 @@ from pydantic import ValidationError
 from action_machine.model.base_state import BaseState
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Создание и инициализация
+# Construction
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestCreation:
-    """Создание BaseState через kwargs и пустое."""
+    """BaseState via kwargs and empty."""
 
     def test_create_from_dict(self) -> None:
         """
-        Словарь при создании — каждый ключ становится extra-полем.
+        Dict-like data at construction — each key becomes an extra field.
 
-        Машина создаёт BaseState через распаковку kwargs:
+        Machine builds BaseState by unpacking kwargs:
         BaseState(**{**old_state.to_dict(), **new_dict}).
         """
-        # Arrange — данные, которые мог бы вернуть regular-аспект
+        # Arrange — data a regular aspect might return
         initial = {"txn_id": "TXN-001", "total": 1500.0}
 
-        # Act — создание state через распаковку kwargs
+        # Act — state from kwargs
         state = BaseState(**initial)
 
-        # Assert — каждый ключ стал extra-полем, доступным через
-        # точку (state.txn_id) и скобки (state["txn_id"])
+        # Assert — each key is an extra field (dot and bracket access)
         assert state.txn_id == "TXN-001"
         assert state.total == 1500.0
 
     def test_create_empty(self) -> None:
         """
-        Пустой state — начальное состояние перед первым regular-аспектом.
-        Машина создаёт BaseState() в начале _execute_regular_aspects().
+        Empty state — before the first regular aspect.
+        Machine creates BaseState() at the start of _execute_regular_aspects().
         """
-        # Arrange & Act — создание начального пустого state
+        # Arrange & Act — initial empty state
         state = BaseState()
 
-        # Assert — пустой словарь
+        # Assert — empty dict
         assert state.to_dict() == {}
 
     def test_create_with_kwargs(self) -> None:
         """
-        BaseState принимает kwargs напрямую.
+        BaseState accepts kwargs directly.
         """
         # Arrange & Act
         state = BaseState(a=1, b="two", c=True)
@@ -98,21 +97,21 @@ class TestCreation:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Чтение через BaseSchema
+# Reads via BaseSchema
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestReadAccess:
-    """Dict-подобное чтение атрибутов BaseState через BaseSchema."""
+    """Dict-like reads on BaseState via BaseSchema."""
 
     def test_getitem_returns_value(self) -> None:
         """
-        state["key"] — основной способ чтения данных в аспектах.
+        state["key"] — primary read path in aspects.
         """
-        # Arrange — state с одним полем amount
+        # Arrange
         state = BaseState(amount=500)
 
-        # Act — чтение через квадратные скобки
+        # Act
         result = state["amount"]
 
         # Assert
@@ -120,9 +119,9 @@ class TestReadAccess:
 
     def test_getitem_missing_raises_key_error(self) -> None:
         """
-        Обращение к несуществующему ключу — KeyError.
+        Missing key → KeyError.
         """
-        # Arrange — пустой state
+        # Arrange
         state = BaseState()
 
         # Act & Assert
@@ -131,9 +130,9 @@ class TestReadAccess:
 
     def test_contains_checks_key_existence(self) -> None:
         """
-        Оператор 'in' проверяет наличие ключа в state.
+        ``in`` checks key presence.
         """
-        # Arrange — state с одним ключом total
+        # Arrange
         state = BaseState(total=100)
 
         # Act & Assert
@@ -142,23 +141,23 @@ class TestReadAccess:
 
     def test_get_returns_value_or_default(self) -> None:
         """
-        state.get("key", default) — безопасное чтение без KeyError.
+        state.get("key", default) — safe read without KeyError.
         """
-        # Arrange — state с одним ключом total
+        # Arrange
         state = BaseState(total=100)
 
-        # Act & Assert — существующий ключ
+        # Act & Assert — existing key
         assert state.get("total") == 100
-        # Act & Assert — отсутствующий ключ с default
+        # missing with default
         assert state.get("missing", "fallback") == "fallback"
-        # Act & Assert — отсутствующий ключ без default → None
+        # missing without default → None
         assert state.get("missing") is None
 
     def test_keys_values_items(self) -> None:
         """
-        keys(), values(), items() — итерация по содержимому state.
+        keys(), values(), items() iterate state contents.
         """
-        # Arrange — state с двумя полями
+        # Arrange
         state = BaseState(a=1, b=2)
 
         # Act
@@ -166,15 +165,15 @@ class TestReadAccess:
         values = state.values()
         items = state.items()
 
-        # Assert — содержит оба поля
+        # Assert
         assert sorted(keys) == ["a", "b"]
         assert sorted(values) == [1, 2]
         assert sorted(items) == [("a", 1), ("b", 2)]
 
     def test_resolve_flat_field(self) -> None:
         """
-        resolve("key") — прямой доступ к плоскому полю.
-        Используется в шаблонах логирования: {%state.total}
+        resolve("key") — flat field access.
+        Used in log templates: {%state.total}
         """
         # Arrange
         state = BaseState(total=1500)
@@ -187,7 +186,7 @@ class TestReadAccess:
 
     def test_resolve_missing_returns_none(self) -> None:
         """
-        resolve("missing") без default возвращает None.
+        resolve("missing") without default returns None.
         """
         # Arrange
         state = BaseState(total=1500)
@@ -200,9 +199,9 @@ class TestReadAccess:
 
     def test_resolve_missing_with_explicit_default(self) -> None:
         """
-        resolve("missing", default="N/A") возвращает "N/A".
+        resolve("missing", default="N/A") returns "N/A".
         """
-        # Arrange — свежий state
+        # Arrange
         state = BaseState(total=1500)
 
         # Act
@@ -213,43 +212,43 @@ class TestReadAccess:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Неизменяемость (frozen)
+# Immutability (frozen)
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestFrozen:
-    """BaseState полностью неизменяем после создания (frozen=True)."""
+    """BaseState is immutable after creation (frozen=True)."""
 
     def test_setattr_raises(self) -> None:
         """
-        Прямая запись атрибута через точку запрещена.
-        Pydantic frozen=True бросает ValidationError при попытке записи.
+        Direct attribute write forbidden.
+        pydantic frozen=True raises ValidationError.
         """
-        # Arrange — state с начальным значением
+        # Arrange
         state = BaseState(value=1)
 
-        # Act & Assert — попытка изменить существующий атрибут
+        # Act & Assert
         with pytest.raises(ValidationError):
             state.value = 2
 
     def test_setattr_new_key_raises(self) -> None:
         """
-        Добавление нового атрибута запрещено.
-        Pydantic frozen=True бросает ValidationError.
+        New attribute forbidden.
+        pydantic frozen=True raises ValidationError.
         """
-        # Arrange — пустой state
+        # Arrange
         state = BaseState()
 
-        # Act & Assert — попытка добавить новый атрибут
+        # Act & Assert
         with pytest.raises(ValidationError):
             state.new_key = "value"
 
     def test_delattr_raises(self) -> None:
         """
-        Удаление атрибута запрещено.
-        Pydantic frozen=True бросает ValidationError при удалении.
+        Attribute deletion forbidden.
+        pydantic frozen=True raises ValidationError on delete.
         """
-        # Arrange — state с полем для удаления
+        # Arrange
         state = BaseState(to_delete="value")
 
         # Act & Assert
@@ -258,10 +257,10 @@ class TestFrozen:
 
     def test_setitem_raises(self) -> None:
         """
-        Dict-подобная запись через [] отсутствует.
-        BaseState не определяет __setitem__.
+        Dict-like write via [] not defined.
+        BaseState has no __setitem__.
         """
-        # Arrange — state с существующим ключом
+        # Arrange
         state = BaseState(key="old")
 
         # Act & Assert
@@ -270,9 +269,9 @@ class TestFrozen:
 
     def test_delitem_raises(self) -> None:
         """
-        Dict-подобное удаление через del [] отсутствует.
+        Dict-like del via [] not defined.
         """
-        # Arrange — state с ключом
+        # Arrange
         state = BaseState(key="value")
 
         # Act & Assert
@@ -280,31 +279,31 @@ class TestFrozen:
             del state["key"]
 
     def test_write_method_missing(self) -> None:
-        """Метод write() отсутствует."""
+        """write() is absent."""
         state = BaseState()
         assert not hasattr(state, "write")
 
     def test_update_method_missing(self) -> None:
-        """Метод update() отсутствует."""
+        """update() is absent."""
         state = BaseState()
         assert not hasattr(state, "update")
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Сериализация
+# Serialization
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestSerialization:
-    """Сериализация BaseState: to_dict(), model_dump() и repr()."""
+    """BaseState serialization: to_dict(), model_dump(), repr()."""
 
     def test_to_dict_returns_all_fields(self) -> None:
         """
-        to_dict() возвращает словарь всех extra-полей.
-        Эквивалентен model_dump(). Используется для передачи в плагины
-        через state_aspect в PluginEvent и для логирования.
+        to_dict() returns all extra fields.
+        Same as model_dump(). Used for plugins (state_aspect in PluginEvent)
+        and logging.
         """
-        # Arrange — state с двумя полями
+        # Arrange
         state = BaseState(a=1, b=2)
 
         # Act
@@ -315,37 +314,37 @@ class TestSerialization:
 
     def test_to_dict_matches_model_dump(self) -> None:
         """
-        to_dict() эквивалентен model_dump().
+        to_dict() matches model_dump().
         """
         # Arrange
         state = BaseState(total=100)
-        state.resolve("total")  # вызов resolve не влияет на to_dict
+        state.resolve("total")  # resolve does not affect to_dict
 
         # Act
         result = state.to_dict()
 
-        # Assert — совпадает с model_dump
+        # Assert
         assert result == state.model_dump()
         assert result == {"total": 100}
 
     def test_repr_contains_class_name_and_fields(self) -> None:
         """
-        repr() возвращает строку вида "BaseState(key1=value1, key2=value2)".
+        repr() looks like "BaseState(key1=value1, key2=value2)".
         """
-        # Arrange — state с одним полем
+        # Arrange
         state = BaseState(total=1500)
 
         # Act
         result = repr(state)
 
-        # Assert — содержит имя класса и поле
+        # Assert
         assert "BaseState" in result
         assert "total" in result
         assert "1500" in result
 
     def test_repr_empty_state(self) -> None:
         """
-        repr() пустого state — "BaseState()".
+        repr() of empty state is "BaseState()".
         """
         # Arrange & Act
         state = BaseState()

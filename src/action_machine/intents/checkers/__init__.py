@@ -49,16 +49,16 @@ INVARIANTS
 - The machine creates checker instances per invocation; checkers are stateless.
 
 ═══════════════════════════════════════════════════════════════════════════════
-EXPORTS
+COMPONENTS
 ═══════════════════════════════════════════════════════════════════════════════
 
 Marker mixin:
-- ``CheckerIntent``
+- ``CheckerIntent``.
 
-Base class:
-- ``ResultFieldChecker``
+Checker base class:
+- ``ResultFieldChecker``.
 
-Checker classes:
+Built-in checker classes:
 - ``ResultStringChecker``   – string fields (type, length, not_empty)
 - ``ResultIntChecker``      – integer fields (type, range)
 - ``ResultFloatChecker``    – numeric fields int/float (type, range)
@@ -104,7 +104,7 @@ CONTRACT: Export checker classes, decorators, and ``CheckerIntent`` marker.
 INVARIANTS: All aspect result fields must have checkers; checkers are stateless.
 FLOW: decorator metadata -> inspector snapshot -> machine validation -> checker execution.
 FAILURES: ValidationFieldError for missing or invalid fields.
-EXTENSION POINTS: New checker types can be added by subclassing ResultFieldChecker and providing a decorator.
+EXTENSION POINTS: New checker types can be added by subclassing ``ResultFieldChecker`` and providing a decorator.
 AI-CORE-END
 ═══════════════════════════════════════════════════════════════════════════════
 """

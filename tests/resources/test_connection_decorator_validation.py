@@ -18,7 +18,7 @@ class _NotManager:
 
 
 def test_validate_connection_args_rejects_non_class_manager() -> None:
-    with pytest.raises(TypeError, match="ожидает класс"):
+    with pytest.raises(TypeError, match="expects a class"):
         _validate_connection_args("mgr", "db", "d")  # type: ignore[arg-type]
 
 
@@ -44,7 +44,7 @@ def test_validate_connection_args_rejects_non_str_description() -> None:
 
 def test_connection_inner_rejects_non_class_target() -> None:
     dec = connection(_Mgr, key="db", description="x")
-    with pytest.raises(TypeError, match="только к классу"):
+    with pytest.raises(TypeError, match="only be applied to classes"):
         dec(99)  # type: ignore[arg-type]
 
 
@@ -58,7 +58,7 @@ def test_connection_inner_rejects_without_connection_intent() -> None:
 
 
 def test_connection_rejects_duplicate_key() -> None:
-    with pytest.raises(ValueError, match="уже объявлен"):
+    with pytest.raises(ValueError, match="already declared"):
 
         @connection(_Mgr, key="db", description="a")
         @connection(_Mgr, key="db", description="b")

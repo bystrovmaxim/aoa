@@ -11,22 +11,42 @@ decorators (``@check_roles``, ``@role_mode``), and abstract interfaces for
 credential extraction, verification, and context assembly.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ARCHITECTURE / DATA FLOW
+ROLE TYPE HIERARCHY (ONE CLASS ≈ ONE MODULE)
 ═══════════════════════════════════════════════════════════════════════════════
+
+Each level below is a **separate module** under ``src/action_machine/intents/auth/``:
 
 ::
 
-    ┌──────────────────┐     ┌────────────────┐     ┌──────────────────┐
-    │ CredentialExtract│ ──▶ │  Authenticator │ ──▶ │ ContextAssembler │
-    └────────┬─────────┘     └────────┬───────┘     └────────┬─────────┘
-             │                        │                      │
-             └────────────────────────┴──────────────────────┘
-                                      │
-                                      ▼
-                              ┌──────────────┐
-                              │AuthCoordinator│
-                              │  .process()   │ → Context (UserInfo.roles)
-                              └──────────────┘
+    BaseRole (ABC)                 → base_role.py
+    ├── SystemRole (ABC)           → system_role.py
+    │   ├── NoneRole (sealed)      → none_role.py
+    │   └── AnyRole (sealed)       → any_role.py
+    └── ApplicationRole (ABC)      → application_role.py
+        └── …                      → project-specific application roles
+
+- **``SystemRole`` / ``NoneRole`` / ``AnyRole``** — engine sentinels for
+  ``@check_roles`` only. They are **not** placed in ``UserInfo.roles``.
+- **``ApplicationRole``** — abstract root for types that **may** appear in
+  ``UserInfo.roles`` (assignable business roles).
+
+Who satisfies ``@check_roles(X)`` is determined **only** by **subclassing**
+(``issubclass`` / MRO). There is no separate role-composition or bitmask field.
+
+═══════════════════════════════════════════════════════════════════════════════
+ARCHITECTURE / DATA FLOW
+═══════════════════════════════════════════════════════════════════════════════
+
+    ┌─────────────────────┐    ┌───────────────┐    ┌──────────────────┐
+    │ CredentialExtractor │ -> │ Authenticator │ -> │ ContextAssembler │
+    └──────────┬──────────┘    └───────┬───────┘    └────────┬─────────┘
+               └────────────────────────┴─────────────────────┘
+                                    |
+                                    v
+                           AuthCoordinator.process()
+                                    |
+                                    v
+                          Context(UserInfo.roles)
 
     Role model (types, not strings at runtime in snapshots):
 
@@ -48,6 +68,16 @@ ARCHITECTURE / DATA FLOW
               │
               ▼
         GateCoordinator.build() → RoleChecker at run time
+
+═══════════════════════════════════════════════════════════════════════════════
+COMPONENTS
+═══════════════════════════════════════════════════════════════════════════════
+
+- ``AuthCoordinator`` / ``NoAuthCoordinator``: context production policy.
+- ``CredentialExtractor`` / ``Authenticator`` / ``ContextAssembler``:
+  extension interfaces for auth pipeline steps.
+- ``BaseRole`` + ``RoleModeIntent``: typed role model and lifecycle marker.
+- ``check_roles`` / ``role_mode``: declarative access-control decorators.
 
 ═══════════════════════════════════════════════════════════════════════════════
 INVARIANTS

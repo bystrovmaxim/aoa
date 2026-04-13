@@ -1,18 +1,17 @@
 # tests/smoke/test_full.py
 """
-Smoke-тест FullAction — полнофункциональное действие.
+Smoke test for FullAction — full-featured action.
 
 ═══════════════════════════════════════════════════════════════════════════════
-НАЗНАЧЕНИЕ
+PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Проверяет самое сложное действие тестовой доменной модели: два
-regular-аспекта с чекерами, summary-аспект, две зависимости
-(PaymentService, NotificationService), одно connection ("db")
-и ролевое ограничение "manager".
+Exercises the richest action in the test domain model: two regular aspects with
+checkers, a summary aspect, two dependencies (PaymentService, NotificationService),
+one connection ("db"), and role "manager".
 
-Если этот тест зелёный — все механизмы работают вместе: роли,
-depends, connections, чекеры, конвейер аспектов, формирование Result.
+If this test passes, roles, depends, connections, checkers, the aspect pipeline, and
+Result building work together.
 """
 
 from unittest.mock import AsyncMock
@@ -31,13 +30,13 @@ async def test_full_action_creates_order(
     mock_db: AsyncMock,
 ) -> None:
     """
-    FullAction создаёт заказ с корректными полями Result.
+    FullAction creates an order with correct Result fields.
 
-    Проверяет полный конвейер:
-    1. Роль "manager" проходит проверку.
-    2. process_payment (regular) → txn_id из PaymentService.charge().
-    3. calc_total (regular) → total из params.amount.
-    4. build_result (summary) → Result с order_id, txn_id, total, status.
+    Full pipeline:
+    1. "manager" role passes the check.
+    2. process_payment (regular) → txn_id from PaymentService.charge().
+    3. calc_total (regular) → total from params.amount.
+    4. build_result (summary) → Result with order_id, txn_id, total, status.
     """
     # Arrange
     action = FullAction()
@@ -48,7 +47,7 @@ async def test_full_action_creates_order(
         action, params, rollup=False, connections={"db": mock_db},
     )
 
-    # Assert — поля результата
+    # Assert — result fields
     assert result.order_id == "ORD-user_123"
     assert result.txn_id == "TXN-TEST-001"
     assert result.total == 1500.0
@@ -62,10 +61,9 @@ async def test_full_action_calls_payment_service(
     mock_db: AsyncMock,
 ) -> None:
     """
-    FullAction вызывает PaymentService.charge() с суммой и валютой из params.
+    FullAction calls PaymentService.charge() with amount and currency from params.
 
-    Проверяет, что аспект process_payment корректно резолвит
-    PaymentService через box.resolve() и передаёт аргументы.
+    Ensures process_payment resolves PaymentService via box.resolve() and passes arguments.
     """
     # Arrange
     action = FullAction()
@@ -87,10 +85,9 @@ async def test_full_action_calls_notification_service(
     mock_db: AsyncMock,
 ) -> None:
     """
-    FullAction вызывает NotificationService.send() с user_id и сообщением.
+    FullAction calls NotificationService.send() with user_id and message.
 
-    Проверяет, что summary-аспект build_result резолвит
-    NotificationService и отправляет уведомление о создании заказа.
+    Ensures build_result resolves NotificationService and sends order-created notification.
     """
     # Arrange
     action = FullAction()
@@ -113,9 +110,9 @@ async def test_full_action_result_type(
     mock_db: AsyncMock,
 ) -> None:
     """
-    FullAction возвращает экземпляр FullAction.Result.
+    FullAction returns an instance of FullAction.Result.
 
-    Проверяет, что результат — конкретный тип Result, а не BaseResult.
+    Ensures the result is the concrete Result type, not BaseResult.
     """
     # Arrange
     action = FullAction()

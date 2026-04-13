@@ -1,67 +1,60 @@
 # tests/intents/logging/__init__.py
 """
-Пакет тестов подсистемы логирования ActionMachine.
+Tests for the ActionMachine logging subsystem.
 
 ═══════════════════════════════════════════════════════════════════════════════
-НАЗНАЧЕНИЕ
+PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Содержит тесты для всех компонентов подсистемы логирования: координатора,
-логгеров, подстановщика переменных, цветовых фильтров, маскирования
-чувствительных данных и iif-конструкций.
+Covers logging components: coordinator, loggers, variable substitution, color filters,
+sensitive data masking, and iif constructs.
 
 ═══════════════════════════════════════════════════════════════════════════════
-КОМПОНЕНТЫ
+COMPONENTS
 ═══════════════════════════════════════════════════════════════════════════════
 
 LogCoordinator
-    Центральная шина логирования. Принимает сообщение, подставляет переменные
-    из пяти namespace (var, context, params, state, scope), вычисляет
-    iif-конструкции и рассылает результат всем зарегистрированным логгерам.
+    Central logging bus. Accepts a message, substitutes variables from five namespaces
+    (var, context, params, state, scope), evaluates iif constructs, and fans out to
+    registered loggers.
 
 ConsoleLogger
-    Логгер, выводящий сообщения в stdout. Поддерживает отступы на основе
-    уровня вложенности (indent) и опциональное сохранение ANSI-цветов.
+    Logger that writes to stdout. Supports indent by nesting level and optional ANSI colors.
 
 ScopedLogger
-    Логгер, привязанный к scope текущего аспекта или плагина. Автоматически
-    добавляет координаты выполнения в LogScope и передаёт их в LogCoordinator.
+    Logger bound to the current aspect or plugin scope. Adds execution coordinates to
+    LogScope and forwards to LogCoordinator.
 
 LogScope
-    Объект, описывающий местоположение в конвейере выполнения: действие,
-    аспект, плагин, уровень вложенности, событие. Лёгкий объект с
-    динамическими атрибутами и dict-подобным доступом через __getitem__ [3].
-    Не является pydantic-моделью и не наследует BaseSchema [3].
+    Describes position in the execution pipeline: action, aspect, plugin, nesting level,
+    event. Lightweight object with dynamic attributes and dict-like __getitem__ [3].
+    Not a pydantic model and does not inherit BaseSchema [3].
 
 VariableSubstitutor
-    Движок подстановки переменных в шаблонах [4]. Поддерживает {%namespace.path},
-    цветовые фильтры (|red), debug-фильтр (|debug) и iif-конструкции.
-    Навигация по вложенным объектам делегируется единому DotPathNavigator.
+    Template substitution engine [4]. Supports {%namespace.path}, color filters (|red),
+    debug filter (|debug), and iif. Nested navigation uses DotPathNavigator.
 
 ExpressionEvaluator
-    Безопасный вычислитель выражений для iif. Использует simpleeval,
-    предоставляет встроенные функции (len, upper, lower, format_number,
-    цветовые функции, debug, exists).
+    Safe expression evaluator for iif. Uses simpleeval with builtins (len, upper, lower,
+    format_number, color helpers, debug, exists).
 
 @sensitive
-    Декоратор для маскирования чувствительных данных. Помечает свойство как
-    содержащее чувствительные данные; при подстановке в лог значение
-    автоматически маскируется по заданным правилам.
+    Decorator marking sensitive data; values are masked in logs per configured rules.
 
 ═══════════════════════════════════════════════════════════════════════════════
-СТРУКТУРА ТЕСТОВ
+TEST LAYOUT
 ═══════════════════════════════════════════════════════════════════════════════
 
     tests/intents/logging/
-    ├── __init__.py                     — этот файл
-    ├── test_base_logger.py             — фильтрация, параметры write
-    ├── test_console_logger.py          — вывод в консоль, отступы, цвета
-    ├── test_log_coordinator.py         — подстановка переменных, рассылка логгерам
-    ├── test_log_scope.py               — as_dotpath(), dict-доступ
-    ├── test_scoped_logger.py           — аспектные и плагинные логгеры
-    ├── test_sensitive_decorator.py     — маскирование данных
-    ├── test_color_filters.py           — цветовые фильтры и функции
-    ├── test_debug_filter.py            — фильтр |debug
+    ├── __init__.py                     — this file
+    ├── test_base_logger.py             — filtering, write parameters
+    ├── test_console_logger.py          — console output, indent, colors
+    ├── test_log_coordinator.py         — variable substitution, fan-out
+    ├── test_log_scope.py               — as_dotpath(), dict access
+    ├── test_scoped_logger.py           — aspect and plugin loggers
+    ├── test_sensitive_decorator.py     — data masking
+    ├── test_color_filters.py           — color filters and functions
+    ├── test_debug_filter.py            — |debug filter
     ├── test_expression_evaluator.py    — iif, safe eval
-    └── test_variable_substitutor.py    — внутренние методы подстановки
+    └── test_variable_substitutor.py    — substitution internals
 """

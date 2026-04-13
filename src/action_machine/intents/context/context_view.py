@@ -1,58 +1,53 @@
 # src/action_machine/intents/context/context_view.py
 """
-ContextView — frozen-объект с контролируемым доступом к полям contextа.
+ContextView — frozen object with controlled context-field access.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-ContextView — посредник между аспектом и полным Context. Создаётся машиной
-(ActionProductMachine) для каждого вызова аспекта или обработчика ошибок,
-у которого указан @context_requires. Принимает полный Context и frozenset
-разрешённых ключей. Предоставляет единственный публичный method get(key),
-который проверяет, что ключ входит в множество разрешённых, и делегирует
-в context.resolve(key).
+``ContextView`` is a mediator between aspect code and full ``Context``.
+Runtime (``ActionProductMachine``) creates it for each aspect/error-handler call
+that declares ``@context_requires``. It receives full ``Context`` plus
+frozenset of allowed keys. Public method ``get(key)`` checks key membership in
+allowed set and delegates value resolution to ``context.resolve(key)``.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ПРИНЦИП МИНИМАЛЬНЫХ ПРИВИЛЕГИЙ
+LEAST-PRIVILEGE PRINCIPLE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Аспект получает доступ ровно к тем полям contextа, которые объявил
-через @context_requires. Обращение к любому другому полю — немедленный
-ContextAccessError. Это:
+Aspect gets access only to fields explicitly declared via
+``@context_requires``. Accessing any other field immediately raises
+``ContextAccessError``. This:
 
-- Делает зависимости от contextа явными и видимыми в коде.
-- Предотвращает случайное чтение чувствительных данных.
-- Упрощает тестирование: не нужно конструировать полный Context,
-  достаточно замокать запрошенные поля.
-
-═══════════════════════════════════════════════════════════════════════════════
-FROZEN-ОБЪЕКТ
-═══════════════════════════════════════════════════════════════════════════════
-
-ContextView полностью неизменяем:
-- __setattr__ выбрасывает AttributeError (кроме инициализации через
-  object.__setattr__).
-- __delattr__ выбрасывает AttributeError.
-- Нет methodов модификации.
-- __slots__ не используется, потому что переопределённый __setattr__
-  в сочетании с __slots__ не видим для mypy и pylint при записи
-  через object.__setattr__. Вместо этого используются аннотации
-  атрибутов на уровне класса.
-
-Это гарантирует, что аспект не может случайно изменить context
-или state ContextView.
+- makes context dependencies explicit in code;
+- prevents accidental reads of sensitive fields;
+- simplifies testing: only requested fields must be prepared.
 
 ═══════════════════════════════════════════════════════════════════════════════
-КАСТОМНЫЕ ПОЛЯ
+FROZEN OBJECT
 ═══════════════════════════════════════════════════════════════════════════════
 
-UserInfo, RequestInfo и RuntimeInfo могут быть расширены наследниками
-с дополнительными полями. ContextView не валидирует ключи на этапе
-создания — проверяется только принадлежность ключа к allowed_keys.
-Резолв значения делегируется в context.resolve(), который обходит
-вложенные объекты через dot-path. Если поле не существует в contextе,
-resolve() возвращает None.
+ContextView is fully immutable:
+- ``__setattr__`` raises ``AttributeError`` (except initialization through
+  ``object.__setattr__``).
+- ``__delattr__`` raises ``AttributeError``.
+- No mutation methods are exposed.
+- ``__slots__`` is intentionally not used because custom ``__setattr__`` +
+  ``__slots__`` makes static analysis around ``object.__setattr__`` harder.
+  Class-level annotations are used instead.
+
+This guarantees that aspect code cannot accidentally mutate context view state.
+
+═══════════════════════════════════════════════════════════════════════════════
+CUSTOM FIELDS
+═══════════════════════════════════════════════════════════════════════════════
+
+``UserInfo``, ``RequestInfo``, and ``RuntimeInfo`` may be extended by
+inheritance with extra fields. ``ContextView`` does not validate key existence
+at creation time — it validates only key membership in ``allowed_keys``.
+Value resolution is delegated to ``context.resolve()`` with dot-path traversal.
+If field does not exist, ``resolve()`` returns ``None``.
 
 ═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES
@@ -60,17 +55,67 @@ EXAMPLES
 
     # AdminRole, UserRole — иллюстративные подклассы BaseRole.
 
-    # Машина создаёт ContextView при вызове аспекта:
+    # Runtime creates ContextView for aspect invocation:
     ctx_view = ContextView(context, frozenset({"user.user_id", "user.roles"}))
 
-    # Аспект использует ctx_view:
+    # Aspect uses ctx_view:
     user_id = ctx_view.get("user.user_id")    # → "agent_123"
     roles = ctx_view.get("user.roles")         # → (AdminRole, UserRole)
     ip = ctx_view.get("request.client_ip")     # → ContextAccessError
 
-    # Frozen:
+    # Frozen behavior:
     ctx_view.x = 1                              # → AttributeError
     del ctx_view._context                       # → AttributeError
+
+═══════════════════════════════════════════════════════════════════════════════
+ARCHITECTURE / DATA FLOW
+═══════════════════════════════════════════════════════════════════════════════
+
+    @context_requires(...) declaration
+               |
+               v
+    allowed_keys in aspect metadata
+               |
+               v
+    runtime creates ContextView(context, allowed_keys)
+               |
+               v
+    aspect calls ctx.get("dot.path")
+               |
+      +--------+---------+
+      |                  |
+      v                  v
+  key allowed        key denied
+      |                  |
+      v                  v
+  context.resolve     ContextAccessError
+
+═══════════════════════════════════════════════════════════════════════════════
+INVARIANTS
+═══════════════════════════════════════════════════════════════════════════════
+
+- ``get(key)`` allows reads only from ``allowed_keys``.
+- Object is immutable after initialization.
+- ``allowed_keys`` is exposed as read-only property.
+- Unknown but allowed dot-paths resolve to ``None`` via context resolver.
+
+═══════════════════════════════════════════════════════════════════════════════
+ERRORS / LIMITATIONS
+═══════════════════════════════════════════════════════════════════════════════
+
+- Raises ``ContextAccessError`` for undeclared keys.
+- Raises ``AttributeError`` for any attribute mutation/deletion attempts.
+
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE-BEGIN
+═══════════════════════════════════════════════════════════════════════════════
+ROLE: Runtime context access guard for aspects/handlers.
+CONTRACT: Enforce declared key subset while delegating value resolution to Context.
+INVARIANTS: Frozen object, read-only key set, strict allowlist checks.
+FLOW: declaration keys -> ContextView creation -> guarded get() access.
+FAILURES: ContextAccessError for unauthorized key access.
+EXTENSION POINTS: Works with custom context schema fields via dot-path resolution.
+AI-CORE-END
 """
 
 from typing import Any
@@ -80,66 +125,42 @@ from action_machine.model.exceptions import ContextAccessError
 
 class ContextView:
     """
-    Frozen-объект с контролируемым доступом к полям contextа.
-
-    Создаётся машиной для каждого вызова аспекта или обработчика ошибок,
-    у которого указан @context_requires. Предоставляет единственный
-    публичный method get(key) для чтения разрешённых полей.
-
-    Атрибуты (приватные, записываются через object.__setattr__):
-        _context : Any
-            Полный context выполнения. Используется для резолва значений.
-        _allowed_keys : frozenset[str]
-            Множество разрешённых ключей (dot-path), указанных
-            в @context_requires. Только эти ключи можно читать через get().
+    Frozen guard object that exposes only declared context fields.
     """
 
-    # Аннотации атрибутов для mypy и pylint. Фактическая запись
-    # происходит через object.__setattr__ в __init__, потому что
-    # __setattr__ переопределён и запрещает запись.
+    # Class-level annotations for static analyzers; actual assignment happens
+    # via object.__setattr__ because __setattr__ is overridden as frozen guard.
     _context: Any
     _allowed_keys: frozenset[str]
 
     def __init__(self, context: Any, allowed_keys: frozenset[str]) -> None:
         """
-        Инициализирует ContextView.
-
-        Использует object.__setattr__ для записи приватных атрибутов,
-        потому что __setattr__ переопределён и запрещает запись.
+        Initialize ContextView.
 
         Args:
-            context: полный Context выполнения. ContextView делегирует
-                     в context.resolve(key) при обращении к разрешённым
-                     ключам.
-            allowed_keys: frozenset строковых ключей (dot-path),
-                          разрешённых через @context_requires.
-                          Пустой frozenset означает, что доступ
-                          запрещён ко всем полям.
+            context: full execution Context, used for dot-path resolution.
+            allowed_keys: frozenset of allowed dot-path keys declared via
+                @context_requires. Empty set means no field access is allowed.
         """
         object.__setattr__(self, "_context", context)
         object.__setattr__(self, "_allowed_keys", allowed_keys)
 
     def get(self, key: str) -> Any:
         """
-        Returns значение поля contextа по ключу (dot-path).
+        Return context field value by dot-path key.
 
-        Checks, что ключ входит в множество разрешённых. Если да —
-        делегирует в context.resolve(key) и возвращает результат.
-        Если нет — выбрасывает ContextAccessError.
-
-        Если ключ разрешён, но поле не существует в contextе
-        (например, кастомное поле наследника, которое не было заполнено),
-        context.resolve() возвращает None.
+        Validates key membership in allowed set, then delegates to
+        ``context.resolve(key)``.
 
         Args:
-            key: строка dot-path, например "user.user_id",
-                 "request.trace_id", "user.extra.billing_plan".
+            key: dot-path key such as ``"user.user_id"`` or
+                ``"request.trace_id"``.
 
         Returns:
-            Значение поля из contextа. None если поле не существует.
+            Resolved context value, or ``None`` if path does not exist.
 
         Raises:
-            ContextAccessError: если ключ не входит в allowed_keys.
+            ContextAccessError: if key is not in allowed_keys.
         """
         if key not in self._allowed_keys:
             raise ContextAccessError(key, self._allowed_keys)
@@ -148,38 +169,35 @@ class ContextView:
     @property
     def allowed_keys(self) -> frozenset[str]:
         """
-        Returns множество разрешённых ключей (только чтение).
-
-        Полезно для отладки и интроспекции: позволяет увидеть,
-        какие поля contextа доступны в текущем аспекте.
+        Return allowed key set (read-only).
         """
         return self._allowed_keys
 
     def __setattr__(self, name: str, value: Any) -> None:
         """
-        Запрещает запись атрибутов. ContextView полностью frozen.
+        Forbid attribute assignment (frozen semantics).
 
         Raises:
-            AttributeError: всегда.
+            AttributeError: always.
         """
         raise AttributeError(
-            f"ContextView является frozen-объектом. "
-            f"Запись атрибута '{name}' запрещена."
+            f"ContextView is a frozen object. "
+            f"Assignment of attribute '{name}' is not allowed."
         )
 
     def __delattr__(self, name: str) -> None:
         """
-        Запрещает удаление атрибутов. ContextView полностью frozen.
+        Forbid attribute deletion (frozen semantics).
 
         Raises:
-            AttributeError: всегда.
+            AttributeError: always.
         """
         raise AttributeError(
-            f"ContextView является frozen-объектом. "
-            f"Удаление атрибута '{name}' запрещено."
+            f"ContextView is a frozen object. "
+            f"Deletion of attribute '{name}' is not allowed."
         )
 
     def __repr__(self) -> str:
-        """Компактное строковое представление для отладки."""
+        """Compact string representation for debugging."""
         keys_str = ", ".join(sorted(self._allowed_keys))
         return f"ContextView(allowed_keys=[{keys_str}])"

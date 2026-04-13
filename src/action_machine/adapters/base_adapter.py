@@ -1,13 +1,14 @@
 # src/action_machine/adapters/base_adapter.py
 """
-BaseAdapter[R] — abstract base class for all protocol adapters.
+BaseAdapter[R] — abstract foundation for protocol adapters.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Define the unified contract for adapters that translate external protocols
-(HTTP, MCP, gRPC, CLI) into calls to ``machine.run(context, action, params, connections)``.
+Define the shared contract for adapters that translate external protocols
+(HTTP, MCP, gRPC, CLI) into
+``machine.run(context, action, params, connections)`` calls.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
@@ -15,12 +16,12 @@ ARCHITECTURE / DATA FLOW
 
 Concrete adapters (FastApiAdapter, McpAdapter, etc.) inherit ``BaseAdapter``,
 implement protocol-specific registration methods (``post``, ``get``, ``tool``),
-and implement ``build()`` to return a protocol application.
+and implement ``build()`` to produce a protocol application object.
 
-The adapter holds a reference to the machine, an authentication coordinator,
-an optional explicit ``GateCoordinator`` (defaults to ``machine.gate_coordinator``),
-and an optional connections factory. Registered routes are stored in ``_routes``
-as concrete ``BaseRouteRecord`` subclasses.
+The adapter stores a machine reference, an authentication coordinator, an
+optional explicit ``GateCoordinator`` (defaults to ``machine.gate_coordinator``),
+and an optional connections factory. Registered routes are accumulated in
+``_routes`` as concrete ``BaseRouteRecord`` subclasses.
 
 ::
 
@@ -30,7 +31,7 @@ as concrete ``BaseRouteRecord`` subclasses.
     │  machine: ActionProductMachine       │
     │  auth_coordinator: Any (required)    │
     │  gate_coordinator: GateCoordinator   │
-    │    (optional; defaults to machine)     │
+    │    (optional; defaults to machine)   │
     │  connections_factory: Fn | None      │
     │  _routes: list[R]                    │
     │                                      │
@@ -50,7 +51,7 @@ INVARIANTS
 - ``auth_coordinator`` is required; passing ``None`` raises ``TypeError``.
 - ``machine`` must be an instance of ``ActionProductMachine``.
 - ``gate_coordinator`` defaults to ``machine.gate_coordinator`` when omitted.
-- Route records are stored in ``_routes`` and remain immutable after registration.
+- Route records are stored in ``_routes`` in registration order.
 - The fluent API returns ``self``, enabling method chaining.
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -75,6 +76,7 @@ ERRORS / LIMITATIONS
 
 - ``TypeError`` if ``machine`` is not ``ActionProductMachine``.
 - ``TypeError`` if ``auth_coordinator`` is ``None``.
+- ``build()`` remains abstract here; concrete adapters own transport semantics.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN
@@ -106,8 +108,14 @@ class BaseAdapter[R: BaseRouteRecord](ABC):
     """
     Abstract base class for all ActionMachine protocol adapters.
 
-    The auth_coordinator parameter is required. For open APIs, use
-    NoAuthCoordinator as an explicit declaration of no authentication.
+    ``auth_coordinator`` is required. For open APIs, pass
+    ``NoAuthCoordinator()`` explicitly to make no-auth mode intentional.
+
+    AI-CORE-BEGIN
+    ROLE: Protocol-agnostic adapter contract and shared state holder.
+    CONTRACT: Validates constructor dependencies, stores route records, and exposes abstract ``build()``.
+    INVARIANTS: machine type is strict; auth coordinator is mandatory; route registration preserves order.
+    AI-CORE-END
     """
 
     def __init__(

@@ -111,6 +111,12 @@ class RoleIntentInspector(BaseIntentInspector):
 
     Walks ``RoleIntent`` subclasses, detects ``@check_roles``, and builds
     ``FacetPayload`` with role ``spec`` for the coordinator.
+
+    AI-CORE-BEGIN
+    ROLE: Concrete role facet inspector.
+    CONTRACT: Emit ``role`` payloads from ``_role_info`` declarations.
+    INVARIANTS: Marker traversal source is ``RoleIntent``; payloads contain no edges.
+    AI-CORE-END
     """
 
     _target_intent: type = RoleIntent

@@ -1,35 +1,65 @@
 # src/examples/fastapi_mcp_services/actions/get_order.py
 """
-GetOrderAction — действие получения заказа по идентификатору.
+GetOrderAction — fetch an order by identifier.
 
 ═══════════════════════════════════════════════════════════════════════════════
-НАЗНАЧЕНИЕ
+PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Демонстрирует GET-эндпоинт с path-параметром. FastAPI извлекает order_id
-из URL и передаёт его в Params.
+Demonstrates a GET-style endpoint with a path parameter. FastAPI reads
+``order_id`` from the URL and maps it into ``Params``.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ЭНДПОИНТ
+ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
     GET /api/v1/orders/{order_id}
-    Response: {"order_id": "ORD-123", "status": "created", "total": 1500.0}
+      |
+      v
+  Params(order_id from path)
+      |
+      v
+  get_order_summary -> Result(order_id, status, total)
+
+Nested ``Params`` and ``Result`` live on the action class. Action description
+comes from ``@meta(description=...)``; aspect description from
+``@summary_aspect("...")``.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ПАТТЕРН ВЛОЖЕННЫХ МОДЕЛЕЙ
+INVARIANTS
 ═══════════════════════════════════════════════════════════════════════════════
 
-Params и Result определяются как вложенные классы внутри Action.
-Описание действия берётся из ``@meta(description=...)``, описание
-аспекта — из ``@summary_aspect("...")``.
+- ``order_id`` is a non-empty string (``min_length=1``).
+- This example returns a stub payload, not persisted data.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ПРИМЕЧАНИЕ
+EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
-В реальном приложении данные загружались бы из БД через connections.
-В этом примере возвращается заглушка.
+    GET /api/v1/orders/ORD-user_123-001
+
+    Response:
+    {"order_id": "ORD-user_123-001", "status": "created", "total": 1500.0}
+
+    Edge case: invalid or empty ``order_id`` fails Pydantic validation at the
+    transport layer (e.g. FastAPI 422).
+
+═══════════════════════════════════════════════════════════════════════════════
+ERRORS / LIMITATIONS
+═══════════════════════════════════════════════════════════════════════════════
+
+- In a real app, data would load from a database via ``connections``.
+- This sample always returns ``status="created"`` and ``total=1500.0``.
+
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE-BEGIN
+═══════════════════════════════════════════════════════════════════════════════
+ROLE: Example read action for shared FastAPI/MCP transports.
+CONTRACT: Path-bound identifier in; structured order snapshot out.
+INVARIANTS: Summary-only pipeline; no regular aspects or state mutations.
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE-END
+═══════════════════════════════════════════════════════════════════════════════
 """
 
 from pydantic import Field
@@ -48,39 +78,39 @@ from action_machine.runtime.tools_box import ToolsBox
 from ..domains import OrdersDomain
 
 
-@meta(description="Получение заказа по идентификатору", domain=OrdersDomain)
+@meta(description="Get order by identifier", domain=OrdersDomain)
 @check_roles(NoneRole)
 class GetOrderAction(BaseAction["GetOrderAction.Params", "GetOrderAction.Result"]):
 
     class Params(BaseParams):
         """
-        Параметры запроса заказа.
+        Order lookup parameters.
 
-        order_id извлекается FastAPI из path-параметра URL.
+        ``order_id`` is bound from the FastAPI path parameter.
         """
         order_id: str = Field(
-            description="Уникальный идентификатор заказа",
+            description="Unique order identifier",
             min_length=1,
             examples=["ORD-user_123-001"],
         )
 
     class Result(BaseResult):
-        """Результат получения заказа."""
+        """Order fetch result payload."""
         order_id: str = Field(
-            description="Идентификатор заказа",
+            description="Order identifier",
             examples=["ORD-user_123-001"],
         )
         status: str = Field(
-            description="Текущий статус заказа",
+            description="Current order status",
             examples=["created", "paid", "shipped"],
         )
         total: float = Field(
-            description="Итоговая сумма заказа",
+            description="Final order total",
             ge=0,
             examples=[1500.0],
         )
 
-    @summary_aspect("Загрузка и возврат данных заказа")
+    @summary_aspect("Load and return order data")
     async def get_order_summary(
         self,
         params: "GetOrderAction.Params",
@@ -88,9 +118,10 @@ class GetOrderAction(BaseAction["GetOrderAction.Params", "GetOrderAction.Result"
         box: ToolsBox,
         connections: dict[str, BaseResourceManager],
     ) -> "GetOrderAction.Result":
+        """Return stub order data for the requested ``order_id``."""
         await box.info(
             Channel.business,
-            "Запрос заказа: {%var.order_id}",
+            "Order request: {%var.order_id}",
             order_id=params.order_id,
         )
 

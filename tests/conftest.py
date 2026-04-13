@@ -1,69 +1,63 @@
 # tests/conftest.py
 """
-Общие фикстуры для всех тестов в пакете tests/.
+Shared fixtures for the whole ``tests/`` package.
 
 ═══════════════════════════════════════════════════════════════════════════════
-НАЗНАЧЕНИЕ
+PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Предоставляет готовые фикстуры, которые покрывают типичные потребности
-тестов: координатор метаданных, моки сервисов, TestBench с различными
-конфигурациями. Все фикстуры основаны на единой доменной модели
-из tests/scenarios/domain_model/.
+Provides ready-made fixtures for common needs: metadata coordinator, service
+mocks, and ``TestBench`` variants. Everything is built on the shared domain under
+``tests/scenarios/domain_model/``.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ПРИНЦИПЫ
+PRINCIPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
-1. Каждая фикстура создаёт НОВЫЙ экземпляр — тесты изолированы.
-2. Моки сервисов настроены с разумными дефолтами, которые проходят
-   все чекеры доменных Action.
-3. TestBench фикстуры покрывают три уровня: без моков, с моками,
-   с моками и ролью.
+1. Each fixture builds a **new** instance — tests stay isolated.
+2. Service mocks use defaults that satisfy domain action checkers.
+3. ``TestBench`` fixtures cover: no mocks, with mocks, and mocks plus role.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ЗНАЧЕНИЯ МОКОВ
+MOCK DEFAULTS
 ═══════════════════════════════════════════════════════════════════════════════
 
-mock_payment.charge() → "TXN-TEST-001"
-    Проходит чекер result_string("txn_id", required=True, min_length=1).
-    Используется в smoke-тестах и bench-тестах для проверки txn_id.
+mock_payment.charge() -> "TXN-TEST-001"
+    Satisfies ``result_string("txn_id", required=True, min_length=1)``.
+    Used in smoke and bench tests for ``txn_id``.
 
-mock_payment.refund() → True
-    Компенсатор вызывает refund() при откате платежа.
-    Возвращает True — откат «выполнен».
+mock_payment.refund() -> True
+    Compensators call ``refund()`` on payment rollback. ``True`` means rollback succeeded.
 
-mock_notification.send() → True
-    Уведомление «отправлено». Smoke-тесты проверяют вызов
-    send("user_42", "Order created: TXN-TEST-001").
+mock_notification.send() -> True
+    Notification treated as sent. Smoke tests assert
+    ``send("user_42", "Order created: TXN-TEST-001")``.
 
-mock_inventory.reserve() → "RES-TEST-001"
-    Проходит чекер result_string("reservation_id", required=True, min_length=1).
-    Используется в тестах компенсации для проверки reservation_id.
+mock_inventory.reserve() -> "RES-TEST-001"
+    Satisfies ``result_string("reservation_id", required=True, min_length=1)``.
+    Used in compensation tests for ``reservation_id``.
 
-mock_inventory.unreserve() → True
-    Компенсатор вызывает unreserve() при откате резервирования.
-    Возвращает True — отмена «выполнена».
+mock_inventory.unreserve() -> True
+    Compensators call ``unreserve()`` when undoing a reservation. ``True`` means success.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ФИКСТУРЫ
+FIXTURES
 ═══════════════════════════════════════════════════════════════════════════════
 
-coordinator        — чистый GateCoordinator для каждого теста.
+coordinator        — fresh ``GateCoordinator`` per test.
 
-mock_payment       — AsyncMock(spec=PaymentService), charge → "TXN-TEST-001",
-                     refund → True.
-mock_notification  — AsyncMock(spec=NotificationService), send → True.
-mock_inventory     — AsyncMock(spec=InventoryService), reserve → "RES-TEST-001",
-                     unreserve → True.
-mock_db            — AsyncMock(spec=TestDbManager).
+mock_payment       — ``AsyncMock(spec=PaymentService)``, charge -> "TXN-TEST-001",
+                     refund -> True.
+mock_notification  — ``AsyncMock(spec=NotificationService)``, send -> True.
+mock_inventory     — ``AsyncMock(spec=InventoryService)``, reserve -> "RES-TEST-001",
+                     unreserve -> True.
+mock_db            — ``AsyncMock(spec=TestDbManager)``.
 
-clean_bench        — TestBench без моков, с подавленным логированием.
-bench              — TestBench с моками PaymentService и NotificationService.
-compensate_bench   — TestBench с моками PaymentService и InventoryService,
-                     для тестов компенсации.
-manager_bench      — bench с ManagerRole (для FullAction).
-admin_bench        — bench с AdminRole (для AdminAction).
+clean_bench        — ``TestBench`` without mocks; logging silenced.
+bench              — ``TestBench`` with Payment + Notification mocks.
+compensate_bench   — ``TestBench`` with Payment + Inventory mocks (compensation).
+manager_bench      — bench with ``ManagerRole`` (for ``FullAction``).
+admin_bench        — bench with ``AdminRole`` (for ``AdminAction``).
 """
 
 from unittest.mock import AsyncMock
@@ -87,14 +81,13 @@ def coordinator() -> GateCoordinator:
 @pytest.fixture
 def mock_payment() -> AsyncMock:
     """
-    Мок PaymentService с дефолтным поведением.
+    ``PaymentService`` mock with default behavior.
 
-    charge() возвращает "TXN-TEST-001" — проходит чекер
-    result_string("txn_id", required=True, min_length=1).
+    ``charge()`` returns ``"TXN-TEST-001"`` — satisfies
+    ``result_string("txn_id", required=True, min_length=1)``.
 
-    refund() возвращает True — компенсатор вызывает при откате платежа.
-    Метод refund() определён в PaymentService, поэтому AsyncMock(spec=...)
-    разрешает доступ к нему.
+    ``refund()`` returns ``True`` — compensators call it on payment rollback.
+    ``refund`` exists on ``PaymentService``, so ``AsyncMock(spec=...)`` exposes it.
     """
     mock = AsyncMock(spec=PaymentService)
     mock.charge.return_value = "TXN-TEST-001"
@@ -105,9 +98,9 @@ def mock_payment() -> AsyncMock:
 @pytest.fixture
 def mock_notification() -> AsyncMock:
     """
-    Мок NotificationService с дефолтным поведением.
+    ``NotificationService`` mock with default behavior.
 
-    send() возвращает True — уведомление «отправлено».
+    ``send()`` returns ``True`` (notification considered sent).
     """
     mock = AsyncMock(spec=NotificationService)
     mock.send.return_value = True
@@ -117,13 +110,12 @@ def mock_notification() -> AsyncMock:
 @pytest.fixture
 def mock_inventory() -> AsyncMock:
     """
-    Мок InventoryService с дефолтным поведением.
+    ``InventoryService`` mock with default behavior.
 
-    reserve() возвращает "RES-TEST-001" — проходит чекер
-    result_string("reservation_id", required=True, min_length=1).
+    ``reserve()`` returns ``"RES-TEST-001"`` — satisfies
+    ``result_string("reservation_id", required=True, min_length=1)``.
 
-    unreserve() возвращает True — компенсатор вызывает при откате
-    резервирования товара.
+    ``unreserve()`` returns ``True`` — compensators call it when undoing a reservation.
     """
     mock = AsyncMock(spec=InventoryService)
     mock.reserve.return_value = "RES-TEST-001"
@@ -134,10 +126,9 @@ def mock_inventory() -> AsyncMock:
 @pytest.fixture
 def mock_db() -> AsyncMock:
     """
-    Мок TestDbManager для передачи в connections={"db": mock_db}.
+    ``TestDbManager`` mock for ``connections={"db": mock_db}``.
 
-    Используется в тестах FullAction, который объявляет
-    @connection(TestDbManager, key="db").
+    Used with ``FullAction``, which declares ``@connection(TestDbManager, key="db")``.
     """
     return AsyncMock(spec=TestDbManager)
 
@@ -145,10 +136,9 @@ def mock_db() -> AsyncMock:
 @pytest.fixture
 def clean_bench(coordinator: GateCoordinator) -> TestBench:
     """
-    TestBench без моков — для тестирования действий без зависимостей.
+    ``TestBench`` without mocks — for actions without injected dependencies.
 
-    Логирование подавлено через AsyncMock, чтобы не засорять
-    вывод тестов сообщениями ConsoleLogger.
+    Logging is silenced via ``AsyncMock`` so ``ConsoleLogger`` does not flood output.
     """
     return TestBench(coordinator=coordinator, log_coordinator=AsyncMock())
 
@@ -160,11 +150,10 @@ def bench(
     mock_notification: AsyncMock,
 ) -> TestBench:
     """
-    TestBench с моками PaymentService и NotificationService.
+    ``TestBench`` with ``PaymentService`` and ``NotificationService`` mocks.
 
-    Дефолтный пользователь — user_id="test_user", roles=(StubTesterRole,).
-    Для действий с конкретными ролями используйте manager_bench
-    или admin_bench.
+    Default user: ``user_id="test_user"``, ``roles=(StubTesterRole,)``.
+    For role-specific actions use ``manager_bench`` or ``admin_bench``.
     """
     return TestBench(
         coordinator=coordinator,
@@ -183,15 +172,14 @@ def compensate_bench(
     mock_inventory: AsyncMock,
 ) -> TestBench:
     """
-    TestBench с моками PaymentService и InventoryService.
+    ``TestBench`` with ``PaymentService`` and ``InventoryService`` mocks.
 
-    Предназначен для тестов компенсации (Saga). Содержит оба сервиса,
-    используемых в CompensatedOrderAction, CompensateErrorAction,
-    CompensateAndOnErrorAction и CompensateWithContextAction.
+    Intended for compensation (saga) tests. Includes both services used by
+    ``CompensatedOrderAction``, ``CompensateErrorAction``,
+    ``CompensateAndOnErrorAction``, and ``CompensateWithContextAction``.
 
-    Дефолтный пользователь — user_id="test_user", roles=(StubTesterRole,).
-    Все компенсируемые Action используют NoneRole, поэтому
-    дефолтный пользователь подходит.
+    Default user: ``user_id="test_user"``, ``roles=(StubTesterRole,)``.
+    Compensating actions use ``NoneRole``, so the default user is sufficient.
     """
     return TestBench(
         coordinator=coordinator,
@@ -206,10 +194,9 @@ def compensate_bench(
 @pytest.fixture
 def manager_bench(bench: TestBench) -> TestBench:
     """
-    TestBench с ManagerRole — для тестирования FullAction.
+    ``TestBench`` with ``ManagerRole`` — for ``FullAction``.
 
-    FullAction требует ManagerRole. Этот bench
-    создаёт пользователя с ManagerRole.
+    ``FullAction`` requires ``ManagerRole``; this bench sets a user with that role.
     """
     return bench.with_user(user_id="mgr_1", roles=(ManagerRole,))
 
@@ -217,9 +204,8 @@ def manager_bench(bench: TestBench) -> TestBench:
 @pytest.fixture
 def admin_bench(bench: TestBench) -> TestBench:
     """
-    TestBench с AdminRole — для тестирования AdminAction.
+    ``TestBench`` with ``AdminRole`` — for ``AdminAction``.
 
-    AdminAction требует AdminRole. Этот bench
-    создаёт пользователя с AdminRole.
+    ``AdminAction`` requires ``AdminRole``; this bench sets a user with that role.
     """
     return bench.with_user(user_id="admin_1", roles=(AdminRole,))

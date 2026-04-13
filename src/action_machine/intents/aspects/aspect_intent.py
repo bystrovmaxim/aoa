@@ -14,10 +14,19 @@ aspect decorators satisfy structural pipeline rules before runtime execution.
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-Decorators attach method metadata. Inspector/builder collects ordered aspect
-entries and passes them to this module validators. Validation enforces:
-``AspectIntent`` inheritance, summary uniqueness, regular->summary completeness, and
-summary-last ordering.
+    @regular_aspect / @summary_aspect
+                 |
+                 v
+     inspector collects ordered aspects
+                 |
+                 v
+    require_aspect_intent_marker(...)
+                 |
+                 v
+          validate_aspects(...)
+                 |
+                 v
+      coordinator-ready aspect snapshot
 
 ═══════════════════════════════════════════════════════════════════════════════
 INVARIANTS
@@ -82,24 +91,13 @@ from typing import Any
 
 class AspectIntent:
     """
-    Intent marker: the action class **declares an aspect pipeline** (regular → summary).
+    Marker mixin declaring that an action owns an aspect pipeline.
 
-    Decorating methods with ``@regular_aspect`` / ``@summary_aspect`` is only valid
-    when ``AspectIntent`` appears in MRO; validators enforce pipeline shape (one
-    summary last, etc.). This is not “permission for one decorator” but commitment
-    to the whole aspect grammar checked at ``GateCoordinator.build()``.
-
-    ═══════════════════════════════════════════════════════════════════════════
     AI-CORE-BEGIN
-    ═══════════════════════════════════════════════════════════════════════════
     ROLE: Public aspect intent marker.
     CONTRACT: Classes with aspect decorators must include this marker in MRO.
     INVARIANTS: Pure marker, no state and no side effects.
-    FLOW: consumed by inspector/validator when building aspect snapshots.
-    FAILURES: missing marker triggers TypeError in validator.
-    EXTENSION POINTS: reusable marker contract for custom action base classes.
     AI-CORE-END
-    ═══════════════════════════════════════════════════════════════════════════
     """
 
     pass
@@ -108,16 +106,6 @@ class AspectIntent:
 def require_aspect_intent_marker(cls: type, aspects: list[Any]) -> None:
     """
     Require ``AspectIntent`` marker when aspects are declared.
-
-    ═══════════════════════════════════════════════════════════════════════════
-    AI-CORE-BEGIN
-    ═══════════════════════════════════════════════════════════════════════════
-    PURPOSE: enforce aspect intent contract for decorated classes.
-    INPUT/OUTPUT: class + collected aspects -> pass or TypeError.
-    SIDE EFFECTS: none.
-    FAILURES: TypeError with inheritance guidance.
-    AI-CORE-END
-    ═══════════════════════════════════════════════════════════════════════════
     """
     if aspects and not issubclass(cls, AspectIntent):
         aspect_names = ", ".join(a.method_name for a in aspects)
@@ -132,17 +120,7 @@ def require_aspect_intent_marker(cls: type, aspects: list[Any]) -> None:
 
 def validate_aspects(cls: type, aspects: list[Any]) -> None:
     """
-    Validate summary/regular structural pipeline invariants.
-
-    ═══════════════════════════════════════════════════════════════════════════
-    AI-CORE-BEGIN
-    ═══════════════════════════════════════════════════════════════════════════
-    PURPOSE: enforce executable aspect pipeline shape.
-    INPUT/OUTPUT: class + ordered aspects -> pass or ValueError.
-    SIDE EFFECTS: none.
-    FAILURES: ValueError for summary multiplicity, absence, or wrong order.
-    AI-CORE-END
-    ═══════════════════════════════════════════════════════════════════════════
+    Validate regular/summary structural pipeline invariants.
     """
     if not aspects:
         return

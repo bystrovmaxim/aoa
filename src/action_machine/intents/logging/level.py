@@ -19,6 +19,26 @@ INVARIANTS
 - ``level_label`` is for human-readable console prefixes (e.g. ``INFO``).
 
 ═══════════════════════════════════════════════════════════════════════════════
+ARCHITECTURE / DATA FLOW
+═══════════════════════════════════════════════════════════════════════════════
+
+    ScopedLogger.info/warning/critical
+                |
+                v
+    level mask in var["level"]
+                |
+                v
+    validate_level(...)
+                |
+                +--> fail on combined/unknown bits
+                |
+                v
+    logger filters and console rendering
+                |
+                v
+    level_label(Level.*) -> "INFO"/"WARNING"/"CRITICAL"
+
+═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -47,7 +67,15 @@ from enum import IntFlag
 
 
 class Level(IntFlag):
-    """Log severity: info, warning, critical (one bit per message)."""
+    """
+    Log severity bitmask: info, warning, critical.
+
+    AI-CORE-BEGIN
+    ROLE: Severity classifier for log routing and display.
+    CONTRACT: Messages carry one bit; subscriptions may combine bits.
+    INVARIANTS: Valid single-bit values are enforced by validate_level.
+    AI-CORE-END
+    """
 
     info = 1
     warning = 2

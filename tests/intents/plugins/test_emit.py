@@ -1,33 +1,31 @@
 # tests/intents/plugins/test_emit.py
-"""
-Тесты отправки событий плагинам через PluginRunContext.emit_event().
-═══════════════════════════════════════════════════════════════════════════════
-НАЗНАЧЕНИЕ
-═══════════════════════════════════════════════════════════════════════════════
-Проверяет механизм доставки типизированных событий от машины к плагинам.
-Машина (ActionProductMachine) создаёт конкретные объекты событий из
-иерархии BasePluginEvent (GlobalStartEvent, GlobalFinishEvent,
-BeforeRegularAspectEvent и т.д.) в ключевых точках конвейера и передаёт
-их в plugin_ctx.emit_event(event) [1].
+"""Tests for sending events to plugins via PluginRunContext.emit_event().
+═══════════════════ ════════════════════ ════════════════════ ════════════════════
+PURPOSE
+═══════════════════ ════════════════════ ════════════════════ ════════════════════
+Checks the mechanism for delivering typed events from the machine to the plugins.
+The ActionProductMachine creates concrete event objects from
+hierarchy BasePluginEvent (GlobalStartEvent, GlobalFinishEvent,
+BeforeRegularAspectEvent, etc.) at key points in the pipeline and transmits
+them in plugin_ctx.emit_event(event) [1].
 
-PluginRunContext находит подписанные обработчики через plugin.get_handlers()
-(шаг 1: isinstance по event_class), проверяет остальные фильтры
-(шаги 2–7) и вызывает каждый обработчик с текущим состоянием
-и типизированным объектом события [1].
-═══════════════════════════════════════════════════════════════════════════════
-ПОКРЫВАЕМЫЕ СЦЕНАРИИ
-═══════════════════════════════════════════════════════════════════════════════
-- Обработчик вызывается при совпадении event_class с подпиской.
-- Объект события содержит корректные поля (event_type, action_name,
+PluginRunContext finds signed handlers via plugin.get_handlers()
+(step 1: isinstance by event_class), checks other filters
+(steps 2–7) and calls each handler with the current state
+and a typed event object [1].
+═══════════════════ ════════════════════ ════════════════════ ════════════════════
+SCENARIOS COVERED
+═══════════════════ ════════════════════ ════════════════════ ════════════════════
+- The handler is called when the event_class matches the subscription.
+- The event object contains the correct fields (event_type, action_name,
   nest_level, duration_ms).
-- Повторные вызовы emit_event() корректно накапливают данные в state.
-- Событие другого типа (GlobalStartEvent вместо GlobalFinishEvent)
-  не доставляется обработчику, подписанному на GlobalFinishEvent.
-- action_name_pattern корректно фильтрует по имени действия.
-- Пустой список плагинов — emit_event() завершается без ошибок.
-- Подписка на события компенсации (Saga): CompensateFailedEvent,
-  SagaRollbackCompletedEvent — обработчики вызываются корректно.
-"""
+- Repeated calls to emit_event() correctly accumulate data in state.
+- Event of a different type (GlobalStartEvent instead of GlobalFinishEvent)
+  is not delivered to a handler subscribed to GlobalFinishEvent.
+- action_name_pattern correctly filters by action name.
+- Empty plugin list - emit_event() completes without errors.
+- Subscription to compensation events (Saga): CompensateFailedEvent,
+  SagaRollbackCompletedEvent - handlers are called correctly."""
 import pytest
 
 from action_machine.intents.context.context import Context
@@ -49,17 +47,15 @@ from .conftest import (
 )
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Вспомогательные плагины для событий компенсации
+#Helper plugins for compensation events
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class CompensateFailedRecorderPlugin(Plugin):
-    """
-    Плагин, подписанный на CompensateFailedEvent.
-    Записывает каждое событие сбоя компенсатора в state["failed_events"].
-    Используется для проверки, что подписка на CompensateFailedEvent
-    работает корректно через PluginRunContext.emit_event().
-    """
+    """Plugin subscribed to CompensateFailedEvent.
+    Logs each compensator failure event to state["failed_events"].
+    Used to check that the subscription to CompensateFailedEvent
+    works correctly via PluginRunContext.emit_event()."""
 
     async def get_initial_state(self) -> dict:
         return {"failed_events": []}
@@ -81,12 +77,10 @@ class CompensateFailedRecorderPlugin(Plugin):
 
 
 class SagaCompletedRecorderPlugin(Plugin):
-    """
-    Плагин, подписанный на SagaRollbackCompletedEvent.
-    Записывает итоги размотки стека в state["completed_events"].
-    Используется для проверки, что подписка на SagaRollbackCompletedEvent
-    работает корректно через PluginRunContext.emit_event().
-    """
+    """Plugin subscribed to SagaRollbackCompletedEvent.
+    Writes the stack unwind results to state["completed_events"].
+    Used to check that the subscription to SagaRollbackCompletedEvent
+    works correctly via PluginRunContext.emit_event()."""
 
     async def get_initial_state(self) -> dict:
         return {"completed_events": []}
@@ -108,12 +102,12 @@ class SagaCompletedRecorderPlugin(Plugin):
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Вспомогательные функции для эмиссии Saga-событий
+#Helper functions for issuing Saga events
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 def _make_base_event_kwargs() -> dict:
-    """Формирует общие kwargs для создания Saga-событий."""
+    """Generates common kwargs for creating Saga events."""
     from tests.scenarios.domain_model import PingAction
     return {
         "action_class": PingAction,
@@ -125,13 +119,13 @@ def _make_base_event_kwargs() -> dict:
 
 
 async def emit_compensate_failed(plugin_ctx) -> None:
-    """Эмитирует тестовый CompensateFailedEvent."""
+    """Emits a test CompensateFailedEvent."""
     event = CompensateFailedEvent(
         **_make_base_event_kwargs(),
         aspect_name="charge_aspect",
         state_snapshot=None,
-        original_error=ValueError("Ошибка аспекта"),
-        compensator_error=RuntimeError("Ошибка компенсатора"),
+        original_error=ValueError("Aspect Error"),
+        compensator_error=RuntimeError("Compensator error"),
         compensator_name="rollback_charge_compensate",
         failed_for_aspect="charge_aspect",
     )
@@ -139,10 +133,10 @@ async def emit_compensate_failed(plugin_ctx) -> None:
 
 
 async def emit_saga_rollback_completed(plugin_ctx) -> None:
-    """Эмитирует тестовый SagaRollbackCompletedEvent."""
+    """Emits a test SagaRollbackCompletedEvent."""
     event = SagaRollbackCompletedEvent(
         **_make_base_event_kwargs(),
-        error=ValueError("Ошибка аспекта"),
+        error=ValueError("Aspect Error"),
         total_frames=3,
         succeeded=2,
         failed=1,
@@ -154,45 +148,41 @@ async def emit_saga_rollback_completed(plugin_ctx) -> None:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Тесты доставки событий
+#Event Delivery Tests
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestEmitEvent:
-    """Тесты доставки типизированных событий через PluginRunContext.emit_event()."""
+    """Tests for delivery of typed events via PluginRunContext.emit_event()."""
 
     @pytest.mark.anyio
     async def test_handler_called_on_matching_event(self):
-        """
-        RecordingPlugin подписан на GlobalFinishEvent.
-        При отправке GlobalFinishEvent обработчик вызывается и записывает
-        событие в state["events"].
-        """
-        # Arrange — плагин, записывающий все события
+        """RecordingPlugin is subscribed to GlobalFinishEvent.
+        When a GlobalFinishEvent is dispatched, the handler is called and writes
+        event in state["events"]."""
+        #Arrange - a plugin that records all events
         plugin = RecordingPlugin()
         coordinator = PluginCoordinator(plugins=[plugin])
         plugin_ctx = await coordinator.create_run_context()
-        # Act — отправляем GlobalFinishEvent
+        #Act - send GlobalFinishEvent
         await emit_global_finish(plugin_ctx)
-        # Assert — одно событие записано с правильным типом
+        #Assert - one event recorded with the correct type
         state = plugin_ctx.get_plugin_state(plugin)
         assert len(state["events"]) == 1
         assert state["events"][0]["event_type"] == "GlobalFinishEvent"
 
     @pytest.mark.anyio
     async def test_event_contains_correct_fields(self):
-        """
-        Типизированный объект GlobalFinishEvent, передаваемый в обработчик,
-        содержит корректные значения action_name, nest_level и duration_ms
-        из аргументов конструктора события.
-        """
-        # Arrange — плагин, записывающий поля события
+        """A typed GlobalFinishEvent object passed to the handler,
+        contains correct action_name, nest_level and duration_ms values
+        from the event constructor arguments."""
+        #Arrange - plugin that writes event fields
         plugin = RecordingPlugin()
         coordinator = PluginCoordinator(plugins=[plugin])
         plugin_ctx = await coordinator.create_run_context()
-        # Act — отправляем событие с nest_level=3 и duration_ms=42.5
+        #Act - send an event with nest_level=3 and duration_ms=42.5
         await emit_global_finish(plugin_ctx, nest_level=3, duration_ms=42.5)
-        # Assert — поля события корректны
+        #Assert - event fields are correct
         state = plugin_ctx.get_plugin_state(plugin)
         event_record = state["events"][0]
         assert event_record["nest_level"] == 3
@@ -201,126 +191,112 @@ class TestEmitEvent:
 
     @pytest.mark.anyio
     async def test_multiple_emits_accumulate_in_state(self):
-        """
-        Три последовательных вызова emit_event() — RecordingPlugin
-        записывает три события в state["events"]. Обработчик вызывается
-        при каждом emit_event(), state не сбрасывается между вызовами.
-        """
-        # Arrange — плагин-записыватель
+        """Three consecutive calls to emit_event() - RecordingPlugin
+        writes three events to state["events"]. The handler is called
+        for each emit_event(), state is not reset between calls."""
+        #Arrange - recorder plugin
         plugin = RecordingPlugin()
         coordinator = PluginCoordinator(plugins=[plugin])
         plugin_ctx = await coordinator.create_run_context()
-        # Act — три события подряд
+        #Act - three events in a row
         await emit_global_finish(plugin_ctx)
         await emit_global_finish(plugin_ctx)
         await emit_global_finish(plugin_ctx)
-        # Assert — три записи в state
+        #Assert - three entries in state
         state = plugin_ctx.get_plugin_state(plugin)
         assert len(state["events"]) == 3
 
     @pytest.mark.anyio
     async def test_wrong_event_type_not_delivered(self):
-        """
-        SelectivePlugin подписан на GlobalFinishEvent с action_name_pattern.
-        Отправка GlobalStartEvent не доставляется — isinstance(event,
-        GlobalFinishEvent) возвращает False на шаге 1 цепочки фильтров.
-        state["order_events"] остаётся пустым.
-        """
-        # Arrange — плагин, реагирующий только на GlobalFinishEvent
+        """SelectivePlugin is subscribed to GlobalFinishEvent with action_name_pattern.
+        Sending GlobalStartEvent not delivered - isinstance(event,
+        GlobalFinishEvent) returns False at step 1 of the filter chain.
+        state["order_events"] remains empty."""
+        #Arrange - a plugin that responds only to GlobalFinishEvent
         plugin = SelectivePlugin()
         coordinator = PluginCoordinator(plugins=[plugin])
         plugin_ctx = await coordinator.create_run_context()
-        # Act — отправляем GlobalStartEvent (плагин подписан на GlobalFinishEvent)
+        #Act - send GlobalStartEvent (plugin is subscribed to GlobalFinishEvent)
         await emit_global_start(plugin_ctx)
-        # Assert — обработчик не вызван (event_class не совпадает)
+        #Assert - the handler is not called (event_class does not match)
         state = plugin_ctx.get_plugin_state(plugin)
         assert state["order_events"] == []
 
     @pytest.mark.anyio
     async def test_action_name_pattern_filters_matching_action(self):
-        """
-        SelectivePlugin подписан на GlobalFinishEvent с
-        action_name_pattern=".*Order.*". Событие с action_name
-        содержащим "Order" доставляется обработчику.
-        """
-        # Arrange — плагин с фильтром ".*Order.*"
+        """SelectivePlugin is subscribed to GlobalFinishEvent with
+        action_name_pattern=".*Order.*". Event with action_name
+        containing "Order" is delivered to the handler."""
+        #Arrange - plugin with filter ".*Order.*"
         plugin = SelectivePlugin()
         coordinator = PluginCoordinator(plugins=[plugin])
         plugin_ctx = await coordinator.create_run_context()
-        # Act — отправляем GlobalFinishEvent с "Order" в action_name
+        #Act - send GlobalFinishEvent with "Order" in action_name
         await emit_global_finish(
             plugin_ctx,
             action_name="app.actions.CreateOrderAction",
         )
-        # Assert — обработчик вызван (action_name совпадает с паттерном)
+        #Assert - the handler is called (action_name matches the pattern)
         state = plugin_ctx.get_plugin_state(plugin)
         assert len(state["order_events"]) == 1
         assert state["order_events"][0] == "app.actions.CreateOrderAction"
 
     @pytest.mark.anyio
     async def test_action_name_pattern_blocks_non_matching_action(self):
-        """
-        SelectivePlugin подписан на GlobalFinishEvent с
-        action_name_pattern=".*Order.*". Событие с action_name
-        НЕ содержащим "Order" не доставляется обработчику.
-        """
-        # Arrange — плагин с фильтром ".*Order.*"
+        """SelectivePlugin is subscribed to GlobalFinishEvent with
+        action_name_pattern=".*Order.*". Event with action_name
+        NOT containing "Order" is not delivered to the handler."""
+        #Arrange - plugin with filter ".*Order.*"
         plugin = SelectivePlugin()
         coordinator = PluginCoordinator(plugins=[plugin])
         plugin_ctx = await coordinator.create_run_context()
-        # Act — отправляем GlobalFinishEvent без "Order" в action_name
+        #Act - send GlobalFinishEvent without "Order" in action_name
         await emit_global_finish(
             plugin_ctx,
             action_name="app.actions.PingAction",
         )
-        # Assert — обработчик не вызван (action_name не совпадает)
+        #Assert - the handler is not called (action_name does not match)
         state = plugin_ctx.get_plugin_state(plugin)
         assert state["order_events"] == []
 
     @pytest.mark.anyio
     async def test_empty_plugins_list_no_error(self):
-        """
-        Координатор без плагинов. emit_event() завершается без ошибок
-        и без побочных эффектов — нет плагинов, нет обработчиков.
-        """
-        # Arrange — координатор без плагинов
+        """Coordinator without plugins. emit_event() completes without errors
+        and without side effects - no plugins, no handlers."""
+        #Arrange - coordinator without plugins
         coordinator = PluginCoordinator(plugins=[])
         plugin_ctx = await coordinator.create_run_context()
-        # Act + Assert — не должно быть исключений
+        #Act + Assert - there should be no exceptions
         await emit_global_finish(plugin_ctx)
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Подписка на события компенсации (Saga)
+#Compensation Event Subscription (Saga)
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestEmitCompensationEvents:
-    """
-    Тесты подписки на типизированные события компенсации через emit_event().
+    """Tests for subscription to typed compensation events via emit_event().
 
-    Добавлено как часть реализации механизма компенсации (Saga).
-    Проверяет, что плагины могут подписаться на CompensateFailedEvent
-    и SagaRollbackCompletedEvent и получать корректные данные из
-    объектов событий [1].
-    """
+    Added as part of the implementation of the compensation mechanism (Saga).
+    Checks that plugins can subscribe to CompensateFailedEvent
+    and SagaRollbackCompletedEvent and receive correct data from
+    event objects [1]."""
 
     @pytest.mark.anyio
     async def test_compensate_failed_event_delivered(self):
-        """
-        CompensateFailedRecorderPlugin подписан на CompensateFailedEvent.
-        При эмиссии CompensateFailedEvent обработчик вызывается и записывает
-        данные о сбое компенсатора в state["failed_events"].
-        """
-        # Arrange — плагин, записывающий сбои компенсаторов
+        """CompensateFailedRecorderPlugin is subscribed to CompensateFailedEvent.
+        When a CompensateFailedEvent is emitted, the handler is called and writes
+        compensator failure data in state["failed_events"]."""
+        #Arrange - a plugin that records compensator failures
         plugin = CompensateFailedRecorderPlugin()
         coordinator = PluginCoordinator(plugins=[plugin])
         plugin_ctx = await coordinator.create_run_context()
 
-        # Act — эмитируем CompensateFailedEvent
+        #Act — emit CompensateFailedEvent
         await emit_compensate_failed(plugin_ctx)
 
-        # Assert — событие записано с корректными полями
+        #Assert - the event was recorded with the correct fields
         state = plugin_ctx.get_plugin_state(plugin)
         assert len(state["failed_events"]) == 1
         failed = state["failed_events"][0]
@@ -331,24 +307,23 @@ class TestEmitCompensationEvents:
 
     @pytest.mark.anyio
     async def test_saga_rollback_completed_event_delivered(self):
-        """
-        SagaCompletedRecorderPlugin подписан на SagaRollbackCompletedEvent.
-        При эмиссии SagaRollbackCompletedEvent обработчик вызывается
-        и записывает итоги размотки в state["completed_events"].
-        """
-        # Arrange — плагин, записывающий итоги размотки
+        """SagaCompletedRecorderPlugin is subscribed to SagaRollbackCompletedEvent.
+        When SagaRollbackCompletedEvent is emitted, the handler is called
+        and writes the unwinding results to state["completed_events"]."""
+        #Arrange - a plugin that records the results of unwinding
         plugin = SagaCompletedRecorderPlugin()
         coordinator = PluginCoordinator(plugins=[plugin])
         plugin_ctx = await coordinator.create_run_context()
 
-        # Act — эмитируем SagaRollbackCompletedEvent
+        #Act — emit SagaRollbackCompletedEvent
         await emit_saga_rollback_completed(plugin_ctx)
 
-        # Assert — событие записано с корректными итогами
+        #Assert - the event was recorded with correct results
         state = plugin_ctx.get_plugin_state(plugin)
         assert len(state["completed_events"]) == 1
         completed = state["completed_events"][0]
         assert completed["total_frames"] == 3
         assert completed["succeeded"] == 2
         assert completed["failed"] == 1
+        assert completed["skipped"] == 0
         assert completed["skipped"] == 0

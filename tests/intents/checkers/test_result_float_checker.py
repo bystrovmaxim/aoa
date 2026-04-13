@@ -1,37 +1,36 @@
 # tests/intents/checkers/test_result_float_checker.py
 """
-Тесты ResultFloatChecker и декоратора result_float — числовые поля (int/float).
+Tests for ResultFloatChecker and the result_float decorator — numeric fields (int/float).
 
 ═══════════════════════════════════════════════════════════════════════════════
-НАЗНАЧЕНИЕ
+PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-ResultFloatChecker проверяет, что поле результата аспекта является числом
-(int ИЛИ float) и лежит в заданном диапазоне (min_value, max_value).
+ResultFloatChecker ensures an aspect result field is numeric (int OR float) within
+the given range (min_value, max_value).
 
-В отличие от ResultIntChecker, который принимает только int,
-ResultFloatChecker принимает оба числовых типа. Это удобно для полей
-вроде amount, total, discount, где значение может быть как 100, так
-и 99.99.
+Unlike ResultIntChecker, which accepts only int, ResultFloatChecker accepts both
+numeric types. Useful for fields like amount, total, discount where the value may
+be 100 or 99.99.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ПОКРЫВАЕМЫЕ СЦЕНАРИИ
+COVERED SCENARIOS
 ═══════════════════════════════════════════════════════════════════════════════
 
-Валидные значения:
-    - Float, int, ноль (0 и 0.0), отрицательные числа.
-    - Значение на границе min_value / max_value.
+Valid values:
+    - Float, int, zero (0 and 0.0), negative numbers.
+    - Value exactly on min_value / max_value boundaries.
 
-Невалидные значения:
-    - Строка, список, bool → ValidationFieldError.
-    - Значение вне диапазона → ValidationFieldError.
+Invalid values:
+    - String, list, bool → ValidationFieldError.
+    - Value outside range → ValidationFieldError.
 
-Required / Optional:
-    - required=True, поле отсутствует → ValidationFieldError.
-    - required=False, поле отсутствует → OK.
+Required / optional:
+    - required=True, field missing → ValidationFieldError.
+    - required=False, field missing → OK.
 
-Декоратор:
-    - result_float записывает _checker_meta с min_value, max_value.
+Decorator:
+    - result_float records _checker_meta with min_value, max_value.
 """
 
 import pytest
@@ -40,15 +39,15 @@ from action_machine.intents.checkers.result_float_checker import ResultFloatChec
 from action_machine.model.exceptions import ValidationFieldError
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Валидные значения
+# Valid values
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestValidValues:
-    """check() проходит для валидных числовых значений."""
+    """check() succeeds for valid numeric values."""
 
     def test_float_value(self) -> None:
-        """Float проходит."""
+        """Float passes."""
         # Arrange
         checker = ResultFloatChecker("total", required=True)
 
@@ -56,7 +55,7 @@ class TestValidValues:
         checker.check({"total": 99.99})
 
     def test_int_value(self) -> None:
-        """Int проходит — ResultFloatChecker принимает int и float."""
+        """Int passes — ResultFloatChecker accepts int and float."""
         # Arrange
         checker = ResultFloatChecker("total", required=True)
 
@@ -64,7 +63,7 @@ class TestValidValues:
         checker.check({"total": 100})
 
     def test_zero_float(self) -> None:
-        """Float-ноль 0.0 проходит."""
+        """Float zero 0.0 passes."""
         # Arrange
         checker = ResultFloatChecker("discount", required=True)
 
@@ -72,7 +71,7 @@ class TestValidValues:
         checker.check({"discount": 0.0})
 
     def test_zero_int(self) -> None:
-        """Int-ноль 0 проходит."""
+        """Int zero 0 passes."""
         # Arrange
         checker = ResultFloatChecker("discount", required=True)
 
@@ -80,7 +79,7 @@ class TestValidValues:
         checker.check({"discount": 0})
 
     def test_negative_value(self) -> None:
-        """Отрицательное число проходит (если нет min_value)."""
+        """Negative number passes when min_value is not set."""
         # Arrange
         checker = ResultFloatChecker("balance", required=True)
 
@@ -88,7 +87,7 @@ class TestValidValues:
         checker.check({"balance": -500.50})
 
     def test_exact_min_value(self) -> None:
-        """Значение ровно min_value проходит (включительно)."""
+        """Value exactly min_value passes (inclusive)."""
         # Arrange
         checker = ResultFloatChecker("amount", required=True, min_value=0.0)
 
@@ -96,7 +95,7 @@ class TestValidValues:
         checker.check({"amount": 0.0})
 
     def test_exact_max_value(self) -> None:
-        """Значение ровно max_value проходит (включительно)."""
+        """Value exactly max_value passes (inclusive)."""
         # Arrange
         checker = ResultFloatChecker("rate", required=True, max_value=1.0)
 
@@ -104,7 +103,7 @@ class TestValidValues:
         checker.check({"rate": 1.0})
 
     def test_between_bounds(self) -> None:
-        """Значение между min и max проходит."""
+        """Value between min and max passes."""
         # Arrange
         checker = ResultFloatChecker("percent", required=True, min_value=0.0, max_value=100.0)
 
@@ -112,8 +111,8 @@ class TestValidValues:
         checker.check({"percent": 55.5})
 
     def test_int_at_float_boundary(self) -> None:
-        """Int-значение на границе float min_value."""
-        # Arrange — min_value=0.0, передаём int 0
+        """Int value at float min_value boundary."""
+        # Arrange — min_value=0.0, pass int 0
         checker = ResultFloatChecker("total", required=True, min_value=0.0)
 
         # Act & Assert — int 0 >= float 0.0
@@ -121,98 +120,97 @@ class TestValidValues:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Невалидные значения
+# Invalid values
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestInvalidValues:
-    """check() бросает ValidationFieldError для невалидных значений."""
+    """check() raises ValidationFieldError for invalid values."""
 
     def test_string_raises(self) -> None:
-        """Строка вместо числа → ValidationFieldError."""
+        """String instead of number → ValidationFieldError."""
         # Arrange
         checker = ResultFloatChecker("total", required=True)
 
         # Act & Assert
-        with pytest.raises(ValidationFieldError, match="числом"):
+        with pytest.raises(ValidationFieldError, match="numeric"):
             checker.check({"total": "99.99"})
 
     def test_list_raises(self) -> None:
-        """Список → ValidationFieldError."""
+        """List → ValidationFieldError."""
         # Arrange
         checker = ResultFloatChecker("total", required=True)
 
         # Act & Assert
-        with pytest.raises(ValidationFieldError, match="числом"):
+        with pytest.raises(ValidationFieldError, match="numeric"):
             checker.check({"total": [1, 2]})
 
     def test_bool_raises(self) -> None:
         """
         Bool → ValidationFieldError.
 
-        Хотя bool является подклассом int в Python, ResultFloatChecker
-        использует isinstance(value, (int, float)), и bool проходит.
-        Но это особенность Python, а не чекера.
+        Although bool is a subclass of int in Python, ResultFloatChecker uses
+        isinstance(value, (int, float)), so bool passes. That is Python behavior,
+        not a checker quirk.
 
-        ПРИМЕЧАНИЕ: если этот тест падает — значит, ResultFloatChecker
-        принимает bool как число (что технически корректно в Python).
-        В таком случае удалите этот тест.
+        NOTE: if this test fails, ResultFloatChecker accepts bool as a number
+        (technically correct in Python). In that case remove this test.
         """
         # Arrange
         checker = ResultFloatChecker("total", required=True)
 
-        # Примечание: bool IS int в Python, поэтому isinstance(True, (int, float)) == True.
-        # Этот тест документирует поведение, а не ошибку.
-        # True будет принят как int(1), False как int(0).
-        checker.check({"total": True})  # Не бросает — bool IS int
+        # Note: bool IS int in Python, so isinstance(True, (int, float)) is True.
+        # This test documents behavior, not a bug.
+        # True is accepted as int(1), False as int(0).
+        checker.check({"total": True})  # Does not raise — bool IS int
 
     def test_below_min_value(self) -> None:
-        """Значение меньше min_value → ValidationFieldError."""
+        """Value below min_value → ValidationFieldError."""
         # Arrange
         checker = ResultFloatChecker("amount", required=True, min_value=0.0)
 
         # Act & Assert
-        with pytest.raises(ValidationFieldError, match="не меньше"):
+        with pytest.raises(ValidationFieldError, match="greater than or equal"):
             checker.check({"amount": -0.01})
 
     def test_above_max_value(self) -> None:
-        """Значение больше max_value → ValidationFieldError."""
+        """Value above max_value → ValidationFieldError."""
         # Arrange
         checker = ResultFloatChecker("rate", required=True, max_value=1.0)
 
         # Act & Assert
-        with pytest.raises(ValidationFieldError, match="не больше"):
+        with pytest.raises(ValidationFieldError, match="less than or equal"):
             checker.check({"rate": 1.001})
 
     def test_none_dict_value_raises(self) -> None:
-        """None как значение → ValidationFieldError (для required)."""
+        """None as value → ValidationFieldError (required field)."""
         # Arrange
         checker = ResultFloatChecker("total", required=True)
 
         # Act & Assert
-        with pytest.raises(ValidationFieldError, match="Отсутствует обязательный"):
+        with pytest.raises(ValidationFieldError, match="Missing required parameter"):
             checker.check({"total": None})
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Required / Optional
+# Required / optional
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestRequired:
-    """Поведение при required=True и required=False."""
+    """Behavior for required=True and required=False."""
 
     def test_required_missing_raises(self) -> None:
-        """required=True, поле отсутствует → ValidationFieldError."""
+        """required=True, field missing → ValidationFieldError."""
         # Arrange
         checker = ResultFloatChecker("total", required=True)
 
         # Act & Assert
-        with pytest.raises(ValidationFieldError, match="Отсутствует обязательный"):
+        with pytest.raises(ValidationFieldError, match="Missing required parameter"):
             checker.check({})
 
     def test_optional_missing_ok(self) -> None:
-        """required=False, поле отсутствует → OK."""
+        """required=False, field missing → OK."""
         # Arrange
         checker = ResultFloatChecker("total", required=False)
 
@@ -220,26 +218,26 @@ class TestRequired:
         checker.check({})
 
     def test_optional_present_still_validated(self) -> None:
-        """required=False, но значение присутствует — тип проверяется."""
+        """required=False but value present — type is still validated."""
         # Arrange
         checker = ResultFloatChecker("total", required=False)
 
-        # Act & Assert — строка вместо числа
-        with pytest.raises(ValidationFieldError, match="числом"):
+        # Act & Assert — string instead of number
+        with pytest.raises(ValidationFieldError, match="numeric"):
             checker.check({"total": "not_a_number"})
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Декоратор result_float
+# result_float decorator
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestDecorator:
-    """Функция-декоратор result_float записывает _checker_meta."""
+    """The result_float decorator records _checker_meta."""
 
     def test_writes_checker_meta(self) -> None:
         """
-        @result_float("total") записывает _checker_meta в метод.
+        @result_float("total") records _checker_meta on the method.
         """
         # Arrange & Act
         @result_float("total", required=True, min_value=0.0, max_value=999999.99)
@@ -257,7 +255,7 @@ class TestDecorator:
         assert m["max_value"] == 999999.99
 
     def test_decorator_preserves_function(self) -> None:
-        """Декоратор возвращает ту же функцию."""
+        """Decorator returns the same function object."""
         # Arrange
         async def original(self, params, state, box, connections):
             return {}
@@ -270,9 +268,9 @@ class TestDecorator:
 
     def test_combined_with_result_string(self) -> None:
         """
-        result_float + result_string на одном методе — оба записываются.
+        result_float + result_string on one method — both are recorded.
 
-        Один аспект может проверять поля разных типов.
+        One aspect may validate fields of different types.
         """
         # Arrange & Act
         from action_machine.intents.checkers.result_string_checker import result_string
@@ -282,7 +280,7 @@ class TestDecorator:
         async def process(self, params, state, box, connections):
             return {"txn_id": "TXN-1", "amount": 100.0}
 
-        # Assert — два чекера в списке
+        # Assert — two checkers in the list
         assert len(process._checker_meta) == 2
         fields = [m["field_name"] for m in process._checker_meta]
         assert "txn_id" in fields

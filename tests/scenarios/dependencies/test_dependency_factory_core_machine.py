@@ -1,54 +1,54 @@
 # tests/scenarios/dependencies/test_dependency_factory_core_machine.py
 """
-Тесты DependencyFactory — stateless-фабрика зависимостей.
+Tests for DependencyFactory — a stateless dependency factory.
 
 ═══════════════════════════════════════════════════════════════════════════════
-НАЗНАЧЕНИЕ
+PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-DependencyFactory — stateless-фабрика, которая создаёт экземпляры
-зависимостей, объявленных через декоратор @depends. Каждый вызов resolve()
-создаёт новый экземпляр через factory-функцию или конструктор по умолчанию.
-Кеш экземпляров отсутствует — фабрика является чистой функцией.
+DependencyFactory is a stateless factory that creates instances of dependencies
+declared via the @depends decorator. Each resolve() call creates a new instance
+via a factory function or the default constructor.
+There is no instance cache — the factory behaves as a pure function.
 
-Фабрика создаётся ``cached_dependency_factory(coordinator, cls)`` из
-снимка ``depends`` координатора и передаётся в ToolsBox, откуда аспекты
-получают зависимости через box.resolve(PaymentService).
+The factory is built with ``cached_dependency_factory(coordinator, cls)`` from
+the coordinator's ``depends`` snapshot and passed into ToolsBox; aspects then
+obtain dependencies via box.resolve(PaymentService).
 
 ═══════════════════════════════════════════════════════════════════════════════
-ПОКРЫВАЕМЫЕ СЦЕНАРИИ
+SCENARIOS COVERED
 ═══════════════════════════════════════════════════════════════════════════════
 
-Создание из DependencyInfo:
-    - Фабрика создаётся из tuple[DependencyInfo, ...].
-    - Пустой кортеж — фабрика без зависимостей.
+Creation from DependencyInfo:
+    - Factory is built from tuple[DependencyInfo, ...].
+    - Empty tuple — factory with no dependencies.
 
-resolve() без factory:
-    - Зависимость без factory → конструктор по умолчанию klass().
-    - Каждый вызов создаёт новый экземпляр (не синглтон).
-    - Передача *args и **kwargs в конструктор.
+resolve() without factory:
+    - Dependency without factory → default constructor klass().
+    - Each call creates a new instance (not a singleton).
+    - *args and **kwargs are passed to the constructor.
 
-resolve() с factory:
-    - Зависимость с factory → вызывается factory(*args, **kwargs).
-    - Lambda-синглтон: factory=lambda: shared_instance.
-    - Параметризованная factory: factory=lambda env: Client(env).
+resolve() with factory:
+    - Dependency with factory → factory(*args, **kwargs) is called.
+    - Lambda singleton: factory=lambda: shared_instance.
+    - Parameterized factory: factory=lambda env: Client(env).
 
-resolve() несуществующей зависимости:
-    - ValueError с информативным сообщением.
+resolve() for a missing dependency:
+    - ValueError with an informative message.
 
-resolve() с rollup:
-    - rollup=True для BaseResourceManager → check_rollup_support().
-    - rollup=True для не-BaseResourceManager → без проверки.
-    - rollup=False → без проверки для любого класса.
-    - RollupNotSupportedError для менеджера без поддержки rollup.
+resolve() with rollup:
+    - rollup=True for BaseResourceManager → check_rollup_support().
+    - rollup=True for non-BaseResourceManager → no check.
+    - rollup=False → no check for any class.
+    - RollupNotSupportedError for a manager without rollup support.
 
-Инспекция:
-    - has(cls) — проверка наличия зависимости.
-    - get_all_classes() — список всех зарегистрированных классов.
+Inspection:
+    - has(cls) — whether the dependency is registered.
+    - get_all_classes() — list of all registered classes.
 
-Интеграция с доменной моделью:
-    - Фабрика из координатора для FullAction содержит PaymentService
-      и NotificationService.
+Integration with the domain model:
+    - Factory from the coordinator for FullAction includes PaymentService
+      and NotificationService.
 """
 
 import pytest
@@ -66,35 +66,35 @@ from tests.scenarios.domain_model import FullAction, NotificationService, Paymen
 from tests.scenarios.domain_model.domains import TestDomain
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Вспомогательные классы для тестов
+# Test helper classes
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class _SimpleService:
-    """Простой сервис без конструкторных параметров."""
+    """Simple service with no constructor parameters."""
 
     pass
 
 
 class _ConfigurableService:
-    """Сервис с параметрами конструктора."""
+    """Service with constructor parameters."""
 
     def __init__(self, host: str = "localhost", port: int = 8080):
         self.host = host
         self.port = port
 
 
-@meta(description="Мок-менеджер для тестов rollup", domain=TestDomain)
+@meta(description="Mock manager for rollup tests", domain=TestDomain)
 class _MockResourceManager(BaseResourceManager):
-    """Менеджер ресурсов БЕЗ поддержки rollup (по умолчанию)."""
+    """Resource manager WITHOUT rollup support (default)."""
 
     def get_wrapper_class(self):
         return None
 
 
-@meta(description="Мок-менеджер с поддержкой rollup", domain=TestDomain)
+@meta(description="Mock manager with rollup support", domain=TestDomain)
 class _RollupSupportedManager(BaseResourceManager):
-    """Менеджер ресурсов С поддержкой rollup."""
+    """Resource manager WITH rollup support."""
 
     def check_rollup_support(self) -> bool:
         return True
@@ -104,205 +104,205 @@ class _RollupSupportedManager(BaseResourceManager):
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Создание фабрики
+# Factory creation
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestFactoryCreation:
-    """Создание DependencyFactory из DependencyInfo."""
+    """Creating DependencyFactory from DependencyInfo."""
 
     def test_create_from_dependency_info_tuple(self) -> None:
         """
-        Фабрика создаётся из кортежа DependencyInfo.
+        Factory is built from a tuple of DependencyInfo.
 
-        Основной формат — tuple[DependencyInfo, ...] из снимка ``depends``
-        (или напрямую из ``@depends`` в тестах).
+        The primary format is tuple[DependencyInfo, ...] from the ``depends``
+        snapshot (or directly from ``@depends`` in tests).
         """
-        # Arrange — два DependencyInfo
+        # Arrange — two DependencyInfo entries
         deps = (
-            DependencyInfo(cls=_SimpleService, description="Простой сервис"),
-            DependencyInfo(cls=_ConfigurableService, description="Настраиваемый"),
+            DependencyInfo(cls=_SimpleService, description="Simple service"),
+            DependencyInfo(cls=_ConfigurableService, description="Configurable"),
         )
 
-        # Act — создание фабрики из кортежа
+        # Act — create factory from tuple
         factory = DependencyFactory(deps)
 
-        # Assert — оба класса зарегистрированы
+        # Assert — both classes registered
         assert factory.has(_SimpleService)
         assert factory.has(_ConfigurableService)
 
     def test_create_from_empty_tuple(self) -> None:
         """
-        Пустой кортеж — фабрика без зависимостей.
+        Empty tuple — factory with no dependencies.
 
-        Это штатная ситуация: действие без @depends (PingAction)
-        получает пустую фабрику.
+        This is normal: an action without @depends (PingAction)
+        gets an empty factory.
         """
-        # Arrange & Act — пустой кортеж
+        # Arrange & Act — empty tuple
         factory = DependencyFactory(())
 
-        # Assert — ни одной зависимости
+        # Assert — no dependencies
         assert factory.get_all_classes() == []
         assert not factory.has(_SimpleService)
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# resolve() без factory — конструктор по умолчанию
+# resolve() without factory — default constructor
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestResolveDefault:
-    """resolve() без factory — используется конструктор по умолчанию."""
+    """resolve() without factory — default constructor is used."""
 
     def test_resolve_creates_new_instance(self) -> None:
         """
-        resolve(cls) без factory вызывает cls() — конструктор по умолчанию.
+        resolve(cls) without factory calls cls() — the default constructor.
 
-        Каждый вызов создаёт НОВЫЙ экземпляр. Фабрика stateless,
-        кеш экземпляров отсутствует.
+        Each call creates a NEW instance. The factory is stateless;
+        there is no instance cache.
         """
-        # Arrange — фабрика с одной зависимостью без factory
+        # Arrange — factory with one dependency and no factory
         factory = DependencyFactory((
-            DependencyInfo(cls=_SimpleService, description="Сервис"),
+            DependencyInfo(cls=_SimpleService, description="Service"),
         ))
 
-        # Act — два вызова resolve
+        # Act — two resolve calls
         first = factory.resolve(_SimpleService)
         second = factory.resolve(_SimpleService)
 
-        # Assert — два разных экземпляра (is-проверка)
+        # Assert — two distinct instances (identity check)
         assert isinstance(first, _SimpleService)
         assert isinstance(second, _SimpleService)
         assert first is not second
 
     def test_resolve_passes_args_to_constructor(self) -> None:
         """
-        resolve(cls, *args, **kwargs) передаёт аргументы в конструктор.
+        resolve(cls, *args, **kwargs) forwards arguments to the constructor.
 
-        _ConfigurableService(host, port) → экземпляр с заданными параметрами.
+        _ConfigurableService(host, port) → instance with the given parameters.
         """
-        # Arrange — фабрика с ConfigurableService
+        # Arrange — factory with ConfigurableService
         factory = DependencyFactory((
-            DependencyInfo(cls=_ConfigurableService, description="Настраиваемый"),
+            DependencyInfo(cls=_ConfigurableService, description="Configurable"),
         ))
 
-        # Act — resolve с аргументами конструктора
+        # Act — resolve with constructor arguments
         service = factory.resolve(_ConfigurableService, host="prod.db", port=5432)
 
-        # Assert — аргументы переданы в конструктор
+        # Assert — arguments passed to constructor
         assert service.host == "prod.db"
         assert service.port == 5432
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# resolve() с factory
+# resolve() with factory
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestResolveWithFactory:
-    """resolve() с factory — вызывается пользовательская фабрика."""
+    """resolve() with factory — user-defined factory is invoked."""
 
     def test_factory_function_called(self) -> None:
         """
-        Зависимость с factory → resolve() вызывает factory(), не cls().
+        Dependency with factory → resolve() calls factory(), not cls().
 
-        Factory-функция позволяет задать любую логику создания:
-        конструктор с параметрами, синглтон, пул, DI-контейнер.
+        A factory function can implement any creation logic:
+        constructor with parameters, singleton, pool, DI container.
         """
-        # Arrange — factory создаёт ConfigurableService с фиксированными параметрами
+        # Arrange — factory builds ConfigurableService with fixed parameters
         factory = DependencyFactory((
             DependencyInfo(
                 cls=_ConfigurableService,
                 factory=lambda: _ConfigurableService(host="factory-host", port=9999),
-                description="Через фабрику",
+                description="Via factory",
             ),
         ))
 
-        # Act — resolve вызывает factory, не конструктор напрямую
+        # Act — resolve invokes factory, not the constructor directly
         service = factory.resolve(_ConfigurableService)
 
-        # Assert — параметры из factory-функции
+        # Assert — parameters from factory function
         assert service.host == "factory-host"
         assert service.port == 9999
 
     def test_lambda_singleton(self) -> None:
         """
-        Lambda-замыкание реализует синглтон: factory=lambda: shared.
+        A lambda closure implements singleton semantics: factory=lambda: shared.
 
-        Фреймворк не кеширует — но lambda захватывает один объект,
-        и каждый resolve() возвращает один и тот же экземпляр.
+        The framework does not cache — but the lambda captures one object,
+        and every resolve() returns the same instance.
         """
-        # Arrange — один shared-экземпляр, захваченный lambda
+        # Arrange — one shared instance captured by lambda
         shared = _SimpleService()
         factory = DependencyFactory((
             DependencyInfo(
                 cls=_SimpleService,
                 factory=lambda: shared,
-                description="Синглтон",
+                description="Singleton",
             ),
         ))
 
-        # Act — два вызова resolve
+        # Act — two resolve calls
         first = factory.resolve(_SimpleService)
         second = factory.resolve(_SimpleService)
 
-        # Assert — один и тот же объект (синглтон через lambda)
+        # Assert — same object (singleton via lambda)
         assert first is shared
         assert second is shared
         assert first is second
 
     def test_factory_receives_args(self) -> None:
         """
-        *args и **kwargs из resolve() передаются в factory().
+        *args and **kwargs from resolve() are passed to factory().
 
-        Позволяет параметризовать создание зависимости из аспекта:
+        Allows parameterizing dependency creation from an aspect:
         box.resolve(Client, "production") → factory("production").
         """
-        # Arrange — factory принимает параметр env
+        # Arrange — factory accepts env parameter
         factory = DependencyFactory((
             DependencyInfo(
                 cls=_ConfigurableService,
                 factory=lambda env: _ConfigurableService(host=f"{env}.db.local"),
-                description="Параметризованная фабрика",
+                description="Parameterized factory",
             ),
         ))
 
-        # Act — resolve с рантайм-параметром
+        # Act — resolve with runtime parameter
         service = factory.resolve(_ConfigurableService, "staging")
 
-        # Assert — параметр передан через factory
+        # Assert — parameter forwarded through factory
         assert service.host == "staging.db.local"
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# resolve() несуществующей зависимости
+# resolve() for a missing dependency
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestResolveMissing:
-    """resolve() для незарегистрированной зависимости."""
+    """resolve() for an unregistered dependency."""
 
     def test_missing_dependency_raises_value_error(self) -> None:
         """
-        resolve(cls) для незарегистрированной зависимости → ValueError.
+        resolve(cls) for an unregistered dependency → ValueError.
 
-        Сообщение содержит имя запрошенного класса и список доступных
-        зависимостей для быстрой диагностики.
+        The message includes the requested class name and the list of available
+        dependencies for quick diagnosis.
         """
-        # Arrange — фабрика без _SimpleService
+        # Arrange — factory without _SimpleService
         factory = DependencyFactory((
-            DependencyInfo(cls=_ConfigurableService, description="Только это"),
+            DependencyInfo(cls=_ConfigurableService, description="Only this"),
         ))
 
-        # Act & Assert — запрос отсутствующей зависимости
+        # Act & Assert — request missing dependency
         with pytest.raises(ValueError, match="not declared"):
             factory.resolve(_SimpleService)
 
     def test_empty_factory_raises_value_error(self) -> None:
         """
-        resolve() на пустой фабрике → ValueError.
+        resolve() on an empty factory → ValueError.
         """
-        # Arrange — пустая фабрика
+        # Arrange — empty factory
         factory = DependencyFactory(())
 
         # Act & Assert
@@ -311,43 +311,43 @@ class TestResolveMissing:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# resolve() с rollup
+# resolve() with rollup
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestResolveRollup:
-    """resolve() с параметром rollup — проверка поддержки для ресурсных менеджеров."""
+    """resolve() with rollup — support check for resource managers."""
 
     def test_rollup_true_for_supported_manager(self) -> None:
         """
-        rollup=True для менеджера с поддержкой rollup → resolve() проходит.
+        rollup=True for a manager that supports rollup → resolve() succeeds.
 
-        _RollupSupportedManager переопределяет check_rollup_support()
-        и возвращает True. DependencyFactory вызывает check_rollup_support()
-        и не бросает исключение.
+        _RollupSupportedManager overrides check_rollup_support()
+        and returns True. DependencyFactory calls check_rollup_support()
+        and does not raise.
         """
-        # Arrange — фабрика с менеджером, поддерживающим rollup
+        # Arrange — factory with rollup-capable manager
         factory = DependencyFactory((
-            DependencyInfo(cls=_RollupSupportedManager, description="С поддержкой rollup"),
+            DependencyInfo(cls=_RollupSupportedManager, description="With rollup support"),
         ))
 
-        # Act — resolve с rollup=True
+        # Act — resolve with rollup=True
         manager = factory.resolve(_RollupSupportedManager, rollup=True)
 
-        # Assert — экземпляр создан успешно
+        # Assert — instance created successfully
         assert isinstance(manager, _RollupSupportedManager)
 
     def test_rollup_true_for_unsupported_manager_raises(self) -> None:
         """
-        rollup=True для менеджера БЕЗ поддержки rollup → RollupNotSupportedError.
+        rollup=True for a manager WITHOUT rollup support → RollupNotSupportedError.
 
-        _MockResourceManager не переопределяет check_rollup_support(),
-        поэтому используется реализация по умолчанию из BaseResourceManager,
-        которая бросает RollupNotSupportedError.
+        _MockResourceManager does not override check_rollup_support(),
+        so the default from BaseResourceManager applies,
+        which raises RollupNotSupportedError.
         """
-        # Arrange — фабрика с менеджером без поддержки rollup
+        # Arrange — factory with manager without rollup support
         factory = DependencyFactory((
-            DependencyInfo(cls=_MockResourceManager, description="Без rollup"),
+            DependencyInfo(cls=_MockResourceManager, description="Without rollup"),
         ))
 
         # Act & Assert — RollupNotSupportedError
@@ -356,62 +356,62 @@ class TestResolveRollup:
 
     def test_rollup_true_for_non_resource_manager(self) -> None:
         """
-        rollup=True для класса, не наследующего BaseResourceManager →
-        проверка rollup НЕ выполняется.
+        rollup=True for a class that does not inherit BaseResourceManager →
+        rollup check is NOT performed.
 
-        Проверка check_rollup_support() применяется только к экземплярам
-        BaseResourceManager. Обычные сервисы проходят без проверки.
+        check_rollup_support() applies only to BaseResourceManager instances.
+        Ordinary services resolve without that check.
         """
-        # Arrange — фабрика с обычным сервисом (не BaseResourceManager)
+        # Arrange — factory with ordinary service (not BaseResourceManager)
         factory = DependencyFactory((
-            DependencyInfo(cls=_SimpleService, description="Обычный сервис"),
+            DependencyInfo(cls=_SimpleService, description="Ordinary service"),
         ))
 
-        # Act — resolve с rollup=True для обычного сервиса
+        # Act — resolve with rollup=True for ordinary service
         service = factory.resolve(_SimpleService, rollup=True)
 
-        # Assert — экземпляр создан без ошибок
+        # Assert — instance created without error
         assert isinstance(service, _SimpleService)
 
     def test_rollup_false_skips_check(self) -> None:
         """
-        rollup=False → check_rollup_support() НЕ вызывается.
+        rollup=False → check_rollup_support() is NOT called.
 
-        Даже для менеджера без поддержки rollup: если rollup=False,
-        проверка пропускается и экземпляр создаётся штатно.
+        Even for a manager without rollup support: if rollup=False,
+        the check is skipped and the instance is created normally.
         """
-        # Arrange — фабрика с менеджером без поддержки rollup
+        # Arrange — factory with manager without rollup support
         factory = DependencyFactory((
-            DependencyInfo(cls=_MockResourceManager, description="Без rollup"),
+            DependencyInfo(cls=_MockResourceManager, description="Without rollup"),
         ))
 
-        # Act — resolve с rollup=False (по умолчанию)
+        # Act — resolve with rollup=False (default)
         manager = factory.resolve(_MockResourceManager, rollup=False)
 
-        # Assert — экземпляр создан без ошибок
+        # Assert — instance created without error
         assert isinstance(manager, _MockResourceManager)
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Инспекция
+# Inspection
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestInspection:
-    """Методы инспекции: has(), get_all_classes()."""
+    """Inspection methods: has(), get_all_classes()."""
 
     def test_has_returns_true_for_registered(self) -> None:
-        """has(cls) → True для зарегистрированной зависимости."""
+        """has(cls) → True for a registered dependency."""
         # Arrange
         factory = DependencyFactory((
-            DependencyInfo(cls=_SimpleService, description="Сервис"),
+            DependencyInfo(cls=_SimpleService, description="Service"),
         ))
 
         # Act & Assert
         assert factory.has(_SimpleService) is True
 
     def test_has_returns_false_for_unregistered(self) -> None:
-        """has(cls) → False для незарегистрированной зависимости."""
+        """has(cls) → False for an unregistered dependency."""
         # Arrange
         factory = DependencyFactory(())
 
@@ -419,8 +419,8 @@ class TestInspection:
         assert factory.has(_SimpleService) is False
 
     def test_get_all_classes(self) -> None:
-        """get_all_classes() возвращает список всех зарегистрированных классов."""
-        # Arrange — фабрика с двумя зависимостями
+        """get_all_classes() returns all registered classes."""
+        # Arrange — factory with two dependencies
         factory = DependencyFactory((
             DependencyInfo(cls=_SimpleService, description="A"),
             DependencyInfo(cls=_ConfigurableService, description="B"),
@@ -429,63 +429,63 @@ class TestInspection:
         # Act
         classes = factory.get_all_classes()
 
-        # Assert — оба класса присутствуют
+        # Assert — both classes present
         assert _SimpleService in classes
         assert _ConfigurableService in classes
         assert len(classes) == 2
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Интеграция с доменной моделью через GateCoordinator
+# Integration with domain model via GateCoordinator
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestDomainIntegration:
-    """Фабрика из координатора для доменных действий."""
+    """Factory from coordinator for domain actions."""
 
     def test_full_action_factory_has_dependencies(self) -> None:
         """
-        ``cached_dependency_factory(coordinator, FullAction)`` содержит PaymentService
-        и NotificationService.
+        ``cached_dependency_factory(coordinator, FullAction)`` includes PaymentService
+        and NotificationService.
 
-        FullAction объявляет @depends(PaymentService) и
-        @depends(NotificationService). Координатор собирает метаданные
-        и создаёт DependencyFactory с обоими классами.
+        FullAction declares @depends(PaymentService) and
+        @depends(NotificationService). The coordinator collects metadata
+        and builds a DependencyFactory with both classes.
         """
-        # Arrange — координатор, регистрирующий FullAction
+        # Arrange — coordinator registering FullAction
         coordinator = CoreActionMachine.create_coordinator()
         factory = cached_dependency_factory(coordinator, FullAction)
 
-        # Act & Assert — оба сервиса зарегистрированы
+        # Act & Assert — both services registered
         assert factory.has(PaymentService)
         assert factory.has(NotificationService)
 
     def test_ping_action_factory_is_empty(self) -> None:
         """
-        ``cached_dependency_factory(coordinator, PingAction)`` — пустая фабрика.
+        ``cached_dependency_factory(coordinator, PingAction)`` is an empty factory.
 
-        PingAction не объявляет @depends, поэтому фабрика
-        не содержит зависимостей.
+        PingAction does not declare @depends, so the factory
+        has no dependencies.
         """
-        # Arrange — координатор для PingAction без зависимостей
+        # Arrange — coordinator for PingAction without dependencies
         coordinator = CoreActionMachine.create_coordinator()
         factory = cached_dependency_factory(coordinator, PingAction)
 
-        # Act & Assert — фабрика пуста
+        # Act & Assert — factory is empty
         assert factory.get_all_classes() == []
 
     def test_factory_creates_payment_service(self) -> None:
         """
-        factory.resolve(PaymentService) создаёт экземпляр PaymentService.
+        factory.resolve(PaymentService) creates a PaymentService instance.
 
-        Это реальный resolve через конструктор по умолчанию, без моков.
+        Real resolve via default constructor, no mocks.
         """
-        # Arrange — фабрика из координатора
+        # Arrange — factory from coordinator
         coordinator = CoreActionMachine.create_coordinator()
         factory = cached_dependency_factory(coordinator, FullAction)
 
-        # Act — resolve реального сервиса
+        # Act — resolve real service
         service = factory.resolve(PaymentService)
 
-        # Assert — экземпляр создан
+        # Assert — instance created
         assert isinstance(service, PaymentService)

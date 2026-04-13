@@ -1,46 +1,44 @@
 # tests/scenarios/graph_with_runtime/test_coordinator_graph.py
-"""
-Тесты GateCoordinator — граф зависимостей, узлы, рёбра, циклы, публичное API.
-═══════════════════════════════════════════════════════════════════════════════
-НАЗНАЧЕНИЕ
-═══════════════════════════════════════════════════════════════════════════════
-Проверяет, что GateCoordinator строит направленный граф из
-зарегистрированных классов, создаёт узлы для действий, зависимостей,
-соединений, аспектов, чекеров, подписок, sensitive-полей, компенсаторов,
-обнаруживает циклические зависимости и предоставляет публичное API
-для инспекции.
-═══════════════════════════════════════════════════════════════════════════════
-СЦЕНАРИИ
-═══════════════════════════════════════════════════════════════════════════════
-TestBasicNodes — создание базовых узлов графа.
-TestDependenciesAndConnections — узлы и рёбра зависимостей и соединений.
-TestAspectsAndCheckers — узлы аспектов и чекеров.
-TestSubscriptionsAndSensitive — узлы подписок и sensitive-полей.
-TestCompensatorNodes — агрегированный facet ``compensator`` (без рёбер
-``has_compensator`` к structural ``action``; см. CompensateIntentInspector).
-TestRecursiveCollection — автоматический рекурсивный сбор зависимостей.
-TestCycleDetection — сценарии без цикла в графе (ромб); логические циклы @depends
-    не покрываются отдельным тестом на CyclicDependencyError.
-TestPublicAPI — публичные методы инспекции графа.
-TestInvalidation — инвалидация кеша координатора.
-TestCoordinatorBasic — базовое API координатора.
+"""GateCoordinator tests - dependency graph, nodes, edges, loops, public API.
+═══════════════════ ════════════════════ ════════════════════ ════════════════════
+PURPOSE
+═══════════════════ ════════════════════ ════════════════════ ════════════════════
+Checks that GateCoordinator builds a directed graph from
+registered classes, creates nodes for actions, dependencies,
+connections, aspects, checkers, subscriptions, sensitive fields, compensators,
+detects circular dependencies and provides a public API
+for inspection.
+═══════════════════ ════════════════════ ════════════════════ ════════════════════
+SCENARIO
+═══════════════════ ════════════════════ ════════════════════ ════════════════════
+TestBasicNodes - creating basic graph nodes.
+TestDependenciesAndConnections - nodes and edges of dependencies and connections.
+TestAspectsAndCheckers - aspect and checker nodes.
+TestSubscriptionsAndSensitive - nodes of subscriptions and sensitive fields.
+TestCompensatorNodes - aggregated facet ``compensator`` (without edges
+``has_compensator`` to structural ``action``; see CompensateIntentInspector).
+TestRecursiveCollection - automatic recursive collection of dependencies.
+TestCycleDetection - scenarios without a cycle in the graph (diamond); logical loops @depends
+    are not covered by a separate test for CyclicDependencyError.
+TestPublicAPI - public methods for graph inspection.
+TestInvalidation - invalidation of the coordinator cache.
+TestCoordinatorBasic - basic coordinator API.
 
-═══════════════════════════════════════════════════════════════════════════════
-ФАСЕТНЫЙ ГРАФ И ФИЛЬТРАЦИЯ В ТЕСТАХ
-═══════════════════════════════════════════════════════════════════════════════
+═══════════════════ ════════════════════ ════════════════════ ════════════════════
+FACET GRAPH AND FILTERING IN TESTS
+═══════════════════ ════════════════════ ════════════════════ ════════════════════
 
-Граф строится из ``FacetPayload`` инспекторов: в ``rustworkx`` — тип узла, имя,
-``class_ref``; тело фасета в снимках, ``get_node`` / ``hydrate_graph_node``
-подмешивают ``meta``. Узел ``action`` (структурный) появляется только у классов с
-``@depends`` и/или ``@connection`` (два инспектора, узел ``action`` сливается
-в координаторе), иначе
-остаются ``meta``, ``role``, ``aspect``, ``compensator`` и т.д. Подписки плагина
-— узлы ``subscription``, не ``plugin``. Чувствительные поля в графе покрывает
-``SensitiveIntentInspector`` для наследников ``BaseSchema`` (не для
-``BaseAction``). Запросы к графу фильтруют узлы по ``class_ref`` или по
-фрагменту имени, потому что после ``build()`` в снимок могут попасть и чужие
-классы из общего сканирования инспекторов.
-"""
+The graph is built from ``FacetPayload`` inspectors: in ``rustworkx`` - node type, name,
+``class_ref``; facet body in snapshots, ``get_node`` / ``hydrate_graph_node``
+mix in ``meta``. The ``action`` node (structural) appears only for classes with
+``@depends`` and/or ``@connection`` (two inspectors, ``action`` node merged
+in coordinator), otherwise
+``meta``, ``role``, ``aspect``, ``compensator``, etc. remain. Plugin Subscriptions
+- ``subscription`` nodes, not ``plugin``. Sensitive fields in the graph are covered
+``SensitiveIntentInspector`` for inheritors of ``BaseSchema`` (not for
+``BaseAction``). Graph queries filter nodes by ``class_ref`` or by
+name fragment, because after ``build()`` strangers can get into the snapshot
+classes from the general inspector scan."""
 from typing import Any
 
 import pytest
@@ -133,12 +131,12 @@ def _class_present(coord: GateCoordinator, cls: type) -> bool:
     return bool(coord.get_nodes_for_class(cls)) or coord.get_snapshot(cls, "meta") is not None
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Вспомогательные классы
+#Helper classes
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 def _node_key(node_type: str, cls: type, suffix: str = "") -> str:
-    """Формирует ключ узла графа: 'тип:модуль.ИмяКласса[.суффикс]'."""
+    """Generates the graph node key: 'type:module.ClassName[.suffix]'."""
     name = f"{cls.__module__}.{cls.__qualname__}"
     if suffix:
         name = f"{name}.{suffix}"
@@ -161,9 +159,9 @@ class _ServiceB:
     pass
 
 
-@meta("Мок менеджер", domain=TestDomain)
+@meta("Mock manager", domain=TestDomain)
 class _MockManager(BaseResourceManager):
-    """Минимальная реализация BaseResourceManager для тестов графа."""
+    """Minimal implementation of BaseResourceManager for graph tests."""
     def get_wrapper_class(self):
         return None
 
@@ -175,49 +173,49 @@ class _EmptyClass:
 @meta("Ping", domain=TestDomain)
 @check_roles(NoneRole)
 class _PingGraphAction(BaseAction["_Params", "_Result"]):
-    """Минимальное действие для тестов графа."""
+    """Minimum action for graph tests."""
     @summary_aspect("Pong")
     async def pong_summary(self, params, state, box, connections):
         return {"message": "pong"}
 
 
-@meta("Действие с зависимостями", domain=TestDomain)
+@meta("Action with dependencies", domain=TestDomain)
 @check_roles(NoneRole)
 @depends(_ServiceA)
 @depends(_ServiceB)
 class _ActionWithDepsAction(BaseAction["_Params", "_Result"]):
-    """Действие с двумя зависимостями для тестов графа."""
-    @summary_aspect("Итог")
+    """Action with two dependencies for graph tests."""
+    @summary_aspect("Bottom line")
     async def finalize_summary(self, params, state, box, connections):
         return {}
 
 
-@meta("Действие с соединением", domain=TestDomain)
+@meta("Action with connection", domain=TestDomain)
 @check_roles(NoneRole)
-@connection(_MockManager, key="db", description="БД")
+@connection(_MockManager, key="db", description="DB")
 class _ActionWithConnAction(BaseAction["_Params", "_Result"]):
-    """Действие с одним соединением для тестов графа."""
-    @summary_aspect("Итог")
+    """Single connection action for graph tests."""
+    @summary_aspect("Bottom line")
     async def finalize_summary(self, params, state, box, connections):
         return {}
 
 
-@meta("Действие с чекерами", domain=TestDomain)
+@meta("Action with checkers", domain=TestDomain)
 @check_roles(NoneRole)
 class _ActionWithCheckersAction(BaseAction["_Params", "_Result"]):
-    """Действие с regular-аспектом и чекером для тестов графа."""
-    @regular_aspect("Шаг")
+    """Action with regular aspect and checker for graph tests."""
+    @regular_aspect("Step")
     @result_string("name")
     async def step_aspect(self, params, state, box, connections):
         return {"name": "Alice"}
 
-    @summary_aspect("Итог")
+    @summary_aspect("Bottom line")
     async def finalize_summary(self, params, state, box, connections):
         return {}
 
 
 class _SensitiveGraphSchema(BaseSchema):
-    """Схема с @sensitive — узел типа sensitive строит только SensitiveIntentInspector (BaseSchema)."""
+    """Schema with @sensitive - a node of type sensitive builds only SensitiveIntentInspector (BaseSchema)."""
 
     _secret: str = "hidden"
 
@@ -228,7 +226,7 @@ class _SensitiveGraphSchema(BaseSchema):
 
 
 class _TestPlugin(Plugin):
-    """Тестовый плагин с одной подпиской для тестов графа."""
+    """Test plugin with one subscription for graph tests."""
     async def get_initial_state(self) -> dict:
         return {}
 
@@ -237,59 +235,57 @@ class _TestPlugin(Plugin):
         return state
 
 
-@meta("Действие с ролью", domain=TestDomain)
+@meta("Action with role", domain=TestDomain)
 @check_roles(AdminRole)
 class _RoledGraphAction(BaseAction["_Params", "_Result"]):
-    """Действие с конкретной ролью для тестов графа."""
-    @summary_aspect("Итог")
+    """An action with a specific role for graph tests."""
+    @summary_aspect("Bottom line")
     async def finalize_summary(self, params, state, box, connections):
         return {}
 
 
-@meta("Другое действие с ServiceA", domain=TestDomain)
+@meta("Another action with ServiceA", domain=TestDomain)
 @check_roles(NoneRole)
 @depends(_ServiceA)
 class _AnotherActionWithServiceAAction(BaseAction["_Params", "_Result"]):
-    """Второе действие, зависящее от _ServiceA, для тестов разделения узлов."""
-    @summary_aspect("Итог")
+    """Second action, dependent on _ServiceA, for node split tests."""
+    @summary_aspect("Bottom line")
     async def finalize_summary(self, params, state, box, connections):
         return {}
 
 
-@meta("Действие с компенсатором для тестов графа", domain=TestDomain)
+@meta("Action with compensator for graph tests", domain=TestDomain)
 @check_roles(NoneRole)
 class _ActionWithCompensatorGraphAction(BaseAction["_Params", "_Result"]):
-    """
-    Действие с regular-аспектом и компенсатором для тестов графа.
-    Используется в TestCompensatorNodes для проверки, что координатор
-    создаёт узлы типа "compensator" и рёбра "has_compensator" в общем
-    графе зависимостей.
-    """
-    @regular_aspect("Шаг с компенсатором")
+    """Action with regular aspect and compensator for graph tests.
+    Used in TestCompensatorNodes to check that the coordinator
+    creates nodes of type "compensator" and edges "has_compensator" in general
+    dependency graph."""
+    @regular_aspect("Step with compensator")
     @result_string("value")
     async def step_aspect(self, params, state, box, connections):
         return {"value": "test"}
 
-    @compensate("step_aspect", "Откат шага")
+    @compensate("step_aspect", "Rollback step")
     async def rollback_step_compensate(self, params, state_before, state_after,
                                        box, connections, error):
         pass
 
-    @summary_aspect("Итог")
+    @summary_aspect("Bottom line")
     async def finalize_summary(self, params, state, box, connections):
         return {}
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Базовые узлы
+#Basic nodes
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestBasicNodes:
-    """Проверяет создание базовых узлов графа."""
+    """Checks the creation of basic graph nodes."""
 
     def test_empty_coordinator_empty_graph(self):
-        """До build() счётчики графа недоступны — только явный статус."""
+        """Before build(), the graph counters are not available - only the explicit status."""
         coord = GateCoordinator()
         assert coord.build_status() == "not_built"
         assert coord.is_built is False
@@ -299,27 +295,27 @@ class TestBasicNodes:
             _ = coord.graph_edge_count
 
     def test_register_empty_class_creates_node(self):
-        """Регистрация пустого класса создаёт узел в графе."""
+        """Registering an empty class creates a node in the graph."""
         coord = _new_coord()
         coord.get_snapshot(_EmptyClass, "meta")
         assert coord.graph_node_count > 0
 
     def test_register_action_creates_action_node(self):
-        """Регистрация action с @depends создаёт узел типа action (структурный facet)."""
+        """Registering an action with @depends creates a node of type action (structural facet)."""
         coord = _new_coord()
         coord.get_snapshot(_ActionWithDepsAction, "meta")
         nodes = coord.get_nodes_by_type("action")
         assert len(nodes) >= 1
 
     def test_register_plugin_creates_plugin_node(self):
-        """Регистрация плагина создаёт facet-узлы subscription (не тип plugin)."""
+        """Registering a plugin creates subscription facet nodes (not the plugin type)."""
         coord = _new_coord()
         coord.get_snapshot(_TestPlugin, "meta")
         nodes = coord.get_nodes_by_type("subscription")
         assert len(nodes) >= 1
 
     def test_register_action_with_role_creates_role_node(self):
-        """Регистрация action с ролью создаёт узел role."""
+        """Registering an action with a role creates a role node."""
         coord = _new_coord()
         coord.get_snapshot(_RoledGraphAction, "meta")
         nodes = coord.get_nodes_by_type("role")
@@ -327,28 +323,28 @@ class TestBasicNodes:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Зависимости и соединения
+#Dependencies and Connections
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestDependenciesAndConnections:
-    """Проверяет создание узлов и рёбер для зависимостей и соединений."""
+    """Checks the creation of nodes and edges for dependencies and connections."""
 
     def test_dependencies_create_nodes_and_edges(self):
-        """Зависимости создают узлы и рёбра в графе."""
+        """Dependencies create nodes and edges in a graph."""
         coord = _new_coord()
         coord.get_snapshot(_ActionWithDepsAction, "meta")
         assert coord.graph_node_count > 1
         assert coord.graph_edge_count > 0
 
     def test_connections_create_nodes_and_edges(self):
-        """Соединения создают узлы и рёбра в графе."""
+        """Connections create nodes and edges in a graph."""
         coord = _new_coord()
         coord.get_snapshot(_ActionWithConnAction, "meta")
         assert coord.graph_edge_count > 0
 
     def test_same_dependency_shared_between_actions(self):
-        """Общая зависимость — один stub-узел dependency на класс сервиса."""
+        """The general dependency is one dependency stub node per service class."""
         coord = _new_coord()
         coord.get_snapshot(_ActionWithDepsAction, "meta")
         coord.get_snapshot(_AnotherActionWithServiceAAction, "meta")
@@ -362,22 +358,22 @@ class TestDependenciesAndConnections:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Аспекты и чекеры
+#Aspects and checkers
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestAspectsAndCheckers:
-    """Проверяет создание узлов для аспектов и чекеров."""
+    """Checks the creation of nodes for aspects and checkers."""
 
     def test_aspects_create_nodes_and_edges(self):
-        """Аспекты создают узлы и рёбра в графе."""
+        """Aspects create nodes and edges in a graph."""
         coord = _new_coord()
         coord.get_snapshot(_ActionWithCheckersAction, "meta")
         nodes = coord.get_nodes_by_type("aspect")
         assert len(nodes) >= 1
 
     def test_checkers_create_nodes_and_edges(self):
-        """Чекеры создают узлы и рёбра в графе."""
+        """Checkers create nodes and edges in a graph."""
         coord = _new_coord()
         coord.get_snapshot(_ActionWithCheckersAction, "meta")
         nodes = coord.get_nodes_by_type("checker")
@@ -385,22 +381,22 @@ class TestAspectsAndCheckers:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Подписки и sensitive
+#Subscriptions and sensitive
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestSubscriptionsAndSensitive:
-    """Проверяет создание узлов для подписок и sensitive-полей."""
+    """Checks the creation of nodes for subscriptions and sensitive fields."""
 
     def test_subscriptions_create_nodes_and_edges(self):
-        """Подписки создают узлы в графе."""
+        """Subscriptions create nodes in the graph."""
         coord = _new_coord()
         coord.get_snapshot(_TestPlugin, "meta")
         nodes = coord.get_nodes_by_type("subscription")
         assert len(nodes) >= 1
 
     def test_sensitive_fields_create_nodes_and_edges(self):
-        """Sensitive на BaseSchema создаёт facet-узел типа sensitive."""
+        """Sensitive on BaseSchema creates a facet node of type sensitive."""
         coord = _new_coord()
         coord.get_snapshot(_SensitiveGraphSchema, "meta")
         nodes = coord.get_nodes_by_type("sensitive")
@@ -408,31 +404,27 @@ class TestSubscriptionsAndSensitive:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Компенсаторы в графе
+#Compensators in the column
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestCompensatorNodes:
-    """
-    Проверяет, что компенсаторы создают узлы типа "compensator" и рёбра
-    "has_compensator" в общем графе GateCoordinator.
+    """Checks that compensators create nodes of type "compensator" and edges
+    "has_compensator" in the general GateCoordinator graph.
 
-    Добавлено как часть реализации механизма компенсации (Saga).
-    Детальные тесты графа компенсаторов (метаданные узлов, requires_context,
-    dependency tree) покрыты в tests/scenarios/intents_with_runtime/test_compensate_graph.py.
-    Здесь — минимальная проверка интеграции в общий граф координатора.
-    """
+    Added as part of the implementation of the compensation mechanism (Saga).
+    Detailed tests of the compensator graph (node metadata, requires_context,
+    dependency tree) are covered in tests/scenarios/intents_with_runtime/test_compensate_graph.py.
+    Here is a minimal check of integration into the general coordinator graph."""
 
     def test_compensator_node_created_in_graph(self):
-        """
-        При регистрации действия с @compensate в графе появляется
-        узел типа "compensator".
-        """
+        """When registering an action with @compensate, it appears in the column
+        "compensator" type node."""
         # Arrange & Act
         coord = _new_coord()
         coord.get_snapshot(_ActionWithCompensatorGraphAction, "meta")
 
-        # Assert — агрегированный узел на наш класс (в графе могут быть и другие actions)
+        #Assert is an aggregated node for our class (there may be other actions in the graph)
         nodes = coord.get_nodes_by_type("compensator")
         ours = [n for n in nodes if n["class_ref"] is _ActionWithCompensatorGraphAction]
         assert len(ours) == 1
@@ -441,7 +433,7 @@ class TestCompensatorNodes:
         assert _ActionWithCompensatorGraphAction.__qualname__ in node["name"]
 
     def test_has_compensator_edge_in_graph(self):
-        """В facet-графе компенсатор — отдельный узел; рёбер has_compensator нет."""
+        """In a facet graph, the compensator is a separate node; There are no has_compensator edges."""
         coord = _new_coord()
         coord.get_snapshot(_ActionWithCompensatorGraphAction, "meta")
         nodes = coord.get_nodes_by_type("compensator")
@@ -453,28 +445,28 @@ class TestCompensatorNodes:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Рекурсивный сбор зависимостей
+#Recursive dependency collection
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestRecursiveCollection:
-    """Проверяет автоматический рекурсивный сбор зависимостей."""
+    """Checks the automatic recursive collection of dependencies."""
 
     def test_dependency_class_automatically_registered(self):
-        """Класс зависимости автоматически регистрируется."""
+        """The dependency class is automatically registered."""
         coord = _new_coord()
         coord.get_snapshot(_ActionWithDepsAction, "meta")
         assert _class_present(coord, _ServiceA)
         assert _class_present(coord, _ServiceB)
 
     def test_connection_class_automatically_registered(self):
-        """Класс соединения автоматически регистрируется."""
+        """The connection class is automatically registered."""
         coord = _new_coord()
         coord.get_snapshot(_ActionWithConnAction, "meta")
         assert _class_present(coord, _MockManager)
 
     def test_duplicate_dependency_not_collected_twice(self):
-        """Дублирующая зависимость не регистрируется повторно."""
+        """The duplicate dependency is not re-registered."""
         coord = _new_coord()
         coord.get_snapshot(_ActionWithDepsAction, "meta")
         size_after_first = len(coord.get_nodes_for_class(_ServiceA))
@@ -485,21 +477,19 @@ class TestRecursiveCollection:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Обнаружение циклов
+#Cycle Detection
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestCycleDetection:
-    """
-    Фаза 2 графа проверяет ацикличность **структурных** рёбер между узлами
-    facet-графа (``action`` → ``dependency`` / ``connection`` как разные ключи).
-    Логические циклы «A зависит от B, B от A» не обязаны давать цикл в этом
-    графе; отдельная проверка в ``get()`` по цепочке зависимостей не
-    реализована — см. ``_phase2_check_acyclicity``.
-    """
+    """Phase 2 of the graph checks the acyclicity of **structural** edges between nodes
+    facet-graph (``action`` → ``dependency`` / ``connection`` as different keys).
+    Logical loops "A depends on B, B on A" are not required to produce a loop in this
+    graph; there is no separate check in ``get()`` along the dependency chain
+    implemented - see ``_phase2_check_acyclicity``."""
 
     def test_diamond_dependency_no_cycle(self):
-        """Ромбовидная зависимость без цикла — допустима."""
+        """A diamond-shaped dependency without a cycle is acceptable."""
         coord = _new_coord()
         coord.get_snapshot(_ActionWithDepsAction, "meta")
         coord.get_snapshot(_AnotherActionWithServiceAAction, "meta")
@@ -509,15 +499,15 @@ class TestCycleDetection:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Публичное API
+#Public API
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestPublicAPI:
-    """Проверяет публичные методы GateCoordinator для инспекции графа."""
+    """Checks GateCoordinator's public methods for graph inspection."""
 
     def test_get_graph_returns_copy(self):
-        """get_graph возвращает копию графа."""
+        """get_graph returns a copy of the graph."""
         coord = _new_coord()
         coord.get_snapshot(_PingGraphAction, "meta")
         g1 = coord.get_graph()
@@ -525,7 +515,7 @@ class TestPublicAPI:
         assert g1 is not g2
 
     def test_get_node_existing(self):
-        """get_node для facet meta зарегистрированного action возвращает данные."""
+        """get_node for facet meta registered action returns data."""
         coord = _new_coord()
         coord.get_snapshot(_PingGraphAction, "meta")
         key = _node_key("meta", _PingGraphAction)
@@ -533,13 +523,13 @@ class TestPublicAPI:
         assert node is not None
 
     def test_get_node_missing_returns_none(self):
-        """get_node для незарегистрированного класса возвращает None."""
+        """get_node for an unregistered class returns None."""
         coord = CoreActionMachine.create_coordinator()
         node = coord.get_node("action", "nonexistent.module.AbsentAction")
         assert node is None
 
     def test_get_children_of_action(self):
-        """Дочерние узлы в графе (исходящие рёбра) у action с зависимостями непусты."""
+        """The child nodes in the graph (outgoing edges) of an action with dependencies are non-empty."""
         coord = _new_coord()
         coord.get_snapshot(_ActionWithDepsAction, "meta")
         key = _node_key("action", _ActionWithDepsAction)
@@ -547,13 +537,13 @@ class TestPublicAPI:
         assert len(children) > 0
 
     def test_get_children_of_missing_node(self):
-        """У незарегистрированного класса нет исходящих рёбер от action-узла."""
+        """An unregistered class has no edges emanating from the action node."""
         coord = CoreActionMachine.create_coordinator()
         children = _graph_children(coord, _node_key("action", _EmptyClass))
         assert children == []
 
     def test_get_nodes_by_type_action(self):
-        """get_nodes_by_type('action') возвращает все действия."""
+        """get_nodes_by_type('action') returns all actions."""
         coord = _new_coord()
         coord.get_snapshot(_PingGraphAction, "meta")
         coord.get_snapshot(_ActionWithDepsAction, "meta")
@@ -561,13 +551,13 @@ class TestPublicAPI:
         assert len(actions) >= 2
 
     def test_get_nodes_by_type_empty(self):
-        """get_nodes_by_type на пустом координаторе — пустой список."""
+        """get_nodes_by_type on an empty coordinator - an empty list."""
         coord = CoreActionMachine.create_coordinator()
         result = coord.get_nodes_by_type("action")
         assert isinstance(result, list)
 
     def test_get_dependency_tree_structure(self):
-        """Вспомогательное дерево зависимостей по графу непустое для action с deps."""
+        """The auxiliary dependency tree for the graph is non-empty for actions with deps."""
         coord = _new_coord()
         coord.get_snapshot(_ActionWithDepsAction, "meta")
         tree = _dependency_tree(coord, _ActionWithDepsAction)
@@ -575,41 +565,41 @@ class TestPublicAPI:
         assert isinstance(tree, dict)
 
     def test_get_dependency_tree_missing_node(self):
-        """Для класса без узлов в графе дерево зависимостей пустое или отсутствует."""
+        """For a class with no nodes in the graph, the dependency tree is empty or missing."""
         coord = CoreActionMachine.create_coordinator()
         tree = _dependency_tree(coord, _EmptyClass)
         assert tree is None or tree == {}
 
     def test_get_dependency_tree_checkers_nested_under_aspects(self):
-        """Дерево по графу отражает чекеры под соответствующими аспектами."""
+        """The graph tree reflects the checkers under the corresponding aspects."""
         coord = _new_coord()
         coord.get_snapshot(_ActionWithCheckersAction, "meta")
         tree = _dependency_tree(coord, _ActionWithCheckersAction)
         assert tree is not None
 
     def test_graph_node_count(self):
-        """graph_node_count возвращает количество узлов."""
+        """graph_node_count returns the number of nodes."""
         coord = _new_coord()
         coord.get_snapshot(_PingGraphAction, "meta")
         assert coord.graph_node_count > 0
 
     def test_graph_edge_count(self):
-        """graph_edge_count возвращает количество рёбер."""
+        """graph_edge_count returns the number of edges."""
         coord = _new_coord()
         coord.get_snapshot(_ActionWithDepsAction, "meta")
         assert coord.graph_edge_count > 0
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Инвалидация
+#Invalidation
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestInvalidation:
-    """Проверяет инвалидацию кеша координатора."""
+    """Checks for coordinator cache invalidation."""
 
     def test_invalidate_removes_from_cache(self):
-        """Сброс кеша dependency factory не ломает чтение facet-снимков."""
+        """Resetting the dependency factory cache does not break reading facet snapshots."""
         coord = _new_coord()
         coord.get_snapshot(_PingGraphAction, "meta")
         removed = clear_dependency_factory_cache(coord)
@@ -617,7 +607,7 @@ class TestInvalidation:
         assert coord.get_snapshot(_PingGraphAction, "meta") is not None
 
     def test_invalidate_all_clears_cache(self):
-        """clear_dependency_factory_cache возвращает число очищенных записей."""
+        """clear_dependency_factory_cache returns the number of entries cleared."""
         coord = _new_coord()
         cached_dependency_factory(coord, _PingGraphAction)
         cached_dependency_factory(coord, _ActionWithDepsAction)
@@ -625,14 +615,14 @@ class TestInvalidation:
         assert removed >= 1
 
     def test_invalidate_preserves_shared_dependency_node(self):
-        """Сброс кеша фабрик не меняет число узлов фасетного графа."""
+        """Resetting the factory cache does not change the number of facet graph nodes."""
         coord = _new_coord()
         before_nodes = coord.graph_node_count
         clear_dependency_factory_cache(coord)
         assert coord.graph_node_count == before_nodes
 
     def test_invalidate_allows_rebuild(self):
-        """После сброса кеша фабрик facet-снимки остаются доступны без rebuild."""
+        """After resetting the factory cache, facet snapshots remain available without rebuild."""
         coord = _new_coord()
         clear_dependency_factory_cache(coord)
         meta = coord.get_snapshot(_PingGraphAction, "meta")
@@ -640,24 +630,24 @@ class TestInvalidation:
         assert meta.class_ref is _PingGraphAction
 
     def test_invalidate_non_existing_no_error(self):
-        """Повторный сброс кеша фабрик не вызывает ошибок."""
+        """Resetting the factory cache again does not cause errors."""
         coord = _new_coord()
         clear_dependency_factory_cache(coord)
         clear_dependency_factory_cache(coord)
 
     def test_invalidate_all_empty_no_error(self):
-        """Сброс кеша фабрик на непостроенном координаторе — без ошибок, 0 записей."""
+        """Resetting the factory cache on an unbuilt coordinator - no errors, 0 entries."""
         coord = GateCoordinator()
         assert clear_dependency_factory_cache(coord) == 0
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Базовое API координатора
+#Basic coordinator API
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestCoordinatorBasic:
-    """Проверяет базовые методы GateCoordinator."""
+    """Checks the base GateCoordinator methods."""
 
     def test_get_builds_and_caches(self):
         """Built coordinator returns stable meta snapshots."""
@@ -710,7 +700,7 @@ class TestCoordinatorBasic:
             coord.register(_EmptyClass)  # type: ignore[arg-type]
 
     def test_get_factory(self):
-        """cached_dependency_factory даёт DependencyFactory для действия с зависимостями."""
+        """cached_dependency_factory gives a DependencyFactory for dealing with dependencies."""
         coord = CoreActionMachine.create_coordinator()
         factory = cached_dependency_factory(coord, _ActionWithDepsAction)
         assert factory is not None
@@ -718,18 +708,19 @@ class TestCoordinatorBasic:
         assert factory.has(_ServiceB)
 
     def test_repr_empty(self):
-        """repr пустого координатора — строка."""
+        """repr of the empty coordinator is a string."""
         coord = GateCoordinator()
         assert isinstance(repr(coord), str)
 
     def test_repr_with_classes(self):
-        """repr координатора с классами — строка."""
+        """repr of the coordinator with classes is a string."""
         coord = CoreActionMachine.create_coordinator()
         assert isinstance(repr(coord), str)
 
     def test_repr_includes_graph_info(self):
-        """repr содержит информацию о графе."""
+        """repr contains information about the graph."""
         coord = CoreActionMachine.create_coordinator()
         result = repr(coord)
         assert isinstance(result, str)
+        assert len(result) > 0
         assert len(result) > 0

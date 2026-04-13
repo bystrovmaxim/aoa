@@ -1,57 +1,51 @@
 # tests/intents/compensate/__init__.py
 """
-Пакет тестов механизма компенсации (Saga) ActionMachine.
+Tests for the ActionMachine compensation (Saga) mechanism.
 
 ═══════════════════════════════════════════════════════════════════════════════
-НАЗНАЧЕНИЕ
+PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Содержит все тесты, проверяющие механизм компенсации — паттерн Saga,
-реализованный в ActionMachine. Тесты организованы по аспектам
-функциональности:
+Tests the Saga-style compensation pattern in ActionMachine, organized by concern:
 
 ═══════════════════════════════════════════════════════════════════════════════
-СТРУКТУРА ТЕСТОВ
+TEST LAYOUT
 ═══════════════════════════════════════════════════════════════════════════════
 
 test_compensate_decorator.py
-    Валидации декоратора @compensate при определении класса (import-time):
-    корректные аргументы, некорректные типы, суффикс имени, сигнатура.
+    @compensate validation at class definition (import time): arguments, types, name
+    suffix, signature.
 
-test_compensate_metadata.py
-    Typed-снимки и инварианты компенсаторов (facet ``compensator`` / инспектор).
+test_compensate_intent_validators.py
+    Compensator intent validators and typed snapshots.
 
-test_compensate_graph.py
-    Граф в GateCoordinator: узлы ``compensator``, рёбра ``has_compensator``
-    и ``requires_context``; обход через ``get_nodes_for_class`` / примитивы графа.
+tests/scenarios/intents_with_runtime/test_compensate_graph.py
+    GateCoordinator graph: compensator nodes, has_compensator / requires_context edges;
+    traversal via get_nodes_for_class / graph primitives.
 
 test_saga_rollback.py
-    Ядро механизма — размотка стека SagaFrame в обратном порядке
-    через ActionProductMachine._rollback_saga(): порядок вызовов,
-    корректность данных (params, state_before, state_after, error).
+    Core rollback: SagaFrame stack unwinding in ActionProductMachine._rollback_saga():
+    call order and data (params, state_before, state_after, error).
 
 test_saga_errors.py
-    Молчаливое подавление ошибок компенсаторов: ошибка не прерывает
-    размотку, все компенсаторы получают шанс выполниться, @on_error
-    получает оригинальную ошибку аспекта.
+    Silent compensator errors: failure does not stop rollback; all compensators run;
+    @on_error receives the original aspect error.
 
 test_saga_events.py
-    Типизированные события плагинов: SagaRollbackStartedEvent,
-    SagaRollbackCompletedEvent, BeforeCompensateAspectEvent,
-    AfterCompensateAspectEvent, CompensateFailedEvent.
+    Typed plugin events: SagaRollbackStartedEvent, SagaRollbackCompletedEvent,
+    BeforeCompensateAspectEvent, AfterCompensateAspectEvent, CompensateFailedEvent.
 
 test_saga_rollup.py
-    Поведение при rollup=True: компенсаторы не вызываются,
-    Saga-события не эмитируются.
+    rollup=True: compensators are not invoked; Saga events are not emitted.
 
 test_saga_order.py
-    Порядок обработки ошибки: компенсация выполняется ДО @on_error.
+    Error handling order: compensation runs before @on_error.
 
-test_saga_nested.py
-    Вложенные вызовы через box.run(): изоляция стеков на каждом
-    уровне вложенности, взаимодействие с try/except в аспектах.
+tests/scenarios/intents_with_runtime/test_saga_nested.py
+    Nested box.run() calls: per-level stack isolation and interaction with try/except
+    in aspects.
 
 test_saga_integration.py
-    Полные E2E-сценарии: несколько аспектов + компенсаторы + @on_error,
-    компенсатор с @context_requires.
+    End-to-end scenarios: multiple aspects + compensators + @on_error, compensator
+    with @context_requires.
 """

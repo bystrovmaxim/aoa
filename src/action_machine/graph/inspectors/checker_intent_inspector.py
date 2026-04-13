@@ -21,7 +21,7 @@ INVARIANTS
 - No edges are emitted from this inspector.
 
 ═══════════════════════════════════════════════════════════════════════════════
-DATA FLOW
+ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
 ::
@@ -47,7 +47,7 @@ Edge case: no ``_checker_meta`` on any member → ``inspect`` returns ``None``.
 ERRORS / LIMITATIONS
 ═══════════════════════════════════════════════════════════════════════════════
 
-Does not validate checker classes at graph build time; declaration-time
+Does not validate checker class correctness at graph build time; declaration-time
 validators own that contract.
 
 ═══════════════════════════════════════════════════════════════════════════════

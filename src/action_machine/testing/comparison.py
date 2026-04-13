@@ -1,56 +1,70 @@
 # src/action_machine/testing/comparison.py
 """
-Сравнение результатов выполнения действия на разных машинах.
+Compare action execution results across machines.
 
 ═══════════════════════════════════════════════════════════════════════════════
-НАЗНАЧЕНИЕ
+PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Когда TestBench прогоняет действие на нескольких машинах (async и sync),
-результаты должны совпадать. Модуль предоставляет функцию compare_results,
-которая сравнивает два результата и при расхождении выбрасывает
-информативное исключение с указанием конкретных полей, где обнаружено
-различие.
+When TestBench executes an action on multiple machines (async and sync),
+results must match. This module provides ``compare_results()``, which compares
+two values and raises an informative exception describing concrete mismatches.
 
 ═══════════════════════════════════════════════════════════════════════════════
-АЛГОРИТМ СРАВНЕНИЯ
+ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-1. Если оба результата — pydantic BaseModel:
-   - Сравнение через model_dump() → dict == dict.
-   - При расхождении: поиск конкретных полей с различающимися значениями.
-   - Сообщение: "Результаты машин расходятся: AsyncMachine.order_id='ORD-1'
-     vs SyncMachine.order_id='ORD-2'"
+[TestBench async result]      [TestBench sync result]
+            |                           |
+            +-----------compare_results-+
+                            |
+            +---------------+-------------------+
+            |                                   |
+    same type? no                        same type? yes
+            |                                   |
+  raise type mismatch                 BaseModel on both sides?
+            |                                   |
+            |                          +--------+--------+
+            |                          |                 |
+            |                         yes               no
+            |                          |                 |
+            |                model_dump + field diff     == fallback
+            |                          |                 |
+            +-------------> ResultMismatchError on any mismatch
 
-2. Если оба результата — не BaseModel:
-   - Fallback на оператор ==.
-   - При расхождении: сообщение с repr обоих значений.
-
-3. Если типы результатов различаются:
-   - Сообщение: "Типы результатов различаются: AsyncMachine вернул
-     OrderResult, SyncMachine вернул PingResult"
+INVARIANTS:
+- Type mismatch is always checked before value comparison.
+- BaseModel values are compared by ``model_dump()`` output, not object identity.
+- Missing dict keys are represented as ``"<missing>"`` in difference payloads.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ОШИБКИ
+ERRORS / LIMITATIONS
 ═══════════════════════════════════════════════════════════════════════════════
 
-    ResultMismatchError — результаты двух машин не совпадают.
-    Содержит атрибуты left_name, right_name, differences для
-    программного доступа к деталям расхождения.
+- ``ResultMismatchError`` is raised when compared results do not match.
+- ``differences`` is populated for dict-level BaseModel mismatches and empty for
+  type mismatch / plain ``==`` mismatch branches.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ПРИМЕР ИСПОЛЬЗОВАНИЯ
+EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
     from action_machine.testing.comparison import compare_results
 
-    # Совпадающие результаты — ничего не происходит:
+    # Matching results -> no exception
     compare_results(result_async, "AsyncMachine", result_sync, "SyncMachine")
 
-    # Расходящиеся результаты — исключение:
-    # ResultMismatchError: "Результаты машин расходятся:
+    # Mismatching results -> ResultMismatchError:
+    # "Machine results diverged:
     #   AsyncMachine.order_id='ORD-1' vs SyncMachine.order_id='ORD-2'
     #   AsyncMachine.total=1500.0 vs SyncMachine.total=999.0"
+
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE
+═══════════════════════════════════════════════════════════════════════════════
+
+Use this module in tests to enforce runtime parity between async and sync
+machines and get deterministic, field-level mismatch diagnostics.
 """
 
 from __future__ import annotations
@@ -62,21 +76,10 @@ from pydantic import BaseModel
 
 class ResultMismatchError(AssertionError):
     """
-    Результаты двух машин не совпадают.
+    Results from two machines do not match.
 
-    Наследует AssertionError, чтобы pytest отображал ошибку как
-    провалившееся утверждение (assertion failure) с полным трейсбеком
-    и сообщением.
-
-    Атрибуты:
-        left_name : str
-            Имя первой машины (например, "AsyncMachine").
-        right_name : str
-            Имя второй машины (например, "SyncMachine").
-        differences : list[tuple[str, Any, Any]]
-            Список расхождений: [(field_name, left_value, right_value), ...].
-            Пустой список если расхождение обнаружено на уровне типов
-            или через fallback ==.
+    Subclass of ``AssertionError`` so pytest shows parity failures as assertion
+    failures with full traceback and message.
     """
 
     def __init__(
@@ -99,26 +102,12 @@ def _find_dict_differences(
     right_name: str,
 ) -> list[tuple[str, Any, Any]]:
     """
-    Находит конкретные поля, где значения различаются между двумя словарями.
-
-    Проверяет все ключи из обоих словарей. Для каждого ключа сравнивает
-    значения. Отсутствие ключа в одном из словарей считается расхождением
-    (значение заменяется на маркер "<отсутствует>").
-
-    Аргументы:
-        left_dict: словарь первого результата.
-        right_dict: словарь второго результата.
-        left_name: имя первой машины (для сообщений).
-        right_name: имя второй машины (для сообщений).
-
-    Возвращает:
-        Список кортежей (field_name, left_value, right_value) для полей
-        с различающимися значениями.
+    Find field-level mismatches between two dictionaries.
     """
     all_keys = sorted(set(left_dict.keys()) | set(right_dict.keys()))
     differences: list[tuple[str, Any, Any]] = []
 
-    _missing = "<отсутствует>"
+    _missing = "<missing>"
 
     for key in all_keys:
         left_val = left_dict.get(key, _missing)
@@ -135,18 +124,7 @@ def _format_differences(
     right_name: str,
 ) -> str:
     """
-    Форматирует список расхождений в читаемую строку.
-
-    Каждое расхождение на отдельной строке:
-        "  AsyncMachine.order_id='ORD-1' vs SyncMachine.order_id='ORD-2'"
-
-    Аргументы:
-        differences: список кортежей (field, left_val, right_val).
-        left_name: имя первой машины.
-        right_name: имя второй машины.
-
-    Возвращает:
-        Отформатированная строка с перечислением расхождений.
+    Format mismatch list into a readable multi-line string.
     """
     lines: list[str] = []
     for field, left_val, right_val in differences:
@@ -164,43 +142,19 @@ def compare_results(
     right_name: str,
 ) -> None:
     """
-    Сравнивает результаты двух машин и выбрасывает ResultMismatchError
-    при расхождении.
-
-    Стратегия сравнения:
-    1. Если типы различаются — ошибка с указанием типов.
-    2. Если оба — pydantic BaseModel — сравнение через model_dump().
-    3. Иначе — fallback на оператор ==.
-
-    Если результаты совпадают — функция завершается без ошибок.
-
-    Аргументы:
-        left: результат первой машины.
-        left_name: имя первой машины (для сообщений об ошибке).
-        right: результат второй машины.
-        right_name: имя второй машины (для сообщений об ошибке).
-
-    Исключения:
-        ResultMismatchError: если результаты не совпадают.
-
-    Пример:
-        compare_results(async_result, "AsyncMachine", sync_result, "SyncMachine")
-
-        # При расхождении:
-        # ResultMismatchError: Результаты машин расходятся:
-        #   AsyncMachine.order_id='ORD-1' vs SyncMachine.order_id='ORD-2'
+    Compare results from two machines and raise on divergence.
     """
-    # Проверка совпадения типов
+    # Type must match before value-level comparison.
     if type(left) is not type(right):
         raise ResultMismatchError(
-            f"Типы результатов различаются: {left_name} вернул "
-            f"{type(left).__name__}, {right_name} вернул "
+            f"Result types differ: {left_name} returned "
+            f"{type(left).__name__}, {right_name} returned "
             f"{type(right).__name__}.",
             left_name=left_name,
             right_name=right_name,
         )
 
-    # Сравнение pydantic-моделей через model_dump()
+    # Compare pydantic models via model_dump().
     if isinstance(left, BaseModel) and isinstance(right, BaseModel):
         left_dict = left.model_dump()
         right_dict = right.model_dump()
@@ -214,18 +168,18 @@ def compare_results(
         diff_text = _format_differences(differences, left_name, right_name)
 
         raise ResultMismatchError(
-            f"Результаты машин расходятся:\n{diff_text}",
+            f"Machine results diverged:\n{diff_text}",
             left_name=left_name,
             right_name=right_name,
             differences=differences,
         )
 
-    # Fallback: сравнение через ==
+    # Fallback: compare plain values via ==.
     if left == right:
         return
 
     raise ResultMismatchError(
-        f"Результаты машин расходятся: "
+        f"Machine results diverged: "
         f"{left_name}={left!r} vs {right_name}={right!r}",
         left_name=left_name,
         right_name=right_name,

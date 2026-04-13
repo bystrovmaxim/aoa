@@ -44,16 +44,16 @@ EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
 Happy path:
-- Matching `@on_error` handler returns substitute `BaseResult`.
+    Matching ``@on_error`` handler returns substitute ``BaseResult``.
 
 Edge case:
-- No matching handler emits `UnhandledErrorEvent` then re-raises.
+    No matching handler emits ``UnhandledErrorEvent`` and then re-raises.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ERRORS / LIMITATIONS
 ═══════════════════════════════════════════════════════════════════════════════
 
-Executor does not mutate pipeline state; it returns handled result only.
+Executor does not mutate pipeline state; it only returns handled result values.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN

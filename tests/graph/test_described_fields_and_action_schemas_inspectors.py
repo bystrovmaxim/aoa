@@ -62,7 +62,7 @@ def test_validate_described_schema_raises_on_missing_description() -> None:
     class _BadParams(BaseParams):
         x: str
 
-    with pytest.raises(TypeError, match="описания"):
+    with pytest.raises(TypeError, match="do not have descriptions"):
         validate_described_schema(_BadParams)
 
 

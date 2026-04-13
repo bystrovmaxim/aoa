@@ -1,44 +1,38 @@
 # src/action_machine/intents/context/context_requires_intent.py
 """
-ContextRequiresIntent — marker mixin для декоратора @context_requires.
+Context-requires intent marker and marker-enforcement validator.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-ContextRequiresIntent — миксин-маркер, обозначающий, что класс
-поддерживает декоратор @context_requires на своих methodах-аспектах
-и обработчиках ошибок. Наследуется BaseAction.
+``ContextRequiresIntent`` is marker mixin indicating that a class may use
+``@context_requires`` on aspects, error handlers, and compensators.
 
-Наличие ContextRequiresIntent в MRO класса документирует контракт:
-«этот класс участвует в грамматике @context_requires и может содержать
-methodы с этим декоратором; машина построит для них ContextView только
-с теми полями contextа, которые явно запрошены декоратором».
-
-MetadataBuilder при сборке метаданных проверяет: если method имеет
-атрибут _required_context_keys, класс обязан наследовать
-ContextRequiresIntent. Без него — TypeError.
+If methods declare context keys (``_required_context_keys``), build-time
+validators require class inheritance from ``ContextRequiresIntent``.
+Missing marker raises ``TypeError``.
 
 ═══════════════════════════════════════════════════════════════════════════════
-НАМЕРЕНИЯ В MRO BaseAction И СВЯЗАННАЯ ГРАММАТИКА
+BASEACTION MRO INTENTS
 ═══════════════════════════════════════════════════════════════════════════════
 
-BaseAction наследует десять маркеров намерения (Intent): каждый задаёт
-фрагмент грамматики типа — какие декораторы и scratch допустимы и что
-фреймворк проверит при сборке графа (``GateCoordinator.build()``):
+``BaseAction`` inherits multiple intent markers. Each marker defines one
+grammar segment: which decorators are allowed and what build-time validators
+enforce in ``GateCoordinator.build()``:
 
-    ActionMetaIntent       → намерение @meta (при аспектах — обязательно)
-    RoleIntent             → намерение @check_roles
-    DependencyIntent       → намерение @depends
-    CheckerIntent          → намерение чекеров (@result_string и др.)
-    AspectIntent           → намерение @regular_aspect и @summary_aspect
-    CompensateIntent       → намерение @compensate
-    ConnectionIntent       → намерение @connection
-    OnErrorIntent          → намерение @on_error
-    ContextRequiresIntent  → намерение @context_requires
+    ActionMetaIntent       -> @meta
+    RoleIntent             -> @check_roles
+    DependencyIntent       -> @depends
+    CheckerIntent          -> result_* checkers
+    AspectIntent           -> @regular_aspect / @summary_aspect
+    CompensateIntent       -> @compensate
+    ConnectionIntent       -> @connection
+    OnErrorIntent          -> @on_error
+    ContextRequiresIntent  -> @context_requires
 
-Общий паттерн: пустой класс-маркер без логики; ``issubclass`` связывает
-тип с обязательствами и валидаторами.
+Common pattern: empty marker classes without behavior; ``issubclass`` links
+type to declaration contract and validator set.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
@@ -54,46 +48,73 @@ ARCHITECTURE / DATA FLOW
         CompensateIntent,
         ConnectionIntent,
         OnErrorIntent,
-        ContextRequiresIntent,        ← намерение: грамматика @context_requires
+        ContextRequiresIntent,        <- intent: @context_requires grammar
     ): ...
 
     class CreateOrderAction(BaseAction[OrderParams, OrderResult]):
 
-        @regular_aspect("Проверка прав")
+        @regular_aspect("Permission check")
         @context_requires(Ctx.User.user_id, Ctx.User.roles)
         async def check_permissions_aspect(self, params, state, box, connections, ctx):
             user_id = ctx.get(Ctx.User.user_id)
             ...
 
-    # MetadataBuilder при сборке:
-    #   1. Находит _required_context_keys на methodе check_permissions_aspect.
-    #   2. Checks issubclass(CreateOrderAction, ContextRequiresIntent) → True.
-    #   3. Записывает context_keys в snapshot аспекта.
+    # Build-time validator:
+    #   1. Finds _required_context_keys on check_permissions_aspect.
+    #   2. Checks issubclass(CreateOrderAction, ContextRequiresIntent) -> True.
+    #   3. Persists context_keys into aspect snapshot.
     #
-    # ActionProductMachine при вызове аспекта:
-    #   1. Читает aspect_meta.context_keys → frozenset({"user.user_id", "user.roles"}).
-    #   2. Создаёт ContextView(context, aspect_meta.context_keys).
-    #   3. Передаёт ctx_view как 6-й аргумент.
+    # Runtime aspect invocation:
+    #   1. Reads aspect_meta.context_keys -> frozenset({"user.user_id", "user.roles"}).
+    #   2. Creates ContextView(context, aspect_meta.context_keys).
+    #   3. Passes ctx_view as 6th argument.
 
 ═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
-    # BaseAction уже наследует ContextRequiresIntent — любой Action
-    # автоматически поддерживает @context_requires на своих methodах.
+    # BaseAction already inherits ContextRequiresIntent, so every action class
+    # supports @context_requires declarations by default.
 
-    # Аспект с доступом к contextу:
-    @regular_aspect("Аудит")
+    # Aspect with context access:
+    @regular_aspect("Audit")
     @context_requires(Ctx.User.user_id, Ctx.Request.client_ip)
     async def audit_aspect(self, params, state, box, connections, ctx):
         user = ctx.get(Ctx.User.user_id)
         ip = ctx.get(Ctx.Request.client_ip)
         return {"audited_by": user, "from_ip": ip}
 
-    # Аспект без доступа к contextу (стандартная signature):
-    @regular_aspect("Расчёт суммы")
+    # Aspect without context access (standard signature):
+    @regular_aspect("Total calculation")
     async def calculate_aspect(self, params, state, box, connections):
         return {"total": params.amount * 1.2}
+
+═══════════════════════════════════════════════════════════════════════════════
+INVARIANTS
+═══════════════════════════════════════════════════════════════════════════════
+
+- If any collected method has ``context_keys``, class must inherit marker.
+- Marker is behavior-free and serves only contract/validation semantics.
+- Validation scope includes aspects, error handlers, and compensators.
+
+═══════════════════════════════════════════════════════════════════════════════
+ERRORS / LIMITATIONS
+═══════════════════════════════════════════════════════════════════════════════
+
+- Raises ``TypeError`` when context-requires usage is declared without marker.
+- This module validates declaration topology only; runtime access checks are in
+  ``ContextView``.
+
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE-BEGIN
+═══════════════════════════════════════════════════════════════════════════════
+ROLE: Marker + validator module for @context_requires grammar.
+CONTRACT: Require ContextRequiresIntent when context keys are declared.
+INVARIANTS: Deterministic marker enforcement across aspect/error/compensator facets.
+FLOW: collected metadata -> marker check -> validated snapshots -> runtime ContextView.
+FAILURES: TypeError for missing marker inheritance.
+EXTENSION POINTS: Applies to new method categories carrying context_keys.
+AI-CORE-END
 """
 
 from __future__ import annotations
@@ -103,16 +124,13 @@ from typing import Any
 
 class ContextRequiresIntent:
     """
-    Marker mixin, обозначающий поддержку декоратора @context_requires.
+    Marker mixin declaring support for ``@context_requires`` declarations.
 
-    Class, наследующий ContextRequiresIntent, может содержать methodы
-    с @context_requires. MetadataBuilder при сборке метаданных проверяет
-    наличие этого миксина в MRO для каждого methodа с _required_context_keys.
-
-    Миксин не содержит логики, полей или methodов. Его единственная
-    функция — служить проверочным маркером для issubclass() в валидаторах
-    MetadataBuilder и оставаться в одном ряду с остальными Intent-маркерами
-    BaseAction.
+    AI-CORE-BEGIN
+    ROLE: Context-access grammar marker for action classes.
+    CONTRACT: Classes with context-requires declarations must include marker.
+    INVARIANTS: Pure marker with no runtime behavior/state.
+    AI-CORE-END
     """
 
     pass
@@ -141,7 +159,7 @@ def require_context_requires_intent_marker(
     error_handlers: list[Any],
     compensators: list[Any],
 ) -> None:
-    """Есть @context_requires на methodах → класс должен наследовать ContextRequiresIntent."""
+    """Require marker inheritance when context keys are declared."""
     if _has_any_context_keys(aspects, error_handlers, compensators) and not issubclass(
         cls, ContextRequiresIntent
     ):
@@ -157,9 +175,9 @@ def require_context_requires_intent_marker(
                 methods_with_ctx.append(c.method_name)
         methods_str = ", ".join(methods_with_ctx)
         raise TypeError(
-            f"Класс {cls.__name__} содержит методы с @context_requires "
-            f"({methods_str}), но не наследует ContextRequiresIntent. "
-            f"Декоратор @context_requires входит в грамматику только при "
-            f"намерении ContextRequiresIntent в MRO. Используйте BaseAction "
-            f"или добавьте ContextRequiresIntent в цепочку наследования."
+            f"Class {cls.__name__} declares methods with @context_requires "
+            f"({methods_str}) but does not inherit ContextRequiresIntent. "
+            f"The @context_requires grammar is valid only when marker intent "
+            f"is present in MRO. Use BaseAction or add ContextRequiresIntent "
+            f"to the inheritance chain."
         )

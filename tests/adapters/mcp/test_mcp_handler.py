@@ -1,31 +1,65 @@
 # tests/adapters/mcp/test_mcp_handler.py
 """
-Tests for MCP tool handler execution and error handling.
+MCP tool handlers: execution, serialization, graph JSON, and error surfaces.
 
-When McpAdapter.build() creates an MCP server, each registered tool gets
-an async handler function. The handler deserializes kwargs into the Params model,
-runs the action through the machine, serializes the result to JSON inside
-``CallToolResult`` (``isError=False``), and catches exceptions to return
-``CallToolResult`` with ``isError=True`` and the same textual prefixes
-(PERMISSION_DENIED, INVALID_PARAMS, INTERNAL_ERROR).
+═══════════════════════════════════════════════════════════════════════════════
+PURPOSE
+═══════════════════════════════════════════════════════════════════════════════
 
-This file tests the handler internals: _make_tool_handler, _execute_tool_call,
-_serialize_result, _build_graph_json, and error formatting — covering the
-uncovered lines in integrations/mcp/adapter.py (lines 169, 208-256, 381-387, 634).
+Exercise ``_make_tool_handler``, ``_execute_tool_call``, ``_serialize_result``,
+``_build_graph_json``, and error formatting: successful ``CallToolResult`` JSON,
+``isError`` paths (permissions, validation, internal), mapper transforms, guard
+failures for bad mapper outputs, ``__name__`` derivation from ``tool_name``, and
+graph JSON topology (nodes, edges, hydrated meta).
 
-Scenarios covered:
-    - Handler returns CallToolResult with JSON text and isError=False on success.
-    - Handler returns CallToolResult isError=True for AuthorizationError, etc.
-    - _serialize_result with pydantic model uses model_dump.
-    - _serialize_result with response_mapper applies the mapper.
-    - _serialize_result with non-pydantic object uses default serializer.
-    - _class_name_to_snake_case edge cases.
-    - _build_graph_json returns valid JSON with nodes and edges; hydrated meta
-      (description/domain); edges with source_key/target_key and string type.
-    - Handler with params_mapper transforms input before execution.
-    - Handler with response_mapper transforms output after execution.
-    - Bad params_mapper / response_mapper types → INTERNAL_ERROR with guard message.
-    - Handler __name__ is derived from tool_name with dots/hyphens replaced.
+═══════════════════════════════════════════════════════════════════════════════
+ARCHITECTURE / DATA FLOW
+═══════════════════════════════════════════════════════════════════════════════
+
+    MCP kwargs / mock context
+              |
+              v
+    _make_tool_handler -> _execute_tool_call -> machine.run
+              |
+              +--> _serialize_result -> CallToolResult (text JSON)
+              |
+              v
+    Exceptions -> CallToolResult(isError=True) with stable prefixes
+
+    _build_graph_json(coordinator) -> JSON string for ``system://graph``-style use
+
+═══════════════════════════════════════════════════════════════════════════════
+INVARIANTS
+═══════════════════════════════════════════════════════════════════════════════
+
+- Error text prefixes (e.g. PERMISSION_DENIED) must stay aligned with adapter code.
+- Graph JSON must include string-typed edge ``type`` and ``source_key``/``target_key``.
+
+═══════════════════════════════════════════════════════════════════════════════
+EXAMPLES
+═══════════════════════════════════════════════════════════════════════════════
+
+    uv run pytest tests/adapters/mcp/test_mcp_handler.py -q
+
+Edge case: wrong ``params_mapper`` return type surfaces as internal error with
+guard message substring.
+
+═══════════════════════════════════════════════════════════════════════════════
+ERRORS / LIMITATIONS
+═══════════════════════════════════════════════════════════════════════════════
+
+- Line-number references to ``adapter.py`` in historical comments drift on edits;
+  behavior is what these tests lock, not exact source lines.
+
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE-BEGIN
+═══════════════════════════════════════════════════════════════════════════════
+ROLE: MCP handler and graph JSON regression tests.
+CONTRACT: CallToolResult shape; exception mapping; serialization and graph keys.
+INVARIANTS: Mocks for machine/auth; scenario actions + ``AdminRole`` where needed.
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE-END
+═══════════════════════════════════════════════════════════════════════════════
 """
 
 import json
@@ -469,7 +503,7 @@ class TestBuildGraphJson:
         assert has_ping, f"No PingAction node found in: {node_ids}"
 
     def test_meta_node_has_description_and_domain_from_snapshots(self) -> None:
-        """После скелетных узлов MCP JSON тянет описание/домен из гидратации."""
+        """After skeleton nodes, graph JSON carries description/domain from hydration."""
         coordinator = CoreActionMachine.create_coordinator()
         machine = ActionProductMachine(mode="test", coordinator=coordinator)
 
@@ -486,7 +520,7 @@ class TestBuildGraphJson:
         assert ping_meta.get("domain") == "tests.scenarios.domain_model.domains.SystemDomain"
 
     def test_edges_include_source_and_target_keys_and_string_type(self) -> None:
-        """Рёбра: явные ``source_key`` / ``target_key`` и строковый ``type`` (не str(dict))."""
+        """Edges expose ``source_key`` / ``target_key`` and a string ``type`` (not a dict repr)."""
         coordinator = CoreActionMachine.create_coordinator()
         machine = ActionProductMachine(mode="test", coordinator=coordinator)
 

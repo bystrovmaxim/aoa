@@ -1,57 +1,79 @@
 # tests/adapters/fastapi/test_fastapi_endpoints.py
 """
-Тесты стратегий генерации endpoint для FastApiAdapter.
+FastApiAdapter endpoint generation strategies.
 
 ═══════════════════════════════════════════════════════════════════════════════
-НАЗНАЧЕНИЕ
+PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-FastApiAdapter использует три стратегии создания endpoint-функций:
+``FastApiAdapter`` picks one of three shapes for the generated route handler:
 
-1. POST/PUT/PATCH с непустыми Params → endpoint с JSON body.
-2. GET/DELETE с непустыми Params → endpoint с query/path параметрами.
-3. Любой метод с пустыми Params (без полей) → endpoint без параметров.
+1. POST/PUT/PATCH with non-empty ``Params`` → JSON body.
+2. GET/DELETE with non-empty ``Params`` → query/path parameters.
+3. Any HTTP method with empty ``Params`` (no fields) → no request parameters.
 
-Базовые тесты адаптера (test_fastapi_adapter.py) покрывают только POST.
-Этот файл закрывает непокрытые строки в adapter.py:
-
-- Строка 153: _make_endpoint_with_query — GET с query-параметрами.
-- Строка 171: _make_endpoint_with_query — формирование сигнатуры.
-- Строка 184: _make_endpoint_no_params — GET без параметров.
-- Строка 768: _register_exception_handlers — AuthorizationError → 403.
-- Строка 777: _register_exception_handlers — ValidationFieldError → 422.
+``test_fastapi_adapter.py`` mostly exercises POST. This module targets the
+remaining branches in ``adapter.py`` (query and no-param endpoints, plus
+registered exception handlers).
 
 ═══════════════════════════════════════════════════════════════════════════════
-СЦЕНАРИИ
+ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-GET с query-параметрами:
-    - GET /simple?name=Alice возвращает 200.
-    - Параметры из query string попадают в Params.
+    TestClient  ->  built FastAPI app  <-  FastApiAdapter.build()
+                           |
+                           v
+                    AsyncMock machine.run
+                           |
+              +------------+-------------+
+              |                          |
+        success (Result)          AuthorizationError / ValidationFieldError
+              |                          |
+         HTTP 200                   HTTP 403 / 422 (handlers)
 
-GET без параметров:
-    - GET /ping без query параметров возвращает 200 с {"message": "pong"}.
+═══════════════════════════════════════════════════════════════════════════════
+INVARIANTS
+═══════════════════════════════════════════════════════════════════════════════
 
-connections_factory:
-    - Фабрика вызывается при каждом запросе.
+- ``auth_coordinator`` is always provided (here: ``AsyncMock``).
+- Error payloads surfaced to the client must match the strings raised inside
+  ``machine.run`` for assertion stability.
 
-Обработка ошибок:
-    - AuthorizationError из machine.run → HTTP 403 с detail.
-    - ValidationFieldError из machine.run → HTTP 422 с detail.
+═══════════════════════════════════════════════════════════════════════════════
+EXAMPLES
+═══════════════════════════════════════════════════════════════════════════════
+
+    uv run pytest tests/adapters/fastapi/test_fastapi_endpoints.py -q
+
+═══════════════════════════════════════════════════════════════════════════════
+ERRORS / LIMITATIONS
+═══════════════════════════════════════════════════════════════════════════════
+
+- Line references to ``adapter.py`` in older comments drift on refactors; treat
+  them as approximate coverage maps.
+
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE-BEGIN
+═══════════════════════════════════════════════════════════════════════════════
+ROLE: Cover HTTP binding strategies and FastAPI exception mapping.
+CONTRACT: Query vs body vs empty Params; 403/422 from domain errors.
+INVARIANTS: Mocked ``machine.run``; no real network.
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE-END
+═══════════════════════════════════════════════════════════════════════════════
 """
 
 from unittest.mock import AsyncMock, MagicMock
 
 from fastapi.testclient import TestClient
 
-from action_machine.graph.gate_coordinator import GateCoordinator
 from action_machine.integrations.fastapi.adapter import FastApiAdapter
 from action_machine.model.exceptions import AuthorizationError, ValidationFieldError
 from action_machine.runtime.machines.action_product_machine import ActionProductMachine
 from tests.scenarios.domain_model import PingAction, SimpleAction
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Хелпер — создание адаптера с замоканной machine.run
+# Helper — adapter with mocked machine.run
 # ─────────────────────────────────────────────────────────────────────────────
 
 
@@ -61,12 +83,11 @@ def _make_app(
     run_return=None,
 ):
     """
-    Собирает FastApiAdapter с мок-машиной.
+    Build a ``FastApiAdapter`` with a mocked ``ActionProductMachine``.
 
-    Возвращает кортеж (adapter, machine) для дополнительных assert-ов.
-    По умолчанию machine.run возвращает PingAction.Result(message="pong").
+    Returns ``(adapter, machine)`` for extra assertions. By default
+    ``machine.run`` returns ``PingAction.Result(message="pong")``.
     """
-    GateCoordinator()
     machine = ActionProductMachine(mode="test")
 
     auth = AsyncMock()
@@ -88,16 +109,16 @@ def _make_app(
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# GET с query-параметрами (стратегия 2)
+# GET with query parameters (strategy 2)
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestGetWithQueryParams:
-    """Покрывает _make_endpoint_with_query — GET с полями в Params."""
+    """Covers query-parameter endpoints for GET/DELETE with non-empty Params."""
 
     def test_get_extracts_query_params(self) -> None:
-        """GET endpoint извлекает параметры из query string и возвращает 200."""
-        # Arrange — SimpleAction.Params имеет поле name (обязательное)
+        """GET reads fields from the query string and returns 200."""
+        # Arrange — SimpleAction.Params has required field ``name``
         adapter, _machine = _make_app(
             run_return=SimpleAction.Result(greeting="Hello, Alice!"),
         )
@@ -105,15 +126,15 @@ class TestGetWithQueryParams:
         app = adapter.build()
         client = TestClient(app)
 
-        # Act — передаём name через query string
+        # Act
         response = client.get("/simple?name=Alice")
 
-        # Assert — endpoint сработал, machine.run был вызван
+        # Assert
         assert response.status_code == 200
         _machine.run.assert_called_once()
 
     def test_delete_extracts_query_params(self) -> None:
-        """DELETE endpoint также использует стратегию query-параметров."""
+        """DELETE uses the same query-parameter strategy."""
         # Arrange
         adapter, _machine = _make_app(
             run_return=SimpleAction.Result(greeting="Deleted"),
@@ -130,22 +151,22 @@ class TestGetWithQueryParams:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# GET без параметров (стратегия 3)
+# GET with empty Params (strategy 3)
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestGetEmptyParams:
-    """Покрывает _make_endpoint_no_params — GET с пустыми Params."""
+    """Covers no-parameter endpoints when Params has no fields."""
 
     def test_get_no_params(self) -> None:
-        """GET endpoint без полей в Params работает без query-параметров."""
-        # Arrange — PingAction.Params не содержит полей
+        """GET works without query parameters when Params is empty."""
+        # Arrange — PingAction.Params has no fields
         adapter, _machine = _make_app()
         adapter.get("/ping", PingAction)
         app = adapter.build()
         client = TestClient(app)
 
-        # Act — запрос без параметров
+        # Act
         response = client.get("/ping")
 
         # Assert
@@ -153,14 +174,14 @@ class TestGetEmptyParams:
         assert response.json()["message"] == "pong"
 
     def test_post_no_params(self) -> None:
-        """POST endpoint без полей в Params работает с пустым body."""
+        """POST accepts an empty JSON body when Params is empty."""
         # Arrange
         adapter, _machine = _make_app()
         adapter.post("/ping", PingAction)
         app = adapter.build()
         client = TestClient(app)
 
-        # Act — пустое тело
+        # Act
         response = client.post("/ping", json={})
 
         # Assert
@@ -174,27 +195,10 @@ class TestGetEmptyParams:
 
 
 class TestConnectionsFactory:
-    """Покрывает вызов connections_factory при обработке запроса."""
+    """Ensures ``connections_factory`` runs per request."""
 
     def test_factory_called_on_request(self) -> None:
-        """connections_factory вызывается при каждом входящем запросе."""
-        # Arrange — фабрика возвращает словарь соединений
-        mock_connections = {"db": MagicMock()}
-        factory = MagicMock(return_value=mock_connections)
-
-        adapter, _machine = _make_app(connections_factory=factory)
-        adapter.post("/ping", PingAction)
-        app = adapter.build()
-        client = TestClient(app)
-
-        # Act
-        client.post("/ping", json={})
-
-        # Assert — фабрика была вызвана ровно один раз
-        factory.assert_called_once()
-
-    def test_factory_result_passed_to_machine(self) -> None:
-        """Результат connections_factory передаётся в machine.run."""
+        """``connections_factory`` is invoked once per incoming request."""
         # Arrange
         mock_connections = {"db": MagicMock()}
         factory = MagicMock(return_value=mock_connections)
@@ -207,24 +211,41 @@ class TestConnectionsFactory:
         # Act
         client.post("/ping", json={})
 
-        # Assert — machine.run получил connections
+        # Assert
+        factory.assert_called_once()
+
+    def test_factory_result_passed_to_machine(self) -> None:
+        """The factory return value is forwarded into ``machine.run``."""
+        # Arrange
+        mock_connections = {"db": MagicMock()}
+        factory = MagicMock(return_value=mock_connections)
+
+        adapter, _machine = _make_app(connections_factory=factory)
+        adapter.post("/ping", PingAction)
+        app = adapter.build()
+        client = TestClient(app)
+
+        # Act
+        client.post("/ping", json={})
+
+        # Assert
         call_args = _machine.run.call_args
         assert call_args is not None
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Обработка ошибок — exception handlers
+# Exception handlers
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestExceptionHandlers:
-    """Покрывает exception handlers: AuthorizationError → 403, ValidationFieldError → 422."""
+    """Maps ``AuthorizationError`` → 403 and ``ValidationFieldError`` → 422."""
 
     def test_authorization_error_returns_403(self) -> None:
-        """AuthorizationError из machine.run возвращает HTTP 403."""
-        # Arrange — machine.run выбрасывает AuthorizationError
+        """``AuthorizationError`` from ``machine.run`` becomes HTTP 403."""
+        # Arrange
         adapter, _ = _make_app(
-            run_side_effect=AuthorizationError("доступ запрещён"),
+            run_side_effect=AuthorizationError("access denied"),
         )
         adapter.post("/ping", PingAction)
         app = adapter.build()
@@ -235,13 +256,13 @@ class TestExceptionHandlers:
 
         # Assert
         assert response.status_code == 403
-        assert "доступ запрещён" in response.json()["detail"]
+        assert "access denied" in response.json()["detail"]
 
     def test_validation_error_returns_422(self) -> None:
-        """ValidationFieldError из machine.run возвращает HTTP 422."""
-        # Arrange — machine.run выбрасывает ValidationFieldError
+        """``ValidationFieldError`` from ``machine.run`` becomes HTTP 422."""
+        # Arrange
         adapter, _ = _make_app(
-            run_side_effect=ValidationFieldError("поле невалидно", "name"),
+            run_side_effect=ValidationFieldError("field is invalid", "name"),
         )
         adapter.post("/ping", PingAction)
         app = adapter.build()

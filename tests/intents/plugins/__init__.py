@@ -1,62 +1,53 @@
 # tests/intents/plugins/__init__.py
 """
-Пакет тестов плагинной системы ActionMachine.
+Tests for the ActionMachine plugin system.
 
 ═══════════════════════════════════════════════════════════════════════════════
-НАЗНАЧЕНИЕ
+PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Содержит тесты для системы плагинов — механизма расширения ActionMachine
-через подписку на события жизненного цикла выполнения действий.
+Tests the plugin mechanism for extending ActionMachine via lifecycle event subscriptions.
 
 ═══════════════════════════════════════════════════════════════════════════════
-КОМПОНЕНТЫ
+COMPONENTS
 ═══════════════════════════════════════════════════════════════════════════════
 
 Plugin
-    Абстрактный базовый класс плагина. Определяет методы-обработчики
-    через декоратор @on. Метод get_handlers(event_name, class_name)
-    возвращает список кортежей (handler, ignore_exceptions) для указанного
-    события и действия. Метод get_initial_state() возвращает начальное
-    per-request состояние плагина.
+    Abstract plugin base. Handlers are declared with @on. get_handlers(event_name,
+    class_name) returns (handler, ignore_exceptions) tuples. get_initial_state() returns
+    per-request initial plugin state.
 
 PluginCoordinator
-    Stateless-координатор плагинов. Хранит список Plugin, создаёт
-    изолированный PluginRunContext для каждого вызова machine.run()
-    через фабричный метод create_run_context(). Не хранит мутабельного
-    состояния между запросами.
+    Stateless plugin coordinator. Holds a list of Plugin instances and creates an
+    isolated PluginRunContext per machine.run() via create_run_context(). No mutable
+    cross-request state.
 
 PluginRunContext
-    Изолированный контекст выполнения плагинов для одного вызова
-    machine.run(). Хранит per-request состояния всех плагинов в словаре
-    {id(plugin): state}. Метод emit_event() рассылает событие всем
-    подписанным обработчикам. Стратегия выполнения зависит от флагов
-    ignore_exceptions: все True — параллельно через asyncio.gather,
-    хотя бы один False — последовательно. Метод get_plugin_state()
-    возвращает текущее состояние плагина для тестов.
+    Isolated plugin execution context for one machine.run(). Stores per-request plugin
+    states in {id(plugin): state}. emit_event() dispatches to subscribed handlers.
+    Execution is parallel (asyncio.gather) when all ignore_exceptions are True,
+    otherwise sequential. get_plugin_state() exposes state for tests.
 
 PluginEvent
-    Frozen-датакласс события, передаваемый в обработчик. Содержит
-    event_name, action_name, params, state_aspect, is_summary, deps,
-    context, result, duration, nest_level.
+    Frozen dataclass for events passed to handlers: event_name, action_name, params,
+    state_aspect, is_summary, deps, context, result, duration, nest_level.
 
 @on(event_type, action_filter, ignore_exceptions)
-    Декоратор метода плагина. Объявляет подписку на событие.
-    event_type — строка типа события ("global_finish", "before:validate").
-    action_filter — regex для фильтрации по полному имени действия.
-    ignore_exceptions — если True, ошибка обработчика подавляется.
-    Обработчик обязан иметь сигнатуру (self, state, event, log).
+    Plugin method decorator declaring a subscription. event_type is a string such as
+    "global_finish" or "before:validate". action_filter is a regex on the full action name.
+    ignore_exceptions suppresses handler errors when True. Handler signature must be
+    (self, state, event, log).
 
 ═══════════════════════════════════════════════════════════════════════════════
-СТРУКТУРА ТЕСТОВ
+TEST LAYOUT
 ═══════════════════════════════════════════════════════════════════════════════
 
     tests/intents/plugins/
-    ├── __init__.py                — этот файл
-    ├── conftest.py                — тестовые плагины и фикстуры
-    ├── test_find_plugin.py        — поиск обработчиков, action_filter regex
-    ├── test_handlers.py           — выполнение обработчиков, состояния плагинов
-    ├── test_emit.py               — отправка событий, пустые обработчики
-    ├── test_exceptions.py         — ignore_exceptions True/False, кастомные ошибки
-    └── test_concurrency.py        — параллельное/последовательное выполнение
+    ├── __init__.py                — this file
+    ├── conftest.py                — test plugins and fixtures
+    ├── test_find_plugin.py        — handler lookup, action_filter regex
+    ├── test_handlers.py           — handler execution, plugin state
+    ├── test_emit.py               — event dispatch, empty handlers
+    ├── test_exceptions.py         — ignore_exceptions True/False, custom errors
+    └── test_concurrency.py        — parallel vs sequential execution
 """

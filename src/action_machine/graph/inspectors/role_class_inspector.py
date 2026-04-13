@@ -25,7 +25,7 @@ INVARIANTS
   work (see ``RoleModeIntentInspector``).
 
 ═══════════════════════════════════════════════════════════════════════════════
-DATA FLOW
+ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
 ::
@@ -134,6 +134,12 @@ def _required_role_types_from_spec(spec: object) -> tuple[type[BaseRole], ...]:
 class RoleClassInspector(BaseIntentInspector):
     """
     Emits ``role_class`` topology and action requirements.
+
+    AI-CORE-BEGIN
+    ROLE: Concrete inspector for role-class topology.
+    CONTRACT: Emit ``role_class`` nodes and informational ``requires_role`` edges.
+    INVARIANTS: Roles must have lifecycle mode metadata and unique stable names.
+    AI-CORE-END
     """
 
     _target_intent: type = BaseRole

@@ -8,6 +8,60 @@ informational edges to ``described_fields`` nodes for those types.
 
 Described field metadata for ``P``/``R`` themselves is owned by
 :class:`DescribedFieldsIntentInspector` (intent ``DescribedFieldsIntent``).
+
+═══════════════════════════════════════════════════════════════════════════════
+PURPOSE
+═══════════════════════════════════════════════════════════════════════════════
+
+Provide a graph facet that explicitly links each action to its typed Params and
+Result schemas. This makes schema dependencies visible to graph tooling without
+duplicating field-level metadata extraction.
+
+═══════════════════════════════════════════════════════════════════════════════
+ARCHITECTURE / DATA FLOW
+═══════════════════════════════════════════════════════════════════════════════
+
+::
+
+    BaseAction subclass
+         │
+         ▼
+    extract_action_params_result_types(target_cls)
+         │
+         ├─ no P/R -> skip
+         └─ has P/R -> Snapshot(params_type, result_type)
+                       │
+                       ▼
+                 FacetPayload(node_type="action_schemas")
+                       │
+                       ├─ edge "uses_params" -> described_fields<P>
+                       └─ edge "uses_result" -> described_fields<R>
+
+═══════════════════════════════════════════════════════════════════════════════
+INVARIANTS
+═══════════════════════════════════════════════════════════════════════════════
+
+- Emits only informational edges (non-structural).
+- Produces one ``action_schemas`` node per action with resolved generic types.
+- Skips classes where generic schema types cannot be resolved.
+
+═══════════════════════════════════════════════════════════════════════════════
+ERRORS / LIMITATIONS
+═══════════════════════════════════════════════════════════════════════════════
+
+- Generic resolution quality depends on runtime binding helper behavior.
+- This inspector does not validate described fields; that contract belongs to ``DescribedFieldsIntentInspector``.
+
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE-BEGIN
+═══════════════════════════════════════════════════════════════════════════════
+ROLE: Action schema linkage inspector.
+CONTRACT: Resolve ``BaseAction[P, R]`` types and expose them as graph node/edge metadata.
+INVARIANTS: Node type is ``action_schemas``; schema links are informational edges to ``described_fields``.
+FLOW: action class discovery -> generic extraction -> snapshot -> payload emission.
+FAILURES: Missing/unresolved generic bindings result in skip (no payload).
+EXTENSION POINTS: Edge labels/storage key can be specialized in derived inspectors.
+AI-CORE-END
 """
 
 from __future__ import annotations
@@ -22,7 +76,15 @@ from action_machine.runtime.binding.action_generic_params import extract_action_
 
 
 class ActionTypedSchemasInspector(BaseIntentInspector):
-    """Links each action to its Params/Result types (edges → ``described_fields`` nodes)."""
+    """
+    Links each action to its Params/Result schema types.
+
+    AI-CORE-BEGIN
+    ROLE: Concrete inspector for action-to-schema graph mapping.
+    CONTRACT: Emit ``action_schemas`` payloads for actions with resolved generics.
+    INVARIANTS: Snapshot storage key is stable: ``action_schemas``.
+    AI-CORE-END
+    """
 
     _target_intent: type = BaseAction
 

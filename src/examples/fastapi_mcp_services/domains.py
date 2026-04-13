@@ -1,29 +1,89 @@
 # src/examples/fastapi_mcp_services/domains.py
 """
-Business domains for the FastAPI service example.
+Business domains for the FastAPI + MCP example service.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Domains are typed markers of actions' belonging to business areas.
-Each domain is a class inheriting from BaseDomain, with a unique string
-name. Domains appear in the GateCoordinator graph as separate nodes,
-allowing visualization of the architecture by business areas.
+Domains are typed markers that group actions by business area. Each domain is a
+``BaseDomain`` subclass with a unique ``name`` string. The coordinator graph
+can surface domain nodes so tooling and docs reflect boundaries between order
+flows and system utilities.
 
-This example defines two domains:
-- OrdersDomain — actions related to orders.
-- SystemDomain — system actions (ping, health check).
+This module defines:
+
+- ``OrdersDomain`` — create/get order actions.
+- ``SystemDomain`` — cross-cutting utilities (e.g. ping).
+
+═══════════════════════════════════════════════════════════════════════════════
+ARCHITECTURE / DATA FLOW
+═══════════════════════════════════════════════════════════════════════════════
+
+    @meta(..., domain=OrdersDomain | SystemDomain)
+              |
+              v
+         GateCoordinator graph
+              |
+              +-- domain nodes (class_ref -> OrdersDomain / SystemDomain)
+              |
+              +-- action nodes linked to domain metadata
+
+    Example actions using these domains live under ``actions/`` and are wired
+    by FastAPI and MCP adapters without duplicating domain definitions.
+
+═══════════════════════════════════════════════════════════════════════════════
+INVARIANTS
+═══════════════════════════════════════════════════════════════════════════════
+
+- ``OrdersDomain.name`` and ``SystemDomain.name`` stay stable; they are used as
+  domain labels in graphs and logging filters.
+- Domains carry no runtime behavior; they are markers only.
+- New business areas should get new ``BaseDomain`` subclasses, not stringly-typed
+  flags on actions.
+
+═══════════════════════════════════════════════════════════════════════════════
+EXAMPLES
+═══════════════════════════════════════════════════════════════════════════════
+
+    from examples.fastapi_mcp_services.domains import OrdersDomain
+    from action_machine.intents.meta.meta_decorator import meta
+
+    @meta(description="Example", domain=OrdersDomain)
+    class MyAction: ...
+
+    Edge case: two domains with the same ``name`` would confuse graph consumers;
+    keep names unique across the example (and the wider app).
+
+═══════════════════════════════════════════════════════════════════════════════
+ERRORS / LIMITATIONS
+═══════════════════════════════════════════════════════════════════════════════
+
+- Example scope only; production apps typically define richer domain taxonomies.
+- Misconfigured ``@meta(domain=...)`` references are caught by framework
+  validation at coordinator build time, not in this module.
+
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE-BEGIN
+═══════════════════════════════════════════════════════════════════════════════
+ROLE: Example domain markers for dual-transport Order + system actions.
+CONTRACT: Subclass ``BaseDomain``; expose unique ``name`` per domain class.
+INVARIANTS: Marker-only; no I/O or auth in domain classes.
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE-END
+═══════════════════════════════════════════════════════════════════════════════
 """
 
 from action_machine.domain.base_domain import BaseDomain
 
 
 class OrdersDomain(BaseDomain):
-    """Orders domain. Combines actions for creating, retrieving, and managing orders."""
+    """Order lifecycle actions (create, fetch, etc.)."""
+
     name = "orders"
 
 
 class SystemDomain(BaseDomain):
-    """System domain. Combines utility actions: ping, monitoring."""
+    """System-level utilities (e.g. liveness ping)."""
+
     name = "system"

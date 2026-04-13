@@ -1,67 +1,71 @@
 # src/action_machine/intents/context/user_info.py
 """
-UserInfo — информация о пользователе, инициировавшем действие.
+UserInfo — identity and role metadata for the caller.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-UserInfo — компонент contextа выполнения (Context), содержащий данные
-об аутентифицированном пользователе: идентификатор и кортеж ролей
-(подклассы ``BaseRole``).
+``UserInfo`` is a ``Context`` component that carries caller identity:
+``user_id`` and a tuple of role classes (``BaseRole`` subclasses).
 
-Используется машиной (ActionProductMachine) для проверки ролевых
-ограничений (@check_roles), аспектами — для аудита и логирования
-через @context_requires и ContextView.
+It is consumed by role guards (for example, ``@check_roles``) and by aspects
+via ``@context_requires``/``ContextView`` for audit and telemetry scenarios.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ИЕРАРХИЯ
+ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-    BaseSchema(BaseModel)
-        └── UserInfo (frozen=True, extra="forbid")
+    AuthCoordinator / NoAuthCoordinator
+                   |
+                   v
+    UserInfo(user_id, roles[BaseRole subclasses])
+                   |
+                   v
+    Context(user=UserInfo)
+         |                          |
+         +--> role checks           +--> aspects via ContextView
+              (@check_roles)             (@context_requires)
+
+    Schema hierarchy:
+        BaseSchema(BaseModel)
+            └── UserInfo (frozen=True, extra="forbid")
 
 ═══════════════════════════════════════════════════════════════════════════════
-FROZEN И FORBID
+INVARIANTS
 ═══════════════════════════════════════════════════════════════════════════════
 
-UserInfo неизменяем после создания. Это гарантирует, что информация
-о пользователе не может быть случайно модифицирована аспектами или
-плагинами в ходе выполнения конвейера.
-
-Произвольные поля запрещены (extra="forbid"). Если конкретному проекту
-нужны дополнительные данные о пользователе (billing_plan, department,
-tenant_id), создаётся наследник с явно объявленными полями:
+- Immutable after construction.
+- Extra fields are forbidden (``extra="forbid"``).
+- ``roles`` contains only ``BaseRole`` subclasses.
+- Extension is explicit through inheritance with declared fields:
 
     class BillingUserInfo(UserInfo):
         billing_plan: str = "free"
         tenant_id: str | None = None
 
 ═══════════════════════════════════════════════════════════════════════════════
-АНОНИМНЫЙ ПОЛЬЗОВАТЕЛЬ
+ANONYMOUS USER
 ═══════════════════════════════════════════════════════════════════════════════
 
-UserInfo() без аргументов создаёт анонимного пользователя:
-user_id=None, roles=(). Используется NoAuthCoordinator для открытых API.
-
-Действия с @check_roles(NoneRole) пропускают анонимных пользователей.
-Действия с конкретными ролями отклоняют их с AuthorizationError.
+``UserInfo()`` creates an anonymous principal: ``user_id=None`` and ``roles=()``.
+This shape is typically used by ``NoAuthCoordinator`` for public endpoints.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ДОСТУП В АСПЕКТАХ
+ASPECT ACCESS MODEL
 ═══════════════════════════════════════════════════════════════════════════════
 
-Прямой доступ к UserInfo из аспекта невозможен. Единственный путь —
-через @context_requires и ContextView:
+Direct UserInfo access from aspects is not provided. Supported path is
+``@context_requires`` + ``ContextView``:
 
-    @regular_aspect("Аудит")
+    @regular_aspect("Audit")
     @context_requires(Ctx.User.user_id, Ctx.User.roles)
     async def audit_aspect(self, params, state, box, connections, ctx):
         user_id = ctx.get(Ctx.User.user_id)    # → "agent_123"
         roles = ctx.get(Ctx.User.roles)        # → (AdminRole, UserRole)
 
 ═══════════════════════════════════════════════════════════════════════════════
-DICT-ПОДОБНЫЙ ДОСТУП (унаследован от BaseSchema)
+DICT-LIKE ACCESS (inherited from BaseSchema)
 ═══════════════════════════════════════════════════════════════════════════════
 
     user = UserInfo(user_id="agent_123", roles=(AdminRole,))
@@ -76,15 +80,15 @@ DICT-ПОДОБНЫЙ ДОСТУП (унаследован от BaseSchema)
 EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
-    # Аутентифицированный пользователь (роли — классы BaseRole):
+    # Authenticated user (roles are BaseRole classes):
     user = UserInfo(user_id="john_doe", roles=(UserRole, ManagerRole))
 
-    # Анонимный пользователь:
+    # Anonymous user:
     anon = UserInfo()
     anon.user_id    # → None
     anon.roles      # → ()
 
-    # Расширение через наследование:
+    # Extension via inheritance:
     class TenantUserInfo(UserInfo):
         tenant_id: str = "default"
         department: str | None = None
@@ -95,6 +99,24 @@ EXAMPLES
         tenant_id="acme",
         department="engineering",
     )
+
+═══════════════════════════════════════════════════════════════════════════════
+ERRORS / LIMITATIONS
+═══════════════════════════════════════════════════════════════════════════════
+
+- ``roles`` validation rejects non-sequences and non-``BaseRole`` subclasses.
+- JSON mode serializes roles to role names; runtime mode keeps role classes.
+
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE-BEGIN
+═══════════════════════════════════════════════════════════════════════════════
+ROLE: Immutable caller-identity schema inside execution context.
+CONTRACT: Provide ``user_id`` and role classes for authorization decisions.
+INVARIANTS: Frozen object, forbid-extra policy, role-subclass normalization.
+FLOW: auth extraction -> UserInfo assembly -> Context propagation -> consumers.
+FAILURES: Validation errors occur on malformed ``roles`` input.
+EXTENSION POINTS: Inherit UserInfo for project-specific identity fields.
+AI-CORE-END
 """
 
 from __future__ import annotations
@@ -109,18 +131,13 @@ from action_machine.model.base_schema import BaseSchema
 
 class UserInfo(BaseSchema):
     """
-    Информация о пользователе, инициировавшем действие.
+    Immutable caller identity schema used by the execution context.
 
-    Frozen после создания. Произвольные поля запрещены.
-    Расширение — только через наследование с явными полями.
-
-    Наследует dict-подобный доступ и dot-path навигацию от BaseSchema.
-
-    Атрибуты:
-        user_id: уникальный идентификатор пользователя.
-                 None для анонимного пользователя.
-        roles: кортеж подклассов ``BaseRole``, назначенных пользователю.
-               Пустой кортеж для анонимного пользователя.
+    AI-CORE-BEGIN
+    ROLE: Principal metadata contract for authorization and audit.
+    CONTRACT: Store ``user_id`` and a normalized tuple of role classes.
+    INVARIANTS: Frozen model, forbid-extra fields, roles are BaseRole subclasses.
+    AI-CORE-END
     """
 
     model_config = ConfigDict(frozen=True, extra="forbid")

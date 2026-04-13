@@ -32,7 +32,7 @@ INVARIANTS
 - One user call → one ``emit``; multiple channels = one bitmask, not a loop.
 
 ═══════════════════════════════════════════════════════════════════════════════
-DATA FLOW
+ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
 ::
@@ -106,6 +106,12 @@ class ScopedLogger:
     Built by the machine, ``ToolsBoxFactory``, ``PluginRunContext``, or tests.
     Domain is supplied by the caller (e.g. ``resolve_domain``); this class does
     not inspect ``@meta``.
+
+    AI-CORE-BEGIN
+    ROLE: Scope-bound facade that prepares var payloads for coordinator emit.
+    CONTRACT: Map info/warning/critical calls to one validated emit each.
+    INVARIANTS: Reserved system keys are owned by logger, not user kwargs.
+    AI-CORE-END
     """
 
     def __init__(

@@ -28,7 +28,7 @@ INVARIANTS
   role because ``None`` can be a legitimate field value.
 
 ═══════════════════════════════════════════════════════════════════════════════
-DATA FLOW
+ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
 ::

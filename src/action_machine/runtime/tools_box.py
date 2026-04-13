@@ -111,7 +111,7 @@ class ToolsBox:
         "__run_child",
     )
 
-    # Аннотации типов для приватных атрибутов (для mypy и pylint)
+    # Type hints for private attributes (mypy/pylint)
     __run_child: Callable[..., Awaitable[BaseResult]]
     __factory: DependencyFactory
     __resources: dict[type[Any], Any] | None
@@ -129,15 +129,15 @@ class ToolsBox:
         rollup: bool = False,
     ) -> None:
         """
-        Инициализирует ToolsBox.
+        Initialize ToolsBox.
 
         Args:
-            run_child: функция для запуска дочернего действия (замыкание).
-            factory: stateless-фабрика зависимостей.
-            resources: словарь внешних ресурсов (моки в тестах).
-            log: ScopedLogger, привязанный к текущему аспекту (context lives here for templates).
-            nested_level: уровень вложенности вызова.
-            rollup: флаг автоотката транзакций.
+            run_child: callback that runs child action (closure).
+            factory: stateless dependency factory.
+            resources: external resource map (for example test mocks).
+            log: aspect-scoped logger (context is internal for templates).
+            nested_level: current execution nesting level.
+            rollup: transaction auto-rollback mode flag.
         """
         object.__setattr__(self, "_ToolsBox__run_child", run_child)
         object.__setattr__(self, "_ToolsBox__factory", factory)
@@ -148,12 +148,12 @@ class ToolsBox:
 
     def __setattr__(self, name: str, value: Any) -> None:
         raise AttributeError(
-            f"ToolsBox является frozen-объектом. Запись атрибута '{name}' запрещена."
+            f"ToolsBox is a frozen object. Attribute write for '{name}' is forbidden."
         )
 
     def __delattr__(self, name: str) -> None:
         raise AttributeError(
-            f"ToolsBox является frozen-объектом. Удаление атрибута '{name}' запрещено."
+            f"ToolsBox is a frozen object. Attribute deletion for '{name}' is forbidden."
         )
 
     @property
@@ -178,11 +178,11 @@ class ToolsBox:
 
     def resolve(self, cls: type[Any], *args: Any, **kwargs: Any) -> Any:
         """
-        Returns экземпляр зависимости указанного класса.
+        Return dependency instance for requested class.
 
-        Двухуровневый поиск:
-        1. Сначала ищет в resources (внешние ресурсы / моки).
-        2. Если не найдено — делегирует в factory.resolve().
+        Two-level lookup:
+        1. Check ``resources`` first (external resources/mocks).
+        2. Fallback to ``factory.resolve()``.
         """
         if self.__resources and cls in self.__resources:
             return self.__resources[cls]
@@ -192,7 +192,7 @@ class ToolsBox:
         self, connections: dict[str, BaseResourceManager] | None,
     ) -> dict[str, BaseResourceManager] | None:
         """
-        Обёртывает каждый ресурс в его класс-обёртку для передачи в дочерние действия.
+        Wrap each resource with its wrapper class for child-action propagation.
         """
         if connections is None:
             return None
@@ -212,7 +212,7 @@ class ToolsBox:
         connections: dict[str, BaseResourceManager] | None = None,
     ) -> R:
         """
-        Запускает дочернее действие; ``Context`` прокидывает замыкание ``run_child``.
+        Run child action; ``Context`` is propagated by ``run_child`` closure.
         """
         action_instance = action_class()
         wrapped_connections = self._wrap_connections(connections)

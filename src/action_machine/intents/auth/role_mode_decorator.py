@@ -24,17 +24,27 @@ INVARIANTS
 - The decorated class must inherit ``RoleModeIntent`` (``TypeError`` otherwise).
 
 ═══════════════════════════════════════════════════════════════════════════════
-DATA FLOW
+ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-::
-
     @role_mode(RoleMode.ALIVE)
-    class ExampleRole(BaseRole):
-        ...
+            |
+            v
+    role class _role_mode_info["mode"]
+            |
+            v
+    RoleMode.declared_for(role_cls)
+            |
+            v
+    RoleChecker + role inspectors
 
-    → ExampleRole._role_mode_info == {"mode": RoleMode.ALIVE}
-    → RoleChecker / inspectors use ``RoleMode.declared_for(ExampleRole)``
+═══════════════════════════════════════════════════════════════════════════════
+COMPONENTS
+═══════════════════════════════════════════════════════════════════════════════
+
+- ``RoleMode``: lifecycle enum for role classes.
+- ``role_mode``: decorator attaching mode metadata on class.
+- ``RoleMode.declared_for``: validated accessor used by runtime and inspectors.
 
 ═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES
