@@ -16,8 +16,17 @@ INVARIANTS
 
 - Only classes that declare at least one aspect produce a payload; otherwise
   ``inspect`` / ``facet_snapshot_for_class`` return ``None``.
-- Collection reads **declaring** class members via ``vars(target_cls)`` (same
-  surface decorators attach to); order follows iteration order of that mapping.
+- Collection reads **only the declaring class** via ``vars(target_cls)`` (own
+  ``__dict__`` / insertion order). **Inherited** aspect methods on bases are
+  **not** merged in: facet lists stay explicit on each concrete action class and
+  avoid implicit cross-level ordering or mixin surprises.
+- Execution order in snapshots follows that **own-namespace** iteration order
+  (Python 3.7+ stable per class body). There is no separate ``order=`` field;
+  declare methods in the intended sequence on the class that owns the pipeline.
+- Subclasses that extend a parent action **re-declare** aspect methods on the
+  subclass (override and call ``super()`` inside the method when base behavior is
+  needed). The coordinator snapshot for the subclass then reflects only what
+  that class body defines.
 - Facet snapshot storage key is always ``"aspect"``.
 - No graph edges are emitted from this inspector.
 
@@ -48,6 +57,10 @@ entries.
 
 Edge case: no aspect metadata on the class → ``inspect`` returns ``None``.
 
+Subclassing: aspects live on the **concrete** action class body; a child does
+not pick up a parent’s aspect entries through MRO scanning—override and
+``super()`` instead of expecting automatic inheritance of facet rows.
+
 ═══════════════════════════════════════════════════════════════════════════════
 ERRORS / LIMITATIONS
 ═══════════════════════════════════════════════════════════════════════════════
@@ -55,12 +68,17 @@ ERRORS / LIMITATIONS
 Assumes decorators already validated declaration grammar. This module does not
 execute aspects or enforce runtime scheduling semantics.
 
+By design, this inspector does **not** aggregate aspects from base classes into
+a subclass snapshot; that keeps the graph and runtime contract explicit and
+prevents “mystery” ordering from multiple inheritance.
+
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN
 ═══════════════════════════════════════════════════════════════════════════════
 ROLE: Aspect facet inspector module.
 CONTRACT: Declarative aspect metadata → typed snapshot → ``FacetPayload``.
-INVARIANTS: Single facet key ``aspect``; collection from declaring class dict only.
+INVARIANTS: Single facet key ``aspect``; collection from declaring-class ``vars``
+  only (no MRO merge); explicit per-class facet surface.
 FLOW: vars → unwrap → _new_aspect_meta → Snapshot → payload.
 FAILURES: absent metadata → None from inspect; no exceptions for empty classes.
 EXTENSION POINTS: coordinator and machine consume cached snapshots.
@@ -82,10 +100,15 @@ class AspectIntentInspector(BaseIntentInspector):
     """
     Inspector for ``AspectIntent`` subclasses: builds aspect facet snapshots.
 
+    Snapshots include aspects declared in the own namespace of ``target_cls``
+    only; inherited methods are not collected from ancestors (explicit subclass
+    overrides + ``super()`` pattern).
+
     AI-CORE-BEGIN
     ROLE: Concrete intent inspector for aspects.
     CONTRACT: ``inspect`` / ``Snapshot.from_target`` for classes with aspects.
-    INVARIANTS: ``_target_intent`` is ``AspectIntent``; storage key ``aspect``.
+    INVARIANTS: ``_target_intent`` is ``AspectIntent``; storage key ``aspect``;
+      ``vars(target_cls)`` only—no inherited aspect merge.
     AI-CORE-END
     """
 
@@ -96,8 +119,13 @@ class AspectIntentInspector(BaseIntentInspector):
         """
         Collect aspect entries declared on ``target_cls`` (own ``__dict__`` / ``vars``).
 
-        Walks declaring members only; reads ``_new_aspect_meta`` and optional
-        ``_required_context_keys`` on unwrapped callables.
+        Walks **declaring** members only (no MRO walk): each action class owns an
+        explicit aspect list on its class body. Order follows ``vars`` insertion
+        order. Subclasses override aspect methods and call ``super()`` when they
+        need parent behavior.
+
+        Reads ``_new_aspect_meta`` and optional ``_required_context_keys`` on
+        unwrapped callables.
         """
         out: list[AspectIntentInspector.Snapshot.Aspect] = []
         for attr_name, attr_value in vars(target_cls).items():
@@ -126,7 +154,7 @@ class AspectIntentInspector(BaseIntentInspector):
 
     @dataclass(frozen=True)
     class Snapshot(BaseFacetSnapshot):
-        """Frozen aspect facet: class ref plus ordered aspect rows."""
+        """Frozen aspect facet: class ref plus aspect rows in own-class declaration order."""
 
         @dataclass(frozen=True)
         class Aspect:

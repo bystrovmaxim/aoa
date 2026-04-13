@@ -17,7 +17,7 @@ ARCHITECTURE / DATA FLOW
     @regular_aspect / @summary_aspect
                  |
                  v
-     inspector collects ordered aspects
+     AspectIntentInspector collects own-class aspects (``vars(cls)``)
                  |
                  v
     require_aspect_intent_marker(...)
@@ -33,9 +33,14 @@ INVARIANTS
 ═══════════════════════════════════════════════════════════════════════════════
 
 - If aspects are declared, class must inherit ``AspectIntent``.
+- Structural checks apply to the aspect tuple produced for **that** class from its
+  own namespace (see ``AspectIntentInspector``): inherited base methods are not
+  merged into the child’s facet list—subclasses re-declare aspects and use
+  ``super()`` inside overrides when extending parent behavior.
 - At most one ``summary`` aspect may exist.
 - If ``regular`` aspects exist, a ``summary`` aspect is required.
-- ``summary`` aspect must be the last declared aspect method.
+- ``summary`` aspect must be the last declared aspect method **on that class
+  body** (declaration order in ``vars``).
 
 ═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES
@@ -76,8 +81,9 @@ AI-CORE-BEGIN
 ═══════════════════════════════════════════════════════════════════════════════
 ROLE: Aspect intent validation module.
 CONTRACT: Enforce structural aspect pipeline contract at metadata-build time.
-INVARIANTS: marker inheritance, one summary max, regular requires summary, summary last.
-FLOW: decorator metadata -> inspector list -> validators -> coordinator-ready snapshot.
+INVARIANTS: marker inheritance; own-class aspect list; one summary max; regular
+  requires summary; summary last in declaring class order.
+FLOW: decorator metadata -> inspector list (vars-only) -> validators -> snapshot.
 FAILURES: TypeError for undeclared aspect intent, ValueError for invalid aspect structure.
 EXTENSION POINTS: New aspect types must preserve validator assumptions or extend checks.
 AI-CORE-END

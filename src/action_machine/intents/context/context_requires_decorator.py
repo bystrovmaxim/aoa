@@ -86,7 +86,7 @@ ARCHITECTURE / DATA FLOW
         ▼  @regular_aspect validates signature
     sees _required_context_keys -> expects 6 parameters
         │
-        ▼  AspectIntentInspector._collect_aspects(cls)
+        ▼  AspectIntentInspector._collect_aspects(cls)  [own ``vars(cls)`` only]
     aspect_snapshot.context_keys = frozenset({"user.user_id", "request.trace_id"})
         │
         ▼  ActionProductMachine._call_aspect(...)
