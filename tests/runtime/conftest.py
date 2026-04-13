@@ -1,5 +1,5 @@
 # tests/runtime/conftest.py
-"""Runtime test fixtures shared across sibling modules (plugin machine tests)."""
+"""Runtime test fixtures shared across sibling modules under ``tests/runtime/``."""
 
 from __future__ import annotations
 
@@ -14,6 +14,15 @@ from action_machine.intents.plugins.plugin_coordinator import PluginCoordinator
 from action_machine.intents.plugins.plugin_run_context import PluginRunContext
 from action_machine.runtime.machines.action_product_machine import ActionProductMachine
 from tests.scenarios.domain_model.roles import AdminRole, ManagerRole
+
+
+@pytest.fixture()
+def machine(log_coordinator: LogCoordinator) -> ActionProductMachine:
+    """ActionProductMachine with quiet logging (nested run and similar tests)."""
+    return ActionProductMachine(
+        mode="test",
+        log_coordinator=log_coordinator,
+    )
 
 
 @pytest.fixture()
