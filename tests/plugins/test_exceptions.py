@@ -10,11 +10,11 @@
 Декоратор @on принимает параметр ignore_exceptions, который определяет
 стратегию обработки ошибок:
 
-- ignore_exceptions=True: ошибка обработчика подавляется молча.
-  Состояние плагина НЕ обновляется возвращённым значением (return
-  не выполняется), но in-place мутации dict, произведённые до raise,
-  остаются видны, так как dict — мутабельный объект и передаётся
-  по ссылке.
+- ignore_exceptions=True: ошибка обработчика подавляется; при переданном
+  log_coordinator пишется CRITICAL в Channel.error. Состояние плагина
+  НЕ обновляется возвращённым значением (return не выполняется), но
+  in-place мутации dict, произведённые до raise, остаются видны, так как
+  dict — мутабельный объект и передаётся по ссылке.
 
 - ignore_exceptions=False: ошибка обработчика пробрасывается наружу
   через emit_event(). Это прерывает выполнение действия и позволяет
@@ -26,6 +26,7 @@
 
 ignore_exceptions=True:
 - Ошибка подавляется, emit_event() не выбрасывает исключение.
+- При log_coordinator — одна запись critical + Channel.error на подавленный сбой.
 - In-place мутация state до raise видна (before_error=True).
 - Код после raise не выполняется (after_error остаётся False).
 
@@ -36,9 +37,20 @@ ignore_exceptions=False:
 
 import pytest
 
+from action_machine.core.base_result import BaseResult
+from action_machine.logging.channel import Channel
+from action_machine.logging.level import Level
+from action_machine.logging.log_coordinator import LogCoordinator
+from action_machine.plugins.events import GlobalFinishEvent
 from action_machine.plugins.plugin_coordinator import PluginCoordinator
+from tests.logging.test_log_coordinator import RecordingLogger
 
 from .conftest import (
+    _TEST_ACTION_CLASS,
+    _TEST_ACTION_NAME,
+    _TEST_CONTEXT,
+    _TEST_PARAMS,
+    CounterPlugin,
     CustomExceptionPlugin,
     CustomPluginError,
     IgnoredErrorPlugin,
@@ -100,6 +112,69 @@ class TestIgnoreExceptionsTrue:
         # Assert — код после raise не выполнился
         state = plugin_ctx.get_plugin_state(plugin)
         assert state["after_error"] is False
+
+    @pytest.mark.anyio
+    async def test_suppressed_error_emits_critical_on_error_channel_parallel(self) -> None:
+        """Все ignore=True → gather; сбой даёт CRITICAL с маской Channel.error."""
+        plugin = IgnoredErrorPlugin()
+        coordinator = PluginCoordinator(plugins=[plugin])
+        plugin_ctx = await coordinator.create_run_context()
+        recording = RecordingLogger()
+        log_coord = LogCoordinator(loggers=[recording])
+
+        event = GlobalFinishEvent(
+            action_class=_TEST_ACTION_CLASS,
+            action_name=_TEST_ACTION_NAME,
+            nest_level=1,
+            context=_TEST_CONTEXT,
+            params=_TEST_PARAMS,
+            result=BaseResult(),
+            duration_ms=0.0,
+        )
+        await plugin_ctx.emit_event(
+            event,
+            log_coordinator=log_coord,
+            machine_name="TestMachine",
+            mode="test",
+        )
+
+        assert len(recording.records) == 1
+        rec = recording.records[0]
+        assert rec["var"]["level"].mask == Level.critical
+        assert rec["var"]["channels"].mask == Channel.error
+        assert "on_error_handler" in rec["message"]
+        assert "Ignored error" in rec["message"]
+        assert "suppressed" in rec["message"].lower()
+
+    @pytest.mark.anyio
+    async def test_suppressed_error_emits_critical_sequential_path(self) -> None:
+        """Смесь ignore True/False → последовательно; подавленный сбой логируется."""
+        plugin = IgnoredErrorPlugin()
+        counter = CounterPlugin()
+        coordinator = PluginCoordinator(plugins=[plugin, counter])
+        plugin_ctx = await coordinator.create_run_context()
+        recording = RecordingLogger()
+        log_coord = LogCoordinator(loggers=[recording])
+
+        event = GlobalFinishEvent(
+            action_class=_TEST_ACTION_CLASS,
+            action_name=_TEST_ACTION_NAME,
+            nest_level=1,
+            context=_TEST_CONTEXT,
+            params=_TEST_PARAMS,
+            result=BaseResult(),
+            duration_ms=0.0,
+        )
+        await plugin_ctx.emit_event(
+            event,
+            log_coordinator=log_coord,
+            machine_name="TestMachine",
+            mode="test",
+        )
+
+        assert len(recording.records) == 1
+        assert recording.records[0]["var"]["channels"].mask == Channel.error
+        assert plugin_ctx.get_plugin_state(counter)["count"] == 1
 
 
 class TestIgnoreExceptionsFalse:

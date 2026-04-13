@@ -144,7 +144,8 @@ ignore_exceptions:
 1. ВСЕ обработчики имеют ignore_exceptions=True:
    Запуск параллельно через asyncio.gather(return_exceptions=True).
    Общее время ≈ время самого медленного обработчика. Падающие
-   обработчики не прерывают остальных — их исключения подавляются.
+   обработчики не прерывают остальных — их исключения подавляются; при
+   переданном log_coordinator для каждого сбоя пишется CRITICAL в Channel.error.
 
 2. ХОТЯ БЫ ОДИН обработчик имеет ignore_exceptions=False:
    Запуск последовательно. Общее время ≈ сумма всех задержек.
@@ -230,6 +231,7 @@ from typing import Any
 
 from action_machine.core.base_params import BaseParams
 from action_machine.core.base_state import BaseState
+from action_machine.logging.channel import Channel
 from action_machine.logging.domain_resolver import resolve_domain
 from action_machine.logging.log_coordinator import LogCoordinator
 from action_machine.logging.scoped_logger import ScopedLogger
@@ -424,6 +426,23 @@ class PluginRunContext:
             domain=resolve_domain(event.action_class),
         )
 
+    @staticmethod
+    async def _log_suppressed_handler_exception(
+        exc: Exception,
+        log: ScopedLogger | None,
+        method_name: str,
+    ) -> None:
+        if log is None:
+            return
+        await log.critical(
+            Channel.error,
+            "Plugin handler {%var.handler_name} failed and was suppressed "
+            "(ignore_exceptions=True): {%var.exc_type}: {%var.exc_message}",
+            handler_name=method_name,
+            exc_type=type(exc).__name__,
+            exc_message=str(exc),
+        )
+
     # ─────────────────────────────────────────────────────────────────────
     # Выполнение одного обработчика
     # ─────────────────────────────────────────────────────────────────────
@@ -471,7 +490,8 @@ class PluginRunContext:
 
         Используется когда ВСЕ обработчики имеют ignore_exceptions=True.
         Общее время ≈ время самого медленного обработчика. Исключения
-        подавляются (return_exceptions=True).
+        подавляются (return_exceptions=True); при непустом log_coordinator
+        для каждого сбоя пишется CRITICAL в Channel.error.
 
         Аргументы:
             matched: список (plugin, handler, subscription).
@@ -490,7 +510,15 @@ class PluginRunContext:
             )
 
         if tasks:
-            await asyncio.gather(*tasks, return_exceptions=True)
+            results = await asyncio.gather(*tasks, return_exceptions=True)
+            for (plugin, _handler, sub), result in zip(matched, results, strict=True):
+                if isinstance(result, Exception):
+                    log = self._create_plugin_logger(
+                        log_coordinator, machine_name, mode, plugin, event,
+                    )
+                    await self._log_suppressed_handler_exception(
+                        result, log, sub.method_name,
+                    )
 
     async def _run_sequential(
         self,
@@ -506,7 +534,8 @@ class PluginRunContext:
         Используется когда ХОТЯ БЫ ОДИН обработчик имеет
         ignore_exceptions=False. При ошибке критического обработчика
         исключение пробрасывается наружу. Ошибки обработчиков
-        с ignore_exceptions=True подавляются.
+        с ignore_exceptions=True подавляются; при непустом log_coordinator
+        для такого сбоя пишется CRITICAL в Channel.error.
 
         Аргументы:
             matched: список (plugin, handler, subscription).
@@ -521,10 +550,12 @@ class PluginRunContext:
             )
             try:
                 await self._run_single_handler(plugin, handler, event, log)
-            except Exception:
+            except Exception as exc:
                 if not sub.ignore_exceptions:
                     raise
-                # ignore_exceptions=True — подавляем ошибку
+                await self._log_suppressed_handler_exception(
+                    exc, log, sub.method_name,
+                )
 
     # ─────────────────────────────────────────────────────────────────────
     # Основной метод: emit_event
