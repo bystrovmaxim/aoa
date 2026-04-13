@@ -11,7 +11,7 @@ Each exception maps to a specific failure category and is consumed by specific
 runtime components.
 
 - AuthorizationError - role verification failures in runtime authorization checks.
-- ValidationFieldError - result field validation failures from checkers/runtime.
+- ValidationFieldError - validation failures (checkers, runtime guards, protocol input).
 - HandleError - action/resource execution failures (for example DB/resource layer).
 - TransactionError - base category for transaction/connection lifecycle failures.
 - ConnectionAlreadyOpenError - duplicate connection-open attempt.
@@ -60,6 +60,10 @@ ARCHITECTURE / DATA FLOW
                      v
     Caller/tests receive stable, typed error contract
 
+``ValidationFieldError`` may carry optional ``details`` (structured dict) for
+callers that need machine-readable context; ``str(exc)`` remains the human
+``message`` only.
+
 ═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
@@ -72,6 +76,11 @@ Edge case:
     ``@on_error`` handler itself fails; runtime wraps it in
     ``OnErrorHandlerError`` while preserving original exception via ``__cause__``.
 
+Edge case:
+    An adapter maps transport validation (for example Pydantic) into
+    ``ValidationFieldError`` with ``details`` so agents receive field-level
+    errors without re-parsing exception text.
+
 ═══════════════════════════════════════════════════════════════════════════════
 ERRORS / LIMITATIONS
 ═══════════════════════════════════════════════════════════════════════════════
@@ -79,6 +88,8 @@ ERRORS / LIMITATIONS
 - Message text may evolve; prefer asserting by exception type where possible.
 - Exceptions here encode framework contracts, not transport-specific details.
 - Wrapping behavior (for example, in ``OnErrorHandlerError``) is runtime-driven.
+- ``ValidationFieldError.details`` is optional; defaults to ``{}``. Values should
+  be JSON-serializable when adapters embed them in protocol responses.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN
@@ -87,10 +98,12 @@ ROLE: Central typed failure taxonomy for ActionMachine.
 CONTRACT: Raise explicit, category-specific exceptions across subsystems.
 INVARIANTS: Transaction errors inherit TransactionError; naming errors use TypeError.
 FLOW: subsystem failure -> typed exception -> runtime propagation/wrapping.
-FAILURES: Misconfiguration, validation, authorization, and orchestration faults.
+FAILURES: Misconfiguration, validation (optional structured details), authorization, orchestration.
 EXTENSION POINTS: Add new exception subclasses with narrow semantic scope.
 AI-CORE-END
 """
+
+from typing import Any
 
 
 class AuthorizationError(Exception):
@@ -142,15 +155,35 @@ class ActionResultDeclarationError(TypeError):
 
 class ValidationFieldError(Exception):
     """
-    Validation error for aspect result fields.
+    Validation error for aspect result fields, protocol inputs, and shape guards.
 
-    Raised by result checkers and by runtime result-shape guards.
+    Raised by result checkers, runtime guards, and adapters (for example MCP tool
+    input validation mapped from Pydantic). Optional ``details`` carries
+    structured data for machine-facing consumers without changing ``str(exc)``.
     """
 
-    def __init__(self, message: str, field: str | None = None) -> None:
-        """Initialize field validation error."""
-        super().__init__(message)
+    def __init__(
+        self,
+        message: str,
+        field: str | None = None,
+        *,
+        details: dict[str, Any] | None = None,
+    ) -> None:
+        """
+        Initialize validation error.
+
+        Args:
+            message: Human-readable summary; also ``str(exc)`` for logging and
+                simple HTTP/MCP ``message`` fields.
+            field: Optional single field name for legacy checker context.
+            details: Optional structured payload (for example Pydantic
+                ``errors()`` list under key ``"errors"``). Omitted or ``None``
+                yields ``self.details == {}``.
+        """
+        self.message: str = message
         self.field: str | None = field
+        self.details: dict[str, Any] = details if details is not None else {}
+        super().__init__(message)
 
 
 class HandleError(Exception):
