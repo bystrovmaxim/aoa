@@ -1,4 +1,4 @@
-# tests/domain_model/compensate_plugins.py
+# tests/scenarios/domain_model/compensate_plugins.py
 """
 Observer plugins for compensation (Saga) events in tests.
 
@@ -50,7 +50,7 @@ SagaObserverPlugin — records all five compensation event types into
 ═══════════════════════════════════════════════════════════════════════════════
 USAGE IN TESTS
 ═══════════════════════════════════════════════════════════════════════════════
-    from tests.domain_model.compensate_plugins import SagaObserverPlugin
+    from tests.scenarios.domain_model.compensate_plugins import SagaObserverPlugin
 
     observer = SagaObserverPlugin()
     bench = TestBench(

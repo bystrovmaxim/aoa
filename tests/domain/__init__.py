@@ -17,7 +17,7 @@ SCOPE
 In scope: behavior and contracts of types under `src/action_machine/domain/`
 (and `BaseSchema` where entities rely on it).
 
-Out of scope: the shared **test domain model** (`tests/domain_model/`) — that
+Out of scope: the shared **test domain model** (`tests/scenarios/domain_model/`) — that
 package is integration-style fixtures for Actions; it is tested indirectly
 and via its own consumers, not re-documented here.
 

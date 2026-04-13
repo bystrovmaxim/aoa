@@ -26,7 +26,7 @@ from __future__ import annotations
 
 import pytest
 
-from tests.domain_model.compensate_actions import (
+from tests.scenarios.domain_model.compensate_actions import (
     CompensateAndOnErrorAction,
     CompensateErrorAction,
     CompensateTestParams,
@@ -34,7 +34,7 @@ from tests.domain_model.compensate_actions import (
     SecondRegularFailsOnErrorAction,
     SummaryFailsOnErrorStateAction,
 )
-from tests.domain_model.services import InventoryService, PaymentService
+from tests.scenarios.domain_model.services import InventoryService, PaymentService
 
 # ═════════════════════════════════════════════════════════════════════════════
 # TestCompensatorErrorSuppressed

@@ -105,7 +105,7 @@ from action_machine.runtime.machines.action_product_machine import ActionProduct
 from action_machine.runtime.machines.core_action_machine import CoreActionMachine
 from action_machine.runtime.tools_box import ToolsBox
 from action_machine.testing import StubTesterRole, TestBench
-from tests.domain_model import (
+from tests.scenarios.domain_model import (
     CompensateAndOnErrorAction,
     CompensateTestParams,
     ErrorHandledAction,
@@ -115,9 +115,9 @@ from tests.domain_model import (
     PaymentService,
     SimpleAction,
 )
-from tests.domain_model.compensate_plugins import SagaObserverPlugin
-from tests.domain_model.domains import TestDomain
-from tests.domain_model.roles import AdminRole, ManagerRole
+from tests.scenarios.domain_model.compensate_plugins import SagaObserverPlugin
+from tests.scenarios.domain_model.domains import TestDomain
+from tests.scenarios.domain_model.roles import AdminRole, ManagerRole
 
 
 def _context() -> Context:

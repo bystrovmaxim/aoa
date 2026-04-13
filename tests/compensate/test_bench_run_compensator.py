@@ -42,13 +42,13 @@ from action_machine.model.base_result import BaseResult
 from action_machine.model.base_state import BaseState
 from action_machine.runtime.machines.core_action_machine import CoreActionMachine
 from action_machine.testing import StubTesterRole, TestBench
-from tests.domain_model.compensate_actions import (
+from tests.scenarios.domain_model.compensate_actions import (
     CompensatedOrderAction,
     CompensateTestParams,
     CompensateWithContextAction,
 )
-from tests.domain_model.domains import TestDomain
-from tests.domain_model.services import InventoryService, PaymentService
+from tests.scenarios.domain_model.domains import TestDomain
+from tests.scenarios.domain_model.services import InventoryService, PaymentService
 
 # ═════════════════════════════════════════════════════════════════════════════
 # Вспомогательная функция для создания BaseState с данными

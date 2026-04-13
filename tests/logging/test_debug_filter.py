@@ -52,7 +52,7 @@ from action_machine.intents.logging.sensitive_decorator import sensitive
 from action_machine.intents.logging.variable_substitutor import VariableSubstitutor
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_state import BaseState
-from tests.domain_model.roles import UserRole
+from tests.scenarios.domain_model.roles import UserRole
 
 # ======================================================================
 # Вспомогательные классы

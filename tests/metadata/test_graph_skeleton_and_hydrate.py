@@ -11,9 +11,9 @@ import action_machine.graph.gate_coordinator as gc_module
 from action_machine.graph.base_intent_inspector import BaseIntentInspector
 from action_machine.graph.gate_coordinator import GateCoordinator
 from action_machine.runtime.machines.core_action_machine import CoreActionMachine
-from tests.domain_model import CompensatedOrderAction, FullAction, TestDbManager
-from tests.domain_model.domains import OrdersDomain
-from tests.domain_model.services import PaymentService
+from tests.scenarios.domain_model import CompensatedOrderAction, FullAction, TestDbManager
+from tests.scenarios.domain_model.domains import OrdersDomain
+from tests.scenarios.domain_model.services import PaymentService
 
 
 def test_get_graph_node_payloads_are_skeleton_only() -> None:

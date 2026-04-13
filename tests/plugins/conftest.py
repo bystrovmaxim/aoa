@@ -112,7 +112,7 @@ from action_machine.intents.plugins.plugin_run_context import PluginRunContext
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_result import BaseResult
 from action_machine.testing import StubTesterRole
-from tests.domain_model import PingAction
+from tests.scenarios.domain_model import PingAction
 
 # ═════════════════════════════════════════════════════════════════════════════
 # Кастомное исключение для тестов

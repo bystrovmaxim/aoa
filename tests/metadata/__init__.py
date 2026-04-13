@@ -27,7 +27,7 @@ DATA FLOW
 
 ::
 
-    Action / entity classes (tests fixtures, domain_model)
+    Action / entity classes (tests fixtures, scenarios.domain_model)
               │
               ▼
     GateCoordinator.register(...).build()

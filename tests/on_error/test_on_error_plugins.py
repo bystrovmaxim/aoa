@@ -37,12 +37,12 @@ from action_machine.intents.plugins.on_decorator import on
 from action_machine.intents.plugins.plugin import Plugin
 from action_machine.runtime.machines.action_product_machine import ActionProductMachine
 from action_machine.runtime.machines.core_action_machine import CoreActionMachine
-from tests.domain_model import (
+from tests.scenarios.domain_model import (
     ErrorHandledAction,
     ErrorTestParams,
     NoErrorHandlerAction,
 )
-from tests.domain_model.error_plugins import ErrorCounterPlugin, ErrorObserverPlugin
+from tests.scenarios.domain_model.error_plugins import ErrorCounterPlugin, ErrorObserverPlugin
 
 # ═════════════════════════════════════════════════════════════════════════════
 # Helper function to create machine with plugins

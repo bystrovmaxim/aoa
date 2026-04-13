@@ -56,7 +56,7 @@ from action_machine.intents.context.request_info import RequestInfo
 from action_machine.intents.context.runtime_info import RuntimeInfo
 from action_machine.intents.context.user_info import UserInfo
 from action_machine.model.exceptions import ContextAccessError
-from tests.domain_model.roles import AdminRole, ManagerRole, UserRole
+from tests.scenarios.domain_model.roles import AdminRole, ManagerRole, UserRole
 
 # ═════════════════════════════════════════════════════════════════════════════
 # Наследники Info-классов для тестов кастомных полей.

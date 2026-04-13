@@ -26,7 +26,7 @@ import pytest
 from pydantic import ValidationError
 
 from action_machine.domain import build
-from tests.domain_model.entities import RelatedEntity, SampleEntity
+from tests.scenarios.domain_model.entities import RelatedEntity, SampleEntity
 
 
 class TestBuildFunction:

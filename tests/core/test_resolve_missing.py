@@ -51,7 +51,7 @@ from action_machine.intents.context.context import Context
 from action_machine.intents.context.request_info import RequestInfo
 from action_machine.intents.context.runtime_info import RuntimeInfo
 from action_machine.intents.context.user_info import UserInfo
-from tests.domain_model.roles import AdminRole, UserRole
+from tests.scenarios.domain_model.roles import AdminRole, UserRole
 
 # ═════════════════════════════════════════════════════════════════════════════
 # Наследники Info-классов для тестов вложенной навигации

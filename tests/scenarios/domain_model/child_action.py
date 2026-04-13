@@ -1,4 +1,4 @@
-# tests/domain_model/child_action.py
+# tests/scenarios/domain_model/child_action.py
 """
 ChildAction — nested Action for box.run() tests.
 

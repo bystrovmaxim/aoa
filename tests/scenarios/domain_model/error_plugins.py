@@ -1,4 +1,4 @@
-# tests/domain_model/error_plugins.py
+# tests/scenarios/domain_model/error_plugins.py
 """
 Test plugins that observe aspect errors.
 
@@ -35,7 +35,7 @@ PLUGINS
 ═══════════════════════════════════════════════════════════════════════════════
 USAGE IN TESTS
 ═══════════════════════════════════════════════════════════════════════════════
-    from tests.domain_model.error_plugins import ErrorObserverPlugin, ErrorCounterPlugin
+    from tests.scenarios.domain_model.error_plugins import ErrorObserverPlugin, ErrorCounterPlugin
 
     observer = ErrorObserverPlugin()
     counter = ErrorCounterPlugin()

@@ -29,7 +29,7 @@ from action_machine.integrations.mcp.adapter import McpAdapter, _class_name_to_s
 from action_machine.integrations.mcp.route_record import McpRouteRecord
 from action_machine.runtime.machines.action_product_machine import ActionProductMachine
 from action_machine.runtime.machines.core_action_machine import CoreActionMachine
-from tests.domain_model import FullAction, PingAction, SimpleAction
+from tests.scenarios.domain_model import FullAction, PingAction, SimpleAction
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Helpers

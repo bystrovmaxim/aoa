@@ -1,4 +1,4 @@
-# tests/domain_model/services.py
+# tests/scenarios/domain_model/services.py
 """
 Dependency service types for the test domain model.
 

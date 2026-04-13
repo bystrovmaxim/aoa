@@ -21,7 +21,7 @@ from action_machine.integrations.mcp.adapter import _build_graph_json
 from action_machine.runtime.machines.core_action_machine import CoreActionMachine
 
 # Регистрируем минимальное действие в дереве подклассов BaseAction до build().
-from tests.domain_model import PingAction
+from tests.scenarios.domain_model import PingAction
 
 # --- Контракт: сырой узел из ``get_graph()`` (без ``meta``) -----------------
 GRAPH_NODE_SKELETON_KEYS: Final[frozenset[str]] = frozenset({

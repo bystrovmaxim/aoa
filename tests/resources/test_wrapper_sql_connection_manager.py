@@ -59,7 +59,7 @@ from action_machine.resources.sql_connection_manager import SqlConnectionManager
 from action_machine.resources.wrapper_sql_connection_manager import (
     WrapperSqlConnectionManager,
 )
-from tests.domain_model.domains import TestDomain
+from tests.scenarios.domain_model.domains import TestDomain
 
 # ======================================================================
 # Mock-менеджер соединений для тестов

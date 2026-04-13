@@ -48,7 +48,7 @@ import pytest
 from pydantic import ConfigDict
 
 from action_machine.intents.context.user_info import UserInfo
-from tests.domain_model.roles import AdminRole, GuestRole, ManagerRole, UserRole
+from tests.scenarios.domain_model.roles import AdminRole, GuestRole, ManagerRole, UserRole
 
 # ═════════════════════════════════════════════════════════════════════════════
 # Наследник UserInfo для тестов расширения

@@ -1,4 +1,4 @@
-# tests/domain_model/compensate_actions.py
+# tests/scenarios/domain_model/compensate_actions.py
 """
 Actions with @compensate handlers for Saga tests.
 

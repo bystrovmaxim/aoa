@@ -40,8 +40,8 @@ from action_machine.model.base_state import BaseState
 from action_machine.resources.base_resource_manager import BaseResourceManager
 from action_machine.runtime.tools_box import ToolsBox
 from action_machine.testing import TestBench
-from tests.domain_model.domains import TestDomain
-from tests.domain_model.services import InventoryService, PaymentService
+from tests.scenarios.domain_model.domains import TestDomain
+from tests.scenarios.domain_model.services import InventoryService, PaymentService
 
 # ═════════════════════════════════════════════════════════════════════════════
 # Вспомогательные Action для тестов вложенности

@@ -69,7 +69,7 @@ from action_machine.intents.plugins.events import (
 from action_machine.intents.plugins.plugin_coordinator import PluginCoordinator
 from action_machine.intents.plugins.plugin_run_context import PluginRunContext
 from action_machine.runtime.machines.action_product_machine import ActionProductMachine
-from tests.domain_model import (
+from tests.scenarios.domain_model import (
     FullAction,
     NotificationService,
     PaymentService,
@@ -77,7 +77,7 @@ from tests.domain_model import (
     SimpleAction,
     TestDbManager,
 )
-from tests.domain_model.roles import AdminRole, ManagerRole
+from tests.scenarios.domain_model.roles import AdminRole, ManagerRole
 
 # ═════════════════════════════════════════════════════════════════════════════
 # Хелпер для извлечения типов событий из mock-вызовов

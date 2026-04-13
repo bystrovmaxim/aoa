@@ -71,8 +71,8 @@ from action_machine.model.base_schema import BaseSchema
 from action_machine.resources.base_resource_manager import BaseResourceManager
 from action_machine.resources.connection_decorator import connection
 from action_machine.runtime.machines.core_action_machine import CoreActionMachine
-from tests.domain_model.domains import TestDomain
-from tests.domain_model.roles import AdminRole
+from tests.scenarios.domain_model.domains import TestDomain
+from tests.scenarios.domain_model.roles import AdminRole
 
 
 def _new_coord() -> GateCoordinator:

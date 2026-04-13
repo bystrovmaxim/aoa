@@ -1,4 +1,4 @@
-# tests/domain_model/simple_action.py
+# tests/scenarios/domain_model/simple_action.py
 """
 SimpleAction — medium-complexity Action with one regular aspect.
 

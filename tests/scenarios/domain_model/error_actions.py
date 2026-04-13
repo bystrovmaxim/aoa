@@ -1,4 +1,4 @@
-# tests/domain_model/error_actions.py
+# tests/scenarios/domain_model/error_actions.py
 """
 Actions with @on_error handlers for error-handling tests.
 
@@ -26,7 +26,7 @@ Both inherit Exception directly. Used to test handler ordering and type matching
 USAGE IN TESTS
 ═══════════════════════════════════════════════════════════════════════════════
 
-    from tests.domain_model.error_actions import (
+    from tests.scenarios.domain_model.error_actions import (
         ErrorHandledAction,
         MultiErrorAction,
         NoErrorHandlerAction,

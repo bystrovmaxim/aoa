@@ -66,7 +66,7 @@ from action_machine.model.base_action import BaseAction
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_result import BaseResult
 from action_machine.runtime.machines.core_action_machine import CoreActionMachine
-from tests.domain_model.domains import TestDomain
+from tests.scenarios.domain_model.domains import TestDomain
 
 # ═════════════════════════════════════════════════════════════════════════════
 # Вспомогательные функции и классы
@@ -78,7 +78,7 @@ def _compensator_nodes_for(coordinator: GateCoordinator, action_cls: type) -> li
     Возвращает узлы ``compensator``, порождённые конкретным классом действия.
 
     Обязательно: глобальный ``get_nodes_by_type`` после ``build()`` включает
-    компенсаторы **других** тестовых модулей (например domain_model), без
+    компенсаторы **других** тестовых модулей (например scenarios.domain_model), без
     фильтра по ``class_ref`` неверны и счётчики, и выбор ``nodes[0]``.
     """
     return [

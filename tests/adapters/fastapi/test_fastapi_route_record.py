@@ -24,7 +24,7 @@ Scenarios covered:
 import pytest
 
 from action_machine.integrations.fastapi.route_record import FastApiRouteRecord
-from tests.domain_model import PingAction, SimpleAction
+from tests.scenarios.domain_model import PingAction, SimpleAction
 
 # ═════════════════════════════════════════════════════════════════════════════
 # Default field values

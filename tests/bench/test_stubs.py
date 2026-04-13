@@ -28,7 +28,7 @@ from action_machine.testing.stubs import (
     RuntimeInfoStub,
     UserInfoStub,
 )
-from tests.domain_model.roles import AdminRole, ManagerRole
+from tests.scenarios.domain_model.roles import AdminRole, ManagerRole
 
 # ═════════════════════════════════════════════════════════════════════════════
 # UserInfoStub

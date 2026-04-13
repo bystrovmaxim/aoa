@@ -70,9 +70,9 @@ from action_machine.model.base_result import BaseResult
 from action_machine.resources.base_resource_manager import BaseResourceManager
 from action_machine.runtime.machines.action_product_machine import ActionProductMachine
 from action_machine.runtime.tools_box import ToolsBox
-from tests.domain_model import PingAction
-from tests.domain_model.domains import TestDomain
-from tests.domain_model.roles import AdminRole, ManagerRole
+from tests.scenarios.domain_model import PingAction
+from tests.scenarios.domain_model.domains import TestDomain
+from tests.scenarios.domain_model.roles import AdminRole, ManagerRole
 
 # ═════════════════════════════════════════════════════════════════════════════
 # Вспомогательные действия для вложенных вызовов

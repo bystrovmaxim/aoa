@@ -21,7 +21,7 @@ from action_machine.model.base_action import BaseAction
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_result import BaseResult
 from action_machine.model.exceptions import NamingSuffixError
-from tests.domain_model.domains import TestDomain
+from tests.scenarios.domain_model.domains import TestDomain
 
 
 class TestRoleModeDecorator:

@@ -19,14 +19,14 @@ from unittest.mock import AsyncMock
 import pytest
 
 from action_machine.testing import StubTesterRole, TestBench
-from tests.domain_model.compensate_actions import (
+from tests.scenarios.domain_model.compensate_actions import (
     CompensateAndOnErrorAction,
     CompensatedOrderAction,
     CompensateTestParams,
     CompensateWithContextAction,
 )
-from tests.domain_model.compensate_plugins import SagaObserverPlugin
-from tests.domain_model.services import InventoryService, PaymentService
+from tests.scenarios.domain_model.compensate_plugins import SagaObserverPlugin
+from tests.scenarios.domain_model.services import InventoryService, PaymentService
 
 # ═════════════════════════════════════════════════════════════════════════════
 # Фикстуры

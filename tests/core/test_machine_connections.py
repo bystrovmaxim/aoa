@@ -59,9 +59,9 @@ from action_machine.model.exceptions import ConnectionValidationError
 from action_machine.resources.base_resource_manager import BaseResourceManager
 from action_machine.resources.connection_decorator import connection
 from action_machine.runtime.machines.action_product_machine import ActionProductMachine
-from tests.domain_model import FullAction, NotificationService, PaymentService, PingAction, TestDbManager
-from tests.domain_model.domains import TestDomain
-from tests.domain_model.roles import AdminRole, ManagerRole
+from tests.scenarios.domain_model import FullAction, NotificationService, PaymentService, PingAction, TestDbManager
+from tests.scenarios.domain_model.domains import TestDomain
+from tests.scenarios.domain_model.roles import AdminRole, ManagerRole
 
 
 def _validate_connections(

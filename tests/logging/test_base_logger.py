@@ -19,7 +19,7 @@ from action_machine.intents.logging.log_scope import LogScope
 from action_machine.intents.logging.log_var_payloads import LogChannelPayload, LogLevelPayload
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_state import BaseState
-from tests.domain_model.domains import OrdersDomain, SystemDomain
+from tests.scenarios.domain_model.domains import OrdersDomain, SystemDomain
 
 
 def _v(**extra: Any) -> dict[str, Any]:
