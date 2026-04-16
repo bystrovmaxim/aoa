@@ -6,6 +6,7 @@
 import os
 import sys
 from datetime import datetime
+from typing import TextIO
 
 
 class PythonFileCollector:
@@ -87,7 +88,7 @@ class PythonFileCollector:
         result.sort()
         return result
 
-    def _write_header(self, out, root_dir: str, file_count: int) -> None:
+    def _write_header(self, out: TextIO, root_dir: str, file_count: int) -> None:
         """Записывает информационный заголовок в выходной файл."""
         separator = "#" * 80
         lines = [
@@ -102,7 +103,7 @@ class PythonFileCollector:
         ]
         out.write("\n".join(lines) + "\n")
 
-    def _write_files(self, out, python_files: list[str]) -> None:
+    def _write_files(self, out: TextIO, python_files: list[str]) -> None:
         """Записывает содержимое каждого файла с разделителями."""
         separator = "#" * 80
         last_index = len(python_files) - 1

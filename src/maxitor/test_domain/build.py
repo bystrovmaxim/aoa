@@ -7,6 +7,7 @@ import importlib
 from typing import Final
 
 from action_machine.graph.gate_coordinator import GateCoordinator
+from action_machine.runtime.machines.core_action_machine import CoreActionMachine
 
 _MODULES: Final[tuple[str, ...]] = (
     "maxitor.roles",
@@ -22,6 +23,4 @@ _MODULES: Final[tuple[str, ...]] = (
 def build_test_coordinator() -> GateCoordinator:
     for name in _MODULES:
         importlib.import_module(name)
-    from action_machine.runtime.machines.core_action_machine import CoreActionMachine
-
     return CoreActionMachine.create_coordinator()

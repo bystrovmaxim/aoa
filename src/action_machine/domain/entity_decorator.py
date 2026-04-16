@@ -42,7 +42,7 @@ PARAMETERS
 
     description : str
         Required human-readable description (non-empty after ``strip()``).
-        Feeds ArchiMate / OCEL style exports and generated docs. Whitespace-only
+        Feeds diagram-oriented and OCEL-style exports and generated docs. Whitespace-only
         strings → ``ValueError`` / ``EntityDecoratorError`` from validators.
 
     domain : type[BaseDomain] | None
