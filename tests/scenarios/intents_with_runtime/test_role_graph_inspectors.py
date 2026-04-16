@@ -7,7 +7,7 @@ from action_machine.runtime.machines.core_action_machine import CoreActionMachin
 
 
 def test_default_coordinator_emits_role_mode_and_role_class_nodes() -> None:
-    coord = CoreActionMachine.create_coordinator()
+    coord = CoreActionMachine.create_coordinator(logical_graph_public=False)
     role_mode_nodes = coord.get_nodes_by_type("role_mode")
     role_class_nodes = coord.get_nodes_by_type("role_class")
     assert len(role_mode_nodes) >= 1
@@ -18,7 +18,7 @@ def test_order_roles_present_and_requires_role_edges_exist() -> None:
     """Order*Role fixtures load MRO chain; graph has role_class + requires_role."""
     import tests.scenarios.intents_with_runtime.test_role_checker_pr2 as _pr2  # noqa: F401
 
-    coord = CoreActionMachine.create_coordinator()
+    coord = CoreActionMachine.create_coordinator(logical_graph_public=False)
     names = [n["name"] for n in coord.get_nodes_by_type("role_class")]
     assert any("OrderManagerRole" in n for n in names), names
     assert any("OrderCreatorRole" in n for n in names), names

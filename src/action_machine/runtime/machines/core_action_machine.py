@@ -125,25 +125,36 @@ class CoreActionMachine:
     """Core factory for creating a fully built coordinator."""
 
     @staticmethod
-    def create_coordinator_unbuilt() -> GateCoordinator:
+    def create_coordinator_unbuilt(*, logical_graph_public: bool = True) -> GateCoordinator:
         """
         Register the default inspector set without calling :meth:`GateCoordinator.build`.
 
         Intended for tests and diagnostics that need the same registration order as
         :meth:`create_coordinator` but must run phase-1 collection separately (for
         example feeding :class:`~action_machine.graph.logical.LogicalGraphBuilder`).
+
+        Args:
+            logical_graph_public: when ``True`` (default), :meth:`GateCoordinator.get_graph`
+                returns the logical interchange graph after ``build()``; ``False`` keeps
+                facet-shaped :meth:`~GateCoordinator.get_graph` (see that class).
         """
-        gc = GateCoordinator()
+        gc = GateCoordinator(logical_graph_public=logical_graph_public)
         for inspector_cls in DEFAULT_GATE_COORDINATOR_INSPECTORS:
             gc.register(inspector_cls)
         return gc
 
     @staticmethod
-    def create_coordinator() -> GateCoordinator:
+    def create_coordinator(*, logical_graph_public: bool = True) -> GateCoordinator:
         """
         Create coordinator, register all default inspectors and build the graph.
+
+        Args:
+            logical_graph_public: forwarded to :meth:`create_coordinator_unbuilt`
+                (default ``True``: logical interchange on :meth:`~GateCoordinator.get_graph`).
 
         Returns:
             Built ``GateCoordinator`` instance ready for snapshot reads.
         """
-        return CoreActionMachine.create_coordinator_unbuilt().build()
+        return CoreActionMachine.create_coordinator_unbuilt(
+            logical_graph_public=logical_graph_public,
+        ).build()

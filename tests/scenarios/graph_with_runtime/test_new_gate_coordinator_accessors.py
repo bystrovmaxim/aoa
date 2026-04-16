@@ -27,7 +27,7 @@ class _DemoAction:
 
 
 def test_new_coordinator_runtime_accessors() -> None:
-    coordinator = GateCoordinator()
+    coordinator = GateCoordinator(logical_graph_public=False)
     entity_name = BaseIntentInspector._make_node_name(_DemoEntity)
     action_name = BaseIntentInspector._make_node_name(_DemoAction)
     do_aspect_ref = object()
@@ -277,6 +277,15 @@ def test_new_coordinator_runtime_accessors() -> None:
                 if isinstance(ck, str):
                     connection_keys.append(ck)
     assert tuple(connection_keys) == ("db",)
+
+
+def test_gate_coordinator_get_graph_for_visualization_matches_logical_graph() -> None:
+    coordinator = CoreActionMachine.create_coordinator()
+    v = coordinator.get_graph_for_visualization()
+    lg = coordinator.get_logical_graph()
+    assert len(v) == len(lg)
+    for idx in v.node_indices():
+        assert v[idx] == lg[idx]
 
 
 def test_coordinator_get_dependency_classes_and_connections() -> None:

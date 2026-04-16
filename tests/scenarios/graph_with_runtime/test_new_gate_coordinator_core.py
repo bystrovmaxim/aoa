@@ -56,7 +56,7 @@ class _InspectorDup(BaseIntentInspector):
 
 
 def test_build_status_transitions() -> None:
-    coord = GateCoordinator()
+    coord = GateCoordinator(logical_graph_public=False)
     assert coord.build_status() == "not_built"
     coord.register(_InspectorA).build()
     assert coord.build_status() == "built"
@@ -64,7 +64,7 @@ def test_build_status_transitions() -> None:
 
 
 def test_build_and_graph_read_api() -> None:
-    coord = GateCoordinator().register(_InspectorA).build()
+    coord = GateCoordinator(logical_graph_public=False).register(_InspectorA).build()
     assert coord.is_built is True
     assert coord.graph_node_count == 1
     assert coord.get_node("a", "A") is not None
@@ -77,7 +77,7 @@ def test_build_and_graph_read_api() -> None:
 
 
 def test_register_guards_and_duplicate_build() -> None:
-    coord = GateCoordinator().register(_InspectorA)
+    coord = GateCoordinator(logical_graph_public=False).register(_InspectorA)
     with pytest.raises(ValueError):
         coord.register(_InspectorA)
     coord.build()
@@ -88,13 +88,17 @@ def test_register_guards_and_duplicate_build() -> None:
 
 
 def test_duplicate_node_error_from_phase1() -> None:
-    coord = GateCoordinator().register(_InspectorA).register(_InspectorDup)
+    coord = (
+        GateCoordinator(logical_graph_public=False)
+        .register(_InspectorA)
+        .register(_InspectorDup)
+    )
     with pytest.raises(DuplicateNodeError):
         coord.build()
 
 
 def test_payload_validation_and_phase2_errors() -> None:
-    coord = GateCoordinator()
+    coord = GateCoordinator(logical_graph_public=False)
     with pytest.raises(PayloadValidationError):
         coord._phase2_check_payloads([  # pylint: disable=protected-access
             FacetPayload(node_type="", node_name="x", node_class=_A)
@@ -110,7 +114,7 @@ def test_payload_validation_and_phase2_errors() -> None:
 
 
 def test_referential_integrity_and_acyclicity_errors() -> None:
-    coord = GateCoordinator()
+    coord = GateCoordinator(logical_graph_public=False)
     payloads = [
         FacetPayload(
             node_type="x",

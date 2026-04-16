@@ -23,7 +23,7 @@ from action_machine.runtime.machines.core_action_machine import CoreActionMachin
 # Register a minimal action in the BaseAction subclass tree before build().
 from tests.scenarios.domain_model import PingAction
 
-# --- Contract: raw node from ``get_graph()`` (no ``meta``) -----------------
+# --- Contract: raw node from facet ``get_graph()`` (no ``meta``) -----------------
 GRAPH_NODE_SKELETON_KEYS: Final[frozenset[str]] = frozenset({
     "node_type",
     "name",
@@ -55,7 +55,7 @@ MCP_NODE_MIN_KEYS: Final[frozenset[str]] = frozenset({"id", "type"})
 
 
 def _default_coordinator() -> GateCoordinator:
-    return CoreActionMachine.create_coordinator()
+    return CoreActionMachine.create_coordinator(logical_graph_public=False)
 
 
 def test_contract_raw_graph_nodes_are_skeleton_only() -> None:

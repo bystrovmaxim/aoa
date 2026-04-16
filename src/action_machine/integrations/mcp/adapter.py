@@ -191,6 +191,7 @@ from __future__ import annotations
 import json
 import logging
 import re
+import warnings
 from collections.abc import Callable
 from typing import Any, Self
 
@@ -335,6 +336,44 @@ def _class_name_to_snake_case(name: str) -> str:
     return result.lower()
 
 
+def _facet_pygraph_for_mcp_json(coordinator: GateCoordinator) -> Any:
+    """Return facet ``PyDiGraph`` for MCP JSON (suppress ``get_facet_graph`` deprecation)."""
+    facet_graph = getattr(coordinator, "get_facet_graph", None)
+    if callable(facet_graph):
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", DeprecationWarning)
+            return facet_graph()
+    return coordinator.get_graph()
+
+
+def _mcp_edge_type_from_payload(edge_data: Any) -> str:
+    """Normalize rustworkx edge payload to a string edge type for JSON."""
+    if isinstance(edge_data, dict):
+        return str(edge_data.get("edge_type", ""))
+    if isinstance(edge_data, str):
+        return edge_data
+    return str(edge_data)
+
+
+def _mcp_apply_meta_to_node(node: dict[str, Any], meta: dict[str, Any], node_type: str) -> None:
+    """Mutate ``node`` with optional description, domain, and domain display name from ``meta``."""
+    description = meta.get("description", "")
+    if description:
+        node["description"] = description
+
+    domain = meta.get("domain")
+    if domain:
+        if isinstance(domain, type):
+            node["domain"] = f"{domain.__module__}.{domain.__qualname__}"
+        else:
+            node["domain"] = str(domain)
+
+    if node_type == "domain":
+        domain_name = meta.get("name", "")
+        if domain_name:
+            node["name"] = domain_name
+
+
 def _build_graph_json(coordinator: GateCoordinator) -> str:
     """
     Build JSON representation of system graph from coordinator.
@@ -348,7 +387,9 @@ def _build_graph_json(coordinator: GateCoordinator) -> str:
     Returns:
         JSON string with graph structure.
     """
-    graph = coordinator.get_graph()
+    # Facet skeleton payloads are required: ``hydrate_graph_node`` resolves
+    # ``node_type`` / ``name`` keys from the facet layer (see ``_facet_pygraph_for_mcp_json``).
+    graph = _facet_pygraph_for_mcp_json(coordinator)
 
     nodes: list[dict[str, Any]] = []
     edges: list[dict[str, Any]] = []
@@ -365,25 +406,11 @@ def _build_graph_json(coordinator: GateCoordinator) -> str:
             "type": node_type,
         }
 
-        description = meta.get("description", "")
-        if description:
-            node["description"] = description
-
         # In node payload ``meta``, ``domain`` is usually a BaseDomain class.
         # ``json.dumps`` cannot serialize ``type`` values directly.
         # For MCP resource we emit stable ``module.QualName``; for non-standard
         # values we fallback to ``str(domain)`` so agents still receive text.
-        domain = meta.get("domain")
-        if domain:
-            if isinstance(domain, type):
-                node["domain"] = f"{domain.__module__}.{domain.__qualname__}"
-            else:
-                node["domain"] = str(domain)
-
-        if node_type == "domain":
-            domain_name = meta.get("name", "")
-            if domain_name:
-                node["name"] = domain_name
+        _mcp_apply_meta_to_node(node, meta, node_type)
 
         nodes.append(node)
 
@@ -391,12 +418,7 @@ def _build_graph_json(coordinator: GateCoordinator) -> str:
         source_payload = graph[source]
         target_payload = graph[target]
 
-        if isinstance(edge_data, dict):
-            edge_type = edge_data.get("edge_type", "")
-        elif isinstance(edge_data, str):
-            edge_type = edge_data
-        else:
-            edge_type = str(edge_data)
+        edge_type = _mcp_edge_type_from_payload(edge_data)
 
         nt_s = source_payload.get("node_type", "")
         nm_s = source_payload.get("name", "")

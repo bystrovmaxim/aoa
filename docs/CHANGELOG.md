@@ -14,6 +14,16 @@ Older entries below may use the legacy names **GateHost** / `*GateHostInspector`
 **IntentInspector** classes (e.g. `RoleIntent`, `AspectIntent`, `BaseIntentInspector`).
 The coordinator class name `**GateCoordinator`** is unchanged.
 
+## [Unreleased]
+
+### Breaking changes
+
+- **`GateCoordinator.get_graph()` default shape.** `logical_graph_public` now defaults to `True` on `GateCoordinator` and `CoreActionMachine.create_coordinator()` / `create_coordinator_unbuilt()`. After `build()`, `get_graph()` returns the logical interchange `PyDiGraph` (same payloads as `get_logical_graph()`). Use `logical_graph_public=False` for the legacy facet skeleton on `get_graph()`.
+
+### Deprecated
+
+- **`GateCoordinator.get_facet_graph()`.** Emits `DeprecationWarning` and is scheduled for removal after the next release. Prefer `logical_graph_public=False` and `get_graph()` for facet-shaped payloads, or consume the logical graph. `McpAdapter._build_graph_json` suppresses the warning for the supported integration path.
+
 ## [1.0.0] – 2026-04-12
 
 ### Breaking changes
