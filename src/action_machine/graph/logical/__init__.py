@@ -8,7 +8,7 @@ PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 Expose immutable ``LogicalVertex`` / ``LogicalEdge`` models, **PR1** constants and
-id/reverse helpers, plus ``build_from_g0_input`` (**G0**, landed before PR2 in the repo).
+id/reverse helpers, ``build_from_g0_input``, and ``LogicalGraphBuilder`` (facet or G0 JSON).
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
@@ -20,6 +20,7 @@ ARCHITECTURE / DATA FLOW
               │
               ▼
     build_from_g0_input(bundle["input"])
+        or LogicalGraphBuilder.build(synthetic_g0=bundle["input"])
               │
               ▼
     vertices + edges  →  canonical compare
@@ -35,13 +36,14 @@ INVARIANTS
 EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
-- ``from action_machine.graph.logical import build_from_g0_input, LogicalVertex``
+- ``from action_machine.graph.logical import LogicalGraphBuilder, LogicalVertex``
 
 ═══════════════════════════════════════════════════════════════════════════════
 ERRORS / LIMITATIONS
 ═══════════════════════════════════════════════════════════════════════════════
 
-- ``build_from_g0_input`` covers only the G0 synthetic schema, not real facet payloads.
+- ``build_from_g0_input`` / ``LogicalGraphBuilder.build(synthetic_g0=...)`` cover the G0
+  synthetic schema; the facet payload projection is intentionally narrow (see builder doc).
 """
 
 from __future__ import annotations
@@ -55,6 +57,7 @@ from action_machine.graph.logical.constants import (
     VERTEX_TYPES,
 )
 from action_machine.graph.logical.g0_builder import build_from_g0_input
+from action_machine.graph.logical.logical_graph_builder import LogicalGraphBuilder
 from action_machine.graph.logical.model import LogicalEdge, LogicalVertex
 from action_machine.graph.logical.reverse_edge import reverse_direct_edge
 from action_machine.graph.logical.vertex_id import (
@@ -70,6 +73,7 @@ __all__ = [
     "REVERSE_EDGE_STEREOTYPE",
     "VERTEX_TYPES",
     "LogicalEdge",
+    "LogicalGraphBuilder",
     "LogicalVertex",
     "build_from_g0_input",
     "reverse_direct_edge",
