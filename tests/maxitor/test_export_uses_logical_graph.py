@@ -11,9 +11,14 @@ import pytest
 import rustworkx as rx
 
 from maxitor.graph_export import (
+    JSON_SCHEMA_ID,
     coordinator_pygraph_for_visual_export,
+    export_pygraph_to_dot,
     export_pygraph_to_graphml,
+    export_pygraph_to_json,
     normalize_coordinator_node_payload_for_visualization,
+    pygraph_to_dot_source,
+    pygraph_to_json_document,
 )
 from maxitor.test_domain.build import _MODULES, build_test_coordinator
 from maxitor.visualizer import G6_CDN_URL, export_test_domain_graph_html, generate_g6_html
@@ -86,6 +91,52 @@ def test_normalize_logical_node_maps_to_facet_keys() -> None:
     assert norm["node_type"] == "action"
     assert norm["name"] == "pkg.actions.Foo"
     assert norm["label"] == "Foo"
+
+
+def test_pygraph_to_json_document_roundtrip_keys() -> None:
+    _import_test_domain_modules()
+    coord = build_test_coordinator()
+    graph = coordinator_pygraph_for_visual_export(coord)
+    doc = pygraph_to_json_document(graph)
+    assert doc["schema"] == JSON_SCHEMA_ID
+    assert doc["node_count"] == len(graph)
+    assert doc["edge_count"] == graph.num_edges()
+    assert doc["nodes"][0]["data"]["vertex_type"] in doc["nodes"][0]["data"]
+
+
+@pytest.mark.integration
+def test_json_export_writes_utf8(tmp_path: Path) -> None:
+    _import_test_domain_modules()
+    coord = build_test_coordinator()
+    graph = coordinator_pygraph_for_visual_export(coord)
+    out = tmp_path / "out.json"
+    export_pygraph_to_json(graph, out)
+    import json as _json
+
+    loaded = _json.loads(out.read_text(encoding="utf-8"))
+    assert loaded["schema"] == JSON_SCHEMA_ID
+    assert len(loaded["nodes"]) >= 1
+
+
+def test_pygraph_to_dot_source_shape() -> None:
+    g = rx.PyDiGraph()
+    g.add_node({"vertex_type": "action", "id": "pkg.X", "display_name": "X"})
+    src = pygraph_to_dot_source(g, graph_id="t")
+    assert src.startswith("digraph")
+    assert "n0" in src
+    assert "pkg.X" in src or "X" in src
+
+
+@pytest.mark.integration
+def test_dot_export_writes_digraph(tmp_path: Path) -> None:
+    _import_test_domain_modules()
+    coord = build_test_coordinator()
+    graph = coordinator_pygraph_for_visual_export(coord)
+    out = tmp_path / "out.dot"
+    export_pygraph_to_dot(graph, out)
+    body = out.read_text(encoding="utf-8")
+    assert body.strip().startswith("digraph")
+    assert " -> " in body
 
 
 @pytest.mark.integration

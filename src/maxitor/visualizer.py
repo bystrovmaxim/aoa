@@ -12,8 +12,7 @@ and ``weighted_edge_list`` entries to edges. ``export_test_domain_graph_html`` u
 the same graph source as GraphML export: ``get_logical_graph()`` when the coordinator
 implements ``get_graph_for_visualization``, ``get_logical_graph``, or ``get_graph`` in
 that order. Node payloads may use **logical interchange** keys; they are normalized
-before styling.
-are normalized via ``maxitor.graph_export`` helpers before styling.
+via ``maxitor.graph_export`` helpers before styling.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
