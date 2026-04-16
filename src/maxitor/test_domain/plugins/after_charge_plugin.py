@@ -1,0 +1,26 @@
+# src/maxitor/test_domain/plugins/after_charge_plugin.py
+from __future__ import annotations
+
+from typing import Any
+
+from action_machine.intents.plugins.events import AfterRegularAspectEvent
+from action_machine.intents.plugins.on_decorator import on
+from action_machine.intents.plugins.plugin import Plugin
+
+
+class TestAfterChargeAspectPlugin(Plugin):
+    async def get_initial_state(self) -> dict[str, Any]:
+        return {}
+
+    @on(
+        AfterRegularAspectEvent,
+        action_name_pattern=r".*FullGraph.*",
+        aspect_name_pattern=r".*charge.*",
+    )
+    async def on_after_charge_aspect(
+        self,
+        state: Any,
+        event: AfterRegularAspectEvent,
+        log: Any,
+    ) -> Any:
+        return state

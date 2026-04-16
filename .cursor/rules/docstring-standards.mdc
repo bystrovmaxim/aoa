@@ -1,0 +1,76 @@
+---
+description: Module/class documentation, AI-CORE blocks, first-line path — English only.
+alwaysApply: true
+---
+
+# Documentation (English only)
+
+All docstrings, comments, AI-CORE blocks, and examples are **English**. No Russian in code-facing docs.
+
+## Principle
+
+Docs answer questions a reader has. If a block answers nothing, omit it.
+
+**Two layers:** (1) **Human** module docstring — for developers. (2) **AI-CORE** — for agents navigating the code. Each layer must stand alone (overlap is OK). Do not make one layer depend on the other for essential facts.
+
+## Every file
+
+**Line 1:** full path from `src/` as a comment, before imports and module docstring.
+
+```python
+# src/package/module.py
+```
+
+## Module docstring (human)
+
+Fixed section order; separate sections with full-width `═` lines. **All listed sections are required** unless optional ones are justified.
+
+1. **Title** — one line: `Name — purpose`.
+2. **PURPOSE** — 1–3 paragraphs: why the module exists.
+3. **ARCHITECTURE / DATA FLOW** — ASCII diagram (pipeline, tree, phases, registration flow, etc.).
+4. **INVARIANTS** — bullet list of contracts that always hold.
+5. **EXAMPLES** — at least two: happy path + edge/error case.
+6. **ERRORS / LIMITATIONS** — concrete exception types and important constraints.
+
+Optional blocks (**SCOPE**, **RATIONALE**, **LIFECYCLE**, **TERMINOLOGY**) only if the module is unclear without them — insert between PURPOSE and ARCHITECTURE.
+
+## Inside modules (classes, methods, fields)
+
+- **Public classes:** docstring = **AI-CORE block only** (no long human class doc; module doc already describes architecture).
+- **Methods:** one line if name/signature are enough; multi-line only for non-obvious ordering, side effects, or **Raises:**.
+- **Properties / fields:** one line each.
+
+## Package `__init__.py`
+
+Same section pattern as a module; diagram shows **submodules and exports**. EXAMPLES are mandatory (public import pattern). Large packages: optional **PACKAGE CONTENTS**; optional deps: **INSTALLATION**.
+
+## AI-CORE block (machine-readable)
+
+Wrap with `AI-CORE-BEGIN` / `AI-CORE-END`. Place in public classes and `__all__` exports. **One to two sentences per key**; omit keys that do not apply (no empty keys).
+
+**Class:**
+
+```text
+ROLE: …
+CONTRACT: …
+INVARIANTS: …
+NEIGHBORS: …
+```
+
+**Decorator / factory:** `PURPOSE`, `INPUT/OUTPUT`, `SIDE EFFECTS`, `FAILURES`, `ORDER`.
+
+**Pydantic / dataclass:** `ROLE`, `FIELDS` (non-obvious only), `INVARIANTS`, `CREATED BY`, `CONSUMED BY`.
+
+**Marker / intent mixin:** `ROLE`, `CHECKED BY`, `SCRATCH`, `CONSUMED BY`.
+
+**Inspector:** `ROLE`, `TRAVERSAL`, `READS`, `EMITS`, `EDGES`.
+
+**Package re-export `__init__.py`:** `ROLE`, `EXPORTS`, `ENTRY PATTERN`, `INTERNAL FLOW`.
+
+## Diagram hints (module ARCHITECTURE)
+
+Use ASCII: vertical pipelines (decorators → inspector → snapshot), phased flows (`COLLECT → … → COMMIT`), inheritance trees, registration → `build()` → serve.
+
+## When editing
+
+Match surrounding file style. Do not add redundant module-level prose for obvious code. Do not remove existing AI-CORE or required sections unless the task explicitly refactors documentation.
