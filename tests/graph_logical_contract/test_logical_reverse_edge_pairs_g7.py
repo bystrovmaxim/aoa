@@ -1,6 +1,6 @@
-# tests/graph_logical_contract/test_pr5_g7_reverse_edge_pairs.py
+# tests/graph_logical_contract/test_logical_reverse_edge_pairs_g7.py
 
-"""PR5 / **G7** + §5.3: every ``direct`` edge in ``REVERSE_EDGE_MAP`` has a paired ``reverse`` edge."""
+"""**G7** + §5.3: every ``direct`` edge in ``REVERSE_EDGE_MAP`` has a paired ``reverse`` edge."""
 
 from __future__ import annotations
 
@@ -38,7 +38,7 @@ def _edge_quads(lg: rx.PyDiGraph) -> set[tuple[str, str, str, str]]:
 
 
 @pytest.mark.graph_coverage
-def test_pr5_g7_each_mapped_direct_edge_has_reverse_pair() -> None:
+def test_each_mapped_direct_edge_has_reverse_pair() -> None:
     _import_test_domain_modules()
     lg = build_test_coordinator().get_logical_graph()
     quads = _edge_quads(lg)
@@ -57,7 +57,7 @@ def test_pr5_g7_each_mapped_direct_edge_has_reverse_pair() -> None:
 
 
 @pytest.mark.graph_coverage
-def test_pr5_ownership_edges_use_ownership_category_when_present() -> None:
+def test_ownership_edges_use_ownership_category_when_present() -> None:
     """§5.1: any ``HAS_*`` edge must use ``category=ownership`` (no reverse pair)."""
     _import_test_domain_modules()
     lg = build_test_coordinator().get_logical_graph()
@@ -67,7 +67,7 @@ def test_pr5_ownership_edges_use_ownership_category_when_present() -> None:
 
 
 @pytest.mark.graph_coverage
-def test_pr5_internal_edges_use_internal_category_when_present() -> None:
+def test_internal_edges_use_internal_category_when_present() -> None:
     """§5.2: internal edge types use ``category=internal``."""
     _import_test_domain_modules()
     lg = build_test_coordinator().get_logical_graph()
@@ -77,7 +77,7 @@ def test_pr5_internal_edges_use_internal_category_when_present() -> None:
 
 
 @pytest.mark.graph_coverage
-def test_pr5_no_reverse_category_on_ownership_or_internal_types() -> None:
+def test_no_reverse_category_on_ownership_or_internal_types() -> None:
     _import_test_domain_modules()
     lg = build_test_coordinator().get_logical_graph()
     forbidden_reverse = OWNERSHIP_EDGE_TYPES | INTERNAL_EDGE_TYPES

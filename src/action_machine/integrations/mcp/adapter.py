@@ -191,7 +191,6 @@ from __future__ import annotations
 import json
 import logging
 import re
-import warnings
 from collections.abc import Callable
 from typing import Any, Self
 
@@ -337,12 +336,10 @@ def _class_name_to_snake_case(name: str) -> str:
 
 
 def _facet_pygraph_for_mcp_json(coordinator: GateCoordinator) -> Any:
-    """Return facet ``PyDiGraph`` for MCP JSON (suppress ``get_facet_graph`` deprecation)."""
-    facet_graph = getattr(coordinator, "get_facet_graph", None)
-    if callable(facet_graph):
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", DeprecationWarning)
-            return facet_graph()
+    """Return facet ``PyDiGraph`` for MCP JSON (facet skeleton, not logical ``get_graph``)."""
+    facet_copy = getattr(coordinator, "facet_topology_copy", None)
+    if callable(facet_copy):
+        return facet_copy()
     return coordinator.get_graph()
 
 

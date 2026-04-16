@@ -74,12 +74,12 @@ from tests.scenarios.domain_model.roles import AdminRole
 
 
 def _new_coord() -> GateCoordinator:
-    """Create built coordinator with default inspector set (facet-shaped ``get_graph``)."""
-    return CoreActionMachine.create_coordinator(logical_graph_public=False)
+    """Create built coordinator with default inspector set."""
+    return CoreActionMachine.create_coordinator()
 
 
 def _graph_children(coord: GateCoordinator, full_key: str) -> list[dict[str, Any]]:
-    g = coord.get_graph()
+    g = coord.facet_topology_copy()
     for idx in g.node_indices():
         node = g[idx]
         nk = f"{node['node_type']}:{node['name']}"
@@ -91,7 +91,7 @@ def _graph_children(coord: GateCoordinator, full_key: str) -> list[dict[str, Any
 def _dependency_tree(coord: GateCoordinator, key: str | type) -> dict[str, Any]:
     if isinstance(key, type):
         key = f"action:{BaseIntentInspector._make_node_name(key)}"
-    g = coord.get_graph()
+    g = coord.facet_topology_copy()
     idx_by_key: dict[str, int] = {}
     for i in g.node_indices():
         n = g[i]
@@ -510,8 +510,8 @@ class TestPublicAPI:
         """get_graph returns a copy of the graph."""
         coord = _new_coord()
         coord.get_snapshot(_PingGraphAction, "meta")
-        g1 = coord.get_graph()
-        g2 = coord.get_graph()
+        g1 = coord.facet_topology_copy()
+        g2 = coord.facet_topology_copy()
         assert g1 is not g2
 
     def test_get_node_existing(self):
@@ -538,7 +538,7 @@ class TestPublicAPI:
 
     def test_get_children_of_missing_node(self):
         """An unregistered class has no edges emanating from the action node."""
-        coord = CoreActionMachine.create_coordinator(logical_graph_public=False)
+        coord = CoreActionMachine.create_coordinator()
         children = _graph_children(coord, _node_key("action", _EmptyClass))
         assert children == []
 
@@ -566,7 +566,7 @@ class TestPublicAPI:
 
     def test_get_dependency_tree_missing_node(self):
         """For a class with no nodes in the graph, the dependency tree is empty or missing."""
-        coord = CoreActionMachine.create_coordinator(logical_graph_public=False)
+        coord = CoreActionMachine.create_coordinator()
         tree = _dependency_tree(coord, _EmptyClass)
         assert tree is None or tree == {}
 

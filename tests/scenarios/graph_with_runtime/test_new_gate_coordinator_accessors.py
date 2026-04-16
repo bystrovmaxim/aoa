@@ -27,7 +27,7 @@ class _DemoAction:
 
 
 def test_new_coordinator_runtime_accessors() -> None:
-    coordinator = GateCoordinator(logical_graph_public=False)
+    coordinator = GateCoordinator()
     entity_name = BaseIntentInspector._make_node_name(_DemoEntity)
     action_name = BaseIntentInspector._make_node_name(_DemoAction)
     do_aspect_ref = object()
@@ -264,7 +264,7 @@ def test_new_coordinator_runtime_accessors() -> None:
     assert compensator is not None
     assert compensator.method_name == "rollback_do_compensate"
 
-    g = coordinator.get_graph()
+    g = coordinator.facet_topology_copy()
     action_full = f"action:{action_name}"
     connection_keys: list[str] = []
     for idx in g.node_indices():

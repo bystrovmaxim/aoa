@@ -14,8 +14,9 @@ The module defines two frozen dataclasses — the contract between
 
 Both are transport-only: an inspector builds them in ``_build_payload()`` /
 ``inspect()``, the coordinator consumes them in phase 1 of ``build()``, and
-they are discarded after commit. Node skeletons land in ``rx.PyDiGraph``;
-tuple → dict conversion for facet ``meta`` is applied when projecting from
+they are discarded after commit. Facet node skeletons land in the coordinator’s
+internal facet ``rx.PyDiGraph``; the public logical graph is a separate commit.
+Tuple → dict conversion for facet ``meta`` is applied when projecting from
 typed snapshots (see ``GateCoordinator.hydrate_graph_node``).
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -93,16 +94,13 @@ LIFECYCLE EXAMPLE
     #    - edge targets exist
     #    - structural edges acyclic
 
-    # 4. Coordinator commits in phase 3 (rustworkx payload is skeleton only):
-    #    graph.add_node({
-    #        "node_type": "role",
-    #        "name": "module.CreateOrderAction",
-    #        "class_ref": CreateOrderAction,
-    #    })
+    # 4. Coordinator commits in phase 3: facet skeleton into internal ``_facet_graph``,
+    #    then logical interchange into ``_graph``. Node payload is skeleton only
+    #    (``node_type``, ``name``, ``class_ref`` on the facet graph).
     #    Facet body is in ``GateCoordinator`` facet snapshots; ``get_node`` /
     #    ``hydrate_graph_node`` attach ``meta`` from the matching snapshot.
 
-    # 5. Payload objects are discarded. The graph is the source of truth.
+    # 5. Payload objects are discarded. Committed graphs are the source of truth.
 
 ═══════════════════════════════════════════════════════════════════════════════
 INVARIANTS
@@ -125,7 +123,7 @@ AI-CORE-BEGIN
 ROLE: Transport contract between inspectors and coordinator.
 CONTRACT: Carry immutable node/edge payloads through collect/validate/commit build phases.
 INVARIANTS: Frozen dataclasses, deterministic key shape, structural-edge flag for acyclicity policy.
-FLOW: inspector emits payload -> coordinator validates -> coordinator commits skeleton graph + cached snapshots.
+FLOW: inspector emits payload -> coordinator validates -> coordinator commits facet skeleton + logical graph + cached snapshots.
 FAILURES: Invalid payload shape/integrity errors are raised by coordinator validators.
 EXTENSION POINTS: New facet/edge kinds can be added by extending node_type/edge_type conventions.
 AI-CORE-END
