@@ -1,0 +1,24 @@
+# src/maxitor/test_domain/resources/db.py
+from typing import Any
+
+from action_machine.resources.sql_connection_manager import SqlConnectionManager
+
+
+class TestDbManager(SqlConnectionManager):
+    def __init__(self, rollup: bool = False) -> None:
+        super().__init__(rollup=rollup)
+
+    async def open(self) -> None:
+        return None
+
+    async def begin(self) -> None:
+        return None
+
+    async def commit(self) -> None:
+        return None
+
+    async def rollback(self) -> None:
+        return None
+
+    async def execute(self, query: str, params: tuple[Any, ...] | None = None) -> Any:
+        return None
