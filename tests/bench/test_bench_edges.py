@@ -50,14 +50,6 @@ ERRORS / LIMITATIONS
   authoritative.
 
 ═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Low-level bench and mock-prep regression tests.
-CONTRACT: Rule ordering for ``_prepare_mock``; reset and context boundaries.
-INVARIANTS: Imports private helpers from ``action_machine.testing.bench``.
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from unittest.mock import AsyncMock, MagicMock, Mock
