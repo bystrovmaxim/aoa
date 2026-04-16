@@ -56,3 +56,9 @@ plus ``acyclic_expected``. Compared via a clean subprocess in
 
 Regenerate the same way as G2, but emit the G4 snapshot fields and write
 ``tests/fixtures/golden_graph/dag_subgraph_test_domain.json``.
+
+## GraphML / HTML export (G5 smoke)
+
+There is no separate **G5** XML golden file in this repository: GraphML/HTML smoke
+tests live under ``tests/maxitor/test_export_uses_logical_graph.py`` (substring checks
+on generated files under ``tmp_path``).
