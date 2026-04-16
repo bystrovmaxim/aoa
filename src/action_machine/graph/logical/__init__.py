@@ -57,6 +57,13 @@ from action_machine.graph.logical.constants import (
     VERTEX_TYPES,
 )
 from action_machine.graph.logical.g0_builder import build_from_g0_input
+from action_machine.graph.logical.logical_dag import (
+    assert_logical_dag_edges_acyclic,
+    collect_logical_dag_edge_pairs,
+    logical_dag_edge_pairs_from_rx,
+    logical_dag_subgraph_is_acyclic,
+    logical_dag_subgraph_is_acyclic_from_rx,
+)
 from action_machine.graph.logical.logical_graph_builder import (
     FACET_NODE_TYPES_FOR_LOGICAL_BUILD,
     LogicalGraphBuilder,
@@ -80,7 +87,12 @@ __all__ = [
     "LogicalEdge",
     "LogicalGraphBuilder",
     "LogicalVertex",
+    "assert_logical_dag_edges_acyclic",
     "build_from_g0_input",
+    "collect_logical_dag_edge_pairs",
+    "logical_dag_edge_pairs_from_rx",
+    "logical_dag_subgraph_is_acyclic",
+    "logical_dag_subgraph_is_acyclic_from_rx",
     "narrow_facet_payloads_for_logical_build",
     "reverse_direct_edge",
     "split_checker_vertex_id",

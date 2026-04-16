@@ -139,3 +139,74 @@ def _first_list_mismatch(
         if a_row != e_row:
             return f"{label}[{i}]: {a_row!r} != {e_row!r}"
     return f"{label}: mismatch (unexpected)"
+
+
+def g4_snapshot_from_logical_rx(lg: rx.PyDiGraph) -> dict[str, Any]:
+    """Canonical G4 payload: ``dag_edges`` + ``acyclic_expected`` from a logical ``PyDiGraph``."""
+    from action_machine.graph.logical.logical_dag import (
+        logical_dag_edge_pairs_from_rx,
+        logical_dag_subgraph_is_acyclic_from_rx,
+    )
+
+    pairs = logical_dag_edge_pairs_from_rx(lg)
+    dag_edges = [{"source_id": s, "target_id": t} for s, t in pairs]
+    return {
+        "dag_edges": dag_edges,
+        "acyclic_expected": logical_dag_subgraph_is_acyclic_from_rx(lg),
+    }
+
+
+def load_g4_fixture(path: Path) -> dict[str, Any]:
+    raw = json.loads(path.read_text(encoding="utf-8"))
+    if "dag_edges" not in raw or "acyclic_expected" not in raw:
+        msg = "G4 fixture must contain dag_edges and acyclic_expected"
+        raise ValueError(msg)
+    return raw
+
+
+def assert_g4_fixture_matches_snapshot(
+    fixture: dict[str, Any],
+    snapshot: dict[str, Any],
+) -> None:
+    assert fixture["dag_edges"] == snapshot["dag_edges"]
+    assert fixture["acyclic_expected"] == snapshot["acyclic_expected"]
+
+
+def g4_snapshot_build_test_coordinator_clean_process() -> dict[str, Any]:
+    """Same isolation rationale as :func:`g2_snapshot_build_test_coordinator_clean_process`."""
+    root = _repo_root()
+    env = {**os.environ, "PYTHONPATH": f"{root / 'src'}{os.pathsep}{root}"}
+    script = """import importlib
+import json
+
+from action_machine.graph.logical.logical_dag import (
+    logical_dag_edge_pairs_from_rx,
+    logical_dag_subgraph_is_acyclic_from_rx,
+)
+from maxitor.test_domain.build import _MODULES, build_test_coordinator
+
+for name in _MODULES:
+    importlib.import_module(name)
+coord = build_test_coordinator()
+lg = coord.get_logical_graph()
+pairs = logical_dag_edge_pairs_from_rx(lg)
+edges = [{"source_id": s, "target_id": t} for s, t in pairs]
+print(
+    json.dumps(
+        {"dag_edges": edges, "acyclic_expected": logical_dag_subgraph_is_acyclic_from_rx(lg)},
+    ),
+)
+"""
+    proc = subprocess.run(
+        [sys.executable, "-"],
+        input=script,
+        capture_output=True,
+        text=True,
+        check=False,
+        cwd=str(root),
+        env=env,
+    )
+    if proc.returncode != 0:
+        msg = f"G4 subprocess failed ({proc.returncode}): {proc.stderr}"
+        raise RuntimeError(msg)
+    return json.loads(proc.stdout.strip())

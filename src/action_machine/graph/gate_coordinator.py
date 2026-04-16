@@ -93,12 +93,16 @@ The graph is either built completely and consistently, or not committed at all.
         integrity, acyclicity of **structural** edges; @depends cycles surface
         as ``CyclicDependencyError``.
 
+    PHASE 2b — LOGICAL DAG (before commit)
+        ``LogicalGraphBuilder`` on the narrow facet slice; acyclicity of the
+        logical DAG slice (``DEPENDS_ON`` / ``CONNECTS_TO`` with ``is_dag=True``).
+        Cycles raise ``CyclicDependencyError`` (same surface as structural cycles).
+
     PHASE 3 — COMMIT
         Nodes and edges into ``rx.PyDiGraph`` (node payload: ``node_type``,
         ``name``, ``class_ref`` only); ``_node_index`` / ``_class_index``
-        populated. A **logical** ``PyDiGraph`` is filled from the same merged
-        payloads (narrow projection) before ``_built = True``. Both graphs are
-        read-only afterward.
+        populated. The **logical** ``PyDiGraph`` is filled from the builder output
+        computed in phase 2b. After ``_built = True``, both graphs are read-only.
 
 ═══════════════════════════════════════════════════════════════════════════════
 WHERE VALIDATION LIVES
@@ -174,6 +178,7 @@ from action_machine.graph.exceptions import (
     InvalidGraphError,
     PayloadValidationError,
 )
+from action_machine.graph.logical.logical_dag import assert_logical_dag_edges_acyclic
 from action_machine.graph.logical.logical_graph_builder import (
     LogicalGraphBuilder,
     narrow_facet_payloads_for_logical_build,
@@ -319,7 +324,11 @@ class GateCoordinator:
         ``_built is True`` raises ``RuntimeError``.
 
         Three phases: collect payloads → validate → commit into ``rx.PyDiGraph``.
-        Any phase-2 failure means nothing from this build is committed.
+        Any phase-2 failure means nothing from this build is committed. After facet
+        validation succeeds, the logical interchange graph is built from a narrow
+        facet projection; if its DAG slice (``DEPENDS_ON`` / ``CONNECTS_TO`` with
+        ``is_dag=True``) is cyclic, ``build()`` raises ``CyclicDependencyError`` and
+        nothing is committed.
 
         Returns:
             ``self`` (fluent).
@@ -353,6 +362,11 @@ class GateCoordinator:
         logical_vertices, logical_edges = LogicalGraphBuilder.build(
             facet_payloads=narrow,
         )
+        try:
+            assert_logical_dag_edges_acyclic(logical_vertices, logical_edges)
+        except InvalidGraphError as exc:
+            raise CyclicDependencyError(str(exc)) from exc
+
         self._phase3_commit(all_payloads)
         self._commit_logical_graph(logical_vertices, logical_edges)
 
