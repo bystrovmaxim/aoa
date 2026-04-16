@@ -68,6 +68,9 @@ AI-CORE-END
 
 from __future__ import annotations
 
+from typing import Final
+
+from action_machine.graph.base_intent_inspector import BaseIntentInspector
 from action_machine.graph.gate_coordinator import GateCoordinator
 from action_machine.graph.inspectors.action_typed_schemas_inspector import (
     ActionTypedSchemasInspector,
@@ -99,9 +102,41 @@ from action_machine.graph.inspectors.subscription_intent_inspector import (
     SubscriptionIntentInspector,
 )
 
+DEFAULT_GATE_COORDINATOR_INSPECTORS: Final[tuple[type[BaseIntentInspector], ...]] = (
+    MetaIntentInspector,
+    RoleIntentInspector,
+    RoleModeIntentInspector,
+    RoleClassInspector,
+    DependencyIntentInspector,
+    ConnectionIntentInspector,
+    DescribedFieldsIntentInspector,
+    ActionTypedSchemasInspector,
+    AspectIntentInspector,
+    CheckerIntentInspector,
+    OnErrorIntentInspector,
+    CompensateIntentInspector,
+    SensitiveIntentInspector,
+    SubscriptionIntentInspector,
+    EntityIntentInspector,
+)
+
 
 class CoreActionMachine:
     """Core factory for creating a fully built coordinator."""
+
+    @staticmethod
+    def create_coordinator_unbuilt() -> GateCoordinator:
+        """
+        Register the default inspector set without calling :meth:`GateCoordinator.build`.
+
+        Intended for tests and diagnostics that need the same registration order as
+        :meth:`create_coordinator` but must run phase-1 collection separately (for
+        example feeding :class:`~action_machine.graph.logical.LogicalGraphBuilder`).
+        """
+        gc = GateCoordinator()
+        for inspector_cls in DEFAULT_GATE_COORDINATOR_INSPECTORS:
+            gc.register(inspector_cls)
+        return gc
 
     @staticmethod
     def create_coordinator() -> GateCoordinator:
@@ -111,22 +146,4 @@ class CoreActionMachine:
         Returns:
             Built ``GateCoordinator`` instance ready for snapshot reads.
         """
-        return (
-            GateCoordinator()
-            .register(MetaIntentInspector)
-            .register(RoleIntentInspector)
-            .register(RoleModeIntentInspector)
-            .register(RoleClassInspector)
-            .register(DependencyIntentInspector)
-            .register(ConnectionIntentInspector)
-            .register(DescribedFieldsIntentInspector)
-            .register(ActionTypedSchemasInspector)
-            .register(AspectIntentInspector)
-            .register(CheckerIntentInspector)
-            .register(OnErrorIntentInspector)
-            .register(CompensateIntentInspector)
-            .register(SensitiveIntentInspector)
-            .register(SubscriptionIntentInspector)
-            .register(EntityIntentInspector)
-            .build()
-        )
+        return CoreActionMachine.create_coordinator_unbuilt().build()
