@@ -45,3 +45,14 @@ When the narrow facet projection or test_domain declarations change **on purpose
 
 **G7** (reverse pairs for §5.3 types in `REVERSE_EDGE_MAP`) is asserted in
 `test_pr5_g7_reverse_edge_pairs.py` against the live graph (not a separate JSON file).
+
+## `dag_subgraph_test_domain.json` (G4)
+
+Logical **DAG slice**: edges with ``edge_type`` in ``DEPENDS_ON`` / ``CONNECTS_TO``
+and ``is_dag=True``, as sorted ``dag_edges`` objects ``{source_id, target_id}``,
+plus ``acyclic_expected``. Compared via a clean subprocess in
+``tests/graph_logical_contract/test_g4_dag_subgraph_golden.py`` (see
+``g4_snapshot_build_test_coordinator_clean_process`` in ``logical_golden_dump.py``).
+
+Regenerate the same way as G2, but emit the G4 snapshot fields and write
+``tests/fixtures/golden_graph/dag_subgraph_test_domain.json``.
