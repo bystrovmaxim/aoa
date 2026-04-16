@@ -11,7 +11,7 @@ If you intentionally change the G0 builder or the schema, update `expected` in
 the same PR:
 
 1. Adjust `input` / builder code.
-2. Run `uv run pytest tests/graph_logical_contract/test_g0_logical_minimal.py -q`.
+2. Run `uv run pytest tests/graph_logical_contract/test_golden_logical_minimal_g0.py -q`.
 3. If the new graph is correct, update the `expected` block (keep vertices sorted
   by `id`, edges sorted by `source_id`, `target_id`, `edge_type`, `category`).
 
@@ -23,7 +23,7 @@ canonical JSON for copy-paste.
 Canonical **logical** graph from `maxitor.test_domain.build.build_test_coordinator()`
 after `get_logical_graph()`: sorted `vertices` (`id`, `vertex_type`) and `edges`
 (`source_id`, `target_id`, `edge_type`, `category`). Used by
-`tests/graph_logical_contract/test_pr5_g2_logical_test_domain_golden.py`.
+`tests/graph_logical_contract/test_golden_logical_test_domain_g2.py`.
 
 The G2 test compares this file to a snapshot taken in a **fresh** ``python``
 subprocess (see ``g2_snapshot_build_test_coordinator_clean_process``): pytest
@@ -41,17 +41,17 @@ When the narrow facet projection or test_domain declarations change **on purpose
    wraps the result in `version` + `description`, and writes JSON with a trailing
    newline to `tests/fixtures/golden_graph/logical_test_domain.graph.json`.
 
-2. Re-run `uv run pytest tests/graph_logical_contract/test_pr5_g2_logical_test_domain_golden.py -q`.
+2. Re-run `uv run pytest tests/graph_logical_contract/test_golden_logical_test_domain_g2.py -q`.
 
 **G7** (reverse pairs for §5.3 types in `REVERSE_EDGE_MAP`) is asserted in
-`test_pr5_g7_reverse_edge_pairs.py` against the live graph (not a separate JSON file).
+`test_logical_reverse_edge_pairs_g7.py` against the live graph (not a separate JSON file).
 
 ## `dag_subgraph_test_domain.json` (G4)
 
 Logical **DAG slice**: edges with ``edge_type`` in ``DEPENDS_ON`` / ``CONNECTS_TO``
 and ``is_dag=True``, as sorted ``dag_edges`` objects ``{source_id, target_id}``,
 plus ``acyclic_expected``. Compared via a clean subprocess in
-``tests/graph_logical_contract/test_g4_dag_subgraph_golden.py`` (see
+``tests/graph_logical_contract/test_golden_dag_subgraph_g4.py`` (see
 ``g4_snapshot_build_test_coordinator_clean_process`` in ``logical_golden_dump.py``).
 
 Regenerate the same way as G2, but emit the G4 snapshot fields and write

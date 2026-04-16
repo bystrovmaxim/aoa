@@ -1,4 +1,4 @@
-# tests/graph_logical_contract/test_g0_logical_minimal.py
+# tests/graph_logical_contract/test_golden_logical_minimal_g0.py
 
 """
 Golden **G0**: ``logical_minimal.json`` vs ``build_from_g0_input``.
@@ -8,7 +8,7 @@ PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 Lock the minimal logical graph interchange shape and the G0 builder output before
-``GateCoordinator`` integration (plan 009, PR2 / G0).
+``GateCoordinator`` integration.
 
 ═══════════════════════════════════════════════════════════════════════════════
 INVARIANTS
@@ -44,7 +44,7 @@ def _canonical_edges(edges: list[LogicalEdge]) -> list[dict]:
     )
 
 
-def test_g0_logical_minimal_matches_golden() -> None:
+def test_logical_minimal_g0_matches_golden() -> None:
     raw = json.loads(_FIXTURE.read_text(encoding="utf-8"))
     inp = raw["input"]
     expected = raw["expected"]
@@ -64,7 +64,7 @@ def test_g0_logical_minimal_matches_golden() -> None:
     assert got_e == exp_e
 
 
-def test_g0_rejects_unknown_domain() -> None:
+def test_logical_minimal_g0_rejects_unknown_domain() -> None:
     raw = json.loads(_FIXTURE.read_text(encoding="utf-8"))
     inp = dict(raw["input"])
     inp["actions"] = [

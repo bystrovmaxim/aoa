@@ -1,7 +1,7 @@
-# tests/graph_logical_contract/test_pr3_test_domain_facet_to_logical.py
+# tests/graph_logical_contract/test_test_domain_facet_payloads_to_logical.py
 
 """
-PR3: collect real ``FacetPayload`` rows from test_domain (unbuilt coordinator) and feed
+Collect real ``FacetPayload`` rows from test_domain (unbuilt coordinator) and feed
 ``LogicalGraphBuilder``; snapshot smoke on built coordinator (A2-style).
 """
 
@@ -30,14 +30,14 @@ def _import_test_domain_modules() -> None:
         importlib.import_module(name)
 
 
-def test_pr3_collect_raises_when_coordinator_already_built() -> None:
+def test_collect_raises_when_coordinator_already_built() -> None:
     _import_test_domain_modules()
     coord = CoreActionMachine.create_coordinator()
     with pytest.raises(RuntimeError, match="before build"):
         collect_merged_facet_payloads_unbuilt(coord)
 
 
-def test_pr3_narrow_logical_graph_from_test_domain_payloads() -> None:
+def test_narrow_logical_graph_from_test_domain_payloads() -> None:
     _import_test_domain_modules()
     coord = CoreActionMachine.create_coordinator_unbuilt()
     payloads = collect_merged_facet_payloads_unbuilt(coord)
@@ -58,7 +58,7 @@ def test_pr3_narrow_logical_graph_from_test_domain_payloads() -> None:
     assert coord._built is True
 
 
-def test_pr3_built_coordinator_meta_snapshot_for_full_graph_action() -> None:
+def test_built_coordinator_meta_snapshot_for_full_graph_action() -> None:
     """A2-style: known action still exposes meta snapshot after full build."""
     _import_test_domain_modules()
     coord = build_test_coordinator()
@@ -66,7 +66,7 @@ def test_pr3_built_coordinator_meta_snapshot_for_full_graph_action() -> None:
     assert snap is not None
 
 
-def test_pr3_narrow_payloads_are_subset_of_raw_and_drop_rich_facets() -> None:
+def test_narrow_payloads_are_subset_of_raw_and_drop_rich_facets() -> None:
     _import_test_domain_modules()
     coord = CoreActionMachine.create_coordinator_unbuilt()
     raw = collect_merged_facet_payloads_unbuilt(coord)
@@ -80,7 +80,7 @@ def test_pr3_narrow_payloads_are_subset_of_raw_and_drop_rich_facets() -> None:
     assert {p.node_type for p in narrow} <= FACET_NODE_TYPES_FOR_LOGICAL_BUILD
 
 
-def test_pr3_logical_output_vertex_ids_unique() -> None:
+def test_logical_output_vertex_ids_unique() -> None:
     _import_test_domain_modules()
     coord = CoreActionMachine.create_coordinator_unbuilt()
     raw = collect_merged_facet_payloads_unbuilt(coord)
@@ -90,14 +90,14 @@ def test_pr3_logical_output_vertex_ids_unique() -> None:
     assert len(ids) == len(set(ids))
 
 
-def test_pr3_create_coordinator_factory_still_builds_non_trivial_graph() -> None:
+def test_create_coordinator_factory_still_builds_non_trivial_graph() -> None:
     """Regression: default factory path used by runtime remains healthy after refactor."""
     _import_test_domain_modules()
     coord = CoreActionMachine.create_coordinator()
     assert len(coord.get_graph()) >= 5
 
 
-def test_pr3_built_coordinator_role_snapshot_for_full_graph_action() -> None:
+def test_built_coordinator_role_snapshot_for_full_graph_action() -> None:
     _import_test_domain_modules()
     coord = build_test_coordinator()
     assert coord.get_snapshot(TestFullGraphAction, "role") is not None

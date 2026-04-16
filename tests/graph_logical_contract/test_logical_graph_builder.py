@@ -1,4 +1,4 @@
-# tests/graph_logical_contract/test_pr2_logical_graph_builder.py
+# tests/graph_logical_contract/test_logical_graph_builder.py
 
 """
 ``LogicalGraphBuilder``: G0 delegation + narrow ``FacetPayload`` projection vs golden G0.

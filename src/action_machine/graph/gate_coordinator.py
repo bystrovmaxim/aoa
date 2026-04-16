@@ -1,6 +1,6 @@
 # src/action_machine/graph/gate_coordinator.py
 """
-GateCoordinator — transactional facet graph and typed facet snapshots.
+GateCoordinator — transactional logical graph, internal facet skeleton, and typed facet snapshots.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
@@ -13,41 +13,37 @@ Registry for **static** metadata: registered **inspectors** (subclasses of
 
 After a successful ``register(...).build()``:
 
-1. **Facet graph** (``rx.PyDiGraph``) — committed nodes and edges from payloads.
-   Each node stores only ``node_type``, ``name``, and ``class_ref`` (topology).
-   Facet body is **not** duplicated on the node; use ``hydrate_graph_node()`` on
-   raw graph dicts or the read APIs below, which attach ``meta`` from snapshots.
+1. **Facet skeleton** (internal ``_facet_graph`` ``rx.PyDiGraph``) — committed nodes
+   and edges from payloads for hydration APIs. Each node stores only ``node_type``,
+   ``name``, and ``class_ref`` (topology). Facet body is **not** duplicated on the node;
+   use ``hydrate_graph_node()`` on facet dicts from :meth:`facet_topology_copy` or the
+   read APIs below, which attach ``meta`` from snapshots.
 
 2. **Facet snapshot map** (``_facet_snapshots``) — optional typed views keyed by
    ``(owner class, facet storage key)``. Read via ``get_snapshot(cls, facet_key)``.
 
-3. **Logical graph** (``_logical_graph``, separate ``rx.PyDiGraph``) — a parallel
-   interchange view derived from the same merged ``FacetPayload`` list via
-   :class:`~action_machine.graph.logical.LogicalGraphBuilder` (narrow facet kinds).
-   Read via ``get_logical_graph()`` or :meth:`get_graph` (default public shape).
-   Diagram and file exporters should call :meth:`get_graph_for_visualization` so
-   integrations do not each duplicate ``get_logical_graph`` fallbacks.
+3. **Logical interchange** — the committed ``rx.PyDiGraph`` in ``_graph`` holds the
+   canonical public topology (``vertex_type``, ``id``, …) built via
+   :class:`~action_machine.graph.logical.LogicalGraphBuilder` from a narrow facet
+   projection. Read it with :meth:`get_graph` or :meth:`get_logical_graph` (aliases).
+
+   A separate **internal** facet skeleton ``rx.PyDiGraph`` (``_facet_graph``) stores
+   ``node_type`` / ``name`` / ``class_ref`` for snapshot hydration, ``get_node``, and
+   integrations that need facet-shaped topology; use :meth:`facet_topology_copy` for
+   a read-only copy (e.g. MCP graph JSON). It is not the interchange returned by
+   :meth:`get_graph`.
 
 **Public API (domain-agnostic):** ``register``, ``build``, ``is_built``,
 ``build_status``, ``graph_node_count``, ``graph_edge_count``, ``get_graph``,
-``get_facet_graph``, ``get_logical_graph``, ``get_graph_for_visualization``,
+``get_logical_graph``, ``get_graph_for_visualization``, ``facet_topology_copy``,
 ``hydrate_graph_node``, ``get_node``, ``get_nodes_by_type``, ``get_nodes_for_class``,
 ``get_snapshot``.
 
-Constructor flag ``logical_graph_public`` (default ``True``): after ``build()``,
-:meth:`get_graph` returns the **logical** interchange ``PyDiGraph`` (same topology as
-:meth:`get_logical_graph`). Pass ``logical_graph_public=False`` for the legacy facet
-skeleton on :meth:`get_graph` (``node_type``, ``name``, ``class_ref`` only).
-:meth:`get_facet_graph` always returns that facet skeleton but is **deprecated** for
-one release; prefer ``logical_graph_public=False`` and :meth:`get_graph` for new code.
-
-**Raw graph vs hydrated reads:** ``get_graph()`` returns an ``rx.PyDiGraph``
-copy whose node payloads are **interchange skeleton** records (logical keys, no
-``meta``) when ``logical_graph_public`` is true; otherwise facet skeleton keys only.
-Prefer ``get_node`` / ``get_nodes_by_type`` / ``get_nodes_for_class`` for facet ``meta``,
-or call ``hydrate_graph_node(dict(graph[idx]))`` with a **facet** node dict (from
-``get_facet_graph`` while it exists, or from ``get_graph`` when
-``logical_graph_public=False``). Snapshot storage keys for
+**Raw graph vs hydrated reads:** :meth:`get_graph` returns the **logical** interchange
+copy (no ``meta``). Prefer ``get_node`` / ``get_nodes_by_type`` / ``get_nodes_for_class``
+for facet ``meta``. To hydrate raw dicts yourself, pass **facet** payloads from
+:meth:`facet_topology_copy` (node index matches ``_node_index`` facet ordering), not
+logical :meth:`get_graph` payloads. Snapshot storage keys for
 hydration are recorded during phase 1 from each inspector's
 ``facet_snapshot_storage_key()``; if two keys target the same graph node (merged
 ``action``), ``meta`` stays empty. Nodes without a registration (stubs) fall
@@ -112,10 +108,10 @@ The graph is either built completely and consistently, or not committed at all.
         Cycles raise ``CyclicDependencyError`` (same surface as structural cycles).
 
     PHASE 3 — COMMIT
-        Nodes and edges into ``rx.PyDiGraph`` (node payload: ``node_type``,
-        ``name``, ``class_ref`` only); ``_node_index`` / ``_class_index``
-        populated. The **logical** ``PyDiGraph`` is filled from the builder output
-        computed in phase 2b. After ``_built = True``, both graphs are read-only.
+        Facet skeleton nodes and edges into internal ``_facet_graph`` (payload:
+        ``node_type``, ``name``, ``class_ref``); ``_node_index`` / ``_class_index``
+        populated. The **logical** ``PyDiGraph`` ``_graph`` is filled from the builder
+        output computed in phase 2b. After ``_built = True``, both graphs are read-only.
 
 ═══════════════════════════════════════════════════════════════════════════════
 WHERE VALIDATION LIVES
@@ -178,7 +174,6 @@ AI-CORE-END
 
 from __future__ import annotations
 
-import warnings
 from collections.abc import Mapping
 from typing import Any, Literal
 
@@ -211,7 +206,7 @@ _AMBIGUOUS_HYDRATION_KEY = _AmbiguousHydrationKey()
 
 class GateCoordinator:
     """
-    Transactional facet graph plus typed facet snapshots.
+    Transactional logical graph plus internal facet skeleton and typed facet snapshots.
 
     See the module docstring for ``build()`` phases and the public read API.
     Safe to share across the execution engine and adapters after ``build()``.
@@ -230,12 +225,17 @@ class GateCoordinator:
             Set of registered inspectors (duplicate registration guard).
 
         _graph : rx.PyDiGraph
-            Directed system graph. Filled at commit (phase 3). Node payloads are
-            skeleton dicts (``node_type``, ``name``, ``class_ref``); facet
-            ``meta`` lives in ``_facet_snapshots``. Read-only after ``build()``.
+            Directed **logical** interchange graph (vertex ``id`` / ``vertex_type`` /
+            ``stereotype``, edge ``edge_type`` / ``category`` / …). Filled at the end of
+            ``build()``; read-only afterward via :meth:`get_graph` / :meth:`get_logical_graph`.
+
+        _facet_graph : rx.PyDiGraph
+            Internal **facet** skeleton (``node_type``, ``name``, ``class_ref``) used for
+            ``get_node``, ``hydrate_graph_node``, and tools that need facet topology.
+            Not returned by :meth:`get_graph`; copy via :meth:`facet_topology_copy`.
 
         _node_index : dict[str, int]
-            Node key → graph index. Populated at commit.
+            Node key → **facet** graph index. Populated at commit.
 
         _class_index : dict[type, list[str]]
             Class → list of node keys emitted for that class. Populated at
@@ -254,21 +254,14 @@ class GateCoordinator:
             Graph key ``node_type:node_name`` → snapshot storage key used to
             rebuild ``meta``, or ``_AMBIGUOUS_HYDRATION_KEY`` when several keys
             conflict. Filled during phase 1; cleared at each ``build()`` start.
-
-        _logical_graph : rx.PyDiGraph
-            Directed **logical** interchange graph (vertex ``id`` / ``vertex_type`` /
-            ``stereotype``, edge ``edge_type`` / ``category`` / …). Filled at the end
-            of ``build()`` together with the facet graph; read-only afterward via
-            ``get_logical_graph()``.
     """
 
-    def __init__(self, *, logical_graph_public: bool = True) -> None:
-        """Create a coordinator with empty facet and logical graphs."""
-        self._logical_graph_public: bool = logical_graph_public
+    def __init__(self) -> None:
+        """Create a coordinator with empty logical and internal facet graphs."""
         self._inspectors: list[type[BaseIntentInspector]] = []
         self._registered: set[type[BaseIntentInspector]] = set()
         self._graph: rx.PyDiGraph = rx.PyDiGraph()
-        self._logical_graph: rx.PyDiGraph = rx.PyDiGraph()
+        self._facet_graph: rx.PyDiGraph = rx.PyDiGraph()
         self._node_index: dict[str, int] = {}
         self._class_index: dict[type, list[str]] = {}
         self._built: bool = False
@@ -332,13 +325,14 @@ class GateCoordinator:
 
     def build(self) -> GateCoordinator:
         """
-        Transactionally build the facet graph and facet snapshot map.
+        Transactionally build the logical graph, internal facet skeleton, and facet snapshot map.
 
         Invoked **explicitly** in a fluent chain (or via
         ``CoreActionMachine.create_coordinator()``). A second call after
         ``_built is True`` raises ``RuntimeError``.
 
-        Three phases: collect payloads → validate → commit into ``rx.PyDiGraph``.
+        Three phases: collect payloads → validate → commit into internal facet
+        ``rx.PyDiGraph`` plus logical interchange ``rx.PyDiGraph``.
         Any phase-2 failure means nothing from this build is committed. After facet
         validation succeeds, the logical interchange graph is built from a narrow
         facet projection; if its DAG slice (``DEPENDS_ON`` / ``CONNECTS_TO`` with
@@ -363,6 +357,9 @@ class GateCoordinator:
 
         self._facet_snapshots.clear()
         self._hydration_snapshot_key_by_graph_key.clear()
+        self._facet_graph = rx.PyDiGraph()
+        self._node_index.clear()
+        self._class_index.clear()
         all_payloads, payload_sources = self._phase1_collect()
         all_payloads = self._materialize_edge_targets(all_payloads, payload_sources)
         self._phase2_check_payloads(all_payloads)
@@ -656,7 +653,7 @@ class GateCoordinator:
         # Add all nodes
         for p in payloads:
             key = self._make_key(p.node_type, p.node_name)
-            idx = self._graph.add_node({
+            idx = self._facet_graph.add_node({
                 "node_type": p.node_type,
                 "name": p.node_name,
                 "class_ref": p.node_class,
@@ -677,7 +674,7 @@ class GateCoordinator:
                     edge.target_node_type, edge.target_name,
                 )
                 target_idx = self._node_index[target_key]
-                self._graph.add_edge(source_idx, target_idx, {
+                self._facet_graph.add_edge(source_idx, target_idx, {
                     "edge_type": edge.edge_type,
                     "meta": dict(edge.edge_meta),
                 })
@@ -688,7 +685,7 @@ class GateCoordinator:
         edges: list[LogicalEdge],
     ) -> None:
         """
-        Populate ``_logical_graph`` from logical interchange vertices and edges.
+        Populate ``_graph`` from logical interchange vertices and edges.
 
         Node payloads mirror :class:`~action_machine.graph.logical.model.LogicalVertex`
         fields; edge payloads mirror :class:`~action_machine.graph.logical.model.LogicalEdge`.
@@ -720,7 +717,7 @@ class GateCoordinator:
                     "attributes": e.attributes,
                 },
             )
-        self._logical_graph = lg
+        self._graph = lg
 
     # ═══════════════════════════════════════════════════════════════════
     # Utilities
@@ -778,14 +775,13 @@ class GateCoordinator:
         """
         Return a node dict with ``meta`` filled from facet snapshots.
 
-        ``get_graph()`` returns a copy whose payloads omit ``meta``; this method
-        resolves the snapshot storage key from phase-1 registration (or falls
-        back to ``node_type`` for nodes that never registered a snapshot, except
-        ``action``) and fills ``meta`` via ``to_facet_payload().node_meta``.
-        When ``logical_graph_public`` is true (the default), pass dicts from the facet
-        skeleton: :meth:`get_facet_graph` (deprecated) or :meth:`get_graph` after
-        constructing the coordinator with ``logical_graph_public=False`` — not from
-        the logical :meth:`get_graph` interchange payloads.
+        Pass **facet** skeleton dicts (``node_type``, ``name``, ``class_ref``), e.g. from
+        :meth:`facet_topology_copy` node payloads — not logical :meth:`get_graph` payloads
+        (those use ``vertex_type`` / ``id``).
+
+        Resolves the snapshot storage key from phase-1 registration (or falls back to
+        ``node_type`` for nodes that never registered a snapshot, except ``action``) and
+        fills ``meta`` via ``to_facet_payload().node_meta``.
 
         Args:
             node: Raw payload from ``rx.PyDiGraph`` (or compatible mapping).
@@ -855,16 +851,12 @@ class GateCoordinator:
     def graph_node_count(self) -> int:
         """Number of nodes in the graph returned by :meth:`get_graph`. Requires ``build()``."""
         self._require_built()
-        if self._logical_graph_public:
-            return self._logical_graph.num_nodes()
         return self._graph.num_nodes()
 
     @property
     def graph_edge_count(self) -> int:
         """Number of edges in the graph returned by :meth:`get_graph`. Requires ``build()``."""
         self._require_built()
-        if self._logical_graph_public:
-            return self._logical_graph.num_edges()
         return self._graph.num_edges()
 
     # ═══════════════════════════════════════════════════════════════════
@@ -890,7 +882,7 @@ class GateCoordinator:
         idx = self._node_index.get(key)
         if idx is None:
             return None
-        return self.hydrate_graph_node(self._graph[idx])
+        return self.hydrate_graph_node(self._facet_graph[idx])
 
     def get_nodes_by_type(self, node_type: str) -> list[dict[str, Any]]:
         """
@@ -904,9 +896,9 @@ class GateCoordinator:
         """
         self._require_built()
         return [
-            self.hydrate_graph_node(self._graph[idx])
-            for idx in self._graph.node_indices()
-            if self._graph[idx].get("node_type") == node_type
+            self.hydrate_graph_node(self._facet_graph[idx])
+            for idx in self._facet_graph.node_indices()
+            if self._facet_graph[idx].get("node_type") == node_type
         ]
 
     def get_nodes_for_class(self, cls: type) -> list[dict[str, Any]]:
@@ -928,66 +920,43 @@ class GateCoordinator:
         for key in keys:
             idx = self._node_index.get(key)
             if idx is not None:
-                result.append(self.hydrate_graph_node(self._graph[idx]))
+                result.append(self.hydrate_graph_node(self._facet_graph[idx]))
         return result
 
     def get_graph(self) -> rx.PyDiGraph:
         """
-        Return a **low-level** copy of the primary graph (topology + node payloads).
+        Return a **low-level** copy of the logical interchange graph (topology + payloads).
 
-        By default (``logical_graph_public=True``) this returns the **logical**
-        interchange graph (same payload shape as :meth:`get_logical_graph`) with **no**
-        ``meta``. With ``logical_graph_public=False``, returns the **facet** skeleton
-        (``node_type``, ``name``, ``class_ref`` only). Use :meth:`get_facet_graph` only
-        during migration; it is deprecated.
+        Node payloads use ``vertex_type``, ``id``, ``stereotype``, ``display_name``,
+        ``class_ref``, ``properties`` (no ``meta``). For facet skeleton dicts
+        (``node_type``, ``name``, ``class_ref``), use :meth:`facet_topology_copy`.
 
         Returns:
             ``rx.PyDiGraph`` clone.
         """
         self._require_built()
-        if self._logical_graph_public:
-            return self._logical_graph.copy()
         return self._graph.copy()
 
-    def get_facet_graph(self) -> rx.PyDiGraph:
-        """
-        Return a copy of the **facet** skeleton ``PyDiGraph`` (``node_type``, ``name``,
-        ``class_ref`` only), regardless of ``logical_graph_public``.
-
-        .. deprecated:: 1.1.0
-            Scheduled for removal after the next release. Use
-            ``GateCoordinator(..., logical_graph_public=False)`` and :meth:`get_graph`
-            for the facet skeleton, or consume the logical interchange from :meth:`get_graph`
-            with the default flag.
-        """
-        warnings.warn(
-            (
-                "get_facet_graph() is deprecated and will be removed after the next release. "
-                "Use GateCoordinator(..., logical_graph_public=False) and get_graph() "
-                "for the facet skeleton, or migrate callers to the logical graph."
-            ),
-            DeprecationWarning,
-            stacklevel=2,
-        )
+    def facet_topology_copy(self) -> rx.PyDiGraph:
+        """Return a copy of the internal facet skeleton graph (``node_type``, ``name``, ``class_ref``)."""
         self._require_built()
-        return self._graph.copy()
+        return self._facet_graph.copy()
 
     def get_logical_graph(self) -> rx.PyDiGraph:
         """
         Return a **copy** of the logical interchange ``PyDiGraph``.
 
-        Same topology and payloads as :meth:`get_graph` when ``logical_graph_public``
-        is true (default). Node payloads use logical keys ``vertex_type``,
-        ``id``, ``stereotype``, ``display_name``, ``class_ref``, ``properties``; edge
-        payloads carry ``edge_type``, ``stereotype``, ``category``, ``is_dag``,
-        ``attributes``. The graph is derived from the same merged facet payloads as
-        the facet graph (narrow facet kinds only until the logical builder widens).
+        Same topology and payloads as :meth:`get_graph`. Node payloads use logical keys
+        ``vertex_type``, ``id``, ``stereotype``, ``display_name``, ``class_ref``,
+        ``properties``; edge payloads carry ``edge_type``, ``stereotype``, ``category``,
+        ``is_dag``, ``attributes``. Derived from merged facet payloads (narrow facet kinds
+        until the logical builder widens).
 
         Returns:
             ``rx.PyDiGraph`` clone.
         """
         self._require_built()
-        return self._logical_graph.copy()
+        return self._graph.copy()
 
     def get_graph_for_visualization(self) -> rx.PyDiGraph:
         """Return graph for diagram and file export tools (logical interchange view)."""
@@ -1028,10 +997,7 @@ class GateCoordinator:
         """Compact debug representation."""
         state = "built" if self._built else "not built"
         inspector_names = ", ".join(i.__name__ for i in self._inspectors)
-        if self._built and self._logical_graph_public:
-            nodes = self._logical_graph.num_nodes()
-            edges = self._logical_graph.num_edges()
-        elif self._built:
+        if self._built:
             nodes = self._graph.num_nodes()
             edges = self._graph.num_edges()
         else:
@@ -1039,10 +1005,9 @@ class GateCoordinator:
             edges = 0
         fc = self.__dict__.get(DEPENDENCY_FACTORY_CACHE_KEY)
         n_factories = len(fc) if isinstance(fc, dict) else 0
-        pub = ", logical_graph_public=False" if not self._logical_graph_public else ""
         return (
             f"GateCoordinator("
             f"state={state}, factories={n_factories}, "
-            f"inspectors=[{inspector_names}], nodes={nodes}, edges={edges}{pub}"
+            f"inspectors=[{inspector_names}], nodes={nodes}, edges={edges}"
             f")"
         )

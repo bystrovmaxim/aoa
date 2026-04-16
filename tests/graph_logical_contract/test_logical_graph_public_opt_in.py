@@ -1,12 +1,11 @@
 # tests/graph_logical_contract/test_logical_graph_public_opt_in.py
 
-"""Default logical ``get_graph()`` and opt-out facet skeleton on ``GateCoordinator``."""
+"""Public logical ``get_graph()`` vs internal facet skeleton ``facet_topology_copy()``."""
 
 from __future__ import annotations
 
 import importlib
 import json
-import warnings
 
 import pytest
 
@@ -35,7 +34,7 @@ def test_default_graph_counts_match_logical_get_graph() -> None:
     assert coord.graph_edge_count == len(coord.get_graph().weighted_edge_list())
 
 
-def test_mcp_build_graph_json_stays_facet_shaped_with_default_logical_public() -> None:
+def test_mcp_build_graph_json_stays_facet_shaped() -> None:
     _import_test_domain_modules()
     coord = CoreActionMachine.create_coordinator()
     raw = _build_graph_json(coord)
@@ -46,19 +45,8 @@ def test_mcp_build_graph_json_stays_facet_shaped_with_default_logical_public() -
 
 
 @pytest.mark.facet_skeleton
-def test_get_facet_graph_emits_deprecation_warning() -> None:
-    _import_test_domain_modules()
+def test_facet_topology_copy_matches_facet_get_graph_shape() -> None:
     coord = CoreActionMachine.create_coordinator()
-    with pytest.warns(DeprecationWarning, match="get_facet_graph"):
-        coord.get_facet_graph()
-
-
-@pytest.mark.facet_skeleton
-def test_logical_graph_public_false_get_graph_remains_facet_skeleton() -> None:
-    coord = CoreActionMachine.create_coordinator(logical_graph_public=False)
-    g = coord.get_graph()
-    assert "node_type" in g[0]
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore", DeprecationWarning)
-        facet = coord.get_facet_graph()
-    assert len(facet) == len(g)
+    facet = coord.facet_topology_copy()
+    assert "node_type" in facet[0]
+    assert len(facet) >= len(coord.get_graph())

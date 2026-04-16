@@ -24,6 +24,10 @@ The coordinator class name `**GateCoordinator`** is unchanged.
 
 - **`GateCoordinator.get_facet_graph()`.** Emits `DeprecationWarning` and is scheduled for removal after the next release. Prefer `logical_graph_public=False` and `get_graph()` for facet-shaped payloads, or consume the logical graph. `McpAdapter._build_graph_json` suppresses the warning for the supported integration path.
 
+### Changed (PR11)
+
+- **`GateCoordinator` single public `PyDiGraph`.** `get_graph()` / `get_logical_graph()` read the same committed logical interchange graph (`_graph`). Facet skeleton topology lives in internal `_facet_graph`; use **`facet_topology_copy()`** for a facet-shaped copy (MCP, `hydrate_graph_node` inputs). Removed **`get_facet_graph()`** and the **`logical_graph_public`** constructor flag; **`CoreActionMachine.create_coordinator(_unbuilt)`** no longer accepts that keyword.
+
 ## [1.0.0] – 2026-04-12
 
 ### Breaking changes

@@ -23,7 +23,7 @@ from action_machine.runtime.machines.core_action_machine import CoreActionMachin
 # Register a minimal action in the BaseAction subclass tree before build().
 from tests.scenarios.domain_model import PingAction
 
-# --- Contract: raw node from facet ``get_graph()`` (no ``meta``) -----------------
+# --- Contract: raw node from facet ``facet_topology_copy()`` (no ``meta``) ---------
 GRAPH_NODE_SKELETON_KEYS: Final[frozenset[str]] = frozenset({
     "node_type",
     "name",
@@ -55,13 +55,13 @@ MCP_NODE_MIN_KEYS: Final[frozenset[str]] = frozenset({"id", "type"})
 
 
 def _default_coordinator() -> GateCoordinator:
-    return CoreActionMachine.create_coordinator(logical_graph_public=False)
+    return CoreActionMachine.create_coordinator()
 
 
 def test_contract_raw_graph_nodes_are_skeleton_only() -> None:
-    """Every payload in ``get_graph()`` has exactly three keys, no ``meta``."""
+    """Every payload in the facet topology graph has exactly three keys, no ``meta``."""
     coord = _default_coordinator()
-    graph = coord.get_graph()
+    graph = coord.facet_topology_copy()
     for idx in graph.node_indices():
         raw = dict(graph[idx])
         assert "meta" not in raw
@@ -75,7 +75,7 @@ def test_contract_raw_graph_nodes_are_skeleton_only() -> None:
 def test_contract_hydrate_always_adds_meta_dict() -> None:
     """``hydrate_graph_node`` always returns ``meta`` as a ``dict``."""
     coord = _default_coordinator()
-    graph = coord.get_graph()
+    graph = coord.facet_topology_copy()
     for idx in graph.node_indices():
         raw = dict(graph[idx])
         hydrated = coord.hydrate_graph_node(raw)
@@ -89,7 +89,7 @@ def test_contract_get_node_shape_matches_hydrate() -> None:
     nm = BaseIntentInspector._make_node_name(PingAction)
     node = coord.get_node("meta", nm)
     assert node is not None
-    graph = coord.get_graph()
+    graph = coord.facet_topology_copy()
     idx = next(
         i
         for i in graph.node_indices()
@@ -111,7 +111,7 @@ def test_contract_ping_action_meta_snapshot_present() -> None:
 def test_contract_node_keys_follow_type_name_pattern() -> None:
     """Node key ``node_type:name`` matches payload fields."""
     coord = _default_coordinator()
-    graph = coord.get_graph()
+    graph = coord.facet_topology_copy()
     for idx in graph.node_indices():
         p = graph[idx]
         nt, nm = p["node_type"], p["name"]

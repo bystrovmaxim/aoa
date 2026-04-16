@@ -93,7 +93,7 @@ markers = [
     "integration: marks integration tests requiring external services",
     "benchmark: performance or load regression anchors (optional selective runs)",
     "graph_coverage: logical graph golden / matrix (plan 009); run with pytest -m graph_coverage",
-    "facet_skeleton: coordinator built with logical_graph_public=False for facet-shaped get_graph contract tests",
+    "facet_skeleton: tests that assert facet skeleton shape via facet_topology_copy (optional CI subset)",
 ]
 
 # ============================================================================

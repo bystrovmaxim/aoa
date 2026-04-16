@@ -1,13 +1,13 @@
-# tests/graph_logical_contract/test_pr1_logical_constants_and_parsing.py
+# tests/graph_logical_contract/test_logical_constants_and_parsing.py
 
 """
-PR1 unit tests: ``VERTEX_TYPES``, ``REVERSE_EDGE_MAP``, vertex-id parsing, ``reverse_direct_edge``.
+Unit tests: ``VERTEX_TYPES``, ``REVERSE_EDGE_MAP``, vertex-id parsing, ``reverse_direct_edge``.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Lock ADR constants and pure helpers independent of ``GateCoordinator`` (plan 009, PR1).
+Lock logical-layer constants and pure helpers independent of ``GateCoordinator``.
 
 ═══════════════════════════════════════════════════════════════════════════════
 INVARIANTS

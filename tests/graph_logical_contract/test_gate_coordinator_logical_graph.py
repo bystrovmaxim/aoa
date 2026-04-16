@@ -1,6 +1,6 @@
-# tests/graph_logical_contract/test_pr4_gate_coordinator_logical_graph.py
+# tests/graph_logical_contract/test_gate_coordinator_logical_graph.py
 
-"""PR4: ``GateCoordinator.get_logical_graph()`` alongside facet and public ``get_graph()``."""
+"""``GateCoordinator`` logical graph vs standalone ``LogicalGraphBuilder`` on test_domain."""
 
 from __future__ import annotations
 
@@ -24,13 +24,13 @@ def _import_test_domain_modules() -> None:
         importlib.import_module(name)
 
 
-def test_pr4_get_logical_graph_requires_build() -> None:
+def test_get_logical_graph_requires_build() -> None:
     gc = CoreActionMachine.create_coordinator_unbuilt()
     with pytest.raises(RuntimeError, match="not built"):
         gc.get_logical_graph()
 
 
-def test_pr4_logical_graph_matches_standalone_builder_on_test_domain() -> None:
+def test_logical_graph_matches_standalone_builder_on_test_domain() -> None:
     _import_test_domain_modules()
     coord = CoreActionMachine.create_coordinator()
     lg = coord.get_logical_graph()
@@ -45,7 +45,7 @@ def test_pr4_logical_graph_matches_standalone_builder_on_test_domain() -> None:
     assert len(lg.weighted_edge_list()) == len(edges)
 
 
-def test_pr4_logical_node_payload_shape() -> None:
+def test_logical_node_payload_shape() -> None:
     _import_test_domain_modules()
     coord = build_test_coordinator()
     lg = coord.get_logical_graph()
@@ -61,10 +61,10 @@ def test_pr4_logical_node_payload_shape() -> None:
         }
 
 
-def test_pr4_facet_graph_counters_match_get_graph_logical_is_narrower_nodes() -> None:
-    """Facet skeleton (``get_facet_graph``) is at least as large as the logical slice.
+def test_facet_topology_covers_logical_node_slice_sizes() -> None:
+    """Facet skeleton (``facet_topology_copy``) is at least as large as the logical slice.
 
-    Default ``get_graph()`` is logical; facet topology is read via ``get_facet_graph``.
+    ``get_graph()`` is logical; facet topology is read via ``facet_topology_copy``.
     Logical interchange may emit **more** edges than the facet graph (expanded
     projection), so there is no ordering invariant between edge counts.
     """
@@ -75,14 +75,13 @@ def test_pr4_facet_graph_counters_match_get_graph_logical_is_narrower_nodes() ->
     assert coord.graph_node_count == logical_nodes
     assert coord.graph_edge_count == logical_edges
     assert logical_nodes == len(coord.get_logical_graph())
-    with pytest.warns(DeprecationWarning, match="get_facet_graph"):
-        facet_g = coord.get_facet_graph()
+    facet_g = coord.facet_topology_copy()
     facet_nodes = len(facet_g)
     assert facet_nodes >= logical_nodes
     assert logical_nodes >= 1
 
 
-def test_pr4_known_action_and_domain_present_in_logical_graph() -> None:
+def test_known_action_and_domain_present_in_logical_graph() -> None:
     _import_test_domain_modules()
     coord = build_test_coordinator()
     lg = coord.get_logical_graph()

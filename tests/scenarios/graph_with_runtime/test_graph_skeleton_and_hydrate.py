@@ -18,8 +18,8 @@ from tests.scenarios.domain_model.services import PaymentService
 
 def test_get_graph_node_payloads_are_skeleton_only() -> None:
     """Each node payload in the graph copy has exactly three keys, no ``meta``."""
-    coord = CoreActionMachine.create_coordinator(logical_graph_public=False)
-    g = coord.get_graph()
+    coord = CoreActionMachine.create_coordinator()
+    g = coord.facet_topology_copy()
     for idx in g.node_indices():
         raw = dict(g[idx])
         assert "meta" not in raw
@@ -28,9 +28,9 @@ def test_get_graph_node_payloads_are_skeleton_only() -> None:
 
 def test_hydrate_graph_node_restores_meta_from_snapshot() -> None:
     """``hydrate_graph_node`` projects the same ``meta`` as ``get_node``."""
-    coord = CoreActionMachine.create_coordinator(logical_graph_public=False)
+    coord = CoreActionMachine.create_coordinator()
     nm = BaseIntentInspector._make_node_name(FullAction)
-    g = coord.get_graph()
+    g = coord.facet_topology_copy()
     idx = next(
         i
         for i in g.node_indices()
@@ -46,8 +46,8 @@ def test_hydrate_graph_node_restores_meta_from_snapshot() -> None:
 
 def test_hydrated_action_node_has_empty_meta() -> None:
     """``action`` node has no single body snapshot; ``meta`` after hydration is empty."""
-    coord = CoreActionMachine.create_coordinator(logical_graph_public=False)
-    g = coord.get_graph()
+    coord = CoreActionMachine.create_coordinator()
+    g = coord.facet_topology_copy()
     action_indices = [
         i
         for i in g.node_indices()
@@ -71,7 +71,7 @@ def test_hydrate_graph_node_requires_build() -> None:
 
 def test_get_nodes_by_type_includes_hydrated_meta() -> None:
     """``get_nodes_by_type`` returns records with non-empty ``meta`` when a snapshot exists."""
-    coord = CoreActionMachine.create_coordinator(logical_graph_public=False)
+    coord = CoreActionMachine.create_coordinator()
     nm = BaseIntentInspector._make_node_name(FullAction)
     meta_nodes = [n for n in coord.get_nodes_by_type("meta") if n["name"] == nm]
     assert len(meta_nodes) == 1
@@ -80,7 +80,7 @@ def test_get_nodes_by_type_includes_hydrated_meta() -> None:
 
 def test_stub_dependency_node_hydrates_to_empty_meta() -> None:
     """Stub ``dependency`` nodes (no snapshot) yield empty ``meta``."""
-    coord = CoreActionMachine.create_coordinator(logical_graph_public=False)
+    coord = CoreActionMachine.create_coordinator()
     dep_nodes = [
         n
         for n in coord.get_nodes_by_type("dependency")
@@ -89,7 +89,7 @@ def test_stub_dependency_node_hydrates_to_empty_meta() -> None:
     assert dep_nodes, "expected PaymentService dependency stub in default graph"
     assert dep_nodes[0].get("meta") == {}
 
-    g = coord.get_graph()
+    g = coord.facet_topology_copy()
     idx = next(
         i
         for i in g.node_indices()
@@ -100,7 +100,7 @@ def test_stub_dependency_node_hydrates_to_empty_meta() -> None:
 
 def test_hydration_mapping_from_build_records_meta_snapshot_key() -> None:
     """Phase 1 records snapshot key for hydration (not a static dict)."""
-    coord = CoreActionMachine.create_coordinator(logical_graph_public=False)
+    coord = CoreActionMachine.create_coordinator()
     nm = BaseIntentInspector._make_node_name(FullAction)
     gk_meta = f"meta:{nm}"
     raw_map = coord._hydration_snapshot_key_by_graph_key
@@ -109,7 +109,7 @@ def test_hydration_mapping_from_build_records_meta_snapshot_key() -> None:
 
 def test_merged_action_node_marks_hydration_ambiguous() -> None:
     """Merged structural ``action`` with @depends and @connection yields ambiguous snapshot keys."""
-    coord = CoreActionMachine.create_coordinator(logical_graph_public=False)
+    coord = CoreActionMachine.create_coordinator()
     nm = BaseIntentInspector._make_node_name(FullAction)
     gk_action = f"action:{nm}"
     raw_map = coord._hydration_snapshot_key_by_graph_key
@@ -118,7 +118,7 @@ def test_merged_action_node_marks_hydration_ambiguous() -> None:
 
 def test_stub_connection_node_hydrates_to_empty_meta() -> None:
     """Stub ``connection`` (manager from @connection) without snapshot — empty ``meta``."""
-    coord = CoreActionMachine.create_coordinator(logical_graph_public=False)
+    coord = CoreActionMachine.create_coordinator()
     conn_nodes = [
         n
         for n in coord.get_nodes_by_type("connection")
@@ -127,7 +127,7 @@ def test_stub_connection_node_hydrates_to_empty_meta() -> None:
     assert conn_nodes, "expected TestDbManager connection stub (e.g. from FullAction)"
     assert conn_nodes[0].get("meta") == {}
 
-    g = coord.get_graph()
+    g = coord.facet_topology_copy()
     idx = next(
         i
         for i in g.node_indices()
@@ -138,7 +138,7 @@ def test_stub_connection_node_hydrates_to_empty_meta() -> None:
 
 def test_stub_domain_node_hydrates_to_empty_meta() -> None:
     """``domain`` node (domain class) without facet snapshot — empty ``meta``."""
-    coord = CoreActionMachine.create_coordinator(logical_graph_public=False)
+    coord = CoreActionMachine.create_coordinator()
     dom_nodes = [
         n
         for n in coord.get_nodes_by_type("domain")
@@ -147,7 +147,7 @@ def test_stub_domain_node_hydrates_to_empty_meta() -> None:
     assert dom_nodes, "expected OrdersDomain node from @meta(domain=...)"
     assert dom_nodes[0].get("meta") == {}
 
-    g = coord.get_graph()
+    g = coord.facet_topology_copy()
     idx = next(
         i
         for i in g.node_indices()
@@ -162,14 +162,14 @@ def test_action_depends_only_has_single_hydration_key_not_ambiguous() -> None:
 
     ``meta`` body on structural ``action`` stays empty (payload without node_meta).
     """
-    coord = CoreActionMachine.create_coordinator(logical_graph_public=False)
+    coord = CoreActionMachine.create_coordinator()
     nm = BaseIntentInspector._make_node_name(CompensatedOrderAction)
     gk = f"action:{nm}"
     raw_map = coord._hydration_snapshot_key_by_graph_key
     assert raw_map.get(gk) == "depends"
     assert raw_map[gk] is not gc_module._AMBIGUOUS_HYDRATION_KEY
 
-    g = coord.get_graph()
+    g = coord.facet_topology_copy()
     idx = next(
         i
         for i in g.node_indices()

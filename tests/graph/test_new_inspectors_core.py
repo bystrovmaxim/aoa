@@ -139,7 +139,7 @@ def test_connection_inspector_builds_structural_connection_edge() -> None:
 
 def test_coordinator_merges_action_payloads_from_dependency_and_connection() -> None:
     coord = (
-        GateCoordinator(logical_graph_public=False)
+        GateCoordinator()
         .register(DependencyIntentInspector)
         .register(ConnectionIntentInspector)
         .build()
@@ -150,5 +150,5 @@ def test_coordinator_merges_action_payloads_from_dependency_and_connection() -> 
     keys = coord._class_index.get(_DependsAndConnectionAction, [])  # pylint: disable=protected-access
     assert len(keys) == 1
     idx = coord._node_index[keys[0]]  # pylint: disable=protected-access
-    out_edges = coord._graph.out_edges(idx)  # pylint: disable=protected-access
+    out_edges = coord._facet_graph.out_edges(idx)  # pylint: disable=protected-access
     assert len(out_edges) == 2
