@@ -29,12 +29,6 @@ EXAMPLES
         )
 
 ═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Test-only benchmark reporting helpers.
-CONTRACT: Multi-line blocks; optional throughput from iterations and elapsed time.
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from __future__ import annotations
