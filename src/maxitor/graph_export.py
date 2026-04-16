@@ -6,13 +6,13 @@ GraphML export for coordinator ``PyDiGraph`` — purpose.
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Write rustworkx graphs under ``maxitor`` diagnostics to **GraphML** via
-``rustworkx.write_graphml``. The coordinator may expose either a **facet** graph
-(``node_type``, ``name``, ``class_ref`` on nodes) or a **logical interchange** graph
-(``vertex_type``, ``id``, ``display_name``). This module normalizes logical payloads
-into the facet-shaped view expected by string-only GraphML serialization, and picks
-``get_logical_graph()`` when present so HTML and GraphML stay aligned on the same
-export surface.
+Write rustworkx graphs under ``maxitor`` diagnostics to **GraphML**, **JSON**, and
+a minimal **DOT** (Graphviz) encoding. The coordinator may expose either a **facet**
+graph (``node_type``, ``name``, ``class_ref`` on nodes) or a **logical interchange**
+graph (``vertex_type``, ``id``, ``display_name``). This module normalizes logical
+payloads into the facet-shaped view expected by string-only GraphML serialization,
+and picks ``get_logical_graph()`` when present so HTML, GraphML, JSON, and DOT stay
+aligned on the same export surface.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
@@ -30,6 +30,10 @@ ARCHITECTURE / DATA FLOW
             │                                          │
             │                                          ▼
             │                                 export_pygraph_to_graphml(path)
+            │
+            ├──►  pygraph_to_json_document  ──►  export_pygraph_to_json(path)
+            │
+            ├──►  pygraph_to_dot_source       ──►  export_pygraph_to_dot(path)
             │
             └──►  (visualizer.generate_g6_html reuses normalization import)
 
@@ -76,6 +80,9 @@ from typing import Any, cast
 import rustworkx as rx
 
 DEFAULT_TEST_DOMAIN_GRAPH_GRAPHML = "test_domain_graph.graphml"
+DEFAULT_TEST_DOMAIN_GRAPH_JSON = "test_domain_graph.json"
+DEFAULT_TEST_DOMAIN_GRAPH_DOT = "test_domain_graph.dot"
+JSON_SCHEMA_ID = "actionmachine.rustworkx.logical_interchange.v1"
 
 
 def _archive_logs_dir() -> Path:
@@ -168,6 +175,106 @@ def export_pygraph_to_graphml(graph: rx.PyDiGraph, output_path: str | Path) -> P
     return path
 
 
+def _json_safe_value(value: Any) -> Any:
+    """Recursively coerce node/edge payloads to JSON-serializable data."""
+    if value is None or isinstance(value, (bool, int, float, str)):
+        return value
+    if isinstance(value, type):
+        return f"{value.__module__}.{value.__qualname__}"
+    if isinstance(value, frozenset):
+        return sorted((_json_safe_value(v) for v in value), key=str)
+    if isinstance(value, tuple):
+        return [_json_safe_value(v) for v in value]
+    if isinstance(value, list):
+        return [_json_safe_value(v) for v in value]
+    if isinstance(value, dict):
+        return {str(k): _json_safe_value(v) for k, v in value.items()}
+    return str(value)
+
+
+def pygraph_to_json_document(graph: rx.PyDiGraph) -> dict[str, Any]:
+    """
+    Build a portable JSON document: node/edge indices plus sanitized payloads.
+
+    Intended for diagnostics, golden tooling, and agents; not a stable RPC schema.
+    """
+    nodes: list[dict[str, Any]] = []
+    for idx in graph.node_indices():
+        raw = graph[idx]
+        payload = dict(raw) if isinstance(raw, dict) else {"_repr": str(raw)}
+        nodes.append({"rustworkx_index": int(idx), "data": _json_safe_value(payload)})
+    edges: list[dict[str, Any]] = []
+    for s, t, w in graph.weighted_edge_list():
+        ed = dict(w) if isinstance(w, dict) else {"_repr": str(w)}
+        edges.append(
+            {
+                "source_index": int(s),
+                "target_index": int(t),
+                "data": _json_safe_value(ed),
+            }
+        )
+    return {
+        "schema": JSON_SCHEMA_ID,
+        "generated_at_utc": datetime.now(UTC).isoformat(),
+        "node_count": len(nodes),
+        "edge_count": len(edges),
+        "nodes": nodes,
+        "edges": edges,
+    }
+
+
+def export_pygraph_to_json(graph: rx.PyDiGraph, output_path: str | Path) -> Path:
+    """Write ``pygraph_to_json_document`` to ``output_path`` (UTF-8, indent=2)."""
+    path = Path(output_path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    doc = pygraph_to_json_document(graph)
+    path.write_text(json.dumps(doc, ensure_ascii=False, indent=2), encoding="utf-8")
+    return path
+
+
+def _dot_escape_label(text: str) -> str:
+    return (
+        text.replace("\\", "\\\\")
+        .replace('"', '\\"')
+        .replace("\n", " ")
+        .replace("\r", " ")
+    )
+
+
+def pygraph_to_dot_source(graph: rx.PyDiGraph, *, graph_id: str = "logical_graph") -> str:
+    """
+    Minimal DOT for Graphviz: one node per rustworkx index, labels from normalized names.
+
+    Edge labels carry ``edge_type`` when present. Not optimized for huge graphs.
+    """
+    safe_id = "".join(ch if ch.isalnum() or ch == "_" else "_" for ch in graph_id) or "G"
+    lines = [
+        f'digraph "{_dot_escape_label(safe_id)}" {{',
+        "  rankdir=LR;",
+        "  node [shape=box style=rounded];",
+    ]
+    for idx in graph.node_indices():
+        raw = graph[idx]
+        node = dict(raw) if isinstance(raw, dict) else {}
+        norm = normalize_coordinator_node_payload_for_visualization(node)
+        label = str(norm.get("label") or norm.get("name") or f"node_{idx}")
+        lines.append(f'  n{int(idx)} [label="{_dot_escape_label(label)}"];')
+    for s, t, w in graph.weighted_edge_list():
+        ed = dict(w) if isinstance(w, dict) else {}
+        et = str(ed.get("edge_type", "") or "")
+        lines.append(f'  n{int(s)} -> n{int(t)} [label="{_dot_escape_label(et)}"];')
+    lines.append("}")
+    return "\n".join(lines)
+
+
+def export_pygraph_to_dot(graph: rx.PyDiGraph, output_path: str | Path) -> Path:
+    """Write UTF-8 DOT source produced by :func:`pygraph_to_dot_source`."""
+    path = Path(output_path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(pygraph_to_dot_source(graph), encoding="utf-8")
+    return path
+
+
 def export_test_domain_graph_graphml(
     output_path: str | Path | None = None,
     *,
@@ -194,6 +301,64 @@ def export_test_domain_graph_graphml(
 
     written = export_pygraph_to_graphml(graph, target)
     print(f"Graph GraphML written to {written}")
+    return written
+
+
+def export_test_domain_graph_json(
+    output_path: str | Path | None = None,
+    *,
+    use_timestamp: bool = False,
+) -> Path:
+    """Build the test_domain coordinator and write JSON under ``archive/logs``."""
+    from maxitor.test_domain.build import build_test_coordinator  # pylint: disable=import-outside-toplevel
+
+    coordinator = build_test_coordinator()
+    graph = coordinator_pygraph_for_visual_export(coordinator)
+
+    if output_path is not None:
+        target = Path(output_path)
+    else:
+        log_dir = _archive_logs_dir()
+        log_dir.mkdir(parents=True, exist_ok=True)
+        ts = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
+        name = (
+            f"test_domain_graph_{ts}.json"
+            if use_timestamp
+            else DEFAULT_TEST_DOMAIN_GRAPH_JSON
+        )
+        target = log_dir / name
+
+    written = export_pygraph_to_json(graph, target)
+    print(f"Graph JSON written to {written}")
+    return written
+
+
+def export_test_domain_graph_dot(
+    output_path: str | Path | None = None,
+    *,
+    use_timestamp: bool = False,
+) -> Path:
+    """Build the test_domain coordinator and write DOT under ``archive/logs``."""
+    from maxitor.test_domain.build import build_test_coordinator  # pylint: disable=import-outside-toplevel
+
+    coordinator = build_test_coordinator()
+    graph = coordinator_pygraph_for_visual_export(coordinator)
+
+    if output_path is not None:
+        target = Path(output_path)
+    else:
+        log_dir = _archive_logs_dir()
+        log_dir.mkdir(parents=True, exist_ok=True)
+        ts = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
+        name = (
+            f"test_domain_graph_{ts}.dot"
+            if use_timestamp
+            else DEFAULT_TEST_DOMAIN_GRAPH_DOT
+        )
+        target = log_dir / name
+
+    written = export_pygraph_to_dot(graph, target)
+    print(f"Graph DOT written to {written}")
     return written
 
 
