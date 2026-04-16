@@ -42,7 +42,8 @@ EXAMPLES
 ERRORS / LIMITATIONS
 ═══════════════════════════════════════════════════════════════════════════════
 
-- Validates only presence/shape of required keys; not a general coordinator builder.
+- Validates only presence/shape of required keys, unique vertex ids, and referential
+  integrity; not a general coordinator builder.
 """
 
 from __future__ import annotations
@@ -54,18 +55,41 @@ from action_machine.graph.logical.model import LogicalEdge, LogicalVertex
 from action_machine.graph.logical.reverse_edge import reverse_direct_edge
 
 
+def _assert_unique_g0_vertex_ids(
+    domains: list[Any],
+    actions: list[Any],
+    roles: list[Any],
+) -> None:
+    """Reject duplicate ``id`` strings across domain / action / role rows."""
+    seen: set[str] = set()
+    for kind, rows in (
+        ("domain", domains),
+        ("action", actions),
+        ("role", roles),
+    ):
+        for row in rows:
+            vid = str(row["id"])
+            if vid in seen:
+                msg = f"duplicate vertex id {vid!r} (second occurrence in {kind} list)"
+                raise ValueError(msg)
+            seen.add(vid)
+
+
 def build_from_g0_input(inp: Mapping[str, Any]) -> tuple[list[LogicalVertex], list[LogicalEdge]]:
     """
     Build vertices and edges from the ``input`` object inside ``logical_minimal.json``.
 
     Raises:
         KeyError: missing required section.
-        ValueError: inconsistent references between actions, domains, and roles.
+        ValueError: duplicate vertex ``id``, or inconsistent references between
+            actions, domains, and roles.
         RuntimeError: internal inconsistency if a §5.3 forward edge does not reverse.
     """
     domains = inp["domains"]
     actions = inp["actions"]
     roles = inp["roles"]
+
+    _assert_unique_g0_vertex_ids(domains, actions, roles)
 
     vertices: list[LogicalVertex] = []
     edges: list[LogicalEdge] = []
