@@ -1,10 +1,67 @@
 # src/maxitor/graph_export.py
 """
-Экспорт ``PyDiGraph`` координатора в **GraphML** (``rustworkx.write_graphml``).
+GraphML export for coordinator ``PyDiGraph`` — purpose.
 
-Узлы исходного графа содержат ``class_ref`` (тип Python) и прочие объекты —
-``write_graphml`` их не сериализует, поэтому строится **копия** с тем же
-индексом вершин в поле ``rw_index`` и только строковыми атрибутами.
+═══════════════════════════════════════════════════════════════════════════════
+PURPOSE
+═══════════════════════════════════════════════════════════════════════════════
+
+Write rustworkx graphs under ``maxitor`` diagnostics to **GraphML** via
+``rustworkx.write_graphml``. The coordinator may expose either a **facet** graph
+(``node_type``, ``name``, ``class_ref`` on nodes) or a **logical interchange** graph
+(``vertex_type``, ``id``, ``display_name``). This module normalizes logical payloads
+into the facet-shaped view expected by string-only GraphML serialization, and picks
+``get_logical_graph()`` when present so HTML and GraphML stay aligned on the same
+export surface.
+
+═══════════════════════════════════════════════════════════════════════════════
+ARCHITECTURE / DATA FLOW
+═══════════════════════════════════════════════════════════════════════════════
+
+::
+
+    build_test_coordinator()
+            │
+            ▼
+    coordinator_pygraph_for_visual_export(coordinator)
+            │   (get_logical_graph if callable, else get_graph)
+            ▼
+    PyDiGraph  ──►  normalize node dicts  ──►  pygraph_to_graphml_string_dicts
+            │                                          │
+            │                                          ▼
+            │                                 export_pygraph_to_graphml(path)
+            │
+            └──►  (visualizer.generate_g6_html reuses normalization import)
+
+═══════════════════════════════════════════════════════════════════════════════
+INVARIANTS
+═══════════════════════════════════════════════════════════════════════════════
+
+- Topology is preserved: node index order maps through ``rw_index`` onto the copy
+  written to GraphML.
+- Non-string node/edge payload values are never passed to ``write_graphml``; a
+  sanitized copy is built first.
+- ``normalize_coordinator_node_payload_for_visualization`` does not mutate the
+  input graph payloads in place.
+
+═══════════════════════════════════════════════════════════════════════════════
+EXAMPLES
+═══════════════════════════════════════════════════════════════════════════════
+
+- **Happy path:** ``export_test_domain_graph_graphml()`` writes
+  ``archive/logs/test_domain_graph.graphml`` using the logical graph when the
+  coordinator implements ``get_logical_graph()``.
+- **Edge case:** a stub coordinator that only implements ``get_graph()`` still
+  exports; normalization is a no-op when payloads already use facet keys.
+
+═══════════════════════════════════════════════════════════════════════════════
+ERRORS / LIMITATIONS
+═══════════════════════════════════════════════════════════════════════════════
+
+- ``coordinator_pygraph_for_visual_export`` raises ``TypeError`` when neither
+  ``get_logical_graph`` nor ``get_graph`` is callable.
+- Very large ``meta`` / attribute blobs on edges are truncated when JSON-encoded
+  for GraphML edge attributes.
 """
 
 from __future__ import annotations
@@ -12,10 +69,10 @@ from __future__ import annotations
 import json
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any, cast
 
 import rustworkx as rx
 
-# Рядом с ``test_domain_graph.html`` — то же базовое имя, расширение .graphml
 DEFAULT_TEST_DOMAIN_GRAPH_GRAPHML = "test_domain_graph.graphml"
 
 
@@ -23,19 +80,48 @@ def _archive_logs_dir() -> Path:
     return Path(__file__).resolve().parents[2] / "archive" / "logs"
 
 
+def normalize_coordinator_node_payload_for_visualization(
+    node: dict[str, Any],
+) -> dict[str, Any]:
+    """
+    Map logical interchange node payloads to the facet-shaped keys used by exporters.
+    """
+    if "vertex_type" not in node or "id" not in node:
+        return dict(node)
+    vid = str(node["id"])
+    vt = str(node.get("vertex_type", "unknown"))
+    display = str(node.get("display_name", "") or "").strip()
+    label = display or (vid.rsplit(".", maxsplit=1)[-1] if "." in vid else vid)
+    return {
+        "node_type": vt,
+        "name": vid,
+        "label": label,
+        "class_ref": node.get("class_ref"),
+    }
+
+
+def coordinator_pygraph_for_visual_export(coordinator: object) -> rx.PyDiGraph:
+    """Return the graph used for maxitor HTML/GraphML export (logical graph when available)."""
+    logical = getattr(coordinator, "get_logical_graph", None)
+    if callable(logical):
+        return cast(rx.PyDiGraph, logical())
+    graph = getattr(coordinator, "get_graph", None)
+    if callable(graph):
+        return cast(rx.PyDiGraph, graph())
+    msg = "Coordinator must expose get_logical_graph() and/or get_graph()"
+    raise TypeError(msg)
+
+
 def pygraph_to_graphml_string_dicts(graph: rx.PyDiGraph) -> rx.PyDiGraph:
     """
-    Копия направленного графа: те же рёбра (после отображения индексов), данные
-    узла/ребра — только строки, пригодные для GraphML.
-
-    Узел: ``name``, ``type`` (``node_type``), ``class_name``, ``graph_key``, ``rw_index``.
-    Ребро: ``type`` (``edge_type``), при наличии — ``meta`` (JSON).
+    Build a directed graph copy with string-only node/edge dicts safe for GraphML.
     """
     out = rx.PyDiGraph()
     old_to_new: dict[int, int] = {}
     for idx in graph.node_indices():
         raw = graph[idx]
         node = dict(raw) if isinstance(raw, dict) else {}
+        node = normalize_coordinator_node_payload_for_visualization(node)
         name = str(node.get("name", "") or "")
         node_type = str(node.get("node_type", "") or "")
         cr = node.get("class_ref")
@@ -66,12 +152,7 @@ def pygraph_to_graphml_string_dicts(graph: rx.PyDiGraph) -> rx.PyDiGraph:
 
 
 def export_pygraph_to_graphml(graph: rx.PyDiGraph, output_path: str | Path) -> Path:
-    """
-    Записать **реальную** топологию ``graph`` в GraphML (копия со строковыми полями).
-
-    Топология 1:1 с исходным графом; порядок добавления узлов сохраняет
-    соответствие ``rw_index`` ↔ исходный индекс ``PyDiGraph``.
-    """
+    """Write GraphML for the given graph topology to ``output_path``."""
     path = Path(output_path)
     path.parent.mkdir(parents=True, exist_ok=True)
     safe = pygraph_to_graphml_string_dicts(graph)
@@ -84,17 +165,11 @@ def export_test_domain_graph_graphml(
     *,
     use_timestamp: bool = False,
 ) -> Path:
-    """
-    Собрать координатор ``test_domain`` и записать GraphML в ``archive/logs``.
-
-    По умолчанию файл ``test_domain_graph.graphml`` (как у HTML — тот же каталог
-    и то же базовое имя). С ``use_timestamp=True`` — отдельный файл с UTC-меткой.
-    """
-    # Defer test_domain + coordinator stack until export runs (keeps import graph light).
+    """Build the test_domain coordinator and write GraphML under ``archive/logs``."""
     from maxitor.test_domain.build import build_test_coordinator  # pylint: disable=import-outside-toplevel
 
     coordinator = build_test_coordinator()
-    graph = coordinator.get_graph()
+    graph = coordinator_pygraph_for_visual_export(coordinator)
 
     if output_path is not None:
         target = Path(output_path)

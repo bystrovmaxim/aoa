@@ -1,17 +1,58 @@
 # src/maxitor/visualizer.py
 """
-HTML-визуализация графа GateCoordinator (rustworkx) через **AntV G6 5** (один UMD с CDN).
+HTML visualization for coordinator ``PyDiGraph`` graphs — purpose.
 
-Экспорт — **строгое отображение** переданного ``rx.PyDiGraph``: одна вершина G6 на каждый
-индекс узла в графе, одно ребро на каждую запись ``weighted_edge_list`` (без слияния,
-без пересборки топологии). У координатора одна логическая пара ``(node_type, name)`` —
-одна вершина; разные ``node_type`` для одного класса — **разные** вершины фасетного графа
-(см. ``action_machine.graph.payload``).
+═══════════════════════════════════════════════════════════════════════════════
+PURPOSE
+═══════════════════════════════════════════════════════════════════════════════
 
-G6 подключается в сгенерированном HTML — **npm / отдельные JS-пакеты не требуются**.
-В Python нужны только зависимости репозитория (в т.ч. ``rustworkx`` для ``PyDiGraph``).
+Render a rustworkx graph as a **standalone HTML** page using **AntV G6 5** (single UMD
+from a CDN). The export is a strict 1:1 mapping from ``PyDiGraph`` indices to G6 nodes
+and ``weighted_edge_list`` entries to edges. ``export_test_domain_graph_html`` uses
+the same graph source as GraphML export: ``get_logical_graph()`` when the coordinator
+implements it, otherwise ``get_graph()``. Node payloads in **logical interchange** form
+are normalized via ``maxitor.graph_export`` helpers before styling.
 
-По умолчанию файл пишется в ``archive/logs`` от корня репозитория (на два уровня выше этого файла).
+═══════════════════════════════════════════════════════════════════════════════
+ARCHITECTURE / DATA FLOW
+═══════════════════════════════════════════════════════════════════════════════
+
+::
+
+    build_test_coordinator()
+            │
+            ▼
+    coordinator_pygraph_for_visual_export(coordinator)
+            │
+            ▼
+    generate_g6_html(graph, path)
+            │
+            ├── normalize_coordinator_node_payload_for_visualization (per node)
+            └── JSON payload → inline G6 script → HTML file under archive/logs
+
+═══════════════════════════════════════════════════════════════════════════════
+INVARIANTS
+═══════════════════════════════════════════════════════════════════════════════
+
+- No npm build step: the HTML embeds CDN script and serialized graph JSON only.
+- Default output path lives under ``archive/logs`` relative to the repository root.
+- Normalization never mutates the input ``PyDiGraph`` node payloads.
+
+═══════════════════════════════════════════════════════════════════════════════
+EXAMPLES
+═══════════════════════════════════════════════════════════════════════════════
+
+- **Happy path:** ``export_test_domain_graph_html()`` writes
+  ``archive/logs/test_domain_graph.html`` with G6 zoom controls.
+- **Edge case:** ``use_timestamp=True`` appends a UTC suffix so each run creates a
+  new HTML file instead of overwriting the default name.
+
+═══════════════════════════════════════════════════════════════════════════════
+ERRORS / LIMITATIONS
+═══════════════════════════════════════════════════════════════════════════════
+
+- Unknown ``node_type`` values fall back to a neutral color in ``NODE_COLORS``.
+- Large dynamic meta values on nodes are truncated when serialized for tooltips.
 """
 
 from __future__ import annotations
@@ -23,6 +64,11 @@ from pathlib import Path
 from typing import Any
 
 import rustworkx as rx
+
+from maxitor.graph_export import (
+    coordinator_pygraph_for_visual_export,
+    normalize_coordinator_node_payload_for_visualization,
+)
 
 # AntV G6 5 — см. https://g6.antv.antgroup.com/en/manual/getting-started/installation
 G6_CDN_URL = "https://unpkg.com/@antv/g6@5/dist/g6.min.js"
@@ -53,7 +99,20 @@ NODE_COLORS: dict[str, str] = {
 
 DEFAULT_COLOR = "#95a5a6"
 
-_SKIP_META_KEYS = frozenset({"node_type", "name", "label", "graph_key", "facet_label"})
+_SKIP_META_KEYS = frozenset(
+    {
+        "node_type",
+        "name",
+        "label",
+        "graph_key",
+        "facet_label",
+        "vertex_type",
+        "id",
+        "display_name",
+        "stereotype",
+        "properties",
+    },
+)
 
 
 def _graph_vertex_key(node: dict[str, Any]) -> str:
@@ -112,12 +171,7 @@ def generate_g6_html(
     height: str = "800px",
     node_colors: dict[str, str] | None = None,
 ) -> Path:
-    """
-    Сохранить автономный HTML с **G6 5**: топология 1:1 с переданным ``PyDiGraph``.
-
-    Узлы ``rect``, цвет по ``node_type``; подпись — фасет и класс (не только короткое имя
-    класса), в данных — полный ключ ``graph_key`` как у координатора.
-    """
+    """Write a standalone HTML page with G6 5 for the given ``PyDiGraph`` topology."""
     path = Path(output_path)
     path.parent.mkdir(parents=True, exist_ok=True)
     colors = node_colors if node_colors is not None else NODE_COLORS
@@ -126,6 +180,7 @@ def generate_g6_html(
     for idx in graph.node_indices():
         raw = graph[idx]
         node = dict(raw) if isinstance(raw, dict) else {}
+        node = normalize_coordinator_node_payload_for_visualization(node)
         node_type = str(node.get("node_type", "unknown"))
         short = _element_short_name(node)
         facet_label = _vertex_facet_label(node)
@@ -399,21 +454,11 @@ def export_test_domain_graph_html(
     title: str = "ActionMachine test_domain graph",
     use_timestamp: bool = False,
 ) -> Path:
-    """
-    Собрать координатор test_domain и записать HTML в ``archive/logs``.
-
-    Граф в HTML — ровно ``coordinator.get_graph()`` (копия ``PyDiGraph`` координатора),
-    без изменения множества вершин и рёбер.
-
-    Если ``output_path`` не задан: по умолчанию один файл
-    ``archive/logs/test_domain_graph.html`` (перезапись при каждом запуске).
-    С ``use_timestamp=True`` имя будет с UTC-меткой — отдельный файл на каждый запуск.
-    """
-    # Defer test_domain + coordinator stack until export runs (keeps import graph light).
+    """Build the test_domain coordinator and write a G6 HTML graph under ``archive/logs``."""
     from maxitor.test_domain.build import build_test_coordinator  # pylint: disable=import-outside-toplevel
 
     coordinator = build_test_coordinator()
-    graph = coordinator.get_graph()
+    graph = coordinator_pygraph_for_visual_export(coordinator)
 
     if output_path is not None:
         target = Path(output_path)
