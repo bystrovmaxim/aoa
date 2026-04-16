@@ -50,14 +50,6 @@ ERRORS / LIMITATIONS
   for tests).
 
 ═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Immutability contract tests for bench fluent configuration.
-CONTRACT: Each ``with_*`` returns a new bench; prior instances unchanged.
-INVARIANTS: ``clean_bench`` fixture; default stubs from testing stubs module.
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from action_machine.testing import TestBench

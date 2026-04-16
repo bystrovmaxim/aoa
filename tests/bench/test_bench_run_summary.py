@@ -60,14 +60,6 @@ ERRORS / LIMITATIONS
   (``manager_bench``, ``mock_db``).
 
 ═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Scoped bench API tests for summary-only runs.
-CONTRACT: Validator gates summary; ``rollup`` required.
-INVARIANTS: ``FullAction`` / ``PingAction`` from ``tests.scenarios.domain_model``.
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from unittest.mock import AsyncMock
