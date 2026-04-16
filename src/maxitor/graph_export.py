@@ -90,7 +90,8 @@ def export_test_domain_graph_graphml(
     По умолчанию файл ``test_domain_graph.graphml`` (как у HTML — тот же каталог
     и то же базовое имя). С ``use_timestamp=True`` — отдельный файл с UTC-меткой.
     """
-    from maxitor.test_domain.build import build_test_coordinator
+    # Defer test_domain + coordinator stack until export runs (keeps import graph light).
+    from maxitor.test_domain.build import build_test_coordinator  # pylint: disable=import-outside-toplevel
 
     coordinator = build_test_coordinator()
     graph = coordinator.get_graph()

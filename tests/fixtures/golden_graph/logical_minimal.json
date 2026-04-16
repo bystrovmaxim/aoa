@@ -1,0 +1,92 @@
+{
+  "version": 1,
+  "description": "G0 golden: minimal synthetic logical graph (no GateCoordinator).",
+  "input": {
+    "domains": [
+      {
+        "id": "golden_demo.domains.DemoDomain",
+        "display_name": "demo"
+      }
+    ],
+    "actions": [
+      {
+        "id": "golden_demo.actions.DemoAction",
+        "display_name": "DemoAction",
+        "domain_id": "golden_demo.domains.DemoDomain"
+      }
+    ],
+    "roles": [
+      {
+        "id": "golden_demo.roles.DemoRole",
+        "display_name": "DemoRole",
+        "assigned_action_id": "golden_demo.actions.DemoAction"
+      }
+    ]
+  },
+  "expected": {
+    "vertices": [
+      {
+        "id": "golden_demo.actions.DemoAction",
+        "vertex_type": "action",
+        "stereotype": "Business Process",
+        "display_name": "DemoAction",
+        "class_ref": null,
+        "properties": {}
+      },
+      {
+        "id": "golden_demo.domains.DemoDomain",
+        "vertex_type": "domain",
+        "stereotype": "Business Object",
+        "display_name": "demo",
+        "class_ref": null,
+        "properties": {}
+      },
+      {
+        "id": "golden_demo.roles.DemoRole",
+        "vertex_type": "role",
+        "stereotype": "Business Role",
+        "display_name": "DemoRole",
+        "class_ref": null,
+        "properties": {}
+      }
+    ],
+    "edges": [
+      {
+        "source_id": "golden_demo.actions.DemoAction",
+        "target_id": "golden_demo.domains.DemoDomain",
+        "edge_type": "BELONGS_TO",
+        "stereotype": "Aggregation",
+        "category": "direct",
+        "is_dag": false,
+        "attributes": {}
+      },
+      {
+        "source_id": "golden_demo.domains.DemoDomain",
+        "target_id": "golden_demo.actions.DemoAction",
+        "edge_type": "CONTAINS",
+        "stereotype": "Aggregation",
+        "category": "reverse",
+        "is_dag": false,
+        "attributes": {}
+      },
+      {
+        "source_id": "golden_demo.roles.DemoRole",
+        "target_id": "golden_demo.actions.DemoAction",
+        "edge_type": "ASSIGNED_TO",
+        "stereotype": "Assignment",
+        "category": "direct",
+        "is_dag": false,
+        "attributes": {}
+      },
+      {
+        "source_id": "golden_demo.actions.DemoAction",
+        "target_id": "golden_demo.roles.DemoRole",
+        "edge_type": "REQUIRES_ROLE",
+        "stereotype": "Access",
+        "category": "reverse",
+        "is_dag": false,
+        "attributes": {}
+      }
+    ]
+  }
+}

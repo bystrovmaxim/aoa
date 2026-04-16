@@ -103,6 +103,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Any
 
+from action_machine.domain.base_domain import BaseDomain
 from action_machine.intents.meta.meta_intents import ActionMetaIntent, ResourceMetaIntent
 
 
@@ -123,8 +124,6 @@ def _validate_meta_description(description: Any) -> None:
 
 def _validate_meta_domain(domain: Any) -> None:
     """Ensure ``domain`` is a ``BaseDomain`` subclass."""
-    from action_machine.domain.base_domain import BaseDomain
-
     if domain is None:
         raise TypeError(
             "@meta: domain is required (keyword-only). "

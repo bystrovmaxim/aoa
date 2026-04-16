@@ -3,7 +3,8 @@
 Relation **containers** for entity fields: ids always, full objects optional.
 
 Six generic types cover **ownership** (composition, aggregation, association)
-times **cardinality** (one vs many). They mirror ArchiMate-style structure,
+times **cardinality** (one vs many). They mirror classic composition / aggregation /
+association structure,
 stay **frozen** like `BaseEntity`, and raise `RelationNotLoadedError` when code
 reaches through a container for related data that was never hydrated.
 
@@ -187,7 +188,7 @@ class RelationType(Enum):
     """
     Ownership flavour for a relation field.
 
-    Maps to ArchiMate structural relationships:
+    Maps to structural relationship flavours (composition, aggregation, association):
 
     COMPOSITION
         Strong ownership; children do not exist without the parent; parent

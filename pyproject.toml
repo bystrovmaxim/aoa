@@ -145,6 +145,11 @@ disallow_untyped_defs = false
 disallow_incomplete_defs = false
 disallow_untyped_decorators = false
 
+# maxitor synthetic action — stacked decorators без py.typed на декораторах
+[[tool.mypy.overrides]]
+module = "maxitor.test_domain.actions.full_graph"
+disallow_untyped_decorators = false
+
 # ============================================================================
 # COVERAGE
 # ============================================================================

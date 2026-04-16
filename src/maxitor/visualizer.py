@@ -409,7 +409,8 @@ def export_test_domain_graph_html(
     ``archive/logs/test_domain_graph.html`` (перезапись при каждом запуске).
     С ``use_timestamp=True`` имя будет с UTC-меткой — отдельный файл на каждый запуск.
     """
-    from maxitor.test_domain.build import build_test_coordinator
+    # Defer test_domain + coordinator stack until export runs (keeps import graph light).
+    from maxitor.test_domain.build import build_test_coordinator  # pylint: disable=import-outside-toplevel
 
     coordinator = build_test_coordinator()
     graph = coordinator.get_graph()
