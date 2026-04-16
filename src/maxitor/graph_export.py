@@ -24,7 +24,7 @@ ARCHITECTURE / DATA FLOW
             │
             ▼
     coordinator_pygraph_for_visual_export(coordinator)
-            │   (get_logical_graph if callable, else get_graph)
+            │   (get_graph_for_visualization, else get_logical_graph, else get_graph)
             ▼
     PyDiGraph  ──►  normalize node dicts  ──►  pygraph_to_graphml_string_dicts
             │                                          │
@@ -52,7 +52,9 @@ EXAMPLES
   ``archive/logs/test_domain_graph.graphml`` using the logical graph when the
   coordinator implements ``get_logical_graph()``.
 - **Edge case:** a stub coordinator that only implements ``get_graph()`` still
-  exports; normalization is a no-op when payloads already use facet keys.
+  exports; normalization maps logical interchange payloads to facet-shaped keys.
+  Implementations may override ``get_graph_for_visualization`` to steer exports
+  without relying on the default ``get_graph()`` interchange shape.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ERRORS / LIMITATIONS
@@ -102,13 +104,19 @@ def normalize_coordinator_node_payload_for_visualization(
 
 def coordinator_pygraph_for_visual_export(coordinator: object) -> rx.PyDiGraph:
     """Return the graph used for maxitor HTML/GraphML export (logical graph when available)."""
+    visual = getattr(coordinator, "get_graph_for_visualization", None)
+    if callable(visual):
+        return cast(rx.PyDiGraph, visual())
     logical = getattr(coordinator, "get_logical_graph", None)
     if callable(logical):
         return cast(rx.PyDiGraph, logical())
     graph = getattr(coordinator, "get_graph", None)
     if callable(graph):
         return cast(rx.PyDiGraph, graph())
-    msg = "Coordinator must expose get_logical_graph() and/or get_graph()"
+    msg = (
+        "Coordinator must expose get_graph_for_visualization(), "
+        "get_logical_graph(), and/or get_graph()"
+    )
     raise TypeError(msg)
 
 

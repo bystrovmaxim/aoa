@@ -33,6 +33,23 @@ def test_coordinator_pygraph_prefers_logical_graph() -> None:
     assert "vertex_type" in sample
 
 
+def test_coordinator_pygraph_prefers_get_graph_for_visualization() -> None:
+    class _Stub:
+        def get_graph_for_visualization(self) -> rx.PyDiGraph:
+            g = rx.PyDiGraph()
+            g.add_node({"vertex_type": "action", "id": "viz.only", "display_name": "V"})
+            return g
+
+        def get_logical_graph(self) -> rx.PyDiGraph:
+            g = rx.PyDiGraph()
+            g.add_node({"vertex_type": "role", "id": "logical.only", "display_name": "L"})
+            return g
+
+    out = coordinator_pygraph_for_visual_export(_Stub())
+    assert len(out) == 1
+    assert out[0]["id"] == "viz.only"
+
+
 def test_coordinator_pygraph_falls_back_to_get_graph() -> None:
     class _Stub:
         def __init__(self) -> None:

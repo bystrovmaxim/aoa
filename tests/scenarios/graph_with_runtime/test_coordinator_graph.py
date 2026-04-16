@@ -74,8 +74,8 @@ from tests.scenarios.domain_model.roles import AdminRole
 
 
 def _new_coord() -> GateCoordinator:
-    """Create built coordinator with default inspector set."""
-    return CoreActionMachine.create_coordinator()
+    """Create built coordinator with default inspector set (facet-shaped ``get_graph``)."""
+    return CoreActionMachine.create_coordinator(logical_graph_public=False)
 
 
 def _graph_children(coord: GateCoordinator, full_key: str) -> list[dict[str, Any]]:
@@ -538,7 +538,7 @@ class TestPublicAPI:
 
     def test_get_children_of_missing_node(self):
         """An unregistered class has no edges emanating from the action node."""
-        coord = CoreActionMachine.create_coordinator()
+        coord = CoreActionMachine.create_coordinator(logical_graph_public=False)
         children = _graph_children(coord, _node_key("action", _EmptyClass))
         assert children == []
 
@@ -566,7 +566,7 @@ class TestPublicAPI:
 
     def test_get_dependency_tree_missing_node(self):
         """For a class with no nodes in the graph, the dependency tree is empty or missing."""
-        coord = CoreActionMachine.create_coordinator()
+        coord = CoreActionMachine.create_coordinator(logical_graph_public=False)
         tree = _dependency_tree(coord, _EmptyClass)
         assert tree is None or tree == {}
 

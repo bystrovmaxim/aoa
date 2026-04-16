@@ -93,6 +93,7 @@ markers = [
     "integration: marks integration tests requiring external services",
     "benchmark: performance or load regression anchors (optional selective runs)",
     "graph_coverage: logical graph golden / matrix (plan 009); run with pytest -m graph_coverage",
+    "facet_skeleton: coordinator built with logical_graph_public=False for facet-shaped get_graph contract tests",
 ]
 
 # ============================================================================
@@ -223,6 +224,8 @@ disable = [
 
 [tool.pylint.format]
 max-line-length = 120
+# GateCoordinator remains a single orchestration module (intentionally large API surface).
+max-module-lines = 1200
 
 [tool.pylint.basic]
 good-names = ["i", "e", "f", "k", "v", "p", "R", "P", "T"]

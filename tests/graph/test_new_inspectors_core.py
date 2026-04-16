@@ -139,7 +139,7 @@ def test_connection_inspector_builds_structural_connection_edge() -> None:
 
 def test_coordinator_merges_action_payloads_from_dependency_and_connection() -> None:
     coord = (
-        GateCoordinator()
+        GateCoordinator(logical_graph_public=False)
         .register(DependencyIntentInspector)
         .register(ConnectionIntentInspector)
         .build()

@@ -10,7 +10,9 @@ Render a rustworkx graph as a **standalone HTML** page using **AntV G6 5** (sing
 from a CDN). The export is a strict 1:1 mapping from ``PyDiGraph`` indices to G6 nodes
 and ``weighted_edge_list`` entries to edges. ``export_test_domain_graph_html`` uses
 the same graph source as GraphML export: ``get_logical_graph()`` when the coordinator
-implements it, otherwise ``get_graph()``. Node payloads in **logical interchange** form
+implements ``get_graph_for_visualization``, ``get_logical_graph``, or ``get_graph`` in
+that order. Node payloads may use **logical interchange** keys; they are normalized
+before styling.
 are normalized via ``maxitor.graph_export`` helpers before styling.
 
 ═══════════════════════════════════════════════════════════════════════════════
