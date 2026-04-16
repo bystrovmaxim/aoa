@@ -41,12 +41,28 @@ INVARIANTS
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from typing import Any
+from typing import Any, Final
 
 from action_machine.graph.logical.g0_builder import build_from_g0_input
 from action_machine.graph.logical.model import LogicalEdge, LogicalVertex
 from action_machine.graph.logical.reverse_edge import reverse_direct_edge
 from action_machine.graph.payload import FacetPayload
+
+FACET_NODE_TYPES_FOR_LOGICAL_BUILD: Final[frozenset[str]] = frozenset(
+    {"domain", "action", "meta", "role"},
+)
+
+
+def narrow_facet_payloads_for_logical_build(
+    payloads: Sequence[FacetPayload],
+) -> list[FacetPayload]:
+    """
+    Keep only ``FacetPayload.node_type`` values supported by the PR2 facet projection.
+
+    Used by :class:`GateCoordinator` when assembling the parallel logical ``PyDiGraph``.
+    """
+    rows = [p for p in payloads if p.node_type in FACET_NODE_TYPES_FOR_LOGICAL_BUILD]
+    return sorted(rows, key=lambda p: (p.node_type, p.node_name))
 
 
 def _tail_name(qualname: str) -> str:

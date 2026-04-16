@@ -21,9 +21,14 @@ After a successful ``register(...).build()``:
 2. **Facet snapshot map** (``_facet_snapshots``) — optional typed views keyed by
    ``(owner class, facet storage key)``. Read via ``get_snapshot(cls, facet_key)``.
 
+3. **Logical graph** (``_logical_graph``, separate ``rx.PyDiGraph``) — a parallel
+   interchange view derived from the same merged ``FacetPayload`` list via
+   :class:`~action_machine.graph.logical.LogicalGraphBuilder` (narrow facet kinds).
+   Read via ``get_logical_graph()``; it is **not** a replacement for ``get_graph()``.
+
 **Public API (domain-agnostic):** ``register``, ``build``, ``is_built``,
 ``build_status``, ``graph_node_count``, ``graph_edge_count``, ``get_graph``,
-``hydrate_graph_node``, ``get_node``, ``get_nodes_by_type``,
+``get_logical_graph``, ``hydrate_graph_node``, ``get_node``, ``get_nodes_by_type``,
 ``get_nodes_for_class``, ``get_snapshot``.
 
 **Raw graph vs hydrated reads:** ``get_graph()`` returns an ``rx.PyDiGraph``
@@ -91,7 +96,9 @@ The graph is either built completely and consistently, or not committed at all.
     PHASE 3 — COMMIT
         Nodes and edges into ``rx.PyDiGraph`` (node payload: ``node_type``,
         ``name``, ``class_ref`` only); ``_node_index`` / ``_class_index``
-        populated; ``_built = True``. The graph is read-only afterward.
+        populated. A **logical** ``PyDiGraph`` is filled from the same merged
+        payloads (narrow projection) before ``_built = True``. Both graphs are
+        read-only afterward.
 
 ═══════════════════════════════════════════════════════════════════════════════
 WHERE VALIDATION LIVES
@@ -167,6 +174,11 @@ from action_machine.graph.exceptions import (
     InvalidGraphError,
     PayloadValidationError,
 )
+from action_machine.graph.logical.logical_graph_builder import (
+    LogicalGraphBuilder,
+    narrow_facet_payloads_for_logical_build,
+)
+from action_machine.graph.logical.model import LogicalEdge, LogicalVertex
 from action_machine.graph.payload import FacetPayload
 from action_machine.model.exceptions import CyclicDependencyError
 
@@ -223,13 +235,20 @@ class GateCoordinator:
             Graph key ``node_type:node_name`` → snapshot storage key used to
             rebuild ``meta``, or ``_AMBIGUOUS_HYDRATION_KEY`` when several keys
             conflict. Filled during phase 1; cleared at each ``build()`` start.
+
+        _logical_graph : rx.PyDiGraph
+            Directed **logical** interchange graph (vertex ``id`` / ``vertex_type`` /
+            ``stereotype``, edge ``edge_type`` / ``category`` / …). Filled at the end
+            of ``build()`` together with the facet graph; read-only afterward via
+            ``get_logical_graph()``.
     """
 
     def __init__(self) -> None:
-        """Create a coordinator with an empty graph."""
+        """Create a coordinator with empty facet and logical graphs."""
         self._inspectors: list[type[BaseIntentInspector]] = []
         self._registered: set[type[BaseIntentInspector]] = set()
         self._graph: rx.PyDiGraph = rx.PyDiGraph()
+        self._logical_graph: rx.PyDiGraph = rx.PyDiGraph()
         self._node_index: dict[str, int] = {}
         self._class_index: dict[type, list[str]] = {}
         self._built: bool = False
@@ -329,7 +348,13 @@ class GateCoordinator:
             self._phase2_check_acyclicity(all_payloads)
         except InvalidGraphError as exc:
             raise CyclicDependencyError(str(exc)) from exc
+
+        narrow = narrow_facet_payloads_for_logical_build(all_payloads)
+        logical_vertices, logical_edges = LogicalGraphBuilder.build(
+            facet_payloads=narrow,
+        )
         self._phase3_commit(all_payloads)
+        self._commit_logical_graph(logical_vertices, logical_edges)
 
         self._built = True
         return self
@@ -628,6 +653,46 @@ class GateCoordinator:
                     "meta": dict(edge.edge_meta),
                 })
 
+    def _commit_logical_graph(
+        self,
+        vertices: list[LogicalVertex],
+        edges: list[LogicalEdge],
+    ) -> None:
+        """
+        Populate ``_logical_graph`` from logical interchange vertices and edges.
+
+        Node payloads mirror :class:`~action_machine.graph.logical.model.LogicalVertex`
+        fields; edge payloads mirror :class:`~action_machine.graph.logical.model.LogicalEdge`.
+        """
+        lg = rx.PyDiGraph()
+        id_to_idx: dict[str, int] = {}
+        for v in vertices:
+            id_to_idx[v.id] = lg.add_node(
+                {
+                    "vertex_type": v.vertex_type,
+                    "id": v.id,
+                    "stereotype": v.stereotype,
+                    "display_name": v.display_name,
+                    "class_ref": v.class_ref,
+                    "properties": v.properties,
+                },
+            )
+        for e in edges:
+            source_idx = id_to_idx[e.source_id]
+            target_idx = id_to_idx[e.target_id]
+            lg.add_edge(
+                source_idx,
+                target_idx,
+                {
+                    "edge_type": e.edge_type,
+                    "stereotype": e.stereotype,
+                    "category": e.category,
+                    "is_dag": e.is_dag,
+                    "attributes": e.attributes,
+                },
+            )
+        self._logical_graph = lg
+
     # ═══════════════════════════════════════════════════════════════════
     # Utilities
     # ═══════════════════════════════════════════════════════════════════
@@ -845,6 +910,22 @@ class GateCoordinator:
         """
         self._require_built()
         return self._graph.copy()
+
+    def get_logical_graph(self) -> rx.PyDiGraph:
+        """
+        Return a **copy** of the logical interchange ``PyDiGraph``.
+
+        Unlike :meth:`get_graph`, node payloads use logical keys ``vertex_type``,
+        ``id``, ``stereotype``, ``display_name``, ``class_ref``, ``properties``; edge
+        payloads carry ``edge_type``, ``stereotype``, ``category``, ``is_dag``,
+        ``attributes``. The graph is derived from the same merged facet payloads as
+        the facet graph (narrow facet kinds only until the logical builder widens).
+
+        Returns:
+            ``rx.PyDiGraph`` clone.
+        """
+        self._require_built()
+        return self._logical_graph.copy()
 
     # ═══════════════════════════════════════════════════════════════════
     # Facet snapshots (storage key is inspector-defined, e.g. "role", "depends")

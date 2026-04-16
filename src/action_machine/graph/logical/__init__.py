@@ -57,7 +57,11 @@ from action_machine.graph.logical.constants import (
     VERTEX_TYPES,
 )
 from action_machine.graph.logical.g0_builder import build_from_g0_input
-from action_machine.graph.logical.logical_graph_builder import LogicalGraphBuilder
+from action_machine.graph.logical.logical_graph_builder import (
+    FACET_NODE_TYPES_FOR_LOGICAL_BUILD,
+    LogicalGraphBuilder,
+    narrow_facet_payloads_for_logical_build,
+)
 from action_machine.graph.logical.model import LogicalEdge, LogicalVertex
 from action_machine.graph.logical.reverse_edge import reverse_direct_edge
 from action_machine.graph.logical.vertex_id import (
@@ -67,6 +71,7 @@ from action_machine.graph.logical.vertex_id import (
 
 __all__ = [
     "DAG_EDGE_TYPES",
+    "FACET_NODE_TYPES_FOR_LOGICAL_BUILD",
     "INTERNAL_EDGE_TYPES",
     "OWNERSHIP_EDGE_TYPES",
     "REVERSE_EDGE_MAP",
@@ -76,6 +81,7 @@ __all__ = [
     "LogicalGraphBuilder",
     "LogicalVertex",
     "build_from_g0_input",
+    "narrow_facet_payloads_for_logical_build",
     "reverse_direct_edge",
     "split_checker_vertex_id",
     "split_host_element_vertex_id",

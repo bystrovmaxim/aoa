@@ -12,17 +12,17 @@ import importlib
 import pytest
 
 from action_machine.graph.base_intent_inspector import BaseIntentInspector
-from action_machine.graph.logical import LogicalGraphBuilder
+from action_machine.graph.logical import (
+    FACET_NODE_TYPES_FOR_LOGICAL_BUILD,
+    LogicalGraphBuilder,
+    narrow_facet_payloads_for_logical_build,
+)
 from action_machine.runtime.machines.core_action_machine import CoreActionMachine
 from maxitor.test_domain.actions.full_graph import TestFullGraphAction
 from maxitor.test_domain.build import _MODULES, build_test_coordinator
 from maxitor.test_domain.domain import TestDomain
 
-from .facet_payload_probe import (
-    LOGICAL_BUILDER_NODE_TYPES,
-    collect_merged_facet_payloads_unbuilt,
-    facet_payloads_for_logical_narrow_projection,
-)
+from .facet_payload_probe import collect_merged_facet_payloads_unbuilt
 
 
 def _import_test_domain_modules() -> None:
@@ -41,7 +41,7 @@ def test_pr3_narrow_logical_graph_from_test_domain_payloads() -> None:
     _import_test_domain_modules()
     coord = CoreActionMachine.create_coordinator_unbuilt()
     payloads = collect_merged_facet_payloads_unbuilt(coord)
-    narrow = facet_payloads_for_logical_narrow_projection(payloads)
+    narrow = narrow_facet_payloads_for_logical_build(payloads)
     vertices, edges = LogicalGraphBuilder.build(facet_payloads=narrow)
 
     vertex_ids = {v.id for v in vertices}
@@ -70,19 +70,21 @@ def test_pr3_narrow_payloads_are_subset_of_raw_and_drop_rich_facets() -> None:
     _import_test_domain_modules()
     coord = CoreActionMachine.create_coordinator_unbuilt()
     raw = collect_merged_facet_payloads_unbuilt(coord)
-    narrow = facet_payloads_for_logical_narrow_projection(raw)
+    narrow = narrow_facet_payloads_for_logical_build(raw)
     raw_set = set(raw)
     assert all(p in raw_set for p in narrow)
     raw_types = {p.node_type for p in raw}
-    assert raw_types - LOGICAL_BUILDER_NODE_TYPES, "test_domain should emit facets outside PR2 narrow builder"
-    assert {p.node_type for p in narrow} <= LOGICAL_BUILDER_NODE_TYPES
+    assert raw_types - FACET_NODE_TYPES_FOR_LOGICAL_BUILD, (
+        "test_domain should emit facets outside PR2 narrow builder"
+    )
+    assert {p.node_type for p in narrow} <= FACET_NODE_TYPES_FOR_LOGICAL_BUILD
 
 
 def test_pr3_logical_output_vertex_ids_unique() -> None:
     _import_test_domain_modules()
     coord = CoreActionMachine.create_coordinator_unbuilt()
     raw = collect_merged_facet_payloads_unbuilt(coord)
-    narrow = facet_payloads_for_logical_narrow_projection(raw)
+    narrow = narrow_facet_payloads_for_logical_build(raw)
     vertices, _edges = LogicalGraphBuilder.build(facet_payloads=narrow)
     ids = [v.id for v in vertices]
     assert len(ids) == len(set(ids))
