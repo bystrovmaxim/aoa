@@ -16,5 +16,4 @@ class GraphVertex:
     id: str
     node_type: str
     label: str
-    class_ref: type | None
     properties: dict[str, Any]

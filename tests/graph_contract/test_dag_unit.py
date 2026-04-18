@@ -24,7 +24,6 @@ def _v(vid: str) -> GraphVertex:
         id=vid,
         node_type="Action",
         label=vid,
-        class_ref=None,
         properties={},
     )
 

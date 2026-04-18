@@ -143,9 +143,6 @@ def _element_short_name(node: dict[str, Any]) -> str:
         lab = str(node.get("label", "") or "").strip()
         if lab:
             return lab
-    cr = node.get("class_ref")
-    if isinstance(cr, type):
-        return cr.__name__
     raw = str(
         node.get("id") or node.get("name", "") or node.get("label", "") or ""
     ).strip()
@@ -164,9 +161,6 @@ def _node_title_for_visual(node: dict[str, Any]) -> str:
 
 
 def _element_qualified_name(node: dict[str, Any]) -> str:
-    cr = node.get("class_ref")
-    if isinstance(cr, type):
-        return f"{cr.__module__}.{cr.__qualname__}"
     return str(node.get("id") or node.get("name", "") or node.get("label", "") or "?")
 
 

@@ -57,7 +57,6 @@ def test_logical_node_payload_shape() -> None:
             "node_type",
             "id",
             "label",
-            "class_ref",
             "properties",
         }
 
