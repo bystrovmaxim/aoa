@@ -8,9 +8,9 @@ from action_machine.graph.base_intent_inspector import BaseIntentInspector
 from action_machine.intents.aspects.aspect_intent import AspectIntent
 from action_machine.intents.aspects.regular_aspect_decorator import regular_aspect
 from action_machine.intents.checkers.checker_intent import CheckerIntent
-from action_machine.interchange_vertex_labels import CHECKER_VERTEX_TYPE
 from action_machine.intents.checkers.checker_intent_inspector import CheckerIntentInspector
 from action_machine.intents.checkers.result_string_checker import result_string
+from action_machine.interchange_vertex_labels import CHECKER_VERTEX_TYPE
 
 
 class _NoCheckerAction(CheckerIntent, AspectIntent):

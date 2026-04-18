@@ -15,23 +15,23 @@ from action_machine.model.base_result import BaseResult
 from maxitor.samples.billing.domain import BillingDomain
 
 
-class CreditMemoPreviewParams(BaseParams):
-    invoice_id: str = Field(description="Source invoice id")
-
-
-class CreditMemoPreviewResult(BaseResult):
-    preview_id: str = Field(description="Stub preview id")
-
-
 @meta(description="Preview credit memo totals (billing sample stub)", domain=BillingDomain)
 @check_roles(NoneRole)
-class CreditMemoPreviewAction(BaseAction[CreditMemoPreviewParams, CreditMemoPreviewResult]):
+class CreditMemoPreviewAction(
+    BaseAction["CreditMemoPreviewAction.Params", "CreditMemoPreviewAction.Result"],
+):
+    class Params(BaseParams):
+        invoice_id: str = Field(description="Source invoice id")
+
+    class Result(BaseResult):
+        preview_id: str = Field(description="Stub preview id")
+
     @summary_aspect("Build preview")
     async def preview_summary(
         self,
-        params: CreditMemoPreviewParams,
+        params: CreditMemoPreviewAction.Params,
         state: Any,
         box: Any,
         connections: Any,
-    ) -> CreditMemoPreviewResult:
-        return CreditMemoPreviewResult(preview_id=f"cm-prev-{params.invoice_id}")
+    ) -> CreditMemoPreviewAction.Result:
+        return CreditMemoPreviewAction.Result(preview_id=f"cm-prev-{params.invoice_id}")

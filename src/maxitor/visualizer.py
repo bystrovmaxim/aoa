@@ -119,15 +119,12 @@ def _graph_vertex_key(node: dict[str, Any]) -> str:
 
 def _vertex_facet_label(node: dict[str, Any]) -> str:
     nt = str(node.get("node_type", "unknown"))
-    if nt in (REGULAR_ASPECT_VERTEX_TYPE, SUMMARY_ASPECT_VERTEX_TYPE):
-        lab = str(node.get("label", "") or "").strip()
-        if lab:
-            return lab
-    if nt == CHECKER_VERTEX_TYPE:
-        lab = str(node.get("label", "") or "").strip()
-        if lab:
-            return lab
-    if nt == COMPENSATOR_VERTEX_TYPE:
+    if nt in (
+        REGULAR_ASPECT_VERTEX_TYPE,
+        SUMMARY_ASPECT_VERTEX_TYPE,
+        CHECKER_VERTEX_TYPE,
+        COMPENSATOR_VERTEX_TYPE,
+    ):
         lab = str(node.get("label", "") or "").strip()
         if lab:
             return lab
@@ -137,15 +134,12 @@ def _vertex_facet_label(node: dict[str, Any]) -> str:
 
 def _element_short_name(node: dict[str, Any]) -> str:
     nt = str(node.get("node_type", "") or "").strip()
-    if nt in (REGULAR_ASPECT_VERTEX_TYPE, SUMMARY_ASPECT_VERTEX_TYPE):
-        lab = str(node.get("label", "") or "").strip()
-        if lab:
-            return lab
-    if nt == CHECKER_VERTEX_TYPE:
-        lab = str(node.get("label", "") or "").strip()
-        if lab:
-            return lab
-    if nt == COMPENSATOR_VERTEX_TYPE:
+    if nt in (
+        REGULAR_ASPECT_VERTEX_TYPE,
+        SUMMARY_ASPECT_VERTEX_TYPE,
+        CHECKER_VERTEX_TYPE,
+        COMPENSATOR_VERTEX_TYPE,
+    ):
         lab = str(node.get("label", "") or "").strip()
         if lab:
             return lab
@@ -316,7 +310,7 @@ def _domain_sort_key_for_id(g6_nodes: list[dict[str, Any]], nid: str) -> tuple[s
     return (str(d.get("label", "")), str(d.get("graph_key", nid)))
 
 
-def _propagate_node_domains(
+def _propagate_node_domains(  # pylint: disable=too-many-branches
     g6_nodes: list[dict[str, Any]],
     g6_edges: list[dict[str, Any]],
 ) -> tuple[dict[str, str], list[str], defaultdict[str, set[str]]]:
@@ -370,7 +364,7 @@ def _propagate_node_domains(
     return id_to_type, domain_ids, node_domains
 
 
-def _d3_seed_xy_for_nodes(
+def _d3_seed_xy_for_nodes(  # pylint: disable=too-many-branches
     g6_nodes: list[dict[str, Any]],
     id_to_type: dict[str, str],
     domain_ids: list[str],
@@ -420,7 +414,11 @@ def _d3_seed_xy_for_nodes(
             doms = node_domains.get(nid, set())
             if doms and min(doms) == dom_id:
                 members.append(nid)
-        members = sorted(frozenset(members), key=lambda nid: (0 if nid == dom_id else 1, nid))
+
+        def _member_sort_key(nid: str, anchor: str = dom_id) -> tuple[int, str]:
+            return (0 if nid == anchor else 1, nid)
+
+        members = sorted(frozenset(members), key=_member_sort_key)
 
         for j, nid in enumerate(members):
             sub_ang = 2 * math.pi * j / max(len(members), 1)
@@ -529,12 +527,14 @@ def generate_g6_html(
     if node_colors:
         colors = {**colors, **node_colors}
 
+    g6_nodes: list[dict[str, Any]] = []
+    g6_edges: list[dict[str, Any]] = []
+
     def _edge_label_and_dag(edge_data: Any) -> tuple[str, bool]:
         if isinstance(edge_data, dict):
             return str(edge_data.get("edge_type", "")), bool(edge_data.get("is_dag"))
         return str(edge_data), False
 
-    g6_nodes = []
     for idx in graph.node_indices():
         node = idx_to_node[idx]
         node_type = str(node.get("node_type", "unknown"))
@@ -563,7 +563,6 @@ def generate_g6_html(
             },
         })
 
-    g6_edges = []
     for ei, (src, tgt, edge_data) in enumerate(graph.weighted_edge_list()):
         if src == tgt:
             continue
@@ -1343,7 +1342,8 @@ def export_samples_graph_html(
     to visualize an already-built ``PyDiGraph`` (e.g. tests or a custom coordinator).
     """
     if graph is None:
-        from maxitor.samples.build import build_sample_coordinator
+        # Lazy: avoids importing all sample domains when only ``generate_g6_html`` is needed.
+        from maxitor.samples.build import build_sample_coordinator  # pylint: disable=import-outside-toplevel
 
         graph = coordinator_pygraph_for_visual_export(build_sample_coordinator())
 

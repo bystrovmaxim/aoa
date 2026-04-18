@@ -129,14 +129,14 @@ from typing import Annotated, Any, get_args, get_origin
 from pydantic.fields import FieldInfo
 from pydantic_core import PydanticUndefined
 
-from action_machine.interchange_vertex_labels import DOMAIN_VERTEX_TYPE, ENTITY_VERTEX_TYPE
 from action_machine.domain.entity_intent import EntityIntent, entity_info_is_set
 from action_machine.domain.lifecycle import Lifecycle, StateInfo, StateType
 from action_machine.domain.relation_containers import BaseRelationMany, BaseRelationOne
 from action_machine.domain.relation_markers import Inverse, NoGraphEdge, NoInverse, Rel
 from action_machine.graph.base_facet_snapshot import BaseFacetSnapshot
-from action_machine.graph.base_intent_inspector import BaseIntentInspector
+from action_machine.graph.base_intent_inspector import BaseIntentInspector, FacetInspectResult
 from action_machine.graph.payload import EdgeInfo, FacetPayload
+from action_machine.interchange_vertex_labels import DOMAIN_VERTEX_TYPE, ENTITY_VERTEX_TYPE
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Scalar field constraints (aligned with Params/Result facet extraction)
@@ -779,8 +779,8 @@ class EntityIntentInspector(BaseIntentInspector):
         extras: list[FacetPayload] = []
 
         for lc in snap.entity_lifecycles:
-            field = lc.field_name
-            lc_name = cls._make_node_name(snap.class_ref, field)
+            lc_field_name = lc.field_name
+            lc_name = cls._make_node_name(snap.class_ref, lc_field_name)
             lc_cls = lc.lifecycle_class
             template = lc.template_ref
             states = template.get_states()
@@ -793,16 +793,21 @@ class EntityIntentInspector(BaseIntentInspector):
                     edge_type="entity_has_lifecycle",
                     is_structural=False,
                     edge_meta=(
-                        ("field_name", field),
+                        ("field_name", lc_field_name),
                         ("lifecycle_class", lc_cls.__name__),
                     ),
                     target_class_ref=lc_cls,
                 ),
             )
 
-            def state_vertex_name(state_key: str) -> str:
+            def state_vertex_name(
+                state_key: str,
+                *,
+                _field: str = lc_field_name,
+                _lc_cls: type = lc_cls,
+            ) -> str:
                 return lifecycle_state_node_name(
-                    snap.class_ref, field, lc_cls, state_key,
+                    snap.class_ref, _field, _lc_cls, state_key,
                 )
 
             lc_edges: list[EdgeInfo] = []
@@ -843,7 +848,7 @@ class EntityIntentInspector(BaseIntentInspector):
                     node_name=lc_name,
                     node_class=lc_cls,
                     node_meta=cls._make_meta(
-                        field_name=field,
+                        field_name=lc_field_name,
                         entity_class=snap.class_ref,
                         state_count=len(states),
                         initial_count=len(initial_keys),
@@ -877,7 +882,7 @@ class EntityIntentInspector(BaseIntentInspector):
                         node_name=state_vertex_name(sk),
                         node_class=snap.class_ref,
                         node_meta=cls._make_meta(
-                            field_name=field,
+                            field_name=lc_field_name,
                             state_key=sk,
                             label=st.display_name,
                             state_type=st.state_type.value,
@@ -901,7 +906,7 @@ class EntityIntentInspector(BaseIntentInspector):
     @classmethod
     def inspect(
         cls, target_cls: type,
-    ) -> FacetPayload | tuple[FacetPayload, ...] | None:
+    ) -> FacetInspectResult:
         """
         Build an entity facet payload (and optional ``lifecycle`` / ``lifecycle_state``
         facet rows when the model declares ``Lifecycle`` fields with templates).

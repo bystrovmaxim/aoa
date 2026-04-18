@@ -17,23 +17,21 @@ from action_machine.model.base_result import BaseResult
 from maxitor.samples.support.domain import SupportDomain
 
 
-class SupportPingParams(BaseParams):
-    label: str = Field(default="support", description="Probe label")
-
-
-class SupportPingResult(BaseResult):
-    ok: bool = Field(description="Stub ok flag")
-
-
 @meta(description="Support slice ping (dependency target for same-domain @depends)", domain=SupportDomain)
 @check_roles(NoneRole)
-class SupportPingAction(BaseAction[SupportPingParams, SupportPingResult]):
+class SupportPingAction(BaseAction["SupportPingAction.Params", "SupportPingAction.Result"]):
+    class Params(BaseParams):
+        label: str = Field(default="support", description="Probe label")
+
+    class Result(BaseResult):
+        ok: bool = Field(description="Stub ok flag")
+
     @summary_aspect("Ack")
     async def ack_summary(
         self,
-        params: SupportPingParams,
+        params: SupportPingAction.Params,
         state: Any,
         box: Any,
         connections: Any,
-    ) -> SupportPingResult:
-        return SupportPingResult(ok=True)
+    ) -> SupportPingAction.Result:
+        return SupportPingAction.Result(ok=True)

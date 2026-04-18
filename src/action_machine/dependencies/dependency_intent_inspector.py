@@ -153,7 +153,7 @@ class DependencyIntentInspector(BaseIntentInspector):
             dep_edges_list: list[EdgeInfo] = []
             for dep_info in self.dependencies:
                 dep_cls = dep_info.cls
-                stub = ()
+                stub: tuple[EdgeInfo, ...] = ()
                 if not issubclass(dep_cls, BaseAction) and not issubclass(
                     dep_cls,
                     BaseResourceManager,

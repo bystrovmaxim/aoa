@@ -179,18 +179,20 @@ class BaseAction[P: BaseSchema, R: BaseSchema](
 # can import ``BaseAction`` above without a partially-initialized cycle.
 # ---------------------------------------------------------------------------
 
+# pylint: disable=wrong-import-order,wrong-import-position
 from dataclasses import dataclass  # noqa: E402
 
 from action_machine.graph.base_facet_snapshot import BaseFacetSnapshot  # noqa: E402
 from action_machine.graph.base_intent_inspector import BaseIntentInspector  # noqa: E402
 from action_machine.graph.payload import EdgeInfo, FacetPayload  # noqa: E402
-from action_machine.interchange_vertex_labels import ACTION_VERTEX_TYPE  # noqa: E402
 from action_machine.intents.described_fields.described_fields_intent_inspector import (  # noqa: E402
     DescribedFieldsIntentInspector,
 )
+from action_machine.interchange_vertex_labels import ACTION_VERTEX_TYPE  # noqa: E402
 from action_machine.runtime.binding.extract_action_params_result_types import (  # noqa: E402
     extract_action_params_result_types,
 )
+# pylint: enable=wrong-import-order,wrong-import-position
 
 
 class ActionTypedSchemasInspector(BaseIntentInspector):

@@ -15,23 +15,21 @@ from action_machine.model.base_result import BaseResult
 from maxitor.samples.catalog.domain import CatalogDomain
 
 
-class PriceSnapshotParams(BaseParams):
-    sku: str = Field(description="SKU")
-
-
-class PriceSnapshotResult(BaseResult):
-    list_price: float = Field(description="Stub list price", ge=0)
-
-
 @meta(description="Resolve list price snapshot (catalog sample stub)", domain=CatalogDomain)
 @check_roles(NoneRole)
-class PriceSnapshotAction(BaseAction[PriceSnapshotParams, PriceSnapshotResult]):
+class PriceSnapshotAction(BaseAction["PriceSnapshotAction.Params", "PriceSnapshotAction.Result"]):
+    class Params(BaseParams):
+        sku: str = Field(description="SKU")
+
+    class Result(BaseResult):
+        list_price: float = Field(description="Stub list price", ge=0)
+
     @summary_aspect("Snapshot")
     async def snapshot_summary(
         self,
-        params: PriceSnapshotParams,
+        params: PriceSnapshotAction.Params,
         state: Any,
         box: Any,
         connections: Any,
-    ) -> PriceSnapshotResult:
-        return PriceSnapshotResult(list_price=float(len(params.sku)))
+    ) -> PriceSnapshotAction.Result:
+        return PriceSnapshotAction.Result(list_price=float(len(params.sku)))

@@ -18,24 +18,22 @@ from maxitor.samples.roles import ViewerRole
 from maxitor.samples.store.domain import StoreDomain
 
 
-class OrderLookupParams(BaseParams):
-    order_id: str = Field(description="Order id to load")
-
-
-class OrderLookupResult(BaseResult):
-    order_id: str = Field(description="Loaded order id")
-    amount: float = Field(description="Loaded amount")
-    status: str = Field(description="Loaded status")
-
-
 @meta(description="Load order snapshot (stub)", domain=StoreDomain)
 @check_roles(ViewerRole)
-class OrderLookupAction(BaseAction[OrderLookupParams, OrderLookupResult]):
+class OrderLookupAction(BaseAction["OrderLookupAction.Params", "OrderLookupAction.Result"]):
+    class Params(BaseParams):
+        order_id: str = Field(description="Order id to load")
+
+    class Result(BaseResult):
+        order_id: str = Field(description="Loaded order id")
+        amount: float = Field(description="Loaded amount")
+        status: str = Field(description="Loaded status")
+
     @regular_aspect("Load order")
     @context_requires(Ctx.User.user_id, Ctx.Request.request_path)
     async def load_aspect(
         self,
-        params: OrderLookupParams,
+        params: OrderLookupAction.Params,
         state: Any,
         box: Any,
         connections: Any,
@@ -50,12 +48,12 @@ class OrderLookupAction(BaseAction[OrderLookupParams, OrderLookupResult]):
     @summary_aspect("Build read result")
     async def build_result_summary(
         self,
-        params: OrderLookupParams,
+        params: OrderLookupAction.Params,
         state: Any,
         box: Any,
         connections: Any,
-    ) -> OrderLookupResult:
-        return OrderLookupResult(
+    ) -> OrderLookupAction.Result:
+        return OrderLookupAction.Result(
             order_id=state.order_id,
             amount=state.amount,
             status=state.status,

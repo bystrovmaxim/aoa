@@ -93,15 +93,15 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from action_machine.graph.base_facet_snapshot import BaseFacetSnapshot
+from action_machine.graph.base_intent_inspector import BaseIntentInspector
+from action_machine.graph.payload import EdgeInfo, FacetMetaRow, FacetPayload
+from action_machine.intents.aspects.aspect_intent import AspectIntent
 from action_machine.interchange_vertex_labels import (
     ACTION_VERTEX_TYPE,
     REGULAR_ASPECT_VERTEX_TYPE,
     SUMMARY_ASPECT_VERTEX_TYPE,
 )
-from action_machine.graph.base_facet_snapshot import BaseFacetSnapshot
-from action_machine.graph.base_intent_inspector import BaseIntentInspector
-from action_machine.graph.payload import EdgeInfo, FacetMetaRow, FacetPayload
-from action_machine.intents.aspects.aspect_intent import AspectIntent
 
 
 def vertex_type_for_aspect_kind(kind: str) -> str:

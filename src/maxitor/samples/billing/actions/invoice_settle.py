@@ -30,22 +30,6 @@ from maxitor.samples.billing.resources import BillingReadReplica, BillingWarehou
 from maxitor.samples.roles import EditorRole
 
 
-class InvoiceSettleParams(BaseParams):
-    invoice_id: str = Field(description="Invoice id")
-    gross_cents: int = Field(description="Gross amount in cents", gt=0)
-
-    @property
-    @sensitive(True, max_chars=4, char="*", max_percent=40)
-    def client_secret_hint(self) -> str:
-        return "sec-BILLING-DEMO"
-
-
-class InvoiceSettleResult(BaseResult):
-    settlement_id: str = Field(description="Settlement id")
-    capture_txn: str = Field(description="Capture transaction id")
-    status: str = Field(description="Status label")
-
-
 @meta(description="Settle invoice with full graph facets (billing demo)", domain=BillingDomain)
 @check_roles(EditorRole)
 @depends(PaymentGateway, description="Card capture")
@@ -53,13 +37,27 @@ class InvoiceSettleResult(BaseResult):
 @depends(TaxQuoteService, description="Tax rate lookup")
 @connection(BillingWarehouse, key="warehouse", description="Billing warehouse")
 @connection(BillingReadReplica, key="replica", description="Read replica")
-class InvoiceSettleAction(BaseAction[InvoiceSettleParams, InvoiceSettleResult]):
+class InvoiceSettleAction(BaseAction["InvoiceSettleAction.Params", "InvoiceSettleAction.Result"]):
+    class Params(BaseParams):
+        invoice_id: str = Field(description="Invoice id")
+        gross_cents: int = Field(description="Gross amount in cents", gt=0)
+
+        @property
+        @sensitive(True, max_chars=4, char="*", max_percent=40)
+        def client_secret_hint(self) -> str:
+            return "sec-BILLING-DEMO"
+
+    class Result(BaseResult):
+        settlement_id: str = Field(description="Settlement id")
+        capture_txn: str = Field(description="Capture transaction id")
+        status: str = Field(description="Status label")
+
     @regular_aspect("Validate invoice")
     @result_string("validated_invoice", required=True, min_length=1)
     @context_requires(Ctx.User.user_id)
     async def validate_invoice_aspect(
         self,
-        params: InvoiceSettleParams,
+        params: InvoiceSettleAction.Params,
         state: Any,
         box: Any,
         connections: Any,
@@ -72,7 +70,7 @@ class InvoiceSettleAction(BaseAction[InvoiceSettleParams, InvoiceSettleResult]):
     @result_float("captured_cents", required=True, min_value=0.0)
     async def capture_aspect(
         self,
-        params: InvoiceSettleParams,
+        params: InvoiceSettleAction.Params,
         state: Any,
         box: Any,
         connections: Any,
@@ -85,7 +83,7 @@ class InvoiceSettleAction(BaseAction[InvoiceSettleParams, InvoiceSettleResult]):
     @compensate("capture_aspect", "Void capture on failure")
     async def capture_compensate(
         self,
-        params: InvoiceSettleParams,
+        params: InvoiceSettleAction.Params,
         state_before: Any,
         state_after: Any,
         box: Any,
@@ -100,14 +98,14 @@ class InvoiceSettleAction(BaseAction[InvoiceSettleParams, InvoiceSettleResult]):
     @context_requires(Ctx.User.user_id, Ctx.Request.trace_id)
     async def validation_error_on_error(
         self,
-        params: InvoiceSettleParams,
+        params: InvoiceSettleAction.Params,
         state: Any,
         box: Any,
         connections: Any,
         error: ValueError,
         ctx: Any,
-    ) -> InvoiceSettleResult:
-        return InvoiceSettleResult(
+    ) -> InvoiceSettleAction.Result:
+        return InvoiceSettleAction.Result(
             settlement_id="ERR",
             capture_txn="NONE",
             status="validation_failed",
@@ -116,13 +114,13 @@ class InvoiceSettleAction(BaseAction[InvoiceSettleParams, InvoiceSettleResult]):
     @on_error(Exception, description="Billing fallback")
     async def unexpected_error_on_error(
         self,
-        params: InvoiceSettleParams,
+        params: InvoiceSettleAction.Params,
         state: Any,
         box: Any,
         connections: Any,
         error: Exception,
-    ) -> InvoiceSettleResult:
-        return InvoiceSettleResult(
+    ) -> InvoiceSettleAction.Result:
+        return InvoiceSettleAction.Result(
             settlement_id="ERR",
             capture_txn="NONE",
             status="internal_error",
@@ -131,12 +129,12 @@ class InvoiceSettleAction(BaseAction[InvoiceSettleParams, InvoiceSettleResult]):
     @summary_aspect("Build settlement result")
     async def build_result_summary(
         self,
-        params: InvoiceSettleParams,
+        params: InvoiceSettleAction.Params,
         state: Any,
         box: Any,
         connections: Any,
-    ) -> InvoiceSettleResult:
-        return InvoiceSettleResult(
+    ) -> InvoiceSettleAction.Result:
+        return InvoiceSettleAction.Result(
             settlement_id="STL-BILL-1",
             capture_txn=state.capture_txn,
             status="settled",

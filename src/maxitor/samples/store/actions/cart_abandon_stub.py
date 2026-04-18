@@ -15,23 +15,21 @@ from action_machine.model.base_result import BaseResult
 from maxitor.samples.store.domain import StoreDomain
 
 
-class CartAbandonStubParams(BaseParams):
-    session_id: str = Field(description="Checkout session id")
-
-
-class CartAbandonStubResult(BaseResult):
-    scheduled: bool = Field(description="Stub schedule flag")
-
-
 @meta(description="Schedule cart abandonment follow-up (store sample stub)", domain=StoreDomain)
 @check_roles(NoneRole)
-class CartAbandonStubAction(BaseAction[CartAbandonStubParams, CartAbandonStubResult]):
+class CartAbandonStubAction(BaseAction["CartAbandonStubAction.Params", "CartAbandonStubAction.Result"]):
+    class Params(BaseParams):
+        session_id: str = Field(description="Checkout session id")
+
+    class Result(BaseResult):
+        scheduled: bool = Field(description="Stub schedule flag")
+
     @summary_aspect("Schedule")
     async def schedule_summary(
         self,
-        params: CartAbandonStubParams,
+        params: CartAbandonStubAction.Params,
         state: Any,
         box: Any,
         connections: Any,
-    ) -> CartAbandonStubResult:
-        return CartAbandonStubResult(scheduled=bool(params.session_id))
+    ) -> CartAbandonStubAction.Result:
+        return CartAbandonStubAction.Result(scheduled=bool(params.session_id))

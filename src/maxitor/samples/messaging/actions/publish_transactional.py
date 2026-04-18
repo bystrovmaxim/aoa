@@ -29,22 +29,6 @@ from maxitor.samples.messaging.resources import MessagingDeadLetterStore, Outbox
 from maxitor.samples.roles import EditorRole
 
 
-class PublishTransactionalOutboxParams(BaseParams):
-    topic: str = Field(description="Logical topic")
-    body: str = Field(description="Payload body")
-
-    @property
-    @sensitive(True, max_chars=3, char="*", max_percent=50)
-    def routing_key_hint(self) -> str:
-        return "rk-SECRET-MSG-DEMO"
-
-
-class PublishTransactionalOutboxResult(BaseResult):
-    outbound_id: str = Field(description="Assigned outbound id")
-    smtp_receipt: str = Field(description="SMTP stub receipt")
-    status: str = Field(description="Publish status")
-
-
 @meta(description="Publish through outbox with full graph facets (messaging demo)", domain=MessagingDomain)
 @check_roles(EditorRole)
 @depends(NotificationGateway, description="In-app notifier")
@@ -52,13 +36,29 @@ class PublishTransactionalOutboxResult(BaseResult):
 @depends(WebhookFanoutStub, description="Webhook fan-out")
 @connection(OutboxPrimaryDatabase, key="outbox_db", description="Outbox primary")
 @connection(MessagingDeadLetterStore, key="dlq", description="DLQ store")
-class PublishTransactionalOutboxAction(BaseAction[PublishTransactionalOutboxParams, PublishTransactionalOutboxResult]):
+class PublishTransactionalOutboxAction(
+    BaseAction["PublishTransactionalOutboxAction.Params", "PublishTransactionalOutboxAction.Result"],
+):
+    class Params(BaseParams):
+        topic: str = Field(description="Logical topic")
+        body: str = Field(description="Payload body")
+
+        @property
+        @sensitive(True, max_chars=3, char="*", max_percent=50)
+        def routing_key_hint(self) -> str:
+            return "rk-SECRET-MSG-DEMO"
+
+    class Result(BaseResult):
+        outbound_id: str = Field(description="Assigned outbound id")
+        smtp_receipt: str = Field(description="SMTP stub receipt")
+        status: str = Field(description="Publish status")
+
     @regular_aspect("Validate envelope")
     @result_string("validated_topic", required=True, min_length=1)
     @context_requires(Ctx.User.user_id)
     async def validate_envelope_aspect(
         self,
-        params: PublishTransactionalOutboxParams,
+        params: PublishTransactionalOutboxAction.Params,
         state: Any,
         box: Any,
         connections: Any,
@@ -71,7 +71,7 @@ class PublishTransactionalOutboxAction(BaseAction[PublishTransactionalOutboxPara
     @result_string("smtp_receipt", required=True, min_length=1)
     async def dispatch_aspect(
         self,
-        params: PublishTransactionalOutboxParams,
+        params: PublishTransactionalOutboxAction.Params,
         state: Any,
         box: Any,
         connections: Any,
@@ -86,7 +86,7 @@ class PublishTransactionalOutboxAction(BaseAction[PublishTransactionalOutboxPara
     @compensate("dispatch_aspect", "Best-effort undo publish")
     async def dispatch_compensate(
         self,
-        params: PublishTransactionalOutboxParams,
+        params: PublishTransactionalOutboxAction.Params,
         state_before: Any,
         state_after: Any,
         box: Any,
@@ -101,14 +101,14 @@ class PublishTransactionalOutboxAction(BaseAction[PublishTransactionalOutboxPara
     @context_requires(Ctx.User.user_id, Ctx.Request.trace_id)
     async def validation_error_on_error(
         self,
-        params: PublishTransactionalOutboxParams,
+        params: PublishTransactionalOutboxAction.Params,
         state: Any,
         box: Any,
         connections: Any,
         error: ValueError,
         ctx: Any,
-    ) -> PublishTransactionalOutboxResult:
-        return PublishTransactionalOutboxResult(
+    ) -> PublishTransactionalOutboxAction.Result:
+        return PublishTransactionalOutboxAction.Result(
             outbound_id="ERR",
             smtp_receipt="NONE",
             status="validation_failed",
@@ -117,13 +117,13 @@ class PublishTransactionalOutboxAction(BaseAction[PublishTransactionalOutboxPara
     @on_error(Exception, description="Messaging fallback")
     async def unexpected_error_on_error(
         self,
-        params: PublishTransactionalOutboxParams,
+        params: PublishTransactionalOutboxAction.Params,
         state: Any,
         box: Any,
         connections: Any,
         error: Exception,
-    ) -> PublishTransactionalOutboxResult:
-        return PublishTransactionalOutboxResult(
+    ) -> PublishTransactionalOutboxAction.Result:
+        return PublishTransactionalOutboxAction.Result(
             outbound_id="ERR",
             smtp_receipt="NONE",
             status="internal_error",
@@ -132,12 +132,12 @@ class PublishTransactionalOutboxAction(BaseAction[PublishTransactionalOutboxPara
     @summary_aspect("Build publish result")
     async def build_result_summary(
         self,
-        params: PublishTransactionalOutboxParams,
+        params: PublishTransactionalOutboxAction.Params,
         state: Any,
         box: Any,
         connections: Any,
-    ) -> PublishTransactionalOutboxResult:
-        return PublishTransactionalOutboxResult(
+    ) -> PublishTransactionalOutboxAction.Result:
+        return PublishTransactionalOutboxAction.Result(
             outbound_id=state.outbound_id,
             smtp_receipt=state.smtp_receipt,
             status="published",

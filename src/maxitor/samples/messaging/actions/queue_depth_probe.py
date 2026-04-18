@@ -15,23 +15,21 @@ from action_machine.model.base_result import BaseResult
 from maxitor.samples.messaging.domain import MessagingDomain
 
 
-class QueueDepthProbeParams(BaseParams):
-    queue_name: str = Field(description="Logical queue name")
-
-
-class QueueDepthProbeResult(BaseResult):
-    depth: int = Field(description="Stub depth", ge=0)
-
-
 @meta(description="Probe queue depth (messaging sample stub)", domain=MessagingDomain)
 @check_roles(NoneRole)
-class QueueDepthProbeAction(BaseAction[QueueDepthProbeParams, QueueDepthProbeResult]):
+class QueueDepthProbeAction(BaseAction["QueueDepthProbeAction.Params", "QueueDepthProbeAction.Result"]):
+    class Params(BaseParams):
+        queue_name: str = Field(description="Logical queue name")
+
+    class Result(BaseResult):
+        depth: int = Field(description="Stub depth", ge=0)
+
     @summary_aspect("Probe")
     async def probe_summary(
         self,
-        params: QueueDepthProbeParams,
+        params: QueueDepthProbeAction.Params,
         state: Any,
         box: Any,
         connections: Any,
-    ) -> QueueDepthProbeResult:
-        return QueueDepthProbeResult(depth=len(params.queue_name) % 5)
+    ) -> QueueDepthProbeAction.Result:
+        return QueueDepthProbeAction.Result(depth=len(params.queue_name) % 5)

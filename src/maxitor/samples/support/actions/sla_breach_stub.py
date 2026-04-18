@@ -15,23 +15,21 @@ from action_machine.model.base_result import BaseResult
 from maxitor.samples.support.domain import SupportDomain
 
 
-class SlaBreachStubParams(BaseParams):
-    ticket_id: str = Field(description="Ticket id")
-
-
-class SlaBreachStubResult(BaseResult):
-    breached: bool = Field(description="Stub breach flag")
-
-
 @meta(description="Evaluate SLA breach (support sample stub)", domain=SupportDomain)
 @check_roles(NoneRole)
-class SlaBreachStubAction(BaseAction[SlaBreachStubParams, SlaBreachStubResult]):
+class SlaBreachStubAction(BaseAction["SlaBreachStubAction.Params", "SlaBreachStubAction.Result"]):
+    class Params(BaseParams):
+        ticket_id: str = Field(description="Ticket id")
+
+    class Result(BaseResult):
+        breached: bool = Field(description="Stub breach flag")
+
     @summary_aspect("Evaluate")
     async def evaluate_summary(
         self,
-        params: SlaBreachStubParams,
+        params: SlaBreachStubAction.Params,
         state: Any,
         box: Any,
         connections: Any,
-    ) -> SlaBreachStubResult:
-        return SlaBreachStubResult(breached=len(params.ticket_id) % 2 == 0)
+    ) -> SlaBreachStubAction.Result:
+        return SlaBreachStubAction.Result(breached=len(params.ticket_id) % 2 == 0)

@@ -15,23 +15,23 @@ from action_machine.model.base_result import BaseResult
 from maxitor.samples.messaging.domain import MessagingDomain
 
 
-class TemplateRenderStubParams(BaseParams):
-    template_id: str = Field(description="Template id")
-
-
-class TemplateRenderStubResult(BaseResult):
-    body_len: int = Field(description="Stub rendered body length", ge=0)
-
-
 @meta(description="Render notification template (messaging sample stub)", domain=MessagingDomain)
 @check_roles(NoneRole)
-class TemplateRenderStubAction(BaseAction[TemplateRenderStubParams, TemplateRenderStubResult]):
+class TemplateRenderStubAction(
+    BaseAction["TemplateRenderStubAction.Params", "TemplateRenderStubAction.Result"],
+):
+    class Params(BaseParams):
+        template_id: str = Field(description="Template id")
+
+    class Result(BaseResult):
+        body_len: int = Field(description="Stub rendered body length", ge=0)
+
     @summary_aspect("Render")
     async def render_summary(
         self,
-        params: TemplateRenderStubParams,
+        params: TemplateRenderStubAction.Params,
         state: Any,
         box: Any,
         connections: Any,
-    ) -> TemplateRenderStubResult:
-        return TemplateRenderStubResult(body_len=32 + len(params.template_id))
+    ) -> TemplateRenderStubAction.Result:
+        return TemplateRenderStubAction.Result(body_len=32 + len(params.template_id))

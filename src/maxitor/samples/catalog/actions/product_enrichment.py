@@ -29,35 +29,35 @@ from maxitor.samples.catalog.resources import CatalogObjectStore, CatalogSearchS
 from maxitor.samples.roles import EditorRole
 
 
-class ProductEnrichmentParams(BaseParams):
-    sku: str = Field(description="SKU to enrich")
-    locale: str = Field(default="en", description="Locale code")
-
-    @property
-    @sensitive(True, max_chars=2, char="*", max_percent=60)
-    def merchant_token_hint(self) -> str:
-        return "mch-SECRET-CAT-DEMO"
-
-
-class ProductEnrichmentResult(BaseResult):
-    doc_id: str = Field(description="Search index document id")
-    list_price: float = Field(description="Resolved list price")
-    status: str = Field(description="Pipeline status")
-
-
 @meta(description="Enrich catalog SKU with full graph facets (catalog demo)", domain=CatalogDomain)
 @check_roles(EditorRole)
 @depends(IndexSyncClient, description="Search index")
 @depends(PricingFeedClient, description="Pricing feed")
 @connection(CatalogSearchSidecar, key="search", description="Search sidecar")
 @connection(CatalogObjectStore, key="objects", description="Object store")
-class ProductEnrichmentAction(BaseAction[ProductEnrichmentParams, ProductEnrichmentResult]):
+class ProductEnrichmentAction(
+    BaseAction["ProductEnrichmentAction.Params", "ProductEnrichmentAction.Result"],
+):
+    class Params(BaseParams):
+        sku: str = Field(description="SKU to enrich")
+        locale: str = Field(default="en", description="Locale code")
+
+        @property
+        @sensitive(True, max_chars=2, char="*", max_percent=60)
+        def merchant_token_hint(self) -> str:
+            return "mch-SECRET-CAT-DEMO"
+
+    class Result(BaseResult):
+        doc_id: str = Field(description="Search index document id")
+        list_price: float = Field(description="Resolved list price")
+        status: str = Field(description="Pipeline status")
+
     @regular_aspect("Validate SKU")
     @result_string("normalized_sku", required=True, min_length=1)
     @context_requires(Ctx.User.user_id)
     async def validate_sku_aspect(
         self,
-        params: ProductEnrichmentParams,
+        params: ProductEnrichmentAction.Params,
         state: Any,
         box: Any,
         connections: Any,
@@ -70,7 +70,7 @@ class ProductEnrichmentAction(BaseAction[ProductEnrichmentParams, ProductEnrichm
     @result_string("doc_id", required=True, min_length=1)
     async def enrich_aspect(
         self,
-        params: ProductEnrichmentParams,
+        params: ProductEnrichmentAction.Params,
         state: Any,
         box: Any,
         connections: Any,
@@ -87,7 +87,7 @@ class ProductEnrichmentAction(BaseAction[ProductEnrichmentParams, ProductEnrichm
     @compensate("enrich_aspect", "Rollback index row on failure")
     async def enrich_compensate(
         self,
-        params: ProductEnrichmentParams,
+        params: ProductEnrichmentAction.Params,
         state_before: Any,
         state_after: Any,
         box: Any,
@@ -102,35 +102,35 @@ class ProductEnrichmentAction(BaseAction[ProductEnrichmentParams, ProductEnrichm
     @context_requires(Ctx.User.user_id, Ctx.Request.trace_id)
     async def validation_error_on_error(
         self,
-        params: ProductEnrichmentParams,
+        params: ProductEnrichmentAction.Params,
         state: Any,
         box: Any,
         connections: Any,
         error: ValueError,
         ctx: Any,
-    ) -> ProductEnrichmentResult:
-        return ProductEnrichmentResult(doc_id="ERR", list_price=0.0, status="validation_failed")
+    ) -> ProductEnrichmentAction.Result:
+        return ProductEnrichmentAction.Result(doc_id="ERR", list_price=0.0, status="validation_failed")
 
     @on_error(Exception, description="Catalog fallback")
     async def unexpected_error_on_error(
         self,
-        params: ProductEnrichmentParams,
+        params: ProductEnrichmentAction.Params,
         state: Any,
         box: Any,
         connections: Any,
         error: Exception,
-    ) -> ProductEnrichmentResult:
-        return ProductEnrichmentResult(doc_id="ERR", list_price=0.0, status="internal_error")
+    ) -> ProductEnrichmentAction.Result:
+        return ProductEnrichmentAction.Result(doc_id="ERR", list_price=0.0, status="internal_error")
 
     @summary_aspect("Build enrichment result")
     async def build_result_summary(
         self,
-        params: ProductEnrichmentParams,
+        params: ProductEnrichmentAction.Params,
         state: Any,
         box: Any,
         connections: Any,
-    ) -> ProductEnrichmentResult:
-        return ProductEnrichmentResult(
+    ) -> ProductEnrichmentAction.Result:
+        return ProductEnrichmentAction.Result(
             doc_id=state.doc_id,
             list_price=state.list_price,
             status="enriched",

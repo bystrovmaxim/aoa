@@ -15,23 +15,23 @@ from action_machine.model.base_result import BaseResult
 from maxitor.samples.billing.domain import BillingDomain
 
 
-class DunningScheduleParams(BaseParams):
-    account_id: str = Field(description="Billing account id")
-
-
-class DunningScheduleResult(BaseResult):
-    next_run_iso: str = Field(description="Stub next dunning timestamp")
-
-
 @meta(description="Schedule dunning retries (billing sample stub)", domain=BillingDomain)
 @check_roles(NoneRole)
-class DunningScheduleAction(BaseAction[DunningScheduleParams, DunningScheduleResult]):
+class DunningScheduleAction(
+    BaseAction["DunningScheduleAction.Params", "DunningScheduleAction.Result"],
+):
+    class Params(BaseParams):
+        account_id: str = Field(description="Billing account id")
+
+    class Result(BaseResult):
+        next_run_iso: str = Field(description="Stub next dunning timestamp")
+
     @summary_aspect("Schedule")
     async def schedule_summary(
         self,
-        params: DunningScheduleParams,
+        params: DunningScheduleAction.Params,
         state: Any,
         box: Any,
         connections: Any,
-    ) -> DunningScheduleResult:
-        return DunningScheduleResult(next_run_iso=f"2099-01-01T00:00:00Z:{params.account_id}")
+    ) -> DunningScheduleAction.Result:
+        return DunningScheduleAction.Result(next_run_iso=f"2099-01-01T00:00:00Z:{params.account_id}")

@@ -187,9 +187,7 @@ def _json_safe_value(value: Any) -> Any:
         return f"{value.__module__}.{value.__qualname__}"
     if isinstance(value, frozenset):
         return sorted((_json_safe_value(v) for v in value), key=str)
-    if isinstance(value, tuple):
-        return [_json_safe_value(v) for v in value]
-    if isinstance(value, list):
+    if isinstance(value, (tuple, list)):
         return [_json_safe_value(v) for v in value]
     if isinstance(value, dict):
         return {str(k): _json_safe_value(v) for k, v in value.items()}

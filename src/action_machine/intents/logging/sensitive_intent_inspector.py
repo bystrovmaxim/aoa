@@ -47,10 +47,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from action_machine.interchange_vertex_labels import ACTION_VERTEX_TYPE, ENTITY_VERTEX_TYPE
 from action_machine.graph.base_facet_snapshot import BaseFacetSnapshot
 from action_machine.graph.base_intent_inspector import BaseIntentInspector
 from action_machine.graph.payload import EdgeInfo, FacetPayload
+from action_machine.interchange_vertex_labels import ACTION_VERTEX_TYPE, ENTITY_VERTEX_TYPE
 from action_machine.model.base_action import BaseAction
 from action_machine.model.base_schema import BaseSchema
 from action_machine.resources.base_resource_manager import BaseResourceManager
@@ -147,6 +147,7 @@ class SensitiveIntentInspector(BaseIntentInspector):
     @classmethod
     def _sensitive_host_vertex(cls, declaring_klass: type) -> tuple[str, str]:
         """Return ``(node_type, node_name)`` for the canonical host of ``@sensitive`` rows."""
+        # pylint: disable=import-outside-toplevel
         from action_machine.domain.entity_intent import EntityIntent
         from action_machine.intents.described_fields.described_fields_intent_inspector import (
             DescribedFieldsIntentInspector,

@@ -74,11 +74,11 @@ from pydantic import BaseModel
 from pydantic.fields import FieldInfo
 from pydantic_core import PydanticUndefined
 
-from action_machine.interchange_vertex_labels import ENTITY_VERTEX_TYPE
 from action_machine.graph.base_facet_snapshot import BaseFacetSnapshot
 from action_machine.graph.base_intent_inspector import BaseIntentInspector
 from action_machine.graph.payload import FacetPayload
 from action_machine.intents.described_fields.marker import DescribedFieldsIntent
+from action_machine.interchange_vertex_labels import ENTITY_VERTEX_TYPE
 
 
 class DescribedFieldsIntentInspector(BaseIntentInspector):
@@ -112,6 +112,7 @@ class DescribedFieldsIntentInspector(BaseIntentInspector):
         ``BaseParams`` → ``params_schema``; ``BaseResult`` → ``result_schema``;
         everything else (still documented via this inspector) → ``described_fields``.
         """
+        # pylint: disable=import-outside-toplevel
         from action_machine.model.base_params import BaseParams
         from action_machine.model.base_result import BaseResult
 
@@ -130,6 +131,7 @@ class DescribedFieldsIntentInspector(BaseIntentInspector):
         ``described_fields`` — same rules as :meth:`interchange_node_type_for_schema_model`
         (entities use the ``Entity`` vertex; params/result use their contract vertices).
         """
+        # pylint: disable=import-outside-toplevel
         from action_machine.domain.entity_intent import EntityIntent
 
         if issubclass(schema_cls, EntityIntent):
@@ -141,6 +143,7 @@ class DescribedFieldsIntentInspector(BaseIntentInspector):
 
     @classmethod
     def _is_entity_schema(cls, target_cls: type) -> bool:
+        # pylint: disable=import-outside-toplevel
         from action_machine.domain.entity_intent import EntityIntent
 
         return issubclass(target_cls, EntityIntent)

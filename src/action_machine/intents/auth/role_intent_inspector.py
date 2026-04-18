@@ -107,7 +107,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from action_machine.interchange_vertex_labels import ACTION_VERTEX_TYPE
 from action_machine.graph.base_facet_snapshot import BaseFacetSnapshot
 from action_machine.graph.base_intent_inspector import BaseIntentInspector
 from action_machine.graph.payload import EdgeInfo, FacetPayload
@@ -116,6 +115,7 @@ from action_machine.intents.auth.base_role import BaseRole
 from action_machine.intents.auth.none_role import NoneRole
 from action_machine.intents.auth.role_graph_roots import role_class_topology_anchor
 from action_machine.intents.auth.role_intent import RoleIntent
+from action_machine.interchange_vertex_labels import ACTION_VERTEX_TYPE
 
 
 class RoleIntentInspector(BaseIntentInspector):

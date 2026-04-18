@@ -15,23 +15,21 @@ from action_machine.model.base_result import BaseResult
 from maxitor.samples.store.domain import StoreDomain
 
 
-class InventoryHoldStubParams(BaseParams):
-    sku: str = Field(description="SKU")
-
-
-class InventoryHoldStubResult(BaseResult):
-    hold_id: str = Field(description="Stub reservation id")
-
-
 @meta(description="Place inventory hold (store sample stub)", domain=StoreDomain)
 @check_roles(NoneRole)
-class InventoryHoldStubAction(BaseAction[InventoryHoldStubParams, InventoryHoldStubResult]):
+class InventoryHoldStubAction(BaseAction["InventoryHoldStubAction.Params", "InventoryHoldStubAction.Result"]):
+    class Params(BaseParams):
+        sku: str = Field(description="SKU")
+
+    class Result(BaseResult):
+        hold_id: str = Field(description="Stub reservation id")
+
     @summary_aspect("Hold")
     async def hold_summary(
         self,
-        params: InventoryHoldStubParams,
+        params: InventoryHoldStubAction.Params,
         state: Any,
         box: Any,
         connections: Any,
-    ) -> InventoryHoldStubResult:
-        return InventoryHoldStubResult(hold_id=f"HOLD-{params.sku}")
+    ) -> InventoryHoldStubAction.Result:
+        return InventoryHoldStubAction.Result(hold_id=f"HOLD-{params.sku}")
