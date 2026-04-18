@@ -15,9 +15,9 @@ An inspector:
 3. Registers with ``GraphCoordinator``.
 
 During ``build()`` the coordinator walks registered inspectors, calls
-``inspect()`` on each candidate, and commits ``FacetVertex`` nodes into
-``rx.PyDiGraph``. Inspectors do not assemble runtime metadata — only graph
-nodes/edges plus optional node ``meta`` for tooling.
+``inspect()`` on each candidate, and commits graph topology. Inspectors emit
+either legacy :class:`FacetVertex` rows or, **once migrated**, pure interchange
+data (see **Interchange return shape** below).
 
 Optionally, ``facet_snapshot_for_class()`` returns a :class:`BaseFacetSnapshot`
 (usually a nested ``Snapshot`` on the inspector); the coordinator caches it
@@ -46,19 +46,48 @@ The link is the inspector's ``_target_intent`` (single marker) or, rarely, the
 nodes. The marker never references the inspector.
 
 ═══════════════════════════════════════════════════════════════════════════════
+INTERCHANGE RETURN SHAPE (TARGET — NO EXTRA TYPES)
+═══════════════════════════════════════════════════════════════════════════════
+
+The preferred contract uses **only** :class:`~action_machine.graph.graph_vertex.GraphVertex`
+and :class:`~action_machine.graph.graph_edge.GraphEdge` — no wrapper dataclass.
+
+``inspect()`` **may** return (see :data:`InspectGraphPair`)::
+
+    (vertices, edges)
+
+where:
+
+- ``vertices`` is a ``list`` of :class:`~action_machine.graph.graph_vertex.GraphVertex`.
+  Each vertex ``id`` is the global interchange id (same string the coordinator
+  uses as ``node_name`` today).
+- ``edges`` is a ``list`` of :class:`~action_machine.graph.graph_edge.GraphEdge`.
+  Every ``source_id`` / ``target_id`` must match some ``GraphVertex.id`` in the
+  same contribution (possibly across lists from other classes after merge).
+
+Coordinator-specific metadata (owner class, facet meta, merge keys) until the
+collector is migrated may live in reserved ``properties`` entries on those
+dataclasses; interchange-only consumers ignore unknown keys.
+
+If the candidate class is irrelevant, return ``None``.
+
+Until all inspectors migrate, :class:`~action_machine.graph.facet_vertex.FacetVertex`
+returns remain valid (see :data:`FacetInspectResult`).
+
+═══════════════════════════════════════════════════════════════════════════════
 TWO REQUIRED METHODS
 ═══════════════════════════════════════════════════════════════════════════════
 
 Every inspector implements two abstract ``classmethod`` hooks:
 
-    inspect(target_cls) → FacetVertex | list[FacetVertex] | tuple[FacetVertex, ...] | None
-        Entry point. Decides whether the class belongs to this inspector.
-        Returns a payload, a sequence of payloads, or ``None`` when the class is irrelevant.
+    inspect(target_cls) → FacetInspectResult
+        Entry point. Prefer ``tuple[list[GraphVertex], list[GraphEdge]]`` (see
+        :data:`InspectGraphPair`); legacy facet payloads remain supported during migration.
 
-    _build_payload(target_cls) → FacetVertex | list[FacetVertex]
+    _build_payload(target_cls) → FacetBuildResult
         Builds the node/edge bundle (or several facets). Reads class scratch attributes
         (``_role_info``, ``_depends_info``, ``_meta_info``, …) and uses base
-        helpers to assemble ``FacetVertex``.
+        helpers to assemble ``FacetVertex`` (until interchange-only migration).
 
 ═══════════════════════════════════════════════════════════════════════════════
 WHERE VALIDATION LIVES
@@ -228,7 +257,7 @@ AI-CORE-BEGIN
 ROLE: Abstract inspector base for all intent-driven graph facets.
 CONTRACT: ``inspect`` / ``_build_payload`` + shared payload and traversal helpers.
 INVARIANTS: Stateless classmethods; markers never import inspectors.
-FLOW: coordinator → ``_subclasses_recursive`` → ``inspect`` → ``FacetVertex``.
+FLOW: coordinator → ``_subclasses_recursive`` → ``inspect`` → facet payload **or** ``InspectGraphPair``.
 FAILURES: abstract until concrete inspector implements hooks.
 EXTENSION POINTS: concrete inspectors override traversal and payload shape.
 AI-CORE-END
@@ -243,9 +272,20 @@ from typing import Any
 from action_machine.graph.base_facet_snapshot import BaseFacetSnapshot
 from action_machine.graph.facet_edge import FacetEdge
 from action_machine.graph.facet_vertex import FacetVertex
+from action_machine.graph.graph_edge import GraphEdge
+from action_machine.graph.graph_vertex import GraphVertex
 
-# ``GraphCoordinator._phase1_collect`` normalizes every outcome to ``list[FacetVertex]``.
-type FacetInspectResult = FacetVertex | list[FacetVertex] | tuple[FacetVertex, ...] | None
+# Target: ``(vertices, edges)`` only — no envelope type (see module docstring).
+type InspectGraphPair = tuple[list[GraphVertex], list[GraphEdge]]
+
+# Legacy facet payloads **or** ``InspectGraphPair`` **or** ``None`` when irrelevant.
+type FacetInspectResult = (
+    FacetVertex
+    | list[FacetVertex]
+    | tuple[FacetVertex, ...]
+    | InspectGraphPair
+    | None
+)
 type FacetBuildResult = FacetVertex | list[FacetVertex]
 
 
@@ -287,8 +327,9 @@ class BaseIntentInspector(ABC):
 
             1. Check decorator scratch (``hasattr`` / ``getattr``).
             2. If missing → ``return None``.
-            3. Call ``_build_payload()`` → ``FacetVertex`` or ``list[FacetVertex]``.
-            4. Return the payload or sequence.
+            3. Call ``_build_payload()`` → legacy ``FacetVertex`` / list, **or**
+               return ``(vertices, edges)`` as two lists of interchange types
+               (:data:`InspectGraphPair`).
 
         Args:
             target_cls: Candidate class (subclass of the marker mixin).
