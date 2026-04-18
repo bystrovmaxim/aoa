@@ -3,10 +3,12 @@
 
 from __future__ import annotations
 
+from action_machine.graph import graph_builder as graph_builder_mod
 from action_machine.graph.base_intent_inspector import BaseIntentInspector
 from action_machine.intents.aspects.aspect_intent import AspectIntent
 from action_machine.intents.aspects.regular_aspect_decorator import regular_aspect
 from action_machine.intents.checkers.checker_intent import CheckerIntent
+from action_machine.interchange_vertex_labels import CHECKER_VERTEX_TYPE
 from action_machine.intents.checkers.checker_intent_inspector import CheckerIntentInspector
 from action_machine.intents.checkers.result_string_checker import result_string
 
@@ -31,7 +33,7 @@ def test_checker_inspector_builds_payload_with_checker_entries() -> None:
     assert isinstance(raw, list)
     assert len(raw) == 1
     payload = raw[0]
-    assert payload.node_type == "checker"
+    assert payload.node_type == CHECKER_VERTEX_TYPE
     host = BaseIntentInspector._make_node_name(_CheckerAction)
     assert payload.node_name == f"{host}:validate_name_aspect:ResultStringChecker:name"
     assert len(payload.edges) == 1
@@ -44,3 +46,4 @@ def test_checker_inspector_builds_payload_with_checker_entries() -> None:
     assert row["field_name"] == "name"
     assert row["required"] is True
     assert ("min_length", 2) in row["extra_params"]
+    assert graph_builder_mod._facet_vertex_label(payload) == "name"

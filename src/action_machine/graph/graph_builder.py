@@ -18,6 +18,7 @@ from action_machine.graph.constants import INTERNAL_EDGE_TYPES, OWNERSHIP_EDGE_T
 from action_machine.graph.model import GraphEdge, GraphVertex
 from action_machine.graph.payload import FacetPayload
 from action_machine.interchange_vertex_labels import (
+    CHECKER_VERTEX_TYPE,
     REGULAR_ASPECT_VERTEX_TYPE,
     SUMMARY_ASPECT_VERTEX_TYPE,
 )
@@ -159,12 +160,20 @@ def _aspect_method_name_from_meta(meta: Mapping[str, Any]) -> str | None:
     return s or None
 
 
+def _checker_field_name_from_meta(meta: Mapping[str, Any]) -> str | None:
+    """Result field name from checker metadata (decorator ``field_name``, e.g. ``charged_amount``)."""
+    s = str(meta.get("field_name", "") or "").strip()
+    return s or None
+
+
 def _facet_vertex_label(p: FacetPayload) -> str:
     """
     Short labels for lifecycle facets: state nodes use the two-part id (e.g. ``SalesOrderLifecycle:new``),
     lifecycle field nodes use the model field name (e.g. ``lifecycle``).
     Per-method aspect vertices use the **method name in the class** (identifier), not the
     decorator human string (e.g. ``"Validate payload"`` with spaces).
+    Checker vertices use **``field_name``** from the checker decorator (same key validated
+    on the aspect result dict), not the long ``host:aspect:CheckerClass:field`` id tail.
     """
     meta = dict(p.node_meta)
     nt = str(p.node_type)
@@ -172,6 +181,10 @@ def _facet_vertex_label(p: FacetPayload) -> str:
         method = _aspect_method_name_from_meta(meta)
         if method:
             return method
+    if nt == CHECKER_VERTEX_TYPE:
+        field = _checker_field_name_from_meta(meta)
+        if field:
+            return field
     if nt.startswith("lifecycle_state"):
         return p.node_name
     if p.node_type == "lifecycle" and "field_name" in meta:

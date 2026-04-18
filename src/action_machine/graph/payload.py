@@ -219,7 +219,7 @@ class FacetPayload:
 
     Attributes:
         node_type : str
-            Facet type: ``"Action"``, ``"role_class"``, ``"RegularAspect"``, ``"SummaryAspect"``, ``"checker"``,
+            Facet type: ``"Action"``, ``"role_class"``, ``"RegularAspect"``, ``"SummaryAspect"``, ``"Checker"``,
             ``"entity"``, ``"domain"``,
             ``"dependency"``, ``"connection"``, ``"error_handler"``,
             ``"compensator"``, ``"subscription"``, ``"sensitive_field"``,
