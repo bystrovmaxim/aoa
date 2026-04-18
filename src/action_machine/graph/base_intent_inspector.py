@@ -411,7 +411,7 @@ class BaseIntentInspector(ABC):
         Target name comes from ``_make_node_name(target_cls)``.
 
         Args:
-            target_node_type: Target facet (``"dependency"``, ``"domain"``, …).
+            target_node_type: Target facet (``"dependency"``, ``"Domain"``, …).
             target_cls: Python class at the arrow head.
             edge_type: Edge label (``"depends"``, ``"connection"``, …).
             is_structural: Structural vs informational edge.

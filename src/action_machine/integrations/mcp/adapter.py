@@ -118,7 +118,7 @@ The resource returns coordinator graph JSON with nodes and edges:
     {
       "nodes": [
         {"id": "...", "type": "Action", "description": "...", "domain": "..."},
-        {"id": "...", "type": "domain", "domain_label": "..."}
+        {"id": "...", "type": "Domain", "domain_label": "..."}
       ],
       "edges": [
         {"from": "...", "to": "...", "type": "belongs_to"}
@@ -204,6 +204,7 @@ from action_machine.adapters.base_route_record import (
 )
 from action_machine.graph.graph_coordinator import GraphCoordinator
 from action_machine.interchange_vertex_labels import (
+    DOMAIN_VERTEX_TYPE,
     REGULAR_ASPECT_VERTEX_TYPE,
     SUMMARY_ASPECT_VERTEX_TYPE,
 )
@@ -369,7 +370,7 @@ def _mcp_apply_meta_to_node(node: dict[str, Any], meta: dict[str, Any], node_typ
         else:
             node["domain"] = str(domain)
 
-    if node_type == "domain":
+    if node_type == DOMAIN_VERTEX_TYPE:
         domain_name = meta.get("name", "")
         if domain_name:
             node["domain_label"] = domain_name

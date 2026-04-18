@@ -185,7 +185,11 @@ from typing import Any, Literal
 import rustworkx as rx
 
 from action_machine.dependencies.dependency_factory import DEPENDENCY_FACTORY_CACHE_KEY
-from action_machine.interchange_vertex_labels import ACTION_VERTEX_TYPE, APPLICATION_VERTEX_TYPE
+from action_machine.interchange_vertex_labels import (
+    ACTION_VERTEX_TYPE,
+    APPLICATION_VERTEX_TYPE,
+    DOMAIN_VERTEX_TYPE,
+)
 from action_machine.dependencies.dependency_intent_inspector import DependencyIntentInspector
 from action_machine.domain.application_context import ApplicationContext
 from action_machine.graph.base_facet_snapshot import BaseFacetSnapshot
@@ -907,9 +911,9 @@ class GraphCoordinator:
                 node_meta=first.node_meta + second.node_meta,
                 edges=first.edges + second.edges,
             )
-        if first.node_type == "domain" and second.node_type == "domain":
+        if first.node_type == DOMAIN_VERTEX_TYPE and second.node_type == DOMAIN_VERTEX_TYPE:
             return FacetPayload(
-                node_type="domain",
+                node_type=DOMAIN_VERTEX_TYPE,
                 node_name=first.node_name,
                 node_class=first.node_class,
                 node_meta=first.node_meta + second.node_meta,

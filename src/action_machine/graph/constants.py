@@ -24,7 +24,7 @@ VERTEX_TYPES: Final[frozenset[str]] = frozenset(
         "sensitive_field",
         "role_class",
         "Application",
-        "domain",
+        "Domain",
         "entity",
         "lifecycle",
         "lifecycle_state_initial",

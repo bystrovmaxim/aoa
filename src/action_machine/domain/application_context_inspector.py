@@ -1,11 +1,11 @@
 # src/action_machine/domain/application_context_inspector.py
 """
 ``ApplicationContextInspector`` — emits the canonical ``Application`` vertex and
-``domain`` → ``Application`` informational edges.
+``Domain`` → ``Application`` informational edges.
 
 Walks every ``BaseDomain`` subclass. For each concrete domain marker, returns
 two facet payloads: the shared ``Application`` node (merged across domains) and
-the ``domain`` node with ``belongs_to`` → ``Application``.
+the ``Domain`` node with ``belongs_to`` → ``Application``.
 """
 
 from __future__ import annotations
@@ -13,7 +13,7 @@ from __future__ import annotations
 from action_machine.domain.application_context import ApplicationContext
 from action_machine.domain.base_domain import BaseDomain
 from action_machine.graph.base_intent_inspector import BaseIntentInspector
-from action_machine.interchange_vertex_labels import APPLICATION_VERTEX_TYPE
+from action_machine.interchange_vertex_labels import APPLICATION_VERTEX_TYPE, DOMAIN_VERTEX_TYPE
 from action_machine.graph.payload import FacetPayload
 
 
@@ -21,10 +21,10 @@ class ApplicationContextInspector(BaseIntentInspector):
     """
     Inspector: one logical ``Application`` vertex; each ``BaseDomain`` belongs to it.
 
-    Registration should run **before** inspectors that synthesize ``domain`` stubs
+    Registration should run **before** inspectors that synthesize ``Domain`` stubs
     from ``belongs_to`` edges so domain rows are materialized with metadata; when
     stubs appear first, :meth:`GraphCoordinator._merge_facets_under_collect_key`
-    merges ``domain`` + ``domain`` rows for the same class.
+    merges ``Domain`` + ``Domain`` rows for the same class.
     """
 
     _target_intent = BaseDomain
@@ -79,7 +79,7 @@ class ApplicationContextInspector(BaseIntentInspector):
             is_structural=False,
         )
         return FacetPayload(
-            node_type="domain",
+            node_type=DOMAIN_VERTEX_TYPE,
             node_name=domain_name,
             node_class=target_cls,
             node_meta=cls._make_meta(name=name, description=description),

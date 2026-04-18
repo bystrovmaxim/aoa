@@ -17,6 +17,7 @@ from action_machine.graph.base_intent_inspector import BaseIntentInspector
 from action_machine.graph.graph_builder import build_interchange_from_facet_payloads
 from action_machine.graph.graph_coordinator import GraphCoordinator
 from action_machine.graph.payload import EdgeInfo, FacetPayload
+from action_machine.interchange_vertex_labels import DOMAIN_VERTEX_TYPE
 
 _FIXTURE = Path(__file__).resolve().parents[1] / "fixtures" / "golden_graph" / "synthetic_minimal.json"
 
@@ -68,7 +69,7 @@ def _g0_facet_payloads() -> tuple[FacetPayload, ...]:
     action_name = BaseIntentInspector._make_node_name(demo_action)
     role_class_name = BaseIntentInspector._make_node_name(demo_role)
     domain_edge = BaseIntentInspector._make_edge(
-        "domain",
+        DOMAIN_VERTEX_TYPE,
         demo_domain,
         "belongs_to",
         False,
@@ -81,7 +82,7 @@ def _g0_facet_payloads() -> tuple[FacetPayload, ...]:
     )
     return (
         FacetPayload(
-            node_type="domain",
+            node_type=DOMAIN_VERTEX_TYPE,
             node_name=domain_name,
             node_class=demo_domain,
             node_meta=BaseIntentInspector._make_meta(label="demo"),
@@ -116,10 +117,10 @@ def _g0_meta_no_action_payloads() -> tuple[FacetPayload, ...]:
     demo_domain, demo_action, demo_role = _g0_demo_types()
     domain_name = BaseIntentInspector._make_node_name(demo_domain)
     action_name = BaseIntentInspector._make_node_name(demo_action)
-    domain_edge = BaseIntentInspector._make_edge("domain", demo_domain, "belongs_to", False)
+    domain_edge = BaseIntentInspector._make_edge(DOMAIN_VERTEX_TYPE, demo_domain, "belongs_to", False)
     return (
         FacetPayload(
-            node_type="domain",
+            node_type=DOMAIN_VERTEX_TYPE,
             node_name=domain_name,
             node_class=demo_domain,
             node_meta=BaseIntentInspector._make_meta(label="demo"),
@@ -214,14 +215,14 @@ def test_facet_projection_rejects_duplicate_facet_key() -> None:
     name = BaseIntentInspector._make_node_name(demo_action)
     payloads = (
         FacetPayload(
-            node_type="domain",
+            node_type=DOMAIN_VERTEX_TYPE,
             node_name=name,
             node_class=demo_domain,
             node_meta=(),
             edges=(),
         ),
         FacetPayload(
-            node_type="domain",
+            node_type=DOMAIN_VERTEX_TYPE,
             node_name=name,
             node_class=demo_domain,
             node_meta=(),
@@ -264,10 +265,10 @@ def test_facet_role_spec_non_type_skips_assigned_edges() -> None:
     demo_domain, demo_action, _ = _g0_demo_types()
     domain_name = BaseIntentInspector._make_node_name(demo_domain)
     action_name = BaseIntentInspector._make_node_name(demo_action)
-    domain_edge = BaseIntentInspector._make_edge("domain", demo_domain, "belongs_to", False)
+    domain_edge = BaseIntentInspector._make_edge(DOMAIN_VERTEX_TYPE, demo_domain, "belongs_to", False)
     payloads = (
         FacetPayload(
-            node_type="domain",
+            node_type=DOMAIN_VERTEX_TYPE,
             node_name=domain_name,
             node_class=demo_domain,
             node_meta=BaseIntentInspector._make_meta(label="demo"),
@@ -290,7 +291,7 @@ def test_facet_role_spec_non_type_skips_assigned_edges() -> None:
     )
     vertices, edges = build_interchange_from_facet_payloads(payloads)
     assert len(vertices) == 3
-    assert {v.node_type for v in vertices} == {"domain", "Action", "meta"}
+    assert {v.node_type for v in vertices} == {DOMAIN_VERTEX_TYPE, "Action", "meta"}
     assert len(edges) == 1
     assert edges[0].edge_type == "BELONGS_TO"
 
@@ -299,7 +300,7 @@ def test_facet_belongs_to_empty_target_name_raises() -> None:
     _, demo_action, _ = _g0_demo_types()
     meta_name = BaseIntentInspector._make_host_dependent_node_name(demo_action, "meta")
     bad_edge = EdgeInfo(
-        target_node_type="domain",
+        target_node_type=DOMAIN_VERTEX_TYPE,
         target_name="",
         edge_type="belongs_to",
         is_structural=False,
@@ -321,8 +322,8 @@ def test_facet_duplicate_belongs_to_deduped_to_single_pair() -> None:
     demo_domain, demo_action, demo_role = _g0_demo_types()
     domain_name = BaseIntentInspector._make_node_name(demo_domain)
     action_name = BaseIntentInspector._make_node_name(demo_action)
-    edge1 = BaseIntentInspector._make_edge("domain", demo_domain, "belongs_to", False)
-    edge2 = BaseIntentInspector._make_edge("domain", demo_domain, "belongs_to", False)
+    edge1 = BaseIntentInspector._make_edge(DOMAIN_VERTEX_TYPE, demo_domain, "belongs_to", False)
+    edge2 = BaseIntentInspector._make_edge(DOMAIN_VERTEX_TYPE, demo_domain, "belongs_to", False)
     requires_role_edge = BaseIntentInspector._make_edge(
         "role_class",
         demo_role,
@@ -331,7 +332,7 @@ def test_facet_duplicate_belongs_to_deduped_to_single_pair() -> None:
     )
     payloads = (
         FacetPayload(
-            node_type="domain",
+            node_type=DOMAIN_VERTEX_TYPE,
             node_name=domain_name,
             node_class=demo_domain,
             node_meta=BaseIntentInspector._make_meta(label="demo"),

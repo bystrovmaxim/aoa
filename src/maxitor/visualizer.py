@@ -53,6 +53,7 @@ from action_machine.interchange_vertex_labels import (
     APPLICATION_VERTEX_TYPE,
     CHECKER_VERTEX_TYPE,
     COMPENSATOR_VERTEX_TYPE,
+    DOMAIN_VERTEX_TYPE,
     REGULAR_ASPECT_VERTEX_TYPE,
     SERVICE_VERTEX_TYPE,
     SUMMARY_ASPECT_VERTEX_TYPE,
@@ -71,7 +72,7 @@ DEFAULT_APP_GRAPH_HTML = "app_graph.html"
 VERTEX_TYPE_FILL_COLORS: dict[str, str] = {
     APPLICATION_VERTEX_TYPE: "#000000",
     ACTION_VERTEX_TYPE: "#E41A1C",
-    "domain": "#377EB8",
+    DOMAIN_VERTEX_TYPE: "#377EB8",
     "dependency": "#4DAF4A",
     "connection": "#984EA3",
     REGULAR_ASPECT_VERTEX_TYPE: "#FF7F00",
@@ -327,7 +328,7 @@ def _propagate_node_domains(
         nid = str(n["id"])
         id_to_type[nid] = str((n.get("data") or {}).get("node_type", "unknown"))
 
-    domain_ids = [nid for nid, t in id_to_type.items() if t == "domain"]
+    domain_ids = [nid for nid, t in id_to_type.items() if t == DOMAIN_VERTEX_TYPE]
 
     node_domains: defaultdict[str, set[str]] = defaultdict(set)
 
@@ -336,7 +337,7 @@ def _propagate_node_domains(
         if str(ed.get("label", "") or "") != "BELONGS_TO":
             continue
         src, tgt = str(e["source"]), str(e["target"])
-        if id_to_type.get(tgt) != "domain":
+        if id_to_type.get(tgt) != DOMAIN_VERTEX_TYPE:
             continue
         if id_to_type.get(src) == APPLICATION_VERTEX_TYPE:
             continue
@@ -392,7 +393,7 @@ def _d3_seed_xy_for_nodes(
         if id_to_type.get(nid) == APPLICATION_VERTEX_TYPE:
             center_ids.append(nid)
             continue
-        if id_to_type.get(nid) == "domain":
+        if id_to_type.get(nid) == DOMAIN_VERTEX_TYPE:
             continue
         if not node_domains.get(nid):
             center_ids.append(nid)
