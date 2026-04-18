@@ -160,7 +160,7 @@ class SensitiveIntentInspector(BaseIntentInspector):
             return "entity", cls._make_node_name(declaring_klass)
         if issubclass(declaring_klass, DescribedFieldsIntent):
             return (
-                "described_fields",
+                DescribedFieldsIntentInspector.interchange_vertex_type_for_schema_model(declaring_klass),
                 DescribedFieldsIntentInspector.described_fields_vertex_name(declaring_klass),
             )
         return "described_fields", cls._make_node_name(declaring_klass)

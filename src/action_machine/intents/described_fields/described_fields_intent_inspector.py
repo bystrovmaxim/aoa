@@ -9,8 +9,11 @@ PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 Extract Pydantic field documentation metadata (description, examples,
-constraints, required/default) and publish it as a dedicated
-``described_fields`` facet node.
+constraints, required/default) and publish it on a canonical interchange vertex:
+``params_schema`` for :class:`~action_machine.model.base_params.BaseParams`
+subclasses, ``result_schema`` for :class:`~action_machine.model.base_result.BaseResult`
+subclasses, otherwise ``described_fields`` for other documented schemas (no flags —
+the model class alone determines the vertex type).
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
@@ -27,7 +30,7 @@ ARCHITECTURE / DATA FLOW
     Snapshot(fields=...)
             │
             ▼
-            FacetPayload(node_type="described_fields", node_meta=schema_fields)
+            FacetPayload(node_type="params_schema" | "result_schema" | "described_fields", …)
 
 ═══════════════════════════════════════════════════════════════════════════════
 INVARIANTS
@@ -39,7 +42,7 @@ INVARIANTS
 - Vertex ``node_name`` is the canonical dotted class path for params/result models.
 - Classes that are ``EntityIntent`` subclasses are **skipped**: field docs for
   entities live on the ``entity`` facet from ``EntityIntentInspector``, not on a
-  separate ``described_fields`` vertex (no flags; policy is fixed).
+  separate schema vertex (no flags; policy is fixed).
 - Field constraints are aggregated from direct ``FieldInfo`` attrs and metadata entries.
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -53,7 +56,8 @@ ERRORS / LIMITATIONS
 AI-CORE-BEGIN
 ═══════════════════════════════════════════════════════════════════════════════
 ROLE: Described-fields metadata inspector.
-CONTRACT: Convert model field documentation metadata into ``described_fields`` facet payloads.
+CONTRACT: Convert model field documentation metadata into schema facet payloads
+    (``params_schema`` / ``result_schema`` / ``described_fields`` by model kind).
 INVARIANTS: Storage key is ``described_fields``; classes without documentable fields are skipped.
 FLOW: class discovery -> pydantic field extraction -> typed snapshot -> payload emission.
 FAILURES: Absence of fields returns ``None`` payload (skip), not an error.
@@ -82,7 +86,7 @@ class DescribedFieldsIntentInspector(BaseIntentInspector):
 
     AI-CORE-BEGIN
     ROLE: Concrete described-fields inspector.
-    CONTRACT: Emit ``described_fields`` payloads from Pydantic model field metadata.
+    CONTRACT: Emit schema facet payloads; vertex type follows BaseParams / BaseResult / other.
     INVARIANTS: Marker traversal via ``DescribedFieldsIntent`` and stable storage key.
     AI-CORE-END
     """
@@ -100,18 +104,39 @@ class DescribedFieldsIntentInspector(BaseIntentInspector):
         return cls._make_node_name(model_cls)
 
     @classmethod
+    def interchange_vertex_type_for_schema_model(cls, model_cls: type) -> str:
+        """
+        Canonical interchange ``vertex_type`` for a non-entity Pydantic schema class.
+
+        ``BaseParams`` → ``params_schema``; ``BaseResult`` → ``result_schema``;
+        everything else (still documented via this inspector) → ``described_fields``.
+        """
+        from action_machine.model.base_params import BaseParams
+        from action_machine.model.base_result import BaseResult
+
+        if issubclass(model_cls, BaseParams):
+            return "params_schema"
+        if issubclass(model_cls, BaseResult):
+            return "result_schema"
+        return "described_fields"
+
+    @classmethod
     def facet_host_for_schema_type(cls, schema_cls: type) -> tuple[str, str]:
         """
         Graph host ``(node_type, node_name)`` for edges that reference a schema class.
 
-        ``EntityIntent`` models are hosted on the ``entity`` vertex; other
-        ``BaseModel`` / params / result types use ``described_fields``.
+        Routes by class kind: ``entity``, ``params_schema``, ``result_schema``, or
+        ``described_fields`` — same rules as :meth:`interchange_vertex_type_for_schema_model`
+        (entities use the entity vertex; params/result use their contract vertices).
         """
         from action_machine.domain.entity_intent import EntityIntent
 
         if issubclass(schema_cls, EntityIntent):
             return ("entity", cls._make_node_name(schema_cls))
-        return ("described_fields", cls.described_fields_vertex_name(schema_cls))
+        return (
+            cls.interchange_vertex_type_for_schema_model(schema_cls),
+            cls.described_fields_vertex_name(schema_cls),
+        )
 
     @classmethod
     def _is_entity_schema(cls, target_cls: type) -> bool:
@@ -147,7 +172,9 @@ class DescribedFieldsIntentInspector(BaseIntentInspector):
                 )
 
             return FacetPayload(
-                node_type="described_fields",
+                node_type=DescribedFieldsIntentInspector.interchange_vertex_type_for_schema_model(
+                    self.class_ref,
+                ),
                 node_name=DescribedFieldsIntentInspector.described_fields_vertex_name(
                     self.class_ref,
                 ),

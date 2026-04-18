@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 import pytest
-from pydantic import Field
+from pydantic import BaseModel, Field
 
 from action_machine.domain import BaseEntity, entity
 from action_machine.domain.base_domain import BaseDomain
@@ -27,6 +27,12 @@ class _ProbeParams(BaseParams):
     probe_id: str = Field(description="Probe identifier")
 
 
+class _LooseDescribedDTO(BaseModel, DescribedFieldsIntent):
+    """Not BaseParams or BaseResult — stays on the generic ``described_fields`` host."""
+
+    x: str = Field(description="x")
+
+
 class _ProbeDomain(BaseDomain):
     name = "probe"
     description = "Probe domain"
@@ -47,9 +53,16 @@ def test_described_fields_inspector_targets_described_fields_intent() -> None:
 def test_described_fields_inspector_inspects_schema_class_not_action() -> None:
     payload = DescribedFieldsIntentInspector.inspect(_ProbeParams)
     assert payload is not None
-    assert payload.node_type == "described_fields"
+    assert payload.node_type == "params_schema"
     assert payload.node_class is _ProbeParams
     assert "schema_fields" in dict(payload.node_meta)
+
+
+def test_loose_described_schema_uses_described_fields_vertex() -> None:
+    payload = DescribedFieldsIntentInspector.inspect(_LooseDescribedDTO)
+    assert payload is not None
+    assert payload.node_type == "described_fields"
+    assert payload.node_class is _LooseDescribedDTO
 
 
 @entity(description="Probe entity for inspector skip", domain=_ProbeDomain)
@@ -96,5 +109,8 @@ def test_action_typed_schemas_inspector_links_action_to_schema_nodes() -> None:
     assert len(payload.edges) == 2
     types_ = {e.edge_type for e in payload.edges}
     assert types_ == {"uses_params", "uses_result"}
-    assert all(e.target_node_type == "described_fields" for e in payload.edges)
+    assert {(e.edge_type, e.target_node_type) for e in payload.edges} == {
+        ("uses_params", "params_schema"),
+        ("uses_result", "result_schema"),
+    }
     assert all(e.is_structural is False for e in payload.edges)

@@ -844,6 +844,22 @@ class GraphCoordinator:
                 node_meta=first.node_meta + second.node_meta,
                 edges=first.edges + second.edges,
             )
+        if first.node_type == "params_schema" and second.node_type == "params_schema":
+            return FacetPayload(
+                node_type="params_schema",
+                node_name=first.node_name,
+                node_class=first.node_class,
+                node_meta=first.node_meta + second.node_meta,
+                edges=first.edges + second.edges,
+            )
+        if first.node_type == "result_schema" and second.node_type == "result_schema":
+            return FacetPayload(
+                node_type="result_schema",
+                node_name=first.node_name,
+                node_class=first.node_class,
+                node_meta=first.node_meta + second.node_meta,
+                edges=first.edges + second.edges,
+            )
         if first.node_type == "sensitive_field" and second.node_type == "sensitive_field":
             return FacetPayload(
                 node_type="sensitive_field",
