@@ -36,7 +36,7 @@ from action_machine.graph import (
 
 def test_vertex_types_contains_core_kinds() -> None:
     assert "Action" in VERTEX_TYPES
-    assert "domain" in VERTEX_TYPES
+    assert "Domain" in VERTEX_TYPES
     assert "Checker" in VERTEX_TYPES
     assert "Compensator" in VERTEX_TYPES
     assert "lifecycle_state_initial" in VERTEX_TYPES

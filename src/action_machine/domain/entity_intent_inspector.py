@@ -129,6 +129,7 @@ from typing import Annotated, Any, get_args, get_origin
 from pydantic.fields import FieldInfo
 from pydantic_core import PydanticUndefined
 
+from action_machine.interchange_vertex_labels import DOMAIN_VERTEX_TYPE
 from action_machine.domain.entity_intent import EntityIntent, entity_info_is_set
 from action_machine.domain.lifecycle import Lifecycle, StateInfo, StateType
 from action_machine.domain.relation_containers import BaseRelationMany, BaseRelationOne
@@ -700,7 +701,7 @@ class EntityIntentInspector(BaseIntentInspector):
             if dom is not None and isinstance(dom, type):
                 domain_edges.append(
                     EntityIntentInspector._make_edge(
-                        target_node_type="domain",
+                        target_node_type=DOMAIN_VERTEX_TYPE,
                         target_cls=dom,
                         edge_type="belongs_to",
                         is_structural=False,

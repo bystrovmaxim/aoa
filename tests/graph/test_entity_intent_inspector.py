@@ -157,7 +157,7 @@ def test_entity_inspector_builds_payload_with_entity_metadata() -> None:
 
     domain_edges = [e for e in payload.edges if e.edge_type == "belongs_to"]
     assert len(domain_edges) == 1
-    assert domain_edges[0].target_node_type == "domain"
+    assert domain_edges[0].target_node_type == "Domain"
     assert domain_edges[0].target_class_ref is _TestDomain
 
 

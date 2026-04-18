@@ -120,7 +120,7 @@ def test_build_from_synthetic_bundle_counts_small_bundle() -> None:
         "vertices": [
             {
                 "id": "d1",
-                "node_type": "domain",
+                "node_type": "Domain",
                 "stereotype": "Business Object",
                 "label": "D",
                 "class_ref": None,

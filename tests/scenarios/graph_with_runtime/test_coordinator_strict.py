@@ -44,6 +44,7 @@ TestCoordinatorRepr
 import pytest
 
 from action_machine.domain.base_domain import BaseDomain
+from action_machine.interchange_vertex_labels import DOMAIN_VERTEX_TYPE
 from action_machine.graph.base_intent_inspector import BaseIntentInspector
 from action_machine.graph.graph_coordinator import GraphCoordinator
 from action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
@@ -257,7 +258,7 @@ class TestDomainNodes:
     def test_action_with_domain_creates_domain_node(self):
         coord = _coord()
         nodes = [
-            n for n in coord.get_nodes_by_type("domain")
+            n for n in coord.get_nodes_by_type(DOMAIN_VERTEX_TYPE)
             if n.get("class_ref") is _OrdersDomain
         ]
         assert len(nodes) >= 1
@@ -265,7 +266,7 @@ class TestDomainNodes:
     def test_two_actions_same_domain_one_node(self):
         coord = _coord()
         domain_nodes = [
-            n for n in coord.get_nodes_by_type("domain")
+            n for n in coord.get_nodes_by_type(DOMAIN_VERTEX_TYPE)
             if n.get("class_ref") is _OrdersDomain
         ]
         assert len(domain_nodes) == 1
@@ -273,7 +274,7 @@ class TestDomainNodes:
     def test_two_actions_different_domains_two_nodes(self):
         coord = _coord()
         refs = {
-            n["class_ref"] for n in coord.get_nodes_by_type("domain")
+            n["class_ref"] for n in coord.get_nodes_by_type(DOMAIN_VERTEX_TYPE)
             if n.get("class_ref") in (_OrdersDomain, _PaymentsDomain)
         }
         assert refs == {_OrdersDomain, _PaymentsDomain}
@@ -290,7 +291,7 @@ class TestDomainNodes:
     def test_resource_with_domain_creates_domain_node(self):
         coord = _coord()
         nodes = [
-            n for n in coord.get_nodes_by_type("domain")
+            n for n in coord.get_nodes_by_type(DOMAIN_VERTEX_TYPE)
             if n.get("class_ref") is _OrdersDomain
         ]
         assert len(nodes) >= 1
@@ -298,7 +299,7 @@ class TestDomainNodes:
     def test_action_and_resource_same_domain_shared_node(self):
         coord = _coord()
         domain_nodes = [
-            n for n in coord.get_nodes_by_type("domain")
+            n for n in coord.get_nodes_by_type(DOMAIN_VERTEX_TYPE)
             if n.get("class_ref") is _OrdersDomain
         ]
         assert len(domain_nodes) == 1

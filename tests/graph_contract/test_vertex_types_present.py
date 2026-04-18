@@ -24,7 +24,7 @@ from maxitor.samples.store.domain import StoreDomain
 
 # Core kinds always present on samples interchange; other facet ``node_type`` strings may appear.
 _SAMPLES_LOGICAL_VERTEX_TYPES: frozenset[str] = frozenset(
-    {"Action", "Application", "domain", "role_class", "entity"},
+    {"Action", "Application", "Domain", "role_class", "entity"},
 )
 
 
@@ -54,14 +54,14 @@ def test_c2_single_action_vertex_for_checkout_submit_action() -> None:
 
 @pytest.mark.graph_coverage
 def test_c2_single_domain_vertex_per_bounded_context() -> None:
-    """Each sample ``BaseDomain`` maps to exactly one interchange ``domain`` vertex."""
+    """Each sample ``BaseDomain`` maps to exactly one interchange ``Domain`` vertex."""
     _import_sample_modules()
     lg = build_sample_coordinator().get_graph()
     for domain_cls in (StoreDomain, BillingDomain, MessagingDomain, CatalogDomain):
         domain_id = BaseIntentInspector._make_node_name(domain_cls)
         matches = [lg[i] for i in lg.node_indices() if lg[i]["id"] == domain_id]
         assert len(matches) == 1, domain_cls
-        assert matches[0]["node_type"] == "domain"
+        assert matches[0]["node_type"] == "Domain"
 
 
 @pytest.mark.graph_coverage

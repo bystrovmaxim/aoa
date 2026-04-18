@@ -18,6 +18,9 @@ ACTION_VERTEX_TYPE: Final[str] = "Action"
 # Logical root from ``ApplicationContextInspector``; domains ``belongs_to`` here.
 APPLICATION_VERTEX_TYPE: Final[str] = "Application"
 
+# Bounded-context domain vertices from ``ApplicationContextInspector`` / ``belongs_to`` stubs.
+DOMAIN_VERTEX_TYPE: Final[str] = "Domain"
+
 # Per-method aspect vertices from ``AspectIntentInspector`` (decorator ``type``).
 REGULAR_ASPECT_VERTEX_TYPE: Final[str] = "RegularAspect"
 SUMMARY_ASPECT_VERTEX_TYPE: Final[str] = "SummaryAspect"

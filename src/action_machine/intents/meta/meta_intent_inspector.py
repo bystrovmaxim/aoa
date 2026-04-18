@@ -63,6 +63,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
+from action_machine.interchange_vertex_labels import DOMAIN_VERTEX_TYPE
 from action_machine.graph.base_facet_snapshot import BaseFacetSnapshot
 from action_machine.graph.base_intent_inspector import BaseIntentInspector
 from action_machine.graph.payload import FacetPayload
@@ -105,7 +106,7 @@ class MetaIntentInspector(BaseIntentInspector):
             if self.domain is not None and isinstance(self.domain, type):
                 edges = (
                     MetaIntentInspector._make_edge(
-                        target_node_type="domain",
+                        target_node_type=DOMAIN_VERTEX_TYPE,
                         target_cls=self.domain,
                         edge_type="belongs_to",
                         is_structural=False,

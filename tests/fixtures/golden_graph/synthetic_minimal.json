@@ -13,7 +13,7 @@
       },
       {
         "id": "golden_demo.domains.DemoDomain",
-        "node_type": "domain",
+        "node_type": "Domain",
         "stereotype": "Business Object",
         "label": "demo",
         "class_ref": null,
@@ -61,7 +61,7 @@
       },
       {
         "id": "golden_demo.domains.DemoDomain",
-        "node_type": "domain",
+        "node_type": "Domain",
         "stereotype": "Business Object",
         "label": "demo",
         "class_ref": null,
@@ -108,8 +108,8 @@
         "properties": {}
       },
       {
-        "id": "domain:golden_demo.domains.DemoDomain",
-        "node_type": "domain",
+        "id": "Domain:golden_demo.domains.DemoDomain",
+        "node_type": "Domain",
         "stereotype": "",
         "label": "DemoDomain",
         "class_ref": null,
@@ -135,7 +135,7 @@
     "edges": [
       {
         "source_id": "meta:golden_demo.actions.DemoAction",
-        "target_id": "domain:golden_demo.domains.DemoDomain",
+        "target_id": "Domain:golden_demo.domains.DemoDomain",
         "edge_type": "BELONGS_TO",
         "stereotype": "Aggregation",
         "category": "direct",
@@ -155,8 +155,8 @@
         "properties": {}
       },
       {
-        "id": "domain:golden_demo.domains.DemoDomain",
-        "node_type": "domain",
+        "id": "Domain:golden_demo.domains.DemoDomain",
+        "node_type": "Domain",
         "stereotype": "",
         "label": "DemoDomain",
         "class_ref": null,
@@ -182,7 +182,7 @@
     "edges": [
       {
         "source_id": "meta:golden_demo.actions.DemoAction",
-        "target_id": "domain:golden_demo.domains.DemoDomain",
+        "target_id": "Domain:golden_demo.domains.DemoDomain",
         "edge_type": "BELONGS_TO",
         "stereotype": "Aggregation",
         "category": "direct",
@@ -194,8 +194,8 @@
   "expected_from_facets_meta_no_action": {
     "vertices": [
       {
-        "id": "domain:golden_demo.domains.DemoDomain",
-        "node_type": "domain",
+        "id": "Domain:golden_demo.domains.DemoDomain",
+        "node_type": "Domain",
         "stereotype": "",
         "label": "DemoDomain",
         "class_ref": null,
@@ -221,7 +221,7 @@
     "edges": [
       {
         "source_id": "meta:golden_demo.actions.DemoAction",
-        "target_id": "domain:golden_demo.domains.DemoDomain",
+        "target_id": "Domain:golden_demo.domains.DemoDomain",
         "edge_type": "BELONGS_TO",
         "stereotype": "Aggregation",
         "category": "direct",

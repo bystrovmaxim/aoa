@@ -160,7 +160,7 @@ def test_stub_domain_node_hydrates_with_domain_snapshot_meta() -> None:
     coord = CoreActionMachine.create_coordinator()
     dom_nodes = [
         n
-        for n in coord.get_nodes_by_type("domain")
+        for n in coord.get_nodes_by_type("Domain")
         if n.get("class_ref") is OrdersDomain
     ]
     assert dom_nodes, "expected OrdersDomain node from @meta(domain=...)"
@@ -171,7 +171,7 @@ def test_stub_domain_node_hydrates_with_domain_snapshot_meta() -> None:
     idx = next(
         i
         for i in g.node_indices()
-        if g[i]["node_type"] == "domain" and g[i]["class_ref"] is OrdersDomain
+        if g[i]["node_type"] == "Domain" and g[i]["class_ref"] is OrdersDomain
     )
     hydrated_meta = coord.hydrate_graph_node(dict(g[idx])).get("meta") or {}
     assert hydrated_meta.get("name") == "orders"

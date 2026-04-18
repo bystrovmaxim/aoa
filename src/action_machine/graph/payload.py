@@ -150,7 +150,7 @@ class EdgeInfo:
 
     Attributes:
         target_node_type : str
-            Target facet type (``"Action"``, ``"entity"``, ``"domain"``, …).
+            Target facet type (``"Action"``, ``"entity"``, ``"Domain"``, …).
             Used to build the full target key ``target_node_type:target_name``.
 
         target_name : str
@@ -220,7 +220,7 @@ class FacetPayload:
     Attributes:
         node_type : str
             Facet type: ``"Action"``, ``"role_class"``, ``"RegularAspect"``, ``"SummaryAspect"``, ``"Checker"``,
-            ``"entity"``, ``"domain"``,
+            ``"entity"``, ``"Domain"``,
             ``"dependency"``, ``"connection"``, ``"error_handler"``,
             ``"Compensator"``, ``"subscription"``, ``"sensitive_field"``,
             ``"context_field"``, ``"entity_field"``, ``"entity_relation"``,
