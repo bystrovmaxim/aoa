@@ -20,7 +20,7 @@ VERTEX_TYPES: Final[frozenset[str]] = frozenset(
         "SummaryAspect",
         "compensator",
         "error_handler",
-        "checker",
+        "Checker",
         "sensitive_field",
         "role_class",
         "Application",

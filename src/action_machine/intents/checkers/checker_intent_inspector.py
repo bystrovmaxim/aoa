@@ -8,9 +8,9 @@ PURPOSE
 
 Read method-level ``_checker_meta`` lists (attached by aspect/checker decorators)
 on each **declaring** class member and emit a typed ``Snapshot`` plus one
-``FacetPayload`` per checker row: a canonical ``checker`` vertex per
+``FacetPayload`` per checker row: a canonical ``Checker`` vertex per
 ``(aspect method, checker implementation class, field)``, an edge to the existing
-``aspect`` vertex for that method, and row metadata on the checker node.
+aspect vertex for that method, and row metadata on the checker node.
 
 ═══════════════════════════════════════════════════════════════════════════════
 INVARIANTS
@@ -34,7 +34,7 @@ ARCHITECTURE / DATA FLOW
     _unwrap_declaring_class_member  →  getattr(func, "_checker_meta")
          │
          ▼
-    Snapshot.Checker rows  →  list[FacetPayload(node_type="checker", …)]
+    Snapshot.Checker rows  →  list[FacetPayload(node_type="Checker", …)]
 
 ═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES
@@ -74,6 +74,7 @@ from typing import Any
 from action_machine.graph.base_facet_snapshot import BaseFacetSnapshot
 from action_machine.graph.base_intent_inspector import BaseIntentInspector
 from action_machine.graph.payload import EdgeInfo, FacetMetaRow, FacetPayload
+from action_machine.interchange_vertex_labels import CHECKER_VERTEX_TYPE
 from action_machine.intents.aspects.aspect_intent_inspector import (
     AspectIntentInspector,
     vertex_type_for_aspect_kind,
@@ -196,7 +197,7 @@ class CheckerIntentInspector(BaseIntentInspector):
             rows use :meth:`CheckerIntentInspector._build_payload` instead.
             """
             return FacetPayload(
-                node_type="checker",
+                node_type=CHECKER_VERTEX_TYPE,
                 node_name=CheckerIntentInspector._make_host_dependent_node_name(
                     self.class_ref, "__checker_snapshot__",
                 ),
@@ -275,7 +276,7 @@ class CheckerIntentInspector(BaseIntentInspector):
             )
             out.append(
                 FacetPayload(
-                    node_type="checker",
+                    node_type=CHECKER_VERTEX_TYPE,
                     node_name=node_name,
                     node_class=snap.class_ref,
                     node_meta=cls._checker_row_meta(c),

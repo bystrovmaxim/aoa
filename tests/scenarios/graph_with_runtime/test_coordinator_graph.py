@@ -45,6 +45,7 @@ from typing import Any
 import pytest
 
 from action_machine.interchange_vertex_labels import (
+    CHECKER_VERTEX_TYPE,
     REGULAR_ASPECT_VERTEX_TYPE,
     SUMMARY_ASPECT_VERTEX_TYPE,
 )
@@ -384,7 +385,7 @@ class TestAspectsAndCheckers:
         """Checkers create nodes and edges in a graph."""
         coord = _new_coord()
         coord.get_snapshot(_ActionWithCheckersAction, "meta")
-        nodes = coord.get_nodes_by_type("checker")
+        nodes = coord.get_nodes_by_type(CHECKER_VERTEX_TYPE)
         assert len(nodes) >= 1
 
 
@@ -716,7 +717,7 @@ class TestCoordinatorBasic:
             *coord.get_nodes_by_type(REGULAR_ASPECT_VERTEX_TYPE),
             *coord.get_nodes_by_type(SUMMARY_ASPECT_VERTEX_TYPE),
         ]
-        checker_nodes = coord.get_nodes_by_type("checker")
+        checker_nodes = coord.get_nodes_by_type(CHECKER_VERTEX_TYPE)
         assert isinstance(aspect_nodes, list)
         assert isinstance(checker_nodes, list)
         assert len(aspect_nodes) + len(checker_nodes) > 0

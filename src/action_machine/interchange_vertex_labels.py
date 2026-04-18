@@ -22,5 +22,8 @@ APPLICATION_VERTEX_TYPE: Final[str] = "Application"
 REGULAR_ASPECT_VERTEX_TYPE: Final[str] = "RegularAspect"
 SUMMARY_ASPECT_VERTEX_TYPE: Final[str] = "SummaryAspect"
 
+# Per-result-field checker vertices from ``CheckerIntentInspector``.
+CHECKER_VERTEX_TYPE: Final[str] = "Checker"
+
 # Class-dependency stubs from ``DependencyIntentInspector`` (non-``BaseAction`` @depends).
 SERVICE_VERTEX_TYPE: Final[str] = "Service"
