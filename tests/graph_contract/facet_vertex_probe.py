@@ -3,7 +3,7 @@
 Test-only helpers: collect merged ``FacetVertex`` rows like ``GraphCoordinator.build`` phase 1.
 
 Used by PR3-style tests to feed :mod:`action_machine.graph.graph_builder`
-on a coordinator that mirrors :meth:`CoreActionMachine.create_coordinator` registration
+on a coordinator that mirrors :meth:`Core.create_coordinator` registration
 order **before** :meth:`GraphCoordinator.build`.
 """
 
@@ -34,7 +34,7 @@ from action_machine.resources.connection_intent_inspector import ConnectionInten
 
 def graph_coordinator_default_inspectors_registered() -> GraphCoordinator:
     """
-    Same fluent ``.register(...)`` chain as :meth:`CoreActionMachine.create_coordinator`,
+    Same fluent ``.register(...)`` chain as :meth:`Core.create_coordinator`,
     without calling :meth:`GraphCoordinator.build`.
     """
     return (

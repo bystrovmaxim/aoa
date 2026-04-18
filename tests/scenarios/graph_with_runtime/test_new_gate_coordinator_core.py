@@ -13,7 +13,7 @@ from action_machine.graph.exceptions import (
 from action_machine.graph.facet_edge import FacetEdge
 from action_machine.graph.facet_vertex import FacetVertex
 from action_machine.graph.graph_coordinator import GraphCoordinator
-from action_machine.runtime.machines.core_action_machine import CoreActionMachine
+from action_machine.runtime.machines.core import Core
 
 
 class _A:
@@ -147,6 +147,6 @@ def test_referential_integrity_and_acyclicity_errors() -> None:
 
 
 def test_default_coordinator_factory_builds() -> None:
-    coord = CoreActionMachine.create_coordinator()
+    coord = Core.create_coordinator()
     assert coord.is_built is True
     assert coord.graph_node_count > 0

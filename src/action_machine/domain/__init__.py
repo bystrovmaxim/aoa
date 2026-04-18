@@ -76,7 +76,7 @@ EXAMPLES
 
     from pydantic import Field
 
-    from action_machine.runtime.machines.core_action_machine import CoreActionMachine
+    from action_machine.runtime.machines.core import Core
     from action_machine.domain import (
         BaseDomain,
         BaseEntity,
@@ -106,7 +106,7 @@ EXAMPLES
         amount: float = Field(description="Order total", ge=0)
 
     # Built coordinator includes entity inspector; entities appear in the graph:
-    coordinator = CoreActionMachine.create_coordinator()
+    coordinator = Core.create_coordinator()
 
     order = build({"id": "123", "amount": 100.0}, OrderEntity)
 

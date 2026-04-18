@@ -55,7 +55,7 @@ from action_machine.model.base_action import BaseAction
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_result import BaseResult
 from action_machine.resources.base_resource_manager import BaseResourceManager
-from action_machine.runtime.machines.core_action_machine import CoreActionMachine
+from action_machine.runtime.machines.core import Core
 
 # ═════════════════════════════════════════════════════════════════════════════
 #Helper classes
@@ -175,7 +175,7 @@ class _EmptyClass:
 
 def _coord() -> GraphCoordinator:
     """Built coordinator with default inspectors."""
-    return CoreActionMachine.create_coordinator()
+    return Core.create_coordinator()
 
 
 # ═════════════════════════════════════════════════════════════════════════════

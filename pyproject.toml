@@ -282,7 +282,7 @@ ignore = [
 [tool.ruff.lint.per-file-ignores]
 "src/action_machine/testing/stubs.py" = ["N802"]
 "src/action_machine/intents/checkers/__init__.py" = ["RUF022"]
-# Ленивый импорт ``CoreActionMachine`` внутри ``__getattr__`` — не поднимать наверх.
+# Ленивый импорт ``Core`` внутри ``__getattr__`` — не поднимать наверх.
 "src/action_machine/runtime/__init__.py" = ["I001"]
 # Отложенные импорты после ``BaseAction`` — отдельный блок (см. комментарий в файле).
 "src/action_machine/model/base_action.py" = ["I001"]

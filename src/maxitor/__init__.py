@@ -29,7 +29,7 @@ ARCHITECTURE / DATA FLOW
 INVARIANTS
 ═══════════════════════════════════════════════════════════════════════════════
 
-- ``build_sample_coordinator`` mirrors ``CoreActionMachine.create_coordinator`` inspector
+- ``build_sample_coordinator`` mirrors ``Core.create_coordinator`` inspector
   registration for reproducible graph fixtures.
 - Graph exports prefer ``get_graph()`` when present so HTML and GraphML stay
   aligned on the interchange view.
@@ -55,7 +55,7 @@ ROLE: Public entry point for the ActionMachine samples graph harness.
 EXPORTS: ``StoreDomain``, ``build_sample_coordinator``, ``export_samples_graph_graphml``.
 ENTRY PATTERN: ``from maxitor import build_sample_coordinator`` then ``coord = build_sample_coordinator()``;
 GraphML: ``from maxitor import export_samples_graph_graphml``.
-INTERNAL FLOW: ``maxitor.samples`` registers decorators → ``CoreActionMachine.create_coordinator``.
+INTERNAL FLOW: ``maxitor.samples`` registers decorators → ``Core.create_coordinator``.
 AI-CORE-END
 """
 

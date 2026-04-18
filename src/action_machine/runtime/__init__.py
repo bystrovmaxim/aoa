@@ -9,7 +9,7 @@ PURPOSE
 This package exposes runtime machine APIs, binding helpers, and execution
 components used to run ActionMachine actions in production.
 
-Canonical coordinator assembly lives in ``CoreActionMachine``: it creates a
+Canonical coordinator assembly lives in ``Core``: it creates a
 ``GraphCoordinator``, registers default inspectors, and builds the graph/facets.
 Production machines consume a built coordinator as a fail-fast contract.
 
@@ -18,7 +18,7 @@ INVARIANTS
 ═══════════════════════════════════════════════════════════════════════════════
 
 - ``ActionProductMachine`` reads pipeline metadata from coordinator snapshots only.
-- ``CoreActionMachine`` is exported lazily through ``__getattr__``.
+- ``Core`` is exported lazily through ``__getattr__``.
 - Public runtime interfaces remain stable while internal composition can evolve.
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -29,7 +29,7 @@ ARCHITECTURE / DATA FLOW
            |
            +--> lightweight modules (navigation, bindings, components)
            |
-           +--> lazy CoreActionMachine access via __getattr__
+           +--> lazy Core access via __getattr__
                          |
                          v
                 create/build GraphCoordinator
@@ -43,7 +43,7 @@ EXAMPLES
 
 Happy path:
     Runtime consumers import and use machine classes while coordinator assembly
-    is provided by ``CoreActionMachine`` when needed.
+    is provided by ``Core`` when needed.
 
 Edge case:
     Lazy export avoids graph-stack imports during early module initialization,
@@ -61,7 +61,7 @@ ERRORS / LIMITATIONS
 AI-CORE-BEGIN
 ═══════════════════════════════════════════════════════════════════════════════
 ROLE: Runtime package-level API and lazy export gateway.
-CONTRACT: Expose CoreActionMachine lazily; preserve runtime import safety.
+CONTRACT: Expose Core lazily; preserve runtime import safety.
 INVARIANTS: Snapshot-driven runtime semantics and fail-fast coordinator build.
 FLOW: package import -> lazy core access -> coordinator build -> machine run.
 FAILURES: Unknown attribute access errors and downstream coordinator/runtime errors.
@@ -74,14 +74,14 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from action_machine.runtime.machines.core_action_machine import CoreActionMachine
+    from action_machine.runtime.machines.core import Core
 
-__all__ = ["CoreActionMachine"]
+__all__ = ["Core"]
 
 
 def __getattr__(name: str) -> object:
-    if name == "CoreActionMachine":
-        from action_machine.runtime.machines.core_action_machine import CoreActionMachine  # pylint: disable=import-outside-toplevel
+    if name == "Core":
+        from action_machine.runtime.machines.core import Core  # pylint: disable=import-outside-toplevel
 
-        return CoreActionMachine
+        return Core
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

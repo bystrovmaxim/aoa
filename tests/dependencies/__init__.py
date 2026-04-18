@@ -34,7 +34,7 @@ TEST MODULES
 
 - ``test_depends_decorator_validation.py`` — ``@depends`` argument and target validation.
 
-- Scenario with ``CoreActionMachine``:
+- Scenario with ``Core``:
   ``tests/scenarios/dependencies/test_dependency_factory_core_machine.py``.
 
 ═══════════════════════════════════════════════════════════════════════════════

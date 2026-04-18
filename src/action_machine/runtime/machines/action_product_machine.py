@@ -179,7 +179,7 @@ from action_machine.runtime.components.error_handler_executor import ErrorHandle
 from action_machine.runtime.components.role_checker import RoleChecker
 from action_machine.runtime.components.saga_coordinator import SagaCoordinator
 from action_machine.runtime.components.tools_box_factory import ToolsBoxFactory
-from action_machine.runtime.machines.core_action_machine import CoreActionMachine
+from action_machine.runtime.machines.core import Core
 from action_machine.runtime.saga_frame import SagaFrame
 from action_machine.runtime.tools_box import ToolsBox
 
@@ -314,7 +314,7 @@ class ActionProductMachine(BaseActionMachine):
     @staticmethod
     def create_default_coordinator() -> GraphCoordinator:
         """Create and build coordinator with full default inspector set."""
-        return CoreActionMachine.create_coordinator()
+        return Core.create_coordinator()
 
     def __init__(
         self,

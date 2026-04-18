@@ -67,7 +67,7 @@ from action_machine.model.base_params import BaseParams
 from action_machine.model.base_result import BaseResult
 from action_machine.model.base_state import BaseState
 from action_machine.resources.base_resource_manager import BaseResourceManager
-from action_machine.runtime.machines.core_action_machine import CoreActionMachine
+from action_machine.runtime.machines.core import Core
 from action_machine.runtime.tools_box import ToolsBox
 from tests.scenarios.domain_model.domains import SystemDomain
 
@@ -219,7 +219,7 @@ class TestContextKeysViaMetadata:
     """``context_keys`` on aspects and handlers via facet snapshots."""
 
     def test_aspect_context_keys(self) -> None:
-        coordinator = CoreActionMachine.create_coordinator()
+        coordinator = Core.create_coordinator()
         audit = next(
             a for a in _regular_aspects(coordinator,_SingleContextAction)
             if a.method_name == "audit_aspect"
@@ -230,7 +230,7 @@ class TestContextKeysViaMetadata:
     def test_shared_user_id_across_aspects(self) -> None:
         """Both aspects see ``user.user_id``; only the second adds ``user.roles``."""
 
-        coordinator = CoreActionMachine.create_coordinator()
+        coordinator = Core.create_coordinator()
         first = next(
             a for a in _regular_aspects(coordinator,_SharedContextFieldAction)
             if a.method_name == "first_aspect"
@@ -247,7 +247,7 @@ class TestContextKeysViaMetadata:
     def test_no_context_keys_when_undeclrared(self) -> None:
         """Without the decorator — empty key set on the regular aspect."""
 
-        coordinator = CoreActionMachine.create_coordinator()
+        coordinator = Core.create_coordinator()
         simple = next(
             a for a in _regular_aspects(coordinator,_NoContextAction)
             if a.method_name == "simple_aspect"
@@ -257,7 +257,7 @@ class TestContextKeysViaMetadata:
     def test_error_handler_context_keys(self) -> None:
         """``OnErrorMeta`` gets the same string paths the handler declared."""
 
-        coordinator = CoreActionMachine.create_coordinator()
+        coordinator = Core.create_coordinator()
         handler = next(
             h for h in _error_handlers(coordinator,_ErrorHandlerContextAction)
             if h.method_name == "handle_value_on_error"
@@ -271,7 +271,7 @@ class TestContextMetadataAfterFactoryCacheClear:
 
     def test_reread_context_keys_stable(self) -> None:
         """Re-reading from a built coordinator returns the same ``context_keys``."""
-        coordinator = CoreActionMachine.create_coordinator()
+        coordinator = Core.create_coordinator()
         audit = next(
             a for a in _regular_aspects(coordinator,_SingleContextAction)
             if a.method_name == "audit_aspect"
@@ -282,7 +282,7 @@ class TestContextMetadataAfterFactoryCacheClear:
         """
         Clearing factory cache does not break reading context keys from facet snapshots.
         """
-        coordinator = CoreActionMachine.create_coordinator()
+        coordinator = Core.create_coordinator()
         clear_dependency_factory_cache(coordinator)
         audit = next(
             a for a in _regular_aspects(coordinator,_SingleContextAction)

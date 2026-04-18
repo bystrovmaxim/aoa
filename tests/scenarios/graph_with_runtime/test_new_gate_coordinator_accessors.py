@@ -21,7 +21,7 @@ from action_machine.interchange_vertex_labels import (
     REGULAR_ASPECT_VERTEX_TYPE,
 )
 from action_machine.resources.base_resource_manager import BaseResourceManager
-from action_machine.runtime.machines.core_action_machine import CoreActionMachine
+from action_machine.runtime.machines.core import Core
 from tests.scenarios.domain_model import FullAction
 from tests.scenarios.domain_model.services import NotificationService, PaymentService
 
@@ -299,7 +299,7 @@ def test_new_coordinator_runtime_accessors() -> None:
 
 
 def test_gate_coordinator_get_graph_for_visualization_matches_get_graph() -> None:
-    coordinator = CoreActionMachine.create_coordinator()
+    coordinator = Core.create_coordinator()
     v = coordinator.get_graph_for_visualization()
     lg = coordinator.get_graph()
     assert len(v) == len(lg)
@@ -308,7 +308,7 @@ def test_gate_coordinator_get_graph_for_visualization_matches_get_graph() -> Non
 
 
 def test_coordinator_get_dependency_classes_and_connections() -> None:
-    coordinator = CoreActionMachine.create_coordinator()
+    coordinator = Core.create_coordinator()
     deps_snap = coordinator.get_snapshot(FullAction, "depends")
     assert deps_snap is not None
     classes = tuple(d.cls for d in deps_snap.dependencies)

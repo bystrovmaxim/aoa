@@ -10,7 +10,7 @@ import pytest
 from action_machine.graph.base_intent_inspector import BaseIntentInspector
 from action_machine.graph.graph_coordinator import GraphCoordinator
 from action_machine.interchange_vertex_labels import SERVICE_VERTEX_TYPE
-from action_machine.runtime.machines.core_action_machine import CoreActionMachine
+from action_machine.runtime.machines.core import Core
 from tests.scenarios.domain_model import CompensatedOrderAction, FullAction, TestDbManager
 from tests.scenarios.domain_model.domains import OrdersDomain
 from tests.scenarios.domain_model.services import PaymentService
@@ -18,7 +18,7 @@ from tests.scenarios.domain_model.services import PaymentService
 
 def test_get_graph_node_payloads_are_skeleton_only() -> None:
     """Each node payload in the graph copy is skeleton-only, no ``facet_rows``."""
-    coord = CoreActionMachine.create_coordinator()
+    coord = Core.create_coordinator()
     g = coord.facet_topology_copy()
     for idx in g.node_indices():
         raw = dict(g[idx])
@@ -36,7 +36,7 @@ def test_get_graph_node_payloads_are_skeleton_only() -> None:
 
 def test_hydrate_graph_node_restores_facet_rows_from_snapshot() -> None:
     """``hydrate_graph_node`` matches ``get_node`` for a ``resource_manager`` @meta host."""
-    coord = CoreActionMachine.create_coordinator()
+    coord = Core.create_coordinator()
     rm_nm = BaseIntentInspector._make_node_name(TestDbManager)
     g = coord.facet_topology_copy()
     idx = next(
@@ -56,7 +56,7 @@ def test_hydrate_graph_node_restores_facet_rows_from_snapshot() -> None:
 
 def test_hydrated_action_node_merges_facet_rows_from_snapshots() -> None:
     """Merged ``action`` host hydrates ``facet_rows`` from every snapshot key (e.g. ``@meta`` + ``depends``)."""
-    coord = CoreActionMachine.create_coordinator()
+    coord = Core.create_coordinator()
     g = coord.facet_topology_copy()
     action_indices = [
         i
@@ -82,7 +82,7 @@ def test_hydrate_graph_node_requires_build() -> None:
 
 def test_get_nodes_by_type_includes_hydrated_facet_rows() -> None:
     """``get_nodes_by_type`` returns records with non-empty ``facet_rows`` when a snapshot exists."""
-    coord = CoreActionMachine.create_coordinator()
+    coord = Core.create_coordinator()
     rm_nm = BaseIntentInspector._make_node_name(TestDbManager)
     rm_nodes = [
         n for n in coord.get_nodes_by_type("resource_manager") if n["id"] == rm_nm
@@ -93,7 +93,7 @@ def test_get_nodes_by_type_includes_hydrated_facet_rows() -> None:
 
 def test_stub_dependency_node_hydrates_to_empty_facet_rows() -> None:
     """Stub dependency nodes (no snapshot) yield empty ``facet_rows``."""
-    coord = CoreActionMachine.create_coordinator()
+    coord = Core.create_coordinator()
     dep_nodes = [
         n
         for n in coord.get_nodes_for_class(PaymentService)
@@ -114,7 +114,7 @@ def test_stub_dependency_node_hydrates_to_empty_facet_rows() -> None:
 
 def test_hydration_mapping_from_build_records_meta_snapshot_key() -> None:
     """Phase 1 records MetaIntent snapshot storage key ``meta`` for ``resource_manager`` graph nodes."""
-    coord = CoreActionMachine.create_coordinator()
+    coord = Core.create_coordinator()
     rm_nm = BaseIntentInspector._make_node_name(TestDbManager)
     gk_rm = GraphCoordinator._make_key("resource_manager", rm_nm)
     raw_map = coord._hydration_snapshot_key_by_graph_key
@@ -123,7 +123,7 @@ def test_hydration_mapping_from_build_records_meta_snapshot_key() -> None:
 
 def test_merged_action_node_records_all_hydration_keys() -> None:
     """Merged ``Action`` with @depends, @connection, and @meta lists every snapshot storage key."""
-    coord = CoreActionMachine.create_coordinator()
+    coord = Core.create_coordinator()
     nm = BaseIntentInspector._make_node_name(FullAction)
     gk_action = f"Action:{nm}"
     raw_map = coord._hydration_snapshot_key_by_graph_key
@@ -138,7 +138,7 @@ def test_merged_action_node_records_all_hydration_keys() -> None:
 
 def test_connection_targets_resource_manager_not_connection_facet() -> None:
     """``@connection`` adds edges from ``Action`` to ``resource_manager`` (no ``connection`` facet node)."""
-    coord = CoreActionMachine.create_coordinator()
+    coord = Core.create_coordinator()
     rm_nm = BaseIntentInspector._make_node_name(TestDbManager)
     assert [n for n in coord.get_nodes_by_type("resource_manager") if n["id"] == rm_nm]
     assert not [
@@ -163,7 +163,7 @@ def test_connection_targets_resource_manager_not_connection_facet() -> None:
 
 def test_stub_domain_node_hydrates_with_domain_snapshot_rows() -> None:
     """``domain`` node for ``OrdersDomain`` picks up class-level ``@meta`` snapshot."""
-    coord = CoreActionMachine.create_coordinator()
+    coord = Core.create_coordinator()
     dom_nodes = [
         n
         for n in coord.get_nodes_by_type("Domain")
@@ -187,7 +187,7 @@ def test_action_depends_and_meta_merge_hydration_keys() -> None:
     """
     @depends with @meta on the same action: two snapshot keys, merged ``facet_rows`` on hydrate.
     """
-    coord = CoreActionMachine.create_coordinator()
+    coord = Core.create_coordinator()
     nm = BaseIntentInspector._make_node_name(CompensatedOrderAction)
     gk = f"Action:{nm}"
     raw_map = coord._hydration_snapshot_key_by_graph_key

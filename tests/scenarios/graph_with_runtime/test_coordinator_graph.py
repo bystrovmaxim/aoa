@@ -75,14 +75,14 @@ from action_machine.model.base_result import BaseResult
 from action_machine.model.base_schema import BaseSchema
 from action_machine.resources.base_resource_manager import BaseResourceManager
 from action_machine.resources.connection_decorator import connection
-from action_machine.runtime.machines.core_action_machine import CoreActionMachine
+from action_machine.runtime.machines.core import Core
 from tests.scenarios.domain_model.domains import TestDomain
 from tests.scenarios.domain_model.roles import AdminRole
 
 
 def _new_coord() -> GraphCoordinator:
     """Create built coordinator with default inspector set."""
-    return CoreActionMachine.create_coordinator()
+    return Core.create_coordinator()
 
 
 def _graph_children(coord: GraphCoordinator, full_key: str) -> list[dict[str, Any]]:
@@ -549,7 +549,7 @@ class TestPublicAPI:
 
     def test_get_node_missing_returns_none(self):
         """get_node for an unregistered class returns None."""
-        coord = CoreActionMachine.create_coordinator()
+        coord = Core.create_coordinator()
         node = coord.get_node("Action", "nonexistent.module.AbsentAction")
         assert node is None
 
@@ -563,7 +563,7 @@ class TestPublicAPI:
 
     def test_get_children_of_missing_node(self):
         """An unregistered class has no edges emanating from the action node."""
-        coord = CoreActionMachine.create_coordinator()
+        coord = Core.create_coordinator()
         children = _graph_children(coord, _node_key("Action", _EmptyClass))
         assert children == []
 
@@ -577,7 +577,7 @@ class TestPublicAPI:
 
     def test_get_nodes_by_type_empty(self):
         """get_nodes_by_type on an empty coordinator - an empty list."""
-        coord = CoreActionMachine.create_coordinator()
+        coord = Core.create_coordinator()
         result = coord.get_nodes_by_type("Action")
         assert isinstance(result, list)
 
@@ -591,7 +591,7 @@ class TestPublicAPI:
 
     def test_get_dependency_tree_missing_node(self):
         """For a class with no nodes in the graph, the dependency tree is empty or missing."""
-        coord = CoreActionMachine.create_coordinator()
+        coord = Core.create_coordinator()
         tree = _dependency_tree(coord, _EmptyClass)
         assert tree is None or tree == {}
 
@@ -676,7 +676,7 @@ class TestCoordinatorBasic:
 
     def test_get_builds_and_caches(self):
         """Built coordinator returns stable meta snapshots."""
-        coord = CoreActionMachine.create_coordinator()
+        coord = Core.create_coordinator()
         meta1 = coord.get_snapshot(_PingGraphAction, "meta")
         meta2 = coord.get_snapshot(_PingGraphAction, "meta")
         assert meta1 is not None
@@ -697,23 +697,23 @@ class TestCoordinatorBasic:
 
     def test_has_after_get(self):
         """Built coordinator reports built state in repr."""
-        coord = CoreActionMachine.create_coordinator()
+        coord = Core.create_coordinator()
         assert "state=built" in repr(coord)
 
     def test_size(self):
         """Graph has nodes after build."""
-        coord = CoreActionMachine.create_coordinator()
+        coord = Core.create_coordinator()
         assert coord.graph_node_count > 0
 
     def test_get_all_metadata(self):
         """Meta snapshot is available for decorated action."""
-        coord = CoreActionMachine.create_coordinator()
+        coord = Core.create_coordinator()
         all_meta = coord.get_snapshot(_PingGraphAction, "meta")
         assert all_meta is not None
 
     def test_get_all_classes(self):
         """Graph is queryable for known facet types (e.g. aspects, checkers)."""
-        coord = CoreActionMachine.create_coordinator()
+        coord = Core.create_coordinator()
         aspect_nodes = [
             *coord.get_nodes_by_type(REGULAR_ASPECT_VERTEX_TYPE),
             *coord.get_nodes_by_type(SUMMARY_ASPECT_VERTEX_TYPE),
@@ -731,7 +731,7 @@ class TestCoordinatorBasic:
 
     def test_get_factory(self):
         """cached_dependency_factory gives a DependencyFactory for dealing with dependencies."""
-        coord = CoreActionMachine.create_coordinator()
+        coord = Core.create_coordinator()
         factory = cached_dependency_factory(coord, _ActionWithDepsAction)
         assert factory is not None
         assert factory.has(_ServiceA)
@@ -744,12 +744,12 @@ class TestCoordinatorBasic:
 
     def test_repr_with_classes(self):
         """repr of the coordinator with classes is a string."""
-        coord = CoreActionMachine.create_coordinator()
+        coord = Core.create_coordinator()
         assert isinstance(repr(coord), str)
 
     def test_repr_includes_graph_info(self):
         """repr contains information about the graph."""
-        coord = CoreActionMachine.create_coordinator()
+        coord = Core.create_coordinator()
         result = repr(coord)
         assert isinstance(result, str)
         assert len(result) > 0

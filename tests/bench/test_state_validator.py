@@ -15,7 +15,7 @@ predecessor rules, full rollup for summary, unknown aspect names, and
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-    CoreActionMachine.create_coordinator()  ->  fixture ``coordinator``
+    Core.create_coordinator()  ->  fixture ``coordinator``
               |
               v
     aspect + checker snapshots (via get_snapshot)
@@ -64,7 +64,7 @@ AI-CORE-END
 import pytest
 
 from action_machine.graph.graph_coordinator import GraphCoordinator
-from action_machine.runtime.machines.core_action_machine import CoreActionMachine
+from action_machine.runtime.machines.core import Core
 from action_machine.testing.state_validator import (
     StateValidationError,
     validate_state_for_aspect,
@@ -80,7 +80,7 @@ from tests.scenarios.domain_model import FullAction, PingAction, SimpleAction
 @pytest.fixture()
 def coordinator() -> GraphCoordinator:
     """Fresh GraphCoordinator that has scanned all domain actions."""
-    return CoreActionMachine.create_coordinator()
+    return Core.create_coordinator()
 
 
 def _coord_aspects(c: GraphCoordinator, cls: type):

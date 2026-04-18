@@ -56,7 +56,7 @@ Dependency ``DependencyFactory`` instances may be cached on this object under
 not rebuild or invalidate the facet graph.
 
 The canonical implementation is **this** module. Typical apps use
-``CoreActionMachine.create_coordinator()`` for a pre-built coordinator.
+``Core.create_coordinator()`` for a pre-built coordinator.
 
 ═══════════════════════════════════════════════════════════════════════════════
 EXPLICIT ``build()``
@@ -150,7 +150,7 @@ EXAMPLE (EXPLICIT INSPECTOR REGISTRATION)
         .build()
     )
 
-In a typical app, use ``CoreActionMachine.create_coordinator()`` to obtain a
+In a typical app, use ``Core.create_coordinator()`` to obtain a
 pre-registered and built coordinator.
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -318,7 +318,7 @@ class GraphCoordinator:
         Transactionally build the interchange graph, internal facet skeleton, and facet snapshot map.
 
         Invoked **explicitly** in a fluent chain (or via
-        ``CoreActionMachine.create_coordinator()``). A second call after
+        ``Core.create_coordinator()``). A second call after
         ``_built is True`` raises ``RuntimeError``.
 
         Three phases: collect payloads → validate → commit into internal facet

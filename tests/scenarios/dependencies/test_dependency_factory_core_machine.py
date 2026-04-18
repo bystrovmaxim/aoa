@@ -61,7 +61,7 @@ from action_machine.dependencies.dependency_factory import (
 from action_machine.intents.meta.meta_decorator import meta
 from action_machine.model.exceptions import RollupNotSupportedError
 from action_machine.resources.base_resource_manager import BaseResourceManager
-from action_machine.runtime.machines.core_action_machine import CoreActionMachine
+from action_machine.runtime.machines.core import Core
 from tests.scenarios.domain_model import (
     FullAction,
     NotificationService,
@@ -459,7 +459,7 @@ class TestDomainIntegration:
         DependencyFactory with those classes.
         """
         # Arrange — coordinator registering FullAction
-        coordinator = CoreActionMachine.create_coordinator()
+        coordinator = Core.create_coordinator()
         factory = cached_dependency_factory(coordinator, FullAction)
 
         # Act & Assert — services and resource manager type registered
@@ -475,7 +475,7 @@ class TestDomainIntegration:
         has no dependencies.
         """
         # Arrange — coordinator for PingAction without dependencies
-        coordinator = CoreActionMachine.create_coordinator()
+        coordinator = Core.create_coordinator()
         factory = cached_dependency_factory(coordinator, PingAction)
 
         # Act & Assert — factory is empty
@@ -488,7 +488,7 @@ class TestDomainIntegration:
         Real resolve via default constructor, no mocks.
         """
         # Arrange — factory from coordinator
-        coordinator = CoreActionMachine.create_coordinator()
+        coordinator = Core.create_coordinator()
         factory = cached_dependency_factory(coordinator, FullAction)
 
         # Act — resolve real service

@@ -13,7 +13,7 @@ import pytest
 
 from action_machine.graph.base_intent_inspector import BaseIntentInspector
 from action_machine.graph.graph_builder import build_interchange_from_facet_vertices
-from action_machine.runtime.machines.core_action_machine import CoreActionMachine
+from action_machine.runtime.machines.core import Core
 from maxitor.samples.build import _MODULES, build_sample_coordinator
 from maxitor.samples.store.actions.checkout_submit import CheckoutSubmitAction
 from maxitor.samples.store.domain import StoreDomain
@@ -31,7 +31,7 @@ def _import_test_domain_modules() -> None:
 
 def test_collect_raises_when_coordinator_already_built() -> None:
     _import_test_domain_modules()
-    coord = CoreActionMachine.create_coordinator()
+    coord = Core.create_coordinator()
     with pytest.raises(RuntimeError, match="before build"):
         collect_merged_facet_vertices_unbuilt(coord)
 
@@ -76,7 +76,7 @@ def test_interchange_output_vertex_ids_unique() -> None:
 def test_create_coordinator_factory_still_builds_non_trivial_graph() -> None:
     """Regression: default factory path used by runtime remains healthy after refactor."""
     _import_test_domain_modules()
-    coord = CoreActionMachine.create_coordinator()
+    coord = Core.create_coordinator()
     assert len(coord.get_graph()) >= 5
 
 

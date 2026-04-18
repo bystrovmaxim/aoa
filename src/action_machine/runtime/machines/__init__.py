@@ -7,7 +7,7 @@ PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 This package exposes production machine entry points for ActionMachine runtime:
-async/sync executors and ``CoreActionMachine`` coordinator-aware factory.
+async/sync executors and ``Core`` coordinator-aware factory.
 
 ═══════════════════════════════════════════════════════════════════════════════
 INVARIANTS
@@ -15,7 +15,7 @@ INVARIANTS
 
 - Runtime machine APIs execute action pipeline contracts from coordinator snapshots.
 - Sync and async machine variants preserve shared validation/orchestration semantics.
-- ``CoreActionMachine`` remains the integration entry for coordinator-driven wiring.
+- ``Core`` remains the integration entry for coordinator-driven wiring.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
@@ -24,7 +24,7 @@ ARCHITECTURE / DATA FLOW
     GraphCoordinator (built graph + facets)
                |
                v
-    CoreActionMachine factory / wiring
+    Core factory / wiring
                |
         +------+------+
         |             |
