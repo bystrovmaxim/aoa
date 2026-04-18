@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import pytest
 
+from action_machine.interchange_vertex_labels import DEPENDENCY_SERVICE_VERTEX_TYPE
 from action_machine.graph.base_intent_inspector import BaseIntentInspector
 from action_machine.graph.gate_coordinator import GateCoordinator
 from action_machine.runtime.machines.core_action_machine import CoreActionMachine
@@ -85,11 +86,11 @@ def test_get_nodes_by_type_includes_hydrated_meta() -> None:
 
 
 def test_stub_dependency_node_hydrates_to_empty_meta() -> None:
-    """Stub ``dependency`` nodes (no snapshot) yield empty ``meta``."""
+    """Stub dependency nodes (no snapshot) yield empty ``meta``."""
     coord = CoreActionMachine.create_coordinator()
     dep_nodes = [
         n
-        for n in coord.get_nodes_by_type("dependency")
+        for n in coord.get_nodes_for_class(PaymentService)
         if n.get("class_ref") is PaymentService
     ]
     assert dep_nodes, "expected PaymentService dependency stub in default graph"
@@ -99,7 +100,8 @@ def test_stub_dependency_node_hydrates_to_empty_meta() -> None:
     idx = next(
         i
         for i in g.node_indices()
-        if g[i]["node_type"] == "dependency" and g[i]["class_ref"] is PaymentService
+        if g[i]["node_type"] == DEPENDENCY_SERVICE_VERTEX_TYPE
+        and g[i]["class_ref"] is PaymentService
     )
     assert coord.hydrate_graph_node(dict(g[idx])).get("meta") == {}
 

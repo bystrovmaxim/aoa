@@ -10,6 +10,8 @@ from __future__ import annotations
 
 from urllib.parse import quote
 
+from action_machine.interchange_vertex_labels import DEPENDENCY_SERVICE_VERTEX_TYPE
+
 # fmt: off
 # Inner elements only (no <svg> wrapper), spaces preserved for valid XML.
 VERTEX_TYPE_LUCIDE_INNER_SVG: dict[str, str] = {
@@ -134,12 +136,17 @@ VERTEX_TYPE_LUCIDE_INNER_SVG: dict[str, str] = {
         '<path d="m11 13.73-4 6.93" />'
     ),
     "unknown": (
-        '<circle cx="12" cy="12" r="10" /> '
-        '<path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" /> '
-        '<path d="M12 17h.01" />'
+        '<path d="M12 22v-5" /> '
+        '<path d="M9 8V2" /> '
+        '<path d="M15 8V2" /> '
+        '<path d="M18 8v5a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V8Z" />'
     ),
 }
 # fmt: on
+
+VERTEX_TYPE_LUCIDE_INNER_SVG[DEPENDENCY_SERVICE_VERTEX_TYPE] = VERTEX_TYPE_LUCIDE_INNER_SVG[
+    "dependency"
+]
 
 # Scale Lucide paths (native 24×24) about the center so strokes sit inside the disk with margin.
 _ICON_INNER_SCALE: float = 0.58
@@ -149,8 +156,9 @@ _ICON_STROKE_WIDTH: float = 2.0 / _ICON_INNER_SCALE
 
 def svg_data_uri_for_vertex_icon(fill_hex: str, vertex_type: str) -> str:
     """Return a data: URL for a 24×24 disk with white Lucide strokes on ``fill_hex``."""
+    # Types not in the map use the same plug / "fork" glyph as ``dependency``.
     inner = VERTEX_TYPE_LUCIDE_INNER_SVG.get(str(vertex_type).strip()) or VERTEX_TYPE_LUCIDE_INNER_SVG[
-        "unknown"
+        "dependency"
     ]
     s = _ICON_INNER_SCALE
     sw = _ICON_STROKE_WIDTH

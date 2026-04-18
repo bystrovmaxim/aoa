@@ -7,10 +7,10 @@ Layout: d3-force with custom distance/strength per node type.
 Node fill colors: **fixed** per interchange ``vertex_type`` / ``node_type`` string
 (see :data:`VERTEX_TYPE_FILL_COLORS`); ``application`` is always black. Each node is
 drawn as an SVG **data URL** (white Lucide icons on the colored disk; see
-:mod:`maxitor.visualizer_icons`). Unknown
-types use a stable hash into a high-contrast fallback palette so new types never
-shift existing colors. Optional ``node_colors`` in :func:`generate_g6_html`
-still override per-type fills.
+:mod:`maxitor.visualizer_icons`). Vertex types not listed in
+:data:`VERTEX_TYPE_FILL_COLORS` share one neutral fill and the dependency-style
+plug (fork) icon — the same glyph as ``dependency`` in :mod:`maxitor.visualizer_icons`. Optional ``node_colors`` in :func:`generate_g6_html` still override per-type
+fills.
 
 Domain hulls (``bubble-sets``) are derived only from graph topology: every
 ``domain`` vertex, ``BELONGS_TO`` edges, and facet ownership propagation — no
@@ -24,7 +24,6 @@ frame, so the *entire* graph appears to move with the pointer.
 from __future__ import annotations
 
 import json
-import zlib
 from collections import defaultdict
 from datetime import UTC, datetime
 from html import escape as html_escape
@@ -34,6 +33,7 @@ from typing import Any
 
 import rustworkx as rx
 
+from action_machine.interchange_vertex_labels import DEPENDENCY_SERVICE_VERTEX_TYPE
 from maxitor.graph_export import (
     coordinator_pygraph_for_visual_export,
     normalize_coordinator_node_payload_for_visualization,
@@ -69,33 +69,14 @@ VERTEX_TYPE_FILL_COLORS: dict[str, str] = {
     "plugin": "#33A02C",
     "subscription": "#FDBF6F",
     "service": "#1F78B4",
+    DEPENDENCY_SERVICE_VERTEX_TYPE: "#4DAF4A",
 }
 
-# Types not listed above: deterministic pick from distinct hues (never black).
-_UNKNOWN_VERTEX_TYPE_COLORS: tuple[str, ...] = (
-    "#DD8452",
-    "#55A868",
-    "#C44E52",
-    "#8172B3",
-    "#937860",
-    "#DA8BC3",
-    "#8C564B",
-    "#E377C2",
-    "#7F7F7F",
-    "#BCBD22",
-    "#17BECF",
-    "#D62728",
-    "#9467BD",
-    "#2CA02C",
-    "#FF9896",
-    "#C5B0D5",
-    "#C49C94",
-    "#F7B6D2",
-    "#DBDB8D",
-    "#9EDAE5",
-)
-
 DEFAULT_COLOR = "#95a5a6"
+
+# Interchange vertex types with fixed fill + icon in this module; anything else
+# uses one neutral fill, the dependency-style icon, and the application bubble hull.
+_KNOWN_VISUAL_VERTEX_TYPES: frozenset[str] = frozenset(VERTEX_TYPE_FILL_COLORS.keys())
 
 GRAPH_NODE_VISUAL_PX = 24
 GRAPH_NODE_LAYOUT_MARGIN_FRAC = 0.10
@@ -152,17 +133,16 @@ def _fill_color_for_vertex_type(vertex_type: str) -> str:
     """
     Stable fill for one ``vertex_type`` / ``node_type`` string.
 
-    Known types use :data:`VERTEX_TYPE_FILL_COLORS`. Others use
-    :data:`_UNKNOWN_VERTEX_TYPE_COLORS` indexed by ``zlib.adler32`` of the name
-    (stable across processes, unlike ``hash()``).
+    Known types use :data:`VERTEX_TYPE_FILL_COLORS`. Any other label uses
+    :data:`DEFAULT_COLOR` so such nodes share one neutral disk behind the
+    dependency-style icon.
     """
     t = str(vertex_type).strip()
     if not t or t == "unknown":
         return DEFAULT_COLOR
     if t in VERTEX_TYPE_FILL_COLORS:
         return VERTEX_TYPE_FILL_COLORS[t]
-    idx = zlib.adler32(t.encode("utf-8")) % len(_UNKNOWN_VERTEX_TYPE_COLORS)
-    return _UNKNOWN_VERTEX_TYPE_COLORS[idx]
+    return DEFAULT_COLOR
 
 
 def _color_map_for_vertex_types(node_types: Iterable[str]) -> dict[str, str]:
@@ -195,9 +175,9 @@ _OWNERSHIP_HOST_TO_CHILD: frozenset[str] = frozenset(
     },
 )
 
-# Single bubble-set: application root + all role facet vertices.
+# Role facets and ``DependencyService`` stubs (see :data:`VERTEX_TYPE_FILL_COLORS`).
 _ROLE_VERTEX_TYPES_FOR_APP_BUNDLE: frozenset[str] = frozenset(
-    {"role", "role_class", "role_mode"},
+    {"role", "role_class", "role_mode", DEPENDENCY_SERVICE_VERTEX_TYPE},
 )
 
 # Hull colors for domain bubbles (one per domain vertex); distinct from typical node fills.
@@ -222,14 +202,27 @@ def _application_roles_bubble_plugin(
     *,
     color_index: int,
 ) -> dict[str, Any] | None:
-    """One ``bubble-sets`` hull grouping ``application`` and role-related nodes."""
+    """
+    One ``bubble-sets`` hull: ``application``, role facets, ``DependencyService``
+    dependency stubs, and every vertex whose ``node_type`` is not in
+    :data:`VERTEX_TYPE_FILL_COLORS`.
+    """
     app_ids = [nid for nid, t in id_to_type.items() if t == "application"]
-    role_ids = [
+    role_and_ds_ids = [
         nid
         for nid, t in id_to_type.items()
         if t in _ROLE_VERTEX_TYPES_FOR_APP_BUNDLE
     ]
-    members = sorted(frozenset(app_ids) | frozenset(role_ids))
+    unknown_type_ids = [
+        nid
+        for nid, t in id_to_type.items()
+        if str(t).strip() not in _KNOWN_VISUAL_VERTEX_TYPES
+    ]
+    members = sorted(
+        frozenset(app_ids)
+        | frozenset(role_and_ds_ids)
+        | frozenset(unknown_type_ids),
+    )
     if not members:
         return None
     cyc = _BUBBLE_SETS_PALETTE
@@ -238,7 +231,7 @@ def _application_roles_bubble_plugin(
         "key": "bubble-application-roles",
         "type": "bubble-sets",
         "members": members,
-        "labelText": "Application & roles",
+        "labelText": "application and role",
         "fill": base,
         "stroke": base,
         "labelFill": "#fff",
@@ -262,8 +255,9 @@ def _bubble_sets_plugins_for_domains(
 
     The ``application`` vertex is never added to a domain bubble.
 
-    Additionally, one hull bundles ``application`` with all ``role`` / ``role_class`` /
-    ``role_mode`` vertices.
+    Additionally, one hull bundles ``application``, ``DependencyService`` stubs,
+    all ``role`` / ``role_class`` / ``role_mode`` vertices, and every node whose
+    ``node_type`` is not listed in :data:`VERTEX_TYPE_FILL_COLORS`.
     """
     id_to_type: dict[str, str] = {}
     for n in g6_nodes:
