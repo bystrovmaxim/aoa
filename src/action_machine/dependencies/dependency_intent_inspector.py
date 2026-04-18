@@ -36,8 +36,9 @@ ARCHITECTURE / DATA FLOW
             └─ action node + structural "depends" edges
 
     Coordinator materialization adds informational ``belongs_to`` from each
-    synthesized **class** dependency stub (non-``BaseAction``) to the
-    ``application`` vertex when that vertex exists (same pattern as domains).
+    synthesized **DependencyService** stub to the ``application`` vertex when
+    that vertex exists. ``BaseAction`` / ``BaseResourceManager`` targets reuse
+    the canonical ``action`` / ``resource_manager`` vertices (no application edge).
 
 ═══════════════════════════════════════════════════════════════════════════════
 INVARIANTS
@@ -79,6 +80,7 @@ from action_machine.graph.base_intent_inspector import BaseIntentInspector
 from action_machine.graph.payload import EdgeInfo, FacetPayload
 from action_machine.interchange_vertex_labels import DEPENDENCY_SERVICE_VERTEX_TYPE
 from action_machine.model.base_action import BaseAction
+from action_machine.resources.base_resource_manager import BaseResourceManager
 
 
 class DependencyIntentInspector(BaseIntentInspector):
@@ -99,8 +101,9 @@ class DependencyIntentInspector(BaseIntentInspector):
         """
         Edges attached to a materialized ``@depends`` class stub (not ``BaseAction``).
 
-        Declares that the dependency class sits under the logical ``application``
-        root (``BELONGS_TO`` in interchange), mirroring ``ApplicationContextInspector``.
+        Declares that a **DependencyService** stub sits under the logical
+        ``application`` root (``BELONGS_TO`` in interchange). Not used for
+        ``action`` / ``resource_manager`` merge targets.
         """
         return (
             cls._make_edge(
@@ -116,16 +119,19 @@ class DependencyIntentInspector(BaseIntentInspector):
         """
         Interchange target kind for a ``@depends`` class.
 
-        ``BaseAction`` subclasses share the primary ``action`` vertex id with the
-        action's other facets; stubs use ``node_type=\"action\"`` so the coordinator
-        merges them instead of duplicating ``node_name`` as a separate node.
+        ``BaseAction`` subclasses use ``node_type=\"action\"`` so edges merge into
+        the primary action vertex. ``BaseResourceManager`` subclasses use
+        ``\"resource_manager\"`` — the same key as ``@connection``, so depends and
+        connection share one canonical manager node.
 
-        Other dependency classes share a single facet type
-        (``action_machine.interchange_vertex_labels.DEPENDENCY_SERVICE_VERTEX_TYPE``);
-        identity remains ``target_name`` / ``class_ref`` (canonical class).
+        Other dependency classes use
+        ``action_machine.interchange_vertex_labels.DEPENDENCY_SERVICE_VERTEX_TYPE``;
+        identity remains ``target_name`` / ``class_ref``.
         """
         if issubclass(dep_cls, BaseAction):
             return "action"
+        if issubclass(dep_cls, BaseResourceManager):
+            return "resource_manager"
         return DEPENDENCY_SERVICE_VERTEX_TYPE
 
     @classmethod

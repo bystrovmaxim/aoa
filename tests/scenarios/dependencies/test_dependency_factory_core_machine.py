@@ -62,7 +62,13 @@ from action_machine.intents.meta.meta_decorator import meta
 from action_machine.model.exceptions import RollupNotSupportedError
 from action_machine.resources.base_resource_manager import BaseResourceManager
 from action_machine.runtime.machines.core_action_machine import CoreActionMachine
-from tests.scenarios.domain_model import FullAction, NotificationService, PaymentService, PingAction
+from tests.scenarios.domain_model import (
+    FullAction,
+    NotificationService,
+    PaymentService,
+    PingAction,
+    TestDbManager,
+)
 from tests.scenarios.domain_model.domains import TestDomain
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -448,17 +454,18 @@ class TestDomainIntegration:
         ``cached_dependency_factory(coordinator, FullAction)`` includes PaymentService
         and NotificationService.
 
-        FullAction declares @depends(PaymentService) and
-        @depends(NotificationService). The coordinator collects metadata
-        and builds a DependencyFactory with both classes.
+        FullAction declares @depends(PaymentService), @depends(NotificationService),
+        and @depends(TestDbManager). The coordinator collects metadata and builds a
+        DependencyFactory with those classes.
         """
         # Arrange — coordinator registering FullAction
         coordinator = CoreActionMachine.create_coordinator()
         factory = cached_dependency_factory(coordinator, FullAction)
 
-        # Act & Assert — both services registered
+        # Act & Assert — services and resource manager type registered
         assert factory.has(PaymentService)
         assert factory.has(NotificationService)
+        assert factory.has(TestDbManager)
 
     def test_ping_action_factory_is_empty(self) -> None:
         """

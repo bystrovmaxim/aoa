@@ -7,8 +7,9 @@ PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 The richest Action in the test domain: two regular aspects with checkers,
-one summary aspect, two dependencies (PaymentService, NotificationService),
-and one connection ("db"). Requires role "manager".
+one summary aspect, two service dependencies (PaymentService, NotificationService),
+``@depends(TestDbManager)`` and ``@connection(TestDbManager)`` — **class references**, same
+as ``@depends(PaymentService)``; graph merges to one ``resource_manager`` node. Role "manager".
 
 Exercises role checks, connection validation, dependency resolution via
 box.resolve(), per-aspect checkers, and building the result from state.
@@ -90,13 +91,14 @@ from .test_db_manager import TestDbManager
 @check_roles(ManagerRole)
 @depends(PaymentService, description="Payment processing service")
 @depends(NotificationService, description="Notification service")
+@depends(TestDbManager, description="DB resource (class — same vertex as @connection)")
 @connection(TestDbManager, key="db", description="Primary database")
 class FullAction(BaseAction["FullAction.Params", "FullAction.Result"]):
     """
     Full-featured Action: two regular + summary, depends, connection.
 
-    Requires role "manager". Dependencies: PaymentService, NotificationService.
-    Connection: "db" (TestDbManager).
+    Requires role "manager". ``@depends`` lists classes (services + ``TestDbManager``);
+    ``@connection(TestDbManager, key="db")`` shares the same resource_manager node.
     """
 
     class Params(BaseParams):

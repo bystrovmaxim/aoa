@@ -160,9 +160,10 @@ class _ServiceB:
     pass
 
 
-@meta("Mock manager", domain=TestDomain)
-class _MockManager(BaseResourceManager):
-    """Minimal implementation of BaseResourceManager for graph tests."""
+@meta("Coordinator graph resource manager", domain=TestDomain)
+class _CoordinatorGraphResourceManager(BaseResourceManager):
+    """Resource manager **class** for ``@depends`` / ``@connection`` in graph tests only."""
+
     def get_wrapper_class(self):
         return None
 
@@ -184,8 +185,12 @@ class _PingGraphAction(BaseAction["_Params", "_Result"]):
 @check_roles(NoneRole)
 @depends(_ServiceA)
 @depends(_ServiceB)
+@depends(
+    _CoordinatorGraphResourceManager,
+    description="Depends on resource manager class (same pattern as @depends on another action)",
+)
 class _ActionWithDepsAction(BaseAction["_Params", "_Result"]):
-    """Action with two dependencies for graph tests."""
+    """Action with ``@depends`` on classes: services + resource manager type."""
     @summary_aspect("Bottom line")
     async def finalize_summary(self, params, state, box, connections):
         return {}
@@ -193,7 +198,7 @@ class _ActionWithDepsAction(BaseAction["_Params", "_Result"]):
 
 @meta("Action with connection", domain=TestDomain)
 @check_roles(NoneRole)
-@connection(_MockManager, key="db", description="DB")
+@connection(_CoordinatorGraphResourceManager, key="db", description="DB")
 class _ActionWithConnAction(BaseAction["_Params", "_Result"]):
     """Single connection action for graph tests."""
     @summary_aspect("Bottom line")
@@ -474,7 +479,7 @@ class TestRecursiveCollection:
         """The connection class is automatically registered."""
         coord = _new_coord()
         coord.get_snapshot(_ActionWithConnAction, "meta")
-        assert _class_present(coord, _MockManager)
+        assert _class_present(coord, _CoordinatorGraphResourceManager)
 
     def test_duplicate_dependency_not_collected_twice(self):
         """The duplicate dependency is not re-registered."""
