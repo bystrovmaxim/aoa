@@ -5,7 +5,7 @@ Interchange construction: :class:`GraphBuilder` and module-level helpers.
 **Facet vertices** — ``FacetVertex`` sequence from inspectors / coordinator collect;
 vertex ``id`` equals ``node_name`` (inspectors emit globally unique names; dependent facets
 use ``host:segment``); edges come from each vertex's ``edges`` with a small facet ``edge_type``
-→ interchange projection table; **no** automatic §5.3 reverse pairs (forward edges only).
+→ interchange projection table (forward edges only).
 """
 
 from __future__ import annotations

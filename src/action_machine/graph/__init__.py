@@ -61,8 +61,6 @@ from action_machine.graph.constants import (
     DAG_EDGE_TYPES,
     INTERNAL_EDGE_TYPES,
     OWNERSHIP_EDGE_TYPES,
-    REVERSE_EDGE_MAP,
-    REVERSE_EDGE_STEREOTYPE,
 )
 from action_machine.graph.dag import (
     assert_dag_edges_acyclic,
@@ -78,7 +76,6 @@ from action_machine.graph.graph_builder import (
 from action_machine.graph.graph_coordinator import GraphCoordinator
 from action_machine.graph.graph_edge import GraphEdge
 from action_machine.graph.graph_vertex import GraphVertex
-from action_machine.graph.reverse_edge import reverse_direct_edge
 from action_machine.graph.vertex_id import (
     split_checker_vertex_id,
     split_host_element_vertex_id,
@@ -88,8 +85,6 @@ __all__ = [
     "DAG_EDGE_TYPES",
     "INTERNAL_EDGE_TYPES",
     "OWNERSHIP_EDGE_TYPES",
-    "REVERSE_EDGE_MAP",
-    "REVERSE_EDGE_STEREOTYPE",
     "BaseFacetSnapshot",
     "GraphBuilder",
     "GraphCoordinator",
@@ -101,7 +96,6 @@ __all__ = [
     "dag_edge_pairs_from_rx",
     "dag_subgraph_is_acyclic",
     "dag_subgraph_is_acyclic_from_rx",
-    "reverse_direct_edge",
     "split_checker_vertex_id",
     "split_host_element_vertex_id",
 ]

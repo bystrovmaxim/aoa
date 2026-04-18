@@ -1,6 +1,6 @@
 # tests/graph_contract/test_reverse_edge_pairs.py
 
-"""Interchange categories and §5.3 tables (no automatic reverse rows from facet projection)."""
+"""Interchange edge categories: no ``category="reverse"`` rows (forward projection only)."""
 
 from __future__ import annotations
 
@@ -19,7 +19,7 @@ def _import_test_domain_modules() -> None:
 
 @pytest.mark.graph_coverage
 def test_interchange_graph_has_no_reverse_category_edges() -> None:
-    """Facet projection does not synthesize §5.3 reverse rows (category=reverse)."""
+    """Interchange graph never uses ``category="reverse"``."""
     _import_test_domain_modules()
     lg = build_sample_coordinator().get_graph()
     for _s, _t, w in lg.weighted_edge_list():
