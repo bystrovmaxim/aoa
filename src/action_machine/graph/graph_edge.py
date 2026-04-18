@@ -19,4 +19,4 @@ class GraphEdge:
     stereotype: str
     category: str
     is_dag: bool
-    attributes: dict[str, Any]
+    properties: dict[str, Any]

@@ -49,7 +49,6 @@ def test_build_from_synthetic_bundle_rejects_duplicate_vertex_id() -> None:
     v = {
         "id": dup,
         "node_type": "t",
-        "stereotype": "s",
         "label": "n",
         "class_ref": None,
         "properties": {},
@@ -65,7 +64,6 @@ def test_build_from_synthetic_bundle_rejects_unknown_edge_endpoint() -> None:
             {
                 "id": "only",
                 "node_type": "t",
-                "stereotype": "s",
                 "label": "n",
                 "class_ref": None,
                 "properties": {},
@@ -79,7 +77,7 @@ def test_build_from_synthetic_bundle_rejects_unknown_edge_endpoint() -> None:
                 "stereotype": "S",
                 "category": "direct",
                 "is_dag": False,
-                "attributes": {},
+                "properties": {},
             },
         ],
     }
@@ -109,7 +107,7 @@ def test_reverse_direct_edge_runtime_when_stereotype_missing(
         stereotype="Aggregation",
         category="direct",
         is_dag=False,
-        attributes={},
+        properties={},
     )
     with pytest.raises(RuntimeError, match="missing REVERSE_EDGE_STEREOTYPE"):
         reverse_edge.reverse_direct_edge(direct)
@@ -121,7 +119,6 @@ def test_build_from_synthetic_bundle_counts_small_bundle() -> None:
             {
                 "id": "d1",
                 "node_type": "Domain",
-                "stereotype": "Business Object",
                 "label": "D",
                 "class_ref": None,
                 "properties": {},
@@ -129,7 +126,6 @@ def test_build_from_synthetic_bundle_counts_small_bundle() -> None:
             {
                 "id": "a1",
                 "node_type": "Action",
-                "stereotype": "Business Process",
                 "label": "A",
                 "class_ref": None,
                 "properties": {},
@@ -137,7 +133,6 @@ def test_build_from_synthetic_bundle_counts_small_bundle() -> None:
             {
                 "id": "r1",
                 "node_type": "role_class",
-                "stereotype": "Business Role",
                 "label": "R",
                 "class_ref": None,
                 "properties": {},
@@ -151,7 +146,7 @@ def test_build_from_synthetic_bundle_counts_small_bundle() -> None:
                 "stereotype": "Aggregation",
                 "category": "direct",
                 "is_dag": False,
-                "attributes": {},
+                "properties": {},
             },
             {
                 "source_id": "r1",
@@ -160,7 +155,7 @@ def test_build_from_synthetic_bundle_counts_small_bundle() -> None:
                 "stereotype": "Assignment",
                 "category": "direct",
                 "is_dag": False,
-                "attributes": {},
+                "properties": {},
             },
         ],
     }
@@ -190,7 +185,7 @@ def test_reverse_direct_edge_matches_tables_for_all_reversible_types(
         stereotype="ForwardPlaceholder",
         category="direct",
         is_dag=True,
-        attributes={"marker": 1},
+        properties={"marker": 1},
     )
     rev = reverse_direct_edge(direct)
     assert rev is not None
@@ -200,7 +195,7 @@ def test_reverse_direct_edge_matches_tables_for_all_reversible_types(
     assert rev.stereotype == expected_rev_st
     assert rev.category == "reverse"
     assert rev.is_dag is False
-    assert rev.attributes == {"marker": 1}
+    assert rev.properties == {"marker": 1}
 
 
 def test_reverse_direct_edge_returns_none_for_unknown_forward_type() -> None:
@@ -211,7 +206,7 @@ def test_reverse_direct_edge_returns_none_for_unknown_forward_type() -> None:
         stereotype="X",
         category="direct",
         is_dag=False,
-        attributes={},
+        properties={},
     )
     assert reverse_direct_edge(direct) is None
 
@@ -224,7 +219,7 @@ def test_reverse_direct_edge_returns_none_when_already_reverse() -> None:
         stereotype="Aggregation",
         category="reverse",
         is_dag=False,
-        attributes={},
+        properties={},
     )
     assert reverse_direct_edge(edge) is None
 

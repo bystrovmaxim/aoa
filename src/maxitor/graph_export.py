@@ -96,7 +96,7 @@ def normalize_coordinator_node_payload_for_visualization(
     """
     Map interchange node payloads to the facet-shaped keys used by exporters.
 
-    **Preserves** the full interchange payload (``properties``, ``stereotype``, etc.),
+    **Preserves** the full interchange payload (``properties``, etc.),
     merged with ``node_type`` / ``label`` / ``class_ref`` so the HTML properties panel
     can list every field. Vertex identity stays on the interchange ``id`` (no duplicate
     ``name``).
@@ -107,15 +107,13 @@ def normalize_coordinator_node_payload_for_visualization(
         merged["node_type"] = str(merged.pop("vertex_type"))
     if "id" not in merged:
         return merged
-    # Interchange rows from ``get_graph()`` always include ``stereotype`` (possibly empty).
-    if "stereotype" in merged:
-        text = str(merged.get("label", "") or "").strip()
-        if not text:
-            text = str(merged.get("display_name", "") or "").strip()
-        vid = str(merged["id"])
-        derived = text or (vid.rsplit(".", maxsplit=1)[-1] if "." in vid else vid)
-        merged.setdefault("label", derived)
-        merged.setdefault("class_ref", merged.get("class_ref"))
+    text = str(merged.get("label", "") or "").strip()
+    if not text:
+        text = str(merged.get("display_name", "") or "").strip()
+    vid = str(merged["id"])
+    derived = text or (vid.rsplit(".", maxsplit=1)[-1] if "." in vid else vid)
+    merged.setdefault("label", derived)
+    merged.setdefault("class_ref", merged.get("class_ref"))
     return merged
 
 

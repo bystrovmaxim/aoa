@@ -28,7 +28,7 @@ def reverse_direct_edge(edge: GraphEdge) -> GraphEdge | None:
     if rev_st is None:
         msg = f"missing REVERSE_EDGE_STEREOTYPE for forward edge type {edge.edge_type!r}"
         raise RuntimeError(msg)
-    attrs: dict[str, Any] = dict(edge.attributes) if edge.attributes else {}
+    props: dict[str, Any] = dict(edge.properties) if edge.properties else {}
     return GraphEdge(
         source_id=edge.target_id,
         target_id=edge.source_id,
@@ -36,5 +36,5 @@ def reverse_direct_edge(edge: GraphEdge) -> GraphEdge | None:
         stereotype=rev_st,
         category="reverse",
         is_dag=False,
-        attributes=attrs,
+        properties=props,
     )

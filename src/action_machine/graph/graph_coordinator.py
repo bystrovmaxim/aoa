@@ -218,7 +218,7 @@ class GraphCoordinator:
 
         _graph : rx.PyDiGraph
             Directed interchange graph (vertex ``id`` / ``node_type`` /
-            ``stereotype``, edge ``edge_type`` / ``category`` / …). Filled at the end of
+            edge ``edge_type`` / ``category`` / …). Filled at the end of
             ``build()``; read-only afterward via :meth:`get_graph`.
 
         _facet_graph : rx.PyDiGraph
@@ -727,7 +727,6 @@ class GraphCoordinator:
                 {
                     "node_type": v.node_type,
                     "id": v.id,
-                    "stereotype": v.stereotype,
                     "label": v.label,
                     "class_ref": v.class_ref,
                     "properties": v.properties,
@@ -744,7 +743,7 @@ class GraphCoordinator:
                     "stereotype": e.stereotype,
                     "category": e.category,
                     "is_dag": e.is_dag,
-                    "attributes": e.attributes,
+                    "properties": e.properties,
                 },
             )
         self._graph = lg
@@ -1006,7 +1005,7 @@ class GraphCoordinator:
         """
         Return a **low-level** copy of the interchange graph (topology + payloads).
 
-        Node payloads use ``node_type``, ``id``, ``stereotype``, ``label``,
+        Node payloads use ``node_type``, ``id``, ``label``,
         ``class_ref``, ``properties`` (no ``facet_rows``). For facet skeleton dicts
         (``node_type``, ``id``, ``class_ref``), use :meth:`facet_topology_copy`.
 

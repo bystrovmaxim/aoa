@@ -84,7 +84,6 @@ def test_normalize_interchange_node_maps_to_facet_keys() -> None:
         "node_type": "Action",
         "id": "pkg.actions.Foo",
         "label": "Foo",
-        "stereotype": "Business Process",
         "class_ref": None,
         "properties": {},
     }
@@ -92,7 +91,6 @@ def test_normalize_interchange_node_maps_to_facet_keys() -> None:
     assert norm["node_type"] == "Action"
     assert norm["id"] == "pkg.actions.Foo"
     assert norm["label"] == "Foo"
-    assert norm["stereotype"] == "Business Process"
     assert norm["properties"] == {}
 
 
