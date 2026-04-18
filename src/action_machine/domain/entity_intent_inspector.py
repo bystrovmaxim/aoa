@@ -130,7 +130,7 @@ from pydantic.fields import FieldInfo
 from pydantic_core import PydanticUndefined
 
 from action_machine.domain.entity_intent import EntityIntent, entity_info_is_set
-from action_machine.domain.lifecycle import Lifecycle
+from action_machine.domain.lifecycle import Lifecycle, StateInfo, StateType
 from action_machine.domain.relation_containers import BaseRelationMany, BaseRelationOne
 from action_machine.domain.relation_markers import Inverse, NoGraphEdge, NoInverse, Rel
 from action_machine.graph.base_facet_snapshot import BaseFacetSnapshot
@@ -470,6 +470,31 @@ def collect_entity_relations(cls: type) -> list[EntityRelationInfo]:
     return relations
 
 
+def lifecycle_state_vertex_type(state_info: StateInfo) -> str:
+    """
+    Interchange ``node_type`` for one lifecycle state (initial / intermediate / final).
+
+    Drives distinct icons and fills in the graph visualizer.
+    """
+    t = state_info.state_type
+    if t == StateType.INITIAL:
+        return "lifecycle_state_initial"
+    if t == StateType.INTERMEDIATE:
+        return "lifecycle_state_intermediate"
+    return "lifecycle_state_final"
+
+
+def lifecycle_state_node_name(lifecycle_class: type, state_key: str) -> str:
+    """
+    Two-part interchange vertex id: ``{LifecycleClassName}:{state_key}``.
+
+    Example: ``SalesOrderLifecycle:new``. Uniqueness is per lifecycle class short name;
+    two unrelated modules defining the same class name could collide — avoid duplicate
+    lifecycle class names across the graph.
+    """
+    return f"{lifecycle_class.__name__}:{state_key}"
+
+
 def entity_relation_facet_edge_type(relation_type: str, cardinality: str) -> str:
     """
     Facet ``edge_type`` string for :class:`~action_machine.graph.payload.EdgeInfo`.
@@ -615,7 +640,11 @@ class EntityIntentInspector(BaseIntentInspector):
         entity_relations: tuple[EntityRelationInfo, ...]
         entity_lifecycles: tuple[EntityLifecycleInfo, ...]
 
-        def to_facet_payload(self) -> FacetPayload:
+        def to_facet_payload(
+            self,
+            *,
+            entity_extra_edges: tuple[EdgeInfo, ...] = (),
+        ) -> FacetPayload:
             """Serialize this snapshot into a coordinator ``FacetPayload``."""
             fields_meta: tuple[tuple[Any, ...], ...] = tuple(
                 (
@@ -712,8 +741,139 @@ class EntityIntentInspector(BaseIntentInspector):
                     relations=relations_meta,
                     lifecycles=lifecycles_meta,
                 ),
-                edges=tuple(domain_edges + relation_edges),
+                edges=tuple(domain_edges + relation_edges + list(entity_extra_edges)),
             )
+
+    @classmethod
+    def _lifecycle_graph_payloads(
+        cls,
+        snap: Any,
+    ) -> tuple[tuple[EdgeInfo, ...], tuple[FacetPayload, ...]]:
+        """
+        Build ``entity_has_lifecycle`` edges for the entity row plus ``lifecycle`` /
+        ``lifecycle_state_{initial,intermediate,final}`` facet payloads (states, initial links, transitions).
+
+        Lifecycle nodes are **not** linked to the ``domain`` vertex; visualization
+        puts them in the entity's domain bundle via ``HAS_LIFECYCLE`` /
+        ``HAS_LIFECYCLE_STATE`` propagation from the entity's ``belongs_to`` edge.
+
+        When there is more than one initial state, emit ``lifecycle_initial`` from
+        the lifecycle node to each initial state. Otherwise initial states are only
+        linked via ``lifecycle_contains_state``.
+        """
+        if not snap.entity_lifecycles:
+            return (), ()
+
+        entity_edges: list[EdgeInfo] = []
+        extras: list[FacetPayload] = []
+
+        for lc in snap.entity_lifecycles:
+            field = lc.field_name
+            lc_name = cls._make_node_name(snap.class_ref, field)
+            lc_cls = lc.lifecycle_class
+            template = lc.template_ref
+            states = template.get_states()
+            initial_keys = template.get_initial_keys()
+
+            entity_edges.append(
+                EdgeInfo(
+                    target_node_type="lifecycle",
+                    target_name=lc_name,
+                    edge_type="entity_has_lifecycle",
+                    is_structural=False,
+                    edge_meta=(
+                        ("field_name", field),
+                        ("lifecycle_class", lc_cls.__name__),
+                    ),
+                    target_class_ref=lc_cls,
+                ),
+            )
+
+            def state_vertex_name(state_key: str) -> str:
+                return lifecycle_state_node_name(lc_cls, state_key)
+
+            lc_edges: list[EdgeInfo] = []
+
+            for sk, st in states.items():
+                lc_edges.append(
+                    EdgeInfo(
+                        target_node_type=lifecycle_state_vertex_type(st),
+                        target_name=state_vertex_name(sk),
+                        edge_type="lifecycle_contains_state",
+                        is_structural=False,
+                        edge_meta=(
+                            ("state_key", sk),
+                            ("display_name", st.display_name),
+                            ("state_type", st.state_type.value),
+                        ),
+                        target_class_ref=snap.class_ref,
+                    ),
+                )
+
+            if len(initial_keys) > 1:
+                for ik in sorted(initial_keys):
+                    st_ik = states[ik]
+                    lc_edges.append(
+                        EdgeInfo(
+                            target_node_type=lifecycle_state_vertex_type(st_ik),
+                            target_name=state_vertex_name(ik),
+                            edge_type="lifecycle_initial",
+                            is_structural=False,
+                            edge_meta=(("state_key", ik),),
+                            target_class_ref=snap.class_ref,
+                        ),
+                    )
+
+            extras.append(
+                FacetPayload(
+                    node_type="lifecycle",
+                    node_name=lc_name,
+                    node_class=lc_cls,
+                    node_meta=cls._make_meta(
+                        field_name=field,
+                        entity_class=snap.class_ref,
+                        state_count=len(states),
+                        initial_count=len(initial_keys),
+                        final_count=len(template.get_final_keys()),
+                    ),
+                    edges=tuple(lc_edges),
+                ),
+            )
+
+            for sk, st in states.items():
+                out_edges: list[EdgeInfo] = []
+                for tgt in sorted(st.transitions):
+                    st_tgt = states[tgt]
+                    out_edges.append(
+                        EdgeInfo(
+                            target_node_type=lifecycle_state_vertex_type(st_tgt),
+                            target_name=state_vertex_name(tgt),
+                            edge_type="lifecycle_transition",
+                            is_structural=False,
+                            edge_meta=(
+                                ("from_state", sk),
+                                ("to_state", tgt),
+                            ),
+                            target_class_ref=snap.class_ref,
+                        ),
+                    )
+
+                extras.append(
+                    FacetPayload(
+                        node_type=lifecycle_state_vertex_type(st),
+                        node_name=state_vertex_name(sk),
+                        node_class=snap.class_ref,
+                        node_meta=cls._make_meta(
+                            field_name=field,
+                            state_key=sk,
+                            display_name=st.display_name,
+                            state_type=st.state_type.value,
+                        ),
+                        edges=tuple(out_edges),
+                    ),
+                )
+
+        return tuple(entity_edges), tuple(extras)
 
     @classmethod
     def _subclasses_recursive(cls) -> list[type]:
@@ -726,20 +886,30 @@ class EntityIntentInspector(BaseIntentInspector):
         return entity_info_is_set(target_cls)
 
     @classmethod
-    def inspect(cls, target_cls: type) -> FacetPayload | None:
+    def inspect(
+        cls, target_cls: type,
+    ) -> FacetPayload | tuple[FacetPayload, ...] | None:
         """
-        Build an entity facet payload, or ``None`` if the class is not a decorated
-        entity.
+        Build an entity facet payload (and optional ``lifecycle`` / ``lifecycle_state``
+        facet rows when the model declares ``Lifecycle`` fields with templates).
 
         Args:
             target_cls: Candidate class.
 
         Returns:
-            ``FacetPayload`` when the entity invariant holds; otherwise ``None``.
+            ``FacetPayload``, or a non-empty tuple whose first element is the entity
+            row and the rest are lifecycle graph facets, or ``None`` when the class
+            is not a decorated entity.
         """
         if not cls._has_entity_info_invariant(target_cls):
             return None
-        return cls._build_payload(target_cls)
+        snap = cls.facet_snapshot_for_class(target_cls)
+        assert snap is not None
+        entity_edges, extras = cls._lifecycle_graph_payloads(snap)
+        entity_payload = snap.to_facet_payload(entity_extra_edges=entity_edges)
+        if not extras:
+            return entity_payload
+        return (entity_payload, *extras)
 
     @classmethod
     def facet_snapshot_for_class(
@@ -774,6 +944,15 @@ class EntityIntentInspector(BaseIntentInspector):
     ) -> str:
         """Storage bucket key for entity facet snapshots."""
         return "entity"
+
+    @classmethod
+    def should_register_facet_snapshot_for_payload(
+        cls,
+        _target_cls: type,
+        payload: FacetPayload,
+    ) -> bool:
+        """Only the primary ``entity`` row hydrates the typed snapshot."""
+        return payload.node_type == "entity"
 
     @classmethod
     def _build_payload(cls, target_cls: type) -> FacetPayload:

@@ -40,6 +40,10 @@ _FACET_EDGE_TO_INTERCHANGE: Final[dict[str, tuple[str, str]]] = {
     "entity_aggregation_many": ("AGGREGATION_MANY", "Aggregation"),
     "entity_association_one": ("ASSOCIATION_ONE", "Association"),
     "entity_association_many": ("ASSOCIATION_MANY", "Association"),
+    "entity_has_lifecycle": ("HAS_LIFECYCLE", "Composition"),
+    "lifecycle_contains_state": ("HAS_LIFECYCLE_STATE", "Composition"),
+    "lifecycle_initial": ("LIFECYCLE_INITIAL", "Association"),
+    "lifecycle_transition": ("LIFECYCLE_TRANSITION", "Flow"),
 }
 
 
@@ -138,6 +142,19 @@ def _tail_name(qualname: str) -> str:
     return qualname.rsplit(".", maxsplit=1)[-1]
 
 
+def _facet_vertex_display_name(p: FacetPayload) -> str:
+    """
+    Labels for lifecycle facets: state nodes use the two-part id (e.g. ``SalesOrderLifecycle:new``),
+    lifecycle field nodes use the model field name (e.g. ``lifecycle``).
+    """
+    meta = dict(p.node_meta)
+    if str(p.node_type).startswith("lifecycle_state"):
+        return p.node_name
+    if p.node_type == "lifecycle" and "field_name" in meta:
+        return str(meta["field_name"])
+    return _tail_name(p.node_name)
+
+
 def _from_facet_payloads(
     payloads: tuple[FacetPayload, ...],
 ) -> tuple[list[GraphVertex], list[GraphEdge]]:
@@ -152,7 +169,7 @@ def _from_facet_payloads(
             id=vid,
             vertex_type=p.node_type,
             stereotype="",
-            display_name=_tail_name(p.node_name),
+            display_name=_facet_vertex_display_name(p),
             class_ref=None,
             properties={},
         )
