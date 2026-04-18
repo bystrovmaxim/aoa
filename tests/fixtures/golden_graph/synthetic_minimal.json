@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "description": "G0: input/expected = synthetic opaque bundle (GraphBuilder). expected_from_facets = build_interchange_from_facet_payloads(_g0_facet_payloads()) raw tuples. expected_from_facets_phase1_merge = same after GateCoordinator-style collect/merge (G0 stubs are not BaseAction, so @meta is not folded here; matches expected_from_facets).",
+  "description": "G0: input/expected = synthetic opaque bundle (GraphBuilder), forward interchange edges only (no §5.3 CONTAINS/REQUIRES_ROLE synthesis). expected_from_facets = build_interchange_from_facet_payloads(_g0_facet_payloads()) raw tuples. expected_from_facets_phase1_merge = same after collect/merge (G0 stubs are not BaseAction, so @meta is not folded here; matches expected_from_facets).",
   "input": {
     "vertices": [
       {
@@ -39,29 +39,11 @@
         "attributes": {}
       },
       {
-        "source_id": "golden_demo.domains.DemoDomain",
-        "target_id": "golden_demo.actions.DemoAction",
-        "edge_type": "CONTAINS",
-        "stereotype": "Aggregation",
-        "category": "reverse",
-        "is_dag": false,
-        "attributes": {}
-      },
-      {
         "source_id": "golden_demo.roles.DemoRole",
         "target_id": "golden_demo.actions.DemoAction",
         "edge_type": "ASSIGNED_TO",
         "stereotype": "Assignment",
         "category": "direct",
-        "is_dag": false,
-        "attributes": {}
-      },
-      {
-        "source_id": "golden_demo.actions.DemoAction",
-        "target_id": "golden_demo.roles.DemoRole",
-        "edge_type": "REQUIRES_ROLE",
-        "stereotype": "Access",
-        "category": "reverse",
         "is_dag": false,
         "attributes": {}
       }
@@ -105,29 +87,11 @@
         "attributes": {}
       },
       {
-        "source_id": "golden_demo.domains.DemoDomain",
-        "target_id": "golden_demo.actions.DemoAction",
-        "edge_type": "CONTAINS",
-        "stereotype": "Aggregation",
-        "category": "reverse",
-        "is_dag": false,
-        "attributes": {}
-      },
-      {
         "source_id": "golden_demo.roles.DemoRole",
         "target_id": "golden_demo.actions.DemoAction",
         "edge_type": "ASSIGNED_TO",
         "stereotype": "Assignment",
         "category": "direct",
-        "is_dag": false,
-        "attributes": {}
-      },
-      {
-        "source_id": "golden_demo.actions.DemoAction",
-        "target_id": "golden_demo.roles.DemoRole",
-        "edge_type": "REQUIRES_ROLE",
-        "stereotype": "Access",
-        "category": "reverse",
         "is_dag": false,
         "attributes": {}
       }
@@ -177,15 +141,6 @@
         "category": "direct",
         "is_dag": false,
         "attributes": {}
-      },
-      {
-        "source_id": "domain:golden_demo.domains.DemoDomain",
-        "target_id": "meta:golden_demo.actions.DemoAction",
-        "edge_type": "CONTAINS",
-        "stereotype": "Aggregation",
-        "category": "reverse",
-        "is_dag": false,
-        "attributes": {}
       }
     ]
   },
@@ -233,15 +188,6 @@
         "category": "direct",
         "is_dag": false,
         "attributes": {}
-      },
-      {
-        "source_id": "domain:golden_demo.domains.DemoDomain",
-        "target_id": "meta:golden_demo.actions.DemoAction",
-        "edge_type": "CONTAINS",
-        "stereotype": "Aggregation",
-        "category": "reverse",
-        "is_dag": false,
-        "attributes": {}
       }
     ]
   },
@@ -273,15 +219,6 @@
       }
     ],
     "edges": [
-      {
-        "source_id": "domain:golden_demo.domains.DemoDomain",
-        "target_id": "meta:golden_demo.actions.DemoAction",
-        "edge_type": "CONTAINS",
-        "stereotype": "Aggregation",
-        "category": "reverse",
-        "is_dag": false,
-        "attributes": {}
-      },
       {
         "source_id": "meta:golden_demo.actions.DemoAction",
         "target_id": "domain:golden_demo.domains.DemoDomain",

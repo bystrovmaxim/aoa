@@ -1,19 +1,14 @@
 # tests/graph_contract/test_reverse_edge_pairs.py
 
-"""§5.3: every ``direct`` edge in ``REVERSE_EDGE_MAP`` has a paired ``reverse`` edge."""
+"""Interchange categories and §5.3 tables (no automatic reverse rows from facet projection)."""
 
 from __future__ import annotations
 
 import importlib
 
 import pytest
-import rustworkx as rx
 
-from action_machine.graph import (
-    INTERNAL_EDGE_TYPES,
-    OWNERSHIP_EDGE_TYPES,
-    REVERSE_EDGE_MAP,
-)
+from action_machine.graph import INTERNAL_EDGE_TYPES, OWNERSHIP_EDGE_TYPES
 from maxitor.samples.build import _MODULES, build_sample_coordinator
 
 
@@ -22,38 +17,13 @@ def _import_test_domain_modules() -> None:
         importlib.import_module(name)
 
 
-def _edge_quads(lg: rx.PyDiGraph) -> set[tuple[str, str, str, str]]:
-    id_by_idx = {i: lg[i]["id"] for i in lg.node_indices()}
-    out: set[tuple[str, str, str, str]] = set()
-    for s, t, w in lg.weighted_edge_list():
-        out.add(
-            (
-                id_by_idx[s],
-                id_by_idx[t],
-                w["edge_type"],
-                w["category"],
-            ),
-        )
-    return out
-
-
 @pytest.mark.graph_coverage
-def test_each_mapped_direct_edge_has_reverse_pair() -> None:
+def test_interchange_graph_has_no_reverse_category_edges() -> None:
+    """Facet projection does not synthesize §5.3 reverse rows (category=reverse)."""
     _import_test_domain_modules()
     lg = build_sample_coordinator().get_graph()
-    quads = _edge_quads(lg)
-    id_by_idx = {i: lg[i]["id"] for i in lg.node_indices()}
-    for s, t, w in lg.weighted_edge_list():
-        if w["category"] != "direct":
-            continue
-        fwd = w["edge_type"]
-        if fwd not in REVERSE_EDGE_MAP:
-            continue
-        rev_type = REVERSE_EDGE_MAP[fwd]
-        src, tgt = id_by_idx[s], id_by_idx[t]
-        assert (tgt, src, rev_type, "reverse") in quads, (
-            f"missing reverse for direct {fwd}: ({src!r} -> {tgt!r})"
-        )
+    for _s, _t, w in lg.weighted_edge_list():
+        assert w.get("category") != "reverse", w
 
 
 @pytest.mark.graph_coverage

@@ -13,7 +13,7 @@ from pathlib import Path
 import pytest
 
 from action_machine.graph.base_intent_inspector import BaseIntentInspector
-from action_machine.graph.gate_coordinator import GateCoordinator
+from action_machine.graph.graph_coordinator import GraphCoordinator
 from action_machine.graph.graph_builder import build_interchange_from_facet_payloads
 from action_machine.graph import GraphEdge, GraphBuilder, GraphVertex
 from action_machine.graph.payload import EdgeInfo, FacetPayload
@@ -28,10 +28,10 @@ def _interchange_canonical(payloads: tuple[FacetPayload, ...]) -> tuple[list[dic
 
 
 def _simulate_phase1_merge(
-    gc: GateCoordinator,
+    gc: GraphCoordinator,
     payloads: tuple[FacetPayload, ...],
 ) -> list[FacetPayload]:
-    """Same key fold/merge as :meth:`GateCoordinator._phase1_collect` (without inspectors)."""
+    """Same key fold/merge as :meth:`GraphCoordinator._phase1_collect` (without inspectors)."""
     by_key: dict[str, FacetPayload] = {}
     for p in payloads:
         ck = gc._facet_collect_key(p)
@@ -191,7 +191,7 @@ def test_graph_builder_facet_payloads_match_fixture() -> None:
 
 
 def test_facet_payloads_after_phase1_merge_match_fixture() -> None:
-    gc = GateCoordinator()
+    gc = GraphCoordinator()
     merged = _simulate_phase1_merge(gc, _g0_facet_payloads())
     exp_v, exp_e = _interchange_canonical(tuple(merged))
     vertices, edges = build_interchange_from_facet_payloads(merged)
@@ -291,8 +291,8 @@ def test_facet_role_spec_non_type_skips_assigned_edges() -> None:
     vertices, edges = build_interchange_from_facet_payloads(payloads)
     assert len(vertices) == 3
     assert {v.vertex_type for v in vertices} == {"domain", "action", "meta"}
-    assert len(edges) == 2
-    assert all(e.edge_type in ("BELONGS_TO", "CONTAINS") for e in edges)
+    assert len(edges) == 1
+    assert edges[0].edge_type == "BELONGS_TO"
 
 
 def test_facet_belongs_to_empty_target_name_raises() -> None:
