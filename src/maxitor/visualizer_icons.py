@@ -64,6 +64,29 @@ VERTEX_TYPE_LUCIDE_INNER_SVG: dict[str, str] = {
         '<path d="M3 5V19A9 3 0 0 0 21 19V5" /> '
         '<path d="M3 12A9 3 0 0 0 21 12" />'
     ),
+    "lifecycle": (
+        '<circle cx="18" cy="6" r="3" /> '
+        '<circle cx="6" cy="18" r="3" /> '
+        '<path d="M18 9v1a4 4 0 0 1-4 4H9a4 4 0 0 0-4 4v1" />'
+    ),
+    # Lifecycle states: shared ring motif, varied inner mark (entry / in-flight / done).
+    "lifecycle_state_initial": (
+        '<circle cx="12" cy="12" r="9" /> '
+        '<circle cx="12" cy="12" r="3" fill="#ffffff" stroke="none" />'
+    ),
+    "lifecycle_state_intermediate": (
+        '<circle cx="12" cy="12" r="9" /> '
+        '<circle cx="12" cy="12" r="4" />'
+    ),
+    "lifecycle_state_final": (
+        '<circle cx="12" cy="12" r="9" /> '
+        '<path d="m8 12 2 2 4-4" />'
+    ),
+    # Legacy interchange rows (alias to intermediate glyph).
+    "lifecycle_state": (
+        '<circle cx="12" cy="12" r="9" /> '
+        '<circle cx="12" cy="12" r="4" />'
+    ),
     "resource_manager": (
         '<line x1="22" x2="2" y1="12" y2="12" /> '
         '<path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z" /> '

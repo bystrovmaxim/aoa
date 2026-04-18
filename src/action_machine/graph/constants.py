@@ -25,6 +25,10 @@ VERTEX_TYPES: Final[frozenset[str]] = frozenset(
         "application",
         "domain",
         "entity",
+        "lifecycle",
+        "lifecycle_state_initial",
+        "lifecycle_state_intermediate",
+        "lifecycle_state_final",
         "params_schema",
         "result_schema",
         "service",
@@ -45,6 +49,8 @@ OWNERSHIP_EDGE_TYPES: Final[frozenset[str]] = frozenset(
         "HAS_PARAMS",
         "HAS_RESULT",
         "HAS_SUBSCRIPTION",
+        "HAS_LIFECYCLE",
+        "HAS_LIFECYCLE_STATE",
     },
 )
 

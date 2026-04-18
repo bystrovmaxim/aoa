@@ -175,7 +175,7 @@ def test_html_export_smoke_contains_g6_cdn_and_node_type(tmp_path: Path) -> None
     assert '"node_type"' in html
     assert "color-legend" in html
     assert "type: 'line'" in html or 'type: "line"' in html
-    assert "type: 'circle'" in html or 'type: "circle"' in html
+    assert "type: 'image'" in html or 'type: "image"' in html
     assert "bubble-sets" in html
     assert "bubble-application-roles" in html
 

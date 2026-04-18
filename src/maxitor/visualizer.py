@@ -3,6 +3,13 @@
 HTML visualization for coordinator PyDiGraph graphs.
 
 Generates a standalone HTML file using AntV G6 v5.
+
+The diagram is **not** loaded from a standalone graph JSON file: the full node/edge
+payload is **embedded in the HTML** at export time (one inline ``JSON`` for G6).
+Call :func:`export_samples_graph_html` again (or pass a freshly built
+``PyDiGraph``) after code changes; deleting ``archive/logs/*.json`` does not
+affect HTML — optional GraphML/JSON/DOT exports are separate in
+:mod:`maxitor.graph_export`.
 Layout: d3-force with custom distance/strength per node type.
 Node fill colors: **fixed** per interchange ``vertex_type`` / ``node_type`` string
 (see :data:`VERTEX_TYPE_FILL_COLORS`); ``application`` is always black. Each node is
@@ -14,7 +21,7 @@ fills.
 
 Domain hulls (``bubble-sets``) are derived only from graph topology: every
 ``domain`` vertex, ``BELONGS_TO`` edges, and facet ownership propagation — no
-hardcoded domain list.
+hardcoded domain list. Lifecycle / state vertices have **no** separate hulls.
 
 Interaction: drag-canvas (pan empty canvas) + drag-element (move nodes).
 ``drag-element-force`` is intentionally avoided: it re-runs d3-force on every drag
@@ -63,6 +70,10 @@ VERTEX_TYPE_FILL_COLORS: dict[str, str] = {
     "compensator": "#F781BF",
     "error_handler": "#6A3D9A",
     "entity": "#1B9E77",
+    "lifecycle": "#00798C",
+    "lifecycle_state_initial": "#9575CD",
+    "lifecycle_state_intermediate": "#6A51A3",
+    "lifecycle_state_final": "#452E7A",
     "resource_manager": "#7570B3",
     "role_class": "#66A61E",
     "role": "#E6AB02",
@@ -168,6 +179,18 @@ def _default_archive_logs_dir() -> Path:
     return Path(__file__).resolve().parents[2] / "archive" / "logs"
 
 
+def _vertex_type_counts(graph: rx.PyDiGraph) -> dict[str, int]:
+    """Count interchange ``vertex_type`` labels (best-effort for diagnostics)."""
+    counts: dict[str, int] = {}
+    for idx in graph.node_indices():
+        raw = graph[idx]
+        if not isinstance(raw, dict):
+            continue
+        vt = str(raw.get("vertex_type", "unknown"))
+        counts[vt] = counts.get(vt, 0) + 1
+    return counts
+
+
 # Interchange edge labels: host (e.g. action) → facet child; domain flows to child.
 _OWNERSHIP_HOST_TO_CHILD: frozenset[str] = frozenset(
     {
@@ -177,6 +200,8 @@ _OWNERSHIP_HOST_TO_CHILD: frozenset[str] = frozenset(
         "HAS_COMPENSATOR",
         "HAS_PARAMS",
         "HAS_RESULT",
+        "HAS_LIFECYCLE",
+        "HAS_LIFECYCLE_STATE",
     },
 )
 
@@ -255,7 +280,8 @@ def _bubble_sets_plugins_for_domains(
 
     Members: the domain vertex, every node with ``BELONGS_TO`` into that domain, and
     nodes reachable by propagating domain along action-owned facets (aspects,
-    sensitive fields, error handlers, compensators, param/result schemas) and
+    sensitive fields, error handlers, compensators, param/result schemas,
+    ``HAS_LIFECYCLE`` / ``HAS_LIFECYCLE_STATE`` from entities) and
     ``CHECKS_ASPECT`` (checker ↔ aspect), so facets share the parent action's domain.
 
     The ``application`` vertex is never added to a domain bubble.
@@ -1163,6 +1189,12 @@ def export_samples_graph_html(
     """
     Write G6 HTML from the samples interchange graph.
 
+    **Build model:** there is no separate graph JSON input for this HTML. Each call
+    builds (or receives) a **live** ``PyDiGraph`` and serializes it **into the HTML
+    file** as embedded JSON for G6. Re-run this function to refresh the diagram after
+    changing entities or lifecycles. Optional ``samples_graph.json`` / GraphML from
+    :mod:`maxitor.graph_export` are independent artifacts.
+
     By default builds the graph dynamically via ``build_sample_coordinator()`` and
     :func:`maxitor.graph_export.coordinator_pygraph_for_visual_export`. Pass ``graph``
     to visualize an already-built ``PyDiGraph`` (e.g. tests or a custom coordinator).
@@ -1188,6 +1220,13 @@ def export_samples_graph_html(
 
     written = generate_g6_html(graph, target, title=title)
     print(f"Graph HTML written to {written}")
+    counts = _vertex_type_counts(graph)
+    lc_total = sum(n for t, n in counts.items() if "lifecycle" in t)
+    if lc_total:
+        lc_parts = [f"{t}={counts[t]}" for t in sorted(counts) if "lifecycle" in t]
+        print(f"  Embedded graph: {graph.num_nodes()} nodes, {graph.num_edges()} edges; " f"lifecycle: {lc_total} ({', '.join(lc_parts)})")
+    else:
+        print(f"  Embedded graph: {graph.num_nodes()} nodes, {graph.num_edges()} edges (no lifecycle vertices).")
     return written
 
 
