@@ -76,7 +76,7 @@ def test_synthetic_minimal_rejects_unknown_edge_target() -> None:
             "stereotype": "X",
             "category": "direct",
             "is_dag": True,
-            "attributes": {},
+            "properties": {},
         },
     ]
     with pytest.raises(ValueError, match="unknown target_id"):

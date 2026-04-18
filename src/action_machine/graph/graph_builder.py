@@ -75,7 +75,6 @@ def _vertex_from_row(row: Mapping[str, Any]) -> GraphVertex:
     return GraphVertex(
         id=str(row["id"]),
         node_type=str(row["node_type"]),
-        stereotype=str(row["stereotype"]),
         label=str(row["label"]),
         class_ref=cr,
         properties=dict(row["properties"]),
@@ -98,7 +97,7 @@ def _edge_from_row(row: Mapping[str, Any]) -> GraphEdge:
         stereotype=str(row["stereotype"]),
         category=str(row["category"]),
         is_dag=bool(row["is_dag"]),
-        attributes=dict(row["attributes"]),
+        properties=dict(row["properties"]),
     )
 
 
@@ -197,7 +196,6 @@ def _from_facet_vertices(
         vertices_by_id[vid] = GraphVertex(
             id=vid,
             node_type=p.node_type,
-            stereotype="",
             label=_facet_vertex_label(p),
             class_ref=None,
             properties={},
@@ -244,7 +242,7 @@ def _from_facet_vertices(
                 stereotype=forward_st,
                 category=forward_category,
                 is_dag=is_dag,
-                attributes=attrs,
+                properties=attrs,
             )
             edges.append(forward)
 

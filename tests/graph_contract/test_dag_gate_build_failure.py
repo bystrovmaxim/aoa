@@ -18,7 +18,6 @@ def _v(vid: str) -> GraphVertex:
     return GraphVertex(
         id=vid,
         node_type="Action",
-        stereotype="Business Process",
         label=vid,
         class_ref=None,
         properties={},

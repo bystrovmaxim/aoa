@@ -56,7 +56,6 @@ def test_logical_node_payload_shape() -> None:
         assert set(data.keys()) >= {
             "node_type",
             "id",
-            "stereotype",
             "label",
             "class_ref",
             "properties",

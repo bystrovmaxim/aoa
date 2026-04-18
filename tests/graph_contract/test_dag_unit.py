@@ -23,7 +23,6 @@ def _v(vid: str) -> GraphVertex:
     return GraphVertex(
         id=vid,
         node_type="Action",
-        stereotype="Business Process",
         label=vid,
         class_ref=None,
         properties={},
@@ -94,7 +93,7 @@ def test_dag_subgraph_is_acyclic_from_rx_empty_and_chain() -> None:
             "category": "direct",
             "is_dag": True,
             "stereotype": "Serving",
-            "attributes": {},
+            "properties": {},
         },
     )
     g.add_edge(
@@ -105,7 +104,7 @@ def test_dag_subgraph_is_acyclic_from_rx_empty_and_chain() -> None:
             "category": "direct",
             "is_dag": True,
             "stereotype": "Serving",
-            "attributes": {},
+            "properties": {},
         },
     )
     assert dag_edge_pairs_from_rx(g) == [("a", "b"), ("b", "c")]
@@ -119,7 +118,7 @@ def test_dag_subgraph_is_acyclic_from_rx_empty_and_chain() -> None:
             "category": "direct",
             "is_dag": True,
             "stereotype": "Serving",
-            "attributes": {},
+            "properties": {},
         },
     )
     assert dag_subgraph_is_acyclic_from_rx(g) is False

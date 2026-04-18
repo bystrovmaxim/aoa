@@ -112,7 +112,7 @@ def test_reverse_assigned_to_uses_access_stereotype_on_reverse() -> None:
         stereotype="Assignment",
         category="direct",
         is_dag=False,
-        attributes={},
+        properties={},
     )
     rev = reverse_direct_edge(direct)
     assert rev is not None
@@ -128,7 +128,7 @@ def test_reverse_direct_edge_belongs_to() -> None:
         stereotype="Aggregation",
         category="direct",
         is_dag=False,
-        attributes={},
+        properties={},
     )
     rev = reverse_direct_edge(direct)
     assert rev is not None
@@ -147,7 +147,7 @@ def test_reverse_direct_edge_returns_none_for_ownership() -> None:
         stereotype="Composition",
         category="ownership",
         is_dag=False,
-        attributes={},
+        properties={},
     )
     assert reverse_direct_edge(own) is None
 
@@ -160,6 +160,6 @@ def test_reverse_direct_edge_returns_none_for_internal() -> None:
         stereotype="Influence",
         category="internal",
         is_dag=False,
-        attributes={},
+        properties={},
     )
     assert reverse_direct_edge(internal) is None
