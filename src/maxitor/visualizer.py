@@ -19,6 +19,11 @@ hardcoded domain list.
 Interaction: drag-canvas (pan empty canvas) + drag-element (move nodes).
 ``drag-element-force`` is intentionally avoided: it re-runs d3-force on every drag
 frame, so the *entire* graph appears to move with the pointer.
+
+Hover highlight keeps each node's type color (no single ``fill`` swap). Non-focused
+nodes and edges are dimmed; the hovered node and its neighbors use
+``filter: brightness(...)`` (and full opacity) so emphasis is luminance, not a
+shared highlight hue.
 """
 
 from __future__ import annotations
@@ -39,8 +44,6 @@ from maxitor.graph_export import (
     normalize_coordinator_node_payload_for_visualization,
 )
 from maxitor.visualizer_icons import svg_data_uri_for_vertex_icon
-
-_HIGHLIGHT_DISK_FILL = "#e74c3c"
 
 G6_CDN_URL = "https://unpkg.com/@antv/g6@5/dist/g6.min.js"
 DEFAULT_APP_GRAPH_HTML = "app_graph.html"
@@ -408,7 +411,6 @@ def generate_g6_html(
                 "node_type": node_type,
                 "fill": fill,
                 "iconSrc": svg_data_uri_for_vertex_icon(fill, node_type),
-                "iconSrcHighlight": svg_data_uri_for_vertex_icon(_HIGHLIGHT_DISK_FILL, node_type),
                 "meta": meta,
             },
         })
@@ -687,11 +689,13 @@ __G6_SCRIPT__
             type: 'image',
             style: {{
               size: NODE_VISUAL_PX,
-              src: (d) =>
-                d.data?.highlighted
-                  ? (d.data?.iconSrcHighlight || d.data?.iconSrc)
-                  : (d.data?.iconSrc || ''),
-              opacity: (d) => d.data?.inactive ? 0.2 : 1,
+              src: (d) => d.data?.iconSrc || '',
+              opacity: (d) => (d.data?.inactive ? 0.18 : 1),
+              filter: (d) => {{
+                if (d.data?.inactive) return 'brightness(0.48) saturate(0.88)';
+                if (d.data?.highlighted) return 'brightness(1.2) saturate(1.06)';
+                return 'none';
+              }},
               cursor: 'grab',
               labelText: '',
             }},
@@ -700,9 +704,9 @@ __G6_SCRIPT__
           edge: {{
             type: 'line',
             style: {{
-              stroke: (d) => d.data?.highlighted ? '#e74c3c' : '#95a5a6',
-              lineWidth: (d) => d.data?.highlighted ? 2.5 : (d.data?.isDag ? 2 : 1.2),
-              opacity: (d) => d.data?.inactive ? 0.15 : 1,
+              stroke: (d) => (d.data?.highlighted ? '#64748b' : '#95a5a6'),
+              lineWidth: (d) => (d.data?.highlighted ? 2.2 : (d.data?.isDag ? 2 : 1.2)),
+              opacity: (d) => (d.data?.inactive ? 0.12 : 1),
               endArrow: true,
               labelText: '',
             }},
