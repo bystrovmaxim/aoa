@@ -77,7 +77,8 @@ from action_machine.graph.graph_builder import (
     build_interchange_from_facet_payloads,
 )
 from action_machine.graph.graph_coordinator import GraphCoordinator
-from action_machine.graph.model import GraphEdge, GraphVertex
+from action_machine.graph.graph_edge import GraphEdge
+from action_machine.graph.graph_vertex import GraphVertex
 from action_machine.graph.reverse_edge import reverse_direct_edge
 from action_machine.graph.vertex_id import (
     split_checker_vertex_id,

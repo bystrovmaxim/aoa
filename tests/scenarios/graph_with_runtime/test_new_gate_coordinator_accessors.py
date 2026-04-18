@@ -5,8 +5,9 @@ from __future__ import annotations
 
 from action_machine.domain.entity_intent_inspector import EntityIntentInspector
 from action_machine.graph.base_intent_inspector import BaseIntentInspector
+from action_machine.graph.edge_info import EdgeInfo
+from action_machine.graph.facet_payload import FacetPayload
 from action_machine.graph.graph_coordinator import GraphCoordinator
-from action_machine.graph.payload import EdgeInfo, FacetPayload
 from action_machine.intents.aspects.aspect_intent_inspector import AspectIntentInspector
 from action_machine.intents.checkers.checker_intent_inspector import CheckerIntentInspector
 from action_machine.intents.compensate.compensate_intent_inspector import (

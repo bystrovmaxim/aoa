@@ -2,7 +2,7 @@
 """
 Facet node + outgoing edges envelope (:class:`FacetPayload`).
 
-See :mod:`action_machine.graph.payload` for package-level documentation.
+Outgoing edges use :class:`~action_machine.graph.edge_info.EdgeInfo`.
 """
 
 from __future__ import annotations

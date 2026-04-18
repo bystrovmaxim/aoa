@@ -241,7 +241,8 @@ from abc import ABC, abstractmethod
 from typing import Any
 
 from action_machine.graph.base_facet_snapshot import BaseFacetSnapshot
-from action_machine.graph.payload import EdgeInfo, FacetPayload
+from action_machine.graph.edge_info import EdgeInfo
+from action_machine.graph.facet_payload import FacetPayload
 
 # ``GraphCoordinator._phase1_collect`` normalizes every outcome to ``list[FacetPayload]``.
 type FacetInspectResult = FacetPayload | list[FacetPayload] | tuple[FacetPayload, ...] | None

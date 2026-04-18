@@ -135,7 +135,8 @@ from action_machine.domain.relation_containers import BaseRelationMany, BaseRela
 from action_machine.domain.relation_markers import Inverse, NoGraphEdge, NoInverse, Rel
 from action_machine.graph.base_facet_snapshot import BaseFacetSnapshot
 from action_machine.graph.base_intent_inspector import BaseIntentInspector, FacetInspectResult
-from action_machine.graph.payload import EdgeInfo, FacetPayload
+from action_machine.graph.edge_info import EdgeInfo
+from action_machine.graph.facet_payload import FacetPayload
 from action_machine.interchange_vertex_labels import DOMAIN_VERTEX_TYPE, ENTITY_VERTEX_TYPE
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -508,7 +509,7 @@ def lifecycle_state_node_name(
 
 def entity_relation_facet_edge_type(relation_type: str, cardinality: str) -> str:
     """
-    Facet ``edge_type`` string for :class:`~action_machine.graph.payload.EdgeInfo`.
+    Facet ``edge_type`` string for :class:`~action_machine.graph.edge_info.EdgeInfo`.
 
     Maps to interchange ``COMPOSITION_*`` / ``AGGREGATION_*`` / ``ASSOCIATION_*`` via
     :data:`action_machine.graph.graph_builder` tables.

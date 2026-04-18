@@ -184,7 +184,8 @@ from dataclasses import dataclass  # noqa: E402
 
 from action_machine.graph.base_facet_snapshot import BaseFacetSnapshot  # noqa: E402
 from action_machine.graph.base_intent_inspector import BaseIntentInspector  # noqa: E402
-from action_machine.graph.payload import EdgeInfo, FacetPayload  # noqa: E402
+from action_machine.graph.edge_info import EdgeInfo  # noqa: E402
+from action_machine.graph.facet_payload import FacetPayload  # noqa: E402
 from action_machine.intents.described_fields.described_fields_intent_inspector import (  # noqa: E402
     DescribedFieldsIntentInspector,
 )

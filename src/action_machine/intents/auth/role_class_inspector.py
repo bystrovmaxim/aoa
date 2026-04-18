@@ -75,7 +75,7 @@ from dataclasses import dataclass
 from action_machine.graph.base_facet_snapshot import BaseFacetSnapshot
 from action_machine.graph.base_intent_inspector import BaseIntentInspector
 from action_machine.graph.exceptions import InvalidGraphError
-from action_machine.graph.payload import FacetPayload
+from action_machine.graph.facet_payload import FacetPayload
 from action_machine.intents.auth.base_role import BaseRole
 from action_machine.intents.auth.role_graph_roots import ROLE_CLASS_GRAPH_ROOTS
 from action_machine.intents.auth.role_mode_decorator import RoleMode

@@ -34,7 +34,7 @@ from typing import Any
 
 from action_machine.graph.base_facet_snapshot import BaseFacetSnapshot
 from action_machine.graph.base_intent_inspector import BaseIntentInspector
-from action_machine.graph.payload import FacetPayload
+from action_machine.graph.facet_payload import FacetPayload
 from action_machine.intents.plugins.on_intent import OnIntent
 from action_machine.intents.plugins.subscription_info import SubscriptionInfo
 

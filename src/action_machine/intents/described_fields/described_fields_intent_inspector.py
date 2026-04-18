@@ -76,7 +76,7 @@ from pydantic_core import PydanticUndefined
 
 from action_machine.graph.base_facet_snapshot import BaseFacetSnapshot
 from action_machine.graph.base_intent_inspector import BaseIntentInspector
-from action_machine.graph.payload import FacetPayload
+from action_machine.graph.facet_payload import FacetPayload
 from action_machine.intents.described_fields.marker import DescribedFieldsIntent
 from action_machine.interchange_vertex_labels import ENTITY_VERTEX_TYPE
 
