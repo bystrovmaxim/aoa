@@ -216,7 +216,7 @@ EXAMPLE — INSPECTOR WITH EDGES
                 for dep_info in target_cls._depends_info
             )
             return FacetPayload(
-                node_type="Action",
+                node_type="PrimaryHost",
                 node_name=cls._make_node_name(target_cls),
                 node_class=target_cls,
                 edges=edges,
@@ -404,6 +404,8 @@ class BaseIntentInspector(ABC):
         edge_type: str,
         is_structural: bool,
         edge_meta: tuple[tuple[str, Any], ...] = (),
+        *,
+        synthetic_stub_edges: tuple[EdgeInfo, ...] = (),
     ) -> EdgeInfo:
         """
         Build ``EdgeInfo`` when the target is a concrete class.
@@ -419,6 +421,10 @@ class BaseIntentInspector(ABC):
 
         Returns:
             Populated ``EdgeInfo`` with ``target_class_ref=target_cls``.
+
+            synthetic_stub_edges:
+                Outgoing edges on a coordinator-synthesized target node when this
+                edge's target was materialized from ``target_class_ref``.
         """
         return EdgeInfo(
             target_node_type=target_node_type,
@@ -427,6 +433,7 @@ class BaseIntentInspector(ABC):
             is_structural=is_structural,
             edge_meta=edge_meta,
             target_class_ref=target_cls,
+            synthetic_stub_edges=synthetic_stub_edges,
         )
 
     @classmethod

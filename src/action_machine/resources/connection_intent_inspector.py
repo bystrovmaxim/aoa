@@ -129,6 +129,7 @@ class ConnectionIntentInspector(BaseIntentInspector):
                 node_name=ConnectionIntentInspector._make_node_name(self.class_ref),
                 node_class=self.class_ref,
                 edges=conn_edges,
+                skip_node_type_snapshot_fallback=True,
             )
 
         @classmethod

@@ -7,6 +7,7 @@ from typing import Annotated
 
 from pydantic import Field
 
+from action_machine.interchange_vertex_labels import ENTITY_VERTEX_TYPE
 from action_machine.domain import (
     AssociationOne,
     BaseEntity,
@@ -136,7 +137,7 @@ def test_entity_inspector_exposes_meta_overlay_in_facet_payload() -> None:
 def test_entity_inspector_builds_payload_with_entity_metadata() -> None:
     payload = _entity_payload(EntityIntentInspector.inspect(_SimpleEntity))
     assert payload is not None
-    assert payload.node_type == "entity"
+    assert payload.node_type == ENTITY_VERTEX_TYPE
 
     data = dict(payload.node_meta)
     assert data["description"] == "Simple entity"
@@ -211,7 +212,7 @@ def test_entity_inspector_emits_lifecycle_graph_facets() -> None:
     assert raw is not None
     assert isinstance(raw, tuple)
     payloads = list(raw)
-    assert payloads[0].node_type == "entity"
+    assert payloads[0].node_type == ENTITY_VERTEX_TYPE
     types = [p.node_type for p in payloads]
     assert types.count("lifecycle") == 1
     assert sum(1 for t in types if t.startswith("lifecycle_state")) == 3

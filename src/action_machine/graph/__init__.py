@@ -63,7 +63,6 @@ from action_machine.graph.constants import (
     OWNERSHIP_EDGE_TYPES,
     REVERSE_EDGE_MAP,
     REVERSE_EDGE_STEREOTYPE,
-    VERTEX_TYPES,
 )
 from action_machine.graph.dag import (
     assert_dag_edges_acyclic,
@@ -91,7 +90,6 @@ __all__ = [
     "OWNERSHIP_EDGE_TYPES",
     "REVERSE_EDGE_MAP",
     "REVERSE_EDGE_STEREOTYPE",
-    "VERTEX_TYPES",
     "BaseFacetSnapshot",
     "GraphBuilder",
     "GraphCoordinator",

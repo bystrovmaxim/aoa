@@ -150,22 +150,33 @@ class DependencyIntentInspector(BaseIntentInspector):
         dependencies: tuple[DependencyInfo, ...]
 
         def to_facet_payload(self) -> FacetPayload:
-            dep_edges = tuple(
-                DependencyIntentInspector._make_edge(
-                    target_node_type=DependencyIntentInspector._depends_target_node_type(
-                        dep_info.cls,
+            dep_edges_list: list[EdgeInfo] = []
+            for dep_info in self.dependencies:
+                dep_cls = dep_info.cls
+                stub = ()
+                if not issubclass(dep_cls, BaseAction) and not issubclass(
+                    dep_cls,
+                    BaseResourceManager,
+                ):
+                    stub = DependencyIntentInspector.stub_outgoing_edges_for_class_dependency()
+                dep_edges_list.append(
+                    DependencyIntentInspector._make_edge(
+                        target_node_type=DependencyIntentInspector._depends_target_node_type(
+                            dep_cls,
+                        ),
+                        target_cls=dep_cls,
+                        edge_type="depends",
+                        is_structural=True,
+                        synthetic_stub_edges=stub,
                     ),
-                    target_cls=dep_info.cls,
-                    edge_type="depends",
-                    is_structural=True,
                 )
-                for dep_info in self.dependencies
-            )
+            dep_edges = tuple(dep_edges_list)
             return FacetPayload(
                 node_type=ACTION_VERTEX_TYPE,
                 node_name=DependencyIntentInspector._make_node_name(self.class_ref),
                 node_class=self.class_ref,
                 edges=dep_edges,
+                skip_node_type_snapshot_fallback=True,
             )
 
         @classmethod

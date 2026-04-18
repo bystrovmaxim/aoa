@@ -41,7 +41,7 @@ INVARIANTS
 - No graph edges are produced by this inspector.
 - Vertex ``node_name`` is the canonical dotted class path for params/result models.
 - Classes that are ``EntityIntent`` subclasses are **skipped**: field docs for
-  entities live on the ``entity`` facet from ``EntityIntentInspector``, not on a
+  entities live on the ``Entity`` facet from ``EntityIntentInspector``, not on a
   separate schema vertex (no flags; policy is fixed).
 - Field constraints are aggregated from direct ``FieldInfo`` attrs and metadata entries.
 
@@ -74,6 +74,7 @@ from pydantic import BaseModel
 from pydantic.fields import FieldInfo
 from pydantic_core import PydanticUndefined
 
+from action_machine.interchange_vertex_labels import ENTITY_VERTEX_TYPE
 from action_machine.graph.base_facet_snapshot import BaseFacetSnapshot
 from action_machine.graph.base_intent_inspector import BaseIntentInspector
 from action_machine.graph.payload import FacetPayload
@@ -125,14 +126,14 @@ class DescribedFieldsIntentInspector(BaseIntentInspector):
         """
         Graph host ``(node_type, node_name)`` for edges that reference a schema class.
 
-        Routes by class kind: ``entity``, ``params_schema``, ``result_schema``, or
+        Routes by class kind: ``Entity``, ``params_schema``, ``result_schema``, or
         ``described_fields`` — same rules as :meth:`interchange_node_type_for_schema_model`
-        (entities use the entity vertex; params/result use their contract vertices).
+        (entities use the ``Entity`` vertex; params/result use their contract vertices).
         """
         from action_machine.domain.entity_intent import EntityIntent
 
         if issubclass(schema_cls, EntityIntent):
-            return ("entity", cls._make_node_name(schema_cls))
+            return (ENTITY_VERTEX_TYPE, cls._make_node_name(schema_cls))
         return (
             cls.interchange_node_type_for_schema_model(schema_cls),
             cls.described_fields_vertex_name(schema_cls),

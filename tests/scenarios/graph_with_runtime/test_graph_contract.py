@@ -33,6 +33,7 @@ GRAPH_NODE_SKELETON_KEYS: Final[frozenset[str]] = frozenset({
 # Optional keys on raw facet nodes (e.g. ``committed_meta`` for per-vertex facet rows).
 GRAPH_NODE_SKELETON_OPTIONAL_KEYS: Final[frozenset[str]] = frozenset({
     "committed_meta",
+    "skip_node_type_snapshot_fallback",
 })
 
 # --- Contract: hydrated node (API / hydrate_graph_node) -------------

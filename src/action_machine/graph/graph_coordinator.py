@@ -47,8 +47,9 @@ for facet ``meta``. To hydrate raw dicts yourself, pass **facet** payloads from
 interchange :meth:`get_graph` payloads. Snapshot storage keys for
 hydration are recorded during phase 1 from each inspector's
 ``facet_snapshot_storage_key()``; if several snapshot storage keys hydrate the same merged node, ``meta`` is the
-union of their ``to_facet_payload().node_meta`` maps. Nodes without a registration (stubs) fall
-back to ``get_snapshot(cls, node_type)`` unless ``node_type`` is ``Action``.
+union of their ``to_facet_payload().node_meta`` maps. Nodes without a registration may
+fall back to ``get_snapshot(cls, node_type)`` unless the payload set
+``skip_node_type_snapshot_fallback`` (see :class:`~action_machine.graph.payload.FacetPayload`).
 
 Dependency ``DependencyFactory`` instances may be cached on this object under
 ``dependency_factory.DEPENDENCY_FACTORY_CACHE_KEY``; clearing that cache does
@@ -88,27 +89,24 @@ The graph is either built completely and consistently, or not committed at all.
     PHASE 1 — COLLECT
         For each inspector: walk ``_subclasses_recursive()`` over intent
         markers; ``inspect()`` → ``FacetPayload | None``.
-        Inspectors that emit the same logical ``action:<full name>`` host (structural
-        ``@depends`` / ``@connection`` rows, or a ``@meta`` facet on the same
-        ``BaseAction`` class) are **merged** in phase 1: edges and ``node_meta`` are
-        concatenated so the coordinator keeps a single facet node per graph.md host
-        without cross-inspector coupling.
+        Payloads that share the same collect key (``FacetPayload.merge_group_key`` or
+        default ``node_type:node_name``) are **merged** in phase 1: edges and
+        ``node_meta`` are concatenated into one node per key.
 
     PHASE 1b — MATERIALIZE
         ``_materialize_edge_targets`` adds missing nodes for edges that carry
-        ``target_class_ref`` (stub ``dependency`` / ``connection`` /
-        ``domain``), iterating to a fixed point until all targets exist.
+        ``target_class_ref``, iterating to a fixed point until all targets exist.
 
     PHASE 2 — VALIDATE
         Payload fields, uniqueness of ``node_type:node_name`` keys, referential
-        integrity, acyclicity of **structural** edges; @depends cycles surface
+        integrity, acyclicity of **structural** edges; structural cycles surface
         as ``CyclicDependencyError``.
 
     PHASE 2b — DAG slice (before commit)
         :mod:`action_machine.graph.graph_builder` on facet payloads; acyclicity
         of the DAG slice (``DEPENDS_ON`` / ``CONNECTS_TO`` with ``is_dag=True``).
-        Entity–entity edges (``COMPOSITION_*``, ``ASSOCIATION_*``, …) are outside
-        this slice and may cycle; they do not trigger ``CyclicDependencyError``.
+        Informational interchange edges (non-DAG slice) are outside this check and
+        may cycle; they do not trigger ``CyclicDependencyError``.
         Cycles in the slice raise ``CyclicDependencyError`` (same surface as structural cycles).
 
     PHASE 3 — COMMIT
@@ -128,11 +126,9 @@ global graph shape. Per-class invariants are enforced in intent modules / inspec
 NODE AND KEY FORMAT
 ═══════════════════════════════════════════════════════════════════════════════
 
-Node key: ``f"{node_type}:{node_name}"``. One Python class may have several
-nodes (``meta``, ``resource_manager`` (``@meta`` on ``BaseResourceManager``), ``role_class``
-(includes ``@role_mode`` ``mode`` via merge), ``aspect``,
-``described_fields`` on schema classes, ``compensator``, …)
-— see ``get_nodes_for_class``.
+Node key: ``f"{node_type}:{node_name}"`` where ``node_type`` and ``node_name`` are
+opaque strings from inspectors. One Python class may emit several keys; see
+``get_nodes_for_class``.
 
 ═══════════════════════════════════════════════════════════════════════════════
 EXAMPLE (EXPLICIT INSPECTOR REGISTRATION)
@@ -185,13 +181,6 @@ from typing import Any, Literal
 import rustworkx as rx
 
 from action_machine.dependencies.dependency_factory import DEPENDENCY_FACTORY_CACHE_KEY
-from action_machine.interchange_vertex_labels import (
-    ACTION_VERTEX_TYPE,
-    APPLICATION_VERTEX_TYPE,
-    DOMAIN_VERTEX_TYPE,
-)
-from action_machine.dependencies.dependency_intent_inspector import DependencyIntentInspector
-from action_machine.domain.application_context import ApplicationContext
 from action_machine.graph.base_facet_snapshot import BaseFacetSnapshot
 from action_machine.graph.base_intent_inspector import BaseIntentInspector
 from action_machine.graph.dag import assert_dag_edges_acyclic
@@ -203,9 +192,7 @@ from action_machine.graph.exceptions import (
 from action_machine.graph.graph_builder import build_interchange_from_facet_payloads
 from action_machine.graph.model import GraphEdge, GraphVertex
 from action_machine.graph.payload import FacetPayload
-from action_machine.model.base_action import BaseAction
 from action_machine.model.exceptions import CyclicDependencyError
-from action_machine.resources.base_resource_manager import BaseResourceManager
 
 
 class GraphCoordinator:
@@ -251,7 +238,7 @@ class GraphCoordinator:
         _facet_snapshots : dict[tuple[type, str], BaseFacetSnapshot]
             Typed facet snapshots keyed by ``(owner class, facet_key)`` where
             ``facet_key`` comes from ``facet_snapshot_storage_key()`` (e.g.
-            ``"role"``, ``"role_class"``, ``"depends"``, …), filled
+            opaque ``node_type`` strings from payloads), filled
             when ``inspector.facet_snapshot_for_class()`` is non-``None``.
 
         _hydration_snapshot_key_by_graph_key : dict[str, str | tuple[str, ...]]
@@ -338,8 +325,8 @@ class GraphCoordinator:
         Any phase-2 failure means nothing from this build is committed. After facet
         validation succeeds, the interchange graph is built from facet payloads
         via :func:`~action_machine.graph.graph_builder.build_interchange_from_facet_payloads`;
-        if its DAG slice (``DEPENDS_ON`` / ``CONNECTS_TO`` with ``is_dag=True``;
-        entity relation interchange edges are excluded) is cyclic, ``build()`` raises
+        if its DAG slice (interchange edges in :data:`~action_machine.graph.constants.DAG_EDGE_TYPES`
+        with ``is_dag=True``; other edges use ``is_dag=False``) is cyclic, ``build()`` raises
         ``CyclicDependencyError`` and
         nothing is committed.
 
@@ -485,19 +472,10 @@ class GraphCoordinator:
         """
         Ensure every edge target key exists when the edge carries ``target_class_ref``.
 
-        Covers structural depends/connection stubs and informational belongs_to
-        (domain classes are not otherwise visited by inspectors).
-
-        **Service** stubs from ``@depends`` get informational
-        ``belongs_to`` → ``Application`` when that vertex exists. Targets that
-        merge into ``action`` or ``resource_manager`` do not (see
-        :meth:`DependencyIntentInspector.stub_outgoing_edges_for_class_dependency`).
+        Synthesized stub nodes copy ``synthetic_stub_edges`` from the edge that
+        triggered materialization (inspectors attach those rows).
         """
         keys = {self._make_key(p.node_type, p.node_name) for p in payloads}
-        app_key = self._make_key(
-            APPLICATION_VERTEX_TYPE,
-            BaseIntentInspector._make_node_name(ApplicationContext),
-        )
         synthetic_source = "__edge_target__"
         result = list(payloads)
         changed = True
@@ -512,23 +490,18 @@ class GraphCoordinator:
                     if tkey in keys:
                         continue
                     keys.add(tkey)
-                    stub_edges: tuple = ()
-                    if (
-                        edge.edge_type == "depends"
-                        and not issubclass(edge.target_class_ref, BaseAction)
-                        and not issubclass(edge.target_class_ref, BaseResourceManager)
-                        and app_key in keys
-                    ):
-                        stub_edges = (
-                            DependencyIntentInspector.stub_outgoing_edges_for_class_dependency()
-                        )
+                    stub_out = tuple(
+                        se
+                        for se in edge.synthetic_stub_edges
+                        if self._make_key(se.target_node_type, se.target_name) in keys
+                    )
                     extra.append(
                         FacetPayload(
                             node_type=edge.target_node_type,
                             node_name=edge.target_name,
                             node_class=edge.target_class_ref,
                             node_meta=(),
-                            edges=stub_edges,
+                            edges=stub_out,
                         ),
                     )
                     if tkey not in payload_sources:
@@ -683,8 +656,8 @@ class GraphCoordinator:
 
         if has_structural_edges and not rx.is_directed_acyclic_graph(test_graph):
             raise InvalidGraphError(
-                "Structural edges (depends, connection) form a cycle. "
-                "Review dependencies between classes."
+                "Structural edges form a directed cycle. "
+                "Review dependency wiring between facet nodes."
             )
 
     # ═══════════════════════════════════════════════════════════════════
@@ -709,6 +682,8 @@ class GraphCoordinator:
                 "id": p.node_name,
                 "class_ref": p.node_class,
             }
+            if p.skip_node_type_snapshot_fallback:
+                node_payload["skip_node_type_snapshot_fallback"] = True
             if p.node_meta:
                 node_payload["committed_meta"] = dict(p.node_meta)
             idx = self._facet_graph.add_node(node_payload)
@@ -777,28 +752,9 @@ class GraphCoordinator:
     # Utilities
     # ═══════════════════════════════════════════════════════════════════
 
-    @staticmethod
-    def _action_collect_key_for_meta_on_primary_action(payload: FacetPayload) -> str | None:
-        """
-        When ``@meta`` targets the primary ``BaseAction`` host (same name as the
-        structural action node), fold into ``Action:<name>`` for collect/merge.
-        """
-        if payload.node_type != "meta":
-            return None
-        if not issubclass(payload.node_class, BaseAction):
-            return None
-        canonical = BaseIntentInspector._make_node_name(payload.node_class)
-        primary_meta = BaseIntentInspector._make_host_dependent_node_name(
-            payload.node_class, "meta",
-        )
-        if payload.node_name not in (canonical, primary_meta):
-            return None
-        return GraphCoordinator._make_key(ACTION_VERTEX_TYPE, canonical)
-
     def _facet_collect_key(self, payload: FacetPayload) -> str:
-        folded = self._action_collect_key_for_meta_on_primary_action(payload)
-        if folded is not None:
-            return folded
+        if payload.merge_group_key:
+            return payload.merge_group_key
         return self._make_key(payload.node_type, payload.node_name)
 
     @staticmethod
@@ -806,15 +762,20 @@ class GraphCoordinator:
         payload: FacetPayload,
         collect_key: str,
     ) -> FacetPayload:
-        fold = GraphCoordinator._action_collect_key_for_meta_on_primary_action(payload)
-        if fold is not None and collect_key == fold:
-            canonical = BaseIntentInspector._make_node_name(payload.node_class)
+        mgk = payload.merge_group_key
+        if (
+            mgk is not None
+            and collect_key == mgk
+            and payload.merge_node_type
+            and payload.merge_node_name is not None
+        ):
             return FacetPayload(
-                node_type=ACTION_VERTEX_TYPE,
-                node_name=canonical,
+                node_type=payload.merge_node_type,
+                node_name=payload.merge_node_name,
                 node_class=payload.node_class,
                 node_meta=payload.node_meta,
                 edges=payload.edges,
+                skip_node_type_snapshot_fallback=payload.skip_node_type_snapshot_fallback,
             )
         return payload
 
@@ -826,100 +787,24 @@ class GraphCoordinator:
         """
         Merge two payloads sharing the same collect key.
 
-        Structural ``Action`` rows (``@depends`` / ``@connection``) and a folded
-        primary-host ``@meta`` facet normalize to ``node_type`` ``\"Action\"`` and merge
-        here. Two ``role_class`` rows for the same role class (``RoleClassInspector``
-        + ``RoleModeIntentInspector``) merge the same way. Two ``resource_manager``
-        rows for the same manager class (``@meta`` + materialized stub from
-        ``@connection``) merge here.
-        Repeated ``Application`` payloads from ``ApplicationContextInspector`` merge.
-        ``domain`` stubs from edge materialization merge with full ``domain`` rows.
-
-        Duplicate non-mergeable facets with the same collect key remain an error.
+        Same ``node_class``, ``node_name``, and ``node_type`` after normalization;
+        concatenates ``node_meta`` and ``edges``. Otherwise returns ``None`` (duplicate).
         """
         if first.node_class is not second.node_class or first.node_name != second.node_name:
             return None
-        if first.node_type == ACTION_VERTEX_TYPE and second.node_type == ACTION_VERTEX_TYPE:
-            return FacetPayload(
-                node_type=ACTION_VERTEX_TYPE,
-                node_name=first.node_name,
-                node_class=first.node_class,
-                node_meta=first.node_meta + second.node_meta,
-                edges=first.edges + second.edges,
-            )
-        if first.node_type == "role_class" and second.node_type == "role_class":
-            return FacetPayload(
-                node_type="role_class",
-                node_name=first.node_name,
-                node_class=first.node_class,
-                node_meta=first.node_meta + second.node_meta,
-                edges=first.edges + second.edges,
-            )
-        if first.node_type == "resource_manager" and second.node_type == "resource_manager":
-            return FacetPayload(
-                node_type="resource_manager",
-                node_name=first.node_name,
-                node_class=first.node_class,
-                node_meta=first.node_meta + second.node_meta,
-                edges=first.edges + second.edges,
-            )
-        if first.node_type == "described_fields" and second.node_type == "described_fields":
-            return FacetPayload(
-                node_type="described_fields",
-                node_name=first.node_name,
-                node_class=first.node_class,
-                node_meta=first.node_meta + second.node_meta,
-                edges=first.edges + second.edges,
-            )
-        if first.node_type == "params_schema" and second.node_type == "params_schema":
-            return FacetPayload(
-                node_type="params_schema",
-                node_name=first.node_name,
-                node_class=first.node_class,
-                node_meta=first.node_meta + second.node_meta,
-                edges=first.edges + second.edges,
-            )
-        if first.node_type == "result_schema" and second.node_type == "result_schema":
-            return FacetPayload(
-                node_type="result_schema",
-                node_name=first.node_name,
-                node_class=first.node_class,
-                node_meta=first.node_meta + second.node_meta,
-                edges=first.edges + second.edges,
-            )
-        if first.node_type == "sensitive_field" and second.node_type == "sensitive_field":
-            return FacetPayload(
-                node_type="sensitive_field",
-                node_name=first.node_name,
-                node_class=first.node_class,
-                node_meta=first.node_meta + second.node_meta,
-                edges=first.edges + second.edges,
-            )
-        if first.node_type == "entity" and second.node_type == "entity":
-            return FacetPayload(
-                node_type="entity",
-                node_name=first.node_name,
-                node_class=first.node_class,
-                node_meta=first.node_meta + second.node_meta,
-                edges=first.edges + second.edges,
-            )
-        if first.node_type == APPLICATION_VERTEX_TYPE and second.node_type == APPLICATION_VERTEX_TYPE:
-            return FacetPayload(
-                node_type=APPLICATION_VERTEX_TYPE,
-                node_name=first.node_name,
-                node_class=first.node_class,
-                node_meta=first.node_meta + second.node_meta,
-                edges=first.edges + second.edges,
-            )
-        if first.node_type == DOMAIN_VERTEX_TYPE and second.node_type == DOMAIN_VERTEX_TYPE:
-            return FacetPayload(
-                node_type=DOMAIN_VERTEX_TYPE,
-                node_name=first.node_name,
-                node_class=first.node_class,
-                node_meta=first.node_meta + second.node_meta,
-                edges=first.edges + second.edges,
-            )
-        return None
+        if first.node_type != second.node_type:
+            return None
+        return FacetPayload(
+            node_type=first.node_type,
+            node_name=first.node_name,
+            node_class=first.node_class,
+            node_meta=first.node_meta + second.node_meta,
+            edges=first.edges + second.edges,
+            skip_node_type_snapshot_fallback=(
+                first.skip_node_type_snapshot_fallback
+                or second.skip_node_type_snapshot_fallback
+            ),
+        )
 
     def _register_hydration_snapshot_key(
         self,
@@ -929,9 +814,8 @@ class GraphCoordinator:
         """
         Record which snapshot storage key(s) hydrate a graph node.
 
-        Several inspectors may target the same merged node (e.g. ``depends``,
-        ``connections``, ``meta`` on one ``action:<name>``); keys accumulate as a
-        sorted tuple of distinct strings.
+        Several inspectors may target the same merged node (same collect key); keys
+        accumulate as a sorted tuple of distinct strings.
         """
         if not isinstance(graph_key, str):
             msg = f"graph_key must be str, got {type(graph_key).__name__}: {graph_key!r}"
@@ -968,8 +852,8 @@ class GraphCoordinator:
         (those use ``node_type`` / ``id`` on the interchange view).
 
         Resolves the snapshot storage key from phase-1 registration (or falls back to
-        ``node_type`` for nodes that never registered a snapshot, except ``Action``) and
-        fills ``meta`` via ``to_facet_payload().node_meta``.
+        the node's ``node_type`` string unless ``skip_node_type_snapshot_fallback`` was
+        set at commit) and fills ``meta`` via ``to_facet_payload().node_meta``.
 
         Args:
             node: Raw payload from ``rx.PyDiGraph`` (or compatible mapping).
@@ -979,6 +863,7 @@ class GraphCoordinator:
         """
         self._require_built()
         raw = dict(node)
+        skip_fb = bool(raw.pop("skip_node_type_snapshot_fallback", False))
         nt = raw.get("node_type", "")
         nm = str(raw.get("id") or raw.get("name") or "")
         cr = raw.get("class_ref")
@@ -1000,14 +885,11 @@ class GraphCoordinator:
                 snap = self.get_snapshot(cr, sk)
                 if snap is not None:
                     meta.update(dict(snap.to_facet_payload().node_meta))
-        elif not storage_keys and nt != ACTION_VERTEX_TYPE and not meta:
-            # Per-facet vertices (e.g. ``compensator:{host}:{method}``) carry row meta in
-            # ``committed_meta``; do not replace with the class-level aggregate snapshot.
-            sk_fallback = nt
-            if isinstance(cr, type):
-                snap = self.get_snapshot(cr, sk_fallback)
-                if snap is not None:
-                    meta = dict(snap.to_facet_payload().node_meta)
+        elif not storage_keys and not meta and not skip_fb and isinstance(cr, type):
+            sk_fallback = str(nt)
+            snap = self.get_snapshot(cr, sk_fallback)
+            if snap is not None:
+                meta = dict(snap.to_facet_payload().node_meta)
         raw["meta"] = meta
         return raw
 
@@ -1017,11 +899,11 @@ class GraphCoordinator:
         Build the unique node key ``node_type:name``.
 
         Args:
-            node_type: Facet type (``"role"``, ``"Action"``, ``"entity"``, …).
-            name: Node name (``"module.ClassName"``).
+            node_type: Opaque facet kind string from the inspector.
+            name: Node name (e.g. dotted class path).
 
         Returns:
-            Key string such as ``"role:module.CreateOrderAction"``.
+            Key string ``f"{node_type}:{name}"``.
         """
         return f"{node_type}:{name}"
 
@@ -1068,8 +950,7 @@ class GraphCoordinator:
         """
         Return the node record.
 
-        Call ``get_node("Action", "pkg.MyAction")`` or pass the full key
-        ``get_node("Action:pkg.MyAction")`` — ``type:name``.
+        Call ``get_node(node_type, name)`` or pass the full key ``get_node("kind:path")``.
         """
         self._require_built()
         if name is not None:
@@ -1102,8 +983,8 @@ class GraphCoordinator:
         """
         Return all graph nodes emitted for ``cls``.
 
-        One class may spawn multiple nodes from different inspectors (e.g.
-        ``"role:..."``, ``"Action:..."``, ``"aspect:..."``).
+        One class may spawn multiple nodes from different inspectors (different
+        ``node_type:name`` keys).
 
         Args:
             cls: Python class.
@@ -1144,7 +1025,7 @@ class GraphCoordinator:
         return self.get_graph()
 
     # ═══════════════════════════════════════════════════════════════════
-    # Facet snapshots (storage key is inspector-defined, e.g. "role", "depends")
+    # Facet snapshots (storage key is inspector-defined)
     # ═══════════════════════════════════════════════════════════════════
 
     def get_snapshot(self, cls: type, facet_key: str) -> BaseFacetSnapshot | None:
@@ -1153,11 +1034,11 @@ class GraphCoordinator:
 
         Populated during ``build()`` when the inspector returns a snapshot from
         ``facet_snapshot_for_class()``. The key may differ from graph
-        ``node_type`` (e.g. ``depends`` / ``connections`` on merged ``Action`` nodes).
+        ``node_type`` for nodes that did not register explicit keys during build.
 
         Args:
-            cls: action, plugin, entity, or other registered class that owns the facet.
-            facet_key: inspector storage key (e.g. ``"role"``, ``"aspect"``, ``"depends"``).
+            cls: Owner class for the snapshot row (inspector-defined).
+            facet_key: inspector-defined snapshot storage key string.
 
         Returns:
             Frozen snapshot dataclass for that facet, or ``None`` if no inspector

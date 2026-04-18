@@ -9,6 +9,7 @@ from action_machine.graph.graph_coordinator import GraphCoordinator
 from action_machine.interchange_vertex_labels import (
     CHECKER_VERTEX_TYPE,
     COMPENSATOR_VERTEX_TYPE,
+    ENTITY_VERTEX_TYPE,
     REGULAR_ASPECT_VERTEX_TYPE,
 )
 from action_machine.graph.payload import EdgeInfo, FacetPayload
@@ -50,7 +51,7 @@ def test_new_coordinator_runtime_accessors() -> None:
     coordinator._phase3_commit(  # pylint: disable=protected-access
         [
             FacetPayload(
-                node_type="entity",
+                node_type=ENTITY_VERTEX_TYPE,
                 node_name=entity_name,
                 node_class=_DemoEntity,
                 node_meta=(("description", "Demo entity"),),
@@ -238,7 +239,7 @@ def test_new_coordinator_runtime_accessors() -> None:
         )
     )
 
-    ent_node = coordinator.get_node("entity", entity_name)
+    ent_node = coordinator.get_node(ENTITY_VERTEX_TYPE, entity_name)
     assert ent_node is not None
     assert ent_node.get("meta", {}).get("description") == "Demo entity"
 

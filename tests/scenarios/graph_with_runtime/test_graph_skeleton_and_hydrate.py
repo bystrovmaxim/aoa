@@ -25,7 +25,13 @@ def test_get_graph_node_payloads_are_skeleton_only() -> None:
         assert "meta" not in raw
         keys = set(raw.keys())
         assert {"node_type", "id", "class_ref"} <= keys
-        assert keys <= {"node_type", "id", "class_ref", "committed_meta"}
+        assert keys <= {
+            "node_type",
+            "id",
+            "class_ref",
+            "committed_meta",
+            "skip_node_type_snapshot_fallback",
+        }
 
 
 def test_hydrate_graph_node_restores_meta_from_snapshot() -> None:

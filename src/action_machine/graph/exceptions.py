@@ -51,7 +51,7 @@ DuplicateNodeError
 InvalidGraphError
     Structural graph integrity failed during phase 2:
     - an edge references a missing node, or
-    - structural edges (depends / connection) contain a cycle.
+    - structural edges (``is_structural=True``) contain a cycle.
 
 PayloadValidationError
     A ``FacetPayload`` field failed validation during phase 2:
@@ -149,8 +149,8 @@ class InvalidGraphError(Exception):
     1. **Referential integrity** — an edge names a target missing from the
        collected payloads (the target class was never materialized).
 
-       Example: ``@depends(PaymentService)`` but ``PaymentService`` does not
-       appear as a graph node.
+       Example: an edge names a ``target_node_type:target_name`` key that no
+       payload materialized.
 
     2. **Acyclicity** — structural edges (``is_structural=True``) form a cycle,
        detected via ``rustworkx.is_directed_acyclic_graph()`` on a scratch graph.
@@ -158,7 +158,7 @@ class InvalidGraphError(Exception):
        Example: A → B → C → A.
 
     Informational edges (``is_structural=False``) are **not** checked for
-    cycles — cyclic business links (e.g. Order ↔ Customer) are expected.
+    cycles — cyclic informational links are expected.
 
     Subclasses ``Exception`` (not ``ValueError``/``TypeError``) because this
     is a graph-shape failure, not a simple type/value issue.

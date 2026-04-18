@@ -21,6 +21,9 @@ APPLICATION_VERTEX_TYPE: Final[str] = "Application"
 # Bounded-context domain vertices from ``ApplicationContextInspector`` / ``belongs_to`` stubs.
 DOMAIN_VERTEX_TYPE: Final[str] = "Domain"
 
+# Entity model vertices from ``EntityIntentInspector`` (``@entity``).
+ENTITY_VERTEX_TYPE: Final[str] = "Entity"
+
 # Per-method aspect vertices from ``AspectIntentInspector`` (decorator ``type``).
 REGULAR_ASPECT_VERTEX_TYPE: Final[str] = "RegularAspect"
 SUMMARY_ASPECT_VERTEX_TYPE: Final[str] = "SummaryAspect"

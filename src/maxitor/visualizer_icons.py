@@ -16,6 +16,7 @@ from action_machine.interchange_vertex_labels import (
     CHECKER_VERTEX_TYPE,
     COMPENSATOR_VERTEX_TYPE,
     DOMAIN_VERTEX_TYPE,
+    ENTITY_VERTEX_TYPE,
     REGULAR_ASPECT_VERTEX_TYPE,
     SERVICE_VERTEX_TYPE,
     SUMMARY_ASPECT_VERTEX_TYPE,
@@ -77,7 +78,7 @@ VERTEX_TYPE_LUCIDE_INNER_SVG: dict[str, str] = {
         '<path d="M12 9v4" /> '
         '<path d="M12 17h.01" />'
     ),
-    "entity": (
+    ENTITY_VERTEX_TYPE: (
         '<ellipse cx="12" cy="5" rx="9" ry="3" /> '
         '<path d="M3 5V19A9 3 0 0 0 21 19V5" /> '
         '<path d="M3 12A9 3 0 0 0 21 12" />'

@@ -1,9 +1,10 @@
 # src/action_machine/graph/constants.py
 """
-Graph constants and ``REVERSE_EDGE_MAP`` (``graph.md`` v4.1 §2.1, §5–6).
+Graph constants: edge-type sets and ``REVERSE_EDGE_MAP`` (``graph.md`` v4.1 §5–6).
 
-Centralize allowed interchange ``node_type`` values / edge-type sets and the canonical reverse map
-for §5.3 **direct** edges so builders and tests do not duplicate literals.
+Interchange **vertex** ``node_type`` strings are opaque to this package; a separate
+catalog for the default inspector suite lives in
+:mod:`action_machine.interchange_vertex_catalog`.
 """
 
 from __future__ import annotations
@@ -11,33 +12,6 @@ from __future__ import annotations
 from collections.abc import Mapping
 from types import MappingProxyType
 from typing import Final
-
-# graph.md §2.1 — interchange vertex types (business layer elements).
-VERTEX_TYPES: Final[frozenset[str]] = frozenset(
-    {
-        "Action",
-        "RegularAspect",
-        "SummaryAspect",
-        "Compensator",
-        "error_handler",
-        "Checker",
-        "sensitive_field",
-        "role_class",
-        "Application",
-        "Domain",
-        "entity",
-        "lifecycle",
-        "lifecycle_state_initial",
-        "lifecycle_state_intermediate",
-        "lifecycle_state_final",
-        "params_schema",
-        "result_schema",
-        "service",
-        "resource_manager",
-        "plugin",
-        "subscription",
-    },
-)
 
 # graph.md §5.1 — ownership edges (no automatic reverse).
 OWNERSHIP_EDGE_TYPES: Final[frozenset[str]] = frozenset(
@@ -64,10 +38,8 @@ INTERNAL_EDGE_TYPES: Final[frozenset[str]] = frozenset(
 )
 
 # graph.md §6 — edges that participate in DAG checks on the interchange graph.
-# Structural service/connection wiring only. Entity–entity UML edges
-# (``COMPOSITION_*``, ``AGGREGATION_*``, ``ASSOCIATION_*`` and their §5.3 reverses)
-# are **not** listed here: they may form cycles (e.g. mutual references) and are
-# validated separately from this acyclicity slice (``is_dag`` is false on those rows).
+# Only structural wiring rows with ``is_dag=True`` use these interchange ``edge_type``
+# values. Other interchange edge kinds use ``is_dag=False`` and are excluded from this slice.
 DAG_EDGE_TYPES: Final[frozenset[str]] = frozenset(
     {
         "DEPENDS_ON",

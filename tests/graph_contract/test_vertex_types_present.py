@@ -3,7 +3,7 @@
 """
 PR5 matrix (plan 009): interchange ``node_type`` values from the samples narrow graph.
 
-Full ``VERTEX_TYPES`` coverage with stubs or skips is PR11; here we lock the
+Full interchange vertex-type coverage with stubs or skips is PR11; here we lock the
 subset produced by ``build_sample_coordinator()`` today.
 """
 
@@ -24,7 +24,7 @@ from maxitor.samples.store.domain import StoreDomain
 
 # Core kinds always present on samples interchange; other facet ``node_type`` strings may appear.
 _SAMPLES_LOGICAL_VERTEX_TYPES: frozenset[str] = frozenset(
-    {"Action", "Application", "Domain", "role_class", "entity"},
+    {"Action", "Application", "Domain", "role_class", "Entity"},
 )
 
 
