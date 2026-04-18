@@ -194,7 +194,7 @@ def pygraph_to_json_document(graph: rx.PyDiGraph) -> dict[str, Any]:
     """
     Build a portable JSON document: node/edge indices plus sanitized payloads.
 
-    Intended for diagnostics, golden tooling, and agents; not a stable RPC schema.
+    Intended for diagnostics and agents; not a stable RPC schema.
     """
     nodes: list[dict[str, Any]] = []
     for idx in graph.node_indices():
