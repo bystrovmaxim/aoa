@@ -73,7 +73,8 @@ from typing import Any
 
 from action_machine.graph.base_facet_snapshot import BaseFacetSnapshot
 from action_machine.graph.base_intent_inspector import BaseIntentInspector
-from action_machine.graph.payload import EdgeInfo, FacetMetaRow, FacetPayload
+from action_machine.graph.edge_info import EdgeInfo, FacetMetaRow
+from action_machine.graph.facet_payload import FacetPayload
 from action_machine.intents.aspects.aspect_intent_inspector import (
     AspectIntentInspector,
     vertex_type_for_aspect_kind,

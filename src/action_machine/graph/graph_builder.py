@@ -16,8 +16,9 @@ from dataclasses import fields
 from typing import Any, Final
 
 from action_machine.graph.constants import INTERNAL_EDGE_TYPES, OWNERSHIP_EDGE_TYPES
-from action_machine.graph.model import GraphEdge, GraphVertex
-from action_machine.graph.payload import FacetPayload
+from action_machine.graph.facet_payload import FacetPayload
+from action_machine.graph.graph_edge import GraphEdge
+from action_machine.graph.graph_vertex import GraphVertex
 
 _VERTEX_KEYS: frozenset[str] = frozenset(f.name for f in fields(GraphVertex))
 _EDGE_KEYS: frozenset[str] = frozenset(f.name for f in fields(GraphEdge))

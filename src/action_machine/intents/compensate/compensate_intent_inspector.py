@@ -69,7 +69,8 @@ from dataclasses import dataclass
 
 from action_machine.graph.base_facet_snapshot import BaseFacetSnapshot
 from action_machine.graph.base_intent_inspector import BaseIntentInspector
-from action_machine.graph.payload import EdgeInfo, FacetMetaRow, FacetPayload
+from action_machine.graph.edge_info import EdgeInfo, FacetMetaRow
+from action_machine.graph.facet_payload import FacetPayload
 from action_machine.intents.compensate.compensate_intent import CompensateIntent
 from action_machine.interchange_vertex_labels import (
     ACTION_VERTEX_TYPE,

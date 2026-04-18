@@ -49,7 +49,8 @@ from typing import Any
 
 from action_machine.graph.base_facet_snapshot import BaseFacetSnapshot
 from action_machine.graph.base_intent_inspector import BaseIntentInspector
-from action_machine.graph.payload import EdgeInfo, FacetPayload
+from action_machine.graph.edge_info import EdgeInfo
+from action_machine.graph.facet_payload import FacetPayload
 from action_machine.interchange_vertex_labels import ACTION_VERTEX_TYPE, ENTITY_VERTEX_TYPE
 from action_machine.model.base_action import BaseAction
 from action_machine.model.base_schema import BaseSchema

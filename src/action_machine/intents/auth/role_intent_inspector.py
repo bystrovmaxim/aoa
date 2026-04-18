@@ -109,7 +109,8 @@ from typing import Any
 
 from action_machine.graph.base_facet_snapshot import BaseFacetSnapshot
 from action_machine.graph.base_intent_inspector import BaseIntentInspector
-from action_machine.graph.payload import EdgeInfo, FacetPayload
+from action_machine.graph.edge_info import EdgeInfo
+from action_machine.graph.facet_payload import FacetPayload
 from action_machine.intents.auth.any_role import AnyRole
 from action_machine.intents.auth.base_role import BaseRole
 from action_machine.intents.auth.none_role import NoneRole

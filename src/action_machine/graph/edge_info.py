@@ -2,7 +2,8 @@
 """
 One directed edge from a facet node (:class:`EdgeInfo`).
 
-See :mod:`action_machine.graph.payload` for package-level documentation.
+Used by :class:`~action_machine.graph.facet_payload.FacetPayload` and
+:class:`~action_machine.graph.graph_coordinator.GraphCoordinator` build phases.
 """
 
 from __future__ import annotations

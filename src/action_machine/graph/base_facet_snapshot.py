@@ -65,7 +65,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
-from action_machine.graph.payload import FacetPayload
+from action_machine.graph.facet_payload import FacetPayload
 
 
 class BaseFacetSnapshot(ABC):

@@ -6,7 +6,7 @@ from __future__ import annotations
 from collections import UserDict
 
 from action_machine.graph.base_intent_inspector import BaseIntentInspector
-from action_machine.graph.payload import FacetMetaRow
+from action_machine.graph.edge_info import FacetMetaRow
 from action_machine.intents.aspects.aspect_intent import AspectIntent
 from action_machine.intents.aspects.aspect_intent_inspector import (
     AspectIntentInspector,

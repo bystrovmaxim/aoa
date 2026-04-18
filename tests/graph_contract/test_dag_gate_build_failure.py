@@ -7,7 +7,8 @@ from __future__ import annotations
 import pytest
 
 import action_machine.graph.graph_coordinator as gate_coordinator_mod
-from action_machine.graph.model import GraphEdge, GraphVertex
+from action_machine.graph.graph_edge import GraphEdge
+from action_machine.graph.graph_vertex import GraphVertex
 from action_machine.model.exceptions import CyclicDependencyError
 
 from .facet_payload_probe import graph_coordinator_default_inspectors_registered

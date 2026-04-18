@@ -8,8 +8,8 @@ import time
 import pytest
 
 from action_machine.graph.base_intent_inspector import BaseIntentInspector
+from action_machine.graph.facet_payload import FacetPayload
 from action_machine.graph.graph_coordinator import GraphCoordinator
-from action_machine.graph.payload import FacetPayload
 from tests.bench.bench_report import emit_benchmark_report, rows_throughput_budget
 
 pytestmark = pytest.mark.benchmark

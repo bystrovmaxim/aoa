@@ -8,8 +8,8 @@ import importlib
 import warnings
 
 from action_machine.graph.base_intent_inspector import BaseIntentInspector
+from action_machine.graph.facet_payload import FacetPayload
 from action_machine.graph.graph_coordinator import GraphCoordinator
-from action_machine.graph.payload import FacetPayload
 from action_machine.integrations.mcp.adapter import _build_graph_json
 from action_machine.runtime.machines.core_action_machine import CoreActionMachine
 from maxitor.samples.build import _MODULES, build_sample_coordinator

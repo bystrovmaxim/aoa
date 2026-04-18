@@ -5,13 +5,14 @@ from __future__ import annotations
 import pytest
 
 from action_machine.graph.base_intent_inspector import BaseIntentInspector
+from action_machine.graph.edge_info import EdgeInfo
 from action_machine.graph.exceptions import (
     DuplicateNodeError,
     InvalidGraphError,
     PayloadValidationError,
 )
+from action_machine.graph.facet_payload import FacetPayload
 from action_machine.graph.graph_coordinator import GraphCoordinator
-from action_machine.graph.payload import EdgeInfo, FacetPayload
 from action_machine.runtime.machines.core_action_machine import CoreActionMachine
 
 

@@ -18,7 +18,8 @@ import rustworkx as rx
 
 from action_machine.graph.constants import DAG_EDGE_TYPES
 from action_machine.graph.exceptions import InvalidGraphError
-from action_machine.graph.model import GraphEdge, GraphVertex
+from action_machine.graph.graph_edge import GraphEdge
+from action_machine.graph.graph_vertex import GraphVertex
 
 
 def collect_dag_edge_pairs(edges: Sequence[GraphEdge]) -> list[tuple[str, str]]:

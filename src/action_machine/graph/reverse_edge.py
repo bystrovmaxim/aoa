@@ -1,6 +1,6 @@
 # src/action_machine/graph/reverse_edge.py
 """
-Build the **reverse** :class:`~action_machine.graph.model.GraphEdge` for a §5.3 **direct** edge
+Build the **reverse** :class:`~action_machine.graph.graph_edge.GraphEdge` for a §5.3 **direct** edge
 (``graph.md`` v4.1 §11.4).
 
 Used by :mod:`action_machine.graph.graph_builder` (§5.3 reversals), tests, and fixtures so reverse
@@ -12,7 +12,7 @@ from __future__ import annotations
 from typing import Any
 
 from action_machine.graph.constants import REVERSE_EDGE_MAP, REVERSE_EDGE_STEREOTYPE
-from action_machine.graph.model import GraphEdge
+from action_machine.graph.graph_edge import GraphEdge
 
 
 def reverse_direct_edge(edge: GraphEdge) -> GraphEdge | None:

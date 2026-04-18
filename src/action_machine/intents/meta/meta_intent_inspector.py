@@ -65,7 +65,7 @@ from typing import Any
 
 from action_machine.graph.base_facet_snapshot import BaseFacetSnapshot
 from action_machine.graph.base_intent_inspector import BaseIntentInspector
-from action_machine.graph.payload import FacetPayload
+from action_machine.graph.facet_payload import FacetPayload
 from action_machine.intents.meta.meta_intents import ActionMetaIntent, ResourceMetaIntent
 from action_machine.interchange_vertex_labels import ACTION_VERTEX_TYPE, DOMAIN_VERTEX_TYPE
 from action_machine.resources.base_resource_manager import BaseResourceManager

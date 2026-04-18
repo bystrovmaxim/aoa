@@ -49,7 +49,7 @@ hydration are recorded during phase 1 from each inspector's
 ``facet_snapshot_storage_key()``; if several snapshot storage keys hydrate the same merged node, ``facet_rows`` is the
 union of their ``to_facet_payload().node_meta`` maps. Nodes without a registration may
 fall back to ``get_snapshot(cls, node_type)`` unless the payload set
-``skip_node_type_snapshot_fallback`` (see :class:`~action_machine.graph.payload.FacetPayload`).
+``skip_node_type_snapshot_fallback`` (see :class:`~action_machine.graph.facet_payload.FacetPayload`).
 
 Dependency ``DependencyFactory`` instances may be cached on this object under
 ``dependency_factory.DEPENDENCY_FACTORY_CACHE_KEY``; clearing that cache does
@@ -189,9 +189,10 @@ from action_machine.graph.exceptions import (
     InvalidGraphError,
     PayloadValidationError,
 )
+from action_machine.graph.facet_payload import FacetPayload
 from action_machine.graph.graph_builder import build_interchange_from_facet_payloads
-from action_machine.graph.model import GraphEdge, GraphVertex
-from action_machine.graph.payload import FacetPayload
+from action_machine.graph.graph_edge import GraphEdge
+from action_machine.graph.graph_vertex import GraphVertex
 from action_machine.model.exceptions import CyclicDependencyError
 
 
@@ -716,8 +717,8 @@ class GraphCoordinator:
         """
         Populate ``_graph`` from interchange vertices and edges.
 
-        Node payloads mirror :class:`~action_machine.graph.model.GraphVertex`
-        fields; edge payloads mirror :class:`~action_machine.graph.model.GraphEdge`.
+        Node payloads mirror :class:`~action_machine.graph.graph_vertex.GraphVertex`
+        fields; edge payloads mirror :class:`~action_machine.graph.graph_edge.GraphEdge`.
         """
         lg = rx.PyDiGraph()
         id_to_idx: dict[str, int] = {}
