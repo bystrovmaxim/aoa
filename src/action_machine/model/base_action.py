@@ -197,7 +197,8 @@ class ActionTypedSchemasInspector(BaseIntentInspector):
     Graph: link each ``BaseAction`` subclass to resolved ``P`` / ``R`` schema types.
 
     Emits a merged ``action`` facet row with ``uses_params`` / ``uses_result`` edges
-    to canonical ``described_fields`` vertices; snapshot key ``action_schemas``.
+    to canonical ``params_schema`` / ``result_schema`` (or ``entity`` / ``described_fields``)
+    hosts; snapshot key ``action_schemas``.
     See module docstring at top of this file for the full contract.
 
     AI-CORE-BEGIN
