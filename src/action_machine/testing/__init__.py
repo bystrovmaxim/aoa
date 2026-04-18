@@ -42,7 +42,7 @@ Stubs:
 Validation:
 
 - **validate_state_for_aspect** / **validate_state_for_summary** -
-  accept aspect tuple and checker callback (same shape as ``GateCoordinator``).
+  accept aspect tuple and checker callback (same shape as ``GraphCoordinator``).
 
 Comparison:
 

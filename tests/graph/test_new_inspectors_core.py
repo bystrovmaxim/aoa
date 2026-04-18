@@ -23,6 +23,7 @@ import pytest
 from action_machine.dependencies.dependency_intent import DependencyIntent
 from action_machine.dependencies.depends_decorator import depends
 from action_machine.domain.base_domain import BaseDomain
+from action_machine.graph.base_intent_inspector import BaseIntentInspector
 from action_machine.graph.gate_coordinator import GateCoordinator
 from action_machine.graph.inspectors.connection_intent_inspector import (
     ConnectionIntentInspector,
@@ -134,6 +135,9 @@ def test_connection_inspector_builds_structural_connection_edge() -> None:
     edge = payload.edges[0]
     assert edge.edge_type == "connection"
     assert edge.is_structural is True
+    assert edge.target_node_type == "resource_manager"
+    assert edge.target_name == BaseIntentInspector._make_node_name(_DbManager)
+    assert edge.target_class_ref is _DbManager
     assert dict(edge.edge_meta)["key"] == "db"
 
 

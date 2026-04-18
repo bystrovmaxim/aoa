@@ -30,6 +30,11 @@ GRAPH_NODE_SKELETON_KEYS: Final[frozenset[str]] = frozenset({
     "class_ref",
 })
 
+# Optional keys on raw facet nodes (e.g. ``committed_meta`` for per-vertex facet rows).
+GRAPH_NODE_SKELETON_OPTIONAL_KEYS: Final[frozenset[str]] = frozenset({
+    "committed_meta",
+})
+
 # --- Contract: hydrated node (API / hydrate_graph_node) -------------
 HYDRATED_NODE_REQUIRED_KEYS: Final[frozenset[str]] = frozenset({
     "node_type",
@@ -59,13 +64,16 @@ def _default_coordinator() -> GateCoordinator:
 
 
 def test_contract_raw_graph_nodes_are_skeleton_only() -> None:
-    """Every payload in the facet topology graph has exactly three keys, no ``meta``."""
+    """Every facet topology node has the core skeleton keys (and optional ``committed_meta``)."""
     coord = _default_coordinator()
     graph = coord.facet_topology_copy()
+    allowed = GRAPH_NODE_SKELETON_KEYS | GRAPH_NODE_SKELETON_OPTIONAL_KEYS
     for idx in graph.node_indices():
         raw = dict(graph[idx])
         assert "meta" not in raw
-        assert set(raw.keys()) == GRAPH_NODE_SKELETON_KEYS
+        keys = set(raw.keys())
+        assert GRAPH_NODE_SKELETON_KEYS <= keys
+        assert keys <= allowed
         assert isinstance(raw["node_type"], str)
         assert isinstance(raw["name"], str)
         cr = raw["class_ref"]
@@ -87,13 +95,13 @@ def test_contract_get_node_shape_matches_hydrate() -> None:
     """``get_node`` returns the same field set as hydrating the raw node."""
     coord = _default_coordinator()
     nm = BaseIntentInspector._make_node_name(PingAction)
-    node = coord.get_node("meta", nm)
+    node = coord.get_node("action", nm)
     assert node is not None
     graph = coord.facet_topology_copy()
     idx = next(
         i
         for i in graph.node_indices()
-        if graph[i]["node_type"] == "meta" and graph[i]["name"] == nm
+        if graph[i]["node_type"] == "action" and graph[i]["name"] == nm
     )
     assert node == coord.hydrate_graph_node(dict(graph[idx]))
 

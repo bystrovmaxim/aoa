@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
-from action_machine.graph.inspectors.meta_intent_inspector import MetaIntentInspector
-from action_machine.graph.inspectors.role_intent_inspector import RoleIntentInspector
+from action_machine.intents.meta.meta_intent_inspector import MetaIntentInspector
+from action_machine.intents.auth.role_intent_inspector import RoleIntentInspector
+from action_machine.graph.payload import EdgeInfo
+from action_machine.intents.auth.application_role import ApplicationRole
 from action_machine.intents.auth.base_role import BaseRole
 from action_machine.intents.auth.role_intent import RoleIntent
 from action_machine.intents.auth.role_mode_decorator import RoleMode, role_mode
@@ -38,8 +40,15 @@ def test_role_intent_inspector_branches() -> None:
     assert RoleIntentInspector.inspect(_RoleMissing) is None
     payload = RoleIntentInspector.inspect(_RoleFilled)
     assert payload is not None
-    assert payload.node_type == "role"
+    assert payload.node_type == "action"
     assert dict(payload.node_meta)["spec"] is _InspectFixtureRole
+    assert any(
+        isinstance(e, EdgeInfo)
+        and e.edge_type == "requires_role"
+        and e.target_node_type == "role_class"
+        and e.target_class_ref is ApplicationRole
+        for e in payload.edges
+    )
     assert isinstance(RoleIntentInspector._subclasses_recursive(), list)
 
 

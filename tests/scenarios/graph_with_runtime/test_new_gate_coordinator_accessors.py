@@ -13,6 +13,7 @@ from action_machine.graph.inspectors.compensate_intent_inspector import (
 from action_machine.graph.inspectors.entity_intent_inspector import EntityIntentInspector
 from action_machine.graph.inspectors.on_error_intent_inspector import OnErrorIntentInspector
 from action_machine.graph.payload import EdgeInfo, FacetPayload
+from action_machine.resources.base_resource_manager import BaseResourceManager
 from action_machine.runtime.machines.core_action_machine import CoreActionMachine
 from tests.scenarios.domain_model import FullAction
 from tests.scenarios.domain_model.services import NotificationService, PaymentService
@@ -26,10 +27,19 @@ class _DemoAction:
     pass
 
 
+class _DbManagerStub(BaseResourceManager):
+    def get_wrapper_class(self):
+        return None
+
+
 def test_new_coordinator_runtime_accessors() -> None:
     coordinator = GateCoordinator()
     entity_name = BaseIntentInspector._make_node_name(_DemoEntity)
     action_name = BaseIntentInspector._make_node_name(_DemoAction)
+    comp_rollback_name = BaseIntentInspector._make_host_dependent_node_name(
+        _DemoAction, "rollback_do_compensate",
+    )
+    rm_name = BaseIntentInspector._make_node_name(_DbManagerStub)
     do_aspect_ref = object()
     summary_ref = object()
     coordinator._phase3_commit(  # pylint: disable=protected-access
@@ -106,27 +116,22 @@ def test_new_coordinator_runtime_accessors() -> None:
             ),
             FacetPayload(
                 node_type="compensator",
-                node_name=action_name,
+                node_name=comp_rollback_name,
                 node_class=_DemoAction,
-                node_meta=(
-                    (
-                        "compensators",
-                        (
-                            BaseIntentInspector._make_meta(
-                                method_name="rollback_do_compensate",
-                                target_aspect_name="do_aspect",
-                                description="Rollback step",
-                                method_ref=object(),
-                                context_keys=frozenset(),
-                            ),
-                        ),
-                    ),
+                node_meta=BaseIntentInspector._make_meta(
+                    method_name="rollback_do_compensate",
+                    target_aspect_name="do_aspect",
+                    description="Rollback step",
+                    method_ref=object(),
+                    context_keys=frozenset(),
                 ),
             ),
             FacetPayload(
-                node_type="connection",
-                node_name="_DbManager",
-                node_class=object,
+                node_type="resource_manager",
+                node_name=rm_name,
+                node_class=_DbManagerStub,
+                node_meta=(),
+                edges=(),
             ),
             FacetPayload(
                 node_type="action",
@@ -134,11 +139,18 @@ def test_new_coordinator_runtime_accessors() -> None:
                 node_class=_DemoAction,
                 edges=(
                     EdgeInfo(
-                        target_node_type="connection",
-                        target_name="_DbManager",
+                        target_node_type="resource_manager",
+                        target_name=rm_name,
                         edge_type="connection",
                         is_structural=True,
-                        edge_meta=(("key", "db"), ("description", "primary")),
+                        edge_meta=(("description", "primary"), ("key", "db")),
+                    ),
+                    EdgeInfo(
+                        target_node_type="compensator",
+                        target_name=comp_rollback_name,
+                        edge_type="has_compensator",
+                        is_structural=False,
+                        target_class_ref=_DemoAction,
                     ),
                 ),
             ),
@@ -279,10 +291,10 @@ def test_new_coordinator_runtime_accessors() -> None:
     assert tuple(connection_keys) == ("db",)
 
 
-def test_gate_coordinator_get_graph_for_visualization_matches_logical_graph() -> None:
+def test_gate_coordinator_get_graph_for_visualization_matches_get_graph() -> None:
     coordinator = CoreActionMachine.create_coordinator()
     v = coordinator.get_graph_for_visualization()
-    lg = coordinator.get_logical_graph()
+    lg = coordinator.get_graph()
     assert len(v) == len(lg)
     for idx in v.node_indices():
         assert v[idx] == lg[idx]

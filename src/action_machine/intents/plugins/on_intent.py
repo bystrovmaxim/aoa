@@ -52,8 +52,8 @@ ARCHITECTURE / DATA FLOW
     #       ignore_exceptions=False,
     #   )]
 
-    # MetadataBuilder / SubscriptionIntentInspector collect subscriptions;
-    # subscriptions snapshot -> GateCoordinator.get_subscriptions().
+    # MetadataBuilder collects subscriptions for validation;
+    # plugin @on handlers are not materialized as graph ``subscription`` facets.
 
     # MetadataBuilder -> require_*_intent_marker + validate_subscriptions
     # checks: has subscriptions -> issubclass(cls, OnIntent).

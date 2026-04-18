@@ -81,7 +81,7 @@ from __future__ import annotations
 import time
 from typing import Any, cast
 
-from action_machine.graph.inspectors.compensate_intent_inspector import (
+from action_machine.intents.compensate.compensate_intent_inspector import (
     CompensateIntentInspector,
 )
 from action_machine.intents.context.context_view import ContextView

@@ -17,7 +17,7 @@ It performs three responsibilities:
    leave for tools and for ``EntityIntentInspector``.
 
 3. **Discovery** — ``EntityIntentInspector`` finds decorated classes during
-   ``GateCoordinator.build()`` and emits facet payloads / snapshots. The
+   ``GraphCoordinator.build()`` and emits facet payloads / snapshots. The
    decorator itself never touches the coordinator.
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -69,7 +69,7 @@ ARCHITECTURE / DATA FLOW
         ▼  writes scratch on cls
     _entity_info = {"description": ..., "domain": ShopDomain}
         │
-        ▼  EntityIntentInspector at GateCoordinator.build()
+        ▼  EntityIntentInspector at GraphCoordinator.build()
     Reads _entity_info + pydantic model_fields → FacetPayload / snapshot
         │
         ▼

@@ -1,0 +1,10 @@
+---
+description: Never edit CHANGELOG or release notes unless the user explicitly asks in this message.
+alwaysApply: true
+---
+
+# Changelog — hands off
+
+- **Do not** open, edit, append to, or reformat `docs/CHANGELOG.md` (or any `CHANGELOG*`, release notes, `CHANGES`, `HISTORY`) unless the **user explicitly requests** a changelog update **in the current turn** (e.g. “add a changelog entry for X”).
+- Refactors, renames, and internal moves are **not** implicit permission to touch the changelog.
+- If a change would normally warrant a changelog line, **mention it in the reply** and let the user edit the file themselves, unless they asked for changelog help.

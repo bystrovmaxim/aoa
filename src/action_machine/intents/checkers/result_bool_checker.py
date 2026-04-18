@@ -128,7 +128,7 @@ def result_bool(
     Decorator for an aspect method. Declares a boolean field in the aspect result.
 
     Writes checker metadata to the method attribute ``_checker_meta``.
-    MetadataBuilder collects this metadata into checker snapshot (GateCoordinator.get_checkers).
+    MetadataBuilder collects this metadata into checker snapshot (GraphCoordinator.get_checkers).
     The machine creates a ResultBoolChecker instance from checker snapshot entry and calls
     checker.check(result_dict) when the aspect executes.
 

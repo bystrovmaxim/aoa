@@ -90,7 +90,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from action_machine.graph.inspectors.compensate_intent_inspector import (
+    from action_machine.intents.compensate.compensate_intent_inspector import (
         CompensateIntentInspector,
     )
 

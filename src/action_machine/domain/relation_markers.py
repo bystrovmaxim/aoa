@@ -1,6 +1,6 @@
 # src/action_machine/domain/relation_markers.py
 """
-**Relation markers** for entity fields: ``Inverse``, ``NoInverse``, and ``Rel``.
+**Relation markers** for entity fields: ``Inverse``, ``NoInverse``, ``NoGraphEdge``, and ``Rel``.
 
 These types sit beside relation **container** types (``AssociationOne``, …) in
 ``typing.Annotated`` and in field defaults. They tell the gate **coordinator**
@@ -23,7 +23,8 @@ SCOPE (IN / OUT)
 **In scope**
     Constructing immutable marker objects and validating their constructor inputs.
     Pairing with ``Annotated[..., Inverse(...)]`` or ``NoInverse()`` plus
-    ``= Rel(description=...)`` on entity model fields.
+    ``= Rel(description=...)`` on entity model fields. Optional ``NoGraphEdge()``
+    suppresses interchange edges for that field while keeping it in facet metadata.
 
 **Out of scope**
     Proving the inverse field exists, types match, or ownership is compatible —
@@ -60,7 +61,7 @@ INVARIANTS
 - ``Inverse.target_entity`` is a ``type``; ``Inverse.field_name`` is a non-empty
   stripped string.
 - ``Rel.description`` is a non-empty stripped string.
-- All three public classes are **frozen** after ``__init__``.
+- ``Inverse``, ``NoInverse``, ``NoGraphEdge``, and ``Rel`` are **frozen** after construction.
 
 ═══════════════════════════════════════════════════════════════════════════════
 RATIONALE
@@ -282,6 +283,43 @@ class NoInverse:
         return hash("NoInverse")
 
 
+class NoGraphEdge:
+    """
+    Optional marker: **do not** emit an interchange graph edge for this relation field.
+
+    The relation remains in the entity facet ``relations`` metadata (for docs and
+    validation); :class:`~action_machine.graph.inspectors.entity_intent_inspector.EntityIntentInspector`
+    skips :class:`~action_machine.graph.payload.EdgeInfo` rows when ``NoGraphEdge()`` is present
+    in ``Annotated[..., ...]``. Unlike :class:`NoInverse`, this does not describe the
+    inverse side — it only suppresses the **forward** arc in the exported graph.
+
+    AI-CORE-BEGIN
+    ROLE: Explicit opt-out of graph materialization for one relation field.
+    CONTRACT: Stateless frozen marker; combinable with ``Inverse`` or ``NoInverse``.
+    INVARIANTS: No attributes; singleton semantics via ``__eq__`` / ``__hash__``.
+    AI-CORE-END
+    """
+
+    __slots__ = ()
+
+    def __setattr__(self, name: str, value: Any) -> None:
+        raise AttributeError("NoGraphEdge is frozen; assigning to attributes is not allowed.")
+
+    def __delattr__(self, name: str) -> None:
+        raise AttributeError("NoGraphEdge is frozen; deleting attributes is not allowed.")
+
+    def __repr__(self) -> str:
+        return "NoGraphEdge()"
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, NoGraphEdge):
+            return NotImplemented
+        return True
+
+    def __hash__(self) -> int:
+        return hash("NoGraphEdge")
+
+
 class Rel:
     """
     **Relation description** object used as the field **default** for relations.
@@ -295,8 +333,8 @@ class Rel:
         ``description`` is a non-empty ``str`` after strip. Instance is frozen.
 
     **Neighbors**
-        Appears with ``Inverse`` or ``NoInverse`` on the same field. Validated
-        together at coordinator **build**.
+        Appears with ``Inverse`` or ``NoInverse`` (and optionally ``NoGraphEdge``)
+        on the same field. Validated together at coordinator **build**.
 
     **Attributes**
         ``description``

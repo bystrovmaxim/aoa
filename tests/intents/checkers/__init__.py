@@ -57,7 +57,7 @@ SHARED DECORATOR CONTRACT
 
 Each decorator (result_string, result_int, ...) records metadata in the aspect
 method's _checker_meta. MetadataBuilder aggregates into the checker snapshot
-(GateCoordinator.get_checkers). The decorator returns the original function unchanged;
+(GraphCoordinator.get_checkers). The decorator returns the original function unchanged;
 multiple decorators on one method accumulate a list of _checker_meta.
 
 ═══════════════════════════════════════════════════════════════════════════════

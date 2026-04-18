@@ -20,7 +20,7 @@ test_compensate_intent_validators.py
     Compensator intent validators and typed snapshots.
 
 tests/scenarios/intents_with_runtime/test_compensate_graph.py
-    GateCoordinator graph: compensator nodes, has_compensator / requires_context edges;
+    GraphCoordinator graph: compensator nodes, has_compensator / requires_context edges;
     traversal via get_nodes_for_class / graph primitives.
 
 test_saga_rollback.py

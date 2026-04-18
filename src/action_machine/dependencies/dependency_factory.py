@@ -8,7 +8,7 @@ PURPOSE
 
 Provide a stateless factory that creates dependency instances declared via
 ``@depends``. The factory is built from ``DependencyInfo`` snapshots obtained
-from ``GateCoordinator``. Each call to ``resolve()`` creates a new instance
+from ``GraphCoordinator``. Each call to ``resolve()`` creates a new instance
 (no internal instance cache). The module also provides coordinator-level cache
 helpers for factory reuse.
 
@@ -18,7 +18,7 @@ ARCHITECTURE / DATA FLOW
 
 ::
 
-    GateCoordinator.get_snapshot(cls, "depends")
+    GraphCoordinator.get_snapshot(cls, "depends")
             │
             ▼
     tuple[DependencyInfo, ...]
@@ -99,7 +99,7 @@ from typing import TYPE_CHECKING, Any
 from action_machine.resources.base_resource_manager import BaseResourceManager
 
 if TYPE_CHECKING:
-    from action_machine.graph.gate_coordinator import GateCoordinator
+    from action_machine.graph.graph_coordinator import GraphCoordinator
 
 
 @dataclass(frozen=True)
@@ -109,7 +109,7 @@ class DependencyInfo:
 
     Created by the ``@depends`` decorator and stored on ``cls._depends_info``.
     The ``DependencyIntentInspector`` builds a snapshot from this data, and
-    ``GateCoordinator`` passes the tuple to ``DependencyFactory``.
+    ``GraphCoordinator`` passes the tuple to ``DependencyFactory``.
 
     Attributes:
         cls: The dependency class (type requested via ``box.resolve``).
@@ -243,7 +243,7 @@ DEPENDENCY_FACTORY_CACHE_KEY = "_action_machine_dependency_factory_cache"
 
 
 def cached_dependency_factory(
-    coordinator: GateCoordinator,
+    coordinator: GraphCoordinator,
     cls: type,
 ) -> DependencyFactory:
     """
@@ -252,7 +252,7 @@ def cached_dependency_factory(
     """
     if not coordinator.is_built:
         raise RuntimeError(
-            "GateCoordinator is not built. Register inspectors and call build() first.",
+            "GraphCoordinator is not built. Register inspectors and call build() first.",
         )
     cache: dict[type, DependencyFactory] = coordinator.__dict__.setdefault(
         DEPENDENCY_FACTORY_CACHE_KEY,
@@ -268,7 +268,7 @@ def cached_dependency_factory(
     return cache[cls]
 
 
-def clear_dependency_factory_cache(coordinator: GateCoordinator) -> int:
+def clear_dependency_factory_cache(coordinator: GraphCoordinator) -> int:
     """Clear the factory cache on the coordinator; return the number of removed entries."""
     raw = coordinator.__dict__.get(DEPENDENCY_FACTORY_CACHE_KEY)
     if not isinstance(raw, dict) or not raw:

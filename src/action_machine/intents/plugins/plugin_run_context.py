@@ -79,7 +79,7 @@ the same method.
 DOMAIN FILTERING
 ═══════════════════════════════════════════════════════════════════════════════
 
-Domain filter uses GateCoordinator snapshot lookup for event action class and
+Domain filter uses GraphCoordinator snapshot lookup for event action class and
 is evaluated late (step 6) after cheap checks.
 
 ═══════════════════════════════════════════════════════════════════════════════

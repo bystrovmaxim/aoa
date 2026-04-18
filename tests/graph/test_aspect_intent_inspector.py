@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+from action_machine.graph.base_intent_inspector import BaseIntentInspector
 from action_machine.graph.inspectors.aspect_intent_inspector import AspectIntentInspector
 from action_machine.intents.aspects.aspect_intent import AspectIntent
 from action_machine.intents.aspects.regular_aspect_decorator import regular_aspect
@@ -31,18 +32,31 @@ def test_aspect_inspector_returns_none_without_aspects() -> None:
 
 
 def test_aspect_inspector_builds_payload_with_aspect_entries() -> None:
-    payload = AspectIntentInspector.inspect(_AspectAction)
-    assert payload is not None
-    assert payload.node_type == "aspect"
-    data = dict(payload.node_meta)
-    aspects = data["aspects"]
-    assert len(aspects) == 2
+    raw = AspectIntentInspector.inspect(_AspectAction)
+    assert isinstance(raw, list)
+    assert len(raw) == 3
+    aspect_payloads = [p for p in raw if p.node_type == "aspect"]
+    action_payloads = [p for p in raw if p.node_type == "action"]
+    assert len(aspect_payloads) == 2
+    assert len(action_payloads) == 1
+    ap0 = action_payloads[0]
+    assert ap0.node_class is _AspectAction
+    assert ap0.node_name == BaseIntentInspector._make_node_name(_AspectAction)
+    assert len(ap0.edges) == 2
+    assert {e.edge_type for e in ap0.edges} == {"has_aspect"}
+    assert {e.target_node_type for e in ap0.edges} == {"aspect"}
 
-    names = {dict(entry)["method_name"] for entry in aspects}
-    assert "run_step_aspect" in names
-    assert "build_result_summary" in names
+    by_method: dict[str, object] = {}
+    for p in aspect_payloads:
+        rows = dict(p.node_meta)["aspects"]
+        assert len(rows) == 1
+        row0 = dict(rows[0])
+        by_method[row0["method_name"]] = p
+    assert "run_step_aspect" in by_method
+    assert "build_result_summary" in by_method
 
-    summary = next(e for e in aspects if dict(e)["method_name"] == "build_result_summary")
-    sd = dict(summary)
+    summary_rows = dict(by_method["build_result_summary"].node_meta)["aspects"]
+    assert len(summary_rows) == 1
+    sd = dict(summary_rows[0])
     assert sd["aspect_type"] == "summary"
     assert "user.user_id" in sd["context_keys"]

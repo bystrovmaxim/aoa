@@ -3,7 +3,10 @@
 
 from __future__ import annotations
 
-from action_machine.graph.inspectors.on_error_intent_inspector import OnErrorIntentInspector
+from action_machine.intents.on_error.on_error_intent_inspector import (
+    OnErrorIntentInspector,
+    hydrate_error_handler_row,
+)
 from action_machine.intents.context.context_requires_decorator import context_requires
 from action_machine.intents.context.ctx_constants import Ctx
 from action_machine.intents.on_error.on_error_decorator import on_error
@@ -30,21 +33,22 @@ def test_on_error_inspector_returns_none_without_handlers() -> None:
 
 
 def test_on_error_inspector_builds_payload_with_handlers() -> None:
-    payload = OnErrorIntentInspector.inspect(_OnErrorAction)
-    assert payload is not None
-    assert payload.node_type == "error_handler"
+    produced = OnErrorIntentInspector.inspect(_OnErrorAction)
+    assert isinstance(produced, list)
+    handler_payloads = [p for p in produced if p.node_type == "error_handler"]
+    action_payloads = [p for p in produced if p.node_type == "action"]
+    assert len(handler_payloads) == 2
+    assert len(action_payloads) == 1
+    act = action_payloads[0]
+    assert {e.edge_type for e in act.edges} == {"has_error_handler"}
+    assert len(act.edges) == 2
 
-    data = dict(payload.node_meta)
-    handlers = data["error_handlers"]
-    assert len(handlers) == 2
+    names = {hydrate_error_handler_row(p.node_meta).method_name for p in handler_payloads}
+    assert names == {"value_on_error", "typed_on_error"}
 
-    names = {dict(entry)["method_name"] for entry in handlers}
-    assert "value_on_error" in names
-    assert "typed_on_error" in names
-
-    typed = next(e for e in handlers if dict(e)["method_name"] == "typed_on_error")
-    td = dict(typed)
-    assert TypeError in td["exception_types"]
-    assert RuntimeError in td["exception_types"]
-    assert td["description"] == "With context"
-    assert "user.user_id" in td["context_keys"]
+    typed_p = next(p for p in handler_payloads if "typed_on_error" in p.node_name)
+    typed = hydrate_error_handler_row(typed_p.node_meta)
+    assert TypeError in typed.exception_types
+    assert RuntimeError in typed.exception_types
+    assert typed.description == "With context"
+    assert "user.user_id" in typed.context_keys

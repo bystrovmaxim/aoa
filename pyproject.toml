@@ -149,7 +149,7 @@ disallow_untyped_decorators = false
 
 # maxitor synthetic action — stacked decorators без py.typed на декораторах
 [[tool.mypy.overrides]]
-module = "maxitor.test_domain.actions.full_graph"
+module = "maxitor.samples.store.actions.checkout_submit"
 disallow_untyped_decorators = false
 
 # ============================================================================

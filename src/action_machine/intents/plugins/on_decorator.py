@@ -102,7 +102,7 @@ ARCHITECTURE / DATA FLOW
     )
         │
         ▼  MetadataBuilder.collect_subscriptions (validation)
-        ▼  GateCoordinator.get_subscriptions() snapshot
+        ▼  GraphCoordinator.get_subscriptions() snapshot
         │
         ▼  MetadataBuilder → on_intent.validate_subscriptions(cls, ...)
     Validate event_class <-> event annotation compatibility

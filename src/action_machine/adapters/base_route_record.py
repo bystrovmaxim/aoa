@@ -100,8 +100,10 @@ from typing import Any
 
 from action_machine.model.base_action import BaseAction
 from action_machine.runtime.binding import action_generic_params as _action_generic_params
+from action_machine.runtime.binding.extract_action_params_result_types import (
+    extract_action_params_result_types,
+)
 
-extract_action_params_result_types = _action_generic_params.extract_action_params_result_types
 # Re-exported for adapter edge tests (forward-ref resolution helpers).
 _resolve_forward_ref = _action_generic_params._resolve_forward_ref
 _resolve_generic_arg = _action_generic_params._resolve_generic_arg

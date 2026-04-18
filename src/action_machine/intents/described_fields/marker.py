@@ -10,9 +10,9 @@ This module defines the ``DescribedFieldsIntent`` marker and lightweight
 validators that enforce ``Field(description="...")`` contracts on schema
 classes used by actions.
 
-Inspector orchestration remains in
-``action_machine.graph.inspectors.described_fields_intent_inspector`` to avoid
-import cycles between ``intents`` and ``graph`` layers.
+The graph inspector lives in
+``action_machine.intents.described_fields.described_fields_intent_inspector``,
+colocated with this marker, to avoid import cycles between intents and graph layers.
 
 ═══════════════════════════════════════════════════════════════════════════════
 INVARIANTS
@@ -73,7 +73,9 @@ from __future__ import annotations
 
 from pydantic import BaseModel
 
-from action_machine.runtime.binding.action_generic_params import extract_action_params_result_types
+from action_machine.runtime.binding.extract_action_params_result_types import (
+    extract_action_params_result_types,
+)
 
 
 class DescribedFieldsIntent:

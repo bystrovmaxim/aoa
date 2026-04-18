@@ -21,7 +21,7 @@ INVARIANTS
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-    GateCoordinator (built graph + facets)
+    GraphCoordinator (built graph + facets)
                |
                v
     CoreActionMachine factory / wiring
@@ -61,7 +61,7 @@ AI-CORE-BEGIN
 ═══════════════════════════════════════════════════════════════════════════════
 ROLE: Public gateway for runtime machine implementations.
 CONTRACT: Expose core async/sync machine entry points with shared semantics.
-INVARIANTS: Execution contracts derive from GateCoordinator snapshots.
+INVARIANTS: Execution contracts derive from GraphCoordinator snapshots.
 FLOW: coordinator build -> machine creation -> action run -> typed outputs/events.
 FAILURES: Runtime contract breaches propagate as typed framework errors.
 EXTENSION POINTS: Swap machine/component implementations behind same API surface.

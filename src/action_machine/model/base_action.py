@@ -9,7 +9,7 @@ PURPOSE
 ``BaseAction`` is parameterized by frozen Pydantic types ``P`` (params) and ``R``
 (result). Subclasses declare behavior with class- and method-level decorators;
 markers in the MRO enable those decorators. Runtime execution and metadata reads
-go through ``GateCoordinator`` facet snapshots (built by intent inspectors),
+go through ``GraphCoordinator`` facet snapshots (built by intent inspectors),
 not through helper APIs on this class.
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -22,7 +22,7 @@ INVARIANTS
 - Declaration scratch (``_role_info``, ``_connection_info``, method-level
   ``_new_aspect_meta``, ``_checker_meta``, etc.) is written by decorators;
   **inspection** for the graph belongs to **inspectors** during
-  ``GateCoordinator.build()``.
+  ``GraphCoordinator.build()``.
 - This class does **not** hold a coordinator reference or expose ``get_metadata``.
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -37,7 +37,7 @@ ARCHITECTURE / DATA FLOW
     Class-level / method-level scratch attrs on the action class
          │
          ▼
-    GateCoordinator.build()  →  inspectors  →  facet snapshots + graph
+    GraphCoordinator.build()  →  inspectors  →  facet snapshots + graph
          │
          ▼
     ActionProductMachine.run()  →  get_snapshot(action_cls, facet_key)
@@ -60,6 +60,11 @@ ARCHITECTURE — MARKER MIXINS
 
 Class-level decorators validate the marker immediately; method-level decorators
 are validated when the coordinator runs inspectors on the class.
+
+The graph inspector for ``BaseAction[P, R]`` schema bindings is
+:class:`ActionTypedSchemasInspector` at the end of this module (imports deferred
+until after ``BaseAction`` is defined to avoid cycles with
+:mod:`action_machine.runtime.binding.extract_action_params_result_types`).
 
 ═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES
@@ -166,3 +171,120 @@ class BaseAction[P: BaseSchema, R: BaseSchema](
             module: str = self.__class__.__module__ or ""
             self.__class__._full_class_name = f"{module}.{self.__class__.__qualname__}"
         return self.__class__._full_class_name
+
+
+# ---------------------------------------------------------------------------
+# Graph facet: ``BaseAction[P, R]`` → ``described_fields`` (registered by runtime)
+# Imports live here so :mod:`action_machine.runtime.binding.extract_action_params_result_types`
+# can import ``BaseAction`` above without a partially-initialized cycle.
+# ---------------------------------------------------------------------------
+
+from dataclasses import dataclass  # noqa: E402
+
+from action_machine.graph.base_facet_snapshot import BaseFacetSnapshot  # noqa: E402
+from action_machine.graph.base_intent_inspector import BaseIntentInspector  # noqa: E402
+from action_machine.graph.payload import EdgeInfo, FacetPayload  # noqa: E402
+from action_machine.intents.described_fields.described_fields_intent_inspector import (  # noqa: E402
+    DescribedFieldsIntentInspector,
+)
+from action_machine.runtime.binding.extract_action_params_result_types import (  # noqa: E402
+    extract_action_params_result_types,
+)
+
+
+class ActionTypedSchemasInspector(BaseIntentInspector):
+    """
+    Graph: link each ``BaseAction`` subclass to resolved ``P`` / ``R`` schema types.
+
+    Emits a merged ``action`` facet row with ``uses_params`` / ``uses_result`` edges
+    to canonical ``described_fields`` vertices; snapshot key ``action_schemas``.
+    See module docstring at top of this file for the full contract.
+
+    AI-CORE-BEGIN
+    ROLE: Concrete inspector for action-to-schema graph mapping.
+    CONTRACT: Merged ``action`` payloads; snapshot storage key ``action_schemas``.
+    AI-CORE-END
+    """
+
+    _target_intent: type = BaseAction
+
+    @dataclass(frozen=True)
+    class Snapshot(BaseFacetSnapshot):
+        """Typed view: which schema classes an action uses."""
+
+        class_ref: type
+        params_type: type | None
+        result_type: type | None
+
+        def to_facet_payload(self) -> FacetPayload:
+            edges: list[EdgeInfo] = []
+            if self.params_type is not None:
+                p_nt, p_name = DescribedFieldsIntentInspector.facet_host_for_schema_type(
+                    self.params_type,
+                )
+                edges.append(
+                    EdgeInfo(
+                        target_node_type=p_nt,
+                        target_name=p_name,
+                        edge_type="uses_params",
+                        is_structural=False,
+                        target_class_ref=self.params_type,
+                    ),
+                )
+            if self.result_type is not None:
+                r_nt, r_name = DescribedFieldsIntentInspector.facet_host_for_schema_type(
+                    self.result_type,
+                )
+                edges.append(
+                    EdgeInfo(
+                        target_node_type=r_nt,
+                        target_name=r_name,
+                        edge_type="uses_result",
+                        is_structural=False,
+                        target_class_ref=self.result_type,
+                    ),
+                )
+            return FacetPayload(
+                node_type="action",
+                node_name=ActionTypedSchemasInspector._make_node_name(self.class_ref),
+                node_class=self.class_ref,
+                node_meta=ActionTypedSchemasInspector._make_meta(
+                    params_type=self.params_type,
+                    result_type=self.result_type,
+                ),
+                edges=tuple(edges),
+            )
+
+    @classmethod
+    def _subclasses_recursive(cls) -> list[type]:
+        return cls._collect_subclasses(cls._target_intent)
+
+    @classmethod
+    def inspect(cls, target_cls: type) -> FacetPayload | None:
+        p_type, r_type = extract_action_params_result_types(target_cls)
+        if p_type is None and r_type is None:
+            return None
+        return cls._build_payload(target_cls)
+
+    @classmethod
+    def facet_snapshot_for_class(cls, target_cls: type) -> Snapshot | None:
+        p_type, r_type = extract_action_params_result_types(target_cls)
+        if p_type is None and r_type is None:
+            return None
+        return cls.Snapshot(
+            class_ref=target_cls,
+            params_type=p_type,
+            result_type=r_type,
+        )
+
+    @classmethod
+    def facet_snapshot_storage_key(
+        cls, _target_cls: type, _payload: FacetPayload,
+    ) -> str:
+        return "action_schemas"
+
+    @classmethod
+    def _build_payload(cls, target_cls: type) -> FacetPayload:
+        snap = cls.facet_snapshot_for_class(target_cls)
+        assert snap is not None
+        return snap.to_facet_payload()

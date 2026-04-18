@@ -59,7 +59,7 @@ ERRORS / LIMITATIONS
 - ``NamingSuffixError``, ``ValueError``, ``TypeError`` from ``__init_subclass__``
   mirror ``BaseDomain`` rules for metadata quality.
 - Global uniqueness of ``name`` and related topology rules are validated at
-  ``GateCoordinator.build()`` (``RoleClassInspector``), not in this module.
+  ``GraphCoordinator.build()`` (``RoleClassInspector``), not in this module.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN

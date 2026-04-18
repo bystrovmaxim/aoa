@@ -10,7 +10,7 @@ PURPOSE
 imported by both transports so HTTP and MCP share the same runtime instance and
 auth policy.
 
-``ActionProductMachine`` creates a **built** ``GateCoordinator`` internally
+``ActionProductMachine`` creates a **built** ``GraphCoordinator`` internally
 (see ``ActionProductMachine.create_default_coordinator()``) unless you pass a
 custom ``coordinator=`` at construction time. Adapters receive only ``machine``
 and ``auth``; they read ``machine.gate_coordinator`` when they need the graph.
@@ -26,7 +26,7 @@ ARCHITECTURE / DATA FLOW
 
     infrastructure (this module)
     +-- machine = ActionProductMachine(mode="production")
-    |       +-- built GateCoordinator (default factory inside machine)
+    |       +-- built GraphCoordinator (default factory inside machine)
     +-- auth    = NoAuthCoordinator()
               |
               +------------------+------------------+
@@ -56,7 +56,7 @@ EXAMPLES
 
     # app_fastapi_service / app_mcp_service pass these into adapters.
 
-    Edge case: custom ``GateCoordinator`` — pass
+    Edge case: custom ``GraphCoordinator`` — pass
     ``ActionProductMachine(..., coordinator=my_coordinator)`` here; it must
     already be ``.build()`` complete.
 

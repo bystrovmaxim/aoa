@@ -26,7 +26,7 @@ Domains are passed to the @meta(domain=...) decorator when declaring an Action:
     @meta(description="Create an order", domain=OrdersDomain)
     class FullAction(BaseAction[...]): ...
 
-Domains appear in the GateCoordinator graph as "domain" type nodes with
+Domains appear in the GraphCoordinator graph as "domain" type nodes with
 "belongs_to" edges from Action to domain.
 """
 

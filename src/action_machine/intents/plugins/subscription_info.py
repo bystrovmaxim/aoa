@@ -9,7 +9,7 @@ PURPOSE
 SubscriptionInfo stores full configuration of one plugin method subscription.
 It is created by ``@on`` at class definition time and stored in
 ``method._on_subscriptions``. Subscription snapshots are exposed via
-``GateCoordinator.get_subscriptions()`` and consumed by ``PluginRunContext``.
+``GraphCoordinator.get_subscriptions()`` and consumed by ``PluginRunContext``.
 
 One plugin method may have multiple subscriptions (multiple ``@on``). OR logic
 applies across subscriptions for one method; AND logic applies inside a single

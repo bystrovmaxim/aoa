@@ -30,7 +30,7 @@ SCOPE (IN / OUT)
     fetch missing fields.
     API schemas, OpenAPI, or RPC payloads — use separate DTOs when needed.
     Coordinator graph construction — lives in metadata inspectors and
-    `GateCoordinator.build()`, not in this file.
+    `GraphCoordinator.build()`, not in this file.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
@@ -52,7 +52,7 @@ Coordinator-facing flow (conceptual):
     EntityIntentInspector  ──reads model + scratch──>  facet payloads / graph
          │
          ▼
-    GateCoordinator  (after `build()`)
+    GraphCoordinator  (after `build()`)
 
 Partial load vs full construction:
 

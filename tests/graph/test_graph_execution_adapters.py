@@ -1,24 +1,28 @@
 # tests/graph/test_graph_execution_adapters.py
-"""Tests for ``graph_execution_adapters``: facet meta rows → snapshot types."""
+"""Facet ``FacetMetaRow`` rows round-trip to inspector snapshot types (hydrators on inspectors)."""
 
 from __future__ import annotations
 
 from collections import UserDict
 
 from action_machine.graph.base_intent_inspector import BaseIntentInspector
-from action_machine.graph.graph_execution_adapters import (
-    FacetMetaRow,
-    aspect_row_to_aspect,
-    checker_row_to_checker,
-    compensator_row_to_compensator,
-    on_error_row_to_error_handler,
+from action_machine.intents.aspects.aspect_intent_inspector import (
+    AspectIntentInspector,
+    hydrate_aspect_row,
 )
-from action_machine.graph.inspectors.aspect_intent_inspector import AspectIntentInspector
-from action_machine.graph.inspectors.checker_intent_inspector import CheckerIntentInspector
-from action_machine.graph.inspectors.compensate_intent_inspector import (
+from action_machine.intents.checkers.checker_intent_inspector import (
+    CheckerIntentInspector,
+    hydrate_checker_row,
+)
+from action_machine.intents.compensate.compensate_intent_inspector import (
     CompensateIntentInspector,
+    hydrate_compensator_row,
 )
-from action_machine.graph.inspectors.on_error_intent_inspector import OnErrorIntentInspector
+from action_machine.intents.on_error.on_error_intent_inspector import (
+    OnErrorIntentInspector,
+    hydrate_error_handler_row,
+)
+from action_machine.graph.payload import FacetMetaRow
 from action_machine.intents.aspects.aspect_intent import AspectIntent
 from action_machine.intents.aspects.regular_aspect_decorator import regular_aspect
 from action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
@@ -42,7 +46,8 @@ class _RoundtripAspectAction(AspectIntent):
         return {}
 
 
-class _RoundtripCheckerAction(CheckerIntent):
+class _RoundtripCheckerAction(CheckerIntent, AspectIntent):
+    @regular_aspect("Roundtrip")
     @result_string("f", required=False, min_length=1)
     async def only_aspect(self, params, state, box, connections):
         return {"f": "x"}
@@ -70,45 +75,49 @@ class _RoundtripOnErrorAction(OnErrorIntent):
 def test_aspect_row_roundtrip_matches_facet_snapshot() -> None:
     snap = AspectIntentInspector.facet_snapshot_for_class(_RoundtripAspectAction)
     assert snap is not None
-    payload = AspectIntentInspector.inspect(_RoundtripAspectAction)
-    assert payload is not None
-    rows: tuple[FacetMetaRow, ...] = dict(payload.node_meta)["aspects"]
+    produced = AspectIntentInspector.inspect(_RoundtripAspectAction)
+    assert isinstance(produced, list)
+    rows: list[FacetMetaRow] = []
+    for payload in produced:
+        if payload.node_type != "aspect":
+            continue
+        rows.extend(dict(payload.node_meta)["aspects"])
     assert len(rows) == len(snap.aspects)
     for row, expected in zip(rows, snap.aspects, strict=True):
-        assert aspect_row_to_aspect(row) == expected
+        assert hydrate_aspect_row(row) == expected
 
 
 def test_checker_row_roundtrip_matches_facet_snapshot() -> None:
     snap = CheckerIntentInspector.facet_snapshot_for_class(_RoundtripCheckerAction)
     assert snap is not None
-    payload = CheckerIntentInspector.inspect(_RoundtripCheckerAction)
-    assert payload is not None
-    rows = dict(payload.node_meta)["checkers"]
-    assert len(rows) == len(snap.checkers)
-    for row, expected in zip(rows, snap.checkers, strict=True):
-        assert checker_row_to_checker(row) == expected
+    produced = CheckerIntentInspector.inspect(_RoundtripCheckerAction)
+    assert isinstance(produced, list)
+    assert len(produced) == len(snap.checkers)
+    for payload, expected in zip(produced, snap.checkers, strict=True):
+        row = hydrate_checker_row(payload.node_meta)
+        assert row == expected
 
 
 def test_compensator_row_roundtrip_matches_facet_snapshot() -> None:
     snap = CompensateIntentInspector.facet_snapshot_for_class(_RoundtripCompensateAction)
     assert snap is not None
-    payload = CompensateIntentInspector.inspect(_RoundtripCompensateAction)
-    assert payload is not None
-    rows = dict(payload.node_meta)["compensators"]
-    assert len(rows) == len(snap.compensators)
-    for row, expected in zip(rows, snap.compensators, strict=True):
-        assert compensator_row_to_compensator(row) == expected
+    produced = CompensateIntentInspector.inspect(_RoundtripCompensateAction)
+    assert isinstance(produced, list)
+    comp_payloads = [p for p in produced if p.node_type == "compensator"]
+    assert len(comp_payloads) == len(snap.compensators)
+    for payload, expected in zip(comp_payloads, snap.compensators, strict=True):
+        assert hydrate_compensator_row(payload.node_meta) == expected
 
 
 def test_on_error_row_roundtrip_matches_facet_snapshot() -> None:
     snap = OnErrorIntentInspector.facet_snapshot_for_class(_RoundtripOnErrorAction)
     assert snap is not None
-    payload = OnErrorIntentInspector.inspect(_RoundtripOnErrorAction)
-    assert payload is not None
-    rows = dict(payload.node_meta)["error_handlers"]
-    assert len(rows) == len(snap.error_handlers)
-    for row, expected in zip(rows, snap.error_handlers, strict=True):
-        assert on_error_row_to_error_handler(row) == expected
+    produced = OnErrorIntentInspector.inspect(_RoundtripOnErrorAction)
+    assert isinstance(produced, list)
+    handler_payloads = [p for p in produced if p.node_type == "error_handler"]
+    assert len(handler_payloads) == len(snap.error_handlers)
+    for payload, expected in zip(handler_payloads, snap.error_handlers, strict=True):
+        assert hydrate_error_handler_row(payload.node_meta) == expected
 
 
 def test_aspect_row_normalizes_context_keys_from_iterable() -> None:
@@ -120,7 +129,7 @@ def test_aspect_row_normalizes_context_keys_from_iterable() -> None:
         method_ref=ref,
         context_keys=("a", "b"),  # not frozenset
     )
-    asp = aspect_row_to_aspect(row)
+    asp = hydrate_aspect_row(row)
     assert asp.context_keys == frozenset({"a", "b"})
 
 
@@ -132,7 +141,7 @@ def test_checker_row_accepts_extra_params_as_dict() -> None:
         required=True,
         extra_params={"x": 1},
     )
-    ch = checker_row_to_checker(row)
+    ch = hydrate_checker_row(row)
     assert ch.extra_params == {"x": 1}
 
 
@@ -144,7 +153,7 @@ def test_checker_row_extra_params_via_non_dict_mapping() -> None:
         ("required", True),
         ("extra_params", UserDict({"k": 1})),
     )
-    ch = checker_row_to_checker(row)
+    ch = hydrate_checker_row(row)
     assert ch.extra_params == {"k": 1}
 
 
@@ -156,7 +165,7 @@ def test_compensator_row_coerces_list_context_keys() -> None:
         ("method_ref", None),
         ("context_keys", ["a", "b"]),
     )
-    c = compensator_row_to_compensator(row)
+    c = hydrate_compensator_row(row)
     assert c.context_keys == frozenset({"a", "b"})
 
 
@@ -168,5 +177,5 @@ def test_on_error_row_coerces_tuple_context_keys() -> None:
         ("method_ref", None),
         ("context_keys", ("k",)),
     )
-    h = on_error_row_to_error_handler(row)
+    h = hydrate_error_handler_row(row)
     assert h.context_keys == frozenset({"k"})

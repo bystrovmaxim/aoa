@@ -5,7 +5,7 @@ PURPOSE
 ═══════════════════ ════════════════════ ════════════════════ ════════════════════
 Checks that GateCoordinator builds a directed graph from
 registered classes, creates nodes for actions, dependencies,
-connections, aspects, checkers, subscriptions, sensitive fields, compensators,
+connections, aspects, checkers, sensitive fields, compensators,
 detects circular dependencies and provides a public API
 for inspection.
 ═══════════════════ ════════════════════ ════════════════════ ════════════════════
@@ -14,9 +14,9 @@ SCENARIO
 TestBasicNodes - creating basic graph nodes.
 TestDependenciesAndConnections - nodes and edges of dependencies and connections.
 TestAspectsAndCheckers - aspect and checker nodes.
-TestSubscriptionsAndSensitive - nodes of subscriptions and sensitive fields.
-TestCompensatorNodes - aggregated facet ``compensator`` (without edges
-``has_compensator`` to structural ``action``; see CompensateIntentInspector).
+TestSubscriptionsAndSensitive - sensitive fields (plugin @on is not graphed).
+TestCompensatorNodes - per-method ``compensator`` vertices and ``has_compensator`` edges
+from merged ``action`` (see ``CompensateIntentInspector``).
 TestRecursiveCollection - automatic recursive collection of dependencies.
 TestCycleDetection - scenarios without a cycle in the graph (diamond); logical loops @depends
     are not covered by a separate test for CyclicDependencyError.
@@ -32,11 +32,12 @@ The graph is built from ``FacetPayload`` inspectors: in ``rustworkx`` - node typ
 ``class_ref``; facet body in snapshots, ``get_node`` / ``hydrate_graph_node``
 mix in ``meta``. The ``action`` node (structural) appears only for classes with
 ``@depends`` and/or ``@connection`` (two inspectors, ``action`` node merged
-in coordinator), otherwise
-``meta``, ``role``, ``aspect``, ``compensator``, etc. remain. Plugin Subscriptions
-- ``subscription`` nodes, not ``plugin``. Sensitive fields in the graph are covered
-``SensitiveIntentInspector`` for inheritors of ``BaseSchema`` (not for
-``BaseAction``). Graph queries filter nodes by ``class_ref`` or by
+in coordinator). Primary-host ``@meta`` on ``BaseAction`` folds into that same
+``action`` facet row; ``meta`` remains for resources and non-primary names.
+Otherwise ``meta``, ``role``, ``aspect``, ``compensator``, etc. remain. Plugin ``@on``
+handlers do not create ``subscription`` facet nodes. Sensitive fields in the graph are covered
+``SensitiveIntentInspector`` emits ``sensitive_field`` vertices (not a single
+``…:sensitive`` host). Graph queries filter nodes by ``class_ref`` or by
 name fragment, because after ``build()`` strangers can get into the snapshot
 classes from the general inspector scan."""
 from typing import Any
@@ -226,7 +227,7 @@ class _SensitiveGraphSchema(BaseSchema):
 
 
 class _TestPlugin(Plugin):
-    """Test plugin with one subscription for graph tests."""
+    """Test plugin with one ``@on`` handler (not emitted as a graph facet)."""
     async def get_initial_state(self) -> dict:
         return {}
 
@@ -307,19 +308,18 @@ class TestBasicNodes:
         nodes = coord.get_nodes_by_type("action")
         assert len(nodes) >= 1
 
-    def test_register_plugin_creates_plugin_node(self):
-        """Registering a plugin creates subscription facet nodes (not the plugin type)."""
+    def test_register_plugin_does_not_create_subscription_nodes(self):
+        """Registering a plugin with ``@on`` does not create ``subscription`` facet nodes."""
         coord = _new_coord()
         coord.get_snapshot(_TestPlugin, "meta")
-        nodes = coord.get_nodes_by_type("subscription")
-        assert len(nodes) >= 1
+        assert coord.get_nodes_by_type("subscription") == []
 
     def test_register_action_with_role_creates_role_node(self):
-        """Registering an action with a role creates a role node."""
+        """``@check_roles`` keeps a ``role`` snapshot on the action; graph links ``action`` → ``role_class``."""
         coord = _new_coord()
         coord.get_snapshot(_RoledGraphAction, "meta")
-        nodes = coord.get_nodes_by_type("role")
-        assert len(nodes) >= 1
+        assert coord.get_snapshot(_RoledGraphAction, "role") is not None
+        assert coord.get_nodes_by_type("role_class")
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -386,20 +386,19 @@ class TestAspectsAndCheckers:
 
 
 class TestSubscriptionsAndSensitive:
-    """Checks the creation of nodes for subscriptions and sensitive fields."""
+    """Sensitive-field facets; plugin ``@on`` does not appear on the graph."""
 
-    def test_subscriptions_create_nodes_and_edges(self):
-        """Subscriptions create nodes in the graph."""
+    def test_plugin_handlers_do_not_create_subscription_nodes(self):
+        """``@on`` on a plugin does not add ``subscription`` interchange vertices."""
         coord = _new_coord()
         coord.get_snapshot(_TestPlugin, "meta")
-        nodes = coord.get_nodes_by_type("subscription")
-        assert len(nodes) >= 1
+        assert coord.get_nodes_by_type("subscription") == []
 
     def test_sensitive_fields_create_nodes_and_edges(self):
-        """Sensitive on BaseSchema creates a facet node of type sensitive."""
+        """``@sensitive`` yields ``sensitive_field`` facet nodes linked from the schema host."""
         coord = _new_coord()
         coord.get_snapshot(_SensitiveGraphSchema, "meta")
-        nodes = coord.get_nodes_by_type("sensitive")
+        nodes = coord.get_nodes_by_type("sensitive_field")
         assert len(nodes) >= 1
 
 
@@ -409,39 +408,55 @@ class TestSubscriptionsAndSensitive:
 
 
 class TestCompensatorNodes:
-    """Checks that compensators create nodes of type "compensator" and edges
-    "has_compensator" in the general GateCoordinator graph.
+    """Checks that compensators create ``compensator`` facet nodes and ``has_compensator`` edges.
 
-    Added as part of the implementation of the compensation mechanism (Saga).
-    Detailed tests of the compensator graph (node metadata, requires_context,
-    dependency tree) are covered in tests/scenarios/intents_with_runtime/test_compensate_graph.py.
-    Here is a minimal check of integration into the general coordinator graph."""
+    Detailed metadata and topology checks live in
+    ``tests/scenarios/intents_with_runtime/test_compensate_graph.py``."""
 
     def test_compensator_node_created_in_graph(self):
-        """When registering an action with @compensate, it appears in the column
-        "compensator" type node."""
-        # Arrange & Act
+        """When registering an action with @compensate, a per-method compensator node appears."""
         coord = _new_coord()
         coord.get_snapshot(_ActionWithCompensatorGraphAction, "meta")
 
-        #Assert is an aggregated node for our class (there may be other actions in the graph)
         nodes = coord.get_nodes_by_type("compensator")
         ours = [n for n in nodes if n["class_ref"] is _ActionWithCompensatorGraphAction]
         assert len(ours) == 1
         node = ours[0]
         assert node["node_type"] == "compensator"
-        assert _ActionWithCompensatorGraphAction.__qualname__ in node["name"]
+        expected = BaseIntentInspector._make_host_dependent_node_name(
+            _ActionWithCompensatorGraphAction, "rollback_step_compensate",
+        )
+        assert node["name"] == expected
 
     def test_has_compensator_edge_in_graph(self):
-        """In a facet graph, the compensator is a separate node; There are no has_compensator edges."""
+        """Facet topology links ``action`` → ``compensator`` with ``has_compensator``."""
         coord = _new_coord()
         coord.get_snapshot(_ActionWithCompensatorGraphAction, "meta")
         nodes = coord.get_nodes_by_type("compensator")
         node = next(
             n for n in nodes if n["class_ref"] is _ActionWithCompensatorGraphAction
         )
-        entry_meta = dict(node["meta"]).get("compensators", ())
-        assert any(dict(e)["method_name"] == "rollback_step_compensate" for e in entry_meta)
+        assert dict(node["meta"])["method_name"] == "rollback_step_compensate"
+
+        g = coord.facet_topology_copy()
+        action_name = BaseIntentInspector._make_node_name(_ActionWithCompensatorGraphAction)
+        comp_name = BaseIntentInspector._make_host_dependent_node_name(
+            _ActionWithCompensatorGraphAction, "rollback_step_compensate",
+        )
+        action_idx = next(
+            (
+                idx for idx in g.node_indices()
+                if g[idx].get("node_type") == "action" and g[idx].get("name") == action_name
+            ),
+            None,
+        )
+        assert action_idx is not None
+        targets = [
+            g[t]["name"]
+            for _s, t, ep in g.out_edges(action_idx)
+            if isinstance(ep, dict) and ep.get("edge_type") == "has_compensator"
+        ]
+        assert comp_name in targets
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -515,10 +530,10 @@ class TestPublicAPI:
         assert g1 is not g2
 
     def test_get_node_existing(self):
-        """get_node for facet meta registered action returns data."""
+        """get_node for merged action host (``@meta`` folded) returns data."""
         coord = _new_coord()
         coord.get_snapshot(_PingGraphAction, "meta")
-        key = _node_key("meta", _PingGraphAction)
+        key = _node_key("action", _PingGraphAction)
         node = coord.get_node(key)
         assert node is not None
 
@@ -687,11 +702,13 @@ class TestCoordinatorBasic:
         assert all_meta is not None
 
     def test_get_all_classes(self):
-        """Graph is queryable for known facet type."""
+        """Graph is queryable for known facet types (e.g. aspects, checkers)."""
         coord = CoreActionMachine.create_coordinator()
-        meta_nodes = coord.get_nodes_by_type("meta")
-        assert isinstance(meta_nodes, list)
-        assert len(meta_nodes) > 0
+        aspect_nodes = coord.get_nodes_by_type("aspect")
+        checker_nodes = coord.get_nodes_by_type("checker")
+        assert isinstance(aspect_nodes, list)
+        assert isinstance(checker_nodes, list)
+        assert len(aspect_nodes) + len(checker_nodes) > 0
 
     def test_get_not_a_class_raises(self):
         """register rejects non-inspector classes."""

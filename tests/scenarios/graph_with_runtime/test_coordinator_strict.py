@@ -1,4 +1,4 @@
-"""GateCoordinator tests - domains in a graph, descriptions in nodes, repr.
+"""GraphCoordinator tests - domains in a graph, descriptions in nodes, repr.
 
 ═══════════════════ ════════════════════ ════════════════════ ════════════════════
 PURPOSE
@@ -45,7 +45,7 @@ import pytest
 
 from action_machine.domain.base_domain import BaseDomain
 from action_machine.graph.base_intent_inspector import BaseIntentInspector
-from action_machine.graph.gate_coordinator import GateCoordinator
+from action_machine.graph.graph_coordinator import GraphCoordinator
 from action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
 from action_machine.intents.auth.check_roles_decorator import check_roles
 from action_machine.intents.auth.none_role import NoneRole
@@ -172,7 +172,7 @@ class _EmptyClass:
     pass
 
 
-def _coord() -> GateCoordinator:
+def _coord() -> GraphCoordinator:
     """Built coordinator with default inspectors."""
     return CoreActionMachine.create_coordinator()
 
@@ -281,9 +281,9 @@ class TestDomainNodes:
     def test_action_without_aspects_has_domain_in_meta_node(self):
         coord = _coord()
         nm = BaseIntentInspector._make_node_name(_NoAspectsAction)
-        meta_node = coord.get_node("meta", nm)
-        assert meta_node is not None
-        meta = meta_node.get("meta")
+        host = coord.get_node("action", nm)
+        assert host is not None
+        meta = host.get("meta")
         assert meta is not None
         assert meta.get("domain") is _OrdersDomain
 
@@ -314,7 +314,7 @@ class TestGraphDescriptions:
 
     def test_action_node_contains_description(self):
         coord = _coord()
-        key = _node_key("meta", _OrderAction)
+        key = _node_key("action", _OrderAction)
         node = coord.get_node(key)
         assert node is not None
 
@@ -333,18 +333,18 @@ class TestGraphDescriptions:
 
 
 class TestCoordinatorRepr:
-    """__repr__ GateCoordinator."""
+    """__repr__ GraphCoordinator."""
 
     def test_empty_repr(self):
-        coord = GateCoordinator()
+        coord = GraphCoordinator()
         result = repr(coord)
-        assert "GateCoordinator(" in result
+        assert "GraphCoordinator(" in result
         assert "state=not built" in result
 
     def test_nonempty_repr(self):
         coord = _coord()
         result = repr(coord)
         assert isinstance(result, str)
-        assert "GateCoordinator(" in result
+        assert "GraphCoordinator(" in result
         assert "state=built" in result
         assert "state=built" in result

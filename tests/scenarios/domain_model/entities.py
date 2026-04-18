@@ -7,7 +7,7 @@ PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 Defines test entities used to exercise domain features:
-BaseEntity, the @entity decorator, Lifecycle, relations, and GateCoordinator.
+BaseEntity, the @entity decorator, Lifecycle, relations, and GraphCoordinator.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ENTITIES
@@ -26,7 +26,7 @@ DraftLifecycle — three-state machine: draft → active → archived.
 Used by LifecycleEntity and ComplexEntity.
 
 _template is defined at class definition time (import-time).
-At startup, GateCoordinator finds DraftLifecycle in model_fields,
+At startup, GraphCoordinator finds DraftLifecycle in model_fields,
 reads _template, and validates eight lifecycle integrity rules.
 
 Each entity instance holds its own current state:
@@ -45,7 +45,7 @@ USAGE IN TESTS
 These entities are used in unit tests to verify:
 
 - Correct construction via @entity
-- Metadata assembly via ``GateCoordinator.build()`` and ``get_snapshot``
+- Metadata assembly via ``GraphCoordinator.build()`` and ``get_snapshot``
 - Lifecycle validation (eight integrity rules)
 - Relations (Annotated + Inverse/NoInverse + Rel)
 - build() and make() behavior
@@ -90,7 +90,7 @@ class DraftLifecycle(Lifecycle):
     """
     Three-state machine: draft → active → archived.
 
-    _template is created at import-time. GateCoordinator validates
+    _template is created at import-time. GraphCoordinator validates
     eight integrity rules at application startup.
     """
 

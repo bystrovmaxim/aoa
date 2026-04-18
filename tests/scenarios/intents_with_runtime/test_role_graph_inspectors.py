@@ -7,22 +7,30 @@ from action_machine.runtime.machines.core_action_machine import CoreActionMachin
 
 
 def test_default_coordinator_emits_role_mode_and_role_class_nodes() -> None:
+    """``@role_mode`` merges into the single ``ApplicationRole`` ``role_class`` vertex."""
+    from action_machine.intents.auth.application_role import ApplicationRole
+
     coord = CoreActionMachine.create_coordinator()
-    role_mode_nodes = coord.get_nodes_by_type("role_mode")
+    assert not coord.get_nodes_by_type("role_mode")
     role_class_nodes = coord.get_nodes_by_type("role_class")
-    assert len(role_mode_nodes) >= 1
     assert len(role_class_nodes) >= 1
+    app_rows = [n for n in role_class_nodes if n["class_ref"] is ApplicationRole]
+    assert app_rows, "expected ApplicationRole role_class node"
+    snap = coord.get_snapshot(ApplicationRole, "role_mode")
+    assert snap is not None
+    meta = coord.hydrate_graph_node(dict(app_rows[0])).get("meta") or {}
+    assert "mode" in meta
 
 
 def test_order_roles_present_and_requires_role_edges_exist() -> None:
-    """Order*Role fixtures load MRO chain; graph has role_class + requires_role."""
+    """Order*Role fixtures validate; graph exposes only anchor role_class + requires_role."""
+    from action_machine.intents.auth.application_role import ApplicationRole
+
     import tests.scenarios.intents_with_runtime.test_role_checker_pr2 as _pr2  # noqa: F401
 
     coord = CoreActionMachine.create_coordinator()
-    names = [n["name"] for n in coord.get_nodes_by_type("role_class")]
-    assert any("OrderManagerRole" in n for n in names), names
-    assert any("OrderCreatorRole" in n for n in names), names
-    assert any("OrderViewerRole" in n for n in names), names
+    refs = {n["class_ref"] for n in coord.get_nodes_by_type("role_class")}
+    assert refs == {ApplicationRole}, refs
 
     g = coord.facet_topology_copy()
     edge_types = {

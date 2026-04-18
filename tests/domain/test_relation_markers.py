@@ -18,7 +18,7 @@ ERRORS / LIMITATIONS
 - **ValueError** — empty `Inverse.field_name`.
 - **AttributeError** — mutation on frozen marker instances.
 
-Does not cover GateCoordinator or entity graph assembly — only the marker
+Does not cover GraphCoordinator or entity graph assembly — only the marker
 types themselves.
 """
 

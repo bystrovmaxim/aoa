@@ -15,7 +15,7 @@ The module defines two frozen dataclasses — the contract between
 Both are transport-only: an inspector builds them in ``_build_payload()`` /
 ``inspect()``, the coordinator consumes them in phase 1 of ``build()``, and
 they are discarded after commit. Facet node skeletons land in the coordinator’s
-internal facet ``rx.PyDiGraph``; the public logical graph is a separate commit.
+internal facet ``rx.PyDiGraph``; the public interchange graph is a separate commit.
 Tuple → dict conversion for facet ``meta`` is applied when projecting from
 typed snapshots (see ``GateCoordinator.hydrate_graph_node``).
 
@@ -61,11 +61,11 @@ full ``node_type:node_name`` key.
     node_type = "action",  node_name = "module.CreateOrderAction"
     → graph key: "action:module.CreateOrderAction"
 
-    node_type = "role",    node_name = "module.CreateOrderAction"
-    → graph key: "role:module.CreateOrderAction"
+    node_type = "role_class", node_name = "module.AdminRole"
+    → graph key: "role_class:module.AdminRole"
 
 One class may emit several nodes with different ``node_type`` values from
-different inspectors (``role``, ``meta``, ``aspect``, …; structural ``action``
+different inspectors (``meta``, ``aspect``, ``role_class``, …; structural ``action``
 appears when ``@depends`` and/or ``@connection`` is present — two inspectors,
 merged by the coordinator into one node with the same key). Uniqueness follows
 from the pair ``node_type`` + ``node_name``.
@@ -77,8 +77,9 @@ LIFECYCLE EXAMPLE
     # Illustrative: AdminRole is a BaseRole subtype; CreateOrderAction is any action class.
 
     # 1. Inspector creates a payload in _build_payload():
+    # ``edges`` carry informational ``requires_role`` targets (``role_class`` rows).
     payload = FacetPayload(
-        node_type="role",
+        node_type="action",
         node_name="module.CreateOrderAction",
         node_class=CreateOrderAction,
         node_meta=(("spec", AdminRole),),
@@ -95,7 +96,7 @@ LIFECYCLE EXAMPLE
     #    - structural edges acyclic
 
     # 4. Coordinator commits in phase 3: facet skeleton into internal ``_facet_graph``,
-    #    then logical interchange into ``_graph``. Node payload is skeleton only
+    #    then interchange projection into ``_graph``. Node payload is skeleton only
     #    (``node_type``, ``name``, ``class_ref`` on the facet graph).
     #    Facet body is in ``GateCoordinator`` facet snapshots; ``get_node`` /
     #    ``hydrate_graph_node`` attach ``meta`` from the matching snapshot.
@@ -123,7 +124,7 @@ AI-CORE-BEGIN
 ROLE: Transport contract between inspectors and coordinator.
 CONTRACT: Carry immutable node/edge payloads through collect/validate/commit build phases.
 INVARIANTS: Frozen dataclasses, deterministic key shape, structural-edge flag for acyclicity policy.
-FLOW: inspector emits payload -> coordinator validates -> coordinator commits facet skeleton + logical graph + cached snapshots.
+FLOW: inspector emits payload -> coordinator validates -> coordinator commits facet skeleton + interchange graph + cached snapshots.
 FAILURES: Invalid payload shape/integrity errors are raised by coordinator validators.
 EXTENSION POINTS: New facet/edge kinds can be added by extending node_type/edge_type conventions.
 AI-CORE-END
@@ -133,6 +134,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from typing import Any
+
+# Hashable facet ``node_meta`` row: string keys, opaque values (see inspector hydrators).
+FacetMetaRow = tuple[tuple[str, Any], ...]
 
 
 @dataclass(frozen=True)
@@ -201,10 +205,10 @@ class FacetPayload:
 
     A single class may emit several payloads from different inspectors. For
     example, ``CreateOrderAction`` may yield:
-    - ``FacetPayload(node_type="role", ...)`` from ``RoleIntentInspector``
-    - ``FacetPayload(node_type="role_mode", ...)`` from
-      ``RoleModeIntentInspector`` (same role class as ``node_class``)
-    - ``FacetPayload(node_type="role_class", ...)`` from ``RoleClassInspector``
+    - ``FacetPayload(node_type="action", ...)`` with ``requires_role`` edges from ``RoleIntentInspector``
+    - ``FacetPayload(node_type="role_class", ...)`` from ``RoleClassInspector`` (name, description, …)
+    - Another ``FacetPayload(node_type="role_class", ...)`` from ``RoleModeIntentInspector``
+      (canonical class name; ``node_meta`` carries ``mode``) merged with the row above
     - One merged ``FacetPayload(node_type="action", ...)`` with depends and/or
       connection edges (two inspectors → merged in ``GateCoordinator._phase1_collect``)
     - ``FacetPayload(node_type="aspect", ...)`` from ``AspectIntentInspector``
@@ -215,10 +219,10 @@ class FacetPayload:
 
     Attributes:
         node_type : str
-            Facet type: ``"action"``, ``"role"``, ``"role_mode"``, ``"role_class"``,
-            ``"aspect"``, ``"checker"``, ``"entity"``, ``"domain"``,
+            Facet type: ``"action"``, ``"role_class"``, ``"aspect"``, ``"checker"``,
+            ``"entity"``, ``"domain"``,
             ``"dependency"``, ``"connection"``, ``"error_handler"``,
-            ``"compensator"``, ``"subscription"``, ``"sensitive"``,
+            ``"compensator"``, ``"subscription"``, ``"sensitive_field"``,
             ``"context_field"``, ``"entity_field"``, ``"entity_relation"``,
             ``"entity_lifecycle"``.
 

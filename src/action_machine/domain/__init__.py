@@ -153,7 +153,7 @@ from action_machine.domain.relation_containers import (
     CompositeOne,
     RelationType,
 )
-from action_machine.domain.relation_markers import Inverse, NoInverse, Rel
+from action_machine.domain.relation_markers import Inverse, NoGraphEdge, NoInverse, Rel
 from action_machine.domain.testing import make
 
 __all__ = [
@@ -179,6 +179,7 @@ __all__ = [
     # State machines
     "Lifecycle",
     "LifecycleValidationError",
+    "NoGraphEdge",
     "NoInverse",
     "Rel",
     "RelationNotLoadedError",

@@ -1,11 +1,11 @@
-"""Tests for BaseFacetSnapshot + GateCoordinator facet snapshot cache."""
+"""Tests for BaseFacetSnapshot + GraphCoordinator facet snapshot cache."""
 
 from __future__ import annotations
 
 from action_machine.domain.base_domain import BaseDomain
 from action_machine.graph.base_intent_inspector import BaseIntentInspector
-from action_machine.graph.inspectors.meta_intent_inspector import MetaIntentInspector
-from action_machine.graph.inspectors.role_intent_inspector import RoleIntentInspector
+from action_machine.intents.meta.meta_intent_inspector import MetaIntentInspector
+from action_machine.intents.auth.role_intent_inspector import RoleIntentInspector
 from action_machine.intents.auth.check_roles_decorator import check_roles
 from action_machine.intents.meta.meta_decorator import meta
 from action_machine.intents.meta.meta_intents import ActionMetaIntent
@@ -33,14 +33,14 @@ def test_role_facet_snapshot_round_trip_with_graph() -> None:
     assert snap.spec is AdminRole
 
     payload = snap.to_facet_payload()
-    assert payload.node_type == "role"
+    assert payload.node_type == "action"
     assert payload.node_class is _SnapProbeAction
     assert dict(payload.node_meta)["spec"] is AdminRole
 
-    role_name = BaseIntentInspector._make_node_name(_SnapProbeAction)
-    role_node = coord.get_node("role", role_name)
-    assert role_node is not None
-    meta = role_node.get("meta")
+    action_name = BaseIntentInspector._make_node_name(_SnapProbeAction)
+    action_node = coord.get_node("action", action_name)
+    assert action_node is not None
+    meta = action_node.get("meta")
     assert meta is not None
     assert meta.get("spec") is AdminRole
 

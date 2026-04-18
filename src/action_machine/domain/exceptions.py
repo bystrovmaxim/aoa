@@ -51,7 +51,7 @@ EntityDecoratorError
 
 LifecycleValidationError
     A `Lifecycle` template attached to an entity fails one of the eight
-    structural integrity rules when validated during `GateCoordinator.build()`
+    structural integrity rules when validated during `GraphCoordinator.build()`
     (via `EntityIntentInspector` / entity lifecycle validation).
 
 ═══════════════════════════════════════════════════════════════════════════════

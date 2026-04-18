@@ -17,7 +17,7 @@ ARCHITECTURE / DATA FLOW
     TestBench(**kwargs)
               |
               v
-    GateCoordinator (default) + _prepare_all_mocks(mocks)
+    GraphCoordinator (default) + _prepare_all_mocks(mocks)
               |
               v
     _prepared_mocks  ready for ``box.resolve()`` during runs
@@ -51,7 +51,7 @@ ERRORS / LIMITATIONS
 
 from unittest.mock import AsyncMock
 
-from action_machine.graph.gate_coordinator import GateCoordinator
+from action_machine.graph.graph_coordinator import GraphCoordinator
 from action_machine.testing import TestBench
 from tests.scenarios.domain_model import PaymentService
 
@@ -59,11 +59,11 @@ from tests.scenarios.domain_model import PaymentService
 class TestWithoutArguments:
     """``TestBench()`` yields usable defaults."""
 
-    def test_coordinator_is_gate_coordinator(self) -> None:
-        """Default ``coordinator`` is a built ``GateCoordinator``."""
+    def test_coordinator_is_graph_coordinator(self) -> None:
+        """Default ``coordinator`` is a built ``GraphCoordinator``."""
         b = TestBench()
 
-        assert isinstance(b.coordinator, GateCoordinator)
+        assert isinstance(b.coordinator, GraphCoordinator)
 
     def test_mocks_empty_by_default(self) -> None:
         """``mocks`` starts empty so dependency-free actions need no setup."""

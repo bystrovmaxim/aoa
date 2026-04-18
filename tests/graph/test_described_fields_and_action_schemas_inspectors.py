@@ -6,11 +6,10 @@ from __future__ import annotations
 import pytest
 from pydantic import Field
 
+from action_machine.domain import BaseEntity, entity
 from action_machine.domain.base_domain import BaseDomain
-from action_machine.graph.inspectors.action_typed_schemas_inspector import (
-    ActionTypedSchemasInspector,
-)
-from action_machine.graph.inspectors.described_fields_intent_inspector import DescribedFieldsIntentInspector
+from action_machine.model.base_action import ActionTypedSchemasInspector
+from action_machine.intents.described_fields.described_fields_intent_inspector import DescribedFieldsIntentInspector
 from action_machine.intents.auth import check_roles
 from action_machine.intents.auth.none_role import NoneRole
 from action_machine.intents.described_fields import (
@@ -53,6 +52,25 @@ def test_described_fields_inspector_inspects_schema_class_not_action() -> None:
     assert "schema_fields" in dict(payload.node_meta)
 
 
+@entity(description="Probe entity for inspector skip", domain=_ProbeDomain)
+class _ProbeEntity(BaseEntity):
+    id: str = Field(description="Identifier")
+
+
+_ProbeEntity.model_rebuild()
+
+
+def test_described_fields_inspector_skips_entity_intent_classes() -> None:
+    assert DescribedFieldsIntentInspector.inspect(_ProbeEntity) is None
+    assert DescribedFieldsIntentInspector.facet_snapshot_for_class(_ProbeEntity) is None
+
+
+def test_facet_host_for_schema_type_routes_entities_to_entity_vertex() -> None:
+    nt, name = DescribedFieldsIntentInspector.facet_host_for_schema_type(_ProbeEntity)
+    assert nt == "entity"
+    assert name == DescribedFieldsIntentInspector._make_node_name(_ProbeEntity)
+
+
 def test_validate_described_schema_no_op_for_none_and_empty_shell() -> None:
     validate_described_schema(None)
     validate_described_schema(BaseParams)  # no declared fields
@@ -73,7 +91,7 @@ def test_validate_described_schemas_for_action_delegates_to_extract() -> None:
 def test_action_typed_schemas_inspector_links_action_to_schema_nodes() -> None:
     payload = ActionTypedSchemasInspector.inspect(_SchemaLinkProbeAction)
     assert payload is not None
-    assert payload.node_type == "action_schemas"
+    assert payload.node_type == "action"
     assert payload.node_class is _SchemaLinkProbeAction
     assert len(payload.edges) == 2
     types_ = {e.edge_type for e in payload.edges}
