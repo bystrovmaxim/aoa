@@ -26,9 +26,9 @@ SCOPE (IN / OUT)
     ``collect_entity_lifecycles`` — read ``_entity_info`` and ``model_fields`` and
     return frozen-friendly snapshot dataclasses.
     ``EntityIntentInspector.inspect`` / ``facet_snapshot_for_class`` — produce
-    ``FacetPayload`` with ``node_type=\"entity\"`` and optional ``edges``:
-    informational ``belongs_to`` → ``domain`` when a domain type is known, plus
-    relation edges to related ``entity`` vertices (skipped when ``NoGraphEdge()``
+    ``FacetPayload`` with ``node_type=\"Entity\"`` and optional ``edges``:
+    informational ``belongs_to`` → ``Domain`` when a domain type is known, plus
+    relation edges to related ``Entity`` interchange vertices (skipped when ``NoGraphEdge()``
     is set on the field).
 
     When ``_meta_info`` is present (same shape as ``@meta``), ``description`` and
@@ -64,8 +64,8 @@ ARCHITECTURE / DATA FLOW
          ├─ collect_entity_info / fields / relations / lifecycles
          │
          v
-    Snapshot.to_facet_payload()  ──>  FacetPayload(node_type="entity", edges=…)
-    (``belongs_to`` domain + entity→entity relation edges)
+    Snapshot.to_facet_payload()  ──>  FacetPayload(node_type="Entity", edges=…)
+    (``belongs_to`` domain + Entity→Entity relation edges)
 
 ═══════════════════════════════════════════════════════════════════════════════
 INVARIANTS
@@ -129,7 +129,7 @@ from typing import Annotated, Any, get_args, get_origin
 from pydantic.fields import FieldInfo
 from pydantic_core import PydanticUndefined
 
-from action_machine.interchange_vertex_labels import DOMAIN_VERTEX_TYPE
+from action_machine.interchange_vertex_labels import DOMAIN_VERTEX_TYPE, ENTITY_VERTEX_TYPE
 from action_machine.domain.entity_intent import EntityIntent, entity_info_is_set
 from action_machine.domain.lifecycle import Lifecycle, StateInfo, StateType
 from action_machine.domain.relation_containers import BaseRelationMany, BaseRelationOne
@@ -732,7 +732,7 @@ class EntityIntentInspector(BaseIntentInspector):
                     meta_pairs.append(("inverse_field", rel.inverse_field))
                 relation_edges.append(
                     EdgeInfo(
-                        target_node_type="entity",
+                        target_node_type=ENTITY_VERTEX_TYPE,
                         target_name=target_name,
                         edge_type=facet_et,
                         is_structural=False,
@@ -742,7 +742,7 @@ class EntityIntentInspector(BaseIntentInspector):
                 )
 
             return FacetPayload(
-                node_type="entity",
+                node_type=ENTITY_VERTEX_TYPE,
                 node_name=EntityIntentInspector._make_node_name(self.class_ref),
                 node_class=self.class_ref,
                 node_meta=EntityIntentInspector._make_meta(
@@ -964,8 +964,8 @@ class EntityIntentInspector(BaseIntentInspector):
         _target_cls: type,
         payload: FacetPayload,
     ) -> bool:
-        """Only the primary ``entity`` row hydrates the typed snapshot."""
-        return payload.node_type == "entity"
+        """Only the primary ``Entity`` row hydrates the typed snapshot."""
+        return payload.node_type == ENTITY_VERTEX_TYPE
 
     @classmethod
     def _build_payload(cls, target_cls: type) -> FacetPayload:
@@ -976,7 +976,7 @@ class EntityIntentInspector(BaseIntentInspector):
             target_cls: Entity class with non-empty ``_entity_info``.
 
         Returns:
-            ``FacetPayload`` with ``node_type=\"entity\"``.
+            ``FacetPayload`` with ``node_type=\"Entity\"``.
         """
         snap = cls.facet_snapshot_for_class(target_cls)
         assert snap is not None

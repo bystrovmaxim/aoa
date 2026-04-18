@@ -6,6 +6,7 @@ from __future__ import annotations
 import pytest
 from pydantic import BaseModel, Field
 
+from action_machine.interchange_vertex_labels import ENTITY_VERTEX_TYPE
 from action_machine.domain import BaseEntity, entity
 from action_machine.domain.base_domain import BaseDomain
 from action_machine.intents.auth import check_roles
@@ -79,7 +80,7 @@ def test_described_fields_inspector_skips_entity_intent_classes() -> None:
 
 def test_facet_host_for_schema_type_routes_entities_to_entity_vertex() -> None:
     nt, name = DescribedFieldsIntentInspector.facet_host_for_schema_type(_ProbeEntity)
-    assert nt == "entity"
+    assert nt == ENTITY_VERTEX_TYPE
     assert name == DescribedFieldsIntentInspector._make_node_name(_ProbeEntity)
 
 

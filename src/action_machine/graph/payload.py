@@ -150,7 +150,7 @@ class EdgeInfo:
 
     Attributes:
         target_node_type : str
-            Target facet type (``"Action"``, ``"entity"``, ``"Domain"``, …).
+            Target facet type (``"Action"``, ``"Entity"``, ``"Domain"``, …).
             Used to build the full target key ``target_node_type:target_name``.
 
         target_name : str
@@ -178,6 +178,11 @@ class EdgeInfo:
             manager), the coordinator may synthesize a facet node if no
             inspector emitted one. ``None`` for name-only targets.
 
+        synthetic_stub_edges : tuple[EdgeInfo, ...]
+            When the coordinator materializes a missing target for this edge,
+            these edges are attached to the synthesized target node. Empty by
+            default; inspectors populate when the stub needs outgoing edges.
+
     AI-CORE-BEGIN
     ROLE: Immutable edge transport row.
     CONTRACT: Describe one outgoing graph edge with target identity and structural semantics.
@@ -191,6 +196,7 @@ class EdgeInfo:
     is_structural: bool
     edge_meta: tuple[tuple[str, Any], ...] = field(default_factory=tuple)
     target_class_ref: type | None = None
+    synthetic_stub_edges: tuple[EdgeInfo, ...] = field(default_factory=tuple)
 
 
 @dataclass(frozen=True)
@@ -220,7 +226,7 @@ class FacetPayload:
     Attributes:
         node_type : str
             Facet type: ``"Action"``, ``"role_class"``, ``"RegularAspect"``, ``"SummaryAspect"``, ``"Checker"``,
-            ``"entity"``, ``"Domain"``,
+            ``"Entity"``, ``"Domain"``,
             ``"dependency"``, ``"connection"``, ``"error_handler"``,
             ``"Compensator"``, ``"subscription"``, ``"sensitive_field"``,
             ``"context_field"``, ``"entity_field"``, ``"entity_relation"``,
@@ -249,6 +255,19 @@ class FacetPayload:
             Outgoing edges. Facets without graph edges (e.g. bare role nodes) use
             an empty tuple. Defaults to empty tuple.
 
+        merge_group_key : str | None
+            If set, the full collect key ``"type:name"`` used to bucket this payload
+            with others for merge (inspectors own the string; the coordinator does
+            not interpret facet kinds).
+
+        merge_node_type / merge_node_name : str | None
+            When ``merge_group_key`` matches the active collect key, the coordinator
+            normalizes the payload to this ``node_type`` / ``node_name`` before merge.
+
+        skip_node_type_snapshot_fallback : bool
+            When true, :meth:`GraphCoordinator.hydrate_graph_node` will not use the
+            node's ``node_type`` string as a snapshot storage key fallback.
+
     AI-CORE-BEGIN
     ROLE: Immutable node+edges transport envelope.
     CONTRACT: Represent one facet node emitted by an inspector for coordinator build phases.
@@ -261,3 +280,7 @@ class FacetPayload:
     node_class: type
     node_meta: tuple[tuple[str, Any], ...] = field(default_factory=tuple)
     edges: tuple[EdgeInfo, ...] = field(default_factory=tuple)
+    merge_group_key: str | None = None
+    merge_node_type: str | None = None
+    merge_node_name: str | None = None
+    skip_node_type_snapshot_fallback: bool = False

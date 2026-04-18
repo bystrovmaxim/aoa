@@ -4,14 +4,10 @@
 DAG validation for the coordinator interchange graph (``graph.md`` §6).
 
 Only edges whose ``edge_type`` is in ``DAG_EDGE_TYPES`` and whose ``is_dag`` flag is
-``True`` participate — today that means **``DEPENDS_ON``** and **``CONNECTS_TO``**
-(structural dependency/connection skeleton).
+``True`` participate (see :data:`~action_machine.graph.constants.DAG_EDGE_TYPES`).
 
-**Out of scope for this module:** entity–entity relation edges
-(``COMPOSITION_*``, ``AGGREGATION_*``, ``ASSOCIATION_*``) are
-not in ``DAG_EDGE_TYPES`` and are emitted with ``is_dag=False``. Cycles on that slice
-are therefore **allowed** and never inspected here; they are informational / domain
-links, not the acyclic structural DAG.
+Edges with ``is_dag=False`` are outside this module: cycles on that remainder are
+allowed and are not inspected here.
 """
 
 from __future__ import annotations
@@ -71,7 +67,7 @@ def assert_dag_edges_acyclic(
     """
     Raise ``InvalidGraphError`` when DAG edges form a directed cycle.
 
-    Entity relation edges are **not** part of this check (see module docstring).
+    Non-DAG edges are **not** part of this check (see module docstring).
 
     Returns the canonical sorted DAG edge pair list (possibly empty).
     """

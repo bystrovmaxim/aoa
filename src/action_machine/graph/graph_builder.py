@@ -17,12 +17,6 @@ from typing import Any, Final
 from action_machine.graph.constants import INTERNAL_EDGE_TYPES, OWNERSHIP_EDGE_TYPES
 from action_machine.graph.model import GraphEdge, GraphVertex
 from action_machine.graph.payload import FacetPayload
-from action_machine.interchange_vertex_labels import (
-    CHECKER_VERTEX_TYPE,
-    COMPENSATOR_VERTEX_TYPE,
-    REGULAR_ASPECT_VERTEX_TYPE,
-    SUMMARY_ASPECT_VERTEX_TYPE,
-)
 
 _VERTEX_KEYS: frozenset[str] = frozenset(GraphVertex.__dataclass_fields__)
 _EDGE_KEYS: frozenset[str] = frozenset(GraphEdge.__dataclass_fields__)
@@ -149,7 +143,7 @@ def _tail_name(qualname: str) -> str:
 
 
 def _aspect_method_name_from_meta(meta: Mapping[str, Any]) -> str | None:
-    """Declaring method name from the aspect facet row (``method_name`` in class body)."""
+    """First aspect row ``method_name`` when ``aspects`` metadata is present."""
     raw = meta.get("aspects")
     if not raw:
         return None
@@ -161,46 +155,29 @@ def _aspect_method_name_from_meta(meta: Mapping[str, Any]) -> str | None:
     return s or None
 
 
-def _checker_field_name_from_meta(meta: Mapping[str, Any]) -> str | None:
-    """Result field name from checker metadata (decorator ``field_name``, e.g. ``charged_amount``)."""
-    s = str(meta.get("field_name", "") or "").strip()
-    return s or None
-
-
-def _compensator_method_name_from_meta(meta: Mapping[str, Any]) -> str | None:
-    """Compensator method name in class (``@compensate`` handler identifier)."""
-    s = str(meta.get("method_name", "") or "").strip()
-    return s or None
-
-
 def _facet_vertex_label(p: FacetPayload) -> str:
     """
-    Short labels for lifecycle facets: state nodes use the two-part id (e.g. ``SalesOrderLifecycle:new``),
-    lifecycle field nodes use the model field name (e.g. ``lifecycle``).
-    Per-method aspect vertices use the **method name in the class** (identifier), not the
-    decorator human string (e.g. ``"Validate payload"`` with spaces).
-    Checker vertices use **``field_name``** from the checker decorator (same key validated
-    on the aspect result dict), not the long ``host:aspect:CheckerClass:field`` id tail.
-    Compensator vertices use **``method_name``** (the ``@compensate`` method in the class),
-    not the full ``host:rollback_foo`` interchange id.
+    Short display label for an interchange vertex.
+
+    Uses only ``node_meta`` shape and a few **structural** ``node_type`` prefixes
+    (lifecycle state ids); does not import application facet kind constants.
     """
     meta = dict(p.node_meta)
     nt = str(p.node_type)
-    if nt in (REGULAR_ASPECT_VERTEX_TYPE, SUMMARY_ASPECT_VERTEX_TYPE):
+    if meta.get("aspects"):
         method = _aspect_method_name_from_meta(meta)
         if method:
             return method
-    if nt == CHECKER_VERTEX_TYPE:
-        field = _checker_field_name_from_meta(meta)
+    if meta.get("checker_class") is not None:
+        field = str(meta.get("field_name", "") or "").strip()
         if field:
             return field
-    if nt == COMPENSATOR_VERTEX_TYPE:
-        comp_method = _compensator_method_name_from_meta(meta)
-        if comp_method:
-            return comp_method
+    method = str(meta.get("method_name", "") or "").strip()
+    if method:
+        return method
     if nt.startswith("lifecycle_state"):
         return p.node_name
-    if p.node_type == "lifecycle" and "field_name" in meta:
+    if nt == "lifecycle" and "field_name" in meta:
         return str(meta["field_name"])
     return _tail_name(p.node_name)
 

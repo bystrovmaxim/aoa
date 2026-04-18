@@ -47,7 +47,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from action_machine.interchange_vertex_labels import ACTION_VERTEX_TYPE
+from action_machine.interchange_vertex_labels import ACTION_VERTEX_TYPE, ENTITY_VERTEX_TYPE
 from action_machine.graph.base_facet_snapshot import BaseFacetSnapshot
 from action_machine.graph.base_intent_inspector import BaseIntentInspector
 from action_machine.graph.payload import EdgeInfo, FacetPayload
@@ -158,7 +158,7 @@ class SensitiveIntentInspector(BaseIntentInspector):
         if issubclass(declaring_klass, BaseResourceManager):
             return "resource_manager", cls._make_node_name(declaring_klass)
         if issubclass(declaring_klass, EntityIntent):
-            return "entity", cls._make_node_name(declaring_klass)
+            return ENTITY_VERTEX_TYPE, cls._make_node_name(declaring_klass)
         if issubclass(declaring_klass, DescribedFieldsIntent):
             return (
                 DescribedFieldsIntentInspector.interchange_node_type_for_schema_model(declaring_klass),

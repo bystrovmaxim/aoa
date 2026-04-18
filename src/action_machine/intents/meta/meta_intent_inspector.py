@@ -63,7 +63,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from action_machine.interchange_vertex_labels import DOMAIN_VERTEX_TYPE
+from action_machine.interchange_vertex_labels import ACTION_VERTEX_TYPE, DOMAIN_VERTEX_TYPE
 from action_machine.graph.base_facet_snapshot import BaseFacetSnapshot
 from action_machine.graph.base_intent_inspector import BaseIntentInspector
 from action_machine.graph.payload import FacetPayload
@@ -122,6 +122,8 @@ class MetaIntentInspector(BaseIntentInspector):
                     ),
                     edges=edges,
                 )
+            canonical = MetaIntentInspector._make_node_name(self.class_ref)
+            merge_key = f"{ACTION_VERTEX_TYPE}:{canonical}"
             return FacetPayload(
                 node_type="meta",
                 node_name=MetaIntentInspector._make_host_dependent_node_name(
@@ -133,6 +135,10 @@ class MetaIntentInspector(BaseIntentInspector):
                     domain=self.domain,
                 ),
                 edges=edges,
+                merge_group_key=merge_key,
+                merge_node_type=ACTION_VERTEX_TYPE,
+                merge_node_name=canonical,
+                skip_node_type_snapshot_fallback=True,
             )
 
         @classmethod

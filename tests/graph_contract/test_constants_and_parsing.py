@@ -1,7 +1,7 @@
 # tests/graph_contract/test_constants_and_parsing.py
 
 """
-Unit tests: ``VERTEX_TYPES``, ``REVERSE_EDGE_MAP``, vertex-id parsing, ``reverse_direct_edge``.
+Unit tests: interchange vertex catalog, ``REVERSE_EDGE_MAP``, vertex-id parsing, ``reverse_direct_edge``.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
@@ -26,22 +26,23 @@ from action_machine.graph import (
     OWNERSHIP_EDGE_TYPES,
     REVERSE_EDGE_MAP,
     REVERSE_EDGE_STEREOTYPE,
-    VERTEX_TYPES,
     GraphEdge,
     reverse_direct_edge,
     split_checker_vertex_id,
     split_host_element_vertex_id,
 )
+from action_machine.interchange_vertex_catalog import INTERCHANGE_KNOWN_VERTEX_TYPES
 
 
 def test_vertex_types_contains_core_kinds() -> None:
-    assert "Action" in VERTEX_TYPES
-    assert "Domain" in VERTEX_TYPES
-    assert "Checker" in VERTEX_TYPES
-    assert "Compensator" in VERTEX_TYPES
-    assert "lifecycle_state_initial" in VERTEX_TYPES
-    assert "params_schema" in VERTEX_TYPES
-    assert len(VERTEX_TYPES) == 21
+    types = INTERCHANGE_KNOWN_VERTEX_TYPES
+    assert "Action" in types
+    assert "Domain" in types
+    assert "Checker" in types
+    assert "Compensator" in types
+    assert "lifecycle_state_initial" in types
+    assert "params_schema" in types
+    assert len(types) == 21
 
 
 def test_reverse_edge_stereotype_covers_all_reversible_forwards() -> None:
