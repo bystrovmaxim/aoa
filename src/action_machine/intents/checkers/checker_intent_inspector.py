@@ -74,6 +74,10 @@ from typing import Any
 from action_machine.graph.base_facet_snapshot import BaseFacetSnapshot
 from action_machine.graph.base_intent_inspector import BaseIntentInspector
 from action_machine.graph.payload import EdgeInfo, FacetMetaRow, FacetPayload
+from action_machine.intents.aspects.aspect_intent_inspector import (
+    AspectIntentInspector,
+    vertex_type_for_aspect_kind,
+)
 from action_machine.intents.checkers.checker_intent import CheckerIntent
 
 
@@ -253,13 +257,18 @@ class CheckerIntentInspector(BaseIntentInspector):
     @classmethod
     def _materialize_checker_payloads(cls, target_cls: type) -> list[FacetPayload]:
         snap = cls.Snapshot.from_target(target_cls)
+        aspect_kind_by_method: dict[str, str] = {}
+        for a in AspectIntentInspector._collect_aspects(snap.class_ref):
+            aspect_kind_by_method[a.method_name] = a.aspect_type
         out: list[FacetPayload] = []
         for c in snap.checkers:
             suffix = cls._checker_vertex_suffix(c.method_name, c.checker_class, c.field_name)
             node_name = cls._make_node_name(snap.class_ref, suffix)
             aspect_name = cls._make_node_name(snap.class_ref, c.method_name)
+            aspect_kind = aspect_kind_by_method.get(c.method_name, "regular")
+            aspect_nt = vertex_type_for_aspect_kind(aspect_kind)
             edge: EdgeInfo = cls._make_edge_by_name(
-                "aspect",
+                aspect_nt,
                 aspect_name,
                 "checks_aspect",
                 False,

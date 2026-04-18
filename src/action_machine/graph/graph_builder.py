@@ -17,6 +17,10 @@ from typing import Any, Final
 from action_machine.graph.constants import INTERNAL_EDGE_TYPES, OWNERSHIP_EDGE_TYPES
 from action_machine.graph.model import GraphEdge, GraphVertex
 from action_machine.graph.payload import FacetPayload
+from action_machine.interchange_vertex_labels import (
+    REGULAR_ASPECT_VERTEX_TYPE,
+    SUMMARY_ASPECT_VERTEX_TYPE,
+)
 
 _VERTEX_KEYS: frozenset[str] = frozenset(GraphVertex.__dataclass_fields__)
 _EDGE_KEYS: frozenset[str] = frozenset(GraphEdge.__dataclass_fields__)
@@ -142,13 +146,33 @@ def _tail_name(qualname: str) -> str:
     return qualname.rsplit(".", maxsplit=1)[-1]
 
 
+def _aspect_method_name_from_meta(meta: Mapping[str, Any]) -> str | None:
+    """Declaring method name from the aspect facet row (``method_name`` in class body)."""
+    raw = meta.get("aspects")
+    if not raw:
+        return None
+    first = raw[0] if isinstance(raw, (list, tuple)) and raw else None
+    if first is None:
+        return None
+    row = dict(first)
+    s = str(row.get("method_name", "") or "").strip()
+    return s or None
+
+
 def _facet_vertex_label(p: FacetPayload) -> str:
     """
     Short labels for lifecycle facets: state nodes use the two-part id (e.g. ``SalesOrderLifecycle:new``),
     lifecycle field nodes use the model field name (e.g. ``lifecycle``).
+    Per-method aspect vertices use the **method name in the class** (identifier), not the
+    decorator human string (e.g. ``"Validate payload"`` with spaces).
     """
     meta = dict(p.node_meta)
-    if str(p.node_type).startswith("lifecycle_state"):
+    nt = str(p.node_type)
+    if nt in (REGULAR_ASPECT_VERTEX_TYPE, SUMMARY_ASPECT_VERTEX_TYPE):
+        method = _aspect_method_name_from_meta(meta)
+        if method:
+            return method
+    if nt.startswith("lifecycle_state"):
         return p.node_name
     if p.node_type == "lifecycle" and "field_name" in meta:
         return str(meta["field_name"])

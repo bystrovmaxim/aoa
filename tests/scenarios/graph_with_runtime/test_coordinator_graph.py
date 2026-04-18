@@ -44,6 +44,10 @@ from typing import Any
 
 import pytest
 
+from action_machine.interchange_vertex_labels import (
+    REGULAR_ASPECT_VERTEX_TYPE,
+    SUMMARY_ASPECT_VERTEX_TYPE,
+)
 from action_machine.dependencies.dependency_factory import (
     cached_dependency_factory,
     clear_dependency_factory_cache,
@@ -370,7 +374,10 @@ class TestAspectsAndCheckers:
         """Aspects create nodes and edges in a graph."""
         coord = _new_coord()
         coord.get_snapshot(_ActionWithCheckersAction, "meta")
-        nodes = coord.get_nodes_by_type("aspect")
+        nodes = [
+            *coord.get_nodes_by_type(REGULAR_ASPECT_VERTEX_TYPE),
+            *coord.get_nodes_by_type(SUMMARY_ASPECT_VERTEX_TYPE),
+        ]
         assert len(nodes) >= 1
 
     def test_checkers_create_nodes_and_edges(self):
@@ -705,7 +712,10 @@ class TestCoordinatorBasic:
     def test_get_all_classes(self):
         """Graph is queryable for known facet types (e.g. aspects, checkers)."""
         coord = CoreActionMachine.create_coordinator()
-        aspect_nodes = coord.get_nodes_by_type("aspect")
+        aspect_nodes = [
+            *coord.get_nodes_by_type(REGULAR_ASPECT_VERTEX_TYPE),
+            *coord.get_nodes_by_type(SUMMARY_ASPECT_VERTEX_TYPE),
+        ]
         checker_nodes = coord.get_nodes_by_type("checker")
         assert isinstance(aspect_nodes, list)
         assert isinstance(checker_nodes, list)

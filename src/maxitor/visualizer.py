@@ -51,7 +51,9 @@ import rustworkx as rx
 from action_machine.interchange_vertex_labels import (
     ACTION_VERTEX_TYPE,
     APPLICATION_VERTEX_TYPE,
+    REGULAR_ASPECT_VERTEX_TYPE,
     SERVICE_VERTEX_TYPE,
+    SUMMARY_ASPECT_VERTEX_TYPE,
 )
 from maxitor.graph_export import (
     coordinator_pygraph_for_visual_export,
@@ -70,7 +72,8 @@ VERTEX_TYPE_FILL_COLORS: dict[str, str] = {
     "domain": "#377EB8",
     "dependency": "#4DAF4A",
     "connection": "#984EA3",
-    "aspect": "#FF7F00",
+    REGULAR_ASPECT_VERTEX_TYPE: "#FF7F00",
+    SUMMARY_ASPECT_VERTEX_TYPE: "#FF7F00",
     "checker": "#A65628",
     "compensator": "#F781BF",
     "error_handler": "#6A3D9A",
@@ -112,11 +115,20 @@ def _graph_vertex_key(node: dict[str, Any]) -> str:
 
 def _vertex_facet_label(node: dict[str, Any]) -> str:
     nt = str(node.get("node_type", "unknown"))
+    if nt in (REGULAR_ASPECT_VERTEX_TYPE, SUMMARY_ASPECT_VERTEX_TYPE):
+        lab = str(node.get("label", "") or "").strip()
+        if lab:
+            return lab
     short = _element_short_name(node)
     return f"{nt}\n{short}"
 
 
 def _element_short_name(node: dict[str, Any]) -> str:
+    nt = str(node.get("node_type", "") or "").strip()
+    if nt in (REGULAR_ASPECT_VERTEX_TYPE, SUMMARY_ASPECT_VERTEX_TYPE):
+        lab = str(node.get("label", "") or "").strip()
+        if lab:
+            return lab
     cr = node.get("class_ref")
     if isinstance(cr, type):
         return cr.__name__

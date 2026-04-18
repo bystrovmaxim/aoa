@@ -8,7 +8,7 @@ PURPOSE
 
 Collect per-class aspect declarations (``@regular_aspect`` / ``@summary_aspect``)
 from method-level scratch (``_new_aspect_meta``) and expose them as a typed
-``Snapshot`` plus coordinator ``FacetPayload`` with ``node_type="aspect"``.
+``Snapshot`` plus coordinator ``FacetPayload`` with ``node_type="RegularAspect"`` / ``"SummaryAspect"``.
 
 ═══════════════════════════════════════════════════════════════════════════════
 INVARIANTS
@@ -28,7 +28,7 @@ INVARIANTS
   needed). The coordinator snapshot for the subclass then reflects only what
   that class body defines.
 - Facet snapshot storage key is always ``"aspect"``.
-- :meth:`inspect` also emits a merged ``node_type=\"action\"`` row for the host
+- :meth:`inspect` also emits a merged ``node_type=\"Action\"`` row for the host
   class with informational ``has_aspect`` edges to each per-method aspect vertex
   (regular and summary aspects alike).
 
@@ -47,7 +47,7 @@ ARCHITECTURE / DATA FLOW
     getattr(func, "_new_aspect_meta") → Snapshot.Aspect
          │
          ▼
-    Snapshot.to_facet_payload()  →  FacetPayload(node_type="aspect");
+    Snapshot.to_facet_payload()  →  FacetPayload(node_type="RegularAspect" / "SummaryAspect");
     inspect()  →  per-method aspect payloads plus one action payload (has_aspect).
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -93,11 +93,22 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from action_machine.interchange_vertex_labels import ACTION_VERTEX_TYPE
+from action_machine.interchange_vertex_labels import (
+    ACTION_VERTEX_TYPE,
+    REGULAR_ASPECT_VERTEX_TYPE,
+    SUMMARY_ASPECT_VERTEX_TYPE,
+)
 from action_machine.graph.base_facet_snapshot import BaseFacetSnapshot
 from action_machine.graph.base_intent_inspector import BaseIntentInspector
 from action_machine.graph.payload import EdgeInfo, FacetMetaRow, FacetPayload
 from action_machine.intents.aspects.aspect_intent import AspectIntent
+
+
+def vertex_type_for_aspect_kind(kind: str) -> str:
+    """Interchange ``node_type`` for decorator aspect kind (``\"regular\"`` / ``\"summary\"``)."""
+    if str(kind).strip() == "summary":
+        return SUMMARY_ASPECT_VERTEX_TYPE
+    return REGULAR_ASPECT_VERTEX_TYPE
 
 
 class AspectIntentInspector(BaseIntentInspector):
@@ -191,8 +202,15 @@ class AspectIntentInspector(BaseIntentInspector):
                 )
                 for a in self.aspects
             )
+            kinds = {a.aspect_type for a in self.aspects}
+            if not self.aspects:
+                agg_nt = REGULAR_ASPECT_VERTEX_TYPE
+            elif kinds == {"summary"}:
+                agg_nt = SUMMARY_ASPECT_VERTEX_TYPE
+            else:
+                agg_nt = REGULAR_ASPECT_VERTEX_TYPE
             return FacetPayload(
-                node_type="aspect",
+                node_type=agg_nt,
                 node_name=AspectIntentInspector._make_host_dependent_node_name(
                     self.class_ref, "aspects",
                 ),
@@ -222,7 +240,10 @@ class AspectIntentInspector(BaseIntentInspector):
         payload: FacetPayload,
     ) -> bool:
         """Hydrate per-method ``aspect`` nodes only; not the synthetic ``action`` shell."""
-        return payload.node_type == "aspect"
+        return payload.node_type in (
+            REGULAR_ASPECT_VERTEX_TYPE,
+            SUMMARY_ASPECT_VERTEX_TYPE,
+        )
 
     @classmethod
     def _has_aspect_methods_invariant(cls, target_cls: type) -> bool:
@@ -265,9 +286,10 @@ class AspectIntentInspector(BaseIntentInspector):
                 ),
             )
             aspect_name = cls._make_node_name(snap.class_ref, a.method_name)
+            vt = vertex_type_for_aspect_kind(a.aspect_type)
             has_aspect_edges.append(
                 cls._make_edge_by_name(
-                    "aspect",
+                    vt,
                     aspect_name,
                     "has_aspect",
                     False,
@@ -275,7 +297,7 @@ class AspectIntentInspector(BaseIntentInspector):
             )
             out.append(
                 FacetPayload(
-                    node_type="aspect",
+                    node_type=vt,
                     node_name=aspect_name,
                     node_class=snap.class_ref,
                     node_meta=cls._make_meta(aspects=entries),

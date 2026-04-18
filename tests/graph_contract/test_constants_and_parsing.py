@@ -40,7 +40,7 @@ def test_vertex_types_contains_core_kinds() -> None:
     assert "checker" in VERTEX_TYPES
     assert "lifecycle_state_initial" in VERTEX_TYPES
     assert "params_schema" in VERTEX_TYPES
-    assert len(VERTEX_TYPES) == 20
+    assert len(VERTEX_TYPES) == 21
 
 
 def test_reverse_edge_stereotype_covers_all_reversible_forwards() -> None:

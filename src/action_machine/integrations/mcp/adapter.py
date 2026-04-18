@@ -135,7 +135,7 @@ REGISTER_ALL METHOD
 Automatically registers all coordinator actions as MCP tools.
 Tool names are derived from class names in snake_case without ``Action`` suffix
 (for example, ``CreateOrderAction -> create_order``). Action classes are
-discovered via ``get_nodes_by_type("aspect")``; descriptions are read from
+discovered via ``get_nodes_by_type("RegularAspect")`` / ``get_nodes_by_type("SummaryAspect")``; descriptions are read from
 ``get_snapshot(cls, "meta")`` with fallback to scratch ``_meta_info``.
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -203,6 +203,10 @@ from action_machine.adapters.base_route_record import (
     ensure_protocol_response,
 )
 from action_machine.graph.graph_coordinator import GraphCoordinator
+from action_machine.interchange_vertex_labels import (
+    REGULAR_ASPECT_VERTEX_TYPE,
+    SUMMARY_ASPECT_VERTEX_TYPE,
+)
 from action_machine.integrations.mcp.route_record import McpRouteRecord
 from action_machine.intents.context.context import Context
 from action_machine.model.base_action import BaseAction
@@ -759,8 +763,11 @@ class McpAdapter(BaseAdapter[McpRouteRecord]):
         """
         coordinator = self.gate_coordinator
 
-        action_nodes = coordinator.get_nodes_by_type("aspect")
         seen: set[type] = set()
+        action_nodes = [
+            *coordinator.get_nodes_by_type(REGULAR_ASPECT_VERTEX_TYPE),
+            *coordinator.get_nodes_by_type(SUMMARY_ASPECT_VERTEX_TYPE),
+        ]
         for node in action_nodes:
             cls = node.get("class_ref")
             if not isinstance(cls, type):

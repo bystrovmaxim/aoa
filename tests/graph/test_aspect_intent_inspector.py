@@ -4,6 +4,10 @@
 from __future__ import annotations
 
 from action_machine.graph.base_intent_inspector import BaseIntentInspector
+from action_machine.interchange_vertex_labels import (
+    REGULAR_ASPECT_VERTEX_TYPE,
+    SUMMARY_ASPECT_VERTEX_TYPE,
+)
 from action_machine.intents.aspects.aspect_intent import AspectIntent
 from action_machine.intents.aspects.aspect_intent_inspector import AspectIntentInspector
 from action_machine.intents.aspects.regular_aspect_decorator import regular_aspect
@@ -35,7 +39,11 @@ def test_aspect_inspector_builds_payload_with_aspect_entries() -> None:
     raw = AspectIntentInspector.inspect(_AspectAction)
     assert isinstance(raw, list)
     assert len(raw) == 3
-    aspect_payloads = [p for p in raw if p.node_type == "aspect"]
+    aspect_payloads = [
+        p
+        for p in raw
+        if p.node_type in (REGULAR_ASPECT_VERTEX_TYPE, SUMMARY_ASPECT_VERTEX_TYPE)
+    ]
     action_payloads = [p for p in raw if p.node_type == "Action"]
     assert len(aspect_payloads) == 2
     assert len(action_payloads) == 1
@@ -44,7 +52,10 @@ def test_aspect_inspector_builds_payload_with_aspect_entries() -> None:
     assert ap0.node_name == BaseIntentInspector._make_node_name(_AspectAction)
     assert len(ap0.edges) == 2
     assert {e.edge_type for e in ap0.edges} == {"has_aspect"}
-    assert {e.target_node_type for e in ap0.edges} == {"aspect"}
+    assert {e.target_node_type for e in ap0.edges} == {
+        REGULAR_ASPECT_VERTEX_TYPE,
+        SUMMARY_ASPECT_VERTEX_TYPE,
+    }
 
     by_method: dict[str, object] = {}
     for p in aspect_payloads:
