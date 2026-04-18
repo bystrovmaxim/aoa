@@ -6,6 +6,10 @@ from __future__ import annotations
 from collections import UserDict
 
 from action_machine.graph.base_intent_inspector import BaseIntentInspector
+from action_machine.interchange_vertex_labels import (
+    REGULAR_ASPECT_VERTEX_TYPE,
+    SUMMARY_ASPECT_VERTEX_TYPE,
+)
 from action_machine.graph.payload import FacetMetaRow
 from action_machine.intents.aspects.aspect_intent import AspectIntent
 from action_machine.intents.aspects.aspect_intent_inspector import (
@@ -79,7 +83,10 @@ def test_aspect_row_roundtrip_matches_facet_snapshot() -> None:
     assert isinstance(produced, list)
     rows: list[FacetMetaRow] = []
     for payload in produced:
-        if payload.node_type != "aspect":
+        if payload.node_type not in (
+            REGULAR_ASPECT_VERTEX_TYPE,
+            SUMMARY_ASPECT_VERTEX_TYPE,
+        ):
             continue
         rows.extend(dict(payload.node_meta)["aspects"])
     assert len(rows) == len(snap.aspects)

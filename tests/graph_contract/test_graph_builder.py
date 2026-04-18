@@ -369,7 +369,7 @@ def test_facet_projection_includes_unknown_facet_kind_as_generic_vertex() -> Non
     _, demo_action, _ = _g0_demo_types()
     action_name = BaseIntentInspector._make_node_name(demo_action)
     noise = FacetPayload(
-        node_type="aspect",
+        node_type="RegularAspect",
         node_name=f"{action_name}:noise_aspect",
         node_class=demo_action,
         node_meta=(),

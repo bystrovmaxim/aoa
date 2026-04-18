@@ -18,5 +18,9 @@ ACTION_VERTEX_TYPE: Final[str] = "Action"
 # Logical root from ``ApplicationContextInspector``; domains ``belongs_to`` here.
 APPLICATION_VERTEX_TYPE: Final[str] = "Application"
 
+# Per-method aspect vertices from ``AspectIntentInspector`` (decorator ``type``).
+REGULAR_ASPECT_VERTEX_TYPE: Final[str] = "RegularAspect"
+SUMMARY_ASPECT_VERTEX_TYPE: Final[str] = "SummaryAspect"
+
 # Class-dependency stubs from ``DependencyIntentInspector`` (non-``BaseAction`` @depends).
 SERVICE_VERTEX_TYPE: Final[str] = "Service"

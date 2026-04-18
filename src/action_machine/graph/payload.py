@@ -211,7 +211,7 @@ class FacetPayload:
       (canonical class name; ``node_meta`` carries ``mode``) merged with the row above
     - One merged ``FacetPayload(node_type="Action", ...)`` with depends and/or
       connection edges (two inspectors → merged in ``GraphCoordinator._phase1_collect``)
-    - ``FacetPayload(node_type="aspect", ...)`` from ``AspectIntentInspector``
+    - ``FacetPayload(node_type="RegularAspect", ...)`` / ``"SummaryAspect"`` from ``AspectIntentInspector``
       (per method)
 
     After merging structural ``Action`` facets, uniqueness is still
@@ -219,7 +219,7 @@ class FacetPayload:
 
     Attributes:
         node_type : str
-            Facet type: ``"Action"``, ``"role_class"``, ``"aspect"``, ``"checker"``,
+            Facet type: ``"Action"``, ``"role_class"``, ``"RegularAspect"``, ``"SummaryAspect"``, ``"checker"``,
             ``"entity"``, ``"domain"``,
             ``"dependency"``, ``"connection"``, ``"error_handler"``,
             ``"compensator"``, ``"subscription"``, ``"sensitive_field"``,

@@ -16,7 +16,8 @@ from typing import Final
 VERTEX_TYPES: Final[frozenset[str]] = frozenset(
     {
         "Action",
-        "aspect",
+        "RegularAspect",
+        "SummaryAspect",
         "compensator",
         "error_handler",
         "checker",

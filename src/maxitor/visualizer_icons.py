@@ -13,7 +13,9 @@ from urllib.parse import quote
 from action_machine.interchange_vertex_labels import (
     ACTION_VERTEX_TYPE,
     APPLICATION_VERTEX_TYPE,
+    REGULAR_ASPECT_VERTEX_TYPE,
     SERVICE_VERTEX_TYPE,
+    SUMMARY_ASPECT_VERTEX_TYPE,
 )
 
 # fmt: off
@@ -44,11 +46,20 @@ VERTEX_TYPE_LUCIDE_INNER_SVG: dict[str, str] = {
         '<path d="M15 7h2a5 5 0 1 1 0 10h-2" /> '
         '<line x1="8" x2="16" y1="12" y2="12" />'
     ),
-    "aspect": (
-        '<line x1="6" x2="6" y1="3" y2="15" /> '
-        '<circle cx="18" cy="6" r="3" /> '
-        '<circle cx="6" cy="18" r="3" /> '
-        '<path d="M18 9a9 9 0 0 1-9 9" />'
+    # Lucide ``arrow-down-wide-narrow`` / ``arrow-up-narrow-wide`` (same stroke grammar; orange fill in UI).
+    REGULAR_ASPECT_VERTEX_TYPE: (
+        '<path d="m3 16 4 4 4-4" /> '
+        '<path d="M7 20V4" /> '
+        '<path d="M11 4h10" /> '
+        '<path d="M11 8h7" /> '
+        '<path d="M11 12h4" />'
+    ),
+    SUMMARY_ASPECT_VERTEX_TYPE: (
+        '<path d="m3 8 4-4 4 4" /> '
+        '<path d="M7 4v16" /> '
+        '<path d="M11 12h4" /> '
+        '<path d="M11 16h7" /> '
+        '<path d="M11 20h10" />'
     ),
     "checker": (
         '<path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z" /> '
