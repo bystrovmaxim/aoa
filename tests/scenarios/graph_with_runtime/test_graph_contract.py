@@ -18,7 +18,7 @@ from typing import Any, Final
 from action_machine.graph.base_intent_inspector import BaseIntentInspector
 from action_machine.graph.graph_coordinator import GraphCoordinator
 from action_machine.integrations.mcp.adapter import _build_graph_json
-from action_machine.runtime.machines.core_action_machine import CoreActionMachine
+from action_machine.runtime.machines.core import Core
 
 # Register a minimal action in the BaseAction subclass tree before build().
 from tests.scenarios.domain_model import PingAction
@@ -61,7 +61,7 @@ MCP_NODE_MIN_KEYS: Final[frozenset[str]] = frozenset({"id", "type"})
 
 
 def _default_coordinator() -> GraphCoordinator:
-    return CoreActionMachine.create_coordinator()
+    return Core.create_coordinator()
 
 
 def test_contract_raw_graph_nodes_are_skeleton_only() -> None:

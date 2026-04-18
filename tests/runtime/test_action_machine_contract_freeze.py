@@ -102,7 +102,7 @@ from action_machine.model.base_result import BaseResult
 from action_machine.model.base_state import BaseState
 from action_machine.resources.base_resource_manager import BaseResourceManager
 from action_machine.runtime.machines.action_product_machine import ActionProductMachine
-from action_machine.runtime.machines.core_action_machine import CoreActionMachine
+from action_machine.runtime.machines.core import Core
 from action_machine.runtime.tools_box import ToolsBox
 from action_machine.testing import StubTesterRole, TestBench
 from tests.scenarios.domain_model import (
@@ -237,7 +237,7 @@ class TestActionMachineContractFreeze:
         recorder = _EventRecorderPlugin()
         machine = ActionProductMachine(
             mode="test",
-            coordinator=CoreActionMachine.create_coordinator(),
+            coordinator=Core.create_coordinator(),
             log_coordinator=LogCoordinator(loggers=[]),
             plugins=[recorder],
         )
@@ -255,7 +255,7 @@ class TestActionMachineContractFreeze:
     @pytest.mark.asyncio
     async def test_error_semantics_handled_vs_unhandled(self) -> None:
         bench = TestBench(
-            coordinator=CoreActionMachine.create_coordinator(),
+            coordinator=Core.create_coordinator(),
             log_coordinator=LogCoordinator(loggers=[]),
         )
 
@@ -278,7 +278,7 @@ class TestActionMachineContractFreeze:
         recorder = _OnErrorRecorderPlugin()
         machine = ActionProductMachine(
             mode="test",
-            coordinator=CoreActionMachine.create_coordinator(),
+            coordinator=Core.create_coordinator(),
             log_coordinator=LogCoordinator(loggers=[]),
             plugins=[recorder],
         )
@@ -298,7 +298,7 @@ class TestActionMachineContractFreeze:
     async def test_nested_run_and_rollup_propagation(self) -> None:
         machine = ActionProductMachine(
             mode="test",
-            coordinator=CoreActionMachine.create_coordinator(),
+            coordinator=Core.create_coordinator(),
             log_coordinator=LogCoordinator(loggers=[]),
         )
 
@@ -323,7 +323,7 @@ class TestActionMachineContractFreeze:
         observer.reset()
 
         bench = TestBench(
-            coordinator=CoreActionMachine.create_coordinator(),
+            coordinator=Core.create_coordinator(),
             log_coordinator=LogCoordinator(loggers=[]),
             mocks={
                 PaymentService: mock_payment,

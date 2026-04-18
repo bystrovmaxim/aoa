@@ -3,14 +3,14 @@
 
 from __future__ import annotations
 
-from action_machine.runtime.machines.core_action_machine import CoreActionMachine
+from action_machine.runtime.machines.core import Core
 
 
 def test_default_coordinator_emits_role_mode_and_role_class_nodes() -> None:
     """``@role_mode`` merges into the single ``ApplicationRole`` ``role_class`` vertex."""
     from action_machine.intents.auth.application_role import ApplicationRole
 
-    coord = CoreActionMachine.create_coordinator()
+    coord = Core.create_coordinator()
     assert not coord.get_nodes_by_type("role_mode")
     role_class_nodes = coord.get_nodes_by_type("role_class")
     assert len(role_class_nodes) >= 1
@@ -27,7 +27,7 @@ def test_order_roles_present_and_requires_role_edges_exist() -> None:
     import tests.scenarios.intents_with_runtime.test_role_checker_pr2 as _pr2  # noqa: F401
     from action_machine.intents.auth.application_role import ApplicationRole
 
-    coord = CoreActionMachine.create_coordinator()
+    coord = Core.create_coordinator()
     refs = {n["class_ref"] for n in coord.get_nodes_by_type("role_class")}
     assert refs == {ApplicationRole}, refs
 

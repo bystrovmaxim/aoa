@@ -65,7 +65,7 @@ from unittest.mock import AsyncMock
 import pytest
 
 from action_machine.graph.graph_coordinator import GraphCoordinator
-from action_machine.runtime.machines.core_action_machine import CoreActionMachine
+from action_machine.runtime.machines.core import Core
 from action_machine.testing import TestBench
 
 from .scenarios.domain_model import InventoryService, NotificationService, PaymentService, TestDbManager
@@ -75,7 +75,7 @@ from .scenarios.domain_model.roles import AdminRole, ManagerRole
 @pytest.fixture
 def coordinator() -> GraphCoordinator:
     """Built coordinator with default inspector graph."""
-    return CoreActionMachine.create_coordinator()
+    return Core.create_coordinator()
 
 
 @pytest.fixture

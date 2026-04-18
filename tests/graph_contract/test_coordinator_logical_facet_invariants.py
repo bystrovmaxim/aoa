@@ -11,7 +11,7 @@ from action_machine.graph.base_intent_inspector import BaseIntentInspector
 from action_machine.graph.facet_vertex import FacetVertex
 from action_machine.graph.graph_coordinator import GraphCoordinator
 from action_machine.integrations.mcp.adapter import _build_graph_json
-from action_machine.runtime.machines.core_action_machine import CoreActionMachine
+from action_machine.runtime.machines.core import Core
 from maxitor.samples.build import _MODULES, build_sample_coordinator
 from maxitor.samples.store.actions.checkout_submit import CheckoutSubmitAction
 
@@ -83,7 +83,7 @@ def test_mcp_build_graph_json_emits_no_deprecation_warnings() -> None:
 
 def test_manual_register_then_build_matches_create_coordinator() -> None:
     _import_test_domain_modules()
-    a = CoreActionMachine.create_coordinator()
+    a = Core.create_coordinator()
     b = graph_coordinator_default_inspectors_registered().build()
     assert a.graph_node_count == b.graph_node_count
     assert a.graph_edge_count == b.graph_edge_count

@@ -1,4 +1,4 @@
-# src/action_machine/runtime/machines/core_action_machine.py
+# src/action_machine/runtime/machines/core.py
 """
 Core coordinator factory for ActionMachine runtime.
 
@@ -15,7 +15,7 @@ graph reads.
 INVARIANTS
 ═══════════════════════════════════════════════════════════════════════════════
 
-- Coordinator is always returned in built state from :meth:`CoreActionMachine.create_coordinator`.
+- Coordinator is always returned in built state from :meth:`Core.create_coordinator`.
 - Inspector registration order is deterministic and centralized here.
 - Default runtime machines rely on this factory for baseline graph contracts.
 
@@ -39,7 +39,7 @@ EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
 Happy path:
-    Runtime machine calls ``CoreActionMachine.create_coordinator()`` and gets a
+    Runtime machine calls ``Core.create_coordinator()`` and gets a
     built coordinator suitable for action execution.
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -96,7 +96,7 @@ from action_machine.resources.connection_intent_inspector import (
 )
 
 
-class CoreActionMachine:
+class Core:
     """Core factory for creating a fully built coordinator."""
 
     @staticmethod

@@ -46,7 +46,7 @@ TERMINOLOGY (USE CONSISTENTLY)
 **Decorator** — ``@entity`` writes **scratch** (``_entity_info``).
 **Inspector** — this module’s class, paired with that intent marker.
 **Gate coordinator** — after ``register(...).build()``, holds the facet graph;
-``CoreActionMachine`` registers ``EntityIntentInspector`` on the default
+``Core`` registers ``EntityIntentInspector`` on the default
 coordinator setup.
 
 ═══════════════════════════════════════════════════════════════════════════════

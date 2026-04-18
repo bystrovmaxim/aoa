@@ -20,7 +20,7 @@ import pytest
 
 from action_machine.intents.logging.log_coordinator import LogCoordinator
 from action_machine.model.exceptions import OnErrorHandlerError
-from action_machine.runtime.machines.core_action_machine import CoreActionMachine
+from action_machine.runtime.machines.core import Core
 from action_machine.testing import TestBench
 from tests.scenarios.domain_model import (
     ErrorHandledAction,
@@ -39,7 +39,7 @@ from tests.scenarios.domain_model import (
 def bench() -> TestBench:
     """TestBench with quiet logger (no console output)."""
     return TestBench(
-        coordinator=CoreActionMachine.create_coordinator(),
+        coordinator=Core.create_coordinator(),
         log_coordinator=LogCoordinator(loggers=[]),
     )
 

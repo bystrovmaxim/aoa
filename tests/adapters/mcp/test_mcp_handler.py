@@ -120,7 +120,7 @@ from action_machine.integrations.mcp.route_record import McpRouteRecord
 from action_machine.intents.context.user_info import UserInfo
 from action_machine.model.exceptions import AuthorizationError, ValidationFieldError
 from action_machine.runtime.machines.action_product_machine import ActionProductMachine
-from action_machine.runtime.machines.core_action_machine import CoreActionMachine
+from action_machine.runtime.machines.core import Core
 from tests.scenarios.domain_model import PingAction, SimpleAction
 from tests.scenarios.domain_model.roles import AdminRole
 
@@ -730,7 +730,7 @@ class TestBuildGraphJson:
 
     def test_returns_valid_json(self) -> None:
         """_build_graph_json returns a parseable JSON string."""
-        coordinator = CoreActionMachine.create_coordinator()
+        coordinator = Core.create_coordinator()
         machine = ActionProductMachine(mode="test", coordinator=coordinator)
 
         json_str = _build_graph_json(machine.gate_coordinator)
@@ -743,7 +743,7 @@ class TestBuildGraphJson:
 
     def test_contains_action_node(self) -> None:
         """Graph contains a node for the registered action."""
-        coordinator = CoreActionMachine.create_coordinator()
+        coordinator = Core.create_coordinator()
         machine = ActionProductMachine(mode="test", coordinator=coordinator)
 
         json_str = _build_graph_json(machine.gate_coordinator)
@@ -755,7 +755,7 @@ class TestBuildGraphJson:
 
     def test_ping_action_node_has_description_and_domain_from_meta_snapshot(self) -> None:
         """Primary-host ``@meta`` folds into the ``action`` node; hydration exposes it in JSON."""
-        coordinator = CoreActionMachine.create_coordinator()
+        coordinator = Core.create_coordinator()
         machine = ActionProductMachine(mode="test", coordinator=coordinator)
 
         json_str = _build_graph_json(machine.gate_coordinator)
@@ -772,7 +772,7 @@ class TestBuildGraphJson:
 
     def test_edges_include_source_and_target_keys_and_string_type(self) -> None:
         """Edges expose ``source_key`` / ``target_key`` and a string ``type`` (not a dict repr)."""
-        coordinator = CoreActionMachine.create_coordinator()
+        coordinator = Core.create_coordinator()
         machine = ActionProductMachine(mode="test", coordinator=coordinator)
 
         json_str = _build_graph_json(machine.gate_coordinator)

@@ -7,7 +7,7 @@ import importlib
 from typing import Final
 
 from action_machine.graph.graph_coordinator import GraphCoordinator
-from action_machine.runtime.machines.core_action_machine import CoreActionMachine
+from action_machine.runtime.machines.core import Core
 
 _MODULES: Final[tuple[str, ...]] = (
     "maxitor.samples.roles",
@@ -51,4 +51,4 @@ _MODULES: Final[tuple[str, ...]] = (
 def build_sample_coordinator() -> GraphCoordinator:
     for name in _MODULES:
         importlib.import_module(name)
-    return CoreActionMachine.create_coordinator()
+    return Core.create_coordinator()

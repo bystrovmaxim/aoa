@@ -11,7 +11,7 @@ import rustworkx as rx
 
 from action_machine.graph.base_intent_inspector import BaseIntentInspector
 from action_machine.graph.graph_builder import build_interchange_from_facet_vertices
-from action_machine.runtime.machines.core_action_machine import CoreActionMachine
+from action_machine.runtime.machines.core import Core
 from maxitor.samples.build import _MODULES, build_sample_coordinator
 from maxitor.samples.store.actions.checkout_submit import CheckoutSubmitAction
 from maxitor.samples.store.domain import StoreDomain
@@ -35,7 +35,7 @@ def test_get_graph_requires_build() -> None:
 
 def test_logical_graph_matches_standalone_builder_on_test_domain() -> None:
     _import_test_domain_modules()
-    coord = CoreActionMachine.create_coordinator()
+    coord = Core.create_coordinator()
     lg = coord.get_graph()
     assert isinstance(lg, rx.PyDiGraph)
     assert len(lg) >= 1

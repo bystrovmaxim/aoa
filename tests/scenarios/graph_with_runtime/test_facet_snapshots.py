@@ -12,7 +12,7 @@ from action_machine.intents.meta.meta_intents import ActionMetaIntent
 from action_machine.model.base_action import BaseAction
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_result import BaseResult
-from action_machine.runtime.machines.core_action_machine import CoreActionMachine
+from action_machine.runtime.machines.core import Core
 from tests.scenarios.domain_model.roles import AdminRole
 
 
@@ -24,7 +24,7 @@ class _SnapProbeAction(BaseAction[BaseParams, BaseResult]):
 
 
 def test_role_facet_snapshot_round_trip_with_graph() -> None:
-    coord = CoreActionMachine.create_coordinator()
+    coord = Core.create_coordinator()
 
     snap = coord.get_snapshot(_SnapProbeAction, "role")
     assert snap is not None
@@ -56,7 +56,7 @@ class _MetaFacetProbe(ActionMetaIntent):
 
 
 def test_meta_facet_snapshot_matches_inspect_payload() -> None:
-    coord = CoreActionMachine.create_coordinator()
+    coord = Core.create_coordinator()
 
     snap = coord.get_snapshot(_MetaFacetProbe, "meta")
     assert snap is not None
@@ -79,5 +79,5 @@ def test_no_snapshot_for_class_without_check_roles() -> None:
     class _NoRoleAction(BaseAction[BaseParams, BaseResult]):
         pass
 
-    coord = CoreActionMachine.create_coordinator()
+    coord = Core.create_coordinator()
     assert coord.get_snapshot(_NoRoleAction, "role") is None

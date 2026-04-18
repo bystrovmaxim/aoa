@@ -36,7 +36,7 @@ from action_machine.intents.plugins.events import (
 from action_machine.intents.plugins.on_decorator import on
 from action_machine.intents.plugins.plugin import Plugin
 from action_machine.runtime.machines.action_product_machine import ActionProductMachine
-from action_machine.runtime.machines.core_action_machine import CoreActionMachine
+from action_machine.runtime.machines.core import Core
 from tests.scenarios.domain_model import (
     ErrorHandledAction,
     ErrorTestParams,
@@ -54,7 +54,7 @@ def _make_machine(
     """Creates machine with given plugins and quiet logger."""
     return ActionProductMachine(
         mode="test",
-        coordinator=CoreActionMachine.create_coordinator(),
+        coordinator=Core.create_coordinator(),
         plugins=plugins,
         log_coordinator=LogCoordinator(loggers=[]),
     )
@@ -96,7 +96,7 @@ class TestOnErrorPluginWithHandler:
         counter = ErrorCounterPlugin()
         machine = ActionProductMachine(
             mode="test",
-            coordinator=CoreActionMachine.create_coordinator(),
+            coordinator=Core.create_coordinator(),
             plugins=[observer, counter],
             log_coordinator=LogCoordinator(loggers=[]),
         )
