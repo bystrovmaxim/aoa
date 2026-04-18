@@ -35,6 +35,10 @@ ARCHITECTURE / DATA FLOW
             │
             └─ action node + structural "depends" edges
 
+    Coordinator materialization adds informational ``belongs_to`` from each
+    synthesized **class** dependency stub (non-``BaseAction``) to the
+    ``application`` vertex when that vertex exists (same pattern as domains).
+
 ═══════════════════════════════════════════════════════════════════════════════
 INVARIANTS
 ═══════════════════════════════════════════════════════════════════════════════
@@ -69,9 +73,11 @@ from dataclasses import dataclass
 
 from action_machine.dependencies.dependency_factory import DependencyInfo
 from action_machine.dependencies.dependency_intent import DependencyIntent
+from action_machine.domain.application_context import ApplicationContext
 from action_machine.graph.base_facet_snapshot import BaseFacetSnapshot
 from action_machine.graph.base_intent_inspector import BaseIntentInspector
-from action_machine.graph.payload import FacetPayload
+from action_machine.graph.payload import EdgeInfo, FacetPayload
+from action_machine.interchange_vertex_labels import DEPENDENCY_SERVICE_VERTEX_TYPE
 from action_machine.model.base_action import BaseAction
 
 
@@ -88,6 +94,23 @@ class DependencyIntentInspector(BaseIntentInspector):
 
     _target_intent: type = DependencyIntent
 
+    @classmethod
+    def stub_outgoing_edges_for_class_dependency(cls) -> tuple[EdgeInfo, ...]:
+        """
+        Edges attached to a materialized ``@depends`` class stub (not ``BaseAction``).
+
+        Declares that the dependency class sits under the logical ``application``
+        root (``BELONGS_TO`` in interchange), mirroring ``ApplicationContextInspector``.
+        """
+        return (
+            cls._make_edge(
+                target_node_type="application",
+                target_cls=ApplicationContext,
+                edge_type="belongs_to",
+                is_structural=False,
+            ),
+        )
+
     @staticmethod
     def _depends_target_node_type(dep_cls: type) -> str:
         """
@@ -95,9 +118,15 @@ class DependencyIntentInspector(BaseIntentInspector):
 
         ``BaseAction`` subclasses share the primary ``action`` vertex id with the
         action's other facets; stubs use ``node_type=\"action\"`` so the coordinator
-        merges them instead of duplicating ``node_name`` as a separate ``dependency`` node.
+        merges them instead of duplicating ``node_name`` as a separate node.
+
+        Other dependency classes share a single facet type
+        (``action_machine.interchange_vertex_labels.DEPENDENCY_SERVICE_VERTEX_TYPE``);
+        identity remains ``target_name`` / ``class_ref`` (canonical class).
         """
-        return "action" if issubclass(dep_cls, BaseAction) else "dependency"
+        if issubclass(dep_cls, BaseAction):
+            return "action"
+        return DEPENDENCY_SERVICE_VERTEX_TYPE
 
     @classmethod
     def _subclasses_recursive(cls) -> list[type]:

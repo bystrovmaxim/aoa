@@ -185,6 +185,8 @@ from typing import Any, Literal
 import rustworkx as rx
 
 from action_machine.dependencies.dependency_factory import DEPENDENCY_FACTORY_CACHE_KEY
+from action_machine.dependencies.dependency_intent_inspector import DependencyIntentInspector
+from action_machine.domain.application_context import ApplicationContext
 from action_machine.graph.base_facet_snapshot import BaseFacetSnapshot
 from action_machine.graph.base_intent_inspector import BaseIntentInspector
 from action_machine.graph.exceptions import (
@@ -479,8 +481,17 @@ class GraphCoordinator:
 
         Covers structural depends/connection stubs and informational belongs_to
         (domain classes are not otherwise visited by inspectors).
+
+        Class dependency stubs (``@depends`` on a non-``BaseAction`` type) get
+        informational ``belongs_to`` → ``application`` when the application
+        vertex is present (see
+        :meth:`DependencyIntentInspector.stub_outgoing_edges_for_class_dependency`).
         """
         keys = {self._make_key(p.node_type, p.node_name) for p in payloads}
+        app_key = self._make_key(
+            "application",
+            BaseIntentInspector._make_node_name(ApplicationContext),
+        )
         synthetic_source = "__edge_target__"
         result = list(payloads)
         changed = True
@@ -495,13 +506,22 @@ class GraphCoordinator:
                     if tkey in keys:
                         continue
                     keys.add(tkey)
+                    stub_edges: tuple = ()
+                    if (
+                        edge.edge_type == "depends"
+                        and not issubclass(edge.target_class_ref, BaseAction)
+                        and app_key in keys
+                    ):
+                        stub_edges = (
+                            DependencyIntentInspector.stub_outgoing_edges_for_class_dependency()
+                        )
                     extra.append(
                         FacetPayload(
                             node_type=edge.target_node_type,
                             node_name=edge.target_name,
                             node_class=edge.target_class_ref,
                             node_meta=(),
-                            edges=(),
+                            edges=stub_edges,
                         ),
                     )
                     if tkey not in payload_sources:

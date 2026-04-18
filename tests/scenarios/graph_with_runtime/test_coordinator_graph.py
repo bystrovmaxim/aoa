@@ -349,11 +349,7 @@ class TestDependenciesAndConnections:
         coord.get_snapshot(_ActionWithDepsAction, "meta")
         coord.get_snapshot(_AnotherActionWithServiceAAction, "meta")
         assert _class_present(coord, _ServiceA)
-        svc_key_fragment = f"{_ServiceA.__module__}.{_ServiceA.__qualname__}"
-        dep_for_a = [
-            n for n in coord.get_nodes_by_type("dependency")
-            if svc_key_fragment in n["name"]
-        ]
+        dep_for_a = coord.get_nodes_for_class(_ServiceA)
         assert len(dep_for_a) == 1
 
 
