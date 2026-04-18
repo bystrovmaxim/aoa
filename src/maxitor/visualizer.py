@@ -506,22 +506,6 @@ def generate_g6_html(
             width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0;
             border: 1px solid rgba(0,0,0,0.12);
         }}
-        .properties-head {{
-            display: flex; align-items: flex-start; gap: 12px; margin-bottom: 2px;
-        }}
-        .properties-type-icon {{
-            width: 44px; height: 44px; border-radius: 50%; flex-shrink: 0;
-            border: 1px solid rgba(0,0,0,0.12); object-fit: cover; display: block;
-        }}
-        .properties-head-text {{
-            flex: 1; min-width: 0;
-        }}
-        .properties-head .properties-entity-name {{ margin-top: 0; }}
-        .type-icon, .fill-type-icon {{
-            width: 22px; height: 22px; border-radius: 50%; flex-shrink: 0;
-            border: 1px solid rgba(0,0,0,0.12); object-fit: cover; display: block;
-        }}
-        .fill-type-icon {{ width: 20px; height: 20px; }}
         .node-detail-shell {{
             position: fixed; top: 0; right: 0; height: 100vh; z-index: 100001;
             width: min(306px, calc(92vw * 0.85)); max-width: 306px;
@@ -552,25 +536,14 @@ def generate_g6_html(
             display: flex; align-items: center; justify-content: center;
         }}
         .node-detail-close:hover {{ background: #f5f5f5; color: #333; }}
-        .properties-kicker {{
-            font-size: 9px; font-weight: 700; letter-spacing: 0.14em;
-            color: #9e9e9e; text-transform: uppercase; margin: 0 0 8px;
-        }}
-        .properties-rule {{
-            border: 0; height: 1px; background: #eee; margin: 0 0 16px;
-        }}
         .properties-entity-name {{
             font-size: 16px; font-weight: 700; letter-spacing: 0.04em;
-            text-transform: uppercase; color: #111; margin: 0 0 4px;
+            text-transform: uppercase; color: #111; margin: 0 0 18px;
             padding-right: 40px; line-height: 1.2;
         }}
         .properties-entity-name.is-vertex-kind {{
             font-size: 14px; font-weight: 600; letter-spacing: 0.02em;
             text-transform: none; color: #222;
-        }}
-        .properties-sub {{
-            font-size: 10px; font-weight: 400; letter-spacing: 0.02em;
-            color: #bdbdbd; margin: 0 0 20px; line-height: 1.3;
         }}
         .prop-block {{ margin-bottom: 18px; }}
         .prop-block-type {{ margin-bottom: 14px; }}
@@ -607,18 +580,13 @@ def generate_g6_html(
         }}
         .copy-btn:hover {{ background: #e8e8e8; color: #424242; }}
         .type-row {{ display: flex; align-items: center; gap: 7px; }}
+        .type-icon {{
+            width: 22px; height: 22px; border-radius: 50%; flex-shrink: 0;
+            border: 1px solid rgba(0,0,0,0.12); object-fit: cover; display: block;
+        }}
         .type-dot {{
             width: 7px; height: 7px; border-radius: 50%;
             border: 1px solid rgba(0,0,0,0.1); flex-shrink: 0;
-        }}
-        .fill-row {{ display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }}
-        .fill-swatch {{
-            width: 16px; height: 16px; border-radius: 50%;
-            border: 1px solid rgba(0,0,0,0.12); flex-shrink: 0;
-        }}
-        .fill-hex-muted {{
-            margin-left: auto; font-size: 11px; color: #9e9e9e;
-            font-family: ui-monospace, monospace;
         }}
         .zoom-toolbar {{
             position: fixed; bottom: 10px; left: 10px; z-index: 100000;
@@ -846,27 +814,12 @@ __G6_SCRIPT__
           const metaKeys = Object.keys(meta).sort().filter((k) => k !== 'description');
 
           let html = '';
-          html += '<p class="properties-kicker">PROPERTIES</p>';
-          html += '<hr class="properties-rule" />';
-          if (iconSrc) {{
-            html += '<div class="properties-head">';
-            html +=
-              '<img class="properties-type-icon" src="' +
-              escAttr(iconSrc) +
-              '" width="44" height="44" alt="" />';
-            html += '<div class="properties-head-text">';
-          }}
           html +=
             '<h2 class="properties-entity-name' +
             (useHumanHeadingStyle ? ' is-vertex-kind' : '') +
             '">' +
             esc(entityHeading) +
             '</h2>';
-          if (iconSrc) {{
-            html += '<p class="properties-sub">Properties</p></div></div>';
-          }} else {{
-            html += '<p class="properties-sub">Properties</p>';
-          }}
 
           const showShortLabelRow =
             useHumanHeadingStyle &&
@@ -935,21 +888,6 @@ __G6_SCRIPT__
           if (facetLabel) {{
             html += '<div class="prop-block"><div class="prop-label">Facet</div>';
             html += '<div class="prop-value">' + esc(facetLabel) + '</div></div>';
-          }}
-
-          if (fill) {{
-            html += '<div class="prop-block"><div class="prop-label">Fill</div>';
-            html += '<div class="prop-value fill-row">';
-            if (iconSrc) {{
-              html +=
-                '<img class="fill-type-icon" src="' +
-                escAttr(iconSrc) +
-                '" width="20" height="20" alt="" />';
-            }}
-            html += '<span class="fill-swatch" style="background:' + esc(fill) + '"></span>';
-            html += '<span class="prop-value-mono">' + esc(fill) + '</span>';
-            html += '<span class="fill-hex-muted">' + esc(fill) + '</span>';
-            html += '</div></div>';
           }}
 
           if (description) {{
