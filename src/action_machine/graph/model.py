@@ -2,7 +2,8 @@
 """
 Frozen vertex/edge transport types for the coordinator graph (spec graph.md §10).
 
-Interchange lists are built from facet payloads or from a small synthetic JSON bundle;
+Interchange lists are built from facet payloads or from a small synthetic JSON bundle
+(vertices use ``node_type`` for the facet kind string);
 they are independent of ``rustworkx`` until commit into ``GraphCoordinator._graph``.
 """
 
@@ -17,9 +18,9 @@ class GraphVertex:
     """One coordinator graph vertex (interchange shape)."""
 
     id: str
-    vertex_type: str
+    node_type: str
     stereotype: str
-    display_name: str
+    label: str
     class_ref: type | None
     properties: dict[str, Any]
 

@@ -24,7 +24,7 @@ After a successful ``register(...).build()``:
    ``(owner class, facet storage key)``. Read via ``get_snapshot(cls, facet_key)``.
 
 3. **Interchange graph** — the committed ``rx.PyDiGraph`` in ``_graph`` holds the
-   canonical public topology (``vertex_type``, ``id``, …). Vertex ``id`` matches the
+   canonical public topology (``node_type``, ``id``, …). Vertex ``id`` matches the
    facet key ``node_type:node_name``; edges are projected from payload ``edges`` via
    :mod:`action_machine.graph.graph_builder`. Read it with :meth:`get_graph`.
 
@@ -224,7 +224,7 @@ class GraphCoordinator:
             Set of registered inspectors (duplicate registration guard).
 
         _graph : rx.PyDiGraph
-            Directed interchange graph (vertex ``id`` / ``vertex_type`` /
+            Directed interchange graph (vertex ``id`` / ``node_type`` /
             ``stereotype``, edge ``edge_type`` / ``category`` / …). Filled at the end of
             ``build()``; read-only afterward via :meth:`get_graph`.
 
@@ -483,7 +483,7 @@ class GraphCoordinator:
         Covers structural depends/connection stubs and informational belongs_to
         (domain classes are not otherwise visited by inspectors).
 
-        **DependencyService** stubs from ``@depends`` get informational
+        **Service** stubs from ``@depends`` get informational
         ``belongs_to`` → ``application`` when that vertex exists. Targets that
         merge into ``action`` or ``resource_manager`` do not (see
         :meth:`DependencyIntentInspector.stub_outgoing_edges_for_class_dependency`).
@@ -744,10 +744,10 @@ class GraphCoordinator:
         for v in vertices:
             id_to_idx[v.id] = lg.add_node(
                 {
-                    "vertex_type": v.vertex_type,
+                    "node_type": v.node_type,
                     "id": v.id,
                     "stereotype": v.stereotype,
-                    "display_name": v.display_name,
+                    "label": v.label,
                     "class_ref": v.class_ref,
                     "properties": v.properties,
                 },
@@ -960,7 +960,7 @@ class GraphCoordinator:
 
         Pass **facet** skeleton dicts (``node_type``, ``id``, ``class_ref``), e.g. from
         :meth:`facet_topology_copy` node payloads — not interchange :meth:`get_graph` payloads
-        (those use ``vertex_type`` / ``id`` interchange fields).
+        (those use ``node_type`` / ``id`` on the interchange view).
 
         Resolves the snapshot storage key from phase-1 registration (or falls back to
         ``node_type`` for nodes that never registered a snapshot, except ``action``) and
@@ -1119,7 +1119,7 @@ class GraphCoordinator:
         """
         Return a **low-level** copy of the interchange graph (topology + payloads).
 
-        Node payloads use ``vertex_type``, ``id``, ``stereotype``, ``display_name``,
+        Node payloads use ``node_type``, ``id``, ``stereotype``, ``label``,
         ``class_ref``, ``properties`` (no ``meta``). For facet skeleton dicts
         (``node_type``, ``id``, ``class_ref``), use :meth:`facet_topology_copy`.
 

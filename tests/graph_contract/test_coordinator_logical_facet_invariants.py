@@ -60,16 +60,16 @@ def test_hydrate_facet_raw_payload_matches_get_node_for_merged_action_host() -> 
 
 
 def test_hydrate_logical_graph_payload_does_not_fill_facet_meta() -> None:
-    """Passing a logical interchange dict is unsupported; ``meta`` stays empty and ``node_type`` is absent."""
+    """Interchange payloads may be passed to ``hydrate_graph_node``; ``node_type`` is preserved, ``meta`` may stay empty."""
     _import_test_domain_modules()
     coord = build_sample_coordinator()
     g = coord.get_graph()
     idx = next(iter(g.node_indices()))
     raw = dict(g[idx])
-    assert "vertex_type" in raw
+    assert "node_type" in raw
     hydrated = coord.hydrate_graph_node(raw)
     assert hydrated.get("meta") == {}
-    assert "node_type" not in hydrated
+    assert hydrated.get("node_type") == raw.get("node_type")
 
 
 def test_mcp_build_graph_json_emits_no_deprecation_warnings() -> None:

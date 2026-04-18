@@ -9,7 +9,7 @@ PURPOSE
 Write rustworkx graphs under ``maxitor`` diagnostics to **GraphML**, **JSON**, and
 a minimal **DOT** (Graphviz) encoding. The coordinator may expose either a **facet**
 graph (``node_type``, ``id``, ``class_ref`` on facet nodes) or an **interchange**
-graph (``vertex_type``, ``id``, ``display_name``). This module normalizes interchange
+graph (``node_type``, ``id``, ``label``). This module normalizes interchange
 payloads into the facet-shaped view expected by string-only GraphML serialization,
 and picks ``get_graph_for_visualization()`` / ``get_graph()`` so HTML, GraphML, JSON, and DOT stay
 aligned on the same export surface.
@@ -101,20 +101,21 @@ def normalize_coordinator_node_payload_for_visualization(
     can list every field. Vertex identity stays on the interchange ``id`` (no duplicate
     ``name``).
     """
-    if "vertex_type" not in node or "id" not in node:
-        return dict(node)
-    vid = str(node["id"])
-    vt = str(node.get("vertex_type", "unknown"))
-    display = str(node.get("display_name", "") or "").strip()
-    label = display or (vid.rsplit(".", maxsplit=1)[-1] if "." in vid else vid)
     merged = dict(node)
-    merged.update(
-        {
-            "node_type": vt,
-            "label": label,
-            "class_ref": node.get("class_ref"),
-        },
-    )
+    # Legacy payloads may still carry ``vertex_type``; canonical key is ``node_type``.
+    if "vertex_type" in merged and "node_type" not in merged:
+        merged["node_type"] = str(merged.pop("vertex_type"))
+    if "id" not in merged:
+        return merged
+    # Interchange rows from ``get_graph()`` always include ``stereotype`` (possibly empty).
+    if "stereotype" in merged:
+        text = str(merged.get("label", "") or "").strip()
+        if not text:
+            text = str(merged.get("display_name", "") or "").strip()
+        vid = str(merged["id"])
+        derived = text or (vid.rsplit(".", maxsplit=1)[-1] if "." in vid else vid)
+        merged.setdefault("label", derived)
+        merged.setdefault("class_ref", merged.get("class_ref"))
     return merged
 
 
@@ -149,7 +150,7 @@ def pygraph_to_graphml_string_dicts(graph: rx.PyDiGraph) -> rx.PyDiGraph:
         graph_key = f"{node_type}:{nid}" if node_type or nid else str(int(idx))
         payload = {
             "id": nid,
-            "type": node_type,
+            "node_type": node_type,
             "class_name": class_name,
             "graph_key": graph_key,
             "rw_index": str(int(idx)),

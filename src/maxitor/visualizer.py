@@ -13,7 +13,7 @@ affect HTML — optional GraphML/JSON/DOT exports are separate in
 Layout: d3-force with custom distance/strength per node type. Domains receive
 deterministic **seed** ``x``/``y`` (wedges around a circle) so cross-domain edges
 cross the canvas less than a single random blob; forces still refine the result.
-Node fill colors: **fixed** per interchange ``vertex_type`` / ``node_type`` string
+Node fill colors: **fixed** per ``node_type`` string
 (see :data:`VERTEX_TYPE_FILL_COLORS`); ``application`` is always black. Each node is
 drawn as an SVG **data URL** (white Lucide icons on the colored disk; see
 :mod:`maxitor.visualizer_icons`). Vertex types not listed in
@@ -48,7 +48,7 @@ from typing import Any
 
 import rustworkx as rx
 
-from action_machine.interchange_vertex_labels import DEPENDENCY_SERVICE_VERTEX_TYPE
+from action_machine.interchange_vertex_labels import SERVICE_VERTEX_TYPE
 from maxitor.graph_export import (
     coordinator_pygraph_for_visual_export,
     normalize_coordinator_node_payload_for_visualization,
@@ -86,7 +86,7 @@ VERTEX_TYPE_FILL_COLORS: dict[str, str] = {
     "plugin": "#33A02C",
     "subscription": "#FDBF6F",
     "service": "#1F78B4",
-    DEPENDENCY_SERVICE_VERTEX_TYPE: "#4DAF4A",
+    SERVICE_VERTEX_TYPE: "#4DAF4A",
 }
 
 DEFAULT_COLOR = "#95a5a6"
@@ -127,9 +127,9 @@ def _element_short_name(node: dict[str, Any]) -> str:
 
 
 def _node_title_for_visual(node: dict[str, Any]) -> str:
-    dn = str(node.get("display_name", "") or "").strip()
-    if dn:
-        return dn
+    title = str(node.get("label", "") or node.get("display_name", "") or "").strip()
+    if title:
+        return title
     return _element_short_name(node)
 
 
@@ -140,15 +140,15 @@ def _element_qualified_name(node: dict[str, Any]) -> str:
     return str(node.get("id") or node.get("name", "") or node.get("label", "") or "?")
 
 
-def _fill_color_for_vertex_type(vertex_type: str) -> str:
+def _fill_color_for_vertex_type(node_type: str) -> str:
     """
-    Stable fill for one ``vertex_type`` / ``node_type`` string.
+    Stable fill for one ``node_type`` string.
 
     Known types use :data:`VERTEX_TYPE_FILL_COLORS`. Any other label uses
     :data:`DEFAULT_COLOR` so such nodes share one neutral disk behind the
     dependency-style icon.
     """
-    t = str(vertex_type).strip()
+    t = str(node_type).strip()
     if not t or t == "unknown":
         return DEFAULT_COLOR
     if t in VERTEX_TYPE_FILL_COLORS:
@@ -181,14 +181,16 @@ def _default_archive_logs_dir() -> Path:
 
 
 def _vertex_type_counts(graph: rx.PyDiGraph) -> dict[str, int]:
-    """Count interchange ``vertex_type`` labels (best-effort for diagnostics)."""
+    """Count ``node_type`` labels (best-effort for diagnostics)."""
     counts: dict[str, int] = {}
     for idx in graph.node_indices():
         raw = graph[idx]
         if not isinstance(raw, dict):
             continue
-        vt = str(raw.get("vertex_type", "unknown"))
-        counts[vt] = counts.get(vt, 0) + 1
+        nt = str(
+            raw.get("node_type", raw.get("vertex_type", "unknown")),
+        )
+        counts[nt] = counts.get(nt, 0) + 1
     return counts
 
 
@@ -206,9 +208,9 @@ _OWNERSHIP_HOST_TO_CHILD: frozenset[str] = frozenset(
     },
 )
 
-# Role facets and ``DependencyService`` stubs (see :data:`VERTEX_TYPE_FILL_COLORS`).
+# Role facets and ``Service`` stubs (see :data:`VERTEX_TYPE_FILL_COLORS`).
 _ROLE_VERTEX_TYPES_FOR_APP_BUNDLE: frozenset[str] = frozenset(
-    {"role", "role_class", "role_mode", DEPENDENCY_SERVICE_VERTEX_TYPE},
+    {"role", "role_class", "role_mode", SERVICE_VERTEX_TYPE},
 )
 
 # Hull colors for domain bubbles (one per domain vertex); distinct from typical node fills.
@@ -234,7 +236,7 @@ def _application_roles_bubble_plugin(
     color_index: int,
 ) -> dict[str, Any] | None:
     """
-    One ``bubble-sets`` hull: ``application``, role facets, ``DependencyService``
+    One ``bubble-sets`` hull: ``application``, role facets, ``Service``
     dependency stubs, and every vertex whose ``node_type`` is not in
     :data:`VERTEX_TYPE_FILL_COLORS`.
     """
@@ -414,7 +416,7 @@ def _bubble_sets_plugins_for_domains(
 
     The ``application`` vertex is never added to a domain bubble.
 
-    Additionally, one hull bundles ``application``, ``DependencyService`` stubs,
+    Additionally, one hull bundles ``application``, ``Service`` stubs,
     all ``role`` / ``role_class`` / ``role_mode`` vertices, and every node whose
     ``node_type`` is not listed in :data:`VERTEX_TYPE_FILL_COLORS`.
     """

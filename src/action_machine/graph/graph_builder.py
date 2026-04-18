@@ -72,9 +72,9 @@ def _vertex_from_row(row: Mapping[str, Any]) -> GraphVertex:
         raise TypeError(msg)
     return GraphVertex(
         id=str(row["id"]),
-        vertex_type=str(row["vertex_type"]),
+        node_type=str(row["node_type"]),
         stereotype=str(row["stereotype"]),
-        display_name=str(row["display_name"]),
+        label=str(row["label"]),
         class_ref=cr,
         properties=dict(row["properties"]),
     )
@@ -142,9 +142,9 @@ def _tail_name(qualname: str) -> str:
     return qualname.rsplit(".", maxsplit=1)[-1]
 
 
-def _facet_vertex_display_name(p: FacetPayload) -> str:
+def _facet_vertex_label(p: FacetPayload) -> str:
     """
-    Labels for lifecycle facets: state nodes use the two-part id (e.g. ``SalesOrderLifecycle:new``),
+    Short labels for lifecycle facets: state nodes use the two-part id (e.g. ``SalesOrderLifecycle:new``),
     lifecycle field nodes use the model field name (e.g. ``lifecycle``).
     """
     meta = dict(p.node_meta)
@@ -167,9 +167,9 @@ def _from_facet_payloads(
             raise ValueError(msg)
         vertices_by_id[vid] = GraphVertex(
             id=vid,
-            vertex_type=p.node_type,
+            node_type=p.node_type,
             stereotype="",
-            display_name=_facet_vertex_display_name(p),
+            label=_facet_vertex_label(p),
             class_ref=None,
             properties={},
         )

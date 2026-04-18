@@ -23,7 +23,7 @@ def test_default_get_graph_returns_interchange() -> None:
     _import_test_domain_modules()
     coord = CoreActionMachine.create_coordinator()
     g = coord.get_graph()
-    assert "vertex_type" in g[0]
+    assert "node_type" in g[0]
     assert len(g) == len(coord.get_graph())
 
 

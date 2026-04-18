@@ -22,9 +22,9 @@ from action_machine.graph.exceptions import InvalidGraphError
 def _v(vid: str) -> GraphVertex:
     return GraphVertex(
         id=vid,
-        vertex_type="action",
+        node_type="action",
         stereotype="Business Process",
-        display_name=vid,
+        label=vid,
         class_ref=None,
         properties={},
     )
@@ -83,9 +83,9 @@ def test_assert_dag_edges_acyclic_raises_on_cycle() -> None:
 @pytest.mark.graph_coverage
 def test_dag_subgraph_is_acyclic_from_rx_empty_and_chain() -> None:
     g = rx.PyDiGraph()
-    i0 = g.add_node({"id": "a", "vertex_type": "action"})
-    i1 = g.add_node({"id": "b", "vertex_type": "action"})
-    i2 = g.add_node({"id": "c", "vertex_type": "action"})
+    i0 = g.add_node({"id": "a", "node_type": "action"})
+    i1 = g.add_node({"id": "b", "node_type": "action"})
+    i2 = g.add_node({"id": "c", "node_type": "action"})
     g.add_edge(
         i0,
         i1,

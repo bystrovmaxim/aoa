@@ -48,9 +48,9 @@ def test_build_from_synthetic_bundle_rejects_duplicate_vertex_id() -> None:
     dup = "x1"
     v = {
         "id": dup,
-        "vertex_type": "t",
+        "node_type": "t",
         "stereotype": "s",
-        "display_name": "n",
+        "label": "n",
         "class_ref": None,
         "properties": {},
     }
@@ -64,9 +64,9 @@ def test_build_from_synthetic_bundle_rejects_unknown_edge_endpoint() -> None:
         "vertices": [
             {
                 "id": "only",
-                "vertex_type": "t",
+                "node_type": "t",
                 "stereotype": "s",
-                "display_name": "n",
+                "label": "n",
                 "class_ref": None,
                 "properties": {},
             },
@@ -120,25 +120,25 @@ def test_build_from_synthetic_bundle_counts_small_bundle() -> None:
         "vertices": [
             {
                 "id": "d1",
-                "vertex_type": "domain",
+                "node_type": "domain",
                 "stereotype": "Business Object",
-                "display_name": "D",
+                "label": "D",
                 "class_ref": None,
                 "properties": {},
             },
             {
                 "id": "a1",
-                "vertex_type": "action",
+                "node_type": "action",
                 "stereotype": "Business Process",
-                "display_name": "A",
+                "label": "A",
                 "class_ref": None,
                 "properties": {},
             },
             {
                 "id": "r1",
-                "vertex_type": "role_class",
+                "node_type": "role_class",
                 "stereotype": "Business Role",
-                "display_name": "R",
+                "label": "R",
                 "class_ref": None,
                 "properties": {},
             },

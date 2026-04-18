@@ -16,9 +16,9 @@ from .facet_payload_probe import graph_coordinator_default_inspectors_registered
 def _v(vid: str) -> GraphVertex:
     return GraphVertex(
         id=vid,
-        vertex_type="action",
+        node_type="action",
         stereotype="Business Process",
-        display_name=vid,
+        label=vid,
         class_ref=None,
         properties={},
     )

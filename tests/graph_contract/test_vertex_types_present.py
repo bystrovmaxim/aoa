@@ -1,7 +1,7 @@
 # tests/graph_contract/test_vertex_types_present.py
 
 """
-PR5 matrix (plan 009): interchange ``vertex_type`` values from the samples narrow graph.
+PR5 matrix (plan 009): interchange ``node_type`` values from the samples narrow graph.
 
 Full ``VERTEX_TYPES`` coverage with stubs or skips is PR11; here we lock the
 subset produced by ``build_sample_coordinator()`` today.
@@ -37,7 +37,7 @@ def _import_sample_modules() -> None:
 def test_vertex_types_matrix_samples_narrow_projection() -> None:
     _import_sample_modules()
     lg = build_sample_coordinator().get_graph()
-    present = {lg[idx]["vertex_type"] for idx in lg.node_indices()}
+    present = {lg[idx]["node_type"] for idx in lg.node_indices()}
     assert present >= _SAMPLES_LOGICAL_VERTEX_TYPES
 
 
@@ -49,7 +49,7 @@ def test_c2_single_action_vertex_for_checkout_submit_action() -> None:
     action_id = BaseIntentInspector._make_node_name(CheckoutSubmitAction)
     matches = [lg[i] for i in lg.node_indices() if lg[i]["id"] == action_id]
     assert len(matches) == 1
-    assert matches[0]["vertex_type"] == "action"
+    assert matches[0]["node_type"] == "action"
 
 
 @pytest.mark.graph_coverage
@@ -61,7 +61,7 @@ def test_c2_single_domain_vertex_per_bounded_context() -> None:
         domain_id = BaseIntentInspector._make_node_name(domain_cls)
         matches = [lg[i] for i in lg.node_indices() if lg[i]["id"] == domain_id]
         assert len(matches) == 1, domain_cls
-        assert matches[0]["vertex_type"] == "domain"
+        assert matches[0]["node_type"] == "domain"
 
 
 @pytest.mark.graph_coverage
@@ -72,7 +72,7 @@ def test_single_application_vertex_and_domain_belongs_to_application() -> None:
     app_id = BaseIntentInspector._make_node_name(ApplicationContext)
     app_nodes = [lg[i] for i in lg.node_indices() if lg[i]["id"] == app_id]
     assert len(app_nodes) == 1
-    assert app_nodes[0]["vertex_type"] == "application"
+    assert app_nodes[0]["node_type"] == "application"
     id_by_idx = {i: lg[i]["id"] for i in lg.node_indices()}
     for domain_cls in (StoreDomain, BillingDomain, MessagingDomain, CatalogDomain):
         domain_id = BaseIntentInspector._make_node_name(domain_cls)

@@ -104,9 +104,9 @@ class DescribedFieldsIntentInspector(BaseIntentInspector):
         return cls._make_node_name(model_cls)
 
     @classmethod
-    def interchange_vertex_type_for_schema_model(cls, model_cls: type) -> str:
+    def interchange_node_type_for_schema_model(cls, model_cls: type) -> str:
         """
-        Canonical interchange ``vertex_type`` for a non-entity Pydantic schema class.
+        Canonical interchange ``node_type`` for a non-entity Pydantic schema class.
 
         ``BaseParams`` → ``params_schema``; ``BaseResult`` → ``result_schema``;
         everything else (still documented via this inspector) → ``described_fields``.
@@ -126,7 +126,7 @@ class DescribedFieldsIntentInspector(BaseIntentInspector):
         Graph host ``(node_type, node_name)`` for edges that reference a schema class.
 
         Routes by class kind: ``entity``, ``params_schema``, ``result_schema``, or
-        ``described_fields`` — same rules as :meth:`interchange_vertex_type_for_schema_model`
+        ``described_fields`` — same rules as :meth:`interchange_node_type_for_schema_model`
         (entities use the entity vertex; params/result use their contract vertices).
         """
         from action_machine.domain.entity_intent import EntityIntent
@@ -134,7 +134,7 @@ class DescribedFieldsIntentInspector(BaseIntentInspector):
         if issubclass(schema_cls, EntityIntent):
             return ("entity", cls._make_node_name(schema_cls))
         return (
-            cls.interchange_vertex_type_for_schema_model(schema_cls),
+            cls.interchange_node_type_for_schema_model(schema_cls),
             cls.described_fields_vertex_name(schema_cls),
         )
 
@@ -172,7 +172,7 @@ class DescribedFieldsIntentInspector(BaseIntentInspector):
                 )
 
             return FacetPayload(
-                node_type=DescribedFieldsIntentInspector.interchange_vertex_type_for_schema_model(
+                node_type=DescribedFieldsIntentInspector.interchange_node_type_for_schema_model(
                     self.class_ref,
                 ),
                 node_name=DescribedFieldsIntentInspector.described_fields_vertex_name(
