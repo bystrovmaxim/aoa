@@ -1,4 +1,4 @@
-# src/action_machine/domain/application_context.py
+# src/action_machine/application/application_context.py
 """
 Canonical interchange anchor for the logical **application**.
 

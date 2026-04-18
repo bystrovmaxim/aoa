@@ -1,0 +1,141 @@
+# src/action_machine/domain/entity_node.py
+"""
+EntityNode — minimal interchange node for ``BaseEntity`` subclasses.
+
+═══════════════════════════════════════════════════════════════════════════════
+PURPOSE
+═══════════════════════════════════════════════════════════════════════════════
+
+Materializes a frozen :class:`~action_machine.graph.base_graph_node.BaseGraphNode` from an
+entity **class** object: stable ``id`` (dotted path), ``node_type="Entity"``,
+``label`` from the class name, ``properties`` from :meth:`get_properties`, ``links`` from
+:meth:`_get_all_links` via :meth:`get_domain_link` (``@entity`` / ``_entity_info`` and ``@meta`` / ``_meta_info`` merged; see :meth:`_meta_info_dict`).
+
+═══════════════════════════════════════════════════════════════════════════════
+ARCHITECTURE / DATA FLOW
+═══════════════════════════════════════════════════════════════════════════════
+
+    type[TEntity]  (``TEntity`` bound to ``BaseEntity``)
+              │
+              v
+    EntityNode.parse / ``_meta_info_dict`` / ``get_properties`` / ``get_domain_link`` / ``_get_all_links``  →  frozen ``BaseGraphNode``
+
+═══════════════════════════════════════════════════════════════════════════════
+INVARIANTS
+═══════════════════════════════════════════════════════════════════════════════
+
+- The entity class is not stored on the node instance (only interchange fields).
+- :meth:`get_properties` may add ``description`` from merged declaration dict (``@entity`` / ``@meta``). :meth:`get_domain_link` returns a :class:`~action_machine.graph.base_graph_edge.BaseGraphEdge` with ``link_name="domain"`` or ``None`` when there is no valid domain; :meth:`_get_all_links` is ``[edge]`` or ``[]``.
+
+═══════════════════════════════════════════════════════════════════════════════
+EXAMPLES
+═══════════════════════════════════════════════════════════════════════════════
+
+Happy path::
+
+    class OrderEntity(BaseEntity): ...
+    n = EntityNode(OrderEntity)
+    assert n.node_type == "Entity" and n.label == "OrderEntity"
+
+Edge case: no declaration dict / no domain → ``links == []``; invalid or
+missing ``domain`` is ignored (same as no edges).
+
+═══════════════════════════════════════════════════════════════════════════════
+ERRORS / LIMITATIONS
+═══════════════════════════════════════════════════════════════════════════════
+
+- No validation in ``parse``; :meth:`get_domain_link` is ``None`` unless ``domain`` is a
+  ``BaseDomain`` subclass type in the merged declaration mapping.
+
+═══════════════════════════════════════════════════════════════════════════════
+AI-CORE-BEGIN
+═══════════════════════════════════════════════════════════════════════════════
+ROLE: Thin BaseGraphNode for entity class types.
+CONTRACT: ``node_type="Entity"``; dotted-path ``id``; label = class ``__name__``; ``properties`` from :meth:`get_properties`; ``links`` from :meth:`_get_all_links` (via :meth:`get_domain_link` on merged ``@entity`` / ``@meta`` info).
+INVARIANTS: Immutable node; domain edge from declaration metadata on the entity class.
+FLOW: entity class -> ``BaseGraphNode.__init__`` -> ``parse`` -> frozen BaseGraphNode fields.
+EXTENSION POINTS: Other graph node specializations follow the same parse pattern.
+AI-CORE-END
+═══════════════════════════════════════════════════════════════════════════════
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+from types import SimpleNamespace
+from typing import Any, TypeVar
+
+from action_machine.common import qualified_dotted_name
+from action_machine.graph.base_graph_edge import BaseGraphEdge
+from action_machine.domain.base_domain import BaseDomain
+from action_machine.domain.entity import BaseEntity
+from action_machine.graph.base_graph_node import BaseGraphNode
+
+TEntity = TypeVar("TEntity", bound=BaseEntity)
+
+
+@dataclass(init=False, frozen=True)
+class EntityNode(BaseGraphNode[type[TEntity]]):
+    """
+    AI-CORE-BEGIN
+    ROLE: Interchange bridge for ``BaseEntity`` host classes.
+    CONTRACT: Dotted-path ``id``, ``__name__`` label; ``get_properties`` / ``get_domain_link`` via :meth:`_meta_info_dict`; ``links`` = :meth:`_get_all_links`.
+    AI-CORE-END
+    """
+
+    @classmethod
+    def _meta_info_dict(cls, entity_cls: type[TEntity]) -> dict[str, Any]:
+        """
+        Merge ``_entity_info`` (``@entity``) then ``_meta_info`` (``@meta``); latter wins on key clash.
+        """
+        out: dict[str, Any] = {}
+        for attr in ("_entity_info", "_meta_info"):
+            raw = getattr(entity_cls, attr, None)
+            if isinstance(raw, dict):
+                out.update(raw)
+        return out
+
+    @classmethod
+    def get_domain_link(
+        cls,
+        entity_cls: type[TEntity],
+    ) -> BaseGraphEdge | None:
+        """
+        ``BaseGraphEdge`` for the ``domain`` slot, or ``None`` when declarations have no
+        valid ``BaseDomain`` in ``domain``.
+        """
+        meta = cls._meta_info_dict(entity_cls)
+        dom = meta.get("domain")
+        if dom is None:
+            return None
+        if not isinstance(dom, type) or not issubclass(dom, BaseDomain):
+            return None
+        return BaseGraphEdge(
+            link_name="domain",
+            target_id=qualified_dotted_name(dom),
+        )
+
+    @classmethod
+    def _get_all_links(cls, entity_cls: type[TEntity]) -> list[BaseGraphEdge]:
+        """From :meth:`get_domain_link` — empty list when ``get_domain_link`` is ``None``."""
+        edge = cls.get_domain_link(entity_cls)
+        return [edge] if edge is not None else []
+
+    @classmethod
+    def get_properties(cls, entity_cls: type[TEntity]) -> dict[str, Any]:
+        """``description`` when present in the merged declaration dict (``@entity`` / ``@meta``)."""
+        properties: dict[str, Any] = {}
+        desc = cls._meta_info_dict(entity_cls).get("description")
+        if isinstance(desc, str) and desc.strip():
+            properties["description"] = desc.strip()
+        return properties
+
+    @classmethod
+    def parse(cls, entity_cls: type[TEntity]) -> Any:
+        return SimpleNamespace(
+            id=qualified_dotted_name(entity_cls),
+            node_type="Entity",
+            label=entity_cls.__name__,
+            properties=cls.get_properties(entity_cls),
+            links=cls._get_all_links(entity_cls),
+        )

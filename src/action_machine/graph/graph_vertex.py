@@ -5,7 +5,7 @@ Frozen interchange vertex for the coordinator graph (spec graph.md §10).
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, NamedTuple
 
 
@@ -23,6 +23,7 @@ class ParsedGraphVertex(NamedTuple):
     node_type: str
     label: str
     properties: dict[str, Any]
+    links: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -33,19 +34,5 @@ class GraphVertex:
     node_type: str
     label: str
     properties: dict[str, Any]
+    links: list[str] = field(default_factory=list)
 
-    @classmethod
-    def parse(cls, obj: object) -> ParsedGraphVertex:
-        """
-        Map an arbitrary source object to interchange fields.
-
-        The default implementation always raises; concrete subclasses override
-        this method.
-
-        Raises:
-            GraphVertexParseError: Always on the base class.
-        """
-        raise GraphVertexParseError(
-            "GraphVertex.parse() is not implemented on the base class; "
-            "use a concrete subclass.",
-        )

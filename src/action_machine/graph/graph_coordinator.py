@@ -729,6 +729,7 @@ class GraphCoordinator:
                     "id": v.id,
                     "label": v.label,
                     "properties": v.properties,
+                    "links": list(v.links),
                 },
             )
         for e in edges:

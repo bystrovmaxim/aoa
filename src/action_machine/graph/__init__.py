@@ -57,6 +57,7 @@ AI-CORE-END
 from __future__ import annotations
 
 from action_machine.graph.base_facet_snapshot import BaseFacetSnapshot
+from action_machine.graph.base_graph_edge import BaseGraphEdge
 from action_machine.graph.base_intent_inspector import FacetInspectResult, InspectGraphPair
 from action_machine.graph.constants import (
     DAG_EDGE_TYPES,
@@ -76,6 +77,7 @@ from action_machine.graph.graph_builder import (
 )
 from action_machine.graph.graph_coordinator import GraphCoordinator
 from action_machine.graph.graph_edge import GraphEdge
+from action_machine.graph.base_graph_node import BaseGraphNode, BaseGraphNodeParseError
 from action_machine.graph.graph_vertex import GraphVertex, GraphVertexParseError, ParsedGraphVertex
 
 __all__ = [
@@ -83,11 +85,14 @@ __all__ = [
     "INTERNAL_EDGE_TYPES",
     "OWNERSHIP_EDGE_TYPES",
     "BaseFacetSnapshot",
+    "BaseGraphEdge",
     "FacetInspectResult",
     "InspectGraphPair",
     "GraphBuilder",
     "GraphCoordinator",
     "GraphEdge",
+    "BaseGraphNode",
+    "BaseGraphNodeParseError",
     "GraphVertex",
     "GraphVertexParseError",
     "ParsedGraphVertex",

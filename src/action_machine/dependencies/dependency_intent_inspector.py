@@ -74,7 +74,7 @@ from dataclasses import dataclass
 
 from action_machine.dependencies.dependency_factory import DependencyInfo
 from action_machine.dependencies.dependency_intent import DependencyIntent
-from action_machine.domain.application_context import ApplicationContext
+from action_machine.application import ApplicationContext
 from action_machine.graph.base_facet_snapshot import BaseFacetSnapshot
 from action_machine.graph.base_intent_inspector import BaseIntentInspector
 from action_machine.graph.facet_edge import FacetEdge
