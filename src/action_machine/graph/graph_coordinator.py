@@ -200,6 +200,7 @@ from action_machine.graph.model import GraphEdge, GraphVertex
 from action_machine.graph.payload import FacetPayload
 from action_machine.model.base_action import BaseAction
 from action_machine.model.exceptions import CyclicDependencyError
+from action_machine.resources.base_resource_manager import BaseResourceManager
 
 
 class GraphCoordinator:
@@ -482,9 +483,9 @@ class GraphCoordinator:
         Covers structural depends/connection stubs and informational belongs_to
         (domain classes are not otherwise visited by inspectors).
 
-        Class dependency stubs (``@depends`` on a non-``BaseAction`` type) get
-        informational ``belongs_to`` → ``application`` when the application
-        vertex is present (see
+        **DependencyService** stubs from ``@depends`` get informational
+        ``belongs_to`` → ``application`` when that vertex exists. Targets that
+        merge into ``action`` or ``resource_manager`` do not (see
         :meth:`DependencyIntentInspector.stub_outgoing_edges_for_class_dependency`).
         """
         keys = {self._make_key(p.node_type, p.node_name) for p in payloads}
@@ -510,6 +511,7 @@ class GraphCoordinator:
                     if (
                         edge.edge_type == "depends"
                         and not issubclass(edge.target_class_ref, BaseAction)
+                        and not issubclass(edge.target_class_ref, BaseResourceManager)
                         and app_key in keys
                     ):
                         stub_edges = (

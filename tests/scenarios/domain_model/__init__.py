@@ -16,7 +16,7 @@ ACTIONS
 
 PingAction              — summary only, NoneRole.
 SimpleAction            — regular + summary, NoneRole.
-FullAction              — two regular + summary, depends + connection("db"), role "manager".
+FullAction              — two regular + summary, ``@depends``/``@connection`` on ``TestDbManager``, role "manager".
 ChildAction             — nested call target for box.run().
 AdminAction             — admin-only Action.
 

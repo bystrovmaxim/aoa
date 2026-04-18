@@ -1,46 +1,36 @@
 # tests/scenarios/domain_model/test_db_manager.py
 """
-Minimal database resource manager for tests.
+Test resource manager class for ``@depends`` / ``@connection`` (same pattern: pass a **class**).
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Minimal BaseResourceManager implementation for use with
-``@connection(TestDbManager, key="db")`` on test Actions.
+Concrete ``BaseResourceManager`` used as the **type** in decorators, e.g.::
 
-Tests pass a concrete instance via ``connections={"db": mock_db}`` where
-``mock_db`` is a mock with the desired behavior. TestDbManager is only
-needed as the TYPE for the @connection decorator.
+    @depends(TestDbManager, description="…")
+    @connection(TestDbManager, key="db", description="…")
 
-═══════════════════════════════════════════════════════════════════════════════
-USAGE
-═══════════════════════════════════════════════════════════════════════════════
+That mirrors ``@depends(SomeAction)``: the graph resolves to the canonical
+``resource_manager`` vertex for this class (one node shared by depends + connection).
 
-    # In an Action:
-    @connection(TestDbManager, key="db", description="Primary database")
-    class FullAction(BaseAction[...]): ...
-
-    # In a test:
-    mock_db = AsyncMock(spec=TestDbManager)
-    result = await bench.run(action, params, rollup=False, connections={"db": mock_db})
+Tests inject instances via ``connections={\"db\": mock}`` and mock ``box.resolve(TestDbManager)``.
 """
+
+from __future__ import annotations
 
 from action_machine.intents.meta.meta_decorator import meta
 from action_machine.resources.base_resource_manager import BaseResourceManager
 
-from .domains import TestDomain
+from .domains import OrdersDomain
 
 
-@meta(description="Test DB manager for connection decorator tests", domain=TestDomain)
+@meta(
+    description="Test database resource manager for order-scenario actions",
+    domain=OrdersDomain,
+)
 class TestDbManager(BaseResourceManager):
-    """
-    Minimal BaseResourceManager for tests.
+    """Minimal manager; runtime tests use ``AsyncMock(spec=TestDbManager)``."""
 
-    Used as the type in @connection; tests replace it with a mock.
-    No real database logic.
-    """
-
-    def get_wrapper_class(self) -> type["BaseResourceManager"] | None:
-        """No wrapper class is required for this test manager."""
+    def get_wrapper_class(self) -> type[BaseResourceManager] | None:
         return None
