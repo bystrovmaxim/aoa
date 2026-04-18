@@ -25,5 +25,8 @@ SUMMARY_ASPECT_VERTEX_TYPE: Final[str] = "SummaryAspect"
 # Per-result-field checker vertices from ``CheckerIntentInspector``.
 CHECKER_VERTEX_TYPE: Final[str] = "Checker"
 
+# Per-method compensator vertices from ``CompensateIntentInspector`` (``@compensate``).
+COMPENSATOR_VERTEX_TYPE: Final[str] = "Compensator"
+
 # Class-dependency stubs from ``DependencyIntentInspector`` (non-``BaseAction`` @depends).
 SERVICE_VERTEX_TYPE: Final[str] = "Service"

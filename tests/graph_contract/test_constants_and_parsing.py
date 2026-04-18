@@ -38,6 +38,7 @@ def test_vertex_types_contains_core_kinds() -> None:
     assert "Action" in VERTEX_TYPES
     assert "domain" in VERTEX_TYPES
     assert "Checker" in VERTEX_TYPES
+    assert "Compensator" in VERTEX_TYPES
     assert "lifecycle_state_initial" in VERTEX_TYPES
     assert "params_schema" in VERTEX_TYPES
     assert len(VERTEX_TYPES) == 21

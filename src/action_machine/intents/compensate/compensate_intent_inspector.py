@@ -7,7 +7,7 @@ PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 Read method-level ``_compensate_meta`` and optional ``_required_context_keys``,
-then emit **one ``FacetPayload`` per compensator method** (``node_type="compensator"``,
+then emit **one ``FacetPayload`` per compensator method** (``node_type="Compensator"``,
 name ``{action}:{method_name}``) plus a canonical **``action``** row with
 informational ``has_compensator`` edges (no aggregate ``…:compensators`` vertex).
 
@@ -67,7 +67,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from action_machine.interchange_vertex_labels import ACTION_VERTEX_TYPE
+from action_machine.interchange_vertex_labels import (
+    ACTION_VERTEX_TYPE,
+    COMPENSATOR_VERTEX_TYPE,
+)
 from action_machine.graph.base_facet_snapshot import BaseFacetSnapshot
 from action_machine.graph.base_intent_inspector import BaseIntentInspector
 from action_machine.graph.payload import EdgeInfo, FacetMetaRow, FacetPayload
@@ -207,7 +210,7 @@ class CompensateIntentInspector(BaseIntentInspector):
             child_name = cls._make_host_dependent_node_name(target_cls, c.method_name)
             out.append(
                 FacetPayload(
-                    node_type="compensator",
+                    node_type=COMPENSATOR_VERTEX_TYPE,
                     node_name=child_name,
                     node_class=target_cls,
                     node_meta=cls._compensator_row_facet_meta(c),
@@ -216,7 +219,7 @@ class CompensateIntentInspector(BaseIntentInspector):
             )
             host_edges.append(
                 EdgeInfo(
-                    target_node_type="compensator",
+                    target_node_type=COMPENSATOR_VERTEX_TYPE,
                     target_name=child_name,
                     edge_type="has_compensator",
                     is_structural=False,

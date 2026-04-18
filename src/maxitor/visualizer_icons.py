@@ -14,6 +14,7 @@ from action_machine.interchange_vertex_labels import (
     ACTION_VERTEX_TYPE,
     APPLICATION_VERTEX_TYPE,
     CHECKER_VERTEX_TYPE,
+    COMPENSATOR_VERTEX_TYPE,
     REGULAR_ASPECT_VERTEX_TYPE,
     SERVICE_VERTEX_TYPE,
     SUMMARY_ASPECT_VERTEX_TYPE,
@@ -66,7 +67,7 @@ VERTEX_TYPE_LUCIDE_INNER_SVG: dict[str, str] = {
         '<path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z" /> '
         '<path d="m9 12 2 2 4-4" />'
     ),
-    "compensator": (
+    COMPENSATOR_VERTEX_TYPE: (
         '<path d="M9 14 4 9l5-5" /> '
         '<path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5a5.5 5.5 0 0 1-5.5 5.5H11" />'
     ),

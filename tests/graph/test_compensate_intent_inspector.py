@@ -3,6 +3,8 @@
 
 from __future__ import annotations
 
+from action_machine.graph import graph_builder as graph_builder_mod
+from action_machine.interchange_vertex_labels import COMPENSATOR_VERTEX_TYPE
 from action_machine.intents.aspects.aspect_intent import AspectIntent
 from action_machine.intents.compensate.compensate_decorator import compensate
 from action_machine.intents.compensate.compensate_intent_inspector import (
@@ -39,7 +41,7 @@ def test_compensate_inspector_returns_none_without_compensators() -> None:
 def test_compensate_inspector_builds_payload_with_compensator_entries() -> None:
     produced = CompensateIntentInspector.inspect(_CompensateAction)
     assert isinstance(produced, list)
-    comp_payloads = [p for p in produced if p.node_type == "compensator"]
+    comp_payloads = [p for p in produced if p.node_type == COMPENSATOR_VERTEX_TYPE]
     action_payloads = [p for p in produced if p.node_type == "Action"]
     assert len(comp_payloads) == 2
     assert len(action_payloads) == 1
@@ -55,3 +57,4 @@ def test_compensate_inspector_builds_payload_with_compensator_entries() -> None:
     assert reserve.target_aspect_name == "reserve_aspect"
     assert reserve.description == "Rollback reservation"
     assert "user.user_id" in reserve.context_keys
+    assert graph_builder_mod._facet_vertex_label(reserve_p) == "rollback_reserve_compensate"

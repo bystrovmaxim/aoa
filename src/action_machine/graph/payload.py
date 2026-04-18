@@ -222,7 +222,7 @@ class FacetPayload:
             Facet type: ``"Action"``, ``"role_class"``, ``"RegularAspect"``, ``"SummaryAspect"``, ``"Checker"``,
             ``"entity"``, ``"domain"``,
             ``"dependency"``, ``"connection"``, ``"error_handler"``,
-            ``"compensator"``, ``"subscription"``, ``"sensitive_field"``,
+            ``"Compensator"``, ``"subscription"``, ``"sensitive_field"``,
             ``"context_field"``, ``"entity_field"``, ``"entity_relation"``,
             ``"entity_lifecycle"``.
 

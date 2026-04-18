@@ -46,6 +46,7 @@ import pytest
 
 from action_machine.interchange_vertex_labels import (
     CHECKER_VERTEX_TYPE,
+    COMPENSATOR_VERTEX_TYPE,
     REGULAR_ASPECT_VERTEX_TYPE,
     SUMMARY_ASPECT_VERTEX_TYPE,
 )
@@ -270,7 +271,7 @@ class _AnotherActionWithServiceAAction(BaseAction["_Params", "_Result"]):
 class _ActionWithCompensatorGraphAction(BaseAction["_Params", "_Result"]):
     """Action with regular aspect and compensator for graph tests.
     Used in TestCompensatorNodes to check that the coordinator
-    creates nodes of type "compensator" and edges "has_compensator" in general
+    creates nodes of type "Compensator" and edges "has_compensator" in general
     dependency graph."""
     @regular_aspect("Step with compensator")
     @result_string("value")
@@ -417,7 +418,7 @@ class TestSubscriptionsAndSensitive:
 
 
 class TestCompensatorNodes:
-    """Checks that compensators create ``compensator`` facet nodes and ``has_compensator`` edges.
+    """Checks that compensators create ``Compensator`` facet nodes and ``has_compensator`` edges.
 
     Detailed metadata and topology checks live in
     ``tests/scenarios/intents_with_runtime/test_compensate_graph.py``."""
@@ -427,21 +428,21 @@ class TestCompensatorNodes:
         coord = _new_coord()
         coord.get_snapshot(_ActionWithCompensatorGraphAction, "meta")
 
-        nodes = coord.get_nodes_by_type("compensator")
+        nodes = coord.get_nodes_by_type(COMPENSATOR_VERTEX_TYPE)
         ours = [n for n in nodes if n["class_ref"] is _ActionWithCompensatorGraphAction]
         assert len(ours) == 1
         node = ours[0]
-        assert node["node_type"] == "compensator"
+        assert node["node_type"] == COMPENSATOR_VERTEX_TYPE
         expected = BaseIntentInspector._make_host_dependent_node_name(
             _ActionWithCompensatorGraphAction, "rollback_step_compensate",
         )
         assert node["id"] == expected
 
     def test_has_compensator_edge_in_graph(self):
-        """Facet topology links ``action`` → ``compensator`` with ``has_compensator``."""
+        """Facet topology links ``action`` → ``Compensator`` with ``has_compensator``."""
         coord = _new_coord()
         coord.get_snapshot(_ActionWithCompensatorGraphAction, "meta")
-        nodes = coord.get_nodes_by_type("compensator")
+        nodes = coord.get_nodes_by_type(COMPENSATOR_VERTEX_TYPE)
         node = next(
             n for n in nodes if n["class_ref"] is _ActionWithCompensatorGraphAction
         )

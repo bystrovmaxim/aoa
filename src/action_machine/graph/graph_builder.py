@@ -19,6 +19,7 @@ from action_machine.graph.model import GraphEdge, GraphVertex
 from action_machine.graph.payload import FacetPayload
 from action_machine.interchange_vertex_labels import (
     CHECKER_VERTEX_TYPE,
+    COMPENSATOR_VERTEX_TYPE,
     REGULAR_ASPECT_VERTEX_TYPE,
     SUMMARY_ASPECT_VERTEX_TYPE,
 )
@@ -166,6 +167,12 @@ def _checker_field_name_from_meta(meta: Mapping[str, Any]) -> str | None:
     return s or None
 
 
+def _compensator_method_name_from_meta(meta: Mapping[str, Any]) -> str | None:
+    """Compensator method name in class (``@compensate`` handler identifier)."""
+    s = str(meta.get("method_name", "") or "").strip()
+    return s or None
+
+
 def _facet_vertex_label(p: FacetPayload) -> str:
     """
     Short labels for lifecycle facets: state nodes use the two-part id (e.g. ``SalesOrderLifecycle:new``),
@@ -174,6 +181,8 @@ def _facet_vertex_label(p: FacetPayload) -> str:
     decorator human string (e.g. ``"Validate payload"`` with spaces).
     Checker vertices use **``field_name``** from the checker decorator (same key validated
     on the aspect result dict), not the long ``host:aspect:CheckerClass:field`` id tail.
+    Compensator vertices use **``method_name``** (the ``@compensate`` method in the class),
+    not the full ``host:rollback_foo`` interchange id.
     """
     meta = dict(p.node_meta)
     nt = str(p.node_type)
@@ -185,6 +194,10 @@ def _facet_vertex_label(p: FacetPayload) -> str:
         field = _checker_field_name_from_meta(meta)
         if field:
             return field
+    if nt == COMPENSATOR_VERTEX_TYPE:
+        comp_method = _compensator_method_name_from_meta(meta)
+        if comp_method:
+            return comp_method
     if nt.startswith("lifecycle_state"):
         return p.node_name
     if p.node_type == "lifecycle" and "field_name" in meta:

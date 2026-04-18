@@ -52,6 +52,7 @@ from action_machine.interchange_vertex_labels import (
     ACTION_VERTEX_TYPE,
     APPLICATION_VERTEX_TYPE,
     CHECKER_VERTEX_TYPE,
+    COMPENSATOR_VERTEX_TYPE,
     REGULAR_ASPECT_VERTEX_TYPE,
     SERVICE_VERTEX_TYPE,
     SUMMARY_ASPECT_VERTEX_TYPE,
@@ -76,7 +77,7 @@ VERTEX_TYPE_FILL_COLORS: dict[str, str] = {
     REGULAR_ASPECT_VERTEX_TYPE: "#FF7F00",
     SUMMARY_ASPECT_VERTEX_TYPE: "#FF7F00",
     CHECKER_VERTEX_TYPE: "#A65628",
-    "compensator": "#F781BF",
+    COMPENSATOR_VERTEX_TYPE: "#F781BF",
     "error_handler": "#6A3D9A",
     "entity": "#1B9E77",
     "lifecycle": "#00798C",
@@ -124,6 +125,10 @@ def _vertex_facet_label(node: dict[str, Any]) -> str:
         lab = str(node.get("label", "") or "").strip()
         if lab:
             return lab
+    if nt == COMPENSATOR_VERTEX_TYPE:
+        lab = str(node.get("label", "") or "").strip()
+        if lab:
+            return lab
     short = _element_short_name(node)
     return f"{nt}\n{short}"
 
@@ -135,6 +140,10 @@ def _element_short_name(node: dict[str, Any]) -> str:
         if lab:
             return lab
     if nt == CHECKER_VERTEX_TYPE:
+        lab = str(node.get("label", "") or "").strip()
+        if lab:
+            return lab
+    if nt == COMPENSATOR_VERTEX_TYPE:
         lab = str(node.get("label", "") or "").strip()
         if lab:
             return lab
