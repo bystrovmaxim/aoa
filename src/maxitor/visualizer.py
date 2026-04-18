@@ -860,7 +860,7 @@ __G6_SCRIPT__
           adjIndex[edge.source].edges.add(edge.id);
           adjIndex[edge.source].neighbors.add(edge.target);
           adjIndex[edge.target].edges.add(edge.id);
-          adjIndex[edge.target].neighbors.add(edge.target);
+          adjIndex[edge.target].neighbors.add(edge.source);
         }}
         for (const node of graphData.nodes) initAdj(node.id);
 
@@ -1040,7 +1040,15 @@ __G6_SCRIPT__
           graphData.nodes.forEach((n) => {{
             const id = String(n.id);
             if (!labelIds.has(id)) return;
-            if (!n.data?.label) return;
+            const d = n.data || {{}};
+            const hoverText =
+              d.label != null && String(d.label).trim() !== ''
+                ? String(d.label)
+                : d.title != null && String(d.title).trim() !== ''
+                  ? String(d.title)
+                  : d.graph_key != null && String(d.graph_key).trim() !== ''
+                    ? String(d.graph_key)
+                    : id;
             const canvasPt = _canvasPointForLabel(id);
             if (canvasPt == null) return;
             let left;
@@ -1070,7 +1078,7 @@ __G6_SCRIPT__
             if (left == null || top == null) return;
             const div = document.createElement('div');
             div.className = 'graph-hover-label';
-            div.textContent = String(n.data.label);
+            div.textContent = hoverText;
             div.style.left = `${{left}}px`;
             div.style.top = `${{top}}px`;
             hoverOverlay.appendChild(div);
