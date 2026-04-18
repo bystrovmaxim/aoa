@@ -6,7 +6,7 @@ Interchange construction: :class:`GraphBuilder` and module-level helpers.
 - **Facet payloads** — ``FacetPayload`` sequence from inspectors / coordinator collect;
   vertex ``id`` equals ``node_name`` (inspectors emit globally unique names; dependent facets
   use ``host:segment``); edges come from payload ``edges`` with a small facet ``edge_type``
-  → interchange projection table and §5.3 reverses.
+  → interchange projection table; **no** automatic §5.3 reverse pairs (forward edges only).
 """
 
 from __future__ import annotations
@@ -17,30 +17,29 @@ from typing import Any, Final
 from action_machine.graph.constants import INTERNAL_EDGE_TYPES, OWNERSHIP_EDGE_TYPES
 from action_machine.graph.model import GraphEdge, GraphVertex
 from action_machine.graph.payload import FacetPayload
-from action_machine.graph.reverse_edge import reverse_direct_edge
 
 _VERTEX_KEYS: frozenset[str] = frozenset(GraphVertex.__dataclass_fields__)
 _EDGE_KEYS: frozenset[str] = frozenset(GraphEdge.__dataclass_fields__)
 
-# facet edge_type (inspectors) → (interchange edge_type, forward stereotype, add §5.3 reverse)
-_FACET_EDGE_TO_INTERCHANGE: Final[dict[str, tuple[str, str, bool]]] = {
-    "belongs_to": ("BELONGS_TO", "Aggregation", True),
-    "depends": ("DEPENDS_ON", "Dependency", True),
-    "connection": ("CONNECTS_TO", "Flow", True),
-    "requires_role": ("ASSIGNED_TO", "Assignment", True),
-    "has_aspect": ("HAS_ASPECT", "Composition", False),
-    "checks_aspect": ("CHECKS_ASPECT", "Influence", False),
-    "uses_params": ("HAS_PARAMS", "Schema", False),
-    "uses_result": ("HAS_RESULT", "Schema", False),
-    "has_sensitive_field": ("HAS_SENSITIVE_FIELD", "Composition", False),
-    "has_error_handler": ("HAS_ERROR_HANDLER", "Composition", False),
-    "has_compensator": ("HAS_COMPENSATOR", "Composition", False),
-    "entity_composition_one": ("COMPOSITION_ONE", "Composition", True),
-    "entity_composition_many": ("COMPOSITION_MANY", "Composition", True),
-    "entity_aggregation_one": ("AGGREGATION_ONE", "Aggregation", True),
-    "entity_aggregation_many": ("AGGREGATION_MANY", "Aggregation", True),
-    "entity_association_one": ("ASSOCIATION_ONE", "Association", True),
-    "entity_association_many": ("ASSOCIATION_MANY", "Association", True),
+# facet edge_type (inspectors) → (interchange edge_type, forward stereotype)
+_FACET_EDGE_TO_INTERCHANGE: Final[dict[str, tuple[str, str]]] = {
+    "belongs_to": ("BELONGS_TO", "Aggregation"),
+    "depends": ("DEPENDS_ON", "Dependency"),
+    "connection": ("CONNECTS_TO", "Flow"),
+    "requires_role": ("ASSIGNED_TO", "Assignment"),
+    "has_aspect": ("HAS_ASPECT", "Composition"),
+    "checks_aspect": ("CHECKS_ASPECT", "Influence"),
+    "uses_params": ("HAS_PARAMS", "Schema"),
+    "uses_result": ("HAS_RESULT", "Schema"),
+    "has_sensitive_field": ("HAS_SENSITIVE_FIELD", "Composition"),
+    "has_error_handler": ("HAS_ERROR_HANDLER", "Composition"),
+    "has_compensator": ("HAS_COMPENSATOR", "Composition"),
+    "entity_composition_one": ("COMPOSITION_ONE", "Composition"),
+    "entity_composition_many": ("COMPOSITION_MANY", "Composition"),
+    "entity_aggregation_one": ("AGGREGATION_ONE", "Aggregation"),
+    "entity_aggregation_many": ("AGGREGATION_MANY", "Aggregation"),
+    "entity_association_one": ("ASSOCIATION_ONE", "Association"),
+    "entity_association_many": ("ASSOCIATION_MANY", "Association"),
 }
 
 
@@ -169,7 +168,7 @@ def _from_facet_payloads(
             if row is None:
                 msg = f"unknown facet edge_type {e.edge_type!r}"
                 raise ValueError(msg)
-            interchange_type, forward_st, add_reverse = row
+            interchange_type, forward_st = row
             if source_id not in vertices_by_id:
                 msg = f"edge references unknown source_id {source_id!r}"
                 raise ValueError(msg)
@@ -202,12 +201,6 @@ def _from_facet_payloads(
                 attributes=attrs,
             )
             edges.append(forward)
-            if add_reverse and forward_category == "direct":
-                rev = reverse_direct_edge(forward)
-                if rev is None:
-                    msg = f"internal error: {interchange_type!r} must reverse via REVERSE_EDGE_MAP"
-                    raise RuntimeError(msg)
-                edges.append(rev)
 
     vertices = list(vertices_by_id.values())
     return vertices, edges
@@ -221,7 +214,6 @@ def build_interchange_from_facet_payloads(
 
     Raises:
         ValueError: unknown facet ``edge_type``, unknown edge endpoint id, or duplicate vertex id.
-        RuntimeError: §5.3 reverse missing from tables for a forward type that requires it.
     """
     return _from_facet_payloads(tuple(payloads))
 

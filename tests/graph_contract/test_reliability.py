@@ -154,15 +154,6 @@ def test_build_from_synthetic_bundle_counts_small_bundle() -> None:
                 "attributes": {},
             },
             {
-                "source_id": "d1",
-                "target_id": "a1",
-                "edge_type": "CONTAINS",
-                "stereotype": "Aggregation",
-                "category": "reverse",
-                "is_dag": False,
-                "attributes": {},
-            },
-            {
                 "source_id": "r1",
                 "target_id": "a1",
                 "edge_type": "ASSIGNED_TO",
@@ -171,22 +162,13 @@ def test_build_from_synthetic_bundle_counts_small_bundle() -> None:
                 "is_dag": False,
                 "attributes": {},
             },
-            {
-                "source_id": "a1",
-                "target_id": "r1",
-                "edge_type": "REQUIRES_ROLE",
-                "stereotype": "Access",
-                "category": "reverse",
-                "is_dag": False,
-                "attributes": {},
-            },
         ],
     }
     vertices, edges = build_from_synthetic_bundle(inp)
     assert len(vertices) == 3
-    assert len(edges) == 4
+    assert len(edges) == 2
     assert sum(1 for e in edges if e.category == "direct") == 2
-    assert sum(1 for e in edges if e.category == "reverse") == 2
+    assert sum(1 for e in edges if e.category == "reverse") == 0
 
 
 @pytest.mark.parametrize(

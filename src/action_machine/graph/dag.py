@@ -8,7 +8,7 @@ Only edges whose ``edge_type`` is in ``DAG_EDGE_TYPES`` and whose ``is_dag`` fla
 (structural dependency/connection skeleton).
 
 **Out of scope for this module:** entity–entity relation edges
-(``COMPOSITION_*``, ``AGGREGATION_*``, ``ASSOCIATION_*`` and their reverse labels) are
+(``COMPOSITION_*``, ``AGGREGATION_*``, ``ASSOCIATION_*``) are
 not in ``DAG_EDGE_TYPES`` and are emitted with ``is_dag=False``. Cycles on that slice
 are therefore **allowed** and never inspected here; they are informational / domain
 links, not the acyclic structural DAG.
