@@ -57,6 +57,7 @@ AI-CORE-END
 from __future__ import annotations
 
 from action_machine.graph.base_facet_snapshot import BaseFacetSnapshot
+from action_machine.graph.base_intent_inspector import FacetInspectResult, InspectGraphPair
 from action_machine.graph.constants import (
     DAG_EDGE_TYPES,
     INTERNAL_EDGE_TYPES,
@@ -82,6 +83,8 @@ __all__ = [
     "INTERNAL_EDGE_TYPES",
     "OWNERSHIP_EDGE_TYPES",
     "BaseFacetSnapshot",
+    "FacetInspectResult",
+    "InspectGraphPair",
     "GraphBuilder",
     "GraphCoordinator",
     "GraphEdge",
