@@ -23,7 +23,9 @@ frame, so the *entire* graph appears to move with the pointer.
 Hover highlight keeps each node's type color (no single ``fill`` swap). Non-focused
 nodes and edges are dimmed; the hovered node and its neighbors use
 ``filter: brightness(...)`` (and full opacity) so emphasis is luminance, not a
-shared highlight hue.
+shared highlight hue. Short names on hover are drawn in a separate HTML overlay
+(not G6 node labels) so domain bubble-sets and layout use only the icon key
+shape—hover text does not change hull geometry or force layout.
 """
 
 from __future__ import annotations
@@ -473,11 +475,35 @@ def generate_g6_html(
         * {{ margin: 0; padding: 0; box-sizing: border-box; }}
         html, body {{ width: 100%; height: 100%; overflow: hidden; font-family: system-ui, sans-serif; }}
         #container {{
+            position: relative;
             width: {width};
             height: {height};
             background-color: #f4f5f7;
             background-image: radial-gradient(rgba(160,168,180,0.42) 1px, transparent 1px);
             background-size: 20px 20px;
+        }}
+        #graph-hover-labels {{
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 20;
+            overflow: visible;
+        }}
+        .graph-hover-label {{
+            position: absolute;
+            /* HTML overlay mirrors G6 label style; long text clipped with ellipsis */
+            color: #0f172a;
+            font-size: 10px;
+            font-weight: 500;
+            max-width: 160px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            line-height: 1.2;
+            transform: translate(-50%, 0);
         }}
         .color-legend {{
             position: fixed; top: 12px; left: 12px; z-index: 100000;
@@ -688,6 +714,7 @@ __G6_SCRIPT__
           node: {{
             type: 'image',
             style: {{
+              label: false,
               size: NODE_VISUAL_PX,
               src: (d) => d.data?.iconSrc || '',
               opacity: (d) => (d.data?.inactive ? 0.18 : 1),
@@ -697,7 +724,6 @@ __G6_SCRIPT__
                 return 'none';
               }},
               cursor: 'grab',
-              labelText: '',
             }},
           }},
 
@@ -748,6 +774,90 @@ __G6_SCRIPT__
         }});
 
         graph.render();
+
+        const hoverOverlay = document.createElement('div');
+        hoverOverlay.id = 'graph-hover-labels';
+        hoverOverlay.setAttribute('aria-hidden', 'true');
+        container.appendChild(hoverOverlay);
+
+        function _xyFromPoint(p) {{
+          if (p == null) return null;
+          if (Array.isArray(p)) return [p[0], p[1]];
+          if (typeof p.x === 'number' && typeof p.y === 'number') return [p.x, p.y];
+          return null;
+        }}
+
+        function _canvasPointForLabel(id) {{
+          try {{
+            if (typeof graph.getElementPosition === 'function') {{
+              const pos = graph.getElementPosition(id);
+              const xy = _xyFromPoint(pos);
+              if (xy) {{
+                // Node center in canvas drawing space; move below the icon disk.
+                return [xy[0], xy[1] + NODE_VISUAL_PX / 2 + 6];
+              }}
+            }}
+          }} catch (_) {{}}
+          try {{
+            if (typeof graph.getElementRenderBounds === 'function') {{
+              const b = graph.getElementRenderBounds(id);
+              if (b && b.min != null && b.max != null) {{
+                const min = b.min;
+                const max = b.max;
+                const m0 = Array.isArray(min) ? min[0] : min.x;
+                const m1 = Array.isArray(min) ? min[1] : min.y;
+                const M0 = Array.isArray(max) ? max[0] : max.x;
+                const M1 = Array.isArray(max) ? max[1] : max.y;
+                const cx = (m0 + M0) / 2;
+                const cy = M1 + 4;
+                return [cx, cy];
+              }}
+            }}
+          }} catch (_) {{}}
+          return null;
+        }}
+
+        function syncHoverLabels() {{
+          hoverOverlay.innerHTML = '';
+          const cr = container.getBoundingClientRect();
+          graphData.nodes.forEach((n) => {{
+            if (!n.data?.highlighted || !n.data?.label) return;
+            const id = String(n.id);
+            const canvasPt = _canvasPointForLabel(id);
+            if (canvasPt == null) return;
+            let left;
+            let top;
+            try {{
+              if (typeof graph.getClientByCanvas === 'function') {{
+                const client = graph.getClientByCanvas(canvasPt);
+                const cxy = _xyFromPoint(client);
+                if (cxy) {{
+                  left = cxy[0] - cr.left;
+                  top = cxy[1] - cr.top;
+                }}
+              }}
+            }} catch (_) {{}}
+            if (left == null || top == null) {{
+              try {{
+                if (typeof graph.getViewportByCanvas === 'function') {{
+                  const vp = graph.getViewportByCanvas(canvasPt);
+                  const vxy = _xyFromPoint(vp);
+                  if (vxy) {{
+                    left = vxy[0];
+                    top = vxy[1];
+                  }}
+                }}
+              }} catch (_) {{}}
+            }}
+            if (left == null || top == null) return;
+            const div = document.createElement('div');
+            div.className = 'graph-hover-label';
+            div.textContent = String(n.data.label);
+            div.style.left = `${{left}}px`;
+            div.style.top = `${{top}}px`;
+            hoverOverlay.appendChild(div);
+          }});
+        }}
 
         const detailShell = document.getElementById('node-detail-shell');
         const detailBody = document.getElementById('node-detail-body');
@@ -959,12 +1069,14 @@ __G6_SCRIPT__
           }});
           graph.updateData(graphData);
           graph.draw();
+          requestAnimationFrame(() => syncHoverLabels());
         }}
 
         function clearHighlight() {{
           resetAllFlags();
           graph.updateData(graphData);
           graph.draw();
+          syncHoverLabels();
         }}
 
         graph.on('node:pointerover', (evt) => {{
@@ -1006,7 +1118,10 @@ __G6_SCRIPT__
           const z = graph.getZoom();
           zoomPct.textContent = Math.round(z * 100) + '%';
         }};
-        graph.on('viewportchange', syncZoom);
+        graph.on('viewportchange', () => {{
+          syncZoom();
+          syncHoverLabels();
+        }});
 
         const doZoom = async (factor) => {{
           const cur = graph.getZoom();
@@ -1022,9 +1137,14 @@ __G6_SCRIPT__
           syncZoom();
         }});
 
+        graph.on('element:dragend', () => {{
+          syncHoverLabels();
+        }});
+
         window.addEventListener('resize', () => {{
           graph.resize(container.clientWidth, container.clientHeight);
           syncZoom();
+          syncHoverLabels();
         }});
     """
 
