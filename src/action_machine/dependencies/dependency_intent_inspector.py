@@ -36,7 +36,7 @@ ARCHITECTURE / DATA FLOW
             └─ action node + structural "depends" edges
 
     Coordinator materialization adds informational ``belongs_to`` from each
-        synthesized **Service** stub to the ``application`` vertex when
+        synthesized **Service** stub to the ``Application`` vertex when
     that vertex exists. ``BaseAction`` / ``BaseResourceManager`` targets reuse
     the canonical ``action`` / ``resource_manager`` vertices (no application edge).
 
@@ -78,7 +78,11 @@ from action_machine.domain.application_context import ApplicationContext
 from action_machine.graph.base_facet_snapshot import BaseFacetSnapshot
 from action_machine.graph.base_intent_inspector import BaseIntentInspector
 from action_machine.graph.payload import EdgeInfo, FacetPayload
-from action_machine.interchange_vertex_labels import ACTION_VERTEX_TYPE, SERVICE_VERTEX_TYPE
+from action_machine.interchange_vertex_labels import (
+    ACTION_VERTEX_TYPE,
+    APPLICATION_VERTEX_TYPE,
+    SERVICE_VERTEX_TYPE,
+)
 from action_machine.model.base_action import BaseAction
 from action_machine.resources.base_resource_manager import BaseResourceManager
 
@@ -102,12 +106,12 @@ class DependencyIntentInspector(BaseIntentInspector):
         Edges attached to a materialized ``@depends`` class stub (not ``BaseAction``).
 
         Declares that a **Service** stub sits under the logical
-        ``application`` root (``BELONGS_TO`` in interchange). Not used for
+        ``Application`` root (``BELONGS_TO`` in interchange). Not used for
         ``action`` / ``resource_manager`` merge targets.
         """
         return (
             cls._make_edge(
-                target_node_type="application",
+                target_node_type=APPLICATION_VERTEX_TYPE,
                 target_cls=ApplicationContext,
                 edge_type="belongs_to",
                 is_structural=False,

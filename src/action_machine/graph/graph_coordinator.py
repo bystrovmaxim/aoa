@@ -185,7 +185,7 @@ from typing import Any, Literal
 import rustworkx as rx
 
 from action_machine.dependencies.dependency_factory import DEPENDENCY_FACTORY_CACHE_KEY
-from action_machine.interchange_vertex_labels import ACTION_VERTEX_TYPE
+from action_machine.interchange_vertex_labels import ACTION_VERTEX_TYPE, APPLICATION_VERTEX_TYPE
 from action_machine.dependencies.dependency_intent_inspector import DependencyIntentInspector
 from action_machine.domain.application_context import ApplicationContext
 from action_machine.graph.base_facet_snapshot import BaseFacetSnapshot
@@ -485,13 +485,13 @@ class GraphCoordinator:
         (domain classes are not otherwise visited by inspectors).
 
         **Service** stubs from ``@depends`` get informational
-        ``belongs_to`` → ``application`` when that vertex exists. Targets that
+        ``belongs_to`` → ``Application`` when that vertex exists. Targets that
         merge into ``action`` or ``resource_manager`` do not (see
         :meth:`DependencyIntentInspector.stub_outgoing_edges_for_class_dependency`).
         """
         keys = {self._make_key(p.node_type, p.node_name) for p in payloads}
         app_key = self._make_key(
-            "application",
+            APPLICATION_VERTEX_TYPE,
             BaseIntentInspector._make_node_name(ApplicationContext),
         )
         synthetic_source = "__edge_target__"
@@ -828,7 +828,7 @@ class GraphCoordinator:
         + ``RoleModeIntentInspector``) merge the same way. Two ``resource_manager``
         rows for the same manager class (``@meta`` + materialized stub from
         ``@connection``) merge here.
-        Repeated ``application`` payloads from ``ApplicationContextInspector`` merge.
+        Repeated ``Application`` payloads from ``ApplicationContextInspector`` merge.
         ``domain`` stubs from edge materialization merge with full ``domain`` rows.
 
         Duplicate non-mergeable facets with the same collect key remain an error.
@@ -899,9 +899,9 @@ class GraphCoordinator:
                 node_meta=first.node_meta + second.node_meta,
                 edges=first.edges + second.edges,
             )
-        if first.node_type == "application" and second.node_type == "application":
+        if first.node_type == APPLICATION_VERTEX_TYPE and second.node_type == APPLICATION_VERTEX_TYPE:
             return FacetPayload(
-                node_type="application",
+                node_type=APPLICATION_VERTEX_TYPE,
                 node_name=first.node_name,
                 node_class=first.node_class,
                 node_meta=first.node_meta + second.node_meta,

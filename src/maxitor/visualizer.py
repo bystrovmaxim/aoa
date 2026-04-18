@@ -14,7 +14,7 @@ Layout: d3-force with custom distance/strength per node type. Domains receive
 deterministic **seed** ``x``/``y`` (wedges around a circle) so cross-domain edges
 cross the canvas less than a single random blob; forces still refine the result.
 Node fill colors: **fixed** per ``node_type`` string
-(see :data:`VERTEX_TYPE_FILL_COLORS`); ``application`` is always black. Each node is
+(see :data:`VERTEX_TYPE_FILL_COLORS`); the ``Application`` type is always black. Each node is
 drawn as an SVG **data URL** (white Lucide icons on the colored disk; see
 :mod:`maxitor.visualizer_icons`). Vertex types not listed in
 :data:`VERTEX_TYPE_FILL_COLORS` share one neutral fill and the dependency-style
@@ -48,7 +48,11 @@ from typing import Any
 
 import rustworkx as rx
 
-from action_machine.interchange_vertex_labels import ACTION_VERTEX_TYPE, SERVICE_VERTEX_TYPE
+from action_machine.interchange_vertex_labels import (
+    ACTION_VERTEX_TYPE,
+    APPLICATION_VERTEX_TYPE,
+    SERVICE_VERTEX_TYPE,
+)
 from maxitor.graph_export import (
     coordinator_pygraph_for_visual_export,
     normalize_coordinator_node_payload_for_visualization,
@@ -59,9 +63,9 @@ G6_CDN_URL = "https://unpkg.com/@antv/g6@5/dist/g6.min.js"
 DEFAULT_APP_GRAPH_HTML = "app_graph.html"
 
 # Fixed fill per interchange vertex type (stable across graphs — not alphabetical).
-# Palette: Okabe–Ito / Tol-inspired, maximally distinct hues; ``application`` is black (root).
+# Palette: Okabe–Ito / Tol-inspired, maximally distinct hues; ``Application`` is black (root).
 VERTEX_TYPE_FILL_COLORS: dict[str, str] = {
-    "application": "#000000",
+    APPLICATION_VERTEX_TYPE: "#000000",
     ACTION_VERTEX_TYPE: "#E41A1C",
     "domain": "#377EB8",
     "dependency": "#4DAF4A",
@@ -240,7 +244,7 @@ def _application_roles_bubble_plugin(
     dependency stubs, and every vertex whose ``node_type`` is not in
     :data:`VERTEX_TYPE_FILL_COLORS`.
     """
-    app_ids = [nid for nid, t in id_to_type.items() if t == "application"]
+    app_ids = [nid for nid, t in id_to_type.items() if t == APPLICATION_VERTEX_TYPE]
     role_and_ds_ids = [
         nid
         for nid, t in id_to_type.items()
@@ -304,7 +308,7 @@ def _propagate_node_domains(
         src, tgt = str(e["source"]), str(e["target"])
         if id_to_type.get(tgt) != "domain":
             continue
-        if id_to_type.get(src) == "application":
+        if id_to_type.get(src) == APPLICATION_VERTEX_TYPE:
             continue
         node_domains[src].add(tgt)
 
@@ -355,7 +359,7 @@ def _d3_seed_xy_for_nodes(
     center_ids: list[str] = []
     for n in g6_nodes:
         nid = str(n["id"])
-        if id_to_type.get(nid) == "application":
+        if id_to_type.get(nid) == APPLICATION_VERTEX_TYPE:
             center_ids.append(nid)
             continue
         if id_to_type.get(nid) == "domain":
@@ -376,7 +380,7 @@ def _d3_seed_xy_for_nodes(
         members: list[str] = []
         for n in g6_nodes:
             nid = str(n["id"])
-            if id_to_type.get(nid) == "application":
+            if id_to_type.get(nid) == APPLICATION_VERTEX_TYPE:
                 continue
             if nid == dom_id:
                 members.append(nid)
@@ -428,7 +432,7 @@ def _bubble_sets_plugins_for_domains(
     for d in domain_ids:
         mem = {d}
         for nid, doms in node_domains.items():
-            if d in doms and id_to_type.get(nid) != "application":
+            if d in doms and id_to_type.get(nid) != APPLICATION_VERTEX_TYPE:
                 mem.add(nid)
         members_by_domain[d] = mem
 
@@ -439,7 +443,7 @@ def _bubble_sets_plugins_for_domains(
         for i, dom_id in enumerate(sorted(domain_ids, key=lambda did: _domain_sort_key_for_id(g6_nodes, did))):
             raw_members = members_by_domain.get(dom_id, {dom_id})
             members = sorted(
-                [m for m in raw_members if id_to_type.get(m) != "application"],
+                [m for m in raw_members if id_to_type.get(m) != APPLICATION_VERTEX_TYPE],
             )
             dom_node = next(n for n in g6_nodes if str(n["id"]) == dom_id)
             ddata = dom_node.get("data") or {}

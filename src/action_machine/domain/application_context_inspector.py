@@ -1,11 +1,11 @@
 # src/action_machine/domain/application_context_inspector.py
 """
-``ApplicationContextInspector`` — emits the canonical ``application`` vertex and
-``domain`` → ``application`` informational edges.
+``ApplicationContextInspector`` — emits the canonical ``Application`` vertex and
+``domain`` → ``Application`` informational edges.
 
 Walks every ``BaseDomain`` subclass. For each concrete domain marker, returns
-two facet payloads: the shared ``application`` node (merged across domains) and
-the ``domain`` node with ``belongs_to`` → ``application``.
+two facet payloads: the shared ``Application`` node (merged across domains) and
+the ``domain`` node with ``belongs_to`` → ``Application``.
 """
 
 from __future__ import annotations
@@ -13,12 +13,13 @@ from __future__ import annotations
 from action_machine.domain.application_context import ApplicationContext
 from action_machine.domain.base_domain import BaseDomain
 from action_machine.graph.base_intent_inspector import BaseIntentInspector
+from action_machine.interchange_vertex_labels import APPLICATION_VERTEX_TYPE
 from action_machine.graph.payload import FacetPayload
 
 
 class ApplicationContextInspector(BaseIntentInspector):
     """
-    Inspector: one logical ``application`` vertex; each ``BaseDomain`` belongs to it.
+    Inspector: one logical ``Application`` vertex; each ``BaseDomain`` belongs to it.
 
     Registration should run **before** inspectors that synthesize ``domain`` stubs
     from ``belongs_to`` edges so domain rows are materialized with metadata; when
@@ -39,7 +40,7 @@ class ApplicationContextInspector(BaseIntentInspector):
             return None
         app_name = cls._make_node_name(ApplicationContext)
         application_payload = FacetPayload(
-            node_type="application",
+            node_type=APPLICATION_VERTEX_TYPE,
             node_name=app_name,
             node_class=ApplicationContext,
             node_meta=cls._make_meta(
@@ -72,7 +73,7 @@ class ApplicationContextInspector(BaseIntentInspector):
             return None
         domain_name = cls._make_node_name(target_cls)
         domain_edge = cls._make_edge(
-            target_node_type="application",
+            target_node_type=APPLICATION_VERTEX_TYPE,
             target_cls=ApplicationContext,
             edge_type="belongs_to",
             is_structural=False,
