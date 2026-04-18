@@ -12,10 +12,10 @@ from pathlib import Path
 
 import pytest
 
+from action_machine.graph import GraphBuilder, GraphEdge, GraphVertex
 from action_machine.graph.base_intent_inspector import BaseIntentInspector
-from action_machine.graph.graph_coordinator import GraphCoordinator
 from action_machine.graph.graph_builder import build_interchange_from_facet_payloads
-from action_machine.graph import GraphEdge, GraphBuilder, GraphVertex
+from action_machine.graph.graph_coordinator import GraphCoordinator
 from action_machine.graph.payload import EdgeInfo, FacetPayload
 
 _FIXTURE = Path(__file__).resolve().parents[1] / "fixtures" / "golden_graph" / "synthetic_minimal.json"

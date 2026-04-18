@@ -484,15 +484,25 @@ def lifecycle_state_vertex_type(state_info: StateInfo) -> str:
     return "lifecycle_state_final"
 
 
-def lifecycle_state_node_name(lifecycle_class: type, state_key: str) -> str:
+def lifecycle_state_node_name(
+    entity_class: type,
+    field_name: str,
+    lifecycle_class: type,
+    state_key: str,
+) -> str:
     """
-    Two-part interchange vertex id: ``{LifecycleClassName}:{state_key}``.
+    Globally unique interchange vertex id for one state **on a concrete entity field**.
 
-    Example: ``SalesOrderLifecycle:new``. Uniqueness is per lifecycle class short name;
-    two unrelated modules defining the same class name could collide — avoid duplicate
-    lifecycle class names across the graph.
+    Scoped by ``entity_class`` + ``field_name`` so two entities may reuse the same
+    ``Lifecycle`` subclass (and state keys) without graph key collisions.
+
+    Shape: full entity path + ``:`` + ``{field}:{lifecycle_short}:{state_key}``
+    (via :meth:`~action_machine.graph.base_intent_inspector.BaseIntentInspector._make_node_name`).
     """
-    return f"{lifecycle_class.__name__}:{state_key}"
+    return BaseIntentInspector._make_node_name(
+        entity_class,
+        f"{field_name}:{lifecycle_class.__name__}:{state_key}",
+    )
 
 
 def entity_relation_facet_edge_type(relation_type: str, cardinality: str) -> str:
@@ -790,7 +800,9 @@ class EntityIntentInspector(BaseIntentInspector):
             )
 
             def state_vertex_name(state_key: str) -> str:
-                return lifecycle_state_node_name(lc_cls, state_key)
+                return lifecycle_state_node_name(
+                    snap.class_ref, field, lc_cls, state_key,
+                )
 
             lc_edges: list[EdgeInfo] = []
 

@@ -3,8 +3,8 @@
 
 from __future__ import annotations
 
-from action_machine.graph.inspectors.subscription_intent_inspector import SubscriptionIntentInspector
 from action_machine.intents.plugins import GlobalFinishEvent, GlobalStartEvent, OnIntent, on
+from action_machine.intents.plugins.subscription_intent_inspector import SubscriptionIntentInspector
 from maxitor.samples.store.plugins.unhandled_error_plugin import UnhandledErrorSwallowPlugin
 
 

@@ -15,7 +15,7 @@ After a successful ``register(...).build()``:
 
 1. **Facet skeleton** (internal ``_facet_graph`` ``rx.PyDiGraph``) — committed nodes
    and edges from payloads for hydration APIs. Each node stores ``node_type``,
-   ``name``, and ``class_ref``; when a payload carried ``node_meta`` at commit time,
+   ``id`` (same string as inspector ``node_name``), and ``class_ref``; when a payload carried ``node_meta`` at commit time,
    a ``committed_meta`` dict is stored on the node so per-vertex metadata (e.g. one
    checker row) can hydrate without merging a class-wide snapshot. Otherwise facet
    body is resolved via ``hydrate_graph_node()`` using snapshots.
@@ -29,7 +29,7 @@ After a successful ``register(...).build()``:
    :mod:`action_machine.graph.graph_builder`. Read it with :meth:`get_graph`.
 
    A separate **internal** facet skeleton ``rx.PyDiGraph`` (``_facet_graph``) stores
-   ``node_type`` / ``name`` / ``class_ref`` for snapshot hydration, ``get_node``, and
+   ``node_type`` / ``id`` / ``class_ref`` for snapshot hydration, ``get_node``, and
    integrations that need facet-shaped topology; use :meth:`facet_topology_copy` for
    a read-only copy (e.g. MCP graph JSON). It is not the interchange returned by
    :meth:`get_graph`.
@@ -113,7 +113,7 @@ The graph is either built completely and consistently, or not committed at all.
 
     PHASE 3 — COMMIT
         Facet skeleton nodes and edges into internal ``_facet_graph`` (payload:
-        ``node_type``, ``name``, ``class_ref``); ``_node_index`` / ``_class_index``
+        ``node_type``, ``id``, ``class_ref``); ``_node_index`` / ``_class_index``
         populated. The interchange ``PyDiGraph`` ``_graph`` is filled from the builder
         output computed in phase 2b. After ``_built = True``, both graphs are read-only.
 
@@ -189,13 +189,13 @@ from action_machine.dependencies.dependency_intent_inspector import DependencyIn
 from action_machine.domain.application_context import ApplicationContext
 from action_machine.graph.base_facet_snapshot import BaseFacetSnapshot
 from action_machine.graph.base_intent_inspector import BaseIntentInspector
+from action_machine.graph.dag import assert_dag_edges_acyclic
 from action_machine.graph.exceptions import (
     DuplicateNodeError,
     InvalidGraphError,
     PayloadValidationError,
 )
 from action_machine.graph.graph_builder import build_interchange_from_facet_payloads
-from action_machine.graph.dag import assert_dag_edges_acyclic
 from action_machine.graph.model import GraphEdge, GraphVertex
 from action_machine.graph.payload import FacetPayload
 from action_machine.model.base_action import BaseAction
@@ -229,7 +229,7 @@ class GraphCoordinator:
             ``build()``; read-only afterward via :meth:`get_graph`.
 
         _facet_graph : rx.PyDiGraph
-            Internal **facet** skeleton (``node_type``, ``name``, ``class_ref``) used for
+            Internal **facet** skeleton (``node_type``, ``id``, ``class_ref``) used for
             ``get_node``, ``hydrate_graph_node``, and tools that need facet topology.
             Not returned by :meth:`get_graph`; copy via :meth:`facet_topology_copy`.
 
@@ -701,7 +701,7 @@ class GraphCoordinator:
             key = self._make_key(p.node_type, p.node_name)
             node_payload: dict[str, Any] = {
                 "node_type": p.node_type,
-                "name": p.node_name,
+                "id": p.node_name,
                 "class_ref": p.node_class,
             }
             if p.node_meta:
@@ -928,6 +928,15 @@ class GraphCoordinator:
         ``connections``, ``meta`` on one ``action:<name>``); keys accumulate as a
         sorted tuple of distinct strings.
         """
+        if not isinstance(graph_key, str):
+            msg = f"graph_key must be str, got {type(graph_key).__name__}: {graph_key!r}"
+            raise TypeError(msg)
+        if not isinstance(storage_key, str):
+            msg = (
+                f"storage_key must be str (check facet_snapshot_storage_key), "
+                f"got {type(storage_key).__name__}: {storage_key!r}"
+            )
+            raise TypeError(msg)
         d = self._hydration_snapshot_key_by_graph_key
         existing = d.get(graph_key)
         if existing is None:
@@ -949,9 +958,9 @@ class GraphCoordinator:
         """
         Return a node dict with ``meta`` filled from facet snapshots.
 
-        Pass **facet** skeleton dicts (``node_type``, ``name``, ``class_ref``), e.g. from
+        Pass **facet** skeleton dicts (``node_type``, ``id``, ``class_ref``), e.g. from
         :meth:`facet_topology_copy` node payloads — not interchange :meth:`get_graph` payloads
-        (those use ``vertex_type`` / ``id``).
+        (those use ``vertex_type`` / ``id`` interchange fields).
 
         Resolves the snapshot storage key from phase-1 registration (or falls back to
         ``node_type`` for nodes that never registered a snapshot, except ``action``) and
@@ -966,7 +975,7 @@ class GraphCoordinator:
         self._require_built()
         raw = dict(node)
         nt = raw.get("node_type", "")
-        nm = raw.get("name", "")
+        nm = str(raw.get("id") or raw.get("name") or "")
         cr = raw.get("class_ref")
         gk = self._make_key(nt, nm)
         meta: dict[str, Any] = {}
@@ -1112,7 +1121,7 @@ class GraphCoordinator:
 
         Node payloads use ``vertex_type``, ``id``, ``stereotype``, ``display_name``,
         ``class_ref``, ``properties`` (no ``meta``). For facet skeleton dicts
-        (``node_type``, ``name``, ``class_ref``), use :meth:`facet_topology_copy`.
+        (``node_type``, ``id``, ``class_ref``), use :meth:`facet_topology_copy`.
 
         Returns:
             ``rx.PyDiGraph`` clone.
@@ -1121,7 +1130,7 @@ class GraphCoordinator:
         return self._graph.copy()
 
     def facet_topology_copy(self) -> rx.PyDiGraph:
-        """Return a copy of the internal facet skeleton graph (``node_type``, ``name``, ``class_ref``)."""
+        """Return a copy of the internal facet skeleton graph (``node_type``, ``id``, ``class_ref``)."""
         self._require_built()
         return self._facet_graph.copy()
 

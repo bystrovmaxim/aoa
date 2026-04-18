@@ -20,7 +20,7 @@ from maxitor.samples.store.domain import StoreDomain
 
 from .facet_payload_probe import (
     collect_merged_facet_payloads_unbuilt,
-    gate_coordinator_default_inspectors_registered,
+    graph_coordinator_default_inspectors_registered,
 )
 
 
@@ -38,7 +38,7 @@ def test_collect_raises_when_coordinator_already_built() -> None:
 
 def test_build_interchange_from_test_domain_payloads() -> None:
     _import_test_domain_modules()
-    coord = gate_coordinator_default_inspectors_registered()
+    coord = graph_coordinator_default_inspectors_registered()
     payloads = collect_merged_facet_payloads_unbuilt(coord)
     vertices, edges = build_interchange_from_facet_payloads(payloads)
 
@@ -66,7 +66,7 @@ def test_built_coordinator_meta_snapshot_for_full_graph_action() -> None:
 
 def test_interchange_output_vertex_ids_unique() -> None:
     _import_test_domain_modules()
-    coord = gate_coordinator_default_inspectors_registered()
+    coord = graph_coordinator_default_inspectors_registered()
     raw = collect_merged_facet_payloads_unbuilt(coord)
     vertices, _edges = build_interchange_from_facet_payloads(raw)
     ids = [v.id for v in vertices]

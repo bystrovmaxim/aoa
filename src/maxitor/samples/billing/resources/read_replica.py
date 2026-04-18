@@ -3,7 +3,6 @@ from typing import Any
 
 from action_machine.intents.meta.meta_decorator import meta
 from action_machine.resources.sql_connection_manager import SqlConnectionManager
-
 from maxitor.samples.billing.domain import BillingDomain
 
 

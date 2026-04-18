@@ -8,8 +8,6 @@ from pydantic import BaseModel, Field
 
 from action_machine.domain import BaseEntity, entity
 from action_machine.domain.base_domain import BaseDomain
-from action_machine.model.base_action import ActionTypedSchemasInspector
-from action_machine.intents.described_fields.described_fields_intent_inspector import DescribedFieldsIntentInspector
 from action_machine.intents.auth import check_roles
 from action_machine.intents.auth.none_role import NoneRole
 from action_machine.intents.described_fields import (
@@ -17,8 +15,9 @@ from action_machine.intents.described_fields import (
     validate_described_schema,
     validate_described_schemas_for_action,
 )
+from action_machine.intents.described_fields.described_fields_intent_inspector import DescribedFieldsIntentInspector
 from action_machine.intents.meta.meta_decorator import meta
-from action_machine.model.base_action import BaseAction
+from action_machine.model.base_action import ActionTypedSchemasInspector, BaseAction
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_result import BaseResult
 

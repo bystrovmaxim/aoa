@@ -18,7 +18,7 @@ from maxitor.samples.store.domain import StoreDomain
 
 from .facet_payload_probe import (
     collect_merged_facet_payloads_unbuilt,
-    gate_coordinator_default_inspectors_registered,
+    graph_coordinator_default_inspectors_registered,
 )
 
 
@@ -28,7 +28,7 @@ def _import_test_domain_modules() -> None:
 
 
 def test_get_graph_requires_build() -> None:
-    gc = gate_coordinator_default_inspectors_registered()
+    gc = graph_coordinator_default_inspectors_registered()
     with pytest.raises(RuntimeError, match="not built"):
         gc.get_graph()
 
@@ -40,7 +40,7 @@ def test_logical_graph_matches_standalone_builder_on_test_domain() -> None:
     assert isinstance(lg, rx.PyDiGraph)
     assert len(lg) >= 1
 
-    unbuilt = gate_coordinator_default_inspectors_registered()
+    unbuilt = graph_coordinator_default_inspectors_registered()
     payloads = collect_merged_facet_payloads_unbuilt(unbuilt)
     vertices, edges = build_interchange_from_facet_payloads(payloads)
     assert len(lg) == len(vertices)

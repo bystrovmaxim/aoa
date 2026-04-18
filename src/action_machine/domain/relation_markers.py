@@ -28,7 +28,7 @@ SCOPE (IN / OUT)
 
 **Out of scope**
     Proving the inverse field exists, types match, or ownership is compatible —
-    **inspectors** and ``GateCoordinator.build()`` do that.
+    **inspectors** and ``GraphCoordinator.build()`` do that.
     Loading related rows from storage.
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -43,7 +43,7 @@ ARCHITECTURE / DATA FLOW
         v
     = Rel(description="…")
         │
-        │  GateCoordinator.build() + EntityIntentInspector
+        │  GraphCoordinator.build() + EntityIntentInspector
         v
     validated entity–entity edges (composition / aggregation / association)
 
@@ -156,7 +156,7 @@ class Inverse:
 
     **Neighbors**
         Works with relation **containers** and ``Rel``. Validated against the
-        peer field at ``GateCoordinator.build()``.
+        peer field at ``GraphCoordinator.build()``.
 
     **Attributes**
         ``target_entity``
@@ -288,7 +288,7 @@ class NoGraphEdge:
     Optional marker: **do not** emit an interchange graph edge for this relation field.
 
     The relation remains in the entity facet ``relations`` metadata (for docs and
-    validation); :class:`~action_machine.graph.inspectors.entity_intent_inspector.EntityIntentInspector`
+    validation); :class:`~action_machine.domain.entity_intent_inspector.EntityIntentInspector`
     skips :class:`~action_machine.graph.payload.EdgeInfo` rows when ``NoGraphEdge()`` is present
     in ``Annotated[..., ...]``. Unlike :class:`NoInverse`, this does not describe the
     inverse side — it only suppresses the **forward** arc in the exported graph.

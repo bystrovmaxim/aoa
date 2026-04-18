@@ -118,7 +118,7 @@ The resource returns coordinator graph JSON with nodes and edges:
     {
       "nodes": [
         {"id": "...", "type": "action", "description": "...", "domain": "..."},
-        {"id": "...", "type": "domain", "name": "..."}
+        {"id": "...", "type": "domain", "domain_label": "..."}
       ],
       "edges": [
         {"from": "...", "to": "...", "type": "belongs_to"}
@@ -368,7 +368,7 @@ def _mcp_apply_meta_to_node(node: dict[str, Any], meta: dict[str, Any], node_typ
     if node_type == "domain":
         domain_name = meta.get("name", "")
         if domain_name:
-            node["name"] = domain_name
+            node["domain_label"] = domain_name
 
 
 def _build_graph_json(coordinator: GraphCoordinator) -> str:
@@ -385,7 +385,7 @@ def _build_graph_json(coordinator: GraphCoordinator) -> str:
         JSON string with graph structure.
     """
     # Facet skeleton payloads are required: ``hydrate_graph_node`` resolves
-    # ``node_type`` / ``name`` keys from the facet layer (see ``_facet_pygraph_for_mcp_json``).
+    # ``node_type`` / ``id`` keys from the facet layer (see ``_facet_pygraph_for_mcp_json``).
     graph = _facet_pygraph_for_mcp_json(coordinator)
 
     nodes: list[dict[str, Any]] = []
@@ -395,11 +395,11 @@ def _build_graph_json(coordinator: GraphCoordinator) -> str:
         payload = graph[idx]
         hydrated = coordinator.hydrate_graph_node(dict(payload))
         node_type = hydrated.get("node_type", "unknown")
-        name = hydrated.get("name", "")
+        node_id = str(hydrated.get("id") or hydrated.get("name") or "")
         meta = hydrated.get("meta", {})
 
         node: dict[str, Any] = {
-            "id": name,
+            "id": node_id,
             "type": node_type,
         }
 
@@ -418,9 +418,9 @@ def _build_graph_json(coordinator: GraphCoordinator) -> str:
         edge_type = _mcp_edge_type_from_payload(edge_data)
 
         nt_s = source_payload.get("node_type", "")
-        nm_s = source_payload.get("name", "")
+        nm_s = str(source_payload.get("id") or source_payload.get("name") or "")
         nt_t = target_payload.get("node_type", "")
-        nm_t = target_payload.get("name", "")
+        nm_t = str(target_payload.get("id") or target_payload.get("name") or "")
 
         edges.append({
             "from": nm_s,

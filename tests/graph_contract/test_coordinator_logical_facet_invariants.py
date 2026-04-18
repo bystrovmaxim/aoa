@@ -15,7 +15,7 @@ from action_machine.runtime.machines.core_action_machine import CoreActionMachin
 from maxitor.samples.build import _MODULES, build_sample_coordinator
 from maxitor.samples.store.actions.checkout_submit import CheckoutSubmitAction
 
-from .facet_payload_probe import gate_coordinator_default_inspectors_registered
+from .facet_payload_probe import graph_coordinator_default_inspectors_registered
 
 
 def _import_test_domain_modules() -> None:
@@ -53,7 +53,7 @@ def test_hydrate_facet_raw_payload_matches_get_node_for_merged_action_host() -> 
     idx = next(
         i
         for i in facet.node_indices()
-        if facet[i].get("node_type") == "action" and facet[i].get("name") == nm
+        if facet[i].get("node_type") == "action" and facet[i].get("id") == nm
     )
     raw = dict(facet[idx])
     assert coord.get_node("action", nm) == coord.hydrate_graph_node(raw)
@@ -84,7 +84,7 @@ def test_mcp_build_graph_json_emits_no_deprecation_warnings() -> None:
 def test_manual_register_then_build_matches_create_coordinator() -> None:
     _import_test_domain_modules()
     a = CoreActionMachine.create_coordinator()
-    b = gate_coordinator_default_inspectors_registered().build()
+    b = graph_coordinator_default_inspectors_registered().build()
     assert a.graph_node_count == b.graph_node_count
     assert a.graph_edge_count == b.graph_edge_count
     assert len(a.get_graph()) == len(b.get_graph())

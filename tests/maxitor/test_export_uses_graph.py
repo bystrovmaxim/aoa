@@ -14,9 +14,9 @@ from maxitor.graph_export import (
     JSON_SCHEMA_ID,
     coordinator_pygraph_for_visual_export,
     export_pygraph_to_dot,
-    json_document_to_pygraph,
     export_pygraph_to_graphml,
     export_pygraph_to_json,
+    json_document_to_pygraph,
     normalize_coordinator_node_payload_for_visualization,
     pygraph_to_dot_source,
     pygraph_to_json_document,
@@ -60,7 +60,7 @@ def test_coordinator_pygraph_falls_back_to_get_graph() -> None:
     class _Stub:
         def __init__(self) -> None:
             self._g = rx.PyDiGraph()
-            self._g.add_node({"node_type": "x", "name": "n", "class_ref": None})
+            self._g.add_node({"node_type": "x", "id": "n", "class_ref": None})
 
         def get_graph(self) -> rx.PyDiGraph:
             return self._g
@@ -90,8 +90,11 @@ def test_normalize_interchange_node_maps_to_facet_keys() -> None:
     }
     norm = normalize_coordinator_node_payload_for_visualization(raw)
     assert norm["node_type"] == "action"
-    assert norm["name"] == "pkg.actions.Foo"
+    assert norm["id"] == "pkg.actions.Foo"
     assert norm["label"] == "Foo"
+    assert norm["stereotype"] == "Business Process"
+    assert norm["properties"] == {}
+    assert norm["vertex_type"] == "action"
 
 
 def test_json_document_to_pygraph_roundtrip_counts() -> None:

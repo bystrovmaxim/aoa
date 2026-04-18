@@ -1,18 +1,18 @@
 # tests/scenarios/graph_with_runtime/test_new_gate_coordinator_accessors.py
-"""Tests for runtime accessors in new metadata GateCoordinator."""
+"""Tests for runtime accessors on ``GraphCoordinator``."""
 
 from __future__ import annotations
 
+from action_machine.domain.entity_intent_inspector import EntityIntentInspector
 from action_machine.graph.base_intent_inspector import BaseIntentInspector
-from action_machine.graph.gate_coordinator import GateCoordinator
-from action_machine.graph.inspectors.aspect_intent_inspector import AspectIntentInspector
-from action_machine.graph.inspectors.checker_intent_inspector import CheckerIntentInspector
-from action_machine.graph.inspectors.compensate_intent_inspector import (
+from action_machine.graph.graph_coordinator import GraphCoordinator
+from action_machine.graph.payload import EdgeInfo, FacetPayload
+from action_machine.intents.aspects.aspect_intent_inspector import AspectIntentInspector
+from action_machine.intents.checkers.checker_intent_inspector import CheckerIntentInspector
+from action_machine.intents.compensate.compensate_intent_inspector import (
     CompensateIntentInspector,
 )
-from action_machine.graph.inspectors.entity_intent_inspector import EntityIntentInspector
-from action_machine.graph.inspectors.on_error_intent_inspector import OnErrorIntentInspector
-from action_machine.graph.payload import EdgeInfo, FacetPayload
+from action_machine.intents.on_error.on_error_intent_inspector import OnErrorIntentInspector
 from action_machine.resources.base_resource_manager import BaseResourceManager
 from action_machine.runtime.machines.core_action_machine import CoreActionMachine
 from tests.scenarios.domain_model import FullAction
@@ -33,7 +33,7 @@ class _DbManagerStub(BaseResourceManager):
 
 
 def test_new_coordinator_runtime_accessors() -> None:
-    coordinator = GateCoordinator()
+    coordinator = GraphCoordinator()
     entity_name = BaseIntentInspector._make_node_name(_DemoEntity)
     action_name = BaseIntentInspector._make_node_name(_DemoAction)
     comp_rollback_name = BaseIntentInspector._make_host_dependent_node_name(
@@ -281,7 +281,7 @@ def test_new_coordinator_runtime_accessors() -> None:
     connection_keys: list[str] = []
     for idx in g.node_indices():
         n = g[idx]
-        if f"{n['node_type']}:{n['name']}" != action_full:
+        if f"{n['node_type']}:{n['id']}" != action_full:
             continue
         for _s, _t, ep in g.out_edges(idx):
             if isinstance(ep, dict) and ep.get("edge_type") == "connection":

@@ -8,7 +8,7 @@ PURPOSE
 
 Write rustworkx graphs under ``maxitor`` diagnostics to **GraphML**, **JSON**, and
 a minimal **DOT** (Graphviz) encoding. The coordinator may expose either a **facet**
-graph (``node_type``, ``name``, ``class_ref`` on nodes) or an **interchange**
+graph (``node_type``, ``id``, ``class_ref`` on facet nodes) or an **interchange**
 graph (``vertex_type``, ``id``, ``display_name``). This module normalizes interchange
 payloads into the facet-shaped view expected by string-only GraphML serialization,
 and picks ``get_graph_for_visualization()`` / ``get_graph()`` so HTML, GraphML, JSON, and DOT stay
@@ -73,9 +73,9 @@ ERRORS / LIMITATIONS
 from __future__ import annotations
 
 import json
+from collections.abc import Mapping
 from datetime import UTC, datetime
 from pathlib import Path
-from collections.abc import Mapping
 from typing import Any, cast
 
 import rustworkx as rx
@@ -95,6 +95,11 @@ def normalize_coordinator_node_payload_for_visualization(
 ) -> dict[str, Any]:
     """
     Map interchange node payloads to the facet-shaped keys used by exporters.
+
+    **Preserves** the full interchange payload (``properties``, ``stereotype``, etc.),
+    merged with ``node_type`` / ``label`` / ``class_ref`` so the HTML properties panel
+    can list every field. Vertex identity stays on the interchange ``id`` (no duplicate
+    ``name``).
     """
     if "vertex_type" not in node or "id" not in node:
         return dict(node)
@@ -102,12 +107,15 @@ def normalize_coordinator_node_payload_for_visualization(
     vt = str(node.get("vertex_type", "unknown"))
     display = str(node.get("display_name", "") or "").strip()
     label = display or (vid.rsplit(".", maxsplit=1)[-1] if "." in vid else vid)
-    return {
-        "node_type": vt,
-        "name": vid,
-        "label": label,
-        "class_ref": node.get("class_ref"),
-    }
+    merged = dict(node)
+    merged.update(
+        {
+            "node_type": vt,
+            "label": label,
+            "class_ref": node.get("class_ref"),
+        },
+    )
+    return merged
 
 
 def coordinator_pygraph_for_visual_export(coordinator: object) -> rx.PyDiGraph:
@@ -132,15 +140,15 @@ def pygraph_to_graphml_string_dicts(graph: rx.PyDiGraph) -> rx.PyDiGraph:
         raw = graph[idx]
         node = dict(raw) if isinstance(raw, dict) else {}
         node = normalize_coordinator_node_payload_for_visualization(node)
-        name = str(node.get("name", "") or "")
+        nid = str(node.get("id") or node.get("name") or "")
         node_type = str(node.get("node_type", "") or "")
         cr = node.get("class_ref")
         class_name = (
             f"{cr.__module__}.{cr.__qualname__}" if isinstance(cr, type) else ""
         )
-        graph_key = f"{node_type}:{name}" if node_type or name else str(int(idx))
+        graph_key = f"{node_type}:{nid}" if node_type or nid else str(int(idx))
         payload = {
-            "name": name,
+            "id": nid,
             "type": node_type,
             "class_name": class_name,
             "graph_key": graph_key,
@@ -301,7 +309,9 @@ def pygraph_to_dot_source(graph: rx.PyDiGraph, *, graph_id: str = "coordinator_g
         raw = graph[idx]
         node = dict(raw) if isinstance(raw, dict) else {}
         norm = normalize_coordinator_node_payload_for_visualization(node)
-        label = str(norm.get("label") or norm.get("name") or f"node_{idx}")
+        label = str(
+            norm.get("label") or norm.get("id") or norm.get("name") or f"node_{idx}"
+        )
         lines.append(f'  n{int(idx)} [label="{_dot_escape_label(label)}"];')
     for s, t, w in graph.weighted_edge_list():
         ed = dict(w) if isinstance(w, dict) else {}

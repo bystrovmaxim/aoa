@@ -9,7 +9,8 @@ import pytest
 import action_machine.graph.graph_coordinator as gate_coordinator_mod
 from action_machine.graph.model import GraphEdge, GraphVertex
 from action_machine.model.exceptions import CyclicDependencyError
-from .facet_payload_probe import gate_coordinator_default_inspectors_registered
+
+from .facet_payload_probe import graph_coordinator_default_inspectors_registered
 
 
 def _v(vid: str) -> GraphVertex:
@@ -44,6 +45,6 @@ def test_build_raises_cyclic_dependency_when_dag_slice_cycles(
         _patched,
     )
 
-    gc = gate_coordinator_default_inspectors_registered()
+    gc = graph_coordinator_default_inspectors_registered()
     with pytest.raises(CyclicDependencyError, match="cycle"):
         gc.build()

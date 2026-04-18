@@ -6,33 +6,33 @@ from __future__ import annotations
 from collections import UserDict
 
 from action_machine.graph.base_intent_inspector import BaseIntentInspector
+from action_machine.graph.payload import FacetMetaRow
+from action_machine.intents.aspects.aspect_intent import AspectIntent
 from action_machine.intents.aspects.aspect_intent_inspector import (
     AspectIntentInspector,
     hydrate_aspect_row,
 )
+from action_machine.intents.aspects.regular_aspect_decorator import regular_aspect
+from action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
+from action_machine.intents.checkers.checker_intent import CheckerIntent
 from action_machine.intents.checkers.checker_intent_inspector import (
     CheckerIntentInspector,
     hydrate_checker_row,
 )
+from action_machine.intents.checkers.result_string_checker import result_string
+from action_machine.intents.compensate.compensate_decorator import compensate
 from action_machine.intents.compensate.compensate_intent_inspector import (
     CompensateIntentInspector,
     hydrate_compensator_row,
 )
-from action_machine.intents.on_error.on_error_intent_inspector import (
-    OnErrorIntentInspector,
-    hydrate_error_handler_row,
-)
-from action_machine.graph.payload import FacetMetaRow
-from action_machine.intents.aspects.aspect_intent import AspectIntent
-from action_machine.intents.aspects.regular_aspect_decorator import regular_aspect
-from action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
-from action_machine.intents.checkers.checker_intent import CheckerIntent
-from action_machine.intents.checkers.result_string_checker import result_string
-from action_machine.intents.compensate.compensate_decorator import compensate
 from action_machine.intents.context.context_requires_decorator import context_requires
 from action_machine.intents.context.ctx_constants import Ctx
 from action_machine.intents.on_error.on_error_decorator import on_error
 from action_machine.intents.on_error.on_error_intent import OnErrorIntent
+from action_machine.intents.on_error.on_error_intent_inspector import (
+    OnErrorIntentInspector,
+    hydrate_error_handler_row,
+)
 
 
 class _RoundtripAspectAction(AspectIntent):
