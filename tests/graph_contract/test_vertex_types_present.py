@@ -24,7 +24,7 @@ from maxitor.samples.store.domain import StoreDomain
 
 # Core kinds always present on samples interchange; other facet ``node_type`` strings may appear.
 _SAMPLES_LOGICAL_VERTEX_TYPES: frozenset[str] = frozenset(
-    {"Action", "application", "domain", "role_class", "entity"},
+    {"Action", "Application", "domain", "role_class", "entity"},
 )
 
 
@@ -66,13 +66,13 @@ def test_c2_single_domain_vertex_per_bounded_context() -> None:
 
 @pytest.mark.graph_coverage
 def test_single_application_vertex_and_domain_belongs_to_application() -> None:
-    """Canonical ``application`` node; each domain has ``BELONGS_TO`` → application."""
+    """Canonical ``Application`` node; each domain has ``BELONGS_TO`` → application root."""
     _import_sample_modules()
     lg = build_sample_coordinator().get_graph()
     app_id = BaseIntentInspector._make_node_name(ApplicationContext)
     app_nodes = [lg[i] for i in lg.node_indices() if lg[i]["id"] == app_id]
     assert len(app_nodes) == 1
-    assert app_nodes[0]["node_type"] == "application"
+    assert app_nodes[0]["node_type"] == "Application"
     id_by_idx = {i: lg[i]["id"] for i in lg.node_indices()}
     for domain_cls in (StoreDomain, BillingDomain, MessagingDomain, CatalogDomain):
         domain_id = BaseIntentInspector._make_node_name(domain_cls)

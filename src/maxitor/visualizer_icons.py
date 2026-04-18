@@ -10,12 +10,16 @@ from __future__ import annotations
 
 from urllib.parse import quote
 
-from action_machine.interchange_vertex_labels import ACTION_VERTEX_TYPE, SERVICE_VERTEX_TYPE
+from action_machine.interchange_vertex_labels import (
+    ACTION_VERTEX_TYPE,
+    APPLICATION_VERTEX_TYPE,
+    SERVICE_VERTEX_TYPE,
+)
 
 # fmt: off
 # Inner elements only (no <svg> wrapper), spaces preserved for valid XML.
 VERTEX_TYPE_LUCIDE_INNER_SVG: dict[str, str] = {
-    "application": (
+    APPLICATION_VERTEX_TYPE: (
         '<rect width="7" height="9" x="3" y="3" rx="1" /> '
         '<rect width="7" height="5" x="14" y="3" rx="1" /> '
         '<rect width="7" height="9" x="14" y="12" rx="1" /> '

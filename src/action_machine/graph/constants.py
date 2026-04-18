@@ -22,7 +22,7 @@ VERTEX_TYPES: Final[frozenset[str]] = frozenset(
         "checker",
         "sensitive_field",
         "role_class",
-        "application",
+        "Application",
         "domain",
         "entity",
         "lifecycle",

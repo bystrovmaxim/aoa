@@ -9,6 +9,6 @@ as a stable ``class_ref`` / ``node_name`` source for that single graph node.
 
 
 class ApplicationContext:
-    """Marker class for the coordinator ``application`` facet vertex."""
+    """Marker class for the coordinator ``Application`` facet vertex."""
 
     __slots__ = ()
