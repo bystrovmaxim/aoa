@@ -1,9 +1,8 @@
-# src/action_machine/graph/edge_info.py
+# src/action_machine/graph/facet_edge.py
 """
-One directed edge from a facet node (:class:`EdgeInfo`).
+Facet-layer directed edge (:class:`FacetEdge`), collected before interchange projection.
 
-Used by :class:`~action_machine.graph.facet_payload.FacetPayload` and
-:class:`~action_machine.graph.graph_coordinator.GraphCoordinator` build phases.
+Pairs with :class:`~action_machine.graph.graph_edge.GraphEdge` after commit.
 """
 
 from __future__ import annotations
@@ -16,12 +15,12 @@ FacetMetaRow = tuple[tuple[str, Any], ...]
 
 
 @dataclass(frozen=True)
-class EdgeInfo:
+class FacetEdge:
     """
-    One directed edge leaving a graph node.
+    One directed edge leaving a facet node.
 
     Produced via inspector helpers (see ``BaseIntentInspector._make_edge()``).
-    Lives inside ``FacetPayload.edges``. The coordinator uses ``EdgeInfo`` for
+    Lives inside ``FacetVertex.edges``. The coordinator uses ``FacetEdge`` for
     referential integrity (target exists) and, for structural edges, acyclicity.
 
     Attributes:
@@ -54,7 +53,7 @@ class EdgeInfo:
             manager), the coordinator may synthesize a facet node if no
             inspector emitted one. ``None`` for name-only targets.
 
-        synthetic_stub_edges : tuple[EdgeInfo, ...]
+        synthetic_stub_edges : tuple[FacetEdge, ...]
             When the coordinator materializes a missing target for this edge,
             these edges are attached to the synthesized target node. Empty by
             default; inspectors populate when the stub needs outgoing edges.
@@ -72,4 +71,4 @@ class EdgeInfo:
     is_structural: bool
     edge_meta: tuple[tuple[str, Any], ...] = field(default_factory=tuple)
     target_class_ref: type | None = None
-    synthetic_stub_edges: tuple[EdgeInfo, ...] = field(default_factory=tuple)
+    synthetic_stub_edges: tuple[FacetEdge, ...] = field(default_factory=tuple)

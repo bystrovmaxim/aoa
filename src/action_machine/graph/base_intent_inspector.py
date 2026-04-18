@@ -15,13 +15,13 @@ An inspector:
 3. Registers with ``GraphCoordinator``.
 
 During ``build()`` the coordinator walks registered inspectors, calls
-``inspect()`` on each candidate, and commits ``FacetPayload`` nodes into
+``inspect()`` on each candidate, and commits ``FacetVertex`` nodes into
 ``rx.PyDiGraph``. Inspectors do not assemble runtime metadata — only graph
 nodes/edges plus optional node ``meta`` for tooling.
 
 Optionally, ``facet_snapshot_for_class()`` returns a :class:`BaseFacetSnapshot`
 (usually a nested ``Snapshot`` on the inspector); the coordinator caches it
-next to the graph so ``to_facet_payload()`` stays the single projection path.
+next to the graph so ``to_facet_vertex()`` stays the single projection path.
 
 ═══════════════════════════════════════════════════════════════════════════════
 MARKER VS INSPECTOR
@@ -51,14 +51,14 @@ TWO REQUIRED METHODS
 
 Every inspector implements two abstract ``classmethod`` hooks:
 
-    inspect(target_cls) → FacetPayload | list[FacetPayload] | tuple[FacetPayload, ...] | None
+    inspect(target_cls) → FacetVertex | list[FacetVertex] | tuple[FacetVertex, ...] | None
         Entry point. Decides whether the class belongs to this inspector.
         Returns a payload, a sequence of payloads, or ``None`` when the class is irrelevant.
 
-    _build_payload(target_cls) → FacetPayload | list[FacetPayload]
+    _build_payload(target_cls) → FacetVertex | list[FacetVertex]
         Builds the node/edge bundle (or several facets). Reads class scratch attributes
         (``_role_info``, ``_depends_info``, ``_meta_info``, …) and uses base
-        helpers to assemble ``FacetPayload``.
+        helpers to assemble ``FacetVertex``.
 
 ═══════════════════════════════════════════════════════════════════════════════
 WHERE VALIDATION LIVES
@@ -82,7 +82,7 @@ RESPONSIBILITY SPLIT
 ═══════════════════════════════════════════════════════════════════════════════
 
     inspect()        — cheap presence checks only (e.g. ``_role_info``?)
-    _build_payload() — reads data, materializes ``FacetPayload``
+    _build_payload() — reads data, materializes ``FacetVertex``
 
 This keeps ``inspect()`` fast (``hasattr`` / ``getattr`` only) and
 ``_build_payload()`` free of side effects beyond constructing payloads.
@@ -98,11 +98,11 @@ The base class exposes five helpers shared by inspectors:
         Does **not** add ``node_type:`` — interchange vertex ``id`` is this string alone.
 
     _make_edge(target_node_type, target_cls, edge_type,
-               is_structural, edge_meta=()) → EdgeInfo
-        Builds ``EdgeInfo`` with ``_make_node_name(target_cls)`` for the target.
+               is_structural, edge_meta=()) → FacetEdge
+        Builds ``FacetEdge`` with ``_make_node_name(target_cls)`` for the target.
 
     _make_edge_by_name(target_node_type, target_name, edge_type,
-                       is_structural, edge_meta=()) → EdgeInfo
+                       is_structural, edge_meta=()) → FacetEdge
         Like ``_make_edge`` when the target is a string
         (e.g. ``"context_field:user.user_id"``).
 
@@ -215,7 +215,7 @@ EXAMPLE — INSPECTOR WITH EDGES
                 )
                 for dep_info in target_cls._depends_info
             )
-            return FacetPayload(
+            return FacetVertex(
                 node_type="PrimaryHost",
                 node_name=cls._make_node_name(target_cls),
                 node_class=target_cls,
@@ -228,7 +228,7 @@ AI-CORE-BEGIN
 ROLE: Abstract inspector base for all intent-driven graph facets.
 CONTRACT: ``inspect`` / ``_build_payload`` + shared payload and traversal helpers.
 INVARIANTS: Stateless classmethods; markers never import inspectors.
-FLOW: coordinator → ``_subclasses_recursive`` → ``inspect`` → ``FacetPayload``.
+FLOW: coordinator → ``_subclasses_recursive`` → ``inspect`` → ``FacetVertex``.
 FAILURES: abstract until concrete inspector implements hooks.
 EXTENSION POINTS: concrete inspectors override traversal and payload shape.
 AI-CORE-END
@@ -241,12 +241,12 @@ from abc import ABC, abstractmethod
 from typing import Any
 
 from action_machine.graph.base_facet_snapshot import BaseFacetSnapshot
-from action_machine.graph.edge_info import EdgeInfo
-from action_machine.graph.facet_payload import FacetPayload
+from action_machine.graph.facet_edge import FacetEdge
+from action_machine.graph.facet_vertex import FacetVertex
 
-# ``GraphCoordinator._phase1_collect`` normalizes every outcome to ``list[FacetPayload]``.
-type FacetInspectResult = FacetPayload | list[FacetPayload] | tuple[FacetPayload, ...] | None
-type FacetBuildResult = FacetPayload | list[FacetPayload]
+# ``GraphCoordinator._phase1_collect`` normalizes every outcome to ``list[FacetVertex]``.
+type FacetInspectResult = FacetVertex | list[FacetVertex] | tuple[FacetVertex, ...] | None
+type FacetBuildResult = FacetVertex | list[FacetVertex]
 
 
 class BaseIntentInspector(ABC):
@@ -254,7 +254,7 @@ class BaseIntentInspector(ABC):
     Abstract base for all intent inspectors.
 
     Defines two abstract ``classmethod`` hooks (``inspect``, ``_build_payload``)
-    and shared helpers that build ``FacetPayload`` / ``EdgeInfo`` and traverse
+    and shared helpers that build ``FacetVertex`` / ``FacetEdge`` and traverse
     marker subclasses without duplicating boilerplate.
 
     Everything is a ``classmethod`` or ``staticmethod`` — inspectors are
@@ -287,7 +287,7 @@ class BaseIntentInspector(ABC):
 
             1. Check decorator scratch (``hasattr`` / ``getattr``).
             2. If missing → ``return None``.
-            3. Call ``_build_payload()`` → ``FacetPayload`` or ``list[FacetPayload]``.
+            3. Call ``_build_payload()`` → ``FacetVertex`` or ``list[FacetVertex]``.
             4. Return the payload or sequence.
 
         Args:
@@ -305,13 +305,13 @@ class BaseIntentInspector(ABC):
         Default: no snapshot.
 
         Override in inspectors that define a nested ``Snapshot`` with
-        ``to_facet_payload()``.
+        ``to_facet_vertex()``.
         """
         return None
 
     @classmethod
     def facet_snapshot_storage_key(
-        cls, target_cls: type, payload: FacetPayload,
+        cls, target_cls: type, payload: FacetVertex,
     ) -> str:
         """
         Cache key for ``_facet_snapshots`` (may differ from ``payload.node_type``).
@@ -322,10 +322,10 @@ class BaseIntentInspector(ABC):
         return payload.node_type
 
     @classmethod
-    def should_register_facet_snapshot_for_payload(
+    def should_register_facet_snapshot_for_vertex(
         cls,
         _target_cls: type,
-        payload: FacetPayload,
+        payload: FacetVertex,
     ) -> bool:
         """
         If ``False``, :class:`~action_machine.graph.graph_coordinator.GraphCoordinator`
@@ -342,7 +342,7 @@ class BaseIntentInspector(ABC):
     @abstractmethod
     def _build_payload(cls, target_cls: type) -> FacetBuildResult:
         """
-        Construct ``FacetPayload`` (or several) from class scratch attributes.
+        Construct ``FacetVertex`` (or several) from class scratch attributes.
 
         Reads ``_role_info``, ``_depends_info``, etc., and uses
         ``_make_node_name``, ``_make_edge``, ``_make_edge_by_name``, ``_make_meta``.
@@ -410,10 +410,10 @@ class BaseIntentInspector(ABC):
         is_structural: bool,
         edge_meta: tuple[tuple[str, Any], ...] = (),
         *,
-        synthetic_stub_edges: tuple[EdgeInfo, ...] = (),
-    ) -> EdgeInfo:
+        synthetic_stub_edges: tuple[FacetEdge, ...] = (),
+    ) -> FacetEdge:
         """
-        Build ``EdgeInfo`` when the target is a concrete class.
+        Build ``FacetEdge`` when the target is a concrete class.
 
         Target name comes from ``_make_node_name(target_cls)``.
 
@@ -425,13 +425,13 @@ class BaseIntentInspector(ABC):
             edge_meta: Optional tuple metadata (defaults to empty).
 
         Returns:
-            Populated ``EdgeInfo`` with ``target_class_ref=target_cls``.
+            Populated ``FacetEdge`` with ``target_class_ref=target_cls``.
 
             synthetic_stub_edges:
                 Outgoing edges on a coordinator-synthesized target node when this
                 edge's target was materialized from ``target_class_ref``.
         """
-        return EdgeInfo(
+        return FacetEdge(
             target_node_type=target_node_type,
             target_name=cls._make_node_name(target_cls),
             edge_type=edge_type,
@@ -451,9 +451,9 @@ class BaseIntentInspector(ABC):
         edge_meta: tuple[tuple[str, Any], ...] = (),
         *,
         target_class_ref: type | None = None,
-    ) -> EdgeInfo:
+    ) -> FacetEdge:
         """
-        Build ``EdgeInfo`` when the target is a string identifier.
+        Build ``FacetEdge`` when the target is a string identifier.
 
         Useful for context-field nodes (``"user.user_id"``) or synthetic domains.
         When ``target_class_ref`` is set, :meth:`GraphCoordinator._materialize_edge_targets`
@@ -468,9 +468,9 @@ class BaseIntentInspector(ABC):
             target_class_ref: Optional concrete class for materialized stubs.
 
         Returns:
-            ``EdgeInfo`` (``target_class_ref`` defaults to ``None``).
+            ``FacetEdge`` (``target_class_ref`` defaults to ``None``).
         """
-        return EdgeInfo(
+        return FacetEdge(
             target_node_type=target_node_type,
             target_name=target_name,
             edge_type=edge_type,

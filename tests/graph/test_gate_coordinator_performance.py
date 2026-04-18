@@ -8,7 +8,7 @@ import time
 import pytest
 
 from action_machine.graph.base_intent_inspector import BaseIntentInspector
-from action_machine.graph.facet_payload import FacetPayload
+from action_machine.graph.facet_vertex import FacetVertex
 from action_machine.graph.graph_coordinator import GraphCoordinator
 from tests.bench.bench_report import emit_benchmark_report, rows_throughput_budget
 
@@ -25,15 +25,15 @@ class _PerfInspector(BaseIntentInspector):
         return [_PerfLeaf]
 
     @classmethod
-    def inspect(cls, target_cls: type) -> FacetPayload | None:
-        return FacetPayload(
+    def inspect(cls, target_cls: type) -> FacetVertex | None:
+        return FacetVertex(
             node_type="perf",
             node_name="P",
             node_class=target_cls,
         )
 
     @classmethod
-    def _build_payload(cls, target_cls: type) -> FacetPayload:
+    def _build_payload(cls, target_cls: type) -> FacetVertex:
         raise NotImplementedError
 
 

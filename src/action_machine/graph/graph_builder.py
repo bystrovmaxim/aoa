@@ -3,9 +3,9 @@
 Interchange construction: :class:`GraphBuilder` and module-level helpers.
 
 - **Synthetic bundle** — ``vertices`` / ``edges`` JSON rows (tests, fixtures).
-- **Facet payloads** — ``FacetPayload`` sequence from inspectors / coordinator collect;
+- **Facet vertices** — ``FacetVertex`` sequence from inspectors / coordinator collect;
   vertex ``id`` equals ``node_name`` (inspectors emit globally unique names; dependent facets
-  use ``host:segment``); edges come from payload ``edges`` with a small facet ``edge_type``
+  use ``host:segment``); edges come from each vertex's ``edges`` with a small facet ``edge_type``
   → interchange projection table; **no** automatic §5.3 reverse pairs (forward edges only).
 """
 
@@ -16,7 +16,7 @@ from dataclasses import fields
 from typing import Any, Final
 
 from action_machine.graph.constants import INTERNAL_EDGE_TYPES, OWNERSHIP_EDGE_TYPES
-from action_machine.graph.facet_payload import FacetPayload
+from action_machine.graph.facet_vertex import FacetVertex
 from action_machine.graph.graph_edge import GraphEdge
 from action_machine.graph.graph_vertex import GraphVertex
 
@@ -135,9 +135,9 @@ def build_from_synthetic_bundle(inp: Mapping[str, Any]) -> tuple[list[GraphVerte
     return vertices, edges
 
 
-def _interchange_vertex_id(payload: FacetPayload) -> str:
+def _interchange_vertex_id(vertex: FacetVertex) -> str:
     """Interchange vertex id — identical to inspector ``node_name`` (globally unique)."""
-    return payload.node_name
+    return vertex.node_name
 
 
 def _tail_name(qualname: str) -> str:
@@ -157,7 +157,7 @@ def _aspect_method_name_from_meta(meta: Mapping[str, Any]) -> str | None:
     return s or None
 
 
-def _facet_vertex_label(p: FacetPayload) -> str:
+def _facet_vertex_label(p: FacetVertex) -> str:
     """
     Short display label for an interchange vertex.
 
@@ -184,12 +184,12 @@ def _facet_vertex_label(p: FacetPayload) -> str:
     return _tail_name(p.node_name)
 
 
-def _from_facet_payloads(
-    payloads: tuple[FacetPayload, ...],
+def _from_facet_vertices(
+    facet_vertices: tuple[FacetVertex, ...],
 ) -> tuple[list[GraphVertex], list[GraphEdge]]:
     vertices_by_id: dict[str, GraphVertex] = {}
 
-    for p in payloads:
+    for p in facet_vertices:
         vid = _interchange_vertex_id(p)
         if vid in vertices_by_id:
             msg = f"duplicate vertex id {vid!r}"
@@ -206,7 +206,7 @@ def _from_facet_payloads(
     edges: list[GraphEdge] = []
     seen_forward: set[tuple[str, str, str, tuple[tuple[str, Any], ...]]] = set()
 
-    for p in payloads:
+    for p in facet_vertices:
         source_id = _interchange_vertex_id(p)
         for e in p.edges:
             target_id = e.target_name
@@ -252,20 +252,20 @@ def _from_facet_payloads(
     return vertices, edges
 
 
-def build_interchange_from_facet_payloads(
-    payloads: Sequence[FacetPayload],
+def build_interchange_from_facet_vertices(
+    facet_vertices: Sequence[FacetVertex],
 ) -> tuple[list[GraphVertex], list[GraphEdge]]:
     """
-    Build interchange vertex/edge lists from facet payload rows.
+    Build interchange vertex/edge lists from facet vertex rows.
 
     Raises:
         ValueError: unknown facet ``edge_type``, unknown edge endpoint id, or duplicate vertex id.
     """
-    return _from_facet_payloads(tuple(payloads))
+    return _from_facet_vertices(tuple(facet_vertices))
 
 
 class GraphBuilder:
-    """Build interchange lists from a synthetic JSON bundle or from facet payloads."""
+    """Build interchange lists from a synthetic JSON bundle or from facet vertices."""
 
     @classmethod
     def build(
@@ -277,10 +277,10 @@ class GraphBuilder:
         return build_from_synthetic_bundle(synthetic_bundle)
 
     @classmethod
-    def build_from_facet_payloads(
+    def build_from_facet_vertices(
         cls,
         *,
-        facet_payloads: Sequence[FacetPayload],
+        facet_vertices: Sequence[FacetVertex],
     ) -> tuple[list[GraphVertex], list[GraphEdge]]:
-        """Same as :func:`build_interchange_from_facet_payloads`."""
-        return build_interchange_from_facet_payloads(facet_payloads)
+        """Same as :func:`build_interchange_from_facet_vertices`."""
+        return build_interchange_from_facet_vertices(facet_vertices)

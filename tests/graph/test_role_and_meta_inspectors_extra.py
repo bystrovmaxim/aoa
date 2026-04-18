@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from action_machine.graph.edge_info import EdgeInfo
+from action_machine.graph.facet_edge import FacetEdge
 from action_machine.intents.auth.application_role import ApplicationRole
 from action_machine.intents.auth.base_role import BaseRole
 from action_machine.intents.auth.role_intent import RoleIntent
@@ -43,7 +43,7 @@ def test_role_intent_inspector_branches() -> None:
     assert payload.node_type == "Action"
     assert dict(payload.node_meta)["spec"] is _InspectFixtureRole
     assert any(
-        isinstance(e, EdgeInfo)
+        isinstance(e, FacetEdge)
         and e.edge_type == "requires_role"
         and e.target_node_type == "role_class"
         and e.target_class_ref is ApplicationRole

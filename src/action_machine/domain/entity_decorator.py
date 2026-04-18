@@ -70,7 +70,7 @@ ARCHITECTURE / DATA FLOW
     _entity_info = {"description": ..., "domain": ShopDomain}
         │
         ▼  EntityIntentInspector at GraphCoordinator.build()
-    Reads _entity_info + pydantic model_fields → FacetPayload / snapshot
+    Reads _entity_info + pydantic model_fields → FacetVertex / snapshot
         │
         ▼
     Facet graph: ``entity`` node, optional ``belongs_to`` domain edge, …

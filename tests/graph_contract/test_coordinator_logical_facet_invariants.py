@@ -8,14 +8,14 @@ import importlib
 import warnings
 
 from action_machine.graph.base_intent_inspector import BaseIntentInspector
-from action_machine.graph.facet_payload import FacetPayload
+from action_machine.graph.facet_vertex import FacetVertex
 from action_machine.graph.graph_coordinator import GraphCoordinator
 from action_machine.integrations.mcp.adapter import _build_graph_json
 from action_machine.runtime.machines.core_action_machine import CoreActionMachine
 from maxitor.samples.build import _MODULES, build_sample_coordinator
 from maxitor.samples.store.actions.checkout_submit import CheckoutSubmitAction
 
-from .facet_payload_probe import graph_coordinator_default_inspectors_registered
+from .facet_vertex_probe import graph_coordinator_default_inspectors_registered
 
 
 def _import_test_domain_modules() -> None:
@@ -106,11 +106,11 @@ class _OrphanFacetInspector(BaseIntentInspector):
         return [_OrphanFacetClass]
 
     @classmethod
-    def inspect(cls, target_cls: type) -> FacetPayload | None:
-        return FacetPayload(node_type="orphan_kind", node_name="n", node_class=target_cls)
+    def inspect(cls, target_cls: type) -> FacetVertex | None:
+        return FacetVertex(node_type="orphan_kind", node_name="n", node_class=target_cls)
 
     @classmethod
-    def _build_payload(cls, target_cls: type) -> FacetPayload:
+    def _build_payload(cls, target_cls: type) -> FacetVertex:
         raise NotImplementedError
 
 

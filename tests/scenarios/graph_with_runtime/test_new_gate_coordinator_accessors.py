@@ -5,8 +5,8 @@ from __future__ import annotations
 
 from action_machine.domain.entity_intent_inspector import EntityIntentInspector
 from action_machine.graph.base_intent_inspector import BaseIntentInspector
-from action_machine.graph.edge_info import EdgeInfo
-from action_machine.graph.facet_payload import FacetPayload
+from action_machine.graph.facet_edge import FacetEdge
+from action_machine.graph.facet_vertex import FacetVertex
 from action_machine.graph.graph_coordinator import GraphCoordinator
 from action_machine.intents.aspects.aspect_intent_inspector import AspectIntentInspector
 from action_machine.intents.checkers.checker_intent_inspector import CheckerIntentInspector
@@ -51,13 +51,13 @@ def test_new_coordinator_runtime_accessors() -> None:
     summary_ref = object()
     coordinator._phase3_commit(  # pylint: disable=protected-access
         [
-            FacetPayload(
+            FacetVertex(
                 node_type=ENTITY_VERTEX_TYPE,
                 node_name=entity_name,
                 node_class=_DemoEntity,
                 node_meta=(("description", "Demo entity"),),
             ),
-            FacetPayload(
+            FacetVertex(
                 node_type=REGULAR_ASPECT_VERTEX_TYPE,
                 node_name=action_name,
                 node_class=_DemoAction,
@@ -83,7 +83,7 @@ def test_new_coordinator_runtime_accessors() -> None:
                     ),
                 ),
             ),
-            FacetPayload(
+            FacetVertex(
                 node_type=CHECKER_VERTEX_TYPE,
                 node_name=action_name,
                 node_class=_DemoAction,
@@ -102,7 +102,7 @@ def test_new_coordinator_runtime_accessors() -> None:
                     ),
                 ),
             ),
-            FacetPayload(
+            FacetVertex(
                 node_type="error_handler",
                 node_name=action_name,
                 node_class=_DemoAction,
@@ -121,7 +121,7 @@ def test_new_coordinator_runtime_accessors() -> None:
                     ),
                 ),
             ),
-            FacetPayload(
+            FacetVertex(
                 node_type=COMPENSATOR_VERTEX_TYPE,
                 node_name=comp_rollback_name,
                 node_class=_DemoAction,
@@ -133,26 +133,26 @@ def test_new_coordinator_runtime_accessors() -> None:
                     context_keys=frozenset(),
                 ),
             ),
-            FacetPayload(
+            FacetVertex(
                 node_type="resource_manager",
                 node_name=rm_name,
                 node_class=_DbManagerStub,
                 node_meta=(),
                 edges=(),
             ),
-            FacetPayload(
+            FacetVertex(
                 node_type="Action",
                 node_name=action_name,
                 node_class=_DemoAction,
                 edges=(
-                    EdgeInfo(
+                    FacetEdge(
                         target_node_type="resource_manager",
                         target_name=rm_name,
                         edge_type="connection",
                         is_structural=True,
                         edge_meta=(("description", "primary"), ("key", "db")),
                     ),
-                    EdgeInfo(
+                    FacetEdge(
                         target_node_type=COMPENSATOR_VERTEX_TYPE,
                         target_name=comp_rollback_name,
                         edge_type="has_compensator",

@@ -184,8 +184,8 @@ from dataclasses import dataclass  # noqa: E402
 
 from action_machine.graph.base_facet_snapshot import BaseFacetSnapshot  # noqa: E402
 from action_machine.graph.base_intent_inspector import BaseIntentInspector  # noqa: E402
-from action_machine.graph.edge_info import EdgeInfo  # noqa: E402
-from action_machine.graph.facet_payload import FacetPayload  # noqa: E402
+from action_machine.graph.facet_edge import FacetEdge  # noqa: E402
+from action_machine.graph.facet_vertex import FacetVertex  # noqa: E402
 from action_machine.intents.described_fields.described_fields_intent_inspector import (  # noqa: E402
     DescribedFieldsIntentInspector,
 )
@@ -221,14 +221,14 @@ class ActionTypedSchemasInspector(BaseIntentInspector):
         params_type: type | None
         result_type: type | None
 
-        def to_facet_payload(self) -> FacetPayload:
-            edges: list[EdgeInfo] = []
+        def to_facet_vertex(self) -> FacetVertex:
+            edges: list[FacetEdge] = []
             if self.params_type is not None:
                 p_nt, p_name = DescribedFieldsIntentInspector.facet_host_for_schema_type(
                     self.params_type,
                 )
                 edges.append(
-                    EdgeInfo(
+                    FacetEdge(
                         target_node_type=p_nt,
                         target_name=p_name,
                         edge_type="uses_params",
@@ -241,7 +241,7 @@ class ActionTypedSchemasInspector(BaseIntentInspector):
                     self.result_type,
                 )
                 edges.append(
-                    EdgeInfo(
+                    FacetEdge(
                         target_node_type=r_nt,
                         target_name=r_name,
                         edge_type="uses_result",
@@ -249,7 +249,7 @@ class ActionTypedSchemasInspector(BaseIntentInspector):
                         target_class_ref=self.result_type,
                     ),
                 )
-            return FacetPayload(
+            return FacetVertex(
                 node_type=ACTION_VERTEX_TYPE,
                 node_name=ActionTypedSchemasInspector._make_node_name(self.class_ref),
                 node_class=self.class_ref,
@@ -265,7 +265,7 @@ class ActionTypedSchemasInspector(BaseIntentInspector):
         return cls._collect_subclasses(cls._target_intent)
 
     @classmethod
-    def inspect(cls, target_cls: type) -> FacetPayload | None:
+    def inspect(cls, target_cls: type) -> FacetVertex | None:
         p_type, r_type = extract_action_params_result_types(target_cls)
         if p_type is None and r_type is None:
             return None
@@ -284,12 +284,12 @@ class ActionTypedSchemasInspector(BaseIntentInspector):
 
     @classmethod
     def facet_snapshot_storage_key(
-        cls, _target_cls: type, _payload: FacetPayload,
+        cls, _target_cls: type, _payload: FacetVertex,
     ) -> str:
         return "action_schemas"
 
     @classmethod
-    def _build_payload(cls, target_cls: type) -> FacetPayload:
+    def _build_payload(cls, target_cls: type) -> FacetVertex:
         snap = cls.facet_snapshot_for_class(target_cls)
         assert snap is not None
-        return snap.to_facet_payload()
+        return snap.to_facet_vertex()

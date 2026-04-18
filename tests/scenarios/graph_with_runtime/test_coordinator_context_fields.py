@@ -19,7 +19,7 @@ In an early coordinator model, **separate** ``context_field`` **nodes** and
 ``requires_context`` **edges** visualized context needs on the graph: two aspects
 with the same key pointed at one field node, and reuse was obvious on the diagram.
 
-After moving to **transactional graph build from FacetPayload**, the visual
+After moving to **transactional graph build from FacetVertex**, the visual
 “each context field = node” detail **is not duplicated** the same way: context
 remains **step semantics** — a tuple of string keys on ``AspectMeta``,
 ``OnErrorMeta``, etc. — while the graph describes facets (role, meta, aspect, …)

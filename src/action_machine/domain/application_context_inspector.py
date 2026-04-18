@@ -13,7 +13,7 @@ from __future__ import annotations
 from action_machine.domain.application_context import ApplicationContext
 from action_machine.domain.base_domain import BaseDomain
 from action_machine.graph.base_intent_inspector import BaseIntentInspector
-from action_machine.graph.facet_payload import FacetPayload
+from action_machine.graph.facet_vertex import FacetVertex
 from action_machine.interchange_vertex_labels import APPLICATION_VERTEX_TYPE, DOMAIN_VERTEX_TYPE
 
 
@@ -34,12 +34,12 @@ class ApplicationContextInspector(BaseIntentInspector):
         return cls._collect_subclasses(cls._target_intent)
 
     @classmethod
-    def inspect(cls, target_cls: type) -> list[FacetPayload] | None:
+    def inspect(cls, target_cls: type) -> list[FacetVertex] | None:
         domain_payload = cls._domain_payload_or_none(target_cls)
         if domain_payload is None:
             return None
         app_name = cls._make_node_name(ApplicationContext)
-        application_payload = FacetPayload(
+        application_payload = FacetVertex(
             node_type=APPLICATION_VERTEX_TYPE,
             node_name=app_name,
             node_class=ApplicationContext,
@@ -51,7 +51,7 @@ class ApplicationContextInspector(BaseIntentInspector):
         return [application_payload, domain_payload]
 
     @classmethod
-    def _build_payload(cls, target_cls: type) -> FacetPayload:
+    def _build_payload(cls, target_cls: type) -> FacetVertex:
         domain_payload = cls._domain_payload_or_none(target_cls)
         if domain_payload is None:
             msg = (
@@ -62,7 +62,7 @@ class ApplicationContextInspector(BaseIntentInspector):
         return domain_payload
 
     @classmethod
-    def _domain_payload_or_none(cls, target_cls: type) -> FacetPayload | None:
+    def _domain_payload_or_none(cls, target_cls: type) -> FacetVertex | None:
         if target_cls is BaseDomain or not issubclass(target_cls, BaseDomain):
             return None
         name = getattr(target_cls, "name", None)
@@ -78,7 +78,7 @@ class ApplicationContextInspector(BaseIntentInspector):
             edge_type="belongs_to",
             is_structural=False,
         )
-        return FacetPayload(
+        return FacetVertex(
             node_type=DOMAIN_VERTEX_TYPE,
             node_name=domain_name,
             node_class=target_cls,

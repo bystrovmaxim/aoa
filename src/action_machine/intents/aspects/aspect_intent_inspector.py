@@ -8,7 +8,7 @@ PURPOSE
 
 Collect per-class aspect declarations (``@regular_aspect`` / ``@summary_aspect``)
 from method-level scratch (``_new_aspect_meta``) and expose them as a typed
-``Snapshot`` plus coordinator ``FacetPayload`` with ``node_type="RegularAspect"`` / ``"SummaryAspect"``.
+``Snapshot`` plus coordinator ``FacetVertex`` with ``node_type="RegularAspect"`` / ``"SummaryAspect"``.
 
 ═══════════════════════════════════════════════════════════════════════════════
 INVARIANTS
@@ -47,7 +47,7 @@ ARCHITECTURE / DATA FLOW
     getattr(func, "_new_aspect_meta") → Snapshot.Aspect
          │
          ▼
-    Snapshot.to_facet_payload()  →  FacetPayload(node_type="RegularAspect" / "SummaryAspect");
+    Snapshot.to_facet_vertex()  →  FacetVertex(node_type="RegularAspect" / "SummaryAspect");
     inspect()  →  per-method aspect payloads plus one action payload (has_aspect).
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -79,7 +79,7 @@ prevents “mystery” ordering from multiple inheritance.
 AI-CORE-BEGIN
 ═══════════════════════════════════════════════════════════════════════════════
 ROLE: Aspect facet inspector module.
-CONTRACT: Declarative aspect metadata → typed snapshot → ``FacetPayload``.
+CONTRACT: Declarative aspect metadata → typed snapshot → ``FacetVertex``.
 INVARIANTS: Single facet key ``aspect``; collection from declaring-class ``vars``
   only (no MRO merge); explicit per-class facet surface.
 FLOW: vars → unwrap → _new_aspect_meta → Snapshot → payloads + action has_aspect.
@@ -95,8 +95,8 @@ from dataclasses import dataclass
 
 from action_machine.graph.base_facet_snapshot import BaseFacetSnapshot
 from action_machine.graph.base_intent_inspector import BaseIntentInspector
-from action_machine.graph.edge_info import EdgeInfo, FacetMetaRow
-from action_machine.graph.facet_payload import FacetPayload
+from action_machine.graph.facet_edge import FacetEdge, FacetMetaRow
+from action_machine.graph.facet_vertex import FacetVertex
 from action_machine.intents.aspects.aspect_intent import AspectIntent
 from action_machine.interchange_vertex_labels import (
     ACTION_VERTEX_TYPE,
@@ -185,7 +185,7 @@ class AspectIntentInspector(BaseIntentInspector):
         class_ref: type
         aspects: tuple[Aspect, ...]
 
-        def to_facet_payload(self) -> FacetPayload:
+        def to_facet_vertex(self) -> FacetVertex:
             """
             Aggregate facet row (all aspects in ``node_meta``).
 
@@ -210,7 +210,7 @@ class AspectIntentInspector(BaseIntentInspector):
                 agg_nt = SUMMARY_ASPECT_VERTEX_TYPE
             else:
                 agg_nt = REGULAR_ASPECT_VERTEX_TYPE
-            return FacetPayload(
+            return FacetVertex(
                 node_type=agg_nt,
                 node_name=AspectIntentInspector._make_host_dependent_node_name(
                     self.class_ref, "aspects",
@@ -230,15 +230,15 @@ class AspectIntentInspector(BaseIntentInspector):
 
     @classmethod
     def facet_snapshot_storage_key(
-        cls, _target_cls: type, _payload: FacetPayload,
+        cls, _target_cls: type, _payload: FacetVertex,
     ) -> str:
         return "aspect"
 
     @classmethod
-    def should_register_facet_snapshot_for_payload(
+    def should_register_facet_snapshot_for_vertex(
         cls,
         _target_cls: type,
-        payload: FacetPayload,
+        payload: FacetVertex,
     ) -> bool:
         """Hydrate per-method ``aspect`` nodes only; not the synthetic ``action`` shell."""
         return payload.node_type in (
@@ -252,7 +252,7 @@ class AspectIntentInspector(BaseIntentInspector):
         return bool(cls._collect_aspects(target_cls))
 
     @classmethod
-    def inspect(cls, target_cls: type) -> FacetPayload | list[FacetPayload] | None:
+    def inspect(cls, target_cls: type) -> FacetVertex | list[FacetVertex] | None:
         """Return one payload per aspect method, or ``None`` when the class has no aspects."""
         if not cls._has_aspect_methods_invariant(target_cls):
             return None
@@ -268,14 +268,14 @@ class AspectIntentInspector(BaseIntentInspector):
         return cls.Snapshot.from_target(target_cls)
 
     @classmethod
-    def _build_payload(cls, target_cls: type) -> list[FacetPayload]:
+    def _build_payload(cls, target_cls: type) -> list[FacetVertex]:
         """
-        One ``FacetPayload`` per declared aspect (``class:method``) plus one ``action``
+        One ``FacetVertex`` per declared aspect (``class:method``) plus one ``action``
         row for the host class with ``has_aspect`` edges to each method vertex.
         """
         snap = cls.Snapshot.from_target(target_cls)
-        out: list[FacetPayload] = []
-        has_aspect_edges: list[EdgeInfo] = []
+        out: list[FacetVertex] = []
+        has_aspect_edges: list[FacetEdge] = []
         for a in snap.aspects:
             entries = (
                 cls._make_meta(
@@ -297,7 +297,7 @@ class AspectIntentInspector(BaseIntentInspector):
                 ),
             )
             out.append(
-                FacetPayload(
+                FacetVertex(
                     node_type=vt,
                     node_name=aspect_name,
                     node_class=snap.class_ref,
@@ -306,7 +306,7 @@ class AspectIntentInspector(BaseIntentInspector):
                 ),
             )
         out.append(
-            FacetPayload(
+            FacetVertex(
                 node_type=ACTION_VERTEX_TYPE,
                 node_name=cls._make_node_name(snap.class_ref),
                 node_class=snap.class_ref,

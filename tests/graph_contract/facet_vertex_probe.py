@@ -1,6 +1,6 @@
-# tests/graph_contract/facet_payload_probe.py
+# tests/graph_contract/facet_vertex_probe.py
 """
-Test-only helpers: collect merged ``FacetPayload`` rows like ``GraphCoordinator.build`` phase 1.
+Test-only helpers: collect merged ``FacetVertex`` rows like ``GraphCoordinator.build`` phase 1.
 
 Used by PR3-style tests to feed :mod:`action_machine.graph.graph_builder`
 on a coordinator that mirrors :meth:`CoreActionMachine.create_coordinator` registration
@@ -12,7 +12,7 @@ from __future__ import annotations
 from action_machine.dependencies.dependency_intent_inspector import DependencyIntentInspector
 from action_machine.domain.application_context_inspector import ApplicationContextInspector
 from action_machine.domain.entity_intent_inspector import EntityIntentInspector
-from action_machine.graph.facet_payload import FacetPayload
+from action_machine.graph.facet_vertex import FacetVertex
 from action_machine.graph.graph_coordinator import GraphCoordinator
 from action_machine.intents.aspects.aspect_intent_inspector import AspectIntentInspector
 from action_machine.intents.auth.role_class_inspector import RoleClassInspector
@@ -57,7 +57,7 @@ def graph_coordinator_default_inspectors_registered() -> GraphCoordinator:
     )
 
 
-def collect_merged_facet_payloads_unbuilt(coordinator: GraphCoordinator) -> list[FacetPayload]:
+def collect_merged_facet_vertices_unbuilt(coordinator: GraphCoordinator) -> list[FacetVertex]:
     """
     Run phase-1 collection plus ``_materialize_edge_targets`` on an **unbuilt** coordinator.
 
@@ -65,7 +65,7 @@ def collect_merged_facet_payloads_unbuilt(coordinator: GraphCoordinator) -> list
         RuntimeError: if ``coordinator.build()`` has already completed.
     """
     if coordinator._built:
-        msg = "collect_merged_facet_payloads_unbuilt requires a coordinator before build()"
+        msg = "collect_merged_facet_vertices_unbuilt requires a coordinator before build()"
         raise RuntimeError(msg)
     payloads, sources = coordinator._phase1_collect()
     return coordinator._materialize_edge_targets(payloads, sources)

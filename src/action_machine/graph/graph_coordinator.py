@@ -8,7 +8,7 @@ PURPOSE
 
 Registry for **static** metadata: registered **inspectors** (subclasses of
 ``BaseIntentInspector``) discover intent markers on classes, emit
-``FacetPayload`` nodes, and may attach typed per-class snapshots via
+``FacetVertex`` nodes, and may attach typed per-class snapshots via
 ``facet_snapshot_for_class()`` / ``facet_snapshot_storage_key()``.
 
 After a successful ``register(...).build()``:
@@ -47,9 +47,9 @@ for merged facet tuple dicts (``facet_rows``). To hydrate raw dicts yourself, pa
 interchange :meth:`get_graph` payloads. Snapshot storage keys for
 hydration are recorded during phase 1 from each inspector's
 ``facet_snapshot_storage_key()``; if several snapshot storage keys hydrate the same merged node, ``facet_rows`` is the
-union of their ``to_facet_payload().node_meta`` maps. Nodes without a registration may
+union of their ``to_facet_vertex().node_meta`` maps. Nodes without a registration may
 fall back to ``get_snapshot(cls, node_type)`` unless the payload set
-``skip_node_type_snapshot_fallback`` (see :class:`~action_machine.graph.facet_payload.FacetPayload`).
+``skip_node_type_snapshot_fallback`` (see :class:`~action_machine.graph.facet_vertex.FacetVertex`).
 
 Dependency ``DependencyFactory`` instances may be cached on this object under
 ``dependency_factory.DEPENDENCY_FACTORY_CACHE_KEY``; clearing that cache does
@@ -88,8 +88,8 @@ The graph is either built completely and consistently, or not committed at all.
 
     PHASE 1 — COLLECT
         For each inspector: walk ``_subclasses_recursive()`` over intent
-        markers; ``inspect()`` → ``FacetPayload | None``.
-        Payloads that share the same collect key (``FacetPayload.merge_group_key`` or
+        markers; ``inspect()`` → ``FacetVertex | None``.
+        Payloads that share the same collect key (``FacetVertex.merge_group_key`` or
         default ``node_type:node_name``) are **merged** in phase 1: edges and
         ``node_meta`` are concatenated into one node per key.
 
@@ -189,8 +189,8 @@ from action_machine.graph.exceptions import (
     InvalidGraphError,
     PayloadValidationError,
 )
-from action_machine.graph.facet_payload import FacetPayload
-from action_machine.graph.graph_builder import build_interchange_from_facet_payloads
+from action_machine.graph.facet_vertex import FacetVertex
+from action_machine.graph.graph_builder import build_interchange_from_facet_vertices
 from action_machine.graph.graph_edge import GraphEdge
 from action_machine.graph.graph_vertex import GraphVertex
 from action_machine.model.exceptions import CyclicDependencyError
@@ -325,7 +325,7 @@ class GraphCoordinator:
         ``rx.PyDiGraph`` plus interchange ``rx.PyDiGraph``.
         Any phase-2 failure means nothing from this build is committed. After facet
         validation succeeds, the interchange graph is built from facet payloads
-        via :func:`~action_machine.graph.graph_builder.build_interchange_from_facet_payloads`;
+        via :func:`~action_machine.graph.graph_builder.build_interchange_from_facet_vertices`;
         if its DAG slice (interchange edges in :data:`~action_machine.graph.constants.DAG_EDGE_TYPES`
         with ``is_dag=True``; other edges use ``is_dag=False``) is cyclic, ``build()`` raises
         ``CyclicDependencyError`` and
@@ -362,7 +362,7 @@ class GraphCoordinator:
         except InvalidGraphError as exc:
             raise CyclicDependencyError(str(exc)) from exc
 
-        interchange_vertices, interchange_edges = build_interchange_from_facet_payloads(all_payloads)
+        interchange_vertices, interchange_edges = build_interchange_from_facet_vertices(all_payloads)
         try:
             assert_dag_edges_acyclic(interchange_vertices, interchange_edges)
         except InvalidGraphError as exc:
@@ -380,9 +380,9 @@ class GraphCoordinator:
 
     def _phase1_collect(
         self,
-    ) -> tuple[list[FacetPayload], dict[str, str]]:
+    ) -> tuple[list[FacetVertex], dict[str, str]]:
         """
-        Run every inspector and collect ``FacetPayload`` instances.
+        Run every inspector and collect ``FacetVertex`` instances.
 
         For each inspector: ``_subclasses_recursive()``, then ``inspect()`` per
         discovered class. Payloads that are ``None`` are skipped.
@@ -392,11 +392,11 @@ class GraphCoordinator:
 
         Returns:
             A tuple of:
-            - ``list[FacetPayload]`` — all collected payloads (after merge).
+            - ``list[FacetVertex]`` — all collected payloads (after merge).
             - ``dict[str, str]`` — node key → inspector name(s), for
               ``DuplicateNodeError`` diagnostics.
         """
-        by_key: dict[str, FacetPayload] = {}
+        by_key: dict[str, FacetVertex] = {}
         payload_sources: dict[str, str] = {}
 
         for inspector_cls in self._inspectors:
@@ -407,18 +407,18 @@ class GraphCoordinator:
                 produced = inspector_cls.inspect(target_cls)
                 if produced is None:
                     continue
-                if isinstance(produced, FacetPayload):
-                    payloads_from_inspect: list[FacetPayload] = [produced]
+                if isinstance(produced, FacetVertex):
+                    payloads_from_inspect: list[FacetVertex] = [produced]
                 elif isinstance(produced, (list, tuple)):
                     payloads_from_inspect = [
-                        p for p in produced if isinstance(p, FacetPayload)
+                        p for p in produced if isinstance(p, FacetVertex)
                     ]
                     if not payloads_from_inspect:
                         continue
                 else:
                     msg = (
                         f"{inspector_name}.inspect({target_cls!r}) must return "
-                        f"FacetPayload | list[FacetPayload] | tuple[FacetPayload, ...] | None, "
+                        f"FacetVertex | list[FacetVertex] | tuple[FacetVertex, ...] | None, "
                         f"got {type(produced)!r}"
                     )
                     raise TypeError(msg)
@@ -436,7 +436,7 @@ class GraphCoordinator:
                     if (
                         snap is not None
                         and sk is not None
-                        and inspector_cls.should_register_facet_snapshot_for_payload(
+                        and inspector_cls.should_register_facet_snapshot_for_vertex(
                             target_cls, payload,
                         )
                     ):
@@ -467,9 +467,9 @@ class GraphCoordinator:
 
     def _materialize_edge_targets(
         self,
-        payloads: list[FacetPayload],
+        payloads: list[FacetVertex],
         payload_sources: dict[str, str],
-    ) -> list[FacetPayload]:
+    ) -> list[FacetVertex]:
         """
         Ensure every edge target key exists when the edge carries ``target_class_ref``.
 
@@ -482,7 +482,7 @@ class GraphCoordinator:
         changed = True
         while changed:
             changed = False
-            extra: list[FacetPayload] = []
+            extra: list[FacetVertex] = []
             for p in result:
                 for edge in p.edges:
                     if edge.target_class_ref is None:
@@ -497,7 +497,7 @@ class GraphCoordinator:
                         if self._make_key(se.target_node_type, se.target_name) in keys
                     )
                     extra.append(
-                        FacetPayload(
+                        FacetVertex(
                             node_type=edge.target_node_type,
                             node_name=edge.target_name,
                             node_class=edge.target_class_ref,
@@ -516,7 +516,7 @@ class GraphCoordinator:
     # ═══════════════════════════════════════════════════════════════════
 
     def _phase2_check_payloads(
-        self, payloads: list[FacetPayload],
+        self, payloads: list[FacetVertex],
     ) -> None:
         """
         Validation 2a: required payload fields are non-empty.
@@ -554,7 +554,7 @@ class GraphCoordinator:
 
     def _phase2_check_key_uniqueness(
         self,
-        payloads: list[FacetPayload],
+        payloads: list[FacetVertex],
         payload_sources: dict[str, str],
     ) -> None:
         """
@@ -583,7 +583,7 @@ class GraphCoordinator:
             seen.add(key)
 
     def _phase2_check_referential_integrity(
-        self, payloads: list[FacetPayload],
+        self, payloads: list[FacetVertex],
     ) -> None:
         """
         Validation 2c: referential integrity of edges.
@@ -616,7 +616,7 @@ class GraphCoordinator:
                     )
 
     def _phase2_check_acyclicity(
-        self, payloads: list[FacetPayload],
+        self, payloads: list[FacetVertex],
     ) -> None:
         """
         Validation 2d: acyclicity of structural edges.
@@ -665,7 +665,7 @@ class GraphCoordinator:
     # Phase 3 — Commit
     # ═══════════════════════════════════════════════════════════════════
 
-    def _phase3_commit(self, payloads: list[FacetPayload]) -> None:
+    def _phase3_commit(self, payloads: list[FacetVertex]) -> None:
         """
         Commit all payloads into the graph.
 
@@ -753,16 +753,16 @@ class GraphCoordinator:
     # Utilities
     # ═══════════════════════════════════════════════════════════════════
 
-    def _facet_collect_key(self, payload: FacetPayload) -> str:
+    def _facet_collect_key(self, payload: FacetVertex) -> str:
         if payload.merge_group_key:
             return payload.merge_group_key
         return self._make_key(payload.node_type, payload.node_name)
 
     @staticmethod
     def _normalize_payload_for_collect_key(
-        payload: FacetPayload,
+        payload: FacetVertex,
         collect_key: str,
-    ) -> FacetPayload:
+    ) -> FacetVertex:
         mgk = payload.merge_group_key
         if (
             mgk is not None
@@ -770,7 +770,7 @@ class GraphCoordinator:
             and payload.merge_node_type
             and payload.merge_node_name is not None
         ):
-            return FacetPayload(
+            return FacetVertex(
                 node_type=payload.merge_node_type,
                 node_name=payload.merge_node_name,
                 node_class=payload.node_class,
@@ -782,9 +782,9 @@ class GraphCoordinator:
 
     @staticmethod
     def _merge_facets_under_collect_key(
-        first: FacetPayload,
-        second: FacetPayload,
-    ) -> FacetPayload | None:
+        first: FacetVertex,
+        second: FacetVertex,
+    ) -> FacetVertex | None:
         """
         Merge two payloads sharing the same collect key.
 
@@ -795,7 +795,7 @@ class GraphCoordinator:
             return None
         if first.node_type != second.node_type:
             return None
-        return FacetPayload(
+        return FacetVertex(
             node_type=first.node_type,
             node_name=first.node_name,
             node_class=first.node_class,
@@ -854,7 +854,7 @@ class GraphCoordinator:
 
         Resolves the snapshot storage key from phase-1 registration (or falls back to
         the node's ``node_type`` string unless ``skip_node_type_snapshot_fallback`` was
-        set at commit) and fills ``facet_rows`` via ``to_facet_payload().node_meta``.
+        set at commit) and fills ``facet_rows`` via ``to_facet_vertex().node_meta``.
 
         Args:
             node: Raw payload from ``rx.PyDiGraph`` (or compatible mapping).
@@ -885,12 +885,12 @@ class GraphCoordinator:
             for sk in storage_keys:
                 snap = self.get_snapshot(cr, sk)
                 if snap is not None:
-                    facet_rows.update(dict(snap.to_facet_payload().node_meta))
+                    facet_rows.update(dict(snap.to_facet_vertex().node_meta))
         elif not storage_keys and not facet_rows and not skip_fb and isinstance(cr, type):
             sk_fallback = str(nt)
             snap = self.get_snapshot(cr, sk_fallback)
             if snap is not None:
-                facet_rows = dict(snap.to_facet_payload().node_meta)
+                facet_rows = dict(snap.to_facet_vertex().node_meta)
         raw["facet_rows"] = facet_rows
         return raw
 

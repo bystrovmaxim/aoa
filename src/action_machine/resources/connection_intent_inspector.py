@@ -33,7 +33,7 @@ ARCHITECTURE / DATA FLOW
     Snapshot.from_target(...)
             │
             ▼
-    to_facet_payload()
+    to_facet_vertex()
             │
             └─ action node + structural ``connection`` edges → ``resource_manager``
 
@@ -72,7 +72,7 @@ from typing import Any
 
 from action_machine.graph.base_facet_snapshot import BaseFacetSnapshot
 from action_machine.graph.base_intent_inspector import BaseIntentInspector
-from action_machine.graph.facet_payload import FacetPayload
+from action_machine.graph.facet_vertex import FacetVertex
 from action_machine.interchange_vertex_labels import ACTION_VERTEX_TYPE
 from action_machine.resources.connection_decorator import ConnectionInfo
 from action_machine.resources.connection_intent import ConnectionIntent
@@ -113,7 +113,7 @@ class ConnectionIntentInspector(BaseIntentInspector):
             pairs.sort(key=lambda t: t[0])
             return tuple(pairs)
 
-        def to_facet_payload(self) -> FacetPayload:
+        def to_facet_vertex(self) -> FacetVertex:
             conn_edges = tuple(
                 ConnectionIntentInspector._make_edge(
                     target_node_type="resource_manager",
@@ -124,7 +124,7 @@ class ConnectionIntentInspector(BaseIntentInspector):
                 )
                 for conn_info in self.connections
             )
-            return FacetPayload(
+            return FacetVertex(
                 node_type=ACTION_VERTEX_TYPE,
                 node_name=ConnectionIntentInspector._make_node_name(self.class_ref),
                 node_class=self.class_ref,
@@ -141,12 +141,12 @@ class ConnectionIntentInspector(BaseIntentInspector):
 
     @classmethod
     def facet_snapshot_storage_key(
-        cls, _target_cls: type, _payload: FacetPayload,
+        cls, _target_cls: type, _payload: FacetVertex,
     ) -> str:
         return "connections"
 
     @classmethod
-    def inspect(cls, target_cls: type) -> FacetPayload | None:
+    def inspect(cls, target_cls: type) -> FacetVertex | None:
         connection_info = getattr(target_cls, "_connection_info", None)
         if not connection_info:
             return None
@@ -161,5 +161,5 @@ class ConnectionIntentInspector(BaseIntentInspector):
         return cls.Snapshot.from_target(target_cls)
 
     @classmethod
-    def _build_payload(cls, target_cls: type) -> FacetPayload:
-        return cls.Snapshot.from_target(target_cls).to_facet_payload()
+    def _build_payload(cls, target_cls: type) -> FacetVertex:
+        return cls.Snapshot.from_target(target_cls).to_facet_vertex()

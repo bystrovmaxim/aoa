@@ -7,7 +7,7 @@ PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 Collect method-level ``_on_error_meta`` and optional ``_required_context_keys``,
-normalize exception types into tuples, and emit **one ``FacetPayload`` per
+normalize exception types into tuples, and emit **one ``FacetVertex`` per
 handler** (``node_type="error_handler"``, name ``{action}:{method_name}``) plus a
 canonical **``action``** row for the host class with informational
 ``has_error_handler`` edges to those handler nodes (no aggregate
@@ -20,7 +20,7 @@ INVARIANTS
 - Collection scans ``vars(target_cls)`` only (declaring members).
 - Only callable members after property unwrapping are considered.
 - Facet snapshot storage key is always ``"error_handler"`` (aggregate snapshot).
-- ``inspect`` returns ``list[FacetPayload]``: per-handler vertices then one ``action``
+- ``inspect`` returns ``list[FacetVertex]``: per-handler vertices then one ``action``
   shell carrying ``has_error_handler`` edges.
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -38,7 +38,7 @@ ARCHITECTURE / DATA FLOW
     normalize exception_types  →  Snapshot.ErrorHandler
          │
          ▼
-    FacetPayload(node_type="error_handler", … host:method) + FacetPayload(action + edges)
+    FacetVertex(node_type="error_handler", … host:method) + FacetVertex(action + edges)
 
 ═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES
@@ -74,8 +74,8 @@ from typing import cast
 
 from action_machine.graph.base_facet_snapshot import BaseFacetSnapshot
 from action_machine.graph.base_intent_inspector import BaseIntentInspector
-from action_machine.graph.edge_info import EdgeInfo, FacetMetaRow
-from action_machine.graph.facet_payload import FacetPayload
+from action_machine.graph.facet_edge import FacetEdge, FacetMetaRow
+from action_machine.graph.facet_vertex import FacetVertex
 from action_machine.intents.on_error.on_error_intent import OnErrorIntent
 from action_machine.interchange_vertex_labels import ACTION_VERTEX_TYPE
 
@@ -160,13 +160,13 @@ class OnErrorIntentInspector(BaseIntentInspector):
         class_ref: type
         error_handlers: tuple[ErrorHandler, ...]
 
-        def to_facet_payload(self) -> FacetPayload:
+        def to_facet_vertex(self) -> FacetVertex:
             """Aggregate meta only (used for snapshot hydration / ``get_snapshot`` consumers)."""
             entries = tuple(
                 OnErrorIntentInspector._handler_row_facet_meta(h)
                 for h in self.error_handlers
             )
-            return FacetPayload(
+            return FacetVertex(
                 node_type=ACTION_VERTEX_TYPE,
                 node_name=OnErrorIntentInspector._make_node_name(self.class_ref),
                 node_class=self.class_ref,
@@ -186,13 +186,13 @@ class OnErrorIntentInspector(BaseIntentInspector):
 
     @classmethod
     def facet_snapshot_storage_key(
-        cls, _target_cls: type, _payload: FacetPayload,
+        cls, _target_cls: type, _payload: FacetVertex,
     ) -> str:
         return "error_handler"
 
     @classmethod
-    def should_register_facet_snapshot_for_payload(
-        cls, _target_cls: type, payload: FacetPayload,
+    def should_register_facet_snapshot_for_vertex(
+        cls, _target_cls: type, payload: FacetVertex,
     ) -> bool:
         """Hydrate aggregate ``error_handler`` snapshot onto the canonical ``action`` node only."""
         return payload.node_type == ACTION_VERTEX_TYPE
@@ -203,7 +203,7 @@ class OnErrorIntentInspector(BaseIntentInspector):
         return bool(cls._collect_error_handlers(target_cls))
 
     @classmethod
-    def inspect(cls, target_cls: type) -> list[FacetPayload] | None:
+    def inspect(cls, target_cls: type) -> list[FacetVertex] | None:
         """
         Return per-handler ``error_handler`` vertices, then one ``action`` row with edges.
 
@@ -213,12 +213,12 @@ class OnErrorIntentInspector(BaseIntentInspector):
         handlers = cls._collect_error_handlers(target_cls)
         if not handlers:
             return None
-        out: list[FacetPayload] = []
-        host_edges: list[EdgeInfo] = []
+        out: list[FacetVertex] = []
+        host_edges: list[FacetEdge] = []
         for h in handlers:
             child_name = cls._make_host_dependent_node_name(target_cls, h.method_name)
             out.append(
-                FacetPayload(
+                FacetVertex(
                     node_type="error_handler",
                     node_name=child_name,
                     node_class=target_cls,
@@ -227,7 +227,7 @@ class OnErrorIntentInspector(BaseIntentInspector):
                 ),
             )
             host_edges.append(
-                EdgeInfo(
+                FacetEdge(
                     target_node_type="error_handler",
                     target_name=child_name,
                     edge_type="has_error_handler",
@@ -236,7 +236,7 @@ class OnErrorIntentInspector(BaseIntentInspector):
                 ),
             )
         out.append(
-            FacetPayload(
+            FacetVertex(
                 node_type=ACTION_VERTEX_TYPE,
                 node_name=cls._make_node_name(target_cls),
                 node_class=target_cls,
@@ -256,9 +256,9 @@ class OnErrorIntentInspector(BaseIntentInspector):
         return cls.Snapshot.from_target(target_cls)
 
     @classmethod
-    def _build_payload(cls, target_cls: type) -> FacetPayload:
-        """Materialize ``FacetPayload`` from the typed snapshot."""
-        return cls.Snapshot.from_target(target_cls).to_facet_payload()
+    def _build_payload(cls, target_cls: type) -> FacetVertex:
+        """Materialize ``FacetVertex`` from the typed snapshot."""
+        return cls.Snapshot.from_target(target_cls).to_facet_vertex()
 
 
 def hydrate_error_handler_row(

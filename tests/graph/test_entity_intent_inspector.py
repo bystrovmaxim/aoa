@@ -27,7 +27,7 @@ from action_machine.interchange_vertex_labels import ENTITY_VERTEX_TYPE
 
 
 def _entity_payload(inspect_result: object):
-    """First ``FacetPayload`` from ``inspect`` (tuple or single)."""
+    """First ``FacetVertex`` from ``inspect`` (tuple or single)."""
     if inspect_result is None:
         return None
     if isinstance(inspect_result, tuple):
@@ -124,7 +124,7 @@ def test_collect_entity_info_merges_meta_scratch_description() -> None:
     assert info.domain is _TestDomain
 
 
-def test_entity_inspector_exposes_meta_overlay_in_facet_payload() -> None:
+def test_entity_inspector_exposes_meta_overlay_in_facet_vertex() -> None:
     payload = _entity_payload(EntityIntentInspector.inspect(_EntityWithMetaOverlayEntity))
     assert payload is not None
     assert (

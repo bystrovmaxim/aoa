@@ -10,14 +10,14 @@ import pytest
 import rustworkx as rx
 
 from action_machine.graph.base_intent_inspector import BaseIntentInspector
-from action_machine.graph.graph_builder import build_interchange_from_facet_payloads
+from action_machine.graph.graph_builder import build_interchange_from_facet_vertices
 from action_machine.runtime.machines.core_action_machine import CoreActionMachine
 from maxitor.samples.build import _MODULES, build_sample_coordinator
 from maxitor.samples.store.actions.checkout_submit import CheckoutSubmitAction
 from maxitor.samples.store.domain import StoreDomain
 
-from .facet_payload_probe import (
-    collect_merged_facet_payloads_unbuilt,
+from .facet_vertex_probe import (
+    collect_merged_facet_vertices_unbuilt,
     graph_coordinator_default_inspectors_registered,
 )
 
@@ -41,8 +41,8 @@ def test_logical_graph_matches_standalone_builder_on_test_domain() -> None:
     assert len(lg) >= 1
 
     unbuilt = graph_coordinator_default_inspectors_registered()
-    payloads = collect_merged_facet_payloads_unbuilt(unbuilt)
-    vertices, edges = build_interchange_from_facet_payloads(payloads)
+    payloads = collect_merged_facet_vertices_unbuilt(unbuilt)
+    vertices, edges = build_interchange_from_facet_vertices(payloads)
     assert len(lg) == len(vertices)
     assert len(lg.weighted_edge_list()) == len(edges)
 

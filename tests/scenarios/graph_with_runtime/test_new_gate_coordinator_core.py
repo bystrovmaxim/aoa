@@ -5,13 +5,13 @@ from __future__ import annotations
 import pytest
 
 from action_machine.graph.base_intent_inspector import BaseIntentInspector
-from action_machine.graph.edge_info import EdgeInfo
 from action_machine.graph.exceptions import (
     DuplicateNodeError,
     InvalidGraphError,
     PayloadValidationError,
 )
-from action_machine.graph.facet_payload import FacetPayload
+from action_machine.graph.facet_edge import FacetEdge
+from action_machine.graph.facet_vertex import FacetVertex
 from action_machine.graph.graph_coordinator import GraphCoordinator
 from action_machine.runtime.machines.core_action_machine import CoreActionMachine
 
@@ -34,11 +34,11 @@ class _InspectorA(BaseIntentInspector):
         return [_A]
 
     @classmethod
-    def inspect(cls, target_cls: type) -> FacetPayload | None:
-        return FacetPayload(node_type="a", node_name="A", node_class=target_cls)
+    def inspect(cls, target_cls: type) -> FacetVertex | None:
+        return FacetVertex(node_type="a", node_name="A", node_class=target_cls)
 
     @classmethod
-    def _build_payload(cls, target_cls: type) -> FacetPayload:
+    def _build_payload(cls, target_cls: type) -> FacetVertex:
         raise NotImplementedError
 
 
@@ -48,11 +48,11 @@ class _InspectorDup(BaseIntentInspector):
         return [_B]
 
     @classmethod
-    def inspect(cls, target_cls: type) -> FacetPayload | None:
-        return FacetPayload(node_type="a", node_name="A", node_class=target_cls)
+    def inspect(cls, target_cls: type) -> FacetVertex | None:
+        return FacetVertex(node_type="a", node_name="A", node_class=target_cls)
 
     @classmethod
-    def _build_payload(cls, target_cls: type) -> FacetPayload:
+    def _build_payload(cls, target_cls: type) -> FacetVertex:
         raise NotImplementedError
 
 
@@ -103,43 +103,43 @@ def test_payload_validation_and_phase2_errors() -> None:
     coord = GraphCoordinator()
     with pytest.raises(PayloadValidationError):
         coord._phase2_check_payloads([  # pylint: disable=protected-access
-            FacetPayload(node_type="", node_name="x", node_class=_A)
+            FacetVertex(node_type="", node_name="x", node_class=_A)
         ])
     with pytest.raises(PayloadValidationError):
         coord._phase2_check_payloads([  # pylint: disable=protected-access
-            FacetPayload(node_type="x", node_name="", node_class=_A)
+            FacetVertex(node_type="x", node_name="", node_class=_A)
         ])
     with pytest.raises(PayloadValidationError):
         coord._phase2_check_payloads([  # pylint: disable=protected-access
-            FacetPayload(node_type="x", node_name="y", node_class=object())
+            FacetVertex(node_type="x", node_name="y", node_class=object())
         ])
 
 
 def test_referential_integrity_and_acyclicity_errors() -> None:
     coord = GraphCoordinator()
     payloads = [
-        FacetPayload(
+        FacetVertex(
             node_type="x",
             node_name="n1",
             node_class=_A,
-            edges=(EdgeInfo("x", "missing", "depends", True),),
+            edges=(FacetEdge("x", "missing", "depends", True),),
         ),
     ]
     with pytest.raises(InvalidGraphError):
         coord._phase2_check_referential_integrity(payloads)  # pylint: disable=protected-access
 
     cyc = [
-        FacetPayload(
+        FacetVertex(
             node_type="x",
             node_name="n1",
             node_class=_A,
-            edges=(EdgeInfo("x", "n2", "depends", True),),
+            edges=(FacetEdge("x", "n2", "depends", True),),
         ),
-        FacetPayload(
+        FacetVertex(
             node_type="x",
             node_name="n2",
             node_class=_B,
-            edges=(EdgeInfo("x", "n1", "depends", True),),
+            edges=(FacetEdge("x", "n1", "depends", True),),
         ),
     ]
     with pytest.raises(InvalidGraphError):

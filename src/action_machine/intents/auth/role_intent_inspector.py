@@ -32,7 +32,7 @@ ARCHITECTURE / DATA FLOW
     RoleIntentInspector.inspect()
           │
           ▼
-    Snapshot.from_target() → FacetPayload(node_type="action", … ``requires_role`` → anchor ``role_class``)
+    Snapshot.from_target() → FacetVertex(node_type="action", … ``requires_role`` → anchor ``role_class``)
 
 The inspector uses ``_target_intent = RoleIntent`` to discover candidate
 classes. For each class with ``_role_info``, it builds an **action** payload
@@ -61,7 +61,7 @@ EXAMPLES
     class AdminAction(BaseAction[AdminParams, AdminResult]):
         ...
 
-    # inspect(AdminAction) → FacetPayload(
+    # inspect(AdminAction) → FacetVertex(
     #     node_type="action",
     #     node_name == module.AdminAction,
     #     edges: requires_role → role_class:…ApplicationRole (anchor),
@@ -95,7 +95,7 @@ AI-CORE-BEGIN
 ROLE: Role facet inspector.
 CONTRACT: ``_role_info`` → merged ``action`` facet + ``requires_role`` edges to anchor ``role_class`` nodes.
 INVARIANTS: Target mixin is RoleIntent; snapshot key ``"role"``; edge targets are ``ApplicationRole``.
-FLOW: _role_info present → Snapshot → FacetPayload → coordinator graph.
+FLOW: _role_info present → Snapshot → FacetVertex → coordinator graph.
 FAILURES: Returns None when ``_role_info`` is missing.
 EXTENSION POINTS: Payload consumed by coordinator and role-checking runtime.
 AI-CORE-END
@@ -109,8 +109,8 @@ from typing import Any
 
 from action_machine.graph.base_facet_snapshot import BaseFacetSnapshot
 from action_machine.graph.base_intent_inspector import BaseIntentInspector
-from action_machine.graph.edge_info import EdgeInfo
-from action_machine.graph.facet_payload import FacetPayload
+from action_machine.graph.facet_edge import FacetEdge
+from action_machine.graph.facet_vertex import FacetVertex
 from action_machine.intents.auth.any_role import AnyRole
 from action_machine.intents.auth.base_role import BaseRole
 from action_machine.intents.auth.none_role import NoneRole
@@ -142,8 +142,8 @@ class RoleIntentInspector(BaseIntentInspector):
         class_ref: type
         spec: Any
 
-        def to_facet_payload(self) -> FacetPayload:
-            return RoleIntentInspector._facet_payload_for_action_and_spec(
+        def to_facet_vertex(self) -> FacetVertex:
+            return RoleIntentInspector._facet_vertex_for_action_and_spec(
                 self.class_ref, self.spec,
             )
 
@@ -162,7 +162,7 @@ class RoleIntentInspector(BaseIntentInspector):
         return cls._collect_subclasses(cls._target_intent)
 
     @classmethod
-    def inspect(cls, target_cls: type) -> FacetPayload | None:
+    def inspect(cls, target_cls: type) -> FacetVertex | None:
         """Build payload if ``@check_roles`` is present."""
         role_info = getattr(target_cls, "_role_info", None)
         if role_info is None:
@@ -177,7 +177,7 @@ class RoleIntentInspector(BaseIntentInspector):
 
     @classmethod
     def facet_snapshot_storage_key(
-        cls, _target_cls: type, _payload: FacetPayload,
+        cls, _target_cls: type, _payload: FacetVertex,
     ) -> str:
         """Stable cache key; payload ``node_type`` is ``action`` after projection."""
         return "role"
@@ -195,7 +195,7 @@ class RoleIntentInspector(BaseIntentInspector):
     @classmethod
     def _edges_requires_role_to_role_classes(
         cls, spec: object,
-    ) -> tuple[EdgeInfo, ...]:
+    ) -> tuple[FacetEdge, ...]:
         concretes = cls._required_role_types_from_spec(spec)
         if not concretes:
             return ()
@@ -205,7 +205,7 @@ class RoleIntentInspector(BaseIntentInspector):
             bucket = buckets.setdefault(anchor, [])
             if role_cls not in bucket:
                 bucket.append(role_cls)
-        edges: list[EdgeInfo] = []
+        edges: list[FacetEdge] = []
         for anchor in sorted(buckets, key=lambda t: t.__name__):
             uniq = tuple(buckets[anchor])
             edge_meta: tuple[tuple[str, Any], ...] = ()
@@ -224,10 +224,10 @@ class RoleIntentInspector(BaseIntentInspector):
         return tuple(edges)
 
     @classmethod
-    def _facet_payload_for_action_and_spec(
+    def _facet_vertex_for_action_and_spec(
         cls, action_cls: type, spec: Any,
-    ) -> FacetPayload:
-        return FacetPayload(
+    ) -> FacetVertex:
+        return FacetVertex(
             node_type=ACTION_VERTEX_TYPE,
             node_name=cls._make_node_name(action_cls),
             node_class=action_cls,
@@ -236,7 +236,7 @@ class RoleIntentInspector(BaseIntentInspector):
         )
 
     @classmethod
-    def _build_payload(cls, target_cls: type) -> FacetPayload:
+    def _build_payload(cls, target_cls: type) -> FacetVertex:
         """Build merged ``action`` facet rows + ``requires_role`` edges from ``_role_info``."""
         snap = cls.Snapshot.from_target(target_cls)
-        return cls._facet_payload_for_action_and_spec(snap.class_ref, snap.spec)
+        return cls._facet_vertex_for_action_and_spec(snap.class_ref, snap.spec)

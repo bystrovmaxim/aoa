@@ -3,7 +3,7 @@
 ``EntityIntentInspector`` — intent **inspector** for ``@entity`` classes.
 
 Walks ``EntityIntent`` subclasses and, when ``entity_info_is_set()`` holds,
-materializes a coordinator **facet** as ``FacetPayload`` (description, domain,
+materializes a coordinator **facet** as ``FacetVertex`` (description, domain,
 scalar fields, relations, lifecycles). This is the canonical place to derive
 entity facet tuples from Pydantic ``model_fields`` plus relation/lifecycle
 annotations.
@@ -26,7 +26,7 @@ SCOPE (IN / OUT)
     ``collect_entity_lifecycles`` — read ``_entity_info`` and ``model_fields`` and
     return frozen-friendly snapshot dataclasses.
     ``EntityIntentInspector.inspect`` / ``facet_snapshot_for_class`` — produce
-    ``FacetPayload`` with ``node_type=\"Entity\"`` and optional ``edges``:
+    ``FacetVertex`` with ``node_type=\"Entity\"`` and optional ``edges``:
     informational ``belongs_to`` → ``Domain`` when a domain type is known, plus
     relation edges to related ``Entity`` interchange vertices (skipped when ``NoGraphEdge()``
     is set on the field).
@@ -64,7 +64,7 @@ ARCHITECTURE / DATA FLOW
          ├─ collect_entity_info / fields / relations / lifecycles
          │
          v
-    Snapshot.to_facet_payload()  ──>  FacetPayload(node_type="Entity", edges=…)
+    Snapshot.to_facet_vertex()  ──>  FacetVertex(node_type="Entity", edges=…)
     (``belongs_to`` domain + Entity→Entity relation edges)
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -84,7 +84,7 @@ RATIONALE
 ═══════════════════════════════════════════════════════════════════════════════
 
 Centralizing ``collect_entity_*`` here avoids duplicating Pydantic introspection
-for entities and keeps facet shape aligned with ``FacetPayload`` tuples. The
+for entities and keeps facet shape aligned with ``FacetVertex`` tuples. The
 public functions are stable hooks for **tests** and optional tooling without
 pulling the whole coordinator.
 
@@ -135,8 +135,8 @@ from action_machine.domain.relation_containers import BaseRelationMany, BaseRela
 from action_machine.domain.relation_markers import Inverse, NoGraphEdge, NoInverse, Rel
 from action_machine.graph.base_facet_snapshot import BaseFacetSnapshot
 from action_machine.graph.base_intent_inspector import BaseIntentInspector, FacetInspectResult
-from action_machine.graph.edge_info import EdgeInfo
-from action_machine.graph.facet_payload import FacetPayload
+from action_machine.graph.facet_edge import FacetEdge
+from action_machine.graph.facet_vertex import FacetVertex
 from action_machine.interchange_vertex_labels import DOMAIN_VERTEX_TYPE, ENTITY_VERTEX_TYPE
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -509,7 +509,7 @@ def lifecycle_state_node_name(
 
 def entity_relation_facet_edge_type(relation_type: str, cardinality: str) -> str:
     """
-    Facet ``edge_type`` string for :class:`~action_machine.graph.edge_info.EdgeInfo`.
+    Facet ``edge_type`` string for :class:`~action_machine.graph.facet_edge.FacetEdge`.
 
     Maps to interchange ``COMPOSITION_*`` / ``AGGREGATION_*`` / ``ASSOCIATION_*`` via
     :data:`action_machine.graph.graph_builder` tables.
@@ -579,7 +579,7 @@ class EntityIntentInspector(BaseIntentInspector):
     """
     Inspector for ``EntityIntent`` / ``@entity`` classes.
 
-    When ``_entity_info`` is present, builds ``FacetPayload`` with ``node_type``
+    When ``_entity_info`` is present, builds ``FacetVertex`` with ``node_type``
     ``entity`` and bundles field/relation/lifecycle tuples under ``node_meta``.
     Emits an informational ``belongs_to`` edge to the ``domain`` vertex when
     ``domain`` is a class, plus **edges** to related ``entity`` vertices
@@ -598,7 +598,7 @@ class EntityIntentInspector(BaseIntentInspector):
 
     @dataclass(frozen=True)
     class Snapshot(BaseFacetSnapshot):
-        """Frozen facet snapshot before tuple encoding for ``FacetPayload``."""
+        """Frozen facet snapshot before tuple encoding for ``FacetVertex``."""
 
         @dataclass(frozen=True)
         class EntityInfo:
@@ -652,12 +652,12 @@ class EntityIntentInspector(BaseIntentInspector):
         entity_relations: tuple[EntityRelationInfo, ...]
         entity_lifecycles: tuple[EntityLifecycleInfo, ...]
 
-        def to_facet_payload(
+        def to_facet_vertex(
             self,
             *,
-            entity_extra_edges: tuple[EdgeInfo, ...] = (),
-        ) -> FacetPayload:
-            """Serialize this snapshot into a coordinator ``FacetPayload``."""
+            entity_extra_edges: tuple[FacetEdge, ...] = (),
+        ) -> FacetVertex:
+            """Serialize this snapshot into a coordinator ``FacetVertex``."""
             fields_meta: tuple[tuple[Any, ...], ...] = tuple(
                 (
                     item.field_name,
@@ -697,7 +697,7 @@ class EntityIntentInspector(BaseIntentInspector):
                 )
                 for item in self.entity_lifecycles
             )
-            domain_edges: list[EdgeInfo] = []
+            domain_edges: list[FacetEdge] = []
             dom = self.entity_info.domain
             if dom is not None and isinstance(dom, type):
                 domain_edges.append(
@@ -709,7 +709,7 @@ class EntityIntentInspector(BaseIntentInspector):
                     ),
                 )
 
-            relation_edges: list[EdgeInfo] = []
+            relation_edges: list[FacetEdge] = []
             for rel in self.entity_relations:
                 if rel.omit_graph_edge:
                     continue
@@ -732,7 +732,7 @@ class EntityIntentInspector(BaseIntentInspector):
                 if rel.inverse_field:
                     meta_pairs.append(("inverse_field", rel.inverse_field))
                 relation_edges.append(
-                    EdgeInfo(
+                    FacetEdge(
                         target_node_type=ENTITY_VERTEX_TYPE,
                         target_name=target_name,
                         edge_type=facet_et,
@@ -742,7 +742,7 @@ class EntityIntentInspector(BaseIntentInspector):
                     ),
                 )
 
-            return FacetPayload(
+            return FacetVertex(
                 node_type=ENTITY_VERTEX_TYPE,
                 node_name=EntityIntentInspector._make_node_name(self.class_ref),
                 node_class=self.class_ref,
@@ -760,7 +760,7 @@ class EntityIntentInspector(BaseIntentInspector):
     def _lifecycle_graph_payloads(
         cls,
         snap: Any,
-    ) -> tuple[tuple[EdgeInfo, ...], tuple[FacetPayload, ...]]:
+    ) -> tuple[tuple[FacetEdge, ...], tuple[FacetVertex, ...]]:
         """
         Build ``entity_has_lifecycle`` edges for the entity row plus ``lifecycle`` /
         ``lifecycle_state_{initial,intermediate,final}`` facet payloads (states, initial links, transitions).
@@ -776,8 +776,8 @@ class EntityIntentInspector(BaseIntentInspector):
         if not snap.entity_lifecycles:
             return (), ()
 
-        entity_edges: list[EdgeInfo] = []
-        extras: list[FacetPayload] = []
+        entity_edges: list[FacetEdge] = []
+        extras: list[FacetVertex] = []
 
         for lc in snap.entity_lifecycles:
             lc_field_name = lc.field_name
@@ -788,7 +788,7 @@ class EntityIntentInspector(BaseIntentInspector):
             initial_keys = template.get_initial_keys()
 
             entity_edges.append(
-                EdgeInfo(
+                FacetEdge(
                     target_node_type="lifecycle",
                     target_name=lc_name,
                     edge_type="entity_has_lifecycle",
@@ -811,11 +811,11 @@ class EntityIntentInspector(BaseIntentInspector):
                     snap.class_ref, _field, _lc_cls, state_key,
                 )
 
-            lc_edges: list[EdgeInfo] = []
+            lc_edges: list[FacetEdge] = []
 
             for sk, st in states.items():
                 lc_edges.append(
-                    EdgeInfo(
+                    FacetEdge(
                         target_node_type=lifecycle_state_vertex_type(st),
                         target_name=state_vertex_name(sk),
                         edge_type="lifecycle_contains_state",
@@ -833,7 +833,7 @@ class EntityIntentInspector(BaseIntentInspector):
                 for ik in sorted(initial_keys):
                     st_ik = states[ik]
                     lc_edges.append(
-                        EdgeInfo(
+                        FacetEdge(
                             target_node_type=lifecycle_state_vertex_type(st_ik),
                             target_name=state_vertex_name(ik),
                             edge_type="lifecycle_initial",
@@ -844,7 +844,7 @@ class EntityIntentInspector(BaseIntentInspector):
                     )
 
             extras.append(
-                FacetPayload(
+                FacetVertex(
                     node_type="lifecycle",
                     node_name=lc_name,
                     node_class=lc_cls,
@@ -860,11 +860,11 @@ class EntityIntentInspector(BaseIntentInspector):
             )
 
             for sk, st in states.items():
-                out_edges: list[EdgeInfo] = []
+                out_edges: list[FacetEdge] = []
                 for tgt in sorted(st.transitions):
                     st_tgt = states[tgt]
                     out_edges.append(
-                        EdgeInfo(
+                        FacetEdge(
                             target_node_type=lifecycle_state_vertex_type(st_tgt),
                             target_name=state_vertex_name(tgt),
                             edge_type="lifecycle_transition",
@@ -878,7 +878,7 @@ class EntityIntentInspector(BaseIntentInspector):
                     )
 
                 extras.append(
-                    FacetPayload(
+                    FacetVertex(
                         node_type=lifecycle_state_vertex_type(st),
                         node_name=state_vertex_name(sk),
                         node_class=snap.class_ref,
@@ -916,7 +916,7 @@ class EntityIntentInspector(BaseIntentInspector):
             target_cls: Candidate class.
 
         Returns:
-            ``FacetPayload``, or a non-empty tuple whose first element is the entity
+            ``FacetVertex``, or a non-empty tuple whose first element is the entity
             row and the rest are lifecycle graph facets, or ``None`` when the class
             is not a decorated entity.
         """
@@ -925,7 +925,7 @@ class EntityIntentInspector(BaseIntentInspector):
         snap = cls.facet_snapshot_for_class(target_cls)
         assert snap is not None
         entity_edges, extras = cls._lifecycle_graph_payloads(snap)
-        entity_payload = snap.to_facet_payload(entity_extra_edges=entity_edges)
+        entity_payload = snap.to_facet_vertex(entity_extra_edges=entity_edges)
         if not extras:
             return entity_payload
         return (entity_payload, *extras)
@@ -959,34 +959,34 @@ class EntityIntentInspector(BaseIntentInspector):
 
     @classmethod
     def facet_snapshot_storage_key(
-        cls, _target_cls: type, _payload: FacetPayload,
+        cls, _target_cls: type, _payload: FacetVertex,
     ) -> str:
         """Storage bucket key for entity facet snapshots."""
         return "entity"
 
     @classmethod
-    def should_register_facet_snapshot_for_payload(
+    def should_register_facet_snapshot_for_vertex(
         cls,
         _target_cls: type,
-        payload: FacetPayload,
+        payload: FacetVertex,
     ) -> bool:
         """Only the primary ``Entity`` row hydrates the typed snapshot."""
         return payload.node_type == ENTITY_VERTEX_TYPE
 
     @classmethod
-    def _build_payload(cls, target_cls: type) -> FacetPayload:
+    def _build_payload(cls, target_cls: type) -> FacetVertex:
         """
-        Wrap ``collect_entity_*`` results into ``FacetPayload``.
+        Wrap ``collect_entity_*`` results into ``FacetVertex``.
 
         Args:
             target_cls: Entity class with non-empty ``_entity_info``.
 
         Returns:
-            ``FacetPayload`` with ``node_type=\"Entity\"``.
+            ``FacetVertex`` with ``node_type=\"Entity\"``.
         """
         snap = cls.facet_snapshot_for_class(target_cls)
         assert snap is not None
-        return snap.to_facet_payload()
+        return snap.to_facet_vertex()
 
 
 # Backward-compatible module-level aliases for helper collectors.

@@ -54,7 +54,7 @@ InvalidGraphError
     - structural edges (``is_structural=True``) contain a cycle.
 
 PayloadValidationError
-    A ``FacetPayload`` field failed validation during phase 2:
+    A ``FacetVertex`` field failed validation during phase 2:
     - empty ``node_type`` / ``node_name``, or
     - ``node_class`` is not a ``type``.
 
@@ -169,7 +169,7 @@ class InvalidGraphError(Exception):
 
 class PayloadValidationError(TypeError):
     """
-    A ``FacetPayload`` field is invalid.
+    A ``FacetVertex`` field is invalid.
 
     Raised in phase 2 while checking mandatory fields:
 
@@ -216,6 +216,6 @@ class PayloadValidationError(TypeError):
             else repr(node_class)
         )
         super().__init__(
-            f"Invalid FacetPayload for {class_name}: "
+            f"Invalid FacetVertex for {class_name}: "
             f"field '{field_name}' — {detail}"
         )

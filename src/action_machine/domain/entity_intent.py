@@ -40,7 +40,7 @@ ARCHITECTURE / DATA FLOW
     #   cls._entity_info = {"description": ..., "domain": ...}   # scratch
 
     # EntityIntentInspector during GraphCoordinator.build():
-    #   reads _entity_info + model_fields → FacetPayload + typed snapshot
+    #   reads _entity_info + model_fields → FacetVertex + typed snapshot
 
 ═══════════════════════════════════════════════════════════════════════════════
 INVARIANTS
