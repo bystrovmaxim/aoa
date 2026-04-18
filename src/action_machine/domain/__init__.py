@@ -131,6 +131,7 @@ AI-CORE-END
 """
 
 from action_machine.domain.base_domain import BaseDomain
+from action_machine.domain.domain_graph_vertex import DomainGraphVertex
 from action_machine.domain.entity import BaseEntity
 from action_machine.domain.entity_decorator import entity
 from action_machine.domain.entity_intent import EntityIntent
@@ -163,6 +164,7 @@ __all__ = [
     "AssociationOne",
     # Domains
     "BaseDomain",
+    "DomainGraphVertex",
     # Entities
     "BaseEntity",
     "BaseRelationMany",

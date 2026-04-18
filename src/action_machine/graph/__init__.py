@@ -76,7 +76,7 @@ from action_machine.graph.graph_builder import (
 )
 from action_machine.graph.graph_coordinator import GraphCoordinator
 from action_machine.graph.graph_edge import GraphEdge
-from action_machine.graph.graph_vertex import GraphVertex
+from action_machine.graph.graph_vertex import GraphVertex, GraphVertexParseError, ParsedGraphVertex
 
 __all__ = [
     "DAG_EDGE_TYPES",
@@ -89,6 +89,8 @@ __all__ = [
     "GraphCoordinator",
     "GraphEdge",
     "GraphVertex",
+    "GraphVertexParseError",
+    "ParsedGraphVertex",
     "assert_dag_edges_acyclic",
     "build_interchange_from_facet_vertices",
     "collect_dag_edge_pairs",
