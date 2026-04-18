@@ -178,7 +178,7 @@ class SensitiveIntentInspector(BaseIntentInspector):
         _target_cls: type,
         _payload: FacetPayload,
     ) -> bool:
-        """Per-field facet nodes carry ``committed_meta`` only; snapshot is for ``get_snapshot``."""
+        """Per-field facet nodes carry ``committed_facet_rows`` only; snapshot is for ``get_snapshot``."""
         return False
 
     @dataclass(frozen=True)

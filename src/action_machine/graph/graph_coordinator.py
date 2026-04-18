@@ -16,7 +16,7 @@ After a successful ``register(...).build()``:
 1. **Facet skeleton** (internal ``_facet_graph`` ``rx.PyDiGraph``) — committed nodes
    and edges from payloads for hydration APIs. Each node stores ``node_type``,
    ``id`` (same string as inspector ``node_name``), and ``class_ref``; when a payload carried ``node_meta`` at commit time,
-   a ``committed_meta`` dict is stored on the node so per-vertex metadata (e.g. one
+   a ``committed_facet_rows`` dict is stored on the node so per-vertex tuple metadata (e.g. one
    checker row) can hydrate without merging a class-wide snapshot. Otherwise facet
    body is resolved via ``hydrate_graph_node()`` using snapshots.
 
@@ -41,12 +41,12 @@ After a successful ``register(...).build()``:
 ``get_snapshot``.
 
 **Raw graph vs hydrated reads:** :meth:`get_graph` returns the **interchange**
-copy (no ``meta``). Prefer ``get_node`` / ``get_nodes_by_type`` / ``get_nodes_for_class``
-for facet ``meta``. To hydrate raw dicts yourself, pass **facet** payloads from
+copy (no ``facet_rows``). Prefer ``get_node`` / ``get_nodes_by_type`` / ``get_nodes_for_class``
+for merged facet tuple dicts (``facet_rows``). To hydrate raw dicts yourself, pass **facet** payloads from
 :meth:`facet_topology_copy` (node index matches ``_node_index`` facet ordering), not
 interchange :meth:`get_graph` payloads. Snapshot storage keys for
 hydration are recorded during phase 1 from each inspector's
-``facet_snapshot_storage_key()``; if several snapshot storage keys hydrate the same merged node, ``meta`` is the
+``facet_snapshot_storage_key()``; if several snapshot storage keys hydrate the same merged node, ``facet_rows`` is the
 union of their ``to_facet_payload().node_meta`` maps. Nodes without a registration may
 fall back to ``get_snapshot(cls, node_type)`` unless the payload set
 ``skip_node_type_snapshot_fallback`` (see :class:`~action_machine.graph.payload.FacetPayload`).
@@ -685,7 +685,7 @@ class GraphCoordinator:
             if p.skip_node_type_snapshot_fallback:
                 node_payload["skip_node_type_snapshot_fallback"] = True
             if p.node_meta:
-                node_payload["committed_meta"] = dict(p.node_meta)
+                node_payload["committed_facet_rows"] = dict(p.node_meta)
             idx = self._facet_graph.add_node(node_payload)
             self._node_index[key] = idx
 
@@ -705,7 +705,7 @@ class GraphCoordinator:
                 target_idx = self._node_index[target_key]
                 self._facet_graph.add_edge(source_idx, target_idx, {
                     "edge_type": edge.edge_type,
-                    "meta": dict(edge.edge_meta),
+                    "edge_row": dict(edge.edge_meta),
                 })
 
     def _commit_interchange_graph(
@@ -845,7 +845,7 @@ class GraphCoordinator:
 
     def hydrate_graph_node(self, node: Mapping[str, Any]) -> dict[str, Any]:
         """
-        Return a node dict with ``meta`` filled from facet snapshots.
+        Return a node dict with ``facet_rows`` filled from facet snapshots.
 
         Pass **facet** skeleton dicts (``node_type``, ``id``, ``class_ref``), e.g. from
         :meth:`facet_topology_copy` node payloads — not interchange :meth:`get_graph` payloads
@@ -853,13 +853,13 @@ class GraphCoordinator:
 
         Resolves the snapshot storage key from phase-1 registration (or falls back to
         the node's ``node_type`` string unless ``skip_node_type_snapshot_fallback`` was
-        set at commit) and fills ``meta`` via ``to_facet_payload().node_meta``.
+        set at commit) and fills ``facet_rows`` via ``to_facet_payload().node_meta``.
 
         Args:
             node: Raw payload from ``rx.PyDiGraph`` (or compatible mapping).
 
         Returns:
-            Shallow copy of ``node`` plus ``meta`` (possibly empty).
+            Shallow copy of ``node`` plus ``facet_rows`` (possibly empty dict).
         """
         self._require_built()
         raw = dict(node)
@@ -868,10 +868,10 @@ class GraphCoordinator:
         nm = str(raw.get("id") or raw.get("name") or "")
         cr = raw.get("class_ref")
         gk = self._make_key(nt, nm)
-        meta: dict[str, Any] = {}
-        committed = raw.pop("committed_meta", None)
+        facet_rows: dict[str, Any] = {}
+        committed = raw.pop("committed_facet_rows", None)
         if isinstance(committed, dict):
-            meta.update(committed)
+            facet_rows.update(committed)
 
         mapped = self._hydration_snapshot_key_by_graph_key.get(gk)
         storage_keys: tuple[str, ...] = ()
@@ -884,13 +884,13 @@ class GraphCoordinator:
             for sk in storage_keys:
                 snap = self.get_snapshot(cr, sk)
                 if snap is not None:
-                    meta.update(dict(snap.to_facet_payload().node_meta))
-        elif not storage_keys and not meta and not skip_fb and isinstance(cr, type):
+                    facet_rows.update(dict(snap.to_facet_payload().node_meta))
+        elif not storage_keys and not facet_rows and not skip_fb and isinstance(cr, type):
             sk_fallback = str(nt)
             snap = self.get_snapshot(cr, sk_fallback)
             if snap is not None:
-                meta = dict(snap.to_facet_payload().node_meta)
-        raw["meta"] = meta
+                facet_rows = dict(snap.to_facet_payload().node_meta)
+        raw["facet_rows"] = facet_rows
         return raw
 
     @staticmethod
@@ -1006,7 +1006,7 @@ class GraphCoordinator:
         Return a **low-level** copy of the interchange graph (topology + payloads).
 
         Node payloads use ``node_type``, ``id``, ``stereotype``, ``label``,
-        ``class_ref``, ``properties`` (no ``meta``). For facet skeleton dicts
+        ``class_ref``, ``properties`` (no ``facet_rows``). For facet skeleton dicts
         (``node_type``, ``id``, ``class_ref``), use :meth:`facet_topology_copy`.
 
         Returns:

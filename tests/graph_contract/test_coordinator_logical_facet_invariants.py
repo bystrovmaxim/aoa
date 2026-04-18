@@ -59,8 +59,8 @@ def test_hydrate_facet_raw_payload_matches_get_node_for_merged_action_host() -> 
     assert coord.get_node("Action", nm) == coord.hydrate_graph_node(raw)
 
 
-def test_hydrate_logical_graph_payload_does_not_fill_facet_meta() -> None:
-    """Interchange payloads may be passed to ``hydrate_graph_node``; ``node_type`` is preserved, ``meta`` may stay empty."""
+def test_hydrate_logical_graph_payload_does_not_fill_facet_rows() -> None:
+    """Interchange payloads may be passed to ``hydrate_graph_node``; ``node_type`` is preserved, ``facet_rows`` may stay empty."""
     _import_test_domain_modules()
     coord = build_sample_coordinator()
     g = coord.get_graph()
@@ -68,7 +68,7 @@ def test_hydrate_logical_graph_payload_does_not_fill_facet_meta() -> None:
     raw = dict(g[idx])
     assert "node_type" in raw
     hydrated = coord.hydrate_graph_node(raw)
-    assert hydrated.get("meta") == {}
+    assert hydrated.get("facet_rows") == {}
     assert hydrated.get("node_type") == raw.get("node_type")
 
 

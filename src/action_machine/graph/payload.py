@@ -16,7 +16,7 @@ Both are transport-only: an inspector builds them in ``_build_payload()`` /
 ``inspect()``, the coordinator consumes them in phase 1 of ``build()``, and
 they are discarded after commit. Facet node skeletons land in the coordinator’s
 internal facet ``rx.PyDiGraph``; the public interchange graph is a separate commit.
-Tuple → dict conversion for facet ``meta`` is applied when projecting from
+Tuple → dict conversion for facet rows is applied when projecting from
 typed snapshots (see ``GraphCoordinator.hydrate_graph_node``).
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -65,7 +65,7 @@ full ``node_type:node_name`` key.
     → graph key: "role_class:module.AdminRole"
 
 One class may emit several nodes with different ``node_type`` values from
-different inspectors (``meta``, ``aspect``, ``role_class``, …; structural ``Action``
+different inspectors (MetaIntent row, ``aspect``, ``role_class``, …; structural ``Action``
 appears when ``@depends`` and/or ``@connection`` is present — two inspectors,
 merged by the coordinator into one node with the same key). Uniqueness follows
 from the pair ``node_type`` + ``node_name``.
@@ -99,7 +99,7 @@ LIFECYCLE EXAMPLE
     #    then interchange projection into ``_graph``. Node payload is skeleton only
     #    (``node_type``, ``name``, ``class_ref`` on the facet graph).
     #    Facet body is in ``GraphCoordinator`` facet snapshots; ``get_node`` /
-    #    ``hydrate_graph_node`` attach ``meta`` from the matching snapshot.
+    #    ``hydrate_graph_node`` attach ``facet_rows`` from the matching snapshot.
 
     # 5. Payload objects are discarded. Committed graphs are the source of truth.
 

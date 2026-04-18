@@ -169,7 +169,7 @@ def _fastapi_route_label(record: FastApiRouteRecord) -> str:
     return f"{record.method} {record.path}"
 
 
-def _get_meta_description(action_class: type) -> str:
+def _get_action_class_description(action_class: type) -> str:
     """
     Extract description from action ``@meta`` declaration.
 
@@ -636,7 +636,7 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
 
         If ``summary`` is empty, fill it from action ``@meta`` description.
         """
-        effective_summary = summary or _get_meta_description(action_class)
+        effective_summary = summary or _get_action_class_description(action_class)
 
         record = FastApiRouteRecord(
             action_class=action_class,

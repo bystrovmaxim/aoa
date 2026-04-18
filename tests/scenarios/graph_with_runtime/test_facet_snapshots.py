@@ -40,9 +40,9 @@ def test_role_facet_snapshot_round_trip_with_graph() -> None:
     action_name = BaseIntentInspector._make_node_name(_SnapProbeAction)
     action_node = coord.get_node("Action", action_name)
     assert action_node is not None
-    meta = action_node.get("meta")
-    assert meta is not None
-    assert meta.get("spec") is AdminRole
+    rows = action_node.get("facet_rows")
+    assert rows is not None
+    assert rows.get("spec") is AdminRole
 
 
 class _FacetOrdersDomain(BaseDomain):
