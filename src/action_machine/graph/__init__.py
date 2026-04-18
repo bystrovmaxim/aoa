@@ -76,10 +76,6 @@ from action_machine.graph.graph_builder import (
 from action_machine.graph.graph_coordinator import GraphCoordinator
 from action_machine.graph.graph_edge import GraphEdge
 from action_machine.graph.graph_vertex import GraphVertex
-from action_machine.graph.vertex_id import (
-    split_checker_vertex_id,
-    split_host_element_vertex_id,
-)
 
 __all__ = [
     "DAG_EDGE_TYPES",
@@ -96,6 +92,4 @@ __all__ = [
     "dag_edge_pairs_from_rx",
     "dag_subgraph_is_acyclic",
     "dag_subgraph_is_acyclic_from_rx",
-    "split_checker_vertex_id",
-    "split_host_element_vertex_id",
 ]
