@@ -70,10 +70,10 @@ from __future__ import annotations
 from dataclasses import dataclass, fields
 from typing import Any
 
-from action_machine.interchange_vertex_labels import ACTION_VERTEX_TYPE
 from action_machine.graph.base_facet_snapshot import BaseFacetSnapshot
 from action_machine.graph.base_intent_inspector import BaseIntentInspector
 from action_machine.graph.payload import FacetPayload
+from action_machine.interchange_vertex_labels import ACTION_VERTEX_TYPE
 from action_machine.resources.connection_decorator import ConnectionInfo
 from action_machine.resources.connection_intent import ConnectionIntent
 

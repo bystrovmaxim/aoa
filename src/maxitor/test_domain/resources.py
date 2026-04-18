@@ -21,7 +21,10 @@ def main() -> None:
     if str(repo_root) not in sys.path:
         sys.path.insert(0, str(repo_root))
 
-    from tests.scenarios.domain_model.test_db_manager import TestDbManager
+    # Runtime-only import after ``sys.path`` fix; tests/ is not a package on PYTHONPATH in CI for pylint.
+    from tests.scenarios.domain_model.test_db_manager import (  # pylint: disable=import-error,import-outside-toplevel
+        TestDbManager,
+    )
 
     print("Resource manager class for scenarios:", TestDbManager.__qualname__)
     print("Module:", TestDbManager.__module__)

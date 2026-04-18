@@ -12,14 +12,15 @@ Interchange construction: :class:`GraphBuilder` and module-level helpers.
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
+from dataclasses import fields
 from typing import Any, Final
 
 from action_machine.graph.constants import INTERNAL_EDGE_TYPES, OWNERSHIP_EDGE_TYPES
 from action_machine.graph.model import GraphEdge, GraphVertex
 from action_machine.graph.payload import FacetPayload
 
-_VERTEX_KEYS: frozenset[str] = frozenset(GraphVertex.__dataclass_fields__)
-_EDGE_KEYS: frozenset[str] = frozenset(GraphEdge.__dataclass_fields__)
+_VERTEX_KEYS: frozenset[str] = frozenset(f.name for f in fields(GraphVertex))
+_EDGE_KEYS: frozenset[str] = frozenset(f.name for f in fields(GraphEdge))
 
 # facet edge_type (inspectors) → (interchange edge_type, forward stereotype)
 _FACET_EDGE_TO_INTERCHANGE: Final[dict[str, tuple[str, str]]] = {
@@ -202,7 +203,7 @@ def _from_facet_payloads(
         )
 
     edges: list[GraphEdge] = []
-    seen_forward: set[tuple[str, str, str]] = set()
+    seen_forward: set[tuple[str, str, str, tuple[tuple[str, Any], ...]]] = set()
 
     for p in payloads:
         source_id = _interchange_vertex_id(p)

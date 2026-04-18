@@ -13,8 +13,8 @@ from __future__ import annotations
 from action_machine.domain.application_context import ApplicationContext
 from action_machine.domain.base_domain import BaseDomain
 from action_machine.graph.base_intent_inspector import BaseIntentInspector
-from action_machine.interchange_vertex_labels import APPLICATION_VERTEX_TYPE, DOMAIN_VERTEX_TYPE
 from action_machine.graph.payload import FacetPayload
+from action_machine.interchange_vertex_labels import APPLICATION_VERTEX_TYPE, DOMAIN_VERTEX_TYPE
 
 
 class ApplicationContextInspector(BaseIntentInspector):

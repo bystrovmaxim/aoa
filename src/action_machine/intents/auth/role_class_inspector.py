@@ -204,4 +204,3 @@ class RoleClassInspector(BaseIntentInspector):
     @classmethod
     def _build_payload(cls, target_cls: type[BaseRole]) -> FacetPayload:
         return cls.Snapshot.from_target(target_cls).to_facet_payload()
-

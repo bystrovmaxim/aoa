@@ -147,10 +147,15 @@ disallow_untyped_defs = false
 disallow_incomplete_defs = false
 disallow_untyped_decorators = false
 
-# maxitor synthetic action — stacked decorators без py.typed на декораторах
+# maxitor samples — stacked decorators без py.typed на декораторах
 [[tool.mypy.overrides]]
-module = "maxitor.samples.store.actions.checkout_submit"
+module = "maxitor.samples.*"
 disallow_untyped_decorators = false
+
+[[tool.mypy.overrides]]
+module = "tests.scenarios.domain_model.*"
+disallow_untyped_decorators = false
+disable_error_code = ["type-arg", "arg-type"]
 
 # ============================================================================
 # COVERAGE
@@ -224,8 +229,8 @@ disable = [
 
 [tool.pylint.format]
 max-line-length = 120
-# GateCoordinator remains a single orchestration module (intentionally large API surface).
-max-module-lines = 1200
+# GateCoordinator / HTML visualizer remain intentionally large single modules.
+max-module-lines = 1500
 
 [tool.pylint.basic]
 good-names = ["i", "e", "f", "k", "v", "p", "R", "P", "T"]
@@ -279,6 +284,8 @@ ignore = [
 "src/action_machine/intents/checkers/__init__.py" = ["RUF022"]
 # Ленивый импорт ``CoreActionMachine`` внутри ``__getattr__`` — не поднимать наверх.
 "src/action_machine/runtime/__init__.py" = ["I001"]
+# Отложенные импорты после ``BaseAction`` — отдельный блок (см. комментарий в файле).
+"src/action_machine/model/base_action.py" = ["I001"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["action_machine"]

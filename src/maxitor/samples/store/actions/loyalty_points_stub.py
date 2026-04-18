@@ -15,23 +15,21 @@ from action_machine.model.base_result import BaseResult
 from maxitor.samples.store.domain import StoreDomain
 
 
-class LoyaltyPointsStubParams(BaseParams):
-    customer_id: str = Field(description="Customer id")
-
-
-class LoyaltyPointsStubResult(BaseResult):
-    points: int = Field(description="Stub balance", ge=0)
-
-
 @meta(description="Fetch loyalty points balance (store sample stub)", domain=StoreDomain)
 @check_roles(NoneRole)
-class LoyaltyPointsStubAction(BaseAction[LoyaltyPointsStubParams, LoyaltyPointsStubResult]):
+class LoyaltyPointsStubAction(BaseAction["LoyaltyPointsStubAction.Params", "LoyaltyPointsStubAction.Result"]):
+    class Params(BaseParams):
+        customer_id: str = Field(description="Customer id")
+
+    class Result(BaseResult):
+        points: int = Field(description="Stub balance", ge=0)
+
     @summary_aspect("Points")
     async def points_summary(
         self,
-        params: LoyaltyPointsStubParams,
+        params: LoyaltyPointsStubAction.Params,
         state: Any,
         box: Any,
         connections: Any,
-    ) -> LoyaltyPointsStubResult:
-        return LoyaltyPointsStubResult(points=len(params.customer_id) * 7)
+    ) -> LoyaltyPointsStubAction.Result:
+        return LoyaltyPointsStubAction.Result(points=len(params.customer_id) * 7)

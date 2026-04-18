@@ -33,22 +33,6 @@ from maxitor.samples.store.domain import StoreDomain
 from maxitor.samples.store.resources import StorefrontDatabase, StorefrontSessionCache
 
 
-class CheckoutSubmitParams(BaseParams):
-    customer_id: str = Field(description="Customer reference id")
-    amount: float = Field(description="Monetary amount to charge", gt=0)
-
-    @property
-    @sensitive(True, max_chars=3, char="*", max_percent=50)
-    def api_token_hint(self) -> str:
-        return "tok-SECRET-GRAPH-ONLY"
-
-
-class CheckoutSubmitResult(BaseResult):
-    order_id: str = Field(description="Synthetic order id")
-    txn_id: str = Field(description="Synthetic transaction id")
-    status: str = Field(description="Outcome status label")
-
-
 @meta(description="Sample checkout with full decorator surface (graph demo)", domain=StoreDomain)
 @check_roles(EditorRole)
 @depends(PaymentGateway, description="Payment gateway")
@@ -59,13 +43,27 @@ class CheckoutSubmitResult(BaseResult):
 )
 @connection(StorefrontDatabase, key="db", description="DB connection")
 @connection(StorefrontSessionCache, key="cache", description="Cache connection")
-class CheckoutSubmitAction(BaseAction[CheckoutSubmitParams, CheckoutSubmitResult]):
+class CheckoutSubmitAction(BaseAction["CheckoutSubmitAction.Params", "CheckoutSubmitAction.Result"]):
+    class Params(BaseParams):
+        customer_id: str = Field(description="Customer reference id")
+        amount: float = Field(description="Monetary amount to charge", gt=0)
+
+        @property
+        @sensitive(True, max_chars=3, char="*", max_percent=50)
+        def api_token_hint(self) -> str:
+            return "tok-SECRET-GRAPH-ONLY"
+
+    class Result(BaseResult):
+        order_id: str = Field(description="Synthetic order id")
+        txn_id: str = Field(description="Synthetic transaction id")
+        status: str = Field(description="Outcome status label")
+
     @regular_aspect("Validate payload")
     @result_string("validated_customer", required=True, min_length=1)
     @context_requires(Ctx.User.user_id)
     async def validate_aspect(
         self,
-        params: CheckoutSubmitParams,
+        params: CheckoutSubmitAction.Params,
         state: Any,
         box: Any,
         connections: Any,
@@ -78,7 +76,7 @@ class CheckoutSubmitAction(BaseAction[CheckoutSubmitParams, CheckoutSubmitResult
     @result_float("charged_amount", required=True, min_value=0.0)
     async def charge_aspect(
         self,
-        params: CheckoutSubmitParams,
+        params: CheckoutSubmitAction.Params,
         state: Any,
         box: Any,
         connections: Any,
@@ -90,7 +88,7 @@ class CheckoutSubmitAction(BaseAction[CheckoutSubmitParams, CheckoutSubmitResult
     @compensate("charge_aspect", "Refund on failure")
     async def charge_compensate(
         self,
-        params: CheckoutSubmitParams,
+        params: CheckoutSubmitAction.Params,
         state_before: Any,
         state_after: Any,
         box: Any,
@@ -105,35 +103,35 @@ class CheckoutSubmitAction(BaseAction[CheckoutSubmitParams, CheckoutSubmitResult
     @context_requires(Ctx.User.user_id, Ctx.Request.trace_id)
     async def validation_error_on_error(
         self,
-        params: CheckoutSubmitParams,
+        params: CheckoutSubmitAction.Params,
         state: Any,
         box: Any,
         connections: Any,
         error: ValueError,
         ctx: Any,
-    ) -> CheckoutSubmitResult:
-        return CheckoutSubmitResult(order_id="ERR", txn_id="NONE", status="validation_failed")
+    ) -> CheckoutSubmitAction.Result:
+        return CheckoutSubmitAction.Result(order_id="ERR", txn_id="NONE", status="validation_failed")
 
     @on_error(Exception, description="Fallback branch")
     async def unexpected_error_on_error(
         self,
-        params: CheckoutSubmitParams,
+        params: CheckoutSubmitAction.Params,
         state: Any,
         box: Any,
         connections: Any,
         error: Exception,
-    ) -> CheckoutSubmitResult:
-        return CheckoutSubmitResult(order_id="ERR", txn_id="NONE", status="internal_error")
+    ) -> CheckoutSubmitAction.Result:
+        return CheckoutSubmitAction.Result(order_id="ERR", txn_id="NONE", status="internal_error")
 
     @summary_aspect("Build result")
     async def build_result_summary(
         self,
-        params: CheckoutSubmitParams,
+        params: CheckoutSubmitAction.Params,
         state: Any,
         box: Any,
         connections: Any,
-    ) -> CheckoutSubmitResult:
-        return CheckoutSubmitResult(
+    ) -> CheckoutSubmitAction.Result:
+        return CheckoutSubmitAction.Result(
             order_id="ORD-SAMPLE-1",
             txn_id=state.txn_id,
             status="created",

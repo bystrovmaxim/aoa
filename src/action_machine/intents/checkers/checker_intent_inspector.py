@@ -74,12 +74,12 @@ from typing import Any
 from action_machine.graph.base_facet_snapshot import BaseFacetSnapshot
 from action_machine.graph.base_intent_inspector import BaseIntentInspector
 from action_machine.graph.payload import EdgeInfo, FacetMetaRow, FacetPayload
-from action_machine.interchange_vertex_labels import CHECKER_VERTEX_TYPE
 from action_machine.intents.aspects.aspect_intent_inspector import (
     AspectIntentInspector,
     vertex_type_for_aspect_kind,
 )
 from action_machine.intents.checkers.checker_intent import CheckerIntent
+from action_machine.interchange_vertex_labels import CHECKER_VERTEX_TYPE
 
 
 class CheckerIntentInspector(BaseIntentInspector):

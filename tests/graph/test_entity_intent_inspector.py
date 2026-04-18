@@ -7,7 +7,6 @@ from typing import Annotated
 
 from pydantic import Field
 
-from action_machine.interchange_vertex_labels import ENTITY_VERTEX_TYPE
 from action_machine.domain import (
     AssociationOne,
     BaseEntity,
@@ -24,6 +23,7 @@ from action_machine.domain.entity_intent_inspector import (
 )
 from action_machine.domain.lifecycle import Lifecycle
 from action_machine.graph.base_intent_inspector import BaseIntentInspector
+from action_machine.interchange_vertex_labels import ENTITY_VERTEX_TYPE
 
 
 def _entity_payload(inspect_result: object):

@@ -17,23 +17,21 @@ from action_machine.model.base_result import BaseResult
 from maxitor.samples.catalog.domain import CatalogDomain
 
 
-class BrowseCatalogParams(BaseParams):
-    query: str = Field(default="*", description="Search token")
-
-
-class BrowseCatalogResult(BaseResult):
-    hits: int = Field(description="Stub hit count")
-
-
 @meta(description="Browse catalog (stub)", domain=CatalogDomain)
 @check_roles(NoneRole)
-class BrowseCatalogAction(BaseAction[BrowseCatalogParams, BrowseCatalogResult]):
+class BrowseCatalogAction(BaseAction["BrowseCatalogAction.Params", "BrowseCatalogAction.Result"]):
+    class Params(BaseParams):
+        query: str = Field(default="*", description="Search token")
+
+    class Result(BaseResult):
+        hits: int = Field(description="Stub hit count")
+
     @summary_aspect("Resolve stub hits")
     async def resolve_summary(
         self,
-        params: BrowseCatalogParams,
+        params: BrowseCatalogAction.Params,
         state: Any,
         box: Any,
         connections: Any,
-    ) -> BrowseCatalogResult:
-        return BrowseCatalogResult(hits=0 if params.query == "" else 1)
+    ) -> BrowseCatalogAction.Result:
+        return BrowseCatalogAction.Result(hits=0 if params.query == "" else 1)

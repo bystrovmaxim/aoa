@@ -15,27 +15,24 @@ from action_machine.model.base_result import BaseResult
 from maxitor.samples.roles import DeprecatedRole, EditorRole
 from maxitor.samples.store.domain import StoreDomain
 
-
-class RoleMigrationParams(BaseParams):
-    item_id: str = Field(description="Legacy item id")
-
-
-class RoleMigrationResult(BaseResult):
-    migrated: bool = Field(description="Whether migration was recorded")
-
-
 with warnings.catch_warnings():
     warnings.simplefilter("ignore", DeprecationWarning)
 
     @meta(description="Demo action using deprecated + editor roles", domain=StoreDomain)
     @check_roles([DeprecatedRole, EditorRole])
-    class RoleMigrationAction(BaseAction[RoleMigrationParams, RoleMigrationResult]):
+    class RoleMigrationAction(BaseAction["RoleMigrationAction.Params", "RoleMigrationAction.Result"]):
+        class Params(BaseParams):
+            item_id: str = Field(description="Legacy item id")
+
+        class Result(BaseResult):
+            migrated: bool = Field(description="Whether migration was recorded")
+
         @summary_aspect("Migrate")
         async def migrate_summary(
             self,
-            params: RoleMigrationParams,
+            params: RoleMigrationAction.Params,
             state: Any,
             box: Any,
             connections: Any,
-        ) -> RoleMigrationResult:
-            return RoleMigrationResult(migrated=True)
+        ) -> RoleMigrationAction.Result:
+            return RoleMigrationAction.Result(migrated=True)

@@ -44,12 +44,6 @@ from typing import Any
 
 import pytest
 
-from action_machine.interchange_vertex_labels import (
-    CHECKER_VERTEX_TYPE,
-    COMPENSATOR_VERTEX_TYPE,
-    REGULAR_ASPECT_VERTEX_TYPE,
-    SUMMARY_ASPECT_VERTEX_TYPE,
-)
 from action_machine.dependencies.dependency_factory import (
     cached_dependency_factory,
     clear_dependency_factory_cache,
@@ -69,6 +63,12 @@ from action_machine.intents.meta.meta_intent_inspector import MetaIntentInspecto
 from action_machine.intents.plugins.events import GlobalStartEvent
 from action_machine.intents.plugins.on_decorator import on
 from action_machine.intents.plugins.plugin import Plugin
+from action_machine.interchange_vertex_labels import (
+    CHECKER_VERTEX_TYPE,
+    COMPENSATOR_VERTEX_TYPE,
+    REGULAR_ASPECT_VERTEX_TYPE,
+    SUMMARY_ASPECT_VERTEX_TYPE,
+)
 from action_machine.model.base_action import BaseAction
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_result import BaseResult

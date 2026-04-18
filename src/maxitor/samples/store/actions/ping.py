@@ -15,23 +15,21 @@ from action_machine.model.base_result import BaseResult
 from maxitor.samples.store.domain import StoreDomain
 
 
-class OpsPingParams(BaseParams):
-    ping: str = Field(default="ping", description="Ping payload")
-
-
-class OpsPingResult(BaseResult):
-    message: str = Field(description="Pong message")
-
-
 @meta(description="Health ping for the storefront slice", domain=StoreDomain)
 @check_roles(NoneRole)
-class OpsPingAction(BaseAction[OpsPingParams, OpsPingResult]):
+class OpsPingAction(BaseAction["OpsPingAction.Params", "OpsPingAction.Result"]):
+    class Params(BaseParams):
+        ping: str = Field(default="ping", description="Ping payload")
+
+    class Result(BaseResult):
+        message: str = Field(description="Pong message")
+
     @summary_aspect("Pong")
     async def pong_summary(
         self,
-        params: OpsPingParams,
+        params: OpsPingAction.Params,
         state: Any,
         box: Any,
         connections: Any,
-    ) -> OpsPingResult:
-        return OpsPingResult(message="pong")
+    ) -> OpsPingAction.Result:
+        return OpsPingAction.Result(message="pong")

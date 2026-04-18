@@ -15,23 +15,21 @@ from action_machine.model.base_result import BaseResult
 from maxitor.samples.support.domain import SupportDomain
 
 
-class TicketStubParams(BaseParams):
-    subject: str = Field(description="Ticket subject")
-
-
-class TicketStubResult(BaseResult):
-    ticket_id: str = Field(description="Stub ticket id")
-
-
 @meta(description="Open support ticket stub (support sample)", domain=SupportDomain)
 @check_roles(NoneRole)
-class TicketStubAction(BaseAction[TicketStubParams, TicketStubResult]):
+class TicketStubAction(BaseAction["TicketStubAction.Params", "TicketStubAction.Result"]):
+    class Params(BaseParams):
+        subject: str = Field(description="Ticket subject")
+
+    class Result(BaseResult):
+        ticket_id: str = Field(description="Stub ticket id")
+
     @summary_aspect("Open")
     async def open_summary(
         self,
-        params: TicketStubParams,
+        params: TicketStubAction.Params,
         state: Any,
         box: Any,
         connections: Any,
-    ) -> TicketStubResult:
-        return TicketStubResult(ticket_id=f"T-{len(params.subject):04d}")
+    ) -> TicketStubAction.Result:
+        return TicketStubAction.Result(ticket_id=f"T-{len(params.subject):04d}")

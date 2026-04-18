@@ -51,12 +51,12 @@ TWO REQUIRED METHODS
 
 Every inspector implements two abstract ``classmethod`` hooks:
 
-    inspect(target_cls) → FacetPayload | None
+    inspect(target_cls) → FacetPayload | list[FacetPayload] | tuple[FacetPayload, ...] | None
         Entry point. Decides whether the class belongs to this inspector.
-        Either returns a ``FacetPayload`` or ``None`` when the class is irrelevant.
+        Returns a payload, a sequence of payloads, or ``None`` when the class is irrelevant.
 
-    _build_payload(target_cls) → FacetPayload
-        Builds the node/edge bundle. Reads class scratch attributes
+    _build_payload(target_cls) → FacetPayload | list[FacetPayload]
+        Builds the node/edge bundle (or several facets). Reads class scratch attributes
         (``_role_info``, ``_depends_info``, ``_meta_info``, …) and uses base
         helpers to assemble ``FacetPayload``.
 
@@ -174,14 +174,14 @@ EXAMPLE — INSPECTOR WITH INFORMATIONAL EDGES (``@check_roles``)
             return cls._collect_subclasses(cls._target_intent)
 
         @classmethod
-        def inspect(cls, target_cls: type) -> FacetPayload | None:
+        def inspect(cls, target_cls: type) -> FacetInspectResult:
             role_info = getattr(target_cls, "_role_info", None)
             if role_info is None:
                 return None
             return cls._build_payload(target_cls)
 
         @classmethod
-        def _build_payload(cls, target_cls: type) -> FacetPayload:
+        def _build_payload(cls, target_cls: type) -> FacetBuildResult:
             # Real implementation: merged ``node_type=\"action\"`` row plus
             # ``requires_role`` edges to canonical ``role_class`` vertices.
             ...
@@ -198,14 +198,14 @@ EXAMPLE — INSPECTOR WITH EDGES
             return cls._collect_subclasses(cls._target_intent)
 
         @classmethod
-        def inspect(cls, target_cls: type) -> FacetPayload | None:
+        def inspect(cls, target_cls: type) -> FacetInspectResult:
             depends_info = getattr(target_cls, "_depends_info", None)
             if not depends_info:
                 return None
             return cls._build_payload(target_cls)
 
         @classmethod
-        def _build_payload(cls, target_cls: type) -> FacetPayload:
+        def _build_payload(cls, target_cls: type) -> FacetBuildResult:
             edges = tuple(
                 cls._make_edge(
                     target_node_type="dependency",
@@ -243,6 +243,10 @@ from typing import Any
 from action_machine.graph.base_facet_snapshot import BaseFacetSnapshot
 from action_machine.graph.payload import EdgeInfo, FacetPayload
 
+# ``GraphCoordinator._phase1_collect`` normalizes every outcome to ``list[FacetPayload]``.
+type FacetInspectResult = FacetPayload | list[FacetPayload] | tuple[FacetPayload, ...] | None
+type FacetBuildResult = FacetPayload | list[FacetPayload]
+
 
 class BaseIntentInspector(ABC):
     """
@@ -273,7 +277,7 @@ class BaseIntentInspector(ABC):
 
     @classmethod
     @abstractmethod
-    def inspect(cls, target_cls: type) -> FacetPayload | None:
+    def inspect(cls, target_cls: type) -> FacetInspectResult:
         """
         Decide whether ``target_cls`` matches this inspector and build data.
 
@@ -282,8 +286,8 @@ class BaseIntentInspector(ABC):
 
             1. Check decorator scratch (``hasattr`` / ``getattr``).
             2. If missing → ``return None``.
-            3. Call ``_build_payload()`` → ``FacetPayload``.
-            4. Return the payload.
+            3. Call ``_build_payload()`` → ``FacetPayload`` or ``list[FacetPayload]``.
+            4. Return the payload or sequence.
 
         Args:
             target_cls: Candidate class (subclass of the marker mixin).
@@ -335,9 +339,9 @@ class BaseIntentInspector(ABC):
 
     @classmethod
     @abstractmethod
-    def _build_payload(cls, target_cls: type) -> FacetPayload:
+    def _build_payload(cls, target_cls: type) -> FacetBuildResult:
         """
-        Construct ``FacetPayload`` from class scratch attributes.
+        Construct ``FacetPayload`` (or several) from class scratch attributes.
 
         Reads ``_role_info``, ``_depends_info``, etc., and uses
         ``_make_node_name``, ``_make_edge``, ``_make_edge_by_name``, ``_make_meta``.

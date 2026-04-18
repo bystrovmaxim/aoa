@@ -15,23 +15,21 @@ from action_machine.model.base_result import BaseResult
 from maxitor.samples.catalog.domain import CatalogDomain
 
 
-class CategoryListParams(BaseParams):
-    root_slug: str = Field(default="all", description="Category root")
-
-
-class CategoryListResult(BaseResult):
-    count: int = Field(description="Stub category count", ge=0)
-
-
 @meta(description="List catalog categories (sample stub)", domain=CatalogDomain)
 @check_roles(NoneRole)
-class CategoryListAction(BaseAction[CategoryListParams, CategoryListResult]):
+class CategoryListAction(BaseAction["CategoryListAction.Params", "CategoryListAction.Result"]):
+    class Params(BaseParams):
+        root_slug: str = Field(default="all", description="Category root")
+
+    class Result(BaseResult):
+        count: int = Field(description="Stub category count", ge=0)
+
     @summary_aspect("List")
     async def list_summary(
         self,
-        params: CategoryListParams,
+        params: CategoryListAction.Params,
         state: Any,
         box: Any,
         connections: Any,
-    ) -> CategoryListResult:
-        return CategoryListResult(count=3 if params.root_slug else 0)
+    ) -> CategoryListAction.Result:
+        return CategoryListAction.Result(count=3 if params.root_slug else 0)

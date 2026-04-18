@@ -15,23 +15,21 @@ from action_machine.model.base_result import BaseResult
 from maxitor.samples.catalog.domain import CatalogDomain
 
 
-class ImportSkuStubParams(BaseParams):
-    batch_label: str = Field(description="Import batch label")
-
-
-class ImportSkuStubResult(BaseResult):
-    accepted: int = Field(description="Stub accepted row count", ge=0)
-
-
 @meta(description="Bulk SKU import placeholder (catalog sample stub)", domain=CatalogDomain)
 @check_roles(NoneRole)
-class ImportSkuStubAction(BaseAction[ImportSkuStubParams, ImportSkuStubResult]):
+class ImportSkuStubAction(BaseAction["ImportSkuStubAction.Params", "ImportSkuStubAction.Result"]):
+    class Params(BaseParams):
+        batch_label: str = Field(description="Import batch label")
+
+    class Result(BaseResult):
+        accepted: int = Field(description="Stub accepted row count", ge=0)
+
     @summary_aspect("Import")
     async def import_summary(
         self,
-        params: ImportSkuStubParams,
+        params: ImportSkuStubAction.Params,
         state: Any,
         box: Any,
         connections: Any,
-    ) -> ImportSkuStubResult:
-        return ImportSkuStubResult(accepted=len(params.batch_label))
+    ) -> ImportSkuStubAction.Result:
+        return ImportSkuStubAction.Result(accepted=len(params.batch_label))
