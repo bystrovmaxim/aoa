@@ -9,7 +9,7 @@ PURPOSE
 Write rustworkx graphs under ``maxitor`` diagnostics to **GraphML**, **JSON**, and
 a minimal **DOT** (Graphviz) encoding. The coordinator may expose either a **facet**
 graph (``node_type``, ``id``, ``class_ref`` on facet nodes) or an **interchange**
-graph (``node_type``, ``id``, ``label``). This module normalizes interchange
+graph (``node_type``, ``id``, ``label``, ``properties``; no ``class_ref``). This module normalizes interchange
 payloads into the facet-shaped view expected by string-only GraphML serialization,
 and picks ``get_graph_for_visualization()`` / ``get_graph()`` so HTML, GraphML, JSON, and DOT stay
 aligned on the same export surface.
@@ -94,14 +94,15 @@ def normalize_coordinator_node_payload_for_visualization(
     node: dict[str, Any],
 ) -> dict[str, Any]:
     """
-    Map interchange node payloads to the facet-shaped keys used by exporters.
+    Map interchange node payloads to the keys used by exporters and the HTML panel.
 
-    **Preserves** the full interchange payload (``properties``, etc.),
-    merged with ``node_type`` / ``label`` / ``class_ref`` so the HTML properties panel
-    can list every field. Vertex identity stays on the interchange ``id`` (no duplicate
-    ``name``).
+    **Preserves** the full interchange payload (``properties``, etc.) and
+    fills ``label`` when missing. Interchange nodes do not carry runtime ``type``
+    objects; identity is the string ``id`` (often a qualified Python path).
+    Vertex identity stays on the interchange ``id`` (no duplicate ``name``).
     """
     merged = dict(node)
+    merged.pop("class_ref", None)
     # Legacy payloads may still carry ``vertex_type``; canonical key is ``node_type``.
     if "vertex_type" in merged and "node_type" not in merged:
         merged["node_type"] = str(merged.pop("vertex_type"))
@@ -113,7 +114,6 @@ def normalize_coordinator_node_payload_for_visualization(
     vid = str(merged["id"])
     derived = text or (vid.rsplit(".", maxsplit=1)[-1] if "." in vid else vid)
     merged.setdefault("label", derived)
-    merged.setdefault("class_ref", merged.get("class_ref"))
     return merged
 
 
@@ -141,10 +141,8 @@ def pygraph_to_graphml_string_dicts(graph: rx.PyDiGraph) -> rx.PyDiGraph:
         node = normalize_coordinator_node_payload_for_visualization(node)
         nid = str(node.get("id") or node.get("name") or "")
         node_type = str(node.get("node_type", "") or "")
-        cr = node.get("class_ref")
-        class_name = (
-            f"{cr.__module__}.{cr.__qualname__}" if isinstance(cr, type) else ""
-        )
+        # Interchange ``id`` is the stable qualified string; no ``type`` object on nodes.
+        class_name = nid
         graph_key = f"{node_type}:{nid}" if node_type or nid else str(int(idx))
         payload = {
             "id": nid,

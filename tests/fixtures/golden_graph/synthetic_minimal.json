@@ -1,27 +1,24 @@
 {
   "version": 1,
-  "description": "G0: input/expected = synthetic opaque bundle (GraphBuilder), forward interchange edges only (no §5.3 CONTAINS/REQUIRES_ROLE synthesis). expected_from_facets = build_interchange_from_facet_vertices(_g0_facet_vertices()) raw tuples. expected_from_facets_phase1_merge = same after collect/merge (G0 stubs are not BaseAction, so @meta is not folded here; matches expected_from_facets).",
+  "description": "G0: input/expected = synthetic opaque bundle (GraphBuilder), forward interchange edges only (no \u00a75.3 CONTAINS/REQUIRES_ROLE synthesis). expected_from_facets = build_interchange_from_facet_vertices(_g0_facet_vertices()) raw tuples. expected_from_facets_phase1_merge = same after collect/merge (G0 stubs are not BaseAction, so @meta is not folded here; matches expected_from_facets).",
   "input": {
     "vertices": [
       {
         "id": "golden_demo.actions.DemoAction",
         "node_type": "Action",
         "label": "DemoAction",
-        "class_ref": null,
         "properties": {}
       },
       {
         "id": "golden_demo.domains.DemoDomain",
         "node_type": "Domain",
         "label": "demo",
-        "class_ref": null,
         "properties": {}
       },
       {
         "id": "golden_demo.roles.DemoRole",
         "node_type": "role",
         "label": "DemoRole",
-        "class_ref": null,
         "properties": {}
       }
     ],
@@ -52,21 +49,18 @@
         "id": "golden_demo.actions.DemoAction",
         "node_type": "Action",
         "label": "DemoAction",
-        "class_ref": null,
         "properties": {}
       },
       {
         "id": "golden_demo.domains.DemoDomain",
         "node_type": "Domain",
         "label": "demo",
-        "class_ref": null,
         "properties": {}
       },
       {
         "id": "golden_demo.roles.DemoRole",
         "node_type": "role",
         "label": "DemoRole",
-        "class_ref": null,
         "properties": {}
       }
     ],
@@ -97,28 +91,24 @@
         "id": "Action:golden_demo.actions.DemoAction",
         "node_type": "Action",
         "label": "DemoAction",
-        "class_ref": null,
         "properties": {}
       },
       {
         "id": "Domain:golden_demo.domains.DemoDomain",
         "node_type": "Domain",
         "label": "DemoDomain",
-        "class_ref": null,
         "properties": {}
       },
       {
         "id": "meta:golden_demo.actions.DemoAction",
         "node_type": "meta",
         "label": "DemoAction",
-        "class_ref": null,
         "properties": {}
       },
       {
         "id": "role:golden_demo.actions.DemoAction",
         "node_type": "role",
         "label": "DemoAction",
-        "class_ref": null,
         "properties": {}
       }
     ],
@@ -140,28 +130,24 @@
         "id": "Action:golden_demo.actions.DemoAction",
         "node_type": "Action",
         "label": "DemoAction",
-        "class_ref": null,
         "properties": {}
       },
       {
         "id": "Domain:golden_demo.domains.DemoDomain",
         "node_type": "Domain",
         "label": "DemoDomain",
-        "class_ref": null,
         "properties": {}
       },
       {
         "id": "meta:golden_demo.actions.DemoAction",
         "node_type": "meta",
         "label": "DemoAction",
-        "class_ref": null,
         "properties": {}
       },
       {
         "id": "role:golden_demo.actions.DemoAction",
         "node_type": "role",
         "label": "DemoAction",
-        "class_ref": null,
         "properties": {}
       }
     ],
@@ -183,21 +169,18 @@
         "id": "Domain:golden_demo.domains.DemoDomain",
         "node_type": "Domain",
         "label": "DemoDomain",
-        "class_ref": null,
         "properties": {}
       },
       {
         "id": "meta:golden_demo.actions.DemoAction",
         "node_type": "meta",
         "label": "DemoAction",
-        "class_ref": null,
         "properties": {}
       },
       {
         "id": "role:golden_demo.actions.DemoAction",
         "node_type": "role",
         "label": "DemoAction",
-        "class_ref": null,
         "properties": {}
       }
     ],

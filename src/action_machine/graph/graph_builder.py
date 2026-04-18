@@ -68,15 +68,10 @@ def _vertex_from_row(row: Mapping[str, Any]) -> GraphVertex:
     if extra:
         msg = f"vertex row has unknown keys {sorted(extra)!r}"
         raise ValueError(msg)
-    cr = row["class_ref"]
-    if cr is not None and not isinstance(cr, type):
-        msg = "vertex class_ref must be null or a type object"
-        raise TypeError(msg)
     return GraphVertex(
         id=str(row["id"]),
         node_type=str(row["node_type"]),
         label=str(row["label"]),
-        class_ref=cr,
         properties=dict(row["properties"]),
     )
 
@@ -108,7 +103,7 @@ def build_from_synthetic_bundle(inp: Mapping[str, Any]) -> tuple[list[GraphVerte
     Raises:
         KeyError: missing ``vertices`` / ``edges`` or a required field on a row.
         ValueError: duplicate vertex ``id``, unknown edge endpoint, or unknown keys on a row.
-        TypeError: ``vertices``/``edges`` not lists, or ``class_ref`` not null/type.
+        TypeError: ``vertices``/``edges`` not lists.
     """
     vertices_raw = inp["vertices"]
     edges_raw = inp["edges"]
@@ -197,7 +192,6 @@ def _from_facet_vertices(
             id=vid,
             node_type=p.node_type,
             label=_facet_vertex_label(p),
-            class_ref=None,
             properties={},
         )
 

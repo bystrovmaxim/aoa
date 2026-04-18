@@ -50,7 +50,6 @@ def test_build_from_synthetic_bundle_rejects_duplicate_vertex_id() -> None:
         "id": dup,
         "node_type": "t",
         "label": "n",
-        "class_ref": None,
         "properties": {},
     }
     inp = {"vertices": [v, dict(v)], "edges": []}
@@ -65,7 +64,6 @@ def test_build_from_synthetic_bundle_rejects_unknown_edge_endpoint() -> None:
                 "id": "only",
                 "node_type": "t",
                 "label": "n",
-                "class_ref": None,
                 "properties": {},
             },
         ],
@@ -120,21 +118,18 @@ def test_build_from_synthetic_bundle_counts_small_bundle() -> None:
                 "id": "d1",
                 "node_type": "Domain",
                 "label": "D",
-                "class_ref": None,
                 "properties": {},
             },
             {
                 "id": "a1",
                 "node_type": "Action",
                 "label": "A",
-                "class_ref": None,
                 "properties": {},
             },
             {
                 "id": "r1",
                 "node_type": "role_class",
                 "label": "R",
-                "class_ref": None,
                 "properties": {},
             },
         ],

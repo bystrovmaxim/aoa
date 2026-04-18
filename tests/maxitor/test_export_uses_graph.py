@@ -60,7 +60,7 @@ def test_coordinator_pygraph_falls_back_to_get_graph() -> None:
     class _Stub:
         def __init__(self) -> None:
             self._g = rx.PyDiGraph()
-            self._g.add_node({"node_type": "x", "id": "n", "class_ref": None})
+            self._g.add_node({"node_type": "x", "id": "n"})
 
         def get_graph(self) -> rx.PyDiGraph:
             return self._g
@@ -84,7 +84,6 @@ def test_normalize_interchange_node_maps_to_facet_keys() -> None:
         "node_type": "Action",
         "id": "pkg.actions.Foo",
         "label": "Foo",
-        "class_ref": None,
         "properties": {},
     }
     norm = normalize_coordinator_node_payload_for_visualization(raw)

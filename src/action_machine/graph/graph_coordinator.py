@@ -728,7 +728,6 @@ class GraphCoordinator:
                     "node_type": v.node_type,
                     "id": v.id,
                     "label": v.label,
-                    "class_ref": v.class_ref,
                     "properties": v.properties,
                 },
             )
@@ -1005,9 +1004,9 @@ class GraphCoordinator:
         """
         Return a **low-level** copy of the interchange graph (topology + payloads).
 
-        Node payloads use ``node_type``, ``id``, ``label``,
-        ``class_ref``, ``properties`` (no ``facet_rows``). For facet skeleton dicts
-        (``node_type``, ``id``, ``class_ref``), use :meth:`facet_topology_copy`.
+        Node payloads use ``node_type``, ``id``, ``label``, ``properties``
+        (no ``facet_rows``). Class identity for runtime APIs lives on the facet
+        skeleton; for dicts with ``class_ref``, use :meth:`facet_topology_copy`.
 
         Returns:
             ``rx.PyDiGraph`` clone.
