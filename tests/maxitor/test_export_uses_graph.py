@@ -43,7 +43,7 @@ def test_coordinator_pygraph_prefers_get_graph_for_visualization() -> None:
     class _Stub:
         def get_graph_for_visualization(self) -> rx.PyDiGraph:
             g = rx.PyDiGraph()
-            g.add_node({"node_type": "action", "id": "viz.only", "label": "V"})
+            g.add_node({"node_type": "Action", "id": "viz.only", "label": "V"})
             return g
 
         def get_graph(self) -> rx.PyDiGraph:
@@ -81,7 +81,7 @@ def test_coordinator_pygraph_requires_graph_api() -> None:
 
 def test_normalize_interchange_node_maps_to_facet_keys() -> None:
     raw = {
-        "node_type": "action",
+        "node_type": "Action",
         "id": "pkg.actions.Foo",
         "label": "Foo",
         "stereotype": "Business Process",
@@ -89,7 +89,7 @@ def test_normalize_interchange_node_maps_to_facet_keys() -> None:
         "properties": {},
     }
     norm = normalize_coordinator_node_payload_for_visualization(raw)
-    assert norm["node_type"] == "action"
+    assert norm["node_type"] == "Action"
     assert norm["id"] == "pkg.actions.Foo"
     assert norm["label"] == "Foo"
     assert norm["stereotype"] == "Business Process"
@@ -134,7 +134,7 @@ def test_json_export_writes_utf8(tmp_path: Path) -> None:
 
 def test_pygraph_to_dot_source_shape() -> None:
     g = rx.PyDiGraph()
-    g.add_node({"node_type": "action", "id": "pkg.X", "label": "X"})
+    g.add_node({"node_type": "Action", "id": "pkg.X", "label": "X"})
     src = pygraph_to_dot_source(g, graph_id="t")
     assert src.startswith("digraph")
     assert "n0" in src

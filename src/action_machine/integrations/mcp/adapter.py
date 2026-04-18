@@ -117,7 +117,7 @@ The resource returns coordinator graph JSON with nodes and edges:
 
     {
       "nodes": [
-        {"id": "...", "type": "action", "description": "...", "domain": "..."},
+        {"id": "...", "type": "Action", "description": "...", "domain": "..."},
         {"id": "...", "type": "domain", "domain_label": "..."}
       ],
       "edges": [

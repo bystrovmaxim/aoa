@@ -113,7 +113,7 @@ def test_dependency_inspector_returns_none_without_depends() -> None:
 def test_dependency_inspector_builds_structural_depends_edges() -> None:
     payload = DependencyIntentInspector.inspect(_DependsAction)
     assert payload is not None
-    assert payload.node_type == "action"
+    assert payload.node_type == "Action"
     assert len(payload.edges) == 2
     assert all(edge.edge_type == "depends" for edge in payload.edges)
     assert all(edge.is_structural is True for edge in payload.edges)
@@ -126,7 +126,7 @@ def test_connection_inspector_returns_none_without_connections() -> None:
 def test_connection_inspector_builds_structural_connection_edge() -> None:
     payload = ConnectionIntentInspector.inspect(_ConnectionAction)
     assert payload is not None
-    assert payload.node_type == "action"
+    assert payload.node_type == "Action"
     assert len(payload.edges) == 1
     edge = payload.edges[0]
     assert edge.edge_type == "connection"
@@ -144,7 +144,7 @@ def test_coordinator_merges_action_payloads_from_dependency_and_connection() -> 
         .register(ConnectionIntentInspector)
         .build()
     )
-    action_nodes = [n for n in coord.get_nodes_for_class(_DependsAndConnectionAction) if n.get("node_type") == "action"]
+    action_nodes = [n for n in coord.get_nodes_for_class(_DependsAndConnectionAction) if n.get("node_type") == "Action"]
     assert len(action_nodes) == 1
     # committed graph stores edges separately; check via graph API if needed
     keys = coord._class_index.get(_DependsAndConnectionAction, [])  # pylint: disable=protected-access

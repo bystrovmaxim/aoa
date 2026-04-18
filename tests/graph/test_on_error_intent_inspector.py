@@ -36,7 +36,7 @@ def test_on_error_inspector_builds_payload_with_handlers() -> None:
     produced = OnErrorIntentInspector.inspect(_OnErrorAction)
     assert isinstance(produced, list)
     handler_payloads = [p for p in produced if p.node_type == "error_handler"]
-    action_payloads = [p for p in produced if p.node_type == "action"]
+    action_payloads = [p for p in produced if p.node_type == "Action"]
     assert len(handler_payloads) == 2
     assert len(action_payloads) == 1
     act = action_payloads[0]

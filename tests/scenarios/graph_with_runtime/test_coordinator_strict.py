@@ -281,7 +281,7 @@ class TestDomainNodes:
     def test_action_without_aspects_has_domain_in_meta_node(self):
         coord = _coord()
         nm = BaseIntentInspector._make_node_name(_NoAspectsAction)
-        host = coord.get_node("action", nm)
+        host = coord.get_node("Action", nm)
         assert host is not None
         meta = host.get("meta")
         assert meta is not None
@@ -314,7 +314,7 @@ class TestGraphDescriptions:
 
     def test_action_node_contains_description(self):
         coord = _coord()
-        key = _node_key("action", _OrderAction)
+        key = _node_key("Action", _OrderAction)
         node = coord.get_node(key)
         assert node is not None
 

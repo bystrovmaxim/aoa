@@ -761,7 +761,7 @@ class TestBuildGraphJson:
         json_str = _build_graph_json(machine.gate_coordinator)
         parsed = json.loads(json_str)
 
-        action_nodes = [n for n in parsed["nodes"] if n.get("type") == "action"]
+        action_nodes = [n for n in parsed["nodes"] if n.get("type") == "Action"]
         ping_action = next(
             (n for n in action_nodes if "PingAction" in n.get("id", "")),
             None,

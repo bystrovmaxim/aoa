@@ -70,6 +70,7 @@ from __future__ import annotations
 from dataclasses import dataclass, fields
 from typing import Any
 
+from action_machine.interchange_vertex_labels import ACTION_VERTEX_TYPE
 from action_machine.graph.base_facet_snapshot import BaseFacetSnapshot
 from action_machine.graph.base_intent_inspector import BaseIntentInspector
 from action_machine.graph.payload import FacetPayload
@@ -124,7 +125,7 @@ class ConnectionIntentInspector(BaseIntentInspector):
                 for conn_info in self.connections
             )
             return FacetPayload(
-                node_type="action",
+                node_type=ACTION_VERTEX_TYPE,
                 node_name=ConnectionIntentInspector._make_node_name(self.class_ref),
                 node_class=self.class_ref,
                 edges=conn_edges,

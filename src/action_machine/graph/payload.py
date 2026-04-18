@@ -58,14 +58,14 @@ Every graph node has a string key ``"type:name"``. The inspector supplies only
 the name (``node_name``) via ``_make_node_name()``; the coordinator builds the
 full ``node_type:node_name`` key.
 
-    node_type = "action",  node_name = "module.CreateOrderAction"
-    → graph key: "action:module.CreateOrderAction"
+    node_type = "Action",  node_name = "module.CreateOrderAction"
+    → graph key: "Action:module.CreateOrderAction"
 
     node_type = "role_class", node_name = "module.AdminRole"
     → graph key: "role_class:module.AdminRole"
 
 One class may emit several nodes with different ``node_type`` values from
-different inspectors (``meta``, ``aspect``, ``role_class``, …; structural ``action``
+different inspectors (``meta``, ``aspect``, ``role_class``, …; structural ``Action``
 appears when ``@depends`` and/or ``@connection`` is present — two inspectors,
 merged by the coordinator into one node with the same key). Uniqueness follows
 from the pair ``node_type`` + ``node_name``.
@@ -79,7 +79,7 @@ LIFECYCLE EXAMPLE
     # 1. Inspector creates a payload in _build_payload():
     # ``edges`` carry informational ``requires_role`` targets (``role_class`` rows).
     payload = FacetPayload(
-        node_type="action",
+        node_type="Action",
         node_name="module.CreateOrderAction",
         node_class=CreateOrderAction,
         node_meta=(("spec", AdminRole),),
@@ -150,7 +150,7 @@ class EdgeInfo:
 
     Attributes:
         target_node_type : str
-            Target facet type (``"action"``, ``"entity"``, ``"domain"``, …).
+            Target facet type (``"Action"``, ``"entity"``, ``"domain"``, …).
             Used to build the full target key ``target_node_type:target_name``.
 
         target_name : str
@@ -205,21 +205,21 @@ class FacetPayload:
 
     A single class may emit several payloads from different inspectors. For
     example, ``CreateOrderAction`` may yield:
-    - ``FacetPayload(node_type="action", ...)`` with ``requires_role`` edges from ``RoleIntentInspector``
+    - ``FacetPayload(node_type="Action", ...)`` with ``requires_role`` edges from ``RoleIntentInspector``
     - ``FacetPayload(node_type="role_class", ...)`` from ``RoleClassInspector`` (name, description, …)
     - Another ``FacetPayload(node_type="role_class", ...)`` from ``RoleModeIntentInspector``
       (canonical class name; ``node_meta`` carries ``mode``) merged with the row above
-    - One merged ``FacetPayload(node_type="action", ...)`` with depends and/or
+    - One merged ``FacetPayload(node_type="Action", ...)`` with depends and/or
       connection edges (two inspectors → merged in ``GraphCoordinator._phase1_collect``)
     - ``FacetPayload(node_type="aspect", ...)`` from ``AspectIntentInspector``
       (per method)
 
-    After merging structural ``action`` facets, uniqueness is still
+    After merging structural ``Action`` facets, uniqueness is still
     ``node_type`` + ``node_name``.
 
     Attributes:
         node_type : str
-            Facet type: ``"action"``, ``"role_class"``, ``"aspect"``, ``"checker"``,
+            Facet type: ``"Action"``, ``"role_class"``, ``"aspect"``, ``"checker"``,
             ``"entity"``, ``"domain"``,
             ``"dependency"``, ``"connection"``, ``"error_handler"``,
             ``"compensator"``, ``"subscription"``, ``"sensitive_field"``,

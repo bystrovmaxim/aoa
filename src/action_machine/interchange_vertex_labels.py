@@ -12,5 +12,8 @@ from __future__ import annotations
 
 from typing import Final
 
+# Structural ``BaseAction`` primary vertex (depends / connection / facets merged here).
+ACTION_VERTEX_TYPE: Final[str] = "Action"
+
 # Class-dependency stubs from ``DependencyIntentInspector`` (non-``BaseAction`` @depends).
 SERVICE_VERTEX_TYPE: Final[str] = "Service"

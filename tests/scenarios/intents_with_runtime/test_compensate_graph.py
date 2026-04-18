@@ -129,7 +129,7 @@ class TestCompensatorGraphEdges:
         coordinator = _coordinator()
         assert coordinator.get_snapshot(ActionWithCompensatorAction, "meta") is not None
         cls_nodes = coordinator.get_nodes_for_class(ActionWithCompensatorAction)
-        assert any(n.get("node_type") == "action" for n in cls_nodes)
+        assert any(n.get("node_type") == "Action" for n in cls_nodes)
 
         g = coordinator.facet_topology_copy()
         action_name = BaseIntentInspector._make_node_name(ActionWithCompensatorAction)
@@ -139,7 +139,7 @@ class TestCompensatorGraphEdges:
         action_idx = next(
             (
                 idx for idx in g.node_indices()
-                if g[idx].get("node_type") == "action" and g[idx].get("id") == action_name
+                if g[idx].get("node_type") == "Action" and g[idx].get("id") == action_name
             ),
             None,
         )
@@ -174,7 +174,7 @@ class TestCompensatorInDependencyTree:
         coordinator = _coordinator()
         facets = {n["node_type"] for n in coordinator.get_nodes_for_class(ActionWithCompensatorAction)}
         assert "compensator" in facets
-        assert "meta" in facets or "action" in facets
+        assert "meta" in facets or "Action" in facets
 
     def test_dependency_tree_depth_for_compensator_with_context(self) -> None:
         coordinator = _coordinator()

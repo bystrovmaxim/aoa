@@ -33,12 +33,12 @@ def test_role_facet_snapshot_round_trip_with_graph() -> None:
     assert snap.spec is AdminRole
 
     payload = snap.to_facet_payload()
-    assert payload.node_type == "action"
+    assert payload.node_type == "Action"
     assert payload.node_class is _SnapProbeAction
     assert dict(payload.node_meta)["spec"] is AdminRole
 
     action_name = BaseIntentInspector._make_node_name(_SnapProbeAction)
-    action_node = coord.get_node("action", action_name)
+    action_node = coord.get_node("Action", action_name)
     assert action_node is not None
     meta = action_node.get("meta")
     assert meta is not None

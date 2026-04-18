@@ -53,10 +53,10 @@ def test_hydrate_facet_raw_payload_matches_get_node_for_merged_action_host() -> 
     idx = next(
         i
         for i in facet.node_indices()
-        if facet[i].get("node_type") == "action" and facet[i].get("id") == nm
+        if facet[i].get("node_type") == "Action" and facet[i].get("id") == nm
     )
     raw = dict(facet[idx])
-    assert coord.get_node("action", nm) == coord.hydrate_graph_node(raw)
+    assert coord.get_node("Action", nm) == coord.hydrate_graph_node(raw)
 
 
 def test_hydrate_logical_graph_payload_does_not_fill_facet_meta() -> None:

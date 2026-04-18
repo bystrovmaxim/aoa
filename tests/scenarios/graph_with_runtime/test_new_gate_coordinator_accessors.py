@@ -134,7 +134,7 @@ def test_new_coordinator_runtime_accessors() -> None:
                 edges=(),
             ),
             FacetPayload(
-                node_type="action",
+                node_type="Action",
                 node_name=action_name,
                 node_class=_DemoAction,
                 edges=(
@@ -277,7 +277,7 @@ def test_new_coordinator_runtime_accessors() -> None:
     assert compensator.method_name == "rollback_do_compensate"
 
     g = coordinator.facet_topology_copy()
-    action_full = f"action:{action_name}"
+    action_full = f"Action:{action_name}"
     connection_keys: list[str] = []
     for idx in g.node_indices():
         n = g[idx]

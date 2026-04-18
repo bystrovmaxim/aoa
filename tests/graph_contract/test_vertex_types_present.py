@@ -24,7 +24,7 @@ from maxitor.samples.store.domain import StoreDomain
 
 # Core kinds always present on samples interchange; other facet ``node_type`` strings may appear.
 _SAMPLES_LOGICAL_VERTEX_TYPES: frozenset[str] = frozenset(
-    {"action", "application", "domain", "role_class", "entity"},
+    {"Action", "application", "domain", "role_class", "entity"},
 )
 
 
@@ -49,7 +49,7 @@ def test_c2_single_action_vertex_for_checkout_submit_action() -> None:
     action_id = BaseIntentInspector._make_node_name(CheckoutSubmitAction)
     matches = [lg[i] for i in lg.node_indices() if lg[i]["id"] == action_id]
     assert len(matches) == 1
-    assert matches[0]["node_type"] == "action"
+    assert matches[0]["node_type"] == "Action"
 
 
 @pytest.mark.graph_coverage

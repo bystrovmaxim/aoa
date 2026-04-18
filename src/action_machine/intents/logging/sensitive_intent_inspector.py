@@ -13,7 +13,7 @@ emits:
 * one interchange vertex per sensitive property — ``node_type`` ``sensitive_field``,
   ``id`` = ``{declaring_class dotted name}:{property_name}``;
 * ownership edges ``HAS_SENSITIVE_FIELD`` from the canonical host vertex
-  (``described_fields`` / ``action`` / ``resource_manager``) to each field vertex.
+  (``described_fields`` / ``Action`` / ``resource_manager``) to each field vertex.
 
 The aggregate ``…:sensitive`` modifier node is **not** emitted. A typed
 :class:`Snapshot` is still stored under storage key ``"sensitive"`` for
@@ -47,6 +47,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
+from action_machine.interchange_vertex_labels import ACTION_VERTEX_TYPE
 from action_machine.graph.base_facet_snapshot import BaseFacetSnapshot
 from action_machine.graph.base_intent_inspector import BaseIntentInspector
 from action_machine.graph.payload import EdgeInfo, FacetPayload
@@ -153,7 +154,7 @@ class SensitiveIntentInspector(BaseIntentInspector):
         from action_machine.intents.described_fields.marker import DescribedFieldsIntent
 
         if issubclass(declaring_klass, BaseAction):
-            return "action", cls._make_node_name(declaring_klass)
+            return ACTION_VERTEX_TYPE, cls._make_node_name(declaring_klass)
         if issubclass(declaring_klass, BaseResourceManager):
             return "resource_manager", cls._make_node_name(declaring_klass)
         if issubclass(declaring_klass, EntityIntent):

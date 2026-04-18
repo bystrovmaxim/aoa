@@ -67,6 +67,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from action_machine.interchange_vertex_labels import ACTION_VERTEX_TYPE
 from action_machine.graph.base_facet_snapshot import BaseFacetSnapshot
 from action_machine.graph.base_intent_inspector import BaseIntentInspector
 from action_machine.graph.payload import EdgeInfo, FacetMetaRow, FacetPayload
@@ -155,7 +156,7 @@ class CompensateIntentInspector(BaseIntentInspector):
                 for c in self.compensators
             )
             return FacetPayload(
-                node_type="action",
+                node_type=ACTION_VERTEX_TYPE,
                 node_name=CompensateIntentInspector._make_node_name(self.class_ref),
                 node_class=self.class_ref,
                 node_meta=CompensateIntentInspector._make_meta(compensators=entries),
@@ -183,7 +184,7 @@ class CompensateIntentInspector(BaseIntentInspector):
         cls, _target_cls: type, payload: FacetPayload,
     ) -> bool:
         """Hydrate aggregate ``compensator`` snapshot onto the canonical ``action`` node only."""
-        return payload.node_type == "action"
+        return payload.node_type == ACTION_VERTEX_TYPE
 
     @classmethod
     def _has_compensators_invariant(cls, target_cls: type) -> bool:
@@ -224,7 +225,7 @@ class CompensateIntentInspector(BaseIntentInspector):
             )
         out.append(
             FacetPayload(
-                node_type="action",
+                node_type=ACTION_VERTEX_TYPE,
                 node_name=cls._make_node_name(target_cls),
                 node_class=target_cls,
                 node_meta=(),

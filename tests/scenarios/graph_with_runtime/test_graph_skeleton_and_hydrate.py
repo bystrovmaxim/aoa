@@ -55,7 +55,7 @@ def test_hydrated_action_node_merges_meta_from_snapshots() -> None:
     action_indices = [
         i
         for i in g.node_indices()
-        if g[i]["node_type"] == "action" and g[i]["class_ref"] is FullAction
+        if g[i]["node_type"] == "Action" and g[i]["class_ref"] is FullAction
     ]
     assert action_indices, "expected FullAction structural action node"
     raw = dict(g[action_indices[0]])
@@ -116,10 +116,10 @@ def test_hydration_mapping_from_build_records_meta_snapshot_key() -> None:
 
 
 def test_merged_action_node_records_all_hydration_keys() -> None:
-    """Merged ``action`` with @depends, @connection, and @meta lists every snapshot storage key."""
+    """Merged ``Action`` with @depends, @connection, and @meta lists every snapshot storage key."""
     coord = CoreActionMachine.create_coordinator()
     nm = BaseIntentInspector._make_node_name(FullAction)
-    gk_action = f"action:{nm}"
+    gk_action = f"Action:{nm}"
     raw_map = coord._hydration_snapshot_key_by_graph_key
     assert raw_map[gk_action] == (
         "action_schemas",
@@ -131,7 +131,7 @@ def test_merged_action_node_records_all_hydration_keys() -> None:
 
 
 def test_connection_targets_resource_manager_not_connection_facet() -> None:
-    """``@connection`` adds edges from ``action`` to ``resource_manager`` (no ``connection`` facet node)."""
+    """``@connection`` adds edges from ``Action`` to ``resource_manager`` (no ``connection`` facet node)."""
     coord = CoreActionMachine.create_coordinator()
     rm_nm = BaseIntentInspector._make_node_name(TestDbManager)
     assert [n for n in coord.get_nodes_by_type("resource_manager") if n["id"] == rm_nm]
@@ -146,7 +146,7 @@ def test_connection_targets_resource_manager_not_connection_facet() -> None:
     action_idx = next(
         i
         for i in g.node_indices()
-        if g[i]["node_type"] == "action" and g[i]["id"] == act_nm
+        if g[i]["node_type"] == "Action" and g[i]["id"] == act_nm
     )
     connection_targets: list[str] = []
     for _s, t, ep in g.out_edges(action_idx):
@@ -183,7 +183,7 @@ def test_action_depends_and_meta_merge_hydration_keys() -> None:
     """
     coord = CoreActionMachine.create_coordinator()
     nm = BaseIntentInspector._make_node_name(CompensatedOrderAction)
-    gk = f"action:{nm}"
+    gk = f"Action:{nm}"
     raw_map = coord._hydration_snapshot_key_by_graph_key
     assert set(raw_map.get(gk)) == {
         "action_schemas",
@@ -197,7 +197,7 @@ def test_action_depends_and_meta_merge_hydration_keys() -> None:
     idx = next(
         i
         for i in g.node_indices()
-        if g[i]["node_type"] == "action" and g[i]["class_ref"] is CompensatedOrderAction
+        if g[i]["node_type"] == "Action" and g[i]["class_ref"] is CompensatedOrderAction
     )
     meta = coord.hydrate_graph_node(dict(g[idx])).get("meta") or {}
     assert "description" in meta

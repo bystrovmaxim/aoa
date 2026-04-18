@@ -184,6 +184,7 @@ from dataclasses import dataclass  # noqa: E402
 from action_machine.graph.base_facet_snapshot import BaseFacetSnapshot  # noqa: E402
 from action_machine.graph.base_intent_inspector import BaseIntentInspector  # noqa: E402
 from action_machine.graph.payload import EdgeInfo, FacetPayload  # noqa: E402
+from action_machine.interchange_vertex_labels import ACTION_VERTEX_TYPE  # noqa: E402
 from action_machine.intents.described_fields.described_fields_intent_inspector import (  # noqa: E402
     DescribedFieldsIntentInspector,
 )
@@ -246,7 +247,7 @@ class ActionTypedSchemasInspector(BaseIntentInspector):
                     ),
                 )
             return FacetPayload(
-                node_type="action",
+                node_type=ACTION_VERTEX_TYPE,
                 node_name=ActionTypedSchemasInspector._make_node_name(self.class_ref),
                 node_class=self.class_ref,
                 node_meta=ActionTypedSchemasInspector._make_meta(
