@@ -2,26 +2,21 @@
 """
 Interchange construction: :class:`GraphBuilder` and module-level helpers.
 
-- **Synthetic bundle** — ``vertices`` / ``edges`` JSON rows (tests, fixtures).
-- **Facet vertices** — ``FacetVertex`` sequence from inspectors / coordinator collect;
-  vertex ``id`` equals ``node_name`` (inspectors emit globally unique names; dependent facets
-  use ``host:segment``); edges come from each vertex's ``edges`` with a small facet ``edge_type``
-  → interchange projection table; **no** automatic §5.3 reverse pairs (forward edges only).
+**Facet vertices** — ``FacetVertex`` sequence from inspectors / coordinator collect;
+vertex ``id`` equals ``node_name`` (inspectors emit globally unique names; dependent facets
+use ``host:segment``); edges come from each vertex's ``edges`` with a small facet ``edge_type``
+→ interchange projection table; **no** automatic §5.3 reverse pairs (forward edges only).
 """
 
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from dataclasses import fields
 from typing import Any, Final
 
 from action_machine.graph.constants import INTERNAL_EDGE_TYPES, OWNERSHIP_EDGE_TYPES
 from action_machine.graph.facet_vertex import FacetVertex
 from action_machine.graph.graph_edge import GraphEdge
 from action_machine.graph.graph_vertex import GraphVertex
-
-_VERTEX_KEYS: frozenset[str] = frozenset(f.name for f in fields(GraphVertex))
-_EDGE_KEYS: frozenset[str] = frozenset(f.name for f in fields(GraphEdge))
 
 # facet edge_type (inspectors) → (interchange edge_type, forward stereotype)
 _FACET_EDGE_TO_INTERCHANGE: Final[dict[str, tuple[str, str]]] = {
@@ -47,86 +42,6 @@ _FACET_EDGE_TO_INTERCHANGE: Final[dict[str, tuple[str, str]]] = {
     "lifecycle_initial": ("LIFECYCLE_INITIAL", "Association"),
     "lifecycle_transition": ("LIFECYCLE_TRANSITION", "Flow"),
 }
-
-
-def _assert_unique_vertex_ids(rows: list[Mapping[str, Any]]) -> None:
-    seen: set[str] = set()
-    for row in rows:
-        vid = str(row["id"])
-        if vid in seen:
-            msg = f"duplicate vertex id {vid!r}"
-            raise ValueError(msg)
-        seen.add(vid)
-
-
-def _vertex_from_row(row: Mapping[str, Any]) -> GraphVertex:
-    missing = _VERTEX_KEYS - row.keys()
-    if missing:
-        msg = f"vertex row missing keys {sorted(missing)!r}"
-        raise KeyError(msg)
-    extra = set(row) - _VERTEX_KEYS
-    if extra:
-        msg = f"vertex row has unknown keys {sorted(extra)!r}"
-        raise ValueError(msg)
-    return GraphVertex(
-        id=str(row["id"]),
-        node_type=str(row["node_type"]),
-        label=str(row["label"]),
-        properties=dict(row["properties"]),
-    )
-
-
-def _edge_from_row(row: Mapping[str, Any]) -> GraphEdge:
-    missing = _EDGE_KEYS - row.keys()
-    if missing:
-        msg = f"edge row missing keys {sorted(missing)!r}"
-        raise KeyError(msg)
-    extra = set(row) - _EDGE_KEYS
-    if extra:
-        msg = f"edge row has unknown keys {sorted(extra)!r}"
-        raise ValueError(msg)
-    return GraphEdge(
-        source_id=str(row["source_id"]),
-        target_id=str(row["target_id"]),
-        edge_type=str(row["edge_type"]),
-        stereotype=str(row["stereotype"]),
-        category=str(row["category"]),
-        is_dag=bool(row["is_dag"]),
-        properties=dict(row["properties"]),
-    )
-
-
-def build_from_synthetic_bundle(inp: Mapping[str, Any]) -> tuple[list[GraphVertex], list[GraphEdge]]:
-    """
-    Deserialize ``inp["vertices"]`` and ``inp["edges"]`` into interchange dataclasses.
-
-    Raises:
-        KeyError: missing ``vertices`` / ``edges`` or a required field on a row.
-        ValueError: duplicate vertex ``id``, unknown edge endpoint, or unknown keys on a row.
-        TypeError: ``vertices``/``edges`` not lists.
-    """
-    vertices_raw = inp["vertices"]
-    edges_raw = inp["edges"]
-    if not isinstance(vertices_raw, list) or not isinstance(edges_raw, list):
-        msg = "vertices and edges must be lists"
-        raise TypeError(msg)
-
-    _assert_unique_vertex_ids(vertices_raw)
-    vertices = [_vertex_from_row(r) for r in vertices_raw]
-    vertex_ids = {v.id for v in vertices}
-
-    edges: list[GraphEdge] = []
-    for r in edges_raw:
-        e = _edge_from_row(r)
-        if e.source_id not in vertex_ids:
-            msg = f"edge references unknown source_id {e.source_id!r}"
-            raise ValueError(msg)
-        if e.target_id not in vertex_ids:
-            msg = f"edge references unknown target_id {e.target_id!r}"
-            raise ValueError(msg)
-        edges.append(e)
-
-    return vertices, edges
 
 
 def _interchange_vertex_id(vertex: FacetVertex) -> str:
@@ -257,16 +172,7 @@ def build_interchange_from_facet_vertices(
 
 
 class GraphBuilder:
-    """Build interchange lists from a synthetic JSON bundle or from facet vertices."""
-
-    @classmethod
-    def build(
-        cls,
-        *,
-        synthetic_bundle: Mapping[str, Any],
-    ) -> tuple[list[GraphVertex], list[GraphEdge]]:
-        """Deserialize a synthetic ``vertices`` / ``edges`` bundle."""
-        return build_from_synthetic_bundle(synthetic_bundle)
+    """Build interchange lists from facet vertices."""
 
     @classmethod
     def build_from_facet_vertices(

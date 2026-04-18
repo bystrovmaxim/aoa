@@ -73,7 +73,6 @@ from action_machine.graph.dag import (
 )
 from action_machine.graph.graph_builder import (
     GraphBuilder,
-    build_from_synthetic_bundle,
     build_interchange_from_facet_vertices,
 )
 from action_machine.graph.graph_coordinator import GraphCoordinator
@@ -97,7 +96,6 @@ __all__ = [
     "GraphEdge",
     "GraphVertex",
     "assert_dag_edges_acyclic",
-    "build_from_synthetic_bundle",
     "build_interchange_from_facet_vertices",
     "collect_dag_edge_pairs",
     "dag_edge_pairs_from_rx",

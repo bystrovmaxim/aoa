@@ -1,14 +1,12 @@
 # tests/graph_contract/test_graph_builder.py
 
 """
-``GraphBuilder`` — synthetic bundle and facet payloads (:mod:`action_machine.graph.graph_builder`).
+Facet → interchange projection (:mod:`action_machine.graph.graph_builder`).
 """
 
 from __future__ import annotations
 
-import json
 from dataclasses import asdict
-from pathlib import Path
 
 import pytest
 
@@ -19,8 +17,6 @@ from action_machine.graph.facet_vertex import FacetVertex
 from action_machine.graph.graph_builder import build_interchange_from_facet_vertices
 from action_machine.graph.graph_coordinator import GraphCoordinator
 from action_machine.interchange_vertex_labels import DOMAIN_VERTEX_TYPE
-
-_FIXTURE = Path(__file__).resolve().parents[1] / "fixtures" / "golden_graph" / "synthetic_minimal.json"
 
 
 def _interchange_canonical(payloads: tuple[FacetVertex, ...]) -> tuple[list[dict], list[dict]]:
@@ -57,7 +53,7 @@ def _stub_class(module: str, short: str) -> type:
 
 
 def _g0_demo_types() -> tuple[type, type, type]:
-    """Types whose ``__module__`` / ``__qualname__`` match ``synthetic_minimal.json`` ids."""
+    """Stub types with stable ``__module__`` / ``__qualname__`` for G0 facet tests."""
     domain = _stub_class("golden_demo.domains", "DemoDomain")
     action = _stub_class("golden_demo.actions", "DemoAction")
     role = _stub_class("golden_demo.roles", "DemoRole")
@@ -171,20 +167,6 @@ def _canonical_edges(edges: list[GraphEdge]) -> list[dict]:
     )
 
 
-def test_graph_builder_synthetic_g0_matches_fixture() -> None:
-    raw = json.loads(_FIXTURE.read_text(encoding="utf-8"))
-    inp = raw["input"]
-    expected = raw["expected"]
-
-    vertices, edges = GraphBuilder.build(synthetic_bundle=inp)
-
-    assert _canonical_vertices(vertices) == sorted(expected["vertices"], key=lambda r: r["id"])
-    assert _canonical_edges(edges) == sorted(
-        expected["edges"],
-        key=lambda r: (r["source_id"], r["target_id"], r["edge_type"], r["category"]),
-    )
-
-
 def test_graph_builder_facet_vertices_match_fixture() -> None:
     exp_v, exp_e = _interchange_canonical(_g0_facet_vertices())
     vertices, edges = build_interchange_from_facet_vertices(_g0_facet_vertices())
@@ -201,14 +183,14 @@ def test_facet_vertices_after_phase1_merge_match_fixture() -> None:
     assert _canonical_edges(edges) == exp_e
 
 
-def test_graph_builder_requires_synthetic_g0_keyword() -> None:
+def test_graph_builder_requires_facet_vertices_keyword() -> None:
     with pytest.raises(TypeError):
-        GraphBuilder.build()
+        GraphBuilder.build_from_facet_vertices()
 
 
 def test_graph_builder_rejects_unknown_keyword() -> None:
     with pytest.raises(TypeError):
-        GraphBuilder.build(synthetic_bundle={}, facet_vertices=_g0_facet_vertices())
+        GraphBuilder.build_from_facet_vertices(facet_vertices=(), extra_kw=1)  # type: ignore[call-arg]
 
 
 def test_facet_projection_rejects_duplicate_facet_key() -> None:
@@ -253,7 +235,7 @@ def test_facet_vertex_order_is_canonicalized() -> None:
     assert _canonical_edges(edges) == exp_e
 
 
-def test_facet_meta_without_separate_action_row_matches_golden() -> None:
+def test_facet_meta_without_separate_action_row_matches_canonical() -> None:
     """Coordinator may omit a standalone ``action`` facet when ``meta`` already names the action."""
     payloads = _g0_meta_no_action_payloads()
     exp_v, exp_e = _interchange_canonical(payloads)

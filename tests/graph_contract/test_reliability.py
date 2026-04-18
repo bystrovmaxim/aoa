@@ -1,14 +1,14 @@
 # tests/graph_contract/test_reliability.py
 
 """
-Extra contract checks for the graph interchange layer (builder, reverse map, ids).
+Extra contract checks for the graph interchange layer (reverse map, ids).
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Catch regressions that single golden or spot tests miss: full reverse map coverage,
-degenerate G0 inputs, attribute propagation on reverse edges, and vertex-id edge cases.
+Catch regressions: full reverse map coverage, attribute propagation on reverse
+edges, and vertex-id edge cases.
 """
 
 from __future__ import annotations
@@ -21,66 +21,10 @@ from action_machine.graph import (
     REVERSE_EDGE_MAP,
     REVERSE_EDGE_STEREOTYPE,
     GraphEdge,
-    build_from_synthetic_bundle,
     reverse_direct_edge,
     split_checker_vertex_id,
     split_host_element_vertex_id,
 )
-
-
-def test_build_from_synthetic_bundle_missing_edges_key() -> None:
-    with pytest.raises(KeyError):
-        build_from_synthetic_bundle({"vertices": []})
-
-
-def test_build_from_synthetic_bundle_missing_vertices_key() -> None:
-    with pytest.raises(KeyError):
-        build_from_synthetic_bundle({"edges": []})
-
-
-def test_build_from_synthetic_bundle_empty_lists() -> None:
-    vertices, edges = build_from_synthetic_bundle({"vertices": [], "edges": []})
-    assert vertices == []
-    assert edges == []
-
-
-def test_build_from_synthetic_bundle_rejects_duplicate_vertex_id() -> None:
-    dup = "x1"
-    v = {
-        "id": dup,
-        "node_type": "t",
-        "label": "n",
-        "properties": {},
-    }
-    inp = {"vertices": [v, dict(v)], "edges": []}
-    with pytest.raises(ValueError, match="duplicate vertex id"):
-        build_from_synthetic_bundle(inp)
-
-
-def test_build_from_synthetic_bundle_rejects_unknown_edge_endpoint() -> None:
-    inp = {
-        "vertices": [
-            {
-                "id": "only",
-                "node_type": "t",
-                "label": "n",
-                "properties": {},
-            },
-        ],
-        "edges": [
-            {
-                "source_id": "only",
-                "target_id": "missing.neighbor",
-                "edge_type": "X",
-                "stereotype": "S",
-                "category": "direct",
-                "is_dag": False,
-                "properties": {},
-            },
-        ],
-    }
-    with pytest.raises(ValueError, match="unknown target_id"):
-        build_from_synthetic_bundle(inp)
 
 
 def test_reverse_direct_edge_runtime_when_stereotype_missing(
@@ -109,56 +53,6 @@ def test_reverse_direct_edge_runtime_when_stereotype_missing(
     )
     with pytest.raises(RuntimeError, match="missing REVERSE_EDGE_STEREOTYPE"):
         reverse_edge.reverse_direct_edge(direct)
-
-
-def test_build_from_synthetic_bundle_counts_small_bundle() -> None:
-    inp = {
-        "vertices": [
-            {
-                "id": "d1",
-                "node_type": "Domain",
-                "label": "D",
-                "properties": {},
-            },
-            {
-                "id": "a1",
-                "node_type": "Action",
-                "label": "A",
-                "properties": {},
-            },
-            {
-                "id": "r1",
-                "node_type": "role_class",
-                "label": "R",
-                "properties": {},
-            },
-        ],
-        "edges": [
-            {
-                "source_id": "a1",
-                "target_id": "d1",
-                "edge_type": "BELONGS_TO",
-                "stereotype": "Aggregation",
-                "category": "direct",
-                "is_dag": False,
-                "properties": {},
-            },
-            {
-                "source_id": "r1",
-                "target_id": "a1",
-                "edge_type": "ASSIGNED_TO",
-                "stereotype": "Assignment",
-                "category": "direct",
-                "is_dag": False,
-                "properties": {},
-            },
-        ],
-    }
-    vertices, edges = build_from_synthetic_bundle(inp)
-    assert len(vertices) == 3
-    assert len(edges) == 2
-    assert sum(1 for e in edges if e.category == "direct") == 2
-    assert sum(1 for e in edges if e.category == "reverse") == 0
 
 
 @pytest.mark.parametrize(
