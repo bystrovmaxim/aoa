@@ -108,6 +108,7 @@ def _from_facet_vertices(
             node_type=p.node_type,
             label=_facet_vertex_label(p),
             properties={},
+            links=[],
         )
 
     edges: list[GraphEdge] = []

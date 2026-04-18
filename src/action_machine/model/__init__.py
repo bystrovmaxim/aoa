@@ -67,19 +67,38 @@ EXTENSION POINTS: Add new public model contract only via explicit __all__.
 AI-CORE-END
 """
 
+from __future__ import annotations
+
+from typing import Any
+
 from action_machine.model import exceptions as _exceptions
 from action_machine.model.base_action import BaseAction
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_result import BaseResult
+from action_machine.model.params_node import ParamsNode
+from action_machine.model.result_node import ResultNode
 from action_machine.model.base_schema import BaseSchema
 from action_machine.model.base_state import BaseState
 from action_machine.model.exceptions import *  # noqa: F403
 
+
+def __getattr__(name: str) -> Any:
+    """Lazy ``ActionNode`` — avoids import cycle with :mod:`action_machine.domain.base_domain`."""
+    if name == "ActionNode":
+        from action_machine.model.action_node import ActionNode as ActionNodeImpl
+
+        return ActionNodeImpl
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
+
 __all__ = [
+    "ActionNode",
     "BaseAction",
     "BaseParams",
     "BaseResult",
     "BaseSchema",
     "BaseState",
+    "ParamsNode",
+    "ResultNode",
     *_exceptions.__all__,
 ]

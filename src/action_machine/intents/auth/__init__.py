@@ -157,6 +157,7 @@ from action_machine.intents.auth.check_roles_decorator import check_roles
 from action_machine.intents.auth.none_role import NoneRole
 from action_machine.intents.auth.role_intent import RoleIntent
 from action_machine.intents.auth.role_mode_decorator import RoleMode, role_mode
+from action_machine.intents.auth.role_node import RoleNode
 from action_machine.intents.auth.role_mode_intent import RoleModeIntent
 
 __all__ = [
@@ -171,6 +172,7 @@ __all__ = [
     "RoleIntent",
     "RoleMode",
     "RoleModeIntent",
+    "RoleNode",
     "check_roles",
     "role_mode",
 ]
