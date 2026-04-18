@@ -28,7 +28,7 @@ TestCoordinatorBasic - basic coordinator API.
 FACET GRAPH AND FILTERING IN TESTS
 ═══════════════════ ════════════════════ ════════════════════ ════════════════════
 
-The graph is built from ``FacetPayload`` inspectors: in ``rustworkx`` - node type, name,
+The graph is built from ``FacetVertex`` inspectors: in ``rustworkx`` - node type, name,
 ``class_ref``; facet body in snapshots, ``get_node`` / ``hydrate_graph_node``
 mix in ``meta``. The ``action`` node (structural) appears only for classes with
 ``@depends`` and/or ``@connection`` (two inspectors, ``action`` node merged

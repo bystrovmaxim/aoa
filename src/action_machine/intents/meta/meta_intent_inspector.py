@@ -27,7 +27,7 @@ ARCHITECTURE / DATA FLOW
                    └─ Snapshot.from_target(...)
                             │
                             ▼
-                     FacetPayload — ``meta`` (actions) or ``resource_manager`` (managers)
+                     FacetVertex — ``meta`` (actions) or ``resource_manager`` (managers)
                             └─ optional belongs_to -> domain
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -65,7 +65,7 @@ from typing import Any
 
 from action_machine.graph.base_facet_snapshot import BaseFacetSnapshot
 from action_machine.graph.base_intent_inspector import BaseIntentInspector
-from action_machine.graph.facet_payload import FacetPayload
+from action_machine.graph.facet_vertex import FacetVertex
 from action_machine.intents.meta.meta_intents import ActionMetaIntent, ResourceMetaIntent
 from action_machine.interchange_vertex_labels import ACTION_VERTEX_TYPE, DOMAIN_VERTEX_TYPE
 from action_machine.resources.base_resource_manager import BaseResourceManager
@@ -90,7 +90,7 @@ class MetaIntentInspector(BaseIntentInspector):
         """
         Typed ``meta`` facet snapshot from ``_meta_info``.
 
-        ``to_facet_payload()`` adds ``belongs_to`` only when ``domain`` is a type.
+        ``to_facet_vertex()`` adds ``belongs_to`` only when ``domain`` is a type.
         Resource hosts use ``node_type=\"resource_manager\"`` and carry only
         ``description`` in ``node_meta`` (domain is the edge target, not a duplicate
         attribute on the vertex).
@@ -100,7 +100,7 @@ class MetaIntentInspector(BaseIntentInspector):
         description: Any
         domain: Any
 
-        def to_facet_payload(self) -> FacetPayload:
+        def to_facet_vertex(self) -> FacetVertex:
             """Build facet payload: ``meta`` for actions, ``resource_manager`` for managers."""
             edges: tuple[Any, ...] = ()
             if self.domain is not None and isinstance(self.domain, type):
@@ -113,7 +113,7 @@ class MetaIntentInspector(BaseIntentInspector):
                     ),
                 )
             if issubclass(self.class_ref, BaseResourceManager):
-                return FacetPayload(
+                return FacetVertex(
                     node_type="resource_manager",
                     node_name=MetaIntentInspector._make_node_name(self.class_ref),
                     node_class=self.class_ref,
@@ -124,7 +124,7 @@ class MetaIntentInspector(BaseIntentInspector):
                 )
             canonical = MetaIntentInspector._make_node_name(self.class_ref)
             merge_key = f"{ACTION_VERTEX_TYPE}:{canonical}"
-            return FacetPayload(
+            return FacetVertex(
                 node_type="meta",
                 node_name=MetaIntentInspector._make_host_dependent_node_name(
                     self.class_ref, "meta",
@@ -182,7 +182,7 @@ class MetaIntentInspector(BaseIntentInspector):
         return meta_info.get("domain") is not None
 
     @classmethod
-    def inspect(cls, target_cls: type) -> FacetPayload | None:
+    def inspect(cls, target_cls: type) -> FacetVertex | None:
         """Return ``meta`` payload when declaration exists; otherwise ``None``."""
         if not cls._has_meta_info_invariant(target_cls):
             return None
@@ -196,13 +196,13 @@ class MetaIntentInspector(BaseIntentInspector):
         return cls.Snapshot.from_target(target_cls)
 
     @classmethod
-    def _build_payload(cls, target_cls: type) -> FacetPayload:
+    def _build_payload(cls, target_cls: type) -> FacetVertex:
         """Build payload through ``Snapshot`` projection for consistency."""
-        return cls.Snapshot.from_target(target_cls).to_facet_payload()
+        return cls.Snapshot.from_target(target_cls).to_facet_vertex()
 
     @classmethod
     def facet_snapshot_storage_key(
-        cls, _target_cls: type, _payload: FacetPayload,
+        cls, _target_cls: type, _payload: FacetVertex,
     ) -> str:
         """Always ``\"meta\"`` so :meth:`GraphCoordinator.get_snapshot` stays ``(..., \"meta\")``."""
         return "meta"

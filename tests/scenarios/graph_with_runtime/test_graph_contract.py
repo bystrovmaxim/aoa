@@ -112,7 +112,7 @@ def test_contract_ping_action_meta_snapshot_present() -> None:
     coord = _default_coordinator()
     snap = coord.get_snapshot(PingAction, "meta")
     assert snap is not None
-    meta = dict(snap.to_facet_payload().node_meta)
+    meta = dict(snap.to_facet_vertex().node_meta)
     assert "description" in meta
     assert meta.get("domain") is not None
 

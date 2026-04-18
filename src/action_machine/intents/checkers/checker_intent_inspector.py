@@ -8,7 +8,7 @@ PURPOSE
 
 Read method-level ``_checker_meta`` lists (attached by aspect/checker decorators)
 on each **declaring** class member and emit a typed ``Snapshot`` plus one
-``FacetPayload`` per checker row: a canonical ``Checker`` vertex per
+``FacetVertex`` per checker row: a canonical ``Checker`` vertex per
 ``(aspect method, checker implementation class, field)``, an edge to the existing
 aspect vertex for that method, and row metadata on the checker node.
 
@@ -34,7 +34,7 @@ ARCHITECTURE / DATA FLOW
     _unwrap_declaring_class_member  →  getattr(func, "_checker_meta")
          │
          ▼
-    Snapshot.Checker rows  →  list[FacetPayload(node_type="Checker", …)]
+    Snapshot.Checker rows  →  list[FacetVertex(node_type="Checker", …)]
 
 ═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES
@@ -56,7 +56,7 @@ validators own that contract.
 AI-CORE-BEGIN
 ═══════════════════════════════════════════════════════════════════════════════
 ROLE: Checker facet inspector module.
-CONTRACT: Method-level _checker_meta → snapshot → list of checker FacetPayload rows.
+CONTRACT: Method-level _checker_meta → snapshot → list of checker FacetVertex rows.
 INVARIANTS: Declaring-class scan only; storage key ``checker``.
 FLOW: vars → unwrap → _checker_meta → Snapshot → per-checker payloads + checks_aspect edges.
 FAILURES: no checkers → None from inspect.
@@ -73,8 +73,8 @@ from typing import Any
 
 from action_machine.graph.base_facet_snapshot import BaseFacetSnapshot
 from action_machine.graph.base_intent_inspector import BaseIntentInspector
-from action_machine.graph.edge_info import EdgeInfo, FacetMetaRow
-from action_machine.graph.facet_payload import FacetPayload
+from action_machine.graph.facet_edge import FacetEdge, FacetMetaRow
+from action_machine.graph.facet_vertex import FacetVertex
 from action_machine.intents.aspects.aspect_intent_inspector import (
     AspectIntentInspector,
     vertex_type_for_aspect_kind,
@@ -190,14 +190,14 @@ class CheckerIntentInspector(BaseIntentInspector):
         class_ref: type
         checkers: tuple[Checker, ...]
 
-        def to_facet_payload(self) -> FacetPayload:
+        def to_facet_vertex(self) -> FacetVertex:
             """
             Typed snapshot projection for cache / legacy callers.
 
             Does not mirror per-checker graph payloads from :meth:`inspect`; graph
             rows use :meth:`CheckerIntentInspector._build_payload` instead.
             """
-            return FacetPayload(
+            return FacetVertex(
                 node_type=CHECKER_VERTEX_TYPE,
                 node_name=CheckerIntentInspector._make_host_dependent_node_name(
                     self.class_ref, "__checker_snapshot__",
@@ -217,15 +217,15 @@ class CheckerIntentInspector(BaseIntentInspector):
 
     @classmethod
     def facet_snapshot_storage_key(
-        cls, _target_cls: type, _payload: FacetPayload,
+        cls, _target_cls: type, _payload: FacetVertex,
     ) -> str:
         return "checker"
 
     @classmethod
-    def should_register_facet_snapshot_for_payload(
+    def should_register_facet_snapshot_for_vertex(
         cls,
         _target_cls: type,
-        _payload: FacetPayload,
+        _payload: FacetVertex,
     ) -> bool:
         """Per-checker nodes hydrate from ``committed_facet_rows`` on the facet skeleton."""
         return False
@@ -236,7 +236,7 @@ class CheckerIntentInspector(BaseIntentInspector):
         return bool(cls._collect_checkers(target_cls))
 
     @classmethod
-    def inspect(cls, target_cls: type) -> list[FacetPayload] | None:
+    def inspect(cls, target_cls: type) -> list[FacetVertex] | None:
         """Return one checker payload per row, or ``None`` when no checker metadata exists."""
         if not cls._has_checker_methods_invariant(target_cls):
             return None
@@ -252,31 +252,31 @@ class CheckerIntentInspector(BaseIntentInspector):
         return cls.Snapshot.from_target(target_cls)
 
     @classmethod
-    def _build_payload(cls, target_cls: type) -> FacetPayload:
+    def _build_payload(cls, target_cls: type) -> FacetVertex:
         """Satisfy ``BaseIntentInspector``; coordinator uses :meth:`inspect` for graph rows."""
         return cls._materialize_checker_payloads(target_cls)[0]
 
     @classmethod
-    def _materialize_checker_payloads(cls, target_cls: type) -> list[FacetPayload]:
+    def _materialize_checker_payloads(cls, target_cls: type) -> list[FacetVertex]:
         snap = cls.Snapshot.from_target(target_cls)
         aspect_kind_by_method: dict[str, str] = {}
         for a in AspectIntentInspector._collect_aspects(snap.class_ref):
             aspect_kind_by_method[a.method_name] = a.aspect_type
-        out: list[FacetPayload] = []
+        out: list[FacetVertex] = []
         for c in snap.checkers:
             suffix = cls._checker_vertex_suffix(c.method_name, c.checker_class, c.field_name)
             node_name = cls._make_node_name(snap.class_ref, suffix)
             aspect_name = cls._make_node_name(snap.class_ref, c.method_name)
             aspect_kind = aspect_kind_by_method.get(c.method_name, "regular")
             aspect_nt = vertex_type_for_aspect_kind(aspect_kind)
-            edge: EdgeInfo = cls._make_edge_by_name(
+            edge: FacetEdge = cls._make_edge_by_name(
                 aspect_nt,
                 aspect_name,
                 "checks_aspect",
                 False,
             )
             out.append(
-                FacetPayload(
+                FacetVertex(
                     node_type=CHECKER_VERTEX_TYPE,
                     node_name=node_name,
                     node_class=snap.class_ref,

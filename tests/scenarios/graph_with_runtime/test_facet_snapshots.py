@@ -32,7 +32,7 @@ def test_role_facet_snapshot_round_trip_with_graph() -> None:
     assert snap.class_ref is _SnapProbeAction
     assert snap.spec is AdminRole
 
-    payload = snap.to_facet_payload()
+    payload = snap.to_facet_vertex()
     assert payload.node_type == "Action"
     assert payload.node_class is _SnapProbeAction
     assert dict(payload.node_meta)["spec"] is AdminRole
@@ -65,7 +65,7 @@ def test_meta_facet_snapshot_matches_inspect_payload() -> None:
     assert snap.description == "Meta facet probe"
     assert snap.domain is _FacetOrdersDomain
 
-    from_payload = snap.to_facet_payload()
+    from_payload = snap.to_facet_vertex()
     from_inspect = MetaIntentInspector.inspect(_MetaFacetProbe)
     assert from_inspect is not None
     assert from_payload.node_type == from_inspect.node_type

@@ -30,7 +30,7 @@ ARCHITECTURE / DATA FLOW
     Snapshot(fields=...)
             │
             ▼
-            FacetPayload(node_type="params_schema" | "result_schema" | "described_fields", …)
+            FacetVertex(node_type="params_schema" | "result_schema" | "described_fields", …)
 
 ═══════════════════════════════════════════════════════════════════════════════
 INVARIANTS
@@ -76,7 +76,7 @@ from pydantic_core import PydanticUndefined
 
 from action_machine.graph.base_facet_snapshot import BaseFacetSnapshot
 from action_machine.graph.base_intent_inspector import BaseIntentInspector
-from action_machine.graph.facet_payload import FacetPayload
+from action_machine.graph.facet_vertex import FacetVertex
 from action_machine.intents.described_fields.marker import DescribedFieldsIntent
 from action_machine.interchange_vertex_labels import ENTITY_VERTEX_TYPE
 
@@ -163,7 +163,7 @@ class DescribedFieldsIntentInspector(BaseIntentInspector):
         class_ref: type
         fields: tuple[FieldDescription, ...]
 
-        def to_facet_payload(self) -> FacetPayload:
+        def to_facet_vertex(self) -> FacetVertex:
             def _to_row(fd: DescribedFieldsIntentInspector.Snapshot.FieldDescription) -> tuple[Any, ...]:
                 return (
                     fd.field_name,
@@ -175,7 +175,7 @@ class DescribedFieldsIntentInspector(BaseIntentInspector):
                     fd.default,
                 )
 
-            return FacetPayload(
+            return FacetVertex(
                 node_type=DescribedFieldsIntentInspector.interchange_node_type_for_schema_model(
                     self.class_ref,
                 ),
@@ -245,7 +245,7 @@ class DescribedFieldsIntentInspector(BaseIntentInspector):
         return tuple(result)
 
     @classmethod
-    def inspect(cls, target_cls: type) -> FacetPayload | None:
+    def inspect(cls, target_cls: type) -> FacetVertex | None:
         if cls._is_entity_schema(target_cls):
             return None
         fields = cls._collect_pydantic_fields(target_cls)
@@ -266,12 +266,12 @@ class DescribedFieldsIntentInspector(BaseIntentInspector):
 
     @classmethod
     def facet_snapshot_storage_key(
-        cls, _target_cls: type, _payload: FacetPayload,
+        cls, _target_cls: type, _payload: FacetVertex,
     ) -> str:
         return "described_fields"
 
     @classmethod
-    def _build_payload(cls, target_cls: type) -> FacetPayload:
+    def _build_payload(cls, target_cls: type) -> FacetVertex:
         snap = cls.facet_snapshot_for_class(target_cls)
         assert snap is not None
-        return snap.to_facet_payload()
+        return snap.to_facet_vertex()

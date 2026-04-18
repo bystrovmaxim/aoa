@@ -7,7 +7,7 @@ PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 Read method-level ``_compensate_meta`` and optional ``_required_context_keys``,
-then emit **one ``FacetPayload`` per compensator method** (``node_type="Compensator"``,
+then emit **one ``FacetVertex`` per compensator method** (``node_type="Compensator"``,
 name ``{action}:{method_name}``) plus a canonical **``action``** row with
 informational ``has_compensator`` edges (no aggregate ``…:compensators`` vertex).
 
@@ -18,7 +18,7 @@ INVARIANTS
 - Collection scans ``vars(target_cls)`` (declaring members only).
 - Only callable members after property unwrapping are considered.
 - Storage key for facet snapshots is always ``"compensator"``.
-- ``inspect`` returns ``list[FacetPayload]``: per-method ``compensator`` vertices
+- ``inspect`` returns ``list[FacetVertex]``: per-method ``compensator`` vertices
   then one ``action`` shell with ``has_compensator`` edges.
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -69,8 +69,8 @@ from dataclasses import dataclass
 
 from action_machine.graph.base_facet_snapshot import BaseFacetSnapshot
 from action_machine.graph.base_intent_inspector import BaseIntentInspector
-from action_machine.graph.edge_info import EdgeInfo, FacetMetaRow
-from action_machine.graph.facet_payload import FacetPayload
+from action_machine.graph.facet_edge import FacetEdge, FacetMetaRow
+from action_machine.graph.facet_vertex import FacetVertex
 from action_machine.intents.compensate.compensate_intent import CompensateIntent
 from action_machine.interchange_vertex_labels import (
     ACTION_VERTEX_TYPE,
@@ -153,13 +153,13 @@ class CompensateIntentInspector(BaseIntentInspector):
         class_ref: type
         compensators: tuple[Compensator, ...]
 
-        def to_facet_payload(self) -> FacetPayload:
+        def to_facet_vertex(self) -> FacetVertex:
             """Aggregate meta for snapshot hydration / ``get_snapshot`` consumers."""
             entries = tuple(
                 CompensateIntentInspector._compensator_row_facet_meta(c)
                 for c in self.compensators
             )
-            return FacetPayload(
+            return FacetVertex(
                 node_type=ACTION_VERTEX_TYPE,
                 node_name=CompensateIntentInspector._make_node_name(self.class_ref),
                 node_class=self.class_ref,
@@ -179,13 +179,13 @@ class CompensateIntentInspector(BaseIntentInspector):
 
     @classmethod
     def facet_snapshot_storage_key(
-        cls, _target_cls: type, _payload: FacetPayload,
+        cls, _target_cls: type, _payload: FacetVertex,
     ) -> str:
         return "compensator"
 
     @classmethod
-    def should_register_facet_snapshot_for_payload(
-        cls, _target_cls: type, payload: FacetPayload,
+    def should_register_facet_snapshot_for_vertex(
+        cls, _target_cls: type, payload: FacetVertex,
     ) -> bool:
         """Hydrate aggregate ``compensator`` snapshot onto the canonical ``action`` node only."""
         return payload.node_type == ACTION_VERTEX_TYPE
@@ -196,7 +196,7 @@ class CompensateIntentInspector(BaseIntentInspector):
         return bool(cls._collect_compensators(target_cls))
 
     @classmethod
-    def inspect(cls, target_cls: type) -> list[FacetPayload] | None:
+    def inspect(cls, target_cls: type) -> list[FacetVertex] | None:
         """
         Return per-method ``compensator`` vertices, then one ``action`` row with edges.
 
@@ -205,12 +205,12 @@ class CompensateIntentInspector(BaseIntentInspector):
         compensators = cls._collect_compensators(target_cls)
         if not compensators:
             return None
-        out: list[FacetPayload] = []
-        host_edges: list[EdgeInfo] = []
+        out: list[FacetVertex] = []
+        host_edges: list[FacetEdge] = []
         for c in compensators:
             child_name = cls._make_host_dependent_node_name(target_cls, c.method_name)
             out.append(
-                FacetPayload(
+                FacetVertex(
                     node_type=COMPENSATOR_VERTEX_TYPE,
                     node_name=child_name,
                     node_class=target_cls,
@@ -219,7 +219,7 @@ class CompensateIntentInspector(BaseIntentInspector):
                 ),
             )
             host_edges.append(
-                EdgeInfo(
+                FacetEdge(
                     target_node_type=COMPENSATOR_VERTEX_TYPE,
                     target_name=child_name,
                     edge_type="has_compensator",
@@ -228,7 +228,7 @@ class CompensateIntentInspector(BaseIntentInspector):
                 ),
             )
         out.append(
-            FacetPayload(
+            FacetVertex(
                 node_type=ACTION_VERTEX_TYPE,
                 node_name=cls._make_node_name(target_cls),
                 node_class=target_cls,
@@ -248,9 +248,9 @@ class CompensateIntentInspector(BaseIntentInspector):
         return cls.Snapshot.from_target(target_cls)
 
     @classmethod
-    def _build_payload(cls, target_cls: type) -> FacetPayload:
-        """Materialize ``FacetPayload`` from the typed snapshot."""
-        return cls.Snapshot.from_target(target_cls).to_facet_payload()
+    def _build_payload(cls, target_cls: type) -> FacetVertex:
+        """Materialize ``FacetVertex`` from the typed snapshot."""
+        return cls.Snapshot.from_target(target_cls).to_facet_vertex()
 
 
 def hydrate_compensator_row(

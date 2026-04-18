@@ -7,7 +7,7 @@ lists (same row shape as coordinator interchange). Implemented in
 `action_machine.graph.graph_builder` (`build_from_synthetic_bundle` / `GraphBuilder`):
 unmarshal and validate ids/endpoints only — no derivation from domain/action tables.
 `expected` is the synthetic bundle canonical graph. Facet-only goldens live in
-`expected_from_facets` (full `_g0_facet_payloads()`), `expected_from_facets_meta_no_action`,
+`expected_from_facets` (full `_g0_facet_vertices()`), `expected_from_facets_meta_no_action`,
 etc., for `test_graph_builder.py`.
 
 ### Regenerating expected output

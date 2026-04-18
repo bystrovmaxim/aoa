@@ -7,8 +7,8 @@ PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 Each inspector may declare a **nested Snapshot** dataclass (or similar) next to
-the facet: rich fields + callables stay here; ``to_facet_payload()`` produces the
-serialisable :class:`FacetPayload` used for validation; the coordinator keeps
+the facet: rich fields + callables stay here; ``to_facet_vertex()`` produces the
+serialisable :class:`FacetVertex` used for validation; the coordinator keeps
 typed snapshots separately and commits only ``node_type`` / ``name`` /
 ``class_ref`` on graph nodes.
 
@@ -26,10 +26,10 @@ ARCHITECTURE / DATA FLOW
     inspector-specific typed Snapshot
               │
               ▼
-    to_facet_payload()
+    to_facet_vertex()
               │
               ▼
-    FacetPayload (validation/projection format)
+    FacetVertex (validation/projection format)
               │
               ├─ cached as typed snapshot in coordinator
               └─ consumed for graph build validation/commit
@@ -38,7 +38,7 @@ ARCHITECTURE / DATA FLOW
 INVARIANTS
 ═══════════════════════════════════════════════════════════════════════════════
 
-- ``to_facet_payload()`` is the single required projection contract.
+- ``to_facet_vertex()`` is the single required projection contract.
 - Snapshot classes are inspector-owned and transport-agnostic.
 - Coordinator graph nodes keep skeletal topology; rich typed data remains in snapshot cache.
 
@@ -53,7 +53,7 @@ ERRORS / LIMITATIONS
 AI-CORE-BEGIN
 ═══════════════════════════════════════════════════════════════════════════════
 ROLE: Abstract typed-snapshot contract for graph facets.
-CONTRACT: Require deterministic projection from typed snapshot to ``FacetPayload``.
+CONTRACT: Require deterministic projection from typed snapshot to ``FacetVertex``.
 INVARIANTS: Snapshot type is inspector-defined; projection method is mandatory.
 FLOW: inspector builds snapshot -> snapshot projects payload -> coordinator validates/commits graph.
 FAILURES: Missing/incorrect projection implementations fail via abstract contract or downstream checks.
@@ -65,7 +65,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
-from action_machine.graph.facet_payload import FacetPayload
+from action_machine.graph.facet_vertex import FacetVertex
 
 
 class BaseFacetSnapshot(ABC):
@@ -77,12 +77,12 @@ class BaseFacetSnapshot(ABC):
 
     AI-CORE-BEGIN
     ROLE: Base ABC for typed facet snapshot implementations.
-    CONTRACT: Implement ``to_facet_payload``.
+    CONTRACT: Implement ``to_facet_vertex``.
     INVARIANTS: Projection should be side-effect free and return a valid payload object.
     AI-CORE-END
     """
 
     @abstractmethod
-    def to_facet_payload(self) -> FacetPayload:
-        """Serialise this snapshot into a coordinator ``FacetPayload``."""
+    def to_facet_vertex(self) -> FacetVertex:
+        """Serialise this snapshot into a coordinator ``FacetVertex``."""
         raise NotImplementedError

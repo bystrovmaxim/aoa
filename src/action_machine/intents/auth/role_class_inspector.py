@@ -11,7 +11,7 @@ interchange anchor. ``RoleIntentInspector`` emits ``requires_role`` edges toward
 that anchor (with ``edge_meta`` listing concrete ``@check_roles`` types when
 needed). This inspector still **validates** every ``BaseRole`` subtype under
 ``BaseRole`` (unique ``name``, MRO, and ``@role_mode``) at ``inspect()`` time,
-but returns a ``FacetPayload`` only for ``ApplicationRole``. Lifecycle ``mode``
+but returns a ``FacetVertex`` only for ``ApplicationRole``. Lifecycle ``mode``
 merges from ``RoleModeIntentInspector`` on that node.
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -61,7 +61,7 @@ AI-CORE-BEGIN
 ROLE: Role-class topology inspector.
 CONTRACT: ``role_class`` node only for ``ApplicationRole``; validates all ``BaseRole`` subclasses.
 INVARIANTS: Unique name; no UNUSED in MRO; ``@role_mode`` on every subclass.
-FLOW: collect subclasses → validate → FacetPayload only for taxonomy roots.
+FLOW: collect subclasses → validate → FacetVertex only for taxonomy roots.
 FAILURES: InvalidGraphError on broken topology.
 EXTENSION POINTS: Align new cross-facet edges with ``RoleIntentInspector``.
 AI-CORE-END
@@ -75,7 +75,7 @@ from dataclasses import dataclass
 from action_machine.graph.base_facet_snapshot import BaseFacetSnapshot
 from action_machine.graph.base_intent_inspector import BaseIntentInspector
 from action_machine.graph.exceptions import InvalidGraphError
-from action_machine.graph.facet_payload import FacetPayload
+from action_machine.graph.facet_vertex import FacetVertex
 from action_machine.intents.auth.base_role import BaseRole
 from action_machine.intents.auth.role_graph_roots import ROLE_CLASS_GRAPH_ROOTS
 from action_machine.intents.auth.role_mode_decorator import RoleMode
@@ -138,8 +138,8 @@ class RoleClassInspector(BaseIntentInspector):
 
         class_ref: type[BaseRole]
 
-        def to_facet_payload(self) -> FacetPayload:
-            return FacetPayload(
+        def to_facet_vertex(self) -> FacetVertex:
+            return FacetVertex(
                 node_type="role_class",
                 node_name=RoleClassInspector._make_node_name(self.class_ref),
                 node_class=self.class_ref,
@@ -159,7 +159,7 @@ class RoleClassInspector(BaseIntentInspector):
         return list(cls._collect_subclasses(cls._target_intent))
 
     @classmethod
-    def inspect(cls, target_cls: type) -> FacetPayload | None:
+    def inspect(cls, target_cls: type) -> FacetVertex | None:
         if target_cls is BaseRole:
             return None
         if not issubclass(target_cls, BaseRole):
@@ -197,10 +197,10 @@ class RoleClassInspector(BaseIntentInspector):
 
     @classmethod
     def facet_snapshot_storage_key(
-        cls, target_cls: type, payload: FacetPayload,
+        cls, target_cls: type, payload: FacetVertex,
     ) -> str:
         return "role_class"
 
     @classmethod
-    def _build_payload(cls, target_cls: type[BaseRole]) -> FacetPayload:
-        return cls.Snapshot.from_target(target_cls).to_facet_payload()
+    def _build_payload(cls, target_cls: type[BaseRole]) -> FacetVertex:
+        return cls.Snapshot.from_target(target_cls).to_facet_vertex()

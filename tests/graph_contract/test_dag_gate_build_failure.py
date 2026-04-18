@@ -11,7 +11,7 @@ from action_machine.graph.graph_edge import GraphEdge
 from action_machine.graph.graph_vertex import GraphVertex
 from action_machine.model.exceptions import CyclicDependencyError
 
-from .facet_payload_probe import graph_coordinator_default_inspectors_registered
+from .facet_vertex_probe import graph_coordinator_default_inspectors_registered
 
 
 def _v(vid: str) -> GraphVertex:
@@ -42,7 +42,7 @@ def test_build_raises_cyclic_dependency_when_dag_slice_cycles(
 
     monkeypatch.setattr(
         gate_coordinator_mod,
-        "build_interchange_from_facet_payloads",
+        "build_interchange_from_facet_vertices",
         _patched,
     )
 

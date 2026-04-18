@@ -49,8 +49,8 @@ from typing import Any
 
 from action_machine.graph.base_facet_snapshot import BaseFacetSnapshot
 from action_machine.graph.base_intent_inspector import BaseIntentInspector
-from action_machine.graph.edge_info import EdgeInfo
-from action_machine.graph.facet_payload import FacetPayload
+from action_machine.graph.facet_edge import FacetEdge
+from action_machine.graph.facet_vertex import FacetVertex
 from action_machine.interchange_vertex_labels import ACTION_VERTEX_TYPE, ENTITY_VERTEX_TYPE
 from action_machine.model.base_action import BaseAction
 from action_machine.model.base_schema import BaseSchema
@@ -63,7 +63,7 @@ class SensitiveIntentInspector(BaseIntentInspector):
 
     AI-CORE-BEGIN
     ROLE: Concrete inspector for sensitive field masking metadata on the graph.
-    CONTRACT: ``inspect`` returns multiple ``FacetPayload`` rows; snapshot key ``sensitive``.
+    CONTRACT: ``inspect`` returns multiple ``FacetVertex`` rows; snapshot key ``sensitive``.
     INVARIANTS: Uses union traversal roots and deduplicates classes by identity.
     AI-CORE-END
     """
@@ -170,15 +170,15 @@ class SensitiveIntentInspector(BaseIntentInspector):
 
     @classmethod
     def facet_snapshot_storage_key(
-        cls, _target_cls: type, _payload: FacetPayload,
+        cls, _target_cls: type, _payload: FacetVertex,
     ) -> str:
         return "sensitive"
 
     @classmethod
-    def should_register_facet_snapshot_for_payload(
+    def should_register_facet_snapshot_for_vertex(
         cls,
         _target_cls: type,
-        _payload: FacetPayload,
+        _payload: FacetVertex,
     ) -> bool:
         """Per-field facet nodes carry ``committed_facet_rows`` only; snapshot is for ``get_snapshot``."""
         return False
@@ -196,7 +196,7 @@ class SensitiveIntentInspector(BaseIntentInspector):
         class_ref: type
         fields: tuple[Field, ...]
 
-        def to_facet_payload(self) -> FacetPayload:
+        def to_facet_vertex(self) -> FacetVertex:
             entries = tuple(
                 SensitiveIntentInspector._make_meta(
                     property_name=f.property_name,
@@ -204,7 +204,7 @@ class SensitiveIntentInspector(BaseIntentInspector):
                 )
                 for f in self.fields
             )
-            return FacetPayload(
+            return FacetVertex(
                 node_type="sensitive",
                 node_name=SensitiveIntentInspector._make_host_dependent_node_name(
                     self.class_ref, "sensitive",
@@ -224,18 +224,18 @@ class SensitiveIntentInspector(BaseIntentInspector):
             )
 
     @classmethod
-    def inspect(cls, target_cls: type) -> list[FacetPayload] | None:
+    def inspect(cls, target_cls: type) -> list[FacetVertex] | None:
         decls = cls._iter_sensitive_declarations(target_cls)
         if not decls:
             return None
 
-        out: list[FacetPayload] = []
-        host_edges: dict[type, list[EdgeInfo]] = {}
+        out: list[FacetVertex] = []
+        host_edges: dict[type, list[FacetEdge]] = {}
 
         for declaring_klass, prop_name, config in decls:
             sf_name = cls._sensitive_field_vertex_name(declaring_klass, prop_name)
             out.append(
-                FacetPayload(
+                FacetVertex(
                     node_type="sensitive_field",
                     node_name=sf_name,
                     node_class=declaring_klass,
@@ -247,7 +247,7 @@ class SensitiveIntentInspector(BaseIntentInspector):
                 ),
             )
             host_edges.setdefault(declaring_klass, []).append(
-                EdgeInfo(
+                FacetEdge(
                     target_node_type="sensitive_field",
                     target_name=sf_name,
                     edge_type="has_sensitive_field",
@@ -259,7 +259,7 @@ class SensitiveIntentInspector(BaseIntentInspector):
         for declaring_klass, edges in host_edges.items():
             host_type, host_name = cls._sensitive_host_vertex(declaring_klass)
             out.append(
-                FacetPayload(
+                FacetVertex(
                     node_type=host_type,
                     node_name=host_name,
                     node_class=declaring_klass,
@@ -279,5 +279,5 @@ class SensitiveIntentInspector(BaseIntentInspector):
         return cls.Snapshot.from_target(target_cls)
 
     @classmethod
-    def _build_payload(cls, target_cls: type) -> FacetPayload:
-        return cls.Snapshot.from_target(target_cls).to_facet_payload()
+    def _build_payload(cls, target_cls: type) -> FacetVertex:
+        return cls.Snapshot.from_target(target_cls).to_facet_vertex()

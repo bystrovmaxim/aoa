@@ -31,7 +31,7 @@ ARCHITECTURE / DATA FLOW
     Snapshot.from_target(...)
             │
             ▼
-    to_facet_payload()
+    to_facet_vertex()
             │
             └─ action node + structural "depends" edges
 
@@ -77,8 +77,8 @@ from action_machine.dependencies.dependency_intent import DependencyIntent
 from action_machine.domain.application_context import ApplicationContext
 from action_machine.graph.base_facet_snapshot import BaseFacetSnapshot
 from action_machine.graph.base_intent_inspector import BaseIntentInspector
-from action_machine.graph.edge_info import EdgeInfo
-from action_machine.graph.facet_payload import FacetPayload
+from action_machine.graph.facet_edge import FacetEdge
+from action_machine.graph.facet_vertex import FacetVertex
 from action_machine.interchange_vertex_labels import (
     ACTION_VERTEX_TYPE,
     APPLICATION_VERTEX_TYPE,
@@ -102,7 +102,7 @@ class DependencyIntentInspector(BaseIntentInspector):
     _target_intent: type = DependencyIntent
 
     @classmethod
-    def stub_outgoing_edges_for_class_dependency(cls) -> tuple[EdgeInfo, ...]:
+    def stub_outgoing_edges_for_class_dependency(cls) -> tuple[FacetEdge, ...]:
         """
         Edges attached to a materialized ``@depends`` class stub (not ``BaseAction``).
 
@@ -150,11 +150,11 @@ class DependencyIntentInspector(BaseIntentInspector):
         class_ref: type
         dependencies: tuple[DependencyInfo, ...]
 
-        def to_facet_payload(self) -> FacetPayload:
-            dep_edges_list: list[EdgeInfo] = []
+        def to_facet_vertex(self) -> FacetVertex:
+            dep_edges_list: list[FacetEdge] = []
             for dep_info in self.dependencies:
                 dep_cls = dep_info.cls
-                stub: tuple[EdgeInfo, ...] = ()
+                stub: tuple[FacetEdge, ...] = ()
                 if not issubclass(dep_cls, BaseAction) and not issubclass(
                     dep_cls,
                     BaseResourceManager,
@@ -172,7 +172,7 @@ class DependencyIntentInspector(BaseIntentInspector):
                     ),
                 )
             dep_edges = tuple(dep_edges_list)
-            return FacetPayload(
+            return FacetVertex(
                 node_type=ACTION_VERTEX_TYPE,
                 node_name=DependencyIntentInspector._make_node_name(self.class_ref),
                 node_class=self.class_ref,
@@ -189,12 +189,12 @@ class DependencyIntentInspector(BaseIntentInspector):
 
     @classmethod
     def facet_snapshot_storage_key(
-        cls, _target_cls: type, _payload: FacetPayload,
+        cls, _target_cls: type, _payload: FacetVertex,
     ) -> str:
         return "depends"
 
     @classmethod
-    def inspect(cls, target_cls: type) -> FacetPayload | None:
+    def inspect(cls, target_cls: type) -> FacetVertex | None:
         depends_info = getattr(target_cls, "_depends_info", None)
         if not depends_info:
             return None
@@ -209,5 +209,5 @@ class DependencyIntentInspector(BaseIntentInspector):
         return cls.Snapshot.from_target(target_cls)
 
     @classmethod
-    def _build_payload(cls, target_cls: type) -> FacetPayload:
-        return cls.Snapshot.from_target(target_cls).to_facet_payload()
+    def _build_payload(cls, target_cls: type) -> FacetVertex:
+        return cls.Snapshot.from_target(target_cls).to_facet_vertex()

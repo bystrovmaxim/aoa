@@ -18,7 +18,7 @@ ARCHITECTURE / DATA FLOW
     decorators write class/method scratch
               │
               ▼
-    inspectors read declarations -> FacetPayload + optional Snapshot
+    inspectors read declarations -> FacetVertex + optional Snapshot
               │
               ▼
     GraphCoordinator.build()
@@ -47,7 +47,7 @@ AI-CORE-BEGIN
 ═══════════════════════════════════════════════════════════════════════════════
 ROLE: Public namespace for graph core contracts.
 CONTRACT: Export ``BaseFacetSnapshot`` and ``GraphCoordinator`` as graph-layer API.
-INVARIANTS: Inspectors populate payloads/snapshots; coordinator owns transactional build semantics.
+INVARIANTS: Inspectors populate facet vertices/snapshots; coordinator owns transactional build semantics.
 FLOW: declaration scratch -> inspector extraction -> coordinator validation/commit -> graph read APIs.
 FAILURES: Build/read lifecycle errors and graph validation exceptions are raised by coordinator internals.
 EXTENSION POINTS: Add inspector modules and snapshot types without changing package root API.
@@ -74,7 +74,7 @@ from action_machine.graph.dag import (
 from action_machine.graph.graph_builder import (
     GraphBuilder,
     build_from_synthetic_bundle,
-    build_interchange_from_facet_payloads,
+    build_interchange_from_facet_vertices,
 )
 from action_machine.graph.graph_coordinator import GraphCoordinator
 from action_machine.graph.graph_edge import GraphEdge
@@ -98,7 +98,7 @@ __all__ = [
     "GraphVertex",
     "assert_dag_edges_acyclic",
     "build_from_synthetic_bundle",
-    "build_interchange_from_facet_payloads",
+    "build_interchange_from_facet_vertices",
     "collect_dag_edge_pairs",
     "dag_edge_pairs_from_rx",
     "dag_subgraph_is_acyclic",

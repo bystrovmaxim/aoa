@@ -34,7 +34,7 @@ from typing import Any
 
 from action_machine.graph.base_facet_snapshot import BaseFacetSnapshot
 from action_machine.graph.base_intent_inspector import BaseIntentInspector
-from action_machine.graph.facet_payload import FacetPayload
+from action_machine.graph.facet_vertex import FacetVertex
 from action_machine.intents.plugins.on_intent import OnIntent
 from action_machine.intents.plugins.subscription_info import SubscriptionInfo
 
@@ -103,11 +103,11 @@ class SubscriptionIntentInspector(BaseIntentInspector):
         class_ref: type
         subscriptions: tuple[SubscriptionInfo, ...]
 
-        def to_facet_payload(self) -> FacetPayload:
+        def to_facet_vertex(self) -> FacetVertex:
             entries = SubscriptionIntentInspector._collect_subscription_entries(
                 self.class_ref,
             )
-            return FacetPayload(
+            return FacetVertex(
                 node_type="subscription",
                 node_name=SubscriptionIntentInspector._make_host_dependent_node_name(
                     self.class_ref, "subscriptions",
@@ -129,7 +129,7 @@ class SubscriptionIntentInspector(BaseIntentInspector):
             )
 
     @classmethod
-    def inspect(cls, _target_cls: type) -> FacetPayload | None:
+    def inspect(cls, _target_cls: type) -> FacetVertex | None:
         return None
 
     @classmethod
@@ -139,5 +139,5 @@ class SubscriptionIntentInspector(BaseIntentInspector):
         return None
 
     @classmethod
-    def _build_payload(cls, target_cls: type) -> FacetPayload:
-        return cls.Snapshot.from_target(target_cls).to_facet_payload()
+    def _build_payload(cls, target_cls: type) -> FacetVertex:
+        return cls.Snapshot.from_target(target_cls).to_facet_vertex()

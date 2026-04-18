@@ -42,7 +42,7 @@ ARCHITECTURE / DATA FLOW
     RoleModeIntentInspector.inspect(cls)
           │
           ▼
-    FacetPayload(node_type="role_class", node_name=…ApplicationRole, node_meta mode=…)
+    FacetVertex(node_type="role_class", node_name=…ApplicationRole, node_meta mode=…)
           │
           ▼
     GraphCoordinator merges with ``RoleClassInspector`` row → one anchor facet key
@@ -69,7 +69,7 @@ AI-CORE-BEGIN
 ROLE: Lifecycle facet inspector for role types.
 CONTRACT: ``role_class`` payload carrying ``mode`` from ``_role_mode_info``; merges with ``RoleClassInspector``.
 INVARIANTS: Walk ``RoleModeIntent``; skip classes without scratch.
-FLOW: coordinator collect → inspect → FacetPayload → commit.
+FLOW: coordinator collect → inspect → FacetVertex → commit.
 FAILURES: Returns None when no lifecycle scratch.
 EXTENSION POINTS: None; keep split with ``RoleClassInspector``.
 AI-CORE-END
@@ -82,7 +82,7 @@ from dataclasses import dataclass
 
 from action_machine.graph.base_facet_snapshot import BaseFacetSnapshot
 from action_machine.graph.base_intent_inspector import BaseIntentInspector
-from action_machine.graph.facet_payload import FacetPayload
+from action_machine.graph.facet_vertex import FacetVertex
 from action_machine.intents.auth.role_graph_roots import ROLE_CLASS_GRAPH_ROOTS
 from action_machine.intents.auth.role_mode_decorator import RoleMode
 from action_machine.intents.auth.role_mode_intent import RoleModeIntent
@@ -108,8 +108,8 @@ class RoleModeIntentInspector(BaseIntentInspector):
         class_ref: type
         mode: RoleMode
 
-        def to_facet_payload(self) -> FacetPayload:
-            return FacetPayload(
+        def to_facet_vertex(self) -> FacetVertex:
+            return FacetVertex(
                 node_type="role_class",
                 node_name=RoleModeIntentInspector._make_node_name(self.class_ref),
                 node_class=self.class_ref,
@@ -127,7 +127,7 @@ class RoleModeIntentInspector(BaseIntentInspector):
         return cls._collect_subclasses(cls._target_intent)
 
     @classmethod
-    def inspect(cls, target_cls: type) -> FacetPayload | None:
+    def inspect(cls, target_cls: type) -> FacetVertex | None:
         if not issubclass(target_cls, RoleModeIntent):
             return None
         if target_cls not in ROLE_CLASS_GRAPH_ROOTS:
@@ -149,10 +149,10 @@ class RoleModeIntentInspector(BaseIntentInspector):
 
     @classmethod
     def facet_snapshot_storage_key(
-        cls, target_cls: type, payload: FacetPayload,
+        cls, target_cls: type, payload: FacetVertex,
     ) -> str:
         return "role_mode"
 
     @classmethod
-    def _build_payload(cls, target_cls: type) -> FacetPayload:
-        return cls.Snapshot.from_target(target_cls).to_facet_payload()
+    def _build_payload(cls, target_cls: type) -> FacetVertex:
+        return cls.Snapshot.from_target(target_cls).to_facet_vertex()

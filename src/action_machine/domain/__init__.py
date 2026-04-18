@@ -25,7 +25,7 @@ facets: ``intent -> decorator -> scratch -> inspector -> coordinator``.
          │
          │ at coordinator.build()
          v
-    EntityIntentInspector  ──reads scratch + model_fields──>  FacetPayload / snapshots
+    EntityIntentInspector  ──reads scratch + model_fields──>  FacetVertex / snapshots
          │
          v
     GraphCoordinator graph  (entity nodes, belongs_to domain, relation edges, …)
