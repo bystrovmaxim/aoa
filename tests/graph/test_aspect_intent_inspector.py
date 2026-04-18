@@ -36,7 +36,7 @@ def test_aspect_inspector_builds_payload_with_aspect_entries() -> None:
     assert isinstance(raw, list)
     assert len(raw) == 3
     aspect_payloads = [p for p in raw if p.node_type == "aspect"]
-    action_payloads = [p for p in raw if p.node_type == "action"]
+    action_payloads = [p for p in raw if p.node_type == "Action"]
     assert len(aspect_payloads) == 2
     assert len(action_payloads) == 1
     ap0 = action_payloads[0]

@@ -103,7 +103,7 @@ def test_validate_described_schemas_for_action_delegates_to_extract() -> None:
 def test_action_typed_schemas_inspector_links_action_to_schema_nodes() -> None:
     payload = ActionTypedSchemasInspector.inspect(_SchemaLinkProbeAction)
     assert payload is not None
-    assert payload.node_type == "action"
+    assert payload.node_type == "Action"
     assert payload.node_class is _SchemaLinkProbeAction
     assert len(payload.edges) == 2
     types_ = {e.edge_type for e in payload.edges}

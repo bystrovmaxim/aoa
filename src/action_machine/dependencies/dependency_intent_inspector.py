@@ -78,7 +78,7 @@ from action_machine.domain.application_context import ApplicationContext
 from action_machine.graph.base_facet_snapshot import BaseFacetSnapshot
 from action_machine.graph.base_intent_inspector import BaseIntentInspector
 from action_machine.graph.payload import EdgeInfo, FacetPayload
-from action_machine.interchange_vertex_labels import SERVICE_VERTEX_TYPE
+from action_machine.interchange_vertex_labels import ACTION_VERTEX_TYPE, SERVICE_VERTEX_TYPE
 from action_machine.model.base_action import BaseAction
 from action_machine.resources.base_resource_manager import BaseResourceManager
 
@@ -119,7 +119,7 @@ class DependencyIntentInspector(BaseIntentInspector):
         """
         Interchange target kind for a ``@depends`` class.
 
-        ``BaseAction`` subclasses use ``node_type=\"action\"`` so edges merge into
+        ``BaseAction`` subclasses use ``node_type`` ``\"Action\"`` so edges merge into
         the primary action vertex. ``BaseResourceManager`` subclasses use
         ``\"resource_manager\"`` — the same key as ``@connection``, so depends and
         connection share one canonical manager node.
@@ -129,7 +129,7 @@ class DependencyIntentInspector(BaseIntentInspector):
         identity remains ``target_name`` / ``class_ref``.
         """
         if issubclass(dep_cls, BaseAction):
-            return "action"
+            return ACTION_VERTEX_TYPE
         if issubclass(dep_cls, BaseResourceManager):
             return "resource_manager"
         return SERVICE_VERTEX_TYPE
@@ -158,7 +158,7 @@ class DependencyIntentInspector(BaseIntentInspector):
                 for dep_info in self.dependencies
             )
             return FacetPayload(
-                node_type="action",
+                node_type=ACTION_VERTEX_TYPE,
                 node_name=DependencyIntentInspector._make_node_name(self.class_ref),
                 node_class=self.class_ref,
                 edges=dep_edges,

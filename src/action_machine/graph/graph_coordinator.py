@@ -48,7 +48,7 @@ interchange :meth:`get_graph` payloads. Snapshot storage keys for
 hydration are recorded during phase 1 from each inspector's
 ``facet_snapshot_storage_key()``; if several snapshot storage keys hydrate the same merged node, ``meta`` is the
 union of their ``to_facet_payload().node_meta`` maps. Nodes without a registration (stubs) fall
-back to ``get_snapshot(cls, node_type)`` unless ``node_type`` is ``action``.
+back to ``get_snapshot(cls, node_type)`` unless ``node_type`` is ``Action``.
 
 Dependency ``DependencyFactory`` instances may be cached on this object under
 ``dependency_factory.DEPENDENCY_FACTORY_CACHE_KEY``; clearing that cache does
@@ -185,6 +185,7 @@ from typing import Any, Literal
 import rustworkx as rx
 
 from action_machine.dependencies.dependency_factory import DEPENDENCY_FACTORY_CACHE_KEY
+from action_machine.interchange_vertex_labels import ACTION_VERTEX_TYPE
 from action_machine.dependencies.dependency_intent_inspector import DependencyIntentInspector
 from action_machine.domain.application_context import ApplicationContext
 from action_machine.graph.base_facet_snapshot import BaseFacetSnapshot
@@ -776,7 +777,7 @@ class GraphCoordinator:
     def _action_collect_key_for_meta_on_primary_action(payload: FacetPayload) -> str | None:
         """
         When ``@meta`` targets the primary ``BaseAction`` host (same name as the
-        structural action node), fold into ``action:<name>`` for collect/merge.
+        structural action node), fold into ``Action:<name>`` for collect/merge.
         """
         if payload.node_type != "meta":
             return None
@@ -788,7 +789,7 @@ class GraphCoordinator:
         )
         if payload.node_name not in (canonical, primary_meta):
             return None
-        return GraphCoordinator._make_key("action", canonical)
+        return GraphCoordinator._make_key(ACTION_VERTEX_TYPE, canonical)
 
     def _facet_collect_key(self, payload: FacetPayload) -> str:
         folded = self._action_collect_key_for_meta_on_primary_action(payload)
@@ -805,7 +806,7 @@ class GraphCoordinator:
         if fold is not None and collect_key == fold:
             canonical = BaseIntentInspector._make_node_name(payload.node_class)
             return FacetPayload(
-                node_type="action",
+                node_type=ACTION_VERTEX_TYPE,
                 node_name=canonical,
                 node_class=payload.node_class,
                 node_meta=payload.node_meta,
@@ -821,8 +822,8 @@ class GraphCoordinator:
         """
         Merge two payloads sharing the same collect key.
 
-        Structural ``action`` rows (``@depends`` / ``@connection``) and a folded
-        primary-host ``@meta`` facet normalize to ``node_type=\"action\"`` and merge
+        Structural ``Action`` rows (``@depends`` / ``@connection``) and a folded
+        primary-host ``@meta`` facet normalize to ``node_type`` ``\"Action\"`` and merge
         here. Two ``role_class`` rows for the same role class (``RoleClassInspector``
         + ``RoleModeIntentInspector``) merge the same way. Two ``resource_manager``
         rows for the same manager class (``@meta`` + materialized stub from
@@ -834,9 +835,9 @@ class GraphCoordinator:
         """
         if first.node_class is not second.node_class or first.node_name != second.node_name:
             return None
-        if first.node_type == "action" and second.node_type == "action":
+        if first.node_type == ACTION_VERTEX_TYPE and second.node_type == ACTION_VERTEX_TYPE:
             return FacetPayload(
-                node_type="action",
+                node_type=ACTION_VERTEX_TYPE,
                 node_name=first.node_name,
                 node_class=first.node_class,
                 node_meta=first.node_meta + second.node_meta,
@@ -963,7 +964,7 @@ class GraphCoordinator:
         (those use ``node_type`` / ``id`` on the interchange view).
 
         Resolves the snapshot storage key from phase-1 registration (or falls back to
-        ``node_type`` for nodes that never registered a snapshot, except ``action``) and
+        ``node_type`` for nodes that never registered a snapshot, except ``Action``) and
         fills ``meta`` via ``to_facet_payload().node_meta``.
 
         Args:
@@ -995,7 +996,7 @@ class GraphCoordinator:
                 snap = self.get_snapshot(cr, sk)
                 if snap is not None:
                     meta.update(dict(snap.to_facet_payload().node_meta))
-        elif not storage_keys and nt != "action" and not meta:
+        elif not storage_keys and nt != ACTION_VERTEX_TYPE and not meta:
             # Per-facet vertices (e.g. ``compensator:{host}:{method}``) carry row meta in
             # ``committed_meta``; do not replace with the class-level aggregate snapshot.
             sk_fallback = nt
@@ -1012,7 +1013,7 @@ class GraphCoordinator:
         Build the unique node key ``node_type:name``.
 
         Args:
-            node_type: Facet type (``"role"``, ``"action"``, ``"entity"``, …).
+            node_type: Facet type (``"role"``, ``"Action"``, ``"entity"``, …).
             name: Node name (``"module.ClassName"``).
 
         Returns:
@@ -1063,8 +1064,8 @@ class GraphCoordinator:
         """
         Return the node record.
 
-        Call ``get_node("action", "pkg.MyAction")`` or pass the full key
-        ``get_node("action:pkg.MyAction")`` — ``type:name``.
+        Call ``get_node("Action", "pkg.MyAction")`` or pass the full key
+        ``get_node("Action:pkg.MyAction")`` — ``type:name``.
         """
         self._require_built()
         if name is not None:
@@ -1098,7 +1099,7 @@ class GraphCoordinator:
         Return all graph nodes emitted for ``cls``.
 
         One class may spawn multiple nodes from different inspectors (e.g.
-        ``"role:..."``, ``"action:..."``, ``"aspect:..."``).
+        ``"role:..."``, ``"Action:..."``, ``"aspect:..."``).
 
         Args:
             cls: Python class.
@@ -1148,7 +1149,7 @@ class GraphCoordinator:
 
         Populated during ``build()`` when the inspector returns a snapshot from
         ``facet_snapshot_for_class()``. The key may differ from graph
-        ``node_type`` (e.g. ``depends`` / ``connections`` on merged ``action`` nodes).
+        ``node_type`` (e.g. ``depends`` / ``connections`` on merged ``Action`` nodes).
 
         Args:
             cls: action, plugin, entity, or other registered class that owns the facet.

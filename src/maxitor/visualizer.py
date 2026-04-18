@@ -48,7 +48,7 @@ from typing import Any
 
 import rustworkx as rx
 
-from action_machine.interchange_vertex_labels import SERVICE_VERTEX_TYPE
+from action_machine.interchange_vertex_labels import ACTION_VERTEX_TYPE, SERVICE_VERTEX_TYPE
 from maxitor.graph_export import (
     coordinator_pygraph_for_visual_export,
     normalize_coordinator_node_payload_for_visualization,
@@ -62,7 +62,7 @@ DEFAULT_APP_GRAPH_HTML = "app_graph.html"
 # Palette: Okabe–Ito / Tol-inspired, maximally distinct hues; ``application`` is black (root).
 VERTEX_TYPE_FILL_COLORS: dict[str, str] = {
     "application": "#000000",
-    "action": "#E41A1C",
+    ACTION_VERTEX_TYPE: "#E41A1C",
     "domain": "#377EB8",
     "dependency": "#4DAF4A",
     "connection": "#984EA3",

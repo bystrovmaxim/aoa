@@ -107,6 +107,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
+from action_machine.interchange_vertex_labels import ACTION_VERTEX_TYPE
 from action_machine.graph.base_facet_snapshot import BaseFacetSnapshot
 from action_machine.graph.base_intent_inspector import BaseIntentInspector
 from action_machine.graph.payload import EdgeInfo, FacetPayload
@@ -226,7 +227,7 @@ class RoleIntentInspector(BaseIntentInspector):
         cls, action_cls: type, spec: Any,
     ) -> FacetPayload:
         return FacetPayload(
-            node_type="action",
+            node_type=ACTION_VERTEX_TYPE,
             node_name=cls._make_node_name(action_cls),
             node_class=action_cls,
             node_meta=cls._make_meta(spec=spec),

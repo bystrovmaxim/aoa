@@ -91,7 +91,7 @@ def _graph_children(coord: GraphCoordinator, full_key: str) -> list[dict[str, An
 
 def _dependency_tree(coord: GraphCoordinator, key: str | type) -> dict[str, Any]:
     if isinstance(key, type):
-        key = f"action:{BaseIntentInspector._make_node_name(key)}"
+        key = f"Action:{BaseIntentInspector._make_node_name(key)}"
     g = coord.facet_topology_copy()
     idx_by_key: dict[str, int] = {}
     for i in g.node_indices():
@@ -310,7 +310,7 @@ class TestBasicNodes:
         """Registering an action with @depends creates a node of type action (structural facet)."""
         coord = _new_coord()
         coord.get_snapshot(_ActionWithDepsAction, "meta")
-        nodes = coord.get_nodes_by_type("action")
+        nodes = coord.get_nodes_by_type("Action")
         assert len(nodes) >= 1
 
     def test_register_plugin_does_not_create_subscription_nodes(self):
@@ -447,7 +447,7 @@ class TestCompensatorNodes:
         action_idx = next(
             (
                 idx for idx in g.node_indices()
-                if g[idx].get("node_type") == "action" and g[idx].get("id") == action_name
+                if g[idx].get("node_type") == "Action" and g[idx].get("id") == action_name
             ),
             None,
         )
@@ -534,42 +534,42 @@ class TestPublicAPI:
         """get_node for merged action host (``@meta`` folded) returns data."""
         coord = _new_coord()
         coord.get_snapshot(_PingGraphAction, "meta")
-        key = _node_key("action", _PingGraphAction)
+        key = _node_key("Action", _PingGraphAction)
         node = coord.get_node(key)
         assert node is not None
 
     def test_get_node_missing_returns_none(self):
         """get_node for an unregistered class returns None."""
         coord = CoreActionMachine.create_coordinator()
-        node = coord.get_node("action", "nonexistent.module.AbsentAction")
+        node = coord.get_node("Action", "nonexistent.module.AbsentAction")
         assert node is None
 
     def test_get_children_of_action(self):
         """The child nodes in the graph (outgoing edges) of an action with dependencies are non-empty."""
         coord = _new_coord()
         coord.get_snapshot(_ActionWithDepsAction, "meta")
-        key = _node_key("action", _ActionWithDepsAction)
+        key = _node_key("Action", _ActionWithDepsAction)
         children = _graph_children(coord, key)
         assert len(children) > 0
 
     def test_get_children_of_missing_node(self):
         """An unregistered class has no edges emanating from the action node."""
         coord = CoreActionMachine.create_coordinator()
-        children = _graph_children(coord, _node_key("action", _EmptyClass))
+        children = _graph_children(coord, _node_key("Action", _EmptyClass))
         assert children == []
 
     def test_get_nodes_by_type_action(self):
-        """get_nodes_by_type('action') returns all actions."""
+        """get_nodes_by_type('Action') returns all actions."""
         coord = _new_coord()
         coord.get_snapshot(_PingGraphAction, "meta")
         coord.get_snapshot(_ActionWithDepsAction, "meta")
-        actions = coord.get_nodes_by_type("action")
+        actions = coord.get_nodes_by_type("Action")
         assert len(actions) >= 2
 
     def test_get_nodes_by_type_empty(self):
         """get_nodes_by_type on an empty coordinator - an empty list."""
         coord = CoreActionMachine.create_coordinator()
-        result = coord.get_nodes_by_type("action")
+        result = coord.get_nodes_by_type("Action")
         assert isinstance(result, list)
 
     def test_get_dependency_tree_structure(self):

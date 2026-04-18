@@ -128,7 +128,7 @@ def test_build_from_synthetic_bundle_counts_small_bundle() -> None:
             },
             {
                 "id": "a1",
-                "node_type": "action",
+                "node_type": "Action",
                 "stereotype": "Business Process",
                 "label": "A",
                 "class_ref": None,

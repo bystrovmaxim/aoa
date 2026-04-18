@@ -40,7 +40,7 @@ def test_role_intent_inspector_branches() -> None:
     assert RoleIntentInspector.inspect(_RoleMissing) is None
     payload = RoleIntentInspector.inspect(_RoleFilled)
     assert payload is not None
-    assert payload.node_type == "action"
+    assert payload.node_type == "Action"
     assert dict(payload.node_meta)["spec"] is _InspectFixtureRole
     assert any(
         isinstance(e, EdgeInfo)

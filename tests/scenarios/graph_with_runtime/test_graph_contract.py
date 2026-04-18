@@ -95,13 +95,13 @@ def test_contract_get_node_shape_matches_hydrate() -> None:
     """``get_node`` returns the same field set as hydrating the raw node."""
     coord = _default_coordinator()
     nm = BaseIntentInspector._make_node_name(PingAction)
-    node = coord.get_node("action", nm)
+    node = coord.get_node("Action", nm)
     assert node is not None
     graph = coord.facet_topology_copy()
     idx = next(
         i
         for i in graph.node_indices()
-        if graph[i]["node_type"] == "action" and graph[i]["id"] == nm
+        if graph[i]["node_type"] == "Action" and graph[i]["id"] == nm
     )
     assert node == coord.hydrate_graph_node(dict(graph[idx]))
 

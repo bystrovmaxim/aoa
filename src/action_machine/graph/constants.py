@@ -15,7 +15,7 @@ from typing import Final
 # graph.md §2.1 — interchange vertex types (business layer elements).
 VERTEX_TYPES: Final[frozenset[str]] = frozenset(
     {
-        "action",
+        "Action",
         "aspect",
         "compensator",
         "error_handler",

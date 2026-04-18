@@ -5,7 +5,7 @@
     "vertices": [
       {
         "id": "golden_demo.actions.DemoAction",
-        "node_type": "action",
+        "node_type": "Action",
         "stereotype": "Business Process",
         "label": "DemoAction",
         "class_ref": null,
@@ -53,7 +53,7 @@
     "vertices": [
       {
         "id": "golden_demo.actions.DemoAction",
-        "node_type": "action",
+        "node_type": "Action",
         "stereotype": "Business Process",
         "label": "DemoAction",
         "class_ref": null,
@@ -100,8 +100,8 @@
   "expected_from_facets": {
     "vertices": [
       {
-        "id": "action:golden_demo.actions.DemoAction",
-        "node_type": "action",
+        "id": "Action:golden_demo.actions.DemoAction",
+        "node_type": "Action",
         "stereotype": "",
         "label": "DemoAction",
         "class_ref": null,
@@ -147,8 +147,8 @@
   "expected_from_facets_phase1_merge": {
     "vertices": [
       {
-        "id": "action:golden_demo.actions.DemoAction",
-        "node_type": "action",
+        "id": "Action:golden_demo.actions.DemoAction",
+        "node_type": "Action",
         "stereotype": "",
         "label": "DemoAction",
         "class_ref": null,

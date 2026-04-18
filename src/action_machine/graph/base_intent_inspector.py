@@ -216,7 +216,7 @@ EXAMPLE — INSPECTOR WITH EDGES
                 for dep_info in target_cls._depends_info
             )
             return FacetPayload(
-                node_type="action",
+                node_type="Action",
                 node_name=cls._make_node_name(target_cls),
                 node_class=target_cls,
                 edges=edges,

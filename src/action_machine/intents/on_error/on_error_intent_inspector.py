@@ -72,6 +72,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import cast
 
+from action_machine.interchange_vertex_labels import ACTION_VERTEX_TYPE
 from action_machine.graph.base_facet_snapshot import BaseFacetSnapshot
 from action_machine.graph.base_intent_inspector import BaseIntentInspector
 from action_machine.graph.payload import EdgeInfo, FacetMetaRow, FacetPayload
@@ -165,7 +166,7 @@ class OnErrorIntentInspector(BaseIntentInspector):
                 for h in self.error_handlers
             )
             return FacetPayload(
-                node_type="action",
+                node_type=ACTION_VERTEX_TYPE,
                 node_name=OnErrorIntentInspector._make_node_name(self.class_ref),
                 node_class=self.class_ref,
                 node_meta=OnErrorIntentInspector._make_meta(error_handlers=entries),
@@ -193,7 +194,7 @@ class OnErrorIntentInspector(BaseIntentInspector):
         cls, _target_cls: type, payload: FacetPayload,
     ) -> bool:
         """Hydrate aggregate ``error_handler`` snapshot onto the canonical ``action`` node only."""
-        return payload.node_type == "action"
+        return payload.node_type == ACTION_VERTEX_TYPE
 
     @classmethod
     def _has_error_handlers_invariant(cls, target_cls: type) -> bool:
@@ -235,7 +236,7 @@ class OnErrorIntentInspector(BaseIntentInspector):
             )
         out.append(
             FacetPayload(
-                node_type="action",
+                node_type=ACTION_VERTEX_TYPE,
                 node_name=cls._make_node_name(target_cls),
                 node_class=target_cls,
                 node_meta=(),

@@ -40,7 +40,7 @@ def test_compensate_inspector_builds_payload_with_compensator_entries() -> None:
     produced = CompensateIntentInspector.inspect(_CompensateAction)
     assert isinstance(produced, list)
     comp_payloads = [p for p in produced if p.node_type == "compensator"]
-    action_payloads = [p for p in produced if p.node_type == "action"]
+    action_payloads = [p for p in produced if p.node_type == "Action"]
     assert len(comp_payloads) == 2
     assert len(action_payloads) == 1
     act = action_payloads[0]
