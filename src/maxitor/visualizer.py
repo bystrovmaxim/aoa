@@ -10,7 +10,9 @@ Call :func:`export_samples_graph_html` again (or pass a freshly built
 ``PyDiGraph``) after code changes; deleting ``archive/logs/*.json`` does not
 affect HTML — optional GraphML/JSON/DOT exports are separate in
 :mod:`maxitor.graph_export`.
-Layout: d3-force with custom distance/strength per node type.
+Layout: d3-force with custom distance/strength per node type. Domains receive
+deterministic **seed** ``x``/``y`` (wedges around a circle) so cross-domain edges
+cross the canvas less than a single random blob; forces still refine the result.
 Node fill colors: **fixed** per interchange ``vertex_type`` / ``node_type`` string
 (see :data:`VERTEX_TYPE_FILL_COLORS`); ``application`` is always black. Each node is
 drawn as an SVG **data URL** (white Lucide icons on the colored disk; see
@@ -27,17 +29,16 @@ Interaction: drag-canvas (pan empty canvas) + drag-element (move nodes).
 ``drag-element-force`` is intentionally avoided: it re-runs d3-force on every drag
 frame, so the *entire* graph appears to move with the pointer.
 
-Hover highlight keeps each node's type color (no single ``fill`` swap). Non-focused
-nodes and edges are dimmed; the hovered node and its neighbors use
-``filter: brightness(...)`` (and full opacity) so emphasis is luminance, not a
-shared highlight hue. Short names on hover are drawn in a separate HTML overlay
-(not G6 node labels) so domain bubble-sets and layout use only the icon key
-shape—hover text does not change hull geometry or force layout.
+On hover: HTML labels for the **hub** and **all neighbors** (short names); G6
+``setElementState`` — **hub** / **nb** (red stroke rings only, no SVG filters that
+break image icons), **dim** fades opacity; **edgehl** red edges. **No** ``updateData`` /
+``draw``.
 """
 
 from __future__ import annotations
 
 import json
+import math
 from collections import defaultdict
 from datetime import UTC, datetime
 from html import escape as html_escape
@@ -271,24 +272,19 @@ def _application_roles_bubble_plugin(
     }
 
 
-def _bubble_sets_plugins_for_domains(
+def _domain_sort_key_for_id(g6_nodes: list[dict[str, Any]], nid: str) -> tuple[str, str]:
+    node = next(x for x in g6_nodes if str(x["id"]) == nid)
+    d = node.get("data") or {}
+    return (str(d.get("label", "")), str(d.get("graph_key", nid)))
+
+
+def _propagate_node_domains(
     g6_nodes: list[dict[str, Any]],
     g6_edges: list[dict[str, Any]],
-) -> list[dict[str, Any]]:
+) -> tuple[dict[str, str], list[str], defaultdict[str, set[str]]]:
     """
-    Build G6 ``bubble-sets`` plugins: one hull per ``domain`` vertex.
-
-    Members: the domain vertex, every node with ``BELONGS_TO`` into that domain, and
-    nodes reachable by propagating domain along action-owned facets (aspects,
-    sensitive fields, error handlers, compensators, param/result schemas,
-    ``HAS_LIFECYCLE`` / ``HAS_LIFECYCLE_STATE`` from entities) and
-    ``CHECKS_ASPECT`` (checker ↔ aspect), so facets share the parent action's domain.
-
-    The ``application`` vertex is never added to a domain bubble.
-
-    Additionally, one hull bundles ``application``, ``DependencyService`` stubs,
-    all ``role`` / ``role_class`` / ``role_mode`` vertices, and every node whose
-    ``node_type`` is not listed in :data:`VERTEX_TYPE_FILL_COLORS`.
+    Same domain membership as domain bubble-sets: ``BELONGS_TO`` + ownership
+    propagation along facet edges and ``CHECKS_ASPECT``.
     """
     id_to_type: dict[str, str] = {}
     for n in g6_nodes:
@@ -297,7 +293,6 @@ def _bubble_sets_plugins_for_domains(
 
     domain_ids = [nid for nid, t in id_to_type.items() if t == "domain"]
 
-    # node_id -> domain vertex ids (interchange ids of domain nodes)
     node_domains: defaultdict[str, set[str]] = defaultdict(set)
 
     for e in g6_edges:
@@ -334,6 +329,99 @@ def _bubble_sets_plugins_for_domains(
                     node_domains[tgt] = merged
                     changed = True
 
+    return id_to_type, domain_ids, node_domains
+
+
+def _d3_seed_xy_for_nodes(
+    g6_nodes: list[dict[str, Any]],
+    id_to_type: dict[str, str],
+    domain_ids: list[str],
+    node_domains: defaultdict[str, set[str]],
+) -> dict[str, tuple[float, float]]:
+    """
+    Place each node in a **primary** domain wedge (``min`` of domain ids) on a
+    circle; ``application`` and nodes without propagated domain sit in a small
+    cluster at the origin. Reduces edge crossings versus a single force blob.
+    """
+    sorted_domain_ids = sorted(domain_ids, key=lambda did: _domain_sort_key_for_id(g6_nodes, did))
+    d_count = len(sorted_domain_ids)
+    n_total = len(g6_nodes)
+    ring_r = 240.0 + min(520.0, 18.0 * math.sqrt(max(n_total, 1)))
+
+    out: dict[str, tuple[float, float]] = {}
+
+    center_ids: list[str] = []
+    for n in g6_nodes:
+        nid = str(n["id"])
+        if id_to_type.get(nid) == "application":
+            center_ids.append(nid)
+            continue
+        if id_to_type.get(nid) == "domain":
+            continue
+        if not node_domains.get(nid):
+            center_ids.append(nid)
+
+    for j, nid in enumerate(sorted(center_ids)):
+        ang = 2 * math.pi * j / max(len(center_ids), 1)
+        r = 38.0 + (j % 6) * 6.0
+        out[nid] = (r * math.cos(ang), r * math.sin(ang))
+
+    for i, dom_id in enumerate(sorted_domain_ids):
+        theta = 2 * math.pi * i / max(d_count, 1)
+        cx = ring_r * math.cos(theta)
+        cy = ring_r * math.sin(theta)
+
+        members: list[str] = []
+        for n in g6_nodes:
+            nid = str(n["id"])
+            if id_to_type.get(nid) == "application":
+                continue
+            if nid == dom_id:
+                members.append(nid)
+                continue
+            doms = node_domains.get(nid, set())
+            if doms and min(doms) == dom_id:
+                members.append(nid)
+        members = sorted(frozenset(members), key=lambda nid: (0 if nid == dom_id else 1, nid))
+
+        for j, nid in enumerate(members):
+            sub_ang = 2 * math.pi * j / max(len(members), 1)
+            r_loc = 28.0 + (j % 8) * 5.0
+            out[nid] = (cx + r_loc * math.cos(sub_ang), cy + r_loc * math.sin(sub_ang))
+
+    for n in g6_nodes:
+        nid = str(n["id"])
+        if nid not in out:
+            out[nid] = (0.0, 0.0)
+
+    return out
+
+
+def _bubble_sets_plugins_for_domains(
+    g6_nodes: list[dict[str, Any]],
+    g6_edges: list[dict[str, Any]],
+    *,
+    propagation: tuple[dict[str, str], list[str], defaultdict[str, set[str]]] | None = None,
+) -> list[dict[str, Any]]:
+    """
+    Build G6 ``bubble-sets`` plugins: one hull per ``domain`` vertex.
+
+    Members: the domain vertex, every node with ``BELONGS_TO`` into that domain, and
+    nodes reachable by propagating domain along action-owned facets (aspects,
+    sensitive fields, error handlers, compensators, param/result schemas,
+    ``HAS_LIFECYCLE`` / ``HAS_LIFECYCLE_STATE`` from entities) and
+    ``CHECKS_ASPECT`` (checker ↔ aspect), so facets share the parent action's domain.
+
+    The ``application`` vertex is never added to a domain bubble.
+
+    Additionally, one hull bundles ``application``, ``DependencyService`` stubs,
+    all ``role`` / ``role_class`` / ``role_mode`` vertices, and every node whose
+    ``node_type`` is not listed in :data:`VERTEX_TYPE_FILL_COLORS`.
+    """
+    if propagation is None:
+        propagation = _propagate_node_domains(g6_nodes, g6_edges)
+    id_to_type, domain_ids, node_domains = propagation
+
     members_by_domain: dict[str, set[str]] = {}
     for d in domain_ids:
         mem = {d}
@@ -344,14 +432,9 @@ def _bubble_sets_plugins_for_domains(
 
     palette = _BUBBLE_SETS_PALETTE
 
-    def _domain_sort_key(nid: str) -> tuple[str, str]:
-        node = next(x for x in g6_nodes if str(x["id"]) == nid)
-        d = node.get("data") or {}
-        return (str(d.get("label", "")), str(d.get("graph_key", nid)))
-
     plugins: list[dict[str, Any]] = []
     if domain_ids:
-        for i, dom_id in enumerate(sorted(domain_ids, key=_domain_sort_key)):
+        for i, dom_id in enumerate(sorted(domain_ids, key=lambda did: _domain_sort_key_for_id(g6_nodes, did))):
             raw_members = members_by_domain.get(dom_id, {dom_id})
             members = sorted(
                 [m for m in raw_members if id_to_type.get(m) != "application"],
@@ -479,7 +562,13 @@ def generate_g6_html(
         for idx in graph.node_indices()
     }
 
-    bubble_plugins = _bubble_sets_plugins_for_domains(g6_nodes, g6_edges)
+    propagation = _propagate_node_domains(g6_nodes, g6_edges)
+    seed_xy = _d3_seed_xy_for_nodes(g6_nodes, *propagation)
+    for n in g6_nodes:
+        sx, sy = seed_xy[str(n["id"])]
+        n["style"] = {"x": sx, "y": sy}
+
+    bubble_plugins = _bubble_sets_plugins_for_domains(g6_nodes, g6_edges, propagation=propagation)
     bubble_plugins_json = json.dumps(bubble_plugins, ensure_ascii=False)
 
     graph_data_json = json.dumps({"nodes": g6_nodes, "edges": g6_edges}, ensure_ascii=False)
@@ -682,6 +771,14 @@ __G6_SCRIPT__
 
     g6_script = f"""
         const graphData = {graph_data_json};
+        // Copy Python seed coordinates into node x/y so d3-force starts from domain wedges.
+        for (const n of graphData.nodes) {{
+          const s = n.style;
+          if (s && typeof s.x === 'number' && typeof s.y === 'number') {{
+            n.x = s.x;
+            n.y = s.y;
+          }}
+        }}
         const legendItems = {legend_json};
         const nodeTypeMap = {node_type_map_json};
         const bubblePlugins = {bubble_plugins_json};
@@ -713,7 +810,7 @@ __G6_SCRIPT__
             }}).join('');
         }}
 
-        // Adjacency index for highlighting
+        // Adjacency for hover highlight (no data mutation — use setElementState only).
         const adjIndex = {{}};
         const initAdj = (nid) => {{
           if (!adjIndex[nid]) adjIndex[nid] = {{ edges: new Set(), neighbors: new Set() }};
@@ -724,7 +821,7 @@ __G6_SCRIPT__
           adjIndex[edge.source].edges.add(edge.id);
           adjIndex[edge.source].neighbors.add(edge.target);
           adjIndex[edge.target].edges.add(edge.id);
-          adjIndex[edge.target].neighbors.add(edge.source);
+          adjIndex[edge.target].neighbors.add(edge.target);
         }}
         for (const node of graphData.nodes) initAdj(node.id);
 
@@ -743,47 +840,67 @@ __G6_SCRIPT__
               label: false,
               size: NODE_VISUAL_PX,
               src: (d) => d.data?.iconSrc || '',
-              opacity: (d) => (d.data?.inactive ? 0.18 : 1),
-              filter: (d) => {{
-                if (d.data?.inactive) return 'brightness(0.48) saturate(0.88)';
-                if (d.data?.highlighted) return 'brightness(1.2) saturate(1.06)';
-                return 'none';
-              }},
+              opacity: 1,
+              filter: 'none',
               cursor: 'grab',
+            }},
+            state: {{
+              dim: {{
+                opacity: 0.22,
+              }},
+              hub: {{
+                opacity: 1,
+                stroke: '#DC2626',
+                lineWidth: 3,
+              }},
+              nb: {{
+                opacity: 1,
+                stroke: '#F87171',
+                lineWidth: 2,
+              }},
             }},
           }},
 
           edge: {{
             type: 'line',
             style: {{
-              stroke: (d) => (d.data?.highlighted ? '#64748b' : '#95a5a6'),
-              lineWidth: (d) => (d.data?.highlighted ? 2.2 : (d.data?.isDag ? 2 : 1.2)),
-              opacity: (d) => (d.data?.inactive ? 0.12 : 1),
+              stroke: '#95a5a6',
+              lineWidth: (d) => (d.data?.isDag ? 2 : 1.2),
+              opacity: 1,
               endArrow: true,
               labelText: '',
+            }},
+            state: {{
+              dim: {{ opacity: 0.12 }},
+              edgehl: {{
+                stroke: '#E11D48',
+                lineWidth: 2.8,
+                opacity: 1,
+              }},
             }},
           }},
 
           layout: {{
             type: 'd3-force',
+            iterations: 320,
             link: {{
               distance: (edge) => {{
                 const st = nodeTypeMap[edge.source] || '';
                 const tt = nodeTypeMap[edge.target] || '';
-                return st === tt ? 60 : 220;
+                return st === tt ? 72 : 200;
               }},
               strength: (edge) => {{
                 const st = nodeTypeMap[edge.source] || '';
                 const tt = nodeTypeMap[edge.target] || '';
-                return st === tt ? 0.8 : 0.08;
+                return st === tt ? 0.82 : 0.11;
               }},
             }},
-            manyBody: {{ strength: -260, distanceMax: 600 }},
-            collide: {{ radius: NODE_VISUAL_PX * 0.5 + 6, strength: 0.9, iterations: 3 }},
-            center: {{ strength: 0.03 }},
-            alphaDecay: 0.01,
-            alphaMin: 0.001,
-            velocityDecay: 0.35,
+            manyBody: {{ strength: -360, distanceMax: 1200 }},
+            collide: {{ radius: NODE_VISUAL_PX * 0.5 + 7, strength: 0.95, iterations: 4 }},
+            center: {{ strength: 0.012 }},
+            alphaDecay: 0.008,
+            alphaMin: 0.0008,
+            velocityDecay: 0.36,
           }},
 
           behaviors: [
@@ -843,12 +960,48 @@ __G6_SCRIPT__
           return null;
         }}
 
+        let hoverLabelNodeId = null;
+        let glowClearTimer = null;
+
+        function applyNeighborGlow(nodeIdStr) {{
+          const adj = adjIndex[nodeIdStr];
+          if (!adj || typeof graph.setElementState !== 'function') return;
+          const st = {{}};
+          const hub = String(nodeIdStr);
+          graphData.nodes.forEach((n) => {{
+            const nid = String(n.id);
+            if (nid === hub) st[nid] = ['hub'];
+            else if (adj.neighbors.has(nid)) st[nid] = ['nb'];
+            else st[nid] = ['dim'];
+          }});
+          graphData.edges.forEach((e) => {{
+            st[e.id] = adj.edges.has(e.id) ? ['edgehl'] : ['dim'];
+          }});
+          void graph.setElementState(st);
+        }}
+
+        function clearNeighborGlow() {{
+          if (typeof graph.setElementState !== 'function') return;
+          const st = {{}};
+          graphData.nodes.forEach((n) => {{ st[n.id] = []; }});
+          graphData.edges.forEach((e) => {{ st[e.id] = []; }});
+          void graph.setElementState(st);
+        }}
+
         function syncHoverLabels() {{
           hoverOverlay.innerHTML = '';
+          if (hoverLabelNodeId == null) return;
+          const adj = adjIndex[hoverLabelNodeId];
+          const labelIds = new Set();
+          labelIds.add(String(hoverLabelNodeId));
+          if (adj) {{
+            adj.neighbors.forEach((nid) => labelIds.add(String(nid)));
+          }}
           const cr = container.getBoundingClientRect();
           graphData.nodes.forEach((n) => {{
-            if (!n.data?.highlighted || !n.data?.label) return;
             const id = String(n.id);
+            if (!labelIds.has(id)) return;
+            if (!n.data?.label) return;
             const canvasPt = _canvasPointForLabel(id);
             if (canvasPt == null) return;
             let left;
@@ -1072,69 +1225,49 @@ __G6_SCRIPT__
           if (id != null) showNodeDetailPanel(String(id));
         }});
 
-        // Highlighting (data-driven, no states)
-        let currentHighlight = null;
-        let clearTimer = null;
-
-        function resetAllFlags() {{
-          graphData.nodes.forEach(n => {{ n.data.highlighted = false; n.data.inactive = false; }});
-          graphData.edges.forEach(e => {{ e.data.highlighted = false; e.data.inactive = false; }});
-        }}
-
-        function applyHighlight(nodeId) {{
-          const adj = adjIndex[nodeId];
-          if (!adj) return;
-          resetAllFlags();
-          graphData.nodes.forEach(n => {{
-            if (n.id === nodeId || adj.neighbors.has(n.id)) n.data.highlighted = true;
-            else n.data.inactive = true;
-          }});
-          graphData.edges.forEach(e => {{
-            if (adj.edges.has(e.id)) e.data.highlighted = true;
-            else e.data.inactive = true;
-          }});
-          graph.updateData(graphData);
-          graph.draw();
-          requestAnimationFrame(() => syncHoverLabels());
-        }}
-
-        function clearHighlight() {{
-          resetAllFlags();
-          graph.updateData(graphData);
-          graph.draw();
-          syncHoverLabels();
-        }}
-
         graph.on('node:pointerover', (evt) => {{
-          if (clearTimer) clearTimeout(clearTimer);
-          const id = evt.target.id;
-          if (currentHighlight !== id) {{
-            currentHighlight = id;
-            applyHighlight(id);
+          if (glowClearTimer) {{
+            clearTimeout(glowClearTimer);
+            glowClearTimer = null;
           }}
+          let id = evt.target?.id;
+          if (id == null && evt.itemId != null) id = evt.itemId;
+          if (id == null && Array.isArray(evt.items) && evt.items[0]?.id != null) id = evt.items[0].id;
+          if (id == null) return;
+          const sid = String(id);
+          applyNeighborGlow(sid);
+          hoverLabelNodeId = sid;
+          requestAnimationFrame(() => syncHoverLabels());
         }});
 
         graph.on('node:pointerout', () => {{
-          clearTimer = setTimeout(() => {{
-            if (currentHighlight !== null) {{
-              currentHighlight = null;
-              clearHighlight();
-            }}
-            clearTimer = null;
+          glowClearTimer = setTimeout(() => {{
+            clearNeighborGlow();
+            hoverLabelNodeId = null;
+            syncHoverLabels();
+            glowClearTimer = null;
           }}, 50);
         }});
 
         graph.on('canvas:click', () => {{
-          if (clearTimer) clearTimeout(clearTimer);
-          currentHighlight = null;
-          clearHighlight();
+          if (glowClearTimer) {{
+            clearTimeout(glowClearTimer);
+            glowClearTimer = null;
+          }}
+          clearNeighborGlow();
+          hoverLabelNodeId = null;
+          syncHoverLabels();
           closeNodeDetailPanel();
         }});
 
         graph.on('canvas:mouseleave', () => {{
-          if (clearTimer) clearTimeout(clearTimer);
-          currentHighlight = null;
-          clearHighlight();
+          if (glowClearTimer) {{
+            clearTimeout(glowClearTimer);
+            glowClearTimer = null;
+          }}
+          clearNeighborGlow();
+          hoverLabelNodeId = null;
+          syncHoverLabels();
         }});
 
         // Zoom toolbar
