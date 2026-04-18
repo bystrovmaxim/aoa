@@ -110,12 +110,12 @@ def _dependency_tree(coord: GraphCoordinator, key: str | type) -> dict[str, Any]
         node_result: dict[str, Any] = {
             "node_type": hp["node_type"],
             "id": hp["id"],
-            "meta": dict(hp.get("meta", {})),
+            "facet_rows": dict(hp.get("facet_rows", {})),
             "children": [],
         }
         if idx in visited:
-            node_result["meta"] = dict(node_result["meta"])
-            node_result["meta"]["cycle"] = True
+            node_result["facet_rows"] = dict(node_result["facet_rows"])
+            node_result["facet_rows"]["cycle"] = True
             return node_result
         visited = visited | {idx}
         for _src, target, edge_payload in g.out_edges(idx):
@@ -446,7 +446,7 @@ class TestCompensatorNodes:
         node = next(
             n for n in nodes if n["class_ref"] is _ActionWithCompensatorGraphAction
         )
-        assert dict(node["meta"])["method_name"] == "rollback_step_compensate"
+        assert dict(node["facet_rows"])["method_name"] == "rollback_step_compensate"
 
         g = coord.facet_topology_copy()
         action_name = BaseIntentInspector._make_node_name(_ActionWithCompensatorGraphAction)

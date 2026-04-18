@@ -160,12 +160,12 @@ def pygraph_to_graphml_string_dicts(graph: rx.PyDiGraph) -> rx.PyDiGraph:
         ed = dict(w) if isinstance(w, dict) else {}
         edge_type = str(ed.get("edge_type", "") or "")
         ep: dict[str, str] = {"type": edge_type}
-        meta = ed.get("meta")
-        if meta is not None:
+        edge_row = ed.get("edge_row")
+        if edge_row is not None:
             try:
-                ep["meta"] = json.dumps(meta, ensure_ascii=False, default=str)[:8000]
+                ep["edge_row"] = json.dumps(edge_row, ensure_ascii=False, default=str)[:8000]
             except TypeError:
-                ep["meta"] = str(meta)[:8000]
+                ep["edge_row"] = str(edge_row)[:8000]
         out.add_edge(old_to_new[s], old_to_new[t], ep)
     return out
 

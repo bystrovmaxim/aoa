@@ -279,14 +279,14 @@ class TestDomainNodes:
         }
         assert refs == {_OrdersDomain, _PaymentsDomain}
 
-    def test_action_without_aspects_has_domain_in_meta_node(self):
+    def test_action_without_aspects_has_domain_in_facet_rows(self):
         coord = _coord()
         nm = BaseIntentInspector._make_node_name(_NoAspectsAction)
         host = coord.get_node("Action", nm)
         assert host is not None
-        meta = host.get("meta")
-        assert meta is not None
-        assert meta.get("domain") is _OrdersDomain
+        rows = host.get("facet_rows")
+        assert rows is not None
+        assert rows.get("domain") is _OrdersDomain
 
     def test_resource_with_domain_creates_domain_node(self):
         coord = _coord()

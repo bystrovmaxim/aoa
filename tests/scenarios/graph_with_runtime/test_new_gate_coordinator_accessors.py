@@ -241,7 +241,7 @@ def test_new_coordinator_runtime_accessors() -> None:
 
     ent_node = coordinator.get_node(ENTITY_VERTEX_TYPE, entity_name)
     assert ent_node is not None
-    assert ent_node.get("meta", {}).get("description") == "Demo entity"
+    assert ent_node.get("facet_rows", {}).get("description") == "Demo entity"
 
     asp = coordinator.get_snapshot(_DemoAction, "aspect")
     assert asp is not None
@@ -291,7 +291,7 @@ def test_new_coordinator_runtime_accessors() -> None:
             continue
         for _s, _t, ep in g.out_edges(idx):
             if isinstance(ep, dict) and ep.get("edge_type") == "connection":
-                ck = ep.get("meta", {}).get("key")
+                ck = ep.get("edge_row", {}).get("key")
                 if isinstance(ck, str):
                     connection_keys.append(ck)
     assert tuple(connection_keys) == ("db",)

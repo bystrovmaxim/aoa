@@ -17,7 +17,7 @@ failures for bad mapper outputs (generic ``INTERNAL_ERROR`` body without leaking
 guard text), ``__name__`` derivation from ``tool_name``, success ``data`` JSON
 round-trip without ``default=str``, ``INVALID_PARAMS`` items with ``type``/``loc``,
 ``model_dump(mode="json")`` for datetimes in results, and graph JSON topology
-(nodes, edges, hydrated meta).
+(nodes, edges, hydrated ``facet_rows``).
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW

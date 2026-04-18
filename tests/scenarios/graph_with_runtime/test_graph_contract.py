@@ -30,9 +30,9 @@ GRAPH_NODE_SKELETON_KEYS: Final[frozenset[str]] = frozenset({
     "class_ref",
 })
 
-# Optional keys on raw facet nodes (e.g. ``committed_meta`` for per-vertex facet rows).
+# Optional keys on raw facet nodes (e.g. ``committed_facet_rows`` for per-vertex facet rows).
 GRAPH_NODE_SKELETON_OPTIONAL_KEYS: Final[frozenset[str]] = frozenset({
-    "committed_meta",
+    "committed_facet_rows",
     "skip_node_type_snapshot_fallback",
 })
 
@@ -41,7 +41,7 @@ HYDRATED_NODE_REQUIRED_KEYS: Final[frozenset[str]] = frozenset({
     "node_type",
     "id",
     "class_ref",
-    "meta",
+    "facet_rows",
 })
 
 # --- Contract: MCP graph JSON root ---------------------------------------
@@ -65,7 +65,7 @@ def _default_coordinator() -> GraphCoordinator:
 
 
 def test_contract_raw_graph_nodes_are_skeleton_only() -> None:
-    """Every facet topology node has the core skeleton keys (and optional ``committed_meta``)."""
+    """Every facet topology node has the core skeleton keys (and optional ``committed_facet_rows``)."""
     coord = _default_coordinator()
     graph = coord.facet_topology_copy()
     allowed = GRAPH_NODE_SKELETON_KEYS | GRAPH_NODE_SKELETON_OPTIONAL_KEYS
@@ -81,15 +81,15 @@ def test_contract_raw_graph_nodes_are_skeleton_only() -> None:
         assert cr is None or isinstance(cr, type)
 
 
-def test_contract_hydrate_always_adds_meta_dict() -> None:
-    """``hydrate_graph_node`` always returns ``meta`` as a ``dict``."""
+def test_contract_hydrate_always_adds_facet_rows_dict() -> None:
+    """``hydrate_graph_node`` always returns ``facet_rows`` as a ``dict``."""
     coord = _default_coordinator()
     graph = coord.facet_topology_copy()
     for idx in graph.node_indices():
         raw = dict(graph[idx])
         hydrated = coord.hydrate_graph_node(raw)
         assert set(hydrated.keys()) >= HYDRATED_NODE_REQUIRED_KEYS
-        assert isinstance(hydrated["meta"], dict)
+        assert isinstance(hydrated["facet_rows"], dict)
 
 
 def test_contract_get_node_shape_matches_hydrate() -> None:

@@ -290,15 +290,15 @@ def _validate_tool_request_kwargs(kwargs: dict[str, Any], req_model: type) -> An
         ) from exc
 
 
-def _get_meta_description(
+def _get_action_class_description(
     action_class: type,
     *,
     coordinator: GraphCoordinator | None = None,
 ) -> str:
     """
-    Extract MCP tool description from action metadata.
+    Extract MCP tool description from the action class ``@meta`` declaration.
 
-    Prefers coordinator ``meta`` facet snapshot
+    Prefers the MetaIntent snapshot registered under storage key ``"meta"``
     (``get_snapshot(action_class, "meta")``); falls back to class scratch
     ``_meta_info`` if snapshot is unavailable.
 
@@ -310,9 +310,9 @@ def _get_meta_description(
         Description string or empty string.
     """
     if coordinator is not None and coordinator.is_built:
-        meta_snap = coordinator.get_snapshot(action_class, "meta")
-        if meta_snap is not None:
-            return str(getattr(meta_snap, "description", "") or "")
+        snap = coordinator.get_snapshot(action_class, "meta")
+        if snap is not None:
+            return str(getattr(snap, "description", "") or "")
     meta_info = getattr(action_class, "_meta_info", None)
     if meta_info and isinstance(meta_info, dict):
         return str(meta_info.get("description", ""))
@@ -357,13 +357,17 @@ def _mcp_edge_type_from_payload(edge_data: Any) -> str:
     return str(edge_data)
 
 
-def _mcp_apply_meta_to_node(node: dict[str, Any], meta: dict[str, Any], node_type: str) -> None:
-    """Mutate ``node`` with optional description, domain, and domain display name from ``meta``."""
-    description = meta.get("description", "")
+def _mcp_apply_facet_rows_to_node(
+    node: dict[str, Any],
+    facet_rows: dict[str, Any],
+    node_type: str,
+) -> None:
+    """Mutate ``node`` with optional description, domain, and domain display name from ``facet_rows``."""
+    description = facet_rows.get("description", "")
     if description:
         node["description"] = description
 
-    domain = meta.get("domain")
+    domain = facet_rows.get("domain")
     if domain:
         if isinstance(domain, type):
             node["domain"] = f"{domain.__module__}.{domain.__qualname__}"
@@ -371,7 +375,7 @@ def _mcp_apply_meta_to_node(node: dict[str, Any], meta: dict[str, Any], node_typ
             node["domain"] = str(domain)
 
     if node_type == DOMAIN_VERTEX_TYPE:
-        domain_name = meta.get("name", "")
+        domain_name = facet_rows.get("name", "")
         if domain_name:
             node["domain_label"] = domain_name
 
@@ -401,18 +405,18 @@ def _build_graph_json(coordinator: GraphCoordinator) -> str:
         hydrated = coordinator.hydrate_graph_node(dict(payload))
         node_type = hydrated.get("node_type", "unknown")
         node_id = str(hydrated.get("id") or hydrated.get("name") or "")
-        meta = hydrated.get("meta", {})
+        facet_rows = hydrated.get("facet_rows", {})
 
         node: dict[str, Any] = {
             "id": node_id,
             "type": node_type,
         }
 
-        # In node payload ``meta``, ``domain`` is usually a BaseDomain class.
+        # In ``facet_rows``, ``domain`` is usually a BaseDomain class.
         # ``json.dumps`` cannot serialize ``type`` values directly.
         # For MCP resource we emit stable ``module.QualName``; for non-standard
         # values we fallback to ``str(domain)`` so agents still receive text.
-        _mcp_apply_meta_to_node(node, meta, node_type)
+        _mcp_apply_facet_rows_to_node(node, facet_rows, node_type)
 
         nodes.append(node)
 
@@ -529,7 +533,7 @@ def _make_tool_handler(
             )
 
     handler.__name__ = record.tool_name.replace(".", "_").replace("-", "_")
-    handler.__doc__ = record.description or _get_meta_description(
+    handler.__doc__ = record.description or _get_action_class_description(
         record.action_class,
         coordinator=gate_coordinator,
     )
@@ -732,7 +736,7 @@ class McpAdapter(BaseAdapter[McpRouteRecord]):
         Returns:
             Current adapter instance.
         """
-        effective_description = description or _get_meta_description(
+        effective_description = description or _get_action_class_description(
             action_class,
             coordinator=self.gate_coordinator,
         )
@@ -862,7 +866,7 @@ class McpAdapter(BaseAdapter[McpRouteRecord]):
         arg_model = self._mcp_argument_model(record)
         fn_meta = FuncMetadata(arg_model=arg_model)
         parameters = arg_model.model_json_schema(by_alias=True)
-        description = record.description or _get_meta_description(
+        description = record.description or _get_action_class_description(
             record.action_class,
             coordinator=self.gate_coordinator,
         )

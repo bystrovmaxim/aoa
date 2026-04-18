@@ -226,7 +226,7 @@ class CheckerIntentInspector(BaseIntentInspector):
         _target_cls: type,
         _payload: FacetPayload,
     ) -> bool:
-        """Per-checker nodes hydrate from ``committed_meta`` on the facet skeleton."""
+        """Per-checker nodes hydrate from ``committed_facet_rows`` on the facet skeleton."""
         return False
 
     @classmethod

@@ -82,7 +82,7 @@ class ActionWithContextCompensatorAction(BaseAction[EmptyParams, EmptyResult]):
 
 
 class TestCompensatorGraphNodes:
-    """Per-method ``compensator`` nodes and flat ``meta`` for one action class."""
+    """Per-method ``compensator`` nodes and hydrated ``facet_rows`` for one action class."""
 
     def test_compensator_node_created(self) -> None:
         coordinator = _coordinator()
@@ -94,7 +94,7 @@ class TestCompensatorGraphNodes:
             ActionWithCompensatorAction, "rollback_compensate",
         )
         assert node["id"] == expected
-        row = dict(node["meta"])
+        row = dict(node["facet_rows"])
         assert row["method_name"] == "rollback_compensate"
         assert row["target_aspect_name"] == "target_aspect"
         assert row["description"] == "Test compensator"
@@ -116,14 +116,14 @@ class TestCompensatorGraphNodes:
     def test_compensator_node_metadata(self) -> None:
         coordinator = _coordinator()
         nodes = _compensator_nodes_for(coordinator, ActionWithCompensatorAction)
-        row = dict(nodes[0]["meta"])
+        row = dict(nodes[0]["facet_rows"])
         assert row["method_name"] == "rollback_compensate"
         assert row["target_aspect_name"] == "target_aspect"
         assert row["description"] == "Test compensator"
 
 
 class TestCompensatorGraphEdges:
-    """``has_compensator`` on facet topology; context keys on per-method ``meta``."""
+    """``has_compensator`` on facet topology; context keys on per-method ``facet_rows``."""
 
     def test_has_compensator_edge_exists(self) -> None:
         coordinator = _coordinator()
@@ -155,14 +155,14 @@ class TestCompensatorGraphEdges:
         coordinator = _coordinator()
         comp_nodes = _compensator_nodes_for(coordinator, ActionWithContextCompensatorAction)
         assert len(comp_nodes) == 1
-        row = dict(comp_nodes[0]["meta"])
+        row = dict(comp_nodes[0]["facet_rows"])
         assert row["method_name"] == "rollback_with_context_compensate"
         assert Ctx.User.user_id in row["context_keys"]
 
     def test_compensator_without_context_no_requires_context_edge(self) -> None:
         coordinator = _coordinator()
         comp_nodes = _compensator_nodes_for(coordinator, ActionWithCompensatorAction)
-        row = dict(comp_nodes[0]["meta"])
+        row = dict(comp_nodes[0]["facet_rows"])
         assert row["method_name"] == "rollback_compensate"
         assert row["context_keys"] == frozenset()
 
@@ -174,11 +174,11 @@ class TestCompensatorInDependencyTree:
         coordinator = _coordinator()
         facets = {n["node_type"] for n in coordinator.get_nodes_for_class(ActionWithCompensatorAction)}
         assert "Compensator" in facets
-        assert "meta" in facets or "Action" in facets
+        assert "Action" in facets
 
     def test_dependency_tree_depth_for_compensator_with_context(self) -> None:
         coordinator = _coordinator()
         node = _compensator_nodes_for(coordinator, ActionWithContextCompensatorAction)[0]
-        row = dict(node["meta"])
+        row = dict(node["facet_rows"])
         assert row["method_name"] == "rollback_with_context_compensate"
         assert Ctx.User.user_id in row["context_keys"]

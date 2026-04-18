@@ -18,8 +18,8 @@ def test_default_coordinator_emits_role_mode_and_role_class_nodes() -> None:
     assert app_rows, "expected ApplicationRole role_class node"
     snap = coord.get_snapshot(ApplicationRole, "role_mode")
     assert snap is not None
-    meta = coord.hydrate_graph_node(dict(app_rows[0])).get("meta") or {}
-    assert "mode" in meta
+    rows = coord.hydrate_graph_node(dict(app_rows[0])).get("facet_rows") or {}
+    assert "mode" in rows
 
 
 def test_order_roles_present_and_requires_role_edges_exist() -> None:
