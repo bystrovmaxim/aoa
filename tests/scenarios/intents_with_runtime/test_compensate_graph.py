@@ -27,7 +27,7 @@ from tests.scenarios.domain_model.domains import TestDomain
 def _compensator_nodes_for(coordinator: GraphCoordinator, action_cls: type) -> list[dict]:
     """``compensator`` facet nodes for ``action_cls`` (filters global graph by ``class_ref``)."""
     return [
-        n for n in coordinator.get_nodes_by_type("compensator")
+        n for n in coordinator.get_nodes_by_type("Compensator")
         if n.get("class_ref") is action_cls
     ]
 
@@ -89,7 +89,7 @@ class TestCompensatorGraphNodes:
         nodes = _compensator_nodes_for(coordinator, ActionWithCompensatorAction)
         assert len(nodes) == 1
         node = nodes[0]
-        assert node["node_type"] == "compensator"
+        assert node["node_type"] == "Compensator"
         expected = BaseIntentInspector._make_host_dependent_node_name(
             ActionWithCompensatorAction, "rollback_compensate",
         )
@@ -173,7 +173,7 @@ class TestCompensatorInDependencyTree:
     def test_dependency_tree_includes_compensator(self) -> None:
         coordinator = _coordinator()
         facets = {n["node_type"] for n in coordinator.get_nodes_for_class(ActionWithCompensatorAction)}
-        assert "compensator" in facets
+        assert "Compensator" in facets
         assert "meta" in facets or "Action" in facets
 
     def test_dependency_tree_depth_for_compensator_with_context(self) -> None:

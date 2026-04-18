@@ -7,6 +7,7 @@ from collections import UserDict
 
 from action_machine.graph.base_intent_inspector import BaseIntentInspector
 from action_machine.interchange_vertex_labels import (
+    COMPENSATOR_VERTEX_TYPE,
     REGULAR_ASPECT_VERTEX_TYPE,
     SUMMARY_ASPECT_VERTEX_TYPE,
 )
@@ -110,7 +111,7 @@ def test_compensator_row_roundtrip_matches_facet_snapshot() -> None:
     assert snap is not None
     produced = CompensateIntentInspector.inspect(_RoundtripCompensateAction)
     assert isinstance(produced, list)
-    comp_payloads = [p for p in produced if p.node_type == "compensator"]
+    comp_payloads = [p for p in produced if p.node_type == COMPENSATOR_VERTEX_TYPE]
     assert len(comp_payloads) == len(snap.compensators)
     for payload, expected in zip(comp_payloads, snap.compensators, strict=True):
         assert hydrate_compensator_row(payload.node_meta) == expected
