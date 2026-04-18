@@ -129,6 +129,7 @@ class ActionNode(BaseGraphNode[type[TAction]]):
         return BaseGraphEdge(
             link_name="params",
             target_id=qualified_dotted_name(params_type),
+            is_dag=False,
         )
 
     @classmethod
@@ -143,6 +144,7 @@ class ActionNode(BaseGraphNode[type[TAction]]):
         return BaseGraphEdge(
             link_name="result",
             target_id=qualified_dotted_name(result_type),
+            is_dag=False,
         )
 
     @classmethod
@@ -166,6 +168,7 @@ class ActionNode(BaseGraphNode[type[TAction]]):
         return BaseGraphEdge(
             link_name="domain",
             target_id=qualified_dotted_name(dom),
+            is_dag=False,
         )
 
     @classmethod

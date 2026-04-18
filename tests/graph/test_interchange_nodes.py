@@ -75,22 +75,25 @@ def test_action_node_links_and_helpers() -> None:
     assert node.label == "PingAction"
     assert node.id == host
     assert node.links == [
-        BaseGraphEdge(link_name="domain", target_id=dom_id),
-        BaseGraphEdge(link_name="params", target_id=params_id),
-        BaseGraphEdge(link_name="result", target_id=result_id),
+        BaseGraphEdge(link_name="domain", target_id=dom_id, is_dag=False),
+        BaseGraphEdge(link_name="params", target_id=params_id, is_dag=False),
+        BaseGraphEdge(link_name="result", target_id=result_id, is_dag=False),
     ]
 
     assert ActionNode.get_domain_link(PingAction) == BaseGraphEdge(
         link_name="domain",
         target_id=dom_id,
+        is_dag=False,
     )
     assert ActionNode.get_params_link(PingAction) == BaseGraphEdge(
         link_name="params",
         target_id=params_id,
+        is_dag=False,
     )
     assert ActionNode.get_result_link(PingAction) == BaseGraphEdge(
         link_name="result",
         target_id=result_id,
+        is_dag=False,
     )
 
     p_type, r_type = ActionNode.get_schema_generic_binding(PingAction)
@@ -109,11 +112,12 @@ def test_entity_node_links_properties_and_domain_helpers() -> None:
     assert node.id == host
     assert node.properties == {"description": "Simple test entity"}
     assert node.links == [
-        BaseGraphEdge(link_name="domain", target_id=dom_id),
+        BaseGraphEdge(link_name="domain", target_id=dom_id, is_dag=False),
     ]
 
     assert EntityNode.get_domain_link(SampleEntity) == BaseGraphEdge(
         link_name="domain",
         target_id=dom_id,
+        is_dag=False,
     )
     assert EntityNode._get_all_links(SampleEntity) == node.links

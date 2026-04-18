@@ -113,6 +113,7 @@ class EntityNode(BaseGraphNode[type[TEntity]]):
         return BaseGraphEdge(
             link_name="domain",
             target_id=qualified_dotted_name(dom),
+            is_dag=False,
         )
 
     @classmethod
