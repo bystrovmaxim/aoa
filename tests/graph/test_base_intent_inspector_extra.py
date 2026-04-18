@@ -20,7 +20,7 @@ class _SubSub(_Sub):
 def test_base_inspector_helper_methods() -> None:
     node_name = BaseIntentInspector._make_node_name(_Sub)
     assert _Sub.__qualname__ in node_name
-    assert BaseIntentInspector._make_node_name(_Sub, "x").endswith(".x")
+    assert BaseIntentInspector._make_node_name(_Sub, "x").endswith(":x")
 
     edge = BaseIntentInspector._make_edge("m", _Sub, "t", True)
     assert edge.edge_type == "t"

@@ -436,7 +436,7 @@ class TestInspection:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Integration with domain model via GateCoordinator
+# Integration with domain model via GraphCoordinator
 # ═════════════════════════════════════════════════════════════════════════════
 
 

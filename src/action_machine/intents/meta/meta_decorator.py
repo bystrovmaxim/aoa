@@ -53,7 +53,7 @@ ARCHITECTURE / DATA FLOW
         │
         ▼  MetaIntentInspector snapshot + ``meta`` graph node
         │
-        ▼  GateCoordinator.build()
+        ▼  GraphCoordinator.build()
     Action node enriched; domain node with ``belongs_to`` edge.
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -169,7 +169,7 @@ def meta(
     """
     Class decorator: attach ``_meta_info`` with description and domain.
 
-    ``MetaIntentInspector`` and ``GateCoordinator.get_snapshot(cls, \"meta\")``
+    ``MetaIntentInspector`` and ``GraphCoordinator.get_snapshot(cls, \"meta\")``
     consume the same scratch written here.
 
     AI-CORE-BEGIN

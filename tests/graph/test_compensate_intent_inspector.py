@@ -3,8 +3,9 @@
 
 from __future__ import annotations
 
-from action_machine.graph.inspectors.compensate_intent_inspector import (
+from action_machine.intents.compensate.compensate_intent_inspector import (
     CompensateIntentInspector,
+    hydrate_compensator_row,
 )
 from action_machine.intents.aspects.aspect_intent import AspectIntent
 from action_machine.intents.compensate.compensate_decorator import compensate
@@ -36,23 +37,21 @@ def test_compensate_inspector_returns_none_without_compensators() -> None:
 
 
 def test_compensate_inspector_builds_payload_with_compensator_entries() -> None:
-    payload = CompensateIntentInspector.inspect(_CompensateAction)
-    assert payload is not None
-    assert payload.node_type == "compensator"
+    produced = CompensateIntentInspector.inspect(_CompensateAction)
+    assert isinstance(produced, list)
+    comp_payloads = [p for p in produced if p.node_type == "compensator"]
+    action_payloads = [p for p in produced if p.node_type == "action"]
+    assert len(comp_payloads) == 2
+    assert len(action_payloads) == 1
+    act = action_payloads[0]
+    assert {e.edge_type for e in act.edges} == {"has_compensator"}
+    assert len(act.edges) == 2
 
-    data = dict(payload.node_meta)
-    compensators = data["compensators"]
-    assert len(compensators) == 2
+    names = {hydrate_compensator_row(p.node_meta).method_name for p in comp_payloads}
+    assert names == {"rollback_pay_compensate", "rollback_reserve_compensate"}
 
-    names = {dict(entry)["method_name"] for entry in compensators}
-    assert "rollback_pay_compensate" in names
-    assert "rollback_reserve_compensate" in names
-
-    reserve = next(
-        e for e in compensators
-        if dict(e)["method_name"] == "rollback_reserve_compensate"
-    )
-    rd = dict(reserve)
-    assert rd["target_aspect_name"] == "reserve_aspect"
-    assert rd["description"] == "Rollback reservation"
-    assert "user.user_id" in rd["context_keys"]
+    reserve_p = next(p for p in comp_payloads if "rollback_reserve" in p.node_name)
+    reserve = hydrate_compensator_row(reserve_p.node_meta)
+    assert reserve.target_aspect_name == "reserve_aspect"
+    assert reserve.description == "Rollback reservation"
+    assert "user.user_id" in reserve.context_keys

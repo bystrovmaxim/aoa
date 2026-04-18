@@ -54,7 +54,7 @@ to avoid polluting domain fixtures and keep scenarios narrow:
 from pydantic import Field
 
 from action_machine.dependencies.dependency_factory import clear_dependency_factory_cache
-from action_machine.graph.gate_coordinator import GateCoordinator
+from action_machine.graph.graph_coordinator import GraphCoordinator
 from action_machine.intents.aspects.regular_aspect_decorator import regular_aspect
 from action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
 from action_machine.intents.auth import NoneRole, check_roles
@@ -72,14 +72,14 @@ from action_machine.runtime.tools_box import ToolsBox
 from tests.scenarios.domain_model.domains import SystemDomain
 
 
-def _regular_aspects(coordinator: GateCoordinator, cls: type):
+def _regular_aspects(coordinator: GraphCoordinator, cls: type):
     snap = coordinator.get_snapshot(cls, "aspect")
     if snap is None or not hasattr(snap, "aspects"):
         return ()
     return tuple(a for a in snap.aspects if a.aspect_type == "regular")
 
 
-def _error_handlers(coordinator: GateCoordinator, cls: type):
+def _error_handlers(coordinator: GraphCoordinator, cls: type):
     snap = coordinator.get_snapshot(cls, "error_handler")
     if snap is None or not hasattr(snap, "error_handlers"):
         return ()

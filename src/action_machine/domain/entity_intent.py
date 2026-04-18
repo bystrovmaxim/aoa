@@ -39,7 +39,7 @@ ARCHITECTURE / DATA FLOW
     #   issubclass(OrderEntity, EntityIntent) → OK
     #   cls._entity_info = {"description": ..., "domain": ...}   # scratch
 
-    # EntityIntentInspector during GateCoordinator.build():
+    # EntityIntentInspector during GraphCoordinator.build():
     #   reads _entity_info + model_fields → FacetPayload + typed snapshot
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -107,7 +107,7 @@ class EntityIntent:
 
     The mixin has no methods or instance state; it exists for ``issubclass``
     checks in the decorator and in entity facet validation during
-    ``GateCoordinator.build()``.
+    ``GraphCoordinator.build()``.
 
     Class attributes (written by ``@entity``):
         _entity_info : dict[str, Any]

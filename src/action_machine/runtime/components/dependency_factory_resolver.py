@@ -51,7 +51,7 @@ ERRORS / LIMITATIONS
 ═══════════════════════════════════════════════════════════════════════════════
 
 This module defines a typing protocol only; resolution errors depend on the
-concrete implementation (typically ``GateCoordinator.get_snapshot`` failures).
+concrete implementation (typically ``GraphCoordinator.get_snapshot`` failures).
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN

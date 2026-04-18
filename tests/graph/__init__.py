@@ -1,13 +1,13 @@
 # tests/graph/__init__.py
 """
-Tests for ``action_machine.graph``: ``GateCoordinator``, intent inspectors, and facet snapshots.
+Tests for ``action_machine.graph``: ``GraphCoordinator``, intent inspectors, and facet snapshots.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 These tests exercise how declaration-time attributes on classes (written by
-decorators) are read by **intent inspectors** during ``GateCoordinator.build()``,
+decorators) are read by **intent inspectors** during ``GraphCoordinator.build()``,
 how the graph and **facet snapshots** are produced, and how public coordinator APIs
 behave. They do not reintroduce removed class-level introspection helpers on
 ``BaseAction`` — the production machine reads pipeline metadata from coordinator
@@ -30,7 +30,7 @@ DATA FLOW
     Action / entity classes (tests fixtures, scenarios.domain_model)
               │
               ▼
-    GateCoordinator.register(...).build()
+    GraphCoordinator.register(...).build()
               │
               ├────► test_*_intent_inspector.py   (per-facet collection)
               ├────► tests/scenarios/graph_with_runtime/test_coordinator_*.py

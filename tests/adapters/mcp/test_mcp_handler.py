@@ -753,22 +753,22 @@ class TestBuildGraphJson:
         has_ping = any("Ping" in nid for nid in node_ids)
         assert has_ping, f"No PingAction node found in: {node_ids}"
 
-    def test_meta_node_has_description_and_domain_from_snapshots(self) -> None:
-        """After skeleton nodes, graph JSON carries description/domain from hydration."""
+    def test_ping_action_node_has_description_and_domain_from_meta_snapshot(self) -> None:
+        """Primary-host ``@meta`` folds into the ``action`` node; hydration exposes it in JSON."""
         coordinator = CoreActionMachine.create_coordinator()
         machine = ActionProductMachine(mode="test", coordinator=coordinator)
 
         json_str = _build_graph_json(machine.gate_coordinator)
         parsed = json.loads(json_str)
 
-        meta_nodes = [n for n in parsed["nodes"] if n.get("type") == "meta"]
-        ping_meta = next(
-            (n for n in meta_nodes if "PingAction" in n.get("id", "")),
+        action_nodes = [n for n in parsed["nodes"] if n.get("type") == "action"]
+        ping_action = next(
+            (n for n in action_nodes if "PingAction" in n.get("id", "")),
             None,
         )
-        assert ping_meta is not None
-        assert ping_meta.get("description") == "Service health check"
-        assert ping_meta.get("domain") == "tests.scenarios.domain_model.domains.SystemDomain"
+        assert ping_action is not None
+        assert ping_action.get("description") == "Service health check"
+        assert ping_action.get("domain") == "tests.scenarios.domain_model.domains.SystemDomain"
 
     def test_edges_include_source_and_target_keys_and_string_type(self) -> None:
         """Edges expose ``source_key`` / ``target_key`` and a string ``type`` (not a dict repr)."""

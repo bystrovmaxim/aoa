@@ -10,7 +10,7 @@ This package exposes runtime machine APIs, binding helpers, and execution
 components used to run ActionMachine actions in production.
 
 Canonical coordinator assembly lives in ``CoreActionMachine``: it creates a
-``GateCoordinator``, registers default inspectors, and builds the graph/facets.
+``GraphCoordinator``, registers default inspectors, and builds the graph/facets.
 Production machines consume a built coordinator as a fail-fast contract.
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -32,7 +32,7 @@ ARCHITECTURE / DATA FLOW
            +--> lazy CoreActionMachine access via __getattr__
                          |
                          v
-                create/build GateCoordinator
+                create/build GraphCoordinator
                          |
                          v
                 runtime machine execution pipeline

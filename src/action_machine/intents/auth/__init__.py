@@ -60,14 +60,16 @@ ARCHITECTURE / DATA FLOW
 
         Action classes (RoleIntent) + @check_roles(AdminRole | [RoleA, RoleB] | …)
               │
-              ├── RoleIntentInspector → facet ``role`` (per action)
+              ├── RoleClassInspector → ``role_class`` vertex **only** for ``ApplicationRole``
+              │                         (validates every ``BaseRole`` subclass but does not materialize them)
               │
-              ├── RoleModeIntentInspector → facet ``role_mode`` (lifecycle)
+              ├── RoleIntentInspector → ``role`` snapshot on the action + ``requires_role`` edges
+              │                         (action → anchor ``role_class``; no extra vertex for the decorator)
               │
-              └── RoleClassInspector → facet ``role_class`` (requires_role)
+              └── RoleModeIntentInspector → ``role_mode`` snapshot + ``mode`` merged onto that anchor row
               │
               ▼
-        GateCoordinator.build() → RoleChecker at run time
+        GraphCoordinator.build() → RoleChecker at run time
 
 ═══════════════════════════════════════════════════════════════════════════════
 COMPONENTS

@@ -27,7 +27,7 @@ SCOPE (IN / OUT)
     Domain logic, workflows, or persistence.
     Uniqueness of ``name`` across the whole program (multiple classes may
     legally share the same string until a higher layer forbids it).
-    Registering domains in ``GateCoordinator``—that happens at **build** time
+    Registering domains in ``GraphCoordinator``—that happens at **build** time
     via inspectors, not in this module.
 
 ARCHITECTURE / DATA FLOW
@@ -190,7 +190,7 @@ class BaseDomain(ABC):
 
     **Neighbors**
         - Referenced from decorators such as ``@entity`` and ``@meta``.
-        - Consumed by metadata inspectors when building the ``GateCoordinator`` graph.
+        - Consumed by metadata inspectors when building the ``GraphCoordinator`` graph.
 
     **Class attributes**
         ``name``

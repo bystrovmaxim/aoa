@@ -77,7 +77,9 @@ from action_machine.model.exceptions import (
     ActionResultTypeError,
     MissingSummaryAspectError,
 )
-from action_machine.runtime.binding.action_generic_params import extract_action_params_result_types
+from action_machine.runtime.binding.extract_action_params_result_types import (
+    extract_action_params_result_types,
+)
 
 
 def require_resolved_action_result_type(action_cls: type) -> type:

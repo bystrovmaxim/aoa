@@ -196,7 +196,7 @@ from typing import Any, TypeVar, cast
 from unittest.mock import Mock
 
 from action_machine.dependencies.dependency_factory import cached_dependency_factory
-from action_machine.graph.gate_coordinator import GateCoordinator
+from action_machine.graph.graph_coordinator import GraphCoordinator
 from action_machine.intents.auth.base_role import BaseRole
 from action_machine.intents.context.context import Context
 from action_machine.intents.context.context_view import ContextView
@@ -244,7 +244,7 @@ Used by ``run_compensator()`` to decide whether ``ContextView`` is required.
 
 
 def _aspect_tuple_from_coordinator(
-    coordinator: GateCoordinator,
+    coordinator: GraphCoordinator,
     action_cls: type,
 ) -> tuple[Any, ...]:
     snap = coordinator.get_snapshot(action_cls, "aspect")
@@ -254,7 +254,7 @@ def _aspect_tuple_from_coordinator(
 
 
 def _checkers_for_aspect_name(
-    coordinator: GateCoordinator,
+    coordinator: GraphCoordinator,
     action_cls: type,
     method_name: str,
 ) -> tuple[Any, ...]:
@@ -314,7 +314,7 @@ class TestBench:
 
     def __init__(
         self,
-        coordinator: GateCoordinator | None = None,
+        coordinator: GraphCoordinator | None = None,
         mocks: dict[type, Any] | None = None,
         plugins: list[Plugin] | None = None,
         log_coordinator: LogCoordinator | None = None,
@@ -325,7 +325,7 @@ class TestBench:
         """
         Initialize TestBench.
         """
-        self._coordinator = coordinator or GateCoordinator()
+        self._coordinator = coordinator or GraphCoordinator()
         self._mocks = dict(mocks) if mocks else {}
         self._prepared_mocks = _prepare_all_mocks(self._mocks)
         self._plugins = list(plugins) if plugins else []
@@ -339,7 +339,7 @@ class TestBench:
     # ─────────────────────────────────────────────────────────────────────
 
     @property
-    def coordinator(self) -> GateCoordinator:
+    def coordinator(self) -> GraphCoordinator:
         """Metadata/factory coordinator."""
         return self._coordinator
 

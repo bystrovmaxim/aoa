@@ -1,6 +1,0 @@
-{
-  "version": 1,
-  "description": "G4 golden: logical DAG slice (DEPENDS_ON/CONNECTS_TO with is_dag=True) from build_test_coordinator().get_logical_graph() in a clean subprocess.",
-  "dag_edges": [],
-  "acyclic_expected": true
-}

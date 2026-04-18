@@ -12,7 +12,7 @@ serialisable :class:`FacetPayload` used for validation; the coordinator keeps
 typed snapshots separately and commits only ``node_type`` / ``name`` /
 ``class_ref`` on graph nodes.
 
-``GateCoordinator`` caches snapshots during ``build()`` (phase 1) when
+``GraphCoordinator`` caches snapshots during ``build()`` (phase 1) when
 ``BaseIntentInspector.facet_snapshot_for_class()`` returns non-``None``.
 
 Inspectors that do not participate yet leave the default hook returning ``None``.

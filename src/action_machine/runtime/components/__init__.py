@@ -31,8 +31,8 @@ Target orchestration flow (final state after migration):
                                          │ delegates
                                          ▼
     ┌─────────────────────────── Runtime components ─────────────────────────────────┐
-    │ RoleChecker            -> GateCoordinator role snapshot / AuthorizationError │
-    │ ConnectionValidator    -> GateCoordinator connection snapshot / validation   │
+    │ RoleChecker            -> GraphCoordinator role snapshot / AuthorizationError │
+    │ ConnectionValidator    -> GraphCoordinator connection snapshot / validation   │
     │ ToolsBoxFactory        -> ToolsBox (explicit resolver + mode + class name)   │
     │ AspectExecutor         -> aspect invoke (injected log coordinator + mode)     │
     │ ErrorHandlerExecutor   -> @on_error resolution + fallback semantics          │

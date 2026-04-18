@@ -19,7 +19,7 @@ implement protocol-specific registration methods (``post``, ``get``, ``tool``),
 and implement ``build()`` to produce a protocol application object.
 
 The adapter stores a machine reference, an authentication coordinator, an
-optional explicit ``GateCoordinator`` (defaults to ``machine.gate_coordinator``),
+optional explicit ``GraphCoordinator`` (defaults to ``machine.gate_coordinator``),
 and an optional connections factory. Registered routes are accumulated in
 ``_routes`` as concrete ``BaseRouteRecord`` subclasses.
 
@@ -30,7 +30,7 @@ and an optional connections factory. Registered routes are accumulated in
     │                                      │
     │  machine: ActionProductMachine       │
     │  auth_coordinator: Any (required)    │
-    │  gate_coordinator: GateCoordinator   │
+    │  gate_coordinator: GraphCoordinator   │
     │    (optional; defaults to machine)   │
     │  connections_factory: Fn | None      │
     │  _routes: list[R]                    │
@@ -59,7 +59,7 @@ ADAPTER TESTING CONTRACT
 ═══════════════════════════════════════════════════════════════════════════════
 
 Integration-style adapter tests use production types: a real
-``ActionProductMachine`` and its ``GateCoordinator``. The adapter, route records,
+``ActionProductMachine`` and its ``GraphCoordinator``. The adapter, route records,
 validation, and transport mapping run as shipped.
 
 When a test must fix outcomes or skip the full action pipeline, only
@@ -73,7 +73,7 @@ execution boundary, not a hand-written fake machine or duplicate adapter logic.
              v
     +-----------------------------+
     | Adapter (production)        |
-    | GateCoordinator (real)      |
+    | GraphCoordinator (real)      |
     | ActionProductMachine (real) |
     +-----------------------------+
              |
@@ -132,7 +132,7 @@ from collections.abc import Callable
 from typing import Any, Self
 
 from action_machine.adapters.base_route_record import BaseRouteRecord
-from action_machine.graph.gate_coordinator import GateCoordinator
+from action_machine.graph.graph_coordinator import GraphCoordinator
 from action_machine.resources.base_resource_manager import BaseResourceManager
 from action_machine.runtime.machines.action_product_machine import ActionProductMachine
 
@@ -157,7 +157,7 @@ class BaseAdapter[R: BaseRouteRecord](ABC):
         auth_coordinator: Any,
         connections_factory: Callable[..., dict[str, BaseResourceManager]] | None = None,
         *,
-        gate_coordinator: GateCoordinator | None = None,
+        gate_coordinator: GraphCoordinator | None = None,
     ) -> None:
         """
         Initialize the adapter.
@@ -180,7 +180,7 @@ class BaseAdapter[R: BaseRouteRecord](ABC):
 
         self._machine: ActionProductMachine = machine
         self._auth_coordinator: Any = auth_coordinator
-        self._gate_coordinator: GateCoordinator = (
+        self._gate_coordinator: GraphCoordinator = (
             gate_coordinator
             if gate_coordinator is not None
             else machine.gate_coordinator
@@ -199,7 +199,7 @@ class BaseAdapter[R: BaseRouteRecord](ABC):
         return self._auth_coordinator
 
     @property
-    def gate_coordinator(self) -> GateCoordinator:
+    def gate_coordinator(self) -> GraphCoordinator:
         """Returns the gate graph coordinator (explicit or from ``machine``)."""
         return self._gate_coordinator
 

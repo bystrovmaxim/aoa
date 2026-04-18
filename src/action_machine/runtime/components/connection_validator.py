@@ -68,7 +68,7 @@ from __future__ import annotations
 
 from typing import Any, Protocol
 
-from action_machine.graph.gate_coordinator import GateCoordinator
+from action_machine.graph.graph_coordinator import GraphCoordinator
 from action_machine.model.base_action import BaseAction
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_result import BaseResult
@@ -82,7 +82,7 @@ class ConnectionValidator:
     Step 3 implementation owning key/type validation for declared connections.
     """
 
-    def __init__(self, coordinator: GateCoordinator) -> None:
+    def __init__(self, coordinator: GraphCoordinator) -> None:
         self._coordinator = coordinator
 
     @staticmethod

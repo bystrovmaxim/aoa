@@ -88,7 +88,7 @@ ERRORS / LIMITATIONS
 - ``ValueError``: empty list, or a required role is ``RoleMode.UNUSED``.
 - ``DeprecationWarning``: a required role is ``RoleMode.DEPRECATED``.
 - Does not prove global role topology; ``RoleClassInspector`` and
-  ``RoleModeIntentInspector`` run at ``GateCoordinator.build()``.
+  ``RoleModeIntentInspector`` run at ``GraphCoordinator.build()``.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN

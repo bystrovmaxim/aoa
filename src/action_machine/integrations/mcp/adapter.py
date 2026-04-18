@@ -202,7 +202,7 @@ from action_machine.adapters.base_route_record import (
     ensure_machine_params,
     ensure_protocol_response,
 )
-from action_machine.graph.gate_coordinator import GateCoordinator
+from action_machine.graph.graph_coordinator import GraphCoordinator
 from action_machine.integrations.mcp.route_record import McpRouteRecord
 from action_machine.intents.context.context import Context
 from action_machine.model.base_action import BaseAction
@@ -288,7 +288,7 @@ def _validate_tool_request_kwargs(kwargs: dict[str, Any], req_model: type) -> An
 def _get_meta_description(
     action_class: type,
     *,
-    coordinator: GateCoordinator | None = None,
+    coordinator: GraphCoordinator | None = None,
 ) -> str:
     """
     Extract MCP tool description from action metadata.
@@ -335,8 +335,8 @@ def _class_name_to_snake_case(name: str) -> str:
     return result.lower()
 
 
-def _facet_pygraph_for_mcp_json(coordinator: GateCoordinator) -> Any:
-    """Return facet ``PyDiGraph`` for MCP JSON (facet skeleton, not logical ``get_graph``)."""
+def _facet_pygraph_for_mcp_json(coordinator: GraphCoordinator) -> Any:
+    """Return facet ``PyDiGraph`` for MCP JSON (facet skeleton, not interchange ``get_graph``)."""
     facet_copy = getattr(coordinator, "facet_topology_copy", None)
     if callable(facet_copy):
         return facet_copy()
@@ -371,7 +371,7 @@ def _mcp_apply_meta_to_node(node: dict[str, Any], meta: dict[str, Any], node_typ
             node["name"] = domain_name
 
 
-def _build_graph_json(coordinator: GateCoordinator) -> str:
+def _build_graph_json(coordinator: GraphCoordinator) -> str:
     """
     Build JSON representation of system graph from coordinator.
 
@@ -379,7 +379,7 @@ def _build_graph_json(coordinator: GateCoordinator) -> str:
     with ``nodes`` and ``edges`` arrays.
 
     Args:
-        coordinator: built ``GateCoordinator``.
+        coordinator: built ``GraphCoordinator``.
 
     Returns:
         JSON string with graph structure.
@@ -448,7 +448,7 @@ def _make_tool_handler(
     machine: ActionProductMachine,
     auth_coordinator: Any,
     connections_factory: Callable[..., dict[str, BaseResourceManager]] | None,
-    gate_coordinator: GateCoordinator,
+    gate_coordinator: GraphCoordinator,
 ) -> Callable[..., Any]:
     """
     Create async handler for one MCP tool.
@@ -657,7 +657,7 @@ class McpAdapter(BaseAdapter[McpRouteRecord]):
         auth_coordinator: Any,
         connections_factory: Callable[..., dict[str, BaseResourceManager]] | None = None,
         *,
-        gate_coordinator: GateCoordinator | None = None,
+        gate_coordinator: GraphCoordinator | None = None,
         server_name: str = "ActionMachine MCP",
         server_version: str = "0.1.0",
     ) -> None:

@@ -28,7 +28,7 @@ ARCHITECTURE / DATA FLOW
     class-level _connection_info scratch
               |
               v
-    ConnectionIntentInspector at GateCoordinator.build()
+    ConnectionIntentInspector at GraphCoordinator.build()
               |
               v
     Facet snapshot / graph metadata

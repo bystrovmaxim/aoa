@@ -148,7 +148,7 @@ from action_machine.adapters.base_route_record import (
     ensure_machine_params,
     ensure_protocol_response,
 )
-from action_machine.graph.gate_coordinator import GateCoordinator
+from action_machine.graph.graph_coordinator import GraphCoordinator
 from action_machine.integrations.fastapi.route_record import FastApiRouteRecord
 from action_machine.intents.context.context import Context
 from action_machine.model.base_action import BaseAction
@@ -563,7 +563,7 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
         auth_coordinator: Any,
         connections_factory: Callable[..., dict[str, BaseResourceManager]] | None = None,
         *,
-        gate_coordinator: GateCoordinator | None = None,
+        gate_coordinator: GraphCoordinator | None = None,
         title: str = "ActionMachine API",
         version: str = "0.1.0",
         description: str = "",
@@ -577,7 +577,7 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
                 For open APIs use ``NoAuthCoordinator()``. ``None`` is invalid.
             connections_factory: connections factory; if ``None``, connections
                 are not passed.
-            gate_coordinator: explicit ``GateCoordinator``; defaults to
+            gate_coordinator: explicit ``GraphCoordinator``; defaults to
                 ``machine.gate_coordinator``.
             title: API title for OpenAPI/Swagger UI.
             version: API version for OpenAPI.

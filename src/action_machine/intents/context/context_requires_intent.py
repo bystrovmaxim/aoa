@@ -19,7 +19,7 @@ BASEACTION MRO INTENTS
 
 ``BaseAction`` inherits multiple intent markers. Each marker defines one
 grammar segment: which decorators are allowed and what build-time validators
-enforce in ``GateCoordinator.build()``:
+enforce in ``GraphCoordinator.build()``:
 
     ActionMetaIntent       -> @meta
     RoleIntent             -> @check_roles

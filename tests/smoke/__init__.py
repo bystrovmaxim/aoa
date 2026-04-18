@@ -19,5 +19,5 @@ FILES
 - test_ping.py        — PingAction (minimal action, summary only).
 - test_simple.py      — SimpleAction (regular + summary with checker).
 - test_full.py        — FullAction (depends + connection + "manager" role).
-- test_coordinator.py — GateCoordinator collects metadata for all Actions.
+- test_coordinator.py — GraphCoordinator collects metadata for all Actions.
 """

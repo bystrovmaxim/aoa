@@ -114,7 +114,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, ClassVar
 
 if TYPE_CHECKING:
-    from action_machine.graph.inspectors.on_error_intent_inspector import (
+    from action_machine.intents.on_error.on_error_intent_inspector import (
         OnErrorIntentInspector,
     )
 
@@ -125,7 +125,7 @@ class OnErrorIntent:
 
     Classes inheriting this mixin may declare ``@on_error`` methods for aspect
     exception handling. ``OnErrorIntentInspector`` builds snapshot consumed via
-    ``GateCoordinator.get_snapshot(cls, "error_handler")``.
+    ``GraphCoordinator.get_snapshot(cls, "error_handler")``.
 
     AI-CORE-BEGIN
     ROLE: Marker contract for on-error handler declarations.

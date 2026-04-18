@@ -69,7 +69,7 @@ import pytest
 
 from action_machine.adapters.base_adapter import BaseAdapter
 from action_machine.adapters.base_route_record import BaseRouteRecord
-from action_machine.graph.gate_coordinator import GateCoordinator
+from action_machine.graph.graph_coordinator import GraphCoordinator
 from action_machine.runtime.machines.action_product_machine import ActionProductMachine
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -200,7 +200,7 @@ class TestProperties:
     def test_gate_coordinator_explicit_override(self) -> None:
         """Explicit ``gate_coordinator`` overrides the machine’s coordinator."""
         machine = _make_machine()
-        alt = MagicMock(spec=GateCoordinator)
+        alt = MagicMock(spec=GraphCoordinator)
         adapter = _TestAdapter(
             machine=machine,
             auth_coordinator=_make_auth(),

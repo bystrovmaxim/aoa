@@ -12,7 +12,7 @@ follow.
 An inspector:
 1. Knows which marker mixin subtree to walk (``_target_intent``).
 2. Can inspect each candidate class and emit graph data.
-3. Registers with ``GateCoordinator``.
+3. Registers with ``GraphCoordinator``.
 
 During ``build()`` the coordinator walks registered inspectors, calls
 ``inspect()`` on each candidate, and commits ``FacetPayload`` nodes into
@@ -70,7 +70,7 @@ Validation is layered:
         Validate arguments at import time: types, emptiness, ``issubclass``,
         duplicates. Fail fast when the class body executes.
 
-    Coordinator (``GateCoordinator.build()``)
+    Coordinator (``GraphCoordinator.build()``)
         Global checks after every payload is collected: key uniqueness, edge
         integrity, structural acyclicity.
 
@@ -94,8 +94,8 @@ HELPERS
 The base class exposes five helpers shared by inspectors:
 
     _make_node_name(target_cls, suffix="") → str
-        Builds ``"module.ClassName"`` or ``"module.ClassName.suffix"``.
-        Does **not** add facet prefixes — the coordinator prepends ``node_type:``.
+        Builds ``"module.ClassName"`` or ``"module.ClassName:suffix"`` for dependent facets.
+        Does **not** add ``node_type:`` — interchange vertex ``id`` is this string alone.
 
     _make_edge(target_node_type, target_cls, edge_type,
                is_structural, edge_meta=()) → EdgeInfo
@@ -163,7 +163,7 @@ ERRORS / LIMITATIONS
   snapshot cache.
 
 ═══════════════════════════════════════════════════════════════════════════════
-EXAMPLE — INSPECTOR WITHOUT EDGES
+EXAMPLE — INSPECTOR WITH INFORMATIONAL EDGES (``@check_roles``)
 ═══════════════════════════════════════════════════════════════════════════════
 
     class RoleIntentInspector(BaseIntentInspector):
@@ -182,12 +182,9 @@ EXAMPLE — INSPECTOR WITHOUT EDGES
 
         @classmethod
         def _build_payload(cls, target_cls: type) -> FacetPayload:
-            return FacetPayload(
-                node_type="role",
-                node_name=cls._make_node_name(target_cls),
-                node_class=target_cls,
-                node_meta=cls._make_meta(spec=target_cls._role_info["spec"]),
-            )
+            # Real implementation: merged ``node_type=\"action\"`` row plus
+            # ``requires_role`` edges to canonical ``role_class`` vertices.
+            ...
 
 ═══════════════════════════════════════════════════════════════════════════════
 EXAMPLE — INSPECTOR WITH EDGES
@@ -259,7 +256,7 @@ class BaseIntentInspector(ABC):
     stateless and need no instances. The class exists for namespacing, shared
     helpers, and ABC enforcement.
 
-    ``GateCoordinator.build()`` does:
+    ``GraphCoordinator.build()`` does:
     1. ``inspector._subclasses_recursive()`` — marker subclass list.
     2. ``inspector.inspect(target_cls)`` — per-class inspection.
 
@@ -298,7 +295,7 @@ class BaseIntentInspector(ABC):
         """
         Optional typed snapshot for ``target_cls`` when this inspector owns it.
 
-        When non-``None``, ``GateCoordinator`` stores it during graph ``build()``
+        When non-``None``, ``GraphCoordinator`` stores it during graph ``build()``
         (phase 1) under ``(target_cls, facet_snapshot_storage_key(...))``.
         Default: no snapshot.
 
@@ -318,6 +315,23 @@ class BaseIntentInspector(ABC):
         each facet that exposes a snapshot should return a **distinct** key here.
         """
         return payload.node_type
+
+    @classmethod
+    def should_register_facet_snapshot_for_payload(
+        cls,
+        _target_cls: type,
+        payload: FacetPayload,
+    ) -> bool:
+        """
+        If ``False``, :class:`~action_machine.graph.graph_coordinator.GraphCoordinator`
+        skips :meth:`~action_machine.graph.graph_coordinator.GraphCoordinator._register_hydration_snapshot_key`
+        for this payload.
+
+        Use when an inspector emits an extra merged node (e.g. ``node_type=\"action\"``)
+        only to attach informational edges; the typed facet snapshot must hydrate
+        the primary facet nodes, not that shell.
+        """
+        return True
 
     @classmethod
     @abstractmethod
@@ -340,21 +354,21 @@ class BaseIntentInspector(ABC):
     @classmethod
     def _make_node_name(cls, target_cls: type, suffix: str = "") -> str:
         """
-        Derive a stable node name from ``__module__`` and ``__qualname__``.
+        Derive a stable **facet node name** (interchange vertex ``id``) from ``__module__``
+        and ``__qualname__``.
 
-        Format: ``"module.ClassName"`` or ``"module.ClassName.suffix"``.
-        Falls back to ``__qualname__`` when ``__module__`` is missing or
-        ``"__main__"``.
+        Standalone hosts use the full dotted class path only. Dependent facets on the
+        same host (aspect method, ``@meta`` facet row, ``role``, …) use
+        ``"{host_path}:{suffix}"`` with a single ASCII colon (never ``node_type:`` here).
 
-        Facet prefixes such as ``"action:"`` are **not** included — the
-        coordinator forms ``"node_type:node_name"``.
+        Falls back to ``__qualname__`` when ``__module__`` is missing or ``"__main__"``.
 
         Args:
             target_cls: Class being named.
-            suffix: Optional dot suffix for child facets (aspects, entity fields).
+            suffix: Optional logical child segment (aspect method name, ``"meta"``, …).
 
         Returns:
-            Node name string.
+            Node name string (global facet key body; uniqueness is this string alone).
 
         Examples::
 
@@ -362,7 +376,7 @@ class BaseIntentInspector(ABC):
             → "myapp.orders.CreateOrderAction"
 
             _make_node_name(CreateOrderAction, "validate_aspect")
-            → "myapp.orders.CreateOrderAction.validate_aspect"
+            → "myapp.orders.CreateOrderAction:validate_aspect"
         """
         module = getattr(target_cls, "__module__", None)
         if module and module != "__main__":
@@ -370,8 +384,17 @@ class BaseIntentInspector(ABC):
         else:
             name = target_cls.__qualname__
         if suffix:
-            return f"{name}.{suffix}"
+            return f"{name}:{suffix}"
         return name
+
+    @classmethod
+    def _make_host_dependent_node_name(cls, host_cls: type, facet_tag: str) -> str:
+        """
+        Node name for a facet that hangs off ``host_cls`` but is not the host identity itself.
+
+        ``facet_tag`` is a short stable label (``"meta"``, ``"role"``, method name, …).
+        """
+        return cls._make_node_name(host_cls, facet_tag)
 
     @classmethod
     def _make_edge(
@@ -414,11 +437,15 @@ class BaseIntentInspector(ABC):
         edge_type: str,
         is_structural: bool,
         edge_meta: tuple[tuple[str, Any], ...] = (),
+        *,
+        target_class_ref: type | None = None,
     ) -> EdgeInfo:
         """
         Build ``EdgeInfo`` when the target is a string identifier.
 
         Useful for context-field nodes (``"user.user_id"``) or synthetic domains.
+        When ``target_class_ref`` is set, :meth:`GraphCoordinator._materialize_edge_targets`
+        can synthesize a stub facet node for that class.
 
         Args:
             target_node_type: Target facet type.
@@ -426,9 +453,10 @@ class BaseIntentInspector(ABC):
             edge_type: Edge label.
             is_structural: Structural vs informational edge.
             edge_meta: Optional edge metadata tuple.
+            target_class_ref: Optional concrete class for materialized stubs.
 
         Returns:
-            ``EdgeInfo`` with ``target_class_ref=None``.
+            ``EdgeInfo`` (``target_class_ref`` defaults to ``None``).
         """
         return EdgeInfo(
             target_node_type=target_node_type,
@@ -436,7 +464,7 @@ class BaseIntentInspector(ABC):
             edge_type=edge_type,
             is_structural=is_structural,
             edge_meta=edge_meta,
-            target_class_ref=None,
+            target_class_ref=target_class_ref,
         )
 
     @classmethod
@@ -525,7 +553,7 @@ class BaseIntentInspector(ABC):
             def _subclasses_recursive(cls) -> list[type]:
                 return cls._collect_subclasses(cls._target_intent)
 
-        ``GateCoordinator.build()`` invokes this for every registered inspector.
+        ``GraphCoordinator.build()`` invokes this for every registered inspector.
 
         Returns:
             Sequence of classes that should be passed to ``inspect()``.

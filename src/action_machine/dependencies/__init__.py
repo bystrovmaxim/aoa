@@ -41,7 +41,7 @@ INVARIANTS
   factory, and a human-readable description.
 - ``DependencyFactory`` is stateless: each ``resolve()`` creates a new instance.
   Singletons must be implemented by the user via a lambda factory.
-- The factory cache is keyed by action class and stored on the ``GateCoordinator``
+- The factory cache is keyed by action class and stored on the ``GraphCoordinator``
   instance dictionary.
 
 ═══════════════════════════════════════════════════════════════════════════════

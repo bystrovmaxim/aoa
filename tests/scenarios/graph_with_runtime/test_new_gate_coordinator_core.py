@@ -1,4 +1,4 @@
-"""Extra coverage tests for new metadata GateCoordinator."""
+"""Extra coverage tests for new metadata GraphCoordinator."""
 
 from __future__ import annotations
 
@@ -10,7 +10,7 @@ from action_machine.graph.exceptions import (
     InvalidGraphError,
     PayloadValidationError,
 )
-from action_machine.graph.gate_coordinator import GateCoordinator
+from action_machine.graph.graph_coordinator import GraphCoordinator
 from action_machine.graph.payload import EdgeInfo, FacetPayload
 from action_machine.runtime.machines.core_action_machine import CoreActionMachine
 
@@ -56,7 +56,7 @@ class _InspectorDup(BaseIntentInspector):
 
 
 def test_build_status_transitions() -> None:
-    coord = GateCoordinator()
+    coord = GraphCoordinator()
     assert coord.build_status() == "not_built"
     coord.register(_InspectorA).build()
     assert coord.build_status() == "built"
@@ -64,7 +64,7 @@ def test_build_status_transitions() -> None:
 
 
 def test_build_and_graph_read_api() -> None:
-    coord = GateCoordinator().register(_InspectorA).build()
+    coord = GraphCoordinator().register(_InspectorA).build()
     assert coord.is_built is True
     assert len(coord.facet_topology_copy()) == 1
     assert coord.graph_node_count == len(coord.get_graph())
@@ -72,13 +72,13 @@ def test_build_and_graph_read_api() -> None:
     assert coord.get_node("a", "A") is not None
     assert len(coord.get_nodes_by_type("a")) == 1
     assert len(coord.get_nodes_for_class(_A)) == 1
-    assert "GateCoordinator(" in repr(coord)
+    assert "GraphCoordinator(" in repr(coord)
     graph_copy = coord.get_graph()
     assert graph_copy.num_nodes() == coord.graph_node_count
 
 
 def test_register_guards_and_duplicate_build() -> None:
-    coord = GateCoordinator().register(_InspectorA)
+    coord = GraphCoordinator().register(_InspectorA)
     with pytest.raises(ValueError):
         coord.register(_InspectorA)
     coord.build()
@@ -90,7 +90,7 @@ def test_register_guards_and_duplicate_build() -> None:
 
 def test_duplicate_node_error_from_phase1() -> None:
     coord = (
-        GateCoordinator()
+        GraphCoordinator()
         .register(_InspectorA)
         .register(_InspectorDup)
     )
@@ -99,7 +99,7 @@ def test_duplicate_node_error_from_phase1() -> None:
 
 
 def test_payload_validation_and_phase2_errors() -> None:
-    coord = GateCoordinator()
+    coord = GraphCoordinator()
     with pytest.raises(PayloadValidationError):
         coord._phase2_check_payloads([  # pylint: disable=protected-access
             FacetPayload(node_type="", node_name="x", node_class=_A)
@@ -115,7 +115,7 @@ def test_payload_validation_and_phase2_errors() -> None:
 
 
 def test_referential_integrity_and_acyclicity_errors() -> None:
-    coord = GateCoordinator()
+    coord = GraphCoordinator()
     payloads = [
         FacetPayload(
             node_type="x",

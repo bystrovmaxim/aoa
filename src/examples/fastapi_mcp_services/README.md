@@ -5,7 +5,7 @@
 
 Действия наследуют стандартный набор **Intent**-миксинов из `BaseAction` и
 объявляют поведение декораторами (`@meta`, `@check_roles`, аспекты, зависимости).
-Граф метаданных строится при `GateCoordinator.build()` из этих деклараций —
+Граф метаданных строится при `GraphCoordinator.build()` из этих деклараций —
 см. раздел «Ключевые концепции: Intent» в корневом `README.md`.
 
 Три действия (PingAction, CreateOrderAction, GetOrderAction) определены один раз
@@ -235,7 +235,7 @@ Action — единица бизнес-логики. Адаптер — тран
 ```
 fastapi_mcp_services/
 ├── __init__.py              ← описание примера
-├── infrastructure.py        ← GateCoordinator + ActionProductMachine (общие)
+├── infrastructure.py        ← GraphCoordinator + ActionProductMachine (общие)
 ├── domains.py               ← бизнес-домены (OrdersDomain, SystemDomain)
 ├── actions/
 │   ├── __init__.py

@@ -7,7 +7,7 @@ PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 This module provides a single place to build the default
-``GateCoordinator`` instance used by production runtime machines. It registers
+``GraphCoordinator`` instance used by production runtime machines. It registers
 the canonical inspector set and returns a built coordinator ready for facet and
 graph reads.
 
@@ -15,7 +15,7 @@ graph reads.
 INVARIANTS
 ═══════════════════════════════════════════════════════════════════════════════
 
-- Coordinator is always returned in built state.
+- Coordinator is always returned in built state from :meth:`CoreActionMachine.create_coordinator`.
 - Inspector registration order is deterministic and centralized here.
 - Default runtime machines rely on this factory for baseline graph contracts.
 
@@ -23,13 +23,13 @@ INVARIANTS
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-    GateCoordinator()
+    GraphCoordinator()
          |
          v
-    register default inspectors (meta/roles/deps/connections/...)
+    fluent .register(...) for each default inspector
          |
          v
-    build logical graph + facet snapshots
+    build interchange graph + facet snapshots
          |
          v
     return built coordinator for runtime machines
@@ -42,10 +42,6 @@ Happy path:
     Runtime machine calls ``CoreActionMachine.create_coordinator()`` and gets a
     built coordinator suitable for action execution.
 
-Edge case:
-    If custom machine wiring bypasses this factory, caller must ensure
-    equivalent inspector registration/build lifecycle.
-
 ═══════════════════════════════════════════════════════════════════════════════
 ERRORS / LIMITATIONS
 ═══════════════════════════════════════════════════════════════════════════════
@@ -53,12 +49,14 @@ ERRORS / LIMITATIONS
 - This module defines the default inspector set only.
 - Custom coordinator composition belongs to custom machine/bootstrap code.
 - Build-time validation failures are surfaced by coordinator/inspectors.
+- ``EntityIntentInspector`` is registered here; interchange graph includes
+  ``entity:<name>`` vertices from facet payloads (see ``maxitor.samples.store.entities`` in the sample bundle).
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN
 ═══════════════════════════════════════════════════════════════════════════════
 ROLE: Default coordinator bootstrap factory for runtime entry points.
-CONTRACT: create_coordinator() -> built GateCoordinator with canonical inspectors.
+CONTRACT: create_coordinator() -> built GraphCoordinator with canonical inspectors.
 INVARIANTS: Deterministic registration order and built return state.
 FLOW: construct coordinator -> register inspectors -> build -> hand to runtime.
 FAILURES: Inspector/coordinator build errors propagate to caller.
@@ -68,82 +66,61 @@ AI-CORE-END
 
 from __future__ import annotations
 
-from typing import Final
-
-from action_machine.graph.base_intent_inspector import BaseIntentInspector
-from action_machine.graph.gate_coordinator import GateCoordinator
-from action_machine.graph.inspectors.action_typed_schemas_inspector import (
-    ActionTypedSchemasInspector,
-)
-from action_machine.graph.inspectors.aspect_intent_inspector import AspectIntentInspector
-from action_machine.graph.inspectors.checker_intent_inspector import CheckerIntentInspector
-from action_machine.graph.inspectors.compensate_intent_inspector import (
+from action_machine.graph.graph_coordinator import GraphCoordinator
+from action_machine.model.base_action import ActionTypedSchemasInspector
+from action_machine.intents.aspects.aspect_intent_inspector import AspectIntentInspector
+from action_machine.intents.checkers.checker_intent_inspector import CheckerIntentInspector
+from action_machine.intents.compensate.compensate_intent_inspector import (
     CompensateIntentInspector,
 )
-from action_machine.graph.inspectors.connection_intent_inspector import (
+from action_machine.resources.connection_intent_inspector import (
     ConnectionIntentInspector,
 )
-from action_machine.graph.inspectors.dependency_intent_inspector import (
+from action_machine.dependencies.dependency_intent_inspector import (
     DependencyIntentInspector,
 )
-from action_machine.graph.inspectors.described_fields_intent_inspector import (
+from action_machine.intents.described_fields.described_fields_intent_inspector import (
     DescribedFieldsIntentInspector,
 )
-from action_machine.graph.inspectors.entity_intent_inspector import EntityIntentInspector
-from action_machine.graph.inspectors.meta_intent_inspector import MetaIntentInspector
-from action_machine.graph.inspectors.on_error_intent_inspector import OnErrorIntentInspector
-from action_machine.graph.inspectors.role_class_inspector import RoleClassInspector
-from action_machine.graph.inspectors.role_intent_inspector import RoleIntentInspector
-from action_machine.graph.inspectors.role_mode_intent_inspector import RoleModeIntentInspector
-from action_machine.graph.inspectors.sensitive_intent_inspector import (
+from action_machine.domain.application_context_inspector import (
+    ApplicationContextInspector,
+)
+from action_machine.domain.entity_intent_inspector import EntityIntentInspector
+from action_machine.intents.meta.meta_intent_inspector import MetaIntentInspector
+from action_machine.intents.on_error.on_error_intent_inspector import OnErrorIntentInspector
+from action_machine.intents.auth.role_class_inspector import RoleClassInspector
+from action_machine.intents.auth.role_intent_inspector import RoleIntentInspector
+from action_machine.intents.auth.role_mode_intent_inspector import RoleModeIntentInspector
+from action_machine.intents.logging.sensitive_intent_inspector import (
     SensitiveIntentInspector,
 )
-from action_machine.graph.inspectors.subscription_intent_inspector import (
-    SubscriptionIntentInspector,
-)
-
-DEFAULT_GATE_COORDINATOR_INSPECTORS: Final[tuple[type[BaseIntentInspector], ...]] = (
-    MetaIntentInspector,
-    RoleIntentInspector,
-    RoleModeIntentInspector,
-    RoleClassInspector,
-    DependencyIntentInspector,
-    ConnectionIntentInspector,
-    DescribedFieldsIntentInspector,
-    ActionTypedSchemasInspector,
-    AspectIntentInspector,
-    CheckerIntentInspector,
-    OnErrorIntentInspector,
-    CompensateIntentInspector,
-    SensitiveIntentInspector,
-    SubscriptionIntentInspector,
-    EntityIntentInspector,
-)
-
-
 class CoreActionMachine:
     """Core factory for creating a fully built coordinator."""
 
     @staticmethod
-    def create_coordinator_unbuilt() -> GateCoordinator:
+    def create_coordinator() -> GraphCoordinator:
         """
-        Register the default inspector set without calling :meth:`GateCoordinator.build`.
-
-        Intended for tests and diagnostics that need the same registration order as
-        :meth:`create_coordinator` but must run phase-1 collection separately (for
-        example feeding :class:`~action_machine.graph.logical.LogicalGraphBuilder`).
-        """
-        gc = GateCoordinator()
-        for inspector_cls in DEFAULT_GATE_COORDINATOR_INSPECTORS:
-            gc.register(inspector_cls)
-        return gc
-
-    @staticmethod
-    def create_coordinator() -> GateCoordinator:
-        """
-        Create coordinator, register all default inspectors and build the graph.
+        Create a ``GraphCoordinator``, register all default inspectors, and build.
 
         Returns:
-            Built ``GateCoordinator`` instance ready for snapshot reads.
+            Built ``GraphCoordinator`` instance ready for snapshot reads.
         """
-        return CoreActionMachine.create_coordinator_unbuilt().build()
+        return (
+            GraphCoordinator()
+            .register(ApplicationContextInspector)
+            .register(MetaIntentInspector)
+            .register(RoleClassInspector)
+            .register(RoleIntentInspector)
+            .register(RoleModeIntentInspector)
+            .register(DependencyIntentInspector)
+            .register(ConnectionIntentInspector)
+            .register(DescribedFieldsIntentInspector)
+            .register(ActionTypedSchemasInspector)
+            .register(AspectIntentInspector)
+            .register(CheckerIntentInspector)
+            .register(OnErrorIntentInspector)
+            .register(CompensateIntentInspector)
+            .register(SensitiveIntentInspector)
+            .register(EntityIntentInspector)
+            .build()
+        )

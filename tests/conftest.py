@@ -44,7 +44,7 @@ mock_inventory.unreserve() -> True
 FIXTURES
 ═══════════════════════════════════════════════════════════════════════════════
 
-coordinator        — fresh ``GateCoordinator`` per test.
+coordinator        — fresh ``GraphCoordinator`` per test.
 
 mock_payment       — ``AsyncMock(spec=PaymentService)``, charge -> "TXN-TEST-001",
                      refund -> True.
@@ -64,7 +64,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from action_machine.graph.gate_coordinator import GateCoordinator
+from action_machine.graph.graph_coordinator import GraphCoordinator
 from action_machine.runtime.machines.core_action_machine import CoreActionMachine
 from action_machine.testing import TestBench
 
@@ -73,7 +73,7 @@ from .scenarios.domain_model.roles import AdminRole, ManagerRole
 
 
 @pytest.fixture
-def coordinator() -> GateCoordinator:
+def coordinator() -> GraphCoordinator:
     """Built coordinator with default inspector graph."""
     return CoreActionMachine.create_coordinator()
 
@@ -134,7 +134,7 @@ def mock_db() -> AsyncMock:
 
 
 @pytest.fixture
-def clean_bench(coordinator: GateCoordinator) -> TestBench:
+def clean_bench(coordinator: GraphCoordinator) -> TestBench:
     """
     ``TestBench`` without mocks — for actions without injected dependencies.
 
@@ -145,7 +145,7 @@ def clean_bench(coordinator: GateCoordinator) -> TestBench:
 
 @pytest.fixture
 def bench(
-    coordinator: GateCoordinator,
+    coordinator: GraphCoordinator,
     mock_payment: AsyncMock,
     mock_notification: AsyncMock,
 ) -> TestBench:
@@ -167,7 +167,7 @@ def bench(
 
 @pytest.fixture
 def compensate_bench(
-    coordinator: GateCoordinator,
+    coordinator: GraphCoordinator,
     mock_payment: AsyncMock,
     mock_inventory: AsyncMock,
 ) -> TestBench:

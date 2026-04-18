@@ -20,7 +20,7 @@ INVARIANTS
 ═══════════════════════════════════════════════════════════════════════════════
 
 - Pipeline metadata (aspects, checkers, compensators, error handlers, connection
-  keys) and role spec come only from ``GateCoordinator.get_snapshot`` facet
+  keys) and role spec come only from ``GraphCoordinator.get_snapshot`` facet
   snapshots (same source as the graph); there is no parallel scratch-first path.
 - Row shapes in ``_ActionExecutionCache`` match each inspector’s nested
   ``Snapshot.*`` dataclasses; those inspector classes are imported only under
@@ -154,7 +154,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from action_machine.dependencies.dependency_factory import DependencyFactory
-from action_machine.graph.gate_coordinator import GateCoordinator
+from action_machine.graph.graph_coordinator import GraphCoordinator
 from action_machine.intents.context.context import Context
 from action_machine.intents.logging.console_logger import ConsoleLogger
 from action_machine.intents.logging.log_coordinator import LogCoordinator
@@ -184,12 +184,12 @@ from action_machine.runtime.saga_frame import SagaFrame
 from action_machine.runtime.tools_box import ToolsBox
 
 if TYPE_CHECKING:
-    from action_machine.graph.inspectors.aspect_intent_inspector import AspectIntentInspector
-    from action_machine.graph.inspectors.checker_intent_inspector import CheckerIntentInspector
-    from action_machine.graph.inspectors.compensate_intent_inspector import (
+    from action_machine.intents.aspects.aspect_intent_inspector import AspectIntentInspector
+    from action_machine.intents.checkers.checker_intent_inspector import CheckerIntentInspector
+    from action_machine.intents.compensate.compensate_intent_inspector import (
         CompensateIntentInspector,
     )
-    from action_machine.graph.inspectors.on_error_intent_inspector import OnErrorIntentInspector
+    from action_machine.intents.on_error.on_error_intent_inspector import OnErrorIntentInspector
 
 P = TypeVar("P", bound=BaseParams)
 R = TypeVar("R", bound=BaseResult)
@@ -217,7 +217,7 @@ def _aspect_pipeline_chained_exception(apf: _AspectPipelineError) -> Exception:
     return apf
 
 
-def _role_spec_from_coordinator(action_cls: type, coordinator: GateCoordinator) -> Any:
+def _role_spec_from_coordinator(action_cls: type, coordinator: GraphCoordinator) -> Any:
     """Return ``@check_roles`` spec from coordinator facet ``role`` (graph-aligned)."""
     snap = coordinator.get_snapshot(action_cls, "role")
     return getattr(snap, "spec", None) if snap is not None else None
@@ -249,7 +249,7 @@ class _ActionExecutionCache:
         cls,
         action_cls: type,
         *,
-        gate_coordinator: GateCoordinator,
+        gate_coordinator: GraphCoordinator,
     ) -> _ActionExecutionCache:
         """Build cache from ``aspect``, ``checker``, ``compensator``, ``error_handler``,
         ``connections``, and ``role`` facet snapshots (``get_snapshot``).
@@ -306,13 +306,13 @@ class ActionProductMachine(BaseActionMachine):
     AI-CORE-BEGIN
     ROLE: Public production machine entry point.
     CONTRACT: ``run`` → orchestrated pipeline; keyword-only component overrides.
-    INVARIANTS: built ``GateCoordinator``; per-run execution cache from facet
+    INVARIANTS: built ``GraphCoordinator``; per-run execution cache from facet
       snapshots only.
     AI-CORE-END
     """
 
     @staticmethod
-    def create_default_coordinator() -> GateCoordinator:
+    def create_default_coordinator() -> GraphCoordinator:
         """Create and build coordinator with full default inspector set."""
         return CoreActionMachine.create_coordinator()
 
@@ -322,7 +322,7 @@ class ActionProductMachine(BaseActionMachine):
         *,
         plugins: list[Plugin] | None = None,
         log_coordinator: LogCoordinator | None = None,
-        coordinator: GateCoordinator | None = None,
+        coordinator: GraphCoordinator | None = None,
         role_checker: RoleChecker | None = None,
         connection_validator: ConnectionValidator | None = None,
         tools_box_factory: ToolsBoxFactory | None = None,
@@ -360,7 +360,7 @@ class ActionProductMachine(BaseActionMachine):
         )
         if not self._coordinator.is_built:
             raise RuntimeError(
-                "ActionProductMachine requires a built GateCoordinator. "
+                "ActionProductMachine requires a built GraphCoordinator. "
                 "Call register(...).build() before passing custom coordinator.",
             )
 
@@ -410,8 +410,8 @@ class ActionProductMachine(BaseActionMachine):
         )
 
     @property
-    def gate_coordinator(self) -> GateCoordinator:
-        """Public read-only access to the built ``GateCoordinator`` (graph, facets).
+    def gate_coordinator(self) -> GraphCoordinator:
+        """Public read-only access to the built ``GraphCoordinator`` (graph, facets).
 
         Adapters and tools should use this property instead of ``_coordinator``.
         """
@@ -426,7 +426,7 @@ class ActionProductMachine(BaseActionMachine):
         """Build frozen pipeline metadata for ``action_cls`` from facet snapshots.
 
         Returns an ``_ActionExecutionCache`` whose fields are derived only from
-        ``GateCoordinator.get_snapshot`` (aspects, checkers, compensators,
+        ``GraphCoordinator.get_snapshot`` (aspects, checkers, compensators,
         error handlers, connections, role). Used for the whole ``_run_internal``
         path so execution does not read parallel class-level scratch for these
         facets.

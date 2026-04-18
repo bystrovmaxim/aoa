@@ -6,7 +6,7 @@ Exceptions for ActionMachine metadata and graph construction.
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-All errors raised while ``GateCoordinator.build()`` walks inspectors or while
+All errors raised while ``GraphCoordinator.build()`` walks inspectors or while
 inspectors validate facet payloads.
 
 Keeping them in a dedicated module allows:

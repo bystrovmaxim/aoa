@@ -78,7 +78,7 @@ from __future__ import annotations
 
 from typing import Any, Protocol
 
-from action_machine.graph.gate_coordinator import GateCoordinator
+from action_machine.graph.graph_coordinator import GraphCoordinator
 from action_machine.intents.auth.any_role import AnyRole
 from action_machine.intents.auth.base_role import BaseRole
 from action_machine.intents.auth.none_role import NoneRole
@@ -93,7 +93,7 @@ from action_machine.model.exceptions import AuthorizationError
 class RoleChecker:
     """Enforces ``@check_roles`` using coordinator ``role_spec`` and user role types."""
 
-    def __init__(self, coordinator: GateCoordinator) -> None:
+    def __init__(self, coordinator: GraphCoordinator) -> None:
         self._coordinator = coordinator
 
     def check(

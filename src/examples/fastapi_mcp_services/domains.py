@@ -23,7 +23,7 @@ ARCHITECTURE / DATA FLOW
     @meta(..., domain=OrdersDomain | SystemDomain)
               |
               v
-         GateCoordinator graph
+         GraphCoordinator graph
               |
               +-- domain nodes (class_ref -> OrdersDomain / SystemDomain)
               |
