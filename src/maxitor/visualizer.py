@@ -40,9 +40,9 @@ from __future__ import annotations
 import json
 import math
 from collections import defaultdict
+from collections.abc import Iterable
 from datetime import UTC, datetime
 from html import escape as html_escape
-from collections.abc import Iterable
 from pathlib import Path
 from typing import Any
 
@@ -98,16 +98,8 @@ _KNOWN_VISUAL_VERTEX_TYPES: frozenset[str] = frozenset(VERTEX_TYPE_FILL_COLORS.k
 GRAPH_NODE_VISUAL_PX = 24
 GRAPH_NODE_LAYOUT_MARGIN_FRAC = 0.10
 
-_SKIP_META_KEYS = frozenset(
-    {
-        "node_type", "name", "label", "graph_key", "facet_label",
-        "vertex_type", "id", "display_name", "stereotype", "properties",
-    },
-)
-
-
 def _graph_vertex_key(node: dict[str, Any]) -> str:
-    nm = str(node.get("name", "") or "").strip()
+    nm = str(node.get("id") or node.get("name", "") or "").strip()
     if nm:
         return nm
     nt = str(node.get("node_type", "") or "").strip()
@@ -124,7 +116,9 @@ def _element_short_name(node: dict[str, Any]) -> str:
     cr = node.get("class_ref")
     if isinstance(cr, type):
         return cr.__name__
-    raw = str(node.get("name", "") or node.get("label", "") or "").strip()
+    raw = str(
+        node.get("id") or node.get("name", "") or node.get("label", "") or ""
+    ).strip()
     if not raw:
         return "?"
     if "." in raw:
@@ -143,7 +137,7 @@ def _element_qualified_name(node: dict[str, Any]) -> str:
     cr = node.get("class_ref")
     if isinstance(cr, type):
         return f"{cr.__module__}.{cr.__qualname__}"
-    return str(node.get("name", "") or node.get("label", "") or "?")
+    return str(node.get("id") or node.get("name", "") or node.get("label", "") or "?")
 
 
 def _fill_color_for_vertex_type(vertex_type: str) -> str:
@@ -173,7 +167,13 @@ def _serialize_graph_value(value: Any) -> str:
         return f"{value.__module__}.{value.__qualname__}"
     if value is None:
         return ""
-    return str(value)[:800]
+    if isinstance(value, (dict, list, tuple)):
+        try:
+            return json.dumps(value, ensure_ascii=False, default=str)[:8000]
+        except (TypeError, ValueError):
+            return str(value)[:8000]
+    s = str(value)
+    return s[:8000] if len(s) > 8000 else s
 
 
 def _default_archive_logs_dir() -> Path:
@@ -505,11 +505,10 @@ def generate_g6_html(
         facet_label = _vertex_facet_label(node)
         graph_key = _graph_vertex_key(node)
         qualified = _element_qualified_name(node)
-        meta = {
-            k: _serialize_graph_value(v)
-            for k, v in node.items()
-            if k not in _SKIP_META_KEYS and k != "class_ref"
-        }
+        # Serialized interchange node fields only; derived labels for the canvas live on ``data``.
+        payload_panel: dict[str, str] = {}
+        for k, v in node.items():
+            payload_panel[str(k)] = _serialize_graph_value(v)
         fill = colors.get(node_type, DEFAULT_COLOR)
         g6_nodes.append({
             "id": str(idx),
@@ -522,7 +521,7 @@ def generate_g6_html(
                 "node_type": node_type,
                 "fill": fill,
                 "iconSrc": svg_data_uri_for_vertex_icon(fill, node_type),
-                "meta": meta,
+                "payload_panel": payload_panel,
             },
         })
 
@@ -709,6 +708,15 @@ def generate_g6_html(
         }}
         .prop-value-row .prop-mono {{
             flex: 1; min-width: 0;
+        }}
+        .properties-section-title {{
+            font-size: 10px; font-weight: 600; letter-spacing: 0.06em;
+            text-transform: uppercase; color: #9e9e9e; margin: 4px 0 12px;
+        }}
+        .prop-value-multiline {{
+            font-size: 11px; line-height: 1.45; white-space: pre-wrap;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+            word-break: break-word;
         }}
         .copy-btn {{
             flex-shrink: 0; width: 30px; height: 30px; border: none;
@@ -1055,14 +1063,6 @@ __G6_SCRIPT__
           return s.charAt(0).toUpperCase() + s.slice(1).replace(/_/g, ' ');
         }}
 
-        function metaValueString(v) {{
-          if (v == null) return '';
-          if (typeof v === 'object') {{
-            try {{ return JSON.stringify(v); }} catch (_) {{ return String(v); }}
-          }}
-          return String(v);
-        }}
-
         function showNodeDetailPanel(nodeIdStr) {{
           if (!detailShell || !detailBody) return;
           const n = graphData.nodes.find((x) => String(x.id) === String(nodeIdStr));
@@ -1087,18 +1087,15 @@ __G6_SCRIPT__
             : useKindHeading
               ? typeDisplayName(nt)
               : shortName.toUpperCase();
-          const graphKey = d.graph_key != null ? String(d.graph_key) : '';
-          const qualified = d.qualified != null ? String(d.qualified) : '';
-          const facetLabel = d.facet_label != null ? String(d.facet_label) : '';
           const fill = d.fill != null ? String(d.fill) : '';
           const iconSrc =
             d.iconSrc != null && String(d.iconSrc).trim() !== ''
               ? String(d.iconSrc)
               : '';
-          const meta = d.meta && typeof d.meta === 'object' && !Array.isArray(d.meta) ? d.meta : {{}};
-          const description =
-            meta.description != null ? metaValueString(meta.description) : '';
-          const metaKeys = Object.keys(meta).sort().filter((k) => k !== 'description');
+          const payloadPanel = d.payload_panel && typeof d.payload_panel === 'object' && !Array.isArray(d.payload_panel) ? d.payload_panel : {{}};
+          const payloadPanelKeys = Object.keys(payloadPanel).sort((a, b) => a.localeCompare(b));
+
+          const copyKey = new Set(['graph_key', 'qualified', 'id', 'name']);
 
           let html = '';
           html +=
@@ -1107,18 +1104,6 @@ __G6_SCRIPT__
             '">' +
             esc(entityHeading) +
             '</h2>';
-
-          const showShortLabelRow =
-            useHumanHeadingStyle &&
-            String(shortName).trim() !== '' &&
-            String(shortName).trim() !== titleTrim;
-          if (showShortLabelRow) {{
-            html += '<div class="prop-block"><div class="prop-label">Label</div>';
-            html +=
-              '<div class="prop-value prop-value-mono prop-short-label-value">' +
-              esc(shortName) +
-              '</div></div>';
-          }}
 
           const typePretty = nt ? typeDisplayName(nt) : '';
           const headingDuplicatesType =
@@ -1141,54 +1126,41 @@ __G6_SCRIPT__
             html += '</div></div>';
           }}
 
-          if (title && !useTitleHeading) {{
-            html += '<div class="prop-block"><div class="prop-label">Title</div>';
-            html += '<div class="prop-value">' + esc(title) + '</div></div>';
-          }}
+          html += '<div class="properties-section-title">Payload</div>';
 
-          if (graphKey) {{
-            html += '<div class="prop-block"><div class="prop-label">Graph Key</div>';
-            html += '<div class="prop-value prop-value-row">';
-            html += '<span class="prop-value-mono prop-mono">' + esc(graphKey) + '</span>';
-            html +=
-              '<button type="button" class="copy-btn" data-copy="' +
-              encodeURIComponent(graphKey) +
-              '" title="Copy">' +
-              COPY_SVG +
-              '</button>';
-            html += '</div></div>';
-          }}
-
-          if (qualified) {{
-            html += '<div class="prop-block"><div class="prop-label">Qualified Name</div>';
-            html += '<div class="prop-value prop-value-row">';
-            html += '<span class="prop-value-mono prop-mono">' + esc(qualified) + '</span>';
-            html +=
-              '<button type="button" class="copy-btn" data-copy="' +
-              encodeURIComponent(qualified) +
-              '" title="Copy">' +
-              COPY_SVG +
-              '</button>';
-            html += '</div></div>';
-          }}
-
-          if (facetLabel) {{
-            html += '<div class="prop-block"><div class="prop-label">Facet</div>';
-            html += '<div class="prop-value">' + esc(facetLabel) + '</div></div>';
-          }}
-
-          if (description) {{
-            html += '<div class="prop-block"><div class="prop-label">Description</div>';
-            html +=
-              '<div class="prop-value">' +
-              esc(description).replace(/\\n/g, '<br/>') +
-              '</div></div>';
-          }}
-
-          for (const k of metaKeys) {{
-            const v = metaValueString(meta[k]);
+          for (const k of payloadPanelKeys) {{
+            const raw = payloadPanel[k];
+            const v = raw == null ? '' : String(raw);
+            const multiline =
+              v.length > 160 ||
+              v.indexOf('\\n') >= 0 ||
+              v.startsWith('{{') ||
+              v.startsWith('[');
             html += '<div class="prop-block"><div class="prop-label">' + esc(k) + '</div>';
-            html += '<div class="prop-value">' + esc(v) + '</div></div>';
+            if (copyKey.has(k) && v !== '') {{
+              html += '<div class="prop-value prop-value-row">';
+              html +=
+                '<span class="prop-value-mono prop-mono' +
+                (multiline ? ' prop-value-multiline' : '') +
+                '">' +
+                esc(v).replace(/\\n/g, '<br/>') +
+                '</span>';
+              html +=
+                '<button type="button" class="copy-btn" data-copy="' +
+                encodeURIComponent(v) +
+                '" title="Copy">' +
+                COPY_SVG +
+                '</button>';
+              html += '</div>';
+            }} else {{
+              html +=
+                '<div class="' +
+                (multiline ? 'prop-value prop-value-multiline' : 'prop-value') +
+                '">' +
+                esc(v).replace(/\\n/g, '<br/>') +
+                '</div>';
+            }}
+            html += '</div>';
           }}
 
           detailBody.innerHTML = html;
@@ -1333,7 +1305,7 @@ def export_samples_graph_html(
     to visualize an already-built ``PyDiGraph`` (e.g. tests or a custom coordinator).
     """
     if graph is None:
-        from maxitor.samples.build import build_sample_coordinator  # noqa: PLC0415
+        from maxitor.samples.build import build_sample_coordinator
 
         graph = coordinator_pygraph_for_visual_export(build_sample_coordinator())
 

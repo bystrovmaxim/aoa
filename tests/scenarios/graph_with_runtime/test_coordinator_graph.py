@@ -1,9 +1,9 @@
 # tests/scenarios/graph_with_runtime/test_coordinator_graph.py
-"""GateCoordinator tests - dependency graph, nodes, edges, loops, public API.
+"""GraphCoordinator tests - dependency graph, nodes, edges, loops, public API.
 ═══════════════════ ════════════════════ ════════════════════ ════════════════════
 PURPOSE
 ═══════════════════ ════════════════════ ════════════════════ ════════════════════
-Checks that GateCoordinator builds a directed graph from
+Checks that GraphCoordinator builds a directed graph from
 registered classes, creates nodes for actions, dependencies,
 connections, aspects, checkers, sensitive fields, compensators,
 detects circular dependencies and provides a public API
@@ -50,8 +50,7 @@ from action_machine.dependencies.dependency_factory import (
 )
 from action_machine.dependencies.depends_decorator import depends
 from action_machine.graph.base_intent_inspector import BaseIntentInspector
-from action_machine.graph.gate_coordinator import GateCoordinator
-from action_machine.graph.inspectors.meta_intent_inspector import MetaIntentInspector
+from action_machine.graph.graph_coordinator import GraphCoordinator
 from action_machine.intents.aspects.regular_aspect_decorator import regular_aspect
 from action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
 from action_machine.intents.auth.check_roles_decorator import check_roles
@@ -60,6 +59,7 @@ from action_machine.intents.checkers.result_string_checker import result_string
 from action_machine.intents.compensate import compensate
 from action_machine.intents.logging.sensitive_decorator import sensitive
 from action_machine.intents.meta.meta_decorator import meta
+from action_machine.intents.meta.meta_intent_inspector import MetaIntentInspector
 from action_machine.intents.plugins.events import GlobalStartEvent
 from action_machine.intents.plugins.on_decorator import on
 from action_machine.intents.plugins.plugin import Plugin
@@ -74,36 +74,36 @@ from tests.scenarios.domain_model.domains import TestDomain
 from tests.scenarios.domain_model.roles import AdminRole
 
 
-def _new_coord() -> GateCoordinator:
+def _new_coord() -> GraphCoordinator:
     """Create built coordinator with default inspector set."""
     return CoreActionMachine.create_coordinator()
 
 
-def _graph_children(coord: GateCoordinator, full_key: str) -> list[dict[str, Any]]:
+def _graph_children(coord: GraphCoordinator, full_key: str) -> list[dict[str, Any]]:
     g = coord.facet_topology_copy()
     for idx in g.node_indices():
         node = g[idx]
-        nk = f"{node['node_type']}:{node['name']}"
+        nk = f"{node['node_type']}:{node['id']}"
         if nk == full_key:
             return [dict(g[t]) for t in g.successor_indices(idx)]
     return []
 
 
-def _dependency_tree(coord: GateCoordinator, key: str | type) -> dict[str, Any]:
+def _dependency_tree(coord: GraphCoordinator, key: str | type) -> dict[str, Any]:
     if isinstance(key, type):
         key = f"action:{BaseIntentInspector._make_node_name(key)}"
     g = coord.facet_topology_copy()
     idx_by_key: dict[str, int] = {}
     for i in g.node_indices():
         n = g[i]
-        idx_by_key[f"{n['node_type']}:{n['name']}"] = i
+        idx_by_key[f"{n['node_type']}:{n['id']}"] = i
 
     def build(idx: int, visited: set[int]) -> dict[str, Any]:
         payload = g[idx]
         hp = coord.hydrate_graph_node(dict(payload))
         node_result: dict[str, Any] = {
             "node_type": hp["node_type"],
-            "name": hp["name"],
+            "id": hp["id"],
             "meta": dict(hp.get("meta", {})),
             "children": [],
         }
@@ -127,7 +127,7 @@ def _dependency_tree(coord: GateCoordinator, key: str | type) -> dict[str, Any]:
     return build(idx, set())
 
 
-def _class_present(coord: GateCoordinator, cls: type) -> bool:
+def _class_present(coord: GraphCoordinator, cls: type) -> bool:
     """True when class has any emitted nodes or meta facet."""
     return bool(coord.get_nodes_for_class(cls)) or coord.get_snapshot(cls, "meta") is not None
 
@@ -292,7 +292,7 @@ class TestBasicNodes:
 
     def test_empty_coordinator_empty_graph(self):
         """Before build(), the graph counters are not available - only the explicit status."""
-        coord = GateCoordinator()
+        coord = GraphCoordinator()
         assert coord.build_status() == "not_built"
         assert coord.is_built is False
         with pytest.raises(RuntimeError, match="not built"):
@@ -427,7 +427,7 @@ class TestCompensatorNodes:
         expected = BaseIntentInspector._make_host_dependent_node_name(
             _ActionWithCompensatorGraphAction, "rollback_step_compensate",
         )
-        assert node["name"] == expected
+        assert node["id"] == expected
 
     def test_has_compensator_edge_in_graph(self):
         """Facet topology links ``action`` → ``compensator`` with ``has_compensator``."""
@@ -447,13 +447,13 @@ class TestCompensatorNodes:
         action_idx = next(
             (
                 idx for idx in g.node_indices()
-                if g[idx].get("node_type") == "action" and g[idx].get("name") == action_name
+                if g[idx].get("node_type") == "action" and g[idx].get("id") == action_name
             ),
             None,
         )
         assert action_idx is not None
         targets = [
-            g[t]["name"]
+            g[t]["id"]
             for _s, t, ep in g.out_edges(action_idx)
             if isinstance(ep, dict) and ep.get("edge_type") == "has_compensator"
         ]
@@ -520,7 +520,7 @@ class TestCycleDetection:
 
 
 class TestPublicAPI:
-    """Checks GateCoordinator's public methods for graph inspection."""
+    """Checks GraphCoordinator's public methods for graph inspection."""
 
     def test_get_graph_returns_copy(self):
         """get_graph returns a copy of the graph."""
@@ -653,7 +653,7 @@ class TestInvalidation:
 
     def test_invalidate_all_empty_no_error(self):
         """Resetting the factory cache on an unbuilt coordinator - no errors, 0 entries."""
-        coord = GateCoordinator()
+        coord = GraphCoordinator()
         assert clear_dependency_factory_cache(coord) == 0
 
 
@@ -663,7 +663,7 @@ class TestInvalidation:
 
 
 class TestCoordinatorBasic:
-    """Checks the base GateCoordinator methods."""
+    """Checks the base GraphCoordinator methods."""
 
     def test_get_builds_and_caches(self):
         """Built coordinator returns stable meta snapshots."""
@@ -677,13 +677,13 @@ class TestCoordinatorBasic:
 
     def test_register_same_as_get(self):
         """register now accepts inspector classes only."""
-        coord = GateCoordinator()
+        coord = GraphCoordinator()
         returned = coord.register(MetaIntentInspector)
         assert returned is coord
 
     def test_has_before_get(self):
         """Empty coordinator has not-built state in repr."""
-        coord = GateCoordinator()
+        coord = GraphCoordinator()
         assert "state=not built" in repr(coord)
 
     def test_has_after_get(self):
@@ -713,7 +713,7 @@ class TestCoordinatorBasic:
 
     def test_get_not_a_class_raises(self):
         """register rejects non-inspector classes."""
-        coord = GateCoordinator()
+        coord = GraphCoordinator()
         with pytest.raises(TypeError):
             coord.register(_EmptyClass)  # type: ignore[arg-type]
 
@@ -727,7 +727,7 @@ class TestCoordinatorBasic:
 
     def test_repr_empty(self):
         """repr of the empty coordinator is a string."""
-        coord = GateCoordinator()
+        coord = GraphCoordinator()
         assert isinstance(repr(coord), str)
 
     def test_repr_with_classes(self):

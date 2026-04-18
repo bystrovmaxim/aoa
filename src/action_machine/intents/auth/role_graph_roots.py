@@ -15,7 +15,7 @@ from typing import TYPE_CHECKING
 from action_machine.intents.auth.application_role import ApplicationRole
 
 if TYPE_CHECKING:
-    from action_machine.intents.auth.base_role import BaseRole
+    pass
 
 ROLE_CLASS_GRAPH_ROOTS: frozenset[type] = frozenset({ApplicationRole})
 

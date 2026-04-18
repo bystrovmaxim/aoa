@@ -3,12 +3,12 @@
 
 from __future__ import annotations
 
+from action_machine.intents.aspects.aspect_intent import AspectIntent
+from action_machine.intents.compensate.compensate_decorator import compensate
 from action_machine.intents.compensate.compensate_intent_inspector import (
     CompensateIntentInspector,
     hydrate_compensator_row,
 )
-from action_machine.intents.aspects.aspect_intent import AspectIntent
-from action_machine.intents.compensate.compensate_decorator import compensate
 from action_machine.intents.context.context_requires_decorator import context_requires
 from action_machine.intents.context.ctx_constants import Ctx
 

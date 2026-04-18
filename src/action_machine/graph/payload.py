@@ -1,13 +1,13 @@
 # src/action_machine/graph/payload.py
 """
-Transport objects between inspectors and ``GateCoordinator``.
+Transport objects between inspectors and ``GraphCoordinator``.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 The module defines two frozen dataclasses — the contract between
-**inspectors** (``BaseIntentInspector``) and ``GateCoordinator``:
+**inspectors** (``BaseIntentInspector``) and ``GraphCoordinator``:
 
 1. ``EdgeInfo`` — one outgoing edge from a node.
 2. ``FacetPayload`` — one graph node plus all of its outgoing edges.
@@ -17,7 +17,7 @@ Both are transport-only: an inspector builds them in ``_build_payload()`` /
 they are discarded after commit. Facet node skeletons land in the coordinator’s
 internal facet ``rx.PyDiGraph``; the public interchange graph is a separate commit.
 Tuple → dict conversion for facet ``meta`` is applied when projecting from
-typed snapshots (see ``GateCoordinator.hydrate_graph_node``).
+typed snapshots (see ``GraphCoordinator.hydrate_graph_node``).
 
 ═══════════════════════════════════════════════════════════════════════════════
 IMMUTABILITY
@@ -98,7 +98,7 @@ LIFECYCLE EXAMPLE
     # 4. Coordinator commits in phase 3: facet skeleton into internal ``_facet_graph``,
     #    then interchange projection into ``_graph``. Node payload is skeleton only
     #    (``node_type``, ``name``, ``class_ref`` on the facet graph).
-    #    Facet body is in ``GateCoordinator`` facet snapshots; ``get_node`` /
+    #    Facet body is in ``GraphCoordinator`` facet snapshots; ``get_node`` /
     #    ``hydrate_graph_node`` attach ``meta`` from the matching snapshot.
 
     # 5. Payload objects are discarded. Committed graphs are the source of truth.
@@ -210,7 +210,7 @@ class FacetPayload:
     - Another ``FacetPayload(node_type="role_class", ...)`` from ``RoleModeIntentInspector``
       (canonical class name; ``node_meta`` carries ``mode``) merged with the row above
     - One merged ``FacetPayload(node_type="action", ...)`` with depends and/or
-      connection edges (two inspectors → merged in ``GateCoordinator._phase1_collect``)
+      connection edges (two inspectors → merged in ``GraphCoordinator._phase1_collect``)
     - ``FacetPayload(node_type="aspect", ...)`` from ``AspectIntentInspector``
       (per method)
 

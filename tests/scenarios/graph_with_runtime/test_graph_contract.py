@@ -2,7 +2,7 @@
 """
 Contract tests for the metadata graph and external JSON (MCP).
 
-Lock in public API promises of ``GateCoordinator`` and ``_build_graph_json``:
+Lock in public API promises of ``GraphCoordinator`` and ``_build_graph_json``:
 if the contract changes, tests fail and require a deliberate update.
 
 They do not duplicate all of ``test_graph_skeleton_and_hydrate`` — they add
@@ -16,7 +16,7 @@ import re
 from typing import Any, Final
 
 from action_machine.graph.base_intent_inspector import BaseIntentInspector
-from action_machine.graph.gate_coordinator import GateCoordinator
+from action_machine.graph.graph_coordinator import GraphCoordinator
 from action_machine.integrations.mcp.adapter import _build_graph_json
 from action_machine.runtime.machines.core_action_machine import CoreActionMachine
 
@@ -26,7 +26,7 @@ from tests.scenarios.domain_model import PingAction
 # --- Contract: raw node from facet ``facet_topology_copy()`` (no ``meta``) ---------
 GRAPH_NODE_SKELETON_KEYS: Final[frozenset[str]] = frozenset({
     "node_type",
-    "name",
+    "id",
     "class_ref",
 })
 
@@ -38,7 +38,7 @@ GRAPH_NODE_SKELETON_OPTIONAL_KEYS: Final[frozenset[str]] = frozenset({
 # --- Contract: hydrated node (API / hydrate_graph_node) -------------
 HYDRATED_NODE_REQUIRED_KEYS: Final[frozenset[str]] = frozenset({
     "node_type",
-    "name",
+    "id",
     "class_ref",
     "meta",
 })
@@ -59,7 +59,7 @@ MCP_EDGE_KEYS: Final[frozenset[str]] = frozenset({
 MCP_NODE_MIN_KEYS: Final[frozenset[str]] = frozenset({"id", "type"})
 
 
-def _default_coordinator() -> GateCoordinator:
+def _default_coordinator() -> GraphCoordinator:
     return CoreActionMachine.create_coordinator()
 
 
@@ -72,10 +72,10 @@ def test_contract_raw_graph_nodes_are_skeleton_only() -> None:
         raw = dict(graph[idx])
         assert "meta" not in raw
         keys = set(raw.keys())
-        assert GRAPH_NODE_SKELETON_KEYS <= keys
+        assert keys >= GRAPH_NODE_SKELETON_KEYS
         assert keys <= allowed
         assert isinstance(raw["node_type"], str)
-        assert isinstance(raw["name"], str)
+        assert isinstance(raw["id"], str)
         cr = raw["class_ref"]
         assert cr is None or isinstance(cr, type)
 
@@ -101,7 +101,7 @@ def test_contract_get_node_shape_matches_hydrate() -> None:
     idx = next(
         i
         for i in graph.node_indices()
-        if graph[i]["node_type"] == "action" and graph[i]["name"] == nm
+        if graph[i]["node_type"] == "action" and graph[i]["id"] == nm
     )
     assert node == coord.hydrate_graph_node(dict(graph[idx]))
 
@@ -117,12 +117,12 @@ def test_contract_ping_action_meta_snapshot_present() -> None:
 
 
 def test_contract_node_keys_follow_type_name_pattern() -> None:
-    """Node key ``node_type:name`` matches payload fields."""
+    """Node key ``node_type:id`` matches payload fields."""
     coord = _default_coordinator()
     graph = coord.facet_topology_copy()
     for idx in graph.node_indices():
         p = graph[idx]
-        nt, nm = p["node_type"], p["name"]
+        nt, nm = p["node_type"], p["id"]
         expected_key = f"{nt}:{nm}"
         assert coord.get_node(expected_key) is not None
 

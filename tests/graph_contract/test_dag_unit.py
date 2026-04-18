@@ -7,7 +7,6 @@ from __future__ import annotations
 import pytest
 import rustworkx as rx
 
-from action_machine.graph.exceptions import InvalidGraphError
 from action_machine.graph import (
     GraphEdge,
     GraphVertex,
@@ -17,6 +16,7 @@ from action_machine.graph import (
     dag_subgraph_is_acyclic,
     dag_subgraph_is_acyclic_from_rx,
 )
+from action_machine.graph.exceptions import InvalidGraphError
 
 
 def _v(vid: str) -> GraphVertex:

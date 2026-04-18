@@ -28,14 +28,14 @@ facets: ``intent -> decorator -> scratch -> inspector -> coordinator``.
     EntityIntentInspector  ──reads scratch + model_fields──>  FacetPayload / snapshots
          │
          v
-    GateCoordinator graph  (entity nodes, belongs_to domain, relation edges, …)
+    GraphCoordinator graph  (entity nodes, belongs_to domain, relation edges, …)
 
 ═══════════════════════════════════════════════════════════════════════════════
 INVARIANTS
 ═══════════════════════════════════════════════════════════════════════════════
 
 - This package exports only domain-layer contracts and helpers.
-- Entity declarations are validated through the shared ``GateCoordinator`` graph.
+- Entity declarations are validated through the shared ``GraphCoordinator`` graph.
 - Entities, actions, and other facets coexist in one graph (no separate entity coordinator).
 - ``entity`` decorator and ``EntityIntent`` marker must be used together for graph participation.
 
@@ -49,7 +49,7 @@ Domains:
 Entities:
     BaseEntity — abstract base for all entities (frozen, `extra="forbid"`).
     EntityIntent — marker mixin: the type declares participation in the
-    ``@entity`` grammar (facet / inspector at ``GateCoordinator.build()``).
+    ``@entity`` grammar (facet / inspector at ``GraphCoordinator.build()``).
     entity — class decorator declaring an entity (`_entity_info`).
 
 State machines:

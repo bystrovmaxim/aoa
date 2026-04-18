@@ -93,7 +93,7 @@ class TestCompensatorGraphNodes:
         expected = BaseIntentInspector._make_host_dependent_node_name(
             ActionWithCompensatorAction, "rollback_compensate",
         )
-        assert node["name"] == expected
+        assert node["id"] == expected
         row = dict(node["meta"])
         assert row["method_name"] == "rollback_compensate"
         assert row["target_aspect_name"] == "target_aspect"
@@ -105,7 +105,7 @@ class TestCompensatorGraphNodes:
         n2 = _compensator_nodes_for(coordinator, ActionWithContextCompensatorAction)
         assert len(n1) == 1
         assert len(n2) == 1
-        names = {n["name"] for n in (n1 + n2)}
+        names = {n["id"] for n in (n1 + n2)}
         assert BaseIntentInspector._make_host_dependent_node_name(
             ActionWithCompensatorAction, "rollback_compensate",
         ) in names
@@ -139,13 +139,13 @@ class TestCompensatorGraphEdges:
         action_idx = next(
             (
                 idx for idx in g.node_indices()
-                if g[idx].get("node_type") == "action" and g[idx].get("name") == action_name
+                if g[idx].get("node_type") == "action" and g[idx].get("id") == action_name
             ),
             None,
         )
         assert action_idx is not None
         targets = [
-            g[t]["name"]
+            g[t]["id"]
             for _s, t, ep in g.out_edges(action_idx)
             if isinstance(ep, dict) and ep.get("edge_type") == "has_compensator"
         ]

@@ -72,12 +72,12 @@ from action_machine.graph.dag import (
     dag_subgraph_is_acyclic,
     dag_subgraph_is_acyclic_from_rx,
 )
-from action_machine.graph.graph_coordinator import GraphCoordinator
 from action_machine.graph.graph_builder import (
     GraphBuilder,
     build_from_synthetic_bundle,
     build_interchange_from_facet_payloads,
 )
+from action_machine.graph.graph_coordinator import GraphCoordinator
 from action_machine.graph.model import GraphEdge, GraphVertex
 from action_machine.graph.reverse_edge import reverse_direct_edge
 from action_machine.graph.vertex_id import (
@@ -86,20 +86,20 @@ from action_machine.graph.vertex_id import (
 )
 
 __all__ = [
-    "BaseFacetSnapshot",
     "DAG_EDGE_TYPES",
-    "GraphCoordinator",
-    "GraphBuilder",
-    "GraphEdge",
-    "GraphVertex",
-    "build_interchange_from_facet_payloads",
     "INTERNAL_EDGE_TYPES",
     "OWNERSHIP_EDGE_TYPES",
     "REVERSE_EDGE_MAP",
     "REVERSE_EDGE_STEREOTYPE",
     "VERTEX_TYPES",
+    "BaseFacetSnapshot",
+    "GraphBuilder",
+    "GraphCoordinator",
+    "GraphEdge",
+    "GraphVertex",
     "assert_dag_edges_acyclic",
     "build_from_synthetic_bundle",
+    "build_interchange_from_facet_payloads",
     "collect_dag_edge_pairs",
     "dag_edge_pairs_from_rx",
     "dag_subgraph_is_acyclic",

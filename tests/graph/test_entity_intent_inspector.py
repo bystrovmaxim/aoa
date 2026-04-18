@@ -22,6 +22,7 @@ from action_machine.domain.entity_intent_inspector import (
     collect_entity_info,
 )
 from action_machine.domain.lifecycle import Lifecycle
+from action_machine.graph.base_intent_inspector import BaseIntentInspector
 
 
 def _entity_payload(inspect_result: object):
@@ -228,8 +229,11 @@ def test_entity_inspector_emits_lifecycle_graph_facets() -> None:
         p for p in payloads
         if p.node_type == "lifecycle_state_initial" and dict(p.node_meta)["state_key"] == "a"
     )
-    assert st_a.node_name == "_DualInitialLifecycle:a"
-    assert "_EntityWithLifecycleEntity" not in st_a.node_name
+    assert st_a.node_name == BaseIntentInspector._make_node_name(
+        _EntityWithLifecycleEntity,
+        "order_status:_DualInitialLifecycle:a",
+    )
+    assert "_EntityWithLifecycleEntity" in st_a.node_name
     assert not any(e.edge_type == "belongs_to" for e in st_a.edges)
     assert any(e.edge_type == "lifecycle_transition" for e in st_a.edges)
     assert any(
