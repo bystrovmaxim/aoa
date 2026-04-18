@@ -13,7 +13,7 @@ from typing import Any, Final
 
 import rustworkx as rx
 
-_G2_VERTEX_KEYS: Final[frozenset[str]] = frozenset({"id", "vertex_type"})
+_G2_VERTEX_KEYS: Final[frozenset[str]] = frozenset({"id", "node_type"})
 _G2_EDGE_KEYS: Final[frozenset[str]] = frozenset(
     {"source_id", "target_id", "edge_type", "category"},
 )

@@ -84,7 +84,7 @@ def _g0_facet_payloads() -> tuple[FacetPayload, ...]:
             node_type="domain",
             node_name=domain_name,
             node_class=demo_domain,
-            node_meta=BaseIntentInspector._make_meta(display_name="demo"),
+            node_meta=BaseIntentInspector._make_meta(label="demo"),
             edges=(),
         ),
         FacetPayload(
@@ -122,7 +122,7 @@ def _g0_meta_no_action_payloads() -> tuple[FacetPayload, ...]:
             node_type="domain",
             node_name=domain_name,
             node_class=demo_domain,
-            node_meta=BaseIntentInspector._make_meta(display_name="demo"),
+            node_meta=BaseIntentInspector._make_meta(label="demo"),
             edges=(),
         ),
         FacetPayload(
@@ -270,7 +270,7 @@ def test_facet_role_spec_non_type_skips_assigned_edges() -> None:
             node_type="domain",
             node_name=domain_name,
             node_class=demo_domain,
-            node_meta=BaseIntentInspector._make_meta(display_name="demo"),
+            node_meta=BaseIntentInspector._make_meta(label="demo"),
             edges=(),
         ),
         FacetPayload(
@@ -290,7 +290,7 @@ def test_facet_role_spec_non_type_skips_assigned_edges() -> None:
     )
     vertices, edges = build_interchange_from_facet_payloads(payloads)
     assert len(vertices) == 3
-    assert {v.vertex_type for v in vertices} == {"domain", "action", "meta"}
+    assert {v.node_type for v in vertices} == {"domain", "action", "meta"}
     assert len(edges) == 1
     assert edges[0].edge_type == "BELONGS_TO"
 
@@ -334,7 +334,7 @@ def test_facet_duplicate_belongs_to_deduped_to_single_pair() -> None:
             node_type="domain",
             node_name=domain_name,
             node_class=demo_domain,
-            node_meta=BaseIntentInspector._make_meta(display_name="demo"),
+            node_meta=BaseIntentInspector._make_meta(label="demo"),
             edges=(),
         ),
         FacetPayload(

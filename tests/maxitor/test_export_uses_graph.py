@@ -36,19 +36,19 @@ def test_coordinator_pygraph_matches_built_coordinator() -> None:
     g = coordinator_pygraph_for_visual_export(coord)
     assert len(g) == len(coord.get_graph())
     sample = g[0]
-    assert "vertex_type" in sample
+    assert "node_type" in sample
 
 
 def test_coordinator_pygraph_prefers_get_graph_for_visualization() -> None:
     class _Stub:
         def get_graph_for_visualization(self) -> rx.PyDiGraph:
             g = rx.PyDiGraph()
-            g.add_node({"vertex_type": "action", "id": "viz.only", "display_name": "V"})
+            g.add_node({"node_type": "action", "id": "viz.only", "label": "V"})
             return g
 
         def get_graph(self) -> rx.PyDiGraph:
             g = rx.PyDiGraph()
-            g.add_node({"vertex_type": "role_class", "id": "fallback.only", "display_name": "L"})
+            g.add_node({"node_type": "role_class", "id": "fallback.only", "label": "L"})
             return g
 
     out = coordinator_pygraph_for_visual_export(_Stub())
@@ -81,9 +81,9 @@ def test_coordinator_pygraph_requires_graph_api() -> None:
 
 def test_normalize_interchange_node_maps_to_facet_keys() -> None:
     raw = {
-        "vertex_type": "action",
+        "node_type": "action",
         "id": "pkg.actions.Foo",
-        "display_name": "Foo",
+        "label": "Foo",
         "stereotype": "Business Process",
         "class_ref": None,
         "properties": {},
@@ -94,7 +94,6 @@ def test_normalize_interchange_node_maps_to_facet_keys() -> None:
     assert norm["label"] == "Foo"
     assert norm["stereotype"] == "Business Process"
     assert norm["properties"] == {}
-    assert norm["vertex_type"] == "action"
 
 
 def test_json_document_to_pygraph_roundtrip_counts() -> None:
@@ -116,7 +115,7 @@ def test_pygraph_to_json_document_roundtrip_keys() -> None:
     assert doc["node_count"] == len(graph)
     assert doc["edge_count"] == graph.num_edges()
     first = doc["nodes"][0]["data"]
-    assert first.get("vertex_type") or first.get("node_type")
+    assert first.get("node_type")
 
 
 @pytest.mark.integration
@@ -135,7 +134,7 @@ def test_json_export_writes_utf8(tmp_path: Path) -> None:
 
 def test_pygraph_to_dot_source_shape() -> None:
     g = rx.PyDiGraph()
-    g.add_node({"vertex_type": "action", "id": "pkg.X", "display_name": "X"})
+    g.add_node({"node_type": "action", "id": "pkg.X", "label": "X"})
     src = pygraph_to_dot_source(g, graph_id="t")
     assert src.startswith("digraph")
     assert "n0" in src

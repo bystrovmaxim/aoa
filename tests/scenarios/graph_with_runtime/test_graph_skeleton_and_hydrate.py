@@ -9,7 +9,7 @@ import pytest
 
 from action_machine.graph.base_intent_inspector import BaseIntentInspector
 from action_machine.graph.graph_coordinator import GraphCoordinator
-from action_machine.interchange_vertex_labels import DEPENDENCY_SERVICE_VERTEX_TYPE
+from action_machine.interchange_vertex_labels import SERVICE_VERTEX_TYPE
 from action_machine.runtime.machines.core_action_machine import CoreActionMachine
 from tests.scenarios.domain_model import CompensatedOrderAction, FullAction, TestDbManager
 from tests.scenarios.domain_model.domains import OrdersDomain
@@ -100,7 +100,7 @@ def test_stub_dependency_node_hydrates_to_empty_meta() -> None:
     idx = next(
         i
         for i in g.node_indices()
-        if g[i]["node_type"] == DEPENDENCY_SERVICE_VERTEX_TYPE
+        if g[i]["node_type"] == SERVICE_VERTEX_TYPE
         and g[i]["class_ref"] is PaymentService
     )
     assert coord.hydrate_graph_node(dict(g[idx])).get("meta") == {}

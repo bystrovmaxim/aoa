@@ -10,7 +10,7 @@ Walks concrete subclasses of ``BaseSchema``, ``BaseAction``, and
 ``BaseResourceManager``, collects ``_sensitive_config`` on declaring members, and
 emits:
 
-* one interchange vertex per sensitive property — ``vertex_type`` ``sensitive_field``,
+* one interchange vertex per sensitive property — ``node_type`` ``sensitive_field``,
   ``id`` = ``{declaring_class dotted name}:{property_name}``;
 * ownership edges ``HAS_SENSITIVE_FIELD`` from the canonical host vertex
   (``described_fields`` / ``action`` / ``resource_manager``) to each field vertex.
@@ -160,7 +160,7 @@ class SensitiveIntentInspector(BaseIntentInspector):
             return "entity", cls._make_node_name(declaring_klass)
         if issubclass(declaring_klass, DescribedFieldsIntent):
             return (
-                DescribedFieldsIntentInspector.interchange_vertex_type_for_schema_model(declaring_klass),
+                DescribedFieldsIntentInspector.interchange_node_type_for_schema_model(declaring_klass),
                 DescribedFieldsIntentInspector.described_fields_vertex_name(declaring_klass),
             )
         return "described_fields", cls._make_node_name(declaring_klass)

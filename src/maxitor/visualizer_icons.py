@@ -1,6 +1,6 @@
 # src/maxitor/visualizer_icons.py
 """
-Lucide icon markup (inner SVG children only) per interchange ``vertex_type``.
+Lucide icon markup (inner SVG children only) per ``node_type``.
 
 Icons are from `lucide-static` (ISC, https://github.com/lucide-icons/lucide).
 Rendered as white strokes on the colored node disk in :mod:`maxitor.visualizer`.
@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from urllib.parse import quote
 
-from action_machine.interchange_vertex_labels import DEPENDENCY_SERVICE_VERTEX_TYPE
+from action_machine.interchange_vertex_labels import SERVICE_VERTEX_TYPE
 
 # fmt: off
 # Inner elements only (no <svg> wrapper), spaces preserved for valid XML.
@@ -167,7 +167,7 @@ VERTEX_TYPE_LUCIDE_INNER_SVG: dict[str, str] = {
 }
 # fmt: on
 
-VERTEX_TYPE_LUCIDE_INNER_SVG[DEPENDENCY_SERVICE_VERTEX_TYPE] = VERTEX_TYPE_LUCIDE_INNER_SVG[
+VERTEX_TYPE_LUCIDE_INNER_SVG[SERVICE_VERTEX_TYPE] = VERTEX_TYPE_LUCIDE_INNER_SVG[
     "dependency"
 ]
 
@@ -177,10 +177,10 @@ _ICON_INNER_SCALE: float = 0.58
 _ICON_STROKE_WIDTH: float = 2.0 / _ICON_INNER_SCALE
 
 
-def svg_data_uri_for_vertex_icon(fill_hex: str, vertex_type: str) -> str:
+def svg_data_uri_for_vertex_icon(fill_hex: str, node_type: str) -> str:
     """Return a data: URL for a 24×24 disk with white Lucide strokes on ``fill_hex``."""
     # Types not in the map use the same plug / "fork" glyph as ``dependency``.
-    inner = VERTEX_TYPE_LUCIDE_INNER_SVG.get(str(vertex_type).strip()) or VERTEX_TYPE_LUCIDE_INNER_SVG[
+    inner = VERTEX_TYPE_LUCIDE_INNER_SVG.get(str(node_type).strip()) or VERTEX_TYPE_LUCIDE_INNER_SVG[
         "dependency"
     ]
     s = _ICON_INNER_SCALE

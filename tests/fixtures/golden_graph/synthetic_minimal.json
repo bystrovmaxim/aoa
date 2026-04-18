@@ -5,25 +5,25 @@
     "vertices": [
       {
         "id": "golden_demo.actions.DemoAction",
-        "vertex_type": "action",
+        "node_type": "action",
         "stereotype": "Business Process",
-        "display_name": "DemoAction",
+        "label": "DemoAction",
         "class_ref": null,
         "properties": {}
       },
       {
         "id": "golden_demo.domains.DemoDomain",
-        "vertex_type": "domain",
+        "node_type": "domain",
         "stereotype": "Business Object",
-        "display_name": "demo",
+        "label": "demo",
         "class_ref": null,
         "properties": {}
       },
       {
         "id": "golden_demo.roles.DemoRole",
-        "vertex_type": "role",
+        "node_type": "role",
         "stereotype": "Business Role",
-        "display_name": "DemoRole",
+        "label": "DemoRole",
         "class_ref": null,
         "properties": {}
       }
@@ -53,25 +53,25 @@
     "vertices": [
       {
         "id": "golden_demo.actions.DemoAction",
-        "vertex_type": "action",
+        "node_type": "action",
         "stereotype": "Business Process",
-        "display_name": "DemoAction",
+        "label": "DemoAction",
         "class_ref": null,
         "properties": {}
       },
       {
         "id": "golden_demo.domains.DemoDomain",
-        "vertex_type": "domain",
+        "node_type": "domain",
         "stereotype": "Business Object",
-        "display_name": "demo",
+        "label": "demo",
         "class_ref": null,
         "properties": {}
       },
       {
         "id": "golden_demo.roles.DemoRole",
-        "vertex_type": "role",
+        "node_type": "role",
         "stereotype": "Business Role",
-        "display_name": "DemoRole",
+        "label": "DemoRole",
         "class_ref": null,
         "properties": {}
       }
@@ -101,33 +101,33 @@
     "vertices": [
       {
         "id": "action:golden_demo.actions.DemoAction",
-        "vertex_type": "action",
+        "node_type": "action",
         "stereotype": "",
-        "display_name": "DemoAction",
+        "label": "DemoAction",
         "class_ref": null,
         "properties": {}
       },
       {
         "id": "domain:golden_demo.domains.DemoDomain",
-        "vertex_type": "domain",
+        "node_type": "domain",
         "stereotype": "",
-        "display_name": "DemoDomain",
+        "label": "DemoDomain",
         "class_ref": null,
         "properties": {}
       },
       {
         "id": "meta:golden_demo.actions.DemoAction",
-        "vertex_type": "meta",
+        "node_type": "meta",
         "stereotype": "",
-        "display_name": "DemoAction",
+        "label": "DemoAction",
         "class_ref": null,
         "properties": {}
       },
       {
         "id": "role:golden_demo.actions.DemoAction",
-        "vertex_type": "role",
+        "node_type": "role",
         "stereotype": "",
-        "display_name": "DemoAction",
+        "label": "DemoAction",
         "class_ref": null,
         "properties": {}
       }
@@ -148,33 +148,33 @@
     "vertices": [
       {
         "id": "action:golden_demo.actions.DemoAction",
-        "vertex_type": "action",
+        "node_type": "action",
         "stereotype": "",
-        "display_name": "DemoAction",
+        "label": "DemoAction",
         "class_ref": null,
         "properties": {}
       },
       {
         "id": "domain:golden_demo.domains.DemoDomain",
-        "vertex_type": "domain",
+        "node_type": "domain",
         "stereotype": "",
-        "display_name": "DemoDomain",
+        "label": "DemoDomain",
         "class_ref": null,
         "properties": {}
       },
       {
         "id": "meta:golden_demo.actions.DemoAction",
-        "vertex_type": "meta",
+        "node_type": "meta",
         "stereotype": "",
-        "display_name": "DemoAction",
+        "label": "DemoAction",
         "class_ref": null,
         "properties": {}
       },
       {
         "id": "role:golden_demo.actions.DemoAction",
-        "vertex_type": "role",
+        "node_type": "role",
         "stereotype": "",
-        "display_name": "DemoAction",
+        "label": "DemoAction",
         "class_ref": null,
         "properties": {}
       }
@@ -195,25 +195,25 @@
     "vertices": [
       {
         "id": "domain:golden_demo.domains.DemoDomain",
-        "vertex_type": "domain",
+        "node_type": "domain",
         "stereotype": "",
-        "display_name": "DemoDomain",
+        "label": "DemoDomain",
         "class_ref": null,
         "properties": {}
       },
       {
         "id": "meta:golden_demo.actions.DemoAction",
-        "vertex_type": "meta",
+        "node_type": "meta",
         "stereotype": "",
-        "display_name": "DemoAction",
+        "label": "DemoAction",
         "class_ref": null,
         "properties": {}
       },
       {
         "id": "role:golden_demo.actions.DemoAction",
-        "vertex_type": "role",
+        "node_type": "role",
         "stereotype": "",
-        "display_name": "DemoAction",
+        "label": "DemoAction",
         "class_ref": null,
         "properties": {}
       }

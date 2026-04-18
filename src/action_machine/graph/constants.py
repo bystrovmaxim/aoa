@@ -2,7 +2,7 @@
 """
 Graph constants and ``REVERSE_EDGE_MAP`` (``graph.md`` v4.1 §2.1, §5–6).
 
-Centralize allowed ``vertex_type`` / edge-type sets and the canonical reverse map
+Centralize allowed interchange ``node_type`` values / edge-type sets and the canonical reverse map
 for §5.3 **direct** edges so builders and tests do not duplicate literals.
 """
 

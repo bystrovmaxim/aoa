@@ -815,7 +815,7 @@ class EntityIntentInspector(BaseIntentInspector):
                         is_structural=False,
                         edge_meta=(
                             ("state_key", sk),
-                            ("display_name", st.display_name),
+                            ("label", st.display_name),
                             ("state_type", st.state_type.value),
                         ),
                         target_class_ref=snap.class_ref,
@@ -878,7 +878,7 @@ class EntityIntentInspector(BaseIntentInspector):
                         node_meta=cls._make_meta(
                             field_name=field,
                             state_key=sk,
-                            display_name=st.display_name,
+                            label=st.display_name,
                             state_type=st.state_type.value,
                         ),
                         edges=tuple(out_edges),

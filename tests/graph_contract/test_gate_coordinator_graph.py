@@ -54,10 +54,10 @@ def test_logical_node_payload_shape() -> None:
     for idx in lg.node_indices():
         data = lg[idx]
         assert set(data.keys()) >= {
-            "vertex_type",
+            "node_type",
             "id",
             "stereotype",
-            "display_name",
+            "label",
             "class_ref",
             "properties",
         }
