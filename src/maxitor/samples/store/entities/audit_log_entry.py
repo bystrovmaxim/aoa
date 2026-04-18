@@ -7,11 +7,13 @@ from pydantic import Field
 
 from action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel, entity
 from maxitor.samples.store.domain import StoreDomain
+from maxitor.samples.store.entities.lifecycle import AuditLogEntryLifecycle
 from maxitor.samples.store.entities.sales_core import SalesOrderEntity
 
 
 @entity(description="Immutable audit row", domain=StoreDomain)
 class AuditLogEntryEntity(BaseEntity):
+    lifecycle: AuditLogEntryLifecycle = Field(description="Audit entry lifecycle")
     id: str = Field(description="Audit id")
     action_performed: str = Field(description="Action label")
     actor_id: str = Field(description="Actor id")
@@ -20,3 +22,6 @@ class AuditLogEntryEntity(BaseEntity):
         AssociationOne[SalesOrderEntity],
         NoInverse(),
     ] = Rel(description="Related order")  # type: ignore[assignment]
+
+
+AuditLogEntryEntity.model_rebuild()
