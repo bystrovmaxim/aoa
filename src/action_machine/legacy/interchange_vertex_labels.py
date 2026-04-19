@@ -3,8 +3,7 @@
 Interchange / facet kind strings (``node_type``) for graph visualization labels.
 
 Kept dependency-free so modules like ``maxitor.visualizer`` can import without
-pulling ``action_machine.dependencies`` (whose package ``__init__`` loads the
-factory graph) or ``action_machine.graph`` (whose package ``__init__`` loads the
+pulling ``action_machine.graph`` (whose package ``__init__`` loads the
 coordinator).
 """
 
