@@ -28,7 +28,7 @@ from action_machine.graph.base_intent_inspector import BaseIntentInspector
 from action_machine.graph.graph_coordinator import GraphCoordinator
 from action_machine.intents.meta.meta_decorator import meta
 from action_machine.intents.meta.meta_intent_inspector import MetaIntentInspector
-from action_machine.intents.meta.meta_intents import ActionMetaIntent
+from action_machine.intents.meta.action_meta_intent import ActionMetaIntent
 from action_machine.resources.base_resource_manager import BaseResourceManager
 from action_machine.resources.connection_decorator import connection
 from action_machine.resources.connection_intent import ConnectionIntent

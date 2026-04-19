@@ -9,7 +9,7 @@ from action_machine.intents.auth.role_intent import RoleIntent
 from action_machine.intents.auth.role_intent_inspector import RoleIntentInspector
 from action_machine.intents.auth.role_mode_decorator import RoleMode, role_mode
 from action_machine.intents.meta.meta_intent_inspector import MetaIntentInspector
-from action_machine.intents.meta.meta_intents import ActionMetaIntent
+from action_machine.intents.meta.action_meta_intent import ActionMetaIntent
 
 
 @role_mode(RoleMode.ALIVE)
