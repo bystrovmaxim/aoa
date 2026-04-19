@@ -16,8 +16,8 @@ from action_machine.domain import (
     entity,
 )
 from action_machine.domain.base_domain import BaseDomain
-from action_machine.intents.domain.entity_intent import EntityIntent
-from action_machine.intents.domain.entity_intent_inspector import (
+from action_machine.legacy.entity_intent import EntityIntent
+from action_machine.legacy.entity_intent_inspector import (
     EntityIntentInspector,
     collect_entity_info,
 )

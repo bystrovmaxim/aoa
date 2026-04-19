@@ -1,4 +1,4 @@
-# src/action_machine/intents/domain/entity_intent.py
+# src/action_machine/legacy/entity_intent.py
 """
 EntityIntent — marker mixin and invariant validators for ``@entity``.
 
@@ -20,9 +20,10 @@ as entities.
 extra mixin. If someone applies ``@entity`` to a “bare” class, they get an
 explicit, early error.
 
-All argument and target checks for ``@entity`` live in this module
-(``validate_entity_*``). The ``entity`` decorator only calls them and then
-writes ``_entity_info`` (scratch).
+All ``@entity`` argument and target checks live in
+:mod:`action_machine.intents.entity.entity_decorator`
+(``validate_entity_description``, ``validate_entity_domain``,
+``validate_entity_decorator_target``). The decorator then writes ``_entity_info`` (scratch).
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
@@ -82,7 +83,7 @@ ERRORS / LIMITATIONS
 AI-CORE-BEGIN
 ═══════════════════════════════════════════════════════════════════════════════
 ROLE: Marker and validator layer for entity declaration grammar.
-CONTRACT: ``EntityIntent`` marks eligible classes; ``validate_entity_*`` enforces decorator invariants.
+CONTRACT: ``EntityIntent`` marks eligible classes for ``@entity``; decorator enforces MRO in entity_decorator.
 INVARIANTS: No runtime behavior, only declaration guards and scratch-shape assumptions.
 FLOW: decorator -> validators -> ``_entity_info`` write -> inspector consumption at build.
 FAILURES: ``EntityDecoratorError`` on invalid arguments, domain type, or missing marker inheritance.
@@ -93,9 +94,6 @@ AI-CORE-END
 from __future__ import annotations
 
 from typing import Any, ClassVar
-
-from action_machine.domain.base_domain import BaseDomain
-from action_machine.domain.exceptions import EntityDecoratorError
 
 
 class EntityIntent:
@@ -135,70 +133,3 @@ def entity_info_is_set(cls: type) -> bool:
     Does not validate dict shape — only presence of the scratch attribute.
     """
     return getattr(cls, "_entity_info", None) is not None
-
-
-def validate_entity_description(description: Any) -> None:
-    """
-    Invariant: ``description`` is a non-empty ``str`` (after strip).
-
-    Raises:
-        EntityDecoratorError: not a string, or blank after strip.
-    """
-    if not isinstance(description, str):
-        raise EntityDecoratorError(
-            f"@entity: parameter 'description' must be str, "
-            f"got {type(description).__name__}: {description!r}."
-        )
-
-    if not description.strip():
-        raise EntityDecoratorError(
-            "@entity: description cannot be empty. "
-            "Provide a non-empty entity description, e.g. "
-            '@entity(description="Customer order").'
-        )
-
-
-def validate_entity_domain(domain: Any) -> None:
-    """
-    Invariant: ``domain`` is ``None`` or a ``BaseDomain`` subclass.
-
-    Raises:
-        EntityDecoratorError: invalid ``domain`` type or not a subclass of ``BaseDomain``.
-    """
-    if domain is None:
-        return
-
-    if not isinstance(domain, type):
-        raise EntityDecoratorError(
-            f"@entity: parameter 'domain' must be a BaseDomain subclass or None, "
-            f"got {type(domain).__name__}: {domain!r}. "
-            f"Pass a domain class, e.g. domain=ShopDomain."
-        )
-
-    if not issubclass(domain, BaseDomain):
-        raise EntityDecoratorError(
-            f"@entity: parameter 'domain' must inherit BaseDomain, "
-            f"got {domain.__name__}. Define a domain class such as "
-            f"class {domain.__name__}Domain(BaseDomain): name = \"...\"."
-        )
-
-
-def validate_entity_decorator_target(cls: Any) -> None:
-    """
-    Invariant: decorator target is a ``type`` with ``EntityIntent`` in the MRO.
-
-    Raises:
-        EntityDecoratorError: not a class, or missing ``EntityIntent``.
-    """
-    if not isinstance(cls, type):
-        raise EntityDecoratorError(
-            f"@entity applies only to a class. "
-            f"Got {type(cls).__name__}: {cls!r}."
-        )
-
-    if not issubclass(cls, EntityIntent):
-        raise EntityDecoratorError(
-            f"@entity applied to {cls.__name__}, which does not inherit "
-            f"EntityIntent. Subclass BaseEntity, e.g. "
-            f"class {cls.__name__}(BaseEntity): ..."
-        )
