@@ -1,5 +1,5 @@
 # tests/graph/test_interchange_nodes.py
-"""Interchange node types: ``ParamsNode``, ``ResultNode``, ``DomainNode``, ``ActionNode``, ``EntityNode``, and ``BaseGraphNode`` parse error."""
+"""Interchange node types: ``ParamsNode``, ``ResultNode``, ``DomainGraphNode``, ``ActionNode``, ``EntityGraphNode``, and ``BaseGraphNode`` parse error."""
 
 from __future__ import annotations
 
@@ -11,8 +11,8 @@ from pydantic import Field
 from action_machine.common import qualified_dotted_name
 from action_machine.application.application_context import ApplicationContext
 from action_machine.application.application_context_inspector import ApplicationContextInspector
-from action_machine.intents.domain.domain_node import DomainNode
-from action_machine.intents.domain.entity_node import EntityNode
+from action_machine.domain.domain_graph_node import DomainGraphNode
+from action_machine.domain.entity_graph_node import EntityGraphNode
 from action_machine.graph.base_graph_edge import BaseGraphEdge
 from action_machine.graph.base_graph_node import BaseGraphNode, BaseGraphNodeParseError
 from action_machine.legacy.interchange_vertex_labels import APPLICATION_VERTEX_TYPE, DOMAIN_VERTEX_TYPE
@@ -63,7 +63,7 @@ def test_result_node_interchange_shape() -> None:
 
 
 def test_domain_node_interchange_shape() -> None:
-    node = DomainNode(TestDomain)
+    node = DomainGraphNode(TestDomain)
     assert node.obj is TestDomain
     assert node.payload.id == node.id == qualified_dotted_name(TestDomain)
     assert node.payload.node_type == node.node_type == "Domain"
@@ -161,7 +161,7 @@ def test_action_node_links_and_helpers() -> None:
 
 
 def test_entity_node_links_properties_and_domain_helpers() -> None:
-    node = EntityNode(SampleEntity)
+    node = EntityGraphNode(SampleEntity)
     assert node.obj is SampleEntity
     dom_id = qualified_dotted_name(TestDomain)
     host = qualified_dotted_name(SampleEntity)
@@ -180,11 +180,11 @@ def test_entity_node_links_properties_and_domain_helpers() -> None:
         ),
     ]
 
-    assert EntityNode.get_domain_link(SampleEntity) == BaseGraphEdge(
+    assert EntityGraphNode.get_domain_link(SampleEntity) == BaseGraphEdge(
         link_name="domain",
         target_id=dom_id,
         target_node_type=DOMAIN_VERTEX_TYPE,
         is_dag=False,
         target_cls=TestDomain,
     )
-    assert EntityNode._get_all_edges(SampleEntity) == node.edges
+    assert EntityGraphNode._get_all_edges(SampleEntity) == node.edges

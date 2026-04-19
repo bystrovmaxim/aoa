@@ -26,6 +26,8 @@ from action_machine.legacy.described_fields import (
 from action_machine.legacy.described_fields.described_fields_intent_inspector import (
     DescribedFieldsIntentInspector,
 )
+from action_machine.legacy.entity_intent import EntityIntent, entity_info_is_set
+from action_machine.legacy.entity_intent_inspector import EntityIntentInspector
 from action_machine.legacy.role_class_inspector import RoleClassInspector
 from action_machine.legacy.role_graph_roots import (
     ROLE_CLASS_GRAPH_ROOTS,
@@ -45,6 +47,8 @@ __all__ = [
     "ContextRequiresIntent",
     "DescribedFieldsIntent",
     "DescribedFieldsIntentInspector",
+    "EntityIntent",
+    "EntityIntentInspector",
     "ROLE_CLASS_GRAPH_ROOTS",
     "RoleClassInspector",
     "RoleIntentInspector",
@@ -53,6 +57,7 @@ __all__ = [
     "hydrate_checker_row",
     "hydrate_compensator_row",
     "role_class_topology_anchor",
+    "entity_info_is_set",
     "validate_described_schema",
     "validate_described_schemas_for_action",
 ]

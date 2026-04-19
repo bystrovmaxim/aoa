@@ -1,6 +1,6 @@
-# src/action_machine/intents/domain/domain_node.py
+# src/action_machine/domain/domain_graph_node.py
 """
-DomainNode — interchange node for BaseDomain marker classes.
+DomainGraphNode — interchange node for BaseDomain marker classes.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
@@ -18,7 +18,7 @@ ARCHITECTURE / DATA FLOW
     type[TDomain]   (``TDomain`` bound to ``BaseDomain``)
               │
               v
-    DomainNode.parse  ──>  frozen ``BaseGraphNode`` (id, node_type, label, properties, edges)
+    DomainGraphNode.parse  ──>  frozen ``BaseGraphNode`` (id, node_type, label, properties, edges)
 
 ═══════════════════════════════════════════════════════════════════════════════
 INVARIANTS
@@ -37,7 +37,7 @@ Happy path::
         name = "shop"
         description = "Shop context"
 
-    n = DomainNode(ShopDomain)
+    n = DomainGraphNode(ShopDomain)
     assert n.node_type == "Domain" and n.label == "ShopDomain"
 
 Edge case: same interchange shape for any concrete ``BaseDomain`` subclass type passed in.
@@ -75,7 +75,7 @@ TDomain = TypeVar("TDomain", bound=BaseDomain)
 
 
 @dataclass(init=False, frozen=True)
-class DomainNode(BaseGraphNode[type[TDomain]]):
+class DomainGraphNode(BaseGraphNode[type[TDomain]]):
     """
     AI-CORE-BEGIN
     ROLE: Interchange node for a bounded-context domain marker.

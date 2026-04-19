@@ -1,6 +1,6 @@
-# src/action_machine/intents/domain/entity_node.py
+# src/action_machine/domain/entity_graph_node.py
 """
-EntityNode — minimal interchange node for ``BaseEntity`` subclasses.
+EntityGraphNode — minimal interchange node for ``BaseEntity`` subclasses.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
@@ -18,7 +18,7 @@ ARCHITECTURE / DATA FLOW
     type[TEntity]  (``TEntity`` bound to ``BaseEntity``)
               │
               v
-    EntityNode.parse / ``_meta_info_dict`` / ``get_properties`` / ``get_domain_link`` / ``_get_all_edges``  →  frozen ``BaseGraphNode``
+    EntityGraphNode.parse / ``_meta_info_dict`` / ``get_properties`` / ``get_domain_link`` / ``_get_all_edges``  →  frozen ``BaseGraphNode``
 
 ═══════════════════════════════════════════════════════════════════════════════
 INVARIANTS
@@ -34,7 +34,7 @@ EXAMPLES
 Happy path::
 
     class OrderEntity(BaseEntity): ...
-    n = EntityNode(OrderEntity)
+    n = EntityGraphNode(OrderEntity)
     assert n.node_type == "Entity" and n.label == "OrderEntity"
 
 Edge case: no declaration dict / no domain → ``edges == []``; invalid or
@@ -75,7 +75,7 @@ TEntity = TypeVar("TEntity", bound=BaseEntity)
 
 
 @dataclass(init=False, frozen=True)
-class EntityNode(BaseGraphNode[type[TEntity]]):
+class EntityGraphNode(BaseGraphNode[type[TEntity]]):
     """
     AI-CORE-BEGIN
     ROLE: Interchange bridge for ``BaseEntity`` host classes.

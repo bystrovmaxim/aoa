@@ -6,13 +6,13 @@ from __future__ import annotations
 import pytest
 
 from action_machine.domain.base_domain import BaseDomain
-from action_machine.intents.domain.entity_intent import (
-    EntityIntent,
+from action_machine.domain.exceptions import EntityDecoratorError
+from action_machine.intents.entity.entity_decorator import (
     validate_entity_decorator_target,
     validate_entity_description,
     validate_entity_domain,
 )
-from action_machine.domain.exceptions import EntityDecoratorError
+from action_machine.legacy.entity_intent import EntityIntent
 
 
 class _ShopDomain(BaseDomain):

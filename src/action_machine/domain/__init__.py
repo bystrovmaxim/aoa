@@ -45,7 +45,7 @@ PACKAGE CONTENTS
 
 Domains:
     BaseDomain — abstract base for all domain marker classes.
-    DomainNode — interchange node for a concrete ``BaseDomain`` class (id, label, meta).
+    DomainGraphNode — interchange node for a concrete ``BaseDomain`` class (id, label, meta).
 
 Entities:
     BaseEntity — abstract base for all entities (frozen, `extra="forbid"`).
@@ -132,11 +132,11 @@ AI-CORE-END
 """
 
 from action_machine.domain.base_domain import BaseDomain
+from action_machine.domain.domain_graph_node import DomainGraphNode
 from action_machine.domain.entity import BaseEntity
-from action_machine.intents.domain.domain_node import DomainNode
-from action_machine.intents.domain.entity_decorator import entity
-from action_machine.intents.domain.entity_intent import EntityIntent
-from action_machine.intents.domain.entity_node import EntityNode
+from action_machine.domain.entity_graph_node import EntityGraphNode
+from action_machine.intents.entity.entity_decorator import entity
+from action_machine.legacy.entity_intent import EntityIntent
 from action_machine.domain.exceptions import (
     EntityDecoratorError,
     FieldNotLoadedError,
@@ -166,8 +166,8 @@ __all__ = [
     "AssociationOne",
     # Domains
     "BaseDomain",
-    "DomainNode",
-    "EntityNode",
+    "DomainGraphNode",
+    "EntityGraphNode",
     # Entities
     "BaseEntity",
     "BaseRelationMany",

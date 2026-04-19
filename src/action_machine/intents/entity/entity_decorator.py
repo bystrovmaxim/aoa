@@ -1,4 +1,4 @@
-# src/action_machine/intents/domain/entity_decorator.py
+# src/action_machine/intents/entity/entity_decorator.py
 """
 The ``@entity`` decorator — declare a class as a domain entity.
 
@@ -82,7 +82,7 @@ EXAMPLE
     from pydantic import Field
 
     from action_machine.domain import BaseEntity, BaseDomain
-    from action_machine.intents.domain.entity_decorator import entity
+    from action_machine.intents.entity.entity_decorator import entity
 
     class ShopDomain(BaseDomain):
         name = "shop"
@@ -119,16 +119,80 @@ AI-CORE-END
 from __future__ import annotations
 
 from collections.abc import Callable
+from typing import Any
 
 from action_machine.domain.base_domain import BaseDomain
-from action_machine.intents.domain.entity_intent import (
-    validate_entity_decorator_target,
-    validate_entity_description,
-    validate_entity_domain,
-)
 from action_machine.domain.exceptions import EntityDecoratorError
+from action_machine.legacy.entity_intent import EntityIntent
 
 __all__ = ("EntityDecoratorError", "entity")
+
+
+def validate_entity_description(description: Any) -> None:
+    """
+    Invariant: ``description`` is a non-empty ``str`` (after strip).
+
+    Raises:
+        EntityDecoratorError: not a string, or blank after strip.
+    """
+    if not isinstance(description, str):
+        raise EntityDecoratorError(
+            f"@entity: parameter 'description' must be str, "
+            f"got {type(description).__name__}: {description!r}."
+        )
+
+    if not description.strip():
+        raise EntityDecoratorError(
+            "@entity: description cannot be empty. "
+            "Provide a non-empty entity description, e.g. "
+            '@entity(description="Customer order").'
+        )
+
+
+def validate_entity_domain(domain: Any) -> None:
+    """
+    Invariant: ``domain`` is ``None`` or a ``BaseDomain`` subclass.
+
+    Raises:
+        EntityDecoratorError: invalid ``domain`` type or not a subclass of ``BaseDomain``.
+    """
+    if domain is None:
+        return
+
+    if not isinstance(domain, type):
+        raise EntityDecoratorError(
+            f"@entity: parameter 'domain' must be a BaseDomain subclass or None, "
+            f"got {type(domain).__name__}: {domain!r}. "
+            f"Pass a domain class, e.g. domain=ShopDomain."
+        )
+
+    if not issubclass(domain, BaseDomain):
+        raise EntityDecoratorError(
+            f"@entity: parameter 'domain' must inherit BaseDomain, "
+            f"got {domain.__name__}. Define a domain class such as "
+            f"class {domain.__name__}Domain(BaseDomain): name = \"...\"."
+        )
+
+
+def validate_entity_decorator_target(cls: Any) -> None:
+    """
+    Invariant: decorator target is a ``type`` with ``EntityIntent`` in the MRO.
+
+    Raises:
+        EntityDecoratorError: not a class, or missing ``EntityIntent``.
+    """
+    if not isinstance(cls, type):
+        raise EntityDecoratorError(
+            f"@entity applies only to a class. "
+            f"Got {type(cls).__name__}: {cls!r}."
+        )
+
+    if not issubclass(cls, EntityIntent):
+        raise EntityDecoratorError(
+            f"@entity applied to {cls.__name__}, which does not inherit "
+            f"EntityIntent. Subclass BaseEntity, e.g. "
+            f"class {cls.__name__}(BaseEntity): ..."
+        )
 
 
 def entity(

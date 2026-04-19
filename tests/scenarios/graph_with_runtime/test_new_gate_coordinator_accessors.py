@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from action_machine.intents.domain.entity_intent_inspector import EntityIntentInspector
+from action_machine.legacy.entity_intent_inspector import EntityIntentInspector
 from action_machine.graph.base_intent_inspector import BaseIntentInspector
 from action_machine.graph.facet_edge import FacetEdge
 from action_machine.graph.facet_vertex import FacetVertex
