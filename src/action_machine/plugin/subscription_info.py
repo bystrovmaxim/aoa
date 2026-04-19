@@ -1,4 +1,4 @@
-# src/action_machine/intents/plugins/subscription_info.py
+# src/action_machine/plugin/subscription_info.py
 """
 SubscriptionInfo — frozen dataclass for one plugin subscription configuration.
 
@@ -100,7 +100,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any, cast
 
-from action_machine.intents.plugins.events import AspectEvent, BasePluginEvent
+from action_machine.plugin.events import AspectEvent, BasePluginEvent
 
 
 @dataclass(frozen=True)

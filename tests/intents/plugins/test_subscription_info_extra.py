@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import pytest
 
-from action_machine.intents.plugins.events import AspectEvent, BasePluginEvent, GlobalStartEvent
-from action_machine.intents.plugins.subscription_info import SubscriptionInfo
+from action_machine.plugin.events import AspectEvent, BasePluginEvent, GlobalStartEvent
+from action_machine.plugin.subscription_info import SubscriptionInfo
 
 
 class _AspectEvt(AspectEvent):

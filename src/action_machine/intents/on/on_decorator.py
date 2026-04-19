@@ -1,4 +1,4 @@
-# src/action_machine/intents/plugins/on_decorator.py
+# src/action_machine/intents/on/on_decorator.py
 """
 ``@on`` decorator for subscribing plugin methods to runtime events.
 
@@ -101,11 +101,8 @@ ARCHITECTURE / DATA FLOW
         ...
     )
         │
-        ▼  MetadataBuilder.collect_subscriptions (validation)
+        ▼  MetadataBuilder.collect_subscriptions (optional tooling)
         ▼  GraphCoordinator.get_subscriptions() snapshot
-        │
-        ▼  MetadataBuilder → on_intent.validate_subscriptions(cls, ...)
-    Validate event_class <-> event annotation compatibility
         │
         ▼  PluginRunContext.emit_event(event)
     Per subscription: filter chain -> handler call
@@ -115,7 +112,7 @@ EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
     from action_machine.intents.logging.channel import Channel
-    from action_machine.intents.plugins.events import (
+    from action_machine.plugin.events import (
         GlobalFinishEvent,
         AfterRegularAspectEvent,
         AspectEvent,
@@ -186,8 +183,8 @@ import inspect
 from collections.abc import Callable
 from typing import Any
 
-from action_machine.intents.plugins.events import BasePluginEvent
-from action_machine.intents.plugins.subscription_info import SubscriptionInfo
+from action_machine.plugin.events import BasePluginEvent
+from action_machine.plugin.subscription_info import SubscriptionInfo
 from action_machine.model.exceptions import NamingPrefixError
 
 # Expected @on handler parameter count: self, state, event, log.

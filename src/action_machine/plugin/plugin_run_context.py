@@ -1,4 +1,4 @@
-# src/action_machine/intents/plugins/plugin_run_context.py
+# src/action_machine/plugin/plugin_run_context.py
 """
 PluginRunContext — isolated plugin context for one run invocation.
 
@@ -186,9 +186,9 @@ from action_machine.intents.logging.channel import Channel
 from action_machine.intents.logging.domain_resolver import resolve_domain
 from action_machine.intents.logging.log_coordinator import LogCoordinator
 from action_machine.intents.logging.scoped_logger import ScopedLogger
-from action_machine.intents.plugins.events import BasePluginEvent
-from action_machine.intents.plugins.plugin import Plugin
-from action_machine.intents.plugins.subscription_info import SubscriptionInfo
+from action_machine.plugin.events import BasePluginEvent
+from action_machine.plugin.plugin import Plugin
+from action_machine.plugin.subscription_info import SubscriptionInfo
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_state import BaseState
 

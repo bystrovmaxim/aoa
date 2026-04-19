@@ -87,15 +87,15 @@ from action_machine.legacy.compensate_intent_inspector import (
 from action_machine.context.context_view import ContextView
 from action_machine.intents.logging.domain_resolver import resolve_domain
 from action_machine.intents.logging.scoped_logger import ScopedLogger
-from action_machine.intents.plugins.events import (
+from action_machine.plugin.events import (
     AfterCompensateAspectEvent,
     BeforeCompensateAspectEvent,
     CompensateFailedEvent,
     SagaRollbackCompletedEvent,
     SagaRollbackStartedEvent,
 )
-from action_machine.intents.plugins.plugin_coordinator import PluginCoordinator
-from action_machine.intents.plugins.plugin_emit_support import PluginEmitSupport
+from action_machine.plugin.plugin_coordinator import PluginCoordinator
+from action_machine.plugin.plugin_emit_support import PluginEmitSupport
 from action_machine.model.base_state import BaseState
 from action_machine.runtime.components.aspect_executor import AspectExecutor
 from action_machine.runtime.components.error_handler_executor import ErrorHandlerExecutor

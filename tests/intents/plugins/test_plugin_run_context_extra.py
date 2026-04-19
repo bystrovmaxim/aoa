@@ -4,10 +4,10 @@ from __future__ import annotations
 
 import pytest
 
-from action_machine.intents.plugins.events import GlobalStartEvent
-from action_machine.intents.plugins.plugin import Plugin
-from action_machine.intents.plugins.plugin_run_context import PluginRunContext
-from action_machine.intents.plugins.subscription_info import SubscriptionInfo
+from action_machine.plugin.events import GlobalStartEvent
+from action_machine.plugin.plugin import Plugin
+from action_machine.plugin.plugin_run_context import PluginRunContext
+from action_machine.plugin.subscription_info import SubscriptionInfo
 
 
 class _P(Plugin):

@@ -79,6 +79,7 @@ _LAZY_EXPORTS: dict[str, tuple[str, str]] = {
         "action_machine.legacy.on_error_intent_inspector",
         "OnErrorIntentInspector",
     ),
+    "OnIntent": ("action_machine.legacy.on_intent", "OnIntent"),
     "ResourceMetaIntent": (
         "action_machine.legacy.resource_meta_intent",
         "ResourceMetaIntent",
@@ -102,6 +103,10 @@ _LAZY_EXPORTS: dict[str, tuple[str, str]] = {
     "RoleModeIntentInspector": (
         "action_machine.legacy.role_mode_intent_inspector",
         "RoleModeIntentInspector",
+    ),
+    "SubscriptionIntentInspector": (
+        "action_machine.legacy.subscription_intent_inspector",
+        "SubscriptionIntentInspector",
     ),
 }
 
