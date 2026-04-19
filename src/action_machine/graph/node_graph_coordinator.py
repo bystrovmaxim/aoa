@@ -84,6 +84,7 @@ from typing import Any
 import rustworkx as rx
 
 from action_machine.graph.base_graph_node import BaseGraphNode
+from action_machine.graph.base_inspector import BaseInspector
 from action_machine.graph.base_intent_inspector import BaseIntentInspector
 from action_machine.graph.exceptions import DuplicateNodeError, InvalidGraphError
 
@@ -103,7 +104,7 @@ class NodeGraphCoordinator:
     def __init__(self) -> None:
         self._built: bool = False
 
-    def build(self, inspectors: Sequence[BaseIntentInspector]) -> None:
+    def build(self, inspectors: Sequence[BaseInspector]) -> None:
         """
         Collect nodes from each inspector instance via :meth:`BaseIntentInspector.get_graph_nodes`,
         validate, and construct the ``rustworkx`` graph (not exposed).
