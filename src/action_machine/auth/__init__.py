@@ -14,6 +14,7 @@ from action_machine.auth.system_role import SystemRole
 from action_machine.auth.application_role import ApplicationRole
 from action_machine.auth.any_role import AnyRole
 from action_machine.auth.none_role import NoneRole
+from action_machine.auth.role_graph_node import RoleGraphNode
 
 _LAZY_AUTH_PIPELINE: dict[str, tuple[str, str]] = {
     "Authenticator": ("action_machine.auth.authenticator", "Authenticator"),
@@ -48,5 +49,6 @@ __all__ = [
     "CredentialExtractor",
     "NoAuthCoordinator",
     "NoneRole",
+    "RoleGraphNode",
     "SystemRole",
 ]
