@@ -58,7 +58,7 @@ EXAMPLES
 
     from action_machine.intents.auth import AnyRole, NoneRole, check_roles
     from action_machine.auth.base_role import BaseRole
-    from action_machine.intents.auth.role_mode_decorator import RoleMode, role_mode
+    from action_machine.intents.role_mode.role_mode_decorator import RoleMode, role_mode
 
     @role_mode(RoleMode.ALIVE)
     class AdminRole(BaseRole):
@@ -112,7 +112,7 @@ from action_machine.auth.any_role import AnyRole
 from action_machine.auth.base_role import BaseRole
 from action_machine.auth.none_role import NoneRole
 from action_machine.intents.auth.role_intent import RoleIntent
-from action_machine.intents.auth.role_mode_decorator import RoleMode
+from action_machine.intents.role_mode.role_mode_decorator import RoleMode
 
 
 def _normalize_check_roles_spec(spec: Any) -> Any:

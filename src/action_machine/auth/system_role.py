@@ -56,7 +56,7 @@ from __future__ import annotations
 from abc import ABC
 
 from action_machine.auth.base_role import BaseRole
-from action_machine.intents.auth.role_mode_decorator import RoleMode, role_mode
+from action_machine.intents.role_mode.role_mode_decorator import RoleMode, role_mode
 
 
 @role_mode(RoleMode.ALIVE)

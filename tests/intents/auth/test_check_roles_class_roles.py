@@ -14,7 +14,7 @@ from action_machine.intents.aspects.summary_aspect_decorator import summary_aspe
 from action_machine.auth.base_role import BaseRole
 from action_machine.intents.auth.check_roles_decorator import check_roles
 from action_machine.intents.auth.role_intent import RoleIntent
-from action_machine.intents.auth.role_mode_decorator import RoleMode, role_mode
+from action_machine.intents.role_mode.role_mode_decorator import RoleMode, role_mode
 from action_machine.intents.context.user_info import UserInfo
 from action_machine.intents.meta.meta_decorator import meta
 from action_machine.model.base_action import BaseAction

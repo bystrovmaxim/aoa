@@ -1,4 +1,4 @@
-# src/action_machine/intents/auth/role_mode_decorator.py
+# src/action_machine/intents/role_mode/role_mode_decorator.py
 """
 Lifecycle mode for role marker classes and ``@role_mode`` decorator.
 
@@ -84,7 +84,7 @@ from enum import Enum
 from typing import TypeVar
 
 from action_machine.auth.base_role import BaseRole
-from action_machine.intents.auth.role_mode_intent import RoleModeIntent
+from action_machine.intents.role_mode.role_mode_intent import RoleModeIntent
 
 _RT = TypeVar("_RT", bound=type[RoleModeIntent])
 
