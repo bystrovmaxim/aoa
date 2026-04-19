@@ -67,7 +67,7 @@ from typing import TypeVar
 
 from action_machine.domain.base_domain import BaseDomain
 from action_machine.legacy.interchange_vertex_labels import APPLICATION_VERTEX_TYPE
-from action_machine.legacy.qualified_name import qualified_dotted_name
+from graph.qualified_name import cls_qualified_dotted_id
 from graph.base_graph_edge import BaseGraphEdge
 from graph.base_graph_node import BaseGraphNode
 
@@ -89,9 +89,9 @@ class DomainGraphNode(BaseGraphNode[type[TDomain]]):
             ApplicationContext,
         )
 
-        app_id = qualified_dotted_name(ApplicationContext)
+        app_id = cls_qualified_dotted_id(ApplicationContext)
         super().__init__(
-            id=qualified_dotted_name(domain_cls),
+            id=cls_qualified_dotted_id(domain_cls),
             node_type="Domain",
             label=domain_cls.__name__,
             properties={

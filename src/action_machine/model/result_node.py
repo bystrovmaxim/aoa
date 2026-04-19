@@ -38,7 +38,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TypeVar
 
-from action_machine.legacy.qualified_name import qualified_dotted_name
+from graph.qualified_name import cls_qualified_dotted_id
 from action_machine.model.base_result import BaseResult
 from graph.base_graph_node import BaseGraphNode
 
@@ -56,7 +56,7 @@ class ResultNode(BaseGraphNode[type[TResult]]):
 
     def __init__(self, result_cls: type[TResult]) -> None:
         super().__init__(
-            id=qualified_dotted_name(result_cls),
+            id=cls_qualified_dotted_id(result_cls),
             node_type="result_schema",
             label=result_cls.__name__,
             properties={},

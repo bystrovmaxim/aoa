@@ -62,7 +62,7 @@ from dataclasses import dataclass
 from typing import TypeVar
 
 from action_machine.auth.base_role import BaseRole
-from action_machine.legacy.qualified_name import qualified_dotted_name
+from graph.qualified_name import cls_qualified_dotted_id
 from graph.base_graph_node import BaseGraphNode
 
 TRole = TypeVar("TRole", bound=BaseRole)
@@ -79,7 +79,7 @@ class RoleGraphNode(BaseGraphNode[type[TRole]]):
 
     def __init__(self, role_cls: type[TRole]) -> None:
         super().__init__(
-            id=qualified_dotted_name(role_cls),
+            id=cls_qualified_dotted_id(role_cls),
             node_type="Role",
             label=role_cls.__name__,
             properties={},

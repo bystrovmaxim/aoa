@@ -67,7 +67,7 @@ from typing import Any, TypeVar
 from action_machine.domain.base_domain import BaseDomain
 from action_machine.domain.entity import BaseEntity
 from action_machine.legacy.interchange_vertex_labels import DOMAIN_VERTEX_TYPE
-from action_machine.legacy.qualified_name import qualified_dotted_name
+from graph.qualified_name import cls_qualified_dotted_id
 from graph.base_graph_edge import BaseGraphEdge
 from graph.base_graph_node import BaseGraphNode
 
@@ -112,7 +112,7 @@ class EntityGraphNode(BaseGraphNode[type[TEntity]]):
             return None
         return BaseGraphEdge(
             link_name="domain",
-            target_id=qualified_dotted_name(domain_cls),
+            target_id=cls_qualified_dotted_id(domain_cls),
             target_node_type=DOMAIN_VERTEX_TYPE,
             is_dag=False,
             target_cls=domain_cls,
@@ -135,7 +135,7 @@ class EntityGraphNode(BaseGraphNode[type[TEntity]]):
 
     def __init__(self, entity_cls: type[TEntity]) -> None:
         super().__init__(
-            id=qualified_dotted_name(entity_cls),
+            id=cls_qualified_dotted_id(entity_cls),
             node_type="Entity",
             label=entity_cls.__name__,
             properties=dict(EntityGraphNode.get_properties(entity_cls)),

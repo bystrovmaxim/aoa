@@ -10,7 +10,7 @@ from action_machine.domain.entity_graph_node import EntityGraphNode
 from action_machine.legacy.application_context import ApplicationContext
 from action_machine.legacy.application_context_inspector import ApplicationContextInspector
 from action_machine.legacy.interchange_vertex_labels import APPLICATION_VERTEX_TYPE, DOMAIN_VERTEX_TYPE
-from action_machine.legacy.qualified_name import qualified_dotted_name
+from graph.qualified_name import cls_qualified_dotted_id
 from action_machine.model.action_node import ActionNode
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_result import BaseResult
@@ -34,7 +34,7 @@ def test_params_node_interchange_shape() -> None:
     assert node.obj is PongParams
     assert node.node_type == "params_schema"
     assert node.label == "PongParams"
-    assert node.id == qualified_dotted_name(PongParams)
+    assert node.id == cls_qualified_dotted_id(PongParams)
     assert node.properties == {}
     assert node.edges == []
 
@@ -49,7 +49,7 @@ def test_result_node_interchange_shape() -> None:
     assert node.obj is PongResult
     assert node.node_type == "result_schema"
     assert node.label == "PongResult"
-    assert node.id == qualified_dotted_name(PongResult)
+    assert node.id == cls_qualified_dotted_id(PongResult)
     assert node.properties == {}
     assert node.edges == []
 
@@ -57,16 +57,16 @@ def test_result_node_interchange_shape() -> None:
 def test_domain_node_interchange_shape() -> None:
     node = DomainGraphNode(TestDomain)
     assert node.obj is TestDomain
-    assert node.id == qualified_dotted_name(TestDomain)
+    assert node.id == cls_qualified_dotted_id(TestDomain)
     assert node.node_type == "Domain"
     assert node.node_type == "Domain"
     assert node.label == "TestDomain"
-    assert node.id == qualified_dotted_name(TestDomain)
+    assert node.id == cls_qualified_dotted_id(TestDomain)
     assert node.properties == {
         "name": TestDomain.name,
         "description": TestDomain.description,
     }
-    app_id = qualified_dotted_name(ApplicationContext)
+    app_id = cls_qualified_dotted_id(ApplicationContext)
     assert node.edges == [
         BaseGraphEdge(
             link_name="belongs_to",
@@ -106,10 +106,10 @@ def test_domain_node_interchange_shape() -> None:
 def test_action_node_links_and_helpers() -> None:
     node = ActionNode(PingAction)
     assert node.obj is PingAction
-    dom_id = qualified_dotted_name(SystemDomain)
-    params_id = qualified_dotted_name(PingAction.Params)
-    result_id = qualified_dotted_name(PingAction.Result)
-    host = qualified_dotted_name(PingAction)
+    dom_id = cls_qualified_dotted_id(SystemDomain)
+    params_id = cls_qualified_dotted_id(PingAction.Params)
+    result_id = cls_qualified_dotted_id(PingAction.Result)
+    host = cls_qualified_dotted_id(PingAction)
 
     assert node.node_type == "Action"
     assert node.label == "PingAction"
@@ -162,15 +162,15 @@ def test_action_node_links_and_helpers() -> None:
 
     p_type, r_type = ActionNode.get_schema_generic_binding(PingAction)
     assert p_type is PingAction.Params and r_type is PingAction.Result
-    assert qualified_dotted_name(p_type) == params_id
-    assert qualified_dotted_name(r_type) == result_id
+    assert cls_qualified_dotted_id(p_type) == params_id
+    assert cls_qualified_dotted_id(r_type) == result_id
 
 
 def test_entity_node_links_properties_and_domain_helpers() -> None:
     node = EntityGraphNode(SampleEntity)
     assert node.obj is SampleEntity
-    dom_id = qualified_dotted_name(TestDomain)
-    host = qualified_dotted_name(SampleEntity)
+    dom_id = cls_qualified_dotted_id(TestDomain)
+    host = cls_qualified_dotted_id(SampleEntity)
 
     assert node.node_type == "Entity"
     assert node.label == "SampleEntity"
