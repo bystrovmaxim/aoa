@@ -51,7 +51,7 @@ from __future__ import annotations
 from typing import Any, final
 
 from action_machine.auth.system_role import SystemRole
-from action_machine.intents.auth.role_mode_decorator import RoleMode, role_mode
+from action_machine.intents.role_mode.role_mode_decorator import RoleMode, role_mode
 
 
 @final

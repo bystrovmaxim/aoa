@@ -1,4 +1,4 @@
-# src/action_machine/intents/auth/role_mode_intent.py
+# src/action_machine/intents/role_mode/role_mode_intent.py
 """
 Marker mixin: declare intent to use ``@role_mode`` on role declaration classes.
 
@@ -85,7 +85,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, ClassVar
 
 if TYPE_CHECKING:
-    from action_machine.intents.auth.role_mode_decorator import RoleMode
+    from action_machine.intents.role_mode.role_mode_decorator import RoleMode
 
 
 class RoleModeIntent:

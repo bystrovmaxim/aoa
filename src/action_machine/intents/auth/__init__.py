@@ -150,7 +150,7 @@ import importlib
 from typing import Any
 
 from action_machine.intents.auth.role_intent import RoleIntent
-from action_machine.intents.auth.role_mode_intent import RoleModeIntent
+from action_machine.intents.role_mode.role_mode_intent import RoleModeIntent
 
 _LAZY_EXPORTS: dict[str, tuple[str, str]] = {
     "AnyRole": ("action_machine.auth.any_role", "AnyRole"),
@@ -162,8 +162,8 @@ _LAZY_EXPORTS: dict[str, tuple[str, str]] = {
     "NoAuthCoordinator": ("action_machine.auth.auth_coordinator", "NoAuthCoordinator"),
     "NoneRole": ("action_machine.auth.none_role", "NoneRole"),
     "check_roles": ("action_machine.intents.auth.check_roles_decorator", "check_roles"),
-    "RoleMode": ("action_machine.intents.auth.role_mode_decorator", "RoleMode"),
-    "role_mode": ("action_machine.intents.auth.role_mode_decorator", "role_mode"),
+    "RoleMode": ("action_machine.intents.role_mode.role_mode_decorator", "RoleMode"),
+    "role_mode": ("action_machine.intents.role_mode.role_mode_decorator", "role_mode"),
     "RoleNode": ("action_machine.intents.auth.role_node", "RoleNode"),
 }
 

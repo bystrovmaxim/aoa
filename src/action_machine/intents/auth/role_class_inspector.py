@@ -78,7 +78,7 @@ from action_machine.graph.exceptions import InvalidGraphError
 from action_machine.graph.facet_vertex import FacetVertex
 from action_machine.auth.base_role import BaseRole
 from action_machine.intents.auth.role_graph_roots import ROLE_CLASS_GRAPH_ROOTS
-from action_machine.intents.auth.role_mode_decorator import RoleMode
+from action_machine.intents.role_mode.role_mode_decorator import RoleMode
 
 
 def _all_base_role_types() -> tuple[type[BaseRole], ...]:
