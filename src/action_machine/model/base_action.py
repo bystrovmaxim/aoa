@@ -118,7 +118,7 @@ from action_machine.legacy.checker_intent import CheckerIntent
 from action_machine.legacy.compensate_intent import CompensateIntent
 from action_machine.legacy.context_requires_intent import ContextRequiresIntent
 from action_machine.legacy.action_meta_intent import ActionMetaIntent
-from action_machine.intents.on_error.on_error_intent import OnErrorIntent
+from action_machine.legacy.on_error_intent import OnErrorIntent
 from action_machine.model.base_schema import BaseSchema
 from action_machine.model.exceptions import NamingSuffixError
 from action_machine.resources.connection_intent import ConnectionIntent

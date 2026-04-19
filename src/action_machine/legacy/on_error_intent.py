@@ -1,6 +1,6 @@
-# src/action_machine/intents/on_error/on_error_intent.py
+# src/action_machine/legacy/on_error_intent.py
 """
-OnErrorIntent marker mixin and on-error handler validation rules.
+OnErrorIntent marker mixin for ``@on_error`` handlers.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
@@ -34,7 +34,6 @@ INVARIANTS
 - Method name must end with ``"_on_error"``.
 - Handler must be async.
 - Signature must be exactly 6 parameters.
-- Later handler cannot catch same/narrower exception types than earlier one.
 - Handlers do not mutate state by contract.
 - Rollup does not affect on-error processing.
 
@@ -111,12 +110,7 @@ EXAMPLES
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, ClassVar
-
-if TYPE_CHECKING:
-    from action_machine.intents.on_error.on_error_intent_inspector import (
-        OnErrorIntentInspector,
-    )
+from typing import Any, ClassVar
 
 
 class OnErrorIntent:
@@ -135,58 +129,3 @@ class OnErrorIntent:
     """
 
     _on_error_meta: ClassVar[dict[str, Any]]
-
-
-def require_on_error_intent_marker(
-    cls: type, error_handlers: list[OnErrorIntentInspector.Snapshot.ErrorHandler],
-) -> None:
-    """If class has @on_error handlers, it must inherit OnErrorIntent."""
-    if error_handlers and not issubclass(cls, OnErrorIntent):
-        handler_names = ", ".join(h.method_name for h in error_handlers)
-        raise TypeError(
-            f"Class {cls.__name__} declares error handlers ({handler_names}) "
-            f"but does not inherit OnErrorIntent. @on_error is allowed only "
-            f"on classes inheriting OnErrorIntent. Use BaseAction or add "
-            f"OnErrorIntent to the inheritance chain."
-        )
-
-
-def _is_type_covered_by(
-    candidate_type: type[Exception],
-    covering_types: tuple[type[Exception], ...],
-) -> bool:
-    for covering in covering_types:
-        if issubclass(candidate_type, covering):
-            return True
-    return False
-
-
-def validate_error_handlers(
-    cls: type,
-    error_handlers: list[OnErrorIntentInspector.Snapshot.ErrorHandler],
-) -> None:
-    """Validate @on_error order: later handler must not be shadowed by earlier."""
-    if len(error_handlers) < 2:
-        return
-
-    for i in range(1, len(error_handlers)):
-        current_handler = error_handlers[i]
-        for j in range(i):
-            upper_handler = error_handlers[j]
-            for candidate_type in current_handler.exception_types:
-                if _is_type_covered_by(candidate_type, upper_handler.exception_types):
-                    covering_name = next(
-                        c.__name__
-                        for c in upper_handler.exception_types
-                        if issubclass(candidate_type, c)
-                    )
-                    raise TypeError(
-                        f"Class {cls.__name__}: error handler "
-                        f"'{current_handler.method_name}' catches "
-                        f"{candidate_type.__name__}, but upper handler "
-                        f"'{upper_handler.method_name}' already catches "
-                        f"{covering_name}. Type {candidate_type.__name__} is "
-                        f"a subclass of {covering_name} (or the same), so "
-                        f"handler '{current_handler.method_name}' is unreachable. "
-                        f"Move the more specific handler above the general one."
-                    )

@@ -15,8 +15,7 @@ COMPONENTS
 ═══════════════════════════════════════════════════════════════════════════════
 
 - ``OnErrorIntent`` — marker mixin indicating support for ``@on_error``.
-  Included by ``BaseAction``. A class without ``OnErrorIntent`` in MRO cannot
-  declare ``@on_error`` methods; metadata build raises ``TypeError``.
+  Included by ``BaseAction``.
 
 - ``on_error`` — method-level decorator. Accepts one exception type or a tuple
   of types and required ``description``. Writes metadata to
@@ -48,8 +47,6 @@ INVARIANTS
 - ``description`` is required (non-empty string).
 - Signature: ``(self, params, state, box, connections, error)``.
 - Handler must be ``async def``.
-- A later handler cannot catch the same/smaller subtype than an earlier one
-  (dead-code prevention).
 - ``state`` is not modified by handlers.
 - Rollup does not affect on-error handling.
 
@@ -64,9 +61,9 @@ Correct order: specific types first, then broad fallback.
         @on_error(ValueError, description="...")     <- specific
         @on_error(Exception, description="...")      <- broad fallback
 
-    Invalid (``TypeError`` during metadata build):
-        @on_error(Exception, description="...")      <- catches everything
-        @on_error(ValueError, description="...")     <- dead code
+    Problematic (broad handler first — specific handler never runs for that type):
+        @on_error(Exception, description="...")      <- catches everything first
+        @on_error(ValueError, description="...")     <- unreachable for ``ValueError``
 
 ═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES
@@ -98,7 +95,7 @@ EXAMPLES
 ERRORS / LIMITATIONS
 ═══════════════════════════════════════════════════════════════════════════════
 
-- Invalid handler declarations fail metadata build with ``TypeError``.
+- Invalid handler declarations fail at decorate time (``TypeError``, ``ValueError``, etc.).
 - Missing matching handler means original exception propagates.
 - Package exports contracts/decorator only; orchestration is runtime-side.
 
@@ -107,7 +104,7 @@ AI-CORE-BEGIN
 ═══════════════════════════════════════════════════════════════════════════════
 ROLE: Public API for aspect error-handler intent and decorator.
 CONTRACT: Export marker + decorator used by metadata inspectors and runtime.
-INVARIANTS: Handler signature/order constraints validated during metadata build.
+INVARIANTS: Handler signature validated at decorate time; dispatch order is declaration order.
 FLOW: decorated methods -> inspector snapshot -> runtime match/dispatch.
 FAILURES: Declaration errors at build; unhandled exceptions propagate at runtime.
 EXTENSION POINTS: Add new handler metadata fields via decorator+inspector pair.
@@ -115,7 +112,7 @@ AI-CORE-END
 """
 
 from action_machine.intents.on_error.on_error_decorator import on_error
-from action_machine.intents.on_error.on_error_intent import OnErrorIntent
+from action_machine.legacy.on_error_intent import OnErrorIntent
 
 __all__ = [
     "OnErrorIntent",

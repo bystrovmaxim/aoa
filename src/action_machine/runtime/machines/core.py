@@ -87,7 +87,7 @@ from action_machine.intents.logging.sensitive_intent_inspector import (
     SensitiveIntentInspector,
 )
 from action_machine.legacy.meta_intent_inspector import MetaIntentInspector
-from action_machine.intents.on_error.on_error_intent_inspector import OnErrorIntentInspector
+from action_machine.legacy.on_error_intent_inspector import OnErrorIntentInspector
 from action_machine.model.base_action import ActionTypedSchemasInspector
 from action_machine.resources.connection_intent_inspector import (
     ConnectionIntentInspector,
