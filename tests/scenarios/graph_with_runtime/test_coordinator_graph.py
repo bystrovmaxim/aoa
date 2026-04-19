@@ -59,7 +59,7 @@ from action_machine.intents.checkers.result_string_decorator import result_strin
 from action_machine.intents.compensate import compensate
 from action_machine.intents.logging.sensitive_decorator import sensitive
 from action_machine.intents.meta.meta_decorator import meta
-from action_machine.intents.meta.meta_intent_inspector import MetaIntentInspector
+from action_machine.legacy.meta_intent_inspector import MetaIntentInspector
 from action_machine.intents.plugins.events import GlobalStartEvent
 from action_machine.intents.plugins.on_decorator import on
 from action_machine.intents.plugins.plugin import Plugin
