@@ -55,10 +55,7 @@ COMPONENTS
 Marker mixin:
 - ``CheckerIntent``.
 
-Checker base class:
-- ``BaseFieldChecker``.
-
-Built-in checker classes:
+Built-in checker classes (each pairs with a ``result_*`` decorator):
 - ``FieldStringChecker``   – string fields (type, length, not_empty)
 - ``FieldIntChecker``      – integer fields (type, range)
 - ``FieldFloatChecker``    – numeric fields int/float (type, range)
@@ -104,29 +101,21 @@ CONTRACT: Export checker classes, decorators, and ``CheckerIntent`` marker.
 INVARIANTS: All aspect result fields must have checkers; checkers are stateless.
 FLOW: decorator metadata -> inspector snapshot -> machine validation -> checker execution.
 FAILURES: ValidationFieldError for missing or invalid fields.
-EXTENSION POINTS: New checker types can be added by subclassing ``BaseFieldChecker`` and providing a decorator.
+EXTENSION POINTS: New checker types can be added as new ``Field*Checker`` + ``result_*`` pairs following the same metadata contract.
 AI-CORE-END
 ═══════════════════════════════════════════════════════════════════════════════
 """
 
-from action_machine.intents.checkers.base_field_checker import BaseFieldChecker
-from action_machine.intents.checkers.field_bool_checker import FieldBoolChecker
-from action_machine.intents.checkers.field_date_checker import FieldDateChecker
-from action_machine.intents.checkers.field_float_checker import FieldFloatChecker
-from action_machine.intents.checkers.field_instance_checker import FieldInstanceChecker
-from action_machine.intents.checkers.field_int_checker import FieldIntChecker
-from action_machine.intents.checkers.field_string_checker import FieldStringChecker
-from action_machine.intents.checkers.result_bool_decorator import result_bool
-from action_machine.intents.checkers.result_date_decorator import result_date
-from action_machine.intents.checkers.result_float_decorator import result_float
-from action_machine.intents.checkers.result_instance_decorator import result_instance
-from action_machine.intents.checkers.result_int_decorator import result_int
-from action_machine.intents.checkers.result_string_decorator import result_string
+from action_machine.intents.checkers.result_bool_decorator import FieldBoolChecker, result_bool
+from action_machine.intents.checkers.result_date_decorator import FieldDateChecker, result_date
+from action_machine.intents.checkers.result_float_decorator import FieldFloatChecker, result_float
+from action_machine.intents.checkers.result_instance_decorator import FieldInstanceChecker, result_instance
+from action_machine.intents.checkers.result_int_decorator import FieldIntChecker, result_int
+from action_machine.intents.checkers.result_string_decorator import FieldStringChecker, result_string
 from action_machine.legacy.checker_intent import CheckerIntent
 
 __all__ = [
     "CheckerIntent",
-    "BaseFieldChecker",
     "FieldStringChecker",
     "FieldIntChecker",
     "FieldFloatChecker",

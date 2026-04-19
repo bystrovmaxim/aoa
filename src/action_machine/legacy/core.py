@@ -72,6 +72,9 @@ from action_machine.legacy.checker_intent_inspector import CheckerIntentInspecto
 from action_machine.legacy.compensate_intent_inspector import (
     CompensateIntentInspector,
 )
+from action_machine.legacy.connection_intent_inspector import (
+    ConnectionIntentInspector,
+)
 from action_machine.legacy.dependency_intent_inspector import (
     DependencyIntentInspector,
 )
@@ -88,9 +91,6 @@ from action_machine.legacy.sensitive_intent_inspector import (
     SensitiveIntentInspector,
 )
 from action_machine.model.base_action import ActionTypedSchemasInspector
-from action_machine.resources.connection_intent_inspector import (
-    ConnectionIntentInspector,
-)
 from graph.graph_coordinator import GraphCoordinator
 
 

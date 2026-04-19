@@ -1,11 +1,14 @@
-# tests/resources/test_connection_decorator_validation.py
+# tests/intents/connection/test_connection_decorator_validation.py
 """@connection argument and target validation."""
 
 import pytest
 
+from action_machine.intents.connection.connection_decorator import (
+    _validate_connection_args,
+    connection,
+)
+from action_machine.legacy.connection_intent import ConnectionIntent
 from action_machine.resources.base_resource_manager import BaseResourceManager
-from action_machine.resources.connection_decorator import _validate_connection_args, connection
-from action_machine.resources.connection_intent import ConnectionIntent
 
 
 class _Mgr(BaseResourceManager):

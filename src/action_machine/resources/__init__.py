@@ -71,9 +71,9 @@ EXTENSION POINTS: Add new manager implementations in integrations packages.
 AI-CORE-END
 """
 
+from action_machine.intents.connection import ConnectionInfo, connection
+from action_machine.legacy.connection_intent import ConnectionIntent
 from action_machine.resources.base_resource_manager import BaseResourceManager
-from action_machine.resources.connection_decorator import ConnectionInfo, connection
-from action_machine.resources.connection_intent import ConnectionIntent
 from action_machine.resources.connections_typed_dict import Connections
 
 __all__ = [

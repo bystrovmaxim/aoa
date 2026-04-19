@@ -41,7 +41,8 @@ FieldInstanceChecker / result_instance
 SHARED CHECKER CONTRACT
 ═══════════════════════════════════════════════════════════════════════════════
 
-All checkers inherit BaseFieldChecker and share:
+Built-in ``Field*Checker`` classes share the same runtime contract (constructor
+kwargs + ``check``):
 
     checker = SomeChecker(field_name, required=True, **extra_params)
     checker.check(result_dict)  # ValidationFieldError on violation
@@ -49,7 +50,7 @@ All checkers inherit BaseFieldChecker and share:
 check() steps:
     1. Field presence (required).
     2. Value not None (required).
-    3. _check_type_and_constraints(value) — type-specific checks.
+    3. Type-specific validation for the field.
 
 ═══════════════════════════════════════════════════════════════════════════════
 SHARED DECORATOR CONTRACT
@@ -71,5 +72,5 @@ TEST LAYOUT
     ├── test_field_bool_checker.py      — bool, strict isinstance
     ├── test_field_date_checker.py      — dates, date_format, min/max_date
     ├── test_field_instance_checker.py  — isinstance, single/tuple of classes
-    └── test_checker_class_naming.py     — BaseFieldChecker class name suffix
+    └── test_checker_class_naming.py     — ``Field*Checker`` name suffix ``Checker``
 """

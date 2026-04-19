@@ -43,8 +43,7 @@ from datetime import UTC, datetime
 
 import pytest
 
-from action_machine.intents.checkers.field_date_checker import FieldDateChecker
-from action_machine.intents.checkers.result_date_decorator import result_date
+from action_machine.intents.checkers.result_date_decorator import FieldDateChecker, result_date
 from action_machine.model.exceptions import ValidationFieldError
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -404,6 +403,7 @@ class TestDecorator:
 
     def test_checker_meta_attached(self):
         """Decorator creates _checker_meta attribute."""
+
         # Arrange & Act
         @result_date("created_at", date_format="%Y-%m-%d")
         async def aspect(self, params, state, box, connections):
@@ -415,6 +415,7 @@ class TestDecorator:
 
     def test_checker_class_is_result_date_checker(self):
         """Metadata contains correct checker class."""
+
         # Arrange & Act
         @result_date("created_at")
         async def aspect(self, params, state, box, connections):
@@ -426,6 +427,7 @@ class TestDecorator:
 
     def test_field_name_recorded(self):
         """Field name stored in metadata."""
+
         # Arrange & Act
         @result_date("delivery_date")
         async def aspect(self, params, state, box, connections):
@@ -437,6 +439,7 @@ class TestDecorator:
 
     def test_required_default_true(self):
         """Default required=True."""
+
         # Arrange & Act
         @result_date("created_at")
         async def aspect(self, params, state, box, connections):
@@ -448,6 +451,7 @@ class TestDecorator:
 
     def test_required_false_recorded(self):
         """Explicit required=False stored."""
+
         # Arrange & Act
         @result_date("created_at", required=False)
         async def aspect(self, params, state, box, connections):
@@ -491,6 +495,7 @@ class TestDecorator:
 
     def test_decorator_returns_original_function(self):
         """Decorator returns the original function unchanged."""
+
         # Arrange
         async def original(self, params, state, box, connections):
             return {"created_at": datetime(2024, 1, 15)}
@@ -503,6 +508,7 @@ class TestDecorator:
 
     def test_multiple_decorators_accumulate(self):
         """Multiple decorators on one method build a metadata list."""
+
         # Arrange & Act
         @result_date("created_at", date_format="%Y-%m-%d")
         @result_date("updated_at", date_format="%Y-%m-%d %H:%M:%S")

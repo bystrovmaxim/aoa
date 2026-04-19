@@ -45,6 +45,14 @@ _LAZY_EXPORTS: dict[str, tuple[str, str]] = {
         "hydrate_error_handler_row",
     ),
     "Core": ("action_machine.legacy.core", "Core"),
+    "ConnectionIntent": (
+        "action_machine.legacy.connection_intent",
+        "ConnectionIntent",
+    ),
+    "ConnectionIntentInspector": (
+        "action_machine.legacy.connection_intent_inspector",
+        "ConnectionIntentInspector",
+    ),
     "ContextRequiresIntent": (
         "action_machine.legacy.context_requires_intent",
         "ContextRequiresIntent",

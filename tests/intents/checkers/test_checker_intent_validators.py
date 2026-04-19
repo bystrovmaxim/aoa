@@ -60,6 +60,7 @@ def test_validate_checkers_belong_to_aspects_passes_when_bound_to_aspect() -> No
         SimpleNamespace(method_name="pay_aspect"),
         SimpleNamespace(method_name="other_aspect"),
     ]
+
     class _StrChk:
         pass
 

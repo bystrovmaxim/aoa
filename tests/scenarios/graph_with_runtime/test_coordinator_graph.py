@@ -40,6 +40,7 @@ handlers do not create ``subscription`` facet nodes. Sensitive fields in the gra
 ``…:sensitive`` host). Graph queries filter nodes by ``class_ref`` or by
 name fragment, because after ``build()`` strangers can get into the snapshot
 classes from the general inspector scan."""
+
 from typing import Any
 
 import pytest
@@ -50,6 +51,7 @@ from action_machine.intents.aspects.summary_aspect_decorator import summary_aspe
 from action_machine.intents.check_roles.check_roles_decorator import check_roles
 from action_machine.intents.checkers.result_string_decorator import result_string
 from action_machine.intents.compensate import compensate
+from action_machine.intents.connection import connection
 from action_machine.intents.depends import depends
 from action_machine.intents.meta.meta_decorator import meta
 from action_machine.intents.on.on_decorator import on
@@ -69,7 +71,6 @@ from action_machine.model.base_schema import BaseSchema
 from action_machine.plugin.events import GlobalStartEvent
 from action_machine.plugin.plugin import Plugin
 from action_machine.resources.base_resource_manager import BaseResourceManager
-from action_machine.resources.connection_decorator import connection
 from action_machine.runtime.dependency_factory import (
     cached_dependency_factory,
     clear_dependency_factory_cache,
@@ -137,8 +138,9 @@ def _class_present(coord: GraphCoordinator, cls: type) -> bool:
     """True when class has any emitted nodes or meta facet."""
     return bool(coord.get_nodes_for_class(cls)) or coord.get_snapshot(cls, "meta") is not None
 
+
 # ═════════════════════════════════════════════════════════════════════════════
-#Helper classes
+# Helper classes
 # ═════════════════════════════════════════════════════════════════════════════
 
 
@@ -182,6 +184,7 @@ class _EmptyClass:
 @check_roles(NoneRole)
 class _PingGraphAction(BaseAction["_Params", "_Result"]):
     """Minimum action for graph tests."""
+
     @summary_aspect("Pong")
     async def pong_summary(self, params, state, box, connections):
         return {"message": "pong"}
@@ -197,6 +200,7 @@ class _PingGraphAction(BaseAction["_Params", "_Result"]):
 )
 class _ActionWithDepsAction(BaseAction["_Params", "_Result"]):
     """Action with ``@depends`` on classes: services + resource manager type."""
+
     @summary_aspect("Bottom line")
     async def finalize_summary(self, params, state, box, connections):
         return {}
@@ -207,6 +211,7 @@ class _ActionWithDepsAction(BaseAction["_Params", "_Result"]):
 @connection(_CoordinatorGraphResourceManager, key="db", description="DB")
 class _ActionWithConnAction(BaseAction["_Params", "_Result"]):
     """Single connection action for graph tests."""
+
     @summary_aspect("Bottom line")
     async def finalize_summary(self, params, state, box, connections):
         return {}
@@ -216,6 +221,7 @@ class _ActionWithConnAction(BaseAction["_Params", "_Result"]):
 @check_roles(NoneRole)
 class _ActionWithCheckersAction(BaseAction["_Params", "_Result"]):
     """Action with regular aspect and checker for graph tests."""
+
     @regular_aspect("Step")
     @result_string("name")
     async def step_aspect(self, params, state, box, connections):
@@ -239,6 +245,7 @@ class _SensitiveGraphSchema(BaseSchema):
 
 class _TestPlugin(Plugin):
     """Test plugin with one ``@on`` handler (not emitted as a graph facet)."""
+
     async def get_initial_state(self) -> dict:
         return {}
 
@@ -251,6 +258,7 @@ class _TestPlugin(Plugin):
 @check_roles(AdminRole)
 class _RoledGraphAction(BaseAction["_Params", "_Result"]):
     """An action with a specific role for graph tests."""
+
     @summary_aspect("Bottom line")
     async def finalize_summary(self, params, state, box, connections):
         return {}
@@ -261,6 +269,7 @@ class _RoledGraphAction(BaseAction["_Params", "_Result"]):
 @depends(_ServiceA)
 class _AnotherActionWithServiceAAction(BaseAction["_Params", "_Result"]):
     """Second action, dependent on _ServiceA, for node split tests."""
+
     @summary_aspect("Bottom line")
     async def finalize_summary(self, params, state, box, connections):
         return {}
@@ -273,14 +282,14 @@ class _ActionWithCompensatorGraphAction(BaseAction["_Params", "_Result"]):
     Used in TestCompensatorNodes to check that the coordinator
     creates nodes of type "Compensator" and edges "has_compensator" in general
     dependency graph."""
+
     @regular_aspect("Step with compensator")
     @result_string("value")
     async def step_aspect(self, params, state, box, connections):
         return {"value": "test"}
 
     @compensate("step_aspect", "Rollback step")
-    async def rollback_step_compensate(self, params, state_before, state_after,
-                                       box, connections, error):
+    async def rollback_step_compensate(self, params, state_before, state_after, box, connections, error):
         pass
 
     @summary_aspect("Bottom line")
@@ -289,7 +298,7 @@ class _ActionWithCompensatorGraphAction(BaseAction["_Params", "_Result"]):
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-#Basic nodes
+# Basic nodes
 # ═════════════════════════════════════════════════════════════════════════════
 
 
@@ -334,7 +343,7 @@ class TestBasicNodes:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-#Dependencies and Connections
+# Dependencies and Connections
 # ═════════════════════════════════════════════════════════════════════════════
 
 
@@ -365,7 +374,7 @@ class TestDependenciesAndConnections:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-#Aspects and checkers
+# Aspects and checkers
 # ═════════════════════════════════════════════════════════════════════════════
 
 
@@ -391,7 +400,7 @@ class TestAspectsAndCheckers:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-#Subscriptions and sensitive
+# Subscriptions and sensitive
 # ═════════════════════════════════════════════════════════════════════════════
 
 
@@ -413,7 +422,7 @@ class TestSubscriptionsAndSensitive:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-#Compensators in the column
+# Compensators in the column
 # ═════════════════════════════════════════════════════════════════════════════
 
 
@@ -434,7 +443,8 @@ class TestCompensatorNodes:
         node = ours[0]
         assert node["node_type"] == COMPENSATOR_VERTEX_TYPE
         expected = BaseIntentInspector._make_host_dependent_node_name(
-            _ActionWithCompensatorGraphAction, "rollback_step_compensate",
+            _ActionWithCompensatorGraphAction,
+            "rollback_step_compensate",
         )
         assert node["id"] == expected
 
@@ -443,19 +453,19 @@ class TestCompensatorNodes:
         coord = _new_coord()
         coord.get_snapshot(_ActionWithCompensatorGraphAction, "meta")
         nodes = coord.get_nodes_by_type(COMPENSATOR_VERTEX_TYPE)
-        node = next(
-            n for n in nodes if n["class_ref"] is _ActionWithCompensatorGraphAction
-        )
+        node = next(n for n in nodes if n["class_ref"] is _ActionWithCompensatorGraphAction)
         assert dict(node["facet_rows"])["method_name"] == "rollback_step_compensate"
 
         g = coord.facet_topology_copy()
         action_name = BaseIntentInspector._make_node_name(_ActionWithCompensatorGraphAction)
         comp_name = BaseIntentInspector._make_host_dependent_node_name(
-            _ActionWithCompensatorGraphAction, "rollback_step_compensate",
+            _ActionWithCompensatorGraphAction,
+            "rollback_step_compensate",
         )
         action_idx = next(
             (
-                idx for idx in g.node_indices()
+                idx
+                for idx in g.node_indices()
                 if g[idx].get("node_type") == "Action" and g[idx].get("id") == action_name
             ),
             None,
@@ -470,7 +480,7 @@ class TestCompensatorNodes:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-#Recursive dependency collection
+# Recursive dependency collection
 # ═════════════════════════════════════════════════════════════════════════════
 
 
@@ -502,7 +512,7 @@ class TestRecursiveCollection:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-#Cycle Detection
+# Cycle Detection
 # ═════════════════════════════════════════════════════════════════════════════
 
 
@@ -524,7 +534,7 @@ class TestCycleDetection:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-#Public API
+# Public API
 # ═════════════════════════════════════════════════════════════════════════════
 
 
@@ -616,7 +626,7 @@ class TestPublicAPI:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-#Invalidation
+# Invalidation
 # ═════════════════════════════════════════════════════════════════════════════
 
 
@@ -667,7 +677,7 @@ class TestInvalidation:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-#Basic coordinator API
+# Basic coordinator API
 # ═════════════════════════════════════════════════════════════════════════════
 
 
