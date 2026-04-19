@@ -22,7 +22,7 @@ from action_machine.legacy.checker_intent_inspector import CheckerIntentInspecto
 from action_machine.legacy.compensate_intent_inspector import (
     CompensateIntentInspector,
 )
-from action_machine.intents.described_fields.described_fields_intent_inspector import (
+from action_machine.legacy.described_fields.described_fields_intent_inspector import (
     DescribedFieldsIntentInspector,
 )
 from action_machine.intents.logging.sensitive_intent_inspector import SensitiveIntentInspector

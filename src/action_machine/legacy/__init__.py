@@ -18,6 +18,14 @@ from action_machine.legacy.compensate_intent_inspector import (
     hydrate_compensator_row,
 )
 from action_machine.legacy.context_requires_intent import ContextRequiresIntent
+from action_machine.legacy.described_fields import (
+    DescribedFieldsIntent,
+    validate_described_schema,
+    validate_described_schemas_for_action,
+)
+from action_machine.legacy.described_fields.described_fields_intent_inspector import (
+    DescribedFieldsIntentInspector,
+)
 from action_machine.legacy.role_class_inspector import RoleClassInspector
 from action_machine.legacy.role_graph_roots import (
     ROLE_CLASS_GRAPH_ROOTS,
@@ -35,6 +43,8 @@ __all__ = [
     "CompensateIntent",
     "CompensateIntentInspector",
     "ContextRequiresIntent",
+    "DescribedFieldsIntent",
+    "DescribedFieldsIntentInspector",
     "ROLE_CLASS_GRAPH_ROOTS",
     "RoleClassInspector",
     "RoleIntentInspector",
@@ -43,4 +53,6 @@ __all__ = [
     "hydrate_checker_row",
     "hydrate_compensator_row",
     "role_class_topology_anchor",
+    "validate_described_schema",
+    "validate_described_schemas_for_action",
 ]

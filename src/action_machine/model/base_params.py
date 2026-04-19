@@ -139,7 +139,7 @@ AI-CORE-END
 
 from pydantic import ConfigDict
 
-from action_machine.intents.described_fields.marker import DescribedFieldsIntent
+from action_machine.legacy.described_fields.marker import DescribedFieldsIntent
 from action_machine.model.base_schema import BaseSchema
 
 

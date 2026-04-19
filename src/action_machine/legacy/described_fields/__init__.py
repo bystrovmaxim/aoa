@@ -1,4 +1,4 @@
-# src/action_machine/intents/described_fields/__init__.py
+# src/action_machine/legacy/described_fields/__init__.py
 """
 Described-fields package exports marker and validators.
 
@@ -36,15 +36,12 @@ ARCHITECTURE / DATA FLOW
 EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
-    from action_machine.intents.described_fields import (
+    from action_machine.legacy.described_fields import (
         DescribedFieldsIntent,
         validate_described_schema,
     )
 
     validate_described_schema(MyAction)
-
-    # Edge case: action without described-fields metadata
-    # -> validator raises a schema/contract validation error.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ERRORS / LIMITATIONS
@@ -66,7 +63,7 @@ EXTENSION POINTS: Add new validators in marker module and export via __all__.
 AI-CORE-END
 """
 
-from action_machine.intents.described_fields.marker import (
+from action_machine.legacy.described_fields.marker import (
     DescribedFieldsIntent,
     validate_described_schema,
     validate_described_schemas_for_action,

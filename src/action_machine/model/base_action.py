@@ -186,7 +186,7 @@ from action_machine.graph.base_facet_snapshot import BaseFacetSnapshot  # noqa: 
 from action_machine.graph.base_intent_inspector import BaseIntentInspector  # noqa: E402
 from action_machine.graph.facet_edge import FacetEdge  # noqa: E402
 from action_machine.graph.facet_vertex import FacetVertex  # noqa: E402
-from action_machine.intents.described_fields.described_fields_intent_inspector import (  # noqa: E402
+from action_machine.legacy.described_fields.described_fields_intent_inspector import (  # noqa: E402
     DescribedFieldsIntentInspector,
 )
 from action_machine.legacy.interchange_vertex_labels import ACTION_VERTEX_TYPE  # noqa: E402
