@@ -57,9 +57,7 @@ ERRORS / LIMITATIONS
 ═══════════════════════════════════════════════════════════════════════════════
 ROLE: Described-fields metadata inspector.
 CONTRACT: Convert model field documentation metadata into schema facet payloads
-    (``params_schema`` / ``result_schema`` / ``described_fields`` by model kind);
-    :meth:`get_graph_nodes` emits :class:`~action_machine.model.params_node.ParamsNode` /
-    :class:`~action_machine.model.result_node.ResultNode` for all ``BaseParams`` / ``BaseResult`` subclasses (node-graph coordinator).
+    (``params_schema`` / ``result_schema`` / ``described_fields`` by model kind).
 INVARIANTS: Storage key is ``described_fields``; classes without documentable fields are skipped.
 FLOW: class discovery -> pydantic field extraction -> typed snapshot -> payload emission.
 FAILURES: Absence of fields returns ``None`` payload (skip), not an error.
@@ -77,15 +75,12 @@ from pydantic.fields import FieldInfo
 from pydantic_core import PydanticUndefined
 
 from action_machine.graph.base_facet_snapshot import BaseFacetSnapshot
-from action_machine.graph.base_graph_node import BaseGraphNode
 from action_machine.graph.base_intent_inspector import BaseIntentInspector
 from action_machine.graph.facet_vertex import FacetVertex
 from action_machine.intents.described_fields.marker import DescribedFieldsIntent
 from action_machine.interchange_vertex_labels import ENTITY_VERTEX_TYPE
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_result import BaseResult
-from action_machine.model.params_node import ParamsNode
-from action_machine.model.result_node import ResultNode
 
 
 class DescribedFieldsIntentInspector(BaseIntentInspector):
@@ -94,8 +89,7 @@ class DescribedFieldsIntentInspector(BaseIntentInspector):
 
     AI-CORE-BEGIN
     ROLE: Concrete described-fields inspector.
-    CONTRACT: Emit schema facet payloads; vertex type follows BaseParams / BaseResult / other;
-        :meth:`get_graph_nodes` for ``ParamsNode`` / ``ResultNode`` / ``NodeGraphCoordinator``.
+    CONTRACT: Emit schema facet payloads; vertex type follows BaseParams / BaseResult / other.
     INVARIANTS: Marker traversal via ``DescribedFieldsIntent`` and stable storage key.
     AI-CORE-END
     """
@@ -204,28 +198,6 @@ class DescribedFieldsIntentInspector(BaseIntentInspector):
     @classmethod
     def _subclasses_recursive(cls) -> list[type]:
         return cls._collect_subclasses(cls._target_intent)
-
-    @classmethod
-    def get_graph_nodes(cls) -> list[BaseGraphNode[Any]]:
-        """
-        Interchange :class:`~action_machine.model.params_node.ParamsNode` and
-        :class:`~action_machine.model.result_node.ResultNode` for every loaded ``BaseParams`` and
-        ``BaseResult`` subclass respectively.
-
-        Uses :meth:`~action_machine.graph.base_intent_inspector.BaseIntentInspector._collect_subclasses`
-        (recursive ``__subclasses__``), not class MRO. Parallel to :meth:`inspect` for
-        :class:`~action_machine.graph.node_graph_coordinator.NodeGraphCoordinator`.
-        """
-        nodes: list[BaseGraphNode[Any]] = [
-            ParamsNode(params_cls)
-            for params_cls in cls._collect_subclasses(BaseParams)
-        ]
-        nodes.extend(
-            ResultNode(result_cls)
-            for result_cls in cls._collect_subclasses(BaseResult)
-        )
-        nodes.sort(key=lambda n: n.id)
-        return nodes
 
     @classmethod
     def _extract_constraints(cls, field_info: FieldInfo) -> dict[str, Any]:

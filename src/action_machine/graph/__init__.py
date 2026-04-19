@@ -76,7 +76,7 @@ from action_machine.graph.dag import (
 )
 from action_machine.graph.graph_builder import GraphBuilder, build_interchange_from_facet_vertices
 from action_machine.graph.graph_coordinator import GraphCoordinator
-from action_machine.graph.node_graph_coordinator import GraphNodeSource, NodeGraphCoordinator
+from action_machine.graph.node_graph_coordinator import NodeGraphCoordinator
 from action_machine.graph.graph_edge import GraphEdge
 from action_machine.graph.base_graph_node import (
     BaseGraphNode,
@@ -95,7 +95,6 @@ __all__ = [
     "InspectGraphPair",
     "GraphBuilder",
     "GraphCoordinator",
-    "GraphNodeSource",
     "NodeGraphCoordinator",
     "GraphEdge",
     "BaseGraphNode",

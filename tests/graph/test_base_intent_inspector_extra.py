@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+import pytest
+
 from action_machine.graph.base_intent_inspector import BaseIntentInspector
+from action_machine.intents.auth.role_intent_inspector import RoleIntentInspector
 
 
 class _M:
@@ -39,3 +42,8 @@ def test_base_inspector_collect_subclasses_and_recursive() -> None:
     assert _SubSub in subs
     # base implementation should be callable
     assert isinstance(BaseIntentInspector._subclasses_recursive(), list)
+
+
+def test_get_graph_nodes_default_raises_not_implemented() -> None:
+    with pytest.raises(NotImplementedError, match="get_graph_nodes is not implemented"):
+        RoleIntentInspector().get_graph_nodes()
