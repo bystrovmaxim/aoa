@@ -85,7 +85,6 @@ import rustworkx as rx
 
 from action_machine.graph.base_graph_node import BaseGraphNode
 from action_machine.graph.base_inspector import BaseInspector
-from action_machine.graph.base_intent_inspector import BaseIntentInspector
 from action_machine.graph.exceptions import DuplicateNodeError, InvalidGraphError
 
 
@@ -125,12 +124,12 @@ class NodeGraphCoordinator:
         self._materialize_rustworkx_graph(nodes)
         self._built = True
 
-    def _inspector_label(self, inspector: BaseIntentInspector) -> str:
+    def _inspector_label(self, inspector: BaseInspector) -> str:
         return type(inspector).__qualname__
 
     def _gather_all_nodes(
         self,
-        inspectors: Sequence[BaseIntentInspector],
+        inspectors: Sequence[BaseInspector],
     ) -> list[tuple[BaseGraphNode[Any], str]]:
         """
         Concatenate ``get_graph_nodes()`` from every inspector in order.

@@ -25,8 +25,8 @@ Scenarios covered:
 
 import pytest
 
-from action_machine.runtime.dependency_factory import DependencyFactory, DependencyInfo
 from action_machine.resources.base_resource_manager import BaseResourceManager
+from action_machine.runtime.dependency_factory import DependencyFactory, DependencyInfo
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Helper classes — intentionally simple, defined here for isolation.

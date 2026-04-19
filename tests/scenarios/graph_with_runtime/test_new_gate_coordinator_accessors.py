@@ -3,7 +3,6 @@
 
 from __future__ import annotations
 
-from action_machine.legacy.entity_intent_inspector import EntityIntentInspector
 from action_machine.graph.base_intent_inspector import BaseIntentInspector
 from action_machine.graph.facet_edge import FacetEdge
 from action_machine.graph.facet_vertex import FacetVertex
@@ -13,15 +12,16 @@ from action_machine.legacy.checker_intent_inspector import CheckerIntentInspecto
 from action_machine.legacy.compensate_intent_inspector import (
     CompensateIntentInspector,
 )
-from action_machine.legacy.on_error_intent_inspector import OnErrorIntentInspector
+from action_machine.legacy.core import Core
+from action_machine.legacy.entity_intent_inspector import EntityIntentInspector
 from action_machine.legacy.interchange_vertex_labels import (
     CHECKER_VERTEX_TYPE,
     COMPENSATOR_VERTEX_TYPE,
     ENTITY_VERTEX_TYPE,
     REGULAR_ASPECT_VERTEX_TYPE,
 )
+from action_machine.legacy.on_error_intent_inspector import OnErrorIntentInspector
 from action_machine.resources.base_resource_manager import BaseResourceManager
-from action_machine.legacy.core import Core
 from tests.scenarios.domain_model import FullAction
 from tests.scenarios.domain_model.services import NotificationService, PaymentService
 

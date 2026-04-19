@@ -129,7 +129,6 @@ from typing import Annotated, Any, get_args, get_origin
 from pydantic.fields import FieldInfo
 from pydantic_core import PydanticUndefined
 
-from action_machine.legacy.entity_intent import EntityIntent, entity_info_is_set
 from action_machine.domain.lifecycle import Lifecycle, StateInfo, StateType
 from action_machine.domain.relation_containers import BaseRelationMany, BaseRelationOne
 from action_machine.domain.relation_markers import Inverse, NoGraphEdge, NoInverse, Rel
@@ -137,6 +136,7 @@ from action_machine.graph.base_facet_snapshot import BaseFacetSnapshot
 from action_machine.graph.base_intent_inspector import BaseIntentInspector, FacetInspectResult
 from action_machine.graph.facet_edge import FacetEdge
 from action_machine.graph.facet_vertex import FacetVertex
+from action_machine.legacy.entity_intent import EntityIntent, entity_info_is_set
 from action_machine.legacy.interchange_vertex_labels import DOMAIN_VERTEX_TYPE, ENTITY_VERTEX_TYPE
 
 # ─────────────────────────────────────────────────────────────────────────────

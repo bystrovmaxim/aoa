@@ -37,13 +37,13 @@ from typing import Any
 
 from pydantic import Field
 
-from action_machine.intents.depends import depends
 from action_machine.intents.aspects.regular_aspect_decorator import regular_aspect
 from action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
 from action_machine.intents.check_roles import NoneRole, check_roles
 from action_machine.intents.checkers import result_string
 from action_machine.intents.compensate import compensate
 from action_machine.intents.context import Ctx, context_requires
+from action_machine.intents.depends import depends
 from action_machine.intents.meta.meta_decorator import meta
 from action_machine.intents.on_error import on_error
 from action_machine.model.base_action import BaseAction

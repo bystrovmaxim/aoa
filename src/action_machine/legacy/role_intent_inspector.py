@@ -107,16 +107,16 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
+from action_machine.auth.any_role import AnyRole
+from action_machine.auth.base_role import BaseRole
+from action_machine.auth.none_role import NoneRole
 from action_machine.graph.base_facet_snapshot import BaseFacetSnapshot
 from action_machine.graph.base_intent_inspector import BaseIntentInspector
 from action_machine.graph.facet_edge import FacetEdge
 from action_machine.graph.facet_vertex import FacetVertex
-from action_machine.auth.any_role import AnyRole
-from action_machine.auth.base_role import BaseRole
-from action_machine.auth.none_role import NoneRole
-from action_machine.legacy.role_graph_roots import role_class_topology_anchor
 from action_machine.legacy.check_roles_intent import CheckRolesIntent
 from action_machine.legacy.interchange_vertex_labels import ACTION_VERTEX_TYPE
+from action_machine.legacy.role_graph_roots import role_class_topology_anchor
 
 
 class RoleIntentInspector(BaseIntentInspector):

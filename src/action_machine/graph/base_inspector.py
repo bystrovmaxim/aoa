@@ -3,14 +3,13 @@
 
 from __future__ import annotations
 
-from abc import ABC
 from typing import Any
 
 from action_machine.graph.base_graph_node import BaseGraphNode
 
 
-class BaseInspector(ABC):
-    """Abstract base for graph inspectors."""
+class BaseInspector:
+    """Base class for graph inspectors (optional :meth:`get_graph_nodes` hook)."""
 
     def get_graph_nodes(self) -> list[BaseGraphNode[Any]]:
         """
@@ -19,9 +18,6 @@ class BaseInspector(ABC):
         Default implementation raises :exc:`NotImplementedError`. Subclasses that
         emit :class:`~action_machine.graph.base_graph_node.BaseGraphNode` instances override this **instance**
         method.
-
-        Returns:
-            Zero or more interchange nodes.
 
         Raises:
             NotImplementedError: This inspector does not implement interchange-node emission.

@@ -108,11 +108,11 @@ runtime behavior close to production object shapes.
 
 from action_machine.auth.application_role import ApplicationRole
 from action_machine.auth.base_role import BaseRole
-from action_machine.intents.role_mode.role_mode_decorator import RoleMode, role_mode
 from action_machine.context.context import Context
 from action_machine.context.request_info import RequestInfo
 from action_machine.context.runtime_info import RuntimeInfo
 from action_machine.context.user_info import UserInfo
+from action_machine.intents.role_mode.role_mode_decorator import RoleMode, role_mode
 
 
 @role_mode(RoleMode.ALIVE)

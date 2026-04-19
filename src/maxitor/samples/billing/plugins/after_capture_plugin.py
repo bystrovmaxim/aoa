@@ -3,8 +3,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from action_machine.plugin.events import AfterRegularAspectEvent
 from action_machine.intents.on.on_decorator import on
+from action_machine.plugin.events import AfterRegularAspectEvent
 from action_machine.plugin.plugin import Plugin
 
 

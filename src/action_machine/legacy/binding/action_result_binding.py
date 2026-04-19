@@ -71,14 +71,14 @@ from __future__ import annotations
 
 from typing import cast
 
+from action_machine.legacy.binding.extract_action_params_result_types import (
+    extract_action_params_result_types,
+)
 from action_machine.model.base_result import BaseResult
 from action_machine.model.exceptions import (
     ActionResultDeclarationError,
     ActionResultTypeError,
     MissingSummaryAspectError,
-)
-from action_machine.legacy.binding.extract_action_params_result_types import (
-    extract_action_params_result_types,
 )
 
 

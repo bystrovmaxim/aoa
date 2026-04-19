@@ -35,4 +35,3 @@ class GraphVertex:
     label: str
     properties: dict[str, Any]
     links: list[str] = field(default_factory=list)
-

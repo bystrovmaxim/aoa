@@ -111,8 +111,8 @@ from typing import Any
 from action_machine.auth.any_role import AnyRole
 from action_machine.auth.base_role import BaseRole
 from action_machine.auth.none_role import NoneRole
-from action_machine.legacy.check_roles_intent import CheckRolesIntent
 from action_machine.intents.role_mode.role_mode_decorator import RoleMode
+from action_machine.legacy.check_roles_intent import CheckRolesIntent
 
 
 def _normalize_check_roles_spec(spec: Any) -> Any:

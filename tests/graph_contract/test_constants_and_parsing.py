@@ -38,4 +38,4 @@ def test_ownership_internal_and_dag_sets_disjoint() -> None:
 
 
 def test_dag_edge_types_expected() -> None:
-    assert DAG_EDGE_TYPES == frozenset({"DEPENDS_ON", "CONNECTS_TO"})
+    assert frozenset({"DEPENDS_ON", "CONNECTS_TO"}) == DAG_EDGE_TYPES

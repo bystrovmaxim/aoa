@@ -135,8 +135,6 @@ from action_machine.domain.base_domain import BaseDomain
 from action_machine.domain.domain_graph_node import DomainGraphNode
 from action_machine.domain.entity import BaseEntity
 from action_machine.domain.entity_graph_node import EntityGraphNode
-from action_machine.intents.entity.entity_decorator import entity
-from action_machine.legacy.entity_intent import EntityIntent
 from action_machine.domain.exceptions import (
     EntityDecoratorError,
     FieldNotLoadedError,
@@ -158,6 +156,8 @@ from action_machine.domain.relation_containers import (
 )
 from action_machine.domain.relation_markers import Inverse, NoGraphEdge, NoInverse, Rel
 from action_machine.domain.testing import make
+from action_machine.intents.entity.entity_decorator import entity
+from action_machine.legacy.entity_intent import EntityIntent
 
 __all__ = [
     "AggregateMany",
@@ -166,8 +166,6 @@ __all__ = [
     "AssociationOne",
     # Domains
     "BaseDomain",
-    "DomainGraphNode",
-    "EntityGraphNode",
     # Entities
     "BaseEntity",
     "BaseRelationMany",
@@ -175,8 +173,10 @@ __all__ = [
     "BaseRelationOne",
     "CompositeMany",
     "CompositeOne",
+    "DomainGraphNode",
     # Exceptions
     "EntityDecoratorError",
+    "EntityGraphNode",
     "EntityIntent",
     "FieldNotLoadedError",
     # Relation markers

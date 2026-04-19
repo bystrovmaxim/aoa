@@ -3,6 +3,8 @@
 
 from __future__ import annotations
 
+# pylint: disable=undefined-all-variable
+# ``__all__`` lists lazy names resolved in :func:`__getattr__` (PEP 562).
 import importlib
 from typing import Any
 

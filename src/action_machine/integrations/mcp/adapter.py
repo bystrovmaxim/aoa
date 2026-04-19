@@ -202,9 +202,9 @@ from action_machine.adapters.base_route_record import (
     ensure_machine_params,
     ensure_protocol_response,
 )
+from action_machine.context.context import Context
 from action_machine.graph.graph_coordinator import GraphCoordinator
 from action_machine.integrations.mcp.route_record import McpRouteRecord
-from action_machine.context.context import Context
 from action_machine.legacy.interchange_vertex_labels import (
     DOMAIN_VERTEX_TYPE,
     REGULAR_ASPECT_VERTEX_TYPE,

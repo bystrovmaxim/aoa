@@ -69,12 +69,12 @@ from typing import Any, TypeVar, get_args, get_origin
 from action_machine.common import qualified_dotted_name
 from action_machine.domain.base_domain import BaseDomain
 from action_machine.graph.base_graph_edge import BaseGraphEdge
-from action_machine.legacy.interchange_vertex_labels import DOMAIN_VERTEX_TYPE
 from action_machine.graph.base_graph_node import BaseGraphNode, Payload
-from action_machine.model.base_action import BaseAction
 from action_machine.legacy.binding.action_generic_params import _resolve_generic_arg
+from action_machine.legacy.interchange_vertex_labels import DOMAIN_VERTEX_TYPE
+from action_machine.model.base_action import BaseAction
 
-TAction = TypeVar("TAction", bound=BaseAction)
+TAction = TypeVar("TAction", bound=BaseAction[Any, Any])
 
 
 @dataclass(init=False, frozen=True)

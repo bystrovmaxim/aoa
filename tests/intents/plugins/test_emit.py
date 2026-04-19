@@ -29,15 +29,15 @@ SCENARIOS COVERED
 import pytest
 
 from action_machine.context.context import Context
+from action_machine.intents.on.on_decorator import on
 from action_machine.logging.scoped_logger import ScopedLogger
+from action_machine.model.base_params import BaseParams
 from action_machine.plugin.events import (
     CompensateFailedEvent,
     SagaRollbackCompletedEvent,
 )
-from action_machine.intents.on.on_decorator import on
 from action_machine.plugin.plugin import Plugin
 from action_machine.plugin.plugin_coordinator import PluginCoordinator
-from action_machine.model.base_params import BaseParams
 
 from .conftest import (
     RecordingPlugin,

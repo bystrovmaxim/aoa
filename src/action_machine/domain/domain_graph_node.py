@@ -68,8 +68,8 @@ from typing import TypeVar
 from action_machine.common import qualified_dotted_name
 from action_machine.domain.base_domain import BaseDomain
 from action_machine.graph.base_graph_edge import BaseGraphEdge
-from action_machine.legacy.interchange_vertex_labels import APPLICATION_VERTEX_TYPE
 from action_machine.graph.base_graph_node import BaseGraphNode, Payload
+from action_machine.legacy.interchange_vertex_labels import APPLICATION_VERTEX_TYPE
 
 TDomain = TypeVar("TDomain", bound=BaseDomain)
 
@@ -86,7 +86,9 @@ class DomainGraphNode(BaseGraphNode[type[TDomain]]):
     @classmethod
     def parse(cls, domain_cls: type[TDomain]) -> Payload:
         # Local import: avoid loading ``application`` package (and inspector) during ``domain`` import.
-        from action_machine.application.application_context import ApplicationContext
+        from action_machine.application.application_context import (  # pylint: disable=import-outside-toplevel
+            ApplicationContext,
+        )
 
         app_id = qualified_dotted_name(ApplicationContext)
         return Payload(

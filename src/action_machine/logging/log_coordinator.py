@@ -117,8 +117,8 @@ import asyncio
 import logging
 from typing import Any
 
-from action_machine.domain.base_domain import BaseDomain
 from action_machine.context.context import Context
+from action_machine.domain.base_domain import BaseDomain
 from action_machine.logging.base_logger import BaseLogger
 from action_machine.logging.channel import validate_channels
 from action_machine.logging.level import validate_level
