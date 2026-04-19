@@ -1,4 +1,4 @@
-# src/action_machine/intents/auth/base_role.py
+# src/action_machine/auth/base_role.py
 """
 Abstract base for typed **role marker** classes (frozen declaration, like domains).
 

@@ -11,7 +11,7 @@ from __future__ import annotations
 import pytest
 
 from action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
-from action_machine.intents.auth.base_role import BaseRole
+from action_machine.auth.base_role import BaseRole
 from action_machine.intents.auth.check_roles_decorator import check_roles
 from action_machine.intents.auth.role_intent import RoleIntent
 from action_machine.intents.auth.role_mode_decorator import RoleMode, role_mode

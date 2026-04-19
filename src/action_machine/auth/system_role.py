@@ -1,4 +1,4 @@
-# src/action_machine/intents/auth/system_role.py
+# src/action_machine/auth/system_role.py
 """
 ``SystemRole`` root for engine-level sentinel roles.
 
@@ -55,7 +55,7 @@ from __future__ import annotations
 
 from abc import ABC
 
-from action_machine.intents.auth.base_role import BaseRole
+from action_machine.auth.base_role import BaseRole
 from action_machine.intents.auth.role_mode_decorator import RoleMode, role_mode
 
 

@@ -45,13 +45,13 @@ Interface Compatibility:
 
 import pytest
 
-from action_machine.intents.auth.auth_coordinator import (
+from action_machine.auth.auth_coordinator import (
     AuthCoordinator,
     ContextAssembler,
     CredentialExtractor,
     NoAuthCoordinator,
 )
-from action_machine.intents.auth.authenticator import Authenticator
+from action_machine.auth.authenticator import Authenticator
 from action_machine.intents.context.context import Context
 from action_machine.intents.context.user_info import UserInfo
 from tests.scenarios.domain_model.roles import AdminRole, SpyRole

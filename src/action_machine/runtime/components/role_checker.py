@@ -79,9 +79,9 @@ from __future__ import annotations
 from typing import Any, Protocol
 
 from action_machine.graph.graph_coordinator import GraphCoordinator
-from action_machine.intents.auth.any_role import AnyRole
-from action_machine.intents.auth.base_role import BaseRole
-from action_machine.intents.auth.none_role import NoneRole
+from action_machine.auth.any_role import AnyRole
+from action_machine.auth.base_role import BaseRole
+from action_machine.auth.none_role import NoneRole
 from action_machine.intents.auth.role_mode_decorator import RoleMode
 from action_machine.intents.context.context import Context
 from action_machine.model.base_action import BaseAction

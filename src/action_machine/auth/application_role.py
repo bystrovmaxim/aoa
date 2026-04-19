@@ -1,46 +1,49 @@
-# src/action_machine/intents/auth/any_role.py
+# src/action_machine/auth/application_role.py
 """
-``AnyRole`` engine sentinel role.
+``ApplicationRole`` root for assignable business roles.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Represent "any assignable role is enough" requirement in ``@check_roles``.
-This is an engine sentinel role type, not an application role for user storage.
+Define a common abstract root for roles that may be assigned to authenticated
+users and stored in ``UserInfo.roles``.
 
 ═══════════════════════════════════════════════════════════════════════════════
 INVARIANTS
 ═══════════════════════════════════════════════════════════════════════════════
 
-- Used as ``@check_roles(AnyRole)`` requirement marker.
-- Must not be stored in ``UserInfo.roles``.
-- Sealed via ``__init_subclass__``: subclassing is forbidden.
-- Declared with ``@role_mode(RoleMode.ALIVE)`` as active engine sentinel.
+- Application roles should inherit from ``ApplicationRole`` (not directly from
+  ``BaseRole``).
+- Marked with ``@role_mode(RoleMode.ALIVE)`` as default active role branch.
+- This class is abstract and acts as hierarchy boundary, not as a concrete role.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-    @check_roles(AnyRole)
-            |
-            v
-    role checker evaluates UserInfo.roles
-            |
-            v
-    pass when at least one assignable role exists
+    BaseRole
+       |
+       v
+    ApplicationRole (this class)
+       |
+       v
+    Concrete app roles (AdminRole, ManagerRole, ...)
+       |
+       v
+    UserInfo.roles + @check_roles runtime checks
 
 ═══════════════════════════════════════════════════════════════════════════════
 ERRORS / LIMITATIONS
 ═══════════════════════════════════════════════════════════════════════════════
 
-- Subclassing ``AnyRole`` raises ``TypeError``.
-- This role is runtime-policy metadata only, not a business-domain role.
+- Abstract hierarchy node; intended for inheritance only.
+- Policy semantics (allow/deny) are enforced by role-check runtime, not here.
 
 AI-CORE-BEGIN
-ROLE: Engine-level role sentinel.
-CONTRACT: Express "any real role required" in role-check declarations.
-INVARIANTS: sealed class, ALIVE role mode, not assignable to user role set.
+ROLE: Assignable-role hierarchy root.
+CONTRACT: Provide stable branch for user-assignable role classes.
+INVARIANTS: ALIVE role mode and inheritance boundary for application roles.
 AI-CORE-END
 
 See ``docs/architecture/role-hierarchy.md``.
@@ -48,29 +51,23 @@ See ``docs/architecture/role-hierarchy.md``.
 
 from __future__ import annotations
 
-from typing import Any, final
+from abc import ABC
 
+from action_machine.auth.base_role import BaseRole
 from action_machine.intents.auth.role_mode_decorator import RoleMode, role_mode
-from action_machine.intents.auth.system_role import SystemRole
 
 
-@final
 @role_mode(RoleMode.ALIVE)
-class AnyRole(SystemRole):
+class ApplicationRole(BaseRole, ABC):
     """
-    Sentinel role requiring at least one assignable user role.
+    Abstract root of all roles allowed in ``UserInfo.roles``.
 
     AI-CORE-BEGIN
-    ROLE: Check-spec marker for permissive role requirement.
-    CONTRACT: Used only in ``@check_roles`` declarations.
-    INVARIANTS: non-instantiable policy role; not stored in user role payload.
+    ROLE: Role taxonomy anchor for application-level identities.
+    CONTRACT: Concrete user roles inherit from this class.
+    INVARIANTS: Abstract class with ALIVE role mode.
     AI-CORE-END
     """
 
-    name = "engine_any"
-    description = "Engine sentinel: at least one assignable role required."
-
-    def __init_subclass__(cls, **kwargs: Any) -> None:
-        raise TypeError(
-            f"Cannot subclass sealed engine role AnyRole (attempt: {cls.__qualname__!r})."
-        )
+    name = "__application_root__"
+    description = "Intermediate root for application roles assigned to authenticated users."

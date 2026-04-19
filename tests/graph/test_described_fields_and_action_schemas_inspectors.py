@@ -9,7 +9,7 @@ from pydantic import BaseModel, Field
 from action_machine.domain import BaseEntity, entity
 from action_machine.domain.base_domain import BaseDomain
 from action_machine.intents.auth import check_roles
-from action_machine.intents.auth.none_role import NoneRole
+from action_machine.auth.none_role import NoneRole
 from action_machine.intents.described_fields import (
     DescribedFieldsIntent,
     validate_described_schema,

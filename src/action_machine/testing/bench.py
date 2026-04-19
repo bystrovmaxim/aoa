@@ -197,7 +197,7 @@ from unittest.mock import Mock
 
 from action_machine.dependencies.dependency_factory import cached_dependency_factory
 from action_machine.graph.graph_coordinator import GraphCoordinator
-from action_machine.intents.auth.base_role import BaseRole
+from action_machine.auth.base_role import BaseRole
 from action_machine.intents.context.context import Context
 from action_machine.intents.context.context_view import ContextView
 from action_machine.intents.logging.domain_resolver import resolve_domain

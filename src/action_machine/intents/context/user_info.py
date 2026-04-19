@@ -125,7 +125,7 @@ from typing import Any
 
 from pydantic import ConfigDict, Field, field_serializer, field_validator
 
-from action_machine.intents.auth.base_role import BaseRole
+from action_machine.auth.base_role import BaseRole
 from action_machine.model.base_schema import BaseSchema
 
 

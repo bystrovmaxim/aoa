@@ -63,7 +63,7 @@ from typing import TypeVar
 
 from action_machine.common import qualified_dotted_name
 from action_machine.graph.base_graph_node import BaseGraphNode, Payload
-from action_machine.intents.auth.base_role import BaseRole
+from action_machine.auth.base_role import BaseRole
 
 TRole = TypeVar("TRole", bound=BaseRole)
 
