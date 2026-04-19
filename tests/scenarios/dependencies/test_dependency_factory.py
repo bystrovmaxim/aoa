@@ -1,4 +1,4 @@
-# tests/dependencies/test_dependency_factory.py
+# tests/scenarios/dependencies/test_dependency_factory.py
 """
 Tests for DependencyFactory — stateless factory for creating dependency instances.
 

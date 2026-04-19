@@ -22,11 +22,6 @@ Covers two dependency components:
 TEST MODULES
 ═══════════════════════════════════════════════════════════════════════════════
 
-- ``test_dependency_factory.py`` — ``resolve()`` with constructor and factory,
-  ``*args``/``**kwargs``, undeclared dependency -> ``ValueError``, rollup checks
-  for ``BaseResourceManager``, ``has()``, ``get_all_classes()``, legacy dict
-  format, ``DependencyInfo`` immutability.
-
 - ``test_dependency_intent.py`` — ``_extract_bound`` for ``DependencyIntent[object]``,
   ``DependencyIntent[concrete_type]``, bound inheritance from parent, class
   without ``DependencyIntent`` -> ``object``, ``get_depends_bound()``,
@@ -34,8 +29,11 @@ TEST MODULES
 
 - ``test_depends_decorator_validation.py`` — ``@depends`` argument and target validation.
 
-- Scenario with ``Core``:
-  ``tests/scenarios/dependencies/test_dependency_factory_core_machine.py``.
+- Scenarios under ``tests/scenarios/dependencies/`` — ``DependencyFactory`` unit
+  tests (``test_dependency_factory.py``) and ``Core`` integration
+  (``test_dependency_factory_core_machine.py``). The former lives in scenarios so
+  imports may use ``action_machine.runtime`` without violating the
+  ``tests/dependencies`` layer rule.
 
 ═══════════════════════════════════════════════════════════════════════════════
 DOMAIN MODEL
