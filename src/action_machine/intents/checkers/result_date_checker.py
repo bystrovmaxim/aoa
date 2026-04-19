@@ -1,66 +1,22 @@
 # src/action_machine/intents/checkers/result_date_checker.py
 """
-Date result-field checker and ``result_date`` decorator.
+Date result-field checker (:class:`FieldDateChecker`).
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-The module provides two components:
-
-1. **ResultDateChecker**: validates that a result field is either a
-   ``datetime`` object or a string parsable by ``date_format``. Supports
-   inclusive date range checks (``min_date`` / ``max_date``). Runtime creates
-   instances from checker snapshot entries.
-
-2. **result_date**: aspect-method decorator that writes checker metadata to
-   method attribute ``_checker_meta``. Inspector/builder flow collects metadata
-   into checker snapshots consumed by runtime.
-
-═══════════════════════════════════════════════════════════════════════════════
-ARCHITECTURE / DATA FLOW
-═══════════════════════════════════════════════════════════════════════════════
-
-    @result_date(...)
-          |
-          v
-    method._checker_meta append
-          |
-          v
-    CheckerIntentInspector snapshot
-          |
-          v
-    runtime creates ResultDateChecker
-          |
-          v
-    checker.check(result_dict)
-
-═══════════════════════════════════════════════════════════════════════════════
-USAGE AS DECORATOR
-═══════════════════════════════════════════════════════════════════════════════
-
-    @regular_aspect("Check date")
-    @result_date("created_at", date_format="%Y-%m-%d")
-    async def check_date(self, params, state, box, connections):
-        return {"created_at": "2024-01-15"}
+Validates that a result field is either a ``datetime`` object or a string
+parsable by ``date_format``. Supports inclusive date range checks (``min_date`` /
+``max_date``). Runtime creates instances from checker snapshot entries. For the
+``@result_date`` decorator, see ``result_date_decorator``.
 
 ═══════════════════════════════════════════════════════════════════════════════
 USAGE BY RUNTIME
 ═══════════════════════════════════════════════════════════════════════════════
 
-    checker = ResultDateChecker("created_at", date_format="%Y-%m-%d")
+    checker = FieldDateChecker("created_at", date_format="%Y-%m-%d")
     checker.check({"created_at": "2024-01-15"})  # OK
-
-═══════════════════════════════════════════════════════════════════════════════
-PARAMETERS
-═══════════════════════════════════════════════════════════════════════════════
-
-    field_name : str — field name in aspect result dictionary.
-    required : bool — whether field is required. Default ``True``.
-    date_format : str | None — date parsing format (for example, ``"%Y-%m-%d"``).
-                  Required when value is provided as string.
-    min_date : datetime | None — minimum allowed date (inclusive).
-    max_date : datetime | None — maximum allowed date (inclusive).
 
 ═══════════════════════════════════════════════════════════════════════════════
 INVARIANTS
@@ -79,24 +35,22 @@ ERRORS / LIMITATIONS
   - string value does not match ``date_format``;
   - parsed/provided date is outside allowed range.
 
-
 AI-CORE-BEGIN
-ROLE: Date checker module for aspect result fields.
-CONTRACT: Validate date-like values and expose metadata via ``result_date`` decorator.
+ROLE: Date checker implementation for aspect result fields.
+CONTRACT: Validate date-like values; snapshot hydration matches ``result_date`` metadata.
 INVARIANTS: Deterministic metadata shape and strict parse/range validation rules.
-FLOW: decorator metadata -> checker snapshot -> runtime checker execution.
+FLOW: snapshot -> FieldDateChecker -> check(result_dict).
 AI-CORE-END
 """
 
 from datetime import datetime
 from typing import Any
 
-from action_machine.intents.checkers.result_field_checker import ResultFieldChecker
-from action_machine.intents.checkers.result_string_checker import _build_checker_meta
+from action_machine.intents.checkers.result_field_checker import BaseFieldChecker
 from action_machine.model.exceptions import ValidationFieldError
 
 
-class ResultDateChecker(ResultFieldChecker):
+class FieldDateChecker(BaseFieldChecker):
     """
     Checker for ``datetime`` or formatted date-string values.
     """
@@ -202,56 +156,3 @@ class ResultDateChecker(ResultFieldChecker):
                 f"got {type(value).__name__}."
             )
         self._check_range(dt_value)
-
-
-# ═════════════════════════════════════════════════════════════════════════════
-# Decorator function
-# ═════════════════════════════════════════════════════════════════════════════
-
-
-def result_date(
-    field_name: str,
-    required: bool = True,
-    date_format: str | None = None,
-    min_date: datetime | None = None,
-    max_date: datetime | None = None,
-) -> Any:
-    """
-    Decorator for aspect methods declaring a date result field.
-
-    Writes checker metadata to method attribute ``_checker_meta``.
-    Inspector/builder flow collects metadata into checker snapshots, then
-    runtime creates ``ResultDateChecker`` and calls ``checker.check(result_dict)``.
-
-    Args:
-        field_name: field name in aspect result dictionary.
-        required: whether field is required.
-        date_format: string date format (for example ``"%Y-%m-%d"``).
-        min_date: minimum allowed date (inclusive).
-        max_date: maximum allowed date (inclusive).
-
-    Returns:
-        Decorator function that appends checker metadata to method.
-
-    Example:
-        @regular_aspect("Check date")
-        @result_date("created_at", date_format="%Y-%m-%d")
-        async def check_date(self, params, state, box, connections):
-            return {"created_at": "2024-01-15"}
-    """
-    checker = ResultDateChecker(
-        field_name=field_name,
-        required=required,
-        date_format=date_format,
-        min_date=min_date,
-        max_date=max_date,
-    )
-    meta = _build_checker_meta(checker)
-
-    def decorator(func: Any) -> Any:
-        if not hasattr(func, "_checker_meta"):
-            func._checker_meta = []
-        func._checker_meta.append(meta)
-        return func
-
-    return decorator

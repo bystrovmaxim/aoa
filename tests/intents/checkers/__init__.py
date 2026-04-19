@@ -14,26 +14,26 @@ and calls checker.check(result_dict) after each aspect.
 COMPONENTS
 ═══════════════════════════════════════════════════════════════════════════════
 
-ResultStringChecker / result_string
+FieldStringChecker / result_string
     Ensures the field is a string. Extra params: not_empty, min_length, max_length.
     Empty string with not_empty=True is an error.
 
-ResultIntChecker / result_int
+FieldIntChecker / result_int
     Ensures the field is an int (not bool). Extra params: min_value, max_value.
 
-ResultFloatChecker / result_float
+FieldFloatChecker / result_float
     Ensures the field is numeric (int or float). Extra params: min_value, max_value.
     bool passes isinstance in Python by design (bool is a subclass of int).
 
-ResultBoolChecker / result_bool
+FieldBoolChecker / result_bool
     Ensures the field is strictly bool. Numbers (0, 1), strings ("true", "false"),
     and other types are rejected — only isinstance(value, bool).
 
-ResultDateChecker / result_date
+FieldDateChecker / result_date
     Ensures the field is a datetime or a string parseable with date_format.
     Extra params: date_format, min_date, max_date.
 
-ResultInstanceChecker / result_instance
+FieldInstanceChecker / result_instance
     Ensures the field is an instance of the given class (or tuple of classes).
     Uses isinstance including subclasses. Extra param: expected_class.
 
@@ -41,7 +41,7 @@ ResultInstanceChecker / result_instance
 SHARED CHECKER CONTRACT
 ═══════════════════════════════════════════════════════════════════════════════
 
-All checkers inherit ResultFieldChecker and share:
+All checkers inherit BaseFieldChecker and share:
 
     checker = SomeChecker(field_name, required=True, **extra_params)
     checker.check(result_dict)  # ValidationFieldError on violation
@@ -72,5 +72,5 @@ TEST LAYOUT
     ├── test_result_bool_checker.py      — bool, strict isinstance
     ├── test_result_date_checker.py      — dates, date_format, min/max_date
     ├── test_result_instance_checker.py  — isinstance, single/tuple of classes
-    └── test_checker_class_naming.py     — ResultFieldChecker class name suffix
+    └── test_checker_class_naming.py     — BaseFieldChecker class name suffix
 """

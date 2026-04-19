@@ -1,12 +1,12 @@
 # tests/intents/checkers/test_result_bool_checker.py
 """
-Tests for ResultBoolChecker — validates boolean fields in aspect results.
+Tests for FieldBoolChecker — validates boolean fields in aspect results.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Ensures ResultBoolChecker correctly validates boolean values in the aspect
+Ensures FieldBoolChecker correctly validates boolean values in the aspect
 result dict. Only True and False are accepted — numbers (0, 1), strings
 ("true", "false"), and other types are rejected.
 
@@ -37,7 +37,8 @@ TestDecorator
 
 import pytest
 
-from action_machine.intents.checkers.result_bool_checker import ResultBoolChecker, result_bool
+from action_machine.intents.checkers.result_bool_checker import FieldBoolChecker
+from action_machine.intents.checkers.result_bool_decorator import result_bool
 from action_machine.model.exceptions import ValidationFieldError
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -51,7 +52,7 @@ class TestValidValues:
     def test_true_accepted(self):
         """True is a valid boolean."""
         # Arrange
-        checker = ResultBoolChecker("is_active", required=True)
+        checker = FieldBoolChecker("is_active", required=True)
 
         # Act & Assert — no exception
         checker.check({"is_active": True})
@@ -59,7 +60,7 @@ class TestValidValues:
     def test_false_accepted(self):
         """False is a valid boolean."""
         # Arrange
-        checker = ResultBoolChecker("is_deleted", required=True)
+        checker = FieldBoolChecker("is_deleted", required=True)
 
         # Act & Assert — no exception
         checker.check({"is_deleted": False})
@@ -76,7 +77,7 @@ class TestInvalidValues:
     def test_int_zero_rejected(self):
         """int 0 is not bool despite being falsy."""
         # Arrange
-        checker = ResultBoolChecker("flag", required=True)
+        checker = FieldBoolChecker("flag", required=True)
 
         # Act & Assert
         with pytest.raises(ValidationFieldError):
@@ -85,7 +86,7 @@ class TestInvalidValues:
     def test_int_one_rejected(self):
         """int 1 is not bool despite being truthy."""
         # Arrange
-        checker = ResultBoolChecker("flag", required=True)
+        checker = FieldBoolChecker("flag", required=True)
 
         # Act & Assert
         with pytest.raises(ValidationFieldError):
@@ -94,7 +95,7 @@ class TestInvalidValues:
     def test_string_true_rejected(self):
         """String 'true' is not bool."""
         # Arrange
-        checker = ResultBoolChecker("flag", required=True)
+        checker = FieldBoolChecker("flag", required=True)
 
         # Act & Assert
         with pytest.raises(ValidationFieldError):
@@ -103,7 +104,7 @@ class TestInvalidValues:
     def test_string_false_rejected(self):
         """String 'false' is not bool."""
         # Arrange
-        checker = ResultBoolChecker("flag", required=True)
+        checker = FieldBoolChecker("flag", required=True)
 
         # Act & Assert
         with pytest.raises(ValidationFieldError):
@@ -112,7 +113,7 @@ class TestInvalidValues:
     def test_list_rejected(self):
         """List is not bool."""
         # Arrange
-        checker = ResultBoolChecker("flag", required=True)
+        checker = FieldBoolChecker("flag", required=True)
 
         # Act & Assert
         with pytest.raises(ValidationFieldError):
@@ -121,7 +122,7 @@ class TestInvalidValues:
     def test_dict_rejected(self):
         """Dict is not bool."""
         # Arrange
-        checker = ResultBoolChecker("flag", required=True)
+        checker = FieldBoolChecker("flag", required=True)
 
         # Act & Assert
         with pytest.raises(ValidationFieldError):
@@ -130,7 +131,7 @@ class TestInvalidValues:
     def test_none_rejected_when_required(self):
         """None with required=True raises."""
         # Arrange
-        checker = ResultBoolChecker("flag", required=True)
+        checker = FieldBoolChecker("flag", required=True)
 
         # Act & Assert
         with pytest.raises(ValidationFieldError):
@@ -139,7 +140,7 @@ class TestInvalidValues:
     def test_error_message_contains_field_name(self):
         """Error message includes field name."""
         # Arrange
-        checker = ResultBoolChecker("is_valid", required=True)
+        checker = FieldBoolChecker("is_valid", required=True)
 
         # Act & Assert
         with pytest.raises(ValidationFieldError, match="is_valid"):
@@ -148,7 +149,7 @@ class TestInvalidValues:
     def test_error_message_contains_actual_type(self):
         """Error message includes actual value type."""
         # Arrange
-        checker = ResultBoolChecker("is_valid", required=True)
+        checker = FieldBoolChecker("is_valid", required=True)
 
         # Act & Assert
         with pytest.raises(ValidationFieldError, match="str"):
@@ -166,7 +167,7 @@ class TestRequired:
     def test_required_missing_field_raises(self):
         """Missing required field raises."""
         # Arrange
-        checker = ResultBoolChecker("flag", required=True)
+        checker = FieldBoolChecker("flag", required=True)
 
         # Act & Assert
         with pytest.raises(ValidationFieldError):
@@ -175,7 +176,7 @@ class TestRequired:
     def test_required_none_raises(self):
         """None in required field raises."""
         # Arrange
-        checker = ResultBoolChecker("flag", required=True)
+        checker = FieldBoolChecker("flag", required=True)
 
         # Act & Assert
         with pytest.raises(ValidationFieldError):
@@ -184,7 +185,7 @@ class TestRequired:
     def test_optional_missing_field_passes(self):
         """Missing optional field allowed."""
         # Arrange
-        checker = ResultBoolChecker("flag", required=False)
+        checker = FieldBoolChecker("flag", required=False)
 
         # Act & Assert — no exception
         checker.check({})
@@ -192,7 +193,7 @@ class TestRequired:
     def test_optional_none_passes(self):
         """None in optional field allowed."""
         # Arrange
-        checker = ResultBoolChecker("flag", required=False)
+        checker = FieldBoolChecker("flag", required=False)
 
         # Act & Assert — no exception
         checker.check({"flag": None})
@@ -200,7 +201,7 @@ class TestRequired:
     def test_optional_invalid_type_still_raises(self):
         """Non-bool value still raises when field is optional but present."""
         # Arrange
-        checker = ResultBoolChecker("flag", required=False)
+        checker = FieldBoolChecker("flag", required=False)
 
         # Act & Assert
         with pytest.raises(ValidationFieldError):
@@ -235,7 +236,7 @@ class TestDecorator:
 
         # Assert
         meta = aspect._checker_meta[0]
-        assert meta["checker_class"] is ResultBoolChecker
+        assert meta["checker_class"] is FieldBoolChecker
 
     def test_field_name_recorded(self):
         """Field name stored in metadata."""

@@ -51,14 +51,14 @@ EXAMPLES
     validate_state_for_aspect(aspects, get_checkers_for_aspect, "process_payment", state)
     # If required field 'validated_user' is missing:
     # StateValidationError: "Aspect 'process_payment' expects field
-    #   'validated_user' (ResultStringChecker, required) from aspect
+    #   'validated_user' (FieldStringChecker, required) from aspect
     #   'validate', but it is missing in state."
 
     # Validate state before summary
     validate_state_for_summary(aspects, get_checkers_for_aspect, state)
     # If field 'txn_id' has wrong type:
     # StateValidationError: "Summary expects field 'txn_id'
-    #   (ResultStringChecker, required) from aspect 'process_payment':
+    #   (FieldStringChecker, required) from aspect 'process_payment':
     #   Parameter 'txn_id' must be a string, got int"
 
 ═══════════════════════════════════════════════════════════════════════════════

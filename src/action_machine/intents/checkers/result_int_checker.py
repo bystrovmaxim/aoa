@@ -1,63 +1,21 @@
 # src/action_machine/intents/checkers/result_int_checker.py
 """
-Integer result-field checker and ``result_int`` decorator.
+Integer result-field checker (:class:`FieldIntChecker`).
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-The module exposes two components:
-
-1. **ResultIntChecker**: validates that a result field is an integer and
-   satisfies optional inclusive range limits. Runtime creates checker instances
-   from checker snapshot entries.
-
-2. **result_int**: decorator for aspect methods that appends checker metadata
-   to method attribute ``_checker_meta``. Inspector/builder flow collects this
-   metadata into checker snapshots used by runtime.
-
-═══════════════════════════════════════════════════════════════════════════════
-ARCHITECTURE / DATA FLOW
-═══════════════════════════════════════════════════════════════════════════════
-
-    @result_int(...)
-         |
-         v
-    method._checker_meta append
-         |
-         v
-    CheckerIntentInspector snapshot
-         |
-         v
-    runtime creates ResultIntChecker
-         |
-         v
-    checker.check(result_dict)
-
-═══════════════════════════════════════════════════════════════════════════════
-USAGE AS DECORATOR
-═══════════════════════════════════════════════════════════════════════════════
-
-    @regular_aspect("Count")
-    @result_int("count", required=True, min_value=0, max_value=100)
-    async def count_items(self, params, state, box, connections):
-        return {"count": 42}
+Validates that a result field is an integer and satisfies optional inclusive
+range limits. Runtime creates checker instances from checker snapshot entries.
+For the ``@result_int`` decorator, see ``result_int_decorator``.
 
 ═══════════════════════════════════════════════════════════════════════════════
 USAGE BY RUNTIME
 ═══════════════════════════════════════════════════════════════════════════════
 
-    checker = ResultIntChecker("count", min_value=0)
+    checker = FieldIntChecker("count", min_value=0)
     checker.check({"count": 42})  # OK
-
-═══════════════════════════════════════════════════════════════════════════════
-PARAMETERS
-═══════════════════════════════════════════════════════════════════════════════
-
-    field_name : str — field name in aspect result dictionary.
-    required : bool — whether field is required. Default ``True``.
-    min_value : int | None — minimum allowed value (inclusive).
-    max_value : int | None — maximum allowed value (inclusive).
 
 ═══════════════════════════════════════════════════════════════════════════════
 INVARIANTS
@@ -65,7 +23,7 @@ INVARIANTS
 
 - Accepts only ``int`` values by ``isinstance(value, int)`` rule.
 - Applies inclusive range checks when bounds are configured.
-- Reuses required/non-null policy from ``ResultFieldChecker``.
+- Reuses required/non-null policy from ``BaseFieldChecker``.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ERRORS / LIMITATIONS
@@ -74,23 +32,21 @@ ERRORS / LIMITATIONS
 - Raises ``ValidationFieldError`` when value is not integer or violates bounds.
 - Python treats ``bool`` as subclass of ``int``; bool values pass type check.
 
-
 AI-CORE-BEGIN
-ROLE: Integer checker module for aspect result fields.
-CONTRACT: Validate integer values and expose metadata via ``result_int`` decorator.
+ROLE: Integer checker implementation for aspect result fields.
+CONTRACT: Validate integer values; snapshot hydration matches ``result_int`` metadata.
 INVARIANTS: Deterministic metadata shape and inclusive bound enforcement.
-FLOW: decorator metadata -> checker snapshot -> runtime checker execution.
+FLOW: snapshot -> FieldIntChecker -> check(result_dict).
 AI-CORE-END
 """
 
 from typing import Any
 
-from action_machine.intents.checkers.result_field_checker import ResultFieldChecker
-from action_machine.intents.checkers.result_string_checker import _build_checker_meta
+from action_machine.intents.checkers.result_field_checker import BaseFieldChecker
 from action_machine.model.exceptions import ValidationFieldError
 
 
-class ResultIntChecker(ResultFieldChecker):
+class FieldIntChecker(BaseFieldChecker):
     """
     Checker for integer values with optional range constraints.
     """
@@ -177,53 +133,3 @@ class ResultIntChecker(ResultFieldChecker):
         """
         int_value = self._validate_int(value)
         self._check_range(int_value)
-
-
-# ═════════════════════════════════════════════════════════════════════════════
-# Decorator function
-# ═════════════════════════════════════════════════════════════════════════════
-
-
-def result_int(
-    field_name: str,
-    required: bool = True,
-    min_value: int | None = None,
-    max_value: int | None = None,
-) -> Any:
-    """
-    Decorator for aspect methods declaring integer result field.
-
-    Writes checker metadata to method attribute ``_checker_meta``.
-    Inspector/builder flow collects metadata into checker snapshots, then
-    runtime creates ``ResultIntChecker`` and calls ``checker.check(result_dict)``.
-
-    Args:
-        field_name: field name in aspect result dictionary.
-        required: whether field is required.
-        min_value: minimum allowed value (inclusive).
-        max_value: maximum allowed value (inclusive).
-
-    Returns:
-        Decorator function that appends checker metadata to method.
-
-    Example:
-        @regular_aspect("Count")
-        @result_int("count", required=True, min_value=0, max_value=1000)
-        async def count_items(self, params, state, box, connections):
-            return {"count": 42}
-    """
-    checker = ResultIntChecker(
-        field_name=field_name,
-        required=required,
-        min_value=min_value,
-        max_value=max_value,
-    )
-    meta = _build_checker_meta(checker)
-
-    def decorator(func: Any) -> Any:
-        if not hasattr(func, "_checker_meta"):
-            func._checker_meta = []
-        func._checker_meta.append(meta)
-        return func
-
-    return decorator

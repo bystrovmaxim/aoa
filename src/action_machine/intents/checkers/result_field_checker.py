@@ -7,8 +7,8 @@ PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 Defines shared checker contract for all result-field validators. Each concrete
-checker (``ResultStringChecker``, ``ResultIntChecker``, etc.) inherits from
-``ResultFieldChecker`` and implements ``_check_type_and_constraints``.
+checker (``FieldStringChecker``, ``FieldIntChecker``, etc.) inherits from
+:class:`BaseFieldChecker` and implements ``_check_type_and_constraints``.
 
 Runtime (``ActionProductMachine._apply_checkers``) instantiates checkers from
 snapshot metadata and calls ``checker.check(result_dict)``.
@@ -17,16 +17,16 @@ snapshot metadata and calls ``checker.check(result_dict)``.
 NAMING INVARIANT
 ═══════════════════════════════════════════════════════════════════════════════
 
-Every class inheriting ``ResultFieldChecker`` (directly or indirectly) must
+Every class inheriting ``BaseFieldChecker`` (directly or indirectly) must
 end with ``"Checker"`` suffix. This invariant is enforced in
 ``__init_subclass__`` at class definition time. Violations raise
 ``NamingSuffixError``.
 
 Примеры:
-    class ResultStringChecker(ResultFieldChecker):  # OK
-    class ResultIntChecker(ResultFieldChecker):     # OK
-    class MyCustomChecker(ResultFieldChecker):      # OK
-    class StringValidator(ResultFieldChecker):      # NamingSuffixError
+    class FieldStringChecker(BaseFieldChecker):  # OK
+    class FieldIntChecker(BaseFieldChecker):     # OK
+    class MyCustomChecker(BaseFieldChecker):      # OK
+    class StringValidator(BaseFieldChecker):      # NamingSuffixError
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
@@ -64,7 +64,7 @@ EXAMPLE
 ═══════════════════════════════════════════════════════════════════════════════
 
     # Runtime creates checker from snapshot metadata and calls check():
-    checker = ResultStringChecker("txn_id", required=True)
+    checker = FieldStringChecker("txn_id", required=True)
     checker.check({"txn_id": "abc"})  # OK
     checker.check({})                  # ValidationFieldError
 
@@ -85,21 +85,22 @@ FLOW: metadata -> snapshot -> runtime instantiation -> check().
 AI-CORE-END
 """
 
-from abc import abstractmethod
+from abc import ABC, abstractmethod
 from typing import Any
 
 from action_machine.model.exceptions import NamingSuffixError, ValidationFieldError
 
-# Required suffix for all ResultFieldChecker subclasses.
+# Required suffix for all BaseFieldChecker subclasses.
 _REQUIRED_SUFFIX = "Checker"
 
 
-class ResultFieldChecker:
+class BaseFieldChecker(ABC):
     """
-    Base class for all aspect-result field checkers.
+    Abstract base class for all aspect-result field checkers.
 
     Subclasses implement concrete type/constraint checks while this class
-    handles required/non-null flow and naming policy.
+    handles required/non-null flow and naming policy. Cannot be instantiated
+    directly.
     """
 
     def __init_subclass__(cls, **kwargs: Any) -> None:
@@ -116,7 +117,7 @@ class ResultFieldChecker:
 
         if not cls.__name__.endswith(_REQUIRED_SUFFIX):
             raise NamingSuffixError(
-                f"Class '{cls.__name__}' inherits ResultFieldChecker but "
+                f"Class '{cls.__name__}' inherits BaseFieldChecker but "
                 f"does not end with suffix '{_REQUIRED_SUFFIX}'. "
                 f"Rename it to '{cls.__name__}{_REQUIRED_SUFFIX}'."
             )
@@ -196,4 +197,4 @@ class ResultFieldChecker:
         Raises:
             ValidationFieldError: if value violates checker rules.
         """
-        pass
+        ...

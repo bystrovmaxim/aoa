@@ -138,7 +138,7 @@ class TestWrongTypeInState:
     async def test_total_wrong_type(
         self, manager_bench: TestBench, mock_db: AsyncMock,
     ) -> None:
-        """``total`` must be float; a string fails ``ResultFloatChecker``."""
+        """``total`` must be float; a string fails ``FieldFloatChecker``."""
         action = FullAction()
         params = FullAction.Params(user_id="u1", amount=100.0)
 

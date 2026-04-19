@@ -7,9 +7,9 @@ from action_machine.graph import graph_builder as graph_builder_mod
 from action_machine.graph.base_intent_inspector import BaseIntentInspector
 from action_machine.legacy.aspect_intent import AspectIntent
 from action_machine.intents.aspects.regular_aspect_decorator import regular_aspect
-from action_machine.intents.checkers.checker_intent import CheckerIntent
-from action_machine.intents.checkers.checker_intent_inspector import CheckerIntentInspector
-from action_machine.intents.checkers.result_string_checker import result_string
+from action_machine.legacy.checker_intent import CheckerIntent
+from action_machine.legacy.checker_intent_inspector import CheckerIntentInspector
+from action_machine.intents.checkers.result_string_decorator import result_string
 from action_machine.legacy.interchange_vertex_labels import CHECKER_VERTEX_TYPE
 
 
@@ -35,7 +35,7 @@ def test_checker_inspector_builds_payload_with_checker_entries() -> None:
     payload = raw[0]
     assert payload.node_type == CHECKER_VERTEX_TYPE
     host = BaseIntentInspector._make_node_name(_CheckerAction)
-    assert payload.node_name == f"{host}:validate_name_aspect:ResultStringChecker:name"
+    assert payload.node_name == f"{host}:validate_name_aspect:FieldStringChecker:name"
     assert len(payload.edges) == 1
     assert payload.edges[0].edge_type == "checks_aspect"
     assert payload.edges[0].target_name == f"{host}:validate_name_aspect"

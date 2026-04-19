@@ -1,12 +1,12 @@
 # tests/intents/checkers/test_result_instance_checker.py
 """
-Tests for ResultInstanceChecker — validates values against expected classes.
+Tests for FieldInstanceChecker — validates values against expected classes.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Ensures ResultInstanceChecker correctly validates that a value in the aspect
+Ensures FieldInstanceChecker correctly validates that a value in the aspect
 result dict is an instance of the given class (or one of several if a tuple is
 passed). Uses isinstance(), so inheritance is supported.
 
@@ -44,10 +44,8 @@ TestDecorator
 
 import pytest
 
-from action_machine.intents.checkers.result_instance_checker import (
-    ResultInstanceChecker,
-    result_instance,
-)
+from action_machine.intents.checkers.result_instance_checker import FieldInstanceChecker
+from action_machine.intents.checkers.result_instance_decorator import result_instance
 from action_machine.model.exceptions import ValidationFieldError
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -96,7 +94,7 @@ class TestValidValues:
     def test_exact_class_accepted(self):
         """Instance of exact class accepted."""
         # Arrange
-        checker = ResultInstanceChecker("user", _User, required=True)
+        checker = FieldInstanceChecker("user", _User, required=True)
         user = _User(user_id=1, name="Alice")
 
         # Act & Assert — no exception
@@ -105,7 +103,7 @@ class TestValidValues:
     def test_subclass_accepted(self):
         """Subclass instance accepted (isinstance follows inheritance)."""
         # Arrange
-        checker = ResultInstanceChecker("user", _User, required=True)
+        checker = FieldInstanceChecker("user", _User, required=True)
         admin = _AdminUser(user_id=2, name="Bob", level=5)
 
         # Act & Assert — no exception
@@ -114,7 +112,7 @@ class TestValidValues:
     def test_tuple_of_classes_first_match(self):
         """Tuple of classes — instance of first class accepted."""
         # Arrange
-        checker = ResultInstanceChecker("entity", (_User, _Order), required=True)
+        checker = FieldInstanceChecker("entity", (_User, _Order), required=True)
         user = _User(user_id=1, name="Alice")
 
         # Act & Assert — no exception
@@ -123,7 +121,7 @@ class TestValidValues:
     def test_tuple_of_classes_second_match(self):
         """Tuple of classes — instance of second class accepted."""
         # Arrange
-        checker = ResultInstanceChecker("entity", (_User, _Order), required=True)
+        checker = FieldInstanceChecker("entity", (_User, _Order), required=True)
         order = _Order(order_id="ORD-001")
 
         # Act & Assert — no exception
@@ -132,7 +130,7 @@ class TestValidValues:
     def test_tuple_subclass_match(self):
         """Tuple of classes — subclass of a member accepted."""
         # Arrange
-        checker = ResultInstanceChecker("entity", (_User, _Order), required=True)
+        checker = FieldInstanceChecker("entity", (_User, _Order), required=True)
         admin = _AdminUser(user_id=3, name="Carol", level=10)
 
         # Act & Assert — no exception
@@ -141,7 +139,7 @@ class TestValidValues:
     def test_builtin_dict_accepted(self):
         """Built-in dict as expected_class accepted."""
         # Arrange
-        checker = ResultInstanceChecker("data", dict, required=True)
+        checker = FieldInstanceChecker("data", dict, required=True)
 
         # Act & Assert — no exception
         checker.check({"data": {"key": "value"}})
@@ -149,7 +147,7 @@ class TestValidValues:
     def test_builtin_list_accepted(self):
         """Built-in list as expected_class accepted."""
         # Arrange
-        checker = ResultInstanceChecker("items", list, required=True)
+        checker = FieldInstanceChecker("items", list, required=True)
 
         # Act & Assert — no exception
         checker.check({"items": [1, 2, 3]})
@@ -157,7 +155,7 @@ class TestValidValues:
     def test_builtin_str_accepted(self):
         """Built-in str as expected_class accepted."""
         # Arrange
-        checker = ResultInstanceChecker("label", str, required=True)
+        checker = FieldInstanceChecker("label", str, required=True)
 
         # Act & Assert — no exception
         checker.check({"label": "hello"})
@@ -165,7 +163,7 @@ class TestValidValues:
     def test_tuple_of_builtins_accepted(self):
         """Tuple of built-ins — dict or list."""
         # Arrange
-        checker = ResultInstanceChecker("data", (dict, list), required=True)
+        checker = FieldInstanceChecker("data", (dict, list), required=True)
 
         # Act & Assert — both variants pass
         checker.check({"data": {"a": 1}})
@@ -183,7 +181,7 @@ class TestInvalidValues:
     def test_wrong_class_rejected(self):
         """Instance of another class rejected."""
         # Arrange
-        checker = ResultInstanceChecker("user", _User, required=True)
+        checker = FieldInstanceChecker("user", _User, required=True)
         order = _Order(order_id="ORD-001")
 
         # Act & Assert
@@ -193,7 +191,7 @@ class TestInvalidValues:
     def test_primitive_instead_of_class_rejected(self):
         """Primitive (str) instead of custom class rejected."""
         # Arrange
-        checker = ResultInstanceChecker("user", _User, required=True)
+        checker = FieldInstanceChecker("user", _User, required=True)
 
         # Act & Assert
         with pytest.raises(ValidationFieldError):
@@ -202,7 +200,7 @@ class TestInvalidValues:
     def test_int_instead_of_class_rejected(self):
         """int instead of custom class rejected."""
         # Arrange
-        checker = ResultInstanceChecker("user", _User, required=True)
+        checker = FieldInstanceChecker("user", _User, required=True)
 
         # Act & Assert
         with pytest.raises(ValidationFieldError):
@@ -211,7 +209,7 @@ class TestInvalidValues:
     def test_none_when_required_rejected(self):
         """None with required=True raises."""
         # Arrange
-        checker = ResultInstanceChecker("user", _User, required=True)
+        checker = FieldInstanceChecker("user", _User, required=True)
 
         # Act & Assert
         with pytest.raises(ValidationFieldError):
@@ -220,7 +218,7 @@ class TestInvalidValues:
     def test_tuple_no_match_rejected(self):
         """Tuple of classes — instance outside tuple rejected."""
         # Arrange
-        checker = ResultInstanceChecker("entity", (_User, _Order), required=True)
+        checker = FieldInstanceChecker("entity", (_User, _Order), required=True)
         payment = _Payment(amount=99.99)
 
         # Act & Assert
@@ -230,7 +228,7 @@ class TestInvalidValues:
     def test_dict_instead_of_custom_class_rejected(self):
         """dict instead of custom class rejected."""
         # Arrange
-        checker = ResultInstanceChecker("user", _User, required=True)
+        checker = FieldInstanceChecker("user", _User, required=True)
 
         # Act & Assert
         with pytest.raises(ValidationFieldError):
@@ -239,7 +237,7 @@ class TestInvalidValues:
     def test_error_message_single_class_contains_field_name(self):
         """Single-class error message includes field name."""
         # Arrange
-        checker = ResultInstanceChecker("user", _User, required=True)
+        checker = FieldInstanceChecker("user", _User, required=True)
 
         # Act & Assert
         with pytest.raises(ValidationFieldError, match="user"):
@@ -248,7 +246,7 @@ class TestInvalidValues:
     def test_error_message_single_class_contains_expected_name(self):
         """Error message includes expected class name."""
         # Arrange
-        checker = ResultInstanceChecker("user", _User, required=True)
+        checker = FieldInstanceChecker("user", _User, required=True)
 
         # Act & Assert
         with pytest.raises(ValidationFieldError, match="_User"):
@@ -257,7 +255,7 @@ class TestInvalidValues:
     def test_error_message_single_class_contains_actual_type(self):
         """Error message includes actual value type."""
         # Arrange
-        checker = ResultInstanceChecker("user", _User, required=True)
+        checker = FieldInstanceChecker("user", _User, required=True)
 
         # Act & Assert
         with pytest.raises(ValidationFieldError, match="str"):
@@ -266,7 +264,7 @@ class TestInvalidValues:
     def test_error_message_tuple_contains_all_class_names(self):
         """Tuple error message includes all expected class names."""
         # Arrange
-        checker = ResultInstanceChecker("entity", (_User, _Order), required=True)
+        checker = FieldInstanceChecker("entity", (_User, _Order), required=True)
         payment = _Payment(amount=99.99)
 
         # Act & Assert
@@ -276,7 +274,7 @@ class TestInvalidValues:
     def test_error_message_tuple_contains_second_class_name(self):
         """Tuple error message includes second class name."""
         # Arrange
-        checker = ResultInstanceChecker("entity", (_User, _Order), required=True)
+        checker = FieldInstanceChecker("entity", (_User, _Order), required=True)
         payment = _Payment(amount=99.99)
 
         # Act & Assert
@@ -295,7 +293,7 @@ class TestRequired:
     def test_required_missing_field_raises(self):
         """Missing required field raises."""
         # Arrange
-        checker = ResultInstanceChecker("user", _User, required=True)
+        checker = FieldInstanceChecker("user", _User, required=True)
 
         # Act & Assert
         with pytest.raises(ValidationFieldError):
@@ -304,7 +302,7 @@ class TestRequired:
     def test_required_none_raises(self):
         """None in required field raises."""
         # Arrange
-        checker = ResultInstanceChecker("user", _User, required=True)
+        checker = FieldInstanceChecker("user", _User, required=True)
 
         # Act & Assert
         with pytest.raises(ValidationFieldError):
@@ -313,7 +311,7 @@ class TestRequired:
     def test_optional_missing_field_passes(self):
         """Missing optional field allowed."""
         # Arrange
-        checker = ResultInstanceChecker("user", _User, required=False)
+        checker = FieldInstanceChecker("user", _User, required=False)
 
         # Act & Assert — no exception
         checker.check({})
@@ -321,7 +319,7 @@ class TestRequired:
     def test_optional_none_passes(self):
         """None in optional field allowed."""
         # Arrange
-        checker = ResultInstanceChecker("user", _User, required=False)
+        checker = FieldInstanceChecker("user", _User, required=False)
 
         # Act & Assert — no exception
         checker.check({"user": None})
@@ -329,7 +327,7 @@ class TestRequired:
     def test_optional_invalid_type_still_raises(self):
         """Wrong type still raises when field is optional but present."""
         # Arrange
-        checker = ResultInstanceChecker("user", _User, required=False)
+        checker = FieldInstanceChecker("user", _User, required=False)
 
         # Act & Assert
         with pytest.raises(ValidationFieldError):
@@ -347,7 +345,7 @@ class TestExtraParams:
     def test_extra_params_single_class(self):
         """Single class stored in extra_params."""
         # Arrange
-        checker = ResultInstanceChecker("user", _User)
+        checker = FieldInstanceChecker("user", _User)
 
         # Act
         params = checker._get_extra_params()
@@ -359,7 +357,7 @@ class TestExtraParams:
         """Tuple of classes stored in extra_params."""
         # Arrange
         expected = (_User, _Order)
-        checker = ResultInstanceChecker("entity", expected)
+        checker = FieldInstanceChecker("entity", expected)
 
         # Act
         params = checker._get_extra_params()
@@ -396,7 +394,7 @@ class TestDecorator:
 
         # Assert
         meta = aspect._checker_meta[0]
-        assert meta["checker_class"] is ResultInstanceChecker
+        assert meta["checker_class"] is FieldInstanceChecker
 
     def test_field_name_recorded(self):
         """Field name stored in metadata."""
@@ -440,10 +438,10 @@ class TestDecorator:
 
         # Assert — metadata recorded correctly
         meta = aspect._checker_meta[0]
-        assert meta["checker_class"] is ResultInstanceChecker
+        assert meta["checker_class"] is FieldInstanceChecker
         assert meta["field_name"] == "user"
         # Extra params via checker
-        checker = ResultInstanceChecker("user", _User)
+        checker = FieldInstanceChecker("user", _User)
         assert checker._get_extra_params()["expected_class"] is _User
 
     def test_extra_params_tuple_in_meta(self):
@@ -458,8 +456,8 @@ class TestDecorator:
 
         # Assert
         meta = aspect._checker_meta[0]
-        assert meta["checker_class"] is ResultInstanceChecker
-        checker = ResultInstanceChecker("entity", expected)
+        assert meta["checker_class"] is FieldInstanceChecker
+        checker = FieldInstanceChecker("entity", expected)
         assert checker._get_extra_params()["expected_class"] is expected
 
     def test_decorator_returns_original_function(self):
@@ -499,7 +497,7 @@ class TestDecorator:
 
         # Assert
         meta = aspect._checker_meta[0]
-        assert meta["checker_class"] is ResultInstanceChecker
+        assert meta["checker_class"] is FieldInstanceChecker
         assert meta["field_name"] == "data"
-        checker = ResultInstanceChecker("data", (dict, list))
+        checker = FieldInstanceChecker("data", (dict, list))
         assert checker._get_extra_params()["expected_class"] == (dict, list)

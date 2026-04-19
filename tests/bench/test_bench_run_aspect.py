@@ -134,7 +134,7 @@ class TestInvalidState:
     async def test_wrong_type_in_state(
         self, manager_bench: TestBench, mock_db: AsyncMock,
     ) -> None:
-        """``txn_id`` must be a string; ``int`` fails ``ResultStringChecker``."""
+        """``txn_id`` must be a string; ``int`` fails ``FieldStringChecker``."""
         action = FullAction()
         params = FullAction.Params(user_id="u1", amount=100.0)
 
