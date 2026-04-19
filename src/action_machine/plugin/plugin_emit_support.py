@@ -1,4 +1,4 @@
-# src/action_machine/intents/plugins/plugin_emit_support.py
+# src/action_machine/plugin/plugin_emit_support.py
 """
 Public helpers for plugin event payloads and typed aspect-pipeline emissions.
 
@@ -115,7 +115,7 @@ from typing import Any
 
 from action_machine.context.context import Context
 from action_machine.intents.logging.log_coordinator import LogCoordinator
-from action_machine.intents.plugins.events import (
+from action_machine.plugin.events import (
     AfterRegularAspectEvent,
     AfterSummaryAspectEvent,
     BeforeRegularAspectEvent,
@@ -123,7 +123,7 @@ from action_machine.intents.plugins.events import (
     GlobalFinishEvent,
     GlobalStartEvent,
 )
-from action_machine.intents.plugins.plugin_run_context import PluginRunContext
+from action_machine.plugin.plugin_run_context import PluginRunContext
 from action_machine.model.base_action import BaseAction
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_result import BaseResult

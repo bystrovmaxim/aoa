@@ -1,4 +1,4 @@
-# src/action_machine/intents/plugins/events.py
+# src/action_machine/plugin/events.py
 """
 ActionMachine plugin event class hierarchy.
 
@@ -160,7 +160,7 @@ PLUGIN USAGE EXAMPLE
 ═══════════════════════════════════════════════════════════════════════════════
 
     from action_machine.intents.logging.channel import Channel
-    from action_machine.intents.plugins.events import (
+    from action_machine.plugin.events import (
         GlobalFinishEvent,
         AfterRegularAspectEvent,
         AspectEvent,

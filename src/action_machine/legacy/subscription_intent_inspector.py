@@ -1,4 +1,4 @@
-# src/action_machine/intents/plugins/subscription_intent_inspector.py
+# src/action_machine/legacy/subscription_intent_inspector.py
 """
 SubscriptionIntentInspector — plugin ``@on`` metadata (no graph facets).
 
@@ -35,8 +35,8 @@ from typing import Any
 from action_machine.graph.base_facet_snapshot import BaseFacetSnapshot
 from action_machine.graph.base_intent_inspector import BaseIntentInspector
 from action_machine.graph.facet_vertex import FacetVertex
-from action_machine.intents.plugins.on_intent import OnIntent
-from action_machine.intents.plugins.subscription_info import SubscriptionInfo
+from action_machine.legacy.on_intent import OnIntent
+from action_machine.plugin.subscription_info import SubscriptionInfo
 
 
 class SubscriptionIntentInspector(BaseIntentInspector):

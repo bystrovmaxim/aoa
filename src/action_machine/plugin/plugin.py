@@ -1,4 +1,4 @@
-# src/action_machine/intents/plugins/plugin.py
+# src/action_machine/plugin/plugin.py
 """
 Plugin — abstract base class for all ActionMachine plugins.
 
@@ -70,7 +70,7 @@ EXAMPLE PLUGIN
 ═══════════════════════════════════════════════════════════════════════════════
 
     from action_machine.intents.logging.channel import Channel
-    from action_machine.intents.plugins.events import (
+    from action_machine.plugin.events import (
         GlobalFinishEvent,
         AfterRegularAspectEvent,
         UnhandledErrorEvent,
@@ -108,9 +108,9 @@ from abc import ABC, abstractmethod
 from collections.abc import Callable
 from typing import Any
 
-from action_machine.intents.plugins.events import BasePluginEvent
-from action_machine.intents.plugins.on_intent import OnIntent
-from action_machine.intents.plugins.subscription_info import SubscriptionInfo
+from action_machine.legacy.on_intent import OnIntent
+from action_machine.plugin.events import BasePluginEvent
+from action_machine.plugin.subscription_info import SubscriptionInfo
 
 
 class Plugin(OnIntent, ABC):

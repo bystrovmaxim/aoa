@@ -1,4 +1,4 @@
-# src/action_machine/intents/plugins/plugin_coordinator.py
+# src/action_machine/plugin/plugin_coordinator.py
 """
 PluginCoordinator — stateless plugin lifecycle coordinator for ActionMachine.
 
@@ -53,7 +53,7 @@ state isolation; long-term accumulation policy is user responsibility.
 EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
-    from action_machine.intents.plugins.plugin_coordinator import PluginCoordinator
+    from action_machine.plugin.plugin_coordinator import PluginCoordinator
 
     coordinator = PluginCoordinator(plugins=[CounterPlugin(), MetricsPlugin()])
 
@@ -77,8 +77,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from action_machine.intents.plugins.plugin import Plugin
-from action_machine.intents.plugins.plugin_run_context import PluginRunContext
+from action_machine.plugin.plugin import Plugin
+from action_machine.plugin.plugin_run_context import PluginRunContext
 
 
 class PluginCoordinator:

@@ -10,7 +10,7 @@ import pytest
 from action_machine.context.context import Context
 from action_machine.context.user_info import UserInfo
 from action_machine.intents.logging.log_coordinator import LogCoordinator
-from action_machine.intents.plugins.events import (
+from action_machine.plugin.events import (
     AfterRegularAspectEvent,
     AfterSummaryAspectEvent,
     BeforeRegularAspectEvent,
@@ -18,7 +18,7 @@ from action_machine.intents.plugins.events import (
     GlobalFinishEvent,
     GlobalStartEvent,
 )
-from action_machine.intents.plugins.plugin_emit_support import PluginEmitSupport
+from action_machine.plugin.plugin_emit_support import PluginEmitSupport
 from tests.scenarios.domain_model import PingAction
 
 

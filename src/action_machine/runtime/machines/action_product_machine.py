@@ -158,10 +158,10 @@ from action_machine.graph.graph_coordinator import GraphCoordinator
 from action_machine.context.context import Context
 from action_machine.intents.logging.console_logger import ConsoleLogger
 from action_machine.intents.logging.log_coordinator import LogCoordinator
-from action_machine.intents.plugins.plugin import Plugin
-from action_machine.intents.plugins.plugin_coordinator import PluginCoordinator
-from action_machine.intents.plugins.plugin_emit_support import PluginEmitSupport
-from action_machine.intents.plugins.plugin_run_context import PluginRunContext
+from action_machine.plugin.plugin import Plugin
+from action_machine.plugin.plugin_coordinator import PluginCoordinator
+from action_machine.plugin.plugin_emit_support import PluginEmitSupport
+from action_machine.plugin.plugin_run_context import PluginRunContext
 from action_machine.model.base_action import BaseAction
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_result import BaseResult

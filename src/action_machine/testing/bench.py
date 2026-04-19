@@ -203,7 +203,7 @@ from action_machine.context.context_view import ContextView
 from action_machine.intents.logging.domain_resolver import resolve_domain
 from action_machine.intents.logging.log_coordinator import LogCoordinator
 from action_machine.intents.logging.scoped_logger import ScopedLogger
-from action_machine.intents.plugins.plugin import Plugin
+from action_machine.plugin.plugin import Plugin
 from action_machine.model.base_action import BaseAction
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_result import BaseResult

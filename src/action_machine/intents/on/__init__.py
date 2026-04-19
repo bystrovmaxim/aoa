@@ -1,4 +1,4 @@
-# src/action_machine/intents/plugins/__init__.py
+# src/action_machine/intents/on/__init__.py
 """
 ActionMachine plugin package.
 
@@ -128,8 +128,8 @@ EXAMPLES
 Metrics plugin with compensation monitoring:
 
     from action_machine.intents.logging.channel import Channel
-    from action_machine.intents.plugins import Plugin, on
-    from action_machine.intents.plugins.events import (
+    from action_machine.intents.on import Plugin, on
+    from action_machine.plugin.events import (
         GlobalFinishEvent,
         UnhandledErrorEvent,
         CompensateFailedEvent,
@@ -196,7 +196,9 @@ EXTENSION POINTS: add new event classes + @on filters + coordinator handling.
 AI-CORE-END
 """
 
-from action_machine.intents.plugins.events import (
+from __future__ import annotations
+
+from action_machine.plugin.events import (
     AfterCompensateAspectEvent,
     AfterOnErrorAspectEvent,
     AfterRegularAspectEvent,
@@ -221,12 +223,12 @@ from action_machine.intents.plugins.events import (
     SummaryAspectEvent,
     UnhandledErrorEvent,
 )
-from action_machine.intents.plugins.on_decorator import on
-from action_machine.intents.plugins.on_intent import OnIntent
-from action_machine.intents.plugins.plugin import Plugin
-from action_machine.intents.plugins.plugin_coordinator import PluginCoordinator
-from action_machine.intents.plugins.plugin_run_context import PluginRunContext
-from action_machine.intents.plugins.subscription_info import SubscriptionInfo
+from action_machine.intents.on.on_decorator import on
+from action_machine.legacy.on_intent import OnIntent
+from action_machine.plugin.plugin import Plugin
+from action_machine.plugin.plugin_coordinator import PluginCoordinator
+from action_machine.plugin.plugin_run_context import PluginRunContext
+from action_machine.plugin.subscription_info import SubscriptionInfo
 
 __all__ = [
     "AfterCompensateAspectEvent",

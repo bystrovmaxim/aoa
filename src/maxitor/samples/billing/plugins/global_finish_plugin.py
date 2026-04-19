@@ -3,9 +3,9 @@ from __future__ import annotations
 
 from typing import Any
 
-from action_machine.intents.plugins.events import GlobalFinishEvent
-from action_machine.intents.plugins.on_decorator import on
-from action_machine.intents.plugins.plugin import Plugin
+from action_machine.plugin.events import GlobalFinishEvent
+from action_machine.intents.on.on_decorator import on
+from action_machine.plugin.plugin import Plugin
 
 
 class BillingGlobalFinishPlugin(Plugin):

@@ -33,7 +33,7 @@ Initializing states:
 
 import pytest
 
-from action_machine.intents.plugins.plugin_coordinator import PluginCoordinator
+from action_machine.plugin.plugin_coordinator import PluginCoordinator
 
 from .conftest import (
     CounterPlugin,

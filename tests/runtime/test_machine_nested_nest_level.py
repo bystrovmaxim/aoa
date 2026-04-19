@@ -7,8 +7,8 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from action_machine.intents.plugins.plugin_coordinator import PluginCoordinator
-from action_machine.intents.plugins.plugin_run_context import PluginRunContext
+from action_machine.plugin.plugin_coordinator import PluginCoordinator
+from action_machine.plugin.plugin_run_context import PluginRunContext
 from tests.runtime._machine_nested_actions import (
     ChildNestedParams,
     NestLevelParentAction,

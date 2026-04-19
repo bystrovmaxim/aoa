@@ -9,7 +9,7 @@ import pytest
 
 from action_machine.context.context import Context
 from action_machine.intents.logging.log_coordinator import LogCoordinator
-from action_machine.intents.plugins.events import (
+from action_machine.plugin.events import (
     AfterRegularAspectEvent,
     BeforeRegularAspectEvent,
     GlobalFinishEvent,

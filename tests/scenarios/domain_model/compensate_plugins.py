@@ -73,15 +73,15 @@ contains events from BOTH runs. Tests must account for duplication or call
 observer.reset() before run().
 """
 from action_machine.intents.logging.scoped_logger import ScopedLogger
-from action_machine.intents.plugins.events import (
+from action_machine.plugin.events import (
     AfterCompensateAspectEvent,
     BeforeCompensateAspectEvent,
     CompensateFailedEvent,
     SagaRollbackCompletedEvent,
     SagaRollbackStartedEvent,
 )
-from action_machine.intents.plugins.on_decorator import on
-from action_machine.intents.plugins.plugin import Plugin
+from action_machine.intents.on.on_decorator import on
+from action_machine.plugin.plugin import Plugin
 
 
 class SagaObserverPlugin(Plugin):

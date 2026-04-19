@@ -38,8 +38,8 @@ import pytest
 from action_machine.intents.logging.channel import Channel
 from action_machine.intents.logging.level import Level
 from action_machine.intents.logging.log_coordinator import LogCoordinator
-from action_machine.intents.plugins.events import GlobalFinishEvent
-from action_machine.intents.plugins.plugin_coordinator import PluginCoordinator
+from action_machine.plugin.events import GlobalFinishEvent
+from action_machine.plugin.plugin_coordinator import PluginCoordinator
 from action_machine.model.base_result import BaseResult
 from tests.intents.logging.test_log_coordinator import RecordingLogger
 
