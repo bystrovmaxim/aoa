@@ -16,7 +16,7 @@ from action_machine.graph.facet_edge import FacetEdge
 from action_machine.graph.facet_vertex import FacetVertex
 from action_machine.graph.graph_builder import build_interchange_from_facet_vertices
 from action_machine.graph.graph_coordinator import GraphCoordinator
-from action_machine.interchange_vertex_labels import DOMAIN_VERTEX_TYPE
+from action_machine.legacy.interchange_vertex_labels import DOMAIN_VERTEX_TYPE
 
 
 def _interchange_canonical(payloads: tuple[FacetVertex, ...]) -> tuple[list[dict], list[dict]]:

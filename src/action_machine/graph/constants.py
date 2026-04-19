@@ -4,7 +4,7 @@ Graph constants: edge-type sets for interchange classification (``graph.md`` §5
 
 Interchange **vertex** ``node_type`` strings are opaque to this package; a separate
 catalog for the default inspector suite lives in
-:mod:`action_machine.interchange_vertex_catalog`.
+:mod:`action_machine.legacy.interchange_vertex_catalog`.
 """
 
 from __future__ import annotations

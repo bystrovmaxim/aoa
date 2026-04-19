@@ -1,4 +1,4 @@
-# src/action_machine/intents/check_roles/check_roles_intent.py
+# src/action_machine/legacy/check_roles_intent.py
 """
 CheckRolesIntent — marker mixin: declare participation in the role grammar (``@check_roles``).
 

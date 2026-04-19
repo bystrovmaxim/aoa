@@ -149,7 +149,7 @@ from __future__ import annotations
 import importlib
 from typing import Any
 
-from action_machine.intents.check_roles.check_roles_intent import CheckRolesIntent
+from action_machine.legacy.check_roles_intent import CheckRolesIntent
 from action_machine.intents.role_mode.role_mode_intent import RoleModeIntent
 
 _LAZY_EXPORTS: dict[str, tuple[str, str]] = {

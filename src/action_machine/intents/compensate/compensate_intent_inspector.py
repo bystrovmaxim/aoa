@@ -72,7 +72,7 @@ from action_machine.graph.base_intent_inspector import BaseIntentInspector
 from action_machine.graph.facet_edge import FacetEdge, FacetMetaRow
 from action_machine.graph.facet_vertex import FacetVertex
 from action_machine.intents.compensate.compensate_intent import CompensateIntent
-from action_machine.interchange_vertex_labels import (
+from action_machine.legacy.interchange_vertex_labels import (
     ACTION_VERTEX_TYPE,
     COMPENSATOR_VERTEX_TYPE,
 )

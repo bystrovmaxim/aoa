@@ -137,7 +137,7 @@ from action_machine.graph.base_facet_snapshot import BaseFacetSnapshot
 from action_machine.graph.base_intent_inspector import BaseIntentInspector, FacetInspectResult
 from action_machine.graph.facet_edge import FacetEdge
 from action_machine.graph.facet_vertex import FacetVertex
-from action_machine.interchange_vertex_labels import DOMAIN_VERTEX_TYPE, ENTITY_VERTEX_TYPE
+from action_machine.legacy.interchange_vertex_labels import DOMAIN_VERTEX_TYPE, ENTITY_VERTEX_TYPE
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Scalar field constraints (aligned with Params/Result facet extraction)

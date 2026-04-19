@@ -1,4 +1,4 @@
-# src/action_machine/intents/aspects/aspect_intent.py
+# src/action_machine/legacy/aspect_intent.py
 """
 Aspect intent marker and aspect structure validators.
 

@@ -79,7 +79,7 @@ from action_machine.graph.base_facet_snapshot import BaseFacetSnapshot
 from action_machine.graph.base_intent_inspector import BaseIntentInspector
 from action_machine.graph.facet_edge import FacetEdge
 from action_machine.graph.facet_vertex import FacetVertex
-from action_machine.interchange_vertex_labels import (
+from action_machine.legacy.interchange_vertex_labels import (
     ACTION_VERTEX_TYPE,
     APPLICATION_VERTEX_TYPE,
     SERVICE_VERTEX_TYPE,
@@ -130,7 +130,7 @@ class DependencyIntentInspector(BaseIntentInspector):
         connection share one canonical manager node.
 
         Other dependency classes use
-        ``action_machine.interchange_vertex_labels.SERVICE_VERTEX_TYPE``;
+        ``action_machine.legacy.interchange_vertex_labels.SERVICE_VERTEX_TYPE``;
         identity remains ``target_name`` / ``class_ref``.
         """
         if issubclass(dep_cls, BaseAction):

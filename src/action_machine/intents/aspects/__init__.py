@@ -68,7 +68,7 @@ AI-CORE-END
 ═══════════════════════════════════════════════════════════════════════════════
 """
 
-from action_machine.intents.aspects.aspect_intent import AspectIntent
+from action_machine.legacy.aspect_intent import AspectIntent
 from action_machine.intents.aspects.regular_aspect_decorator import regular_aspect
 from action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
 

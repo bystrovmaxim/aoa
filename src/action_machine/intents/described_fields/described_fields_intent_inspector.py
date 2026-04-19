@@ -78,7 +78,7 @@ from action_machine.graph.base_facet_snapshot import BaseFacetSnapshot
 from action_machine.graph.base_intent_inspector import BaseIntentInspector
 from action_machine.graph.facet_vertex import FacetVertex
 from action_machine.intents.described_fields.marker import DescribedFieldsIntent
-from action_machine.interchange_vertex_labels import ENTITY_VERTEX_TYPE
+from action_machine.legacy.interchange_vertex_labels import ENTITY_VERTEX_TYPE
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_result import BaseResult
 

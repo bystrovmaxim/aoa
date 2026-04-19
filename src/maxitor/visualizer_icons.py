@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from urllib.parse import quote
 
-from action_machine.interchange_vertex_labels import (
+from action_machine.legacy.interchange_vertex_labels import (
     ACTION_VERTEX_TYPE,
     APPLICATION_VERTEX_TYPE,
     CHECKER_VERTEX_TYPE,

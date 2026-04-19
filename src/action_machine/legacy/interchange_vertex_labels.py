@@ -1,4 +1,4 @@
-# src/action_machine/interchange_vertex_labels.py
+# src/action_machine/legacy/interchange_vertex_labels.py
 """
 Interchange / facet kind strings (``node_type``) for graph visualization labels.
 

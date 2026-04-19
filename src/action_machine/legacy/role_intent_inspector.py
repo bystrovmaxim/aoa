@@ -115,8 +115,8 @@ from action_machine.auth.any_role import AnyRole
 from action_machine.auth.base_role import BaseRole
 from action_machine.auth.none_role import NoneRole
 from action_machine.legacy.role_graph_roots import role_class_topology_anchor
-from action_machine.intents.check_roles.check_roles_intent import CheckRolesIntent
-from action_machine.interchange_vertex_labels import ACTION_VERTEX_TYPE
+from action_machine.legacy.check_roles_intent import CheckRolesIntent
+from action_machine.legacy.interchange_vertex_labels import ACTION_VERTEX_TYPE
 
 
 class RoleIntentInspector(BaseIntentInspector):

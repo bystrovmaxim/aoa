@@ -14,7 +14,7 @@ from action_machine.application import ApplicationContextInspector
 from action_machine.intents.domain.entity_intent_inspector import EntityIntentInspector
 from action_machine.graph.facet_vertex import FacetVertex
 from action_machine.graph.graph_coordinator import GraphCoordinator
-from action_machine.intents.aspects.aspect_intent_inspector import AspectIntentInspector
+from action_machine.legacy.aspect_intent_inspector import AspectIntentInspector
 from action_machine.legacy.role_class_inspector import RoleClassInspector
 from action_machine.legacy.role_intent_inspector import RoleIntentInspector
 from action_machine.legacy.role_mode_intent_inspector import RoleModeIntentInspector

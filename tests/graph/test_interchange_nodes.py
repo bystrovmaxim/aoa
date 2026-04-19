@@ -15,7 +15,7 @@ from action_machine.intents.domain.domain_node import DomainNode
 from action_machine.intents.domain.entity_node import EntityNode
 from action_machine.graph.base_graph_edge import BaseGraphEdge
 from action_machine.graph.base_graph_node import BaseGraphNode, BaseGraphNodeParseError
-from action_machine.interchange_vertex_labels import APPLICATION_VERTEX_TYPE, DOMAIN_VERTEX_TYPE
+from action_machine.legacy.interchange_vertex_labels import APPLICATION_VERTEX_TYPE, DOMAIN_VERTEX_TYPE
 from action_machine.model.action_node import ActionNode
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_result import BaseResult

@@ -68,7 +68,7 @@ from typing import TypeVar
 from action_machine.common import qualified_dotted_name
 from action_machine.domain.base_domain import BaseDomain
 from action_machine.graph.base_graph_edge import BaseGraphEdge
-from action_machine.interchange_vertex_labels import APPLICATION_VERTEX_TYPE
+from action_machine.legacy.interchange_vertex_labels import APPLICATION_VERTEX_TYPE
 from action_machine.graph.base_graph_node import BaseGraphNode, Payload
 
 TDomain = TypeVar("TDomain", bound=BaseDomain)

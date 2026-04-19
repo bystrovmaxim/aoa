@@ -9,7 +9,7 @@ import pytest
 
 from action_machine.graph.base_intent_inspector import BaseIntentInspector
 from action_machine.graph.graph_coordinator import GraphCoordinator
-from action_machine.interchange_vertex_labels import SERVICE_VERTEX_TYPE
+from action_machine.legacy.interchange_vertex_labels import SERVICE_VERTEX_TYPE
 from action_machine.runtime.machines.core import Core
 from tests.scenarios.domain_model import CompensatedOrderAction, FullAction, TestDbManager
 from tests.scenarios.domain_model.domains import OrdersDomain
