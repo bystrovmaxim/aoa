@@ -189,6 +189,7 @@ VERTEX_TYPE_LUCIDE_INNER_SVG: dict[str, str] = {
 VERTEX_TYPE_LUCIDE_INNER_SVG[SERVICE_VERTEX_TYPE] = VERTEX_TYPE_LUCIDE_INNER_SVG[
     "dependency"
 ]
+VERTEX_TYPE_LUCIDE_INNER_SVG["Role"] = VERTEX_TYPE_LUCIDE_INNER_SVG["role_class"]
 
 # Scale Lucide paths (native 24×24) about the center so strokes sit inside the disk with margin.
 _ICON_INNER_SCALE: float = 0.58

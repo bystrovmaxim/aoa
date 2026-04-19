@@ -7,9 +7,9 @@ PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 Provides a :class:`~action_machine.graph.base_graph_node.BaseGraphNode` view derived from
-a ``BaseDomain`` subclass **without** retaining a reference to that class on the
-node instance. All interchange data lives in ``id``, ``node_type``,
-``label``, ``properties``, and ``links``.
+a ``BaseDomain`` subclass. Interchange data lives in ``id``, ``node_type``,
+``label``, ``properties``, and ``links``; the domain class is the same object as
+:attr:`~action_machine.graph.base_graph_node.BaseGraphNode.obj`.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
@@ -24,8 +24,8 @@ ARCHITECTURE / DATA FLOW
 INVARIANTS
 ═══════════════════════════════════════════════════════════════════════════════
 
-- The domain class is not stored on :class:`DomainNode` instances (only interchange fields).
-- ``label`` is the domain class ``__name__``; ``properties`` and ``links`` are empty in ``parse``.
+- The domain class is available as :attr:`~action_machine.graph.base_graph_node.BaseGraphNode.obj`.
+- ``label`` is the domain class ``__name__``; ``properties`` hold ``name`` / ``description``; ``links`` include informational ``belongs_to`` → ``ApplicationContext`` (facet parity).
 
 ═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES
@@ -52,8 +52,8 @@ ERRORS / LIMITATIONS
 AI-CORE-BEGIN
 ═══════════════════════════════════════════════════════════════════════════════
 ROLE: Domain-scoped BaseGraphNode bridge for BaseDomain subclasses.
-CONTRACT: Construct from ``type[TDomain]`` via ``parse``; ``node_type="Domain"``; dotted-path ``id``; label = class name; empty properties and links.
-INVARIANTS: Immutable node; no domain type reference on the instance.
+CONTRACT: Construct from ``type[TDomain]`` via ``parse``; ``node_type="Domain"``; dotted-path ``id``; label = class name; ``name``/``description`` in ``properties``; ``belongs_to`` ``ApplicationContext`` in ``links``.
+INVARIANTS: Immutable node; host class on ``BaseGraphNode.obj``.
 FLOW: domain class -> ``BaseGraphNode.__init__`` -> ``parse`` -> frozen BaseGraphNode fields.
 EXTENSION POINTS: Other graph node specializations follow the same parse pattern.
 AI-CORE-END
@@ -63,12 +63,13 @@ AI-CORE-END
 from __future__ import annotations
 
 from dataclasses import dataclass
-from types import SimpleNamespace
-from typing import Any, TypeVar
+from typing import TypeVar
 
 from action_machine.common import qualified_dotted_name
 from action_machine.domain.base_domain import BaseDomain
-from action_machine.graph.base_graph_node import BaseGraphNode
+from action_machine.graph.base_graph_edge import BaseGraphEdge
+from action_machine.interchange_vertex_labels import APPLICATION_VERTEX_TYPE
+from action_machine.graph.base_graph_node import BaseGraphNode, Payload
 
 TDomain = TypeVar("TDomain", bound=BaseDomain)
 
@@ -78,16 +79,31 @@ class DomainNode(BaseGraphNode[type[TDomain]]):
     """
     AI-CORE-BEGIN
     ROLE: Interchange node for a bounded-context domain marker.
-    CONTRACT: Built from ``type[TDomain]``; dotted ``id``, ``__name__`` label, empty ``properties`` and ``links``.
+    CONTRACT: Built from ``type[TDomain]``; dotted ``id``, ``__name__`` label; ``properties`` carry ``name`` / ``description`` (facet ``node_meta`` parity); ``belongs_to`` → ``ApplicationContext`` in ``links``.
     AI-CORE-END
     """
 
     @classmethod
-    def parse(cls, domain_cls: type[TDomain]) -> Any:
-        return SimpleNamespace(
+    def parse(cls, domain_cls: type[TDomain]) -> Payload:
+        # Local import: avoid loading ``application`` package (and inspector) during ``domain`` import.
+        from action_machine.application.application_context import ApplicationContext
+
+        app_id = qualified_dotted_name(ApplicationContext)
+        return Payload(
             id=qualified_dotted_name(domain_cls),
             node_type="Domain",
             label=domain_cls.__name__,
-            properties={},
-            links=[],
+            properties={
+                "name": domain_cls.name,
+                "description": domain_cls.description,
+            },
+            links=[
+                BaseGraphEdge(
+                    link_name="belongs_to",
+                    target_id=app_id,
+                    target_node_type=APPLICATION_VERTEX_TYPE,
+                    is_dag=False,
+                    target_cls=ApplicationContext,
+                ),
+            ],
         )

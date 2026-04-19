@@ -2,10 +2,8 @@
 """
 Interchange construction: :class:`GraphBuilder` and module-level helpers.
 
-**Facet vertices** — ``FacetVertex`` sequence from inspectors / coordinator collect;
-vertex ``id`` equals ``node_name`` (inspectors emit globally unique names; dependent facets
-use ``host:segment``); edges come from each vertex's ``edges`` with a small facet ``edge_type``
-→ interchange projection table (forward edges only).
+``FacetVertex`` rows are projected to interchange ``GraphVertex`` / ``GraphEdge`` via
+:data:`_FACET_EDGE_TYPE_TO_INTERCHANGE` (facet ``edge_type`` → interchange ``edge_type`` + stereotype).
 """
 
 from __future__ import annotations
@@ -18,9 +16,13 @@ from action_machine.graph.facet_vertex import FacetVertex
 from action_machine.graph.graph_edge import GraphEdge
 from action_machine.graph.graph_vertex import GraphVertex
 
-# facet edge_type (inspectors) → (interchange edge_type, forward stereotype)
-_FACET_EDGE_TO_INTERCHANGE: Final[dict[str, tuple[str, str]]] = {
+# Facet ``FacetEdge.edge_type`` → (interchange ``edge_type``, stereotype). Used only in
+# :func:`build_interchange_from_facet_vertices` / :func:`_from_facet_vertices`.
+_FACET_EDGE_TYPE_TO_INTERCHANGE: Final[dict[str, tuple[str, str]]] = {
     "belongs_to": ("BELONGS_TO", "Aggregation"),
+    "domain": ("BELONGS_TO", "Aggregation"),
+    "params": ("HAS_PARAMS", "Schema"),
+    "result": ("HAS_RESULT", "Schema"),
     "depends": ("DEPENDS_ON", "Dependency"),
     "connection": ("CONNECTS_TO", "Flow"),
     "requires_role": ("ASSIGNED_TO", "Assignment"),
@@ -118,7 +120,7 @@ def _from_facet_vertices(
         source_id = _interchange_vertex_id(p)
         for e in p.edges:
             target_id = e.target_name
-            row = _FACET_EDGE_TO_INTERCHANGE.get(e.edge_type)
+            row = _FACET_EDGE_TYPE_TO_INTERCHANGE.get(e.edge_type)
             if row is None:
                 msg = f"unknown facet edge_type {e.edge_type!r}"
                 raise ValueError(msg)

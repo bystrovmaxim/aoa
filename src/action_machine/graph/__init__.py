@@ -58,7 +58,10 @@ from __future__ import annotations
 
 from action_machine.graph.base_facet_snapshot import BaseFacetSnapshot
 from action_machine.graph.base_graph_edge import BaseGraphEdge
-from action_machine.graph.base_intent_inspector import FacetInspectResult, InspectGraphPair
+from action_machine.graph.base_intent_inspector import (
+    FacetInspectResult,
+    InspectGraphPair,
+)
 from action_machine.graph.constants import (
     DAG_EDGE_TYPES,
     INTERNAL_EDGE_TYPES,
@@ -71,13 +74,14 @@ from action_machine.graph.dag import (
     dag_subgraph_is_acyclic,
     dag_subgraph_is_acyclic_from_rx,
 )
-from action_machine.graph.graph_builder import (
-    GraphBuilder,
-    build_interchange_from_facet_vertices,
-)
+from action_machine.graph.graph_builder import GraphBuilder, build_interchange_from_facet_vertices
 from action_machine.graph.graph_coordinator import GraphCoordinator
 from action_machine.graph.graph_edge import GraphEdge
-from action_machine.graph.base_graph_node import BaseGraphNode, BaseGraphNodeParseError
+from action_machine.graph.base_graph_node import (
+    BaseGraphNode,
+    BaseGraphNodeParseError,
+    Payload,
+)
 from action_machine.graph.graph_vertex import GraphVertex, GraphVertexParseError, ParsedGraphVertex
 
 __all__ = [
@@ -93,6 +97,7 @@ __all__ = [
     "GraphEdge",
     "BaseGraphNode",
     "BaseGraphNodeParseError",
+    "Payload",
     "GraphVertex",
     "GraphVertexParseError",
     "ParsedGraphVertex",
