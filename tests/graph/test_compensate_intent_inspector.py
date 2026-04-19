@@ -6,7 +6,7 @@ from __future__ import annotations
 from action_machine.graph import graph_builder as graph_builder_mod
 from action_machine.legacy.aspect_intent import AspectIntent
 from action_machine.intents.compensate.compensate_decorator import compensate
-from action_machine.intents.compensate.compensate_intent_inspector import (
+from action_machine.legacy.compensate_intent_inspector import (
     CompensateIntentInspector,
     hydrate_compensator_row,
 )

@@ -12,6 +12,11 @@ from action_machine.legacy.checker_intent_inspector import (
     CheckerIntentInspector,
     hydrate_checker_row,
 )
+from action_machine.legacy.compensate_intent import CompensateIntent
+from action_machine.legacy.compensate_intent_inspector import (
+    CompensateIntentInspector,
+    hydrate_compensator_row,
+)
 from action_machine.legacy.role_class_inspector import RoleClassInspector
 from action_machine.legacy.role_graph_roots import (
     ROLE_CLASS_GRAPH_ROOTS,
@@ -26,11 +31,14 @@ __all__ = [
     "CheckRolesIntent",
     "CheckerIntent",
     "CheckerIntentInspector",
+    "CompensateIntent",
+    "CompensateIntentInspector",
     "ROLE_CLASS_GRAPH_ROOTS",
     "RoleClassInspector",
     "RoleIntentInspector",
     "RoleModeIntentInspector",
     "hydrate_aspect_row",
     "hydrate_checker_row",
+    "hydrate_compensator_row",
     "role_class_topology_anchor",
 ]

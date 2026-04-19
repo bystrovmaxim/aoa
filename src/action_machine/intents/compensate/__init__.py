@@ -125,7 +125,7 @@ AI-CORE-END
 """
 
 from action_machine.intents.compensate.compensate_decorator import compensate
-from action_machine.intents.compensate.compensate_intent import CompensateIntent
+from action_machine.legacy.compensate_intent import CompensateIntent
 
 __all__ = [
     "CompensateIntent",

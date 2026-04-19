@@ -186,7 +186,7 @@ from action_machine.runtime.tools_box import ToolsBox
 if TYPE_CHECKING:
     from action_machine.legacy.aspect_intent_inspector import AspectIntentInspector
     from action_machine.legacy.checker_intent_inspector import CheckerIntentInspector
-    from action_machine.intents.compensate.compensate_intent_inspector import (
+    from action_machine.legacy.compensate_intent_inspector import (
         CompensateIntentInspector,
     )
     from action_machine.intents.on_error.on_error_intent_inspector import OnErrorIntentInspector
