@@ -12,14 +12,18 @@ from action_machine.intents.described_fields.described_fields_intent_inspector i
 from tests.scenarios.domain_model.ping_action import PingAction
 
 
-def test_described_fields_get_graph_nodes_emits_sorted_params_nodes() -> None:
+def test_described_fields_get_graph_nodes_emits_sorted_params_and_result_nodes() -> None:
     nodes = DescribedFieldsIntentInspector.get_graph_nodes()
     assert nodes == sorted(nodes, key=lambda n: n.id)
     ids = {n.id for n in nodes}
     assert qualified_dotted_name(PingAction.Params) in ids
+    assert qualified_dotted_name(PingAction.Result) in ids
     p = next(n for n in nodes if n.id == qualified_dotted_name(PingAction.Params))
     assert p.node_type == "params_schema"
     assert p.edges == []
+    r = next(n for n in nodes if n.id == qualified_dotted_name(PingAction.Result))
+    assert r.node_type == "result_schema"
+    assert r.edges == []
 
 
 def test_described_fields_get_graph_nodes_builds_node_graph_coordinator() -> None:
