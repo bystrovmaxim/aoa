@@ -16,9 +16,6 @@ test_compensate_decorator.py
     @compensate validation at class definition (import time): arguments, types, name
     suffix, signature.
 
-test_compensate_intent_validators.py
-    Compensator intent validators and typed snapshots.
-
 tests/scenarios/intents_with_runtime/test_compensate_graph.py
     GraphCoordinator graph: compensator nodes, has_compensator / requires_context edges;
     traversal via get_nodes_for_class / graph primitives.

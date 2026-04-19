@@ -19,7 +19,7 @@ from action_machine.legacy.role_class_inspector import RoleClassInspector
 from action_machine.legacy.role_intent_inspector import RoleIntentInspector
 from action_machine.legacy.role_mode_intent_inspector import RoleModeIntentInspector
 from action_machine.legacy.checker_intent_inspector import CheckerIntentInspector
-from action_machine.intents.compensate.compensate_intent_inspector import (
+from action_machine.legacy.compensate_intent_inspector import (
     CompensateIntentInspector,
 )
 from action_machine.intents.described_fields.described_fields_intent_inspector import (

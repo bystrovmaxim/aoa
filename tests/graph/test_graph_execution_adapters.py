@@ -21,7 +21,7 @@ from action_machine.legacy.checker_intent_inspector import (
 )
 from action_machine.intents.checkers.result_string_decorator import result_string
 from action_machine.intents.compensate.compensate_decorator import compensate
-from action_machine.intents.compensate.compensate_intent_inspector import (
+from action_machine.legacy.compensate_intent_inspector import (
     CompensateIntentInspector,
     hydrate_compensator_row,
 )
