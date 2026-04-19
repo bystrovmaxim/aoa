@@ -1,4 +1,4 @@
-# src/action_machine/intents/described_fields/marker.py
+# src/action_machine/legacy/described_fields/marker.py
 """
 Described-fields marker mixin and validation helpers.
 
@@ -11,7 +11,7 @@ validators that enforce ``Field(description="...")`` contracts on schema
 classes used by actions.
 
 The graph inspector lives in
-``action_machine.intents.described_fields.described_fields_intent_inspector``,
+``action_machine.legacy.described_fields.described_fields_intent_inspector``,
 colocated with this marker, to avoid import cycles between intents and graph layers.
 
 ═══════════════════════════════════════════════════════════════════════════════

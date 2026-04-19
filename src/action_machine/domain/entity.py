@@ -200,7 +200,7 @@ from pydantic import ConfigDict
 
 from action_machine.intents.domain.entity_intent import EntityIntent
 from action_machine.domain.exceptions import FieldNotLoadedError
-from action_machine.intents.described_fields.marker import DescribedFieldsIntent
+from action_machine.legacy.described_fields.marker import DescribedFieldsIntent
 from action_machine.model.base_schema import BaseSchema
 from action_machine.model.exceptions import NamingSuffixError
 
