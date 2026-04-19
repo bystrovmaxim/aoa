@@ -57,7 +57,7 @@ from action_machine.plugin.events import (
 )
 from action_machine.intents.on.on_decorator import on
 from action_machine.plugin.plugin import Plugin
-from action_machine.runtime.machines.core import Core
+from action_machine.legacy.core import Core
 from action_machine.testing import TestBench
 from tests.scenarios.domain_model import (
     FullAction,

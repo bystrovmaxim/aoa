@@ -8,7 +8,7 @@ from unittest.mock import AsyncMock
 import pytest
 
 from action_machine.context.context import Context
-from action_machine.runtime.machines.action_product_machine import ActionProductMachine
+from action_machine.runtime.action_product_machine import ActionProductMachine
 from tests.scenarios.domain_model import (
     FullAction,
     NotificationService,

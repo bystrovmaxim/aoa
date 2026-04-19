@@ -79,7 +79,7 @@ AI-CORE-END
 """
 
 from action_machine.intents.check_roles import NoAuthCoordinator
-from action_machine.runtime.machines.action_product_machine import ActionProductMachine
+from action_machine.runtime.action_product_machine import ActionProductMachine
 
 machine = ActionProductMachine(mode="production")
 auth = NoAuthCoordinator()

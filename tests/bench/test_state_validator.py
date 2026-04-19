@@ -64,7 +64,7 @@ AI-CORE-END
 import pytest
 
 from action_machine.graph.graph_coordinator import GraphCoordinator
-from action_machine.runtime.machines.core import Core
+from action_machine.legacy.core import Core
 from action_machine.testing.state_validator import (
     StateValidationError,
     validate_state_for_aspect,

@@ -77,7 +77,7 @@ EXAMPLES
 
     from pydantic import Field
 
-    from action_machine.runtime.machines.core import Core
+    from action_machine.legacy.core import Core
     from action_machine.domain import (
         BaseDomain,
         BaseEntity,

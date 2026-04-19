@@ -38,7 +38,7 @@ from action_machine.model.base_action import BaseAction
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_result import BaseResult
 from action_machine.model.base_state import BaseState
-from action_machine.runtime.machines.core import Core
+from action_machine.legacy.core import Core
 from action_machine.testing import StubTesterRole, TestBench
 from tests.scenarios.domain_model.compensate_actions import (
     CompensatedOrderAction,

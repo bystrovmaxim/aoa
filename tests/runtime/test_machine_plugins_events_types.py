@@ -14,7 +14,7 @@ from action_machine.plugin.events import (
     GlobalFinishEvent,
     GlobalStartEvent,
 )
-from action_machine.runtime.machines.action_product_machine import ActionProductMachine
+from action_machine.runtime.action_product_machine import ActionProductMachine
 from tests.runtime._machine_plugins_helpers import extract_event_types
 from tests.scenarios.domain_model import (
     FullAction,

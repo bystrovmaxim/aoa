@@ -56,7 +56,7 @@ from action_machine.model.base_result import BaseResult
 from action_machine.model.exceptions import ConnectionValidationError
 from action_machine.resources.base_resource_manager import BaseResourceManager
 from action_machine.resources.connection_decorator import connection
-from action_machine.runtime.machines.action_product_machine import ActionProductMachine
+from action_machine.runtime.action_product_machine import ActionProductMachine
 from tests.scenarios.domain_model import FullAction, NotificationService, PaymentService, PingAction, TestDbManager
 from tests.scenarios.domain_model.domains import TestDomain
 from tests.scenarios.domain_model.roles import AdminRole, ManagerRole

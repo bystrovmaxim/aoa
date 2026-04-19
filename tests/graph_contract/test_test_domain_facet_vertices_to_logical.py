@@ -13,7 +13,7 @@ import pytest
 
 from action_machine.graph.base_intent_inspector import BaseIntentInspector
 from action_machine.graph.graph_builder import build_interchange_from_facet_vertices
-from action_machine.runtime.machines.core import Core
+from action_machine.legacy.core import Core
 from maxitor.samples.build import _MODULES, build_sample_coordinator
 from maxitor.samples.store.actions.checkout_submit import CheckoutSubmitAction
 from maxitor.samples.store.domain import StoreDomain

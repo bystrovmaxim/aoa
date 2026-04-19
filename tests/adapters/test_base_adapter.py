@@ -70,7 +70,7 @@ import pytest
 from action_machine.adapters.base_adapter import BaseAdapter
 from action_machine.adapters.base_route_record import BaseRouteRecord
 from action_machine.graph.graph_coordinator import GraphCoordinator
-from action_machine.runtime.machines.action_product_machine import ActionProductMachine
+from action_machine.runtime.action_product_machine import ActionProductMachine
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Concrete subclass — ``BaseAdapter`` is abstract and cannot be instantiated

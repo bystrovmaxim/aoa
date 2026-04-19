@@ -331,7 +331,7 @@ class TestBuildSyncMachine:
 
     def test_builds_sync_machine(self) -> None:
         """_build_sync_machine returns a SyncActionProductMachine."""
-        from action_machine.runtime.machines.sync_action_product_machine import SyncActionProductMachine
+        from action_machine.runtime.sync_action_product_machine import SyncActionProductMachine
 
         bench = TestBench()
         machine = bench._build_sync_machine()

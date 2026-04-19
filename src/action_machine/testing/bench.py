@@ -209,8 +209,8 @@ from action_machine.model.base_params import BaseParams
 from action_machine.model.base_result import BaseResult
 from action_machine.model.base_state import BaseState
 from action_machine.resources.base_resource_manager import BaseResourceManager
-from action_machine.runtime.machines.action_product_machine import ActionProductMachine
-from action_machine.runtime.machines.sync_action_product_machine import SyncActionProductMachine
+from action_machine.runtime.action_product_machine import ActionProductMachine
+from action_machine.runtime.sync_action_product_machine import SyncActionProductMachine
 from action_machine.runtime.tools_box import ToolsBox
 from action_machine.testing.comparison import compare_results
 from action_machine.testing.mock_action import MockAction

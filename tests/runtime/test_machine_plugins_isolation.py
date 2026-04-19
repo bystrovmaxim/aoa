@@ -11,7 +11,7 @@ from action_machine.context.context import Context
 from action_machine.logging.log_coordinator import LogCoordinator
 from action_machine.plugin.plugin_coordinator import PluginCoordinator
 from action_machine.plugin.plugin_run_context import PluginRunContext
-from action_machine.runtime.machines.action_product_machine import ActionProductMachine
+from action_machine.runtime.action_product_machine import ActionProductMachine
 from tests.scenarios.domain_model import PingAction
 
 
