@@ -6,7 +6,7 @@ from __future__ import annotations
 import pytest
 
 from action_machine.domain.base_domain import BaseDomain
-from action_machine.domain.entity_intent import (
+from action_machine.intents.domain.entity_intent import (
     EntityIntent,
     validate_entity_decorator_target,
     validate_entity_description,

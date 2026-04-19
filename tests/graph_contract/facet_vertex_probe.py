@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from action_machine.dependencies.dependency_intent_inspector import DependencyIntentInspector
 from action_machine.application import ApplicationContextInspector
-from action_machine.domain.entity_intent_inspector import EntityIntentInspector
+from action_machine.intents.domain.entity_intent_inspector import EntityIntentInspector
 from action_machine.graph.facet_vertex import FacetVertex
 from action_machine.graph.graph_coordinator import GraphCoordinator
 from action_machine.intents.aspects.aspect_intent_inspector import AspectIntentInspector

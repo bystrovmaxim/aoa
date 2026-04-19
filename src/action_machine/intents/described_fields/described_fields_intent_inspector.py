@@ -136,7 +136,7 @@ class DescribedFieldsIntentInspector(BaseIntentInspector):
         (entities use the ``Entity`` vertex; params/result use their contract vertices).
         """
         # pylint: disable=import-outside-toplevel
-        from action_machine.domain.entity_intent import EntityIntent
+        from action_machine.intents.domain.entity_intent import EntityIntent
 
         if issubclass(schema_cls, EntityIntent):
             return (ENTITY_VERTEX_TYPE, cls._make_node_name(schema_cls))
@@ -148,7 +148,7 @@ class DescribedFieldsIntentInspector(BaseIntentInspector):
     @classmethod
     def _is_entity_schema(cls, target_cls: type) -> bool:
         # pylint: disable=import-outside-toplevel
-        from action_machine.domain.entity_intent import EntityIntent
+        from action_machine.intents.domain.entity_intent import EntityIntent
 
         return issubclass(target_cls, EntityIntent)
 

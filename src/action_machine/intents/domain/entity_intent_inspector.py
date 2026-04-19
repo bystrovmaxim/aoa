@@ -1,4 +1,4 @@
-# src/action_machine/domain/entity_intent_inspector.py
+# src/action_machine/intents/domain/entity_intent_inspector.py
 """
 ``EntityIntentInspector`` — intent **inspector** for ``@entity`` classes.
 
@@ -129,7 +129,7 @@ from typing import Annotated, Any, get_args, get_origin
 from pydantic.fields import FieldInfo
 from pydantic_core import PydanticUndefined
 
-from action_machine.domain.entity_intent import EntityIntent, entity_info_is_set
+from action_machine.intents.domain.entity_intent import EntityIntent, entity_info_is_set
 from action_machine.domain.lifecycle import Lifecycle, StateInfo, StateType
 from action_machine.domain.relation_containers import BaseRelationMany, BaseRelationOne
 from action_machine.domain.relation_markers import Inverse, NoGraphEdge, NoInverse, Rel

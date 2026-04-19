@@ -1,4 +1,4 @@
-# src/action_machine/domain/domain_node.py
+# src/action_machine/intents/domain/domain_node.py
 """
 DomainNode — interchange node for BaseDomain marker classes.
 

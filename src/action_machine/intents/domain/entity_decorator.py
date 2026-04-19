@@ -1,4 +1,4 @@
-# src/action_machine/domain/entity_decorator.py
+# src/action_machine/intents/domain/entity_decorator.py
 """
 The ``@entity`` decorator — declare a class as a domain entity.
 
@@ -82,7 +82,7 @@ EXAMPLE
     from pydantic import Field
 
     from action_machine.domain import BaseEntity, BaseDomain
-    from action_machine.domain.entity_decorator import entity
+    from action_machine.intents.domain.entity_decorator import entity
 
     class ShopDomain(BaseDomain):
         name = "shop"
@@ -121,7 +121,7 @@ from __future__ import annotations
 from collections.abc import Callable
 
 from action_machine.domain.base_domain import BaseDomain
-from action_machine.domain.entity_intent import (
+from action_machine.intents.domain.entity_intent import (
     validate_entity_decorator_target,
     validate_entity_description,
     validate_entity_domain,

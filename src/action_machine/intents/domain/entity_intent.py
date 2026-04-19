@@ -1,4 +1,4 @@
-# src/action_machine/domain/entity_intent.py
+# src/action_machine/intents/domain/entity_intent.py
 """
 EntityIntent — marker mixin and invariant validators for ``@entity``.
 
