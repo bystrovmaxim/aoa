@@ -155,7 +155,7 @@ LONGER ILLUSTRATION (DOMAIN + LIFECYCLE)
 
     from pydantic import Field
     from action_machine.domain import BaseEntity, BaseDomain, Lifecycle
-    from action_machine.domain.entity_decorator import entity
+    from action_machine.intents.domain.entity_decorator import entity
 
     class ShopDomain(BaseDomain):
         name = "shop"
@@ -198,7 +198,7 @@ from typing import Any, ClassVar, Self
 
 from pydantic import ConfigDict
 
-from action_machine.domain.entity_intent import EntityIntent
+from action_machine.intents.domain.entity_intent import EntityIntent
 from action_machine.domain.exceptions import FieldNotLoadedError
 from action_machine.intents.described_fields.marker import DescribedFieldsIntent
 from action_machine.model.base_schema import BaseSchema

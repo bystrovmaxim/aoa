@@ -132,11 +132,11 @@ AI-CORE-END
 """
 
 from action_machine.domain.base_domain import BaseDomain
-from action_machine.domain.domain_node import DomainNode
-from action_machine.domain.entity_node import EntityNode
 from action_machine.domain.entity import BaseEntity
-from action_machine.domain.entity_decorator import entity
-from action_machine.domain.entity_intent import EntityIntent
+from action_machine.intents.domain.domain_node import DomainNode
+from action_machine.intents.domain.entity_decorator import entity
+from action_machine.intents.domain.entity_intent import EntityIntent
+from action_machine.intents.domain.entity_node import EntityNode
 from action_machine.domain.exceptions import (
     EntityDecoratorError,
     FieldNotLoadedError,

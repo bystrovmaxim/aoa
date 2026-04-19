@@ -11,8 +11,8 @@ from pydantic import Field
 from action_machine.common import qualified_dotted_name
 from action_machine.application.application_context import ApplicationContext
 from action_machine.application.application_context_inspector import ApplicationContextInspector
-from action_machine.domain.domain_node import DomainNode
-from action_machine.domain.entity_node import EntityNode
+from action_machine.intents.domain.domain_node import DomainNode
+from action_machine.intents.domain.entity_node import EntityNode
 from action_machine.graph.base_graph_edge import BaseGraphEdge
 from action_machine.graph.base_graph_node import BaseGraphNode, BaseGraphNodeParseError
 from action_machine.interchange_vertex_labels import APPLICATION_VERTEX_TYPE, DOMAIN_VERTEX_TYPE

@@ -1,4 +1,4 @@
-# src/action_machine/domain/entity_node.py
+# src/action_machine/intents/domain/entity_node.py
 """
 EntityNode — minimal interchange node for ``BaseEntity`` subclasses.
 
