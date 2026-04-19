@@ -63,7 +63,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TypeVar
 
-from action_machine.common import qualified_dotted_name
+from action_machine.legacy.qualified_name import qualified_dotted_name
 from action_machine.model.base_result import BaseResult
 from graph.base_graph_node import BaseGraphNode, Payload
 

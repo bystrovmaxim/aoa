@@ -8,9 +8,9 @@ import warnings
 import pytest
 from pydantic import Field
 
-from action_machine.application.application_context import ApplicationContext
-from action_machine.application.application_context_inspector import ApplicationContextInspector
-from action_machine.common import qualified_dotted_name
+from action_machine.legacy.application_context import ApplicationContext
+from action_machine.legacy.application_context_inspector import ApplicationContextInspector
+from action_machine.legacy.qualified_name import qualified_dotted_name
 from action_machine.domain.domain_graph_node import DomainGraphNode
 from action_machine.domain.entity_graph_node import EntityGraphNode
 from action_machine.legacy.interchange_vertex_labels import APPLICATION_VERTEX_TYPE, DOMAIN_VERTEX_TYPE

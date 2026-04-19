@@ -29,7 +29,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from action_machine.common.deprecated import deprecated
+from action_machine.legacy.deprecated import deprecated
 from graph.base_graph_edge import BaseGraphEdge
 from graph.facet_edge import FacetEdge
 from graph.facet_vertex import FacetVertex

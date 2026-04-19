@@ -64,7 +64,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, TypeVar
 
-from action_machine.common import qualified_dotted_name
+from action_machine.legacy.qualified_name import qualified_dotted_name
 from action_machine.domain.base_domain import BaseDomain
 from action_machine.domain.entity import BaseEntity
 from action_machine.legacy.interchange_vertex_labels import DOMAIN_VERTEX_TYPE

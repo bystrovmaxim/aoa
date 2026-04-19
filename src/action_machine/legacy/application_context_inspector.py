@@ -1,4 +1,4 @@
-# src/action_machine/application/application_context_inspector.py
+# src/action_machine/legacy/application_context_inspector.py
 """
 ``ApplicationContextInspector`` — emits the canonical ``Application`` vertex and
 ``Domain`` → ``Application`` informational edges.
@@ -11,11 +11,10 @@ the ``Domain`` node with ``belongs_to`` → ``Application``.
 from __future__ import annotations
 
 from action_machine.domain.base_domain import BaseDomain
+from action_machine.legacy.application_context import ApplicationContext
 from action_machine.legacy.interchange_vertex_labels import APPLICATION_VERTEX_TYPE, DOMAIN_VERTEX_TYPE
 from graph.base_intent_inspector import BaseIntentInspector
 from graph.facet_vertex import FacetVertex
-
-from .application_context import ApplicationContext
 
 
 class ApplicationContextInspector(BaseIntentInspector):
