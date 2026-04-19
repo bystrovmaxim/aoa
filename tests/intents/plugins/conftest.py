@@ -98,8 +98,8 @@ from __future__ import annotations
 
 import asyncio
 
-from action_machine.intents.context.context import Context
-from action_machine.intents.context.user_info import UserInfo
+from action_machine.context.context import Context
+from action_machine.context.user_info import UserInfo
 from action_machine.intents.plugins.events import (
     GlobalFinishEvent,
     GlobalStartEvent,

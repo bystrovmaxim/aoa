@@ -1,4 +1,4 @@
-# src/action_machine/intents/context/context_view.py
+# src/action_machine/context/context_view.py
 """
 ContextView — frozen object with controlled context-field access.
 

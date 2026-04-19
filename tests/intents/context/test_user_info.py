@@ -46,7 +46,7 @@ from typing import Any
 import pytest
 from pydantic import ConfigDict
 
-from action_machine.intents.context.user_info import UserInfo
+from action_machine.context.user_info import UserInfo
 from tests.scenarios.domain_model.roles import AdminRole, GuestRole, ManagerRole, UserRole
 
 # ═════════════════════════════════════════════════════════════════════════════

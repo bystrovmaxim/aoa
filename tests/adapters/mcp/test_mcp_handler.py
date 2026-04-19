@@ -117,7 +117,7 @@ from action_machine.integrations.mcp.adapter import (
     _validate_tool_request_kwargs,
 )
 from action_machine.integrations.mcp.route_record import McpRouteRecord
-from action_machine.intents.context.user_info import UserInfo
+from action_machine.context.user_info import UserInfo
 from action_machine.model.exceptions import AuthorizationError, ValidationFieldError
 from action_machine.runtime.machines.action_product_machine import ActionProductMachine
 from action_machine.runtime.machines.core import Core

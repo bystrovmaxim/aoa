@@ -42,8 +42,8 @@ via _inspect_object directly."""
 
 import pytest
 
-from action_machine.intents.context.context import Context
-from action_machine.intents.context.user_info import UserInfo
+from action_machine.context.context import Context
+from action_machine.context.user_info import UserInfo
 from action_machine.intents.logging.expression_evaluator import ExpressionEvaluator, _inspect_object
 from action_machine.intents.logging.log_scope import LogScope
 from action_machine.intents.logging.sensitive_decorator import sensitive

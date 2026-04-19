@@ -74,7 +74,7 @@ from __future__ import annotations
 import time
 from typing import Any
 
-from action_machine.intents.context.context_view import ContextView
+from action_machine.context.context_view import ContextView
 from action_machine.intents.plugins.events import (
     AfterOnErrorAspectEvent,
     BeforeOnErrorAspectEvent,

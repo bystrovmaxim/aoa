@@ -9,7 +9,7 @@ from action_machine.legacy.aspect_intent_inspector import AspectIntentInspector
 from action_machine.intents.aspects.regular_aspect_decorator import regular_aspect
 from action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
 from action_machine.intents.context.context_requires_decorator import context_requires
-from action_machine.intents.context.ctx_constants import Ctx
+from action_machine.context.ctx_constants import Ctx
 from action_machine.legacy.interchange_vertex_labels import (
     REGULAR_ASPECT_VERTEX_TYPE,
     SUMMARY_ASPECT_VERTEX_TYPE,

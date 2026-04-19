@@ -118,7 +118,7 @@ import logging
 from typing import Any
 
 from action_machine.domain.base_domain import BaseDomain
-from action_machine.intents.context.context import Context
+from action_machine.context.context import Context
 from action_machine.intents.logging.base_logger import BaseLogger
 from action_machine.intents.logging.channel import validate_channels
 from action_machine.intents.logging.level import validate_level

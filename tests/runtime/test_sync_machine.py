@@ -44,8 +44,8 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from action_machine.intents.context.context import Context
-from action_machine.intents.context.user_info import UserInfo
+from action_machine.context.context import Context
+from action_machine.context.user_info import UserInfo
 from action_machine.intents.logging.log_coordinator import LogCoordinator
 from action_machine.model.exceptions import AuthorizationError, ConnectionValidationError
 from action_machine.runtime.machines.action_product_machine import ActionProductMachine

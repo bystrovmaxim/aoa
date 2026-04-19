@@ -48,12 +48,12 @@ Introspection:
 import pytest
 from pydantic import ConfigDict
 
-from action_machine.intents.context.context import Context
-from action_machine.intents.context.context_view import ContextView
-from action_machine.intents.context.ctx_constants import Ctx
-from action_machine.intents.context.request_info import RequestInfo
-from action_machine.intents.context.runtime_info import RuntimeInfo
-from action_machine.intents.context.user_info import UserInfo
+from action_machine.context.context import Context
+from action_machine.context.context_view import ContextView
+from action_machine.context.ctx_constants import Ctx
+from action_machine.context.request_info import RequestInfo
+from action_machine.context.runtime_info import RuntimeInfo
+from action_machine.context.user_info import UserInfo
 from action_machine.model.exceptions import ContextAccessError
 from tests.scenarios.domain_model.roles import AdminRole, ManagerRole, UserRole
 

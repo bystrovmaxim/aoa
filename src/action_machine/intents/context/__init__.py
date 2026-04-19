@@ -107,7 +107,8 @@ For custom fields, use raw strings:
 EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
-    from action_machine.intents.context import Ctx, context_requires, ContextView
+    from action_machine.context import Ctx, ContextView
+    from action_machine.intents.context import context_requires
 
     @regular_aspect("Audit")
     @context_requires(Ctx.User.user_id, Ctx.Request.client_ip)
@@ -142,14 +143,14 @@ EXTENSION POINTS: Schema inheritance and custom dot-path keys.
 AI-CORE-END
 """
 
-from action_machine.intents.context.context import Context
+from action_machine.context.context import Context
+from action_machine.context.context_view import ContextView
+from action_machine.context.ctx_constants import Ctx
+from action_machine.context.request_info import RequestInfo
+from action_machine.context.runtime_info import RuntimeInfo
+from action_machine.context.user_info import UserInfo
 from action_machine.intents.context.context_requires_decorator import context_requires
-from action_machine.intents.context.context_requires_intent import ContextRequiresIntent
-from action_machine.intents.context.context_view import ContextView
-from action_machine.intents.context.ctx_constants import Ctx
-from action_machine.intents.context.request_info import RequestInfo
-from action_machine.intents.context.runtime_info import RuntimeInfo
-from action_machine.intents.context.user_info import UserInfo
+from action_machine.legacy.context_requires_intent import ContextRequiresIntent
 
 __all__ = [
     "Context",

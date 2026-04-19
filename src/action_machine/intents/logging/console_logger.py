@@ -87,7 +87,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-from action_machine.intents.context.context import Context
+from action_machine.context.context import Context
 from action_machine.intents.logging.base_logger import BaseLogger
 from action_machine.intents.logging.level import Level
 from action_machine.intents.logging.log_scope import LogScope

@@ -52,8 +52,8 @@ from action_machine.auth.auth_coordinator import (
     NoAuthCoordinator,
 )
 from action_machine.auth.authenticator import Authenticator
-from action_machine.intents.context.context import Context
-from action_machine.intents.context.user_info import UserInfo
+from action_machine.context.context import Context
+from action_machine.context.user_info import UserInfo
 from tests.scenarios.domain_model.roles import AdminRole, SpyRole
 
 # ═════════════════════════════════════════════════════════════════════════════

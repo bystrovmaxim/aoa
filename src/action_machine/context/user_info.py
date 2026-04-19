@@ -1,4 +1,4 @@
-# src/action_machine/intents/context/user_info.py
+# src/action_machine/context/user_info.py
 """
 UserInfo — identity and role metadata for the caller.
 

@@ -9,7 +9,7 @@ from typing import Any
 
 import pytest
 
-from action_machine.intents.context.context import Context
+from action_machine.context.context import Context
 from action_machine.intents.logging.base_logger import BaseLogger
 from action_machine.intents.logging.channel import Channel, channel_mask_label
 from action_machine.intents.logging.level import Level, level_label

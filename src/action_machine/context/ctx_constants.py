@@ -1,4 +1,4 @@
-# src/action_machine/intents/context/ctx_constants.py
+# src/action_machine/context/ctx_constants.py
 """
 Context path constants for ``@context_requires`` decorator.
 
@@ -52,7 +52,8 @@ IDE autocomplete. For custom inherited fields, use raw string paths:
 EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
-    from action_machine.intents.context import Ctx, context_requires
+    from action_machine.context import Ctx
+    from action_machine.intents.context import context_requires
 
     @regular_aspect("Permission check")
     @context_requires(Ctx.User.user_id, Ctx.User.roles)

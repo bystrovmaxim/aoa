@@ -9,8 +9,8 @@ from action_machine.intents.aspects.summary_aspect_decorator import summary_aspe
 from action_machine.intents.check_roles import NoneRole, check_roles
 from action_machine.intents.checkers import result_string
 from action_machine.intents.compensate.compensate_decorator import compensate
-from action_machine.intents.context.context import Context
-from action_machine.intents.context.user_info import UserInfo
+from action_machine.context.context import Context
+from action_machine.context.user_info import UserInfo
 from action_machine.intents.logging.log_coordinator import LogCoordinator
 from action_machine.intents.meta.meta_decorator import meta
 from action_machine.intents.on_error import on_error

@@ -57,7 +57,7 @@ from typing import Any
 
 import pytest
 
-from action_machine.intents.context.context import Context
+from action_machine.context.context import Context
 from action_machine.intents.logging.base_logger import BaseLogger
 from action_machine.intents.logging.channel import Channel, channel_mask_label
 from action_machine.intents.logging.level import Level, level_label
@@ -205,7 +205,7 @@ class TestVariableSubstitution:
         {%context.user.user_id} подставляется через resolve из Context.
         """
         # Arrange
-        from action_machine.intents.context.user_info import UserInfo
+        from action_machine.context.user_info import UserInfo
         ctx = Context(user=UserInfo(user_id="agent_007"))
         logger = RecordingLogger()
         coordinator = LogCoordinator(loggers=[logger])

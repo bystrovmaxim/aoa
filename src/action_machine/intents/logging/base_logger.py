@@ -94,7 +94,7 @@ from abc import ABC, abstractmethod
 from typing import Any, Self, overload
 
 from action_machine.domain.base_domain import BaseDomain
-from action_machine.intents.context.context import Context
+from action_machine.context.context import Context
 from action_machine.intents.logging.channel import Channel
 from action_machine.intents.logging.level import Level
 from action_machine.intents.logging.log_scope import LogScope
