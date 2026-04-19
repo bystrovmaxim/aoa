@@ -7,7 +7,6 @@ from action_machine.intents.connection.connection_decorator import (
     _validate_connection_args,
     connection,
 )
-from action_machine.legacy.connection_intent import ConnectionIntent
 from action_machine.resources.base_resource_manager import BaseResourceManager
 
 
@@ -51,16 +50,18 @@ def test_connection_inner_rejects_non_class_target() -> None:
         dec(99)  # type: ignore[arg-type]
 
 
-def test_connection_inner_rejects_without_connection_intent() -> None:
+def test_connection_accepts_class_without_connection_intent() -> None:
     class Plain:
         pass
 
     dec = connection(_Mgr, key="db", description="x")
-    with pytest.raises(TypeError, match="ConnectionIntent"):
-        dec(Plain)
+    dec(Plain)
+    assert Plain._connection_info[0].key == "db"
 
 
 def test_connection_rejects_duplicate_key() -> None:
+    from action_machine.legacy.connection_intent import ConnectionIntent
+
     with pytest.raises(ValueError, match="already declared"):
 
         @connection(_Mgr, key="db", description="a")

@@ -8,7 +8,8 @@ PURPOSE
 
 ``DependencyIntent[T]`` does two jobs:
 
-1. **Marker:** ``@depends`` requires the target class to inherit ``DependencyIntent``.
+1. **Marker (optional):** Subclasses get ``get_depends_bound()`` from ``DependencyIntent``;
+   ``@depends`` still works on plain classes with bound ``object``.
    Otherwise ``TypeError``.
 
 2. **Bound:** type parameter ``T`` limits which dependency classes are allowed.

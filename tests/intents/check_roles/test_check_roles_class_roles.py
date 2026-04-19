@@ -25,12 +25,12 @@ from tests.scenarios.domain_model.domains import TestDomain
 
 
 class TestRoleModeDecorator:
-    def test_role_mode_requires_role_mode_intent(self) -> None:
+    def test_role_mode_accepts_plain_class(self) -> None:
         class Plain:
             pass
 
-        with pytest.raises(TypeError, match="RoleModeIntent"):
-            role_mode(RoleMode.ALIVE)(Plain)  # type: ignore[arg-type]
+        role_mode(RoleMode.ALIVE)(Plain)  # type: ignore[arg-type]
+        assert Plain._role_mode_info["mode"] is RoleMode.ALIVE
 
 
 class TestBaseRoleValidation:

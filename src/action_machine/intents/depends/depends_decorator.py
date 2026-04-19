@@ -35,7 +35,7 @@ ARCHITECTURE / DATA FLOW
 INVARIANTS
 ═══════════════════════════════════════════════════════════════════════════════
 
-- Applies only to classes that inherit ``DependencyIntent``.
+- Applies only to classes (``type``).
 - The ``klass`` argument must be a class (type) and a subclass of the bound
   defined in ``DependencyIntent[T]``.
 - Duplicate dependency declarations on the same class are forbidden.
@@ -77,8 +77,7 @@ ERRORS / LIMITATIONS
 ═══════════════════════════════════════════════════════════════════════════════
 
 - ``TypeError`` if ``klass`` is not a class, does not satisfy the bound, the
-  decorator is applied to a non-class, the target lacks ``DependencyIntent``,
-  or ``description`` is not a string.
+  decorator is applied to a non-class, or ``description`` is not a string.
 - ``ValueError`` if the same dependency is declared multiple times on the same
   class.
 
@@ -100,7 +99,6 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Any
 
-from action_machine.legacy.dependency_intent import DependencyIntent
 from action_machine.runtime.dependency_factory import DependencyInfo
 
 
@@ -157,9 +155,10 @@ def depends(
 
         Validates:
         1. ``cls`` is a class.
-        2. ``cls`` inherits ``DependencyIntent``.
-        3. ``klass`` is a subclass of the bound type.
-        4. No duplicate declarations.
+        2. ``klass`` is a subclass of the dependency bound (``object`` if the
+           class does not define ``get_depends_bound``, e.g. without
+           ``DependencyIntent`` in the MRO).
+        3. No duplicate declarations.
 
         Then appends ``DependencyInfo`` to ``cls._depends_info``.
         """
@@ -170,15 +169,11 @@ def depends(
                 f"Got object of type {type(cls).__name__}: {cls!r}."
             )
 
-        if not issubclass(cls, DependencyIntent):
-            raise TypeError(
-                f"@depends({klass.__name__}) applied to class {cls.__name__}, "
-                f"which does not inherit DependencyIntent. "
-                f"Add DependencyIntent to the inheritance chain."
-            )
-
-        # ── Check generic bound ──
-        bound = cls.get_depends_bound()
+        bound = (
+            cls.get_depends_bound()
+            if hasattr(cls, "get_depends_bound")
+            else object
+        )
         if not issubclass(klass, bound):
             raise TypeError(
                 f"@depends({klass.__name__}): class {klass.__name__} "
