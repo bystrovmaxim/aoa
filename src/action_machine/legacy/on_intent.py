@@ -69,7 +69,7 @@ EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
     # Plugin already inherits OnIntent, so any plugin supports @on:
-    from action_machine.intents.logging.channel import Channel
+    from action_machine.logging.channel import Channel
 
     class MetricsPlugin(Plugin):
         async def get_initial_state(self) -> dict:

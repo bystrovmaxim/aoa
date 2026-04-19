@@ -1,4 +1,4 @@
-# src/action_machine/intents/logging/console_logger.py
+# src/action_machine/logging/console_logger.py
 """
 Stdout logger with optional ANSI colors and indent.
 
@@ -53,9 +53,9 @@ EXAMPLES
 
 ::
 
-    from action_machine.intents.logging import Channel
-    from action_machine.intents.logging.console_logger import ConsoleLogger
-    from action_machine.intents.logging.log_coordinator import LogCoordinator
+    from action_machine.logging import Channel
+    from action_machine.logging.console_logger import ConsoleLogger
+    from action_machine.logging.log_coordinator import LogCoordinator
 
     logger = ConsoleLogger()
     logger.subscribe("biz", channels=Channel.business)
@@ -88,10 +88,10 @@ from collections.abc import Mapping
 from typing import Any
 
 from action_machine.context.context import Context
-from action_machine.intents.logging.base_logger import BaseLogger
-from action_machine.intents.logging.level import Level
-from action_machine.intents.logging.log_scope import LogScope
-from action_machine.intents.logging.log_var_payloads import LogLevelPayload
+from action_machine.logging.base_logger import BaseLogger
+from action_machine.logging.level import Level
+from action_machine.logging.log_scope import LogScope
+from action_machine.logging.log_var_payloads import LogLevelPayload
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_state import BaseState
 

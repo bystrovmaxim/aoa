@@ -105,6 +105,10 @@ _LAZY_EXPORTS: dict[str, tuple[str, str]] = {
         "action_machine.legacy.role_mode_intent_inspector",
         "RoleModeIntentInspector",
     ),
+    "SensitiveIntentInspector": (
+        "action_machine.legacy.sensitive_intent_inspector",
+        "SensitiveIntentInspector",
+    ),
     "SubscriptionIntentInspector": (
         "action_machine.legacy.subscription_intent_inspector",
         "SubscriptionIntentInspector",

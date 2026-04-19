@@ -1,4 +1,4 @@
-# src/action_machine/intents/logging/subscription.py
+# src/action_machine/logging/subscription.py
 """
 Immutable filter rule for ``BaseLogger.subscribe``.
 
@@ -73,8 +73,8 @@ from dataclasses import InitVar, dataclass, field
 from typing import Any
 
 from action_machine.domain.base_domain import BaseDomain
-from action_machine.intents.logging.channel import Channel, validate_channels
-from action_machine.intents.logging.level import Level
+from action_machine.logging.channel import Channel, validate_channels
+from action_machine.logging.level import Level
 
 
 def _validate_subscription_levels(levels: Level | None) -> None:

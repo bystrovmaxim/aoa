@@ -1,64 +1,64 @@
-# src/action_machine/intents/logging/level.py
+# src/action_machine/logging/channel.py
 """
-Severity level bitmask for log messages (how urgent).
+Semantic channel bitmask for log messages (what the event is about).
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-``Level`` is an ``IntFlag``. Each emitted message carries exactly one level bit,
-chosen from the method name: ``info``, ``warning``, or ``critical``. In a
-subscription, a level mask means “match if the message level is any of these
-bits”.
+``Channel`` is an ``IntFlag`` used as the first argument to ``info`` / ``warning``
+/ ``critical``. Multiple topics in one message are expressed as a bitmask with
+``|``. Subscriptions test intersection with ``&``.
 
 ═══════════════════════════════════════════════════════════════════════════════
 INVARIANTS
 ═══════════════════════════════════════════════════════════════════════════════
 
-- Exactly one of ``Level.info``, ``Level.warning``, ``Level.critical`` per message.
-- ``level_label`` is for human-readable console prefixes (e.g. ``INFO``).
+- Only the five defined bits are legal. Unknown bits in a mask are rejected.
+- Zero mask is invalid (empty channels).
+- Values are validated at emit and when building subscriptions.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-    ScopedLogger.info/warning/critical
-                |
-                v
-    level mask in var["level"]
-                |
-                v
-    validate_level(...)
-                |
-                +--> fail on combined/unknown bits
-                |
-                v
-    logger filters and console rendering
-                |
-                v
-    level_label(Level.*) -> "INFO"/"WARNING"/"CRITICAL"
+    caller (Channel.* mask)
+            |
+            v
+    validate_channels(mask)
+            |
+            +--> fail-fast on zero / unknown bits
+            |
+            v
+    coordinator payload + logger subscriptions
+            |
+            v
+    subscription matching via bit intersection (&)
+            |
+            v
+    channel_mask_label(mask) for human-readable rendering
 
 ═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
-``Level.warning | Level.critical`` in ``subscribe`` accepts both severities.
+``Channel.debug | Channel.business`` — debug trace tied to business flow.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ERRORS / LIMITATIONS
 ═══════════════════════════════════════════════════════════════════════════════
 
-``validate_level`` rejects combined or unknown level masks for message ``var``.
+``validate_channels`` raises ``TypeError`` or ``ValueError`` on bad input.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN
 ═══════════════════════════════════════════════════════════════════════════════
-ROLE: Level enum + labels + validation for coordinator and subscriptions.
-CONTRACT: Three bits; message level is single-bit; subscription may OR bits.
-INVARIANTS: _SINGLE_LEVELS frozenset gates validate_level.
-FLOW: ScopedLogger._emit sets level from method → coordinator validates → logger match.
-FAILURES: ValueError from validate_level on bad message level.
-EXTENSION POINTS: new levels need enum + validation + label rules.
+ROLE: Channel enum + validation for logging pipeline.
+CONTRACT: IntFlag with five bits; validate_channels enforces non-empty known mask.
+INVARIANTS: int-based mask check uses _ALL_CHANNELS_MASK (IntFlag ~ is unsafe).
+FLOW: caller passes Channel → ScopedLogger → coordinator → subscription match.
+FAILURES: TypeError/ValueError from validate_channels.
+EXTENSION POINTS: new channels require enum + _ALL_CHANNELS update + subscription tests.
 AI-CORE-END
 ═══════════════════════════════════════════════════════════════════════════════
 """
@@ -66,40 +66,67 @@ AI-CORE-END
 from enum import IntFlag
 
 
-class Level(IntFlag):
+class Channel(IntFlag):
     """
-    Log severity bitmask: info, warning, critical.
+    Semantic log channel bitmask (debug, business, security, compliance, error).
 
     AI-CORE-BEGIN
-    ROLE: Severity classifier for log routing and display.
-    CONTRACT: Messages carry one bit; subscriptions may combine bits.
-    INVARIANTS: Valid single-bit values are enforced by validate_level.
+    ROLE: Topic classifier for log routing/filtering.
+    CONTRACT: Compose topics with bitwise OR and test via bitwise AND.
+    INVARIANTS: Only declared enum bits are legal for validated masks.
     AI-CORE-END
     """
 
-    info = 1
-    warning = 2
-    critical = 4
+    debug = 1
+    business = 2
+    security = 4
+    compliance = 8
+    error = 16
 
 
-_SINGLE_LEVELS = frozenset({Level.info, Level.warning, Level.critical})
+_ALL_CHANNELS = (
+    Channel.debug
+    | Channel.business
+    | Channel.security
+    | Channel.compliance
+    | Channel.error
+)
 
-# Avoid ``level.name`` typing (``str | None`` in stubs); map known single-bit levels.
-_LEVEL_LABELS: dict[int, str] = {
-    int(Level.info): "INFO",
-    int(Level.warning): "WARNING",
-    int(Level.critical): "CRITICAL",
-}
+# IntFlag: ``~_ALL_CHANNELS`` is not a usable unrestricted mask; use int bits.
+_ALL_CHANNELS_MASK = int(_ALL_CHANNELS)
+
+# Order for human-readable labels (comma-separated names in templates).
+_CHANNEL_LABEL_ORDER: tuple[Channel, ...] = (
+    Channel.debug,
+    Channel.business,
+    Channel.security,
+    Channel.compliance,
+    Channel.error,
+)
 
 
-def level_label(level: Level) -> str:
-    """Map ``Level.info`` → ``INFO`` for console-style output."""
-    return _LEVEL_LABELS[int(level)]
+def channel_mask_label(mask: Channel) -> str:
+    """
+    Comma-separated channel member names for a bitmask, e.g. ``"debug, business"``.
+
+    Call after ``validate_channels`` (or on any mask with only defined bits).
+    """
+    v = int(mask)
+    return ", ".join(
+        name
+        for c in _CHANNEL_LABEL_ORDER
+        if (v & int(c)) != 0
+        for name in (c.name,)
+        if name is not None
+    )
 
 
-def validate_level(value: Level) -> None:
-    """Require exactly one of info / warning / critical (one bit)."""
-    if value not in _SINGLE_LEVELS:
-        raise ValueError(
-            f"level must be exactly one of info/warning/critical, got {value}"
-        )
+def validate_channels(value: Channel) -> None:
+    """Require a non-empty mask containing only defined channel bits."""
+    if not isinstance(value, int):
+        raise TypeError(f"channels must be Channel, got {type(value).__name__}")
+    v = int(value)
+    if v == 0:
+        raise ValueError("channels cannot be empty (zero mask)")
+    if v & ~_ALL_CHANNELS_MASK:
+        raise ValueError(f"channels contains unknown bits: {value}")

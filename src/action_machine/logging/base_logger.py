@@ -1,4 +1,4 @@
-# src/action_machine/intents/logging/base_logger.py
+# src/action_machine/logging/base_logger.py
 """
 Abstract base class for all loggers in the AOA logging system.
 
@@ -95,10 +95,10 @@ from typing import Any, Self, overload
 
 from action_machine.domain.base_domain import BaseDomain
 from action_machine.context.context import Context
-from action_machine.intents.logging.channel import Channel
-from action_machine.intents.logging.level import Level
-from action_machine.intents.logging.log_scope import LogScope
-from action_machine.intents.logging.subscription import LogSubscription
+from action_machine.logging.channel import Channel
+from action_machine.logging.level import Level
+from action_machine.logging.log_scope import LogScope
+from action_machine.logging.subscription import LogSubscription
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_state import BaseState
 

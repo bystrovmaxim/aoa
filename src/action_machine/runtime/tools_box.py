@@ -84,8 +84,8 @@ from collections.abc import Awaitable, Callable
 from typing import Any, TypeVar, cast
 
 from action_machine.dependencies.dependency_factory import DependencyFactory
-from action_machine.intents.logging.channel import Channel
-from action_machine.intents.logging.scoped_logger import ScopedLogger
+from action_machine.logging.channel import Channel
+from action_machine.logging.scoped_logger import ScopedLogger
 from action_machine.model.base_action import BaseAction
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_result import BaseResult

@@ -1,4 +1,4 @@
-# src/action_machine/intents/logging/sensitive_decorator.py
+# src/action_machine/intents/sensitive/sensitive_decorator.py
 """
 ``@sensitive`` — mark properties whose log output should be masked.
 

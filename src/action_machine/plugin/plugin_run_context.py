@@ -116,7 +116,7 @@ Context builds logger per call with scope fields and
 ``domain=resolve_domain(event.action_class)``.
 
 Scope fields are available in templates via ``{%scope.*}``:
-    from action_machine.intents.logging.channel import Channel
+    from action_machine.logging.channel import Channel
 
     await log.info(
         Channel.debug,
@@ -182,10 +182,10 @@ import asyncio
 from collections.abc import Callable
 from typing import Any
 
-from action_machine.intents.logging.channel import Channel
-from action_machine.intents.logging.domain_resolver import resolve_domain
-from action_machine.intents.logging.log_coordinator import LogCoordinator
-from action_machine.intents.logging.scoped_logger import ScopedLogger
+from action_machine.logging.channel import Channel
+from action_machine.logging.domain_resolver import resolve_domain
+from action_machine.logging.log_coordinator import LogCoordinator
+from action_machine.logging.scoped_logger import ScopedLogger
 from action_machine.plugin.events import BasePluginEvent
 from action_machine.plugin.plugin import Plugin
 from action_machine.plugin.subscription_info import SubscriptionInfo

@@ -1,4 +1,4 @@
-# src/action_machine/intents/logging/__init__.py
+# src/action_machine/logging/__init__.py
 """
 ActionMachine logging package.
 
@@ -75,7 +75,7 @@ EXAMPLES
 
 Nest level in templates::
 
-    from action_machine.intents.logging import Channel
+    from action_machine.logging import Channel
 
     await box.info(
         Channel.business,
@@ -183,18 +183,18 @@ AI-CORE-END
 ═══════════════════════════════════════════════════════════════════════════════
 """
 
-from action_machine.intents.logging.channel import Channel, channel_mask_label, validate_channels
-from action_machine.intents.logging.console_logger import DEFAULT_LEVEL_FG_PREFIX, ConsoleLogger
-from action_machine.intents.logging.domain_resolver import domain_label, resolve_domain
-from action_machine.intents.logging.expression_evaluator import ExpressionEvaluator
-from action_machine.intents.logging.level import Level, level_label, validate_level
-from action_machine.intents.logging.log_coordinator import LogCoordinator
-from action_machine.intents.logging.log_scope import LogScope
-from action_machine.intents.logging.log_var_payloads import LogChannelPayload, LogLevelPayload
-from action_machine.intents.logging.scoped_logger import ScopedLogger
-from action_machine.intents.logging.sensitive_decorator import sensitive
-from action_machine.intents.logging.subscription import LogSubscription
-from action_machine.intents.logging.variable_substitutor import VariableSubstitutor
+from action_machine.logging.channel import Channel, channel_mask_label, validate_channels
+from action_machine.logging.console_logger import DEFAULT_LEVEL_FG_PREFIX, ConsoleLogger
+from action_machine.logging.domain_resolver import domain_label, resolve_domain
+from action_machine.logging.expression_evaluator import ExpressionEvaluator
+from action_machine.logging.level import Level, level_label, validate_level
+from action_machine.logging.log_coordinator import LogCoordinator
+from action_machine.logging.log_scope import LogScope
+from action_machine.logging.log_var_payloads import LogChannelPayload, LogLevelPayload
+from action_machine.logging.scoped_logger import ScopedLogger
+from action_machine.intents.sensitive import sensitive
+from action_machine.logging.subscription import LogSubscription
+from action_machine.logging.variable_substitutor import VariableSubstitutor
 
 __all__ = [
     "DEFAULT_LEVEL_FG_PREFIX",

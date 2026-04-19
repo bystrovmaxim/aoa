@@ -36,7 +36,7 @@ SCENARIOS COVERED
 
 import pytest
 
-from action_machine.intents.logging.log_scope import LogScope
+from action_machine.logging.log_scope import LogScope
 
 # ======================================================================
 #TESTS: as_dotpath()

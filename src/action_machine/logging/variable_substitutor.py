@@ -1,4 +1,4 @@
-# src/action_machine/intents/logging/variable_substitutor.py
+# src/action_machine/logging/variable_substitutor.py
 """
 Template engine for ``{%namespace.path}`` and ``{iif(...)}`` in log lines.
 
@@ -79,9 +79,9 @@ from collections.abc import Callable
 from typing import Any
 
 from action_machine.context.context import Context
-from action_machine.intents.logging.expression_evaluator import ExpressionEvaluator, debug_value
-from action_machine.intents.logging.log_scope import LogScope
-from action_machine.intents.logging.masking import mask_value
+from action_machine.logging.expression_evaluator import ExpressionEvaluator, debug_value
+from action_machine.logging.log_scope import LogScope
+from action_machine.logging.masking import mask_value
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_state import BaseState
 from action_machine.model.exceptions import LogTemplateError

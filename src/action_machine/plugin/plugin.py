@@ -69,7 +69,7 @@ handler callables. ``PluginRunContext`` calls it on each ``emit_event()``.
 EXAMPLE PLUGIN
 ═══════════════════════════════════════════════════════════════════════════════
 
-    from action_machine.intents.logging.channel import Channel
+    from action_machine.logging.channel import Channel
     from action_machine.plugin.events import (
         GlobalFinishEvent,
         AfterRegularAspectEvent,

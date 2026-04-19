@@ -114,7 +114,7 @@ from __future__ import annotations
 from typing import Any
 
 from action_machine.context.context import Context
-from action_machine.intents.logging.log_coordinator import LogCoordinator
+from action_machine.logging.log_coordinator import LogCoordinator
 from action_machine.plugin.events import (
     AfterRegularAspectEvent,
     AfterSummaryAspectEvent,

@@ -1,97 +1,105 @@
-# src/action_machine/intents/logging/domain_resolver.py
+# src/action_machine/logging/level.py
 """
-Resolve action domain from ``@meta`` for logging ``var["domain"]``.
+Severity level bitmask for log messages (how urgent).
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Callers (factory, machine, plugins) use ``resolve_domain(action_cls)`` when
-constructing ``ScopedLogger``. The logger does not read ``@meta`` itself.
-``domain_label`` produces a short string for templates (``{%var.domain_name}``).
+``Level`` is an ``IntFlag``. Each emitted message carries exactly one level bit,
+chosen from the method name: ``info``, ``warning``, or ``critical``. In a
+subscription, a level mask means “match if the message level is any of these
+bits”.
 
 ═══════════════════════════════════════════════════════════════════════════════
 INVARIANTS
 ═══════════════════════════════════════════════════════════════════════════════
 
-- Return type is ``type[BaseDomain] | None``. ``None`` if metadata or domain
-  key is missing.
-- If ``@meta`` exists and ``domain`` is present but invalid → ``TypeError``.
+- Exactly one of ``Level.info``, ``Level.warning``, ``Level.critical`` per message.
+- ``level_label`` is for human-readable console prefixes (e.g. ``INFO``).
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-    action class
-        |
-        v
-    @meta(..., domain=DomainCls)
-        |
-        v
-    resolve_domain(action_cls)
-        |
-        +--> DomainCls (validated BaseDomain subclass)
-        |         |
-        |         v
-        |   ScopedLogger(domain=DomainCls)
-        |         |
-        |         v
-        |   var["domain"] + var["domain_name"]
-        |
-        +--> None (no @meta/domain)
+    ScopedLogger.info/warning/critical
+                |
+                v
+    level mask in var["level"]
+                |
+                v
+    validate_level(...)
+                |
+                +--> fail on combined/unknown bits
+                |
+                v
+    logger filters and console rendering
+                |
+                v
+    level_label(Level.*) -> "INFO"/"WARNING"/"CRITICAL"
 
 ═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
-``domain_label(OrdersDomain)`` → typically ``"orders"`` from class ``name``,
-else ``__name__``.
+``Level.warning | Level.critical`` in ``subscribe`` accepts both severities.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ERRORS / LIMITATIONS
 ═══════════════════════════════════════════════════════════════════════════════
 
-``TypeError`` when domain is not a ``BaseDomain`` subclass type.
+``validate_level`` rejects combined or unknown level masks for message ``var``.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN
 ═══════════════════════════════════════════════════════════════════════════════
-ROLE: Bridge from @meta domain to logging var fields.
-CONTRACT: resolve_domain(cls) -> type[BaseDomain] | None; domain_label for display.
-INVARIANTS: invalid domain with meta present raises; None is allowed for tests/no meta.
-FLOW: construction sites pass domain into ScopedLogger; coordinator type-checks var.
-FAILURES: TypeError on bad domain configuration.
-EXTENSION POINTS: none; domain source is @meta only.
+ROLE: Level enum + labels + validation for coordinator and subscriptions.
+CONTRACT: Three bits; message level is single-bit; subscription may OR bits.
+INVARIANTS: _SINGLE_LEVELS frozenset gates validate_level.
+FLOW: ScopedLogger._emit sets level from method → coordinator validates → logger match.
+FAILURES: ValueError from validate_level on bad message level.
+EXTENSION POINTS: new levels need enum + validation + label rules.
 AI-CORE-END
 ═══════════════════════════════════════════════════════════════════════════════
 """
 
-from action_machine.domain.base_domain import BaseDomain
+from enum import IntFlag
 
 
-def resolve_domain(action_cls: type) -> type[BaseDomain] | None:
+class Level(IntFlag):
     """
-    Resolve and validate ``domain`` from action ``@meta``.
+    Log severity bitmask: info, warning, critical.
 
-    Returns the domain class or ``None`` if ``@meta`` is missing or domain
-    absent. If ``@meta`` exists but domain is invalid, raises ``TypeError``.
+    AI-CORE-BEGIN
+    ROLE: Severity classifier for log routing and display.
+    CONTRACT: Messages carry one bit; subscriptions may combine bits.
+    INVARIANTS: Valid single-bit values are enforced by validate_level.
+    AI-CORE-END
     """
-    meta = getattr(action_cls, "_meta_info", None)
-    if meta is None:
-        return None
-    domain = meta.get("domain")
-    if domain is None:
-        return None
-    if not isinstance(domain, type) or not issubclass(domain, BaseDomain):
-        raise TypeError(
-            f"@meta on {action_cls.__name__} has invalid domain: {domain!r}. "
-            f"Expected a BaseDomain subclass."
+
+    info = 1
+    warning = 2
+    critical = 4
+
+
+_SINGLE_LEVELS = frozenset({Level.info, Level.warning, Level.critical})
+
+# Avoid ``level.name`` typing (``str | None`` in stubs); map known single-bit levels.
+_LEVEL_LABELS: dict[int, str] = {
+    int(Level.info): "INFO",
+    int(Level.warning): "WARNING",
+    int(Level.critical): "CRITICAL",
+}
+
+
+def level_label(level: Level) -> str:
+    """Map ``Level.info`` → ``INFO`` for console-style output."""
+    return _LEVEL_LABELS[int(level)]
+
+
+def validate_level(value: Level) -> None:
+    """Require exactly one of info / warning / critical (one bit)."""
+    if value not in _SINGLE_LEVELS:
+        raise ValueError(
+            f"level must be exactly one of info/warning/critical, got {value}"
         )
-    return domain
-
-
-def domain_label(domain: type[BaseDomain] | None) -> str | None:
-    """Return display label for domain class; ``None`` stays ``None``."""
-    if domain is None:
-        return None
-    return getattr(domain, "name", domain.__name__)

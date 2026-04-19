@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import pytest
 
-from action_machine.intents.logging.channel import Channel, validate_channels
+from action_machine.logging.channel import Channel, validate_channels
 
 
 def test_validate_channels_rejects_non_int_like() -> None:

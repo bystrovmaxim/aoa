@@ -72,7 +72,7 @@ _reset_all_mocks() between them. Plugins are not reset — collected_events
 contains events from BOTH runs. Tests must account for duplication or call
 observer.reset() before run().
 """
-from action_machine.intents.logging.scoped_logger import ScopedLogger
+from action_machine.logging.scoped_logger import ScopedLogger
 from action_machine.plugin.events import (
     AfterCompensateAspectEvent,
     BeforeCompensateAspectEvent,

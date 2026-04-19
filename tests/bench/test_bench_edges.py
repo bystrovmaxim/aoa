@@ -270,7 +270,7 @@ class TestBenchLogCoordinator:
 
     def test_custom_log_coordinator(self) -> None:
         """Custom log_coordinator is passed to the machine."""
-        from action_machine.intents.logging.log_coordinator import LogCoordinator
+        from action_machine.logging.log_coordinator import LogCoordinator
         log_coord = LogCoordinator()
 
         bench = TestBench(log_coordinator=log_coord)
@@ -340,7 +340,7 @@ class TestBuildSyncMachine:
 
     def test_sync_machine_with_log_coordinator(self) -> None:
         """Sync machine receives the log_coordinator if provided."""
-        from action_machine.intents.logging.log_coordinator import LogCoordinator
+        from action_machine.logging.log_coordinator import LogCoordinator
 
         log_coord = LogCoordinator()
         bench = TestBench(log_coordinator=log_coord)

@@ -78,7 +78,7 @@ EXAMPLE
 ═══════════════════════════════════════════════════════════════════════════════
 
     from action_machine.intents.compensate import compensate
-    from action_machine.intents.logging.channel import Channel
+    from action_machine.logging.channel import Channel
 
     class CreateOrderAction(BaseAction[CreateOrderParams, CreateOrderResult]):
 
