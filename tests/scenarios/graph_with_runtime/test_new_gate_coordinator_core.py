@@ -4,16 +4,16 @@ from __future__ import annotations
 
 import pytest
 
-from action_machine.graph.base_intent_inspector import BaseIntentInspector
-from action_machine.graph.exceptions import (
+from action_machine.legacy.core import Core
+from graph.base_intent_inspector import BaseIntentInspector
+from graph.exceptions import (
     DuplicateNodeError,
     InvalidGraphError,
     PayloadValidationError,
 )
-from action_machine.graph.facet_edge import FacetEdge
-from action_machine.graph.facet_vertex import FacetVertex
-from action_machine.graph.graph_coordinator import GraphCoordinator
-from action_machine.legacy.core import Core
+from graph.facet_edge import FacetEdge
+from graph.facet_vertex import FacetVertex
+from graph.graph_coordinator import GraphCoordinator
 
 
 class _A:

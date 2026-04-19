@@ -1,7 +1,7 @@
 # tests/graph_contract/test_graph_builder.py
 
 """
-Facet → interchange projection (:mod:`action_machine.graph.graph_builder`).
+Facet → interchange projection (:mod:`graph.graph_builder`).
 """
 
 from __future__ import annotations
@@ -10,13 +10,13 @@ from dataclasses import asdict
 
 import pytest
 
-from action_machine.graph import GraphBuilder, GraphEdge, GraphVertex
-from action_machine.graph.base_intent_inspector import BaseIntentInspector
-from action_machine.graph.facet_edge import FacetEdge
-from action_machine.graph.facet_vertex import FacetVertex
-from action_machine.graph.graph_builder import build_interchange_from_facet_vertices
-from action_machine.graph.graph_coordinator import GraphCoordinator
 from action_machine.legacy.interchange_vertex_labels import DOMAIN_VERTEX_TYPE
+from graph import GraphBuilder, GraphEdge, GraphVertex
+from graph.base_intent_inspector import BaseIntentInspector
+from graph.facet_edge import FacetEdge
+from graph.facet_vertex import FacetVertex
+from graph.graph_builder import build_interchange_from_facet_vertices
+from graph.graph_coordinator import GraphCoordinator
 
 
 def _interchange_canonical(payloads: tuple[FacetVertex, ...]) -> tuple[list[dict], list[dict]]:

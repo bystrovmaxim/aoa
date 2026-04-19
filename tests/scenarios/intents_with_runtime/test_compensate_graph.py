@@ -9,8 +9,6 @@ the host class with ``has_compensator`` edges, and keeps the aggregate
 
 from __future__ import annotations
 
-from action_machine.graph.base_intent_inspector import BaseIntentInspector
-from action_machine.graph.graph_coordinator import GraphCoordinator
 from action_machine.intents.aspects.regular_aspect_decorator import regular_aspect
 from action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
 from action_machine.intents.check_roles import NoneRole, check_roles
@@ -21,6 +19,8 @@ from action_machine.legacy.core import Core
 from action_machine.model.base_action import BaseAction
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_result import BaseResult
+from graph.base_intent_inspector import BaseIntentInspector
+from graph.graph_coordinator import GraphCoordinator
 from tests.scenarios.domain_model.domains import TestDomain
 
 

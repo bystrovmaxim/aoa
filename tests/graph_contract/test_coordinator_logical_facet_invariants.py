@@ -7,11 +7,11 @@ from __future__ import annotations
 import importlib
 import warnings
 
-from action_machine.graph.base_intent_inspector import BaseIntentInspector
-from action_machine.graph.facet_vertex import FacetVertex
-from action_machine.graph.graph_coordinator import GraphCoordinator
 from action_machine.integrations.mcp.adapter import _build_graph_json
 from action_machine.legacy.core import Core
+from graph.base_intent_inspector import BaseIntentInspector
+from graph.facet_vertex import FacetVertex
+from graph.graph_coordinator import GraphCoordinator
 from maxitor.samples.build import _MODULES, build_sample_coordinator
 from maxitor.samples.store.actions.checkout_submit import CheckoutSubmitAction
 

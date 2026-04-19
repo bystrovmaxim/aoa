@@ -72,12 +72,12 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import cast
 
-from action_machine.graph.base_facet_snapshot import BaseFacetSnapshot
-from action_machine.graph.base_intent_inspector import BaseIntentInspector
-from action_machine.graph.facet_edge import FacetEdge, FacetMetaRow
-from action_machine.graph.facet_vertex import FacetVertex
 from action_machine.legacy.interchange_vertex_labels import ACTION_VERTEX_TYPE
 from action_machine.legacy.on_error_intent import OnErrorIntent
+from graph.base_facet_snapshot import BaseFacetSnapshot
+from graph.base_intent_inspector import BaseIntentInspector
+from graph.facet_edge import FacetEdge, FacetMetaRow
+from graph.facet_vertex import FacetVertex
 
 
 class OnErrorIntentInspector(BaseIntentInspector):

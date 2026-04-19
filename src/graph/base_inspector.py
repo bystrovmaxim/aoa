@@ -1,11 +1,11 @@
-# src/action_machine/graph/base_inspector.py
+# src/graph/base_inspector.py
 """BaseInspector — abstract base for graph inspectors."""
 
 from __future__ import annotations
 
 from typing import Any
 
-from action_machine.graph.base_graph_node import BaseGraphNode
+from graph.base_graph_node import BaseGraphNode
 
 
 class BaseInspector:
@@ -13,10 +13,10 @@ class BaseInspector:
 
     def get_graph_nodes(self) -> list[BaseGraphNode[Any]]:
         """
-        Optional hook for interchange-node assembly (e.g. :class:`~action_machine.graph.node_graph_coordinator.NodeGraphCoordinator`).
+        Optional hook for interchange-node assembly (e.g. :class:`~graph.node_graph_coordinator.NodeGraphCoordinator`).
 
         Default implementation raises :exc:`NotImplementedError`. Subclasses that
-        emit :class:`~action_machine.graph.base_graph_node.BaseGraphNode` instances override this **instance**
+        emit :class:`~graph.base_graph_node.BaseGraphNode` instances override this **instance**
         method.
 
         Raises:

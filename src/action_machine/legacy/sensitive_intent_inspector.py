@@ -47,14 +47,14 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from action_machine.graph.base_facet_snapshot import BaseFacetSnapshot
-from action_machine.graph.base_intent_inspector import BaseIntentInspector
-from action_machine.graph.facet_edge import FacetEdge
-from action_machine.graph.facet_vertex import FacetVertex
 from action_machine.legacy.interchange_vertex_labels import ACTION_VERTEX_TYPE, ENTITY_VERTEX_TYPE
 from action_machine.model.base_action import BaseAction
 from action_machine.model.base_schema import BaseSchema
 from action_machine.resources.base_resource_manager import BaseResourceManager
+from graph.base_facet_snapshot import BaseFacetSnapshot
+from graph.base_intent_inspector import BaseIntentInspector
+from graph.facet_edge import FacetEdge
+from graph.facet_vertex import FacetVertex
 
 
 class SensitiveIntentInspector(BaseIntentInspector):

@@ -1,9 +1,9 @@
-# src/action_machine/graph/facet_vertex.py
+# src/graph/facet_vertex.py
 """
 Facet-layer node + outgoing edges (:class:`FacetVertex`), collected before interchange.
 
-Pairs with :class:`~action_machine.graph.graph_vertex.GraphVertex` after commit.
-Outgoing edges use :class:`~action_machine.graph.facet_edge.FacetEdge`.
+Pairs with :class:`~graph.graph_vertex.GraphVertex` after commit.
+Outgoing edges use :class:`~graph.facet_edge.FacetEdge`.
 """
 
 from __future__ import annotations
@@ -11,7 +11,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
-from action_machine.graph.facet_edge import FacetEdge
+from graph.facet_edge import FacetEdge
 
 
 @dataclass(frozen=True)

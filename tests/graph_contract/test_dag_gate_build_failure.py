@@ -6,10 +6,10 @@ from __future__ import annotations
 
 import pytest
 
-import action_machine.graph.graph_coordinator as gate_coordinator_mod
-from action_machine.graph.graph_edge import GraphEdge
-from action_machine.graph.graph_vertex import GraphVertex
+import graph.graph_coordinator as gate_coordinator_mod
 from action_machine.model.exceptions import CyclicDependencyError
+from graph.graph_edge import GraphEdge
+from graph.graph_vertex import GraphVertex
 
 from .facet_vertex_probe import graph_coordinator_default_inspectors_registered
 

@@ -2,7 +2,7 @@
 """
 Test-only helpers: collect merged ``FacetVertex`` rows like ``GraphCoordinator.build`` phase 1.
 
-Used by PR3-style tests to feed :mod:`action_machine.graph.graph_builder`
+Used by PR3-style tests to feed :mod:`graph.graph_builder`
 on a coordinator that mirrors :meth:`Core.create_coordinator` registration
 order **before** :meth:`GraphCoordinator.build`.
 """
@@ -10,8 +10,6 @@ order **before** :meth:`GraphCoordinator.build`.
 from __future__ import annotations
 
 from action_machine.application import ApplicationContextInspector
-from action_machine.graph.facet_vertex import FacetVertex
-from action_machine.graph.graph_coordinator import GraphCoordinator
 from action_machine.legacy.aspect_intent_inspector import AspectIntentInspector
 from action_machine.legacy.checker_intent_inspector import CheckerIntentInspector
 from action_machine.legacy.compensate_intent_inspector import (
@@ -30,6 +28,8 @@ from action_machine.legacy.role_mode_intent_inspector import RoleModeIntentInspe
 from action_machine.legacy.sensitive_intent_inspector import SensitiveIntentInspector
 from action_machine.model.base_action import ActionTypedSchemasInspector
 from action_machine.resources.connection_intent_inspector import ConnectionIntentInspector
+from graph.facet_vertex import FacetVertex
+from graph.graph_coordinator import GraphCoordinator
 
 
 def graph_coordinator_default_inspectors_registered() -> GraphCoordinator:

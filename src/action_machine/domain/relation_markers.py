@@ -289,7 +289,7 @@ class NoGraphEdge:
 
     The relation remains in the entity facet ``relations`` metadata (for docs and
     validation); :class:`~action_machine.legacy.entity_intent_inspector.EntityIntentInspector`
-    skips :class:`~action_machine.graph.facet_edge.FacetEdge` rows when ``NoGraphEdge()`` is present
+    skips :class:`~graph.facet_edge.FacetEdge` rows when ``NoGraphEdge()`` is present
     in ``Annotated[..., ...]``. Unlike :class:`NoInverse`, this does not describe the
     inverse side — it only suppresses the **forward** arc in the exported graph.
 

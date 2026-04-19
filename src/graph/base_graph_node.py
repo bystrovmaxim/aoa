@@ -1,4 +1,4 @@
-# src/action_machine/graph/base_graph_node.py
+# src/graph/base_graph_node.py
 """
 BaseGraphNode — generic frozen node (``payload``, ``obj``).
 
@@ -11,16 +11,16 @@ constructor argument is stored on :attr:`obj`.
 
 Because the node is frozen, the constructor uses :func:`object.__setattr__`.
 
-:meth:`to_facet_vertex` projects this node into a :class:`~action_machine.graph.facet_vertex.FacetVertex`
+:meth:`to_facet_vertex` projects this node into a :class:`~graph.facet_vertex.FacetVertex`
 for the classic coordinator ``build()`` pipeline. **Deprecated:** emit
 :class:`DeprecationWarning`; prefer the facet snapshot / coordinator projection path for new code.
 ``node_name`` is :attr:`Payload.id`; ``node_class`` is ``obj`` (must be a ``type``). Each
-:class:`~action_machine.graph.base_graph_edge.BaseGraphEdge` carries ``target_node_type`` — the same
+:class:`~graph.base_graph_edge.BaseGraphEdge` carries ``target_node_type`` — the same
 facet ``node_type`` string the target host would use in its :class:`Payload` (set by each ``*Node``
-when building outgoing edges); projection passes it through to :class:`~action_machine.graph.facet_edge.FacetEdge`.
+when building outgoing edges); projection passes it through to :class:`~graph.facet_edge.FacetEdge`.
 
 ``_base_link_to_facet_edge`` is **deprecated** as well; callers should build
-:class:`~action_machine.graph.facet_edge.FacetEdge` from :class:`~action_machine.graph.base_graph_edge.BaseGraphEdge`
+:class:`~graph.facet_edge.FacetEdge` from :class:`~graph.base_graph_edge.BaseGraphEdge`
 fields directly.
 """
 
@@ -30,9 +30,9 @@ from dataclasses import dataclass
 from typing import Any
 
 from action_machine.common.deprecated import deprecated
-from action_machine.graph.base_graph_edge import BaseGraphEdge
-from action_machine.graph.facet_edge import FacetEdge
-from action_machine.graph.facet_vertex import FacetVertex
+from graph.base_graph_edge import BaseGraphEdge
+from graph.facet_edge import FacetEdge
+from graph.facet_vertex import FacetVertex
 
 
 @deprecated("_base_link_to_facet_edge is deprecated and will be removed.")
@@ -95,7 +95,7 @@ class BaseGraphNode[T: object]:
     @deprecated("BaseGraphNode.to_facet_vertex() is deprecated and will be removed.")
     def to_facet_vertex(self) -> FacetVertex:
         """
-        Build a :class:`~action_machine.graph.facet_vertex.FacetVertex` from ``payload`` and ``obj``.
+        Build a :class:`~graph.facet_vertex.FacetVertex` from ``payload`` and ``obj``.
 
         Deprecated: emits :class:`DeprecationWarning`; migrate to the facet snapshot / coordinator
         projection API.

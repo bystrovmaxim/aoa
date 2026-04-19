@@ -1,4 +1,4 @@
-# src/action_machine/graph/graph_coordinator.py
+# src/graph/graph_coordinator.py
 """
 GraphCoordinator — transactional interchange graph, internal facet skeleton, and typed facet snapshots.
 
@@ -26,7 +26,7 @@ After a successful ``register(...).build()``:
 3. **Interchange graph** — the committed ``rx.PyDiGraph`` in ``_graph`` holds the
    canonical public topology (``node_type``, ``id``, …). Vertex ``id`` matches the
    facet key ``node_type:node_name``; edges are projected from payload ``edges`` via
-   :mod:`action_machine.graph.graph_builder`. Read it with :meth:`get_graph`.
+   :mod:`graph.graph_builder`. Read it with :meth:`get_graph`.
 
    A separate **internal** facet skeleton ``rx.PyDiGraph`` (``_facet_graph``) stores
    ``node_type`` / ``id`` / ``class_ref`` for snapshot hydration, ``get_node``, and
@@ -49,7 +49,7 @@ hydration are recorded during phase 1 from each inspector's
 ``facet_snapshot_storage_key()``; if several snapshot storage keys hydrate the same merged node, ``facet_rows`` is the
 union of their ``to_facet_vertex().node_meta`` maps. Nodes without a registration may
 fall back to ``get_snapshot(cls, node_type)`` unless the payload set
-``skip_node_type_snapshot_fallback`` (see :class:`~action_machine.graph.facet_vertex.FacetVertex`).
+``skip_node_type_snapshot_fallback`` (see :class:`~graph.facet_vertex.FacetVertex`).
 
 Dependency ``DependencyFactory`` instances may be cached on this object under
 ``dependency_factory.DEPENDENCY_FACTORY_CACHE_KEY``; clearing that cache does
@@ -103,7 +103,7 @@ The graph is either built completely and consistently, or not committed at all.
         as ``CyclicDependencyError``.
 
     PHASE 2b — DAG slice (before commit)
-        :mod:`action_machine.graph.graph_builder` on facet payloads; acyclicity
+        :mod:`graph.graph_builder` on facet payloads; acyclicity
         of the DAG slice (``DEPENDS_ON`` / ``CONNECTS_TO`` with ``is_dag=True``).
         Informational interchange edges (non-DAG slice) are outside this check and
         may cycle; they do not trigger ``CyclicDependencyError``.
@@ -134,7 +134,7 @@ opaque strings from inspectors. One Python class may emit several keys; see
 EXAMPLE (EXPLICIT INSPECTOR REGISTRATION)
 ═══════════════════════════════════════════════════════════════════════════════
 
-    from action_machine.graph.graph_coordinator import GraphCoordinator
+    from graph.graph_coordinator import GraphCoordinator
     from action_machine.legacy.role_class_inspector import RoleClassInspector
     from action_machine.legacy.role_intent_inspector import RoleIntentInspector
     from action_machine.legacy.role_mode_intent_inspector import (
@@ -180,20 +180,20 @@ from typing import Any, Literal
 
 import rustworkx as rx
 
-from action_machine.graph.base_facet_snapshot import BaseFacetSnapshot
-from action_machine.graph.base_intent_inspector import BaseIntentInspector
-from action_machine.graph.dag import assert_dag_edges_acyclic
-from action_machine.graph.exceptions import (
+from action_machine.model.exceptions import CyclicDependencyError
+from action_machine.runtime.dependency_factory import DEPENDENCY_FACTORY_CACHE_KEY
+from graph.base_facet_snapshot import BaseFacetSnapshot
+from graph.base_intent_inspector import BaseIntentInspector
+from graph.dag import assert_dag_edges_acyclic
+from graph.exceptions import (
     DuplicateNodeError,
     InvalidGraphError,
     PayloadValidationError,
 )
-from action_machine.graph.facet_vertex import FacetVertex
-from action_machine.graph.graph_builder import build_interchange_from_facet_vertices
-from action_machine.graph.graph_edge import GraphEdge
-from action_machine.graph.graph_vertex import GraphVertex
-from action_machine.model.exceptions import CyclicDependencyError
-from action_machine.runtime.dependency_factory import DEPENDENCY_FACTORY_CACHE_KEY
+from graph.facet_vertex import FacetVertex
+from graph.graph_builder import build_interchange_from_facet_vertices
+from graph.graph_edge import GraphEdge
+from graph.graph_vertex import GraphVertex
 
 
 class GraphCoordinator:
@@ -325,8 +325,8 @@ class GraphCoordinator:
         ``rx.PyDiGraph`` plus interchange ``rx.PyDiGraph``.
         Any phase-2 failure means nothing from this build is committed. After facet
         validation succeeds, the interchange graph is built from facet payloads
-        via :func:`~action_machine.graph.graph_builder.build_interchange_from_facet_vertices`;
-        if its DAG slice (interchange edges in :data:`~action_machine.graph.constants.DAG_EDGE_TYPES`
+        via :func:`~graph.graph_builder.build_interchange_from_facet_vertices`;
+        if its DAG slice (interchange edges in :data:`~graph.constants.DAG_EDGE_TYPES`
         with ``is_dag=True``; other edges use ``is_dag=False``) is cyclic, ``build()`` raises
         ``CyclicDependencyError`` and
         nothing is committed.
@@ -717,8 +717,8 @@ class GraphCoordinator:
         """
         Populate ``_graph`` from interchange vertices and edges.
 
-        Node payloads mirror :class:`~action_machine.graph.graph_vertex.GraphVertex`
-        fields; edge payloads mirror :class:`~action_machine.graph.graph_edge.GraphEdge`.
+        Node payloads mirror :class:`~graph.graph_vertex.GraphVertex`
+        fields; edge payloads mirror :class:`~graph.graph_edge.GraphEdge`.
         """
         lg = rx.PyDiGraph()
         id_to_idx: dict[str, int] = {}

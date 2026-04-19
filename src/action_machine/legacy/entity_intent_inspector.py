@@ -132,12 +132,12 @@ from pydantic_core import PydanticUndefined
 from action_machine.domain.lifecycle import Lifecycle, StateInfo, StateType
 from action_machine.domain.relation_containers import BaseRelationMany, BaseRelationOne
 from action_machine.domain.relation_markers import Inverse, NoGraphEdge, NoInverse, Rel
-from action_machine.graph.base_facet_snapshot import BaseFacetSnapshot
-from action_machine.graph.base_intent_inspector import BaseIntentInspector, FacetInspectResult
-from action_machine.graph.facet_edge import FacetEdge
-from action_machine.graph.facet_vertex import FacetVertex
 from action_machine.legacy.entity_intent import EntityIntent, entity_info_is_set
 from action_machine.legacy.interchange_vertex_labels import DOMAIN_VERTEX_TYPE, ENTITY_VERTEX_TYPE
+from graph.base_facet_snapshot import BaseFacetSnapshot
+from graph.base_intent_inspector import BaseIntentInspector, FacetInspectResult
+from graph.facet_edge import FacetEdge
+from graph.facet_vertex import FacetVertex
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Scalar field constraints (aligned with Params/Result facet extraction)
@@ -499,7 +499,7 @@ def lifecycle_state_node_name(
     ``Lifecycle`` subclass (and state keys) without graph key collisions.
 
     Shape: full entity path + ``:`` + ``{field}:{lifecycle_short}:{state_key}``
-    (via :meth:`~action_machine.graph.base_intent_inspector.BaseIntentInspector._make_node_name`).
+    (via :meth:`~graph.base_intent_inspector.BaseIntentInspector._make_node_name`).
     """
     return BaseIntentInspector._make_node_name(
         entity_class,
@@ -509,10 +509,10 @@ def lifecycle_state_node_name(
 
 def entity_relation_facet_edge_type(relation_type: str, cardinality: str) -> str:
     """
-    Facet ``edge_type`` string for :class:`~action_machine.graph.facet_edge.FacetEdge`.
+    Facet ``edge_type`` string for :class:`~graph.facet_edge.FacetEdge`.
 
     Maps to interchange ``COMPOSITION_*`` / ``AGGREGATION_*`` / ``ASSOCIATION_*`` via
-    :data:`action_machine.graph.graph_builder` tables.
+    :data:`graph.graph_builder` tables.
     """
     rt = str(relation_type).lower()
     card = str(cardinality).lower()

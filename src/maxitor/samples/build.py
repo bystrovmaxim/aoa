@@ -6,8 +6,8 @@ from __future__ import annotations
 import importlib
 from typing import Final
 
-from action_machine.graph.graph_coordinator import GraphCoordinator
 from action_machine.legacy.core import Core
+from graph.graph_coordinator import GraphCoordinator
 
 _MODULES: Final[tuple[str, ...]] = (
     "maxitor.samples.roles",

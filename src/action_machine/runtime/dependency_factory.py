@@ -99,7 +99,7 @@ from typing import TYPE_CHECKING, Any
 from action_machine.resources.base_resource_manager import BaseResourceManager
 
 if TYPE_CHECKING:
-    from action_machine.graph.graph_coordinator import GraphCoordinator
+    from graph.graph_coordinator import GraphCoordinator
 
 
 @dataclass(frozen=True)

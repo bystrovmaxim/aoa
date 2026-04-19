@@ -8,7 +8,7 @@ import importlib
 
 import pytest
 
-from action_machine.graph import INTERNAL_EDGE_TYPES, OWNERSHIP_EDGE_TYPES
+from graph import INTERNAL_EDGE_TYPES, OWNERSHIP_EDGE_TYPES
 from maxitor.samples.build import _MODULES, build_sample_coordinator
 
 

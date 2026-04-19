@@ -6,8 +6,6 @@ from __future__ import annotations
 from collections import UserDict
 
 from action_machine.context.ctx_constants import Ctx
-from action_machine.graph.base_intent_inspector import BaseIntentInspector
-from action_machine.graph.facet_edge import FacetMetaRow
 from action_machine.intents.aspects.regular_aspect_decorator import regular_aspect
 from action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
 from action_machine.intents.checkers.result_string_decorator import result_string
@@ -38,6 +36,8 @@ from action_machine.legacy.on_error_intent_inspector import (
     OnErrorIntentInspector,
     hydrate_error_handler_row,
 )
+from graph.base_intent_inspector import BaseIntentInspector
+from graph.facet_edge import FacetMetaRow
 
 
 class _RoundtripAspectAction(AspectIntent):

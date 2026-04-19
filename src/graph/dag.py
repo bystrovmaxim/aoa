@@ -1,10 +1,10 @@
-# src/action_machine/graph/dag.py
+# src/graph/dag.py
 
 """
 DAG validation for the coordinator interchange graph (``graph.md`` §6).
 
 Only edges whose ``edge_type`` is in ``DAG_EDGE_TYPES`` and whose ``is_dag`` flag is
-``True`` participate (see :data:`~action_machine.graph.constants.DAG_EDGE_TYPES`).
+``True`` participate (see :data:`~graph.constants.DAG_EDGE_TYPES`).
 
 Edges with ``is_dag=False`` are outside this module: cycles on that remainder are
 allowed and are not inspected here.
@@ -16,10 +16,10 @@ from collections.abc import Sequence
 
 import rustworkx as rx
 
-from action_machine.graph.constants import DAG_EDGE_TYPES
-from action_machine.graph.exceptions import InvalidGraphError
-from action_machine.graph.graph_edge import GraphEdge
-from action_machine.graph.graph_vertex import GraphVertex
+from graph.constants import DAG_EDGE_TYPES
+from graph.exceptions import InvalidGraphError
+from graph.graph_edge import GraphEdge
+from graph.graph_vertex import GraphVertex
 
 
 def collect_dag_edge_pairs(edges: Sequence[GraphEdge]) -> list[tuple[str, str]]:

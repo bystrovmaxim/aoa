@@ -73,12 +73,12 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from action_machine.auth.base_role import BaseRole
-from action_machine.graph.base_facet_snapshot import BaseFacetSnapshot
-from action_machine.graph.base_intent_inspector import BaseIntentInspector
-from action_machine.graph.exceptions import InvalidGraphError
-from action_machine.graph.facet_vertex import FacetVertex
 from action_machine.intents.role_mode.role_mode_decorator import RoleMode
 from action_machine.legacy.role_graph_roots import ROLE_CLASS_GRAPH_ROOTS
+from graph.base_facet_snapshot import BaseFacetSnapshot
+from graph.base_intent_inspector import BaseIntentInspector
+from graph.exceptions import InvalidGraphError
+from graph.facet_vertex import FacetVertex
 
 
 def _all_base_role_types() -> tuple[type[BaseRole], ...]:

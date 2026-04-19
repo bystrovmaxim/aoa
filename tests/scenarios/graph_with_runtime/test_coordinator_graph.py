@@ -45,8 +45,6 @@ from typing import Any
 import pytest
 
 from action_machine.auth.none_role import NoneRole
-from action_machine.graph.base_intent_inspector import BaseIntentInspector
-from action_machine.graph.graph_coordinator import GraphCoordinator
 from action_machine.intents.aspects.regular_aspect_decorator import regular_aspect
 from action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
 from action_machine.intents.check_roles.check_roles_decorator import check_roles
@@ -76,6 +74,8 @@ from action_machine.runtime.dependency_factory import (
     cached_dependency_factory,
     clear_dependency_factory_cache,
 )
+from graph.base_intent_inspector import BaseIntentInspector
+from graph.graph_coordinator import GraphCoordinator
 from tests.scenarios.domain_model.domains import TestDomain
 from tests.scenarios.domain_model.roles import AdminRole
 

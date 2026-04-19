@@ -21,8 +21,6 @@ from __future__ import annotations
 import pytest
 
 from action_machine.domain.base_domain import BaseDomain
-from action_machine.graph.base_intent_inspector import BaseIntentInspector
-from action_machine.graph.graph_coordinator import GraphCoordinator
 from action_machine.intents.depends import depends
 from action_machine.intents.meta.meta_decorator import meta
 from action_machine.legacy.action_meta_intent import ActionMetaIntent
@@ -33,6 +31,8 @@ from action_machine.resources.base_resource_manager import BaseResourceManager
 from action_machine.resources.connection_decorator import connection
 from action_machine.resources.connection_intent import ConnectionIntent
 from action_machine.resources.connection_intent_inspector import ConnectionIntentInspector
+from graph.base_intent_inspector import BaseIntentInspector
+from graph.graph_coordinator import GraphCoordinator
 
 
 class _OrdersDomain(BaseDomain):

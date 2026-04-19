@@ -6,10 +6,10 @@ DomainGraphNode — interchange node for BaseDomain marker classes.
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Provides a :class:`~action_machine.graph.base_graph_node.BaseGraphNode` view derived from
+Provides a :class:`~graph.base_graph_node.BaseGraphNode` view derived from
 a ``BaseDomain`` subclass. Interchange data lives in ``id``, ``node_type``,
 ``label``, ``properties``, and ``edges``; the domain class is the same object as
-:attr:`~action_machine.graph.base_graph_node.BaseGraphNode.obj`.
+:attr:`~graph.base_graph_node.BaseGraphNode.obj`.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
@@ -24,7 +24,7 @@ ARCHITECTURE / DATA FLOW
 INVARIANTS
 ═══════════════════════════════════════════════════════════════════════════════
 
-- The domain class is available as :attr:`~action_machine.graph.base_graph_node.BaseGraphNode.obj`.
+- The domain class is available as :attr:`~graph.base_graph_node.BaseGraphNode.obj`.
 - ``label`` is the domain class ``__name__``; ``properties`` hold ``name`` / ``description``; ``edges`` include informational ``belongs_to`` → ``ApplicationContext`` (facet parity).
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -67,9 +67,9 @@ from typing import TypeVar
 
 from action_machine.common import qualified_dotted_name
 from action_machine.domain.base_domain import BaseDomain
-from action_machine.graph.base_graph_edge import BaseGraphEdge
-from action_machine.graph.base_graph_node import BaseGraphNode, Payload
 from action_machine.legacy.interchange_vertex_labels import APPLICATION_VERTEX_TYPE
+from graph.base_graph_edge import BaseGraphEdge
+from graph.base_graph_node import BaseGraphNode, Payload
 
 TDomain = TypeVar("TDomain", bound=BaseDomain)
 

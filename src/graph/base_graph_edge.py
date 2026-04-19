@@ -1,4 +1,4 @@
-# src/action_machine/graph/base_graph_edge.py
+# src/graph/base_graph_edge.py
 """
 BaseGraphEdge — one outgoing interchange edge (slot, target id, target facet kind, DAG flag, target class).
 
@@ -9,7 +9,7 @@ PURPOSE
 Represents one outgoing semantic link from a :class:`BaseGraphNode`: the slot key
 (e.g. ``domain``, ``params``), the target vertex interchange id (dotted path), the
 facet **target** ``node_type`` string (same convention as the target host's
-:class:`~action_machine.graph.base_graph_node.Payload.node_type`), the Python **target
+:class:`~graph.base_graph_node.Payload.node_type`), the Python **target
 class** when the target is a type (``target_class_ref``), and whether the edge
 participates in **acyclicity** (DAG) reasoning.
 

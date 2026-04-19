@@ -1,4 +1,4 @@
-# src/action_machine/graph/graph_vertex.py
+# src/graph/graph_vertex.py
 """
 Frozen interchange vertex for the coordinator graph (spec graph.md §10).
 """
