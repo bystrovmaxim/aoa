@@ -104,8 +104,8 @@ from collections.abc import Callable
 from typing import Any
 
 from action_machine.domain.base_domain import BaseDomain
-from action_machine.intents.meta.action_meta_intent import ActionMetaIntent
-from action_machine.intents.meta.resource_meta_intent import ResourceMetaIntent
+from action_machine.legacy.action_meta_intent import ActionMetaIntent
+from action_machine.legacy.resource_meta_intent import ResourceMetaIntent
 
 
 def _validate_meta_description(description: Any) -> None:

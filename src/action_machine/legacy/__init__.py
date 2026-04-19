@@ -1,63 +1,113 @@
 # src/action_machine/legacy/__init__.py
 """Legacy graph topology helpers for role-class interchange."""
 
-from action_machine.legacy.aspect_intent import AspectIntent
-from action_machine.legacy.aspect_intent_inspector import (
-    AspectIntentInspector,
-    hydrate_aspect_row,
-)
-from action_machine.legacy.check_roles_intent import CheckRolesIntent
-from action_machine.legacy.checker_intent import CheckerIntent
-from action_machine.legacy.checker_intent_inspector import (
-    CheckerIntentInspector,
-    hydrate_checker_row,
-)
-from action_machine.legacy.compensate_intent import CompensateIntent
-from action_machine.legacy.compensate_intent_inspector import (
-    CompensateIntentInspector,
-    hydrate_compensator_row,
-)
-from action_machine.legacy.context_requires_intent import ContextRequiresIntent
-from action_machine.legacy.described_fields import (
-    DescribedFieldsIntent,
-    validate_described_schema,
-    validate_described_schemas_for_action,
-)
-from action_machine.legacy.described_fields.described_fields_intent_inspector import (
-    DescribedFieldsIntentInspector,
-)
-from action_machine.legacy.entity_intent import EntityIntent, entity_info_is_set
-from action_machine.legacy.entity_intent_inspector import EntityIntentInspector
-from action_machine.legacy.role_class_inspector import RoleClassInspector
-from action_machine.legacy.role_graph_roots import (
-    ROLE_CLASS_GRAPH_ROOTS,
-    role_class_topology_anchor,
-)
-from action_machine.legacy.role_intent_inspector import RoleIntentInspector
-from action_machine.legacy.role_mode_intent_inspector import RoleModeIntentInspector
+from __future__ import annotations
 
-__all__ = [
-    "AspectIntent",
-    "AspectIntentInspector",
-    "CheckRolesIntent",
-    "CheckerIntent",
-    "CheckerIntentInspector",
-    "CompensateIntent",
-    "CompensateIntentInspector",
-    "ContextRequiresIntent",
-    "DescribedFieldsIntent",
-    "DescribedFieldsIntentInspector",
-    "EntityIntent",
-    "EntityIntentInspector",
-    "ROLE_CLASS_GRAPH_ROOTS",
-    "RoleClassInspector",
-    "RoleIntentInspector",
-    "RoleModeIntentInspector",
-    "hydrate_aspect_row",
-    "hydrate_checker_row",
-    "hydrate_compensator_row",
-    "role_class_topology_anchor",
-    "entity_info_is_set",
-    "validate_described_schema",
-    "validate_described_schemas_for_action",
-]
+import importlib
+from typing import Any
+
+# Eager imports on ``action_machine.legacy`` would run before submodules like
+# ``resource_meta_intent`` and create import cycles with ``BaseResourceManager``
+# / ``BaseAction``. Resolve public symbols lazily (PEP 562).
+
+_LAZY_EXPORTS: dict[str, tuple[str, str]] = {
+    "ActionMetaIntent": ("action_machine.legacy.action_meta_intent", "ActionMetaIntent"),
+    "AspectIntent": ("action_machine.legacy.aspect_intent", "AspectIntent"),
+    "AspectIntentInspector": (
+        "action_machine.legacy.aspect_intent_inspector",
+        "AspectIntentInspector",
+    ),
+    "hydrate_aspect_row": (
+        "action_machine.legacy.aspect_intent_inspector",
+        "hydrate_aspect_row",
+    ),
+    "CheckRolesIntent": ("action_machine.legacy.check_roles_intent", "CheckRolesIntent"),
+    "CheckerIntent": ("action_machine.legacy.checker_intent", "CheckerIntent"),
+    "CheckerIntentInspector": (
+        "action_machine.legacy.checker_intent_inspector",
+        "CheckerIntentInspector",
+    ),
+    "hydrate_checker_row": (
+        "action_machine.legacy.checker_intent_inspector",
+        "hydrate_checker_row",
+    ),
+    "CompensateIntent": ("action_machine.legacy.compensate_intent", "CompensateIntent"),
+    "CompensateIntentInspector": (
+        "action_machine.legacy.compensate_intent_inspector",
+        "CompensateIntentInspector",
+    ),
+    "hydrate_compensator_row": (
+        "action_machine.legacy.compensate_intent_inspector",
+        "hydrate_compensator_row",
+    ),
+    "ContextRequiresIntent": (
+        "action_machine.legacy.context_requires_intent",
+        "ContextRequiresIntent",
+    ),
+    "DescribedFieldsIntent": (
+        "action_machine.legacy.described_fields",
+        "DescribedFieldsIntent",
+    ),
+    "validate_described_schema": (
+        "action_machine.legacy.described_fields",
+        "validate_described_schema",
+    ),
+    "validate_described_schemas_for_action": (
+        "action_machine.legacy.described_fields",
+        "validate_described_schemas_for_action",
+    ),
+    "DescribedFieldsIntentInspector": (
+        "action_machine.legacy.described_fields.described_fields_intent_inspector",
+        "DescribedFieldsIntentInspector",
+    ),
+    "EntityIntent": ("action_machine.legacy.entity_intent", "EntityIntent"),
+    "entity_info_is_set": ("action_machine.legacy.entity_intent", "entity_info_is_set"),
+    "EntityIntentInspector": (
+        "action_machine.legacy.entity_intent_inspector",
+        "EntityIntentInspector",
+    ),
+    "MetaIntentInspector": (
+        "action_machine.legacy.meta_intent_inspector",
+        "MetaIntentInspector",
+    ),
+    "ResourceMetaIntent": (
+        "action_machine.legacy.resource_meta_intent",
+        "ResourceMetaIntent",
+    ),
+    "RoleClassInspector": (
+        "action_machine.legacy.role_class_inspector",
+        "RoleClassInspector",
+    ),
+    "ROLE_CLASS_GRAPH_ROOTS": (
+        "action_machine.legacy.role_graph_roots",
+        "ROLE_CLASS_GRAPH_ROOTS",
+    ),
+    "role_class_topology_anchor": (
+        "action_machine.legacy.role_graph_roots",
+        "role_class_topology_anchor",
+    ),
+    "RoleIntentInspector": (
+        "action_machine.legacy.role_intent_inspector",
+        "RoleIntentInspector",
+    ),
+    "RoleModeIntentInspector": (
+        "action_machine.legacy.role_mode_intent_inspector",
+        "RoleModeIntentInspector",
+    ),
+}
+
+__all__ = sorted(_LAZY_EXPORTS)
+
+
+def __getattr__(name: str) -> Any:
+    try:
+        mod_path, attr = _LAZY_EXPORTS[name]
+    except KeyError as exc:
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}") from exc
+    value = getattr(importlib.import_module(mod_path), attr)
+    globals()[name] = value
+    return value
+
+
+def __dir__() -> list[str]:
+    return sorted(set(globals()) | set(__all__))

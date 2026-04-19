@@ -1,4 +1,4 @@
-# src/action_machine/intents/meta/meta_intent_inspector.py
+# src/action_machine/legacy/meta_intent_inspector.py
 """
 MetaIntentInspector — graph inspector for ``@meta`` declarations.
 
@@ -66,9 +66,9 @@ from typing import Any
 from action_machine.graph.base_facet_snapshot import BaseFacetSnapshot
 from action_machine.graph.base_intent_inspector import BaseIntentInspector
 from action_machine.graph.facet_vertex import FacetVertex
-from action_machine.intents.meta.action_meta_intent import ActionMetaIntent
-from action_machine.intents.meta.resource_meta_intent import ResourceMetaIntent
+from action_machine.legacy.action_meta_intent import ActionMetaIntent
 from action_machine.legacy.interchange_vertex_labels import ACTION_VERTEX_TYPE, DOMAIN_VERTEX_TYPE
+from action_machine.legacy.resource_meta_intent import ResourceMetaIntent
 from action_machine.model.base_action import BaseAction
 from action_machine.resources.base_resource_manager import BaseResourceManager
 

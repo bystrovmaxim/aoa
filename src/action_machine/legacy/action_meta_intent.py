@@ -1,4 +1,4 @@
-# src/action_machine/intents/meta/action_meta_intent.py
+# src/action_machine/legacy/action_meta_intent.py
 """``ActionMetaIntent`` — marker mixin for the ``@meta`` decorator on actions."""
 
 from __future__ import annotations
