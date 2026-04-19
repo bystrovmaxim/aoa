@@ -1,30 +1,27 @@
-# src/action_machine/application/__init__.py
+# src/action_machine/legacy/deprecated.py
 """
-Application — logical root facet and ``BaseDomain`` → ``Application`` graph wiring.
+deprecated — ``@deprecated`` decorator for runtime :class:`DeprecationWarning`.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Exposes the marker :class:`ApplicationContext` and
-:class:`ApplicationContextInspector`, which register the coordinator ``Application``
-vertex and ``belongs_to`` edges from materialized ``BaseDomain`` types.
+Wraps callables so each invocation emits a :class:`DeprecationWarning` with a fixed
+message and correct stack attribution (call site, not the decorator internals).
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-    ApplicationContext  (marker)
-           ^
-           |  ``belongs_to`` (informational)
-    BaseDomain subclasses  →  ApplicationContextInspector  →  FacetVertex rows
+    caller  →  wrapped(...)  →  warnings.warn(..., stacklevel=2)  →  original callable
 
 ═══════════════════════════════════════════════════════════════════════════════
 INVARIANTS
 ═══════════════════════════════════════════════════════════════════════════════
 
-- ``ApplicationContext`` carries no runtime state; it names one logical graph anchor.
-- The inspector targets ``BaseDomain`` and merges the shared Application node across domains.
+- Uses :func:`functools.wraps` so ``__name__``, ``__doc__``, and ``__wrapped__`` stay aligned.
+- ``stacklevel=2`` so the warning points at the **call site** of the deprecated API.
+- Category is always :class:`DeprecationWarning`.
 
 ═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES
@@ -32,37 +29,54 @@ EXAMPLES
 
 ::
 
-    from action_machine.application import ApplicationContext
-    from action_machine.legacy.core import Core
+    @deprecated("old_fn is deprecated; use new_fn instead.")
+    def old_fn() -> None: ...
 
-    Core.create_coordinator()  # registers ApplicationContextInspector
-
-Edge case: abstract ``BaseDomain`` is skipped; concrete leaf domains with valid ``name`` / ``description`` emit facets.
+Edge case: apply **above** ``@classmethod`` / ``@staticmethod`` if those decorators are used
+(outermost ``@deprecated`` last in source order for methods — i.e. ``@deprecated`` then
+``@classmethod`` is wrong; use ``@classmethod`` then ``@deprecated`` wrapping the descriptor).
 
 ═══════════════════════════════════════════════════════════════════════════════
 ERRORS / LIMITATIONS
 ═══════════════════════════════════════════════════════════════════════════════
 
-- Domain rows without full metadata are skipped by :meth:`ApplicationContextInspector.inspect`.
+- Not suitable for deprecating entire classes without a metaclass or ``__init_subclass__``;
+  prefer marking specific methods or constructors.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN
 ═══════════════════════════════════════════════════════════════════════════════
-ROLE: Package for Application facet marker and BaseDomain→Application inspector.
-CONTRACT: Export ApplicationContext and ApplicationContextInspector for coordinator registration.
-INVARIANTS: Marker is graph identity only; inspector inherits BaseIntentInspector behavior.
-FLOW: import -> Core or test probe -> register on GraphCoordinator -> build graph.
-EXTENSION POINTS: Additional application-scoped facets can live alongside these modules.
+ROLE: Small decorator factory for consistent DeprecationWarning emission.
+CONTRACT: Pass a stable message string; grep ``@deprecated`` or ``deprecated(`` to find call sites.
+INVARIANTS: stacklevel fixed at 2 for plain functions and bound methods.
 AI-CORE-END
 ═══════════════════════════════════════════════════════════════════════════════
 """
 
 from __future__ import annotations
 
-from .application_context import ApplicationContext
-from .application_context_inspector import ApplicationContextInspector
+import warnings
+from collections.abc import Callable
+from functools import wraps
+from typing import Any, TypeVar, cast
 
-__all__ = [
-    "ApplicationContext",
-    "ApplicationContextInspector",
-]
+F = TypeVar("F", bound=Callable[..., Any])
+
+
+def deprecated(message: str) -> Callable[[F], F]:
+    """
+    AI-CORE-BEGIN
+    ROLE: Mark a function or method deprecated at runtime.
+    CONTRACT: Message is shown verbatim; warning category DeprecationWarning.
+    AI-CORE-END
+    """
+
+    def decorator(fn: F) -> F:
+        @wraps(fn)
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
+            warnings.warn(message, DeprecationWarning, stacklevel=2)
+            return fn(*args, **kwargs)
+
+        return cast(F, wrapper)
+
+    return decorator

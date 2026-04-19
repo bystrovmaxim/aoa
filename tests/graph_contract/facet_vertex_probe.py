@@ -9,7 +9,7 @@ order **before** :meth:`GraphCoordinator.build`.
 
 from __future__ import annotations
 
-from action_machine.application import ApplicationContextInspector
+from action_machine.legacy.application_context_inspector import ApplicationContextInspector
 from action_machine.legacy.aspect_intent_inspector import AspectIntentInspector
 from action_machine.legacy.checker_intent_inspector import CheckerIntentInspector
 from action_machine.legacy.compensate_intent_inspector import (

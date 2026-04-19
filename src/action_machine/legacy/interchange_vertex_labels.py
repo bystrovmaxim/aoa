@@ -14,7 +14,7 @@ from typing import Final
 # Structural ``BaseAction`` primary vertex (depends / connection / facets merged here).
 ACTION_VERTEX_TYPE: Final[str] = "Action"
 
-# Logical root from :mod:`action_machine.application`; domains ``belongs_to`` here.
+# Logical root from :mod:`action_machine.legacy.application_context`; domains ``belongs_to`` here.
 APPLICATION_VERTEX_TYPE: Final[str] = "Application"
 
 # Bounded-context domain vertices from application inspector / ``belongs_to`` stubs.

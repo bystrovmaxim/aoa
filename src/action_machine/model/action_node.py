@@ -29,7 +29,7 @@ INVARIANTS
 - ``label`` is the action class ``__name__``. :meth:`get_properties` fills ``properties``;
   :meth:`get_domain_link`, :meth:`get_params_link`, and :meth:`get_result_link` each return a :class:`~graph.base_graph_edge.BaseGraphEdge` or ``None``. :meth:`_get_all_edges` collects non-``None`` edges for ``parse``.
 
-  :meth:`get_schema_generic_binding` returns resolved params/result types (or ``None``); :meth:`get_params_link` / :meth:`get_result_link` apply :func:`~action_machine.common.qualified_dotted_name` when building edges.
+  :meth:`get_schema_generic_binding` returns resolved params/result types (or ``None``); :meth:`get_params_link` / :meth:`get_result_link` apply :func:`~action_machine.legacy.qualified_name.qualified_dotted_name` when building edges.
 
 ═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES
@@ -66,7 +66,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, TypeVar, get_args, get_origin
 
-from action_machine.common import qualified_dotted_name
+from action_machine.legacy.qualified_name import qualified_dotted_name
 from action_machine.domain.base_domain import BaseDomain
 from action_machine.legacy.binding.action_generic_params import _resolve_generic_arg
 from action_machine.legacy.interchange_vertex_labels import DOMAIN_VERTEX_TYPE

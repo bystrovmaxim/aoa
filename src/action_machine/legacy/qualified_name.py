@@ -1,4 +1,4 @@
-# src/action_machine/common/qualified_name.py
+# src/action_machine/legacy/qualified_name.py
 """
 qualified_dotted_name — stable ``module.qualname`` string for Python types.
 

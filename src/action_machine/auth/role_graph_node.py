@@ -62,7 +62,7 @@ from dataclasses import dataclass
 from typing import TypeVar
 
 from action_machine.auth.base_role import BaseRole
-from action_machine.common import qualified_dotted_name
+from action_machine.legacy.qualified_name import qualified_dotted_name
 from graph.base_graph_node import BaseGraphNode, Payload
 
 TRole = TypeVar("TRole", bound=BaseRole)

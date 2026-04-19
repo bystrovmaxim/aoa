@@ -13,7 +13,7 @@ import importlib
 
 import pytest
 
-from action_machine.application import ApplicationContext
+from action_machine.legacy.application_context import ApplicationContext
 from graph.base_intent_inspector import BaseIntentInspector
 from maxitor.samples.billing.domain import BillingDomain
 from maxitor.samples.build import _MODULES, build_sample_coordinator
