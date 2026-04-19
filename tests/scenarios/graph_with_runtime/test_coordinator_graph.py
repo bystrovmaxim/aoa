@@ -54,7 +54,7 @@ from action_machine.graph.graph_coordinator import GraphCoordinator
 from action_machine.intents.aspects.regular_aspect_decorator import regular_aspect
 from action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
 from action_machine.intents.auth.check_roles_decorator import check_roles
-from action_machine.intents.auth.none_role import NoneRole
+from action_machine.auth.none_role import NoneRole
 from action_machine.intents.checkers.result_string_checker import result_string
 from action_machine.intents.compensate import compensate
 from action_machine.intents.logging.sensitive_decorator import sensitive

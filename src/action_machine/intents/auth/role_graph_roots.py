@@ -12,7 +12,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from action_machine.intents.auth.application_role import ApplicationRole
+from action_machine.auth.application_role import ApplicationRole
 
 if TYPE_CHECKING:
     pass

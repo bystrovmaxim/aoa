@@ -1,49 +1,46 @@
-# src/action_machine/intents/auth/application_role.py
+# src/action_machine/auth/none_role.py
 """
-``ApplicationRole`` root for assignable business roles.
+``NoneRole`` engine sentinel role.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Define a common abstract root for roles that may be assigned to authenticated
-users and stored in ``UserInfo.roles``.
+Represent "no authentication required" access policy in ``@check_roles``.
+This is an engine sentinel role type, not an assignable business role.
 
 ═══════════════════════════════════════════════════════════════════════════════
 INVARIANTS
 ═══════════════════════════════════════════════════════════════════════════════
 
-- Application roles should inherit from ``ApplicationRole`` (not directly from
-  ``BaseRole``).
-- Marked with ``@role_mode(RoleMode.ALIVE)`` as default active role branch.
-- This class is abstract and acts as hierarchy boundary, not as a concrete role.
+- Used as ``@check_roles(NoneRole)`` requirement marker.
+- Must not be stored in ``UserInfo.roles``.
+- Sealed via ``__init_subclass__``: subclassing is forbidden.
+- Declared with ``@role_mode(RoleMode.ALIVE)``.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-    BaseRole
-       |
-       v
-    ApplicationRole (this class)
-       |
-       v
-    Concrete app roles (AdminRole, ManagerRole, ...)
-       |
-       v
-    UserInfo.roles + @check_roles runtime checks
+    @check_roles(NoneRole)
+            |
+            v
+    role checker bypasses authenticated-role requirement
+            |
+            v
+    action is callable by anonymous and authenticated users
 
 ═══════════════════════════════════════════════════════════════════════════════
 ERRORS / LIMITATIONS
 ═══════════════════════════════════════════════════════════════════════════════
 
-- Abstract hierarchy node; intended for inheritance only.
-- Policy semantics (allow/deny) are enforced by role-check runtime, not here.
+- Subclassing ``NoneRole`` raises ``TypeError``.
+- Sentinel metadata only; should not be used as a user-assigned role.
 
 AI-CORE-BEGIN
-ROLE: Assignable-role hierarchy root.
-CONTRACT: Provide stable branch for user-assignable role classes.
-INVARIANTS: ALIVE role mode and inheritance boundary for application roles.
+ROLE: Engine-level open-access sentinel role.
+CONTRACT: Express "public action" policy in role-check declarations.
+INVARIANTS: sealed class, ALIVE mode, excluded from UserInfo.roles payload.
 AI-CORE-END
 
 See ``docs/architecture/role-hierarchy.md``.
@@ -51,23 +48,29 @@ See ``docs/architecture/role-hierarchy.md``.
 
 from __future__ import annotations
 
-from abc import ABC
+from typing import Any, final
 
-from action_machine.intents.auth.base_role import BaseRole
+from action_machine.auth.system_role import SystemRole
 from action_machine.intents.auth.role_mode_decorator import RoleMode, role_mode
 
 
+@final
 @role_mode(RoleMode.ALIVE)
-class ApplicationRole(BaseRole, ABC):
+class NoneRole(SystemRole):
     """
-    Abstract root of all roles allowed in ``UserInfo.roles``.
+    Sentinel role for actions accessible without authentication.
 
     AI-CORE-BEGIN
-    ROLE: Role taxonomy anchor for application-level identities.
-    CONTRACT: Concrete user roles inherit from this class.
-    INVARIANTS: Abstract class with ALIVE role mode.
+    ROLE: Public-access check-spec marker.
+    CONTRACT: Used only in ``@check_roles`` declarations.
+    INVARIANTS: non-subclassable policy role; not part of user role sets.
     AI-CORE-END
     """
 
-    name = "__application_root__"
-    description = "Intermediate root for application roles assigned to authenticated users."
+    name = "engine_none"
+    description = "Engine sentinel: no authentication required for the action."
+
+    def __init_subclass__(cls, **kwargs: Any) -> None:
+        raise TypeError(
+            f"Cannot subclass sealed engine role NoneRole (attempt: {cls.__qualname__!r})."
+        )

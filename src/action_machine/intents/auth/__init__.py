@@ -14,7 +14,7 @@ credential extraction, verification, and context assembly.
 ROLE TYPE HIERARCHY (ONE CLASS ≈ ONE MODULE)
 ═══════════════════════════════════════════════════════════════════════════════
 
-Each level below is a **separate module** under ``src/action_machine/intents/auth/``:
+Role hierarchy modules live under ``src/action_machine/auth/`` (one class ≈ one module):
 
 ::
 
@@ -144,21 +144,44 @@ AI-CORE-END
 ═══════════════════════════════════════════════════════════════════════════════
 """
 
-from action_machine.intents.auth.any_role import AnyRole
-from action_machine.intents.auth.auth_coordinator import (
-    AuthCoordinator,
-    ContextAssembler,
-    CredentialExtractor,
-    NoAuthCoordinator,
-)
-from action_machine.intents.auth.authenticator import Authenticator
-from action_machine.intents.auth.base_role import BaseRole
-from action_machine.intents.auth.check_roles_decorator import check_roles
-from action_machine.intents.auth.none_role import NoneRole
+from __future__ import annotations
+
+import importlib
+from typing import Any
+
 from action_machine.intents.auth.role_intent import RoleIntent
-from action_machine.intents.auth.role_mode_decorator import RoleMode, role_mode
-from action_machine.intents.auth.role_node import RoleNode
 from action_machine.intents.auth.role_mode_intent import RoleModeIntent
+
+_LAZY_EXPORTS: dict[str, tuple[str, str]] = {
+    "AnyRole": ("action_machine.auth.any_role", "AnyRole"),
+    "AuthCoordinator": ("action_machine.auth.auth_coordinator", "AuthCoordinator"),
+    "Authenticator": ("action_machine.auth.authenticator", "Authenticator"),
+    "BaseRole": ("action_machine.auth.base_role", "BaseRole"),
+    "ContextAssembler": ("action_machine.auth.auth_coordinator", "ContextAssembler"),
+    "CredentialExtractor": ("action_machine.auth.auth_coordinator", "CredentialExtractor"),
+    "NoAuthCoordinator": ("action_machine.auth.auth_coordinator", "NoAuthCoordinator"),
+    "NoneRole": ("action_machine.auth.none_role", "NoneRole"),
+    "check_roles": ("action_machine.intents.auth.check_roles_decorator", "check_roles"),
+    "RoleMode": ("action_machine.intents.auth.role_mode_decorator", "RoleMode"),
+    "role_mode": ("action_machine.intents.auth.role_mode_decorator", "role_mode"),
+    "RoleNode": ("action_machine.intents.auth.role_node", "RoleNode"),
+}
+
+
+def __getattr__(name: str) -> Any:
+    """Lazy imports avoid circular init when ``base_role`` loads ``RoleModeIntent``."""
+    if name in _LAZY_EXPORTS:
+        mod_path, attr = _LAZY_EXPORTS[name]
+        module = importlib.import_module(mod_path)
+        value = getattr(module, attr)
+        globals()[name] = value
+        return value
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
+
+def __dir__() -> list[str]:
+    return sorted(__all__)
+
 
 __all__ = [
     "AnyRole",

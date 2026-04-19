@@ -1,46 +1,46 @@
-# src/action_machine/intents/auth/none_role.py
+# src/action_machine/auth/any_role.py
 """
-``NoneRole`` engine sentinel role.
+``AnyRole`` engine sentinel role.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Represent "no authentication required" access policy in ``@check_roles``.
-This is an engine sentinel role type, not an assignable business role.
+Represent "any assignable role is enough" requirement in ``@check_roles``.
+This is an engine sentinel role type, not an application role for user storage.
 
 ═══════════════════════════════════════════════════════════════════════════════
 INVARIANTS
 ═══════════════════════════════════════════════════════════════════════════════
 
-- Used as ``@check_roles(NoneRole)`` requirement marker.
+- Used as ``@check_roles(AnyRole)`` requirement marker.
 - Must not be stored in ``UserInfo.roles``.
 - Sealed via ``__init_subclass__``: subclassing is forbidden.
-- Declared with ``@role_mode(RoleMode.ALIVE)``.
+- Declared with ``@role_mode(RoleMode.ALIVE)`` as active engine sentinel.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-    @check_roles(NoneRole)
+    @check_roles(AnyRole)
             |
             v
-    role checker bypasses authenticated-role requirement
+    role checker evaluates UserInfo.roles
             |
             v
-    action is callable by anonymous and authenticated users
+    pass when at least one assignable role exists
 
 ═══════════════════════════════════════════════════════════════════════════════
 ERRORS / LIMITATIONS
 ═══════════════════════════════════════════════════════════════════════════════
 
-- Subclassing ``NoneRole`` raises ``TypeError``.
-- Sentinel metadata only; should not be used as a user-assigned role.
+- Subclassing ``AnyRole`` raises ``TypeError``.
+- This role is runtime-policy metadata only, not a business-domain role.
 
 AI-CORE-BEGIN
-ROLE: Engine-level open-access sentinel role.
-CONTRACT: Express "public action" policy in role-check declarations.
-INVARIANTS: sealed class, ALIVE mode, excluded from UserInfo.roles payload.
+ROLE: Engine-level role sentinel.
+CONTRACT: Express "any real role required" in role-check declarations.
+INVARIANTS: sealed class, ALIVE role mode, not assignable to user role set.
 AI-CORE-END
 
 See ``docs/architecture/role-hierarchy.md``.
@@ -50,27 +50,27 @@ from __future__ import annotations
 
 from typing import Any, final
 
+from action_machine.auth.system_role import SystemRole
 from action_machine.intents.auth.role_mode_decorator import RoleMode, role_mode
-from action_machine.intents.auth.system_role import SystemRole
 
 
 @final
 @role_mode(RoleMode.ALIVE)
-class NoneRole(SystemRole):
+class AnyRole(SystemRole):
     """
-    Sentinel role for actions accessible without authentication.
+    Sentinel role requiring at least one assignable user role.
 
     AI-CORE-BEGIN
-    ROLE: Public-access check-spec marker.
+    ROLE: Check-spec marker for permissive role requirement.
     CONTRACT: Used only in ``@check_roles`` declarations.
-    INVARIANTS: non-subclassable policy role; not part of user role sets.
+    INVARIANTS: non-instantiable policy role; not stored in user role payload.
     AI-CORE-END
     """
 
-    name = "engine_none"
-    description = "Engine sentinel: no authentication required for the action."
+    name = "engine_any"
+    description = "Engine sentinel: at least one assignable role required."
 
     def __init_subclass__(cls, **kwargs: Any) -> None:
         raise TypeError(
-            f"Cannot subclass sealed engine role NoneRole (attempt: {cls.__qualname__!r})."
+            f"Cannot subclass sealed engine role AnyRole (attempt: {cls.__qualname__!r})."
         )

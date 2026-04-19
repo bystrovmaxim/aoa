@@ -7,8 +7,8 @@ import pytest
 
 from action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
 from action_machine.intents.auth import check_roles
-from action_machine.intents.auth.any_role import AnyRole
-from action_machine.intents.auth.base_role import BaseRole
+from action_machine.auth.any_role import AnyRole
+from action_machine.auth.base_role import BaseRole
 from action_machine.intents.auth.role_mode_decorator import RoleMode, role_mode
 from action_machine.intents.context.context import Context
 from action_machine.intents.context.user_info import UserInfo

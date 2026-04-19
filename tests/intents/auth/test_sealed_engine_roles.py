@@ -3,8 +3,8 @@
 
 import pytest
 
-from action_machine.intents.auth.any_role import AnyRole
-from action_machine.intents.auth.none_role import NoneRole
+from action_machine.auth.any_role import AnyRole
+from action_machine.auth.none_role import NoneRole
 
 
 def test_any_role_rejects_subclassing() -> None:

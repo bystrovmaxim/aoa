@@ -1,4 +1,4 @@
-# src/action_machine/intents/auth/auth_coordinator.py
+# src/action_machine/auth/auth_coordinator.py
 """
 Authentication and context assembly coordinator.
 
@@ -89,7 +89,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import Any
 
-from action_machine.intents.auth.authenticator import Authenticator
+from action_machine.auth.authenticator import Authenticator
 from action_machine.intents.context.context import Context
 from action_machine.intents.context.request_info import RequestInfo
 

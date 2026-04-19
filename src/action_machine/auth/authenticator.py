@@ -1,4 +1,4 @@
-# src/action_machine/intents/auth/authenticator.py
+# src/action_machine/auth/authenticator.py
 """
 Abstract base class for credential authenticators.
 
@@ -70,10 +70,13 @@ AI-CORE-END
 ═══════════════════════════════════════════════════════════════════════════════
 """
 
-from abc import ABC, abstractmethod
-from typing import Any
+from __future__ import annotations
 
-from action_machine.intents.context.user_info import UserInfo
+from abc import ABC, abstractmethod
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from action_machine.intents.context.user_info import UserInfo
 
 
 class Authenticator(ABC):

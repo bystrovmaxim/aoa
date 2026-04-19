@@ -57,7 +57,7 @@ EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
     from action_machine.intents.auth import AnyRole, NoneRole, check_roles
-    from action_machine.intents.auth.base_role import BaseRole
+    from action_machine.auth.base_role import BaseRole
     from action_machine.intents.auth.role_mode_decorator import RoleMode, role_mode
 
     @role_mode(RoleMode.ALIVE)
@@ -108,9 +108,9 @@ from __future__ import annotations
 import warnings
 from typing import Any
 
-from action_machine.intents.auth.any_role import AnyRole
-from action_machine.intents.auth.base_role import BaseRole
-from action_machine.intents.auth.none_role import NoneRole
+from action_machine.auth.any_role import AnyRole
+from action_machine.auth.base_role import BaseRole
+from action_machine.auth.none_role import NoneRole
 from action_machine.intents.auth.role_intent import RoleIntent
 from action_machine.intents.auth.role_mode_decorator import RoleMode
 

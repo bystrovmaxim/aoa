@@ -83,7 +83,7 @@ from collections.abc import Callable
 from enum import Enum
 from typing import TypeVar
 
-from action_machine.intents.auth.base_role import BaseRole
+from action_machine.auth.base_role import BaseRole
 from action_machine.intents.auth.role_mode_intent import RoleModeIntent
 
 _RT = TypeVar("_RT", bound=type[RoleModeIntent])
