@@ -6,7 +6,7 @@ BaseGraphNode — generic frozen node (``payload``, ``obj``).
 frozen :class:`Payload`; that value is stored as :attr:`payload`. The **original**
 constructor argument is stored on :attr:`obj`.
 
-``id``, ``node_type``, ``label``, ``properties``, and ``links`` are read-only views of
+``id``, ``node_type``, ``label``, ``properties``, and ``edges`` are read-only views of
 :attr:`payload` (:func:`property` accessors for ``node.id``-style access).
 
 Because the node is frozen, the constructor uses :func:`object.__setattr__`.
@@ -17,7 +17,7 @@ for the classic coordinator ``build()`` pipeline. **Deprecated:** emit
 ``node_name`` is :attr:`Payload.id`; ``node_class`` is ``obj`` (must be a ``type``). Each
 :class:`~action_machine.graph.base_graph_edge.BaseGraphEdge` carries ``target_node_type`` — the same
 facet ``node_type`` string the target host would use in its :class:`Payload` (set by each ``*Node``
-when building links); projection passes it through to :class:`~action_machine.graph.facet_edge.FacetEdge`.
+when building outgoing edges); projection passes it through to :class:`~action_machine.graph.facet_edge.FacetEdge`.
 
 ``_base_link_to_facet_edge`` is **deprecated** as well; callers should build
 :class:`~action_machine.graph.facet_edge.FacetEdge` from :class:`~action_machine.graph.base_graph_edge.BaseGraphEdge`
@@ -62,7 +62,7 @@ class Payload:
     node_type: str
     label: str
     properties: dict[str, Any]
-    links: list[BaseGraphEdge]
+    edges: list[BaseGraphEdge]
 
 
 @dataclass(init=False, frozen=True)
@@ -91,8 +91,8 @@ class BaseGraphNode(Generic[T]):
         return self.payload.properties
 
     @property
-    def links(self) -> list[BaseGraphEdge]:
-        return self.payload.links
+    def edges(self) -> list[BaseGraphEdge]:
+        return self.payload.edges
 
     @deprecated("BaseGraphNode.to_facet_vertex() is deprecated and will be removed.")
     def to_facet_vertex(self) -> FacetVertex:
@@ -120,7 +120,7 @@ class BaseGraphNode(Generic[T]):
                 edge_meta=(),
                 target_class_ref=e.target_cls,
             )
-            for e in p.links
+            for e in p.edges
         )
         return FacetVertex(
             node_type=p.node_type,

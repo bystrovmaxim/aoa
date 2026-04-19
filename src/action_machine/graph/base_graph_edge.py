@@ -20,7 +20,7 @@ redundant on the edge object.
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-    BaseGraphNode.payload.id  +  links: list[BaseGraphEdge(...)]
+    BaseGraphNode.payload.id  +  edges: list[BaseGraphEdge(...)]
 
 ═══════════════════════════════════════════════════════════════════════════════
 INVARIANTS

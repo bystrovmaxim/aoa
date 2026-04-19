@@ -8,7 +8,7 @@ PURPOSE
 
 Provides a :class:`~action_machine.graph.base_graph_node.BaseGraphNode` view derived from
 a concrete result **class** object. Interchange data lives in ``id``, ``node_type``,
-``label``, ``properties``, and ``links``; the class is :attr:`~action_machine.graph.base_graph_node.BaseGraphNode.obj`.
+``label``, ``properties``, and ``edges``; the class is :attr:`~action_machine.graph.base_graph_node.BaseGraphNode.obj`.
 
 Interchange ``node_type`` is ``"result_schema"`` (aligned with facet ``result_schema`` hosts); ``id`` is the dotted class path.
 
@@ -19,14 +19,14 @@ ARCHITECTURE / DATA FLOW
     type[TResult]   (``TResult`` bound to ``BaseResult``)
               │
               v
-    ResultNode.parse  ──>  frozen ``BaseGraphNode`` (id, node_type, label, properties, links)
+    ResultNode.parse  ──>  frozen ``BaseGraphNode`` (id, node_type, label, properties, edges)
 
 ═══════════════════════════════════════════════════════════════════════════════
 INVARIANTS
 ═══════════════════════════════════════════════════════════════════════════════
 
 - The result class is :attr:`~action_machine.graph.base_graph_node.BaseGraphNode.obj`.
-- ``node_type`` is ``"result_schema"``; ``label`` is the class ``__name__``; ``properties`` and ``links`` are empty in ``parse``.
+- ``node_type`` is ``"result_schema"``; ``label`` is the class ``__name__``; ``properties`` and ``edges`` are empty in ``parse``.
 
 ═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES
@@ -50,7 +50,7 @@ ERRORS / LIMITATIONS
 AI-CORE-BEGIN
 ═══════════════════════════════════════════════════════════════════════════════
 ROLE: Model-scoped BaseGraphNode bridge for ``BaseResult`` schema hosts.
-CONTRACT: Construct from ``type[TResult]`` via ``parse``; ``node_type="result_schema"``; dotted-path ``id``; label = class name; empty properties and links.
+CONTRACT: Construct from ``type[TResult]`` via ``parse``; ``node_type="result_schema"``; dotted-path ``id``; label = class name; empty properties and edges.
 INVARIANTS: Immutable node; host class on ``BaseGraphNode.obj``.
 FLOW: result class -> ``BaseGraphNode.__init__`` -> ``parse`` -> frozen BaseGraphNode fields.
 EXTENSION POINTS: Other graph node specializations follow the same parse pattern.
@@ -75,7 +75,7 @@ class ResultNode(BaseGraphNode[type[TResult]]):
     """
     AI-CORE-BEGIN
     ROLE: Interchange node for a ``BaseResult`` result host class.
-    CONTRACT: Built from ``type[TResult]``; ``node_type="result_schema"``; dotted ``id``, ``__name__`` label; empty ``properties`` and ``links``.
+    CONTRACT: Built from ``type[TResult]``; ``node_type="result_schema"``; dotted ``id``, ``__name__`` label; empty ``properties`` and ``edges``.
     AI-CORE-END
     """
 
@@ -86,5 +86,5 @@ class ResultNode(BaseGraphNode[type[TResult]]):
             node_type="result_schema",
             label=result_cls.__name__,
             properties={},
-            links=[],
+            edges=[],
         )

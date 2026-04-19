@@ -3,6 +3,8 @@
 
 from __future__ import annotations
 
+import warnings
+
 import pytest
 from pydantic import Field
 
@@ -42,7 +44,7 @@ def test_params_node_interchange_shape() -> None:
     assert node.label == "PongParams"
     assert node.id == qualified_dotted_name(PongParams)
     assert node.properties == {}
-    assert node.links == []
+    assert node.edges == []
 
 
 def test_result_node_interchange_shape() -> None:
@@ -57,7 +59,7 @@ def test_result_node_interchange_shape() -> None:
     assert node.label == "PongResult"
     assert node.id == qualified_dotted_name(PongResult)
     assert node.properties == {}
-    assert node.links == []
+    assert node.edges == []
 
 
 def test_domain_node_interchange_shape() -> None:
@@ -73,7 +75,7 @@ def test_domain_node_interchange_shape() -> None:
         "description": TestDomain.description,
     }
     app_id = qualified_dotted_name(ApplicationContext)
-    assert node.links == [
+    assert node.edges == [
         BaseGraphEdge(
             link_name="belongs_to",
             target_id=app_id,
@@ -85,7 +87,9 @@ def test_domain_node_interchange_shape() -> None:
 
     from_facets = ApplicationContextInspector._domain_payload_or_none(TestDomain)
     assert from_facets is not None
-    from_node = node.to_facet_vertex()
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", DeprecationWarning)
+        from_node = node.to_facet_vertex()
     assert from_node.node_type == from_facets.node_type
     assert from_node.node_name == from_facets.node_name
     assert from_node.node_class is from_facets.node_class
@@ -104,7 +108,7 @@ def test_action_node_links_and_helpers() -> None:
     assert node.node_type == "Action"
     assert node.label == "PingAction"
     assert node.id == host
-    assert node.links == [
+    assert node.edges == [
         BaseGraphEdge(
             link_name="domain",
             target_id=dom_id,
@@ -166,7 +170,7 @@ def test_entity_node_links_properties_and_domain_helpers() -> None:
     assert node.label == "SampleEntity"
     assert node.id == host
     assert node.properties == {"description": "Simple test entity"}
-    assert node.links == [
+    assert node.edges == [
         BaseGraphEdge(
             link_name="domain",
             target_id=dom_id,
@@ -183,4 +187,4 @@ def test_entity_node_links_properties_and_domain_helpers() -> None:
         is_dag=False,
         target_cls=TestDomain,
     )
-    assert EntityNode._get_all_links(SampleEntity) == node.links
+    assert EntityNode._get_all_edges(SampleEntity) == node.edges

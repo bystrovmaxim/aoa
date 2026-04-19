@@ -8,7 +8,7 @@ PURPOSE
 
 Provides a :class:`~action_machine.graph.base_graph_node.BaseGraphNode` view derived from
 a role **class** object. Interchange data lives in ``id``, ``node_type``,
-``label``, ``properties``, and ``links``; the class is :attr:`~action_machine.graph.base_graph_node.BaseGraphNode.obj`.
+``label``, ``properties``, and ``edges``; the class is :attr:`~action_machine.graph.base_graph_node.BaseGraphNode.obj`.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
@@ -17,14 +17,14 @@ ARCHITECTURE / DATA FLOW
     type[TRole]   (``TRole`` bound to ``BaseRole``)
               │
               v
-    RoleNode.parse  ──>  frozen ``BaseGraphNode`` (id, node_type, label, properties, links)
+    RoleNode.parse  ──>  frozen ``BaseGraphNode`` (id, node_type, label, properties, edges)
 
 ═══════════════════════════════════════════════════════════════════════════════
 INVARIANTS
 ═══════════════════════════════════════════════════════════════════════════════
 
 - The role class is :attr:`~action_machine.graph.base_graph_node.BaseGraphNode.obj`.
-- ``node_type`` is ``"Role"`` (same convention as ``"Action"``, ``"Params"``, ``"Result"``, ``"Entity"``); ``label`` is the class ``__name__``; ``properties`` and ``links`` are empty in ``parse``.
+- ``node_type`` is ``"Role"`` (same convention as ``"Action"``, ``"Params"``, ``"Result"``, ``"Entity"``); ``label`` is the class ``__name__``; ``properties`` and ``edges`` are empty in ``parse``.
 
 ═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES
@@ -48,7 +48,7 @@ ERRORS / LIMITATIONS
 AI-CORE-BEGIN
 ═══════════════════════════════════════════════════════════════════════════════
 ROLE: Auth-scoped BaseGraphNode bridge for BaseRole subclasses.
-CONTRACT: Construct from ``type[TRole]`` via ``parse``; ``node_type="Role"``; dotted-path ``id``; label = class name; empty properties and links.
+CONTRACT: Construct from ``type[TRole]`` via ``parse``; ``node_type="Role"``; dotted-path ``id``; label = class name; empty properties and edges.
 INVARIANTS: Immutable node; host class on ``BaseGraphNode.obj``.
 FLOW: role class -> ``BaseGraphNode.__init__`` -> ``parse`` -> frozen BaseGraphNode fields.
 EXTENSION POINTS: Other graph node specializations follow the same parse pattern.
@@ -73,7 +73,7 @@ class RoleNode(BaseGraphNode[type[TRole]]):
     """
     AI-CORE-BEGIN
     ROLE: Interchange node for a ``BaseRole`` host class.
-    CONTRACT: Built from ``type[TRole]``; ``node_type="Role"``; dotted ``id``, ``__name__`` label; empty ``properties`` and ``links``.
+    CONTRACT: Built from ``type[TRole]``; ``node_type="Role"``; dotted ``id``, ``__name__`` label; empty ``properties`` and ``edges``.
     AI-CORE-END
     """
 
@@ -84,5 +84,5 @@ class RoleNode(BaseGraphNode[type[TRole]]):
             node_type="Role",
             label=role_cls.__name__,
             properties={},
-            links=[],
+            edges=[],
         )
