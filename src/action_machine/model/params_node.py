@@ -19,41 +19,16 @@ ARCHITECTURE / DATA FLOW
     type[TParams]   (``TParams`` bound to ``BaseParams``)
               │
               v
-    ParamsNode.parse  ──>  frozen ``BaseGraphNode`` (id, node_type, label, properties, edges)
-
-═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- The params class is :attr:`~graph.base_graph_node.BaseGraphNode.obj`.
-- ``node_type`` is ``"params_schema"``; ``label`` is the class ``__name__``; ``properties`` and ``edges`` are empty in ``parse``.
-
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-Happy path::
-
-    class OrderParams(BaseParams): ...
-    n = ParamsNode(OrderParams)
-    assert n.node_type == "params_schema" and n.label == "OrderParams"
-
-Edge case: same interchange shape for any concrete ``BaseParams`` subclass type passed in.
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- No validation in ``parse``; concrete ``BaseParams`` subclasses follow normal model rules where declared.
+    ParamsNode(...)  ──>  frozen ``BaseGraphNode`` (id, node_type, label, properties, edges)
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN
 ═══════════════════════════════════════════════════════════════════════════════
 ROLE: Model-scoped BaseGraphNode bridge for ``BaseParams`` schema hosts.
-CONTRACT: Construct from ``type[TParams]`` via ``parse``; ``node_type="params_schema"``; dotted-path ``id``; label = class name; empty properties and edges.
+CONTRACT: Construct from ``type[TParams]`` via ``__init__``; ``node_type="params_schema"``; dotted-path ``id``; label = class name; empty properties and edges.
 INVARIANTS: Immutable node; host class on ``BaseGraphNode.obj``.
-FLOW: params class -> ``BaseGraphNode.__init__`` -> ``parse`` -> frozen BaseGraphNode fields.
-EXTENSION POINTS: Other graph node specializations follow the same parse pattern.
+FLOW: params class -> ``ParamsNode.__init__`` -> frozen ``BaseGraphNode`` fields.
+EXTENSION POINTS: Other graph node specializations follow the same constructor pattern.
 AI-CORE-END
 ═══════════════════════════════════════════════════════════════════════════════
 """
@@ -65,7 +40,7 @@ from typing import TypeVar
 
 from action_machine.legacy.qualified_name import qualified_dotted_name
 from action_machine.model.base_params import BaseParams
-from graph.base_graph_node import BaseGraphNode, Payload
+from graph.base_graph_node import BaseGraphNode
 
 TParams = TypeVar("TParams", bound=BaseParams)
 
@@ -79,12 +54,12 @@ class ParamsNode(BaseGraphNode[type[TParams]]):
     AI-CORE-END
     """
 
-    @classmethod
-    def parse(cls, params_cls: type[TParams]) -> Payload:
-        return Payload(
+    def __init__(self, params_cls: type[TParams]) -> None:
+        super().__init__(
             id=qualified_dotted_name(params_cls),
             node_type="params_schema",
             label=params_cls.__name__,
             properties={},
             edges=[],
+            obj=params_cls,
         )

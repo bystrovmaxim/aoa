@@ -6,7 +6,7 @@ from __future__ import annotations
 import pytest
 
 from graph.base_graph_edge import BaseGraphEdge
-from graph.base_graph_node import BaseGraphNode, Payload
+from graph.base_graph_node import BaseGraphNode
 from graph.base_intent_inspector import BaseIntentInspector
 from graph.exceptions import DuplicateNodeError, InvalidGraphError
 from graph.facet_vertex import FacetVertex
@@ -35,14 +35,14 @@ def _make_node(
     """Minimal interchange node with a fixed id (closure over ``node_id``)."""
 
     class _N(BaseGraphNode[object]):
-        @classmethod
-        def parse(cls, obj: object) -> Payload:
-            return Payload(
+        def __init__(self, obj: object) -> None:
+            super().__init__(
                 id=node_id,
                 node_type="Test",
                 label="L",
                 properties={},
                 edges=list(edge_list),
+                obj=obj,
             )
 
     return _N(object())
