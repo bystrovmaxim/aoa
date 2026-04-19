@@ -116,7 +116,7 @@ from action_machine.legacy.aspect_intent import AspectIntent
 from action_machine.legacy.check_roles_intent import CheckRolesIntent
 from action_machine.legacy.checker_intent import CheckerIntent
 from action_machine.legacy.compensate_intent import CompensateIntent
-from action_machine.intents.context.context_requires_intent import ContextRequiresIntent
+from action_machine.legacy.context_requires_intent import ContextRequiresIntent
 from action_machine.intents.meta.action_meta_intent import ActionMetaIntent
 from action_machine.intents.on_error.on_error_intent import OnErrorIntent
 from action_machine.model.base_schema import BaseSchema

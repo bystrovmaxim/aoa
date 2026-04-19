@@ -1,4 +1,4 @@
-# src/action_machine/intents/context/context.py
+# src/action_machine/context/context.py
 """
 Context — root action execution context object.
 
@@ -124,10 +124,10 @@ DICT-LIKE ACCESS (inherited from BaseSchema)
 EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
-    from action_machine.intents.context.context import Context
-    from action_machine.intents.context.user_info import UserInfo
-    from action_machine.intents.context.request_info import RequestInfo
-    from action_machine.intents.context.runtime_info import RuntimeInfo
+    from action_machine.context.context import Context
+    from action_machine.context.user_info import UserInfo
+    from action_machine.context.request_info import RequestInfo
+    from action_machine.context.runtime_info import RuntimeInfo
 
     # Full context:
     ctx = Context(
@@ -181,9 +181,9 @@ AI-CORE-END
 
 from pydantic import ConfigDict, field_validator
 
-from action_machine.intents.context.request_info import RequestInfo
-from action_machine.intents.context.runtime_info import RuntimeInfo
-from action_machine.intents.context.user_info import UserInfo
+from action_machine.context.request_info import RequestInfo
+from action_machine.context.runtime_info import RuntimeInfo
+from action_machine.context.user_info import UserInfo
 from action_machine.model.base_schema import BaseSchema
 
 

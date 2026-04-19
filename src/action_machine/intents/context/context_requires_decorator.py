@@ -99,7 +99,8 @@ ARCHITECTURE / DATA FLOW
 EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
-    from action_machine.intents.context import Ctx, context_requires
+    from action_machine.context import Ctx
+    from action_machine.intents.context import context_requires
 
     # Standard fields through constants:
     @regular_aspect("Permission check")

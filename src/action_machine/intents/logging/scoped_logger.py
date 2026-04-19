@@ -83,7 +83,7 @@ AI-CORE-END
 from typing import Any
 
 from action_machine.domain.base_domain import BaseDomain
-from action_machine.intents.context.context import Context
+from action_machine.context.context import Context
 from action_machine.intents.logging.channel import Channel, channel_mask_label, validate_channels
 from action_machine.intents.logging.domain_resolver import domain_label
 from action_machine.intents.logging.level import Level, level_label, validate_level

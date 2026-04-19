@@ -90,8 +90,8 @@ from abc import ABC, abstractmethod
 from typing import Any
 
 from action_machine.auth.authenticator import Authenticator
-from action_machine.intents.context.context import Context
-from action_machine.intents.context.request_info import RequestInfo
+from action_machine.context.context import Context
+from action_machine.context.request_info import RequestInfo
 
 
 class CredentialExtractor(ABC):

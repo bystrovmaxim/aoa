@@ -7,8 +7,8 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from action_machine.intents.context.context import Context
-from action_machine.intents.context.user_info import UserInfo
+from action_machine.context.context import Context
+from action_machine.context.user_info import UserInfo
 from action_machine.intents.logging.log_coordinator import LogCoordinator
 from action_machine.intents.plugins.plugin_coordinator import PluginCoordinator
 from action_machine.intents.plugins.plugin_run_context import PluginRunContext

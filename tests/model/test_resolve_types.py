@@ -51,8 +51,8 @@ from typing import Any
 
 from pydantic import ConfigDict, Field
 
-from action_machine.intents.context.context import Context
-from action_machine.intents.context.user_info import UserInfo
+from action_machine.context.context import Context
+from action_machine.context.user_info import UserInfo
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_state import BaseState
 from tests.scenarios.domain_model.roles import AdminRole, UserRole

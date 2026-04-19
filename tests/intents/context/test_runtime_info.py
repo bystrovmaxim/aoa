@@ -38,7 +38,7 @@ Extension via inheritance:
 
 from pydantic import ConfigDict
 
-from action_machine.intents.context.runtime_info import RuntimeInfo
+from action_machine.context.runtime_info import RuntimeInfo
 
 # ═════════════════════════════════════════════════════════════════════════════
 # RuntimeInfo subclass for extension tests

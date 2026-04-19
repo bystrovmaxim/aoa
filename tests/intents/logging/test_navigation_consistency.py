@@ -48,7 +48,7 @@ from typing import Any
 import pytest
 from pydantic import ConfigDict, Field
 
-from action_machine.intents.context.context import Context
+from action_machine.context.context import Context
 from action_machine.intents.logging.log_scope import LogScope
 from action_machine.intents.logging.variable_substitutor import VariableSubstitutor
 from action_machine.model.base_params import BaseParams

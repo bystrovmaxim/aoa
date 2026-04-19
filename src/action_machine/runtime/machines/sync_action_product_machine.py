@@ -107,7 +107,7 @@ AI-CORE-END
 import asyncio
 from typing import TypeVar
 
-from action_machine.intents.context.context import Context
+from action_machine.context.context import Context
 from action_machine.model.base_action import BaseAction
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_result import BaseResult

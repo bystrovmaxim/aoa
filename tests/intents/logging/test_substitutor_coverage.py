@@ -35,7 +35,7 @@ ORGANIZATION
 
 import pytest
 
-from action_machine.intents.context.context import Context
+from action_machine.context.context import Context
 from action_machine.intents.logging.log_scope import LogScope
 from action_machine.intents.logging.variable_substitutor import VariableSubstitutor
 from action_machine.model.base_params import BaseParams

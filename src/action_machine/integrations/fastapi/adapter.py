@@ -150,7 +150,7 @@ from action_machine.adapters.base_route_record import (
 )
 from action_machine.graph.graph_coordinator import GraphCoordinator
 from action_machine.integrations.fastapi.route_record import FastApiRouteRecord
-from action_machine.intents.context.context import Context
+from action_machine.context.context import Context
 from action_machine.model.base_action import BaseAction
 from action_machine.model.exceptions import AuthorizationError, ValidationFieldError
 from action_machine.resources.base_resource_manager import BaseResourceManager

@@ -17,6 +17,7 @@ from action_machine.legacy.compensate_intent_inspector import (
     CompensateIntentInspector,
     hydrate_compensator_row,
 )
+from action_machine.legacy.context_requires_intent import ContextRequiresIntent
 from action_machine.legacy.role_class_inspector import RoleClassInspector
 from action_machine.legacy.role_graph_roots import (
     ROLE_CLASS_GRAPH_ROOTS,
@@ -33,6 +34,7 @@ __all__ = [
     "CheckerIntentInspector",
     "CompensateIntent",
     "CompensateIntentInspector",
+    "ContextRequiresIntent",
     "ROLE_CLASS_GRAPH_ROOTS",
     "RoleClassInspector",
     "RoleIntentInspector",

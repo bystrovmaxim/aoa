@@ -11,7 +11,7 @@ from action_machine.legacy.compensate_intent_inspector import (
     hydrate_compensator_row,
 )
 from action_machine.intents.context.context_requires_decorator import context_requires
-from action_machine.intents.context.ctx_constants import Ctx
+from action_machine.context.ctx_constants import Ctx
 from action_machine.legacy.interchange_vertex_labels import COMPENSATOR_VERTEX_TYPE
 
 

@@ -83,7 +83,7 @@ from action_machine.auth.any_role import AnyRole
 from action_machine.auth.base_role import BaseRole
 from action_machine.auth.none_role import NoneRole
 from action_machine.intents.role_mode.role_mode_decorator import RoleMode
-from action_machine.intents.context.context import Context
+from action_machine.context.context import Context
 from action_machine.model.base_action import BaseAction
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_result import BaseResult

@@ -44,7 +44,7 @@ Ctx structure:
     - Constants work with frozenset and string paths.
 """
 
-from action_machine.intents.context.ctx_constants import Ctx
+from action_machine.context.ctx_constants import Ctx
 
 # ═════════════════════════════════════════════════════════════════════════════
 # Ctx.User — UserInfo fields

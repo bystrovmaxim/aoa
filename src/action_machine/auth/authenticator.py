@@ -76,7 +76,7 @@ from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from action_machine.intents.context.user_info import UserInfo
+    from action_machine.context.user_info import UserInfo
 
 
 class Authenticator(ABC):

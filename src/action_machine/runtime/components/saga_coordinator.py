@@ -84,7 +84,7 @@ from typing import Any, cast
 from action_machine.legacy.compensate_intent_inspector import (
     CompensateIntentInspector,
 )
-from action_machine.intents.context.context_view import ContextView
+from action_machine.context.context_view import ContextView
 from action_machine.intents.logging.domain_resolver import resolve_domain
 from action_machine.intents.logging.scoped_logger import ScopedLogger
 from action_machine.intents.plugins.events import (

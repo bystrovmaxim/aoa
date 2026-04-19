@@ -217,7 +217,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from action_machine.intents.context.context import Context
+from action_machine.context.context import Context
 from action_machine.model.base_schema import BaseSchema
 
 # ═════════════════════════════════════════════════════════════════════════════

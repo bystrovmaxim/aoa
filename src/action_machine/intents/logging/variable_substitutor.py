@@ -78,7 +78,7 @@ import re
 from collections.abc import Callable
 from typing import Any
 
-from action_machine.intents.context.context import Context
+from action_machine.context.context import Context
 from action_machine.intents.logging.expression_evaluator import ExpressionEvaluator, debug_value
 from action_machine.intents.logging.log_scope import LogScope
 from action_machine.intents.logging.masking import mask_value

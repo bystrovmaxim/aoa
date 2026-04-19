@@ -1,36 +1,36 @@
-# src/action_machine/intents/context/request_info.py
+# src/action_machine/context/runtime_info.py
 """
-RequestInfo — inbound request metadata container.
+RuntimeInfo — execution environment metadata container.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-``RequestInfo`` is a ``Context`` component containing inbound request metadata:
-trace identifiers, path, method, client IP, protocol, and transport-specific
-details (HTTP, MCP, etc.).
+``RuntimeInfo`` is a ``Context`` component carrying environment metadata:
+hostname, service name/version, container id, and Kubernetes pod name.
 
-It is populated at ingress (typically by ``ContextAssembler``) and propagated
-through runtime for logging, tracing, performance analysis, and audit use cases.
+It is typically initialized from process/runtime environment and propagated
+with every context. Useful for identifying where code runs during scaling,
+observability, and incident analysis.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-    transport request
-          |
-          v
-    ContextAssembler -> RequestInfo(...)
-          |
-          v
-    Context(request=RequestInfo)
-          |
-          +--> logging / tracing
-          +--> ContextView for @context_requires access
+    process environment / deployment metadata
+                     |
+                     v
+    RuntimeInfo(...)
+                     |
+                     v
+    Context(runtime=RuntimeInfo)
+                     |
+                     +--> logging / tracing / diagnostics
+                     +--> ContextView access via @context_requires
 
     Schema hierarchy:
         BaseSchema(BaseModel)
-            └── RequestInfo (frozen=True, extra="forbid")
+            └── RuntimeInfo (frozen=True, extra="forbid")
 
 ═══════════════════════════════════════════════════════════════════════════════
 INVARIANTS
@@ -38,111 +38,105 @@ INVARIANTS
 
 - Immutable after construction.
 - Extra fields are forbidden (``extra="forbid"``).
-- Extension is explicit via inheritance with declared fields:
+- Extension is explicit through inheritance with declared fields:
 
-    class ExtendedRequestInfo(RequestInfo):
-        correlation_id: str | None = None
-        ab_variant: str | None = None
+    class CloudRuntimeInfo(RuntimeInfo):
+        region: str | None = None
+        availability_zone: str | None = None
+        cluster_name: str | None = None
 
 ═══════════════════════════════════════════════════════════════════════════════
 ASPECT ACCESS MODEL
 ═══════════════════════════════════════════════════════════════════════════════
 
-Direct RequestInfo access from aspects is not provided. Supported path is
+Direct RuntimeInfo access from aspect is not provided. Supported path is
 ``@context_requires`` + ``ContextView``:
 
-    @regular_aspect("Request logging")
-    @context_requires(Ctx.Request.trace_id, Ctx.Request.client_ip)
-    async def log_request_aspect(self, params, state, box, connections, ctx):
-        trace = ctx.get(Ctx.Request.trace_id)     # → "abc-123"
-        ip = ctx.get(Ctx.Request.client_ip)        # → "192.168.1.1"
+    @regular_aspect("Diagnostics")
+    @context_requires(Ctx.Runtime.hostname, Ctx.Runtime.service_version)
+    async def diagnostics_aspect(self, params, state, box, connections, ctx):
+        host = ctx.get(Ctx.Runtime.hostname)              # → "pod-xyz-123"
+        version = ctx.get(Ctx.Runtime.service_version)    # → "1.2.3"
         return {}
 
 ═══════════════════════════════════════════════════════════════════════════════
 DICT-LIKE ACCESS (inherited from BaseSchema)
 ═══════════════════════════════════════════════════════════════════════════════
 
-    req = RequestInfo(trace_id="abc-123", client_ip="192.168.1.1")
+    runtime = RuntimeInfo(hostname="pod-xyz-123", service_name="orders-api")
 
-    req["trace_id"]         # → "abc-123"
-    "client_ip" in req      # → True
-    list(req.keys())        # → ["trace_id", "request_timestamp", ...]
+    runtime["hostname"]          # → "pod-xyz-123"
+    "service_name" in runtime    # → True
+    list(runtime.keys())         # → ["hostname", "service_name", ...]
 
 ═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
-    from datetime import datetime
-
-    req = RequestInfo(
-        trace_id="abc-123",
-        request_timestamp=datetime.utcnow(),
-        request_path="/api/v1/orders",
-        request_method="POST",
-        client_ip="192.168.1.1",
-        protocol="https",
+    runtime = RuntimeInfo(
+        hostname="pod-xyz-123",
+        service_name="orders-api",
+        service_version="1.2.3",
+        container_id="abc123def456",
+        pod_name="orders-api-7b9f4d-x2k",
     )
 
-    req["trace_id"]                  # → "abc-123"
-    req.resolve("request_method")    # → "POST"
-    req.model_dump()                 # → {"trace_id": "abc-123", ...}
+    runtime["hostname"]                  # → "pod-xyz-123"
+    runtime.resolve("service_version")   # → "1.2.3"
+    runtime.model_dump()                 # → {"hostname": "pod-xyz-123", ...}
 
     # Extension via inheritance:
-    class TracedRequestInfo(RequestInfo):
-        correlation_id: str | None = None
-        ab_variant: str | None = None
+    class CloudRuntimeInfo(RuntimeInfo):
+        region: str | None = None
+        cluster_name: str | None = None
 
-    req = TracedRequestInfo(
-        trace_id="abc-123",
-        correlation_id="corr-456",
-        ab_variant="control",
+    runtime = CloudRuntimeInfo(
+        hostname="pod-xyz-123",
+        service_name="orders-api",
+        service_version="1.2.3",
+        region="eu-west-1",
+        cluster_name="production-main",
     )
 
 ═══════════════════════════════════════════════════════════════════════════════
 ERRORS / LIMITATIONS
 ═══════════════════════════════════════════════════════════════════════════════
 
-- This model does not validate protocol semantics (for example, method/path
-  combinations); it stores metadata as provided.
-- Access restrictions for aspects are enforced by ``ContextView``, not here.
+- RuntimeInfo stores metadata only; it does not validate deployment semantics.
+- Aspect-level allowlist enforcement is handled by ``ContextView``.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN
 ═══════════════════════════════════════════════════════════════════════════════
-ROLE: Immutable request-metadata schema inside execution context.
-CONTRACT: Carry transport request metadata with strict schema boundaries.
-INVARIANTS: Frozen object, forbid extra fields, optional typed attributes.
-FLOW: ingress assembly -> context propagation -> logging/tracing/context view reads.
+ROLE: Immutable runtime-environment schema in execution context.
+CONTRACT: Carry deployment metadata for logging, tracing, and diagnostics.
+INVARIANTS: Frozen object with forbid-extra schema boundary.
+FLOW: environment assembly -> Context propagation -> consumer reads.
 FAILURES: Validation errors occur only for schema/type violations.
-EXTENSION POINTS: Inherit RequestInfo for project-specific request attributes.
+EXTENSION POINTS: Inherit RuntimeInfo for project-specific environment fields.
 AI-CORE-END
 """
-
-from datetime import datetime
 
 from pydantic import ConfigDict
 
 from action_machine.model.base_schema import BaseSchema
 
 
-class RequestInfo(BaseSchema):
+class RuntimeInfo(BaseSchema):
     """
-    Immutable schema with request metadata fields.
+    Immutable schema for runtime environment metadata.
 
     AI-CORE-BEGIN
-    ROLE: Request metadata node in Context.
-    CONTRACT: Expose typed optional fields for transport-level request details.
+    ROLE: Runtime metadata node in Context.
+    CONTRACT: Expose optional deployment/environment fields.
     INVARIANTS: Frozen instance with forbid-extra schema policy.
     AI-CORE-END
     """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
-    trace_id: str | None = None
-    request_timestamp: datetime | None = None
-    request_path: str | None = None
-    request_method: str | None = None
-    full_url: str | None = None
-    client_ip: str | None = None
-    protocol: str | None = None
-    user_agent: str | None = None
+    hostname: str | None = None
+    service_name: str | None = None
+    service_version: str | None = None
+    container_id: str | None = None
+    pod_name: str | None = None
