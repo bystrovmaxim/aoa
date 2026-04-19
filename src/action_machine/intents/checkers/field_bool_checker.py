@@ -1,4 +1,4 @@
-# src/action_machine/intents/checkers/result_bool_checker.py
+# src/action_machine/intents/checkers/field_bool_checker.py
 """
 Boolean result-field checker (:class:`FieldBoolChecker`).
 
@@ -43,7 +43,7 @@ AI-CORE-END
 
 from typing import Any
 
-from action_machine.intents.checkers.result_field_checker import BaseFieldChecker
+from action_machine.intents.checkers.base_field_checker import BaseFieldChecker
 from action_machine.model.exceptions import ValidationFieldError
 
 

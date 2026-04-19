@@ -7,7 +7,7 @@ PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 Decorator that appends metadata to ``method._checker_meta``. Inspector collects
-snapshots; runtime builds :class:`~action_machine.intents.checkers.result_date_checker.FieldDateChecker`
+snapshots; runtime builds :class:`~action_machine.intents.checkers.field_date_checker.FieldDateChecker`
 and runs ``checker.check(result_dict)``.
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -53,7 +53,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
-from action_machine.intents.checkers.result_date_checker import FieldDateChecker
+from action_machine.intents.checkers.field_date_checker import FieldDateChecker
 
 
 def result_date(

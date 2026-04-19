@@ -1,4 +1,4 @@
-# src/action_machine/intents/checkers/result_instance_checker.py
+# src/action_machine/intents/checkers/field_instance_checker.py
 """
 Instance-type result checker (:class:`FieldInstanceChecker`).
 
@@ -42,7 +42,7 @@ AI-CORE-END
 
 from typing import Any
 
-from action_machine.intents.checkers.result_field_checker import BaseFieldChecker
+from action_machine.intents.checkers.base_field_checker import BaseFieldChecker
 from action_machine.model.exceptions import ValidationFieldError
 
 

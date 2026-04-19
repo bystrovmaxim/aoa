@@ -66,11 +66,10 @@ TEST LAYOUT
 
     tests/intents/checkers/
     ├── __init__.py                      — this file
-    ├── test_result_string_checker.py    — strings, not_empty, min/max_length
-    ├── test_result_int_checker.py       — integers, min/max_value
-    ├── test_result_float_checker.py     — numbers (int/float), min/max_value
-    ├── test_result_bool_checker.py      — bool, strict isinstance
-    ├── test_result_date_checker.py      — dates, date_format, min/max_date
-    ├── test_result_instance_checker.py  — isinstance, single/tuple of classes
+    ├── test_field_int_checker.py       — integers, min/max_value
+    ├── test_field_float_checker.py     — numbers (int/float), min/max_value
+    ├── test_field_bool_checker.py      — bool, strict isinstance
+    ├── test_field_date_checker.py      — dates, date_format, min/max_date
+    ├── test_field_instance_checker.py  — isinstance, single/tuple of classes
     └── test_checker_class_naming.py     — BaseFieldChecker class name suffix
 """

@@ -7,7 +7,7 @@ PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 Decorator that appends metadata to ``method._checker_meta``. Inspector collects
-snapshots; runtime builds :class:`~action_machine.intents.checkers.result_int_checker.FieldIntChecker`
+snapshots; runtime builds :class:`~action_machine.intents.checkers.field_int_checker.FieldIntChecker`
 and runs ``checker.check(result_dict)``.
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -52,7 +52,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from action_machine.intents.checkers.result_int_checker import FieldIntChecker
+from action_machine.intents.checkers.field_int_checker import FieldIntChecker
 
 
 def result_int(

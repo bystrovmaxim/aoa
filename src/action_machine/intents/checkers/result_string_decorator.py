@@ -8,7 +8,7 @@ PURPOSE
 
 Decorator for aspect methods that appends checker metadata to
 ``method._checker_meta``. The inspector/builder collects it into checker
-snapshots; runtime instantiates :class:`~action_machine.intents.checkers.result_string_checker.FieldStringChecker`
+snapshots; runtime instantiates :class:`~action_machine.intents.checkers.field_string_checker.FieldStringChecker`
 and runs ``checker.check(result_dict)``.
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -56,7 +56,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from action_machine.intents.checkers.result_string_checker import FieldStringChecker
+from action_machine.intents.checkers.field_string_checker import FieldStringChecker
 
 
 def result_string(
