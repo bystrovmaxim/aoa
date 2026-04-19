@@ -44,6 +44,7 @@ _LAZY_EXPORTS: dict[str, tuple[str, str]] = {
         "action_machine.legacy.on_error_intent_inspector",
         "hydrate_error_handler_row",
     ),
+    "Core": ("action_machine.legacy.core", "Core"),
     "ContextRequiresIntent": (
         "action_machine.legacy.context_requires_intent",
         "ContextRequiresIntent",
@@ -63,6 +64,14 @@ _LAZY_EXPORTS: dict[str, tuple[str, str]] = {
     "DescribedFieldsIntentInspector": (
         "action_machine.legacy.described_fields.described_fields_intent_inspector",
         "DescribedFieldsIntentInspector",
+    ),
+    "DependencyIntent": (
+        "action_machine.legacy.dependency_intent",
+        "DependencyIntent",
+    ),
+    "DependencyIntentInspector": (
+        "action_machine.legacy.dependency_intent_inspector",
+        "DependencyIntentInspector",
     ),
     "EntityIntent": ("action_machine.legacy.entity_intent", "EntityIntent"),
     "entity_info_is_set": ("action_machine.legacy.entity_intent", "entity_info_is_set"),

@@ -53,7 +53,7 @@ Integration with the domain model:
 
 import pytest
 
-from action_machine.dependencies.dependency_factory import (
+from action_machine.runtime.dependency_factory import (
     DependencyFactory,
     DependencyInfo,
     cached_dependency_factory,

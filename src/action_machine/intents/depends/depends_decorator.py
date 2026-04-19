@@ -1,4 +1,4 @@
-# src/action_machine/dependencies/depends_decorator.py
+# src/action_machine/intents/depends/depends_decorator.py
 """
 ``@depends`` decorator — declare class-level dependency requirements.
 
@@ -100,8 +100,8 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Any
 
-from action_machine.dependencies.dependency_factory import DependencyInfo
-from action_machine.dependencies.dependency_intent import DependencyIntent
+from action_machine.runtime.dependency_factory import DependencyInfo
+from action_machine.legacy.dependency_intent import DependencyIntent
 
 
 def depends(

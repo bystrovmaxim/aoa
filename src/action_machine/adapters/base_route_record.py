@@ -99,8 +99,8 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from action_machine.model.base_action import BaseAction
-from action_machine.runtime.binding import action_generic_params as _action_generic_params
-from action_machine.runtime.binding.extract_action_params_result_types import (
+from action_machine.legacy.binding import action_generic_params as _action_generic_params
+from action_machine.legacy.binding.extract_action_params_result_types import (
     extract_action_params_result_types,
 )
 

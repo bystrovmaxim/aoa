@@ -1,4 +1,4 @@
-# src/action_machine/runtime/binding/__init__.py
+# src/action_machine/legacy/binding/__init__.py
 """
 Runtime binding helpers for action generic contracts.
 

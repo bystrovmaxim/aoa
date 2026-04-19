@@ -1,9 +1,9 @@
-# src/action_machine/runtime/binding/extract_action_params_result_types.py
+# src/action_machine/legacy/binding/extract_action_params_result_types.py
 """
 Extract concrete ``P`` / ``R`` runtime types from ``BaseAction[P, R]`` on ``action_cls``.
 
 Walks ``__mro__`` and ``__orig_bases__``; resolves generic arguments via
-:func:`action_machine.runtime.binding.action_generic_params._resolve_generic_arg`.
+:func:`action_machine.legacy.binding.action_generic_params._resolve_generic_arg`.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN
@@ -23,7 +23,7 @@ from __future__ import annotations
 from functools import lru_cache
 from typing import get_args, get_origin
 
-from action_machine.runtime.binding.action_generic_params import _resolve_generic_arg
+from action_machine.legacy.binding.action_generic_params import _resolve_generic_arg
 
 
 @lru_cache(maxsize=1)

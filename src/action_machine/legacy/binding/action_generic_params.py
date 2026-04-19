@@ -1,9 +1,9 @@
-# src/action_machine/runtime/binding/action_generic_params.py
+# src/action_machine/legacy/binding/action_generic_params.py
 """
 Low-level helpers to resolve generic type arguments (``ForwardRef``, strings).
 
 Primary extraction of ``P`` / ``R`` from ``BaseAction[P, R]`` lives in
-:mod:`action_machine.runtime.binding.extract_action_params_result_types`.
+:mod:`action_machine.legacy.binding.extract_action_params_result_types`.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE

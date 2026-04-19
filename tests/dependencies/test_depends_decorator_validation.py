@@ -3,8 +3,8 @@
 
 import pytest
 
-from action_machine.dependencies.dependency_intent import DependencyIntent
-from action_machine.dependencies.depends_decorator import depends
+from action_machine.legacy.dependency_intent import DependencyIntent
+from action_machine.intents.depends import depends
 
 
 class _Svc:

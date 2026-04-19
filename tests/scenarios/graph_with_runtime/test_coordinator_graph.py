@@ -44,11 +44,11 @@ from typing import Any
 
 import pytest
 
-from action_machine.dependencies.dependency_factory import (
+from action_machine.runtime.dependency_factory import (
     cached_dependency_factory,
     clear_dependency_factory_cache,
 )
-from action_machine.dependencies.depends_decorator import depends
+from action_machine.intents.depends import depends
 from action_machine.graph.base_intent_inspector import BaseIntentInspector
 from action_machine.graph.graph_coordinator import GraphCoordinator
 from action_machine.intents.aspects.regular_aspect_decorator import regular_aspect

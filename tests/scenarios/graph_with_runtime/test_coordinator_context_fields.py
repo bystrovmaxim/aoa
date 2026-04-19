@@ -53,7 +53,7 @@ to avoid polluting domain fixtures and keep scenarios narrow:
 
 from pydantic import Field
 
-from action_machine.dependencies.dependency_factory import clear_dependency_factory_cache
+from action_machine.runtime.dependency_factory import clear_dependency_factory_cache
 from action_machine.graph.graph_coordinator import GraphCoordinator
 from action_machine.intents.aspects.regular_aspect_decorator import regular_aspect
 from action_machine.intents.aspects.summary_aspect_decorator import summary_aspect

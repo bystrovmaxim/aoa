@@ -1,4 +1,4 @@
-# src/action_machine/dependencies/dependency_intent_inspector.py
+# src/action_machine/legacy/dependency_intent_inspector.py
 """
 DependencyIntentInspector — graph inspector for ``@depends`` structural edges.
 
@@ -72,13 +72,13 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from action_machine.dependencies.dependency_factory import DependencyInfo
-from action_machine.dependencies.dependency_intent import DependencyIntent
 from action_machine.application import ApplicationContext
+from action_machine.runtime.dependency_factory import DependencyInfo
 from action_machine.graph.base_facet_snapshot import BaseFacetSnapshot
 from action_machine.graph.base_intent_inspector import BaseIntentInspector
 from action_machine.graph.facet_edge import FacetEdge
 from action_machine.graph.facet_vertex import FacetVertex
+from action_machine.legacy.dependency_intent import DependencyIntent
 from action_machine.legacy.interchange_vertex_labels import (
     ACTION_VERTEX_TYPE,
     APPLICATION_VERTEX_TYPE,

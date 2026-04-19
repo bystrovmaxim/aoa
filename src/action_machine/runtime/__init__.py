@@ -74,14 +74,14 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from action_machine.runtime.machines.core import Core
+    from action_machine.legacy.core import Core
 
 __all__ = ["Core"]
 
 
 def __getattr__(name: str) -> object:
     if name == "Core":
-        from action_machine.runtime.machines.core import Core  # pylint: disable=import-outside-toplevel
+        from action_machine.legacy.core import Core  # pylint: disable=import-outside-toplevel
 
         return Core
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

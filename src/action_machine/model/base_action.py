@@ -64,7 +64,7 @@ are validated when the coordinator runs inspectors on the class.
 The graph inspector for ``BaseAction[P, R]`` schema bindings is
 :class:`ActionTypedSchemasInspector` at the end of this module (imports deferred
 until after ``BaseAction`` is defined to avoid cycles with
-:mod:`action_machine.runtime.binding.extract_action_params_result_types`).
+:mod:`action_machine.legacy.binding.extract_action_params_result_types`).
 
 ═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES
@@ -111,7 +111,7 @@ from __future__ import annotations
 from abc import ABC
 from typing import Any
 
-from action_machine.dependencies.dependency_intent import DependencyIntent
+from action_machine.legacy.dependency_intent import DependencyIntent
 from action_machine.legacy.aspect_intent import AspectIntent
 from action_machine.legacy.check_roles_intent import CheckRolesIntent
 from action_machine.legacy.checker_intent import CheckerIntent
@@ -175,7 +175,7 @@ class BaseAction[P: BaseSchema, R: BaseSchema](
 
 # ---------------------------------------------------------------------------
 # Graph facet: ``BaseAction[P, R]`` → ``described_fields`` (registered by runtime)
-# Imports live here so :mod:`action_machine.runtime.binding.extract_action_params_result_types`
+# Imports live here so :mod:`action_machine.legacy.binding.extract_action_params_result_types`
 # can import ``BaseAction`` above without a partially-initialized cycle.
 # ---------------------------------------------------------------------------
 
@@ -190,7 +190,7 @@ from action_machine.legacy.described_fields.described_fields_intent_inspector im
     DescribedFieldsIntentInspector,
 )
 from action_machine.legacy.interchange_vertex_labels import ACTION_VERTEX_TYPE  # noqa: E402
-from action_machine.runtime.binding.extract_action_params_result_types import (  # noqa: E402
+from action_machine.legacy.binding.extract_action_params_result_types import (  # noqa: E402
     extract_action_params_result_types,
 )
 # pylint: enable=wrong-import-order,wrong-import-position
