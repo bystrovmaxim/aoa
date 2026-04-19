@@ -180,7 +180,7 @@ from typing import Any, Literal
 
 import rustworkx as rx
 
-from action_machine.dependencies.dependency_factory import DEPENDENCY_FACTORY_CACHE_KEY
+from action_machine.runtime.dependency_factory import DEPENDENCY_FACTORY_CACHE_KEY
 from action_machine.graph.base_facet_snapshot import BaseFacetSnapshot
 from action_machine.graph.base_intent_inspector import BaseIntentInspector
 from action_machine.graph.dag import assert_dag_edges_acyclic

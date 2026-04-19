@@ -73,7 +73,7 @@ from __future__ import annotations
 
 from pydantic import BaseModel
 
-from action_machine.runtime.binding.extract_action_params_result_types import (
+from action_machine.legacy.binding.extract_action_params_result_types import (
     extract_action_params_result_types,
 )
 

@@ -24,7 +24,7 @@ from action_machine.model.exceptions import (
     MissingSummaryAspectError,
 )
 from action_machine.resources.base_resource_manager import BaseResourceManager
-from action_machine.runtime.binding.action_result_binding import (
+from action_machine.legacy.binding.action_result_binding import (
     bind_pipeline_result_to_action,
     require_resolved_action_result_type,
     synthetic_summary_result_when_missing_aspect,

@@ -25,7 +25,7 @@ Scenarios covered:
 
 import pytest
 
-from action_machine.dependencies.dependency_factory import DependencyFactory, DependencyInfo
+from action_machine.runtime.dependency_factory import DependencyFactory, DependencyInfo
 from action_machine.resources.base_resource_manager import BaseResourceManager
 
 # ─────────────────────────────────────────────────────────────────────────────

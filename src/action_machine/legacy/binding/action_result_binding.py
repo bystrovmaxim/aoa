@@ -1,4 +1,4 @@
-# src/action_machine/runtime/binding/action_result_binding.py
+# src/action_machine/legacy/binding/action_result_binding.py
 """
 Runtime binding of pipeline outputs to declared ``BaseAction[P, R]`` result type.
 
@@ -77,7 +77,7 @@ from action_machine.model.exceptions import (
     ActionResultTypeError,
     MissingSummaryAspectError,
 )
-from action_machine.runtime.binding.extract_action_params_result_types import (
+from action_machine.legacy.binding.extract_action_params_result_types import (
     extract_action_params_result_types,
 )
 

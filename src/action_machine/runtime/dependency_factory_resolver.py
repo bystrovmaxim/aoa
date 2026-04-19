@@ -1,87 +1,89 @@
-# src/action_machine/runtime/__init__.py
+# src/action_machine/runtime/dependency_factory_resolver.py
 """
-Runtime package public entry points.
+Protocol for resolving ``DependencyFactory`` from an action class.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-This package exposes runtime machine APIs, binding helpers, and execution
-components used to run ActionMachine actions in production.
-
-Canonical coordinator assembly lives in ``Core``: it creates a
-``GraphCoordinator``, registers default inspectors, and builds the graph/facets.
-Production machines consume a built coordinator as a fail-fast contract.
+Define a **public** structural contract used by ``ToolsBoxFactory`` to obtain a
+``DependencyFactory`` for a given action type without reaching into private
+attributes of ``ActionProductMachine``.
 
 ═══════════════════════════════════════════════════════════════════════════════
 INVARIANTS
 ═══════════════════════════════════════════════════════════════════════════════
 
-- ``ActionProductMachine`` reads pipeline metadata from coordinator snapshots only.
-- ``Core`` is exported lazily through ``__getattr__``.
-- Public runtime interfaces remain stable while internal composition can evolve.
+- Implementations return a ``DependencyFactory`` consistent with the ``depends``
+  facet snapshot for the requested action class.
+- The protocol is structural: any object with a matching ``dependency_factory_for``
+  method is accepted.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-    Runtime package import
-           |
-           +--> lightweight modules (navigation, bindings, components)
-           |
-           +--> lazy Core access via __getattr__
-                         |
-                         v
-                create/build GraphCoordinator
-                         |
-                         v
-                runtime machine execution pipeline
+::
+
+    ActionProductMachine (implements DependencyFactoryResolver)
+        │
+        │  dependency_factory_for(action_cls)  ──► DependencyFactory
+        │
+        ▼
+    ToolsBoxFactory.create(factory_resolver=self, ...)
+        │
+        └── ScopedLogger + ToolsBox(factory=resolver.dependency_factory_for(...))
 
 ═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
 Happy path:
-    Runtime consumers import and use machine classes while coordinator assembly
-    is provided by ``Core`` when needed.
+    Production machine passes ``self`` into factory ``create(...)`` and exposes
+    public ``dependency_factory_for``.
 
 Edge case:
-    Lazy export avoids graph-stack imports during early module initialization,
-    preventing circular/lifecycle issues around model bootstrap.
+    Tests pass a stub object or ``MagicMock(spec_set=...)`` implementing only
+    ``dependency_factory_for``.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ERRORS / LIMITATIONS
 ═══════════════════════════════════════════════════════════════════════════════
 
-- Accessing unknown attributes through package ``__getattr__`` raises ``AttributeError``.
-- This module does not implement runtime execution logic directly.
-- Coordinator validity/build errors are surfaced by machine/factory modules.
+This module defines a typing protocol only; resolution errors depend on the
+concrete implementation (typically ``GraphCoordinator.get_snapshot`` failures).
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN
 ═══════════════════════════════════════════════════════════════════════════════
-ROLE: Runtime package-level API and lazy export gateway.
-CONTRACT: Expose Core lazily; preserve runtime import safety.
-INVARIANTS: Snapshot-driven runtime semantics and fail-fast coordinator build.
-FLOW: package import -> lazy core access -> coordinator build -> machine run.
-FAILURES: Unknown attribute access errors and downstream coordinator/runtime errors.
-EXTENSION POINTS: Add exports without breaking lazy-import safety guarantees.
+ROLE: Decouple toolbox factory from machine private fields.
+CONTRACT: dependency_factory_for(action_cls) -> DependencyFactory.
+INVARIANTS: structural Protocol; no runtime registration.
+FLOW: factory.create receives resolver -> one call per ToolsBox build.
+FAILURES: delegated to implementation.
+EXTENSION POINTS: custom resolver for tests or alternate DI graphs.
 AI-CORE-END
+═══════════════════════════════════════════════════════════════════════════════
 """
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import Protocol
 
-if TYPE_CHECKING:
-    from action_machine.legacy.core import Core
-
-__all__ = ["Core"]
+from action_machine.runtime.dependency_factory import DependencyFactory
 
 
-def __getattr__(name: str) -> object:
-    if name == "Core":
-        from action_machine.legacy.core import Core  # pylint: disable=import-outside-toplevel
+class DependencyFactoryResolver(Protocol):
+    """
+    Public resolver hook for ``DependencyFactory`` per action class.
 
-        return Core
-    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+    AI-CORE-BEGIN
+    ROLE: Narrow DI surface for ``ToolsBoxFactory``.
+    CONTRACT: One method, stable name ``dependency_factory_for``.
+    INVARIANTS: No state requirements beyond implementation needs.
+    AI-CORE-END
+    """
+
+    def dependency_factory_for(self, action_cls: type) -> DependencyFactory:
+        """Return the dependency factory to use when running ``action_cls``."""
+        pass

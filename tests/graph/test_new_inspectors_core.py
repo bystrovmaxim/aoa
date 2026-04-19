@@ -20,9 +20,9 @@ from __future__ import annotations
 
 import pytest
 
-from action_machine.dependencies.dependency_intent import DependencyIntent
-from action_machine.dependencies.dependency_intent_inspector import DependencyIntentInspector
-from action_machine.dependencies.depends_decorator import depends
+from action_machine.legacy.dependency_intent import DependencyIntent
+from action_machine.legacy.dependency_intent_inspector import DependencyIntentInspector
+from action_machine.intents.depends import depends
 from action_machine.domain.base_domain import BaseDomain
 from action_machine.graph.base_intent_inspector import BaseIntentInspector
 from action_machine.graph.graph_coordinator import GraphCoordinator

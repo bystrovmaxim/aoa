@@ -1,4 +1,4 @@
-# src/action_machine/dependencies/dependency_intent.py
+# src/action_machine/legacy/dependency_intent.py
 """
 DependencyIntent — marker generic mixin for ``@depends``.
 

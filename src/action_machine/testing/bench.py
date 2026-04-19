@@ -195,7 +195,7 @@ from __future__ import annotations
 from typing import Any, TypeVar, cast
 from unittest.mock import Mock
 
-from action_machine.dependencies.dependency_factory import cached_dependency_factory
+from action_machine.runtime.dependency_factory import cached_dependency_factory
 from action_machine.graph.graph_coordinator import GraphCoordinator
 from action_machine.auth.base_role import BaseRole
 from action_machine.context.context import Context

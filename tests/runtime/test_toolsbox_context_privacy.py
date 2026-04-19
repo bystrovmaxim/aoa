@@ -18,7 +18,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from action_machine.dependencies.dependency_factory import DependencyFactory
+from action_machine.runtime.dependency_factory import DependencyFactory
 from action_machine.context.context import Context
 from action_machine.logging.scoped_logger import ScopedLogger
 from action_machine.runtime.tools_box import ToolsBox

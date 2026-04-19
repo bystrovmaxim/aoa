@@ -67,7 +67,7 @@ USAGE IN TESTS
 
 from pydantic import Field
 
-from action_machine.dependencies.depends_decorator import depends
+from action_machine.intents.depends import depends
 from action_machine.intents.aspects.regular_aspect_decorator import regular_aspect
 from action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
 from action_machine.intents.check_roles import check_roles

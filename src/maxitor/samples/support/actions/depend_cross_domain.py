@@ -7,7 +7,7 @@ from typing import Any
 
 from pydantic import Field
 
-from action_machine.dependencies.depends_decorator import depends
+from action_machine.intents.depends import depends
 from action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
 from action_machine.intents.check_roles.check_roles_decorator import check_roles
 from action_machine.auth.none_role import NoneRole

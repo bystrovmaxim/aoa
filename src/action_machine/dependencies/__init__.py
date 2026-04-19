@@ -88,14 +88,14 @@ AI-CORE-END
 ═══════════════════════════════════════════════════════════════════════════════
 """
 
-from action_machine.dependencies.dependency_factory import (
+from action_machine.runtime.dependency_factory import (
     DependencyFactory,
     DependencyInfo,
     cached_dependency_factory,
     clear_dependency_factory_cache,
 )
-from action_machine.dependencies.dependency_intent import DependencyIntent
-from action_machine.dependencies.depends_decorator import depends
+from action_machine.legacy.dependency_intent import DependencyIntent
+from action_machine.intents.depends import depends
 
 __all__ = [
     "DependencyFactory",

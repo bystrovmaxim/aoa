@@ -9,7 +9,7 @@ order **before** :meth:`GraphCoordinator.build`.
 
 from __future__ import annotations
 
-from action_machine.dependencies.dependency_intent_inspector import DependencyIntentInspector
+from action_machine.legacy.dependency_intent_inspector import DependencyIntentInspector
 from action_machine.application import ApplicationContextInspector
 from action_machine.legacy.entity_intent_inspector import EntityIntentInspector
 from action_machine.graph.facet_vertex import FacetVertex

@@ -1,4 +1,4 @@
-# src/action_machine/dependencies/dependency_factory.py
+# src/action_machine/runtime/dependency_factory.py
 """
 DependencyFactory — stateless dependency resolution and cache helpers.
 
