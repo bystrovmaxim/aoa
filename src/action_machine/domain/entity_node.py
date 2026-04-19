@@ -24,7 +24,7 @@ ARCHITECTURE / DATA FLOW
 INVARIANTS
 ═══════════════════════════════════════════════════════════════════════════════
 
-- The entity class is not stored on the node instance (only interchange fields).
+- The entity class is :attr:`~action_machine.graph.base_graph_node.BaseGraphNode.obj`.
 - :meth:`get_properties` may add ``description`` from merged declaration dict (``@entity`` / ``@meta``). :meth:`get_domain_link` returns a :class:`~action_machine.graph.base_graph_edge.BaseGraphEdge` with ``link_name="domain"`` or ``None`` when there is no valid domain; :meth:`_get_all_links` is ``[edge]`` or ``[]``.
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -62,14 +62,14 @@ AI-CORE-END
 from __future__ import annotations
 
 from dataclasses import dataclass
-from types import SimpleNamespace
 from typing import Any, TypeVar
 
 from action_machine.common import qualified_dotted_name
 from action_machine.graph.base_graph_edge import BaseGraphEdge
 from action_machine.domain.base_domain import BaseDomain
+from action_machine.interchange_vertex_labels import DOMAIN_VERTEX_TYPE
 from action_machine.domain.entity import BaseEntity
-from action_machine.graph.base_graph_node import BaseGraphNode
+from action_machine.graph.base_graph_node import BaseGraphNode, Payload
 
 TEntity = TypeVar("TEntity", bound=BaseEntity)
 
@@ -104,16 +104,18 @@ class EntityNode(BaseGraphNode[type[TEntity]]):
         ``BaseGraphEdge`` for the ``domain`` slot, or ``None`` when declarations have no
         valid ``BaseDomain`` in ``domain``.
         """
-        meta = cls._meta_info_dict(entity_cls)
-        dom = meta.get("domain")
-        if dom is None:
+        meta_info_dict = cls._meta_info_dict(entity_cls)
+        domain_cls = meta_info_dict.get("domain")
+        if domain_cls is None:
             return None
-        if not isinstance(dom, type) or not issubclass(dom, BaseDomain):
+        if not isinstance(domain_cls, type) or not issubclass(domain_cls, BaseDomain):
             return None
         return BaseGraphEdge(
             link_name="domain",
-            target_id=qualified_dotted_name(dom),
+            target_id=qualified_dotted_name(domain_cls),
+            target_node_type=DOMAIN_VERTEX_TYPE,
             is_dag=False,
+            target_cls=domain_cls,
         )
 
     @classmethod
@@ -132,11 +134,11 @@ class EntityNode(BaseGraphNode[type[TEntity]]):
         return properties
 
     @classmethod
-    def parse(cls, entity_cls: type[TEntity]) -> Any:
-        return SimpleNamespace(
+    def parse(cls, entity_cls: type[TEntity]) -> Payload:
+        return Payload(
             id=qualified_dotted_name(entity_cls),
             node_type="Entity",
             label=entity_cls.__name__,
-            properties=cls.get_properties(entity_cls),
-            links=cls._get_all_links(entity_cls),
+            properties=dict(cls.get_properties(entity_cls)),
+            links=list(cls._get_all_links(entity_cls)),
         )

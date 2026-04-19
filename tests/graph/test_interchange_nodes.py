@@ -7,10 +7,13 @@ import pytest
 from pydantic import Field
 
 from action_machine.common import qualified_dotted_name
+from action_machine.application.application_context import ApplicationContext
+from action_machine.application.application_context_inspector import ApplicationContextInspector
 from action_machine.domain.domain_node import DomainNode
 from action_machine.domain.entity_node import EntityNode
 from action_machine.graph.base_graph_edge import BaseGraphEdge
 from action_machine.graph.base_graph_node import BaseGraphNode, BaseGraphNodeParseError
+from action_machine.interchange_vertex_labels import APPLICATION_VERTEX_TYPE, DOMAIN_VERTEX_TYPE
 from action_machine.model.action_node import ActionNode
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_result import BaseResult
@@ -34,7 +37,8 @@ def test_params_node_interchange_shape() -> None:
         token: str = Field(description="Token")
 
     node = ParamsNode(PongParams)
-    assert node.node_type == "Params"
+    assert node.obj is PongParams
+    assert node.node_type == "params_schema"
     assert node.label == "PongParams"
     assert node.id == qualified_dotted_name(PongParams)
     assert node.properties == {}
@@ -48,7 +52,8 @@ def test_result_node_interchange_shape() -> None:
         ok: bool = Field(description="Ok")
 
     node = ResultNode(PongResult)
-    assert node.node_type == "Result"
+    assert node.obj is PongResult
+    assert node.node_type == "result_schema"
     assert node.label == "PongResult"
     assert node.id == qualified_dotted_name(PongResult)
     assert node.properties == {}
@@ -57,15 +62,40 @@ def test_result_node_interchange_shape() -> None:
 
 def test_domain_node_interchange_shape() -> None:
     node = DomainNode(TestDomain)
+    assert node.obj is TestDomain
+    assert node.payload.id == node.id == qualified_dotted_name(TestDomain)
+    assert node.payload.node_type == node.node_type == "Domain"
     assert node.node_type == "Domain"
     assert node.label == "TestDomain"
     assert node.id == qualified_dotted_name(TestDomain)
-    assert node.properties == {}
-    assert node.links == []
+    assert node.properties == {
+        "name": TestDomain.name,
+        "description": TestDomain.description,
+    }
+    app_id = qualified_dotted_name(ApplicationContext)
+    assert node.links == [
+        BaseGraphEdge(
+            link_name="belongs_to",
+            target_id=app_id,
+            target_node_type=APPLICATION_VERTEX_TYPE,
+            is_dag=False,
+            target_cls=ApplicationContext,
+        ),
+    ]
+
+    from_facets = ApplicationContextInspector._domain_payload_or_none(TestDomain)
+    assert from_facets is not None
+    from_node = node.to_facet_vertex()
+    assert from_node.node_type == from_facets.node_type
+    assert from_node.node_name == from_facets.node_name
+    assert from_node.node_class is from_facets.node_class
+    assert dict(from_node.node_meta) == dict(from_facets.node_meta)
+    assert from_node.edges == from_facets.edges
 
 
 def test_action_node_links_and_helpers() -> None:
     node = ActionNode(PingAction)
+    assert node.obj is PingAction
     dom_id = qualified_dotted_name(SystemDomain)
     params_id = qualified_dotted_name(PingAction.Params)
     result_id = qualified_dotted_name(PingAction.Result)
@@ -75,25 +105,49 @@ def test_action_node_links_and_helpers() -> None:
     assert node.label == "PingAction"
     assert node.id == host
     assert node.links == [
-        BaseGraphEdge(link_name="domain", target_id=dom_id, is_dag=False),
-        BaseGraphEdge(link_name="params", target_id=params_id, is_dag=False),
-        BaseGraphEdge(link_name="result", target_id=result_id, is_dag=False),
+        BaseGraphEdge(
+            link_name="domain",
+            target_id=dom_id,
+            target_node_type=DOMAIN_VERTEX_TYPE,
+            is_dag=False,
+            target_cls=SystemDomain,
+        ),
+        BaseGraphEdge(
+            link_name="params",
+            target_id=params_id,
+            target_node_type="params_schema",
+            is_dag=False,
+            target_cls=PingAction.Params,
+        ),
+        BaseGraphEdge(
+            link_name="result",
+            target_id=result_id,
+            target_node_type="result_schema",
+            is_dag=False,
+            target_cls=PingAction.Result,
+        ),
     ]
 
     assert ActionNode.get_domain_link(PingAction) == BaseGraphEdge(
         link_name="domain",
         target_id=dom_id,
+        target_node_type=DOMAIN_VERTEX_TYPE,
         is_dag=False,
+        target_cls=SystemDomain,
     )
     assert ActionNode.get_params_link(PingAction) == BaseGraphEdge(
         link_name="params",
         target_id=params_id,
+        target_node_type="params_schema",
         is_dag=False,
+        target_cls=PingAction.Params,
     )
     assert ActionNode.get_result_link(PingAction) == BaseGraphEdge(
         link_name="result",
         target_id=result_id,
+        target_node_type="result_schema",
         is_dag=False,
+        target_cls=PingAction.Result,
     )
 
     p_type, r_type = ActionNode.get_schema_generic_binding(PingAction)
@@ -104,6 +158,7 @@ def test_action_node_links_and_helpers() -> None:
 
 def test_entity_node_links_properties_and_domain_helpers() -> None:
     node = EntityNode(SampleEntity)
+    assert node.obj is SampleEntity
     dom_id = qualified_dotted_name(TestDomain)
     host = qualified_dotted_name(SampleEntity)
 
@@ -112,12 +167,20 @@ def test_entity_node_links_properties_and_domain_helpers() -> None:
     assert node.id == host
     assert node.properties == {"description": "Simple test entity"}
     assert node.links == [
-        BaseGraphEdge(link_name="domain", target_id=dom_id, is_dag=False),
+        BaseGraphEdge(
+            link_name="domain",
+            target_id=dom_id,
+            target_node_type=DOMAIN_VERTEX_TYPE,
+            is_dag=False,
+            target_cls=TestDomain,
+        ),
     ]
 
     assert EntityNode.get_domain_link(SampleEntity) == BaseGraphEdge(
         link_name="domain",
         target_id=dom_id,
+        target_node_type=DOMAIN_VERTEX_TYPE,
         is_dag=False,
+        target_cls=TestDomain,
     )
     assert EntityNode._get_all_links(SampleEntity) == node.links

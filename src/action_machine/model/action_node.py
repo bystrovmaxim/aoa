@@ -7,9 +7,8 @@ PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 Provides a :class:`~action_machine.graph.base_graph_node.BaseGraphNode` view derived from
-an action **class** object **without** retaining a reference to that class on the
-node instance. All interchange data lives in ``id``, ``node_type``,
-``label``, ``properties``, and ``links``.
+an action **class** object. Interchange data lives in ``id``, ``node_type``,
+``label``, ``properties``, and ``links``; the class is :attr:`~action_machine.graph.base_graph_node.BaseGraphNode.obj`.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
@@ -26,7 +25,7 @@ ARCHITECTURE / DATA FLOW
 INVARIANTS
 ═══════════════════════════════════════════════════════════════════════════════
 
-- The action class is not stored on :class:`ActionNode` instances (only interchange fields).
+- The action class is :attr:`~action_machine.graph.base_graph_node.BaseGraphNode.obj`.
 - ``label`` is the action class ``__name__``. :meth:`get_properties` fills ``properties``;
   :meth:`get_domain_link`, :meth:`get_params_link`, and :meth:`get_result_link` each return a :class:`~action_machine.graph.base_graph_edge.BaseGraphEdge` or ``None``. :meth:`_get_all_links` collects non-``None`` edges for ``parse``.
 
@@ -55,7 +54,7 @@ AI-CORE-BEGIN
 ═══════════════════════════════════════════════════════════════════════════════
 ROLE: Model-scoped BaseGraphNode bridge for ``BaseAction`` subclasses.
 CONTRACT: ``parse`` builds the node; helpers: :meth:`get_properties`, :meth:`get_domain_link`, :meth:`get_schema_generic_binding` (or :meth:`get_params_link` / :meth:`get_result_link`).
-INVARIANTS: Immutable node; no action type reference on the instance.
+INVARIANTS: Immutable node; host class on ``BaseGraphNode.obj``.
 FLOW: action class -> ``BaseGraphNode.__init__`` -> ``parse`` -> frozen BaseGraphNode fields.
 EXTENSION POINTS: Other graph node specializations follow the same parse pattern.
 AI-CORE-END
@@ -65,13 +64,13 @@ AI-CORE-END
 from __future__ import annotations
 
 from dataclasses import dataclass
-from types import SimpleNamespace
 from typing import Any, TypeVar, get_args, get_origin
 
 from action_machine.common import qualified_dotted_name
 from action_machine.domain.base_domain import BaseDomain
 from action_machine.graph.base_graph_edge import BaseGraphEdge
-from action_machine.graph.base_graph_node import BaseGraphNode
+from action_machine.interchange_vertex_labels import DOMAIN_VERTEX_TYPE
+from action_machine.graph.base_graph_node import BaseGraphNode, Payload
 from action_machine.model.base_action import BaseAction
 from action_machine.runtime.binding.action_generic_params import _resolve_generic_arg
 
@@ -129,7 +128,9 @@ class ActionNode(BaseGraphNode[type[TAction]]):
         return BaseGraphEdge(
             link_name="params",
             target_id=qualified_dotted_name(params_type),
+            target_node_type="params_schema",
             is_dag=False,
+            target_cls=params_type,
         )
 
     @classmethod
@@ -144,7 +145,9 @@ class ActionNode(BaseGraphNode[type[TAction]]):
         return BaseGraphEdge(
             link_name="result",
             target_id=qualified_dotted_name(result_type),
+            target_node_type="result_schema",
             is_dag=False,
+            target_cls=result_type,
         )
 
     @classmethod
@@ -159,16 +162,18 @@ class ActionNode(BaseGraphNode[type[TAction]]):
         action_cls: type[TAction],
     ) -> BaseGraphEdge | None:
         """Domain edge, or ``None`` when ``@meta`` has no valid ``BaseDomain`` in ``domain``."""
-        meta = cls._meta_info_dict(action_cls)
-        dom = meta.get("domain")
-        if dom is None:
+        meta_info_dict = cls._meta_info_dict(action_cls)
+        domain_cls = meta_info_dict.get("domain")
+        if domain_cls is None:
             return None
-        if not isinstance(dom, type) or not issubclass(dom, BaseDomain):
+        if not isinstance(domain_cls, type) or not issubclass(domain_cls, BaseDomain):
             return None
         return BaseGraphEdge(
             link_name="domain",
-            target_id=qualified_dotted_name(dom),
+            target_id=qualified_dotted_name(domain_cls),
+            target_node_type=DOMAIN_VERTEX_TYPE,
             is_dag=False,
+            target_cls=domain_cls,
         )
 
     @classmethod
@@ -194,11 +199,11 @@ class ActionNode(BaseGraphNode[type[TAction]]):
         ]
 
     @classmethod
-    def parse(cls, action_cls: type[TAction]) -> Any:
-        return SimpleNamespace(
+    def parse(cls, action_cls: type[TAction]) -> Payload:
+        return Payload(
             id=qualified_dotted_name(action_cls),
             node_type="Action",
             label=action_cls.__name__,
-            properties=cls.get_properties(action_cls),
-            links=cls._get_all_links(action_cls),
+            properties=dict(cls.get_properties(action_cls)),
+            links=list(cls._get_all_links(action_cls)),
         )

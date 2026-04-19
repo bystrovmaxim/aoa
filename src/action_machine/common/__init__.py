@@ -58,8 +58,10 @@ AI-CORE-END
 
 from __future__ import annotations
 
+from action_machine.common.deprecated import deprecated
 from action_machine.common.qualified_name import qualified_dotted_name
 
 __all__ = [
+    "deprecated",
     "qualified_dotted_name",
 ]

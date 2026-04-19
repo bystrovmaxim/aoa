@@ -88,6 +88,7 @@ VERTEX_TYPE_FILL_COLORS: dict[str, str] = {
     "lifecycle_state_final": "#452E7A",
     "resource_manager": "#7570B3",
     "role_class": "#66A61E",
+    "Role": "#66A61E",
     "role": "#E6AB02",
     "role_mode": "#B15928",
     "sensitive_field": "#FB9A99",
@@ -234,7 +235,7 @@ _OWNERSHIP_HOST_TO_CHILD: frozenset[str] = frozenset(
 
 # Role facets and ``Service`` stubs (see :data:`VERTEX_TYPE_FILL_COLORS`).
 _ROLE_VERTEX_TYPES_FOR_APP_BUNDLE: frozenset[str] = frozenset(
-    {"role", "role_class", "role_mode", SERVICE_VERTEX_TYPE},
+    {"role", "role_class", "Role", "role_mode", SERVICE_VERTEX_TYPE},
 )
 
 # Hull colors for domain bubbles (one per domain vertex); distinct from typical node fills.

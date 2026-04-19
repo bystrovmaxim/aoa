@@ -7,12 +7,10 @@ PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 Provides a :class:`~action_machine.graph.base_graph_node.BaseGraphNode` view derived from
-a concrete result **class** object **without** retaining a reference to that class on the
-node instance. All interchange data lives in ``id``, ``node_type``,
-``label``, ``properties``, and ``links``.
+a concrete result **class** object. Interchange data lives in ``id``, ``node_type``,
+``label``, ``properties``, and ``links``; the class is :attr:`~action_machine.graph.base_graph_node.BaseGraphNode.obj`.
 
-Interchange ``node_type`` is ``"Result"``; ``id`` follows the same dotted-path rules as
-described-fields / coordinator facets.
+Interchange ``node_type`` is ``"result_schema"`` (aligned with facet ``result_schema`` hosts); ``id`` is the dotted class path.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
@@ -27,8 +25,8 @@ ARCHITECTURE / DATA FLOW
 INVARIANTS
 ═══════════════════════════════════════════════════════════════════════════════
 
-- The result class is not stored on :class:`ResultNode` instances (only interchange fields).
-- ``node_type`` is ``"Result"``; ``label`` is the class ``__name__``; ``properties`` and ``links`` are empty in ``parse``.
+- The result class is :attr:`~action_machine.graph.base_graph_node.BaseGraphNode.obj`.
+- ``node_type`` is ``"result_schema"``; ``label`` is the class ``__name__``; ``properties`` and ``links`` are empty in ``parse``.
 
 ═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES
@@ -38,7 +36,7 @@ Happy path::
 
     class OrderResult(BaseResult): ...
     n = ResultNode(OrderResult)
-    assert n.node_type == "Result" and n.label == "OrderResult"
+    assert n.node_type == "result_schema" and n.label == "OrderResult"
 
 Edge case: same interchange shape for any concrete ``BaseResult`` subclass type passed in.
 
@@ -52,8 +50,8 @@ ERRORS / LIMITATIONS
 AI-CORE-BEGIN
 ═══════════════════════════════════════════════════════════════════════════════
 ROLE: Model-scoped BaseGraphNode bridge for ``BaseResult`` schema hosts.
-CONTRACT: Construct from ``type[TResult]`` via ``parse``; ``node_type="Result"``; dotted-path ``id``; label = class name; empty properties and links.
-INVARIANTS: Immutable node; no result type reference on the instance.
+CONTRACT: Construct from ``type[TResult]`` via ``parse``; ``node_type="result_schema"``; dotted-path ``id``; label = class name; empty properties and links.
+INVARIANTS: Immutable node; host class on ``BaseGraphNode.obj``.
 FLOW: result class -> ``BaseGraphNode.__init__`` -> ``parse`` -> frozen BaseGraphNode fields.
 EXTENSION POINTS: Other graph node specializations follow the same parse pattern.
 AI-CORE-END
@@ -63,11 +61,10 @@ AI-CORE-END
 from __future__ import annotations
 
 from dataclasses import dataclass
-from types import SimpleNamespace
-from typing import Any, TypeVar
+from typing import TypeVar
 
 from action_machine.common import qualified_dotted_name
-from action_machine.graph.base_graph_node import BaseGraphNode
+from action_machine.graph.base_graph_node import BaseGraphNode, Payload
 from action_machine.model.base_result import BaseResult
 
 TResult = TypeVar("TResult", bound=BaseResult)
@@ -78,15 +75,15 @@ class ResultNode(BaseGraphNode[type[TResult]]):
     """
     AI-CORE-BEGIN
     ROLE: Interchange node for a ``BaseResult`` result host class.
-    CONTRACT: Built from ``type[TResult]``; dotted ``id``, ``__name__`` label, empty ``properties`` and ``links``.
+    CONTRACT: Built from ``type[TResult]``; ``node_type="result_schema"``; dotted ``id``, ``__name__`` label; empty ``properties`` and ``links``.
     AI-CORE-END
     """
 
     @classmethod
-    def parse(cls, result_cls: type[TResult]) -> Any:
-        return SimpleNamespace(
+    def parse(cls, result_cls: type[TResult]) -> Payload:
+        return Payload(
             id=qualified_dotted_name(result_cls),
-            node_type="Result",
+            node_type="result_schema",
             label=result_cls.__name__,
             properties={},
             links=[],
