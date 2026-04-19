@@ -35,8 +35,7 @@ Decorator:
 
 import pytest
 
-from action_machine.intents.checkers.field_float_checker import FieldFloatChecker
-from action_machine.intents.checkers.result_float_decorator import result_float
+from action_machine.intents.checkers.result_float_decorator import FieldFloatChecker, result_float
 from action_machine.model.exceptions import ValidationFieldError
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -240,6 +239,7 @@ class TestDecorator:
         """
         @result_float("total") records _checker_meta on the method.
         """
+
         # Arrange & Act
         @result_float("total", required=True, min_value=0.0, max_value=999999.99)
         async def calc(self, params, state, box, connections):
@@ -257,6 +257,7 @@ class TestDecorator:
 
     def test_decorator_preserves_function(self) -> None:
         """Decorator returns the same function object."""
+
         # Arrange
         async def original(self, params, state, box, connections):
             return {}

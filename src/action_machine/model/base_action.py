@@ -121,7 +121,7 @@ from action_machine.legacy.action_meta_intent import ActionMetaIntent
 from action_machine.legacy.on_error_intent import OnErrorIntent
 from action_machine.model.base_schema import BaseSchema
 from action_machine.model.exceptions import NamingSuffixError
-from action_machine.resources.connection_intent import ConnectionIntent
+from action_machine.legacy.connection_intent import ConnectionIntent
 
 _REQUIRED_SUFFIX = "Action"
 

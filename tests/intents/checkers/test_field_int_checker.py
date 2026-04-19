@@ -38,8 +38,7 @@ Decorator:
 
 import pytest
 
-from action_machine.intents.checkers.field_int_checker import FieldIntChecker
-from action_machine.intents.checkers.result_int_decorator import result_int
+from action_machine.intents.checkers.result_int_decorator import FieldIntChecker, result_int
 from action_machine.model.exceptions import ValidationFieldError
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -235,6 +234,7 @@ class TestDecorator:
         """
         @result_int("count") records _checker_meta on the method.
         """
+
         # Arrange & Act
         @result_int("count", required=True, min_value=0, max_value=1000)
         async def calc(self, params, state, box, connections):
@@ -252,6 +252,7 @@ class TestDecorator:
 
     def test_decorator_preserves_function(self) -> None:
         """Decorator returns the same function object."""
+
         # Arrange
         async def original(self, params, state, box, connections):
             return {}
@@ -264,6 +265,7 @@ class TestDecorator:
 
     def test_default_params(self) -> None:
         """Defaults: required=True, min_value=None, max_value=None."""
+
         # Arrange & Act
         @result_int("count")
         async def calc(self, params, state, box, connections):

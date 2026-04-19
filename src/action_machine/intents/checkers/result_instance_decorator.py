@@ -2,13 +2,15 @@
 """
 ``result_instance`` — attach isinstance-based field checker metadata to aspect methods.
 
+Includes :class:`FieldInstanceChecker`, which validates values with ``isinstance``
+against one expected class or a tuple of classes.
+
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 Decorator that appends metadata to ``method._checker_meta``. Inspector collects
-snapshots; runtime builds :class:`~action_machine.intents.checkers.field_instance_checker.FieldInstanceChecker`
-and runs ``checker.check(result_dict)``.
+snapshots; runtime builds :class:`FieldInstanceChecker` and runs ``checker.check(result_dict)``.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
@@ -37,12 +39,15 @@ USAGE
     async def get_user(self, params, state, box, connections):
         return {"user": User(id=1, name="John")}
 
+    checker = FieldInstanceChecker("user", User)
+    checker.check({"user": User(id=1, name="John")})  # OK
+
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN
 ═══════════════════════════════════════════════════════════════════════════════
-ROLE: Instance checker decorator for aspect methods.
-CONTRACT: Write ``_checker_meta`` row for FieldInstanceChecker snapshot replay.
-INVARIANTS: Metadata keys match FieldInstanceChecker constructor / snapshot hydration.
+ROLE: Instance-type checker implementation and decorator for aspect methods.
+CONTRACT: Metadata keys match FieldInstanceChecker constructor / snapshot hydration.
+INVARIANTS: ``isinstance`` semantics; supports one class or a tuple of classes.
 FLOW: decorator -> _checker_meta -> inspector -> runtime check.
 AI-CORE-END
 ═══════════════════════════════════════════════════════════════════════════════
@@ -52,7 +57,59 @@ from __future__ import annotations
 
 from typing import Any
 
-from action_machine.intents.checkers.field_instance_checker import FieldInstanceChecker
+from action_machine.model.exceptions import ValidationFieldError
+
+
+class FieldInstanceChecker:
+    """
+    Checker validating instance membership against expected class spec.
+
+    Self-contained implementation; runtime uses the usual constructor kwargs and ``.check(result_dict)``.
+    """
+
+    __slots__ = ("expected_class", "field_name", "required")
+
+    def __init__(
+        self,
+        field_name: str,
+        expected_class: type[Any] | tuple[type[Any], ...],
+        required: bool = True,
+    ) -> None:
+        self.field_name = field_name
+        self.required = required
+        self.expected_class = expected_class
+
+    def _get_extra_params(self) -> dict[str, Any]:
+        """
+        Return constructor params for snapshot serialization.
+
+        Returns:
+            Dictionary with ``expected_class`` key.
+        """
+        return {
+            "expected_class": self.expected_class,
+        }
+
+    def check(self, result: dict[str, Any]) -> None:
+        """Validate one instance-typed field in ``result``."""
+        value = result.get(self.field_name)
+        if value is None:
+            if self.required:
+                raise ValidationFieldError(
+                    f"Missing required parameter: '{self.field_name}'",
+                    field=self.field_name,
+                )
+            return
+        if not isinstance(value, self.expected_class):
+            if isinstance(self.expected_class, tuple):
+                names = ", ".join(cls.__name__ for cls in self.expected_class)
+                raise ValidationFieldError(
+                    f"Field '{self.field_name}' must be an instance of one of: {names}, got {type(value).__name__}"
+                )
+            raise ValidationFieldError(
+                f"Field '{self.field_name}' must be an instance of class {self.expected_class.__name__}, "
+                f"got {type(value).__name__}"
+            )
 
 
 def result_instance(

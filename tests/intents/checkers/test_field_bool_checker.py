@@ -37,8 +37,7 @@ TestDecorator
 
 import pytest
 
-from action_machine.intents.checkers.field_bool_checker import FieldBoolChecker
-from action_machine.intents.checkers.result_bool_decorator import result_bool
+from action_machine.intents.checkers.result_bool_decorator import FieldBoolChecker, result_bool
 from action_machine.model.exceptions import ValidationFieldError
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -218,6 +217,7 @@ class TestDecorator:
 
     def test_checker_meta_attached(self):
         """Decorator creates _checker_meta attribute."""
+
         # Arrange & Act
         @result_bool("is_active")
         async def aspect(self, params, state, box, connections):
@@ -229,6 +229,7 @@ class TestDecorator:
 
     def test_checker_class_is_result_bool_checker(self):
         """Metadata contains correct checker class."""
+
         # Arrange & Act
         @result_bool("is_active")
         async def aspect(self, params, state, box, connections):
@@ -240,6 +241,7 @@ class TestDecorator:
 
     def test_field_name_recorded(self):
         """Field name stored in metadata."""
+
         # Arrange & Act
         @result_bool("is_deleted")
         async def aspect(self, params, state, box, connections):
@@ -251,6 +253,7 @@ class TestDecorator:
 
     def test_required_default_true(self):
         """Default required=True."""
+
         # Arrange & Act
         @result_bool("flag")
         async def aspect(self, params, state, box, connections):
@@ -262,6 +265,7 @@ class TestDecorator:
 
     def test_required_false_recorded(self):
         """Explicit required=False stored."""
+
         # Arrange & Act
         @result_bool("flag", required=False)
         async def aspect(self, params, state, box, connections):
@@ -273,6 +277,7 @@ class TestDecorator:
 
     def test_decorator_returns_original_function(self):
         """Decorator returns the original function unchanged."""
+
         # Arrange
         async def original(self, params, state, box, connections):
             return {"flag": True}
@@ -285,6 +290,7 @@ class TestDecorator:
 
     def test_multiple_decorators_accumulate(self):
         """Multiple decorators on one method build a metadata list."""
+
         # Arrange & Act
         @result_bool("is_active")
         @result_bool("is_verified")

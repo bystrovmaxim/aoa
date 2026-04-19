@@ -2,13 +2,15 @@
 """
 ``result_bool`` — attach strict-boolean field checker metadata to aspect methods.
 
+Includes :class:`FieldBoolChecker`, which validates that a result field is strictly
+boolean (``True``/``False``). Numeric values, strings, and other types are rejected.
+
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 Decorator that appends metadata to ``method._checker_meta``. Inspector collects
-snapshots; runtime builds :class:`~action_machine.intents.checkers.field_bool_checker.FieldBoolChecker`
-and runs ``checker.check(result_dict)``.
+snapshots; runtime builds :class:`FieldBoolChecker` and runs ``checker.check(result_dict)``.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
@@ -37,12 +39,15 @@ USAGE
     async def validate(self, params, state, box, connections):
         return {"is_valid": True}
 
+    checker = FieldBoolChecker("is_valid")
+    checker.check({"is_valid": True})  # OK
+
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN
 ═══════════════════════════════════════════════════════════════════════════════
-ROLE: Boolean checker decorator for aspect methods.
-CONTRACT: Write ``_checker_meta`` row for FieldBoolChecker snapshot replay.
-INVARIANTS: Metadata keys match FieldBoolChecker constructor / snapshot hydration.
+ROLE: Boolean checker implementation and ``@result_bool`` decorator for aspect methods.
+CONTRACT: Strict ``isinstance(value, bool)``; metadata keys match snapshot hydration.
+INVARIANTS: Metadata keys match FieldBoolChecker constructor / snapshot replay.
 FLOW: decorator -> _checker_meta -> inspector -> runtime check.
 AI-CORE-END
 ═══════════════════════════════════════════════════════════════════════════════
@@ -52,7 +57,36 @@ from __future__ import annotations
 
 from typing import Any
 
-from action_machine.intents.checkers.field_bool_checker import FieldBoolChecker
+from action_machine.model.exceptions import ValidationFieldError
+
+
+class FieldBoolChecker:
+    """
+    Checker for strict boolean result values.
+
+    Accepts only ``True`` / ``False`` values; no coercion from other types.
+
+    Self-contained implementation; runtime uses ``(field_name, required=...)`` and ``.check(result_dict)``.
+    """
+
+    __slots__ = ("field_name", "required")
+
+    def __init__(self, field_name: str, required: bool = True) -> None:
+        self.field_name = field_name
+        self.required = required
+
+    def check(self, result: dict[str, Any]) -> None:
+        """Validate one boolean field in ``result`` (same contract as other field checkers)."""
+        value = result.get(self.field_name)
+        if value is None:
+            if self.required:
+                raise ValidationFieldError(
+                    f"Missing required parameter: '{self.field_name}'",
+                    field=self.field_name,
+                )
+            return
+        if not isinstance(value, bool):
+            raise ValidationFieldError(f"Parameter '{self.field_name}' must be boolean, got {type(value).__name__}")
 
 
 def result_bool(

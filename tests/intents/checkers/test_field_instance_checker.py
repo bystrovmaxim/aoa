@@ -44,8 +44,7 @@ TestDecorator
 
 import pytest
 
-from action_machine.intents.checkers.field_instance_checker import FieldInstanceChecker
-from action_machine.intents.checkers.result_instance_decorator import result_instance
+from action_machine.intents.checkers.result_instance_decorator import FieldInstanceChecker, result_instance
 from action_machine.model.exceptions import ValidationFieldError
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -376,6 +375,7 @@ class TestDecorator:
 
     def test_checker_meta_attached(self):
         """Decorator creates _checker_meta attribute."""
+
         # Arrange & Act
         @result_instance("user", _User)
         async def aspect(self, params, state, box, connections):
@@ -387,6 +387,7 @@ class TestDecorator:
 
     def test_checker_class_is_result_instance_checker(self):
         """Metadata contains correct checker class."""
+
         # Arrange & Act
         @result_instance("user", _User)
         async def aspect(self, params, state, box, connections):
@@ -398,6 +399,7 @@ class TestDecorator:
 
     def test_field_name_recorded(self):
         """Field name stored in metadata."""
+
         # Arrange & Act
         @result_instance("order", _Order)
         async def aspect(self, params, state, box, connections):
@@ -409,6 +411,7 @@ class TestDecorator:
 
     def test_required_default_true(self):
         """Default required=True."""
+
         # Arrange & Act
         @result_instance("user", _User)
         async def aspect(self, params, state, box, connections):
@@ -420,6 +423,7 @@ class TestDecorator:
 
     def test_required_false_recorded(self):
         """Explicit required=False stored."""
+
         # Arrange & Act
         @result_instance("user", _User, required=False)
         async def aspect(self, params, state, box, connections):
@@ -431,6 +435,7 @@ class TestDecorator:
 
     def test_extra_params_single_class_in_meta(self):
         """Single expected_class verified via checker instance."""
+
         # Arrange & Act
         @result_instance("user", _User)
         async def aspect(self, params, state, box, connections):
@@ -462,6 +467,7 @@ class TestDecorator:
 
     def test_decorator_returns_original_function(self):
         """Decorator returns the original function unchanged."""
+
         # Arrange
         async def original(self, params, state, box, connections):
             return {"user": _User(1, "Alice")}
@@ -474,6 +480,7 @@ class TestDecorator:
 
     def test_multiple_decorators_accumulate(self):
         """Multiple decorators on one method build a metadata list."""
+
         # Arrange & Act
         @result_instance("user", _User)
         @result_instance("order", _Order)
@@ -490,6 +497,7 @@ class TestDecorator:
 
     def test_combined_with_builtin_types(self):
         """Decorator works with built-in types (dict, list)."""
+
         # Arrange & Act
         @result_instance("data", (dict, list))
         async def aspect(self, params, state, box, connections):

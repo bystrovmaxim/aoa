@@ -1,4 +1,4 @@
-# src/action_machine/resources/connection_intent.py
+# src/action_machine/legacy/connection_intent.py
 """
 ConnectionIntent marker mixin for ``@connection`` decorator.
 

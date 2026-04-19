@@ -71,6 +71,7 @@ from action_machine.intents.aspects.regular_aspect_decorator import regular_aspe
 from action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
 from action_machine.intents.check_roles import check_roles
 from action_machine.intents.checkers import result_float, result_string
+from action_machine.intents.connection import connection
 from action_machine.intents.depends import depends
 from action_machine.intents.meta.meta_decorator import meta
 from action_machine.model.base_action import BaseAction
@@ -78,7 +79,6 @@ from action_machine.model.base_params import BaseParams
 from action_machine.model.base_result import BaseResult
 from action_machine.model.base_state import BaseState
 from action_machine.resources.base_resource_manager import BaseResourceManager
-from action_machine.resources.connection_decorator import connection
 from action_machine.runtime.tools_box import ToolsBox
 
 from .domains import OrdersDomain
@@ -103,6 +103,7 @@ class FullAction(BaseAction["FullAction.Params", "FullAction.Result"]):
 
     class Params(BaseParams):
         """Order creation parameters."""
+
         user_id: str = Field(
             description="User identifier",
             min_length=1,
@@ -122,6 +123,7 @@ class FullAction(BaseAction["FullAction.Params", "FullAction.Result"]):
 
     class Result(BaseResult):
         """Order creation result."""
+
         order_id: str = Field(description="Created order identifier")
         txn_id: str = Field(description="Payment transaction identifier")
         total: float = Field(description="Order total amount")

@@ -1,4 +1,4 @@
-# src/action_machine/resources/connection_decorator.py
+# src/action_machine/intents/connection/connection_decorator.py
 """
 ``@connection`` decorator for declaring external resource bindings.
 
@@ -90,8 +90,8 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
 
+from action_machine.legacy.connection_intent import ConnectionIntent
 from action_machine.resources.base_resource_manager import BaseResourceManager
-from action_machine.resources.connection_intent import ConnectionIntent
 
 # ═════════════════════════════════════════════════════════════════════════════
 # Dataclass carrying one connection declaration

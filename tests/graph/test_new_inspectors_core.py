@@ -21,16 +21,16 @@ from __future__ import annotations
 import pytest
 
 from action_machine.domain.base_domain import BaseDomain
+from action_machine.intents.connection import connection
 from action_machine.intents.depends import depends
 from action_machine.intents.meta.meta_decorator import meta
 from action_machine.legacy.action_meta_intent import ActionMetaIntent
+from action_machine.legacy.connection_intent import ConnectionIntent
+from action_machine.legacy.connection_intent_inspector import ConnectionIntentInspector
 from action_machine.legacy.dependency_intent import DependencyIntent
 from action_machine.legacy.dependency_intent_inspector import DependencyIntentInspector
 from action_machine.legacy.meta_intent_inspector import MetaIntentInspector
 from action_machine.resources.base_resource_manager import BaseResourceManager
-from action_machine.resources.connection_decorator import connection
-from action_machine.resources.connection_intent import ConnectionIntent
-from action_machine.resources.connection_intent_inspector import ConnectionIntentInspector
 from graph.base_intent_inspector import BaseIntentInspector
 from graph.graph_coordinator import GraphCoordinator
 
@@ -138,12 +138,7 @@ def test_connection_inspector_builds_structural_connection_edge() -> None:
 
 
 def test_coordinator_merges_action_payloads_from_dependency_and_connection() -> None:
-    coord = (
-        GraphCoordinator()
-        .register(DependencyIntentInspector)
-        .register(ConnectionIntentInspector)
-        .build()
-    )
+    coord = GraphCoordinator().register(DependencyIntentInspector).register(ConnectionIntentInspector).build()
     action_nodes = [n for n in coord.get_nodes_for_class(_DependsAndConnectionAction) if n.get("node_type") == "Action"]
     assert len(action_nodes) == 1
     # committed graph stores edges separately; check via graph API if needed

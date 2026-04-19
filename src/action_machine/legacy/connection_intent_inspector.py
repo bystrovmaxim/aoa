@@ -1,4 +1,4 @@
-# src/action_machine/resources/connection_intent_inspector.py
+# src/action_machine/legacy/connection_intent_inspector.py
 """
 ConnectionIntentInspector — graph inspector for ``@connection`` structural edges.
 
@@ -70,9 +70,9 @@ from __future__ import annotations
 from dataclasses import dataclass, fields
 from typing import Any
 
+from action_machine.intents.connection.connection_decorator import ConnectionInfo
+from action_machine.legacy.connection_intent import ConnectionIntent
 from action_machine.legacy.interchange_vertex_labels import ACTION_VERTEX_TYPE
-from action_machine.resources.connection_decorator import ConnectionInfo
-from action_machine.resources.connection_intent import ConnectionIntent
 from graph.base_facet_snapshot import BaseFacetSnapshot
 from graph.base_intent_inspector import BaseIntentInspector
 from graph.facet_vertex import FacetVertex
