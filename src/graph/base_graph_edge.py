@@ -27,7 +27,7 @@ INVARIANTS
 ═══════════════════════════════════════════════════════════════════════════════
 
 - ``link_name`` is the slot key (e.g. ``domain``, ``params``).
-- ``target_id`` is the interchange id of the referenced vertex (``qualified_dotted_name``).
+- ``target_id`` is the interchange id of the referenced vertex (``cls_qualified_dotted_id``).
 - ``target_node_type`` is the facet ``node_type`` of the target host (caller supplies it;
   match the corresponding ``*Node`` / :class:`~graph.base_graph_node.BaseGraphNode` ``node_type``).
 - ``target_cls`` is the referenced type when the target is a class; use for facet materialization.

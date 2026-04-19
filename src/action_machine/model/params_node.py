@@ -38,7 +38,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TypeVar
 
-from action_machine.legacy.qualified_name import qualified_dotted_name
+from graph.qualified_name import cls_qualified_dotted_id
 from action_machine.model.base_params import BaseParams
 from graph.base_graph_node import BaseGraphNode
 
@@ -56,7 +56,7 @@ class ParamsNode(BaseGraphNode[type[TParams]]):
 
     def __init__(self, params_cls: type[TParams]) -> None:
         super().__init__(
-            id=qualified_dotted_name(params_cls),
+            id=cls_qualified_dotted_id(params_cls),
             node_type="params_schema",
             label=params_cls.__name__,
             properties={},
