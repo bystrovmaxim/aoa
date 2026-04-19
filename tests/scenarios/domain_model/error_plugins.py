@@ -45,7 +45,7 @@ USAGE IN TESTS
     )
     result = await bench.run(ErrorHandledAction(), params, rollup=False)
 """
-from action_machine.intents.logging.scoped_logger import ScopedLogger
+from action_machine.logging.scoped_logger import ScopedLogger
 from action_machine.plugin.events import (
     BeforeOnErrorAspectEvent,
     UnhandledErrorEvent,

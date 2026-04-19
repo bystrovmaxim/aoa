@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from action_machine.intents.logging.channel import Channel
+from action_machine.logging.channel import Channel
 from action_machine.runtime.tools_box import ToolsBox
 
 

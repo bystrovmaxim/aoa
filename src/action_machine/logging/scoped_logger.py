@@ -1,4 +1,4 @@
-# src/action_machine/intents/logging/scoped_logger.py
+# src/action_machine/logging/scoped_logger.py
 """
 Scoped logger bound to aspect or plugin execution coordinates.
 
@@ -84,12 +84,12 @@ from typing import Any
 
 from action_machine.domain.base_domain import BaseDomain
 from action_machine.context.context import Context
-from action_machine.intents.logging.channel import Channel, channel_mask_label, validate_channels
-from action_machine.intents.logging.domain_resolver import domain_label
-from action_machine.intents.logging.level import Level, level_label, validate_level
-from action_machine.intents.logging.log_coordinator import LogCoordinator
-from action_machine.intents.logging.log_scope import LogScope
-from action_machine.intents.logging.log_var_payloads import (
+from action_machine.logging.channel import Channel, channel_mask_label, validate_channels
+from action_machine.logging.domain_resolver import domain_label
+from action_machine.logging.level import Level, level_label, validate_level
+from action_machine.logging.log_coordinator import LogCoordinator
+from action_machine.logging.log_scope import LogScope
+from action_machine.logging.log_var_payloads import (
     LogChannelPayload,
     LogLevelPayload,
 )

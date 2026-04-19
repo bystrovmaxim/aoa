@@ -49,7 +49,7 @@ Errors:
 
 import pytest
 
-from action_machine.intents.logging.expression_evaluator import ExpressionEvaluator, _IifArgSplitter
+from action_machine.logging.expression_evaluator import ExpressionEvaluator, _IifArgSplitter
 from action_machine.model.exceptions import LogTemplateError
 
 

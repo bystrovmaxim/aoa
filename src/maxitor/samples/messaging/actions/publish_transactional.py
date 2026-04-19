@@ -15,7 +15,7 @@ from action_machine.intents.checkers.result_string_decorator import result_strin
 from action_machine.intents.compensate.compensate_decorator import compensate
 from action_machine.intents.context.context_requires_decorator import context_requires
 from action_machine.context.ctx_constants import Ctx
-from action_machine.intents.logging.sensitive_decorator import sensitive
+from action_machine.intents.sensitive import sensitive
 from action_machine.intents.meta.meta_decorator import meta
 from action_machine.intents.on_error.on_error_decorator import on_error
 from action_machine.model.base_action import BaseAction

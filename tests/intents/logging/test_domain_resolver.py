@@ -6,7 +6,7 @@ from __future__ import annotations
 import pytest
 
 from action_machine.domain.base_domain import BaseDomain
-from action_machine.intents.logging.domain_resolver import domain_label, resolve_domain
+from action_machine.logging.domain_resolver import domain_label, resolve_domain
 
 
 class _NoMeta:

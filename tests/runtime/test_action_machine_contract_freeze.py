@@ -87,7 +87,7 @@ from action_machine.intents.check_roles import NoneRole, check_roles
 from action_machine.intents.checkers import result_string
 from action_machine.context.context import Context
 from action_machine.context.user_info import UserInfo
-from action_machine.intents.logging.log_coordinator import LogCoordinator
+from action_machine.logging.log_coordinator import LogCoordinator
 from action_machine.intents.meta.meta_decorator import meta
 from action_machine.plugin.events import (
     AfterOnErrorAspectEvent,

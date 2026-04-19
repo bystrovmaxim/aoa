@@ -77,9 +77,9 @@ from __future__ import annotations
 
 from typing import Any
 
-from action_machine.intents.logging.domain_resolver import resolve_domain
-from action_machine.intents.logging.log_coordinator import LogCoordinator
-from action_machine.intents.logging.scoped_logger import ScopedLogger
+from action_machine.logging.domain_resolver import resolve_domain
+from action_machine.logging.log_coordinator import LogCoordinator
+from action_machine.logging.scoped_logger import ScopedLogger
 from action_machine.model.base_state import BaseState
 from action_machine.runtime.components.dependency_factory_resolver import (
     DependencyFactoryResolver,

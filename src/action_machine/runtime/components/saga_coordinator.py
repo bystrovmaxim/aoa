@@ -85,8 +85,8 @@ from action_machine.legacy.compensate_intent_inspector import (
     CompensateIntentInspector,
 )
 from action_machine.context.context_view import ContextView
-from action_machine.intents.logging.domain_resolver import resolve_domain
-from action_machine.intents.logging.scoped_logger import ScopedLogger
+from action_machine.logging.domain_resolver import resolve_domain
+from action_machine.logging.scoped_logger import ScopedLogger
 from action_machine.plugin.events import (
     AfterCompensateAspectEvent,
     BeforeCompensateAspectEvent,

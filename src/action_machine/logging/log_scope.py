@@ -1,4 +1,4 @@
-# src/action_machine/intents/logging/log_scope.py
+# src/action_machine/logging/log_scope.py
 """
 Dynamic kwargs-backed coordinates for the current log call site.
 

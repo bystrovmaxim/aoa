@@ -1,4 +1,4 @@
-# src/action_machine/intents/logging/sensitive_intent_inspector.py
+# src/action_machine/legacy/sensitive_intent_inspector.py
 """
 SensitiveIntentInspector — inspector for ``@sensitive`` declarations on schemas and actions.
 

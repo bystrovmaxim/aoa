@@ -1,4 +1,4 @@
-# src/action_machine/intents/logging/expression_evaluator.py
+# src/action_machine/logging/expression_evaluator.py
 """
 Expression evaluator for ActionMachine logging templates.
 
@@ -103,7 +103,7 @@ from typing import Any
 from pydantic import BaseModel
 from simpleeval import EvalWithCompoundTypes, NameNotDefined
 
-from action_machine.intents.logging.masking import mask_value
+from action_machine.logging.masking import mask_value
 from action_machine.model.exceptions import LogTemplateError
 
 # Regex for finding {iif(...)} in templates.

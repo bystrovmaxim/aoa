@@ -200,9 +200,9 @@ from action_machine.graph.graph_coordinator import GraphCoordinator
 from action_machine.auth.base_role import BaseRole
 from action_machine.context.context import Context
 from action_machine.context.context_view import ContextView
-from action_machine.intents.logging.domain_resolver import resolve_domain
-from action_machine.intents.logging.log_coordinator import LogCoordinator
-from action_machine.intents.logging.scoped_logger import ScopedLogger
+from action_machine.logging.domain_resolver import resolve_domain
+from action_machine.logging.log_coordinator import LogCoordinator
+from action_machine.logging.scoped_logger import ScopedLogger
 from action_machine.plugin.plugin import Plugin
 from action_machine.model.base_action import BaseAction
 from action_machine.model.base_params import BaseParams

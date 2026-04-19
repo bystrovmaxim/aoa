@@ -45,9 +45,9 @@ import time
 import pytest
 
 from action_machine.context.context import Context
-from action_machine.intents.logging.log_coordinator import LogCoordinator
-from action_machine.intents.logging.log_scope import LogScope
-from action_machine.intents.logging.scoped_logger import ScopedLogger
+from action_machine.logging.log_coordinator import LogCoordinator
+from action_machine.logging.log_scope import LogScope
+from action_machine.logging.scoped_logger import ScopedLogger
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_state import BaseState
 from tests.bench.bench_report import emit_benchmark_report, rows_throughput_budget

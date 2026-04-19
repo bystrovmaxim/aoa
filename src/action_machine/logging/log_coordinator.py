@@ -1,4 +1,4 @@
-# src/action_machine/intents/logging/log_coordinator.py
+# src/action_machine/logging/log_coordinator.py
 """
 Central async bus for template resolution and logger fan-out.
 
@@ -82,7 +82,7 @@ ERRORS / LIMITATIONS
 - Invalid ``var`` → ``ValueError`` / ``TypeError`` before substitution.
 - **Logger failures** (exceptions from ``handle``) are **isolated**: ``emit``
   completes without raising; each failure is reported on logger
-  ``action_machine.intents.logging.log_coordinator`` (stdlib ``logging``).
+  ``action_machine.logging.log_coordinator`` (stdlib ``logging``).
   If that sink itself raises, the error is swallowed so ``emit`` never loops.
 
 **Product contract:** logging is **best-effort** relative to business flow—like
@@ -119,12 +119,12 @@ from typing import Any
 
 from action_machine.domain.base_domain import BaseDomain
 from action_machine.context.context import Context
-from action_machine.intents.logging.base_logger import BaseLogger
-from action_machine.intents.logging.channel import validate_channels
-from action_machine.intents.logging.level import validate_level
-from action_machine.intents.logging.log_scope import LogScope
-from action_machine.intents.logging.log_var_payloads import LogChannelPayload, LogLevelPayload
-from action_machine.intents.logging.variable_substitutor import VariableSubstitutor
+from action_machine.logging.base_logger import BaseLogger
+from action_machine.logging.channel import validate_channels
+from action_machine.logging.level import validate_level
+from action_machine.logging.log_scope import LogScope
+from action_machine.logging.log_var_payloads import LogChannelPayload, LogLevelPayload
+from action_machine.logging.variable_substitutor import VariableSubstitutor
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_state import BaseState
 
@@ -211,7 +211,7 @@ class LogCoordinator:
         Runs ``await logger.handle(...)`` for all loggers concurrently via
         ``asyncio.gather(..., return_exceptions=True)``. Exceptions from any
         ``handle`` are **not** re-raised: each failing logger is recorded via
-        stdlib ``logging`` (logger name ``action_machine.intents.logging.log_coordinator``).
+        stdlib ``logging`` (logger name ``action_machine.logging.log_coordinator``).
         Empty registration is a no-op.
 
         Before passing the message to a logger, if the logger does not support
@@ -236,7 +236,7 @@ class LogCoordinator:
 
         Note:
             Failures inside ``BaseLogger.handle`` do not surface here. Configure
-            stdlib handlers on ``action_machine.intents.logging.log_coordinator``
+            stdlib handlers on ``action_machine.logging.log_coordinator``
             if you need alerts for broken sinks.
         """
         if "level" not in var or "channels" not in var:

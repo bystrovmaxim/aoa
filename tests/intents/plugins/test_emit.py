@@ -29,7 +29,7 @@ SCENARIOS COVERED
 import pytest
 
 from action_machine.context.context import Context
-from action_machine.intents.logging.scoped_logger import ScopedLogger
+from action_machine.logging.scoped_logger import ScopedLogger
 from action_machine.plugin.events import (
     CompensateFailedEvent,
     SagaRollbackCompletedEvent,

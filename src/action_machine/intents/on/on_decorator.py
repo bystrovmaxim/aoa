@@ -111,7 +111,7 @@ ARCHITECTURE / DATA FLOW
 EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
-    from action_machine.intents.logging.channel import Channel
+    from action_machine.logging.channel import Channel
     from action_machine.plugin.events import (
         GlobalFinishEvent,
         AfterRegularAspectEvent,

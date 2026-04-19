@@ -156,8 +156,8 @@ from typing import TYPE_CHECKING, Any, TypeVar, cast
 from action_machine.dependencies.dependency_factory import DependencyFactory
 from action_machine.graph.graph_coordinator import GraphCoordinator
 from action_machine.context.context import Context
-from action_machine.intents.logging.console_logger import ConsoleLogger
-from action_machine.intents.logging.log_coordinator import LogCoordinator
+from action_machine.logging.console_logger import ConsoleLogger
+from action_machine.logging.log_coordinator import LogCoordinator
 from action_machine.plugin.plugin import Plugin
 from action_machine.plugin.plugin_coordinator import PluginCoordinator
 from action_machine.plugin.plugin_emit_support import PluginEmitSupport

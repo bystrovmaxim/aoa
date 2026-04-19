@@ -1,4 +1,4 @@
-# src/action_machine/intents/logging/log_var_payloads.py
+# src/action_machine/logging/log_var_payloads.py
 """
 Structured ``level`` / ``channels`` entries in log ``var``.
 
@@ -65,8 +65,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from action_machine.intents.logging.channel import Channel
-from action_machine.intents.logging.level import Level
+from action_machine.logging.channel import Channel
+from action_machine.logging.level import Level
 
 
 @dataclass(frozen=True, slots=True)

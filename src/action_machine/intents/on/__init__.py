@@ -127,7 +127,7 @@ EXAMPLES
 
 Metrics plugin with compensation monitoring:
 
-    from action_machine.intents.logging.channel import Channel
+    from action_machine.logging.channel import Channel
     from action_machine.intents.on import Plugin, on
     from action_machine.plugin.events import (
         GlobalFinishEvent,
