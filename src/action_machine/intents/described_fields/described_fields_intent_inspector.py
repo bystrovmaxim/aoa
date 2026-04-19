@@ -58,7 +58,8 @@ ERRORS / LIMITATIONS
 ROLE: Described-fields metadata inspector.
 CONTRACT: Convert model field documentation metadata into schema facet payloads
     (``params_schema`` / ``result_schema`` / ``described_fields`` by model kind);
-    :meth:`get_graph_nodes` emits :class:`~action_machine.model.params_node.ParamsNode` for all ``BaseParams`` subclasses (node-graph coordinator).
+    :meth:`get_graph_nodes` emits :class:`~action_machine.model.params_node.ParamsNode` /
+    :class:`~action_machine.model.result_node.ResultNode` for all ``BaseParams`` / ``BaseResult`` subclasses (node-graph coordinator).
 INVARIANTS: Storage key is ``described_fields``; classes without documentable fields are skipped.
 FLOW: class discovery -> pydantic field extraction -> typed snapshot -> payload emission.
 FAILURES: Absence of fields returns ``None`` payload (skip), not an error.
@@ -82,7 +83,9 @@ from action_machine.graph.facet_vertex import FacetVertex
 from action_machine.intents.described_fields.marker import DescribedFieldsIntent
 from action_machine.interchange_vertex_labels import ENTITY_VERTEX_TYPE
 from action_machine.model.base_params import BaseParams
+from action_machine.model.base_result import BaseResult
 from action_machine.model.params_node import ParamsNode
+from action_machine.model.result_node import ResultNode
 
 
 class DescribedFieldsIntentInspector(BaseIntentInspector):
@@ -92,7 +95,7 @@ class DescribedFieldsIntentInspector(BaseIntentInspector):
     AI-CORE-BEGIN
     ROLE: Concrete described-fields inspector.
     CONTRACT: Emit schema facet payloads; vertex type follows BaseParams / BaseResult / other;
-        :meth:`get_graph_nodes` for ``ParamsNode`` / ``NodeGraphCoordinator``.
+        :meth:`get_graph_nodes` for ``ParamsNode`` / ``ResultNode`` / ``NodeGraphCoordinator``.
     INVARIANTS: Marker traversal via ``DescribedFieldsIntent`` and stable storage key.
     AI-CORE-END
     """
@@ -117,9 +120,6 @@ class DescribedFieldsIntentInspector(BaseIntentInspector):
         ``BaseParams`` → ``params_schema``; ``BaseResult`` → ``result_schema``;
         everything else (still documented via this inspector) → ``described_fields``.
         """
-        # pylint: disable=import-outside-toplevel
-        from action_machine.model.base_result import BaseResult
-
         if issubclass(model_cls, BaseParams):
             return "params_schema"
         if issubclass(model_cls, BaseResult):
@@ -208,18 +208,22 @@ class DescribedFieldsIntentInspector(BaseIntentInspector):
     @classmethod
     def get_graph_nodes(cls) -> list[BaseGraphNode[Any]]:
         """
-        Interchange :class:`~action_machine.model.params_node.ParamsNode` for every loaded
-        ``BaseParams`` subclass.
+        Interchange :class:`~action_machine.model.params_node.ParamsNode` and
+        :class:`~action_machine.model.result_node.ResultNode` for every loaded ``BaseParams`` and
+        ``BaseResult`` subclass respectively.
 
         Uses :meth:`~action_machine.graph.base_intent_inspector.BaseIntentInspector._collect_subclasses`
-        on :class:`~action_machine.model.base_params.BaseParams` (recursive ``__subclasses__``), not
-        class MRO. Parallel to :meth:`inspect` for
+        (recursive ``__subclasses__``), not class MRO. Parallel to :meth:`inspect` for
         :class:`~action_machine.graph.node_graph_coordinator.NodeGraphCoordinator`.
         """
         nodes: list[BaseGraphNode[Any]] = [
             ParamsNode(params_cls)
             for params_cls in cls._collect_subclasses(BaseParams)
         ]
+        nodes.extend(
+            ResultNode(result_cls)
+            for result_cls in cls._collect_subclasses(BaseResult)
+        )
         nodes.sort(key=lambda n: n.id)
         return nodes
 
