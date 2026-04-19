@@ -15,7 +15,7 @@ class TestCheckerSuffix:
 
     def test_correct_suffix_passes(self) -> None:
         """Name 'ResultEmailChecker' — definition succeeds."""
-        from action_machine.intents.checkers.result_field_checker import BaseFieldChecker
+        from action_machine.intents.checkers.base_field_checker import BaseFieldChecker
 
         class ResultEmailChecker(BaseFieldChecker):
             def _check_type_and_constraints(self, value):
@@ -25,7 +25,7 @@ class TestCheckerSuffix:
 
     def test_missing_suffix_raises(self) -> None:
         """Name 'EmailValidator' without 'Checker' suffix → NamingSuffixError."""
-        from action_machine.intents.checkers.result_field_checker import BaseFieldChecker
+        from action_machine.intents.checkers.base_field_checker import BaseFieldChecker
 
         with pytest.raises(NamingSuffixError, match="Checker"):
             class EmailValidator(BaseFieldChecker):
@@ -34,7 +34,7 @@ class TestCheckerSuffix:
 
     def test_base_cannot_be_instantiated(self) -> None:
         """Abstract base is not constructible."""
-        from action_machine.intents.checkers.result_field_checker import BaseFieldChecker
+        from action_machine.intents.checkers.base_field_checker import BaseFieldChecker
 
         with pytest.raises(TypeError):
             BaseFieldChecker("x")  # type: ignore[call-arg]

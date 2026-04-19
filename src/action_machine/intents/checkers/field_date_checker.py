@@ -1,4 +1,4 @@
-# src/action_machine/intents/checkers/result_date_checker.py
+# src/action_machine/intents/checkers/field_date_checker.py
 """
 Date result-field checker (:class:`FieldDateChecker`).
 
@@ -46,7 +46,7 @@ AI-CORE-END
 from datetime import datetime
 from typing import Any
 
-from action_machine.intents.checkers.result_field_checker import BaseFieldChecker
+from action_machine.intents.checkers.base_field_checker import BaseFieldChecker
 from action_machine.model.exceptions import ValidationFieldError
 
 

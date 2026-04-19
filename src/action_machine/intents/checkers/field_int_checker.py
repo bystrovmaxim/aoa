@@ -1,65 +1,65 @@
-# src/action_machine/intents/checkers/result_float_checker.py
+# src/action_machine/intents/checkers/field_int_checker.py
 """
-Numeric result-field checker (int/float) — :class:`FieldFloatChecker`.
+Integer result-field checker (:class:`FieldIntChecker`).
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Validates that a result field is numeric (``int`` or ``float``) and inside optional
-inclusive range bounds. Runtime creates checker instances from snapshot metadata.
-For the ``@result_float`` decorator, see ``result_float_decorator``.
+Validates that a result field is an integer and satisfies optional inclusive
+range limits. Runtime creates checker instances from checker snapshot entries.
+For the ``@result_int`` decorator, see ``result_int_decorator``.
 
 ═══════════════════════════════════════════════════════════════════════════════
 USAGE BY RUNTIME
 ═══════════════════════════════════════════════════════════════════════════════
 
-    checker = FieldFloatChecker("total", min_value=0.0)
-    checker.check({"total": 1500.0})  # OK
+    checker = FieldIntChecker("count", min_value=0)
+    checker.check({"count": 42})  # OK
 
 ═══════════════════════════════════════════════════════════════════════════════
 INVARIANTS
 ═══════════════════════════════════════════════════════════════════════════════
 
-- Accepts ``int`` and ``float`` values.
-- Applies inclusive bound checks when ``min_value`` / ``max_value`` are set.
-- Reuses required/non-null handling from ``BaseFieldChecker``.
+- Accepts only ``int`` values by ``isinstance(value, int)`` rule.
+- Applies inclusive range checks when bounds are configured.
+- Reuses required/non-null policy from ``BaseFieldChecker``.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ERRORS / LIMITATIONS
 ═══════════════════════════════════════════════════════════════════════════════
 
-- Raises ``ValidationFieldError`` when value is non-numeric or outside range.
-- Python treats ``bool`` as ``int``; therefore ``True``/``False`` pass type check.
+- Raises ``ValidationFieldError`` when value is not integer or violates bounds.
+- Python treats ``bool`` as subclass of ``int``; bool values pass type check.
 
 AI-CORE-BEGIN
-ROLE: Numeric checker implementation for aspect result fields.
-CONTRACT: Validate numeric values; snapshot hydration matches ``result_float`` metadata.
+ROLE: Integer checker implementation for aspect result fields.
+CONTRACT: Validate integer values; snapshot hydration matches ``result_int`` metadata.
 INVARIANTS: Deterministic metadata shape and inclusive bound enforcement.
-FLOW: snapshot -> FieldFloatChecker -> check(result_dict).
+FLOW: snapshot -> FieldIntChecker -> check(result_dict).
 AI-CORE-END
 """
 
 from typing import Any
 
-from action_machine.intents.checkers.result_field_checker import BaseFieldChecker
+from action_machine.intents.checkers.base_field_checker import BaseFieldChecker
 from action_machine.model.exceptions import ValidationFieldError
 
 
-class FieldFloatChecker(BaseFieldChecker):
+class FieldIntChecker(BaseFieldChecker):
     """
-    Checker for numeric values (int/float) with optional range constraints.
+    Checker for integer values with optional range constraints.
     """
 
     def __init__(
         self,
         field_name: str,
         required: bool = True,
-        min_value: float | None = None,
-        max_value: float | None = None,
+        min_value: int | None = None,
+        max_value: int | None = None,
     ):
         """
-        Initialize numeric checker.
+        Initialize integer checker.
 
         Args:
             field_name: field name in aspect result dictionary.
@@ -83,47 +83,47 @@ class FieldFloatChecker(BaseFieldChecker):
             "max_value": self.max_value,
         }
 
-    def _validate_number(self, value: Any) -> float:
+    def _validate_int(self, value: Any) -> int:
         """
-        Validate numeric type and return value.
+        Validate integer type and return value.
 
         Args:
             value: value to validate.
 
         Returns:
-            Numeric value.
+            Integer value.
 
         Raises:
-            ValidationFieldError: if value is not ``int`` or ``float``.
+            ValidationFieldError: if value is not ``int``.
         """
-        if not isinstance(value, (int, float)):
+        if not isinstance(value, int):
             raise ValidationFieldError(
-                f"Field '{self.field_name}' must be numeric, got {type(value).__name__}"
+                f"Parameter '{self.field_name}' must be an integer, got {type(value).__name__}"
             )
         return value
 
-    def _check_range(self, value: float) -> None:
+    def _check_range(self, value: int) -> None:
         """
-        Validate that number is within configured inclusive bounds.
+        Validate that integer is within configured inclusive bounds.
 
         Args:
-            value: numeric value to validate.
+            value: integer value to validate.
 
         Raises:
             ValidationFieldError: if value is outside allowed range.
         """
         if self.min_value is not None and value < self.min_value:
             raise ValidationFieldError(
-                f"Field '{self.field_name}' must be greater than or equal to {self.min_value}"
+                f"Parameter '{self.field_name}' must be greater than or equal to {self.min_value}"
             )
         if self.max_value is not None and value > self.max_value:
             raise ValidationFieldError(
-                f"Field '{self.field_name}' must be less than or equal to {self.max_value}"
+                f"Parameter '{self.field_name}' must be less than or equal to {self.max_value}"
             )
 
     def _check_type_and_constraints(self, value: Any) -> None:
         """
-        Validate numeric type and range constraints.
+        Validate integer type and range constraints.
 
         Args:
             value: value to validate (guaranteed non-None by base checker).
@@ -131,5 +131,5 @@ class FieldFloatChecker(BaseFieldChecker):
         Raises:
             ValidationFieldError: on type or range violation.
         """
-        num_value = self._validate_number(value)
-        self._check_range(num_value)
+        int_value = self._validate_int(value)
+        self._check_range(int_value)

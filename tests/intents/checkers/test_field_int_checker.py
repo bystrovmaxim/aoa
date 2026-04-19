@@ -1,4 +1,4 @@
-# tests/intents/checkers/test_result_int_checker.py
+# tests/intents/checkers/test_field_int_checker.py
 """
 Tests for FieldIntChecker and the result_int decorator — integer fields.
 
@@ -38,7 +38,7 @@ Decorator:
 
 import pytest
 
-from action_machine.intents.checkers.result_int_checker import FieldIntChecker
+from action_machine.intents.checkers.field_int_checker import FieldIntChecker
 from action_machine.intents.checkers.result_int_decorator import result_int
 from action_machine.model.exceptions import ValidationFieldError
 

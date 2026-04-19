@@ -1,4 +1,4 @@
-# tests/intents/checkers/test_result_bool_checker.py
+# tests/intents/checkers/test_field_bool_checker.py
 """
 Tests for FieldBoolChecker — validates boolean fields in aspect results.
 
@@ -37,7 +37,7 @@ TestDecorator
 
 import pytest
 
-from action_machine.intents.checkers.result_bool_checker import FieldBoolChecker
+from action_machine.intents.checkers.field_bool_checker import FieldBoolChecker
 from action_machine.intents.checkers.result_bool_decorator import result_bool
 from action_machine.model.exceptions import ValidationFieldError
 

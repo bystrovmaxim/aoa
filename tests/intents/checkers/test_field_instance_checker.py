@@ -1,4 +1,4 @@
-# tests/intents/checkers/test_result_instance_checker.py
+# tests/intents/checkers/test_field_instance_checker.py
 """
 Tests for FieldInstanceChecker — validates values against expected classes.
 
@@ -44,7 +44,7 @@ TestDecorator
 
 import pytest
 
-from action_machine.intents.checkers.result_instance_checker import FieldInstanceChecker
+from action_machine.intents.checkers.field_instance_checker import FieldInstanceChecker
 from action_machine.intents.checkers.result_instance_decorator import result_instance
 from action_machine.model.exceptions import ValidationFieldError
 

@@ -1,4 +1,4 @@
-# tests/intents/checkers/test_result_date_checker.py
+# tests/intents/checkers/test_field_date_checker.py
 """
 Tests for FieldDateChecker — validates date fields in aspect result dictionaries.
 
@@ -43,7 +43,7 @@ from datetime import UTC, datetime
 
 import pytest
 
-from action_machine.intents.checkers.result_date_checker import FieldDateChecker
+from action_machine.intents.checkers.field_date_checker import FieldDateChecker
 from action_machine.intents.checkers.result_date_decorator import result_date
 from action_machine.model.exceptions import ValidationFieldError
 

@@ -1,4 +1,4 @@
-# src/action_machine/intents/checkers/result_field_checker.py
+# src/action_machine/intents/checkers/base_field_checker.py
 """
 Abstract base checker for aspect-result fields.
 

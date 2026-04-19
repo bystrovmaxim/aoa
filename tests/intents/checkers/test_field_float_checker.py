@@ -1,4 +1,4 @@
-# tests/intents/checkers/test_result_float_checker.py
+# tests/intents/checkers/test_field_float_checker.py
 """
 Tests for FieldFloatChecker and the result_float decorator — numeric fields (int/float).
 
@@ -35,7 +35,7 @@ Decorator:
 
 import pytest
 
-from action_machine.intents.checkers.result_float_checker import FieldFloatChecker
+from action_machine.intents.checkers.field_float_checker import FieldFloatChecker
 from action_machine.intents.checkers.result_float_decorator import result_float
 from action_machine.model.exceptions import ValidationFieldError
 

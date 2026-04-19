@@ -110,18 +110,18 @@ AI-CORE-END
 """
 
 from action_machine.legacy.checker_intent import CheckerIntent
-from action_machine.intents.checkers.result_bool_checker import FieldBoolChecker
+from action_machine.intents.checkers.field_bool_checker import FieldBoolChecker
+from action_machine.intents.checkers.field_date_checker import FieldDateChecker
+from action_machine.intents.checkers.base_field_checker import BaseFieldChecker
+from action_machine.intents.checkers.field_float_checker import FieldFloatChecker
+from action_machine.intents.checkers.field_instance_checker import FieldInstanceChecker
+from action_machine.intents.checkers.field_int_checker import FieldIntChecker
 from action_machine.intents.checkers.result_bool_decorator import result_bool
-from action_machine.intents.checkers.result_date_checker import FieldDateChecker
 from action_machine.intents.checkers.result_date_decorator import result_date
-from action_machine.intents.checkers.result_field_checker import BaseFieldChecker
-from action_machine.intents.checkers.result_float_checker import FieldFloatChecker
 from action_machine.intents.checkers.result_float_decorator import result_float
-from action_machine.intents.checkers.result_instance_checker import FieldInstanceChecker
 from action_machine.intents.checkers.result_instance_decorator import result_instance
-from action_machine.intents.checkers.result_int_checker import FieldIntChecker
 from action_machine.intents.checkers.result_int_decorator import result_int
-from action_machine.intents.checkers.result_string_checker import FieldStringChecker
+from action_machine.intents.checkers.field_string_checker import FieldStringChecker
 from action_machine.intents.checkers.result_string_decorator import result_string
 
 __all__ = [
