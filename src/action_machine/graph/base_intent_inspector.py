@@ -29,7 +29,7 @@ MARKER VS INSPECTOR
 
 Each intent is represented twice:
 
-    Marker mixin (``RoleIntent``, ``AspectIntent``, ``DependencyIntent[T]``, …)
+    Marker mixin (``CheckRolesIntent``, ``AspectIntent``, ``DependencyIntent[T]``, …)
         Lives in the MRO of ``BaseAction`` (or ``BaseEntity``, ``BaseResourceManager``).
         Declares intent for the matching decorator grammar via ``issubclass`` checks.
         Contains no inspection logic. Does not inherit ``BaseIntentInspector``.
@@ -154,7 +154,7 @@ Default ``_subclasses_recursive()`` walks subclasses of the inspector class
 itself. Concrete inspectors override it to traverse ``_target_intent`` instead::
 
     class RoleIntentInspector(BaseIntentInspector):
-        _target_intent = RoleIntent
+        _target_intent = CheckRolesIntent
 
         @classmethod
         def _subclasses_recursive(cls) -> list[type]:
@@ -196,7 +196,7 @@ EXAMPLE — INSPECTOR WITH INFORMATIONAL EDGES (``@check_roles``)
 ═══════════════════════════════════════════════════════════════════════════════
 
     class RoleIntentInspector(BaseIntentInspector):
-        _target_intent = RoleIntent
+        _target_intent = CheckRolesIntent
 
         @classmethod
         def _subclasses_recursive(cls) -> list[type]:
@@ -586,7 +586,7 @@ class BaseIntentInspector(ABC):
 
         Example::
 
-            BaseIntentInspector._collect_subclasses(RoleIntent)
+            BaseIntentInspector._collect_subclasses(CheckRolesIntent)
             → [BaseAction, CreateOrderAction, ...]
         """
         result: list[type] = []

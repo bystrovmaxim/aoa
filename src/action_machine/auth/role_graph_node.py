@@ -1,101 +1,88 @@
-# src/action_machine/intents/auth/role_intent.py
+# src/action_machine/auth/role_graph_node.py
 """
-RoleIntent — marker mixin: declare participation in the role grammar (``@check_roles``).
+RoleGraphNode — interchange node for ``BaseRole`` subclasses.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Types that carry ``RoleIntent`` in MRO **commit** to expressing access rules via
-``@check_roles`` (or explicit ``NoneRole`` / ``AnyRole``). The decorator checks
-``issubclass`` at apply time and writes ``cls._role_info``; ``RoleIntentInspector``
-and ``GraphCoordinator`` validate completeness during ``build()``.
+Provides a :class:`~action_machine.graph.base_graph_node.BaseGraphNode` view derived from
+a role **class** object. Interchange data lives in ``id``, ``node_type``,
+``label``, ``properties``, and ``edges``; the class is :attr:`~action_machine.graph.base_graph_node.BaseGraphNode.obj`.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-    BaseAction (..., RoleIntent, ...)
-             |
-             v
-    @check_roles(...)
-             |
-             v
-    cls._role_info = {"spec": ...}
-             |
-             v
-    RoleIntentInspector facet snapshot
-             |
-             v
-    RoleChecker runtime authorization
+    type[TRole]   (``TRole`` bound to ``BaseRole``)
+              │
+              v
+    RoleGraphNode.parse  ──>  frozen ``BaseGraphNode`` (id, node_type, label, properties, edges)
 
 ═══════════════════════════════════════════════════════════════════════════════
 INVARIANTS
 ═══════════════════════════════════════════════════════════════════════════════
 
-- ``RoleIntent`` is a pure marker; no logic, fields, or methods on the mixin.
-- Classes that declare ``@check_roles`` must inherit ``RoleIntent``.
-- The decorator writes ``_role_info`` on the target class; the inspector reads
-  it for graph construction.
-
-═══════════════════════════════════════════════════════════════════════════════
-COMPONENTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- ``RoleIntent``: marker mixin for role-grammar participation.
-- ``_role_info``: class-level storage populated by ``@check_roles``.
+- The role class is :attr:`~action_machine.graph.base_graph_node.BaseGraphNode.obj`.
+- ``node_type`` is ``"Role"`` (same convention as ``"Action"``, ``"Params"``, ``"Result"``, ``"Entity"``); ``label`` is the class ``__name__``; ``properties`` and ``edges`` are empty in ``parse``.
 
 ═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
-::
+Happy path::
 
-    from action_machine.intents.auth import RoleIntent, check_roles
+    class OrderViewerRole(BaseRole): ...
+    n = RoleGraphNode(OrderViewerRole)
+    assert n.node_type == "Role" and n.label == "OrderViewerRole"
 
-    @check_roles(AdminRole)
-    class AdminAction(BaseAction[P, R]):   # BaseAction already inherits RoleIntent
-        ...
-
-Edge case (raises TypeError)::
-
-    @check_roles(EditorRole)
-    class NotAnAction:                     # does not inherit RoleIntent
-        ...
+Edge case: same interchange shape for any concrete ``BaseRole`` subclass type passed in.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ERRORS / LIMITATIONS
 ═══════════════════════════════════════════════════════════════════════════════
 
-- Applying ``@check_roles`` to a class missing ``RoleIntent`` raises ``TypeError``
-  at import time.
-- The marker performs no runtime enforcement; ``RoleChecker`` applies the spec.
+- No validation in ``parse``; concrete ``BaseRole`` subclasses are validated where declared.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN
 ═══════════════════════════════════════════════════════════════════════════════
-ROLE: Intent marker for role declarations on actions.
-CONTRACT: Subclass required for ``@check_roles``; ``_role_info`` slot on decorated class.
-INVARIANTS: Pure marker; decorated classes must be subclasses.
-FLOW: decorator → _role_info → inspector → runtime role check.
-FAILURES: TypeError on missing inheritance.
-EXTENSION POINTS: None (marker only).
+ROLE: Auth-scoped BaseGraphNode bridge for BaseRole subclasses.
+CONTRACT: Construct from ``type[TRole]`` via ``parse``; ``node_type="Role"``; dotted-path ``id``; label = class name; empty properties and edges.
+INVARIANTS: Immutable node; host class on ``BaseGraphNode.obj``.
+FLOW: role class -> ``BaseGraphNode.__init__`` -> ``parse`` -> frozen BaseGraphNode fields.
+EXTENSION POINTS: Other graph node specializations follow the same parse pattern.
 AI-CORE-END
 ═══════════════════════════════════════════════════════════════════════════════
 """
 
-from typing import Any, ClassVar
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import TypeVar
+
+from action_machine.common import qualified_dotted_name
+from action_machine.graph.base_graph_node import BaseGraphNode, Payload
+from action_machine.auth.base_role import BaseRole
+
+TRole = TypeVar("TRole", bound=BaseRole)
 
 
-class RoleIntent:
+@dataclass(init=False, frozen=True)
+class RoleGraphNode(BaseGraphNode[type[TRole]]):
     """
-    Marker mixin declaring participation in ``@check_roles`` role grammar.
-
     AI-CORE-BEGIN
-    ROLE: Role declaration marker for action classes.
-    CONTRACT: Required base for classes decorated with ``@check_roles``.
-    INVARIANTS: No behavior; only class-level ``_role_info`` contract.
+    ROLE: Interchange node for a ``BaseRole`` host class.
+    CONTRACT: Built from ``type[TRole]``; ``node_type="Role"``; dotted ``id``, ``__name__`` label; empty ``properties`` and ``edges``.
     AI-CORE-END
     """
 
-    _role_info: ClassVar[dict[str, Any]]
+    @classmethod
+    def parse(cls, role_cls: type[TRole]) -> Payload:
+        return Payload(
+            id=qualified_dotted_name(role_cls),
+            node_type="Role",
+            label=role_cls.__name__,
+            properties={},
+            edges=[],
+        )

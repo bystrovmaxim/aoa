@@ -78,7 +78,7 @@ AI-CORE-END
 ═══════════════════════════════════════════════════════════════════════════════
 """
 
-from action_machine.intents.auth import NoAuthCoordinator
+from action_machine.intents.check_roles import NoAuthCoordinator
 from action_machine.runtime.machines.action_product_machine import ActionProductMachine
 
 machine = ActionProductMachine(mode="production")

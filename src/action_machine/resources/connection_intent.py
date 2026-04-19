@@ -21,7 +21,7 @@ ARCHITECTURE / DATA FLOW
 
     class BaseAction[P, R](
         ABC,
-        RoleIntent,
+        CheckRolesIntent,
         DependencyIntent[object],
         CheckerIntent,
         AspectIntent,

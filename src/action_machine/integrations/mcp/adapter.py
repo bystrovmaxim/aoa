@@ -158,7 +158,7 @@ JSON-serializable object produced by ``_serialize_result`` (one outer
 EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
-    from action_machine.intents.auth import NoAuthCoordinator
+    from action_machine.intents.check_roles import NoAuthCoordinator
     from action_machine.integrations.mcp import McpAdapter
 
     adapter = McpAdapter(

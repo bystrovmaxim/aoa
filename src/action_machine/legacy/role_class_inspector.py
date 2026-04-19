@@ -1,4 +1,4 @@
-# src/action_machine/intents/auth/role_class_inspector.py
+# src/action_machine/legacy/role_class_inspector.py
 """
 Graph inspector for typed role topology (MRO, ``requires_role``, names).
 
@@ -77,7 +77,7 @@ from action_machine.graph.base_intent_inspector import BaseIntentInspector
 from action_machine.graph.exceptions import InvalidGraphError
 from action_machine.graph.facet_vertex import FacetVertex
 from action_machine.auth.base_role import BaseRole
-from action_machine.intents.auth.role_graph_roots import ROLE_CLASS_GRAPH_ROOTS
+from action_machine.legacy.role_graph_roots import ROLE_CLASS_GRAPH_ROOTS
 from action_machine.intents.role_mode.role_mode_decorator import RoleMode
 
 

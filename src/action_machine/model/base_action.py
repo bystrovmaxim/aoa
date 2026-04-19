@@ -49,7 +49,7 @@ ARCHITECTURE — MARKER MIXINS
 ``BaseAction`` inherits marker mixins only (no inspector logic):
 
     ActionMetaIntent       → ``@meta`` (required)
-    RoleIntent             → ``@check_roles``
+    CheckRolesIntent             → ``@check_roles``
     DependencyIntent       → ``@depends``
     CheckerIntent          → result / field checkers on aspect methods
     AspectIntent           → ``@regular_aspect`` / ``@summary_aspect``
@@ -113,7 +113,7 @@ from typing import Any
 
 from action_machine.dependencies.dependency_intent import DependencyIntent
 from action_machine.intents.aspects.aspect_intent import AspectIntent
-from action_machine.intents.auth.role_intent import RoleIntent
+from action_machine.intents.check_roles.check_roles_intent import CheckRolesIntent
 from action_machine.intents.checkers.checker_intent import CheckerIntent
 from action_machine.intents.compensate.compensate_intent import CompensateIntent
 from action_machine.intents.context.context_requires_intent import ContextRequiresIntent
@@ -129,7 +129,7 @@ _REQUIRED_SUFFIX = "Action"
 class BaseAction[P: BaseSchema, R: BaseSchema](
     ABC,
     ActionMetaIntent,
-    RoleIntent,
+    CheckRolesIntent,
     DependencyIntent[object],
     CheckerIntent,
     AspectIntent,

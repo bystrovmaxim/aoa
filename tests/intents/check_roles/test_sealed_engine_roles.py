@@ -1,4 +1,4 @@
-# tests/intents/auth/test_sealed_engine_roles.py
+# tests/intents/check_roles/test_sealed_engine_roles.py
 """Engine sentinel roles reject subclassing."""
 
 import pytest

@@ -22,7 +22,7 @@ grammar segment: which decorators are allowed and what build-time validators
 enforce in ``GraphCoordinator.build()``:
 
     ActionMetaIntent       -> @meta
-    RoleIntent             -> @check_roles
+    CheckRolesIntent             -> @check_roles
     DependencyIntent       -> @depends
     CheckerIntent          -> result_* checkers
     AspectIntent           -> @regular_aspect / @summary_aspect
@@ -41,7 +41,7 @@ ARCHITECTURE / DATA FLOW
     class BaseAction[P, R](
         ABC,
         ActionMetaIntent,
-        RoleIntent,
+        CheckRolesIntent,
         DependencyIntent[object],
         CheckerIntent,
         AspectIntent,

@@ -45,7 +45,7 @@ ARCHITECTURE
     class BaseAction[P, R](
         ABC,
         ActionMetaIntent,
-        RoleIntent,
+        CheckRolesIntent,
         DependencyIntent[object],
         CheckerIntent,
         AspectIntent,

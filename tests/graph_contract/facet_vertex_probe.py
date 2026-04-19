@@ -15,9 +15,9 @@ from action_machine.intents.domain.entity_intent_inspector import EntityIntentIn
 from action_machine.graph.facet_vertex import FacetVertex
 from action_machine.graph.graph_coordinator import GraphCoordinator
 from action_machine.intents.aspects.aspect_intent_inspector import AspectIntentInspector
-from action_machine.intents.auth.role_class_inspector import RoleClassInspector
-from action_machine.intents.auth.role_intent_inspector import RoleIntentInspector
-from action_machine.intents.auth.role_mode_intent_inspector import RoleModeIntentInspector
+from action_machine.legacy.role_class_inspector import RoleClassInspector
+from action_machine.legacy.role_intent_inspector import RoleIntentInspector
+from action_machine.legacy.role_mode_intent_inspector import RoleModeIntentInspector
 from action_machine.intents.checkers.checker_intent_inspector import CheckerIntentInspector
 from action_machine.intents.compensate.compensate_intent_inspector import (
     CompensateIntentInspector,

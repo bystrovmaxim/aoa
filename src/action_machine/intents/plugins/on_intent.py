@@ -69,7 +69,7 @@ INTENT CONSISTENCY
 
 All ActionMachine intent markers follow the same pattern: empty logic-free
 classes used by ``issubclass`` checks in decorators and graph build. ``OnIntent``
-aligns with other markers such as ``RoleIntent``, ``AspectIntent``,
+aligns with other markers such as ``CheckRolesIntent``, ``AspectIntent``,
 ``CheckerIntent``, ``ActionMetaIntent``, ``ConnectionIntent``, ``OnErrorIntent``,
 ``ContextRequiresIntent``, and ``DescribedFieldsIntent``.
 
