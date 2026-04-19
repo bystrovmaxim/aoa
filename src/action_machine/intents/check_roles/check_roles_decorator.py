@@ -40,13 +40,13 @@ COMPONENTS
 - ``check_roles``: public class decorator for action role requirements.
 - ``_normalize_check_roles_spec``: accepted-shape validator + canonicalizer.
 - ``_validate_required_role_modes``: compile-time mode checks for declared roles.
-- Target invariants: ensure class target and ``CheckRolesIntent`` inheritance.
+- Target invariants: ensure class target.
 
 ═══════════════════════════════════════════════════════════════════════════════
 INVARIANTS
 ═══════════════════════════════════════════════════════════════════════════════
 
-- Applies only to classes inheriting ``CheckRolesIntent``.
+- Applies only to classes (``type``).
 - ``spec`` may be: ``NoneRole``, ``AnyRole``, a ``BaseRole`` subclass, or a
   non-empty ``list`` of ``BaseRole`` subclasses (homogeneous types only).
 - Stored ``spec`` is always ``NoneRole``, ``AnyRole``, exactly one
@@ -83,7 +83,7 @@ Edge case: ``@check_roles([])`` → ``ValueError``.
 ERRORS / LIMITATIONS
 ═══════════════════════════════════════════════════════════════════════════════
 
-- ``TypeError``: non-class target, missing ``CheckRolesIntent``, invalid spec type,
+- ``TypeError``: non-class target, invalid spec type,
   non-``BaseRole`` type, or heterogeneous list.
 - ``ValueError``: empty list, or a required role is ``RoleMode.UNUSED``.
 - ``DeprecationWarning``: a required role is ``RoleMode.DEPRECATED``.
@@ -95,7 +95,7 @@ AI-CORE-BEGIN
 ═══════════════════════════════════════════════════════════════════════════════
 ROLE: Action role-requirement declaration module.
 CONTRACT: ``@check_roles(spec)`` writes normalized ``_role_info`` for facet ``role``.
-INVARIANTS: Target inherits CheckRolesIntent; stored spec uses types + engine sentinels.
+INVARIANTS: Class target; stored spec uses types + engine sentinels.
 FLOW: decorator → normalize → _role_info → inspector.
 FAILURES: TypeError / ValueError; ``DeprecationWarning`` for deprecated roles.
 EXTENSION POINTS: N/A.
@@ -112,7 +112,6 @@ from action_machine.auth.any_role import AnyRole
 from action_machine.auth.base_role import BaseRole
 from action_machine.auth.none_role import NoneRole
 from action_machine.intents.role_mode.role_mode_decorator import RoleMode
-from action_machine.legacy.check_roles_intent import CheckRolesIntent
 
 
 def _normalize_check_roles_spec(spec: Any) -> Any:
@@ -192,15 +191,6 @@ def _target_is_class_invariant(cls: Any) -> None:
         )
 
 
-def _target_inherits_check_roles_intent_invariant(cls: type) -> None:
-    if not issubclass(cls, CheckRolesIntent):
-        raise TypeError(
-            f"@check_roles was applied to class {cls.__name__}, "
-            f"which does not inherit CheckRolesIntent. "
-            f"Add CheckRolesIntent to the inheritance chain."
-        )
-
-
 def check_roles(spec: Any) -> Any:
     """
     Class-level decorator that declares role requirements for an action.
@@ -212,7 +202,6 @@ def check_roles(spec: Any) -> Any:
 
     def decorator(cls: Any) -> Any:
         _target_is_class_invariant(cls)
-        _target_inherits_check_roles_intent_invariant(cls)
 
         cls._role_info = {"spec": normalized}
         return cls

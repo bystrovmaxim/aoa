@@ -9,7 +9,7 @@ PURPOSE
 Covers authentication components:
 
 - check_roles — class-level decorator for role constraints. Writes spec to cls._role_info.
-  Target must inherit CheckRolesIntent. Valid spec forms: NoneRole, AnyRole, a single BaseRole
+  Target must be a class. Valid spec forms: NoneRole, AnyRole, a single BaseRole
   subclass, or a non-empty list of BaseRole subclasses (normalized to a tuple). Strings
   and “roles by name” are not used in @check_roles — only BaseRole types and two engine
   sentinels (SystemRole subclasses).

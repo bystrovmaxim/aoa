@@ -21,7 +21,6 @@ INVARIANTS
 - Enum members are stable public API values.
 - Runtime and graph inspectors read the mode from ``cls._role_mode_info``
   (written by ``@role_mode``), not from ad-hoc class attributes.
-- The decorated class must inherit ``RoleModeIntent`` (``TypeError`` otherwise).
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
@@ -69,7 +68,7 @@ AI-CORE-BEGIN
 ROLE: Role lifecycle enum + decorator + declared-mode accessor.
 CONTRACT: Members ALIVE, DEPRECATED, SILENCED, UNUSED; ``@role_mode`` scratch;
     ``RoleMode.declared_for(role_cls)`` reads validated mode.
-INVARIANTS: Mode assigned only through ``@role_mode`` on ``RoleModeIntent`` types.
+INVARIANTS: Mode assigned only through ``@role_mode`` on role classes.
 FLOW: Decorator writes ``_role_mode_info`` → consumers call ``declared_for``.
 FAILURES: TypeError for bad decorator target or missing/invalid scratch.
 EXTENSION POINTS: New modes require coordinated updates to checker + inspectors.
@@ -84,9 +83,8 @@ from enum import Enum
 from typing import TypeVar
 
 from action_machine.auth.base_role import BaseRole
-from action_machine.legacy.role_mode_intent import RoleModeIntent
 
-_RT = TypeVar("_RT", bound=type[RoleModeIntent])
+_RT = TypeVar("_RT", bound=type)
 
 
 class RoleMode(Enum):
@@ -127,19 +125,11 @@ def role_mode(mode: RoleMode) -> Callable[[_RT], _RT]:
     """
     Attach ``RoleMode`` metadata to a role class (``_role_mode_info``).
 
-    Must be applied to classes that inherit ``RoleModeIntent`` (e.g. via
-    ``BaseRole``).
     """
 
     def decorator(cls: _RT) -> _RT:
         if not isinstance(cls, type):
             raise TypeError(f"@role_mode applies only to classes, got {type(cls)!r}.")
-        if not issubclass(cls, RoleModeIntent):
-            raise TypeError(
-                f"@role_mode was applied to {cls.__name__!r}, which does not inherit "
-                f"RoleModeIntent. Role classes must extend BaseRole (or another "
-                f"RoleModeIntent subtype)."
-            )
         cls._role_mode_info = {"mode": mode}
         return cls
 

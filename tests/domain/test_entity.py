@@ -65,12 +65,13 @@ class TestEntityDecorator:
             class InvalidEntity(BaseEntity):
                 id: str
 
-    def test_no_inheritance_from_base_entity(self):
-        """Decorator requires a `BaseEntity` subclass."""
-        with pytest.raises(EntityDecoratorError):
-            @entity(description="Test")
-            class InvalidEntity:
-                id: str
+    def test_plain_class_without_base_entity_allowed(self):
+        """``@entity`` does not require ``BaseEntity``; inspector/graph may still filter."""
+        @entity(description="Test")
+        class LooseEntity:
+            id: str
+
+        assert LooseEntity._entity_info["description"] == "Test"
 
 
 class TestBaseEntity:

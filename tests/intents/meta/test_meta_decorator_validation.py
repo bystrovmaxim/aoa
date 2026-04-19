@@ -61,12 +61,11 @@ def test_validate_meta_target_accepts_base_action_subclass() -> None:
     _validate_meta_target(SomeAction)
 
 
-def test_validate_meta_target_rejects_plain_class() -> None:
+def test_validate_meta_target_accepts_plain_class() -> None:
     class Plain:
         pass
 
-    with pytest.raises(TypeError, match="does not declare"):
-        _validate_meta_target(Plain)
+    _validate_meta_target(Plain)
 
 
 def test_meta_decorator_attaches_meta_info_on_resource_manager() -> None:

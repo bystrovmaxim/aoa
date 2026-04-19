@@ -9,8 +9,7 @@ PURPOSE
 ``@entity`` is the declaration entry point for entities in the domain model.
 It performs three responsibilities:
 
-1. **Intent check** — the target class must inherit ``EntityIntent``
-   (``BaseEntity`` does this for you). Otherwise → ``EntityDecoratorError``.
+1. **Target check** — the target must be a class (``type``).
 
 2. **Scratch metadata** — writes ``_entity_info`` on the class with keys
    ``"description"`` and ``"domain"``. This is the **grammar trace** decorators
@@ -55,7 +54,7 @@ INVARIANTS
 ═══════════════════════════════════════════════════════════════════════════════
 
 - Applies only to **classes**, not functions or methods.
-- Target must inherit ``EntityIntent`` (typically via ``BaseEntity``).
+- Target must be a class (``type``).
 - ``description`` — non-empty ``str``.
 - ``domain`` — ``None`` or ``BaseDomain`` subclass.
 - Decorator order relative to other class decorators is otherwise unconstrained.
@@ -98,8 +97,7 @@ EXAMPLE
 ERRORS / LIMITATIONS
 ═══════════════════════════════════════════════════════════════════════════════
 
-    EntityDecoratorError — wrong target type, missing ``EntityIntent``, bad
-                           ``description`` / ``domain``.
+    EntityDecoratorError — wrong target type or bad ``description`` / ``domain``.
 
 The decorator validates declaration metadata only. Graph-level consistency is
 validated later during coordinator ``build()`` by inspectors.
@@ -109,7 +107,7 @@ AI-CORE-BEGIN
 ═══════════════════════════════════════════════════════════════════════════════
 ROLE: Domain entity declaration decorator.
 CONTRACT: Validate declaration metadata and write ``_entity_info`` scratch on class.
-INVARIANTS: Target must satisfy ``EntityIntent`` contract; metadata is import-time validated.
+INVARIANTS: Class target; metadata is import-time validated.
 FLOW: decorator args validation -> class target validation -> scratch write -> inspector consumption at build.
 FAILURES: ``EntityDecoratorError`` for invalid arguments or invalid target classes.
 EXTENSION POINTS: Applications specialize domain modeling by combining ``@entity`` with custom BaseDomain hierarchies.
@@ -123,7 +121,6 @@ from typing import Any
 
 from action_machine.domain.base_domain import BaseDomain
 from action_machine.domain.exceptions import EntityDecoratorError
-from action_machine.legacy.entity_intent import EntityIntent
 
 __all__ = ("EntityDecoratorError", "entity")
 
@@ -176,22 +173,15 @@ def validate_entity_domain(domain: Any) -> None:
 
 def validate_entity_decorator_target(cls: Any) -> None:
     """
-    Invariant: decorator target is a ``type`` with ``EntityIntent`` in the MRO.
+    Invariant: decorator target is a ``type``.
 
     Raises:
-        EntityDecoratorError: not a class, or missing ``EntityIntent``.
+        EntityDecoratorError: not a class.
     """
     if not isinstance(cls, type):
         raise EntityDecoratorError(
             f"@entity applies only to a class. "
             f"Got {type(cls).__name__}: {cls!r}."
-        )
-
-    if not issubclass(cls, EntityIntent):
-        raise EntityDecoratorError(
-            f"@entity applied to {cls.__name__}, which does not inherit "
-            f"EntityIntent. Subclass BaseEntity, e.g. "
-            f"class {cls.__name__}(BaseEntity): ..."
         )
 
 
@@ -217,8 +207,7 @@ def entity(
 
     Raises:
         EntityDecoratorError:
-            Invalid ``description`` / ``domain``, or target is not an
-            ``EntityIntent`` subclass.
+            Invalid ``description`` / ``domain``, or target is not a class.
 
     Example:
         @entity(description="Customer order", domain=ShopDomain)

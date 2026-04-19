@@ -27,13 +27,13 @@ def test_depends_inner_rejects_non_class_target() -> None:
         dec(42)  # type: ignore[arg-type]
 
 
-def test_depends_inner_rejects_without_dependency_intent() -> None:
+def test_depends_accepts_class_without_dependency_intent_uses_object_bound() -> None:
     class Plain:
         pass
 
     dec = depends(_Svc, description="d")
-    with pytest.raises(TypeError, match="DependencyIntent"):
-        dec(Plain)
+    dec(Plain)
+    assert Plain._depends_info[0].cls is _Svc
 
 
 def test_depends_rejects_service_outside_bound() -> None:

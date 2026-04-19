@@ -36,7 +36,6 @@ INVARIANTS
 ═══════════════════════════════════════════════════════════════════════════════
 
 - Applies only to classes (not functions, methods, or properties).
-- Target class must inherit ``ConnectionIntent``.
 - ``klass`` must be a ``BaseResourceManager`` subclass.
 - ``key`` must be a non-empty string.
 - ``description`` must be a string.
@@ -69,7 +68,7 @@ ERRORS / LIMITATIONS
 ═══════════════════════════════════════════════════════════════════════════════
 
     TypeError - invalid manager class, invalid target class, invalid ``key`` type,
-                invalid ``description`` type, or missing ``ConnectionIntent``.
+                or invalid ``description`` type.
     ValueError - empty ``key`` or duplicate connection key.
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -90,7 +89,6 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
 
-from action_machine.legacy.connection_intent import ConnectionIntent
 from action_machine.resources.base_resource_manager import BaseResourceManager
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -179,14 +177,6 @@ def connection(klass: Any, *, key: str, description: str = "") -> Callable[[type
             raise TypeError(
                 f"@connection can only be applied to classes. "
                 f"Got object of type {type(cls).__name__}: {cls!r}."
-            )
-
-        # Class must inherit ConnectionIntent
-        if not issubclass(cls, ConnectionIntent):
-            raise TypeError(
-                f"@connection(key=\"{key}\") was applied to class {cls.__name__}, "
-                f"which does not inherit ConnectionIntent. "
-                f"Add ConnectionIntent to the inheritance chain."
             )
 
         # Ensure subclass-local declaration list on first use
