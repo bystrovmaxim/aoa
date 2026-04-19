@@ -117,7 +117,7 @@ from action_machine.intents.auth.role_intent import RoleIntent
 from action_machine.intents.checkers.checker_intent import CheckerIntent
 from action_machine.intents.compensate.compensate_intent import CompensateIntent
 from action_machine.intents.context.context_requires_intent import ContextRequiresIntent
-from action_machine.intents.meta.meta_intents import ActionMetaIntent
+from action_machine.intents.meta.action_meta_intent import ActionMetaIntent
 from action_machine.intents.on_error.on_error_intent import OnErrorIntent
 from action_machine.model.base_schema import BaseSchema
 from action_machine.model.exceptions import NamingSuffixError

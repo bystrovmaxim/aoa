@@ -66,7 +66,8 @@ EXTENSION POINTS: add new public meta intents/decorators via explicit re-export.
 AI-CORE-END
 """
 
+from action_machine.intents.meta.action_meta_intent import ActionMetaIntent
 from action_machine.intents.meta.meta_decorator import meta
-from action_machine.intents.meta.meta_intents import ActionMetaIntent, ResourceMetaIntent
+from action_machine.intents.meta.resource_meta_intent import ResourceMetaIntent
 
 __all__ = ["ActionMetaIntent", "ResourceMetaIntent", "meta"]
