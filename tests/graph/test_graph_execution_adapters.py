@@ -14,12 +14,12 @@ from action_machine.legacy.aspect_intent_inspector import (
 )
 from action_machine.intents.aspects.regular_aspect_decorator import regular_aspect
 from action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
-from action_machine.intents.checkers.checker_intent import CheckerIntent
-from action_machine.intents.checkers.checker_intent_inspector import (
+from action_machine.legacy.checker_intent import CheckerIntent
+from action_machine.legacy.checker_intent_inspector import (
     CheckerIntentInspector,
     hydrate_checker_row,
 )
-from action_machine.intents.checkers.result_string_checker import result_string
+from action_machine.intents.checkers.result_string_decorator import result_string
 from action_machine.intents.compensate.compensate_decorator import compensate
 from action_machine.intents.compensate.compensate_intent_inspector import (
     CompensateIntentInspector,

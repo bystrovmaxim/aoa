@@ -7,7 +7,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from action_machine.intents.checkers.checker_intent import (
+from action_machine.legacy.checker_intent import (
     CheckerIntent,
     require_checker_intent_marker,
     validate_checkers_belong_to_aspects,

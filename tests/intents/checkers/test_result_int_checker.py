@@ -1,17 +1,17 @@
 # tests/intents/checkers/test_result_int_checker.py
 """
-Tests for ResultIntChecker and the result_int decorator — integer fields.
+Tests for FieldIntChecker and the result_int decorator — integer fields.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-ResultIntChecker ensures an aspect result field is an integer (int) within the
+FieldIntChecker ensures an aspect result field is an integer (int) within the
 given range (min_value, max_value).
 
 Float, bool, and strings are rejected — only isinstance(value, int) passes.
-In Python, bool is a subclass of int, but ResultIntChecker uses
-isinstance(value, int), so bool passes. To exclude bool, use ResultBoolChecker
+In Python, bool is a subclass of int, but FieldIntChecker uses
+isinstance(value, int), so bool passes. To exclude bool, use FieldBoolChecker
 separately.
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -38,7 +38,8 @@ Decorator:
 
 import pytest
 
-from action_machine.intents.checkers.result_int_checker import ResultIntChecker, result_int
+from action_machine.intents.checkers.result_int_checker import FieldIntChecker
+from action_machine.intents.checkers.result_int_decorator import result_int
 from action_machine.model.exceptions import ValidationFieldError
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -52,7 +53,7 @@ class TestValidValues:
     def test_positive_int(self) -> None:
         """Positive integer passes."""
         # Arrange
-        checker = ResultIntChecker("count", required=True)
+        checker = FieldIntChecker("count", required=True)
 
         # Act & Assert
         checker.check({"count": 42})
@@ -60,7 +61,7 @@ class TestValidValues:
     def test_negative_int(self) -> None:
         """Negative integer passes."""
         # Arrange
-        checker = ResultIntChecker("offset", required=True)
+        checker = FieldIntChecker("offset", required=True)
 
         # Act & Assert
         checker.check({"offset": -10})
@@ -68,7 +69,7 @@ class TestValidValues:
     def test_zero(self) -> None:
         """Zero passes as a valid integer."""
         # Arrange
-        checker = ResultIntChecker("count", required=True)
+        checker = FieldIntChecker("count", required=True)
 
         # Act & Assert
         checker.check({"count": 0})
@@ -76,7 +77,7 @@ class TestValidValues:
     def test_exact_min_value(self) -> None:
         """Value exactly min_value passes (inclusive)."""
         # Arrange
-        checker = ResultIntChecker("age", required=True, min_value=0)
+        checker = FieldIntChecker("age", required=True, min_value=0)
 
         # Act & Assert
         checker.check({"age": 0})
@@ -84,7 +85,7 @@ class TestValidValues:
     def test_exact_max_value(self) -> None:
         """Value exactly max_value passes (inclusive)."""
         # Arrange
-        checker = ResultIntChecker("score", required=True, max_value=100)
+        checker = FieldIntChecker("score", required=True, max_value=100)
 
         # Act & Assert
         checker.check({"score": 100})
@@ -92,7 +93,7 @@ class TestValidValues:
     def test_between_min_and_max(self) -> None:
         """Value between min and max passes."""
         # Arrange
-        checker = ResultIntChecker("level", required=True, min_value=1, max_value=10)
+        checker = FieldIntChecker("level", required=True, min_value=1, max_value=10)
 
         # Act & Assert
         checker.check({"level": 5})
@@ -100,7 +101,7 @@ class TestValidValues:
     def test_large_int(self) -> None:
         """Very large integer passes."""
         # Arrange
-        checker = ResultIntChecker("big", required=True)
+        checker = FieldIntChecker("big", required=True)
 
         # Act & Assert
         checker.check({"big": 10**18})
@@ -117,7 +118,7 @@ class TestInvalidValues:
     def test_float_raises(self) -> None:
         """Float instead of int → ValidationFieldError."""
         # Arrange
-        checker = ResultIntChecker("count", required=True)
+        checker = FieldIntChecker("count", required=True)
 
         # Act & Assert
         with pytest.raises(ValidationFieldError, match="integer"):
@@ -126,7 +127,7 @@ class TestInvalidValues:
     def test_string_raises(self) -> None:
         """String instead of int → ValidationFieldError."""
         # Arrange
-        checker = ResultIntChecker("count", required=True)
+        checker = FieldIntChecker("count", required=True)
 
         # Act & Assert
         with pytest.raises(ValidationFieldError, match="integer"):
@@ -135,7 +136,7 @@ class TestInvalidValues:
     def test_list_raises(self) -> None:
         """List instead of int → ValidationFieldError."""
         # Arrange
-        checker = ResultIntChecker("count", required=True)
+        checker = FieldIntChecker("count", required=True)
 
         # Act & Assert
         with pytest.raises(ValidationFieldError, match="integer"):
@@ -144,7 +145,7 @@ class TestInvalidValues:
     def test_below_min_value(self) -> None:
         """Value below min_value → ValidationFieldError."""
         # Arrange
-        checker = ResultIntChecker("age", required=True, min_value=0)
+        checker = FieldIntChecker("age", required=True, min_value=0)
 
         # Act & Assert
         with pytest.raises(ValidationFieldError, match="greater than or equal to 0"):
@@ -153,7 +154,7 @@ class TestInvalidValues:
     def test_above_max_value(self) -> None:
         """Value above max_value → ValidationFieldError."""
         # Arrange
-        checker = ResultIntChecker("score", required=True, max_value=100)
+        checker = FieldIntChecker("score", required=True, max_value=100)
 
         # Act & Assert
         with pytest.raises(ValidationFieldError, match="less than or equal to 100"):
@@ -162,7 +163,7 @@ class TestInvalidValues:
     def test_below_min_with_both_bounds(self) -> None:
         """Value below min when both min and max are set."""
         # Arrange
-        checker = ResultIntChecker("level", required=True, min_value=1, max_value=10)
+        checker = FieldIntChecker("level", required=True, min_value=1, max_value=10)
 
         # Act & Assert
         with pytest.raises(ValidationFieldError, match="greater than or equal to 1"):
@@ -171,7 +172,7 @@ class TestInvalidValues:
     def test_above_max_with_both_bounds(self) -> None:
         """Value above max when both min and max are set."""
         # Arrange
-        checker = ResultIntChecker("level", required=True, min_value=1, max_value=10)
+        checker = FieldIntChecker("level", required=True, min_value=1, max_value=10)
 
         # Act & Assert
         with pytest.raises(ValidationFieldError, match="less than or equal to 10"):
@@ -189,7 +190,7 @@ class TestRequired:
     def test_required_missing_raises(self) -> None:
         """required=True, field missing → ValidationFieldError."""
         # Arrange
-        checker = ResultIntChecker("count", required=True)
+        checker = FieldIntChecker("count", required=True)
 
         # Act & Assert
         with pytest.raises(ValidationFieldError, match="Missing required parameter"):
@@ -198,7 +199,7 @@ class TestRequired:
     def test_required_none_raises(self) -> None:
         """required=True, field=None → ValidationFieldError."""
         # Arrange
-        checker = ResultIntChecker("count", required=True)
+        checker = FieldIntChecker("count", required=True)
 
         # Act & Assert
         with pytest.raises(ValidationFieldError, match="Missing required parameter"):
@@ -207,7 +208,7 @@ class TestRequired:
     def test_optional_missing_ok(self) -> None:
         """required=False, field missing → OK."""
         # Arrange
-        checker = ResultIntChecker("count", required=False)
+        checker = FieldIntChecker("count", required=False)
 
         # Act & Assert
         checker.check({})
@@ -215,7 +216,7 @@ class TestRequired:
     def test_optional_present_still_validated(self) -> None:
         """required=False but field present — type is still validated."""
         # Arrange
-        checker = ResultIntChecker("count", required=False)
+        checker = FieldIntChecker("count", required=False)
 
         # Act & Assert — string instead of int → error
         with pytest.raises(ValidationFieldError, match="integer"):
@@ -243,7 +244,7 @@ class TestDecorator:
         assert hasattr(calc, "_checker_meta")
         assert len(calc._checker_meta) == 1
         m = calc._checker_meta[0]
-        assert m["checker_class"] is ResultIntChecker
+        assert m["checker_class"] is FieldIntChecker
         assert m["field_name"] == "count"
         assert m["required"] is True
         assert m["min_value"] == 0

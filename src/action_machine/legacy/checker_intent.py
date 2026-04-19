@@ -1,4 +1,4 @@
-# src/action_machine/intents/checkers/checker_intent.py
+# src/action_machine/legacy/checker_intent.py
 """
 Checker intent marker and checker-attachment validators.
 

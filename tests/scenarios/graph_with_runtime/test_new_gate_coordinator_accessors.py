@@ -9,7 +9,7 @@ from action_machine.graph.facet_edge import FacetEdge
 from action_machine.graph.facet_vertex import FacetVertex
 from action_machine.graph.graph_coordinator import GraphCoordinator
 from action_machine.legacy.aspect_intent_inspector import AspectIntentInspector
-from action_machine.intents.checkers.checker_intent_inspector import CheckerIntentInspector
+from action_machine.legacy.checker_intent_inspector import CheckerIntentInspector
 from action_machine.intents.compensate.compensate_intent_inspector import (
     CompensateIntentInspector,
 )

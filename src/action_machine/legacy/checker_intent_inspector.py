@@ -1,4 +1,4 @@
-# src/action_machine/intents/checkers/checker_intent_inspector.py
+# src/action_machine/legacy/checker_intent_inspector.py
 """
 Checker intent inspector: checker facet snapshots for ``GraphCoordinator``.
 
@@ -79,7 +79,7 @@ from action_machine.legacy.aspect_intent_inspector import (
     AspectIntentInspector,
     vertex_type_for_aspect_kind,
 )
-from action_machine.intents.checkers.checker_intent import CheckerIntent
+from action_machine.legacy.checker_intent import CheckerIntent
 from action_machine.legacy.interchange_vertex_labels import CHECKER_VERTEX_TYPE
 
 

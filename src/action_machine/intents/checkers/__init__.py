@@ -11,7 +11,7 @@ the dictionaries returned by regular aspects contain only declared fields and
 that each field satisfies type and constraint requirements.
 
 Each checker is composed of:
-- A **checker class** (e.g., ``ResultStringChecker``) that validates a value.
+- A **checker class** (e.g., ``FieldStringChecker``) that validates a value.
 - A **decorator** (e.g., ``result_string``) that attaches checker metadata to
   the aspect method.
 
@@ -56,15 +56,15 @@ Marker mixin:
 - ``CheckerIntent``.
 
 Checker base class:
-- ``ResultFieldChecker``.
+- ``BaseFieldChecker``.
 
 Built-in checker classes:
-- ``ResultStringChecker``   – string fields (type, length, not_empty)
-- ``ResultIntChecker``      – integer fields (type, range)
-- ``ResultFloatChecker``    – numeric fields int/float (type, range)
-- ``ResultBoolChecker``     – boolean fields (exact isinstance(value, bool))
-- ``ResultDateChecker``     – date fields (datetime or formatted string, range)
-- ``ResultInstanceChecker`` – checks value against an expected class
+- ``FieldStringChecker``   – string fields (type, length, not_empty)
+- ``FieldIntChecker``      – integer fields (type, range)
+- ``FieldFloatChecker``    – numeric fields int/float (type, range)
+- ``FieldBoolChecker``     – boolean fields (exact isinstance(value, bool))
+- ``FieldDateChecker``     – date fields (datetime or formatted string, range)
+- ``FieldInstanceChecker`` – checks value against an expected class
 
 Decorators:
 - ``result_string``
@@ -104,29 +104,35 @@ CONTRACT: Export checker classes, decorators, and ``CheckerIntent`` marker.
 INVARIANTS: All aspect result fields must have checkers; checkers are stateless.
 FLOW: decorator metadata -> inspector snapshot -> machine validation -> checker execution.
 FAILURES: ValidationFieldError for missing or invalid fields.
-EXTENSION POINTS: New checker types can be added by subclassing ``ResultFieldChecker`` and providing a decorator.
+EXTENSION POINTS: New checker types can be added by subclassing ``BaseFieldChecker`` and providing a decorator.
 AI-CORE-END
 ═══════════════════════════════════════════════════════════════════════════════
 """
 
-from action_machine.intents.checkers.checker_intent import CheckerIntent
-from action_machine.intents.checkers.result_bool_checker import ResultBoolChecker, result_bool
-from action_machine.intents.checkers.result_date_checker import ResultDateChecker, result_date
-from action_machine.intents.checkers.result_field_checker import ResultFieldChecker
-from action_machine.intents.checkers.result_float_checker import ResultFloatChecker, result_float
-from action_machine.intents.checkers.result_instance_checker import ResultInstanceChecker, result_instance
-from action_machine.intents.checkers.result_int_checker import ResultIntChecker, result_int
-from action_machine.intents.checkers.result_string_checker import ResultStringChecker, result_string
+from action_machine.legacy.checker_intent import CheckerIntent
+from action_machine.intents.checkers.result_bool_checker import FieldBoolChecker
+from action_machine.intents.checkers.result_bool_decorator import result_bool
+from action_machine.intents.checkers.result_date_checker import FieldDateChecker
+from action_machine.intents.checkers.result_date_decorator import result_date
+from action_machine.intents.checkers.result_field_checker import BaseFieldChecker
+from action_machine.intents.checkers.result_float_checker import FieldFloatChecker
+from action_machine.intents.checkers.result_float_decorator import result_float
+from action_machine.intents.checkers.result_instance_checker import FieldInstanceChecker
+from action_machine.intents.checkers.result_instance_decorator import result_instance
+from action_machine.intents.checkers.result_int_checker import FieldIntChecker
+from action_machine.intents.checkers.result_int_decorator import result_int
+from action_machine.intents.checkers.result_string_checker import FieldStringChecker
+from action_machine.intents.checkers.result_string_decorator import result_string
 
 __all__ = [
     "CheckerIntent",
-    "ResultFieldChecker",
-    "ResultStringChecker",
-    "ResultIntChecker",
-    "ResultFloatChecker",
-    "ResultBoolChecker",
-    "ResultDateChecker",
-    "ResultInstanceChecker",
+    "BaseFieldChecker",
+    "FieldStringChecker",
+    "FieldIntChecker",
+    "FieldFloatChecker",
+    "FieldBoolChecker",
+    "FieldDateChecker",
+    "FieldInstanceChecker",
     "result_string",
     "result_int",
     "result_float",

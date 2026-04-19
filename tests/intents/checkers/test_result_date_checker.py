@@ -1,12 +1,12 @@
 # tests/intents/checkers/test_result_date_checker.py
 """
-Tests for ResultDateChecker — validates date fields in aspect result dictionaries.
+Tests for FieldDateChecker — validates date fields in aspect result dictionaries.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Ensures ResultDateChecker correctly validates date fields in the aspect result
+Ensures FieldDateChecker correctly validates date fields in the aspect result
 dict. Accepts datetime objects and strings parsed with the given date_format.
 Supports range checks (min_date, max_date).
 
@@ -43,7 +43,8 @@ from datetime import UTC, datetime
 
 import pytest
 
-from action_machine.intents.checkers.result_date_checker import ResultDateChecker, result_date
+from action_machine.intents.checkers.result_date_checker import FieldDateChecker
+from action_machine.intents.checkers.result_date_decorator import result_date
 from action_machine.model.exceptions import ValidationFieldError
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -57,7 +58,7 @@ class TestValidValues:
     def test_datetime_object_accepted(self):
         """datetime object accepted without date_format."""
         # Arrange
-        checker = ResultDateChecker("created_at", required=True)
+        checker = FieldDateChecker("created_at", required=True)
         dt = datetime(2024, 6, 15, 12, 30, 0)
 
         # Act & Assert — no exception
@@ -66,7 +67,7 @@ class TestValidValues:
     def test_datetime_with_timezone_accepted(self):
         """datetime with timezone accepted."""
         # Arrange
-        checker = ResultDateChecker("created_at", required=True)
+        checker = FieldDateChecker("created_at", required=True)
         dt = datetime(2024, 6, 15, 12, 30, 0, tzinfo=UTC)
 
         # Act & Assert — no exception
@@ -75,7 +76,7 @@ class TestValidValues:
     def test_string_with_format_accepted(self):
         """String matching date_format accepted."""
         # Arrange
-        checker = ResultDateChecker(
+        checker = FieldDateChecker(
             "created_at",
             required=True,
             date_format="%Y-%m-%d",
@@ -87,7 +88,7 @@ class TestValidValues:
     def test_string_with_datetime_format_accepted(self):
         """String with datetime format accepted."""
         # Arrange
-        checker = ResultDateChecker(
+        checker = FieldDateChecker(
             "timestamp",
             required=True,
             date_format="%Y-%m-%d %H:%M:%S",
@@ -100,7 +101,7 @@ class TestValidValues:
         """Date equal to min_date accepted (inclusive)."""
         # Arrange
         min_dt = datetime(2024, 1, 1)
-        checker = ResultDateChecker(
+        checker = FieldDateChecker(
             "event_date",
             required=True,
             min_date=min_dt,
@@ -113,7 +114,7 @@ class TestValidValues:
         """Date equal to max_date accepted (inclusive)."""
         # Arrange
         max_dt = datetime(2024, 12, 31)
-        checker = ResultDateChecker(
+        checker = FieldDateChecker(
             "event_date",
             required=True,
             max_date=max_dt,
@@ -125,7 +126,7 @@ class TestValidValues:
     def test_date_within_range_accepted(self):
         """Date inside min_date..max_date accepted."""
         # Arrange
-        checker = ResultDateChecker(
+        checker = FieldDateChecker(
             "event_date",
             required=True,
             min_date=datetime(2024, 1, 1),
@@ -139,7 +140,7 @@ class TestValidValues:
     def test_string_date_within_range_accepted(self):
         """String date inside range accepted after parsing."""
         # Arrange
-        checker = ResultDateChecker(
+        checker = FieldDateChecker(
             "event_date",
             required=True,
             date_format="%Y-%m-%d",
@@ -162,7 +163,7 @@ class TestInvalidValues:
     def test_int_rejected(self):
         """int is neither datetime nor string."""
         # Arrange
-        checker = ResultDateChecker("created_at", required=True)
+        checker = FieldDateChecker("created_at", required=True)
 
         # Act & Assert
         with pytest.raises(ValidationFieldError):
@@ -171,7 +172,7 @@ class TestInvalidValues:
     def test_bool_rejected(self):
         """bool is neither datetime nor string."""
         # Arrange
-        checker = ResultDateChecker("created_at", required=True)
+        checker = FieldDateChecker("created_at", required=True)
 
         # Act & Assert
         with pytest.raises(ValidationFieldError):
@@ -180,7 +181,7 @@ class TestInvalidValues:
     def test_list_rejected(self):
         """list is neither datetime nor string."""
         # Arrange
-        checker = ResultDateChecker("created_at", required=True)
+        checker = FieldDateChecker("created_at", required=True)
 
         # Act & Assert
         with pytest.raises(ValidationFieldError):
@@ -189,7 +190,7 @@ class TestInvalidValues:
     def test_dict_rejected(self):
         """dict is neither datetime nor string."""
         # Arrange
-        checker = ResultDateChecker("created_at", required=True)
+        checker = FieldDateChecker("created_at", required=True)
 
         # Act & Assert
         with pytest.raises(ValidationFieldError):
@@ -198,7 +199,7 @@ class TestInvalidValues:
     def test_string_without_format_raises(self):
         """String without date_format raises."""
         # Arrange — date_format not set
-        checker = ResultDateChecker("created_at", required=True)
+        checker = FieldDateChecker("created_at", required=True)
 
         # Act & Assert
         with pytest.raises(ValidationFieldError, match="date_format"):
@@ -207,7 +208,7 @@ class TestInvalidValues:
     def test_string_wrong_format_raises(self):
         """String not matching date_format raises."""
         # Arrange
-        checker = ResultDateChecker(
+        checker = FieldDateChecker(
             "created_at",
             required=True,
             date_format="%Y-%m-%d",
@@ -220,7 +221,7 @@ class TestInvalidValues:
     def test_date_below_min_raises(self):
         """Date before min_date raises."""
         # Arrange
-        checker = ResultDateChecker(
+        checker = FieldDateChecker(
             "event_date",
             required=True,
             min_date=datetime(2024, 6, 1),
@@ -233,7 +234,7 @@ class TestInvalidValues:
     def test_date_above_max_raises(self):
         """Date after max_date raises."""
         # Arrange
-        checker = ResultDateChecker(
+        checker = FieldDateChecker(
             "event_date",
             required=True,
             max_date=datetime(2024, 12, 31),
@@ -246,7 +247,7 @@ class TestInvalidValues:
     def test_string_date_below_min_raises(self):
         """String date before min_date raises after parsing."""
         # Arrange
-        checker = ResultDateChecker(
+        checker = FieldDateChecker(
             "event_date",
             required=True,
             date_format="%Y-%m-%d",
@@ -260,7 +261,7 @@ class TestInvalidValues:
     def test_string_date_above_max_raises(self):
         """String date after max_date raises after parsing."""
         # Arrange
-        checker = ResultDateChecker(
+        checker = FieldDateChecker(
             "event_date",
             required=True,
             date_format="%Y-%m-%d",
@@ -274,7 +275,7 @@ class TestInvalidValues:
     def test_error_message_contains_field_name(self):
         """Error message includes field name."""
         # Arrange
-        checker = ResultDateChecker("delivery_date", required=True)
+        checker = FieldDateChecker("delivery_date", required=True)
 
         # Act & Assert
         with pytest.raises(ValidationFieldError, match="delivery_date"):
@@ -283,7 +284,7 @@ class TestInvalidValues:
     def test_error_message_contains_actual_type(self):
         """Error message includes actual value type."""
         # Arrange
-        checker = ResultDateChecker("delivery_date", required=True)
+        checker = FieldDateChecker("delivery_date", required=True)
 
         # Act & Assert
         with pytest.raises(ValidationFieldError, match="int"):
@@ -301,7 +302,7 @@ class TestRequired:
     def test_required_missing_field_raises(self):
         """Missing required field raises."""
         # Arrange
-        checker = ResultDateChecker("created_at", required=True)
+        checker = FieldDateChecker("created_at", required=True)
 
         # Act & Assert
         with pytest.raises(ValidationFieldError):
@@ -310,7 +311,7 @@ class TestRequired:
     def test_required_none_raises(self):
         """None in required field raises."""
         # Arrange
-        checker = ResultDateChecker("created_at", required=True)
+        checker = FieldDateChecker("created_at", required=True)
 
         # Act & Assert
         with pytest.raises(ValidationFieldError):
@@ -319,7 +320,7 @@ class TestRequired:
     def test_optional_missing_field_passes(self):
         """Missing optional field allowed."""
         # Arrange
-        checker = ResultDateChecker("created_at", required=False)
+        checker = FieldDateChecker("created_at", required=False)
 
         # Act & Assert — no exception
         checker.check({})
@@ -327,7 +328,7 @@ class TestRequired:
     def test_optional_none_passes(self):
         """None in optional field allowed."""
         # Arrange
-        checker = ResultDateChecker("created_at", required=False)
+        checker = FieldDateChecker("created_at", required=False)
 
         # Act & Assert — no exception
         checker.check({"created_at": None})
@@ -335,7 +336,7 @@ class TestRequired:
     def test_optional_invalid_type_still_raises(self):
         """Invalid type still raises even when field is optional."""
         # Arrange
-        checker = ResultDateChecker("created_at", required=False)
+        checker = FieldDateChecker("created_at", required=False)
 
         # Act & Assert
         with pytest.raises(ValidationFieldError):
@@ -353,7 +354,7 @@ class TestExtraParams:
     def test_extra_params_all_none_by_default(self):
         """Without extra args all values are None."""
         # Arrange
-        checker = ResultDateChecker("created_at")
+        checker = FieldDateChecker("created_at")
 
         # Act
         params = checker._get_extra_params()
@@ -366,7 +367,7 @@ class TestExtraParams:
     def test_extra_params_with_format(self):
         """date_format stored in extra_params."""
         # Arrange
-        checker = ResultDateChecker("created_at", date_format="%Y-%m-%d")
+        checker = FieldDateChecker("created_at", date_format="%Y-%m-%d")
 
         # Act
         params = checker._get_extra_params()
@@ -379,7 +380,7 @@ class TestExtraParams:
         # Arrange
         min_dt = datetime(2024, 1, 1)
         max_dt = datetime(2024, 12, 31)
-        checker = ResultDateChecker(
+        checker = FieldDateChecker(
             "event_date",
             min_date=min_dt,
             max_date=max_dt,
@@ -421,7 +422,7 @@ class TestDecorator:
 
         # Assert
         meta = aspect._checker_meta[0]
-        assert meta["checker_class"] is ResultDateChecker
+        assert meta["checker_class"] is FieldDateChecker
 
     def test_field_name_recorded(self):
         """Field name stored in metadata."""
@@ -474,10 +475,10 @@ class TestDecorator:
 
         # Assert — metadata recorded and checker behaves correctly
         meta = aspect._checker_meta[0]
-        assert meta["checker_class"] is ResultDateChecker
+        assert meta["checker_class"] is FieldDateChecker
         assert meta["field_name"] == "event_date"
         # Extra params via checker instance
-        checker = ResultDateChecker(
+        checker = FieldDateChecker(
             "event_date",
             date_format="%Y-%m-%d",
             min_date=min_dt,

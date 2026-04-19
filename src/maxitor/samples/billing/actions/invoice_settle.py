@@ -11,8 +11,8 @@ from action_machine.dependencies.depends_decorator import depends
 from action_machine.intents.aspects.regular_aspect_decorator import regular_aspect
 from action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
 from action_machine.intents.check_roles.check_roles_decorator import check_roles
-from action_machine.intents.checkers.result_float_checker import result_float
-from action_machine.intents.checkers.result_string_checker import result_string
+from action_machine.intents.checkers.result_float_decorator import result_float
+from action_machine.intents.checkers.result_string_decorator import result_string
 from action_machine.intents.compensate.compensate_decorator import compensate
 from action_machine.intents.context.context_requires_decorator import context_requires
 from action_machine.intents.context.ctx_constants import Ctx

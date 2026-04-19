@@ -1,15 +1,15 @@
 # tests/intents/checkers/test_result_float_checker.py
 """
-Tests for ResultFloatChecker and the result_float decorator — numeric fields (int/float).
+Tests for FieldFloatChecker and the result_float decorator — numeric fields (int/float).
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-ResultFloatChecker ensures an aspect result field is numeric (int OR float) within
+FieldFloatChecker ensures an aspect result field is numeric (int OR float) within
 the given range (min_value, max_value).
 
-Unlike ResultIntChecker, which accepts only int, ResultFloatChecker accepts both
+Unlike FieldIntChecker, which accepts only int, FieldFloatChecker accepts both
 numeric types. Useful for fields like amount, total, discount where the value may
 be 100 or 99.99.
 
@@ -35,7 +35,8 @@ Decorator:
 
 import pytest
 
-from action_machine.intents.checkers.result_float_checker import ResultFloatChecker, result_float
+from action_machine.intents.checkers.result_float_checker import FieldFloatChecker
+from action_machine.intents.checkers.result_float_decorator import result_float
 from action_machine.model.exceptions import ValidationFieldError
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -49,15 +50,15 @@ class TestValidValues:
     def test_float_value(self) -> None:
         """Float passes."""
         # Arrange
-        checker = ResultFloatChecker("total", required=True)
+        checker = FieldFloatChecker("total", required=True)
 
         # Act & Assert
         checker.check({"total": 99.99})
 
     def test_int_value(self) -> None:
-        """Int passes — ResultFloatChecker accepts int and float."""
+        """Int passes — FieldFloatChecker accepts int and float."""
         # Arrange
-        checker = ResultFloatChecker("total", required=True)
+        checker = FieldFloatChecker("total", required=True)
 
         # Act & Assert
         checker.check({"total": 100})
@@ -65,7 +66,7 @@ class TestValidValues:
     def test_zero_float(self) -> None:
         """Float zero 0.0 passes."""
         # Arrange
-        checker = ResultFloatChecker("discount", required=True)
+        checker = FieldFloatChecker("discount", required=True)
 
         # Act & Assert
         checker.check({"discount": 0.0})
@@ -73,7 +74,7 @@ class TestValidValues:
     def test_zero_int(self) -> None:
         """Int zero 0 passes."""
         # Arrange
-        checker = ResultFloatChecker("discount", required=True)
+        checker = FieldFloatChecker("discount", required=True)
 
         # Act & Assert
         checker.check({"discount": 0})
@@ -81,7 +82,7 @@ class TestValidValues:
     def test_negative_value(self) -> None:
         """Negative number passes when min_value is not set."""
         # Arrange
-        checker = ResultFloatChecker("balance", required=True)
+        checker = FieldFloatChecker("balance", required=True)
 
         # Act & Assert
         checker.check({"balance": -500.50})
@@ -89,7 +90,7 @@ class TestValidValues:
     def test_exact_min_value(self) -> None:
         """Value exactly min_value passes (inclusive)."""
         # Arrange
-        checker = ResultFloatChecker("amount", required=True, min_value=0.0)
+        checker = FieldFloatChecker("amount", required=True, min_value=0.0)
 
         # Act & Assert
         checker.check({"amount": 0.0})
@@ -97,7 +98,7 @@ class TestValidValues:
     def test_exact_max_value(self) -> None:
         """Value exactly max_value passes (inclusive)."""
         # Arrange
-        checker = ResultFloatChecker("rate", required=True, max_value=1.0)
+        checker = FieldFloatChecker("rate", required=True, max_value=1.0)
 
         # Act & Assert
         checker.check({"rate": 1.0})
@@ -105,7 +106,7 @@ class TestValidValues:
     def test_between_bounds(self) -> None:
         """Value between min and max passes."""
         # Arrange
-        checker = ResultFloatChecker("percent", required=True, min_value=0.0, max_value=100.0)
+        checker = FieldFloatChecker("percent", required=True, min_value=0.0, max_value=100.0)
 
         # Act & Assert
         checker.check({"percent": 55.5})
@@ -113,7 +114,7 @@ class TestValidValues:
     def test_int_at_float_boundary(self) -> None:
         """Int value at float min_value boundary."""
         # Arrange — min_value=0.0, pass int 0
-        checker = ResultFloatChecker("total", required=True, min_value=0.0)
+        checker = FieldFloatChecker("total", required=True, min_value=0.0)
 
         # Act & Assert — int 0 >= float 0.0
         checker.check({"total": 0})
@@ -130,7 +131,7 @@ class TestInvalidValues:
     def test_string_raises(self) -> None:
         """String instead of number → ValidationFieldError."""
         # Arrange
-        checker = ResultFloatChecker("total", required=True)
+        checker = FieldFloatChecker("total", required=True)
 
         # Act & Assert
         with pytest.raises(ValidationFieldError, match="numeric"):
@@ -139,7 +140,7 @@ class TestInvalidValues:
     def test_list_raises(self) -> None:
         """List → ValidationFieldError."""
         # Arrange
-        checker = ResultFloatChecker("total", required=True)
+        checker = FieldFloatChecker("total", required=True)
 
         # Act & Assert
         with pytest.raises(ValidationFieldError, match="numeric"):
@@ -149,15 +150,15 @@ class TestInvalidValues:
         """
         Bool → ValidationFieldError.
 
-        Although bool is a subclass of int in Python, ResultFloatChecker uses
+        Although bool is a subclass of int in Python, FieldFloatChecker uses
         isinstance(value, (int, float)), so bool passes. That is Python behavior,
         not a checker quirk.
 
-        NOTE: if this test fails, ResultFloatChecker accepts bool as a number
+        NOTE: if this test fails, FieldFloatChecker accepts bool as a number
         (technically correct in Python). In that case remove this test.
         """
         # Arrange
-        checker = ResultFloatChecker("total", required=True)
+        checker = FieldFloatChecker("total", required=True)
 
         # Note: bool IS int in Python, so isinstance(True, (int, float)) is True.
         # This test documents behavior, not a bug.
@@ -167,7 +168,7 @@ class TestInvalidValues:
     def test_below_min_value(self) -> None:
         """Value below min_value → ValidationFieldError."""
         # Arrange
-        checker = ResultFloatChecker("amount", required=True, min_value=0.0)
+        checker = FieldFloatChecker("amount", required=True, min_value=0.0)
 
         # Act & Assert
         with pytest.raises(ValidationFieldError, match="greater than or equal"):
@@ -176,7 +177,7 @@ class TestInvalidValues:
     def test_above_max_value(self) -> None:
         """Value above max_value → ValidationFieldError."""
         # Arrange
-        checker = ResultFloatChecker("rate", required=True, max_value=1.0)
+        checker = FieldFloatChecker("rate", required=True, max_value=1.0)
 
         # Act & Assert
         with pytest.raises(ValidationFieldError, match="less than or equal"):
@@ -185,7 +186,7 @@ class TestInvalidValues:
     def test_none_dict_value_raises(self) -> None:
         """None as value → ValidationFieldError (required field)."""
         # Arrange
-        checker = ResultFloatChecker("total", required=True)
+        checker = FieldFloatChecker("total", required=True)
 
         # Act & Assert
         with pytest.raises(ValidationFieldError, match="Missing required parameter"):
@@ -203,7 +204,7 @@ class TestRequired:
     def test_required_missing_raises(self) -> None:
         """required=True, field missing → ValidationFieldError."""
         # Arrange
-        checker = ResultFloatChecker("total", required=True)
+        checker = FieldFloatChecker("total", required=True)
 
         # Act & Assert
         with pytest.raises(ValidationFieldError, match="Missing required parameter"):
@@ -212,7 +213,7 @@ class TestRequired:
     def test_optional_missing_ok(self) -> None:
         """required=False, field missing → OK."""
         # Arrange
-        checker = ResultFloatChecker("total", required=False)
+        checker = FieldFloatChecker("total", required=False)
 
         # Act & Assert
         checker.check({})
@@ -220,7 +221,7 @@ class TestRequired:
     def test_optional_present_still_validated(self) -> None:
         """required=False but value present — type is still validated."""
         # Arrange
-        checker = ResultFloatChecker("total", required=False)
+        checker = FieldFloatChecker("total", required=False)
 
         # Act & Assert — string instead of number
         with pytest.raises(ValidationFieldError, match="numeric"):
@@ -248,7 +249,7 @@ class TestDecorator:
         assert hasattr(calc, "_checker_meta")
         assert len(calc._checker_meta) == 1
         m = calc._checker_meta[0]
-        assert m["checker_class"] is ResultFloatChecker
+        assert m["checker_class"] is FieldFloatChecker
         assert m["field_name"] == "total"
         assert m["required"] is True
         assert m["min_value"] == 0.0
@@ -273,7 +274,7 @@ class TestDecorator:
         One aspect may validate fields of different types.
         """
         # Arrange & Act
-        from action_machine.intents.checkers.result_string_checker import result_string
+        from action_machine.intents.checkers.result_string_decorator import result_string
 
         @result_string("txn_id", required=True)
         @result_float("amount", required=True, min_value=0.0)
