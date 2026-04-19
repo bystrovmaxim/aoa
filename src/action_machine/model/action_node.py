@@ -6,9 +6,9 @@ ActionNode — interchange node for ``BaseAction`` subclasses.
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Provides a :class:`~action_machine.graph.base_graph_node.BaseGraphNode` view derived from
+Provides a :class:`~graph.base_graph_node.BaseGraphNode` view derived from
 an action **class** object. Interchange data lives in ``id``, ``node_type``,
-``label``, ``properties``, and ``edges``; the class is :attr:`~action_machine.graph.base_graph_node.BaseGraphNode.obj`.
+``label``, ``properties``, and ``edges``; the class is :attr:`~graph.base_graph_node.BaseGraphNode.obj`.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
@@ -25,9 +25,9 @@ ARCHITECTURE / DATA FLOW
 INVARIANTS
 ═══════════════════════════════════════════════════════════════════════════════
 
-- The action class is :attr:`~action_machine.graph.base_graph_node.BaseGraphNode.obj`.
+- The action class is :attr:`~graph.base_graph_node.BaseGraphNode.obj`.
 - ``label`` is the action class ``__name__``. :meth:`get_properties` fills ``properties``;
-  :meth:`get_domain_link`, :meth:`get_params_link`, and :meth:`get_result_link` each return a :class:`~action_machine.graph.base_graph_edge.BaseGraphEdge` or ``None``. :meth:`_get_all_edges` collects non-``None`` edges for ``parse``.
+  :meth:`get_domain_link`, :meth:`get_params_link`, and :meth:`get_result_link` each return a :class:`~graph.base_graph_edge.BaseGraphEdge` or ``None``. :meth:`_get_all_edges` collects non-``None`` edges for ``parse``.
 
   :meth:`get_schema_generic_binding` returns resolved params/result types (or ``None``); :meth:`get_params_link` / :meth:`get_result_link` apply :func:`~action_machine.common.qualified_dotted_name` when building edges.
 
@@ -68,11 +68,11 @@ from typing import Any, TypeVar, get_args, get_origin
 
 from action_machine.common import qualified_dotted_name
 from action_machine.domain.base_domain import BaseDomain
-from action_machine.graph.base_graph_edge import BaseGraphEdge
-from action_machine.graph.base_graph_node import BaseGraphNode, Payload
 from action_machine.legacy.binding.action_generic_params import _resolve_generic_arg
 from action_machine.legacy.interchange_vertex_labels import DOMAIN_VERTEX_TYPE
 from action_machine.model.base_action import BaseAction
+from graph.base_graph_edge import BaseGraphEdge
+from graph.base_graph_node import BaseGraphNode, Payload
 
 TAction = TypeVar("TAction", bound=BaseAction[Any, Any])
 
@@ -99,7 +99,7 @@ class ActionNode(BaseGraphNode[type[TAction]]):
 
         Returns:
             ``(params_type, result_type)`` — use :meth:`get_params_link` / :meth:`get_result_link`
-            for :class:`~action_machine.graph.base_graph_edge.BaseGraphEdge` with ``qualified_dotted_name`` applied.
+            for :class:`~graph.base_graph_edge.BaseGraphEdge` with ``qualified_dotted_name`` applied.
         """
         params_type: type | None = None
         result_type: type | None = None

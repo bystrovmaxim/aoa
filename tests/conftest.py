@@ -64,9 +64,9 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from action_machine.graph.graph_coordinator import GraphCoordinator
 from action_machine.legacy.core import Core
 from action_machine.testing import TestBench
+from graph.graph_coordinator import GraphCoordinator
 
 from .scenarios.domain_model import InventoryService, NotificationService, PaymentService, TestDbManager
 from .scenarios.domain_model.roles import AdminRole, ManagerRole

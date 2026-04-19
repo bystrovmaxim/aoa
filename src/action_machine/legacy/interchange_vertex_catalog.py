@@ -3,7 +3,7 @@
 Known interchange ``node_type`` strings for the default ActionMachine inspector set.
 
 This is a **documentation / contract / test** catalog only. The
-:mod:`action_machine.graph` package does not import it; graph algorithms treat
+:mod:`graph` package does not import it; graph algorithms treat
 ``node_type`` as opaque strings from inspectors.
 """
 

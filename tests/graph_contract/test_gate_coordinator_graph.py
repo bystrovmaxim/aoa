@@ -1,6 +1,6 @@
 # tests/graph_contract/test_gate_coordinator_graph.py
 
-"""``GraphCoordinator`` interchange graph vs :mod:`action_machine.graph.graph_builder` on samples."""
+"""``GraphCoordinator`` interchange graph vs :mod:`graph.graph_builder` on samples."""
 
 from __future__ import annotations
 
@@ -9,9 +9,9 @@ import importlib
 import pytest
 import rustworkx as rx
 
-from action_machine.graph.base_intent_inspector import BaseIntentInspector
-from action_machine.graph.graph_builder import build_interchange_from_facet_vertices
 from action_machine.legacy.core import Core
+from graph.base_intent_inspector import BaseIntentInspector
+from graph.graph_builder import build_interchange_from_facet_vertices
 from maxitor.samples.build import _MODULES, build_sample_coordinator
 from maxitor.samples.store.actions.checkout_submit import CheckoutSubmitAction
 from maxitor.samples.store.domain import StoreDomain

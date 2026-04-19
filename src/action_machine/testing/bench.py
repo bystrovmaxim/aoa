@@ -198,7 +198,6 @@ from unittest.mock import Mock
 from action_machine.auth.base_role import BaseRole
 from action_machine.context.context import Context
 from action_machine.context.context_view import ContextView
-from action_machine.graph.graph_coordinator import GraphCoordinator
 from action_machine.logging.domain_resolver import resolve_domain
 from action_machine.logging.log_coordinator import LogCoordinator
 from action_machine.logging.scoped_logger import ScopedLogger
@@ -216,6 +215,7 @@ from action_machine.testing.comparison import compare_results
 from action_machine.testing.mock_action import MockAction
 from action_machine.testing.state_validator import validate_state_for_aspect, validate_state_for_summary
 from action_machine.testing.stubs import RequestInfoStub, RuntimeInfoStub, UserInfoStub
+from graph.graph_coordinator import GraphCoordinator
 
 P = TypeVar("P", bound=BaseParams)
 R = TypeVar("R", bound=BaseResult)

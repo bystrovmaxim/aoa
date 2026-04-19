@@ -6,9 +6,9 @@ RoleGraphNode — interchange node for ``BaseRole`` subclasses.
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Provides a :class:`~action_machine.graph.base_graph_node.BaseGraphNode` view derived from
+Provides a :class:`~graph.base_graph_node.BaseGraphNode` view derived from
 a role **class** object. Interchange data lives in ``id``, ``node_type``,
-``label``, ``properties``, and ``edges``; the class is :attr:`~action_machine.graph.base_graph_node.BaseGraphNode.obj`.
+``label``, ``properties``, and ``edges``; the class is :attr:`~graph.base_graph_node.BaseGraphNode.obj`.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
@@ -23,7 +23,7 @@ ARCHITECTURE / DATA FLOW
 INVARIANTS
 ═══════════════════════════════════════════════════════════════════════════════
 
-- The role class is :attr:`~action_machine.graph.base_graph_node.BaseGraphNode.obj`.
+- The role class is :attr:`~graph.base_graph_node.BaseGraphNode.obj`.
 - ``node_type`` is ``"Role"`` (same convention as ``"Action"``, ``"Params"``, ``"Result"``, ``"Entity"``); ``label`` is the class ``__name__``; ``properties`` and ``edges`` are empty in ``parse``.
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -63,7 +63,7 @@ from typing import TypeVar
 
 from action_machine.auth.base_role import BaseRole
 from action_machine.common import qualified_dotted_name
-from action_machine.graph.base_graph_node import BaseGraphNode, Payload
+from graph.base_graph_node import BaseGraphNode, Payload
 
 TRole = TypeVar("TRole", bound=BaseRole)
 

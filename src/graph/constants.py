@@ -1,4 +1,4 @@
-# src/action_machine/graph/constants.py
+# src/graph/constants.py
 """
 Graph constants: edge-type sets for interchange classification (``graph.md`` §5–6).
 

@@ -11,10 +11,10 @@ PURPOSE
 materialized as interchange ``subscription`` vertices on the static coordinator
 graph.
 
-This class remains a :class:`~action_machine.graph.base_intent_inspector.BaseIntentInspector`
+This class remains a :class:`~graph.base_intent_inspector.BaseIntentInspector`
 subclass for API symmetry and optional tooling; :meth:`inspect` and
 :meth:`facet_snapshot_for_class` always return ``None`` so
-:class:`~action_machine.graph.graph_coordinator.GraphCoordinator` never commits
+:class:`~graph.graph_coordinator.GraphCoordinator` never commits
 handler subscription rows.
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -32,11 +32,11 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from action_machine.graph.base_facet_snapshot import BaseFacetSnapshot
-from action_machine.graph.base_intent_inspector import BaseIntentInspector
-from action_machine.graph.facet_vertex import FacetVertex
 from action_machine.legacy.on_intent import OnIntent
 from action_machine.plugin.subscription_info import SubscriptionInfo
+from graph.base_facet_snapshot import BaseFacetSnapshot
+from graph.base_intent_inspector import BaseIntentInspector
+from graph.facet_vertex import FacetVertex
 
 
 class SubscriptionIntentInspector(BaseIntentInspector):

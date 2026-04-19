@@ -1,8 +1,8 @@
-# src/action_machine/graph/facet_edge.py
+# src/graph/facet_edge.py
 """
 Facet-layer directed edge (:class:`FacetEdge`), collected before interchange projection.
 
-Pairs with :class:`~action_machine.graph.graph_edge.GraphEdge` after commit.
+Pairs with :class:`~graph.graph_edge.GraphEdge` after commit.
 """
 
 from __future__ import annotations

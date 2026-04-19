@@ -74,13 +74,13 @@ from pydantic import BaseModel
 from pydantic.fields import FieldInfo
 from pydantic_core import PydanticUndefined
 
-from action_machine.graph.base_facet_snapshot import BaseFacetSnapshot
-from action_machine.graph.base_intent_inspector import BaseIntentInspector
-from action_machine.graph.facet_vertex import FacetVertex
 from action_machine.legacy.described_fields.marker import DescribedFieldsIntent
 from action_machine.legacy.interchange_vertex_labels import ENTITY_VERTEX_TYPE
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_result import BaseResult
+from graph.base_facet_snapshot import BaseFacetSnapshot
+from graph.base_intent_inspector import BaseIntentInspector
+from graph.facet_vertex import FacetVertex
 
 
 class DescribedFieldsIntentInspector(BaseIntentInspector):

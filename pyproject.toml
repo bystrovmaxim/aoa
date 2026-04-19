@@ -65,10 +65,10 @@ Repository = "https://github.com/action-machine/action-machine"
 # ============================================================================
 # HATCHLING — СБОРКА
 # ============================================================================
-# Дистрибутив PyPI `aoa-run` (в имени wheel/sdist: `aoa_run-…`); код — `src/action_machine/`.
+# Дистрибутив PyPI `aoa-run` (в имени wheel/sdist: `aoa_run-…`); код — `src/action_machine/` и `src/graph/`.
 # Несколько pip-дистрибутивов с общим неймспейсом `action_machine.*` не используются.
 [tool.hatch.build.targets.wheel]
-packages = ["src/action_machine", "src/maxitor"]
+packages = ["src/action_machine", "src/graph", "src/maxitor"]
 
 # В sdist кладём тесты и примеры — удобно для проверки из исходников (sdist, --no-binary).
 [tool.hatch.build.targets.sdist.force-include]

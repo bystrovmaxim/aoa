@@ -1,4 +1,4 @@
-# src/action_machine/graph/node_graph_coordinator.py
+# src/graph/node_graph_coordinator.py
 """
 NodeGraphCoordinator — transactional assembly of interchange ``*Node`` graphs in ``rustworkx``.
 
@@ -6,12 +6,12 @@ NodeGraphCoordinator — transactional assembly of interchange ``*Node`` graphs 
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Collects :class:`~action_machine.graph.base_graph_node.BaseGraphNode` instances from
-registered :class:`~action_machine.graph.base_intent_inspector.BaseIntentInspector`
-**instances** (each must implement :meth:`~action_machine.graph.base_intent_inspector.BaseIntentInspector.get_graph_nodes`),
+Collects :class:`~graph.base_graph_node.BaseGraphNode` instances from
+registered :class:`~graph.base_intent_inspector.BaseIntentInspector`
+**instances** (each must implement :meth:`~graph.base_intent_inspector.BaseIntentInspector.get_graph_nodes`),
 validates **unique**
-:attr:`~action_machine.graph.base_graph_node.BaseGraphNode.id` keys, **referential
-integrity** of :class:`~action_machine.graph.base_graph_edge.BaseGraphEdge.target_id`,
+:attr:`~graph.base_graph_node.BaseGraphNode.id` keys, **referential
+integrity** of :class:`~graph.base_graph_edge.BaseGraphEdge.target_id`,
 and **acyclicity** of edges marked ``is_dag=True``, then materializes a
 ``rustworkx.PyDiGraph`` in memory for the duration of the build step (no retained
 read API — construction only).
@@ -63,7 +63,7 @@ ERRORS / LIMITATIONS
 ═══════════════════════════════════════════════════════════════════════════════
 
 - Does not merge multiple contributions to the same logical node; duplicate ``id`` raises
-  :class:`~action_machine.graph.exceptions.DuplicateNodeError`.
+  :class:`~graph.exceptions.DuplicateNodeError`.
 - Does not materialize missing targets; every ``target_id`` must appear as some node ``id``.
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -83,9 +83,9 @@ from typing import Any
 
 import rustworkx as rx
 
-from action_machine.graph.base_graph_node import BaseGraphNode
-from action_machine.graph.base_inspector import BaseInspector
-from action_machine.graph.exceptions import DuplicateNodeError, InvalidGraphError
+from graph.base_graph_node import BaseGraphNode
+from graph.base_inspector import BaseInspector
+from graph.exceptions import DuplicateNodeError, InvalidGraphError
 
 
 class NodeGraphCoordinator:
@@ -135,7 +135,7 @@ class NodeGraphCoordinator:
         Concatenate ``get_graph_nodes()`` from every inspector in order.
 
         Each entry is ``(node, inspector_qualname)`` so a later merge step can report
-        :class:`~action_machine.graph.exceptions.DuplicateNodeError` with both sources.
+        :class:`~graph.exceptions.DuplicateNodeError` with both sources.
         """
         out: list[tuple[BaseGraphNode[Any], str]] = []
         for insp in inspectors:
@@ -149,7 +149,7 @@ class NodeGraphCoordinator:
         flat: list[tuple[BaseGraphNode[Any], str]],
     ) -> dict[str, BaseGraphNode[Any]]:
         """
-        Build ``id -> node`` and ensure each :attr:`~action_machine.graph.base_graph_node.BaseGraphNode.id`
+        Build ``id -> node`` and ensure each :attr:`~graph.base_graph_node.BaseGraphNode.id`
         appears at most once.
         """
         nodes: dict[str, BaseGraphNode[Any]] = {}

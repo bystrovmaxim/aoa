@@ -1,16 +1,16 @@
 # tests/graph/test_node_graph_coordinator.py
-"""Tests for :class:`~action_machine.graph.node_graph_coordinator.NodeGraphCoordinator`."""
+"""Tests for :class:`~graph.node_graph_coordinator.NodeGraphCoordinator`."""
 
 from __future__ import annotations
 
 import pytest
 
-from action_machine.graph.base_graph_edge import BaseGraphEdge
-from action_machine.graph.base_graph_node import BaseGraphNode, Payload
-from action_machine.graph.base_intent_inspector import BaseIntentInspector
-from action_machine.graph.exceptions import DuplicateNodeError, InvalidGraphError
-from action_machine.graph.facet_vertex import FacetVertex
-from action_machine.graph.node_graph_coordinator import NodeGraphCoordinator
+from graph.base_graph_edge import BaseGraphEdge
+from graph.base_graph_node import BaseGraphNode, Payload
+from graph.base_intent_inspector import BaseIntentInspector
+from graph.exceptions import DuplicateNodeError, InvalidGraphError
+from graph.facet_vertex import FacetVertex
+from graph.node_graph_coordinator import NodeGraphCoordinator
 
 
 def _edge(

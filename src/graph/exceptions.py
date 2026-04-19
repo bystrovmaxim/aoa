@@ -1,4 +1,4 @@
-# src/action_machine/graph/exceptions.py
+# src/graph/exceptions.py
 """
 Exceptions for ActionMachine metadata and graph construction.
 

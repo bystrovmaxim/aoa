@@ -8,7 +8,7 @@ import importlib
 
 import pytest
 
-from action_machine.graph import dag_subgraph_is_acyclic_from_rx
+from graph import dag_subgraph_is_acyclic_from_rx
 from maxitor.samples.build import _MODULES, build_sample_coordinator
 
 

@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from action_machine.domain.base_domain import BaseDomain
-from action_machine.graph.base_intent_inspector import BaseIntentInspector
 from action_machine.intents.check_roles.check_roles_decorator import check_roles
 from action_machine.intents.meta.meta_decorator import meta
 from action_machine.legacy.action_meta_intent import ActionMetaIntent
@@ -13,6 +12,7 @@ from action_machine.legacy.role_intent_inspector import RoleIntentInspector
 from action_machine.model.base_action import BaseAction
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_result import BaseResult
+from graph.base_intent_inspector import BaseIntentInspector
 from tests.scenarios.domain_model.roles import AdminRole
 
 

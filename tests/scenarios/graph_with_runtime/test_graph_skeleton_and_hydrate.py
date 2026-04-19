@@ -7,10 +7,10 @@ from __future__ import annotations
 
 import pytest
 
-from action_machine.graph.base_intent_inspector import BaseIntentInspector
-from action_machine.graph.graph_coordinator import GraphCoordinator
 from action_machine.legacy.core import Core
 from action_machine.legacy.interchange_vertex_labels import SERVICE_VERTEX_TYPE
+from graph.base_intent_inspector import BaseIntentInspector
+from graph.graph_coordinator import GraphCoordinator
 from tests.scenarios.domain_model import CompensatedOrderAction, FullAction, TestDbManager
 from tests.scenarios.domain_model.domains import OrdersDomain
 from tests.scenarios.domain_model.services import PaymentService

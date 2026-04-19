@@ -14,7 +14,7 @@ import importlib
 import pytest
 
 from action_machine.application import ApplicationContext
-from action_machine.graph.base_intent_inspector import BaseIntentInspector
+from graph.base_intent_inspector import BaseIntentInspector
 from maxitor.samples.billing.domain import BillingDomain
 from maxitor.samples.build import _MODULES, build_sample_coordinator
 from maxitor.samples.catalog.domain import CatalogDomain

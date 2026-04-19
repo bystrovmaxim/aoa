@@ -95,7 +95,7 @@ def g4_snapshot_build_sample_coordinator_clean_process() -> dict[str, Any]:
     script = """import importlib
 import json
 
-from action_machine.graph.dag import (
+from graph.dag import (
     dag_edge_pairs_from_rx,
     dag_subgraph_is_acyclic_from_rx,
 )

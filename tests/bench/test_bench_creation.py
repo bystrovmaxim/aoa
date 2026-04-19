@@ -51,8 +51,8 @@ ERRORS / LIMITATIONS
 
 from unittest.mock import AsyncMock
 
-from action_machine.graph.graph_coordinator import GraphCoordinator
 from action_machine.testing import TestBench
+from graph.graph_coordinator import GraphCoordinator
 from tests.scenarios.domain_model import PaymentService
 
 

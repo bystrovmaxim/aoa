@@ -1,13 +1,13 @@
 # tests/graph_contract/test_dag_unit.py
 
-"""Unit tests for interchange DAG slice helpers (``action_machine.graph.dag``)."""
+"""Unit tests for interchange DAG slice helpers (``graph.dag``)."""
 
 from __future__ import annotations
 
 import pytest
 import rustworkx as rx
 
-from action_machine.graph import (
+from graph import (
     GraphEdge,
     GraphVertex,
     assert_dag_edges_acyclic,
@@ -16,7 +16,7 @@ from action_machine.graph import (
     dag_subgraph_is_acyclic,
     dag_subgraph_is_acyclic_from_rx,
 )
-from action_machine.graph.exceptions import InvalidGraphError
+from graph.exceptions import InvalidGraphError
 
 
 def _v(vid: str) -> GraphVertex:

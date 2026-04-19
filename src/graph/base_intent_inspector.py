@@ -1,4 +1,4 @@
-# src/action_machine/graph/base_intent_inspector.py
+# src/graph/base_intent_inspector.py
 """
 BaseIntentInspector — abstract base for every ActionMachine intent inspector.
 
@@ -49,8 +49,8 @@ nodes. The marker never references the inspector.
 INTERCHANGE RETURN SHAPE (TARGET — NO EXTRA TYPES)
 ═══════════════════════════════════════════════════════════════════════════════
 
-The preferred contract uses **only** :class:`~action_machine.graph.graph_vertex.GraphVertex`
-and :class:`~action_machine.graph.graph_edge.GraphEdge` — no wrapper dataclass.
+The preferred contract uses **only** :class:`~graph.graph_vertex.GraphVertex`
+and :class:`~graph.graph_edge.GraphEdge` — no wrapper dataclass.
 
 ``inspect()`` **may** return (see :data:`InspectGraphPair`)::
 
@@ -58,10 +58,10 @@ and :class:`~action_machine.graph.graph_edge.GraphEdge` — no wrapper dataclass
 
 where:
 
-- ``vertices`` is a ``list`` of :class:`~action_machine.graph.graph_vertex.GraphVertex`.
+- ``vertices`` is a ``list`` of :class:`~graph.graph_vertex.GraphVertex`.
   Each vertex ``id`` is the global interchange id (same string the coordinator
   uses as ``node_name`` today).
-- ``edges`` is a ``list`` of :class:`~action_machine.graph.graph_edge.GraphEdge`.
+- ``edges`` is a ``list`` of :class:`~graph.graph_edge.GraphEdge`.
   Every ``source_id`` / ``target_id`` must match some ``GraphVertex.id`` in the
   same contribution (possibly across lists from other classes after merge).
 
@@ -71,7 +71,7 @@ dataclasses; interchange-only consumers ignore unknown keys.
 
 If the candidate class is irrelevant, return ``None``.
 
-Until all inspectors migrate, :class:`~action_machine.graph.facet_vertex.FacetVertex`
+Until all inspectors migrate, :class:`~graph.facet_vertex.FacetVertex`
 returns remain valid (see :data:`FacetInspectResult`).
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -269,12 +269,12 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import Any
 
-from action_machine.graph.base_facet_snapshot import BaseFacetSnapshot
-from action_machine.graph.base_inspector import BaseInspector
-from action_machine.graph.facet_edge import FacetEdge
-from action_machine.graph.facet_vertex import FacetVertex
-from action_machine.graph.graph_edge import GraphEdge
-from action_machine.graph.graph_vertex import GraphVertex
+from graph.base_facet_snapshot import BaseFacetSnapshot
+from graph.base_inspector import BaseInspector
+from graph.facet_edge import FacetEdge
+from graph.facet_vertex import FacetVertex
+from graph.graph_edge import GraphEdge
+from graph.graph_vertex import GraphVertex
 
 # Target: ``(vertices, edges)`` only — no envelope type (see module docstring).
 type InspectGraphPair = tuple[list[GraphVertex], list[GraphEdge]]
@@ -370,8 +370,8 @@ class BaseIntentInspector(ABC, BaseInspector):
         payload: FacetVertex,
     ) -> bool:
         """
-        If ``False``, :class:`~action_machine.graph.graph_coordinator.GraphCoordinator`
-        skips :meth:`~action_machine.graph.graph_coordinator.GraphCoordinator._register_hydration_snapshot_key`
+        If ``False``, :class:`~graph.graph_coordinator.GraphCoordinator`
+        skips :meth:`~graph.graph_coordinator.GraphCoordinator._register_hydration_snapshot_key`
         for this payload.
 
         Use when an inspector emits an extra merged node (e.g. ``node_type=\"action\"``)

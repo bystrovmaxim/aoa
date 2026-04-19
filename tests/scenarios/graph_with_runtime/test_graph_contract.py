@@ -15,10 +15,10 @@ import json
 import re
 from typing import Any, Final
 
-from action_machine.graph.base_intent_inspector import BaseIntentInspector
-from action_machine.graph.graph_coordinator import GraphCoordinator
 from action_machine.integrations.mcp.adapter import _build_graph_json
 from action_machine.legacy.core import Core
+from graph.base_intent_inspector import BaseIntentInspector
+from graph.graph_coordinator import GraphCoordinator
 
 # Register a minimal action in the BaseAction subclass tree before build().
 from tests.scenarios.domain_model import PingAction

@@ -1,6 +1,6 @@
 # tests/graph/__init__.py
 """
-Tests for ``action_machine.graph``: ``GraphCoordinator``, intent inspectors, and facet snapshots.
+Tests for ``graph``: ``GraphCoordinator``, intent inspectors, and facet snapshots.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE

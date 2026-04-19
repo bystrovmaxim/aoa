@@ -6,9 +6,9 @@ ParamsNode — interchange node for ``BaseParams`` schema classes.
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Provides a :class:`~action_machine.graph.base_graph_node.BaseGraphNode` view derived from
+Provides a :class:`~graph.base_graph_node.BaseGraphNode` view derived from
 a concrete params **class** object. Interchange data lives in ``id``, ``node_type``,
-``label``, ``properties``, and ``edges``; the class is :attr:`~action_machine.graph.base_graph_node.BaseGraphNode.obj`.
+``label``, ``properties``, and ``edges``; the class is :attr:`~graph.base_graph_node.BaseGraphNode.obj`.
 
 Interchange ``node_type`` is ``"params_schema"`` (aligned with facet ``params_schema`` hosts); ``id`` is the dotted class path.
 
@@ -25,7 +25,7 @@ ARCHITECTURE / DATA FLOW
 INVARIANTS
 ═══════════════════════════════════════════════════════════════════════════════
 
-- The params class is :attr:`~action_machine.graph.base_graph_node.BaseGraphNode.obj`.
+- The params class is :attr:`~graph.base_graph_node.BaseGraphNode.obj`.
 - ``node_type`` is ``"params_schema"``; ``label`` is the class ``__name__``; ``properties`` and ``edges`` are empty in ``parse``.
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -64,8 +64,8 @@ from dataclasses import dataclass
 from typing import TypeVar
 
 from action_machine.common import qualified_dotted_name
-from action_machine.graph.base_graph_node import BaseGraphNode, Payload
 from action_machine.model.base_params import BaseParams
+from graph.base_graph_node import BaseGraphNode, Payload
 
 TParams = TypeVar("TParams", bound=BaseParams)
 

@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 from action_machine.context.ctx_constants import Ctx
-from action_machine.graph import graph_builder as graph_builder_mod
 from action_machine.intents.compensate.compensate_decorator import compensate
 from action_machine.intents.context.context_requires_decorator import context_requires
 from action_machine.legacy.aspect_intent import AspectIntent
@@ -13,6 +12,7 @@ from action_machine.legacy.compensate_intent_inspector import (
     hydrate_compensator_row,
 )
 from action_machine.legacy.interchange_vertex_labels import COMPENSATOR_VERTEX_TYPE
+from graph import graph_builder as graph_builder_mod
 
 
 class _NoCompensateAction(AspectIntent):

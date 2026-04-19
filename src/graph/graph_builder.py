@@ -1,4 +1,4 @@
-# src/action_machine/graph/graph_builder.py
+# src/graph/graph_builder.py
 """
 Interchange construction: :class:`GraphBuilder` and module-level helpers.
 
@@ -11,10 +11,10 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from typing import Any, Final
 
-from action_machine.graph.constants import INTERNAL_EDGE_TYPES, OWNERSHIP_EDGE_TYPES
-from action_machine.graph.facet_vertex import FacetVertex
-from action_machine.graph.graph_edge import GraphEdge
-from action_machine.graph.graph_vertex import GraphVertex
+from graph.constants import INTERNAL_EDGE_TYPES, OWNERSHIP_EDGE_TYPES
+from graph.facet_vertex import FacetVertex
+from graph.graph_edge import GraphEdge
+from graph.graph_vertex import GraphVertex
 
 # Facet ``FacetEdge.edge_type`` → (interchange ``edge_type``, stereotype). Used only in
 # :func:`build_interchange_from_facet_vertices` / :func:`_from_facet_vertices`.

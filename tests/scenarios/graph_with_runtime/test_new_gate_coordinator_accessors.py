@@ -3,10 +3,6 @@
 
 from __future__ import annotations
 
-from action_machine.graph.base_intent_inspector import BaseIntentInspector
-from action_machine.graph.facet_edge import FacetEdge
-from action_machine.graph.facet_vertex import FacetVertex
-from action_machine.graph.graph_coordinator import GraphCoordinator
 from action_machine.legacy.aspect_intent_inspector import AspectIntentInspector
 from action_machine.legacy.checker_intent_inspector import CheckerIntentInspector
 from action_machine.legacy.compensate_intent_inspector import (
@@ -22,6 +18,10 @@ from action_machine.legacy.interchange_vertex_labels import (
 )
 from action_machine.legacy.on_error_intent_inspector import OnErrorIntentInspector
 from action_machine.resources.base_resource_manager import BaseResourceManager
+from graph.base_intent_inspector import BaseIntentInspector
+from graph.facet_edge import FacetEdge
+from graph.facet_vertex import FacetVertex
+from graph.graph_coordinator import GraphCoordinator
 from tests.scenarios.domain_model import FullAction
 from tests.scenarios.domain_model.services import NotificationService, PaymentService
 

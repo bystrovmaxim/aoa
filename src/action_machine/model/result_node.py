@@ -6,9 +6,9 @@ ResultNode — interchange node for ``BaseResult`` schema classes.
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Provides a :class:`~action_machine.graph.base_graph_node.BaseGraphNode` view derived from
+Provides a :class:`~graph.base_graph_node.BaseGraphNode` view derived from
 a concrete result **class** object. Interchange data lives in ``id``, ``node_type``,
-``label``, ``properties``, and ``edges``; the class is :attr:`~action_machine.graph.base_graph_node.BaseGraphNode.obj`.
+``label``, ``properties``, and ``edges``; the class is :attr:`~graph.base_graph_node.BaseGraphNode.obj`.
 
 Interchange ``node_type`` is ``"result_schema"`` (aligned with facet ``result_schema`` hosts); ``id`` is the dotted class path.
 
@@ -25,7 +25,7 @@ ARCHITECTURE / DATA FLOW
 INVARIANTS
 ═══════════════════════════════════════════════════════════════════════════════
 
-- The result class is :attr:`~action_machine.graph.base_graph_node.BaseGraphNode.obj`.
+- The result class is :attr:`~graph.base_graph_node.BaseGraphNode.obj`.
 - ``node_type`` is ``"result_schema"``; ``label`` is the class ``__name__``; ``properties`` and ``edges`` are empty in ``parse``.
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -64,8 +64,8 @@ from dataclasses import dataclass
 from typing import TypeVar
 
 from action_machine.common import qualified_dotted_name
-from action_machine.graph.base_graph_node import BaseGraphNode, Payload
 from action_machine.model.base_result import BaseResult
+from graph.base_graph_node import BaseGraphNode, Payload
 
 TResult = TypeVar("TResult", bound=BaseResult)
 

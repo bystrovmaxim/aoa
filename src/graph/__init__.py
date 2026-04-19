@@ -1,4 +1,4 @@
-# src/action_machine/graph/__init__.py
+# src/graph/__init__.py
 """
 ActionMachine **graph** subpackage (facet snapshots, coordinator, inspectors).
 
@@ -56,34 +56,34 @@ AI-CORE-END
 
 from __future__ import annotations
 
-from action_machine.graph.base_facet_snapshot import BaseFacetSnapshot
-from action_machine.graph.base_graph_edge import BaseGraphEdge
-from action_machine.graph.base_graph_node import (
+from graph.base_facet_snapshot import BaseFacetSnapshot
+from graph.base_graph_edge import BaseGraphEdge
+from graph.base_graph_node import (
     BaseGraphNode,
     BaseGraphNodeParseError,
     Payload,
 )
-from action_machine.graph.base_intent_inspector import (
+from graph.base_intent_inspector import (
     FacetInspectResult,
     InspectGraphPair,
 )
-from action_machine.graph.constants import (
+from graph.constants import (
     DAG_EDGE_TYPES,
     INTERNAL_EDGE_TYPES,
     OWNERSHIP_EDGE_TYPES,
 )
-from action_machine.graph.dag import (
+from graph.dag import (
     assert_dag_edges_acyclic,
     collect_dag_edge_pairs,
     dag_edge_pairs_from_rx,
     dag_subgraph_is_acyclic,
     dag_subgraph_is_acyclic_from_rx,
 )
-from action_machine.graph.graph_builder import GraphBuilder, build_interchange_from_facet_vertices
-from action_machine.graph.graph_coordinator import GraphCoordinator
-from action_machine.graph.graph_edge import GraphEdge
-from action_machine.graph.graph_vertex import GraphVertex, GraphVertexParseError, ParsedGraphVertex
-from action_machine.graph.node_graph_coordinator import NodeGraphCoordinator
+from graph.graph_builder import GraphBuilder, build_interchange_from_facet_vertices
+from graph.graph_coordinator import GraphCoordinator
+from graph.graph_edge import GraphEdge
+from graph.graph_vertex import GraphVertex, GraphVertexParseError, ParsedGraphVertex
+from graph.node_graph_coordinator import NodeGraphCoordinator
 
 __all__ = [
     "DAG_EDGE_TYPES",

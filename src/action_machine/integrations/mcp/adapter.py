@@ -203,7 +203,6 @@ from action_machine.adapters.base_route_record import (
     ensure_protocol_response,
 )
 from action_machine.context.context import Context
-from action_machine.graph.graph_coordinator import GraphCoordinator
 from action_machine.integrations.mcp.route_record import McpRouteRecord
 from action_machine.legacy.interchange_vertex_labels import (
     DOMAIN_VERTEX_TYPE,
@@ -214,6 +213,7 @@ from action_machine.model.base_action import BaseAction
 from action_machine.model.exceptions import AuthorizationError, ValidationFieldError
 from action_machine.resources.base_resource_manager import BaseResourceManager
 from action_machine.runtime.action_product_machine import ActionProductMachine
+from graph.graph_coordinator import GraphCoordinator
 from mcp.server.fastmcp import FastMCP
 from mcp.server.fastmcp.tools.base import Tool
 from mcp.server.fastmcp.utilities.func_metadata import ArgModelBase, FuncMetadata

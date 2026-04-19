@@ -1,4 +1,4 @@
-# src/action_machine/graph/graph_edge.py
+# src/graph/graph_edge.py
 """
 Frozen interchange edge for the coordinator graph (spec graph.md §10).
 """

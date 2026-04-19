@@ -54,7 +54,6 @@ to avoid polluting domain fixtures and keep scenarios narrow:
 from pydantic import Field
 
 from action_machine.context.ctx_constants import Ctx
-from action_machine.graph.graph_coordinator import GraphCoordinator
 from action_machine.intents.aspects.regular_aspect_decorator import regular_aspect
 from action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
 from action_machine.intents.check_roles import NoneRole, check_roles
@@ -69,6 +68,7 @@ from action_machine.model.base_state import BaseState
 from action_machine.resources.base_resource_manager import BaseResourceManager
 from action_machine.runtime.dependency_factory import clear_dependency_factory_cache
 from action_machine.runtime.tools_box import ToolsBox
+from graph.graph_coordinator import GraphCoordinator
 from tests.scenarios.domain_model.domains import SystemDomain
 
 

@@ -154,7 +154,6 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from action_machine.context.context import Context
-from action_machine.graph.graph_coordinator import GraphCoordinator
 from action_machine.legacy.core import Core
 from action_machine.logging.console_logger import ConsoleLogger
 from action_machine.logging.log_coordinator import LogCoordinator
@@ -182,6 +181,7 @@ from action_machine.runtime.saga_coordinator import SagaCoordinator
 from action_machine.runtime.saga_frame import SagaFrame
 from action_machine.runtime.tools_box import ToolsBox
 from action_machine.runtime.tools_box_factory import ToolsBoxFactory
+from graph.graph_coordinator import GraphCoordinator
 
 if TYPE_CHECKING:
     from action_machine.legacy.aspect_intent_inspector import AspectIntentInspector

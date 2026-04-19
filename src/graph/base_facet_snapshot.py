@@ -1,4 +1,4 @@
-# src/action_machine/graph/base_facet_snapshot.py
+# src/graph/base_facet_snapshot.py
 """
 BaseFacetSnapshot — typed facet view built by an intent inspector.
 
@@ -65,7 +65,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
-from action_machine.graph.facet_vertex import FacetVertex
+from graph.facet_vertex import FacetVertex
 
 
 class BaseFacetSnapshot(ABC):

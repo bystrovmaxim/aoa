@@ -67,7 +67,6 @@ AI-CORE-END
 from __future__ import annotations
 
 from action_machine.application import ApplicationContextInspector
-from action_machine.graph.graph_coordinator import GraphCoordinator
 from action_machine.legacy.aspect_intent_inspector import AspectIntentInspector
 from action_machine.legacy.checker_intent_inspector import CheckerIntentInspector
 from action_machine.legacy.compensate_intent_inspector import (
@@ -92,6 +91,7 @@ from action_machine.model.base_action import ActionTypedSchemasInspector
 from action_machine.resources.connection_intent_inspector import (
     ConnectionIntentInspector,
 )
+from graph.graph_coordinator import GraphCoordinator
 
 
 class Core:

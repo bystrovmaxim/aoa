@@ -6,7 +6,7 @@ EntityGraphNode — minimal interchange node for ``BaseEntity`` subclasses.
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Materializes a frozen :class:`~action_machine.graph.base_graph_node.BaseGraphNode` from an
+Materializes a frozen :class:`~graph.base_graph_node.BaseGraphNode` from an
 entity **class** object: stable ``id`` (dotted path), ``node_type="Entity"``,
 ``label`` from the class name, ``properties`` from :meth:`get_properties`, ``edges`` from
 :meth:`_get_all_edges` via :meth:`get_domain_link` (``@entity`` / ``_entity_info`` and ``@meta`` / ``_meta_info`` merged; see :meth:`_meta_info_dict`).
@@ -24,8 +24,8 @@ ARCHITECTURE / DATA FLOW
 INVARIANTS
 ═══════════════════════════════════════════════════════════════════════════════
 
-- The entity class is :attr:`~action_machine.graph.base_graph_node.BaseGraphNode.obj`.
-- :meth:`get_properties` may add ``description`` from merged declaration dict (``@entity`` / ``@meta``). :meth:`get_domain_link` returns a :class:`~action_machine.graph.base_graph_edge.BaseGraphEdge` with ``link_name="domain"`` or ``None`` when there is no valid domain; :meth:`_get_all_edges` is ``[edge]`` or ``[]``.
+- The entity class is :attr:`~graph.base_graph_node.BaseGraphNode.obj`.
+- :meth:`get_properties` may add ``description`` from merged declaration dict (``@entity`` / ``@meta``). :meth:`get_domain_link` returns a :class:`~graph.base_graph_edge.BaseGraphEdge` with ``link_name="domain"`` or ``None`` when there is no valid domain; :meth:`_get_all_edges` is ``[edge]`` or ``[]``.
 
 ═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES
@@ -67,9 +67,9 @@ from typing import Any, TypeVar
 from action_machine.common import qualified_dotted_name
 from action_machine.domain.base_domain import BaseDomain
 from action_machine.domain.entity import BaseEntity
-from action_machine.graph.base_graph_edge import BaseGraphEdge
-from action_machine.graph.base_graph_node import BaseGraphNode, Payload
 from action_machine.legacy.interchange_vertex_labels import DOMAIN_VERTEX_TYPE
+from graph.base_graph_edge import BaseGraphEdge
+from graph.base_graph_node import BaseGraphNode, Payload
 
 TEntity = TypeVar("TEntity", bound=BaseEntity)
 
