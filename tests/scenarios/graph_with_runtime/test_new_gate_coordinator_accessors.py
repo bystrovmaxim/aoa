@@ -13,7 +13,7 @@ from action_machine.legacy.checker_intent_inspector import CheckerIntentInspecto
 from action_machine.legacy.compensate_intent_inspector import (
     CompensateIntentInspector,
 )
-from action_machine.intents.on_error.on_error_intent_inspector import OnErrorIntentInspector
+from action_machine.legacy.on_error_intent_inspector import OnErrorIntentInspector
 from action_machine.legacy.interchange_vertex_labels import (
     CHECKER_VERTEX_TYPE,
     COMPENSATOR_VERTEX_TYPE,

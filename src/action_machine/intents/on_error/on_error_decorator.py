@@ -70,8 +70,6 @@ INVARIANTS
 - ``exception_types`` is one Exception type or tuple of Exception types.
 - Each element in ``exception_types`` must be an Exception subclass.
 - Handlers are NOT inherited from parent Action classes.
-- Type-overlap validation (later handler cannot catch same/narrower type) is
-  enforced in metadata builder.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
@@ -84,9 +82,6 @@ ARCHITECTURE / DATA FLOW
         │
         ▼  OnErrorIntentInspector._collect_error_handlers(cls)
     ErrorHandler(..., context_keys=frozenset(...))
-        │
-        ▼  on_error_intent.validate_error_handlers(cls, error_handlers)
-    Validates type overlaps.
         │
         ▼  ActionProductMachine._handle_aspect_error(...)
     If context_keys non-empty -> creates ContextView and passes as ctx.
@@ -103,9 +98,9 @@ Valid: specific first, broad fallback second:
     @on_error(ValueError, ...)      <- specific
     @on_error(Exception, ...)       <- fallback
 
-Invalid: broad first, specific second:
-    @on_error(Exception, ...)       <- catches everything
-    @on_error(ValueError, ...)      <- dead code -> TypeError at metadata build
+Invalid (later handler never runs for overlapping types):
+    @on_error(Exception, ...)       <- catches everything first
+    @on_error(ValueError, ...)      <- never reached for ``ValueError``
 
 ═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES

@@ -40,6 +40,10 @@ _LAZY_EXPORTS: dict[str, tuple[str, str]] = {
         "action_machine.legacy.compensate_intent_inspector",
         "hydrate_compensator_row",
     ),
+    "hydrate_error_handler_row": (
+        "action_machine.legacy.on_error_intent_inspector",
+        "hydrate_error_handler_row",
+    ),
     "ContextRequiresIntent": (
         "action_machine.legacy.context_requires_intent",
         "ContextRequiresIntent",
@@ -69,6 +73,11 @@ _LAZY_EXPORTS: dict[str, tuple[str, str]] = {
     "MetaIntentInspector": (
         "action_machine.legacy.meta_intent_inspector",
         "MetaIntentInspector",
+    ),
+    "OnErrorIntent": ("action_machine.legacy.on_error_intent", "OnErrorIntent"),
+    "OnErrorIntentInspector": (
+        "action_machine.legacy.on_error_intent_inspector",
+        "OnErrorIntentInspector",
     ),
     "ResourceMetaIntent": (
         "action_machine.legacy.resource_meta_intent",

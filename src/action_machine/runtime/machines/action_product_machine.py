@@ -189,7 +189,7 @@ if TYPE_CHECKING:
     from action_machine.legacy.compensate_intent_inspector import (
         CompensateIntentInspector,
     )
-    from action_machine.intents.on_error.on_error_intent_inspector import OnErrorIntentInspector
+    from action_machine.legacy.on_error_intent_inspector import OnErrorIntentInspector
 
 P = TypeVar("P", bound=BaseParams)
 R = TypeVar("R", bound=BaseResult)
