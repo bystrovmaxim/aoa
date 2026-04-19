@@ -9,18 +9,18 @@ PURPOSE
 Represents one outgoing semantic link from a :class:`BaseGraphNode`: the slot key
 (e.g. ``domain``, ``params``), the target vertex interchange id (dotted path), the
 facet **target** ``node_type`` string (same convention as the target host's
-:class:`~graph.base_graph_node.Payload.node_type`), the Python **target
+:attr:`~graph.base_graph_node.BaseGraphNode.node_type`), the Python **target
 class** when the target is a type (``target_class_ref``), and whether the edge
 participates in **acyclicity** (DAG) reasoning.
 
-The **source** vertex is always ``BaseGraphNode.payload.id`` for the hosting node — it is not
+The **source** vertex is always :attr:`~graph.base_graph_node.BaseGraphNode.id` for the hosting node — it is not
 redundant on the edge object.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-    BaseGraphNode.payload.id  +  edges: list[BaseGraphEdge(...)]
+    BaseGraphNode.id  +  edges: list[BaseGraphEdge(...)]
 
 ═══════════════════════════════════════════════════════════════════════════════
 INVARIANTS
@@ -29,7 +29,7 @@ INVARIANTS
 - ``link_name`` is the slot key (e.g. ``domain``, ``params``).
 - ``target_id`` is the interchange id of the referenced vertex (``qualified_dotted_name``).
 - ``target_node_type`` is the facet ``node_type`` of the target host (caller supplies it;
-  match the corresponding ``*Node`` / :class:`Payload` ``node_type``).
+  match the corresponding ``*Node`` / :class:`~graph.base_graph_node.BaseGraphNode` ``node_type``).
 - ``target_cls`` is the referenced type when the target is a class; use for facet materialization.
 - ``is_dag``: if ``True``, consumers may include this edge when checking the graph for
   cycles along DAG-relevant arcs (same role as :attr:`GraphEdge.is_dag` on coordinator edges).
@@ -50,7 +50,7 @@ EXAMPLES
         target_cls=SystemDomain,
     )
 
-Edge case: same ``link_name`` on different nodes — distinguish by the host ``BaseGraphNode.payload.id``.
+Edge case: same ``link_name`` on different nodes — distinguish by the host :attr:`~graph.base_graph_node.BaseGraphNode.id`.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ERRORS / LIMITATIONS
@@ -80,7 +80,7 @@ class BaseGraphEdge:
     """
     AI-CORE-BEGIN
     ROLE: Interchange edge descriptor (slot, target id, target facet kind, DAG flag, target class).
-    CONTRACT: ``target_node_type`` = target vertex facet ``node_type`` (aligned with that host's ``Payload``).
+    CONTRACT: ``target_node_type`` = target vertex facet ``node_type`` (aligned with that host's ``node_type``).
     INVARIANTS: Frozen; strings are opaque; ``is_dag`` is always set explicitly by the caller.
     AI-CORE-END
     """

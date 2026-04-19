@@ -17,14 +17,14 @@ ARCHITECTURE / DATA FLOW
     type[TRole]   (``TRole`` bound to ``BaseRole``)
               │
               v
-    RoleGraphNode.parse  ──>  frozen ``BaseGraphNode`` (id, node_type, label, properties, edges)
+    RoleGraphNode(...)  ──>  frozen ``BaseGraphNode`` (id, node_type, label, properties, edges)
 
 ═══════════════════════════════════════════════════════════════════════════════
 INVARIANTS
 ═══════════════════════════════════════════════════════════════════════════════
 
 - The role class is :attr:`~graph.base_graph_node.BaseGraphNode.obj`.
-- ``node_type`` is ``"Role"`` (same convention as ``"Action"``, ``"Params"``, ``"Result"``, ``"Entity"``); ``label`` is the class ``__name__``; ``properties`` and ``edges`` are empty in ``parse``.
+- ``node_type`` is ``"Role"`` (same convention as ``"Action"``, ``"Params"``, ``"Result"``, ``"Entity"``); ``label`` is the class ``__name__``; ``properties`` and ``edges`` are empty.
 
 ═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES
@@ -42,16 +42,16 @@ Edge case: same interchange shape for any concrete ``BaseRole`` subclass type pa
 ERRORS / LIMITATIONS
 ═══════════════════════════════════════════════════════════════════════════════
 
-- No validation in ``parse``; concrete ``BaseRole`` subclasses are validated where declared.
+- No validation in ``__init__``; concrete ``BaseRole`` subclasses are validated where declared.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN
 ═══════════════════════════════════════════════════════════════════════════════
 ROLE: Auth-scoped BaseGraphNode bridge for BaseRole subclasses.
-CONTRACT: Construct from ``type[TRole]`` via ``parse``; ``node_type="Role"``; dotted-path ``id``; label = class name; empty properties and edges.
+CONTRACT: Construct from ``type[TRole]`` via ``__init__``; ``node_type="Role"``; dotted-path ``id``; label = class name; empty properties and edges.
 INVARIANTS: Immutable node; host class on ``BaseGraphNode.obj``.
-FLOW: role class -> ``BaseGraphNode.__init__`` -> ``parse`` -> frozen BaseGraphNode fields.
-EXTENSION POINTS: Other graph node specializations follow the same parse pattern.
+FLOW: role class -> ``RoleGraphNode.__init__`` -> frozen ``BaseGraphNode`` fields.
+EXTENSION POINTS: Other graph node specializations follow the same constructor pattern.
 AI-CORE-END
 ═══════════════════════════════════════════════════════════════════════════════
 """
@@ -63,7 +63,7 @@ from typing import TypeVar
 
 from action_machine.auth.base_role import BaseRole
 from action_machine.legacy.qualified_name import qualified_dotted_name
-from graph.base_graph_node import BaseGraphNode, Payload
+from graph.base_graph_node import BaseGraphNode
 
 TRole = TypeVar("TRole", bound=BaseRole)
 
@@ -77,12 +77,12 @@ class RoleGraphNode(BaseGraphNode[type[TRole]]):
     AI-CORE-END
     """
 
-    @classmethod
-    def parse(cls, role_cls: type[TRole]) -> Payload:
-        return Payload(
+    def __init__(self, role_cls: type[TRole]) -> None:
+        super().__init__(
             id=qualified_dotted_name(role_cls),
             node_type="Role",
             label=role_cls.__name__,
             properties={},
             edges=[],
+            obj=role_cls,
         )

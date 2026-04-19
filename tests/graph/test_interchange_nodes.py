@@ -1,34 +1,27 @@
 # tests/graph/test_interchange_nodes.py
-"""Interchange node types: ``ParamsNode``, ``ResultNode``, ``DomainGraphNode``, ``ActionNode``, ``EntityGraphNode``, and ``BaseGraphNode`` parse error."""
+"""Interchange node types: ``ParamsNode``, ``ResultNode``, ``DomainGraphNode``, ``ActionNode``, and ``EntityGraphNode``."""
 
 from __future__ import annotations
 
-import warnings
-
-import pytest
 from pydantic import Field
 
-from action_machine.legacy.application_context import ApplicationContext
-from action_machine.legacy.application_context_inspector import ApplicationContextInspector
-from action_machine.legacy.qualified_name import qualified_dotted_name
 from action_machine.domain.domain_graph_node import DomainGraphNode
 from action_machine.domain.entity_graph_node import EntityGraphNode
+from action_machine.legacy.application_context import ApplicationContext
+from action_machine.legacy.application_context_inspector import ApplicationContextInspector
 from action_machine.legacy.interchange_vertex_labels import APPLICATION_VERTEX_TYPE, DOMAIN_VERTEX_TYPE
+from action_machine.legacy.qualified_name import qualified_dotted_name
 from action_machine.model.action_node import ActionNode
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_result import BaseResult
 from action_machine.model.params_node import ParamsNode
 from action_machine.model.result_node import ResultNode
 from graph.base_graph_edge import BaseGraphEdge
-from graph.base_graph_node import BaseGraphNode, BaseGraphNodeParseError
+from graph.facet_edge import FacetEdge
+from graph.facet_vertex import FacetVertex
 from tests.scenarios.domain_model.domains import SystemDomain
 from tests.scenarios.domain_model.entities import SampleEntity, TestDomain
 from tests.scenarios.domain_model.ping_action import PingAction
-
-
-def test_base_graph_node_parse_raises_when_not_overridden() -> None:
-    with pytest.raises(BaseGraphNodeParseError, match="not implemented"):
-        BaseGraphNode(object())
 
 
 def test_params_node_interchange_shape() -> None:
@@ -64,8 +57,8 @@ def test_result_node_interchange_shape() -> None:
 def test_domain_node_interchange_shape() -> None:
     node = DomainGraphNode(TestDomain)
     assert node.obj is TestDomain
-    assert node.payload.id == node.id == qualified_dotted_name(TestDomain)
-    assert node.payload.node_type == node.node_type == "Domain"
+    assert node.id == qualified_dotted_name(TestDomain)
+    assert node.node_type == "Domain"
     assert node.node_type == "Domain"
     assert node.label == "TestDomain"
     assert node.id == qualified_dotted_name(TestDomain)
@@ -86,9 +79,23 @@ def test_domain_node_interchange_shape() -> None:
 
     from_facets = ApplicationContextInspector._domain_payload_or_none(TestDomain)
     assert from_facets is not None
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore", DeprecationWarning)
-        from_node = node.to_facet_vertex()
+    from_node = FacetVertex(
+        node_type=node.node_type,
+        node_name=node.id,
+        node_class=node.obj,
+        node_meta=tuple(node.properties.items()),
+        edges=tuple(
+            FacetEdge(
+                target_node_type=e.target_node_type,
+                target_name=e.target_id,
+                edge_type=e.link_name,
+                is_structural=e.is_dag,
+                edge_meta=(),
+                target_class_ref=e.target_cls,
+            )
+            for e in node.edges
+        ),
+    )
     assert from_node.node_type == from_facets.node_type
     assert from_node.node_name == from_facets.node_name
     assert from_node.node_class is from_facets.node_class

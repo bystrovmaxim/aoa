@@ -19,7 +19,7 @@ ARCHITECTURE / DATA FLOW
               v
     ``BaseAction[P, R]``  →  :meth:`get_schema_generic_binding` (or :meth:`get_params_link` / :meth:`get_result_link`)
 
-    ActionNode.parse / ``get_properties`` / ``get_domain_link``  →  frozen ``BaseGraphNode``
+    ActionNode ``__init__`` / helpers  →  frozen ``BaseGraphNode``
 
 ═══════════════════════════════════════════════════════════════════════════════
 INVARIANTS
@@ -27,7 +27,7 @@ INVARIANTS
 
 - The action class is :attr:`~graph.base_graph_node.BaseGraphNode.obj`.
 - ``label`` is the action class ``__name__``. :meth:`get_properties` fills ``properties``;
-  :meth:`get_domain_link`, :meth:`get_params_link`, and :meth:`get_result_link` each return a :class:`~graph.base_graph_edge.BaseGraphEdge` or ``None``. :meth:`_get_all_edges` collects non-``None`` edges for ``parse``.
+  :meth:`get_domain_link`, :meth:`get_params_link`, and :meth:`get_result_link` each return a :class:`~graph.base_graph_edge.BaseGraphEdge` or ``None``. :meth:`_get_all_edges` collects non-``None`` edges for the node.
 
   :meth:`get_schema_generic_binding` returns resolved params/result types (or ``None``); :meth:`get_params_link` / :meth:`get_result_link` apply :func:`~action_machine.legacy.qualified_name.qualified_dotted_name` when building edges.
 
@@ -47,16 +47,16 @@ Edge case: same interchange shape for any concrete ``BaseAction`` subclass type 
 ERRORS / LIMITATIONS
 ═══════════════════════════════════════════════════════════════════════════════
 
-- No validation in ``parse``; concrete ``BaseAction`` subclasses are validated where declared.
+- No validation in ``__init__``; concrete ``BaseAction`` subclasses are validated where declared.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN
 ═══════════════════════════════════════════════════════════════════════════════
 ROLE: Model-scoped BaseGraphNode bridge for ``BaseAction`` subclasses.
-CONTRACT: ``parse`` builds the node; helpers: :meth:`get_properties`, :meth:`get_domain_link`, :meth:`get_schema_generic_binding` (or :meth:`get_params_link` / :meth:`get_result_link`).
+CONTRACT: ``__init__`` builds the node; helpers: :meth:`get_properties`, :meth:`get_domain_link`, :meth:`get_schema_generic_binding` (or :meth:`get_params_link` / :meth:`get_result_link`).
 INVARIANTS: Immutable node; host class on ``BaseGraphNode.obj``.
-FLOW: action class -> ``BaseGraphNode.__init__`` -> ``parse`` -> frozen BaseGraphNode fields.
-EXTENSION POINTS: Other graph node specializations follow the same parse pattern.
+FLOW: action class -> ``ActionNode.__init__`` -> frozen ``BaseGraphNode`` fields.
+EXTENSION POINTS: Other graph node specializations follow the same constructor pattern.
 AI-CORE-END
 ═══════════════════════════════════════════════════════════════════════════════
 """
@@ -66,13 +66,13 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, TypeVar, get_args, get_origin
 
-from action_machine.legacy.qualified_name import qualified_dotted_name
 from action_machine.domain.base_domain import BaseDomain
 from action_machine.legacy.binding.action_generic_params import _resolve_generic_arg
 from action_machine.legacy.interchange_vertex_labels import DOMAIN_VERTEX_TYPE
+from action_machine.legacy.qualified_name import qualified_dotted_name
 from action_machine.model.base_action import BaseAction
 from graph.base_graph_edge import BaseGraphEdge
-from graph.base_graph_node import BaseGraphNode, Payload
+from graph.base_graph_node import BaseGraphNode
 
 TAction = TypeVar("TAction", bound=BaseAction[Any, Any])
 
@@ -85,6 +85,16 @@ class ActionNode(BaseGraphNode[type[TAction]]):
     CONTRACT: ``get_properties`` / ``get_domain_link`` (``@meta``); ``get_schema_generic_binding`` / ``get_params_link`` / ``get_result_link`` (``BaseAction[P,R]``).
     AI-CORE-END
     """
+
+    def __init__(self, action_cls: type[TAction]) -> None:
+        super().__init__(
+            id=qualified_dotted_name(action_cls),
+            node_type="Action",
+            label=action_cls.__name__,
+            properties=dict(ActionNode.get_properties(action_cls)),
+            edges=list(ActionNode._get_all_edges(action_cls)),
+            obj=action_cls,
+        )
 
     @classmethod
     def get_schema_generic_binding(
@@ -197,13 +207,3 @@ class ActionNode(BaseGraphNode[type[TAction]]):
             )
             if e is not None
         ]
-
-    @classmethod
-    def parse(cls, action_cls: type[TAction]) -> Payload:
-        return Payload(
-            id=qualified_dotted_name(action_cls),
-            node_type="Action",
-            label=action_cls.__name__,
-            properties=dict(cls.get_properties(action_cls)),
-            edges=list(cls._get_all_edges(action_cls)),
-        )

@@ -18,7 +18,7 @@ ARCHITECTURE / DATA FLOW
     type[TDomain]   (``TDomain`` bound to ``BaseDomain``)
               │
               v
-    DomainGraphNode.parse  ──>  frozen ``BaseGraphNode`` (id, node_type, label, properties, edges)
+    DomainGraphNode(...)  ──>  frozen ``BaseGraphNode`` (id, node_type, label, properties, edges)
 
 ═══════════════════════════════════════════════════════════════════════════════
 INVARIANTS
@@ -46,16 +46,16 @@ Edge case: same interchange shape for any concrete ``BaseDomain`` subclass type 
 ERRORS / LIMITATIONS
 ═══════════════════════════════════════════════════════════════════════════════
 
-- No validation in ``parse``; ``BaseDomain`` concrete subclasses are validated at class definition where applicable.
+- No validation in ``__init__``; ``BaseDomain`` concrete subclasses are validated at class definition where applicable.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN
 ═══════════════════════════════════════════════════════════════════════════════
 ROLE: Domain-scoped BaseGraphNode bridge for BaseDomain subclasses.
-CONTRACT: Construct from ``type[TDomain]`` via ``parse``; ``node_type="Domain"``; dotted-path ``id``; label = class name; ``name``/``description`` in ``properties``; ``belongs_to`` ``ApplicationContext`` in ``edges``.
+CONTRACT: Construct from ``type[TDomain]`` via ``__init__``; ``node_type="Domain"``; dotted-path ``id``; label = class name; ``name``/``description`` in ``properties``; ``belongs_to`` ``ApplicationContext`` in ``edges``.
 INVARIANTS: Immutable node; host class on ``BaseGraphNode.obj``.
-FLOW: domain class -> ``BaseGraphNode.__init__`` -> ``parse`` -> frozen BaseGraphNode fields.
-EXTENSION POINTS: Other graph node specializations follow the same parse pattern.
+FLOW: domain class -> ``DomainGraphNode.__init__`` -> frozen ``BaseGraphNode`` fields.
+EXTENSION POINTS: Other graph node specializations follow the same constructor pattern.
 AI-CORE-END
 ═══════════════════════════════════════════════════════════════════════════════
 """
@@ -65,11 +65,11 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TypeVar
 
-from action_machine.legacy.qualified_name import qualified_dotted_name
 from action_machine.domain.base_domain import BaseDomain
 from action_machine.legacy.interchange_vertex_labels import APPLICATION_VERTEX_TYPE
+from action_machine.legacy.qualified_name import qualified_dotted_name
 from graph.base_graph_edge import BaseGraphEdge
-from graph.base_graph_node import BaseGraphNode, Payload
+from graph.base_graph_node import BaseGraphNode
 
 TDomain = TypeVar("TDomain", bound=BaseDomain)
 
@@ -83,15 +83,14 @@ class DomainGraphNode(BaseGraphNode[type[TDomain]]):
     AI-CORE-END
     """
 
-    @classmethod
-    def parse(cls, domain_cls: type[TDomain]) -> Payload:
+    def __init__(self, domain_cls: type[TDomain]) -> None:
         # Local import: avoid loading ``application`` package (and inspector) during ``domain`` import.
         from action_machine.legacy.application_context import (  # pylint: disable=import-outside-toplevel
             ApplicationContext,
         )
 
         app_id = qualified_dotted_name(ApplicationContext)
-        return Payload(
+        super().__init__(
             id=qualified_dotted_name(domain_cls),
             node_type="Domain",
             label=domain_cls.__name__,
@@ -108,4 +107,5 @@ class DomainGraphNode(BaseGraphNode[type[TDomain]]):
                     target_cls=ApplicationContext,
                 ),
             ],
+            obj=domain_cls,
         )

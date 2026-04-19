@@ -18,7 +18,7 @@ ARCHITECTURE / DATA FLOW
     type[TEntity]  (``TEntity`` bound to ``BaseEntity``)
               │
               v
-    EntityGraphNode.parse / ``_meta_info_dict`` / ``get_properties`` / ``get_domain_link`` / ``_get_all_edges``  →  frozen ``BaseGraphNode``
+    EntityGraphNode helpers / ``__init__``  →  frozen ``BaseGraphNode``
 
 ═══════════════════════════════════════════════════════════════════════════════
 INVARIANTS
@@ -44,7 +44,7 @@ missing ``domain`` is ignored (same as no edges).
 ERRORS / LIMITATIONS
 ═══════════════════════════════════════════════════════════════════════════════
 
-- No validation in ``parse``; :meth:`get_domain_link` is ``None`` unless ``domain`` is a
+- No validation in ``__init__``; :meth:`get_domain_link` is ``None`` unless ``domain`` is a
   ``BaseDomain`` subclass type in the merged declaration mapping.
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -53,8 +53,8 @@ AI-CORE-BEGIN
 ROLE: Thin BaseGraphNode for entity class types.
 CONTRACT: ``node_type="Entity"``; dotted-path ``id``; label = class ``__name__``; ``properties`` from :meth:`get_properties`; ``edges`` from :meth:`_get_all_edges` (via :meth:`get_domain_link` on merged ``@entity`` / ``@meta`` info).
 INVARIANTS: Immutable node; domain edge from declaration metadata on the entity class.
-FLOW: entity class -> ``BaseGraphNode.__init__`` -> ``parse`` -> frozen BaseGraphNode fields.
-EXTENSION POINTS: Other graph node specializations follow the same parse pattern.
+FLOW: entity class -> ``EntityGraphNode.__init__`` -> frozen ``BaseGraphNode`` fields.
+EXTENSION POINTS: Other graph node specializations follow the same constructor pattern.
 AI-CORE-END
 ═══════════════════════════════════════════════════════════════════════════════
 """
@@ -64,12 +64,12 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, TypeVar
 
-from action_machine.legacy.qualified_name import qualified_dotted_name
 from action_machine.domain.base_domain import BaseDomain
 from action_machine.domain.entity import BaseEntity
 from action_machine.legacy.interchange_vertex_labels import DOMAIN_VERTEX_TYPE
+from action_machine.legacy.qualified_name import qualified_dotted_name
 from graph.base_graph_edge import BaseGraphEdge
-from graph.base_graph_node import BaseGraphNode, Payload
+from graph.base_graph_node import BaseGraphNode
 
 TEntity = TypeVar("TEntity", bound=BaseEntity)
 
@@ -133,12 +133,12 @@ class EntityGraphNode(BaseGraphNode[type[TEntity]]):
             properties["description"] = desc.strip()
         return properties
 
-    @classmethod
-    def parse(cls, entity_cls: type[TEntity]) -> Payload:
-        return Payload(
+    def __init__(self, entity_cls: type[TEntity]) -> None:
+        super().__init__(
             id=qualified_dotted_name(entity_cls),
             node_type="Entity",
             label=entity_cls.__name__,
-            properties=dict(cls.get_properties(entity_cls)),
-            edges=list(cls._get_all_edges(entity_cls)),
+            properties=dict(EntityGraphNode.get_properties(entity_cls)),
+            edges=list(EntityGraphNode._get_all_edges(entity_cls)),
+            obj=entity_cls,
         )
