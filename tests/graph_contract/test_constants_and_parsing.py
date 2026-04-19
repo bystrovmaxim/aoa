@@ -17,7 +17,7 @@ from action_machine.graph import (
     INTERNAL_EDGE_TYPES,
     OWNERSHIP_EDGE_TYPES,
 )
-from action_machine.interchange_vertex_catalog import INTERCHANGE_KNOWN_VERTEX_TYPES
+from action_machine.legacy.interchange_vertex_catalog import INTERCHANGE_KNOWN_VERTEX_TYPES
 
 
 def test_vertex_types_contains_core_kinds() -> None:

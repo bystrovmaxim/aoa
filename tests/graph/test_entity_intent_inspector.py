@@ -23,7 +23,7 @@ from action_machine.intents.domain.entity_intent_inspector import (
 )
 from action_machine.domain.lifecycle import Lifecycle
 from action_machine.graph.base_intent_inspector import BaseIntentInspector
-from action_machine.interchange_vertex_labels import ENTITY_VERTEX_TYPE
+from action_machine.legacy.interchange_vertex_labels import ENTITY_VERTEX_TYPE
 
 
 def _entity_payload(inspect_result: object):

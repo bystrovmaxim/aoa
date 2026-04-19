@@ -87,7 +87,7 @@ from __future__ import annotations
 import time
 from typing import Any, Protocol, cast
 
-from action_machine.intents.aspects.aspect_intent_inspector import AspectIntentInspector
+from action_machine.legacy.aspect_intent_inspector import AspectIntentInspector
 from action_machine.intents.checkers.checker_intent_inspector import CheckerIntentInspector
 from action_machine.intents.context.context_view import ContextView
 from action_machine.intents.logging.domain_resolver import resolve_domain

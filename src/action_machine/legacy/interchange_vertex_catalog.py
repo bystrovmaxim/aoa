@@ -1,4 +1,4 @@
-# src/action_machine/interchange_vertex_catalog.py
+# src/action_machine/legacy/interchange_vertex_catalog.py
 """
 Known interchange ``node_type`` strings for the default ActionMachine inspector set.
 

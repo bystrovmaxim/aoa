@@ -7,8 +7,8 @@ from collections import UserDict
 
 from action_machine.graph.base_intent_inspector import BaseIntentInspector
 from action_machine.graph.facet_edge import FacetMetaRow
-from action_machine.intents.aspects.aspect_intent import AspectIntent
-from action_machine.intents.aspects.aspect_intent_inspector import (
+from action_machine.legacy.aspect_intent import AspectIntent
+from action_machine.legacy.aspect_intent_inspector import (
     AspectIntentInspector,
     hydrate_aspect_row,
 )
@@ -33,7 +33,7 @@ from action_machine.intents.on_error.on_error_intent_inspector import (
     OnErrorIntentInspector,
     hydrate_error_handler_row,
 )
-from action_machine.interchange_vertex_labels import (
+from action_machine.legacy.interchange_vertex_labels import (
     COMPENSATOR_VERTEX_TYPE,
     REGULAR_ASPECT_VERTEX_TYPE,
     SUMMARY_ASPECT_VERTEX_TYPE,

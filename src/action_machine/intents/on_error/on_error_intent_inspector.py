@@ -77,7 +77,7 @@ from action_machine.graph.base_intent_inspector import BaseIntentInspector
 from action_machine.graph.facet_edge import FacetEdge, FacetMetaRow
 from action_machine.graph.facet_vertex import FacetVertex
 from action_machine.intents.on_error.on_error_intent import OnErrorIntent
-from action_machine.interchange_vertex_labels import ACTION_VERTEX_TYPE
+from action_machine.legacy.interchange_vertex_labels import ACTION_VERTEX_TYPE
 
 
 class OnErrorIntentInspector(BaseIntentInspector):

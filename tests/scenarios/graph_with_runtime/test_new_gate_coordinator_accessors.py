@@ -8,13 +8,13 @@ from action_machine.graph.base_intent_inspector import BaseIntentInspector
 from action_machine.graph.facet_edge import FacetEdge
 from action_machine.graph.facet_vertex import FacetVertex
 from action_machine.graph.graph_coordinator import GraphCoordinator
-from action_machine.intents.aspects.aspect_intent_inspector import AspectIntentInspector
+from action_machine.legacy.aspect_intent_inspector import AspectIntentInspector
 from action_machine.intents.checkers.checker_intent_inspector import CheckerIntentInspector
 from action_machine.intents.compensate.compensate_intent_inspector import (
     CompensateIntentInspector,
 )
 from action_machine.intents.on_error.on_error_intent_inspector import OnErrorIntentInspector
-from action_machine.interchange_vertex_labels import (
+from action_machine.legacy.interchange_vertex_labels import (
     CHECKER_VERTEX_TYPE,
     COMPENSATOR_VERTEX_TYPE,
     ENTITY_VERTEX_TYPE,

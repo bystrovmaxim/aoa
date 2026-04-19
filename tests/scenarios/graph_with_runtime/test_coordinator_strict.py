@@ -50,7 +50,7 @@ from action_machine.intents.aspects.summary_aspect_decorator import summary_aspe
 from action_machine.intents.check_roles.check_roles_decorator import check_roles
 from action_machine.auth.none_role import NoneRole
 from action_machine.intents.meta.meta_decorator import meta
-from action_machine.interchange_vertex_labels import DOMAIN_VERTEX_TYPE
+from action_machine.legacy.interchange_vertex_labels import DOMAIN_VERTEX_TYPE
 from action_machine.model.base_action import BaseAction
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_result import BaseResult

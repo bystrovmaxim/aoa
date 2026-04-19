@@ -17,7 +17,7 @@ from action_machine.intents.described_fields import (
 )
 from action_machine.intents.described_fields.described_fields_intent_inspector import DescribedFieldsIntentInspector
 from action_machine.intents.meta.meta_decorator import meta
-from action_machine.interchange_vertex_labels import ENTITY_VERTEX_TYPE
+from action_machine.legacy.interchange_vertex_labels import ENTITY_VERTEX_TYPE
 from action_machine.model.base_action import ActionTypedSchemasInspector, BaseAction
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_result import BaseResult

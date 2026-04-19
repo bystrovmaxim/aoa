@@ -63,7 +63,7 @@ from action_machine.intents.meta.meta_intent_inspector import MetaIntentInspecto
 from action_machine.intents.plugins.events import GlobalStartEvent
 from action_machine.intents.plugins.on_decorator import on
 from action_machine.intents.plugins.plugin import Plugin
-from action_machine.interchange_vertex_labels import (
+from action_machine.legacy.interchange_vertex_labels import (
     CHECKER_VERTEX_TYPE,
     COMPENSATOR_VERTEX_TYPE,
     REGULAR_ASPECT_VERTEX_TYPE,

@@ -112,8 +112,8 @@ from abc import ABC
 from typing import Any
 
 from action_machine.dependencies.dependency_intent import DependencyIntent
-from action_machine.intents.aspects.aspect_intent import AspectIntent
-from action_machine.intents.check_roles.check_roles_intent import CheckRolesIntent
+from action_machine.legacy.aspect_intent import AspectIntent
+from action_machine.legacy.check_roles_intent import CheckRolesIntent
 from action_machine.intents.checkers.checker_intent import CheckerIntent
 from action_machine.intents.compensate.compensate_intent import CompensateIntent
 from action_machine.intents.context.context_requires_intent import ContextRequiresIntent
@@ -189,7 +189,7 @@ from action_machine.graph.facet_vertex import FacetVertex  # noqa: E402
 from action_machine.intents.described_fields.described_fields_intent_inspector import (  # noqa: E402
     DescribedFieldsIntentInspector,
 )
-from action_machine.interchange_vertex_labels import ACTION_VERTEX_TYPE  # noqa: E402
+from action_machine.legacy.interchange_vertex_labels import ACTION_VERTEX_TYPE  # noqa: E402
 from action_machine.runtime.binding.extract_action_params_result_types import (  # noqa: E402
     extract_action_params_result_types,
 )

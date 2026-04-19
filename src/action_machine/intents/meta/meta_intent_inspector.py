@@ -68,7 +68,7 @@ from action_machine.graph.base_intent_inspector import BaseIntentInspector
 from action_machine.graph.facet_vertex import FacetVertex
 from action_machine.intents.meta.action_meta_intent import ActionMetaIntent
 from action_machine.intents.meta.resource_meta_intent import ResourceMetaIntent
-from action_machine.interchange_vertex_labels import ACTION_VERTEX_TYPE, DOMAIN_VERTEX_TYPE
+from action_machine.legacy.interchange_vertex_labels import ACTION_VERTEX_TYPE, DOMAIN_VERTEX_TYPE
 from action_machine.model.base_action import BaseAction
 from action_machine.resources.base_resource_manager import BaseResourceManager
 

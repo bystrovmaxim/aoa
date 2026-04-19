@@ -14,7 +14,7 @@ from .application_context import ApplicationContext
 from action_machine.domain.base_domain import BaseDomain
 from action_machine.graph.base_intent_inspector import BaseIntentInspector
 from action_machine.graph.facet_vertex import FacetVertex
-from action_machine.interchange_vertex_labels import APPLICATION_VERTEX_TYPE, DOMAIN_VERTEX_TYPE
+from action_machine.legacy.interchange_vertex_labels import APPLICATION_VERTEX_TYPE, DOMAIN_VERTEX_TYPE
 
 
 class ApplicationContextInspector(BaseIntentInspector):
