@@ -27,9 +27,9 @@ ARCHITECTURE / DATA FLOW
 
     Runtime package import
            |
-           +--> lightweight modules (navigation, bindings, components)
+           +--> lightweight modules (navigation, components)
            |
-           +--> lazy Core access via __getattr__
+           +--> lazy Core access via __getattr__ (Core lives in ``action_machine.legacy.core``)
                          |
                          v
                 create/build GraphCoordinator

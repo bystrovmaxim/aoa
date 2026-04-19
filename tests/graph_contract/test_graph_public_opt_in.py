@@ -10,7 +10,7 @@ import json
 import pytest
 
 from action_machine.integrations.mcp.adapter import _build_graph_json
-from action_machine.runtime.machines.core import Core
+from action_machine.legacy.core import Core
 from maxitor.samples.build import _MODULES
 
 

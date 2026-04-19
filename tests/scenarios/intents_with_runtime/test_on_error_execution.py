@@ -20,7 +20,7 @@ import pytest
 
 from action_machine.logging.log_coordinator import LogCoordinator
 from action_machine.model.exceptions import OnErrorHandlerError
-from action_machine.runtime.machines.core import Core
+from action_machine.legacy.core import Core
 from action_machine.testing import TestBench
 from tests.scenarios.domain_model import (
     ErrorHandledAction,

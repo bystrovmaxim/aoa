@@ -10,7 +10,7 @@ import pytest
 
 def test_runtime_package_exposes_core() -> None:
     rt = importlib.import_module("action_machine.runtime")
-    from action_machine.runtime.machines.core import Core
+    from action_machine.legacy.core import Core
 
     assert rt.Core is Core
 

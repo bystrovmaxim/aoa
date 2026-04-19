@@ -29,7 +29,7 @@ from action_machine.legacy.binding.action_result_binding import (
     require_resolved_action_result_type,
     synthetic_summary_result_when_missing_aspect,
 )
-from action_machine.runtime.machines.action_product_machine import ActionProductMachine
+from action_machine.runtime.action_product_machine import ActionProductMachine
 from action_machine.runtime.tools_box import ToolsBox
 from action_machine.testing import TestBench
 from tests.scenarios.domain_model.domains import TestDomain

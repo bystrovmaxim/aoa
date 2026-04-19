@@ -57,7 +57,7 @@ COMPONENTS
 QUICK START
 ═══════════════════════════════════════════════════════════════════════════════
 
-    from action_machine.runtime.machines.action_product_machine import ActionProductMachine
+    from action_machine.runtime.action_product_machine import ActionProductMachine
     from action_machine.graph.graph_coordinator import GraphCoordinator
     from action_machine.integrations.fastapi import FastApiAdapter
 

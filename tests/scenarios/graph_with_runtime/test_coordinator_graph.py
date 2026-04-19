@@ -75,7 +75,7 @@ from action_machine.model.base_result import BaseResult
 from action_machine.model.base_schema import BaseSchema
 from action_machine.resources.base_resource_manager import BaseResourceManager
 from action_machine.resources.connection_decorator import connection
-from action_machine.runtime.machines.core import Core
+from action_machine.legacy.core import Core
 from tests.scenarios.domain_model.domains import TestDomain
 from tests.scenarios.domain_model.roles import AdminRole
 

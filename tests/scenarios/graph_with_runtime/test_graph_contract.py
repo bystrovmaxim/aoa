@@ -18,7 +18,7 @@ from typing import Any, Final
 from action_machine.graph.base_intent_inspector import BaseIntentInspector
 from action_machine.graph.graph_coordinator import GraphCoordinator
 from action_machine.integrations.mcp.adapter import _build_graph_json
-from action_machine.runtime.machines.core import Core
+from action_machine.legacy.core import Core
 
 # Register a minimal action in the BaseAction subclass tree before build().
 from tests.scenarios.domain_model import PingAction

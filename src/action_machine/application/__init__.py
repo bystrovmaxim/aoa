@@ -33,7 +33,7 @@ EXAMPLES
 ::
 
     from action_machine.application import ApplicationContext
-    from action_machine.runtime.machines.core import Core
+    from action_machine.legacy.core import Core
 
     Core.create_coordinator()  # registers ApplicationContextInspector
 

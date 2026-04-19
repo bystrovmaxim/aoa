@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from action_machine.runtime.machines.core import Core
+from action_machine.legacy.core import Core
 
 
 def test_default_coordinator_emits_role_mode_and_role_class_nodes() -> None:

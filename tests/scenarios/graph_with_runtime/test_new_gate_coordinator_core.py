@@ -13,7 +13,7 @@ from action_machine.graph.exceptions import (
 from action_machine.graph.facet_edge import FacetEdge
 from action_machine.graph.facet_vertex import FacetVertex
 from action_machine.graph.graph_coordinator import GraphCoordinator
-from action_machine.runtime.machines.core import Core
+from action_machine.legacy.core import Core
 
 
 class _A:

@@ -55,7 +55,7 @@ from action_machine.model.base_action import BaseAction
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_result import BaseResult
 from action_machine.resources.base_resource_manager import BaseResourceManager
-from action_machine.runtime.machines.core import Core
+from action_machine.legacy.core import Core
 
 # ═════════════════════════════════════════════════════════════════════════════
 #Helper classes

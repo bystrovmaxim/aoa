@@ -21,7 +21,7 @@ from action_machine.legacy.interchange_vertex_labels import (
     REGULAR_ASPECT_VERTEX_TYPE,
 )
 from action_machine.resources.base_resource_manager import BaseResourceManager
-from action_machine.runtime.machines.core import Core
+from action_machine.legacy.core import Core
 from tests.scenarios.domain_model import FullAction
 from tests.scenarios.domain_model.services import NotificationService, PaymentService
 

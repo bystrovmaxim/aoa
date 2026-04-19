@@ -154,7 +154,7 @@ from action_machine.context.context import Context
 from action_machine.model.base_action import BaseAction
 from action_machine.model.exceptions import AuthorizationError, ValidationFieldError
 from action_machine.resources.base_resource_manager import BaseResourceManager
-from action_machine.runtime.machines.action_product_machine import ActionProductMachine
+from action_machine.runtime.action_product_machine import ActionProductMachine
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 

@@ -35,8 +35,8 @@ from action_machine.plugin.events import (
 )
 from action_machine.intents.on.on_decorator import on
 from action_machine.plugin.plugin import Plugin
-from action_machine.runtime.machines.action_product_machine import ActionProductMachine
-from action_machine.runtime.machines.core import Core
+from action_machine.runtime.action_product_machine import ActionProductMachine
+from action_machine.legacy.core import Core
 from tests.scenarios.domain_model import (
     ErrorHandledAction,
     ErrorTestParams,
