@@ -8,7 +8,7 @@ PURPOSE
 
 Provides a :class:`~action_machine.graph.base_graph_node.BaseGraphNode` view derived from
 an action **class** object. Interchange data lives in ``id``, ``node_type``,
-``label``, ``properties``, and ``links``; the class is :attr:`~action_machine.graph.base_graph_node.BaseGraphNode.obj`.
+``label``, ``properties``, and ``edges``; the class is :attr:`~action_machine.graph.base_graph_node.BaseGraphNode.obj`.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
@@ -27,7 +27,7 @@ INVARIANTS
 
 - The action class is :attr:`~action_machine.graph.base_graph_node.BaseGraphNode.obj`.
 - ``label`` is the action class ``__name__``. :meth:`get_properties` fills ``properties``;
-  :meth:`get_domain_link`, :meth:`get_params_link`, and :meth:`get_result_link` each return a :class:`~action_machine.graph.base_graph_edge.BaseGraphEdge` or ``None``. :meth:`_get_all_links` collects non-``None`` edges for ``parse``.
+  :meth:`get_domain_link`, :meth:`get_params_link`, and :meth:`get_result_link` each return a :class:`~action_machine.graph.base_graph_edge.BaseGraphEdge` or ``None``. :meth:`_get_all_edges` collects non-``None`` edges for ``parse``.
 
   :meth:`get_schema_generic_binding` returns resolved params/result types (or ``None``); :meth:`get_params_link` / :meth:`get_result_link` apply :func:`~action_machine.common.qualified_dotted_name` when building edges.
 
@@ -186,7 +186,7 @@ class ActionNode(BaseGraphNode[type[TAction]]):
         return properties
 
     @classmethod
-    def _get_all_links(cls, action_cls: type[TAction]) -> list[BaseGraphEdge]:
+    def _get_all_edges(cls, action_cls: type[TAction]) -> list[BaseGraphEdge]:
         """From :meth:`get_domain_link`, :meth:`get_params_link`, :meth:`get_result_link` — drops ``None``."""
         return [
             e
@@ -205,5 +205,5 @@ class ActionNode(BaseGraphNode[type[TAction]]):
             node_type="Action",
             label=action_cls.__name__,
             properties=dict(cls.get_properties(action_cls)),
-            links=list(cls._get_all_links(action_cls)),
+            edges=list(cls._get_all_edges(action_cls)),
         )

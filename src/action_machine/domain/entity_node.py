@@ -8,8 +8,8 @@ PURPOSE
 
 Materializes a frozen :class:`~action_machine.graph.base_graph_node.BaseGraphNode` from an
 entity **class** object: stable ``id`` (dotted path), ``node_type="Entity"``,
-``label`` from the class name, ``properties`` from :meth:`get_properties`, ``links`` from
-:meth:`_get_all_links` via :meth:`get_domain_link` (``@entity`` / ``_entity_info`` and ``@meta`` / ``_meta_info`` merged; see :meth:`_meta_info_dict`).
+``label`` from the class name, ``properties`` from :meth:`get_properties`, ``edges`` from
+:meth:`_get_all_edges` via :meth:`get_domain_link` (``@entity`` / ``_entity_info`` and ``@meta`` / ``_meta_info`` merged; see :meth:`_meta_info_dict`).
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
@@ -18,14 +18,14 @@ ARCHITECTURE / DATA FLOW
     type[TEntity]  (``TEntity`` bound to ``BaseEntity``)
               │
               v
-    EntityNode.parse / ``_meta_info_dict`` / ``get_properties`` / ``get_domain_link`` / ``_get_all_links``  →  frozen ``BaseGraphNode``
+    EntityNode.parse / ``_meta_info_dict`` / ``get_properties`` / ``get_domain_link`` / ``_get_all_edges``  →  frozen ``BaseGraphNode``
 
 ═══════════════════════════════════════════════════════════════════════════════
 INVARIANTS
 ═══════════════════════════════════════════════════════════════════════════════
 
 - The entity class is :attr:`~action_machine.graph.base_graph_node.BaseGraphNode.obj`.
-- :meth:`get_properties` may add ``description`` from merged declaration dict (``@entity`` / ``@meta``). :meth:`get_domain_link` returns a :class:`~action_machine.graph.base_graph_edge.BaseGraphEdge` with ``link_name="domain"`` or ``None`` when there is no valid domain; :meth:`_get_all_links` is ``[edge]`` or ``[]``.
+- :meth:`get_properties` may add ``description`` from merged declaration dict (``@entity`` / ``@meta``). :meth:`get_domain_link` returns a :class:`~action_machine.graph.base_graph_edge.BaseGraphEdge` with ``link_name="domain"`` or ``None`` when there is no valid domain; :meth:`_get_all_edges` is ``[edge]`` or ``[]``.
 
 ═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES
@@ -37,7 +37,7 @@ Happy path::
     n = EntityNode(OrderEntity)
     assert n.node_type == "Entity" and n.label == "OrderEntity"
 
-Edge case: no declaration dict / no domain → ``links == []``; invalid or
+Edge case: no declaration dict / no domain → ``edges == []``; invalid or
 missing ``domain`` is ignored (same as no edges).
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -51,7 +51,7 @@ ERRORS / LIMITATIONS
 AI-CORE-BEGIN
 ═══════════════════════════════════════════════════════════════════════════════
 ROLE: Thin BaseGraphNode for entity class types.
-CONTRACT: ``node_type="Entity"``; dotted-path ``id``; label = class ``__name__``; ``properties`` from :meth:`get_properties`; ``links`` from :meth:`_get_all_links` (via :meth:`get_domain_link` on merged ``@entity`` / ``@meta`` info).
+CONTRACT: ``node_type="Entity"``; dotted-path ``id``; label = class ``__name__``; ``properties`` from :meth:`get_properties`; ``edges`` from :meth:`_get_all_edges` (via :meth:`get_domain_link` on merged ``@entity`` / ``@meta`` info).
 INVARIANTS: Immutable node; domain edge from declaration metadata on the entity class.
 FLOW: entity class -> ``BaseGraphNode.__init__`` -> ``parse`` -> frozen BaseGraphNode fields.
 EXTENSION POINTS: Other graph node specializations follow the same parse pattern.
@@ -79,7 +79,7 @@ class EntityNode(BaseGraphNode[type[TEntity]]):
     """
     AI-CORE-BEGIN
     ROLE: Interchange bridge for ``BaseEntity`` host classes.
-    CONTRACT: Dotted-path ``id``, ``__name__`` label; ``get_properties`` / ``get_domain_link`` via :meth:`_meta_info_dict`; ``links`` = :meth:`_get_all_links`.
+    CONTRACT: Dotted-path ``id``, ``__name__`` label; ``get_properties`` / ``get_domain_link`` via :meth:`_meta_info_dict`; ``edges`` = :meth:`_get_all_edges`.
     AI-CORE-END
     """
 
@@ -119,7 +119,7 @@ class EntityNode(BaseGraphNode[type[TEntity]]):
         )
 
     @classmethod
-    def _get_all_links(cls, entity_cls: type[TEntity]) -> list[BaseGraphEdge]:
+    def _get_all_edges(cls, entity_cls: type[TEntity]) -> list[BaseGraphEdge]:
         """From :meth:`get_domain_link` — empty list when ``get_domain_link`` is ``None``."""
         edge = cls.get_domain_link(entity_cls)
         return [edge] if edge is not None else []
@@ -140,5 +140,5 @@ class EntityNode(BaseGraphNode[type[TEntity]]):
             node_type="Entity",
             label=entity_cls.__name__,
             properties=dict(cls.get_properties(entity_cls)),
-            links=list(cls._get_all_links(entity_cls)),
+            edges=list(cls._get_all_edges(entity_cls)),
         )

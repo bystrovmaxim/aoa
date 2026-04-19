@@ -8,7 +8,7 @@ PURPOSE
 
 Provides a :class:`~action_machine.graph.base_graph_node.BaseGraphNode` view derived from
 a ``BaseDomain`` subclass. Interchange data lives in ``id``, ``node_type``,
-``label``, ``properties``, and ``links``; the domain class is the same object as
+``label``, ``properties``, and ``edges``; the domain class is the same object as
 :attr:`~action_machine.graph.base_graph_node.BaseGraphNode.obj`.
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -18,14 +18,14 @@ ARCHITECTURE / DATA FLOW
     type[TDomain]   (``TDomain`` bound to ``BaseDomain``)
               │
               v
-    DomainNode.parse  ──>  frozen ``BaseGraphNode`` (id, node_type, label, properties, links)
+    DomainNode.parse  ──>  frozen ``BaseGraphNode`` (id, node_type, label, properties, edges)
 
 ═══════════════════════════════════════════════════════════════════════════════
 INVARIANTS
 ═══════════════════════════════════════════════════════════════════════════════
 
 - The domain class is available as :attr:`~action_machine.graph.base_graph_node.BaseGraphNode.obj`.
-- ``label`` is the domain class ``__name__``; ``properties`` hold ``name`` / ``description``; ``links`` include informational ``belongs_to`` → ``ApplicationContext`` (facet parity).
+- ``label`` is the domain class ``__name__``; ``properties`` hold ``name`` / ``description``; ``edges`` include informational ``belongs_to`` → ``ApplicationContext`` (facet parity).
 
 ═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES
@@ -52,7 +52,7 @@ ERRORS / LIMITATIONS
 AI-CORE-BEGIN
 ═══════════════════════════════════════════════════════════════════════════════
 ROLE: Domain-scoped BaseGraphNode bridge for BaseDomain subclasses.
-CONTRACT: Construct from ``type[TDomain]`` via ``parse``; ``node_type="Domain"``; dotted-path ``id``; label = class name; ``name``/``description`` in ``properties``; ``belongs_to`` ``ApplicationContext`` in ``links``.
+CONTRACT: Construct from ``type[TDomain]`` via ``parse``; ``node_type="Domain"``; dotted-path ``id``; label = class name; ``name``/``description`` in ``properties``; ``belongs_to`` ``ApplicationContext`` in ``edges``.
 INVARIANTS: Immutable node; host class on ``BaseGraphNode.obj``.
 FLOW: domain class -> ``BaseGraphNode.__init__`` -> ``parse`` -> frozen BaseGraphNode fields.
 EXTENSION POINTS: Other graph node specializations follow the same parse pattern.
@@ -79,7 +79,7 @@ class DomainNode(BaseGraphNode[type[TDomain]]):
     """
     AI-CORE-BEGIN
     ROLE: Interchange node for a bounded-context domain marker.
-    CONTRACT: Built from ``type[TDomain]``; dotted ``id``, ``__name__`` label; ``properties`` carry ``name`` / ``description`` (facet ``node_meta`` parity); ``belongs_to`` → ``ApplicationContext`` in ``links``.
+    CONTRACT: Built from ``type[TDomain]``; dotted ``id``, ``__name__`` label; ``properties`` carry ``name`` / ``description`` (facet ``node_meta`` parity); ``belongs_to`` → ``ApplicationContext`` in ``edges``.
     AI-CORE-END
     """
 
@@ -97,7 +97,7 @@ class DomainNode(BaseGraphNode[type[TDomain]]):
                 "name": domain_cls.name,
                 "description": domain_cls.description,
             },
-            links=[
+            edges=[
                 BaseGraphEdge(
                     link_name="belongs_to",
                     target_id=app_id,
