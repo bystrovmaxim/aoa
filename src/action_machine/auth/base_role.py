@@ -82,7 +82,7 @@ from __future__ import annotations
 from abc import ABC
 from typing import Any, ClassVar
 
-from action_machine.intents.role_mode.role_mode_intent import RoleModeIntent
+from action_machine.legacy.role_mode_intent import RoleModeIntent
 from action_machine.model.exceptions import NamingSuffixError
 
 _REQUIRED_SUFFIX = "Role"
