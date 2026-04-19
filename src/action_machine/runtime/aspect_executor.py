@@ -87,9 +87,13 @@ from __future__ import annotations
 import time
 from typing import Any, Protocol, cast
 
-from action_machine.legacy.aspect_intent_inspector import AspectIntentInspector
-from action_machine.legacy.checker_intent_inspector import CheckerIntentInspector
 from action_machine.context.context_view import ContextView
+from action_machine.legacy.aspect_intent_inspector import AspectIntentInspector
+from action_machine.legacy.binding.action_result_binding import (
+    bind_pipeline_result_to_action,
+    synthetic_summary_result_when_missing_aspect,
+)
+from action_machine.legacy.checker_intent_inspector import CheckerIntentInspector
 from action_machine.logging.domain_resolver import resolve_domain
 from action_machine.logging.log_coordinator import LogCoordinator
 from action_machine.logging.scoped_logger import ScopedLogger
@@ -99,10 +103,6 @@ from action_machine.model.base_result import BaseResult
 from action_machine.model.base_state import BaseState
 from action_machine.model.exceptions import ValidationFieldError
 from action_machine.resources.base_resource_manager import BaseResourceManager
-from action_machine.legacy.binding.action_result_binding import (
-    bind_pipeline_result_to_action,
-    synthetic_summary_result_when_missing_aspect,
-)
 from action_machine.runtime.saga_frame import SagaFrame
 from action_machine.runtime.tools_box import ToolsBox
 

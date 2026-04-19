@@ -197,4 +197,4 @@ class BaseFieldChecker(ABC):
         Raises:
             ValidationFieldError: if value violates checker rules.
         """
-        ...
+        pass

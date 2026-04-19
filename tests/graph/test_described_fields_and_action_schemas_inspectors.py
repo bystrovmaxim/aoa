@@ -6,17 +6,17 @@ from __future__ import annotations
 import pytest
 from pydantic import BaseModel, Field
 
+from action_machine.auth.none_role import NoneRole
 from action_machine.domain import BaseEntity, entity
 from action_machine.domain.base_domain import BaseDomain
 from action_machine.intents.check_roles import check_roles
-from action_machine.auth.none_role import NoneRole
+from action_machine.intents.meta.meta_decorator import meta
 from action_machine.legacy.described_fields import (
     DescribedFieldsIntent,
     validate_described_schema,
     validate_described_schemas_for_action,
 )
 from action_machine.legacy.described_fields.described_fields_intent_inspector import DescribedFieldsIntentInspector
-from action_machine.intents.meta.meta_decorator import meta
 from action_machine.legacy.interchange_vertex_labels import ENTITY_VERTEX_TYPE
 from action_machine.model.base_action import ActionTypedSchemasInspector, BaseAction
 from action_machine.model.base_params import BaseParams

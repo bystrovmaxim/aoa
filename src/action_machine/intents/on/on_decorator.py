@@ -183,9 +183,9 @@ import inspect
 from collections.abc import Callable
 from typing import Any
 
+from action_machine.model.exceptions import NamingPrefixError
 from action_machine.plugin.events import BasePluginEvent
 from action_machine.plugin.subscription_info import SubscriptionInfo
-from action_machine.model.exceptions import NamingPrefixError
 
 # Expected @on handler parameter count: self, state, event, log.
 _EXPECTED_PARAM_COUNT = 4

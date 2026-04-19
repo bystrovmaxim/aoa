@@ -146,6 +146,8 @@ AI-CORE-END
 
 from __future__ import annotations
 
+# pylint: disable=undefined-all-variable
+# ``__all__`` lists lazy names resolved in :func:`__getattr__` (PEP 562).
 import importlib
 from typing import Any
 
@@ -188,14 +190,14 @@ __all__ = [
     "AuthCoordinator",
     "Authenticator",
     "BaseRole",
+    "CheckRolesIntent",
     "ContextAssembler",
     "CredentialExtractor",
     "NoAuthCoordinator",
     "NoneRole",
-    "CheckRolesIntent",
+    "RoleGraphNode",
     "RoleMode",
     "RoleModeIntent",
-    "RoleGraphNode",
     "check_roles",
     "role_mode",
 ]

@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import pytest
 
-from action_machine.plugin.events import GlobalStartEvent
 from action_machine.intents.on.on_decorator import on
 from action_machine.model.exceptions import NamingPrefixError
+from action_machine.plugin.events import GlobalStartEvent
 
 
 def test_on_rejects_bad_action_class_and_nest_level_types() -> None:

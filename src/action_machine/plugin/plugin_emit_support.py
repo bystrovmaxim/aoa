@@ -115,6 +115,9 @@ from typing import Any
 
 from action_machine.context.context import Context
 from action_machine.logging.log_coordinator import LogCoordinator
+from action_machine.model.base_action import BaseAction
+from action_machine.model.base_params import BaseParams
+from action_machine.model.base_result import BaseResult
 from action_machine.plugin.events import (
     AfterRegularAspectEvent,
     AfterSummaryAspectEvent,
@@ -124,9 +127,6 @@ from action_machine.plugin.events import (
     GlobalStartEvent,
 )
 from action_machine.plugin.plugin_run_context import PluginRunContext
-from action_machine.model.base_action import BaseAction
-from action_machine.model.base_params import BaseParams
-from action_machine.model.base_result import BaseResult
 
 
 class PluginEmitSupport:

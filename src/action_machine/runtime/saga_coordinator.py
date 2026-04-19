@@ -82,12 +82,13 @@ from __future__ import annotations
 import time
 from typing import Any, cast
 
+from action_machine.context.context_view import ContextView
 from action_machine.legacy.compensate_intent_inspector import (
     CompensateIntentInspector,
 )
-from action_machine.context.context_view import ContextView
 from action_machine.logging.domain_resolver import resolve_domain
 from action_machine.logging.scoped_logger import ScopedLogger
+from action_machine.model.base_state import BaseState
 from action_machine.plugin.events import (
     AfterCompensateAspectEvent,
     BeforeCompensateAspectEvent,
@@ -97,7 +98,6 @@ from action_machine.plugin.events import (
 )
 from action_machine.plugin.plugin_coordinator import PluginCoordinator
 from action_machine.plugin.plugin_emit_support import PluginEmitSupport
-from action_machine.model.base_state import BaseState
 from action_machine.runtime.aspect_executor import AspectExecutor
 from action_machine.runtime.error_handler_executor import ErrorHandlerExecutor
 from action_machine.runtime.saga_frame import SagaFrame

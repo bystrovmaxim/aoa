@@ -44,38 +44,38 @@ from typing import Any
 
 import pytest
 
-from action_machine.runtime.dependency_factory import (
-    cached_dependency_factory,
-    clear_dependency_factory_cache,
-)
-from action_machine.intents.depends import depends
+from action_machine.auth.none_role import NoneRole
 from action_machine.graph.base_intent_inspector import BaseIntentInspector
 from action_machine.graph.graph_coordinator import GraphCoordinator
 from action_machine.intents.aspects.regular_aspect_decorator import regular_aspect
 from action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
 from action_machine.intents.check_roles.check_roles_decorator import check_roles
-from action_machine.auth.none_role import NoneRole
 from action_machine.intents.checkers.result_string_decorator import result_string
 from action_machine.intents.compensate import compensate
-from action_machine.intents.sensitive import sensitive
+from action_machine.intents.depends import depends
 from action_machine.intents.meta.meta_decorator import meta
-from action_machine.legacy.meta_intent_inspector import MetaIntentInspector
-from action_machine.plugin.events import GlobalStartEvent
 from action_machine.intents.on.on_decorator import on
-from action_machine.plugin.plugin import Plugin
+from action_machine.intents.sensitive import sensitive
+from action_machine.legacy.core import Core
 from action_machine.legacy.interchange_vertex_labels import (
     CHECKER_VERTEX_TYPE,
     COMPENSATOR_VERTEX_TYPE,
     REGULAR_ASPECT_VERTEX_TYPE,
     SUMMARY_ASPECT_VERTEX_TYPE,
 )
+from action_machine.legacy.meta_intent_inspector import MetaIntentInspector
 from action_machine.model.base_action import BaseAction
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_result import BaseResult
 from action_machine.model.base_schema import BaseSchema
+from action_machine.plugin.events import GlobalStartEvent
+from action_machine.plugin.plugin import Plugin
 from action_machine.resources.base_resource_manager import BaseResourceManager
 from action_machine.resources.connection_decorator import connection
-from action_machine.legacy.core import Core
+from action_machine.runtime.dependency_factory import (
+    cached_dependency_factory,
+    clear_dependency_factory_cache,
+)
 from tests.scenarios.domain_model.domains import TestDomain
 from tests.scenarios.domain_model.roles import AdminRole
 

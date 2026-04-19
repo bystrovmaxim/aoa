@@ -4,16 +4,21 @@ from __future__ import annotations
 
 import pytest
 
+from action_machine.context.context import Context
+from action_machine.context.user_info import UserInfo
 from action_machine.intents.aspects.regular_aspect_decorator import regular_aspect
 from action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
 from action_machine.intents.check_roles import NoneRole, check_roles
 from action_machine.intents.checkers import result_string
 from action_machine.intents.compensate.compensate_decorator import compensate
-from action_machine.context.context import Context
-from action_machine.context.user_info import UserInfo
-from action_machine.logging.log_coordinator import LogCoordinator
 from action_machine.intents.meta.meta_decorator import meta
 from action_machine.intents.on_error import on_error
+from action_machine.legacy.binding.action_result_binding import (
+    bind_pipeline_result_to_action,
+    require_resolved_action_result_type,
+    synthetic_summary_result_when_missing_aspect,
+)
+from action_machine.logging.log_coordinator import LogCoordinator
 from action_machine.model.base_action import BaseAction
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_result import BaseResult
@@ -24,11 +29,6 @@ from action_machine.model.exceptions import (
     MissingSummaryAspectError,
 )
 from action_machine.resources.base_resource_manager import BaseResourceManager
-from action_machine.legacy.binding.action_result_binding import (
-    bind_pipeline_result_to_action,
-    require_resolved_action_result_type,
-    synthetic_summary_result_when_missing_aspect,
-)
 from action_machine.runtime.action_product_machine import ActionProductMachine
 from action_machine.runtime.tools_box import ToolsBox
 from action_machine.testing import TestBench

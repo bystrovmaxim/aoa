@@ -64,8 +64,8 @@ from mcp.server.fastmcp import FastMCP
 
 from action_machine.integrations.mcp.adapter import McpAdapter, _class_name_to_snake_case
 from action_machine.integrations.mcp.route_record import McpRouteRecord
-from action_machine.runtime.action_product_machine import ActionProductMachine
 from action_machine.legacy.core import Core
+from action_machine.runtime.action_product_machine import ActionProductMachine
 from tests.scenarios.domain_model import FullAction, PingAction, SimpleAction
 
 # ─────────────────────────────────────────────────────────────────────────────

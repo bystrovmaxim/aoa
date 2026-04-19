@@ -69,23 +69,28 @@ AI-CORE-END
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from action_machine.model import exceptions as _exceptions
 from action_machine.model.base_action import BaseAction
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_result import BaseResult
-from action_machine.model.params_node import ParamsNode
-from action_machine.model.result_node import ResultNode
 from action_machine.model.base_schema import BaseSchema
 from action_machine.model.base_state import BaseState
 from action_machine.model.exceptions import *  # noqa: F403
+from action_machine.model.params_node import ParamsNode
+from action_machine.model.result_node import ResultNode
+
+if TYPE_CHECKING:
+    from action_machine.model.action_node import ActionNode
 
 
 def __getattr__(name: str) -> Any:
     """Lazy ``ActionNode`` — avoids import cycle with :mod:`action_machine.domain.base_domain`."""
     if name == "ActionNode":
-        from action_machine.model.action_node import ActionNode as ActionNodeImpl
+        from action_machine.model.action_node import (  # pylint: disable=import-outside-toplevel
+            ActionNode as ActionNodeImpl,
+        )
 
         return ActionNodeImpl
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

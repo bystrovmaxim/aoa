@@ -5,11 +5,11 @@ from __future__ import annotations
 
 from action_machine.graph import graph_builder as graph_builder_mod
 from action_machine.graph.base_intent_inspector import BaseIntentInspector
-from action_machine.legacy.aspect_intent import AspectIntent
 from action_machine.intents.aspects.regular_aspect_decorator import regular_aspect
+from action_machine.intents.checkers.result_string_decorator import result_string
+from action_machine.legacy.aspect_intent import AspectIntent
 from action_machine.legacy.checker_intent import CheckerIntent
 from action_machine.legacy.checker_intent_inspector import CheckerIntentInspector
-from action_machine.intents.checkers.result_string_decorator import result_string
 from action_machine.legacy.interchange_vertex_labels import CHECKER_VERTEX_TYPE
 
 

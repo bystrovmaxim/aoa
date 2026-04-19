@@ -183,6 +183,7 @@ AI-CORE-END
 ═══════════════════════════════════════════════════════════════════════════════
 """
 
+from action_machine.intents.sensitive import sensitive
 from action_machine.logging.channel import Channel, channel_mask_label, validate_channels
 from action_machine.logging.console_logger import DEFAULT_LEVEL_FG_PREFIX, ConsoleLogger
 from action_machine.logging.domain_resolver import domain_label, resolve_domain
@@ -192,7 +193,6 @@ from action_machine.logging.log_coordinator import LogCoordinator
 from action_machine.logging.log_scope import LogScope
 from action_machine.logging.log_var_payloads import LogChannelPayload, LogLevelPayload
 from action_machine.logging.scoped_logger import ScopedLogger
-from action_machine.intents.sensitive import sensitive
 from action_machine.logging.subscription import LogSubscription
 from action_machine.logging.variable_substitutor import VariableSubstitutor
 

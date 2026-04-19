@@ -9,25 +9,25 @@ order **before** :meth:`GraphCoordinator.build`.
 
 from __future__ import annotations
 
-from action_machine.legacy.dependency_intent_inspector import DependencyIntentInspector
 from action_machine.application import ApplicationContextInspector
-from action_machine.legacy.entity_intent_inspector import EntityIntentInspector
 from action_machine.graph.facet_vertex import FacetVertex
 from action_machine.graph.graph_coordinator import GraphCoordinator
 from action_machine.legacy.aspect_intent_inspector import AspectIntentInspector
-from action_machine.legacy.role_class_inspector import RoleClassInspector
-from action_machine.legacy.role_intent_inspector import RoleIntentInspector
-from action_machine.legacy.role_mode_intent_inspector import RoleModeIntentInspector
 from action_machine.legacy.checker_intent_inspector import CheckerIntentInspector
 from action_machine.legacy.compensate_intent_inspector import (
     CompensateIntentInspector,
 )
+from action_machine.legacy.dependency_intent_inspector import DependencyIntentInspector
 from action_machine.legacy.described_fields.described_fields_intent_inspector import (
     DescribedFieldsIntentInspector,
 )
-from action_machine.legacy.sensitive_intent_inspector import SensitiveIntentInspector
+from action_machine.legacy.entity_intent_inspector import EntityIntentInspector
 from action_machine.legacy.meta_intent_inspector import MetaIntentInspector
 from action_machine.legacy.on_error_intent_inspector import OnErrorIntentInspector
+from action_machine.legacy.role_class_inspector import RoleClassInspector
+from action_machine.legacy.role_intent_inspector import RoleIntentInspector
+from action_machine.legacy.role_mode_intent_inspector import RoleModeIntentInspector
+from action_machine.legacy.sensitive_intent_inspector import SensitiveIntentInspector
 from action_machine.model.base_action import ActionTypedSchemasInspector
 from action_machine.resources.connection_intent_inspector import ConnectionIntentInspector
 

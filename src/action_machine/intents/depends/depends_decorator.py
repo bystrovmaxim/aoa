@@ -100,8 +100,8 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Any
 
-from action_machine.runtime.dependency_factory import DependencyInfo
 from action_machine.legacy.dependency_intent import DependencyIntent
+from action_machine.runtime.dependency_factory import DependencyInfo
 
 
 def depends(

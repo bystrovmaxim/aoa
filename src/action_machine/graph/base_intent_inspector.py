@@ -270,6 +270,7 @@ from abc import ABC, abstractmethod
 from typing import Any
 
 from action_machine.graph.base_facet_snapshot import BaseFacetSnapshot
+from action_machine.graph.base_inspector import BaseInspector
 from action_machine.graph.facet_edge import FacetEdge
 from action_machine.graph.facet_vertex import FacetVertex
 from action_machine.graph.graph_edge import GraphEdge
@@ -289,7 +290,7 @@ type FacetInspectResult = (
 type FacetBuildResult = FacetVertex | list[FacetVertex]
 
 
-class BaseIntentInspector(ABC):
+class BaseIntentInspector(ABC, BaseInspector):
     """
     Abstract base for all intent inspectors.
 

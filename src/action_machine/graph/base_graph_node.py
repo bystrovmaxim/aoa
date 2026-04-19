@@ -27,14 +27,12 @@ fields directly.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Generic, TypeVar
+from typing import Any
 
 from action_machine.common.deprecated import deprecated
 from action_machine.graph.base_graph_edge import BaseGraphEdge
 from action_machine.graph.facet_edge import FacetEdge
 from action_machine.graph.facet_vertex import FacetVertex
-
-T = TypeVar("T", bound=object)
 
 
 @deprecated("_base_link_to_facet_edge is deprecated and will be removed.")
@@ -66,7 +64,7 @@ class Payload:
 
 
 @dataclass(init=False, frozen=True)
-class BaseGraphNode(Generic[T]):
+class BaseGraphNode[T: object]:
     payload: Payload
     obj: T
 
