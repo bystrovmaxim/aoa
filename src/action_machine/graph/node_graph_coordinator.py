@@ -7,13 +7,14 @@ PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 Collects :class:`~action_machine.graph.base_graph_node.BaseGraphNode` instances from
-registered **sources** (typically lightweight inspector adapters), validates **unique**
+registered :class:`~action_machine.graph.base_intent_inspector.BaseIntentInspector`
+**instances** (each must implement :meth:`~action_machine.graph.base_intent_inspector.BaseIntentInspector.get_graph_nodes`),
+validates **unique**
 :attr:`~action_machine.graph.base_graph_node.BaseGraphNode.id` keys, **referential
 integrity** of :class:`~action_machine.graph.base_graph_edge.BaseGraphEdge.target_id`,
-and **acyclicity** of edges marked ``is_dag=True``, then builds a single
-``rustworkx.PyDiGraph`` whose vertex weights are the Python ``*Node`` objects and whose
-edge weights are the corresponding :class:`~action_machine.graph.base_graph_edge.BaseGraphEdge`
-instances.
+and **acyclicity** of edges marked ``is_dag=True``, then materializes a
+``rustworkx.PyDiGraph`` in memory for the duration of the build step (no retained
+read API — construction only).
 
 This coordinator is **domain-agnostic**: it does not interpret ``node_type`` or
 ``link_name`` beyond validation and DAG checks.
@@ -24,16 +25,19 @@ ARCHITECTURE / DATA FLOW
 
 ::
 
-    inspectors: Sequence[GraphNodeSource]
+    inspectors: Sequence[BaseIntentInspector]  (instances)
               │
               v
-    for each: get_graph_nodes()  ->  merge into dict[id -> BaseGraphNode]
+    for each: inspector.get_graph_nodes()  ->  flat list of (node, inspector_label)
+              │
+              v
+    dict[id -> BaseGraphNode] with unique ids
               │
               ├─ duplicate id  -> DuplicateNodeError
               ├─ missing target_id  -> InvalidGraphError
               ├─ is_dag cycle  -> InvalidGraphError
               v
-    _build_rustworkx_graph: PyDiGraph vertices = *Node, edges = BaseGraphEdge
+    build rustworkx PyDiGraph (local), then discard
 
 ═══════════════════════════════════════════════════════════════════════════════
 INVARIANTS
@@ -51,9 +55,8 @@ EXAMPLES
 
     coord = NodeGraphCoordinator()
     coord.build([adapter])
-    g = coord.get_graph()
 
-Edge case: empty inspector list builds an empty graph and an empty ``nodes`` map.
+Edge case: empty inspector list completes without error.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ERRORS / LIMITATIONS
@@ -67,54 +70,91 @@ ERRORS / LIMITATIONS
 AI-CORE-BEGIN
 ═══════════════════════════════════════════════════════════════════════════════
 ROLE: Interchange-node graph coordinator (parallel to facet ``GraphCoordinator``).
-CONTRACT: ``build(inspectors)``; read ``nodes`` / ``get_graph()`` after success.
-INVARIANTS: Built-once; rustworkx stores node/edge Python payloads; DAG slice uses ``is_dag``.
+CONTRACT: ``build(inspectors)`` with ``BaseIntentInspector`` instances; graph construction only.
+INVARIANTS: Built-once; DAG slice uses ``is_dag``; no graph read surface.
 AI-CORE-END
 ═══════════════════════════════════════════════════════════════════════════════
 """
 
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
-from types import MappingProxyType
-from typing import Any, Protocol, runtime_checkable
+from collections.abc import Sequence
+from typing import Any
 
 import rustworkx as rx
 
-from action_machine.graph.base_graph_edge import BaseGraphEdge
 from action_machine.graph.base_graph_node import BaseGraphNode
+from action_machine.graph.base_intent_inspector import BaseIntentInspector
 from action_machine.graph.exceptions import DuplicateNodeError, InvalidGraphError
 
 
-@runtime_checkable
-class GraphNodeSource(Protocol):
+class NodeGraphCoordinator:
     """
     AI-CORE-BEGIN
-    ROLE: Provider of interchange nodes for :class:`NodeGraphCoordinator`.
-    CONTRACT: Implement ``get_graph_nodes`` (instance or classmethod); return sequence of ``BaseGraphNode``.
+    ROLE: Build rustworkx graph from ``BaseGraphNode`` contributions.
+    CONTRACT: ``build`` with ``BaseIntentInspector`` instances; each ``get_graph_nodes()``;
+        construction-only, no graph accessors.
+    INVARIANTS: Duplicate id / missing target / DAG cycle raise during build.
     AI-CORE-END
     """
 
-    def get_graph_nodes(self) -> Sequence[BaseGraphNode[Any]]:
-        """Return zero or more frozen interchange nodes."""
-        ...
+    __slots__ = ("_built",)
 
+    def __init__(self) -> None:
+        self._built: bool = False
 
-def _inspector_label(inspector: object) -> str:
-    if isinstance(inspector, type):
-        return inspector.__qualname__
-    return type(inspector).__qualname__
+    def build(self, inspectors: Sequence[BaseIntentInspector]) -> None:
+        """
+        Collect nodes from each inspector instance via :meth:`BaseIntentInspector.get_graph_nodes`,
+        validate, and construct the ``rustworkx`` graph (not exposed).
 
+        Raises:
+            DuplicateNodeError: two sources contributed the same ``node.id``.
+            InvalidGraphError: missing ``target_id`` or a cycle among ``is_dag`` edges.
+            NotImplementedError: an inspector inherits the default ``get_graph_nodes`` stub.
+            RuntimeError: if :meth:`build` was already called on this instance.
+        """
+        if self._built:
+            msg = "NodeGraphCoordinator.build() was already called on this instance."
+            raise RuntimeError(msg)
+        flat = self._gather_all_nodes(inspectors)
+        nodes = self._map_unique_node_ids(flat)
+        self._validate_referential_integrity(nodes)
+        self._validate_dag_acyclicity(nodes)
+        self._materialize_rustworkx_graph(nodes)
+        self._built = True
 
-def _collect_nodes(
-    inspectors: Sequence[GraphNodeSource],
-) -> dict[str, BaseGraphNode[Any]]:
-    nodes: dict[str, BaseGraphNode[Any]] = {}
-    owners: dict[str, str] = {}
-    for insp in inspectors:
-        label = _inspector_label(insp)
-        chunk = insp.get_graph_nodes()
-        for node in chunk:
+    def _inspector_label(self, inspector: BaseIntentInspector) -> str:
+        return type(inspector).__qualname__
+
+    def _gather_all_nodes(
+        self,
+        inspectors: Sequence[BaseIntentInspector],
+    ) -> list[tuple[BaseGraphNode[Any], str]]:
+        """
+        Concatenate ``get_graph_nodes()`` from every inspector in order.
+
+        Each entry is ``(node, inspector_qualname)`` so a later merge step can report
+        :class:`~action_machine.graph.exceptions.DuplicateNodeError` with both sources.
+        """
+        out: list[tuple[BaseGraphNode[Any], str]] = []
+        for insp in inspectors:
+            label = self._inspector_label(insp)
+            for node in insp.get_graph_nodes():
+                out.append((node, label))
+        return out
+
+    def _map_unique_node_ids(
+        self,
+        flat: list[tuple[BaseGraphNode[Any], str]],
+    ) -> dict[str, BaseGraphNode[Any]]:
+        """
+        Build ``id -> node`` and ensure each :attr:`~action_machine.graph.base_graph_node.BaseGraphNode.id`
+        appears at most once.
+        """
+        nodes: dict[str, BaseGraphNode[Any]] = {}
+        owners: dict[str, str] = {}
+        for node, label in flat:
             nid = node.id
             if nid in nodes:
                 raise DuplicateNodeError(
@@ -124,75 +164,39 @@ def _collect_nodes(
                 )
             nodes[nid] = node
             owners[nid] = label
-    return nodes
+        return nodes
 
+    def _validate_referential_integrity(self, nodes: dict[str, BaseGraphNode[Any]]) -> None:
+        ids = set(nodes.keys())
+        for source_id, node in nodes.items():
+            for edge in node.edges:
+                if edge.target_id not in ids:
+                    raise InvalidGraphError(
+                        f"Link {edge.link_name!r} from {source_id!r} references "
+                        f"missing target_id {edge.target_id!r}.",
+                    )
 
-def _validate_referential_integrity(nodes: dict[str, BaseGraphNode[Any]]) -> None:
-    ids = set(nodes.keys())
-    for source_id, node in nodes.items():
-        for edge in node.edges:
-            if edge.target_id not in ids:
-                raise InvalidGraphError(
-                    f"Link {edge.link_name!r} from {source_id!r} references "
-                    f"missing target_id {edge.target_id!r}.",
-                )
+    def _validate_dag_acyclicity(self, nodes: dict[str, BaseGraphNode[Any]]) -> None:
+        ids = sorted(nodes.keys())
+        if not ids:
+            return
+        g = rx.PyDiGraph()
+        idx = {nid: g.add_node(nid) for nid in ids}
+        has_dag = False
+        for source_id, node in nodes.items():
+            for edge in node.edges:
+                if not edge.is_dag:
+                    continue
+                has_dag = True
+                g.add_edge(idx[source_id], idx[edge.target_id], edge.link_name)
+        if has_dag and not rx.is_directed_acyclic_graph(g):
+            raise InvalidGraphError(
+                "Edges with is_dag=True form a directed cycle. "
+                "Review interchange link wiring.",
+            )
 
-
-def _validate_dag_acyclicity(nodes: dict[str, BaseGraphNode[Any]]) -> None:
-    ids = sorted(nodes.keys())
-    if not ids:
-        return
-    g = rx.PyDiGraph()
-    idx = {nid: g.add_node(nid) for nid in ids}
-    has_dag = False
-    for source_id, node in nodes.items():
-        for edge in node.edges:
-            if not edge.is_dag:
-                continue
-            has_dag = True
-            g.add_edge(idx[source_id], idx[edge.target_id], edge.link_name)
-    if has_dag and not rx.is_directed_acyclic_graph(g):
-        raise InvalidGraphError(
-            "Edges with is_dag=True form a directed cycle. "
-            "Review interchange link wiring.",
-        )
-
-
-class NodeGraphCoordinator:
-    """
-    AI-CORE-BEGIN
-    ROLE: Build rustworkx graph from ``BaseGraphNode`` contributions.
-    CONTRACT: ``build`` once; ``nodes`` and ``get_graph`` after build.
-    INVARIANTS: Duplicate id / missing target / DAG cycle raise during build.
-    AI-CORE-END
-    """
-
-    __slots__ = ("_built", "_graph", "_nodes")
-
-    def __init__(self) -> None:
-        self._built: bool = False
-        self._nodes: dict[str, BaseGraphNode[Any]] = {}
-        self._graph: rx.PyDiGraph = rx.PyDiGraph()
-
-    def build(self, inspectors: Sequence[GraphNodeSource]) -> None:
-        """
-        Collect nodes from each source, validate, and build the ``rustworkx`` graph.
-
-        Raises:
-            DuplicateNodeError: two sources contributed the same ``node.id``.
-            InvalidGraphError: missing ``target_id`` or a cycle among ``is_dag`` edges.
-            RuntimeError: if :meth:`build` was already called on this instance.
-        """
-        if self._built:
-            msg = "NodeGraphCoordinator.build() was already called on this instance."
-            raise RuntimeError(msg)
-        nodes = _collect_nodes(inspectors)
-        _validate_referential_integrity(nodes)
-        _validate_dag_acyclicity(nodes)
-        self._build_rustworkx_graph(nodes)
-        self._built = True
-
-    def _build_rustworkx_graph(self, nodes: dict[str, BaseGraphNode[Any]]) -> None:
+    def _materialize_rustworkx_graph(self, nodes: dict[str, BaseGraphNode[Any]]) -> None:
+        """Build ``PyDiGraph`` to ensure rustworkx accepts the topology; graph is not stored."""
         g = rx.PyDiGraph()
         id_to_idx: dict[str, int] = {}
         for nid in sorted(nodes.keys()):
@@ -202,39 +206,3 @@ class NodeGraphCoordinator:
             for edge in node.edges:
                 tidx = id_to_idx[edge.target_id]
                 g.add_edge(sidx, tidx, edge)
-        self._graph = g
-        self._nodes = dict(nodes)
-
-    def _require_built(self) -> None:
-        if not self._built:
-            msg = "NodeGraphCoordinator is not built; call build() first."
-            raise RuntimeError(msg)
-
-    @property
-    def is_built(self) -> bool:
-        """True after a successful :meth:`build`."""
-        return self._built
-
-    @property
-    def nodes(self) -> Mapping[str, BaseGraphNode[Any]]:
-        """Map ``node.id`` → ``BaseGraphNode`` (read-only). Requires built coordinator."""
-        self._require_built()
-        return MappingProxyType(self._nodes)
-
-    def get_graph(self) -> rx.PyDiGraph:
-        """
-        Return a copy of the built ``PyDiGraph``.
-
-        Vertex weights are ``BaseGraphNode`` instances; edge weights are ``BaseGraphEdge``.
-        """
-        self._require_built()
-        return self._graph.copy()
-
-    def get_node(self, node_id: str) -> BaseGraphNode[Any]:
-        """Return the interchange node for ``node_id``."""
-        self._require_built()
-        try:
-            return self._nodes[node_id]
-        except KeyError as e:
-            msg = f"No interchange node with id {node_id!r}."
-            raise KeyError(msg) from e

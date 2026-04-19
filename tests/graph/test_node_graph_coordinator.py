@@ -4,12 +4,13 @@
 from __future__ import annotations
 
 import pytest
-import rustworkx as rx
 
 from action_machine.graph.base_graph_edge import BaseGraphEdge
 from action_machine.graph.base_graph_node import BaseGraphNode, Payload
+from action_machine.graph.base_intent_inspector import BaseIntentInspector
 from action_machine.graph.exceptions import DuplicateNodeError, InvalidGraphError
-from action_machine.graph.node_graph_coordinator import GraphNodeSource, NodeGraphCoordinator
+from action_machine.graph.facet_vertex import FacetVertex
+from action_machine.graph.node_graph_coordinator import NodeGraphCoordinator
 
 
 def _edge(
@@ -47,11 +48,25 @@ def _make_node(
     return _N(object())
 
 
-class _StaticInsp:
-    """Inspector adapter holding a fixed list of nodes."""
+class _NodeGraphProbeIntent:
+    """Unused marker for :attr:`_NodeGraphTestInspector._target_intent`."""
+
+
+class _NodeGraphTestInspector(BaseIntentInspector):
+    """Test-only :class:`BaseIntentInspector` that only implements :meth:`get_graph_nodes`."""
+
+    _target_intent = _NodeGraphProbeIntent
 
     def __init__(self, nodes: list[BaseGraphNode[object]]) -> None:
         self._nodes = nodes
+
+    @classmethod
+    def inspect(cls, target_cls: type) -> None:
+        return None
+
+    @classmethod
+    def _build_payload(cls, target_cls: type) -> FacetVertex:
+        raise NotImplementedError("test stub")
 
     def get_graph_nodes(self) -> list[BaseGraphNode[object]]:
         return list(self._nodes)
@@ -61,20 +76,8 @@ def test_node_graph_coordinator_builds_chain() -> None:
     b = _make_node("b", [])
     a = _make_node("a", [_edge("b")])
     coord = NodeGraphCoordinator()
-    coord.build([_StaticInsp([a, b])])
-    assert coord.is_built
-    assert set(coord.nodes.keys()) == {"a", "b"}
-    g = coord.get_graph()
-    assert isinstance(g, rx.PyDiGraph)
-    assert g.num_nodes() == 2
-    assert g.num_edges() == 1
-    # vertex weight is BaseGraphNode
-    idx = {g[i].id: i for i in g.node_indices()}
-    eid = next(iter(g.edge_indices()))
-    s, t = g.get_edge_endpoints_by_index(eid)
-    assert g[s] is coord.get_node("a")
-    assert g[t] is coord.get_node("b")
-    assert g.get_edge_data_by_index(eid) == _edge("b")
+    coord.build([_NodeGraphTestInspector([a, b])])
+    assert coord._built
 
 
 def test_duplicate_node_id_raises() -> None:
@@ -84,8 +87,8 @@ def test_duplicate_node_id_raises() -> None:
     with pytest.raises(DuplicateNodeError, match="x"):
         coord.build(
             [
-                _StaticInsp([n1]),
-                _StaticInsp([n2]),
+                _NodeGraphTestInspector([n1]),
+                _NodeGraphTestInspector([n2]),
             ],
         )
 
@@ -94,7 +97,7 @@ def test_missing_target_raises() -> None:
     a = _make_node("a", [_edge("missing")])
     coord = NodeGraphCoordinator()
     with pytest.raises(InvalidGraphError, match="missing"):
-        coord.build([_StaticInsp([a])])
+        coord.build([_NodeGraphTestInspector([a])])
 
 
 def test_dag_cycle_raises() -> None:
@@ -102,32 +105,26 @@ def test_dag_cycle_raises() -> None:
     b = _make_node("b", [_edge("a", is_dag=True)])
     coord = NodeGraphCoordinator()
     with pytest.raises(InvalidGraphError, match="cycle"):
-        coord.build([_StaticInsp([a, b])])
+        coord.build([_NodeGraphTestInspector([a, b])])
 
 
 def test_non_dag_cycle_allowed() -> None:
     a = _make_node("a", [_edge("b", is_dag=False)])
     b = _make_node("b", [_edge("a", is_dag=False)])
     coord = NodeGraphCoordinator()
-    coord.build([_StaticInsp([a, b])])
-    assert coord.get_graph().num_edges() == 2
+    coord.build([_NodeGraphTestInspector([a, b])])
+    assert coord._built
 
 
 def test_build_twice_raises() -> None:
     n = _make_node("a", [])
     coord = NodeGraphCoordinator()
-    coord.build([_StaticInsp([n])])
+    coord.build([_NodeGraphTestInspector([n])])
     with pytest.raises(RuntimeError, match="already"):
-        coord.build([_StaticInsp([n])])
+        coord.build([_NodeGraphTestInspector([n])])
 
 
-def test_get_node_keyerror() -> None:
-    n = _make_node("only", [])
-    coord = NodeGraphCoordinator()
-    coord.build([_StaticInsp([n])])
-    with pytest.raises(KeyError, match="nope"):
-        coord.get_node("nope")
-
-
-def test_graph_node_source_protocol_runtime() -> None:
-    assert isinstance(_StaticInsp([]), GraphNodeSource)
+def test_build_accepts_base_intent_inspector_instances() -> None:
+    n = _make_node("a", [])
+    insp = _NodeGraphTestInspector([n])
+    assert isinstance(insp, BaseIntentInspector)

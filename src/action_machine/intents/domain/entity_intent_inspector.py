@@ -581,7 +581,8 @@ class EntityIntentInspector(BaseIntentInspector):
 
     When ``_entity_info`` is present, builds ``FacetVertex`` with ``node_type``
     ``entity`` and bundles field/relation/lifecycle tuples under ``node_meta``.
-    Emits an informational ``belongs_to`` edge to the ``domain`` vertex when
+    Emits an informational
+    ``belongs_to`` edge to the ``domain`` vertex when
     ``domain`` is a class, plus **edges** to related ``entity`` vertices
     (``entity_*_*`` facet ``edge_type``) with ``field_name``, ``relation_type``,
     ``cardinality``, and related metadata in ``edge_meta``. Fields marked with

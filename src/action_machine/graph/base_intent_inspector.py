@@ -270,6 +270,7 @@ from abc import ABC, abstractmethod
 from typing import Any
 
 from action_machine.graph.base_facet_snapshot import BaseFacetSnapshot
+from action_machine.graph.base_graph_node import BaseGraphNode
 from action_machine.graph.facet_edge import FacetEdge
 from action_machine.graph.facet_vertex import FacetVertex
 from action_machine.graph.graph_edge import GraphEdge
@@ -297,9 +298,10 @@ class BaseIntentInspector(ABC):
     and shared helpers that build ``FacetVertex`` / ``FacetEdge`` and traverse
     marker subclasses without duplicating boilerplate.
 
-    Everything is a ``classmethod`` or ``staticmethod`` — inspectors are
-    stateless and need no instances. The class exists for namespacing, shared
-    helpers, and ABC enforcement.
+    Facet hooks are ``classmethod`` / ``staticmethod`` — inspectors are usually
+    addressed as classes. The class exists for namespacing, shared helpers, and ABC
+    enforcement. Optionally, :meth:`get_graph_nodes` is an **instance** method for
+    interchange-node contributions (default raises :exc:`NotImplementedError`).
 
     ``GraphCoordinator.build()`` does:
     1. ``inspector._subclasses_recursive()`` — marker subclass list.
@@ -308,9 +310,30 @@ class BaseIntentInspector(ABC):
     AI-CORE-BEGIN
     ROLE: Abstract contract for all graph intent inspectors.
     CONTRACT: Provide class traversal + payload projection hooks with shared helper primitives.
-    INVARIANTS: Stateless classmethod design; concrete subclasses implement ``inspect`` and ``_build_payload``.
+    INVARIANTS: Classmethod facet API; concrete subclasses implement ``inspect`` and ``_build_payload``;
+        optional instance :meth:`get_graph_nodes` for node-graph integration.
     AI-CORE-END
     """
+
+    def get_graph_nodes(self) -> list[BaseGraphNode[Any]]:
+        """
+        Optional hook for interchange-node assembly (e.g. :class:`~action_machine.graph.node_graph_coordinator.NodeGraphCoordinator`).
+
+        Default implementation raises :exc:`NotImplementedError`. Subclasses that
+        emit :class:`~action_machine.graph.base_graph_node.BaseGraphNode` instances override this **instance**
+        method.
+
+        Returns:
+            Zero or more interchange nodes.
+
+        Raises:
+            NotImplementedError: This inspector does not implement interchange-node emission.
+        """
+        msg = (
+            f"{type(self).__qualname__}.get_graph_nodes is not implemented; "
+            "override it on inspectors that emit interchange nodes."
+        )
+        raise NotImplementedError(msg)
 
     # ═══════════════════════════════════════════════════════════════════
     # Required contract (two abstract methods)
