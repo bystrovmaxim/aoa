@@ -29,7 +29,7 @@ This prevents accidental auth omission: ``auth_coordinator=None`` fails fast
 with ``TypeError`` instead of becoming a silent production bug. For open APIs,
 use ``NoAuthCoordinator`` explicitly:
 
-    from action_machine.intents.auth import NoAuthCoordinator
+    from action_machine.intents.check_roles import NoAuthCoordinator
 
     adapter = FastApiAdapter(
         machine=machine,
@@ -112,7 +112,7 @@ Returns ``{"status": "ok"}``.
 EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
-    from action_machine.intents.auth import NoAuthCoordinator
+    from action_machine.intents.check_roles import NoAuthCoordinator
     from action_machine.integrations.fastapi import FastApiAdapter
 
     adapter = FastApiAdapter(

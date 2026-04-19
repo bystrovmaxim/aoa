@@ -1,4 +1,4 @@
-# src/action_machine/intents/auth/role_intent_inspector.py
+# src/action_machine/legacy/role_intent_inspector.py
 """
 Role intent inspector for role facet snapshots.
 
@@ -6,7 +6,7 @@ Role intent inspector for role facet snapshots.
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Walk subclasses of ``RoleIntent``, read ``@check_roles`` (``_role_info``), and
+Walk subclasses of ``CheckRolesIntent``, read ``@check_roles`` (``_role_info``), and
 emit **outgoing informational edges** from the canonical **action** vertex to
 required **``role_class``** taxonomy anchor (``ApplicationRole`` only). Concrete
 types from ``@check_roles`` map to that anchor via
@@ -34,7 +34,7 @@ ARCHITECTURE / DATA FLOW
           ▼
     Snapshot.from_target() → FacetVertex(node_type="action", … ``requires_role`` → anchor ``role_class``)
 
-The inspector uses ``_target_intent = RoleIntent`` to discover candidate
+The inspector uses ``_target_intent = CheckRolesIntent`` to discover candidate
 classes. For each class with ``_role_info``, it builds an **action** payload
 (same collect key as structural ``@depends`` / folded ``@meta``) carrying
 ``node_meta`` with ``spec`` and **edges** toward existing ``role_class`` nodes
@@ -44,8 +44,8 @@ classes. For each class with ``_role_info``, it builds an **action** payload
 INVARIANTS
 ═══════════════════════════════════════════════════════════════════════════════
 
-- Only classes inheriting ``RoleIntent`` are inspected.
-- A class may inherit ``RoleIntent`` without ``@check_roles``; such classes
+- Only classes inheriting ``CheckRolesIntent`` are inspected.
+- A class may inherit ``CheckRolesIntent`` without ``@check_roles``; such classes
   produce ``None`` from ``inspect()``.
 - The ``spec`` value is taken directly from ``_role_info["spec"]`` (``BaseRole``
   type, tuple of types, ``NoneRole``, or ``AnyRole``); graph edges target anchors
@@ -74,7 +74,7 @@ EXAMPLES
 
     # inspect(PingAction) → spec is NoneRole
 
-    class BaseAction(ABC, RoleIntent, ...):
+    class BaseAction(ABC, CheckRolesIntent, ...):
         ...
 
     # inspect(BaseAction) → None (no _role_info)
@@ -94,7 +94,7 @@ AI-CORE-BEGIN
 ═══════════════════════════════════════════════════════════════════════════════
 ROLE: Role facet inspector.
 CONTRACT: ``_role_info`` → merged ``action`` facet + ``requires_role`` edges to anchor ``role_class`` nodes.
-INVARIANTS: Target mixin is RoleIntent; snapshot key ``"role"``; edge targets are ``ApplicationRole``.
+INVARIANTS: Target mixin is CheckRolesIntent; snapshot key ``"role"``; edge targets are ``ApplicationRole``.
 FLOW: _role_info present → Snapshot → FacetVertex → coordinator graph.
 FAILURES: Returns None when ``_role_info`` is missing.
 EXTENSION POINTS: Payload consumed by coordinator and role-checking runtime.
@@ -114,8 +114,8 @@ from action_machine.graph.facet_vertex import FacetVertex
 from action_machine.auth.any_role import AnyRole
 from action_machine.auth.base_role import BaseRole
 from action_machine.auth.none_role import NoneRole
-from action_machine.intents.auth.role_graph_roots import role_class_topology_anchor
-from action_machine.intents.auth.role_intent import RoleIntent
+from action_machine.legacy.role_graph_roots import role_class_topology_anchor
+from action_machine.intents.check_roles.check_roles_intent import CheckRolesIntent
 from action_machine.interchange_vertex_labels import ACTION_VERTEX_TYPE
 
 
@@ -123,17 +123,17 @@ class RoleIntentInspector(BaseIntentInspector):
     """
     Role intent inspector.
 
-    Walks ``RoleIntent`` subclasses, detects ``@check_roles``, and builds merged
+    Walks ``CheckRolesIntent`` subclasses, detects ``@check_roles``, and builds merged
     ``action`` facet payloads with ``requires_role`` edges to ``role_class`` vertices.
 
     AI-CORE-BEGIN
     ROLE: Concrete role facet inspector.
     CONTRACT: ``_role_info`` → ``action`` payload + ``requires_role`` to taxonomy anchors.
-    INVARIANTS: Marker is ``RoleIntent``; snapshot storage key ``\"role\"``.
+    INVARIANTS: Marker is ``CheckRolesIntent``; snapshot storage key ``\"role\"``.
     AI-CORE-END
     """
 
-    _target_intent: type = RoleIntent
+    _target_intent: type = CheckRolesIntent
 
     @dataclass(frozen=True)
     class Snapshot(BaseFacetSnapshot):
@@ -158,7 +158,7 @@ class RoleIntentInspector(BaseIntentInspector):
 
     @classmethod
     def _subclasses_recursive(cls) -> list[type]:
-        """Return all subclasses of ``RoleIntent``."""
+        """Return all subclasses of ``CheckRolesIntent``."""
         return cls._collect_subclasses(cls._target_intent)
 
     @classmethod

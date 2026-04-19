@@ -1,4 +1,4 @@
-# src/action_machine/intents/auth/__init__.py
+# src/action_machine/intents/check_roles/__init__.py
 """
 ActionMachine authentication package.
 
@@ -58,7 +58,7 @@ ARCHITECTURE / DATA FLOW
               │
         ContextAssembler maps external credentials → UserInfo(roles=(…BaseRole types))
 
-        Action classes (RoleIntent) + @check_roles(AdminRole | [RoleA, RoleB] | …)
+        Action classes (CheckRolesIntent) + @check_roles(AdminRole | [RoleA, RoleB] | …)
               │
               ├── RoleClassInspector → ``role_class`` vertex **only** for ``ApplicationRole``
               │                         (validates every ``BaseRole`` subclass but does not materialize them)
@@ -85,7 +85,7 @@ COMPONENTS
 INVARIANTS
 ═══════════════════════════════════════════════════════════════════════════════
 
-- ``@check_roles`` requires the target class to inherit ``RoleIntent``.
+- ``@check_roles`` requires the target class to inherit ``CheckRolesIntent``.
 - Stored role specs use ``BaseRole`` types and engine sentinels ``NoneRole`` /
   ``AnyRole``. ``UserInfo.roles`` holds assignable role types only (not sentinels).
 - ``@role_mode`` applies only to ``RoleModeIntent`` subclasses (typically
@@ -97,7 +97,7 @@ INVARIANTS
 EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
-    from action_machine.intents.auth import (
+    from action_machine.intents.check_roles import (
         AnyRole,
         BaseRole,
         NoneRole,
@@ -149,7 +149,7 @@ from __future__ import annotations
 import importlib
 from typing import Any
 
-from action_machine.intents.auth.role_intent import RoleIntent
+from action_machine.intents.check_roles.check_roles_intent import CheckRolesIntent
 from action_machine.intents.role_mode.role_mode_intent import RoleModeIntent
 
 _LAZY_EXPORTS: dict[str, tuple[str, str]] = {
@@ -161,10 +161,10 @@ _LAZY_EXPORTS: dict[str, tuple[str, str]] = {
     "CredentialExtractor": ("action_machine.auth.auth_coordinator", "CredentialExtractor"),
     "NoAuthCoordinator": ("action_machine.auth.auth_coordinator", "NoAuthCoordinator"),
     "NoneRole": ("action_machine.auth.none_role", "NoneRole"),
-    "check_roles": ("action_machine.intents.auth.check_roles_decorator", "check_roles"),
+    "check_roles": ("action_machine.intents.check_roles.check_roles_decorator", "check_roles"),
     "RoleMode": ("action_machine.intents.role_mode.role_mode_decorator", "RoleMode"),
     "role_mode": ("action_machine.intents.role_mode.role_mode_decorator", "role_mode"),
-    "RoleNode": ("action_machine.intents.auth.role_node", "RoleNode"),
+    "RoleGraphNode": ("action_machine.auth.role_graph_node", "RoleGraphNode"),
 }
 
 
@@ -192,10 +192,10 @@ __all__ = [
     "CredentialExtractor",
     "NoAuthCoordinator",
     "NoneRole",
-    "RoleIntent",
+    "CheckRolesIntent",
     "RoleMode",
     "RoleModeIntent",
-    "RoleNode",
+    "RoleGraphNode",
     "check_roles",
     "role_mode",
 ]

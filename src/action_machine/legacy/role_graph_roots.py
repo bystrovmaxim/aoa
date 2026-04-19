@@ -1,4 +1,4 @@
-# src/action_machine/intents/auth/role_graph_roots.py
+# src/action_machine/legacy/role_graph_roots.py
 """
 Canonical ``role_class`` graph anchors for interchange topology.
 

@@ -135,9 +135,9 @@ EXAMPLE (EXPLICIT INSPECTOR REGISTRATION)
 ═══════════════════════════════════════════════════════════════════════════════
 
     from action_machine.graph.graph_coordinator import GraphCoordinator
-    from action_machine.intents.auth.role_class_inspector import RoleClassInspector
-    from action_machine.intents.auth.role_intent_inspector import RoleIntentInspector
-    from action_machine.intents.auth.role_mode_intent_inspector import (
+    from action_machine.legacy.role_class_inspector import RoleClassInspector
+    from action_machine.legacy.role_intent_inspector import RoleIntentInspector
+    from action_machine.legacy.role_mode_intent_inspector import (
         RoleModeIntentInspector,
     )
 

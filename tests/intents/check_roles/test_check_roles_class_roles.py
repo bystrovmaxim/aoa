@@ -1,4 +1,4 @@
-# tests/intents/auth/test_check_roles_class_roles.py
+# tests/intents/check_roles/test_check_roles_class_roles.py
 """
 Golden tests for ``BaseRole``, ``@role_mode``, and ``@check_roles``.
 
@@ -12,8 +12,8 @@ import pytest
 
 from action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
 from action_machine.auth.base_role import BaseRole
-from action_machine.intents.auth.check_roles_decorator import check_roles
-from action_machine.intents.auth.role_intent import RoleIntent
+from action_machine.intents.check_roles.check_roles_decorator import check_roles
+from action_machine.intents.check_roles.check_roles_intent import CheckRolesIntent
 from action_machine.intents.role_mode.role_mode_decorator import RoleMode, role_mode
 from action_machine.intents.context.user_info import UserInfo
 from action_machine.intents.meta.meta_decorator import meta
@@ -111,7 +111,7 @@ class TestCheckRolesNormalization:
                 return _R()
 
         assert _NormTypeAction._role_info["spec"] is _EditorRole
-        assert issubclass(_NormTypeAction, RoleIntent)
+        assert issubclass(_NormTypeAction, CheckRolesIntent)
 
     def test_list_of_role_types_becomes_tuple(self) -> None:
         class _P(BaseParams):

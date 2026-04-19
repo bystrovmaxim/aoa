@@ -1,4 +1,4 @@
-# src/action_machine/intents/auth/role_mode_intent_inspector.py
+# src/action_machine/legacy/role_mode_intent_inspector.py
 """
 Graph inspector for role lifecycle metadata (``@role_mode`` scratch).
 
@@ -83,7 +83,7 @@ from dataclasses import dataclass
 from action_machine.graph.base_facet_snapshot import BaseFacetSnapshot
 from action_machine.graph.base_intent_inspector import BaseIntentInspector
 from action_machine.graph.facet_vertex import FacetVertex
-from action_machine.intents.auth.role_graph_roots import ROLE_CLASS_GRAPH_ROOTS
+from action_machine.legacy.role_graph_roots import ROLE_CLASS_GRAPH_ROOTS
 from action_machine.intents.role_mode.role_mode_decorator import RoleMode
 from action_machine.intents.role_mode.role_mode_intent import RoleModeIntent
 

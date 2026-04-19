@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from action_machine.domain.base_domain import BaseDomain
 from action_machine.graph.base_intent_inspector import BaseIntentInspector
-from action_machine.intents.auth.check_roles_decorator import check_roles
-from action_machine.intents.auth.role_intent_inspector import RoleIntentInspector
+from action_machine.intents.check_roles.check_roles_decorator import check_roles
+from action_machine.legacy.role_intent_inspector import RoleIntentInspector
 from action_machine.intents.meta.meta_decorator import meta
 from action_machine.intents.meta.meta_intent_inspector import MetaIntentInspector
 from action_machine.intents.meta.action_meta_intent import ActionMetaIntent

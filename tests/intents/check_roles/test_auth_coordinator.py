@@ -1,4 +1,4 @@
-# tests/intents/auth/test_auth_coordinator.py
+# tests/intents/check_roles/test_auth_coordinator.py
 """The AuthCoordinator and NoAuthCoordinator tests are authentication coordinators.
 
 ═══════════════════ ════════════════════ ════════════════════ ════════════════════

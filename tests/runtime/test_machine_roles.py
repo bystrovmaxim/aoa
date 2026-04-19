@@ -50,7 +50,7 @@ TestBench Integration:
 import pytest
 
 from action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
-from action_machine.intents.auth import AnyRole, check_roles
+from action_machine.intents.check_roles import AnyRole, check_roles
 from action_machine.intents.context.context import Context
 from action_machine.intents.context.user_info import UserInfo
 from action_machine.intents.logging.log_coordinator import LogCoordinator

@@ -6,7 +6,7 @@ Marker mixin: declare intent to use ``@role_mode`` on role declaration classes.
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-``RoleModeIntent`` mirrors the relationship between ``RoleIntent`` and
+``RoleModeIntent`` mirrors the relationship between ``CheckRolesIntent`` and
 ``@check_roles``: only types that inherit this empty mixin may be decorated with
 ``@role_mode``. This fails fast at import time and keeps graph inspectors aligned
 with a single discoverable MRO subtree.
@@ -63,7 +63,7 @@ Edge case: applying ``@role_mode`` to a plain ``object`` subclass →
 ERRORS / LIMITATIONS
 ═══════════════════════════════════════════════════════════════════════════════
 
-- The mixin does not participate in action authorization; use ``RoleIntent``
+- The mixin does not participate in action authorization; use ``CheckRolesIntent``
   on actions and ``BaseRole`` / ``RoleModeIntent`` on role types.
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -71,7 +71,7 @@ AI-CORE-BEGIN
 ═══════════════════════════════════════════════════════════════════════════════
 ROLE: Intent marker for role lifecycle decorator.
 CONTRACT: Empty mixin; ``@role_mode`` applies only when this intent is in MRO,
-    analogous to ``RoleIntent`` for ``@check_roles``.
+    analogous to ``CheckRolesIntent`` for ``@check_roles``.
 INVARIANTS: No behavior; subclass check in ``role_mode`` decorator.
 FLOW: MRO marker → decorator guard → scratch on class.
 FAILURES: TypeError when decorator applied without mixin.
