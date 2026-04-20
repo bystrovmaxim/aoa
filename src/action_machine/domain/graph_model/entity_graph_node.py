@@ -20,6 +20,18 @@ ARCHITECTURE / DATA FLOW
               v
     EntityGraphNode helpers / ``__init__``  →  frozen ``BaseGraphNode``
 
+═══════════════════════════════════════════════════════════════════════════════
+EXAMPLES
+═══════════════════════════════════════════════════════════════════════════════
+
+Happy path::
+
+    class OrderEntity(BaseEntity): ...
+    n = EntityGraphNode(OrderEntity)
+    assert n.node_type == "Entity" and n.label == "OrderEntity"
+
+Edge case: no declaration dict / no domain → ``edges == []``; invalid or
+missing ``domain`` is ignored (same as no edges).
 """
 
 from __future__ import annotations

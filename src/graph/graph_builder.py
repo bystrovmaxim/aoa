@@ -27,7 +27,7 @@ _FACET_EDGE_TYPE_TO_INTERCHANGE: Final[dict[str, tuple[str, str]]] = {
     "connection": ("CONNECTS_TO", "Flow"),
     "requires_role": ("ASSIGNED_TO", "Assignment"),
     "has_aspect": ("HAS_ASPECT", "Composition"),
-    "checks_aspect": ("CHECKS_ASPECT", "Influence"),
+    "checks_aspect": ("CHECKS_ASPECT", "Access"),
     "uses_params": ("HAS_PARAMS", "Schema"),
     "uses_result": ("HAS_RESULT", "Schema"),
     "has_sensitive_field": ("HAS_SENSITIVE_FIELD", "Composition"),

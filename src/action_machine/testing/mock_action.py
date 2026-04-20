@@ -50,6 +50,27 @@ MockAction ends with ``Action`` (BaseAction naming invariant). Its summary
 method ends with ``_summary`` (``@summary_aspect`` naming invariant). The
 summary description is mandatory.
 
+═══════════════════════════════════════════════════════════════════════════════
+EXAMPLES
+═══════════════════════════════════════════════════════════════════════════════
+
+    from action_machine.testing import MockAction, TestBench
+
+    # Fixed result:
+    mock = MockAction(result=OrderResult(order_id="ORD-1", status="ok"))
+    result = mock.run(OrderParams(user_id="u1"))
+    assert result.order_id == "ORD-1"
+    assert mock.call_count == 1
+
+    # Computed result:
+    mock = MockAction(side_effect=lambda p: OrderResult(order_id=f"ORD-{p.user_id}"))
+    result = mock.run(OrderParams(user_id="u42"))
+    assert result.order_id == "ORD-u42"
+
+    # In TestBench:
+    bench = TestBench(mocks={
+        PaymentService: MockAction(result=PayResult(txn_id="TXN-1")),
+    })
 """
 
 from collections.abc import Callable

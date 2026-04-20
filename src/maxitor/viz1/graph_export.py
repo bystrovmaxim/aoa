@@ -37,6 +37,17 @@ ARCHITECTURE / DATA FLOW
             │
             └──►  (:func:`maxitor.viz1.visualizer.generate_g6_html` reuses normalization import)
 
+═══════════════════════════════════════════════════════════════════════════════
+EXAMPLES
+═══════════════════════════════════════════════════════════════════════════════
+
+- **Happy path:** ``export_samples_graph_graphml()`` writes
+  ``archive/logs/samples_graph.graphml`` using the interchange graph when the
+  coordinator implements ``get_graph()``.
+- **Edge case:** a stub coordinator that only implements ``get_graph()`` still
+  exports; normalization maps interchange payloads to facet-shaped keys.
+  Implementations may override ``get_graph_for_visualization`` to steer exports
+  without relying on the default ``get_graph()`` interchange shape.
 """
 
 from __future__ import annotations

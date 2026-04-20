@@ -55,7 +55,7 @@ from action_machine.model.graph_model.params_graph_node import ParamsGraphNode
 from action_machine.model.graph_model.params_graph_node_inspector import (
     ParamsGraphNodeInspector,
 )
-from action_machine.model.graph_model.callable_graph_node import CallableGraphNode
+from action_machine.model.graph_model.base_callable_graph_node import BaseCallableGraphNode
 from action_machine.model.graph_model.regular_aspect_graph_node import (
     RegularAspectGraphNode,
 )
@@ -96,7 +96,7 @@ __all__ = [
     "BaseResult",
     "BaseSchema",
     "BaseState",
-    "CallableGraphNode",
+    "BaseCallableGraphNode",
     "ParamsGraphNode",
     "ParamsGraphNodeInspector",
     "RegularAspectGraphNode",

@@ -21,6 +21,17 @@ ARCHITECTURE / DATA FLOW
 
     ActionGraphNode ``__init__`` / helpers  →  frozen ``BaseGraphNode``
 
+═══════════════════════════════════════════════════════════════════════════════
+EXAMPLES
+═══════════════════════════════════════════════════════════════════════════════
+
+Happy path::
+
+    class MyPingAction(BaseAction): ...
+    n = ActionGraphNode(MyPingAction)
+    assert n.node_type == "Action" and n.label == "MyPingAction"
+
+Edge case: same interchange shape for any concrete ``BaseAction`` subclass type passed in.
 """
 
 from __future__ import annotations
@@ -34,10 +45,12 @@ from action_machine.legacy.binding.action_generic_params import _resolve_generic
 from action_machine.model.base_action import BaseAction
 from graph.base_graph_edge import BaseGraphEdge
 from graph.base_graph_node import BaseGraphNode
-from graph.edge_relationship import ASSOCIATION, FLOW
+from graph.edge_relationship import AGGREGATION, ASSOCIATION, COMPOSITION
 from graph.qualified_name import cls_qualified_dotted_id
 
+from .base_callable_graph_node import BaseCallableGraphNode, IntentCallableKind
 from .params_graph_node import ParamsGraphNode
+from .regular_aspect_graph_node import RegularAspectGraphNode
 from .result_graph_node import ResultGraphNode
 
 TAction = TypeVar("TAction", bound=BaseAction[Any, Any])
@@ -48,7 +61,7 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
     """
     AI-CORE-BEGIN
     ROLE: Interchange node for a concrete ``BaseAction`` host class.
-    CONTRACT: ``get_properties`` / ``get_domain_edge`` (``@meta``); ``get_schema_generic_binding`` / ``get_params_edge`` / ``get_result_edge`` (``BaseAction[P,R]``).
+    CONTRACT: ``get_properties`` / ``get_domain_edge`` (``@meta``, ``ASSOCIATION``); ``get_params_edge`` / ``get_result_edge`` (``AGGREGATION``); ``get_regular_aspect_edges`` (``COMPOSITION``, own-class ``@regular_aspect``).
     AI-CORE-END
     """
 
@@ -95,7 +108,7 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
         cls,
         action_cls: type[TAction],
     ) -> BaseGraphEdge | None:
-        """Params schema edge, or ``None`` when the params type does not resolve."""
+        """Params schema edge (``AGGREGATION``), or ``None`` when the params type does not resolve."""
         params_type = cls.get_schema_generic_binding(action_cls, 0)
         if params_type is None:
             return None
@@ -108,7 +121,7 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
             target_node_id=cls_qualified_dotted_id(params_type),
             target_node_type=ParamsGraphNode.NODE_TYPE,
             target_node_obj=params_type,
-            edge_relationship=FLOW,
+            edge_relationship=AGGREGATION,
         )
 
     @classmethod
@@ -116,7 +129,7 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
         cls,
         action_cls: type[TAction],
     ) -> BaseGraphEdge | None:
-        """Result schema edge, or ``None`` when the result type does not resolve."""
+        """Result schema edge (``AGGREGATION``), or ``None`` when the result type does not resolve."""
         result_type = cls.get_schema_generic_binding(action_cls, 1)
         if result_type is None:
             return None
@@ -129,8 +142,40 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
             target_node_id=cls_qualified_dotted_id(result_type),
             target_node_type=ResultGraphNode.NODE_TYPE,
             target_node_obj=result_type,
-            edge_relationship=FLOW,
+            edge_relationship=AGGREGATION,
         )
+
+    @classmethod
+    def get_regular_aspect_edges(
+        cls,
+        action_cls: type[TAction],
+    ) -> list[BaseGraphEdge]:
+        """
+        One ``COMPOSITION`` edge per own-class ``@regular_aspect`` from this action to the matching regular-aspect node.
+
+        Target ids match :class:`RegularAspectGraphNode` (``action_dotted_id:method_name``).
+        """
+        action_id = cls_qualified_dotted_id(action_cls)
+        edges: list[BaseGraphEdge] = []
+        for aspect_callable in BaseCallableGraphNode.collect_own_class_callables_for_kind(
+            action_cls,
+            IntentCallableKind.REGULAR_ASPECT,
+        ):
+            method_name = BaseCallableGraphNode.resolve_method_name(aspect_callable)
+            edges.append(
+                BaseGraphEdge(
+                    edge_name=method_name,
+                    is_dag=False,
+                    source_node_id=action_id,
+                    source_node_type=cls.NODE_TYPE,
+                    source_node_obj=action_cls,
+                    target_node_id=f"{action_id}:{method_name}",
+                    target_node_type=RegularAspectGraphNode.NODE_TYPE,
+                    target_node_obj=aspect_callable,
+                    edge_relationship=COMPOSITION,
+                ),
+            )
+        return edges
 
     @classmethod
     def _meta_info_dict(cls, action_cls: type[TAction]) -> dict[str, Any]:
@@ -173,13 +218,10 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
 
     @classmethod
     def _get_all_edges(cls, action_cls: type[TAction]) -> list[BaseGraphEdge]:
-        """From :meth:`get_domain_edge`, :meth:`get_params_edge`, :meth:`get_result_edge` — drops ``None``."""
-        return [
-            e
-            for e in (
-                cls.get_domain_edge(action_cls),
-                cls.get_params_edge(action_cls),
-                cls.get_result_edge(action_cls),
-            )
-            if e is not None
-        ]
+        """Optional domain/params/result edges plus :meth:`get_regular_aspect_edges` (never ``None`` entries)."""
+        optional_edges = (
+            cls.get_domain_edge(action_cls),
+            cls.get_params_edge(action_cls),
+            cls.get_result_edge(action_cls),
+        )
+        return [e for e in optional_edges if e is not None] + cls.get_regular_aspect_edges(action_cls)
