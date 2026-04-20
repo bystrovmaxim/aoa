@@ -1,4 +1,4 @@
-# src/action_machine/domain/entity_graph_node.py
+# src/action_machine/domain/graph_model/entity_graph_node.py
 """
 EntityGraphNode — minimal interchange node for ``BaseEntity`` subclasses.
 
@@ -40,12 +40,13 @@ from dataclasses import dataclass
 from typing import Any, ClassVar, TypeVar
 
 from action_machine.domain.base_domain import BaseDomain
-from action_machine.domain.domain_graph_node import DomainGraphNode
 from action_machine.domain.entity import BaseEntity
 from graph.base_graph_edge import BaseGraphEdge
 from graph.base_graph_node import BaseGraphNode
 from graph.edge_relationship import ASSOCIATION
 from graph.qualified_name import cls_qualified_dotted_id
+
+from .domain_graph_node import DomainGraphNode
 
 TEntity = TypeVar("TEntity", bound=BaseEntity)
 

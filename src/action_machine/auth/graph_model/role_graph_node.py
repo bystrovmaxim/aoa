@@ -1,4 +1,4 @@
-# src/action_machine/auth/role_graph_node.py
+# src/action_machine/auth/graph_model/role_graph_node.py
 """
 RoleGraphNode — interchange node for ``BaseRole`` subclasses.
 

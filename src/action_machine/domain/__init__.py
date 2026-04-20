@@ -36,7 +36,7 @@ PACKAGE CONTENTS
 
 Domains:
     BaseDomain — abstract base for all domain marker classes.
-    DomainGraphNode — interchange node for a concrete ``BaseDomain`` class (node_id, label, meta).
+    DomainGraphNode — interchange node for a concrete ``BaseDomain`` class (see :mod:`action_machine.domain.graph_model`).
 
 Entities:
     BaseEntity — abstract base for all entities (frozen, `extra="forbid"`).
@@ -104,11 +104,13 @@ EXAMPLES
 """
 
 from action_machine.domain.base_domain import BaseDomain
-from action_machine.domain.domain_graph_node import DomainGraphNode
-from action_machine.domain.domain_graph_node_inspector import DomainGraphNodeInspector
 from action_machine.domain.entity import BaseEntity
-from action_machine.domain.entity_graph_node import EntityGraphNode
-from action_machine.domain.entity_graph_node_inspector import EntityGraphNodeInspector
+from action_machine.domain.graph_model import (
+    DomainGraphNode,
+    DomainGraphNodeInspector,
+    EntityGraphNode,
+    EntityGraphNodeInspector,
+)
 from action_machine.domain.exceptions import (
     EntityDecoratorError,
     FieldNotLoadedError,

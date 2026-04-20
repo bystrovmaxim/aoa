@@ -1,25 +1,25 @@
-# src/action_machine/model/params_graph_node.py
+# src/action_machine/model/graph_model/result_graph_node.py
 """
-ParamsGraphNode — interchange node for ``BaseParams`` schema classes.
+ResultGraphNode — interchange node for ``BaseResult`` schema classes.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 Provides a :class:`~graph.base_graph_node.BaseGraphNode` view derived from
-a concrete params **class** object. Interchange data lives in ``id``, ``node_type``,
+a concrete result **class** object. Interchange data lives in ``id``, ``node_type``,
 ``label``, ``properties``, and ``edges``; the class is :attr:`~graph.base_graph_node.BaseGraphNode.node_obj`.
 
-Interchange ``node_type`` is ``"params_schema"`` (aligned with facet ``params_schema`` hosts); ``id`` is the dotted class path.
+Interchange ``node_type`` is ``"result_schema"`` (aligned with facet ``result_schema`` hosts); ``id`` is the dotted class path.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-    type[TParams]   (``TParams`` bound to ``BaseParams``)
+    type[TResult]   (``TResult`` bound to ``BaseResult``)
               │
               v
-    ParamsGraphNode(...)  ──>  frozen ``BaseGraphNode`` (node_id, node_type, label, properties, edges)
+    ResultGraphNode(...)  ──>  frozen ``BaseGraphNode`` (node_id, node_type, label, properties, edges)
 """
 
 from __future__ import annotations
@@ -27,30 +27,30 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import ClassVar, TypeVar
 
-from action_machine.model.base_params import BaseParams
+from action_machine.model.base_result import BaseResult
 from graph.base_graph_node import BaseGraphNode
 from graph.qualified_name import cls_qualified_dotted_id
 
-TParams = TypeVar("TParams", bound=BaseParams)
+TResult = TypeVar("TResult", bound=BaseResult)
 
 
 @dataclass(init=False, frozen=True)
-class ParamsGraphNode(BaseGraphNode[type[TParams]]):
+class ResultGraphNode(BaseGraphNode[type[TResult]]):
     """
     AI-CORE-BEGIN
-    ROLE: Interchange node for a ``BaseParams`` params host class.
-    CONTRACT: Built from ``type[TParams]``; :attr:`NODE_TYPE` for ``node_type``; dotted ``id``, ``__name__`` label; empty ``properties`` and ``edges``.
+    ROLE: Interchange node for a ``BaseResult`` result host class.
+    CONTRACT: Built from ``type[TResult]``; :attr:`NODE_TYPE` for ``node_type``; dotted ``id``, ``__name__`` label; empty ``properties`` and ``edges``.
     AI-CORE-END
     """
 
-    NODE_TYPE: ClassVar[str] = "Params"
+    NODE_TYPE: ClassVar[str] = "result_schema"
 
-    def __init__(self, params_cls: type[TParams]) -> None:
+    def __init__(self, result_cls: type[TResult]) -> None:
         super().__init__(
-            node_id=cls_qualified_dotted_id(params_cls),
-            node_type=ParamsGraphNode.NODE_TYPE,
-            label=params_cls.__name__,
+            node_id=cls_qualified_dotted_id(result_cls),
+            node_type=ResultGraphNode.NODE_TYPE,
+            label=result_cls.__name__,
             properties={},
             edges=[],
-            node_obj=params_cls,
+            node_obj=result_cls,
         )

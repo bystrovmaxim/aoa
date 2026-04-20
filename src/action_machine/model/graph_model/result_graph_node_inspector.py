@@ -1,43 +1,48 @@
-# src/action_machine/domain/entity_graph_node_inspector.py
+# src/action_machine/model/graph_model/result_graph_node_inspector.py
 """
-EntityGraphNodeInspector — graph-node contributor for ``BaseEntity`` subclasses.
+ResultGraphNodeInspector — graph-node contributor for ``BaseResult`` subclasses.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Walks the loaded ``BaseEntity`` subclass tree and emits one :class:`EntityGraphNode` per
-visited class (including the ``BaseEntity`` axis when :meth:`~graph.base_graph_node_inspector.BaseGraphNodeInspector.get_graph_nodes` calls the root).
+Walks the loaded ``BaseResult`` strict subclass tree and emits one :class:`ResultGraphNode` per
+visited subtype. The ``BaseResult`` axis is excluded via
+:meth:`~graph.base_graph_node_inspector.BaseGraphNodeInspector._graph_node_walk_excluded_types`.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-    BaseEntity  (root)  ->  ``[EntityGraphNode(BaseEntity)]`` when included in the walk
+    BaseResult  (root axis, skipped in walk)
               │
               v
-    each loaded subclass ``cls``  ->  ``[EntityGraphNode(cls)]`` when ``issubclass(cls, BaseEntity)``
+    each loaded strict subclass ``cls``  ->  ``[ResultGraphNode(cls)]`` when ``issubclass(cls, BaseResult)``
 """
 
 from __future__ import annotations
 
 from typing import Any
 
-from action_machine.domain.entity import BaseEntity
-from action_machine.domain.entity_graph_node import EntityGraphNode
+from action_machine.model.base_result import BaseResult
 from graph.base_graph_node import BaseGraphNode
 from graph.base_graph_node_inspector import BaseGraphNodeInspector
 
+from .result_graph_node import ResultGraphNode
 
-class EntityGraphNodeInspector(BaseGraphNodeInspector[BaseEntity]):
+
+class ResultGraphNodeInspector(BaseGraphNodeInspector[BaseResult]):
     """
     AI-CORE-BEGIN
-    ROLE: Emit ``EntityGraphNode`` rows for every loaded ``BaseEntity`` subclass.
-    CONTRACT: Root axis ``BaseEntity`` from ``BaseGraphNodeInspector[BaseEntity]``; one node per visited subtype.
+    ROLE: Emit ``ResultGraphNode`` rows for every loaded strict ``BaseResult`` subclass (not the root axis).
+    CONTRACT: Root axis ``BaseResult`` from ``BaseGraphNodeInspector[BaseResult]``; one node per visited strict subtype.
     AI-CORE-END
     """
 
+    def _graph_node_walk_excluded_types(self) -> frozenset[type]:
+        return frozenset({BaseResult})
+
     def _get_type_nodes(self, cls: type) -> list[BaseGraphNode[Any]]:
-        if isinstance(cls, type) and issubclass(cls, BaseEntity):
-            return [EntityGraphNode(cls)]
+        if isinstance(cls, type) and issubclass(cls, BaseResult):
+            return [ResultGraphNode(cls)]
         return []

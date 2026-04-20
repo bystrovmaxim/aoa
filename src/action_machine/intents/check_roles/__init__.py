@@ -133,7 +133,10 @@ _LAZY_EXPORTS: dict[str, tuple[str, str]] = {
     "check_roles": ("action_machine.intents.check_roles.check_roles_decorator", "check_roles"),
     "RoleMode": ("action_machine.intents.role_mode.role_mode_decorator", "RoleMode"),
     "role_mode": ("action_machine.intents.role_mode.role_mode_decorator", "role_mode"),
-    "RoleGraphNode": ("action_machine.auth.role_graph_node", "RoleGraphNode"),
+    "RoleGraphNode": (
+        "action_machine.auth.graph_model.role_graph_node",
+        "RoleGraphNode",
+    ),
 }
 
 

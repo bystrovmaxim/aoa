@@ -5,19 +5,19 @@ Lucide icon markup (inner SVG children only) per ``node_type``.
 Icons are from `lucide-static` (ISC, https://github.com/lucide-icons/lucide).
 Rendered as white strokes on the colored node disk in :mod:`maxitor.viz2.interchange_graph_visualizer`.
 
-Interchange axis kinds share ``NODE_TYPE`` from :class:`~action_machine.model.action_graph_node.ActionGraphNode`,
-:class:`~action_machine.model.params_graph_node.ParamsGraphNode`, :class:`~action_machine.model.result_graph_node.ResultGraphNode`,
-:class:`~action_machine.domain.entity_graph_node.EntityGraphNode`, :class:`~action_machine.domain.domain_graph_node.DomainGraphNode`,
-and :class:`~action_machine.auth.role_graph_node.RoleGraphNode`. Other keys are facet-only strings (no graph-node class).
+Interchange axis kinds share ``NODE_TYPE`` from :class:`~action_machine.model.graph_model.action_graph_node.ActionGraphNode`,
+:class:`~action_machine.model.graph_model.params_graph_node.ParamsGraphNode`, :class:`~action_machine.model.graph_model.result_graph_node.ResultGraphNode`,
+:class:`~action_machine.domain.graph_model.entity_graph_node.EntityGraphNode`, :class:`~action_machine.domain.graph_model.domain_graph_node.DomainGraphNode`,
+and :class:`~action_machine.auth.graph_model.role_graph_node.RoleGraphNode`. Other keys are facet-only strings (no graph-node class).
 """
 
 from __future__ import annotations
 
 from urllib.parse import quote
 
-from action_machine.auth.role_graph_node import RoleGraphNode
-from action_machine.domain.domain_graph_node import DomainGraphNode
-from action_machine.domain.entity_graph_node import EntityGraphNode
+from action_machine.auth.graph_model.role_graph_node import RoleGraphNode
+from action_machine.domain.graph_model.domain_graph_node import DomainGraphNode
+from action_machine.domain.graph_model.entity_graph_node import EntityGraphNode
 from action_machine.legacy.interchange_vertex_labels import (
     APPLICATION_VERTEX_TYPE,
     CHECKER_VERTEX_TYPE,
@@ -26,9 +26,9 @@ from action_machine.legacy.interchange_vertex_labels import (
     SERVICE_VERTEX_TYPE,
     SUMMARY_ASPECT_VERTEX_TYPE,
 )
-from action_machine.model.action_graph_node import ActionGraphNode
-from action_machine.model.params_graph_node import ParamsGraphNode
-from action_machine.model.result_graph_node import ResultGraphNode
+from action_machine.model.graph_model.action_graph_node import ActionGraphNode
+from action_machine.model.graph_model.params_graph_node import ParamsGraphNode
+from action_machine.model.graph_model.result_graph_node import ResultGraphNode
 
 # fmt: off
 # Inner elements only (no <svg> wrapper), spaces preserved for valid XML.

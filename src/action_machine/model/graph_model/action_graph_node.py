@@ -1,4 +1,4 @@
-# src/action_machine/model/action_graph_node.py
+# src/action_machine/model/graph_model/action_graph_node.py
 """
 ActionGraphNode — interchange node for ``BaseAction`` subclasses.
 
@@ -40,15 +40,16 @@ from dataclasses import dataclass
 from typing import Any, ClassVar, Literal, TypeVar, get_args, get_origin
 
 from action_machine.domain.base_domain import BaseDomain
-from action_machine.domain.domain_graph_node import DomainGraphNode
+from action_machine.domain.graph_model.domain_graph_node import DomainGraphNode
 from action_machine.legacy.binding.action_generic_params import _resolve_generic_arg
 from action_machine.model.base_action import BaseAction
-from action_machine.model.params_graph_node import ParamsGraphNode
-from action_machine.model.result_graph_node import ResultGraphNode
 from graph.base_graph_edge import BaseGraphEdge
 from graph.base_graph_node import BaseGraphNode
 from graph.edge_relationship import ASSOCIATION, FLOW
 from graph.qualified_name import cls_qualified_dotted_id
+
+from .params_graph_node import ParamsGraphNode
+from .result_graph_node import ResultGraphNode
 
 TAction = TypeVar("TAction", bound=BaseAction[Any, Any])
 
