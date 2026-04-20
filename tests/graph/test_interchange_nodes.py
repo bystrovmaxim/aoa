@@ -1,5 +1,5 @@
 # tests/graph/test_interchange_nodes.py
-"""Interchange node types: ``ParamsGraphNode``, ``ResultGraphNode``, ``DomainGraphNode``, ``ActionGraphNode``, and ``EntityGraphNode``."""
+"""Interchange node types: graph_model nodes for params/result/action/domain/entity/regular aspect."""
 
 from __future__ import annotations
 
@@ -12,6 +12,9 @@ from action_machine.model.base_params import BaseParams
 from action_machine.model.base_result import BaseResult
 from action_machine.model.graph_model.action_graph_node import ActionGraphNode
 from action_machine.model.graph_model.params_graph_node import ParamsGraphNode
+from action_machine.model.graph_model.regular_aspect_graph_node import (
+    RegularAspectGraphNode,
+)
 from action_machine.model.graph_model.result_graph_node import ResultGraphNode
 from graph.base_graph_edge import BaseGraphEdge
 from graph.edge_relationship import ASSOCIATION, COMPOSITION, FLOW
@@ -20,6 +23,16 @@ from graph.qualified_name import cls_qualified_dotted_id
 from tests.scenarios.domain_model.domains import SystemDomain
 from tests.scenarios.domain_model.entities import SampleEntity, TestDomain
 from tests.scenarios.domain_model.ping_action import PingAction
+
+
+def test_regular_aspect_graph_node_interchange_shape() -> None:
+    node = RegularAspectGraphNode(PingAction.pong_summary)
+    assert node.node_obj is PingAction.pong_summary
+    assert node.node_type == RegularAspectGraphNode.NODE_TYPE
+    assert node.label == "pong_summary"
+    assert node.properties == {}
+    assert node.edges == []
+    assert node.node_id == f"{cls_qualified_dotted_id(PingAction)}:pong_summary"
 
 
 def test_params_graph_node_interchange_shape() -> None:

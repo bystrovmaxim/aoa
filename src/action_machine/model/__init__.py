@@ -27,6 +27,17 @@ ARCHITECTURE / DATA FLOW
           v
     Runtime / adapters consume typed model interfaces
 
+═══════════════════════════════════════════════════════════════════════════════
+EXAMPLES
+═══════════════════════════════════════════════════════════════════════════════
+
+Happy path:
+    A feature imports ``BaseAction`` and base contracts from this package and
+    defines strongly typed params/state/result models for one action.
+
+Edge case:
+    A model validation or contract misuse raises an exception re-exported here
+    from ``action_machine.model.exceptions``.
 """
 
 from __future__ import annotations
@@ -43,6 +54,10 @@ from action_machine.model.exceptions import *  # noqa: F403
 from action_machine.model.graph_model.params_graph_node import ParamsGraphNode
 from action_machine.model.graph_model.params_graph_node_inspector import (
     ParamsGraphNodeInspector,
+)
+from action_machine.model.graph_model.callable_graph_node import CallableGraphNode
+from action_machine.model.graph_model.regular_aspect_graph_node import (
+    RegularAspectGraphNode,
 )
 from action_machine.model.graph_model.result_graph_node import ResultGraphNode
 from action_machine.model.graph_model.result_graph_node_inspector import (
@@ -81,8 +96,10 @@ __all__ = [
     "BaseResult",
     "BaseSchema",
     "BaseState",
+    "CallableGraphNode",
     "ParamsGraphNode",
     "ParamsGraphNodeInspector",
+    "RegularAspectGraphNode",
     "ResultGraphNode",
     "ResultGraphNodeInspector",
     *_exceptions.__all__,
