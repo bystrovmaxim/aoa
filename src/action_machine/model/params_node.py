@@ -8,7 +8,7 @@ PURPOSE
 
 Provides a :class:`~graph.base_graph_node.BaseGraphNode` view derived from
 a concrete params **class** object. Interchange data lives in ``id``, ``node_type``,
-``label``, ``properties``, and ``edges``; the class is :attr:`~graph.base_graph_node.BaseGraphNode.obj`.
+``label``, ``properties``, and ``edges``; the class is :attr:`~graph.base_graph_node.BaseGraphNode.node_obj`.
 
 Interchange ``node_type`` is ``"params_schema"`` (aligned with facet ``params_schema`` hosts); ``id`` is the dotted class path.
 
@@ -19,7 +19,7 @@ ARCHITECTURE / DATA FLOW
     type[TParams]   (``TParams`` bound to ``BaseParams``)
               │
               v
-    ParamsNode(...)  ──>  frozen ``BaseGraphNode`` (id, node_type, label, properties, edges)
+    ParamsNode(...)  ──>  frozen ``BaseGraphNode`` (node_id, node_type, label, properties, edges)
 """
 
 from __future__ import annotations
@@ -45,10 +45,10 @@ class ParamsNode(BaseGraphNode[type[TParams]]):
 
     def __init__(self, params_cls: type[TParams]) -> None:
         super().__init__(
-            id=cls_qualified_dotted_id(params_cls),
+            node_id=cls_qualified_dotted_id(params_cls),
             node_type="params_schema",
             label=params_cls.__name__,
             properties={},
             edges=[],
-            obj=params_cls,
+            node_obj=params_cls,
         )

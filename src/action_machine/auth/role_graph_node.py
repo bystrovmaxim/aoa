@@ -8,7 +8,7 @@ PURPOSE
 
 Provides a :class:`~graph.base_graph_node.BaseGraphNode` view derived from
 a role **class** object. Interchange data lives in ``id``, ``node_type``,
-``label``, ``properties``, and ``edges``; the class is :attr:`~graph.base_graph_node.BaseGraphNode.obj`.
+``label``, ``properties``, and ``edges``; the class is :attr:`~graph.base_graph_node.BaseGraphNode.node_obj`.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
@@ -17,7 +17,7 @@ ARCHITECTURE / DATA FLOW
     type[TRole]   (``TRole`` bound to ``BaseRole``)
               │
               v
-    RoleGraphNode(...)  ──>  frozen ``BaseGraphNode`` (id, node_type, label, properties, edges)
+    RoleGraphNode(...)  ──>  frozen ``BaseGraphNode`` (node_id, node_type, label, properties, edges)
 
 ═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES
@@ -55,10 +55,10 @@ class RoleGraphNode(BaseGraphNode[type[TRole]]):
 
     def __init__(self, role_cls: type[TRole]) -> None:
         super().__init__(
-            id=cls_qualified_dotted_id(role_cls),
+            node_id=cls_qualified_dotted_id(role_cls),
             node_type="Role",
             label=role_cls.__name__,
             properties={},
             edges=[],
-            obj=role_cls,
+            node_obj=role_cls,
         )

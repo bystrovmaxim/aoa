@@ -8,7 +8,7 @@ PURPOSE
 
 Provides a :class:`~graph.base_graph_node.BaseGraphNode` view derived from
 a concrete result **class** object. Interchange data lives in ``id``, ``node_type``,
-``label``, ``properties``, and ``edges``; the class is :attr:`~graph.base_graph_node.BaseGraphNode.obj`.
+``label``, ``properties``, and ``edges``; the class is :attr:`~graph.base_graph_node.BaseGraphNode.node_obj`.
 
 Interchange ``node_type`` is ``"result_schema"`` (aligned with facet ``result_schema`` hosts); ``id`` is the dotted class path.
 
@@ -19,7 +19,7 @@ ARCHITECTURE / DATA FLOW
     type[TResult]   (``TResult`` bound to ``BaseResult``)
               │
               v
-    ResultNode(...)  ──>  frozen ``BaseGraphNode`` (id, node_type, label, properties, edges)
+    ResultNode(...)  ──>  frozen ``BaseGraphNode`` (node_id, node_type, label, properties, edges)
 """
 
 from __future__ import annotations
@@ -45,10 +45,10 @@ class ResultNode(BaseGraphNode[type[TResult]]):
 
     def __init__(self, result_cls: type[TResult]) -> None:
         super().__init__(
-            id=cls_qualified_dotted_id(result_cls),
+            node_id=cls_qualified_dotted_id(result_cls),
             node_type="result_schema",
             label=result_cls.__name__,
             properties={},
             edges=[],
-            obj=result_cls,
+            node_obj=result_cls,
         )

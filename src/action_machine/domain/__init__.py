@@ -36,7 +36,7 @@ PACKAGE CONTENTS
 
 Domains:
     BaseDomain — abstract base for all domain marker classes.
-    DomainGraphNode — interchange node for a concrete ``BaseDomain`` class (id, label, meta).
+    DomainGraphNode — interchange node for a concrete ``BaseDomain`` class (node_id, label, meta).
 
 Entities:
     BaseEntity — abstract base for all entities (frozen, `extra="forbid"`).

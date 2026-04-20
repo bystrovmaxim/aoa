@@ -6,6 +6,7 @@ from __future__ import annotations
 import pytest
 
 from graph.base_graph_edge import BaseGraphEdge
+from graph.edge_relationship import EdgeRelationship
 from graph.base_graph_node import BaseGraphNode
 from graph.base_intent_inspector import BaseIntentInspector
 from graph.exceptions import DuplicateNodeError, InvalidGraphError
@@ -14,17 +15,23 @@ from graph.node_graph_coordinator import NodeGraphCoordinator
 
 
 def _edge(
-    target_id: str,
+    source_node_id: str,
+    target_node_id: str,
     *,
-    link_name: str = "ref",
+    edge_name: str = "ref",
     is_dag: bool = False,
 ) -> BaseGraphEdge:
     return BaseGraphEdge(
-        link_name=link_name,
-        target_id=target_id,
-        target_node_type="Test",
+        edge_name=edge_name,
         is_dag=is_dag,
-        target_cls=object,
+        source_node_id=source_node_id,
+        source_node_type="Test",
+        source_node_obj=object(),
+        source_node_relationship=EdgeRelationship.ASSOCIATION,
+        target_node_id=target_node_id,
+        target_node_type="Test",
+        target_node_obj=object(),
+        target_node_relationship=EdgeRelationship.ASSOCIATION,
     )
 
 
@@ -37,12 +44,12 @@ def _make_node(
     class _N(BaseGraphNode[object]):
         def __init__(self, obj: object) -> None:
             super().__init__(
-                id=node_id,
+                node_id=node_id,
                 node_type="Test",
                 label="L",
                 properties={},
                 edges=list(edge_list),
-                obj=obj,
+                node_obj=obj,
             )
 
     return _N(object())
@@ -74,7 +81,7 @@ class _NodeGraphTestInspector(BaseIntentInspector):
 
 def test_node_graph_coordinator_builds_chain() -> None:
     b = _make_node("b", [])
-    a = _make_node("a", [_edge("b")])
+    a = _make_node("a", [_edge("a", "b")])
     coord = NodeGraphCoordinator()
     coord.build([_NodeGraphTestInspector([a, b])])
     assert coord._built
@@ -94,23 +101,23 @@ def test_duplicate_node_id_raises() -> None:
 
 
 def test_missing_target_raises() -> None:
-    a = _make_node("a", [_edge("missing")])
+    a = _make_node("a", [_edge("a", "missing")])
     coord = NodeGraphCoordinator()
     with pytest.raises(InvalidGraphError, match="missing"):
         coord.build([_NodeGraphTestInspector([a])])
 
 
 def test_dag_cycle_raises() -> None:
-    a = _make_node("a", [_edge("b", is_dag=True)])
-    b = _make_node("b", [_edge("a", is_dag=True)])
+    a = _make_node("a", [_edge("a", "b", is_dag=True)])
+    b = _make_node("b", [_edge("b", "a", is_dag=True)])
     coord = NodeGraphCoordinator()
     with pytest.raises(InvalidGraphError, match="cycle"):
         coord.build([_NodeGraphTestInspector([a, b])])
 
 
 def test_non_dag_cycle_allowed() -> None:
-    a = _make_node("a", [_edge("b", is_dag=False)])
-    b = _make_node("b", [_edge("a", is_dag=False)])
+    a = _make_node("a", [_edge("a", "b", is_dag=False)])
+    b = _make_node("b", [_edge("b", "a", is_dag=False)])
     coord = NodeGraphCoordinator()
     coord.build([_NodeGraphTestInspector([a, b])])
     assert coord._built
