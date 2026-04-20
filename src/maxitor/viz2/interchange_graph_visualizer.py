@@ -41,13 +41,11 @@ from action_machine.legacy.interchange_vertex_labels import (
     CHECKER_VERTEX_TYPE,
     COMPENSATOR_VERTEX_TYPE,
     SERVICE_VERTEX_TYPE,
-    SUMMARY_ASPECT_VERTEX_TYPE,
 )
 from action_machine.model.graph_model.action_graph_node import ActionGraphNode
 from action_machine.model.graph_model.params_graph_node import ParamsGraphNode
-from action_machine.model.graph_model.regular_aspect_graph_node import (
-    RegularAspectGraphNode,
-)
+from action_machine.model.graph_model.regular_aspect_graph_node import RegularAspectGraphNode
+from action_machine.model.graph_model.summary_aspect_graph_node import SummaryAspectGraphNode
 from action_machine.model.graph_model.result_graph_node import ResultGraphNode
 from graph.base_graph_edge import BaseGraphEdge
 from graph.base_graph_node import BaseGraphNode
@@ -77,7 +75,7 @@ VERTEX_TYPE_FILL_COLORS: dict[str, str] = {
     "dependency": "#4DAF4A",
     "connection": "#984EA3",
     RegularAspectGraphNode.NODE_TYPE: "#FF7F00",
-    SUMMARY_ASPECT_VERTEX_TYPE: "#FF7F00",
+    SummaryAspectGraphNode.NODE_TYPE: "#FF7F00",
     CHECKER_VERTEX_TYPE: "#A65628",
     COMPENSATOR_VERTEX_TYPE: "#F781BF",
     "error_handler": "#6A3D9A",
@@ -122,7 +120,7 @@ def _vertex_facet_label(node: dict[str, Any]) -> str:
     nt = str(node.get("node_type", "unknown"))
     if nt in (
         RegularAspectGraphNode.NODE_TYPE,
-        SUMMARY_ASPECT_VERTEX_TYPE,
+        SummaryAspectGraphNode.NODE_TYPE,
         CHECKER_VERTEX_TYPE,
         COMPENSATOR_VERTEX_TYPE,
     ):
@@ -137,7 +135,7 @@ def _element_short_name(node: dict[str, Any]) -> str:
     nt = str(node.get("node_type", "") or "").strip()
     if nt in (
         RegularAspectGraphNode.NODE_TYPE,
-        SUMMARY_ASPECT_VERTEX_TYPE,
+        SummaryAspectGraphNode.NODE_TYPE,
         CHECKER_VERTEX_TYPE,
         COMPENSATOR_VERTEX_TYPE,
     ):
@@ -456,14 +454,17 @@ def interchange_edge_to_visual_dict(edge: BaseGraphEdge) -> dict[str, Any]:
     Includes ArchiMate-style ``source_attachment`` / ``target_attachment`` / ``line_style``
     (``StrEnum`` string values) plus ``relationship_name`` for tooltips or debugging.
 
-    For ``COMPOSITION`` links to a ``RegularAspect`` vertex, attachment graphics are swapped so
+    For ``COMPOSITION`` links to a ``RegularAspect`` / ``SummaryAspect`` vertex, attachment graphics are swapped so
     the diamond sits on the **aspect** end (UML aggregate/composite whole); graph topology
-    stays ``Action → RegularAspect``.
+    stays ``Action → aspect``.
     """
     er = edge.edge_relationship
     src_att = er.source_attachment.value
     tgt_att = er.target_attachment.value
-    if isinstance(er, Composition) and edge.target_node_type == RegularAspectGraphNode.NODE_TYPE:
+    if isinstance(er, Composition) and edge.target_node_type in (
+        RegularAspectGraphNode.NODE_TYPE,
+        SummaryAspectGraphNode.NODE_TYPE,
+    ):
         src_att, tgt_att = tgt_att, src_att
     return {
         "edge_type": edge.edge_name,

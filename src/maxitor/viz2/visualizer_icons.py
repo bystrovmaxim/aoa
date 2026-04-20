@@ -23,7 +23,6 @@ from action_machine.legacy.interchange_vertex_labels import (
     CHECKER_VERTEX_TYPE,
     COMPENSATOR_VERTEX_TYPE,
     SERVICE_VERTEX_TYPE,
-    SUMMARY_ASPECT_VERTEX_TYPE,
 )
 from action_machine.model.graph_model.action_graph_node import ActionGraphNode
 from action_machine.model.graph_model.params_graph_node import ParamsGraphNode
@@ -31,6 +30,7 @@ from action_machine.model.graph_model.regular_aspect_graph_node import (
     RegularAspectGraphNode,
 )
 from action_machine.model.graph_model.result_graph_node import ResultGraphNode
+from action_machine.model.graph_model.summary_aspect_graph_node import SummaryAspectGraphNode
 
 # fmt: off
 # Inner elements only (no <svg> wrapper), spaces preserved for valid XML.
@@ -68,7 +68,7 @@ VERTEX_TYPE_LUCIDE_INNER_SVG: dict[str, str] = {
         '<path d="M11 8h7" /> '
         '<path d="M11 12h4" />'
     ),
-    SUMMARY_ASPECT_VERTEX_TYPE: (
+    SummaryAspectGraphNode.NODE_TYPE: (
         '<path d="m3 8 4-4 4 4" /> '
         '<path d="M7 4v16" /> '
         '<path d="M11 12h4" /> '
