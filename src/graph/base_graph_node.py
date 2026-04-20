@@ -12,7 +12,7 @@ the node (read-only after construction).
 Because the node is frozen, the constructor uses :func:`object.__setattr__`.
 
 Each :class:`~graph.base_graph_edge.BaseGraphEdge` records ``edge_name``, ``is_dag``, **source** and **target**
-``*_node_id``, ``*_node_type``, and ``*_node_obj`` (set by each ``*Node`` when building outgoing edges).
+``*_node_id``, ``*_node_type``, ``*_node_obj``, and ``edge_relationship`` (set by each ``*Node`` when building outgoing edges).
 """
 
 from __future__ import annotations

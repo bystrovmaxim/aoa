@@ -27,11 +27,10 @@ def _edge(
         source_node_id=source_node_id,
         source_node_type="Test",
         source_node_obj=object(),
-        source_node_relationship=EdgeRelationship.ASSOCIATION,
         target_node_id=target_node_id,
         target_node_type="Test",
         target_node_obj=object(),
-        target_node_relationship=EdgeRelationship.ASSOCIATION,
+        edge_relationship=EdgeRelationship.ASSOCIATION,
     )
 
 

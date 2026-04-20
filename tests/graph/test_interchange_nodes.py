@@ -74,11 +74,10 @@ def test_domain_node_interchange_shape() -> None:
             source_node_id=cls_qualified_dotted_id(TestDomain),
             source_node_type="Domain",
             source_node_obj=TestDomain,
-            source_node_relationship=EdgeRelationship.COMPOSITION,
             target_node_id=app_id,
             target_node_type="Application",
             target_node_obj=ApplicationContext,
-            target_node_relationship=EdgeRelationship.ASSOCIATION,
+            edge_relationship=EdgeRelationship.COMPOSITION,
         ),
     ]
 
@@ -127,11 +126,10 @@ def test_action_node_links_and_helpers() -> None:
             source_node_id=host,
             source_node_type="Action",
             source_node_obj=PingAction,
-            source_node_relationship=EdgeRelationship.ASSOCIATION,
             target_node_id=dom_id,
             target_node_type="Domain",
             target_node_obj=SystemDomain,
-            target_node_relationship=EdgeRelationship.ASSOCIATION,
+            edge_relationship=EdgeRelationship.ASSOCIATION,
         ),
         BaseGraphEdge(
             edge_name="params",
@@ -139,11 +137,10 @@ def test_action_node_links_and_helpers() -> None:
             source_node_id=host,
             source_node_type="Action",
             source_node_obj=PingAction,
-            source_node_relationship=EdgeRelationship.FLOW,
             target_node_id=params_id,
             target_node_type="params_schema",
             target_node_obj=PingAction.Params,
-            target_node_relationship=EdgeRelationship.REALIZATION,
+            edge_relationship=EdgeRelationship.FLOW,
         ),
         BaseGraphEdge(
             edge_name="result",
@@ -151,11 +148,10 @@ def test_action_node_links_and_helpers() -> None:
             source_node_id=host,
             source_node_type="Action",
             source_node_obj=PingAction,
-            source_node_relationship=EdgeRelationship.FLOW,
             target_node_id=result_id,
             target_node_type="result_schema",
             target_node_obj=PingAction.Result,
-            target_node_relationship=EdgeRelationship.REALIZATION,
+            edge_relationship=EdgeRelationship.FLOW,
         ),
     ]
 
@@ -165,11 +161,10 @@ def test_action_node_links_and_helpers() -> None:
         source_node_id=host,
         source_node_type="Action",
         source_node_obj=PingAction,
-        source_node_relationship=EdgeRelationship.ASSOCIATION,
         target_node_id=dom_id,
         target_node_type="Domain",
         target_node_obj=SystemDomain,
-        target_node_relationship=EdgeRelationship.ASSOCIATION,
+        edge_relationship=EdgeRelationship.ASSOCIATION,
     )
     assert ActionNode.get_params_edge(PingAction) == BaseGraphEdge(
         edge_name="params",
@@ -177,11 +172,10 @@ def test_action_node_links_and_helpers() -> None:
         source_node_id=host,
         source_node_type="Action",
         source_node_obj=PingAction,
-        source_node_relationship=EdgeRelationship.FLOW,
         target_node_id=params_id,
         target_node_type="params_schema",
         target_node_obj=PingAction.Params,
-        target_node_relationship=EdgeRelationship.REALIZATION,
+        edge_relationship=EdgeRelationship.FLOW,
     )
     assert ActionNode.get_result_edge(PingAction) == BaseGraphEdge(
         edge_name="result",
@@ -189,11 +183,10 @@ def test_action_node_links_and_helpers() -> None:
         source_node_id=host,
         source_node_type="Action",
         source_node_obj=PingAction,
-        source_node_relationship=EdgeRelationship.FLOW,
         target_node_id=result_id,
         target_node_type="result_schema",
         target_node_obj=PingAction.Result,
-        target_node_relationship=EdgeRelationship.REALIZATION,
+        edge_relationship=EdgeRelationship.FLOW,
     )
 
     p_type = ActionNode.get_schema_generic_binding(PingAction, 0)
@@ -220,11 +213,10 @@ def test_entity_node_links_properties_and_domain_helpers() -> None:
             source_node_id=host,
             source_node_type="Entity",
             source_node_obj=SampleEntity,
-            source_node_relationship=EdgeRelationship.ASSOCIATION,
             target_node_id=dom_id,
             target_node_type="Domain",
             target_node_obj=TestDomain,
-            target_node_relationship=EdgeRelationship.ASSOCIATION,
+            edge_relationship=EdgeRelationship.ASSOCIATION,
         ),
     ]
 
@@ -234,10 +226,9 @@ def test_entity_node_links_properties_and_domain_helpers() -> None:
         source_node_id=host,
         source_node_type="Entity",
         source_node_obj=SampleEntity,
-        source_node_relationship=EdgeRelationship.ASSOCIATION,
         target_node_id=dom_id,
         target_node_type="Domain",
         target_node_obj=TestDomain,
-        target_node_relationship=EdgeRelationship.ASSOCIATION,
+        edge_relationship=EdgeRelationship.ASSOCIATION,
     )
     assert EntityGraphNode._get_all_edges(SampleEntity) == node.edges
