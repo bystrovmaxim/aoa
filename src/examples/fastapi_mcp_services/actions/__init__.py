@@ -40,16 +40,6 @@ EXAMPLES
 
     # Edge case: any transport mismatch should be solved in adapters,
     # not by forking action classes.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Shared action export boundary for dual-transport example.
-CONTRACT: Keep action definitions single-source for FastAPI and MCP adapters.
-INVARIANTS: No transport-specific logic should leak into action declarations.
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from .create_order import CreateOrderAction

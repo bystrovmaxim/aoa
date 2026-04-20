@@ -50,16 +50,6 @@ EXAMPLES
     Edge case: custom ``GraphCoordinator`` — pass
     ``ActionProductMachine(..., coordinator=my_coordinator)`` here; it must
     already be ``.build()`` complete.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Shared machine + auth singletons for dual-transport example.
-CONTRACT: Export ``machine`` and ``auth`` for adapter construction.
-INVARIANTS: Single machine instance; coordinator owned by machine unless injected.
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from action_machine.auth.auth_coordinator import NoAuthCoordinator

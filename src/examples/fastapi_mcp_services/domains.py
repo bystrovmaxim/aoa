@@ -44,16 +44,6 @@ EXAMPLES
 
     Edge case: two domains with the same ``name`` would confuse graph consumers;
     keep names unique across the example (and the wider app).
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Example domain markers for dual-transport Order + system actions.
-CONTRACT: Subclass ``BaseDomain``; expose unique ``name`` per domain class.
-INVARIANTS: Marker-only; no I/O or auth in domain classes.
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from action_machine.domain.base_domain import BaseDomain

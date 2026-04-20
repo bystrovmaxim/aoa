@@ -66,18 +66,6 @@ ARCHITECTURE / DATA FLOW
         ├── resolve(cls, *args, **kwargs) → resources then factory
         ├── run(action, params)           → instantiate, wrap connections
         ├── info / warning / critical     → delegate to ScopedLogger
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Per-aspect frozen API surface (resolve, run, log).
-CONTRACT: no Context on instance; log methods require Channel.
-INVARIANTS: rollup propagation; ScopedLogger owns context for templates only.
-FLOW: machine builds ToolsBox → aspect uses box.* → logger emits via coordinator.
-FAILURES: dependency / run errors propagate; logging uses same coordinator rules.
-EXTENSION POINTS: none on box shape; custom factories build different loggers.
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from collections.abc import Awaitable, Callable

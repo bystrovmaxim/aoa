@@ -55,17 +55,6 @@ Happy path:
 Edge case:
     A concrete machine that does not implement ``_run_internal`` raises
     ``NotImplementedError`` when execution reaches internal pipeline.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Shared abstract contract for runtime machine entry points.
-CONTRACT: Expose public run API and internal _run_internal pipeline hook.
-INVARIANTS: Stateless between runs; no silent error suppression.
-FLOW: caller invokes run -> concrete machine delegates to _run_internal.
-FAILURES: NotImplementedError until concrete runtime machine implements internals.
-EXTENSION POINTS: Async/sync implementations override run and _run_internal.
-AI-CORE-END
 """
 
 from abc import ABC, abstractmethod

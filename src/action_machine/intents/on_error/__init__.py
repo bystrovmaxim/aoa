@@ -78,17 +78,6 @@ EXAMPLES
         @on_error(Exception, description="Unexpected error")
         async def fallback_on_error(self, params, state, box, connections, error):
             return OrderResult(order_id="ERR", status="internal_error", total=0)
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Public API for aspect error-handler intent and decorator.
-CONTRACT: Export marker + decorator used by metadata inspectors and runtime.
-INVARIANTS: Handler signature validated at decorate time; dispatch order is declaration order.
-FLOW: decorated methods -> inspector snapshot -> runtime match/dispatch.
-FAILURES: Declaration errors at build; unhandled exceptions propagate at runtime.
-EXTENSION POINTS: Add new handler metadata fields via decorator+inspector pair.
-AI-CORE-END
 """
 
 from action_machine.intents.on_error.on_error_decorator import on_error

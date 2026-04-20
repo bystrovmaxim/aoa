@@ -41,17 +41,6 @@ EXAMPLES
     validate_described_schema(Params)
 
     # Edge case: field without description -> TypeError.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Enforce schema-field description contracts for marked models.
-CONTRACT: Validate marker-bearing schemas and action-linked Params/Result.
-INVARIANTS: Validation-only logic; no cross-layer graph imports.
-FLOW: model/action type input -> description checks -> fail-fast TypeError.
-FAILURES: Missing field descriptions trigger validation exceptions.
-EXTENSION POINTS: Add extra schema-level validators in this marker module.
-AI-CORE-END
 """
 
 from __future__ import annotations
@@ -65,14 +54,12 @@ from action_machine.legacy.binding.extract_action_params_result_types import (
 
 class DescribedFieldsIntent:
     """
-    Marker mixin requiring described Pydantic fields.
-
-    AI-CORE-BEGIN
+AI-CORE-BEGIN
     ROLE: Opt-in marker for described-field validation policy.
     CONTRACT: Classes inheriting this marker must provide field descriptions.
     INVARIANTS: Enforcement is performed by dedicated validation helpers.
     AI-CORE-END
-    """
+"""
 
     pass
 

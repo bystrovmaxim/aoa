@@ -101,17 +101,6 @@ Edge — invalid ``Inverse``::
 Edge — empty ``Rel``::
 
     Rel(description="   ")  # ValueError
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Relation marker primitives for Annotated entity fields.
-CONTRACT: Encode inverse linkage intent and mandatory per-edge description metadata.
-INVARIANTS: Marker objects are frozen and validate constructor inputs eagerly.
-FLOW: field annotation/default -> marker parsing by inspector -> coordinator relation edge validation.
-FAILURES: TypeError/ValueError for invalid marker inputs; build-time errors for missing/invalid marker combinations.
-EXTENSION POINTS: Custom marker-style metadata objects can follow the same immutable pattern.
-AI-CORE-END
 """
 
 from __future__ import annotations
@@ -121,32 +110,12 @@ from typing import Any, cast
 
 class Inverse:
     """
-    **Inverse-side marker** inside ``Annotated[..., ...]`` for a relation field.
-
-    **Role**
-        Name the **target entity class** and the **field name** on that class
-        that completes the edge, so the coordinator can validate a consistent pair.
-
-    **Invariants**
-        ``target_entity`` is a ``type``. ``field_name`` is a non-empty ``str``
-        after stripping. Instance is frozen.
-
-    **Neighbors**
-        Works with relation **containers** and ``Rel``. Validated against the
-        peer field at ``GraphCoordinator.build()``.
-
-    **Attributes**
-        ``target_entity``
-            Related entity **type** (subclass of ``BaseEntity`` in practice).
-        ``field_name``
-            Attribute name on ``target_entity`` that points back (or across).
-
-    AI-CORE-BEGIN
+AI-CORE-BEGIN
     ROLE: Explicit inverse relation pointer.
     CONTRACT: Bind current relation field to a concrete target entity field.
     INVARIANTS: target entity must be a type; field name must be non-empty string.
     AI-CORE-END
-    """
+"""
 
     __slots__ = ("_field_name", "_target_entity")
 
@@ -220,25 +189,12 @@ class Inverse:
 
 class NoInverse:
     """
-    Explicit **no back-reference** marker in ``Annotated[..., ...]``.
-
-    **Role**
-        State that the target side has **no** paired field in the model (audit
-        log → subject, etc.). This is not implicit omission: the coordinator
-        expects **either** ``Inverse`` **or** ``NoInverse``.
-
-    **Invariants**
-        Singleton-like immutable instance (no attributes, frozen).
-
-    **Neighbors**
-        Combined with a relation container and ``Rel(description=...)``.
-
-    AI-CORE-BEGIN
+AI-CORE-BEGIN
     ROLE: Explicit marker for one-way relation edges.
     CONTRACT: Signals intentional absence of reverse field mapping.
     INVARIANTS: Stateless frozen marker object.
     AI-CORE-END
-    """
+"""
 
     __slots__ = ()
 
@@ -262,20 +218,12 @@ class NoInverse:
 
 class NoGraphEdge:
     """
-    Optional marker: **do not** emit an interchange graph edge for this relation field.
-
-    The relation remains in the entity facet ``relations`` metadata (for docs and
-    validation); :class:`~action_machine.legacy.entity_intent_inspector.EntityIntentInspector`
-    skips :class:`~graph.facet_edge.FacetEdge` rows when ``NoGraphEdge()`` is present
-    in ``Annotated[..., ...]``. Unlike :class:`NoInverse`, this does not describe the
-    inverse side — it only suppresses the **forward** arc in the exported graph.
-
-    AI-CORE-BEGIN
+AI-CORE-BEGIN
     ROLE: Explicit opt-out of graph materialization for one relation field.
     CONTRACT: Stateless frozen marker; combinable with ``Inverse`` or ``NoInverse``.
     INVARIANTS: No attributes; singleton semantics via ``__eq__`` / ``__hash__``.
     AI-CORE-END
-    """
+"""
 
     __slots__ = ()
 
@@ -299,30 +247,12 @@ class NoGraphEdge:
 
 class Rel:
     """
-    **Relation description** object used as the field **default** for relations.
-
-    **Role**
-        Carry a mandatory, non-empty ``description`` string for documentation and
-        graph exports. Pydantic uses it as the declared default; hydrated
-        instances usually replace the field with a **container** value.
-
-    **Invariants**
-        ``description`` is a non-empty ``str`` after strip. Instance is frozen.
-
-    **Neighbors**
-        Appears with ``Inverse`` or ``NoInverse`` (and optionally ``NoGraphEdge``)
-        on the same field. Validated together at coordinator **build**.
-
-    **Attributes**
-        ``description``
-            Human-readable text for **this** direction of the edge.
-
-    AI-CORE-BEGIN
+AI-CORE-BEGIN
     ROLE: Mandatory relation description carrier.
     CONTRACT: Provide non-empty documentation text for one direction of an entity relation edge.
     INVARIANTS: Description is validated and immutable after construction.
     AI-CORE-END
-    """
+"""
 
     __slots__ = ("_description",)
 

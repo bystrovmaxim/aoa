@@ -145,18 +145,6 @@ CHANNEL × LEVEL MATRIX (REFERENCE)
 +------------+------------+----------------------------------------+----------------------------------------+
 | ERROR      | CRITICAL   | Service down, 500 in prod              | Pager / SRE + restart                  |
 +------------+------------+----------------------------------------+----------------------------------------+
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Public logging package entrypoint.
-CONTRACT: Exports channel/level/subscription/coordinator/scoped logging APIs.
-INVARIANTS: Channel required on emit; coordinator validates var; subscriptions not regex.
-FLOW: ScopedLogger → LogCoordinator → BaseLogger.match_filters → write.
-FAILURES: template errors immediate; logger errors propagate.
-EXTENSION POINTS: custom BaseLogger subclasses; coordinator.add_logger.
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from action_machine.intents.sensitive import sensitive

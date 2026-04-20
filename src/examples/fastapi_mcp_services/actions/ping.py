@@ -32,16 +32,6 @@ EXAMPLES
     GET /api/v1/ping  ->  {"message": "pong"}
 
     Edge case: no request body is required; empty params model is valid.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Minimal shared ping action for FastAPI/MCP example services.
-CONTRACT: No auth; summary-only; fixed ``pong`` response shape.
-INVARIANTS: Empty params; single summary aspect; ``SystemDomain`` metadata.
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from pydantic import Field

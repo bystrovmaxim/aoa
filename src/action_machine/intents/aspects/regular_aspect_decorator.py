@@ -47,18 +47,6 @@ EXAMPLES
     @context_requires(Ctx.User.user_id)
     async def audit_aspect(self, params, state, box, connections, ctx):
         return {"actor": ctx.get(Ctx.User.user_id)}
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Regular-aspect declaration module.
-CONTRACT: ``@regular_aspect`` marks async methods that return state patch ``dict``.
-INVARIANTS: string non-empty description, callable+async target, valid parameter count, ``_aspect`` suffix.
-FLOW: validate declaration -> attach ``_new_aspect_meta`` -> inspector snapshot -> runtime state merge.
-FAILURES: TypeError/ValueError/NamingSuffixError on declaration contract violations.
-EXTENSION POINTS: works with ``@context_requires`` and downstream intent inspector/coordinator.
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from __future__ import annotations

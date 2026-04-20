@@ -42,15 +42,4 @@ Happy path:
 Edge case:
     Invalid intent configuration is rejected during validation, so execution
     fails fast before request handling starts.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Package-level contract for declarative intent architecture.
-CONTRACT: Intents define metadata; inspectors validate; coordinators enforce.
-INVARIANTS: Validation precedes runtime usage; snapshots are source of truth.
-FLOW: Decorator/marker -> inspector snapshot -> GraphCoordinator -> runtime.
-FAILURES: Invalid intent configs fail during inspection, not lazily in runtime.
-EXTENSION POINTS: Add new intent modules with marker + inspector + coordinator.
-AI-CORE-END
 """

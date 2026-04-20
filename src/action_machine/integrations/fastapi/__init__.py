@@ -110,17 +110,6 @@ HEALTH CHECK
 
 Endpoint ``GET /health`` is added automatically at ``build()``.
 Returns ``{"status": "ok"}`` for liveness probes, monitoring, and load-balancer checks.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Public FastAPI integration namespace for ActionMachine.
-CONTRACT: Export FastApiAdapter/FastApiRouteRecord and provide dependency guard for optional installation.
-INVARIANTS: FastAPI app is built from typed route records and adapter-managed protocol handlers.
-FLOW: register actions -> build FastAPI app -> serve validated endpoints + docs + health route.
-FAILURES: Missing optional dependency raises ImportError with installation guidance.
-EXTENSION POINTS: Route configuration and mapping hooks are provided via FastApiAdapter API.
-AI-CORE-END
 """
 
 try:

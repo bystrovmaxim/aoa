@@ -36,14 +36,12 @@ from action_machine.intents.role_mode.role_mode_decorator import RoleMode, role_
 @role_mode(RoleMode.ALIVE)
 class ApplicationRole(BaseRole, ABC):
     """
-    Abstract root of all roles allowed in ``UserInfo.roles``.
-
-    AI-CORE-BEGIN
+AI-CORE-BEGIN
     ROLE: Role taxonomy anchor for application-level identities.
     CONTRACT: Concrete user roles inherit from this class.
     INVARIANTS: Abstract class with ALIVE role mode.
     AI-CORE-END
-    """
+"""
 
     name = "__application_root__"
     description = "Intermediate root for application roles assigned to authenticated users."

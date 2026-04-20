@@ -195,18 +195,12 @@ from action_machine.plugin.subscription_info import SubscriptionInfo
 
 class PluginRunContext:
     """
-    Isolated plugin context for one run invocation.
-
-    Created by ``PluginCoordinator.create_run_context()`` and used to route
-    typed events through subscription filters while maintaining per-run plugin
-    states.
-
-    AI-CORE-BEGIN
+AI-CORE-BEGIN
     ROLE: Runtime dispatcher and state holder for plugin handlers.
     CONTRACT: Filter subscriptions and execute matched handlers per strategy.
     INVARIANTS: State is isolated per run and keyed by plugin instance id.
     AI-CORE-END
-    """
+"""
 
     def __init__(
         self,

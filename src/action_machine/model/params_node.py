@@ -20,17 +20,6 @@ ARCHITECTURE / DATA FLOW
               │
               v
     ParamsNode(...)  ──>  frozen ``BaseGraphNode`` (id, node_type, label, properties, edges)
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Model-scoped BaseGraphNode bridge for ``BaseParams`` schema hosts.
-CONTRACT: Construct from ``type[TParams]`` via ``__init__``; ``node_type="params_schema"``; dotted-path ``id``; label = class name; empty properties and edges.
-INVARIANTS: Immutable node; host class on ``BaseGraphNode.obj``.
-FLOW: params class -> ``ParamsNode.__init__`` -> frozen ``BaseGraphNode`` fields.
-EXTENSION POINTS: Other graph node specializations follow the same constructor pattern.
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from __future__ import annotations

@@ -35,17 +35,6 @@ COMPONENTS
 ═══════════════════════════════════════════════════════════════════════════════
 
 - ``PostgresConnectionManager``: resource manager for PostgreSQL connections.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Public namespace for PostgreSQL integration.
-CONTRACT: Export PostgresConnectionManager and fail fast when asyncpg is missing.
-INVARIANTS: Stable single-symbol export and explicit optional dependency guard.
-FLOW: import package -> validate asyncpg -> use connection manager in runtime.
-FAILURES: Missing asyncpg dependency.
-EXTENSION POINTS: Manager-level configuration and lifecycle hooks.
-AI-CORE-END
 """
 try:
     import asyncpg  # noqa: F401

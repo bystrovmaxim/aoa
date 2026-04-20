@@ -27,15 +27,6 @@ EXAMPLES
 Edge case: apply **above** ``@classmethod`` / ``@staticmethod`` if those decorators are used
 (outermost ``@deprecated`` last in source order for methods — i.e. ``@deprecated`` then
 ``@classmethod`` is wrong; use ``@classmethod`` then ``@deprecated`` wrapping the descriptor).
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Small decorator factory for consistent DeprecationWarning emission.
-CONTRACT: Pass a stable message string; grep ``@deprecated`` or ``deprecated(`` to find call sites.
-INVARIANTS: stacklevel fixed at 2 for plain functions and bound methods.
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from __future__ import annotations

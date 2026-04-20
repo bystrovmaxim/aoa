@@ -84,17 +84,6 @@ EXAMPLES
         region="eu-west-1",
         cluster_name="production-main",
     )
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Immutable runtime-environment schema in execution context.
-CONTRACT: Carry deployment metadata for logging, tracing, and diagnostics.
-INVARIANTS: Frozen object with forbid-extra schema boundary.
-FLOW: environment assembly -> Context propagation -> consumer reads.
-FAILURES: Validation errors occur only for schema/type violations.
-EXTENSION POINTS: Inherit RuntimeInfo for project-specific environment fields.
-AI-CORE-END
 """
 
 from pydantic import ConfigDict
@@ -104,14 +93,12 @@ from action_machine.model.base_schema import BaseSchema
 
 class RuntimeInfo(BaseSchema):
     """
-    Immutable schema for runtime environment metadata.
-
-    AI-CORE-BEGIN
+AI-CORE-BEGIN
     ROLE: Runtime metadata node in Context.
     CONTRACT: Expose optional deployment/environment fields.
     INVARIANTS: Frozen instance with forbid-extra schema policy.
     AI-CORE-END
-    """
+"""
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 

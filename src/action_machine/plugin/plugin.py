@@ -115,14 +115,12 @@ from action_machine.plugin.subscription_info import SubscriptionInfo
 
 class Plugin(OnIntent, ABC):
     """
-    Abstract base class for all ActionMachine plugins.
-
-    AI-CORE-BEGIN
+AI-CORE-BEGIN
     ROLE: Plugin contract for per-run state initialization and handler discovery.
     CONTRACT: Implement get_initial_state and declare handlers via @on.
     INVARIANTS: Per-request state is externalized into PluginRunContext.
     AI-CORE-END
-    """
+"""
 
     @abstractmethod
     async def get_initial_state(self) -> object:

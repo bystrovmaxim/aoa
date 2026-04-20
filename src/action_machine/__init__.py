@@ -35,14 +35,4 @@ EXAMPLES
     bench = TestBench()
 
     # Edge case: root import itself does not initialize machines/resources.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Package boundary marker.
-CONTRACT: Keep root import safe, side-effect free, and semantically stable.
-INVARIANTS: No orchestration logic, no dynamic runtime initialization.
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """

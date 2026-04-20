@@ -59,18 +59,6 @@ EXAMPLES
         async def pay(self, params, state, box, connections):
             client = box.resolve(BankClient, "production")
             ...
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Dependency declaration decorator.
-CONTRACT: @depends(klass, *, factory=None, description="") writes DependencyInfo to cls._depends_info.
-INVARIANTS: Intent marker required; bound check; duplicate prevention.
-FLOW: validate args → validate target → copy parent list if needed → append DependencyInfo.
-FAILURES: TypeError / ValueError as described.
-EXTENSION POINTS: Custom factory callables allow arbitrary instantiation policies.
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from __future__ import annotations

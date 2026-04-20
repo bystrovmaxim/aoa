@@ -52,17 +52,6 @@ Happy path:
 Edge case:
     Aspect ``call()`` returned but checker rejects output -> frame has
     ``state_after=None``; compensator still runs on unwind before earlier frames.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Immutable rollback metadata unit for one regular aspect step.
-CONTRACT: Capture compensator binding and pre/post state snapshots per aspect.
-INVARIANTS: Local per-run stack ownership and reverse-order unwind semantics.
-FLOW: call -> validate -> frame append -> failure path -> coordinator unwind.
-FAILURES: Missing compensator marks frame as skipped, not failed.
-EXTENSION POINTS: Extend metadata fields cautiously without duplicating globals.
-AI-CORE-END
 """
 
 from __future__ import annotations

@@ -18,17 +18,6 @@ emits:
 The aggregate ``…:sensitive`` modifier node is **not** emitted. A typed
 :class:`Snapshot` is still stored under storage key ``"sensitive"`` for
 ``get_snapshot``.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Sensitive-field metadata inspector.
-CONTRACT: ``sensitive_field`` vertices + ``HAS_SENSITIVE_FIELD`` from canonical host; typed ``Snapshot``.
-INVARIANTS: Candidate set is deduplicated union of schema/action/resource subclasses.
-FLOW: MRO scan -> per-property facet rows -> optional host stub rows merged in coordinator.
-FAILURES: Missing declarations produce ``None`` payload (skip), not an error.
-EXTENSION POINTS: Additional marker roots through ``_target_intents``.
-AI-CORE-END
 """
 
 from __future__ import annotations
@@ -48,14 +37,12 @@ from graph.facet_vertex import FacetVertex
 
 class SensitiveIntentInspector(BaseIntentInspector):
     """
-    Maps ``@sensitive`` configs to ``sensitive_field`` graph vertices and host edges.
-
-    AI-CORE-BEGIN
+AI-CORE-BEGIN
     ROLE: Concrete inspector for sensitive field masking metadata on the graph.
     CONTRACT: ``inspect`` returns multiple ``FacetVertex`` rows; snapshot key ``sensitive``.
     INVARIANTS: Uses union traversal roots and deduplicates classes by identity.
     AI-CORE-END
-    """
+"""
 
     _target_intents: tuple[type, ...] = (BaseSchema, BaseAction, BaseResourceManager)
 

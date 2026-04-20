@@ -138,17 +138,6 @@ Loaded but zero rows::
     bag = CompositeMany(ids=(), entities=(), entities_loaded=True)
     list(bag)  # []
     bag.is_loaded  # True
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Runtime relation container primitives for domain entity fields.
-CONTRACT: Keep relation identity always available (id/ids) and enforce explicit hydration for object access.
-INVARIANTS: Containers are frozen; unloaded relation object access fails fast via RelationNotLoadedError.
-FLOW: adapter/repository builds container -> domain code reads id(s) or hydrated entity payload -> coordinator uses annotations for topology semantics.
-FAILURES: ValueError on invalid constructor combinations, RelationNotLoadedError on unloaded access, AttributeError on mutation.
-EXTENSION POINTS: New relation flavors can subclass BaseRelationOne/BaseRelationMany with custom relation_type semantics.
-AI-CORE-END
 """
 
 from __future__ import annotations
@@ -192,33 +181,12 @@ class RelationType(Enum):
 
 class BaseRelationOne[T]:
     """
-    Base **to-one** relation container.
-
-    **Role**
-        Hold a related **id** and optionally the full **entity**. Unknown
-        attribute names delegate to `entity` when hydrated.
-
-    **Invariants**
-        `id` is mandatory and non-None. Instance is immutable.
-
-    **Neighbors**
-        Subclasses only override `relation_type`. Errors for unloaded graphs use
-        `RelationNotLoadedError` from `exceptions.py`.
-
-    **Attributes**
-        ``id``
-            Related primary key (any type the model uses).
-        ``entity``
-            Hydrated row or ``None`` when only the id was loaded.
-        ``relation_type``
-            Set on concrete subclasses for coordinator / diagram metadata.
-
-    AI-CORE-BEGIN
+AI-CORE-BEGIN
     ROLE: Base immutable to-one relation wrapper.
     CONTRACT: Always store id; optionally hold hydrated entity and proxy attributes to it.
     INVARIANTS: id is mandatory; missing hydrated entity triggers RelationNotLoadedError for proxied access.
     AI-CORE-END
-    """
+"""
 
     __slots__ = ("_entity", "_id")
 
@@ -310,28 +278,12 @@ class BaseRelationOne[T]:
 
 class BaseRelationMany[T]:
     """
-    Base **to-many** relation container.
-
-    **Role**
-        Hold ``ids`` and optionally parallel ``entities``; support ``len``,
-        indexing, slicing, and iteration over loaded rows.
-
-    **Invariants**
-        Immutable instance. Indexing and iteration require
-        ``entities_loaded`` (hydration completed). If not loaded, they raise
-        `RelationNotLoadedError`. If loaded with zero entities, iteration is
-        empty and out-of-range index raises `IndexError`.
-
-    **Neighbors**
-        Concrete classes set `relation_type`. Coordinator validates pairing with
-        inverse side at build time.
-
-    AI-CORE-BEGIN
+AI-CORE-BEGIN
     ROLE: Base immutable to-many relation wrapper.
     CONTRACT: Track ids plus optional hydrated entities with explicit loaded-state semantics.
     INVARIANTS: Index/iteration require loaded entities; unloaded access fails fast.
     AI-CORE-END
-    """
+"""
 
     __slots__ = ("_entities", "_entities_loaded", "_ids")
 

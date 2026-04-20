@@ -39,17 +39,6 @@ ARCHITECTURE / DATA FLOW
         synthesized **Service** stub to the ``Application`` vertex when
     that vertex exists. ``BaseAction`` / ``BaseResourceManager`` targets reuse
     the canonical ``action`` / ``resource_manager`` vertices (no application edge).
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Structural dependency-edge inspector for action topology.
-CONTRACT: Read ``_depends_info`` and emit ``depends`` edges from ``action`` nodes.
-INVARIANTS: Snapshot key is ``depends``; classes without declarations are skipped.
-FLOW: marker subclass discovery -> scratch read -> typed snapshot -> payload for coordinator merge/commit.
-FAILURES: Missing declarations return ``None`` payload (skip), not an error.
-EXTENSION POINTS: Edge enrichment can be introduced by extending ``DependencyInfo`` handling.
-AI-CORE-END
 """
 
 from __future__ import annotations
@@ -74,14 +63,12 @@ from graph.facet_vertex import FacetVertex
 
 class DependencyIntentInspector(BaseIntentInspector):
     """
-    Inspector for ``DependencyIntent`` declarations.
-
-    AI-CORE-BEGIN
+AI-CORE-BEGIN
     ROLE: Concrete dependency inspector.
     CONTRACT: Emit action payloads with structural depends edges from ``_depends_info``.
     INVARIANTS: Uses ``DependencyIntent`` marker traversal and ``depends`` snapshot key.
     AI-CORE-END
-    """
+"""
 
     _target_intent: type = DependencyIntent
 

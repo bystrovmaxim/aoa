@@ -46,16 +46,6 @@ writes different metadata onto the same function object.
 
     checker = FieldStringChecker("name", required=True, min_length=3)
     checker.check({"name": "John"})  # OK
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: String checker implementation and decorator for aspect methods.
-CONTRACT: Metadata keys match FieldStringChecker constructor / snapshot hydration.
-INVARIANTS: Ordered string constraints; deterministic metadata shape.
-FLOW: decorator -> _checker_meta -> inspector -> runtime check.
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from __future__ import annotations

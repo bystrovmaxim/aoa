@@ -85,17 +85,6 @@ EXAMPLES
         correlation_id="corr-456",
         ab_variant="control",
     )
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Immutable request-metadata schema inside execution context.
-CONTRACT: Carry transport request metadata with strict schema boundaries.
-INVARIANTS: Frozen object, forbid extra fields, optional typed attributes.
-FLOW: ingress assembly -> context propagation -> logging/tracing/context view reads.
-FAILURES: Validation errors occur only for schema/type violations.
-EXTENSION POINTS: Inherit RequestInfo for project-specific request attributes.
-AI-CORE-END
 """
 
 from datetime import datetime
@@ -107,14 +96,12 @@ from action_machine.model.base_schema import BaseSchema
 
 class RequestInfo(BaseSchema):
     """
-    Immutable schema with request metadata fields.
-
-    AI-CORE-BEGIN
+AI-CORE-BEGIN
     ROLE: Request metadata node in Context.
     CONTRACT: Expose typed optional fields for transport-level request details.
     INVARIANTS: Frozen instance with forbid-extra schema policy.
     AI-CORE-END
-    """
+"""
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 

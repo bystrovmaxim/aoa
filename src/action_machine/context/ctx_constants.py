@@ -68,17 +68,6 @@ EXAMPLES
     async def billing_aspect(self, params, state, box, connections, ctx):
         plan = ctx.get("user.billing_plan")
         ...
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Typed constant namespace for context field declarations.
-CONTRACT: Provide stable dot-path literals for @context_requires usage.
-INVARIANTS: String-only constants grouped by User/Request/Runtime components.
-FLOW: Ctx constant -> @context_requires -> ContextView.get() -> Context.resolve().
-FAILURES: Unknown/custom fields require explicit string paths.
-EXTENSION POINTS: Add new constants when standard context schema expands.
-AI-CORE-END
 """
 
 

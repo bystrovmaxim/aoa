@@ -29,17 +29,6 @@ ARCHITECTURE / DATA FLOW
                             ▼
                      FacetVertex — ``meta`` (actions) or ``resource_manager`` (managers)
                             └─ optional belongs_to -> domain
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Meta facet inspector for action/resource classes.
-CONTRACT: Read ``_meta_info``; emit ``meta`` or ``resource_manager`` payloads with optional domain edge.
-INVARIANTS: Dual-marker traversal with deduplication; no payload without decorator scratch.
-FLOW: marker subclass discovery -> scratch check -> typed snapshot -> facet payload.
-FAILURES: Missing scratch returns ``None`` payload (skip), invalid scratch shape raises ``TypeError``.
-EXTENSION POINTS: Marker sources can be extended via ``_target_intents``.
-AI-CORE-END
 """
 
 from __future__ import annotations
@@ -58,15 +47,12 @@ from graph.facet_vertex import FacetVertex
 
 class MetaIntentInspector(BaseIntentInspector):
     """
-    Inspector: ``@meta`` on actions -> ``meta`` facet; on resource managers ->
-    ``resource_manager`` canonical node + optional ``belongs_to`` domain edge.
-
-    AI-CORE-BEGIN
+AI-CORE-BEGIN
     ROLE: Concrete meta inspector over action/resource marker trees.
     CONTRACT: Emit facet payloads when ``_meta_info`` exists.
     INVARIANTS: Traversal sources are ``ActionMetaIntent`` and ``ResourceMetaIntent``.
     AI-CORE-END
-    """
+"""
 
     _target_intents: tuple[type, ...] = (ActionMetaIntent, ResourceMetaIntent)
 

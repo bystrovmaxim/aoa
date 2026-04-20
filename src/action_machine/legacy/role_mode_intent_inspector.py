@@ -44,18 +44,6 @@ Happy path: ``ApplicationRole`` with ``@role_mode`` → non-``None`` payload.
 
 Edge case: undecorated ``RoleModeIntent`` subclass without scratch →
 ``inspect`` returns ``None`` (nothing to record).
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Lifecycle facet inspector for role types.
-CONTRACT: ``role_class`` payload carrying ``mode`` from ``_role_mode_info``; merges with ``RoleClassInspector``.
-INVARIANTS: Walk ``RoleModeIntent``; skip classes without scratch.
-FLOW: coordinator collect → inspect → FacetVertex → commit.
-FAILURES: Returns None when no lifecycle scratch.
-EXTENSION POINTS: None; keep split with ``RoleClassInspector``.
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from __future__ import annotations
@@ -72,14 +60,12 @@ from graph.facet_vertex import FacetVertex
 
 class RoleModeIntentInspector(BaseIntentInspector):
     """
-    Builds merged ``role_class`` facet rows carrying ``@role_mode`` lifecycle ``mode``.
-
-    AI-CORE-BEGIN
+AI-CORE-BEGIN
     ROLE: Concrete inspector for role lifecycle classification metadata.
     CONTRACT: ``role_class`` vertex identity + ``mode`` in ``node_meta``; snapshot key ``role_mode``.
     INVARIANTS: Traversal source is ``RoleModeIntent``; payloads contain no edges.
     AI-CORE-END
-    """
+"""
 
     _target_intent: type = RoleModeIntent
 

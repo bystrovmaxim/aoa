@@ -40,17 +40,6 @@ Happy path:
 Edge case:
     Lazy export avoids graph-stack imports during early module initialization,
     preventing circular/lifecycle issues around model bootstrap.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Runtime package-level API and lazy export gateway.
-CONTRACT: Expose Core lazily; preserve runtime import safety.
-INVARIANTS: Snapshot-driven runtime semantics and fail-fast coordinator build.
-FLOW: package import -> lazy core access -> coordinator build -> machine run.
-FAILURES: Unknown attribute access errors and downstream coordinator/runtime errors.
-EXTENSION POINTS: Add exports without breaking lazy-import safety guarantees.
-AI-CORE-END
 """
 
 from __future__ import annotations

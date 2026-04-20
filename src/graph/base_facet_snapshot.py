@@ -33,17 +33,6 @@ ARCHITECTURE / DATA FLOW
               │
               ├─ cached as typed snapshot in coordinator
               └─ consumed for graph build validation/commit
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Abstract typed-snapshot contract for graph facets.
-CONTRACT: Require deterministic projection from typed snapshot to ``FacetVertex``.
-INVARIANTS: Snapshot type is inspector-defined; projection method is mandatory.
-FLOW: inspector builds snapshot -> snapshot projects payload -> coordinator validates/commits graph.
-FAILURES: Missing/incorrect projection implementations fail via abstract contract or downstream checks.
-EXTENSION POINTS: Any inspector can define nested snapshot types inheriting this base.
-AI-CORE-END
 """
 
 from __future__ import annotations
@@ -55,17 +44,12 @@ from graph.facet_vertex import FacetVertex
 
 class BaseFacetSnapshot(ABC):
     """
-    Abstract facet snapshot: single source for graph payload projection.
-
-    Concrete snapshots usually live as nested classes on their inspector, e.g.
-    ``RoleIntentInspector.Snapshot``.
-
-    AI-CORE-BEGIN
+AI-CORE-BEGIN
     ROLE: Base ABC for typed facet snapshot implementations.
     CONTRACT: Implement ``to_facet_vertex``.
     INVARIANTS: Projection should be side-effect free and return a valid payload object.
     AI-CORE-END
-    """
+"""
 
     @abstractmethod
     def to_facet_vertex(self) -> FacetVertex:

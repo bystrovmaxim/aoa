@@ -98,16 +98,11 @@ EXAMPLES
 
 class OnIntent:
     """
-    Marker mixin denoting support for ``@on`` decorator.
-
-    Classes inheriting ``OnIntent`` may declare ``@on`` methods subscribed to
-    typed ActionMachine plugin events.
-
-    AI-CORE-BEGIN
+AI-CORE-BEGIN
     ROLE: Marker contract for plugin event subscriptions.
     CONTRACT: Classes with @on subscriptions must carry this marker.
     INVARIANTS: Logic-free mixin for ``issubclass`` / MRO checks.
     AI-CORE-END
-    """
+"""
 
     pass

@@ -128,17 +128,6 @@ Wrong type::
         name = 42
         description = "text"
     # TypeError: ... must be str, got int ...
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Domain marker base contract.
-CONTRACT: Subclasses define validated ``name`` and ``description`` class metadata.
-INVARIANTS: ``*Domain`` suffix and non-empty string metadata are enforced at class definition time.
-FLOW: subclass declaration -> ``__init_subclass__`` validation -> decorators reference domain type.
-FAILURES: NamingSuffixError / ValueError / TypeError on invalid subclass declarations.
-EXTENSION POINTS: Applications define custom domain hierarchies via subclassing.
-AI-CORE-END
 """
 from __future__ import annotations
 
@@ -153,34 +142,12 @@ _REQUIRED_SUFFIX = "Domain"
 
 class BaseDomain(ABC):
     """
-    Abstract base for all domain marker classes.
-
-    **Role**
-        Supply ``name`` and ``description`` as ``ClassVar[str]`` metadata for a
-        business area. Subclasses are never instantiated for domain identity;
-        the **type** is the handle.
-
-    **Invariants**
-        - Subclass names end with the suffix ``Domain`` (``__init_subclass__``).
-        - Concrete branches define non-empty string ``name`` and ``description``
-          (possibly inherited from an intermediate base above ``BaseDomain``).
-
-    **Neighbors**
-        - Referenced from decorators such as ``@entity`` and ``@meta``.
-        - Consumed by metadata inspectors when building the ``GraphCoordinator`` graph.
-
-    **Class attributes**
-        ``name``
-            Short stable identifier (e.g. ``"orders"``).
-        ``description``
-            Human-readable specification text for docs and diagrams.
-
-    AI-CORE-BEGIN
+AI-CORE-BEGIN
     ROLE: Typed domain identity marker.
     CONTRACT: Exposes validated class metadata used by decorators and inspectors.
     INVARIANTS: No instances required; class definition enforces suffix and metadata quality.
     AI-CORE-END
-    """
+"""
 
     name: ClassVar[str]
     description: ClassVar[str]

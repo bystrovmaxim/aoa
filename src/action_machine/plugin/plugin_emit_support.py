@@ -70,21 +70,6 @@ Happy path: the machine constructs one ``PluginEmitSupport``; ``_run_internal`` 
 
 Edge case: a test passes a stub ``plugin_ctx`` that records ``emit_event`` calls
 to assert event types and payloads without a full ``PluginCoordinator``.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Plugin event envelope factory + emit façade for global and aspect pipeline
-  events owned by the production machine path.
-CONTRACT: Stable shapes for BasePluginEvent kwargs and emit_event extras; global
-  start/finish and regular/summary aspect events built only here for those stages.
-INVARIANTS: No I/O; immutable config after construction; no stored PluginRunContext.
-FLOW: Machine constructs once → _run_internal and nested helpers call emit_* with
-  a per-run plugin_ctx.
-FAILURES: Delegates to plugin_ctx.emit_event (handler/plugin errors propagate).
-EXTENSION POINTS: Subclass or replace when custom event base shapes are required.
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from __future__ import annotations
@@ -109,16 +94,14 @@ from action_machine.plugin.plugin_run_context import PluginRunContext
 
 class PluginEmitSupport:
     """
-    Builds shared plugin fields, emit extras, and emits global + aspect pipeline events.
-
-    AI-CORE-BEGIN
+AI-CORE-BEGIN
     ROLE: Public alternative to inlined event construction on the machine.
     CONTRACT: ``base_fields`` + ``emit_extra_kwargs`` match historical machine output;
       global and aspect emit helpers delegate to ``plugin_ctx.emit_event``.
     INVARIANTS: ``machine_class_name`` frozen at construction; no ``PluginRunContext``
       stored on ``self``.
     AI-CORE-END
-    """
+"""
 
     __slots__ = ("_log_coordinator", "_machine_class_name", "_mode")
 

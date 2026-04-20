@@ -84,17 +84,6 @@ LIFECYCLE (IMPORT VS BUILD VS RUNTIME)
 - **Coordinator ``build()``**: inspector runs over registered targets and emits
   facet payloads.
 - **Runtime**: domain entities are data; this module does not run per request.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Entity facet metadata inspector.
-CONTRACT: Convert decorated entity classes into typed snapshots and ``entity`` facet payloads.
-INVARIANTS: Payload emission requires ``_entity_info``; relation edges use ``entity_*_*`` facet edge types.
-FLOW: entity scratch + pydantic fields -> collect_entity_* helpers -> snapshot -> payload for coordinator commit.
-FAILURES: Missing scratch produces skip; type-hint resolution fallback may reduce relation precision.
-EXTENSION POINTS: Tooling/tests can reuse module-level ``collect_entity_*`` helpers and snapshot aliases.
-AI-CORE-END
 """
 
 from __future__ import annotations
@@ -556,23 +545,12 @@ def collect_entity_lifecycles(cls: type) -> list[EntityLifecycleInfo]:
 
 class EntityIntentInspector(BaseIntentInspector):
     """
-    Inspector for ``EntityIntent`` / ``@entity`` classes.
-
-    When ``_entity_info`` is present, builds ``FacetVertex`` with ``node_type``
-    ``entity`` and bundles field/relation/lifecycle tuples under ``node_meta``.
-    Emits an informational
-    ``belongs_to`` edge to the ``domain`` vertex when
-    ``domain`` is a class, plus **edges** to related ``entity`` vertices
-    (``entity_*_*`` facet ``edge_type``) with ``field_name``, ``relation_type``,
-    ``cardinality``, and related metadata in ``edge_meta``. Fields marked with
-    ``NoGraphEdge()`` are skipped.
-
-    AI-CORE-BEGIN
+AI-CORE-BEGIN
     ROLE: Concrete ``EntityIntent`` inspector.
     CONTRACT: Emit ``entity`` facet nodes plus relation edges to target entities.
     INVARIANTS: Storage key is stable (``entity``); collection remains declaring-class metadata only.
     AI-CORE-END
-    """
+"""
 
     _target_intent: type = EntityIntent
 

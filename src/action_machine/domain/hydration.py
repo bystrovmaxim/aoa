@@ -77,17 +77,6 @@ Mapping via lambda (dictionary keys differ from fields):
     })
 
 Proxy e is typed — the IDE suggests OrderEntity fields.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Typed hydration helper for domain entities.
-CONTRACT: Convert flat dictionaries into validated entities via direct or mapper-based field mapping.
-INVARIANTS: Mapping remains explicit; proxy only exposes declared fields; entity construction uses normal validation.
-FLOW: input dict -> optional typed mapper (EntityProxy) -> entity constructor -> validated instance.
-FAILURES: AttributeError for bad proxy fields; pydantic validation errors for invalid mapped payload.
-EXTENSION POINTS: Nested composition supported by calling ``build()`` recursively inside mapper lambdas.
-AI-CORE-END
 """
 
 from __future__ import annotations
@@ -100,26 +89,12 @@ from action_machine.domain.entity import BaseEntity
 
 class EntityProxy[T]:
     """
-    Proxy for typed field access to entities in build().
-
-    When accessing an attribute, returns the field name as a string.
-    Used as the first argument to the mapper in build().
-
-    Attributes:
-        _cls: the entity class whose fields are being proxied.
-
-    Example:
-        proxy = EntityProxy(OrderEntity)
-        proxy.id      # → "id"
-        proxy.amount  # → "amount"
-        proxy.foo     # → AttributeError
-
-    AI-CORE-BEGIN
+AI-CORE-BEGIN
     ROLE: Typed field-name provider for mapper functions.
     CONTRACT: Return field name strings only for declared entity fields.
     INVARIANTS: No value lookup, no mutation, no fallback for unknown fields.
     AI-CORE-END
-    """
+"""
 
     def __init__(self, cls: type[BaseEntity]) -> None:
         self._cls = cls

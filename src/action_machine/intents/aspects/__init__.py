@@ -37,18 +37,6 @@ EXAMPLES
 
 Edge case: regular aspects without a summary aspect fail during metadata
 validation.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Aspects package API surface.
-CONTRACT: Export aspect decorators and marker mixin used by action classes.
-INVARIANTS: Keep declaration metadata deterministic for inspector/coordinator.
-FLOW: decorator metadata -> inspector snapshot -> coordinator cache -> runtime execution.
-FAILURES: Structural errors are enforced in decorator/inspector/machine layers.
-EXTENSION POINTS: New aspect decorators must preserve metadata collection contract.
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from action_machine.intents.aspects.regular_aspect_decorator import regular_aspect

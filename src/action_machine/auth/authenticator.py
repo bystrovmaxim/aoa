@@ -40,18 +40,6 @@ EXAMPLES
             if api_key == "secret":
                 return UserInfo(user_id="api-user", roles=(ServiceApiRole,))
             return None
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Abstract authenticator interface.
-CONTRACT: Subclasses implement async ``authenticate(credentials) -> UserInfo | None``.
-INVARIANTS: Returns None for invalid credentials; does not raise exceptions.
-FLOW: credentials -> verification -> UserInfo (or None).
-FAILURES: None by contract; subclasses should not raise.
-EXTENSION POINTS: Implement custom authentication logic.
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from __future__ import annotations
@@ -65,14 +53,12 @@ if TYPE_CHECKING:
 
 class Authenticator(ABC):
     """
-    Abstract contract for authentication backends.
-
-    AI-CORE-BEGIN
+AI-CORE-BEGIN
     ROLE: Extension point for credential verification implementations.
     CONTRACT: Implement async ``authenticate(credentials) -> UserInfo | None``.
     INVARIANTS: Return ``None`` for invalid credentials instead of exceptions.
     AI-CORE-END
-    """
+"""
 
     @abstractmethod
     async def authenticate(self, credentials: Any) -> UserInfo | None:

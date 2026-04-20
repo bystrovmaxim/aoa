@@ -76,17 +76,6 @@ EXAMPLES
     await wrapper.commit()               # -> TransactionProhibitedError
     await wrapper.open()                 # -> TransactionProhibitedError
     await wrapper.begin()                # -> TransactionProhibitedError
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Protective SQL manager proxy for nested action execution.
-CONTRACT: Block transaction lifecycle control; allow only execute delegation.
-INVARIANTS: Original manager preserved; rollup flag propagated to each wrapper.
-FLOW: root manager -> wrapper for child -> optional re-wrap deeper levels.
-FAILURES: Forbidden lifecycle methods raise TransactionProhibitedError.
-EXTENSION POINTS: Keep policy strict; add behavior only through real managers.
-AI-CORE-END
 """
 
 from typing import Any

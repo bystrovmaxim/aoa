@@ -95,17 +95,6 @@ EXAMPLES
     await db.begin()
     await db.execute("INSERT INTO orders ...")
     await db.commit()  # -> ROLLBACK (data not persisted)
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Abstract transaction-capable SQL resource manager contract.
-CONTRACT: Enforce open/begin/commit/rollback/execute lifecycle API.
-INVARIANTS: rollup-aware commit behavior; check_rollup_support always true.
-FLOW: construct manager -> open/begin -> execute -> commit(rollback in rollup).
-FAILURES: Incorrect subclass implementation breaks abstract/runtime contracts.
-EXTENSION POINTS: Implement driver-specific managers and wrappers.
-AI-CORE-END
 """
 
 from abc import abstractmethod

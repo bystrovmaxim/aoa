@@ -51,19 +51,6 @@ Edge case:
             return {"x": 1}
 
     # validate_aspects(BrokenAction, aspects) -> ValueError
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Aspect intent validation module.
-CONTRACT: Enforce structural aspect pipeline contract at metadata-build time.
-INVARIANTS: marker inheritance; own-class aspect list; one summary max; regular
-  requires summary; summary last in declaring class order.
-FLOW: decorator metadata -> inspector list (vars-only) -> validators -> snapshot.
-FAILURES: TypeError for undeclared aspect intent, ValueError for invalid aspect structure.
-EXTENSION POINTS: New aspect types must preserve validator assumptions or extend checks.
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from __future__ import annotations
@@ -73,14 +60,12 @@ from typing import Any
 
 class AspectIntent:
     """
-    Marker mixin declaring that an action owns an aspect pipeline.
-
-    AI-CORE-BEGIN
+AI-CORE-BEGIN
     ROLE: Public aspect intent marker.
     CONTRACT: Classes with aspect decorators must include this marker in MRO.
     INVARIANTS: Pure marker, no state and no side effects.
     AI-CORE-END
-    """
+"""
 
     pass
 

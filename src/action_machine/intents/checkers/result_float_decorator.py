@@ -41,16 +41,6 @@ USAGE
 
     checker = FieldFloatChecker("total", min_value=0.0)
     checker.check({"total": 1500.0})  # OK
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Numeric checker implementation and decorator for aspect methods.
-CONTRACT: Metadata keys match FieldFloatChecker constructor / snapshot hydration.
-INVARIANTS: Accepts ``int`` and ``float`` (``bool`` is a subclass of ``int`` in Python).
-FLOW: decorator -> _checker_meta -> inspector -> runtime check.
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from __future__ import annotations

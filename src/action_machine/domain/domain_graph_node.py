@@ -34,17 +34,6 @@ Happy path::
     assert n.node_type == "Domain" and n.label == "ShopDomain"
 
 Edge case: same interchange shape for any concrete ``BaseDomain`` subclass type passed in.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Domain-scoped BaseGraphNode bridge for BaseDomain subclasses.
-CONTRACT: Construct from ``type[TDomain]`` via ``__init__``; ``node_type="Domain"``; dotted-path ``id``; label = class name; ``name``/``description`` in ``properties``; ``belongs_to`` ``ApplicationContext`` in ``edges``.
-INVARIANTS: Immutable node; host class on ``BaseGraphNode.obj``.
-FLOW: domain class -> ``DomainGraphNode.__init__`` -> frozen ``BaseGraphNode`` fields.
-EXTENSION POINTS: Other graph node specializations follow the same constructor pattern.
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from __future__ import annotations

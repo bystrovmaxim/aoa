@@ -83,14 +83,12 @@ from action_machine.resources.wrapper_sql_connection_manager import (
 
 class PostgresConnectionManager(SqlConnectionManager):
     """
-    Asyncpg-backed SQL connection manager for PostgreSQL.
-
-    AI-CORE-BEGIN
+AI-CORE-BEGIN
     ROLE: Concrete SQL manager for Postgres runtime operations.
     CONTRACT: Implements open/begin/execute/commit/rollback over asyncpg.
     INVARIANTS: commit uses rollback when rollup=True.
     AI-CORE-END
-    """
+"""
 
     def __init__(
         self,

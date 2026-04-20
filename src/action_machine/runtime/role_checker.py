@@ -42,18 +42,6 @@ Happy path:
 Edge case:
     If user has only ``RoleMode.SILENCED`` role types, ``AnyRole`` fails with
     ``AuthorizationError``.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Machine pipeline role gate.
-CONTRACT: check(action, context, runtime) → None; deny → AuthorizationError.
-INVARIANTS: SILENCED filtered; grant = subclass check.
-FLOW: After snapshot cache read; before aspect pipeline body execution.
-FAILURES: AuthorizationError, TypeError (missing spec / invalid snapshot).
-EXTENSION POINTS: Custom ``RoleChecker`` injection on ``ActionProductMachine``.
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from __future__ import annotations

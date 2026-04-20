@@ -65,14 +65,12 @@ from graph.facet_vertex import FacetVertex
 
 class DescribedFieldsIntentInspector(BaseIntentInspector):
     """
-    Inspector for Pydantic field documentation metadata.
-
-    AI-CORE-BEGIN
+AI-CORE-BEGIN
     ROLE: Concrete described-fields inspector.
     CONTRACT: Emit schema facet payloads; vertex type follows BaseParams / BaseResult / other.
     INVARIANTS: Marker traversal via ``DescribedFieldsIntent`` and stable storage key.
     AI-CORE-END
-    """
+"""
 
     _target_intent: type = DescribedFieldsIntent
 

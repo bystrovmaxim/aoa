@@ -34,16 +34,6 @@ EXAMPLES
 
     Response body:
     {"order_id": "ORD-user_123-001", "status": "created", "total": 1500.0}
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Example shared action for HTTP and MCP transports.
-CONTRACT: Validate input early and build deterministic result payload.
-INVARIANTS: Summary consumes state produced by regular aspect.
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from typing import Any

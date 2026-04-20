@@ -42,18 +42,6 @@ EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
 ``{%var.amount|red}``, ``{iif({%var.ok}, green('yes'), red('no'))}``.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Sole substitution + iif + color pipeline for LogCoordinator.
-CONTRACT: substitute(message, var, scope, ctx, state, params) -> final str.
-INVARIANTS: strict LogTemplateError policy; private segment ban; sensitive mask.
-FLOW: replace {%...} → process iif → expand color markers.
-FAILURES: LogTemplateError on resolution/template issues.
-EXTENSION POINTS: new namespaces need resolver registration in __init__.
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 import re
@@ -134,18 +122,12 @@ _COLOR_MARKER_PATTERN: re.Pattern[str] = re.compile(
 
 class VariableSubstitutor:
     """
-    Resolves ``{%...}``, evaluates ``{iif}``, applies colors and ``@sensitive``.
-
-    Dispatch table maps namespace names to resolver methods; navigation uses
-    ``DotPathNavigator``. Shared resolution and masking live in
-    ``_resolve_and_mask``.
-
-    AI-CORE-BEGIN
+AI-CORE-BEGIN
     ROLE: Template substitution engine used by LogCoordinator.
     CONTRACT: Resolve namespaces, evaluate iif, apply masking and color markers.
     INVARIANTS: Strict fail-fast semantics via LogTemplateError.
     AI-CORE-END
-    """
+"""
 
     def __init__(self) -> None:
         """Create evaluator and per-namespace resolver map."""

@@ -86,23 +86,6 @@ Edge case:
     If an aspect raises after earlier aspects ran, ``SagaCoordinator`` unwinds
     frames in reverse order, then ``ErrorHandlerExecutor`` runs a matching
     ``@on_error`` handler or re-raises after ``UnhandledErrorEvent``.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Thin orchestrator over decomposed core components.
-CONTRACT: run/_run_internal sequence; execution cache from coordinator facets;
-  component DI via keyword-only constructor args.
-INVARIANTS: local saga stack per run; rollback before @on_error; typed plugin
-  emission for globals + regular/summary aspects via ``PluginEmitSupport`` only;
-  SagaCoordinator, ErrorHandlerExecutor for saga and @on_error events;
-  inspector types for cache fields are TYPE_CHECKING-only imports.
-FLOW: cache → gates → tools box → aspect pipeline → finish event.
-FAILURES: component and pipeline exceptions unchanged by orchestration layer.
-EXTENSION POINTS: role_checker, connection_validator, tools_box_factory,
-  aspect_executor, error_handler_executor, saga_coordinator.
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from __future__ import annotations
@@ -259,15 +242,14 @@ class _ActionExecutionCache:
 
 
 class ActionProductMachine(BaseActionMachine):
-    """Async action runner; delegates stages to core components (see module docstring).
-
-    AI-CORE-BEGIN
+    """
+AI-CORE-BEGIN
     ROLE: Public production machine entry point.
     CONTRACT: ``run`` → orchestrated pipeline; keyword-only component overrides.
     INVARIANTS: built ``GraphCoordinator``; per-run execution cache from facet
       snapshots only.
     AI-CORE-END
-    """
+"""
 
     @staticmethod
     def create_default_coordinator() -> GraphCoordinator:

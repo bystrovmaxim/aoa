@@ -11,7 +11,7 @@ All docstrings, comments, AI-CORE blocks, and examples are **English**. No Russi
 
 Docs answer questions a reader has. If a block answers nothing, omit it.
 
-**Two layers:** (1) **Human** module docstring — for developers. (2) **AI-CORE** — for agents navigating the code. Each layer must stand alone (overlap is OK). Do not make one layer depend on the other for essential facts.
+**Two layers:** (1) **Human** module docstring — for developers only (no AI-CORE). (2) **AI-CORE** — for agents; only on **public classes** and **module-level functions** (not on the module file docstring, not on methods).
 
 ## Every file
 
@@ -23,30 +23,45 @@ Docs answer questions a reader has. If a block answers nothing, omit it.
 
 ## Module docstring (human)
 
-Fixed section order; separate sections with full-width `═` lines. **All listed sections are required** unless optional ones are justified.
+Fixed section order; separate sections with full-width `═` lines. Use the sections that fit the module; omit empty shells.
+
+Typical sections:
 
 1. **Title** — one line: `Name — purpose`.
-2. **PURPOSE** — 1–3 paragraphs: why the module exists.
-3. **ARCHITECTURE / DATA FLOW** — ASCII diagram (pipeline, tree, phases, registration flow, etc.).
-4. **INVARIANTS** — bullet list of contracts that always hold.
-5. **EXAMPLES** — at least two: happy path + edge/error case.
-6. **ERRORS / LIMITATIONS** — concrete exception types and important constraints.
+2. **PURPOSE** — why the module exists.
+3. **ARCHITECTURE / DATA FLOW** — ASCII diagram when useful.
+4. Further sections (examples, philosophy, terminology) as needed.
 
-Optional blocks (**SCOPE**, **RATIONALE**, **LIFECYCLE**, **TERMINOLOGY**) only if the module is unclear without them — insert between PURPOSE and ARCHITECTURE.
+**Do not** put `AI-CORE-BEGIN` / `AI-CORE-END` in the module docstring. Machine-readable blocks belong on classes or top-level functions.
 
-## Inside modules (classes, methods, fields)
+## Classes (public)
 
-- **Public classes:** docstring = **AI-CORE block only** (no long human class doc; module doc already describes architecture).
-- **Methods:** one line if name/signature are enough; multi-line only for non-obvious ordering, side effects, or **Raises:**.
-- **Properties / fields:** one line each.
+Docstring may combine:
+
+- Short human summary when it helps (above the block), and
+- One `AI-CORE-BEGIN` … `AI-CORE-END` block with **only** structured keys (`ROLE`, `CONTRACT`, `INVARIANTS`, …). No narrative prose **inside** the AI-CORE markers.
+
+Or AI-CORE-only when the type is self-explanatory.
+
+## Module-level functions
+
+May include the same `AI-CORE-BEGIN` … `AI-CORE-END` pattern as classes when the function is part of the public API.
+
+## Methods (instance/class/static) and nested functions
+
+Use a **single short** docstring (one line preferred), or a brief `#` comment above the `def`. No AI-CORE. Describe intent or non-obvious side effects only.
+
+## Properties / fields
+
+One line each when documented.
 
 ## Package `__init__.py`
 
-Same section pattern as a module; diagram shows **submodules and exports**. EXAMPLES are mandatory (public import pattern). Large packages: optional **PACKAGE CONTENTS**; optional deps: **INSTALLATION**.
+Same idea as a module docstring: human sections, diagram of exports if useful; **no** AI-CORE in the package docstring itself.
 
 ## AI-CORE block (machine-readable)
 
-Wrap with `AI-CORE-BEGIN` / `AI-CORE-END`. Place in public classes and `__all__` exports. **One to two sentences per key**; omit keys that do not apply (no empty keys).
+Wrap with `AI-CORE-BEGIN` / `AI-CORE-END`. **Only** on public classes and module-level functions. **One to two sentences per key**; omit keys that do not apply.
 
 **Class:**
 
@@ -54,23 +69,16 @@ Wrap with `AI-CORE-BEGIN` / `AI-CORE-END`. Place in public classes and `__all__`
 ROLE: …
 CONTRACT: …
 INVARIANTS: …
-NEIGHBORS: …
 ```
 
 **Decorator / factory:** `PURPOSE`, `INPUT/OUTPUT`, `SIDE EFFECTS`, `FAILURES`, `ORDER`.
 
-**Pydantic / dataclass:** `ROLE`, `FIELDS` (non-obvious only), `INVARIANTS`, `CREATED BY`, `CONSUMED BY`.
-
-**Marker / intent mixin:** `ROLE`, `CHECKED BY`, `SCRATCH`, `CONSUMED BY`.
-
 **Inspector:** `ROLE`, `TRAVERSAL`, `READS`, `EMITS`, `EDGES`.
-
-**Package re-export `__init__.py`:** `ROLE`, `EXPORTS`, `ENTRY PATTERN`, `INTERNAL FLOW`.
 
 ## Diagram hints (module ARCHITECTURE)
 
-Use ASCII: vertical pipelines (decorators → inspector → snapshot), phased flows (`COLLECT → … → COMMIT`), inheritance trees, registration → `build()` → serve.
+Use ASCII: pipelines, phased flows, trees.
 
 ## When editing
 
-Match surrounding file style. Do not add redundant module-level prose for obvious code. Do not remove existing AI-CORE or required sections unless the task explicitly refactors documentation.
+Match surrounding file style. Do not add redundant prose. Do not put AI-CORE in module docstrings or method docstrings.

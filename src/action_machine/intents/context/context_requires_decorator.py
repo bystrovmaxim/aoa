@@ -113,17 +113,6 @@ EXAMPLES
     async def handle_on_error(self, params, state, box, connections, error, ctx):
         user_id = ctx.get(Ctx.User.user_id)
         return ErrorResult(user_id=user_id, error=str(error))
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Context-access declaration decorator module.
-CONTRACT: Attach deterministic required-context key set to decorated methods.
-INVARIANTS: Non-empty string keys and callable target validation.
-FLOW: declaration -> _required_context_keys -> signature validation -> ContextView runtime access.
-FAILURES: TypeError/ValueError for invalid declaration usage.
-EXTENSION POINTS: Custom context keys via dot-path strings.
-AI-CORE-END
 """
 
 from __future__ import annotations

@@ -52,17 +52,6 @@ EXAMPLES
             db = connections["db"]
             result = await db.execute("SELECT ...")
             return {"data": result}
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Declarative class decorator for resource connection contracts.
-CONTRACT: Store immutable ConnectionInfo records in class-level scratch list.
-INVARIANTS: Manager subclass + ConnectionIntent + unique non-empty key required.
-FLOW: decorator args validation -> class validation -> metadata registration.
-FAILURES: TypeError/ValueError on invalid declaration shape or duplicates.
-EXTENSION POINTS: New manager types only need BaseResourceManager compliance.
-AI-CORE-END
 """
 
 from __future__ import annotations

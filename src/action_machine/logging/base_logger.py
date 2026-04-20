@@ -55,19 +55,6 @@ EXAMPLES
     await logger.handle(scope, msg, var, ctx, state, params, indent=0)
 
     # Edge case: duplicate key -> ValueError in subscribe(...)
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Abstract logger with optional subscription filtering.
-CONTRACT: handle → match_filters then write; subscribe/unsubscribe API.
-INVARIANTS: OR across subscriptions; AND inside one LogSubscription; var pre-validated.
-FLOW: coordinator → handle → match_filters(var) → write or skip.
-FAILURES: write exceptions propagate; subscribe enforces unique keys; subscription
-    fields validated in ``LogSubscription.__post_init__``.
-EXTENSION POINTS: implement write in subclasses (ConsoleLogger, etc.).
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from __future__ import annotations
@@ -91,14 +78,12 @@ _ANSI_ESCAPE = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
 
 class BaseLogger(ABC):
     """
-    Abstract logger contract with subscription filtering and async output hook.
-
-    AI-CORE-BEGIN
+AI-CORE-BEGIN
     ROLE: Logging sink base class used by coordinator fan-out.
     CONTRACT: Provide ``write``; reuse built-in subscribe/match/handle pipeline.
     INVARIANTS: Filtering semantics are stable and deterministic per call.
     AI-CORE-END
-    """
+"""
 
     def __init__(self) -> None:
         super().__init__()

@@ -34,17 +34,6 @@ EXAMPLES
 
     mask_value("abc", {"max_chars": 10, "max_percent": 100})
     # -> "abc"  (no masking when keep >= length)
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Shared low-level masker for logging privacy controls.
-CONTRACT: Return deterministic partially-masked string based on config bounds.
-INVARIANTS: Prefix keep length is min(chars-bound, percent-bound, length).
-FLOW: raw value -> stringify -> compute keep -> append fixed mask suffix.
-FAILURES: No exceptions for malformed config types; defaults are applied.
-EXTENSION POINTS: Adjust masking strategy centrally without changing callers.
-AI-CORE-END
 """
 
 from typing import Any

@@ -43,18 +43,6 @@ Happy path:
 Edge case:
     Nested ``run_child`` callback receives the same ``rollup`` value as parent
     run scope, preserving rollback semantics.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: ToolsBox factory component.
-CONTRACT: create(...) -> configured ToolsBox.
-INVARIANTS: explicit resolver + mode strings; no private machine access.
-FLOW: resolver + runtime args -> logger/factory wiring -> ToolsBox.
-FAILURES: propagates dependency resolution errors.
-EXTENSION POINTS: custom toolbox construction strategy via component injection.
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from __future__ import annotations

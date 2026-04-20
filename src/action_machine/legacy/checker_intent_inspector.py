@@ -34,18 +34,6 @@ Happy path: an aspect method carries ``_checker_meta``; ``inspect`` returns one
 payload per checker with ``checks_aspect`` edge to the aspect vertex.
 
 Edge case: no ``_checker_meta`` on any member → ``inspect`` returns ``None``.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Checker facet inspector module.
-CONTRACT: Method-level _checker_meta → snapshot → list of checker FacetVertex rows.
-INVARIANTS: Declaring-class scan only; storage key ``checker``.
-FLOW: vars → unwrap → _checker_meta → Snapshot → per-checker payloads + checks_aspect edges.
-FAILURES: no checkers → None from inspect.
-EXTENSION POINTS: runtime reads checker snapshot via coordinator cache.
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from __future__ import annotations
@@ -68,14 +56,12 @@ from graph.facet_vertex import FacetVertex
 
 class CheckerIntentInspector(BaseIntentInspector):
     """
-    Inspector for ``CheckerIntent`` subclasses: checker facet snapshots.
-
-    AI-CORE-BEGIN
+AI-CORE-BEGIN
     ROLE: Concrete inspector for checker metadata on methods.
     CONTRACT: ``inspect`` / ``Snapshot.from_target`` when checkers exist.
     INVARIANTS: ``_target_intent`` is ``CheckerIntent``.
     AI-CORE-END
-    """
+"""
 
     _target_intent: type = CheckerIntent
 

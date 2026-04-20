@@ -118,17 +118,6 @@ EXAMPLES
             user_id = ctx.get(Ctx.User.user_id)
             trace = ctx.get(Ctx.Request.trace_id)
             return OrderResult(order_id="ERR", status="network_error", total=0)
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Method decorator that declares aspect-error handlers.
-CONTRACT: Validate handler contract and attach ``_on_error_meta`` metadata.
-INVARIANTS: Async method + required suffix + exact parameter contract.
-FLOW: decorator validation -> metadata write -> inspector/runtime consumption.
-FAILURES: TypeError/ValueError/NamingSuffixError at declaration time.
-EXTENSION POINTS: Additional metadata fields via decorator+inspector updates.
-AI-CORE-END
 """
 
 from __future__ import annotations

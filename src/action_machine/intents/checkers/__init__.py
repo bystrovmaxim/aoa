@@ -75,18 +75,6 @@ EXAMPLES
         async def process_payment(self, params, state, box, connections):
             ...
             return {"txn_id": "TXN-001", "charged_amount": 100.0}
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Checkers package API surface.
-CONTRACT: Export checker classes, decorators, and ``CheckerIntent`` marker.
-INVARIANTS: All aspect result fields must have checkers; checkers are stateless.
-FLOW: decorator metadata -> inspector snapshot -> machine validation -> checker execution.
-FAILURES: ValidationFieldError for missing or invalid fields.
-EXTENSION POINTS: New checker types can be added as new ``Field*Checker`` + ``result_*`` pairs following the same metadata contract.
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from action_machine.intents.checkers.result_bool_decorator import FieldBoolChecker, result_bool

@@ -101,17 +101,6 @@ EXAMPLES
     coordinator = Core.create_coordinator()
 
     order = build({"id": "123", "amount": 100.0}, OrderEntity)
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Public API surface for ActionMachine domain modeling.
-CONTRACT: Export domain/entity/relation/lifecycle building blocks and hydration utilities.
-INVARIANTS: Domain facets integrate through shared coordinator graph, not a separate pipeline.
-FLOW: declaration via markers/decorators -> inspector extraction -> coordinator graph/snapshots -> runtime hydration/access.
-FAILURES: domain declaration and runtime access errors are surfaced via exported domain exceptions.
-EXTENSION POINTS: applications define custom domains/entities/lifecycles and relation topology.
-AI-CORE-END
 """
 
 from action_machine.domain.base_domain import BaseDomain

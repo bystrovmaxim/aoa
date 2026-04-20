@@ -45,16 +45,6 @@ EXAMPLES
 
     Edge case: wrong optional extras — import or startup may fail; install
     ``aoa-run[fastapi]``.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: HTTP entrypoint for dual-transport example; thin adapter over shared machine.
-CONTRACT: Export ``app``; register three example actions on stable URL prefixes.
-INVARIANTS: No business logic in this module — only wiring.
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from action_machine.integrations.fastapi import FastApiAdapter

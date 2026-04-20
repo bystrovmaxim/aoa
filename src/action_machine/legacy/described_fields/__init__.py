@@ -34,17 +34,6 @@ EXAMPLES
     )
 
     validate_described_schema(MyAction)
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Public API surface for described-fields intent validation.
-CONTRACT: Expose marker + validators consumed by graph inspectors.
-INVARIANTS: No runtime mutation; validation-only helpers.
-FLOW: action metadata -> validators -> inspector-driven graph checks.
-FAILURES: Schema/contract violations produce validation exceptions.
-EXTENSION POINTS: Add new validators in marker module and export via __all__.
-AI-CORE-END
 """
 
 from action_machine.legacy.described_fields.marker import (

@@ -41,16 +41,6 @@ USAGE
 
     checker = FieldInstanceChecker("user", User)
     checker.check({"user": User(id=1, name="John")})  # OK
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Instance-type checker implementation and decorator for aspect methods.
-CONTRACT: Metadata keys match FieldInstanceChecker constructor / snapshot hydration.
-INVARIANTS: ``isinstance`` semantics; supports one class or a tuple of classes.
-FLOW: decorator -> _checker_meta -> inspector -> runtime check.
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from __future__ import annotations

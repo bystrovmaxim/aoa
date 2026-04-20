@@ -115,17 +115,6 @@ EXAMPLES
     # JSON Schema for FastAPI and MCP:
     OrderParams.model_json_schema()
     # {"properties": {"user_id": {"description": "User identifier", ...}, ...}}
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Immutable input contract for action execution.
-CONTRACT: Subclasses declare typed fields; runtime treats params as read-only.
-INVARIANTS: frozen=True; extra="forbid"; schema descriptions expected.
-FLOW: validate payload -> pass through pipeline -> serialize/introspect.
-FAILURES: ValidationError on unknown/invalid fields or forbidden assignment.
-EXTENSION POINTS: Extend via subclasses with explicit typed field definitions.
-AI-CORE-END
 """
 
 from pydantic import ConfigDict

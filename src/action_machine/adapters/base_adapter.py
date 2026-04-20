@@ -92,19 +92,6 @@ EXAMPLES
         machine=machine,
         auth_coordinator=NoAuthCoordinator(),
     )
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Abstract base for all protocol adapters.
-CONTRACT: Subclasses must implement protocol methods and ``build()``; auth is required.
-INVARIANTS: ``_routes`` holds route records; ``gate_coordinator`` resolved at init;
-  fluent API returns ``self``.
-FLOW: route registration -> ``_add_route`` -> ``build()`` produces protocol app.
-FAILURES: Constructor raises ``TypeError`` on invalid machine or missing auth.
-EXTENSION POINTS: New adapters subclass ``BaseAdapter`` and define concrete ``RouteRecord``.
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from __future__ import annotations
@@ -121,17 +108,12 @@ from graph.graph_coordinator import GraphCoordinator
 
 class BaseAdapter[R: BaseRouteRecord](ABC):
     """
-    Abstract base class for all ActionMachine protocol adapters.
-
-    ``auth_coordinator`` is required. For open APIs, pass
-    ``NoAuthCoordinator()`` explicitly to make no-auth mode intentional.
-
-    AI-CORE-BEGIN
+AI-CORE-BEGIN
     ROLE: Protocol-agnostic adapter contract and shared state holder.
     CONTRACT: Validates constructor dependencies, stores route records, and exposes abstract ``build()``.
     INVARIANTS: machine type is strict; auth coordinator is mandatory; route registration preserves order.
     AI-CORE-END
-    """
+"""
 
     def __init__(
         self,

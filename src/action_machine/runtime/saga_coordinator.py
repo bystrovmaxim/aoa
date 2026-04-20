@@ -41,19 +41,6 @@ Happy path:
 Edge case:
     One compensator fails, ``CompensateFailedEvent`` is emitted, and rollback
     loop continues for remaining frames.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Saga rollback coordinator.
-CONTRACT: execute(...) performs full compensation unwind with event contracts.
-INVARIANTS: reverse order, resilient rollback loop, stable start/end events;
-  plugin fields from PluginEmitSupport only.
-FLOW: stack + error -> compensator sequence -> rollback summary event.
-FAILURES: compensator failures are emitted and suppressed for continued unwind.
-EXTENSION POINTS: custom compensation policy can replace this coordinator.
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from __future__ import annotations

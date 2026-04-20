@@ -53,18 +53,6 @@ EXAMPLES
 
     # Inside an aspect, resolution is delegated through ToolsBox
     payment = box.resolve(PaymentService)
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Stateless dependency resolution and coordinator-cache utilities.
-CONTRACT: resolve(klass, *args, rollup=False, **kwargs) -> instance.
-INVARIANTS: No instance caching; input dependencies from coordinator snapshot.
-FLOW: coordinator snapshot → factory construction → cached → ToolsBox resolution.
-FAILURES: ValueError for missing dependency; RollupNotSupportedError for rollup violation.
-EXTENSION POINTS: Custom factory implementations can be injected via @depends(factory=...).
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from __future__ import annotations
@@ -102,26 +90,12 @@ class DependencyInfo:
 
 class DependencyFactory:
     """
-    Stateless factory for creating dependency instances.
-
-    Each ``resolve()`` call creates a new instance via the provided factory or
-    the default constructor. No instance caching is performed.
-
-    When ``rollup=True``, any ``BaseResourceManager`` instance is checked for
-    rollup support via ``check_rollup_support()``.
-
-    The internal ``_deps`` dictionary is built once from the input tuple and
-    never modified.
-
-    Attributes:
-        _deps: Mapping from dependency class to ``DependencyInfo``.
-
-    AI-CORE-BEGIN
+AI-CORE-BEGIN
     ROLE: Stateless constructor/validator for declared dependencies.
     CONTRACT: Resolve only declared classes, with optional factory override and rollup checks.
     INVARIANTS: No instance reuse inside the factory; ``_deps`` is built once and read-only by convention.
     AI-CORE-END
-    """
+"""
 
     def __init__(self, dependencies: tuple[Any, ...] | list[dict[str, Any]]) -> None:
         """

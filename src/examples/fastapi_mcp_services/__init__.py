@@ -78,14 +78,4 @@ MCP::
 
 Edge case: run only one transport — actions in ``actions/`` stay unchanged; you
 only start the app you need.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Package doc for dual-transport ActionMachine example.
-CONTRACT: Single action source; adapters are transport-only.
-INVARIANTS: No business logic duplication between HTTP and MCP entrypoints.
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """

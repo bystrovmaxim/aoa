@@ -36,18 +36,6 @@ Happy path:
 Edge case:
     Tests pass a stub object or ``MagicMock(spec_set=...)`` implementing only
     ``dependency_factory_for``.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Decouple toolbox factory from machine private fields.
-CONTRACT: dependency_factory_for(action_cls) -> DependencyFactory.
-INVARIANTS: structural Protocol; no runtime registration.
-FLOW: factory.create receives resolver -> one call per ToolsBox build.
-FAILURES: delegated to implementation.
-EXTENSION POINTS: custom resolver for tests or alternate DI graphs.
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from __future__ import annotations
@@ -59,14 +47,12 @@ from action_machine.runtime.dependency_factory import DependencyFactory
 
 class DependencyFactoryResolver(Protocol):
     """
-    Public resolver hook for ``DependencyFactory`` per action class.
-
-    AI-CORE-BEGIN
+AI-CORE-BEGIN
     ROLE: Narrow DI surface for ``ToolsBoxFactory``.
     CONTRACT: One method, stable name ``dependency_factory_for``.
     INVARIANTS: No state requirements beyond implementation needs.
     AI-CORE-END
-    """
+"""
 
     def dependency_factory_for(self, action_cls: type) -> DependencyFactory:
         """Return the dependency factory to use when running ``action_cls``."""

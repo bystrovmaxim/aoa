@@ -80,17 +80,6 @@ CREATION EXAMPLE (via @on decorator)
         ignore_exceptions=True,
         method_name="on_slow_order_finish",
     )
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Immutable subscription rule for plugin event routing.
-CONTRACT: Store event class + optional filters and expose match helpers.
-INVARIANTS: Optional filters are None-skipped; compiled regex cached once.
-FLOW: @on builds SubscriptionInfo -> PluginRunContext evaluates matches_* chain.
-FAILURES: Invalid config fails fast in __post_init__ with TypeError/ValueError.
-EXTENSION POINTS: Add new filter fields with validation + match helper method.
-AI-CORE-END
 """
 
 from __future__ import annotations

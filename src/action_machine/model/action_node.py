@@ -32,17 +32,6 @@ Happy path::
     assert n.node_type == "Action" and n.label == "MyPingAction"
 
 Edge case: same interchange shape for any concrete ``BaseAction`` subclass type passed in.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Model-scoped BaseGraphNode bridge for ``BaseAction`` subclasses.
-CONTRACT: ``__init__`` builds the node; helpers: :meth:`get_properties`, :meth:`get_domain_link`, :meth:`get_schema_generic_binding` (or :meth:`get_params_link` / :meth:`get_result_link`).
-INVARIANTS: Immutable node; host class on ``BaseGraphNode.obj``.
-FLOW: action class -> ``ActionNode.__init__`` -> frozen ``BaseGraphNode`` fields.
-EXTENSION POINTS: Other graph node specializations follow the same constructor pattern.
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from __future__ import annotations

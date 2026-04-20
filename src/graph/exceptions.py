@@ -38,17 +38,6 @@ inspectors, and keys.
 
 Every exception here signals a **developer** mistake, not bad end-user input.
 Fix the code and rebuild.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Graph-build exception taxonomy.
-CONTRACT: Provide explicit failure classes for duplicate keys, payload shape errors, and graph integrity violations.
-INVARIANTS: Exceptions correspond to deterministic coordinator build checks and preserve rich diagnostics.
-FLOW: build phase detects violation -> raises typed exception -> caller fails fast with actionable message.
-FAILURES: DuplicateNodeError / PayloadValidationError / InvalidGraphError.
-EXTENSION POINTS: New coordinator validation stages can introduce dedicated exception subclasses here.
-AI-CORE-END
 """
 
 from __future__ import annotations
@@ -56,31 +45,11 @@ from __future__ import annotations
 
 class DuplicateNodeError(ValueError):
     """
-    Two inspectors claimed the same graph node key.
-
-    Raised in phase 1 when duplicate ``"node_type:node_name"`` keys cannot be
-    merged. The message contains the key and both inspector names.
-
-    Subclasses ``ValueError`` because this is a configuration conflict: two
-    inspectors fight over one node.
-
-    Typical causes:
-    - two inspectors reuse the same ``node_type`` for one class without merge
-      support, or
-    - a child node name collides with another inspector's node.
-
-    Attributes:
-        key : str
-            Conflicting graph key.
-        first_inspector : str
-            Inspector that registered the node first.
-        second_inspector : str
-            Inspector that detected the conflict.
-
     AI-CORE-BEGIN
-    ROLE: Duplicate graph-key conflict signal.
-    CONTRACT: Carry both inspector names and the conflicting key for deterministic debugging.
-    INVARIANTS: Raised only when collision cannot be merged by coordinator rules.
+    ROLE: Phase-1 ``collect`` failure: two inspectors emit the same ``node_type:node_name`` key and merge cannot reconcile them.
+    CONTRACT: ``ValueError`` subclass; ``key``, ``first_inspector``, ``second_inspector`` on the instance; ``str()`` message repeats all three for pytest and logs.
+    INVARIANTS: Configuration / inspector conflict only (not end-user input).
+    FAILURES: Duplicate ``node_type`` without merge support, or colliding child node names between inspectors.
     AI-CORE-END
     """
 
@@ -90,12 +59,7 @@ class DuplicateNodeError(ValueError):
         first_inspector: str,
         second_inspector: str,
     ) -> None:
-        """
-        Args:
-            key: Conflicting ``"node_type:node_name"`` key.
-            first_inspector: Inspector that created the node first.
-            second_inspector: Inspector that triggered the conflict.
-        """
+        """Set conflicting key and the two inspectors involved in the collision."""
         self.key: str = key
         self.first_inspector: str = first_inspector
         self.second_inspector: str = second_inspector
@@ -108,26 +72,12 @@ class DuplicateNodeError(ValueError):
 
 class InvalidGraphError(Exception):
     """
-    The facet graph failed structural validation.
-
-    Raised in phase 2 when:
-
-    1. **Referential integrity** — an edge names a target missing from the
-       collected payloads (the target class was never materialized).
-
-       Example: an edge names a ``target_node_type:target_name`` key that no
-       payload materialized.
-
-    2. **Acyclicity** — structural edges (``is_structural=True``) form a cycle,
-       detected via ``rustworkx.is_directed_acyclic_graph()`` on a scratch graph.
-
-       Example: A → B → C → A.
-
-    Informational edges (``is_structural=False``) are **not** checked for
-    cycles — cyclic informational links are expected.
-
-    Subclasses ``Exception`` (not ``ValueError``/``TypeError``) because this
-    is a graph-shape failure, not a simple type/value issue.
+    AI-CORE-BEGIN
+    ROLE: Phase-2 graph integrity: referential break (edge target never materialized) or structural-edge cycle.
+    CONTRACT: Plain ``Exception``; message is coordinator/graph-builder diagnostic (targets, cycle path context as available).
+    INVARIANTS: Only structural edges participate in acyclicity checks; ``is_structural=False`` edges may cycle by design.
+    FAILURES: Missing payload for ``target_node_type:target_name``, or ``rustworkx`` DAG check fails on structural slice.
+    AI-CORE-END
     """
 
     pass
@@ -135,29 +85,12 @@ class InvalidGraphError(Exception):
 
 class PayloadValidationError(TypeError):
     """
-    A ``FacetVertex`` field is invalid.
-
-    Raised in phase 2 while checking mandatory fields:
-
-    - ``node_type`` — non-empty string.
-    - ``node_name`` — non-empty string.
-    - ``node_class`` — Python ``type``.
-
-    Subclasses ``TypeError`` because violations are essentially type/shape
-    mistakes (empty identifiers, non-type ``node_class``, …).
-
-    Typical causes:
-    - inspector omitted ``node_type`` in ``_build_payload()``,
-    - ``_make_node_name()`` ran on a broken class reference,
-    - ``node_class`` contains an instance instead of a class.
-
-    Attributes:
-        node_class : type | object
-            Value carried in the offending payload's ``node_class``.
-        field_name : str
-            Field that failed (``"node_type"``, ``"node_name"``, ``"node_class"``).
-        detail : str
-            Human-readable explanation.
+    AI-CORE-BEGIN
+    ROLE: Phase-2 ``FacetVertex`` payload shape check: ``node_type``, ``node_name``, ``node_class`` must be valid non-empty / ``type`` as applicable.
+    CONTRACT: ``TypeError`` subclass; ``node_class``, ``field_name``, ``detail`` on the instance; ``str()`` includes class repr and field.
+    INVARIANTS: Developer/inspector bug class (empty ids, wrong ``node_class`` kind), not runtime user validation.
+    FAILURES: Omitted fields in ``_build_payload``, bad class ref in name helpers, non-type where a class is required.
+    AI-CORE-END
     """
 
     def __init__(
@@ -166,12 +99,7 @@ class PayloadValidationError(TypeError):
         field_name: str,
         detail: str,
     ) -> None:
-        """
-        Args:
-            node_class: Payload ``node_class`` field (may be invalid).
-            field_name: Which field failed validation.
-            detail: Explanation string.
-        """
+        """Record invalid ``node_class``, failing ``field_name``, and explanation."""
         self.node_class: object = node_class
         self.field_name: str = field_name
         self.detail: str = detail

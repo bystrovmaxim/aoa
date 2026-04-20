@@ -55,16 +55,6 @@ Claude Desktop ``claude_desktop_config.json``::
 
 Edge case: invalid or missing value after ``--transport`` leaves transport as
 ``stdio`` (see ``main()`` parsing).
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: MCP entrypoint for dual-transport example; thin adapter over shared machine.
-CONTRACT: Export built ``server``; ``main()`` runs with configurable transport.
-INVARIANTS: No business logic — registration and startup only.
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 import sys

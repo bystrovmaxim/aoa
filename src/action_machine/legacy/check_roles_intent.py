@@ -53,18 +53,6 @@ Edge case (raises TypeError)::
     @check_roles(EditorRole)
     class NotAnAction:                     # does not inherit CheckRolesIntent
         ...
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Intent marker for role declarations on actions.
-CONTRACT: Subclass required for ``@check_roles``; ``_role_info`` slot on decorated class.
-INVARIANTS: Pure marker; decorated classes must be subclasses.
-FLOW: decorator → _role_info → inspector → runtime role check.
-FAILURES: TypeError on missing inheritance.
-EXTENSION POINTS: None (marker only).
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from typing import Any, ClassVar
@@ -72,13 +60,11 @@ from typing import Any, ClassVar
 
 class CheckRolesIntent:
     """
-    Marker mixin declaring participation in ``@check_roles`` role grammar.
-
-    AI-CORE-BEGIN
+AI-CORE-BEGIN
     ROLE: Role declaration marker for action classes.
     CONTRACT: Required base for classes decorated with ``@check_roles``.
     INVARIANTS: No behavior; only class-level ``_role_info`` contract.
     AI-CORE-END
-    """
+"""
 
     _role_info: ClassVar[dict[str, Any]]

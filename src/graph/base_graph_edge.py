@@ -37,16 +37,6 @@ EXAMPLES
     )
 
 Edge case: same ``link_name`` on different nodes — distinguish by the host :attr:`~graph.base_graph_node.BaseGraphNode.id`.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Minimal typed record for (link slot, target id, target facet kind, DAG, target class).
-CONTRACT: Caller sets ``target_node_type`` to the target host's facet ``node_type``.
-INVARIANTS: Source id is the containing node — interchange shape only.
-EXTENSION POINTS: Specializations may add factory methods or wrap coordinator ``GraphEdge``.
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from __future__ import annotations

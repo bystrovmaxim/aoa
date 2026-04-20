@@ -50,18 +50,6 @@ EXAMPLES
     context = await coordinator.process(request)
     if context:
         user_id = context.user.user_id
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Authentication orchestration module.
-CONTRACT: Accept request data, delegate to extractor/authenticator/assembler, return Context or None.
-INVARIANTS: All three components required; returns None if any step fails.
-FLOW: extract -> authenticate -> assemble -> build Context.
-FAILURES: Propagates component exceptions; returns None on missing data.
-EXTENSION POINTS: Custom implementations of CredentialExtractor/Authenticator/ContextAssembler.
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from __future__ import annotations
@@ -94,14 +82,12 @@ class ContextAssembler(ABC):
 
 class AuthCoordinator:
     """
-    Build authenticated execution context from request data.
-
-    AI-CORE-BEGIN
+AI-CORE-BEGIN
     ROLE: Authentication orchestration coordinator.
     CONTRACT: extract credentials -> authenticate user -> assemble request metadata.
     INVARIANTS: returns Context on success or None when flow cannot continue.
     AI-CORE-END
-    """
+"""
 
     def __init__(
         self,

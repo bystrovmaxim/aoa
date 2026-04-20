@@ -65,18 +65,6 @@ EXAMPLES
         ...
 
     # inspect(BaseAction) → None (no _role_info)
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Role facet inspector.
-CONTRACT: ``_role_info`` → merged ``action`` facet + ``requires_role`` edges to anchor ``role_class`` nodes.
-INVARIANTS: Target mixin is CheckRolesIntent; snapshot key ``"role"``; edge targets are ``ApplicationRole``.
-FLOW: _role_info present → Snapshot → FacetVertex → coordinator graph.
-FAILURES: Returns None when ``_role_info`` is missing.
-EXTENSION POINTS: Payload consumed by coordinator and role-checking runtime.
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from __future__ import annotations
@@ -98,17 +86,12 @@ from graph.facet_vertex import FacetVertex
 
 class RoleIntentInspector(BaseIntentInspector):
     """
-    Role intent inspector.
-
-    Walks ``CheckRolesIntent`` subclasses, detects ``@check_roles``, and builds merged
-    ``action`` facet payloads with ``requires_role`` edges to ``role_class`` vertices.
-
-    AI-CORE-BEGIN
+AI-CORE-BEGIN
     ROLE: Concrete role facet inspector.
     CONTRACT: ``_role_info`` → ``action`` payload + ``requires_role`` to taxonomy anchors.
-    INVARIANTS: Marker is ``CheckRolesIntent``; snapshot storage key ``\"role\"``.
+    INVARIANTS: Marker is ``CheckRolesIntent``; snapshot storage key ``"role"``.
     AI-CORE-END
-    """
+"""
 
     _target_intent: type = CheckRolesIntent
 

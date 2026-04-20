@@ -80,27 +80,16 @@ EXAMPLES
     @regular_aspect("Total calculation")
     async def calculate_aspect(self, params, state, box, connections):
         return {"total": params.amount * 1.2}
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Marker module for @context_requires grammar.
-CONTRACT: Empty mixin for MRO / typing; no runtime behavior.
-INVARIANTS: Pure marker class.
-FLOW: declaration metadata -> inspectors -> runtime ContextView.
-AI-CORE-END
 """
 
 
 class ContextRequiresIntent:
     """
-    Marker mixin declaring support for ``@context_requires`` declarations.
-
-    AI-CORE-BEGIN
+AI-CORE-BEGIN
     ROLE: Context-access grammar marker for action classes.
     CONTRACT: Include in MRO when using @context_requires (e.g. via BaseAction).
     INVARIANTS: Pure marker with no runtime behavior/state.
     AI-CORE-END
-    """
+"""
 
     pass

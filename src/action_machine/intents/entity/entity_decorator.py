@@ -82,17 +82,6 @@ EXAMPLE
         id: str = Field(description="Order id")
         amount: float = Field(description="Order total", ge=0)
         status: str = Field(description="Workflow status")
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Domain entity declaration decorator.
-CONTRACT: Validate declaration metadata and write ``_entity_info`` scratch on class.
-INVARIANTS: Class target; metadata is import-time validated.
-FLOW: decorator args validation -> class target validation -> scratch write -> inspector consumption at build.
-FAILURES: ``EntityDecoratorError`` for invalid arguments or invalid target classes.
-EXTENSION POINTS: Applications specialize domain modeling by combining ``@entity`` with custom BaseDomain hierarchies.
-AI-CORE-END
 """
 
 from __future__ import annotations

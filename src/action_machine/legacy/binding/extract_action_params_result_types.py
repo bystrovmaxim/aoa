@@ -4,18 +4,6 @@ Extract concrete ``P`` / ``R`` runtime types from ``BaseAction[P, R]`` on ``acti
 
 Walks ``__mro__`` and ``__orig_bases__``; resolves generic arguments via
 :func:`action_machine.legacy.binding.action_generic_params._resolve_generic_arg`.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Entry point for resolving declared Params/Result types on action classes.
-CONTRACT: Return concrete P/R types when resolvable; otherwise ``(None, None)``.
-INVARIANTS: Origin match is ``BaseAction``; delegates ref resolution to sibling module.
-FLOW: MRO scan -> ``get_origin`` is BaseAction -> resolve args -> return pair.
-FAILURES: Unresolvable refs or missing generic yield ``(None, None)``.
-EXTENSION POINTS: Richer ref strategies live in ``action_generic_params``.
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from __future__ import annotations

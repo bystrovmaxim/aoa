@@ -56,18 +56,6 @@ EXAMPLES
         request_model=CreateOrderRequest,
         params_mapper=map_request_to_params,
     )
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Abstract base for protocol route records.
-CONTRACT: Subclasses add protocol fields; action generics provide params/result types.
-INVARIANTS: Direct instantiation forbidden; mappers required when models differ.
-FLOW: Subclass instantiation -> type extraction -> invariant validation -> adapter usage.
-FAILURES: TypeError/ValueError on contract violations.
-EXTENSION POINTS: New protocols subclass BaseRouteRecord and add custom fields.
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from __future__ import annotations
@@ -154,22 +142,12 @@ def ensure_protocol_response(
 @dataclass(frozen=True)
 class BaseRouteRecord:
     """
-    Abstract frozen dataclass for one adapter route configuration.
-
-    Stores fields common to all protocols. Concrete protocols extend this class
-    with transport-specific metadata (HTTP path/method, MCP tool name, etc.).
-    Direct instantiation is forbidden.
-
-    Cached attributes:
-        _cached_params_type: extracted P from BaseAction[P, R]
-        _cached_result_type: extracted R from BaseAction[P, R]
-
-    AI-CORE-BEGIN
+AI-CORE-BEGIN
     ROLE: Frozen per-route contract shared by adapter integrations.
     CONTRACT: Derive action P/R types, cache them, and enforce mapper requirements.
     INVARIANTS: mapper is mandatory when effective wire model differs from action type.
     AI-CORE-END
-    """
+"""
 
     action_class: type[BaseAction[Any, Any]]
     request_model: type | None = None

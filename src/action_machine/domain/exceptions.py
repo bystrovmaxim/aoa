@@ -45,17 +45,6 @@ LifecycleValidationError
     A `Lifecycle` template attached to an entity fails one of the eight
     structural integrity rules when validated during `GraphCoordinator.build()`
     (via `EntityIntentInspector` / entity lifecycle validation).
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Domain-specific exception taxonomy.
-CONTRACT: Provide precise failures for entity access, relation hydration, decorator contracts, and lifecycle integrity.
-INVARIANTS: Exception inheritance reflects failure semantics (attribute access vs declaration vs structural validation).
-FLOW: domain operation/declaration -> targeted exception with diagnostic context.
-FAILURES: Raised by domain entities/decorators/inspectors, not by this module directly.
-EXTENSION POINTS: Additional domain error classes can follow the same semantic layering.
-AI-CORE-END
 """
 
 from __future__ import annotations
@@ -65,33 +54,12 @@ from typing import Any
 
 class FieldNotLoadedError(AttributeError):
     """
-    Access to a field that was not loaded on a **partial** entity instance.
-
-    Raised when code reads an attribute that was **not** passed to
-    `BaseEntity.partial()`. Subclassing `AttributeError` keeps semantics
-    aligned with attribute access: the field exists on the **model**, but
-    not in this **instance**’s loaded subset.
-
-    `hasattr(entity, "status")` returns `False` for a non-loaded model field
-    in the partial case, which matches “attribute not available on this object.”
-
-    This is **not** lazy loading: there is no hidden I/O. Either the field was
-    supplied at construction time or access fails immediately with a clear error.
-
-    Attributes:
-        field_name:
-            Name of the field that was accessed.
-        entity_class_name:
-            Entity class name (for messages).
-        loaded_fields:
-            Frozen set of field names that *were* loaded.
-
-    AI-CORE-BEGIN
+AI-CORE-BEGIN
     ROLE: Fail-fast signal for missing fields on partial entities.
     CONTRACT: Raised only when model field exists but is absent from loaded subset.
     INVARIANTS: Inherits ``AttributeError`` to align with Python attribute access behavior.
     AI-CORE-END
-    """
+"""
 
     def __init__(
         self,

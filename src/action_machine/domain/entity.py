@@ -114,17 +114,6 @@ Edge — bad class name (fails when the class statement runs)::
     # NamingSuffixError: name must end with 'Entity'
 
 ═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Domain entity base contract.
-CONTRACT: Enforce immutable strict entities with optional partial construction semantics.
-INVARIANTS: ``*Entity`` naming, frozen models, forbid extra fields, and intent marker participation.
-FLOW: class declaration + decorator scratch -> inspector/coordinator validation -> runtime full/partial access semantics.
-FAILURES: NamingSuffixError at class definition; FieldNotLoadedError on missing fields in partial instances.
-EXTENSION POINTS: Applications define concrete entities via subclassing and optional ``@entity`` metadata.
-AI-CORE-END
-
-═══════════════════════════════════════════════════════════════════════════════
 LONGER ILLUSTRATION (DOMAIN + LIFECYCLE)
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -185,43 +174,12 @@ _REQUIRED_SUFFIX = "Entity"
 
 class BaseEntity(BaseSchema, ABC, EntityIntent, DescribedFieldsIntent):
     """
-    Abstract base for all domain entities.
-
-    **Role**
-        Defines immutability, forbidden extras, integration with `@entity` and
-        described fields, and optional partial construction for repository-style
-        reads.
-
-    **Invariants**
-        - `frozen=True`, `extra="forbid"`.
-        - Subclass names end with the suffix ``Entity`` (see `__init_subclass__`).
-        - Partial instances set `_partial_instance` and `_loaded_fields` via
-          `object.__setattr__` to bypass frozen instance protection.
-
-    **Neighbors**
-        - `BaseSchema`: dict-like access and `resolve()`.
-        - `EntityIntent`: allows `@entity` on subclasses.
-        - `DescribedFieldsIntent`: field descriptions required for coordinator
-          validation.
-        - `FieldNotLoadedError`: raised from `__getattr__` for missing partial
-          fields.
-
-    **Class / instance attributes**
-        `_entity_info` (`ClassVar[dict[str, Any]]`)
-            Metadata written by `@entity` (`description`, `domain`, …).
-
-        `_partial_instance` (`bool`, instance)
-            True if built with `partial()`.
-
-        `_loaded_fields` (`frozenset[str]`, instance)
-            Names supplied to `partial()`; empty for fully constructed instances.
-
-    AI-CORE-BEGIN
+AI-CORE-BEGIN
     ROLE: Shared entity base with strict runtime access semantics.
     CONTRACT: Provides immutable model behavior plus controlled partial-load mechanics.
     INVARIANTS: Missing model fields on partial instances fail fast via ``FieldNotLoadedError``.
     AI-CORE-END
-    """
+"""
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 

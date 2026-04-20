@@ -111,17 +111,6 @@ FLUENT API (REFERENCE)
             .initial() | .intermediate() | .final()  → Lifecycle
 
 State declaration order does not matter; forward references in `.to()` are allowed.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Domain lifecycle DSL and runtime state wrapper.
-CONTRACT: Build immutable lifecycle templates fluently and expose safe runtime transition API.
-INVARIANTS: Final states have no outgoing edges; runtime instances must use declared state keys.
-FLOW: fluent template declaration -> optional coordinator validation -> runtime instance transition checks.
-FAILURES: InvalidStateError/InvalidTransitionError plus builder-time TypeError/ValueError/RuntimeError.
-EXTENSION POINTS: Applications define specialized subclasses with ``_template``.
-AI-CORE-END
 """
 
 from __future__ import annotations
@@ -373,42 +362,12 @@ class _StateBuilder:
 
 class Lifecycle:
     """
-    Finite-state lifecycle: **template** builder and **instance** value.
-
-    **Template mode**
-        Call ``Lifecycle()`` then ``.state(...).to(...).initial()`` (etc.) to
-        build a graph. Store the result as ``_template`` on a subclass.
-
-    **Instance mode**
-        Call ``Subclass("state_key")`` to bind the current state for an entity
-        field. Instances are immutable; ``transition`` returns a new instance.
-
-    Example subclass::
-
-        class OrderLifecycle(Lifecycle):
-            _template = (
-                Lifecycle()
-                .state("new", "New").to("confirmed").initial()
-                .state("confirmed", "Confirmed").final()
-            )
-
-    Example instance::
-
-        lc = OrderLifecycle("new")
-        lc.current_state
-        new_lc = lc.transition("confirmed")
-
-    Attributes (internal):
-        _states: Map of state key → ``StateInfo`` (template graph).
-        _current_state: Current key for an instance; ``None`` on a bare template.
-        _current_builder: Open ``_StateBuilder`` while a state is unfinished.
-
-    AI-CORE-BEGIN
+AI-CORE-BEGIN
     ROLE: Unified template/instance lifecycle object.
     CONTRACT: Template mode defines graph; instance mode enforces legal transitions.
     INVARIANTS: ``transition()`` returns a new object and never mutates current instance.
     AI-CORE-END
-    """
+"""
 
     _template: Lifecycle | None = None
 

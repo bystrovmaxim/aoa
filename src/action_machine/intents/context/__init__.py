@@ -121,17 +121,6 @@ EXAMPLES
     @regular_aspect("Calculate")
     async def calculate_aspect(self, params, state, box, connections):
         return {"total": params.amount * 1.2}
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Public context package API surface.
-CONTRACT: Export immutable context models, context access controls, and declaration decorators.
-INVARIANTS: Controlled access via ContextView and explicit context_requires declarations.
-FLOW: auth/context assembly -> facet declarations -> runtime ContextView access.
-FAILURES: ContextAccessError for undeclared key access.
-EXTENSION POINTS: Schema inheritance and custom dot-path keys.
-AI-CORE-END
 """
 
 from action_machine.context.context import Context

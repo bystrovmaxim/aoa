@@ -12,18 +12,6 @@ PURPOSE
 Shared resolution logic for ``typing`` generic arguments used when walking
 action class MROs. Keeps **no** import of :class:`action_machine.model.base_action.BaseAction`
 at module load so callers that only need ref resolution avoid pulling ``model``.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Generic-arg resolution helpers for runtime binding.
-CONTRACT: Resolve single generic args to concrete types when possible.
-INVARIANTS: Stdlib + action class namespace only; no ``model`` imports.
-FLOW: ForwardRef/string/type -> optional concrete ``type``.
-FAILURES: Swallow resolution errors; return ``None``.
-EXTENSION POINTS: Alternate ``evaluate_forward_ref`` strategies.
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from __future__ import annotations

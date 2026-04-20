@@ -50,19 +50,6 @@ EXAMPLES
 
 Edge case: applying ``@role_mode`` to a plain ``object`` subclass →
 ``TypeError`` from the decorator.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Intent marker for role lifecycle decorator.
-CONTRACT: Empty mixin; ``@role_mode`` applies only when this intent is in MRO,
-    analogous to ``CheckRolesIntent`` for ``@check_roles``.
-INVARIANTS: No behavior; subclass check in ``role_mode`` decorator.
-FLOW: MRO marker → decorator guard → scratch on class.
-FAILURES: TypeError when decorator applied without mixin.
-EXTENSION POINTS: ``RoleModeIntentInspector`` walks this mixin subtree.
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from __future__ import annotations
@@ -75,14 +62,12 @@ if TYPE_CHECKING:
 
 class RoleModeIntent:
     """
-    Marker mixin: declares that a class may carry ``@role_mode`` metadata.
-
-    AI-CORE-BEGIN
+AI-CORE-BEGIN
     ROLE: Lifecycle-intent marker for role classes.
     CONTRACT: Enables ``@role_mode`` decorator eligibility through MRO.
     INVARIANTS: No behavior/state beyond metadata contract slot.
     AI-CORE-END
-    """
+"""
 
     __slots__ = ()
 

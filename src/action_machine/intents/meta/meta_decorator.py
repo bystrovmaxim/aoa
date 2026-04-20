@@ -59,18 +59,6 @@ EXAMPLES
     @meta(description="PostgreSQL connection manager", domain=WarehouseDomain)
     class WarehouseDbManager(BaseResourceManager):
         ...
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Class-level description + domain metadata decorator.
-CONTRACT: @meta(description=..., domain=...) keyword-only domain required.
-INVARIANTS: Class target; domain required.
-FLOW: validate → attach _meta_info → graph consumers (logging, coordinator).
-FAILURES: TypeError/ValueError as above.
-EXTENSION POINTS: graph side consumed by inspectors only.
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from __future__ import annotations

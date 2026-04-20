@@ -54,17 +54,6 @@ EXAMPLES
         name: str = Field(description="Display name")
 
     # @entity on a class without EntityIntent -> EntityDecoratorError
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Marker and validator layer for entity declaration grammar.
-CONTRACT: ``EntityIntent`` marks eligible classes for ``@entity``; decorator enforces MRO in entity_decorator.
-INVARIANTS: No runtime behavior, only declaration guards and scratch-shape assumptions.
-FLOW: decorator -> validators -> ``_entity_info`` write -> inspector consumption at build.
-FAILURES: ``EntityDecoratorError`` on invalid arguments, domain type, or missing marker inheritance.
-EXTENSION POINTS: projects can reuse validators in custom entity decorators.
-AI-CORE-END
 """
 
 from __future__ import annotations
@@ -74,25 +63,12 @@ from typing import Any, ClassVar
 
 class EntityIntent:
     """
-    Marker mixin: ``@entity`` may be applied to this class.
-
-    A class **without** ``EntityIntent`` in its MRO cannot be decorated with
-    ``@entity`` — the decorator raises ``EntityDecoratorError``.
-
-    The mixin has no methods or instance state; it exists for ``issubclass``
-    checks in the decorator and in entity facet validation during
-    ``GraphCoordinator.build()``.
-
-    Class attributes (written by ``@entity``):
-        _entity_info : dict[str, Any]
-            ``{"description": str, "domain": type[BaseDomain] | None}``.
-
-    AI-CORE-BEGIN
+AI-CORE-BEGIN
     ROLE: Marker mixin declaring eligibility for ``@entity``.
     CONTRACT: Presence in MRO is required by decorator target validation.
     INVARIANTS: Holds no methods or instance state; only class-level marker semantics.
     AI-CORE-END
-    """
+"""
 
     _entity_info: ClassVar[dict[str, Any]]
 

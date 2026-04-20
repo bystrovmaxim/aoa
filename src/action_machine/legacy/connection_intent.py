@@ -62,17 +62,6 @@ EXAMPLES
         @summary_aspect("Result")
         async def result(self, params, state, box, connections):
             return UserResult(user=state["user"])
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Marker gate for class-level resource connection declarations.
-CONTRACT: Class must inherit ConnectionIntent to accept @connection decorator.
-INVARIANTS: No behavior; only marker identity and dynamic metadata annotation.
-FLOW: class marker -> decorator check -> _connection_info population -> inspection.
-FAILURES: Missing marker causes decorator-time TypeError.
-EXTENSION POINTS: Keep marker minimal; extend via decorators/inspectors, not mixin logic.
-AI-CORE-END
 """
 
 from typing import Any, ClassVar

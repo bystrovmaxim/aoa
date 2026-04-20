@@ -156,13 +156,6 @@ EXAMPLES
         .build()
 
     server.run(transport="stdio")
-
-AI-CORE-BEGIN
-ROLE: Transport adapter that exposes ActionMachine through MCP tools/resources.
-CONTRACT: kwargs -> validated params -> machine.run() -> JSON envelope text payload.
-INVARIANTS: required auth coordinator; uniform JSON text envelopes; typed errors;
-    internal failures do not leak exception strings to clients.
-AI-CORE-END
 """
 
 # Ruff/isort lists first-party ``action_machine`` before MCP SDK imports (known-first-party).
@@ -629,17 +622,12 @@ def _serialize_result(
 
 class McpAdapter(BaseAdapter[McpRouteRecord]):
     """
-    MCP adapter for ActionMachine.
-
-    Built tools return JSON envelope strings in ``CallToolResult`` text (see
-    module docstring ERROR HANDLING).
-
-    AI-CORE-BEGIN
+AI-CORE-BEGIN
     ROLE: Exposes ActionMachine actions as MCP tools/resources.
     CONTRACT: BaseAdapter[McpRouteRecord] with tool(), register_all(), build().
     INVARIANTS: auth coordinator required; graph resource on build; tool text is JSON envelope.
     AI-CORE-END
-    """
+"""
 
     def __init__(
         self,

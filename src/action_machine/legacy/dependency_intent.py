@@ -55,18 +55,6 @@ EXAMPLES
     @depends(PaymentService)    # TypeError — PaymentService is not a BaseResourceManager
     class MyPool(ResourcePool):
         ...
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Intent marker for dependency declarations.
-CONTRACT: Subclass required for ``@depends``; provides bound type for validation.
-INVARIANTS: Pure marker; bound stored in ``_depends_bound``.
-FLOW: decorator checks marker and bound → writes scratch → inspector consumes.
-FAILURES: TypeError on missing marker or bound violation.
-EXTENSION POINTS: Bound can be customized via generic parameter.
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from __future__ import annotations
@@ -76,27 +64,12 @@ from typing import Any, ClassVar, get_args, get_origin
 
 class DependencyIntent[T]:
     """
-    Marker generic mixin that enables ``@depends`` usage.
-
-    Classes that do not inherit from ``DependencyIntent`` cannot be decorated
-    with ``@depends`` — a ``TypeError`` is raised.
-
-    Generic parameter ``T`` defines the upper bound for allowed dependency
-    types. The decorator verifies that each declared dependency is a subclass
-    of this bound.
-
-    Class attributes (created dynamically):
-        _depends_info : list[DependencyInfo]
-            Temporary list populated by ``@depends``; read by the inspector.
-        _depends_bound : type
-            The bound type extracted from the generic parameter.
-
-    AI-CORE-BEGIN
+AI-CORE-BEGIN
     ROLE: Dependency declaration marker with bound metadata.
     CONTRACT: Enables ``@depends`` only for subclasses and exposes bound via ``_depends_bound``.
     INVARIANTS: Marker is runtime-light; bound is computed at class creation.
     AI-CORE-END
-    """
+"""
 
     _depends_info: ClassVar[list[Any]]
     _depends_bound: ClassVar[type]

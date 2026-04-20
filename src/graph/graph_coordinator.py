@@ -152,17 +152,6 @@ EXAMPLE (EXPLICIT INSPECTOR REGISTRATION)
 
 In a typical app, use ``Core.create_coordinator()`` to obtain a
 pre-registered and built coordinator.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Transactional coordinator for facet graph assembly and typed snapshot cache.
-CONTRACT: Register inspectors, execute explicit one-time build, and provide safe read APIs over committed metadata.
-INVARIANTS: Build is atomic and immutable after commit; payload validation and graph integrity checks run before commit.
-FLOW: register inspectors -> phase 1 collect/materialize -> phase 2 validate -> phase 3 commit -> read/hydrate APIs.
-FAILURES: Raises typed graph/build exceptions and lifecycle guards for invalid state transitions.
-EXTENSION POINTS: New inspectors can plug into build phases without changing coordinator public read contract.
-AI-CORE-END
 """
 
 from __future__ import annotations
@@ -190,55 +179,12 @@ from graph.graph_vertex import GraphVertex
 
 class GraphCoordinator:
     """
-    Transactional interchange graph plus internal facet skeleton and typed facet snapshots.
-
-    See the module docstring for ``build()`` phases and the public read API.
-    Safe to share across the execution engine and adapters after ``build()``.
-
-    AI-CORE-BEGIN
+AI-CORE-BEGIN
     ROLE: Runtime-safe metadata graph coordinator.
     CONTRACT: Own inspector registry, transactional build, snapshot cache, and hydrated read surface.
     INVARIANTS: No registration/build mutations after commit; all read APIs require built state.
     AI-CORE-END
-
-    Attributes:
-        _inspectors : list[type[BaseIntentInspector]]
-            Registered inspectors, in registration order.
-
-        _registered : set[type[BaseIntentInspector]]
-            Set of registered inspectors (duplicate registration guard).
-
-        _graph : rx.PyDiGraph
-            Directed interchange graph (vertex ``id`` / ``node_type`` /
-            edge ``edge_type`` / ``category`` / …). Filled at the end of
-            ``build()``; read-only afterward via :meth:`get_graph`.
-
-        _facet_graph : rx.PyDiGraph
-            Internal **facet** skeleton (``node_type``, ``id``, ``class_ref``) used for
-            ``get_node``, ``hydrate_graph_node``, and tools that need facet topology.
-            Not returned by :meth:`get_graph`; copy via :meth:`facet_topology_copy`.
-
-        _node_index : dict[str, int]
-            Node key → **facet** graph index. Populated at commit.
-
-        _class_index : dict[type, list[str]]
-            Class → list of node keys emitted for that class. Populated at
-            commit.
-
-        _built : bool
-            After True, ``register()`` and a second ``build()`` are forbidden.
-
-        _facet_snapshots : dict[tuple[type, str], BaseFacetSnapshot]
-            Typed facet snapshots keyed by ``(owner class, facet_key)`` where
-            ``facet_key`` comes from ``facet_snapshot_storage_key()`` (e.g.
-            opaque ``node_type`` strings from payloads), filled
-            when ``inspector.facet_snapshot_for_class()`` is non-``None``.
-
-        _hydration_snapshot_key_by_graph_key : dict[str, str | tuple[str, ...]]
-            Graph key ``node_type:node_name`` → snapshot storage key (or sorted tuple of
-            distinct keys when several facets hydrate the same merged node). Filled during
-            phase 1; cleared at each ``build()`` start.
-    """
+"""
 
     def __init__(self) -> None:
         """Create a coordinator with empty interchange and internal facet graphs."""
