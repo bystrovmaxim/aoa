@@ -27,9 +27,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TypeVar
 
-from graph.qualified_name import cls_qualified_dotted_id
 from action_machine.model.base_result import BaseResult
 from graph.base_graph_node import BaseGraphNode
+from graph.qualified_name import cls_qualified_dotted_id
 
 TResult = TypeVar("TResult", bound=BaseResult)
 

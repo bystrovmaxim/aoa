@@ -6,9 +6,9 @@ from __future__ import annotations
 import pytest
 
 from graph.base_graph_edge import BaseGraphEdge
-from graph.edge_relationship import EdgeRelationship
 from graph.base_graph_node import BaseGraphNode
 from graph.base_intent_inspector import BaseIntentInspector
+from graph.edge_relationship import EdgeRelationship
 from graph.exceptions import DuplicateNodeError, InvalidGraphError
 from graph.facet_vertex import FacetVertex
 from graph.node_graph_coordinator import NodeGraphCoordinator

@@ -32,7 +32,6 @@ from __future__ import annotations
 
 from graph.base_facet_snapshot import BaseFacetSnapshot
 from graph.base_graph_edge import BaseGraphEdge
-from graph.edge_relationship import EdgeRelationship
 from graph.base_graph_node import BaseGraphNode
 from graph.base_intent_inspector import (
     FacetInspectResult,
@@ -50,6 +49,7 @@ from graph.dag import (
     dag_subgraph_is_acyclic,
     dag_subgraph_is_acyclic_from_rx,
 )
+from graph.edge_relationship import EdgeRelationship
 from graph.graph_builder import GraphBuilder, build_interchange_from_facet_vertices
 from graph.graph_coordinator import GraphCoordinator
 from graph.graph_edge import GraphEdge

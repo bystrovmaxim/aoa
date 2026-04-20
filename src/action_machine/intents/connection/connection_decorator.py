@@ -58,7 +58,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, cast
 
 from action_machine.resources.base_resource_manager import BaseResourceManager
 
@@ -150,19 +150,21 @@ def connection(klass: Any, *, key: str, description: str = "") -> Callable[[type
                 f"Got object of type {type(cls).__name__}: {cls!r}."
             )
 
+        target = cast(Any, cls)
+
         # Ensure subclass-local declaration list on first use
-        if '_connection_info' not in cls.__dict__:
-            cls._connection_info = list(getattr(cls, '_connection_info', []))
+        if '_connection_info' not in target.__dict__:
+            target._connection_info = list(getattr(target, '_connection_info', []))
 
         # Duplicate key check
-        if any(info.key == key for info in cls._connection_info):
+        if any(info.key == key for info in target._connection_info):
             raise ValueError(
                 f"@connection(key=\"{key}\"): key \"{key}\" is already declared "
                 f"for class {cls.__name__}. Each key must be unique."
             )
 
         # Register connection declaration
-        cls._connection_info.append(
+        target._connection_info.append(
             ConnectionInfo(cls=klass, key=key, description=description)
         )
 

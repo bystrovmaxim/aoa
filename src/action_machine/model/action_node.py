@@ -41,11 +41,11 @@ from typing import Any, Literal, TypeVar, get_args, get_origin
 
 from action_machine.domain.base_domain import BaseDomain
 from action_machine.legacy.binding.action_generic_params import _resolve_generic_arg
-from graph.qualified_name import cls_qualified_dotted_id
 from action_machine.model.base_action import BaseAction
 from graph.base_graph_edge import BaseGraphEdge
 from graph.base_graph_node import BaseGraphNode
 from graph.edge_relationship import EdgeRelationship
+from graph.qualified_name import cls_qualified_dotted_id
 
 TAction = TypeVar("TAction", bound=BaseAction[Any, Any])
 

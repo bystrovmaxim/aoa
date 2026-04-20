@@ -9,7 +9,6 @@ from action_machine.domain.domain_graph_node import DomainGraphNode
 from action_machine.domain.entity_graph_node import EntityGraphNode
 from action_machine.legacy.application_context import ApplicationContext
 from action_machine.legacy.application_context_inspector import ApplicationContextInspector
-from graph.qualified_name import cls_qualified_dotted_id
 from action_machine.model.action_node import ActionNode
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_result import BaseResult
@@ -19,6 +18,7 @@ from graph.base_graph_edge import BaseGraphEdge
 from graph.edge_relationship import EdgeRelationship
 from graph.facet_edge import FacetEdge
 from graph.facet_vertex import FacetVertex
+from graph.qualified_name import cls_qualified_dotted_id
 from tests.scenarios.domain_model.domains import SystemDomain
 from tests.scenarios.domain_model.entities import SampleEntity, TestDomain
 from tests.scenarios.domain_model.ping_action import PingAction

@@ -64,7 +64,7 @@ EXAMPLES
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import Any
+from typing import Any, cast
 
 from action_machine.runtime.dependency_factory import DependencyInfo
 
@@ -148,19 +148,21 @@ def depends(
                 f"For {cls.__name__}, only subclasses of {bound.__name__} are allowed."
             )
 
+        target = cast(Any, cls)
+
         # ── Create own dependency list ──
-        if '_depends_info' not in cls.__dict__:
-            cls._depends_info = list(getattr(cls, '_depends_info', []))
+        if '_depends_info' not in target.__dict__:
+            target._depends_info = list(getattr(target, '_depends_info', []))
 
         # ── Check for duplicates ──
-        if any(info.cls is klass for info in cls._depends_info):
+        if any(info.cls is klass for info in target._depends_info):
             raise ValueError(
                 f"@depends({klass.__name__}) already declared for class {cls.__name__}. "
                 f"Remove the duplicate decorator."
             )
 
         # ── Register dependency ──
-        cls._depends_info.append(
+        target._depends_info.append(
             DependencyInfo(cls=klass, factory=factory, description=description)
         )
 

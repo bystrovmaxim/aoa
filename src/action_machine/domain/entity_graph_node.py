@@ -41,10 +41,10 @@ from typing import Any, TypeVar
 
 from action_machine.domain.base_domain import BaseDomain
 from action_machine.domain.entity import BaseEntity
-from graph.qualified_name import cls_qualified_dotted_id
 from graph.base_graph_edge import BaseGraphEdge
 from graph.base_graph_node import BaseGraphNode
 from graph.edge_relationship import EdgeRelationship
+from graph.qualified_name import cls_qualified_dotted_id
 
 TEntity = TypeVar("TEntity", bound=BaseEntity)
 
