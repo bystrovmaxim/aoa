@@ -8,7 +8,7 @@ import pytest
 from graph.base_graph_edge import BaseGraphEdge
 from graph.base_graph_node import BaseGraphNode
 from graph.base_intent_inspector import BaseIntentInspector
-from graph.edge_relationship import EdgeRelationship
+from graph.edge_relationship import ASSOCIATION
 from graph.exceptions import DuplicateNodeError, InvalidGraphError
 from graph.facet_vertex import FacetVertex
 from graph.node_graph_coordinator import NodeGraphCoordinator
@@ -30,7 +30,7 @@ def _edge(
         target_node_id=target_node_id,
         target_node_type="Test",
         target_node_obj=object(),
-        edge_relationship=EdgeRelationship.ASSOCIATION,
+        edge_relationship=ASSOCIATION,
     )
 
 

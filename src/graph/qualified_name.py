@@ -9,6 +9,8 @@ PURPOSE
 Provide a single shared implementation for interchange IDs, facet ``node_name``
 bodies, and other graph keys that must match the dotted import path of a class
 (including nested classes via ``__qualname__``).
+
+For validating arbitrary string fields on frozen graph payloads, see :mod:`graph.validation`.
 """
 
 from __future__ import annotations
