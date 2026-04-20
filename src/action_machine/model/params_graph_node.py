@@ -25,7 +25,7 @@ ARCHITECTURE / DATA FLOW
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TypeVar
+from typing import ClassVar, TypeVar
 
 from action_machine.model.base_params import BaseParams
 from graph.base_graph_node import BaseGraphNode
@@ -39,14 +39,16 @@ class ParamsGraphNode(BaseGraphNode[type[TParams]]):
     """
     AI-CORE-BEGIN
     ROLE: Interchange node for a ``BaseParams`` params host class.
-    CONTRACT: Built from ``type[TParams]``; ``node_type="params_schema"``; dotted ``id``, ``__name__`` label; empty ``properties`` and ``edges``.
+    CONTRACT: Built from ``type[TParams]``; :attr:`NODE_TYPE` for ``node_type``; dotted ``id``, ``__name__`` label; empty ``properties`` and ``edges``.
     AI-CORE-END
     """
+
+    NODE_TYPE: ClassVar[str] = "Params"
 
     def __init__(self, params_cls: type[TParams]) -> None:
         super().__init__(
             node_id=cls_qualified_dotted_id(params_cls),
-            node_type="params_schema",
+            node_type=ParamsGraphNode.NODE_TYPE,
             label=params_cls.__name__,
             properties={},
             edges=[],

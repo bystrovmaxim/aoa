@@ -16,10 +16,6 @@ RELATED MODULES
 
 from __future__ import annotations
 
-from typing import TypeVar
-
-T = TypeVar("T")
-
 
 def require_non_empty_str(field: str, value: object) -> str:
     """
@@ -36,7 +32,7 @@ def require_non_empty_str(field: str, value: object) -> str:
     return value
 
 
-def require_non_null(field: str, value: T | None) -> T:
+def require_non_null[T](field: str, value: T | None) -> T:
     """Require a reference that is not ``None``."""
     if value is None:
         msg = f"{field} must not be None"

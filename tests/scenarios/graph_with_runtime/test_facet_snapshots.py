@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from pydantic import Field
+
 from action_machine.domain.base_domain import BaseDomain
 from action_machine.intents.check_roles.check_roles_decorator import check_roles
 from action_machine.intents.meta.meta_decorator import meta
@@ -16,8 +18,16 @@ from graph.base_intent_inspector import BaseIntentInspector
 from tests.scenarios.domain_model.roles import AdminRole
 
 
+class _SnapProbeParams(BaseParams):
+    token: str = Field(default="snap", description="Snapshot probe params")
+
+
+class _SnapProbeResult(BaseResult):
+    ok: bool = Field(default=True, description="Snapshot probe result")
+
+
 @check_roles(AdminRole)
-class _SnapProbeAction(BaseAction[BaseParams, BaseResult]):
+class _SnapProbeAction(BaseAction[_SnapProbeParams, _SnapProbeResult]):
     """Concrete action with @check_roles for snapshot tests."""
 
     pass

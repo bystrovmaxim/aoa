@@ -1,4 +1,4 @@
-# src/maxitor/graph_export.py
+# src/maxitor/viz1/graph_export.py
 """
 GraphML export for coordinator ``PyDiGraph`` — purpose.
 
@@ -35,7 +35,7 @@ ARCHITECTURE / DATA FLOW
             │
             ├──►  pygraph_to_dot_source       ──►  export_pygraph_to_dot(path)
             │
-            └──►  (visualizer.generate_g6_html reuses normalization import)
+            └──►  (:func:`maxitor.viz1.visualizer.generate_g6_html` reuses normalization import)
 
 ═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES
@@ -67,7 +67,7 @@ JSON_SCHEMA_ID = "actionmachine.rustworkx.coordinator_interchange.v1"
 
 
 def _archive_logs_dir() -> Path:
-    return Path(__file__).resolve().parents[2] / "archive" / "logs"
+    return Path(__file__).resolve().parents[3] / "archive" / "logs"
 
 
 def normalize_coordinator_node_payload_for_visualization(

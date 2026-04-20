@@ -63,6 +63,10 @@ class _BoxCheckResult(BaseResult):
     has_context: bool = Field(description="Does ToolsBox have a context property")
 
 
+class _BoxCheckParams(BaseParams):
+    """Concrete params for :class:`_BoxCheckAction` (interchange graph needs a params node)."""
+
+
 # ═════════════════════════════════════════════════════════════════════════════
 #Test Action
 # ═════════════════════════════════════════════════════════════════════════════
@@ -167,7 +171,7 @@ class _SummaryCtxAction(BaseAction[_IntegrationParams, _IntegrationResult]):
 
 @meta(description="Checking for missing box.context", domain=TestDomain)
 @check_roles(NoneRole)
-class _BoxCheckAction(BaseAction[BaseParams, _BoxCheckResult]):
+class _BoxCheckAction(BaseAction[_BoxCheckParams, _BoxCheckResult]):
     """Checks that ToolsBox does not have a public context property."""
 
     @summary_aspect("Examination")
@@ -300,7 +304,7 @@ class TestBoxContextNotAccessible:
         The only legal way to get context data in an aspect is
         via ContextView if @context_requires is present."""
         bench = TestBench()
-        params = BaseParams()
+        params = _BoxCheckParams()
 
         #Act - Action checks for the presence of box.context
         result = await bench.run(_BoxCheckAction(), params, rollup=False)

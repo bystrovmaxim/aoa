@@ -37,11 +37,14 @@ Edge case: same interchange shape for any concrete ``BaseAction`` subclass type 
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Literal, TypeVar, get_args, get_origin
+from typing import Any, ClassVar, Literal, TypeVar, get_args, get_origin
 
 from action_machine.domain.base_domain import BaseDomain
+from action_machine.domain.domain_graph_node import DomainGraphNode
 from action_machine.legacy.binding.action_generic_params import _resolve_generic_arg
 from action_machine.model.base_action import BaseAction
+from action_machine.model.params_graph_node import ParamsGraphNode
+from action_machine.model.result_graph_node import ResultGraphNode
 from graph.base_graph_edge import BaseGraphEdge
 from graph.base_graph_node import BaseGraphNode
 from graph.edge_relationship import ASSOCIATION, FLOW
@@ -59,10 +62,12 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
     AI-CORE-END
     """
 
+    NODE_TYPE: ClassVar[str] = "Action"
+
     def __init__(self, action_cls: type[TAction]) -> None:
         super().__init__(
             node_id=cls_qualified_dotted_id(action_cls),
-            node_type="Action",
+            node_type=ActionGraphNode.NODE_TYPE,
             label=action_cls.__name__,
             properties=dict(ActionGraphNode.get_properties(action_cls)),
             edges=list(ActionGraphNode._get_all_edges(action_cls)),
@@ -108,10 +113,10 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
             edge_name="params",
             is_dag=False,
             source_node_id=cls_qualified_dotted_id(action_cls),
-            source_node_type="Action",
+            source_node_type=cls.NODE_TYPE,
             source_node_obj=action_cls,
             target_node_id=cls_qualified_dotted_id(params_type),
-            target_node_type="params_schema",
+            target_node_type=ParamsGraphNode.NODE_TYPE,
             target_node_obj=params_type,
             edge_relationship=FLOW,
         )
@@ -129,10 +134,10 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
             edge_name="result",
             is_dag=False,
             source_node_id=cls_qualified_dotted_id(action_cls),
-            source_node_type="Action",
+            source_node_type=cls.NODE_TYPE,
             source_node_obj=action_cls,
             target_node_id=cls_qualified_dotted_id(result_type),
-            target_node_type="result_schema",
+            target_node_type=ResultGraphNode.NODE_TYPE,
             target_node_obj=result_type,
             edge_relationship=FLOW,
         )
@@ -159,10 +164,10 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
             edge_name="domain",
             is_dag=False,
             source_node_id=cls_qualified_dotted_id(action_cls),
-            source_node_type="Action",
+            source_node_type=cls.NODE_TYPE,
             source_node_obj=action_cls,
             target_node_id=cls_qualified_dotted_id(domain_cls),
-            target_node_type="Domain",
+            target_node_type=DomainGraphNode.NODE_TYPE,
             target_node_obj=domain_cls,
             edge_relationship=ASSOCIATION,
         )

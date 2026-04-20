@@ -10,7 +10,9 @@ MockAction replaces real actions in tests by returning either a fixed result
 or a value computed via ``side_effect``. It is used by TestBench for
 dependency substitution.
 
-MockAction is a full action inheriting ``BaseAction[BaseParams, BaseResult]``.
+MockAction is a full action with concrete schema types ``MockActionParams`` /
+``MockActionResult`` so interchange graphs can resolve ``params`` / ``result``
+edges without emitting rows for the abstract ``BaseParams`` / ``BaseResult`` axes.
 It includes a summary aspect (``_mock_result_summary``), so it can run through
 the full machine pipeline. However, TestBench calls ``run()`` directly for
 MockAction to bypass aspect orchestration; this is faster and does not require
@@ -82,7 +84,15 @@ from action_machine.resources.base_resource_manager import BaseResourceManager
 from action_machine.runtime.tools_box import ToolsBox
 
 
-class MockAction(BaseAction[BaseParams, BaseResult]):  # pylint: disable=too-many-ancestors
+class MockActionParams(BaseParams):
+    """Concrete params type for :class:`MockAction` (interchange / schema binding)."""
+
+
+class MockActionResult(BaseResult):
+    """Concrete result type for :class:`MockAction` (interchange / schema binding)."""
+
+
+class MockAction(BaseAction[MockActionParams, MockActionResult]):  # pylint: disable=too-many-ancestors
     """
     Mock action for tests.
 

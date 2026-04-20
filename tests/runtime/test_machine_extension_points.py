@@ -11,10 +11,10 @@ Verifies custom strategy injection via keyword-only constructor parameters for:
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 from typing import Any
 
 import pytest
+from pydantic import Field
 
 from action_machine.context.context import Context
 from action_machine.context.user_info import UserInfo
@@ -41,14 +41,17 @@ def context() -> Context:
     return Context(user=UserInfo(user_id="u1", roles=()))
 
 
-@dataclass(frozen=True)
-class _HandledResult(BaseResult):
-    marker: str
+class _FailingSagaParams(BaseParams):
+    token: str = Field(default="x", description="Extension-point saga probe params")
+
+
+class _FailingSagaResult(BaseResult):
+    marker: str = Field(default="", description="Outcome marker for saga / error-handler tests")
 
 
 @meta(description="Action with regular + failing summary for saga override tests", domain=TestDomain)
 @check_roles(NoneRole)
-class _FailingSagaAction(BaseAction[BaseParams, BaseResult]):
+class _FailingSagaAction(BaseAction[_FailingSagaParams, _FailingSagaResult]):
     @regular_aspect("touch")
     async def touch_aspect(self, params, state, box, connections):
         return {}
@@ -147,7 +150,7 @@ class _ErrorHandlerFake:
     async def handle(self, **kwargs: Any) -> BaseResult:
         _ = kwargs
         self.called = True
-        return _HandledResult(marker="handled")
+        return _FailingSagaResult(marker="handled")
 
 
 class _SagaCoordinatorFake:
@@ -216,9 +219,9 @@ async def test_custom_error_handler_and_saga_are_used(context: Context) -> None:
         saga_coordinator=saga,  # type: ignore[arg-type]
     )
 
-    result = await machine.run(context, _FailingSagaAction(), BaseParams())
+    result = await machine.run(context, _FailingSagaAction(), _FailingSagaParams())
 
-    assert isinstance(result, _HandledResult)
+    assert isinstance(result, _FailingSagaResult)
     assert result.marker == "handled"
     assert error_handler.called is True
     assert saga.called is True

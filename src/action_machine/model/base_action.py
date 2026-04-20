@@ -144,17 +144,17 @@ AI-CORE-BEGIN
 # pylint: disable=wrong-import-order,wrong-import-position
 from dataclasses import dataclass  # noqa: E402
 
-from graph.base_facet_snapshot import BaseFacetSnapshot  # noqa: E402
-from graph.base_intent_inspector import BaseIntentInspector  # noqa: E402
-from graph.facet_edge import FacetEdge  # noqa: E402
-from graph.facet_vertex import FacetVertex  # noqa: E402
+from action_machine.legacy.binding.extract_action_params_result_types import (  # noqa: E402
+    extract_action_params_result_types,
+)
 from action_machine.legacy.described_fields.described_fields_intent_inspector import (  # noqa: E402
     DescribedFieldsIntentInspector,
 )
 from action_machine.legacy.interchange_vertex_labels import ACTION_VERTEX_TYPE  # noqa: E402
-from action_machine.legacy.binding.extract_action_params_result_types import (  # noqa: E402
-    extract_action_params_result_types,
-)
+from graph.base_facet_snapshot import BaseFacetSnapshot  # noqa: E402
+from graph.base_intent_inspector import BaseIntentInspector  # noqa: E402
+from graph.facet_edge import FacetEdge  # noqa: E402
+from graph.facet_vertex import FacetVertex  # noqa: E402
 # pylint: enable=wrong-import-order,wrong-import-position
 
 

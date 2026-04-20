@@ -2,7 +2,7 @@
 """
 Interchange / facet kind strings (``node_type``) for graph visualization labels.
 
-Kept dependency-free so modules like ``maxitor.visualizer`` can import without
+Kept dependency-free so modules like ``maxitor.viz1.visualizer`` can import without
 pulling ``graph`` (whose package ``__init__`` loads the
 coordinator).
 """

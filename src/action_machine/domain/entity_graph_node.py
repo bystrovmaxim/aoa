@@ -37,9 +37,10 @@ missing ``domain`` is ignored (same as no edges).
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, TypeVar
+from typing import Any, ClassVar, TypeVar
 
 from action_machine.domain.base_domain import BaseDomain
+from action_machine.domain.domain_graph_node import DomainGraphNode
 from action_machine.domain.entity import BaseEntity
 from graph.base_graph_edge import BaseGraphEdge
 from graph.base_graph_node import BaseGraphNode
@@ -54,9 +55,11 @@ class EntityGraphNode(BaseGraphNode[type[TEntity]]):
     """
     AI-CORE-BEGIN
     ROLE: Interchange bridge for ``BaseEntity`` host classes.
-    CONTRACT: Dotted-path ``id``, ``__name__`` label; ``get_properties`` / ``get_domain_edge`` via :meth:`_meta_info_dict`; ``edges`` = :meth:`_get_all_edges`.
+    CONTRACT: Dotted-path ``id``, ``__name__`` label; :attr:`NODE_TYPE` for ``node_type``; ``get_properties`` / ``get_domain_edge`` via :meth:`_meta_info_dict`; ``edges`` = :meth:`_get_all_edges`.
     AI-CORE-END
     """
+
+    NODE_TYPE: ClassVar[str] = "Entity"
 
     @classmethod
     def _meta_info_dict(cls, entity_cls: type[TEntity]) -> dict[str, Any]:
@@ -89,10 +92,10 @@ class EntityGraphNode(BaseGraphNode[type[TEntity]]):
             edge_name="domain",
             is_dag=False,
             source_node_id=cls_qualified_dotted_id(entity_cls),
-            source_node_type="Entity",
+            source_node_type=cls.NODE_TYPE,
             source_node_obj=entity_cls,
             target_node_id=cls_qualified_dotted_id(domain_cls),
-            target_node_type="Domain",
+            target_node_type=DomainGraphNode.NODE_TYPE,
             target_node_obj=domain_cls,
             edge_relationship=ASSOCIATION,
         )
@@ -115,7 +118,7 @@ class EntityGraphNode(BaseGraphNode[type[TEntity]]):
     def __init__(self, entity_cls: type[TEntity]) -> None:
         super().__init__(
             node_id=cls_qualified_dotted_id(entity_cls),
-            node_type="Entity",
+            node_type=EntityGraphNode.NODE_TYPE,
             label=entity_cls.__name__,
             properties=dict(EntityGraphNode.get_properties(entity_cls)),
             edges=list(EntityGraphNode._get_all_edges(entity_cls)),

@@ -6,14 +6,16 @@ DomainGraphNodeInspector — graph-node contributor for ``BaseDomain`` subclasse
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Walks the loaded ``BaseDomain`` subclass tree and emits one :class:`DomainGraphNode` per
-visited concrete domain class. The abstract ``BaseDomain`` axis yields no node (``DomainGraphNode`` requires ``name`` / ``description``); strict subclasses are visited in deterministic order.
+Walks the loaded ``BaseDomain`` strict subclass tree and emits one :class:`DomainGraphNode` per
+visited concrete domain class. The ``BaseDomain`` axis is excluded via
+:meth:`~graph.base_graph_node_inspector.BaseGraphNodeInspector._graph_node_walk_excluded_types`
+(``DomainGraphNode`` expects ``name`` / ``description`` on concrete domains).
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-    BaseDomain  (root)  ->  ``[]`` (abstract axis)
+    BaseDomain  (root axis, skipped in walk)
               │
               v
     each strict subclass ``cls``  ->  ``[DomainGraphNode(cls)]`` when ``issubclass(cls, BaseDomain)``
@@ -33,14 +35,14 @@ class DomainGraphNodeInspector(BaseGraphNodeInspector[BaseDomain]):
     """
     AI-CORE-BEGIN
     ROLE: Emit ``DomainGraphNode`` rows for every loaded ``BaseDomain`` subclass.
-    CONTRACT: Root axis ``BaseDomain`` from ``BaseGraphNodeInspector[BaseDomain]``; one node per strict subclass with a valid ``DomainGraphNode`` shape (root axis skipped).
+    CONTRACT: Root axis ``BaseDomain`` from ``BaseGraphNodeInspector[BaseDomain]``; one node per strict subclass with a valid ``DomainGraphNode`` shape (root excluded via :meth:`~graph.base_graph_node_inspector.BaseGraphNodeInspector._graph_node_walk_excluded_types`).
     AI-CORE-END
     """
 
+    def _graph_node_walk_excluded_types(self) -> frozenset[type]:
+        return frozenset({BaseDomain})
+
     def _get_type_nodes(self, cls: type) -> list[BaseGraphNode[Any]]:
-        # ``BaseDomain`` is abstract and has no ``name`` / ``description``; :class:`DomainGraphNode` requires them.
-        if cls is BaseDomain:
-            return []
         if isinstance(cls, type) and issubclass(cls, BaseDomain):
             return [DomainGraphNode(cls)]
         return []

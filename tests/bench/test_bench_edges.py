@@ -64,7 +64,7 @@ from action_machine.testing.bench import (
     _prepare_mock,
     _reset_all_mocks,
 )
-from action_machine.testing.mock_action import MockAction
+from action_machine.testing.mock_action import MockAction, MockActionResult
 from tests.scenarios.domain_model import PingAction
 from tests.scenarios.domain_model.roles import AdminRole
 from tests.scenarios.domain_model.services import PaymentService
@@ -79,7 +79,7 @@ class TestPrepareMock:
 
     def test_mock_action_passthrough(self) -> None:
         """Rule 1: MockAction instances are returned unchanged."""
-        mock_action = MockAction(result=BaseResult())
+        mock_action = MockAction(result=MockActionResult())
         assert _prepare_mock(mock_action) is mock_action
 
     def test_base_action_passthrough(self) -> None:

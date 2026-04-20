@@ -39,12 +39,10 @@ Edge case: same interchange shape for any concrete ``BaseDomain`` subclass type 
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TypeVar
+from typing import ClassVar, TypeVar
 
 from action_machine.domain.base_domain import BaseDomain
-from graph.base_graph_edge import BaseGraphEdge
 from graph.base_graph_node import BaseGraphNode
-from graph.edge_relationship import COMPOSITION
 from graph.qualified_name import cls_qualified_dotted_id
 
 TDomain = TypeVar("TDomain", bound=BaseDomain)
@@ -55,37 +53,21 @@ class DomainGraphNode(BaseGraphNode[type[TDomain]]):
     """
     AI-CORE-BEGIN
     ROLE: Interchange node for a bounded-context domain marker.
-    CONTRACT: Built from ``type[TDomain]``; dotted ``id``, ``__name__`` label; ``properties`` carry ``name`` / ``description`` (facet ``node_meta`` parity); ``belongs_to`` → ``ApplicationContext`` in ``edges``.
+    CONTRACT: Built from ``type[TDomain]``; :attr:`NODE_TYPE` for ``node_type``; dotted ``id``, ``__name__`` label; ``properties`` carry ``name`` / ``description`` (facet ``node_meta`` parity). ``edges`` is empty on the interchange row until an ``Application`` node exists in the same coordinator graph (facet layer still models ``belongs_to`` via ``ApplicationContextInspector``).
     AI-CORE-END
     """
 
-    def __init__(self, domain_cls: type[TDomain]) -> None:
-        # Local import: avoid loading ``application`` package (and inspector) during ``domain`` import.
-        from action_machine.legacy.application_context import (  # pylint: disable=import-outside-toplevel
-            ApplicationContext,
-        )
+    NODE_TYPE: ClassVar[str] = "Domain"
 
-        app_id = cls_qualified_dotted_id(ApplicationContext)
+    def __init__(self, domain_cls: type[TDomain]) -> None:
         super().__init__(
             node_id=cls_qualified_dotted_id(domain_cls),
-            node_type="Domain",
+            node_type=DomainGraphNode.NODE_TYPE,
             label=domain_cls.__name__,
             properties={
                 "name": domain_cls.name,
                 "description": domain_cls.description,
             },
-            edges=[
-                BaseGraphEdge(
-                    edge_name="belongs_to",
-                    is_dag=False,
-                    source_node_id=cls_qualified_dotted_id(domain_cls),
-                    source_node_type="Domain",
-                    source_node_obj=domain_cls,
-                    target_node_id=app_id,
-                    target_node_type="Application",
-                    target_node_obj=ApplicationContext,
-                    edge_relationship=COMPOSITION,
-                ),
-            ],
+            edges=[],
             node_obj=domain_cls,
         )

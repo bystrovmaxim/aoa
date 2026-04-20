@@ -25,7 +25,7 @@ ARCHITECTURE / DATA FLOW
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TypeVar
+from typing import ClassVar, TypeVar
 
 from action_machine.model.base_result import BaseResult
 from graph.base_graph_node import BaseGraphNode
@@ -39,14 +39,16 @@ class ResultGraphNode(BaseGraphNode[type[TResult]]):
     """
     AI-CORE-BEGIN
     ROLE: Interchange node for a ``BaseResult`` result host class.
-    CONTRACT: Built from ``type[TResult]``; ``node_type="result_schema"``; dotted ``id``, ``__name__`` label; empty ``properties`` and ``edges``.
+    CONTRACT: Built from ``type[TResult]``; :attr:`NODE_TYPE` for ``node_type``; dotted ``id``, ``__name__`` label; empty ``properties`` and ``edges``.
     AI-CORE-END
     """
+
+    NODE_TYPE: ClassVar[str] = "Result"
 
     def __init__(self, result_cls: type[TResult]) -> None:
         super().__init__(
             node_id=cls_qualified_dotted_id(result_cls),
-            node_type="result_schema",
+            node_type=ResultGraphNode.NODE_TYPE,
             label=result_cls.__name__,
             properties={},
             edges=[],
