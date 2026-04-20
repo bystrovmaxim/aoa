@@ -3,14 +3,20 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 import pytest
 
 from graph.base_graph_edge import BaseGraphEdge
 from graph.base_graph_node import BaseGraphNode
 from graph.edge_relationship import ASSOCIATION
 from graph.exceptions import DuplicateNodeError, InvalidGraphError
+from graph.base_graph_node_inspector import BaseGraphNodeInspector
 from graph.node_graph_coordinator import NodeGraphCoordinator
-from graph.base_node_graph_inspector import BaseNodeGraphInspector
+
+
+class _GraphInspectorTestRoot:
+    """Module-level axis type for :class:`_NodeGraphTestInspector` specialization."""
 
 
 def _edge(
@@ -53,14 +59,16 @@ def _make_node(
     return _N(object())
 
 
-class _NodeGraphTestInspector(BaseNodeGraphInspector):
-    """Test-only :class:`BaseNodeGraphInspector` stub."""
+class _NodeGraphTestInspector(BaseGraphNodeInspector[_GraphInspectorTestRoot]):
+    """Test-only :class:`BaseGraphNodeInspector` stub (nodes only for the axis root type)."""
 
     def __init__(self, nodes: list[BaseGraphNode[object]]) -> None:
         self._nodes = nodes
 
-    def get_graph_nodes(self) -> list[BaseGraphNode[object]]:
-        return list(self._nodes)
+    def _get_type_nodes(self, cls: type) -> list[BaseGraphNode[object]]:
+        if cls is _GraphInspectorTestRoot:
+            return list(self._nodes)
+        return []
 
 
 def test_node_graph_coordinator_builds_chain() -> None:
@@ -115,7 +123,60 @@ def test_build_twice_raises() -> None:
         coord.build([_NodeGraphTestInspector([n])])
 
 
-def test_build_accepts_base_node_graph_inspector_instances() -> None:
+def test_build_accepts_base_graph_node_inspector_instances() -> None:
     n = _make_node("a", [])
     insp = _NodeGraphTestInspector([n])
-    assert isinstance(insp, BaseNodeGraphInspector)
+    assert isinstance(insp, BaseGraphNodeInspector)
+
+
+def test_all_descendant_types_transitive_and_excludes_root() -> None:
+    class _Root:
+        pass
+
+    class _Mid(_Root):
+        pass
+
+    class _Leaf(_Mid):
+        pass
+
+    class _Other(_Root):
+        pass
+
+    got = BaseGraphNodeInspector._all_descendant_types(_Root)
+    assert set(got) == {_Mid, _Leaf, _Other}
+    assert _Root not in got
+    names = [t.__qualname__ for t in got]
+    assert names == sorted(names)
+
+
+def test_all_descendant_types_rejects_non_type() -> None:
+    not_a_type: object = ()
+    with pytest.raises(TypeError, match="root must be a type"):
+        BaseGraphNodeInspector._all_descendant_types(not_a_type)  # type: ignore[arg-type]
+
+
+def test_get_graph_nodes_collects_root_then_sorted_descendants() -> None:
+    class _R:
+        pass
+
+    class _A(_R):
+        pass
+
+    class _B(_R):
+        pass
+
+    n_root = _make_node("root", [])
+    n_a = _make_node("a", [])
+    n_b = _make_node("b", [])
+
+    class _ComposingInspector(BaseGraphNodeInspector[_R]):
+        def _get_type_nodes(self, cls: type) -> list[BaseGraphNode[Any]]:
+            if cls is _R:
+                return [n_root]
+            if cls is _A:
+                return [n_a]
+            if cls is _B:
+                return [n_b]
+            return []
+
+    assert _ComposingInspector().get_graph_nodes() == [n_root, n_a, n_b]

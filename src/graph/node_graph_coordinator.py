@@ -7,8 +7,8 @@ PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 Collects :class:`~graph.base_graph_node.BaseGraphNode` instances from
-registered :class:`~graph.base_node_graph_inspector.BaseNodeGraphInspector`
-**instances** (each implements :meth:`~graph.base_node_graph_inspector.BaseNodeGraphInspector.get_graph_nodes`),
+registered :class:`~graph.base_graph_node_inspector.BaseGraphNodeInspector`
+**instances** (each implements :meth:`~graph.base_graph_node_inspector.BaseGraphNodeInspector.get_graph_nodes`),
 validates **unique**
 :attr:`~graph.base_graph_node.BaseGraphNode.node_id` keys, **referential
 integrity** of :class:`~graph.base_graph_edge.BaseGraphEdge.target_node_id`,
@@ -25,7 +25,7 @@ ARCHITECTURE / DATA FLOW
 
 ::
 
-    inspectors: Sequence[BaseNodeGraphInspector]  (instances)
+    inspectors: Sequence[BaseGraphNodeInspector[Any]]  (instances)
               │
               v
     for each: inspector.get_graph_nodes()  ->  flat list of (node, inspector_label)
@@ -59,15 +59,15 @@ from typing import Any
 import rustworkx as rx
 
 from graph.base_graph_node import BaseGraphNode
+from graph.base_graph_node_inspector import BaseGraphNodeInspector
 from graph.exceptions import DuplicateNodeError, InvalidGraphError
-from graph.base_node_graph_inspector import BaseNodeGraphInspector
 
 
 class NodeGraphCoordinator:
     """
     AI-CORE-BEGIN
     ROLE: Build rustworkx graph from ``BaseGraphNode`` contributions.
-    CONTRACT: ``build`` with :class:`~graph.base_node_graph_inspector.BaseNodeGraphInspector` instances; each ``get_graph_nodes()``;
+    CONTRACT: ``build`` with :class:`~graph.base_graph_node_inspector.BaseGraphNodeInspector` instances; each ``get_graph_nodes()``;
         construction-only, no graph accessors.
     INVARIANTS: Duplicate id / missing target / DAG cycle raise during build.
     AI-CORE-END
@@ -78,9 +78,9 @@ class NodeGraphCoordinator:
     def __init__(self) -> None:
         self._built: bool = False
 
-    def build(self, inspectors: Sequence[BaseNodeGraphInspector]) -> None:
+    def build(self, inspectors: Sequence[BaseGraphNodeInspector[Any]]) -> None:
         """
-        Collect nodes from each inspector instance via :meth:`BaseNodeGraphInspector.get_graph_nodes`,
+        Collect nodes from each inspector instance via :meth:`BaseGraphNodeInspector.get_graph_nodes`,
         validate, and construct the ``rustworkx`` graph (not exposed).
 
         Raises:
@@ -99,12 +99,12 @@ class NodeGraphCoordinator:
         self._materialize_rustworkx_graph(nodes)
         self._built = True
 
-    def _inspector_label(self, inspector: BaseNodeGraphInspector) -> str:
+    def _inspector_label(self, inspector: BaseGraphNodeInspector[Any]) -> str:
         return type(inspector).__qualname__
 
     def _gather_all_nodes(
         self,
-        inspectors: Sequence[BaseNodeGraphInspector],
+        inspectors: Sequence[BaseGraphNodeInspector[Any]],
     ) -> list[tuple[BaseGraphNode[Any], str]]:
         """
         Concatenate ``get_graph_nodes()`` from every inspector in order.

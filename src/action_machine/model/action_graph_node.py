@@ -1,6 +1,6 @@
-# src/action_machine/model/action_node.py
+# src/action_machine/model/action_graph_node.py
 """
-ActionNode — interchange node for ``BaseAction`` subclasses.
+ActionGraphNode — interchange node for ``BaseAction`` subclasses.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
@@ -19,7 +19,7 @@ ARCHITECTURE / DATA FLOW
               v
     ``BaseAction[P, R]``  →  :meth:`get_schema_generic_binding` with index ``0`` / ``1`` (or :meth:`get_params_edge` / :meth:`get_result_edge`)
 
-    ActionNode ``__init__`` / helpers  →  frozen ``BaseGraphNode``
+    ActionGraphNode ``__init__`` / helpers  →  frozen ``BaseGraphNode``
 
 ═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES
@@ -28,7 +28,7 @@ EXAMPLES
 Happy path::
 
     class MyPingAction(BaseAction): ...
-    n = ActionNode(MyPingAction)
+    n = ActionGraphNode(MyPingAction)
     assert n.node_type == "Action" and n.label == "MyPingAction"
 
 Edge case: same interchange shape for any concrete ``BaseAction`` subclass type passed in.
@@ -51,7 +51,7 @@ TAction = TypeVar("TAction", bound=BaseAction[Any, Any])
 
 
 @dataclass(init=False, frozen=True)
-class ActionNode(BaseGraphNode[type[TAction]]):
+class ActionGraphNode(BaseGraphNode[type[TAction]]):
     """
     AI-CORE-BEGIN
     ROLE: Interchange node for a concrete ``BaseAction`` host class.
@@ -64,8 +64,8 @@ class ActionNode(BaseGraphNode[type[TAction]]):
             node_id=cls_qualified_dotted_id(action_cls),
             node_type="Action",
             label=action_cls.__name__,
-            properties=dict(ActionNode.get_properties(action_cls)),
-            edges=list(ActionNode._get_all_edges(action_cls)),
+            properties=dict(ActionGraphNode.get_properties(action_cls)),
+            edges=list(ActionGraphNode._get_all_edges(action_cls)),
             node_obj=action_cls,
         )
 

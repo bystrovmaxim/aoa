@@ -51,32 +51,39 @@ from action_machine.model.base_result import BaseResult
 from action_machine.model.base_schema import BaseSchema
 from action_machine.model.base_state import BaseState
 from action_machine.model.exceptions import *  # noqa: F403
-from action_machine.model.params_node import ParamsNode
-from action_machine.model.result_node import ResultNode
+from action_machine.model.params_graph_node import ParamsGraphNode
+from action_machine.model.result_graph_node import ResultGraphNode
 
 if TYPE_CHECKING:
-    from action_machine.model.action_node import ActionNode
+    from action_machine.model.action_graph_node import ActionGraphNode
 
 
 def __getattr__(name: str) -> Any:
-    """Lazy ``ActionNode`` — avoids import cycle with :mod:`action_machine.domain.base_domain`."""
-    if name == "ActionNode":
-        from action_machine.model.action_node import (  # pylint: disable=import-outside-toplevel
-            ActionNode as ActionNodeImpl,
+    """Lazy exports — avoid import cycles with :mod:`action_machine.domain.base_domain` / graph."""
+    if name == "ActionGraphNode":
+        from action_machine.model.action_graph_node import (  # pylint: disable=import-outside-toplevel
+            ActionGraphNode as ActionGraphNodeImpl,
         )
 
-        return ActionNodeImpl
+        return ActionGraphNodeImpl
+    if name == "ActionGraphNodeInspector":
+        from action_machine.model.action_graph_node_inspector import (  # pylint: disable=import-outside-toplevel
+            ActionGraphNodeInspector as ActionGraphNodeInspectorImpl,
+        )
+
+        return ActionGraphNodeInspectorImpl
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
 __all__ = [
-    "ActionNode",
+    "ActionGraphNode",
+    "ActionGraphNodeInspector",  # noqa: F405 — resolved at runtime via :func:`__getattr__`
     "BaseAction",
     "BaseParams",
     "BaseResult",
     "BaseSchema",
     "BaseState",
-    "ParamsNode",
-    "ResultNode",
+    "ParamsGraphNode",
+    "ResultGraphNode",
     *_exceptions.__all__,
 ]
