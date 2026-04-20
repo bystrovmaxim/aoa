@@ -51,6 +51,7 @@ from graph.qualified_name import cls_qualified_dotted_id
 from .base_callable_graph_node import BaseCallableGraphNode, IntentCallableKind
 from .params_graph_node import ParamsGraphNode
 from .regular_aspect_graph_node import RegularAspectGraphNode
+from .summary_aspect_graph_node import SummaryAspectGraphNode
 from .result_graph_node import ResultGraphNode
 
 TAction = TypeVar("TAction", bound=BaseAction[Any, Any])
@@ -61,7 +62,7 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
     """
     AI-CORE-BEGIN
     ROLE: Interchange node for a concrete ``BaseAction`` host class.
-    CONTRACT: ``get_properties`` / ``get_domain_edge`` (``@meta``, ``ASSOCIATION``, ``is_dag=True``); ``get_params_edge`` / ``get_result_edge`` (``AGGREGATION``); ``get_regular_aspect_edges`` (``COMPOSITION``, own-class ``@regular_aspect``).
+    CONTRACT: ``get_properties`` / ``get_domain_edge`` (``@meta``, ``ASSOCIATION``, ``is_dag=True``); ``get_params_edge`` / ``get_result_edge`` (``AGGREGATION``); ``get_regular_aspect_edges`` / ``get_summary_aspect_edges`` (``COMPOSITION``, own-class ``@regular_aspect`` / ``@summary_aspect``).
     AI-CORE-END
     """
 
@@ -178,6 +179,38 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
         return edges
 
     @classmethod
+    def get_summary_aspect_edges(
+        cls,
+        action_cls: type[TAction],
+    ) -> list[BaseGraphEdge]:
+        """
+        One ``COMPOSITION`` edge per own-class ``@summary_aspect`` from this action to the matching summary-aspect node.
+
+        Target ids match :class:`SummaryAspectGraphNode` (``action_dotted_id:method_name``).
+        """
+        action_id = cls_qualified_dotted_id(action_cls)
+        edges: list[BaseGraphEdge] = []
+        for aspect_callable in BaseCallableGraphNode.collect_own_class_callables_for_kind(
+            action_cls,
+            IntentCallableKind.SUMMARY_ASPECT,
+        ):
+            method_name = BaseCallableGraphNode.resolve_method_name(aspect_callable)
+            edges.append(
+                BaseGraphEdge(
+                    edge_name=method_name,
+                    is_dag=False,
+                    source_node_id=action_id,
+                    source_node_type=cls.NODE_TYPE,
+                    source_node_obj=action_cls,
+                    target_node_id=f"{action_id}:{method_name}",
+                    target_node_type=SummaryAspectGraphNode.NODE_TYPE,
+                    target_node_obj=aspect_callable,
+                    edge_relationship=COMPOSITION,
+                ),
+            )
+        return edges
+
+    @classmethod
     def _meta_info_dict(cls, action_cls: type[TAction]) -> dict[str, Any]:
         """``_meta_info`` written by ``@meta``, or empty ``dict`` when absent or not a mapping."""
         raw = getattr(action_cls, "_meta_info", None)
@@ -218,10 +251,14 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
 
     @classmethod
     def _get_all_edges(cls, action_cls: type[TAction]) -> list[BaseGraphEdge]:
-        """Optional domain/params/result edges plus :meth:`get_regular_aspect_edges` (never ``None`` entries)."""
+        """Optional domain/params/result edges plus regular/summary aspect edges (never ``None`` entries)."""
         optional_edges = (
             cls.get_domain_edge(action_cls),
             cls.get_params_edge(action_cls),
             cls.get_result_edge(action_cls),
         )
-        return [e for e in optional_edges if e is not None] + cls.get_regular_aspect_edges(action_cls)
+        return (
+            [e for e in optional_edges if e is not None]
+            + cls.get_regular_aspect_edges(action_cls)
+            + cls.get_summary_aspect_edges(action_cls)
+        )

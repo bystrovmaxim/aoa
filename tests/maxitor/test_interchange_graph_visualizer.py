@@ -13,6 +13,7 @@ import rustworkx as rx
 
 from action_machine.legacy.application_context import ApplicationContext
 from action_machine.model.graph_model.regular_aspect_graph_node import RegularAspectGraphNode
+from action_machine.model.graph_model.summary_aspect_graph_node import SummaryAspectGraphNode
 from graph.base_graph_edge import BaseGraphEdge
 from graph.base_graph_node import BaseGraphNode
 from graph.base_graph_node_inspector import BaseGraphNodeInspector
@@ -81,6 +82,23 @@ def test_interchange_edge_visual_dict_swaps_composition_diamond_to_regular_aspec
         source_node_obj=object(),
         target_node_id="pkg.Action:my_aspect",
         target_node_type=RegularAspectGraphNode.NODE_TYPE,
+        target_node_obj=object(),
+        edge_relationship=COMPOSITION,
+    )
+    ed = interchange_edge_to_visual_dict(e)
+    assert ed["source_attachment"] == "none"
+    assert ed["target_attachment"] == "filled_diamond"
+
+
+def test_interchange_edge_visual_dict_swaps_composition_diamond_to_summary_aspect_target() -> None:
+    e = BaseGraphEdge(
+        edge_name="pong_summary",
+        is_dag=False,
+        source_node_id="pkg.Action",
+        source_node_type="Action",
+        source_node_obj=object(),
+        target_node_id="pkg.Action:pong_summary",
+        target_node_type=SummaryAspectGraphNode.NODE_TYPE,
         target_node_obj=object(),
         edge_relationship=COMPOSITION,
     )

@@ -22,6 +22,7 @@ __all__ = [
     "ParamsGraphNodeInspector",
     "RegularAspectGraphNode",
     "ResultGraphNode",
+    "SummaryAspectGraphNode",
     "ResultGraphNodeInspector",
 ]
 
@@ -34,6 +35,7 @@ _LAZY: dict[str, str] = {
     "ParamsGraphNodeInspector": "action_machine.model.graph_model.params_graph_node_inspector",
     "RegularAspectGraphNode": "action_machine.model.graph_model.regular_aspect_graph_node",
     "ResultGraphNode": "action_machine.model.graph_model.result_graph_node",
+    "SummaryAspectGraphNode": "action_machine.model.graph_model.summary_aspect_graph_node",
     "ResultGraphNodeInspector": "action_machine.model.graph_model.result_graph_node_inspector",
 }
 

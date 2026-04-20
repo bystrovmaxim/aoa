@@ -12,23 +12,33 @@ from action_machine.model.base_params import BaseParams
 from action_machine.model.base_result import BaseResult
 from action_machine.model.graph_model.action_graph_node import ActionGraphNode
 from action_machine.model.graph_model.params_graph_node import ParamsGraphNode
-from action_machine.model.graph_model.regular_aspect_graph_node import (
-    RegularAspectGraphNode,
-)
+from action_machine.model.graph_model.regular_aspect_graph_node import RegularAspectGraphNode
+from action_machine.model.graph_model.summary_aspect_graph_node import SummaryAspectGraphNode
 from action_machine.model.graph_model.result_graph_node import ResultGraphNode
 from graph.base_graph_edge import BaseGraphEdge
-from graph.edge_relationship import AGGREGATION, ASSOCIATION
+from graph.edge_relationship import AGGREGATION, ASSOCIATION, COMPOSITION
 from graph.facet_vertex import FacetVertex
 from graph.qualified_name import cls_qualified_dotted_id
 from tests.scenarios.domain_model.domains import SystemDomain
 from tests.scenarios.domain_model.entities import SampleEntity, TestDomain
+from tests.scenarios.domain_model.child_action import ChildAction
 from tests.scenarios.domain_model.ping_action import PingAction
 
 
 def test_regular_aspect_graph_node_interchange_shape() -> None:
-    node = RegularAspectGraphNode(PingAction.pong_summary)
-    assert node.node_obj is PingAction.pong_summary
+    node = RegularAspectGraphNode(ChildAction.process_aspect)
+    assert node.node_obj is ChildAction.process_aspect
     assert node.node_type == RegularAspectGraphNode.NODE_TYPE
+    assert node.label == "process_aspect"
+    assert node.properties == {}
+    assert node.edges == []
+    assert node.node_id == f"{cls_qualified_dotted_id(ChildAction)}:process_aspect"
+
+
+def test_summary_aspect_graph_node_interchange_shape() -> None:
+    node = SummaryAspectGraphNode(PingAction.pong_summary)
+    assert node.node_obj is PingAction.pong_summary
+    assert node.node_type == SummaryAspectGraphNode.NODE_TYPE
     assert node.label == "pong_summary"
     assert node.properties == {}
     assert node.edges == []
@@ -141,6 +151,17 @@ def test_action_graph_node_links_and_helpers() -> None:
             target_node_type="Result",
             target_node_obj=PingAction.Result,
             edge_relationship=AGGREGATION,
+        ),
+        BaseGraphEdge(
+            edge_name="pong_summary",
+            is_dag=False,
+            source_node_id=host,
+            source_node_type="Action",
+            source_node_obj=PingAction,
+            target_node_id=f"{host}:pong_summary",
+            target_node_type=SummaryAspectGraphNode.NODE_TYPE,
+            target_node_obj=PingAction.pong_summary,
+            edge_relationship=COMPOSITION,
         ),
     ]
 

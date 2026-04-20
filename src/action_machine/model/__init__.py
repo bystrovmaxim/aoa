@@ -56,9 +56,8 @@ from action_machine.model.graph_model.params_graph_node_inspector import (
     ParamsGraphNodeInspector,
 )
 from action_machine.model.graph_model.base_callable_graph_node import BaseCallableGraphNode
-from action_machine.model.graph_model.regular_aspect_graph_node import (
-    RegularAspectGraphNode,
-)
+from action_machine.model.graph_model.regular_aspect_graph_node import RegularAspectGraphNode
+from action_machine.model.graph_model.summary_aspect_graph_node import SummaryAspectGraphNode
 from action_machine.model.graph_model.result_graph_node import ResultGraphNode
 from action_machine.model.graph_model.result_graph_node_inspector import (
     ResultGraphNodeInspector,
@@ -101,6 +100,7 @@ __all__ = [
     "ParamsGraphNodeInspector",
     "RegularAspectGraphNode",
     "ResultGraphNode",
+    "SummaryAspectGraphNode",
     "ResultGraphNodeInspector",
     *_exceptions.__all__,
 ]
