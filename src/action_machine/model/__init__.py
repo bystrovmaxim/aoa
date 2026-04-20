@@ -51,17 +51,17 @@ from action_machine.model.base_result import BaseResult
 from action_machine.model.base_schema import BaseSchema
 from action_machine.model.base_state import BaseState
 from action_machine.model.exceptions import *  # noqa: F403
+from action_machine.model.graph_model.base_callable_graph_node import BaseCallableGraphNode
 from action_machine.model.graph_model.params_graph_node import ParamsGraphNode
 from action_machine.model.graph_model.params_graph_node_inspector import (
     ParamsGraphNodeInspector,
 )
-from action_machine.model.graph_model.base_callable_graph_node import BaseCallableGraphNode
 from action_machine.model.graph_model.regular_aspect_graph_node import RegularAspectGraphNode
-from action_machine.model.graph_model.summary_aspect_graph_node import SummaryAspectGraphNode
 from action_machine.model.graph_model.result_graph_node import ResultGraphNode
 from action_machine.model.graph_model.result_graph_node_inspector import (
     ResultGraphNodeInspector,
 )
+from action_machine.model.graph_model.summary_aspect_graph_node import SummaryAspectGraphNode
 
 if TYPE_CHECKING:
     from action_machine.model.graph_model.action_graph_node import ActionGraphNode

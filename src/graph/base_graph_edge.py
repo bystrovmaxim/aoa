@@ -43,10 +43,9 @@ Edge case: same ``edge_name`` on different nodes — distinguish by ``source_nod
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any
-
-from collections.abc import Mapping
 
 from graph.edge_relationship import EdgeRelationship
 from graph.validation import require_non_empty_str, require_non_null

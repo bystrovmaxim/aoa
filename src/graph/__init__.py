@@ -33,6 +33,7 @@ from __future__ import annotations
 from graph.base_facet_snapshot import BaseFacetSnapshot
 from graph.base_graph_edge import BaseGraphEdge
 from graph.base_graph_node import BaseGraphNode
+from graph.base_graph_node_inspector import BaseGraphNodeInspector
 from graph.base_intent_inspector import (
     FacetInspectResult,
     InspectGraphPair,
@@ -52,10 +53,9 @@ from graph.dag import (
 from graph.edge_relationship import (
     ACCESS,
     AGGREGATION,
-    ASSOCIATION,
     ASSIGNMENT,
+    ASSOCIATION,
     COMPOSITION,
-    EndpointAttachment,
     FLOW,
     GENERALIZATION,
     REALIZATION,
@@ -63,6 +63,7 @@ from graph.edge_relationship import (
     SPECIALIZATION,
     TRIGGERING,
     EdgeRelationship,
+    EndpointAttachment,
     LineStyle,
 )
 from graph.graph_builder import GraphBuilder, build_interchange_from_facet_vertices
@@ -70,31 +71,30 @@ from graph.graph_coordinator import GraphCoordinator
 from graph.graph_edge import GraphEdge
 from graph.graph_vertex import GraphVertex, GraphVertexParseError, ParsedGraphVertex
 from graph.node_graph_coordinator import NodeGraphCoordinator
-from graph.base_graph_node_inspector import BaseGraphNodeInspector
 from graph.qualified_name import cls_qualified_dotted_id
 from graph.validation import require_non_empty_str, require_non_null
 
 __all__ = [
     "ACCESS",
     "AGGREGATION",
-    "ASSOCIATION",
     "ASSIGNMENT",
+    "ASSOCIATION",
     "COMPOSITION",
     "DAG_EDGE_TYPES",
-    "INTERNAL_EDGE_TYPES",
-    "OWNERSHIP_EDGE_TYPES",
-    "BaseFacetSnapshot",
-    "BaseGraphEdge",
-    "BaseGraphNode",
-    "EndpointAttachment",
-    "EdgeRelationship",
     "FLOW",
     "GENERALIZATION",
-    "LineStyle",
+    "INTERNAL_EDGE_TYPES",
+    "OWNERSHIP_EDGE_TYPES",
     "REALIZATION",
     "SERVING",
     "SPECIALIZATION",
     "TRIGGERING",
+    "BaseFacetSnapshot",
+    "BaseGraphEdge",
+    "BaseGraphNode",
+    "BaseGraphNodeInspector",
+    "EdgeRelationship",
+    "EndpointAttachment",
     "FacetInspectResult",
     "GraphBuilder",
     "GraphCoordinator",
@@ -102,11 +102,9 @@ __all__ = [
     "GraphVertex",
     "GraphVertexParseError",
     "InspectGraphPair",
+    "LineStyle",
     "NodeGraphCoordinator",
-    "BaseGraphNodeInspector",
     "ParsedGraphVertex",
-    "require_non_empty_str",
-    "require_non_null",
     "assert_dag_edges_acyclic",
     "build_interchange_from_facet_vertices",
     "cls_qualified_dotted_id",
@@ -114,4 +112,6 @@ __all__ = [
     "dag_edge_pairs_from_rx",
     "dag_subgraph_is_acyclic",
     "dag_subgraph_is_acyclic_from_rx",
+    "require_non_empty_str",
+    "require_non_null",
 ]

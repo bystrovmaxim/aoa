@@ -13,15 +13,15 @@ from action_machine.model.base_result import BaseResult
 from action_machine.model.graph_model.action_graph_node import ActionGraphNode
 from action_machine.model.graph_model.params_graph_node import ParamsGraphNode
 from action_machine.model.graph_model.regular_aspect_graph_node import RegularAspectGraphNode
-from action_machine.model.graph_model.summary_aspect_graph_node import SummaryAspectGraphNode
 from action_machine.model.graph_model.result_graph_node import ResultGraphNode
+from action_machine.model.graph_model.summary_aspect_graph_node import SummaryAspectGraphNode
 from graph.base_graph_edge import BaseGraphEdge
 from graph.edge_relationship import AGGREGATION, ASSOCIATION, COMPOSITION
 from graph.facet_vertex import FacetVertex
 from graph.qualified_name import cls_qualified_dotted_id
+from tests.scenarios.domain_model.child_action import ChildAction
 from tests.scenarios.domain_model.domains import SystemDomain
 from tests.scenarios.domain_model.entities import SampleEntity, TestDomain
-from tests.scenarios.domain_model.child_action import ChildAction
 from tests.scenarios.domain_model.ping_action import PingAction
 
 
