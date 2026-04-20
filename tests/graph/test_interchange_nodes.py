@@ -1,5 +1,5 @@
 # tests/graph/test_interchange_nodes.py
-"""Interchange node types: ``ParamsNode``, ``ResultNode``, ``DomainGraphNode``, ``ActionNode``, and ``EntityGraphNode``."""
+"""Interchange node types: ``ParamsGraphNode``, ``ResultGraphNode``, ``DomainGraphNode``, ``ActionGraphNode``, and ``EntityGraphNode``."""
 
 from __future__ import annotations
 
@@ -9,11 +9,11 @@ from action_machine.domain.domain_graph_node import DomainGraphNode
 from action_machine.domain.entity_graph_node import EntityGraphNode
 from action_machine.legacy.application_context import ApplicationContext
 from action_machine.legacy.application_context_inspector import ApplicationContextInspector
-from action_machine.model.action_node import ActionNode
+from action_machine.model.action_graph_node import ActionGraphNode
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_result import BaseResult
-from action_machine.model.params_node import ParamsNode
-from action_machine.model.result_node import ResultNode
+from action_machine.model.params_graph_node import ParamsGraphNode
+from action_machine.model.result_graph_node import ResultGraphNode
 from graph.base_graph_edge import BaseGraphEdge
 from graph.edge_relationship import ASSOCIATION, COMPOSITION, FLOW
 from graph.facet_edge import FacetEdge
@@ -24,13 +24,13 @@ from tests.scenarios.domain_model.entities import SampleEntity, TestDomain
 from tests.scenarios.domain_model.ping_action import PingAction
 
 
-def test_params_node_interchange_shape() -> None:
+def test_params_graph_node_interchange_shape() -> None:
     class PongParams(BaseParams):
         """Minimal params for node tests."""
 
         token: str = Field(description="Token")
 
-    node = ParamsNode(PongParams)
+    node = ParamsGraphNode(PongParams)
     assert node.node_obj is PongParams
     assert node.node_type == "params_schema"
     assert node.label == "PongParams"
@@ -39,13 +39,13 @@ def test_params_node_interchange_shape() -> None:
     assert node.edges == []
 
 
-def test_result_node_interchange_shape() -> None:
+def test_result_graph_node_interchange_shape() -> None:
     class PongResult(BaseResult):
         """Minimal result for node tests."""
 
         ok: bool = Field(description="Ok")
 
-    node = ResultNode(PongResult)
+    node = ResultGraphNode(PongResult)
     assert node.node_obj is PongResult
     assert node.node_type == "result_schema"
     assert node.label == "PongResult"
@@ -108,8 +108,8 @@ def test_domain_node_interchange_shape() -> None:
     assert from_node.edges == from_facets.edges
 
 
-def test_action_node_links_and_helpers() -> None:
-    node = ActionNode(PingAction)
+def test_action_graph_node_links_and_helpers() -> None:
+    node = ActionGraphNode(PingAction)
     assert node.node_obj is PingAction
     dom_id = cls_qualified_dotted_id(SystemDomain)
     params_id = cls_qualified_dotted_id(PingAction.Params)
@@ -155,7 +155,7 @@ def test_action_node_links_and_helpers() -> None:
         ),
     ]
 
-    assert ActionNode.get_domain_edge(PingAction) == BaseGraphEdge(
+    assert ActionGraphNode.get_domain_edge(PingAction) == BaseGraphEdge(
         edge_name="domain",
         is_dag=False,
         source_node_id=host,
@@ -166,7 +166,7 @@ def test_action_node_links_and_helpers() -> None:
         target_node_obj=SystemDomain,
         edge_relationship=ASSOCIATION,
     )
-    assert ActionNode.get_params_edge(PingAction) == BaseGraphEdge(
+    assert ActionGraphNode.get_params_edge(PingAction) == BaseGraphEdge(
         edge_name="params",
         is_dag=False,
         source_node_id=host,
@@ -177,7 +177,7 @@ def test_action_node_links_and_helpers() -> None:
         target_node_obj=PingAction.Params,
         edge_relationship=FLOW,
     )
-    assert ActionNode.get_result_edge(PingAction) == BaseGraphEdge(
+    assert ActionGraphNode.get_result_edge(PingAction) == BaseGraphEdge(
         edge_name="result",
         is_dag=False,
         source_node_id=host,
@@ -189,8 +189,8 @@ def test_action_node_links_and_helpers() -> None:
         edge_relationship=FLOW,
     )
 
-    p_type = ActionNode.get_schema_generic_binding(PingAction, 0)
-    r_type = ActionNode.get_schema_generic_binding(PingAction, 1)
+    p_type = ActionGraphNode.get_schema_generic_binding(PingAction, 0)
+    r_type = ActionGraphNode.get_schema_generic_binding(PingAction, 1)
     assert p_type is PingAction.Params and r_type is PingAction.Result
     assert cls_qualified_dotted_id(p_type) == params_id
     assert cls_qualified_dotted_id(r_type) == result_id

@@ -1,6 +1,6 @@
-# src/action_machine/model/result_node.py
+# src/action_machine/model/result_graph_node.py
 """
-ResultNode — interchange node for ``BaseResult`` schema classes.
+ResultGraphNode — interchange node for ``BaseResult`` schema classes.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
@@ -19,7 +19,7 @@ ARCHITECTURE / DATA FLOW
     type[TResult]   (``TResult`` bound to ``BaseResult``)
               │
               v
-    ResultNode(...)  ──>  frozen ``BaseGraphNode`` (node_id, node_type, label, properties, edges)
+    ResultGraphNode(...)  ──>  frozen ``BaseGraphNode`` (node_id, node_type, label, properties, edges)
 """
 
 from __future__ import annotations
@@ -35,7 +35,7 @@ TResult = TypeVar("TResult", bound=BaseResult)
 
 
 @dataclass(init=False, frozen=True)
-class ResultNode(BaseGraphNode[type[TResult]]):
+class ResultGraphNode(BaseGraphNode[type[TResult]]):
     """
     AI-CORE-BEGIN
     ROLE: Interchange node for a ``BaseResult`` result host class.

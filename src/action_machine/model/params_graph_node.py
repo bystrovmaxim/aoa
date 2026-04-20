@@ -1,6 +1,6 @@
-# src/action_machine/model/params_node.py
+# src/action_machine/model/params_graph_node.py
 """
-ParamsNode — interchange node for ``BaseParams`` schema classes.
+ParamsGraphNode — interchange node for ``BaseParams`` schema classes.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
@@ -19,7 +19,7 @@ ARCHITECTURE / DATA FLOW
     type[TParams]   (``TParams`` bound to ``BaseParams``)
               │
               v
-    ParamsNode(...)  ──>  frozen ``BaseGraphNode`` (node_id, node_type, label, properties, edges)
+    ParamsGraphNode(...)  ──>  frozen ``BaseGraphNode`` (node_id, node_type, label, properties, edges)
 """
 
 from __future__ import annotations
@@ -35,7 +35,7 @@ TParams = TypeVar("TParams", bound=BaseParams)
 
 
 @dataclass(init=False, frozen=True)
-class ParamsNode(BaseGraphNode[type[TParams]]):
+class ParamsGraphNode(BaseGraphNode[type[TParams]]):
     """
     AI-CORE-BEGIN
     ROLE: Interchange node for a ``BaseParams`` params host class.
