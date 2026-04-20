@@ -71,46 +71,6 @@ LIFECYCLE (IMPORT VS BUILD VS RUNTIME)
 - **Coordinator `build()`**: structural validation of lifecycles on entities.
 - **Runtime**: constructing `OrderLifecycle("new")`, `can_transition`, `transition`.
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-Specialized subclass with `_template`::
-
-    class OrderLifecycle(Lifecycle):
-        _template = (
-            Lifecycle()
-            .state("new", "New").to("confirmed", "cancelled").initial()
-            .state("confirmed", "Confirmed").to("shipped").intermediate()
-            .state("shipped", "Shipped").to("delivered").intermediate()
-            .state("delivered", "Delivered").final()
-            .state("cancelled", "Cancelled").final()
-        )
-
-    order_lc = OrderLifecycle("new")
-    order_lc.can_transition("confirmed")  # True
-    new_lc = order_lc.transition("confirmed")
-
-Edge — invalid transition::
-
-    order_lc.transition("delivered")  # InvalidTransitionError
-
-Edge — partial entity without lifecycle field::
-
-    # FieldNotLoadedError from BaseEntity.partial / __getattr__, not from Lifecycle
-
-═══════════════════════════════════════════════════════════════════════════════
-FLUENT API (REFERENCE)
-═══════════════════════════════════════════════════════════════════════════════
-
-::
-
-    Lifecycle()
-        .state(key, display_name)   → _StateBuilder
-            .to(*target_keys)       → _StateBuilder
-            .initial() | .intermediate() | .final()  → Lifecycle
-
-State declaration order does not matter; forward references in `.to()` are allowed.
 """
 
 from __future__ import annotations

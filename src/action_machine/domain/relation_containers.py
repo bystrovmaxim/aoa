@@ -106,38 +106,6 @@ LIFECYCLE (IMPORT VS BUILD VS RUNTIME)
 - **Runtime**: adapters construct containers; domain code reads ids or pays
   the hydration cost before drilling into related fields.
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-Hydrated One container::
-
-    ref = AssociationOne(id="CUST-001", entity=customer)
-    ref.id
-    ref.name   # proxies to customer.name
-
-Ids-only One (edge)::
-
-    ref = AssociationOne(id="CUST-001")
-    ref.id
-    ref.name   # RelationNotLoadedError (see exceptions.py wording)
-
-Many with entities::
-
-    bag = CompositeMany(ids=("A", "B"), entities=(e1, e2))
-    len(bag)
-    bag[0]
-
-Many ids only (edge)::
-
-    bag = CompositeMany(ids=("A", "B"))
-    bag[0]     # RelationNotLoadedError
-
-Loaded but zero rows::
-
-    bag = CompositeMany(ids=(), entities=(), entities_loaded=True)
-    list(bag)  # []
-    bag.is_loaded  # True
 """
 
 from __future__ import annotations

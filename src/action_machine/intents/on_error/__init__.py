@@ -53,31 +53,6 @@ Correct order: specific types first, then broad fallback.
         @on_error(Exception, description="...")      <- catches everything first
         @on_error(ValueError, description="...")     <- unreachable for ``ValueError``
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-    from action_machine.intents.on_error import on_error
-
-    @meta(description="Create order", domain=OrdersDomain)
-    @check_roles(NoneRole)
-    class CreateOrderAction(BaseAction[OrderParams, OrderResult]):
-
-        @regular_aspect("Validation")
-        async def validate_aspect(self, params, state, box, connections):
-            ...
-
-        @summary_aspect("Result")
-        async def build_result_summary(self, params, state, box, connections):
-            ...
-
-        @on_error(ValueError, description="Input validation error")
-        async def validation_on_error(self, params, state, box, connections, error):
-            return OrderResult(order_id="ERR", status="validation_error", total=0)
-
-        @on_error(Exception, description="Unexpected error")
-        async def fallback_on_error(self, params, state, box, connections, error):
-            return OrderResult(order_id="ERR", status="internal_error", total=0)
 """
 
 from action_machine.intents.on_error.on_error_decorator import on_error

@@ -58,27 +58,6 @@ ARCHITECTURE / DATA FLOW
     class RedisManager(BaseResourceManager):
         check_rollup_support()         (not overridden -> RollupNotSupportedError)
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-    # Production mode, rollup disabled:
-    db = PostgresConnectionManager(params)
-    await db.open()
-    await db.begin()
-    await db.execute("INSERT ...")
-    await db.commit()  # -> real COMMIT
-
-    # Safe testing against production-like DB, rollup enabled:
-    db = PostgresConnectionManager(params, rollup=True)
-    await db.open()
-    await db.begin()
-    await db.execute("INSERT ...")
-    await db.commit()  # -> ROLLBACK instead of COMMIT
-
-    # Manager without rollup support:
-    redis = RedisManager(config)
-    redis.check_rollup_support()  # -> RollupNotSupportedError
 """
 
 from abc import ABC, abstractmethod

@@ -63,29 +63,6 @@ DICT-LIKE ACCESS (inherited from BaseSchema)
     user.get("user_id")     # → "agent_123"
     list(user.keys())       # → ["user_id", "roles"]
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-    # Authenticated user (roles are BaseRole classes):
-    user = UserInfo(user_id="john_doe", roles=(UserRole, ManagerRole))
-
-    # Anonymous user:
-    anon = UserInfo()
-    anon.user_id    # → None
-    anon.roles      # → ()
-
-    # Extension via inheritance:
-    class TenantUserInfo(UserInfo):
-        tenant_id: str = "default"
-        department: str | None = None
-
-    user = TenantUserInfo(
-        user_id="john",
-        roles=(UserRole,),
-        tenant_id="acme",
-        department="engineering",
-    )
 """
 
 from __future__ import annotations

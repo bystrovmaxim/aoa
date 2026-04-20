@@ -25,15 +25,6 @@ ARCHITECTURE / DATA FLOW
         v
     await result or re-raise callable exception
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-Happy path:
-    ``await CoreHelper.run_in_thread(cpu_bound_fn, a, b)`` returns callable result.
-
-Edge case:
-    If callable raises, the same exception is surfaced to async caller.
 """
 
 import asyncio

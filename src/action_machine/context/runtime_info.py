@@ -56,34 +56,6 @@ DICT-LIKE ACCESS (inherited from BaseSchema)
     "service_name" in runtime    # → True
     list(runtime.keys())         # → ["hostname", "service_name", ...]
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-    runtime = RuntimeInfo(
-        hostname="pod-xyz-123",
-        service_name="orders-api",
-        service_version="1.2.3",
-        container_id="abc123def456",
-        pod_name="orders-api-7b9f4d-x2k",
-    )
-
-    runtime["hostname"]                  # → "pod-xyz-123"
-    runtime.resolve("service_version")   # → "1.2.3"
-    runtime.model_dump()                 # → {"hostname": "pod-xyz-123", ...}
-
-    # Extension via inheritance:
-    class CloudRuntimeInfo(RuntimeInfo):
-        region: str | None = None
-        cluster_name: str | None = None
-
-    runtime = CloudRuntimeInfo(
-        hostname="pod-xyz-123",
-        service_name="orders-api",
-        service_version="1.2.3",
-        region="eu-west-1",
-        cluster_name="production-main",
-    )
 """
 
 from pydantic import ConfigDict

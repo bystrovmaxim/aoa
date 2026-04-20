@@ -24,34 +24,6 @@ ARCHITECTURE / DATA FLOW
                  v
     Aspect reads managers by keys (e.g. connections["connection"])
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-Simple case:
-
-    @connection(PostgresConnectionManager, key="connection", description="Primary DB")
-    class MyAction(BaseAction[...]):
-        @regular_aspect("Load")
-        async def load(self, params, state, box, connections: Connections) -> ...:
-            conn = connections["connection"]
-            ...
-
-Extended case:
-
-    class MyConnections(Connections, total=False):
-        cache: BaseResourceManager
-        analytics_db: BaseResourceManager
-
-    @connection(PostgresConnectionManager, key="connection", description="Primary DB")
-    @connection(RedisConnectionManager, key="cache", description="Cache")
-    @connection(PostgresConnectionManager, key="analytics_db", description="Analytics DB")
-    class ComplexAction(BaseAction[...]):
-        @regular_aspect("Load")
-        async def load(self, params, state, box, connections: MyConnections) -> ...:
-            db = connections["connection"]
-            cache = connections["cache"]
-            ...
 """
 
 from typing import TypedDict

@@ -25,17 +25,6 @@ Nested ``Params`` and ``Result`` live on the action class. Action description
 comes from ``@meta(description=...)``; aspect description from
 ``@summary_aspect("...")``.
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-    GET /api/v1/orders/ORD-user_123-001
-
-    Response:
-    {"order_id": "ORD-user_123-001", "status": "created", "total": 1500.0}
-
-    Edge case: invalid or empty ``order_id`` fails Pydantic validation at the
-    transport layer (e.g. FastAPI 422).
 """
 
 from pydantic import Field

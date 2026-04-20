@@ -74,18 +74,6 @@ Aspects, compensators, and ``@on_error`` handlers cannot read ``Context`` from
 Protocol adapters and tools should use the public ``gate_coordinator`` property
 instead of private ``_coordinator``.
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-Happy path:
-    ``await machine.run(ctx, action, params, connections)`` completes after
-    regular aspects, summary, and ``GlobalFinishEvent`` emission.
-
-Edge case:
-    If an aspect raises after earlier aspects ran, ``SagaCoordinator`` unwinds
-    frames in reverse order, then ``ErrorHandlerExecutor`` runs a matching
-    ``@on_error`` handler or re-raises after ``UnhandledErrorEvent``.
 """
 
 from __future__ import annotations

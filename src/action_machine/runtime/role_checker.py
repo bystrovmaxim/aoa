@@ -31,17 +31,6 @@ ARCHITECTURE / DATA FLOW
                         ▼
               issubclass(user_role, required) ?
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-Happy path:
-    User holds ``OrderManagerRole`` and ``@check_roles(OrderViewerRole)``
-    passes when ``OrderManagerRole`` subclasses ``OrderViewerRole``.
-
-Edge case:
-    If user has only ``RoleMode.SILENCED`` role types, ``AnyRole`` fails with
-    ``AuthorizationError``.
 """
 
 from __future__ import annotations

@@ -29,17 +29,6 @@ ARCHITECTURE / DATA FLOW
                          v
                 runtime machine execution pipeline
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-Happy path:
-    Runtime consumers import and use machine classes while coordinator assembly
-    is provided by ``Core`` when needed.
-
-Edge case:
-    Lazy export avoids graph-stack imports during early module initialization,
-    preventing circular/lifecycle issues around model bootstrap.
 """
 
 from __future__ import annotations

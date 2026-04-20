@@ -27,17 +27,6 @@ ARCHITECTURE / DATA FLOW
           v
     Runtime / adapters consume typed model interfaces
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-Happy path:
-    A feature imports ``BaseAction`` and base contracts from this package and
-    defines strongly typed params/state/result models for one action.
-
-Edge case:
-    A model validation or contract misuse raises an exception re-exported here
-    from ``action_machine.model.exceptions``.
 """
 
 from __future__ import annotations

@@ -39,17 +39,6 @@ ARCHITECTURE / DATA FLOW
               \\___________________________________/
                     same machine + auth instances
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-    from examples.fastapi_mcp_services.infrastructure import auth, machine
-
-    # app_fastapi_service / app_mcp_service pass these into adapters.
-
-    Edge case: custom ``GraphCoordinator`` — pass
-    ``ActionProductMachine(..., coordinator=my_coordinator)`` here; it must
-    already be ``.build()`` complete.
 """
 
 from action_machine.auth.auth_coordinator import NoAuthCoordinator

@@ -37,22 +37,6 @@ ARCHITECTURE / DATA FLOW
             └─ if rollup=True and instance is BaseResourceManager:
                    instance.check_rollup_support()
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-    # Obtain factory via coordinator cache
-    factory = cached_dependency_factory(coordinator, CreateOrderAction)
-    payment = factory.resolve(PaymentService)
-
-    # Pass runtime arguments to factory or constructor
-    payment = factory.resolve(PaymentService, gateway="stripe")
-
-    # Rollup-aware resolution (checks BaseResourceManager support)
-    db = factory.resolve(DbService, rollup=True)
-
-    # Inside an aspect, resolution is delegated through ToolsBox
-    payment = box.resolve(PaymentService)
 """
 
 from __future__ import annotations

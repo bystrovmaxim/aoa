@@ -37,31 +37,6 @@ INVARIANTS
 - ``action_class`` must be a ``BaseAction`` subclass before type extraction.
 - Diverging ``request_model`` / ``response_model`` requires matching mappers.
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-    uv run pytest tests/adapters/test_base_route_record.py -q
-
-Edge case: local ``_NotAnAction`` and string ``action_class`` inputs must raise
-``TypeError`` without touching the shared domain package.
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- ``ValueError`` / ``TypeError`` assertions depend on message substrings from
-  production code; wording changes need synchronized test updates.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Core route-record and type-extraction regression tests.
-CONTRACT: Frozen record; mapper pairing; ``extract_action_types`` MRO walk.
-INVARIANTS: ``_TestRouteRecord`` is the minimal concrete record used here.
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from dataclasses import dataclass

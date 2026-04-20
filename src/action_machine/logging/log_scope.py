@@ -30,21 +30,6 @@ Plugin handlers (``log`` argument):
 
 Templates: ``{%scope.action}``, ``{%scope.nest_level}``, etc.
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-::
-
-    LogScope(machine="APM", mode="prod", action="OrderAction", aspect="validate")
-    # as_dotpath() -> "APM.prod.OrderAction.validate"
-
-    LogScope(
-        machine="APM", mode="prod", plugin="Metrics",
-        action="OrderAction", event="global_finish",
-    )
-
-Dict-like access: ``scope["machine"]``, ``"machine" in scope``, ``scope.keys()``.
 """
 
 from typing import Any

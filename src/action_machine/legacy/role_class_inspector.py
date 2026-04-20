@@ -26,12 +26,6 @@ ARCHITECTURE / DATA FLOW
           │
           └── ``RoleIntentInspector`` → ``action`` —requires_role→ those anchors
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-Happy path: two unrelated classes both use ``name = "dup"`` →
-``InvalidGraphError`` at ``build()``.
 """
 
 from __future__ import annotations

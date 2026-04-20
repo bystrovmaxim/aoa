@@ -26,14 +26,6 @@ ARCHITECTURE / DATA FLOW
          ▼
     Snapshot.Checker rows  →  list[FacetVertex(node_type="Checker", …)]
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-Happy path: an aspect method carries ``_checker_meta``; ``inspect`` returns one
-payload per checker with ``checks_aspect`` edge to the aspect vertex.
-
-Edge case: no ``_checker_meta`` on any member → ``inspect`` returns ``None``.
 """
 
 from __future__ import annotations

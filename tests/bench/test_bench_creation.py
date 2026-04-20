@@ -30,23 +30,6 @@ INVARIANTS
 - ``unittest.mock.Mock`` / ``AsyncMock`` must not be wrapped solely for being
   callable.
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-    uv run pytest tests/bench/test_bench_creation.py -q
-
-Edge case: ``AsyncMock(spec=PaymentService)`` stays a raw mock in
-``_prepared_mocks``.
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Inspects private ``_prepared_mocks`` to verify preparation without running the
-  full machine.
-
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from unittest.mock import AsyncMock

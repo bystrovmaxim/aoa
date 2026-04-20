@@ -30,26 +30,4 @@ INVARIANTS
 - Endpoint strategy tests live in ``test_fastapi_endpoints.py`` separately from
   adapter smoke tests.
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-    uv run pytest tests/adapters/fastapi/ -q
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Some tests pin internal helper names (e.g. ``_make_endpoint_with_query``) as
-  documentation anchors; update comments if implementation moves.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: FastAPI adapter test subpackage.
-CONTRACT: Cover registration, HTTP semantics, and OpenAPI surfaces.
-INVARIANTS: No duplicate domain actions — reuse ``tests.scenarios.domain_model``.
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """

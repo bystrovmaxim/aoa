@@ -37,11 +37,6 @@ Private attribute guard applies to **every** path segment (not only the leaf),
 e.g. ``{%context._internal.public}`` and ``{%context.user._secret}`` are rejected.
 Trusted code may still use ``BaseSchema.resolve`` without this restriction.
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-``{%var.amount|red}``, ``{iif({%var.ok}, green('yes'), red('no'))}``.
 """
 
 import re

@@ -32,26 +32,6 @@ ARCHITECTURE / DATA FLOW
 ``get_sensitive_fields`` → ``VariableSubstitutor._get_property_config`` →
 ``mask_value`` → masked string in template output.
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-::
-
-    class UserAccount:
-        @property
-        @sensitive(True, max_chars=3, char="*", max_percent=50)
-        def email(self) -> str:
-            return self._email
-
-    Template ``Email: {%context.account.email}`` → ``Email: max*****``.
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS
-═══════════════════════════════════════════════════════════════════════════════
-
-``TypeError`` / ``ValueError`` from parameter validation or wrong decorator
-target (see runtime messages).
 """
 
 from __future__ import annotations

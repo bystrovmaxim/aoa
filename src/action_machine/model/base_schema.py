@@ -88,30 +88,6 @@ ARCHITECTURE / DATA FLOW
          v
     model_dump()/model_json_schema() for runtime adapters and tooling
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-    from pydantic import Field
-    from action_machine.model.base_schema import BaseSchema
-
-    class Address(BaseSchema):
-        city: str = Field(description="City")
-        zip_code: str = Field(description="ZIP code")
-
-    class OrderParams(BaseSchema):
-        user_id: str = Field(description="User identifier")
-        address: Address = Field(description="Shipping address")
-
-    params = OrderParams(
-        user_id="user_123",
-        address=Address(city="Moscow", zip_code="101000"),
-    )
-
-    params["user_id"]                    # -> "user_123"
-    params.resolve("address.city")       # -> "Moscow"
-    list(params.keys())                  # -> ["user_id", "address"]
-    params.model_dump()                  # -> {"user_id": "user_123", "address": {...}}
 """
 
 from __future__ import annotations

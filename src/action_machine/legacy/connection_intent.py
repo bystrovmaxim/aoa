@@ -44,24 +44,6 @@ ARCHITECTURE / DATA FLOW
 
     # ActionProductMachine validates runtime keys against connections facet.
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-    # BaseAction already inherits ConnectionIntent, so any Action supports
-    # @connection out of the box:
-
-    @connection(PostgresManager, key="db", description="Primary DB")
-    class UserAction(BaseAction[UserParams, UserResult]):
-        @regular_aspect("Load user")
-        async def load_user(self, params, state, box, connections):
-            db = connections["db"]
-            user = await db.fetch_one(...)
-            return {"user": user}
-
-        @summary_aspect("Result")
-        async def result(self, params, state, box, connections):
-            return UserResult(user=state["user"])
 """
 
 from typing import Any, ClassVar

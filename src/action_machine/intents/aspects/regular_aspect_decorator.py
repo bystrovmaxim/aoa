@@ -35,18 +35,6 @@ If ``@context_requires`` is present, ``ContextView`` is passed as ``ctx``:
            v
     runtime state merge
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-    @regular_aspect("Process payment")
-    async def process_payment_aspect(self, params, state, box, connections):
-        return {"txn_id": "TXN-001"}
-
-    @regular_aspect("Audit")
-    @context_requires(Ctx.User.user_id)
-    async def audit_aspect(self, params, state, box, connections, ctx):
-        return {"actor": ctx.get(Ctx.User.user_id)}
 """
 
 from __future__ import annotations

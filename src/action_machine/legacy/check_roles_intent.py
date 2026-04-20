@@ -36,23 +36,6 @@ COMPONENTS
 - ``CheckRolesIntent``: marker mixin for role-grammar participation.
 - ``_role_info``: class-level storage populated by ``@check_roles``.
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-::
-
-    from action_machine.intents.check_roles import CheckRolesIntent, check_roles
-
-    @check_roles(AdminRole)
-    class AdminAction(BaseAction[P, R]):   # BaseAction already inherits CheckRolesIntent
-        ...
-
-Edge case (raises TypeError)::
-
-    @check_roles(EditorRole)
-    class NotAnAction:                     # does not inherit CheckRolesIntent
-        ...
 """
 
 from typing import Any, ClassVar

@@ -31,17 +31,6 @@ ARCHITECTURE / DATA FLOW
               v
     Aspect methods receive connections["key"] manager instances
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-Happy path:
-    ``@connection(PostgresConnectionManager, key="db")`` declares one resource
-    key, runtime validates provided payload, and aspects read ``connections["db"]``.
-
-Edge case:
-    Missing/extra connection keys or invalid manager instance type raises
-    connection validation errors before action pipeline proceeds.
 """
 
 from action_machine.intents.connection import ConnectionInfo, connection

@@ -60,16 +60,6 @@ COMPONENTS
 - ``emit_global_start`` / ``emit_global_finish``: global lifecycle events.
 - ``emit_before_*`` / ``emit_after_*``: regular and summary aspect events.
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-Happy path: the machine constructs one ``PluginEmitSupport``; ``_run_internal`` calls
-``emit_global_start`` / ``emit_global_finish`` and the aspect pipeline uses the
-``emit_*_aspect`` helpers, all with the run-local ``plugin_ctx``.
-
-Edge case: a test passes a stub ``plugin_ctx`` that records ``emit_event`` calls
-to assert event types and payloads without a full ``PluginCoordinator``.
 """
 
 from __future__ import annotations

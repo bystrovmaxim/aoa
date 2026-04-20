@@ -27,16 +27,6 @@ ARCHITECTURE / DATA FLOW
               v
     return BaseResult-compatible value or raise typed binding error
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-Happy path:
-    Summary returns declared ``OrderResult`` and binding passes value through.
-
-Edge case:
-    Action declares custom ``Result`` but no summary aspect; runtime raises
-    ``MissingSummaryAspectError`` instead of producing ambiguous fallback value.
 """
 
 from __future__ import annotations

@@ -41,16 +41,6 @@ ARCHITECTURE / DATA FLOW
               v
     build rustworkx ``PyDiGraph``  ->  :attr:`NodeGraphCoordinator.rx_graph` / :meth:`get_all_nodes`
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-::
-
-    coord = NodeGraphCoordinator()
-    coord.build([adapter])
-
-Edge case: empty inspector list completes without error.
 """
 
 from __future__ import annotations

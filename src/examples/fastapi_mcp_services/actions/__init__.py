@@ -30,16 +30,6 @@ ARCHITECTURE / DATA FLOW
                            |
                  shared action logic
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-    from examples.fastapi_mcp_services.actions import CreateOrderAction
-
-    action = CreateOrderAction()
-
-    # Edge case: any transport mismatch should be solved in adapters,
-    # not by forking action classes.
 """
 
 from .create_order import CreateOrderAction

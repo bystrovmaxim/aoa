@@ -53,32 +53,4 @@ LAYOUT
     ├── test_coordinator_strict.py
     └── …                               — other coordinator + runtime cases
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-Happy path: build a coordinator with default inspectors, assert ``is_built`` and
-that ``get_snapshot(SomeAction, "aspect")`` returns expected rows.
-
-Edge case: missing required decorator or structural cycle → build fails with the
-documented exception type.
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-Tests focus on graph build and facet snapshots, not full HTTP or DB adapters. Heavy integration
-smoke lives under ``tests/smoke/``.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Test package init for graph / coordinator coverage.
-CONTRACT: Describes scope; no runtime exports.
-INVARIANTS: Coordinator snapshot model; no BaseAction scratch_* API.
-FLOW: fixtures → coordinator build → assertions on graph and snapshots.
-FAILURES: test failures map to coordinator or inspector regressions.
-EXTENSION POINTS: add inspector tests alongside new facets.
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """

@@ -57,25 +57,4 @@ Package layout:
     ├── app_mcp_service.py       <- MCP server (AI agents)
     └── README.md
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-FastAPI::
-
-    pip install aoa-run[fastapi]
-    uvicorn examples.fastapi_mcp_services.app_fastapi_service:app --reload
-
-    Swagger UI: http://localhost:8000/docs
-    ReDoc:      http://localhost:8000/redoc
-    Health:     http://localhost:8000/health
-
-MCP::
-
-    pip install aoa-run[mcp]
-    python -m examples.fastapi_mcp_services.app_mcp_service
-    python -m examples.fastapi_mcp_services.app_mcp_service --transport streamable-http
-
-Edge case: run only one transport — actions in ``actions/`` stay unchanged; you
-only start the app you need.
 """

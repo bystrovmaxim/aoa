@@ -67,41 +67,6 @@ ARCHITECTURE / DATA FLOW
          v
     compare_results / assertions in test
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-    from action_machine.testing import TestBench, MockAction
-    from action_machine.testing import StubTesterRole
-
-    # Create bench with mocks:
-    bench = TestBench(mocks={PaymentService: mock_payment})
-
-    # Fluent calls always create new immutable bench:
-    admin_bench = bench.with_user(user_id="admin", roles=(StubTesterRole,))
-
-    # Full run on async + sync machines with comparison:
-    result = admin_bench.run(
-        CreateOrderAction(),
-        OrderParams(user_id="u1", amount=100.0),
-        rollup=False,
-    )
-
-    # Single-aspect test with state validation:
-    result = bench.run_aspect(
-        CreateOrderAction(), "process_payment",
-        OrderParams(user_id="u1", amount=100.0),
-        state={"validated_user": "u1"},
-        rollup=False,
-    )
-
-    # Summary-only test with state completeness validation:
-    result = bench.run_summary(
-        CreateOrderAction(),
-        OrderParams(user_id="u1", amount=100.0),
-        state={"validated_user": "u1", "txn_id": "TXN-1"},
-        rollup=False,
-    )
 """
 
 from action_machine.testing.bench import TestBench

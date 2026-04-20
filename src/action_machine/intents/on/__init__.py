@@ -121,58 +121,6 @@ All plugin handlers must use:
 ``MetadataBuilder`` checks compatibility between ``@on(event_class=...)`` and
 the annotated ``event`` parameter type.
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-Metrics plugin with compensation monitoring:
-
-    from action_machine.logging.channel import Channel
-    from action_machine.intents.on import Plugin, on
-    from action_machine.plugin.events import (
-        GlobalFinishEvent,
-        UnhandledErrorEvent,
-        CompensateFailedEvent,
-        SagaRollbackCompletedEvent,
-    )
-
-    class MetricsPlugin(Plugin):
-        async def get_initial_state(self) -> dict:
-            return {"total": 0, "slow": 0, "saga_failures": 0}
-
-        @on(GlobalFinishEvent)
-        async def on_track(self, state, event: GlobalFinishEvent, log):
-            state["total"] += 1
-            if event.duration_ms > 1000:
-                state["slow"] += 1
-                await log.warning(
-                    Channel.business,
-                    "Slow action: {%var.name} in {%var.ms}ms",
-                    name=event.action_name,
-                    ms=event.duration_ms,
-                )
-            return state
-
-        @on(UnhandledErrorEvent)
-        async def on_error(self, state, event: UnhandledErrorEvent, log):
-            await log.critical(
-                Channel.error,
-                "Unhandled error: {%var.err}",
-                err=str(event.error),
-            )
-            return state
-
-        @on(CompensateFailedEvent)
-        async def on_compensate_failed(self, state, event: CompensateFailedEvent, log):
-            await log.critical(
-                Channel.error,
-                "Compensator {%var.comp} failed for {%var.aspect}: {%var.err}",
-                comp=event.compensator_name,
-                aspect=event.failed_for_aspect,
-                err=str(event.compensator_error),
-            )
-            state["saga_failures"] += 1
-            return state
 """
 
 from __future__ import annotations

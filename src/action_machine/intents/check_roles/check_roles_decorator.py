@@ -42,32 +42,6 @@ COMPONENTS
 - ``_validate_required_role_modes``: compile-time mode checks for declared roles.
 - Target invariants: ensure class target.
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-    from action_machine.intents.check_roles import AnyRole, NoneRole, check_roles
-    from action_machine.auth.base_role import BaseRole
-    from action_machine.intents.role_mode.role_mode_decorator import RoleMode, role_mode
-
-    @role_mode(RoleMode.ALIVE)
-    class AdminRole(BaseRole):
-        name = "admin"
-        description = "Administrator."
-
-    @check_roles(AdminRole)
-    class DeleteUserAction(BaseAction[...]):
-        ...
-
-    @check_roles([AdminRole, EditorRole])
-    class PublishAction(BaseAction[...]):
-        ...
-
-    @check_roles(NoneRole)
-    class PingAction(BaseAction[...]):
-        ...
-
-Edge case: ``@check_roles([])`` → ``ValueError``.
 """
 
 from __future__ import annotations

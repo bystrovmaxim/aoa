@@ -49,46 +49,6 @@ at creation time — it validates only key membership in ``allowed_keys``.
 Value resolution is delegated to ``context.resolve()`` with dot-path traversal.
 If field does not exist, ``resolve()`` returns ``None``.
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-    # AdminRole, UserRole — иллюстративные подклассы BaseRole.
-
-    # Runtime creates ContextView for aspect invocation:
-    ctx_view = ContextView(context, frozenset({"user.user_id", "user.roles"}))
-
-    # Aspect uses ctx_view:
-    user_id = ctx_view.get("user.user_id")    # → "agent_123"
-    roles = ctx_view.get("user.roles")         # → (AdminRole, UserRole)
-    ip = ctx_view.get("request.client_ip")     # → ContextAccessError
-
-    # Frozen behavior:
-    ctx_view.x = 1                              # → AttributeError
-    del ctx_view._context                       # → AttributeError
-
-═══════════════════════════════════════════════════════════════════════════════
-ARCHITECTURE / DATA FLOW
-═══════════════════════════════════════════════════════════════════════════════
-
-    @context_requires(...) declaration
-               |
-               v
-    allowed_keys in aspect metadata
-               |
-               v
-    runtime creates ContextView(context, allowed_keys)
-               |
-               v
-    aspect calls ctx.get("dot.path")
-               |
-      +--------+---------+
-      |                  |
-      v                  v
-  key allowed        key denied
-      |                  |
-      v                  v
-  context.resolve     ContextAccessError
 """
 
 from typing import Any

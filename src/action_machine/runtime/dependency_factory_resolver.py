@@ -25,17 +25,6 @@ ARCHITECTURE / DATA FLOW
         │
         └── ScopedLogger + ToolsBox(factory=resolver.dependency_factory_for(...))
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-Happy path:
-    Production machine passes ``self`` into factory ``create(...)`` and exposes
-    public ``dependency_factory_for``.
-
-Edge case:
-    Tests pass a stub object or ``MagicMock(spec_set=...)`` implementing only
-    ``dependency_factory_for``.
 """
 
 from __future__ import annotations

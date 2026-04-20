@@ -108,44 +108,6 @@ DICT-LIKE ACCESS (inherited from BaseSchema)
     list(ctx.keys())                     # → ["user", "request", "runtime"]
     ctx.resolve("user.user_id")          # → "agent_123"
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-    from action_machine.context.context import Context
-    from action_machine.context.user_info import UserInfo
-    from action_machine.context.request_info import RequestInfo
-    from action_machine.context.runtime_info import RuntimeInfo
-
-    # Full context:
-    ctx = Context(
-        user=UserInfo(user_id="john_doe", roles=(UserRole, ManagerRole)),
-        request=RequestInfo(
-            trace_id="abc-123",
-            request_path="/api/v1/orders",
-            request_method="POST",
-            client_ip="192.168.1.1",
-        ),
-        runtime=RuntimeInfo(
-            hostname="pod-xyz-123",
-            service_name="orders-api",
-            service_version="1.2.3",
-        ),
-    )
-
-    ctx.resolve("user.user_id")           # → "john_doe"
-    ctx.resolve("request.trace_id")       # → "abc-123"
-    ctx.resolve("runtime.service_name")   # → "orders-api"
-
-    # Anonymous context:
-    anon_ctx = Context()
-    anon_ctx.resolve("user.user_id")      # → None
-    anon_ctx.resolve("user.roles")        # → []
-
-    # None components are replaced with defaults:
-    ctx = Context(user=None, runtime=None)
-    ctx.user.user_id                       # -> None (defaulted UserInfo)
-    ctx.runtime.hostname                   # -> None (defaulted RuntimeInfo)
 """
 
 from pydantic import ConfigDict, field_validator

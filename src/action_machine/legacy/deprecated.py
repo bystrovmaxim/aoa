@@ -15,18 +15,6 @@ ARCHITECTURE / DATA FLOW
 
     caller  →  wrapped(...)  →  warnings.warn(..., stacklevel=2)  →  original callable
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-::
-
-    @deprecated("old_fn is deprecated; use new_fn instead.")
-    def old_fn() -> None: ...
-
-Edge case: apply **above** ``@classmethod`` / ``@staticmethod`` if those decorators are used
-(outermost ``@deprecated`` last in source order for methods — i.e. ``@deprecated`` then
-``@classmethod`` is wrong; use ``@classmethod`` then ``@deprecated`` wrapping the descriptor).
 """
 
 from __future__ import annotations

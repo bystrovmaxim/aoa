@@ -88,33 +88,6 @@ ARCHITECTURE / DATA FLOW
          v
     model_dump()/model_json_schema() for adapters and tooling
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-    from pydantic import Field
-    from action_machine.model.base_params import BaseParams
-
-    class OrderParams(BaseParams):
-        user_id: str = Field(description="User identifier", examples=["user_123"])
-        amount: float = Field(description="Order amount", gt=0)
-        currency: str = Field(default="USD", description="ISO 4217 currency code")
-
-    params = OrderParams(user_id="user_123", amount=1500.0)
-
-    params["user_id"]           # -> "user_123"
-    params.resolve("currency")  # -> "USD"
-    params.keys()               # -> ["user_id", "amount", "currency"]
-
-    # Writes are forbidden (frozen):
-    params.amount = 0           # -> ValidationError
-
-    # Unknown fields are forbidden (extra="forbid"):
-    OrderParams(user_id="x", amount=1, unknown="y")  # -> ValidationError
-
-    # JSON Schema for FastAPI and MCP:
-    OrderParams.model_json_schema()
-    # {"properties": {"user_id": {"description": "User identifier", ...}, ...}}
 """
 
 from pydantic import ConfigDict

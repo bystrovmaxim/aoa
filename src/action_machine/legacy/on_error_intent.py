@@ -74,27 +74,6 @@ ARCHITECTURE
     #   2. Calls handler(action, params, state, box, connections, error).
     #   3. If handler returns Result, substitutes output.
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-    class PaymentAction(BaseAction[PayParams, PayResult]):
-
-        @regular_aspect("Charge funds")
-        async def charge_aspect(self, params, state, box, connections):
-            ...
-
-        @summary_aspect("Payment result")
-        async def result_summary(self, params, state, box, connections):
-            ...
-
-        @on_error(InsufficientFundsError, description="Insufficient funds")
-        async def insufficient_funds_on_error(self, params, state, box, connections, error):
-            return PayResult(status="insufficient_funds", txn_id="")
-
-        @on_error(PaymentGatewayError, description="Payment gateway error")
-        async def gateway_error_on_error(self, params, state, box, connections, error):
-            return PayResult(status="gateway_error", txn_id="")
 """
 
 from __future__ import annotations

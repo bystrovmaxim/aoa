@@ -30,16 +30,4 @@ ARCHITECTURE / DATA FLOW
     Consumers typically copy or study subpackages; the library does not depend
     on ``examples`` at runtime.
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-Start with the dual-transport demo::
-
-    # See src/examples/fastapi_mcp_services/README.md
-    # Run FastAPI: uvicorn examples.fastapi_mcp_services.app_fastapi_service:app
-    # Run MCP:     python -m examples.fastapi_mcp_services.app_mcp_service
-
-Edge case: importing ``examples`` alone does not start servers or register routes;
-open the subpackage README for commands and dependencies.
 """

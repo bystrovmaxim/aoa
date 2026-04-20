@@ -48,26 +48,6 @@ IDE autocomplete. For custom inherited fields, use raw string paths:
         plan = ctx.get("user.billing_plan")
         ...
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-    from action_machine.context import Ctx
-    from action_machine.intents.context import context_requires
-
-    @regular_aspect("Permission check")
-    @context_requires(Ctx.User.user_id, Ctx.User.roles)
-    async def check_permissions_aspect(self, params, state, box, connections, ctx):
-        user_id = ctx.get(Ctx.User.user_id)
-        roles = ctx.get(Ctx.User.roles)
-        ...
-
-    # Mix of constants and string paths for custom fields:
-    @regular_aspect("Billing")
-    @context_requires(Ctx.User.user_id, "user.billing_plan")
-    async def billing_aspect(self, params, state, box, connections, ctx):
-        plan = ctx.get("user.billing_plan")
-        ...
 """
 
 

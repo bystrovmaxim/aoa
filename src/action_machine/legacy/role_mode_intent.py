@@ -37,19 +37,6 @@ COMPONENTS
 - ``role_mode`` decorator (neighbor module): requires this marker in MRO.
 - ``_role_mode_info``: class-level metadata slot populated by decorator.
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-    class OrderViewerRole(BaseRole):  # BaseRole extends RoleModeIntent
-        ...
-
-    @role_mode(RoleMode.ALIVE)
-    class RegisteredRole(BaseRole):
-        ...
-
-Edge case: applying ``@role_mode`` to a plain ``object`` subclass →
-``TypeError`` from the decorator.
 """
 
 from __future__ import annotations

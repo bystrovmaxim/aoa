@@ -29,29 +29,6 @@ INVARIANTS
 - ``side_effect`` wins when both ``result`` and ``side_effect`` are set.
 - Each ``run`` increments ``call_count`` exactly once.
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-    uv run pytest tests/bench/test_mock_action.py -q
-
-Edge case: ``MockAction()`` with no configuration raises ``ValueError``.
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Synchronous ``run`` only; async bench paths wrap this separately.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Unit tests for the ``MockAction`` test double.
-CONTRACT: Deterministic return or delegated computation; call telemetry.
-INVARIANTS: Uses ``PingAction`` result/params types from scenarios.
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 import pytest

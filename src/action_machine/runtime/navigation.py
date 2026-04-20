@@ -30,21 +30,6 @@ ARCHITECTURE / DATA FLOW
     navigate_with_source(root, dotpath)
          └── same steps; returns (value, parent_object, last_segment)
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-Happy path::
-
-    from action_machine.runtime.navigation import DotPathNavigator, _SENTINEL
-
-    value = DotPathNavigator.navigate(root, "user.address.city")
-    if value is _SENTINEL:
-        value = default_value
-
-Edge case: empty ``dotpath`` in ``navigate_with_source`` returns
-``(root, None, None)``. Any failed segment yields ``(_SENTINEL, …)`` from
-``navigate`` / the documented tuple shape from ``navigate_with_source``.
 """
 
 from __future__ import annotations

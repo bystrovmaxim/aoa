@@ -39,19 +39,6 @@ On first ``@connection`` use for a subclass, decorator copies inherited
 ``_connection_info`` into subclass ``__dict__``. Child class inherits parent
 connections, while new registrations do not mutate parent list.
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-    @connection(PostgresManager, key="db", description="Primary DB")
-    @connection(RedisManager, key="cache", description="Cache")
-    class CreateOrderAction(BaseAction[OrderParams, OrderResult]):
-
-        @regular_aspect("Load data")
-        async def load_data(self, params, state, box, connections):
-            db = connections["db"]
-            result = await db.execute("SELECT ...")
-            return {"data": result}
 """
 
 from __future__ import annotations

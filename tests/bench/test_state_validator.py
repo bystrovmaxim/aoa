@@ -33,32 +33,6 @@ INVARIANTS
 - Summary validation unions requirements from **all** regular aspects on the action.
 - First aspect in order has no preceding checkers -> empty state may pass.
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-    uv run pytest tests/bench/test_state_validator.py -q
-
-Happy path: ``FullAction`` summary with ``txn_id`` + ``total`` present.
-
-Edge case: ``PingAction`` summary with empty state (no regular aspects).
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Helper lambdas filter checker rows by ``method_name``; must stay aligned with
-  coordinator snapshots.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: State validation helper tests ahead of bench scoped runs.
-CONTRACT: Structured errors with ``field`` and ``source_aspect`` when applicable.
-INVARIANTS: ``FullAction``, ``PingAction``, ``SimpleAction`` from scenarios.
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 import pytest

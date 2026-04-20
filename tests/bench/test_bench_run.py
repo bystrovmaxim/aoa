@@ -33,23 +33,6 @@ INVARIANTS
 - Default stub user lacks ``AdminRole``; ``admin_bench`` supplies it.
 - ``rollup`` has no default — callers must choose comparison mode explicitly.
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-    uv run pytest tests/bench/test_bench_run.py -q
-
-Happy path: ``PingAction`` -> ``message == "pong"``.
-
-Edge case: omitting ``rollup`` raises ``TypeError`` (guards accidental misuse).
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- ``manager_bench`` expects notification + payment mocks from shared fixtures.
-
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from unittest.mock import AsyncMock

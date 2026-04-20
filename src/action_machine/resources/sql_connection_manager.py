@@ -78,23 +78,6 @@ ARCHITECTURE / DATA FLOW
                         _rollup copied from original
                         begin/open/commit/rollback prohibited
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-    # Production mode:
-    db = PostgresConnectionManager(params, rollup=False)
-    await db.open()
-    await db.begin()
-    await db.execute("INSERT INTO orders ...")
-    await db.commit()  # -> COMMIT
-
-    # Testing mode with rollup:
-    db = PostgresConnectionManager(params, rollup=True)
-    await db.open()
-    await db.begin()
-    await db.execute("INSERT INTO orders ...")
-    await db.commit()  # -> ROLLBACK (data not persisted)
 """
 
 from abc import abstractmethod

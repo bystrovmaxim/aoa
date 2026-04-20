@@ -135,27 +135,6 @@ Success: ``{"ok":true,"code":"OK","data":<payload>}`` where ``<payload>`` is the
 JSON-serializable object produced by ``_serialize_result`` (one outer
 ``json.dumps`` in ``_envelope_ok``). ``isError`` is for MCP protocol clients only.
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-    from action_machine.intents.check_roles import NoAuthCoordinator
-    from action_machine.integrations.mcp import McpAdapter
-
-    adapter = McpAdapter(
-        machine=machine,
-        auth_coordinator=NoAuthCoordinator(),
-        server_name="Orders MCP",
-        server_version="0.1.0",
-    )
-
-    server = adapter \\
-        .tool("orders.create", CreateOrderAction) \\
-        .tool("orders.get", GetOrderAction) \\
-        .tool("system.ping", PingAction) \\
-        .build()
-
-    server.run(transport="stdio")
 """
 
 # Ruff/isort lists first-party ``action_machine`` before MCP SDK imports (known-first-party).

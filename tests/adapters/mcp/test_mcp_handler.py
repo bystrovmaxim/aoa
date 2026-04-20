@@ -73,31 +73,6 @@ Tagline: production types and production paths; stub the ``run`` seam, not the
 stack. See ``BaseAdapter`` (ADAPTER TESTING CONTRACT) and ``mcp.adapter``
 (TESTING NOTE).
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-    uv run pytest tests/adapters/mcp/test_mcp_handler.py -q
-
-Edge case: wrong ``params_mapper`` return type yields ``INTERNAL_ERROR`` with a
-generic client message; the underlying guard reason appears only in server logs.
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Line-number references to ``adapter.py`` in historical comments drift on edits;
-  behavior is what these tests lock, not exact source lines.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: MCP handler and graph JSON regression tests.
-CONTRACT: CallToolResult + JSON envelope; direct validation/execute-tool-call units; graph JSON.
-INVARIANTS: Real machine + coordinator; ``machine.run`` stubbed where noted; scenario actions + ``AdminRole``.
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 import json

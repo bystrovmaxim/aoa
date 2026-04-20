@@ -50,27 +50,6 @@ Architecture sketch:
     │ ActionProductMachine │
     └──────────────────────┘
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-    # Happy path
-    adapter = FastApiAdapter(machine=machine)
-    adapter.post("/orders/create", CreateOrderAction)
-    app = adapter.build()
-
-    mcp = McpAdapter(machine=machine)
-    mcp.tool("orders.create", CreateOrderAction)
-    server = mcp.build()
-
-    # Edge case: mapper required when models differ
-    adapter.post("/orders", CreateOrderAction,
-                 request_model=LegacyOrderRequest,
-                 params_mapper=legacy_to_params)
-
-    # Route typing is protocol-specific via BaseRouteRecord subclasses:
-    # FastApiRouteRecord(method, path, tags, ...)
-    # McpRouteRecord(tool_name, description, ...)
 """
 
 from action_machine.adapters.base_adapter import BaseAdapter

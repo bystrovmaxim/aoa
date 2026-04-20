@@ -50,36 +50,6 @@ COMPONENTS
   Exposes ``tool()``, ``build()``, and ``register_all()``.
 - ``McpRouteRecord``: immutable route declaration for MCP tool registration.
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-    from action_machine.integrations.mcp import McpAdapter
-
-    adapter = McpAdapter(
-        machine=machine,
-        server_name="Orders MCP",
-        server_version="0.1.0",
-    )
-
-    # Happy path: manual registration.
-    adapter.tool("orders.create", CreateOrderAction)
-    adapter.tool("orders.get", GetOrderAction)
-    server = adapter.build()
-    server.run(transport="stdio")
-
-═══════════════════════════════════════════════════════════════════════════════
-    # Edge case: auto-registration from coordinator graph.
-    adapter.register_all()
-    server = adapter.build()
-
-═══════════════════════════════════════════════════════════════════════════════
-AUTOMATIC INPUT SCHEMA GENERATION
-═══════════════════════════════════════════════════════════════════════════════
-
-``inputSchema`` is derived from the action ``Params`` model using
-``model_json_schema()``. Field docs, constraints, and examples are propagated
-from Pydantic ``Field(...)`` metadata.
 """
 
 try:

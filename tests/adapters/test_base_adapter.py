@@ -36,31 +36,6 @@ INVARIANTS
 - ``auth_coordinator`` must not be ``None``.
 - ``routes`` mirrors registration order; initial list is empty.
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-    uv run pytest tests/adapters/test_base_adapter.py -q
-
-Edge case: explicit ``gate_coordinator`` replaces ``machine.gate_coordinator`` on
-the adapter without mutating the machine.
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Assertions match substring patterns in ``TypeError`` messages from
-  ``BaseAdapter.__init__``; message tweaks in production require test updates.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Regression tests for adapter base state and validation.
-CONTRACT: TypeError on bad ctor args; fluent route list; abstract class guard.
-INVARIANTS: ``_TestAdapter`` is the only concrete subclass used here.
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from unittest.mock import AsyncMock, MagicMock

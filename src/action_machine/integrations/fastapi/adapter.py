@@ -108,25 +108,6 @@ HEALTH CHECK
 Endpoint ``GET /health`` is added automatically during ``build()``.
 Returns ``{"status": "ok"}``.
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-    from action_machine.intents.check_roles import NoAuthCoordinator
-    from action_machine.integrations.fastapi import FastApiAdapter
-
-    adapter = FastApiAdapter(
-        machine=machine,
-        auth_coordinator=NoAuthCoordinator(),
-        title="Orders API",
-        version="0.1.0",
-    )
-
-    app = adapter \\
-        .post("/api/v1/orders", CreateOrderAction, tags=["orders"]) \\
-        .get("/api/v1/orders/{order_id}", GetOrderAction, tags=["orders"]) \\
-        .get("/api/v1/ping", PingAction, tags=["system"]) \\
-        .build()
 """
 
 # Ruff/isort lists first-party ``action_machine`` before FastAPI (known-first-party).

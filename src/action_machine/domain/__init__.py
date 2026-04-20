@@ -62,45 +62,6 @@ Exceptions:
     FieldNotLoadedError, RelationNotLoadedError,
     EntityDecoratorError, LifecycleValidationError.
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-    from pydantic import Field
-
-    from action_machine.legacy.core import Core
-    from action_machine.domain import (
-        BaseDomain,
-        BaseEntity,
-        Lifecycle,
-        AssociationOne,
-        CompositeMany,
-        Inverse,
-        Rel,
-        build,
-        entity,
-    )
-
-    class ShopDomain(BaseDomain):
-        name = "shop"
-        description = "E-commerce shop bounded context"
-
-    @entity(description="Customer order", domain=ShopDomain)
-    class OrderEntity(BaseEntity):
-        lifecycle = (
-            Lifecycle("Order lifecycle")
-            .state("new", "New").to("confirmed", "cancelled").initial()
-            .state("confirmed", "Confirmed").to("shipped").intermediate()
-            .state("delivered", "Delivered").final()
-            .state("cancelled", "Cancelled").final()
-        )
-        id: str = Field(description="Order identifier")
-        amount: float = Field(description="Order total", ge=0)
-
-    # Built coordinator includes entity inspector; entities appear in the graph:
-    coordinator = Core.create_coordinator()
-
-    order = build({"id": "123", "amount": 100.0}, OrderEntity)
 """
 
 from action_machine.domain.base_domain import BaseDomain

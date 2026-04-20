@@ -103,24 +103,6 @@ For custom fields, use raw strings:
 
     @context_requires(Ctx.User.user_id, "user.billing_plan")
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-    from action_machine.context import Ctx, ContextView
-    from action_machine.intents.context import context_requires
-
-    @regular_aspect("Audit")
-    @context_requires(Ctx.User.user_id, Ctx.Request.client_ip)
-    async def audit_aspect(self, params, state, box, connections, ctx):
-        user = ctx.get(Ctx.User.user_id)
-        ip = ctx.get(Ctx.Request.client_ip)
-        return {"audited_by": user}
-
-    # Aspect without context — standard signature:
-    @regular_aspect("Calculate")
-    async def calculate_aspect(self, params, state, box, connections):
-        return {"total": params.amount * 1.2}
 """
 
 from action_machine.context.context import Context

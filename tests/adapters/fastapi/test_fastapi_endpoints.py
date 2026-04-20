@@ -39,28 +39,6 @@ INVARIANTS
 - Error payloads surfaced to the client must match the strings raised inside
   ``machine.run`` for assertion stability.
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-    uv run pytest tests/adapters/fastapi/test_fastapi_endpoints.py -q
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Line references to ``adapter.py`` in older comments drift on refactors; treat
-  them as approximate coverage maps.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Cover HTTP binding strategies and FastAPI exception mapping.
-CONTRACT: Query vs body vs empty Params; 403/422 from domain errors.
-INVARIANTS: Mocked ``machine.run``; no real network.
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from unittest.mock import AsyncMock, MagicMock

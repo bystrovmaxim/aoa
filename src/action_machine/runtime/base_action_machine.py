@@ -44,17 +44,6 @@ ARCHITECTURE / DATA FLOW
         │
         └── SyncActionProductMachine      (sync, production)
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-Happy path:
-    Public ``run(...)`` delegates to machine-specific pipeline implementation
-    and returns typed ``BaseResult`` subclass ``R``.
-
-Edge case:
-    A concrete machine that does not implement ``_run_internal`` raises
-    ``NotImplementedError`` when execution reaches internal pipeline.
 """
 
 from abc import ABC, abstractmethod

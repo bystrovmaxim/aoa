@@ -64,35 +64,6 @@ aligns with other markers such as ``CheckRolesIntent``, ``AspectIntent``,
 ``CheckerIntent``, ``ActionMetaIntent``, ``ConnectionIntent``, ``OnErrorIntent``,
 ``ContextRequiresIntent``, and ``DescribedFieldsIntent``.
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-    # Plugin already inherits OnIntent, so any plugin supports @on:
-    from action_machine.logging.channel import Channel
-
-    class MetricsPlugin(Plugin):
-        async def get_initial_state(self) -> dict:
-            return {"total": 0, "errors": 0}
-
-        @on(GlobalFinishEvent)
-        async def on_track_total(self, state, event: GlobalFinishEvent, log):
-            state["total"] += 1
-            return state
-
-        @on(UnhandledErrorEvent)
-        async def on_track_errors(self, state, event: UnhandledErrorEvent, log):
-            state["errors"] += 1
-            return state
-
-        @on(AfterRegularAspectEvent, aspect_name_pattern=r"validate_.*")
-        async def on_validation_done(self, state, event: AfterRegularAspectEvent, log):
-            await log.info(
-                Channel.debug,
-                "Validation finished: {%var.name}",
-                name=event.aspect_name,
-            )
-            return state
 """
 
 

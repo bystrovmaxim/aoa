@@ -33,23 +33,6 @@ INVARIANTS
 - Fluent methods return a distinct ``TestBench`` instance (not ``self``).
 - Intermediate benches in a chain must not pick up later overrides.
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-    uv run pytest tests/bench/test_bench_immutability.py -q
-
-Edge case: ``step1 = bench.with_user`` then ``step2 = step1.with_request`` —
-``step1`` keeps the default trace id.
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Uses ``_build_context()`` to observe effective stub values (internal but stable
-  for tests).
-
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from action_machine.testing import TestBench

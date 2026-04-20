@@ -41,34 +41,6 @@ INVARIANTS
   extraction helpers run in production; tests call private helpers directly
   with controlled inputs.
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-    uv run pytest tests/adapters/test_route_record_edges.py -q
-
-Happy path: ``_resolve_generic_arg("PingAction.Result", PingAction)`` resolves
-to ``PingAction.Result``.
-
-Edge case: ``ForwardRef("__name__")`` against ``PingAction`` resolves to a
-non-type → ``_resolve_forward_ref`` returns ``None``.
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Private function names (``_resolve_*``) are implementation details; imports
-  may need updates if the module is refactored.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Route-record type resolution edge tests.
-CONTRACT: None/identity outcomes for forward refs and generic args; effective models.
-INVARIANTS: Local record subclass; scenario ``PingAction`` as anchor class.
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from dataclasses import dataclass

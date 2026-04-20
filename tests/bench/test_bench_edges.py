@@ -34,22 +34,6 @@ INVARIANTS
 - ``Mock`` / ``AsyncMock`` must pass through before generic callable wrapping.
 - Context fluent overrides affect only their slice (user vs request vs runtime).
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-    uv run pytest tests/bench/test_bench_edges.py -q
-
-Edge case: plain ``dict`` in mocks survives ``_reset_all_mocks`` untouched.
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Line references into ``testing/bench.py`` drift across refactors; behavior is
-  authoritative.
-
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from unittest.mock import AsyncMock, MagicMock, Mock

@@ -77,21 +77,6 @@ execution boundary, not a hand-written fake machine or duplicate adapter logic.
 Prefer the real machine class plus a ``run`` stub for handler-level scenarios;
 replace ``ActionProductMachine`` only when testing constructor wiring itself.
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-    # With authentication
-    adapter = FastApiAdapter(
-        machine=machine,
-        auth_coordinator=AuthCoordinator(extractor, authenticator, assembler),
-    )
-
-    # Without authentication (explicit declaration)
-    adapter = FastApiAdapter(
-        machine=machine,
-        auth_coordinator=NoAuthCoordinator(),
-    )
 """
 
 from __future__ import annotations

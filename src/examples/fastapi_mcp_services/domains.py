@@ -32,18 +32,6 @@ ARCHITECTURE / DATA FLOW
     Example actions using these domains live under ``actions/`` and are wired
     by FastAPI and MCP adapters without duplicating domain definitions.
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-    from examples.fastapi_mcp_services.domains import OrdersDomain
-    from action_machine.intents.meta.meta_decorator import meta
-
-    @meta(description="Example", domain=OrdersDomain)
-    class MyAction: ...
-
-    Edge case: two domains with the same ``name`` would confuse graph consumers;
-    keep names unique across the example (and the wider app).
 """
 
 from action_machine.domain.base_domain import BaseDomain

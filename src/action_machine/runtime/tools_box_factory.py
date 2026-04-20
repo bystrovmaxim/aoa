@@ -32,17 +32,6 @@ ARCHITECTURE / DATA FLOW
                 ├── factory = factory_resolver.dependency_factory_for(action_cls)
                 └── returns ToolsBox
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-Happy path:
-    ``create(...)`` returns a fully configured ``ToolsBox`` for one execution
-    scope with logger, dependencies, and resources wired.
-
-Edge case:
-    Nested ``run_child`` callback receives the same ``rollup`` value as parent
-    run scope, preserving rollback semantics.
 """
 
 from __future__ import annotations

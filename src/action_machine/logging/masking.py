@@ -25,15 +25,6 @@ ARCHITECTURE / DATA FLOW
                    v
     substituted/debug output in final log line
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-    mask_value("4111111111111111", {"max_chars": 4, "char": "*", "max_percent": 50})
-    # -> "4111*****"
-
-    mask_value("abc", {"max_chars": 10, "max_percent": 100})
-    # -> "abc"  (no masking when keep >= length)
 """
 
 from typing import Any

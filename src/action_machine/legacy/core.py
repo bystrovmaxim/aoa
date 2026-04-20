@@ -26,13 +26,6 @@ ARCHITECTURE / DATA FLOW
          v
     return built coordinator for runtime machines
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-Happy path:
-    Runtime machine calls ``Core.create_coordinator()`` and gets a
-    built coordinator suitable for action execution.
 """
 
 from __future__ import annotations

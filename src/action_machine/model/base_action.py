@@ -53,21 +53,6 @@ The graph inspector for ``BaseAction[P, R]`` schema bindings is
 until after ``BaseAction`` is defined to avoid cycles with
 :mod:`action_machine.legacy.binding.extract_action_params_result_types`).
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-Happy path::
-
-    @meta(description="Ping", domain=SystemDomain)
-    @check_roles(NoneRole)
-    class PingAction(BaseAction[BaseParams, BaseResult]):
-        @summary_aspect("Pong")
-        async def pong_summary(self, params, state, box, connections):
-            return BaseResult()
-
-Edge case: ``class Bad(BaseAction[BaseParams, BaseResult]):`` (name not ending in
-``"Action"``) raises ``NamingSuffixError`` in ``__init_subclass__``.
 """
 
 from __future__ import annotations

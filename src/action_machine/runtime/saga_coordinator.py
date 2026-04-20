@@ -30,17 +30,6 @@ ARCHITECTURE / DATA FLOW
                 │   └── on failure emit CompensateFailedEvent and continue
                 └── emit SagaRollbackCompletedEvent
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-Happy path:
-    ``execute(...)`` unwinds all compensators and emits rollback completion
-    summary with counters.
-
-Edge case:
-    One compensator fails, ``CompensateFailedEvent`` is emitted, and rollback
-    loop continues for remaining frames.
 """
 
 from __future__ import annotations

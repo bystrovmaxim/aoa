@@ -74,42 +74,6 @@ DIFFERENCE FROM BaseParams AND BaseResult
     BaseState   - frozen, extra="allow".  Intermediate state. Dynamic fields.
     BaseResult  - frozen, extra="forbid". Final result. Strict shape.
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-    # Create with initial data (kwargs)
-    state = BaseState(total=1500, user="agent")
-
-    # Reads via dict-like API (inherited from BaseSchema)
-    state["total"]            # -> 1500
-    state.get("user")         # -> "agent"
-    state.resolve("user")     # -> "agent"
-
-    # Serialization
-    state.to_dict()           # -> {"total": 1500, "user": "agent"}
-    state.model_dump()        # -> {"total": 1500, "user": "agent"}
-
-    # Writes are forbidden (frozen)
-    state.total = 42          # -> ValidationError
-    state["count"] = 42       # -> TypeError
-
-    # "Change" by creating a new instance
-    new_state = BaseState(**{**state.to_dict(), "count": 42})
-    new_state["count"]        # -> 42
-    new_state["total"]        # -> 1500 (carried over)
-
-    # Empty state
-    empty = BaseState()
-    empty.to_dict()           # -> {}
-
-    # Usage in an aspect
-    @regular_aspect("Process payment")
-    async def process_payment_aspect(self, params, state, box, connections):
-        # state is frozen BaseState, read-only
-        # Aspect returns a local dict with new fields
-        txn_id = await payment.charge(params.amount)
-        return {"txn_id": txn_id, "charged": True}
 """
 
 from pydantic import ConfigDict
