@@ -34,7 +34,7 @@ from abc import ABC
 from collections.abc import Callable
 from enum import StrEnum
 from types import MethodType
-from typing import Any
+from typing import Any, cast
 
 from action_machine.model.base_action import BaseAction
 from graph.base_graph_node import BaseGraphNode
@@ -118,7 +118,7 @@ class BaseCallableGraphNode(BaseGraphNode[Callable[..., Any]], ABC):
         """Strip ``MethodType`` wrapper, then ``inspect.unwrap`` through decorator ``__wrapped__`` chains."""
         if isinstance(func, MethodType):
             func = func.__func__
-        return inspect.unwrap(func)
+        return cast(Callable[..., Any], inspect.unwrap(func))
 
     @staticmethod
     def resolve_method_name(func: Callable[..., Any]) -> str:
