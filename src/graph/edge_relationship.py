@@ -3,6 +3,7 @@
 ArchiMate-style **relationship** kinds for interchange edge endpoints.
 
 Values follow the ArchiMate 3 relationship layer naming (string values match common spellings).
+UML-style **Generalization** is included alongside ArchiMate **Specialization** for interchange sources that use either label.
 Extend this enum when new connector semantics appear in the interchange graph.
 """
 
@@ -19,6 +20,7 @@ class EdgeRelationship(StrEnum):
     ASSIGNMENT = "Assignment"
     COMPOSITION = "Composition"
     FLOW = "Flow"
+    GENERALIZATION = "Generalization"
     INFLUENCE = "Influence"
     REALIZATION = "Realization"
     SERVING = "Serving"

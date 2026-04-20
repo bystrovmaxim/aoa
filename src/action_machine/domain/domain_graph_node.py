@@ -42,10 +42,10 @@ from dataclasses import dataclass
 from typing import TypeVar
 
 from action_machine.domain.base_domain import BaseDomain
-from graph.qualified_name import cls_qualified_dotted_id
 from graph.base_graph_edge import BaseGraphEdge
 from graph.base_graph_node import BaseGraphNode
 from graph.edge_relationship import EdgeRelationship
+from graph.qualified_name import cls_qualified_dotted_id
 
 TDomain = TypeVar("TDomain", bound=BaseDomain)
 
