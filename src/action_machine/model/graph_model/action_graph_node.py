@@ -61,7 +61,7 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
     """
     AI-CORE-BEGIN
     ROLE: Interchange node for a concrete ``BaseAction`` host class.
-    CONTRACT: ``get_properties`` / ``get_domain_edge`` (``@meta``, ``ASSOCIATION``); ``get_params_edge`` / ``get_result_edge`` (``AGGREGATION``); ``get_regular_aspect_edges`` (``COMPOSITION``, own-class ``@regular_aspect``).
+    CONTRACT: ``get_properties`` / ``get_domain_edge`` (``@meta``, ``ASSOCIATION``, ``is_dag=True``); ``get_params_edge`` / ``get_result_edge`` (``AGGREGATION``); ``get_regular_aspect_edges`` (``COMPOSITION``, own-class ``@regular_aspect``).
     AI-CORE-END
     """
 
@@ -197,7 +197,7 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
             return None
         return BaseGraphEdge(
             edge_name="domain",
-            is_dag=False,
+            is_dag=True,
             source_node_id=cls_qualified_dotted_id(action_cls),
             source_node_type=cls.NODE_TYPE,
             source_node_obj=action_cls,

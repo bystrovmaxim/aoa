@@ -17,6 +17,10 @@ It does **not** call :meth:`~graph.node_graph_coordinator.NodeGraphCoordinator.b
 Layout, legend, domain bubbles, and the inspector panel follow the same G6 behaviour as
 the legacy HTML export, without importing the old coordinator or dict-normalization
 pipeline.
+
+Edges use G6 ``line`` with default style; ``stroke`` / arrow colour follow ``isDag`` only
+(**red** vs **slate**) and never change on hover. On node hover, incident edges get state
+``active``. Edge ``data`` still carries relationship fields for tests.
 """
 
 from __future__ import annotations
@@ -49,6 +53,7 @@ from graph.base_graph_edge import BaseGraphEdge
 from graph.base_graph_node import BaseGraphNode
 from graph.base_graph_node_inspector import BaseGraphNodeInspector
 from graph.constants import INTERNAL_EDGE_TYPES, OWNERSHIP_EDGE_TYPES
+from graph.edge_relationship import Composition
 from graph.node_graph_coordinator import NodeGraphCoordinator
 from maxitor.viz2.visualizer_icons import svg_data_uri_for_vertex_icon
 
@@ -64,7 +69,7 @@ INTERCHANGE_AXES_GRAPH_HTML_PATH: Path = _default_archive_logs_dir() / "graph_no
 
 # Fixed fill per interchange vertex type (stable across graphs — not alphabetical).
 # Palette: Okabe–Ito / Tol-inspired, maximally distinct hues; ``Application`` is black (root).
-# Keys for Action / Domain / Entity / params_schema / result_schema / Role use ``NODE_TYPE`` from the corresponding ``*GraphNode`` classes.
+# Keys for Action / Domain / Entity / Params / Result / Role use ``NODE_TYPE`` from the corresponding ``*GraphNode`` classes.
 VERTEX_TYPE_FILL_COLORS: dict[str, str] = {
     APPLICATION_VERTEX_TYPE: "#000000",
     ActionGraphNode.NODE_TYPE: "#E41A1C",
@@ -445,10 +450,28 @@ def interchange_node_to_visual_dict(node: BaseGraphNode[Any]) -> dict[str, Any]:
 
 
 def interchange_edge_to_visual_dict(edge: BaseGraphEdge) -> dict[str, Any]:
-    """Edge payload shape (``edge_type``, ``is_dag``) used by :func:`interchange_pygraph_for_g6`."""
+    """
+    Edge payload for :func:`interchange_pygraph_for_g6` and G6 export.
+
+    Includes ArchiMate-style ``source_attachment`` / ``target_attachment`` / ``line_style``
+    (``StrEnum`` string values) plus ``relationship_name`` for tooltips or debugging.
+
+    For ``COMPOSITION`` links to a ``RegularAspect`` vertex, attachment graphics are swapped so
+    the diamond sits on the **aspect** end (UML aggregate/composite whole); graph topology
+    stays ``Action → RegularAspect``.
+    """
+    er = edge.edge_relationship
+    src_att = er.source_attachment.value
+    tgt_att = er.target_attachment.value
+    if isinstance(er, Composition) and edge.target_node_type == RegularAspectGraphNode.NODE_TYPE:
+        src_att, tgt_att = tgt_att, src_att
     return {
         "edge_type": edge.edge_name,
         "is_dag": edge.is_dag,
+        "relationship_name": er.archimate_name,
+        "source_attachment": src_att,
+        "target_attachment": tgt_att,
+        "line_style": er.line_style.value,
     }
 
 
@@ -593,11 +616,19 @@ def generate_interchange_g6_html(  # pylint: disable=too-many-statements
             if src_idx == tgt:
                 continue
             elabel, is_dag = _edge_label_and_dag(edge)
+            vis = interchange_edge_to_visual_dict(edge)
             g6_edges.append({
                 "id": f"e-{src_idx}-{tgt}-{ei}",
                 "source": str(src_idx),
                 "target": str(tgt),
-                "data": {"label": elabel, "isDag": is_dag},
+                "data": {
+                    "label": elabel,
+                    "isDag": is_dag,
+                    "relationshipName": vis["relationship_name"],
+                    "sourceAttachment": vis["source_attachment"],
+                    "targetAttachment": vis["target_attachment"],
+                    "lineStyle": vis["line_style"],
+                },
             })
             ei += 1
 
@@ -672,7 +703,8 @@ def generate_interchange_g6_html(  # pylint: disable=too-many-statements
         }}
         .graph-hover-label {{
             position: absolute;
-            /* HTML overlay mirrors G6 label style; long text clipped with ellipsis */
+            /* Same stack as G6 ``labelFontFamily`` on edges */
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             color: #0f172a;
             font-size: 10px;
             font-weight: 500;
@@ -897,6 +929,9 @@ __G6_SCRIPT__
         }}
         for (const node of graphData.nodes) initAdj(node.id);
 
+        function edgeBaseStroke(d) {{
+          return d.data?.isDag ? '#b91c1c' : '#95a5a6';
+        }}
         const container = document.getElementById('container');
         const graph = new G6.Graph({{
           container: 'container',
@@ -936,19 +971,16 @@ __G6_SCRIPT__
           edge: {{
             type: 'line',
             style: {{
-              stroke: '#95a5a6',
-              lineWidth: (d) => (d.data?.isDag ? 2 : 1.2),
+              stroke: (d) => edgeBaseStroke(d),
+              lineWidth: 1.2,
               opacity: 1,
               endArrow: true,
-              labelText: '',
+              endArrowStroke: (d) => edgeBaseStroke(d),
+              endArrowFill: (d) => edgeBaseStroke(d),
+              label: false,
             }},
             state: {{
-              dim: {{ opacity: 0.12 }},
-              edgehl: {{
-                stroke: '#E11D48',
-                lineWidth: 2.8,
-                opacity: 1,
-              }},
+              active: {{}},
             }},
           }},
 
@@ -1047,7 +1079,7 @@ __G6_SCRIPT__
             else st[nid] = ['dim'];
           }});
           graphData.edges.forEach((e) => {{
-            st[e.id] = adj.edges.has(e.id) ? ['edgehl'] : ['dim'];
+            st[e.id] = adj.edges.has(e.id) ? ['active'] : [];
           }});
           void graph.setElementState(st);
         }}

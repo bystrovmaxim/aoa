@@ -29,6 +29,8 @@ from dataclasses import dataclass
 from typing import Any, ClassVar
 
 from action_machine.model.graph_model.base_callable_graph_node import BaseCallableGraphNode
+from graph.base_graph_edge import BaseGraphEdge
+from graph.edge_relationship import COMPOSITION
 from graph.qualified_name import cls_qualified_dotted_id
 
 
