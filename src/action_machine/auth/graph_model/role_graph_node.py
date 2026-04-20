@@ -19,6 +19,17 @@ ARCHITECTURE / DATA FLOW
               v
     RoleGraphNode(...)  ──>  frozen ``BaseGraphNode`` (node_id, node_type, label, properties, edges)
 
+═══════════════════════════════════════════════════════════════════════════════
+EXAMPLES
+═══════════════════════════════════════════════════════════════════════════════
+
+Happy path::
+
+    class OrderViewerRole(BaseRole): ...
+    n = RoleGraphNode(OrderViewerRole)
+    assert n.node_type == "Role" and n.label == "OrderViewerRole"
+
+Edge case: same interchange shape for any concrete ``BaseRole`` subclass type passed in.
 """
 
 from __future__ import annotations

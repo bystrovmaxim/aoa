@@ -18,6 +18,27 @@ ARCHITECTURE / DATA FLOW
 
     BaseGraphNode.node_id  +  edges: list[BaseGraphEdge(...)]
 
+═══════════════════════════════════════════════════════════════════════════════
+EXAMPLES
+═══════════════════════════════════════════════════════════════════════════════
+
+::
+
+    from graph.edge_relationship import ASSOCIATION
+
+    BaseGraphEdge(
+        edge_name="domain",
+        is_dag=False,
+        source_node_id="pkg.actions.MyAction",
+        source_node_type="Action",
+        source_node_obj=MyAction,
+        target_node_id="pkg.domains.SystemDomain",
+        target_node_type="Domain",
+        target_node_obj=SystemDomain,
+        edge_relationship=ASSOCIATION,
+    )
+
+Edge case: same ``edge_name`` on different nodes — distinguish by ``source_node_id``.
 """
 
 from __future__ import annotations

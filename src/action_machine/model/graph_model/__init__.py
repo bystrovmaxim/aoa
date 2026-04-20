@@ -16,7 +16,8 @@ from typing import Any
 __all__ = [
     "ActionGraphNode",
     "ActionGraphNodeInspector",
-    "CallableGraphNode",
+    "BaseCallableGraphNode",
+    "IntentCallableKind",
     "ParamsGraphNode",
     "ParamsGraphNodeInspector",
     "RegularAspectGraphNode",
@@ -27,7 +28,8 @@ __all__ = [
 _LAZY: dict[str, str] = {
     "ActionGraphNode": "action_machine.model.graph_model.action_graph_node",
     "ActionGraphNodeInspector": "action_machine.model.graph_model.action_graph_node_inspector",
-    "CallableGraphNode": "action_machine.model.graph_model.callable_graph_node",
+    "BaseCallableGraphNode": "action_machine.model.graph_model.base_callable_graph_node",
+    "IntentCallableKind": "action_machine.model.graph_model.base_callable_graph_node",
     "ParamsGraphNode": "action_machine.model.graph_model.params_graph_node",
     "ParamsGraphNodeInspector": "action_machine.model.graph_model.params_graph_node_inspector",
     "RegularAspectGraphNode": "action_machine.model.graph_model.regular_aspect_graph_node",

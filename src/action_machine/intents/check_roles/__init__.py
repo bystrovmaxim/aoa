@@ -81,6 +81,34 @@ COMPONENTS
 - ``BaseRole`` + ``RoleModeIntent``: typed role model and lifecycle marker.
 - ``check_roles`` / ``role_mode``: declarative access-control decorators.
 
+═══════════════════════════════════════════════════════════════════════════════
+EXAMPLES
+═══════════════════════════════════════════════════════════════════════════════
+
+    from action_machine.intents.check_roles import (
+        AnyRole,
+        BaseRole,
+        NoneRole,
+        RoleMode,
+        check_roles,
+        role_mode,
+    )
+
+    @role_mode(RoleMode.ALIVE)
+    class AdminRole(BaseRole):
+        name = "admin"
+        description = "Administrator access."
+
+    @check_roles(AdminRole)
+    class AdminAction(BaseAction[...]):
+        ...
+
+    @check_roles(NoneRole)
+    class PingAction(BaseAction[...]):
+        ...
+
+    auth = AuthCoordinator(extractor, authenticator, assembler)
+    context = await auth.process(request)
 """
 
 from __future__ import annotations
