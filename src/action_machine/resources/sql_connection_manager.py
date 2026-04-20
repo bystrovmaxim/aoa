@@ -97,14 +97,6 @@ EXAMPLES
     await db.commit()  # -> ROLLBACK (data not persisted)
 
 ═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- This class is abstract and cannot be instantiated without concrete methods.
-- Actual SQL protocol/driver behavior is implemented by concrete managers.
-- Rollup safety assumes transactional usage (`begin` before mutating statements).
-
-═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN
 ═══════════════════════════════════════════════════════════════════════════════
 ROLE: Abstract transaction-capable SQL resource manager contract.

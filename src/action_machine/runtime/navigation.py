@@ -12,22 +12,6 @@ and logging ``VariableSubstitutor`` so field access and template substitution sh
 the same rules for missing keys, ``None`` leaves, and attribute vs mapping access.
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- This module stays free of imports from other framework packages (logging,
-  context, adapters). It uses **duck typing** only — no hard dependency on
-  ``BaseSchema`` at import time (avoids import cycles with ``base_schema``).
-- “Model-like” step: the **class** exposes ``model_fields`` (Pydantic-style
-  metadata) and the instance supports ``__getitem__`` for string keys — same
-  traversal shape as ``BaseSchema`` / ``BaseModel`` without naming those types at
-  runtime. The check uses ``type(obj)`` so Pydantic does not emit instance-level
-  ``model_fields`` deprecation noise.
-- ``dict`` is handled before the generic ``__getitem__`` branch for efficiency.
-- ``_SENTINEL`` is the sole “missing path” marker; never use ``None`` for that
-  role because ``None`` can be a legitimate field value.
-
-═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -61,15 +45,6 @@ Happy path::
 Edge case: empty ``dotpath`` in ``navigate_with_source`` returns
 ``(root, None, None)``. Any failed segment yields ``(_SENTINEL, …)`` from
 ``navigate`` / the documented tuple shape from ``navigate_with_source``.
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Objects that fake ``model_fields`` and ``__getitem__`` without Pydantic
-  semantics may be routed through ``_step_schema``; keep that surface narrow.
-- ``navigate`` stops at the first ``_SENTINEL``; no partial path objects are
-  returned (use ``navigate_with_source`` when you need the parent node).
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN

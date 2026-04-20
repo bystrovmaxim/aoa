@@ -34,14 +34,6 @@ ARCHITECTURE / DATA FLOW
     auth_coordinator  <- same as MCP example (infrastructure.auth)
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Routes must reference action classes from ``actions``, not duplicate handlers.
-- ``app`` is the ASGI callable expected by ``uvicorn ...:app``.
-- Extra dependency: ``aoa-run[fastapi]`` (see package README).
-
-═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -53,13 +45,6 @@ EXAMPLES
 
     Edge case: wrong optional extras — import or startup may fail; install
     ``aoa-run[fastapi]``.
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Example-only; not a hardened production deployment template.
-- Behavior depends on ``FastApiAdapter`` defaults (tags, operation IDs, health).
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN

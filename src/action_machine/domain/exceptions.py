@@ -25,14 +25,6 @@ ARCHITECTURE / DATA FLOW
             └────────────── domain-layer fail-fast semantics (no hidden lazy I/O) ─────────────┘
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Field/relation load failures subclass ``AttributeError`` to preserve attribute-access semantics.
-- ``EntityDecoratorError`` subclasses ``TypeError`` because failures are declaration-time developer errors.
-- ``LifecycleValidationError`` carries explicit entity/field/details context for coordinator build diagnostics.
-
-═══════════════════════════════════════════════════════════════════════════════
 EXCEPTION TYPES
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -53,14 +45,6 @@ LifecycleValidationError
     A `Lifecycle` template attached to an entity fails one of the eight
     structural integrity rules when validated during `GraphCoordinator.build()`
     (via `EntityIntentInspector` / entity lifecycle validation).
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- This module defines error types only; it does not perform validation by itself.
-- Error raising points live in entity models, relation containers, decorators, and inspectors.
-- Message text is intentionally explicit for debugging and test assertions.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN

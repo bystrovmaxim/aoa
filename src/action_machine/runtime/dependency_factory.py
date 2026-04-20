@@ -38,19 +38,6 @@ ARCHITECTURE / DATA FLOW
                    instance.check_rollup_support()
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- ``DependencyFactory`` is stateless; it never caches created instances.
-- The input dependencies tuple is immutable and must come from the coordinator
-  snapshot (or a compatible dict list for backward compatibility).
-- ``resolve()`` raises ``ValueError`` if the requested class is not declared.
-- When ``rollup=True``, any ``BaseResourceManager`` instance is validated via
-  ``check_rollup_support()``.
-- Factory caching is per-coordinator and per-action-class via
-  ``DEPENDENCY_FACTORY_CACHE_KEY``.
-
-═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -66,16 +53,6 @@ EXAMPLES
 
     # Inside an aspect, resolution is delegated through ToolsBox
     payment = box.resolve(PaymentService)
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- ``ValueError`` if the requested dependency is not declared.
-- ``RollupNotSupportedError`` if ``rollup=True`` and the resolved
-  ``BaseResourceManager`` does not support transactional rollback.
-- The factory constructor accepts a list of dicts for backward compatibility
-  with older tests; new code should use the ``DependencyInfo`` tuple.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN

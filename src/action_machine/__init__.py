@@ -10,14 +10,6 @@ This module is intentionally lightweight: it defines package identity and keeps
 room for future stable root-level exports.
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Importing this module must not trigger runtime side effects.
-- Package root remains a stable import anchor: ``import action_machine``.
-- Public API is primarily exposed through subpackages, not through root code.
-
-═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -43,13 +35,6 @@ EXAMPLES
     bench = TestBench()
 
     # Edge case: root import itself does not initialize machines/resources.
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- This module does not expose a full convenience API by design.
-- Consumers should import concrete functionality from dedicated subpackages.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN

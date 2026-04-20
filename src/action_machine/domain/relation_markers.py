@@ -51,19 +51,6 @@ Coordinator checks (conceptually): inverse field present and typed, both ends
 carry ``Rel``, ownership matrix, etc.
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Every relation field must carry **either** ``Inverse`` **or** ``NoInverse`` in
-  its annotation (validated at **build** time, not in this module).
-- Every relation field must use ``Rel(description=...)`` as the declared default
-  (also build time).
-- ``Inverse.target_entity`` is a ``type``; ``Inverse.field_name`` is a non-empty
-  stripped string.
-- ``Rel.description`` is a non-empty stripped string.
-- ``Inverse``, ``NoInverse``, ``NoGraphEdge``, and ``Rel`` are **frozen** after construction.
-
-═══════════════════════════════════════════════════════════════════════════════
 RATIONALE
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -114,16 +101,6 @@ Edge — invalid ``Inverse``::
 Edge — empty ``Rel``::
 
     Rel(description="   ")  # ValueError
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- ``TypeError`` / ``ValueError``: invalid ``Inverse`` or ``Rel`` constructor
-  arguments (this module).
-- ``AttributeError``: mutation of frozen marker instances.
-- Missing ``Inverse``/``NoInverse`` or ``Rel`` on a relation field — reported
-  during coordinator **build**, not here.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN

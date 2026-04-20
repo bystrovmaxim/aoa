@@ -13,20 +13,6 @@ async helpers that build and emit **global** lifecycle events plus **regular** a
 ``SagaCoordinator`` free of duplicated event construction for those pipeline stages.
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- ``base_fields`` output matches the historical shape (``action_class``,
-  ``action_name``, ``nest_level``, ``context``, ``params``).
-- ``emit_extra_kwargs`` output matches the historical ``emit_event`` extras
-  (``log_coordinator``, ``machine_name``, ``mode``).
-- ``machine_class_name`` is the runtime class name of the machine at construction
-  (subclass-aware).
-- **No per-run state:** ``PluginRunContext`` is **never** stored on this object.
-  Every emit helper takes ``plugin_ctx`` as an argument so one ``PluginEmitSupport``
-  instance can serve many ``run`` calls without reset.
-
-═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -84,14 +70,6 @@ Happy path: the machine constructs one ``PluginEmitSupport``; ``_run_internal`` 
 
 Edge case: a test passes a stub ``plugin_ctx`` that records ``emit_event`` calls
 to assert event types and payloads without a full ``PluginCoordinator``.
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-Exceptions from ``plugin_ctx.emit_event`` propagate to the caller. Saga and
-``@on_error`` events are emitted by ``SagaCoordinator`` and ``ErrorHandlerExecutor``,
-not by this type.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN

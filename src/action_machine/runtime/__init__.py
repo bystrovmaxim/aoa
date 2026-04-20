@@ -14,14 +14,6 @@ Canonical coordinator assembly lives in ``Core``: it creates a
 Production machines consume a built coordinator as a fail-fast contract.
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- ``ActionProductMachine`` reads pipeline metadata from coordinator snapshots only.
-- ``Core`` is exported lazily through ``__getattr__``.
-- Public runtime interfaces remain stable while internal composition can evolve.
-
-═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -48,14 +40,6 @@ Happy path:
 Edge case:
     Lazy export avoids graph-stack imports during early module initialization,
     preventing circular/lifecycle issues around model bootstrap.
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Accessing unknown attributes through package ``__getattr__`` raises ``AttributeError``.
-- This module does not implement runtime execution logic directly.
-- Coordinator validity/build errors are surfaced by machine/factory modules.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN

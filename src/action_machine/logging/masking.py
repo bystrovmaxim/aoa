@@ -10,14 +10,6 @@ Provides the core masking function used by both the debug inspector and the
 variable substitutor to hide sensitive values in rendered logs.
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Input is always converted to string before masking.
-- Visible prefix is bounded by both ``max_chars`` and ``max_percent``.
-- Mask suffix length is constant (5 characters).
-
-═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -42,15 +34,6 @@ EXAMPLES
 
     mask_value("abc", {"max_chars": 10, "max_percent": 100})
     # -> "abc"  (no masking when keep >= length)
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Config coercion is intentionally conservative: non-int/non-str values fall
-  back to defaults.
-- Function does not validate security policy completeness; caller decides when
-  masking is enabled.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN

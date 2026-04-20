@@ -32,19 +32,6 @@ ARCHITECTURE / DATA FLOW
             └── UserInfo (frozen=True, extra="forbid")
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Immutable after construction.
-- Extra fields are forbidden (``extra="forbid"``).
-- ``roles`` contains only ``BaseRole`` subclasses.
-- Extension is explicit through inheritance with declared fields:
-
-    class BillingUserInfo(UserInfo):
-        billing_plan: str = "free"
-        tenant_id: str | None = None
-
-═══════════════════════════════════════════════════════════════════════════════
 ANONYMOUS USER
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -99,13 +86,6 @@ EXAMPLES
         tenant_id="acme",
         department="engineering",
     )
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- ``roles`` validation rejects non-sequences and non-``BaseRole`` subclasses.
-- JSON mode serializes roles to role names; runtime mode keeps role classes.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN

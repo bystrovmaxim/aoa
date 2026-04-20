@@ -21,13 +21,6 @@ ARCHITECTURE / DATA FLOW
     DomainGraphNode(...)  ──>  frozen ``BaseGraphNode`` (id, node_type, label, properties, edges)
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- The domain class is available as :attr:`~graph.base_graph_node.BaseGraphNode.obj`.
-- ``label`` is the domain class ``__name__``; ``properties`` hold ``name`` / ``description``; ``edges`` include informational ``belongs_to`` → ``ApplicationContext`` (facet parity).
-
-═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -41,12 +34,6 @@ Happy path::
     assert n.node_type == "Domain" and n.label == "ShopDomain"
 
 Edge case: same interchange shape for any concrete ``BaseDomain`` subclass type passed in.
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- No validation in ``__init__``; ``BaseDomain`` concrete subclasses are validated at class definition where applicable.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN

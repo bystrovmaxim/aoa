@@ -104,14 +104,6 @@ EXAMPLES
     )
 
 ═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- ``TestBench`` terminal methods require explicit ``rollup`` argument.
-- Testing package focuses on harness/test doubles; production logic remains in runtime.
-- Result mismatch diagnostics come from comparison helpers and runtime exceptions.
-
-═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN
 ═══════════════════════════════════════════════════════════════════════════════
 ROLE: Public testing toolbox for ActionMachine validation scenarios.

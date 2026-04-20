@@ -14,16 +14,6 @@ canonical **``action``** row for the host class with informational
 ``…:error_handlers`` vertex).
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Collection scans ``vars(target_cls)`` only (declaring members).
-- Only callable members after property unwrapping are considered.
-- Facet snapshot storage key is always ``"error_handler"`` (aggregate snapshot).
-- ``inspect`` returns ``list[FacetVertex]``: per-handler vertices then one ``action``
-  shell carrying ``has_error_handler`` edges.
-
-═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -47,12 +37,6 @@ EXAMPLES
 Happy path: a method has ``@on_error`` metadata → payload lists handler rows.
 
 Edge case: no handlers → ``inspect`` returns ``None``.
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-Does not invoke handlers; metadata shape is trusted from decorators.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN

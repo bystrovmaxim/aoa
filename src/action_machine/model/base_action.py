@@ -13,19 +13,6 @@ go through ``GraphCoordinator`` facet snapshots (built by intent inspectors),
 not through helper APIs on this class.
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Every concrete subclass name must end with ``"Action"`` (enforced in
-  ``__init_subclass__`` via ``NamingSuffixError``).
-- Every action class must use ``@meta(...)`` and ``@check_roles(...)``.
-- Declaration scratch (``_role_info``, ``_connection_info``, method-level
-  ``_new_aspect_meta``, ``_checker_meta``, etc.) is written by decorators;
-  **inspection** for the graph belongs to **inspectors** during
-  ``GraphCoordinator.build()``.
-- This class does **not** hold a coordinator reference or expose ``get_metadata``.
-
-═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -81,17 +68,6 @@ Happy path::
 
 Edge case: ``class Bad(BaseAction[BaseParams, BaseResult]):`` (name not ending in
 ``"Action"``) raises ``NamingSuffixError`` in ``__init_subclass__``.
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Aspects receive immutable ``BaseState``; they return dict merges, not in-place
-  mutation.
-- ``ToolsBox`` does not expose raw ``Context``; use ``@context_requires`` and
-  ``ContextView``.
-- ``@on_error`` handlers are not inherited from base action classes; each action
-  declares its own.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN

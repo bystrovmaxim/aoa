@@ -11,14 +11,6 @@ Current helper bridges synchronous callables into async contexts without
 blocking the event loop.
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- ``run_in_thread`` requires an active running event loop.
-- Callable execution is delegated to thread-pool executor.
-- Return value and exceptions are propagated unchanged.
-
-═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -42,14 +34,6 @@ Happy path:
 
 Edge case:
     If callable raises, the same exception is surfaced to async caller.
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Uses default executor from current event loop (no custom pool here).
-- Not intended for long-lived orchestration logic; utility helper only.
-- Requires async context with running loop.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN

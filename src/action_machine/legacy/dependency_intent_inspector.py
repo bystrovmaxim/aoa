@@ -7,7 +7,7 @@ If the same action also declares ``@connection``, ``ConnectionIntentInspector``
 emits a second payload with the same graph key; ``GraphCoordinator`` merges
 those into a single node (concatenated edges).
 
-Typed data: ``Snapshot`` under cache key ``\"depends\"`` (not ``\"action\"``).
+Typed data: ``Snapshot`` under cache key ``"depends"`` (not ``"action"``).
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
@@ -39,22 +39,6 @@ ARCHITECTURE / DATA FLOW
         synthesized **Service** stub to the ``Application`` vertex when
     that vertex exists. ``BaseAction`` / ``BaseResourceManager`` targets reuse
     the canonical ``action`` / ``resource_manager`` vertices (no application edge).
-
-═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Only classes with non-empty ``_depends_info`` emit payloads.
-- Snapshot storage key is fixed: ``depends``.
-- Emitted edges are structural with edge type ``depends``.
-- Action node key may collide with connection inspector payload and is merged by coordinator.
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Assumes ``@depends`` declarations were validated by decorator-level rules.
-- This inspector does not instantiate dependencies or execute factories.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN

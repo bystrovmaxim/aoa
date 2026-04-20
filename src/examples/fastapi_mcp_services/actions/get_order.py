@@ -26,13 +26,6 @@ comes from ``@meta(description=...)``; aspect description from
 ``@summary_aspect("...")``.
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- ``order_id`` is a non-empty string (``min_length=1``).
-- This example returns a stub payload, not persisted data.
-
-═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -43,13 +36,6 @@ EXAMPLES
 
     Edge case: invalid or empty ``order_id`` fails Pydantic validation at the
     transport layer (e.g. FastAPI 422).
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- In a real app, data would load from a database via ``connections``.
-- This sample always returns ``status="created"`` and ``total=1500.0``.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN

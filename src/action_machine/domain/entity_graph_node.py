@@ -21,13 +21,6 @@ ARCHITECTURE / DATA FLOW
     EntityGraphNode helpers / ``__init__``  →  frozen ``BaseGraphNode``
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- The entity class is :attr:`~graph.base_graph_node.BaseGraphNode.obj`.
-- :meth:`get_properties` may add ``description`` from merged declaration dict (``@entity`` / ``@meta``). :meth:`get_domain_link` returns a :class:`~graph.base_graph_edge.BaseGraphEdge` with ``link_name="domain"`` or ``None`` when there is no valid domain; :meth:`_get_all_edges` is ``[edge]`` or ``[]``.
-
-═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -39,13 +32,6 @@ Happy path::
 
 Edge case: no declaration dict / no domain → ``edges == []``; invalid or
 missing ``domain`` is ignored (same as no edges).
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- No validation in ``__init__``; :meth:`get_domain_link` is ``None`` unless ``domain`` is a
-  ``BaseDomain`` subclass type in the merged declaration mapping.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN

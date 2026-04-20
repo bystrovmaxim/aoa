@@ -45,16 +45,6 @@ and an optional connections factory. Registered routes are accumulated in
     └──────────────────────────────────────┘
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- ``auth_coordinator`` is required; passing ``None`` raises ``TypeError``.
-- ``machine`` must be an instance of ``ActionProductMachine``.
-- ``gate_coordinator`` defaults to ``machine.gate_coordinator`` when omitted.
-- Route records are stored in ``_routes`` in registration order.
-- The fluent API returns ``self``, enabling method chaining.
-
-═══════════════════════════════════════════════════════════════════════════════
 ADAPTER TESTING CONTRACT
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -102,14 +92,6 @@ EXAMPLES
         machine=machine,
         auth_coordinator=NoAuthCoordinator(),
     )
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- ``TypeError`` if ``machine`` is not ``ActionProductMachine``.
-- ``TypeError`` if ``auth_coordinator`` is ``None``.
-- ``build()`` remains abstract here; concrete adapters own transport semantics.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN

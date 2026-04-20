@@ -56,15 +56,6 @@ This is expected: relation containers are annotation-level semantics for
 inspector/coordinator metadata, not mandatory runtime wrappers.
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- ``build()`` always returns ``entity_cls(...)`` and therefore applies normal
-  Pydantic validation.
-- ``EntityProxy`` only exposes declared model fields.
-- Mapper mode is explicit and opt-in; direct mode uses input keys as field names.
-
-═══════════════════════════════════════════════════════════════════════════════
 USAGE EXAMPLE
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -86,14 +77,6 @@ Mapping via lambda (dictionary keys differ from fields):
     })
 
 Proxy e is typed — the IDE suggests OrderEntity fields.
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- ``AttributeError`` when mapper accesses a non-existent proxy field.
-- Validation errors are raised by Pydantic constructor when mapped data is invalid.
-- ``build()`` does not perform I/O and does not resolve lazy relations.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN

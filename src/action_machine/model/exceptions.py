@@ -82,16 +82,6 @@ Edge case:
     errors without re-parsing exception text.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Message text may evolve; prefer asserting by exception type where possible.
-- Exceptions here encode framework contracts, not transport-specific details.
-- Wrapping behavior (for example, in ``OnErrorHandlerError``) is runtime-driven.
-- ``ValidationFieldError.details`` is optional; defaults to ``{}``. Values should
-  be JSON-serializable when adapters embed them in protocol responses.
-
-═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN
 ═══════════════════════════════════════════════════════════════════════════════
 ROLE: Central typed failure taxonomy for ActionMachine.

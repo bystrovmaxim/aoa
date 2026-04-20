@@ -31,22 +31,6 @@ ARCHITECTURE / DATA FLOW
                             └─ optional belongs_to -> domain
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Candidate traversal deduplicates classes from both marker trees.
-- Payload is emitted only when ``_meta_info`` exists.
-- Domain edge is emitted only when ``domain`` is a class object.
-- Snapshot projection is the single source for payload construction.
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- ``@meta`` argument validation is owned by decorator layer.
-- Graph-wide integrity validation is owned by ``GraphCoordinator`` build phases.
-
-═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN
 ═══════════════════════════════════════════════════════════════════════════════
 ROLE: Meta facet inspector for action/resource classes.

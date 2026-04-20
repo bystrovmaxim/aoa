@@ -32,18 +32,6 @@ ARCHITECTURE / DATA FLOW
     factory.resolve(PaymentService) -> PaymentService()
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Applies only to classes (``type``).
-- The ``klass`` argument must be a class (type) and a subclass of the bound
-  defined in ``DependencyIntent[T]``.
-- Duplicate dependency declarations on the same class are forbidden.
-- When first applied to a subclass, the decorator copies the parent's
-  ``_depends_info`` list so that adding new dependencies does not mutate the
-  parent.
-
-═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -71,15 +59,6 @@ EXAMPLES
         async def pay(self, params, state, box, connections):
             client = box.resolve(BankClient, "production")
             ...
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- ``TypeError`` if ``klass`` is not a class, does not satisfy the bound, the
-  decorator is applied to a non-class, or ``description`` is not a string.
-- ``ValueError`` if the same dependency is declared multiple times on the same
-  class.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN

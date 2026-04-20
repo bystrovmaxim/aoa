@@ -65,16 +65,6 @@ and ``@on_error`` decorators. They inspect ``_required_context_keys`` and
 expect corresponding arity.
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- At least one key is required (empty call is invalid).
-- Every key must be a non-empty string.
-- Target object must be callable (typically async method).
-- Decorator does not validate method arity or aspect role; this belongs to
-  ``@regular_aspect``, ``@summary_aspect``, and ``@on_error``.
-
-═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -123,13 +113,6 @@ EXAMPLES
     async def handle_on_error(self, params, state, box, connections, error, ctx):
         user_id = ctx.get(Ctx.User.user_id)
         return ErrorResult(user_id=user_id, error=str(error))
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-    TypeError  — key is not string; target object is not callable.
-    ValueError — no keys provided (empty call); key is empty/whitespace.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN

@@ -40,14 +40,6 @@ ARCHITECTURE / DATA FLOW
     build rustworkx PyDiGraph (local), then discard
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- :meth:`build` runs at most once per coordinator instance.
-- Vertex index order follows sorted ``id`` strings for deterministic insertion order.
-- Only outgoing edges with ``is_dag=True`` participate in acyclicity; other edges may form cycles.
-
-═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -57,14 +49,6 @@ EXAMPLES
     coord.build([adapter])
 
 Edge case: empty inspector list completes without error.
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Does not merge multiple contributions to the same logical node; duplicate ``id`` raises
-  :class:`~graph.exceptions.DuplicateNodeError`.
-- Does not materialize missing targets; every ``target_id`` must appear as some node ``id``.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN

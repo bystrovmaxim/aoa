@@ -33,26 +33,6 @@ ARCHITECTURE / DATA FLOW
             FacetVertex(node_type="params_schema" | "result_schema" | "described_fields", …)
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Emits payloads only for classes that are valid Pydantic models with fields.
-- Snapshot storage key is fixed: ``described_fields``.
-- No graph edges are produced by this inspector.
-- Vertex ``node_name`` is the canonical dotted class path for params/result models.
-- Classes that are ``EntityIntent`` subclasses are **skipped**: field docs for
-  entities live on the ``Entity`` facet from ``EntityIntentInspector``, not on a
-  separate schema vertex (no flags; policy is fixed).
-- Field constraints are aggregated from direct ``FieldInfo`` attrs and metadata entries.
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Non-Pydantic classes or models without fields are skipped.
-- Type string rendering is best-effort and may be simplified for complex annotations.
-
-═══════════════════════════════════════════════════════════════════════════════
     AI-CORE-BEGIN
 ═══════════════════════════════════════════════════════════════════════════════
 ROLE: Described-fields metadata inspector.

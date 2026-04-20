@@ -10,15 +10,6 @@ Define a common abstract root for roles that may be assigned to authenticated
 users and stored in ``UserInfo.roles``.
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Application roles should inherit from ``ApplicationRole`` (not directly from
-  ``BaseRole``).
-- Marked with ``@role_mode(RoleMode.ALIVE)`` as default active role branch.
-- This class is abstract and acts as hierarchy boundary, not as a concrete role.
-
-═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -32,21 +23,6 @@ ARCHITECTURE / DATA FLOW
        |
        v
     UserInfo.roles + @check_roles runtime checks
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Abstract hierarchy node; intended for inheritance only.
-- Policy semantics (allow/deny) are enforced by role-check runtime, not here.
-
-AI-CORE-BEGIN
-ROLE: Assignable-role hierarchy root.
-CONTRACT: Provide stable branch for user-assignable role classes.
-INVARIANTS: ALIVE role mode and inheritance boundary for application roles.
-AI-CORE-END
-
-See ``docs/architecture/role-hierarchy.md``.
 """
 
 from __future__ import annotations

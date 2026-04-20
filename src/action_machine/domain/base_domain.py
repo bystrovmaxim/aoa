@@ -48,18 +48,6 @@ Conceptual use (declarations only)::
     @entity(..., domain=OrdersDomain)
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Every subclass name **must** end with ``"Domain"`` → else ``NamingSuffixError``
-  at **class definition** time (including intermediate abstract subclasses).
-- Leaf domains must expose non-empty ``str`` values for ``name`` and
-  ``description`` (after ``strip()``), either on the class or on an intermediate
-  base **below** ``BaseDomain`` in the MRO.
-- ``BaseDomain`` itself is not validated as a subclass body; rules apply when
-  **subclasses** are defined.
-
-═══════════════════════════════════════════════════════════════════════════════
 RATIONALE
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -140,17 +128,6 @@ Wrong type::
         name = 42
         description = "text"
     # TypeError: ... must be str, got int ...
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- ``NamingSuffixError``: class name does not end with ``"Domain"``.
-- ``ValueError``: missing ``name`` / ``description``, or empty after ``strip()``.
-- ``TypeError``: ``name`` or ``description`` is not a ``str``.
-
-This module does **not** deduplicate ``name`` strings or enforce global registry
-uniqueness.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN

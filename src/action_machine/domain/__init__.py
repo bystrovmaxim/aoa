@@ -31,15 +31,6 @@ facets: ``intent -> decorator -> scratch -> inspector -> coordinator``.
     GraphCoordinator graph  (entity nodes, belongs_to domain, relation edges, …)
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- This package exports only domain-layer contracts and helpers.
-- Entity declarations are validated through the shared ``GraphCoordinator`` graph.
-- Entities, actions, and other facets coexist in one graph (no separate entity coordinator).
-- ``entity`` decorator and ``EntityIntent`` marker must be used together for graph participation.
-
-═══════════════════════════════════════════════════════════════════════════════
 PACKAGE CONTENTS
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -110,14 +101,6 @@ EXAMPLES
     coordinator = Core.create_coordinator()
 
     order = build({"id": "123", "amount": 100.0}, OrderEntity)
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Transport/storage behavior is intentionally outside this package.
-- Graph validation requires registering relevant inspectors before coordinator ``build()``.
-- Runtime field/relation access may raise domain exceptions for unloaded data.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN

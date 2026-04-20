@@ -22,16 +22,6 @@ GLOSSARY (SHORT)
   ``ScopedLogger`` does not read ``@meta``.
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Public methods: ``info``, ``warning``, ``critical`` only; first arg is ``Channel``.
-- Reserved keys ``level``, ``channels``, ``domain``, ``domain_name`` must not
-  appear in user ``**kwargs``. ``level`` / ``channels`` are
-  ``LogLevelPayload`` / ``LogChannelPayload`` (``mask`` + human ``name``/``names``).
-- One user call → one ``emit``; multiple channels = one bitmask, not a loop.
-
-═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -59,13 +49,6 @@ EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
 See package ``__init__.py`` for nest-level and plugin examples.
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-``ValueError`` on reserved kwargs; ``validate_channels`` / ``validate_level``
-errors on bad masks.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN

@@ -59,19 +59,6 @@ Examples:
         return MyResult(status="validation_error", user_id=user_id)
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Applies only to methods (callables), not classes/properties.
-- Method must be async (``async def``).
-- Signature: 6 params without ``@context_requires``, 7 with it.
-- Method name must end with ``"_on_error"``.
-- ``description`` is required and non-empty.
-- ``exception_types`` is one Exception type or tuple of Exception types.
-- Each element in ``exception_types`` must be an Exception subclass.
-- Handlers are NOT inherited from parent Action classes.
-
-═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -131,15 +118,6 @@ EXAMPLES
             user_id = ctx.get(Ctx.User.user_id)
             trace = ctx.get(Ctx.Request.trace_id)
             return OrderResult(order_id="ERR", status="network_error", total=0)
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-    TypeError: non-callable target, non-async method, wrong parameter count,
-        invalid exception_types, non-Exception element, non-string description.
-    ValueError: empty/blank description.
-    NamingSuffixError: method name does not end with ``"_on_error"``.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN

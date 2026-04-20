@@ -33,16 +33,6 @@ ARCHITECTURE / DATA FLOW
     by FastAPI and MCP adapters without duplicating domain definitions.
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- ``OrdersDomain.name`` and ``SystemDomain.name`` stay stable; they are used as
-  domain labels in graphs and logging filters.
-- Domains carry no runtime behavior; they are markers only.
-- New business areas should get new ``BaseDomain`` subclasses, not stringly-typed
-  flags on actions.
-
-═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -54,14 +44,6 @@ EXAMPLES
 
     Edge case: two domains with the same ``name`` would confuse graph consumers;
     keep names unique across the example (and the wider app).
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Example scope only; production apps typically define richer domain taxonomies.
-- Misconfigured ``@meta(domain=...)`` references are caught by framework
-  validation at coordinator build time, not in this module.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN

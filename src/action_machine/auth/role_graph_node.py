@@ -20,13 +20,6 @@ ARCHITECTURE / DATA FLOW
     RoleGraphNode(...)  ──>  frozen ``BaseGraphNode`` (id, node_type, label, properties, edges)
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- The role class is :attr:`~graph.base_graph_node.BaseGraphNode.obj`.
-- ``node_type`` is ``"Role"`` (same convention as ``"Action"``, ``"Params"``, ``"Result"``, ``"Entity"``); ``label`` is the class ``__name__``; ``properties`` and ``edges`` are empty.
-
-═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -37,12 +30,6 @@ Happy path::
     assert n.node_type == "Role" and n.label == "OrderViewerRole"
 
 Edge case: same interchange shape for any concrete ``BaseRole`` subclass type passed in.
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- No validation in ``__init__``; concrete ``BaseRole`` subclasses are validated where declared.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN

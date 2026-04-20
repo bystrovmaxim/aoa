@@ -16,31 +16,6 @@ shared helpers (execution cache, ``PluginEmitSupport`` for all machine-owned
 plugin lifecycle emissions: global start/finish and regular/summary aspect events).
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Pipeline metadata (aspects, checkers, compensators, error handlers, connection
-  keys) and role spec come only from ``GraphCoordinator.get_snapshot`` facet
-  snapshots (same source as the graph); there is no parallel scratch-first path.
-- Row shapes in ``_ActionExecutionCache`` match each inspector’s nested
-  ``Snapshot.*`` dataclasses; those inspector classes are imported only under
-  ``typing.TYPE_CHECKING`` so this module does not load inspector implementations
-  at import time.
-- ``DependencyFactory`` for ``ToolsBox`` is built from the ``depends`` facet
-  snapshot (not from ``cls._depends_info``).
-- Each ``_run_internal`` call owns a **local** saga stack; nested ``run_child``
-  calls get independent stacks.
-- Each ``_run_internal`` call (including every nested ``run_child``) creates a
-  **new** ``PluginRunContext`` via ``PluginCoordinator.create_run_context()``;
-  plugin handler state for a nested action does not share the parent run’s
-  per-run mutable state (see ``PluginCoordinator`` module docstring).
-- When ``rollup=True``, successful regular aspects do not append saga frames;
-  compensators are not driven by this stack (transactional rollback uses
-  connection wrappers in production paths).
-- Compensator failures during rollback never replace the original aspect error;
-  they are reported via ``CompensateFailedEvent`` (see ``SagaCoordinator``).
-
-═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -111,23 +86,6 @@ Edge case:
     If an aspect raises after earlier aspects ran, ``SagaCoordinator`` unwinds
     frames in reverse order, then ``ErrorHandlerExecutor`` runs a matching
     ``@on_error`` handler or re-raises after ``UnhandledErrorEvent``.
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Empty ``mode`` raises ``ValueError``. An unbuilt custom ``coordinator`` raises
-  ``RuntimeError``.
-- Role, connection, checker, and handler failures preserve existing exception types
-  (e.g. ``AuthorizationError``, ``ConnectionValidationError``, ``ValidationFieldError``,
-  ``OnErrorHandlerError``) from delegated components.
-- ``ActionResultTypeError``, ``MissingSummaryAspectError``, and
-  ``ActionResultDeclarationError`` from the summary stage still trigger saga rollback
-  when regular aspects appended frames; they are then re-raised (``@on_error`` is not
-  used — these are developer contract violations, not aspect business errors).
-- Constructor extension points are keyword-only after ``*``; omitted arguments
-  keep default component wiring. Behavioral contract is pipeline order and event
-  semantics, not stability of private helper methods.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN

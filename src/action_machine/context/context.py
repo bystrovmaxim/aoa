@@ -38,18 +38,6 @@ ARCHITECTURE / DATA FLOW
                     └── runtime: RuntimeInfo
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Context is immutable after creation.
-- Nested components (``UserInfo``, ``RequestInfo``, ``RuntimeInfo``) are also frozen.
-- Extra fields are forbidden (``extra="forbid"``).
-- Extension is explicit via inheritance with declared fields:
-
-    class TenantContext(Context):
-        tenant_id: str = "default"
-
-═══════════════════════════════════════════════════════════════════════════════
 NONE-TO-DEFAULT NORMALIZATION
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -158,14 +146,6 @@ EXAMPLES
     ctx = Context(user=None, runtime=None)
     ctx.user.user_id                       # -> None (defaulted UserInfo)
     ctx.runtime.hostname                   # -> None (defaulted RuntimeInfo)
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Context itself does not enforce per-method field allowlists; that is handled
-  by ``ContextView``.
-- Unknown dot-paths resolve to ``None`` by ``BaseSchema.resolve`` semantics.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN

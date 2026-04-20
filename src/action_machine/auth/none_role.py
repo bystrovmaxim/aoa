@@ -10,15 +10,6 @@ Represent "no authentication required" access policy in ``@check_roles``.
 This is an engine sentinel role type, not an assignable business role.
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Used as ``@check_roles(NoneRole)`` requirement marker.
-- Must not be stored in ``UserInfo.roles``.
-- Sealed via ``__init_subclass__``: subclassing is forbidden.
-- Declared with ``@role_mode(RoleMode.ALIVE)``.
-
-═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -29,21 +20,6 @@ ARCHITECTURE / DATA FLOW
             |
             v
     action is callable by anonymous and authenticated users
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Subclassing ``NoneRole`` raises ``TypeError``.
-- Sentinel metadata only; should not be used as a user-assigned role.
-
-AI-CORE-BEGIN
-ROLE: Engine-level open-access sentinel role.
-CONTRACT: Express "public action" policy in role-check declarations.
-INVARIANTS: sealed class, ALIVE mode, excluded from UserInfo.roles payload.
-AI-CORE-END
-
-See ``docs/architecture/role-hierarchy.md``.
 """
 
 from __future__ import annotations

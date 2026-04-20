@@ -11,14 +11,6 @@ MCP adapters in the example service. Action definitions, validation rules, and
 Params/Result models are shared across transports.
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Action business semantics are transport-agnostic.
-- FastAPI and MCP adapters must reference the same action classes.
-- Exported action set remains explicit through ``__all__``.
-
-═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -48,13 +40,6 @@ EXAMPLES
 
     # Edge case: any transport mismatch should be solved in adapters,
     # not by forking action classes.
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- This package exports actions only; it does not configure adapters or routing.
-- Runtime behavior depends on external adapter wiring and service bootstrapping.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN

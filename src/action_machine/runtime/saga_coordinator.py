@@ -31,16 +31,6 @@ ARCHITECTURE / DATA FLOW
                 └── emit SagaRollbackCompletedEvent
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Rollback order is reverse of successful regular aspect execution.
-- Compensator failures never stop remaining rollback frames.
-- Saga start/completion events are emitted exactly once per execution.
-- All plugin emissions use the injected ``PluginEmitSupport`` instance.
-- Compensator ``ScopedLogger`` instances use ``domain=resolve_domain(type(action))``.
-
-═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -51,17 +41,6 @@ Happy path:
 Edge case:
     One compensator fails, ``CompensateFailedEvent`` is emitted, and rollback
     loop continues for remaining frames.
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-This component coordinates rollback only. It does not execute regular aspects
-or ``@on_error`` handlers directly.
-
-Compensators receive each frame’s ``state_before`` / ``state_after`` (``None``
-when result validation failed after the aspect ``call()`` returned) plus
-shared params/box/connections.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN

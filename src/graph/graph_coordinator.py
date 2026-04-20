@@ -154,14 +154,6 @@ In a typical app, use ``Core.create_coordinator()`` to obtain a
 pre-registered and built coordinator.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Build failures are surfaced as typed exceptions (payload, duplicate, graph shape, cycles).
-- Graph payloads stored in ``rx.PyDiGraph`` are skeletal by design; rich facet metadata is reconstructed from snapshots.
-- Coordinator build is single-shot and immutable after commit.
-
-═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN
 ═══════════════════════════════════════════════════════════════════════════════
 ROLE: Transactional coordinator for facet graph assembly and typed snapshot cache.

@@ -10,15 +10,6 @@ Represent "any assignable role is enough" requirement in ``@check_roles``.
 This is an engine sentinel role type, not an application role for user storage.
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Used as ``@check_roles(AnyRole)`` requirement marker.
-- Must not be stored in ``UserInfo.roles``.
-- Sealed via ``__init_subclass__``: subclassing is forbidden.
-- Declared with ``@role_mode(RoleMode.ALIVE)`` as active engine sentinel.
-
-═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -29,21 +20,6 @@ ARCHITECTURE / DATA FLOW
             |
             v
     pass when at least one assignable role exists
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Subclassing ``AnyRole`` raises ``TypeError``.
-- This role is runtime-policy metadata only, not a business-domain role.
-
-AI-CORE-BEGIN
-ROLE: Engine-level role sentinel.
-CONTRACT: Express "any real role required" in role-check declarations.
-INVARIANTS: sealed class, ALIVE role mode, not assignable to user role set.
-AI-CORE-END
-
-See ``docs/architecture/role-hierarchy.md``.
 """
 
 from __future__ import annotations

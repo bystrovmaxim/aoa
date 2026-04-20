@@ -78,13 +78,6 @@ EXAMPLES
     await wrapper.begin()                # -> TransactionProhibitedError
 
 ═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-    TransactionProhibitedError - raised on ``open/begin/commit/rollback`` calls.
-    HandleError - raised when delegated SQL execution fails.
-
-═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN
 ═══════════════════════════════════════════════════════════════════════════════
 ROLE: Protective SQL manager proxy for nested action execution.

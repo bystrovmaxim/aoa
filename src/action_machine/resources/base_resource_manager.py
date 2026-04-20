@@ -81,14 +81,6 @@ EXAMPLES
     redis.check_rollup_support()  # -> RollupNotSupportedError
 
 ═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Default managers do not support rollup unless explicitly overridden.
-- Wrapper behavior must be implemented by concrete managers where needed.
-- This base class defines contracts only, not transport-specific operations.
-
-═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN
 ═══════════════════════════════════════════════════════════════════════════════
 ROLE: Root resource manager contract for runtime dependency wiring.

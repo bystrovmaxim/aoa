@@ -13,16 +13,6 @@ on each **declaring** class member and emit a typed ``Snapshot`` plus one
 aspect vertex for that method, and row metadata on the checker node.
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Collection uses ``vars(target_cls)`` and ``BaseIntentInspector._unwrap_declaring_class_member``
-  so property-based aspect methods expose metadata on ``fget``.
-- Only callable members are considered as checker carriers (same as aspect collection).
-- Facet snapshot storage key is always ``"checker"``.
-- ``inspect`` returns one payload per checker; no aggregate ``…:checkers`` host node.
-
-═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -44,13 +34,6 @@ Happy path: an aspect method carries ``_checker_meta``; ``inspect`` returns one
 payload per checker with ``checks_aspect`` edge to the aspect vertex.
 
 Edge case: no ``_checker_meta`` on any member → ``inspect`` returns ``None``.
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-Does not validate checker class correctness at graph build time; declaration-time
-validators own that contract.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN

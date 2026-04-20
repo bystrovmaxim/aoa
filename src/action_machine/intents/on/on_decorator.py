@@ -71,22 +71,6 @@ All handlers must have this 4-parameter signature:
 Handler must return updated state.
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Applies only to methods/callables.
-- Method must be async.
-- Method signature must be exactly 4 parameters.
-- Method name must start with ``"on_"``.
-- ``event_class`` must be ``BasePluginEvent`` subclass.
-- ``action_class`` must be None/type/tuple[type].
-- Pattern fields must be None or valid regex strings.
-- ``aspect_name_pattern`` is only valid for ``AspectEvent`` subclasses.
-- ``nest_level`` must be None/int/tuple[int].
-- ``domain`` must be None or type.
-- ``predicate`` must be None or callable.
-
-═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -164,16 +148,6 @@ EXAMPLES
         @on(GlobalFinishEvent, action_class=PaymentAction)
         async def on_business_finish(self, state, event: GlobalFinishEvent, log):
             return state
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-    TypeError: invalid event_class/action_class/domain types, non-callable
-        target, non-async method, wrong parameter count.
-    ValueError: invalid regex, negative nest_level, or aspect_name_pattern used
-        with non-aspect events.
-    NamingPrefixError: method name does not start with ``"on_"``.
 """
 
 from __future__ import annotations

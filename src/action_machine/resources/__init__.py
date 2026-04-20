@@ -11,14 +11,6 @@ base manager abstraction, ``@connection`` declaration API, marker intent, and
 typed ``connections`` payload interface.
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- ``@connection`` can target only classes that carry ``ConnectionIntent``.
-- Connection declarations are represented as immutable ``ConnectionInfo`` records.
-- Runtime connection payload must match declared keys and manager types.
-
-═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -50,14 +42,6 @@ Happy path:
 Edge case:
     Missing/extra connection keys or invalid manager instance type raises
     connection validation errors before action pipeline proceeds.
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Concrete integrations (Postgres, Redis, etc.) live in optional integration packages.
-- Nested transaction restrictions are enforced by wrapper managers.
-- This module exports contracts; it does not implement concrete managers.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN

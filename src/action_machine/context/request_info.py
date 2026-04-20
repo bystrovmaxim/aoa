@@ -33,18 +33,6 @@ ARCHITECTURE / DATA FLOW
             └── RequestInfo (frozen=True, extra="forbid")
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Immutable after construction.
-- Extra fields are forbidden (``extra="forbid"``).
-- Extension is explicit via inheritance with declared fields:
-
-    class ExtendedRequestInfo(RequestInfo):
-        correlation_id: str | None = None
-        ab_variant: str | None = None
-
-═══════════════════════════════════════════════════════════════════════════════
 ASPECT ACCESS MODEL
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -97,14 +85,6 @@ EXAMPLES
         correlation_id="corr-456",
         ab_variant="control",
     )
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- This model does not validate protocol semantics (for example, method/path
-  combinations); it stores metadata as provided.
-- Access restrictions for aspects are enforced by ``ContextView``, not here.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN

@@ -29,17 +29,6 @@ ARCHITECTURE / DATA FLOW
     Context(user=..., request=RequestInfo(...))
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- The three components (extractor, authenticator, assembler) must be supplied
-  and must not be ``None``.
-- If any step returns ``None`` or an empty result, the whole process returns
-  ``None`` (no context).
-- The returned ``Context`` contains at least an anonymous ``UserInfo`` if
-  authentication succeeded, and a ``RequestInfo`` built from assembler output.
-
-═══════════════════════════════════════════════════════════════════════════════
 COMPONENTS
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -61,15 +50,6 @@ EXAMPLES
     context = await coordinator.process(request)
     if context:
         user_id = context.user.user_id
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Any exception raised by the components propagates to the caller; the
-  coordinator does not catch or handle errors.
-- The coordinator is synchronous in its initialization but asynchronous in
-  ``process()``.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN

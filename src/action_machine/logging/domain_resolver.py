@@ -11,14 +11,6 @@ constructing ``ScopedLogger``. The logger does not read ``@meta`` itself.
 ``domain_label`` produces a short string for templates (``{%var.domain_name}``).
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Return type is ``type[BaseDomain] | None``. ``None`` if metadata or domain
-  key is missing.
-- If ``@meta`` exists and ``domain`` is present but invalid → ``TypeError``.
-
-═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -46,12 +38,6 @@ EXAMPLES
 
 ``domain_label(OrdersDomain)`` → typically ``"orders"`` from class ``name``,
 else ``__name__``.
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-``TypeError`` when domain is not a ``BaseDomain`` subclass type.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN

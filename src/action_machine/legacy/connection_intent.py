@@ -64,22 +64,6 @@ EXAMPLES
             return UserResult(user=state["user"])
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Marker-only mixin: no runtime behavior is implemented here.
-- ``issubclass(target, ConnectionIntent)`` is a hard precondition for ``@connection``.
-- Connection metadata is stored on class-level ``_connection_info``.
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- This mixin does not validate manager classes or keys directly.
-- Validation logic lives in ``connection_decorator`` and runtime inspectors.
-- Presence of the marker does not imply that any connection is declared.
-
-═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN
 ═══════════════════════════════════════════════════════════════════════════════
 ROLE: Marker gate for class-level resource connection declarations.

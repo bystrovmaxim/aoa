@@ -68,20 +68,6 @@ Partial load vs full construction:
                                     └─> FieldNotLoadedError (not lazy I/O)
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Every concrete subclass name **must** end with `"Entity"` (checked in
-  `__init_subclass__`); violation → `NamingSuffixError` at **class definition** time.
-- Instances are **immutable** (`frozen=True`); updates use `model_copy(update=...)`.
-- No undeclared fields (`extra="forbid"`).
-- Each declared field uses `Field(description="...")` with a non-empty description
-  (enforced when the entity is wired through the coordinator / described-fields
-  pipeline — see `DescribedFieldsIntent` and inspectors).
-- Concrete entities should be decorated with `@entity(...)` so `_entity_info`
-  exists for the coordinator; without it, entity discovery in the graph fails.
-
-═══════════════════════════════════════════════════════════════════════════════
 RATIONALE
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -126,17 +112,6 @@ Edge — bad class name (fails when the class statement runs)::
     class Order(BaseEntity):
         pass
     # NamingSuffixError: name must end with 'Entity'
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- `NamingSuffixError`: subclass name does not end with `"Entity"`.
-- `FieldNotLoadedError`: on a `partial()` instance, reading a model field that
-  was not passed into `partial()`.
-- `AttributeError`: unknown attribute name (same message style as Pydantic).
-- `model_dump()` on partial instances only includes loaded fields; serializing
-  for external APIs may still need DTOs and explicit handling of relations.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN

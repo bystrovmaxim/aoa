@@ -112,14 +112,6 @@ EXAMPLES
         return {"txn_id": txn_id, "charged": True}
 
 ═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Direct field mutation is blocked by frozen model config.
-- Dynamic fields are allowed, but correctness is enforced by pipeline checkers.
-- This class is a state container; merge/update orchestration belongs to runtime.
-
-═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN
 ═══════════════════════════════════════════════════════════════════════════════
 ROLE: Immutable transport for intermediate aspect pipeline state.

@@ -70,22 +70,6 @@ EXAMPLES
         ...
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- All exported constants are ``str`` dot-path values.
-- Constants should map to standard context schema fields.
-- ``Ctx`` serves declaration ergonomics only; runtime value access is validated
-  by ``ContextView``.
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Custom inherited context fields are not automatically represented in ``Ctx``.
-- For custom fields, raw string paths must be declared explicitly.
-
-═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN
 ═══════════════════════════════════════════════════════════════════════════════
 ROLE: Typed constant namespace for context field declarations.

@@ -26,15 +26,6 @@ ARCHITECTURE / DATA FLOW
             └── (visualizer) export_samples_graph_html  →  archive/logs/*.html (live coordinator graph)
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- ``build_sample_coordinator`` mirrors ``Core.create_coordinator`` inspector
-  registration for reproducible graph fixtures.
-- Graph exports prefer ``get_graph()`` when present so HTML and GraphML stay
-  aligned on the interchange view.
-
-═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -42,21 +33,6 @@ EXAMPLES
   ``coord = build_sample_coordinator()`` for graph and snapshot reads.
 - **Edge case:** ``from maxitor import export_samples_graph_graphml`` writes
   GraphML without importing the HTML stack.
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Export helpers perform I/O under ``archive/logs``; callers must have write access
-  to the repository tree when using default paths.
-
-AI-CORE-BEGIN
-ROLE: Public entry point for the ActionMachine samples graph harness.
-EXPORTS: ``StoreDomain``, ``build_sample_coordinator``, ``export_samples_graph_graphml``.
-ENTRY PATTERN: ``from maxitor import build_sample_coordinator`` then ``coord = build_sample_coordinator()``;
-GraphML: ``from maxitor import export_samples_graph_graphml``.
-INTERNAL FLOW: ``maxitor.samples`` registers decorators → ``Core.create_coordinator``.
-AI-CORE-END
 """
 
 from __future__ import annotations

@@ -12,14 +12,6 @@ the canonical inspector set and returns a built coordinator ready for facet and
 graph reads.
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Coordinator is always returned in built state from :meth:`Core.create_coordinator`.
-- Inspector registration order is deterministic and centralized here.
-- Default runtime machines rely on this factory for baseline graph contracts.
-
-═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -41,16 +33,6 @@ EXAMPLES
 Happy path:
     Runtime machine calls ``Core.create_coordinator()`` and gets a
     built coordinator suitable for action execution.
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- This module defines the default inspector set only.
-- Custom coordinator composition belongs to custom machine/bootstrap code.
-- Build-time validation failures are surfaced by coordinator/inspectors.
-- ``EntityIntentInspector`` is registered here; interchange graph includes
-  ``entity:<name>`` vertices from facet payloads (see ``maxitor.samples.store.entities`` in the sample bundle).
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN

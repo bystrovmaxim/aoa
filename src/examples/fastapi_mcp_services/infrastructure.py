@@ -1,5 +1,5 @@
 # src/examples/fastapi_mcp_services/infrastructure.py
-r"""
+"""
 Shared ActionMachine runtime wiring for the FastAPI and MCP example apps.
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -36,17 +36,8 @@ ARCHITECTURE / DATA FLOW
               |                                     |
               v                                     v
         HTTP routes                          MCP tools
-              \___________________________________/
+              \\___________________________________/
                     same machine + auth instances
-
-═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Do not construct a second ``ActionProductMachine`` per transport in this
-  pattern; reuse the module-level ``machine`` (and ``auth``).
-- ``mode="production"`` is an example choice, not a deployment guarantee.
-- Adapters require ``auth_coordinator`` even when it is ``NoAuthCoordinator``.
 
 ═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES
@@ -59,13 +50,6 @@ EXAMPLES
     Edge case: custom ``GraphCoordinator`` — pass
     ``ActionProductMachine(..., coordinator=my_coordinator)`` here; it must
     already be ``.build()`` complete.
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Example-only bootstrap, not a full DI layer or multi-tenant configuration.
-- Unbuilt coordinators passed into ``ActionProductMachine`` raise at init.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN

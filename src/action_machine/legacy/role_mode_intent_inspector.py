@@ -14,17 +14,6 @@ classes keep ``@role_mode`` for runtime; they are not separate ``role_class`` gr
 nodes.
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Traversal uses ``_target_intent = RoleModeIntent`` (same subtree as
-  ``@role_mode`` authorization).
-- ``BaseRole`` itself has no scratch and yields ``None`` from ``inspect()``.
-- Emitted ``node_type`` is ``role_class`` (merged with ``RoleClassInspector``); snapshot storage key remains ``\"role_mode\"``.
-- **Does not** validate unique ``name`` or ``requires_role`` topology — that is
-  ``RoleClassInspector``.
-
-═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -55,13 +44,6 @@ Happy path: ``ApplicationRole`` with ``@role_mode`` → non-``None`` payload.
 
 Edge case: undecorated ``RoleModeIntent`` subclass without scratch →
 ``inspect`` returns ``None`` (nothing to record).
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Corrupt ``_role_mode_info`` should not occur if ``@role_mode`` is the only
-  writer; invalid payloads are not repaired here.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN

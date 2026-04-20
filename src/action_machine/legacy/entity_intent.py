@@ -44,23 +44,6 @@ ARCHITECTURE / DATA FLOW
     #   reads _entity_info + model_fields → FacetVertex + typed snapshot
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- ``@entity`` applies only to classes with ``EntityIntent`` in MRO.
-- ``description`` must be a non-empty string.
-- ``domain`` must be ``None`` or a ``BaseDomain`` subclass.
-- ``@entity`` writes ``_entity_info`` scratch consumed later by inspectors.
-
-Class-level scratch shape:
-
-    _entity_info : dict[str, Any]
-        {"description": str, "domain": type[BaseDomain] | None}
-
-The attribute is created by the decorator, not declared on ``EntityIntent``.
-A ``ClassVar`` annotation is provided for type checkers.
-
-═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -71,13 +54,6 @@ EXAMPLES
         name: str = Field(description="Display name")
 
     # @entity on a class without EntityIntent -> EntityDecoratorError
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Raises ``EntityDecoratorError`` for invalid decorator arguments or target type.
-- This module validates declaration-level contracts only; graph-level checks run during coordinator build.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN

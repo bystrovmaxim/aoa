@@ -22,16 +22,6 @@ ARCHITECTURE / DATA FLOW
     ActionNode ``__init__`` / helpers  →  frozen ``BaseGraphNode``
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- The action class is :attr:`~graph.base_graph_node.BaseGraphNode.obj`.
-- ``label`` is the action class ``__name__``. :meth:`get_properties` fills ``properties``;
-  :meth:`get_domain_link`, :meth:`get_params_link`, and :meth:`get_result_link` each return a :class:`~graph.base_graph_edge.BaseGraphEdge` or ``None``. :meth:`_get_all_edges` collects non-``None`` edges for the node.
-
-  :meth:`get_schema_generic_binding` returns resolved params/result types (or ``None``); :meth:`get_params_link` / :meth:`get_result_link` apply :func:`~graph.qualified_name.cls_qualified_dotted_id` when building edges.
-
-═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -42,12 +32,6 @@ Happy path::
     assert n.node_type == "Action" and n.label == "MyPingAction"
 
 Edge case: same interchange shape for any concrete ``BaseAction`` subclass type passed in.
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- No validation in ``__init__``; concrete ``BaseAction`` subclasses are validated where declared.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN

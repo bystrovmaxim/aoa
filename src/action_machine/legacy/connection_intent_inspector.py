@@ -6,7 +6,7 @@ Emits one ``action`` facet node per class that declares connections.
 If the same action also declares ``@depends``, ``DependencyIntentInspector``
 emits a payload with the same graph key; ``GraphCoordinator`` merges them.
 
-Typed data: ``Snapshot`` under cache key ``\"connections\"``.
+Typed data: ``Snapshot`` under cache key ``"connections"``.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
@@ -36,22 +36,6 @@ ARCHITECTURE / DATA FLOW
     to_facet_vertex()
             │
             └─ action node + structural ``connection`` edges → ``resource_manager``
-
-═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Only classes with non-empty ``_connection_info`` emit payloads.
-- Snapshot storage key is fixed: ``connections``.
-- Emitted edges are structural and carry ``key`` / ``description`` metadata.
-- Node key intentionally collides with depends-inspector action node and is merged by coordinator.
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Assumes ``@connection`` decorator already validated declarations.
-- This inspector does not execute connection factories or runtime I/O.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN

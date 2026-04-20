@@ -20,17 +20,6 @@ The aggregate ``…:sensitive`` modifier node is **not** emitted. A typed
 ``get_snapshot``.
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Candidate classes come from ``_target_intents`` union; subclasses are collected
-  without duplicates (same pattern as other multi-mixin inspectors).
-- Only declaring members on the class MRO are scanned; inherited names are skipped
-  once seen on a subclass (same as before).
-- Host naming matches :class:`DescribedFieldsIntentInspector` for types that carry
-  that marker; otherwise dotted ``_make_node_name`` for schema-like hosts.
-
-═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN
 ═══════════════════════════════════════════════════════════════════════════════
 ROLE: Sensitive-field metadata inspector.
