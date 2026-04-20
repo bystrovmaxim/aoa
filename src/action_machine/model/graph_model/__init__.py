@@ -13,6 +13,8 @@ from __future__ import annotations
 import importlib
 from typing import Any
 
+# Public names are resolved lazily via __getattr__; they are not module-level assignments here.
+# pylint: disable=undefined-all-variable
 __all__ = [
     "ActionGraphNode",
     "ActionGraphNodeInspector",
@@ -22,8 +24,8 @@ __all__ = [
     "ParamsGraphNodeInspector",
     "RegularAspectGraphNode",
     "ResultGraphNode",
-    "SummaryAspectGraphNode",
     "ResultGraphNodeInspector",
+    "SummaryAspectGraphNode",
 ]
 
 _LAZY: dict[str, str] = {
