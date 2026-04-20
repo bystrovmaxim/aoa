@@ -71,18 +71,6 @@ EXAMPLES
     # Route typing is protocol-specific via BaseRouteRecord subclasses:
     # FastApiRouteRecord(method, path, tags, ...)
     # McpRouteRecord(tool_name, description, ...)
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Public API surface for adapter foundations.
-CONTRACT: Export protocol-agnostic adapter abstractions and action-type extraction helper.
-INVARIANTS: action generic types are source of truth; route records validate mapping contracts.
-FLOW: protocol registration -> route record -> machine.run invocation -> protocol response mapping.
-FAILURES: transport-specific auth/error behavior is owned by concrete adapter integrations.
-EXTENSION POINTS: implement new concrete adapters on top of BaseAdapter and BaseRouteRecord.
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from action_machine.adapters.base_adapter import BaseAdapter

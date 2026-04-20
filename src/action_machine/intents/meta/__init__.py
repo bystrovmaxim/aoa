@@ -38,17 +38,6 @@ EXAMPLES
         ...
 
     # Edge case: invalid meta args -> decorator raises validation error.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Stable import surface for meta contracts and decorator.
-CONTRACT: Re-export marker intents and decorator used across graph/runtime.
-INVARIANTS: API boundary controlled by __all__.
-FLOW: class definition -> @meta -> marker discovery by inspectors.
-FAILURES: decorator-level validation errors originate in meta_decorator.
-EXTENSION POINTS: add new public meta intents/decorators via explicit re-export.
-AI-CORE-END
 """
 
 from action_machine.intents.meta.meta_decorator import meta

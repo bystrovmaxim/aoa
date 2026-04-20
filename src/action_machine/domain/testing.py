@@ -36,17 +36,6 @@ Example:
 
     order = make(OrderEntity, amount=100.0)
     # `id` and other string fields may become "test_<field_name>", etc.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Lightweight test entity factory helper.
-CONTRACT: Generate minimal defaults and construct validated entities with override precedence.
-INVARIANTS: No persistence/I-O; always delegates final validation to entity constructor.
-FLOW: inspect model fields -> infer defaults -> merge overrides -> instantiate entity.
-FAILURES: Validation errors are surfaced by entity constructor; lifecycle getter errors are ignored.
-EXTENSION POINTS: Add new type branches as test model primitives evolve.
-AI-CORE-END
 """
 
 from __future__ import annotations

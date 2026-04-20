@@ -64,17 +64,6 @@ Key behavior:
 - ``@sensitive`` masking for decorated properties
 - pydantic class-level attributes are filtered through
   ``_PYDANTIC_CLASS_ATTRS`` for Pydantic v2.11+ compatibility
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Safe expression runtime for logging template evaluation.
-CONTRACT: Evaluate ``iif`` and scalar expressions over provided names/functions.
-INVARIANTS: Restricted function set; no arbitrary code execution primitives.
-FLOW: parse template -> split iif args -> evaluate -> render string fragments.
-FAILURES: Invalid syntax/names/functions raise LogTemplateError immediately.
-EXTENSION POINTS: Add safe helpers in ``_BASE_SAFE_FUNCTIONS``.
-AI-CORE-END
 """
 
 import re

@@ -33,17 +33,6 @@ EXAMPLES
 Happy path:
     Runtime machine calls ``Core.create_coordinator()`` and gets a
     built coordinator suitable for action execution.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Default coordinator bootstrap factory for runtime entry points.
-CONTRACT: create_coordinator() -> built GraphCoordinator with canonical inspectors.
-INVARIANTS: Deterministic registration order and built return state.
-FLOW: construct coordinator -> register inspectors -> build -> hand to runtime.
-FAILURES: Inspector/coordinator build errors propagate to caller.
-EXTENSION POINTS: Replace with custom bootstrap for alternative inspector sets.
-AI-CORE-END
 """
 
 from __future__ import annotations

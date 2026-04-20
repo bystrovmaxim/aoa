@@ -26,17 +26,6 @@ ARCHITECTURE / DATA FLOW
               │
               ▼
     graph topology + typed snapshot cache
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Public namespace for graph core contracts.
-CONTRACT: Export ``BaseFacetSnapshot`` and ``GraphCoordinator`` as graph-layer API.
-INVARIANTS: Inspectors populate facet vertices/snapshots; coordinator owns transactional build semantics.
-FLOW: declaration scratch -> inspector extraction -> coordinator validation/commit -> graph read APIs.
-FAILURES: Build/read lifecycle errors and graph validation exceptions are raised by coordinator internals.
-EXTENSION POINTS: Add inspector modules and snapshot types without changing package root API.
-AI-CORE-END
 """
 
 from __future__ import annotations

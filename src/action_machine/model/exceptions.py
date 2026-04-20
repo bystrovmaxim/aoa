@@ -80,17 +80,6 @@ Edge case:
     An adapter maps transport validation (for example Pydantic) into
     ``ValidationFieldError`` with ``details`` so agents receive field-level
     errors without re-parsing exception text.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Central typed failure taxonomy for ActionMachine.
-CONTRACT: Raise explicit, category-specific exceptions across subsystems.
-INVARIANTS: Transaction errors inherit TransactionError; naming errors use TypeError.
-FLOW: subsystem failure -> typed exception -> runtime propagation/wrapping.
-FAILURES: Misconfiguration, validation (optional structured details), authorization, orchestration.
-EXTENSION POINTS: Add new exception subclasses with narrow semantic scope.
-AI-CORE-END
 """
 
 from typing import Any

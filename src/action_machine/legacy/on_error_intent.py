@@ -104,17 +104,11 @@ from typing import Any, ClassVar
 
 class OnErrorIntent:
     """
-    Marker mixin declaring support for ``@on_error`` decorator.
-
-    Classes inheriting this mixin may declare ``@on_error`` methods for aspect
-    exception handling. ``OnErrorIntentInspector`` builds snapshot consumed via
-    ``GraphCoordinator.get_snapshot(cls, "error_handler")``.
-
-    AI-CORE-BEGIN
+AI-CORE-BEGIN
     ROLE: Marker contract for on-error handler declarations.
     CONTRACT: Carry methods with ``_on_error_meta`` written by decorator.
     INVARIANTS: Logic-free mixin used only by inspectors/validators.
     AI-CORE-END
-    """
+"""
 
     _on_error_meta: ClassVar[dict[str, Any]]

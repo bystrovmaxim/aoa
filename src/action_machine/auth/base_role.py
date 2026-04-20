@@ -39,21 +39,6 @@ EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
 Valid concrete role inheriting metadata or defining ``name`` / ``description``.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Abstract role marker (parallel to ``BaseDomain`` for domains).
-CONTRACT: ClassVar ``name``, ``description``; ``*Role`` suffix; MRO = privilege shape.
-INVARIANTS: Validation only in ``__init_subclass__``; graph does not re-validate
-  string emptiness (topology via ``RoleClassInspector``).
-FLOW: Import defines role type → ``@role_mode`` adds scratch → actions reference
-  role types in ``@check_roles``.
-FAILURES: NamingSuffixError, ValueError, TypeError on bad subclass bodies.
-EXTENSION POINTS: Applications map external role tokens to concrete subclasses
-  before constructing ``UserInfo``.
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from __future__ import annotations

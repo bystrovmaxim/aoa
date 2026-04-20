@@ -32,17 +32,6 @@ Happy path::
 
 Edge case: no declaration dict / no domain → ``edges == []``; invalid or
 missing ``domain`` is ignored (same as no edges).
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Thin BaseGraphNode for entity class types.
-CONTRACT: ``node_type="Entity"``; dotted-path ``id``; label = class ``__name__``; ``properties`` from :meth:`get_properties`; ``edges`` from :meth:`_get_all_edges` (via :meth:`get_domain_link` on merged ``@entity`` / ``@meta`` info).
-INVARIANTS: Immutable node; domain edge from declaration metadata on the entity class.
-FLOW: entity class -> ``EntityGraphNode.__init__`` -> frozen ``BaseGraphNode`` fields.
-EXTENSION POINTS: Other graph node specializations follow the same constructor pattern.
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from __future__ import annotations

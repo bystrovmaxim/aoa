@@ -36,18 +36,6 @@ EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
 ``Level.warning | Level.critical`` in ``subscribe`` accepts both severities.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Level enum + labels + validation for coordinator and subscriptions.
-CONTRACT: Three bits; message level is single-bit; subscription may OR bits.
-INVARIANTS: _SINGLE_LEVELS frozenset gates validate_level.
-FLOW: ScopedLogger._emit sets level from method → coordinator validates → logger match.
-FAILURES: ValueError from validate_level on bad message level.
-EXTENSION POINTS: new levels need enum + validation + label rules.
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from enum import IntFlag
@@ -55,14 +43,12 @@ from enum import IntFlag
 
 class Level(IntFlag):
     """
-    Log severity bitmask: info, warning, critical.
-
-    AI-CORE-BEGIN
+AI-CORE-BEGIN
     ROLE: Severity classifier for log routing and display.
     CONTRACT: Messages carry one bit; subscriptions may combine bits.
     INVARIANTS: Valid single-bit values are enforced by validate_level.
     AI-CORE-END
-    """
+"""
 
     info = 1
     warning = 2

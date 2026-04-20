@@ -79,17 +79,6 @@ EXAMPLES
     # Manager without rollup support:
     redis = RedisManager(config)
     redis.check_rollup_support()  # -> RollupNotSupportedError
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Root resource manager contract for runtime dependency wiring.
-CONTRACT: Require metadata, rollup capability check, and optional wrapper class.
-INVARIANTS: Base implementation fails rollup checks unless explicitly supported.
-FLOW: manager declaration -> dependency resolution -> rollup guard -> runtime use.
-FAILURES: Unsupported rollup raises RollupNotSupportedError with class context.
-EXTENSION POINTS: Implement concrete managers and wrapper strategies per resource.
-AI-CORE-END
 """
 
 from abc import ABC, abstractmethod

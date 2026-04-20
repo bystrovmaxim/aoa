@@ -41,16 +41,6 @@ USAGE
 
     checker = FieldIntChecker("count", min_value=0)
     checker.check({"count": 42})  # OK
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Integer checker implementation and decorator for aspect methods.
-CONTRACT: Metadata keys match FieldIntChecker constructor / snapshot hydration.
-INVARIANTS: ``isinstance(value, int)`` (note: ``bool`` is a subclass of ``int`` in Python).
-FLOW: decorator -> _checker_meta -> inspector -> runtime check.
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from __future__ import annotations

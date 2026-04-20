@@ -95,14 +95,12 @@ _ALLOWED_METHODS: frozenset[str] = frozenset({
 @dataclass(frozen=True)
 class FastApiRouteRecord(BaseRouteRecord):
     """
-    Immutable HTTP route descriptor used by ``FastApiAdapter``.
-
-    AI-CORE-BEGIN
+AI-CORE-BEGIN
     ROLE: Binds one action contract to one HTTP/OpenAPI endpoint declaration.
     CONTRACT: Extends BaseRouteRecord with method/path/tags/docs metadata.
     INVARIANTS: Frozen instance, validated method, validated path.
     AI-CORE-END
-    """
+"""
 
     # ── HTTP-specific fields ───────────────────────────────────────────
 

@@ -34,14 +34,12 @@ from action_machine.intents.role_mode.role_mode_decorator import RoleMode, role_
 @role_mode(RoleMode.ALIVE)
 class AnyRole(SystemRole):
     """
-    Sentinel role requiring at least one assignable user role.
-
-    AI-CORE-BEGIN
+AI-CORE-BEGIN
     ROLE: Check-spec marker for permissive role requirement.
     CONTRACT: Used only in ``@check_roles`` declarations.
     INVARIANTS: non-instantiable policy role; not stored in user role payload.
     AI-CORE-END
-    """
+"""
 
     name = "engine_any"
     description = "Engine sentinel: at least one assignable role required."

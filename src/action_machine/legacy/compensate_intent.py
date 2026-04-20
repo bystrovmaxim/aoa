@@ -14,13 +14,11 @@ run in the graph builder / coordinator layer.
 
 class CompensateIntent:
     """
-    Marker mixin declaring eligibility for ``@compensate`` methods.
-
-    AI-CORE-BEGIN
+AI-CORE-BEGIN
     ROLE: Compensator grammar marker for action classes.
     CONTRACT: Classes with compensators must include this mixin in MRO.
     INVARIANTS: Pure marker; no behavior or state.
     AI-CORE-END
-    """
+"""
 
     pass

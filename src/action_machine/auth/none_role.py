@@ -34,14 +34,12 @@ from action_machine.intents.role_mode.role_mode_decorator import RoleMode, role_
 @role_mode(RoleMode.ALIVE)
 class NoneRole(SystemRole):
     """
-    Sentinel role for actions accessible without authentication.
-
-    AI-CORE-BEGIN
+AI-CORE-BEGIN
     ROLE: Public-access check-spec marker.
     CONTRACT: Used only in ``@check_roles`` declarations.
     INVARIANTS: non-subclassable policy role; not part of user role sets.
     AI-CORE-END
-    """
+"""
 
     name = "engine_none"
     description = "Engine sentinel: no authentication required for the action."

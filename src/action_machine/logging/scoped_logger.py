@@ -49,18 +49,6 @@ EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
 See package ``__init__.py`` for nest-level and plugin examples.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Per-scope emit facade for aspects/plugins.
-CONTRACT: info/warning/critical(channels, message, **kwargs) → single coordinator.emit.
-INVARIANTS: domain frozen at __init__; _emit merges system var keys.
-FLOW: _emit → validate → var dict → LogCoordinator.emit.
-FAILURES: ValueError reserved keys; validation errors from channel/level.
-EXTENSION POINTS: none; new fields go through coordinator contract.
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from typing import Any
@@ -84,18 +72,12 @@ _RESERVED_KEYS = frozenset({"level", "channels", "domain", "domain_name"})
 
 class ScopedLogger:
     """
-    Logger bound to aspect or plugin ``LogScope``.
-
-    Built by the machine, ``ToolsBoxFactory``, ``PluginRunContext``, or tests.
-    Domain is supplied by the caller (e.g. ``resolve_domain``); this class does
-    not inspect ``@meta``.
-
-    AI-CORE-BEGIN
+AI-CORE-BEGIN
     ROLE: Scope-bound facade that prepares var payloads for coordinator emit.
     CONTRACT: Map info/warning/critical calls to one validated emit each.
     INVARIANTS: Reserved system keys are owned by logger, not user kwargs.
     AI-CORE-END
-    """
+"""
 
     def __init__(
         self,

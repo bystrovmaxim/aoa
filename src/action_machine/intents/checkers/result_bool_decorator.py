@@ -41,16 +41,6 @@ USAGE
 
     checker = FieldBoolChecker("is_valid")
     checker.check({"is_valid": True})  # OK
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Boolean checker implementation and ``@result_bool`` decorator for aspect methods.
-CONTRACT: Strict ``isinstance(value, bool)``; metadata keys match snapshot hydration.
-INVARIANTS: Metadata keys match FieldBoolChecker constructor / snapshot replay.
-FLOW: decorator -> _checker_meta -> inspector -> runtime check.
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from __future__ import annotations

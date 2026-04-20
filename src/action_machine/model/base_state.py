@@ -110,17 +110,6 @@ EXAMPLES
         # Aspect returns a local dict with new fields
         txn_id = await payment.charge(params.amount)
         return {"txn_id": txn_id, "charged": True}
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Immutable transport for intermediate aspect pipeline state.
-CONTRACT: Accept dynamic keys at creation, reject mutation afterwards.
-INVARIANTS: frozen=True; extra="allow"; machine creates new instance per step.
-FLOW: aspect returns dict -> machine validates -> new BaseState is built.
-FAILURES: Mutation attempts fail; invalid aspect outputs are rejected upstream.
-EXTENSION POINTS: Keep generic; domain-specific semantics live in aspect logic.
-AI-CORE-END
 """
 
 from pydantic import ConfigDict

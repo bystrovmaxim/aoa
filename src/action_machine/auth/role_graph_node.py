@@ -30,17 +30,6 @@ Happy path::
     assert n.node_type == "Role" and n.label == "OrderViewerRole"
 
 Edge case: same interchange shape for any concrete ``BaseRole`` subclass type passed in.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Auth-scoped BaseGraphNode bridge for BaseRole subclasses.
-CONTRACT: Construct from ``type[TRole]`` via ``__init__``; ``node_type="Role"``; dotted-path ``id``; label = class name; empty properties and edges.
-INVARIANTS: Immutable node; host class on ``BaseGraphNode.obj``.
-FLOW: role class -> ``RoleGraphNode.__init__`` -> frozen ``BaseGraphNode`` fields.
-EXTENSION POINTS: Other graph node specializations follow the same constructor pattern.
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from __future__ import annotations

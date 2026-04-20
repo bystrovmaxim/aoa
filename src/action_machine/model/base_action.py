@@ -68,18 +68,6 @@ Happy path::
 
 Edge case: ``class Bad(BaseAction[BaseParams, BaseResult]):`` (name not ending in
 ``"Action"``) raises ``NamingSuffixError`` in ``__init_subclass__``.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Core action base type; decorator surface for the action pipeline.
-CONTRACT: Generic ``BaseAction[P,R]``; naming suffix; required ``@meta``/``@check_roles``.
-INVARIANTS: Markers only; no coordinator; no scratch introspection API on class.
-FLOW: decorators → class attrs → coordinator build → machine reads snapshots.
-FAILURES: ``NamingSuffixError`` on bad class name; decorator-time errors on bad use.
-EXTENSION POINTS: plugins match on ``get_full_class_name()``; facets extend via inspectors.
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from __future__ import annotations
@@ -115,14 +103,12 @@ class BaseAction[P: BaseSchema, R: BaseSchema](
     ContextRequiresIntent,
 ):
     """
-    Abstract action: decorators declare pipeline behavior; runtime uses coordinator snapshots.
-
-    AI-CORE-BEGIN
+AI-CORE-BEGIN
     ROLE: Public base type for all async/sync actions.
     CONTRACT: Subclasses end with ``Action``; carry marker mixins; use required decorators.
     INVARIANTS: Stateless at instance level regarding metadata; ``_full_class_name`` cache on class.
     AI-CORE-END
-    """
+"""
 
     _full_class_name: str | None = None
 
@@ -174,18 +160,11 @@ from action_machine.legacy.binding.extract_action_params_result_types import (  
 
 class ActionTypedSchemasInspector(BaseIntentInspector):
     """
-    Graph: link each ``BaseAction`` subclass to resolved ``P`` / ``R`` schema types.
-
-    Emits a merged ``action`` facet row with ``uses_params`` / ``uses_result`` edges
-    to canonical ``params_schema`` / ``result_schema`` (or ``entity`` / ``described_fields``)
-    hosts; snapshot key ``action_schemas``.
-    See module docstring at top of this file for the full contract.
-
-    AI-CORE-BEGIN
+AI-CORE-BEGIN
     ROLE: Concrete inspector for action-to-schema graph mapping.
     CONTRACT: Merged ``action`` payloads; snapshot storage key ``action_schemas``.
     AI-CORE-END
-    """
+"""
 
     _target_intent: type = BaseAction
 

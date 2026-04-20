@@ -86,17 +86,6 @@ EXAMPLES
         tenant_id="acme",
         department="engineering",
     )
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Immutable caller-identity schema inside execution context.
-CONTRACT: Provide ``user_id`` and role classes for authorization decisions.
-INVARIANTS: Frozen object, forbid-extra policy, role-subclass normalization.
-FLOW: auth extraction -> UserInfo assembly -> Context propagation -> consumers.
-FAILURES: Validation errors occur on malformed ``roles`` input.
-EXTENSION POINTS: Inherit UserInfo for project-specific identity fields.
-AI-CORE-END
 """
 
 from __future__ import annotations
@@ -111,14 +100,12 @@ from action_machine.model.base_schema import BaseSchema
 
 class UserInfo(BaseSchema):
     """
-    Immutable caller identity schema used by the execution context.
-
-    AI-CORE-BEGIN
+AI-CORE-BEGIN
     ROLE: Principal metadata contract for authorization and audit.
     CONTRACT: Store ``user_id`` and a normalized tuple of role classes.
     INVARIANTS: Frozen model, forbid-extra fields, roles are BaseRole subclasses.
     AI-CORE-END
-    """
+"""
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 

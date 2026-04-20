@@ -102,17 +102,6 @@ EXAMPLES
         state={"validated_user": "u1", "txn_id": "TXN-1"},
         rollup=False,
     )
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Public testing toolbox for ActionMachine validation scenarios.
-CONTRACT: Expose immutable bench, stubs, mocks, validators, and comparators.
-INVARIANTS: Fluent bench methods return new instances; no hidden shared mutation.
-FLOW: configure bench -> execute (full/aspect/summary) -> validate/compare.
-FAILURES: Runtime contract errors surface unchanged through test harness.
-EXTENSION POINTS: Add focused testing helpers without expanding into god-module.
-AI-CORE-END
 """
 
 from action_machine.testing.bench import TestBench

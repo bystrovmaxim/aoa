@@ -34,18 +34,6 @@ Happy path:
 Edge case:
     Validation raises ``ConnectionValidationError`` on missing, extra, or
     invalid-typed connection entries.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Connection validation component.
-CONTRACT: validate(action, connections, runtime) -> normalized connections.
-INVARIANTS: key/type checks preserve existing runtime semantics.
-FLOW: action + runtime keys + input connections -> validation -> normalized dict.
-FAILURES: ConnectionValidationError raised on contract violation.
-EXTENSION POINTS: custom validation policy can replace this component.
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from __future__ import annotations

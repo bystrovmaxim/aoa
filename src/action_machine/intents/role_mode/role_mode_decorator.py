@@ -45,19 +45,6 @@ Happy path: ``RoleMode.ALIVE`` on a concrete role class.
 
 Edge case: ``RoleMode.UNUSED`` in ``@check_roles`` raises ``ValueError`` at import
 time; ``RoleClassInspector`` rejects ``UNUSED`` in the role MRO at ``build()``.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Role lifecycle enum + decorator + declared-mode accessor.
-CONTRACT: Members ALIVE, DEPRECATED, SILENCED, UNUSED; ``@role_mode`` scratch;
-    ``RoleMode.declared_for(role_cls)`` reads validated mode.
-INVARIANTS: Mode assigned only through ``@role_mode`` on role classes.
-FLOW: Decorator writes ``_role_mode_info`` → consumers call ``declared_for``.
-FAILURES: TypeError for bad decorator target or missing/invalid scratch.
-EXTENSION POINTS: New modes require coordinated updates to checker + inspectors.
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from __future__ import annotations

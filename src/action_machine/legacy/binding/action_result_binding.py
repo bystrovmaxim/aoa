@@ -37,17 +37,6 @@ Happy path:
 Edge case:
     Action declares custom ``Result`` but no summary aspect; runtime raises
     ``MissingSummaryAspectError`` instead of producing ambiguous fallback value.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Runtime enforcer of action result generic contract.
-CONTRACT: Resolve R, synthesize only safe fallback, and validate output type.
-INVARIANTS: R must be BaseResult subtype; output must match declared class.
-FLOW: resolve declaration -> choose summary/synthetic path -> bind/validate.
-FAILURES: Declaration mismatch or runtime type mismatch raises typed exceptions.
-EXTENSION POINTS: Add alternative binding sources while preserving same contract.
-AI-CORE-END
 """
 
 from __future__ import annotations

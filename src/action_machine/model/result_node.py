@@ -20,17 +20,6 @@ ARCHITECTURE / DATA FLOW
               │
               v
     ResultNode(...)  ──>  frozen ``BaseGraphNode`` (id, node_type, label, properties, edges)
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Model-scoped BaseGraphNode bridge for ``BaseResult`` schema hosts.
-CONTRACT: Construct from ``type[TResult]`` via ``__init__``; ``node_type="result_schema"``; dotted-path ``id``; label = class name; empty properties and edges.
-INVARIANTS: Immutable node; host class on ``BaseGraphNode.obj``.
-FLOW: result class -> ``ResultNode.__init__`` -> frozen ``BaseGraphNode`` fields.
-EXTENSION POINTS: Other graph node specializations follow the same constructor pattern.
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from __future__ import annotations

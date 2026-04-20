@@ -239,18 +239,6 @@ EXAMPLE — INSPECTOR WITH EDGES
                 node_class=target_cls,
                 edges=edges,
             )
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Abstract inspector base for all intent-driven graph facets.
-CONTRACT: ``inspect`` / ``_build_payload`` + shared payload and traversal helpers.
-INVARIANTS: Stateless classmethods; markers never import inspectors.
-FLOW: coordinator → ``_subclasses_recursive`` → ``inspect`` → facet payload **or** ``InspectGraphPair``.
-FAILURES: abstract until concrete inspector implements hooks.
-EXTENSION POINTS: concrete inspectors override traversal and payload shape.
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from __future__ import annotations
@@ -281,26 +269,12 @@ type FacetBuildResult = FacetVertex | list[FacetVertex]
 
 class BaseIntentInspector(ABC, BaseInspector):
     """
-    Abstract base for all intent inspectors.
-
-    Defines two abstract ``classmethod`` hooks (``inspect``, ``_build_payload``)
-    and shared helpers that build ``FacetVertex`` / ``FacetEdge`` and traverse
-    marker subclasses without duplicating boilerplate.
-
-    Facet hooks are ``classmethod`` / ``staticmethod`` — inspectors are usually
-    addressed as classes. The class exists for namespacing, shared helpers, and ABC
-    enforcement.
-
-    ``GraphCoordinator.build()`` does:
-    1. ``inspector._subclasses_recursive()`` — marker subclass list.
-    2. ``inspector.inspect(target_cls)`` — per-class inspection.
-
-    AI-CORE-BEGIN
+AI-CORE-BEGIN
     ROLE: Abstract contract for all graph intent inspectors.
     CONTRACT: Provide class traversal + payload projection hooks with shared helper primitives.
     INVARIANTS: Classmethod facet API; concrete subclasses implement ``inspect`` and ``_build_payload``.
     AI-CORE-END
-    """
+"""
 
     # ═══════════════════════════════════════════════════════════════════
     # Required contract (two abstract methods)

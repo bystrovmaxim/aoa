@@ -42,14 +42,4 @@ Start with the dual-transport demo::
 
 Edge case: importing ``examples`` alone does not start servers or register routes;
 open the subpackage README for commands and dependencies.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Namespace marker for runnable and documented ActionMachine samples.
-CONTRACT: Keep examples isolated from core package imports.
-INVARIANTS: No core import-from-examples; document entrypoints per subpackage.
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """

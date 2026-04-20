@@ -146,17 +146,6 @@ EXAMPLES
     ctx = Context(user=None, runtime=None)
     ctx.user.user_id                       # -> None (defaulted UserInfo)
     ctx.runtime.hostname                   # -> None (defaulted RuntimeInfo)
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Immutable root context model shared across runtime subsystems.
-CONTRACT: Carry user/request/runtime metadata with safe defaults and dot-path resolution.
-INVARIANTS: Frozen schema, forbid extra fields, never-None components after validation.
-FLOW: auth assembly -> machine run -> role checks/context view/logging consumers.
-FAILURES: Field-level access restrictions are delegated to ContextView layer.
-EXTENSION POINTS: Explicit schema inheritance for custom context fields.
-AI-CORE-END
 """
 
 from pydantic import ConfigDict, field_validator
@@ -169,14 +158,12 @@ from action_machine.model.base_schema import BaseSchema
 
 class Context(BaseSchema):
     """
-    Immutable root context model for one action execution.
-
-    AI-CORE-BEGIN
+AI-CORE-BEGIN
     ROLE: Runtime metadata container (user/request/runtime).
     CONTRACT: Expose safe defaults and BaseSchema dot-path resolution.
     INVARIANTS: Frozen object, forbid extra, None inputs normalized to defaults.
     AI-CORE-END
-    """
+"""
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 

@@ -47,18 +47,6 @@ EXAMPLES
     @context_requires(Ctx.User.user_id)
     async def build_result_summary(self, params, state, box, connections, ctx):
         return OrderResult(created_by=ctx.get(Ctx.User.user_id), ...)
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Summary-aspect declaration module.
-CONTRACT: ``@summary_aspect`` marks the final async step that returns Result.
-INVARIANTS: non-empty string description, callable+async target, valid arity, ``_summary`` suffix or ``summary``.
-FLOW: validate declaration -> attach ``_new_aspect_meta`` -> inspector snapshot -> runtime final-step execution.
-FAILURES: TypeError/ValueError/NamingSuffixError on declaration contract violations.
-EXTENSION POINTS: context-aware signature via ``@context_requires``.
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from __future__ import annotations

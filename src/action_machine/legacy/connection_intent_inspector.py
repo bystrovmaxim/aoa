@@ -36,17 +36,6 @@ ARCHITECTURE / DATA FLOW
     to_facet_vertex()
             │
             └─ action node + structural ``connection`` edges → ``resource_manager``
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Structural connection-edge inspector for action graph topology.
-CONTRACT: Read ``_connection_info``; emit merged ``action`` rows with edges to ``resource_manager``.
-INVARIANTS: Facet cache key is ``connections``; payloads are skipped when declarations are absent.
-FLOW: class discovery -> scratch read -> typed snapshot -> payload for coordinator merge/commit.
-FAILURES: Missing declarations result in ``None`` payload (skip), not an error.
-EXTENSION POINTS: Edge metadata shape can be extended through ``ConnectionInfo``.
-AI-CORE-END
 """
 
 from __future__ import annotations
@@ -64,14 +53,12 @@ from graph.facet_vertex import FacetVertex
 
 class ConnectionIntentInspector(BaseIntentInspector):
     """
-    Inspector for ``ConnectionIntent`` declarations.
-
-    AI-CORE-BEGIN
+AI-CORE-BEGIN
     ROLE: Concrete connection inspector.
     CONTRACT: Emit action payloads with structural connection edges from ``_connection_info``.
     INVARIANTS: Uses ``ConnectionIntent`` marker traversal and ``connections`` snapshot key.
     AI-CORE-END
-    """
+"""
 
     _target_intent: type = ConnectionIntent
 

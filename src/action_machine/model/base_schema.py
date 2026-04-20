@@ -112,17 +112,6 @@ EXAMPLES
     params.resolve("address.city")       # -> "Moscow"
     list(params.keys())                  # -> ["user_id", "address"]
     params.model_dump()                  # -> {"user_id": "user_123", "address": {...}}
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Universal schema contract used across ActionMachine boundaries.
-CONTRACT: Provide dict-like access and stable dot-path navigation.
-INVARIANTS: Pydantic model semantics + unified read/navigation interface.
-FLOW: typed model construction -> optional key/path reads -> serialization/schema.
-FAILURES: Missing path values degrade to default via sentinel-based resolution.
-EXTENSION POINTS: Descendants tune frozen/extra policy and declare typed fields.
-AI-CORE-END
 """
 
 from __future__ import annotations

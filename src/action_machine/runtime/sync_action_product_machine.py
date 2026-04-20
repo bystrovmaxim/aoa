@@ -83,17 +83,6 @@ EXAMPLES
         params = PingAction.Params()
         result = machine.run(ctx, action, params)
         print(result.message)
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Synchronous adapter over ActionProductMachine async pipeline.
-CONTRACT: run(...) synchronously executes _run_internal via asyncio.run.
-INVARIANTS: Inherited orchestration semantics; public rollup is always false.
-FLOW: sync run call -> asyncio.run -> inherited async pipeline execution.
-FAILURES: RuntimeError in active loop; pipeline errors propagate unchanged.
-EXTENSION POINTS: Use async ActionProductMachine for event-loop-native contexts.
-AI-CORE-END
 """
 
 import asyncio

@@ -34,17 +34,6 @@ Happy path:
 
 Edge case:
     If callable raises, the same exception is surfaced to async caller.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Small runtime utility adapter for blocking call offloading.
-CONTRACT: run_in_thread(func, *args) -> awaitable result of sync callable.
-INVARIANTS: preserves callable return/exception semantics.
-FLOW: running loop -> executor offload -> await completion.
-FAILURES: callable errors propagate; missing loop raises runtime loop errors.
-EXTENSION POINTS: add focused helpers only; avoid turning into god-module.
-AI-CORE-END
 """
 
 import asyncio

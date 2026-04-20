@@ -9,18 +9,6 @@ PURPOSE
 Provide a single shared implementation for interchange IDs, facet ``node_name``
 bodies, and other graph keys that must match the dotted import path of a class
 (including nested classes via ``__qualname__``).
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Shared dotted class-path helper for graph and metadata keys.
-CONTRACT: module + qualname when module is a real package name; else qualname only.
-INVARIANTS: Aligned with inspector node naming; no I/O.
-FLOW: read __module__ / __qualname__ -> single formatted string.
-FAILURES: Caller responsibility for non-type inputs.
-EXTENSION POINTS: Other name policies stay in callers if semantics diverge.
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from __future__ import annotations

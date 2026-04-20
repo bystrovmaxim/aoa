@@ -36,16 +36,6 @@ EXAMPLES
 
     Edge case: invalid or empty ``order_id`` fails Pydantic validation at the
     transport layer (e.g. FastAPI 422).
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Example read action for shared FastAPI/MCP transports.
-CONTRACT: Path-bound identifier in; structured order snapshot out.
-INVARIANTS: Summary-only pipeline; no regular aspects or state mutations.
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from pydantic import Field

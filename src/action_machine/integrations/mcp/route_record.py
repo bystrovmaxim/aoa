@@ -71,14 +71,12 @@ from action_machine.adapters.base_route_record import BaseRouteRecord
 @dataclass(frozen=True)
 class McpRouteRecord(BaseRouteRecord):
     """
-    Immutable MCP route descriptor used by ``McpAdapter``.
-
-    AI-CORE-BEGIN
+AI-CORE-BEGIN
     ROLE: Carries validated tool metadata and mapping contracts.
     CONTRACT: Extends BaseRouteRecord with MCP-specific fields.
     INVARIANTS: Frozen instance and non-empty tool_name.
     AI-CORE-END
-    """
+"""
 
     # ── MCP-specific fields ─────────────────────────────────────────────
 

@@ -32,18 +32,6 @@ EXAMPLES
 
 Happy path: two unrelated classes both use ``name = "dup"`` →
 ``InvalidGraphError`` at ``build()``.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Role-class topology inspector.
-CONTRACT: ``role_class`` node only for ``ApplicationRole``; validates all ``BaseRole`` subclasses.
-INVARIANTS: Unique name; no UNUSED in MRO; ``@role_mode`` on every subclass.
-FLOW: collect subclasses → validate → FacetVertex only for taxonomy roots.
-FAILURES: InvalidGraphError on broken topology.
-EXTENSION POINTS: Align new cross-facet edges with ``RoleIntentInspector``.
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from __future__ import annotations
@@ -99,14 +87,12 @@ def _assert_mro_no_unused_base(cls: type[BaseRole]) -> None:
 
 class RoleClassInspector(BaseIntentInspector):
     """
-    Emits ``role_class`` topology and action requirements.
-
-    AI-CORE-BEGIN
+AI-CORE-BEGIN
     ROLE: Concrete inspector for role-class topology.
     CONTRACT: Emit ``role_class`` only for ``ApplicationRole``.
     INVARIANTS: All ``BaseRole`` subclasses validated; roots carry lifecycle metadata.
     AI-CORE-END
-    """
+"""
 
     _target_intent: type = BaseRole
 

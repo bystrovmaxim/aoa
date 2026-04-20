@@ -16,15 +16,6 @@ subclass for API symmetry and optional tooling; :meth:`inspect` and
 :meth:`facet_snapshot_for_class` always return ``None`` so
 :class:`~graph.graph_coordinator.GraphCoordinator` never commits
 handler subscription rows.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Placeholder / tooling hook for plugin subscription metadata (graph-disabled).
-CONTRACT: Do not emit ``subscription`` facet payloads or snapshots for ``OnIntent`` handlers.
-INVARIANTS: Candidate roots would be ``OnIntent`` subclasses; graph path is a no-op.
-FLOW: ``inspect`` / ``facet_snapshot_for_class`` → ``None``; ``_build_payload`` satisfies ABC only.
-AI-CORE-END
 """
 
 from __future__ import annotations
@@ -41,14 +32,12 @@ from graph.facet_vertex import FacetVertex
 
 class SubscriptionIntentInspector(BaseIntentInspector):
     """
-    Plugin ``@on`` metadata — **not** projected into the coordinator graph.
-
-    AI-CORE-BEGIN
+AI-CORE-BEGIN
     ROLE: No-op graph inspector for handler subscriptions.
     CONTRACT: ``inspect`` / ``facet_snapshot_for_class`` return ``None``.
     INVARIANTS: Traversal root is ``OnIntent`` when registered; default coordinator omits registration.
     AI-CORE-END
-    """
+"""
 
     _target_intent: type = OnIntent
 

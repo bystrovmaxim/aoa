@@ -35,18 +35,6 @@ EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
 ``Channel.debug | Channel.business`` — debug trace tied to business flow.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Channel enum + validation for logging pipeline.
-CONTRACT: IntFlag with five bits; validate_channels enforces non-empty known mask.
-INVARIANTS: int-based mask check uses _ALL_CHANNELS_MASK (IntFlag ~ is unsafe).
-FLOW: caller passes Channel → ScopedLogger → coordinator → subscription match.
-FAILURES: TypeError/ValueError from validate_channels.
-EXTENSION POINTS: new channels require enum + _ALL_CHANNELS update + subscription tests.
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from enum import IntFlag
@@ -54,14 +42,12 @@ from enum import IntFlag
 
 class Channel(IntFlag):
     """
-    Semantic log channel bitmask (debug, business, security, compliance, error).
-
-    AI-CORE-BEGIN
+AI-CORE-BEGIN
     ROLE: Topic classifier for log routing/filtering.
     CONTRACT: Compose topics with bitwise OR and test via bitwise AND.
     INVARIANTS: Only declared enum bits are legal for validated masks.
     AI-CORE-END
-    """
+"""
 
     debug = 1
     business = 2

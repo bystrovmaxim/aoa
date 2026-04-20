@@ -78,17 +78,6 @@ EXAMPLES
     # JSON Schema for FastAPI and MCP:
     OrderResult.model_json_schema()
     # {"properties": {"order_id": {"description": "Created order identifier", ...}, ...}}
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Immutable final output contract for action execution.
-CONTRACT: Result models are typed, frozen, and strictly shaped.
-INVARIANTS: frozen=True; extra="forbid"; field descriptions are expected.
-FLOW: summary/on_error creates result -> runtime emits -> adapters serialize.
-FAILURES: ValidationError on invalid input, unknown fields, or mutation attempt.
-EXTENSION POINTS: Extend through dedicated result subclasses per action.
-AI-CORE-END
 """
 
 from pydantic import ConfigDict

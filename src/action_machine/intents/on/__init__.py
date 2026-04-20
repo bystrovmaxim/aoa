@@ -173,17 +173,6 @@ Metrics plugin with compensation monitoring:
             )
             state["saga_failures"] += 1
             return state
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Public plugin subsystem entrypoint and event API surface.
-CONTRACT: Export event classes, subscription decorators, and runtime plumbing.
-INVARIANTS: Type-safe event subscriptions and per-run plugin state isolation.
-FLOW: machine emits typed events -> run context filters -> handlers update state.
-FAILURES: validation/declaration errors fail fast during metadata build.
-EXTENSION POINTS: add new event classes + @on filters + coordinator handling.
-AI-CORE-END
 """
 
 from __future__ import annotations

@@ -45,18 +45,6 @@ Happy path::
 Edge case: empty ``dotpath`` in ``navigate_with_source`` returns
 ``(root, None, None)``. Any failed segment yields ``(_SENTINEL, …)`` from
 ``navigate`` / the documented tuple shape from ``navigate_with_source``.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Core dot-path resolver for schemas, dicts, and dict-like objects.
-CONTRACT: ``navigate`` / ``navigate_with_source`` / ``resolve_step``; ``_SENTINEL``.
-INVARIANTS: No runtime import of ``base_schema``; duck-typed model branch first.
-FLOW: segment loop → resolve_step → strategy by object shape.
-FAILURES: missing path → ``_SENTINEL``; no exceptions for normal misses.
-EXTENSION POINTS: new root types must fit existing branches or add a guarded branch.
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from __future__ import annotations
@@ -75,14 +63,12 @@ def _is_model_like_mapping(obj: object) -> bool:
 
 class DotPathNavigator:
     """
-    Static namespace for dot-path navigation (no instance state).
-
-    AI-CORE-BEGIN
+AI-CORE-BEGIN
     ROLE: Single entry point for nested key/attribute walks.
     CONTRACT: Priority — model-like, ``dict``, ``__getitem__``, ``getattr``.
     INVARIANTS: Strategies are pure; ``_SENTINEL`` encodes absence.
     AI-CORE-END
-    """
+"""
 
     @staticmethod
     def _step_schema(current: object, segment: str) -> object:

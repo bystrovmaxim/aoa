@@ -109,18 +109,6 @@ EXAMPLES
 
     auth = AuthCoordinator(extractor, authenticator, assembler)
     context = await auth.process(request)
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Authentication package API surface.
-CONTRACT: Export coordinators, role markers, decorators, and protocol bases.
-INVARIANTS: Typed role specs; explicit opt-out via NoneRole / NoAuthCoordinator.
-FLOW: request → AuthCoordinator → Context → RoleChecker vs @check_roles spec.
-FAILURES: AuthorizationError; TypeError for decorator misuse.
-EXTENSION POINTS: Custom CredentialExtractor / Authenticator / ContextAssembler.
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from __future__ import annotations

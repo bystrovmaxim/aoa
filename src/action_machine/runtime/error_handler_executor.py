@@ -39,19 +39,6 @@ Happy path:
 
 Edge case:
     No matching handler emits ``UnhandledErrorEvent`` and then re-raises.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: On-error handler execution component.
-CONTRACT: handle(...) -> BaseResult or re‑raise original exception.
-INVARIANTS: first matching handler wins; event order remains stable;
-  plugin fields from PluginEmitSupport only.
-FLOW: resolve handler -> emit before -> invoke -> emit after/fallback.
-FAILURES: OnErrorHandlerError on handler failure; original error when unhandled.
-EXTENSION POINTS: custom handler strategy can replace this component.
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from __future__ import annotations

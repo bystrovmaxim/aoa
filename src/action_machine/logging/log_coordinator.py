@@ -60,18 +60,6 @@ EXAMPLES
 
 Register loggers at construction or via ``add_logger``. Each logger may call
 ``subscribe`` to restrict traffic.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Logging bus + var gate + substitution orchestration.
-CONTRACT: emit(message, var, scope, ctx, state, params, indent) validates then broadcasts.
-INVARIANTS: var level/channels/domain rules always enforced; no regex filters here.
-FLOW: validate var → substitute → strip ANSI per logger → handle (gather, errors isolated).
-FAILURES: LogTemplateError, ValueError, TypeError; logger errors → stdlib logging only.
-EXTENSION POINTS: add_logger; custom BaseLogger implementations.
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from __future__ import annotations
@@ -112,17 +100,12 @@ def _record_logger_handle_failure(logger: BaseLogger, exc: BaseException) -> Non
 
 class LogCoordinator:
     """
-    Async coordinator: validate ``var``, substitute templates, fan out to loggers.
-
-    Registration: constructor ``loggers`` or ``add_logger``. Filtering is
-    per-logger via ``subscribe`` inside ``match_filters``, not here.
-
-    AI-CORE-BEGIN
+AI-CORE-BEGIN
     ROLE: Central logging bus and validation gate.
     CONTRACT: Validate+substitute once, then fan-out to all registered loggers.
     INVARIANTS: Sink failures are isolated and do not abort emit caller flow.
     AI-CORE-END
-    """
+"""
 
     def __init__(
         self,

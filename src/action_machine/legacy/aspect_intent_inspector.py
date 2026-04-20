@@ -41,19 +41,6 @@ Edge case: no aspect metadata on the class → ``inspect`` returns ``None``.
 Subclassing: aspects live on the **concrete** action class body; a child does
 not pick up a parent’s aspect entries through MRO scanning—override and
 ``super()`` instead of expecting automatic inheritance of facet rows.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Aspect facet inspector module.
-CONTRACT: Declarative aspect metadata → typed snapshot → ``FacetVertex``.
-INVARIANTS: Single facet key ``aspect``; collection from declaring-class ``vars``
-  only (no MRO merge); explicit per-class facet surface.
-FLOW: vars → unwrap → _new_aspect_meta → Snapshot → payloads + action has_aspect.
-FAILURES: absent metadata → None from inspect; no exceptions for empty classes.
-EXTENSION POINTS: coordinator and machine consume cached snapshots.
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from __future__ import annotations
@@ -81,19 +68,13 @@ def vertex_type_for_aspect_kind(kind: str) -> str:
 
 class AspectIntentInspector(BaseIntentInspector):
     """
-    Inspector for ``AspectIntent`` subclasses: builds aspect facet snapshots.
-
-    Snapshots include aspects declared in the own namespace of ``target_cls``
-    only; inherited methods are not collected from ancestors (explicit subclass
-    overrides + ``super()`` pattern).
-
-    AI-CORE-BEGIN
+AI-CORE-BEGIN
     ROLE: Concrete intent inspector for aspects.
     CONTRACT: ``inspect`` / ``Snapshot.from_target`` for classes with aspects.
     INVARIANTS: ``_target_intent`` is ``AspectIntent``; storage key ``aspect``;
       ``vars(target_cls)`` only—no inherited aspect merge.
     AI-CORE-END
-    """
+"""
 
     _target_intent: type = AspectIntent
 

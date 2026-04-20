@@ -37,18 +37,6 @@ EXAMPLES
 Happy path: a method has ``@on_error`` metadata → payload lists handler rows.
 
 Edge case: no handlers → ``inspect`` returns ``None``.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: On-error facet inspector module.
-CONTRACT: _on_error_meta → per-handler ``error_handler`` nodes + ``action`` edges + aggregate Snapshot.
-INVARIANTS: Declaring-class scan; key ``error_handler``.
-FLOW: vars → unwrap → meta → Snapshot → payload.
-FAILURES: no handlers → None from inspect.
-EXTENSION POINTS: machine resolves handlers from coordinator snapshot at runtime.
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from __future__ import annotations
@@ -66,14 +54,12 @@ from graph.facet_vertex import FacetVertex
 
 class OnErrorIntentInspector(BaseIntentInspector):
     """
-    Inspector for ``OnErrorIntent`` subclasses: error-handler facet snapshots.
-
-    AI-CORE-BEGIN
+AI-CORE-BEGIN
     ROLE: Concrete inspector for ``@on_error`` declarations.
     CONTRACT: ``inspect`` emits handler vertices + ``action`` edges when ``_on_error_meta`` exists.
     INVARIANTS: ``_target_intent`` is ``OnErrorIntent``.
     AI-CORE-END
-    """
+"""
 
     _target_intent: type = OnErrorIntent
 

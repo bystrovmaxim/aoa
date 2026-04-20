@@ -45,18 +45,6 @@ EXAMPLES
     )
 
 Dict-like access: ``scope["machine"]``, ``"machine" in scope``, ``scope.keys()``.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Log coordinate bag for template scope namespace.
-CONTRACT: kwargs → attributes; ordered keys; as_dotpath for debugging.
-INVARIANTS: not BaseSchema; no validation; cache dotpath once.
-FLOW: ScopedLogger constructs LogScope → VariableSubstitutor reads {%scope.*}.
-FAILURES: KeyError on bad __getitem__.
-EXTENSION POINTS: extra kwargs fields allowed for custom scopes.
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from typing import Any
@@ -64,24 +52,12 @@ from typing import Any
 
 class LogScope:
     """
-    Lightweight logging scope: dynamic attributes + dict-like API.
-
-    Typical kwargs (all optional, chosen by constructor):
-
-    - ``machine``, ``mode``, ``action``, ``aspect`` or ``plugin`` / ``event``,
-      ``nest_level``.
-
-    Private:
-
-    - ``_key_order`` — insertion order for ``as_dotpath`` and ``keys()``.
-    - ``_cached_path`` — memoized ``as_dotpath`` result.
-
-    AI-CORE-BEGIN
+AI-CORE-BEGIN
     ROLE: Runtime scope carrier for ``{%scope.*}`` template namespace.
     CONTRACT: Preserve insertion order and expose dict-like read API.
     INVARIANTS: Dynamic attributes are constructor-defined; dotpath is cached.
     AI-CORE-END
-    """
+"""
 
     _key_order: list[str]
     _cached_path: str | None

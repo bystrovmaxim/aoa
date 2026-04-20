@@ -32,18 +32,6 @@ EXAMPLES
 Happy path: compensating methods carry ``_compensate_meta`` → non-empty payload.
 
 Edge case: no compensators → ``inspect`` returns ``None``.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Compensator facet inspector module.
-CONTRACT: _compensate_meta → per-method vertices + ``action`` edges + aggregate Snapshot.
-INVARIANTS: Declaring-class scan; key ``compensator``.
-FLOW: vars → unwrap → meta → snapshot rows → payload.
-FAILURES: no compensators → None from inspect.
-EXTENSION POINTS: saga coordinator reads compensator snapshot from cache.
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from __future__ import annotations
@@ -63,14 +51,12 @@ from graph.facet_vertex import FacetVertex
 
 class CompensateIntentInspector(BaseIntentInspector):
     """
-    Inspector for ``CompensateIntent`` subclasses: compensator facet snapshots.
-
-    AI-CORE-BEGIN
+AI-CORE-BEGIN
     ROLE: Concrete inspector for ``@compensate`` declarations.
     CONTRACT: ``inspect`` emits per-method ``compensator`` nodes + ``action`` edges when metadata exists.
     INVARIANTS: ``_target_intent`` is ``CompensateIntent``.
     AI-CORE-END
-    """
+"""
 
     _target_intent: type = CompensateIntent
 

@@ -83,17 +83,12 @@ from action_machine.plugin.plugin_run_context import PluginRunContext
 
 class PluginCoordinator:
     """
-    Stateless plugin lifecycle coordinator.
-
-    Stores plugin instance list and creates isolated ``PluginRunContext`` for
-    every run call.
-
-    AI-CORE-BEGIN
+AI-CORE-BEGIN
     ROLE: Runtime coordinator for plugin context creation per run.
     CONTRACT: Build context with initial states for registered plugins.
     INVARIANTS: Coordinator remains stateless across requests.
     AI-CORE-END
-    """
+"""
 
     def __init__(
         self,

@@ -89,17 +89,6 @@ ARCHITECTURE / DATA FLOW
       |                  |
       v                  v
   context.resolve     ContextAccessError
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Runtime context access guard for aspects/handlers.
-CONTRACT: Enforce declared key subset while delegating value resolution to Context.
-INVARIANTS: Frozen object, read-only key set, strict allowlist checks.
-FLOW: declaration keys -> ContextView creation -> guarded get() access.
-FAILURES: ContextAccessError for unauthorized key access.
-EXTENSION POINTS: Works with custom context schema fields via dot-path resolution.
-AI-CORE-END
 """
 
 from typing import Any

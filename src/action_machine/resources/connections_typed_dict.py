@@ -52,17 +52,6 @@ Extended case:
             db = connections["connection"]
             cache = connections["cache"]
             ...
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Static type contract for action resource connection payloads.
-CONTRACT: Provide default key and extensible TypedDict inheritance path.
-INVARIANTS: Runtime object is dict; static typing augments editor/type checks.
-FLOW: class declarations -> runtime validation -> typed access in aspects.
-FAILURES: Mismatched keys fail at runtime validation, not TypedDict definition.
-EXTENSION POINTS: Create per-action TypedDict subclasses with additional keys.
-AI-CORE-END
 """
 
 from typing import TypedDict

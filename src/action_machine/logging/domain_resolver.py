@@ -38,18 +38,6 @@ EXAMPLES
 
 ``domain_label(OrdersDomain)`` → typically ``"orders"`` from class ``name``,
 else ``__name__``.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Bridge from @meta domain to logging var fields.
-CONTRACT: resolve_domain(cls) -> type[BaseDomain] | None; domain_label for display.
-INVARIANTS: invalid domain with meta present raises; None is allowed for tests/no meta.
-FLOW: construction sites pass domain into ScopedLogger; coordinator type-checks var.
-FAILURES: TypeError on bad domain configuration.
-EXTENSION POINTS: none; domain source is @meta only.
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from action_machine.domain.base_domain import BaseDomain

@@ -68,18 +68,6 @@ EXAMPLES
         ...
 
 Edge case: ``@check_roles([])`` → ``ValueError``.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Action role-requirement declaration module.
-CONTRACT: ``@check_roles(spec)`` writes normalized ``_role_info`` for facet ``role``.
-INVARIANTS: Class target; stored spec uses types + engine sentinels.
-FLOW: decorator → normalize → _role_info → inspector.
-FAILURES: TypeError / ValueError; ``DeprecationWarning`` for deprecated roles.
-EXTENSION POINTS: N/A.
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from __future__ import annotations

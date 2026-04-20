@@ -50,18 +50,6 @@ EXAMPLES
     logger = ConsoleLogger()
     logger.subscribe("biz", channels=Channel.business)
     coordinator = LogCoordinator(loggers=[logger])
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Reference console sink for development.
-CONTRACT: write prints one line; respects supports_colors for stripping.
-INVARIANTS: super().__init__ owns subscription dict; indent optional.
-FLOW: handle → match_filters → write → print.
-FAILURES: none added here; print errors propagate.
-EXTENSION POINTS: replace write for file/network sinks following same contract.
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from __future__ import annotations
@@ -89,14 +77,12 @@ DEFAULT_LEVEL_FG_PREFIX: dict[Level, str] = {
 
 class ConsoleLogger(BaseLogger):
     """
-    Stdout backend with indentation and optional level-based ANSI coloring.
-
-    AI-CORE-BEGIN
+AI-CORE-BEGIN
     ROLE: Default interactive sink implementation for logging subsystem.
     CONTRACT: Emit one line per accepted message via ``print``.
     INVARIANTS: Reuses BaseLogger filtering pipeline and subscription rules.
     AI-CORE-END
-    """
+"""
 
     def __init__(
         self,

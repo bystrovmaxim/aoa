@@ -38,18 +38,6 @@ EXAMPLES
 
 ``channels=Channel.business``, ``levels=Level.warning | Level.critical`` —
 business messages at warning or critical only.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Per-rule filter predicate for loggers.
-CONTRACT: matches(var) after coordinator validation; AND inside rule.
-INVARIANTS: channel/level bitwise test; domain None in var fails domain filter.
-FLOW: BaseLogger.match_filters iterates subscriptions.values().
-FAILURES: none from matches; ``__post_init__`` validates construction args.
-EXTENSION POINTS: new dimensions need coordinator var + matches + subscribe API.
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from __future__ import annotations
@@ -111,21 +99,12 @@ def _normalize_subscription_domains(
 @dataclass(frozen=True)
 class LogSubscription:
     """
-    One filter rule; specified fields are combined with AND.
-
-    channels: channel mask or None (ignore channel).
-    levels: level mask or None (ignore level). Message has one level bit;
-        subscription mask means “any listed level”.
-    domains: after construction, a tuple of domain classes or None (ignore domain).
-        At init, pass ``_domains_raw``: one ``BaseDomain`` subclass, a non-empty
-        list, a non-empty tuple, or None. Match uses issubclass — subclasses match.
-
-    AI-CORE-BEGIN
+AI-CORE-BEGIN
     ROLE: Immutable per-rule predicate for logger-side filtering.
     CONTRACT: Validate on construction, evaluate channel/level/domain on match.
     INVARIANTS: Rule dimensions are AND-combined inside one subscription.
     AI-CORE-END
-    """
+"""
 
     key: str
     channels: Channel | None = None

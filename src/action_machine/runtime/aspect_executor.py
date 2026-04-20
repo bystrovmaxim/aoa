@@ -42,19 +42,6 @@ Happy path:
 
 Edge case:
     Regular aspect returning unknown fields raises ``ValidationFieldError``.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Aspect execution component.
-CONTRACT: execute_regular/execute_summary orchestrate aspect invocation contracts.
-INVARIANTS: checker validation and immutable state merge for regular aspects.
-FLOW: call aspect -> validate result -> merge state -> saga frame; on
-  validation failure after call, frame with state_after=None then raise.
-FAILURES: TypeError/ValidationFieldError for invalid regular aspect payload.
-EXTENSION POINTS: custom execution policy can replace this component.
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from __future__ import annotations

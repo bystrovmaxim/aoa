@@ -42,17 +42,6 @@ Happy path:
 Edge case:
     Missing/extra connection keys or invalid manager instance type raises
     connection validation errors before action pipeline proceeds.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Public API surface for resource connection declarations and contracts.
-CONTRACT: Actions declare resources via @connection and receive typed payload.
-INVARIANTS: ConnectionIntent marker required; ConnectionInfo remains immutable.
-FLOW: decorator -> inspector snapshot -> runtime payload validation -> usage.
-FAILURES: Payload/declaration mismatch surfaces as validation or transaction errors.
-EXTENSION POINTS: Add new manager implementations in integrations packages.
-AI-CORE-END
 """
 
 from action_machine.intents.connection import ConnectionInfo, connection

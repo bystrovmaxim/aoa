@@ -41,16 +41,6 @@ USAGE
 
     checker = FieldDateChecker("created_at", date_format="%Y-%m-%d")
     checker.check({"created_at": "2024-01-15"})  # OK
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Date checker implementation and decorator for aspect methods.
-CONTRACT: Metadata keys match FieldDateChecker constructor / snapshot hydration.
-INVARIANTS: String parsing requires explicit ``date_format`` when value is ``str``.
-FLOW: decorator -> _checker_meta -> inspector -> runtime check.
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from __future__ import annotations

@@ -38,17 +38,6 @@ Happy path:
 Edge case:
     A model validation or contract misuse raises an exception re-exported here
     from ``action_machine.model.exceptions``.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Public model gateway for ActionMachine contracts.
-CONTRACT: Re-export base model classes and model exceptions consistently.
-INVARIANTS: __all__ defines API surface; exception list comes from submodule.
-FLOW: Import from model package -> consume Base* contracts -> runtime usage.
-FAILURES: Contract misuse is signaled through exported model exceptions.
-EXTENSION POINTS: Add new public model contract only via explicit __all__.
-AI-CORE-END
 """
 
 from __future__ import annotations

@@ -36,15 +36,4 @@ Happy path:
 Edge case:
     If runtime receives a result with mismatched type, binding validation
     raises a typed contract exception.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Runtime contract binder for BaseAction generic typing.
-CONTRACT: Resolve declared P/R types and enforce result-type correctness.
-INVARIANTS: Produced result must match declared R subtype at runtime.
-FLOW: action class -> generic resolution -> runtime value check -> propagate.
-FAILURES: Declaration/value mismatch raises typed runtime binding exceptions.
-EXTENSION POINTS: Add resolvers/validators for new binding edge cases.
-AI-CORE-END
 """

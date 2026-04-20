@@ -52,18 +52,6 @@ ERRORS
 
 ``TypeError`` / ``ValueError`` from parameter validation or wrong decorator
 target (see runtime messages).
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Property decorator storing masking config for log substitution.
-CONTRACT: @sensitive(enabled, max_chars, char, max_percent) on getters.
-INVARIANTS: config on fget; consumed only by VariableSubstitutor + inspectors.
-FLOW: decorate → _sensitive_config → resolve path → mask_value.
-FAILURES: validation at decorate time; masking never suppress errors silently.
-EXTENSION POINTS: mask_value rules live in masking module.
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from __future__ import annotations
