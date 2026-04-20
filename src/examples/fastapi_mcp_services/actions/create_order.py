@@ -26,15 +26,6 @@ ARCHITECTURE / DATA FLOW
   build_result_summary -> Result(order_id, status, total)
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- ``user_id`` is a non-empty string.
-- ``amount`` is a float strictly greater than zero (``gt=0``).
-- ``currency`` matches ISO-like uppercase code pattern ``^[A-Z]{3}$``.
-- ``validated_user`` must be produced by regular aspect before summary phase.
-
-═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -43,13 +34,6 @@ EXAMPLES
 
     Response body:
     {"order_id": "ORD-user_123-001", "status": "created", "total": 1500.0}
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- FastAPI returns 422 for payloads violating field constraints.
-- Example action is intentionally simple and uses static order-id suffix.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN

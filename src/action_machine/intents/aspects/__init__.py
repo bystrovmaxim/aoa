@@ -21,16 +21,6 @@ execution then consumes those snapshots to run regular steps first and summary
 step last.
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- At most one summary aspect per class.
-- If regular aspects exist, a summary aspect is required.
-- Summary aspect must be declared last.
-- Method naming suffixes are mandatory (``_aspect`` / ``_summary``).
-- Description is required for both decorators.
-
-═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -47,13 +37,6 @@ EXAMPLES
 
 Edge case: regular aspects without a summary aspect fail during metadata
 validation.
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-This module only exports declarations. Validation and execution errors are
-raised by decorators, inspectors, and machine runtime stages.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN

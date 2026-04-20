@@ -50,16 +50,6 @@ PARAMETERS
         invariants).
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Applies only to **classes**, not functions or methods.
-- Target must be a class (``type``).
-- ``description`` — non-empty ``str``.
-- ``domain`` — ``None`` or ``BaseDomain`` subclass.
-- Decorator order relative to other class decorators is otherwise unconstrained.
-
-═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -92,15 +82,6 @@ EXAMPLE
         id: str = Field(description="Order id")
         amount: float = Field(description="Order total", ge=0)
         status: str = Field(description="Workflow status")
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-    EntityDecoratorError — wrong target type or bad ``description`` / ``domain``.
-
-The decorator validates declaration metadata only. Graph-level consistency is
-validated later during coordinator ``build()`` by inspectors.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN

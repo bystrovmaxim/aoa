@@ -25,14 +25,6 @@ PARAMETERS
     subclass. Omitted, ``None``, or wrong type → ``TypeError``.
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Classes only (not functions, methods, or properties).
-- Target must be a class (``type``).
-- Re-applying ``@meta`` overwrites prior metadata on the same class.
-
-═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -67,15 +59,6 @@ EXAMPLES
     @meta(description="PostgreSQL connection manager", domain=WarehouseDomain)
     class WarehouseDbManager(BaseResourceManager):
         ...
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-``TypeError`` — not a class; ``description`` not ``str``; ``domain`` missing,
-``None``, or not a ``BaseDomain`` subclass.
-
-``ValueError`` — empty / whitespace ``description``.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN

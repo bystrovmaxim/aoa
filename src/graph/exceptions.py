@@ -40,40 +40,6 @@ Every exception here signals a **developer** mistake, not bad end-user input.
 Fix the code and rebuild.
 
 ═══════════════════════════════════════════════════════════════════════════════
-EXCEPTIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-DuplicateNodeError
-    Two inspectors produced the same ``"node_type:node_name"`` key. Raised
-    during phase 1 (collect). The message names both inspectors for quick
-    diagnosis.
-
-InvalidGraphError
-    Structural graph integrity failed during phase 2:
-    - an edge references a missing node, or
-    - structural edges (``is_structural=True``) contain a cycle.
-
-PayloadValidationError
-    A ``FacetVertex`` field failed validation during phase 2:
-    - empty ``node_type`` / ``node_name``, or
-    - ``node_class`` is not a ``type``.
-
-═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- These exceptions represent developer/configuration faults, not end-user input errors.
-- Exception names map directly to coordinator build phases and failure classes.
-- Messages are designed for startup diagnostics and test assertions.
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- This module defines error types only and performs no validation by itself.
-- Higher-level wrappers may re-map some failures (for example, cycle errors).
-
-═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN
 ═══════════════════════════════════════════════════════════════════════════════
 ROLE: Graph-build exception taxonomy.

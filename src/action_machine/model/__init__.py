@@ -11,14 +11,6 @@ This package exports the base model contracts used by actions:
 and shared model-level exceptions.
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Base model classes define stable framework contracts for action components.
-- Exception exports are re-exported from ``action_machine.model.exceptions``.
-- ``__all__`` is the canonical public surface of this package.
-
-═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -46,14 +38,6 @@ Happy path:
 Edge case:
     A model validation or contract misuse raises an exception re-exported here
     from ``action_machine.model.exceptions``.
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- This module is an export surface; it does not contain model logic itself.
-- Wildcard re-export is intentional and controlled via ``exceptions.__all__``.
-- Backward compatibility depends on keeping exported names stable.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN

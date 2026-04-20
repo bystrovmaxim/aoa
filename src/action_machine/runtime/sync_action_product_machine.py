@@ -85,14 +85,6 @@ EXAMPLES
         print(result.message)
 
 ═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- ``run()`` cannot be used from an active async event loop.
-- Public API intentionally fixes ``rollup=False`` for production safety.
-- All runtime contract failures propagate from inherited async pipeline.
-
-═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN
 ═══════════════════════════════════════════════════════════════════════════════
 ROLE: Synchronous adapter over ActionProductMachine async pipeline.

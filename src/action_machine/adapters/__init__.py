@@ -51,18 +51,6 @@ Architecture sketch:
     └──────────────────────┘
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Action params/result types come from action generic declarations.
-- Mappers are required only when protocol models differ from action types.
-- ``BaseRouteRecord`` remains abstract; concrete adapters provide protocol fields.
-- Mapper naming follows return value semantics:
-  ``params_mapper`` returns params, ``response_mapper`` returns response.
-- Transport policies (auth failure semantics, status/error envelopes,
-  serialization shape) are defined by concrete adapters, not this package.
-
-═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -83,24 +71,6 @@ EXAMPLES
     # Route typing is protocol-specific via BaseRouteRecord subclasses:
     # FastApiRouteRecord(method, path, tags, ...)
     # McpRouteRecord(tool_name, description, ...)
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-Protocol-specific authentication and error mapping are implemented by concrete
-adapters (``integrations.fastapi``, ``integrations.mcp``). This package only
-exports shared base contracts and type-extraction helpers.
-
-Typical mapping examples (implemented in concrete adapters):
-- ``AuthorizationError`` -> HTTP 403 / MCP permission-denied equivalent.
-- ``ValidationFieldError`` -> HTTP 422 / MCP invalid-params equivalent.
-- fallback ``Exception`` -> transport-specific internal-error response.
-
-Type extraction and mapping limitations:
-- ``extract_action_types`` relies on action generic declarations.
-- If protocol request/response models differ from action params/result models,
-  corresponding mappers are required to preserve deterministic conversion.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN

@@ -11,14 +11,6 @@ This package groups helpers that resolve and validate runtime bindings for
 and consistency checks for values produced by summary/on_error handlers.
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Runtime result values must conform to declared ``R`` contract.
-- Binding resolution must handle generics and forward references reliably.
-- Binding helpers are runtime-oriented and do not own execution orchestration.
-
-═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -44,14 +36,6 @@ Happy path:
 Edge case:
     If runtime receives a result with mismatched type, binding validation
     raises a typed contract exception.
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Invalid or non-resolvable generic declarations surface as binding errors.
-- This package validates contracts but does not mutate result payloads.
-- Final behavior depends on concrete runtime call-sites using these helpers.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN

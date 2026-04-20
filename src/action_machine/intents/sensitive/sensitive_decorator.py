@@ -25,16 +25,6 @@ Parameters: ``enabled`` (default True), ``max_chars`` (default 3), ``char``
 (default ``'*'``), ``max_percent`` (default 50, range 0–100).
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Target is a ``property`` or a callable that will be wrapped by ``@property``.
-- Supported stacks: ``@property`` above ``@sensitive`` (preferred), or the
-  reverse order.
-- Public property names should not start with ``_`` (enforced elsewhere).
-- Parameter types/ranges validated at decoration time.
-
-═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 

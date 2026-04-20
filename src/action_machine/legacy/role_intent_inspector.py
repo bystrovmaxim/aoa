@@ -41,19 +41,6 @@ classes. For each class with ``_role_info``, it builds an **action** payload
 (``RoleClassInspector``). ``NoneRole`` / ``AnyRole`` yield no role-class edges.
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Only classes inheriting ``CheckRolesIntent`` are inspected.
-- A class may inherit ``CheckRolesIntent`` without ``@check_roles``; such classes
-  produce ``None`` from ``inspect()``.
-- The ``spec`` value is taken directly from ``_role_info["spec"]`` (``BaseRole``
-  type, tuple of types, ``NoneRole``, or ``AnyRole``); graph edges target anchors
-  derived from that spec.
-- The facet snapshot storage key is ``"role"`` (see ``facet_snapshot_storage_key``);
-  the emitted payload uses ``node_type=\"action\"`` for merge with other action facets.
-
-═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -78,16 +65,6 @@ EXAMPLES
         ...
 
     # inspect(BaseAction) → None (no _role_info)
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- The inspector does not validate the role spec; validation is performed by
-  ``@check_roles`` at import time and by the machine at runtime.
-- Global graph checks (key uniqueness, acyclicity, role topology) are performed
-  by ``GraphCoordinator.build()`` together with ``RoleClassInspector`` /
-  ``RoleModeIntentInspector``.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN

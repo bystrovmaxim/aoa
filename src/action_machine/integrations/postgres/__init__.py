@@ -10,15 +10,6 @@ This package root provides the public import surface for PostgreSQL connection
 lifecycle management used by ActionMachine runtime components.
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Optional dependency ``asyncpg`` must be available at import time.
-- ``PostgresConnectionManager`` is the only public symbol exported here.
-- Runtime behavior is implemented in the manager module; package root acts as
-  dependency guard + stable API namespace.
-
-═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -44,15 +35,6 @@ COMPONENTS
 ═══════════════════════════════════════════════════════════════════════════════
 
 - ``PostgresConnectionManager``: resource manager for PostgreSQL connections.
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Importing this package without ``asyncpg`` raises ``ImportError`` with
-  installation guidance.
-- This module exposes integration contracts only; SQL behavior belongs to the
-  manager implementation.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN

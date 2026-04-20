@@ -16,18 +16,6 @@ follow **Python subclassing** (MRO); ``RoleChecker`` uses ``issubclass`` for gra
 declaration, no product instance state.
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Subclass names must end with the suffix ``Role`` (``NamingSuffixError`` at
-  class definition time, including intermediate bases).
-- Concrete branches define non-empty ``str`` values for ``name`` and
-  ``description`` (possibly inherited from an intermediate base below
-  ``BaseRole`` in the MRO).
-- Lifecycle mode is **not** set on the class body; use ``@role_mode`` (see
-  ``role_mode`` module).
-
-═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -51,15 +39,6 @@ EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
 Valid concrete role inheriting metadata or defining ``name`` / ``description``.
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- ``NamingSuffixError``, ``ValueError``, ``TypeError`` from ``__init_subclass__``
-  mirror ``BaseDomain`` rules for metadata quality.
-- Global uniqueness of ``name`` and related topology rules are validated at
-  ``GraphCoordinator.build()`` (``RoleClassInspector``), not in this module.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN

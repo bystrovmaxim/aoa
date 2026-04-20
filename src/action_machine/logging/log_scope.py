@@ -12,14 +12,6 @@ not a Pydantic model. ``DotPathNavigator`` reads fields via ``__getitem__`` for
 ``{%scope.*}`` templates.
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Field set is defined by whoever builds the scope (``ScopedLogger``): aspect
-  vs plugin shapes differ.
-- Key order is fixed at construction and drives ``as_dotpath()``.
-
-═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -53,12 +45,6 @@ EXAMPLES
     )
 
 Dict-like access: ``scope["machine"]``, ``"machine" in scope``, ``scope.keys()``.
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-Unknown keys in ``__getitem__`` raise ``KeyError``.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN

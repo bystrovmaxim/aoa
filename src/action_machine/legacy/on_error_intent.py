@@ -27,17 +27,6 @@ When regular/summary aspect raises, ActionProductMachine:
 6. If no handler matches, original exception propagates unhandled.
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- ``@on_error`` handlers are NOT inherited from parent Action classes.
-- Method name must end with ``"_on_error"``.
-- Handler must be async.
-- Signature must be exactly 6 parameters.
-- Handlers do not mutate state by contract.
-- Rollup does not affect on-error processing.
-
-═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE
 ═══════════════════════════════════════════════════════════════════════════════
 

@@ -32,24 +32,6 @@ INHERITANCE HIERARCHY
         └── Context                 — frozen=True, extra="forbid"
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-1. Everything is frozen. Concrete schema instances are immutable; updates are
-   performed via creating new instances.
-
-2. Everything is forbid (except ``BaseState``). Unknown fields are rejected.
-   Structural extension goes through explicit inheritance; ``BaseState`` uses
-   ``extra="allow"`` for dynamic pipeline fields.
-
-3. Unified interface. Dict-like access and dot-path navigation are available on
-   every schema through one base class.
-
-4. Pydantic-native behavior. Type validation at creation, JSON Schema via
-   ``model_json_schema()``, serialization via ``model_dump()``, and FastAPI
-   compatibility are available out of the box.
-
-═══════════════════════════════════════════════════════════════════════════════
 DICT-LIKE INTERFACE
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -130,14 +112,6 @@ EXAMPLES
     params.resolve("address.city")       # -> "Moscow"
     list(params.keys())                  # -> ["user_id", "address"]
     params.model_dump()                  # -> {"user_id": "user_123", "address": {...}}
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- ``resolve()`` returns ``default`` for missing path segments instead of raising.
-- Exact mutability/extra policy is defined by descendants via ``model_config``.
-- Dot-path traversal behavior depends on ``DotPathNavigator`` strategy ordering.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN

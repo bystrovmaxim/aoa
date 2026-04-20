@@ -87,15 +87,6 @@ aggregate on one side pairs with **association** on the other; composite↔compo
 aggregate↔aggregate, composite↔aggregate are rejected.
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- **One:** `id` is never `None` at construction.
-- All containers are **frozen**: no `__setattr__` / `__delattr__` on instances.
-- Proxy / index / iteration paths require hydrated payloads or they raise
-  `RelationNotLoadedError` (message format lives in `exceptions.py`).
-
-═══════════════════════════════════════════════════════════════════════════════
 RATIONALE
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -147,19 +138,6 @@ Loaded but zero rows::
     bag = CompositeMany(ids=(), entities=(), entities_loaded=True)
     list(bag)  # []
     bag.is_loaded  # True
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- `ValueError`: One container constructed with `id=None`; Many with
-  ``entities_loaded=False`` and a non-empty ``entities`` tuple.
-- `RelationNotLoadedError`: proxy/index/iter without `entity` / `entities`.
-- `AttributeError`: mutation attempted on a frozen container; or proxy target
-  missing attribute when `entity` is loaded.
-- Message text for `RelationNotLoadedError` is centralized in
-  `action_machine.domain.exceptions` — keep docs aligned there, not duplicated
-  verbatim here.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN

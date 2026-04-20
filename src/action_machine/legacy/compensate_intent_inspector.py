@@ -12,16 +12,6 @@ name ``{action}:{method_name}``) plus a canonical **``action``** row with
 informational ``has_compensator`` edges (no aggregate ``…:compensators`` vertex).
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Collection scans ``vars(target_cls)`` (declaring members only).
-- Only callable members after property unwrapping are considered.
-- Storage key for facet snapshots is always ``"compensator"``.
-- ``inspect`` returns ``list[FacetVertex]``: per-method ``compensator`` vertices
-  then one ``action`` shell with ``has_compensator`` edges.
-
-═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -42,13 +32,6 @@ EXAMPLES
 Happy path: compensating methods carry ``_compensate_meta`` → non-empty payload.
 
 Edge case: no compensators → ``inspect`` returns ``None``.
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-Does not execute compensation handlers; it only surfaces declaration metadata
-for graph build and runtime cache lookup.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN

@@ -33,24 +33,6 @@ ARCHITECTURE / DATA FLOW
                 └── call(...)
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- ``call(...)`` owns ContextView injection, per-aspect ``ScopedLogger`` with
-  ``domain=resolve_domain(type(action))`` (and context for templates), and builds
-  a ``ToolsBox`` that does not carry ``Context`` on the instance. Each call
-  constructs a fresh ``ScopedLogger`` and ``LogScope`` so ``box`` always matches
-  the current aspect coordinates even if the aspect never logs; allocation
-  throughput is regression-tested in ``tests/bench/test_scoped_logger_hot_path_bench.py``
-  (framed report via ``tests.bench.bench_report``).
-- Regular aspect execution validates checker contracts before state merge.
-  If validation fails after ``call()`` returns, a saga frame is still appended
-  (when the action builds a saga stack) with ``state_after=None`` so the
-  compensator for that aspect runs on unwind.
-- State merge remains immutable (``BaseState`` new instance per step).
-- No ``_MachineLike`` protocol on aspect entry points.
-
-═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -60,13 +42,6 @@ Happy path:
 
 Edge case:
     Regular aspect returning unknown fields raises ``ValidationFieldError``.
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-Summary execution remains intentionally thin and delegates invocation to
-``call(...)`` plus result binding helpers.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN

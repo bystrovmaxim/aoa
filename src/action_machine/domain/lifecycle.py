@@ -53,18 +53,6 @@ ARCHITECTURE / DATA FLOW
                                 entity.model_copy(update={"lifecycle": new_lc})
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Every state in a template is **finished** with exactly one of `.initial()`,
-  `.intermediate()`, or `.final()` before another `.state(...)` begins.
-- **Final** states have **no** outgoing transitions (enforced in `.final()`).
-- Instance construction: `current_state` must exist in the subclass `_template`
-  graph keys.
-- `transition(target)` only succeeds if `target` is in the current state’s
-  `transitions` set.
-
-═══════════════════════════════════════════════════════════════════════════════
 RATIONALE
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -123,17 +111,6 @@ FLUENT API (REFERENCE)
             .initial() | .intermediate() | .final()  → Lifecycle
 
 State declaration order does not matter; forward references in `.to()` are allowed.
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- `InvalidStateError`: instance `current_state` not in template keys.
-- `InvalidTransitionError`: `transition` to a non-adjacent state.
-- `TypeError` / `ValueError`: bad keys or display names while building template.
-- `RuntimeError`: incomplete previous state when calling `.state()`; or reading
-  `current_state` on a bare template instance.
-- This module does **not** perform I/O or async workflows.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN

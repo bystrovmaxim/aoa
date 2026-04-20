@@ -10,17 +10,6 @@ Concrete ``BaseRouteRecord`` subtype for MCP transport metadata.
 Stores one MCP tool contract used by ``McpAdapter.build()``.
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Inherits all ``BaseRouteRecord`` invariants:
-  - ``action_class`` must be a ``BaseAction`` subtype.
-  - ``params_type`` / ``result_type`` are extracted from ``BaseAction[P, R]``.
-  - ``params_mapper`` is required when request model differs from params type.
-  - ``response_mapper`` is required when response model differs from result type.
-- ``tool_name`` must be non-empty after ``strip()``.
-
-═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -70,20 +59,6 @@ EXAMPLES
 
     # Edge case: invalid empty name.
     # McpRouteRecord(action_class=CreateOrderAction, tool_name="  ") -> ValueError
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Raises ``ValueError`` when ``tool_name`` is empty or whitespace-only.
-- Propagates ``TypeError`` / ``ValueError`` from ``BaseRouteRecord`` if base
-  mapping and type extraction contracts are violated.
-
-AI-CORE-BEGIN
-ROLE: Immutable MCP route contract consumed by McpAdapter.
-CONTRACT: Binds one action mapping contract to one MCP tool descriptor.
-INVARIANTS: BaseRouteRecord invariants + non-empty tool_name.
-AI-CORE-END
 """
 
 from __future__ import annotations

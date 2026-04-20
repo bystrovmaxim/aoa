@@ -43,16 +43,6 @@ COMPONENTS
 - Target invariants: ensure class target.
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Applies only to classes (``type``).
-- ``spec`` may be: ``NoneRole``, ``AnyRole``, a ``BaseRole`` subclass, or a
-  non-empty ``list`` of ``BaseRole`` subclasses (homogeneous types only).
-- Stored ``spec`` is always ``NoneRole``, ``AnyRole``, exactly one
-  ``BaseRole`` subtype, or a **tuple** of ``BaseRole`` subtypes (OR semantics).
-
-═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -78,17 +68,6 @@ EXAMPLES
         ...
 
 Edge case: ``@check_roles([])`` → ``ValueError``.
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- ``TypeError``: non-class target, invalid spec type,
-  non-``BaseRole`` type, or heterogeneous list.
-- ``ValueError``: empty list, or a required role is ``RoleMode.UNUSED``.
-- ``DeprecationWarning``: a required role is ``RoleMode.DEPRECATED``.
-- Does not prove global role topology; ``RoleClassInspector`` and
-  ``RoleModeIntentInspector`` run at ``GraphCoordinator.build()``.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN

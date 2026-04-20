@@ -38,17 +38,6 @@ Inheritance sketch::
         └── GRPCRouteRecord(service_name, method_name, ...)
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- ``BaseRouteRecord`` cannot be instantiated directly (subclasses only).
-- ``action_class`` must be a subclass of ``BaseAction``.
-- ``params_type`` and ``result_type`` are extracted from action generics.
-- If ``request_model`` differs from ``params_type``, ``params_mapper`` is required.
-- If ``response_model`` differs from ``result_type``, ``response_mapper`` is required.
-- Extracted types are cached on the frozen instance via ``object.__setattr__``.
-
-═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -67,17 +56,6 @@ EXAMPLES
         request_model=CreateOrderRequest,
         params_mapper=map_request_to_params,
     )
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- ``TypeError`` on direct instantiation, invalid ``action_class``, or extraction
-  failure.
-- ``ValueError`` when a required mapper is missing.
-- Forward references in action generics are resolved using the module where the
-  action class is defined (runtime binding helpers select the available typing
-  API for the current Python version).
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN

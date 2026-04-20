@@ -42,14 +42,6 @@ Pipeline-common values (params, connections, context, box) are passed to
 rollback executor as separate arguments and are not duplicated in each frame.
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Every ``_run_internal`` call owns its own independent local stack.
-- Nested child actions maintain isolated stacks.
-- Frames with ``compensator=None`` are skipped during unwind.
-
-═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -60,17 +52,6 @@ Happy path:
 Edge case:
     Aspect ``call()`` returned but checker rejects output -> frame has
     ``state_after=None``; compensator still runs on unwind before earlier frames.
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- ``SagaFrame`` is data-only; rollback policy/execution lives in coordinator.
-- Frame creation timing is owned by ``AspectExecutor.execute_regular``.
-- ``state_before/state_after`` are typed as ``object`` to avoid runtime coupling.
-- ``state_after is None`` does not imply “no external side effects”; it means the
-  pipeline did not adopt checker-passed state. External systems are not tracked
-  by the frame beyond what the app put in ``state_before`` / ``params`` / logs.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN

@@ -26,7 +26,7 @@ SCOPE (IN / OUT)
     ``collect_entity_lifecycles`` — read ``_entity_info`` and ``model_fields`` and
     return frozen-friendly snapshot dataclasses.
     ``EntityIntentInspector.inspect`` / ``facet_snapshot_for_class`` — produce
-    ``FacetVertex`` with ``node_type=\"Entity\"`` and optional ``edges``:
+    ``FacetVertex`` with ``node_type="Entity"`` and optional ``edges``:
     informational ``belongs_to`` → ``Domain`` when a domain type is known, plus
     relation edges to related ``Entity`` interchange vertices (skipped when ``NoGraphEdge()``
     is set on the field).
@@ -68,18 +68,6 @@ ARCHITECTURE / DATA FLOW
     (``belongs_to`` domain + Entity→Entity relation edges)
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- ``inspect`` returns a payload only when ``entity_info_is_set(target_cls)``.
-- Optional ``belongs_to`` edge to ``domain`` when ``EntityInfo.domain`` is a
-  ``type`` (same convention as ``MetaIntentInspector`` on resource managers).
-- Scalar field extraction skips relation **containers** and ``Lifecycle``-typed
-  fields (they appear under relations / lifecycles buckets).
-- Module must not import legacy metadata collector modules; keep domain ↔
-  metadata boundaries explicit (``payload``, ``base_intent_inspector``, …).
-
-═══════════════════════════════════════════════════════════════════════════════
 RATIONALE
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -96,15 +84,6 @@ LIFECYCLE (IMPORT VS BUILD VS RUNTIME)
 - **Coordinator ``build()``**: inspector runs over registered targets and emits
   facet payloads.
 - **Runtime**: domain entities are data; this module does not run per request.
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- ``get_type_hints`` failures fall back to empty hints; relation detection may be
-  less precise in exotic typing setups.
-- Does not validate relation **rules** (inverse required, ownership matrix);
-  that belongs to entity/relation validation during graph build.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN

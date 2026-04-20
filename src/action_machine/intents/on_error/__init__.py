@@ -39,18 +39,6 @@ ARCHITECTURE / DATA FLOW
     7. If no handler matches, original exception propagates as unhandled.
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Handlers are NOT inherited from parent Action classes.
-- Method name must end with ``"_on_error"``.
-- ``description`` is required (non-empty string).
-- Signature: ``(self, params, state, box, connections, error)``.
-- Handler must be ``async def``.
-- ``state`` is not modified by handlers.
-- Rollup does not affect on-error handling.
-
-═══════════════════════════════════════════════════════════════════════════════
 HANDLER ORDER
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -90,14 +78,6 @@ EXAMPLES
         @on_error(Exception, description="Unexpected error")
         async def fallback_on_error(self, params, state, box, connections, error):
             return OrderResult(order_id="ERR", status="internal_error", total=0)
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Invalid handler declarations fail at decorate time (``TypeError``, ``ValueError``, etc.).
-- Missing matching handler means original exception propagates.
-- Package exports contracts/decorator only; orchestration is runtime-side.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN

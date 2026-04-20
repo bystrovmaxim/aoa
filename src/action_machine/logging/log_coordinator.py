@@ -11,19 +11,6 @@ It validates each message's ``var``, runs ``VariableSubstitutor``, then calls
 ``handle`` on every registered logger. Senders do not choose recipients.
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- One ``emit`` per user log call. ``var`` must include ``level`` and ``channels``.
-- ``level`` is a ``LogLevelPayload``; ``.mask`` is exactly one info/warning/critical bit.
-- ``channels`` is a ``LogChannelPayload``; ``.mask`` is a non-zero allowed channel mask.
-- ``domain`` is ``None`` or a ``type[BaseDomain]`` (validated in ``emit``).
-  ``ScopedLogger`` also sets ``domain_name`` for human-readable templates; it is
-  not separately type-checked by the coordinator.
-- Per-logger filtering uses ``BaseLogger.match_filters`` (subscriptions), not
-  the coordinator.
-
-═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -73,30 +60,6 @@ EXAMPLES
 
 Register loggers at construction or via ``add_logger``. Each logger may call
 ``subscribe`` to restrict traffic.
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Missing variables, bad ``iif``, unknown namespace → ``LogTemplateError``.
-- Invalid ``var`` → ``ValueError`` / ``TypeError`` before substitution.
-- **Logger failures** (exceptions from ``handle``) are **isolated**: ``emit``
-  completes without raising; each failure is reported on logger
-  ``action_machine.logging.log_coordinator`` (stdlib ``logging``).
-  If that sink itself raises, the error is swallowed so ``emit`` never loops.
-
-**Product contract:** logging is **best-effort** relative to business flow—like
-compensations in a saga, sinks must not abort the primary operation. Custom
-``BaseLogger`` implementations should still be defensive (timeouts, bounded
-queues); the coordinator only guarantees fan-out isolation at the await
-boundary.
-
-All entry points are async so I/O loggers do not block the event loop.
-
-Color: template filters (e.g. ``{%var.amount|red}``) and ``iif`` color helpers;
-if ``logger.supports_colors`` is false, ``BaseLogger.strip_ansi_codes`` runs.
-
-Sensitive data: see ``VariableSubstitutor`` / ``@sensitive``.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN

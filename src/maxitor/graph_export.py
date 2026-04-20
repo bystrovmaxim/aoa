@@ -38,17 +38,6 @@ ARCHITECTURE / DATA FLOW
             └──►  (visualizer.generate_g6_html reuses normalization import)
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Topology is preserved: node index order maps through ``rw_index`` onto the copy
-  written to GraphML.
-- Non-string node/edge payload values are never passed to ``write_graphml``; a
-  sanitized copy is built first.
-- ``normalize_coordinator_node_payload_for_visualization`` does not mutate the
-  input graph payloads in place.
-
-═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -59,15 +48,6 @@ EXAMPLES
   exports; normalization maps interchange payloads to facet-shaped keys.
   Implementations may override ``get_graph_for_visualization`` to steer exports
   without relying on the default ``get_graph()`` interchange shape.
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- ``coordinator_pygraph_for_visual_export`` raises ``TypeError`` when neither
-  ``get_graph_for_visualization`` nor ``get_graph`` is callable.
-- Very large ``meta`` / attribute blobs on edges are truncated when JSON-encoded
-  for GraphML edge attributes.
 """
 
 from __future__ import annotations

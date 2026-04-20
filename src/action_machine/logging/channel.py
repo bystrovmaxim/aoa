@@ -11,14 +11,6 @@ PURPOSE
 ``|``. Subscriptions test intersection with ``&``.
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Only the five defined bits are legal. Unknown bits in a mask are rejected.
-- Zero mask is invalid (empty channels).
-- Values are validated at emit and when building subscriptions.
-
-═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -43,12 +35,6 @@ EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
 ``Channel.debug | Channel.business`` — debug trace tied to business flow.
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-``validate_channels`` raises ``TypeError`` or ``ValueError`` on bad input.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN

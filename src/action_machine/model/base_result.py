@@ -11,20 +11,6 @@ An instance is produced by a summary aspect (or ``@on_error`` handler)
 and returned to the caller as the final action outcome.
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- ``frozen=True``: field writes after construction are forbidden.
-- ``extra="forbid"``: result contains only explicitly declared fields.
-
-    result = OrderResult(order_id="ORD-1", status="created", total=1500.0)
-    result.status = "paid"        # -> ValidationError
-
-The only way to "change" a result is to create a new instance:
-
-    updated = result.model_copy(update={"status": "paid"})
-
-═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -92,15 +78,6 @@ EXAMPLES
     # JSON Schema for FastAPI and MCP:
     OrderResult.model_json_schema()
     # {"properties": {"order_id": {"description": "Created order identifier", ...}, ...}}
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Mutating fields after construction is rejected by frozen model config.
-- Unknown fields are rejected due to ``extra="forbid"``.
-- This class defines framework-level output contract only; domain semantics
-  belong to concrete result subclasses.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN

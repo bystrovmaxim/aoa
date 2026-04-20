@@ -40,15 +40,6 @@ The machine validates that:
 - Each field passes the associated checker's validation.
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Classes using checkers must inherit ``CheckerIntent``.
-- Every field returned by a regular aspect must have a corresponding checker.
-- Checker metadata is immutable and stored on the method as ``_checker_meta``.
-- The machine creates checker instances per invocation; checkers are stateless.
-
-═══════════════════════════════════════════════════════════════════════════════
 COMPONENTS
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -84,14 +75,6 @@ EXAMPLES
         async def process_payment(self, params, state, box, connections):
             ...
             return {"txn_id": "TXN-001", "charged_amount": 100.0}
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Missing checker for a returned field raises ``ValidationFieldError``.
-- Checker validation failures raise ``ValidationFieldError`` with details.
-- Checkers are applied only to regular aspects; summary aspects are not checked.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN

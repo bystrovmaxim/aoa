@@ -31,14 +31,6 @@ ARCHITECTURE / DATA FLOW
     on ``examples`` at runtime.
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Examples must not become a hard dependency of ``action_machine`` production code.
-- Subpackages are self-contained entrypoints (own README, apps, actions).
-- Optional extras (e.g. ``[fastapi]``, ``[mcp]``) apply when running specific demos.
-
-═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -50,13 +42,6 @@ Start with the dual-transport demo::
 
 Edge case: importing ``examples`` alone does not start servers or register routes;
 open the subpackage README for commands and dependencies.
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Example code is illustrative, not a supported production template by itself.
-- Missing optional dependencies cause failures when launching transport-specific apps.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN

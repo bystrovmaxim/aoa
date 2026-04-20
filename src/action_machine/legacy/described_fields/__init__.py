@@ -10,14 +10,6 @@ This package exposes the described-fields intent marker and helper validators
 used by graph inspectors to enforce declared schema metadata contracts.
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- ``DescribedFieldsIntent`` is the marker contract consumed by inspectors.
-- Validation helpers are pure checks and do not mutate action classes.
-- Public API is restricted to objects listed in ``__all__``.
-
-═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -42,14 +34,6 @@ EXAMPLES
     )
 
     validate_described_schema(MyAction)
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Validation errors are raised when declared schema contracts are malformed.
-- This package only exports contracts/helpers; orchestration lives in inspector
-  and graph assembly layers.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN

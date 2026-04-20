@@ -35,21 +35,6 @@ ARCHITECTURE / DATA FLOW
               └─ consumed for graph build validation/commit
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- ``to_facet_vertex()`` is the single required projection contract.
-- Snapshot classes are inspector-owned and transport-agnostic.
-- Coordinator graph nodes keep skeletal topology; rich typed data remains in snapshot cache.
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- This base class does not implement payload validation logic itself.
-- Invalid payload shapes surface later in coordinator validation phases.
-
-═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN
 ═══════════════════════════════════════════════════════════════════════════════
 ROLE: Abstract typed-snapshot contract for graph facets.

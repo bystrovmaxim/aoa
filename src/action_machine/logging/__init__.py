@@ -11,22 +11,6 @@ emit API, coordinator broadcast, optional per-logger subscriptions, template
 substitution, and sensitive-field masking.
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Every user log call uses ``info`` / ``warning`` / ``critical`` with a
-  mandatory ``Channel`` as the first argument. There is no legacy ``debug`` /
-  ``error`` log API.
-- ``ScopedLogger`` builds one ``var`` dict per message and performs one
-  ``LogCoordinator.emit`` per call. Reserved keys ``level``, ``channels``,
-  ``domain``, ``domain_name`` are set by the system, not user kwargs.
-  ``level`` / ``channels`` are ``LogLevelPayload`` / ``LogChannelPayload``.
-- ``LogCoordinator.emit`` validates ``var`` (payload types, level bit count,
-  non-zero channels, ``domain`` type or ``None``) before substitution and fan-out.
-- Loggers filter with ``subscribe`` / ``unsubscribe`` (``LogSubscription``),
-  not regex ``filters=``. No subscriptions means accept all messages.
-
-═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -161,14 +145,6 @@ CHANNEL × LEVEL MATRIX (REFERENCE)
 +------------+------------+----------------------------------------+----------------------------------------+
 | ERROR      | CRITICAL   | Service down, 500 in prod              | Pager / SRE + restart                  |
 +------------+------------+----------------------------------------+----------------------------------------+
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Template resolution raises ``LogTemplateError`` on unknown variables or bad
-  ``iif``; treated as developer bugs.
-- Logger ``write`` failures are not swallowed by the coordinator.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN

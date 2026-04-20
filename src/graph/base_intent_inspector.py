@@ -181,17 +181,6 @@ Practical implication: when tests define long-lived module-level classes, later
 tests in the same process can observe them via subclass traversal.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- This base class does not perform payload semantic validation; decorators and
-  coordinator build phases own that responsibility.
-- Subclass discovery relies on Python runtime class registry
-  (``__subclasses__()``), so process-level import history affects candidate sets.
-- Inspectors that skip ``facet_snapshot_for_class`` do not participate in typed
-  snapshot cache.
-
-═══════════════════════════════════════════════════════════════════════════════
 EXAMPLE — INSPECTOR WITH INFORMATIONAL EDGES (``@check_roles``)
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -211,7 +200,7 @@ EXAMPLE — INSPECTOR WITH INFORMATIONAL EDGES (``@check_roles``)
 
         @classmethod
         def _build_payload(cls, target_cls: type) -> FacetBuildResult:
-            # Real implementation: merged ``node_type=\"action\"`` row plus
+            # Real implementation: merged ``node_type="action"`` row plus
             # ``requires_role`` edges to canonical ``role_class`` vertices.
             ...
 

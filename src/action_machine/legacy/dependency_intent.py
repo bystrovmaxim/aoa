@@ -40,17 +40,6 @@ ARCHITECTURE / DATA FLOW
     DependencyFactory built from snapshot
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- ``@depends`` can only be applied to classes that inherit ``DependencyIntent``.
-- Bound type ``T`` is extracted from the generic parameter at class creation
-  and stored in ``cls._depends_bound``.
-- The decorator validates that each declared dependency is a subclass of this bound.
-- ``_depends_info`` is a list of ``DependencyInfo`` instances; duplicates are
-  forbidden.
-
-═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -66,15 +55,6 @@ EXAMPLES
     @depends(PaymentService)    # TypeError — PaymentService is not a BaseResourceManager
     class MyPool(ResourcePool):
         ...
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- ``TypeError`` if ``@depends`` is applied to a class without ``DependencyIntent``
-  or if a dependency does not satisfy the bound.
-- The bound extraction relies on ``__orig_bases__`` and may fail for complex
-  generic aliases; in such cases it falls back to ``object``.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN

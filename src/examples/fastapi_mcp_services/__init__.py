@@ -58,14 +58,6 @@ Package layout:
     └── README.md
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Action definitions must not import or depend on FastAPI/MCP entrypoints.
-- Shared ``machine`` and ``auth`` live in ``infrastructure.py``, not in adapters.
-- Optional extras: ``aoa-run[fastapi]`` / ``aoa-run[mcp]`` for each transport.
-
-═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -86,14 +78,6 @@ MCP::
 
 Edge case: run only one transport — actions in ``actions/`` stay unchanged; you
 only start the app you need.
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Example code is for illustration, not production hardening.
-- Missing optional dependencies produce import/runtime errors when starting the
-  corresponding app.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN

@@ -14,15 +14,6 @@ or filesystem/network access. This keeps logging templates from executing
 arbitrary code.
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Errors are fail-fast and become ``LogTemplateError``.
-- Template-level nested ``{iif(...{iif(...)}...)}`` is intentionally unsupported.
-- ``debug()`` introspection defaults to ``max_depth=1`` to limit log volume.
-- Sensitive properties are masked only when marked with ``@sensitive``.
-
-═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -73,17 +64,6 @@ Key behavior:
 - ``@sensitive`` masking for decorated properties
 - pydantic class-level attributes are filtered through
   ``_PYDANTIC_CLASS_ATTRS`` for Pydantic v2.11+ compatibility
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-Errors are not swallowed. Invalid expressions raise ``LogTemplateError`` and
-are treated as developer mistakes detected early.
-
-- ``_IifArgSplitter`` handles nested parentheses and string literals.
-- Grammar-by-design limit: nested template-level ``{iif(...{iif(...)}...)}``
-  is not supported by ``process_template()``.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN

@@ -33,19 +33,6 @@ ARCHITECTURE / DATA FLOW
             └── RuntimeInfo (frozen=True, extra="forbid")
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Immutable after construction.
-- Extra fields are forbidden (``extra="forbid"``).
-- Extension is explicit through inheritance with declared fields:
-
-    class CloudRuntimeInfo(RuntimeInfo):
-        region: str | None = None
-        availability_zone: str | None = None
-        cluster_name: str | None = None
-
-═══════════════════════════════════════════════════════════════════════════════
 ASPECT ACCESS MODEL
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -97,13 +84,6 @@ EXAMPLES
         region="eu-west-1",
         cluster_name="production-main",
     )
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- RuntimeInfo stores metadata only; it does not validate deployment semantics.
-- Aspect-level allowlist enforcement is handled by ``ContextView``.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN

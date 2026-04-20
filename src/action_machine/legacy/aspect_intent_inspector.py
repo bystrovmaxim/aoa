@@ -11,28 +11,6 @@ from method-level scratch (``_new_aspect_meta``) and expose them as a typed
 ``Snapshot`` plus coordinator ``FacetVertex`` with ``node_type="RegularAspect"`` / ``"SummaryAspect"``.
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Only classes that declare at least one aspect produce a payload; otherwise
-  ``inspect`` / ``facet_snapshot_for_class`` return ``None``.
-- Collection reads **only the declaring class** via ``vars(target_cls)`` (own
-  ``__dict__`` / insertion order). **Inherited** aspect methods on bases are
-  **not** merged in: facet lists stay explicit on each concrete action class and
-  avoid implicit cross-level ordering or mixin surprises.
-- Execution order in snapshots follows that **own-namespace** iteration order
-  (Python 3.7+ stable per class body). There is no separate ``order=`` field;
-  declare methods in the intended sequence on the class that owns the pipeline.
-- Subclasses that extend a parent action **re-declare** aspect methods on the
-  subclass (override and call ``super()`` inside the method when base behavior is
-  needed). The coordinator snapshot for the subclass then reflects only what
-  that class body defines.
-- Facet snapshot storage key is always ``"aspect"``.
-- :meth:`inspect` also emits a merged ``node_type=\"Action\"`` row for the host
-  class with informational ``has_aspect`` edges to each per-method aspect vertex
-  (regular and summary aspects alike).
-
-═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -63,17 +41,6 @@ Edge case: no aspect metadata on the class → ``inspect`` returns ``None``.
 Subclassing: aspects live on the **concrete** action class body; a child does
 not pick up a parent’s aspect entries through MRO scanning—override and
 ``super()`` instead of expecting automatic inheritance of facet rows.
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-Assumes decorators already validated declaration grammar. This module does not
-execute aspects or enforce runtime scheduling semantics.
-
-By design, this inspector does **not** aggregate aspects from base classes into
-a subclass snapshot; that keeps the graph and runtime contract explicit and
-prevents “mystery” ordering from multiple inheritance.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN

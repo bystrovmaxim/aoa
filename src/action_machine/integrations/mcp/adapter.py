@@ -19,24 +19,6 @@ call registers one MCP tool. Protocol methods return ``self`` for fluent chains:
 ``Field(...)`` propagate to MCP schema without duplicate declarations.
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-``auth_coordinator`` is mandatory (enforced by ``BaseAdapter`` contract).
-Each ``tool()`` call creates one ``McpRouteRecord`` entry.
-``build()`` always registers resource ``system://graph``.
-Tool I/O contracts are validated via ``ensure_machine_params`` and
-``ensure_protocol_response``. Tool call results are always one JSON object per
-``TextContent`` (success or error envelope); see ERROR HANDLING.
-
-For open APIs, use ``NoAuthCoordinator`` explicitly:
-
-    adapter = McpAdapter(
-        machine=machine,
-        auth_coordinator=NoAuthCoordinator(),
-    )
-
-═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -47,8 +29,7 @@ ARCHITECTURE / DATA FLOW
             |
             v
     build()
-      |               \
-      v                v
+      |                     v                v
   MCP Tool(s)     system://graph
       |                |
       +-------> machine.run() <------+

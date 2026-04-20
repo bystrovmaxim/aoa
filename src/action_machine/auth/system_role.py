@@ -11,15 +11,6 @@ Define an abstract hierarchy branch for engine policy roles used in
 These roles are protocol/runtime policy markers, not user-assignable roles.
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- System sentinel roles inherit from ``SystemRole``.
-- ``SystemRole`` descendants are not intended for ``UserInfo.roles`` storage.
-- Declared with ``@role_mode(RoleMode.ALIVE)`` as active root branch.
-- The class is abstract and serves as role taxonomy boundary.
-
-═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -34,21 +25,6 @@ ARCHITECTURE / DATA FLOW
        |
        v
     @check_roles sentinel specifications
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Abstract taxonomy root; not meant for direct role assignment.
-- Authorization semantics are enforced by role-check runtime, not this class.
-
-AI-CORE-BEGIN
-ROLE: Engine-sentinel role hierarchy root.
-CONTRACT: Provide stable parent for non-assignable policy roles.
-INVARIANTS: ALIVE mode and exclusion from UserInfo.roles assignment payload.
-AI-CORE-END
-
-See hierarchy docs in ``docs/architecture/role-hierarchy.md``.
 """
 
 from __future__ import annotations

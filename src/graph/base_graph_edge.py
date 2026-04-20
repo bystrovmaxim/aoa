@@ -23,20 +23,6 @@ ARCHITECTURE / DATA FLOW
     BaseGraphNode.id  +  edges: list[BaseGraphEdge(...)]
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- ``link_name`` is the slot key (e.g. ``domain``, ``params``).
-- ``target_id`` is the interchange id of the referenced vertex (``cls_qualified_dotted_id``).
-- ``target_node_type`` is the facet ``node_type`` of the target host (caller supplies it;
-  match the corresponding ``*Node`` / :class:`~graph.base_graph_node.BaseGraphNode` ``node_type``).
-- ``target_cls`` is the referenced type when the target is a class; use for facet materialization.
-- ``is_dag``: if ``True``, consumers may include this edge when checking the graph for
-  cycles along DAG-relevant arcs (same role as :attr:`GraphEdge.is_dag` on coordinator edges).
-  If ``False``, the link is informational / exempt from that check.
-- Instances are immutable (``frozen=True``).
-
-═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -51,12 +37,6 @@ EXAMPLES
     )
 
 Edge case: same ``link_name`` on different nodes — distinguish by the host :attr:`~graph.base_graph_node.BaseGraphNode.id`.
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- ``target_id`` is not validated against a live graph. ``is_dag`` does not enforce acyclicity by itself.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN

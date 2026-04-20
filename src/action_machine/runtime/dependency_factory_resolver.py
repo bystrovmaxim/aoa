@@ -11,15 +11,6 @@ Define a **public** structural contract used by ``ToolsBoxFactory`` to obtain a
 attributes of ``ActionProductMachine``.
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Implementations return a ``DependencyFactory`` consistent with the ``depends``
-  facet snapshot for the requested action class.
-- The protocol is structural: any object with a matching ``dependency_factory_for``
-  method is accepted.
-
-═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -45,13 +36,6 @@ Happy path:
 Edge case:
     Tests pass a stub object or ``MagicMock(spec_set=...)`` implementing only
     ``dependency_factory_for``.
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-This module defines a typing protocol only; resolution errors depend on the
-concrete implementation (typically ``GraphCoordinator.get_snapshot`` failures).
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN

@@ -16,14 +16,6 @@ ARCHITECTURE / DATA FLOW
     caller  →  wrapped(...)  →  warnings.warn(..., stacklevel=2)  →  original callable
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Uses :func:`functools.wraps` so ``__name__``, ``__doc__``, and ``__wrapped__`` stay aligned.
-- ``stacklevel=2`` so the warning points at the **call site** of the deprecated API.
-- Category is always :class:`DeprecationWarning`.
-
-═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -35,13 +27,6 @@ EXAMPLES
 Edge case: apply **above** ``@classmethod`` / ``@staticmethod`` if those decorators are used
 (outermost ``@deprecated`` last in source order for methods — i.e. ``@deprecated`` then
 ``@classmethod`` is wrong; use ``@classmethod`` then ``@deprecated`` wrapping the descriptor).
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Not suitable for deprecating entire classes without a metaclass or ``__init_subclass__``;
-  prefer marking specific methods or constructors.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN

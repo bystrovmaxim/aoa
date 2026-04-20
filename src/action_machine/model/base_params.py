@@ -117,15 +117,6 @@ EXAMPLES
     # {"properties": {"user_id": {"description": "User identifier", ...}, ...}}
 
 ═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Field assignment after construction is rejected by frozen model config.
-- Unknown fields are rejected because ``extra="forbid"``.
-- This base class defines generic constraints; domain-specific rules belong in
-  concrete subclasses.
-
-═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN
 ═══════════════════════════════════════════════════════════════════════════════
 ROLE: Immutable input contract for action execution.

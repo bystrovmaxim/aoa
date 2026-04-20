@@ -15,21 +15,6 @@ but returns a ``FacetVertex`` only for ``ApplicationRole``. Lifecycle ``mode``
 merges from ``RoleModeIntentInspector`` on that node.
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Every ``BaseRole`` subclass under inspection must carry ``@role_mode``
-  (``_role_mode_info`` present).
-- **Unique** stable ``name`` among all ``BaseRole`` subclasses (graph anchors
-  included).
-- **No** ``RoleMode.UNUSED`` ``BaseRole`` ancestor (other than ``BaseRole``) in
-  the MRO of any inspected role.
-- **Only** ``ApplicationRole`` produces a ``role_class`` facet row (no feature flags).
-- **Does not** re-validate non-empty ``name`` / ``description`` strings (handled
-  in ``BaseRole.__init_subclass__``). **Does not** duplicate lifecycle facet
-  work (see ``RoleModeIntentInspector``).
-
-═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -47,13 +32,6 @@ EXAMPLES
 
 Happy path: two unrelated classes both use ``name = "dup"`` →
 ``InvalidGraphError`` at ``build()``.
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- ``InvalidGraphError``: duplicate ``name``, ``UNUSED`` in MRO,
-  missing ``@role_mode``.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN

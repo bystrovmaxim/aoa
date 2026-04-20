@@ -17,16 +17,6 @@ reset (``\\033[0m``) is followed by the base color again so unstyled segments
 stay on the level color, not the terminal default.
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Does not add automatic level *text* prefixes; use templates if you need
-  ``{%var.level.name}`` (or ``level_label(var["level"].mask)``) in the body.
-- When ``use_colors`` is false, ``write`` strips ANSI before printing.
-- Override defaults with ``level_fg_prefixes`` (merged into
-  ``DEFAULT_LEVEL_FG_PREFIX``).
-
-═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -60,14 +50,6 @@ EXAMPLES
     logger = ConsoleLogger()
     logger.subscribe("biz", channels=Channel.business)
     coordinator = LogCoordinator(loggers=[logger])
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-If ``var`` lacks a ``Level`` instance, no base coloring is applied (message is
-printed as formatted). Without a base, explicit spans that end in a full reset revert to the terminal
-default, as usual.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN

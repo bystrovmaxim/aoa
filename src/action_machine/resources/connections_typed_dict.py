@@ -11,14 +11,6 @@ in action aspect signatures. The default key ``"connection"`` covers the most
 common single-resource case; multi-resource actions can extend this TypedDict.
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- TypedDict is static typing metadata for IDE/mypy; runtime payload is plain dict.
-- ``total=False`` allows action-specific optional keys in extended contracts.
-- Runtime key/type correctness is validated separately by machine checks.
-
-═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -60,14 +52,6 @@ Extended case:
             db = connections["connection"]
             cache = connections["cache"]
             ...
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- TypedDict alone does not enforce runtime resource presence.
-- Key names must still match ``@connection`` declarations on action classes.
-- Keep extensions action-specific to avoid global "god" contracts.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN

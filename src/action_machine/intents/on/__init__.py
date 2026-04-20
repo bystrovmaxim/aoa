@@ -175,16 +175,6 @@ Metrics plugin with compensation monitoring:
             return state
 
 ═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Handler declaration/typing mismatches fail metadata validation early.
-- Compensator failures are suppressed inside rollback core and surfaced through
-  plugin events (for example, ``CompensateFailedEvent``).
-- This package exports contracts/infrastructure; runtime orchestration lives in
-  machine and coordinator flow.
-
-═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN
 ═══════════════════════════════════════════════════════════════════════════════
 ROLE: Public plugin subsystem entrypoint and event API surface.

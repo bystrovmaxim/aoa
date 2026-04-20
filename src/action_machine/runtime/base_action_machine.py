@@ -45,18 +45,6 @@ ARCHITECTURE / DATA FLOW
         └── SyncActionProductMachine      (sync, production)
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-1. STATELESS BETWEEN RUNS: machine keeps no mutable cross-request state.
-   Every run is isolated.
-
-2. NO SILENT SUPPRESSION: runtime errors are propagated to caller.
-
-3. ``_run_internal`` CONTRACT: all concrete machines implement a consistent
-   signature including resources, connections, nested_level, and rollup.
-
-═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -67,14 +55,6 @@ Happy path:
 Edge case:
     A concrete machine that does not implement ``_run_internal`` raises
     ``NotImplementedError`` when execution reaches internal pipeline.
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- This class defines contracts only and does not perform execution itself.
-- Concrete machine behavior (async/sync orchestration) is implementation-specific.
-- Runtime validation/error semantics are delegated to concrete pipelines.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN

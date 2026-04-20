@@ -28,21 +28,6 @@ ARCHITECTURE / DATA FLOW
     graph topology + typed snapshot cache
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- ``GraphCoordinator`` is the single graph assembly and validation entry point.
-- Snapshot storage keys are inspector-defined but coordinator-managed.
-- Read APIs require an explicitly built coordinator instance.
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- This package root exports contracts; concrete behavior lives in submodules.
-- Graph integrity failures surface during coordinator build phases.
-
-═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN
 ═══════════════════════════════════════════════════════════════════════════════
 ROLE: Public namespace for graph core contracts.

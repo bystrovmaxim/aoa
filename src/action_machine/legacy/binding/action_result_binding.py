@@ -11,15 +11,6 @@ This module enforces result-type contracts at runtime. It resolves declared
 validates actual pipeline output objects before returning them to callers.
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Declared ``R`` must be resolvable from action generic declaration.
-- Declared ``R`` must be a ``BaseResult`` subclass.
-- Runtime result object must be an instance of declared ``R``.
-- Synthetic empty result is allowed only for exact ``BaseResult`` declaration.
-
-═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -46,14 +37,6 @@ Happy path:
 Edge case:
     Action declares custom ``Result`` but no summary aspect; runtime raises
     ``MissingSummaryAspectError`` instead of producing ambiguous fallback value.
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Uses runtime ``isinstance`` checks; structural compatibility is not enough.
-- Forward-ref/generic resolution quality depends on binding resolver.
-- Error messages are developer-facing and intended for fail-fast diagnostics.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN

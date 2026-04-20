@@ -92,13 +92,6 @@ EXAMPLES
     ctx = ContextStub(user=tenant_user)
 
 ═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Stubs do not bypass validation of underlying pydantic/domain models.
-- Invalid override values still raise model-level validation errors.
-
-═══════════════════════════════════════════════════════════════════════════════
 AI-CORE
 ═══════════════════════════════════════════════════════════════════════════════
 

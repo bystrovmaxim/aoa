@@ -10,19 +10,6 @@ Concrete ``BaseRouteRecord`` subtype for HTTP transport metadata.
 It stores one endpoint contract consumed by ``FastApiAdapter.build()``.
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Inherits all ``BaseRouteRecord`` invariants:
-  - ``action_class`` must be a ``BaseAction`` subtype.
-  - ``params_type`` / ``result_type`` are extracted from ``BaseAction[P, R]``.
-  - ``params_mapper`` is required when request model differs from params type.
-  - ``response_mapper`` is required when response model differs from result type.
-- ``method`` is normalized to uppercase and must be in
-  ``{GET, POST, PUT, DELETE, PATCH}``.
-- ``path`` must be non-empty and start with ``/``.
-
-═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -87,21 +74,6 @@ EXAMPLES
         path="/api/v1/orders",
     )
     assert record.method == "POST"
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Raises ``ValueError`` for unsupported HTTP methods and invalid paths.
-- Raises ``TypeError`` / ``ValueError`` propagated from ``BaseRouteRecord``
-  when generic contracts or mapper requirements are violated.
-- This object defines metadata only; it does not execute actions itself.
-
-AI-CORE-BEGIN
-ROLE: Immutable transport contract for one FastAPI endpoint.
-CONTRACT: Merges BaseRouteRecord generic mapping invariants with HTTP metadata.
-INVARIANTS: method uppercase+allowed; path non-empty and slash-prefixed.
-AI-CORE-END
 """
 
 from __future__ import annotations

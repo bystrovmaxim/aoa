@@ -26,34 +26,12 @@ description comes from ``@meta(description=...)``; aspect description from
 ``@summary_aspect("...")``.
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- ``NoneRole`` / ``@check_roles(NoneRole)``: callable without authentication.
-- ``Params`` has no fields (empty ``BaseParams``).
-- Generic arguments use string forward refs (``"PingAction.Params"``) because
-  nested classes are not defined yet at class body parse time; runtime resolves
-  them via ``extract_action_types`` (module + class namespace).
-
-Nested-model benefits (same pattern as other example actions):
-
-- **Locality** — input/output types sit next to the logic that uses them.
-- **Namespaces** — ``PingAction.Params`` and ``CreateOrderAction.Params`` do not clash.
-- **Self-documentation** — one class shows inputs, outputs, and pipeline.
-
-═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
     GET /api/v1/ping  ->  {"message": "pong"}
 
     Edge case: no request body is required; empty params model is valid.
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Example only; production health endpoints may add dependencies or stricter contracts.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN

@@ -29,14 +29,6 @@ ARCHITECTURE / DATA FLOW
     entity_cls(**data)  -> validated test entity instance
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Overrides always win over inferred defaults.
-- Construction still goes through ``entity_cls(...)`` and uses normal validation.
-- Complex relation/nested defaults are intentionally minimal and caller-supplied.
-
-═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -44,14 +36,6 @@ Example:
 
     order = make(OrderEntity, amount=100.0)
     # `id` and other string fields may become "test_<field_name>", etc.
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- This helper intentionally covers only a small set of primitive defaults.
-- Lifecycle fallback via ``get_<field>()`` is best-effort and silently ignored on errors.
-- Not suitable for production object assembly policies.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN

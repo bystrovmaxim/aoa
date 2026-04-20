@@ -25,14 +25,6 @@ ARCHITECTURE / DATA FLOW
                 └── returns normalized dictionary
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Validation must preserve existing connection error semantics.
-- Returned dictionary is always non-None.
-- Validation covers declared keys and runtime value types only.
-
-═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -42,14 +34,6 @@ Happy path:
 Edge case:
     Validation raises ``ConnectionValidationError`` on missing, extra, or
     invalid-typed connection entries.
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- This component intentionally does not inspect dependency declarations.
-- Contract is limited to `@connection` metadata validation only.
-- Orchestration timing/order remains owned by machine coordinator.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN

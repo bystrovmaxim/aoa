@@ -24,18 +24,6 @@ Namespaces:
 - **params** — action ``BaseParams`` (``BaseSchema``).
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Unknown variable, unknown namespace, bad ``iif``, underscore-leading path
-  segment, or unknown color → ``LogTemplateError``.
-- Inside ``{iif(...)}``, substituted values are formatted as literals for
-  ``simpleeval`` (quoted strings, plain numbers/bools).
-- Color: ``{%var.x|red}`` outside ``iif``; color helpers inside ``iif`` become
-  markers, then ANSI in an inside-out pass for nesting.
-- ``|debug`` renders a structured introspection of public fields/properties.
-
-═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -54,12 +42,6 @@ EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
 ``{%var.amount|red}``, ``{iif({%var.ok}, green('yes'), red('no'))}``.
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-Template mistakes are treated as developer bugs and fail fast on first use.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN

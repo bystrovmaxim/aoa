@@ -36,19 +36,6 @@ ARCHITECTURE / DATA FLOW
     ActionProductMachine._rollback_saga() invokes compensators in reverse order
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Compensators are declared only for regular aspects (not summary aspects).
-- At most one compensator may target one aspect.
-- Compensators are not inherited; collection uses ``vars(cls)``.
-- Compensator errors are swallowed and must not interrupt rollback unwinding.
-- When ``rollup=True``, compensators are not executed.
-- Compensator method names end with ``"_compensate"``.
-- Compensators must be ``async def``.
-- Compensator return values are ignored.
-
-═══════════════════════════════════════════════════════════════════════════════
 COMPENSATOR SIGNATURE
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -103,25 +90,6 @@ EXAMPLE
                     txn=state_after.txn_id,
                     err=str(e),
                 )
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Declaration-time violations raise ``TypeError``/``ValueError`` from decorator
-  and intent validators.
-- Runtime rollback swallows compensator failures by design.
-- Compensator graph metadata is built once; runtime rollback uses cached frames.
-
-AI-CORE-BEGIN
-ROLE: Public package facade for saga compensation.
-CONTRACT: Export ``compensate`` decorator and ``CompensateIntent`` marker.
-INVARIANTS: Build-time metadata validation and reverse-order rollback semantics.
-FLOW: declaration -> compensator facet snapshot -> runtime rollback execution.
-FAILURES: declaration errors; runtime compensator errors swallowed; ``state_after``
-  ``None`` after failed result validation.
-EXTENSION POINTS: custom compensator methods and context-aware signatures.
-AI-CORE-END
 """
 
 from action_machine.intents.compensate.compensate_decorator import compensate

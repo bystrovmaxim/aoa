@@ -29,20 +29,6 @@ ARCHITECTURE / DATA FLOW
       coordinator-ready aspect snapshot
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- If aspects are declared, class must inherit ``AspectIntent``.
-- Structural checks apply to the aspect tuple produced for **that** class from its
-  own namespace (see ``AspectIntentInspector``): inherited base methods are not
-  merged into the child’s facet list—subclasses re-declare aspects and use
-  ``super()`` inside overrides when extending parent behavior.
-- At most one ``summary`` aspect may exist.
-- If ``regular`` aspects exist, a ``summary`` aspect is required.
-- ``summary`` aspect must be the last declared aspect method **on that class
-  body** (declaration order in ``vars``).
-
-═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -65,16 +51,6 @@ Edge case:
             return {"x": 1}
 
     # validate_aspects(BrokenAction, aspects) -> ValueError
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-The module only validates structural contracts. It does not execute aspects and
-does not validate business-level semantics inside aspect methods.
-Validators can raise:
-- ``TypeError`` for missing ``AspectIntent`` marker when aspects are declared.
-- ``ValueError`` for invalid aspect structure (summary count/order requirements).
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN

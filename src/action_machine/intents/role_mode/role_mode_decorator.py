@@ -15,14 +15,6 @@ they are never set as plain class attributes on the role body.
 how ``@check_roles`` writes ``_role_info`` on actions.
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Enum members are stable public API values.
-- Runtime and graph inspectors read the mode from ``cls._role_mode_info``
-  (written by ``@role_mode``), not from ad-hoc class attributes.
-
-═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -53,14 +45,6 @@ Happy path: ``RoleMode.ALIVE`` on a concrete role class.
 
 Edge case: ``RoleMode.UNUSED`` in ``@check_roles`` raises ``ValueError`` at import
 time; ``RoleClassInspector`` rejects ``UNUSED`` in the role MRO at ``build()``.
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- ``RoleChecker`` and ``@check_roles`` enforce ``SILENCED``, ``DEPRECATED``, and
-  ``UNUSED`` at runtime / decoration time (see ``RoleMode.declared_for``).
-  ``RoleClassInspector`` / ``RoleModeIntentInspector`` add graph-level facets.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN

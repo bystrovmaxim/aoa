@@ -36,16 +36,6 @@ If ``@context_requires`` is present, ``ContextView`` is passed as ``ctx``:
     runtime final-step execution
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Applies only to callable methods.
-- Method must be ``async def``.
-- ``description`` must be a non-empty string.
-- Method name must end with ``_summary`` or be exactly ``summary``.
-- Signature must have 5 params without context, 6 with context.
-
-═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -57,14 +47,6 @@ EXAMPLES
     @context_requires(Ctx.User.user_id)
     async def build_result_summary(self, params, state, box, connections, ctx):
         return OrderResult(created_by=ctx.get(Ctx.User.user_id), ...)
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-TypeError for wrong target type, non-async method, or wrong signature.
-ValueError for empty description.
-NamingSuffixError for invalid method name suffix.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN

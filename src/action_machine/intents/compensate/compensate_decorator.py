@@ -86,32 +86,6 @@ EXAMPLE
                                                state_after, box, connections,
                                                error):
             ...
-
-
-═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- ``target_aspect_name`` must be a non-empty string.
-- ``description`` must be a non-empty string.
-- Target method must be ``async def``.
-- Method name must end with ``"_compensate"``.
-- Parameter arity must be 7 (without context) or 8 (with context).
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Raises ``TypeError``/``ValueError`` for declaration-time contract violations.
-- Does not validate target aspect existence/type at decoration time.
-- Runtime rollback semantics are implemented outside this module.
-
-AI-CORE-BEGIN
-ROLE: Public compensator declaration decorator module.
-CONTRACT: Validate compensator signatures and emit deterministic metadata.
-INVARIANTS: strict naming/arity/async declaration guards.
-FLOW: decorator call -> metadata write -> inspector snapshot -> runtime rollback.
-AI-CORE-END
 """
 
 from __future__ import annotations

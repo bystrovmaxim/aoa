@@ -14,17 +14,6 @@ Connection-state policy for child actions is enforced by
 ``WrapperSqlConnectionManager``; this class handles low-level DB interaction.
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- ``rollup`` mode is inherited from ``SqlConnectionManager``.
-- ``commit()`` checks ``self.rollup`` first; when true, it executes
-  ``rollback()`` and never sends SQL ``COMMIT``.
-- Transaction commands are explicit SQL statements:
-  ``BEGIN``, ``COMMIT``, ``ROLLBACK``.
-- Each operation requires an opened connection, otherwise ``HandleError``.
-
-═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -79,23 +68,6 @@ EXAMPLES
         params=order_params,
         connections={"db": db},
     )
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Raises ``HandleError`` for connection, transaction, and SQL failures.
-- Uses SQL transaction commands directly because asyncpg does not expose
-  ``commit()``/``rollback()`` methods on connection as adapter API.
-
-AI-CORE-BEGIN
-ROLE: Production PostgreSQL SQL connection manager.
-CONTRACT: Execute SQL and transaction lifecycle with optional rollup interception.
-INVARIANTS: open connection required; rollup commit always resolves to rollback.
-FLOW: open -> begin -> execute* -> commit/rollback.
-FAILURES: Any asyncpg failure is wrapped into HandleError.
-EXTENSION POINTS: Wrapper class for restricted child-action access.
-AI-CORE-END
 """
 
 from typing import Any

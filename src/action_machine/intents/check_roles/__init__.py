@@ -82,18 +82,6 @@ COMPONENTS
 - ``check_roles`` / ``role_mode``: declarative access-control decorators.
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- ``@check_roles`` requires the target class to inherit ``CheckRolesIntent``.
-- Stored role specs use ``BaseRole`` types and engine sentinels ``NoneRole`` /
-  ``AnyRole``. ``UserInfo.roles`` holds assignable role types only (not sentinels).
-- ``@role_mode`` applies only to ``RoleModeIntent`` subclasses (typically
-  ``BaseRole``).
-- ``AuthCoordinator`` requires non-null extractor, authenticator, and assembler.
-- ``NoAuthCoordinator`` always returns an anonymous ``Context``.
-
-═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -121,15 +109,6 @@ EXAMPLES
 
     auth = AuthCoordinator(extractor, authenticator, assembler)
     context = await auth.process(request)
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- ``TypeError`` if ``@check_roles`` or ``@role_mode`` is misapplied.
-- ``AuthorizationError`` at runtime when role requirements are not met.
-- ``NoAuthCoordinator`` provides no user identity; only works with ``NoneRole``
-  actions unless you supply roles manually in tests.
 
 ═══════════════════════════════════════════════════════════════════════════════
 AI-CORE-BEGIN
