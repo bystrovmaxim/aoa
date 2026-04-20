@@ -29,9 +29,9 @@ from html import escape as html_escape
 from pathlib import Path
 from typing import Any
 
-from action_machine.auth.role_graph_node import RoleGraphNode
-from action_machine.domain.domain_graph_node import DomainGraphNode
-from action_machine.domain.entity_graph_node import EntityGraphNode
+from action_machine.auth.graph_model.role_graph_node import RoleGraphNode
+from action_machine.domain.graph_model.domain_graph_node import DomainGraphNode
+from action_machine.domain.graph_model.entity_graph_node import EntityGraphNode
 from action_machine.legacy.interchange_vertex_labels import (
     APPLICATION_VERTEX_TYPE,
     CHECKER_VERTEX_TYPE,
@@ -40,12 +40,13 @@ from action_machine.legacy.interchange_vertex_labels import (
     SERVICE_VERTEX_TYPE,
     SUMMARY_ASPECT_VERTEX_TYPE,
 )
-from action_machine.model.action_graph_node import ActionGraphNode
-from action_machine.model.params_graph_node import ParamsGraphNode
-from action_machine.model.result_graph_node import ResultGraphNode
+from action_machine.model.graph_model.action_graph_node import ActionGraphNode
+from action_machine.model.graph_model.params_graph_node import ParamsGraphNode
+from action_machine.model.graph_model.result_graph_node import ResultGraphNode
 from graph.base_graph_edge import BaseGraphEdge
 from graph.base_graph_node import BaseGraphNode
 from graph.base_graph_node_inspector import BaseGraphNodeInspector
+from graph.constants import INTERNAL_EDGE_TYPES, OWNERSHIP_EDGE_TYPES
 from graph.node_graph_coordinator import NodeGraphCoordinator
 from maxitor.viz2.visualizer_icons import svg_data_uri_for_vertex_icon
 
@@ -193,20 +194,6 @@ def _serialize_graph_value(value: Any) -> str:
     return s[:8000] if len(s) > 8000 else s
 
 
-# Interchange edge labels: host (e.g. action) → facet child; domain flows to child.
-_OWNERSHIP_HOST_TO_CHILD: frozenset[str] = frozenset(
-    {
-        "HAS_ASPECT",
-        "HAS_SENSITIVE_FIELD",
-        "HAS_ERROR_HANDLER",
-        "HAS_COMPENSATOR",
-        "HAS_PARAMS",
-        "HAS_RESULT",
-        "HAS_LIFECYCLE",
-        "HAS_LIFECYCLE_STATE",
-    },
-)
-
 # Role facets and ``Service`` stubs (see :data:`VERTEX_TYPE_FILL_COLORS`).
 _ROLE_VERTEX_TYPES_FOR_APP_BUNDLE: frozenset[str] = frozenset(
     {"role", "role_class", RoleGraphNode.NODE_TYPE, "role_mode", SERVICE_VERTEX_TYPE},
@@ -240,8 +227,10 @@ def _propagate_node_domains(  # pylint: disable=too-many-branches
     g6_edges: list[dict[str, Any]],
 ) -> tuple[dict[str, str], list[str], defaultdict[str, set[str]]]:
     """
-    Same domain membership as domain bubble-sets: ``BELONGS_TO`` + ownership
-    propagation along facet edges and ``CHECKS_ASPECT``.
+    Same domain membership as domain bubble-sets: ``BELONGS_TO`` + propagation
+    along every interchange :data:`~graph.constants.OWNERSHIP_EDGE_TYPES` edge
+    (host → child) and merge along :data:`~graph.constants.INTERNAL_EDGE_TYPES`
+    (``CHECKS_ASPECT``, ``COMPENSATES_ASPECT``).
     """
     id_to_type: dict[str, str] = {}
     for n in g6_nodes:
@@ -270,14 +259,14 @@ def _propagate_node_domains(  # pylint: disable=too-many-branches
             ed = e.get("data") or {}
             label = str(ed.get("label", "") or "")
             src, tgt = str(e["source"]), str(e["target"])
-            if label in _OWNERSHIP_HOST_TO_CHILD:
+            if label in OWNERSHIP_EDGE_TYPES:
                 if not node_domains[src]:
                     continue
                 before = len(node_domains[tgt])
                 node_domains[tgt] |= node_domains[src]
                 if len(node_domains[tgt]) > before:
                     changed = True
-            elif label == "CHECKS_ASPECT":
+            elif label in INTERNAL_EDGE_TYPES:
                 merged = node_domains[src] | node_domains[tgt]
                 if not merged:
                     continue
@@ -368,10 +357,9 @@ def _bubble_sets_plugins_for_domains(
     Build G6 ``bubble-sets`` plugins: one hull per ``domain`` vertex.
 
     Members: the domain vertex, every node with ``BELONGS_TO`` into that domain, and
-    nodes reachable by propagating domain along action-owned facets (aspects,
-    sensitive fields, error handlers, compensators, param/result schemas,
-    ``HAS_LIFECYCLE`` / ``HAS_LIFECYCLE_STATE`` from entities) and
-    ``CHECKS_ASPECT`` (checker ↔ aspect), so facets share the parent action's domain.
+    nodes reachable by propagating domain along interchange ownership edges
+    (see :data:`~graph.constants.OWNERSHIP_EDGE_TYPES`) and internal
+    checker/compensator–aspect links (see :data:`~graph.constants.INTERNAL_EDGE_TYPES`).
 
     The ``application`` vertex is never added to a domain bubble.
     """
@@ -490,17 +478,27 @@ def all_axis_graph_node_inspectors() -> list[BaseGraphNodeInspector[Any]]:
     """
     Built-in axis inspectors for **sample** / demo HTML.
 
-    Includes ``Domain`` and ``Action`` so :class:`~action_machine.model.action_graph_node.ActionGraphNode`
+    Includes ``Domain`` and ``Action`` so :class:`~action_machine.model.graph_model.action_graph_node.ActionGraphNode`
     ``domain`` / ``params`` / ``result`` edges resolve to existing vertices. This module does not
     inject missing nodes; :meth:`~graph.node_graph_coordinator.NodeGraphCoordinator.build` still
     validates every ``target_node_id``.
     """
     # pylint: disable=import-outside-toplevel
-    from action_machine.auth.role_graph_node_inspector import RoleGraphNodeInspector
-    from action_machine.domain.domain_graph_node_inspector import DomainGraphNodeInspector
-    from action_machine.model.action_graph_node_inspector import ActionGraphNodeInspector
-    from action_machine.model.params_graph_node_inspector import ParamsGraphNodeInspector
-    from action_machine.model.result_graph_node_inspector import ResultGraphNodeInspector
+    from action_machine.auth.graph_model.role_graph_node_inspector import (
+        RoleGraphNodeInspector,
+    )
+    from action_machine.domain.graph_model.domain_graph_node_inspector import (
+        DomainGraphNodeInspector,
+    )
+    from action_machine.model.graph_model.action_graph_node_inspector import (
+        ActionGraphNodeInspector,
+    )
+    from action_machine.model.graph_model.params_graph_node_inspector import (
+        ParamsGraphNodeInspector,
+    )
+    from action_machine.model.graph_model.result_graph_node_inspector import (
+        ResultGraphNodeInspector,
+    )
 
     return [
         ParamsGraphNodeInspector(),
@@ -1159,11 +1157,6 @@ __G6_SCRIPT__
             : useKindHeading
               ? typeDisplayName(nt)
               : shortName.toUpperCase();
-          const fill = d.fill != null ? String(d.fill) : '';
-          const iconSrc =
-            d.iconSrc != null && String(d.iconSrc).trim() !== ''
-              ? String(d.iconSrc)
-              : '';
           const payloadPanel = d.payload_panel && typeof d.payload_panel === 'object' && !Array.isArray(d.payload_panel) ? d.payload_panel : {{}};
           const payloadPanelKeys = Object.keys(payloadPanel).sort((a, b) => a.localeCompare(b));
 
@@ -1177,11 +1170,16 @@ __G6_SCRIPT__
             esc(entityHeading) +
             '</h2>';
 
+          const fill = d.fill != null ? String(d.fill) : '';
+          const iconSrc =
+            d.iconSrc != null && String(d.iconSrc).trim() !== ''
+              ? String(d.iconSrc)
+              : '';
           const typePretty = nt ? typeDisplayName(nt) : '';
           const headingDuplicatesType =
             typePretty !== '' && entityHeading === typePretty;
           if (nt && !headingDuplicatesType) {{
-            html += '<div class="prop-block prop-block-type"><div class="prop-label prop-label-type">Type</div>';
+            html += '<div class="prop-block prop-block-type">';
             html += '<div class="type-row">';
             if (iconSrc) {{
               html +=
@@ -1198,11 +1196,38 @@ __G6_SCRIPT__
             html += '</div></div>';
           }}
 
-          html += '<div class="properties-section-title">Payload</div>';
+          const propsRaw = payloadPanel['properties'];
+          let propsObj = null;
+          if (propsRaw != null && String(propsRaw).trim() !== '') {{
+            try {{
+              const parsed = JSON.parse(String(propsRaw));
+              if (
+                parsed !== null &&
+                typeof parsed === 'object' &&
+                !Array.isArray(parsed)
+              ) {{
+                propsObj = parsed;
+              }}
+            }} catch (_) {{}}
+          }}
 
-          for (const k of payloadPanelKeys) {{
-            const raw = payloadPanel[k];
-            const v = raw == null ? '' : String(raw);
+          const payloadSkipTop = new Set([
+            'properties',
+            'label',
+            'node_obj',
+            'node_type',
+          ]);
+          const payloadKeysNoProps = payloadPanelKeys.filter(
+            (k) => !payloadSkipTop.has(k),
+          );
+
+          function appendPropBlock(k, rawVal) {{
+            const v =
+              rawVal == null
+                ? ''
+                : typeof rawVal === 'object'
+                  ? JSON.stringify(rawVal, null, 0)
+                  : String(rawVal);
             const multiline =
               v.length > 160 ||
               v.indexOf('\\n') >= 0 ||
@@ -1233,6 +1258,23 @@ __G6_SCRIPT__
                 '</div>';
             }}
             html += '</div>';
+          }}
+
+          for (const k of payloadKeysNoProps) {{
+            appendPropBlock(k, payloadPanel[k]);
+          }}
+
+          if (propsObj != null && Object.keys(propsObj).length > 0) {{
+            for (const pk of Object.keys(propsObj).sort((a, b) =>
+              a.localeCompare(b),
+            )) {{
+              appendPropBlock(pk, propsObj[pk]);
+            }}
+          }} else if (
+            propsObj === null &&
+            payloadPanelKeys.includes('properties')
+          ) {{
+            appendPropBlock('properties', payloadPanel['properties']);
           }}
 
           detailBody.innerHTML = html;

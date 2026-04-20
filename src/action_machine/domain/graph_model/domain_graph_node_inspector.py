@@ -1,50 +1,49 @@
-# src/action_machine/auth/role_graph_node_inspector.py
+# src/action_machine/domain/graph_model/domain_graph_node_inspector.py
 """
-RoleGraphNodeInspector — graph-node contributor for ``BaseRole`` subclasses.
+DomainGraphNodeInspector — graph-node contributor for ``BaseDomain`` subclasses.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Walks the loaded ``BaseRole`` subclass tree and emits one :class:`RoleGraphNode` per
-visited class, skipping ``BaseRole``, ``SystemRole``, and ``ApplicationRole`` via
+Walks the loaded ``BaseDomain`` strict subclass tree and emits one :class:`DomainGraphNode` per
+visited concrete domain class. The ``BaseDomain`` axis is excluded via
 :meth:`~graph.base_graph_node_inspector.BaseGraphNodeInspector._graph_node_walk_excluded_types`
-(taxonomy anchors and abstract branches without interchange rows).
+(``DomainGraphNode`` expects ``name`` / ``description`` on concrete domains).
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-    BaseRole / ``SystemRole`` / ``ApplicationRole``  (skipped)
+    BaseDomain  (root axis, skipped in walk)
               │
               v
-    each other loaded subclass ``cls``  ->  ``[RoleGraphNode(cls)]`` when ``issubclass(cls, BaseRole)``
+    each strict subclass ``cls``  ->  ``[DomainGraphNode(cls)]`` when ``issubclass(cls, BaseDomain)``
 """
 
 from __future__ import annotations
 
 from typing import Any
 
-from action_machine.auth.application_role import ApplicationRole
-from action_machine.auth.base_role import BaseRole
-from action_machine.auth.role_graph_node import RoleGraphNode
-from action_machine.auth.system_role import SystemRole
+from action_machine.domain.base_domain import BaseDomain
 from graph.base_graph_node import BaseGraphNode
 from graph.base_graph_node_inspector import BaseGraphNodeInspector
 
+from .domain_graph_node import DomainGraphNode
 
-class RoleGraphNodeInspector(BaseGraphNodeInspector[BaseRole]):
+
+class DomainGraphNodeInspector(BaseGraphNodeInspector[BaseDomain]):
     """
     AI-CORE-BEGIN
-    ROLE: Emit ``RoleGraphNode`` rows for loaded ``BaseRole`` subclasses except excluded taxonomy roots.
-    CONTRACT: Root axis ``BaseRole`` from ``BaseGraphNodeInspector[BaseRole]``; ``BaseRole``, ``SystemRole``, and ``ApplicationRole`` are excluded from the walk.
+    ROLE: Emit ``DomainGraphNode`` rows for every loaded ``BaseDomain`` subclass.
+    CONTRACT: Root axis ``BaseDomain`` from ``BaseGraphNodeInspector[BaseDomain]``; one node per strict subclass with a valid ``DomainGraphNode`` shape (root excluded via :meth:`~graph.base_graph_node_inspector.BaseGraphNodeInspector._graph_node_walk_excluded_types`).
     AI-CORE-END
     """
 
     def _graph_node_walk_excluded_types(self) -> frozenset[type]:
-        return frozenset({BaseRole, SystemRole, ApplicationRole})
+        return frozenset({BaseDomain})
 
     def _get_type_nodes(self, cls: type) -> list[BaseGraphNode[Any]]:
-        if isinstance(cls, type) and issubclass(cls, BaseRole):
-            return [RoleGraphNode(cls)]
+        if isinstance(cls, type) and issubclass(cls, BaseDomain):
+            return [DomainGraphNode(cls)]
         return []

@@ -5,14 +5,14 @@ from __future__ import annotations
 
 from pydantic import Field
 
-from action_machine.domain.domain_graph_node import DomainGraphNode
-from action_machine.domain.entity_graph_node import EntityGraphNode
+from action_machine.domain.graph_model.domain_graph_node import DomainGraphNode
+from action_machine.domain.graph_model.entity_graph_node import EntityGraphNode
 from action_machine.legacy.application_context_inspector import ApplicationContextInspector
-from action_machine.model.action_graph_node import ActionGraphNode
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_result import BaseResult
-from action_machine.model.params_graph_node import ParamsGraphNode
-from action_machine.model.result_graph_node import ResultGraphNode
+from action_machine.model.graph_model.action_graph_node import ActionGraphNode
+from action_machine.model.graph_model.params_graph_node import ParamsGraphNode
+from action_machine.model.graph_model.result_graph_node import ResultGraphNode
 from graph.base_graph_edge import BaseGraphEdge
 from graph.edge_relationship import ASSOCIATION, COMPOSITION, FLOW
 from graph.facet_vertex import FacetVertex

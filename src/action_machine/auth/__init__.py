@@ -16,8 +16,7 @@ from action_machine.auth.application_role import ApplicationRole
 # (package ``__init__`` runs before ``base_role`` finishes).
 from action_machine.auth.base_role import BaseRole
 from action_machine.auth.none_role import NoneRole
-from action_machine.auth.role_graph_node import RoleGraphNode
-from action_machine.auth.role_graph_node_inspector import RoleGraphNodeInspector
+from action_machine.auth.graph_model import RoleGraphNode, RoleGraphNodeInspector
 from action_machine.auth.system_role import SystemRole
 
 _LAZY_AUTH_PIPELINE: dict[str, tuple[str, str]] = {

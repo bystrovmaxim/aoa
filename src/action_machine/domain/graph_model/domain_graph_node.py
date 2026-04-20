@@ -1,4 +1,4 @@
-# src/action_machine/domain/domain_graph_node.py
+# src/action_machine/domain/graph_model/domain_graph_node.py
 """
 DomainGraphNode — interchange node for BaseDomain marker classes.
 
