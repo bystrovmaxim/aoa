@@ -12,9 +12,10 @@ registered :class:`~graph.base_graph_node_inspector.BaseGraphNodeInspector`
 validates **unique**
 :attr:`~graph.base_graph_node.BaseGraphNode.node_id` keys, **referential
 integrity** of :class:`~graph.base_graph_edge.BaseGraphEdge.target_node_id`,
-and **acyclicity** of edges marked ``is_dag=True``, then materializes a
-``rustworkx.PyDiGraph`` in memory for the duration of the build step (no retained
-read API — construction only).
+and **acyclicity** of edges marked ``is_dag=True``, then materializes and **retains**
+a ``rustworkx.PyDiGraph`` whose node weights are :class:`~graph.base_graph_node.BaseGraphNode`
+instances and edge weights are :class:`~graph.base_graph_edge.BaseGraphEdge` instances.
+Read it via :attr:`NodeGraphCoordinator.rx_graph` after a successful :meth:`build`.
 
 This coordinator is **domain-agnostic**: it does not interpret ``node_type`` or
 ``edge_name`` beyond validation and DAG checks.
@@ -37,7 +38,7 @@ ARCHITECTURE / DATA FLOW
               ├─ missing target_node_id  -> InvalidGraphError
               ├─ is_dag cycle  -> InvalidGraphError
               v
-    build rustworkx PyDiGraph (local), then discard
+    build rustworkx ``PyDiGraph``  ->  :attr:`NodeGraphCoordinator.rx_graph`
 
 ═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES
@@ -68,20 +69,21 @@ class NodeGraphCoordinator:
     AI-CORE-BEGIN
     ROLE: Build rustworkx graph from ``BaseGraphNode`` contributions.
     CONTRACT: ``build`` with :class:`~graph.base_graph_node_inspector.BaseGraphNodeInspector` instances; each ``get_graph_nodes()``;
-        construction-only, no graph accessors.
-    INVARIANTS: Duplicate id / missing target / DAG cycle raise during build.
+        then expose the assembled ``PyDiGraph`` as :attr:`rx_graph`.
+    INVARIANTS: Duplicate id / missing target / DAG cycle raise during build; :attr:`rx_graph` is unavailable until ``build`` succeeds.
     AI-CORE-END
     """
 
-    __slots__ = ("_built",)
+    __slots__ = ("_built", "_rx_graph")
 
     def __init__(self) -> None:
         self._built: bool = False
+        self._rx_graph: rx.PyDiGraph | None = None
 
     def build(self, inspectors: Sequence[BaseGraphNodeInspector[Any]]) -> None:
         """
         Collect nodes from each inspector instance via :meth:`BaseGraphNodeInspector.get_graph_nodes`,
-        validate, and construct the ``rustworkx`` graph (not exposed).
+        validate, construct the ``rustworkx`` graph, and store it on :attr:`rx_graph`.
 
         Raises:
             DuplicateNodeError: two sources contributed the same ``node.node_id``.
@@ -98,6 +100,22 @@ class NodeGraphCoordinator:
         self._validate_dag_acyclicity(nodes)
         self._materialize_rustworkx_graph(nodes)
         self._built = True
+
+    @property
+    def rx_graph(self) -> rx.PyDiGraph:
+        """
+        The interchange graph built by the last successful :meth:`build`.
+
+        Node weights are :class:`~graph.base_graph_node.BaseGraphNode` payloads (same order as sorted ``node_id``).
+        Edge weights are :class:`~graph.base_graph_edge.BaseGraphEdge` instances.
+
+        Raises:
+            RuntimeError: :meth:`build` has not completed successfully on this coordinator.
+        """
+        if not self._built or self._rx_graph is None:
+            msg = "NodeGraphCoordinator.rx_graph is only available after a successful build()."
+            raise RuntimeError(msg)
+        return self._rx_graph
 
     def _inspector_label(self, inspector: BaseGraphNodeInspector[Any]) -> str:
         return type(inspector).__qualname__
@@ -171,7 +189,7 @@ class NodeGraphCoordinator:
             )
 
     def _materialize_rustworkx_graph(self, nodes: dict[str, BaseGraphNode[Any]]) -> None:
-        """Build ``PyDiGraph`` to ensure rustworkx accepts the topology; graph is not stored."""
+        """Build ``PyDiGraph`` with ``BaseGraphNode`` / ``BaseGraphEdge`` weights; assign :attr:`_rx_graph`."""
         g = rx.PyDiGraph()
         id_to_idx: dict[str, int] = {}
         for nid in sorted(nodes.keys()):
@@ -181,3 +199,4 @@ class NodeGraphCoordinator:
             for edge in node.edges:
                 tidx = id_to_idx[edge.target_node_id]
                 g.add_edge(sidx, tidx, edge)
+        self._rx_graph = g

@@ -105,8 +105,10 @@ EXAMPLES
 
 from action_machine.domain.base_domain import BaseDomain
 from action_machine.domain.domain_graph_node import DomainGraphNode
+from action_machine.domain.domain_graph_node_inspector import DomainGraphNodeInspector
 from action_machine.domain.entity import BaseEntity
 from action_machine.domain.entity_graph_node import EntityGraphNode
+from action_machine.domain.entity_graph_node_inspector import EntityGraphNodeInspector
 from action_machine.domain.exceptions import (
     EntityDecoratorError,
     FieldNotLoadedError,
@@ -146,9 +148,11 @@ __all__ = [
     "CompositeMany",
     "CompositeOne",
     "DomainGraphNode",
+    "DomainGraphNodeInspector",
     # Exceptions
     "EntityDecoratorError",
     "EntityGraphNode",
+    "EntityGraphNodeInspector",
     "EntityIntent",
     "FieldNotLoadedError",
     # Relation markers
