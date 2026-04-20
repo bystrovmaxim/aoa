@@ -10,7 +10,7 @@ Provides a :class:`~graph.base_graph_node.BaseGraphNode` view derived from
 a concrete result **class** object. Interchange data lives in ``id``, ``node_type``,
 ``label``, ``properties``, and ``edges``; the class is :attr:`~graph.base_graph_node.BaseGraphNode.node_obj`.
 
-Interchange ``node_type`` is ``"result_schema"`` (aligned with facet ``result_schema`` hosts); ``id`` is the dotted class path.
+Interchange ``node_type`` is ``"Result"``; ``id`` is the dotted class path. (Legacy facet rows may still use the string ``result_schema``.)
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
@@ -43,7 +43,7 @@ class ResultGraphNode(BaseGraphNode[type[TResult]]):
     AI-CORE-END
     """
 
-    NODE_TYPE: ClassVar[str] = "result_schema"
+    NODE_TYPE: ClassVar[str] = "Result"
 
     def __init__(self, result_cls: type[TResult]) -> None:
         super().__init__(

@@ -10,7 +10,7 @@ Provides a :class:`~graph.base_graph_node.BaseGraphNode` view derived from
 a concrete params **class** object. Interchange data lives in ``id``, ``node_type``,
 ``label``, ``properties``, and ``edges``; the class is :attr:`~graph.base_graph_node.BaseGraphNode.node_obj`.
 
-Interchange ``node_type`` is ``"params_schema"`` (aligned with facet ``params_schema`` hosts); ``id`` is the dotted class path.
+Interchange ``node_type`` is ``"Params"``; ``id`` is the dotted class path. (Legacy facet rows may still use the string ``params_schema``.)
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
@@ -43,7 +43,7 @@ class ParamsGraphNode(BaseGraphNode[type[TParams]]):
     AI-CORE-END
     """
 
-    NODE_TYPE: ClassVar[str] = "params_schema"
+    NODE_TYPE: ClassVar[str] = "Params"
 
     def __init__(self, params_cls: type[TParams]) -> None:
         super().__init__(

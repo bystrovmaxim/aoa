@@ -17,7 +17,7 @@ from action_machine.model.graph_model.regular_aspect_graph_node import (
 )
 from action_machine.model.graph_model.result_graph_node import ResultGraphNode
 from graph.base_graph_edge import BaseGraphEdge
-from graph.edge_relationship import ASSOCIATION, COMPOSITION, FLOW
+from graph.edge_relationship import AGGREGATION, ASSOCIATION
 from graph.facet_vertex import FacetVertex
 from graph.qualified_name import cls_qualified_dotted_id
 from tests.scenarios.domain_model.domains import SystemDomain
@@ -43,7 +43,7 @@ def test_params_graph_node_interchange_shape() -> None:
 
     node = ParamsGraphNode(PongParams)
     assert node.node_obj is PongParams
-    assert node.node_type == "params_schema"
+    assert node.node_type == "Params"
     assert node.label == "PongParams"
     assert node.node_id == cls_qualified_dotted_id(PongParams)
     assert node.properties == {}
@@ -58,7 +58,7 @@ def test_result_graph_node_interchange_shape() -> None:
 
     node = ResultGraphNode(PongResult)
     assert node.node_obj is PongResult
-    assert node.node_type == "result_schema"
+    assert node.node_type == "Result"
     assert node.label == "PongResult"
     assert node.node_id == cls_qualified_dotted_id(PongResult)
     assert node.properties == {}
@@ -111,7 +111,7 @@ def test_action_graph_node_links_and_helpers() -> None:
     assert node.edges == [
         BaseGraphEdge(
             edge_name="domain",
-            is_dag=False,
+            is_dag=True,
             source_node_id=host,
             source_node_type="Action",
             source_node_obj=PingAction,
@@ -127,9 +127,9 @@ def test_action_graph_node_links_and_helpers() -> None:
             source_node_type="Action",
             source_node_obj=PingAction,
             target_node_id=params_id,
-            target_node_type="params_schema",
+            target_node_type="Params",
             target_node_obj=PingAction.Params,
-            edge_relationship=FLOW,
+            edge_relationship=AGGREGATION,
         ),
         BaseGraphEdge(
             edge_name="result",
@@ -138,15 +138,15 @@ def test_action_graph_node_links_and_helpers() -> None:
             source_node_type="Action",
             source_node_obj=PingAction,
             target_node_id=result_id,
-            target_node_type="result_schema",
+            target_node_type="Result",
             target_node_obj=PingAction.Result,
-            edge_relationship=FLOW,
+            edge_relationship=AGGREGATION,
         ),
     ]
 
     assert ActionGraphNode.get_domain_edge(PingAction) == BaseGraphEdge(
         edge_name="domain",
-        is_dag=False,
+        is_dag=True,
         source_node_id=host,
         source_node_type="Action",
         source_node_obj=PingAction,
@@ -162,9 +162,9 @@ def test_action_graph_node_links_and_helpers() -> None:
         source_node_type="Action",
         source_node_obj=PingAction,
         target_node_id=params_id,
-        target_node_type="params_schema",
+        target_node_type="Params",
         target_node_obj=PingAction.Params,
-        edge_relationship=FLOW,
+        edge_relationship=AGGREGATION,
     )
     assert ActionGraphNode.get_result_edge(PingAction) == BaseGraphEdge(
         edge_name="result",
@@ -173,9 +173,9 @@ def test_action_graph_node_links_and_helpers() -> None:
         source_node_type="Action",
         source_node_obj=PingAction,
         target_node_id=result_id,
-        target_node_type="result_schema",
+        target_node_type="Result",
         target_node_obj=PingAction.Result,
-        edge_relationship=FLOW,
+        edge_relationship=AGGREGATION,
     )
 
     p_type = ActionGraphNode.get_schema_generic_binding(PingAction, 0)

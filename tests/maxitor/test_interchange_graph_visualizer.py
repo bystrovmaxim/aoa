@@ -12,10 +12,11 @@ import pytest
 import rustworkx as rx
 
 from action_machine.legacy.application_context import ApplicationContext
+from action_machine.model.graph_model.regular_aspect_graph_node import RegularAspectGraphNode
 from graph.base_graph_edge import BaseGraphEdge
 from graph.base_graph_node import BaseGraphNode
 from graph.base_graph_node_inspector import BaseGraphNodeInspector
-from graph.edge_relationship import ASSOCIATION
+from graph.edge_relationship import ASSOCIATION, COMPOSITION
 from graph.exceptions import InvalidGraphError
 from graph.node_graph_coordinator import NodeGraphCoordinator
 from graph.qualified_name import cls_qualified_dotted_id
@@ -62,7 +63,30 @@ def test_interchange_node_and_edge_to_visual_dicts() -> None:
         edge_relationship=ASSOCIATION,
     )
     ed = interchange_edge_to_visual_dict(e)
-    assert ed == {"edge_type": "belongs_to", "is_dag": False}
+    assert ed["edge_type"] == "belongs_to"
+    assert ed["is_dag"] is False
+    assert ed["relationship_name"] == "Association"
+    assert ed["source_attachment"] == "none"
+    assert ed["target_attachment"] == "open_arrow"
+    assert ed["line_style"] == "solid"
+
+
+def test_interchange_edge_visual_dict_swaps_composition_diamond_to_regular_aspect_target() -> None:
+    """UML whole-part cap on the aspect end; interchange topology remains Action → aspect."""
+    e = BaseGraphEdge(
+        edge_name="my_aspect",
+        is_dag=False,
+        source_node_id="pkg.Action",
+        source_node_type="Action",
+        source_node_obj=object(),
+        target_node_id="pkg.Action:my_aspect",
+        target_node_type=RegularAspectGraphNode.NODE_TYPE,
+        target_node_obj=object(),
+        edge_relationship=COMPOSITION,
+    )
+    ed = interchange_edge_to_visual_dict(e)
+    assert ed["source_attachment"] == "none"
+    assert ed["target_attachment"] == "filled_diamond"
 
 
 class _PygraphRoundTripAxis:
@@ -75,7 +99,7 @@ class _PygraphRoundTripInspector(BaseGraphNodeInspector[_PygraphRoundTripAxis]):
             return []
         b = BaseGraphNode(
             node_id="tests.b",
-            node_type="params_schema",
+            node_type="Params",
             label="B",
             properties={},
             edges=[],
@@ -88,7 +112,7 @@ class _PygraphRoundTripInspector(BaseGraphNodeInspector[_PygraphRoundTripAxis]):
             source_node_type="Action",
             source_node_obj=object(),
             target_node_id="tests.b",
-            target_node_type="params_schema",
+            target_node_type="Params",
             target_node_obj=object(),
             edge_relationship=ASSOCIATION,
         )
@@ -132,7 +156,12 @@ def test_interchange_pygraph_for_g6_round_trip_topology() -> None:
     n0 = out[out.node_indices()[0]]
     assert isinstance(n0, dict) and n0["node_type"] == "Action"
     _, _, ew = next(iter(out.weighted_edge_list()))
-    assert ew == {"edge_type": "params", "is_dag": False}
+    assert ew["edge_type"] == "params"
+    assert ew["is_dag"] is False
+    assert ew["relationship_name"] == "Association"
+    assert ew["source_attachment"] == "none"
+    assert ew["target_attachment"] == "open_arrow"
+    assert ew["line_style"] == "solid"
 
 
 def test_generate_interchange_g6_html_accepts_native_base_graph_nodes(tmp_path: Path) -> None:
