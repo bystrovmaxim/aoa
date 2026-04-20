@@ -64,22 +64,6 @@ ARCHITECTURE / DATA FLOW
 callers that need machine-readable context; ``str(exc)`` remains the human
 ``message`` only.
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-Happy path:
-    Components raise domain-appropriate exception types, and tests assert by
-    class (and optionally message fragments) for deterministic behavior.
-
-Edge case:
-    ``@on_error`` handler itself fails; runtime wraps it in
-    ``OnErrorHandlerError`` while preserving original exception via ``__cause__``.
-
-Edge case:
-    An adapter maps transport validation (for example Pydantic) into
-    ``ValidationFieldError`` with ``details`` so agents receive field-level
-    errors without re-parsing exception text.
 """
 
 from typing import Any

@@ -32,12 +32,6 @@ ARCHITECTURE / DATA FLOW
         |
         +--> None (no @meta/domain)
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-``domain_label(OrdersDomain)`` → typically ``"orders"`` from class ``name``,
-else ``__name__``.
 """
 
 from action_machine.domain.base_domain import BaseDomain

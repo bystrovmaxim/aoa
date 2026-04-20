@@ -25,15 +25,4 @@ ARCHITECTURE / DATA FLOW
                v
     Adapter/caller receives contract-safe result value
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-Happy path:
-    Runtime resolves ``R`` for an action and confirms summary output is an
-    instance of that result type.
-
-Edge case:
-    If runtime receives a result with mismatched type, binding validation
-    raises a typed contract exception.
 """

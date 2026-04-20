@@ -24,16 +24,6 @@ ARCHITECTURE / DATA FLOW
         v
     described_fields_intent_inspector (graph build / validation phase)
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-    from action_machine.legacy.described_fields import (
-        DescribedFieldsIntent,
-        validate_described_schema,
-    )
-
-    validate_described_schema(MyAction)
 """
 
 from action_machine.legacy.described_fields.marker import (

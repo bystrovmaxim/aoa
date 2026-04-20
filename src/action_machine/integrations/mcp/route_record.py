@@ -36,29 +36,6 @@ Mapper naming convention:
     params_mapper   -> returns params   (request -> params)
     response_mapper -> returns response (result  -> response)
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-    # Minimal:
-    record = McpRouteRecord(
-        action_class=CreateOrderAction,
-        tool_name="orders.create",
-    )
-
-    # Full:
-    record = McpRouteRecord(
-        action_class=CreateOrderAction,
-        request_model=CreateOrderRequest,
-        response_model=CreateOrderResponse,
-        params_mapper=map_request_to_params,
-        response_mapper=map_result_to_response,
-        tool_name="orders.create",
-        description="Create a new order in the system",
-    )
-
-    # Edge case: invalid empty name.
-    # McpRouteRecord(action_class=CreateOrderAction, tool_name="  ") -> ValueError
 """
 
 from __future__ import annotations

@@ -46,32 +46,6 @@ INVARIANTS
 - Nested child run increments nest level and receives parent rollup flag.
 - Saga rollback emits start before per-compensator events and completed last.
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-Happy path:
-- `SimpleAction` emits regular+summary sequence and returns greeting result.
-
-Edge case:
-- `NoErrorHandlerAction` raises ValueError and no fallback swallows it.
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-These tests intentionally assert ordering/contract signals, not internal method
-implementations. Event duplication in `TestBench` dual-run mode is avoided by
-using direct `ActionProductMachine` execution where strict event order matters.
-
-AI-CORE-BEGIN
-ROLE: Golden execution contract test module.
-CONTRACT: Lock observable orchestration behavior before decomposition refactor.
-INVARIANTS: stage order, error semantics, nested+rollup, saga rollback order.
-FLOW: run action -> capture events/result -> assert stable contract.
-FAILURES: Any order/semantics drift fails CI before architecture changes merge.
-EXTENSION POINTS: Add new contract tests when introducing new orchestrator stages.
-AI-CORE-END
 """
 
 from __future__ import annotations

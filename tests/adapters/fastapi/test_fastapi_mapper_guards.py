@@ -30,27 +30,6 @@ INVARIANTS
 
 - ``ActionProductMachine.run`` is mocked to detect accidental invocations.
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-    uv run pytest tests/adapters/fastapi/test_fastapi_mapper_guards.py -q
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Relies on FastAPI/Starlette error handling for unhandled exceptions in routes.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: End-to-end guard tests for mapper outputs via FastAPI.
-CONTRACT: Wrong mapped types do not produce successful action execution.
-INVARIANTS: AsyncMock auth; mocked ``machine.run`` where asserted.
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from __future__ import annotations

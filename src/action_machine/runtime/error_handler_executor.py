@@ -30,15 +30,6 @@ ARCHITECTURE / DATA FLOW
                 ├── emit AfterOnErrorAspectEvent
                 └── or emit UnhandledErrorEvent and re-raise original error
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-Happy path:
-    Matching ``@on_error`` handler returns substitute ``BaseResult``.
-
-Edge case:
-    No matching handler emits ``UnhandledErrorEvent`` and then re-raises.
 """
 
 from __future__ import annotations

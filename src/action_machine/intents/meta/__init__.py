@@ -27,17 +27,6 @@ ARCHITECTURE / DATA FLOW
            v
     runtime graph assembly / adapters
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-    from action_machine.intents.meta import meta
-
-    @meta(description="Create order", domain=OrdersDomain)
-    class CreateOrderAction(...):
-        ...
-
-    # Edge case: invalid meta args -> decorator raises validation error.
 """
 
 from action_machine.intents.meta.meta_decorator import meta

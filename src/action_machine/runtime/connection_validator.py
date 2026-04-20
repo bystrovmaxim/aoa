@@ -24,16 +24,6 @@ ARCHITECTURE / DATA FLOW
                 ├── validates value types (BaseResourceManager)
                 └── returns normalized dictionary
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-Happy path:
-    ``validate(...)`` returns normalized declared connections dictionary.
-
-Edge case:
-    Validation raises ``ConnectionValidationError`` on missing, extra, or
-    invalid-typed connection entries.
 """
 
 from __future__ import annotations

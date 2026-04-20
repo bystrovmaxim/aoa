@@ -25,13 +25,6 @@ ARCHITECTURE / DATA FLOW
          ▼
     Snapshot.Compensator  →  per-method ``compensator`` + ``action`` + edges
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-Happy path: compensating methods carry ``_compensate_meta`` → non-empty payload.
-
-Edge case: no compensators → ``inspect`` returns ``None``.
 """
 
 from __future__ import annotations

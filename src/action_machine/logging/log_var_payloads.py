@@ -24,15 +24,6 @@ ARCHITECTURE / DATA FLOW
           +--> validation + filtering use .mask
           +--> templates read .name / .names
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-Templates use explicit attributes:
-- ``{%var.level.name}``
-- ``{%var.channels.names}``
-
-Bitmask logic uses ``.mask`` only (subscriptions, validation).
 """
 
 from __future__ import annotations

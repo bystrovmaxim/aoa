@@ -43,17 +43,6 @@ ARCHITECTURE / DATA FLOW
     # EntityIntentInspector during GraphCoordinator.build():
     #   reads _entity_info + model_fields → FacetVertex + typed snapshot
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-    # BaseEntity already includes EntityIntent:
-    @entity(description="Customer", domain=CrmDomain)
-    class CustomerEntity(BaseEntity):
-        id: str = Field(description="Customer id")
-        name: str = Field(description="Display name")
-
-    # @entity on a class without EntityIntent -> EntityDecoratorError
 """
 
 from __future__ import annotations

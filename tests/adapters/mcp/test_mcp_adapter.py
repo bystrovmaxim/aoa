@@ -32,29 +32,6 @@ INVARIANTS
 - Tests use a real built coordinator when ``register_all`` must discover actions.
 - ``auth_coordinator`` is always an ``AsyncMock`` with ``process`` stubbed.
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-    uv run pytest tests/adapters/mcp/test_mcp_adapter.py -q
-
-Edge case: empty explicit description falls back to ``@meta`` text when present.
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- MCP SDK types (e.g. ``FastMCP``) couple tests to the installed ``mcp`` version.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: MCP adapter registration and server construction tests.
-CONTRACT: Fluent API; coordinator-driven bulk registration; snake_case naming.
-INVARIANTS: Scenario actions; optional ``FullAction`` for multi-tool cases.
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from unittest.mock import AsyncMock

@@ -28,14 +28,6 @@ ARCHITECTURE / DATA FLOW
             ▼
     entity_cls(**data)  -> validated test entity instance
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-Example:
-
-    order = make(OrderEntity, amount=100.0)
-    # `id` and other string fields may become "test_<field_name>", etc.
 """
 
 from __future__ import annotations

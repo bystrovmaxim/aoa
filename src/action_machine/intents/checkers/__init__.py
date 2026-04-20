@@ -62,19 +62,6 @@ Decorators:
 - ``result_date``
 - ``result_instance``
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-    from action_machine.intents.checkers import result_string, result_float
-
-    class CreateOrderAction(BaseAction[OrderParams, OrderResult]):
-        @regular_aspect("Process payment")
-        @result_string("txn_id", required=True, min_length=1)
-        @result_float("charged_amount", required=True, min_value=0.0)
-        async def process_payment(self, params, state, box, connections):
-            ...
-            return {"txn_id": "TXN-001", "charged_amount": 100.0}
 """
 
 from action_machine.intents.checkers.result_bool_decorator import FieldBoolChecker, result_bool

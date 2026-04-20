@@ -65,24 +65,6 @@ ARCHITECTURE / DATA FLOW
 entire pipeline logic (roles, connections, checkers, plugins, rollup
 propagation internals). Only public ``run()`` is overridden.
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-    from action_machine.runtime.sync_action_product_machine import SyncActionProductMachine
-
-    machine = SyncActionProductMachine(mode="production")
-
-    # Synchronous call - no await:
-    result = machine.run(context, action, params)
-
-    # In a CLI script:
-    if __name__ == "__main__":
-        ctx = Context()
-        action = PingAction()
-        params = PingAction.Params()
-        result = machine.run(ctx, action, params)
-        print(result.message)
 """
 
 import asyncio

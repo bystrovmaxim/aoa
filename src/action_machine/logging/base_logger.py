@@ -47,14 +47,6 @@ ARCHITECTURE / DATA FLOW
       - any matching rule -> accept (OR)
       - one rule: channels AND levels AND domains
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-    logger.subscribe("prod-errors", channels=Channel.error, levels=Level.critical)
-    await logger.handle(scope, msg, var, ctx, state, params, indent=0)
-
-    # Edge case: duplicate key -> ValueError in subscribe(...)
 """
 
 from __future__ import annotations

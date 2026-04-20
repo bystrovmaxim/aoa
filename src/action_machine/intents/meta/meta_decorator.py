@@ -40,25 +40,6 @@ ARCHITECTURE / DATA FLOW
         ▼  GraphCoordinator.build()
     Action node enriched; domain node with ``belongs_to`` edge.
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-::
-
-    @meta(description="Create a new order", domain=OrdersDomain)
-    @check_roles(ManagerRole)
-    class CreateOrderAction(BaseAction[OrderParams, OrderResult]):
-        ...
-
-    @meta(description="Ping dependency", domain=SystemDomain)
-    @check_roles(NoneRole)
-    class PingAction(BaseAction[BaseParams, BaseResult]):
-        ...
-
-    @meta(description="PostgreSQL connection manager", domain=WarehouseDomain)
-    class WarehouseDbManager(BaseResourceManager):
-        ...
 """
 
 from __future__ import annotations

@@ -21,17 +21,6 @@ ARCHITECTURE / DATA FLOW
 
     ActionGraphNode ``__init__`` / helpers  →  frozen ``BaseGraphNode``
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-Happy path::
-
-    class MyPingAction(BaseAction): ...
-    n = ActionGraphNode(MyPingAction)
-    assert n.node_type == "Action" and n.label == "MyPingAction"
-
-Edge case: same interchange shape for any concrete ``BaseAction`` subclass type passed in.
 """
 
 from __future__ import annotations

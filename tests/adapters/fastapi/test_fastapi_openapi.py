@@ -28,30 +28,6 @@ INVARIANTS
 
 - Uses ``TestClient`` only; no external HTTP server.
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-    uv run pytest tests/adapters/fastapi/test_fastapi_openapi.py -q
-
-Edge case: multiple routes each retain distinct path keys in the OpenAPI map.
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- OpenAPI structure follows FastAPI/Starlette defaults; framework upgrades may
-  require expectation tweaks.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: OpenAPI integration tests for the FastAPI adapter package.
-CONTRACT: Schema matches registrations and adapter metadata.
-INVARIANTS: AsyncMock auth; ``ActionProductMachine`` in test mode.
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from unittest.mock import AsyncMock

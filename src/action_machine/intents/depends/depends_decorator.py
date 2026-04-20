@@ -31,34 +31,6 @@ ARCHITECTURE / DATA FLOW
          ▼  ToolsBox.resolve(PaymentService)
     factory.resolve(PaymentService) -> PaymentService()
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-    # Basic usage
-    @depends(PaymentService, description="Payment processing service")
-    @depends(NotificationService, description="Notification service")
-    class CreateOrderAction(BaseAction[OrderParams, OrderResult]):
-        @regular_aspect("Process payment")
-        async def process_payment(self, params, state, box, connections):
-            payment = box.resolve(PaymentService)
-            txn_id = await payment.charge(params.amount, params.currency)
-            return {"txn_id": txn_id}
-
-    # Singleton via lambda
-    _shared_payment = PaymentService(gateway="production")
-
-    @depends(PaymentService, factory=lambda: _shared_payment, description="Singleton")
-    class OrderAction(BaseAction[OrderParams, OrderResult]):
-        ...
-
-    # Parameterized factory
-    @depends(BankClient, factory=lambda env: BankClient(env), description="Bank client")
-    class PayAction(BaseAction[PayParams, PayResult]):
-        @regular_aspect("Pay")
-        async def pay(self, params, state, box, connections):
-            client = box.resolve(BankClient, "production")
-            ...
 """
 
 from __future__ import annotations

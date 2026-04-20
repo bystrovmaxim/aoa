@@ -20,20 +20,6 @@ ARCHITECTURE / DATA FLOW
               v
     DomainGraphNode(...)  ──>  frozen ``BaseGraphNode`` (node_id, node_type, label, properties, edges)
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-Happy path::
-
-    class ShopDomain(BaseDomain):
-        name = "shop"
-        description = "Shop context"
-
-    n = DomainGraphNode(ShopDomain)
-    assert n.node_type == "Domain" and n.label == "ShopDomain"
-
-Edge case: same interchange shape for any concrete ``BaseDomain`` subclass type passed in.
 """
 
 from __future__ import annotations

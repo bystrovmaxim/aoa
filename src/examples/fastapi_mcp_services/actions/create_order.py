@@ -25,15 +25,6 @@ ARCHITECTURE / DATA FLOW
       v
   build_result_summary -> Result(order_id, status, total)
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-    Request body:
-    {"user_id": "user_123", "amount": 1500.0, "currency": "RUB"}
-
-    Response body:
-    {"order_id": "ORD-user_123-001", "status": "created", "total": 1500.0}
 """
 
 from typing import Any

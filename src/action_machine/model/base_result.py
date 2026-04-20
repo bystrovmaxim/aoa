@@ -44,40 +44,6 @@ DIFFERENCE FROM BaseParams AND BaseState
 Params comes from outside and stays immutable. State lives inside pipeline flow.
 Result is built by the summary aspect and returned to calling code.
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-    from pydantic import Field
-    from action_machine.model.base_result import BaseResult
-
-    class OrderResult(BaseResult):
-        order_id: str = Field(description="Created order identifier")
-        status: str = Field(description="Order status", examples=["created"])
-        total: float = Field(description="Final amount", ge=0)
-
-    result = OrderResult(order_id="ORD-123", status="created", total=1500.0)
-
-    # Reads via dict-like API (inherited from BaseSchema):
-    result["status"]            # -> "created"
-    result.resolve("total")     # -> 1500.0
-    result.keys()               # -> ["order_id", "status", "total"]
-
-    # Serialization:
-    result.model_dump()         # -> {"order_id": "ORD-123", "status": "created", "total": 1500.0}
-
-    # Writes are forbidden (frozen):
-    result.status = "paid"      # -> ValidationError
-
-    # Unknown fields are forbidden (extra="forbid"):
-    OrderResult(order_id="x", status="y", total=0, unknown="z")  # -> ValidationError
-
-    # "Change" by creating a new instance:
-    updated = result.model_copy(update={"status": "paid"})
-
-    # JSON Schema for FastAPI and MCP:
-    OrderResult.model_json_schema()
-    # {"properties": {"order_id": {"description": "Created order identifier", ...}, ...}}
 """
 
 from pydantic import ConfigDict

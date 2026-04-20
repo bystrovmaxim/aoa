@@ -20,23 +20,6 @@ collects that metadata into aspect snapshots during coordinator build. Runtime
 execution then consumes those snapshots to run regular steps first and summary
 step last.
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-    from action_machine.intents.aspects import regular_aspect, summary_aspect
-
-    class CreateOrderAction(BaseAction[OrderParams, OrderResult]):
-        @regular_aspect("Validate data")
-        async def validate_aspect(self, params, state, box, connections):
-            return {"validated_user": params.user_id}
-
-        @summary_aspect("Build result")
-        async def build_result_summary(self, params, state, box, connections):
-            return OrderResult(...)
-
-Edge case: regular aspects without a summary aspect fail during metadata
-validation.
 """
 
 from action_machine.intents.aspects.regular_aspect_decorator import regular_aspect

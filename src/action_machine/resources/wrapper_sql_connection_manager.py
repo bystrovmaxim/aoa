@@ -58,24 +58,6 @@ ARCHITECTURE / DATA FLOW
                 execute() -> delegates to real manager
                 _rollup   -> inherited from original
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-    # Root action creates real manager:
-    db = PostgresConnectionManager(params, rollup=True)
-    await db.open()
-    await db.begin()
-
-    # ToolsBox.run() wraps manager for child action:
-    wrapper = WrapperSqlConnectionManager(db)
-    wrapper.rollup   # -> True (inherited)
-
-    # Child action uses wrapper:
-    await wrapper.execute("SELECT ...")  # -> OK, delegated to db
-    await wrapper.commit()               # -> TransactionProhibitedError
-    await wrapper.open()                 # -> TransactionProhibitedError
-    await wrapper.begin()                # -> TransactionProhibitedError
 """
 
 from typing import Any

@@ -25,13 +25,6 @@ Nested ``Params`` and ``Result`` are defined inside the action class. Action
 description comes from ``@meta(description=...)``; aspect description from
 ``@summary_aspect("...")``.
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-    GET /api/v1/ping  ->  {"message": "pong"}
-
-    Edge case: no request body is required; empty params model is valid.
 """
 
 from pydantic import Field

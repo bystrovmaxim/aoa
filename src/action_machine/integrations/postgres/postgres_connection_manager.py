@@ -38,36 +38,6 @@ With ``rollup=True``, ``commit()`` is intercepted before real commit:
 it calls ``rollback()`` and returns immediately. This guarantees that no
 ``COMMIT`` command reaches the database during rollup runs.
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-    # Production mode:
-    db = PostgresConnectionManager(
-        connection_params={"host": "localhost", "database": "orders"},
-    )
-    await db.open()
-    await db.begin()
-    await db.execute("INSERT INTO orders (id, amount) VALUES ($1, $2)", (1, 100.0))
-    await db.commit()  # real COMMIT
-
-    # Safe testing against production-like DB with rollup:
-    db = PostgresConnectionManager(
-        connection_params={"host": "localhost", "database": "orders"},
-        rollup=True,
-    )
-    await db.open()
-    await db.begin()
-    await db.execute("INSERT INTO orders (id, amount) VALUES ($1, $2)", (1, 100.0))
-    await db.commit()  # ROLLBACK (changes are not persisted)
-
-    # Pass manager to action runtime:
-    result = await machine.run(
-        context=ctx,
-        action=CreateOrderAction(),
-        params=order_params,
-        connections={"db": db},
-    )
 """
 
 from typing import Any

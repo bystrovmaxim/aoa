@@ -85,34 +85,6 @@ ARCHITECTURE / DATA FLOW
         ▼  aspect calls ctx.get(Ctx.User.user_id)
     ContextView validates allowed_keys -> returns value
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-    from action_machine.context import Ctx
-    from action_machine.intents.context import context_requires
-
-    # Standard fields through constants:
-    @regular_aspect("Permission check")
-    @context_requires(Ctx.User.user_id, Ctx.User.roles)
-    async def check_permissions_aspect(self, params, state, box, connections, ctx):
-        user_id = ctx.get(Ctx.User.user_id)
-        roles = ctx.get(Ctx.User.roles)
-        return {}
-
-    # Mix of constants and custom string paths:
-    @regular_aspect("Billing")
-    @context_requires(Ctx.User.user_id, "user.extra.billing_plan")
-    async def billing_aspect(self, params, state, box, connections, ctx):
-        plan = ctx.get("user.extra.billing_plan")
-        return {"plan": plan}
-
-    # On error handler:
-    @on_error(ValueError, description="Validation error")
-    @context_requires(Ctx.User.user_id)
-    async def handle_on_error(self, params, state, box, connections, error, ctx):
-        user_id = ctx.get(Ctx.User.user_id)
-        return ErrorResult(user_id=user_id, error=str(error))
 """
 
 from __future__ import annotations

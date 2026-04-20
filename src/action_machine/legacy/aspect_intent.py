@@ -28,29 +28,6 @@ ARCHITECTURE / DATA FLOW
                  v
       coordinator-ready aspect snapshot
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-Happy path:
-
-    class CreateOrderAction(BaseAction, AspectIntent):
-        @regular_aspect("Validate")
-        async def validate_aspect(self, params, state, box, connections):
-            return {"ok": True}
-
-        @summary_aspect("Build result")
-        async def build_result_summary(self, params, state, box, connections):
-            return OrderResult(...)
-
-Edge case:
-
-    class BrokenAction(BaseAction, AspectIntent):
-        @regular_aspect("Only regular")
-        async def only_regular_aspect(self, params, state, box, connections):
-            return {"x": 1}
-
-    # validate_aspects(BrokenAction, aspects) -> ValueError
 """
 
 from __future__ import annotations

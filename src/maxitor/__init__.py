@@ -25,14 +25,6 @@ ARCHITECTURE / DATA FLOW
             ├── export_samples_graph_graphml  →  archive/logs/*.graphml
             └── (:mod:`maxitor.viz1.visualizer`) ``export_samples_graph_html``  →  archive/logs/*.html
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-- **Happy path:** ``from maxitor import build_sample_coordinator`` then
-  ``coord = build_sample_coordinator()`` for graph and snapshot reads.
-- **Edge case:** ``from maxitor import export_samples_graph_graphml`` writes
-  GraphML without importing the HTML stack.
 """
 
 from __future__ import annotations

@@ -28,30 +28,6 @@ INVARIANTS
 - Default roles include ``StubTesterRole`` unless overridden.
 - Overrides on one stub component must not leak into unstated components.
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-    uv run pytest tests/bench/test_stubs.py -q
-
-Edge case: ``UserInfoStub(roles=())`` yields an empty role tuple.
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Default string constants mirror stub implementation; update both if defaults
-  change.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Tests for test-time context stub builders.
-CONTRACT: Real domain types; composable defaults for bench/context tests.
-INVARIANTS: Uses ``AdminRole`` / ``ManagerRole`` only for override scenarios.
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 

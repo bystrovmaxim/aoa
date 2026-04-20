@@ -31,16 +31,6 @@ ARCHITECTURE / DATA FLOW
                         |
                         +--> extract_action_params_result_types(action_cls)
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-    class Params(BaseParams, DescribedFieldsIntent):
-        name: str = Field(description="Name")
-
-    validate_described_schema(Params)
-
-    # Edge case: field without description -> TypeError.
 """
 
 from __future__ import annotations

@@ -44,11 +44,6 @@ Templates: ``{%var.*}``, ``{%state.*}``, ``{%params.*}``, ``{%context.*}``,
 for display; ``{%var.level.mask}`` / ``{%var.channels.mask}`` are IntFlags if needed.
 Prefer ``{%var.domain_name}`` for domain text; ``{%var.domain}`` is the type object.
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-See package ``__init__.py`` for nest-level and plugin examples.
 """
 
 from typing import Any

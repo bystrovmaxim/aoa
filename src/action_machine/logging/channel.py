@@ -30,11 +30,6 @@ ARCHITECTURE / DATA FLOW
             v
     channel_mask_label(mask) for human-readable rendering
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-``Channel.debug | Channel.business`` — debug trace tied to business flow.
 """
 
 from enum import IntFlag

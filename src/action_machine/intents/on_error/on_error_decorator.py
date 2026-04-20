@@ -89,35 +89,6 @@ Invalid (later handler never runs for overlapping types):
     @on_error(Exception, ...)       <- catches everything first
     @on_error(ValueError, ...)      <- never reached for ``ValueError``
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-    @meta(description="Create order", domain=OrdersDomain)
-    @check_roles(NoneRole)
-    class CreateOrderAction(BaseAction[OrderParams, OrderResult]):
-
-        @regular_aspect("Data validation")
-        async def validate_aspect(self, params, state, box, connections):
-            if not params.user_id:
-                raise ValueError("user_id is required")
-            return {"validated_user": params.user_id}
-
-        @summary_aspect("Build result")
-        async def build_result_summary(self, params, state, box, connections):
-            return OrderResult(order_id="ORD-1", status="created", total=params.amount)
-
-        @on_error(ValueError, description="Validation error")
-        async def handle_validation_on_error(self, params, state, box, connections, error):
-            return OrderResult(order_id="ERR", status="validation_error", total=0)
-
-        # With context:
-        @on_error((ConnectionError, TimeoutError), description="Network error")
-        @context_requires(Ctx.User.user_id, Ctx.Request.trace_id)
-        async def handle_network_on_error(self, params, state, box, connections, error, ctx):
-            user_id = ctx.get(Ctx.User.user_id)
-            trace = ctx.get(Ctx.Request.trace_id)
-            return OrderResult(order_id="ERR", status="network_error", total=0)
 """
 
 from __future__ import annotations

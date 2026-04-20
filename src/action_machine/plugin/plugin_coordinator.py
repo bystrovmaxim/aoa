@@ -49,28 +49,6 @@ If plugin needs cross-request accumulation (metrics/counters), it should use
 external storage passed via plugin constructor. Framework guarantees per-request
 state isolation; long-term accumulation policy is user responsibility.
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-    from action_machine.plugin.plugin_coordinator import PluginCoordinator
-
-    coordinator = PluginCoordinator(plugins=[CounterPlugin(), MetricsPlugin()])
-
-    # At the start of each run():
-    plugin_ctx = await coordinator.create_run_context()
-
-    # Emit typed events through context:
-    await plugin_ctx.emit_event(
-        GlobalStartEvent(action_class=..., ...),
-        log_coordinator=log_coord,
-        machine_name="ActionProductMachine",
-        mode="production",
-        coordinator=gate_coordinator,
-    )
-
-    # Read plugin state in tests:
-    state = plugin_ctx.get_plugin_state(counter_plugin)
 """
 
 from __future__ import annotations

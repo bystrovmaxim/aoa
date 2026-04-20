@@ -32,12 +32,6 @@ ARCHITECTURE / DATA FLOW
             +--> level mask intersection
             +--> optional domain issubclass check
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-``channels=Channel.business``, ``levels=Level.warning | Level.critical`` —
-business messages at warning or critical only.
 """
 
 from __future__ import annotations

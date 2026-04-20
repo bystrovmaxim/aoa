@@ -28,19 +28,6 @@ ARCHITECTURE / DATA FLOW
     Snapshot.to_facet_vertex()  →  FacetVertex(node_type="RegularAspect" / "SummaryAspect");
     inspect()  →  per-method aspect payloads plus one action payload (has_aspect).
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-Happy path: a class defines ``@regular_aspect`` / ``@summary_aspect`` methods;
-``inspect(target_cls)`` returns a payload whose ``node_meta`` carries aspect
-entries.
-
-Edge case: no aspect metadata on the class → ``inspect`` returns ``None``.
-
-Subclassing: aspects live on the **concrete** action class body; a child does
-not pick up a parent’s aspect entries through MRO scanning—override and
-``super()`` instead of expecting automatic inheritance of facet rows.
 """
 
 from __future__ import annotations

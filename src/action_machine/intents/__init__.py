@@ -31,15 +31,4 @@ ARCHITECTURE / DATA FLOW
             v
     Action execution with consistent policy enforcement
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-Happy path:
-    An action method is decorated (for example, by plugin/logging decorators),
-    inspectors validate intent markers, and runtime coordinators apply policies.
-
-Edge case:
-    Invalid intent configuration is rejected during validation, so execution
-    fails fast before request handling starts.
 """

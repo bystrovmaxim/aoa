@@ -41,17 +41,6 @@ Frame stores only aspect-unique rollback data:
 Pipeline-common values (params, connections, context, box) are passed to
 rollback executor as separate arguments and are not duplicated in each frame.
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-Happy path:
-    Aspect succeeds and checker passes -> frame keeps both ``state_before`` and
-    ``state_after`` for potential rollback.
-
-Edge case:
-    Aspect ``call()`` returned but checker rejects output -> frame has
-    ``state_after=None``; compensator still runs on unwind before earlier frames.
 """
 
 from __future__ import annotations

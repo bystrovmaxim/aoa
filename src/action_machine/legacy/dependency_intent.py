@@ -39,22 +39,6 @@ ARCHITECTURE / DATA FLOW
          ▼  cached_dependency_factory(coordinator, cls)
     DependencyFactory built from snapshot
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-    # Allow any dependency
-    class MyAction(DependencyIntent[object]):
-        pass
-
-    # Restrict dependencies to resource managers only
-    class ResourcePool(DependencyIntent[BaseResourceManager]):
-        pass
-
-    @depends(PostgresManager)   # OK — PostgresManager < BaseResourceManager
-    @depends(PaymentService)    # TypeError — PaymentService is not a BaseResourceManager
-    class MyPool(ResourcePool):
-        ...
 """
 
 from __future__ import annotations

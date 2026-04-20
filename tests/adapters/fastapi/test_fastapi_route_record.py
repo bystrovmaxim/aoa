@@ -29,29 +29,6 @@ INVARIANTS
 - HTTP method must be one of GET, POST, PUT, DELETE, PATCH (case-normalized).
 - Path must be non-empty, non-whitespace, and start with ``/``.
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-    uv run pytest tests/adapters/fastapi/test_fastapi_route_record.py -q
-
-Edge case: whitespace-only path must raise ``ValueError``.
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Tests assert exact exception types and messages from ``FastApiRouteRecord``.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: HTTP route record validation tests.
-CONTRACT: Method/path invariants; defaults; immutability; base-record inheritance.
-INVARIANTS: Scenario actions only for valid ``action_class`` cases.
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 import pytest

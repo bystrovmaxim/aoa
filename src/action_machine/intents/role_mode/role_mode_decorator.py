@@ -37,14 +37,6 @@ COMPONENTS
 - ``role_mode``: decorator attaching mode metadata on class.
 - ``RoleMode.declared_for``: validated accessor used by runtime and inspectors.
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-Happy path: ``RoleMode.ALIVE`` on a concrete role class.
-
-Edge case: ``RoleMode.UNUSED`` in ``@check_roles`` raises ``ValueError`` at import
-time; ``RoleClassInspector`` rejects ``UNUSED`` in the role MRO at ``build()``.
 """
 
 from __future__ import annotations

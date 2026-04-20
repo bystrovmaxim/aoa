@@ -40,31 +40,6 @@ classes. For each class with ``_role_info``, it builds an **action** payload
 ``node_meta`` with ``spec`` and **edges** toward existing ``role_class`` nodes
 (``RoleClassInspector``). ``NoneRole`` / ``AnyRole`` yield no role-class edges.
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-    @check_roles(AdminRole)
-    class AdminAction(BaseAction[AdminParams, AdminResult]):
-        ...
-
-    # inspect(AdminAction) → FacetVertex(
-    #     node_type="action",
-    #     node_name == module.AdminAction,
-    #     edges: requires_role → role_class:…ApplicationRole (anchor),
-    #     node_meta includes spec == AdminRole,
-    # )
-
-    @check_roles(NoneRole)
-    class PingAction(BaseAction[BaseParams, BaseResult]):
-        ...
-
-    # inspect(PingAction) → spec is NoneRole
-
-    class BaseAction(ABC, CheckRolesIntent, ...):
-        ...
-
-    # inspect(BaseAction) → None (no _role_info)
 """
 
 from __future__ import annotations

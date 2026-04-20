@@ -35,18 +35,6 @@ If ``@context_requires`` is present, ``ContextView`` is passed as ``ctx``:
            v
     runtime final-step execution
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-    @summary_aspect("Build result")
-    async def build_result_summary(self, params, state, box, connections):
-        return OrderResult(...)
-
-    @summary_aspect("Build result with context")
-    @context_requires(Ctx.User.user_id)
-    async def build_result_summary(self, params, state, box, connections, ctx):
-        return OrderResult(created_by=ctx.get(Ctx.User.user_id), ...)
 """
 
 from __future__ import annotations

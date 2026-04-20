@@ -21,21 +21,6 @@ INVARIANTS
 - ``LogCoordinator(loggers=[])`` — no I/O; measures allocation + ``__init__``
   only, not emit.
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-    uv run pytest tests/bench/test_scoped_logger_hot_path_bench.py -q
-
-Reports use ``tests.bench.bench_report`` (multi-line block, no ``pytest -s``).
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Performance regression anchors for logging scope allocation.
-CONTRACT: Wall-clock budgets; framed stdout via ``emit_benchmark_report``.
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from __future__ import annotations

@@ -32,29 +32,6 @@ INVARIANTS
 - ``auth_coordinator`` is always provided in tests (``AsyncMock``).
 - Each protocol method appends a ``FastApiRouteRecord`` and returns ``self``.
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-    uv run pytest tests/adapters/fastapi/test_fastapi_adapter.py -q
-
-Edge case: auto-summary from ``@meta`` when explicit summary is omitted.
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Does not load real ASGI servers; ``TestClient`` exercises the built app only.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: FastAPI adapter registration and ``build()`` smoke tests.
-CONTRACT: Fluent API; route list matches registrations; health + handlers present.
-INVARIANTS: Scenario actions from ``tests.scenarios.domain_model``.
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from unittest.mock import AsyncMock

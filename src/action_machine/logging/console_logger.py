@@ -37,19 +37,6 @@ ARCHITECTURE / DATA FLOW
                     -> _wrap_line_with_level_base(...)
                     -> print
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-::
-
-    from action_machine.logging import Channel
-    from action_machine.logging.console_logger import ConsoleLogger
-    from action_machine.logging.log_coordinator import LogCoordinator
-
-    logger = ConsoleLogger()
-    logger.subscribe("biz", channels=Channel.business)
-    coordinator = LogCoordinator(loggers=[logger])
 """
 
 from __future__ import annotations

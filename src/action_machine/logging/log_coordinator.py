@@ -54,12 +54,6 @@ Flow sketch::
                     +--> per-logger ANSI strip when supports_colors=False
                     +--> isolated failures recorded via stdlib logging
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-Register loggers at construction or via ``add_logger``. Each logger may call
-``subscribe`` to restrict traffic.
 """
 
 from __future__ import annotations

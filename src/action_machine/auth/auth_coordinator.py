@@ -38,18 +38,6 @@ COMPONENTS
 - ``AuthCoordinator``: orchestration pipeline for authenticated context.
 - ``NoAuthCoordinator``: explicit open-access context provider.
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-    extractor = MyCredentialExtractor()
-    authenticator = MyAuthenticator()
-    assembler = MyContextAssembler()
-
-    coordinator = AuthCoordinator(extractor, authenticator, assembler)
-    context = await coordinator.process(request)
-    if context:
-        user_id = context.user.user_id
 """
 
 from __future__ import annotations

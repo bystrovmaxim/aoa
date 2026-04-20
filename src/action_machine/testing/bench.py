@@ -129,65 +129,6 @@ Each fluent method returns a NEW ``TestBench`` instance:
     # bench and admin_bench are different objects.
     # bench is unchanged after with_user call.
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-    from unittest.mock import AsyncMock
-    from action_machine.testing import TestBench
-
-    mock_payment = AsyncMock(spec=PaymentService)
-    mock_payment.charge.return_value = "TXN-001"
-
-    from action_machine.testing import StubTesterRole
-
-    bench = TestBench(mocks={PaymentService: mock_payment})
-    admin_bench = bench.with_user(user_id="admin", roles=(StubTesterRole,))
-
-    result = await admin_bench.run(
-        CreateOrderAction(),
-        OrderParams(user_id="u1", amount=100.0),
-        rollup=False,
-    )
-
-    # assert_called_once_with works correctly:
-    # mocks are reset between async and sync runs,
-    # test sees state only from sync run.
-    mock_payment.charge.assert_called_once_with(100.0, "RUB")
-
-═══════════════════════════════════════════════════════════════════════════════
-COMPENSATOR TESTING EXAMPLE
-═══════════════════════════════════════════════════════════════════════════════
-
-    async def test_payment_compensator_calls_refund():
-        mock_payment = AsyncMock(spec=PaymentService)
-        bench = TestBench(mocks={PaymentService: mock_payment})
-
-        await bench.run_compensator(
-            action=CreateOrderAction(),
-            compensator_name="rollback_payment_compensate",
-            params=CreateOrderParams(user_id="u1", items=[...]),
-            state_before=CreateOrderState(),
-            state_after=CreateOrderState(txn_id="txn_123", amount=100),
-            error=InsufficientStockError("Out of stock"),
-        )
-
-        mock_payment.refund.assert_called_once_with("txn_123")
-
-    async def test_payment_compensator_handles_unavailable():
-        mock_payment = AsyncMock(spec=PaymentService)
-        mock_payment.refund.side_effect = PaymentServiceUnavailable()
-        bench = TestBench(mocks={PaymentService: mock_payment})
-
-        # Compensator handles internal error and does not raise
-        await bench.run_compensator(
-            action=CreateOrderAction(),
-            compensator_name="rollback_payment_compensate",
-            params=CreateOrderParams(user_id="u1", items=[...]),
-            state_before=CreateOrderState(),
-            state_after=CreateOrderState(txn_id="txn_456"),
-            error=ValueError("some error"),
-        )
 """
 
 from __future__ import annotations

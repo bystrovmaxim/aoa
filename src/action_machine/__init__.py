@@ -25,14 +25,4 @@ ARCHITECTURE / DATA FLOW
      |       |        |                   |
   intents   model   runtime   resources/testing/...
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-    import action_machine
-    from action_machine.testing import TestBench
-
-    bench = TestBench()
-
-    # Edge case: root import itself does not initialize machines/resources.
 """

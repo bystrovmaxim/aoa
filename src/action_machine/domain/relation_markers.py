@@ -71,36 +71,6 @@ LIFECYCLE (IMPORT VS BUILD VS RUNTIME)
   remains only as the class-level default unless the constructor still sees it
   (e.g. optional relation omitted in ``build()``).
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-Bidirectional::
-
-    customer: Annotated[
-        AssociationOne[CustomerEntity],
-        Inverse(CustomerEntity, "orders"),
-    ] = Rel(description="Customer who placed the order")
-
-    orders: Annotated[
-        AssociationMany[OrderEntity],
-        Inverse(OrderEntity, "customer"),
-    ] = Rel(description="Orders for this customer")
-
-One-way::
-
-    target: Annotated[
-        AssociationOne[OrderEntity],
-        NoInverse(),
-    ] = Rel(description="Object under audit")
-
-Edge — invalid ``Inverse``::
-
-    Inverse("not_a_type", "field")  # TypeError
-
-Edge — empty ``Rel``::
-
-    Rel(description="   ")  # ValueError
 """
 
 from __future__ import annotations

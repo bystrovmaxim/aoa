@@ -61,25 +61,6 @@ ARCHITECTURE / DATA FLOW
     #   2. Creates ContextView(context, aspect_meta.context_keys).
     #   3. Passes ctx_view as 6th argument.
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-    # BaseAction already inherits ContextRequiresIntent, so every action class
-    # supports @context_requires declarations by default.
-
-    # Aspect with context access:
-    @regular_aspect("Audit")
-    @context_requires(Ctx.User.user_id, Ctx.Request.client_ip)
-    async def audit_aspect(self, params, state, box, connections, ctx):
-        user = ctx.get(Ctx.User.user_id)
-        ip = ctx.get(Ctx.Request.client_ip)
-        return {"audited_by": user, "from_ip": ip}
-
-    # Aspect without context access (standard signature):
-    @regular_aspect("Total calculation")
-    async def calculate_aspect(self, params, state, box, connections):
-        return {"total": params.amount * 1.2}
 """
 
 

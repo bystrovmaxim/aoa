@@ -59,29 +59,4 @@ INVARIANTS
   from production ``examples`` packages unless a test explicitly needs them.
 - Route records must always validate ``action_class`` before type extraction.
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-    uv run pytest tests/adapters/ -q
-
-Edge case: transport-specific extras (FastAPI, MCP) must be installed for the
-corresponding subfolder tests to import integration modules.
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Tests mirror adapter implementation details (line references in module docs may
-  drift after refactors — treat as hints, not contracts).
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Test package boundary for HTTP and MCP adapter integrations.
-CONTRACT: Exercise public adapter APIs and route-record type resolution.
-INVARIANTS: Shared domain actions; local broken fixtures only inside tests.
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """

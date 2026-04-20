@@ -91,63 +91,6 @@ ARCHITECTURE / DATA FLOW
         ▼  PluginRunContext.emit_event(event)
     Per subscription: filter chain -> handler call
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-    from action_machine.logging.channel import Channel
-    from action_machine.plugin.events import (
-        GlobalFinishEvent,
-        AfterRegularAspectEvent,
-        AspectEvent,
-        UnhandledErrorEvent,
-    )
-
-    class MetricsPlugin(Plugin):
-        async def get_initial_state(self) -> dict:
-            return {"slow_count": 0, "errors": []}
-
-        # Concrete event with duration filter
-        @on(
-            GlobalFinishEvent,
-            predicate=lambda e: e.duration_ms > 1000,
-        )
-        async def on_slow_actions(self, state, event: GlobalFinishEvent, log):
-            state["slow_count"] += 1
-            await log.warning(
-                Channel.business,
-                "Slow action: {%var.name} in {%var.ms}ms",
-                name=event.action_name,
-                ms=event.duration_ms,
-            )
-            return state
-
-        # Group event: all aspects
-        @on(AspectEvent)
-        async def on_any_aspect(self, state, event: AspectEvent, log):
-            await log.info(Channel.debug, "Aspect: {%var.name}", name=event.aspect_name)
-            return state
-
-        # Filter by aspect type and name
-        @on(
-            AfterRegularAspectEvent,
-            aspect_name_pattern=r"validate_.*",
-            nest_level=0,
-        )
-        async def on_validation_done(self, state, event: AfterRegularAspectEvent, log):
-            return state
-
-        # Unhandled pipeline errors
-        @on(UnhandledErrorEvent)
-        async def on_unhandled(self, state, event: UnhandledErrorEvent, log):
-            state["errors"].append(str(event.error))
-            return state
-
-        # OR semantics: two @on decorators on one method
-        @on(GlobalFinishEvent, action_class=OrderAction)
-        @on(GlobalFinishEvent, action_class=PaymentAction)
-        async def on_business_finish(self, state, event: GlobalFinishEvent, log):
-            return state
 """
 
 from __future__ import annotations

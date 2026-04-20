@@ -56,35 +56,6 @@ DICT-LIKE ACCESS (inherited from BaseSchema)
     "client_ip" in req      # → True
     list(req.keys())        # → ["trace_id", "request_timestamp", ...]
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-    from datetime import datetime
-
-    req = RequestInfo(
-        trace_id="abc-123",
-        request_timestamp=datetime.utcnow(),
-        request_path="/api/v1/orders",
-        request_method="POST",
-        client_ip="192.168.1.1",
-        protocol="https",
-    )
-
-    req["trace_id"]                  # → "abc-123"
-    req.resolve("request_method")    # → "POST"
-    req.model_dump()                 # → {"trace_id": "abc-123", ...}
-
-    # Extension via inheritance:
-    class TracedRequestInfo(RequestInfo):
-        correlation_id: str | None = None
-        ab_variant: str | None = None
-
-    req = TracedRequestInfo(
-        trace_id="abc-123",
-        correlation_id="corr-456",
-        ab_variant="control",
-    )
 """
 
 from datetime import datetime

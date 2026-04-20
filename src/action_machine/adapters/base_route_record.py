@@ -37,25 +37,6 @@ Inheritance sketch::
         ├── McpRouteRecord(tool_name, description, ...)
         └── GRPCRouteRecord(service_name, method_name, ...)
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-    # Minimal FastAPI route record
-    @dataclass(frozen=True)
-    class FastApiRouteRecord(BaseRouteRecord):
-        method: str = "POST"
-        path: str = "/"
-
-    record = FastApiRouteRecord(action_class=CreateOrderAction, path="/orders")
-    # params_type and result_type are automatically extracted
-
-    # With mapper (models differ)
-    record = FastApiRouteRecord(
-        action_class=CreateOrderAction,
-        request_model=CreateOrderRequest,
-        params_mapper=map_request_to_params,
-    )
 """
 
 from __future__ import annotations

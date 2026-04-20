@@ -36,14 +36,6 @@ ARCHITECTURE / DATA FLOW
           ▼
     GraphCoordinator merges with ``RoleClassInspector`` row → one anchor facet key
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-Happy path: ``ApplicationRole`` with ``@role_mode`` → non-``None`` payload.
-
-Edge case: undecorated ``RoleModeIntent`` subclass without scratch →
-``inspect`` returns ``None`` (nothing to record).
 """
 
 from __future__ import annotations

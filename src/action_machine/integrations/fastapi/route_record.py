@@ -41,39 +41,6 @@ HTTP-SPECIFIC FIELDS
 - ``operation_id``: optional operation identifier, default ``None``.
 - ``deprecated``: deprecation flag, default ``False``.
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-    # Minimal:
-    record = FastApiRouteRecord(
-        action_class=CreateOrderAction,
-        path="/api/v1/orders",
-    )
-
-    # Full:
-    record = FastApiRouteRecord(
-        action_class=CreateOrderAction,
-        request_model=CreateOrderRequest,
-        response_model=CreateOrderResponse,
-        params_mapper=map_request_to_params,
-        response_mapper=map_result_to_response,
-        method="POST",
-        path="/api/v1/orders",
-        tags=("orders", "create"),
-        summary="Create order",
-        description="Create a new order in the system.",
-        operation_id="create_order",
-        deprecated=False,
-    )
-
-    # Edge case: lowercase method is normalized.
-    record = FastApiRouteRecord(
-        action_class=CreateOrderAction,
-        method="post",
-        path="/api/v1/orders",
-    )
-    assert record.method == "POST"
 """
 
 from __future__ import annotations

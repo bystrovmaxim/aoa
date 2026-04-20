@@ -28,18 +28,6 @@ the credentials are invalid.
                 v                         v
              UserInfo                    None
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-    from your_app.roles import ServiceApiRole  # BaseRole subclass
-
-    class ApiKeyAuthenticator(Authenticator):
-        async def authenticate(self, credentials: dict) -> UserInfo | None:
-            api_key = credentials.get("api_key")
-            if api_key == "secret":
-                return UserInfo(user_id="api-user", roles=(ServiceApiRole,))
-            return None
 """
 
 from __future__ import annotations
