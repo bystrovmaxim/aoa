@@ -43,6 +43,7 @@ Integration via run():
 from unittest.mock import AsyncMock
 
 import pytest
+from pydantic import Field
 
 from action_machine.context.context import Context
 from action_machine.context.user_info import UserInfo
@@ -64,7 +65,7 @@ from tests.scenarios.domain_model.roles import AdminRole, ManagerRole
 
 def _validate_connections(
     machine: ActionProductMachine,
-    action: BaseAction[BaseParams, BaseResult],
+    action: BaseAction[BaseParams, BaseResult],  # any concrete action binding
     connections: dict[str, BaseResourceManager] | None,
 ) -> dict[str, BaseResourceManager]:
     rt = machine._get_execution_cache(action.__class__)
@@ -74,6 +75,14 @@ def _validate_connections(
 # ═════════════════════════════════════════════════════════════════════════════
 # Helper steps for edge-case tests
 # ═════════════════════════════════════════════════════════════════════════════
+
+
+class _TwoConnParams(BaseParams):
+    token: str = Field(default="x", description="Test token for two-connection probe")
+
+
+class _TwoConnResult(BaseResult):
+    ok: bool = Field(default=True, description="Two-connection probe result")
 
 
 @meta(description="Resource manager stub for connections tests", domain=TestDomain)
@@ -88,12 +97,12 @@ class _MockResourceManager(BaseResourceManager):
 @check_roles(NoneRole)
 @connection(_MockResourceManager, key="db", description="Database")
 @connection(_MockResourceManager, key="cache", description="Cash")
-class _ActionTwoConnectionsAction(BaseAction[BaseParams, BaseResult]):
+class _ActionTwoConnectionsAction(BaseAction[_TwoConnParams, _TwoConnResult]):
     """Declares two connections: db and cache."""
 
     @summary_aspect("test")
     async def build_summary(self, params, state, box, connections):
-        return BaseResult()
+        return _TwoConnResult()
 
 
 # ═════════════════════════════════════════════════════════════════════════════

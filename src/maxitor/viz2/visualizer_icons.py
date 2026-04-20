@@ -1,26 +1,34 @@
-# src/maxitor/visualizer_icons.py
+# src/maxitor/viz2/visualizer_icons.py
 """
 Lucide icon markup (inner SVG children only) per ``node_type``.
 
 Icons are from `lucide-static` (ISC, https://github.com/lucide-icons/lucide).
-Rendered as white strokes on the colored node disk in :mod:`maxitor.visualizer`.
+Rendered as white strokes on the colored node disk in :mod:`maxitor.viz2.interchange_graph_visualizer`.
+
+Interchange axis kinds share ``NODE_TYPE`` from :class:`~action_machine.model.action_graph_node.ActionGraphNode`,
+:class:`~action_machine.model.params_graph_node.ParamsGraphNode`, :class:`~action_machine.model.result_graph_node.ResultGraphNode`,
+:class:`~action_machine.domain.entity_graph_node.EntityGraphNode`, :class:`~action_machine.domain.domain_graph_node.DomainGraphNode`,
+and :class:`~action_machine.auth.role_graph_node.RoleGraphNode`. Other keys are facet-only strings (no graph-node class).
 """
 
 from __future__ import annotations
 
 from urllib.parse import quote
 
+from action_machine.auth.role_graph_node import RoleGraphNode
+from action_machine.domain.domain_graph_node import DomainGraphNode
+from action_machine.domain.entity_graph_node import EntityGraphNode
 from action_machine.legacy.interchange_vertex_labels import (
-    ACTION_VERTEX_TYPE,
     APPLICATION_VERTEX_TYPE,
     CHECKER_VERTEX_TYPE,
     COMPENSATOR_VERTEX_TYPE,
-    DOMAIN_VERTEX_TYPE,
-    ENTITY_VERTEX_TYPE,
     REGULAR_ASPECT_VERTEX_TYPE,
     SERVICE_VERTEX_TYPE,
     SUMMARY_ASPECT_VERTEX_TYPE,
 )
+from action_machine.model.action_graph_node import ActionGraphNode
+from action_machine.model.params_graph_node import ParamsGraphNode
+from action_machine.model.result_graph_node import ResultGraphNode
 
 # fmt: off
 # Inner elements only (no <svg> wrapper), spaces preserved for valid XML.
@@ -31,10 +39,10 @@ VERTEX_TYPE_LUCIDE_INNER_SVG: dict[str, str] = {
         '<rect width="7" height="9" x="14" y="12" rx="1" /> '
         '<rect width="7" height="5" x="3" y="16" rx="1" />'
     ),
-    ACTION_VERTEX_TYPE: (
+    ActionGraphNode.NODE_TYPE: (
         '<path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z" />'
     ),
-    DOMAIN_VERTEX_TYPE: (
+    DomainGraphNode.NODE_TYPE: (
         '<path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" /> '
         '<path d="m3.3 7 8.7 5 8.7-5" /> '
         '<path d="M12 22V12" />'
@@ -78,7 +86,7 @@ VERTEX_TYPE_LUCIDE_INNER_SVG: dict[str, str] = {
         '<path d="M12 9v4" /> '
         '<path d="M12 17h.01" />'
     ),
-    ENTITY_VERTEX_TYPE: (
+    EntityGraphNode.NODE_TYPE: (
         '<ellipse cx="12" cy="5" rx="9" ry="3" /> '
         '<path d="M3 5V19A9 3 0 0 0 21 19V5" /> '
         '<path d="M3 12A9 3 0 0 0 21 12" />'
@@ -142,12 +150,12 @@ VERTEX_TYPE_LUCIDE_INNER_SVG: dict[str, str] = {
         '<path d="M8 18h13" /> '
         '<path d="M8 6h13" />'
     ),
-    "params_schema": (
+    ParamsGraphNode.NODE_TYPE: (
         '<path d="M17 12H3" /> '
         '<path d="m11 18 6-6-6-6" /> '
         '<path d="M21 5v14" />'
     ),
-    "result_schema": (
+    ResultGraphNode.NODE_TYPE: (
         '<path d="M3 19V5" /> '
         '<path d="m13 6-6 6 6 6" /> '
         '<path d="M7 12h14" />'
@@ -189,7 +197,7 @@ VERTEX_TYPE_LUCIDE_INNER_SVG: dict[str, str] = {
 VERTEX_TYPE_LUCIDE_INNER_SVG[SERVICE_VERTEX_TYPE] = VERTEX_TYPE_LUCIDE_INNER_SVG[
     "dependency"
 ]
-VERTEX_TYPE_LUCIDE_INNER_SVG["Role"] = VERTEX_TYPE_LUCIDE_INNER_SVG["role_class"]
+VERTEX_TYPE_LUCIDE_INNER_SVG[RoleGraphNode.NODE_TYPE] = VERTEX_TYPE_LUCIDE_INNER_SVG["role_class"]
 
 # Scale Lucide paths (native 24×24) about the center so strokes sit inside the disk with margin.
 _ICON_INNER_SCALE: float = 0.58

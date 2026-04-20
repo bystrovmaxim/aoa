@@ -27,6 +27,10 @@ class _ProbeParams(BaseParams):
     probe_id: str = Field(description="Probe identifier")
 
 
+class _ProbeResult(BaseResult):
+    ok: bool = Field(default=True, description="Probe outcome flag")
+
+
 class _LooseDescribedDTO(BaseModel, DescribedFieldsIntent):
     """Not BaseParams or BaseResult — stays on the generic ``described_fields`` host."""
 
@@ -40,8 +44,8 @@ class _ProbeDomain(BaseDomain):
 
 @meta(description="Schema link probe", domain=_ProbeDomain)
 @check_roles(NoneRole)
-class _SchemaLinkProbeAction(BaseAction[BaseParams, BaseResult]):
-    """Minimal action with concrete ``BaseAction[BaseParams, BaseResult]``."""
+class _SchemaLinkProbeAction(BaseAction[_ProbeParams, _ProbeResult]):
+    """Minimal action with concrete params/result types (interchange graph needs schema nodes)."""
 
     pass
 

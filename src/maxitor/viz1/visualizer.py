@@ -1,4 +1,4 @@
-# src/maxitor/visualizer.py
+# src/maxitor/viz1/visualizer.py
 """
 HTML visualization for coordinator PyDiGraph graphs.
 
@@ -9,16 +9,16 @@ payload is **embedded in the HTML** at export time (one inline ``JSON`` for G6).
 Call :func:`export_samples_graph_html` again (or pass a freshly built
 ``PyDiGraph``) after code changes; deleting ``archive/logs/*.json`` does not
 affect HTML — optional GraphML/JSON/DOT exports are separate in
-:mod:`maxitor.graph_export`.
+:mod:`maxitor.viz1.graph_export`.
 Layout: d3-force with custom distance/strength per node type. Domains receive
 deterministic **seed** ``x``/``y`` (wedges around a circle) so cross-domain edges
 cross the canvas less than a single random blob; forces still refine the result.
 Node fill colors: **fixed** per ``node_type`` string
 (see :data:`VERTEX_TYPE_FILL_COLORS`); the ``Application`` type is always black. Each node is
 drawn as an SVG **data URL** (white Lucide icons on the colored disk; see
-:mod:`maxitor.visualizer_icons`). Vertex types not listed in
+:mod:`maxitor.viz1.visualizer_icons`). Vertex types not listed in
 :data:`VERTEX_TYPE_FILL_COLORS` share one neutral fill and the dependency-style
-plug (fork) icon — the same glyph as ``dependency`` in :mod:`maxitor.visualizer_icons`. Optional ``node_colors`` in :func:`generate_g6_html` still override per-type
+plug (fork) icon — the same glyph as ``dependency`` in :mod:`maxitor.viz1.visualizer_icons`. Optional ``node_colors`` in :func:`generate_g6_html` still override per-type
 fills.
 
 Domain hulls (``bubble-sets``) are derived only from graph topology: every
@@ -59,11 +59,11 @@ from action_machine.legacy.interchange_vertex_labels import (
     SERVICE_VERTEX_TYPE,
     SUMMARY_ASPECT_VERTEX_TYPE,
 )
-from maxitor.graph_export import (
+from maxitor.viz1.graph_export import (
     coordinator_pygraph_for_visual_export,
     normalize_coordinator_node_payload_for_visualization,
 )
-from maxitor.visualizer_icons import svg_data_uri_for_vertex_icon
+from maxitor.viz1.visualizer_icons import svg_data_uri_for_vertex_icon
 
 G6_CDN_URL = "https://unpkg.com/@antv/g6@5/dist/g6.min.js"
 DEFAULT_APP_GRAPH_HTML = "app_graph.html"
@@ -202,7 +202,7 @@ def _serialize_graph_value(value: Any) -> str:
 
 
 def _default_archive_logs_dir() -> Path:
-    return Path(__file__).resolve().parents[2] / "archive" / "logs"
+    return Path(__file__).resolve().parents[3] / "archive" / "logs"
 
 
 def _vertex_type_counts(graph: rx.PyDiGraph) -> dict[str, int]:
@@ -1338,10 +1338,10 @@ def export_samples_graph_html(
     builds (or receives) a **live** ``PyDiGraph`` and serializes it **into the HTML
     file** as embedded JSON for G6. Re-run this function to refresh the diagram after
     changing entities or lifecycles. Optional ``samples_graph.json`` / GraphML from
-    :mod:`maxitor.graph_export` are independent artifacts.
+    :mod:`maxitor.viz1.graph_export` are independent artifacts.
 
     By default builds the graph dynamically via ``build_sample_coordinator()`` and
-    :func:`maxitor.graph_export.coordinator_pygraph_for_visual_export`. Pass ``graph``
+    :func:`maxitor.viz1.graph_export.coordinator_pygraph_for_visual_export`. Pass ``graph``
     to visualize an already-built ``PyDiGraph`` (e.g. tests or a custom coordinator).
     """
     if graph is None:

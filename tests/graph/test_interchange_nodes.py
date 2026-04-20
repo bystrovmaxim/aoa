@@ -7,7 +7,6 @@ from pydantic import Field
 
 from action_machine.domain.domain_graph_node import DomainGraphNode
 from action_machine.domain.entity_graph_node import EntityGraphNode
-from action_machine.legacy.application_context import ApplicationContext
 from action_machine.legacy.application_context_inspector import ApplicationContextInspector
 from action_machine.model.action_graph_node import ActionGraphNode
 from action_machine.model.base_params import BaseParams
@@ -16,7 +15,6 @@ from action_machine.model.params_graph_node import ParamsGraphNode
 from action_machine.model.result_graph_node import ResultGraphNode
 from graph.base_graph_edge import BaseGraphEdge
 from graph.edge_relationship import ASSOCIATION, COMPOSITION, FLOW
-from graph.facet_edge import FacetEdge
 from graph.facet_vertex import FacetVertex
 from graph.qualified_name import cls_qualified_dotted_id
 from tests.scenarios.domain_model.domains import SystemDomain
@@ -66,46 +64,24 @@ def test_domain_node_interchange_shape() -> None:
         "name": TestDomain.name,
         "description": TestDomain.description,
     }
-    app_id = cls_qualified_dotted_id(ApplicationContext)
-    assert node.edges == [
-        BaseGraphEdge(
-            edge_name="belongs_to",
-            is_dag=False,
-            source_node_id=cls_qualified_dotted_id(TestDomain),
-            source_node_type="Domain",
-            source_node_obj=TestDomain,
-            target_node_id=app_id,
-            target_node_type="Application",
-            target_node_obj=ApplicationContext,
-            edge_relationship=COMPOSITION,
-        ),
-    ]
+    assert node.edges == []
 
     from_facets = ApplicationContextInspector._domain_payload_or_none(TestDomain)
     assert from_facets is not None
     assert from_facets.edges[0].target_node_type == "Application"
+    # Interchange row omits ``belongs_to`` until an ``Application`` node exists in the same graph;
+    # facet layer still carries the structural ``belongs_to`` edge.
     from_node = FacetVertex(
         node_type=node.node_type,
         node_name=node.node_id,
         node_class=node.node_obj,
         node_meta=tuple(node.properties.items()),
-        edges=tuple(
-            FacetEdge(
-                target_node_type=fe.target_node_type,
-                target_name=e.target_node_id,
-                edge_type=e.edge_name,
-                is_structural=e.is_dag,
-                edge_meta=(),
-                target_class_ref=fe.target_class_ref,
-            )
-            for e, fe in zip(node.edges, from_facets.edges, strict=True)
-        ),
+        edges=(),
     )
     assert from_node.node_type == from_facets.node_type
     assert from_node.node_name == from_facets.node_name
     assert from_node.node_class is from_facets.node_class
     assert dict(from_node.node_meta) == dict(from_facets.node_meta)
-    assert from_node.edges == from_facets.edges
 
 
 def test_action_graph_node_links_and_helpers() -> None:

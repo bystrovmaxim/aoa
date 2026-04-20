@@ -10,7 +10,8 @@ from pathlib import Path
 import pytest
 import rustworkx as rx
 
-from maxitor.graph_export import (
+from maxitor.samples.build import _MODULES, build_sample_coordinator
+from maxitor.viz1.graph_export import (
     JSON_SCHEMA_ID,
     coordinator_pygraph_for_visual_export,
     export_pygraph_to_dot,
@@ -21,8 +22,7 @@ from maxitor.graph_export import (
     pygraph_to_dot_source,
     pygraph_to_json_document,
 )
-from maxitor.samples.build import _MODULES, build_sample_coordinator
-from maxitor.visualizer import G6_CDN_URL, export_samples_graph_html, generate_g6_html
+from maxitor.viz1.visualizer import G6_CDN_URL, export_samples_graph_html, generate_g6_html
 
 
 def _import_test_domain_modules() -> None:
@@ -182,7 +182,7 @@ def test_html_export_smoke_contains_g6_cdn_and_node_type(tmp_path: Path) -> None
 @pytest.mark.integration
 def test_export_samples_graph_html_writes_file(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     _import_test_domain_modules()
-    from maxitor import visualizer as viz
+    from maxitor.viz1 import visualizer as viz
 
     monkeypatch.setattr(viz, "_default_archive_logs_dir", lambda: tmp_path)
     path = export_samples_graph_html()

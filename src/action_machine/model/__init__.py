@@ -58,6 +58,7 @@ from action_machine.model.result_graph_node_inspector import ResultGraphNodeInsp
 
 if TYPE_CHECKING:
     from action_machine.model.action_graph_node import ActionGraphNode
+    from action_machine.model.action_graph_node_inspector import ActionGraphNodeInspector
 
 
 def __getattr__(name: str) -> Any:
@@ -79,7 +80,7 @@ def __getattr__(name: str) -> Any:
 
 __all__ = [
     "ActionGraphNode",
-    "ActionGraphNodeInspector",  # noqa: F405 — resolved at runtime via :func:`__getattr__`
+    "ActionGraphNodeInspector",
     "BaseAction",
     "BaseParams",
     "BaseResult",

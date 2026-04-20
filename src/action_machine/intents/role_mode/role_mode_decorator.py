@@ -51,7 +51,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from enum import Enum
-from typing import TypeVar
+from typing import Any, TypeVar, cast
 
 from action_machine.auth.base_role import BaseRole
 
@@ -101,7 +101,7 @@ def role_mode(mode: RoleMode) -> Callable[[_RT], _RT]:
     def decorator(cls: _RT) -> _RT:
         if not isinstance(cls, type):
             raise TypeError(f"@role_mode applies only to classes, got {type(cls)!r}.")
-        cls._role_mode_info = {"mode": mode}
+        cast(Any, cls)._role_mode_info = {"mode": mode}
         return cls
 
     return decorator

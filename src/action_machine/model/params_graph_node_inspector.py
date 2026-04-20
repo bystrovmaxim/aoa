@@ -6,17 +6,18 @@ ParamsGraphNodeInspector — graph-node contributor for ``BaseParams`` subclasse
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Walks the loaded ``BaseParams`` subclass tree and emits one :class:`ParamsGraphNode` per
-visited class (including the ``BaseParams`` axis when :meth:`~graph.base_graph_node_inspector.BaseGraphNodeInspector.get_graph_nodes` calls the root).
+Walks the loaded ``BaseParams`` strict subclass tree and emits one :class:`ParamsGraphNode` per
+visited subtype. The ``BaseParams`` axis is excluded via
+:meth:`~graph.base_graph_node_inspector.BaseGraphNodeInspector._graph_node_walk_excluded_types`.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-    BaseParams  (root)  ->  ``[ParamsGraphNode(BaseParams)]`` when included in the walk
+    BaseParams  (root axis, skipped in walk)
               │
               v
-    each loaded subclass ``cls``  ->  ``[ParamsGraphNode(cls)]`` when ``issubclass(cls, BaseParams)``
+    each loaded strict subclass ``cls``  ->  ``[ParamsGraphNode(cls)]`` when ``issubclass(cls, BaseParams)``
 """
 
 from __future__ import annotations
@@ -32,10 +33,13 @@ from graph.base_graph_node_inspector import BaseGraphNodeInspector
 class ParamsGraphNodeInspector(BaseGraphNodeInspector[BaseParams]):
     """
     AI-CORE-BEGIN
-    ROLE: Emit ``ParamsGraphNode`` rows for every loaded ``BaseParams`` subclass.
-    CONTRACT: Root axis ``BaseParams`` from ``BaseGraphNodeInspector[BaseParams]``; one node per visited subtype.
+    ROLE: Emit ``ParamsGraphNode`` rows for every loaded strict ``BaseParams`` subclass (not the root axis).
+    CONTRACT: Root axis ``BaseParams`` from ``BaseGraphNodeInspector[BaseParams]``; one node per visited strict subtype.
     AI-CORE-END
     """
+
+    def _graph_node_walk_excluded_types(self) -> frozenset[type]:
+        return frozenset({BaseParams})
 
     def _get_type_nodes(self, cls: type) -> list[BaseGraphNode[Any]]:
         if isinstance(cls, type) and issubclass(cls, BaseParams):

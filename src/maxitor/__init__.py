@@ -23,7 +23,7 @@ ARCHITECTURE / DATA FLOW
     build_sample_coordinator()  →  GraphCoordinator (built)
             │
             ├── export_samples_graph_graphml  →  archive/logs/*.graphml
-            └── (visualizer) export_samples_graph_html  →  archive/logs/*.html (live coordinator graph)
+            └── (:mod:`maxitor.viz1.visualizer`) ``export_samples_graph_html``  →  archive/logs/*.html
 
 ═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES
@@ -37,9 +37,9 @@ EXAMPLES
 
 from __future__ import annotations
 
-from maxitor.graph_export import export_samples_graph_graphml
 from maxitor.samples.build import build_sample_coordinator
 from maxitor.samples.store.domain import StoreDomain
+from maxitor.viz1.graph_export import export_samples_graph_graphml
 
 __all__ = [
     "StoreDomain",
