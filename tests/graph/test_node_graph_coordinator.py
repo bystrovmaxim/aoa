@@ -82,6 +82,9 @@ def test_node_graph_coordinator_builds_chain() -> None:
     assert g.num_edges() == 1
     ids = {n.node_id for n in g.nodes()}
     assert ids == {"a", "b"}
+    all_nodes = coord.get_all_nodes()
+    assert [n.node_id for n in all_nodes] == ["a", "b"]
+    assert all_nodes[0] is a and all_nodes[1] is b
 
 
 def test_rx_graph_unavailable_before_build() -> None:
@@ -90,11 +93,18 @@ def test_rx_graph_unavailable_before_build() -> None:
         _ = coord.rx_graph
 
 
+def test_get_all_nodes_unavailable_before_build() -> None:
+    coord = NodeGraphCoordinator()
+    with pytest.raises(RuntimeError, match="rx_graph"):
+        coord.get_all_nodes()
+
+
 def test_rx_graph_empty_after_build_with_no_nodes() -> None:
     coord = NodeGraphCoordinator()
     coord.build([_NodeGraphTestInspector([])])
     assert coord.rx_graph.num_nodes() == 0
     assert coord.rx_graph.num_edges() == 0
+    assert coord.get_all_nodes() == ()
 
 
 def test_duplicate_node_id_raises() -> None:

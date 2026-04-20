@@ -15,7 +15,8 @@ integrity** of :class:`~graph.base_graph_edge.BaseGraphEdge.target_node_id`,
 and **acyclicity** of edges marked ``is_dag=True``, then materializes and **retains**
 a ``rustworkx.PyDiGraph`` whose node weights are :class:`~graph.base_graph_node.BaseGraphNode`
 instances and edge weights are :class:`~graph.base_graph_edge.BaseGraphEdge` instances.
-Read it via :attr:`NodeGraphCoordinator.rx_graph` after a successful :meth:`build`.
+Read it via :attr:`NodeGraphCoordinator.rx_graph` after a successful :meth:`build`,
+or list interchange nodes without touching rustworkx via :meth:`get_all_nodes`.
 
 This coordinator is **domain-agnostic**: it does not interpret ``node_type`` or
 ``edge_name`` beyond validation and DAG checks.
@@ -38,7 +39,7 @@ ARCHITECTURE / DATA FLOW
               ├─ missing target_node_id  -> InvalidGraphError
               ├─ is_dag cycle  -> InvalidGraphError
               v
-    build rustworkx ``PyDiGraph``  ->  :attr:`NodeGraphCoordinator.rx_graph`
+    build rustworkx ``PyDiGraph``  ->  :attr:`NodeGraphCoordinator.rx_graph` / :meth:`get_all_nodes`
 
 ═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES
@@ -69,8 +70,8 @@ class NodeGraphCoordinator:
     AI-CORE-BEGIN
     ROLE: Build rustworkx graph from ``BaseGraphNode`` contributions.
     CONTRACT: ``build`` with :class:`~graph.base_graph_node_inspector.BaseGraphNodeInspector` instances; each ``get_graph_nodes()``;
-        then expose the assembled ``PyDiGraph`` as :attr:`rx_graph`.
-    INVARIANTS: Duplicate id / missing target / DAG cycle raise during build; :attr:`rx_graph` is unavailable until ``build`` succeeds.
+        then expose the assembled ``PyDiGraph`` as :attr:`rx_graph` and interchange nodes via :meth:`get_all_nodes`.
+    INVARIANTS: Duplicate id / missing target / DAG cycle raise during build; :attr:`rx_graph` / :meth:`get_all_nodes` unavailable until ``build`` succeeds.
     AI-CORE-END
     """
 
@@ -116,6 +117,19 @@ class NodeGraphCoordinator:
             msg = "NodeGraphCoordinator.rx_graph is only available after a successful build()."
             raise RuntimeError(msg)
         return self._rx_graph
+
+    def get_all_nodes(self) -> tuple[BaseGraphNode[Any], ...]:
+        """
+        Return every :class:`~graph.base_graph_node.BaseGraphNode` in graph vertex order.
+
+        Vertex weights are the same instances contributed during :meth:`build` (no copies).
+        Order follows ``rustworkx`` node index order, which matches ascending ``node_id`` from
+        :meth:`_materialize_rustworkx_graph` (sorted keys at construction).
+
+        Raises:
+            RuntimeError: :meth:`build` has not completed successfully on this coordinator.
+        """
+        return tuple(self.rx_graph.nodes())
 
     def _inspector_label(self, inspector: BaseGraphNodeInspector[Any]) -> str:
         return type(inspector).__qualname__
