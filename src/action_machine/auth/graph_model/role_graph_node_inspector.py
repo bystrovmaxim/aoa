@@ -27,10 +27,11 @@ from typing import Any
 
 from action_machine.auth.application_role import ApplicationRole
 from action_machine.auth.base_role import BaseRole
-from .role_graph_node import RoleGraphNode
 from action_machine.auth.system_role import SystemRole
 from graph.base_graph_node import BaseGraphNode
 from graph.base_graph_node_inspector import BaseGraphNodeInspector
+
+from .role_graph_node import RoleGraphNode
 
 
 class RoleGraphNodeInspector(BaseGraphNodeInspector[BaseRole]):

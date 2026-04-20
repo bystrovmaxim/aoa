@@ -9,9 +9,9 @@ import pytest
 
 from graph.base_graph_edge import BaseGraphEdge
 from graph.base_graph_node import BaseGraphNode
+from graph.base_graph_node_inspector import BaseGraphNodeInspector
 from graph.edge_relationship import ASSOCIATION
 from graph.exceptions import DuplicateNodeError, InvalidGraphError
-from graph.base_graph_node_inspector import BaseGraphNodeInspector
 from graph.node_graph_coordinator import NodeGraphCoordinator
 
 

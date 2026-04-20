@@ -51,8 +51,8 @@ from graph.qualified_name import cls_qualified_dotted_id
 from .base_callable_graph_node import BaseCallableGraphNode, IntentCallableKind
 from .params_graph_node import ParamsGraphNode
 from .regular_aspect_graph_node import RegularAspectGraphNode
-from .summary_aspect_graph_node import SummaryAspectGraphNode
 from .result_graph_node import ResultGraphNode
+from .summary_aspect_graph_node import SummaryAspectGraphNode
 
 TAction = TypeVar("TAction", bound=BaseAction[Any, Any])
 

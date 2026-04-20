@@ -105,17 +105,17 @@ EXAMPLES
 
 from action_machine.domain.base_domain import BaseDomain
 from action_machine.domain.entity import BaseEntity
-from action_machine.domain.graph_model import (
-    DomainGraphNode,
-    DomainGraphNodeInspector,
-    EntityGraphNode,
-    EntityGraphNodeInspector,
-)
 from action_machine.domain.exceptions import (
     EntityDecoratorError,
     FieldNotLoadedError,
     LifecycleValidationError,
     RelationNotLoadedError,
+)
+from action_machine.domain.graph_model import (
+    DomainGraphNode,
+    DomainGraphNodeInspector,
+    EntityGraphNode,
+    EntityGraphNodeInspector,
 )
 from action_machine.domain.hydration import build
 from action_machine.domain.lifecycle import Lifecycle, StateInfo, StateType
