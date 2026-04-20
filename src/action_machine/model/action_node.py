@@ -8,7 +8,7 @@ PURPOSE
 
 Provides a :class:`~graph.base_graph_node.BaseGraphNode` view derived from
 an action **class** object. Interchange data lives in ``id``, ``node_type``,
-``label``, ``properties``, and ``edges``; the class is :attr:`~graph.base_graph_node.BaseGraphNode.obj`.
+``label``, ``properties``, and ``edges``; the class is :attr:`~graph.base_graph_node.BaseGraphNode.node_obj`.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
@@ -17,7 +17,7 @@ ARCHITECTURE / DATA FLOW
     type[TAction]   (``TAction`` bound to ``BaseAction``)
               │
               v
-    ``BaseAction[P, R]``  →  :meth:`get_schema_generic_binding` (or :meth:`get_params_link` / :meth:`get_result_link`)
+    ``BaseAction[P, R]``  →  :meth:`get_schema_generic_binding` with index ``0`` / ``1`` (or :meth:`get_params_edge` / :meth:`get_result_edge`)
 
     ActionNode ``__init__`` / helpers  →  frozen ``BaseGraphNode``
 
@@ -37,15 +37,15 @@ Edge case: same interchange shape for any concrete ``BaseAction`` subclass type 
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, TypeVar, get_args, get_origin
+from typing import Any, Literal, TypeVar, get_args, get_origin
 
 from action_machine.domain.base_domain import BaseDomain
 from action_machine.legacy.binding.action_generic_params import _resolve_generic_arg
-from action_machine.legacy.interchange_vertex_labels import DOMAIN_VERTEX_TYPE
 from graph.qualified_name import cls_qualified_dotted_id
 from action_machine.model.base_action import BaseAction
 from graph.base_graph_edge import BaseGraphEdge
 from graph.base_graph_node import BaseGraphNode
+from graph.edge_relationship import EdgeRelationship
 
 TAction = TypeVar("TAction", bound=BaseAction[Any, Any])
 
@@ -55,82 +55,88 @@ class ActionNode(BaseGraphNode[type[TAction]]):
     """
     AI-CORE-BEGIN
     ROLE: Interchange node for a concrete ``BaseAction`` host class.
-    CONTRACT: ``get_properties`` / ``get_domain_link`` (``@meta``); ``get_schema_generic_binding`` / ``get_params_link`` / ``get_result_link`` (``BaseAction[P,R]``).
+    CONTRACT: ``get_properties`` / ``get_domain_edge`` (``@meta``); ``get_schema_generic_binding`` / ``get_params_edge`` / ``get_result_edge`` (``BaseAction[P,R]``).
     AI-CORE-END
     """
 
     def __init__(self, action_cls: type[TAction]) -> None:
         super().__init__(
-            id=cls_qualified_dotted_id(action_cls),
+            node_id=cls_qualified_dotted_id(action_cls),
             node_type="Action",
             label=action_cls.__name__,
             properties=dict(ActionNode.get_properties(action_cls)),
             edges=list(ActionNode._get_all_edges(action_cls)),
-            obj=action_cls,
+            node_obj=action_cls,
         )
 
     @classmethod
     def get_schema_generic_binding(
         cls,
         action_cls: type[TAction],
-    ) -> tuple[type | None, type | None]:
+        type_arg_index: Literal[0, 1],
+    ) -> type | None:
         """
-        One pass over ``BaseAction[P, R]``: resolved params and result schema **types**.
+        Resolve one schema type parameter from the first parameterized ``BaseAction[P, R]`` base
+        in the action MRO.
 
-        Resolves ``P`` and ``R`` from the first parameterized ``BaseAction[P, R]`` base in the
-        action MRO (either type may be unresolved → ``None`` on that side).
+        Args:
+            action_cls: Concrete action class.
+            type_arg_index: ``0`` for params ``P`` (``args[0]``), ``1`` for result ``R`` (``args[1]``).
 
         Returns:
-            ``(params_type, result_type)`` — use :meth:`get_params_link` / :meth:`get_result_link`
-            for :class:`~graph.base_graph_edge.BaseGraphEdge` with ``cls_qualified_dotted_id`` applied.
+            Resolved type, or ``None`` when no matching base, too few type args, or unresolved type.
         """
-        params_type: type | None = None
-        result_type: type | None = None
         for klass in action_cls.__mro__:
             for base in getattr(klass, "__orig_bases__", ()):
                 if get_origin(base) is BaseAction:
                     args = get_args(base)
-                    if len(args) >= 2:
-                        params_type = _resolve_generic_arg(args[0], action_cls)
-                        result_type = _resolve_generic_arg(args[1], action_cls)
-                        break
-            else:
-                continue
-            break
-        return params_type, result_type
+                    if len(args) <= type_arg_index:
+                        return None
+                    return _resolve_generic_arg(args[type_arg_index], action_cls)
+        return None
 
     @classmethod
-    def get_params_link(
+    def get_params_edge(
         cls,
         action_cls: type[TAction],
     ) -> BaseGraphEdge | None:
         """Params schema edge, or ``None`` when the params type does not resolve."""
-        params_type, _ = cls.get_schema_generic_binding(action_cls)
+        params_type = cls.get_schema_generic_binding(action_cls, 0)
         if params_type is None:
             return None
         return BaseGraphEdge(
-            link_name="params",
-            target_id=cls_qualified_dotted_id(params_type),
-            target_node_type="params_schema",
+            edge_name="params",
             is_dag=False,
-            target_cls=params_type,
+            source_node_id=cls_qualified_dotted_id(action_cls),
+            source_node_type="Action",
+            source_node_obj=action_cls,
+            source_node_relationship=EdgeRelationship.FLOW,
+            target_node_id=cls_qualified_dotted_id(params_type),
+            target_node_type="params_schema",
+            target_node_obj=params_type,
+            target_node_relationship=EdgeRelationship.REALIZATION,
         )
 
     @classmethod
-    def get_result_link(
+    def get_result_edge(
         cls,
         action_cls: type[TAction],
     ) -> BaseGraphEdge | None:
         """Result schema edge, or ``None`` when the result type does not resolve."""
-        _, result_type = cls.get_schema_generic_binding(action_cls)
+        result_type = cls.get_schema_generic_binding(action_cls, 1)
         if result_type is None:
             return None
         return BaseGraphEdge(
-            link_name="result",
-            target_id=cls_qualified_dotted_id(result_type),
-            target_node_type="result_schema",
+            edge_name="result",
             is_dag=False,
-            target_cls=result_type,
+            source_node_id=cls_qualified_dotted_id(action_cls),
+            source_node_type="Action",
+            source_node_obj=action_cls,
+            source_node_relationship=EdgeRelationship.FLOW,
+            target_node_id=cls_qualified_dotted_id(result_type),
+            target_node_type="result_schema",
+            target_node_obj=result_type,
+            target_node_relationship=EdgeRelationship.REALIZATION,
         )
 
     @classmethod
@@ -140,7 +146,7 @@ class ActionNode(BaseGraphNode[type[TAction]]):
         return raw if isinstance(raw, dict) else {}
 
     @classmethod
-    def get_domain_link(
+    def get_domain_edge(
         cls,
         action_cls: type[TAction],
     ) -> BaseGraphEdge | None:
@@ -152,11 +158,16 @@ class ActionNode(BaseGraphNode[type[TAction]]):
         if not isinstance(domain_cls, type) or not issubclass(domain_cls, BaseDomain):
             return None
         return BaseGraphEdge(
-            link_name="domain",
-            target_id=cls_qualified_dotted_id(domain_cls),
-            target_node_type=DOMAIN_VERTEX_TYPE,
+            edge_name="domain",
             is_dag=False,
-            target_cls=domain_cls,
+            source_node_id=cls_qualified_dotted_id(action_cls),
+            source_node_type="Action",
+            source_node_obj=action_cls,
+            source_node_relationship=EdgeRelationship.ASSOCIATION,
+            target_node_id=cls_qualified_dotted_id(domain_cls),
+            target_node_type="Domain",
+            target_node_obj=domain_cls,
+            target_node_relationship=EdgeRelationship.ASSOCIATION,
         )
 
     @classmethod
@@ -170,13 +181,13 @@ class ActionNode(BaseGraphNode[type[TAction]]):
 
     @classmethod
     def _get_all_edges(cls, action_cls: type[TAction]) -> list[BaseGraphEdge]:
-        """From :meth:`get_domain_link`, :meth:`get_params_link`, :meth:`get_result_link` — drops ``None``."""
+        """From :meth:`get_domain_edge`, :meth:`get_params_edge`, :meth:`get_result_edge` — drops ``None``."""
         return [
             e
             for e in (
-                cls.get_domain_link(action_cls),
-                cls.get_params_link(action_cls),
-                cls.get_result_link(action_cls),
+                cls.get_domain_edge(action_cls),
+                cls.get_params_edge(action_cls),
+                cls.get_result_edge(action_cls),
             )
             if e is not None
         ]

@@ -10,14 +10,14 @@ Collects :class:`~graph.base_graph_node.BaseGraphNode` instances from
 registered :class:`~graph.base_intent_inspector.BaseIntentInspector`
 **instances** (each must implement :meth:`~graph.base_intent_inspector.BaseIntentInspector.get_graph_nodes`),
 validates **unique**
-:attr:`~graph.base_graph_node.BaseGraphNode.id` keys, **referential
-integrity** of :class:`~graph.base_graph_edge.BaseGraphEdge.target_id`,
+:attr:`~graph.base_graph_node.BaseGraphNode.node_id` keys, **referential
+integrity** of :class:`~graph.base_graph_edge.BaseGraphEdge.target_node_id`,
 and **acyclicity** of edges marked ``is_dag=True``, then materializes a
 ``rustworkx.PyDiGraph`` in memory for the duration of the build step (no retained
 read API — construction only).
 
 This coordinator is **domain-agnostic**: it does not interpret ``node_type`` or
-``link_name`` beyond validation and DAG checks.
+``edge_name`` beyond validation and DAG checks.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
@@ -31,10 +31,10 @@ ARCHITECTURE / DATA FLOW
     for each: inspector.get_graph_nodes()  ->  flat list of (node, inspector_label)
               │
               v
-    dict[id -> BaseGraphNode] with unique ids
+    dict[node_id -> BaseGraphNode] with unique ids
               │
               ├─ duplicate id  -> DuplicateNodeError
-              ├─ missing target_id  -> InvalidGraphError
+              ├─ missing target_node_id  -> InvalidGraphError
               ├─ is_dag cycle  -> InvalidGraphError
               v
     build rustworkx PyDiGraph (local), then discard
@@ -84,8 +84,8 @@ class NodeGraphCoordinator:
         validate, and construct the ``rustworkx`` graph (not exposed).
 
         Raises:
-            DuplicateNodeError: two sources contributed the same ``node.id``.
-            InvalidGraphError: missing ``target_id`` or a cycle among ``is_dag`` edges.
+            DuplicateNodeError: two sources contributed the same ``node.node_id``.
+            InvalidGraphError: missing ``target_node_id`` or a cycle among ``is_dag`` edges.
             NotImplementedError: an inspector inherits the default ``get_graph_nodes`` stub.
             RuntimeError: if :meth:`build` was already called on this instance.
         """
@@ -124,13 +124,13 @@ class NodeGraphCoordinator:
         flat: list[tuple[BaseGraphNode[Any], str]],
     ) -> dict[str, BaseGraphNode[Any]]:
         """
-        Build ``id -> node`` and ensure each :attr:`~graph.base_graph_node.BaseGraphNode.id`
+        Build ``node_id -> node`` and ensure each :attr:`~graph.base_graph_node.BaseGraphNode.node_id`
         appears at most once.
         """
         nodes: dict[str, BaseGraphNode[Any]] = {}
         owners: dict[str, str] = {}
         for node, label in flat:
-            nid = node.id
+            nid = node.node_id
             if nid in nodes:
                 raise DuplicateNodeError(
                     key=nid,
@@ -145,10 +145,10 @@ class NodeGraphCoordinator:
         ids = set(nodes.keys())
         for source_id, node in nodes.items():
             for edge in node.edges:
-                if edge.target_id not in ids:
+                if edge.target_node_id not in ids:
                     raise InvalidGraphError(
-                        f"Link {edge.link_name!r} from {source_id!r} references "
-                        f"missing target_id {edge.target_id!r}.",
+                        f"Edge {edge.edge_name!r} from {source_id!r} references "
+                        f"missing target_node_id {edge.target_node_id!r}.",
                     )
 
     def _validate_dag_acyclicity(self, nodes: dict[str, BaseGraphNode[Any]]) -> None:
@@ -163,7 +163,7 @@ class NodeGraphCoordinator:
                 if not edge.is_dag:
                     continue
                 has_dag = True
-                g.add_edge(idx[source_id], idx[edge.target_id], edge.link_name)
+                g.add_edge(idx[source_id], idx[edge.target_node_id], edge.edge_name)
         if has_dag and not rx.is_directed_acyclic_graph(g):
             raise InvalidGraphError(
                 "Edges with is_dag=True form a directed cycle. "
@@ -179,5 +179,5 @@ class NodeGraphCoordinator:
         for source_id, node in nodes.items():
             sidx = id_to_idx[source_id]
             for edge in node.edges:
-                tidx = id_to_idx[edge.target_id]
+                tidx = id_to_idx[edge.target_node_id]
                 g.add_edge(sidx, tidx, edge)

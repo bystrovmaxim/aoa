@@ -9,7 +9,7 @@ PURPOSE
 Materializes a frozen :class:`~graph.base_graph_node.BaseGraphNode` from an
 entity **class** object: stable ``id`` (dotted path), ``node_type="Entity"``,
 ``label`` from the class name, ``properties`` from :meth:`get_properties`, ``edges`` from
-:meth:`_get_all_edges` via :meth:`get_domain_link` (``@entity`` / ``_entity_info`` and ``@meta`` / ``_meta_info`` merged; see :meth:`_meta_info_dict`).
+:meth:`_get_all_edges` via :meth:`get_domain_edge` (``@entity`` / ``_entity_info`` and ``@meta`` / ``_meta_info`` merged; see :meth:`_meta_info_dict`).
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
@@ -41,10 +41,10 @@ from typing import Any, TypeVar
 
 from action_machine.domain.base_domain import BaseDomain
 from action_machine.domain.entity import BaseEntity
-from action_machine.legacy.interchange_vertex_labels import DOMAIN_VERTEX_TYPE
 from graph.qualified_name import cls_qualified_dotted_id
 from graph.base_graph_edge import BaseGraphEdge
 from graph.base_graph_node import BaseGraphNode
+from graph.edge_relationship import EdgeRelationship
 
 TEntity = TypeVar("TEntity", bound=BaseEntity)
 
@@ -54,7 +54,7 @@ class EntityGraphNode(BaseGraphNode[type[TEntity]]):
     """
     AI-CORE-BEGIN
     ROLE: Interchange bridge for ``BaseEntity`` host classes.
-    CONTRACT: Dotted-path ``id``, ``__name__`` label; ``get_properties`` / ``get_domain_link`` via :meth:`_meta_info_dict`; ``edges`` = :meth:`_get_all_edges`.
+    CONTRACT: Dotted-path ``id``, ``__name__`` label; ``get_properties`` / ``get_domain_edge`` via :meth:`_meta_info_dict`; ``edges`` = :meth:`_get_all_edges`.
     AI-CORE-END
     """
 
@@ -71,7 +71,7 @@ class EntityGraphNode(BaseGraphNode[type[TEntity]]):
         return out
 
     @classmethod
-    def get_domain_link(
+    def get_domain_edge(
         cls,
         entity_cls: type[TEntity],
     ) -> BaseGraphEdge | None:
@@ -86,17 +86,22 @@ class EntityGraphNode(BaseGraphNode[type[TEntity]]):
         if not isinstance(domain_cls, type) or not issubclass(domain_cls, BaseDomain):
             return None
         return BaseGraphEdge(
-            link_name="domain",
-            target_id=cls_qualified_dotted_id(domain_cls),
-            target_node_type=DOMAIN_VERTEX_TYPE,
+            edge_name="domain",
             is_dag=False,
-            target_cls=domain_cls,
+            source_node_id=cls_qualified_dotted_id(entity_cls),
+            source_node_type="Entity",
+            source_node_obj=entity_cls,
+            source_node_relationship=EdgeRelationship.ASSOCIATION,
+            target_node_id=cls_qualified_dotted_id(domain_cls),
+            target_node_type="Domain",
+            target_node_obj=domain_cls,
+            target_node_relationship=EdgeRelationship.ASSOCIATION,
         )
 
     @classmethod
     def _get_all_edges(cls, entity_cls: type[TEntity]) -> list[BaseGraphEdge]:
-        """From :meth:`get_domain_link` — empty list when ``get_domain_link`` is ``None``."""
-        edge = cls.get_domain_link(entity_cls)
+        """From :meth:`get_domain_edge` — empty list when ``get_domain_edge`` is ``None``."""
+        edge = cls.get_domain_edge(entity_cls)
         return [edge] if edge is not None else []
 
     @classmethod
@@ -110,10 +115,10 @@ class EntityGraphNode(BaseGraphNode[type[TEntity]]):
 
     def __init__(self, entity_cls: type[TEntity]) -> None:
         super().__init__(
-            id=cls_qualified_dotted_id(entity_cls),
+            node_id=cls_qualified_dotted_id(entity_cls),
             node_type="Entity",
             label=entity_cls.__name__,
             properties=dict(EntityGraphNode.get_properties(entity_cls)),
             edges=list(EntityGraphNode._get_all_edges(entity_cls)),
-            obj=entity_cls,
+            node_obj=entity_cls,
         )

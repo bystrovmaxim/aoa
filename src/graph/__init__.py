@@ -32,6 +32,7 @@ from __future__ import annotations
 
 from graph.base_facet_snapshot import BaseFacetSnapshot
 from graph.base_graph_edge import BaseGraphEdge
+from graph.edge_relationship import EdgeRelationship
 from graph.base_graph_node import BaseGraphNode
 from graph.base_intent_inspector import (
     FacetInspectResult,
@@ -63,6 +64,7 @@ __all__ = [
     "BaseFacetSnapshot",
     "BaseGraphEdge",
     "BaseGraphNode",
+    "EdgeRelationship",
     "FacetInspectResult",
     "GraphBuilder",
     "GraphCoordinator",
