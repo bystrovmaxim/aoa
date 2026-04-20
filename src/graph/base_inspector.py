@@ -13,7 +13,8 @@ class BaseInspector:
 
     def get_graph_nodes(self) -> list[BaseGraphNode[Any]]:
         """
-        Optional hook for interchange-node assembly (e.g. :class:`~graph.node_graph_coordinator.NodeGraphCoordinator`).
+        Optional hook for interchange-node assembly; prefer subclassing
+        :class:`~graph.base_node_graph_inspector.BaseNodeGraphInspector` for :class:`~graph.node_graph_coordinator.NodeGraphCoordinator`.
 
         Default implementation raises :exc:`NotImplementedError`. Subclasses that
         emit :class:`~graph.base_graph_node.BaseGraphNode` instances override this **instance**
