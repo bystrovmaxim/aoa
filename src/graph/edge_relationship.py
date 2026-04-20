@@ -1,6 +1,6 @@
 # src/graph/edge_relationship.py
 """
-ArchiMate-style **relationship** kinds for interchange edge endpoints.
+ArchiMate-style **relationship** kinds for interchange edges.
 
 Values follow the ArchiMate 3 relationship layer naming (string values match common spellings).
 UML-style **Generalization** is included alongside ArchiMate **Specialization** for interchange sources that use either label.
@@ -13,7 +13,7 @@ from enum import StrEnum
 
 
 class EdgeRelationship(StrEnum):
-    """Relationship kind at one end of a :class:`~graph.base_graph_edge.BaseGraphEdge`."""
+    """ArchiMate-style relationship kind carried by a :class:`~graph.base_graph_edge.BaseGraphEdge`."""
 
     ASSOCIATION = "Association"
     AGGREGATION = "Aggregation"

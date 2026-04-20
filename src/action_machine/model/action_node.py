@@ -110,11 +110,10 @@ class ActionNode(BaseGraphNode[type[TAction]]):
             source_node_id=cls_qualified_dotted_id(action_cls),
             source_node_type="Action",
             source_node_obj=action_cls,
-            source_node_relationship=EdgeRelationship.FLOW,
             target_node_id=cls_qualified_dotted_id(params_type),
             target_node_type="params_schema",
             target_node_obj=params_type,
-            target_node_relationship=EdgeRelationship.REALIZATION,
+            edge_relationship=EdgeRelationship.FLOW,
         )
 
     @classmethod
@@ -132,11 +131,10 @@ class ActionNode(BaseGraphNode[type[TAction]]):
             source_node_id=cls_qualified_dotted_id(action_cls),
             source_node_type="Action",
             source_node_obj=action_cls,
-            source_node_relationship=EdgeRelationship.FLOW,
             target_node_id=cls_qualified_dotted_id(result_type),
             target_node_type="result_schema",
             target_node_obj=result_type,
-            target_node_relationship=EdgeRelationship.REALIZATION,
+            edge_relationship=EdgeRelationship.FLOW,
         )
 
     @classmethod
@@ -163,11 +161,10 @@ class ActionNode(BaseGraphNode[type[TAction]]):
             source_node_id=cls_qualified_dotted_id(action_cls),
             source_node_type="Action",
             source_node_obj=action_cls,
-            source_node_relationship=EdgeRelationship.ASSOCIATION,
             target_node_id=cls_qualified_dotted_id(domain_cls),
             target_node_type="Domain",
             target_node_obj=domain_cls,
-            target_node_relationship=EdgeRelationship.ASSOCIATION,
+            edge_relationship=EdgeRelationship.ASSOCIATION,
         )
 
     @classmethod

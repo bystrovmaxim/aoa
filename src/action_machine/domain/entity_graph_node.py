@@ -91,11 +91,10 @@ class EntityGraphNode(BaseGraphNode[type[TEntity]]):
             source_node_id=cls_qualified_dotted_id(entity_cls),
             source_node_type="Entity",
             source_node_obj=entity_cls,
-            source_node_relationship=EdgeRelationship.ASSOCIATION,
             target_node_id=cls_qualified_dotted_id(domain_cls),
             target_node_type="Domain",
             target_node_obj=domain_cls,
-            target_node_relationship=EdgeRelationship.ASSOCIATION,
+            edge_relationship=EdgeRelationship.ASSOCIATION,
         )
 
     @classmethod
