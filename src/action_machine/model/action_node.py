@@ -44,7 +44,7 @@ from action_machine.legacy.binding.action_generic_params import _resolve_generic
 from action_machine.model.base_action import BaseAction
 from graph.base_graph_edge import BaseGraphEdge
 from graph.base_graph_node import BaseGraphNode
-from graph.edge_relationship import EdgeRelationship
+from graph.edge_relationship import ASSOCIATION, FLOW
 from graph.qualified_name import cls_qualified_dotted_id
 
 TAction = TypeVar("TAction", bound=BaseAction[Any, Any])
@@ -113,7 +113,7 @@ class ActionNode(BaseGraphNode[type[TAction]]):
             target_node_id=cls_qualified_dotted_id(params_type),
             target_node_type="params_schema",
             target_node_obj=params_type,
-            edge_relationship=EdgeRelationship.FLOW,
+            edge_relationship=FLOW,
         )
 
     @classmethod
@@ -134,7 +134,7 @@ class ActionNode(BaseGraphNode[type[TAction]]):
             target_node_id=cls_qualified_dotted_id(result_type),
             target_node_type="result_schema",
             target_node_obj=result_type,
-            edge_relationship=EdgeRelationship.FLOW,
+            edge_relationship=FLOW,
         )
 
     @classmethod
@@ -164,7 +164,7 @@ class ActionNode(BaseGraphNode[type[TAction]]):
             target_node_id=cls_qualified_dotted_id(domain_cls),
             target_node_type="Domain",
             target_node_obj=domain_cls,
-            edge_relationship=EdgeRelationship.ASSOCIATION,
+            edge_relationship=ASSOCIATION,
         )
 
     @classmethod

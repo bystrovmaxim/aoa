@@ -43,7 +43,7 @@ from action_machine.domain.base_domain import BaseDomain
 from action_machine.domain.entity import BaseEntity
 from graph.base_graph_edge import BaseGraphEdge
 from graph.base_graph_node import BaseGraphNode
-from graph.edge_relationship import EdgeRelationship
+from graph.edge_relationship import ASSOCIATION
 from graph.qualified_name import cls_qualified_dotted_id
 
 TEntity = TypeVar("TEntity", bound=BaseEntity)
@@ -94,7 +94,7 @@ class EntityGraphNode(BaseGraphNode[type[TEntity]]):
             target_node_id=cls_qualified_dotted_id(domain_cls),
             target_node_type="Domain",
             target_node_obj=domain_cls,
-            edge_relationship=EdgeRelationship.ASSOCIATION,
+            edge_relationship=ASSOCIATION,
         )
 
     @classmethod
