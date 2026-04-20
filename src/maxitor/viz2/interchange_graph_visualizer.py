@@ -36,12 +36,14 @@ from action_machine.legacy.interchange_vertex_labels import (
     APPLICATION_VERTEX_TYPE,
     CHECKER_VERTEX_TYPE,
     COMPENSATOR_VERTEX_TYPE,
-    REGULAR_ASPECT_VERTEX_TYPE,
     SERVICE_VERTEX_TYPE,
     SUMMARY_ASPECT_VERTEX_TYPE,
 )
 from action_machine.model.graph_model.action_graph_node import ActionGraphNode
 from action_machine.model.graph_model.params_graph_node import ParamsGraphNode
+from action_machine.model.graph_model.regular_aspect_graph_node import (
+    RegularAspectGraphNode,
+)
 from action_machine.model.graph_model.result_graph_node import ResultGraphNode
 from graph.base_graph_edge import BaseGraphEdge
 from graph.base_graph_node import BaseGraphNode
@@ -69,7 +71,7 @@ VERTEX_TYPE_FILL_COLORS: dict[str, str] = {
     DomainGraphNode.NODE_TYPE: "#377EB8",
     "dependency": "#4DAF4A",
     "connection": "#984EA3",
-    REGULAR_ASPECT_VERTEX_TYPE: "#FF7F00",
+    RegularAspectGraphNode.NODE_TYPE: "#FF7F00",
     SUMMARY_ASPECT_VERTEX_TYPE: "#FF7F00",
     CHECKER_VERTEX_TYPE: "#A65628",
     COMPENSATOR_VERTEX_TYPE: "#F781BF",
@@ -114,7 +116,7 @@ def _graph_vertex_key(node: dict[str, Any]) -> str:
 def _vertex_facet_label(node: dict[str, Any]) -> str:
     nt = str(node.get("node_type", "unknown"))
     if nt in (
-        REGULAR_ASPECT_VERTEX_TYPE,
+        RegularAspectGraphNode.NODE_TYPE,
         SUMMARY_ASPECT_VERTEX_TYPE,
         CHECKER_VERTEX_TYPE,
         COMPENSATOR_VERTEX_TYPE,
@@ -129,7 +131,7 @@ def _vertex_facet_label(node: dict[str, Any]) -> str:
 def _element_short_name(node: dict[str, Any]) -> str:
     nt = str(node.get("node_type", "") or "").strip()
     if nt in (
-        REGULAR_ASPECT_VERTEX_TYPE,
+        RegularAspectGraphNode.NODE_TYPE,
         SUMMARY_ASPECT_VERTEX_TYPE,
         CHECKER_VERTEX_TYPE,
         COMPENSATOR_VERTEX_TYPE,
