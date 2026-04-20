@@ -52,7 +52,9 @@ from action_machine.model.base_schema import BaseSchema
 from action_machine.model.base_state import BaseState
 from action_machine.model.exceptions import *  # noqa: F403
 from action_machine.model.params_graph_node import ParamsGraphNode
+from action_machine.model.params_graph_node_inspector import ParamsGraphNodeInspector
 from action_machine.model.result_graph_node import ResultGraphNode
+from action_machine.model.result_graph_node_inspector import ResultGraphNodeInspector
 
 if TYPE_CHECKING:
     from action_machine.model.action_graph_node import ActionGraphNode
@@ -84,6 +86,8 @@ __all__ = [
     "BaseSchema",
     "BaseState",
     "ParamsGraphNode",
+    "ParamsGraphNodeInspector",
     "ResultGraphNode",
+    "ResultGraphNodeInspector",
     *_exceptions.__all__,
 ]

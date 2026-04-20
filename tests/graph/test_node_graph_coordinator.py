@@ -77,6 +77,24 @@ def test_node_graph_coordinator_builds_chain() -> None:
     coord = NodeGraphCoordinator()
     coord.build([_NodeGraphTestInspector([a, b])])
     assert coord._built
+    g = coord.rx_graph
+    assert g.num_nodes() == 2
+    assert g.num_edges() == 1
+    ids = {n.node_id for n in g.nodes()}
+    assert ids == {"a", "b"}
+
+
+def test_rx_graph_unavailable_before_build() -> None:
+    coord = NodeGraphCoordinator()
+    with pytest.raises(RuntimeError, match="rx_graph"):
+        _ = coord.rx_graph
+
+
+def test_rx_graph_empty_after_build_with_no_nodes() -> None:
+    coord = NodeGraphCoordinator()
+    coord.build([_NodeGraphTestInspector([])])
+    assert coord.rx_graph.num_nodes() == 0
+    assert coord.rx_graph.num_edges() == 0
 
 
 def test_duplicate_node_id_raises() -> None:
@@ -113,6 +131,8 @@ def test_non_dag_cycle_allowed() -> None:
     coord = NodeGraphCoordinator()
     coord.build([_NodeGraphTestInspector([a, b])])
     assert coord._built
+    assert coord.rx_graph.num_nodes() == 2
+    assert coord.rx_graph.num_edges() == 2
 
 
 def test_build_twice_raises() -> None:
