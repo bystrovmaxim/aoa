@@ -37,6 +37,7 @@ from graph.base_intent_inspector import (
     FacetInspectResult,
     InspectGraphPair,
 )
+from graph.base_node_graph_inspector import BaseNodeGraphInspector
 from graph.constants import (
     DAG_EDGE_TYPES,
     INTERNAL_EDGE_TYPES,
@@ -93,6 +94,7 @@ __all__ = [
     "BaseFacetSnapshot",
     "BaseGraphEdge",
     "BaseGraphNode",
+    "BaseNodeGraphInspector",
     "EdgeRelationship",
     "EndpointAttachment",
     "FacetInspectResult",

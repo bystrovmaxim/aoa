@@ -7,11 +7,10 @@ import pytest
 
 from graph.base_graph_edge import BaseGraphEdge
 from graph.base_graph_node import BaseGraphNode
-from graph.base_intent_inspector import BaseIntentInspector
 from graph.edge_relationship import ASSOCIATION
 from graph.exceptions import DuplicateNodeError, InvalidGraphError
-from graph.facet_vertex import FacetVertex
 from graph.node_graph_coordinator import NodeGraphCoordinator
+from graph.base_node_graph_inspector import BaseNodeGraphInspector
 
 
 def _edge(
@@ -54,25 +53,11 @@ def _make_node(
     return _N(object())
 
 
-class _NodeGraphProbeIntent:
-    """Unused marker for :attr:`_NodeGraphTestInspector._target_intent`."""
-
-
-class _NodeGraphTestInspector(BaseIntentInspector):
-    """Test-only :class:`BaseIntentInspector` that only implements :meth:`get_graph_nodes`."""
-
-    _target_intent = _NodeGraphProbeIntent
+class _NodeGraphTestInspector(BaseNodeGraphInspector):
+    """Test-only :class:`BaseNodeGraphInspector` stub."""
 
     def __init__(self, nodes: list[BaseGraphNode[object]]) -> None:
         self._nodes = nodes
-
-    @classmethod
-    def inspect(cls, target_cls: type) -> None:
-        return None
-
-    @classmethod
-    def _build_payload(cls, target_cls: type) -> FacetVertex:
-        raise NotImplementedError("test stub")
 
     def get_graph_nodes(self) -> list[BaseGraphNode[object]]:
         return list(self._nodes)
@@ -130,7 +115,7 @@ def test_build_twice_raises() -> None:
         coord.build([_NodeGraphTestInspector([n])])
 
 
-def test_build_accepts_base_intent_inspector_instances() -> None:
+def test_build_accepts_base_node_graph_inspector_instances() -> None:
     n = _make_node("a", [])
     insp = _NodeGraphTestInspector([n])
-    assert isinstance(insp, BaseIntentInspector)
+    assert isinstance(insp, BaseNodeGraphInspector)
