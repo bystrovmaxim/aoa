@@ -12,7 +12,7 @@ per ``@regular_aspect``, one :class:`~graph.summary_aspect_graph_node.SummaryAsp
 ``@summary_aspect``, and one :class:`~graph.compensator_graph_node.CompensatorGraphNode` per
 ``@compensate``, and one :class:`~graph.error_handler_graph_node.ErrorHandlerGraphNode` per
 ``@on_error`` method declared on that class (own ``vars`` only; see
-:meth:`TypeIntrospection.collect_own_class_callables_by_callable_kind`). The ``BaseAction`` axis
+:meth:`IntentIntrospection.collect_own_class_callables_by_callable_kind`). The ``BaseAction`` axis
 itself is excluded via
 :meth:`~graph.base_graph_node_inspector.BaseGraphNodeInspector._graph_node_walk_excluded_types`
 so the abstract root does not emit an interchange row.
@@ -33,7 +33,7 @@ from __future__ import annotations
 from typing import Any
 
 from action_machine.model.base_action import BaseAction
-from action_machine.tools import CallableKind, TypeIntrospection
+from action_machine.introspection_tools import CallableKind, IntentIntrospection, TypeIntrospection
 from graph.base_graph_node import BaseGraphNode
 from graph.base_graph_node_inspector import BaseGraphNodeInspector
 
@@ -61,7 +61,7 @@ class ActionGraphNodeInspector(BaseGraphNodeInspector[BaseAction[Any, Any]]):
         """Interchange nodes for each own-class ``@regular_aspect`` on ``action_cls``."""
         return [
             RegularAspectGraphNode(aspect_callable)
-            for aspect_callable in TypeIntrospection.collect_own_class_callables_by_callable_kind(
+            for aspect_callable in IntentIntrospection.collect_own_class_callables_by_callable_kind(
                 action_cls,
                 CallableKind.REGULAR_ASPECT,
             )
@@ -72,7 +72,7 @@ class ActionGraphNodeInspector(BaseGraphNodeInspector[BaseAction[Any, Any]]):
         """Interchange nodes for each own-class ``@summary_aspect`` on ``action_cls``."""
         return [
             SummaryAspectGraphNode(aspect_callable)
-            for aspect_callable in TypeIntrospection.collect_own_class_callables_by_callable_kind(
+            for aspect_callable in IntentIntrospection.collect_own_class_callables_by_callable_kind(
                 action_cls,
                 CallableKind.SUMMARY_ASPECT,
             )
@@ -83,7 +83,7 @@ class ActionGraphNodeInspector(BaseGraphNodeInspector[BaseAction[Any, Any]]):
         """Interchange nodes for each own-class ``@compensate`` on ``action_cls``."""
         return [
             CompensatorGraphNode(compensator_callable)
-            for compensator_callable in TypeIntrospection.collect_own_class_callables_by_callable_kind(
+            for compensator_callable in IntentIntrospection.collect_own_class_callables_by_callable_kind(
                 action_cls,
                 CallableKind.COMPENSATE,
             )
@@ -94,7 +94,7 @@ class ActionGraphNodeInspector(BaseGraphNodeInspector[BaseAction[Any, Any]]):
         """Interchange nodes for each own-class ``@on_error`` on ``action_cls``."""
         return [
             ErrorHandlerGraphNode(handler_callable)
-            for handler_callable in TypeIntrospection.collect_own_class_callables_by_callable_kind(
+            for handler_callable in IntentIntrospection.collect_own_class_callables_by_callable_kind(
                 action_cls,
                 CallableKind.ON_ERROR,
             )

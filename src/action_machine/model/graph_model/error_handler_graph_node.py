@@ -28,7 +28,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any, ClassVar
 
-from action_machine.tools import TypeIntrospection
+from action_machine.introspection_tools import TypeIntrospection
 from graph.base_graph_node import BaseGraphNode
 
 
@@ -41,7 +41,7 @@ class ErrorHandlerGraphNode(BaseGraphNode[Callable[..., Any]]):
     AI-CORE-END
     """
 
-    NODE_TYPE: ClassVar[str] = "error_handler"
+    NODE_TYPE: ClassVar[str] = "ErrorHandler"
 
     def __init__(self, handler_func: Callable[..., Any]) -> None:
         action_cls = TypeIntrospection.owner_type_for_method(handler_func)

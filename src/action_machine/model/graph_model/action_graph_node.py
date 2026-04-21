@@ -31,7 +31,7 @@ from action_machine.domain.base_domain import BaseDomain
 from action_machine.domain.graph_model.domain_graph_node import DomainGraphNode
 from action_machine.legacy.binding.action_generic_params import _resolve_generic_arg
 from action_machine.model.base_action import BaseAction
-from action_machine.tools import CallableKind, TypeIntrospection
+from action_machine.introspection_tools import CallableKind, IntentIntrospection, TypeIntrospection
 from graph.base_graph_edge import BaseGraphEdge
 from graph.base_graph_node import BaseGraphNode
 from graph.edge_relationship import AGGREGATION, ASSOCIATION, COMPOSITION
@@ -147,7 +147,7 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
         """
         action_id = TypeIntrospection.full_qualname(action_cls)
         edges: list[BaseGraphEdge] = []
-        for aspect_callable in TypeIntrospection.collect_own_class_callables_by_callable_kind(
+        for aspect_callable in IntentIntrospection.collect_own_class_callables_by_callable_kind(
             action_cls,
             CallableKind.REGULAR_ASPECT,
         ):
@@ -179,7 +179,7 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
         """
         action_id = TypeIntrospection.full_qualname(action_cls)
         edges: list[BaseGraphEdge] = []
-        for aspect_callable in TypeIntrospection.collect_own_class_callables_by_callable_kind(
+        for aspect_callable in IntentIntrospection.collect_own_class_callables_by_callable_kind(
             action_cls,
             CallableKind.SUMMARY_ASPECT,
         ):
@@ -211,7 +211,7 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
         """
         action_id = TypeIntrospection.full_qualname(action_cls)
         edges: list[BaseGraphEdge] = []
-        for compensator_callable in TypeIntrospection.collect_own_class_callables_by_callable_kind(
+        for compensator_callable in IntentIntrospection.collect_own_class_callables_by_callable_kind(
             action_cls,
             CallableKind.COMPENSATE,
         ):
@@ -243,7 +243,7 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
         """
         action_id = TypeIntrospection.full_qualname(action_cls)
         edges: list[BaseGraphEdge] = []
-        for handler_callable in TypeIntrospection.collect_own_class_callables_by_callable_kind(
+        for handler_callable in IntentIntrospection.collect_own_class_callables_by_callable_kind(
             action_cls,
             CallableKind.ON_ERROR,
         ):

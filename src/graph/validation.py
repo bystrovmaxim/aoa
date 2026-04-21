@@ -9,7 +9,7 @@ These are public helpers so constructors stay thin and rules stay in one place.
 RELATED MODULES
 ═══════════════════════════════════════════════════════════════════════════════
 
-- :class:`action_machine.tools.type_introspection.TypeIntrospection` — stable type ids use :meth:`~action_machine.tools.type_introspection.TypeIntrospection.full_qualname`,
+- :class:`action_machine.introspection_tools.type_introspection.TypeIntrospection` — stable type ids use :meth:`~action_machine.introspection_tools.type_introspection.TypeIntrospection.full_qualname`,
   not how arbitrary caller strings are validated.
 - This module — how **caller-supplied** strings and references are *validated* before freezing a model.
 """
