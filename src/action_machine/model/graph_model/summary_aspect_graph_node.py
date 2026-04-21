@@ -29,7 +29,7 @@ from dataclasses import dataclass
 from typing import Any, ClassVar
 
 from action_machine.model.graph_model.base_callable_graph_node import BaseCallableGraphNode
-from graph.qualified_name import cls_qualified_dotted_id
+from action_machine.tools import Introspection
 
 
 @dataclass(init=False, frozen=True)
@@ -37,7 +37,7 @@ class SummaryAspectGraphNode(BaseCallableGraphNode):
     """
     AI-CORE-BEGIN
     ROLE: Interchange node for a summary aspect callable on a ``BaseAction`` host class.
-    CONTRACT: ``node_id`` = ``cls_qualified_dotted_id(action_cls) + ':' + method_name`` from :class:`BaseCallableGraphNode` resolvers; :attr:`NODE_TYPE` matches facet ``SummaryAspect``; empty ``properties`` and ``edges``.
+    CONTRACT: ``node_id`` = ``Introspection.full_qualname(action_cls) + ':' + method_name`` from :class:`BaseCallableGraphNode` resolvers; :attr:`NODE_TYPE` matches facet ``SummaryAspect``; empty ``properties`` and ``edges``.
     AI-CORE-END
     """
 
@@ -46,7 +46,7 @@ class SummaryAspectGraphNode(BaseCallableGraphNode):
     def __init__(self, aspect_func: Callable[..., Any]) -> None:
         action_cls = BaseCallableGraphNode.resolve_host_action_class(aspect_func)
         method_name = BaseCallableGraphNode.resolve_method_name(aspect_func)
-        action_id = cls_qualified_dotted_id(action_cls)
+        action_id = Introspection.full_qualname(action_cls)
         super().__init__(
             node_id=f"{action_id}:{method_name}",
             node_type=SummaryAspectGraphNode.NODE_TYPE,

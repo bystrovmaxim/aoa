@@ -21,10 +21,11 @@ from action_machine.domain.graph_model.entity_graph_node import EntityGraphNode
 from action_machine.legacy.interchange_vertex_labels import (
     APPLICATION_VERTEX_TYPE,
     CHECKER_VERTEX_TYPE,
-    COMPENSATOR_VERTEX_TYPE,
     SERVICE_VERTEX_TYPE,
 )
 from action_machine.model.graph_model.action_graph_node import ActionGraphNode
+from action_machine.model.graph_model.compensator_graph_node import CompensatorGraphNode
+from action_machine.model.graph_model.error_handler_graph_node import ErrorHandlerGraphNode
 from action_machine.model.graph_model.params_graph_node import ParamsGraphNode
 from action_machine.model.graph_model.regular_aspect_graph_node import (
     RegularAspectGraphNode,
@@ -79,11 +80,11 @@ VERTEX_TYPE_LUCIDE_INNER_SVG: dict[str, str] = {
         '<path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z" /> '
         '<path d="m9 12 2 2 4-4" />'
     ),
-    COMPENSATOR_VERTEX_TYPE: (
+    CompensatorGraphNode.NODE_TYPE: (
         '<path d="M9 14 4 9l5-5" /> '
         '<path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5a5.5 5.5 0 0 1-5.5 5.5H11" />'
     ),
-    "error_handler": (
+    ErrorHandlerGraphNode.NODE_TYPE: (
         '<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" /> '
         '<path d="M12 9v4" /> '
         '<path d="M12 17h.01" />'
