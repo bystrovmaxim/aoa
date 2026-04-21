@@ -10,7 +10,7 @@ Materializes a frozen :class:`~graph.base_graph_node.BaseGraphNode` for one
 compensator **callable** on a concrete ``BaseAction`` subclass: ``node_id`` is the action
 dotted id plus ``:`` plus the method name, interchange ``node_type`` is
 ``Compensator``, ``label`` is the method name, and ``properties`` / ``edges`` are
-empty. Host class and name are resolved via :class:`BaseCallableGraphNode`.
+empty. Host class and method name come from :class:`Introspection`.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
@@ -28,16 +28,16 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any, ClassVar
 
-from action_machine.model.graph_model.base_callable_graph_node import BaseCallableGraphNode
 from action_machine.tools import Introspection
+from graph.base_graph_node import BaseGraphNode
 
 
 @dataclass(init=False, frozen=True)
-class CompensatorGraphNode(BaseCallableGraphNode):
+class CompensatorGraphNode(BaseGraphNode[Callable[..., Any]]):
     """
     AI-CORE-BEGIN
     ROLE: Interchange node for a ``@compensate`` callable on a ``BaseAction`` host class.
-    CONTRACT: ``node_id`` = ``Introspection.full_qualname(action_cls) + ':' + method_name`` from :class:`BaseCallableGraphNode` resolvers; :attr:`NODE_TYPE` matches facet ``Compensator``; empty ``properties`` and ``edges``.
+    CONTRACT: ``node_id`` = ``Introspection.full_qualname(action_cls) + ':' + method_name``; :attr:`NODE_TYPE` matches facet ``Compensator``; empty ``properties`` and ``edges``.
     AI-CORE-END
     """
 
