@@ -28,7 +28,7 @@ from dataclasses import dataclass
 from typing import ClassVar, TypeVar
 
 from action_machine.model.base_params import BaseParams
-from action_machine.tools import TypeIntrospection
+from action_machine.introspection_tools import TypeIntrospection
 from graph.base_graph_node import BaseGraphNode
 
 TParams = TypeVar("TParams", bound=BaseParams)

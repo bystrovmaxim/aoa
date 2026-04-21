@@ -38,7 +38,7 @@ from dataclasses import dataclass
 from typing import ClassVar, TypeVar
 
 from action_machine.auth.base_role import BaseRole
-from action_machine.tools import TypeIntrospection
+from action_machine.introspection_tools import TypeIntrospection
 from graph.base_graph_node import BaseGraphNode
 
 TRole = TypeVar("TRole", bound=BaseRole)

@@ -28,7 +28,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any, ClassVar
 
-from action_machine.tools import TypeIntrospection
+from action_machine.introspection_tools import TypeIntrospection
 from graph.base_graph_node import BaseGraphNode
 
 
