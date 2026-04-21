@@ -20,18 +20,28 @@ ARCHITECTURE / DATA FLOW
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from typing import Any, ClassVar
 
 from action_machine.introspection_tools import TypeIntrospection
 from graph.base_graph_node import BaseGraphNode
 
+_FIELD_CHECKER_KIND = re.compile(r"^Field(.+)Checker$")
+
+
+def _type_checker_property_label(checker_class: type) -> str:
+    """``FieldStringChecker`` → ``String``; otherwise :meth:`~type.__name__`."""
+    name = checker_class.__name__
+    m = _FIELD_CHECKER_KIND.match(name)
+    return m.group(1) if m else name
+
 
 @dataclass(frozen=True)
 class CheckerGraphPayload:
     """Frozen payload for :attr:`~graph.base_graph_node.BaseGraphNode.node_obj` on a checker interchange row.
 
-    :attr:`properties` merges the constructor ``properties`` checker-kwargs dict (if any) with ``"TypeChecker"`` and ``"required"`` (same keys as on :class:`~graph.base_graph_node.BaseGraphNode`).
+    :attr:`properties` merges the constructor ``properties`` checker-kwargs dict (if any) with ``"TypeChecker"`` (short kind for ``Field*Checker``) and ``"required"`` (same keys as on :class:`~graph.base_graph_node.BaseGraphNode`).
     """
 
     action_cls: type
@@ -48,7 +58,7 @@ class CheckerGraphNode(BaseGraphNode[CheckerGraphPayload]):
     AI-CORE-BEGIN
     ROLE: Interchange node for one checker binding on a regular or summary aspect method.
     CONTRACT: ``node_id`` = ``TypeIntrospection.full_qualname(action_cls) + ':' + aspect_method_name + ':' + field_name.strip()``;
-    ``label`` is ``field_name.strip()``; :attr:`NODE_TYPE` is ``Checker``; interchange ``properties`` (on the node and on :class:`CheckerGraphPayload`) merge constructor ``properties`` with ``"TypeChecker"`` / ``"required"``.
+    ``label`` is ``field_name.strip()``; :attr:`NODE_TYPE` is ``Checker``; interchange ``properties`` (on the node and on :class:`CheckerGraphPayload`) merge constructor ``properties`` with ``"TypeChecker"`` (middle segment of ``Field*Checker`` names) / ``"required"``.
     AI-CORE-END
     """
 
@@ -72,7 +82,7 @@ class CheckerGraphNode(BaseGraphNode[CheckerGraphPayload]):
             raise TypeError(msg)
         properties: dict[str, Any] = {
             **({} if properties is None else dict(properties)),
-            "TypeChecker": checker_class.__name__,
+            "TypeChecker": _type_checker_property_label(checker_class),
             "required": required,
         }
         node_obj = CheckerGraphPayload(

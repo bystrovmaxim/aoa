@@ -725,6 +725,9 @@ def generate_g6_html(
         .prop-value {{
             font-size: 13px; color: #111; line-height: 1.5; word-break: break-word;
         }}
+        .prop-value-empty-none {{
+            font-size: 13px; color: #ef5b54;
+        }}
         .prop-type-value {{
             font-size: 11px; font-weight: 400; color: #333; line-height: 1.35;
         }}
@@ -1171,11 +1174,16 @@ __G6_SCRIPT__
           for (const k of payloadPanelKeys) {{
             const raw = payloadPanel[k];
             const v = raw == null ? '' : String(raw);
+            const emptyVal = v.trim() === '';
+            const displayHtml = emptyVal
+              ? '<span class="prop-value-empty-none">none</span>'
+              : esc(v).replace(/\\n/g, '<br/>');
             const multiline =
-              v.length > 160 ||
-              v.indexOf('\\n') >= 0 ||
-              v.startsWith('{{') ||
-              v.startsWith('[');
+              !emptyVal &&
+              (v.length > 160 ||
+                v.indexOf('\\n') >= 0 ||
+                v.startsWith('{{') ||
+                v.startsWith('['));
             html += '<div class="prop-block"><div class="prop-label">' + esc(k) + '</div>';
             if (copyKey.has(k) && v !== '') {{
               html += '<div class="prop-value prop-value-row">';
@@ -1183,7 +1191,7 @@ __G6_SCRIPT__
                 '<span class="prop-value-mono prop-mono' +
                 (multiline ? ' prop-value-multiline' : '') +
                 '">' +
-                esc(v).replace(/\\n/g, '<br/>') +
+                displayHtml +
                 '</span>';
               html +=
                 '<button type="button" class="copy-btn" data-copy="' +
@@ -1197,7 +1205,7 @@ __G6_SCRIPT__
                 '<div class="' +
                 (multiline ? 'prop-value prop-value-multiline' : 'prop-value') +
                 '">' +
-                esc(v).replace(/\\n/g, '<br/>') +
+                displayHtml +
                 '</div>';
             }}
             html += '</div>';
