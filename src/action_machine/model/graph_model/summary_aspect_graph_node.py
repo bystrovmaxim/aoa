@@ -10,7 +10,7 @@ Materializes a frozen :class:`~graph.base_graph_node.BaseGraphNode` for one summ
 aspect **callable** on a concrete ``BaseAction`` subclass: ``node_id`` is the action
 dotted id plus ``:`` plus the method name, interchange ``node_type`` is
 ``SummaryAspect``, ``label`` is the method name, and ``properties`` / ``edges`` are
-empty. Host class and method name come from :class:`Introspection`.
+empty. Host class and method name come from :class:`TypeIntrospection`.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
@@ -28,7 +28,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any, ClassVar
 
-from action_machine.tools import Introspection
+from action_machine.tools import TypeIntrospection
 from graph.base_graph_node import BaseGraphNode
 
 
@@ -37,16 +37,16 @@ class SummaryAspectGraphNode(BaseGraphNode[Callable[..., Any]]):
     """
     AI-CORE-BEGIN
     ROLE: Interchange node for a summary aspect callable on a ``BaseAction`` host class.
-    CONTRACT: ``node_id`` = ``Introspection.full_qualname(action_cls) + ':' + method_name``; :attr:`NODE_TYPE` matches facet ``SummaryAspect``; empty ``properties`` and ``edges``.
+    CONTRACT: ``node_id`` = ``TypeIntrospection.full_qualname(action_cls) + ':' + method_name``; :attr:`NODE_TYPE` matches facet ``SummaryAspect``; empty ``properties`` and ``edges``.
     AI-CORE-END
     """
 
     NODE_TYPE: ClassVar[str] = "SummaryAspect"
 
     def __init__(self, aspect_func: Callable[..., Any]) -> None:
-        action_cls = Introspection.owner_type_for_method(aspect_func)
-        method_name = Introspection.unwrapped_callable_name(aspect_func)
-        action_id = Introspection.full_qualname(action_cls)
+        action_cls = TypeIntrospection.owner_type_for_method(aspect_func)
+        method_name = TypeIntrospection.unwrapped_callable_name(aspect_func)
+        action_id = TypeIntrospection.full_qualname(action_cls)
         super().__init__(
             node_id=f"{action_id}:{method_name}",
             node_type=SummaryAspectGraphNode.NODE_TYPE,

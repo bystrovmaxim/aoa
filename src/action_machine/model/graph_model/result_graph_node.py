@@ -28,7 +28,7 @@ from dataclasses import dataclass
 from typing import ClassVar, TypeVar
 
 from action_machine.model.base_result import BaseResult
-from action_machine.tools import Introspection
+from action_machine.tools import TypeIntrospection
 from graph.base_graph_node import BaseGraphNode
 
 TResult = TypeVar("TResult", bound=BaseResult)
@@ -47,7 +47,7 @@ class ResultGraphNode(BaseGraphNode[type[TResult]]):
 
     def __init__(self, result_cls: type[TResult]) -> None:
         super().__init__(
-            node_id=Introspection.full_qualname(result_cls),
+            node_id=TypeIntrospection.full_qualname(result_cls),
             node_type=ResultGraphNode.NODE_TYPE,
             label=result_cls.__name__,
             properties={},

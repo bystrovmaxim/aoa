@@ -16,7 +16,7 @@ from action_machine.model.graph_model.compensator_graph_node import CompensatorG
 from action_machine.model.graph_model.error_handler_graph_node import ErrorHandlerGraphNode
 from action_machine.model.graph_model.regular_aspect_graph_node import RegularAspectGraphNode
 from action_machine.model.graph_model.summary_aspect_graph_node import SummaryAspectGraphNode
-from action_machine.tools import Introspection
+from action_machine.tools import TypeIntrospection
 from graph.base_graph_edge import BaseGraphEdge
 from graph.base_graph_node import BaseGraphNode
 from graph.base_graph_node_inspector import BaseGraphNodeInspector
@@ -43,7 +43,7 @@ def _import_sample_modules() -> None:
 
 def test_interchange_node_and_edge_to_visual_dicts() -> None:
     n = BaseGraphNode(
-        node_id=Introspection.full_qualname(ApplicationContext),
+        node_id=TypeIntrospection.full_qualname(ApplicationContext),
         node_type="Application",
         label=ApplicationContext.__name__,
         properties={},

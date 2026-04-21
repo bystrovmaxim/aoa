@@ -22,8 +22,8 @@ class CallableKind(StrEnum):
     ON_ERROR = "on_error"
 
 
-class Introspection:
-    """Runtime introspection helpers (mostly static; :meth:`full_qualname` is a classmethod)."""
+class TypeIntrospection:
+    """Runtime type/callable introspection helpers (mostly static; :meth:`full_qualname` is a classmethod)."""
 
     @staticmethod
     def unwrap_callable(func: Callable[..., Any]) -> Callable[..., Any]:
@@ -35,12 +35,12 @@ class Introspection:
     @staticmethod
     def unwrapped_callable_name(func: Callable[..., Any]) -> str:
         """``__name__`` of the implementation after :meth:`unwrap_callable` (e.g. a method's Python name)."""
-        return Introspection.unwrap_callable(func).__name__
+        return TypeIntrospection.unwrap_callable(func).__name__
 
     @staticmethod
     def owner_type_for_method(func: Callable[..., Any]) -> type:
         """Owning class for a bound/unbound method (:meth:`unwrap_callable`, then ``__qualname__`` walk from ``__module__``)."""
-        raw = Introspection.unwrap_callable(func)
+        raw = TypeIntrospection.unwrap_callable(func)
         qual = getattr(raw, "__qualname__", "") or ""
         parts = qual.split(".")
         if len(parts) < 2:
@@ -50,7 +50,7 @@ class Introspection:
             )
             raise TypeError(msg)
 
-        mod_name = Introspection.module_name_of(raw)
+        mod_name = TypeIntrospection.module_name_of(raw)
         if not mod_name:
             msg = "Cannot resolve owning class: callable has no __module__"
             raise TypeError(msg)
