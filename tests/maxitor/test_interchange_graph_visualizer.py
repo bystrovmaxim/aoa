@@ -16,13 +16,13 @@ from action_machine.model.graph_model.compensator_graph_node import CompensatorG
 from action_machine.model.graph_model.error_handler_graph_node import ErrorHandlerGraphNode
 from action_machine.model.graph_model.regular_aspect_graph_node import RegularAspectGraphNode
 from action_machine.model.graph_model.summary_aspect_graph_node import SummaryAspectGraphNode
+from action_machine.tools import Introspection
 from graph.base_graph_edge import BaseGraphEdge
 from graph.base_graph_node import BaseGraphNode
 from graph.base_graph_node_inspector import BaseGraphNodeInspector
 from graph.edge_relationship import ASSOCIATION, COMPOSITION
 from graph.exceptions import InvalidGraphError
 from graph.node_graph_coordinator import NodeGraphCoordinator
-from action_machine.tools import Introspection
 from maxitor.samples.build import _MODULES
 from maxitor.viz2.interchange_graph_visualizer import (
     G6_CDN_URL,

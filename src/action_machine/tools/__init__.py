@@ -5,8 +5,9 @@ ActionMachine tools — small helpers for development and runtime inspection.
 
 from __future__ import annotations
 
-from .introspection import Introspection
+from .introspection import CallableKind, Introspection
 
 __all__ = [
+    "CallableKind",
     "Introspection",
 ]

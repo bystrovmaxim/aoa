@@ -28,8 +28,8 @@ from dataclasses import dataclass
 from typing import ClassVar, TypeVar
 
 from action_machine.model.base_params import BaseParams
-from graph.base_graph_node import BaseGraphNode
 from action_machine.tools import Introspection
+from graph.base_graph_node import BaseGraphNode
 
 TParams = TypeVar("TParams", bound=BaseParams)
 
