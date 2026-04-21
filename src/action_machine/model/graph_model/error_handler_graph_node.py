@@ -44,8 +44,8 @@ class ErrorHandlerGraphNode(BaseCallableGraphNode):
     NODE_TYPE: ClassVar[str] = "error_handler"
 
     def __init__(self, handler_func: Callable[..., Any]) -> None:
-        action_cls = BaseCallableGraphNode.resolve_host_action_class(handler_func)
-        method_name = BaseCallableGraphNode.resolve_method_name(handler_func)
+        action_cls = Introspection.owner_type_for_method(handler_func)
+        method_name = Introspection.unwrapped_callable_name(handler_func)
         action_id = Introspection.full_qualname(action_cls)
         super().__init__(
             node_id=f"{action_id}:{method_name}",

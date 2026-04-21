@@ -152,7 +152,7 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
             action_cls,
             IntentCallableKind.REGULAR_ASPECT,
         ):
-            method_name = BaseCallableGraphNode.resolve_method_name(aspect_callable)
+            method_name = Introspection.unwrapped_callable_name(aspect_callable)
             edges.append(
                 BaseGraphEdge(
                     edge_name=method_name,
@@ -184,7 +184,7 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
             action_cls,
             IntentCallableKind.SUMMARY_ASPECT,
         ):
-            method_name = BaseCallableGraphNode.resolve_method_name(aspect_callable)
+            method_name = Introspection.unwrapped_callable_name(aspect_callable)
             edges.append(
                 BaseGraphEdge(
                     edge_name=method_name,
@@ -216,7 +216,7 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
             action_cls,
             IntentCallableKind.COMPENSATE,
         ):
-            method_name = BaseCallableGraphNode.resolve_method_name(compensator_callable)
+            method_name = Introspection.unwrapped_callable_name(compensator_callable)
             edges.append(
                 BaseGraphEdge(
                     edge_name=method_name,
@@ -248,7 +248,7 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
             action_cls,
             IntentCallableKind.ON_ERROR,
         ):
-            method_name = BaseCallableGraphNode.resolve_method_name(handler_callable)
+            method_name = Introspection.unwrapped_callable_name(handler_callable)
             edges.append(
                 BaseGraphEdge(
                     edge_name=method_name,

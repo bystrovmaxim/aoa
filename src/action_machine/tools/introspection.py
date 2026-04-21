@@ -6,12 +6,66 @@ Small, dependency-light helpers for runtime introspection of objects and callabl
 from __future__ import annotations
 
 import inspect
+import sys
 from collections.abc import Callable
-from typing import Any
+from types import MethodType
+from typing import Any, cast
 
 
 class Introspection:
     """Runtime introspection helpers (mostly static; :meth:`full_qualname` is a classmethod)."""
+
+    @staticmethod
+    def unwrap_callable(func: Callable[..., Any]) -> Callable[..., Any]:
+        """Strip :class:`types.MethodType` wrapper, then :func:`inspect.unwrap` through ``__wrapped__`` chains."""
+        if isinstance(func, MethodType):
+            func = func.__func__
+        return cast(Callable[..., Any], inspect.unwrap(func))
+
+    @staticmethod
+    def unwrapped_callable_name(func: Callable[..., Any]) -> str:
+        """``__name__`` of the implementation after :meth:`unwrap_callable` (e.g. a method's Python name)."""
+        return Introspection.unwrap_callable(func).__name__
+
+    @staticmethod
+    def owner_type_for_method(func: Callable[..., Any]) -> type:
+        """Owning class for a bound/unbound method (:meth:`unwrap_callable`, then ``__qualname__`` walk from ``__module__``)."""
+        raw = Introspection.unwrap_callable(func)
+        qual = getattr(raw, "__qualname__", "") or ""
+        parts = qual.split(".")
+        if len(parts) < 2:
+            msg = (
+                "Cannot resolve owning class: expected a method "
+                f"(``__qualname__`` like 'MyClass.method'), got {qual!r}"
+            )
+            raise TypeError(msg)
+
+        mod_name = Introspection.module_name_of(raw)
+        if not mod_name:
+            msg = "Cannot resolve owning class: callable has no __module__"
+            raise TypeError(msg)
+
+        mod = sys.modules.get(mod_name)
+        if mod is None:
+            msg = f"Cannot resolve owning class: module {mod_name!r} is not loaded"
+            raise TypeError(msg)
+
+        obj: Any = mod
+        for name_segment in parts[:-1]:
+            try:
+                obj = getattr(obj, name_segment)
+            except AttributeError as exc:
+                msg = (
+                    f"Cannot resolve owning class: "
+                    f"no attribute {name_segment!r} while walking {parts!r} from module {mod_name!r}"
+                )
+                raise TypeError(msg) from exc
+
+        if not isinstance(obj, type):
+            msg = f"Cannot resolve owning class: expected a type, got {type(obj).__name__}"
+            raise TypeError(msg)
+
+        return obj
 
     @classmethod
     def full_qualname(cls, owner: type) -> str:
