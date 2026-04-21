@@ -7,7 +7,8 @@ PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 Materializes a frozen :class:`~graph.base_graph_node.BaseGraphNode` for a single checker
-row (``aspect method`` + ``checker_class`` + ``field``) on a concrete ``BaseAction`` subclass.
+row (``aspect_callable`` + ``checker_class`` + ``field``) on a concrete ``BaseAction`` subclass.
+Host action and aspect method name come from :meth:`~action_machine.introspection_tools.TypeIntrospection.owner_type_for_method` / :meth:`~action_machine.introspection_tools.TypeIntrospection.unwrapped_callable_name` on ``aspect_callable``.
 ``node_id`` joins ``action_dotted_id``, ``aspect_method_name``, and ``field_name.strip()`` with ``:``.
 ``node_obj`` is a frozen :class:`CheckerGraphPayload` with the constructor inputs.
 
@@ -15,12 +16,13 @@ row (``aspect method`` + ``checker_class`` + ``field``) on a concrete ``BaseActi
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-    explicit host + aspect + checker field  ->  ``CheckerGraphNode(...)``
+    explicit host + aspect + checker field  ->  ``CheckerGraphNode(...)`` (outgoing edges live on :class:`RegularAspectGraphNode`).
 """
 
 from __future__ import annotations
 
 import re
+from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any, ClassVar
 
@@ -57,8 +59,8 @@ class CheckerGraphNode(BaseGraphNode[CheckerGraphPayload]):
     """
     AI-CORE-BEGIN
     ROLE: Interchange node for one checker binding on a regular or summary aspect method.
-    CONTRACT: ``node_id`` = ``TypeIntrospection.full_qualname(action_cls) + ':' + aspect_method_name + ':' + field_name.strip()``;
-    ``label`` is ``field_name.strip()``; :attr:`NODE_TYPE` is ``Checker``; interchange ``properties`` (on the node and on :class:`CheckerGraphPayload`) merge constructor ``properties`` with ``"TypeChecker"`` (middle segment of ``Field*Checker`` names) / ``"required"``.
+    CONTRACT: ``action_cls`` / ``aspect_method_name`` come from ``aspect_callable``; ``node_id`` = ``TypeIntrospection.full_qualname(action_cls) + ':' + aspect_method_name + ':' + field_name.strip()``;
+    ``label`` is ``field_name.strip()``; :attr:`NODE_TYPE` is ``Checker``; ``edges`` empty; interchange ``properties`` (on the node and on :class:`CheckerGraphPayload`) merge constructor ``properties`` with ``"TypeChecker"`` (middle segment of ``Field*Checker`` names) / ``"required"``.
     AI-CORE-END
     """
 
@@ -66,17 +68,15 @@ class CheckerGraphNode(BaseGraphNode[CheckerGraphPayload]):
 
     def __init__(
         self,
-        action_cls: type,
-        aspect_method_name: str,
+        aspect_callable: Callable[..., Any],
         checker_class: type,
         field_name: str,
         *,
         required: bool = False,
         properties: dict[str, Any] | None = None,
     ) -> None:
-        if not isinstance(action_cls, type):
-            msg = f"action_cls must be a type, got {type(action_cls).__name__}"
-            raise TypeError(msg)
+        action_cls = TypeIntrospection.owner_type_for_method(aspect_callable)
+        aspect_method_name = TypeIntrospection.unwrapped_callable_name(aspect_callable)
         if not isinstance(checker_class, type):
             msg = f"checker_class must be a type, got {type(checker_class).__name__}"
             raise TypeError(msg)
@@ -94,8 +94,9 @@ class CheckerGraphNode(BaseGraphNode[CheckerGraphPayload]):
             properties=properties,
         )
         action_id = TypeIntrospection.full_qualname(action_cls)
+        checker_node_id = f"{action_id}:{aspect_method_name}:{field_name.strip()}"
         super().__init__(
-            node_id=f"{action_id}:{aspect_method_name}:{field_name.strip()}",
+            node_id=checker_node_id,
             node_type=CheckerGraphNode.NODE_TYPE,
             label=field_name.strip(),
             properties=properties,

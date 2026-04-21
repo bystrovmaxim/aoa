@@ -10,7 +10,7 @@ Walks the loaded ``BaseAction`` strict subclass tree and emits one :class:`Actio
 visited concrete/abstract subtype, plus one :class:`~graph.regular_aspect_graph_node.RegularAspectGraphNode`
 per ``@regular_aspect``, one :class:`~graph.summary_aspect_graph_node.SummaryAspectGraphNode` per
 ``@summary_aspect``, one :class:`~action_machine.model.graph_model.checker_graph_node.CheckerGraphNode`
-per checker on each regular aspect (via ``_checker_meta``), one :class:`~graph.compensator_graph_node.CompensatorGraphNode` per
+per checker on each regular aspect (via ``_checker_meta``), with ``COMPOSITION`` edges from each :class:`~action_machine.model.graph_model.regular_aspect_graph_node.RegularAspectGraphNode` to its checker nodes, one :class:`~graph.compensator_graph_node.CompensatorGraphNode` per
 ``@compensate``, and one :class:`~graph.error_handler_graph_node.ErrorHandlerGraphNode` per
 ``@on_error`` method declared on that class (own ``vars`` only; see
 :meth:`IntentIntrospection.collect_own_class_callables_by_callable_kind`). The ``BaseAction`` axis
@@ -25,20 +25,18 @@ ARCHITECTURE / DATA FLOW
     BaseAction  (root axis, skipped in walk)
               │
               v
-    each loaded strict subclass ``cls``  ->  ``[ActionGraphNode(cls), *RegularAspectGraphNode(...), *SummaryAspectGraphNode(...), *CheckerGraphNode(...), *CompensatorGraphNode(...), *ErrorHandlerGraphNode(...)]``
+    each loaded strict subclass ``cls`` emits ``ActionGraphNode``, ``RegularAspectGraphNode`` rows (each with ``COMPOSITION`` edges to their ``Checker`` nodes), ``SummaryAspectGraphNode``, flat ``CheckerGraphNode`` list, compensators, and error handlers.
     when ``issubclass(cls, BaseAction)``
 """
 
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
 from typing import Any
 
 from action_machine.model.base_action import BaseAction
-from action_machine.introspection_tools import CallableKind, IntentIntrospection, TypeIntrospection
+from action_machine.introspection_tools import CallableKind, IntentIntrospection
 from graph.base_graph_node import BaseGraphNode
 from graph.base_graph_node_inspector import BaseGraphNodeInspector
-from graph.base_intent_inspector import BaseIntentInspector
 
 from .action_graph_node import ActionGraphNode
 from .checker_graph_node import CheckerGraphNode
@@ -52,7 +50,7 @@ class ActionGraphNodeInspector(BaseGraphNodeInspector[BaseAction[Any, Any]]):
     """
     AI-CORE-BEGIN
     ROLE: Emit ``ActionGraphNode`` rows for every loaded strict ``BaseAction`` subclass (not the root axis).
-    CONTRACT: Root axis ``BaseAction`` from ``BaseGraphNodeInspector[BaseAction[Any, Any]]``; one ``ActionGraphNode`` per visited strict ``BaseAction`` subtype (root excluded), plus ``RegularAspectGraphNode`` / ``SummaryAspectGraphNode`` / ``CheckerGraphNode`` (from regular aspects) / ``CompensatorGraphNode`` / ``ErrorHandlerGraphNode`` for each own-class ``@regular_aspect`` / ``@summary_aspect`` / checker row / ``@compensate`` / ``@on_error`` method.
+    CONTRACT: Root axis ``BaseAction`` from ``BaseGraphNodeInspector[BaseAction[Any, Any]]``; one ``ActionGraphNode`` per visited strict ``BaseAction`` subtype (root excluded), plus ``RegularAspectGraphNode`` (with ``COMPOSITION`` edges to checkers) / ``SummaryAspectGraphNode`` / ``CheckerGraphNode`` / ``CompensatorGraphNode`` / ``ErrorHandlerGraphNode`` for each own-class ``@regular_aspect`` / ``@summary_aspect`` / checker row / ``@compensate`` / ``@on_error`` method.
     INVARIANTS: Other intents stay on facet inspectors only; this inspector emits aspect, checker, compensator, and error-handler interchange rows for actions.
     AI-CORE-END
     """
@@ -61,15 +59,20 @@ class ActionGraphNodeInspector(BaseGraphNodeInspector[BaseAction[Any, Any]]):
         return frozenset({BaseAction})
 
     @staticmethod
-    def _regular_aspect_graph_nodes_for_class(action_cls: type) -> list[RegularAspectGraphNode]:
-        """Interchange nodes for each own-class ``@regular_aspect`` on ``action_cls``."""
-        return [
-            RegularAspectGraphNode(aspect_callable)
-            for aspect_callable in IntentIntrospection.collect_own_class_callables_by_callable_kind(
-                action_cls,
-                CallableKind.REGULAR_ASPECT,
-            )
-        ]
+    def _regular_aspect_and_checker_graph_nodes_for_class(
+        action_cls: type,
+    ) -> tuple[list[RegularAspectGraphNode], list[CheckerGraphNode]]:
+        """Regular aspects with checker subgraph (see :meth:`RegularAspectGraphNode.with_checker_subgraph`)."""
+        regular_out: list[RegularAspectGraphNode] = []
+        all_checkers: list[CheckerGraphNode] = []
+        for aspect_callable in IntentIntrospection.collect_own_class_callables_by_callable_kind(
+            action_cls,
+            CallableKind.REGULAR_ASPECT,
+        ):
+            aspect_node = RegularAspectGraphNode(aspect_callable)
+            regular_out.append(aspect_node)
+            all_checkers.extend(aspect_node.companion_checkers)
+        return regular_out, all_checkers
 
     @staticmethod
     def _summary_aspect_graph_nodes_for_class(action_cls: type) -> list[SummaryAspectGraphNode]:
@@ -104,58 +107,17 @@ class ActionGraphNodeInspector(BaseGraphNodeInspector[BaseAction[Any, Any]]):
             )
         ]
 
-    @staticmethod
-    def checkers_for_method(method: Any) -> list[dict[str, Any]]:
-        """Checker metadata dicts from ``_checker_meta`` on an aspect or summary method (unwraps ``property``)."""
-        func = BaseIntentInspector._unwrap_declaring_class_member(method)
-        if not callable(func):
-            return []
-        raw = getattr(func, "_checker_meta", None)
-        if raw is None or isinstance(raw, (str, bytes)) or not isinstance(raw, Sequence):
-            return []
-        out: list[dict[str, Any]] = []
-        for row in raw:
-            if isinstance(row, Mapping):
-                out.append(dict(row))
-        return out
-
-    @staticmethod
-    def _checker_graph_nodes_for_regular_aspects(
-        action_cls: type,
-        regular_aspect_nodes: list[RegularAspectGraphNode],
-    ) -> list[CheckerGraphNode]:
-        """Build checker interchange nodes from ``regular_aspect_nodes`` via :meth:`checkers_for_method`."""
-        out: list[CheckerGraphNode] = []
-        for asp in regular_aspect_nodes:
-            method_name = TypeIntrospection.unwrapped_callable_name(asp.node_obj)
-            for row in ActionGraphNodeInspector.checkers_for_method(asp.node_obj):
-                cc = row.get("checker_class")
-                if not isinstance(cc, type):
-                    continue
-                raw = row.get("field_name", "")
-                field = raw if isinstance(raw, str) else str(raw)
-                extra = {k: v for k, v in row.items() if k not in ("checker_class", "field_name", "required")}
-                out.append(
-                    CheckerGraphNode(
-                        action_cls,
-                        method_name,
-                        cc,
-                        field,
-                        required=bool(row.get("required", False)),
-                        properties=extra if extra else None,
-                    ),
-                )
-        return out
-
     def _get_type_nodes(self, cls: type) -> list[BaseGraphNode[Any]]:
         if not (isinstance(cls, type) and issubclass(cls, BaseAction)):
             return []
-        regular = self._regular_aspect_graph_nodes_for_class(cls)
+        regular_aspects, regular_checkers = ActionGraphNodeInspector._regular_aspect_and_checker_graph_nodes_for_class(
+            cls,
+        )
         return [
             ActionGraphNode(cls),
-            *regular,
+            *regular_aspects,
             *self._summary_aspect_graph_nodes_for_class(cls),
-            *self._checker_graph_nodes_for_regular_aspects(cls, regular),
+            *regular_checkers,
             *self._compensator_graph_nodes_for_class(cls),
             *self._error_handler_graph_nodes_for_class(cls),
         ]

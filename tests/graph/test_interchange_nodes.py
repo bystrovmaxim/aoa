@@ -14,6 +14,7 @@ from action_machine.model.graph_model.action_graph_node import ActionGraphNode
 from action_machine.model.graph_model.compensator_graph_node import CompensatorGraphNode
 from action_machine.model.graph_model.error_handler_graph_node import ErrorHandlerGraphNode
 from action_machine.model.graph_model.params_graph_node import ParamsGraphNode
+from action_machine.model.graph_model.checker_graph_node import CheckerGraphNode
 from action_machine.model.graph_model.regular_aspect_graph_node import RegularAspectGraphNode
 from action_machine.model.graph_model.result_graph_node import ResultGraphNode
 from action_machine.model.graph_model.summary_aspect_graph_node import SummaryAspectGraphNode
@@ -37,8 +38,12 @@ def test_regular_aspect_graph_node_interchange_shape() -> None:
     assert node.node_type == RegularAspectGraphNode.NODE_TYPE
     assert node.label == "process_aspect"
     assert node.properties == {}
-    assert node.edges == []
     assert node.node_id == f"{TypeIntrospection.full_qualname(ChildAction)}:process_aspect"
+    assert len(node.companion_checkers) == 1
+    assert len(node.edges) == 1
+    assert node.edges[0].source_node_id == node.node_id
+    assert node.edges[0].target_node_type == CheckerGraphNode.NODE_TYPE
+    assert node.edges[0].target_node_obj is node.companion_checkers[0].node_obj
 
 
 def test_summary_aspect_graph_node_interchange_shape() -> None:
