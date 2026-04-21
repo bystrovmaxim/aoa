@@ -20,18 +20,6 @@ ARCHITECTURE / DATA FLOW
     ``BaseAction[P, R]``  →  :meth:`get_schema_generic_binding` with index ``0`` / ``1`` (or :meth:`get_params_edge` / :meth:`get_result_edge`)
 
     ActionGraphNode ``__init__`` / helpers  →  frozen ``BaseGraphNode``
-
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-Happy path::
-
-    class MyPingAction(BaseAction): ...
-    n = ActionGraphNode(MyPingAction)
-    assert n.node_type == "Action" and n.label == "MyPingAction"
-
-Edge case: same interchange shape for any concrete ``BaseAction`` subclass type passed in.
 """
 
 from __future__ import annotations
@@ -46,9 +34,11 @@ from action_machine.model.base_action import BaseAction
 from graph.base_graph_edge import BaseGraphEdge
 from graph.base_graph_node import BaseGraphNode
 from graph.edge_relationship import AGGREGATION, ASSOCIATION, COMPOSITION
-from graph.qualified_name import cls_qualified_dotted_id
+from action_machine.tools import Introspection
 
 from .base_callable_graph_node import BaseCallableGraphNode, IntentCallableKind
+from .compensator_graph_node import CompensatorGraphNode
+from .error_handler_graph_node import ErrorHandlerGraphNode
 from .params_graph_node import ParamsGraphNode
 from .regular_aspect_graph_node import RegularAspectGraphNode
 from .result_graph_node import ResultGraphNode
@@ -62,7 +52,7 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
     """
     AI-CORE-BEGIN
     ROLE: Interchange node for a concrete ``BaseAction`` host class.
-    CONTRACT: ``get_properties`` / ``get_domain_edge`` (``@meta``, ``ASSOCIATION``, ``is_dag=True``); ``get_params_edge`` / ``get_result_edge`` (``AGGREGATION``); ``get_regular_aspect_edges`` / ``get_summary_aspect_edges`` (``COMPOSITION``, own-class ``@regular_aspect`` / ``@summary_aspect``).
+    CONTRACT: ``get_properties`` / ``get_domain_edge`` (``@meta``, ``ASSOCIATION``, ``is_dag=True``); ``get_params_edge`` / ``get_result_edge`` (``AGGREGATION``); ``get_regular_aspect_edges`` / ``get_summary_aspect_edges`` / ``get_compensator_edges`` / ``get_error_handler_edges`` (``COMPOSITION``, own-class ``@regular_aspect`` / ``@summary_aspect`` / ``@compensate`` / ``@on_error``).
     AI-CORE-END
     """
 
@@ -70,7 +60,7 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
 
     def __init__(self, action_cls: type[TAction]) -> None:
         super().__init__(
-            node_id=cls_qualified_dotted_id(action_cls),
+            node_id=Introspection.full_qualname(action_cls),
             node_type=ActionGraphNode.NODE_TYPE,
             label=action_cls.__name__,
             properties=dict(ActionGraphNode.get_properties(action_cls)),
@@ -116,10 +106,10 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
         return BaseGraphEdge(
             edge_name="params",
             is_dag=False,
-            source_node_id=cls_qualified_dotted_id(action_cls),
+            source_node_id=Introspection.full_qualname(action_cls),
             source_node_type=cls.NODE_TYPE,
             source_node_obj=action_cls,
-            target_node_id=cls_qualified_dotted_id(params_type),
+            target_node_id=Introspection.full_qualname(params_type),
             target_node_type=ParamsGraphNode.NODE_TYPE,
             target_node_obj=params_type,
             edge_relationship=AGGREGATION,
@@ -137,10 +127,10 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
         return BaseGraphEdge(
             edge_name="result",
             is_dag=False,
-            source_node_id=cls_qualified_dotted_id(action_cls),
+            source_node_id=Introspection.full_qualname(action_cls),
             source_node_type=cls.NODE_TYPE,
             source_node_obj=action_cls,
-            target_node_id=cls_qualified_dotted_id(result_type),
+            target_node_id=Introspection.full_qualname(result_type),
             target_node_type=ResultGraphNode.NODE_TYPE,
             target_node_obj=result_type,
             edge_relationship=AGGREGATION,
@@ -156,7 +146,7 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
 
         Target ids match :class:`RegularAspectGraphNode` (``action_dotted_id:method_name``).
         """
-        action_id = cls_qualified_dotted_id(action_cls)
+        action_id = Introspection.full_qualname(action_cls)
         edges: list[BaseGraphEdge] = []
         for aspect_callable in BaseCallableGraphNode.collect_own_class_callables_for_kind(
             action_cls,
@@ -188,7 +178,7 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
 
         Target ids match :class:`SummaryAspectGraphNode` (``action_dotted_id:method_name``).
         """
-        action_id = cls_qualified_dotted_id(action_cls)
+        action_id = Introspection.full_qualname(action_cls)
         edges: list[BaseGraphEdge] = []
         for aspect_callable in BaseCallableGraphNode.collect_own_class_callables_for_kind(
             action_cls,
@@ -205,6 +195,70 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
                     target_node_id=f"{action_id}:{method_name}",
                     target_node_type=SummaryAspectGraphNode.NODE_TYPE,
                     target_node_obj=aspect_callable,
+                    edge_relationship=COMPOSITION,
+                ),
+            )
+        return edges
+
+    @classmethod
+    def get_compensator_edges(
+        cls,
+        action_cls: type[TAction],
+    ) -> list[BaseGraphEdge]:
+        """
+        One ``COMPOSITION`` edge per own-class ``@compensate`` from this action to the matching compensator node.
+
+        Target ids match :class:`CompensatorGraphNode` (``action_dotted_id:method_name``).
+        """
+        action_id = Introspection.full_qualname(action_cls)
+        edges: list[BaseGraphEdge] = []
+        for compensator_callable in BaseCallableGraphNode.collect_own_class_callables_for_kind(
+            action_cls,
+            IntentCallableKind.COMPENSATE,
+        ):
+            method_name = BaseCallableGraphNode.resolve_method_name(compensator_callable)
+            edges.append(
+                BaseGraphEdge(
+                    edge_name=method_name,
+                    is_dag=False,
+                    source_node_id=action_id,
+                    source_node_type=cls.NODE_TYPE,
+                    source_node_obj=action_cls,
+                    target_node_id=f"{action_id}:{method_name}",
+                    target_node_type=CompensatorGraphNode.NODE_TYPE,
+                    target_node_obj=compensator_callable,
+                    edge_relationship=COMPOSITION,
+                ),
+            )
+        return edges
+
+    @classmethod
+    def get_error_handler_edges(
+        cls,
+        action_cls: type[TAction],
+    ) -> list[BaseGraphEdge]:
+        """
+        One ``COMPOSITION`` edge per own-class ``@on_error`` from this action to the matching error-handler node.
+
+        Target ids match :class:`ErrorHandlerGraphNode` (``action_dotted_id:method_name``).
+        """
+        action_id = Introspection.full_qualname(action_cls)
+        edges: list[BaseGraphEdge] = []
+        for handler_callable in BaseCallableGraphNode.collect_own_class_callables_for_kind(
+            action_cls,
+            IntentCallableKind.ON_ERROR,
+        ):
+            method_name = BaseCallableGraphNode.resolve_method_name(handler_callable)
+            edges.append(
+                BaseGraphEdge(
+                    edge_name=method_name,
+                    is_dag=False,
+                    source_node_id=action_id,
+                    source_node_type=cls.NODE_TYPE,
+                    source_node_obj=action_cls,
+                    target_node_id=f"{action_id}:{method_name}",
+                    target_node_type=ErrorHandlerGraphNode.NODE_TYPE,
+                    target_node_obj=handler_callable,
                     edge_relationship=COMPOSITION,
                 ),
             )
@@ -231,10 +285,10 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
         return BaseGraphEdge(
             edge_name="domain",
             is_dag=True,
-            source_node_id=cls_qualified_dotted_id(action_cls),
+            source_node_id=Introspection.full_qualname(action_cls),
             source_node_type=cls.NODE_TYPE,
             source_node_obj=action_cls,
-            target_node_id=cls_qualified_dotted_id(domain_cls),
+            target_node_id=Introspection.full_qualname(domain_cls),
             target_node_type=DomainGraphNode.NODE_TYPE,
             target_node_obj=domain_cls,
             edge_relationship=ASSOCIATION,
@@ -251,7 +305,7 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
 
     @classmethod
     def _get_all_edges(cls, action_cls: type[TAction]) -> list[BaseGraphEdge]:
-        """Optional domain/params/result edges plus regular/summary aspect edges (never ``None`` entries)."""
+        """Optional domain/params/result edges plus aspect, compensator, and error-handler edges (never ``None`` entries)."""
         optional_edges = (
             cls.get_domain_edge(action_cls),
             cls.get_params_edge(action_cls),
@@ -261,4 +315,6 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
             [e for e in optional_edges if e is not None]
             + cls.get_regular_aspect_edges(action_cls)
             + cls.get_summary_aspect_edges(action_cls)
+            + cls.get_compensator_edges(action_cls)
+            + cls.get_error_handler_edges(action_cls)
         )

@@ -39,7 +39,7 @@ from typing import ClassVar, TypeVar
 
 from action_machine.auth.base_role import BaseRole
 from graph.base_graph_node import BaseGraphNode
-from graph.qualified_name import cls_qualified_dotted_id
+from action_machine.tools import Introspection
 
 TRole = TypeVar("TRole", bound=BaseRole)
 
@@ -57,7 +57,7 @@ class RoleGraphNode(BaseGraphNode[type[TRole]]):
 
     def __init__(self, role_cls: type[TRole]) -> None:
         super().__init__(
-            node_id=cls_qualified_dotted_id(role_cls),
+            node_id=Introspection.full_qualname(role_cls),
             node_type=RoleGraphNode.NODE_TYPE,
             label=role_cls.__name__,
             properties={},

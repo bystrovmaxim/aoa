@@ -19,7 +19,7 @@ the legacy HTML export, without importing the old coordinator or dict-normalizat
 pipeline.
 
 Edges use G6 ``line`` with default style; ``stroke`` / arrow colour follow ``isDag`` only
-(**red** vs **slate**) and never change on hover. On node hover, incident edges get state
+(DAG accent ``#FF6163`` vs slate ``#95a5a6``) and never change on hover. On node hover, incident edges get state
 ``active``. Edge ``data`` still carries relationship fields for tests.
 """
 
@@ -39,10 +39,11 @@ from action_machine.domain.graph_model.entity_graph_node import EntityGraphNode
 from action_machine.legacy.interchange_vertex_labels import (
     APPLICATION_VERTEX_TYPE,
     CHECKER_VERTEX_TYPE,
-    COMPENSATOR_VERTEX_TYPE,
     SERVICE_VERTEX_TYPE,
 )
 from action_machine.model.graph_model.action_graph_node import ActionGraphNode
+from action_machine.model.graph_model.compensator_graph_node import CompensatorGraphNode
+from action_machine.model.graph_model.error_handler_graph_node import ErrorHandlerGraphNode
 from action_machine.model.graph_model.params_graph_node import ParamsGraphNode
 from action_machine.model.graph_model.regular_aspect_graph_node import RegularAspectGraphNode
 from action_machine.model.graph_model.result_graph_node import ResultGraphNode
@@ -77,8 +78,8 @@ VERTEX_TYPE_FILL_COLORS: dict[str, str] = {
     RegularAspectGraphNode.NODE_TYPE: "#FF7F00",
     SummaryAspectGraphNode.NODE_TYPE: "#FF7F00",
     CHECKER_VERTEX_TYPE: "#A65628",
-    COMPENSATOR_VERTEX_TYPE: "#F781BF",
-    "error_handler": "#6A3D9A",
+    CompensatorGraphNode.NODE_TYPE: "#F781BF",
+    ErrorHandlerGraphNode.NODE_TYPE: "#6A3D9A",
     EntityGraphNode.NODE_TYPE: "#1B9E77",
     "lifecycle": "#00798C",
     "lifecycle_state_initial": "#9575CD",
@@ -122,7 +123,8 @@ def _vertex_facet_label(node: dict[str, Any]) -> str:
         RegularAspectGraphNode.NODE_TYPE,
         SummaryAspectGraphNode.NODE_TYPE,
         CHECKER_VERTEX_TYPE,
-        COMPENSATOR_VERTEX_TYPE,
+        CompensatorGraphNode.NODE_TYPE,
+        ErrorHandlerGraphNode.NODE_TYPE,
     ):
         lab = str(node.get("label", "") or "").strip()
         if lab:
@@ -137,7 +139,8 @@ def _element_short_name(node: dict[str, Any]) -> str:
         RegularAspectGraphNode.NODE_TYPE,
         SummaryAspectGraphNode.NODE_TYPE,
         CHECKER_VERTEX_TYPE,
-        COMPENSATOR_VERTEX_TYPE,
+        CompensatorGraphNode.NODE_TYPE,
+        ErrorHandlerGraphNode.NODE_TYPE,
     ):
         lab = str(node.get("label", "") or "").strip()
         if lab:
@@ -454,9 +457,9 @@ def interchange_edge_to_visual_dict(edge: BaseGraphEdge) -> dict[str, Any]:
     Includes ArchiMate-style ``source_attachment`` / ``target_attachment`` / ``line_style``
     (``StrEnum`` string values) plus ``relationship_name`` for tooltips or debugging.
 
-    For ``COMPOSITION`` links to a ``RegularAspect`` / ``SummaryAspect`` vertex, attachment graphics are swapped so
-    the diamond sits on the **aspect** end (UML aggregate/composite whole); graph topology
-    stays ``Action → aspect``.
+    For ``COMPOSITION`` links to a ``RegularAspect`` / ``SummaryAspect`` / ``Compensator`` / ``error_handler`` vertex, attachment graphics are swapped so
+    the diamond sits on the **target** end (UML aggregate/composite whole); graph topology
+    stays ``Action → callable node``.
     """
     er = edge.edge_relationship
     src_att = er.source_attachment.value
@@ -464,6 +467,8 @@ def interchange_edge_to_visual_dict(edge: BaseGraphEdge) -> dict[str, Any]:
     if isinstance(er, Composition) and edge.target_node_type in (
         RegularAspectGraphNode.NODE_TYPE,
         SummaryAspectGraphNode.NODE_TYPE,
+        CompensatorGraphNode.NODE_TYPE,
+        ErrorHandlerGraphNode.NODE_TYPE,
     ):
         src_att, tgt_att = tgt_att, src_att
     return {
@@ -931,7 +936,7 @@ __G6_SCRIPT__
         for (const node of graphData.nodes) initAdj(node.id);
 
         function edgeBaseStroke(d) {{
-          return d.data?.isDag ? '#b91c1c' : '#95a5a6';
+          return d.data?.isDag ? '#FF6163' : '#95a5a6';
         }}
         const container = document.getElementById('container');
         const graph = new G6.Graph({{

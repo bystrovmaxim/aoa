@@ -43,7 +43,7 @@ from typing import ClassVar, TypeVar
 
 from action_machine.domain.base_domain import BaseDomain
 from graph.base_graph_node import BaseGraphNode
-from graph.qualified_name import cls_qualified_dotted_id
+from action_machine.tools import Introspection
 
 TDomain = TypeVar("TDomain", bound=BaseDomain)
 
@@ -61,7 +61,7 @@ class DomainGraphNode(BaseGraphNode[type[TDomain]]):
 
     def __init__(self, domain_cls: type[TDomain]) -> None:
         super().__init__(
-            node_id=cls_qualified_dotted_id(domain_cls),
+            node_id=Introspection.full_qualname(domain_cls),
             node_type=DomainGraphNode.NODE_TYPE,
             label=domain_cls.__name__,
             properties={

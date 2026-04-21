@@ -9,7 +9,7 @@ These are public helpers so constructors stay thin and rules stay in one place.
 RELATED MODULES
 ═══════════════════════════════════════════════════════════════════════════════
 
-- :mod:`graph.qualified_name` — how stable **string ids** (e.g. ``node_id``) are *produced* from types,
+- :class:`action_machine.tools.introspection.Introspection` — stable type ids use :meth:`~action_machine.tools.introspection.Introspection.full_qualname`,
   not how arbitrary caller strings are validated.
 - This module — how **caller-supplied** strings and references are *validated* before freezing a model.
 """

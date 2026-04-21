@@ -12,6 +12,8 @@ import pytest
 import rustworkx as rx
 
 from action_machine.legacy.application_context import ApplicationContext
+from action_machine.model.graph_model.compensator_graph_node import CompensatorGraphNode
+from action_machine.model.graph_model.error_handler_graph_node import ErrorHandlerGraphNode
 from action_machine.model.graph_model.regular_aspect_graph_node import RegularAspectGraphNode
 from action_machine.model.graph_model.summary_aspect_graph_node import SummaryAspectGraphNode
 from graph.base_graph_edge import BaseGraphEdge
@@ -20,7 +22,7 @@ from graph.base_graph_node_inspector import BaseGraphNodeInspector
 from graph.edge_relationship import ASSOCIATION, COMPOSITION
 from graph.exceptions import InvalidGraphError
 from graph.node_graph_coordinator import NodeGraphCoordinator
-from graph.qualified_name import cls_qualified_dotted_id
+from action_machine.tools import Introspection
 from maxitor.samples.build import _MODULES
 from maxitor.viz2.interchange_graph_visualizer import (
     G6_CDN_URL,
@@ -41,7 +43,7 @@ def _import_sample_modules() -> None:
 
 def test_interchange_node_and_edge_to_visual_dicts() -> None:
     n = BaseGraphNode(
-        node_id=cls_qualified_dotted_id(ApplicationContext),
+        node_id=Introspection.full_qualname(ApplicationContext),
         node_type="Application",
         label=ApplicationContext.__name__,
         properties={},
@@ -99,6 +101,40 @@ def test_interchange_edge_visual_dict_swaps_composition_diamond_to_summary_aspec
         source_node_obj=object(),
         target_node_id="pkg.Action:pong_summary",
         target_node_type=SummaryAspectGraphNode.NODE_TYPE,
+        target_node_obj=object(),
+        edge_relationship=COMPOSITION,
+    )
+    ed = interchange_edge_to_visual_dict(e)
+    assert ed["source_attachment"] == "none"
+    assert ed["target_attachment"] == "filled_diamond"
+
+
+def test_interchange_edge_visual_dict_swaps_composition_diamond_to_compensator_target() -> None:
+    e = BaseGraphEdge(
+        edge_name="rollback_charge_compensate",
+        is_dag=False,
+        source_node_id="pkg.Action",
+        source_node_type="Action",
+        source_node_obj=object(),
+        target_node_id="pkg.Action:rollback_charge_compensate",
+        target_node_type=CompensatorGraphNode.NODE_TYPE,
+        target_node_obj=object(),
+        edge_relationship=COMPOSITION,
+    )
+    ed = interchange_edge_to_visual_dict(e)
+    assert ed["source_attachment"] == "none"
+    assert ed["target_attachment"] == "filled_diamond"
+
+
+def test_interchange_edge_visual_dict_swaps_composition_diamond_to_error_handler_target() -> None:
+    e = BaseGraphEdge(
+        edge_name="handle_finalize_on_error",
+        is_dag=False,
+        source_node_id="pkg.Action",
+        source_node_type="Action",
+        source_node_obj=object(),
+        target_node_id="pkg.Action:handle_finalize_on_error",
+        target_node_type=ErrorHandlerGraphNode.NODE_TYPE,
         target_node_obj=object(),
         edge_relationship=COMPOSITION,
     )

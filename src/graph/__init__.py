@@ -71,7 +71,6 @@ from graph.graph_coordinator import GraphCoordinator
 from graph.graph_edge import GraphEdge
 from graph.graph_vertex import GraphVertex, GraphVertexParseError, ParsedGraphVertex
 from graph.node_graph_coordinator import NodeGraphCoordinator
-from graph.qualified_name import cls_qualified_dotted_id
 from graph.validation import require_non_empty_str, require_non_null
 
 __all__ = [
@@ -107,7 +106,6 @@ __all__ = [
     "ParsedGraphVertex",
     "assert_dag_edges_acyclic",
     "build_interchange_from_facet_vertices",
-    "cls_qualified_dotted_id",
     "collect_dag_edge_pairs",
     "dag_edge_pairs_from_rx",
     "dag_subgraph_is_acyclic",

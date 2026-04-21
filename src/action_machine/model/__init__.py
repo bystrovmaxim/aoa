@@ -52,6 +52,8 @@ from action_machine.model.base_schema import BaseSchema
 from action_machine.model.base_state import BaseState
 from action_machine.model.exceptions import *  # noqa: F403
 from action_machine.model.graph_model.base_callable_graph_node import BaseCallableGraphNode
+from action_machine.model.graph_model.compensator_graph_node import CompensatorGraphNode
+from action_machine.model.graph_model.error_handler_graph_node import ErrorHandlerGraphNode
 from action_machine.model.graph_model.params_graph_node import ParamsGraphNode
 from action_machine.model.graph_model.params_graph_node_inspector import (
     ParamsGraphNodeInspector,
@@ -96,6 +98,8 @@ __all__ = [
     "BaseSchema",
     "BaseState",
     "BaseCallableGraphNode",
+    "CompensatorGraphNode",
+    "ErrorHandlerGraphNode",
     "ParamsGraphNode",
     "ParamsGraphNodeInspector",
     "RegularAspectGraphNode",

@@ -44,7 +44,7 @@ from action_machine.domain.entity import BaseEntity
 from graph.base_graph_edge import BaseGraphEdge
 from graph.base_graph_node import BaseGraphNode
 from graph.edge_relationship import ASSOCIATION
-from graph.qualified_name import cls_qualified_dotted_id
+from action_machine.tools import Introspection
 
 from .domain_graph_node import DomainGraphNode
 
@@ -92,10 +92,10 @@ class EntityGraphNode(BaseGraphNode[type[TEntity]]):
         return BaseGraphEdge(
             edge_name="domain",
             is_dag=False,
-            source_node_id=cls_qualified_dotted_id(entity_cls),
+            source_node_id=Introspection.full_qualname(entity_cls),
             source_node_type=cls.NODE_TYPE,
             source_node_obj=entity_cls,
-            target_node_id=cls_qualified_dotted_id(domain_cls),
+            target_node_id=Introspection.full_qualname(domain_cls),
             target_node_type=DomainGraphNode.NODE_TYPE,
             target_node_obj=domain_cls,
             edge_relationship=ASSOCIATION,
@@ -118,7 +118,7 @@ class EntityGraphNode(BaseGraphNode[type[TEntity]]):
 
     def __init__(self, entity_cls: type[TEntity]) -> None:
         super().__init__(
-            node_id=cls_qualified_dotted_id(entity_cls),
+            node_id=Introspection.full_qualname(entity_cls),
             node_type=EntityGraphNode.NODE_TYPE,
             label=entity_cls.__name__,
             properties=dict(EntityGraphNode.get_properties(entity_cls)),
