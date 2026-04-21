@@ -1,4 +1,4 @@
-# src/action_machine/tools/introspection.py
+# src/action_machine/tools/type_introspection.py
 """
 Small, dependency-light helpers for runtime introspection of objects and callables.
 """

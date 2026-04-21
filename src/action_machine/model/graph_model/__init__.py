@@ -34,7 +34,7 @@ _LAZY: dict[str, str] = {
     "ActionGraphNodeInspector": "action_machine.model.graph_model.action_graph_node_inspector",
     "CompensatorGraphNode": "action_machine.model.graph_model.compensator_graph_node",
     "ErrorHandlerGraphNode": "action_machine.model.graph_model.error_handler_graph_node",
-    "CallableKind": "action_machine.tools.introspection",
+    "CallableKind": "action_machine.tools.type_introspection",
     "ParamsGraphNode": "action_machine.model.graph_model.params_graph_node",
     "ParamsGraphNodeInspector": "action_machine.model.graph_model.params_graph_node_inspector",
     "RegularAspectGraphNode": "action_machine.model.graph_model.regular_aspect_graph_node",

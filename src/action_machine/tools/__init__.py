@@ -5,7 +5,7 @@ ActionMachine tools — small helpers for development and runtime inspection.
 
 from __future__ import annotations
 
-from .introspection import CallableKind, TypeIntrospection
+from .type_introspection import CallableKind, TypeIntrospection
 
 __all__ = [
     "CallableKind",
