@@ -42,8 +42,8 @@ from dataclasses import dataclass
 from typing import ClassVar, TypeVar
 
 from action_machine.domain.base_domain import BaseDomain
-from graph.base_graph_node import BaseGraphNode
 from action_machine.tools import Introspection
+from graph.base_graph_node import BaseGraphNode
 
 TDomain = TypeVar("TDomain", bound=BaseDomain)
 

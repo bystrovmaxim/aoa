@@ -41,10 +41,10 @@ from typing import Any, ClassVar, TypeVar
 
 from action_machine.domain.base_domain import BaseDomain
 from action_machine.domain.entity import BaseEntity
+from action_machine.tools import Introspection
 from graph.base_graph_edge import BaseGraphEdge
 from graph.base_graph_node import BaseGraphNode
 from graph.edge_relationship import ASSOCIATION
-from action_machine.tools import Introspection
 
 from .domain_graph_node import DomainGraphNode
 

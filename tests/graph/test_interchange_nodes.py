@@ -17,10 +17,10 @@ from action_machine.model.graph_model.params_graph_node import ParamsGraphNode
 from action_machine.model.graph_model.regular_aspect_graph_node import RegularAspectGraphNode
 from action_machine.model.graph_model.result_graph_node import ResultGraphNode
 from action_machine.model.graph_model.summary_aspect_graph_node import SummaryAspectGraphNode
+from action_machine.tools import Introspection
 from graph.base_graph_edge import BaseGraphEdge
 from graph.edge_relationship import AGGREGATION, ASSOCIATION, COMPOSITION
 from graph.facet_vertex import FacetVertex
-from action_machine.tools import Introspection
 from tests.scenarios.domain_model.child_action import ChildAction
 from tests.scenarios.domain_model.compensate_actions import (
     CompensateAndOnErrorAction,

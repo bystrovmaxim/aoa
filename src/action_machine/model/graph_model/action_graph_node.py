@@ -31,12 +31,11 @@ from action_machine.domain.base_domain import BaseDomain
 from action_machine.domain.graph_model.domain_graph_node import DomainGraphNode
 from action_machine.legacy.binding.action_generic_params import _resolve_generic_arg
 from action_machine.model.base_action import BaseAction
+from action_machine.tools import CallableKind, Introspection
 from graph.base_graph_edge import BaseGraphEdge
 from graph.base_graph_node import BaseGraphNode
 from graph.edge_relationship import AGGREGATION, ASSOCIATION, COMPOSITION
-from action_machine.tools import Introspection
 
-from .base_callable_graph_node import BaseCallableGraphNode, IntentCallableKind
 from .compensator_graph_node import CompensatorGraphNode
 from .error_handler_graph_node import ErrorHandlerGraphNode
 from .params_graph_node import ParamsGraphNode
@@ -148,9 +147,9 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
         """
         action_id = Introspection.full_qualname(action_cls)
         edges: list[BaseGraphEdge] = []
-        for aspect_callable in BaseCallableGraphNode.collect_own_class_callables_for_kind(
+        for aspect_callable in Introspection.collect_own_class_callables_by_callable_kind(
             action_cls,
-            IntentCallableKind.REGULAR_ASPECT,
+            CallableKind.REGULAR_ASPECT,
         ):
             method_name = Introspection.unwrapped_callable_name(aspect_callable)
             edges.append(
@@ -180,9 +179,9 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
         """
         action_id = Introspection.full_qualname(action_cls)
         edges: list[BaseGraphEdge] = []
-        for aspect_callable in BaseCallableGraphNode.collect_own_class_callables_for_kind(
+        for aspect_callable in Introspection.collect_own_class_callables_by_callable_kind(
             action_cls,
-            IntentCallableKind.SUMMARY_ASPECT,
+            CallableKind.SUMMARY_ASPECT,
         ):
             method_name = Introspection.unwrapped_callable_name(aspect_callable)
             edges.append(
@@ -212,9 +211,9 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
         """
         action_id = Introspection.full_qualname(action_cls)
         edges: list[BaseGraphEdge] = []
-        for compensator_callable in BaseCallableGraphNode.collect_own_class_callables_for_kind(
+        for compensator_callable in Introspection.collect_own_class_callables_by_callable_kind(
             action_cls,
-            IntentCallableKind.COMPENSATE,
+            CallableKind.COMPENSATE,
         ):
             method_name = Introspection.unwrapped_callable_name(compensator_callable)
             edges.append(
@@ -244,9 +243,9 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
         """
         action_id = Introspection.full_qualname(action_cls)
         edges: list[BaseGraphEdge] = []
-        for handler_callable in BaseCallableGraphNode.collect_own_class_callables_for_kind(
+        for handler_callable in Introspection.collect_own_class_callables_by_callable_kind(
             action_cls,
-            IntentCallableKind.ON_ERROR,
+            CallableKind.ON_ERROR,
         ):
             method_name = Introspection.unwrapped_callable_name(handler_callable)
             edges.append(
