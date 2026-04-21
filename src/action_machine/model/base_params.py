@@ -83,7 +83,7 @@ ARCHITECTURE / DATA FLOW
     BaseParams subclass (Pydantic validation, frozen/forbid)
          |
          +--> Action/aspect pipeline reads immutable values
-         +--> Introspection/OpenAPI/MCP reads field descriptions
+         +--> introspection/OpenAPI/MCP reads field descriptions
          |
          v
     model_dump()/model_json_schema() for adapters and tooling

@@ -42,7 +42,7 @@ from dataclasses import dataclass
 from typing import ClassVar, TypeVar
 
 from action_machine.domain.base_domain import BaseDomain
-from action_machine.tools import Introspection
+from action_machine.tools import TypeIntrospection
 from graph.base_graph_node import BaseGraphNode
 
 TDomain = TypeVar("TDomain", bound=BaseDomain)
@@ -61,7 +61,7 @@ class DomainGraphNode(BaseGraphNode[type[TDomain]]):
 
     def __init__(self, domain_cls: type[TDomain]) -> None:
         super().__init__(
-            node_id=Introspection.full_qualname(domain_cls),
+            node_id=TypeIntrospection.full_qualname(domain_cls),
             node_type=DomainGraphNode.NODE_TYPE,
             label=domain_cls.__name__,
             properties={

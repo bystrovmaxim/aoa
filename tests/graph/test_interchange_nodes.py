@@ -17,7 +17,7 @@ from action_machine.model.graph_model.params_graph_node import ParamsGraphNode
 from action_machine.model.graph_model.regular_aspect_graph_node import RegularAspectGraphNode
 from action_machine.model.graph_model.result_graph_node import ResultGraphNode
 from action_machine.model.graph_model.summary_aspect_graph_node import SummaryAspectGraphNode
-from action_machine.tools import Introspection
+from action_machine.tools import TypeIntrospection
 from graph.base_graph_edge import BaseGraphEdge
 from graph.edge_relationship import AGGREGATION, ASSOCIATION, COMPOSITION
 from graph.facet_vertex import FacetVertex
@@ -38,7 +38,7 @@ def test_regular_aspect_graph_node_interchange_shape() -> None:
     assert node.label == "process_aspect"
     assert node.properties == {}
     assert node.edges == []
-    assert node.node_id == f"{Introspection.full_qualname(ChildAction)}:process_aspect"
+    assert node.node_id == f"{TypeIntrospection.full_qualname(ChildAction)}:process_aspect"
 
 
 def test_summary_aspect_graph_node_interchange_shape() -> None:
@@ -48,7 +48,7 @@ def test_summary_aspect_graph_node_interchange_shape() -> None:
     assert node.label == "pong_summary"
     assert node.properties == {}
     assert node.edges == []
-    assert node.node_id == f"{Introspection.full_qualname(PingAction)}:pong_summary"
+    assert node.node_id == f"{TypeIntrospection.full_qualname(PingAction)}:pong_summary"
 
 
 def test_compensator_graph_node_interchange_shape() -> None:
@@ -59,12 +59,12 @@ def test_compensator_graph_node_interchange_shape() -> None:
     assert node.properties == {}
     assert node.edges == []
     assert node.node_id == (
-        f"{Introspection.full_qualname(CompensatedOrderAction)}:rollback_charge_compensate"
+        f"{TypeIntrospection.full_qualname(CompensatedOrderAction)}:rollback_charge_compensate"
     )
 
 
 def test_action_graph_node_get_compensator_edges() -> None:
-    host = Introspection.full_qualname(CompensatedOrderAction)
+    host = TypeIntrospection.full_qualname(CompensatedOrderAction)
     edges = ActionGraphNode.get_compensator_edges(CompensatedOrderAction)
     assert len(edges) == 2
     assert {e.target_node_id for e in edges} == {
@@ -83,12 +83,12 @@ def test_error_handler_graph_node_interchange_shape() -> None:
     assert node.properties == {}
     assert node.edges == []
     assert node.node_id == (
-        f"{Introspection.full_qualname(CompensateAndOnErrorAction)}:handle_finalize_on_error"
+        f"{TypeIntrospection.full_qualname(CompensateAndOnErrorAction)}:handle_finalize_on_error"
     )
 
 
 def test_action_graph_node_get_error_handler_edges() -> None:
-    host = Introspection.full_qualname(CompensateAndOnErrorAction)
+    host = TypeIntrospection.full_qualname(CompensateAndOnErrorAction)
     edges = ActionGraphNode.get_error_handler_edges(CompensateAndOnErrorAction)
     assert len(edges) == 1
     assert edges[0].target_node_id == f"{host}:handle_finalize_on_error"
@@ -106,7 +106,7 @@ def test_params_graph_node_interchange_shape() -> None:
     assert node.node_obj is PongParams
     assert node.node_type == "Params"
     assert node.label == "PongParams"
-    assert node.node_id == Introspection.full_qualname(PongParams)
+    assert node.node_id == TypeIntrospection.full_qualname(PongParams)
     assert node.properties == {}
     assert node.edges == []
 
@@ -121,7 +121,7 @@ def test_result_graph_node_interchange_shape() -> None:
     assert node.node_obj is PongResult
     assert node.node_type == "Result"
     assert node.label == "PongResult"
-    assert node.node_id == Introspection.full_qualname(PongResult)
+    assert node.node_id == TypeIntrospection.full_qualname(PongResult)
     assert node.properties == {}
     assert node.edges == []
 
@@ -129,11 +129,11 @@ def test_result_graph_node_interchange_shape() -> None:
 def test_domain_node_interchange_shape() -> None:
     node = DomainGraphNode(TestDomain)
     assert node.node_obj is TestDomain
-    assert node.node_id == Introspection.full_qualname(TestDomain)
+    assert node.node_id == TypeIntrospection.full_qualname(TestDomain)
     assert node.node_type == "Domain"
     assert node.node_type == "Domain"
     assert node.label == "TestDomain"
-    assert node.node_id == Introspection.full_qualname(TestDomain)
+    assert node.node_id == TypeIntrospection.full_qualname(TestDomain)
     assert node.properties == {
         "name": TestDomain.name,
         "description": TestDomain.description,
@@ -161,10 +161,10 @@ def test_domain_node_interchange_shape() -> None:
 def test_action_graph_node_links_and_helpers() -> None:
     node = ActionGraphNode(PingAction)
     assert node.node_obj is PingAction
-    dom_id = Introspection.full_qualname(SystemDomain)
-    params_id = Introspection.full_qualname(PingAction.Params)
-    result_id = Introspection.full_qualname(PingAction.Result)
-    host = Introspection.full_qualname(PingAction)
+    dom_id = TypeIntrospection.full_qualname(SystemDomain)
+    params_id = TypeIntrospection.full_qualname(PingAction.Params)
+    result_id = TypeIntrospection.full_qualname(PingAction.Result)
+    host = TypeIntrospection.full_qualname(PingAction)
 
     assert node.node_type == "Action"
     assert node.label == "PingAction"
@@ -253,15 +253,15 @@ def test_action_graph_node_links_and_helpers() -> None:
     p_type = ActionGraphNode.get_schema_generic_binding(PingAction, 0)
     r_type = ActionGraphNode.get_schema_generic_binding(PingAction, 1)
     assert p_type is PingAction.Params and r_type is PingAction.Result
-    assert Introspection.full_qualname(p_type) == params_id
-    assert Introspection.full_qualname(r_type) == result_id
+    assert TypeIntrospection.full_qualname(p_type) == params_id
+    assert TypeIntrospection.full_qualname(r_type) == result_id
 
 
 def test_entity_node_links_properties_and_domain_helpers() -> None:
     node = EntityGraphNode(SampleEntity)
     assert node.node_obj is SampleEntity
-    dom_id = Introspection.full_qualname(TestDomain)
-    host = Introspection.full_qualname(SampleEntity)
+    dom_id = TypeIntrospection.full_qualname(TestDomain)
+    host = TypeIntrospection.full_qualname(SampleEntity)
 
     assert node.node_type == "Entity"
     assert node.label == "SampleEntity"

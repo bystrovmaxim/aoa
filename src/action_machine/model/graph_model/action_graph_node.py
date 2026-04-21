@@ -31,7 +31,7 @@ from action_machine.domain.base_domain import BaseDomain
 from action_machine.domain.graph_model.domain_graph_node import DomainGraphNode
 from action_machine.legacy.binding.action_generic_params import _resolve_generic_arg
 from action_machine.model.base_action import BaseAction
-from action_machine.tools import CallableKind, Introspection
+from action_machine.tools import CallableKind, TypeIntrospection
 from graph.base_graph_edge import BaseGraphEdge
 from graph.base_graph_node import BaseGraphNode
 from graph.edge_relationship import AGGREGATION, ASSOCIATION, COMPOSITION
@@ -59,7 +59,7 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
 
     def __init__(self, action_cls: type[TAction]) -> None:
         super().__init__(
-            node_id=Introspection.full_qualname(action_cls),
+            node_id=TypeIntrospection.full_qualname(action_cls),
             node_type=ActionGraphNode.NODE_TYPE,
             label=action_cls.__name__,
             properties=dict(ActionGraphNode.get_properties(action_cls)),
@@ -105,10 +105,10 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
         return BaseGraphEdge(
             edge_name="params",
             is_dag=False,
-            source_node_id=Introspection.full_qualname(action_cls),
+            source_node_id=TypeIntrospection.full_qualname(action_cls),
             source_node_type=cls.NODE_TYPE,
             source_node_obj=action_cls,
-            target_node_id=Introspection.full_qualname(params_type),
+            target_node_id=TypeIntrospection.full_qualname(params_type),
             target_node_type=ParamsGraphNode.NODE_TYPE,
             target_node_obj=params_type,
             edge_relationship=AGGREGATION,
@@ -126,10 +126,10 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
         return BaseGraphEdge(
             edge_name="result",
             is_dag=False,
-            source_node_id=Introspection.full_qualname(action_cls),
+            source_node_id=TypeIntrospection.full_qualname(action_cls),
             source_node_type=cls.NODE_TYPE,
             source_node_obj=action_cls,
-            target_node_id=Introspection.full_qualname(result_type),
+            target_node_id=TypeIntrospection.full_qualname(result_type),
             target_node_type=ResultGraphNode.NODE_TYPE,
             target_node_obj=result_type,
             edge_relationship=AGGREGATION,
@@ -145,13 +145,13 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
 
         Target ids match :class:`RegularAspectGraphNode` (``action_dotted_id:method_name``).
         """
-        action_id = Introspection.full_qualname(action_cls)
+        action_id = TypeIntrospection.full_qualname(action_cls)
         edges: list[BaseGraphEdge] = []
-        for aspect_callable in Introspection.collect_own_class_callables_by_callable_kind(
+        for aspect_callable in TypeIntrospection.collect_own_class_callables_by_callable_kind(
             action_cls,
             CallableKind.REGULAR_ASPECT,
         ):
-            method_name = Introspection.unwrapped_callable_name(aspect_callable)
+            method_name = TypeIntrospection.unwrapped_callable_name(aspect_callable)
             edges.append(
                 BaseGraphEdge(
                     edge_name=method_name,
@@ -177,13 +177,13 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
 
         Target ids match :class:`SummaryAspectGraphNode` (``action_dotted_id:method_name``).
         """
-        action_id = Introspection.full_qualname(action_cls)
+        action_id = TypeIntrospection.full_qualname(action_cls)
         edges: list[BaseGraphEdge] = []
-        for aspect_callable in Introspection.collect_own_class_callables_by_callable_kind(
+        for aspect_callable in TypeIntrospection.collect_own_class_callables_by_callable_kind(
             action_cls,
             CallableKind.SUMMARY_ASPECT,
         ):
-            method_name = Introspection.unwrapped_callable_name(aspect_callable)
+            method_name = TypeIntrospection.unwrapped_callable_name(aspect_callable)
             edges.append(
                 BaseGraphEdge(
                     edge_name=method_name,
@@ -209,13 +209,13 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
 
         Target ids match :class:`CompensatorGraphNode` (``action_dotted_id:method_name``).
         """
-        action_id = Introspection.full_qualname(action_cls)
+        action_id = TypeIntrospection.full_qualname(action_cls)
         edges: list[BaseGraphEdge] = []
-        for compensator_callable in Introspection.collect_own_class_callables_by_callable_kind(
+        for compensator_callable in TypeIntrospection.collect_own_class_callables_by_callable_kind(
             action_cls,
             CallableKind.COMPENSATE,
         ):
-            method_name = Introspection.unwrapped_callable_name(compensator_callable)
+            method_name = TypeIntrospection.unwrapped_callable_name(compensator_callable)
             edges.append(
                 BaseGraphEdge(
                     edge_name=method_name,
@@ -241,13 +241,13 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
 
         Target ids match :class:`ErrorHandlerGraphNode` (``action_dotted_id:method_name``).
         """
-        action_id = Introspection.full_qualname(action_cls)
+        action_id = TypeIntrospection.full_qualname(action_cls)
         edges: list[BaseGraphEdge] = []
-        for handler_callable in Introspection.collect_own_class_callables_by_callable_kind(
+        for handler_callable in TypeIntrospection.collect_own_class_callables_by_callable_kind(
             action_cls,
             CallableKind.ON_ERROR,
         ):
-            method_name = Introspection.unwrapped_callable_name(handler_callable)
+            method_name = TypeIntrospection.unwrapped_callable_name(handler_callable)
             edges.append(
                 BaseGraphEdge(
                     edge_name=method_name,
@@ -284,10 +284,10 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
         return BaseGraphEdge(
             edge_name="domain",
             is_dag=True,
-            source_node_id=Introspection.full_qualname(action_cls),
+            source_node_id=TypeIntrospection.full_qualname(action_cls),
             source_node_type=cls.NODE_TYPE,
             source_node_obj=action_cls,
-            target_node_id=Introspection.full_qualname(domain_cls),
+            target_node_id=TypeIntrospection.full_qualname(domain_cls),
             target_node_type=DomainGraphNode.NODE_TYPE,
             target_node_obj=domain_cls,
             edge_relationship=ASSOCIATION,

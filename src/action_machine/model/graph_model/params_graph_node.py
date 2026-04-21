@@ -28,7 +28,7 @@ from dataclasses import dataclass
 from typing import ClassVar, TypeVar
 
 from action_machine.model.base_params import BaseParams
-from action_machine.tools import Introspection
+from action_machine.tools import TypeIntrospection
 from graph.base_graph_node import BaseGraphNode
 
 TParams = TypeVar("TParams", bound=BaseParams)
@@ -47,7 +47,7 @@ class ParamsGraphNode(BaseGraphNode[type[TParams]]):
 
     def __init__(self, params_cls: type[TParams]) -> None:
         super().__init__(
-            node_id=Introspection.full_qualname(params_cls),
+            node_id=TypeIntrospection.full_qualname(params_cls),
             node_type=ParamsGraphNode.NODE_TYPE,
             label=params_cls.__name__,
             properties={},
