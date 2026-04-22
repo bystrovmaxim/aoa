@@ -1,4 +1,4 @@
-# src/action_machine/legacy/aspect_intent.py
+# src/action_machine/intents/aspects/aspect_intent.py
 """
 Aspect intent marker and aspect structure validators.
 
@@ -37,12 +37,12 @@ from typing import Any
 
 class AspectIntent:
     """
-AI-CORE-BEGIN
+    AI-CORE-BEGIN
     ROLE: Public aspect intent marker.
     CONTRACT: Classes with aspect decorators must include this marker in MRO.
     INVARIANTS: Pure marker, no state and no side effects.
     AI-CORE-END
-"""
+    """
 
     pass
 

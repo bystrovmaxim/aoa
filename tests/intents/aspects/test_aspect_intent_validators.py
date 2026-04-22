@@ -7,7 +7,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from action_machine.legacy.aspect_intent import (
+from action_machine.intents.aspects.aspect_intent import (
     AspectIntent,
     require_aspect_intent_marker,
     validate_aspects,

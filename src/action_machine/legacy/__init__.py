@@ -11,8 +11,8 @@ from typing import Any
 # / ``BaseAction``. Resolve public symbols lazily (PEP 562).
 
 _LAZY_EXPORTS: dict[str, tuple[str, str]] = {
-    "ActionMetaIntent": ("action_machine.legacy.action_meta_intent", "ActionMetaIntent"),
-    "AspectIntent": ("action_machine.legacy.aspect_intent", "AspectIntent"),
+    "ActionMetaIntent": ("action_machine.intents.meta.action_meta_intent", "ActionMetaIntent"),
+    "AspectIntent": ("action_machine.intents.aspects.aspect_intent", "AspectIntent"),
     "AspectIntentInspector": (
         "action_machine.legacy.aspect_intent_inspector",
         "AspectIntentInspector",
@@ -21,8 +21,8 @@ _LAZY_EXPORTS: dict[str, tuple[str, str]] = {
         "action_machine.legacy.aspect_intent_inspector",
         "hydrate_aspect_row",
     ),
-    "CheckRolesIntent": ("action_machine.legacy.check_roles_intent", "CheckRolesIntent"),
-    "CheckerIntent": ("action_machine.legacy.checker_intent", "CheckerIntent"),
+    "CheckRolesIntent": ("action_machine.intents.check_roles.check_roles_intent", "CheckRolesIntent"),
+    "CheckerIntent": ("action_machine.intents.checkers.checker_intent", "CheckerIntent"),
     "CheckerIntentInspector": (
         "action_machine.legacy.checker_intent_inspector",
         "CheckerIntentInspector",

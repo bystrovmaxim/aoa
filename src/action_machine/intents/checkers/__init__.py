@@ -64,13 +64,13 @@ Decorators:
 
 """
 
+from action_machine.intents.checkers.checker_intent import CheckerIntent
 from action_machine.intents.checkers.result_bool_decorator import FieldBoolChecker, result_bool
 from action_machine.intents.checkers.result_date_decorator import FieldDateChecker, result_date
 from action_machine.intents.checkers.result_float_decorator import FieldFloatChecker, result_float
 from action_machine.intents.checkers.result_instance_decorator import FieldInstanceChecker, result_instance
 from action_machine.intents.checkers.result_int_decorator import FieldIntChecker, result_int
 from action_machine.intents.checkers.result_string_decorator import FieldStringChecker, result_string
-from action_machine.legacy.checker_intent import CheckerIntent
 
 __all__ = [
     "CheckerIntent",

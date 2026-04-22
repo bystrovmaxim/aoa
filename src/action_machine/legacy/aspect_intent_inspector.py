@@ -34,7 +34,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from action_machine.legacy.aspect_intent import AspectIntent
+from action_machine.intents.aspects.aspect_intent import AspectIntent
 from action_machine.legacy.interchange_vertex_labels import (
     ACTION_VERTEX_TYPE,
     REGULAR_ASPECT_VERTEX_TYPE,

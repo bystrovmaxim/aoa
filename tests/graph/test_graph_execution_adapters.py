@@ -12,12 +12,12 @@ from action_machine.intents.checkers.result_string_decorator import result_strin
 from action_machine.intents.compensate.compensate_decorator import compensate
 from action_machine.intents.context.context_requires_decorator import context_requires
 from action_machine.intents.on_error.on_error_decorator import on_error
-from action_machine.legacy.aspect_intent import AspectIntent
+from action_machine.intents.aspects.aspect_intent import AspectIntent
 from action_machine.legacy.aspect_intent_inspector import (
     AspectIntentInspector,
     hydrate_aspect_row,
 )
-from action_machine.legacy.checker_intent import CheckerIntent
+from action_machine.intents.checkers.checker_intent import CheckerIntent
 from action_machine.legacy.checker_intent_inspector import (
     CheckerIntentInspector,
     hydrate_checker_row,
