@@ -13,7 +13,8 @@ a concrete params **class** object. Interchange data lives in ``id``, ``node_typ
 For each declared Pydantic field on the params class, emits a :class:`FieldGraphNode` as
 :attr:`~graph.base_graph_node.BaseGraphNode.companion_nodes` and a ``COMPOSITION`` edge from this
 params vertex to that field (same pattern as :class:`RegularAspectGraphNode` and checkers).
-For each entry in ``model_computed_fields`` (``@computed_field`` / computed properties), emits a
+For each entry in ``model_computed_fields`` (``@computed_field``) and each public plain ``property`` on the class
+(``__dict__`` over MRO, excluding names that clash with ``model_fields`` or already emitted from computed fields), emits a
 :class:`PropertyFieldGraphNode` companion and a
 ``COMPOSITION`` edge (``edge_name`` prefix ``property:``).
 
@@ -121,18 +122,34 @@ class ParamsGraphNode(BaseGraphNode[type[TParams]]):
     def _property_field_graph_nodes_for_params(
         params_cls: type[BaseParams],
     ) -> list[PropertyFieldGraphNode]:
-        """One :class:`PropertyFieldGraphNode` per entry in ``params_cls.model_computed_fields`` (empty when none)."""
-        model_computed_fields = getattr(params_cls, "model_computed_fields", None)
-        if not isinstance(model_computed_fields, Mapping):
-            return []
+        """One :class:`PropertyFieldGraphNode` per Pydantic computed field and per plain ``property`` on the class."""
         out: list[PropertyFieldGraphNode] = []
-        for prop_name, cinfo in model_computed_fields.items():
-            desc = getattr(cinfo, "description", None)
+        seen: set[str] = set()
+
+        model_fields = getattr(params_cls, "model_fields", None)
+        model_field_names = set(model_fields) if isinstance(model_fields, Mapping) else set()
+
+        model_computed_fields = getattr(params_cls, "model_computed_fields", None)
+        if isinstance(model_computed_fields, Mapping):
+            for prop_name, _ in model_computed_fields.items():
+                seen.add(prop_name)
+                out.append(
+                    PropertyFieldGraphNode(
+                        params_cls,
+                        prop_name,
+                        required=False,
+                    ),
+                )
+
+        plain = TypeIntrospection.plain_property_members(params_cls)
+        for prop_name in sorted(plain):
+            if prop_name in seen or prop_name in model_field_names:
+                continue
+            seen.add(prop_name)
             out.append(
                 PropertyFieldGraphNode(
                     params_cls,
                     prop_name,
-                    description=desc if isinstance(desc, str) else None,
                     required=False,
                 ),
             )

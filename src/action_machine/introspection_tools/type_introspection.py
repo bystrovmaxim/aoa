@@ -1,6 +1,6 @@
 # src/action_machine/introspection_tools/type_introspection.py
 """
-Small, dependency-light helpers for runtime introspection of objects and callables (no intent scratch).
+Small, dependency-light helpers for runtime introspection of types, objects, and callables (no intent scratch).
 """
 
 from __future__ import annotations
@@ -97,6 +97,27 @@ class TypeIntrospection:
     def own_namespace_keys(owner: type) -> tuple[str, ...]:
         """Insertion-order keys of ``vars(owner)`` (own dict, no MRO walk)."""
         return tuple(vars(owner).keys())
+
+    @staticmethod
+    def plain_property_members(host_cls: type) -> dict[str, property]:
+        """
+        Collect public ``property`` descriptors declared on ``host_cls`` (via ``__dict__`` on MRO bases).
+
+        Subclass wins for a given name. Names starting with ``_`` are skipped.
+        """
+        found: dict[str, property] = {}
+        for base in host_cls.__mro__:
+            if base is object:
+                break
+            base_dict = getattr(base, "__dict__", None)
+            if base_dict is None:
+                continue
+            for name, member in base_dict.items():
+                if name.startswith("_") or not isinstance(member, property):
+                    continue
+                if name not in found:
+                    found[name] = member
+        return found
 
     @staticmethod
     def callable_parameter_names(fn: Callable[..., Any]) -> tuple[str, ...]:
