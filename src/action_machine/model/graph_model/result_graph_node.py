@@ -141,8 +141,8 @@ class ResultGraphNode(BaseGraphNode[type[TResult]]):
                     ),
                 )
 
-        plain = TypeIntrospection.plain_property_members(result_cls)
-        for prop_name in sorted(plain):
+        prop_members = TypeIntrospection.property_members(result_cls)
+        for prop_name in sorted(prop_members):
             if prop_name in seen or prop_name in model_field_names:
                 continue
             seen.add(prop_name)

@@ -6,7 +6,9 @@ Icons are from `lucide-static` (ISC, https://github.com/lucide-icons/lucide).
 Rendered as white strokes on the colored node disk in :mod:`maxitor.viz2.interchange_graph_visualizer`.
 
 Interchange axis kinds share ``NODE_TYPE`` from :class:`~action_machine.model.graph_model.action_graph_node.ActionGraphNode`,
+:class:`~action_machine.model.graph_model.checker_graph_node.CheckerGraphNode`,
 :class:`~action_machine.model.graph_model.params_graph_node.ParamsGraphNode`, :class:`~action_machine.model.graph_model.result_graph_node.ResultGraphNode`,
+:class:`~action_machine.model.graph_model.field_graph_node.FieldGraphNode`, :class:`~action_machine.model.graph_model.property_field_graph_node.PropertyFieldGraphNode`,
 :class:`~action_machine.domain.graph_model.entity_graph_node.EntityGraphNode`, :class:`~action_machine.domain.graph_model.domain_graph_node.DomainGraphNode`,
 and :class:`~action_machine.auth.graph_model.role_graph_node.RoleGraphNode`. Other keys are facet-only strings (no graph-node class).
 """
@@ -20,18 +22,29 @@ from action_machine.domain.graph_model.domain_graph_node import DomainGraphNode
 from action_machine.domain.graph_model.entity_graph_node import EntityGraphNode
 from action_machine.legacy.interchange_vertex_labels import (
     APPLICATION_VERTEX_TYPE,
-    CHECKER_VERTEX_TYPE,
     SERVICE_VERTEX_TYPE,
 )
 from action_machine.model.graph_model.action_graph_node import ActionGraphNode
+from action_machine.model.graph_model.checker_graph_node import CheckerGraphNode
 from action_machine.model.graph_model.compensator_graph_node import CompensatorGraphNode
 from action_machine.model.graph_model.error_handler_graph_node import ErrorHandlerGraphNode
+from action_machine.model.graph_model.field_graph_node import FieldGraphNode
 from action_machine.model.graph_model.params_graph_node import ParamsGraphNode
+from action_machine.model.graph_model.property_field_graph_node import PropertyFieldGraphNode
 from action_machine.model.graph_model.regular_aspect_graph_node import (
     RegularAspectGraphNode,
 )
 from action_machine.model.graph_model.result_graph_node import ResultGraphNode
 from action_machine.model.graph_model.summary_aspect_graph_node import SummaryAspectGraphNode
+
+# ``ErrorHandler``: amber disk + darker amber glyph (single hue family; avoids neon yellow / fire-engine red).
+_ERROR_HANDLER_INNER_STROKE: str = "#B45309"
+
+# Shared Lucide ``braces`` inner SVG for ``Field`` and ``PropertyField`` rows (disk fill differs per ``node_type``).
+_LUCIDE_FIELD_OR_PROPERTY_INNER: str = (
+    '<path d="M8 3H7a2 2 0 0 0-2 2v5a2 2 0 0 1-2 2 2 2 0 0 1 2 2v5c0 1.1.9 2 2 2h1" /> '
+    '<path d="M16 21h1a2 2 0 0 0 2-2v-5c0-1.1.9-2 2-2a2 2 0 0 1-2-2V5a2 2 0 0 0-2-2h-1" />'
+)
 
 # fmt: off
 # Inner elements only (no <svg> wrapper), spaces preserved for valid XML.
@@ -76,7 +89,7 @@ VERTEX_TYPE_LUCIDE_INNER_SVG: dict[str, str] = {
         '<path d="M11 16h7" /> '
         '<path d="M11 20h10" />'
     ),
-    CHECKER_VERTEX_TYPE: (
+    CheckerGraphNode.NODE_TYPE: (
         '<path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z" /> '
         '<path d="m9 12 2 2 4-4" />'
     ),
@@ -85,9 +98,9 @@ VERTEX_TYPE_LUCIDE_INNER_SVG: dict[str, str] = {
         '<path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5a5.5 5.5 0 0 1-5.5 5.5H11" />'
     ),
     ErrorHandlerGraphNode.NODE_TYPE: (
-        '<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" /> '
-        '<path d="M12 9v4" /> '
-        '<path d="M12 17h.01" />'
+        f'<path fill="none" stroke="{_ERROR_HANDLER_INNER_STROKE}" d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" /> '
+        f'<path fill="none" stroke="{_ERROR_HANDLER_INNER_STROKE}" d="M12 9v4" /> '
+        f'<path fill="none" stroke="{_ERROR_HANDLER_INNER_STROKE}" d="M12 17h.01" />'
     ),
     EntityGraphNode.NODE_TYPE: (
         '<ellipse cx="12" cy="5" rx="9" ry="3" /> '
@@ -163,6 +176,8 @@ VERTEX_TYPE_LUCIDE_INNER_SVG: dict[str, str] = {
         '<path d="m13 6-6 6 6 6" /> '
         '<path d="M7 12h14" />'
     ),
+    FieldGraphNode.NODE_TYPE: _LUCIDE_FIELD_OR_PROPERTY_INNER,
+    PropertyFieldGraphNode.NODE_TYPE: _LUCIDE_FIELD_OR_PROPERTY_INNER,
     "plugin": (
         '<path d="M15.39 4.39a1 1 0 0 0 1.68-.474 2.5 2.5 0 1 1 3.014 3.015 1 1 0 0 0-.474 1.68l1.683 1.682a2.414 2.414 0 0 1 0 3.414L19.61 15.39a1 1 0 0 1-1.68-.474 2.5 2.5 0 1 0-3.014 3.015 1 1 0 0 1 .474 1.68l-1.683 1.682a2.414 2.414 0 0 1-3.414 0L8.61 19.61a1 1 0 0 0-1.68.474 2.5 2.5 0 1 1-3.014-3.015 1 1 0 0 0 .474-1.68l-1.683-1.682a2.414 2.414 0 0 1 0-3.414L4.39 8.61a1 1 0 0 1 1.68.474 2.5 2.5 0 1 0 3.014-3.015 1 1 0 0 1-.474-1.68l1.683-1.682a2.414 2.414 0 0 1 3.414 0z" />'
     ),
@@ -209,7 +224,7 @@ _ICON_STROKE_WIDTH: float = 2.0 / _ICON_INNER_SCALE
 
 
 def svg_data_uri_for_vertex_icon(fill_hex: str, node_type: str) -> str:
-    """Return a data: URL for a 24×24 disk with white Lucide strokes on ``fill_hex``."""
+    """Return a data: URL for a 24×24 disk with ``fill_hex``; Lucide strokes are white except ``ErrorHandler`` (amber-on-amber glyph)."""
     # Types not in the map use the same plug / "fork" glyph as ``dependency``.
     inner = VERTEX_TYPE_LUCIDE_INNER_SVG.get(str(node_type).strip()) or VERTEX_TYPE_LUCIDE_INNER_SVG[
         "dependency"

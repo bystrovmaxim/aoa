@@ -11,6 +11,9 @@ from collections.abc import Callable
 from types import MethodType
 from typing import Any, cast
 
+# ``pydantic.BaseModel`` exposes these as public ``@property`` on the MRO; they are not host-declared members.
+_SKIP_PYDANTIC_PLAIN_PROPERTY_NAMES: frozenset[str] = frozenset({"model_extra", "model_fields_set"})
+
 
 class TypeIntrospection:
     """Runtime type/callable introspection helpers (mostly static; :meth:`full_qualname` is a classmethod)."""
@@ -99,12 +102,8 @@ class TypeIntrospection:
         return tuple(vars(owner).keys())
 
     @staticmethod
-    def plain_property_members(host_cls: type) -> dict[str, property]:
-        """
-        Collect public ``property`` descriptors declared on ``host_cls`` (via ``__dict__`` on MRO bases).
-
-        Subclass wins for a given name. Names starting with ``_`` are skipped.
-        """
+    def property_members(host_cls: type) -> dict[str, property]:
+        """Public ``property`` objects on ``host_cls`` MRO (subclass wins); skip ``_`` names and Pydantic extras."""
         found: dict[str, property] = {}
         for base in host_cls.__mro__:
             if base is object:
@@ -114,6 +113,8 @@ class TypeIntrospection:
                 continue
             for name, member in base_dict.items():
                 if name.startswith("_") or not isinstance(member, property):
+                    continue
+                if name in _SKIP_PYDANTIC_PLAIN_PROPERTY_NAMES:
                     continue
                 if name not in found:
                     found[name] = member
