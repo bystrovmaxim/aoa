@@ -46,6 +46,7 @@ class PublishTransactionalOutboxAction(
         @property
         @sensitive(True, max_chars=3, char="*", max_percent=50)
         def routing_key_hint(self) -> str:
+            """Sample logical routing-key fragment for demos; marked ``@sensitive`` so tooling masks it in logs."""
             return "rk-SECRET-MSG-DEMO"
 
     class Result(BaseResult):

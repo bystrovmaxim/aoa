@@ -10,13 +10,16 @@ Materializes a frozen :class:`~graph.base_graph_node.BaseGraphNode` for one logi
 caller-supplied host ``parent_type`` (typically a params or result schema class). ``node_id`` is the host
 dotted id plus ``:`` plus the property name (``parent_type`` is only an argument to ``__init__``, not stored on the payload); ``node_obj`` is a frozen :class:`PropertyFieldGraphPayload`.
 
-Constructor shape matches :class:`FieldGraphNode` (``parent_type``, name, optional ``description``, ``required``); this node names that string ``property_name`` on the payload. The class does **not** read Pydantic metadata; callers supply interchange metadata explicitly.
+Constructor shape matches :class:`FieldGraphNode` (``parent_type``, name, ``required``); this node names that string ``property_name`` on the payload. The class does **not** read Pydantic metadata; callers supply interchange metadata explicitly.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-    ``parent_type`` (params or result host) + property name (+ optional metadata)  ->  ``PropertyFieldGraphNode(...)``
+    ``parent_type`` (params or result host) + property name (+ optional ``required``)  ->  ``PropertyFieldGraphNode(...)``
+
+Graph emitters combine Pydantic ``model_computed_fields`` with :meth:`action_machine.introspection_tools.TypeIntrospection.plain_property_members`
+to list every public ``property`` on the host class (MRO ``__dict__``).
 """
 
 from __future__ import annotations
@@ -33,7 +36,6 @@ class PropertyFieldGraphPayload:
     """Frozen payload for :attr:`~graph.base_graph_node.BaseGraphNode.node_obj` (property-field row metadata only)."""
 
     property_name: str
-    description: str
     required: bool
 
 
@@ -44,8 +46,8 @@ class PropertyFieldGraphNode(BaseGraphNode[PropertyFieldGraphPayload]):
     ROLE: Interchange node for one declared property-style member under a host ``parent_type``.
     CONTRACT: ``node_id`` = ``TypeIntrospection.full_qualname(parent_type) + ':' + property_name.strip()``;
     :attr:`NODE_TYPE` is ``PropertyField``; ``parent_type`` must be a ``type``; ``edges`` empty;
-    Interchange ``properties`` on the node carry ``required`` and ``description`` (empty string when omitted);
-    :class:`PropertyFieldGraphPayload` holds property name, description, and required flag.
+    Interchange ``properties`` on the node carry ``required`` only;
+    :class:`PropertyFieldGraphPayload` holds property name and required flag.
     No schema introspection inside the class.
     AI-CORE-END
     """
@@ -57,7 +59,6 @@ class PropertyFieldGraphNode(BaseGraphNode[PropertyFieldGraphPayload]):
         parent_type: type,
         property_name: str,
         *,
-        description: str | None = None,
         required: bool = False,
     ) -> None:
         if not isinstance(parent_type, type):
@@ -66,7 +67,6 @@ class PropertyFieldGraphNode(BaseGraphNode[PropertyFieldGraphPayload]):
 
         node_obj = PropertyFieldGraphPayload(
             property_name=property_name,
-            description="" if description is None else description,
             required=required,
         )
         super().__init__(
@@ -75,7 +75,6 @@ class PropertyFieldGraphNode(BaseGraphNode[PropertyFieldGraphPayload]):
             label=property_name.strip(),
             properties={
                 "required": required,
-                "description": "" if description is None else description,
             },
             edges=[],
             node_obj=node_obj,
