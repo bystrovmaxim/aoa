@@ -19,7 +19,10 @@ Read it via :attr:`NodeGraphCoordinator.rx_graph` after a successful :meth:`buil
 or list interchange nodes without touching rustworkx via :meth:`get_all_nodes`.
 
 This coordinator is **domain-agnostic**: it does not interpret ``node_type`` or
-``edge_name`` beyond validation and DAG checks.
+``edge_name`` beyond validation and DAG checks. It does **not** recurse into
+:attr:`~graph.base_graph_node.BaseGraphNode.companion_nodes`; each inspector's
+:meth:`~graph.base_graph_node_inspector.BaseGraphNodeInspector.get_graph_nodes` must already
+include every ``node_id`` referenced by emitted edges (flatten companions there).
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW

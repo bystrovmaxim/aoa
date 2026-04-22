@@ -17,6 +17,7 @@ ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
     explicit host + aspect + checker field  ->  ``CheckerGraphNode(...)`` (outgoing edges live on :class:`RegularAspectGraphNode`).
+    Interchange graph: hosts register built ``CheckerGraphNode`` instances via ``companion_nodes`` on :class:`RegularAspectGraphNode`; inspectors flatten them into ``get_graph_nodes()`` (see :class:`~graph.base_graph_node.BaseGraphNode`).
 """
 
 from __future__ import annotations
@@ -29,13 +30,13 @@ from typing import Any, ClassVar
 from action_machine.introspection_tools import TypeIntrospection
 from graph.base_graph_node import BaseGraphNode
 
-_FIELD_CHECKER_KIND = re.compile(r"^Field(.+)Checker$")
+TYPE_CHECKER_PROPERTY_LABEL_EXPRESSION = re.compile(r"^Field(.+)Checker$")
 
 
 def _type_checker_property_label(checker_class: type) -> str:
     """``FieldStringChecker`` → ``String``; otherwise :meth:`~type.__name__`."""
     name = checker_class.__name__
-    m = _FIELD_CHECKER_KIND.match(name)
+    m = TYPE_CHECKER_PROPERTY_LABEL_EXPRESSION.match(name)
     return m.group(1) if m else name
 
 

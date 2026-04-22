@@ -11,7 +11,8 @@ aspect **callable** on a concrete ``BaseAction`` subclass: ``node_id`` is the ac
 dotted id plus ``:`` plus the method name, interchange ``node_type`` is
 ``RegularAspect``, ``label`` is the method name, ``properties`` empty.
 The node **self-inspects** ``_checker_meta`` on ``aspect_func``, materializes
-:class:`CheckerGraphNode` companions, and emits ``COMPOSITION`` edges from this aspect to each checker.
+:class:`CheckerGraphNode` companions, passes them as :attr:`~graph.base_graph_node.BaseGraphNode.companion_nodes`
+(checkers have no class-based graph inspector), and emits ``COMPOSITION`` edges from this aspect to each checker.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
@@ -20,13 +21,13 @@ ARCHITECTURE / DATA FLOW
     Callable[..., Any]   unbound/bound aspect method  ->  ``node_obj``
               │
               v
-    RegularAspectGraphNode(aspect_func)  reads ``_checker_meta``, sets ``edges`` + ``companion_checkers``
+    RegularAspectGraphNode(aspect_func)  reads ``_checker_meta``, sets ``edges`` and ``companion_nodes`` (checker rows for coordinator flattening)
 """
 
 from __future__ import annotations
 
 from collections.abc import Callable, Mapping, Sequence
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any, ClassVar
 
 from action_machine.introspection_tools import TypeIntrospection
@@ -43,12 +44,11 @@ class RegularAspectGraphNode(BaseGraphNode[Callable[..., Any]]):
     """
     AI-CORE-BEGIN
     ROLE: Interchange node for a regular aspect callable on a ``BaseAction`` host class.
-    CONTRACT: ``node_id`` = ``TypeIntrospection.full_qualname(action_cls) + ':' + method_name``; :attr:`NODE_TYPE` matches facet ``RegularAspect``; empty ``properties``; ``edges`` / :attr:`companion_checkers` derived from ``_checker_meta`` on ``aspect_func`` (see :meth:`checkers_for_method`).
+    CONTRACT: ``node_id`` = ``TypeIntrospection.full_qualname(action_cls) + ':' + method_name``; :attr:`NODE_TYPE` matches facet ``RegularAspect``; empty ``properties``; ``edges`` and :attr:`companion_nodes` (``CheckerGraphNode`` list) from ``_checker_meta`` on ``aspect_func`` (see :meth:`checkers_for_method`).
     AI-CORE-END
     """
 
     NODE_TYPE: ClassVar[str] = "RegularAspect"
-    companion_checkers: tuple[CheckerGraphNode, ...] = field(init=False, default_factory=tuple)
 
     def __init__(self, aspect_func: Callable[..., Any]) -> None:
         checkers = RegularAspectGraphNode._checker_nodes_for_aspect(aspect_func)
@@ -64,8 +64,9 @@ class RegularAspectGraphNode(BaseGraphNode[Callable[..., Any]]):
             properties={},
             edges=edges,
             node_obj=aspect_func,
+            # Same checker instances as in edges' target ids; inspector flattens into graph node list.
+            companion_nodes=list(checkers),
         )
-        object.__setattr__(self, "companion_checkers", tuple(checkers))
 
     @staticmethod
     def checkers_for_method(method: Any) -> list[dict[str, Any]]:

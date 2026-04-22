@@ -32,6 +32,12 @@ ARCHITECTURE / DATA FLOW
               │
               v
     NodeGraphCoordinator.build([...])
+
+When a host emits edges to targets that have **no** dedicated inspector axis (no ``type`` to walk),
+attach those ``BaseGraphNode`` instances on the host's
+:attr:`~graph.base_graph_node.BaseGraphNode.companion_nodes` and **also** append the same instances
+to the flat list returned from :meth:`get_graph_nodes` so :class:`~graph.node_graph_coordinator.NodeGraphCoordinator`
+can resolve ``target_node_id``.
 """
 
 from __future__ import annotations
@@ -137,6 +143,11 @@ class BaseGraphNodeInspector[TRoot](ABC):
         returned by :meth:`_all_descendant_types` for that root, skipping types in
         :meth:`_graph_node_walk_excluded_types`. For an abstract root, :meth:`_get_type_nodes`
         may return an empty list while concrete subclasses still contribute nodes.
+
+        Every ``target_node_id`` on every emitted edge must appear as some returned node's
+        :attr:`~graph.base_graph_node.BaseGraphNode.node_id` (including vertices listed only on
+        a host's :attr:`~graph.base_graph_node.BaseGraphNode.companion_nodes`, which must be
+        flattened into this list by the inspector).
         """
         root = self._get_inspector_type()
         excluded = self._graph_node_walk_excluded_types()
