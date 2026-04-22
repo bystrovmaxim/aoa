@@ -15,6 +15,7 @@ from action_machine.model.graph_model.action_graph_node import ActionGraphNode
 from action_machine.model.graph_model.checker_graph_node import CheckerGraphNode
 from action_machine.model.graph_model.compensator_graph_node import CompensatorGraphNode
 from action_machine.model.graph_model.error_handler_graph_node import ErrorHandlerGraphNode
+from action_machine.model.graph_model.field_graph_node import FieldGraphNode
 from action_machine.model.graph_model.params_graph_node import ParamsGraphNode
 from action_machine.model.graph_model.regular_aspect_graph_node import RegularAspectGraphNode
 from action_machine.model.graph_model.result_graph_node import ResultGraphNode
@@ -113,7 +114,13 @@ def test_params_graph_node_interchange_shape() -> None:
     assert node.label == "PongParams"
     assert node.node_id == TypeIntrospection.full_qualname(PongParams)
     assert node.properties == {}
-    assert node.edges == []
+    assert len(node.companion_nodes) == 1
+    assert len(node.edges) == 1
+    assert node.edges[0].edge_name == "field:token"
+    assert node.edges[0].source_node_id == node.node_id
+    assert node.edges[0].target_node_type == FieldGraphNode.NODE_TYPE
+    assert node.edges[0].target_node_obj is node.companion_nodes[0].node_obj
+    assert node.edges[0].edge_relationship is COMPOSITION
 
 
 def test_result_graph_node_interchange_shape() -> None:
@@ -128,7 +135,13 @@ def test_result_graph_node_interchange_shape() -> None:
     assert node.label == "PongResult"
     assert node.node_id == TypeIntrospection.full_qualname(PongResult)
     assert node.properties == {}
-    assert node.edges == []
+    assert len(node.companion_nodes) == 1
+    assert len(node.edges) == 1
+    assert node.edges[0].edge_name == "field:ok"
+    assert node.edges[0].source_node_id == node.node_id
+    assert node.edges[0].target_node_type == FieldGraphNode.NODE_TYPE
+    assert node.edges[0].target_node_obj is node.companion_nodes[0].node_obj
+    assert node.edges[0].edge_relationship is COMPOSITION
 
 
 def test_domain_node_interchange_shape() -> None:
