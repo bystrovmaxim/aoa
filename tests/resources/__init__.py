@@ -27,10 +27,6 @@ WrapperSqlConnectionManager
     Proxy that forbids transaction control at nested levels but allows queries.
     Created automatically when connections are passed to child actions via ToolsBox.run().
 
-Connections
-    Base TypedDict for the connections dict. Includes the standard key 'connection'
-    covering most use cases.
-
 ═══════════════════════════════════════════════════════════════════════════════
 TEST LAYOUT
 ═══════════════════════════════════════════════════════════════════════════════
@@ -40,5 +36,5 @@ TEST LAYOUT
     ├── test_postgres_connection_manager.py     — open/begin/execute/commit/rollback, rollup
     ├── test_sql_connection_manager.py          — SqlConnectionManager, rollup, abstract API
     ├── test_wrapper_sql_connection_manager.py  — transaction prohibition, execute delegation
-    └── test_connections_typed_dict.py          — TypedDict Connections
+    └── test_connections_dict.py                — connections dict typing
 """
