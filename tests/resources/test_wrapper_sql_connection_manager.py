@@ -54,8 +54,8 @@ from unittest.mock import AsyncMock
 import pytest
 
 from action_machine.model.exceptions import HandleError, TransactionProhibitedError
-from action_machine.resources.sql_connection_manager import SqlConnectionManager
-from action_machine.resources.wrapper_sql_connection_manager import (
+from action_machine.resources.sql import (
+    SqlConnectionManager,
     WrapperSqlConnectionManager,
 )
 

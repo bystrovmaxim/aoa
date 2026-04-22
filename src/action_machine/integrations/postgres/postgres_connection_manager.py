@@ -45,8 +45,8 @@ from typing import Any
 import asyncpg
 
 from action_machine.model.exceptions import HandleError
-from action_machine.resources.sql_connection_manager import SqlConnectionManager
-from action_machine.resources.wrapper_sql_connection_manager import (
+from action_machine.resources.sql import (
+    SqlConnectionManager,
     WrapperSqlConnectionManager,
 )
 

@@ -1,4 +1,4 @@
-# src/action_machine/resources/wrapper_sql_connection_manager.py
+# src/action_machine/resources/sql/wrapper_sql_connection_manager.py
 """
 Proxy wrapper that forbids transaction control in nested scopes.
 
@@ -63,7 +63,9 @@ ARCHITECTURE / DATA FLOW
 from typing import Any
 
 from action_machine.model.exceptions import HandleError, TransactionProhibitedError
-from action_machine.resources.sql_connection_manager import SqlConnectionManager
+from action_machine.resources.sql.sql_connection_manager import (
+    SqlConnectionManager,
+)
 
 
 class WrapperSqlConnectionManager(SqlConnectionManager):
