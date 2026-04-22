@@ -131,3 +131,4 @@ If child action itself runs a deeper action:
     new action gets WrapperSqlManager(wrapped)
     and so on – transaction control always blocked, rollup propagated through the chain.
 ```
+
