@@ -6,12 +6,12 @@ Concrete PostgreSQL connection manager implementation.
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-``PostgresConnectionManager`` is a ``SqlConnectionManager`` implementation
+``PostgresConnectionManager`` is a ``SqlManager`` implementation
 backed by ``asyncpg``. It performs direct database operations: connect,
 transaction control, and SQL execution.
 
 Connection-state policy for child actions is enforced by
-``WrapperSqlConnectionManager``; this class handles low-level DB interaction.
+``WrapperSqlManager``; this class handles low-level DB interaction.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
@@ -45,13 +45,10 @@ from typing import Any
 import asyncpg
 
 from action_machine.model.exceptions import HandleError
-from action_machine.resources.sql import (
-    SqlConnectionManager,
-    WrapperSqlConnectionManager,
-)
+from action_machine.resources.sql import SqlManager
 
 
-class PostgresConnectionManager(SqlConnectionManager):
+class PostgresConnectionManager(SqlManager):
     """
 AI-CORE-BEGIN
     ROLE: Concrete SQL manager for Postgres runtime operations.
@@ -156,15 +153,3 @@ AI-CORE-BEGIN
             return await self._conn.execute(query, *params if params else ())
         except Exception as e:
             raise HandleError(f"SQL execution failed: {e}") from e
-
-    def get_wrapper_class(self) -> type[SqlConnectionManager] | None:
-        """
-        Return wrapper class for child-action usage.
-
-        ``WrapperSqlConnectionManager`` blocks transaction-control methods
-        in child actions and allows query execution.
-
-        Returns:
-            WrapperSqlConnectionManager class.
-        """
-        return WrapperSqlConnectionManager

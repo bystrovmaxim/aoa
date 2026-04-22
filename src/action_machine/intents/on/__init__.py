@@ -1,4 +1,5 @@
 # src/action_machine/intents/on/__init__.py
+# pylint: disable=undefined-all-variable,import-outside-toplevel
 """
 ActionMachine plugin package.
 

@@ -2,12 +2,12 @@
 from typing import Any
 
 from action_machine.intents.meta.meta_decorator import meta
-from action_machine.resources.sql import SqlConnectionManager
+from action_machine.resources.sql import SqlManager
 from maxitor.samples.catalog.domain import CatalogDomain
 
 
 @meta(description="Search sidecar index (stub)", domain=CatalogDomain)
-class CatalogSearchSidecar(SqlConnectionManager):
+class CatalogSearchSidecar(SqlManager):
     def __init__(self, rollup: bool = False) -> None:
         super().__init__(rollup=rollup)
 

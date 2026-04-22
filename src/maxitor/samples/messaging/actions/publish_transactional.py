@@ -13,7 +13,7 @@ from action_machine.intents.aspects.summary_aspect_decorator import summary_aspe
 from action_machine.intents.check_roles.check_roles_decorator import check_roles
 from action_machine.intents.checkers.result_string_decorator import result_string
 from action_machine.intents.compensate.compensate_decorator import compensate
-from action_machine.intents.connection import connection
+from action_machine.intents.connection import connection  # pylint: disable=no-name-in-module
 from action_machine.intents.context.context_requires_decorator import context_requires
 from action_machine.intents.depends import depends
 from action_machine.intents.meta.meta_decorator import meta

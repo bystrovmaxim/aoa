@@ -5,7 +5,7 @@ PURPOSE
 ═══════════════════ ════════════════════ ════════════════════ ════════════════════
 Checks that with rollup=True the compensators work the same as with
 rollup=False. The rollup value ONLY affects resource managers
-(WrapperSqlConnectionManager does ROLLBACK instead of COMMIT).
+(WrapperSqlManager does ROLLBACK instead of COMMIT).
 Compensators are an independent mechanism for rolling back non-transactional
 side effects (HTTP requests to external services). They are called
 for any rollup value.
@@ -83,7 +83,7 @@ class TestCompensatorsWorkWithRollup:
     and Saga events are emitted - the same as with rollup=False.
 
     rollup=True ONLY affects resource managers
-    (WrapperSqlConnectionManager does ROLLBACK instead of COMMIT).
+    (WrapperSqlManager does ROLLBACK instead of COMMIT).
     Compensators are an independent mechanism for rolling back non-transactional
     side effects (HTTP requests to external services)."""
 
@@ -99,7 +99,7 @@ class TestCompensatorsWorkWithRollup:
 
         rollup does not affect compensation. Compensators roll back
         non-transactional side effects (HTTP requests) that
-        are not rolled back via WrapperSqlConnectionManager."""
+        are not rolled back via WrapperSqlManager."""
         # ── Arrange ──
         params = CompensateTestParams(
             user_id="user_rollup",

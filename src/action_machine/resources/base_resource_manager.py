@@ -45,13 +45,13 @@ ARCHITECTURE / DATA FLOW
         check_rollup_support() → raises RollupNotSupportedError
         get_wrapper_class()    → type | None
 
-    class SqlConnectionManager(BaseResourceManager):
+    class SqlManager(BaseResourceManager):
         check_rollup_support() → True  (overrides, supports rollup)
         __init__(rollup=False)         (accepts rollup flag)
         commit()                       (with rollup=True -> rollback instead of commit)
 
     @meta(description="PostgreSQL manager", domain=WarehouseDomain)
-    class PostgresConnectionManager(SqlConnectionManager):
+    class PostgresConnectionManager(SqlManager):
         __init__(params, rollup=False) (passes rollup to super)
 
     @meta(description="Redis cache manager", domain=CacheDomain)

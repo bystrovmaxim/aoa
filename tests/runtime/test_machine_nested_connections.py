@@ -14,12 +14,12 @@ class TestConnectionWrapping:
 
     def test_wrap_connections_with_wrapper_class(self) -> None:
         from action_machine.resources.sql import (
-            SqlConnectionManager,
-            WrapperSqlConnectionManager,
+            SqlManager,
+            WrapperSqlManager,
         )
 
-        mock_manager = MagicMock(spec=SqlConnectionManager)
-        mock_manager.get_wrapper_class.return_value = WrapperSqlConnectionManager
+        mock_manager = MagicMock(spec=SqlManager)
+        mock_manager.get_wrapper_class.return_value = WrapperSqlManager
         mock_manager.rollup = False
 
         box = ToolsBox(
@@ -35,7 +35,7 @@ class TestConnectionWrapping:
 
         assert wrapped is not None
         assert "db" in wrapped
-        assert isinstance(wrapped["db"], WrapperSqlConnectionManager)
+        assert isinstance(wrapped["db"], WrapperSqlManager)
 
     def test_wrap_connections_without_wrapper_class(self) -> None:
         mock_manager = MagicMock(spec=BaseResourceManager)

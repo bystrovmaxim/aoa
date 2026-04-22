@@ -1,13 +1,13 @@
-# src/action_machine/resources/sql/sql_connection_manager.py
+# src/action_machine/resources/sql/sql_manager.py
 """
-Transactional SQL connection manager interface.
+Transactional SQL manager interface.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-``SqlConnectionManager`` is an abstract base class for transactional SQL
-connection managers. It defines the contract:
+``SqlManager`` is an abstract base class for transactional SQL connection
+managers. It defines the contract:
 ``open()``, ``begin()``, ``commit()``, ``rollback()``, ``execute()``.
 
 By inheriting ``BaseResourceManager`` it keeps metadata/wrapper contracts and
@@ -17,8 +17,8 @@ rollup capability checks aligned with the resource subsystem.
 ROLLUP SUPPORT
 ═══════════════════════════════════════════════════════════════════════════════
 
-``SqlConnectionManager`` supports rollup mode natively. Constructor stores
-``rollup`` flag in ``self._rollup``.
+``SqlManager`` supports rollup mode natively. Constructor stores ``rollup``
+flag in ``self._rollup``.
 
 When ``rollup=True``, ``commit()`` calls ``rollback()`` instead of a real
 commit. For deterministic rollback semantics, callers should use explicit
@@ -55,8 +55,9 @@ ROLLUP LIFECYCLE
 ROLLUP PROPAGATION TO CHILD ACTIONS
 ═══════════════════════════════════════════════════════════════════════════════
 
-``WrapperSqlConnectionManager`` preserves rollup flag from original manager.
-Child actions receiving wrapped connections continue in rollup mode.
+``WrapperSqlManager`` exposes ``rollup`` by delegating to the wrapped manager.
+Child actions receive consistent rollup visibility without storing a separate
+flag on the proxy.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
@@ -64,7 +65,7 @@ ARCHITECTURE / DATA FLOW
 
     BaseResourceManager (ABC)
         │
-        └── SqlConnectionManager (ABC)
+        └── SqlManager (ABC)
                 │   _rollup: bool
                 │   check_rollup_support() → True
                 │   commit() → rollback() when _rollup=True
@@ -73,9 +74,9 @@ ARCHITECTURE / DATA FLOW
                 │       __init__(params, rollup=False)
                 │       begin() → transaction start (root action)
                 │
-                └── WrapperSqlConnectionManager (proxy)
+                └── WrapperSqlManager (proxy)
                         __init__(connection_manager)
-                        _rollup copied from original
+                        rollup read from inner (delegation)
                         begin/open/commit/rollback prohibited
 
 """
@@ -84,9 +85,11 @@ from abc import abstractmethod
 from typing import Any
 
 from action_machine.resources.base_resource_manager import BaseResourceManager
+from action_machine.resources.sql.protocol_sql_manager import ProtocolSqlManager
+from action_machine.resources.sql.wrapper_sql_manager import WrapperSqlManager
 
 
-class SqlConnectionManager(BaseResourceManager):
+class SqlManager(BaseResourceManager, ProtocolSqlManager):
     """
     Base class for transaction-capable SQL connection managers.
     """
@@ -103,6 +106,10 @@ class SqlConnectionManager(BaseResourceManager):
     def check_rollup_support(self) -> bool:
         """Confirm rollup support for this manager type."""
         return True
+
+    def get_wrapper_class(self) -> type[BaseResourceManager] | None:
+        """Return proxy class that blocks nested transaction control."""
+        return WrapperSqlManager
 
     @abstractmethod
     async def open(self) -> None:

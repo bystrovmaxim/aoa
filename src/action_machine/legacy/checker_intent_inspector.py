@@ -34,11 +34,11 @@ import re
 from dataclasses import dataclass
 from typing import Any
 
+from action_machine.intents.checkers.checker_intent import CheckerIntent
 from action_machine.legacy.aspect_intent_inspector import (
     AspectIntentInspector,
     vertex_type_for_aspect_kind,
 )
-from action_machine.intents.checkers.checker_intent import CheckerIntent
 from action_machine.legacy.interchange_vertex_labels import CHECKER_VERTEX_TYPE
 from graph.base_facet_snapshot import BaseFacetSnapshot
 from graph.base_intent_inspector import BaseIntentInspector

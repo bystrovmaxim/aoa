@@ -1,4 +1,5 @@
 # src/action_machine/intents/meta/__init__.py
+# pylint: disable=undefined-all-variable,import-outside-toplevel
 """
 Public entrypoint for meta intent contracts and decorator.
 
