@@ -22,7 +22,7 @@ Scenarios covered:
 
 import pytest
 
-from action_machine.resources.sql_connection_manager import SqlConnectionManager
+from action_machine.resources.sql import SqlConnectionManager
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Concrete subclass for testing — SqlConnectionManager is abstract.

@@ -1,4 +1,4 @@
-# src/action_machine/resources/sql_connection_manager.py
+# src/action_machine/resources/sql/sql_connection_manager.py
 """
 Transactional SQL connection manager interface.
 

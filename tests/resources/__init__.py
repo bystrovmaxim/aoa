@@ -26,6 +26,7 @@ PostgresConnectionManager
 WrapperSqlConnectionManager
     Proxy that forbids transaction control at nested levels but allows queries.
     Created automatically when connections are passed to child actions via ToolsBox.run().
+    Concrete modules: ``action_machine.resources.sql``.
 
 ═══════════════════════════════════════════════════════════════════════════════
 TEST LAYOUT
