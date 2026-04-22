@@ -29,9 +29,9 @@ from typing import Any, ClassVar, Literal, TypeVar, get_args, get_origin
 
 from action_machine.domain.base_domain import BaseDomain
 from action_machine.domain.graph_model.domain_graph_node import DomainGraphNode
+from action_machine.introspection_tools import CallableKind, IntentIntrospection, TypeIntrospection
 from action_machine.legacy.binding.action_generic_params import _resolve_generic_arg
 from action_machine.model.base_action import BaseAction
-from action_machine.introspection_tools import CallableKind, IntentIntrospection, TypeIntrospection
 from graph.base_graph_edge import BaseGraphEdge
 from graph.base_graph_node import BaseGraphNode
 from graph.edge_relationship import AGGREGATION, ASSOCIATION, COMPOSITION

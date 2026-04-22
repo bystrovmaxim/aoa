@@ -81,7 +81,7 @@ class CheckerGraphNode(BaseGraphNode[CheckerGraphPayload]):
         if not isinstance(checker_class, type):
             msg = f"checker_class must be a type, got {type(checker_class).__name__}"
             raise TypeError(msg)
-        properties: dict[str, Any] = {
+        merged_properties: dict[str, Any] = {
             **({} if properties is None else dict(properties)),
             "TypeChecker": _type_checker_property_label(checker_class),
             "required": required,
@@ -92,7 +92,7 @@ class CheckerGraphNode(BaseGraphNode[CheckerGraphPayload]):
             checker_class=checker_class,
             field_name=field_name,
             required=required,
-            properties=properties,
+            properties=merged_properties,
         )
         action_id = TypeIntrospection.full_qualname(action_cls)
         checker_node_id = f"{action_id}:{aspect_method_name}:{field_name.strip()}"
@@ -100,7 +100,7 @@ class CheckerGraphNode(BaseGraphNode[CheckerGraphPayload]):
             node_id=checker_node_id,
             node_type=CheckerGraphNode.NODE_TYPE,
             label=field_name.strip(),
-            properties=properties,
+            properties=merged_properties,
             edges=[],
             node_obj=node_obj,
         )

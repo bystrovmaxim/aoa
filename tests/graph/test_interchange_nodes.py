@@ -7,18 +7,18 @@ from pydantic import Field
 
 from action_machine.domain.graph_model.domain_graph_node import DomainGraphNode
 from action_machine.domain.graph_model.entity_graph_node import EntityGraphNode
+from action_machine.introspection_tools import TypeIntrospection
 from action_machine.legacy.application_context_inspector import ApplicationContextInspector
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_result import BaseResult
 from action_machine.model.graph_model.action_graph_node import ActionGraphNode
+from action_machine.model.graph_model.checker_graph_node import CheckerGraphNode
 from action_machine.model.graph_model.compensator_graph_node import CompensatorGraphNode
 from action_machine.model.graph_model.error_handler_graph_node import ErrorHandlerGraphNode
 from action_machine.model.graph_model.params_graph_node import ParamsGraphNode
-from action_machine.model.graph_model.checker_graph_node import CheckerGraphNode
 from action_machine.model.graph_model.regular_aspect_graph_node import RegularAspectGraphNode
 from action_machine.model.graph_model.result_graph_node import ResultGraphNode
 from action_machine.model.graph_model.summary_aspect_graph_node import SummaryAspectGraphNode
-from action_machine.introspection_tools import TypeIntrospection
 from graph.base_graph_edge import BaseGraphEdge
 from graph.edge_relationship import AGGREGATION, ASSOCIATION, COMPOSITION
 from graph.facet_vertex import FacetVertex
@@ -37,7 +37,7 @@ def test_regular_aspect_graph_node_interchange_shape() -> None:
     assert node.node_obj is ChildAction.process_aspect
     assert node.node_type == RegularAspectGraphNode.NODE_TYPE
     assert node.label == "process_aspect"
-    assert node.properties == {}
+    assert node.properties == {"description": "Process value"}
     assert node.node_id == f"{TypeIntrospection.full_qualname(ChildAction)}:process_aspect"
     assert len(node.companion_nodes) == 1
     assert len(node.edges) == 1
@@ -51,7 +51,7 @@ def test_summary_aspect_graph_node_interchange_shape() -> None:
     assert node.node_obj is PingAction.pong_summary
     assert node.node_type == SummaryAspectGraphNode.NODE_TYPE
     assert node.label == "pong_summary"
-    assert node.properties == {}
+    assert node.properties == {"description": "Build pong response"}
     assert node.edges == []
     assert node.node_id == f"{TypeIntrospection.full_qualname(PingAction)}:pong_summary"
 
@@ -61,7 +61,7 @@ def test_compensator_graph_node_interchange_shape() -> None:
     assert node.node_obj is CompensatedOrderAction.rollback_charge_compensate
     assert node.node_type == CompensatorGraphNode.NODE_TYPE
     assert node.label == "rollback_charge_compensate"
-    assert node.properties == {}
+    assert node.properties == {"description": "Rollback payment — refund"}
     assert node.edges == []
     assert node.node_id == (
         f"{TypeIntrospection.full_qualname(CompensatedOrderAction)}:rollback_charge_compensate"
@@ -85,7 +85,7 @@ def test_error_handler_graph_node_interchange_shape() -> None:
     assert node.node_obj is CompensateAndOnErrorAction.handle_finalize_on_error
     assert node.node_type == ErrorHandlerGraphNode.NODE_TYPE
     assert node.label == "handle_finalize_on_error"
-    assert node.properties == {}
+    assert node.properties == {"description": "Handle finalize error"}
     assert node.edges == []
     assert node.node_id == (
         f"{TypeIntrospection.full_qualname(CompensateAndOnErrorAction)}:handle_finalize_on_error"
