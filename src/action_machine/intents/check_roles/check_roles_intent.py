@@ -1,4 +1,4 @@
-# src/action_machine/legacy/check_roles_intent.py
+# src/action_machine/intents/check_roles/check_roles_intent.py
 """
 CheckRolesIntent — marker mixin: declare participation in the role grammar (``@check_roles``).
 
@@ -38,16 +38,18 @@ COMPONENTS
 
 """
 
+from __future__ import annotations
+
 from typing import Any, ClassVar
 
 
 class CheckRolesIntent:
     """
-AI-CORE-BEGIN
+    AI-CORE-BEGIN
     ROLE: Role declaration marker for action classes.
     CONTRACT: Required base for classes decorated with ``@check_roles``.
     INVARIANTS: No behavior; only class-level ``_role_info`` contract.
     AI-CORE-END
-"""
+    """
 
     _role_info: ClassVar[dict[str, Any]]
