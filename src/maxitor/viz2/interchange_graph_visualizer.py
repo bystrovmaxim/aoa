@@ -38,13 +38,15 @@ from action_machine.domain.graph_model.domain_graph_node import DomainGraphNode
 from action_machine.domain.graph_model.entity_graph_node import EntityGraphNode
 from action_machine.legacy.interchange_vertex_labels import (
     APPLICATION_VERTEX_TYPE,
-    CHECKER_VERTEX_TYPE,
     SERVICE_VERTEX_TYPE,
 )
 from action_machine.model.graph_model.action_graph_node import ActionGraphNode
+from action_machine.model.graph_model.checker_graph_node import CheckerGraphNode
 from action_machine.model.graph_model.compensator_graph_node import CompensatorGraphNode
 from action_machine.model.graph_model.error_handler_graph_node import ErrorHandlerGraphNode
+from action_machine.model.graph_model.field_graph_node import FieldGraphNode
 from action_machine.model.graph_model.params_graph_node import ParamsGraphNode
+from action_machine.model.graph_model.property_field_graph_node import PropertyFieldGraphNode
 from action_machine.model.graph_model.regular_aspect_graph_node import RegularAspectGraphNode
 from action_machine.model.graph_model.result_graph_node import ResultGraphNode
 from action_machine.model.graph_model.summary_aspect_graph_node import SummaryAspectGraphNode
@@ -68,7 +70,7 @@ INTERCHANGE_AXES_GRAPH_HTML_PATH: Path = _default_archive_logs_dir() / "graph_no
 
 # Fixed fill per interchange vertex type (stable across graphs — not alphabetical).
 # Palette: Okabe–Ito / Tol-inspired, maximally distinct hues; ``Application`` is black (root).
-# Keys for Action / Domain / Entity / Params / Result / Role use ``NODE_TYPE`` from the corresponding ``*GraphNode`` classes.
+# Keys use interchange ``node_type`` ids (``NODE_TYPE`` on graph-node classes where applicable).
 VERTEX_TYPE_FILL_COLORS: dict[str, str] = {
     APPLICATION_VERTEX_TYPE: "#000000",
     ActionGraphNode.NODE_TYPE: "#E41A1C",
@@ -77,9 +79,9 @@ VERTEX_TYPE_FILL_COLORS: dict[str, str] = {
     "connection": "#984EA3",
     RegularAspectGraphNode.NODE_TYPE: "#FF7F00",
     SummaryAspectGraphNode.NODE_TYPE: "#FF7F00",
-    CHECKER_VERTEX_TYPE: "#A65628",
+    CheckerGraphNode.NODE_TYPE: "#A65628",
     CompensatorGraphNode.NODE_TYPE: "#F781BF",
-    ErrorHandlerGraphNode.NODE_TYPE: "#6A3D9A",
+    ErrorHandlerGraphNode.NODE_TYPE: "#FCD34D",
     EntityGraphNode.NODE_TYPE: "#1B9E77",
     "lifecycle": "#00798C",
     "lifecycle_state_initial": "#9575CD",
@@ -94,6 +96,8 @@ VERTEX_TYPE_FILL_COLORS: dict[str, str] = {
     "described_fields": "#A6CEE3",
     ParamsGraphNode.NODE_TYPE: "#CAB2D6",
     ResultGraphNode.NODE_TYPE: "#B2DF8A",
+    FieldGraphNode.NODE_TYPE: "#6B5B95",
+    PropertyFieldGraphNode.NODE_TYPE: "#43A047",
     "plugin": "#33A02C",
     "subscription": "#FDBF6F",
     "service": "#1F78B4",
@@ -122,7 +126,7 @@ def _vertex_facet_label(node: dict[str, Any]) -> str:
     if nt in (
         RegularAspectGraphNode.NODE_TYPE,
         SummaryAspectGraphNode.NODE_TYPE,
-        CHECKER_VERTEX_TYPE,
+        CheckerGraphNode.NODE_TYPE,
         CompensatorGraphNode.NODE_TYPE,
         ErrorHandlerGraphNode.NODE_TYPE,
     ):
@@ -138,7 +142,7 @@ def _element_short_name(node: dict[str, Any]) -> str:
     if nt in (
         RegularAspectGraphNode.NODE_TYPE,
         SummaryAspectGraphNode.NODE_TYPE,
-        CHECKER_VERTEX_TYPE,
+        CheckerGraphNode.NODE_TYPE,
         CompensatorGraphNode.NODE_TYPE,
         ErrorHandlerGraphNode.NODE_TYPE,
     ):
