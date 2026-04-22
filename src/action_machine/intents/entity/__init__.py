@@ -11,10 +11,10 @@ re-exported from :mod:`action_machine.domain` to avoid a cycle with
 
 from __future__ import annotations
 
-from action_machine.domain.graph_model.domain_graph_node import DomainGraphNode
+from typing import Any
+
 from action_machine.intents.entity.entity_decorator import entity
-from action_machine.legacy.entity_intent import EntityIntent, entity_info_is_set
-from action_machine.legacy.entity_intent_inspector import EntityIntentInspector
+from action_machine.intents.entity.entity_intent import EntityIntent, entity_info_is_set
 
 __all__ = [
     "DomainGraphNode",
@@ -23,3 +23,21 @@ __all__ = [
     "entity",
     "entity_info_is_set",
 ]
+
+
+def __getattr__(name: str) -> Any:
+    """Lazy imports avoid cycles while :mod:`action_machine.domain.entity` loads ``EntityIntent``."""
+    if name == "DomainGraphNode":
+        from action_machine.domain.graph_model.domain_graph_node import DomainGraphNode
+
+        return DomainGraphNode
+    if name == "EntityIntentInspector":
+        from action_machine.legacy.entity_intent_inspector import EntityIntentInspector
+
+        return EntityIntentInspector
+    msg = f"module {__name__!r} has no attribute {name!r}"
+    raise AttributeError(msg)
+
+
+def __dir__() -> list[str]:
+    return sorted(__all__)

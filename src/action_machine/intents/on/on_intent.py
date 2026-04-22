@@ -1,4 +1,4 @@
-# src/action_machine/legacy/on_intent.py
+# src/action_machine/intents/on/on_intent.py
 """
 OnIntent marker mixin for ``@on`` plugin subscriptions.
 
@@ -69,11 +69,11 @@ aligns with other markers such as ``CheckRolesIntent``, ``AspectIntent``,
 
 class OnIntent:
     """
-AI-CORE-BEGIN
+    AI-CORE-BEGIN
     ROLE: Marker contract for plugin event subscriptions.
     CONTRACT: Classes with @on subscriptions must carry this marker.
     INVARIANTS: Logic-free mixin for ``issubclass`` / MRO checks.
     AI-CORE-END
-"""
+    """
 
     pass

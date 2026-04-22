@@ -1,4 +1,4 @@
-# src/action_machine/legacy/dependency_intent.py
+# src/action_machine/intents/depends/dependency_intent.py
 """
 DependencyIntent — marker generic mixin for ``@depends``.
 
@@ -48,12 +48,12 @@ from typing import Any, ClassVar, get_args, get_origin
 
 class DependencyIntent[T]:
     """
-AI-CORE-BEGIN
+    AI-CORE-BEGIN
     ROLE: Dependency declaration marker with bound metadata.
     CONTRACT: Enables ``@depends`` only for subclasses and exposes bound via ``_depends_bound``.
     INVARIANTS: Marker is runtime-light; bound is computed at class creation.
     AI-CORE-END
-"""
+    """
 
     _depends_info: ClassVar[list[Any]]
     _depends_bound: ClassVar[type]

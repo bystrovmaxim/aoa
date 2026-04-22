@@ -125,8 +125,10 @@ the annotated ``event`` parameter type.
 
 from __future__ import annotations
 
+from typing import Any
+
 from action_machine.intents.on.on_decorator import on
-from action_machine.legacy.on_intent import OnIntent
+from action_machine.intents.on.on_intent import OnIntent
 from action_machine.plugin.events import (
     AfterCompensateAspectEvent,
     AfterOnErrorAspectEvent,
@@ -152,10 +154,6 @@ from action_machine.plugin.events import (
     SummaryAspectEvent,
     UnhandledErrorEvent,
 )
-from action_machine.plugin.plugin import Plugin
-from action_machine.plugin.plugin_coordinator import PluginCoordinator
-from action_machine.plugin.plugin_run_context import PluginRunContext
-from action_machine.plugin.subscription_info import SubscriptionInfo
 
 __all__ = [
     "AfterCompensateAspectEvent",
@@ -192,3 +190,29 @@ __all__ = [
     "UnhandledErrorEvent",
     "on",
 ]
+
+
+def __getattr__(name: str) -> Any:
+    """Lazy plugin imports: ``Plugin`` imports ``OnIntent`` from this package."""
+    if name == "Plugin":
+        from action_machine.plugin.plugin import Plugin
+
+        return Plugin
+    if name == "PluginCoordinator":
+        from action_machine.plugin.plugin_coordinator import PluginCoordinator
+
+        return PluginCoordinator
+    if name == "PluginRunContext":
+        from action_machine.plugin.plugin_run_context import PluginRunContext
+
+        return PluginRunContext
+    if name == "SubscriptionInfo":
+        from action_machine.plugin.subscription_info import SubscriptionInfo
+
+        return SubscriptionInfo
+    msg = f"module {__name__!r} has no attribute {name!r}"
+    raise AttributeError(msg)
+
+
+def __dir__() -> list[str]:
+    return sorted(__all__)

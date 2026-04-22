@@ -11,7 +11,7 @@ from typing import Any
 # Import only ``role_mode_intent`` here: eager loading of ``role_mode_decorator``
 # would pull ``BaseRole`` while ``auth`` / ``system_role`` still need
 # ``RoleMode`` from this module (circular import).
-from action_machine.legacy.role_mode_intent import RoleModeIntent
+from action_machine.intents.role_mode.role_mode_intent import RoleModeIntent
 
 _DECORATOR_MODULE = "action_machine.intents.role_mode.role_mode_decorator"
 _LAZY_FROM_DECORATOR = frozenset({"RoleMode", "role_mode"})

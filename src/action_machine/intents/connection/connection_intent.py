@@ -1,4 +1,4 @@
-# src/action_machine/legacy/connection_intent.py
+# src/action_machine/intents/connection/connection_intent.py
 """
 ConnectionIntent marker mixin for ``@connection`` decorator.
 
@@ -45,6 +45,8 @@ ARCHITECTURE / DATA FLOW
     # ActionProductMachine validates runtime keys against connections facet.
 
 """
+
+from __future__ import annotations
 
 from typing import Any, ClassVar
 

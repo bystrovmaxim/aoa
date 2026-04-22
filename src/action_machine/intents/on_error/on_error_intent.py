@@ -1,4 +1,4 @@
-# src/action_machine/legacy/on_error_intent.py
+# src/action_machine/intents/on_error/on_error_intent.py
 """
 OnErrorIntent marker mixin for ``@on_error`` handlers.
 
@@ -83,11 +83,11 @@ from typing import Any, ClassVar
 
 class OnErrorIntent:
     """
-AI-CORE-BEGIN
+    AI-CORE-BEGIN
     ROLE: Marker contract for on-error handler declarations.
     CONTRACT: Carry methods with ``_on_error_meta`` written by decorator.
     INVARIANTS: Logic-free mixin used only by inspectors/validators.
     AI-CORE-END
-"""
+    """
 
     _on_error_meta: ClassVar[dict[str, Any]]

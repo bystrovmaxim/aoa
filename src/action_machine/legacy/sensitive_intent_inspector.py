@@ -129,7 +129,7 @@ AI-CORE-BEGIN
             DescribedFieldsIntentInspector,
         )
         from action_machine.legacy.described_fields.marker import DescribedFieldsIntent
-        from action_machine.legacy.entity_intent import EntityIntent
+        from action_machine.intents.entity.entity_intent import EntityIntent
 
         if issubclass(declaring_klass, BaseAction):
             return ACTION_VERTEX_TYPE, cls._make_node_name(declaring_klass)

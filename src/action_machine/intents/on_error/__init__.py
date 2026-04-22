@@ -56,7 +56,7 @@ Correct order: specific types first, then broad fallback.
 """
 
 from action_machine.intents.on_error.on_error_decorator import on_error
-from action_machine.legacy.on_error_intent import OnErrorIntent
+from action_machine.intents.on_error.on_error_intent import OnErrorIntent
 
 __all__ = [
     "OnErrorIntent",

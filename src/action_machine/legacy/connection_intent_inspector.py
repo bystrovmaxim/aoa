@@ -44,7 +44,7 @@ from dataclasses import dataclass, fields
 from typing import Any
 
 from action_machine.intents.connection.connection_decorator import ConnectionInfo
-from action_machine.legacy.connection_intent import ConnectionIntent
+from action_machine.intents.connection.connection_intent import ConnectionIntent
 from action_machine.legacy.interchange_vertex_labels import ACTION_VERTEX_TYPE
 from graph.base_facet_snapshot import BaseFacetSnapshot
 from graph.base_intent_inspector import BaseIntentInspector

@@ -4,7 +4,7 @@
 import pytest
 
 from action_machine.intents.depends import depends
-from action_machine.legacy.dependency_intent import DependencyIntent
+from action_machine.intents.depends.dependency_intent import DependencyIntent
 
 
 class _Svc:

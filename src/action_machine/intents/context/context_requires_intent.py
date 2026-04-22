@@ -1,4 +1,4 @@
-# src/action_machine/legacy/context_requires_intent.py
+# src/action_machine/intents/context/context_requires_intent.py
 """
 Context-requires intent marker.
 
@@ -66,11 +66,11 @@ ARCHITECTURE / DATA FLOW
 
 class ContextRequiresIntent:
     """
-AI-CORE-BEGIN
+    AI-CORE-BEGIN
     ROLE: Context-access grammar marker for action classes.
     CONTRACT: Include in MRO when using @context_requires (e.g. via BaseAction).
     INVARIANTS: Pure marker with no runtime behavior/state.
     AI-CORE-END
-"""
+    """
 
     pass

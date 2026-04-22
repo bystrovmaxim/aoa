@@ -112,7 +112,7 @@ from action_machine.context.request_info import RequestInfo
 from action_machine.context.runtime_info import RuntimeInfo
 from action_machine.context.user_info import UserInfo
 from action_machine.intents.context.context_requires_decorator import context_requires
-from action_machine.legacy.context_requires_intent import ContextRequiresIntent
+from action_machine.intents.context.context_requires_intent import ContextRequiresIntent
 
 __all__ = [
     "Context",
