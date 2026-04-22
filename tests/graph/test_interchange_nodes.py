@@ -39,11 +39,11 @@ def test_regular_aspect_graph_node_interchange_shape() -> None:
     assert node.label == "process_aspect"
     assert node.properties == {}
     assert node.node_id == f"{TypeIntrospection.full_qualname(ChildAction)}:process_aspect"
-    assert len(node.companion_checkers) == 1
+    assert len(node.companion_nodes) == 1
     assert len(node.edges) == 1
     assert node.edges[0].source_node_id == node.node_id
     assert node.edges[0].target_node_type == CheckerGraphNode.NODE_TYPE
-    assert node.edges[0].target_node_obj is node.companion_checkers[0].node_obj
+    assert node.edges[0].target_node_obj is node.companion_nodes[0].node_obj
 
 
 def test_summary_aspect_graph_node_interchange_shape() -> None:
