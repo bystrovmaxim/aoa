@@ -51,7 +51,7 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
     """
     AI-CORE-BEGIN
     ROLE: Interchange node for a concrete ``BaseAction`` host class.
-    CONTRACT: ``get_properties`` / ``get_domain_edge`` (``@meta``, ``ASSOCIATION``, ``is_dag=True``); ``get_params_edge`` / ``get_result_edge`` (``AGGREGATION``); ``get_regular_aspect_edges`` / ``get_summary_aspect_edges`` / ``get_compensator_edges`` / ``get_error_handler_edges`` (``COMPOSITION``, own-class ``@regular_aspect`` / ``@summary_aspect`` / ``@compensate`` / ``@on_error``).
+    CONTRACT: ``get_properties``; ``get_domain_edge`` / ``get_params_edge`` / ``get_result_edge`` each return ``list[BaseGraphEdge]`` (0 or 1 edge: ``@meta`` domain ``ASSOCIATION`` ``is_dag=True``; params/result ``AGGREGATION``); ``get_regular_aspect_edges`` / ``get_summary_aspect_edges`` / ``get_compensator_edges`` / ``get_error_handler_edges`` (``COMPOSITION``, own-class ``@regular_aspect`` / ``@summary_aspect`` / ``@compensate`` / ``@on_error``).
     AI-CORE-END
     """
 
@@ -97,43 +97,47 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
     def get_params_edge(
         cls,
         action_cls: type[TAction],
-    ) -> BaseGraphEdge | None:
-        """Params schema edge (``AGGREGATION``), or ``None`` when the params type does not resolve."""
+    ) -> list[BaseGraphEdge]:
+        """Zero or one params schema edge (``AGGREGATION``); empty when the params type does not resolve."""
         params_type = cls.get_schema_generic_binding(action_cls, 0)
         if params_type is None:
-            return None
-        return BaseGraphEdge(
-            edge_name="params",
-            is_dag=False,
-            source_node_id=TypeIntrospection.full_qualname(action_cls),
-            source_node_type=cls.NODE_TYPE,
-            source_node_obj=action_cls,
-            target_node_id=TypeIntrospection.full_qualname(params_type),
-            target_node_type=ParamsGraphNode.NODE_TYPE,
-            target_node_obj=params_type,
-            edge_relationship=AGGREGATION,
-        )
+            return []
+        return [
+            BaseGraphEdge(
+                edge_name="params",
+                is_dag=False,
+                source_node_id=TypeIntrospection.full_qualname(action_cls),
+                source_node_type=cls.NODE_TYPE,
+                source_node_obj=action_cls,
+                target_node_id=TypeIntrospection.full_qualname(params_type),
+                target_node_type=ParamsGraphNode.NODE_TYPE,
+                target_node_obj=params_type,
+                edge_relationship=AGGREGATION,
+            ),
+        ]
 
     @classmethod
     def get_result_edge(
         cls,
         action_cls: type[TAction],
-    ) -> BaseGraphEdge | None:
-        """Result schema edge (``AGGREGATION``), or ``None`` when the result type does not resolve."""
+    ) -> list[BaseGraphEdge]:
+        """Zero or one result schema edge (``AGGREGATION``); empty when the result type does not resolve."""
         result_type = cls.get_schema_generic_binding(action_cls, 1)
         if result_type is None:
-            return None
-        return BaseGraphEdge(
-            edge_name="result",
-            is_dag=False,
-            source_node_id=TypeIntrospection.full_qualname(action_cls),
-            source_node_type=cls.NODE_TYPE,
-            source_node_obj=action_cls,
-            target_node_id=TypeIntrospection.full_qualname(result_type),
-            target_node_type=ResultGraphNode.NODE_TYPE,
-            target_node_obj=result_type,
-            edge_relationship=AGGREGATION,
-        )
+            return []
+        return [
+            BaseGraphEdge(
+                edge_name="result",
+                is_dag=False,
+                source_node_id=TypeIntrospection.full_qualname(action_cls),
+                source_node_type=cls.NODE_TYPE,
+                source_node_obj=action_cls,
+                target_node_id=TypeIntrospection.full_qualname(result_type),
+                target_node_type=ResultGraphNode.NODE_TYPE,
+                target_node_obj=result_type,
+                edge_relationship=AGGREGATION,
+            ),
+        ]
 
     @classmethod
     def get_regular_aspect_edges(
@@ -273,25 +277,27 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
     def get_domain_edge(
         cls,
         action_cls: type[TAction],
-    ) -> BaseGraphEdge | None:
-        """Domain edge, or ``None`` when ``@meta`` has no valid ``BaseDomain`` in ``domain``."""
+    ) -> list[BaseGraphEdge]:
+        """Zero or one domain edge; empty when ``@meta`` has no valid ``BaseDomain`` in ``domain``."""
         meta_info_dict = cls._meta_info_dict(action_cls)
         domain_cls = meta_info_dict.get("domain")
         if domain_cls is None:
-            return None
+            return []
         if not isinstance(domain_cls, type) or not issubclass(domain_cls, BaseDomain):
-            return None
-        return BaseGraphEdge(
-            edge_name="domain",
-            is_dag=True,
-            source_node_id=TypeIntrospection.full_qualname(action_cls),
-            source_node_type=cls.NODE_TYPE,
-            source_node_obj=action_cls,
-            target_node_id=TypeIntrospection.full_qualname(domain_cls),
-            target_node_type=DomainGraphNode.NODE_TYPE,
-            target_node_obj=domain_cls,
-            edge_relationship=ASSOCIATION,
-        )
+            return []
+        return [
+            BaseGraphEdge(
+                edge_name="domain",
+                is_dag=True,
+                source_node_id=TypeIntrospection.full_qualname(action_cls),
+                source_node_type=cls.NODE_TYPE,
+                source_node_obj=action_cls,
+                target_node_id=TypeIntrospection.full_qualname(domain_cls),
+                target_node_type=DomainGraphNode.NODE_TYPE,
+                target_node_obj=domain_cls,
+                edge_relationship=ASSOCIATION,
+            ),
+        ]
 
     @classmethod
     def get_properties(cls, action_cls: type[TAction]) -> dict[str, Any]:
@@ -304,14 +310,10 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
 
     @classmethod
     def _get_all_edges(cls, action_cls: type[TAction]) -> list[BaseGraphEdge]:
-        """Optional domain/params/result edges plus aspect, compensator, and error-handler edges (never ``None`` entries)."""
-        optional_edges = (
-            cls.get_domain_edge(action_cls),
-            cls.get_params_edge(action_cls),
-            cls.get_result_edge(action_cls),
-        )
         return (
-            [e for e in optional_edges if e is not None]
+            cls.get_domain_edge(action_cls)
+            + cls.get_params_edge(action_cls)
+            + cls.get_result_edge(action_cls)
             + cls.get_regular_aspect_edges(action_cls)
             + cls.get_summary_aspect_edges(action_cls)
             + cls.get_compensator_edges(action_cls)

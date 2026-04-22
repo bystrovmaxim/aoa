@@ -221,39 +221,45 @@ def test_action_graph_node_links_and_helpers() -> None:
         ),
     ]
 
-    assert ActionGraphNode.get_domain_edge(PingAction) == BaseGraphEdge(
-        edge_name="domain",
-        is_dag=True,
-        source_node_id=host,
-        source_node_type="Action",
-        source_node_obj=PingAction,
-        target_node_id=dom_id,
-        target_node_type="Domain",
-        target_node_obj=SystemDomain,
-        edge_relationship=ASSOCIATION,
-    )
-    assert ActionGraphNode.get_params_edge(PingAction) == BaseGraphEdge(
-        edge_name="params",
-        is_dag=False,
-        source_node_id=host,
-        source_node_type="Action",
-        source_node_obj=PingAction,
-        target_node_id=params_id,
-        target_node_type="Params",
-        target_node_obj=PingAction.Params,
-        edge_relationship=AGGREGATION,
-    )
-    assert ActionGraphNode.get_result_edge(PingAction) == BaseGraphEdge(
-        edge_name="result",
-        is_dag=False,
-        source_node_id=host,
-        source_node_type="Action",
-        source_node_obj=PingAction,
-        target_node_id=result_id,
-        target_node_type="Result",
-        target_node_obj=PingAction.Result,
-        edge_relationship=AGGREGATION,
-    )
+    assert ActionGraphNode.get_domain_edge(PingAction) == [
+        BaseGraphEdge(
+            edge_name="domain",
+            is_dag=True,
+            source_node_id=host,
+            source_node_type="Action",
+            source_node_obj=PingAction,
+            target_node_id=dom_id,
+            target_node_type="Domain",
+            target_node_obj=SystemDomain,
+            edge_relationship=ASSOCIATION,
+        ),
+    ]
+    assert ActionGraphNode.get_params_edge(PingAction) == [
+        BaseGraphEdge(
+            edge_name="params",
+            is_dag=False,
+            source_node_id=host,
+            source_node_type="Action",
+            source_node_obj=PingAction,
+            target_node_id=params_id,
+            target_node_type="Params",
+            target_node_obj=PingAction.Params,
+            edge_relationship=AGGREGATION,
+        ),
+    ]
+    assert ActionGraphNode.get_result_edge(PingAction) == [
+        BaseGraphEdge(
+            edge_name="result",
+            is_dag=False,
+            source_node_id=host,
+            source_node_type="Action",
+            source_node_obj=PingAction,
+            target_node_id=result_id,
+            target_node_type="Result",
+            target_node_obj=PingAction.Result,
+            edge_relationship=AGGREGATION,
+        ),
+    ]
 
     p_type = ActionGraphNode.get_schema_generic_binding(PingAction, 0)
     r_type = ActionGraphNode.get_schema_generic_binding(PingAction, 1)
