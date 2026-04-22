@@ -513,7 +513,7 @@ def all_axis_graph_node_inspectors() -> list[BaseGraphNodeInspector[Any]]:
     """
     Built-in axis inspectors for **sample** / demo HTML.
 
-    Includes ``Domain`` and ``Action`` so :class:`~action_machine.model.graph_model.action_graph_node.ActionGraphNode`
+    Includes ``Domain``, ``Entity``, and ``Action`` so :class:`~action_machine.model.graph_model.action_graph_node.ActionGraphNode`
     ``domain`` / ``params`` / ``result`` edges resolve to existing vertices. This module does not
     inject missing nodes; :meth:`~graph.node_graph_coordinator.NodeGraphCoordinator.build` still
     validates every ``target_node_id``.
@@ -524,6 +524,9 @@ def all_axis_graph_node_inspectors() -> list[BaseGraphNodeInspector[Any]]:
     )
     from action_machine.domain.graph_model.domain_graph_node_inspector import (
         DomainGraphNodeInspector,
+    )
+    from action_machine.domain.graph_model.entity_graph_node_inspector import (
+        EntityGraphNodeInspector,
     )
     from action_machine.model.graph_model.action_graph_node_inspector import (
         ActionGraphNodeInspector,
@@ -540,6 +543,7 @@ def all_axis_graph_node_inspectors() -> list[BaseGraphNodeInspector[Any]]:
         ResultGraphNodeInspector(),
         RoleGraphNodeInspector(),
         DomainGraphNodeInspector(),
+        EntityGraphNodeInspector(),
         ActionGraphNodeInspector(),
     ]
 

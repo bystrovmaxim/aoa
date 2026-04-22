@@ -255,7 +255,7 @@ def test_export_interchange_axes_graph_html_after_sample_imports() -> None:
 
 
 def test_all_axis_inspectors_count() -> None:
-    assert len(all_axis_graph_node_inspectors()) == 5
+    assert len(all_axis_graph_node_inspectors()) == 6
 
 
 class _BadRefAxis:
