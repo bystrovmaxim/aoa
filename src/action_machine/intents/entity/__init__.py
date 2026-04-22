@@ -1,4 +1,5 @@
 # src/action_machine/intents/entity/__init__.py
+# pylint: disable=undefined-all-variable,import-outside-toplevel
 """
 Entity intent package — ``@entity`` marker, decorator, graph inspector.
 

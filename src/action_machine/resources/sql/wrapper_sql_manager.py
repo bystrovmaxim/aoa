@@ -1,4 +1,4 @@
-# src/action_machine/resources/sql/wrapper_sql_connection_manager.py
+# src/action_machine/resources/sql/wrapper_sql_manager.py
 """
 Proxy wrapper that forbids transaction control in nested scopes.
 
@@ -6,80 +6,61 @@ Proxy wrapper that forbids transaction control in nested scopes.
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-``WrapperSqlConnectionManager`` wraps a real ``SqlConnectionManager``.
-It is created automatically when connections are propagated to child actions
-via ``ToolsBox.run()``. The wrapper forbids lifecycle operations
+``WrapperSqlManager`` wraps a manager that implements ``ProtocolSqlManager``.
+It is created when connections are propagated to child actions via
+``ToolsBox.run()``. The wrapper forbids lifecycle operations
 (``open``, ``begin``, ``commit``, ``rollback``) for nested actions, but allows
 query execution via ``execute``.
 
-This guarantees transaction ownership remains at root action level. Child
-actions operate inside the same transaction without the ability to commit or
-rollback it directly.
+``rollup`` is not stored on the wrapper: reads delegate to the wrapped manager.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ROLLUP PROPAGATION
 ═══════════════════════════════════════════════════════════════════════════════
 
-``WrapperSqlConnectionManager`` preserves rollup flag from original manager.
-This provides end-to-end rollup mode propagation across nested action chains:
-
-    Root action (rollup=True)
-        │
-        ├── connections["db"] = PostgresConnectionManager(rollup=True)
-        │
-        └── box.run(ChildAction, params, connections)
-                │
-                └── connections["db"] = WrapperSqlConnectionManager(original)
-                        _rollup = original._rollup (True)
-                        │
-                        └── box.run(GrandChildAction, params, connections)
-                                │
-                                └── connections["db"] = WrapperSqlConnectionManager(wrapper)
-                                        _rollup = wrapper._rollup (True)
-
-At each nesting level, wrapper inherits rollup from previous level. If the
-root manager was created with ``rollup=True``, all wrappers also expose
-``rollup=True``.
+Nested wrappers chain onto the same underlying owner; ``rollup`` seen through the
+proxy always reflects the inner manager's value.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-    SqlConnectionManager (ABC)
+    ProtocolSqlManager (real manager, e.g. Postgres)
         │
-        ├── PostgresConnectionManager       <- real manager
-        │       open()   -> DB connection
-        │       begin()  -> BEGIN
-        │       commit() -> COMMIT (or ROLLBACK in rollup)
-        │       execute()-> SQL query
-        │
-        └── WrapperSqlConnectionManager     <- proxy
+        └── WrapperSqlManager (BaseResourceManager + Protocol)
                 open/begin/commit/rollback -> TransactionProhibitedError
-                execute() -> delegates to real manager
-                _rollup   -> inherited from original
+                execute() -> delegates to inner
+                rollup -> delegates to inner
 
 """
 
 from typing import Any
 
 from action_machine.model.exceptions import HandleError, TransactionProhibitedError
-from action_machine.resources.sql.sql_connection_manager import (
-    SqlConnectionManager,
-)
+from action_machine.resources.base_resource_manager import BaseResourceManager
+from action_machine.resources.sql.protocol_sql_manager import ProtocolSqlManager
 
 
-class WrapperSqlConnectionManager(SqlConnectionManager):
+class WrapperSqlManager(BaseResourceManager, ProtocolSqlManager):
     """
     SQL manager proxy for nested actions.
 
-    Forbids transaction lifecycle operations and delegates query execution to
-    the original manager while preserving rollup mode.
+    Forbids transaction lifecycle operations and delegates query execution and
+    rollup visibility to the wrapped manager.
     """
 
-    def __init__(self, connection_manager: SqlConnectionManager) -> None:
-        """Initialize proxy and inherit rollup flag from original manager."""
-        super().__init__(rollup=connection_manager.rollup)
+    def __init__(self, connection_manager: ProtocolSqlManager) -> None:
+        """Initialize proxy; rollup is always read from ``connection_manager``."""
         self._connection_manager = connection_manager
+
+    @property
+    def rollup(self) -> bool:
+        """Delegate rollup to the wrapped connection owner."""
+        return self._connection_manager.rollup
+
+    def check_rollup_support(self) -> bool:
+        """Delegate to the wrapped manager."""
+        return self._connection_manager.check_rollup_support()
 
     async def open(self) -> None:
         """Forbid opening connection from nested action scope."""
@@ -116,6 +97,6 @@ class WrapperSqlConnectionManager(SqlConnectionManager):
         except Exception as e:
             raise HandleError(f"SQL execution error: {e}") from e
 
-    def get_wrapper_class(self) -> type["SqlConnectionManager"] | None:
+    def get_wrapper_class(self) -> type[BaseResourceManager] | None:
         """Return wrapper class for further nesting levels."""
-        return WrapperSqlConnectionManager
+        return WrapperSqlManager

@@ -1,4 +1,5 @@
 # src/action_machine/intents/connection/__init__.py
+# pylint: disable=undefined-all-variable,import-outside-toplevel
 """Class-level ``@connection`` decorator, ``ConnectionInfo``, and ``ConnectionIntent``."""
 
 from __future__ import annotations

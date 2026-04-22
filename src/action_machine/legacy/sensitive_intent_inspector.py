@@ -125,11 +125,11 @@ AI-CORE-BEGIN
     def _sensitive_host_vertex(cls, declaring_klass: type) -> tuple[str, str]:
         """Return ``(node_type, node_name)`` for the canonical host of ``@sensitive`` rows."""
         # pylint: disable=import-outside-toplevel
+        from action_machine.intents.entity.entity_intent import EntityIntent
         from action_machine.legacy.described_fields.described_fields_intent_inspector import (
             DescribedFieldsIntentInspector,
         )
         from action_machine.legacy.described_fields.marker import DescribedFieldsIntent
-        from action_machine.intents.entity.entity_intent import EntityIntent
 
         if issubclass(declaring_klass, BaseAction):
             return ACTION_VERTEX_TYPE, cls._make_node_name(declaring_klass)

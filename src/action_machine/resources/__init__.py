@@ -33,9 +33,9 @@ ARCHITECTURE / DATA FLOW
 
 """
 
-from action_machine.resources.base_resource_manager import BaseResourceManager
 from action_machine.intents.connection.connection_decorator import ConnectionInfo, connection
 from action_machine.intents.connection.connection_intent import ConnectionIntent
+from action_machine.resources.base_resource_manager import BaseResourceManager
 
 __all__ = [
     "BaseResourceManager",

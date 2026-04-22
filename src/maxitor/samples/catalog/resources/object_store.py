@@ -2,12 +2,12 @@
 from typing import Any
 
 from action_machine.intents.meta.meta_decorator import meta
-from action_machine.resources.sql import SqlConnectionManager
+from action_machine.resources.sql import SqlManager
 from maxitor.samples.catalog.domain import CatalogDomain
 
 
 @meta(description="Media/object store for catalog (stub)", domain=CatalogDomain)
-class CatalogObjectStore(SqlConnectionManager):
+class CatalogObjectStore(SqlManager):
     def __init__(self, rollup: bool = False) -> None:
         super().__init__(rollup=rollup)
 

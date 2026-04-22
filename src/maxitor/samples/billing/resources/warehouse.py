@@ -2,12 +2,12 @@
 from typing import Any
 
 from action_machine.intents.meta.meta_decorator import meta
-from action_machine.resources.sql import SqlConnectionManager
+from action_machine.resources.sql import SqlManager
 from maxitor.samples.billing.domain import BillingDomain
 
 
 @meta(description="Billing warehouse connection (stub)", domain=BillingDomain)
-class BillingWarehouse(SqlConnectionManager):
+class BillingWarehouse(SqlManager):
     def __init__(self, rollup: bool = False) -> None:
         super().__init__(rollup=rollup)
 

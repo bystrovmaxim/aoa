@@ -4,9 +4,9 @@ from __future__ import annotations
 
 from action_machine.auth.application_role import ApplicationRole
 from action_machine.auth.base_role import BaseRole
-from action_machine.intents.role_mode.role_mode_decorator import RoleMode, role_mode
-from action_machine.intents.meta.action_meta_intent import ActionMetaIntent
 from action_machine.intents.check_roles.check_roles_intent import CheckRolesIntent
+from action_machine.intents.meta.action_meta_intent import ActionMetaIntent
+from action_machine.intents.role_mode.role_mode_decorator import RoleMode, role_mode
 from action_machine.legacy.meta_intent_inspector import MetaIntentInspector
 from action_machine.legacy.role_intent_inspector import RoleIntentInspector
 from graph.facet_edge import FacetEdge

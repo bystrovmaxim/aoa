@@ -2,12 +2,12 @@
 from typing import Any
 
 from action_machine.intents.meta.meta_decorator import meta
-from action_machine.resources.sql import SqlConnectionManager
+from action_machine.resources.sql import SqlManager
 from maxitor.samples.messaging.domain import MessagingDomain
 
 
 @meta(description="Transactional outbox primary DB (stub)", domain=MessagingDomain)
-class OutboxPrimaryDatabase(SqlConnectionManager):
+class OutboxPrimaryDatabase(SqlManager):
     def __init__(self, rollup: bool = False) -> None:
         super().__init__(rollup=rollup)
 
