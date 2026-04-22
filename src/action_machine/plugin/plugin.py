@@ -108,7 +108,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Callable
 from typing import Any
 
-from action_machine.legacy.on_intent import OnIntent
+from action_machine.intents.on.on_intent import OnIntent
 from action_machine.plugin.events import BasePluginEvent
 from action_machine.plugin.subscription_info import SubscriptionInfo
 

@@ -34,7 +34,7 @@ from __future__ import annotations
 from typing import Any
 
 from action_machine.intents.meta.action_meta_intent import ActionMetaIntent
-from action_machine.legacy.resource_meta_intent import ResourceMetaIntent
+from action_machine.intents.meta.resource_meta_intent import ResourceMetaIntent
 
 __all__ = ["ActionMetaIntent", "ResourceMetaIntent", "meta"]
 

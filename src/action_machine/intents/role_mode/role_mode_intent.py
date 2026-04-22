@@ -1,4 +1,4 @@
-# src/action_machine/legacy/role_mode_intent.py
+# src/action_machine/intents/role_mode/role_mode_intent.py
 """
 Marker mixin: declare intent to use ``@role_mode`` on role declaration classes.
 
@@ -49,12 +49,12 @@ if TYPE_CHECKING:
 
 class RoleModeIntent:
     """
-AI-CORE-BEGIN
+    AI-CORE-BEGIN
     ROLE: Lifecycle-intent marker for role classes.
     CONTRACT: Enables ``@role_mode`` decorator eligibility through MRO.
     INVARIANTS: No behavior/state beyond metadata contract slot.
     AI-CORE-END
-"""
+    """
 
     __slots__ = ()
 

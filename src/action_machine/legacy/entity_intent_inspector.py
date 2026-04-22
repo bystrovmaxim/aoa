@@ -100,7 +100,7 @@ from pydantic_core import PydanticUndefined
 from action_machine.domain.lifecycle import Lifecycle, StateInfo, StateType
 from action_machine.domain.relation_containers import BaseRelationMany, BaseRelationOne
 from action_machine.domain.relation_markers import Inverse, NoGraphEdge, NoInverse, Rel
-from action_machine.legacy.entity_intent import EntityIntent, entity_info_is_set
+from action_machine.intents.entity.entity_intent import EntityIntent, entity_info_is_set
 from action_machine.legacy.interchange_vertex_labels import DOMAIN_VERTEX_TYPE, ENTITY_VERTEX_TYPE
 from graph.base_facet_snapshot import BaseFacetSnapshot
 from graph.base_intent_inspector import BaseIntentInspector, FacetInspectResult

@@ -133,7 +133,7 @@ from action_machine.domain.relation_containers import (
 from action_machine.domain.relation_markers import Inverse, NoGraphEdge, NoInverse, Rel
 from action_machine.domain.testing import make
 from action_machine.intents.entity.entity_decorator import entity
-from action_machine.legacy.entity_intent import EntityIntent
+from action_machine.intents.entity.entity_intent import EntityIntent
 
 __all__ = [
     "AggregateMany",

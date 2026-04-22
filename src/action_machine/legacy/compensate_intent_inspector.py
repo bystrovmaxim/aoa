@@ -31,7 +31,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from action_machine.legacy.compensate_intent import CompensateIntent
+from action_machine.intents.compensate.compensate_intent import CompensateIntent
 from action_machine.legacy.interchange_vertex_labels import (
     ACTION_VERTEX_TYPE,
     COMPENSATOR_VERTEX_TYPE,

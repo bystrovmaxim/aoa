@@ -75,17 +75,17 @@ from __future__ import annotations
 from abc import ABC
 from typing import Any
 
-from action_machine.legacy.dependency_intent import DependencyIntent
 from action_machine.intents.aspects.aspect_intent import AspectIntent
 from action_machine.intents.check_roles.check_roles_intent import CheckRolesIntent
 from action_machine.intents.checkers.checker_intent import CheckerIntent
-from action_machine.legacy.compensate_intent import CompensateIntent
-from action_machine.legacy.context_requires_intent import ContextRequiresIntent
+from action_machine.intents.compensate.compensate_intent import CompensateIntent
+from action_machine.intents.connection.connection_intent import ConnectionIntent
+from action_machine.intents.context.context_requires_intent import ContextRequiresIntent
+from action_machine.intents.depends.dependency_intent import DependencyIntent
 from action_machine.intents.meta.action_meta_intent import ActionMetaIntent
-from action_machine.legacy.on_error_intent import OnErrorIntent
+from action_machine.intents.on_error.on_error_intent import OnErrorIntent
 from action_machine.model.base_schema import BaseSchema
 from action_machine.model.exceptions import NamingSuffixError
-from action_machine.legacy.connection_intent import ConnectionIntent
 
 _REQUIRED_SUFFIX = "Action"
 

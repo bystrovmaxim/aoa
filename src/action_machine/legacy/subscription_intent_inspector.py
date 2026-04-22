@@ -23,7 +23,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from action_machine.legacy.on_intent import OnIntent
+from action_machine.intents.on.on_intent import OnIntent
 from action_machine.plugin.subscription_info import SubscriptionInfo
 from graph.base_facet_snapshot import BaseFacetSnapshot
 from graph.base_intent_inspector import BaseIntentInspector

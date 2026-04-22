@@ -33,10 +33,10 @@ ARCHITECTURE / DATA FLOW
 
 """
 
-from action_machine.intents.connection import ConnectionInfo, connection
-from action_machine.legacy.connection_intent import ConnectionIntent
 from action_machine.resources.base_resource_manager import BaseResourceManager
 from action_machine.resources.connections_typed_dict import Connections
+from action_machine.intents.connection.connection_decorator import ConnectionInfo, connection
+from action_machine.intents.connection.connection_intent import ConnectionIntent
 
 __all__ = [
     "BaseResourceManager",

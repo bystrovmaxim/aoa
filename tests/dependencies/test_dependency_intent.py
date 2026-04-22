@@ -40,7 +40,7 @@ Integration with ``BaseAction``:
 """
 
 
-from action_machine.legacy.dependency_intent import (
+from action_machine.intents.depends.dependency_intent import (
     DependencyIntent,
     _extract_bound,
 )

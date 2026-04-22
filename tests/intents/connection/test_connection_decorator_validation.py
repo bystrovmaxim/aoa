@@ -60,7 +60,7 @@ def test_connection_accepts_class_without_connection_intent() -> None:
 
 
 def test_connection_rejects_duplicate_key() -> None:
-    from action_machine.legacy.connection_intent import ConnectionIntent
+    from action_machine.intents.connection.connection_intent import ConnectionIntent
 
     with pytest.raises(ValueError, match="already declared"):
 

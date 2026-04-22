@@ -1,4 +1,4 @@
-# src/action_machine/legacy/entity_intent.py
+# src/action_machine/intents/entity/entity_intent.py
 """
 EntityIntent — marker mixin and invariant validators for ``@entity``.
 """
@@ -10,12 +10,12 @@ from typing import Any, ClassVar
 
 class EntityIntent:
     """
-AI-CORE-BEGIN
+    AI-CORE-BEGIN
     ROLE: Marker mixin declaring eligibility for ``@entity``.
     CONTRACT: Presence in MRO is required by decorator target validation.
     INVARIANTS: Holds no methods or instance state; only class-level marker semantics.
     AI-CORE-END
-"""
+    """
 
     _entity_info: ClassVar[dict[str, Any]]
 

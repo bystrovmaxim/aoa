@@ -17,7 +17,7 @@ from action_machine.domain import (
 )
 from action_machine.domain.base_domain import BaseDomain
 from action_machine.domain.lifecycle import Lifecycle
-from action_machine.legacy.entity_intent import EntityIntent
+from action_machine.intents.entity.entity_intent import EntityIntent
 from action_machine.legacy.entity_intent_inspector import (
     EntityIntentInspector,
     collect_entity_info,

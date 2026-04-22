@@ -6,9 +6,9 @@ from __future__ import annotations
 import importlib
 from typing import Any
 
-# Eager imports on ``action_machine.legacy`` would run before submodules like
-# ``resource_meta_intent`` and create import cycles with ``BaseResourceManager``
-# / ``BaseAction``. Resolve public symbols lazily (PEP 562).
+# Eager imports on ``action_machine.legacy`` would run before heavy submodules
+# and create import cycles with ``BaseResourceManager`` / ``BaseAction``.
+# Resolve public symbols lazily (PEP 562).
 
 _LAZY_EXPORTS: dict[str, tuple[str, str]] = {
     "ActionMetaIntent": ("action_machine.intents.meta.action_meta_intent", "ActionMetaIntent"),
@@ -31,7 +31,7 @@ _LAZY_EXPORTS: dict[str, tuple[str, str]] = {
         "action_machine.legacy.checker_intent_inspector",
         "hydrate_checker_row",
     ),
-    "CompensateIntent": ("action_machine.legacy.compensate_intent", "CompensateIntent"),
+    "CompensateIntent": ("action_machine.intents.compensate.compensate_intent", "CompensateIntent"),
     "CompensateIntentInspector": (
         "action_machine.legacy.compensate_intent_inspector",
         "CompensateIntentInspector",
@@ -46,7 +46,7 @@ _LAZY_EXPORTS: dict[str, tuple[str, str]] = {
     ),
     "Core": ("action_machine.legacy.core", "Core"),
     "ConnectionIntent": (
-        "action_machine.legacy.connection_intent",
+        "action_machine.intents.connection.connection_intent",
         "ConnectionIntent",
     ),
     "ConnectionIntentInspector": (
@@ -54,7 +54,7 @@ _LAZY_EXPORTS: dict[str, tuple[str, str]] = {
         "ConnectionIntentInspector",
     ),
     "ContextRequiresIntent": (
-        "action_machine.legacy.context_requires_intent",
+        "action_machine.intents.context.context_requires_intent",
         "ContextRequiresIntent",
     ),
     "DescribedFieldsIntent": (
@@ -74,15 +74,15 @@ _LAZY_EXPORTS: dict[str, tuple[str, str]] = {
         "DescribedFieldsIntentInspector",
     ),
     "DependencyIntent": (
-        "action_machine.legacy.dependency_intent",
+        "action_machine.intents.depends.dependency_intent",
         "DependencyIntent",
     ),
     "DependencyIntentInspector": (
         "action_machine.legacy.dependency_intent_inspector",
         "DependencyIntentInspector",
     ),
-    "EntityIntent": ("action_machine.legacy.entity_intent", "EntityIntent"),
-    "entity_info_is_set": ("action_machine.legacy.entity_intent", "entity_info_is_set"),
+    "EntityIntent": ("action_machine.intents.entity.entity_intent", "EntityIntent"),
+    "entity_info_is_set": ("action_machine.intents.entity.entity_intent", "entity_info_is_set"),
     "EntityIntentInspector": (
         "action_machine.legacy.entity_intent_inspector",
         "EntityIntentInspector",
@@ -91,14 +91,14 @@ _LAZY_EXPORTS: dict[str, tuple[str, str]] = {
         "action_machine.legacy.meta_intent_inspector",
         "MetaIntentInspector",
     ),
-    "OnErrorIntent": ("action_machine.legacy.on_error_intent", "OnErrorIntent"),
+    "OnErrorIntent": ("action_machine.intents.on_error.on_error_intent", "OnErrorIntent"),
     "OnErrorIntentInspector": (
         "action_machine.legacy.on_error_intent_inspector",
         "OnErrorIntentInspector",
     ),
-    "OnIntent": ("action_machine.legacy.on_intent", "OnIntent"),
+    "OnIntent": ("action_machine.intents.on.on_intent", "OnIntent"),
     "ResourceMetaIntent": (
-        "action_machine.legacy.resource_meta_intent",
+        "action_machine.intents.meta.resource_meta_intent",
         "ResourceMetaIntent",
     ),
     "RoleClassInspector": (
@@ -117,7 +117,7 @@ _LAZY_EXPORTS: dict[str, tuple[str, str]] = {
         "action_machine.legacy.role_intent_inspector",
         "RoleIntentInspector",
     ),
-    "RoleModeIntent": ("action_machine.legacy.role_mode_intent", "RoleModeIntent"),
+    "RoleModeIntent": ("action_machine.intents.role_mode.role_mode_intent", "RoleModeIntent"),
     "RoleModeIntentInspector": (
         "action_machine.legacy.role_mode_intent_inspector",
         "RoleModeIntentInspector",

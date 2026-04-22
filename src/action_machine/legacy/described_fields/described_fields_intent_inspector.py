@@ -108,7 +108,7 @@ AI-CORE-BEGIN
         (entities use the ``Entity`` vertex; params/result use their contract vertices).
         """
         # pylint: disable=import-outside-toplevel
-        from action_machine.legacy.entity_intent import EntityIntent
+        from action_machine.intents.entity.entity_intent import EntityIntent
 
         if issubclass(schema_cls, EntityIntent):
             return (ENTITY_VERTEX_TYPE, cls._make_node_name(schema_cls))
@@ -120,7 +120,7 @@ AI-CORE-BEGIN
     @classmethod
     def _is_entity_schema(cls, target_cls: type) -> bool:
         # pylint: disable=import-outside-toplevel
-        from action_machine.legacy.entity_intent import EntityIntent
+        from action_machine.intents.entity.entity_intent import EntityIntent
 
         return issubclass(target_cls, EntityIntent)
 

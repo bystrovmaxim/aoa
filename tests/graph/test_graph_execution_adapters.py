@@ -31,7 +31,7 @@ from action_machine.legacy.interchange_vertex_labels import (
     REGULAR_ASPECT_VERTEX_TYPE,
     SUMMARY_ASPECT_VERTEX_TYPE,
 )
-from action_machine.legacy.on_error_intent import OnErrorIntent
+from action_machine.intents.on_error.on_error_intent import OnErrorIntent
 from action_machine.legacy.on_error_intent_inspector import (
     OnErrorIntentInspector,
     hydrate_error_handler_row,

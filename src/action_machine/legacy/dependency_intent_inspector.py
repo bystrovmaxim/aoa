@@ -46,7 +46,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from action_machine.legacy.application_context import ApplicationContext
-from action_machine.legacy.dependency_intent import DependencyIntent
+from action_machine.intents.depends.dependency_intent import DependencyIntent
 from action_machine.legacy.interchange_vertex_labels import (
     ACTION_VERTEX_TYPE,
     APPLICATION_VERTEX_TYPE,
