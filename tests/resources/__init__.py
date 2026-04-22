@@ -37,5 +37,7 @@ TEST LAYOUT
     ├── test_postgres_connection_manager.py     — open/begin/execute/commit/rollback, rollup
     ├── test_sql_manager.py          — SqlManager, rollup, abstract API
     ├── test_wrapper_sql_manager.py  — transaction prohibition, execute delegation
+    ├── test_external_service_manager.py        — ExternalServiceManager, rollup flag
+    ├── test_wrapper_external_service_manager.py — nested proxy for external clients
     └── test_connections_dict.py                — connections dict typing
 """
