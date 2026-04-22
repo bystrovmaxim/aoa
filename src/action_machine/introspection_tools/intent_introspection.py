@@ -1,13 +1,16 @@
 # src/action_machine/introspection_tools/intent_introspection.py
 """
-Intent-scratch introspection: recognize ActionMachine pipeline callables from class ``vars``.
+Intent-scratch introspection: recognize ActionMachine pipeline callables from class ``vars``,
+and read normalized ``description`` strings from decorator metadata by ``CallableKind``.
 """
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from enum import StrEnum
 from typing import Any
+
+from graph.base_intent_inspector import BaseIntentInspector
 
 
 class CallableKind(StrEnum):
@@ -21,6 +24,36 @@ class CallableKind(StrEnum):
 
 class IntentIntrospection:
     """Inspect class namespaces using intent decorator scratch (``_new_aspect_meta``, etc.)."""
+
+    @staticmethod
+    def description_for_callable(call_like: Any, callable_kind: CallableKind | str) -> str | None:
+        """
+        Return strip-trimmed user ``description`` from intent scratch for ``callable_kind``, or ``None``.
+
+        Unwraps ``property`` getters like :meth:`~graph.base_intent_inspector.BaseIntentInspector._unwrap_declaring_class_member`.
+        """
+        resolved_kind = CallableKind(callable_kind)
+        func = BaseIntentInspector._unwrap_declaring_class_member(call_like)
+        meta: Any
+        match resolved_kind:
+            case CallableKind.REGULAR_ASPECT:
+                meta = getattr(func, "_new_aspect_meta", None)
+                if not isinstance(meta, Mapping) or meta.get("type") != "regular":
+                    return None
+            case CallableKind.SUMMARY_ASPECT:
+                meta = getattr(func, "_new_aspect_meta", None)
+                if not isinstance(meta, Mapping) or meta.get("type") != "summary":
+                    return None
+            case CallableKind.COMPENSATE:
+                meta = getattr(func, "_compensate_meta", None)
+            case CallableKind.ON_ERROR:
+                meta = getattr(func, "_on_error_meta", None)
+        if not isinstance(meta, Mapping):
+            return None
+        raw = meta.get("description")
+        if isinstance(raw, str) and raw.strip():
+            return raw.strip()
+        return None
 
     @staticmethod
     def collect_own_class_callables_by_callable_kind(

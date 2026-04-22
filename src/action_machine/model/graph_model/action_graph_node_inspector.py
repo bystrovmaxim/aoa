@@ -33,8 +33,8 @@ from __future__ import annotations
 
 from typing import Any, cast
 
-from action_machine.model.base_action import BaseAction
 from action_machine.introspection_tools import CallableKind, IntentIntrospection
+from action_machine.model.base_action import BaseAction
 from graph.base_graph_node import BaseGraphNode
 from graph.base_graph_node_inspector import BaseGraphNodeInspector
 
