@@ -8,8 +8,8 @@ from maxitor.samples.node_build import (
     build_sample_node_graph_coordinator,
     export_samples_graph_html,
 )
-from maxitor.viz2.interchange_graph_visualizer import G6_CDN_URL
 from maxitor.viz2 import interchange_graph_visualizer as viz2
+from maxitor.viz2.interchange_graph_visualizer import G6_CDN_URL
 
 
 def test_build_sample_node_graph_coordinator_has_nodes() -> None:

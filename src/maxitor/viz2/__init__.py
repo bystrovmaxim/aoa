@@ -8,10 +8,10 @@ Use :mod:`maxitor.viz2.interchange_graph_visualizer`.
 
 from __future__ import annotations
 
+from graph.create_node_graph_coordinator import all_axis_graph_node_inspectors
 from maxitor.viz2.interchange_graph_visualizer import (
     G6_CDN_URL,
     INTERCHANGE_AXES_GRAPH_HTML_PATH,
-    all_axis_graph_node_inspectors,
     export_interchange_axes_graph_html,
     generate_interchange_g6_html,
 )
