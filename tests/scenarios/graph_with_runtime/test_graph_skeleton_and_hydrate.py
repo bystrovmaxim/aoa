@@ -11,7 +11,7 @@ from action_machine.legacy.core import Core
 from action_machine.legacy.interchange_vertex_labels import SERVICE_VERTEX_TYPE
 from graph.base_intent_inspector import BaseIntentInspector
 from graph.graph_coordinator import GraphCoordinator
-from tests.scenarios.domain_model import CompensatedOrderAction, FullAction, TestDbManager
+from tests.scenarios.domain_model import CompensatedOrderAction, FullAction, OrdersDbManager
 from tests.scenarios.domain_model.domains import OrdersDomain
 from tests.scenarios.domain_model.services import PaymentService
 
@@ -37,7 +37,7 @@ def test_get_graph_node_payloads_are_skeleton_only() -> None:
 def test_hydrate_graph_node_restores_facet_rows_from_snapshot() -> None:
     """``hydrate_graph_node`` matches ``get_node`` for a ``resource_manager`` @meta host."""
     coord = Core.create_coordinator()
-    rm_nm = BaseIntentInspector._make_node_name(TestDbManager)
+    rm_nm = BaseIntentInspector._make_node_name(OrdersDbManager)
     g = coord.facet_topology_copy()
     idx = next(
         i
@@ -83,7 +83,7 @@ def test_hydrate_graph_node_requires_build() -> None:
 def test_get_nodes_by_type_includes_hydrated_facet_rows() -> None:
     """``get_nodes_by_type`` returns records with non-empty ``facet_rows`` when a snapshot exists."""
     coord = Core.create_coordinator()
-    rm_nm = BaseIntentInspector._make_node_name(TestDbManager)
+    rm_nm = BaseIntentInspector._make_node_name(OrdersDbManager)
     rm_nodes = [
         n for n in coord.get_nodes_by_type("resource_manager") if n["id"] == rm_nm
     ]
@@ -115,7 +115,7 @@ def test_stub_dependency_node_hydrates_to_empty_facet_rows() -> None:
 def test_hydration_mapping_from_build_records_meta_snapshot_key() -> None:
     """Phase 1 records MetaIntent snapshot storage key ``meta`` for ``resource_manager`` graph nodes."""
     coord = Core.create_coordinator()
-    rm_nm = BaseIntentInspector._make_node_name(TestDbManager)
+    rm_nm = BaseIntentInspector._make_node_name(OrdersDbManager)
     gk_rm = GraphCoordinator._make_key("resource_manager", rm_nm)
     raw_map = coord._hydration_snapshot_key_by_graph_key
     assert raw_map.get(gk_rm) == "meta"
@@ -139,12 +139,12 @@ def test_merged_action_node_records_all_hydration_keys() -> None:
 def test_connection_targets_resource_manager_not_connection_facet() -> None:
     """``@connection`` adds edges from ``Action`` to ``resource_manager`` (no ``connection`` facet node)."""
     coord = Core.create_coordinator()
-    rm_nm = BaseIntentInspector._make_node_name(TestDbManager)
+    rm_nm = BaseIntentInspector._make_node_name(OrdersDbManager)
     assert [n for n in coord.get_nodes_by_type("resource_manager") if n["id"] == rm_nm]
     assert not [
         n
         for n in coord.get_nodes_by_type("connection")
-        if n.get("class_ref") is TestDbManager
+        if n.get("class_ref") is OrdersDbManager
     ]
 
     act_nm = BaseIntentInspector._make_node_name(FullAction)

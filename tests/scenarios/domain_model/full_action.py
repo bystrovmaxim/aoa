@@ -8,7 +8,7 @@ PURPOSE
 
 The richest Action in the test domain: two regular aspects with checkers,
 one summary aspect, two service dependencies (PaymentService, NotificationService),
-``@depends(TestDbManager)`` and ``@connection(TestDbManager)`` — **class references**, same
+``@depends(OrdersDbManager)`` and ``@connection(OrdersDbManager)`` — **class references**, same
 as ``@depends(PaymentService)``; graph merges to one ``resource_manager`` node. Role "manager".
 
 Exercises role checks, connection validation, dependency resolution via
@@ -49,7 +49,7 @@ USAGE IN TESTS
     mock_payment = AsyncMock(spec=PaymentService)
     mock_payment.charge.return_value = "TXN-001"
     mock_notification = AsyncMock(spec=NotificationService)
-    mock_db = AsyncMock(spec=TestDbManager)
+    mock_db = AsyncMock(spec=OrdersDbManager)
 
     bench = TestBench(
         mocks={PaymentService: mock_payment, NotificationService: mock_notification},
@@ -84,21 +84,21 @@ from action_machine.runtime.tools_box import ToolsBox
 from .domains import OrdersDomain
 from .roles import ManagerRole
 from .services import NotificationService, PaymentService
-from .test_db_manager import TestDbManager
+from .test_db_manager import OrdersDbManager
 
 
 @meta(description="Create order with payment and notification", domain=OrdersDomain)
 @check_roles(ManagerRole)
 @depends(PaymentService, description="Payment processing service")
 @depends(NotificationService, description="Notification service")
-@depends(TestDbManager, description="DB resource (class — same vertex as @connection)")
-@connection(TestDbManager, key="db", description="Primary database")
+@depends(OrdersDbManager, description="DB resource (class — same vertex as @connection)")
+@connection(OrdersDbManager, key="db", description="Primary database")
 class FullAction(BaseAction["FullAction.Params", "FullAction.Result"]):
     """
     Full-featured Action: two regular + summary, depends, connection.
 
-    Requires role "manager". ``@depends`` lists classes (services + ``TestDbManager``);
-    ``@connection(TestDbManager, key="db")`` shares the same resource_manager node.
+    Requires role "manager". ``@depends`` lists classes (services + ``OrdersDbManager``);
+    ``@connection(OrdersDbManager, key="db")`` shares the same resource_manager node.
     """
 
     class Params(BaseParams):

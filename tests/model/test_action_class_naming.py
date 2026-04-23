@@ -16,10 +16,10 @@ class TestActionSuffix:
     def test_correct_suffix_passes(self) -> None:
         """Name 'MyTaskAction' — class definition succeeds."""
         from action_machine.model.base_action import BaseAction
-        from action_machine.model.base_params import BaseParams
-        from action_machine.model.base_result import BaseResult
+        from action_machine.model.params_stub import ParamsStub
+        from action_machine.model.result_stub import ResultStub
 
-        class MyTaskAction(BaseAction[BaseParams, BaseResult]):
+        class MyTaskAction(BaseAction[ParamsStub, ResultStub]):
             pass
 
         assert MyTaskAction.__name__.endswith("Action")
@@ -27,30 +27,30 @@ class TestActionSuffix:
     def test_missing_suffix_raises(self) -> None:
         """Name 'MyTask' without 'Action' suffix → NamingSuffixError."""
         from action_machine.model.base_action import BaseAction
-        from action_machine.model.base_params import BaseParams
-        from action_machine.model.base_result import BaseResult
+        from action_machine.model.params_stub import ParamsStub
+        from action_machine.model.result_stub import ResultStub
 
         with pytest.raises(NamingSuffixError, match="Action"):
-            class MyTask(BaseAction[BaseParams, BaseResult]):
+            class MyTask(BaseAction[ParamsStub, ResultStub]):
                 pass
 
     def test_wrong_suffix_raises(self) -> None:
         """Name 'MyTaskHandler' → NamingSuffixError (suffix is not 'Action')."""
         from action_machine.model.base_action import BaseAction
-        from action_machine.model.base_params import BaseParams
-        from action_machine.model.base_result import BaseResult
+        from action_machine.model.params_stub import ParamsStub
+        from action_machine.model.result_stub import ResultStub
 
         with pytest.raises(NamingSuffixError, match="Action"):
-            class MyTaskHandler(BaseAction[BaseParams, BaseResult]):
+            class MyTaskHandler(BaseAction[ParamsStub, ResultStub]):
                 pass
 
     def test_indirect_subclass_checked(self) -> None:
         """Indirect BaseAction subclass without suffix → NamingSuffixError."""
         from action_machine.model.base_action import BaseAction
-        from action_machine.model.base_params import BaseParams
-        from action_machine.model.base_result import BaseResult
+        from action_machine.model.params_stub import ParamsStub
+        from action_machine.model.result_stub import ResultStub
 
-        class BaseTaskAction(BaseAction[BaseParams, BaseResult]):
+        class BaseTaskAction(BaseAction[ParamsStub, ResultStub]):
             pass
 
         with pytest.raises(NamingSuffixError, match="Action"):

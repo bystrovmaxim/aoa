@@ -6,8 +6,8 @@ MetaIntentInspector — graph inspector for ``@meta`` declarations.
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Traverses classes under two marker mixins (``ActionMetaIntent`` and
-``ResourceMetaIntent``) without duplicate candidates. **Actions** still emit a
+Traverses classes under ``MetaIntent`` without duplicate candidates. **Actions**
+still emit a
 dependent ``meta`` facet node (``…:meta``) folded into the structural ``action``
 row where applicable. **Resource managers** emit a canonical
 ``resource_manager`` vertex (class path only), ``description`` from ``@meta`` on
@@ -18,7 +18,7 @@ that node, and an optional informational ``belongs_to`` edge to the domain when
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-    ActionMetaIntent / ResourceMetaIntent subclasses
+    MetaIntent subclasses
                    │
                    ▼
             MetaIntentInspector.inspect()
@@ -36,8 +36,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from action_machine.intents.meta.action_meta_intent import ActionMetaIntent
-from action_machine.intents.meta.resource_meta_intent import ResourceMetaIntent
+from action_machine.intents.meta.meta_intent import MetaIntent
 from action_machine.legacy.interchange_vertex_labels import ACTION_VERTEX_TYPE, DOMAIN_VERTEX_TYPE
 from action_machine.resources.base_resource import BaseResource
 from graph.base_facet_snapshot import BaseFacetSnapshot
@@ -50,11 +49,11 @@ class MetaIntentInspector(BaseIntentInspector):
 AI-CORE-BEGIN
     ROLE: Concrete meta inspector over action/resource marker trees.
     CONTRACT: Emit facet payloads when ``_meta_info`` exists.
-    INVARIANTS: Traversal sources are ``ActionMetaIntent`` and ``ResourceMetaIntent``.
+    INVARIANTS: Traversal source is ``MetaIntent``.
     AI-CORE-END
 """
 
-    _target_intents: tuple[type, ...] = (ActionMetaIntent, ResourceMetaIntent)
+    _target_intents: tuple[type, ...] = (MetaIntent,)
 
     @dataclass(frozen=True)
     class Snapshot(BaseFacetSnapshot):

@@ -19,10 +19,10 @@ from tests.runtime._machine_plugins_helpers import extract_event_types
 from tests.scenarios.domain_model import (
     FullAction,
     NotificationService,
+    OrdersDbManager,
     PaymentService,
     PingAction,
     SimpleAction,
-    TestDbManager,
 )
 
 
@@ -73,7 +73,7 @@ class TestEventTypes:
         mock_payment = AsyncMock(spec=PaymentService)
         mock_payment.charge.return_value = "TXN-ORD"
         mock_notification = AsyncMock(spec=NotificationService)
-        mock_db = AsyncMock(spec=TestDbManager)
+        mock_db = AsyncMock(spec=OrdersDbManager)
 
         action = FullAction()
         params = FullAction.Params(user_id="u1", amount=200.0)

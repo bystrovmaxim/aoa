@@ -12,10 +12,10 @@ from action_machine.runtime.action_product_machine import ActionProductMachine
 from tests.scenarios.domain_model import (
     FullAction,
     NotificationService,
+    OrdersDbManager,
     PaymentService,
     PingAction,
     SimpleAction,
-    TestDbManager,
 )
 
 
@@ -56,7 +56,7 @@ class TestEventCount:
         mock_payment = AsyncMock(spec=PaymentService)
         mock_payment.charge.return_value = "TXN-EVT"
         mock_notification = AsyncMock(spec=NotificationService)
-        mock_db = AsyncMock(spec=TestDbManager)
+        mock_db = AsyncMock(spec=OrdersDbManager)
 
         action = FullAction()
         params = FullAction.Params(user_id="u1", amount=100.0)

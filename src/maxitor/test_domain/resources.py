@@ -23,12 +23,12 @@ def main() -> None:
 
     # Runtime-only import after ``sys.path`` fix; tests/ is not a package on PYTHONPATH in CI for pylint.
     from tests.scenarios.domain_model.test_db_manager import (  # pylint: disable=import-error,import-outside-toplevel
-        TestDbManager,
+        OrdersDbManager,
     )
 
-    print("Resource manager class for scenarios:", TestDbManager.__qualname__)
-    print("Module:", TestDbManager.__module__)
-    print("Example: @depends(TestDbManager)  @connection(TestDbManager, key=\"db\")")
+    print("Resource manager class for scenarios:", OrdersDbManager.__qualname__)
+    print("Module:", OrdersDbManager.__module__)
+    print("Example: @depends(OrdersDbManager)  @connection(OrdersDbManager, key=\"db\")")
 
 
 if __name__ == "__main__":

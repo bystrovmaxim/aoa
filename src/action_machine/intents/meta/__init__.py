@@ -7,8 +7,8 @@ Public entrypoint for meta intent contracts and decorator.
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Exports the ``@meta`` decorator plus marker mixins used by inspectors and graph
-validation to identify classes carrying action/resource metadata.
+Exports the ``@meta`` decorator plus the ``MetaIntent`` marker mixin used by
+inspectors and graph validation for classes carrying metadata.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
@@ -34,10 +34,9 @@ from __future__ import annotations
 
 from typing import Any
 
-from action_machine.intents.meta.action_meta_intent import ActionMetaIntent
-from action_machine.intents.meta.resource_meta_intent import ResourceMetaIntent
+from action_machine.intents.meta.meta_intent import MetaIntent
 
-__all__ = ["ActionMetaIntent", "ResourceMetaIntent", "meta"]
+__all__ = ["MetaIntent", "meta"]
 
 
 def __getattr__(name: str) -> Any:

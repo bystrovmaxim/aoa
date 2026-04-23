@@ -51,7 +51,7 @@ mock_payment       — ``AsyncMock(spec=PaymentService)``, charge -> "TXN-TEST-0
 mock_notification  — ``AsyncMock(spec=NotificationService)``, send -> True.
 mock_inventory     — ``AsyncMock(spec=InventoryService)``, reserve -> "RES-TEST-001",
                      unreserve -> True.
-mock_db            — ``AsyncMock(spec=TestDbManager)``.
+mock_db            — ``AsyncMock(spec=OrdersDbManager)``.
 
 clean_bench        — ``TestBench`` without mocks; logging silenced.
 bench              — ``TestBench`` with Payment + Notification mocks.
@@ -68,7 +68,12 @@ from action_machine.legacy.core import Core
 from action_machine.testing import TestBench
 from graph.graph_coordinator import GraphCoordinator
 
-from .scenarios.domain_model import InventoryService, NotificationService, PaymentService, TestDbManager
+from .scenarios.domain_model import (
+    InventoryService,
+    NotificationService,
+    OrdersDbManager,
+    PaymentService,
+)
 from .scenarios.domain_model.roles import AdminRole, ManagerRole
 
 
@@ -126,11 +131,11 @@ def mock_inventory() -> AsyncMock:
 @pytest.fixture
 def mock_db() -> AsyncMock:
     """
-    ``TestDbManager`` mock for ``connections={"db": mock_db}``.
+    ``OrdersDbManager`` mock for ``connections={"db": mock_db}``.
 
-    Used with ``FullAction``, which declares ``@connection(TestDbManager, key="db")``.
+    Used with ``FullAction``, which declares ``@connection(OrdersDbManager, key="db")``.
     """
-    return AsyncMock(spec=TestDbManager)
+    return AsyncMock(spec=OrdersDbManager)
 
 
 @pytest.fixture

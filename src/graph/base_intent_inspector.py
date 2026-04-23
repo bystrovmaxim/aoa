@@ -42,8 +42,8 @@ Each intent is represented twice:
 
 The link is the inspector's ``_target_intent`` (single marker) or, rarely, the
 ``_target_intents`` tuple / custom ``_subclasses_recursive()`` used by
-``MetaIntentInspector`` to union action and resource markers without duplicate
-nodes. The marker never references the inspector.
+``MetaIntentInspector`` to walk the shared ``MetaIntent`` marker subtree without
+duplicate nodes. The marker never references the inspector.
 
 ═══════════════════════════════════════════════════════════════════════════════
 INTERCHANGE RETURN SHAPE (TARGET — NO EXTRA TYPES)

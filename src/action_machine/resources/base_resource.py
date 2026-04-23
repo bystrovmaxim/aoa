@@ -19,7 +19,7 @@ REQUIRED @meta DECORATOR
 ═══════════════════════════════════════════════════════════════════════════════
 
 Every resource manager must declare ``@meta(...)`` with description/domain.
-This is enforced through ``ResourceMetaIntent`` in ``BaseResource``
+This is enforced through ``MetaIntent`` in ``BaseResource``
 inheritance and validated during metadata build.
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -41,7 +41,7 @@ fast on unsupported resources.
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-    class BaseResource(ABC, ResourceMetaIntent):
+    class BaseResource(ABC, MetaIntent, DependsEligible):
         check_rollup_support() → raises RollupNotSupportedError
         get_wrapper_class()    → type | None
 
@@ -63,10 +63,11 @@ ARCHITECTURE / DATA FLOW
 from abc import ABC, abstractmethod
 
 from action_machine.exceptions import RollupNotSupportedError
-from action_machine.intents.meta.resource_meta_intent import ResourceMetaIntent
+from action_machine.intents.depends.depends_eligible import DependsEligible
+from action_machine.intents.meta.meta_intent import MetaIntent
 
 
-class BaseResource(ABC, ResourceMetaIntent):
+class BaseResource(ABC, MetaIntent, DependsEligible):
     """
     Base abstract contract for all resource manager implementations.
     """

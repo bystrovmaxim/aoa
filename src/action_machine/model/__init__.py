@@ -7,7 +7,8 @@ PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 This package exports the base model contracts used by actions:
-``BaseAction``, ``BaseParams``, ``BaseResult``, ``BaseSchema``, ``BaseState``.
+``BaseAction``, ``BaseParams``, ``BaseResult``, ``ParamsStub``, ``ResultStub``,
+``BaseSchema``, ``BaseState``.
 Framework exceptions live in :mod:`action_machine.exceptions`.
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -62,6 +63,8 @@ from action_machine.model.graph_model.result_graph_node_inspector import (
     ResultGraphNodeInspector,
 )
 from action_machine.model.graph_model.summary_aspect_graph_node import SummaryAspectGraphNode
+from action_machine.model.params_stub import ParamsStub
+from action_machine.model.result_stub import ResultStub
 
 if TYPE_CHECKING:
     from action_machine.model.graph_model.action_graph_node import ActionGraphNode
@@ -100,8 +103,10 @@ __all__ = [
     "ErrorHandlerGraphNode",
     "ParamsGraphNode",
     "ParamsGraphNodeInspector",
+    "ParamsStub",
     "RegularAspectGraphNode",
     "ResultGraphNode",
     "ResultGraphNodeInspector",
+    "ResultStub",
     "SummaryAspectGraphNode",
 ]

@@ -53,10 +53,10 @@ from action_machine.runtime.sync_action_product_machine import SyncActionProduct
 from tests.scenarios.domain_model import (
     FullAction,
     NotificationService,
+    OrdersDbManager,
     PaymentService,
     PingAction,
     SimpleAction,
-    TestDbManager,
 )
 from tests.scenarios.domain_model.roles import AdminRole, ManagerRole
 
@@ -137,7 +137,7 @@ class TestSyncBasicExecution:
         mock_payment = AsyncMock(spec=PaymentService)
         mock_payment.charge.return_value = "TXN-SYNC"
         mock_notification = AsyncMock(spec=NotificationService)
-        mock_db = AsyncMock(spec=TestDbManager)
+        mock_db = AsyncMock(spec=OrdersDbManager)
 
         action = FullAction()
         params = FullAction.Params(user_id="u1", amount=250.0)
@@ -211,7 +211,7 @@ class TestSyncConnections:
     def test_missing_connections_raises(self, sync_machine, context_manager) -> None:
         """FullAction through a sync machine without connections → ConnectionValidationError.
 
-        FullAction declares @connection(TestDbManager, key="db").
+        FullAction declares @connection(OrdersDbManager, key="db").
         Without connections, the machine throws ConnectionValidationError."""
         #Arrange - FullAction without connections
         action = FullAction()

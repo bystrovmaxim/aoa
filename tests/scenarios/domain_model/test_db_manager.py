@@ -1,6 +1,6 @@
 # tests/scenarios/domain_model/test_db_manager.py
 """
-Test resource manager class for ``@depends`` / ``@connection`` (same pattern: pass a **class**).
+Sample ``BaseResource`` for the orders test domain: ``@depends`` / ``@connection`` (class references).
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
@@ -8,13 +8,13 @@ PURPOSE
 
 Concrete ``BaseResource`` used as the **type** in decorators, e.g.::
 
-    @depends(TestDbManager, description="…")
-    @connection(TestDbManager, key="db", description="…")
+    @depends(OrdersDbManager, description="…")
+    @connection(OrdersDbManager, key="db", description="…")
 
 That mirrors ``@depends(SomeAction)``: the graph resolves to the canonical
 ``resource_manager`` vertex for this class (one node shared by depends + connection).
 
-Tests inject instances via ``connections={\"db\": mock}`` and mock ``box.resolve(TestDbManager)``.
+Tests inject instances via ``connections={\"db\": mock}`` and mock ``box.resolve(OrdersDbManager)``.
 """
 
 from __future__ import annotations
@@ -29,8 +29,8 @@ from .domains import OrdersDomain
     description="Test database resource manager for order-scenario actions",
     domain=OrdersDomain,
 )
-class TestDbManager(BaseResource):
-    """Minimal manager; runtime tests use ``AsyncMock(spec=TestDbManager)``."""
+class OrdersDbManager(BaseResource):
+    """Minimal manager; runtime tests use ``AsyncMock(spec=OrdersDbManager)``."""
 
     def get_wrapper_class(self) -> type[BaseResource] | None:
         return None

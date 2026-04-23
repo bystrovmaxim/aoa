@@ -58,7 +58,7 @@ from action_machine.model.base_params import BaseParams
 from action_machine.model.base_result import BaseResult
 from action_machine.resources.base_resource import BaseResource
 from action_machine.runtime.action_product_machine import ActionProductMachine
-from tests.scenarios.domain_model import FullAction, NotificationService, PaymentService, PingAction, TestDbManager
+from tests.scenarios.domain_model import FullAction, NotificationService, OrdersDbManager, PaymentService, PingAction
 from tests.scenarios.domain_model.domains import TestDomain
 from tests.scenarios.domain_model.roles import AdminRole, ManagerRole
 
@@ -174,7 +174,7 @@ class TestSingleConnection:
         """
         # Arrange - FullAction with @connection(key="db")
         action = FullAction()
-        mock_db = AsyncMock(spec=TestDbManager)
+        mock_db = AsyncMock(spec=OrdersDbManager)
 
         # Act - check connections
         result = _validate_connections(machine, action, {"db": mock_db})
@@ -198,7 +198,7 @@ class TestSingleConnection:
         """
         # Arrange — FullAction with extra key "extra"
         action = FullAction()
-        mock_db = AsyncMock(spec=TestDbManager)
+        mock_db = AsyncMock(spec=OrdersDbManager)
         connections = {"db": mock_db, "extra": mock_resource}
 
         # Act & Assert — ConnectionValidationError
@@ -293,7 +293,7 @@ class TestConnectionsViaRun:
         mock_payment = AsyncMock(spec=PaymentService)
         mock_payment.charge.return_value = "TXN-RUN"
         mock_notification = AsyncMock(spec=NotificationService)
-        mock_db = AsyncMock(spec=TestDbManager)
+        mock_db = AsyncMock(spec=OrdersDbManager)
 
         action = FullAction()
         params = FullAction.Params(user_id="u1", amount=100.0)
@@ -329,7 +329,7 @@ class TestConnectionsViaRun:
     async def test_full_action_with_extra_key_raises(self, machine, context) -> None:
         """FullAction via run() with an extra key → ConnectionValidationError."""
         # Arrange — FullAction with extra key "extra"
-        mock_db = AsyncMock(spec=TestDbManager)
+        mock_db = AsyncMock(spec=OrdersDbManager)
         extra_resource = _MockResourceManager()
 
         action = FullAction()

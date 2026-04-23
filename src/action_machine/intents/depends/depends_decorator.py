@@ -38,7 +38,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Any, cast
 
-from action_machine.runtime.dependency_factory import DependencyInfo
+from action_machine.runtime.dependency_info import DependencyInfo
 
 
 def depends(
@@ -94,9 +94,9 @@ def depends(
 
         Validates:
         1. ``cls`` is a class.
-        2. ``klass`` is a subclass of the dependency bound (``object`` if the
-           class does not define ``get_depends_bound``, e.g. without
-           ``DependsIntent`` in the MRO).
+        2. ``klass`` is a subclass of at least one allowed bound (from
+           ``DependsIntent[T]`` or ``DependsIntent[A | B | ...]``, else ``object``
+           when the class does not inherit ``DependsIntent``).
         3. No duplicate declarations.
 
         Then appends ``DependencyInfo`` to ``cls._depends_info``.
@@ -108,16 +108,17 @@ def depends(
                 f"Got object of type {type(cls).__name__}: {cls!r}."
             )
 
-        bound = (
-            cls.get_depends_bound()
-            if hasattr(cls, "get_depends_bound")
-            else object
+        allowed: tuple[type, ...] = (
+            cls.get_depends_bounds()
+            if hasattr(cls, "get_depends_bounds")
+            else (object,)
         )
-        if not issubclass(klass, bound):
+        if not any(issubclass(klass, b) for b in allowed):
+            allowed_names = ", ".join(b.__name__ for b in allowed)
             raise TypeError(
                 f"@depends({klass.__name__}): class {klass.__name__} "
-                f"is not a subclass of {bound.__name__}. "
-                f"For {cls.__name__}, only subclasses of {bound.__name__} are allowed."
+                f"is not a subclass of any allowed dependency type "
+                f"({allowed_names}) for {cls.__name__}."
             )
 
         target = cast(Any, cls)
