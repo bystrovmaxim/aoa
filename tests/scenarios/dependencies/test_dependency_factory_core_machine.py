@@ -53,9 +53,9 @@ Integration with the domain model:
 
 import pytest
 
+from action_machine.exceptions import RollupNotSupportedError
 from action_machine.intents.meta.meta_decorator import meta
 from action_machine.legacy.core import Core
-from action_machine.exceptions import RollupNotSupportedError
 from action_machine.resources.base_resource_manager import BaseResourceManager
 from action_machine.runtime.dependency_factory import (
     DependencyFactory,

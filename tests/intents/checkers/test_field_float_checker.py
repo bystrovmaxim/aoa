@@ -35,8 +35,8 @@ Decorator:
 
 import pytest
 
-from action_machine.intents.checkers.result_float_decorator import FieldFloatChecker, result_float
 from action_machine.exceptions import ValidationFieldError
+from action_machine.intents.checkers.result_float_decorator import FieldFloatChecker, result_float
 
 # ═════════════════════════════════════════════════════════════════════════════
 # Valid values

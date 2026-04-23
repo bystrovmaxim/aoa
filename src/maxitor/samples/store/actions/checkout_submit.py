@@ -23,22 +23,29 @@ from action_machine.intents.sensitive import sensitive
 from action_machine.model.base_action import BaseAction
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_result import BaseResult
-from maxitor.samples.roles import EditorRole
-from maxitor.samples.store.dependencies import (
-    NotificationGateway,
+from maxitor.samples.billing.resources.payment_gateway import (
     PaymentGateway,
-    _shared_notifier,
+    PaymentGatewayResource,
 )
+from maxitor.samples.messaging.resources.notification_gateway import (
+    NotificationGatewayResource,
+)
+from maxitor.samples.roles import EditorRole
+from maxitor.samples.store.dependencies import _shared_notifier
 from maxitor.samples.store.domain import StoreDomain
 from maxitor.samples.store.resources import StorefrontDatabase, StorefrontSessionCache
 
 
 @meta(description="Sample checkout with full decorator surface (graph demo)", domain=StoreDomain)
 @check_roles(EditorRole)
-@depends(PaymentGateway, description="Payment gateway")
 @depends(
-    NotificationGateway,
-    factory=lambda: _shared_notifier,
+    PaymentGatewayResource,
+    factory=lambda: PaymentGatewayResource(PaymentGateway()),
+    description="Payment gateway",
+)
+@depends(
+    NotificationGatewayResource,
+    factory=lambda: NotificationGatewayResource(_shared_notifier),
     description="Notifier via factory",
 )
 @connection(StorefrontDatabase, key="db", description="DB connection")
@@ -81,8 +88,8 @@ class CheckoutSubmitAction(BaseAction["CheckoutSubmitAction.Params", "CheckoutSu
         box: Any,
         connections: Any,
     ) -> dict[str, Any]:
-        payment = box.resolve(PaymentGateway)
-        txn_id = await payment.charge(params.amount)
+        payment = box.resolve(PaymentGatewayResource)
+        txn_id = await payment.service.charge(params.amount)
         return {"txn_id": txn_id, "charged_amount": params.amount}
 
     @compensate("charge_aspect", "Refund on failure")
@@ -96,8 +103,8 @@ class CheckoutSubmitAction(BaseAction["CheckoutSubmitAction.Params", "CheckoutSu
         error: Exception,
     ) -> None:
         if state_after is not None:
-            payment = box.resolve(PaymentGateway)
-            await payment.refund(state_after.txn_id)
+            payment = box.resolve(PaymentGatewayResource)
+            await payment.service.refund(state_after.txn_id)
 
     @on_error(ValueError, description="Validation branch")
     @context_requires(Ctx.User.user_id, Ctx.Request.trace_id)

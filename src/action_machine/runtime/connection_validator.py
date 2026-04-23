@@ -30,10 +30,10 @@ from __future__ import annotations
 
 from typing import Any, Protocol
 
+from action_machine.exceptions import ConnectionValidationError
 from action_machine.model.base_action import BaseAction
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_result import BaseResult
-from action_machine.exceptions import ConnectionValidationError
 from action_machine.resources.base_resource_manager import BaseResourceManager
 from graph.graph_coordinator import GraphCoordinator
 

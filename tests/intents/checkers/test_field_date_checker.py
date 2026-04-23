@@ -43,8 +43,8 @@ from datetime import UTC, datetime
 
 import pytest
 
-from action_machine.intents.checkers.result_date_decorator import FieldDateChecker, result_date
 from action_machine.exceptions import ValidationFieldError
+from action_machine.intents.checkers.result_date_decorator import FieldDateChecker, result_date
 
 # ═════════════════════════════════════════════════════════════════════════════
 # Valid values

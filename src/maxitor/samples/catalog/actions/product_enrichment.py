@@ -23,16 +23,28 @@ from action_machine.intents.sensitive import sensitive
 from action_machine.model.base_action import BaseAction
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_result import BaseResult
-from maxitor.samples.catalog.dependencies import IndexSyncClient, PricingFeedClient
 from maxitor.samples.catalog.domain import CatalogDomain
 from maxitor.samples.catalog.resources import CatalogObjectStore, CatalogSearchSidecar
+from maxitor.samples.catalog.resources.index_sync import IndexSyncClient, IndexSyncClientResource
+from maxitor.samples.catalog.resources.pricing_feed import (
+    PricingFeedClient,
+    PricingFeedClientResource,
+)
 from maxitor.samples.roles import EditorRole
 
 
 @meta(description="Enrich catalog SKU with full graph facets (catalog demo)", domain=CatalogDomain)
 @check_roles(EditorRole)
-@depends(IndexSyncClient, description="Search index")
-@depends(PricingFeedClient, description="Pricing feed")
+@depends(
+    IndexSyncClientResource,
+    factory=lambda: IndexSyncClientResource(IndexSyncClient()),
+    description="Search index",
+)
+@depends(
+    PricingFeedClientResource,
+    factory=lambda: PricingFeedClientResource(PricingFeedClient()),
+    description="Pricing feed",
+)
 @connection(CatalogSearchSidecar, key="search", description="Search sidecar")
 @connection(CatalogObjectStore, key="objects", description="Object store")
 class ProductEnrichmentAction(
@@ -75,10 +87,10 @@ class ProductEnrichmentAction(
         box: Any,
         connections: Any,
     ) -> dict[str, Any]:
-        pricing = box.resolve(PricingFeedClient)
-        price = await pricing.list_price(state.normalized_sku)
-        indexer = box.resolve(IndexSyncClient)
-        doc_id = await indexer.upsert_document(
+        pricing = box.resolve(PricingFeedClientResource)
+        price = await pricing.service.list_price(state.normalized_sku)
+        indexer = box.resolve(IndexSyncClientResource)
+        doc_id = await indexer.service.upsert_document(
             state.normalized_sku,
             {"sku": state.normalized_sku, "locale": params.locale},
         )
@@ -95,8 +107,8 @@ class ProductEnrichmentAction(
         error: Exception,
     ) -> None:
         if state_after is not None:
-            indexer = box.resolve(IndexSyncClient)
-            await indexer.upsert_document(state_after.doc_id, {"tombstone": "1"})
+            indexer = box.resolve(IndexSyncClientResource)
+            await indexer.service.upsert_document(state_after.doc_id, {"tombstone": "1"})
 
     @on_error(ValueError, description="SKU validation failed")
     @context_requires(Ctx.User.user_id, Ctx.Request.trace_id)

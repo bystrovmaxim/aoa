@@ -28,6 +28,7 @@ import pytest
 from pydantic import Field
 
 from action_machine.context.ctx_constants import Ctx
+from action_machine.exceptions import ContextAccessError
 from action_machine.intents.aspects.regular_aspect_decorator import regular_aspect
 from action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
 from action_machine.intents.check_roles import NoneRole, check_roles
@@ -38,7 +39,6 @@ from action_machine.intents.on_error import on_error
 from action_machine.model.base_action import BaseAction
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_result import BaseResult
-from action_machine.exceptions import ContextAccessError
 from action_machine.testing import TestBench
 from tests.scenarios.domain_model.domains import TestDomain
 from tests.scenarios.domain_model.roles import AdminRole

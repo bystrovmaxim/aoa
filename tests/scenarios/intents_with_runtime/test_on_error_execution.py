@@ -18,9 +18,9 @@ All tests use Actions from tests/domain/error_actions.py.
 """
 import pytest
 
+from action_machine.exceptions import OnErrorHandlerError
 from action_machine.legacy.core import Core
 from action_machine.logging.log_coordinator import LogCoordinator
-from action_machine.exceptions import OnErrorHandlerError
 from action_machine.testing import TestBench
 from tests.scenarios.domain_model import (
     ErrorHandledAction,

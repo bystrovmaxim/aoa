@@ -49,8 +49,8 @@ Errors:
 
 import pytest
 
-from action_machine.logging.expression_evaluator import ExpressionEvaluator, _IifArgSplitter
 from action_machine.exceptions import LogTemplateError
+from action_machine.logging.expression_evaluator import ExpressionEvaluator, _IifArgSplitter
 
 
 @pytest.fixture
