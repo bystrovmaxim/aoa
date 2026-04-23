@@ -1,40 +1,29 @@
 # src/maxitor/__init__.py
 """
-Maxitor — purpose.
+Maxitor — sample graph helpers.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Provide a **minimal harness** around :mod:`maxitor.samples` for ActionMachine:
-one import path to the primary domain marker, a coordinator factory, and optional **GraphML**
-export helpers. The package avoids pulling ``archive`` or a separate ``graph_domain``
-tree into normal imports.
-
-═══════════════════════════════════════════════════════════════════════════════
-ARCHITECTURE / DATA FLOW
-═══════════════════════════════════════════════════════════════════════════════
-
-::
-
-    maxitor.samples (store, billing, messaging, catalog, roles)
-            │
-            ▼
-    build_sample_coordinator()  →  GraphCoordinator (built)
-            │
-            ├── export_samples_graph_graphml  →  archive/logs/*.graphml
-            └── (:mod:`maxitor.viz1.visualizer`) ``export_samples_graph_html``  →  archive/logs/*.html
-
+Provide a minimal harness around :mod:`maxitor.samples`: one import path to the
+primary domain marker, the legacy sample coordinator builder still used by graph
+contract tests, and the new viz2 HTML export path built on
+``NodeGraphCoordinator``.
 """
 
 from __future__ import annotations
 
 from maxitor.samples.build import build_sample_coordinator
+from maxitor.samples.node_build import (
+    build_sample_node_graph_coordinator,
+    export_samples_graph_html,
+)
 from maxitor.samples.store.domain import StoreDomain
-from maxitor.viz1.graph_export import export_samples_graph_graphml
 
 __all__ = [
     "StoreDomain",
     "build_sample_coordinator",
-    "export_samples_graph_graphml",
+    "build_sample_node_graph_coordinator",
+    "export_samples_graph_html",
 ]

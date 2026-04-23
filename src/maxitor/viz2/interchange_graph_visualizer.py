@@ -6,17 +6,15 @@ Vertices carry :class:`~graph.base_graph_node.BaseGraphNode` and edges carry
 :class:`~graph.base_graph_edge.BaseGraphEdge`. :func:`export_interchange_axes_graph_html`
 writes a standalone AntV G6 HTML file for an **already built** coordinator to
 :data:`INTERCHANGE_AXES_GRAPH_HTML_PATH`
-(the repo's ``archive/logs/graph_node_2.html``, next to ``app_graph.html`` from
-:mod:`maxitor.viz1.visualizer`; UTF-8, parent directories created as needed).
+(``archive/logs/graph_node_2.html``; UTF-8, parent directories created as needed).
 It does **not** call :meth:`~graph.node_graph_coordinator.NodeGraphCoordinator.build` or change inspectors.
 
 :func:`generate_interchange_g6_html` takes the same built coordinator and serializes **only**
 :meth:`~graph.node_graph_coordinator.NodeGraphCoordinator.get_all_nodes` plus each node's ``edges``
 (no extra vertices, no ``rustworkx`` in this module's public API).
 
-Layout, legend, domain bubbles, and the inspector panel follow the same G6 behaviour as
-the legacy HTML export, without importing the old coordinator or dict-normalization
-pipeline.
+Layout, legend, domain bubbles, and the inspector panel keep the existing G6
+behaviour while staying on the interchange-node pipeline only.
 
 Edges use G6 ``line`` with default style; ``stroke`` / arrow colour follow ``isDag`` only
 (DAG accent ``#FF6163`` vs slate ``#95a5a6``) and never change on hover. On node hover, incident edges get state
@@ -62,7 +60,7 @@ from maxitor.viz2.visualizer_icons import svg_data_uri_for_vertex_icon
 G6_CDN_URL = "https://unpkg.com/@antv/g6@5/dist/g6.min.js"
 
 def _default_archive_logs_dir() -> Path:
-    """Repository ``archive/logs`` (same rule as :func:`maxitor.viz1.visualizer._default_archive_logs_dir`)."""
+    """Repository ``archive/logs`` output directory for generated graph artifacts."""
     return Path(__file__).resolve().parents[3] / "archive" / "logs"
 
 
@@ -105,7 +103,7 @@ VERTEX_TYPE_FILL_COLORS: dict[str, str] = {
     SERVICE_VERTEX_TYPE: "#4DAF4A",
 }
 
-# Same hue as viz1 ``resource_manager`` (:data:`maxitor.viz1.visualizer.VERTEX_TYPE_FILL_COLORS`).
+# Keep ``resource_manager`` aligned with the resource node hue.
 VERTEX_TYPE_FILL_COLORS["resource_manager"] = VERTEX_TYPE_FILL_COLORS[ResourceGraphNode.NODE_TYPE]
 
 DEFAULT_COLOR = "#95a5a6"
