@@ -6,8 +6,8 @@ Abstract base class for every ActionMachine action (user-defined command).
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-``BaseAction`` is parameterized by frozen Pydantic types ``P`` (params) and ``R``
-(result). Subclasses declare behavior with class- and method-level decorators;
+``BaseAction`` is parameterized by ``P`` (a ``BaseParams`` subclass) and ``R``
+(a ``BaseResult`` subclass). Subclasses declare behavior with class- and method-level decorators;
 markers in the MRO enable those decorators. Runtime execution and metadata reads
 go through ``GraphCoordinator`` facet snapshots (built by intent inspectors),
 not through helper APIs on this class.
@@ -86,13 +86,14 @@ from action_machine.intents.depends.depends_eligible import DependsEligible
 from action_machine.intents.depends.depends_intent import DependsIntent
 from action_machine.intents.meta.meta_intent import MetaIntent
 from action_machine.intents.on_error.on_error_intent import OnErrorIntent
-from action_machine.model.base_schema import BaseSchema
+from action_machine.model.base_params import BaseParams
+from action_machine.model.base_result import BaseResult
 from action_machine.exceptions import NamingSuffixError
 
 _REQUIRED_SUFFIX = "Action"
 
 
-class BaseAction[P: BaseSchema, R: BaseSchema](
+class BaseAction[P: BaseParams, R: BaseResult](
     ABC,
     MetaIntent,
     CheckRolesIntent,
