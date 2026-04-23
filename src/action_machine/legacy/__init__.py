@@ -73,9 +73,9 @@ _LAZY_EXPORTS: dict[str, tuple[str, str]] = {
         "action_machine.legacy.described_fields.described_fields_intent_inspector",
         "DescribedFieldsIntentInspector",
     ),
-    "DependencyIntent": (
-        "action_machine.intents.depends.dependency_intent",
-        "DependencyIntent",
+    "DependsIntent": (
+        "action_machine.intents.depends.depends_intent",
+        "DependsIntent",
     ),
     "DependencyIntentInspector": (
         "action_machine.legacy.dependency_intent_inspector",

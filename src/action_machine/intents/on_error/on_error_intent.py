@@ -34,7 +34,7 @@ ARCHITECTURE
         ABC,
         ActionMetaIntent,
         CheckRolesIntent,
-        DependencyIntent[object],
+        DependsIntent[object],
         CheckerIntent,
         AspectIntent,
         ConnectionIntent,

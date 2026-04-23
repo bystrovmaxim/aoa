@@ -1,21 +1,21 @@
-# tests/dependencies/test_dependency_intent.py
+# tests/dependencies/test_depends_intent.py
 """
-Tests for ``DependencyIntent`` — marker mixin for ``@depends``.
+Tests for ``DependsIntent`` — marker mixin for ``@depends``.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-``DependencyIntent[T]`` does two jobs:
+``DependsIntent[T]`` does two jobs:
 
-1. **Marker (optional):** Subclasses get ``get_depends_bound()`` from ``DependencyIntent``;
+1. **Marker (optional):** Subclasses get ``get_depends_bound()`` from ``DependsIntent``;
    ``@depends`` still works on plain classes with bound ``object``.
    Otherwise ``TypeError``.
 
 2. **Bound:** type parameter ``T`` limits which dependency classes are allowed.
    ``@depends`` checks ``issubclass(klass, bound)`` on every use.
 
-The bound is taken from generic ``DependencyIntent[T]`` in ``__init_subclass__``
+The bound is taken from generic ``DependsIntent[T]`` in ``__init_subclass__``
 via ``_extract_bound``. If ``T`` is a concrete type, it wins; if ``T`` is a
 ``TypeVar`` or missing, the bound is inherited from the parent or falls back to
 ``object``.
@@ -25,8 +25,8 @@ SCENARIOS
 ═══════════════════════════════════════════════════════════════════════════════
 
 ``_extract_bound``:
-    - Class with ``DependencyIntent[object]`` -> bound = ``object``.
-    - Class with ``DependencyIntent[SomeType]`` -> bound = ``SomeType``.
+    - Class with ``DependsIntent[object]`` -> bound = ``object``.
+    - Class with ``DependsIntent[SomeType]`` -> bound = ``SomeType``.
     - Subclass without its own generic -> bound inherited from parent.
     - Class without ``__orig_bases__`` and no bound-bearing parent -> ``object``.
 
@@ -35,13 +35,13 @@ SCENARIOS
     - On a class without ``_depends_bound``, falls back to ``object`` (via ``getattr``).
 
 Integration with ``BaseAction``:
-    - ``BaseAction`` extends ``DependencyIntent[object]``, so bound = ``object``.
+    - ``BaseAction`` extends ``DependsIntent[object]``, so bound = ``object``.
     - Domain actions inherit that bound from ``BaseAction``.
 """
 
 
-from action_machine.intents.depends.dependency_intent import (
-    DependencyIntent,
+from action_machine.intents.depends.depends_intent import (
+    DependsIntent,
     _extract_bound,
 )
 from action_machine.resources.base_resource import BaseResource
@@ -53,12 +53,12 @@ from tests.scenarios.domain_model import FullAction, PingAction
 # ─────────────────────────────────────────────────────────────────────────────
 
 
-class _AnyDepsHost(DependencyIntent[object]):
+class _AnyDepsHost(DependsIntent[object]):
     """Host with bound ``object`` — any dependency type allowed."""
     pass
 
 
-class _ResourceOnlyHost(DependencyIntent[BaseResource]):
+class _ResourceOnlyHost(DependsIntent[BaseResource]):
     """Host with bound ``BaseResource`` — resource managers only."""
     pass
 
@@ -74,7 +74,7 @@ class _GrandchildOfResourceHost(_ChildOfResourceHost):
 
 
 class _PlainClass:
-    """Plain class with no ``DependencyIntent`` in the MRO."""
+    """Plain class with no ``DependsIntent`` in the MRO."""
     pass
 
 
@@ -87,13 +87,13 @@ class TestExtractBound:
     """Covers all branches of ``_extract_bound``."""
 
     def test_object_bound(self) -> None:
-        """``DependencyIntent[object]`` -> bound is ``object``."""
+        """``DependsIntent[object]`` -> bound is ``object``."""
         bound = _extract_bound(_AnyDepsHost)
 
         assert bound is object
 
     def test_specific_bound(self) -> None:
-        """``DependencyIntent[BaseResource]`` -> bound is ``BaseResource``."""
+        """``DependsIntent[BaseResource]`` -> bound is ``BaseResource``."""
         bound = _extract_bound(_ResourceOnlyHost)
 
         assert bound is BaseResource
@@ -111,7 +111,7 @@ class TestExtractBound:
         assert bound is BaseResource
 
     def test_plain_class_returns_object(self) -> None:
-        """Class without ``DependencyIntent`` ancestors -> ``object``."""
+        """Class without ``DependsIntent`` ancestors -> ``object``."""
         bound = _extract_bound(_PlainClass)
 
         assert bound is object
@@ -132,7 +132,7 @@ class TestGetDependsBound:
         assert bound is BaseResource
 
     def test_returns_object_for_any_host(self) -> None:
-        """``DependencyIntent[object]`` -> ``get_depends_bound()`` is ``object``."""
+        """``DependsIntent[object]`` -> ``get_depends_bound()`` is ``object``."""
         bound = _AnyDepsHost.get_depends_bound()
 
         assert bound is object
@@ -153,7 +153,7 @@ class TestBaseActionIntegration:
     """Bound inheritance from ``BaseAction`` to domain actions."""
 
     def test_ping_action_bound_is_object(self) -> None:
-        """``PingAction`` gets ``DependencyIntent[object]`` through ``BaseAction``."""
+        """``PingAction`` gets ``DependsIntent[object]`` through ``BaseAction``."""
         bound = PingAction.get_depends_bound()
 
         assert bound is object
@@ -164,10 +164,10 @@ class TestBaseActionIntegration:
 
         assert bound is object
 
-    def test_ping_action_is_dependency_intent(self) -> None:
-        """``PingAction`` is a subclass of ``DependencyIntent``."""
-        assert issubclass(PingAction, DependencyIntent)
+    def test_ping_action_is_depends_intent(self) -> None:
+        """``PingAction`` is a subclass of ``DependsIntent``."""
+        assert issubclass(PingAction, DependsIntent)
 
-    def test_plain_class_is_not_dependency_intent(self) -> None:
-        """A plain class is not a ``DependencyIntent`` subclass."""
-        assert not issubclass(_PlainClass, DependencyIntent)
+    def test_plain_class_is_not_depends_intent(self) -> None:
+        """A plain class is not a ``DependsIntent`` subclass."""
+        assert not issubclass(_PlainClass, DependsIntent)

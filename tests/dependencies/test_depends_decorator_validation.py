@@ -4,7 +4,7 @@
 import pytest
 
 from action_machine.intents.depends import depends
-from action_machine.intents.depends.dependency_intent import DependencyIntent
+from action_machine.intents.depends.depends_intent import DependsIntent
 
 
 class _Svc:
@@ -27,7 +27,7 @@ def test_depends_inner_rejects_non_class_target() -> None:
         dec(42)  # type: ignore[arg-type]
 
 
-def test_depends_accepts_class_without_dependency_intent_uses_object_bound() -> None:
+def test_depends_accepts_class_without_depends_intent_uses_object_bound() -> None:
     class Plain:
         pass
 
@@ -43,7 +43,7 @@ def test_depends_rejects_service_outside_bound() -> None:
     class Other:
         pass
 
-    class _Host(DependencyIntent[Bound]):
+    class _Host(DependsIntent[Bound]):
         pass
 
     dec = depends(Other, description="x")
@@ -56,5 +56,5 @@ def test_depends_rejects_duplicate_registration() -> None:
 
         @depends(_Svc, description="a")
         @depends(_Svc, description="b")
-        class _DupAction(DependencyIntent[object]):
+        class _DupAction(DependsIntent[object]):
             pass

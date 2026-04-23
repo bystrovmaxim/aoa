@@ -16,7 +16,7 @@ SKIP_FILES = {
     "tests/conftest.py",
     "tests/dependencies/__init__.py",
     "tests/dependencies/test_depends_decorator_validation.py",
-    "tests/dependencies/test_dependency_intent.py",
+    "tests/dependencies/test_depends_intent.py",
 }
 
 _tr = GoogleTranslator(source="ru", target="en")

@@ -45,7 +45,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from action_machine.intents.depends.dependency_intent import DependencyIntent
+from action_machine.intents.depends.depends_intent import DependsIntent
 from action_machine.legacy.application_context import ApplicationContext
 from action_machine.legacy.interchange_vertex_labels import (
     ACTION_VERTEX_TYPE,
@@ -66,11 +66,11 @@ class DependencyIntentInspector(BaseIntentInspector):
 AI-CORE-BEGIN
     ROLE: Concrete dependency inspector.
     CONTRACT: Emit action payloads with structural depends edges from ``_depends_info``.
-    INVARIANTS: Uses ``DependencyIntent`` marker traversal and ``depends`` snapshot key.
+    INVARIANTS: Uses ``DependsIntent`` marker traversal and ``depends`` snapshot key.
     AI-CORE-END
 """
 
-    _target_intent: type = DependencyIntent
+    _target_intent: type = DependsIntent
 
     @classmethod
     def stub_outgoing_edges_for_class_dependency(cls) -> tuple[FacetEdge, ...]:

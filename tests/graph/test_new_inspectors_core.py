@@ -24,7 +24,7 @@ from action_machine.domain.base_domain import BaseDomain
 from action_machine.intents.connection import connection
 from action_machine.intents.connection.connection_intent import ConnectionIntent
 from action_machine.intents.depends import depends
-from action_machine.intents.depends.dependency_intent import DependencyIntent
+from action_machine.intents.depends.depends_intent import DependsIntent
 from action_machine.intents.meta.action_meta_intent import ActionMetaIntent
 from action_machine.intents.meta.meta_decorator import meta
 from action_machine.legacy.connection_intent_inspector import ConnectionIntentInspector
@@ -59,11 +59,11 @@ class _ServiceB:
 
 @depends(_ServiceA, description="a")
 @depends(_ServiceB, description="b")
-class _DependsAction(DependencyIntent[object]):
+class _DependsAction(DependsIntent[object]):
     pass
 
 
-class _NoDependsAction(DependencyIntent[object]):
+class _NoDependsAction(DependsIntent[object]):
     pass
 
 
@@ -83,7 +83,7 @@ class _NoConnectionAction(ConnectionIntent):
 
 @depends(_ServiceA, description="svc")
 @connection(_DbManager, key="db", description="primary")
-class _DependsAndConnectionAction(DependencyIntent[object], ConnectionIntent):
+class _DependsAndConnectionAction(DependsIntent[object], ConnectionIntent):
     pass
 
 
