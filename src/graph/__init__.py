@@ -67,7 +67,6 @@ from graph.edge_relationship import (
     LineStyle,
 )
 from graph.graph_builder import GraphBuilder, build_interchange_from_facet_vertices
-from graph.graph_coordinator import GraphCoordinator
 from graph.graph_edge import GraphEdge
 from graph.graph_vertex import GraphVertex, GraphVertexParseError, ParsedGraphVertex
 from graph.validation import require_non_empty_str, require_non_null
@@ -95,7 +94,6 @@ __all__ = [
     "EndpointAttachment",
     "FacetInspectResult",
     "GraphBuilder",
-    "GraphCoordinator",
     "GraphEdge",
     "GraphVertex",
     "GraphVertexParseError",
