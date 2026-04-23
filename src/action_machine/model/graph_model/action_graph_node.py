@@ -268,18 +268,12 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
         return edges
 
     @classmethod
-    def _meta_info_dict(cls, action_cls: type[TAction]) -> dict[str, Any]:
-        """``_meta_info`` written by ``@meta``, or empty ``dict`` when absent or not a mapping."""
-        raw = getattr(action_cls, "_meta_info", None)
-        return raw if isinstance(raw, dict) else {}
-
-    @classmethod
     def get_domain_edge(
         cls,
         action_cls: type[TAction],
     ) -> list[BaseGraphEdge]:
         """Zero or one domain edge; empty when ``@meta`` has no valid ``BaseDomain`` in ``domain``."""
-        meta_info_dict = cls._meta_info_dict(action_cls)
+        meta_info_dict = IntentIntrospection.meta_info_dict(action_cls)
         domain_cls = meta_info_dict.get("domain")
         if domain_cls is None:
             return []
@@ -303,7 +297,7 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
     def get_properties(cls, action_cls: type[TAction]) -> dict[str, Any]:
         """``description`` from ``_meta_info`` when ``@meta(description=...)`` is present."""
         properties: dict[str, Any] = {}
-        desc = cls._meta_info_dict(action_cls).get("description")
+        desc = IntentIntrospection.meta_info_dict(action_cls).get("description")
         if isinstance(desc, str) and desc.strip():
             properties["description"] = desc.strip()
         return properties

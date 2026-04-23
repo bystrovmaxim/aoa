@@ -1,7 +1,8 @@
 # src/action_machine/introspection_tools/intent_introspection.py
 """
 Intent-scratch introspection: recognize ActionMachine pipeline callables from class ``vars``,
-and read normalized ``description`` strings from decorator metadata by ``CallableKind``.
+read normalized ``description`` strings from decorator metadata by ``CallableKind``,
+and read class-level ``@meta`` scratch (``_meta_info``) as a plain mapping.
 """
 
 from __future__ import annotations
@@ -24,6 +25,14 @@ class CallableKind(StrEnum):
 
 class IntentIntrospection:
     """Inspect class namespaces using intent decorator scratch (``_new_aspect_meta``, etc.)."""
+
+    @staticmethod
+    def meta_info_dict(host_cls: type) -> dict[str, Any]:
+        """
+        Return ``_meta_info`` written by ``@meta`` on ``host_cls``, or ``{}`` when absent or not a mapping.
+        """
+        raw = getattr(host_cls, "_meta_info", None)
+        return raw if isinstance(raw, dict) else {}
 
     @staticmethod
     def description_for_callable(call_like: Any, callable_kind: CallableKind | str) -> str | None:

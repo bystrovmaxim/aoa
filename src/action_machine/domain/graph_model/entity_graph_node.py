@@ -9,7 +9,7 @@ PURPOSE
 Materializes a frozen :class:`~graph.base_graph_node.BaseGraphNode` from an
 entity **class** object: stable ``id`` (dotted path), ``node_type="Entity"``,
 ``label`` from the class name, ``properties`` from :meth:`get_properties`, ``edges`` from
-:meth:`_get_all_edges` via :meth:`get_domain_edge` (``@entity`` / ``_entity_info`` and ``@meta`` / ``_meta_info`` merged; see :meth:`_meta_info_dict`).
+:meth:`_get_all_edges` via :meth:`get_domain_edge` (``@entity`` / ``_entity_info`` merged with ``@meta`` / ``_meta_info``; see :meth:`_declaration_dict`).
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
@@ -41,7 +41,7 @@ from typing import Any, ClassVar, TypeVar
 
 from action_machine.domain.base_domain import BaseDomain
 from action_machine.domain.entity import BaseEntity
-from action_machine.introspection_tools import TypeIntrospection
+from action_machine.introspection_tools import IntentIntrospection, TypeIntrospection
 from graph.base_graph_edge import BaseGraphEdge
 from graph.base_graph_node import BaseGraphNode
 from graph.edge_relationship import ASSOCIATION
@@ -56,22 +56,22 @@ class EntityGraphNode(BaseGraphNode[type[TEntity]]):
     """
     AI-CORE-BEGIN
     ROLE: Interchange bridge for ``BaseEntity`` host classes.
-    CONTRACT: Dotted-path ``id``, ``__name__`` label; :attr:`NODE_TYPE` for ``node_type``; ``get_properties`` / ``get_domain_edge`` via :meth:`_meta_info_dict`; ``edges`` = :meth:`_get_all_edges`.
+    CONTRACT: Dotted-path ``id``, ``__name__`` label; :attr:`NODE_TYPE` for ``node_type``; ``get_properties`` / ``get_domain_edge`` via :meth:`_declaration_dict`; ``edges`` = :meth:`_get_all_edges`.
     AI-CORE-END
     """
 
     NODE_TYPE: ClassVar[str] = "Entity"
 
     @classmethod
-    def _meta_info_dict(cls, entity_cls: type[TEntity]) -> dict[str, Any]:
+    def _declaration_dict(cls, entity_cls: type[TEntity]) -> dict[str, Any]:
         """
         Merge ``_entity_info`` (``@entity``) then ``_meta_info`` (``@meta``); latter wins on key clash.
         """
         out: dict[str, Any] = {}
-        for attr in ("_entity_info", "_meta_info"):
-            raw = getattr(entity_cls, attr, None)
-            if isinstance(raw, dict):
-                out.update(raw)
+        raw_entity = getattr(entity_cls, "_entity_info", None)
+        if isinstance(raw_entity, dict):
+            out.update(raw_entity)
+        out.update(IntentIntrospection.meta_info_dict(entity_cls))
         return out
 
     @classmethod
@@ -83,7 +83,7 @@ class EntityGraphNode(BaseGraphNode[type[TEntity]]):
         ``BaseGraphEdge`` for the ``domain`` slot, or ``None`` when declarations have no
         valid ``BaseDomain`` in ``domain``.
         """
-        meta_info_dict = cls._meta_info_dict(entity_cls)
+        meta_info_dict = cls._declaration_dict(entity_cls)
         domain_cls = meta_info_dict.get("domain")
         if domain_cls is None:
             return None
@@ -111,7 +111,7 @@ class EntityGraphNode(BaseGraphNode[type[TEntity]]):
     def get_properties(cls, entity_cls: type[TEntity]) -> dict[str, Any]:
         """``description`` when present in the merged declaration dict (``@entity`` / ``@meta``)."""
         properties: dict[str, Any] = {}
-        desc = cls._meta_info_dict(entity_cls).get("description")
+        desc = cls._declaration_dict(entity_cls).get("description")
         if isinstance(desc, str) and desc.strip():
             properties["description"] = desc.strip()
         return properties
