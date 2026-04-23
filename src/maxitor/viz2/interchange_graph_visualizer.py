@@ -50,6 +50,7 @@ from action_machine.model.graph_model.property_field_graph_node import PropertyF
 from action_machine.model.graph_model.regular_aspect_graph_node import RegularAspectGraphNode
 from action_machine.model.graph_model.result_graph_node import ResultGraphNode
 from action_machine.model.graph_model.summary_aspect_graph_node import SummaryAspectGraphNode
+from action_machine.resources.graph_model.resource_graph_node import ResourceGraphNode
 from graph.base_graph_edge import BaseGraphEdge
 from graph.base_graph_node import BaseGraphNode
 from graph.base_graph_node_inspector import BaseGraphNodeInspector
@@ -75,6 +76,7 @@ VERTEX_TYPE_FILL_COLORS: dict[str, str] = {
     APPLICATION_VERTEX_TYPE: "#000000",
     ActionGraphNode.NODE_TYPE: "#E41A1C",
     DomainGraphNode.NODE_TYPE: "#377EB8",
+    ResourceGraphNode.NODE_TYPE: "#7570B3",
     "dependency": "#4DAF4A",
     "connection": "#984EA3",
     RegularAspectGraphNode.NODE_TYPE: "#FF7F00",
@@ -87,7 +89,6 @@ VERTEX_TYPE_FILL_COLORS: dict[str, str] = {
     "lifecycle_state_initial": "#9575CD",
     "lifecycle_state_intermediate": "#6A51A3",
     "lifecycle_state_final": "#452E7A",
-    "resource_manager": "#7570B3",
     "role_class": "#66A61E",
     RoleGraphNode.NODE_TYPE: "#66A61E",
     "role": "#E6AB02",
@@ -103,6 +104,9 @@ VERTEX_TYPE_FILL_COLORS: dict[str, str] = {
     "service": "#1F78B4",
     SERVICE_VERTEX_TYPE: "#4DAF4A",
 }
+
+# Same hue as viz1 ``resource_manager`` (:data:`maxitor.viz1.visualizer.VERTEX_TYPE_FILL_COLORS`).
+VERTEX_TYPE_FILL_COLORS["resource_manager"] = VERTEX_TYPE_FILL_COLORS[ResourceGraphNode.NODE_TYPE]
 
 DEFAULT_COLOR = "#95a5a6"
 
@@ -513,7 +517,7 @@ def all_axis_graph_node_inspectors() -> list[BaseGraphNodeInspector[Any]]:
     """
     Built-in axis inspectors for **sample** / demo HTML.
 
-    Includes ``Domain``, ``Entity``, and ``Action`` so :class:`~action_machine.model.graph_model.action_graph_node.ActionGraphNode`
+    Includes ``Domain``, ``Resource``, ``Entity``, and ``Action`` so :class:`~action_machine.model.graph_model.action_graph_node.ActionGraphNode`
     ``domain`` / ``params`` / ``result`` edges resolve to existing vertices. This module does not
     inject missing nodes; :meth:`~graph.node_graph_coordinator.NodeGraphCoordinator.build` still
     validates every ``target_node_id``.
@@ -527,6 +531,9 @@ def all_axis_graph_node_inspectors() -> list[BaseGraphNodeInspector[Any]]:
     )
     from action_machine.domain.graph_model.entity_graph_node_inspector import (
         EntityGraphNodeInspector,
+    )
+    from action_machine.resources.graph_model.resource_graph_node_inspector import (
+        ResourceGraphNodeInspector,
     )
     from action_machine.model.graph_model.action_graph_node_inspector import (
         ActionGraphNodeInspector,
@@ -543,6 +550,7 @@ def all_axis_graph_node_inspectors() -> list[BaseGraphNodeInspector[Any]]:
         ResultGraphNodeInspector(),
         RoleGraphNodeInspector(),
         DomainGraphNodeInspector(),
+        ResourceGraphNodeInspector(),
         EntityGraphNodeInspector(),
         ActionGraphNodeInspector(),
     ]
